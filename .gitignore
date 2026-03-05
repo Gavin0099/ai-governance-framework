@@ -1,0 +1,56 @@
+# macOS
+.DS_Store
+._*
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+*.egg-info/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+*_backup.md
+
+# Personal / Private
+personal/
+private/
+.env
+.env.local
+
+# Build
+build/
+dist/
+*.egg
+
+# Test
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Documentation build
+docs/_build/
