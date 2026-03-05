@@ -67,12 +67,36 @@ The human may override this declaration. Loading rules per §3.
 
 **⑤ ADR Conflict Check** — If the task may produce architectural decisions, scan `docs/adr/` directory index and list existing ADR titles. Confirm no conflicts before proceeding.
 
-**⑥ Memory Pressure Check** — **[新增]** Before starting execution, the agent **must**:
+**⑥ Memory Pressure Check** — Before starting execution, the agent **must**:
 
 1. Check line count of `memory/01_active_task.md`
 2. Apply pressure handling per §6.4
 3. If status is **WARNING** or higher → append warning message to response footer
 4. If status is **EMERGENCY** → **STOP immediately** and force cleanup
+
+**⑦ Governance Contract Output** — After completing ①–⑥, the agent **must** output the following block verbatim before any task response. This block is machine-verifiable by `governance_tools/contract_validator.py`.
+
+```
+[Governance Contract]
+LANG     = <value>
+LEVEL    = <value>
+SCOPE    = <value>
+PLAN     = <current phase> / <sprint> / <task>
+LOADED   = <comma-separated list of loaded governance docs>
+CONTEXT  = <context name> — <responsible for X>; NOT: <not responsible for Y>
+PRESSURE = <SAFE|WARNING|CRITICAL|EMERGENCY> (<line count>/200)
+```
+
+**Field rules**:
+- `LANG`: must be one of `C++ | C# | ObjC | Swift | JS`
+- `LEVEL`: must be one of `L0 | L1 | L2`
+- `SCOPE`: must be one of `feature | refactor | bugfix | I/O | tooling | review`
+- `PLAN`: free text from PLAN.md — omit if PLAN.md missing (warn instead)
+- `LOADED`: must include at minimum `SYSTEM_PROMPT, HUMAN-OVERSIGHT`
+- `CONTEXT`: must have both `—` separator and `NOT:` clause
+- `PRESSURE`: must include level label and line count
+
+❌ Missing or malformed contract block → human may reject the response using the validator.
 
 ---
 

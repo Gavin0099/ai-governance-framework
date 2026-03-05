@@ -281,6 +281,7 @@ ai-governance-framework/
 │
 ├── governance_tools/            ← 輔助工具
 │   ├── README.md               ← 工具說明
+│   ├── contract_validator.py   ← AI 合規驗證工具 ⭐ NEW
 │   ├── memory_janitor.py       ← 記憶掃除工具
 │   └── linear_integrator.py   ← Linear 任務同步工具
 │
@@ -316,6 +317,7 @@ ai-governance-framework/
 ### 工具
 
 - **[deploy_to_memory.sh](deploy_to_memory.sh)** - 部署腳本
+- **[contract_validator.py](governance_tools/contract_validator.py)** ⭐ - AI 合規驗證工具
 - **[governance_tools/](governance_tools/)** - 輔助工具集
 
 ---
@@ -338,6 +340,60 @@ ai-governance-framework/
 3. Commit 你的變更 (`git commit -m 'Add some AmazingFeature'`)
 4. Push 到 branch (`git push origin feature/AmazingFeature`)
 5. 開啟 Pull Request
+
+---
+
+## 🔍 Contract Validator — AI 合規驗證工具
+
+`governance_tools/contract_validator.py` 可機器驗證 AI 回覆是否包含合規的 `[Governance Contract]` 區塊（由 SYSTEM_PROMPT.md §2 ⑦ 定義）。
+
+### 用法
+
+```bash
+# 從檔案驗證
+python governance_tools/contract_validator.py --file response.txt
+
+# 從 stdin 驗證
+echo "<AI 回覆>" | python governance_tools/contract_validator.py
+
+# JSON 輸出（接 CI / 自動化）
+python governance_tools/contract_validator.py --file response.txt --format json
+```
+
+### 退出碼
+
+| 退出碼 | 意義 |
+|--------|------|
+| `0` | ✅ 合規 — 區塊存在且所有欄位通過驗證 |
+| `1` | ❌ 不合規 — 區塊存在但有欄位錯誤 |
+| `2` | 🚨 找不到 `[Governance Contract]` 區塊 |
+
+### 驗證欄位
+
+| 欄位 | 必填 | 合法值 |
+|------|------|--------|
+| `LANG` | ✅ | `C++`, `C#`, `ObjC`, `Swift`, `JS` |
+| `LEVEL` | ✅ | `L0`, `L1`, `L2` |
+| `SCOPE` | ✅ | `feature`, `refactor`, `bugfix`, `I/O`, `tooling`, `review` |
+| `LOADED` | ✅ | 必須包含 `SYSTEM_PROMPT` 和 `HUMAN-OVERSIGHT` |
+| `CONTEXT` | ✅ | 需含 `—` 分隔符與 `NOT:` 子句 |
+| `PRESSURE` | ✅ | `SAFE`, `WARNING`, `CRITICAL`, `EMERGENCY` |
+| `PLAN` | ⚠️ | 若專案有 PLAN.md 則為必填（缺失時為警告） |
+
+### 合規的 AI 回覆範例
+
+````
+```
+[Governance Contract]
+LANG     = C#
+LEVEL    = L1
+SCOPE    = feature
+PLAN     = Phase B - Sprint 1 - B1
+LOADED   = SYSTEM_PROMPT, HUMAN-OVERSIGHT, AGENT, ARCHITECTURE
+CONTEXT  = UserService — 負責: 登入邏輯; NOT: 資料庫連線、UI 渲染
+PRESSURE = SAFE (42/200)
+```
+````
 
 ---
 
@@ -372,6 +428,25 @@ myproject/
 - **本週聚焦**: 每週更新 (Sprint)
 - **當前階段**: 每 Phase 更新
 - **變更歷史**: 每次修改都記錄
+
+### Q: 如何驗證 AI 有正確初始化?
+
+使用 Contract Validator 機器驗證：
+
+```bash
+# 1. 將 AI 的回覆存成檔案
+# 2. 執行驗證
+python governance_tools/contract_validator.py --file ai_response.txt
+
+# 輸出範例:
+# ✅ 合規
+# 或
+# ❌ 不合規 — 2 個錯誤:
+#    • LOADED 缺少必要文件: ['HUMAN-OVERSIGHT']
+#    • CONTEXT 缺少 'NOT:' 子句
+```
+
+驗證失敗時，要求 AI 重新執行 SYSTEM_PROMPT.md §2 初始化流程。
 
 ### Q: AI 不遵守 PLAN.md 怎麼辦?
 
@@ -459,6 +534,7 @@ Permission is hereby granted, free of charge...
 - [🚀 快速開始](#-快速開始)
 - [📦 8 大法典](#-8-大法典-完整治理架構)
 - [💡 PLAN.md 說明](#-planmd--最重要的文件)
+- [🔍 Contract Validator](#-contract-validator--ai-合規驗證工具)
 - [🛠️ 專案結構](#%EF%B8%8F-專案結構)
 - [🤝 貢獻指南](#-貢獻)
 - [💬 常見問題](#-常見問題-faq)
