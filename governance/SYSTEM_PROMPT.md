@@ -143,6 +143,7 @@ The agent is responsible for long-term project continuity. This is a formal gove
 | Architectural decision | Record in `memory/02_tech_stack.md` |
 | New gotcha/solution discovered | Record in `memory/03_knowledge_base.md` |
 | Phase milestone completed | Update `memory/00_master_plan.md` |
+| Review completed (any verdict) | Append full record to `memory/04_review_log.md`; update `memory/01_active_task.md` with one-line summary only |
 
 Format specs in §8.2.
 
@@ -278,7 +279,8 @@ memory/
 ├── 00_master_plan.md            ← Long-term vision & phases
 ├── 01_active_task.md            ← Current task status (HOT MEMORY - 200 line limit)
 ├── 02_tech_stack.md             ← Tech architecture & gotchas
-├── 03_knowledge_base.md         ← Troubleshooting records
+├── 03_knowledge_base.md         ← Troubleshooting records & anti-patterns
+├── 04_review_log.md             ← Full audit trail for all code reviews (append-only)
 │
 ├── archive/                     ← Archived completed tasks
 │   └── active_task_YYYYMMDD_HHMMSS.md
@@ -391,6 +393,38 @@ Every record **must** follow the **Problem → Cause → Solution** structure.
 New records appended at the end with incrementing numbers.
 
 The **Anti-Patterns** section records mistakes that must never be repeated. This section has stronger constraining power on the agent than positive examples.
+
+---
+
+#### `04_review_log.md`
+
+```markdown
+# Review Log
+
+## Review #N: [Feature / PR / File Title] (YYYY-MM-DD)
+- **Target**: [What was reviewed — file path, PR, or feature name]
+- **Header**: LANG=... | LEVEL=... | SCOPE=review
+- **Verdict**: APPROVED | CHANGES_REQUESTED | ESCALATED
+- **Risk Level**: Low | Medium | High
+
+### Findings
+- 🔴 BLOCKING: [location] [description] — ref: [governance doc §section]
+- ⚠️ WARNING: [location] [description] — ref: [governance doc §section]
+- 💡 SUGGESTION: [description]
+
+### Knowledge Base Impact
+- [ ] New anti-pattern added to `03_knowledge_base.md`: [title] (or "None")
+
+### Follow-up
+- [ ] Re-review required after fixes (or "None")
+```
+
+**Hard Rules**:
+- Append-only — never modify or delete past records
+- Every finding **must** reference a specific governance doc and section
+- `01_active_task.md` records only: `- [x] Review #N completed — Verdict: X` (one line)
+- No line limit (unlike `01_active_task.md`); full audit trail must be preserved
+- Update trigger: immediately after every `SCOPE = review` session
 
 ---
 

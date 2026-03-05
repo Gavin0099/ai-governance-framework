@@ -100,40 +100,57 @@ cd ai-governance-framework
 ### 2. 部署到你的專案
 
 ```bash
-# 複製治理文件到你的專案根目錄
-cp -r governance /path/to/your/project/
+# 使用部署腳本 (推薦)
+# 自動複製治理文件 + 生成 PLAN.md 模板 + 建立 memory/ 目錄結構
+./deploy_to_memory.sh /path/to/your/project
 
-# 或使用部署腳本
-./deploy_to_memory.sh
+# 或手動複製
+cp -r governance /path/to/your/project/
+cp -r governance_tools /path/to/your/project/
+```
+
+部署後目標專案結構：
+
+```
+your-project/
+├── PLAN.md              ← 自動生成的模板，填寫後即可使用 ⭐
+├── governance/          ← 8 大法典
+├── governance_tools/    ← 自動化工具
+└── memory/              ← 建議手動建立，供 AI 記憶使用
+    ├── 00_master_plan.md
+    ├── 01_active_task.md
+    ├── 02_tech_stack.md
+    ├── 03_knowledge_base.md
+    └── 04_review_log.md  ← AI reviewer 的完整審查紀錄
 ```
 
 ### 3. 告訴 AI 讀取治理文件
 
 **第一次對話**:
 ```
-請閱讀 governance/ 目錄下的所有治理文件:
+請閱讀 governance/ 目錄下的所有治理文件，
+並依照 SYSTEM_PROMPT.md §2 的初始化流程執行：
 
-1. SYSTEM_PROMPT.md - 了解你的身份與禁忌
-2. PLAN.md - 了解專案規劃格式規範 ⭐ 最重要
-3. AGENT.md - 了解任務執行流程
-4. ARCHITECTURE.md - 了解架構紅線
-5. HUMAN-OVERSIGHT.md - 了解何時必須停止
-
-特別注意 PLAN.md 的「AI 協作規則」§3.7:
-實作任何功能前，必須先檢查:
-- 是否在「本週聚焦」中?
-- 是否在「不要做」清單中?
+① Header Verification: 確認 LANG / LEVEL / SCOPE
+② Memory Sync: 讀取 PLAN.md 和 memory/ 目錄
+③ Bounded Context: 宣告本次任務的責任範圍
+④ Dynamic Loading Declaration: 宣告本次需載入哪些治理文件
 ```
 
-### 4. 為你的專案建立 PLAN.md
+> **注意**: SYSTEM_PROMPT.md §2 會自動要求 AI 讀取 PLAN.md。
+> 若 PLAN.md 不存在，AI 會警告並要求先建立。
+
+### 4. 填寫你的 PLAN.md
+
+部署腳本已自動生成 `PLAN.md` 模板，只需填寫專案資訊：
 
 ```bash
-# 閱讀 PLAN.md 規範
-cat governance/PLAN.md
-
-# 根據規範為你的專案建立 PLAN
-# 參考 governance/PLAN.md 中的範例
+# 開啟並編輯模板
+# 必填欄位: 專案目標、當前 Phase、本週聚焦、AI 協作規則
+code PLAN.md   # 或使用任意編輯器
 ```
+
+格式規範請參考 [governance/PLAN.md](governance/PLAN.md)。
 
 ---
 
@@ -358,17 +375,24 @@ myproject/
 
 ### Q: AI 不遵守 PLAN.md 怎麼辦?
 
-1. 檢查 PLAN.md 格式是否符合 [規範](governance/PLAN.md)
-2. 明確告訴 AI:「請遵守 PLAN.md 的 AI 協作規則 §3.7」
-3. 在對話開頭重申規則
+1. 確認 AI 有讀取 `governance/SYSTEM_PROMPT.md`（它會自動要求讀 PLAN.md）
+2. 檢查 PLAN.md 格式是否符合 [規範](governance/PLAN.md)
+3. 明確告訴 AI:「請遵守 PLAN.md 的 AI 協作規則 §3.7」
+
+### Q: 04_review_log.md 是什麼?
+
+當 AI 擔任 reviewer（`SCOPE = review`）時，審查結果會寫入 `memory/04_review_log.md`。
+這個檔案是完整的 audit trail，記錄每次 review 的 verdict、發現問題與治理文件引用。
+`memory/01_active_task.md` 只會記錄一行摘要，避免超過 200 行限制。
 
 ### Q: 我該從哪個文件開始?
 
 **推薦順序**:
 1. 📖 閱讀本 README
 2. 📋 閱讀 [PLAN.md](governance/PLAN.md) 規範
-3. 🚀 使用 `deploy_to_memory.sh` 部署
-4. ✍️ 為你的專案建立第一份 PLAN.md
+3. 🚀 執行 `deploy_to_memory.sh /path/to/your/project`
+4. ✍️ 編輯自動生成的 PLAN.md，填寫專案資訊
+5. 🤖 用步驟 3 的初始化提示詞開始第一次對話
 
 ---
 

@@ -112,15 +112,33 @@ Every review response **must** follow this structure:
 
 ## 6. Post-Review Actions
 
-After issuing a verdict:
+After issuing a verdict, the agent **must** write to memory in this order:
 
-| Verdict | Action |
+### Step 1 — Always: Append full record to `memory/04_review_log.md`
+
+Regardless of verdict, append a complete review record (format per `SYSTEM_PROMPT.md` §8.2 `04_review_log.md`).
+Every finding **must** reference the specific governance doc and section that was violated or confirmed.
+
+### Step 2 — Always: One-line summary in `memory/01_active_task.md`
+
+```
+- [x] Review #N completed — Verdict: APPROVED | CHANGES_REQUESTED | ESCALATED
+```
+
+❌ Do not write full findings into `01_active_task.md` — it has a 200-line hard limit.
+
+### Step 3 — Conditional
+
+| Verdict | Additional Action |
 |---|---|
-| **APPROVED** | Update `memory/01_active_task.md` to reflect review completion |
-| **CHANGES_REQUESTED** | Document findings in audit trace (per `HUMAN-OVERSIGHT.md` §5) |
+| **APPROVED** | No further action required |
+| **CHANGES_REQUESTED** | Mark follow-up in `04_review_log.md` → `- [ ] Re-review required after fixes` |
 | **ESCALATED** | Follow `HUMAN-OVERSIGHT.md` §2 escalation procedure |
 
-If the review uncovered a new anti-pattern or gotcha → record in `memory/03_knowledge_base.md`.
+### Step 4 — If new anti-pattern or gotcha discovered
+
+Record in `memory/03_knowledge_base.md` under **Anti-Patterns** section.
+Cross-reference the review entry: `Reference: Review #N (YYYY-MM-DD)`.
 
 ---
 
