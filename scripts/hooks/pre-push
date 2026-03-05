@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# pre-push hook — AI Governance Framework
+#
+# push 前執行 contract_validator 檢查（若有待驗證的 AI 回覆快照）。
+#
+# 目前為「軟性」：僅輸出警告，不擋 push。
+# 若需硬性擋截，將最後的 exit 0 改為 exit 1。
+#
+# 安裝方式：
+#   bash scripts/install-hooks.sh
+
+set -euo pipefail
+
+TOOL="governance_tools/contract_validator.py"
+SNAPSHOT_DIR="memory/governance_snapshots"
+
+if [ ! -f "$TOOL" ]; then
+    exit 0
+fi
+
+if [ ! -d "$SNAPSHOT_DIR" ]; then
+    exit 0
+fi
+
+PYTHON_CMD="python"
+command -v python &>/dev/null || PYTHON_CMD="python3"
+
+FAIL_COUNT=0
+for snapshot in "$SNAPSHOT_DIR"/*.txt; do
+    [ -f "$snapshot" ] || continue
+    RESULT=$($PYTHON_CMD "$TOOL" --file "$snapshot" --format json 2>/dev/null) || true
+    STATUS=$(echo "$RESULT" | $PYTHON_CMD -c "import sys,json; d=json.load(sys.stdin); print(d.get('valid',True))" 2>/dev/null || echo "true")
+    if [ "$STATUS" = "False" ]; then
+        echo "⚠️  [governance] 合規快照不通過: $(basename "$snapshot")"
+        FAIL_COUNT=$((FAIL_COUNT + 1))
+    fi
+done
+
+if [ "$FAIL_COUNT" -gt 0 ]; then
+    echo ""
+    echo "⚠️  [governance] ${FAIL_COUNT} 個 AI 回覆快照驗證不通過"
+    echo "   如需強制 push: git push --no-verify"
+    echo ""
+fi
+
+exit 0

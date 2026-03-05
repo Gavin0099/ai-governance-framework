@@ -89,7 +89,7 @@
 ├─ [⏳] C1. 工具輸出支援 --format json（接 CI/dashboard）
 ├─ [⏳] C2. memory_janitor 加入單元測試
 ├─ [⏳] C3. linear_integrator 加入錯誤處理、rate limit、敏感資訊防寫入
-└─ [⏳] C4. Git hook 範例（PLAN.md 過期提醒）
+└─ [✓] C4. Git hook 一鍵安裝（PLAN.md 過期擋 commit）  (2026/03/05 完成)
 ```
 
 **Gate 條件**:
@@ -163,7 +163,7 @@ Phase B Gate 全部通過 ✅ → 進入 Phase C
 - [ ] D1. Linear 同步策略文件
 
 ### 低優先 (P2)
-- [ ] C4. Git hook 範例
+- [x] C4. Git hook 一鍵安裝 ✓ 2026/03/05
 - [ ] D2. GitHub Actions CI 範例
 - [ ] D3. Jira / Notion 整合
 

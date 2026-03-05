@@ -327,6 +327,12 @@ ai-governance-framework/
 │       ├── PLAN.md             ← 已填好的計畫範本
 │       └── DEMO_LOG.md         ← AI 對話示範紀錄
 │
+├── scripts/                     ← 工具腳本
+│   ├── install-hooks.sh        ← Git hooks 一鍵安裝 ⭐
+│   └── hooks/                  ← hook 原始檔
+│       ├── pre-commit          ← PLAN.md freshness 擋截
+│       └── pre-push            ← AI 回覆快照驗證
+│
 └── archive/                     ← 記憶歸檔區 (由 memory_janitor 使用)
 ```
 
@@ -359,6 +365,7 @@ ai-governance-framework/
 ### 工具
 
 - **[deploy_to_memory.sh](deploy_to_memory.sh)** - 部署腳本
+- **[scripts/install-hooks.sh](scripts/install-hooks.sh)** ⭐ - Git hooks 一鍵安裝（CRITICAL 擋 commit）
 - **[contract_validator.py](governance_tools/contract_validator.py)** ⭐ - AI 合規驗證工具
 - **[plan_freshness.py](governance_tools/plan_freshness.py)** ⭐ - PLAN.md 新鮮度檢查工具
 - **[state_generator.py](governance_tools/state_generator.py)** ⭐ - PLAN.md → machine-readable state
@@ -496,6 +503,51 @@ if r['status'] == 'CRITICAL':
 elif r['status'] == 'STALE':
     print(f\"⚠️  PLAN.md 已 {r['days_since_update']}d 未更新，建議更新\")
 "
+```
+
+---
+
+## 🪝 Git Hooks — 技術強制執行
+
+`scripts/install-hooks.sh` 一鍵安裝 Git hooks，讓 PLAN.md 過期成為 **commit 前的技術閘門**（不只是警告）。
+
+### 安裝
+
+```bash
+# 安裝到當前 repo
+bash scripts/install-hooks.sh
+
+# 安裝到其他專案（已部署框架的 repo）
+bash scripts/install-hooks.sh --target /path/to/your/project
+
+# 模擬執行（不實際修改）
+bash scripts/install-hooks.sh --dry-run
+```
+
+### 行為
+
+| Hook | 觸發時機 | 行為 |
+|------|---------|------|
+| `pre-commit` | 每次 `git commit` | PLAN.md CRITICAL → **擋截**；STALE → 警告 |
+| `pre-push` | 每次 `git push` | AI 回覆快照驗證（目前為警告模式） |
+
+### 擋截範例
+
+```
+🔴 [governance] PLAN.md 嚴重過期：已 16d 未更新（臨界值: 14d）
+   計畫可能已失效，請更新後再 commit：
+
+   1. 更新 PLAN.md 的「最後更新」欄位（格式: YYYY-MM-DD）
+   2. 更新「本週聚焦」或「變更歷史」
+   3. git add PLAN.md && git commit
+```
+
+> 如需跳過（不建議）：`git commit --no-verify`
+
+### 解除安裝
+
+```bash
+rm .git/hooks/pre-commit .git/hooks/pre-push
 ```
 
 ---
