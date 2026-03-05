@@ -67,15 +67,15 @@
 **任務清單**:
 ```
 ├─ [✓] B1. Governance Contract Validator  (2026/03/05 完成)
-├─ [⏳] B2. PLAN.md Freshness 機制
-├─ [⏳] B3. memory_janitor 改為 copy+pointer+manifest
-└─ [⏳] B4. 範例 toy repo + demo log
+├─ [✓] B2. PLAN.md Freshness 機制  (2026/03/05 完成)
+├─ [✓] B3. memory_janitor 改為 copy+pointer+manifest  (2026/03/05 完成)
+└─ [🔄] B4. 範例 toy repo + demo log  ← 當前進行中
 ```
 
 **Gate 條件**:
 - [x] Validator 能機器判定 AI 初始化是否合規
-- [ ] PLAN.md 有 freshness 欄位且有工具提醒
-- [ ] memory_janitor 歸檔後原檔保留 pointer
+- [x] PLAN.md 有 freshness 欄位且有工具提醒
+- [x] memory_janitor 歸檔後原檔保留 pointer
 - [ ] Toy repo 可讓新用戶照做並體感「AI 開始問計畫」
 
 ---
@@ -120,22 +120,31 @@
 
 **Sprint 1** (2026/03/05 - 2026/03/16)
 
-**目標**: 完成 B1 Governance Contract Validator
+**目標**: 完成 Phase B Gate（B3 + B4）
 
-**任務清單**:
-- [x] B1-a. 定義 AI 合規回覆的固定 header 格式 (4h) — SYSTEM_PROMPT.md §2 ⑦
-- [x] B1-b. 撰寫 `governance_tools/contract_validator.py` (6h) — 支援 human/json 輸出、退出碼
-- [x] B1-c. 更新 SYSTEM_PROMPT.md — 要求 AI 輸出固定 header (2h)
-- [x] B1-d. 更新 README.md — 說明 validator 用法 (2h)
+**已完成**:
+- [x] B1 Governance Contract Validator（2026/03/05）
+- [x] B2 PLAN.md Freshness 機制（2026/03/05）
+  - 額外完成: `.governance-state.yaml` + `state_generator.py`
+  - 額外完成: Agent Identity（AGENT_ID/SESSION）
+
+**進行中**:
+- [x] B3-a. 分析 memory_janitor.py 現有 `--execute` 行為（移動邏輯）
+- [x] B3-b. 改為 copy+pointer 模式：原位保留 pointer 區塊
+- [x] B3-c. 加入 `manifest.json` 紀錄每次歸檔操作
+- [x] B3-d. 加入 `--manifest` 和 `--format json` 支援
+- [ ] B4-a. 建立 `examples/` 目錄與基本結構
+- [ ] B4-b. 撰寫 terminal demo log（15 分鐘體感流程）
+- [ ] B4-c. 更新 README.md 說明 examples/
 
 **下一步**:
-1. B2 PLAN.md Freshness 機制
-2. B3 memory_janitor copy+pointer 修正
+完成 B4 → Phase B Gate 全部通過 → 進入 Phase C
 
 **當前阻礙**: 無
 
 **已決策**:
 - ✅ Validator 使用正規表達式驗證（更彈性，支援 markdown code block 與純文字兩種格式）
+- ✅ state_generator.py 使用 YAML 輸出（pyyaml 非必要，自製序列化避免依賴）
 
 ---
 
@@ -143,8 +152,8 @@
 
 ### 高優先 (P0)
 - [x] B1. Governance Contract Validator（AI 初始化合規性機器驗證）✓ 2026/03/05
-- [ ] B2. PLAN.md Freshness（最後更新日 + owner + Git hook 提醒）
-- [ ] B3. memory_janitor copy+pointer+manifest（修補 audit trail 缺口）
+- [x] B2. PLAN.md Freshness（最後更新日 + owner + Git hook 提醒）✓ 2026/03/05
+- [x] B3. memory_janitor copy+pointer+manifest（修補 audit trail 缺口）✓ 2026/03/05
 
 ### 中優先 (P1)
 - [ ] B4. Toy repo 範例專案 + terminal demo log
