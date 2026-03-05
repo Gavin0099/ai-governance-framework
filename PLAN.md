@@ -86,15 +86,15 @@
 
 **任務清單**:
 ```
-├─ [⏳] C1. 工具輸出支援 --format json（接 CI/dashboard）
-├─ [⏳] C2. memory_janitor 加入單元測試
+├─ [✓] C1. 工具輸出支援 --format json（接 CI/dashboard）  (2026/03/05 完成)
+├─ [✓] C2. memory_janitor 加入單元測試  (2026/03/05 完成)
 ├─ [⏳] C3. linear_integrator 加入錯誤處理、rate limit、敏感資訊防寫入
 └─ [✓] C4. Git hook 一鍵安裝（PLAN.md 過期擋 commit）  (2026/03/05 完成)
 ```
 
 **Gate 條件**:
-- [ ] 所有工具有 --format json 輸出
-- [ ] memory_janitor 測試覆蓋率 ≥ 70%
+- [x] 所有工具有 --format json 輸出
+- [x] memory_janitor 測試覆蓋率 ≥ 70%（47 tests, 71%）
 - [ ] linear_integrator 有明確的 source of truth 策略文件
 
 ---
@@ -157,8 +157,8 @@ Phase B Gate 全部通過 ✅ → 進入 Phase C
 
 ### 中優先 (P1)
 - [x] B4. Toy repo 範例專案 + terminal demo log ✓ 2026/03/05
-- [ ] C1. 工具輸出 --format json
-- [ ] C2. memory_janitor 單元測試
+- [x] C1. 工具輸出 --format json ✓ 2026/03/05
+- [x] C2. memory_janitor 單元測試 ✓ 2026/03/05
 - [ ] C3. linear_integrator 錯誤處理強化
 - [ ] D1. Linear 同步策略文件
 
@@ -238,9 +238,9 @@ Phase B Gate 全部通過 ✅ → 進入 Phase C
 
 | ID | 債務描述 | 預計償還時間 | 優先級 |
 |---|---|---|---|
-| DEBT-001 | memory_janitor 無單元測試，regex 脆弱 | Phase C | P1 |
-| DEBT-002 | linear_integrator 無 rate limit / 敏感資訊防護 | Phase C | P1 |
-| DEBT-003 | 工具輸出為純文字，無法接 CI pipeline | Phase C | P1 |
+| DEBT-001 | memory_janitor 無單元測試，regex 脆弱 | ✅ C2 完成 (71% coverage) | P1 |
+| DEBT-002 | linear_integrator 無 rate limit / 敏感資訊防護 | Phase C (C3 待做) | P1 |
+| DEBT-003 | 工具輸出為純文字，無法接 CI pipeline | ✅ C1 完成 (all tools --format json) | P1 |
 
 ---
 
@@ -250,3 +250,6 @@ Phase B Gate 全部通過 ✅ → 進入 Phase C
 |---|---|---|
 | 2026/03/05 | 建立 PLAN.md，啟動 Phase B | 框架分析後確立下一步 roadmap |
 | 2026/03/05 | 完成 B1 Governance Contract Validator | B1-a/b/c/d 全部完成，validator 支援 human/json 輸出 |
+| 2026/03/05 | 完成 C4 Git hooks 一鍵安裝 | pre-commit CRITICAL 擋 commit，pre-push 軟性警告 |
+| 2026/03/05 | 完成 C2 memory_janitor 單元測試 | 47 tests，71% coverage，超過 70% gate |
+| 2026/03/05 | 完成 C1 --format json 標準化 | memory_janitor --plan 補齊；所有工具 JSON 輸出一致 |
