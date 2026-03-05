@@ -267,11 +267,13 @@ ai-governance-framework/
 ├── README.md                    ← 你正在看的檔案
 ├── LICENSE                      ← MIT 授權
 ├── CONTRIBUTING.md              ← 貢獻指南
-├── deploy_to_memory.sh         ← 部署腳本
+├── PLAN.md                      ← 本專案的開發計畫 ⭐
+├── .governance-state.yaml       ← PLAN.md 的機器可讀萃取版 (auto-generated)
+├── deploy_to_memory.sh          ← 部署腳本
 │
 ├── governance/                  ← 8 大法典
 │   ├── SYSTEM_PROMPT.md        ← AI 身份與禁忌
-│   ├── PLAN.md                 ← 專案規劃規範 ⭐ 核心
+│   ├── PLAN.md                 ← 專案規劃治理規範 ⭐ 核心
 │   ├── AGENT.md                ← 任務執行流程
 │   ├── ARCHITECTURE.md         ← 架構紅線 (承重牆)
 │   ├── REVIEW_CRITERIA.md      ← 代碼審查標準
@@ -283,6 +285,7 @@ ai-governance-framework/
 │   ├── README.md               ← 工具說明
 │   ├── contract_validator.py   ← AI 合規驗證工具 ⭐
 │   ├── plan_freshness.py       ← PLAN.md 新鮮度檢查 ⭐
+│   ├── state_generator.py      ← PLAN.md → .governance-state.yaml ⭐
 │   ├── memory_janitor.py       ← 記憶掃除工具
 │   └── linear_integrator.py   ← Linear 任務同步工具
 │
@@ -320,6 +323,7 @@ ai-governance-framework/
 - **[deploy_to_memory.sh](deploy_to_memory.sh)** - 部署腳本
 - **[contract_validator.py](governance_tools/contract_validator.py)** ⭐ - AI 合規驗證工具
 - **[plan_freshness.py](governance_tools/plan_freshness.py)** ⭐ - PLAN.md 新鮮度檢查工具
+- **[state_generator.py](governance_tools/state_generator.py)** ⭐ - PLAN.md → machine-readable state
 - **[governance_tools/](governance_tools/)** - 輔助工具集
 
 ---
@@ -381,6 +385,8 @@ python governance_tools/contract_validator.py --file response.txt --format json
 | `CONTEXT` | ✅ | 需含 `—` 分隔符與 `NOT:` 子句 |
 | `PRESSURE` | ✅ | `SAFE`, `WARNING`, `CRITICAL`, `EMERGENCY` |
 | `PLAN` | ⚠️ | 若專案有 PLAN.md 則為必填（缺失時為警告） |
+| `AGENT_ID` | 選填 | 多 agent 情境下的身份識別（如 `coder-01`） |
+| `SESSION` | 選填* | 當 AGENT_ID 存在時**必填**，格式 `YYYY-MM-DD-NN` |
 
 ### 合規的 AI 回覆範例
 
@@ -394,6 +400,8 @@ PLAN     = Phase B - Sprint 1 - B1
 LOADED   = SYSTEM_PROMPT, HUMAN-OVERSIGHT, AGENT, ARCHITECTURE
 CONTEXT  = UserService — 負責: 登入邏輯; NOT: 資料庫連線、UI 渲染
 PRESSURE = SAFE (42/200)
+AGENT_ID = coder-01          ← multi-agent 時填寫
+SESSION  = 2026-03-05-01     ← AGENT_ID 存在時必填
 ```
 ````
 
@@ -450,6 +458,55 @@ elif r['status'] == 'STALE':
     print(f\"⚠️  PLAN.md 已 {r['days_since_update']}d 未更新，建議更新\")
 "
 ```
+
+---
+
+## ⚙️ State Generator — Machine-readable 狀態
+
+`governance_tools/state_generator.py` 將 PLAN.md 萃取為 `.governance-state.yaml`，解決工具難以 parse markdown 的問題（control-plane / data-plane 分離）。
+
+### 用法
+
+```bash
+# 生成 .governance-state.yaml（從當前目錄 PLAN.md）
+python governance_tools/state_generator.py
+
+# 指定路徑
+python governance_tools/state_generator.py --plan PLAN.md --output .governance-state.yaml
+
+# 只輸出到 stdout（不寫檔）
+python governance_tools/state_generator.py --dry-run
+
+# JSON 格式輸出
+python governance_tools/state_generator.py --format json
+```
+
+### .governance-state.yaml 結構
+
+```yaml
+generated_at: "2026-03-05T07:24:19.873223+00:00"
+plan_path: PLAN.md
+project:
+  owner: GavinWu
+  complexity: L2
+  freshness_policy: Sprint (7d)
+current_phase:
+  id: PhaseB
+  name: 可採用性基礎
+gate_status:
+  PhaseA: passed
+  PhaseB: in_progress
+  PhaseC: pending
+backlog_counts:
+  P0: 2
+  P1: 5
+  P2: 3
+freshness:
+  status: FRESH
+  days_since_update: 0
+```
+
+> ⚠️ **注意**: 每次更新 PLAN.md 後，執行 `state_generator.py` 重新生成。勿手動編輯此檔。
 
 ---
 
@@ -592,6 +649,7 @@ Permission is hereby granted, free of charge...
 - [💡 PLAN.md 說明](#-planmd--最重要的文件)
 - [🔍 Contract Validator](#-contract-validator--ai-合規驗證工具)
 - [📅 Plan Freshness](#-plan-freshness--planmd-新鮮度檢查工具)
+- [⚙️ State Generator](#%EF%B8%8F-state-generator--machine-readable-狀態)
 - [🛠️ 專案結構](#%EF%B8%8F-專案結構)
 - [🤝 貢獻指南](#-貢獻)
 - [💬 常見問題](#-常見問題-faq)
