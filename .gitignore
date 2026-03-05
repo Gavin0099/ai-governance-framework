@@ -54,6 +54,3 @@ htmlcov/
 
 # Documentation build
 docs/_build/
-
-# Specific ignored files
-docs/DATABASE_SERVICE_IMPL.md

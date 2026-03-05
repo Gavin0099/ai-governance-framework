@@ -38,14 +38,17 @@ LEVEL = L0 | L1 | L2
 SCOPE = feature | refactor | bugfix | I/O | tooling | review
 ```
 
-**② Memory Sync** — Read `memory/` directory for project state (structure in §8):
+**② Memory Sync** — Read project plan and `memory/` directory for project state (structure in §8):
 
 | File | Purpose |
 |---|---|
+| `PLAN.md` | **Current sprint focus, phase status & AI collaboration rules** — if missing, warn human and ask to create one before proceeding |
 | `memory/00_master_plan.md` | Long-term vision & phase plan |
 | `memory/01_active_task.md` | Current task status & progress |
 | `memory/02_tech_stack.md` | Tech architecture & known gotchas |
 | `memory/03_knowledge_base.md` | Accumulated troubleshooting records |
+
+After reading `PLAN.md`, the agent **must** enforce `PLAN.md §3.7 AI 協作規則`: verify the requested task is in 「本週聚焦」or 「下一步」before proceeding. If not, present options to the human.
 
 **③ Bounded Context** — Explicitly state: context name, responsibility, inbound/outbound boundaries. Vague → STOP.
 
@@ -86,14 +89,18 @@ The human may override this declaration. Loading rules per §3.
 | 5 | **ARCHITECTURE.md** | Structural Red Lines |
 | 6 | **TESTING.md** | Quality Gatekeeper |
 | 7 | **NATIVE-INTEROP.md** | Physical Safety |
+| — | **PLAN.md** | Project Context — authoritative for **what** to work on (scope, sprint, anti-goals); defers to ranks 1–7 on **how** to behave |
 
 Lower-rank conflicts with higher-rank → **STOP immediately, escalate per `HUMAN-OVERSIGHT.md`**.
+
+> **PLAN.md Note**: PLAN.md operates in a different dimension from ranks 1–7. It governs project scope decisions (priorities, phases, anti-goals). When PLAN.md's §3.7 AI 協作規則 conflicts with a behavioral governance rule (ranks 1–7), the governance rule wins.
 
 ### Loading Triggers
 
 | Tier | Document | Condition |
 |---|---|---|
 | **0 (Always)** | This file + HUMAN-OVERSIGHT | Every conversation |
+| | PLAN.md | Every conversation (project context; warn if missing) |
 | **1 (Risk-based)** | AGENT | All non-trivial tasks (L1/L2) |
 | | ARCHITECTURE | New features, refactors, boundary changes |
 | | TESTING | Behavior changes, regression risk |

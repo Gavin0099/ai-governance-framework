@@ -1,9 +1,10 @@
 # PLAN.md — 專案規劃治理規範
 
-> **文件類型**: 治理規範 (Governance Standard)  
-> **適用範圍**: 所有專案必須遵循此格式建立 PLAN.md  
-> **維護者**: 架構團隊  
+> **文件類型**: 治理規範 (Governance Standard)
+> **適用範圍**: 所有專案必須遵循此格式建立 PLAN.md
+> **維護者**: 架構團隊
 > **版本**: v1.0
+> **Priority**: — (Project Context) — 定義「做什麼」；行為規則衝突時讓位給 SYSTEM_PROMPT.md §3 ranks 1–7
 
 ---
 

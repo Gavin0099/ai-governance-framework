@@ -249,6 +249,7 @@ AI: 太好了! 我看 PLAN.md 的「下一步」是:
 ai-governance-framework/
 ├── README.md                    ← 你正在看的檔案
 ├── LICENSE                      ← MIT 授權
+├── CONTRIBUTING.md              ← 貢獻指南
 ├── deploy_to_memory.sh         ← 部署腳本
 │
 ├── governance/                  ← 8 大法典
@@ -262,12 +263,16 @@ ai-governance-framework/
 │   └── NATIVE-INTEROP.md       ← 跨平台規範
 │
 ├── governance_tools/            ← 輔助工具
-│   └── README.md               ← 工具說明
+│   ├── README.md               ← 工具說明
+│   ├── memory_janitor.py       ← 記憶掃除工具
+│   └── linear_integrator.py   ← Linear 任務同步工具
 │
 ├── docs/                        ← 文件與教學
-│   └── INTEGRATION_GUIDE.md    ← 整合指南
+│   ├── INTEGRATION_GUIDE.md    ← 整合指南
+│   ├── architecture-theory.md  ← 建築師轉型理論
+│   └── governance-vs-prompting.md ← 治理 vs Prompting
 │
-└── archive/                     ← 歷史版本
+└── archive/                     ← 記憶歸檔區 (由 memory_janitor 使用)
 ```
 
 ---
@@ -285,6 +290,11 @@ ai-governance-framework/
 ### 整合指南
 
 - **[整合指南](docs/INTEGRATION_GUIDE.md)** - 如何整合到現有專案
+
+### 延伸閱讀
+
+- **[建築師轉型理論](docs/architecture-theory.md)** - 從搬磚工到建築師
+- **[治理 vs Prompting](docs/governance-vs-prompting.md)** - 為什麼治理比 Prompt 重要
 
 ### 工具
 
