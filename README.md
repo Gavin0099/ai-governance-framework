@@ -3,7 +3,7 @@
 > 從「餵指令」到「定規則」— 讓 AI 不再每次都重頭理解你的專案
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/GavinWu1991/ai-governance-framework/releases)
+[![Version](https://img.shields.io/badge/version-1.0.0--alpha-orange.svg)](https://github.com/GavinWu672/ai-governance-framework)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
 ---
@@ -27,9 +27,12 @@
 +    AI: 我看到 PLAN.md 本週目標是 A、B、C
 +        這個功能不在清單中。要調整計畫嗎?
 +    → AI 主動確認優先級
-+    → AI 防止違反計畫
++    → AI 傾向遵守計畫邊界（非強制執行）
 +    → AI 建議下一步
 ```
+
+> ⚠️ **注意**: 以上行為依賴 AI 讀取並遵從治理文件，屬於「指導性治理（guidance-based）」。
+> 若需技術強制執行（commit 擋截、CI gate），請搭配 Git hook + contract_validator（見 [Plan Freshness 整合](#-plan-freshness--planmd-新鮮度檢查工具)）。
 
 ---
 
@@ -370,10 +373,10 @@ ai-governance-framework/
 
 ### 貢獻方式
 
-- 🐛 [回報問題](https://github.com/GavinWu1991/ai-governance-framework/issues)
-- 💡 [建議新功能](https://github.com/GavinWu1991/ai-governance-framework/issues)
+- 🐛 [回報問題](https://github.com/GavinWu672/ai-governance-framework/issues)
+- 💡 [建議新功能](https://github.com/GavinWu672/ai-governance-framework/issues)
 - 📝 改善文件
-- 🎯 [分享你的案例](https://github.com/GavinWu1991/ai-governance-framework/discussions)
+- 🎯 [分享你的案例](https://github.com/GavinWu672/ai-governance-framework/discussions)
 
 ### 貢獻指南
 
@@ -721,9 +724,9 @@ Permission is hereby granted, free of charge...
 ## 📧 聯絡
 
 - **作者**: GavinWu (吳瑞益)
-- **GitHub**: [@GavinWu1991](https://github.com/GavinWu1991)
-- **Discussions**: [專案討論區](https://github.com/GavinWu1991/ai-governance-framework/discussions)
-- **Issues**: [問題追蹤](https://github.com/GavinWu1991/ai-governance-framework/issues)
+- **GitHub**: [@GavinWu672](https://github.com/GavinWu672)
+- **Discussions**: [專案討論區](https://github.com/GavinWu672/ai-governance-framework/discussions)
+- **Issues**: [問題追蹤](https://github.com/GavinWu672/ai-governance-framework/issues)
 
 ---
 
@@ -731,7 +734,7 @@ Permission is hereby granted, free of charge...
 
 如果這個專案對你有幫助，請給個 Star ⭐
 
-[![Star History Chart](https://api.star-history.com/svg?repos=GavinWu1991/ai-governance-framework&type=Date)](https://star-history.com/#GavinWu1991/ai-governance-framework&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=GavinWu672/ai-governance-framework&type=Date)](https://star-history.com/#GavinWu672/ai-governance-framework&Date)
 
 ---
 
@@ -754,5 +757,5 @@ Permission is hereby granted, free of charge...
 ---
 
 <p align="center">
-Made with ❤️ by <a href="https://github.com/GavinWu1991">GavinWu</a>
+Made with ❤️ by <a href="https://github.com/GavinWu672">GavinWu</a>
 </p>
