@@ -366,6 +366,7 @@ ai-governance-framework/
 
 - **[deploy_to_memory.sh](deploy_to_memory.sh)** - 部署腳本
 - **[scripts/install-hooks.sh](scripts/install-hooks.sh)** ⭐ - Git hooks 一鍵安裝（CRITICAL 擋 commit）
+- **[CI/CD 整合指南](#-cicd-整合--github-actions--gitlab-ci)** ⭐ - GitHub Actions & GitLab CI 範例（工具相同，YAML 不同）
 - **[contract_validator.py](governance_tools/contract_validator.py)** ⭐ - AI 合規驗證工具
 - **[plan_freshness.py](governance_tools/plan_freshness.py)** ⭐ - PLAN.md 新鮮度檢查工具
 - **[state_generator.py](governance_tools/state_generator.py)** ⭐ - PLAN.md → machine-readable state
@@ -511,6 +512,8 @@ elif r['status'] == 'STALE':
 
 `scripts/install-hooks.sh` 一鍵安裝 Git hooks，讓 PLAN.md 過期成為 **commit 前的技術閘門**（不只是警告）。
 
+> 💡 **CI/CD 平台相容性**: 所有 governance_tools 均為純 Python 腳本，具備標準 exit code 與 `--format json` 輸出，可直接整合到任何 CI 系統，包括 **GitHub Actions** 和 **GitLab CI**。詳見 [CI/CD 整合](#-cicd-整合--github-actions--gitlab-ci)。
+
 ### 安裝
 
 ```bash
@@ -549,6 +552,79 @@ bash scripts/install-hooks.sh --dry-run
 ```bash
 rm .git/hooks/pre-commit .git/hooks/pre-push
 ```
+
+---
+
+## 🔁 CI/CD 整合 — GitHub Actions & GitLab CI
+
+governance_tools 的設計原則：**純 Python + exit code + `--format json`**，意味著它們可以無縫插入任何 CI 系統，**不需要修改工具本身**，只需寫對應平台的 YAML。
+
+### 工具 ↔ CI 對應關係
+
+| 工具 | exit 0 | exit 1/2 | CI 用途 |
+|------|--------|----------|---------|
+| `plan_freshness.py` | FRESH | STALE/CRITICAL | PLAN.md 過期擋 pipeline |
+| `contract_validator.py` | 合規 | 不合規 | AI 初始化驗證 gate |
+| `memory_janitor.py --check` | SAFE | WARNING/CRITICAL | 記憶壓力監控 |
+
+### GitHub Actions 範例
+
+```yaml
+# .github/workflows/governance.yml
+name: Governance Check
+
+on: [push, pull_request]
+
+jobs:
+  plan-freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check PLAN.md freshness
+        run: |
+          python governance_tools/plan_freshness.py --format json | tee result.json
+          python -c "
+          import json, sys
+          r = json.load(open('result.json'))
+          print(f\"Status: {r['status']} ({r['days_since_update']}d)\")
+          sys.exit(0 if r['status'] in ('FRESH', 'STALE') else 1)
+          "
+```
+
+### GitLab CI 範例
+
+```yaml
+# .gitlab-ci.yml
+governance-check:
+  image: python:3.11-slim
+  stage: test
+  script:
+    - python governance_tools/plan_freshness.py --format json > result.json
+    - |
+      python -c "
+      import json, sys
+      r = json.load(open('result.json'))
+      print(f\"Status: {r['status']} ({r['days_since_update']}d)\")
+      sys.exit(0 if r['status'] in ('FRESH', 'STALE') else 1)
+      "
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+```
+
+### 兩者的差異只在 YAML，工具完全一致
+
+```
+GitHub Actions              GitLab CI
+──────────────────          ──────────────────
+on: [push]                  rules: - if: push
+runs-on: ubuntu-latest      image: python:3.11-slim
+steps: - run: python ...    script: - python ...
+```
+
+> **重點**: `plan_freshness.py`、`contract_validator.py`、`memory_janitor.py` 這三支工具的行為在兩個平台上**完全相同**，不需要任何修改。
 
 ---
 
@@ -798,6 +874,7 @@ Permission is hereby granted, free of charge...
 - [🔍 Contract Validator](#-contract-validator--ai-合規驗證工具)
 - [📅 Plan Freshness](#-plan-freshness--planmd-新鮮度檢查工具)
 - [⚙️ State Generator](#%EF%B8%8F-state-generator--machine-readable-狀態)
+- [🔁 CI/CD 整合](#-cicd-整合--github-actions--gitlab-ci)
 - [🛠️ 專案結構](#%EF%B8%8F-專案結構)
 - [🤝 貢獻指南](#-貢獻)
 - [💬 常見問題](#-常見問題-faq)
