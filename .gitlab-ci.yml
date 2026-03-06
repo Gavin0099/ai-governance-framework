@@ -26,19 +26,21 @@ plan-freshness:
       - .cache/pip
   script:
     - |
-      python governance_tools/plan_freshness.py --format json | python - <<'EOF'
+      # 用 $() 捕捉輸出，避免 pipe + heredoc stdin 衝突
+      OUTPUT=$(python governance_tools/plan_freshness.py --format json) || true
+      echo "$OUTPUT" | python3 -c "
       import json, sys
       r = json.load(sys.stdin)
-      status = r["status"]
-      days   = r["days_since_update"]
-      limit  = r.get("threshold_days", "?")
-      print(f"PLAN.md status: {status} ({days}d since last update, threshold: {limit}d)")
-      if status == "CRITICAL":
-          print("ERROR: PLAN.md is CRITICAL stale — please update before pushing.")
+      status = r['status']
+      days   = r.get('days_since_update')
+      limit  = r.get('threshold_days', '?')
+      print(f'PLAN.md status: {status} ({days}d since last update, threshold: {limit}d)')
+      if status == 'CRITICAL' or status == 'ERROR':
+          print('ERROR: PLAN.md is CRITICAL stale — please update before pushing.')
           sys.exit(1)
-      elif status == "STALE":
-          print(f"WARNING: PLAN.md is STALE ({days}d). Consider updating soon.")
-      EOF
+      elif status == 'STALE':
+          print(f'WARNING: PLAN.md is STALE ({days}d). Consider updating soon.')
+      "
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push"'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
@@ -63,22 +65,23 @@ memory-pressure:
         echo "memory/ not found — skipping pressure check"
         exit 0
       fi
-      python governance_tools/memory_janitor.py \
-        --memory-root ./memory --check --format json | python - <<'EOF'
+      OUTPUT=$(python governance_tools/memory_janitor.py \
+        --memory-root ./memory --check --format json) || true
+      echo "$OUTPUT" | python3 -c "
       import json, sys
       r = json.load(sys.stdin)
-      status = r["status"]
-      lines  = r["line_count"]
-      hard   = r.get("hard_limit", 200)
-      print(f"Memory status: {status} ({lines}/{hard} lines)")
-      if status == "EMERGENCY":
-          print("ERROR: Memory EMERGENCY — run: python governance_tools/memory_janitor.py --execute")
+      status = r['status']
+      lines  = r['line_count']
+      hard   = r.get('hard_limit', 200)
+      print(f'Memory status: {status} ({lines}/{hard} lines)')
+      if status == 'EMERGENCY':
+          print('ERROR: Memory EMERGENCY — run: python governance_tools/memory_janitor.py --execute')
           sys.exit(1)
-      elif status == "CRITICAL":
-          print(f"WARNING: Memory CRITICAL ({lines} lines). Run memory_janitor --execute soon.")
-      elif status == "WARNING":
-          print(f"NOTICE: Memory WARNING ({lines} lines). Monitor and plan cleanup.")
-      EOF
+      elif status == 'CRITICAL':
+          print(f'WARNING: Memory CRITICAL ({lines} lines). Run memory_janitor --execute soon.')
+      elif status == 'WARNING':
+          print(f'NOTICE: Memory WARNING ({lines} lines). Monitor and plan cleanup.')
+      "
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push"'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
