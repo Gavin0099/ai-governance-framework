@@ -99,7 +99,7 @@
 
 ---
 
-### Phase D: 整合成熟 (進行中 🔄)
+### Phase D: 整合成熟 (已完成 ✓)
 
 **目標**: 定義同步策略，讓框架能在團隊環境落地
 
@@ -107,12 +107,13 @@
 ```
 ├─ [✓] D1. Linear 同步策略文件（PLAN vs Linear 誰為準、衝突解法）  (2026/03/05 完成)
 ├─ [✓] D2. GitHub Actions + GitLab CI 實際 YAML 設定檔  (2026/03/06 完成)
-└─ [⏳] D3. 第二個平台整合（Jira 或 Notion）
+└─ [✓] D3. 第二個平台整合（Notion integrator + 策略文件）  (2026/03/06 完成)
 ```
 
 **Gate 條件**:
 - [x] Linear 整合有明確的「單一 Source of Truth」定義
 - [x] 有可運行的 CI 範例（GitHub Actions + GitLab CI）
+- [x] 第二平台（Notion）有完整整合工具與策略文件
 
 ---
 
@@ -165,17 +166,17 @@ Phase B Gate 全部通過 ✅ → 進入 Phase C
 ### 低優先 (P2)
 - [x] C4. Git hook 一鍵安裝 ✓ 2026/03/05
 - [x] D2. GitHub Actions + GitLab CI 範例（實際 YAML 設定檔）✓ 2026/03/06
-- [ ] D3. Jira / Notion 整合
+- [x] D3. Notion 整合（notion_integrator.py + 策略文件）✓ 2026/03/06
 
 ---
 
 ## 🚫 不要做 (Anti-Goals)
 
-❌ **Phase B 禁止**:
-- 不要做 GUI 工具（先讓 CLI 可靠）
-- 不要做 Jira 整合（Phase D 才做）
-- 不要重構已穩定的 8 大法典核心文件（Phase B 不碰文件架構）
+❌ **框架邊界（持續有效）**:
+- 不要做 GUI 工具（CLI 優先）
+- 不要重構已穩定的 8 大法典核心文件
 - 不要加 AI model fine-tuning（超出 Bounded Context）
+- 不要做 Notion/Linear → PLAN.md 自動反寫（雙向同步競爭）
 
 ---
 
@@ -220,7 +221,7 @@ Phase B Gate 全部通過 ✅ → 進入 Phase C
 | M1: 框架基礎完成 | 2026/03/05 | ✅ | 8 大法典 + 基礎工具 |
 | M2: 可採用性基礎 | 2026/03/05 | ✅ | Validator + Freshness + Toy repo |
 | M3: 工具品質提升 | 2026/05/15 | ⏳ | JSON 輸出 + 測試 + 錯誤處理 |
-| M4: 整合成熟 | 2026/06/30 | ⏳ | Linear 策略 + CI 範例 |
+| M4: 整合成熟 | 2026/03/06 | ✅ | Linear 策略 + CI 範例 + Notion 整合 |
 
 ---
 
@@ -255,3 +256,5 @@ Phase B Gate 全部通過 ✅ → 進入 Phase C
 | 2026/03/05 | 完成 C1 --format json 標準化 | memory_janitor --plan 補齊；所有工具 JSON 輸出一致 |
 | 2026/03/05 | 完成 C3 linear_integrator 強化 | retry/timeout/URLError/敏感掃描/JSON 輸出；source of truth 文件 |
 | 2026/03/05 | Phase C Gate 全部通過 | C1+C2+C3+C4 完成，進入 Phase D |
+| 2026/03/06 | 完成 D2 GitHub Actions + GitLab CI | 實際 YAML 設定檔；governance.yml + .gitlab-ci.yml |
+| 2026/03/06 | 完成 D3 Notion 整合 | notion_integrator.py + docs/notion-source-of-truth.md；Phase D Gate 全部通過 |
