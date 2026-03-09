@@ -72,7 +72,9 @@
 
 **現象**: 8 大法典 + 6 個工具對 2-3 人的初創團隊是沉重的認知負擔。
 
-**緩解措施（計畫中）**: Starter Pack — 只需 `SYSTEM_PROMPT.md` + `PLAN.md` + `memory_janitor`，5 分鐘可跑起來的最小版本。
+**已改善**: `examples/starter-pack/` — 只需 `SYSTEM_PROMPT.md` + `PLAN.md` + `memory_janitor.py` 3 個文件，5 分鐘可跑起來的最小版本。簡化版 Governance Contract 只有 2 個欄位（`PLAN` + `PRESSURE`），認知負擔從 8 法典 + 6 工具降到 3 個文件。
+
+**仍有缺口**: Starter Pack 與完整框架之間沒有「漸進升級路徑」的自動化工具（目前只有文件指引）。
 
 ---
 
