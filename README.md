@@ -91,6 +91,63 @@
 
 ---
 
+## 🧩 四個 AI 結構性問題
+
+AI coding 工具的核心限制不是智力，而是**上下文連續性（context continuity）**。
+沒有穩定的專案上下文，AI 協作品質會隨對話時間線性下降。
+
+| 問題 | 症狀 | 框架解法 | 工具 |
+|------|------|---------|------|
+| **記憶消失** | 每次 session 重新理解專案，前次決策消失 | Memory System | `memory_janitor.py` |
+| **狀態漂移** | AI 不知道現在在哪個 Phase，做了計畫外的事 | State Engine | `PLAN.md` + `plan_freshness.py` |
+| **架構失真** | 局部修改逐漸累積，破壞整體架構設計 | Architecture Guardrails | `ARCHITECTURE.md` + `contract_validator.py` |
+| **任務錯位** | AI 不知道下一步，隨當下需求漂移 | Alignment Engine | `PLAN.md 本週聚焦` + Linear/Notion 同步 |
+
+> 本框架的核心作用：**restore project context continuity for AI**
+
+---
+
+## 🗺️ 系統架構
+
+```
+╔═══════════════════════════════════════════════╗
+║             Human Architect                  ║
+║        定義規範 · 監督 · 架構決策              ║
+╚═══════════════════════╤═══════════════════════╝
+                        │
+╔═══════════════════════▼═══════════════════════╗
+║        Governance Layer (8 大法典)            ║
+║  SYSTEM_PROMPT · AGENT · ARCHITECTURE         ║
+║  OVERSIGHT · REVIEW · TESTING · PLAN          ║
+╚═══════════════════════╤═══════════════════════╝
+                        │ guidance-based
+╔═══════════════════════▼═══════════════════════╗
+║               AI Agent                       ║
+║         (Claude Code · Cursor · etc.)         ║
+╚═╤════════════╤══════╤═══════════╤═════════════╝
+  │            │      │           │
+  ▼            ▼      ▼           ▼
+Memory       State  Guard-     Alignment
+System       Engine rails      Engine
+──────────   ─────  ─────────  ──────────
+記憶消失      狀態漂移 架構失真   任務錯位
+memory_      PLAN.md ARCH.md   PLAN 本週
+janitor      fresh-  contract_ 聚焦 ·
+hot/cold     ness    validator Linear/Notion
+  │            │      │           │
+  └────────────┴──────┴───────────┘
+                        │
+╔═══════════════════════▼═══════════════════════╗
+║           Automation Layer                   ║
+║   CI · Git Hooks · verify_phase_gates.sh     ║
+╚═══════════════════════════════════════════════╝
+```
+
+> ⚠️ **注意**: AI 遵守治理文件屬「指導性配合」，非技術強制執行。
+> 詳見 [LIMITATIONS.md](docs/LIMITATIONS.md)。
+
+---
+
 ## 🚀 快速開始
 
 ### 1. 克隆專案
