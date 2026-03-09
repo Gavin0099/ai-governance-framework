@@ -42,7 +42,27 @@ jobs:
           "
 
   # ─────────────────────────────────────────────
-  # Job 2: 記憶壓力監控
+  # Job 2: Phase Gate 可驗證條件
+  # tests pass + PLAN.md fresh + tools executable + docs complete
+  # ─────────────────────────────────────────────
+  phase-gates:
+    name: Phase Gate Verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pytest
+        run: pip install pytest
+
+      - name: Verify phase gates
+        run: bash scripts/verify_phase_gates.sh
+
+  # ─────────────────────────────────────────────
+  # Job 3: 記憶壓力監控
   # EMERGENCY → pipeline 失敗
   # CRITICAL  → warning，不擋
   # WARNING   → notice，不擋

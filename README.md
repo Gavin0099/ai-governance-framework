@@ -327,7 +327,8 @@ ai-governance-framework/
 │   ├── architecture-theory.md  ← 建築師轉型理論
 │   ├── governance-vs-prompting.md ← 治理 vs Prompting
 │   ├── linear-source-of-truth.md ← Linear 同步策略
-│   └── notion-source-of-truth.md ← Notion 同步策略
+│   ├── notion-source-of-truth.md ← Notion 同步策略
+│   └── LIMITATIONS.md           ← 框架邊界與誠實評估 ⚠️
 │
 ├── examples/                    ← 示範專案 ⭐ 新手必看
 │   └── todo-app-demo/          ← 15 分鐘體感示範
@@ -370,6 +371,7 @@ ai-governance-framework/
 - **[治理 vs Prompting](docs/governance-vs-prompting.md)** - 為什麼治理比 Prompt 重要
 - **[Linear 同步策略](docs/linear-source-of-truth.md)** - PLAN.md vs Linear 誰為準
 - **[Notion 同步策略](docs/notion-source-of-truth.md)** - PLAN.md vs Notion 誰為準
+- **[LIMITATIONS.md](docs/LIMITATIONS.md)** ⚠️ - 框架邊界、已知限制與誠實評估（必讀）
 
 ### 工具
 
