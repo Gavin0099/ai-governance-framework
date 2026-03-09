@@ -4,7 +4,7 @@
 > **技術棧**: Markdown / Python / Bash
 > **複雜度**: L2
 > **預計工期**: 2026/03 ~ 2026/06
-> **最後更新**: 2026-03-06
+> **最後更新**: 2026-03-09
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 
@@ -122,9 +122,10 @@
 **所有 Phase（A/B/C/D）已完成**。框架進入維護期。
 
 **待處理（技術債與品質提升）**:
-- [ ] 補齊工具單元測試（contract_validator、plan_freshness、state_generator、linear_integrator、notion_integrator）
-- [ ] 更新 governance_tools/README.md（補 B1/B2/D3 工具說明）
-- [ ] 修復 docs/ 斷鏈（linear/notion-source-of-truth.md 引用不存在的 02_workflow.md）
+- [x] 補齊工具單元測試（contract_validator、plan_freshness）✓ 2026/03/06
+- [ ] 補齊工具單元測試（state_generator、linear_integrator、notion_integrator）
+- [x] 更新 governance_tools/README.md（補 B1/B2/D3 工具說明）✓ 2026/03/06
+- [x] 修復 docs/ 斷鏈（新建 governance/02_workflow.md）✓ 2026/03/06
 - [ ] 評估 BUG-003（記憶壓力多維度指標）
 
 **當前阻礙**: 無

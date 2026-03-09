@@ -310,7 +310,8 @@ ai-governance-framework/
 │   ├── REVIEW_CRITERIA.md      ← 代碼審查標準
 │   ├── HUMAN-OVERSIGHT.md      ← 強制停機機制
 │   ├── TESTING.md              ← 測試策略
-│   └── NATIVE-INTEROP.md       ← 跨平台規範
+│   ├── NATIVE-INTEROP.md       ← 跨平台規範
+│   └── 02_workflow.md          ← AI 協作工作流程
 │
 ├── governance_tools/            ← 輔助工具
 │   ├── README.md               ← 工具說明
@@ -318,12 +319,15 @@ ai-governance-framework/
 │   ├── plan_freshness.py       ← PLAN.md 新鮮度檢查 ⭐
 │   ├── state_generator.py      ← PLAN.md → .governance-state.yaml ⭐
 │   ├── memory_janitor.py       ← 記憶掃除工具
-│   └── linear_integrator.py   ← Linear 任務同步工具
+│   ├── linear_integrator.py   ← Linear 任務同步工具
+│   └── notion_integrator.py   ← Notion 任務同步工具
 │
 ├── docs/                        ← 文件與教學
 │   ├── INTEGRATION_GUIDE.md    ← 整合指南
 │   ├── architecture-theory.md  ← 建築師轉型理論
-│   └── governance-vs-prompting.md ← 治理 vs Prompting
+│   ├── governance-vs-prompting.md ← 治理 vs Prompting
+│   ├── linear-source-of-truth.md ← Linear 同步策略
+│   └── notion-source-of-truth.md ← Notion 同步策略
 │
 ├── examples/                    ← 示範專案 ⭐ 新手必看
 │   └── todo-app-demo/          ← 15 分鐘體感示範
@@ -364,6 +368,8 @@ ai-governance-framework/
 
 - **[建築師轉型理論](docs/architecture-theory.md)** - 從搬磚工到建築師
 - **[治理 vs Prompting](docs/governance-vs-prompting.md)** - 為什麼治理比 Prompt 重要
+- **[Linear 同步策略](docs/linear-source-of-truth.md)** - PLAN.md vs Linear 誰為準
+- **[Notion 同步策略](docs/notion-source-of-truth.md)** - PLAN.md vs Notion 誰為準
 
 ### 工具
 
@@ -374,6 +380,8 @@ ai-governance-framework/
 - **[plan_freshness.py](governance_tools/plan_freshness.py)** ⭐ - PLAN.md 新鮮度檢查工具
 - **[state_generator.py](governance_tools/state_generator.py)** ⭐ - PLAN.md → machine-readable state
 - **[memory_janitor.py](governance_tools/memory_janitor.py)** - 記憶掃除（copy+pointer+manifest）
+- **[linear_integrator.py](governance_tools/linear_integrator.py)** - Linear 任務同步
+- **[notion_integrator.py](governance_tools/notion_integrator.py)** - Notion 任務同步
 - **[governance_tools/](governance_tools/)** - 輔助工具集
 
 ---
@@ -498,7 +506,8 @@ python governance_tools/plan_freshness.py --threshold 14
 ```bash
 # .git/hooks/pre-commit
 #!/bin/bash
-python governance_tools/plan_freshness.py --file PLAN.md --format json | python -c "
+OUTPUT=$(python governance_tools/plan_freshness.py --file PLAN.md --format json) || true
+echo "$OUTPUT" | python3 -c "
 import sys, json
 r = json.load(sys.stdin)
 if r['status'] == 'CRITICAL':
@@ -653,10 +662,10 @@ freshness:
 
 | 等級 | 行數 | 行為 |
 |------|------|------|
-| SAFE | < 180 | 無動作 |
-| WARNING | 180–199 | 警告訊息 |
-| CRITICAL | 200–249 | 建議執行掃除 |
-| EMERGENCY | ≥ 250 | 強制停止，立即掃除 |
+| SAFE | ≤ 150 | 無動作 |
+| WARNING | 151–180 | 警告訊息 |
+| CRITICAL | 181–200 | 建議執行掃除 |
+| EMERGENCY | > 200 | 強制停止，立即掃除 |
 
 ### 用法
 
