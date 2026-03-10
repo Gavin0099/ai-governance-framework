@@ -10,25 +10,40 @@
 
 ## 你需要的文件
 
+**核心文件（所有 AI 工具共用）：**
+
 | 文件 | 來源 | 作用 |
 |------|------|------|
-| `SYSTEM_PROMPT.md` | 本目錄 | 告訴 AI 如何行動、何時停止 |
-| `PLAN.md` | 本目錄（填入後使用） | AI 每次對話都讀，決定任務範圍 |
+| `SYSTEM_PROMPT.md` | 本目錄 | 治理規則 master（所有工具讀這份） |
+| `PLAN.md` | 本目錄（填入後使用） | 專案計畫，AI 每次對話決定任務範圍 |
 | `memory/01_active_task.md` | 本目錄 | AI 跨 session 的狀態記憶 |
 | `memory_janitor.py` | `../../governance_tools/` | 監控記憶體壓力 |
+
+**AI 工具 Adapter（擇一或全部複製）：**
+
+| 文件 | 工具 | 說明 |
+|------|------|------|
+| `CLAUDE.md` | Claude Code | 自動讀取，指向 SYSTEM_PROMPT.md |
+| `GEMINI.md` | Gemini Code Assist | 自動讀取，指向 SYSTEM_PROMPT.md |
+| `.github/copilot-instructions.md` | GitHub Copilot | 內嵌關鍵規則（Copilot 不讀其他文件） |
 
 ---
 
 ## 步驟一：複製文件到你的專案
 
 ```bash
-# 從這個 repo 複製
+# 核心文件
 cp examples/starter-pack/SYSTEM_PROMPT.md        /your/project/
 cp examples/starter-pack/PLAN.md                 /your/project/
 cp governance_tools/memory_janitor.py            /your/project/
-
-# memory 目錄（含預建的狀態文件）
 cp -r examples/starter-pack/memory/             /your/project/
+
+# AI 工具 Adapter（依你使用的工具選擇）
+cp examples/starter-pack/CLAUDE.md               /your/project/          # Claude Code
+cp examples/starter-pack/GEMINI.md               /your/project/          # Gemini
+mkdir -p /your/project/.github
+cp examples/starter-pack/.github/copilot-instructions.md \
+   /your/project/.github/                                                 # GitHub Copilot
 ```
 
 ---
