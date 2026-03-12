@@ -236,6 +236,13 @@ New validated contract fields:
 - `OVERSIGHT`
 - `MEMORY_MODE`
 
+Rule-pack runtime support:
+
+- `rule_pack_loader.py` validates requested packs
+- `describe_rule_selection(...)` returns selection metadata
+- `load_rule_content(...)` returns loaded rule titles and markdown content for runtime injection
+- current seed packs: `common`, `python`, `cpp`
+
 Example usage:
 
 ```bash

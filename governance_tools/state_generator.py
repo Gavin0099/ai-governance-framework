@@ -16,7 +16,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from governance_tools.plan_freshness import check_freshness
-from governance_tools.rule_pack_loader import describe_rule_selection, parse_rule_list
+from governance_tools.rule_pack_loader import describe_rule_selection, load_rule_content, parse_rule_list
 
 
 def _yaml_str(value) -> str:
@@ -161,6 +161,7 @@ def generate_state(
             "memory_mode": memory_mode,
         },
         "rule_packs": describe_rule_selection(requested_rules),
+        "active_rules": load_rule_content(requested_rules),
     }
 
 

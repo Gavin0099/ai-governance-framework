@@ -6,6 +6,7 @@ Core hooks:
 
 - `core/pre_task_check.py`
 - `core/post_task_check.py`
+- `core/session_end.py`
 
 Adapters:
 
@@ -37,10 +38,24 @@ Normalization flow:
 - shared event shape
 - `core/pre_task_check.py` or `core/post_task_check.py`
 
+Active rule injection:
+
+- `pre_task_check.py` now returns both rule-pack selection metadata and loaded active rule content
+- active rules are loaded from `governance/rules/<pack>/*.md`
+- runtime consumers should treat this payload as governance context, not as a general-purpose rule DSL
+- current seed packs: `common`, `python`, `cpp`
+
 Dispatcher:
 
 - `dispatcher.py` routes a shared event JSON payload directly to `pre_task_check` or `post_task_check`
 - `smoke_test.py` runs documented native example payloads end-to-end
+
+Session close:
+
+- `core/session_end.py` closes a session into runtime audit artifacts
+- emits `artifacts/runtime/candidates/<session_id>.json`
+- emits `artifacts/runtime/summaries/<session_id>.json`
+- creates candidate memory snapshots and applies conservative promotion policy
 
 Examples:
 

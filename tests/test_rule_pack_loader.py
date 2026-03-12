@@ -6,6 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from governance_tools.rule_pack_loader import (
     available_rule_packs,
     describe_rule_selection,
+    load_rule_content,
     parse_rule_list,
 )
 
@@ -18,6 +19,7 @@ def test_available_rule_packs_contains_seed_packs():
     packs = available_rule_packs()
     assert "common" in packs
     assert "python" in packs
+    assert "cpp" in packs
 
 
 def test_describe_rule_selection_resolves_files():
@@ -30,3 +32,21 @@ def test_describe_rule_selection_reports_missing():
     description = describe_rule_selection(["common", "missing-pack"])
     assert description["valid"] is False
     assert description["missing"] == ["missing-pack"]
+
+
+def test_load_rule_content_returns_file_metadata_and_content():
+    loaded = load_rule_content(["common"])
+    assert loaded["valid"] is True
+    assert loaded["active_rules"][0]["name"] == "common"
+    first_file = loaded["active_rules"][0]["files"][0]
+    assert first_file["path"].replace("\\", "/").endswith("governance/rules/common/core.md")
+    assert first_file["title"]
+    assert first_file["content"]
+
+
+def test_load_rule_content_can_load_cpp_build_boundary_pack():
+    loaded = load_rule_content(["cpp"])
+    assert loaded["valid"] is True
+    first_file = loaded["active_rules"][0]["files"][0]
+    assert "AdditionalIncludeDirectories" in first_file["content"]
+    assert "cross-project private header" in first_file["content"]
