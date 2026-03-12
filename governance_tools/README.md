@@ -218,3 +218,40 @@ bash scripts/install-hooks.sh
 ```
 
 安裝後：`git commit` 時自動執行 `plan_freshness.py`，CRITICAL 狀態會擋下 commit。
+---
+
+## Runtime Layer
+
+The first runtime-governance modules now live under `runtime_hooks/`.
+
+Core checks:
+
+- `runtime_hooks/core/pre_task_check.py`
+- `runtime_hooks/core/post_task_check.py`
+
+New validated contract fields:
+
+- `RULES`
+- `RISK`
+- `OVERSIGHT`
+- `MEMORY_MODE`
+
+Example usage:
+
+```bash
+python governance_tools/state_generator.py \
+  --rules common,python \
+  --risk medium \
+  --oversight review-required \
+  --memory-mode candidate
+
+python runtime_hooks/core/pre_task_check.py \
+  --rules common,python \
+  --risk high \
+  --oversight review-required
+
+python runtime_hooks/core/post_task_check.py \
+  --file ai_response.txt \
+  --risk medium \
+  --oversight review-required
+```

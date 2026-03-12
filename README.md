@@ -959,3 +959,35 @@ Permission is hereby granted, free of charge...
 <p align="center">
 Made with ❤️ by <a href="https://github.com/GavinWu672">GavinWu</a>
 </p>
+---
+
+## Runtime Governance Update
+
+The framework now includes a first runtime-governance slice in addition to static docs and CI gates.
+
+New contract fields:
+
+```text
+RULES       = <comma-separated rule packs>
+RISK        = <low|medium|high>
+OVERSIGHT   = <auto|review-required|human-approval>
+MEMORY_MODE = <stateless|candidate|durable>
+```
+
+New entrypoints:
+
+```bash
+python governance_tools/state_generator.py --rules common,python --risk medium --oversight review-required --memory-mode candidate
+python runtime_hooks/core/pre_task_check.py --rules common,python --risk high --oversight review-required
+python runtime_hooks/core/post_task_check.py --file ai_response.txt --risk medium --oversight review-required
+python runtime_hooks/adapters/claude_code/normalize_event.py --event-type pre_task --file claude_event.json
+python runtime_hooks/adapters/codex/normalize_event.py --event-type post_task --file codex_event.json
+python runtime_hooks/adapters/gemini/normalize_event.py --event-type pre_task --file gemini_event.json
+python runtime_hooks/dispatcher.py --file shared_event.json
+python memory_pipeline/session_snapshot.py --memory-root memory --task "Runtime governance" --summary "Captured a candidate snapshot"
+python memory_pipeline/memory_promoter.py --memory-root memory --candidate-file memory/candidates/session_*.json --approved-by reviewer-01
+```
+
+The runtime layer is now multi-harness: Claude Code, Codex, and Gemini all normalize native payloads into the same shared event contract before governance checks run. Shared dispatcher-ready examples live under `runtime_hooks/examples/shared/`.
+
+See `docs/runtime-governance-update.md`, `runtime_hooks/event_contract.md`, and `runtime_hooks/examples/` for the current runtime schema, dispatcher, and native payload examples.

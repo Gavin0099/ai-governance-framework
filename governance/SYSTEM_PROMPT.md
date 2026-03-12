@@ -459,3 +459,23 @@ The **Anti-Patterns** section records mistakes that must never be repeated. This
 ## 🧭 Final Principle
 
 > **Cannot proceed predictably, safely, and reviewably → STOP and ask.**
+---
+
+## Runtime Governance Update
+
+The runtime layer may attach additional state to the Governance Contract. When present, these fields are machine-verifiable and may be enforced by runtime hooks.
+
+```text
+[Governance Contract]
+RULES       = <comma-separated rule packs>
+RISK        = <low|medium|high>
+OVERSIGHT   = <auto|review-required|human-approval>
+MEMORY_MODE = <stateless|candidate|durable>
+```
+
+Runtime semantics:
+
+- `RULES` declares which rule packs were routed into the current session.
+- `RISK=high` should not complete under `OVERSIGHT=auto`.
+- `MEMORY_MODE=candidate` means session output is not yet durable project truth.
+- These fields are validated by `governance_tools/contract_validator.py` and may be checked by runtime hooks.

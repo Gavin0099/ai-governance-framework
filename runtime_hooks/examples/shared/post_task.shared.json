@@ -1,0 +1,17 @@
+{
+  "event_type": "post_task",
+  "project_root": ".",
+  "task": "Validate task output",
+  "rules": ["common", "python"],
+  "risk": "medium",
+  "oversight": "review-required",
+  "memory_mode": "candidate",
+  "response_file": "runtime_hooks/examples/shared/ai_response.txt",
+  "create_snapshot": true,
+  "snapshot_summary": "Candidate memory from Codex output",
+  "metadata": {
+    "harness": "codex",
+    "session_id": "codex-run-01",
+    "native_event_type": "post_task"
+  }
+}

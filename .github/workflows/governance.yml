@@ -103,3 +103,39 @@ jobs:
           elif status == 'WARNING':
               print(f'::notice::Memory WARNING ({lines} lines). Monitor and plan cleanup.')
           "
+
+  runtime-smoke:
+    name: Runtime Smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Normalize native payloads and dispatch shared events
+        run: |
+          python runtime_hooks/adapters/claude_code/normalize_event.py \
+            --event-type pre_task \
+            --file runtime_hooks/examples/claude_code/pre_task.native.json \
+            > claude_pre.shared.json
+          python runtime_hooks/dispatcher.py --file claude_pre.shared.json
+
+          python runtime_hooks/adapters/claude_code/normalize_event.py \
+            --event-type post_task \
+            --file runtime_hooks/examples/claude_code/post_task.native.json \
+            > claude_post.shared.json
+          python runtime_hooks/dispatcher.py --file claude_post.shared.json
+
+          python runtime_hooks/adapters/codex/normalize_event.py \
+            --event-type post_task \
+            --file runtime_hooks/examples/codex/post_task.native.json \
+            > codex_post.shared.json
+          python runtime_hooks/dispatcher.py --file codex_post.shared.json
+
+          python runtime_hooks/adapters/gemini/normalize_event.py \
+            --event-type post_task \
+            --file runtime_hooks/examples/gemini/post_task.native.json \
+            > gemini_post.shared.json
+          python runtime_hooks/dispatcher.py --file gemini_post.shared.json
