@@ -166,3 +166,17 @@ Links to governance docs, code, or other ADRs
 
 > **Architecture prevents catastrophic mistakes, not punishes trivial changes.**
 > **Governance reduces risk, not halts progress.**
+
+---
+
+## Build Boundary Addendum
+
+Build-system wiring is part of architecture, not merely tooling.
+
+Hard rules:
+- A project may include headers from its own source tree and explicitly approved shared layers only.
+- A project must **not** add a peer project's private directory to `AdditionalIncludeDirectories` or equivalent include-search settings.
+- A successful build does **not** legitimize a boundary violation.
+- If a header is required across project boundaries, extract it into a shared boundary component with an explicit ownership model.
+
+Cross-project private include access is an architecture violation because it hides coupling, bypasses ownership boundaries, and makes component replacement unsafe.

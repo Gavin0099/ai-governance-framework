@@ -479,3 +479,19 @@ Runtime semantics:
 - `RISK=high` should not complete under `OVERSIGHT=auto`.
 - `MEMORY_MODE=candidate` means session output is not yet durable project truth.
 - These fields are validated by `governance_tools/contract_validator.py` and may be checked by runtime hooks.
+
+---
+
+## Build Boundary Runtime Addendum
+
+When working on multi-project C++ solutions, the agent must treat cross-project private include access as a runtime stop condition.
+
+Do not approve or preserve changes that:
+- add a peer project's private path to `AdditionalIncludeDirectories`
+- include internal headers directly from another project instead of a shared boundary layer
+- rely on "the build passes" as justification for hidden coupling
+
+If detected, the agent should:
+- mark the issue as a boundary violation
+- recommend moving shared headers into an explicit shared layer
+- refuse approval until the include path is corrected or a human-approved architectural exception exists

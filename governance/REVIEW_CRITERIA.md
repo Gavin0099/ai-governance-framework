@@ -146,3 +146,24 @@ Cross-reference the review entry: `Reference: Review #N (YYYY-MM-DD)`.
 
 > **A review that cannot point to specific governance evidence is not a valid review.**
 > **"Looks good" without proof is a governance violation.**
+
+---
+
+## C++ Build Boundary Addendum
+
+Use this addendum whenever the review touches C++ project files, header layout, or build configuration.
+
+### C9 Project Include Boundary
+
+- `AdditionalIncludeDirectories` must be limited to the current project's own tree (for example `$(ProjectDir)`) and explicitly approved shared layers only.
+- A project must **not** include a peer project's private source directory as an include path.
+- If multiple projects need the same header, move it into a shared boundary layer instead of referencing another project's internal path.
+
+Examples of violations:
+- `database_service` adding an `etoken_server/...` include directory
+- including peer-project private headers such as `Global.h` or service-local DB wrappers directly from another project
+
+Review expectation:
+- treat this as a **boundary violation**, not a style issue
+- request project-file correction before approval
+- reference both this addendum and `ARCHITECTURE.md` build-boundary rules in the finding
