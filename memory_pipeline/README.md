@@ -13,3 +13,4 @@ Design rule:
 
 - Candidate memory is not durable truth.
 - Promotion requires an explicit reviewer identity.
+- Curated artifacts should preserve proposal-time architecture impact concerns and expected evidence when available.

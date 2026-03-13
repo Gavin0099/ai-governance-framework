@@ -82,6 +82,7 @@ Session close:
 - emits `artifacts/runtime/candidates/<session_id>.json`
 - emits `artifacts/runtime/summaries/<session_id>.json`
 - creates candidate memory snapshots and applies conservative promotion policy
+- `--impact-preview-file` can now attach proposal-time `architecture_impact_preview` into the same audit trail
 
 Examples:
 

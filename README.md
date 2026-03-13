@@ -117,6 +117,8 @@ Platform packs:
 - `pre_task_check --format human` 現在也會直接印出 `suggested_rules_preview=...`
 - `pre_task_check.py` / `state_generator.py` 現在都可附帶 `architecture_impact_preview`
   - 當 proposal 顯示風險高於目前 contract 時，只會給 advisory warning，不會自動改 `RULES` / `RISK` / `OVERSIGHT`
+- `session_end.py` / `memory_curator.py` 現在也會保留 `architecture_impact_preview`
+  - proposal-time concerns 與 expected evidence 會進 summary / curated artifacts，形成 audit trail
 - `post_task_check --format human` 現在也會直接印出 evidence summary，例如 `public_api_ok=...`、`failure_completeness_ok=...`
 - `architecture_impact_estimator.py` 現在可在 proposal 階段輸出結構化 `Governance Impact Report`
   - path-based layer heuristics (`touched_layers`, `boundary_risk`)
@@ -307,7 +309,7 @@ python runtime_hooks/core/pre_task_check.py --rules common,python,cpp --risk hig
 python runtime_hooks/core/pre_task_check.py --rules common,refactor --risk medium --oversight review-required --impact-before before.cs --impact-after after.cs
 python runtime_hooks/core/post_task_check.py --file ai_response.txt --risk medium --oversight review-required --checks-file checks.json --api-before before.cs --api-after after.cs
 python runtime_hooks/dispatcher.py --file shared_event.json
-python runtime_hooks/core/session_end.py --project-root . --session-id 2026-03-12-01 --runtime-contract-file contract.json --checks-file checks.json --event-log-file event_log.json --response-file ai_response.txt
+python runtime_hooks/core/session_end.py --project-root . --session-id 2026-03-12-01 --runtime-contract-file contract.json --checks-file checks.json --impact-preview-file impact.json --event-log-file event_log.json --response-file ai_response.txt
 ```
 
 Kernel-driver evidence flow:
@@ -328,6 +330,16 @@ Public API diff audit flow:
 public_api_diff_checker.py
         ↓
 post_task_check.py
+        ↓
+session_end summary / curated artifact
+```
+
+Architecture impact audit flow:
+
+```text
+architecture_impact_estimator.py
+        ↓
+pre_task_check.py / state_generator.py
         ↓
 session_end summary / curated artifact
 ```

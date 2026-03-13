@@ -158,6 +158,40 @@ def _extract_candidate_items(candidate_payload: dict[str, Any]) -> tuple[list[di
             )
             seen.add(content.lower())
 
+    architecture_impact_preview = candidate_payload.get("architecture_impact_preview") or {}
+    for concern in architecture_impact_preview.get("concerns", []) or []:
+        content = _normalize_text(f"Architecture impact concern: {concern}")
+        if not content or content.lower() in seen:
+            dropped.append({"reason": "duplicate", "source": "architecture_impact_preview.concerns", "content": content})
+            continue
+        kept.append(
+            {
+                "type": "followup",
+                "title": _item_title("followup", content),
+                "content": content,
+                "reason": "proposal-time architecture concern",
+                "confidence": "medium",
+                "source": "architecture_impact_preview.concerns",
+            }
+        )
+        seen.add(content.lower())
+
+    required_evidence = architecture_impact_preview.get("required_evidence", []) or []
+    if required_evidence:
+        content = _normalize_text(f"Expected governance evidence: {', '.join(required_evidence)}")
+        if content and content.lower() not in seen:
+            kept.append(
+                {
+                    "type": "fact",
+                    "title": "Fact: expected governance evidence",
+                    "content": content,
+                    "reason": "proposal-time governance forecast",
+                    "confidence": "medium",
+                    "source": "architecture_impact_preview.required_evidence",
+                }
+            )
+            seen.add(content.lower())
+
     event_log = candidate_payload.get("event_log", []) or []
     for event in event_log:
         event_type = str(event.get("event_type", "")).strip()

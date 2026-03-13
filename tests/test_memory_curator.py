@@ -71,3 +71,29 @@ def test_curator_marks_runtime_errors_as_followups(local_runtime_root):
 
     assert any(item["type"] == "followup" for item in result["items"])
     assert "runtime check errors present" in result["needs_review_reason"]
+
+
+def test_curator_preserves_architecture_impact_evidence(local_runtime_root):
+    candidate_path = local_runtime_root / "artifacts" / "runtime" / "candidates" / "session.json"
+    payload = {
+        "session_id": "2026-03-12-03",
+        "summary": "Captured proposal-time impact signals.",
+        "runtime_contract": {
+            "rules": ["common", "refactor"],
+            "risk": "medium",
+            "oversight": "review-required",
+        },
+        "checks": {"errors": []},
+        "policy": {"reasons": []},
+        "architecture_impact_preview": {
+            "concerns": ["cross-layer-change-risk"],
+            "required_evidence": ["architecture-review", "public-api-review"],
+        },
+        "event_log": [],
+    }
+    candidate_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    result = curate_candidate_artifact(candidate_path)
+
+    assert any(item["source"] == "architecture_impact_preview.concerns" for item in result["items"])
+    assert any(item["source"] == "architecture_impact_preview.required_evidence" for item in result["items"])

@@ -154,3 +154,32 @@ def test_session_end_curates_removed_public_api_as_followup(local_project_root):
         item["source"] == "public_api_diff.removed" and item["type"] == "followup"
         for item in curated_payload["items"]
     )
+
+
+def test_session_end_records_architecture_impact_preview(local_project_root):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-07",
+        runtime_contract=_contract(rules=["common", "refactor"]),
+        checks={"ok": True, "errors": []},
+        architecture_impact_preview={
+            "concerns": ["cross-layer-change-risk", "public-api-expansion-risk"],
+            "required_evidence": ["architecture-review", "public-api-review"],
+            "recommended_risk": "high",
+            "recommended_oversight": "human-approval",
+            "boundary_risk": "high",
+        },
+        response_text="runtime output",
+        summary="Proposal-time impact preview captured",
+    )
+
+    summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
+    assert summary_payload["architecture_impact_present"] is True
+    assert summary_payload["architecture_impact_concern_count"] == 2
+    assert summary_payload["architecture_impact_recommended_risk"] == "high"
+
+    candidate_payload = json.loads(Path(result["candidate_artifact"]).read_text(encoding="utf-8"))
+    assert candidate_payload["architecture_impact_preview"]["boundary_risk"] == "high"
+
+    curated_payload = json.loads(Path(result["curated_artifact"]).read_text(encoding="utf-8"))
+    assert any(item["source"] == "architecture_impact_preview.concerns" for item in curated_payload["items"])
