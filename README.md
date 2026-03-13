@@ -408,6 +408,8 @@ python runtime_hooks/smoke_test.py --harness gemini --event-type session_start
 python runtime_hooks/smoke_test.py --event-type session_start
 ```
 
+`session_start` smoke 的 human output 現在會直接顯示 startup handoff summary，例如目前 contract、expected validators、required evidence。
+
 ### Shared Enforcement
 
 ```bash

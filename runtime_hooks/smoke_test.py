@@ -61,6 +61,46 @@ def run_shared_smoke(event_type: str, payload_file: Path | None = None) -> dict:
     return envelope
 
 
+def format_human_envelope(envelope: dict, harness: str | None = None) -> str:
+    lines: list[str] = []
+    result = envelope["result"]
+    if harness:
+        lines.append(f"harness={harness}")
+    lines.append(f"event_type={envelope['event_type']}")
+    lines.append(f"payload_file={envelope['payload_file']}")
+    lines.append(f"ok={result['ok']}")
+
+    if envelope["event_type"] == "session_start":
+        rules = result.get("runtime_contract", {}).get("rules", []) or []
+        if rules:
+            lines.append(f"rules={','.join(rules)}")
+        preview = result.get("suggested_rules_preview") or []
+        if preview:
+            lines.append(f"suggested_rules_preview={','.join(preview)}")
+        skills = result.get("suggested_skills") or []
+        if skills:
+            lines.append(f"suggested_skills={','.join(skills)}")
+        agent = result.get("suggested_agent")
+        if agent:
+            lines.append(f"suggested_agent={agent}")
+        guidance = result.get("proposal_guidance") or {}
+        validators = guidance.get("expected_validators") or []
+        if validators:
+            lines.append(f"expected_validators={','.join(validators)}")
+        evidence = guidance.get("required_evidence") or []
+        if evidence:
+            lines.append(f"required_evidence={','.join(evidence)}")
+    else:
+        if result.get("snapshot"):
+            lines.append(f"snapshot={result['snapshot']['snapshot_path']}")
+
+    for warning in result.get("warnings", []):
+        lines.append(f"warning: {warning}")
+    for error in result.get("errors", []):
+        lines.append(f"error: {error}")
+    return "\n".join(lines)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run a runtime smoke flow from native payload to governance result.")
     parser.add_argument("--harness", choices=sorted(NORMALIZERS))
@@ -86,17 +126,7 @@ def main() -> None:
     if args.format == "json":
         print(json.dumps(envelope, ensure_ascii=False, indent=2))
     else:
-        if args.harness:
-            print(f"harness={args.harness}")
-        print(f"event_type={args.event_type}")
-        print(f"payload_file={envelope['payload_file']}")
-        print(f"ok={envelope['result']['ok']}")
-        if envelope["result"].get("snapshot"):
-            print(f"snapshot={envelope['result']['snapshot']['snapshot_path']}")
-        for warning in envelope["result"].get("warnings", []):
-            print(f"warning: {warning}")
-        for error in envelope["result"].get("errors", []):
-            print(f"error: {error}")
+        print(format_human_envelope(envelope, harness=args.harness))
 
     sys.exit(0 if envelope["result"]["ok"] else 1)
 

@@ -78,6 +78,7 @@ Dispatcher:
 - `dispatcher.py` routes a shared event JSON payload directly to `pre_task_check` or `post_task_check`
 - `dispatcher.py` also routes `session_start` into the agent-start context builder
 - `smoke_test.py` runs documented native example payloads end-to-end, including `session_start`
+- human output from `smoke_test.py --event-type session_start` now surfaces the startup handoff summary, including expected validators and required evidence
 - `../scripts/run-runtime-governance.sh` is the shared enforcement entrypoint for hooks and CI
 
 Session close:
