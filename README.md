@@ -49,6 +49,7 @@ AI 在長期專案裡常見的問題不是單次回答不夠聰明，而是：
 - `rule_pack_loader.py`
 - `test_result_ingestor.py`
 - `failure_test_validator.py`
+- `rule_pack_suggester.py`
 - `architecture_drift_checker.py`
 - `governance_auditor.py`
 
@@ -256,6 +257,7 @@ python governance_tools/plan_freshness.py --plan PLAN.md
 python governance_tools/state_generator.py --rules common,python,cpp --risk medium --oversight review-required --memory-mode candidate
 python governance_tools/memory_janitor.py --memory-root ./memory --check
 python governance_tools/failure_test_validator.py --file test_names.json --format json
+python governance_tools/rule_pack_suggester.py --project-root . --task "Refactor Avalonia view model boundary"
 python governance_tools/governance_auditor.py --format json
 ```
 

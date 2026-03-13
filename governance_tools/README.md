@@ -283,3 +283,8 @@ Failure-path completeness:
 - `failure_test_validator.py` checks whether available test names cover the minimum L1-style categories
 - current categories: `invalid_input`, `boundary`, `failure_path`, optional `rollback_cleanup`
 - outputs normalized `warnings` / `errors` so the result can be merged into runtime `checks`
+
+Rule-pack suggestion:
+
+- `rule_pack_suggester.py` suggests `language` and `framework` packs from repository signals
+- `scope` suggestions are advisory only and should be confirmed by the contract or a human reviewer
