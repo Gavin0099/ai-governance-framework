@@ -46,6 +46,40 @@ def test_run_adapter_event_pre_task(local_runtime_root, monkeypatch):
     assert envelope["result"]["ok"] is True
 
 
+def test_run_adapter_event_session_start(local_runtime_root):
+    plan = local_runtime_root / "PLAN.md"
+    plan.write_text(
+        "> **Owner**: Tester\n"
+        "> **Freshness**: Sprint (7d)\n"
+        "\n"
+        "[>] Phase A : Refactor service boundary\n",
+        encoding="utf-8",
+    )
+    before_file = local_runtime_root / "application" / "before.cs"
+    after_file = local_runtime_root / "application" / "after.cs"
+    before_file.parent.mkdir(parents=True, exist_ok=True)
+    before_file.write_text("public class Service { public int Run() => 1; }\n", encoding="utf-8")
+    after_file.write_text(
+        "public class Service { public int Run() => 1; public int Ping() => 0; }\n",
+        encoding="utf-8",
+    )
+
+    payload = {
+        "cwd": str(local_runtime_root),
+        "plan": str(plan),
+        "prompt": "Refactor service boundary",
+        "active_rules": "common",
+        "risk": "medium",
+        "oversight": "review-required",
+        "memory_mode": "candidate",
+        "impact_before": [str(before_file)],
+        "impact_after": [str(after_file)],
+    }
+    envelope = run_adapter_event(normalize_claude, "session_start", payload)
+    assert envelope["normalized_event"]["event_type"] == "session_start"
+    assert envelope["result"]["suggested_agent"] == "advanced-agent"
+
+
 def test_run_adapter_event_post_task_creates_snapshot(local_runtime_root):
     response_file = local_runtime_root / "response.txt"
     response_file.write_text(

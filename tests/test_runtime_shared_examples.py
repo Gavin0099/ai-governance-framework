@@ -18,6 +18,16 @@ def test_claude_pre_native_normalizes_to_shared_example():
     assert normalize_claude(native, "pre_task") == shared
 
 
+def test_claude_session_start_native_normalizes_to_shared_example():
+    native = json.loads(
+        Path("runtime_hooks/examples/claude_code/session_start.native.json").read_text(encoding="utf-8")
+    )
+    shared = json.loads(
+        Path("runtime_hooks/examples/shared/session_start.shared.json").read_text(encoding="utf-8")
+    )
+    assert normalize_claude(native, "session_start") == shared
+
+
 def test_codex_post_native_normalizes_to_shared_example():
     native = json.loads(
         Path("runtime_hooks/examples/codex/post_task.native.json").read_text(encoding="utf-8")

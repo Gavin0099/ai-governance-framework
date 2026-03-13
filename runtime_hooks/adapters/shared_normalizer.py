@@ -42,12 +42,15 @@ def normalize_payload(payload: dict, harness: str, event_type: str) -> dict:
     normalized = {
         "event_type": event_type,
         "project_root": _first_value(payload, "project_root", "cwd", "workspace", "repo_root", default="."),
+        "plan_path": _first_value(payload, "plan_path", "plan", default="PLAN.md"),
         "task": task,
         "rules": _normalize_rules(_first_value(payload, "rules", "rule_packs", "active_rules")),
         "risk": _first_value(payload, "risk", "risk_level", default="medium"),
         "oversight": _first_value(payload, "oversight", "oversight_mode", default="review-required"),
         "memory_mode": _first_value(payload, "memory_mode", "memory", default="candidate"),
         "response_file": response_file,
+        "impact_before_files": _normalize_rules(_first_value(payload, "impact_before_files", "impact_before")),
+        "impact_after_files": _normalize_rules(_first_value(payload, "impact_after_files", "impact_after")),
         "create_snapshot": bool(
             _first_value(payload, "create_snapshot", "snapshot", "emit_snapshot", default=(event_type == "post_task"))
         ),
@@ -69,11 +72,10 @@ def _load_payload(file_path: str | None) -> dict:
 
 def cli_main(harness: str) -> None:
     parser = argparse.ArgumentParser(description=f"Normalize {harness} payloads into the runtime event contract.")
-    parser.add_argument("--event-type", choices=["pre_task", "post_task"], required=True)
+    parser.add_argument("--event-type", choices=["session_start", "pre_task", "post_task"], required=True)
     parser.add_argument("--file", "-f", help="JSON payload file; defaults to stdin")
     args = parser.parse_args()
 
     payload = _load_payload(args.file)
     normalized = normalize_payload(payload, harness=harness, event_type=args.event_type)
     print(json.dumps(normalized, ensure_ascii=False, indent=2))
-

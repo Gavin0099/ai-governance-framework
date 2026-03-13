@@ -39,6 +39,7 @@ Normalization flow:
 - shared event shape
 - `core/pre_task_check.py` or `core/post_task_check.py`
 - shared governance startup can also use `session_start` directly through `dispatcher.py` or `smoke_test.py`
+- shared adapter runner now accepts `session_start` as well, so startup context can be exercised through the same adapter path
 
 Active rule injection:
 

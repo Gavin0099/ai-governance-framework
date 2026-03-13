@@ -16,6 +16,7 @@ if __package__ in (None, ""):
 
 from runtime_hooks.core.post_task_check import run_post_task_check
 from runtime_hooks.core.pre_task_check import run_pre_task_check
+from runtime_hooks.core.session_start import build_session_start_context
 
 
 def _load_payload(file_path: str | None) -> dict:
@@ -31,7 +32,19 @@ def run_adapter_event(
 ) -> dict:
     normalized = normalize_event(payload, event_type=event_type)
 
-    if event_type == "pre_task":
+    if event_type == "session_start":
+        result = build_session_start_context(
+            project_root=Path(normalized["project_root"]),
+            plan_path=Path(normalized.get("plan_path") or "PLAN.md"),
+            rules=",".join(normalized.get("rules", [])),
+            risk=normalized["risk"],
+            oversight=normalized["oversight"],
+            memory_mode=normalized["memory_mode"],
+            task_text=normalized.get("task") or "",
+            impact_before_files=[Path(path) for path in normalized.get("impact_before_files", [])],
+            impact_after_files=[Path(path) for path in normalized.get("impact_after_files", [])],
+        )
+    elif event_type == "pre_task":
         result = run_pre_task_check(
             project_root=Path(normalized["project_root"]),
             rules=",".join(normalized.get("rules", [])),

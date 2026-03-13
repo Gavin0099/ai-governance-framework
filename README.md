@@ -421,6 +421,7 @@ bash scripts/run-runtime-governance.sh --mode enforce
 這些工具都會先把 native payload 正規化成同一個 shared event contract，再進入 governance checks。
 
 `session_start` 目前先作為 shared governance event 存在，用於 agent 啟動與 handoff context；native harness adapters 可後續再接。
+現在 shared adapter runner 也已能處理 `session_start`，至少可用 shared/native examples 走通啟動鏈。
 
 相關檔案：
 
