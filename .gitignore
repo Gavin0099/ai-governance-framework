@@ -53,6 +53,7 @@ dist/
 tests/_tmp_governance_auditor/
 tests/_tmp_failure_test_validator/
 tests/_tmp_rule_pack_suggester/
+tests/_tmp_public_api_diff/
 .coverage
 htmlcov/
 

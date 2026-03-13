@@ -288,3 +288,8 @@ Rule-pack suggestion:
 
 - `rule_pack_suggester.py` suggests `language` and `framework` packs from repository signals
 - `scope` suggestions are advisory only and should be confirmed by the contract or a human reviewer
+
+Public API diff:
+
+- `public_api_diff_checker.py` extracts a high-signal public API manifest and compares before/after surfaces
+- intended as a lightweight semantic-verification step for interface stability, not a full language-aware compiler front end
