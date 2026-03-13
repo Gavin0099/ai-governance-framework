@@ -53,3 +53,12 @@ def test_smoke_test_session_start_human_output_surfaces_handoff_summary():
     assert "rules=common" in output
     assert "expected_validators=architecture_drift_checker,public_api_diff_checker" in output
     assert "required_evidence=architecture-review,public-api-review" in output
+
+
+def test_smoke_test_handoff_summary_can_be_written(tmp_path):
+    envelope = run_shared_smoke("session_start")
+    output_file = tmp_path / "session_start.txt"
+    output_file.write_text(format_human_envelope(envelope) + "\n", encoding="utf-8")
+    assert output_file.exists()
+    content = output_file.read_text(encoding="utf-8")
+    assert "event_type=session_start" in content

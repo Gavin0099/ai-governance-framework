@@ -107,6 +107,7 @@ def main() -> None:
     parser.add_argument("--event-type", choices=["session_start", "pre_task", "post_task"], required=True)
     parser.add_argument("--file", "-f", help="Native payload file. Defaults to the documented example.")
     parser.add_argument("--format", choices=["human", "json"], default="human")
+    parser.add_argument("--output", help="Write rendered smoke output to a file.")
     args = parser.parse_args()
 
     if args.event_type == "session_start":
@@ -124,9 +125,16 @@ def main() -> None:
         )
 
     if args.format == "json":
-        print(json.dumps(envelope, ensure_ascii=False, indent=2))
+        rendered = json.dumps(envelope, ensure_ascii=False, indent=2)
     else:
-        print(format_human_envelope(envelope, harness=args.harness))
+        rendered = format_human_envelope(envelope, harness=args.harness)
+
+    if args.output:
+        output_path = Path(args.output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(rendered + "\n", encoding="utf-8")
+
+    print(rendered)
 
     sys.exit(0 if envelope["result"]["ok"] else 1)
 
