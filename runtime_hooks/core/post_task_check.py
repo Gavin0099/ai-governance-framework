@@ -14,6 +14,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from governance_tools.contract_validator import validate_contract
+from governance_tools.failure_completeness_validator import validate_failure_completeness
 from governance_tools.refactor_evidence_validator import validate_refactor_evidence
 from governance_tools.rule_pack_loader import parse_rule_list
 from memory_pipeline.session_snapshot import create_session_snapshot
@@ -39,6 +40,18 @@ def _merge_refactor_evidence_checks(errors: list[str], warnings: list[str], chec
         warnings.append(f"refactor-evidence: {warning}")
     for error in result["errors"]:
         errors.append(f"refactor-evidence: {error}")
+    return result
+
+
+def _merge_failure_completeness_checks(errors: list[str], warnings: list[str], checks: dict | None, rules: list[str]) -> dict | None:
+    if not checks:
+        return None
+
+    result = validate_failure_completeness(checks, require_cleanup=("refactor" in rules))
+    for warning in result["warnings"]:
+        warnings.append(f"failure-completeness: {warning}")
+    for error in result["errors"]:
+        errors.append(f"failure-completeness: {error}")
     return result
 
 
@@ -74,6 +87,7 @@ def run_post_task_check(
         warnings.append("Durable memory should typically be promoted after explicit review completion")
 
     _merge_runtime_checks(errors, warnings, checks)
+    failure_completeness = _merge_failure_completeness_checks(errors, warnings, checks, resolved_rules)
     refactor_evidence = _merge_refactor_evidence_checks(errors, warnings, checks, resolved_rules)
 
     if create_snapshot and validation.contract_found and validation.compliant and not errors:
@@ -98,6 +112,7 @@ def run_post_task_check(
         "rules": resolved_rules,
         "snapshot": snapshot_result,
         "checks": checks,
+        "failure_completeness": failure_completeness,
         "refactor_evidence": refactor_evidence,
         "errors": errors,
         "warnings": warnings,

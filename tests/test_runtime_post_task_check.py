@@ -115,3 +115,19 @@ def test_post_task_check_applies_refactor_evidence_requirements():
     assert result["refactor_evidence"] is not None
     assert any("refactor-evidence: Missing refactor evidence: regression-oriented test signal" in error for error in result["errors"])
     assert any("refactor-evidence: Missing refactor evidence: interface stability signal" in error for error in result["errors"])
+
+
+def test_post_task_check_applies_failure_completeness_checks():
+    result = run_post_task_check(
+        _contract(),
+        risk="medium",
+        oversight="review-required",
+        checks={
+            "test_names": ["tests/test_service.py::test_happy_path"],
+            "warnings": [],
+            "errors": [],
+        },
+    )
+    assert result["ok"] is False
+    assert result["failure_completeness"] is not None
+    assert any("failure-completeness: Missing failure completeness evidence: failure-path signal" in error for error in result["errors"])
