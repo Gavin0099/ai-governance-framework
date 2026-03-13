@@ -1,3 +1,4 @@
+import json
 import sys
 from pathlib import Path
 
@@ -6,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from runtime_hooks.smoke_test import format_human_envelope
 from runtime_hooks.smoke_test import run_shared_smoke
 from runtime_hooks.smoke_test import run_smoke
+from runtime_hooks.smoke_test import write_outputs
 
 
 def test_smoke_test_claude_pre_runs():
@@ -58,7 +60,16 @@ def test_smoke_test_session_start_human_output_surfaces_handoff_summary():
 def test_smoke_test_handoff_summary_can_be_written(tmp_path):
     envelope = run_shared_smoke("session_start")
     output_file = tmp_path / "session_start.txt"
-    output_file.write_text(format_human_envelope(envelope) + "\n", encoding="utf-8")
+    json_output = tmp_path / "session_start.json"
+    write_outputs(
+        envelope=envelope,
+        rendered=format_human_envelope(envelope),
+        output=output_file,
+        json_output=json_output,
+    )
     assert output_file.exists()
+    assert json_output.exists()
     content = output_file.read_text(encoding="utf-8")
     assert "event_type=session_start" in content
+    envelope_payload = json.loads(json_output.read_text(encoding="utf-8"))
+    assert envelope_payload["event_type"] == "session_start"

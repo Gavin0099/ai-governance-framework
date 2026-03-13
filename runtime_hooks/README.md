@@ -79,6 +79,7 @@ Dispatcher:
 - `dispatcher.py` also routes `session_start` into the agent-start context builder
 - `smoke_test.py` runs documented native example payloads end-to-end, including `session_start`
 - human output from `smoke_test.py --event-type session_start` now surfaces the startup handoff summary, including expected validators and required evidence
+- `smoke_test.py` can now also write machine-readable JSON envelopes with `--json-output`
 - `../scripts/run-runtime-governance.sh` is the shared enforcement entrypoint for hooks and CI
 
 Session close:
@@ -109,3 +110,4 @@ Enforcement:
 - CI runs the same script with `--mode ci`
 - this keeps smoke coverage and focused runtime tests on the same execution path
 - CI also uploads `artifacts/runtime/smoke/` so session-start handoff summaries can be reviewed after a run
+- shared enforcement now also derives `change_control_summary` artifacts from the saved session-start JSON envelopes

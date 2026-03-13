@@ -32,14 +32,18 @@ PYTHON_CMD="python"
 command -v python >/dev/null 2>&1 || PYTHON_CMD="python3"
 
 run_smoke() {
-    "$PYTHON_CMD" runtime_hooks/smoke_test.py --harness claude_code --event-type session_start --output artifacts/runtime/smoke/claude_session_start.txt
+    "$PYTHON_CMD" runtime_hooks/smoke_test.py --harness claude_code --event-type session_start --output artifacts/runtime/smoke/claude_session_start.txt --json-output artifacts/runtime/smoke/claude_session_start.json
+    "$PYTHON_CMD" governance_tools/change_control_summary.py --session-start-file artifacts/runtime/smoke/claude_session_start.json --output artifacts/runtime/smoke/claude_change_control_summary.txt
     "$PYTHON_CMD" runtime_hooks/smoke_test.py --harness claude_code --event-type pre_task
     "$PYTHON_CMD" runtime_hooks/smoke_test.py --harness claude_code --event-type post_task
-    "$PYTHON_CMD" runtime_hooks/smoke_test.py --harness codex --event-type session_start --output artifacts/runtime/smoke/codex_session_start.txt
+    "$PYTHON_CMD" runtime_hooks/smoke_test.py --harness codex --event-type session_start --output artifacts/runtime/smoke/codex_session_start.txt --json-output artifacts/runtime/smoke/codex_session_start.json
+    "$PYTHON_CMD" governance_tools/change_control_summary.py --session-start-file artifacts/runtime/smoke/codex_session_start.json --output artifacts/runtime/smoke/codex_change_control_summary.txt
     "$PYTHON_CMD" runtime_hooks/smoke_test.py --harness codex --event-type post_task
-    "$PYTHON_CMD" runtime_hooks/smoke_test.py --harness gemini --event-type session_start --output artifacts/runtime/smoke/gemini_session_start.txt
+    "$PYTHON_CMD" runtime_hooks/smoke_test.py --harness gemini --event-type session_start --output artifacts/runtime/smoke/gemini_session_start.txt --json-output artifacts/runtime/smoke/gemini_session_start.json
+    "$PYTHON_CMD" governance_tools/change_control_summary.py --session-start-file artifacts/runtime/smoke/gemini_session_start.json --output artifacts/runtime/smoke/gemini_change_control_summary.txt
     "$PYTHON_CMD" runtime_hooks/smoke_test.py --harness gemini --event-type post_task
-    "$PYTHON_CMD" runtime_hooks/smoke_test.py --event-type session_start --output artifacts/runtime/smoke/shared_session_start.txt
+    "$PYTHON_CMD" runtime_hooks/smoke_test.py --event-type session_start --output artifacts/runtime/smoke/shared_session_start.txt --json-output artifacts/runtime/smoke/shared_session_start.json
+    "$PYTHON_CMD" governance_tools/change_control_summary.py --session-start-file artifacts/runtime/smoke/shared_session_start.json --output artifacts/runtime/smoke/shared_change_control_summary.txt
 }
 
 run_pytest_suite() {

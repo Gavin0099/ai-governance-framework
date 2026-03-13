@@ -101,6 +101,22 @@ def format_human_envelope(envelope: dict, harness: str | None = None) -> str:
     return "\n".join(lines)
 
 
+def write_outputs(
+    *,
+    envelope: dict,
+    rendered: str,
+    output: Path | None = None,
+    json_output: Path | None = None,
+) -> None:
+    if output:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(rendered + "\n", encoding="utf-8")
+
+    if json_output:
+        json_output.parent.mkdir(parents=True, exist_ok=True)
+        json_output.write_text(json.dumps(envelope, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run a runtime smoke flow from native payload to governance result.")
     parser.add_argument("--harness", choices=sorted(NORMALIZERS))
@@ -108,6 +124,7 @@ def main() -> None:
     parser.add_argument("--file", "-f", help="Native payload file. Defaults to the documented example.")
     parser.add_argument("--format", choices=["human", "json"], default="human")
     parser.add_argument("--output", help="Write rendered smoke output to a file.")
+    parser.add_argument("--json-output", help="Write the full smoke envelope as JSON to a file.")
     args = parser.parse_args()
 
     if args.event_type == "session_start":
@@ -129,10 +146,12 @@ def main() -> None:
     else:
         rendered = format_human_envelope(envelope, harness=args.harness)
 
-    if args.output:
-        output_path = Path(args.output)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(rendered + "\n", encoding="utf-8")
+    write_outputs(
+        envelope=envelope,
+        rendered=rendered,
+        output=Path(args.output) if args.output else None,
+        json_output=Path(args.json_output) if args.json_output else None,
+    )
 
     print(rendered)
 

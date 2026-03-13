@@ -433,6 +433,10 @@ python runtime_hooks/smoke_test.py --event-type session_start
 ```
 
 `session_start` smoke 的 human output 現在會直接顯示 startup handoff summary，例如目前 contract、expected validators、required evidence。
+shared enforcement 現在也會同時保留：
+- `*_session_start.txt` handoff notes
+- `*_session_start.json` machine-readable startup envelopes
+- `*_change_control_summary.txt` proposal-to-startup review summaries
 
 ### Shared Enforcement
 
@@ -476,6 +480,7 @@ GitHub Actions workflow 在：
 - session close and curated memory flow
 - focused runtime governance test suite
 - uploaded `artifacts/runtime/smoke/` handoff summaries from `session_start` smoke flows
+- uploaded JSON startup envelopes and derived change-control summaries for `session_start` smoke flows
 
 ## 目前邊界
 
