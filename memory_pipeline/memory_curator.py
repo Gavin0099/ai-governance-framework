@@ -124,6 +124,40 @@ def _extract_candidate_items(candidate_payload: dict[str, Any]) -> tuple[list[di
         )
         seen.add(content.lower())
 
+    public_api_diff = candidate_payload.get("public_api_diff") or {}
+    for removed in public_api_diff.get("removed", []) or []:
+        content = _normalize_text(f"Public API removed or changed: {removed}")
+        if not content or content.lower() in seen:
+            dropped.append({"reason": "duplicate", "source": "public_api_diff.removed", "content": content})
+            continue
+        kept.append(
+            {
+                "type": "followup",
+                "title": _item_title("followup", content),
+                "content": content,
+                "reason": "public API compatibility risk",
+                "confidence": "high",
+                "source": "public_api_diff.removed",
+            }
+        )
+        seen.add(content.lower())
+
+    added_entries = public_api_diff.get("added", []) or []
+    if added_entries:
+        content = _normalize_text(f"Public API additions detected: {len(added_entries)}")
+        if content and content.lower() not in seen:
+            kept.append(
+                {
+                    "type": "fact",
+                    "title": "Fact: public API additions detected",
+                    "content": content,
+                    "reason": "public interface audit signal",
+                    "confidence": "medium",
+                    "source": "public_api_diff.added",
+                }
+            )
+            seen.add(content.lower())
+
     event_log = candidate_payload.get("event_log", []) or []
     for event in event_log:
         event_type = str(event.get("event_type", "")).strip()

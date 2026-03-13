@@ -99,3 +99,58 @@ def test_session_end_blocks_missing_contract_fields(local_project_root):
 
     assert result["ok"] is False
     assert any("runtime_contract missing required fields" in error for error in result["errors"])
+
+
+def test_session_end_records_public_api_diff_in_summary_and_curated_artifact(local_project_root):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-05",
+        runtime_contract=_contract(rules=["common", "refactor"]),
+        checks={
+            "ok": True,
+            "errors": [],
+            "public_api_diff": {
+                "ok": True,
+                "removed": [],
+                "added": ["public int Ping() => 0;"],
+                "warnings": ["Public API surface added or changed."],
+                "errors": [],
+            },
+        },
+        response_text="runtime output",
+        summary="Refactor session with API additions",
+    )
+
+    assert result["ok"] is True
+    summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
+    assert summary_payload["public_api_diff_present"] is True
+    assert summary_payload["public_api_added_count"] == 1
+    curated_payload = json.loads(Path(result["curated_artifact"]).read_text(encoding="utf-8"))
+    assert any(item["source"] == "public_api_diff.added" for item in curated_payload["items"])
+
+
+def test_session_end_curates_removed_public_api_as_followup(local_project_root):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-06",
+        runtime_contract=_contract(rules=["common", "refactor"]),
+        checks={
+            "ok": False,
+            "errors": ["public-api-diff: Public API surface removed or changed."],
+            "public_api_diff": {
+                "ok": False,
+                "removed": ["public int Run(int value) => value;"],
+                "added": [],
+                "warnings": [],
+                "errors": ["Public API surface removed or changed."],
+            },
+        },
+        response_text="runtime output",
+        summary="Refactor session with API removal",
+    )
+
+    curated_payload = json.loads(Path(result["curated_artifact"]).read_text(encoding="utf-8"))
+    assert any(
+        item["source"] == "public_api_diff.removed" and item["type"] == "followup"
+        for item in curated_payload["items"]
+    )

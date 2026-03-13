@@ -45,17 +45,19 @@ Active rule injection:
 - runtime consumers should treat this payload as governance context, not as a general-purpose rule DSL
 - current seed packs include `common`, `python`, `cpp`, `refactor`, `csharp`, `swift`, `avalonia`, `kernel-driver`
 - pack categories distinguish `scope`, `language`, `framework`, and `platform`
+- `pre_task_check.py` also exposes advisory `rule_pack_suggestions` so runtime entrypoints can see the same language/framework suggestions as `state_generator.py`
 
 Test-result handoff:
 
 - `governance_tools/test_result_ingestor.py` converts runner output into normalized `checks`
 - recommended flow: test runner output -> `test_result_ingestor.py` -> runtime `checks.errors / checks.warnings / checks.summary`
-- supported evidence kinds now include `pytest-text`, `junit-xml`, `sdv-text`, `msbuild-warning-text`, and `sarif`
+- supported evidence kinds now include `pytest-text`, `junit-xml`, `sdv-text`, `msbuild-warning-text`, `sarif`, and `wdk-analysis-text`
 
 Public API handoff:
 
 - `governance_tools/public_api_diff_checker.py` can be passed into `post_task_check.py` with `--api-before` and `--api-after`
 - this is currently used as a lightweight interface-stability signal for `refactor` tasks
+- `session_end.py` now preserves public API diff evidence in runtime summaries and curated artifacts
 
 Kernel-driver evidence handoff:
 

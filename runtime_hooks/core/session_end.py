@@ -73,6 +73,8 @@ def run_session_end(
     if checks and checks.get("ok") is False:
         warnings.append("Session ended with failing runtime checks.")
 
+    public_api_diff = (checks or {}).get("public_api_diff") if checks else None
+
     snapshot_result = None
     curated_result = None
     promotion_result = None
@@ -113,6 +115,7 @@ def run_session_end(
         "closed_at": now,
         "runtime_contract": contract,
         "checks": checks,
+        "public_api_diff": public_api_diff,
         "event_log": event_log,
         "snapshot": snapshot_result,
         "policy": policy,
@@ -129,6 +132,9 @@ def run_session_end(
         "oversight": contract["oversight"],
         "memory_mode": contract["memory_mode"],
         "rules": contract["rules"],
+        "public_api_diff_present": public_api_diff is not None,
+        "public_api_removed_count": len(public_api_diff.get("removed", [])) if public_api_diff else 0,
+        "public_api_added_count": len(public_api_diff.get("added", [])) if public_api_diff else 0,
         "snapshot_created": snapshot_result is not None,
         "promoted": promotion_result is not None,
         "warning_count": len(warnings),

@@ -225,6 +225,39 @@ def ingest_sarif(text: str, require_rollback: bool = False) -> dict:
     return _finalize_result(result, require_rollback=require_rollback, validate_failure_tests=False)
 
 
+def ingest_wdk_analysis_text(text: str, require_rollback: bool = False) -> dict:
+    result = _base_result("wdk-analysis-text", passed=1, failed=0, skipped=0)
+    normalized = text.replace("\r\n", "\n")
+
+    for line in normalized.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        lower = stripped.lower()
+        if any(token in lower for token in ("warning", "error", "analysis", "sal", "sdv", "irql", "ioctl", "buffer")):
+            result["diagnostics"].append(stripped)
+        if ": error " in lower or lower.startswith("error "):
+            result["errors"].append(stripped)
+        elif ": warning " in lower or lower.startswith("warning "):
+            result["warnings"].append(stripped)
+
+    if result["errors"]:
+        result["summary"]["failed"] = len(result["errors"])
+        result["summary"]["passed"] = 0
+
+    diagnostic_blob = "\n".join(result["diagnostics"]).lower()
+    result["sdv_verified"] = "static driver verifier" in diagnostic_blob or " sdv" in diagnostic_blob
+    result["driver_analysis_verified"] = any(
+        token in diagnostic_blob for token in ("sal", "prefast", "wdk analysis", "static driver verifier", " sdv", "driver verifier")
+    )
+    result["irql_verified"] = any(token in diagnostic_blob for token in ("irql", "passive_level", "dispatch_level", "pageable"))
+    result["ioctl_boundary_verified"] = any(
+        token in diagnostic_blob for token in ("ioctl", "user buffer", "buffer length", "malformed input", "invalid input")
+    )
+    result["ok"] = len(result["errors"]) == 0
+    return _finalize_result(result, require_rollback=require_rollback, validate_failure_tests=False)
+
+
 def ingest_test_results(path: Path, kind: str, require_rollback: bool = False) -> dict:
     text = path.read_text(encoding="utf-8")
     if kind == "pytest-text":
@@ -237,13 +270,15 @@ def ingest_test_results(path: Path, kind: str, require_rollback: bool = False) -
         return ingest_msbuild_warning_text(text, require_rollback=require_rollback)
     if kind == "sarif":
         return ingest_sarif(text, require_rollback=require_rollback)
+    if kind == "wdk-analysis-text":
+        return ingest_wdk_analysis_text(text, require_rollback=require_rollback)
     raise ValueError(f"Unsupported test result kind: {kind}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Normalize test results for runtime governance.")
     parser.add_argument("--file", required=True)
-    parser.add_argument("--kind", choices=["pytest-text", "junit-xml", "sdv-text", "msbuild-warning-text", "sarif"], required=True)
+    parser.add_argument("--kind", choices=["pytest-text", "junit-xml", "sdv-text", "msbuild-warning-text", "sarif", "wdk-analysis-text"], required=True)
     parser.add_argument("--require-rollback", action="store_true")
     args = parser.parse_args()
 

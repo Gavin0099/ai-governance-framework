@@ -128,3 +128,31 @@ def test_pre_task_check_exposes_csharp_avalonia_swift_active_rules(local_tmp_dir
     assert "async void" in contents
     assert "Dispatcher.UIThread" in contents
     assert "structured concurrency" in contents
+
+
+def test_pre_task_check_exposes_advisory_rule_pack_suggestions(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    (local_tmp_dir / "App.csproj").write_text("<Project Sdk=\"Microsoft.NET.Sdk\"></Project>", encoding="utf-8")
+    (local_tmp_dir / "MainWindow.axaml.cs").write_text(
+        "using Avalonia.Threading;\npublic class MainWindow {}", encoding="utf-8"
+    )
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="Refactor Avalonia boundary",
+    )
+
+    assert result["ok"] is True
+    assert result["runtime_contract"]["rules"] == ["common"]
+    assert "rule_pack_suggestions" in result
+    assert "csharp" in result["rule_pack_suggestions"]["suggested_rules"]
+    assert "avalonia" in result["rule_pack_suggestions"]["suggested_rules"]
+    assert any(
+        item["name"] == "refactor" and item["advisory_only"] is True
+        for item in result["rule_pack_suggestions"]["scope_packs"]
+    )

@@ -9,6 +9,7 @@ from governance_tools.test_result_ingestor import (
     ingest_pytest_text,
     ingest_sarif,
     ingest_sdv_text,
+    ingest_wdk_analysis_text,
 )
 
 
@@ -128,3 +129,18 @@ def test_ingest_sarif_collects_diagnostics_and_driver_signals():
     assert payload["driver_analysis_verified"] is True
     assert payload["irql_verified"] is True
     assert payload["ioctl_boundary_verified"] is True
+
+
+def test_ingest_wdk_analysis_text_collects_driver_analysis_signals():
+    payload = ingest_wdk_analysis_text(
+        """
+WDK Analysis: Static Driver Verifier and SAL checks completed
+driver.c(42): warning C28167: IRQL mismatch detected for dispatch path
+driver.c(50): warning C6387: invalid input buffer length may be null
+""".strip()
+    )
+    assert payload["ok"] is True
+    assert payload["driver_analysis_verified"] is True
+    assert payload["irql_verified"] is True
+    assert payload["ioctl_boundary_verified"] is True
+    assert len(payload["warnings"]) == 2

@@ -15,6 +15,7 @@ if __package__ in (None, ""):
 
 from governance_tools.plan_freshness import check_freshness
 from governance_tools.rule_pack_loader import describe_rule_selection, load_rule_content, parse_rule_list
+from governance_tools.rule_pack_suggester import suggest_rule_packs
 
 
 def run_pre_task_check(
@@ -23,12 +24,14 @@ def run_pre_task_check(
     risk: str,
     oversight: str,
     memory_mode: str,
+    task_text: str = "",
 ) -> dict:
     plan_path = project_root / "PLAN.md"
     freshness = check_freshness(plan_path)
     requested_rules = parse_rule_list(rules)
     rule_packs = describe_rule_selection(requested_rules)
     active_rules = load_rule_content(requested_rules)
+    rule_pack_suggestions = suggest_rule_packs(project_root, task_text=task_text)
 
     errors = []
     warnings = []
@@ -59,6 +62,7 @@ def run_pre_task_check(
             "oversight": oversight,
             "memory_mode": memory_mode,
         },
+        "rule_pack_suggestions": rule_pack_suggestions,
         "rule_packs": rule_packs,
         "active_rules": active_rules,
         "errors": errors,
@@ -73,6 +77,7 @@ def main() -> None:
     parser.add_argument("--risk", default="medium")
     parser.add_argument("--oversight", default="auto")
     parser.add_argument("--memory-mode", default="candidate")
+    parser.add_argument("--task-text", default="")
     parser.add_argument("--format", choices=["human", "json"], default="human")
     args = parser.parse_args()
 
@@ -82,6 +87,7 @@ def main() -> None:
         risk=args.risk,
         oversight=args.oversight,
         memory_mode=args.memory_mode,
+        task_text=args.task_text,
     )
 
     if args.format == "json":
