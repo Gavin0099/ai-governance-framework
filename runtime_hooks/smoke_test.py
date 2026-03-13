@@ -17,6 +17,7 @@ from runtime_hooks.adapters.claude_code.normalize_event import normalize_event a
 from runtime_hooks.adapters.codex.normalize_event import normalize_event as normalize_codex
 from runtime_hooks.adapters.gemini.normalize_event import normalize_event as normalize_gemini
 from runtime_hooks.adapters.shared_adapter_runner import run_adapter_event
+from runtime_hooks.dispatcher import dispatch_event
 
 
 NORMALIZERS = {
@@ -35,6 +36,10 @@ DEFAULT_EXAMPLES = {
     ("gemini", "post_task"): Path("runtime_hooks/examples/gemini/post_task.native.json"),
 }
 
+DEFAULT_SHARED_EXAMPLES = {
+    "session_start": Path("runtime_hooks/examples/shared/session_start.shared.json"),
+}
+
 
 def run_smoke(harness: str, event_type: str, payload_file: Path | None = None) -> dict:
     normalize_event = NORMALIZERS[harness]
@@ -45,24 +50,41 @@ def run_smoke(harness: str, event_type: str, payload_file: Path | None = None) -
     return envelope
 
 
+def run_shared_smoke(event_type: str, payload_file: Path | None = None) -> dict:
+    payload_path = payload_file or DEFAULT_SHARED_EXAMPLES[event_type]
+    event = json.loads(payload_path.read_text(encoding="utf-8"))
+    envelope = dispatch_event(event)
+    envelope["payload_file"] = str(payload_path)
+    return envelope
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run a runtime smoke flow from native payload to governance result.")
-    parser.add_argument("--harness", choices=sorted(NORMALIZERS), required=True)
-    parser.add_argument("--event-type", choices=["pre_task", "post_task"], required=True)
+    parser.add_argument("--harness", choices=sorted(NORMALIZERS))
+    parser.add_argument("--event-type", choices=["session_start", "pre_task", "post_task"], required=True)
     parser.add_argument("--file", "-f", help="Native payload file. Defaults to the documented example.")
     parser.add_argument("--format", choices=["human", "json"], default="human")
     args = parser.parse_args()
 
-    envelope = run_smoke(
-        harness=args.harness,
-        event_type=args.event_type,
-        payload_file=Path(args.file) if args.file else None,
-    )
+    if args.event_type == "session_start":
+        envelope = run_shared_smoke(
+            event_type=args.event_type,
+            payload_file=Path(args.file) if args.file else None,
+        )
+    else:
+        if not args.harness:
+            raise SystemExit("--harness is required for pre_task and post_task smoke flows")
+        envelope = run_smoke(
+            harness=args.harness,
+            event_type=args.event_type,
+            payload_file=Path(args.file) if args.file else None,
+        )
 
     if args.format == "json":
         print(json.dumps(envelope, ensure_ascii=False, indent=2))
     else:
-        print(f"harness={args.harness}")
+        if args.harness:
+            print(f"harness={args.harness}")
         print(f"event_type={args.event_type}")
         print(f"payload_file={envelope['payload_file']}")
         print(f"ok={envelope['result']['ok']}")

@@ -38,6 +38,7 @@ Normalization flow:
 - `adapters/<harness>/normalize_event.py`
 - shared event shape
 - `core/pre_task_check.py` or `core/post_task_check.py`
+- shared governance startup can also use `session_start` directly through `dispatcher.py` or `smoke_test.py`
 
 Active rule injection:
 
@@ -96,6 +97,7 @@ Examples:
 - `examples/codex/*.native.json`
 - `examples/gemini/*.native.json`
 - `examples/shared/*.shared.json`
+- `examples/shared/session_start.shared.json`
 
 Enforcement:
 

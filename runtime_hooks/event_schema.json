@@ -12,7 +12,7 @@
   "properties": {
     "event_type": {
       "type": "string",
-      "enum": ["pre_task", "post_task"]
+        "enum": ["session_start", "pre_task", "post_task"]
     },
     "project_root": {
       "type": "string",
@@ -21,7 +21,26 @@
     "task": {
       "type": ["string", "null"]
     },
+    "plan_path": {
+      "type": ["string", "null"]
+    },
     "rules": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": []
+    },
+    "impact_before_files": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": []
+    },
+    "impact_after_files": {
       "type": "array",
       "items": {
         "type": "string",

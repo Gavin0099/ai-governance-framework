@@ -11,7 +11,7 @@ def test_event_schema_has_required_runtime_fields():
     schema = json.loads(Path("runtime_hooks/event_schema.json").read_text(encoding="utf-8"))
     required = set(schema["required"])
     assert {"event_type", "project_root", "risk", "oversight", "memory_mode"} <= required
-    assert schema["properties"]["event_type"]["enum"] == ["pre_task", "post_task"]
+    assert schema["properties"]["event_type"]["enum"] == ["session_start", "pre_task", "post_task"]
 
 
 def test_adapter_contract_references_shared_schema():

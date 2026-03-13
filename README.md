@@ -321,6 +321,7 @@ python governance_tools/governance_auditor.py --format json
 ```bash
 python runtime_hooks/core/pre_task_check.py --rules common,python,cpp --risk high --oversight review-required
 python runtime_hooks/core/session_start.py --project-root . --plan PLAN.md --rules common,refactor --task-text "Refactor Avalonia boundary" --impact-before before.cs --impact-after after.cs
+python runtime_hooks/smoke_test.py --event-type session_start
 python runtime_hooks/core/pre_task_check.py --rules common,refactor --risk medium --oversight review-required --impact-before before.cs --impact-after after.cs
 python runtime_hooks/core/post_task_check.py --file ai_response.txt --risk medium --oversight review-required --checks-file checks.json --api-before before.cs --api-after after.cs
 python runtime_hooks/dispatcher.py --file shared_event.json
@@ -418,6 +419,8 @@ bash scripts/run-runtime-governance.sh --mode enforce
 - Gemini
 
 這些工具都會先把 native payload 正規化成同一個 shared event contract，再進入 governance checks。
+
+`session_start` 目前先作為 shared governance event 存在，用於 agent 啟動與 handoff context；native harness adapters 可後續再接。
 
 相關檔案：
 

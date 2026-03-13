@@ -15,6 +15,7 @@ if __package__ in (None, ""):
 
 from runtime_hooks.core.post_task_check import run_post_task_check
 from runtime_hooks.core.pre_task_check import run_pre_task_check
+from runtime_hooks.core.session_start import build_session_start_context
 
 
 def dispatch_event(event: dict) -> dict:
@@ -27,6 +28,21 @@ def dispatch_event(event: dict) -> dict:
             risk=event["risk"],
             oversight=event["oversight"],
             memory_mode=event["memory_mode"],
+            task_text=event.get("task") or "",
+            impact_before_files=[Path(path) for path in event.get("impact_before_files", [])],
+            impact_after_files=[Path(path) for path in event.get("impact_after_files", [])],
+        )
+    elif event_type == "session_start":
+        result = build_session_start_context(
+            project_root=Path(event["project_root"]),
+            plan_path=Path(event.get("plan_path") or (Path(event["project_root"]) / "PLAN.md")),
+            rules=",".join(event.get("rules", [])),
+            risk=event["risk"],
+            oversight=event["oversight"],
+            memory_mode=event["memory_mode"],
+            task_text=event.get("task") or "",
+            impact_before_files=[Path(path) for path in event.get("impact_before_files", [])],
+            impact_after_files=[Path(path) for path in event.get("impact_after_files", [])],
         )
     elif event_type == "post_task":
         response_text = ""

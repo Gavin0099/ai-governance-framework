@@ -11,6 +11,35 @@ The goal is portability:
 
 must all map their native hook/event payloads into the same structure.
 
+## Session-Start Event
+
+```json
+{
+  "event_type": "session_start",
+  "project_root": ".",
+  "plan_path": "PLAN.md",
+  "task": "Refactor Avalonia boundary",
+  "rules": ["common", "refactor"],
+  "risk": "medium",
+  "oversight": "review-required",
+  "memory_mode": "candidate",
+  "impact_before_files": ["before.cs"],
+  "impact_after_files": ["after.cs"],
+  "metadata": {
+    "harness": "shared",
+    "session_id": "2026-03-12-00"
+  }
+}
+```
+
+Required fields:
+
+- `event_type`
+- `project_root`
+- `risk`
+- `oversight`
+- `memory_mode`
+
 ## Pre-Task Event
 
 ```json
@@ -75,3 +104,5 @@ Additional rule:
 ## Adapter Rule
 
 Adapters may transform native payloads into this shape, but they must not reinterpret governance policy.
+
+`session_start` is currently a shared-governance event intended for startup context and handoff flows; native harness adapters may adopt it later.
