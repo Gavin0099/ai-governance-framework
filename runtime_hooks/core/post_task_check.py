@@ -17,6 +17,17 @@ from governance_tools.contract_validator import validate_contract
 from memory_pipeline.session_snapshot import create_session_snapshot
 
 
+def _merge_runtime_checks(errors: list[str], warnings: list[str], checks: dict | None) -> None:
+    if not checks:
+        return
+
+    for warning in checks.get("warnings", []):
+        warnings.append(f"runtime-check: {warning}")
+
+    for error in checks.get("errors", []):
+        errors.append(f"runtime-check: {error}")
+
+
 def run_post_task_check(
     response_text: str,
     risk: str,
@@ -26,6 +37,7 @@ def run_post_task_check(
     snapshot_task: str | None = None,
     snapshot_summary: str | None = None,
     create_snapshot: bool = False,
+    checks: dict | None = None,
 ) -> dict:
     validation = validate_contract(response_text)
     errors = list(validation.errors)
@@ -45,6 +57,8 @@ def run_post_task_check(
 
     if resolved_memory_mode == "durable" and oversight == "review-required":
         warnings.append("Durable memory should typically be promoted after explicit review completion")
+
+    _merge_runtime_checks(errors, warnings, checks)
 
     if create_snapshot and validation.contract_found and validation.compliant and not errors:
         if memory_root is None:
@@ -66,6 +80,7 @@ def run_post_task_check(
         "fields": fields,
         "memory_mode": resolved_memory_mode,
         "snapshot": snapshot_result,
+        "checks": checks,
         "errors": errors,
         "warnings": warnings,
     }
@@ -81,6 +96,7 @@ def main() -> None:
     parser.add_argument("--snapshot-task")
     parser.add_argument("--snapshot-summary")
     parser.add_argument("--create-snapshot", action="store_true")
+    parser.add_argument("--checks-file")
     parser.add_argument("--format", choices=["human", "json"], default="human")
     args = parser.parse_args()
 
@@ -88,6 +104,8 @@ def main() -> None:
         response_text = Path(args.file).read_text(encoding="utf-8")
     else:
         response_text = sys.stdin.read()
+
+    checks = json.loads(Path(args.checks_file).read_text(encoding="utf-8")) if args.checks_file else None
 
     result = run_post_task_check(
         response_text,
@@ -98,6 +116,7 @@ def main() -> None:
         snapshot_task=args.snapshot_task,
         snapshot_summary=args.snapshot_summary,
         create_snapshot=args.create_snapshot,
+        checks=checks,
     )
 
     if args.format == "json":

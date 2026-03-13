@@ -51,6 +51,7 @@ dist/
 .pytest_cache/
 .pytest_tmp*/
 tests/_tmp_governance_auditor/
+tests/_tmp_failure_test_validator/
 .coverage
 htmlcov/
 

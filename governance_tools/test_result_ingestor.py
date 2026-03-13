@@ -12,6 +12,8 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from governance_tools.failure_test_validator import validate_failure_test_coverage
+
 
 def _base_result(source: str, passed: int = 0, failed: int = 0, skipped: int = 0) -> dict:
     return {
@@ -21,13 +23,27 @@ def _base_result(source: str, passed: int = 0, failed: int = 0, skipped: int = 0
             "failed": failed,
             "skipped": skipped,
         },
+        "test_names": [],
+        "failure_test_validation": None,
         "warnings": [],
         "errors": [],
         "ok": failed == 0,
     }
 
 
-def ingest_pytest_text(text: str) -> dict:
+def _finalize_result(result: dict, require_rollback: bool = False) -> dict:
+    failure_validation = validate_failure_test_coverage(
+        result.get("test_names", []),
+        require_rollback=require_rollback,
+    )
+    result["failure_test_validation"] = failure_validation
+    result["warnings"].extend(failure_validation["warnings"])
+    result["errors"].extend(failure_validation["errors"])
+    result["ok"] = result["summary"]["failed"] == 0 and len(result["errors"]) == 0
+    return result
+
+
+def ingest_pytest_text(text: str, require_rollback: bool = False) -> dict:
     result = _base_result("pytest-text")
     normalized = text.replace("\r\n", "\n")
 
@@ -46,16 +62,23 @@ def ingest_pytest_text(text: str) -> dict:
             continue
         if stripped.startswith("FAILED ") or stripped.startswith("ERROR "):
             result["errors"].append(stripped)
+            case_id = stripped.split(" ", 1)[1].split(" - ", 1)[0].strip()
+            if case_id not in result["test_names"]:
+                result["test_names"].append(case_id)
         elif "PytestCacheWarning" in stripped or stripped.startswith("warning:"):
             result["warnings"].append(stripped)
+        elif stripped.startswith("tests/") and "::" in stripped:
+            case_id = stripped.split()[0].strip()
+            if case_id not in result["test_names"]:
+                result["test_names"].append(case_id)
 
     if result["summary"]["failed"] > 0 and not result["errors"]:
         result["errors"].append(f"pytest reported {result['summary']['failed']} failing test(s)")
 
-    return result
+    return _finalize_result(result, require_rollback=require_rollback)
 
 
-def ingest_junit_xml(text: str) -> dict:
+def ingest_junit_xml(text: str, require_rollback: bool = False) -> dict:
     root = ET.fromstring(text)
     suites = [root] if root.tag == "testsuite" else list(root.findall(".//testsuite"))
     if not suites and root.tag == "testsuites":
@@ -86,17 +109,24 @@ def ingest_junit_xml(text: str) -> dict:
                 errors.append(f"{label} - {message}" if message else label)
 
     result = _base_result("junit-xml", passed=passed, failed=failed, skipped=skipped)
+    # test names are collected from every testcase label for downstream failure-path validation
+    for suite in suites:
+        for testcase in suite.findall(".//testcase"):
+            name = testcase.attrib.get("name", "unnamed-test")
+            classname = testcase.attrib.get("classname", "").strip()
+            label = f"{classname}::{name}" if classname else name
+            if label not in result["test_names"]:
+                result["test_names"].append(label)
     result["errors"] = errors
-    result["ok"] = failed == 0
-    return result
+    return _finalize_result(result, require_rollback=require_rollback)
 
 
-def ingest_test_results(path: Path, kind: str) -> dict:
+def ingest_test_results(path: Path, kind: str, require_rollback: bool = False) -> dict:
     text = path.read_text(encoding="utf-8")
     if kind == "pytest-text":
-        return ingest_pytest_text(text)
+        return ingest_pytest_text(text, require_rollback=require_rollback)
     if kind == "junit-xml":
-        return ingest_junit_xml(text)
+        return ingest_junit_xml(text, require_rollback=require_rollback)
     raise ValueError(f"Unsupported test result kind: {kind}")
 
 
@@ -104,9 +134,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Normalize test results for runtime governance.")
     parser.add_argument("--file", required=True)
     parser.add_argument("--kind", choices=["pytest-text", "junit-xml"], required=True)
+    parser.add_argument("--require-rollback", action="store_true")
     args = parser.parse_args()
 
-    result = ingest_test_results(Path(args.file), args.kind)
+    result = ingest_test_results(Path(args.file), args.kind, require_rollback=args.require_rollback)
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
     sys.exit(0 if result["ok"] else 1)

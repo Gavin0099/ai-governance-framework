@@ -80,3 +80,18 @@ def test_post_task_check_blocks_durable_memory_without_oversight():
     )
     assert result["ok"] is False
     assert any("Durable memory" in error for error in result["errors"])
+
+
+def test_post_task_check_merges_runtime_check_errors():
+    result = run_post_task_check(
+        _contract(),
+        risk="medium",
+        oversight="review-required",
+        checks={
+            "warnings": ["Rollback / cleanup coverage was not detected."],
+            "errors": ["Missing required failure-test coverage: failure_path"],
+        },
+    )
+    assert result["ok"] is False
+    assert any("runtime-check: Missing required failure-test coverage: failure_path" in error for error in result["errors"])
+    assert any("runtime-check: Rollback / cleanup coverage was not detected." in warning for warning in result["warnings"])

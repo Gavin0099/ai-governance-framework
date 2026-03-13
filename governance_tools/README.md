@@ -277,3 +277,9 @@ Governance self-audit:
 
 - `governance_auditor.py` checks alignment between constitution docs, runtime enforcement entrypoints, and seed rule packs
 - intended to detect governance drift, not to act as a general-purpose policy engine
+
+Failure-path completeness:
+
+- `failure_test_validator.py` checks whether available test names cover the minimum L1-style categories
+- current categories: `invalid_input`, `boundary`, `failure_path`, optional `rollback_cleanup`
+- outputs normalized `warnings` / `errors` so the result can be merged into runtime `checks`

@@ -48,6 +48,7 @@ AI 在長期專案裡常見的問題不是單次回答不夠聰明，而是：
 - `state_generator.py`
 - `rule_pack_loader.py`
 - `test_result_ingestor.py`
+- `failure_test_validator.py`
 - `architecture_drift_checker.py`
 - `governance_auditor.py`
 
@@ -226,6 +227,7 @@ python governance_tools/contract_validator.py --file ai_response.txt
 python governance_tools/plan_freshness.py --plan PLAN.md
 python governance_tools/state_generator.py --rules common,python,cpp --risk medium --oversight review-required --memory-mode candidate
 python governance_tools/memory_janitor.py --memory-root ./memory --check
+python governance_tools/failure_test_validator.py --file test_names.json --format json
 python governance_tools/governance_auditor.py --format json
 ```
 
@@ -233,7 +235,7 @@ python governance_tools/governance_auditor.py --format json
 
 ```bash
 python runtime_hooks/core/pre_task_check.py --rules common,python,cpp --risk high --oversight review-required
-python runtime_hooks/core/post_task_check.py --file ai_response.txt --risk medium --oversight review-required
+python runtime_hooks/core/post_task_check.py --file ai_response.txt --risk medium --oversight review-required --checks-file checks.json
 python runtime_hooks/dispatcher.py --file shared_event.json
 python runtime_hooks/core/session_end.py --project-root . --session-id 2026-03-12-01 --runtime-contract-file contract.json --checks-file checks.json --event-log-file event_log.json --response-file ai_response.txt
 ```
