@@ -85,6 +85,7 @@ def test_session_start_human_output_is_actionable(local_session_start_root):
     )
 
     output = format_human_result(result)
+    assert "[session_start]" in output
     assert "suggested_skills=code-style,governance-runtime,python,human-readable-cli" in output
     assert "suggested_agent=cli-agent" in output
     assert "proposal_rules=common" in output

@@ -68,6 +68,7 @@ def build_change_proposal(
 
 def format_human_result(result: dict) -> str:
     lines = [
+        "[change_proposal]",
         f"task={result['task']}",
         f"requested_rules={','.join(result.get('requested_rules') or [])}",
     ]
@@ -77,6 +78,7 @@ def format_human_result(result: dict) -> str:
 
     guidance = result.get("proposal_guidance") or {}
     if guidance:
+        lines.append("[proposal_guidance]")
         lines.append(f"recommended_risk={guidance.get('recommended_risk')}")
         lines.append(f"recommended_oversight={guidance.get('recommended_oversight')}")
         validators = guidance.get("expected_validators") or []
@@ -85,6 +87,9 @@ def format_human_result(result: dict) -> str:
         evidence = guidance.get("required_evidence") or []
         if evidence:
             lines.append(f"required_evidence={','.join(evidence)}")
+        concerns = guidance.get("concerns") or []
+        if concerns:
+            lines.append(f"concerns={','.join(concerns)}")
     return "\n".join(lines)
 
 

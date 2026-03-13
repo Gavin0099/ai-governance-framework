@@ -58,5 +58,6 @@ def test_change_proposal_builder_human_output_is_actionable(local_change_proposa
     )
 
     output = format_human_result(result)
+    assert "[change_proposal]" in output
     assert "task=Implement feature without impact files" in output
     assert "requested_rules=common" in output

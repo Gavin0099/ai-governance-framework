@@ -83,6 +83,7 @@ def build_session_start_context(
 
 def format_human_result(result: dict) -> str:
     lines = [
+        "[session_start]",
         f"ok={result['ok']}",
         f"rules={','.join(result['runtime_contract'].get('rules', []))}",
     ]
@@ -95,6 +96,7 @@ def format_human_result(result: dict) -> str:
 
     guidance = result.get("proposal_guidance") or {}
     if guidance:
+        lines.append("[proposal_guidance]")
         lines.append(f"recommended_risk={guidance.get('recommended_risk')}")
         lines.append(f"recommended_oversight={guidance.get('recommended_oversight')}")
         validators = guidance.get("expected_validators") or []
@@ -103,10 +105,14 @@ def format_human_result(result: dict) -> str:
         evidence = guidance.get("required_evidence") or []
         if evidence:
             lines.append(f"required_evidence={','.join(evidence)}")
+        concerns = guidance.get("concerns") or []
+        if concerns:
+            lines.append(f"concerns={','.join(concerns)}")
 
     proposal = result.get("change_proposal") or {}
     requested_rules = proposal.get("requested_rules") or []
     if requested_rules:
+        lines.append("[change_proposal]")
         lines.append(f"proposal_rules={','.join(requested_rules)}")
 
     for warning in result["pre_task_check"].get("warnings", []):
