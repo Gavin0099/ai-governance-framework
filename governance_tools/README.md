@@ -304,6 +304,7 @@ Architecture impact estimation:
 
 - `architecture_impact_estimator.py` combines drift signals and public API diff into a proposal-time `Governance Impact Report`
 - the report now includes `touched_layers`, `boundary_risk`, `expected_validators`, `required_evidence`, and recommended `risk` / `oversight`
+- use `--format human` when the estimator is meant to guide an operator or AI before implementation, rather than feed JSON into another tool
 - `state_generator.py` can include this same preview with `--impact-before/--impact-after`, keeping proposal context advisory rather than auto-mutating the runtime contract
 - it recommends evidence, risk, and oversight, but does not act as a policy engine or auto-decision maker
 

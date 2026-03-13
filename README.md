@@ -296,6 +296,7 @@ python governance_tools/memory_janitor.py --memory-root ./memory --check
 python governance_tools/failure_test_validator.py --file test_names.json --format json
 python governance_tools/failure_completeness_validator.py --file checks.json --format json
 python governance_tools/public_api_diff_checker.py --before before.cs --after after.cs --format json
+python governance_tools/architecture_impact_estimator.py --before before.cs --after after.cs --rules common,refactor --scope refactor --format human
 python governance_tools/driver_evidence_validator.py --file checks.json --format json
 python governance_tools/refactor_evidence_validator.py --file checks.json --format json
 python governance_tools/rule_pack_suggester.py --project-root . --task "Refactor Avalonia view model boundary"

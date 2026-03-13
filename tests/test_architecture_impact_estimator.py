@@ -6,7 +6,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from governance_tools.architecture_impact_estimator import estimate_architecture_impact
+from governance_tools.architecture_impact_estimator import estimate_architecture_impact, format_human_result
 
 
 @pytest.fixture
@@ -98,3 +98,30 @@ def test_architecture_impact_estimator_marks_kernel_driver_as_high_risk(local_es
     assert "driver-static-analysis" in result["required_evidence"]
     assert "driver_evidence_validator" in result["expected_validators"]
     assert result["impact_report"]["touched_layers"] == ["platform"]
+
+
+def test_architecture_impact_estimator_human_output_is_readable(local_estimator_root):
+    before_dir = local_estimator_root / "application"
+    after_dir = local_estimator_root / "application"
+    before_dir.mkdir(parents=True, exist_ok=True)
+    after_dir.mkdir(parents=True, exist_ok=True)
+    before_file = before_dir / "before.cs"
+    after_file = after_dir / "after.cs"
+    before_file.write_text("public class Service { public int Run() => 1; }\n", encoding="utf-8")
+    after_file.write_text(
+        "public class Service { public int Run() => 1; public int Ping() => 0; }\n",
+        encoding="utf-8",
+    )
+
+    result = estimate_architecture_impact(
+        [before_file],
+        [after_file],
+        scope="refactor",
+        active_rules=["common", "refactor"],
+    )
+
+    output = format_human_result(result)
+    assert "recommended_risk=high" in output
+    assert "recommended_oversight=human-approval" in output
+    assert "touched_layers=application" in output
+    assert "expected_validators=architecture_drift_checker,public_api_diff_checker,refactor_evidence_validator" in output

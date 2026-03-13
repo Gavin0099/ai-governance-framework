@@ -214,12 +214,35 @@ def estimate_architecture_impact(
     }
 
 
+def format_human_result(result: dict) -> str:
+    lines = [
+        f"ok={result['ok']}",
+        f"scope={result['scope']}",
+        f"recommended_risk={result['recommended_risk']}",
+        f"recommended_oversight={result['recommended_oversight']}",
+    ]
+    touched_layers = result.get("touched_layers") or []
+    if touched_layers:
+        lines.append(f"touched_layers={','.join(touched_layers)}")
+    concerns = result.get("concerns") or []
+    if concerns:
+        lines.append(f"concerns={','.join(concerns)}")
+    validators = result.get("expected_validators") or []
+    if validators:
+        lines.append(f"expected_validators={','.join(validators)}")
+    evidence = result.get("required_evidence") or []
+    if evidence:
+        lines.append(f"required_evidence={','.join(evidence)}")
+    return "\n".join(lines)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Estimate architecture impact before code is merged.")
     parser.add_argument("--before", action="append", default=[])
     parser.add_argument("--after", action="append", default=[])
     parser.add_argument("--scope", default="feature")
     parser.add_argument("--rules", default="")
+    parser.add_argument("--format", choices=["human", "json"], default="json")
     args = parser.parse_args()
 
     active_rules = [item.strip() for item in args.rules.split(",") if item.strip()]
@@ -229,7 +252,10 @@ def main() -> None:
         scope=args.scope,
         active_rules=active_rules,
     )
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    if args.format == "json":
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    else:
+        print(format_human_result(result))
     raise SystemExit(0 if result["ok"] else 1)
 
 
