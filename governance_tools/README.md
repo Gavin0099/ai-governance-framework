@@ -247,7 +247,7 @@ Rule-pack runtime support:
 Test-result normalization:
 
 - `test_result_ingestor.py` converts test runner output into normalized runtime `checks`
-- currently supports `pytest-text`, `junit-xml`, `sdv-text`, and `msbuild-warning-text`
+- currently supports `pytest-text`, `junit-xml`, `sdv-text`, `msbuild-warning-text`, and `sarif`
 
 Architecture drift heuristics:
 

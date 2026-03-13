@@ -7,6 +7,7 @@ from governance_tools.test_result_ingestor import (
     ingest_msbuild_warning_text,
     ingest_junit_xml,
     ingest_pytest_text,
+    ingest_sarif,
     ingest_sdv_text,
 )
 
@@ -94,5 +95,36 @@ Build succeeded.
     )
     assert payload["ok"] is True
     assert len(payload["warnings"]) == 2
+    assert payload["irql_verified"] is True
+    assert payload["ioctl_boundary_verified"] is True
+
+
+def test_ingest_sarif_collects_diagnostics_and_driver_signals():
+    payload = ingest_sarif(
+        """
+{
+  "version": "2.1.0",
+  "runs": [
+    {
+      "results": [
+        {
+          "ruleId": "SDV001",
+          "level": "warning",
+          "message": {"text": "Static Driver Verifier reports IRQL contract for dispatch path."}
+        },
+        {
+          "ruleId": "SAL100",
+          "level": "note",
+          "message": {"text": "SAL analysis confirmed invalid input buffer length validation."}
+        }
+      ]
+    }
+  ]
+}
+""".strip()
+    )
+    assert payload["ok"] is True
+    assert len(payload["diagnostics"]) == 2
+    assert payload["driver_analysis_verified"] is True
     assert payload["irql_verified"] is True
     assert payload["ioctl_boundary_verified"] is True

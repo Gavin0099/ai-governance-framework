@@ -50,7 +50,7 @@ Test-result handoff:
 
 - `governance_tools/test_result_ingestor.py` converts runner output into normalized `checks`
 - recommended flow: test runner output -> `test_result_ingestor.py` -> runtime `checks.errors / checks.warnings / checks.summary`
-- supported evidence kinds now include `pytest-text`, `junit-xml`, `sdv-text`, and `msbuild-warning-text`
+- supported evidence kinds now include `pytest-text`, `junit-xml`, `sdv-text`, `msbuild-warning-text`, and `sarif`
 
 Public API handoff:
 

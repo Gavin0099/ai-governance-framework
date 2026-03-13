@@ -108,7 +108,7 @@ Platform packs:
 - `swift` 聚焦 concurrency 與 native interop boundary
 - `kernel-driver` 聚焦 IRQL、memory boundary、cleanup / unwind 等高權限風險
 - `kernel-driver` 證據應優先來自 SDV / SAL / WDK 類分析結果與 driver-focused tests，而不是自製全能 parser
-- `test_result_ingestor.py` 現在除了 `pytest-text` / `junit-xml`，也可正規化 `sdv-text` 與 `msbuild-warning-text`
+- `test_result_ingestor.py` 現在除了 `pytest-text` / `junit-xml`，也可正規化 `sdv-text`、`msbuild-warning-text`、`sarif`
 - `architecture_drift_checker.py` 現在除了 high-signal heuristic，也支援 before/after dependency edge diff
 - `state_generator.py` 現在會附帶 advisory `rule_pack_suggestions`，但不會自動改寫 `runtime_contract.rules`
 
