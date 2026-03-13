@@ -73,6 +73,18 @@ def format_human_result(result: dict[str, Any]) -> str:
     proposal = result.get("proposal") or {}
     runtime = result.get("runtime") or {}
     lines = ["[change_control_summary]"]
+    summary_parts = []
+    if result.get("task"):
+        summary_parts.append(f"task={result['task']}")
+    if proposal.get("recommended_risk"):
+        summary_parts.append(f"proposal_risk={proposal.get('recommended_risk')}")
+    if runtime.get("decision"):
+        summary_parts.append(f"runtime_decision={runtime.get('decision')}")
+    if runtime.get("promoted") is not None:
+        summary_parts.append(f"promoted={runtime.get('promoted')}")
+    if summary_parts:
+        lines.append(f"summary={' | '.join(summary_parts)}")
+
     if result.get("task"):
         lines.append(f"task={result['task']}")
     if result.get("requested_rules"):
@@ -101,6 +113,8 @@ def format_human_result(result: dict[str, Any]) -> str:
     lines.append(f"risk={runtime.get('risk')}")
     lines.append(f"oversight={runtime.get('oversight')}")
     lines.append(f"public_api_diff_present={runtime.get('public_api_diff_present')}")
+    lines.append(f"public_api_added_count={runtime.get('public_api_added_count')}")
+    lines.append(f"public_api_removed_count={runtime.get('public_api_removed_count')}")
     lines.append(f"warning_count={runtime.get('warning_count')}")
     lines.append(f"error_count={runtime.get('error_count')}")
     lines.append(f"promoted={runtime.get('promoted')}")

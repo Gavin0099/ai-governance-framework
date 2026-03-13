@@ -404,6 +404,8 @@ change_control_summary.py
 reviewable change-control summary
 ```
 
+`change_control_summary.py --format human` 現在會先輸出一行 reviewer-first summary，再列 proposal / runtime 區塊細節。
+
 ### Adapters
 
 ```bash

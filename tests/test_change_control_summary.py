@@ -74,6 +74,7 @@ def test_change_control_summary_human_output_is_reviewable():
     )
 
     assert "[change_control_summary]" in output
+    assert "summary=task=Improve CLI output | proposal_risk=medium | runtime_decision=AUTO_PROMOTE | promoted=True" in output
     assert "expected_validators=failure_completeness_validator" in output
     assert "promoted=True" in output
 
