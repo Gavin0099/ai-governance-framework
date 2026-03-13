@@ -11,6 +11,19 @@ from pathlib import Path
 
 DEFAULT_RULES_ROOT = Path(__file__).resolve().parent.parent / "governance" / "rules"
 
+RULE_PACK_CATEGORIES = {
+    "common": "scope",
+    "refactor": "scope",
+    "release": "scope",
+    "cpp": "language",
+    "python": "language",
+    "csharp": "language",
+    "swift": "language",
+    "objective-c": "language",
+    "avalonia": "framework",
+    "electron": "framework",
+}
+
 
 def parse_rule_list(value: str | list[str] | None) -> list[str]:
     if value is None:
@@ -44,6 +57,10 @@ def _read_rule_file(rule_file: Path, rules_root: Path) -> dict:
     }
 
 
+def rule_pack_category(name: str) -> str:
+    return RULE_PACK_CATEGORIES.get(name, "custom")
+
+
 def load_rule_content(requested_rules: list[str], rules_root: Path = DEFAULT_RULES_ROOT) -> dict:
     available = available_rule_packs(rules_root)
     active_rules = []
@@ -57,6 +74,7 @@ def load_rule_content(requested_rules: list[str], rules_root: Path = DEFAULT_RUL
         active_rules.append(
             {
                 "name": name,
+                "category": rule_pack_category(name),
                 "files": [_read_rule_file(rule_file, rules_root) for rule_file in sorted(pack_dir.glob("*.md"))],
             }
         )
@@ -74,7 +92,13 @@ def describe_rule_selection(requested_rules: list[str], rules_root: Path = DEFAU
     resolved = []
 
     for pack in loaded["active_rules"]:
-        resolved.append({"name": pack["name"], "files": [entry["path"] for entry in pack["files"]]})
+        resolved.append(
+            {
+                "name": pack["name"],
+                "category": pack["category"],
+                "files": [entry["path"] for entry in pack["files"]],
+            }
+        )
 
     return {
         "requested": requested_rules,

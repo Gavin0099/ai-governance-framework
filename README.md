@@ -76,11 +76,39 @@ AI 在長期專案裡常見的問題不是單次回答不夠聰明，而是：
 
 目前已內建的 rule packs：
 
+Scope packs:
+
 - `common`
+- `refactor`
+
+Language packs:
+
 - `python`
 - `cpp`
+- `csharp`
+- `swift`
 
-其中 `cpp` 已包含 build-boundary 規則，例如禁止跨專案 private include 與錯誤使用 `AdditionalIncludeDirectories`。
+Framework packs:
+
+- `avalonia`
+
+其中：
+
+- `cpp` 已包含 build-boundary 規則，例如禁止跨專案 private include 與錯誤使用 `AdditionalIncludeDirectories`
+- `csharp` 聚焦 thread / native boundary
+- `avalonia` 聚焦 UI thread 與 ViewModel boundary
+- `swift` 聚焦 concurrency 與 native interop boundary
+
+範例：
+
+```text
+RULES = common,csharp,avalonia,refactor
+```
+
+- `common`: 全域治理基線
+- `csharp`: 語言層邊界與 threading / native contract
+- `avalonia`: UI / Dispatcher / ViewModel 邊界
+- `refactor`: 變更型別治理，要求 behavior lock 與 boundary safety
 
 ## 執行時治理總覽
 

@@ -113,3 +113,34 @@ def test_generate_state_can_include_refactor_active_rules(local_tmp_dir, monkeyp
     refactor_pack = [pack for pack in state["active_rules"]["active_rules"] if pack["name"] == "refactor"][0]
     contents = "\n".join(file["content"] for file in refactor_pack["files"])
     assert "must not introduce new boundary crossings" in contents
+
+
+def test_generate_state_can_include_csharp_avalonia_swift_active_rules(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(state_generator, "check_freshness", lambda _: _FreshnessStub())
+
+    plan = local_tmp_dir / "PLAN.md"
+    plan.write_text(
+        "> **Owner**: Tester\n"
+        "> **Freshness**: Sprint (7d)\n"
+        "\n"
+        "## Current Sprint\n"
+        "- [ ] Expand UI and concurrency governance\n",
+        encoding="utf-8",
+    )
+
+    state = state_generator.generate_state(
+        plan,
+        rules="csharp,avalonia,swift",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+    )
+
+    contents = "\n".join(
+        file["content"]
+        for pack in state["active_rules"]["active_rules"]
+        for file in pack["files"]
+    )
+    assert "async void" in contents
+    assert "Dispatcher.UIThread" in contents
+    assert "structured concurrency" in contents

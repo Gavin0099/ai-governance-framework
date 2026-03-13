@@ -8,6 +8,7 @@ from governance_tools.rule_pack_loader import (
     describe_rule_selection,
     load_rule_content,
     parse_rule_list,
+    rule_pack_category,
 )
 
 
@@ -21,12 +22,16 @@ def test_available_rule_packs_contains_seed_packs():
     assert "python" in packs
     assert "cpp" in packs
     assert "refactor" in packs
+    assert "csharp" in packs
+    assert "avalonia" in packs
+    assert "swift" in packs
 
 
 def test_describe_rule_selection_resolves_files():
     description = describe_rule_selection(["common", "python"])
     assert description["valid"] is True
     assert [item["name"] for item in description["resolved"]] == ["common", "python"]
+    assert [item["category"] for item in description["resolved"]] == ["scope", "language"]
 
 
 def test_describe_rule_selection_reports_missing():
@@ -39,6 +44,7 @@ def test_load_rule_content_returns_file_metadata_and_content():
     loaded = load_rule_content(["common"])
     assert loaded["valid"] is True
     assert loaded["active_rules"][0]["name"] == "common"
+    assert loaded["active_rules"][0]["category"] == "scope"
     first_file = loaded["active_rules"][0]["files"][0]
     assert first_file["path"].replace("\\", "/").endswith("governance/rules/common/core.md")
     assert first_file["title"]
@@ -60,3 +66,26 @@ def test_load_rule_content_can_load_refactor_pack():
     contents = "\n".join(file["content"] for file in loaded["active_rules"][0]["files"])
     assert "observable behavior remains unchanged" in contents
     assert "must not introduce new boundary crossings" in contents
+
+
+def test_load_rule_content_can_load_csharp_avalonia_swift_packs():
+    loaded = load_rule_content(["csharp", "avalonia", "swift"])
+    assert loaded["valid"] is True
+    names = [pack["name"] for pack in loaded["active_rules"]]
+    assert names == ["csharp", "avalonia", "swift"]
+    categories = [pack["category"] for pack in loaded["active_rules"]]
+    assert categories == ["language", "framework", "language"]
+    contents = "\n".join(
+        file["content"]
+        for pack in loaded["active_rules"]
+        for file in pack["files"]
+    )
+    assert "async void" in contents
+    assert "Dispatcher.UIThread" in contents
+    assert "structured concurrency" in contents
+
+
+def test_rule_pack_category_defaults_to_custom_for_unknown_packs():
+    assert rule_pack_category("common") == "scope"
+    assert rule_pack_category("avalonia") == "framework"
+    assert rule_pack_category("my-team-pack") == "custom"

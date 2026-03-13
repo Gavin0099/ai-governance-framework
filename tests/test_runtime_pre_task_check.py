@@ -106,3 +106,25 @@ def test_pre_task_check_exposes_refactor_active_rules(local_tmp_dir, monkeypatch
     refactor_pack = [pack for pack in result["active_rules"]["active_rules"] if pack["name"] == "refactor"][0]
     contents = "\n".join(file["content"] for file in refactor_pack["files"])
     assert "observable behavior remains unchanged" in contents
+
+
+def test_pre_task_check_exposes_csharp_avalonia_swift_active_rules(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="csharp,avalonia,swift",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+    )
+    assert result["ok"] is True
+    contents = "\n".join(
+        file["content"]
+        for pack in result["active_rules"]["active_rules"]
+        for file in pack["files"]
+    )
+    assert "async void" in contents
+    assert "Dispatcher.UIThread" in contents
+    assert "structured concurrency" in contents
