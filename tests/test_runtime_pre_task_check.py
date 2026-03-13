@@ -180,3 +180,24 @@ def test_pre_task_check_warns_when_high_confidence_suggestions_are_missing(local
     assert any("Suggested language pack 'csharp' is not active" in warning for warning in result["warnings"])
     assert any("Suggested framework pack 'avalonia' is not active" in warning for warning in result["warnings"])
     assert any("Advisory scope pack 'refactor' is suggested by task text but not active" in warning for warning in result["warnings"])
+
+
+def test_pre_task_check_human_output_includes_suggested_rules_preview(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    (local_tmp_dir / "App.csproj").write_text("<Project Sdk=\"Microsoft.NET.Sdk\"></Project>", encoding="utf-8")
+    (local_tmp_dir / "MainWindow.axaml.cs").write_text(
+        "using Avalonia.Threading;\npublic class MainWindow {}", encoding="utf-8"
+    )
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="Refactor Avalonia boundary",
+    )
+
+    output = pre_task_check.format_human_result(result)
+    assert "suggested_rules_preview=common,csharp,avalonia,refactor" in output

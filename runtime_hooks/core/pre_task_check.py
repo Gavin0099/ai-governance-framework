@@ -92,6 +92,22 @@ def run_pre_task_check(
     }
 
 
+def format_human_result(result: dict) -> str:
+    lines = [
+        f"ok={result['ok']}",
+        f"freshness={result['freshness']['status']}",
+        f"rules={', '.join(result['runtime_contract']['rules'])}",
+    ]
+    preview = result.get("suggested_rules_preview") or []
+    if preview:
+        lines.append(f"suggested_rules_preview={','.join(preview)}")
+    for warning in result["warnings"]:
+        lines.append(f"warning: {warning}")
+    for error in result["errors"]:
+        lines.append(f"error: {error}")
+    return "\n".join(lines)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run pre-task governance checks.")
     parser.add_argument("--project-root", default=".")
@@ -115,13 +131,7 @@ def main() -> None:
     if args.format == "json":
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
-        print(f"ok={result['ok']}")
-        print(f"freshness={result['freshness']['status']}")
-        print(f"rules={', '.join(result['runtime_contract']['rules'])}")
-        for warning in result["warnings"]:
-            print(f"warning: {warning}")
-        for error in result["errors"]:
-            print(f"error: {error}")
+        print(format_human_result(result))
 
     sys.exit(0 if result["ok"] else 1)
 
