@@ -9,6 +9,13 @@ import argparse
 from pathlib import Path
 
 
+def _extract_summary_line(path: Path) -> str | None:
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("summary="):
+            return line
+    return None
+
+
 def build_change_control_index(artifacts_dir: Path) -> str:
     summary_files = sorted(artifacts_dir.glob("*_change_control_summary.txt"))
     session_files = sorted(artifacts_dir.glob("*_session_start.txt"))
@@ -33,7 +40,11 @@ def build_change_control_index(artifacts_dir: Path) -> str:
     if summary_files:
         lines.append("[change_control_summaries]")
         for path in summary_files:
-            lines.append(path.name)
+            summary_line = _extract_summary_line(path)
+            if summary_line:
+                lines.append(f"{path.name} | {summary_line}")
+            else:
+                lines.append(path.name)
 
     if session_files:
         lines.append("[session_start_notes]")
