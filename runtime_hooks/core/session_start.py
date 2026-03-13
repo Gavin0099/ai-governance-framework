@@ -13,6 +13,7 @@ from pathlib import Path
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from governance_tools.change_proposal_builder import build_change_proposal
 from governance_tools.state_generator import generate_state
 from runtime_hooks.core.pre_task_check import run_pre_task_check
 
@@ -55,6 +56,14 @@ def build_session_start_context(
         impact_after_files=impact_after_files,
     )
 
+    proposal = build_change_proposal(
+        project_root=project_root,
+        task_text=task_text,
+        rules=rules,
+        impact_before_files=impact_before_files,
+        impact_after_files=impact_after_files,
+    )
+
     return {
         "ok": state.get("error") is None and pre_task["ok"],
         "project_root": str(project_root),
@@ -66,6 +75,7 @@ def build_session_start_context(
         "rule_pack_suggestions": pre_task.get("rule_pack_suggestions", {}),
         "architecture_impact_preview": pre_task.get("architecture_impact_preview"),
         "proposal_guidance": state.get("proposal_guidance"),
+        "change_proposal": proposal,
         "state": state,
         "pre_task_check": pre_task,
     }
@@ -93,6 +103,11 @@ def format_human_result(result: dict) -> str:
         evidence = guidance.get("required_evidence") or []
         if evidence:
             lines.append(f"required_evidence={','.join(evidence)}")
+
+    proposal = result.get("change_proposal") or {}
+    requested_rules = proposal.get("requested_rules") or []
+    if requested_rules:
+        lines.append(f"proposal_rules={','.join(requested_rules)}")
 
     for warning in result["pre_task_check"].get("warnings", []):
         lines.append(f"warning: {warning}")

@@ -373,7 +373,7 @@ suggested rules + proposal guidance + impact preview
 Session-start handoff flow:
 
 ```text
-state_generator.py + pre_task_check.py
+state_generator.py + pre_task_check.py + change_proposal_builder.py
         ↓
 session_start.py
         ↓

@@ -91,7 +91,7 @@ Session close:
 Session start:
 
 - `core/session_start.py` builds an agent-start context from `state_generator.py` plus `pre_task_check.py`
-- it packages suggested rules, suggested skills, suggested agent, and proposal guidance into one startup artifact
+- it packages suggested rules, suggested skills, suggested agent, proposal guidance, and a full `change_proposal` artifact into one startup artifact
 
 Examples:
 
