@@ -4,6 +4,7 @@ This directory contains the runtime governance layer.
 
 Core hooks:
 
+- `core/session_start.py`
 - `core/pre_task_check.py`
 - `core/post_task_check.py`
 - `core/session_end.py`
@@ -83,6 +84,11 @@ Session close:
 - emits `artifacts/runtime/summaries/<session_id>.json`
 - creates candidate memory snapshots and applies conservative promotion policy
 - `--impact-preview-file` can now attach proposal-time `architecture_impact_preview` into the same audit trail
+
+Session start:
+
+- `core/session_start.py` builds an agent-start context from `state_generator.py` plus `pre_task_check.py`
+- it packages suggested rules, suggested skills, suggested agent, and proposal guidance into one startup artifact
 
 Examples:
 

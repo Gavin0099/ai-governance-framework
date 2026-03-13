@@ -69,6 +69,7 @@ AI 在長期專案裡常見的問題不是單次回答不夠聰明，而是：
 
 - shared event contract
 - dispatcher
+- `session_start`
 - `pre_task_check`
 - `post_task_check`
 - `session_end`
@@ -319,6 +320,7 @@ python governance_tools/governance_auditor.py --format json
 
 ```bash
 python runtime_hooks/core/pre_task_check.py --rules common,python,cpp --risk high --oversight review-required
+python runtime_hooks/core/session_start.py --project-root . --plan PLAN.md --rules common,refactor --task-text "Refactor Avalonia boundary" --impact-before before.cs --impact-after after.cs
 python runtime_hooks/core/pre_task_check.py --rules common,refactor --risk medium --oversight review-required --impact-before before.cs --impact-after after.cs
 python runtime_hooks/core/post_task_check.py --file ai_response.txt --risk medium --oversight review-required --checks-file checks.json --api-before before.cs --api-after after.cs
 python runtime_hooks/dispatcher.py --file shared_event.json
@@ -365,6 +367,16 @@ task text + project signals + impact files
 change_proposal_builder.py
         ↓
 suggested rules + proposal guidance + impact preview
+```
+
+Session-start handoff flow:
+
+```text
+state_generator.py + pre_task_check.py
+        ↓
+session_start.py
+        ↓
+agent start context
 ```
 
 ### Adapters
