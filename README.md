@@ -116,6 +116,7 @@ Platform packs:
 - `rule_pack_suggester.py` / `state_generator.py` / `pre_task_check.py` 現在都會提供 `suggested_rules_preview`，方便直接採用建議規則串
 - `pre_task_check --format human` 現在也會直接印出 `suggested_rules_preview=...`
 - `post_task_check --format human` 現在也會直接印出 evidence summary，例如 `public_api_ok=...`、`failure_completeness_ok=...`
+- `architecture_impact_estimator.py` 現在可在 proposal 階段預估 drift/API 風險與所需 evidence，但不直接替代治理裁決
 
 範例：
 

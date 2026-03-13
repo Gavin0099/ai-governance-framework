@@ -300,6 +300,11 @@ Public API diff:
 - `public_api_diff_checker.py` extracts a high-signal public API manifest and compares before/after surfaces
 - intended as a lightweight semantic-verification step for interface stability, not a full language-aware compiler front end
 
+Architecture impact estimation:
+
+- `architecture_impact_estimator.py` combines drift signals and public API diff into a proposal-time impact preview
+- it recommends evidence, risk, and oversight, but does not act as a policy engine or auto-decision maker
+
 Kernel-driver governance:
 
 - `kernel-driver` is treated as a high-risk `platform` pack rather than a plain C++ appendix
