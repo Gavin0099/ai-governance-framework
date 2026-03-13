@@ -451,6 +451,7 @@ GitHub Actions workflow 在：
 - pre/post task checks
 - session close and curated memory flow
 - focused runtime governance test suite
+- uploaded `artifacts/runtime/smoke/` handoff summaries from `session_start` smoke flows
 
 ## 目前邊界
 

@@ -107,3 +107,4 @@ Enforcement:
 - local `pre-push` runs `scripts/run-runtime-governance.sh --mode enforce`
 - CI runs the same script with `--mode ci`
 - this keeps smoke coverage and focused runtime tests on the same execution path
+- CI also uploads `artifacts/runtime/smoke/` so session-start handoff summaries can be reviewed after a run

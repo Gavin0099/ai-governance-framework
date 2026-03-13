@@ -119,3 +119,11 @@ jobs:
 
       - name: Run runtime governance enforcement
         run: bash scripts/run-runtime-governance.sh --mode ci
+
+      - name: Upload runtime smoke handoff artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-smoke-handoff
+          path: artifacts/runtime/smoke/
+          if-no-files-found: warn
