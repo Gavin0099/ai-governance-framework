@@ -183,3 +183,34 @@ def test_session_end_records_architecture_impact_preview(local_project_root):
 
     curated_payload = json.loads(Path(result["curated_artifact"]).read_text(encoding="utf-8"))
     assert any(item["source"] == "architecture_impact_preview.concerns" for item in curated_payload["items"])
+
+
+def test_session_end_records_proposal_summary_in_audit_chain(local_project_root):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-08",
+        runtime_contract=_contract(rules=["common", "refactor"]),
+        checks={"ok": True, "errors": []},
+        proposal_summary={
+            "requested_rules": ["common", "refactor"],
+            "recommended_risk": "high",
+            "recommended_oversight": "human-approval",
+            "required_evidence": ["architecture-review", "public-api-review"],
+            "expected_validators": ["architecture_drift_checker", "public_api_diff_checker"],
+            "concerns": ["cross-layer-change-risk"],
+        },
+        response_text="runtime output",
+        summary="Proposal summary captured in session audit",
+    )
+
+    summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
+    assert summary_payload["proposal_summary_present"] is True
+    assert summary_payload["proposal_summary_recommended_risk"] == "high"
+    assert summary_payload["proposal_summary_expected_validator_count"] == 2
+
+    candidate_payload = json.loads(Path(result["candidate_artifact"]).read_text(encoding="utf-8"))
+    assert candidate_payload["proposal_summary"]["recommended_oversight"] == "human-approval"
+
+    curated_payload = json.loads(Path(result["curated_artifact"]).read_text(encoding="utf-8"))
+    assert any(item["source"] == "proposal_summary.concerns" for item in curated_payload["items"])
+    assert any(item["source"] == "proposal_summary.required_evidence" for item in curated_payload["items"])

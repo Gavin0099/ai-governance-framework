@@ -97,3 +97,32 @@ def test_curator_preserves_architecture_impact_evidence(local_runtime_root):
 
     assert any(item["source"] == "architecture_impact_preview.concerns" for item in result["items"])
     assert any(item["source"] == "architecture_impact_preview.required_evidence" for item in result["items"])
+
+
+def test_curator_preserves_proposal_summary_evidence(local_runtime_root):
+    candidate_path = local_runtime_root / "artifacts" / "runtime" / "candidates" / "session.json"
+    payload = {
+        "session_id": "2026-03-12-04",
+        "summary": "Captured proposal summary for review.",
+        "runtime_contract": {
+            "rules": ["common", "refactor"],
+            "risk": "medium",
+            "oversight": "review-required",
+        },
+        "checks": {"errors": []},
+        "policy": {"reasons": []},
+        "proposal_summary": {
+            "recommended_risk": "high",
+            "recommended_oversight": "human-approval",
+            "required_evidence": ["architecture-review", "public-api-review"],
+            "concerns": ["cross-layer-change-risk"],
+        },
+        "event_log": [],
+    }
+    candidate_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    result = curate_candidate_artifact(candidate_path)
+
+    assert any(item["source"] == "proposal_summary.concerns" for item in result["items"])
+    assert any(item["source"] == "proposal_summary.required_evidence" for item in result["items"])
+    assert any(item["source"] == "proposal_summary.recommendation" for item in result["items"])

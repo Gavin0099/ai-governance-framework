@@ -192,6 +192,61 @@ def _extract_candidate_items(candidate_payload: dict[str, Any]) -> tuple[list[di
             )
             seen.add(content.lower())
 
+    proposal_summary = candidate_payload.get("proposal_summary") or {}
+    proposal_concerns = proposal_summary.get("concerns", []) or []
+    if proposal_concerns:
+        content = _normalize_text(f"Proposal summary concerns: {', '.join(proposal_concerns)}")
+        if content and content.lower() not in seen:
+            kept.append(
+                {
+                    "type": "followup",
+                    "title": "Follow-up: proposal summary concerns",
+                    "content": content,
+                    "reason": "proposal-time governance summary",
+                    "confidence": "medium",
+                    "source": "proposal_summary.concerns",
+                }
+            )
+            seen.add(content.lower())
+
+    proposal_evidence = proposal_summary.get("required_evidence", []) or []
+    if proposal_evidence:
+        content = _normalize_text(f"Proposal summary evidence: {', '.join(proposal_evidence)}")
+        if content and content.lower() not in seen:
+            kept.append(
+                {
+                    "type": "fact",
+                    "title": "Fact: proposal summary evidence",
+                    "content": content,
+                    "reason": "proposal-time evidence expectation",
+                    "confidence": "medium",
+                    "source": "proposal_summary.required_evidence",
+                }
+            )
+            seen.add(content.lower())
+
+    proposal_risk = proposal_summary.get("recommended_risk")
+    proposal_oversight = proposal_summary.get("recommended_oversight")
+    if proposal_risk or proposal_oversight:
+        parts = []
+        if proposal_risk:
+            parts.append(f"risk={proposal_risk}")
+        if proposal_oversight:
+            parts.append(f"oversight={proposal_oversight}")
+        content = _normalize_text(f"Proposal summary recommendation: {', '.join(parts)}")
+        if content and content.lower() not in seen:
+            kept.append(
+                {
+                    "type": "decision",
+                    "title": "Decision: proposal summary recommendation",
+                    "content": content,
+                    "reason": "proposal-time governance recommendation",
+                    "confidence": "medium",
+                    "source": "proposal_summary.recommendation",
+                }
+            )
+            seen.add(content.lower())
+
     event_log = candidate_payload.get("event_log", []) or []
     for event in event_log:
         event_type = str(event.get("event_type", "")).strip()

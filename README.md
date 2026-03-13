@@ -131,6 +131,8 @@ Platform packs:
 - `pre_task_check --format human` 現在也會直接印出 `impact_validators=...` 與 `impact_evidence=...`
 - `session_end.py` / `memory_curator.py` 現在也會保留 `architecture_impact_preview`
   - proposal-time concerns 與 expected evidence 會進 summary / curated artifacts，形成 audit trail
+- `session_end.py` / `memory_curator.py` 現在也會保留 `proposal_summary`
+  - proposal-time risk / oversight 建議、concerns、required evidence 會進 summary / curated artifacts
 - `post_task_check --format human` 現在也會直接印出 evidence summary，例如 `public_api_ok=...`、`failure_completeness_ok=...`
 - `architecture_impact_estimator.py` 現在可在 proposal 階段輸出結構化 `Governance Impact Report`
   - path-based layer heuristics (`touched_layers`, `boundary_risk`)
@@ -325,7 +327,7 @@ python runtime_hooks/smoke_test.py --event-type session_start
 python runtime_hooks/core/pre_task_check.py --rules common,refactor --risk medium --oversight review-required --impact-before before.cs --impact-after after.cs
 python runtime_hooks/core/post_task_check.py --file ai_response.txt --risk medium --oversight review-required --checks-file checks.json --api-before before.cs --api-after after.cs
 python runtime_hooks/dispatcher.py --file shared_event.json
-python runtime_hooks/core/session_end.py --project-root . --session-id 2026-03-12-01 --runtime-contract-file contract.json --checks-file checks.json --impact-preview-file impact.json --event-log-file event_log.json --response-file ai_response.txt
+python runtime_hooks/core/session_end.py --project-root . --session-id 2026-03-12-01 --runtime-contract-file contract.json --checks-file checks.json --impact-preview-file impact.json --proposal-summary-file proposal_summary.json --event-log-file event_log.json --response-file ai_response.txt
 ```
 
 Kernel-driver evidence flow:
@@ -378,6 +380,16 @@ state_generator.py + pre_task_check.py + change_proposal_builder.py
 session_start.py
         ↓
 agent start context + proposal_summary
+```
+
+Session-end audit flow:
+
+```text
+proposal_summary + runtime checks + impact preview
+        ↓
+session_end.py
+        ↓
+summary artifact + curated artifact
 ```
 
 ### Adapters

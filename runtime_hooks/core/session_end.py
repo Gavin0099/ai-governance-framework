@@ -52,6 +52,7 @@ def run_session_end(
     runtime_contract: dict[str, Any],
     checks: dict[str, Any] | None = None,
     architecture_impact_preview: dict[str, Any] | None = None,
+    proposal_summary: dict[str, Any] | None = None,
     event_log: list[dict[str, Any]] | None = None,
     response_text: str = "",
     summary: str = "",
@@ -60,6 +61,7 @@ def run_session_end(
     contract = _normalize_runtime_contract(runtime_contract)
     checks = checks or {}
     architecture_impact_preview = architecture_impact_preview or {}
+    proposal_summary = proposal_summary or {}
     event_log = event_log or []
     errors: list[str] = []
     warnings: list[str] = []
@@ -118,6 +120,7 @@ def run_session_end(
         "runtime_contract": contract,
         "checks": checks,
         "architecture_impact_preview": architecture_impact_preview,
+        "proposal_summary": proposal_summary,
         "public_api_diff": public_api_diff,
         "event_log": event_log,
         "snapshot": snapshot_result,
@@ -140,6 +143,11 @@ def run_session_end(
         "architecture_impact_boundary_risk": architecture_impact_preview.get("boundary_risk"),
         "architecture_impact_recommended_risk": architecture_impact_preview.get("recommended_risk"),
         "architecture_impact_recommended_oversight": architecture_impact_preview.get("recommended_oversight"),
+        "proposal_summary_present": bool(proposal_summary),
+        "proposal_summary_recommended_risk": proposal_summary.get("recommended_risk"),
+        "proposal_summary_recommended_oversight": proposal_summary.get("recommended_oversight"),
+        "proposal_summary_concern_count": len(proposal_summary.get("concerns", []) or []),
+        "proposal_summary_expected_validator_count": len(proposal_summary.get("expected_validators", []) or []),
         "public_api_diff_present": public_api_diff is not None,
         "public_api_removed_count": len(public_api_diff.get("removed", [])) if public_api_diff else 0,
         "public_api_added_count": len(public_api_diff.get("added", [])) if public_api_diff else 0,
@@ -176,6 +184,7 @@ def main() -> None:
     parser.add_argument("--runtime-contract-file", required=True)
     parser.add_argument("--checks-file")
     parser.add_argument("--impact-preview-file")
+    parser.add_argument("--proposal-summary-file")
     parser.add_argument("--event-log-file")
     parser.add_argument("--response-file")
     parser.add_argument("--summary", default="")
@@ -188,6 +197,9 @@ def main() -> None:
     architecture_impact_preview = (
         json.loads(Path(args.impact_preview_file).read_text(encoding="utf-8")) if args.impact_preview_file else None
     )
+    proposal_summary = (
+        json.loads(Path(args.proposal_summary_file).read_text(encoding="utf-8")) if args.proposal_summary_file else None
+    )
     event_log = json.loads(Path(args.event_log_file).read_text(encoding="utf-8")) if args.event_log_file else None
     response_text = Path(args.response_file).read_text(encoding="utf-8") if args.response_file else ""
 
@@ -197,6 +209,7 @@ def main() -> None:
         runtime_contract=runtime_contract,
         checks=checks,
         architecture_impact_preview=architecture_impact_preview,
+        proposal_summary=proposal_summary,
         event_log=event_log,
         response_text=response_text,
         summary=args.summary,
