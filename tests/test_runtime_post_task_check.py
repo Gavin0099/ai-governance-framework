@@ -95,3 +95,23 @@ def test_post_task_check_merges_runtime_check_errors():
     assert result["ok"] is False
     assert any("runtime-check: Missing required failure-test coverage: failure_path" in error for error in result["errors"])
     assert any("runtime-check: Rollback / cleanup coverage was not detected." in warning for warning in result["warnings"])
+
+
+def test_post_task_check_applies_refactor_evidence_requirements():
+    result = run_post_task_check(
+        _contract(RULES="common,refactor"),
+        risk="medium",
+        oversight="review-required",
+        checks={
+            "test_names": [
+                "tests/test_service.py::test_happy_path",
+                "tests/test_service.py::test_cleanup_release",
+            ],
+            "warnings": [],
+            "errors": [],
+        },
+    )
+    assert result["ok"] is False
+    assert result["refactor_evidence"] is not None
+    assert any("refactor-evidence: Missing refactor evidence: regression-oriented test signal" in error for error in result["errors"])
+    assert any("refactor-evidence: Missing refactor evidence: interface stability signal" in error for error in result["errors"])

@@ -14,6 +14,8 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from governance_tools.contract_validator import validate_contract
+from governance_tools.refactor_evidence_validator import validate_refactor_evidence
+from governance_tools.rule_pack_loader import parse_rule_list
 from memory_pipeline.session_snapshot import create_session_snapshot
 
 
@@ -26,6 +28,18 @@ def _merge_runtime_checks(errors: list[str], warnings: list[str], checks: dict |
 
     for error in checks.get("errors", []):
         errors.append(f"runtime-check: {error}")
+
+
+def _merge_refactor_evidence_checks(errors: list[str], warnings: list[str], checks: dict | None, rules: list[str]) -> dict | None:
+    if "refactor" not in rules:
+        return None
+
+    result = validate_refactor_evidence(checks)
+    for warning in result["warnings"]:
+        warnings.append(f"refactor-evidence: {warning}")
+    for error in result["errors"]:
+        errors.append(f"refactor-evidence: {error}")
+    return result
 
 
 def run_post_task_check(
@@ -44,6 +58,7 @@ def run_post_task_check(
     warnings = list(validation.warnings)
     fields = validation.fields
     resolved_memory_mode = memory_mode or fields.get("MEMORY_MODE", "").strip() or "candidate"
+    resolved_rules = parse_rule_list(fields.get("RULES", ""))
     snapshot_result = None
 
     if not validation.contract_found:
@@ -59,6 +74,7 @@ def run_post_task_check(
         warnings.append("Durable memory should typically be promoted after explicit review completion")
 
     _merge_runtime_checks(errors, warnings, checks)
+    refactor_evidence = _merge_refactor_evidence_checks(errors, warnings, checks, resolved_rules)
 
     if create_snapshot and validation.contract_found and validation.compliant and not errors:
         if memory_root is None:
@@ -79,8 +95,10 @@ def run_post_task_check(
         "compliant": validation.compliant,
         "fields": fields,
         "memory_mode": resolved_memory_mode,
+        "rules": resolved_rules,
         "snapshot": snapshot_result,
         "checks": checks,
+        "refactor_evidence": refactor_evidence,
         "errors": errors,
         "warnings": warnings,
     }

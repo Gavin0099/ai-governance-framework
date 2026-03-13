@@ -110,6 +110,7 @@ RULES = common,csharp,avalonia,refactor
 - `csharp`: 語言層邊界與 threading / native contract
 - `avalonia`: UI / Dispatcher / ViewModel 邊界
 - `refactor`: 變更型別治理，要求 behavior lock 與 boundary safety
+  並逐步要求 interface stability、regression evidence、cleanup / rollback evidence
 
 ## 執行時治理總覽
 
@@ -257,6 +258,7 @@ python governance_tools/plan_freshness.py --plan PLAN.md
 python governance_tools/state_generator.py --rules common,python,cpp --risk medium --oversight review-required --memory-mode candidate
 python governance_tools/memory_janitor.py --memory-root ./memory --check
 python governance_tools/failure_test_validator.py --file test_names.json --format json
+python governance_tools/refactor_evidence_validator.py --file checks.json --format json
 python governance_tools/rule_pack_suggester.py --project-root . --task "Refactor Avalonia view model boundary"
 python governance_tools/governance_auditor.py --format json
 ```

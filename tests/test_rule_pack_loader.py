@@ -63,9 +63,12 @@ def test_load_rule_content_can_load_refactor_pack():
     loaded = load_rule_content(["refactor"])
     assert loaded["valid"] is True
     assert loaded["active_rules"][0]["name"] == "refactor"
-    contents = "\n".join(file["content"] for file in loaded["active_rules"][0]["files"])
+    contents = "\n".join(file["content"] for file in loaded["active_rules"][0]["files"]).lower()
     assert "observable behavior remains unchanged" in contents
     assert "must not introduce new boundary crossings" in contents
+    assert "regression evidence" in contents
+    assert "partial side effects" in contents
+    assert "cleanup, rollback, dispose, release, or revert" in contents
 
 
 def test_load_rule_content_can_load_csharp_avalonia_swift_packs():
