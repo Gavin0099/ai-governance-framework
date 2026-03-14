@@ -82,7 +82,8 @@ def format_human_result(result: dict[str, Any]) -> str:
         summary_parts.append(f"promoted={runtime.get('promoted')}")
     label = contract_label(contract_resolution)
     if label:
-        summary_parts.append(f"contract={label}")
+        risk_tier = contract_resolution.get("risk_tier")
+        summary_parts.append(f"contract={label}/{risk_tier}" if risk_tier and risk_tier != "unknown" else f"contract={label}")
     if summary_parts:
         lines.append(f"summary={' | '.join(summary_parts)}")
 
@@ -98,13 +99,14 @@ def format_human_result(result: dict[str, Any]) -> str:
         lines.append(f"suggested_skills={','.join(result['suggested_skills'])}")
     if result.get("suggested_agent"):
         lines.append(f"suggested_agent={result['suggested_agent']}")
-    if any(contract_resolution.get(key) for key in ("source", "path", "name", "domain", "plugin_version")):
+    if any(contract_resolution.get(key) for key in ("source", "path", "name", "domain", "plugin_version", "risk_tier")):
         lines.append("[contract_resolution]")
         lines.append(f"contract_source={contract_resolution.get('source')}")
         lines.append(f"contract_path={contract_resolution.get('path')}")
         lines.append(f"contract_name={contract_resolution.get('name')}")
         lines.append(f"contract_domain={contract_resolution.get('domain')}")
         lines.append(f"plugin_version={contract_resolution.get('plugin_version')}")
+        lines.append(f"contract_risk_tier={contract_resolution.get('risk_tier')}")
 
     lines.append("[proposal]")
     lines.append(f"recommended_risk={proposal.get('recommended_risk')}")

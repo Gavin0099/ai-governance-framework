@@ -78,6 +78,8 @@ def _contract_resolution_suffix(session_start_json: Path | None) -> str:
         parts.append(f"contract_domain={contract_context['domain']}")
     if contract_context.get("plugin_version"):
         parts.append(f"plugin_version={contract_context['plugin_version']}")
+    if contract_context.get("risk_tier") and contract_context.get("risk_tier") != "unknown":
+        parts.append(f"contract_risk_tier={contract_context['risk_tier']}")
     return " | " + " | ".join(parts) if parts else ""
 
 

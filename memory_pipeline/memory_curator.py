@@ -259,6 +259,8 @@ def _extract_candidate_items(candidate_payload: dict[str, Any]) -> tuple[list[di
         contract_context_parts.append(f"domain={domain_raw['domain']}")
     if domain_raw.get("plugin_version"):
         contract_context_parts.append(f"plugin_version={domain_raw['plugin_version']}")
+    if contract_resolution.get("risk_tier"):
+        contract_context_parts.append(f"risk_tier={contract_resolution['risk_tier']}")
     if contract_context_parts:
         content = _normalize_text(f"Domain contract context: {', '.join(contract_context_parts)}")
         if content.lower() not in seen:

@@ -98,11 +98,12 @@ def test_change_control_summary_human_output_is_reviewable():
     )
 
     assert "[change_control_summary]" in output
-    assert "summary=task=Improve CLI output | proposal_risk=medium | runtime_decision=AUTO_PROMOTE | promoted=True | contract=kernel-driver" in output
+    assert "summary=task=Improve CLI output | proposal_risk=medium | runtime_decision=AUTO_PROMOTE | promoted=True | contract=kernel-driver/high" in output
     assert "[contract_resolution]" in output
     assert "contract_source=env" in output
     assert "contract_domain=kernel-driver" in output
     assert "plugin_version=1.0.0" in output
+    assert "contract_risk_tier=high" in output
     assert "expected_validators=failure_completeness_validator" in output
     assert "promoted=True" in output
 

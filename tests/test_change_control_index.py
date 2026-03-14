@@ -40,7 +40,7 @@ def test_change_control_index_lists_generated_artifacts(tmp_path):
     assert "summary=change_control_summaries=1 | session_start_notes=1 | session_start_envelopes=1" in output
     assert "[review_order]" in output
     assert "[priority_change_control_summaries]" in output
-    assert "claude_change_control_summary.txt | summary=task=Refactor boundary | proposal_risk=medium | promoted=False | contract_source=discovery | contract_name=usb-hub-firmware-contract | contract_domain=firmware | plugin_version=1.0.0" in output
+    assert "claude_change_control_summary.txt | summary=task=Refactor boundary | proposal_risk=medium | promoted=False | contract_source=discovery | contract_name=usb-hub-firmware-contract | contract_domain=firmware | plugin_version=1.0.0 | contract_risk_tier=medium" in output
     assert "claude_session_start.txt" in output
     assert "claude_session_start.json" in output
 

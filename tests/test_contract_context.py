@@ -37,6 +37,7 @@ def test_extract_contract_context_reads_resolution_and_domain_fields():
     assert context["name"] == "usb-hub-firmware-contract"
     assert context["domain"] == "firmware"
     assert context["plugin_version"] == "1.0.0"
+    assert context["risk_tier"] == "medium"
 
 
 def test_contract_label_prefers_domain_over_name():

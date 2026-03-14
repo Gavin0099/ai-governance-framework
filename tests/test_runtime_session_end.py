@@ -243,6 +243,7 @@ def test_session_end_preserves_contract_context_in_summary_and_curated_artifact(
     assert summary_payload["contract_name"] == "kernel-driver-contract"
     assert summary_payload["contract_domain"] == "kernel-driver"
     assert summary_payload["contract_plugin_version"] == "1.0.0"
+    assert summary_payload["contract_risk_tier"] == "high"
 
     candidate_payload = json.loads(Path(result["candidate_artifact"]).read_text(encoding="utf-8"))
     assert candidate_payload["contract_resolution"]["source"] == "discovery"
@@ -280,3 +281,4 @@ def test_session_end_human_output_includes_contract_context(local_project_root):
     assert "contract_name=kernel-driver-contract" in output
     assert "contract_domain=kernel-driver" in output
     assert "contract_plugin_version=1.0.0" in output
+    assert "contract_risk_tier=high" in output

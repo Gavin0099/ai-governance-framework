@@ -19,6 +19,7 @@ from memory_pipeline.memory_curator import curate_candidate_artifact
 from memory_pipeline.memory_promoter import promote_candidate
 from memory_pipeline.promotion_policy import classify_promotion_policy
 from memory_pipeline.session_snapshot import create_session_snapshot
+from governance_tools.domain_governance_metadata import domain_risk_tier
 
 
 def _ensure_runtime_artifact_dirs(project_root: Path) -> tuple[Path, Path, Path]:
@@ -70,8 +71,10 @@ def run_session_end(
     checks = checks or {}
     architecture_impact_preview = architecture_impact_preview or {}
     proposal_summary = proposal_summary or {}
-    contract_resolution = contract_resolution or {}
+    contract_resolution = dict(contract_resolution or {})
     domain_contract = domain_contract or {}
+    if not contract_resolution.get("risk_tier"):
+        contract_resolution["risk_tier"] = domain_risk_tier((domain_contract.get("raw") or {}).get("domain"))
     event_log = event_log or []
     errors: list[str] = []
     warnings: list[str] = []
@@ -166,6 +169,7 @@ def run_session_end(
         "contract_name": domain_contract.get("name"),
         "contract_domain": (domain_contract.get("raw") or {}).get("domain"),
         "contract_plugin_version": (domain_contract.get("raw") or {}).get("plugin_version"),
+        "contract_risk_tier": contract_resolution.get("risk_tier"),
         "public_api_diff_present": public_api_diff is not None,
         "public_api_removed_count": len(public_api_diff.get("removed", [])) if public_api_diff else 0,
         "public_api_added_count": len(public_api_diff.get("added", [])) if public_api_diff else 0,
@@ -211,6 +215,7 @@ def format_human_result(result: dict[str, Any]) -> str:
         lines.append(f"contract_name={summary_payload.get('contract_name')}")
         lines.append(f"contract_domain={summary_payload.get('contract_domain')}")
         lines.append(f"contract_plugin_version={summary_payload.get('contract_plugin_version')}")
+        lines.append(f"contract_risk_tier={summary_payload.get('contract_risk_tier')}")
     if result["snapshot"]:
         lines.append(f"snapshot={result['snapshot']['snapshot_path']}")
     if result["promotion"]:
