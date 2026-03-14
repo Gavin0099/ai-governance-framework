@@ -202,6 +202,8 @@ def test_pre_task_check_human_output_includes_suggested_rules_preview(local_tmp_
     )
 
     output = pre_task_check.format_human_result(result)
+    assert "[pre_task_check]" in output
+    assert "summary=ok=True | freshness=FRESH | rules=common" in output
     assert "suggested_rules_preview=common,csharp,avalonia,refactor" in output
     assert "suggested_skills=code-style,governance-runtime" in output
     assert "suggested_agent=advanced-agent" in output
@@ -263,3 +265,5 @@ def test_pre_task_check_can_auto_discover_domain_contract(local_tmp_dir, monkeyp
     assert result["domain_contract"]["name"] == "usb-hub-firmware"
     assert result["contract_resolution"]["source"] == "discovery"
     assert result["resolved_contract_file"].replace("\\", "/").endswith("/tests/_tmp_runtime_hooks/contract.yaml")
+    output = pre_task_check.format_human_result(result)
+    assert "contract=usb-hub-firmware/medium" in output or "contract=firmware/medium" in output

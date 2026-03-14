@@ -14,6 +14,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from governance_tools.change_proposal_builder import build_change_proposal
+from governance_tools.domain_governance_metadata import domain_risk_tier
 from governance_tools.domain_validator_loader import preflight_domain_validators
 from governance_tools.state_generator import generate_state
 from runtime_hooks.core.pre_task_check import run_pre_task_check
@@ -105,6 +106,22 @@ def format_human_result(result: dict) -> str:
         f"ok={result['ok']}",
         f"rules={','.join(result['runtime_contract'].get('rules', []))}",
     ]
+    domain_contract = result.get("domain_contract") or {}
+    domain_raw = domain_contract.get("raw") or {}
+    contract_label = domain_raw.get("domain") or domain_contract.get("name")
+    contract_risk = domain_risk_tier(domain_raw.get("domain") or domain_contract.get("name"))
+    summary_parts = [
+        f"ok={result['ok']}",
+        f"rules={','.join(result['runtime_contract'].get('rules', []))}",
+    ]
+    if contract_label:
+        summary_parts.append(
+            f"contract={contract_label}/{contract_risk}" if contract_risk != "unknown" else f"contract={contract_label}"
+        )
+    proposal_summary = result.get("proposal_summary") or {}
+    if proposal_summary.get("recommended_risk"):
+        summary_parts.append(f"proposal_risk={proposal_summary.get('recommended_risk')}")
+    lines.append(f"summary={' | '.join(summary_parts)}")
     if result.get("suggested_rules_preview"):
         lines.append(f"suggested_rules_preview={','.join(result['suggested_rules_preview'])}")
     if result.get("suggested_skills"):
@@ -116,7 +133,9 @@ def format_human_result(result: dict) -> str:
         lines.append(f"contract_source={contract_resolution['source']}")
     if contract_resolution.get("path"):
         lines.append(f"contract_path={contract_resolution['path']}")
-    domain_contract = result.get("domain_contract") or {}
+    if contract_label:
+        lines.append(f"contract={contract_label}")
+        lines.append(f"contract_risk_tier={contract_risk}")
     if domain_contract:
         lines.append(f"domain_contract={domain_contract.get('name')}")
         if domain_contract.get("rule_roots"):
@@ -145,7 +164,7 @@ def format_human_result(result: dict) -> str:
         for item in (validator_preflight or {}).get("validators", []):
             lines.append(f"validator_preflight[{item['name']}]={item['ok']}")
 
-    summary = result.get("proposal_summary") or {}
+    summary = proposal_summary
     guidance = result.get("proposal_guidance") or {}
     if guidance:
         lines.append("[proposal_guidance]")

@@ -87,6 +87,7 @@ def test_session_start_human_output_is_actionable(local_session_start_root):
 
     output = format_human_result(result)
     assert "[session_start]" in output
+    assert "summary=ok=False | rules=common" in output
     assert "suggested_skills=code-style,governance-runtime,python,human-readable-cli" in output
     assert "suggested_agent=cli-agent" in output
     assert "proposal_rules=common" in output
@@ -168,3 +169,5 @@ def test_session_start_can_auto_discover_domain_contract(local_session_start_roo
     assert result["domain_contract"]["name"] == "usb-hub-firmware"
     assert result["contract_resolution"]["source"] == "discovery"
     assert result["resolved_contract_file"].replace("\\", "/").endswith("/tests/_tmp_session_start/contract.yaml")
+    output = format_human_result(result)
+    assert "contract=firmware/medium" in output or "contract=usb-hub-firmware/medium" in output

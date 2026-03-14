@@ -22,4 +22,5 @@ def test_domain_priority_rank_returns_default_for_unknown_domain():
 def test_domain_risk_tier_returns_expected_labels():
     assert domain_risk_tier("kernel-driver") == "high"
     assert domain_risk_tier("firmware") == "medium"
+    assert domain_risk_tier("usb-hub-firmware-contract") == "medium"
     assert domain_risk_tier("mobile-app") == "unknown"

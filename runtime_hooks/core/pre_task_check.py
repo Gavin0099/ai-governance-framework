@@ -16,6 +16,7 @@ if __package__ in (None, ""):
 from governance_tools.plan_freshness import check_freshness
 from governance_tools.architecture_impact_estimator import estimate_architecture_impact
 from governance_tools.contract_resolver import resolve_contract
+from governance_tools.domain_governance_metadata import domain_risk_tier
 from governance_tools.domain_contract_loader import load_domain_contract
 from governance_tools.rule_pack_loader import describe_rule_selection, load_rule_content, parse_rule_list
 from governance_tools.rule_pack_suggester import suggest_rule_packs
@@ -161,11 +162,26 @@ def run_pre_task_check(
 
 
 def format_human_result(result: dict) -> str:
+    domain_contract = result.get("domain_contract") or {}
+    domain_raw = domain_contract.get("raw") or {}
+    contract_label = domain_raw.get("domain") or domain_contract.get("name")
+    contract_risk = domain_risk_tier(domain_raw.get("domain") or domain_contract.get("name"))
     lines = [
+        "[pre_task_check]",
         f"ok={result['ok']}",
         f"freshness={result['freshness']['status']}",
         f"rules={', '.join(result['runtime_contract']['rules'])}",
     ]
+    summary_parts = [
+        f"ok={result['ok']}",
+        f"freshness={result['freshness']['status']}",
+        f"rules={','.join(result['runtime_contract']['rules'])}",
+    ]
+    if contract_label:
+        summary_parts.append(
+            f"contract={contract_label}/{contract_risk}" if contract_risk != "unknown" else f"contract={contract_label}"
+        )
+    lines.append(f"summary={' | '.join(summary_parts)}")
     preview = result.get("suggested_rules_preview") or []
     if preview:
         lines.append(f"suggested_rules_preview={','.join(preview)}")
@@ -180,6 +196,9 @@ def format_human_result(result: dict) -> str:
         lines.append(f"contract_source={contract_resolution['source']}")
     if contract_resolution.get("path"):
         lines.append(f"contract_path={contract_resolution['path']}")
+    if contract_label:
+        lines.append(f"contract={contract_label}")
+        lines.append(f"contract_risk_tier={contract_risk}")
     impact_preview = result.get("architecture_impact_preview") or {}
     if impact_preview:
         lines.append(f"impact_risk={impact_preview.get('recommended_risk')}")

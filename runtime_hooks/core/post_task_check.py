@@ -15,6 +15,7 @@ if __package__ in (None, ""):
 
 from governance_tools.contract_validator import validate_contract
 from governance_tools.contract_resolver import resolve_contract
+from governance_tools.domain_governance_metadata import domain_risk_tier
 from governance_tools.domain_contract_loader import load_domain_contract
 from governance_tools.domain_validator_loader import build_domain_validation_payload, run_domain_validators
 from governance_tools.driver_evidence_validator import validate_driver_evidence
@@ -238,12 +239,27 @@ def run_post_task_check(
 
 
 def format_human_result(result: dict) -> str:
+    domain_contract = result.get("domain_contract") or {}
+    domain_raw = domain_contract.get("raw") or {}
+    contract_label = domain_raw.get("domain") or domain_contract.get("name")
+    contract_risk = domain_risk_tier(domain_raw.get("domain") or domain_contract.get("name"))
     lines = [
+        "[post_task_check]",
         f"ok={result['ok']}",
         f"contract_found={result['contract_found']}",
         f"compliant={result['compliant']}",
         f"memory_mode={result['memory_mode']}",
     ]
+    summary_parts = [
+        f"ok={result['ok']}",
+        f"compliant={result['compliant']}",
+        f"memory_mode={result['memory_mode']}",
+    ]
+    if contract_label:
+        summary_parts.append(
+            f"contract={contract_label}/{contract_risk}" if contract_risk != "unknown" else f"contract={contract_label}"
+        )
+    lines.append(f"summary={' | '.join(summary_parts)}")
     if result["snapshot"]:
         lines.append(f"snapshot={result['snapshot']['snapshot_path']}")
     if result["public_api_diff"]:
@@ -263,6 +279,9 @@ def format_human_result(result: dict) -> str:
         lines.append(f"contract_source={contract_resolution['source']}")
     if contract_resolution.get("path"):
         lines.append(f"contract_path={contract_resolution['path']}")
+    if contract_label:
+        lines.append(f"contract={contract_label}")
+        lines.append(f"contract_risk_tier={contract_risk}")
     if result.get("domain_contract"):
         lines.append(f"domain_contract={result['domain_contract']['name']}")
     for warning in result["warnings"]:

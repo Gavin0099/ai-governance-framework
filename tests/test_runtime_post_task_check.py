@@ -279,6 +279,8 @@ def test_post_task_check_human_output_includes_evidence_summary():
     )
 
     output = format_human_result(result)
+    assert "[post_task_check]" in output
+    assert "summary=ok=False | compliant=True | memory_mode=candidate" in output
     assert "public_api_added=1" in output
     assert "public_api_ok=True" in output
     assert "failure_completeness_ok=" in output
@@ -331,3 +333,5 @@ def test_post_task_check_can_auto_discover_domain_contract_from_project_root(tmp
     assert result["domain_contract"]["name"] == "usb-hub-firmware"
     assert result["contract_resolution"]["source"] == "discovery"
     assert result["resolved_contract_file"] == str(contract_file.resolve())
+    output = format_human_result(result)
+    assert "contract=firmware/medium" in output or "contract=usb-hub-firmware/medium" in output
