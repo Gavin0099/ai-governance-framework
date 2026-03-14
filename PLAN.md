@@ -4,7 +4,7 @@
 > **技術棧**: Markdown / Python / Bash
 > **複雜度**: L2
 > **預計工期**: 2026/03 ~ 2026/06
-> **最後更新**: 2026-03-09
+> **最後更新**: 2026-03-15
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 
@@ -36,7 +36,7 @@
 └─ [✓] Phase D: 整合成熟            (2026/03/06 完成)
 ```
 
-**當前 Phase**: **全部完成 ✓ — 進入維護期**
+**當前 Phase**: **維護期 / Alpha adoption hardening**
 
 ---
 
@@ -117,16 +117,23 @@
 
 ---
 
-## 🔥 當前聚焦 — 維護期
+## 🔥 當前聚焦 — 維護期 / Alpha adoption hardening
 
-**所有 Phase（A/B/C/D）已完成**。框架進入維護期。
+**所有 Phase（A/B/C/D）已完成**。目前重點是把框架從「功能已具備」推進到「外部讀者更容易採用與評估」。
+
+**本輪已完成**:
+- [x] direct CLI entrypoint import-path 修復（`change_control_summary.py` 等）✓ 2026/03/15
+- [x] `requirements.txt` 建立並對齊 GitHub Actions 依賴安裝 ✓ 2026/03/15
+- [x] `start_session.md` 最小 quickstart 文件 ✓ 2026/03/15
+- [x] `quickstart_smoke.py` onboarding smoke，並接入 `verify_phase_gates.sh` ✓ 2026/03/15
+- [x] `example_readiness.py` 範例集健康度檢查 ✓ 2026/03/15
+- [x] GitHub Actions 新增 strict runnable-example validation ✓ 2026/03/15
 
 **待處理（技術債與品質提升）**:
-- [x] 補齊工具單元測試（contract_validator、plan_freshness）✓ 2026/03/06
 - [ ] 補齊工具單元測試（state_generator、linear_integrator、notion_integrator）
-- [x] 更新 governance_tools/README.md（補 B1/B2/D3 工具說明）✓ 2026/03/06
-- [x] 修復 docs/ 斷鏈（新建 governance/02_workflow.md）✓ 2026/03/06
 - [ ] 評估 BUG-003（記憶壓力多維度指標）
+- [ ] 補齊對外 release-facing 信號（GitHub Releases 實體頁面、alpha release note 對外同步）
+- [ ] 持續收斂 example / onboarding path，降低首次採用摩擦
 
 **當前阻礙**: 無
 
@@ -246,3 +253,4 @@
 | 2026/03/05 | Phase C Gate 全部通過 | C1+C2+C3+C4 完成，進入 Phase D |
 | 2026/03/06 | 完成 D2 GitHub Actions + GitLab CI | 實際 YAML 設定檔；governance.yml + .gitlab-ci.yml |
 | 2026/03/06 | 完成 D3 Notion 整合 | notion_integrator.py + docs/notion-source-of-truth.md；Phase D Gate 全部通過 |
+| 2026/03/15 | Alpha adoption hardening | requirements / quickstart / example readiness / CI strict example validation / release-facing docs |

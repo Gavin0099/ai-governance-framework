@@ -44,6 +44,12 @@
 - GitHub Actions runtime/test jobs now install from repo root `requirements.txt` instead of separately installing only `pytest`, reducing drift between local onboarding docs and CI setup.
 - The example inventory now has a dedicated readiness checker via `governance_tools/example_readiness.py`, and `verify_phase_gates.sh` also exercises it so example drift is part of the normal regression surface.
 - `example_readiness.py` now does a deeper runnable-demo smoke when dependencies are present, including app-object and `/health` route checks; GitHub Actions uses `--strict-runtime` so CI validates runnable examples more strictly than local phase gates.
+- The repo now also has explicit release-facing trust signals in-tree:
+  - `docs/releases/v1.0.0-alpha.md`
+  - `CHANGELOG.md`
+  - synchronized `PLAN.md` / status docs for the current alpha stage
+- GitLab CI now also mirrors the newer adoption baseline more closely: `requirements.txt`, phase gates, strict example readiness, and runtime governance enforcement are no longer GitHub-only.
+- Release-facing trust signals are now partially machine-checked: `release_readiness.py` validates the current alpha note / changelog / README / status-doc alignment, and `verify_phase_gates.sh` now exercises it.
 
 ## Next Steps
 

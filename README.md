@@ -3,7 +3,7 @@
 > Move from "asking AI to help write code" to "making AI work inside a governance framework."
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-1.0.0--alpha-orange.svg)](https://github.com/GavinWu672/ai-governance-framework)
+[![Version](https://img.shields.io/badge/version-1.0.0--alpha-orange.svg)](docs/releases/v1.0.0-alpha.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
 ## What This Is
@@ -29,6 +29,18 @@ The most precise current positioning is:
 - a framework with a real runtime governance spine, not just static policy documents
 - an established external domain validator seam, with the first firmware vertical slice already running
 - still actively strengthening semantic verification, workflow embedding, and interception coverage
+
+## Alpha Status
+
+Current release-facing status:
+
+- version: `v1.0.0-alpha`
+- release notes: [docs/releases/v1.0.0-alpha.md](docs/releases/v1.0.0-alpha.md)
+- changelog: [CHANGELOG.md](CHANGELOG.md)
+- known limits: [docs/LIMITATIONS.md](docs/LIMITATIONS.md)
+
+This alpha is suitable for evaluation, internal adoption trials, and domain-contract experimentation.
+It should still be treated as a governance framework prototype rather than a fully closed enforcement platform.
 
 ## Cross-Domain Governance Map
 

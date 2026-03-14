@@ -19,6 +19,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 PASS=0
 FAIL=0
+RELEASE_VERSION="v1.0.0-alpha"
 
 ok()   { echo "  ✅ $1"; }
 fail() { echo "  ❌ $1"; FAIL=$((FAIL + 1)); }
@@ -73,6 +74,7 @@ TOOLS=(
     "contract_validator.py"
     "example_readiness.py"
     "quickstart_smoke.py"
+    "release_readiness.py"
     "plan_freshness.py"
     "memory_janitor.py"
     "state_generator.py"
@@ -96,6 +98,12 @@ if "${PYTHON_CMD[@]}" governance_tools/example_readiness.py --format human > /de
     ok "example_readiness.py example inventory"
 else
     fail "example_readiness.py example inventory 失敗"
+    ALL_OK=0
+fi
+if "${PYTHON_CMD[@]}" governance_tools/release_readiness.py --version "$RELEASE_VERSION" --format human > /dev/null 2>&1; then
+    ok "release_readiness.py $RELEASE_VERSION"
+else
+    fail "release_readiness.py $RELEASE_VERSION 失敗"
     ALL_OK=0
 fi
 if [ "$ALL_OK" -eq 1 ]; then

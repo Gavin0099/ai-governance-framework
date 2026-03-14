@@ -360,6 +360,41 @@
   - `tests/test_example_readiness.py` -> `3 passed`
   - `scripts/verify_phase_gates.sh` -> `333 passed`, `4/4 Gates`
 
+## 2026-03-15 - Alpha Release-Facing Docs
+
+- Added `docs/releases/v1.0.0-alpha.md` as the first release-facing summary inside the repo.
+- Added `CHANGELOG.md` and linked the version badge / README entrypoints to the alpha release note.
+- Updated `PLAN.md` so the current maintenance stage now explicitly reflects:
+  - alpha adoption hardening
+  - quickstart / example readiness work
+  - release-facing trust-signal work
+- Updated `docs/status/runtime-governance-status.md` to reflect the current alpha-era positioning and onboarding assets.
+
+## 2026-03-15 - GitLab CI Baseline Alignment
+
+- Extended `.gitlab-ci.yml` so GitLab CI is no longer substantially behind GitHub Actions.
+- Added:
+  - `phase-gates` job
+  - strict `example_readiness.py --strict-runtime` validation
+  - `runtime-enforcement` job
+- GitLab runtime/test jobs now also install `requirements.txt`, aligning CI dependency setup across both platforms.
+
+## 2026-03-15 - Release Readiness Gate
+
+- Added `governance_tools/release_readiness.py` to check release-facing trust signals for a specific version.
+- Current checks cover:
+  - `docs/releases/<version>.md`
+  - `CHANGELOG.md`
+  - `README.md`
+  - `docs/LIMITATIONS.md`
+  - `docs/status/runtime-governance-status.md`
+- Extended `scripts/verify_phase_gates.sh` so Gate 3 now also runs:
+  - `release_readiness.py --version v1.0.0-alpha`
+- Verification:
+  - `tests/test_release_readiness.py` -> `2 passed`
+  - `governance_tools/release_readiness.py --version v1.0.0-alpha --format human`
+  - `scripts/verify_phase_gates.sh` -> `335 passed`, `4/4 Gates`
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

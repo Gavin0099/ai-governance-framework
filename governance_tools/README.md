@@ -37,6 +37,7 @@ $env:AI_GOVERNANCE_PYTHON='C:\Path\To\python.exe'
 | [contract_validator.py](#contract_validatorpy) | AI 初始化合規驗證 | CI gate |
 | [quickstart_smoke.py](#quickstart_smokepy) | 最小上手流程驗證 | onboarding / quickstart |
 | [example_readiness.py](#example_readinesspy) | 範例集健康度檢查 | onboarding / examples |
+| [release_readiness.py](#release_readinesspy) | release-facing 文件對齊檢查 | trust signal / release prep |
 | [plan_freshness.py](#plan_freshnesspy) | PLAN.md 新鮮度檢查 | CI gate / Git hook |
 | [state_generator.py](#state_generatorpy) | .governance-state.yaml 生成 | 狀態快照 |
 | [linear_integrator.py](#linear_integratorpy) | PLAN.md → Linear 同步 | 任務追蹤 |
@@ -153,6 +154,30 @@ python governance_tools/example_readiness.py --strict-runtime --format human
 ```
 
 這個模式特別適合放在 CI，因為 CI 已經會先安裝 `requirements.txt`。
+
+---
+
+## release_readiness.py
+
+檢查 repo 的 release-facing 文件是否對齊指定版本。
+
+會檢查：
+
+- `docs/releases/<version>.md`
+- `CHANGELOG.md`
+- `README.md`
+- `docs/LIMITATIONS.md`
+- `docs/status/runtime-governance-status.md`
+
+```bash
+python governance_tools/release_readiness.py --version v1.0.0-alpha --format human
+```
+
+這個工具適合用在：
+
+- 發版前自查
+- release note / changelog / README 是否同步
+- 對外信任信號是否齊備
 
 ---
 

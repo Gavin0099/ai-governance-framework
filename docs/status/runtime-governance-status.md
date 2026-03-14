@@ -1,6 +1,6 @@
 # Runtime Governance Status
 
-Updated: 2026-03-13
+Updated: 2026-03-15
 
 ## Summary
 
@@ -24,8 +24,8 @@ It now operates as an AI coding runtime-governance framework with:
 
 Practical status:
 
-- overall maturity: `v0.8`
-- current phase: `runtime spine complete, proposal-time guidance and evidence-aware enforcement active`
+- overall maturity: `v1.0.0-alpha`
+- current phase: `runtime spine complete, proposal-time guidance and evidence-aware enforcement active, adoption hardening in progress`
 
 ## Completed
 
@@ -171,6 +171,22 @@ Assessment:
 - session-start context is now part of the shared runtime path
 - CI/runtime smoke now preserves startup notes, JSON envelopes, change-control summaries, and an index artifact
 - still not fully impossible to bypass in every development path
+
+### Adoption / Onboarding
+
+Current onboarding-facing assets now include:
+
+- `requirements.txt`
+- `start_session.md`
+- `governance_tools/quickstart_smoke.py`
+- `governance_tools/example_readiness.py`
+- external repo onboarding / readiness / smoke / report / index tooling
+
+Assessment:
+
+- maturity: `75%`
+- strong enough for evaluation and internal trials
+- still improving trust signals, release communication, and first-run ergonomics
 
 ### Memory Lifecycle
 
