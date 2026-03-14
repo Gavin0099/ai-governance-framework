@@ -93,6 +93,9 @@ def format_human_result(result: dict[str, Any]) -> str:
         summary_parts.append(f"runtime_decision={runtime.get('decision')}")
     if runtime.get("promoted") is not None:
         summary_parts.append(f"promoted={runtime.get('promoted')}")
+    contract_label = contract_resolution.get("domain") or contract_resolution.get("name")
+    if contract_label:
+        summary_parts.append(f"contract={contract_label}")
     if summary_parts:
         lines.append(f"summary={' | '.join(summary_parts)}")
 
