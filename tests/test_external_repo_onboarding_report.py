@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from governance_tools.external_repo_onboarding_report import build_onboarding_report, format_human
+import json
+
+from governance_tools.external_repo_onboarding_report import (
+    build_onboarding_report,
+    format_human,
+    write_report_bundle,
+)
 
 
 def _write(path: Path, text: str) -> None:
@@ -71,3 +77,54 @@ def test_format_human_surfaces_readiness_and_smoke_sections(tmp_path: Path) -> N
     assert "[readiness]" in rendered
     assert "[smoke]" in rendered
     assert "errors:" in rendered
+
+
+def test_write_report_bundle_creates_latest_history_and_index(tmp_path: Path) -> None:
+    framework_root = tmp_path / "framework"
+    repo_root = tmp_path / "target"
+    hook_dir = repo_root / ".git" / "hooks"
+
+    _make_framework(framework_root)
+    _write(hook_dir / "pre-commit", "# AI Governance Framework\n")
+    _write(hook_dir / "pre-push", "# AI Governance Framework\n")
+    _write(hook_dir / "ai-governance-framework-root", str(framework_root))
+    _write(
+        repo_root / "PLAN.md",
+        "> **最後更新**: 2026-03-15\n> **Owner**: tester\n> **Freshness**: Sprint (7d)\n",
+    )
+    _write(repo_root / "AGENTS.md", "# Agents\n")
+    _write(repo_root / "CHECKLIST.md", "# Checklist\n")
+    _write(repo_root / "rules" / "firmware" / "safety.md", "# Firmware safety\n")
+    _write(repo_root / "validators" / "check.py", "def x():\n    return True\n")
+    _write(
+        repo_root / "contract.yaml",
+        "\n".join(
+            [
+                "name: sample-contract",
+                "domain: firmware",
+                "documents:",
+                "  - CHECKLIST.md",
+                "ai_behavior_override:",
+                "  - AGENTS.md",
+                "rule_roots:",
+                "  - rules",
+                "validators:",
+                "  - validators/check.py",
+            ]
+        ),
+    )
+
+    report = build_onboarding_report(repo_root)
+    bundle = write_report_bundle(report, repo_root / "memory" / "governance_onboarding")
+
+    assert Path(bundle["latest_json"]).is_file()
+    assert Path(bundle["latest_txt"]).is_file()
+    assert Path(bundle["history_json"]).is_file()
+    assert Path(bundle["history_txt"]).is_file()
+    assert Path(bundle["index_txt"]).is_file()
+
+    latest_payload = json.loads(Path(bundle["latest_json"]).read_text(encoding="utf-8"))
+    assert latest_payload["ok"] is True
+    index_text = Path(bundle["index_txt"]).read_text(encoding="utf-8")
+    assert "[external_repo_onboarding_index]" in index_text
+    assert "ok=True" in index_text

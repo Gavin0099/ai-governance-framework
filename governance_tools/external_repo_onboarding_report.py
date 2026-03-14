@@ -9,6 +9,7 @@ import argparse
 import json
 import sys
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 if __package__ in (None, ""):
@@ -23,6 +24,7 @@ class ExternalRepoOnboardingReport:
     ok: bool
     repo_root: str
     contract_path: str | None
+    generated_at: str
     readiness: dict
     smoke: dict
 
@@ -49,6 +51,7 @@ def build_onboarding_report(
         ok=readiness.ready and smoke.ok,
         repo_root=str(Path(repo_root).resolve()),
         contract_path=smoke.contract_path,
+        generated_at=datetime.now(timezone.utc).isoformat(),
         readiness={
             "ready": readiness.ready,
             "checks": readiness.checks,
@@ -78,6 +81,7 @@ def format_human(report: ExternalRepoOnboardingReport) -> str:
         f"ok                = {report.ok}",
         f"repo_root         = {report.repo_root}",
         f"contract_path     = {report.contract_path or '<missing>'}",
+        f"generated_at      = {report.generated_at}",
         f"readiness_ready   = {report.readiness.get('ready')}",
         f"smoke_ok          = {report.smoke.get('ok')}",
         "",
@@ -125,12 +129,73 @@ def format_json(report: ExternalRepoOnboardingReport) -> str:
             "ok": report.ok,
             "repo_root": report.repo_root,
             "contract_path": report.contract_path,
+            "generated_at": report.generated_at,
             "readiness": report.readiness,
             "smoke": report.smoke,
         },
         ensure_ascii=False,
         indent=2,
     )
+
+
+def _history_stem(report: ExternalRepoOnboardingReport) -> str:
+    dt = datetime.fromisoformat(report.generated_at.replace("Z", "+00:00"))
+    return dt.strftime("%Y%m%d_%H%M%S")
+
+
+def _index_lines(history_dir: Path) -> list[str]:
+    json_files = sorted(history_dir.glob("*.json"))
+    lines = ["[external_repo_onboarding_index]", f"history_dir={history_dir}", f"reports={len(json_files)}"]
+    if json_files:
+        lines.append("[reports]")
+        for path in reversed(json_files):
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                lines.append(f"{path.name} | unreadable")
+                continue
+            lines.append(
+                " | ".join(
+                    [
+                        path.name,
+                        f"ok={payload.get('ok')}",
+                        f"repo_root={payload.get('repo_root')}",
+                        f"contract_path={payload.get('contract_path')}",
+                        f"generated_at={payload.get('generated_at')}",
+                    ]
+                )
+            )
+    return lines
+
+
+def write_report_bundle(report: ExternalRepoOnboardingReport, bundle_dir: Path) -> dict[str, str]:
+    bundle_dir.mkdir(parents=True, exist_ok=True)
+    history_dir = bundle_dir / "history"
+    history_dir.mkdir(parents=True, exist_ok=True)
+
+    stem = _history_stem(report)
+    latest_json = bundle_dir / "latest.json"
+    latest_txt = bundle_dir / "latest.txt"
+    history_json = history_dir / f"{stem}.json"
+    history_txt = history_dir / f"{stem}.txt"
+    index_txt = bundle_dir / "INDEX.txt"
+
+    json_text = format_json(report) + "\n"
+    human_text = format_human(report) + "\n"
+
+    latest_json.write_text(json_text, encoding="utf-8")
+    latest_txt.write_text(human_text, encoding="utf-8")
+    history_json.write_text(json_text, encoding="utf-8")
+    history_txt.write_text(human_text, encoding="utf-8")
+    index_txt.write_text("\n".join(_index_lines(history_dir)) + "\n", encoding="utf-8")
+
+    return {
+        "latest_json": str(latest_json),
+        "latest_txt": str(latest_txt),
+        "history_json": str(history_json),
+        "history_txt": str(history_txt),
+        "index_txt": str(index_txt),
+    }
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -143,6 +208,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--task-text", default="External governance onboarding smoke test")
     parser.add_argument("--format", choices=("human", "json"), default="human")
     parser.add_argument("--output", help="Optional output file path.")
+    parser.add_argument("--write-bundle", help="Optional onboarding artifact directory; writes latest/history/index artifacts.")
     return parser
 
 
@@ -161,6 +227,13 @@ def main() -> int:
         output_path = Path(args.output)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(rendered + "\n", encoding="utf-8")
+    if args.write_bundle:
+        paths = write_report_bundle(report, Path(args.write_bundle))
+        if args.format == "human":
+            print("")
+            print("[report_bundle]")
+            for key, value in paths.items():
+                print(f"{key}={value}")
     print(rendered)
     return 0 if report.ok else 1
 

@@ -219,6 +219,20 @@
   - `scripts/onboard-external-repo.sh --target ../Kernel-Driver-Contract --dry-run`
   - `scripts/verify_phase_gates.sh` -> `322 passed`, `4/4 Gates`
 
+## 2026-03-15 - Onboarding Report History And Index
+
+- Extended onboarding report output so it now writes an artifact bundle, not only a single JSON file.
+- The default target repo onboarding directory now keeps:
+  - `latest.json`
+  - `latest.txt`
+  - `history/*.json`
+  - `history/*.txt`
+  - `INDEX.txt`
+- This gives external repo setup a minimal time-series audit trail and a reviewer-friendly index.
+- Verification:
+  - `tests/test_external_repo_onboarding_report.py` -> `3 passed`
+  - `scripts/verify_phase_gates.sh` -> `323 passed`, `4/4 Gates`
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

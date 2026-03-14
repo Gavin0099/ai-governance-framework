@@ -103,8 +103,9 @@ if [ "$DRY_RUN" = true ]; then
     exit 0
 fi
 
+REPORT_DIR="$(realpath "$TARGET_REPO")/memory/governance_onboarding"
 if [ -z "$REPORT_FILE" ]; then
-    REPORT_FILE="$(realpath "$TARGET_REPO")/memory/governance_onboarding/latest.json"
+    REPORT_FILE="$REPORT_DIR/latest.json"
 fi
 
 if [ ! -f "$PYTHON_LIB" ] || [ ! -f "$READINESS_TOOL" ]; then
@@ -154,7 +155,7 @@ fi
 
 report_status=0
 if [ -f "$REPORT_TOOL" ]; then
-    REPORT_ARGS=(--repo "$(realpath "$TARGET_REPO")" --format json --output "$REPORT_FILE")
+    REPORT_ARGS=(--repo "$(realpath "$TARGET_REPO")" --format json --output "$REPORT_FILE" --write-bundle "$REPORT_DIR")
     if [ -n "$CONTRACT_PATH" ]; then
         REPORT_ARGS+=(--contract "$(realpath "$CONTRACT_PATH")")
     fi
