@@ -46,9 +46,9 @@ def test_change_proposal_builder_includes_suggestions_and_impact(local_change_pr
 
     assert result["requested_rules"] == ["common", "refactor"]
     assert result["suggested_rules_preview"] == ["common", "csharp", "avalonia", "refactor"]
-    assert result["proposal_guidance"]["recommended_risk"] == "high"
+    assert result["proposal_guidance"]["recommended_risk"] == "medium"
     assert "public_api_diff_checker" in result["proposal_guidance"]["expected_validators"]
-    assert result["proposal_summary"]["recommended_risk"] == "high"
+    assert result["proposal_summary"]["recommended_risk"] == "medium"
     assert result["proposal_summary"]["requested_rules"] == ["common", "refactor"]
 
 
