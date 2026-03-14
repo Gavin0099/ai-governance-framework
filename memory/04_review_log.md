@@ -233,6 +233,18 @@
   - `tests/test_external_repo_onboarding_report.py` -> `3 passed`
   - `scripts/verify_phase_gates.sh` -> `323 passed`, `4/4 Gates`
 
+## 2026-03-15 - Cross-Repo Onboarding Index
+
+- Added `governance_tools/external_repo_onboarding_index.py` so the framework repo can aggregate onboarding state across multiple external repos.
+- The index is intentionally simple:
+  - reads each repo's `memory/governance_onboarding/latest.json`
+  - sorts failures first
+  - surfaces missing reports explicitly
+- This creates a framework-level view over external governance adoption without merging repos or overloading change-control artifacts yet.
+- Verification:
+  - `tests/test_external_repo_onboarding_index.py` -> `3 passed`
+  - `scripts/verify_phase_gates.sh` -> `326 passed`, `4/4 Gates`
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

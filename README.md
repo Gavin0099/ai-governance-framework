@@ -273,6 +273,7 @@ If you want a single onboarding entrypoint, run `scripts/onboard-external-repo.s
 That onboarding flow now also includes a minimal governance smoke test by default, so onboarding checks that `session_start` and `pre_task_check` can actually run against the external contract instead of only verifying static setup.
 By default it also writes a JSON onboarding report to `memory/governance_onboarding/latest.json` inside the target repo, so onboarding state remains reviewable after the terminal session ends.
 That onboarding report now also maintains `history/*.json`, `history/*.txt`, `latest.txt`, and `INDEX.txt`, so external repo setup state becomes a small auditable artifact set instead of a single overwritten file.
+If you are tracking multiple external repos, you can aggregate their latest onboarding states with `governance_tools/external_repo_onboarding_index.py --repo /path/to/repo1 --repo /path/to/repo2`.
 
 Example:
 

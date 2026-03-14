@@ -249,6 +249,7 @@ bash scripts/install-hooks.sh
 onboarding flow 預設還會再跑一個最小 governance smoke，驗證 external contract 是否真的能通過 `session_start` 與 `pre_task_check`。
 預設也會把 JSON onboarding report 寫到 target repo 的 `memory/governance_onboarding/latest.json`，讓接入狀態不只存在於當下終端輸出。
 現在也會同步維護 `latest.txt`、`history/`、與 `INDEX.txt`，讓 external repo onboarding 狀態有基本的時間序列與索引。
+若要在 framework repo 端集中查看多個 external repo 的 onboarding 狀態，可用 `governance_tools/external_repo_onboarding_index.py --repo /path/to/repo1 --repo /path/to/repo2`。
 ---
 
 ## Runtime Layer
