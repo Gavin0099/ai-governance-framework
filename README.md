@@ -269,6 +269,7 @@ When hooks are installed into another repo, the install script now writes a fram
 After installation, you can also run `governance_tools/hook_install_validator.py --repo /path/to/repo` to verify copied hooks and framework-root wiring.
 By default, `scripts/install-hooks.sh` now runs this validator automatically after installation; if you only want installation without verification, use `--no-verify`.
 If you want a single readiness check for an external repo's hook / PLAN / contract state, run `governance_tools/external_repo_readiness.py --repo /path/to/repo`.
+If you want a single onboarding entrypoint, run `scripts/onboard-external-repo.sh --target /path/to/repo`, which combines hook installation with a readiness report.
 
 Example:
 

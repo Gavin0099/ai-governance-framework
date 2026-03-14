@@ -181,3 +181,27 @@
     - confirmed `Kernel-Driver-Contract` is contract/PLAN-ready but still hook-incomplete
   - `scripts/verify_phase_gates.sh` -> `317 passed`, `4/4 Gates`
 
+## 2026-03-14 - External Repo Onboarding Entry Point
+
+- Added `scripts/onboard-external-repo.sh` as a single shell entrypoint for:
+  - governance hook installation
+  - optional contract override
+  - readiness assessment
+- This reduces external repo setup from multiple loosely coupled commands into one onboarding flow.
+- Validation:
+  - `scripts/onboard-external-repo.sh --target ../Kernel-Driver-Contract --dry-run`
+  - `scripts/verify_phase_gates.sh` -> `317 passed`, `4/4 Gates`
+
+## 2026-03-14 - IC / SoC Governance Direction Recorded
+
+- Recorded a refined future-domain view for IC-related governance.
+- The main correction is to prioritize domains by mistake cost and machine-readability, not just by technical novelty.
+- Current draft priority:
+  - `P0`: SoC integration
+  - `P1`: RTL design
+  - `P2`: IC verification
+  - `P3`: CAD automation
+- Also recorded a positioning constraint:
+  - for domains like RTL / CDC, the framework should be framed more as a risk declaration and reviewer-focusing system than as a full automatic prevention layer
+- Noted `address_collision_validator.py` style address-map checking as a particularly strong future candidate because it combines high value with relatively tractable validation logic.
+

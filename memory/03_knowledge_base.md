@@ -81,6 +81,32 @@
   - use post-task validation to check whether generated scripts reference real project facts rather than hallucinated names
 - This domain looks suitable, but only if introduced through a narrow slice first rather than a broad "EDA platform" abstraction.
 
+## IC / SoC Domain Expansion Notes
+
+- A second-pass review suggests the highest-value IC governance path should be prioritized by:
+  - mistake cost
+  - machine-readability difficulty
+- Under that lens, the likely order is:
+  - `P0`: SoC integration
+  - `P1`: RTL design
+  - `P2`: IC verification
+  - `P3`: CAD automation
+- The key positioning correction is important:
+  - the framework should not promise to "prevent" complex RTL failures such as CDC bugs
+  - in these domains it is often more realistic to act as a risk declarer and reviewer-focusing system
+- A likely RTL governance shape would therefore require AI to surface explicit risk declarations, not claim deep automatic understanding of clock-domain behavior.
+- A strong concrete candidate for early IC automation is address-map governance:
+  - convert XML / spreadsheet specs into machine-readable `address_map.json`
+  - validate generated integration outputs against overlap / collision rules
+  - this is attractive because the failure cost is high while the validator logic is mostly numeric and interval-based
+- If IC adoption starts, the safer structure is still:
+  - one `IC-Verification-Contract` or similarly scoped contract first
+  - then split into narrower repos only after real workflow pressure appears
+- For IC verification specifically, Cocotb-style signal mapping remains one of the best narrow-slice entry points because:
+  - the AI blind spot is clear
+  - the facts are often already present in structured specs
+  - it fits the framework's current contract-first, reviewer-assist model
+
 ## Working Agreement
 
 - For this repository, each task should be completed, reviewed, committed, and pushed before starting the next task.
