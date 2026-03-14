@@ -214,3 +214,39 @@ def test_session_end_records_proposal_summary_in_audit_chain(local_project_root)
     curated_payload = json.loads(Path(result["curated_artifact"]).read_text(encoding="utf-8"))
     assert any(item["source"] == "proposal_summary.concerns" for item in curated_payload["items"])
     assert any(item["source"] == "proposal_summary.required_evidence" for item in curated_payload["items"])
+
+
+def test_session_end_preserves_contract_context_in_summary_and_curated_artifact(local_project_root):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-09",
+        runtime_contract=_contract(rules=["common", "cpp", "kernel-driver"]),
+        checks={"ok": True, "errors": []},
+        contract_resolution={
+            "source": "discovery",
+            "path": "D:/Kernel-Driver-Contract/contract.yaml",
+        },
+        domain_contract={
+            "name": "kernel-driver-contract",
+            "raw": {
+                "domain": "kernel-driver",
+                "plugin_version": "1.0.0",
+            },
+        },
+        response_text="runtime output",
+        summary="Kernel-driver session with external contract",
+    )
+
+    summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
+    assert summary_payload["contract_resolution_present"] is True
+    assert summary_payload["contract_source"] == "discovery"
+    assert summary_payload["contract_name"] == "kernel-driver-contract"
+    assert summary_payload["contract_domain"] == "kernel-driver"
+    assert summary_payload["contract_plugin_version"] == "1.0.0"
+
+    candidate_payload = json.loads(Path(result["candidate_artifact"]).read_text(encoding="utf-8"))
+    assert candidate_payload["contract_resolution"]["source"] == "discovery"
+    assert candidate_payload["domain_contract"]["name"] == "kernel-driver-contract"
+
+    curated_payload = json.loads(Path(result["curated_artifact"]).read_text(encoding="utf-8"))
+    assert any(item["source"] == "contract_resolution" for item in curated_payload["items"])

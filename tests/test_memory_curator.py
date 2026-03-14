@@ -126,3 +126,40 @@ def test_curator_preserves_proposal_summary_evidence(local_runtime_root):
     assert any(item["source"] == "proposal_summary.concerns" for item in result["items"])
     assert any(item["source"] == "proposal_summary.required_evidence" for item in result["items"])
     assert any(item["source"] == "proposal_summary.recommendation" for item in result["items"])
+
+
+def test_curator_preserves_domain_contract_context(local_runtime_root):
+    candidate_file = local_runtime_root / "candidate_contract_context.json"
+    candidate_file.write_text(
+        json.dumps(
+            {
+                "session_id": "2026-03-12-09",
+                "runtime_contract": {
+                    "task": "Driver review",
+                    "rules": ["common", "cpp", "kernel-driver"],
+                    "risk": "high",
+                    "oversight": "review-required",
+                    "memory_mode": "candidate",
+                },
+                "policy": {"reasons": []},
+                "contract_resolution": {
+                    "source": "explicit",
+                    "path": "D:/Kernel-Driver-Contract/contract.yaml",
+                },
+                "domain_contract": {
+                    "name": "kernel-driver-contract",
+                    "raw": {
+                        "domain": "kernel-driver",
+                        "plugin_version": "1.0.0",
+                    },
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    result = curate_candidate_artifact(candidate_file)
+
+    assert any(item["source"] == "contract_resolution" for item in result["items"])

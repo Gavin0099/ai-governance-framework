@@ -36,6 +36,12 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _normalize_session_start_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    if payload.get("event_type") == "session_start" and isinstance(payload.get("result"), dict):
+        return payload["result"]
+    return payload
+
+
 def _normalize_runtime_contract(runtime_contract: dict[str, Any]) -> dict[str, Any]:
     return {
         "task": runtime_contract.get("task", "unspecified-task"),
@@ -53,6 +59,8 @@ def run_session_end(
     checks: dict[str, Any] | None = None,
     architecture_impact_preview: dict[str, Any] | None = None,
     proposal_summary: dict[str, Any] | None = None,
+    contract_resolution: dict[str, Any] | None = None,
+    domain_contract: dict[str, Any] | None = None,
     event_log: list[dict[str, Any]] | None = None,
     response_text: str = "",
     summary: str = "",
@@ -62,6 +70,8 @@ def run_session_end(
     checks = checks or {}
     architecture_impact_preview = architecture_impact_preview or {}
     proposal_summary = proposal_summary or {}
+    contract_resolution = contract_resolution or {}
+    domain_contract = domain_contract or {}
     event_log = event_log or []
     errors: list[str] = []
     warnings: list[str] = []
@@ -121,6 +131,8 @@ def run_session_end(
         "checks": checks,
         "architecture_impact_preview": architecture_impact_preview,
         "proposal_summary": proposal_summary,
+        "contract_resolution": contract_resolution,
+        "domain_contract": domain_contract,
         "public_api_diff": public_api_diff,
         "event_log": event_log,
         "snapshot": snapshot_result,
@@ -148,6 +160,12 @@ def run_session_end(
         "proposal_summary_recommended_oversight": proposal_summary.get("recommended_oversight"),
         "proposal_summary_concern_count": len(proposal_summary.get("concerns", []) or []),
         "proposal_summary_expected_validator_count": len(proposal_summary.get("expected_validators", []) or []),
+        "contract_resolution_present": bool(contract_resolution),
+        "contract_source": contract_resolution.get("source"),
+        "contract_path": contract_resolution.get("path"),
+        "contract_name": domain_contract.get("name"),
+        "contract_domain": (domain_contract.get("raw") or {}).get("domain"),
+        "contract_plugin_version": (domain_contract.get("raw") or {}).get("plugin_version"),
         "public_api_diff_present": public_api_diff is not None,
         "public_api_removed_count": len(public_api_diff.get("removed", [])) if public_api_diff else 0,
         "public_api_added_count": len(public_api_diff.get("added", [])) if public_api_diff else 0,
@@ -185,6 +203,7 @@ def main() -> None:
     parser.add_argument("--checks-file")
     parser.add_argument("--impact-preview-file")
     parser.add_argument("--proposal-summary-file")
+    parser.add_argument("--session-start-file")
     parser.add_argument("--event-log-file")
     parser.add_argument("--response-file")
     parser.add_argument("--summary", default="")
@@ -200,6 +219,11 @@ def main() -> None:
     proposal_summary = (
         json.loads(Path(args.proposal_summary_file).read_text(encoding="utf-8")) if args.proposal_summary_file else None
     )
+    session_start_payload = (
+        _normalize_session_start_payload(json.loads(Path(args.session_start_file).read_text(encoding="utf-8")))
+        if args.session_start_file
+        else {}
+    )
     event_log = json.loads(Path(args.event_log_file).read_text(encoding="utf-8")) if args.event_log_file else None
     response_text = Path(args.response_file).read_text(encoding="utf-8") if args.response_file else ""
 
@@ -210,6 +234,8 @@ def main() -> None:
         checks=checks,
         architecture_impact_preview=architecture_impact_preview,
         proposal_summary=proposal_summary,
+        contract_resolution=session_start_payload.get("contract_resolution"),
+        domain_contract=session_start_payload.get("domain_contract"),
         event_log=event_log,
         response_text=response_text,
         summary=args.summary,

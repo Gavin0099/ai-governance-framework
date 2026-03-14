@@ -247,6 +247,33 @@ def _extract_candidate_items(candidate_payload: dict[str, Any]) -> tuple[list[di
             )
             seen.add(content.lower())
 
+    contract_resolution = candidate_payload.get("contract_resolution") or {}
+    domain_contract = candidate_payload.get("domain_contract") or {}
+    domain_raw = domain_contract.get("raw") or {}
+    contract_context_parts = []
+    if contract_resolution.get("source"):
+        contract_context_parts.append(f"source={contract_resolution['source']}")
+    if domain_contract.get("name"):
+        contract_context_parts.append(f"name={domain_contract['name']}")
+    if domain_raw.get("domain"):
+        contract_context_parts.append(f"domain={domain_raw['domain']}")
+    if domain_raw.get("plugin_version"):
+        contract_context_parts.append(f"plugin_version={domain_raw['plugin_version']}")
+    if contract_context_parts:
+        content = _normalize_text(f"Domain contract context: {', '.join(contract_context_parts)}")
+        if content.lower() not in seen:
+            kept.append(
+                {
+                    "type": "fact",
+                    "title": "Fact: domain contract context",
+                    "content": content,
+                    "reason": "session domain governance context",
+                    "confidence": "high",
+                    "source": "contract_resolution",
+                }
+            )
+            seen.add(content.lower())
+
     event_log = candidate_payload.get("event_log", []) or []
     for event in event_log:
         event_type = str(event.get("event_type", "")).strip()
