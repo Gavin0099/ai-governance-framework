@@ -7,7 +7,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from governance_tools.architecture_impact_estimator import estimate_architecture_impact
 from governance_tools.rule_pack_loader import parse_rule_list

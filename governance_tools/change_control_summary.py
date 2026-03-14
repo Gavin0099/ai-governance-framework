@@ -7,8 +7,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from governance_tools.contract_context import contract_label, extract_contract_context, normalize_session_start_payload
 

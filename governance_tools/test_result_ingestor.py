@@ -12,6 +12,9 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from governance_tools.failure_test_validator import validate_failure_test_coverage
 
 

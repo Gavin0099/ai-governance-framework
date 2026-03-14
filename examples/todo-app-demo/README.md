@@ -1,37 +1,52 @@
-# Todo App Demo — AI Governance Framework 示範專案
+# Todo App Demo
 
-> 這是一個**最小可體感**的示範專案，用於展示 AI Governance Framework 的實際效果。
+This is the smallest runnable app example in the repository.
 
-## 目錄結構
+It exists to give new users a lightweight place to:
 
-```
+- see the framework next to a real app entrypoint
+- verify that the documented Python dependencies are sufficient
+- compare a normal demo app with the heavier governance examples
+
+## Status
+
+- Type: runnable demo
+- Runtime dependency: `fastapi`
+- Optional local server: `uvicorn`
+
+## Files
+
+```text
 todo-app-demo/
-├── PLAN.md              ← 專案開發計畫（AI 治理核心）⭐
-├── DEMO_LOG.md          ← 15 分鐘體感流程（必讀！）⭐
-├── governance/          ← 從框架部署的 8 大法典（軟連結）
-├── memory/              ← AI 記憶目錄
-│   ├── 01_active_task.md   ← 當前任務狀態
-│   └── archive/            ← 記憶歸檔
-└── src/                 ← 應用程式原始碼（示意）
+├── PLAN.md
+├── DEMO_LOG.md
+├── memory/
+└── src/
     └── main.py
 ```
 
-## 快速開始
+## Run It
 
-**1. 閱讀 DEMO_LOG.md**（15 分鐘）
+From the repo root:
+
 ```bash
-cat DEMO_LOG.md
+python examples/todo-app-demo/src/main.py
 ```
 
-**2. 複製到你自己的專案**
+That verifies the example imports cleanly.
+
+To run it as a local API:
+
 ```bash
-# 回到框架根目錄
-cd ../../
-./deploy_to_memory.sh /path/to/your/project
+uvicorn src.main:app --app-dir examples/todo-app-demo --reload
 ```
 
-**3. 填寫你自己的 PLAN.md**
+Then open:
 
----
+- `http://127.0.0.1:8000/health`
 
-> 完整說明請參考 [../../README.md](../../README.md)
+## Read Next
+
+- `DEMO_LOG.md` for the walkthrough
+- [../../start_session.md](../../start_session.md) for the shortest repo-level quickstart
+- [../../README.md](../../README.md) for the full framework overview

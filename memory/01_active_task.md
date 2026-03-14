@@ -33,6 +33,12 @@
 - Cross-repo onboarding views now surface `top_issues`, so reviewer-facing outputs can point to the most urgent external repos instead of only listing raw status rows.
 - Cross-repo onboarding `top_issues` now also carry suggested next commands, so reviewer-facing audit output is closer to directly actionable triage.
 - External onboarding triage now explicitly points to the next remediation command, reducing the gap between audit output and operator action.
+- Direct-script governance entrypoints under `governance_tools/` are now resilient when invoked as `python governance_tools/<tool>.py ...`, not only when imported as a package.
+- The local/runtime CI path is back to green after restoring package bootstrap for `change_control_summary.py`, `change_control_index.py`, and related governance-tool entrypoints.
+- The repo now includes a minimal external-adoption baseline:
+  - `requirements.txt`
+  - `start_session.md`
+  - clarified example statuses for runnable demo vs walkthrough vs scaffold
 
 ## Next Steps
 
@@ -46,5 +52,6 @@
 - Deepen semantic verification, especially public API compatibility and architecture drift reasoning.
 - Strengthen workflow interception coverage without over-expanding the runtime into a policy engine, starting with more reliable external-repo hook installation and execution.
 - Improve change-control artifact consumption so reviewer-facing outputs are easier to use in day-to-day development.
+- Keep reducing adoption friction for first-time users by validating example runnable paths and keeping quickstart docs aligned with the actual local environment.
 - Keep IC / EDA Python governance as an evaluated future domain fit, but only after validating a narrow contract-first slice such as Cocotb mapping, golden-model translation, or internal toolchain scripting.
 

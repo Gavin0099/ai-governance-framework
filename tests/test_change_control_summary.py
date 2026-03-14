@@ -1,4 +1,5 @@
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -146,3 +147,57 @@ def test_change_control_summary_accepts_smoke_envelope_shape():
     assert result["requested_rules"] == ["common", "refactor"]
     assert result["suggested_agent"] == "advanced-agent"
     assert result["contract_resolution"]["source"] == "explicit"
+
+
+def test_change_control_summary_cli_runs_as_direct_script(tmp_path):
+    session_start_file = tmp_path / "session_start.json"
+    session_start_file.write_text(
+        json.dumps(
+            {
+                "event_type": "session_start",
+                "result": {
+                    "task_text": "Verify direct script execution",
+                    "runtime_contract": {
+                        "rules": ["common"],
+                        "risk": "medium",
+                        "oversight": "review-required",
+                    },
+                    "contract_resolution": {
+                        "source": "explicit",
+                        "path": "D:/Kernel-Driver-Contract/contract.yaml",
+                    },
+                    "domain_contract": {
+                        "name": "kernel-driver-contract",
+                        "raw": {
+                            "domain": "kernel-driver",
+                            "plugin_version": "1.0.0",
+                        },
+                    },
+                    "proposal_summary": {
+                        "requested_rules": ["common"],
+                        "recommended_risk": "medium",
+                        "recommended_oversight": "review-required",
+                    },
+                },
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "governance_tools/change_control_summary.py",
+            "--session-start-file",
+            str(session_start_file),
+        ],
+        cwd=Path(__file__).parent.parent,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0
+    assert "[change_control_summary]" in completed.stdout
+    assert "contract_domain=kernel-driver" in completed.stdout

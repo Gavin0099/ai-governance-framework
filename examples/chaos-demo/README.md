@@ -1,3 +1,7 @@
+# Chaos Demo
+
+Status: walkthrough only. This example is intentionally narrative and does not ship a runnable app.
+
 # 💥 Chaos Demo — AI 架構破壞 vs 治理攔截
 
 > **情境**: 你有一個三層架構的 Python 服務（API → Service → Repository）。

@@ -10,6 +10,9 @@ import json
 import sys
 from pathlib import Path
 
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from governance_tools.contract_resolver import resolve_contract
 
 

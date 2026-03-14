@@ -5,7 +5,12 @@ Helpers for extracting external contract context from session artifacts.
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
 from typing import Any
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from governance_tools.domain_governance_metadata import domain_risk_tier
 

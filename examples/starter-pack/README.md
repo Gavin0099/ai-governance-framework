@@ -1,3 +1,7 @@
+# Starter Pack
+
+Status: scaffold only. This directory is meant to be copied into a new repo, not executed as an application.
+
 # Starter Pack — 5 分鐘開始使用 AI Governance
 
 最小可用版本。3 個文件，解決一個核心問題：

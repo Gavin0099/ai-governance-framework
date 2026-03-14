@@ -392,7 +392,20 @@ flowchart TD
 
 ## Quick Start
 
+For a five-minute guided run, start with [start_session.md](start_session.md).
+
 ### Minimum Viable Setup
+
+Install the documented local dependencies first:
+
+```bash
+pip install -r requirements.txt
+```
+
+The core framework stays largely stdlib-first, but `requirements.txt` covers:
+
+- local validation via `pytest`
+- the runnable FastAPI demo under `examples/todo-app-demo`
 
 If you want to bring this governance framework into an existing project, the simplest path is:
 
@@ -428,6 +441,7 @@ and report back with a [Governance Contract] block.
 
 See:
 
+- `examples/README.md`
 - `examples/starter-pack/`
 - `examples/todo-app-demo/`
 - `examples/chaos-demo/`

@@ -275,6 +275,34 @@
 - Tightened the reviewer-facing framing so external onboarding issues now read as explicit remediation hints rather than only passive status signals.
 - This keeps the current auditor lightweight while making the output more directly usable during governance maintenance.
 
+## 2026-03-15 - Direct CLI Bootstrap Fix
+
+- Fixed a CI regression where `governance_tools/change_control_summary.py` failed when executed as a direct script because package imports no longer had the repo root on `sys.path`.
+- Restored the standard script-entry bootstrap pattern across direct `governance_tools/` CLIs that import other `governance_tools.*` modules.
+- Added a subprocess regression test to ensure `python governance_tools/change_control_summary.py ...` continues to work as a direct entrypoint.
+- Verification:
+  - `tests/test_change_control_summary.py` -> `4 passed`
+  - `scripts/run-runtime-governance.sh --mode ci` -> passed
+  - `scripts/verify_phase_gates.sh` -> `328 passed`, `4/4 Gates`
+
+## 2026-03-15 - Adoption Baseline Docs
+
+- Added `requirements.txt` so clone-first users have an explicit starting dependency set instead of having to infer runtime/test/example requirements from the codebase.
+- Added `start_session.md` as a five-minute quickstart that verifies:
+  - core tool CLI availability
+  - a minimal `pre_task_check`
+  - a domain-aware `session_start`
+- Updated example documentation to clarify which examples are:
+  - runnable demos
+  - walkthrough-only narratives
+  - scaffolds/templates
+- Noted that repo-root quickstart runs can emit advisory pack-suggestion warnings because this framework repo intentionally contains mixed-language fixtures and examples.
+- Verification:
+  - `governance_tools/contract_validator.py --help`
+  - `runtime_hooks/core/pre_task_check.py --project-root . --rules common --risk low --oversight review-required --memory-mode candidate --task-text "Quickstart governance check" --format human`
+  - `runtime_hooks/core/session_start.py --project-root . --plan PLAN.md --rules common,hub-firmware --risk medium --oversight review-required --memory-mode candidate --task-text "Validate USB hub firmware response flow" --contract examples/usb-hub-contract/contract.yaml --format human`
+  - `scripts/verify_phase_gates.sh` -> `328 passed`, `4/4 Gates`
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

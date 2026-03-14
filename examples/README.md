@@ -1,20 +1,18 @@
-# Examples — AI Governance Framework 示範專案
+# Examples
 
-| 示範專案 | 說明 | 技術棧 | 難度 |
-|---------|------|--------|------|
-| [todo-app-demo](todo-app-demo/) | 最小 CRUD API，15 分鐘體感治理效果 | Python / FastAPI | L1 |
-| [chaos-demo](chaos-demo/) | AI 亂改架構 vs 治理攔截，架構破壞 before/after | Python / 三層架構 | L2 |
-| [usb-hub-contract](usb-hub-contract/) | 最小 dual-repo domain plugin 樣板，驗證 `contract.yaml` / session-start / external rules | Markdown / Python | L2 |
+This directory contains three different kinds of examples:
 
-## 如何使用
+| Example | Status | What it is for | Runtime |
+|---------|--------|----------------|---------|
+| [todo-app-demo](todo-app-demo/) | Runnable demo | Minimal FastAPI app plus governance walkthrough | `fastapi`, `uvicorn` |
+| [chaos-demo](chaos-demo/) | Walkthrough | Before/after narrative for architecture-boundary governance | No executable app |
+| [usb-hub-contract](usb-hub-contract/) | Runnable contract sample | Minimal external domain contract with rules and validator | Python stdlib |
+| [starter-pack](starter-pack/) | Scaffold | Copy-ready governance starter files for a new repo | No executable app |
 
-每個示範專案都包含：
+## Recommended Path
 
-- **PLAN.md** — 填好的專案計畫（直接套用參考）
-- **DEMO_LOG.md** — 逐步示範的 AI 對話紀錄
-- **memory/** — 初始記憶結構
-
-**建議路徑**:
-1. 閱讀 `todo-app-demo/DEMO_LOG.md`（15 分鐘）
-2. 理解「有治理」與「無治理」的對比
-3. 將框架部署到自己的專案（`./deploy_to_memory.sh`）
+1. Start with [start_session.md](../start_session.md)
+2. Run the minimal framework commands from the repo root
+3. Open `todo-app-demo/` if you want a runnable application example
+4. Open `usb-hub-contract/` if you want a domain-plugin example
+5. Open `chaos-demo/` if you want a short architecture-governance narrative

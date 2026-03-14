@@ -10,6 +10,9 @@ import re
 import sys
 from pathlib import Path
 
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from governance_tools.domain_contract_loader import load_domain_contract
 from governance_tools.validator_interface import DomainValidator, ValidatorResult
 

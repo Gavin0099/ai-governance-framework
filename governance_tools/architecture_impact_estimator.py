@@ -7,7 +7,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from governance_tools.architecture_drift_checker import check_architecture_drift
 from governance_tools.public_api_diff_checker import check_public_api_diff
