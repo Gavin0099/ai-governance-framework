@@ -71,6 +71,7 @@ fi
 info "Gate 3 / 工具可執行性"
 TOOLS=(
     "contract_validator.py"
+    "quickstart_smoke.py"
     "plan_freshness.py"
     "memory_janitor.py"
     "state_generator.py"
@@ -84,6 +85,12 @@ for tool in "${TOOLS[@]}"; do
         ALL_OK=0
     fi
 done
+if "${PYTHON_CMD[@]}" governance_tools/quickstart_smoke.py --project-root . --plan PLAN.md --contract examples/usb-hub-contract/contract.yaml --format human > /dev/null 2>&1; then
+    ok "quickstart_smoke.py onboarding path"
+else
+    fail "quickstart_smoke.py onboarding path 失敗"
+    ALL_OK=0
+fi
 if [ "$ALL_OK" -eq 1 ]; then
     PASS=$((PASS + 1))
 fi

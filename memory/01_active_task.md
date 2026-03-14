@@ -39,6 +39,8 @@
   - `requirements.txt`
   - `start_session.md`
   - clarified example statuses for runnable demo vs walkthrough vs scaffold
+- The onboarding path now also has a single executable verifier via `governance_tools/quickstart_smoke.py`, so quickstart docs map to a real smoke command instead of only a sequence of copy-paste steps.
+- `scripts/verify_phase_gates.sh` now also exercises `quickstart_smoke.py` against the bundled USB-Hub example, so onboarding drift is covered by the same phase gates as the core runtime tools.
 
 ## Next Steps
 
@@ -53,5 +55,6 @@
 - Strengthen workflow interception coverage without over-expanding the runtime into a policy engine, starting with more reliable external-repo hook installation and execution.
 - Improve change-control artifact consumption so reviewer-facing outputs are easier to use in day-to-day development.
 - Keep reducing adoption friction for first-time users by validating example runnable paths and keeping quickstart docs aligned with the actual local environment.
+- Consider whether `quickstart_smoke.py` should eventually join CI or docs validation as a dedicated adoption-path regression check.
 - Keep IC / EDA Python governance as an evaluated future domain fit, but only after validating a narrow contract-first slice such as Cocotb mapping, golden-model translation, or internal toolchain scripting.
 

@@ -303,6 +303,28 @@
   - `runtime_hooks/core/session_start.py --project-root . --plan PLAN.md --rules common,hub-firmware --risk medium --oversight review-required --memory-mode candidate --task-text "Validate USB hub firmware response flow" --contract examples/usb-hub-contract/contract.yaml --format human`
   - `scripts/verify_phase_gates.sh` -> `328 passed`, `4/4 Gates`
 
+## 2026-03-15 - Quickstart Smoke Command
+
+- Added `governance_tools/quickstart_smoke.py` as a single-command verifier for the documented onboarding path.
+- The tool bundles:
+  - a minimal `pre_task_check`
+  - a minimal `session_start`
+  - optional external contract verification
+- This shifts the quickstart from "doc only" toward "documented and executable".
+- Added `tests/test_quickstart_smoke.py`.
+- Updated `README.md`, `start_session.md`, and `governance_tools/README.md` to point to the new entrypoint.
+- Verification:
+  - `tests/test_quickstart_smoke.py` -> `2 passed`
+  - `governance_tools/quickstart_smoke.py --project-root . --plan PLAN.md --contract examples/usb-hub-contract/contract.yaml --format human`
+  - `scripts/verify_phase_gates.sh` -> `330 passed`, `4/4 Gates`
+
+## 2026-03-15 - Quickstart Path In Phase Gates
+
+- Extended `scripts/verify_phase_gates.sh` so Gate 3 now also runs `quickstart_smoke.py` against the bundled USB-Hub contract example.
+- This means the documented onboarding path is no longer only "documented and runnable"; it is now part of the framework's routine regression baseline.
+- Verification:
+  - `scripts/verify_phase_gates.sh` -> `330 passed`, `4/4 Gates`
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

@@ -15,6 +15,23 @@ PowerShell:
 $env:AI_GOVERNANCE_PYTHON='C:\Path\To\python.exe'
 ```
 
+## One-Command Smoke
+
+If you want the shortest possible verification path, run:
+
+```bash
+python governance_tools/quickstart_smoke.py \
+  --project-root . \
+  --plan PLAN.md \
+  --contract examples/usb-hub-contract/contract.yaml \
+  --format human
+```
+
+That command exercises both:
+
+- a minimal `pre_task_check`
+- a domain-aware `session_start`
+
 ## Step 1: Confirm the tools are available
 
 ```bash

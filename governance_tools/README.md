@@ -1,8 +1,8 @@
 # governance_tools/ — AI Governance Framework 工具集
 
-> **版本**: 當前（Phase A–D 全部完成）
-> **最後更新**: 2026-03-06
-> **相依**: Python 3.9+，僅 stdlib（無需 pip install）
+> **版本**: 當前（runtime governance prototype）
+> **最後更新**: 2026-03-15
+> **相依**: Python 3.9+；框架核心以 stdlib 為主，測試與 runnable demos 另外記於 repo root `requirements.txt`
 
 ---
 
@@ -35,6 +35,7 @@ $env:AI_GOVERNANCE_PYTHON='C:\Path\To\python.exe'
 |------|------|---------|
 | [memory_janitor.py](#memory_janitorpy) | 記憶壓力監控與歸檔 | 防止 context 過載 |
 | [contract_validator.py](#contract_validatorpy) | AI 初始化合規驗證 | CI gate |
+| [quickstart_smoke.py](#quickstart_smokepy) | 最小上手流程驗證 | onboarding / quickstart |
 | [plan_freshness.py](#plan_freshnesspy) | PLAN.md 新鮮度檢查 | CI gate / Git hook |
 | [state_generator.py](#state_generatorpy) | .governance-state.yaml 生成 | 狀態快照 |
 | [linear_integrator.py](#linear_integratorpy) | PLAN.md → Linear 同步 | 任務追蹤 |
@@ -94,6 +95,32 @@ python governance_tools/contract_validator.py --format json
 **退出碼**:
 - `0` = 合規
 - `1` = 不合規（有缺失項）
+
+---
+
+## quickstart_smoke.py
+
+將 repo 文件中的最小上手流程收成一條可執行 smoke command。
+
+它會驗證：
+
+- `pre_task_check`
+- `session_start`
+- optional external contract path
+
+```bash
+python governance_tools/quickstart_smoke.py \
+  --project-root . \
+  --plan PLAN.md \
+  --contract examples/usb-hub-contract/contract.yaml \
+  --format human
+```
+
+適合用在：
+
+- 新 clone 後先確認框架有沒有真的能跑
+- onboarding 文件更新後做快速回歸
+- demo / workshop 前先做最低限度驗證
 
 ---
 

@@ -394,6 +394,12 @@ flowchart TD
 
 For a five-minute guided run, start with [start_session.md](start_session.md).
 
+If you want a single command that checks the documented quickstart path end to end:
+
+```bash
+python governance_tools/quickstart_smoke.py --project-root . --plan PLAN.md --contract examples/usb-hub-contract/contract.yaml --format human
+```
+
 ### Minimum Viable Setup
 
 Install the documented local dependencies first:
