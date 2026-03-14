@@ -16,6 +16,19 @@ class InterruptSafetyValidator(DomainValidator):
     def validate(self, payload: dict) -> ValidatorResult:
         isr_code = payload.get("isr_code", "")
         changed_functions = payload.get("changed_functions", [])
+        interrupt_functions = payload.get("interrupt_functions", [])
+        if not interrupt_functions and not isr_code:
+            return ValidatorResult(
+                ok=True,
+                rule_ids=self.rule_ids,
+                evidence_summary="No interrupt-context function changes detected",
+                metadata={
+                    "mode": "advisory",
+                    "changed_functions": changed_functions,
+                    "interrupt_functions": interrupt_functions,
+                },
+            )
+
         warnings = [
             f"HUB-ISR-001: '{fn}' called inside ISR"
             for fn in self.FORBIDDEN_IN_ISR
@@ -26,5 +39,9 @@ class InterruptSafetyValidator(DomainValidator):
             rule_ids=self.rule_ids,
             warnings=warnings,
             evidence_summary=f"Checked {len(self.FORBIDDEN_IN_ISR)} forbidden patterns in ISR code",
-            metadata={"mode": "advisory", "changed_functions": changed_functions},
+            metadata={
+                "mode": "advisory",
+                "changed_functions": changed_functions,
+                "interrupt_functions": interrupt_functions,
+            },
         )

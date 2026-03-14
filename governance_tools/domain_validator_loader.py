@@ -6,11 +6,19 @@ Discovery and execution helpers for external domain validators.
 from __future__ import annotations
 
 import importlib.util
+import re
 import sys
 from pathlib import Path
 
 from governance_tools.domain_contract_loader import load_domain_contract
 from governance_tools.validator_interface import DomainValidator, ValidatorResult
+
+
+C_FUNCTION_DEF_RE = re.compile(
+    r"\b(?:void|int|char|short|long|unsigned|signed|static|inline|__interrupt|interrupt)\b"
+    r"[\w\s\*]*?\b([A-Za-z_][A-Za-z0-9_]*)\s*\([^;{}]*\)\s*\{",
+    re.MULTILINE,
+)
 
 
 def _normalize_string_list(value: object) -> list[str]:
@@ -29,7 +37,98 @@ def _extract_isr_code(checks: dict) -> str:
         value = checks.get(key)
         if isinstance(value, str) and value.strip():
             return value
+    for text in _candidate_c_texts(checks):
+        for block in _extract_c_function_blocks(text):
+            if _looks_like_interrupt_function(block["name"], block["body"]):
+                return block["body"]
     return ""
+
+
+def _extract_interrupt_functions(changed_functions: list[str]) -> list[str]:
+    detected = []
+    for item in changed_functions:
+        if _looks_like_interrupt_function(item, ""):
+            detected.append(item)
+    return detected
+
+
+def _looks_like_interrupt_function(name: str, body: str) -> bool:
+    interrupt_markers = ("isr", "irq", "interrupt")
+    normalized_name = name.lower()
+    normalized_body = body.lower()
+    return any(marker in normalized_name for marker in interrupt_markers) or "__interrupt" in normalized_body or " interrupt " in normalized_body
+
+
+def _extract_c_function_blocks(text: str) -> list[dict]:
+    blocks = []
+    for match in C_FUNCTION_DEF_RE.finditer(text):
+        name = match.group(1)
+        start = match.start()
+        brace_depth = 0
+        end = None
+        for index in range(match.end() - 1, len(text)):
+            char = text[index]
+            if char == "{":
+                brace_depth += 1
+            elif char == "}":
+                brace_depth -= 1
+                if brace_depth == 0:
+                    end = index + 1
+                    break
+        snippet = text[start:end].strip() if end else text[start:match.end()].strip()
+        blocks.append({"name": name, "body": snippet})
+    return blocks
+
+
+def _normalize_diff_text(text: str) -> str:
+    normalized_lines = []
+    for line in text.splitlines():
+        if line.startswith(("+++", "---", "@@")):
+            continue
+        if line.startswith(("+", "-", " ")):
+            normalized_lines.append(line[1:])
+        else:
+            normalized_lines.append(line)
+    return "\n".join(normalized_lines)
+
+
+def _load_changed_file_texts(checks: dict) -> list[str]:
+    texts = []
+    for item in _normalize_string_list(checks.get("changed_files") or checks.get("files")):
+        path = Path(item)
+        if not path.exists() or not path.is_file():
+            continue
+        try:
+            texts.append(path.read_text(encoding="utf-8", errors="ignore"))
+        except OSError:
+            continue
+    return texts
+
+
+def _candidate_c_texts(checks: dict) -> list[str]:
+    candidates = []
+    for key in ("diff_text", "before_code", "after_code", "source_text"):
+        value = checks.get(key)
+        if isinstance(value, str) and value.strip():
+            if key == "diff_text":
+                candidates.append(_normalize_diff_text(value))
+            else:
+                candidates.append(value)
+    candidates.extend(_load_changed_file_texts(checks))
+    return candidates
+
+
+def _extract_changed_functions(checks: dict) -> list[str]:
+    explicit = _normalize_string_list(checks.get("changed_functions"))
+    if explicit:
+        return explicit
+
+    candidates: list[str] = []
+    for text in _candidate_c_texts(checks):
+        for block in _extract_c_function_blocks(text):
+            if block["name"] not in candidates:
+                candidates.append(block["name"])
+    return candidates
 
 
 def _load_module_from_path(module_path: Path):
@@ -115,13 +214,15 @@ def build_domain_validation_payload(
     domain_contract: dict | None,
 ) -> dict:
     effective_checks = checks or {}
+    changed_functions = _extract_changed_functions(effective_checks)
     return {
         "rule_ids": resolved_rules,
         "checks": effective_checks,
         "response_text": response_text,
         "contract_fields": fields,
         "isr_code": _extract_isr_code(effective_checks),
-        "changed_functions": _normalize_string_list(effective_checks.get("changed_functions")),
+        "changed_functions": changed_functions,
+        "interrupt_functions": _extract_interrupt_functions(changed_functions),
         "changed_files": _normalize_string_list(effective_checks.get("changed_files") or effective_checks.get("files")),
         "domain_documents": (domain_contract or {}).get("documents", []),
         "ai_behavior_override": (domain_contract or {}).get("ai_behavior_override", []),

@@ -59,11 +59,11 @@ def test_session_start_context_merges_state_and_pre_task(local_session_start_roo
     assert result["suggested_rules_preview"] == ["common", "csharp", "avalonia", "refactor"]
     assert result["suggested_skills"] == ["code-style", "governance-runtime"]
     assert result["suggested_agent"] == "advanced-agent"
-    assert result["proposal_guidance"]["recommended_risk"] == "high"
+    assert result["proposal_guidance"]["recommended_risk"] == "medium"
     assert "public_api_diff_checker" in result["proposal_guidance"]["expected_validators"]
     assert result["change_proposal"]["requested_rules"] == ["common"]
     assert result["change_proposal"]["suggested_rules_preview"] == ["common", "csharp", "avalonia", "refactor"]
-    assert result["proposal_summary"]["recommended_risk"] == "high"
+    assert result["proposal_summary"]["recommended_risk"] == "medium"
 
 
 def test_session_start_human_output_is_actionable(local_session_start_root):

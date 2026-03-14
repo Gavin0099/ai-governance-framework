@@ -104,4 +104,81 @@ def test_build_domain_validation_payload_extracts_firmware_focused_fields():
 
     assert payload["isr_code"] == "void USB_ISR() { printf('bad'); }"
     assert payload["changed_functions"] == ["USB_ISR", "CFU_Handler"]
+    assert payload["interrupt_functions"] == ["USB_ISR"]
     assert payload["changed_files"] == ["src/usb/isr.c", "src/usb/cfu.c"]
+
+
+def test_build_domain_validation_payload_can_extract_functions_from_diff_text():
+    payload = build_domain_validation_payload(
+        response_text="response",
+        checks={
+            "diff_text": """
+void USB_ISR(void) {
+    printf("bad");
+}
+
+static void CFU_Handler(void) {
+    return;
+}
+""",
+            "changed_files": ["src/usb/isr.c"],
+        },
+        fields={"RULES": "common,hub-firmware"},
+        resolved_rules=["common", "hub-firmware"],
+        domain_contract={"documents": [], "ai_behavior_override": []},
+    )
+
+    assert payload["changed_functions"] == ["USB_ISR", "CFU_Handler"]
+    assert payload["interrupt_functions"] == ["USB_ISR"]
+    assert "printf" in payload["isr_code"]
+
+
+def test_build_domain_validation_payload_can_extract_functions_from_unified_diff():
+    payload = build_domain_validation_payload(
+        response_text="response",
+        checks={
+            "diff_text": """
+@@ -1,3 +1,8 @@
++void USB_ISR(void) {
++    printf("bad");
++}
++
+ static void CFU_Handler(void) {
+     return;
+ }
+""",
+        },
+        fields={"RULES": "common,hub-firmware"},
+        resolved_rules=["common", "hub-firmware"],
+        domain_contract={"documents": [], "ai_behavior_override": []},
+    )
+
+    assert payload["changed_functions"] == ["USB_ISR", "CFU_Handler"]
+    assert payload["interrupt_functions"] == ["USB_ISR"]
+    assert "printf" in payload["isr_code"]
+
+
+def test_build_domain_validation_payload_can_extract_from_changed_file_contents(tmp_path):
+    source_file = tmp_path / "usb_isr.c"
+    source_file.write_text(
+        """
+void USB_ISR(void) {
+    printf("bad");
+}
+""".strip(),
+        encoding="utf-8",
+    )
+
+    payload = build_domain_validation_payload(
+        response_text="response",
+        checks={
+            "changed_files": [str(source_file)],
+        },
+        fields={"RULES": "common,hub-firmware"},
+        resolved_rules=["common", "hub-firmware"],
+        domain_contract={"documents": [], "ai_behavior_override": []},
+    )
+
+    assert payload["changed_functions"] == ["USB_ISR"]
+    assert payload["interrupt_functions"] == ["USB_ISR"]
+    assert "printf" in payload["isr_code"]

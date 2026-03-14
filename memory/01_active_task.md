@@ -17,7 +17,9 @@
 - Installed git hooks now resolve repo-root paths before loading shared shell helpers, avoiding broken sourcing after installation.
 - `scripts/verify_phase_gates.sh` now passes locally, and `scripts/run-runtime-governance.sh --mode smoke` completes successfully with the same interpreter override.
 - `contract.yaml`-based domain plugin discovery now exists for `pre_task_check`, `session_start`, and `post_task_check`, including external documents, rule roots, and validator metadata.
-- A minimal `examples/usb-hub-contract/` sample now validates the dual-repo seam with `contract.yaml`, domain documents, behavior overrides, external rules, validator preflight, and advisory validator execution.
+- A minimal `examples/usb-hub-contract/` sample now validates the dual-repo seam with `contract.yaml`, domain documents, behavior overrides, external rules, validator preflight, advisory validator execution, and firmware-focused payload extraction.
+- USB-Hub advisory validation can now infer interrupt context from `diff_text`, unified diff snippets, and changed C file contents, not just manually supplied `isr_code`.
+- The example now includes `post_task_check --checks-file` fixtures so the advisory validator path can be exercised through a file-based runtime entrypoint.
 
 ## Next Steps
 
@@ -25,8 +27,9 @@
 - Use the restored local execution baseline before any USB-Hub contract integration work.
 - Extend the USB-Hub example into the real `USB-Hub-Firmware-Architecture-Contract` repository with its actual `start_session.md` / checklist content.
 - Prepare the integration path between `ai-governance-framework` and `USB-Hub-Firmware-Architecture-Contract` as a dual-repo layered model.
-- Promote the new advisory validator path into the real USB-Hub contract repo and refine payload shape from real firmware evidence needs.
+- Promote the new advisory validator path into the real USB-Hub contract repo and refine payload shape from real firmware evidence and git patch needs.
 - Extend the manual USB-Hub startup workflow around the new `contract.yaml` seam and `start_session.md` document handoff.
+- Exercise the real USB-Hub advisory path against repo-native patch/evidence artifacts instead of example fixtures.
 - Deepen semantic verification, especially public API compatibility and architecture drift reasoning.
 - Strengthen workflow interception coverage without over-expanding the runtime into a policy engine.
 - Improve change-control artifact consumption so reviewer-facing outputs are easier to use in day-to-day development.

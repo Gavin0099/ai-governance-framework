@@ -1,4 +1,5 @@
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from runtime_hooks.core.session_start import build_session_start_context, format
 
 
 EXAMPLE_CONTRACT = Path("examples/usb-hub-contract/contract.yaml")
+EXAMPLE_FIXTURES = Path("examples/usb-hub-contract/fixtures")
 
 
 def test_usb_hub_example_contract_loads():
@@ -107,4 +109,124 @@ def test_usb_hub_example_post_task_runs_domain_validator_advisory():
     assert result["domain_validator_results"][0]["name"] == "interrupt_safety_validator"
     assert "printf" in result["domain_validator_results"][0]["warnings"][0]
     assert result["domain_validator_results"][0]["metadata"]["changed_functions"] == ["USB_ISR", "CFU_Handler"]
+    assert result["domain_validator_results"][0]["metadata"]["interrupt_functions"] == ["USB_ISR"]
+    assert any("domain-validator:interrupt_safety_validator:" in warning for warning in result["warnings"])
+
+
+def test_usb_hub_example_post_task_skips_warning_without_interrupt_context():
+    response_text = (
+        "[Governance Contract]\n"
+        "LANG = C++\n"
+        "LEVEL = L2\n"
+        "SCOPE = feature\n"
+        "PLAN = PLAN.md\n"
+        "LOADED = SYSTEM_PROMPT, HUMAN-OVERSIGHT\n"
+        "CONTEXT = repo -> runtime-governance; NOT: platform rewrite\n"
+        "PRESSURE = SAFE (20/200)\n"
+        "RULES = common,hub-firmware\n"
+        "RISK = medium\n"
+        "OVERSIGHT = review-required\n"
+        "MEMORY_MODE = candidate\n"
+    )
+
+    result = run_post_task_check(
+        response_text,
+        risk="medium",
+        oversight="review-required",
+        checks={
+            "changed_functions": ["CFU_Handler", "BufferCopy"],
+            "test_names": [
+                "firmware_tests::test_cfu_failure_path_reports_error",
+                "firmware_tests::test_interrupt_guard_cleanup_release",
+            ],
+            "warnings": [],
+            "errors": [],
+        },
+        contract_file=EXAMPLE_CONTRACT,
+    )
+
+    assert result["ok"] is True
+    assert len(result["domain_validator_results"]) == 1
+    assert result["domain_validator_results"][0]["warnings"] == []
+    assert result["domain_validator_results"][0]["metadata"]["interrupt_functions"] == []
+
+
+def test_usb_hub_example_post_task_can_infer_interrupt_context_from_diff_text():
+    response_text = (
+        "[Governance Contract]\n"
+        "LANG = C++\n"
+        "LEVEL = L2\n"
+        "SCOPE = feature\n"
+        "PLAN = PLAN.md\n"
+        "LOADED = SYSTEM_PROMPT, HUMAN-OVERSIGHT\n"
+        "CONTEXT = repo -> runtime-governance; NOT: platform rewrite\n"
+        "PRESSURE = SAFE (20/200)\n"
+        "RULES = common,hub-firmware\n"
+        "RISK = medium\n"
+        "OVERSIGHT = review-required\n"
+        "MEMORY_MODE = candidate\n"
+    )
+
+    result = run_post_task_check(
+        response_text,
+        risk="medium",
+        oversight="review-required",
+        checks={
+            "diff_text": """
+void USB_ISR(void) {
+    printf("oops");
+}
+
+static void CFU_Handler(void) {
+    return;
+}
+""",
+            "test_names": [
+                "firmware_tests::test_cfu_failure_path_reports_error",
+                "firmware_tests::test_interrupt_guard_cleanup_release",
+            ],
+            "warnings": [],
+            "errors": [],
+        },
+        contract_file=EXAMPLE_CONTRACT,
+    )
+
+    assert result["ok"] is True
+    assert len(result["domain_validator_results"]) == 1
+    assert "printf" in result["domain_validator_results"][0]["warnings"][0]
+    assert result["domain_validator_results"][0]["metadata"]["interrupt_functions"] == ["USB_ISR"]
+
+
+def test_usb_hub_example_post_task_cli_can_consume_checks_file_fixture():
+    command = [
+        sys.executable,
+        "runtime_hooks/core/post_task_check.py",
+        "--file",
+        str((EXAMPLE_FIXTURES / "post_task_response.txt").resolve()),
+        "--risk",
+        "medium",
+        "--oversight",
+        "review-required",
+        "--checks-file",
+        str((EXAMPLE_FIXTURES / "interrupt_regression.checks.json").resolve()),
+        "--contract",
+        str(EXAMPLE_CONTRACT.resolve()),
+        "--format",
+        "json",
+    ]
+
+    completed = subprocess.run(
+        command,
+        cwd=Path(".").resolve(),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0
+    result = json.loads(completed.stdout)
+    assert result["ok"] is True
+    assert result["domain_validator_results"][0]["name"] == "interrupt_safety_validator"
+    assert "printf" in result["domain_validator_results"][0]["warnings"][0]
+    assert result["domain_validator_results"][0]["metadata"]["interrupt_functions"] == ["USB_ISR"]
     assert any("domain-validator:interrupt_safety_validator:" in warning for warning in result["warnings"])
