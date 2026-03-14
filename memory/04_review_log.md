@@ -106,3 +106,18 @@
 - Verification:
   - `tests/test_contract_resolver.py tests/test_domain_contract_loader.py tests/test_runtime_pre_task_check.py tests/test_runtime_session_start.py tests/test_runtime_post_task_check.py` -> `40 passed`
 
+## 2026-03-14 - Contract Metadata In Audit Chain
+
+- `change_control_summary.py` now includes contract resolution details for reviewer-facing summaries.
+- `change_control_index.py` now augments cross-session review order with contract context derived from `*_session_start.json`.
+- `session_end.py` and `memory_curator.py` now preserve external contract metadata into session-end summaries, candidate artifacts, and curated artifacts.
+- This closes the audit trail across:
+  - `session_start`
+  - change-control summary
+  - change-control index
+  - session-end summary
+  - curated runtime artifact
+- Verification:
+  - `tests/test_change_control_summary.py tests/test_runtime_session_start.py tests/test_runtime_smoke_test.py` -> `16 passed`
+  - `tests/test_runtime_session_end.py tests/test_memory_curator.py tests/test_change_control_summary.py tests/test_change_control_index.py` -> `19 passed`
+

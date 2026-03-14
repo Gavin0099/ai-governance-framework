@@ -15,3 +15,6 @@ Design rule:
 - Promotion requires an explicit reviewer identity.
 - Curated artifacts should preserve proposal-time architecture impact concerns and expected evidence when available.
 - Curated artifacts should also preserve `proposal_summary` recommendations, concerns, and evidence expectations when present.
+- Curated artifacts should preserve domain contract context when the session ran with an external contract.
+  - minimum retained fields: `contract_source`, `contract_name`, `contract_domain`, `plugin_version`
+  - this keeps durable audit outputs understandable in multi-domain governance environments

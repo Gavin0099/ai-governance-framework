@@ -140,6 +140,9 @@ R --> DRV
 - `memory_curator.py`
 - `promotion_policy.py`
 - `memory_promoter.py`
+- `session_end.py` / `memory_curator.py` 現在也會保留 domain contract metadata
+  - 例如 `contract_source`、`contract_name`、`contract_domain`、`plugin_version`
+  - 讓 external domain governance context 能一路進到 summary / curated artifacts
 
 ### 5. Rule Packs
 
@@ -513,6 +516,7 @@ reviewable change-control summary
 ```
 
 `change_control_summary.py --format human` 現在會先輸出一行 reviewer-first summary，再列 proposal / runtime 區塊細節。
+`change_control_index.py` 也會從對應的 `*_session_start.json` 裡補出 contract context，讓 reviewer 在跨 session 檢視時知道每筆 artifact 是由哪個 domain contract 驅動。
 
 ### Adapters
 
