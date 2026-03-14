@@ -404,6 +404,13 @@
   - `tests/test_governance_auditor.py` -> `5 passed`
   - `scripts/verify_phase_gates.sh` -> `336 passed`, `4/4 Gates`
 
+## 2026-03-15 - Governance Auditor Added To Phase Gates
+
+- Extended `scripts/verify_phase_gates.sh` so Gate 3 now also runs `governance_auditor.py --release-version v1.0.0-alpha`.
+- This promotes the high-level self-audit path from "available tool" to "routine regression surface", keeping constitution/runtime/release alignment executable in the same place as the other onboarding and trust-signal checks.
+- Verification:
+  - `scripts/verify_phase_gates.sh` -> `336 passed`, `4/4 Gates`
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

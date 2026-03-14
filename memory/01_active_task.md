@@ -51,6 +51,7 @@
 - GitLab CI now also mirrors the newer adoption baseline more closely: `requirements.txt`, phase gates, strict example readiness, and runtime governance enforcement are no longer GitHub-only.
 - Release-facing trust signals are now partially machine-checked: `release_readiness.py` validates the current alpha note / changelog / README / status-doc alignment, and `verify_phase_gates.sh` now exercises it.
 - `governance_auditor.py` can now also include release-facing readiness through `--release-version`, so constitution/runtime drift and release-doc drift can be reviewed in the same high-level audit surface.
+- `scripts/verify_phase_gates.sh` now also runs `governance_auditor.py --release-version ...`, so the high-level self-audit path is part of the normal regression surface instead of remaining an optional manual check.
 
 ## Next Steps
 

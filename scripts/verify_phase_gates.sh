@@ -73,6 +73,7 @@ info "Gate 3 / 工具可執行性"
 TOOLS=(
     "contract_validator.py"
     "example_readiness.py"
+    "governance_auditor.py"
     "quickstart_smoke.py"
     "release_readiness.py"
     "plan_freshness.py"
@@ -104,6 +105,12 @@ if "${PYTHON_CMD[@]}" governance_tools/release_readiness.py --version "$RELEASE_
     ok "release_readiness.py $RELEASE_VERSION"
 else
     fail "release_readiness.py $RELEASE_VERSION 失敗"
+    ALL_OK=0
+fi
+if "${PYTHON_CMD[@]}" governance_tools/governance_auditor.py --project-root . --release-version "$RELEASE_VERSION" --format human > /dev/null 2>&1; then
+    ok "governance_auditor.py release-aware self-audit"
+else
+    fail "governance_auditor.py release-aware self-audit 失敗"
     ALL_OK=0
 fi
 if [ "$ALL_OK" -eq 1 ]; then
