@@ -33,4 +33,5 @@
 - Deepen semantic verification, especially public API compatibility and architecture drift reasoning.
 - Strengthen workflow interception coverage without over-expanding the runtime into a policy engine.
 - Improve change-control artifact consumption so reviewer-facing outputs are easier to use in day-to-day development.
+- Keep IC / EDA Python governance as an evaluated future domain fit, but only after validating a narrow contract-first slice such as Cocotb mapping, golden-model translation, or internal toolchain scripting.
 

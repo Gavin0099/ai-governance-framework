@@ -121,3 +121,15 @@
   - `tests/test_change_control_summary.py tests/test_runtime_session_start.py tests/test_runtime_smoke_test.py` -> `16 passed`
   - `tests/test_runtime_session_end.py tests/test_memory_curator.py tests/test_change_control_summary.py tests/test_change_control_index.py` -> `19 passed`
 
+## 2026-03-14 - EDA Python Domain Fit Recorded
+
+- Evaluated Python-heavy IC / EDA verification as a likely Way B fit.
+- Key rationale recorded:
+  - Python syntax is easy for AI, but DUT mappings, fixed-point constraints, protocol timing, and internal toolchain boundaries are not.
+  - The likely failure mode is context hallucination, not parser failure.
+- Captured the recommended adoption strategy as "narrow slice first":
+  - Cocotb signal mapping
+  - golden/reference-model translation boundaries
+  - internal EDA toolchain scripting constraints
+- This was recorded as a future domain-fit note, not yet promoted into an active new domain contract plan.
+

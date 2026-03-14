@@ -62,6 +62,25 @@
 - The intended seam is `contract.yaml` discovery, with the framework responsible for lifecycle/runtime governance and the firmware repo responsible for domain facts, rule packs, and validators.
 - The next proof point after USB-Hub should be a second domain slice so the abstraction can be validated beyond firmware alone.
 
+## EDA / IC Python Governance Fit
+
+- Python in IC design is a strong candidate for Way B governance, not because Python syntax is hard, but because project-local context is deep and proprietary.
+- The strongest initial fits are:
+  - Cocotb or Python-based verification harnesses
+  - reference / golden models for DSP, accelerator, or protocol behavior
+  - EDA flow automation, log parsing, and script-based validation around internal toolchains
+- The main AI failure mode here is likely to be "syntactically correct, contextually dangerous":
+  - wrong DUT signal mapping
+  - incorrect timing or handshake assumptions
+  - fixed-point / pipeline mismatches when translating reference models
+  - unsafe assumptions about internal EDA tool versions, paths, or CI rules
+- This means an eventual IC-oriented contract should focus on fact capture and evidence routing, not language tutoring.
+- A sensible first adoption path would be:
+  - keep existing Python verification libraries as Way A assets
+  - add contract-driven facts for register maps, signal maps, timing constraints, or internal tool boundaries
+  - use post-task validation to check whether generated scripts reference real project facts rather than hallucinated names
+- This domain looks suitable, but only if introduced through a narrow slice first rather than a broad "EDA platform" abstraction.
+
 ## Working Agreement
 
 - For this repository, each task should be completed, reviewed, committed, and pushed before starting the next task.
