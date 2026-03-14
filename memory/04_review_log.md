@@ -208,6 +208,17 @@
   - `governance_tools/external_repo_smoke.py --repo D:\Kernel-Driver-Contract --format human`
   - `scripts/verify_phase_gates.sh` -> `320 passed`, `4/4 Gates`
 
+## 2026-03-15 - Onboarding Report Artifact
+
+- Added `governance_tools/external_repo_onboarding_report.py` to combine readiness and governance-smoke results into a single report.
+- `scripts/onboard-external-repo.sh` now writes a JSON report by default to:
+  - `memory/governance_onboarding/latest.json` inside the target repo
+- The onboarding shell flow now keeps running long enough to emit this report even when readiness or smoke fails, then exits non-zero afterward.
+- Verification:
+  - `tests/test_external_repo_onboarding_report.py` -> `2 passed`
+  - `scripts/onboard-external-repo.sh --target ../Kernel-Driver-Contract --dry-run`
+  - `scripts/verify_phase_gates.sh` -> `322 passed`, `4/4 Gates`
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

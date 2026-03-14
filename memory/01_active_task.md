@@ -26,6 +26,7 @@
 - External repo onboarding now also has a single readiness entrypoint via `governance_tools/external_repo_readiness.py`, which summarizes hook state, PLAN freshness, and contract resolution/completeness in one report.
 - External repo onboarding now also has a shell entrypoint via `scripts/onboard-external-repo.sh`, combining hook installation and readiness assessment into one flow.
 - External repo onboarding now also includes a minimal governance smoke stage, so onboarding can fail when a contract resolves incorrectly or its rule roots do not actually power `session_start` / `pre_task_check`.
+- External repo onboarding now also emits a JSON onboarding report, so readiness/smoke status can be tracked after the shell session instead of living only in terminal output.
 
 ## Next Steps
 

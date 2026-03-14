@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# onboard-external-repo.sh — install governance hooks and emit an external repo readiness report
+# onboard-external-repo.sh — install governance hooks, run onboarding checks, and emit a report
 
 set -euo pipefail
 
@@ -8,6 +8,7 @@ FRAMEWORK_ROOT="$(realpath "$SCRIPT_DIR/..")"
 INSTALL_SCRIPT="$SCRIPT_DIR/install-hooks.sh"
 READINESS_TOOL="$FRAMEWORK_ROOT/governance_tools/external_repo_readiness.py"
 SMOKE_TOOL="$FRAMEWORK_ROOT/governance_tools/external_repo_smoke.py"
+REPORT_TOOL="$FRAMEWORK_ROOT/governance_tools/external_repo_onboarding_report.py"
 PYTHON_LIB="$FRAMEWORK_ROOT/scripts/lib/python.sh"
 
 TARGET_REPO=""
@@ -16,6 +17,7 @@ DRY_RUN=false
 NO_HOOK_VERIFY=false
 OUTPUT_FORMAT="human"
 NO_SMOKE=false
+REPORT_FILE=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -39,12 +41,16 @@ while [[ $# -gt 0 ]]; do
             OUTPUT_FORMAT="$2"
             shift 2
             ;;
+        --report-file)
+            REPORT_FILE="$2"
+            shift 2
+            ;;
         --no-smoke)
             NO_SMOKE=true
             shift
             ;;
         *)
-            echo "Usage: bash scripts/onboard-external-repo.sh --target /path/to/repo [--contract /path/to/contract.yaml] [--dry-run] [--no-hook-verify] [--no-smoke] [--format human|json]"
+            echo "Usage: bash scripts/onboard-external-repo.sh --target /path/to/repo [--contract /path/to/contract.yaml] [--dry-run] [--no-hook-verify] [--no-smoke] [--format human|json] [--report-file /path/to/report.json]"
             exit 1
             ;;
     esac
@@ -76,6 +82,9 @@ if [ "$NO_SMOKE" = true ]; then
 else
     echo "governance_smoke = enabled"
 fi
+if [ -n "$REPORT_FILE" ]; then
+    echo "report_file      = $REPORT_FILE"
+fi
 echo ""
 
 INSTALL_ARGS=(--target "$TARGET_REPO")
@@ -92,6 +101,10 @@ if [ "$DRY_RUN" = true ]; then
     echo ""
     echo "[dry-run] readiness assessment skipped"
     exit 0
+fi
+
+if [ -z "$REPORT_FILE" ]; then
+    REPORT_FILE="$(realpath "$TARGET_REPO")/memory/governance_onboarding/latest.json"
 fi
 
 if [ ! -f "$PYTHON_LIB" ] || [ ! -f "$READINESS_TOOL" ]; then
@@ -112,23 +125,53 @@ fi
 
 echo ""
 echo "== External Repo Readiness =="
-"${PYTHON_CMD[@]}" "$READINESS_TOOL" "${READINESS_ARGS[@]}"
+set +e
+readiness_output=$("${PYTHON_CMD[@]}" "$READINESS_TOOL" "${READINESS_ARGS[@]}" 2>&1)
+readiness_status=$?
+set -e
+printf '%s\n' "$readiness_output"
 
-if [ "$NO_SMOKE" = true ]; then
-    exit 0
+smoke_status=0
+if [ "$NO_SMOKE" = false ]; then
+    if [ ! -f "$SMOKE_TOOL" ]; then
+        echo ""
+        echo "WARNING: missing smoke tooling, skipping governance smoke"
+    else
+        SMOKE_ARGS=(--repo "$(realpath "$TARGET_REPO")" --format "$OUTPUT_FORMAT")
+        if [ -n "$CONTRACT_PATH" ]; then
+            SMOKE_ARGS+=(--contract "$(realpath "$CONTRACT_PATH")")
+        fi
+
+        echo ""
+        echo "== Governance Smoke =="
+        set +e
+        smoke_output=$("${PYTHON_CMD[@]}" "$SMOKE_TOOL" "${SMOKE_ARGS[@]}" 2>&1)
+        smoke_status=$?
+        set -e
+        printf '%s\n' "$smoke_output"
+    fi
 fi
 
-if [ ! -f "$SMOKE_TOOL" ]; then
+report_status=0
+if [ -f "$REPORT_TOOL" ]; then
+    REPORT_ARGS=(--repo "$(realpath "$TARGET_REPO")" --format json --output "$REPORT_FILE")
+    if [ -n "$CONTRACT_PATH" ]; then
+        REPORT_ARGS+=(--contract "$(realpath "$CONTRACT_PATH")")
+    fi
+
     echo ""
-    echo "WARNING: missing smoke tooling, skipping governance smoke"
-    exit 0
+    echo "== Onboarding Report =="
+    set +e
+    report_output=$("${PYTHON_CMD[@]}" "$REPORT_TOOL" "${REPORT_ARGS[@]}" 2>&1)
+    report_status=$?
+    set -e
+    printf '%s\n' "$report_output"
+    echo "report_file       = $REPORT_FILE"
+else
+    echo ""
+    echo "WARNING: missing onboarding report tool, skipping report artifact"
 fi
 
-SMOKE_ARGS=(--repo "$(realpath "$TARGET_REPO")" --format "$OUTPUT_FORMAT")
-if [ -n "$CONTRACT_PATH" ]; then
-    SMOKE_ARGS+=(--contract "$(realpath "$CONTRACT_PATH")")
+if [ "$readiness_status" -ne 0 ] || [ "$smoke_status" -ne 0 ] || [ "$report_status" -ne 0 ]; then
+    exit 1
 fi
-
-echo ""
-echo "== Governance Smoke =="
-"${PYTHON_CMD[@]}" "$SMOKE_TOOL" "${SMOKE_ARGS[@]}"
