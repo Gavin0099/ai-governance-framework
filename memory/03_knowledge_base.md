@@ -28,3 +28,14 @@
 - Suggestions remain advisory and must not silently mutate the active contract.
 - The repository should continue to act as a governance framework, not become a generic AI orchestration OS.
 
+## Planned Integration Direction
+
+- A planned next step is to integrate the framework with `USB-Hub-Firmware-Architecture-Contract` as a domain plugin, not by merging repos.
+- The intended seam is `contract.yaml` discovery, with the framework responsible for lifecycle/runtime governance and the firmware repo responsible for domain facts, rule packs, and validators.
+- Planned framework changes include external rule-pack loading, a validator interface, and `--contract` support in `session_start.py` and `post_task_check.py`.
+
+## Working Agreement
+
+- For this repository, each task should be completed, reviewed, committed, and pushed before starting the next task.
+- Task sequencing should favor small, isolated changesets so integration progress remains easy to audit and rollback.
+
