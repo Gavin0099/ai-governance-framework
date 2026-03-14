@@ -32,6 +32,7 @@
 - `governance_auditor.py` can now optionally incorporate external onboarding state, so framework self-audits can surface external repo adoption drift as part of the same report.
 - Cross-repo onboarding views now surface `top_issues`, so reviewer-facing outputs can point to the most urgent external repos instead of only listing raw status rows.
 - Cross-repo onboarding `top_issues` now also carry suggested next commands, so reviewer-facing audit output is closer to directly actionable triage.
+- External onboarding triage now explicitly points to the next remediation command, reducing the gap between audit output and operator action.
 
 ## Next Steps
 
