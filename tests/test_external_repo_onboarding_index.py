@@ -48,6 +48,7 @@ def test_build_external_repo_onboarding_index_orders_failures_first(tmp_path: Pa
     assert result["top_issues"][0]["repo_root"].endswith("bad-repo")
     assert "readiness" in result["top_issues"][0]["reasons"]
     assert "smoke" in result["top_issues"][0]["reasons"]
+    assert "external_repo_onboarding_report.py" in result["top_issues"][0]["suggested_command"]
 
 
 def test_build_external_repo_onboarding_index_tracks_missing_reports(tmp_path: Path) -> None:
@@ -80,3 +81,4 @@ def test_format_human_lists_repos_and_missing_reports(tmp_path: Path) -> None:
     assert "[repos]" in rendered
     assert "[top_issues]" in rendered
     assert "kernel-driver" in rendered
+    assert "external_repo_readiness.py" in rendered

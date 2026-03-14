@@ -262,6 +262,14 @@
   - `tests/test_external_repo_onboarding_index.py tests/test_governance_auditor.py` -> `7 passed`
   - `scripts/verify_phase_gates.sh` -> `327 passed`, `4/4 Gates`
 
+## 2026-03-15 - Suggested Commands In External Top Issues
+
+- Extended external onboarding `top_issues` so each issue now carries a suggested next command.
+- `governance_auditor.py` human output now surfaces these commands directly, so external repo drift output is more operational and less purely descriptive.
+- Verification:
+  - `tests/test_external_repo_onboarding_index.py tests/test_governance_auditor.py` -> `7 passed`
+  - `scripts/verify_phase_gates.sh` -> `327 passed`, `4/4 Gates`
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

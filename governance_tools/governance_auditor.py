@@ -166,6 +166,7 @@ def main() -> None:
                             item["repo_root"],
                             f"reasons={','.join(item['reasons'])}",
                             f"contract_path={item.get('contract_path')}",
+                            f"suggested_command={item.get('suggested_command')}",
                         ]
                     )
                 )

@@ -35,6 +35,25 @@ def _entry_priority(entry: dict) -> tuple[int, int, str]:
     return (ok_rank, smoke_rank, repo_root)
 
 
+def _suggested_command(entry: dict) -> str:
+    repo_root = entry["repo_root"]
+    reasons = []
+    if entry.get("readiness_ready") is False:
+        reasons.append("readiness")
+    if entry.get("smoke_ok") is False:
+        reasons.append("smoke")
+    if not reasons:
+        reasons.append("report")
+
+    if "readiness" in reasons and "smoke" in reasons:
+        return f"python governance_tools/external_repo_onboarding_report.py --repo {repo_root} --format human"
+    if "readiness" in reasons:
+        return f"python governance_tools/external_repo_readiness.py --repo {repo_root} --format human"
+    if "smoke" in reasons:
+        return f"python governance_tools/external_repo_smoke.py --repo {repo_root} --format human"
+    return f"python governance_tools/external_repo_onboarding_index.py --repo {repo_root} --format human"
+
+
 def build_external_repo_onboarding_index(repo_roots: list[Path]) -> dict:
     entries = []
     missing = []
@@ -79,6 +98,7 @@ def build_external_repo_onboarding_index(repo_roots: list[Path]) -> dict:
                 "repo_root": entry["repo_root"],
                 "reasons": reasons,
                 "contract_path": entry.get("contract_path"),
+                "suggested_command": _suggested_command(entry),
             }
         )
 
@@ -133,6 +153,7 @@ def format_human(result: dict) -> str:
                         item["repo_root"],
                         f"reasons={','.join(item['reasons'])}",
                         f"contract_path={item.get('contract_path')}",
+                        f"suggested_command={item.get('suggested_command')}",
                     ]
                 )
             )
