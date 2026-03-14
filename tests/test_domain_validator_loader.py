@@ -87,3 +87,21 @@ def test_run_domain_validators_routes_only_matching_rules(local_validator_contra
     assert len(result) == 1
     assert result[0]["name"] == "sample_validator"
     assert result[0]["warnings"] == ["advisory hit"]
+
+
+def test_build_domain_validation_payload_extracts_firmware_focused_fields():
+    payload = build_domain_validation_payload(
+        response_text="response",
+        checks={
+            "isr_code": "void USB_ISR() { printf('bad'); }",
+            "changed_functions": ["USB_ISR", "CFU_Handler"],
+            "changed_files": ["src/usb/isr.c", "src/usb/cfu.c"],
+        },
+        fields={"RULES": "common,hub-firmware"},
+        resolved_rules=["common", "hub-firmware"],
+        domain_contract={"documents": [], "ai_behavior_override": []},
+    )
+
+    assert payload["isr_code"] == "void USB_ISR() { printf('bad'); }"
+    assert payload["changed_functions"] == ["USB_ISR", "CFU_Handler"]
+    assert payload["changed_files"] == ["src/usb/isr.c", "src/usb/cfu.c"]

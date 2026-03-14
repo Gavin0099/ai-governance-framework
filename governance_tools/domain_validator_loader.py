@@ -13,6 +13,25 @@ from governance_tools.domain_contract_loader import load_domain_contract
 from governance_tools.validator_interface import DomainValidator, ValidatorResult
 
 
+def _normalize_string_list(value: object) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(item) for item in value if str(item).strip()]
+    if isinstance(value, tuple):
+        return [str(item) for item in value if str(item).strip()]
+    rendered = str(value).strip()
+    return [rendered] if rendered else []
+
+
+def _extract_isr_code(checks: dict) -> str:
+    for key in ("isr_code", "interrupt_handler_code", "irq_code"):
+        value = checks.get(key)
+        if isinstance(value, str) and value.strip():
+            return value
+    return ""
+
+
 def _load_module_from_path(module_path: Path):
     module_name = f"domain_validator_{module_path.stem}_{abs(hash(str(module_path)))}"
     spec = importlib.util.spec_from_file_location(module_name, module_path)
@@ -95,11 +114,15 @@ def build_domain_validation_payload(
     resolved_rules: list[str],
     domain_contract: dict | None,
 ) -> dict:
+    effective_checks = checks or {}
     return {
         "rule_ids": resolved_rules,
-        "checks": checks or {},
+        "checks": effective_checks,
         "response_text": response_text,
         "contract_fields": fields,
+        "isr_code": _extract_isr_code(effective_checks),
+        "changed_functions": _normalize_string_list(effective_checks.get("changed_functions")),
+        "changed_files": _normalize_string_list(effective_checks.get("changed_files") or effective_checks.get("files")),
         "domain_documents": (domain_contract or {}).get("documents", []),
         "ai_behavior_override": (domain_contract or {}).get("ai_behavior_override", []),
     }

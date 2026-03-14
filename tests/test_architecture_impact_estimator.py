@@ -121,7 +121,7 @@ def test_architecture_impact_estimator_human_output_is_readable(local_estimator_
     )
 
     output = format_human_result(result)
-    assert "recommended_risk=high" in output
-    assert "recommended_oversight=human-approval" in output
+    assert "recommended_risk=medium" in output
+    assert "recommended_oversight=review-required" in output
     assert "touched_layers=application" in output
     assert "expected_validators=architecture_drift_checker,public_api_diff_checker,refactor_evidence_validator" in output

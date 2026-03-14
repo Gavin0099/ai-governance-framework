@@ -71,3 +71,157 @@ def test_public_api_diff_checker_warns_on_added_signature():
     assert result["ok"] is True
     assert result["added"]
     assert any("Public API surface added or changed." in warning for warning in result["warnings"])
+
+
+def test_public_api_diff_checker_classifies_added_overload_as_non_breaking():
+    root = _reset_fixture("added_overload")
+    before_file = root / "before.cs"
+    after_file = root / "after.cs"
+    _write(
+        before_file,
+        """
+public class Service
+{
+    public int Run(int value) => value;
+}
+""".strip(),
+    )
+    _write(
+        after_file,
+        """
+public class Service
+{
+    public int Run(int value) => value;
+    public int Run(string value) => value.Length;
+}
+""".strip(),
+    )
+
+    result = check_public_api_diff([before_file], [after_file])
+
+    assert result["ok"] is True
+    assert result["compatibility_risk"] == "low"
+    assert any("overload or expansion" in warning for warning in result["warnings"])
+    assert result["non_breaking_changes"]
+
+
+def test_public_api_diff_checker_classifies_signature_change_as_breaking():
+    root = _reset_fixture("signature_change")
+    before_file = root / "before.cs"
+    after_file = root / "after.cs"
+    _write(
+        before_file,
+        """
+public class Service
+{
+    public int Run(int value) => value;
+}
+""".strip(),
+    )
+    _write(
+        after_file,
+        """
+public class Service
+{
+    public string Run(int value) => value.ToString();
+}
+""".strip(),
+    )
+
+    result = check_public_api_diff([before_file], [after_file])
+
+    assert result["ok"] is False
+    assert result["compatibility_risk"] == "high"
+    assert any("signature changed" in error for error in result["errors"])
+    assert result["breaking_changes"]
+
+
+def test_public_api_diff_checker_classifies_property_accessor_loss_as_breaking():
+    root = _reset_fixture("property_accessor_change")
+    before_file = root / "before.cs"
+    after_file = root / "after.cs"
+    _write(
+        before_file,
+        """
+public class Service
+{
+    public int Status { get; set; }
+}
+""".strip(),
+    )
+    _write(
+        after_file,
+        """
+public class Service
+{
+    public int Status { get; }
+}
+""".strip(),
+    )
+
+    result = check_public_api_diff([before_file], [after_file])
+
+    assert result["ok"] is False
+    assert result["compatibility_risk"] == "high"
+    assert any("property:Service.Status" in error for error in result["errors"])
+
+
+def test_public_api_diff_checker_classifies_constructor_overload_as_non_breaking():
+    root = _reset_fixture("constructor_overload")
+    before_file = root / "before.cs"
+    after_file = root / "after.cs"
+    _write(
+        before_file,
+        """
+public class Service
+{
+    public Service(int value) {}
+}
+""".strip(),
+    )
+    _write(
+        after_file,
+        """
+public class Service
+{
+    public Service(int value) {}
+    public Service(string value) {}
+}
+""".strip(),
+    )
+
+    result = check_public_api_diff([before_file], [after_file])
+
+    assert result["ok"] is True
+    assert result["compatibility_risk"] == "low"
+    assert any("constructor:Service" in warning for warning in result["warnings"])
+
+
+def test_public_api_diff_checker_treats_parameter_modifier_change_as_breaking():
+    root = _reset_fixture("param_modifier_change")
+    before_file = root / "before.cs"
+    after_file = root / "after.cs"
+    _write(
+        before_file,
+        """
+public class Service
+{
+    public void Run(int value) {}
+}
+""".strip(),
+    )
+    _write(
+        after_file,
+        """
+public class Service
+{
+    public void Run(ref int value) {}
+}
+""".strip(),
+    )
+
+    result = check_public_api_diff([before_file], [after_file])
+
+    assert result["ok"] is False
+    assert result["compatibility_risk"] == "high"
+    assert any("method:Service.Run" in error for error in result["errors"])

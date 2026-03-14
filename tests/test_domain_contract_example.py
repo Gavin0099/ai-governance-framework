@@ -91,6 +91,7 @@ def test_usb_hub_example_post_task_runs_domain_validator_advisory():
         oversight="review-required",
         checks={
             "isr_code": "void USB_ISR() { printf(\"oops\"); }",
+            "changed_functions": ["USB_ISR", "CFU_Handler"],
             "test_names": [
                 "firmware_tests::test_cfu_failure_path_reports_error",
                 "firmware_tests::test_interrupt_guard_cleanup_release",
@@ -105,4 +106,5 @@ def test_usb_hub_example_post_task_runs_domain_validator_advisory():
     assert len(result["domain_validator_results"]) == 1
     assert result["domain_validator_results"][0]["name"] == "interrupt_safety_validator"
     assert "printf" in result["domain_validator_results"][0]["warnings"][0]
+    assert result["domain_validator_results"][0]["metadata"]["changed_functions"] == ["USB_ISR", "CFU_Handler"]
     assert any("domain-validator:interrupt_safety_validator:" in warning for warning in result["warnings"])
