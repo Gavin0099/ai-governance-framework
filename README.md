@@ -265,6 +265,8 @@ $env:AI_GOVERNANCE_PYTHON='C:\Path\To\python.exe'
 
 `scripts/run-runtime-governance.sh`、`scripts/verify_phase_gates.sh`、以及安裝後的 git hooks 都會優先使用這個變數。
 
+當 hooks 安裝到其他 repo 時，安裝腳本現在也會在目標 repo 的 `.git/hooks/` 下寫入 framework root 設定，讓 hook 仍能回到 `ai-governance-framework` 本體執行治理工具，而不是假設所有腳本都在目標 repo 裡。
+
 範例：
 
 ```text

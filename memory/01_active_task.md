@@ -20,6 +20,7 @@
 - A minimal `examples/usb-hub-contract/` sample now validates the dual-repo seam with `contract.yaml`, domain documents, behavior overrides, external rules, validator preflight, advisory validator execution, and firmware-focused payload extraction.
 - USB-Hub advisory validation can now infer interrupt context from `diff_text`, unified diff snippets, and changed C file contents, not just manually supplied `isr_code`.
 - The example now includes `post_task_check --checks-file` fixtures so the advisory validator path can be exercised through a file-based runtime entrypoint.
+- Cross-repo git hooks can now write and reuse a framework-root pointer under `.git/hooks/ai-governance-framework-root`, so external contract repos can call back into `ai-governance-framework` instead of assuming the governance scripts live inside the target repo.
 
 ## Next Steps
 
@@ -31,7 +32,7 @@
 - Extend the manual USB-Hub startup workflow around the new `contract.yaml` seam and `start_session.md` document handoff.
 - Exercise the real USB-Hub advisory path against repo-native patch/evidence artifacts instead of example fixtures.
 - Deepen semantic verification, especially public API compatibility and architecture drift reasoning.
-- Strengthen workflow interception coverage without over-expanding the runtime into a policy engine.
+- Strengthen workflow interception coverage without over-expanding the runtime into a policy engine, starting with more reliable external-repo hook installation and execution.
 - Improve change-control artifact consumption so reviewer-facing outputs are easier to use in day-to-day development.
 - Keep IC / EDA Python governance as an evaluated future domain fit, but only after validating a narrow contract-first slice such as Cocotb mapping, golden-model translation, or internal toolchain scripting.
 

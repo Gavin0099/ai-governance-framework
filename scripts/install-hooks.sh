@@ -39,6 +39,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 TARGET_HOOKS_DIR="$TARGET_REPO/.git/hooks"
+HOOK_CONFIG="$TARGET_HOOKS_DIR/ai-governance-framework-root"
+FRAMEWORK_ROOT="$(realpath "$SCRIPT_DIR/..")"
 
 # ── 驗證目標 repo ─────────────────────────────────────────────────────────
 if [ ! -d "$TARGET_REPO/.git" ]; then
@@ -90,6 +92,14 @@ install_hook() {
 install_hook "pre-commit"
 install_hook "pre-push"
 
+if [ "$DRY_RUN" = true ]; then
+    echo "  [dry-run] 寫入 framework root 設定 → $HOOK_CONFIG"
+    echo "            內容: $FRAMEWORK_ROOT"
+else
+    printf '%s\n' "$FRAMEWORK_ROOT" > "$HOOK_CONFIG"
+    echo "  ✅ 寫入 framework root 設定"
+fi
+
 echo ""
 if [ "$DRY_RUN" = true ]; then
     echo "[dry-run] 完成（未實際修改）"
@@ -105,5 +115,5 @@ else
     echo "   git commit --allow-empty -m 'test hook'"
     echo ""
     echo "🗑️  解除安裝："
-    echo "   rm $TARGET_HOOKS_DIR/pre-commit $TARGET_HOOKS_DIR/pre-push"
+    echo "   rm $TARGET_HOOKS_DIR/pre-commit $TARGET_HOOKS_DIR/pre-push $HOOK_CONFIG"
 fi

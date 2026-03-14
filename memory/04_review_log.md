@@ -133,3 +133,16 @@
   - internal EDA toolchain scripting constraints
 - This was recorded as a future domain-fit note, not yet promoted into an active new domain contract plan.
 
+## 2026-03-14 - Cross-Repo Hook Path Stabilization
+
+- Updated installed `pre-commit` and `pre-push` hooks so external target repos no longer assume governance scripts live inside the target repository.
+- Hooks now resolve `FRAMEWORK_ROOT` in this order:
+  - `AI_GOVERNANCE_FRAMEWORK_ROOT`
+  - `.git/hooks/ai-governance-framework-root`
+  - fallback to the target repo root
+- `scripts/install-hooks.sh` now writes `.git/hooks/ai-governance-framework-root` for external installs, so the copied hooks can call back into the shared framework scripts and tools.
+- Verified the external install path with:
+  - `scripts/install-hooks.sh --target ../Kernel-Driver-Contract --dry-run`
+- Re-ran the full phase gates after the hook changes:
+  - `scripts/verify_phase_gates.sh` -> `310 passed`, `4/4 Gates`
+
