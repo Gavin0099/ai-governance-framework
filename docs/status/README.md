@@ -9,6 +9,7 @@ This directory contains the repository's stable status-facing documents.
 - [Trust Signal Dashboard](trust-signal-dashboard.md)
   - the fastest stable landing page for adoption and release-facing trust signals
   - points to `trust_signal_overview.py`, `trust_signal_snapshot.py`, and CI-generated trust-signal artifacts
+  - the generated artifacts now also carry manifest metadata for stable linking
 
 - [Runtime Governance Status](runtime-governance-status.md)
   - the broader implementation and maturity snapshot

@@ -48,12 +48,16 @@ def test_write_snapshot_bundle_creates_latest_history_and_index(tmp_path):
     assert Path(bundle["history_txt"]).is_file()
     assert Path(bundle["history_md"]).is_file()
     assert Path(bundle["index_md"]).is_file()
+    assert Path(bundle["manifest_json"]).is_file()
 
     latest_payload = json.loads(Path(bundle["latest_json"]).read_text(encoding="utf-8"))
     assert latest_payload["ok"] is True
     index_text = Path(bundle["index_md"]).read_text(encoding="utf-8")
     assert "[trust_signal_snapshot_index]" in index_text
     assert "release_version=v1.0.0-alpha" in index_text
+    manifest_payload = json.loads(Path(bundle["manifest_json"]).read_text(encoding="utf-8"))
+    assert manifest_payload["release_version"] == "v1.0.0-alpha"
+    assert "latest" in manifest_payload
 
 
 def test_format_index_handles_empty_history(tmp_path):
@@ -81,7 +85,10 @@ def test_write_published_status_creates_latest_pages(tmp_path):
     assert Path(published["latest_md"]).is_file()
     assert Path(published["latest_json"]).is_file()
     assert Path(published["readme_md"]).is_file()
+    assert Path(published["manifest_json"]).is_file()
     assert "# Published Trust Signal Snapshot" in Path(published["latest_md"]).read_text(encoding="utf-8")
+    manifest_payload = json.loads(Path(published["manifest_json"]).read_text(encoding="utf-8"))
+    assert manifest_payload["release_version"] == "v1.0.0-alpha"
 
 
 def test_format_published_status_page_wraps_markdown_overview():

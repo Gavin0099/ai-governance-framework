@@ -92,6 +92,7 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
     history_txt = history_dir / f"{stem}.txt"
     history_md = history_dir / f"{stem}.md"
     index_md = bundle_dir / "INDEX.md"
+    manifest_json = bundle_dir / "MANIFEST.json"
 
     overview = snapshot["overview"]
     json_text = json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n"
@@ -105,6 +106,31 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
     history_txt.write_text(human_text, encoding="utf-8")
     history_md.write_text(markdown_text, encoding="utf-8")
     index_md.write_text(format_index(history_dir) + "\n", encoding="utf-8")
+    manifest_json.write_text(
+        json.dumps(
+            {
+                "generated_at": snapshot["generated_at"],
+                "release_version": snapshot["release_version"],
+                "contract_path": snapshot.get("contract_path"),
+                "strict_runtime": snapshot["strict_runtime"],
+                "latest": {
+                    "json": str(latest_json),
+                    "text": str(latest_txt),
+                    "markdown": str(latest_md),
+                },
+                "history": {
+                    "json": str(history_json),
+                    "text": str(history_txt),
+                    "markdown": str(history_md),
+                },
+                "index": str(index_md),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
     return {
         "latest_json": str(latest_json),
@@ -114,6 +140,7 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
         "history_txt": str(history_txt),
         "history_md": str(history_md),
         "index_md": str(index_md),
+        "manifest_json": str(manifest_json),
     }
 
 
@@ -139,6 +166,7 @@ def write_published_status(snapshot: dict[str, Any], publish_dir: Path) -> dict[
     latest_md = publish_dir / "trust-signal-latest.md"
     latest_json = publish_dir / "trust-signal-latest.json"
     readme_md = publish_dir / "README.md"
+    manifest_json = publish_dir / "manifest.json"
 
     latest_md.write_text(format_published_status_page(snapshot) + "\n", encoding="utf-8")
     latest_json.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -151,10 +179,30 @@ def write_published_status(snapshot: dict[str, Any], publish_dir: Path) -> dict[
                 "",
                 "- [Latest Markdown Snapshot](trust-signal-latest.md)",
                 "- [Latest JSON Snapshot](trust-signal-latest.json)",
+                "- `manifest.json`",
                 "",
                 f"Latest generated_at: `{snapshot['generated_at']}`",
                 f"Release version: `{snapshot['release_version']}`",
             ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    manifest_json.write_text(
+        json.dumps(
+            {
+                "generated_at": snapshot["generated_at"],
+                "release_version": snapshot["release_version"],
+                "contract_path": snapshot.get("contract_path"),
+                "strict_runtime": snapshot["strict_runtime"],
+                "published": {
+                    "markdown": str(latest_md),
+                    "json": str(latest_json),
+                    "readme": str(readme_md),
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
         )
         + "\n",
         encoding="utf-8",
@@ -164,6 +212,7 @@ def write_published_status(snapshot: dict[str, Any], publish_dir: Path) -> dict[
         "latest_md": str(latest_md),
         "latest_json": str(latest_json),
         "readme_md": str(readme_md),
+        "manifest_json": str(manifest_json),
     }
 
 

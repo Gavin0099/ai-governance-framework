@@ -60,6 +60,7 @@
 - `docs/status/README.md` now provides a stable index over the repo's status-facing pages, so release/status/trust-signal reading order is clearer for external readers.
 - `governance_tools/trust_signal_snapshot.py` now provides a formal latest/history/index publishing path for trust signals, and both CI pipelines use it instead of manually stitching overview outputs.
 - The trust-signal publisher now also supports `publish-status-dir`, so bundle generation and publish-style status pages can be emitted from the same command.
+- Trust-signal snapshot outputs now also include manifest JSON, making it easier for future tooling to resolve the current published snapshot without inferring from filenames alone.
 
 ## Next Steps
 

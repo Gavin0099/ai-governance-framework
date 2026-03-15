@@ -56,7 +56,10 @@ CI now emits trust-signal snapshot artifacts under:
 - `artifacts/trust-signals/latest.md`
 - `artifacts/trust-signals/history/*`
 - `artifacts/trust-signals/INDEX.md`
+- `artifacts/trust-signals/MANIFEST.json`
 - `artifacts/trust-signals/published/*`
+
+The bundle and published directories now also include manifest JSON so downstream tools can identify the current snapshot directly.
 
 These artifacts are the generated status snapshot bundle.
 

@@ -490,6 +490,14 @@
   - publish-style status pages (`trust-signal-latest.md`, `trust-signal-latest.json`, `README.md`)
 - CI now uses this same path, so the publishing format is exercised in both local phase gates and remote pipelines.
 
+## 2026-03-15 - Trust Signal Publication Manifest
+
+- Extended the trust-signal snapshot publisher so both bundle outputs and published status pages now emit manifest JSON.
+- New metadata files:
+  - `MANIFEST.json`
+  - `published/manifest.json`
+- This reduces ambiguity around "which snapshot is current" and gives future tooling a stable metadata surface.
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

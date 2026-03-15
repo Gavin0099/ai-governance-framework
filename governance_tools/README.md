@@ -245,10 +245,12 @@ python governance_tools/trust_signal_snapshot.py \
 - `history/*.txt`
 - `history/*.md`
 - `INDEX.md`
+- `MANIFEST.json`
 - published status pages such as:
   - `published/trust-signal-latest.md`
   - `published/trust-signal-latest.json`
   - `published/README.md`
+  - `published/manifest.json`
 
 這個工具適合用在：
 
