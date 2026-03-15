@@ -21,6 +21,7 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
     readme_path = project_root / "README.md"
     changelog_path = project_root / "CHANGELOG.md"
     release_note_path = project_root / "docs" / "releases" / f"{version}.md"
+    github_release_draft_path = project_root / "docs" / "releases" / f"{version}-github-release.md"
     alpha_checklist_path = project_root / "docs" / "releases" / "alpha-checklist.md"
     limitations_path = project_root / "docs" / "LIMITATIONS.md"
     status_path = project_root / "docs" / "status" / "runtime-governance-status.md"
@@ -38,6 +39,7 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
             errors.append(f"{name}: {detail}")
 
     add_check("release_note", release_note_path.is_file(), "missing docs/releases release note")
+    add_check("github_release_draft", github_release_draft_path.is_file(), "missing docs/releases github release draft")
     add_check("alpha_checklist", alpha_checklist_path.is_file(), "missing docs/releases/alpha-checklist.md")
     add_check("changelog", changelog_path.is_file(), "missing CHANGELOG.md")
     add_check("limitations", limitations_path.is_file(), "missing docs/LIMITATIONS.md")
@@ -49,6 +51,9 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
     readme_text = readme_path.read_text(encoding="utf-8") if readme_path.is_file() else ""
     changelog_text = changelog_path.read_text(encoding="utf-8") if changelog_path.is_file() else ""
     release_note_text = release_note_path.read_text(encoding="utf-8") if release_note_path.is_file() else ""
+    github_release_draft_text = (
+        github_release_draft_path.read_text(encoding="utf-8") if github_release_draft_path.is_file() else ""
+    )
     alpha_checklist_text = alpha_checklist_path.read_text(encoding="utf-8") if alpha_checklist_path.is_file() else ""
     status_index_text = status_index_path.read_text(encoding="utf-8") if status_index_path.is_file() else ""
     trust_dashboard_text = trust_dashboard_path.read_text(encoding="utf-8") if trust_dashboard_path.is_file() else ""
@@ -97,6 +102,25 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
         if "Supported AI Adapter" not in release_note_text and "Supported AI Adapter Surfaces" not in release_note_text:
             warnings.append("Release note is missing adapter coverage information")
 
+    if github_release_draft_text:
+        add_check(
+            "github_release_draft_version_heading",
+            re.search(rf"^#\s+{re.escape(version)}\b", github_release_draft_text, re.MULTILINE) is not None,
+            "GitHub release draft heading does not match the requested version",
+        )
+        add_check(
+            "github_release_draft_generated_status_path",
+            "docs/status/generated/" in github_release_draft_text,
+            "GitHub release draft does not mention the generated status path",
+        )
+        add_check(
+            "github_release_draft_status_links",
+            "docs/status/README.md" in github_release_draft_text,
+            "GitHub release draft does not link to the status index",
+        )
+        if "prototype" not in github_release_draft_text.lower():
+            warnings.append("GitHub release draft no longer mentions the prototype boundary")
+
     if alpha_checklist_text:
         add_check(
             "alpha_checklist_version",
@@ -122,6 +146,11 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
             "alpha_checklist_docs_reader",
             "--docs-status" in alpha_checklist_text,
             "alpha checklist does not mention the docs-status reader path",
+        )
+        add_check(
+            "alpha_checklist_github_release_draft",
+            f"{version}-github-release.md" in alpha_checklist_text,
+            "alpha checklist does not mention the GitHub release draft",
         )
 
     if trust_dashboard_text:
@@ -181,6 +210,7 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
             "readme": str(readme_path),
             "changelog": str(changelog_path),
             "release_note": str(release_note_path),
+            "github_release_draft": str(github_release_draft_path),
             "alpha_checklist": str(alpha_checklist_path),
             "limitations": str(limitations_path),
             "status_doc": str(status_path),

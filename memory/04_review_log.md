@@ -645,6 +645,15 @@
 - Updated `docs/releases/alpha-checklist.md` so the docs-status publish/read commands are part of the explicit alpha confidence checks.
 - Extended `release_readiness.py` so these release-facing docs are now checked for the generated status path, not only for the older trust-signal overview entrypoint.
 
+## 2026-03-15 - GitHub Release Draft Added To Release Surface
+
+- Added `docs/releases/v1.0.0-alpha-github-release.md` as a repo-tracked GitHub release draft body.
+- Updated the alpha release note, alpha checklist, and changelog so the draft is part of the documented release surface instead of an implicit future task.
+- Extended `release_readiness.py` so it now verifies:
+  - the GitHub release draft exists
+  - its heading matches the current version
+  - it references the generated status path and status index
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

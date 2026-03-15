@@ -26,6 +26,7 @@ spread across CI, README notes, and ad-hoc terminal checks.
 - [x] `README.md` reflects the alpha-stage positioning
 - [x] `CHANGELOG.md` links to `docs/releases/v1.0.0-alpha.md`
 - [x] `docs/releases/v1.0.0-alpha.md` exists
+- [x] `docs/releases/v1.0.0-alpha-github-release.md` exists
 - [x] `docs/status/runtime-governance-status.md` reflects current alpha maturity
 - [x] `docs/status/README.md` points to the generated status landing path
 - [x] `docs/status/trust-signal-dashboard.md` explains the repo-local generated status path

@@ -79,6 +79,7 @@
 - The docs-status publication root now also emits its own `README.md` landing page, so the generated status path is readable even before using the reader against the manifest.
 - The higher-level `docs/status/README.md` now also treats that generated path as a first-class consumption surface instead of a footnote, and release readiness verifies those generated-entry references.
 - Alpha-facing release docs now also explicitly mention the repo-local generated status path and its reader flow, so the external release story and the in-repo status surface no longer drift.
+- The repo now also carries a dedicated GitHub release draft document for `v1.0.0-alpha`, so release-page copy can be reviewed and versioned inside the repo instead of being composed ad hoc at publish time.
 
 ## Next Steps
 

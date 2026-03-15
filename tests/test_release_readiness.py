@@ -11,10 +11,14 @@ def test_release_readiness_passes_for_current_alpha():
 
     assert result["ok"] is True
     assert any(item["name"] == "release_note" and item["ok"] for item in result["checks"])
+    assert any(item["name"] == "github_release_draft" and item["ok"] for item in result["checks"])
     assert any(item["name"] == "alpha_checklist" and item["ok"] for item in result["checks"])
     assert any(item["name"] == "release_note_generated_status_path" and item["ok"] for item in result["checks"])
+    assert any(item["name"] == "github_release_draft_generated_status_path" and item["ok"] for item in result["checks"])
+    assert any(item["name"] == "github_release_draft_status_links" and item["ok"] for item in result["checks"])
     assert any(item["name"] == "alpha_checklist_snapshot_publish" and item["ok"] for item in result["checks"])
     assert any(item["name"] == "alpha_checklist_docs_reader" and item["ok"] for item in result["checks"])
+    assert any(item["name"] == "alpha_checklist_github_release_draft" and item["ok"] for item in result["checks"])
     assert any(item["name"] == "status_index" and item["ok"] for item in result["checks"])
     assert any(item["name"] == "trust_signal_dashboard" and item["ok"] for item in result["checks"])
     assert any(item["name"] == "domain_enforcement_matrix" and item["ok"] for item in result["checks"])
