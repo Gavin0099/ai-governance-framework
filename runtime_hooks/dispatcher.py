@@ -31,6 +31,7 @@ def dispatch_event(event: dict) -> dict:
             task_text=event.get("task") or "",
             impact_before_files=[Path(path) for path in event.get("impact_before_files", [])],
             impact_after_files=[Path(path) for path in event.get("impact_after_files", [])],
+            contract_file=Path(event["contract"]).resolve() if event.get("contract") else None,
         )
     elif event_type == "session_start":
         result = build_session_start_context(
@@ -43,6 +44,7 @@ def dispatch_event(event: dict) -> dict:
             task_text=event.get("task") or "",
             impact_before_files=[Path(path) for path in event.get("impact_before_files", [])],
             impact_after_files=[Path(path) for path in event.get("impact_after_files", [])],
+            contract_file=Path(event["contract"]).resolve() if event.get("contract") else None,
         )
     elif event_type == "post_task":
         response_text = ""
@@ -59,6 +61,8 @@ def dispatch_event(event: dict) -> dict:
             snapshot_task=event.get("task"),
             snapshot_summary=event.get("snapshot_summary"),
             create_snapshot=event.get("create_snapshot", False),
+            contract_file=Path(event["contract"]).resolve() if event.get("contract") else None,
+            project_root=Path(event["project_root"]),
         )
     else:
         raise ValueError(f"Unsupported event_type: {event_type}")

@@ -61,6 +61,9 @@ def normalize_payload(payload: dict, harness: str, event_type: str) -> dict:
             "native_event_type": _first_value(payload, "hook_event_name", "event", "event_name", default=event_type),
         },
     }
+    contract = _first_value(payload, "contract", "contract_file")
+    if contract not in (None, ""):
+        normalized["contract"] = contract
     return normalized
 
 

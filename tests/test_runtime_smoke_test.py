@@ -57,12 +57,30 @@ def test_smoke_test_session_start_human_output_surfaces_handoff_summary():
     assert "required_evidence=architecture-review,public-api-review" in output
 
 
+def test_smoke_test_session_start_can_use_explicit_contract():
+    contract_file = Path("examples/usb-hub-contract/contract.yaml").resolve()
+    envelope = run_shared_smoke("session_start", contract_file=contract_file)
+    assert envelope["result"]["ok"] is True
+    assert envelope["result"]["contract_resolution"]["source"] == "explicit"
+    assert envelope["result"]["domain_contract"]["name"] == "usb-hub-firmware-contract"
+
+
 def test_smoke_test_adapter_session_start_human_output_uses_normalized_event_type():
     envelope = run_smoke("claude_code", "session_start")
     output = format_human_envelope(envelope, harness="claude_code")
     assert "harness=claude_code" in output
     assert "event_type=session_start" in output
     assert "suggested_agent=python-agent" in output
+
+
+def test_smoke_test_pre_task_can_use_explicit_contract_and_surface_it_in_output():
+    contract_file = Path("examples/usb-hub-contract/contract.yaml").resolve()
+    envelope = run_smoke("claude_code", "pre_task", contract_file=contract_file)
+    output = format_human_envelope(envelope, harness="claude_code")
+    assert envelope["result"]["ok"] is True
+    assert envelope["result"]["contract_resolution"]["source"] == "explicit"
+    assert "contract_source=explicit" in output
+    assert "domain_contract=usb-hub-firmware-contract" in output
 
 
 def test_smoke_test_handoff_summary_can_be_written(tmp_path):

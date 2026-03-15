@@ -43,6 +43,7 @@ def run_adapter_event(
             task_text=normalized.get("task") or "",
             impact_before_files=[Path(path) for path in normalized.get("impact_before_files", [])],
             impact_after_files=[Path(path) for path in normalized.get("impact_after_files", [])],
+            contract_file=Path(normalized["contract"]).resolve() if normalized.get("contract") else None,
         )
     elif event_type == "pre_task":
         result = run_pre_task_check(
@@ -51,6 +52,7 @@ def run_adapter_event(
             risk=normalized["risk"],
             oversight=normalized["oversight"],
             memory_mode=normalized["memory_mode"],
+            contract_file=Path(normalized["contract"]).resolve() if normalized.get("contract") else None,
         )
     else:
         response_text = ""
@@ -67,6 +69,8 @@ def run_adapter_event(
             snapshot_task=normalized.get("task"),
             snapshot_summary=normalized.get("snapshot_summary"),
             create_snapshot=normalized.get("create_snapshot", False),
+            contract_file=Path(normalized["contract"]).resolve() if normalized.get("contract") else None,
+            project_root=Path(normalized["project_root"]),
         )
 
     return {

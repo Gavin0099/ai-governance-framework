@@ -44,18 +44,62 @@ DEFAULT_SHARED_EXAMPLES = {
 }
 
 
-def run_smoke(harness: str, event_type: str, payload_file: Path | None = None) -> dict:
+def _apply_runtime_overrides(
+    payload: dict,
+    *,
+    project_root: Path | None = None,
+    plan_path: Path | None = None,
+    contract_file: Path | None = None,
+) -> dict:
+    updated = dict(payload)
+    if project_root:
+        updated["project_root"] = str(project_root)
+    if plan_path:
+        updated["plan_path"] = str(plan_path)
+    if contract_file:
+        updated["contract"] = str(contract_file)
+    return updated
+
+
+def run_smoke(
+    harness: str,
+    event_type: str,
+    payload_file: Path | None = None,
+    *,
+    project_root: Path | None = None,
+    plan_path: Path | None = None,
+    contract_file: Path | None = None,
+) -> dict:
     normalize_event = NORMALIZERS[harness]
     payload_path = payload_file or DEFAULT_EXAMPLES[(harness, event_type)]
     payload = json.loads(payload_path.read_text(encoding="utf-8"))
+    payload = _apply_runtime_overrides(
+        payload,
+        project_root=project_root,
+        plan_path=plan_path,
+        contract_file=contract_file,
+    )
     envelope = run_adapter_event(normalize_event, event_type=event_type, payload=payload)
     envelope["payload_file"] = str(payload_path)
     return envelope
 
 
-def run_shared_smoke(event_type: str, payload_file: Path | None = None) -> dict:
+def run_shared_smoke(
+    event_type: str,
+    payload_file: Path | None = None,
+    *,
+    project_root: Path | None = None,
+    plan_path: Path | None = None,
+    contract_file: Path | None = None,
+) -> dict:
     payload_path = payload_file or DEFAULT_SHARED_EXAMPLES[event_type]
     event = json.loads(payload_path.read_text(encoding="utf-8"))
+    event = _apply_runtime_overrides(
+        event,
+        project_root=project_root,
+        plan_path=plan_path,
+        contract_file=contract_file,
+    )
     envelope = dispatch_event(event)
     envelope["payload_file"] = str(payload_path)
     return envelope
@@ -76,6 +120,14 @@ def format_human_envelope(envelope: dict, harness: str | None = None) -> str:
         rules = result.get("runtime_contract", {}).get("rules", []) or []
         if rules:
             lines.append(f"rules={','.join(rules)}")
+        contract_resolution = result.get("contract_resolution") or {}
+        if contract_resolution.get("source"):
+            lines.append(f"contract_source={contract_resolution['source']}")
+        if contract_resolution.get("path"):
+            lines.append(f"contract_path={contract_resolution['path']}")
+        domain_contract = result.get("domain_contract") or {}
+        if domain_contract.get("name"):
+            lines.append(f"domain_contract={domain_contract['name']}")
         preview = result.get("suggested_rules_preview") or []
         if preview:
             lines.append(f"suggested_rules_preview={','.join(preview)}")
@@ -93,6 +145,14 @@ def format_human_envelope(envelope: dict, harness: str | None = None) -> str:
         if evidence:
             lines.append(f"required_evidence={','.join(evidence)}")
     else:
+        contract_resolution = result.get("contract_resolution") or {}
+        if contract_resolution.get("source"):
+            lines.append(f"contract_source={contract_resolution['source']}")
+        if contract_resolution.get("path"):
+            lines.append(f"contract_path={contract_resolution['path']}")
+        domain_contract = result.get("domain_contract") or {}
+        if domain_contract.get("name"):
+            lines.append(f"domain_contract={domain_contract['name']}")
         if result.get("snapshot"):
             lines.append(f"snapshot={result['snapshot']['snapshot_path']}")
 
@@ -124,6 +184,9 @@ def main() -> None:
     parser.add_argument("--harness", choices=sorted(NORMALIZERS))
     parser.add_argument("--event-type", choices=["session_start", "pre_task", "post_task"], required=True)
     parser.add_argument("--file", "-f", help="Native payload file. Defaults to the documented example.")
+    parser.add_argument("--project-root", help="Override project_root in the example payload.")
+    parser.add_argument("--plan-path", help="Override plan_path in the example payload.")
+    parser.add_argument("--contract", help="Explicit contract.yaml path for the smoke flow.")
     parser.add_argument("--format", choices=["human", "json"], default="human")
     parser.add_argument("--output", help="Write rendered smoke output to a file.")
     parser.add_argument("--json-output", help="Write the full smoke envelope as JSON to a file.")
@@ -133,6 +196,9 @@ def main() -> None:
         envelope = run_shared_smoke(
             event_type=args.event_type,
             payload_file=Path(args.file) if args.file else None,
+            project_root=Path(args.project_root).resolve() if args.project_root else None,
+            plan_path=Path(args.plan_path).resolve() if args.plan_path else None,
+            contract_file=Path(args.contract).resolve() if args.contract else None,
         )
     else:
         if not args.harness:
@@ -141,6 +207,9 @@ def main() -> None:
             harness=args.harness,
             event_type=args.event_type,
             payload_file=Path(args.file) if args.file else None,
+            project_root=Path(args.project_root).resolve() if args.project_root else None,
+            plan_path=Path(args.plan_path).resolve() if args.plan_path else None,
+            contract_file=Path(args.contract).resolve() if args.contract else None,
         )
 
     if args.format == "json":

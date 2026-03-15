@@ -101,6 +101,7 @@
   - `governance_tools/reviewer_handoff_publication_reader.py`
   - reviewer packet publishing now also maintains a root publication manifest/index plus a small published site under `artifacts/reviewer-handoff/published/`
 - Reviewer handoff now also supports a stable repo-local generated path under `docs/status/generated/reviewer-handoff/`, aligning its consumption model more closely with the other status surfaces.
+- `runtime_hooks/smoke_test.py` can now replay the documented example payloads against an explicit external contract through `--contract`, without requiring the example JSON files to be edited first.
 
 ## Next Steps
 

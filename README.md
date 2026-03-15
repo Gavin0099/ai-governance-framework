@@ -608,6 +608,7 @@ python governance_tools/trust_signal_overview.py --project-root . --plan PLAN.md
 python runtime_hooks/core/pre_task_check.py --rules common,python,cpp --risk high --oversight review-required
 python runtime_hooks/core/session_start.py --project-root . --plan PLAN.md --rules common,refactor --task-text "Refactor Avalonia boundary" --impact-before before.cs --impact-after after.cs
 python runtime_hooks/smoke_test.py --event-type session_start
+python runtime_hooks/smoke_test.py --event-type session_start --contract examples/usb-hub-contract/contract.yaml
 python runtime_hooks/core/pre_task_check.py --rules common,refactor --risk medium --oversight review-required --impact-before before.cs --impact-after after.cs
 python runtime_hooks/core/post_task_check.py --file ai_response.txt --risk medium --oversight review-required --checks-file checks.json --api-before before.cs --api-after after.cs
 python runtime_hooks/dispatcher.py --file shared_event.json
@@ -717,6 +718,8 @@ python runtime_hooks/smoke_test.py --harness gemini --event-type post_task
 python runtime_hooks/smoke_test.py --harness gemini --event-type session_start
 python runtime_hooks/smoke_test.py --event-type session_start
 ```
+
+`runtime_hooks/smoke_test.py` now also accepts `--contract`, `--project-root`, and `--plan-path`, so the built-in example payloads can be replayed against an external contract repo without editing the example JSON files first.
 
 `session_start` smoke output now shows startup handoff summaries directly, including the active contract, expected validators, and required evidence.
 Shared enforcement now also preserves:

@@ -788,6 +788,20 @@
 - Updated phase gates, CI, and release-readiness checks so this publication layer is part of the normal regression surface instead of a documentation-only convention.
 - Extended the same reviewer-handoff line again so it can also publish to a stable repo-local docs path under `docs/status/generated/reviewer-handoff/`, with `--docs-status` as the matching reader path.
 
+## 2026-03-15 - Contract-Aware Runtime Smoke Path
+
+- Extended `runtime_hooks/smoke_test.py` so the documented example payloads can now be replayed with:
+  - `--contract`
+  - `--project-root`
+  - `--plan-path`
+- This keeps the existing example JSON fixtures intact while making it much easier to point the smoke path at a real external contract repo.
+- Shared and adapter-based smoke flows now pass the explicit contract through to:
+  - `session_start`
+  - `pre_task_check`
+  - `post_task_check`
+- Smoke-test human output now also surfaces `contract_source`, `contract_path`, and `domain_contract` when that context is available.
+- `scripts/verify_phase_gates.sh` now covers this contract-aware smoke flow directly, so the lower-friction demo path is part of the normal regression surface.
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

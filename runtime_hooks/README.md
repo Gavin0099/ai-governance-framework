@@ -100,6 +100,8 @@ Dispatcher:
 - `smoke_test.py` runs documented native example payloads end-to-end, including `session_start`
 - human output from `smoke_test.py --event-type session_start` now surfaces the startup handoff summary, including expected validators and required evidence
 - `smoke_test.py` can now also write machine-readable JSON envelopes with `--json-output`
+- `smoke_test.py` now also accepts `--contract`, `--project-root`, and `--plan-path`, so the documented example payloads can be replayed against a real external contract repo without editing the example JSON files first
+- when a contract is supplied, smoke-test human output also surfaces `contract_source`, `contract_path`, and `domain_contract`
 - `../scripts/run-runtime-governance.sh` is the shared enforcement entrypoint for hooks and CI
 
 Session close:

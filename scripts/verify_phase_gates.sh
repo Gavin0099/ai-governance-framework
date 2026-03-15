@@ -107,6 +107,12 @@ else
     fail "quickstart_smoke.py onboarding path 失敗"
     ALL_OK=0
 fi
+if "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --event-type session_start --contract examples/usb-hub-contract/contract.yaml --format human > /dev/null 2>&1; then
+    ok "smoke_test.py contract-aware session_start"
+else
+    fail "smoke_test.py contract-aware session_start 失敗"
+    ALL_OK=0
+fi
 if "${PYTHON_CMD[@]}" governance_tools/example_readiness.py --format human > /dev/null 2>&1; then
     ok "example_readiness.py example inventory"
 else
