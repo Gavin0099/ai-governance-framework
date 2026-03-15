@@ -174,6 +174,75 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
     }
 
 
+def write_release_root_index(root_dir: Path, *, version: str, bundle_paths: dict[str, str]) -> dict[str, str]:
+    root_dir.mkdir(parents=True, exist_ok=True)
+    readme_md = root_dir / "README.md"
+    latest_json = root_dir / "latest.json"
+    latest_md = root_dir / "latest.md"
+
+    manifest_path = Path(bundle_paths["manifest_json"])
+    manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    relative_version_dir = Path(version).as_posix()
+
+    latest_payload = {
+        "version": version,
+        "generated_at": manifest_payload.get("generated_at"),
+        "ok": manifest_payload.get("ok"),
+        "manifest_json": f"{relative_version_dir}/MANIFEST.json",
+        "readme_md": f"{relative_version_dir}/README.md",
+        "latest_md": f"{relative_version_dir}/latest.md",
+        "latest_json": f"{relative_version_dir}/latest.json",
+    }
+    latest_json.write_text(json.dumps(latest_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    latest_md.write_text(
+        "\n".join(
+            [
+                "# Latest Generated Release Package",
+                "",
+                f"- Version: `{version}`",
+                f"- Generated at: `{manifest_payload.get('generated_at')}`",
+                f"- OK: `{manifest_payload.get('ok')}`",
+                "",
+                "## Entry Points",
+                "",
+                f"- [Version README]({relative_version_dir}/README.md)",
+                f"- [Version Latest Markdown]({relative_version_dir}/latest.md)",
+                f"- [Version Manifest]({relative_version_dir}/MANIFEST.json)",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    readme_md.write_text(
+        "\n".join(
+            [
+                "# Generated Release Packages",
+                "",
+                "This directory contains repo-local generated release-package snapshots.",
+                "",
+                f"- Latest version: `{version}`",
+                f"- Latest summary: `ok={manifest_payload.get('ok')} | release_docs={manifest_payload.get('existing_release_docs')}/{manifest_payload.get('release_doc_count')} | status_docs={manifest_payload.get('existing_status_docs')}/{manifest_payload.get('status_doc_count')}`",
+                "",
+                "## Latest Entry Points",
+                "",
+                "- [Latest Overview](latest.md)",
+                "- [Latest JSON Pointer](latest.json)",
+                f"- [Version README]({relative_version_dir}/README.md)",
+                f"- [Version Latest Markdown]({relative_version_dir}/latest.md)",
+                f"- [Version Manifest]({relative_version_dir}/MANIFEST.json)",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    return {
+        "generated_root_readme_md": str(readme_md),
+        "generated_root_latest_json": str(latest_json),
+        "generated_root_latest_md": str(latest_md),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate a release-package snapshot bundle.")
     parser.add_argument("--project-root", default=".")
@@ -210,6 +279,8 @@ def main() -> int:
     )
     if bundle_dir is not None:
         paths = write_snapshot_bundle(snapshot, bundle_dir)
+        if args.publish_docs_release:
+            paths.update(write_release_root_index(bundle_dir.parent, version=args.version, bundle_paths=paths))
         if args.format == "human":
             print("")
             print("[release_package_snapshot]")

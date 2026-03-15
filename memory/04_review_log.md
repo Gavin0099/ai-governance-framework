@@ -697,6 +697,16 @@
 - Updated alpha release docs, GitHub release draft, alpha checklist, publish checklist, and README so the generated release-package path now has a documented publish/read flow instead of only a snapshot command.
 - Extended `scripts/verify_phase_gates.sh` so Gate 3 now also exercises the release-package reader path.
 
+## 2026-03-15 - Generated Release Root Landing Path
+
+- Extended `governance_tools/release_package_snapshot.py` so `--publish-docs-release` now also maintains a stable root under `docs/releases/generated/`.
+- The generated release root now keeps:
+  - `README.md`
+  - `latest.json`
+  - `latest.md`
+  - versioned subdirectories such as `v1.0.0-alpha/`
+- Extended `release_readiness.py` so alpha release docs now explicitly reference this generated release path, not only the generated status path.
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

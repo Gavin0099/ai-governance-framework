@@ -33,6 +33,7 @@ spread across CI, README notes, and ad-hoc terminal checks.
 - [x] `docs/status/runtime-governance-status.md` reflects current alpha maturity
 - [x] `docs/status/README.md` points to the generated status landing path
 - [x] `docs/status/trust-signal-dashboard.md` explains the repo-local generated status path
+- [x] `docs/releases/generated/README.md` exists for generated release-package publishing
 - [x] `docs/LIMITATIONS.md` describes current boundaries honestly
 
 ## Known Boundaries To Keep Explicit

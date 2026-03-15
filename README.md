@@ -468,6 +468,10 @@ If you want a stable reader over that release-package bundle:
 python governance_tools/release_package_reader.py --version v1.0.0-alpha --file artifacts/release-package/v1.0.0-alpha/MANIFEST.json --format human
 ```
 
+If you publish repo-local generated release packages, the stable landing path becomes:
+
+- `docs/releases/generated/README.md`
+
 That same docs-status path also emits `docs/status/generated/README.md`, so the generated root has a stable landing page instead of only raw manifests.
 
 CI now also generates trust-signal snapshot bundles, so this high-level view is not limited to local terminal output.

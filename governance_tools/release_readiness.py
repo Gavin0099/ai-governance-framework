@@ -24,6 +24,7 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
     github_release_draft_path = project_root / "docs" / "releases" / f"{version}-github-release.md"
     publish_checklist_path = project_root / "docs" / "releases" / f"{version}-publish-checklist.md"
     alpha_checklist_path = project_root / "docs" / "releases" / "alpha-checklist.md"
+    generated_release_root_path = project_root / "docs" / "releases" / "generated" / "README.md"
     limitations_path = project_root / "docs" / "LIMITATIONS.md"
     status_path = project_root / "docs" / "status" / "runtime-governance-status.md"
     status_index_path = project_root / "docs" / "status" / "README.md"
@@ -43,6 +44,7 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
     add_check("github_release_draft", github_release_draft_path.is_file(), "missing docs/releases github release draft")
     add_check("publish_checklist", publish_checklist_path.is_file(), "missing docs/releases publish checklist")
     add_check("alpha_checklist", alpha_checklist_path.is_file(), "missing docs/releases/alpha-checklist.md")
+    add_check("generated_release_root", generated_release_root_path.is_file(), "missing docs/releases/generated/README.md")
     add_check("changelog", changelog_path.is_file(), "missing CHANGELOG.md")
     add_check("limitations", limitations_path.is_file(), "missing docs/LIMITATIONS.md")
     add_check("status_doc", status_path.is_file(), "missing runtime-governance status doc")
@@ -58,6 +60,9 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
     )
     publish_checklist_text = publish_checklist_path.read_text(encoding="utf-8") if publish_checklist_path.is_file() else ""
     alpha_checklist_text = alpha_checklist_path.read_text(encoding="utf-8") if alpha_checklist_path.is_file() else ""
+    generated_release_root_text = (
+        generated_release_root_path.read_text(encoding="utf-8") if generated_release_root_path.is_file() else ""
+    )
     status_index_text = status_index_path.read_text(encoding="utf-8") if status_index_path.is_file() else ""
     trust_dashboard_text = trust_dashboard_path.read_text(encoding="utf-8") if trust_dashboard_path.is_file() else ""
     domain_matrix_text = domain_matrix_path.read_text(encoding="utf-8") if domain_matrix_path.is_file() else ""
@@ -100,6 +105,11 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
             "docs/status/generated/" in release_note_text,
             "release note does not mention the generated status path",
         )
+        add_check(
+            "release_note_generated_release_path",
+            "docs/releases/generated/" in release_note_text,
+            "release note does not mention the generated release path",
+        )
         if "Known Limits" not in release_note_text:
             warnings.append("Release note is missing a 'Known Limits' section")
         if "Supported AI Adapter" not in release_note_text and "Supported AI Adapter Surfaces" not in release_note_text:
@@ -121,6 +131,11 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
             "docs/status/README.md" in github_release_draft_text,
             "GitHub release draft does not link to the status index",
         )
+        add_check(
+            "github_release_draft_generated_release_path",
+            "docs/releases/generated/" in github_release_draft_text,
+            "GitHub release draft does not mention the generated release path",
+        )
         if "prototype" not in github_release_draft_text.lower():
             warnings.append("GitHub release draft no longer mentions the prototype boundary")
 
@@ -139,6 +154,16 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
             "publish_checklist_docs_reader",
             "--docs-status" in publish_checklist_text,
             "publish checklist does not mention the docs-status reader path",
+        )
+        add_check(
+            "publish_checklist_release_package_snapshot",
+            "release_package_snapshot.py" in publish_checklist_text,
+            "publish checklist does not mention release package snapshot publishing",
+        )
+        add_check(
+            "publish_checklist_release_package_reader",
+            "release_package_reader.py" in publish_checklist_text,
+            "publish checklist does not mention the release package reader",
         )
         add_check(
             "publish_checklist_phase_gates",
@@ -171,6 +196,16 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
             "alpha_checklist_docs_reader",
             "--docs-status" in alpha_checklist_text,
             "alpha checklist does not mention the docs-status reader path",
+        )
+        add_check(
+            "alpha_checklist_release_package_snapshot",
+            "release_package_snapshot.py" in alpha_checklist_text,
+            "alpha checklist does not mention release package snapshot publishing",
+        )
+        add_check(
+            "alpha_checklist_release_package_reader",
+            "release_package_reader.py" in alpha_checklist_text,
+            "alpha checklist does not mention the release package reader path",
         )
         add_check(
             "alpha_checklist_github_release_draft",
@@ -222,6 +257,13 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
             "status index does not mention the generated site readme",
         )
 
+    if generated_release_root_text:
+        add_check(
+            "generated_release_root_latest_link",
+            "latest.md" in generated_release_root_text,
+            "generated release root does not mention the latest release package entry",
+        )
+
     if domain_matrix_text:
         add_check(
             "domain_matrix_mentions_external_policy_tool",
@@ -243,6 +285,7 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
             "github_release_draft": str(github_release_draft_path),
             "publish_checklist": str(publish_checklist_path),
             "alpha_checklist": str(alpha_checklist_path),
+            "generated_release_root": str(generated_release_root_path),
             "limitations": str(limitations_path),
             "status_doc": str(status_path),
             "status_index": str(status_index_path),

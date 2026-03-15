@@ -279,6 +279,16 @@ python governance_tools/release_package_snapshot.py \
   --format human
 ```
 
+這會把版本 bundle 寫到：
+
+- `docs/releases/generated/v1.0.0-alpha/`
+
+並同步維護上層入口：
+
+- `docs/releases/generated/README.md`
+- `docs/releases/generated/latest.json`
+- `docs/releases/generated/latest.md`
+
 這個工具會寫出：
 
 - `latest.json`

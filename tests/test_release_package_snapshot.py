@@ -9,6 +9,7 @@ from governance_tools.release_package_snapshot import (
     build_release_package_snapshot,
     format_index,
     resolve_bundle_dir,
+    write_release_root_index,
     write_snapshot_bundle,
 )
 
@@ -89,3 +90,17 @@ def test_release_package_snapshot_cli_supports_direct_script_invocation(tmp_path
     assert "summary=ok=True | version=v1.0.0-alpha" in result.stdout
     assert "[release_package_snapshot]" in result.stdout
     assert (bundle_dir / "latest.json").is_file()
+
+
+def test_write_release_root_index_creates_generated_release_landing_page(tmp_path):
+    snapshot = build_release_package_snapshot(project_root=Path(".").resolve(), version="v1.0.0-alpha")
+    bundle = write_snapshot_bundle(snapshot, tmp_path / "generated" / "v1.0.0-alpha")
+
+    root_paths = write_release_root_index(tmp_path / "generated", version="v1.0.0-alpha", bundle_paths=bundle)
+
+    assert Path(root_paths["generated_root_readme_md"]).is_file()
+    assert Path(root_paths["generated_root_latest_json"]).is_file()
+    assert Path(root_paths["generated_root_latest_md"]).is_file()
+    readme_text = Path(root_paths["generated_root_readme_md"]).read_text(encoding="utf-8")
+    assert "# Generated Release Packages" in readme_text
+    assert "[Version README](v1.0.0-alpha/README.md)" in readme_text
