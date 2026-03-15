@@ -228,6 +228,9 @@ def test_write_publication_manifest_tracks_external_contract_policy(tmp_path):
 
     assert manifest_payload["external_contract_repo_count"] == 1
     assert manifest_payload["external_contract_policy_ok"] is True
+    assert manifest_payload["external_contract_profile_counts"] == {"mixed": 1}
+    assert manifest_payload["external_contract_policies"][0]["domain"] == "kernel-driver"
+    assert manifest_payload["external_contract_policies"][0]["hard_stop_rules"] == ["KD-002"]
 
 
 def test_format_publication_index_is_summary_like():
@@ -245,3 +248,4 @@ def test_format_publication_index_is_summary_like():
     assert "# Trust Signal Publication Index" in rendered
     assert "- Bundle published: `True`" in rendered
     assert "- Status pages published: `True`" in rendered
+    assert "- External contract profiles: `none`" in rendered

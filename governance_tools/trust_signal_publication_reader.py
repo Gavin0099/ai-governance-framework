@@ -76,6 +76,7 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"contract_path={result.get('contract_path')}",
         f"external_contract_repo_count={result.get('external_contract_repo_count')}",
         f"external_contract_policy_ok={result.get('external_contract_policy_ok')}",
+        f"external_contract_profile_counts={result.get('external_contract_profile_counts')}",
         f"strict_runtime={result.get('strict_runtime')}",
         f"bundle_published={result.get('bundle_published')}",
         f"status_pages_published={result.get('status_pages_published')}",
@@ -100,6 +101,27 @@ def format_human_result(result: dict[str, Any]) -> str:
             value = published.get(key)
             if value:
                 lines.append(f"{key}={value}")
+
+    policies = result.get("external_contract_policies")
+    if isinstance(policies, list) and policies:
+        lines.append("[external_contract_policies]")
+        for entry in policies:
+            repo_root = entry.get("repo_root")
+            if not entry.get("ok"):
+                lines.append(f"{repo_root} | ok=False | error={entry.get('error')}")
+                continue
+            hard_stop_rules = ",".join(entry.get("hard_stop_rules") or []) or "-"
+            lines.append(
+                " | ".join(
+                    [
+                        str(repo_root),
+                        f"domain={entry.get('domain')}",
+                        f"profile={entry.get('enforcement_profile')}",
+                        f"validators={entry.get('validator_ready_count')}/{entry.get('validator_count')}",
+                        f"hard_stop_rules={hard_stop_rules}",
+                    ]
+                )
+            )
 
     return "\n".join(lines)
 

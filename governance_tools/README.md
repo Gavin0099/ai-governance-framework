@@ -299,6 +299,8 @@ python governance_tools/trust_signal_snapshot.py \
 
 - `external_contract_repo_count`
 - `external_contract_policy_ok`
+- `external_contract_profile_counts`
+- `external_contract_policies`
 - published status pages such as:
   - `published/trust-signal-latest.md`
   - `published/trust-signal-latest.json`
@@ -335,6 +337,7 @@ python governance_tools/trust_signal_publication_reader.py \
 - 想從 publication metadata 反查 bundle 與 published status 頁面
 - 需要一條穩定 reader 命令，而不是直接解析 JSON 檔案
 - 想確認發布結果是否也包含 external domain enforcement posture
+- 想直接看 cross-domain policy 摘要，而不是再打開完整 markdown dashboard
 
 ---
 

@@ -429,7 +429,7 @@ python governance_tools/trust_signal_overview.py --project-root . --plan PLAN.md
 If you want the same view persisted as a latest/history/index bundle:
 
 ```bash
-python governance_tools/trust_signal_snapshot.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --write-bundle artifacts/trust-signals --publish-status-dir artifacts/trust-signals/published --format human
+python governance_tools/trust_signal_snapshot.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --external-contract-repo D:/USB-Hub-Firmware-Architecture-Contract --external-contract-repo D:/Kernel-Driver-Contract --external-contract-repo D:/IC-Verification-Contract --write-bundle artifacts/trust-signals --publish-status-dir artifacts/trust-signals/published --format human
 ```
 
 If you want a stable reader over the generated publication metadata:
@@ -439,7 +439,7 @@ python governance_tools/trust_signal_publication_reader.py --file artifacts/trus
 ```
 
 CI now also generates trust-signal snapshot bundles, so this high-level view is not limited to local terminal output.
-Each bundle now also includes manifest metadata, published history/index pages, and a publication-level manifest/index, so tools or readers can tell which snapshot is current without inferring from filenames alone.
+Each bundle now also includes manifest metadata, published history/index pages, and a publication-level manifest/index, so tools or readers can tell which snapshot is current without inferring from filenames alone. When external contract repos are provided, those manifests also carry a compact cross-domain enforcement summary instead of only a yes/no policy flag.
 
 ### Minimum Viable Setup
 

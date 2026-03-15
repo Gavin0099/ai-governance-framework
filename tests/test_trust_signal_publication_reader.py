@@ -58,6 +58,27 @@ def test_format_human_result_surfaces_summary_and_paths(tmp_path):
                 "contract_path": "examples/usb-hub-contract/contract.yaml",
                 "external_contract_repo_count": 3,
                 "external_contract_policy_ok": True,
+                "external_contract_profile_counts": {"mixed": 2, "advisory-only": 1},
+                "external_contract_policies": [
+                    {
+                        "repo_root": "D:/Kernel-Driver-Contract",
+                        "ok": True,
+                        "domain": "kernel-driver",
+                        "enforcement_profile": "mixed",
+                        "validator_ready_count": 2,
+                        "validator_count": 2,
+                        "hard_stop_rules": ["KD-002", "KD-003"],
+                    },
+                    {
+                        "repo_root": "D:/USB-Hub-Firmware-Architecture-Contract",
+                        "ok": True,
+                        "domain": "firmware",
+                        "enforcement_profile": "mixed",
+                        "validator_ready_count": 1,
+                        "validator_count": 1,
+                        "hard_stop_rules": ["HUB-004"],
+                    },
+                ],
                 "strict_runtime": False,
                 "bundle_published": True,
                 "status_pages_published": True,
@@ -88,8 +109,11 @@ def test_format_human_result_surfaces_summary_and_paths(tmp_path):
     assert rendered.startswith("summary=ok=True")
     assert "external_contracts=True" in rendered
     assert "release=v1.0.0-alpha" in rendered
+    assert "external_contract_profile_counts={'mixed': 2, 'advisory-only': 1}" in rendered
     assert "[bundle]" in rendered
     assert "[published]" in rendered
+    assert "[external_contract_policies]" in rendered
+    assert "hard_stop_rules=KD-002,KD-003" in rendered
 
 
 def test_default_manifest_path_points_to_artifacts_root():

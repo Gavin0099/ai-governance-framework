@@ -28,6 +28,50 @@ def _external_contract_policy_ok(snapshot: dict[str, Any]) -> bool | None:
     return policy.get("ok")
 
 
+def _external_contract_policy_entries(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
+    overview = snapshot.get("overview") or {}
+    policy = overview.get("external_contract_policy") or {}
+    summarized: list[dict[str, Any]] = []
+    for entry in policy.get("entries") or []:
+        payload: dict[str, Any] = {
+            "repo_root": entry.get("repo_root"),
+            "ok": entry.get("ok"),
+        }
+        if not entry.get("ok"):
+            payload["error"] = entry.get("error")
+            summarized.append(payload)
+            continue
+        payload.update(
+            {
+                "domain": entry.get("domain"),
+                "risk_tier": entry.get("risk_tier"),
+                "enforcement_profile": entry.get("enforcement_profile"),
+                "validator_ready_count": entry.get("validator_ready_count"),
+                "validator_count": entry.get("validator_count"),
+                "hard_stop_rules": list(entry.get("hard_stop_rules") or []),
+            }
+        )
+        summarized.append(payload)
+    return summarized
+
+
+def _external_contract_profile_counts(snapshot: dict[str, Any]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for entry in _external_contract_policy_entries(snapshot):
+        profile = "error"
+        if entry.get("ok"):
+            profile = str(entry.get("enforcement_profile") or "unknown")
+        counts[profile] = counts.get(profile, 0) + 1
+    return counts
+
+
+def _external_contract_profile_summary(snapshot: dict[str, Any]) -> str:
+    counts = _external_contract_profile_counts(snapshot)
+    if not counts:
+        return "none"
+    return ",".join(f"{key}={counts[key]}" for key in sorted(counts))
+
+
 def build_trust_signal_snapshot(
     *,
     project_root: Path,
@@ -124,6 +168,8 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
                 "external_contract_repos": snapshot.get("external_contract_repos") or [],
                 "external_contract_policy_ok": _external_contract_policy_ok(snapshot),
                 "external_contract_repo_count": len(snapshot.get("external_contract_repos") or []),
+                "external_contract_profile_counts": _external_contract_profile_counts(snapshot),
+                "external_contract_policies": _external_contract_policy_entries(snapshot),
                 "strict_runtime": snapshot["strict_runtime"],
                 "latest": {
                     "json": str(latest_json),
@@ -167,6 +213,7 @@ def format_published_status_page(snapshot: dict[str, Any]) -> str:
         f"- Project root: `{snapshot['project_root']}`",
         f"- Contract path: `{snapshot.get('contract_path')}`",
         f"- External contract repos: `{len(snapshot.get('external_contract_repos') or [])}`",
+        f"- External contract profiles: `{_external_contract_profile_summary(snapshot)}`",
         f"- Strict runtime: `{snapshot['strict_runtime']}`",
         "",
         format_markdown_result(snapshot["overview"]),
@@ -248,6 +295,8 @@ def write_published_status(snapshot: dict[str, Any], publish_dir: Path) -> dict[
                 "external_contract_repos": snapshot.get("external_contract_repos") or [],
                 "external_contract_policy_ok": _external_contract_policy_ok(snapshot),
                 "external_contract_repo_count": len(snapshot.get("external_contract_repos") or []),
+                "external_contract_profile_counts": _external_contract_profile_counts(snapshot),
+                "external_contract_policies": _external_contract_policy_entries(snapshot),
                 "strict_runtime": snapshot["strict_runtime"],
                 "published": {
                     "markdown": str(latest_md),
@@ -292,6 +341,7 @@ def format_publication_index(
         f"- Contract path: `{snapshot.get('contract_path')}`",
         f"- External contract repos: `{len(snapshot.get('external_contract_repos') or [])}`",
         f"- External contract policy OK: `{_external_contract_policy_ok(snapshot)}`",
+        f"- External contract profiles: `{_external_contract_profile_summary(snapshot)}`",
         f"- Strict runtime: `{snapshot['strict_runtime']}`",
         "",
         "## Surfaces",
@@ -356,6 +406,8 @@ def write_publication_manifest(
         "external_contract_repos": snapshot.get("external_contract_repos") or [],
         "external_contract_policy_ok": _external_contract_policy_ok(snapshot),
         "external_contract_repo_count": len(snapshot.get("external_contract_repos") or []),
+        "external_contract_profile_counts": _external_contract_profile_counts(snapshot),
+        "external_contract_policies": _external_contract_policy_entries(snapshot),
         "strict_runtime": snapshot["strict_runtime"],
         "bundle_published": bundle_paths is not None,
         "status_pages_published": published_paths is not None,

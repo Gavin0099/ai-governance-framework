@@ -597,6 +597,15 @@
   - `external_contract_policy_ok`
 - This keeps trust-signal publishing aligned with the newer multi-domain enforcement view instead of leaving it stranded as a standalone tool.
 
+## 2026-03-15 - Publication Reader Now Carries Compact Policy Summaries
+
+- Extended `trust_signal_snapshot.py` manifests again so they now preserve:
+  - `external_contract_profile_counts`
+  - `external_contract_policies`
+- This means release/status consumers can see per-repo enforcement posture and hard-stop rules without reopening the full markdown dashboard.
+- Extended `trust_signal_publication_reader.py` with a dedicated `[external_contract_policies]` section so the publication surface is reviewer-friendly, not only machine-readable.
+- Updated README / status docs / governance-tools docs so the richer publication metadata is now described explicitly.
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

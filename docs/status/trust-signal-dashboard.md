@@ -80,6 +80,7 @@ CI now emits trust-signal snapshot artifacts under:
 - `artifacts/trust-signals/published/INDEX.md`
 
 The bundle and published directories now also include manifest JSON so downstream tools and the publication reader can identify the current snapshot directly.
+When external contract repos are provided, the publication metadata now also carries a compact cross-domain enforcement summary, including profile counts and per-repo hard-stop posture.
 
 These artifacts are the generated status snapshot bundle.
 
