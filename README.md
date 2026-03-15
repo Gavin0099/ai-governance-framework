@@ -450,6 +450,12 @@ If you are publishing to the repo-local docs path, you can read that stable loca
 python governance_tools/trust_signal_publication_reader.py --project-root . --docs-status --format human
 ```
 
+If you want a release-facing package summary that bundles the current alpha docs, status surfaces, and verification commands into one reviewer handoff:
+
+```bash
+python governance_tools/release_package_summary.py --version v1.0.0-alpha --format human
+```
+
 That same docs-status path also emits `docs/status/generated/README.md`, so the generated root has a stable landing page instead of only raw manifests.
 
 CI now also generates trust-signal snapshot bundles, so this high-level view is not limited to local terminal output.

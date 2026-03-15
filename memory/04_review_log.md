@@ -663,6 +663,17 @@
   - docs-status reader flow
   - `verify_phase_gates.sh`
 
+## 2026-03-15 - Release Package Summary Entry Point
+
+- Added `governance_tools/release_package_summary.py` as a single reviewer-facing summary over the current alpha release package.
+- The new tool aggregates:
+  - `release_readiness.py`
+  - release docs
+  - status docs
+  - recommended release-facing verification commands
+- Extended `scripts/verify_phase_gates.sh` so Gate 3 now also executes this package-summary path.
+- Updated README, governance-tools docs, and the alpha publish checklist so release preparation has a stable single-command summary, not only scattered links and checklists.
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

@@ -75,6 +75,7 @@ TOOLS=(
     "example_readiness.py"
     "governance_auditor.py"
     "quickstart_smoke.py"
+    "release_package_summary.py"
     "release_readiness.py"
     "trust_signal_snapshot.py"
     "trust_signal_publication_reader.py"
@@ -108,6 +109,12 @@ if "${PYTHON_CMD[@]}" governance_tools/release_readiness.py --version "$RELEASE_
     ok "release_readiness.py $RELEASE_VERSION"
 else
     fail "release_readiness.py $RELEASE_VERSION 失敗"
+    ALL_OK=0
+fi
+if "${PYTHON_CMD[@]}" governance_tools/release_package_summary.py --version "$RELEASE_VERSION" --format human > /dev/null 2>&1; then
+    ok "release_package_summary.py $RELEASE_VERSION"
+else
+    fail "release_package_summary.py $RELEASE_VERSION 失敗"
     ALL_OK=0
 fi
 if "${PYTHON_CMD[@]}" governance_tools/governance_auditor.py --project-root . --release-version "$RELEASE_VERSION" --format human > /dev/null 2>&1; then

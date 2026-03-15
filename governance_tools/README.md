@@ -37,6 +37,7 @@ $env:AI_GOVERNANCE_PYTHON='C:\Path\To\python.exe'
 | [contract_validator.py](#contract_validatorpy) | AI 初始化合規驗證 | CI gate |
 | [quickstart_smoke.py](#quickstart_smokepy) | 最小上手流程驗證 | onboarding / quickstart |
 | [example_readiness.py](#example_readinesspy) | 範例集健康度檢查 | onboarding / examples |
+| [release_package_summary.py](#release_package_summarypy) | release package 聚合摘要 | release prep / reviewer handoff |
 | [release_readiness.py](#release_readinesspy) | release-facing 文件對齊檢查 | trust signal / release prep |
 | [trust_signal_snapshot.py](#trust_signal_snapshotpy) | trust signal snapshot bundle 產生器 | release / status publishing |
 | [trust_signal_publication_reader.py](#trust_signal_publication_readerpy) | publication manifest reader | release / status consumption |
@@ -195,6 +196,35 @@ python governance_tools/example_readiness.py --strict-runtime --format human
 ```
 
 這個模式特別適合放在 CI，因為 CI 已經會先安裝 `requirements.txt`。
+
+---
+
+## release_package_summary.py
+
+把 alpha 發布會用到的 release docs、status docs、和建議命令收成一份 reviewer-friendly package summary。
+
+它會聚合：
+
+- `release_readiness.py` 的整體結果
+- 當前 release note / GitHub release draft / publish checklist / changelog
+- 當前 status docs 與 generated status root
+- 一組建議重跑的 release-facing commands
+
+```bash
+python governance_tools/release_package_summary.py --version v1.0.0-alpha --format human
+```
+
+如果想產出可以直接貼到 review 或 release preparation thread 的 markdown：
+
+```bash
+python governance_tools/release_package_summary.py --version v1.0.0-alpha --format markdown
+```
+
+這個工具特別適合用在：
+
+- release 前最後一次 reviewer handoff
+- 想快速確認「release 這包」缺哪份文件
+- 想把 release-facing commands 收成單一入口，而不是手動翻 checklist
 
 ---
 

@@ -81,6 +81,7 @@
 - Alpha-facing release docs now also explicitly mention the repo-local generated status path and its reader flow, so the external release story and the in-repo status surface no longer drift.
 - The repo now also carries a dedicated GitHub release draft document for `v1.0.0-alpha`, so release-page copy can be reviewed and versioned inside the repo instead of being composed ad hoc at publish time.
 - The release surface now also includes a publish checklist for `v1.0.0-alpha`, so the actual GitHub release step has a repo-tracked, reviewable procedure instead of only a narrative draft.
+- The release surface now also includes `governance_tools/release_package_summary.py`, so alpha docs, status surfaces, and publish commands can be reviewed as one package instead of opening each file manually.
 
 ## Next Steps
 
