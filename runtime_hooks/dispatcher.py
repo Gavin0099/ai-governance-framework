@@ -16,23 +16,7 @@ if __package__ in (None, ""):
 from runtime_hooks.core.post_task_check import run_post_task_check
 from runtime_hooks.core.pre_task_check import run_pre_task_check
 from runtime_hooks.core.session_start import build_session_start_context
-
-
-def _apply_event_overrides(
-    event: dict,
-    *,
-    project_root: Path | None = None,
-    plan_path: Path | None = None,
-    contract_file: Path | None = None,
-) -> dict:
-    updated = dict(event)
-    if project_root:
-        updated["project_root"] = str(project_root)
-    if plan_path:
-        updated["plan_path"] = str(plan_path)
-    if contract_file:
-        updated["contract"] = str(contract_file)
-    return updated
+from runtime_hooks.runtime_path_overrides import apply_runtime_path_overrides
 
 
 def dispatch_event(event: dict) -> dict:
@@ -127,7 +111,7 @@ def main() -> None:
     args = parser.parse_args()
 
     event = _load_event(args.file)
-    event = _apply_event_overrides(
+    event = apply_runtime_path_overrides(
         event,
         project_root=Path(args.project_root).resolve() if args.project_root else None,
         plan_path=Path(args.plan_path).resolve() if args.plan_path else None,

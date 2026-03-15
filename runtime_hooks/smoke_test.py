@@ -18,6 +18,7 @@ from runtime_hooks.adapters.codex.normalize_event import normalize_event as norm
 from runtime_hooks.adapters.gemini.normalize_event import normalize_event as normalize_gemini
 from runtime_hooks.adapters.shared_adapter_runner import run_adapter_event
 from runtime_hooks.dispatcher import dispatch_event
+from runtime_hooks.runtime_path_overrides import apply_runtime_path_overrides
 
 
 NORMALIZERS = {
@@ -44,23 +45,6 @@ DEFAULT_SHARED_EXAMPLES = {
 }
 
 
-def _apply_runtime_overrides(
-    payload: dict,
-    *,
-    project_root: Path | None = None,
-    plan_path: Path | None = None,
-    contract_file: Path | None = None,
-) -> dict:
-    updated = dict(payload)
-    if project_root:
-        updated["project_root"] = str(project_root)
-    if plan_path:
-        updated["plan_path"] = str(plan_path)
-    if contract_file:
-        updated["contract"] = str(contract_file)
-    return updated
-
-
 def run_smoke(
     harness: str,
     event_type: str,
@@ -73,7 +57,7 @@ def run_smoke(
     normalize_event = NORMALIZERS[harness]
     payload_path = payload_file or DEFAULT_EXAMPLES[(harness, event_type)]
     payload = json.loads(payload_path.read_text(encoding="utf-8"))
-    payload = _apply_runtime_overrides(
+    payload = apply_runtime_path_overrides(
         payload,
         project_root=project_root,
         plan_path=plan_path,
@@ -94,7 +78,7 @@ def run_shared_smoke(
 ) -> dict:
     payload_path = payload_file or DEFAULT_SHARED_EXAMPLES[event_type]
     event = json.loads(payload_path.read_text(encoding="utf-8"))
-    event = _apply_runtime_overrides(
+    event = apply_runtime_path_overrides(
         event,
         project_root=project_root,
         plan_path=plan_path,

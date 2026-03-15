@@ -182,6 +182,40 @@ def test_dispatcher_cli_can_apply_contract_override():
     assert "domain_contract=usb-hub-firmware-contract" in result.stdout
 
 
+def test_dispatcher_cli_can_infer_project_root_and_plan_from_contract(tmp_path):
+    contract_file = tmp_path / "contract.yaml"
+    plan_path = tmp_path / "PLAN.md"
+    contract_file.write_text("name: local-contract\n", encoding="utf-8")
+    plan_path.write_text(
+        "> **最後更新**: 2026-03-15\n"
+        "> **Owner**: Tester\n"
+        "> **Freshness**: Sprint (7d)\n"
+        "\n"
+        "[>] Phase A : Validate dispatcher overrides\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "runtime_hooks/dispatcher.py",
+            "--file",
+            "runtime_hooks/examples/shared/session_start.shared.json",
+            "--contract",
+            str(contract_file.resolve()),
+            "--format",
+            "json",
+        ],
+        cwd=Path(__file__).parent.parent,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    payload = json.loads(result.stdout)
+    assert payload["result"]["project_root"] == str(tmp_path.resolve())
+    assert payload["result"]["contract_resolution"]["source"] == "explicit"
+
+
 def test_native_example_files_exist():
     example_paths = [
         Path("runtime_hooks/examples/claude_code/pre_task.native.json"),

@@ -805,6 +805,11 @@
 - `scripts/verify_phase_gates.sh` now also runs the contract-aware wrapper smoke path itself, so the shell-level entrypoint is exercised in the same regression surface as the underlying Python tool.
 - Extended `runtime_hooks/dispatcher.py` with the same `--contract`, `--project-root`, and `--plan-path` override pattern, so shared-event JSON can now be replayed against an external contract repo without editing the event payload itself.
 - Dispatcher human output now also surfaces `contract_source`, `contract_path`, and `domain_contract`, and the contract-aware dispatcher path is now part of phase-gate coverage.
+- Added a shared runtime path-override helper so both `smoke_test.py` and `dispatcher.py` now infer:
+  - `project_root = <contract-root>`
+  - `plan_path = <contract-root>/PLAN.md`
+  when only `--contract` is supplied and the contract repo itself exposes `PLAN.md`.
+- This reduces the lowest-friction external repo trial path from "contract + project-root + plan-path" to just "contract" for the common runtime demo entrypoints.
 
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 

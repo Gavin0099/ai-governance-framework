@@ -101,10 +101,12 @@ Dispatcher:
 - human output from `smoke_test.py --event-type session_start` now surfaces the startup handoff summary, including expected validators and required evidence
 - `smoke_test.py` can now also write machine-readable JSON envelopes with `--json-output`
 - `smoke_test.py` now also accepts `--contract`, `--project-root`, and `--plan-path`, so the documented example payloads can be replayed against a real external contract repo without editing the example JSON files first
+- when only `--contract` is supplied, `smoke_test.py` now defaults `project_root` and `plan_path` from the contract repo only if that contract root also contains `PLAN.md`; otherwise it preserves the example payload's original root/plan
 - when a contract is supplied, smoke-test human output also surfaces `contract_source`, `contract_path`, and `domain_contract`
 - `../scripts/run-runtime-governance.sh` is the shared enforcement entrypoint for hooks and CI
 - `../scripts/run-runtime-governance.sh` now also forwards `--contract`, `--project-root`, and `--plan-path` into its smoke flows, so the shared shell wrapper can replay the built-in runtime examples against an external contract repo too
 - `dispatcher.py` now also accepts the same `--contract`, `--project-root`, and `--plan-path` overrides, so shared event JSON files can be replayed against an external contract repo without editing the event payload first
+- when only `--contract` is supplied, `dispatcher.py` now uses the contract repo as `project_root` and defaults `plan_path` to `<contract-root>/PLAN.md` only when that contract root actually contains `PLAN.md`
 - when a contract is supplied, dispatcher human output also surfaces `contract_source`, `contract_path`, and `domain_contract`
 
 Session close:

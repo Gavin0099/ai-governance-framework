@@ -105,6 +105,7 @@
 - `scripts/run-runtime-governance.sh` now forwards `--contract`, `--project-root`, and `--plan-path` into those smoke flows, so the shared shell entrypoint can exercise contract-aware runtime examples too.
 - `scripts/verify_phase_gates.sh` now directly runs that contract-aware wrapper smoke path, so the shared shell entrypoint is part of the normal regression surface rather than a documentation-only convenience.
 - `runtime_hooks/dispatcher.py` now mirrors the same contract-aware override path, and phase gates exercise that shared-event route too.
+- When only `--contract` is supplied to those runtime demo entrypoints, they now default `project_root` and `plan_path` from the contract repo itself only when that repo also exposes `PLAN.md`, reducing manual flags for real external repo trials without breaking bundled examples.
 
 ## Next Steps
 

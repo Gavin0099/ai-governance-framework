@@ -65,6 +65,26 @@ def test_smoke_test_session_start_can_use_explicit_contract():
     assert envelope["result"]["domain_contract"]["name"] == "usb-hub-firmware-contract"
 
 
+def test_smoke_test_session_start_can_infer_project_root_and_plan_from_contract(tmp_path):
+    contract_file = tmp_path / "contract.yaml"
+    plan_path = tmp_path / "PLAN.md"
+    contract_file.write_text("name: local-contract\n", encoding="utf-8")
+    plan_path.write_text(
+        "> **最後更新**: 2026-03-15\n"
+        "> **Owner**: Tester\n"
+        "> **Freshness**: Sprint (7d)\n"
+        "\n"
+        "[>] Phase A : Validate runtime smoke overrides\n",
+        encoding="utf-8",
+    )
+
+    envelope = run_shared_smoke("session_start", contract_file=contract_file)
+
+    assert envelope["result"]["ok"] is True
+    assert envelope["result"]["project_root"] == str(tmp_path.resolve())
+    assert envelope["result"]["contract_resolution"]["source"] == "explicit"
+
+
 def test_smoke_test_adapter_session_start_human_output_uses_normalized_event_type():
     envelope = run_smoke("claude_code", "session_start")
     output = format_human_envelope(envelope, harness="claude_code")
