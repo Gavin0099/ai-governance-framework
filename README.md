@@ -649,6 +649,13 @@ python runtime_hooks/core/post_task_check.py --file ai_response.txt --risk mediu
 python runtime_hooks/core/session_end.py --project-root . --session-id 2026-03-12-01 --runtime-contract-file contract.json --checks-file checks.json --impact-preview-file impact.json --proposal-summary-file proposal_summary.json --event-log-file event_log.json --response-file ai_response.txt
 ```
 
+For refactor tasks, `checks.json` can now also include:
+
+- `error_path_inventory`
+- `error_behavior_diff`
+
+This makes error-path behavior explicit before and after a refactor. The framework validates structure and reviewer-facing traceability, but it does not prove that the inventory is exhaustive or semantically correct.
+
 Kernel-driver evidence flow:
 
 ```text

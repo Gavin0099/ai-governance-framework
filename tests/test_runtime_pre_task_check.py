@@ -237,7 +237,8 @@ def test_pre_task_check_includes_architecture_impact_preview(local_tmp_dir, monk
     output = pre_task_check.format_human_result(result)
     assert "impact_risk=medium" in output
     assert "impact_validators=architecture_drift_checker,public_api_diff_checker,refactor_evidence_validator" in output
-    assert "impact_evidence=architecture-review,regression-evidence,interface-stability-evidence,cleanup-or-rollback-evidence,public-api-review" in output
+    assert "impact_concerns=public-api-expansion-risk,error-path-coverage-required" in output
+    assert "impact_evidence=architecture-review,regression-evidence,interface-stability-evidence,cleanup-or-rollback-evidence,error-path-inventory,error-behavior-diff,public-api-review" in output
     assert not any("Architecture impact preview recommends risk" in warning for warning in result["warnings"])
 
 

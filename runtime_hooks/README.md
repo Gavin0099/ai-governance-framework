@@ -80,6 +80,8 @@ Public API handoff:
 - this is currently used as a lightweight interface-stability signal for `refactor` tasks
 - `session_end.py` now preserves public API diff evidence in runtime summaries and curated artifacts
 - human output from `post_task_check.py` now includes compact evidence summary lines such as `public_api_ok=...` and `refactor_evidence_ok=...`
+- refactor runs can now also require structured `error_path_inventory` and `error_behavior_diff` payloads through the same `checks-file`
+- the runtime validates coverage and reviewer-note completeness, but does not prove that the error-case list is exhaustive
 
 Kernel-driver evidence handoff:
 

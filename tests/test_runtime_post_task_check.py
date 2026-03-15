@@ -116,6 +116,73 @@ def test_post_task_check_applies_refactor_evidence_requirements():
     assert result["refactor_evidence"] is not None
     assert any("refactor-evidence: Missing refactor evidence: regression-oriented test signal" in error for error in result["errors"])
     assert any("refactor-evidence: Missing refactor evidence: interface stability signal" in error for error in result["errors"])
+    assert any("refactor-evidence: Missing refactor evidence: error_path_inventory missing - hard stop" in error for error in result["errors"])
+
+
+def test_post_task_check_blocks_missing_error_behavior_diff_for_affected_refactor_case():
+    result = run_post_task_check(
+        _contract(RULES="common,refactor"),
+        risk="medium",
+        oversight="review-required",
+        checks={
+            "test_names": [
+                "tests/test_service.py::test_regression_contract",
+                "tests/test_service.py::test_interface_contract_stable",
+                "tests/test_service.py::test_cleanup_release",
+            ],
+            "error_path_inventory": [
+                {
+                    "error_id": "ERR-001",
+                    "trigger": "Database timeout",
+                    "pre_refactor_behavior": "raises TimeoutError",
+                    "affected_by_refactor": True,
+                }
+            ],
+            "warnings": [],
+            "errors": [],
+        },
+    )
+
+    assert result["ok"] is False
+    assert result["refactor_evidence"] is not None
+    assert any("error_behavior_diff missing entries for affected error cases: ERR-001" in error for error in result["errors"])
+
+
+def test_post_task_check_blocks_changed_error_behavior_without_reviewer_note():
+    result = run_post_task_check(
+        _contract(RULES="common,refactor"),
+        risk="medium",
+        oversight="review-required",
+        checks={
+            "test_names": [
+                "tests/test_service.py::test_regression_contract",
+                "tests/test_service.py::test_interface_contract_stable",
+                "tests/test_service.py::test_cleanup_release",
+            ],
+            "error_path_inventory": [
+                {
+                    "error_id": "ERR-001",
+                    "trigger": "Database timeout",
+                    "pre_refactor_behavior": "raises TimeoutError",
+                    "affected_by_refactor": True,
+                }
+            ],
+            "error_behavior_diff": [
+                {
+                    "error_id": "ERR-001",
+                    "pre_behavior": "raises TimeoutError",
+                    "post_behavior": "returns cached fallback",
+                    "status": "changed",
+                    "reviewer_note": "",
+                }
+            ],
+            "warnings": [],
+            "errors": [],
+        },
+    )
+
+    assert result["ok"] is False
+    assert any("reviewer_note is empty" in error for error in result["errors"])
 
 
 def test_post_task_check_applies_failure_completeness_checks():
@@ -156,15 +223,32 @@ def test_post_task_check_can_use_public_api_diff_for_refactor_interface_stabilit
             risk="medium",
             oversight="review-required",
             checks={
-                "test_names": [
-                    "tests/test_service.py::test_regression_contract",
-                    "tests/test_service.py::test_cleanup_release",
-                ],
-                "warnings": [],
-                "errors": [],
-            },
-            api_before_files=[before_file],
-            api_after_files=[after_file],
+            "test_names": [
+                "tests/test_service.py::test_regression_contract",
+                "tests/test_service.py::test_cleanup_release",
+            ],
+            "error_path_inventory": [
+                {
+                    "error_id": "ERR-001",
+                    "trigger": "Database timeout",
+                    "pre_refactor_behavior": "raises TimeoutError",
+                    "affected_by_refactor": True,
+                }
+            ],
+            "error_behavior_diff": [
+                {
+                    "error_id": "ERR-001",
+                    "pre_behavior": "raises TimeoutError",
+                    "post_behavior": "raises TimeoutError",
+                    "status": "unchanged",
+                    "reviewer_note": "",
+                }
+            ],
+            "warnings": [],
+            "errors": [],
+        },
+        api_before_files=[before_file],
+        api_after_files=[after_file],
         )
 
         assert result["public_api_diff"] is not None
@@ -191,15 +275,32 @@ def test_post_task_check_blocks_removed_public_api_for_refactor():
             risk="medium",
             oversight="review-required",
             checks={
-                "test_names": [
-                    "tests/test_service.py::test_regression_contract",
-                    "tests/test_service.py::test_cleanup_release",
-                ],
-                "warnings": [],
-                "errors": [],
-            },
-            api_before_files=[before_file],
-            api_after_files=[after_file],
+            "test_names": [
+                "tests/test_service.py::test_regression_contract",
+                "tests/test_service.py::test_cleanup_release",
+            ],
+            "error_path_inventory": [
+                {
+                    "error_id": "ERR-001",
+                    "trigger": "Database timeout",
+                    "pre_refactor_behavior": "raises TimeoutError",
+                    "affected_by_refactor": True,
+                }
+            ],
+            "error_behavior_diff": [
+                {
+                    "error_id": "ERR-001",
+                    "pre_behavior": "raises TimeoutError",
+                    "post_behavior": "raises TimeoutError",
+                    "status": "unchanged",
+                    "reviewer_note": "",
+                }
+            ],
+            "warnings": [],
+            "errors": [],
+        },
+        api_before_files=[before_file],
+        api_after_files=[after_file],
         )
 
         assert result["ok"] is False
@@ -266,6 +367,14 @@ def test_post_task_check_human_output_includes_evidence_summary():
             "test_names": [
                 "tests/test_service.py::test_regression_contract",
                 "tests/test_service.py::test_cleanup_release",
+            ],
+            "error_path_inventory": [
+                {
+                    "error_id": "ERR-001",
+                    "trigger": "Database timeout",
+                    "pre_refactor_behavior": "raises TimeoutError",
+                    "affected_by_refactor": False,
+                }
             ],
             "public_api_diff": {
                 "ok": True,

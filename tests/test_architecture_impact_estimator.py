@@ -43,7 +43,10 @@ def test_architecture_impact_estimator_escalates_refactor_with_api_changes(local
 
     assert result["ok"] is True
     assert "public-api-expansion-risk" in result["concerns"]
+    assert "error-path-coverage-required" in result["concerns"]
     assert "public-api-review" in result["required_evidence"]
+    assert "error-path-inventory" in result["required_evidence"]
+    assert "error-behavior-diff" in result["required_evidence"]
     assert result["recommended_oversight"] == "review-required"
     assert result["touched_layers"] == ["application"]
     assert "public_api_diff_checker" in result["expected_validators"]
@@ -124,4 +127,6 @@ def test_architecture_impact_estimator_human_output_is_readable(local_estimator_
     assert "recommended_risk=medium" in output
     assert "recommended_oversight=review-required" in output
     assert "touched_layers=application" in output
+    assert "concerns=public-api-expansion-risk,error-path-coverage-required" in output
     assert "expected_validators=architecture_drift_checker,public_api_diff_checker,refactor_evidence_validator" in output
+    assert "required_evidence=architecture-review,regression-evidence,interface-stability-evidence,cleanup-or-rollback-evidence,error-path-inventory,error-behavior-diff,public-api-review" in output

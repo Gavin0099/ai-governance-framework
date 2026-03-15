@@ -84,6 +84,8 @@ def _required_evidence(active_rules: list[str], drift_result: dict, api_result: 
                 "regression-evidence",
                 "interface-stability-evidence",
                 "cleanup-or-rollback-evidence",
+                "error-path-inventory",
+                "error-behavior-diff",
             ]
         )
 
@@ -186,6 +188,8 @@ def estimate_architecture_impact(
         concerns.append("public-api-break-risk")
     elif api_result and api_result.get("added"):
         concerns.append("public-api-expansion-risk")
+    if "refactor" in active_rules:
+        concerns.append("error-path-coverage-required")
     if "kernel-driver" in active_rules:
         concerns.append("high-privilege-platform-risk")
     if len(touched_layers) >= 2:

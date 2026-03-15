@@ -960,6 +960,12 @@ Failure-path completeness:
 - current categories: `invalid_input`, `boundary`, `failure_path`, optional `rollback_cleanup`
 - outputs normalized `warnings` / `errors` so the result can be merged into runtime `checks`
 
+Refactor evidence completeness:
+
+- `refactor_evidence_validator.py` still checks regression, interface stability, and cleanup evidence
+- it now also validates `error_path_inventory` and `error_behavior_diff` for refactor tasks
+- this validation checks structure and coverage consistency only; semantic correctness and exhaustiveness remain a reviewer and testing responsibility
+
 Rule-pack suggestion:
 
 - `rule_pack_suggester.py` suggests `language` and `framework` packs from repository signals
@@ -976,6 +982,7 @@ Architecture impact estimation:
 
 - `architecture_impact_estimator.py` combines drift signals and public API diff into a proposal-time `Governance Impact Report`
 - the report now includes `touched_layers`, `boundary_risk`, `expected_validators`, `required_evidence`, and recommended `risk` / `oversight`
+- for `refactor` scope, proposal-time evidence now also includes `error-path-inventory` and `error-behavior-diff`
 - use `--format human` when the estimator is meant to guide an operator or AI before implementation, rather than feed JSON into another tool
 - `state_generator.py` can include this same preview with `--impact-before/--impact-after`, keeping proposal context advisory rather than auto-mutating the runtime contract
 - `change_proposal_builder.py` packages task text, rule suggestions, and architecture impact into a single proposal artifact for humans, AI agents, or review tooling
