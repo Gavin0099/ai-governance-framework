@@ -741,6 +741,12 @@
   - it links to the generated release root
 - Updated README, changelog, release note, GitHub draft, and publish checklist so the release index is now part of the visible release surface instead of an implicit directory listing.
 
+## 2026-03-15 - Trust-Signal Publication Root Fix
+
+- Fixed `governance_tools/trust_signal_snapshot.py` so artifact-style publication (`--write-bundle` and/or `--publish-status-dir`) now also defaults `publication_root` instead of requiring a third explicit path.
+- This closes a clean-workspace CI bug where `trust_signal_publication_reader.py --file artifacts/trust-signals/.../PUBLICATION_MANIFEST.json` could fail even though local reruns passed because an old manifest already existed.
+- Added regression coverage in `tests/test_trust_signal_snapshot.py` for the new default publication-root behavior.
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

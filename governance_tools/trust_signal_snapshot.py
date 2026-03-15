@@ -133,6 +133,11 @@ def resolve_publication_paths(
         bundle_path = bundle_path or docs_root / "bundle"
         published_path = published_path or docs_root / "site"
         publication_path = publication_path or docs_root
+    elif publication_path is None:
+        if bundle_path is not None:
+            publication_path = bundle_path
+        elif published_path is not None:
+            publication_path = published_path.parent
 
     return bundle_path, published_path, publication_path
 

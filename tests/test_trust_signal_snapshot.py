@@ -185,6 +185,38 @@ def test_resolve_publication_paths_keeps_explicit_overrides(tmp_path):
     assert publication_root == explicit_root.resolve()
 
 
+def test_resolve_publication_paths_defaults_publication_root_to_bundle_dir(tmp_path):
+    project_root = tmp_path / "repo"
+    project_root.mkdir(parents=True, exist_ok=True)
+    bundle_dir = tmp_path / "bundle-out"
+    published_dir = bundle_dir / "published"
+
+    bundle_path, published_path, publication_root = resolve_publication_paths(
+        project_root=project_root,
+        write_bundle=str(bundle_dir),
+        publish_status_dir=str(published_dir),
+    )
+
+    assert bundle_path == bundle_dir.resolve()
+    assert published_path == published_dir.resolve()
+    assert publication_root == bundle_dir.resolve()
+
+
+def test_resolve_publication_paths_defaults_publication_root_to_published_parent(tmp_path):
+    project_root = tmp_path / "repo"
+    project_root.mkdir(parents=True, exist_ok=True)
+    published_dir = tmp_path / "published-out"
+
+    bundle_path, published_path, publication_root = resolve_publication_paths(
+        project_root=project_root,
+        publish_status_dir=str(published_dir),
+    )
+
+    assert bundle_path is None
+    assert published_path == published_dir.resolve()
+    assert publication_root == published_dir.resolve().parent
+
+
 def test_write_published_status_creates_latest_pages(tmp_path):
     project_root = Path(".").resolve()
     contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
