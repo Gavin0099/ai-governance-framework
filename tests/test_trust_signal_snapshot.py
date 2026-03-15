@@ -16,6 +16,16 @@ from governance_tools.trust_signal_snapshot import (
 )
 
 
+def _write_contract(repo_root: Path, contract_text: str, *, validator_names: list[str] | None = None) -> None:
+    repo_root.mkdir(parents=True, exist_ok=True)
+    (repo_root / "contract.yaml").write_text(contract_text, encoding="utf-8")
+    if validator_names:
+        validators_root = repo_root / "validators"
+        validators_root.mkdir(parents=True, exist_ok=True)
+        for name in validator_names:
+            (validators_root / name).write_text("# validator\n", encoding="utf-8")
+
+
 def test_build_trust_signal_snapshot_passes_on_repo_root():
     project_root = Path(".").resolve()
     contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
@@ -30,6 +40,37 @@ def test_build_trust_signal_snapshot_passes_on_repo_root():
     assert snapshot["ok"] is True
     assert snapshot["overview"]["release"]["ok"] is True
     assert snapshot["overview"]["auditor"]["ok"] is True
+
+
+def test_build_trust_signal_snapshot_can_include_external_contract_repos(tmp_path):
+    project_root = Path(".").resolve()
+    contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
+    repo = tmp_path / "ic-contract"
+    _write_contract(
+        repo,
+        "\n".join(
+            [
+                "name: ic-verification-contract",
+                "domain: ic-verification",
+                "validators:",
+                "  - validators/signal_map.py",
+                "hard_stop_rules:",
+                "  - ICV-001",
+            ]
+        ),
+        validator_names=["signal_map.py"],
+    )
+
+    snapshot = build_trust_signal_snapshot(
+        project_root=project_root,
+        plan_path=project_root / "PLAN.md",
+        release_version="v1.0.0-alpha",
+        contract_file=contract_file,
+        external_contract_repos=[repo],
+    )
+
+    assert snapshot["external_contract_repos"] == [str(repo.resolve())]
+    assert snapshot["overview"]["external_contract_policy"]["ok"] is True
 
 
 def test_write_snapshot_bundle_creates_latest_history_and_index(tmp_path):
@@ -154,6 +195,39 @@ def test_write_publication_manifest_links_bundle_and_published(tmp_path):
     assert manifest_payload["project_root"] == str(project_root)
     assert manifest_payload["bundle"]["latest_json"].endswith("latest.json")
     assert manifest_payload["published"]["latest_md"].endswith("trust-signal-latest.md")
+
+
+def test_write_publication_manifest_tracks_external_contract_policy(tmp_path):
+    project_root = Path(".").resolve()
+    contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
+    repo = tmp_path / "kernel-contract"
+    _write_contract(
+        repo,
+        "\n".join(
+            [
+                "name: kernel-driver-contract",
+                "domain: kernel-driver",
+                "validators:",
+                "  - validators/irql.py",
+                "hard_stop_rules:",
+                "  - KD-002",
+            ]
+        ),
+        validator_names=["irql.py"],
+    )
+    snapshot = build_trust_signal_snapshot(
+        project_root=project_root,
+        plan_path=project_root / "PLAN.md",
+        release_version="v1.0.0-alpha",
+        contract_file=contract_file,
+        external_contract_repos=[repo],
+    )
+
+    publication = write_publication_manifest(snapshot, tmp_path / "status")
+    manifest_payload = json.loads(Path(publication["manifest_json"]).read_text(encoding="utf-8"))
+
+    assert manifest_payload["external_contract_repo_count"] == 1
+    assert manifest_payload["external_contract_policy_ok"] is True
 
 
 def test_format_publication_index_is_summary_like():

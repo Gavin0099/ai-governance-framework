@@ -423,7 +423,7 @@ python governance_tools/quickstart_smoke.py --project-root . --plan PLAN.md --co
 If you want a higher-level release/adoption overview in one command:
 
 ```bash
-python governance_tools/trust_signal_overview.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --format human
+python governance_tools/trust_signal_overview.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --external-contract-repo D:/USB-Hub-Firmware-Architecture-Contract --external-contract-repo D:/Kernel-Driver-Contract --external-contract-repo D:/IC-Verification-Contract --format human
 ```
 
 If you want the same view persisted as a latest/history/index bundle:

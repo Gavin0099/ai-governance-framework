@@ -11,6 +11,7 @@ Use it when you want one place to understand:
 - whether bundled examples are still healthy
 - whether release-facing docs are aligned
 - whether the governance self-audit still passes
+- and, when provided, whether external domain repos still expose the expected enforcement posture
 
 ## Fastest Local Command
 
@@ -20,6 +21,9 @@ python governance_tools/trust_signal_overview.py \
   --plan PLAN.md \
   --release-version v1.0.0-alpha \
   --contract examples/usb-hub-contract/contract.yaml \
+  --external-contract-repo D:/USB-Hub-Firmware-Architecture-Contract \
+  --external-contract-repo D:/Kernel-Driver-Contract \
+  --external-contract-repo D:/IC-Verification-Contract \
   --format human
 ```
 
@@ -42,6 +46,9 @@ python governance_tools/trust_signal_snapshot.py \
   --plan PLAN.md \
   --release-version v1.0.0-alpha \
   --contract examples/usb-hub-contract/contract.yaml \
+  --external-contract-repo D:/USB-Hub-Firmware-Architecture-Contract \
+  --external-contract-repo D:/Kernel-Driver-Contract \
+  --external-contract-repo D:/IC-Verification-Contract \
   --write-bundle artifacts/trust-signals \
   --publish-status-dir artifacts/trust-signals/published \
   --format human

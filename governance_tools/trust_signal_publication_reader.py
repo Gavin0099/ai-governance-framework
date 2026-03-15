@@ -57,6 +57,11 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"release={result.get('release_version')}",
         f"bundle={result.get('bundle_published')}",
         f"published={result.get('status_pages_published')}",
+        (
+            f"external_contracts={result.get('external_contract_policy_ok')}"
+            if result.get("external_contract_repo_count") is not None
+            else None
+        ),
         f"contract={result.get('contract_path') or 'none'}",
     )
     lines = [
@@ -69,6 +74,8 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"publication_root={result.get('publication_root')}",
         f"release_version={result.get('release_version')}",
         f"contract_path={result.get('contract_path')}",
+        f"external_contract_repo_count={result.get('external_contract_repo_count')}",
+        f"external_contract_policy_ok={result.get('external_contract_policy_ok')}",
         f"strict_runtime={result.get('strict_runtime')}",
         f"bundle_published={result.get('bundle_published')}",
         f"status_pages_published={result.get('status_pages_published')}",

@@ -71,6 +71,7 @@
 - `IC-Verification-Contract` now also exercises a mixed enforcement model: machine-readable unknown-signal mismatches can hard-stop through `ICV-001`, while clock/reset declaration gaps remain advisory.
 - `USB-Hub-Firmware-Architecture-Contract` now also exercises mixed enforcement: `HUB-004` interrupt-safety violations can hard-stop, while broader firmware review still remains advisory-first.
 - The framework repo now also has a dedicated cross-domain enforcement view, so `hard_stop_rules` vs advisory-only policy can be compared without manually opening each external contract repo.
+- Trust-signal overview and snapshot publishing can now optionally include that same cross-domain enforcement view when external contract repos are provided, so release/status surfaces no longer need to stop at repo-local signals only.
 
 ## Next Steps
 

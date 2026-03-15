@@ -28,7 +28,7 @@ def _parse_contract_yaml(text: str) -> dict:
     current_list_key: str | None = None
 
     for line_number, raw_line in enumerate(text.splitlines(), start=1):
-        stripped = raw_line.strip()
+        stripped = raw_line.lstrip("\ufeff").strip()
         if not stripped or stripped.startswith("#"):
             continue
 
@@ -47,7 +47,7 @@ def _parse_contract_yaml(text: str) -> dict:
             raise ValueError(f"Invalid contract.yaml line {line_number}: {raw_line}")
 
         key, raw_value = stripped.split(":", 1)
-        key = key.strip()
+        key = key.strip().lstrip("\ufeff")
         value = raw_value.strip()
 
         if not value:

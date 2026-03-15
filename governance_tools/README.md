@@ -240,6 +240,9 @@ python governance_tools/trust_signal_overview.py \
   --plan PLAN.md \
   --release-version v1.0.0-alpha \
   --contract examples/usb-hub-contract/contract.yaml \
+  --external-contract-repo D:/USB-Hub-Firmware-Architecture-Contract \
+  --external-contract-repo D:/Kernel-Driver-Contract \
+  --external-contract-repo D:/IC-Verification-Contract \
   --format human
 ```
 
@@ -249,6 +252,7 @@ human output 會先給一行 reviewer-first `summary=...`，快速告訴你：
 - examples 是否健康
 - release-facing 文件是否對齊
 - 高層 auditor 是否健康
+- 若提供 external repos，也會一起顯示 cross-domain enforcement posture
 
 這個工具適合用在：
 
@@ -270,6 +274,9 @@ python governance_tools/trust_signal_snapshot.py \
   --plan PLAN.md \
   --release-version v1.0.0-alpha \
   --contract examples/usb-hub-contract/contract.yaml \
+  --external-contract-repo D:/USB-Hub-Firmware-Architecture-Contract \
+  --external-contract-repo D:/Kernel-Driver-Contract \
+  --external-contract-repo D:/IC-Verification-Contract \
   --write-bundle artifacts/trust-signals \
   --publish-status-dir artifacts/trust-signals/published \
   --format human
@@ -287,6 +294,11 @@ python governance_tools/trust_signal_snapshot.py \
 - `MANIFEST.json`
 - `PUBLICATION_MANIFEST.json`
 - `PUBLICATION_INDEX.md`
+
+若有提供 external repos，snapshot 與 publication manifest 也會帶：
+
+- `external_contract_repo_count`
+- `external_contract_policy_ok`
 - published status pages such as:
   - `published/trust-signal-latest.md`
   - `published/trust-signal-latest.json`
@@ -322,6 +334,7 @@ python governance_tools/trust_signal_publication_reader.py \
 - 想快速知道目前 trust-signal publication 是否健康
 - 想從 publication metadata 反查 bundle 與 published status 頁面
 - 需要一條穩定 reader 命令，而不是直接解析 JSON 檔案
+- 想確認發布結果是否也包含 external domain enforcement posture
 
 ---
 

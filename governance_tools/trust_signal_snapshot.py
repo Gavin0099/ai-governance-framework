@@ -22,12 +22,19 @@ from governance_tools.trust_signal_overview import (
 )
 
 
+def _external_contract_policy_ok(snapshot: dict[str, Any]) -> bool | None:
+    overview = snapshot.get("overview") or {}
+    policy = overview.get("external_contract_policy") or {}
+    return policy.get("ok")
+
+
 def build_trust_signal_snapshot(
     *,
     project_root: Path,
     plan_path: Path,
     release_version: str,
     contract_file: Path | None = None,
+    external_contract_repos: list[Path] | None = None,
     strict_runtime: bool = False,
 ) -> dict[str, Any]:
     overview = assess_trust_signal_overview(
@@ -35,6 +42,7 @@ def build_trust_signal_snapshot(
         plan_path=plan_path,
         release_version=release_version,
         contract_file=contract_file,
+        external_contract_repos=external_contract_repos,
         strict_runtime=strict_runtime,
     )
     return {
@@ -44,6 +52,7 @@ def build_trust_signal_snapshot(
         "plan_path": overview["plan_path"],
         "release_version": overview["release_version"],
         "contract_path": overview.get("contract_path"),
+        "external_contract_repos": overview.get("external_contract_repos") or [],
         "strict_runtime": overview["strict_runtime"],
         "overview": overview,
     }
@@ -112,6 +121,9 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
                 "generated_at": snapshot["generated_at"],
                 "release_version": snapshot["release_version"],
                 "contract_path": snapshot.get("contract_path"),
+                "external_contract_repos": snapshot.get("external_contract_repos") or [],
+                "external_contract_policy_ok": _external_contract_policy_ok(snapshot),
+                "external_contract_repo_count": len(snapshot.get("external_contract_repos") or []),
                 "strict_runtime": snapshot["strict_runtime"],
                 "latest": {
                     "json": str(latest_json),
@@ -154,6 +166,7 @@ def format_published_status_page(snapshot: dict[str, Any]) -> str:
         f"- Release version: `{snapshot['release_version']}`",
         f"- Project root: `{snapshot['project_root']}`",
         f"- Contract path: `{snapshot.get('contract_path')}`",
+        f"- External contract repos: `{len(snapshot.get('external_contract_repos') or [])}`",
         f"- Strict runtime: `{snapshot['strict_runtime']}`",
         "",
         format_markdown_result(snapshot["overview"]),
@@ -232,6 +245,9 @@ def write_published_status(snapshot: dict[str, Any], publish_dir: Path) -> dict[
                 "generated_at": snapshot["generated_at"],
                 "release_version": snapshot["release_version"],
                 "contract_path": snapshot.get("contract_path"),
+                "external_contract_repos": snapshot.get("external_contract_repos") or [],
+                "external_contract_policy_ok": _external_contract_policy_ok(snapshot),
+                "external_contract_repo_count": len(snapshot.get("external_contract_repos") or []),
                 "strict_runtime": snapshot["strict_runtime"],
                 "published": {
                     "markdown": str(latest_md),
@@ -274,6 +290,8 @@ def format_publication_index(
         f"- Generated at: `{snapshot['generated_at']}`",
         f"- Release version: `{snapshot['release_version']}`",
         f"- Contract path: `{snapshot.get('contract_path')}`",
+        f"- External contract repos: `{len(snapshot.get('external_contract_repos') or [])}`",
+        f"- External contract policy OK: `{_external_contract_policy_ok(snapshot)}`",
         f"- Strict runtime: `{snapshot['strict_runtime']}`",
         "",
         "## Surfaces",
@@ -335,6 +353,9 @@ def write_publication_manifest(
         "publication_root": str(root_dir),
         "release_version": snapshot["release_version"],
         "contract_path": snapshot.get("contract_path"),
+        "external_contract_repos": snapshot.get("external_contract_repos") or [],
+        "external_contract_policy_ok": _external_contract_policy_ok(snapshot),
+        "external_contract_repo_count": len(snapshot.get("external_contract_repos") or []),
         "strict_runtime": snapshot["strict_runtime"],
         "bundle_published": bundle_paths is not None,
         "status_pages_published": published_paths is not None,
@@ -363,6 +384,7 @@ def main() -> int:
     parser.add_argument("--plan", default="PLAN.md")
     parser.add_argument("--release-version", required=True)
     parser.add_argument("--contract")
+    parser.add_argument("--external-contract-repo", action="append", default=[])
     parser.add_argument("--strict-runtime", action="store_true")
     parser.add_argument("--format", choices=("human", "json", "markdown"), default="human")
     parser.add_argument("--output")
@@ -375,6 +397,7 @@ def main() -> int:
         plan_path=Path(args.plan),
         release_version=args.release_version,
         contract_file=Path(args.contract).resolve() if args.contract else None,
+        external_contract_repos=[Path(item).resolve() for item in args.external_contract_repo],
         strict_runtime=args.strict_runtime,
     )
 
@@ -435,3 +458,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

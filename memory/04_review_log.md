@@ -588,6 +588,15 @@
 - Added `docs/status/domain-enforcement-matrix.md` as the stable in-repo landing page for this view.
 - This reduces multi-domain policy review from "open three repos and inspect `contract.yaml` by hand" to one framework-level command and one stable status page.
 
+## 2026-03-15 - Trust Signal Publishing Can Include External Contract Policy
+
+- Extended `trust_signal_overview.py` so it can optionally include external contract enforcement posture through repeated `--external-contract-repo`.
+- Extended `trust_signal_snapshot.py` and publication manifests so this same cross-domain policy view can flow into published status artifacts.
+- Extended `trust_signal_publication_reader.py` so publication summaries now surface:
+  - `external_contract_repo_count`
+  - `external_contract_policy_ok`
+- This keeps trust-signal publishing aligned with the newer multi-domain enforcement view instead of leaving it stranded as a standalone tool.
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

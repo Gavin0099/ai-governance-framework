@@ -56,6 +56,8 @@ def test_format_human_result_surfaces_summary_and_paths(tmp_path):
                 "publication_root": str(tmp_path),
                 "release_version": "v1.0.0-alpha",
                 "contract_path": "examples/usb-hub-contract/contract.yaml",
+                "external_contract_repo_count": 3,
+                "external_contract_policy_ok": True,
                 "strict_runtime": False,
                 "bundle_published": True,
                 "status_pages_published": True,
@@ -84,6 +86,7 @@ def test_format_human_result_surfaces_summary_and_paths(tmp_path):
     rendered = format_human_result(assess_publication_manifest(manifest_path))
 
     assert rendered.startswith("summary=ok=True")
+    assert "external_contracts=True" in rendered
     assert "release=v1.0.0-alpha" in rendered
     assert "[bundle]" in rendered
     assert "[published]" in rendered
