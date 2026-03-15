@@ -38,6 +38,7 @@ $env:AI_GOVERNANCE_PYTHON='C:\Path\To\python.exe'
 | [quickstart_smoke.py](#quickstart_smokepy) | 最小上手流程驗證 | onboarding / quickstart |
 | [example_readiness.py](#example_readinesspy) | 範例集健康度檢查 | onboarding / examples |
 | [reviewer_handoff_reader.py](#reviewer_handoff_readerpy) | reviewer handoff manifest reader | reviewer packet consumption |
+| [reviewer_handoff_publication_reader.py](#reviewer_handoff_publication_readerpy) | reviewer handoff publication reader | reviewer packet publication consumption |
 | [reviewer_handoff_snapshot.py](#reviewer_handoff_snapshotpy) | reviewer handoff snapshot bundle | reviewer packet publishing |
 | [reviewer_handoff_summary.py](#reviewer_handoff_summarypy) | reviewer handoff 單一總覽 | release / trust / reviewer handoff |
 | [release_surface_overview.py](#release_surface_overviewpy) | release surfaces 高層總覽 | release prep / reviewer entrypoint |
@@ -245,6 +246,7 @@ CI 也會把它寫到：
 - `artifacts/reviewer-handoff/v1.0.0-alpha/latest.json`
 - `artifacts/reviewer-handoff/v1.0.0-alpha/latest.md`
 - `artifacts/reviewer-handoff/v1.0.0-alpha/MANIFEST.json`
+- `artifacts/reviewer-handoff/v1.0.0-alpha/PUBLICATION_MANIFEST.json`
 
 ---
 
@@ -270,6 +272,8 @@ python governance_tools/reviewer_handoff_snapshot.py \
 - `history/*`
 - `INDEX.md`
 - `MANIFEST.json`
+- `PUBLICATION_MANIFEST.json`
+- `PUBLICATION_INDEX.md`
 - `README.md`
 
 這個工具特別適合用在：
@@ -300,6 +304,29 @@ python governance_tools/reviewer_handoff_reader.py \
 - reviewer 只想看最高層 packet 是否健康
 - 不想手開 `MANIFEST.json`
 - 想讓 reviewer handoff 路徑也和 trust-signal / release-package 一樣有 stable reader flow
+
+---
+
+## reviewer_handoff_publication_reader.py
+
+讀取 `reviewer_handoff_snapshot.py` 產生的 `PUBLICATION_MANIFEST.json`，把 reviewer packet 的 publication layer 轉成固定的 summary-first output。
+
+```bash
+python governance_tools/reviewer_handoff_publication_reader.py \
+  --release-version v1.0.0-alpha \
+  --file artifacts/reviewer-handoff/v1.0.0-alpha/PUBLICATION_MANIFEST.json \
+  --format human
+```
+
+若不指定 `--file`，預設會讀：
+
+- `artifacts/reviewer-handoff/v1.0.0-alpha/PUBLICATION_MANIFEST.json`
+
+這個工具特別適合用在：
+
+- reviewer 想先看 publication layer 是否完整
+- 想知道 bundle publication scope / latest/history/readme 是否都在
+- 想讓 reviewer handoff artifact 也有和 trust-signal / release-package 相同的 publication reader 形狀
 
 ---
 

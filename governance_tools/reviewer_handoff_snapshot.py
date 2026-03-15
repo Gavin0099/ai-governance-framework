@@ -115,6 +115,8 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
     history_md = history_dir / f"{stem}.md"
     index_md = bundle_dir / "INDEX.md"
     manifest_json = bundle_dir / "MANIFEST.json"
+    publication_manifest_json = bundle_dir / "PUBLICATION_MANIFEST.json"
+    publication_index_md = bundle_dir / "PUBLICATION_INDEX.md"
     readme_md = bundle_dir / "README.md"
 
     handoff = snapshot["handoff"]
@@ -164,6 +166,64 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
         + "\n",
         encoding="utf-8",
     )
+    publication_manifest_json.write_text(
+        json.dumps(
+            {
+                "ok": snapshot["ok"],
+                "generated_at": snapshot["generated_at"],
+                "project_root": snapshot["project_root"],
+                "publication_root": str(bundle_dir),
+                "publication_scope": "bundle",
+                "plan_path": snapshot["plan_path"],
+                "release_version": snapshot["release_version"],
+                "contract_path": snapshot.get("contract_path"),
+                "external_contract_repos": snapshot.get("external_contract_repos") or [],
+                "external_contract_repo_count": len(snapshot.get("external_contract_repos") or []),
+                "strict_runtime": snapshot["strict_runtime"],
+                "trust_ok": trust.get("ok"),
+                "release_ok": release.get("ok"),
+                "latest_json": str(latest_json),
+                "latest_txt": str(latest_txt),
+                "latest_md": str(latest_md),
+                "history_json": str(history_json),
+                "history_txt": str(history_txt),
+                "history_md": str(history_md),
+                "index_md": str(index_md),
+                "manifest_json": str(manifest_json),
+                "readme_md": str(readme_md),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    publication_index_md.write_text(
+        "\n".join(
+            [
+                "# Reviewer Handoff Publication Index",
+                "",
+                f"- Publication scope: `bundle`",
+                f"- Release version: `{snapshot['release_version']}`",
+                f"- Generated at: `{snapshot['generated_at']}`",
+                f"- OK: `{snapshot['ok']}`",
+                "",
+                "## Paths",
+                "",
+                f"- Latest JSON: `{latest_json}`",
+                f"- Latest Text: `{latest_txt}`",
+                f"- Latest Markdown: `{latest_md}`",
+                f"- History JSON: `{history_json}`",
+                f"- History Text: `{history_txt}`",
+                f"- History Markdown: `{history_md}`",
+                f"- Bundle Index: `{index_md}`",
+                f"- Bundle Manifest: `{manifest_json}`",
+                f"- Bundle README: `{readme_md}`",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     readme_md.write_text(
         "\n".join(
             [
@@ -182,6 +242,7 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
                 "- [Latest JSON Snapshot](latest.json)",
                 "- [History Index](INDEX.md)",
                 "- `MANIFEST.json`",
+                "- `PUBLICATION_MANIFEST.json`",
             ]
         )
         + "\n",
@@ -197,6 +258,8 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
         "history_md": str(history_md),
         "index_md": str(index_md),
         "manifest_json": str(manifest_json),
+        "publication_manifest_json": str(publication_manifest_json),
+        "publication_index_md": str(publication_index_md),
         "readme_md": str(readme_md),
     }
 

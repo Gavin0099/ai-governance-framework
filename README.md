@@ -499,6 +499,12 @@ If you want a stable reader over that reviewer packet:
 python governance_tools/reviewer_handoff_reader.py --release-version v1.0.0-alpha --file artifacts/reviewer-handoff/v1.0.0-alpha/MANIFEST.json --format human
 ```
 
+If you want the publication-layer summary over that same reviewer packet:
+
+```bash
+python governance_tools/reviewer_handoff_publication_reader.py --release-version v1.0.0-alpha --file artifacts/reviewer-handoff/v1.0.0-alpha/PUBLICATION_MANIFEST.json --format human
+```
+
 If you publish repo-local generated release packages, the stable landing path becomes:
 
 - `docs/releases/generated/README.md`

@@ -50,6 +50,8 @@ def test_write_reviewer_handoff_snapshot_bundle_creates_latest_history_manifest(
     assert Path(bundle["history_md"]).is_file()
     assert Path(bundle["index_md"]).is_file()
     assert Path(bundle["manifest_json"]).is_file()
+    assert Path(bundle["publication_manifest_json"]).is_file()
+    assert Path(bundle["publication_index_md"]).is_file()
     assert Path(bundle["readme_md"]).is_file()
 
     manifest = json.loads(Path(bundle["manifest_json"]).read_text(encoding="utf-8"))
@@ -59,6 +61,10 @@ def test_write_reviewer_handoff_snapshot_bundle_creates_latest_history_manifest(
     assert manifest["trust_ok"] is True
     assert manifest["release_ok"] is True
     assert "# Reviewer Handoff Snapshot" in Path(bundle["readme_md"]).read_text(encoding="utf-8")
+    publication = json.loads(Path(bundle["publication_manifest_json"]).read_text(encoding="utf-8"))
+    assert publication["publication_scope"] == "bundle"
+    assert publication["ok"] is True
+    assert publication["release_version"] == "v1.0.0-alpha"
 
 
 def test_format_index_handles_empty_history(tmp_path):

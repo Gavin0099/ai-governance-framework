@@ -777,6 +777,14 @@
 - Added `governance_tools/reviewer_handoff_reader.py` so that bundle can be consumed through a stable reviewer-first summary instead of opening raw manifest JSON.
 - Updated phase gates and CI so reviewer-handoff artifacts are now emitted as a versioned bundle under `artifacts/reviewer-handoff/`, not only as three flat output files.
 
+## 2026-03-15 - Reviewer Handoff Publication Reader
+
+- Extended `governance_tools/reviewer_handoff_snapshot.py` so reviewer-handoff bundles now also emit:
+  - `PUBLICATION_MANIFEST.json`
+  - `PUBLICATION_INDEX.md`
+- Added `governance_tools/reviewer_handoff_publication_reader.py` so the reviewer packet now has a publication-layer reader flow, matching the pattern already used by trust-signal and release-package artifacts.
+- Updated phase gates, CI, and release-readiness checks so this publication layer is part of the normal regression surface instead of a documentation-only convention.
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

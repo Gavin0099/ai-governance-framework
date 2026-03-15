@@ -297,9 +297,29 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
             "reviewer handoff page does not mention the reviewer handoff tool",
         )
         add_check(
+            "reviewer_handoff_snapshot_command",
+            "reviewer_handoff_snapshot.py" in reviewer_handoff_text,
+            "reviewer handoff page does not mention the snapshot tool",
+        )
+        add_check(
+            "reviewer_handoff_reader_command",
+            "reviewer_handoff_reader.py" in reviewer_handoff_text,
+            "reviewer handoff page does not mention the reviewer-handoff reader",
+        )
+        add_check(
+            "reviewer_handoff_publication_reader_command",
+            "reviewer_handoff_publication_reader.py" in reviewer_handoff_text,
+            "reviewer handoff page does not mention the publication reader",
+        )
+        add_check(
             "reviewer_handoff_artifact_path",
             "artifacts/reviewer-handoff/" in reviewer_handoff_text,
             "reviewer handoff page does not mention the reviewer-handoff artifact path",
+        )
+        add_check(
+            "reviewer_handoff_publication_manifest_path",
+            "PUBLICATION_MANIFEST.json" in reviewer_handoff_text,
+            "reviewer handoff page does not mention the publication manifest path",
         )
 
     if generated_release_root_text:

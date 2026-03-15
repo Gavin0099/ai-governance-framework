@@ -76,6 +76,7 @@ TOOLS=(
     "governance_auditor.py"
     "quickstart_smoke.py"
     "reviewer_handoff_reader.py"
+    "reviewer_handoff_publication_reader.py"
     "reviewer_handoff_snapshot.py"
     "reviewer_handoff_summary.py"
     "release_surface_overview.py"
@@ -164,6 +165,12 @@ if "${PYTHON_CMD[@]}" governance_tools/reviewer_handoff_reader.py --release-vers
     ok "reviewer_handoff_reader.py $RELEASE_VERSION"
 else
     fail "reviewer_handoff_reader.py $RELEASE_VERSION 失敗"
+    ALL_OK=0
+fi
+if "${PYTHON_CMD[@]}" governance_tools/reviewer_handoff_publication_reader.py --release-version "$RELEASE_VERSION" --file artifacts/reviewer-handoff/phase-gate-smoke/PUBLICATION_MANIFEST.json --format human > /dev/null 2>&1; then
+    ok "reviewer_handoff_publication_reader.py $RELEASE_VERSION"
+else
+    fail "reviewer_handoff_publication_reader.py $RELEASE_VERSION 失敗"
     ALL_OK=0
 fi
 if "${PYTHON_CMD[@]}" governance_tools/governance_auditor.py --project-root . --release-version "$RELEASE_VERSION" --format human > /dev/null 2>&1; then

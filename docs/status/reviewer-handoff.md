@@ -51,6 +51,15 @@ python governance_tools/reviewer_handoff_reader.py \
   --format human
 ```
 
+If you want the publication-layer summary over that same bundle:
+
+```bash
+python governance_tools/reviewer_handoff_publication_reader.py \
+  --release-version v1.0.0-alpha \
+  --file artifacts/reviewer-handoff/v1.0.0-alpha/PUBLICATION_MANIFEST.json \
+  --format human
+```
+
 ## When To Use This Page
 
 Use this first when you want:
@@ -75,6 +84,8 @@ CI now emits reviewer handoff artifacts under:
 - `artifacts/reviewer-handoff/v1.0.0-alpha/latest.md`
 - `artifacts/reviewer-handoff/v1.0.0-alpha/INDEX.md`
 - `artifacts/reviewer-handoff/v1.0.0-alpha/MANIFEST.json`
+- `artifacts/reviewer-handoff/v1.0.0-alpha/PUBLICATION_MANIFEST.json`
+- `artifacts/reviewer-handoff/v1.0.0-alpha/PUBLICATION_INDEX.md`
 
 These artifacts are intended to be the highest-level reviewer packet when
 sharing pipeline output.
