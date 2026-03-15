@@ -766,6 +766,17 @@
 - Updated `docs/status/README.md` so status reading order now starts with reviewer handoff before trust/release drill-down pages.
 - Extended `release_readiness.py` and `tests/test_release_readiness.py` so the reviewer-handoff page is now part of the machine-checked alpha status surface.
 
+## 2026-03-15 - Reviewer Handoff Snapshot And Reader
+
+- Added `governance_tools/reviewer_handoff_snapshot.py` so the highest-level reviewer packet can now be preserved as:
+  - `latest.*`
+  - `history/*`
+  - `INDEX.md`
+  - `MANIFEST.json`
+  - `README.md`
+- Added `governance_tools/reviewer_handoff_reader.py` so that bundle can be consumed through a stable reviewer-first summary instead of opening raw manifest JSON.
+- Updated phase gates and CI so reviewer-handoff artifacts are now emitted as a versioned bundle under `artifacts/reviewer-handoff/`, not only as three flat output files.
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

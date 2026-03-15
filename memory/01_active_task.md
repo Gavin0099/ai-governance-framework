@@ -93,6 +93,10 @@
 - CI now also emits that same release-surface overview under `artifacts/release-surface/`, so the reviewer entrypoint is preserved after the run instead of only at local CLI time.
 - The repo now also has a single reviewer packet via `governance_tools/reviewer_handoff_summary.py`, and CI preserves it under `artifacts/reviewer-handoff/` so trust and release surfaces can be handed off together.
 - `docs/status/reviewer-handoff.md` now turns that reviewer packet into a first-class status page, and release readiness checks it as part of the visible alpha status surface.
+- Reviewer handoff now also has its own snapshot/reader flow:
+  - `governance_tools/reviewer_handoff_snapshot.py`
+  - `governance_tools/reviewer_handoff_reader.py`
+  - CI now preserves reviewer-handoff output as a versioned latest/history/index/manifest bundle instead of only three flat files.
 
 ## Next Steps
 

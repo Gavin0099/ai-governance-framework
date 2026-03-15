@@ -37,6 +37,8 @@ $env:AI_GOVERNANCE_PYTHON='C:\Path\To\python.exe'
 | [contract_validator.py](#contract_validatorpy) | AI 初始化合規驗證 | CI gate |
 | [quickstart_smoke.py](#quickstart_smokepy) | 最小上手流程驗證 | onboarding / quickstart |
 | [example_readiness.py](#example_readinesspy) | 範例集健康度檢查 | onboarding / examples |
+| [reviewer_handoff_reader.py](#reviewer_handoff_readerpy) | reviewer handoff manifest reader | reviewer packet consumption |
+| [reviewer_handoff_snapshot.py](#reviewer_handoff_snapshotpy) | reviewer handoff snapshot bundle | reviewer packet publishing |
 | [reviewer_handoff_summary.py](#reviewer_handoff_summarypy) | reviewer handoff 單一總覽 | release / trust / reviewer handoff |
 | [release_surface_overview.py](#release_surface_overviewpy) | release surfaces 高層總覽 | release prep / reviewer entrypoint |
 | [release_package_publication_reader.py](#release_package_publication_readerpy) | release package publication reader | release prep / stable generated root |
@@ -239,9 +241,65 @@ python governance_tools/reviewer_handoff_summary.py \
 
 CI 也會把它寫到：
 
-- `artifacts/reviewer-handoff/reviewer_handoff_summary.txt`
-- `artifacts/reviewer-handoff/reviewer_handoff_summary.json`
-- `artifacts/reviewer-handoff/reviewer_handoff_summary.md`
+- `artifacts/reviewer-handoff/v1.0.0-alpha/latest.txt`
+- `artifacts/reviewer-handoff/v1.0.0-alpha/latest.json`
+- `artifacts/reviewer-handoff/v1.0.0-alpha/latest.md`
+- `artifacts/reviewer-handoff/v1.0.0-alpha/MANIFEST.json`
+
+---
+
+## reviewer_handoff_snapshot.py
+
+把 `reviewer_handoff_summary.py` 再提升成 latest/history/index/manifest 的 reviewer packet bundle。
+
+```bash
+python governance_tools/reviewer_handoff_snapshot.py \
+  --project-root . \
+  --plan PLAN.md \
+  --release-version v1.0.0-alpha \
+  --contract examples/usb-hub-contract/contract.yaml \
+  --write-bundle artifacts/reviewer-handoff/v1.0.0-alpha \
+  --format human
+```
+
+會寫出：
+
+- `latest.json`
+- `latest.txt`
+- `latest.md`
+- `history/*`
+- `INDEX.md`
+- `MANIFEST.json`
+- `README.md`
+
+這個工具特別適合用在：
+
+- 想把最高層 reviewer packet 變成可追蹤 artifact，而不是只看一次 CLI
+- 想讓 CI / local handoff 都維持同一種 bundle 形狀
+- 想讓 trust/release 綜合視圖也有 stable read path
+
+---
+
+## reviewer_handoff_reader.py
+
+讀取 `reviewer_handoff_snapshot.py` 產生的 `MANIFEST.json`，把 reviewer packet bundle 轉成固定的 summary-first human output。
+
+```bash
+python governance_tools/reviewer_handoff_reader.py \
+  --release-version v1.0.0-alpha \
+  --file artifacts/reviewer-handoff/v1.0.0-alpha/MANIFEST.json \
+  --format human
+```
+
+若不指定 `--file`，預設會讀：
+
+- `artifacts/reviewer-handoff/v1.0.0-alpha/MANIFEST.json`
+
+這個工具特別適合用在：
+
+- reviewer 只想看最高層 packet 是否健康
+- 不想手開 `MANIFEST.json`
+- 想讓 reviewer handoff 路徑也和 trust-signal / release-package 一樣有 stable reader flow
 
 ---
 

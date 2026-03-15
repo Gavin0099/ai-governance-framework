@@ -30,6 +30,27 @@ This command aggregates:
 
 So the first pass is one summary, not two different tool families.
 
+If you want the same reviewer packet preserved as a latest/history/index bundle:
+
+```bash
+python governance_tools/reviewer_handoff_snapshot.py \
+  --project-root . \
+  --plan PLAN.md \
+  --release-version v1.0.0-alpha \
+  --contract examples/usb-hub-contract/contract.yaml \
+  --write-bundle artifacts/reviewer-handoff/v1.0.0-alpha \
+  --format human
+```
+
+To read that generated bundle back as a stable summary:
+
+```bash
+python governance_tools/reviewer_handoff_reader.py \
+  --release-version v1.0.0-alpha \
+  --file artifacts/reviewer-handoff/v1.0.0-alpha/MANIFEST.json \
+  --format human
+```
+
 ## When To Use This Page
 
 Use this first when you want:
@@ -49,9 +70,11 @@ Use this first when you want:
 
 CI now emits reviewer handoff artifacts under:
 
-- `artifacts/reviewer-handoff/reviewer_handoff_summary.txt`
-- `artifacts/reviewer-handoff/reviewer_handoff_summary.json`
-- `artifacts/reviewer-handoff/reviewer_handoff_summary.md`
+- `artifacts/reviewer-handoff/v1.0.0-alpha/latest.txt`
+- `artifacts/reviewer-handoff/v1.0.0-alpha/latest.json`
+- `artifacts/reviewer-handoff/v1.0.0-alpha/latest.md`
+- `artifacts/reviewer-handoff/v1.0.0-alpha/INDEX.md`
+- `artifacts/reviewer-handoff/v1.0.0-alpha/MANIFEST.json`
 
 These artifacts are intended to be the highest-level reviewer packet when
 sharing pipeline output.

@@ -487,6 +487,18 @@ If you want a single reviewer handoff that combines trust/adoption signals with 
 python governance_tools/reviewer_handoff_summary.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --format human
 ```
 
+If you want the same reviewer packet preserved as a bundle:
+
+```bash
+python governance_tools/reviewer_handoff_snapshot.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --write-bundle artifacts/reviewer-handoff/v1.0.0-alpha --format human
+```
+
+If you want a stable reader over that reviewer packet:
+
+```bash
+python governance_tools/reviewer_handoff_reader.py --release-version v1.0.0-alpha --file artifacts/reviewer-handoff/v1.0.0-alpha/MANIFEST.json --format human
+```
+
 If you publish repo-local generated release packages, the stable landing path becomes:
 
 - `docs/releases/generated/README.md`
