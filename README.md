@@ -36,6 +36,7 @@ Current release-facing status:
 
 - version: `v1.0.0-alpha`
 - release notes: [docs/releases/v1.0.0-alpha.md](docs/releases/v1.0.0-alpha.md)
+- release index: [docs/releases/README.md](docs/releases/README.md)
 - changelog: [CHANGELOG.md](CHANGELOG.md)
 - known limits: [docs/LIMITATIONS.md](docs/LIMITATIONS.md)
 - status index: [docs/status/README.md](docs/status/README.md)

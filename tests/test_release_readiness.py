@@ -11,6 +11,9 @@ def test_release_readiness_passes_for_current_alpha():
 
     assert result["ok"] is True
     assert any(item["name"] == "release_note" and item["ok"] for item in result["checks"])
+    assert any(item["name"] == "release_index" and item["ok"] for item in result["checks"])
+    assert any(item["name"] == "release_index_version_link" and item["ok"] for item in result["checks"])
+    assert any(item["name"] == "release_index_generated_root_link" and item["ok"] for item in result["checks"])
     assert any(item["name"] == "github_release_draft" and item["ok"] for item in result["checks"])
     assert any(item["name"] == "publish_checklist" and item["ok"] for item in result["checks"])
     assert any(item["name"] == "alpha_checklist" and item["ok"] for item in result["checks"])

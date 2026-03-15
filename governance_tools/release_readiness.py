@@ -20,6 +20,7 @@ from governance_tools.human_summary import build_summary_line
 def assess_release_readiness(project_root: Path, *, version: str) -> dict:
     readme_path = project_root / "README.md"
     changelog_path = project_root / "CHANGELOG.md"
+    release_index_path = project_root / "docs" / "releases" / "README.md"
     release_note_path = project_root / "docs" / "releases" / f"{version}.md"
     github_release_draft_path = project_root / "docs" / "releases" / f"{version}-github-release.md"
     publish_checklist_path = project_root / "docs" / "releases" / f"{version}-publish-checklist.md"
@@ -41,6 +42,7 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
             errors.append(f"{name}: {detail}")
 
     add_check("release_note", release_note_path.is_file(), "missing docs/releases release note")
+    add_check("release_index", release_index_path.is_file(), "missing docs/releases/README.md")
     add_check("github_release_draft", github_release_draft_path.is_file(), "missing docs/releases github release draft")
     add_check("publish_checklist", publish_checklist_path.is_file(), "missing docs/releases publish checklist")
     add_check("alpha_checklist", alpha_checklist_path.is_file(), "missing docs/releases/alpha-checklist.md")
@@ -54,6 +56,7 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
 
     readme_text = readme_path.read_text(encoding="utf-8") if readme_path.is_file() else ""
     changelog_text = changelog_path.read_text(encoding="utf-8") if changelog_path.is_file() else ""
+    release_index_text = release_index_path.read_text(encoding="utf-8") if release_index_path.is_file() else ""
     release_note_text = release_note_path.read_text(encoding="utf-8") if release_note_path.is_file() else ""
     github_release_draft_text = (
         github_release_draft_path.read_text(encoding="utf-8") if github_release_draft_path.is_file() else ""
@@ -92,6 +95,18 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
             "changelog_release_link",
             f"docs/releases/{version}.md" in changelog_text,
             "CHANGELOG.md does not link to the release note",
+        )
+
+    if release_index_text:
+        add_check(
+            "release_index_version_link",
+            f"{version}.md" in release_index_text,
+            "release index does not link to the current release note",
+        )
+        add_check(
+            "release_index_generated_root_link",
+            "generated/README.md" in release_index_text,
+            "release index does not link to the generated release root",
         )
 
     if release_note_text:
@@ -281,6 +296,7 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
         "paths": {
             "readme": str(readme_path),
             "changelog": str(changelog_path),
+            "release_index": str(release_index_path),
             "release_note": str(release_note_path),
             "github_release_draft": str(github_release_draft_path),
             "publish_checklist": str(publish_checklist_path),

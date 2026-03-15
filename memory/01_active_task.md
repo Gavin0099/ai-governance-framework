@@ -86,6 +86,7 @@
 - The release surface now also includes `governance_tools/release_package_reader.py`, so generated release-package bundles can now be consumed through a stable reader flow instead of opening `MANIFEST.json` by hand.
 - Repo-local release-package publishing now also maintains a stable generated root under `docs/releases/generated/`, reducing the need to know the exact version subdirectory before consuming the latest package.
 - The generated release root now also has a dedicated publication reader, making the latest release-package state consumable without opening raw metadata files.
+- Release-facing docs now also have a stable index under `docs/releases/README.md`, reducing reliance on direct deep links to a single version file.
 - CI now also emits `artifacts/release-package/`, so release-package evidence is preserved even when generated docs paths are not used locally.
 
 ## Next Steps

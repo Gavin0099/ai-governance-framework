@@ -725,6 +725,15 @@
 - CI now also runs `release_package_publication_reader.py` against the generated publication manifest, so the artifact is both produced and consumed in pipeline.
 - Updated release docs and README so the CI release-package artifact bundle is part of the visible alpha trust signal surface.
 
+## 2026-03-15 - Stable Release Index
+
+- Added `docs/releases/README.md` as the stable entry point for release-facing artifacts.
+- Extended `release_readiness.py` so release readiness now checks:
+  - the release index exists
+  - it links to the current release note
+  - it links to the generated release root
+- Updated README, changelog, release note, GitHub draft, and publish checklist so the release index is now part of the visible release surface instead of an implicit directory listing.
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.
