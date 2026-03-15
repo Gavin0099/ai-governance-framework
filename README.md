@@ -28,7 +28,10 @@ The most precise current positioning is:
 - a runnable `AI Coding Runtime Governance Framework prototype`
 - a framework with a real runtime governance spine, not just static policy documents
 - an established external domain validator seam, with the first firmware vertical slice already running
-- still actively strengthening semantic verification, workflow embedding, and interception coverage
+- still actively strengthening:
+  - semantic verification depth
+  - practical git-hook / CI-gate interception coverage
+  - lower-friction workflow embedding around contract discovery, smoke, handoff, and change-control flows
 
 ## Alpha Status
 
@@ -167,6 +170,17 @@ The `.github/` directory also provides a pre-runtime interaction layer:
 - `session_start -> pre_task_check -> post_task_check -> session_end -> memory pipeline`
 
 This runtime governance loop is real and operational, but interception coverage is still not fully closed. Some IDE, local-edit, or direct-commit paths can still bypass it.
+
+More precisely, the remaining runtime hardening work is:
+
+- `interception coverage`
+  - strengthen practical governance entrypoints such as git hooks, CI gates, and external onboarding flows
+  - reduce the chance that direct commit or non-standard workflows bypass the framework
+- `workflow embedding`
+  - keep lowering day-to-day friction through contract auto-discovery, contract-aware smoke paths, reviewer handoff, and change-control flows
+
+This hardening direction is about **commit/merge-time governance**.
+It is **not** a plan to intercept every IDE action or every generation token inside the AI tool itself.
 
 ### 4. Memory Pipeline
 
@@ -816,6 +830,7 @@ It is not currently trying to become:
 - a plugin marketplace
 - a large command registry
 - a general-purpose subagent orchestration platform
+- an IDE-native or token-level AI generation interception system
 
 ## Further Reading
 

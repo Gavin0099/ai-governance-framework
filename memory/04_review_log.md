@@ -327,6 +327,20 @@
   - versus task/session-boundary architecture governance in this repository
 - Updated README wording so the project now explicitly states that it governs primarily at the task/session boundary rather than every agent action or generation token.
 
+## 2026-03-15 - Interception And Workflow Embedding Clarified
+
+- Updated `README.md` so the remaining framework gaps are described in practical engineering terms rather than abstract labels.
+- `interception coverage` is now explicitly framed as:
+  - git hooks
+  - CI gates
+  - external onboarding / runtime entrypoint hardening
+- `workflow embedding` is now explicitly framed as:
+  - contract discovery
+  - contract-aware smoke
+  - reviewer handoff
+  - change-control flow ergonomics
+- Added the same boundary to `PLAN.md`, making it explicit that this roadmap is about commit/merge-time governance rather than IDE-native or token-level interception.
+
 ## 2026-03-15 - Onboarding Report Artifact
 
 - Added `governance_tools/external_repo_onboarding_report.py` to combine readiness and governance-smoke results into a single report.

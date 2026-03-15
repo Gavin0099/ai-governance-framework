@@ -134,6 +134,12 @@
 - [ ] 評估 BUG-003（記憶壓力多維度指標）
 - [ ] 補齊對外 release-facing 信號（GitHub Releases 實體頁面、alpha release note 對外同步）
 - [ ] 持續收斂 example / onboarding path，降低首次採用摩擦
+- [ ] 持續補強 practical interception coverage（git hook、CI gate、external onboarding），降低 direct commit 或非標準工作流繞過檢查的機率
+- [ ] 持續補強 workflow embedding（contract discovery、runtime smoke、reviewer handoff、change-control flow），讓治理更自然嵌入日常開發流程
+
+**邊界說明**:
+- 這裡的補強方向是 **commit/merge-time governance**
+- 不包含 IDE 內部攔截或 code generation 階段的全面控制
 
 **當前阻礙**: 無
 
