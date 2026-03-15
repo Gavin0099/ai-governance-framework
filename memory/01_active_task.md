@@ -58,6 +58,7 @@
 - CI pipelines now also emit `trust_signal_overview.py` artifacts in human / JSON / Markdown forms, so the repo's high-level adoption/release posture can be reviewed or shared after the run instead of only during local CLI use.
 - `docs/status/trust-signal-dashboard.md` now provides a stable in-repo landing page for those trust signals, and `release_readiness.py` verifies that this entrypoint remains present and aligned.
 - `docs/status/README.md` now provides a stable index over the repo's status-facing pages, so release/status/trust-signal reading order is clearer for external readers.
+- `governance_tools/trust_signal_snapshot.py` now provides a formal latest/history/index publishing path for trust signals, and both CI pipelines use it instead of manually stitching overview outputs.
 
 ## Next Steps
 

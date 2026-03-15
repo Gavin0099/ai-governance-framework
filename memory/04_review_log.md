@@ -471,6 +471,17 @@
   - next-steps
 - This gives external readers a clearer status-reading order instead of relying only on scattered README links.
 
+## 2026-03-15 - Trust Signal Snapshot Publisher
+
+- Added `governance_tools/trust_signal_snapshot.py` as a publishing-oriented wrapper around `trust_signal_overview.py`.
+- The new tool writes a structured bundle with:
+  - `latest.*`
+  - `history/*`
+  - `INDEX.md`
+- `scripts/verify_phase_gates.sh` now exercises this publishing path, and GitHub Actions / GitLab CI now use it instead of manually calling the overview renderer three times.
+- Verification:
+  - `scripts/verify_phase_gates.sh` -> `345 passed`, `4/4 Gates`
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

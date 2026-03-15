@@ -36,13 +36,15 @@ python governance_tools/trust_signal_overview.py \
 
 ## CI Artifacts
 
-CI now emits trust-signal overview artifacts under:
+CI now emits trust-signal snapshot artifacts under:
 
-- `artifacts/trust-signals/trust_signal_overview.txt`
-- `artifacts/trust-signals/trust_signal_overview.json`
-- `artifacts/trust-signals/trust_signal_overview.md`
+- `artifacts/trust-signals/latest.txt`
+- `artifacts/trust-signals/latest.json`
+- `artifacts/trust-signals/latest.md`
+- `artifacts/trust-signals/history/*`
+- `artifacts/trust-signals/INDEX.md`
 
-These artifacts are the generated status snapshot.
+These artifacts are the generated status snapshot bundle.
 
 This page is the stable landing page that explains where those generated reports
 come from and how to regenerate them locally.

@@ -76,6 +76,7 @@ TOOLS=(
     "governance_auditor.py"
     "quickstart_smoke.py"
     "release_readiness.py"
+    "trust_signal_snapshot.py"
     "trust_signal_overview.py"
     "plan_freshness.py"
     "memory_janitor.py"
@@ -118,6 +119,12 @@ if "${PYTHON_CMD[@]}" governance_tools/trust_signal_overview.py --project-root .
     ok "trust_signal_overview.py release-facing overview"
 else
     fail "trust_signal_overview.py release-facing overview 失敗"
+    ALL_OK=0
+fi
+if "${PYTHON_CMD[@]}" governance_tools/trust_signal_snapshot.py --project-root . --plan PLAN.md --release-version "$RELEASE_VERSION" --contract examples/usb-hub-contract/contract.yaml --write-bundle artifacts/trust-signals/phase-gate-smoke --format human > /dev/null 2>&1; then
+    ok "trust_signal_snapshot.py bundle publishing"
+else
+    fail "trust_signal_snapshot.py bundle publishing 失敗"
     ALL_OK=0
 fi
 if [ "$ALL_OK" -eq 1 ]; then

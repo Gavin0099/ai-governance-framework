@@ -38,6 +38,7 @@ $env:AI_GOVERNANCE_PYTHON='C:\Path\To\python.exe'
 | [quickstart_smoke.py](#quickstart_smokepy) | 最小上手流程驗證 | onboarding / quickstart |
 | [example_readiness.py](#example_readinesspy) | 範例集健康度檢查 | onboarding / examples |
 | [release_readiness.py](#release_readinesspy) | release-facing 文件對齊檢查 | trust signal / release prep |
+| [trust_signal_snapshot.py](#trust_signal_snapshotpy) | trust signal snapshot bundle 產生器 | release / status publishing |
 | [trust_signal_overview.py](#trust_signal_overviewpy) | 高層 trust signal 總覽 | adoption / release / audit |
 | [plan_freshness.py](#plan_freshnesspy) | PLAN.md 新鮮度檢查 | CI gate / Git hook |
 | [state_generator.py](#state_generatorpy) | .governance-state.yaml 生成 | 狀態快照 |
@@ -217,6 +218,38 @@ human output 會先給一行 reviewer-first `summary=...`，快速告訴你：
 - 想快速確認 repo 現在是否處於「可展示 / 可採用」狀態
 
 GitHub Actions / GitLab CI 現在也會產出這個 overview 的 human + JSON + Markdown artifact，方便在 pipeline 後直接檢視或分享。
+
+---
+
+## trust_signal_snapshot.py
+
+把 `trust_signal_overview.py` 進一步包成 latest/history/index 的 snapshot bundle。
+
+```bash
+python governance_tools/trust_signal_snapshot.py \
+  --project-root . \
+  --plan PLAN.md \
+  --release-version v1.0.0-alpha \
+  --contract examples/usb-hub-contract/contract.yaml \
+  --write-bundle artifacts/trust-signals \
+  --format human
+```
+
+會寫出：
+
+- `latest.json`
+- `latest.txt`
+- `latest.md`
+- `history/*.json`
+- `history/*.txt`
+- `history/*.md`
+- `INDEX.md`
+
+這個工具適合用在：
+
+- CI / release pipeline 中保存高層狀態快照
+- 需要追蹤信號是否退化，而不是只看當次終端輸出
+- 把 trust signal 從「一次性命令」提升成「可追蹤 artifact」
 
 ---
 
