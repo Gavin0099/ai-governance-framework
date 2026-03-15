@@ -419,6 +419,18 @@
 - Verification:
   - `scripts/verify_phase_gates.sh` -> `338 passed`, `4/4 Gates`
 
+## 2026-03-15 - Trust Signal Overview Entry Point
+
+- Added `governance_tools/trust_signal_overview.py` as a single high-level entrypoint for:
+  - `quickstart_smoke.py`
+  - `example_readiness.py`
+  - `release_readiness.py`
+  - `governance_auditor.py`
+- The new tool is aimed at adoption/release confidence rather than deep debugging; it gives one reviewer-facing `summary=...` line for the repo's current high-level trust posture.
+- Extended `scripts/verify_phase_gates.sh` so Gate 3 now also executes this overview path.
+- Verification:
+  - `scripts/verify_phase_gates.sh` -> `340 passed`, `4/4 Gates`
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

@@ -97,5 +97,6 @@ uvicorn src.main:app --app-dir examples/todo-app-demo --reload
 
 - `README.md` for the overall architecture and entry points
 - `python governance_tools/example_readiness.py --format human` to inspect the current example set
+- `python governance_tools/trust_signal_overview.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --format human` for a one-command adoption/release overview
 - `examples/README.md` for runnable vs walkthrough examples
 - `examples/usb-hub-contract/README.md` for the domain plugin path

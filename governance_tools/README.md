@@ -38,6 +38,7 @@ $env:AI_GOVERNANCE_PYTHON='C:\Path\To\python.exe'
 | [quickstart_smoke.py](#quickstart_smokepy) | 最小上手流程驗證 | onboarding / quickstart |
 | [example_readiness.py](#example_readinesspy) | 範例集健康度檢查 | onboarding / examples |
 | [release_readiness.py](#release_readinesspy) | release-facing 文件對齊檢查 | trust signal / release prep |
+| [trust_signal_overview.py](#trust_signal_overviewpy) | 高層 trust signal 總覽 | adoption / release / audit |
 | [plan_freshness.py](#plan_freshnesspy) | PLAN.md 新鮮度檢查 | CI gate / Git hook |
 | [state_generator.py](#state_generatorpy) | .governance-state.yaml 生成 | 狀態快照 |
 | [linear_integrator.py](#linear_integratorpy) | PLAN.md → Linear 同步 | 任務追蹤 |
@@ -180,6 +181,39 @@ human output now starts with a reviewer-first `summary=...` line so release stat
 - 發版前自查
 - release note / changelog / README 是否同步
 - 對外信任信號是否齊備
+
+---
+
+## trust_signal_overview.py
+
+把幾條高層 adoption / trust signals 收成一條命令：
+
+- `quickstart_smoke.py`
+- `example_readiness.py`
+- `release_readiness.py`
+- `governance_auditor.py`
+
+```bash
+python governance_tools/trust_signal_overview.py \
+  --project-root . \
+  --plan PLAN.md \
+  --release-version v1.0.0-alpha \
+  --contract examples/usb-hub-contract/contract.yaml \
+  --format human
+```
+
+human output 會先給一行 reviewer-first `summary=...`，快速告訴你：
+
+- quickstart 是否通
+- examples 是否健康
+- release-facing 文件是否對齊
+- 高層 auditor 是否健康
+
+這個工具適合用在：
+
+- 對外 demo 前快速確認信號面是否完整
+- 發版前做高層健康總覽
+- 想快速確認 repo 現在是否處於「可展示 / 可採用」狀態
 
 ---
 

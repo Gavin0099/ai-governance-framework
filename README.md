@@ -412,6 +412,12 @@ If you want a single command that checks the documented quickstart path end to e
 python governance_tools/quickstart_smoke.py --project-root . --plan PLAN.md --contract examples/usb-hub-contract/contract.yaml --format human
 ```
 
+If you want a higher-level release/adoption overview in one command:
+
+```bash
+python governance_tools/trust_signal_overview.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --format human
+```
+
 ### Minimum Viable Setup
 
 Install the documented local dependencies first:
@@ -484,6 +490,7 @@ python governance_tools/driver_evidence_validator.py --file checks.json --format
 python governance_tools/refactor_evidence_validator.py --file checks.json --format json
 python governance_tools/rule_pack_suggester.py --project-root . --task "Refactor Avalonia view model boundary"
 python governance_tools/governance_auditor.py --format json
+python governance_tools/trust_signal_overview.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --format human
 ```
 
 ### Runtime Hooks
