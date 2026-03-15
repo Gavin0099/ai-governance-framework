@@ -24,6 +24,7 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
     alpha_checklist_path = project_root / "docs" / "releases" / "alpha-checklist.md"
     limitations_path = project_root / "docs" / "LIMITATIONS.md"
     status_path = project_root / "docs" / "status" / "runtime-governance-status.md"
+    trust_dashboard_path = project_root / "docs" / "status" / "trust-signal-dashboard.md"
 
     errors: list[str] = []
     warnings: list[str] = []
@@ -39,11 +40,13 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
     add_check("changelog", changelog_path.is_file(), "missing CHANGELOG.md")
     add_check("limitations", limitations_path.is_file(), "missing docs/LIMITATIONS.md")
     add_check("status_doc", status_path.is_file(), "missing runtime-governance status doc")
+    add_check("trust_signal_dashboard", trust_dashboard_path.is_file(), "missing docs/status/trust-signal-dashboard.md")
 
     readme_text = readme_path.read_text(encoding="utf-8") if readme_path.is_file() else ""
     changelog_text = changelog_path.read_text(encoding="utf-8") if changelog_path.is_file() else ""
     release_note_text = release_note_path.read_text(encoding="utf-8") if release_note_path.is_file() else ""
     alpha_checklist_text = alpha_checklist_path.read_text(encoding="utf-8") if alpha_checklist_path.is_file() else ""
+    trust_dashboard_text = trust_dashboard_path.read_text(encoding="utf-8") if trust_dashboard_path.is_file() else ""
 
     add_check("readme_exists", readme_path.is_file(), "missing README.md")
     if readme_text:
@@ -100,6 +103,18 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
             "alpha checklist does not mention governance self-audit",
         )
 
+    if trust_dashboard_text:
+        add_check(
+            "trust_dashboard_release_version",
+            version in trust_dashboard_text,
+            "trust-signal dashboard does not mention the requested version",
+        )
+        add_check(
+            "trust_dashboard_overview_command",
+            "trust_signal_overview.py" in trust_dashboard_text,
+            "trust-signal dashboard does not mention the overview command",
+        )
+
     return {
         "ok": len(errors) == 0,
         "project_root": str(project_root),
@@ -114,6 +129,7 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
             "alpha_checklist": str(alpha_checklist_path),
             "limitations": str(limitations_path),
             "status_doc": str(status_path),
+            "trust_signal_dashboard": str(trust_dashboard_path),
         },
     }
 

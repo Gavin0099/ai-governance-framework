@@ -38,6 +38,7 @@ Current release-facing status:
 - release notes: [docs/releases/v1.0.0-alpha.md](docs/releases/v1.0.0-alpha.md)
 - changelog: [CHANGELOG.md](CHANGELOG.md)
 - known limits: [docs/LIMITATIONS.md](docs/LIMITATIONS.md)
+- trust signal dashboard: [docs/status/trust-signal-dashboard.md](docs/status/trust-signal-dashboard.md)
 
 This alpha is suitable for evaluation, internal adoption trials, and domain-contract experimentation.
 It should still be treated as a governance framework prototype rather than a fully closed enforcement platform.

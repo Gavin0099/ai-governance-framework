@@ -454,6 +454,15 @@
 - Verification:
   - `scripts/verify_phase_gates.sh` -> `342 passed`, `4/4 Gates`
 
+## 2026-03-15 - Stable Trust Signal Dashboard Page
+
+- Added `docs/status/trust-signal-dashboard.md` as the stable in-repo landing page for high-level trust signals.
+- This page does not try to be the generated report itself; instead it:
+  - points to `trust_signal_overview.py`
+  - explains the CI artifacts
+  - links release note / checklist / limits / runtime status in one place
+- Extended `release_readiness.py` so this stable dashboard page is now part of the release-facing trust-signal surface.
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.
