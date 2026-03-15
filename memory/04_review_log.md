@@ -674,6 +674,20 @@
 - Extended `scripts/verify_phase_gates.sh` so Gate 3 now also executes this package-summary path.
 - Updated README, governance-tools docs, and the alpha publish checklist so release preparation has a stable single-command summary, not only scattered links and checklists.
 
+## 2026-03-15 - Release Package Snapshot Bundle
+
+- Added `governance_tools/release_package_snapshot.py` as the persistence layer over `release_package_summary.py`.
+- The new tool writes a release-package bundle with:
+  - `latest.json`
+  - `latest.txt`
+  - `latest.md`
+  - `history/*`
+  - `INDEX.md`
+  - `MANIFEST.json`
+  - `README.md`
+- It also supports a stable repo-local release publication path through `--publish-docs-release`.
+- Extended `scripts/verify_phase_gates.sh` so Gate 3 now also exercises this release-package snapshot path.
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

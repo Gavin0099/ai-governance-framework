@@ -38,6 +38,7 @@ $env:AI_GOVERNANCE_PYTHON='C:\Path\To\python.exe'
 | [quickstart_smoke.py](#quickstart_smokepy) | 最小上手流程驗證 | onboarding / quickstart |
 | [example_readiness.py](#example_readinesspy) | 範例集健康度檢查 | onboarding / examples |
 | [release_package_summary.py](#release_package_summarypy) | release package 聚合摘要 | release prep / reviewer handoff |
+| [release_package_snapshot.py](#release_package_snapshotpy) | release package snapshot bundle | release prep / artifact publishing |
 | [release_readiness.py](#release_readinesspy) | release-facing 文件對齊檢查 | trust signal / release prep |
 | [trust_signal_snapshot.py](#trust_signal_snapshotpy) | trust signal snapshot bundle 產生器 | release / status publishing |
 | [trust_signal_publication_reader.py](#trust_signal_publication_readerpy) | publication manifest reader | release / status consumption |
@@ -225,6 +226,44 @@ python governance_tools/release_package_summary.py --version v1.0.0-alpha --form
 - release 前最後一次 reviewer handoff
 - 想快速確認「release 這包」缺哪份文件
 - 想把 release-facing commands 收成單一入口，而不是手動翻 checklist
+
+---
+
+## release_package_snapshot.py
+
+把 `release_package_summary.py` 再提升成 latest/history/index/manifest 的 artifact bundle。
+
+```bash
+python governance_tools/release_package_snapshot.py \
+  --version v1.0.0-alpha \
+  --write-bundle artifacts/release-package/v1.0.0-alpha \
+  --format human
+```
+
+若想把同一份 release package 發布到穩定的 repo-local 路徑，可用：
+
+```bash
+python governance_tools/release_package_snapshot.py \
+  --version v1.0.0-alpha \
+  --publish-docs-release \
+  --format human
+```
+
+這個工具會寫出：
+
+- `latest.json`
+- `latest.txt`
+- `latest.md`
+- `history/*`
+- `INDEX.md`
+- `MANIFEST.json`
+- `README.md`
+
+這個工具特別適合用在：
+
+- release 前保留一份可追蹤的 package snapshot
+- 想讓 alpha docs / status docs / verify commands 有固定 artifact
+- 想把 release checklist 從「一次性命令」提升成「可保存 bundle」
 
 ---
 

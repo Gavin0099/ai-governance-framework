@@ -82,6 +82,7 @@
 - The repo now also carries a dedicated GitHub release draft document for `v1.0.0-alpha`, so release-page copy can be reviewed and versioned inside the repo instead of being composed ad hoc at publish time.
 - The release surface now also includes a publish checklist for `v1.0.0-alpha`, so the actual GitHub release step has a repo-tracked, reviewable procedure instead of only a narrative draft.
 - The release surface now also includes `governance_tools/release_package_summary.py`, so alpha docs, status surfaces, and publish commands can be reviewed as one package instead of opening each file manually.
+- The release surface now also includes `governance_tools/release_package_snapshot.py`, so that same package can now be preserved as a latest/history/index bundle instead of only a one-time CLI summary.
 
 ## Next Steps
 
