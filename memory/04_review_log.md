@@ -263,6 +263,18 @@
   - `tests/test_external_repo_smoke.py tests/test_external_repo_onboarding_report.py tests/test_external_repo_onboarding_index.py` -> `10 passed`
   - `governance_tools/external_repo_smoke.py --repo D:\Kernel-Driver-Contract --format human` -> `ok=True`, `post_task_ok=True`
 
+## 2026-03-15 - Trust Signal Overview Now Includes External Onboarding Health
+
+- Extended `governance_tools/trust_signal_overview.py` so `--external-contract-repo` no longer feeds only the external policy matrix.
+- The same repo list now also flows into `governance_auditor.py` as `external_repos`, which means higher-level trust views can surface:
+  - missing onboarding reports
+  - failing external smoke
+  - failing external `post_task_ok`
+  - `external_top_issue=...` lines with suggested next commands
+- This closes a subtle trust-signal gap where release/status pages could show a healthy mixed-enforcement policy picture while still hiding that onboarding or validator replay had regressed.
+- Verification:
+  - `tests/test_trust_signal_overview.py tests/test_trust_signal_snapshot.py tests/test_governance_auditor.py` -> `30 passed`
+
 ## 2026-03-15 - Onboarding Report Artifact
 
 - Added `governance_tools/external_repo_onboarding_report.py` to combine readiness and governance-smoke results into a single report.

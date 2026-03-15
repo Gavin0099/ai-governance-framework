@@ -41,7 +41,11 @@ def assess_trust_signal_overview(
     )
     examples = assess_examples(project_root, strict_runtime=strict_runtime)
     release = assess_release_readiness(project_root, version=release_version)
-    auditor = audit_governance(project_root, release_version=release_version)
+    auditor = audit_governance(
+        project_root,
+        external_repos=external_contract_repos,
+        release_version=release_version,
+    )
     external_contract_policy = (
         build_external_contract_policy_index(external_contract_repos or [])
         if external_contract_repos

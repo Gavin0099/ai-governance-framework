@@ -108,6 +108,7 @@
 - When only `--contract` is supplied to those runtime demo entrypoints, they now default `project_root` and `plan_path` from the contract repo itself only when that repo also exposes `PLAN.md`, reducing manual flags for real external repo trials without breaking bundled examples.
 - Shared runtime demo entrypoints now also accept `--response-file` and `--checks-file`, so post-task fixture replay can use file-based evidence instead of only the bundled response example.
 - External repo onboarding smoke now opportunistically replays compliant `fixtures/*.checks.json` baselines through `post_task_check` when a repo exposes `fixtures/post_task_response.txt`, so onboarding can validate a real domain-validator path instead of stopping at startup-only checks.
+- `trust_signal_overview.py` now treats supplied external contract repos as both policy sources and onboarding-health inputs, so higher-level trust surfaces can reflect external `post_task_ok` / top-issue drift instead of only static contract policy.
 
 ## Next Steps
 

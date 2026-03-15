@@ -1,4 +1,5 @@
 import sys
+import json
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -19,6 +20,30 @@ def _write_contract(repo_root: Path, contract_text: str, *, validator_names: lis
         validators_root.mkdir(parents=True, exist_ok=True)
         for name in validator_names:
             (validators_root / name).write_text("# validator\n", encoding="utf-8")
+
+
+def _write_onboarding_report(repo_root: Path, *, ok: bool = True, post_task_ok: bool | None = True) -> None:
+    onboarding_dir = repo_root / "memory" / "governance_onboarding"
+    onboarding_dir.mkdir(parents=True, exist_ok=True)
+    (onboarding_dir / "latest.json").write_text(
+        json.dumps(
+            {
+                "ok": ok,
+                "generated_at": "2026-03-15T00:00:00+00:00",
+                "contract_path": str((repo_root / "contract.yaml").resolve()),
+                "readiness": {"ready": True, "errors": []},
+                "smoke": {
+                    "ok": ok,
+                    "post_task_ok": post_task_ok,
+                    "rules": ["common", "firmware"],
+                    "errors": [] if ok else ["No compliant post-task smoke fixture passed."],
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
 
 
 def test_trust_signal_overview_passes_on_repo_root():
@@ -57,6 +82,7 @@ def test_trust_signal_overview_can_include_external_contract_policies(tmp_path):
         ),
         validator_names=["irql.py"],
     )
+    _write_onboarding_report(repo, ok=True, post_task_ok=True)
 
     result = assess_trust_signal_overview(
         project_root=project_root,
@@ -69,6 +95,42 @@ def test_trust_signal_overview_can_include_external_contract_policies(tmp_path):
     assert result["ok"] is True
     assert result["external_contract_policy"]["ok"] is True
     assert result["external_contract_policy"]["entries"][0]["enforcement_profile"] == "mixed"
+    assert result["auditor"]["external_onboarding"]["missing_reports"] == []
+
+
+def test_trust_signal_overview_surfaces_external_onboarding_top_issues(tmp_path):
+    project_root = Path(".").resolve()
+    contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
+    repo = tmp_path / "kernel-contract"
+    _write_contract(
+        repo,
+        "\n".join(
+            [
+                "name: kernel-driver-contract",
+                "domain: kernel-driver",
+                "validators:",
+                "  - validators/irql.py",
+                "hard_stop_rules:",
+                "  - KD-002",
+            ]
+        ),
+        validator_names=["irql.py"],
+    )
+    _write_onboarding_report(repo, ok=False, post_task_ok=False)
+
+    result = assess_trust_signal_overview(
+        project_root=project_root,
+        plan_path=project_root / "PLAN.md",
+        release_version="v1.0.0-alpha",
+        contract_file=contract_file,
+        external_contract_repos=[repo],
+    )
+    output = format_human_result(result)
+
+    assert result["ok"] is False
+    assert result["auditor"]["external_onboarding"]["top_issues"][0]["reasons"] == ["smoke", "post-task"]
+    assert "external_top_issue=" in output
+    assert "reasons=smoke,post-task" in output
 
 
 def test_trust_signal_overview_human_output_is_summary_first():
@@ -106,6 +168,7 @@ def test_trust_signal_overview_human_output_can_surface_external_contracts(tmp_p
         ),
         validator_names=["signal_map.py"],
     )
+    _write_onboarding_report(repo, ok=True, post_task_ok=True)
 
     result = assess_trust_signal_overview(
         project_root=project_root,
@@ -157,6 +220,7 @@ def test_trust_signal_overview_markdown_can_include_external_contracts(tmp_path)
         ),
         validator_names=["isr.py"],
     )
+    _write_onboarding_report(repo, ok=True, post_task_ok=True)
 
     result = assess_trust_signal_overview(
         project_root=project_root,

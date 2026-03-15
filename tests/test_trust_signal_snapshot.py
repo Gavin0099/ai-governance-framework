@@ -27,6 +27,30 @@ def _write_contract(repo_root: Path, contract_text: str, *, validator_names: lis
             (validators_root / name).write_text("# validator\n", encoding="utf-8")
 
 
+def _write_onboarding_report(repo_root: Path, *, ok: bool = True, post_task_ok: bool | None = True) -> None:
+    onboarding_dir = repo_root / "memory" / "governance_onboarding"
+    onboarding_dir.mkdir(parents=True, exist_ok=True)
+    (onboarding_dir / "latest.json").write_text(
+        json.dumps(
+            {
+                "ok": ok,
+                "generated_at": "2026-03-15T00:00:00+00:00",
+                "contract_path": str((repo_root / "contract.yaml").resolve()),
+                "readiness": {"ready": True, "errors": []},
+                "smoke": {
+                    "ok": ok,
+                    "post_task_ok": post_task_ok,
+                    "rules": ["common", "firmware"],
+                    "errors": [] if ok else ["No compliant post-task smoke fixture passed."],
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+
 def test_build_trust_signal_snapshot_passes_on_repo_root():
     project_root = Path(".").resolve()
     contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
@@ -61,6 +85,7 @@ def test_build_trust_signal_snapshot_can_include_external_contract_repos(tmp_pat
         ),
         validator_names=["signal_map.py"],
     )
+    _write_onboarding_report(repo, ok=True, post_task_ok=True)
 
     snapshot = build_trust_signal_snapshot(
         project_root=project_root,
@@ -123,6 +148,7 @@ def test_write_snapshot_bundle_can_emit_external_policy_artifacts(tmp_path):
         ),
         validator_names=["irql.py"],
     )
+    _write_onboarding_report(repo, ok=True, post_task_ok=True)
 
     snapshot = build_trust_signal_snapshot(
         project_root=project_root,
@@ -262,6 +288,7 @@ def test_write_published_status_can_emit_domain_enforcement_matrix(tmp_path):
         ),
         validator_names=["signal_map.py"],
     )
+    _write_onboarding_report(repo, ok=True, post_task_ok=True)
     snapshot = build_trust_signal_snapshot(
         project_root=project_root,
         plan_path=project_root / "PLAN.md",
@@ -357,6 +384,7 @@ def test_write_publication_manifest_tracks_external_contract_policy(tmp_path):
         ),
         validator_names=["irql.py"],
     )
+    _write_onboarding_report(repo, ok=True, post_task_ok=True)
     snapshot = build_trust_signal_snapshot(
         project_root=project_root,
         plan_path=project_root / "PLAN.md",

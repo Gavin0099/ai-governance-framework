@@ -598,7 +598,9 @@ human output 會先給一行 reviewer-first `summary=...`，快速告訴你：
 - examples 是否健康
 - release-facing 文件是否對齊
 - 高層 auditor 是否健康
-- 若提供 external repos，也會一起顯示 cross-domain enforcement posture
+- 若提供 external repos，也會一起顯示：
+  - cross-domain enforcement posture
+  - external onboarding / post-task smoke 的 top issues
 
 這個工具適合用在：
 
