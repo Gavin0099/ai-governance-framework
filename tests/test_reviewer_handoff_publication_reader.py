@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from governance_tools.reviewer_handoff_publication_reader import (
     assess_publication_manifest,
+    default_docs_status_manifest_path,
     default_manifest_path,
     format_human_result,
 )
@@ -113,6 +114,16 @@ def test_default_manifest_path_points_to_artifacts_reviewer_handoff_publication(
     assert resolved == project_root / "artifacts" / "reviewer-handoff" / "PUBLICATION_MANIFEST.json"
 
 
+def test_default_docs_status_manifest_path_points_to_generated_reviewer_handoff_root():
+    project_root = Path("D:/ai-governance-framework")
+
+    resolved = default_docs_status_manifest_path(project_root)
+
+    assert resolved == (
+        project_root / "docs" / "status" / "generated" / "reviewer-handoff" / "PUBLICATION_MANIFEST.json"
+    )
+
+
 def test_reviewer_handoff_publication_reader_cli_supports_direct_script_invocation(tmp_path):
     project_root = Path(".").resolve()
     contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
@@ -149,3 +160,53 @@ def test_reviewer_handoff_publication_reader_cli_supports_direct_script_invocati
 
     assert "summary=ok=True | scope=reviewer-handoff-root | trust=True | release=True | release_version=v1.0.0-alpha" in result.stdout
     assert "[reviewer_handoff_publication_reader]" in result.stdout
+
+
+def test_reviewer_handoff_publication_reader_cli_can_use_docs_status_flag(tmp_path):
+    project_root = tmp_path / "repo"
+    manifest_path = project_root / "docs" / "status" / "generated" / "reviewer-handoff" / "PUBLICATION_MANIFEST.json"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "ok": True,
+                "generated_at": "2026-03-15T00:00:00+00:00",
+                "project_root": str(project_root),
+                "publication_root": str(manifest_path.parent),
+                "publication_scope": "reviewer-handoff-root",
+                "plan_path": str(project_root / "PLAN.md"),
+                "release_version": "v1.0.0-alpha",
+                "contract_path": "examples/usb-hub-contract/contract.yaml",
+                "strict_runtime": False,
+                "trust_ok": True,
+                "release_ok": True,
+                "bundle_published": False,
+                "status_pages_published": False,
+                "readme_md": str(manifest_path.parent / "README.md"),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "governance_tools/reviewer_handoff_publication_reader.py",
+            "--project-root",
+            str(project_root),
+            "--release-version",
+            "v1.0.0-alpha",
+            "--docs-status",
+            "--format",
+            "human",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "summary=ok=True | scope=reviewer-handoff-root | trust=True | release=True | release_version=v1.0.0-alpha" in result.stdout
+    assert f"manifest_file={manifest_path}" in result.stdout

@@ -344,6 +344,16 @@ python governance_tools/reviewer_handoff_publication_reader.py \
 
 - `artifacts/reviewer-handoff/PUBLICATION_MANIFEST.json`
 
+若你把 reviewer handoff 發布到 repo-local docs path，可改用：
+
+```bash
+python governance_tools/reviewer_handoff_publication_reader.py \
+  --project-root . \
+  --release-version v1.0.0-alpha \
+  --docs-status \
+  --format human
+```
+
 這個工具特別適合用在：
 
 - reviewer 想先看 publication layer 是否完整

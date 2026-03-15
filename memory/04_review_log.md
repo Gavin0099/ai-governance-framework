@@ -786,6 +786,7 @@
   - published site pages under `published/`
 - Added `governance_tools/reviewer_handoff_publication_reader.py` so the reviewer packet now has a publication-layer reader flow, matching the pattern already used by trust-signal and release-package artifacts.
 - Updated phase gates, CI, and release-readiness checks so this publication layer is part of the normal regression surface instead of a documentation-only convention.
+- Extended the same reviewer-handoff line again so it can also publish to a stable repo-local docs path under `docs/status/generated/reviewer-handoff/`, with `--docs-status` as the matching reader path.
 
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 

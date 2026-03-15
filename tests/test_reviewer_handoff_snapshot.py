@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from governance_tools.reviewer_handoff_snapshot import (
     build_reviewer_handoff_snapshot,
     format_index,
+    resolve_publication_paths,
     resolve_bundle_dir,
     write_snapshot_bundle,
 )
@@ -87,6 +88,22 @@ def test_resolve_bundle_dir_defaults_to_artifacts_version_dir(tmp_path):
     )
 
     assert resolved == project_root / "artifacts" / "reviewer-handoff" / "v1.0.0-alpha"
+
+
+def test_resolve_publication_paths_can_default_to_docs_status_generated(tmp_path):
+    project_root = tmp_path / "repo"
+    project_root.mkdir(parents=True, exist_ok=True)
+
+    bundle_path, published_path, publication_root = resolve_publication_paths(
+        project_root=project_root,
+        release_version="v1.0.0-alpha",
+        publish_docs_status=True,
+    )
+
+    expected_root = project_root / "docs" / "status" / "generated" / "reviewer-handoff"
+    assert bundle_path == expected_root / "bundle"
+    assert published_path == expected_root / "site"
+    assert publication_root == expected_root
 
 
 def test_reviewer_handoff_snapshot_cli_supports_direct_script_invocation(tmp_path):

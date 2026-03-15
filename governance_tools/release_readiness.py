@@ -312,6 +312,21 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
             "reviewer handoff page does not mention the publication reader",
         )
         add_check(
+            "reviewer_handoff_docs_status_publish",
+            "--publish-docs-status" in reviewer_handoff_text,
+            "reviewer handoff page does not mention docs-status publication",
+        )
+        add_check(
+            "reviewer_handoff_docs_status_reader",
+            "--docs-status" in reviewer_handoff_text,
+            "reviewer handoff page does not mention the docs-status reader path",
+        )
+        add_check(
+            "reviewer_handoff_generated_path",
+            "docs/status/generated/reviewer-handoff/" in reviewer_handoff_text,
+            "reviewer handoff page does not mention the generated reviewer-handoff path",
+        )
+        add_check(
             "reviewer_handoff_artifact_path",
             "artifacts/reviewer-handoff/" in reviewer_handoff_text,
             "reviewer handoff page does not mention the reviewer-handoff artifact path",

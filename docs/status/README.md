@@ -9,6 +9,7 @@ This directory contains the repository's stable status-facing documents.
 - [Reviewer Handoff](reviewer-handoff.md)
   - the highest-level reviewer-facing summary across trust and release surfaces
   - points to `reviewer_handoff_summary.py` and CI `artifacts/reviewer-handoff/`
+  - can also be published to `generated/reviewer-handoff/` for a stable repo-local consumption path
   - use this when you want one handoff packet before drilling into lower-level status pages
 
 - [Trust Signal Dashboard](trust-signal-dashboard.md)

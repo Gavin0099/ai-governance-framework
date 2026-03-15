@@ -79,20 +79,27 @@ def resolve_publication_paths(
     write_bundle: str | None = None,
     publish_status_dir: str | None = None,
     publication_root: str | None = None,
+    publish_docs_status: bool = False,
 ) -> tuple[Path | None, Path | None, Path | None]:
-    bundle_path = resolve_bundle_dir(
-        project_root=project_root,
-        release_version=release_version,
-        write_bundle=write_bundle,
-    )
-    published_path = Path(publish_status_dir).resolve() if publish_status_dir else None
-    publication_path = Path(publication_root).resolve() if publication_root else None
+    if publish_docs_status:
+        docs_root = (project_root / "docs" / "status" / "generated" / "reviewer-handoff").resolve()
+        bundle_path = Path(write_bundle).resolve() if write_bundle else docs_root / "bundle"
+        published_path = Path(publish_status_dir).resolve() if publish_status_dir else docs_root / "site"
+        publication_path = Path(publication_root).resolve() if publication_root else docs_root
+    else:
+        bundle_path = resolve_bundle_dir(
+            project_root=project_root,
+            release_version=release_version,
+            write_bundle=write_bundle,
+        )
+        published_path = Path(publish_status_dir).resolve() if publish_status_dir else None
+        publication_path = Path(publication_root).resolve() if publication_root else None
 
-    if publication_path is None:
-        if bundle_path is not None:
-            publication_path = bundle_path.parent
-        elif published_path is not None:
-            publication_path = published_path.parent
+        if publication_path is None:
+            if bundle_path is not None:
+                publication_path = bundle_path.parent
+            elif published_path is not None:
+                publication_path = published_path.parent
 
     return bundle_path, published_path, publication_path
 
@@ -571,6 +578,7 @@ def main() -> int:
     parser.add_argument("--write-bundle")
     parser.add_argument("--publish-status-dir")
     parser.add_argument("--publication-root")
+    parser.add_argument("--publish-docs-status", action="store_true")
     args = parser.parse_args()
 
     project_root = Path(args.project_root).resolve()
@@ -605,6 +613,7 @@ def main() -> int:
         write_bundle=args.write_bundle,
         publish_status_dir=args.publish_status_dir,
         publication_root=args.publication_root,
+        publish_docs_status=args.publish_docs_status,
     )
     print(rendered)
 

@@ -21,6 +21,10 @@ def default_manifest_path(project_root: Path, *, release_version: str) -> Path:
     return project_root / "artifacts" / "reviewer-handoff" / "PUBLICATION_MANIFEST.json"
 
 
+def default_docs_status_manifest_path(project_root: Path) -> Path:
+    return project_root / "docs" / "status" / "generated" / "reviewer-handoff" / "PUBLICATION_MANIFEST.json"
+
+
 def assess_publication_manifest(manifest_path: Path) -> dict[str, Any]:
     if not manifest_path.is_file():
         return {
@@ -168,12 +172,15 @@ def main() -> int:
     parser.add_argument("--project-root", default=".")
     parser.add_argument("--release-version", required=True)
     parser.add_argument("--file")
+    parser.add_argument("--docs-status", action="store_true")
     parser.add_argument("--format", choices=("human", "json"), default="human")
     args = parser.parse_args()
 
     project_root = Path(args.project_root).resolve()
     if args.file:
         manifest_path = Path(args.file).resolve()
+    elif args.docs_status:
+        manifest_path = default_docs_status_manifest_path(project_root)
     else:
         manifest_path = default_manifest_path(project_root, release_version=args.release_version)
 

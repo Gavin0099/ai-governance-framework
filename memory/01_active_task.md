@@ -100,6 +100,7 @@
 - Reviewer handoff now also has a publication-layer reader:
   - `governance_tools/reviewer_handoff_publication_reader.py`
   - reviewer packet publishing now also maintains a root publication manifest/index plus a small published site under `artifacts/reviewer-handoff/published/`
+- Reviewer handoff now also supports a stable repo-local generated path under `docs/status/generated/reviewer-handoff/`, aligning its consumption model more closely with the other status surfaces.
 
 ## Next Steps
 

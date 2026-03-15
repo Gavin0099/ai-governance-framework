@@ -60,6 +60,28 @@ python governance_tools/reviewer_handoff_publication_reader.py \
   --format human
 ```
 
+If you want the same reviewer-handoff publication written to a stable repo-local docs path:
+
+```bash
+python governance_tools/reviewer_handoff_snapshot.py \
+  --project-root . \
+  --plan PLAN.md \
+  --release-version v1.0.0-alpha \
+  --contract examples/usb-hub-contract/contract.yaml \
+  --publish-docs-status \
+  --format human
+```
+
+That stable generated path can then be read back with:
+
+```bash
+python governance_tools/reviewer_handoff_publication_reader.py \
+  --project-root . \
+  --release-version v1.0.0-alpha \
+  --docs-status \
+  --format human
+```
+
 ## When To Use This Page
 
 Use this first when you want:
@@ -91,6 +113,19 @@ CI now emits reviewer handoff artifacts under:
 
 These artifacts are intended to be the highest-level reviewer packet when
 sharing pipeline output.
+
+## Stable Generated Docs Path
+
+When you want a repo-local, stable consumption path instead of ad-hoc artifacts,
+the generated reviewer-handoff root becomes:
+
+- `docs/status/generated/reviewer-handoff/`
+
+Its main entry points are:
+
+- `docs/status/generated/reviewer-handoff/README.md`
+- `docs/status/generated/reviewer-handoff/PUBLICATION_MANIFEST.json`
+- `docs/status/generated/reviewer-handoff/site/README.md`
 
 ## Related Sources
 
