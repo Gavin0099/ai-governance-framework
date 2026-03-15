@@ -18,6 +18,23 @@ from runtime_hooks.core.pre_task_check import run_pre_task_check
 from runtime_hooks.core.session_start import build_session_start_context
 
 
+def _apply_event_overrides(
+    event: dict,
+    *,
+    project_root: Path | None = None,
+    plan_path: Path | None = None,
+    contract_file: Path | None = None,
+) -> dict:
+    updated = dict(event)
+    if project_root:
+        updated["project_root"] = str(project_root)
+    if plan_path:
+        updated["plan_path"] = str(plan_path)
+    if contract_file:
+        updated["contract"] = str(contract_file)
+    return updated
+
+
 def dispatch_event(event: dict) -> dict:
     event_type = event["event_type"]
 
@@ -73,6 +90,27 @@ def dispatch_event(event: dict) -> dict:
     }
 
 
+def format_human_envelope(envelope: dict) -> str:
+    lines = [
+        f"event_type={envelope['event_type']}",
+        f"ok={envelope['result']['ok']}",
+    ]
+    result = envelope["result"]
+    contract_resolution = result.get("contract_resolution") or {}
+    if contract_resolution.get("source"):
+        lines.append(f"contract_source={contract_resolution['source']}")
+    if contract_resolution.get("path"):
+        lines.append(f"contract_path={contract_resolution['path']}")
+    domain_contract = result.get("domain_contract") or {}
+    if domain_contract.get("name"):
+        lines.append(f"domain_contract={domain_contract['name']}")
+    for warning in result.get("warnings", []):
+        lines.append(f"warning: {warning}")
+    for error in result.get("errors", []):
+        lines.append(f"error: {error}")
+    return "\n".join(lines)
+
+
 def _load_event(file_path: str | None) -> dict:
     if file_path:
         return json.loads(Path(file_path).read_text(encoding="utf-8"))
@@ -82,21 +120,25 @@ def _load_event(file_path: str | None) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Dispatch a shared runtime event to governance core checks.")
     parser.add_argument("--file", "-f", help="Shared event JSON file; defaults to stdin")
+    parser.add_argument("--project-root", help="Override project_root in the shared event.")
+    parser.add_argument("--plan-path", help="Override plan_path in the shared event.")
+    parser.add_argument("--contract", help="Explicit contract.yaml path for the shared event.")
     parser.add_argument("--format", choices=["human", "json"], default="human")
     args = parser.parse_args()
 
     event = _load_event(args.file)
+    event = _apply_event_overrides(
+        event,
+        project_root=Path(args.project_root).resolve() if args.project_root else None,
+        plan_path=Path(args.plan_path).resolve() if args.plan_path else None,
+        contract_file=Path(args.contract).resolve() if args.contract else None,
+    )
     envelope = dispatch_event(event)
 
     if args.format == "json":
         print(json.dumps(envelope, ensure_ascii=False, indent=2))
     else:
-        print(f"event_type={envelope['event_type']}")
-        print(f"ok={envelope['result']['ok']}")
-        for warning in envelope["result"].get("warnings", []):
-            print(f"warning: {warning}")
-        for error in envelope["result"].get("errors", []):
-            print(f"error: {error}")
+        print(format_human_envelope(envelope))
 
     sys.exit(0 if envelope["result"]["ok"] else 1)
 

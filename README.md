@@ -609,9 +609,9 @@ python runtime_hooks/core/pre_task_check.py --rules common,python,cpp --risk hig
 python runtime_hooks/core/session_start.py --project-root . --plan PLAN.md --rules common,refactor --task-text "Refactor Avalonia boundary" --impact-before before.cs --impact-after after.cs
 python runtime_hooks/smoke_test.py --event-type session_start
 python runtime_hooks/smoke_test.py --event-type session_start --contract examples/usb-hub-contract/contract.yaml
+python runtime_hooks/dispatcher.py --file runtime_hooks/examples/shared/session_start.shared.json --contract examples/usb-hub-contract/contract.yaml
 python runtime_hooks/core/pre_task_check.py --rules common,refactor --risk medium --oversight review-required --impact-before before.cs --impact-after after.cs
 python runtime_hooks/core/post_task_check.py --file ai_response.txt --risk medium --oversight review-required --checks-file checks.json --api-before before.cs --api-after after.cs
-python runtime_hooks/dispatcher.py --file shared_event.json
 python runtime_hooks/core/session_end.py --project-root . --session-id 2026-03-12-01 --runtime-contract-file contract.json --checks-file checks.json --impact-preview-file impact.json --proposal-summary-file proposal_summary.json --event-log-file event_log.json --response-file ai_response.txt
 ```
 
@@ -721,6 +721,7 @@ python runtime_hooks/smoke_test.py --event-type session_start
 
 `runtime_hooks/smoke_test.py` now also accepts `--contract`, `--project-root`, and `--plan-path`, so the built-in example payloads can be replayed against an external contract repo without editing the example JSON files first.
 The shared shell wrapper `scripts/run-runtime-governance.sh` now forwards the same overrides into its smoke flows, so the common hook/CI entrypoint can replay those examples against an external contract repo too.
+`runtime_hooks/dispatcher.py` now mirrors the same override pattern for shared event JSON, so the lowest-level shared-event path no longer requires hand-editing the payload just to point at a different contract or repo root.
 
 `session_start` smoke output now shows startup handoff summaries directly, including the active contract, expected validators, and required evidence.
 Shared enforcement now also preserves:

@@ -1,5 +1,6 @@
 import json
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -8,6 +9,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from runtime_hooks.dispatcher import dispatch_event
+from runtime_hooks.dispatcher import format_human_envelope
 
 
 @pytest.fixture
@@ -92,6 +94,24 @@ def test_dispatch_session_start_event(local_dispatch_root, monkeypatch):
     assert envelope["result"]["suggested_rules_preview"] == ["common", "refactor"]
 
 
+def test_dispatch_session_start_event_can_use_explicit_contract():
+    event = {
+        "event_type": "session_start",
+        "project_root": ".",
+        "plan_path": "PLAN.md",
+        "task": "Inspect firmware contract path",
+        "rules": ["common"],
+        "risk": "medium",
+        "oversight": "review-required",
+        "memory_mode": "candidate",
+        "contract": str(Path("examples/usb-hub-contract/contract.yaml").resolve()),
+    }
+    envelope = dispatch_event(event)
+    assert envelope["result"]["ok"] is True
+    assert envelope["result"]["contract_resolution"]["source"] == "explicit"
+    assert envelope["result"]["domain_contract"]["name"] == "usb-hub-firmware-contract"
+
+
 def test_dispatch_post_task_event(local_dispatch_root):
     response = local_dispatch_root / "response.txt"
     response.write_text(
@@ -119,6 +139,47 @@ def test_dispatch_post_task_event(local_dispatch_root):
     assert envelope["event_type"] == "post_task"
     assert envelope["result"]["ok"] is True
     assert envelope["result"]["snapshot"] is not None
+
+
+def test_dispatcher_human_output_surfaces_contract_context():
+    envelope = dispatch_event(
+        {
+            "event_type": "session_start",
+            "project_root": ".",
+            "plan_path": "PLAN.md",
+            "task": "Inspect firmware contract path",
+            "rules": ["common"],
+            "risk": "medium",
+            "oversight": "review-required",
+            "memory_mode": "candidate",
+            "contract": str(Path("examples/usb-hub-contract/contract.yaml").resolve()),
+        }
+    )
+    output = format_human_envelope(envelope)
+    assert "event_type=session_start" in output
+    assert "contract_source=explicit" in output
+    assert "domain_contract=usb-hub-firmware-contract" in output
+
+
+def test_dispatcher_cli_can_apply_contract_override():
+    result = subprocess.run(
+        [
+            sys.executable,
+            "runtime_hooks/dispatcher.py",
+            "--file",
+            "runtime_hooks/examples/shared/session_start.shared.json",
+            "--contract",
+            str(Path("examples/usb-hub-contract/contract.yaml").resolve()),
+            "--format",
+            "human",
+        ],
+        cwd=Path(__file__).parent.parent,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    assert "contract_source=explicit" in result.stdout
+    assert "domain_contract=usb-hub-firmware-contract" in result.stdout
 
 
 def test_native_example_files_exist():

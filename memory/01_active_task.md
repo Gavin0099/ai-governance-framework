@@ -104,6 +104,7 @@
 - `runtime_hooks/smoke_test.py` can now replay the documented example payloads against an explicit external contract through `--contract`, without requiring the example JSON files to be edited first.
 - `scripts/run-runtime-governance.sh` now forwards `--contract`, `--project-root`, and `--plan-path` into those smoke flows, so the shared shell entrypoint can exercise contract-aware runtime examples too.
 - `scripts/verify_phase_gates.sh` now directly runs that contract-aware wrapper smoke path, so the shared shell entrypoint is part of the normal regression surface rather than a documentation-only convenience.
+- `runtime_hooks/dispatcher.py` now mirrors the same contract-aware override path, and phase gates exercise that shared-event route too.
 
 ## Next Steps
 
