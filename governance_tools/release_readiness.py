@@ -87,6 +87,11 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
             re.search(rf"^#\s+{re.escape(version)}\b", release_note_text, re.MULTILINE) is not None,
             "release note heading does not match the requested version",
         )
+        add_check(
+            "release_note_generated_status_path",
+            "docs/status/generated/" in release_note_text,
+            "release note does not mention the generated status path",
+        )
         if "Known Limits" not in release_note_text:
             warnings.append("Release note is missing a 'Known Limits' section")
         if "Supported AI Adapter" not in release_note_text and "Supported AI Adapter Surfaces" not in release_note_text:
@@ -107,6 +112,16 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
             "alpha_checklist_auditor",
             "governance_auditor.py" in alpha_checklist_text,
             "alpha checklist does not mention governance self-audit",
+        )
+        add_check(
+            "alpha_checklist_snapshot_publish",
+            "--publish-docs-status" in alpha_checklist_text,
+            "alpha checklist does not mention docs-status snapshot publishing",
+        )
+        add_check(
+            "alpha_checklist_docs_reader",
+            "--docs-status" in alpha_checklist_text,
+            "alpha checklist does not mention the docs-status reader path",
         )
 
     if trust_dashboard_text:

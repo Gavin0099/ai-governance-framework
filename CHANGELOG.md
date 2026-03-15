@@ -13,5 +13,6 @@ Highlights:
 - release-facing trust signals now also include `docs/releases/alpha-checklist.md`
 - repo status docs now also include `docs/status/trust-signal-dashboard.md`
 - `docs/status/README.md` now provides a stable index over repo status pages
+- trust-signal publishing now also supports a stable repo-local generated path under `docs/status/generated/`
 - CI now emits trust-signal snapshot bundles with latest/history/index outputs
 - CI now installs documented dependencies and verifies runnable examples more strictly

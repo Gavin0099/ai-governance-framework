@@ -17,6 +17,8 @@ spread across CI, README notes, and ad-hoc terminal checks.
 - [x] `python governance_tools/release_readiness.py --version v1.0.0-alpha --format human`
 - [x] `python governance_tools/governance_auditor.py --project-root . --release-version v1.0.0-alpha --format human`
 - [x] `python governance_tools/trust_signal_overview.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --format human`
+- [x] `python governance_tools/trust_signal_snapshot.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --publish-docs-status --format human`
+- [x] `python governance_tools/trust_signal_publication_reader.py --project-root . --docs-status --format human`
 - [x] `bash scripts/verify_phase_gates.sh`
 
 ## Release-Facing Artifacts
@@ -25,6 +27,8 @@ spread across CI, README notes, and ad-hoc terminal checks.
 - [x] `CHANGELOG.md` links to `docs/releases/v1.0.0-alpha.md`
 - [x] `docs/releases/v1.0.0-alpha.md` exists
 - [x] `docs/status/runtime-governance-status.md` reflects current alpha maturity
+- [x] `docs/status/README.md` points to the generated status landing path
+- [x] `docs/status/trust-signal-dashboard.md` explains the repo-local generated status path
 - [x] `docs/LIMITATIONS.md` describes current boundaries honestly
 
 ## Known Boundaries To Keep Explicit
