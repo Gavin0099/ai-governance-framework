@@ -119,6 +119,12 @@ else
     fail "example_readiness.py example inventory 失敗"
     ALL_OK=0
 fi
+if bash scripts/run-runtime-governance.sh --mode smoke --contract examples/usb-hub-contract/contract.yaml --project-root . --plan-path PLAN.md > /dev/null 2>&1; then
+    ok "run-runtime-governance.sh contract-aware smoke"
+else
+    fail "run-runtime-governance.sh contract-aware smoke 失敗"
+    ALL_OK=0
+fi
 if "${PYTHON_CMD[@]}" governance_tools/release_readiness.py --version "$RELEASE_VERSION" --format human > /dev/null 2>&1; then
     ok "release_readiness.py $RELEASE_VERSION"
 else

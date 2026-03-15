@@ -802,6 +802,7 @@
 - Smoke-test human output now also surfaces `contract_source`, `contract_path`, and `domain_contract` when that context is available.
 - `scripts/verify_phase_gates.sh` now covers this contract-aware smoke flow directly, so the lower-friction demo path is part of the normal regression surface.
 - Extended `scripts/run-runtime-governance.sh` so the shared shell smoke/enforcement wrapper now forwards the same overrides into its runtime smoke calls, keeping the common entrypoint aligned with the lower-friction Python smoke path.
+- `scripts/verify_phase_gates.sh` now also runs the contract-aware wrapper smoke path itself, so the shell-level entrypoint is exercised in the same regression surface as the underlying Python tool.
 
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
