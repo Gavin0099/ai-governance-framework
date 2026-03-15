@@ -64,6 +64,19 @@ jobs:
       - name: Verify strict example runtime readiness
         run: python governance_tools/example_readiness.py --strict-runtime --format human
 
+      - name: Build trust signal overview artifacts
+        run: |
+          python governance_tools/trust_signal_overview.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --strict-runtime --format human --output artifacts/trust-signals/trust_signal_overview.txt
+          python governance_tools/trust_signal_overview.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --strict-runtime --format json --output artifacts/trust-signals/trust_signal_overview.json
+
+      - name: Upload trust signal overview artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trust-signal-overview
+          path: artifacts/trust-signals/
+          if-no-files-found: warn
+
   # ─────────────────────────────────────────────
   # Job 3: 記憶壓力監控
   # EMERGENCY → pipeline 失敗

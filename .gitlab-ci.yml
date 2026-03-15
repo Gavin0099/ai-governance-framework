@@ -61,6 +61,13 @@ phase-gates:
   script:
     - bash scripts/verify_phase_gates.sh
     - python governance_tools/example_readiness.py --strict-runtime --format human
+    - python governance_tools/trust_signal_overview.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --strict-runtime --format human --output artifacts/trust-signals/trust_signal_overview.txt
+    - python governance_tools/trust_signal_overview.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --strict-runtime --format json --output artifacts/trust-signals/trust_signal_overview.json
+  artifacts:
+    when: always
+    paths:
+      - artifacts/trust-signals/
+    expire_in: 7 days
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push"'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'

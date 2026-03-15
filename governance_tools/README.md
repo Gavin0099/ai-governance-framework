@@ -216,6 +216,8 @@ human output 會先給一行 reviewer-first `summary=...`，快速告訴你：
 - 發版前做高層健康總覽
 - 想快速確認 repo 現在是否處於「可展示 / 可採用」狀態
 
+GitHub Actions / GitLab CI 現在也會產出這個 overview 的 human + JSON artifact，方便在 pipeline 後直接檢視。
+
 ---
 
 ## plan_freshness.py

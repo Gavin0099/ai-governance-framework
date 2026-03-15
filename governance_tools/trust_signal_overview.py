@@ -132,6 +132,7 @@ def main() -> int:
     parser.add_argument("--contract")
     parser.add_argument("--strict-runtime", action="store_true")
     parser.add_argument("--format", choices=("human", "json"), default="human")
+    parser.add_argument("--output")
     args = parser.parse_args()
 
     result = assess_trust_signal_overview(
@@ -142,9 +143,14 @@ def main() -> int:
         strict_runtime=args.strict_runtime,
     )
     if args.format == "json":
-        print(json.dumps(result, ensure_ascii=False, indent=2))
+        rendered = json.dumps(result, ensure_ascii=False, indent=2)
     else:
-        print(format_human_result(result))
+        rendered = format_human_result(result)
+    if args.output:
+        output_path = Path(args.output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(rendered + "\n", encoding="utf-8")
+    print(rendered)
     return 0 if result["ok"] else 1
 
 

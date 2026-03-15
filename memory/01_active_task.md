@@ -55,6 +55,7 @@
 - High-level governance tools now also converge on reviewer-first `summary=...` human output, reducing formatting drift between runtime hooks, release checks, onboarding indexes, and the auditor.
 - The repo now also has a single trust-signal entrypoint via `governance_tools/trust_signal_overview.py`, aggregating quickstart, example readiness, release readiness, and governance self-audit into one reviewer-facing overview.
 - Release-facing trust signals now also include a dedicated `docs/releases/alpha-checklist.md`, and `release_readiness.py` verifies its presence and basic alignment.
+- CI pipelines now also emit `trust_signal_overview.py` artifacts, so the repo's high-level adoption/release posture can be reviewed after the run instead of only during local CLI use.
 
 ## Next Steps
 

@@ -442,6 +442,16 @@
 - Verification:
   - `scripts/verify_phase_gates.sh` -> `340 passed`, `4/4 Gates`
 
+## 2026-03-15 - Trust Signal Overview Artifacts In CI
+
+- Extended `governance_tools/trust_signal_overview.py` with `--output` so its overview can be saved as a report, not only printed to the terminal.
+- Updated GitHub Actions and GitLab CI to generate:
+  - `artifacts/trust-signals/trust_signal_overview.txt`
+  - `artifacts/trust-signals/trust_signal_overview.json`
+- This makes the high-level adoption/release posture visible as a pipeline artifact instead of only a local command.
+- Verification:
+  - `scripts/verify_phase_gates.sh` -> `341 passed`, `4/4 Gates`
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

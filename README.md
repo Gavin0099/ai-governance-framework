@@ -418,6 +418,8 @@ If you want a higher-level release/adoption overview in one command:
 python governance_tools/trust_signal_overview.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --format human
 ```
 
+CI now also generates trust-signal overview artifacts in both human and JSON forms, so this high-level view is not limited to local terminal output.
+
 ### Minimum Viable Setup
 
 Install the documented local dependencies first:
