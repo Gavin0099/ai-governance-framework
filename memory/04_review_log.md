@@ -431,6 +431,17 @@
 - Verification:
   - `scripts/verify_phase_gates.sh` -> `340 passed`, `4/4 Gates`
 
+## 2026-03-15 - Alpha Checklist Added To Release Trust Signals
+
+- Added `docs/releases/alpha-checklist.md` as a lightweight, explicit release-facing checklist for the current alpha.
+- Extended `governance_tools/release_readiness.py` so release readiness now checks:
+  - release note presence
+  - changelog alignment
+  - runtime status / limitations docs
+  - alpha checklist presence and basic coverage
+- Verification:
+  - `scripts/verify_phase_gates.sh` -> `340 passed`, `4/4 Gates`
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.

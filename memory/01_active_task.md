@@ -54,6 +54,7 @@
 - `scripts/verify_phase_gates.sh` now also runs `governance_auditor.py --release-version ...`, so the high-level self-audit path is part of the normal regression surface instead of remaining an optional manual check.
 - High-level governance tools now also converge on reviewer-first `summary=...` human output, reducing formatting drift between runtime hooks, release checks, onboarding indexes, and the auditor.
 - The repo now also has a single trust-signal entrypoint via `governance_tools/trust_signal_overview.py`, aggregating quickstart, example readiness, release readiness, and governance self-audit into one reviewer-facing overview.
+- Release-facing trust signals now also include a dedicated `docs/releases/alpha-checklist.md`, and `release_readiness.py` verifies its presence and basic alignment.
 
 ## Next Steps
 

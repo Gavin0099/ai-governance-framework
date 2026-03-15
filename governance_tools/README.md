@@ -165,6 +165,7 @@ python governance_tools/example_readiness.py --strict-runtime --format human
 會檢查：
 
 - `docs/releases/<version>.md`
+- `docs/releases/alpha-checklist.md`
 - `CHANGELOG.md`
 - `README.md`
 - `docs/LIMITATIONS.md`

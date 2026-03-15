@@ -21,6 +21,7 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
     readme_path = project_root / "README.md"
     changelog_path = project_root / "CHANGELOG.md"
     release_note_path = project_root / "docs" / "releases" / f"{version}.md"
+    alpha_checklist_path = project_root / "docs" / "releases" / "alpha-checklist.md"
     limitations_path = project_root / "docs" / "LIMITATIONS.md"
     status_path = project_root / "docs" / "status" / "runtime-governance-status.md"
 
@@ -34,6 +35,7 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
             errors.append(f"{name}: {detail}")
 
     add_check("release_note", release_note_path.is_file(), "missing docs/releases release note")
+    add_check("alpha_checklist", alpha_checklist_path.is_file(), "missing docs/releases/alpha-checklist.md")
     add_check("changelog", changelog_path.is_file(), "missing CHANGELOG.md")
     add_check("limitations", limitations_path.is_file(), "missing docs/LIMITATIONS.md")
     add_check("status_doc", status_path.is_file(), "missing runtime-governance status doc")
@@ -41,6 +43,7 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
     readme_text = readme_path.read_text(encoding="utf-8") if readme_path.is_file() else ""
     changelog_text = changelog_path.read_text(encoding="utf-8") if changelog_path.is_file() else ""
     release_note_text = release_note_path.read_text(encoding="utf-8") if release_note_path.is_file() else ""
+    alpha_checklist_text = alpha_checklist_path.read_text(encoding="utf-8") if alpha_checklist_path.is_file() else ""
 
     add_check("readme_exists", readme_path.is_file(), "missing README.md")
     if readme_text:
@@ -80,6 +83,23 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
         if "Supported AI Adapter" not in release_note_text and "Supported AI Adapter Surfaces" not in release_note_text:
             warnings.append("Release note is missing adapter coverage information")
 
+    if alpha_checklist_text:
+        add_check(
+            "alpha_checklist_version",
+            version in alpha_checklist_text,
+            "alpha checklist does not mention the requested version",
+        )
+        add_check(
+            "alpha_checklist_quickstart",
+            "quickstart_smoke.py" in alpha_checklist_text,
+            "alpha checklist does not mention quickstart verification",
+        )
+        add_check(
+            "alpha_checklist_auditor",
+            "governance_auditor.py" in alpha_checklist_text,
+            "alpha checklist does not mention governance self-audit",
+        )
+
     return {
         "ok": len(errors) == 0,
         "project_root": str(project_root),
@@ -91,6 +111,7 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
             "readme": str(readme_path),
             "changelog": str(changelog_path),
             "release_note": str(release_note_path),
+            "alpha_checklist": str(alpha_checklist_path),
             "limitations": str(limitations_path),
             "status_doc": str(status_path),
         },

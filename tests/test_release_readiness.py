@@ -11,6 +11,7 @@ def test_release_readiness_passes_for_current_alpha():
 
     assert result["ok"] is True
     assert any(item["name"] == "release_note" and item["ok"] for item in result["checks"])
+    assert any(item["name"] == "alpha_checklist" and item["ok"] for item in result["checks"])
     assert any(item["name"] == "readme_release_link" and item["ok"] for item in result["checks"])
 
 
