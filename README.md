@@ -481,6 +481,12 @@ If you want one reviewer-first command that rolls release readiness, package doc
 python governance_tools/release_surface_overview.py --version v1.0.0-alpha --format human
 ```
 
+If you want a single reviewer handoff that combines trust/adoption signals with release/package state:
+
+```bash
+python governance_tools/reviewer_handoff_summary.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --format human
+```
+
 If you publish repo-local generated release packages, the stable landing path becomes:
 
 - `docs/releases/generated/README.md`
@@ -492,6 +498,7 @@ Each bundle now also includes manifest metadata, published history/index pages, 
 The published status surface now also emits a dedicated domain-enforcement matrix page, so cross-domain hard-stop posture can be shared without opening the full trust-signal dashboard.
 CI now also generates release-package bundles under `artifacts/release-package/`, so alpha-facing docs, status surfaces, and verification commands can be reviewed as a preserved artifact instead of only local CLI output.
 CI now also emits a release-surface overview under `artifacts/release-surface/`, so reviewers can consume the current release readiness/package/publication posture without manually opening multiple manifests.
+CI now also emits a reviewer handoff bundle under `artifacts/reviewer-handoff/`, so the highest-level trust/release summary can be shared without asking reviewers to reconstruct it from multiple artifacts.
 
 ### Minimum Viable Setup
 

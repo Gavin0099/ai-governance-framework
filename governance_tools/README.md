@@ -37,6 +37,7 @@ $env:AI_GOVERNANCE_PYTHON='C:\Path\To\python.exe'
 | [contract_validator.py](#contract_validatorpy) | AI 初始化合規驗證 | CI gate |
 | [quickstart_smoke.py](#quickstart_smokepy) | 最小上手流程驗證 | onboarding / quickstart |
 | [example_readiness.py](#example_readinesspy) | 範例集健康度檢查 | onboarding / examples |
+| [reviewer_handoff_summary.py](#reviewer_handoff_summarypy) | reviewer handoff 單一總覽 | release / trust / reviewer handoff |
 | [release_surface_overview.py](#release_surface_overviewpy) | release surfaces 高層總覽 | release prep / reviewer entrypoint |
 | [release_package_publication_reader.py](#release_package_publication_readerpy) | release package publication reader | release prep / stable generated root |
 | [release_package_reader.py](#release_package_readerpy) | release package manifest reader | release prep / artifact consumption |
@@ -200,6 +201,47 @@ python governance_tools/example_readiness.py --strict-runtime --format human
 ```
 
 這個模式特別適合放在 CI，因為 CI 已經會先安裝 `requirements.txt`。
+
+---
+
+## reviewer_handoff_summary.py
+
+把目前最高層的 reviewer surfaces 收成一條命令。
+
+它會聚合：
+
+- `trust_signal_overview.py`
+- `release_surface_overview.py`
+
+因此 reviewer 不需要先決定應該看 adoption / audit 還是 release / package，先跑這個即可。
+
+```bash
+python governance_tools/reviewer_handoff_summary.py \
+  --project-root . \
+  --plan PLAN.md \
+  --release-version v1.0.0-alpha \
+  --contract examples/usb-hub-contract/contract.yaml \
+  --format human
+```
+
+若你已經有 release bundle / publication manifest，也可以一起帶進來：
+
+```bash
+python governance_tools/reviewer_handoff_summary.py \
+  --project-root . \
+  --plan PLAN.md \
+  --release-version v1.0.0-alpha \
+  --contract examples/usb-hub-contract/contract.yaml \
+  --release-bundle-manifest artifacts/release-package/v1.0.0-alpha/MANIFEST.json \
+  --release-publication-manifest artifacts/release-package/v1.0.0-alpha/PUBLICATION_MANIFEST.json \
+  --format human
+```
+
+CI 也會把它寫到：
+
+- `artifacts/reviewer-handoff/reviewer_handoff_summary.txt`
+- `artifacts/reviewer-handoff/reviewer_handoff_summary.json`
+- `artifacts/reviewer-handoff/reviewer_handoff_summary.md`
 
 ---
 

@@ -753,6 +753,13 @@
 - The new artifact preserves `release_surface_overview.py` in human / JSON / Markdown forms, so reviewers have a single high-level release handoff surface inside CI instead of only local CLI output.
 - Updated release docs, README, and tool docs so this new artifact path is part of the visible alpha review surface.
 
+## 2026-03-15 - Reviewer Handoff Summary
+
+- Added `governance_tools/reviewer_handoff_summary.py` as the highest-level reviewer entrypoint over `trust_signal_overview.py` and `release_surface_overview.py`.
+- Added regression coverage in `tests/test_reviewer_handoff_summary.py` and phase-gate execution coverage in `scripts/verify_phase_gates.sh`.
+- Extended GitHub Actions and GitLab CI so the phase-gates flow now also emits `artifacts/reviewer-handoff/` in human / JSON / Markdown forms.
+- Updated README, release docs, publish checklist, and tool docs so this new reviewer packet is visible as part of the alpha consumption path.
+
 ## 2026-03-14 - IC / SoC Governance Direction Recorded
 
 - Recorded a refined future-domain view for IC-related governance.
