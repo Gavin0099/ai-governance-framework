@@ -175,7 +175,7 @@ def test_run_external_repo_smoke_fails_for_missing_external_rule_pack(tmp_path: 
 def test_format_human_uses_shared_summary_shape(tmp_path: Path) -> None:
     _write(
         tmp_path / "PLAN.md",
-        "> **?敺??*: 2026-03-15\n> **Owner**: tester\n> **Freshness**: Sprint (7d)\n",
+        "> **最後更新**: 2026-03-15\n> **Owner**: tester\n> **Freshness**: Sprint (7d)\n",
     )
     _write(tmp_path / "AGENTS.md", "# Agents\n")
     _write(tmp_path / "CHECKLIST.md", "# Checklist\n")

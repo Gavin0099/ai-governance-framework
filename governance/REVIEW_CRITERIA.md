@@ -167,3 +167,28 @@ Review expectation:
 - treat this as a **boundary violation**, not a style issue
 - request project-file correction before approval
 - reference both this addendum and `ARCHITECTURE.md` build-boundary rules in the finding
+
+---
+
+## C++ Server Code Addendum (eToken-system)
+
+Use this addendum whenever the PR touches C++ server code in the eToken-system.
+If the PR does not touch C++ server code, mark this section as **N/A**.
+
+Cross-check every item below against `memory/03_knowledge_base.md` Anti-Patterns #1–#8.
+
+| # | Check | Anti-Pattern Ref | Verdict Level |
+|---|---|---|---|
+| C1 | `detach()` present? → must have `_activeSessions` counter + drain loop in `ServerFinish()` | #1 | 🔴 BLOCKING |
+| C2 | Any allocation driven by peer-supplied size? → must validate `0 < size <= MAX_X_BYTES` | #2 | 🔴 BLOCKING |
+| C3 | Any `system()` / `RpcCmd()` call? → must use `ExecuteTool(cmd, timeoutMs)` instead | #3 | 🔴 BLOCKING |
+| C4 | Any credential literal (`"password"`, `"pin"`, `"key"`) in source? → must come from `Setting.ini` | #4 | 🔴 BLOCKING |
+| C5 | Any credential passed as subprocess argument? → must use runtime variable, never compile-time constant | #8 | 🔴 BLOCKING |
+| C6 | Any `bool`-returning function result assigned to `int` and checked `!= 0`? → inverts success/failure logic | #7 | 🔴 BLOCKING |
+| C7 | New `Setting.ini` key added? → must also add to `Setting.ini.example` with `YOUR_X_HERE` placeholder | #4 | ⚠️ WARNING |
+| C8 | New `ExecuteTool` call? → failure path (CreateProcessA returns false, exit code ≠ 0, timeout) all handled? | #3 | 🔴 BLOCKING |
+
+Review expectation:
+- C1–C6, C8 are **BLOCKING** — any violation must be fixed before approval
+- C7 is **WARNING** — missing `.example` entry blocks onboarding, request fix before merge
+- Reference this addendum and the corresponding Anti-Pattern entry in `memory/03_knowledge_base.md` in every finding
