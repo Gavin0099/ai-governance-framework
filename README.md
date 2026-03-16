@@ -449,115 +449,75 @@ flowchart TD
 
 For a five-minute guided run, start with [start_session.md](start_session.md).
 
-If you want a single command that checks the documented quickstart path end to end:
+Verify installation with one command:
 
 ```bash
 python governance_tools/quickstart_smoke.py --project-root . --plan PLAN.md --contract examples/usb-hub-contract/contract.yaml --format human
 ```
 
-If you want a higher-level release/adoption overview in one command:
+Expected output:
 
-```bash
-python governance_tools/trust_signal_overview.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --external-contract-repo D:/USB-Hub-Firmware-Architecture-Contract --external-contract-repo D:/Kernel-Driver-Contract --external-contract-repo D:/IC-Verification-Contract --format human
+```
+[quickstart_smoke]
+ok=True
+summary=ok=True | pre_task_ok=True | session_start_ok=True | contract=firmware/medium
 ```
 
-If you want the same view persisted as a latest/history/index bundle:
+### Core Workflow
 
-```bash
-python governance_tools/trust_signal_snapshot.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --external-contract-repo D:/USB-Hub-Firmware-Architecture-Contract --external-contract-repo D:/Kernel-Driver-Contract --external-contract-repo D:/IC-Verification-Contract --write-bundle artifacts/trust-signals --publish-status-dir artifacts/trust-signals/published --format human
-```
-
-If you want the same publication written to a stable repo-local docs path:
-
-```bash
-python governance_tools/trust_signal_snapshot.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --external-contract-repo D:/USB-Hub-Firmware-Architecture-Contract --external-contract-repo D:/Kernel-Driver-Contract --external-contract-repo D:/IC-Verification-Contract --publish-docs-status --format human
-```
-
-If you want a stable reader over the generated publication metadata:
-
-```bash
-python governance_tools/trust_signal_publication_reader.py --file artifacts/trust-signals/PUBLICATION_MANIFEST.json --format human
-```
-
-If you are publishing to the repo-local docs path, you can read that stable location directly:
-
-```bash
-python governance_tools/trust_signal_publication_reader.py --project-root . --docs-status --format human
-```
-
-If you want a release-facing package summary that bundles the current alpha docs, status surfaces, and verification commands into one reviewer handoff:
-
-```bash
-python governance_tools/release_package_summary.py --version v1.0.0-alpha --format human
-```
-
-If you want the same release package preserved as a latest/history/index bundle:
-
-```bash
-python governance_tools/release_package_snapshot.py --version v1.0.0-alpha --write-bundle artifacts/release-package/v1.0.0-alpha --format human
-```
-
-If you want a stable reader over that release-package bundle:
-
-```bash
-python governance_tools/release_package_reader.py --version v1.0.0-alpha --file artifacts/release-package/v1.0.0-alpha/MANIFEST.json --format human
-```
-
-If you want a stable reader over the generated release root itself:
-
-```bash
-python governance_tools/release_package_publication_reader.py --project-root . --docs-release-root --format human
-```
-
-If you want one reviewer-first command that rolls release readiness, package docs, and any available generated release surfaces into a single overview:
-
-```bash
-python governance_tools/release_surface_overview.py --version v1.0.0-alpha --format human
-```
-
-If you want a single reviewer handoff that combines trust/adoption signals with release/package state:
+The highest-level reviewer view — combines trust signals, release state, and governance posture:
 
 ```bash
 python governance_tools/reviewer_handoff_summary.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --format human
 ```
 
-If you want the same reviewer packet preserved as a bundle:
+For a release/adoption overview across external contract repos:
 
 ```bash
-python governance_tools/reviewer_handoff_snapshot.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --write-bundle artifacts/reviewer-handoff/v1.0.0-alpha --format human
+python governance_tools/trust_signal_overview.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --format human
 ```
 
-If you want a stable reader over that reviewer packet:
+### Tool Reference
 
-```bash
-python governance_tools/reviewer_handoff_reader.py --release-version v1.0.0-alpha --file artifacts/reviewer-handoff/v1.0.0-alpha/MANIFEST.json --format human
-```
+#### Trust Signals
 
-If you want the publication-layer summary over that same reviewer packet:
+| Tool | Purpose |
+|------|---------|
+| `trust_signal_overview.py` | Single-command release/adoption overview |
+| `trust_signal_snapshot.py` | Persist as latest/history/index bundle |
+| `trust_signal_publication_reader.py` | Read stable publication metadata |
 
-```bash
-python governance_tools/reviewer_handoff_publication_reader.py --release-version v1.0.0-alpha --file artifacts/reviewer-handoff/PUBLICATION_MANIFEST.json --format human
-```
+#### Release Package
 
-If you want a stable repo-local generated reviewer-handoff path:
+| Tool | Purpose |
+|------|---------|
+| `release_surface_overview.py` | Roll readiness + package + publication into one view |
+| `release_package_summary.py` | Alpha docs + status surfaces + verification commands |
+| `release_package_snapshot.py` | Persist as a versioned bundle |
+| `release_package_reader.py` | Read a versioned bundle |
+| `release_package_publication_reader.py` | Read stable repo-local release root |
 
-```bash
-python governance_tools/reviewer_handoff_snapshot.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --publish-docs-status --format human
-```
+#### Reviewer Handoff
 
-If you publish repo-local generated release packages, the stable landing path becomes:
+| Tool | Purpose |
+|------|---------|
+| `reviewer_handoff_summary.py` | Trust + release summary in one reviewer handoff |
+| `reviewer_handoff_snapshot.py` | Persist as a versioned bundle |
+| `reviewer_handoff_reader.py` | Read a versioned bundle |
+| `reviewer_handoff_publication_reader.py` | Read publication-layer summary |
 
-- `docs/releases/generated/README.md`
+### CI Artifacts
 
-That same docs-status path also emits `docs/status/generated/README.md`, so the generated root has a stable landing page instead of only raw manifests.
+CI generates the following on every push:
 
-CI now also generates trust-signal snapshot bundles, so this high-level view is not limited to local terminal output.
-Each bundle now also includes manifest metadata, published history/index pages, and a publication-level manifest/index, so tools or readers can tell which snapshot is current without inferring from filenames alone. When external contract repos are provided, those manifests also carry a compact cross-domain enforcement summary instead of only a yes/no policy flag.
-The published status surface now also emits a dedicated domain-enforcement matrix page, so cross-domain hard-stop posture can be shared without opening the full trust-signal dashboard.
-CI now also generates release-package bundles under `artifacts/release-package/`, so alpha-facing docs, status surfaces, and verification commands can be reviewed as a preserved artifact instead of only local CLI output.
-CI now also emits a release-surface overview under `artifacts/release-surface/`, so reviewers can consume the current release readiness/package/publication posture without manually opening multiple manifests.
-CI now also emits a reviewer handoff bundle under `artifacts/reviewer-handoff/`, so the highest-level trust/release summary can be shared without asking reviewers to reconstruct it from multiple artifacts.
-The stable in-repo landing page for that highest-level packet is now `docs/status/reviewer-handoff.md`.
+| Path | Contents |
+|------|----------|
+| `artifacts/trust-signals/` | Trust-signal snapshot with history/index and publication manifest |
+| `artifacts/release-package/` | Release-package bundle (docs, status surfaces, verification commands) |
+| `artifacts/release-surface/` | Release-surface overview (readiness + package + publication posture) |
+| `artifacts/reviewer-handoff/` | Highest-level reviewer handoff bundle |
+| `docs/releases/generated/README.md` | Stable in-repo landing page for generated release packages |
+| `docs/status/reviewer-handoff.md` | Stable in-repo landing page for the reviewer handoff packet |
 
 ### Minimum Viable Setup
 
