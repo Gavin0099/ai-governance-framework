@@ -49,6 +49,20 @@ Current release-facing status:
 This alpha is suitable for evaluation, internal adoption trials, and domain-contract experimentation.
 It should still be treated as a governance framework prototype rather than a fully closed enforcement platform.
 
+### Validation Status
+
+| What Has Been Validated | Status |
+|-------------------------|--------|
+| Core governance tools pass automated test suite (444 tests) | ✅ Done |
+| Runtime hooks work across Claude / Codex / Gemini adapters | ✅ Done |
+| External domain contract seam (firmware, kernel-driver, IC-verification) | ✅ Done |
+| CI pipeline runs governance checks on every push | ✅ Done |
+| Quickstart smoke reproducible in < 5 minutes | ✅ Done |
+| **External adopter trial: end-to-end session lifecycle in a real project** | **⏳ Next Gate** |
+| Independent human reviewer successfully onboards without author guidance | ⏳ Not yet |
+
+The next gate before moving out of alpha is: **at least one external project completes a full session lifecycle (session_start → pre_task → post_task → session_end → memory promotion) using this framework without author intervention.**
+
 ## Comparison & Differentiation
 
 The closest open-source comparison set currently includes:

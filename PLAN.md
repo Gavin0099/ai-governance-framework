@@ -137,6 +137,12 @@
 - [ ] 持續補強 practical interception coverage（git hook、CI gate、external onboarding），降低 direct commit 或非標準工作流繞過檢查的機率
 - [ ] 持續補強 workflow embedding（contract discovery、runtime smoke、reviewer handoff、change-control flow），讓治理更自然嵌入日常開發流程
 
+**Alpha → Beta 升級 Gate（明確驗收標準）**:
+- [ ] 至少一個外部專案完整跑完 session_start → pre_task → post_task → session_end → memory promotion 全程（不需要作者介入）
+- [ ] 獨立 reviewer 能在無引導情況下完成 onboarding 並提交第一個 governance-compliant session
+- [ ] state_generator / linear_integrator / notion_integrator 單元測試補齊（覆蓋率 ≥ 70%）
+- [ ] BUG-003 評估完畢，決定修或列為已知限制
+
 **邊界說明**:
 - 這裡的補強方向是 **commit/merge-time governance**
 - 不包含 IDE 內部攔截或 code generation 階段的全面控制

@@ -8,7 +8,7 @@
 
 ### 1. 回報問題 (Bug Reports)
 
-如果你發現問題,請 [開啟 Issue](https://github.com/GavinWu1991/ai-governance-framework/issues/new) 並包含:
+如果你發現問題,請 [開啟 Issue](https://github.com/GavinWu672/ai-governance-framework/issues/new) 並包含:
 
 - **問題描述**: 清楚描述發生了什麼
 - **重現步驟**: 如何重現這個問題
@@ -18,7 +18,7 @@
 
 ### 2. 建議新功能 (Feature Requests)
 
-有好點子? [開啟 Issue](https://github.com/GavinWu1991/ai-governance-framework/issues/new) 並說明:
+有好點子? [開啟 Issue](https://github.com/GavinWu672/ai-governance-framework/issues/new) 並說明:
 
 - **功能描述**: 你想要什麼功能
 - **使用場景**: 為什麼需要這個功能
@@ -35,7 +35,7 @@
 
 ### 4. 分享案例 (Case Studies)
 
-使用這個框架完成專案? [分享你的經驗](https://github.com/GavinWu1991/ai-governance-framework/discussions/new)!
+使用這個框架完成專案? [分享你的經驗](https://github.com/GavinWu672/ai-governance-framework/discussions/new)!
 
 我們歡迎:
 - 實際專案案例
