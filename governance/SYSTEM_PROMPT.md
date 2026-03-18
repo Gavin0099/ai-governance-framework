@@ -50,6 +50,20 @@ SCOPE = feature | refactor | bugfix | I/O | tooling | review
 
 After reading `PLAN.md`, the agent **must** enforce `PLAN.md §3.7 AI 協作規則`: verify the requested task is in 「本週聚焦」or 「下一步」before proceeding. If not, present options to the human.
 
+**②-b 探索前檢查（Pre-Exploration Gate）** — 在執行任何 bash / filesystem / package 探索指令前，**必須先確認**所需資訊是否已記錄於：
+
+1. `PLAN.md` §架構紅線（前後端邊界、套件限制、runtime 限制）
+2. `PLAN.md` §本地開發環境（MCP servers、外部工具路徑、import 限制）
+3. `memory/02_tech_stack.md` §External Tools & Services
+
+| 情況 | 行動 |
+|---|---|
+| 資訊已記錄 | 直接使用文件資訊，**禁止**重複探索 |
+| 資訊缺失 | 先詢問人類，確認後再探索 |
+| 已知邊界被違反 | **STOP**，提示人類架構紅線 |
+
+❌ 未完成此步驟直接執行探索指令 → 視為違反初始化協議
+
 **③ Bounded Context** — Explicitly state: context name, responsibility, inbound/outbound boundaries. Vague → STOP.
 
 **④ Dynamic Loading Declaration** — Based on the analyzed SCOPE, the agent **must explicitly declare** which governance files it intends to load for this session, with justification. Example:
@@ -377,14 +391,26 @@ Update frequency: after every task.
 ## 🧩 Key Modules
 - **Module name**: Responsibility
 
+## 🔌 External Tools & Services
+<!-- 必填：任何 AI 無法自行發現的外部工具、本地服務、MCP servers -->
+### MCP Servers
+- **[工具名]**: 路徑 `...` | 用途: ... | 可達性: Claude Desktop only / HTTP endpoint / N/A
+
+### 前後端邊界（import 限制）
+<!-- 列出只能在特定環境使用的套件，防止 AI 在錯誤環境 import -->
+- **[套件名]**: 僅限 [前端 client component / 後端 API / CLI] 使用 — 原因: ...
+
+### 外部 API / 服務
+- **[服務名]**: endpoint `...` | 認證方式: ... | 備註: ...
+
 ## ⚠️ Known Gotchas & Solutions
 - **Issue title**:
     - Description
     - **Solution**: ...
 ```
 
-Required: core architecture, key modules.
-Update trigger: architectural decisions.
+Required: core architecture, key modules, external tools (填 N/A 若無).
+Update trigger: architectural decisions, new external tool added.
 
 ---
 
@@ -404,6 +430,12 @@ Update trigger: architectural decisions.
 **Verification**: How to confirm the fix
 
 ## 🚫 Anti-Patterns (Mandatory Section)
+### 1. 未讀文件直接執行環境探索指令 (框架預設)
+**What was done wrong**: 跳過 Memory Sync（§2.②）和探索前檢查（§2.②-b），直接執行 bash / find / node / npm 等指令探索依賴或路徑。
+**Why it's dangerous**: PLAN.md 架構紅線（如「前端專用套件」）和 02_tech_stack.md 外部工具記錄會被忽略，導致無效探索、錯誤假設、以及在錯誤環境 import 套件。
+**Correct approach**: 先讀 PLAN.md §架構紅線 + §本地開發環境，再讀 memory/02_tech_stack.md §External Tools。若資訊缺失，詢問人類後再探索。
+**Reference**: SYSTEM_PROMPT.md §2.②-b
+
 ### N. [Anti-Pattern Title] (Date)
 **What was done wrong**: Description of the mistake
 **Why it's dangerous**: Impact and risk
