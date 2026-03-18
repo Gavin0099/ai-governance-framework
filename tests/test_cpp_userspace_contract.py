@@ -459,3 +459,60 @@ def test_json_flag_routes_text_to_stderr():
 def test_no_fixtures_error():
     proc = _run_cli(str((EXAMPLE_DIR / "rules").resolve()))
     assert proc.returncode == 2
+
+
+# ── Agent integration file checks ────────────────────────────────────────────
+
+def test_copilot_instructions_file_exists():
+    path = EXAMPLE_DIR / ".github" / "copilot-instructions.md"
+    assert path.exists(), "copilot-instructions.md missing"
+    content = path.read_text(encoding="utf-8")
+    assert "CPP_MUTEX_BARE_LOCK" in content
+    assert "CPP_RAW_MEMORY_ALLOC" in content
+    assert "CPP_REINTERPRET_CAST_CALLBACK" in content
+    assert "Governance Contract" in content
+
+
+def test_copilot_instructions_contains_red_lines():
+    path = EXAMPLE_DIR / ".github" / "copilot-instructions.md"
+    content = path.read_text(encoding="utf-8")
+    assert "Red Lines" in content
+
+
+def test_copilot_instructions_contains_pressure_field():
+    path = EXAMPLE_DIR / ".github" / "copilot-instructions.md"
+    content = path.read_text(encoding="utf-8")
+    assert "PRESSURE" in content
+
+
+def test_codex_pre_task_hook_exists():
+    path = EXAMPLE_DIR / "hooks" / "codex_pre_task.py"
+    assert path.exists(), "codex_pre_task.py missing"
+    content = path.read_text(encoding="utf-8")
+    assert "plan_freshness" in content
+    assert "validator_preflight" in content
+    assert "harness=codex" in content
+    assert "memory_pressure" in content
+
+
+def test_codex_pre_task_hook_runs():
+    """codex_pre_task.py must exit 0 and output key=value lines."""
+    proc = subprocess.run(
+        [sys.executable, str((EXAMPLE_DIR / "hooks" / "codex_pre_task.py").resolve())],
+        cwd=Path(".").resolve(),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 0
+    assert "harness=codex" in proc.stdout
+    assert "plan_freshness=" in proc.stdout
+    assert "validator_preflight_ok=" in proc.stdout
+    assert "memory_pressure=" in proc.stdout
+
+
+def test_agents_md_contains_header_format():
+    path = EXAMPLE_DIR / "AGENTS.md"
+    content = path.read_text(encoding="utf-8")
+    assert "PRESSURE" in content
+    assert "Governance Contract Header Format" in content

@@ -53,6 +53,28 @@ If a required fact is missing, stop and ask for clarification.
   tools (clang-tidy, CppCoreCheck), sanitizers (ASAN, TSAN), or code review.
 - Passing all checks does not guarantee correct resource management end-to-end.
 
+## Governance Contract Header Format
+
+Every non-trivial AI agent response must begin with:
+
+```
+[Governance Contract]
+LANG     = C++
+PLAN     = <current phase / focus from PLAN.md>
+TOUCHES  = <mutex|heap|callback|other>
+PRESSURE = <SAFE|WARNING|CRITICAL> (<n>/200)
+```
+
+**PRESSURE** is derived from the line count of `memory/MEMORY.md`:
+- SAFE: ≤ 150 lines
+- WARNING: 151–180 lines (prioritise compaction)
+- CRITICAL: > 180 lines (stop new feature work, compact first)
+
+Run `hooks/codex_pre_task.py` at session start to get the current values
+for `plan_freshness` and `memory_pressure` automatically.
+
 ## Related Documents
 
 - `rules/cpp_safety.md`
+- `.github/copilot-instructions.md` (GitHub Copilot adapter)
+- `hooks/codex_pre_task.py` (Codex --before-task hook)
