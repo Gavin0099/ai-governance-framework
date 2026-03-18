@@ -1,0 +1,22 @@
+{
+  "file_path": "src/app/api/ingest/route.ts",
+  "source_code": "import { NextRequest, NextResponse } from 'next/server';\nimport { getServerSession } from 'next-auth';\nimport { generateEmbedding } from '@/lib/embeddings';\nimport { db } from '@/lib/db';\n\nexport async function POST(req: NextRequest) {\n  const session = await getServerSession();\n  if (!session?.user) {\n    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });\n  }\n\n  const { text, entryId } = await req.json();\n  const userKey = session.user.openaiKey;\n\n  // Use BYOK: pass user's own API key to the embedding call\n  const embedding = await generateEmbedding(text, { apiKey: userKey });\n\n  await db.entry.update({\n    where: { id: entryId },\n    data: { embedding },\n  });\n\n  return NextResponse.json({ ok: true });\n}\n",
+  "api_route_roots": [
+    "src/app/api/"
+  ],
+  "changed_files": [
+    "src/app/api/ingest/route.ts"
+  ],
+  "test_names": [
+    "IngestRoute.POST_uses_user_openai_key",
+    "IngestRoute.POST_returns_401_when_unauthenticated",
+    "IngestRoute.POST_rejects_missing_text"
+  ],
+  "diagnostics": [
+    "tsc: 0 errors",
+    "jest: all tests passed"
+  ],
+  "summary": { "failed": 0 },
+  "warnings": [],
+  "errors": []
+}

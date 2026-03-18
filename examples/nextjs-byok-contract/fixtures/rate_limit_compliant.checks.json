@@ -1,0 +1,21 @@
+{
+  "file_path": "src/app/api/query/route.ts",
+  "source_code": "import { NextRequest, NextResponse } from 'next/server';\nimport { Ratelimit } from '@upstash/ratelimit';\nimport { Redis } from '@upstash/redis';\nimport { getServerSession } from 'next-auth';\nimport { runQuery } from '@/lib/agent';\n\nconst ratelimit = new Ratelimit({\n  redis: Redis.fromEnv(),\n  limiter: Ratelimit.slidingWindow(10, '60 s'),\n});\n\nexport async function POST(req: NextRequest) {\n  const session = await getServerSession();\n  if (!session?.user) {\n    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });\n  }\n\n  const { success } = await ratelimit.limit(session.user.id);\n  if (!success) {\n    return NextResponse.json({ error: 'Too Many Requests' }, { status: 429 });\n  }\n\n  const { query } = await req.json();\n  const result = await runQuery(query, session.user);\n  return NextResponse.json({ result });\n}\n",
+  "api_route_roots": [
+    "src/app/api/"
+  ],
+  "changed_files": [
+    "src/app/api/query/route.ts"
+  ],
+  "test_names": [
+    "QueryRoute.POST_rate_limits_after_10_requests",
+    "QueryRoute.POST_returns_result_within_limit"
+  ],
+  "diagnostics": [
+    "tsc: 0 errors",
+    "jest: all tests passed"
+  ],
+  "summary": { "failed": 0 },
+  "warnings": [],
+  "errors": []
+}
