@@ -347,6 +347,8 @@ If you also want to know whether an adopter repo is still on the latest framewor
 The lock file should include at least `adopted_release`, `adopted_commit`, `framework_interface_version`, and `framework_compatible`.
 `external_repo_readiness.py` now surfaces that version state as `current`, `outdated`, `incompatible`, or `unknown`.
 If you want a fleet-level version drift view, run `governance_tools/external_repo_version_audit.py --repo /path/to/repo1 --repo /path/to/repo2`.
+If you want to catch "feature surface moved ahead but docs did not" drift, run `governance_tools/doc_drift_checker.py --project-root /path/to/repo`.
+That checker uses `governance_tools/feature_surface_snapshot.py` to scan app routes, API routes, and migrations, then compares them against `PLAN.md` and README coverage.
 
 Example:
 
