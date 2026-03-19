@@ -16,6 +16,7 @@ if __package__ in (None, ""):
 
 from governance_tools.contract_resolver import resolve_contract
 from governance_tools.domain_contract_loader import load_domain_contract
+from governance_tools.framework_versioning import assess_framework_version_status
 from governance_tools.hook_install_validator import validate_hook_install
 from governance_tools.plan_freshness import check_freshness
 
@@ -26,6 +27,7 @@ class ExternalRepoReadiness:
     repo_root: str
     checks: dict[str, bool] = field(default_factory=dict)
     contract: dict[str, object] | None = None
+    framework_version: dict[str, object] | None = None
     plan: dict[str, object] | None = None
     hooks: dict[str, object] | None = None
     warnings: list[str] = field(default_factory=list)
@@ -40,7 +42,7 @@ def assess_external_repo(repo_root: Path, contract_path: str | Path | None = Non
 
     checks["git_repo_present"] = (repo_root / ".git").exists()
     if not checks["git_repo_present"]:
-        errors.append(f"找不到 git repo: {repo_root}")
+        errors.append(f"not a git repo: {repo_root}")
         return ExternalRepoReadiness(
             ready=False,
             repo_root=str(repo_root),
@@ -78,13 +80,13 @@ def assess_external_repo(repo_root: Path, contract_path: str | Path | None = Non
         warnings.extend(f"plan: {item}" for item in plan_result.warnings)
         errors.extend(f"plan: {item}" for item in plan_result.errors)
     else:
-        plan = None
         checks["plan_present"] = False
         checks["plan_fresh_enough"] = False
-        warnings.append("plan: 找不到 PLAN.md")
+        warnings.append("plan: PLAN.md not found")
 
     resolution = resolve_contract(contract_path, project_root=repo_root)
     contract: dict[str, object] | None = None
+    contract_raw: dict[str, object] | None = None
     checks["contract_resolved"] = resolution.path is not None
     if resolution.error:
         errors.append(f"contract: {resolution.error}")
@@ -95,12 +97,13 @@ def assess_external_repo(repo_root: Path, contract_path: str | Path | None = Non
         missing_docs = [item["path"] for item in loaded["documents"] if not item["exists"]]
         missing_overrides = [item["path"] for item in loaded["ai_behavior_override"] if not item["exists"]]
         missing_validators = [item["path"] for item in loaded["validators"] if not item["exists"]]
+        contract_raw = loaded["raw"]
         contract = {
             "source": resolution.source,
             "path": str(resolution.path),
             "name": loaded["name"],
-            "domain": loaded["raw"].get("domain"),
-            "plugin_version": loaded["raw"].get("plugin_version"),
+            "domain": contract_raw.get("domain"),
+            "plugin_version": contract_raw.get("plugin_version"),
             "documents": len(loaded["documents"]),
             "rule_roots": len(loaded["rule_roots"]),
             "validators": len(loaded["validators"]),
@@ -112,14 +115,33 @@ def assess_external_repo(repo_root: Path, contract_path: str | Path | None = Non
         if missing_docs:
             errors.extend(f"contract: missing document {item}" for item in missing_docs)
         if missing_overrides:
-            errors.extend(
-                f"contract: missing behavior override {item}" for item in missing_overrides
-            )
+            errors.extend(f"contract: missing behavior override {item}" for item in missing_overrides)
         if missing_validators:
             errors.extend(f"contract: missing validator {item}" for item in missing_validators)
     else:
         checks["contract_files_complete"] = False
-        warnings.append("contract: 尚未解析到 contract.yaml")
+        warnings.append("contract: contract.yaml not resolved")
+
+    version_status = assess_framework_version_status(repo_root, contract_raw=contract_raw)
+    framework_version = {
+        "current_release": version_status.current_release,
+        "adopted_release": version_status.adopted_release,
+        "adopted_commit": version_status.adopted_commit,
+        "framework_interface_version": version_status.framework_interface_version,
+        "compatibility_range": version_status.compatibility_range,
+        "lock_file": version_status.lock_file,
+        "state": version_status.state,
+        "reasons": version_status.reasons,
+    }
+    checks["framework_version_known"] = version_status.adopted_release is not None
+    checks["framework_version_current"] = version_status.state in {"current", "ahead"}
+    checks["framework_release_compatible"] = version_status.state != "incompatible"
+    if version_status.state == "incompatible":
+        errors.extend(
+            f"framework-version: {item}" for item in (version_status.reasons or ["framework release is incompatible"])
+        )
+    elif version_status.reasons:
+        warnings.extend(f"framework-version: {item}" for item in version_status.reasons)
 
     ready = (
         checks["git_repo_present"]
@@ -127,6 +149,7 @@ def assess_external_repo(repo_root: Path, contract_path: str | Path | None = Non
         and checks["plan_fresh_enough"]
         and checks["contract_resolved"]
         and checks["contract_files_complete"]
+        and checks["framework_release_compatible"]
     )
 
     return ExternalRepoReadiness(
@@ -134,6 +157,7 @@ def assess_external_repo(repo_root: Path, contract_path: str | Path | None = Non
         repo_root=str(repo_root),
         checks=checks,
         contract=contract,
+        framework_version=framework_version,
         plan=plan,
         hooks=hooks,
         warnings=warnings,
@@ -166,6 +190,21 @@ def format_human(result: ExternalRepoReadiness) -> str:
                 f"documents          = {result.contract.get('documents')}",
                 f"rule_roots         = {result.contract.get('rule_roots')}",
                 f"validators         = {result.contract.get('validators')}",
+            ]
+        )
+
+    if result.framework_version:
+        lines.extend(
+            [
+                "",
+                "[framework_version]",
+                f"state              = {result.framework_version.get('state')}",
+                f"current_release    = {result.framework_version.get('current_release')}",
+                f"adopted_release    = {result.framework_version.get('adopted_release')}",
+                f"adopted_commit     = {result.framework_version.get('adopted_commit')}",
+                f"interface_version  = {result.framework_version.get('framework_interface_version')}",
+                f"compatible_range   = {result.framework_version.get('compatibility_range')}",
+                f"lock_file          = {result.framework_version.get('lock_file')}",
             ]
         )
 
@@ -212,6 +251,7 @@ def format_json(result: ExternalRepoReadiness) -> str:
             "repo_root": result.repo_root,
             "checks": result.checks,
             "contract": result.contract,
+            "framework_version": result.framework_version,
             "plan": result.plan,
             "hooks": result.hooks,
             "errors": result.errors,

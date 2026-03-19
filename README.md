@@ -343,6 +343,10 @@ That onboarding flow now also includes a minimal governance smoke test by defaul
 By default it also writes a JSON onboarding report to `memory/governance_onboarding/latest.json` inside the target repo, so onboarding state remains reviewable after the terminal session ends.
 That onboarding report now also maintains `history/*.json`, `history/*.txt`, `latest.txt`, and `INDEX.txt`, so external repo setup state becomes a small auditable artifact set instead of a single overwritten file.
 If you are tracking multiple external repos, you can aggregate their latest onboarding states with `governance_tools/external_repo_onboarding_index.py --repo /path/to/repo1 --repo /path/to/repo2`.
+If you also want to know whether an adopter repo is still on the latest framework release, record its adoption state in `governance/framework.lock.json` inside the target repo.
+The lock file should include at least `adopted_release`, `adopted_commit`, `framework_interface_version`, and `framework_compatible`.
+`external_repo_readiness.py` now surfaces that version state as `current`, `outdated`, `incompatible`, or `unknown`.
+If you want a fleet-level version drift view, run `governance_tools/external_repo_version_audit.py --repo /path/to/repo1 --repo /path/to/repo2`.
 
 Example:
 
