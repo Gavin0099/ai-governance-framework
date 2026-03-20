@@ -19,10 +19,8 @@ from memory_pipeline.memory_curator import curate_candidate_artifact
 from memory_pipeline.memory_promoter import promote_candidate
 from memory_pipeline.promotion_policy import classify_promotion_policy
 from memory_pipeline.session_snapshot import create_session_snapshot
+from governance_tools.decision_model_loader import build_runtime_policy_ref, violation_verdict_impact
 from governance_tools.domain_governance_metadata import domain_risk_tier
-
-
-RUNTIME_VERSION = "v2.6-draft-runtime"
 
 
 def _ensure_runtime_artifact_dirs(project_root: Path) -> tuple[Path, Path, Path, Path, Path]:
@@ -96,11 +94,7 @@ def _build_verdict_artifact(
         "artifact_type": "runtime-verdict",
         "session_id": session_id,
         "generated_at": now,
-        "policy_ref": {
-            "governance_runtime_decision_model": "2.6-draft",
-            "artifact_schema_version": "1.0",
-            "runtime_version": RUNTIME_VERSION,
-        },
+        "policy_ref": build_runtime_policy_ref(),
         "verdict": {
             "decision": decision,
             "ok": len(errors) == 0,
@@ -138,11 +132,7 @@ def _build_runtime_failure_trace_artifact(
         "artifact_type": "runtime-failure-trace",
         "session_id": session_id,
         "generated_at": now,
-        "policy_ref": {
-            "governance_runtime_decision_model": "2.6-draft",
-            "artifact_schema_version": "1.0",
-            "runtime_version": RUNTIME_VERSION,
-        },
+        "policy_ref": build_runtime_policy_ref(),
         "contract_identity": _contract_identity(contract_resolution, domain_contract),
         "runtime_contract": contract,
         "decision_path": [
@@ -163,7 +153,7 @@ def _build_runtime_failure_trace_artifact(
         "runtime_failure": {
             "violation_type": "runtime_failure",
             "detected_by": "runtime execution wrapper",
-            "verdict_impact": "stop",
+            "verdict_impact": violation_verdict_impact("runtime_failure", "stop"),
             "stage": stage,
             "message": failure_message,
         },
@@ -192,11 +182,7 @@ def _build_trace_artifact(
         "artifact_type": "runtime-trace",
         "session_id": session_id,
         "generated_at": now,
-        "policy_ref": {
-            "governance_runtime_decision_model": "2.6-draft",
-            "artifact_schema_version": "1.0",
-            "runtime_version": RUNTIME_VERSION,
-        },
+        "policy_ref": build_runtime_policy_ref(),
         "contract_identity": _contract_identity(contract_resolution, domain_contract),
         "runtime_contract": contract,
         "decision_path": [

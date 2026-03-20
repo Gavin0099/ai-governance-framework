@@ -369,6 +369,8 @@ def test_session_end_replay_preserves_verdict_for_same_input(local_project_root)
     assert result_a["decision"] == result_b["decision"]
     assert result_a["policy"] == result_b["policy"]
     assert result_a["errors"] == result_b["errors"]
+    assert verdict_a["policy_ref"]["governance_runtime_decision_model"] == "2.6"
+    assert trace_a["policy_ref"]["governance_runtime_decision_model"] == "2.6"
     assert verdict_a["policy_ref"]["runtime_version"] == "v2.6-draft-runtime"
     assert trace_a["policy_ref"]["runtime_version"] == "v2.6-draft-runtime"
     assert verdict_a["verdict"] == verdict_b["verdict"]

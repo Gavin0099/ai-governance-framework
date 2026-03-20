@@ -6,7 +6,6 @@ Runtime post-task governance checks.
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 
@@ -14,6 +13,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from governance_tools.contract_validator import validate_contract
+from governance_tools.decision_model_loader import policy_precedence_rows, required_evidence_kinds, violation_verdict_impact
 from governance_tools.contract_resolver import resolve_contract
 from governance_tools.domain_governance_metadata import domain_risk_tier
 from governance_tools.domain_contract_loader import load_domain_contract
@@ -26,7 +26,6 @@ from governance_tools.rule_pack_loader import available_rule_packs, describe_rul
 from memory_pipeline.session_snapshot import create_session_snapshot
 from runtime_hooks.core.human_summary import build_summary_line, format_contract_summary_label
 
-DECISION_MODEL_PATH = Path(__file__).resolve().parents[2] / "governance" / "governance_decision_model.v2.6.json"
 PUBLIC_API_DIFF_REQUIRED_KEYS = {
     "ok",
     "removed",
@@ -136,21 +135,6 @@ def _merge_driver_evidence_checks(errors: list[str], warnings: list[str], checks
     return result
 
 
-def _load_required_runtime_evidence_kinds() -> set[str]:
-    payload = json.loads(DECISION_MODEL_PATH.read_text(encoding="utf-8"))
-    rows = payload.get("matrices", {}).get("evidence_classification", [])
-    return {
-        str(row["evidence_kind"])
-        for row in rows
-        if row.get("required") is True and str(row.get("evidence_kind", "")).strip()
-    }
-
-
-def _load_policy_precedence_rows() -> list[dict]:
-    payload = json.loads(DECISION_MODEL_PATH.read_text(encoding="utf-8"))
-    return list(payload.get("matrices", {}).get("policy_precedence", []))
-
-
 def _observed_runtime_evidence_kinds(
     checks: dict | None,
     *,
@@ -183,7 +167,7 @@ def _classify_invalid_evidence_schema(checks: dict | None) -> list[dict]:
             "violation_type": "invalid_evidence_schema",
             "evidence_kind": "public-api-diff",
             "detected_by": "runtime evidence validator",
-            "verdict_impact": "stop",
+            "verdict_impact": violation_verdict_impact("invalid_evidence_schema", "stop"),
             "message": f"Invalid runtime evidence schema: public-api-diff ({schema_error})",
         }
     ]
@@ -197,7 +181,7 @@ def _classify_policy_conflicts(checks: dict | None) -> list[dict]:
     if not isinstance(policy_conflicts, list):
         return []
 
-    precedence_rows = _load_policy_precedence_rows()
+    precedence_rows = policy_precedence_rows()
     violations = []
     for item in policy_conflicts:
         if not isinstance(item, dict):
@@ -226,7 +210,7 @@ def _classify_policy_conflicts(checks: dict | None) -> list[dict]:
                     "override_target": override_target,
                     "scope": scope,
                     "detected_by": "policy precedence resolver",
-                    "verdict_impact": "escalate",
+                    "verdict_impact": violation_verdict_impact("policy_conflict", "escalate"),
                     "message": f"Unresolved runtime policy conflict: {policy_type} -> {override_target}",
                 }
             )
@@ -240,7 +224,7 @@ def _classify_policy_conflicts(checks: dict | None) -> list[dict]:
                     "override_target": override_target,
                     "scope": scope or str(matched_row.get("scope", "")),
                     "detected_by": "ownership and precedence validator",
-                    "verdict_impact": "stop",
+                    "verdict_impact": violation_verdict_impact("illegal_override", "stop"),
                     "message": f"Illegal runtime policy override: {policy_type} -> {override_target}",
                 }
             )
@@ -253,7 +237,7 @@ def _classify_policy_conflicts(checks: dict | None) -> list[dict]:
                 "override_target": override_target,
                 "scope": scope or str(matched_row.get("scope", "")),
                 "detected_by": "policy precedence resolver",
-                "verdict_impact": "escalate",
+                "verdict_impact": violation_verdict_impact("policy_conflict", "escalate"),
                 "message": (
                     f"Runtime policy conflict requires precedence resolution: {policy_type} -> {override_target} "
                     f"({matched_row.get('conflict_resolution')})"
@@ -286,7 +270,7 @@ def _classify_domain_policy_inputs(
                     "validator": item.get("name"),
                     "rule_ids": matched_rule_ids,
                     "detected_by": "domain validator",
-                    "verdict_impact": "stop",
+                    "verdict_impact": violation_verdict_impact("domain_contract_violation", "stop"),
                     "message": (
                         f"Domain policy stop requested by hard_stop_rules: {item.get('name')} -> {violation} "
                         f"(rules: {','.join(matched_rule_ids)})"
@@ -311,7 +295,7 @@ def _classify_missing_required_evidence(
     if not declared_required:
         return []
 
-    known_required = _load_required_runtime_evidence_kinds()
+    known_required = required_evidence_kinds()
     observed = _observed_runtime_evidence_kinds(
         checks,
         public_api_diff=public_api_diff,
@@ -329,7 +313,7 @@ def _classify_missing_required_evidence(
                 "violation_type": "missing_required_evidence",
                 "evidence_kind": evidence_kind,
                 "detected_by": "runtime evidence validator",
-                "verdict_impact": "escalate",
+                "verdict_impact": violation_verdict_impact("missing_required_evidence", "escalate"),
                 "message": f"Missing required runtime evidence: {evidence_kind}",
             }
         )
