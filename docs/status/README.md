@@ -21,6 +21,10 @@ This directory contains the repository's stable status-facing documents.
   - the broader implementation and maturity snapshot
   - describes what is complete, what is still advisory, and where the main gaps remain
 
+- [Runtime Failure-Mode Progress - 2026-03-20](runtime-failure-mode-progress-2026-03-20.md)
+  - the focused memo for the first execution-layer failure-mode slice
+  - use this when you want to know which v2.6 failure categories are now actually running in the runtime
+
 - [Four-Repo Integration Progress](four-repo-integration-progress.md)
   - the clearest current cross-repo progress memo for the framework plus the three live domain contracts
   - explains what is already closed, what was historically true but is no longer the blocker, and what the real remaining gaps are now
@@ -49,8 +53,9 @@ This directory contains the repository's stable status-facing documents.
 1. Start with [Reviewer Handoff](reviewer-handoff.md)
 2. Then read [Trust Signal Dashboard](trust-signal-dashboard.md)
 3. Then read [Runtime Governance Status](runtime-governance-status.md)
-4. Then read [Four-Repo Integration Progress](four-repo-integration-progress.md)
-5. Then read [Domain Enforcement Matrix](domain-enforcement-matrix.md)
-6. If generated, start with `generated/README.md`
-7. Then review `generated/site/README.md` for the latest published snapshot
-8. Use [Next Steps](next-steps.md) for future work planning
+4. Then read [Runtime Failure-Mode Progress - 2026-03-20](runtime-failure-mode-progress-2026-03-20.md)
+5. Then read [Four-Repo Integration Progress](four-repo-integration-progress.md)
+6. Then read [Domain Enforcement Matrix](domain-enforcement-matrix.md)
+7. If generated, start with `generated/README.md`
+8. Then review `generated/site/README.md` for the latest published snapshot
+9. Use [Next Steps](next-steps.md) for future work planning
