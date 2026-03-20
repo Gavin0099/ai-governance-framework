@@ -51,6 +51,9 @@ dist/
 .pytest_cache/
 .pytest_tmp*/
 tests/_tmp_*/
+test_tmp_*/
+tmp*/
+tests/runtime-post-task-manual-*/
 tests/_tmp_governance_auditor/
 tests/_tmp_failure_test_validator/
 tests/_tmp_rule_pack_suggester/
