@@ -126,3 +126,33 @@ def test_run_adapter_event_post_task_creates_snapshot(local_runtime_root):
     assert envelope["result"]["checks"]["cleanup_verified"] is True
     assert envelope["result"]["snapshot"] is not None
     assert Path(envelope["result"]["snapshot"]["snapshot_path"]).exists()
+
+
+def test_run_adapter_event_post_task_reports_missing_contract(local_runtime_root):
+    response_file = local_runtime_root / "response.txt"
+    checks_file = local_runtime_root / "checks.json"
+    response_file.write_text("Implemented runtime adapter result without contract block.\n", encoding="utf-8")
+    checks_file.write_text(json.dumps({"warnings": [], "errors": []}) + "\n", encoding="utf-8")
+
+    from runtime_hooks.adapters.codex.normalize_event import normalize_event as normalize_codex
+
+    payload = {
+        "workspace": str(local_runtime_root),
+        "task": "Review output",
+        "rules": ["common", "python"],
+        "risk": "medium",
+        "oversight": "review-required",
+        "memory_mode": "candidate",
+        "output_file": str(response_file),
+        "checks_file": str(checks_file),
+        "snapshot": False,
+    }
+
+    envelope = run_adapter_event(normalize_codex, "post_task", payload)
+    assert envelope["result"]["ok"] is False
+    assert envelope["result"]["adapter_contract"]["required"] is True
+    assert envelope["result"]["adapter_contract"]["contract_found"] is False
+    assert envelope["result"]["adapter_errors"] == [
+        "adapter-contract: Missing [Governance Contract] block in non-trivial post_task response"
+    ]
+    assert "adapter-contract: Missing [Governance Contract] block in non-trivial post_task response" in envelope["result"]["errors"]

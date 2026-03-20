@@ -80,6 +80,22 @@ When a forced runtime failure is injected:
 This is the repository's first concrete execution-layer implementation of the
 v2.6 `runtime_failure` violation model.
 
+### 5. Adapter Contract Enforcement Slice
+
+`runtime_hooks/adapters/shared_adapter_runner.py` now performs a minimal
+adapter-side contract assessment for non-trivial `post_task` runs.
+
+Current behavior:
+
+- non-trivial `post_task` adapter runs now mark contract presence as required
+- missing `[Governance Contract]` blocks are surfaced as explicit
+  `adapter-contract` errors instead of remaining only an implicit prompt-level
+  expectation
+- adapter output now includes an `adapter_contract` assessment payload
+
+This does not yet enforce Copilot or editor-native behavior globally, but it
+does turn the shared adapter seam into an actual compliance surface.
+
 ### 5. Minimal Determinism Replay
 
 The first determinism slice is now present:

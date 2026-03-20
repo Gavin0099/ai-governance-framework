@@ -17,6 +17,7 @@ if __package__ in (None, ""):
 from runtime_hooks.core.post_task_check import run_post_task_check
 from runtime_hooks.core.pre_task_check import run_pre_task_check
 from runtime_hooks.core.session_start import build_session_start_context
+from governance_tools.contract_validator import validate_contract
 
 
 def _load_payload(file_path: str | None) -> dict:
@@ -24,6 +25,19 @@ def _load_payload(file_path: str | None) -> dict:
         return json.loads(Path(file_path).read_text(encoding="utf-8"))
     return json.loads(sys.stdin.read())
 
+
+
+
+def _post_task_contract_required(normalized: dict, response_text: str, checks: dict | None) -> bool:
+    if normalized.get("task"):
+        return True
+    if normalized.get("create_snapshot"):
+        return True
+    if normalized.get("response_file") and response_text.strip():
+        return True
+    if normalized.get("checks_file") and checks is not None:
+        return True
+    return False
 
 def run_adapter_event(
     normalize_event: Callable[[dict, str], dict],
@@ -64,6 +78,25 @@ def run_adapter_event(
         if checks_file:
             checks = json.loads(Path(checks_file).read_text(encoding="utf-8"))
 
+        contract_required = _post_task_contract_required(normalized, response_text, checks)
+        adapter_contract = {
+            "required": contract_required,
+            "contract_found": None,
+            "compliant": None,
+            "errors": [],
+            "warnings": [],
+        }
+        if contract_required:
+            contract_validation = validate_contract(response_text)
+            adapter_contract.update(
+                {
+                    "contract_found": contract_validation.contract_found,
+                    "compliant": contract_validation.compliant,
+                    "errors": list(contract_validation.errors),
+                    "warnings": list(contract_validation.warnings),
+                }
+            )
+
         result = run_post_task_check(
             response_text=response_text,
             risk=normalized["risk"],
@@ -78,6 +111,12 @@ def run_adapter_event(
             project_root=Path(normalized["project_root"]),
             evidence_paths=[Path(path).resolve() for path in [response_file, checks_file] if path],
         )
+        if contract_required and not adapter_contract["contract_found"]:
+            message = "adapter-contract: Missing [Governance Contract] block in non-trivial post_task response"
+            result.setdefault("adapter_errors", []).append(message)
+            result["errors"].append(message)
+            result["ok"] = False
+        result["adapter_contract"] = adapter_contract
 
     return {
         "normalized_event": normalized,
