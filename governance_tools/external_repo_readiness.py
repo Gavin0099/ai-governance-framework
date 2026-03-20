@@ -36,6 +36,13 @@ class ExternalRepoReadiness:
     errors: list[str] = field(default_factory=list)
 
 
+def _project_facts_remediation_hint(repo_root: Path, status: str) -> str | None:
+    base = f"python governance_tools/external_project_facts_intake.py --repo {repo_root}"
+    if status in {"missing", "drifted", "intake-error"}:
+        return base
+    return None
+
+
 def assess_external_repo(
     repo_root: Path,
     contract_path: str | Path | None = None,
@@ -158,6 +165,7 @@ def assess_external_repo(
             "artifact_content_sha256": artifact_sha256,
             "artifact_drift": drift_detected,
             "reason": None,
+            "remediation_hint": _project_facts_remediation_hint(repo_root, "drifted" if drift_detected else "available"),
         }
         checks["project_facts_present"] = True
         checks["project_facts_intakeable"] = True
@@ -170,6 +178,7 @@ def assess_external_repo(
             "status": "missing",
             "available": False,
             "reason": str(exc),
+            "remediation_hint": _project_facts_remediation_hint(repo_root, "missing"),
         }
         warnings.append(f"project-facts: {exc}")
     except Exception as exc:
@@ -180,6 +189,7 @@ def assess_external_repo(
             "status": "intake-error",
             "available": False,
             "reason": str(exc),
+            "remediation_hint": _project_facts_remediation_hint(repo_root, "missing"),
         }
         warnings.append(f"project-facts: intake failed ({exc})")
 
@@ -305,6 +315,7 @@ def format_human(result: ExternalRepoReadiness) -> str:
                 f"artifact_exists    = {result.project_facts.get('artifact_exists')}",
                 f"artifact_drift     = {result.project_facts.get('artifact_drift')}",
                 f"reason             = {result.project_facts.get('reason')}",
+                f"remediation_hint   = {result.project_facts.get('remediation_hint')}",
             ]
         )
 

@@ -112,6 +112,7 @@ def format_human(report: ExternalRepoOnboardingReport) -> str:
                 f"artifact_exists    = {project_facts.get('artifact_exists')}",
                 f"artifact_drift     = {project_facts.get('artifact_drift')}",
                 f"reason             = {project_facts.get('reason')}",
+                f"remediation_hint   = {project_facts.get('remediation_hint')}",
             ]
         )
 
