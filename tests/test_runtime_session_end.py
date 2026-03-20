@@ -296,3 +296,30 @@ def test_session_end_human_output_includes_contract_context(local_project_root):
     assert "contract_risk_tier=high" in output
     assert "verdict_artifact=" in output
     assert "trace_artifact=" in output
+
+
+
+def test_session_end_fails_closed_on_forced_runtime_failure(local_project_root):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-11",
+        runtime_contract=_contract(),
+        checks={
+            "ok": True,
+            "errors": [],
+            "force_runtime_failure_stage": "artifact_emission",
+        },
+        response_text="runtime output",
+        summary="Forced runtime failure session",
+    )
+
+    assert result["ok"] is False
+    assert result["decision"] == "RUNTIME_FAILURE"
+    assert result["policy"]["decision"] == "STOP"
+    assert any("runtime_failure: forced runtime failure at stage: artifact_emission" in error for error in result["errors"])
+    assert Path(result["trace_artifact"]).exists()
+    trace_payload = json.loads(Path(result["trace_artifact"]).read_text(encoding="utf-8"))
+    assert trace_payload["artifact_type"] == "runtime-failure-trace"
+    assert trace_payload["runtime_failure"]["violation_type"] == "runtime_failure"
+    assert trace_payload["runtime_failure"]["verdict_impact"] == "stop"
+    assert trace_payload["runtime_failure"]["stage"] == "artifact_emission"

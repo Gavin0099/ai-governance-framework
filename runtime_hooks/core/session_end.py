@@ -41,6 +41,11 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _force_runtime_failure_if_requested(checks: dict[str, Any], stage: str) -> None:
+    if checks.get("force_runtime_failure_stage") == stage:
+        raise RuntimeError(f"forced runtime failure at stage: {stage}")
+
+
 def _normalize_session_start_payload(payload: dict[str, Any]) -> dict[str, Any]:
     if payload.get("event_type") == "session_start" and isinstance(payload.get("result"), dict):
         return payload["result"]
@@ -109,6 +114,57 @@ def _build_verdict_artifact(
         "override_or_escalation": {
             "override_present": override_present,
             "escalation_present": escalation_present,
+        },
+    }
+
+
+def _build_runtime_failure_trace_artifact(
+    *,
+    session_id: str,
+    now: str,
+    contract: dict[str, Any],
+    checks: dict[str, Any],
+    contract_resolution: dict[str, Any],
+    domain_contract: dict[str, Any],
+    stage: str,
+    failure_message: str,
+) -> dict[str, Any]:
+    return {
+        "schema_version": "1.0",
+        "artifact_type": "runtime-failure-trace",
+        "session_id": session_id,
+        "generated_at": now,
+        "policy_ref": {
+            "governance_runtime_decision_model": "2.6-draft",
+            "artifact_schema_version": "1.0",
+        },
+        "contract_identity": _contract_identity(contract_resolution, domain_contract),
+        "runtime_contract": contract,
+        "decision_path": [
+            "normalize runtime contract",
+            "runtime failure interception",
+            "emit fail-closed trace artifact",
+        ],
+        "evidence_summary": {
+            "check_keys": sorted(str(key) for key in checks.keys()),
+            "check_ok": checks.get("ok"),
+        },
+        "result": {
+            "decision": "RUNTIME_FAILURE",
+            "policy": {"decision": "STOP"},
+            "errors": [f"runtime_failure: {failure_message}"],
+            "warnings": [],
+        },
+        "runtime_failure": {
+            "violation_type": "runtime_failure",
+            "detected_by": "runtime execution wrapper",
+            "verdict_impact": "stop",
+            "stage": stage,
+            "message": failure_message,
+        },
+        "override_or_escalation": {
+            "override_present": bool(checks.get("override_trace") or checks.get("reviewer_override")),
+            "escalation_present": True,
         },
     }
 
@@ -236,86 +292,105 @@ def run_session_end(
     verdict_path = verdict_artifact_dir / f"{session_id}.json"
     trace_path = trace_artifact_dir / f"{session_id}.json"
 
-    candidate_payload = {
-        "session_id": session_id,
-        "closed_at": now,
-        "runtime_contract": contract,
-        "checks": checks,
-        "architecture_impact_preview": architecture_impact_preview,
-        "proposal_summary": proposal_summary,
-        "contract_resolution": contract_resolution,
-        "domain_contract": domain_contract,
-        "public_api_diff": public_api_diff,
-        "event_log": event_log,
-        "snapshot": snapshot_result,
-        "policy": policy,
-        "promotion": promotion_result,
-        "warnings": warnings,
-        "errors": errors,
-    }
-    summary_payload = {
-        "session_id": session_id,
-        "closed_at": now,
-        "task": contract["task"],
-        "decision": decision,
-        "risk": contract["risk"],
-        "oversight": contract["oversight"],
-        "memory_mode": contract["memory_mode"],
-        "rules": contract["rules"],
-        "architecture_impact_present": bool(architecture_impact_preview),
-        "architecture_impact_concern_count": len(architecture_impact_preview.get("concerns", []) or []),
-        "architecture_impact_boundary_risk": architecture_impact_preview.get("boundary_risk"),
-        "architecture_impact_recommended_risk": architecture_impact_preview.get("recommended_risk"),
-        "architecture_impact_recommended_oversight": architecture_impact_preview.get("recommended_oversight"),
-        "proposal_summary_present": bool(proposal_summary),
-        "proposal_summary_recommended_risk": proposal_summary.get("recommended_risk"),
-        "proposal_summary_recommended_oversight": proposal_summary.get("recommended_oversight"),
-        "proposal_summary_concern_count": len(proposal_summary.get("concerns", []) or []),
-        "proposal_summary_expected_validator_count": len(proposal_summary.get("expected_validators", []) or []),
-        "contract_resolution_present": bool(contract_resolution),
-        "contract_source": contract_resolution.get("source"),
-        "contract_path": contract_resolution.get("path"),
-        "contract_name": domain_contract.get("name"),
-        "contract_domain": (domain_contract.get("raw") or {}).get("domain"),
-        "contract_plugin_version": (domain_contract.get("raw") or {}).get("plugin_version"),
-        "contract_risk_tier": contract_resolution.get("risk_tier"),
-        "public_api_diff_present": public_api_diff is not None,
-        "public_api_removed_count": len(public_api_diff.get("removed", [])) if public_api_diff else 0,
-        "public_api_added_count": len(public_api_diff.get("added", [])) if public_api_diff else 0,
-        "snapshot_created": snapshot_result is not None,
-        "promoted": promotion_result is not None,
-        "warning_count": len(warnings),
-        "error_count": len(errors),
-    }
-    verdict_payload = _build_verdict_artifact(
-        session_id=session_id,
-        now=now,
-        contract=contract,
-        checks=checks,
-        decision=decision,
-        errors=errors,
-        warnings=warnings,
-        contract_resolution=contract_resolution,
-        domain_contract=domain_contract,
-    )
-    trace_payload = _build_trace_artifact(
-        session_id=session_id,
-        now=now,
-        contract=contract,
-        checks=checks,
-        decision=decision,
-        policy=policy,
-        errors=errors,
-        warnings=warnings,
-        contract_resolution=contract_resolution,
-        domain_contract=domain_contract,
-    )
+    try:
+        _force_runtime_failure_if_requested(checks, "artifact_emission")
 
-    _write_json(candidate_path, candidate_payload)
-    curated_result = curate_candidate_artifact(candidate_path, output_path=curated_path)
-    _write_json(summary_path, summary_payload)
-    _write_json(verdict_path, verdict_payload)
-    _write_json(trace_path, trace_payload)
+        candidate_payload = {
+            "session_id": session_id,
+            "closed_at": now,
+            "runtime_contract": contract,
+            "checks": checks,
+            "architecture_impact_preview": architecture_impact_preview,
+            "proposal_summary": proposal_summary,
+            "contract_resolution": contract_resolution,
+            "domain_contract": domain_contract,
+            "public_api_diff": public_api_diff,
+            "event_log": event_log,
+            "snapshot": snapshot_result,
+            "policy": policy,
+            "promotion": promotion_result,
+            "warnings": warnings,
+            "errors": errors,
+        }
+        summary_payload = {
+            "session_id": session_id,
+            "closed_at": now,
+            "task": contract["task"],
+            "decision": decision,
+            "risk": contract["risk"],
+            "oversight": contract["oversight"],
+            "memory_mode": contract["memory_mode"],
+            "rules": contract["rules"],
+            "architecture_impact_present": bool(architecture_impact_preview),
+            "architecture_impact_concern_count": len(architecture_impact_preview.get("concerns", []) or []),
+            "architecture_impact_boundary_risk": architecture_impact_preview.get("boundary_risk"),
+            "architecture_impact_recommended_risk": architecture_impact_preview.get("recommended_risk"),
+            "architecture_impact_recommended_oversight": architecture_impact_preview.get("recommended_oversight"),
+            "proposal_summary_present": bool(proposal_summary),
+            "proposal_summary_recommended_risk": proposal_summary.get("recommended_risk"),
+            "proposal_summary_recommended_oversight": proposal_summary.get("recommended_oversight"),
+            "proposal_summary_concern_count": len(proposal_summary.get("concerns", []) or []),
+            "proposal_summary_expected_validator_count": len(proposal_summary.get("expected_validators", []) or []),
+            "contract_resolution_present": bool(contract_resolution),
+            "contract_source": contract_resolution.get("source"),
+            "contract_path": contract_resolution.get("path"),
+            "contract_name": domain_contract.get("name"),
+            "contract_domain": (domain_contract.get("raw") or {}).get("domain"),
+            "contract_plugin_version": (domain_contract.get("raw") or {}).get("plugin_version"),
+            "contract_risk_tier": contract_resolution.get("risk_tier"),
+            "public_api_diff_present": public_api_diff is not None,
+            "public_api_removed_count": len(public_api_diff.get("removed", [])) if public_api_diff else 0,
+            "public_api_added_count": len(public_api_diff.get("added", [])) if public_api_diff else 0,
+            "snapshot_created": snapshot_result is not None,
+            "promoted": promotion_result is not None,
+            "warning_count": len(warnings),
+            "error_count": len(errors),
+        }
+        verdict_payload = _build_verdict_artifact(
+            session_id=session_id,
+            now=now,
+            contract=contract,
+            checks=checks,
+            decision=decision,
+            errors=errors,
+            warnings=warnings,
+            contract_resolution=contract_resolution,
+            domain_contract=domain_contract,
+        )
+        trace_payload = _build_trace_artifact(
+            session_id=session_id,
+            now=now,
+            contract=contract,
+            checks=checks,
+            decision=decision,
+            policy=policy,
+            errors=errors,
+            warnings=warnings,
+            contract_resolution=contract_resolution,
+            domain_contract=domain_contract,
+        )
+
+        _write_json(candidate_path, candidate_payload)
+        curated_result = curate_candidate_artifact(candidate_path, output_path=curated_path)
+        _write_json(summary_path, summary_payload)
+        _write_json(verdict_path, verdict_payload)
+        _write_json(trace_path, trace_payload)
+    except Exception as exc:
+        failure_message = str(exc)
+        errors.append(f"runtime_failure: {failure_message}")
+        decision = "RUNTIME_FAILURE"
+        policy = {"decision": "STOP", "reason": "runtime_failure"}
+        failure_trace_payload = _build_runtime_failure_trace_artifact(
+            session_id=session_id,
+            now=now,
+            contract=contract,
+            checks=checks,
+            contract_resolution=contract_resolution,
+            domain_contract=domain_contract,
+            stage="artifact_emission",
+            failure_message=failure_message,
+        )
+        _write_json(trace_path, failure_trace_payload)
 
     return {
         "ok": len(errors) == 0,
