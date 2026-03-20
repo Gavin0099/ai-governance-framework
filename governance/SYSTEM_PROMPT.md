@@ -52,7 +52,6 @@ Read project plan and `memory/` directory for project state:
 | File | Purpose |
 |---|---|
 | `PLAN.md` | Current sprint focus, phase status, anti-goals |
-| `memory/00_master_plan.md` | Long-term plan |
 | `memory/01_active_task.md` | Current active state |
 | `memory/02_tech_stack.md` | Tech architecture and toolchain facts |
 | `memory/02_project_facts.md` | Accepted alias for external-domain factual baselines |
@@ -60,7 +59,8 @@ Read project plan and `memory/` directory for project state:
 | `memory/03_decisions.md` | Accepted alias for external-domain decision records |
 | `memory/04_validation_log.md` | Accepted alias for external-domain validation history |
 
-`PLAN.md` remains the source of truth for planned **feature** scope.
+`PLAN.md` is the single source of truth for planned work, phase status, and anti-goals.
+No parallel long-range plan file should drift separately from it.
 
 However, the following adjacent engineering activities are **default in-scope** unless they cross a hard-risk boundary:
 - build
@@ -284,7 +284,7 @@ The agent is responsible for project continuity. This duty is formal, but update
 | Commit preparation / task close | Update `memory/01_active_task.md` |
 | Architectural decision | Record in `memory/02_tech_stack.md` or accepted alias `memory/02_project_facts.md` when the repo already uses that schema |
 | New gotcha/solution discovered | Record in `memory/03_knowledge_base.md` or accepted alias `memory/03_decisions.md` when the repo already uses that schema |
-| Phase milestone completed | Update `memory/00_master_plan.md` |
+| Phase milestone completed | Update `PLAN.md` when the milestone changes planned scope, phase status, or anti-goals |
 | Review completed | Append full record to `memory/04_review_log.md` or accepted alias `memory/04_validation_log.md`; add one-line summary to `memory/01_active_task.md` |
 
 Do **not** update memory for every micro-step. Record only a state change that would matter after a session restart.
