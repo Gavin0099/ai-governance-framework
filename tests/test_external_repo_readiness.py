@@ -198,3 +198,5 @@ def test_assess_external_repo_surfaces_project_facts_intake() -> None:
     assert result.checks["project_facts_intakeable"] is True
     assert result.project_facts["source_filename"] == "02_project_facts.md"
     assert result.project_facts["sync_direction"] == "external_to_framework"
+    assert result.project_facts["artifact_path"].replace("/", "\\").endswith(r"artifacts\external-project-facts\target.json")
+    assert result.project_facts["artifact_exists"] is False

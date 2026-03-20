@@ -383,6 +383,7 @@ If you are tracking multiple external repos, you can aggregate their latest onbo
 If you want to intake an external repo's `memory/02_project_facts.md` or `memory/02_tech_stack.md` into a provenance-rich framework artifact, run `governance_tools/external_project_facts_intake.py --repo /path/to/repo`.
 That tool writes a framework-side JSON artifact under `artifacts/external-project-facts/<repo>.json` and records source file provenance, sync direction, and content hash so external facts become reviewable input instead of only an accepted alias.
 `external_repo_readiness.py` and the onboarding report now also surface this external fact-source metadata, so external `project_facts` become visible in readiness/onboarding output even when they are not yet a hard gate.
+Those surfaces now also expose the canonical framework-side `artifact_path` and `artifact_exists` state, so reviewers can tell where the intake artifact should live before treating external facts as reusable framework input.
 Example:
 
 ```bash

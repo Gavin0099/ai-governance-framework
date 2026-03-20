@@ -16,7 +16,7 @@ if __package__ in (None, ""):
 
 from governance_tools.contract_resolver import resolve_contract
 from governance_tools.domain_contract_loader import load_domain_contract
-from governance_tools.external_project_facts_intake import build_external_project_facts_intake
+from governance_tools.external_project_facts_intake import build_external_project_facts_intake, default_output_path
 from governance_tools.framework_versioning import assess_framework_version_status
 from governance_tools.hook_install_validator import validate_hook_install
 from governance_tools.plan_freshness import check_freshness
@@ -131,12 +131,15 @@ def assess_external_repo(
     project_facts: dict[str, object] | None = None
     try:
         facts_payload = build_external_project_facts_intake(repo_root)
+        artifact_path = default_output_path(Path(__file__).resolve().parent.parent, repo_root).resolve()
         project_facts = {
             "available": True,
             "source_file": facts_payload["fact_source"]["source_file"],
             "source_filename": facts_payload["fact_source"]["source_filename"],
             "content_sha256": facts_payload["fact_source"]["content_sha256"],
             "sync_direction": facts_payload["provenance"]["sync_direction"],
+            "artifact_path": str(artifact_path),
+            "artifact_exists": artifact_path.exists(),
         }
         checks["project_facts_present"] = True
         checks["project_facts_intakeable"] = True
@@ -266,6 +269,8 @@ def format_human(result: ExternalRepoReadiness) -> str:
                 f"source_file        = {result.project_facts.get('source_file')}",
                 f"source_filename    = {result.project_facts.get('source_filename')}",
                 f"sync_direction     = {result.project_facts.get('sync_direction')}",
+                f"artifact_path      = {result.project_facts.get('artifact_path')}",
+                f"artifact_exists    = {result.project_facts.get('artifact_exists')}",
             ]
         )
 
