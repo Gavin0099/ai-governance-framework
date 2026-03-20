@@ -390,6 +390,7 @@ For non-healthy states (`missing`, `drifted`, `intake-error`), readiness/onboard
 Human-readable readiness/onboarding output now also surfaces a one-line `project_facts` summary near the top, so reviewers do not need to scroll into the detailed section just to see whether facts are `available`, `missing`, or `drifted`.
 That same `project_facts` summary now also appears in the cross-repo onboarding index, so multi-repo review can spot missing or drifted fact baselines without opening each repo's full onboarding report.
 The trust-signal overview now propagates that same summary into its external top-issue lines, so release/adoption review can see fact drift without switching surfaces.
+Reviewer handoff summary surfaces now also carry those external fact-state summaries, so the highest-level handoff view does not lose them after trust-signal aggregation.
 Example:
 
 ```bash

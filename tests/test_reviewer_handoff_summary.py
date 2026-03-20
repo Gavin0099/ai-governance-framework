@@ -82,6 +82,86 @@ def test_reviewer_handoff_summary_human_and_markdown_outputs_are_summary_first()
     assert "## Suggested Commands" in rendered_markdown
 
 
+def test_reviewer_handoff_summary_surfaces_external_fact_states():
+    rendered_human = format_human_result(
+        {
+            "ok": True,
+            "project_root": ".",
+            "plan_path": "PLAN.md",
+            "release_version": "v1.0.0-alpha",
+            "contract_path": "example/contract.yaml",
+            "strict_runtime": False,
+            "external_contract_repos": ["/tmp/kernel-driver-contract"],
+            "trust_signal": {
+                "ok": True,
+                "quickstart": {"ok": True},
+                "examples": {"ok": True},
+                "release": {"ok": True},
+                "auditor": {
+                    "ok": True,
+                    "external_onboarding": {
+                        "top_issues": [
+                            {
+                                "repo_root": "/tmp/kernel-driver-contract",
+                                "project_facts_summary": "status=drifted | artifact_exists=True | artifact_drift=True | source=02_project_facts.md",
+                            }
+                        ]
+                    },
+                },
+            },
+            "release_surface": {
+                "ok": True,
+                "readiness": {"ok": True},
+                "package": {"ok": True},
+                "bundle_manifest": {"available": True, "source": "explicit"},
+                "publication_manifest": {"available": True, "source": "explicit"},
+            },
+            "commands": [],
+        }
+    )
+    rendered_markdown = format_markdown_result(
+        {
+            "ok": True,
+            "project_root": ".",
+            "plan_path": "PLAN.md",
+            "release_version": "v1.0.0-alpha",
+            "contract_path": "example/contract.yaml",
+            "strict_runtime": False,
+            "external_contract_repos": ["/tmp/kernel-driver-contract"],
+            "trust_signal": {
+                "ok": True,
+                "quickstart": {"ok": True},
+                "examples": {"ok": True},
+                "release": {"ok": True},
+                "auditor": {
+                    "ok": True,
+                    "external_onboarding": {
+                        "top_issues": [
+                            {
+                                "repo_root": "/tmp/kernel-driver-contract",
+                                "project_facts_summary": "status=drifted | artifact_exists=True | artifact_drift=True | source=02_project_facts.md",
+                            }
+                        ]
+                    },
+                },
+            },
+            "release_surface": {
+                "ok": True,
+                "readiness": {"ok": True},
+                "package": {"ok": True},
+                "bundle_manifest": {"available": True, "ok": True, "source": "explicit"},
+                "publication_manifest": {"available": True, "ok": True, "source": "explicit"},
+            },
+            "commands": [],
+        }
+    )
+
+    assert "[external_project_facts]" in rendered_human
+    assert "/tmp/kernel-driver-contract: status=drifted | artifact_exists=True | artifact_drift=True | source=02_project_facts.md" in rendered_human
+    assert "## External Fact States" in rendered_markdown
+    assert "/tmp/kernel-driver-contract: status=drifted | artifact_exists=True | artifact_drift=True | source=02_project_facts.md" in rendered_markdown
+
+
 def test_reviewer_handoff_summary_cli_supports_direct_script_invocation(tmp_path):
     project_root = Path(".").resolve()
     contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"

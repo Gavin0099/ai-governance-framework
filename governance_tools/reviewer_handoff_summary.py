@@ -19,6 +19,17 @@ from governance_tools.release_surface_overview import assess_release_surface
 from governance_tools.trust_signal_overview import assess_trust_signal_overview
 
 
+def _external_project_facts_summaries(result: dict[str, Any]) -> list[str]:
+    auditor = (result.get("trust_signal") or {}).get("auditor") or {}
+    external_onboarding = auditor.get("external_onboarding") or {}
+    summaries: list[str] = []
+    for item in external_onboarding.get("top_issues") or []:
+        summary = item.get("project_facts_summary")
+        if summary:
+            summaries.append(f"{item.get('repo_root')}: {summary}")
+    return summaries
+
+
 def _commands(release_version: str, contract_file: Path | None = None) -> list[dict[str, str]]:
     contract_arg = f" --contract {contract_file}" if contract_file else ""
     return [
@@ -116,6 +127,10 @@ def format_human_result(result: dict[str, Any]) -> str:
         lines.append(f"bundle_manifest_file={release['bundle_manifest']['manifest_file']}")
     if release["publication_manifest"].get("manifest_file"):
         lines.append(f"publication_manifest_file={release['publication_manifest']['manifest_file']}")
+    fact_summaries = _external_project_facts_summaries(result)
+    if fact_summaries:
+        lines.append("[external_project_facts]")
+        lines.extend(facts for facts in fact_summaries)
     lines.append("[commands]")
     for item in result["commands"]:
         lines.append(f"{item['name']}={item['command']}")
@@ -148,9 +163,11 @@ def format_markdown_result(result: dict[str, Any]) -> str:
         f"| Trust signal | `{trust['ok']}` | quickstart=`{trust['quickstart']['ok']}` examples=`{trust['examples']['ok']}` auditor=`{trust['auditor']['ok']}` |",
         f"| Release surface | `{release['ok']}` | readiness=`{release['readiness']['ok']}` package=`{release['package']['ok']}` bundle=`{'missing' if not release['bundle_manifest']['available'] else release['bundle_manifest']['ok']}` publication=`{'missing' if not release['publication_manifest']['available'] else release['publication_manifest']['ok']}` |",
         "",
-        "## Suggested Commands",
-        "",
     ]
+    fact_summaries = _external_project_facts_summaries(result)
+    if fact_summaries:
+        lines.extend(["## External Fact States", ""] + [f"- `{item}`" for item in fact_summaries] + [""])
+    lines.extend(["## Suggested Commands", ""])
     for item in result["commands"]:
         lines.append(f"- `{item['command']}`")
     return "\n".join(lines)
