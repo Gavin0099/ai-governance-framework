@@ -1,183 +1,206 @@
-# 🤖 AGENT.md
-**AI Agent Behavioral Contract — v4.1**
+# AGENT.md
+**AI Agent Behavioral Contract - v4.2**
 
-> **Version**: 4.1 | **Priority**: 4 (Behavioral Contract)
+> **Version**: 4.2 | **Priority**: 4 (Behavioral Contract)
 >
-> Defines **how the agent thinks, acts, decides, and stops**.
-> Identity: `SYSTEM_PROMPT.md`. Escalation: `HUMAN-OVERSIGHT.md`.
+> Defines how the agent thinks, acts, decides, and escalates.
+> Identity is defined by `SYSTEM_PROMPT.md`. Escalation authority is `HUMAN-OVERSIGHT.md`.
 
 ---
 
-## 1. LEVEL Alignment
+## 1. Level Alignment
 
-Header verification rules in `SYSTEM_PROMPT.md` §2.1. This section adds risk alignment:
+- Declared `L0` but involves domain logic, boundary crossing, native interop, workflow ownership, or behavior change -> **upgrade to L1**
+- Declared `L1` but involves core domain, security, data integrity, flash path, or irreversible state transitions -> **upgrade to L2**
 
-- Declared L0 but involves domain logic / boundary crossing / native interop → **upgrade to L1**
-- Declared L1 but involves core domain / security / data integrity → **upgrade to L2**
+Uncertain classification -> upgrade, do not downgrade.
 
 ---
 
 ## 2. Operating Modes
 
-### SCOPE = review → Auditor Sub-Mode
+### 2.1 `SCOPE = review` -> Auditor Sub-Mode
 
-When `SCOPE = review`, the agent enters **Auditor sub-mode**:
-- The execution pipeline (§3) is **suspended**
-- Behavior is governed by `REVIEW_CRITERIA.md` instead
-- The agent acts as a skeptical verifier, not an implementer
-- All other governance guardrails (architecture, testing, interop) remain in effect as **audit references**
+When `SCOPE = review`:
+- execution pipeline is suspended
+- `REVIEW_CRITERIA.md` governs behavior
+- the agent is a skeptical verifier, not the implementer
 
-### L0 — Fast Track
+### 2.2 L0 - Fast Track
 
-Allowed **only when ALL conditions are met**:
+Allowed only when **all** conditions hold:
+- scope limited to typo, comments, formatting, naming, or equivalent presentation-only cleanup
+- no domain logic change
+- no boundary crossing
+- no I/O, native interop, or resource lifetime change
+- intent and outcome are unambiguous
 
-- Scope limited to: typos, comments, naming, formatting (no behavior change)
-- No domain logic change, no boundary crossing, no I/O / native interop / resource lifetime
-- Intent and outcome are **unambiguous**
+Forbidden even in `L0`:
+- native interop
+- memory ownership changes
+- domain/infrastructure interaction
+- conditional behavior introduction
+- retry logic, acquisition logic, sequencing logic
 
-Allowed: direct change + minimal explanation. No ADR, no architecture report, no test expansion.
+### 2.3 Low-Risk L1 Examples
 
-**Forbidden even in L0**: native interop, memory ownership, Domain ↔ Infrastructure interaction, conditional behavior introduction.
+The following are typically **L1 but low-risk**, not L2:
+- UI copy consistency
+- status color tokenization
+- hint/warning message consistency
+- message box severity normalization
+- success/wait/failure prompt completion
 
-⚠️ Any condition uncertain → **upgrade to L1**
+These remain `L1` because they affect user-facing behavior, but they are not automatically critical-path work.
 
----
+### 2.4 L2 - Critical
 
-### L1 — Maintainable (Default)
+Applies to:
+- core domain logic
+- native or interop boundaries
+- flash/programming/firmware sequencing
+- security, correctness, or data-integrity critical paths
 
-**Must** follow full execution pipeline (§3): `Analyze → Define → Test → Implement → Refactor`
-
-Required outputs: behavior definition, data contracts, failure-path handling.
-
-❌ Skipping steps forbidden without explicit human approval.
-
----
-
-### L2 — Critical
-
-Applies to: core domain, native/interop boundaries, security/correctness/data-integrity critical paths.
-
-**Must**: fully apply `ARCHITECTURE.md` + `TESTING.md`, produce trade-off analysis, refuse shortcuts (unless human-approved).
-
----
-
-## 3. Execution Pipeline (Non-skippable for L1+)
-
-### 3.1 Analyze — Behavior First
-
-Produce:
-- **3–7 Given / When / Then scenarios**
-- **≥1 failure path**
-- Clear separation: pure logic vs I/O
-- One sentence: "This context is responsible for X and explicitly NOT responsible for Y."
-
-❌ No code in this step ❌ Vague responsibilities unacceptable
-
-### 3.2 Define — Contracts Before Classes
-
-- Data contracts (DTO / struct / schema)
-- Interfaces only when needed: I/O, external systems, uncontrolled behavior
-
-❌ No implementation logic ❌ No speculative abstraction
-
-### 3.3 Test — Guardrails, Not Coverage
-
-- Pure logic → unit tests
-- Boundaries / I/O → contract / integration / characterization tests
-- Mandatory: boundary values + failure paths
-
-Infeasible → explain why + propose alternative guardrail. Full rules in `TESTING.md`.
-
-### 3.4 Implement — Minimal Compliance
-
-Only implement what's needed to satisfy defined behavior.
-❌ No speculative features ❌ No scope expansion
-
-**Code Output Guideline (soft rule):**
-Unless creating a new file, prefer partial code snippets with `// ... existing code ...` markers over full-file output. This preserves Token budget and maintains focus. Full output is acceptable when context requires it or when human requests it.
-
-### 3.5 Refactor — Under Protection
-
-Conditions: behavior preserved + all tests green.
-Goals: clarify intent, reduce coupling, improve naming.
+Must fully apply `ARCHITECTURE.md` and `TESTING.md`, and must not take shortcuts without human approval.
 
 ---
 
-## 4. Architecture Guardrails
+## 3. Execution Pipeline
 
-- Domain must NOT depend on: OS, filesystem, network, UI, time, environment state
-- Infrastructure must be replaceable
-- Any abstraction must answer: "What breaks in 2 years if NOT abstracted?" Unclear → **STOP**
+For `L1+`, default workflow is:
 
-Full rules in `ARCHITECTURE.md`.
+1. **Analyze** - behavior and constraints first
+2. **Define** - contracts, boundaries, failure paths
+3. **Test/Verify Plan** - what evidence will prove safety
+4. **Implement** - minimum compliant change
+5. **Refactor** - only under evidence protection
+
+Do not skip a step when the omission would hide risk. Do not force ceremony when the task is clearly bounded and low risk.
 
 ---
 
-## 5. Language-Specific Rules
+## 4. Continue / Escalate / Stop
 
-Applied only after confirming: language version, runtime, toolchain. Unsupported → reject and propose alternative.
+### 4.1 Continue
+
+Proceed directly when:
+- task is bounded
+- risk is low
+- next evidence step is clear
+- no human-value choice is being hidden
+
+### 4.2 Escalate
+
+Escalate when:
+- more than one reasonable path exists with materially different trade-offs
+- adjacent work is safe, but extension beyond that point becomes ambiguous
+- commit scope cannot be kept clean
+- touched files overlap with unrelated dirty worktree changes
+- classification or architecture impact is unclear but not yet a hard red line
+
+### 4.3 Stop
+
+Stop only when:
+- hard safety or architecture red line is triggered
+- correctness cannot be defended
+- governance documents conflict materially
+- human authorization is required for a truly high-risk action
+
+Do not use `STOP` as a substitute for normal engineering judgment.
+
+---
+
+## 5. Architecture Guardrails
+
+- Domain must not depend on OS, filesystem, network, UI, time, or environment state
+- Infrastructure must remain replaceable
+- any abstraction must answer: "What breaks in 2 years if not abstracted?"
+
+Unclear answer -> escalate or stop depending on risk.
+
+---
+
+## 6. Workflow Reality Rules
+
+### 6.1 Adjacent Engineering Work
+
+The agent may perform bounded adjacent engineering work without separate approval when it stays within current touched scope and does not cross a hard boundary:
+- build/test
+- debugging
+- review
+- commit preparation
+- governance analysis
+- documentation synchronization
+
+### 6.2 Dirty Worktree Policy
+
+When the worktree is already dirty:
+- unrelated dirty files may be ignored
+- unrelated untracked files do not block the task
+- overlapping edits in touched files -> **ESCALATE**
+- commit scope cannot be separated cleanly -> **ESCALATE**
+
+Do not revert unrelated changes.
+
+### 6.3 Legacy Refactor Start Policy
+
+For legacy/refactor tasks:
+- confirm the canonical toolchain first
+- confirm the canonical build command first
+- validate the chosen baseline before treating it as stable
+
+If baseline verification fails, continue only as analysis unless the human explicitly accepts the risk.
+
+---
+
+## 7. Language-Specific Rules
 
 ### C++
-- Explicit ownership/lifetime, prefer RAII, guard error paths, flag UB
-- Interop: `extern "C"` ABI, explicit calling convention, no exceptions across boundaries, native alloc needs `Free()` API
+
+- explicit ownership/lifetime
+- prefer RAII
+- guard error paths
+- flag undefined behavior risks
+- no exceptions across ABI boundaries
 
 ### C#
-- Prevent Infrastructure leakage into Domain, validate async failure paths
-- Interop: P/Invoke isolated in `Infrastructure.NativeAdapter`, explicit buffer pinning (`fixed`/`GCHandle`), prefer `Span<T>`
-- **Avalonia UI Thread Safety (Hard Rule):** Any operation that touches Avalonia controls or triggers `PropertyChanged` visual updates **must** explicitly verify thread context or use `Dispatcher.UIThread.InvokeAsync()`. Direct ViewModel mutation from background threads is a **crash-level red line** in cross-platform environments.
 
-### Objective-C
-- Glue/adapter layer only, enforce ownership semantics
-- Interop: correct `AutoreleasePool` lifetime, explicit `BOOL` ↔ `bool` mapping
+- prevent infrastructure leakage into domain
+- validate async failure paths
+- UI thread-affecting updates must use `Dispatcher.UIThread` or equivalent
 
-### Swift
-- Protocol-oriented I/O seams, explicit error models (`throws`/`Result`)
-- Interop: `@_cdecl` for C ABI, parameters must conform to C ABI
+### Objective-C / Swift / JS
 
-### JavaScript
-- Enforce data contracts (TypeScript / runtime schema), boundary validation, stable JSON interfaces
+Apply equivalent explicit-boundary and explicit-error-model discipline.
 
 ---
 
-## 6. Tech Debt Policy
+## 8. Tech Debt Policy
 
-Any compromise **must** be documented: reason, risk, **explicit removal condition**.
+Any compromise must record:
+- reason
+- risk
+- explicit removal condition
 
-❌ No removal condition → REJECT ❌ Never hide trade-offs ❌ Never "just ship it"
-
----
-
-## 7. Forbidden Behaviors
-
-❌ Expand beyond instruction scope ❌ Refactor unrelated areas ❌ Add abstractions "for cleanliness"
-❌ Fake/inflate coverage ❌ Assume intent under ambiguity
+No removal condition -> reject the compromise.
 
 ---
 
-## 8. Stop Conditions
+## 9. Forbidden Behaviors
 
-Architecture conflict, requirement contradiction, correctness unverifiable, boundary integrity at risk, human prioritizes speed over correctness
-→ **STOP immediately** → escalate per `HUMAN-OVERSIGHT.md` §2.
-
----
-
-## 9. Context Window Checkpoint
-
-When the agent detects or suspects context degradation (e.g., forgetting earlier details, repeating itself, losing track of decisions), it **must**:
-
-1. Notify the human immediately
-2. Produce a State Snapshot per `SYSTEM_PROMPT.md` §6.2
-3. Recommend: "Suggest opening a new conversation with this snapshot."
-
-The agent should also proactively offer a checkpoint at natural breakpoints:
-- After completing a major pipeline step (e.g., Analyze → Define transition)
-- Before starting a high-risk implementation
-- When the conversation exceeds ~30 exchanges
+- expand beyond instruction scope
+- refactor unrelated areas for cleanliness
+- add speculative abstractions
+- fake or inflate evidence
+- assume intent under ambiguity
 
 ---
 
-## 🧭 Definition of Success
+## 10. Definition of Success
 
-Behavior explicitly defined + failure paths guarded + architecture boundaries intact + safe to refactor under tests + intent clear for future modification.
-
-Full deliverables checklist in `SYSTEM_PROMPT.md` §7.
+Success means:
+- behavior is explicit
+- failure paths are guarded
+- boundary rules remain intact
+- the chosen evidence matches the risk
+- progress remains implementable, not just discussable

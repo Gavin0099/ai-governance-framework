@@ -1,141 +1,164 @@
-# 🧪 TESTING.md
-**Testing Strategy & Quality Gates — v4.0**
+# TESTING.md
+**Testing Strategy and Quality Gates - v4.1**
 
-> **Version**: 4.0 | **Priority**: 6 (Quality Gatekeeper)
+> **Version**: 4.1 | **Priority**: 6 (Quality Gatekeeper)
 >
-> Defines **under what conditions we can reasonably trust a piece of code**.
-> Tests are guardrails, not KPIs, not coverage competitions.
-
-Conflict resolution per `SYSTEM_PROMPT.md` §3.
+> Defines under what conditions we can reasonably trust a piece of code.
+> Tests are guardrails, not KPIs.
 
 ---
 
 ## 1. Core Philosophy
 
-**Purpose of tests**: prevent regression, protect refactoring, **lock expected behavior**.
+- protect behavior
+- prevent regression
+- support safe refactoring
+- prefer meaningful evidence over ceremonial checklists
 
-❌ Coverage is not a quality metric ❌ Tests without behavioral meaning = no tests
-
-**Behavior over implementation**: tests care only about inputs, outputs, side effects. Not private methods, call order, or implementation details.
-
-> Tests green after refactoring → behavior preserved.
+Coverage is not a quality metric by itself.
 
 ---
 
 ## 2. Test Levels
 
-### L0 — Minimal Confidence
-Conditions: small scope, trivial rollback, no core behavior affected.
-Acceptable: smoke tests, manual checklists, characterization tests.
-⚠️ Must not be used to bypass required tests.
+### L0 - Minimal Confidence
 
-### L1 — Maintainable (Default)
-**Minimum acceptable bar.** Must include: unit tests (Domain) + failure paths + boundary conditions.
-Any item missing → **implementation forbidden**.
+Use only when scope is truly small and rollback is trivial.
 
-### L2 — Critical
-Must include: full unit + contract + integration tests + regression tests + human-reviewable acceptance criteria.
+Acceptable evidence:
+- smoke test
+- manual checklist
+- characterization check
+
+`L0` must not be used to dodge required verification.
+
+### L1 - Maintainable
+
+Default bar for normal work.
+
+Expected evidence includes the applicable subset of:
+- unit tests
+- characterization tests
+- contract tests
+- build verification
+- failure-path evidence
+
+Not every task needs every test type, but every task needs enough evidence to defend safety.
+
+### L2 - Critical
+
+Must include strong evidence across:
+- behavior
+- boundaries
+- integration
+- regression
+- human-reviewable acceptance criteria
 
 ---
 
-## 3. Test Types
+## 3. Mandatory Failure-Path Thinking
 
-| Type | Purpose |
+For `L1+`, include evidence for:
+- one invalid input or invalid state when applicable
+- one boundary value when applicable
+- one failure path when applicable
+
+If a category does not apply, say so explicitly.
+
+---
+
+## 4. Repo-Aware Build Policy
+
+### 4.1 Authoritative Build Config
+
+Each repo should declare at least one **authoritative** or **known-good** build configuration.
+
+Minimum expectation per task:
+- verify at least one known-good config
+
+### 4.2 Phase-Based Matrix
+
+Build breadth scales by task risk:
+
+| Task Type | Minimum Build Expectation |
 |---|---|
-| Unit Test | Pure logic, rules, invariants |
-| Contract Test | Boundary protocol consistency |
-| Integration Test | Verify I/O actually works |
-| Characterization Test | Lock legacy behavior |
-| Smoke Test | Minimal usability validation |
+| Low-risk UI / wording / presentation | Known-good config |
+| Normal feature / bugfix / refactor | Known-good config plus any touched-path verification needed |
+| Critical boundary / release / L2 | Expanded matrix appropriate to the boundary risk |
 
-### Cross-Platform Requirements
+Do not require a full Debug/Release or platform matrix when the repo's real baseline does not support it.
 
-| LEVEL | Requirement |
+### 4.3 Warning Policy
+
+Use a **baseline-aware** warning policy:
+- do not introduce new warnings in touched files
+- do not worsen the declared warning baseline without explicit justification
+- existing legacy warnings do not automatically block completion if they are unchanged
+
+---
+
+## 5. Legacy Refactor Baseline Validation
+
+For refactors in legacy repos, required baseline evidence is:
+- baseline commit or rollback point build result
+- modified state build result
+- confirmation of canonical toolchain and canonical build command
+
+If the baseline cannot build, mark the task as operating on an unstable baseline and do not represent it as a clean regression-proof refactor.
+
+---
+
+## 6. Evidence Templates
+
+### 6.1 Minimum Refactor Evidence
+
+Acceptable evidence examples:
+- before/after build results
+- touched-file diff review
+- key call-chain comparison
+- characterization or smoke verification of preserved behavior
+
+### 6.2 High-Risk Rule Evidence
+
+For high-risk work, evidence should be concrete and human-reviewable. Examples:
+
+| Rule Type | Acceptable Evidence Examples |
 |---|---|
-| L0 | Not enforced |
-| L1 | Consider cross-platform consistency; native interop recommended on 2 platforms |
-| **L2** | **Native interop must have integration tests on ≥2 platforms** |
+| Flash / sequencing safety | before/after diff, ordered call-path listing, build pass, explicit unchanged sequence note |
+| Layer boundary | touched entrypoint list, dependency-path inspection, confirmation no direct forbidden access |
+| Thread safety | UI update path list, dispatcher usage confirmation, failure-path note |
+| Legacy baseline | canonical toolchain, canonical build command, baseline build, modified build |
 
-Additional: UI via `Avalonia.Headless`; data contracts verify `StructLayout`/Endianness/`Marshal.SizeOf`.
-
----
-
-## 4. Failure Paths (Mandatory for L1+)
-
-Every feature must include at minimum: **1 invalid input + 1 boundary value + 1 failure path**.
-
-❌ Testing only the happy path = test failure.
+Do not claim "verified" without naming the evidence used.
 
 ---
 
-## 5. Platform Variance Test Checklist
+## 7. Hard-to-Test Areas
 
-For L1+ tasks involving cross-platform code, the agent **must** consider and test the following platform-sensitive areas where applicable:
+For I/O, native, time, environment, or legacy code:
+- isolate what can be isolated
+- use characterization where exact unit coverage is unrealistic
+- prefer observed behavior over mocked fantasy
 
-| Area | Example | Test Strategy |
-|---|---|---|
-| Path separators | `Path.DirectorySeparatorChar` (`\` vs `/`) | Parameterized test with both separators |
-| String encoding | `wchar_t` size (2 bytes Win vs 4 bytes macOS) | Assert `Marshal.SizeOf` per platform |
-| Struct alignment | `Pack` / `LayoutKind` differences | Verify `Marshal.SizeOf` matches native expectation |
-| Line endings | `\r\n` vs `\n` | Normalize before comparison |
-| File system case sensitivity | macOS (default insensitive) vs Linux (sensitive) | Test with mixed-case paths |
-| Environment variables | `HOME` vs `USERPROFILE` | Abstract via interface or runtime check |
-| Native library names | `.dll` vs `.dylib` vs `.so` | Verify `NativeLibraryLoader` resolution |
-| Boolean marshalling | C# `bool` (1 byte) vs ObjC `BOOL` (signed char) | Contract test at boundary |
-| UI thread model | Avalonia `Dispatcher.UIThread` | Verify no cross-thread property mutations |
-
-This checklist is a **reference**, not an exhaustive requirement.
+Mocking that hides real risk is forbidden.
 
 ---
 
-## 6. I/O & Hard-to-Test Areas
+## 8. Test Gap Records
 
-Untestable ≠ untested. I/O / native / time / environment deps: unit tests not forced, but **must** be isolated, replaceable, observable.
+When a meaningful test is currently infeasible, record:
+- reason
+- risk
+- remediation condition
 
-**Allowed strategies**: Fake/Stub, recorded responses, integration seams.
-
-### Native Interop (Mandatory)
-
-- Characterization / contract tests locking `NativeAdapter` behavior
-- Simulate native errors → verify `Result<T, E>` translation
-- Resource management: `using`/`Dispose` assert release
-- ❌ Mocking that hides real risk is forbidden
-
----
-
-## 7. Red Lines
-
-❌ Tests written only to satisfy process ❌ Mocking that masks risk
-❌ Tests detached from behavior ❌ Tests passing on single platform only
-
----
-
-## 8. Test Gap Records (Mandatory)
-
-When a test is currently infeasible, **must** record: reason, risk, remediation condition.
-
-❌ No remediation condition → hidden tech debt → REJECT.
+No remediation condition means hidden debt.
 
 ---
 
 ## 9. Definition of Done
 
-Behavior explicitly defined + failure paths covered + safe to refactor within test guardrails + results human-readable and reviewable.
-
----
-
-## 10. Recommended Tools (Non-mandatory)
-
-| Purpose | Tool |
-|---|---|
-| Unit testing | `xUnit` |
-| Integration testing | Custom TestServer |
-| UI / Headless | `Avalonia.Headless` |
-| Mocking | `NSubstitute` |
-| Cross-platform | `Testcontainers` |
-
----
-
-## 🧭 Final Principle
-
-> **If tests cannot explain why this code is safe, they are not acceptable tests.**
+Work is done when:
+- the chosen evidence matches the task risk
+- build verification matches the repo reality
+- failure-path thinking has been applied where relevant
+- future reviewers can understand why the change is considered safe

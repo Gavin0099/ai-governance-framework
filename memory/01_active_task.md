@@ -126,3 +126,10 @@
 - Consider whether `quickstart_smoke.py` should eventually join CI or docs validation as a dedicated adoption-path regression check.
 - Keep IC / EDA Python governance as an evaluated future domain fit, but only after validating a narrow contract-first slice such as Cocotb mapping, golden-model translation, or internal toolchain scripting.
 
+## 2026-03-20 Governance Revision
+
+- Revised governance core to reduce low-risk workflow friction while preserving hard safety and architecture red lines.
+- Added adjacent-engineering scope policy, milestone-based Governance Contract cadence, and milestone-based memory updates.
+- Added `Continue / Escalate / Stop` decision model, dirty-worktree guidance, and low-risk L1 UI examples.
+- Added legacy refactor baseline validation, authoritative build expectations, and baseline-aware warning policy.
+

@@ -1,194 +1,186 @@
-# 🔍 REVIEW_CRITERIA.md
-**Code Review & Audit Protocol — v1.1**
+# REVIEW_CRITERIA.md
+**Code Review and Audit Protocol - v1.2**
 
-> **Version**: 1.1 | **Priority**: 3 (Audit Protocol)
+> **Version**: 1.2 | **Priority**: 3 (Audit Protocol)
 >
-> Defines **how to audit, critique, and verify code changes**.
-> Loaded when `SCOPE = review`. All review tasks must enforce this document.
-
-Conflict resolution per `SYSTEM_PROMPT.md` §3.
+> Defines how to audit, critique, and verify code changes.
+> Loaded when `SCOPE = review`.
 
 ---
 
 ## 0. Activation
 
-This document activates when **SCOPE = review**.
+This document activates when `SCOPE = review`.
 
-When active, the agent switches to **Auditor sub-mode**:
-- Primary identity remains Governance Agent (per `SYSTEM_PROMPT.md` §1)
-- Behavioral mode shifts from implementer to **skeptical verifier**
-- Execution pipeline (`AGENT.md` §3) is replaced by the Review Checklist (§3 below)
-
-When SCOPE ≠ review, this document has no effect.
+When active:
+- the agent stays governance-first
+- behavioral mode becomes skeptical verifier rather than implementer
+- findings must be tied to evidence, not intuition
 
 ---
 
 ## 1. Review Philosophy
 
-**Agent Role**: You are an **Auditor**, not a collaborator. Adopt a **Skeptical Mindset**.
-**Goal**: Verify the change is predictable, safe, and reviewable under governance.
+Review goal:
+- verify the change is predictable
+- verify the change is safe
+- verify the change is reviewable under governance
 
-❌ Never "Assume it works" ❌ Never skip checks for small diffs ❌ "Looks good to me" (LGTM) is forbidden without explicit evidence.
+Never assume a change works merely because it is small.
+Never issue approval without naming the evidence used.
 
 ---
 
-## 2. Verdict Levels
+## 2. Verdict Model
 
-| Level | Impact | Requirement |
+| Verdict | Meaning | Use When |
 |---|---|---|
-| **🔴 BLOCKING** | Governance Violation | Immediate REJECT. Must fix before re-review. |
-| **⚠️ WARNING** | Risk / Debt | Needs explicit trade-off justification or ADR update. |
-| **💡 SUGGESTION** | Improvement | Non-blocking. Best practices or style optimization. |
+| `APPROVED` | Safe enough to accept | No blocking governance or correctness issue remains |
+| `CHANGES_REQUESTED` | Fixes required | Concrete blocking issues exist |
+| `ESCALATED` | Human decision needed | Risk/trade-off ambiguity remains after review |
+
+### 2.1 Finding Levels
+
+| Level | Meaning |
+|---|---|
+| `BLOCKING` | Governance, correctness, or safety issue that must be fixed |
+| `WARNING` | Risk, debt, or weak evidence that should be called out explicitly |
+| `SUGGESTION` | Non-blocking improvement |
+
+Do not confuse `ESCALATED` with `BLOCKING`.  
+Escalation is for unresolved material ambiguity, not only for defects.
 
 ---
 
 ## 3. Mandatory Audit Checklist
 
-The Agent **must** verify the following dimensions for every review:
+### 3.1 Boundary and Architecture
 
-### 3.1 Boundary & Architecture (Ref: ARCHITECTURE.md)
-- **Domain Integrity**: Does any code in `Domain/` touch I/O, UI, or Native libs?
-- **ACL Usage**: Is an Anti-Corruption Layer used appropriately for native/external data?
-- **ADR Consistency**: Does this change conflict with any existing ADR in `docs/adr/`?
+Check:
+- does domain code touch forbidden I/O, UI, OS, or native concerns
+- is ACL usage appropriate when external/native models are involved
+- does the change conflict with an ADR or boundary rule
 
-### 3.2 Physical Safety (Ref: NATIVE-INTEROP.md)
-- **Memory Ownership**: For every native pointer, is the allocator/deallocator explicitly defined?
-- **ABI Alignment**: Are all cross-language structs using explicit `Pack` and `Sequential` layout?
-- **Error Classification**: Are Panic-level errors correctly using `FailFast` instead of `Result`?
+### 3.2 Physical and Native Safety
 
-If the change does not involve native interop, mark this section as **N/A**.
+When native interop is in scope, check:
+- memory ownership is explicit
+- ABI layout is explicit where required
+- panic/fail-fast vs recoverable error handling is coherent
 
-### 3.3 Quality Gates (Ref: TESTING.md)
-- **Failure Path Coverage**: Does the change include tests for ≥1 invalid input and ≥1 failure path?
-- **Behavior Locking**: Do the tests lock observable behavior or just implementation details?
-- **Platform Variance**: For L2 tasks, are there integration tests for ≥2 platforms?
+If native interop is absent, mark this section `N/A`.
 
-### 3.4 Thread Safety (Ref: AGENT.md §5 C#)
-- **UI Thread**: Any `PropertyChanged` or control mutation verified to run on `Dispatcher.UIThread`?
-- **Async Paths**: Are async failure paths properly handled (no fire-and-forget without error handling)?
+### 3.3 Quality and Verification
 
-If the change does not involve UI or async code, mark this section as **N/A**.
+Check:
+- does the evidence match task risk
+- are failure paths considered where applicable
+- does verification lock behavior rather than implementation trivia
+- for legacy refactors, was baseline buildability actually established
+
+### 3.4 Thread Safety and Async Safety
+
+When UI or async paths are touched, check:
+- UI-affecting updates stay on the correct thread
+- async failure paths are handled
+
+If irrelevant, mark `N/A`.
+
+### 3.5 Dirty Worktree and Scope Hygiene
+
+When the worktree was dirty during implementation or review, check:
+- unrelated dirty files were not silently mixed into the reviewed scope
+- touched-file overlap was either handled or explicitly escalated
+- the commit/review boundary is understandable
 
 ---
 
-## 4. Knowledge Base Cross-Check (Mandatory)
+## 4. Knowledge Base Cross-Check
 
-Before issuing a verdict, the Agent **must** scan `memory/03_knowledge_base.md`:
-1. **Anti-Pattern Match**: Compare the current diff against all recorded **Anti-Patterns**.
-2. **Regression Check**: Ensure the change does not re-introduce bugs listed in the **Troubleshooting** section.
+Before issuing a verdict, scan `memory/03_knowledge_base.md` for:
+1. anti-pattern matches
+2. previously recorded regression patterns
+
+If a known anti-pattern reappears, call it out explicitly.
 
 ---
 
-## 5. Review Output Format
+## 5. Legacy Refactor Review Addendum
 
-Every review response **must** follow this structure:
+For legacy repos, refactors, rollbacks, or baseline resets, review must check:
+- was the claimed baseline actually verified with the authoritative build path
+- was the canonical toolchain identified
+- is the change being presented as a safe refactor despite unstable baseline evidence
+
+If the baseline is unverified:
+- do not describe the result as a clean refactor
+- issue at least a `WARNING`
+- escalate when the conclusion depends on the baseline being stable
+
+---
+
+## 6. Review Output Format
+
+Every review response should include:
 
 ```markdown
 ### [Decision Summary]
 **Verdict**: APPROVED | CHANGES_REQUESTED | ESCALATED
 **Risk Level**: Low | Medium | High
 
----
+### Governance Audit
+- Architecture: ...
+- Native Safety: ... | N/A
+- Test Integrity: ...
+- Thread Safety: ... | N/A
+- Baseline Status: Stable | Unverified | Unstable | N/A
 
-### 🛡️ Governance Audit
-- **Architecture**: ✅/❌ [Comments]
-- **Native Safety**: ✅/❌/NA [Comments]
-- **Test Integrity**: ✅/❌ [Comments]
-- **Thread Safety**: ✅/❌/NA [Comments]
+### Technical Findings
+1. [BLOCKING|WARNING|SUGGESTION] Title
+   - Location: `path:line`
+   - Evidence: ...
+   - Rule Reference: ...
+   - Fix Required / Reasoning: ...
 
-### 🐛 Technical Findings
-1. **[Level] [Title]**
-   - **Location**: `file.cs:line`
-   - **Violation**: Reference specific governance section (e.g., AGENT.md §5)
-   - **Fix Required**: ...
-
-### 📚 Knowledge Base Alignment
-- Checked N Anti-Patterns in `03_knowledge_base.md`.
-- Checked N Troubleshooting entries for regression risk.
-- Result: [Pass | Conflict Found — details]
+### Knowledge Base Alignment
+- Anti-patterns checked: N
+- Regression notes checked: N
+- Result: Pass | Conflict Found
 ```
 
----
-
-## 6. Post-Review Actions
-
-After issuing a verdict, the agent **must** write to memory in this order:
-
-### Step 1 — Always: Append full record to `memory/04_review_log.md`
-
-Regardless of verdict, append a complete review record (format per `SYSTEM_PROMPT.md` §8.2 `04_review_log.md`).
-Every finding **must** reference the specific governance doc and section that was violated or confirmed.
-
-### Step 2 — Always: One-line summary in `memory/01_active_task.md`
-
-```
-- [x] Review #N completed — Verdict: APPROVED | CHANGES_REQUESTED | ESCALATED
-```
-
-❌ Do not write full findings into `01_active_task.md` — it has a 200-line hard limit.
-
-### Step 3 — Conditional
-
-| Verdict | Additional Action |
-|---|---|
-| **APPROVED** | No further action required |
-| **CHANGES_REQUESTED** | Mark follow-up in `04_review_log.md` → `- [ ] Re-review required after fixes` |
-| **ESCALATED** | Follow `HUMAN-OVERSIGHT.md` §2 escalation procedure |
-
-### Step 4 — If new anti-pattern or gotcha discovered
-
-Record in `memory/03_knowledge_base.md` under **Anti-Patterns** section.
-Cross-reference the review entry: `Reference: Review #N (YYYY-MM-DD)`.
+Every non-trivial finding must name:
+- location
+- evidence
+- rule reference
 
 ---
 
-## 🧭 Final Principle
+## 7. Post-Review Memory Actions
 
-> **A review that cannot point to specific governance evidence is not a valid review.**
-> **"Looks good" without proof is a governance violation.**
+After issuing a verdict:
 
----
+1. append full review record to `memory/04_review_log.md`
+2. add one-line summary to `memory/01_active_task.md`
+3. if a new anti-pattern was discovered, record it in `memory/03_knowledge_base.md`
 
-## C++ Build Boundary Addendum
-
-Use this addendum whenever the review touches C++ project files, header layout, or build configuration.
-
-### C9 Project Include Boundary
-
-- `AdditionalIncludeDirectories` must be limited to the current project's own tree (for example `$(ProjectDir)`) and explicitly approved shared layers only.
-- A project must **not** include a peer project's private source directory as an include path.
-- If multiple projects need the same header, move it into a shared boundary layer instead of referencing another project's internal path.
-
-Examples of violations:
-- `database_service` adding an `etoken_server/...` include directory
-- including peer-project private headers such as `Global.h` or service-local DB wrappers directly from another project
-
-Review expectation:
-- treat this as a **boundary violation**, not a style issue
-- request project-file correction before approval
-- reference both this addendum and `ARCHITECTURE.md` build-boundary rules in the finding
+Keep `memory/01_active_task.md` short; do not dump full findings there.
 
 ---
 
-## C++ Server Code Addendum (eToken-system)
+## 8. C++ Build Boundary Addendum
 
-Use this addendum whenever the PR touches C++ server code in the eToken-system.
-If the PR does not touch C++ server code, mark this section as **N/A**.
+Use this addendum when review touches C++ project files, header layout, or build configuration.
 
-Cross-check every item below against `memory/03_knowledge_base.md` Anti-Patterns #1–#8.
+Hard checks:
+- `AdditionalIncludeDirectories` or equivalent must not point into peer-project private trees
+- cross-project private headers must not be normalized as acceptable merely because the build passes
+- if a header is shared, it should live in an explicit shared boundary layer
 
-| # | Check | Anti-Pattern Ref | Verdict Level |
-|---|---|---|---|
-| C1 | `detach()` present? → must have `_activeSessions` counter + drain loop in `ServerFinish()` | #1 | 🔴 BLOCKING |
-| C2 | Any allocation driven by peer-supplied size? → must validate `0 < size <= MAX_X_BYTES` | #2 | 🔴 BLOCKING |
-| C3 | Any `system()` / `RpcCmd()` call? → must use `ExecuteTool(cmd, timeoutMs)` instead | #3 | 🔴 BLOCKING |
-| C4 | Any credential literal (`"password"`, `"pin"`, `"key"`) in source? → must come from `Setting.ini` | #4 | 🔴 BLOCKING |
-| C5 | Any credential passed as subprocess argument? → must use runtime variable, never compile-time constant | #8 | 🔴 BLOCKING |
-| C6 | Any `bool`-returning function result assigned to `int` and checked `!= 0`? → inverts success/failure logic | #7 | 🔴 BLOCKING |
-| C7 | New `Setting.ini` key added? → must also add to `Setting.ini.example` with `YOUR_X_HERE` placeholder | #4 | ⚠️ WARNING |
-| C8 | New `ExecuteTool` call? → failure path (CreateProcessA returns false, exit code ≠ 0, timeout) all handled? | #3 | 🔴 BLOCKING |
+Treat this as a boundary issue, not a style issue.
 
-Review expectation:
-- C1–C6, C8 are **BLOCKING** — any violation must be fixed before approval
-- C7 is **WARNING** — missing `.example` entry blocks onboarding, request fix before merge
-- Reference this addendum and the corresponding Anti-Pattern entry in `memory/03_knowledge_base.md` in every finding
+---
+
+## 9. Final Principle
+
+> **A review without named evidence is not a valid review.**
+> **Use escalation when the conclusion depends on ambiguity; use blocking findings when the violation is concrete.**

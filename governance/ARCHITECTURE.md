@@ -1,182 +1,190 @@
-# 🏗️ ARCHITECTURE.md
-**Architecture Governance & Boundary Rules — v4.0**
+# ARCHITECTURE.md
+**Architecture Governance and Boundary Rules - v4.1**
 
-> **Version**: 4.0 | **Priority**: 5 (Structural Red Lines)
+> **Version**: 4.1 | **Priority**: 5 (Structural Red Lines)
 >
-> Defines **how the system is partitioned, what may change, and what are hard red lines**.
-> Avalonia cross-platform & native interop focus.
-
-Conflict resolution per `SYSTEM_PROMPT.md` §3.
+> Defines how the system is partitioned, what may change, and which boundaries are hard red lines.
 
 ---
 
 ## 0. Loading Condition
 
-- **Tier 1** — mandatory when: new features, refactors, boundary changes
-- All L1/L2 tasks **must load**
+- load for new features, refactors, boundary changes, and other non-trivial L1/L2 work
+- load when architecture impact is plausible, not only when it is already proven
 
 ---
 
 ## 1. Core Principles
 
-**Architecture > Implementation**: boundaries, responsibilities, data flow come before classes and libraries.
-Architecture cannot be articulated first → **implementation forbidden**.
+### 1.1 Architecture Before Implementation
 
-**Explicit Boundaries**: every component must answer —
-Is this Domain / Application / Adapter / Infrastructure? Responsible for what? **NOT** responsible for what?
+Boundaries, responsibilities, and data flow must be understandable before implementation expands.
 
-❌ Unclassifiable = architecture violation
+If the architecture cannot be articulated at all, implementation is not yet defensible.
+
+### 1.2 Explicit Boundaries
+
+Every touched component should be classifiable as one of:
+- Domain
+- Application
+- Adapter
+- Infrastructure
+
+Each component should answer:
+- responsible for what
+- explicitly **NOT** responsible for what
+
+### 1.3 Governance Goal
+
+Architecture governance exists to prevent catastrophic coupling and hidden boundary erosion.
+
+It should reduce risk, not punish trivial, low-risk work.
 
 ---
 
 ## 2. Bounded Context
 
-### 2.1 Mandatory Questions (L1+)
+### 2.1 Mandatory Questions for L1+
 
-- Which Bounded Context does this belong to?
-- Involves native APIs / platform variance / external systems?
-- ACL required?
+Before boundary-sensitive work, answer:
+- which bounded context does this belong to
+- does it involve native APIs, platform variance, or external systems
+- is an Anti-Corruption Layer required
 
-Any answer unclear → **STOP**
+### 2.2 Continue / Escalate / Stop for Architecture
 
-### 2.2 L0 Exception
+- **Continue**: context and ownership are clear
+- **Escalate**: context is mostly clear, but a boundary choice or abstraction choice has multiple defensible options
+- **Stop**: the proposed change crosses a hard boundary or cannot be classified coherently
 
-Full L0 definition in `AGENT.md` §2. Architecture addendum:
-❌ No Domain ↔ Infrastructure crossing ❌ No native/I/O/state interaction.
-Uncertain → upgrade to L1.
+Do not stop merely because some design judgment is needed; use escalate first unless a red line is already crossed.
 
-### 2.3 Anti-Corruption Layer (ACL)
+### 2.3 L0 Exception
 
-**Mandatory**: native API models conflict with Domain language, native layer has state/side effects/async, translation/validation/caching/error conversion needed.
+L0 remains limited to presentation-only or trivial edits with:
+- no Domain/Infrastructure crossing
+- no native/I/O/state interaction
+- no hidden behavior change
 
-**Discouraged**: behavior is stable/pure/stateless, clearly non-replaceable, purely computational.
-
-> "Replaceable" ≠ "abstract everything immediately"
+Uncertain -> upgrade to L1.
 
 ---
 
 ## 3. Domain vs Infrastructure
 
-### Domain Hard Red Lines
+### 3.1 Domain Hard Red Lines
 
-Domain **must NOT**: call P/Invoke, depend on `.dll`/`.so`/`.framework`, be aware of OS/platform/UI/time/environment variables.
+Domain must **not**:
+- call native APIs directly
+- depend on `.dll`, `.so`, `.dylib`, `.framework`, or equivalent runtime bindings
+- depend on UI, OS, filesystem, network, time, or environment state
 
-Domain interacts with capabilities only via abstract interfaces.
+Domain should consume capabilities only through explicit, stable interfaces.
 
-### Infrastructure (Anti-False-Positive)
+### 3.2 Infrastructure Anti-False-Positive Rule
 
-Infrastructure absorbs instability and real-world complexity.
+The following are **not automatically** infrastructure leakage:
+- pure data transformations
+- OS-agnostic utilities
+- compile-time constants
+- presentation-only state mapping
 
-The following are **NOT** Infrastructure leakage: pure data transformations, OS-agnostic utilities, compile-time constants.
-
-❌ Do not reject valid designs due to doctrinal overreach.
-
----
-
-## 4. Interface Rules
-
-**Mandatory**: platform behavior differs, native resource lifetimes, ABI/binary instability.
-
-**Discouraged**: logic permanently stable, no replacement path, no boundary risk.
+Do not reject valid low-risk designs due to doctrinal overreach.
 
 ---
 
-## 5. Examples
+## 4. Anti-Corruption Layer (ACL)
 
-### ❌ Over-Engineering
+### 4.1 ACL is Mandatory When
 
-```csharp
-public interface IClockProvider { DateTime Now(); }
-```
-Only used for UI time display → unnecessary abstraction.
+- native or external models do not match domain language
+- the boundary carries state, side effects, async behavior, or unstable semantics
+- translation, validation, caching, or error conversion is required
 
-### ✅ Hard Boundary
+### 4.2 ACL is Usually Unnecessary When
 
-```csharp
-public interface IFirmwareClock { FirmwareTimestamp Read(); }
-```
-Native calls + cross-platform + hardware semantics → abstraction mandatory.
+- behavior is stable, pure, and stateless
+- the code is purely computational
+- there is no meaningful boundary risk
 
----
-
-## 6. ADR (Architecture Decision Record)
-
-### 6.1 Triggers
-
-- Memory ownership strategy
-- Cross-platform loading strategy differences
-- ABI / calling convention decisions
-- `LibraryImport` vs `DllImport` selection
-- Any decision affecting boundary partitioning
-
-### 6.2 Conflict Check (Closed-Loop Verification)
-
-Before producing a new ADR, the agent **must**:
-
-1. List all existing ADR titles from `docs/adr/`
-2. Identify any potential conflicts with the proposed decision
-3. If conflict exists:
-   - Either mark the old ADR as `Superseded (by ADR-XXXX)` in the new ADR
-   - Or escalate to human if the conflict is ambiguous
-4. Reference related ADRs in the "Related Documents" section
-
-❌ Producing an ADR without checking for conflicts → governance violation.
-
-### 6.3 Location
-
-```
-docs/adr/
-├── 0001-native-library-loading-strategy.md
-└── ...
-```
-
-### 6.4 Template
-
-```markdown
-# ADR-XXXX: [Title]
-
-## Status
-Proposed | Accepted | Deprecated | Superseded (by ADR-YYYY)
-
-## Context
-What problem prompted this decision?
-
-## Decision
-What was chosen?
-
-## Rationale
-Why? What alternatives were rejected?
-
-## Consequences
-- Positive: ...
-- Negative: ...
-- Risks: ...
-
-## Conflict Check
-- Reviewed existing ADRs: [list titles checked]
-- Conflicts: None | Supersedes ADR-XXXX
-
-## Related Documents
-Links to governance docs, code, or other ADRs
-```
+`replaceable` does not mean `abstract everything immediately`.
 
 ---
 
-## 🧭 Final Principle
+## 5. Interface Rules
 
-> **Architecture prevents catastrophic mistakes, not punishes trivial changes.**
-> **Governance reduces risk, not halts progress.**
+Introduce explicit interfaces when:
+- platform behavior differs
+- resource lifetime is non-trivial
+- ABI or binary stability matters
+- the boundary is expected to change independently of the caller
+
+Do not introduce speculative interfaces when the abstraction cost exceeds the boundary risk.
 
 ---
 
-## Build Boundary Addendum
+## 6. ADR Rules
+
+### 6.1 ADR Triggers
+
+Create or update an ADR when a decision affects:
+- memory ownership strategy
+- cross-platform loading strategy
+- ABI or calling convention
+- boundary partitioning
+- long-lived interface placement
+
+### 6.2 Conflict Check
+
+Before adding a new ADR:
+1. list relevant titles in `docs/adr/`
+2. identify any conflict
+3. either mark supersession clearly or escalate if ambiguity remains
+4. link related ADRs in the new record
+
+Producing an ADR without conflict review is a governance failure.
+
+---
+
+## 7. Build Boundary Addendum
 
 Build-system wiring is part of architecture, not merely tooling.
 
 Hard rules:
-- A project may include headers from its own source tree and explicitly approved shared layers only.
-- A project must **not** add a peer project's private directory to `AdditionalIncludeDirectories` or equivalent include-search settings.
-- A successful build does **not** legitimize a boundary violation.
-- If a header is required across project boundaries, extract it into a shared boundary component with an explicit ownership model.
+- a project may include headers from its own tree and explicitly approved shared layers only
+- a project must **not** add a peer project's private directory to include-search settings
+- a successful build does **not** legitimize a boundary violation
+- if multiple projects need the same header, move it into a shared boundary layer with explicit ownership
 
-Cross-project private include access is an architecture violation because it hides coupling, bypasses ownership boundaries, and makes component replacement unsafe.
+Cross-project private include access is an architecture violation because it hides coupling and bypasses ownership boundaries.
+
+---
+
+## 8. Legacy and Refactor Interpretation
+
+For legacy repos and large refactors:
+- hidden historical coupling is a risk, not an excuse
+- baseline instability should be surfaced explicitly
+- boundary judgment should consider the canonical build environment, not random toolchain noise
+
+If the current repo reality makes the boundary unclear, escalate with evidence instead of pretending the architecture is obvious.
+
+---
+
+## 9. Evidence Expectations
+
+Acceptable architecture evidence includes:
+- touched-layer list
+- dependency path or include path inspection
+- entrypoint/call-path summary
+- before/after boundary diff
+- statement of what remains intentionally unchanged
+
+Do not claim "architecture-safe" without naming the evidence used.
+
+---
+
+## 10. Final Principle
+
+> **Architecture prevents catastrophic mistakes, not ordinary progress.**
+> **Use hard stops for hard violations; use escalation for real design ambiguity.**

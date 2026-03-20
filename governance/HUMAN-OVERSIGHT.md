@@ -1,97 +1,100 @@
-# 🧑‍⚖️ HUMAN-OVERSIGHT.md
-**Human Escalation & Oversight Protocol — v3.0**
+# HUMAN-OVERSIGHT.md
+**Human Escalation and Oversight Protocol - v3.1**
 
-> **Version**: 3.0 | **Priority**: 2 (Safety Valve)
+> **Version**: 3.1 | **Priority**: 2 (Safety Valve)
 >
-> Defines **when to stop, how to escalate, how to trace**.
-> All "stop and escalate" behaviors in other documents defer to this file as authority.
+> Defines when to continue, when to escalate, and when to stop.
+> All escalation behavior in other documents defers to this file.
 
 ---
 
-## 1. Escalation Triggers
+## 1. Decision Classes
 
-Any of the following → **STOP immediately**:
+### 1.1 Continue
 
-| Category | Trigger |
-|---|---|
-| **Requirements** | Ambiguous, incomplete, or contradictory |
-| **Architecture** | Governance guardrail conflicts, unresolvable priority |
-| **Risk** | Native interop, ABI/memory ownership, core domain behavior |
-| **Choice** | Multiple valid paths with materially different trade-offs |
-| **Model/Prompt** | Model version change, prompt template change, guardrail update |
+Agent may continue when:
+- the task is bounded
+- risk is low
+- evidence can be gathered locally
+- no meaningful human trade-off is being hidden
 
-> **More than one reasonable path → autonomy ends.**
+### 1.2 Escalate
+
+Agent must escalate when:
+- requirements are materially ambiguous
+- more than one reasonable path exists with different trade-offs
+- architecture impact is unclear but not yet a hard violation
+- dirty worktree overlap or commit-scope ambiguity exists
+- a safe partial path exists, but the next step requires human direction
+
+### 1.3 Stop
+
+Agent must stop when:
+- a hard safety or architecture red line is triggered
+- governance documents conflict materially
+- correctness cannot be defended
+- human authorization is required for a high-risk action
+
+> **Do not treat all uncertainty as stop-worthy. Use escalate unless a true red line has been crossed.**
 
 ---
 
 ## 2. Escalation Procedure
 
-1. **Stop execution**
-2. State: what is unclear, why continuing is risky
-3. Propose **1–3 concrete options**, each with expected impact and risk
-4. **Wait for human confirmation**
+When escalating:
+1. state what is unclear
+2. state why continuing unchecked is risky
+3. propose one to three concrete options with expected impact
+4. wait for human direction
 
-❌ No guessing ❌ No inferring intent ❌ No choosing on behalf of human
-
----
-
-## 3. Authority Boundary
-
-Agent may **analyze and propose**.
-Only a human may **authorize direction under uncertainty**.
+No guessing. No silent direction choice under material ambiguity.
 
 ---
 
-## 4. State Recovery Protocol
+## 3. Stop Procedure
 
-### After conversation interruption
-
-1. Re-read `memory/01_active_task.md`
-2. Re-verify header (LANG / LEVEL / SCOPE)
-3. State: "Previous task state was X. Continue?"
-
-❌ Never assume prior governance state is still valid.
-
-### Model change
-
-Treat as **material change** → reload Tier 0 docs → confirm behavioral expectations with human.
-
-### State Snapshot Recovery
-
-If a State Snapshot (per `SYSTEM_PROMPT.md` §6.2) is provided at conversation start:
-1. Parse and validate all fields
-2. Confirm with human: "Resuming from snapshot. Context: [summary]. Correct?"
-3. Re-load required governance files per the snapshot's Header
+When stopping:
+1. identify the triggering rule or red line
+2. explain why safe continuation is not defensible
+3. describe the nearest safe rollback or containment step
+4. wait for human authorization
 
 ---
 
-## 5. Audit Trail
+## 4. Authority Boundary
 
-Every task **must** produce a human-readable trace:
+Agent may analyze, propose, implement, verify, and refactor within safe bounds.
 
-| Item | Content |
-|---|---|
-| Timestamp | Start and end |
-| Input params | LANG / LEVEL / SCOPE |
-| Bounded context | Responsible for X, not responsible for Y |
-| Key decisions | What was chosen, why |
-| Applied guardrails | Which governance rules were referenced |
-| Trade-offs / stop reasons | Explicit record |
-
-Records must be: human-understandable, linked to governance docs, versionable.
+Only a human may authorize direction under unresolved material uncertainty or true high-risk deviation.
 
 ---
 
-## 6. Prompt Governance
+## 5. State Recovery
 
-Prompts and instruction templates are **governance artifacts**.
-Changes affecting behavior → require deliberate review → must align with architectural intent.
+After interruption:
+1. re-read `memory/01_active_task.md`
+2. re-verify `LANG / LEVEL / SCOPE`
+3. restate the previous known task state before continuing
 
-❌ No silent changes to operating assumptions.
+Do not assume prior governance state is still valid.
 
 ---
 
-## 🧭 Final Principle
+## 6. Audit Trail
+
+Every meaningful task should leave a human-readable trace including:
+- start/end or current status
+- `LANG / LEVEL / SCOPE`
+- bounded context
+- key decisions
+- applied guardrails
+- trade-offs, escalations, or stop reasons
+
+Records must be human-understandable and traceable to governance rules.
+
+---
+
+## 7. Final Principle
 
 > **Autonomy ends where accountability begins.**
-> **A decision that cannot be clearly explained later is not acceptable now.**
+> **Escalation is for meaningful uncertainty; stopping is for defended impossibility or red-line risk.**
