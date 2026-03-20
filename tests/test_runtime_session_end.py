@@ -323,3 +323,56 @@ def test_session_end_fails_closed_on_forced_runtime_failure(local_project_root):
     assert trace_payload["runtime_failure"]["violation_type"] == "runtime_failure"
     assert trace_payload["runtime_failure"]["verdict_impact"] == "stop"
     assert trace_payload["runtime_failure"]["stage"] == "artifact_emission"
+
+
+
+def test_session_end_replay_preserves_verdict_for_same_input(local_project_root):
+    session_id = "2026-03-12-12"
+    runtime_contract = _contract(memory_mode="stateless", rules=["common", "refactor"])
+    checks = {
+        "ok": False,
+        "errors": ["public-api-diff: Public API surface removed or changed."],
+        "public_api_diff": {
+            "ok": False,
+            "removed": ["public int Run(int value) => value;"],
+            "added": [],
+            "compatibility_risk": "high",
+            "breaking_changes": ["public int Run(int value) => value;"],
+            "non_breaking_changes": [],
+            "warnings": [],
+            "errors": ["Public API surface removed or changed."],
+        },
+    }
+
+    result_a = run_session_end(
+        project_root=local_project_root,
+        session_id=session_id,
+        runtime_contract=runtime_contract,
+        checks=checks,
+        response_text="",
+        summary="Determinism replay session",
+    )
+    verdict_a = json.loads(Path(result_a["verdict_artifact"]).read_text(encoding="utf-8"))
+    trace_a = json.loads(Path(result_a["trace_artifact"]).read_text(encoding="utf-8"))
+
+    result_b = run_session_end(
+        project_root=local_project_root,
+        session_id=session_id,
+        runtime_contract=runtime_contract,
+        checks=checks,
+        response_text="",
+        summary="Determinism replay session",
+    )
+    verdict_b = json.loads(Path(result_b["verdict_artifact"]).read_text(encoding="utf-8"))
+    trace_b = json.loads(Path(result_b["trace_artifact"]).read_text(encoding="utf-8"))
+
+    assert result_a["decision"] == result_b["decision"]
+    assert result_a["policy"] == result_b["policy"]
+    assert result_a["errors"] == result_b["errors"]
+    assert verdict_a["policy_ref"]["runtime_version"] == "v2.6-draft-runtime"
+    assert trace_a["policy_ref"]["runtime_version"] == "v2.6-draft-runtime"
+    assert verdict_a["verdict"] == verdict_b["verdict"]
+    assert verdict_a["contract_identity"] == verdict_b["contract_identity"]
+    assert verdict_a["evidence_summary"] == verdict_b["evidence_summary"]
+    assert trace_a["result"] == trace_b["result"]
+    assert trace_a["decision_path"] == trace_b["decision_path"]

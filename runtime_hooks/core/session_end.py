@@ -22,6 +22,9 @@ from memory_pipeline.session_snapshot import create_session_snapshot
 from governance_tools.domain_governance_metadata import domain_risk_tier
 
 
+RUNTIME_VERSION = "v2.6-draft-runtime"
+
+
 def _ensure_runtime_artifact_dirs(project_root: Path) -> tuple[Path, Path, Path, Path, Path]:
     runtime_root = project_root / "artifacts" / "runtime"
     candidates_dir = runtime_root / "candidates"
@@ -96,6 +99,7 @@ def _build_verdict_artifact(
         "policy_ref": {
             "governance_runtime_decision_model": "2.6-draft",
             "artifact_schema_version": "1.0",
+            "runtime_version": RUNTIME_VERSION,
         },
         "verdict": {
             "decision": decision,
@@ -137,6 +141,7 @@ def _build_runtime_failure_trace_artifact(
         "policy_ref": {
             "governance_runtime_decision_model": "2.6-draft",
             "artifact_schema_version": "1.0",
+            "runtime_version": RUNTIME_VERSION,
         },
         "contract_identity": _contract_identity(contract_resolution, domain_contract),
         "runtime_contract": contract,
@@ -190,6 +195,7 @@ def _build_trace_artifact(
         "policy_ref": {
             "governance_runtime_decision_model": "2.6-draft",
             "artifact_schema_version": "1.0",
+            "runtime_version": RUNTIME_VERSION,
         },
         "contract_identity": _contract_identity(contract_resolution, domain_contract),
         "runtime_contract": contract,

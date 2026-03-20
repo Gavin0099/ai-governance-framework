@@ -753,3 +753,48 @@ def test_post_task_check_classifies_illegal_policy_override():
         }
     ]
     assert any("runtime-policy: Illegal runtime policy override: repo-local workflow preference -> runtime-safety-policy" in error for error in result["errors"])
+
+
+
+def test_post_task_check_replay_is_deterministic_for_same_policy_and_evidence():
+    checks = {
+        "required_runtime_evidence": ["public-api-diff"],
+        "public_api_diff": {
+            "ok": True,
+            "removed": [],
+            "added": ["public int Ping() => 0;"],
+            "compatibility_risk": "low",
+            "breaking_changes": [],
+            "non_breaking_changes": ["public int Ping() => 0;"],
+            "warnings": ["Public API surface added or changed."],
+            "errors": [],
+        },
+        "policy_conflicts": [
+            {
+                "policy_type": "runtime-safety-policy",
+                "override_target": "domain-policy",
+                "scope": "all protected domains",
+            }
+        ],
+        "warnings": [],
+        "errors": [],
+    }
+
+    result_a = run_post_task_check(
+        _contract(RULES="common,refactor"),
+        risk="medium",
+        oversight="review-required",
+        checks=checks,
+    )
+    result_b = run_post_task_check(
+        _contract(RULES="common,refactor"),
+        risk="medium",
+        oversight="review-required",
+        checks=checks,
+    )
+
+    assert result_a["ok"] == result_b["ok"]
+    assert result_a["errors"] == result_b["errors"]
+    assert result_a["warnings"] == result_b["warnings"]
+    assert result_a["evidence_violations"] == result_b["evidence_violations"]
+    assert result_a["policy_violations"] == result_b["policy_violations"]
