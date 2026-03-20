@@ -74,6 +74,10 @@ artifacts/runtime/
 memory/candidates/*.json
 
 # Claude / local workspace
+.claude/*
+!.claude/README.md
+!.claude/skills/
+!.claude/skills/**
 .claude/settings.local.json
 *.code-workspace
 

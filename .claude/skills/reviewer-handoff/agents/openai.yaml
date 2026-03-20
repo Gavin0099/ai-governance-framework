@@ -1,0 +1,3 @@
+display_name: Reviewer Handoff
+short_description: Build reviewer-facing trust and release packets
+default_prompt: Generate or interpret the highest-level reviewer handoff for this repository, then summarize the important trust and release signals.

@@ -1,0 +1,6 @@
+# Domain Contract Agent Notes
+
+- Read `contract.yaml` first.
+- Treat checklist facts as domain source-of-truth unless contradicted by code or validated artifacts.
+- Keep output reviewer-facing and concrete.
+- Do not broaden the domain scope without explicit evidence.

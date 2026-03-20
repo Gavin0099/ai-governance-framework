@@ -1,0 +1,13 @@
+name: example-domain-contract
+domain: firmware
+plugin_version: "1.0.0"
+framework_interface_version: "1"
+framework_compatible: ">=1.0.0,<2.0.0"
+documents:
+  - CHECKLIST.md
+ai_behavior_override:
+  - AGENTS.md
+rule_roots:
+  - rules
+validators:
+  - validators/check.py

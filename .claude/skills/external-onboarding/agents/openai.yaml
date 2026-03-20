@@ -1,0 +1,3 @@
+display_name: External Onboarding
+short_description: Onboard and triage external governance repos
+default_prompt: Assess or run external repository onboarding for this AI Governance Framework, then summarize blockers and the next command.

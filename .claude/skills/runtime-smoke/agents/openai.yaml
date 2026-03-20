@@ -1,0 +1,3 @@
+display_name: Runtime Smoke
+short_description: Run and triage runtime governance smoke paths
+default_prompt: Run or interpret the smallest runtime governance smoke path needed for this repo or an external contract repo, then summarize the failure boundary and next reproducer.
