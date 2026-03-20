@@ -132,6 +132,20 @@ def assess_external_repo(
     try:
         facts_payload = build_external_project_facts_intake(repo_root)
         artifact_path = default_output_path(Path(__file__).resolve().parent.parent, repo_root).resolve()
+        artifact_exists = artifact_path.exists()
+        artifact_sha256 = None
+        drift_detected = False
+        if artifact_exists:
+            try:
+                artifact_payload = json.loads(artifact_path.read_text(encoding="utf-8"))
+                artifact_sha256 = ((artifact_payload.get("fact_source") or {}).get("content_sha256"))
+                drift_detected = artifact_sha256 not in (None, facts_payload["fact_source"]["content_sha256"])
+                if drift_detected:
+                    warnings.append(
+                        f"project-facts: intake artifact drift detected ({artifact_path})"
+                    )
+            except (OSError, json.JSONDecodeError) as exc:
+                warnings.append(f"project-facts: unable to read existing intake artifact ({exc})")
         project_facts = {
             "available": True,
             "source_file": facts_payload["fact_source"]["source_file"],
@@ -139,17 +153,22 @@ def assess_external_repo(
             "content_sha256": facts_payload["fact_source"]["content_sha256"],
             "sync_direction": facts_payload["provenance"]["sync_direction"],
             "artifact_path": str(artifact_path),
-            "artifact_exists": artifact_path.exists(),
+            "artifact_exists": artifact_exists,
+            "artifact_content_sha256": artifact_sha256,
+            "artifact_drift": drift_detected,
         }
         checks["project_facts_present"] = True
         checks["project_facts_intakeable"] = True
+        checks["project_facts_drift_free"] = not drift_detected
     except FileNotFoundError as exc:
         checks["project_facts_present"] = False
         checks["project_facts_intakeable"] = False
+        checks["project_facts_drift_free"] = False
         warnings.append(f"project-facts: {exc}")
     except Exception as exc:
         checks["project_facts_present"] = True
         checks["project_facts_intakeable"] = False
+        checks["project_facts_drift_free"] = False
         warnings.append(f"project-facts: intake failed ({exc})")
 
     version_status = assess_framework_version_status(repo_root, contract_raw=contract_raw)
@@ -271,6 +290,7 @@ def format_human(result: ExternalRepoReadiness) -> str:
                 f"sync_direction     = {result.project_facts.get('sync_direction')}",
                 f"artifact_path      = {result.project_facts.get('artifact_path')}",
                 f"artifact_exists    = {result.project_facts.get('artifact_exists')}",
+                f"artifact_drift     = {result.project_facts.get('artifact_drift')}",
             ]
         )
 

@@ -98,6 +98,7 @@ def test_format_human_surfaces_readiness_and_smoke_sections() -> None:
     assert "[readiness]" in rendered
     assert "[project_facts]" in rendered
     assert "artifact_path" in rendered
+    assert "artifact_drift" in rendered
     assert "[smoke]" in rendered
     assert "errors:" in rendered
 

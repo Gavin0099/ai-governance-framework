@@ -200,3 +200,24 @@ def test_assess_external_repo_surfaces_project_facts_intake() -> None:
     assert result.project_facts["sync_direction"] == "external_to_framework"
     assert result.project_facts["artifact_path"].replace("/", "\\").endswith(r"artifacts\external-project-facts\target.json")
     assert result.project_facts["artifact_exists"] is False
+
+
+def test_assess_external_repo_detects_project_facts_artifact_drift() -> None:
+    root = _reset_fixture("project_facts_drift")
+    framework_root = root / "framework"
+    target_root = root / "target"
+
+    _make_framework(framework_root)
+    _make_target_repo(target_root, framework_root)
+    _write_lock(target_root, "v1.0.0-alpha")
+    artifact = Path("artifacts") / "external-project-facts" / "target.json"
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    artifact.write_text(json.dumps({"fact_source": {"content_sha256": "stale-sha"}}, indent=2), encoding="utf-8")
+
+    result = assess_external_repo(target_root)
+
+    assert result.checks["project_facts_drift_free"] is False
+    assert result.project_facts["artifact_exists"] is True
+    assert result.project_facts["artifact_drift"] is True
+    assert any("project-facts: intake artifact drift detected" in item for item in result.warnings)
+    artifact.unlink()

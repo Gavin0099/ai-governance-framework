@@ -109,6 +109,7 @@ def format_human(report: ExternalRepoOnboardingReport) -> str:
                 f"sync_direction     = {project_facts.get('sync_direction')}",
                 f"artifact_path      = {project_facts.get('artifact_path')}",
                 f"artifact_exists    = {project_facts.get('artifact_exists')}",
+                f"artifact_drift     = {project_facts.get('artifact_drift')}",
             ]
         )
 
