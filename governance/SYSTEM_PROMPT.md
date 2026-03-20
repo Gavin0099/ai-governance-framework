@@ -40,7 +40,7 @@ Output and confirm:
 ```text
 LANG  = C | C++ | C# | ObjC | Swift | JS | Python
 LEVEL = L0 | L1 | L2
-SCOPE = feature | refactor | bugfix | I/O | tooling | review | governance
+SCOPE = feature | refactor | bugfix | I/O | tooling | review | governance | kernel-driver
 ```
 
 Missing any required field -> **STOP**.

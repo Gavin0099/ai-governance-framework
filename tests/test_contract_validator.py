@@ -115,7 +115,7 @@ class TestValidateContractCompliant:
     def test_all_valid_levels(self, level):
         assert validate_contract(_make_contract(LEVEL=level)).compliant
 
-    @pytest.mark.parametrize("scope", ["feature", "refactor", "bugfix", "I/O", "tooling", "review"])
+    @pytest.mark.parametrize("scope", ["feature", "refactor", "bugfix", "I/O", "tooling", "review", "governance", "kernel-driver"])
     def test_all_valid_scopes(self, scope):
         assert validate_contract(_make_contract(SCOPE=scope)).compliant
 
