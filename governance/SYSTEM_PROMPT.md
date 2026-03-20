@@ -149,7 +149,7 @@ SESSION  = <YYYY-MM-DD-NN>  # optional; required when AGENT_ID is present
 Field rules:
 - `LANG`: `C | C++ | C# | ObjC | Swift | JS | Python`
 - `LEVEL`: `L0 | L1 | L2`
-- `SCOPE`: `feature | refactor | bugfix | I/O | tooling | review | governance`
+- `SCOPE`: `feature | refactor | bugfix | I/O | tooling | review | governance | kernel-driver`
 - `PLAN`: free text from `PLAN.md`; may state `Out-of-scope` when human explicitly authorizes governance analysis
 - `LOADED`: must include at minimum `SYSTEM_PROMPT, HUMAN-OVERSIGHT`
 - `CONTEXT`: must include both `->` and `NOT:`
@@ -178,6 +178,13 @@ Malformed contract blocks are governance failures.
 Lower-rank conflicts with higher-rank -> **STOP** and escalate.
 
 ### 3.1.1 Single-Truth Boundary
+
+### 3.1.2 External Instruction Boundary
+
+- workspace-level instructions, editor adapter prompts, and harness-native guidance may define session etiquette, transport details, or integration-specific invocation rules
+- they must not silently override repo-local governance level classification, risk gates, stop conditions, or required evidence expectations
+- for repo work, `governance/` remains the canonical engineering authority when these categories overlap
+- if an external instruction set conflicts materially with repo governance, treat it as a governance mismatch to resolve explicitly, not as a reason to improvise a third policy
 
 - root-level `AGENTS.md` is a workspace/session operating document
 - repo-local `governance/AGENT.md` is the canonical behavioral contract for

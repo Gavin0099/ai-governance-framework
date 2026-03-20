@@ -29,6 +29,7 @@ source is `governance/AGENT.md` together with the other files under
 If this file and `governance/AGENT.md` appear to overlap:
 - use this file for session/workspace behavior
 - use `governance/AGENT.md` for repo engineering governance
+- if editor/adapter/workspace instructions conflict with repo-local governance on execution rigor, risk gates, or task classification, `governance/` wins for repo work and the mismatch should be corrected instead of silently improvised
 
 ## Memory
 
