@@ -263,6 +263,39 @@ def _classify_policy_conflicts(checks: dict | None) -> list[dict]:
     return violations
 
 
+def _classify_domain_policy_inputs(
+    results: list[dict],
+    *,
+    hard_stop_rules: set[str],
+) -> list[dict]:
+    if not hard_stop_rules:
+        return []
+
+    policy_inputs = []
+    for item in results:
+        matched_rule_ids = sorted(set(str(rule_id) for rule_id in item.get("rule_ids", [])) & hard_stop_rules)
+        if not matched_rule_ids:
+            continue
+        for violation in item.get("violations", []):
+            policy_inputs.append(
+                {
+                    "violation_type": "domain_contract_violation",
+                    "policy_type": "domain-contract policy",
+                    "override_target": "runtime default verdict",
+                    "source": "hard_stop_rules",
+                    "validator": item.get("name"),
+                    "rule_ids": matched_rule_ids,
+                    "detected_by": "domain validator",
+                    "verdict_impact": "stop",
+                    "message": (
+                        f"Domain policy stop requested by hard_stop_rules: {item.get('name')} -> {violation} "
+                        f"(rules: {','.join(matched_rule_ids)})"
+                    ),
+                }
+            )
+    return policy_inputs
+
+
 def _classify_missing_required_evidence(
     checks: dict | None,
     *,
@@ -317,17 +350,12 @@ def _merge_domain_validator_results(
     errors: list[str],
     warnings: list[str],
     results: list[dict],
-    *,
-    hard_stop_rules: set[str],
 ) -> None:
     for item in results:
         for warning in item.get("warnings", []):
             warnings.append(f"domain-validator:{item['name']}: {warning}")
         for violation in item.get("violations", []):
-            if set(item.get("rule_ids", [])) & hard_stop_rules:
-                errors.append(f"domain-validator:{item['name']}: {violation}")
-            else:
-                warnings.append(f"domain-validator:{item['name']}: {violation}")
+            warnings.append(f"domain-validator:{item['name']}: {violation}")
         for error in item.get("errors", []):
             errors.append(f"domain-validator:{item['name']}: {error}")
 
@@ -424,7 +452,6 @@ def run_post_task_check(
             errors,
             warnings,
             domain_validator_results,
-            hard_stop_rules=domain_hard_stop_rules,
         )
     evidence_violations = _classify_invalid_evidence_schema(effective_checks)
     evidence_violations.extend(
@@ -436,6 +463,12 @@ def run_post_task_check(
         )
     )
     policy_violations = _classify_policy_conflicts(effective_checks)
+    policy_violations.extend(
+        _classify_domain_policy_inputs(
+            domain_validator_results,
+            hard_stop_rules=domain_hard_stop_rules,
+        )
+    )
     for violation in evidence_violations:
         errors.append(f"runtime-evidence: {violation['message']}")
     for violation in policy_violations:

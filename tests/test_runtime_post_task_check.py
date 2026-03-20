@@ -544,9 +544,24 @@ def test_post_task_check_domain_validator_violation_can_trigger_hard_stop(tmp_pa
 
     assert result["ok"] is False
     assert result["domain_hard_stop_rules"] == ["TMP-001"]
-    assert any("domain-validator:temp_validator: TMP-VIOLATION-001" in error for error in result["errors"])
+    assert any("domain-validator:temp_validator: TMP-VIOLATION-001" in warning for warning in result["warnings"])
+    assert result["policy_violations"] == [
+        {
+            "violation_type": "domain_contract_violation",
+            "policy_type": "domain-contract policy",
+            "override_target": "runtime default verdict",
+            "source": "hard_stop_rules",
+            "validator": "temp_validator",
+            "rule_ids": ["TMP-001"],
+            "detected_by": "domain validator",
+            "verdict_impact": "stop",
+            "message": "Domain policy stop requested by hard_stop_rules: temp_validator -> TMP-VIOLATION-001 (rules: TMP-001)",
+        }
+    ]
+    assert any("runtime-policy: Domain policy stop requested by hard_stop_rules: temp_validator -> TMP-VIOLATION-001" in error for error in result["errors"])
     output = format_human_result(result)
     assert "domain_hard_stop_rules=TMP-001" in output
+    assert "policy_violation_count=1" in output
 
 
 def test_post_task_check_passes_versioned_validator_envelope_to_domain_validator(tmp_path):
