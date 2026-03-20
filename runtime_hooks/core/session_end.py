@@ -75,6 +75,32 @@ def _contract_identity(contract_resolution: dict[str, Any], domain_contract: dic
     }
 
 
+def _structured_decision_path(*steps: str) -> list[dict[str, Any]]:
+    return [
+        {
+            "index": index,
+            "step": step,
+        }
+        for index, step in enumerate(steps, start=1)
+    ]
+
+
+def _build_policy_summary(policy: dict[str, Any]) -> dict[str, Any]:
+    reasons = [str(reason) for reason in policy.get("reasons", []) if str(reason).strip()]
+    return {
+        "decision": str(policy.get("decision", "unknown")),
+        "reason_count": len(reasons),
+        "reasons": reasons,
+        "reasoning_fragments": [
+            {
+                "kind": "promotion-policy-reason",
+                "text": reason,
+            }
+            for reason in reasons
+        ],
+    }
+
+
 def _build_verdict_artifact(
     *,
     session_id: str,
@@ -106,6 +132,7 @@ def _build_verdict_artifact(
         "decision_governance": {
             "decision_source": runtime_decision_source(),
             "decision_owner": final_verdict_owner(),
+            "policy_source": "memory_pipeline.promotion_policy.classify_promotion_policy",
         },
         "evidence_summary": {
             "check_keys": sorted(str(key) for key in checks.keys()),
@@ -142,19 +169,30 @@ def _build_runtime_failure_trace_artifact(
         "decision_governance": {
             "decision_source": runtime_decision_source(),
             "decision_owner": final_verdict_owner(),
+            "policy_source": "memory_pipeline.promotion_policy.classify_promotion_policy",
         },
-        "decision_path": [
+        "decision_path": _structured_decision_path(
             "normalize runtime contract",
             "runtime failure interception",
             "emit fail-closed trace artifact",
-        ],
+        ),
         "evidence_summary": {
             "check_keys": sorted(str(key) for key in checks.keys()),
             "check_ok": checks.get("ok"),
         },
         "result": {
             "decision": "RUNTIME_FAILURE",
-            "policy": {"decision": "STOP"},
+            "policy": {
+                "decision": "STOP",
+                "reason_count": 1,
+                "reasons": [failure_message],
+                "reasoning_fragments": [
+                    {
+                        "kind": "runtime-failure",
+                        "text": failure_message,
+                    }
+                ],
+            },
             "errors": [f"runtime_failure: {failure_message}"],
             "warnings": [],
         },
@@ -196,20 +234,21 @@ def _build_trace_artifact(
         "decision_governance": {
             "decision_source": runtime_decision_source(),
             "decision_owner": final_verdict_owner(),
+            "policy_source": "memory_pipeline.promotion_policy.classify_promotion_policy",
         },
-        "decision_path": [
+        "decision_path": _structured_decision_path(
             "normalize runtime contract",
             "evaluate promotion policy",
             "summarize evidence keys",
             "emit verdict and trace artifacts",
-        ],
+        ),
         "evidence_summary": {
             "check_keys": sorted(str(key) for key in checks.keys()),
             "check_ok": checks.get("ok"),
         },
         "result": {
             "decision": decision,
-            "policy": policy,
+            "policy": _build_policy_summary(policy),
             "errors": errors,
             "warnings": warnings,
         },

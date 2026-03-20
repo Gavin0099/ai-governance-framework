@@ -59,6 +59,10 @@ def test_session_end_auto_promotes_low_risk_candidate(local_project_root):
     trace_payload = json.loads(Path(result["trace_artifact"]).read_text(encoding="utf-8"))
     assert trace_payload["artifact_type"] == "runtime-trace"
     assert trace_payload["result"]["decision"] == "AUTO_PROMOTE"
+    assert trace_payload["decision_path"][0] == {"index": 1, "step": "normalize runtime contract"}
+    assert trace_payload["result"]["policy"]["decision"] == "AUTO_PROMOTE"
+    assert trace_payload["result"]["policy"]["reason_count"] >= 1
+    assert trace_payload["result"]["policy"]["reasoning_fragments"][0]["kind"] == "promotion-policy-reason"
     curated_payload = json.loads(Path(result["curated_artifact"]).read_text(encoding="utf-8"))
     assert curated_payload["curation_status"] == "CURATED"
 
@@ -329,6 +333,10 @@ def test_session_end_fails_closed_on_forced_runtime_failure(local_project_root):
     assert trace_payload["runtime_failure"]["stage"] == "artifact_emission"
     assert trace_payload["decision_governance"]["decision_source"] == "single decision computation source"
     assert trace_payload["decision_governance"]["decision_owner"] == "runtime"
+    assert trace_payload["decision_governance"]["policy_source"] == "memory_pipeline.promotion_policy.classify_promotion_policy"
+    assert trace_payload["decision_path"][0] == {"index": 1, "step": "normalize runtime contract"}
+    assert trace_payload["result"]["policy"]["decision"] == "STOP"
+    assert trace_payload["result"]["policy"]["reasoning_fragments"][0]["kind"] == "runtime-failure"
 
 
 
@@ -384,3 +392,4 @@ def test_session_end_replay_preserves_verdict_for_same_input(local_project_root)
     assert verdict_a["evidence_summary"] == verdict_b["evidence_summary"]
     assert trace_a["result"] == trace_b["result"]
     assert trace_a["decision_path"] == trace_b["decision_path"]
+    assert trace_a["decision_path"][0] == {"index": 1, "step": "normalize runtime contract"}
