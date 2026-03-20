@@ -22,6 +22,19 @@ from governance_tools.reviewer_handoff_summary import (
 )
 
 
+def _external_project_facts_summaries(snapshot: dict[str, Any]) -> list[str]:
+    handoff = snapshot.get("handoff") or {}
+    trust = handoff.get("trust_signal") or {}
+    auditor = trust.get("auditor") or {}
+    external_onboarding = auditor.get("external_onboarding") or {}
+    summaries: list[str] = []
+    for item in external_onboarding.get("top_issues") or []:
+        summary = item.get("project_facts_summary")
+        if summary:
+            summaries.append(f"{item.get('repo_root')}: {summary}")
+    return summaries
+
+
 def build_reviewer_handoff_snapshot(
     *,
     project_root: Path,
@@ -175,6 +188,7 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
                 "contract_path": snapshot.get("contract_path"),
                 "external_contract_repos": snapshot.get("external_contract_repos") or [],
                 "external_contract_repo_count": len(snapshot.get("external_contract_repos") or []),
+                "external_onboarding_project_facts": _external_project_facts_summaries(snapshot),
                 "strict_runtime": snapshot["strict_runtime"],
                 "ok": snapshot["ok"],
                 "trust_ok": trust.get("ok"),
@@ -211,6 +225,7 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
                 "contract_path": snapshot.get("contract_path"),
                 "external_contract_repos": snapshot.get("external_contract_repos") or [],
                 "external_contract_repo_count": len(snapshot.get("external_contract_repos") or []),
+                "external_onboarding_project_facts": _external_project_facts_summaries(snapshot),
                 "strict_runtime": snapshot["strict_runtime"],
                 "trust_ok": trust.get("ok"),
                 "release_ok": release.get("ok"),
@@ -276,6 +291,12 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
                 "- `MANIFEST.json`",
                 "- `PUBLICATION_MANIFEST.json`",
             ]
+            + (
+                ["", "## External Fact States", ""]
+                + [f"- `{item}`" for item in _external_project_facts_summaries(snapshot)]
+                if _external_project_facts_summaries(snapshot)
+                else []
+            )
         )
         + "\n",
         encoding="utf-8",
@@ -426,6 +447,7 @@ def format_publication_index(
     bundle_paths: dict[str, str] | None = None,
     published_paths: dict[str, str] | None = None,
 ) -> str:
+    fact_summaries = _external_project_facts_summaries(snapshot)
     lines = [
         "# Reviewer Handoff Publication Index",
         "",
@@ -440,6 +462,9 @@ def format_publication_index(
         f"- Bundle published: `{bundle_paths is not None}`",
         f"- Status pages published: `{published_paths is not None}`",
     ]
+
+    if fact_summaries:
+        lines.extend(["", "## External Fact States", ""] + [f"- `{item}`" for item in fact_summaries])
 
     if bundle_paths:
         lines.extend(
@@ -498,6 +523,7 @@ def write_publication_manifest(
         "contract_path": snapshot.get("contract_path"),
         "external_contract_repos": snapshot.get("external_contract_repos") or [],
         "external_contract_repo_count": len(snapshot.get("external_contract_repos") or []),
+        "external_onboarding_project_facts": _external_project_facts_summaries(snapshot),
         "strict_runtime": snapshot["strict_runtime"],
         "trust_ok": snapshot["handoff"].get("trust_signal", {}).get("ok"),
         "release_ok": snapshot["handoff"].get("release_surface", {}).get("ok"),
@@ -524,12 +550,19 @@ def write_publication_manifest(
         f"- Release version: `{snapshot['release_version']}`",
         "",
         "This directory is the stable root for generated reviewer-handoff publication outputs.",
-        "",
-        "## Entry Points",
-        "",
-        "- [Publication Index](PUBLICATION_INDEX.md)",
-        "- [Publication Manifest](PUBLICATION_MANIFEST.json)",
     ]
+    fact_summaries = _external_project_facts_summaries(snapshot)
+    if fact_summaries:
+        lines.extend(["", "## External Fact States", ""] + [f"- `{item}`" for item in fact_summaries])
+    lines.extend(
+        [
+            "",
+            "## Entry Points",
+            "",
+            "- [Publication Index](PUBLICATION_INDEX.md)",
+            "- [Publication Manifest](PUBLICATION_MANIFEST.json)",
+        ]
+    )
     if bundle_paths:
         lines.extend(
             [

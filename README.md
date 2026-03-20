@@ -391,6 +391,7 @@ Human-readable readiness/onboarding output now also surfaces a one-line `project
 That same `project_facts` summary now also appears in the cross-repo onboarding index, so multi-repo review can spot missing or drifted fact baselines without opening each repo's full onboarding report.
 The trust-signal overview now propagates that same summary into its external top-issue lines, so release/adoption review can see fact drift without switching surfaces.
 Reviewer handoff summary surfaces now also carry those external fact-state summaries, so the highest-level handoff view does not lose them after trust-signal aggregation.
+Reviewer handoff snapshot/publication artifacts now also preserve the same summaries, so generated handoff bundles and publication manifests keep external fact drift visible after publication.
 Example:
 
 ```bash

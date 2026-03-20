@@ -8,10 +8,27 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from governance_tools.reviewer_handoff_snapshot import (
     build_reviewer_handoff_snapshot,
     format_index,
+    format_publication_index,
     resolve_publication_paths,
     resolve_bundle_dir,
+    write_publication_manifest,
     write_snapshot_bundle,
 )
+
+FIXTURE_ROOT = Path("tests/_tmp_reviewer_handoff_snapshot")
+
+
+def _reset_fixture(name: str) -> Path:
+    root = FIXTURE_ROOT / name
+    if root.exists():
+        for path in sorted(root.rglob("*"), reverse=True):
+            if path.is_file():
+                path.unlink()
+            elif path.is_dir():
+                path.rmdir()
+        root.rmdir()
+    root.mkdir(parents=True, exist_ok=True)
+    return root
 
 
 def test_build_reviewer_handoff_snapshot_passes_for_current_alpha():
@@ -136,3 +153,45 @@ def test_reviewer_handoff_snapshot_cli_supports_direct_script_invocation(tmp_pat
     assert "summary=ok=True | trust=True | release=True | release_version=v1.0.0-alpha" in result.stdout
     assert "[reviewer_handoff_snapshot]" in result.stdout
     assert (bundle_dir / "latest.json").is_file()
+
+
+def test_reviewer_handoff_snapshot_publication_surfaces_external_fact_states():
+    fixture_root = _reset_fixture("publication_external_fact_states")
+    snapshot = {
+        "ok": True,
+        "generated_at": "2026-03-20T00:00:00+00:00",
+        "project_root": str(Path(".").resolve()),
+        "plan_path": "PLAN.md",
+        "release_version": "v1.0.0-alpha",
+        "contract_path": "example/contract.yaml",
+        "external_contract_repos": ["/tmp/kernel-driver-contract"],
+        "strict_runtime": False,
+        "handoff": {
+            "trust_signal": {
+                "ok": True,
+                "auditor": {
+                    "external_onboarding": {
+                        "top_issues": [
+                            {
+                                "repo_root": "/tmp/kernel-driver-contract",
+                                "project_facts_summary": "status=drifted | artifact_exists=True | artifact_drift=True | source=02_project_facts.md",
+                            }
+                        ]
+                    }
+                },
+            },
+            "release_surface": {"ok": True},
+        },
+    }
+
+    rendered = format_publication_index(snapshot)
+    publication = write_publication_manifest(snapshot, fixture_root / "handoff-publication")
+    manifest_payload = json.loads(Path(publication["manifest_json"]).read_text(encoding="utf-8"))
+    readme_text = Path(publication["readme_md"]).read_text(encoding="utf-8")
+
+    assert "## External Fact States" in rendered
+    assert "/tmp/kernel-driver-contract: status=drifted | artifact_exists=True | artifact_drift=True | source=02_project_facts.md" in rendered
+    assert manifest_payload["external_onboarding_project_facts"] == [
+        "/tmp/kernel-driver-contract: status=drifted | artifact_exists=True | artifact_drift=True | source=02_project_facts.md"
+    ]
+    assert "## External Fact States" in readme_text
