@@ -55,7 +55,10 @@ Read project plan and `memory/` directory for project state:
 | `memory/00_master_plan.md` | Long-term plan |
 | `memory/01_active_task.md` | Current active state |
 | `memory/02_tech_stack.md` | Tech architecture and toolchain facts |
+| `memory/02_project_facts.md` | Accepted alias for external-domain factual baselines |
 | `memory/03_knowledge_base.md` | Troubleshooting and anti-patterns |
+| `memory/03_decisions.md` | Accepted alias for external-domain decision records |
+| `memory/04_validation_log.md` | Accepted alias for external-domain validation history |
 
 `PLAN.md` remains the source of truth for planned **feature** scope.
 
@@ -272,10 +275,10 @@ The agent is responsible for project continuity. This duty is formal, but update
 | Milestone completed | Update `memory/01_active_task.md` |
 | Known-good build pass recorded | Update `memory/01_active_task.md` if it changes task state |
 | Commit preparation / task close | Update `memory/01_active_task.md` |
-| Architectural decision | Record in `memory/02_tech_stack.md` |
-| New gotcha/solution discovered | Record in `memory/03_knowledge_base.md` |
+| Architectural decision | Record in `memory/02_tech_stack.md` or accepted alias `memory/02_project_facts.md` when the repo already uses that schema |
+| New gotcha/solution discovered | Record in `memory/03_knowledge_base.md` or accepted alias `memory/03_decisions.md` when the repo already uses that schema |
 | Phase milestone completed | Update `memory/00_master_plan.md` |
-| Review completed | Append full record to `memory/04_review_log.md`; add one-line summary to `memory/01_active_task.md` |
+| Review completed | Append full record to `memory/04_review_log.md` or accepted alias `memory/04_validation_log.md`; add one-line summary to `memory/01_active_task.md` |
 
 Do **not** update memory for every micro-step. Record only a state change that would matter after a session restart.
 

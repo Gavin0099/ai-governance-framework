@@ -7,6 +7,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from memory_pipeline.memory_layout import resolve_memory_file
 from memory_pipeline.memory_promoter import promote_candidate
 from memory_pipeline.session_snapshot import create_session_snapshot
 
@@ -72,3 +73,39 @@ def test_promote_candidate_appends_knowledge_base_and_manifest(local_memory_root
 
     payload = json.loads(Path(snapshot["snapshot_path"]).read_text(encoding="utf-8"))
     assert payload["status"] == "promoted"
+
+
+
+def test_memory_layout_accepts_external_domain_aliases(local_memory_root):
+    (local_memory_root / "02_project_facts.md").write_text("# Project Facts\n", encoding="utf-8")
+    (local_memory_root / "03_decisions.md").write_text("# Decisions\n", encoding="utf-8")
+    (local_memory_root / "04_validation_log.md").write_text("# Validation Log\n", encoding="utf-8")
+
+    assert resolve_memory_file(local_memory_root, "tech_stack").name == "02_project_facts.md"
+    assert resolve_memory_file(local_memory_root, "knowledge_base").name == "03_decisions.md"
+    assert resolve_memory_file(local_memory_root, "review_log").name == "04_validation_log.md"
+
+
+def test_promote_candidate_reuses_external_domain_memory_aliases(local_memory_root):
+    (local_memory_root / "03_decisions.md").write_text("# Decisions\n\n", encoding="utf-8")
+    (local_memory_root / "04_validation_log.md").write_text("# Validation Log\n\n", encoding="utf-8")
+
+    snapshot = create_session_snapshot(
+        memory_root=local_memory_root,
+        task="Kernel driver governance",
+        summary="Promote using external-domain aliases",
+        source_text="example output",
+        risk="medium",
+        oversight="review-required",
+    )
+    result = promote_candidate(
+        memory_root=local_memory_root,
+        candidate_file=Path(snapshot["snapshot_path"]),
+        approved_by="reviewer-02",
+        title="Kernel driver promotion",
+    )
+
+    assert Path(result["knowledge_base"]).name == "03_decisions.md"
+    assert Path(result["review_log"]).name == "04_validation_log.md"
+    assert "Kernel driver promotion" in Path(result["knowledge_base"]).read_text(encoding="utf-8")
+    assert "Approved by: reviewer-02" in Path(result["review_log"]).read_text(encoding="utf-8")

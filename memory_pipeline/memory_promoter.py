@@ -10,12 +10,14 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+from memory_pipeline.memory_layout import resolve_memory_file
+
 
 def _ensure_memory_files(memory_root: Path) -> tuple[Path, Path]:
     memory_root.mkdir(parents=True, exist_ok=True)
-    active_task = memory_root / "01_active_task.md"
-    knowledge_base = memory_root / "03_knowledge_base.md"
-    review_log = memory_root / "04_review_log.md"
+    active_task = resolve_memory_file(memory_root, "active_task")
+    knowledge_base = resolve_memory_file(memory_root, "knowledge_base")
+    review_log = resolve_memory_file(memory_root, "review_log")
     archive_dir = memory_root / "archive"
     archive_dir.mkdir(parents=True, exist_ok=True)
     if not active_task.exists():
