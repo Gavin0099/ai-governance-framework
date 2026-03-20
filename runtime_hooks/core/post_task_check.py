@@ -210,6 +210,7 @@ def run_post_task_check(
             fields=fields,
             resolved_rules=resolved_rules,
             domain_contract=domain_contract,
+            contract_file=resolved_contract_file,
         )
         domain_validator_results = run_domain_validators(
             contract_file=resolved_contract_file,
