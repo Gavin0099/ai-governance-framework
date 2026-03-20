@@ -74,6 +74,7 @@ def build_external_repo_onboarding_index(repo_roots: list[Path]) -> dict:
             continue
         readiness = payload.get("readiness") or {}
         smoke = payload.get("smoke") or {}
+        project_facts = (readiness.get("project_facts") or {})
         entries.append(
             {
                 "repo_root": str(repo_root),
@@ -85,6 +86,15 @@ def build_external_repo_onboarding_index(repo_roots: list[Path]) -> dict:
                 "smoke_ok": smoke.get("ok"),
                 "post_task_ok": smoke.get("post_task_ok"),
                 "rules": smoke.get("rules") or [],
+                "project_facts_status": project_facts.get("status"),
+                "project_facts_summary": " | ".join(
+                    [
+                        f"status={project_facts.get('status')}",
+                        f"artifact_exists={project_facts.get('artifact_exists')}",
+                        f"artifact_drift={project_facts.get('artifact_drift')}",
+                        f"source={project_facts.get('source_filename')}",
+                    ]
+                ) if project_facts else None,
                 "readiness_errors": len(readiness.get("errors") or []),
                 "smoke_errors": len(smoke.get("errors") or []),
             }
@@ -157,6 +167,7 @@ def format_human(result: dict) -> str:
                         f"smoke={entry['smoke_ok']}",
                         f"post_task={entry['post_task_ok']}",
                         f"rules={','.join(entry['rules'])}",
+                        f"project_facts={entry.get('project_facts_summary')}",
                         f"generated_at={entry['generated_at']}",
                     ]
                 )

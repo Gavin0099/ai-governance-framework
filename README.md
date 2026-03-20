@@ -388,6 +388,7 @@ They also surface a minimal drift signal: when an existing framework-side intake
 The `project_facts` surface now also carries a small status model: `available`, `missing`, `drifted`, or `intake-error`, so external fact gaps are machine-readable instead of being implied only by warning strings.
 For non-healthy states (`missing`, `drifted`, `intake-error`), readiness/onboarding now also emit a `remediation_hint` that points back to `external_project_facts_intake.py`.
 Human-readable readiness/onboarding output now also surfaces a one-line `project_facts` summary near the top, so reviewers do not need to scroll into the detailed section just to see whether facts are `available`, `missing`, or `drifted`.
+That same `project_facts` summary now also appears in the cross-repo onboarding index, so multi-repo review can spot missing or drifted fact baselines without opening each repo's full onboarding report.
 Example:
 
 ```bash
