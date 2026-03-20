@@ -134,8 +134,7 @@ In practical terms:
 
 The largest remaining gaps after this update are:
 
-- legacy `hard_stop_rules` still exist as a runtime shortcut rather than being
-  fully downgraded into policy input
+- `hard_stop_rules` still exist as contract metadata, but runtime now treats them as policy input instead of a direct validator-side outcome switch
 - the runtime does not yet evaluate all verdict paths directly from the v2.6
   decision model JSON
 - replay coverage is still synchronous and narrow
