@@ -2,7 +2,7 @@
 """
 Check whether a repo's governance files have drifted from the recorded baseline.
 
-14 named checks across 4 categories:
+15 named checks across 4 categories:
 
   Category 1 — Baseline Metadata (4 checks):
     baseline_yaml_present       .governance/baseline.yaml exists and is parseable
@@ -22,8 +22,9 @@ Check whether a repo's governance files have drifted from the recorded baseline.
     plan_required_sections_present    PLAN.md contains required section headings
     agents_sections_filled            AGENTS.md governance:key sections have real content
 
-  Category 4 — Freshness (2 checks):
+  Category 4 — Freshness (3 checks):
     plan_freshness              PLAN.md freshness via plan_freshness.py
+    plan_inventory_current      plan_section_inventory in baseline matches current PLAN.md headings
     baseline_yaml_freshness     baseline.yaml age within --freshness-threshold days
 
 Usage:
@@ -102,6 +103,15 @@ def _find_placeholders_in_contract(contract_data: dict) -> list[str]:
                     found.append(key)
                     break
     return found
+
+
+def _detect_plan_sections(plan_text: str) -> list[str]:
+    """Return all '## ' headings from PLAN.md, in order."""
+    return [
+        line.rstrip()
+        for line in plan_text.splitlines()
+        if line.startswith("## ")
+    ]
 
 
 def _find_empty_governance_sections(agents_text: str) -> list[str]:
@@ -441,6 +451,34 @@ def check_governance_drift(
             warnings.append(f"plan_freshness: PLAN.md is stale ({freshness.days_since_update} days old)")
         else:
             _fail("plan_freshness", "critical", f"PLAN.md freshness check returned {freshness.status}")
+
+    # plan_inventory_current — recorded inventory matches current PLAN.md headings
+    # Signals that --refresh-baseline should be run after PLAN.md restructuring.
+    if plan_path.exists():
+        current_sections = _detect_plan_sections(plan_path.read_text(encoding="utf-8"))
+        recorded_sections = plan_section_inventory  # already read above
+        if set(current_sections) == set(recorded_sections):
+            _pass("plan_inventory_current")
+        else:
+            added = sorted(set(current_sections) - set(recorded_sections))
+            removed = sorted(set(recorded_sections) - set(current_sections))
+            parts: list[str] = []
+            if added:
+                parts.append(f"new: {', '.join(added)}")
+            if removed:
+                parts.append(f"removed: {', '.join(removed)}")
+            _fail(
+                "plan_inventory_current",
+                "warning",
+                "plan_section_inventory is stale — PLAN.md has changed since last refresh"
+                + (f" ({'; '.join(parts)})" if parts else "")
+                + " — run: bash scripts/init-governance.sh --target "
+                + str(repo_root)
+                + " --refresh-baseline",
+            )
+            hints.append(
+                f"bash scripts/init-governance.sh --target {repo_root} --refresh-baseline"
+            )
 
     initialized_at_str = baseline_data.get("initialized_at", "")
     if initialized_at_str:

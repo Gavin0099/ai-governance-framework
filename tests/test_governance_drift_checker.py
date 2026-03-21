@@ -113,6 +113,10 @@ def _write_baseline_yaml(
         f"  - \"## Current Phase\"\n"
         f"  - \"## Active Sprint\"\n"
         f"  - \"## Backlog\"\n"
+        f"plan_section_inventory:\n"
+        f"  - \"## Current Phase\"\n"
+        f"  - \"## Active Sprint\"\n"
+        f"  - \"## Backlog\"\n"
     )
     gov_dir = repo / ".governance"
     gov_dir.mkdir(exist_ok=True)
@@ -479,8 +483,8 @@ def test_source_commit_invalid_sha_is_warning(tmp_path):
     assert result.checks.get("source_commit_recorded") is False
 
 
-def test_all_14_checks_present_in_ok_repo(clean_repo):
-    """Verify exactly 14 named checks appear in a fully valid repo."""
+def test_all_15_checks_present_in_ok_repo(clean_repo):
+    """Verify exactly 15 named checks appear in a fully valid repo."""
     result = check_governance_drift(clean_repo, framework_root=FRAMEWORK_ROOT)
     expected_checks = {
         "baseline_yaml_present",
@@ -496,10 +500,11 @@ def test_all_14_checks_present_in_ok_repo(clean_repo):
         "plan_required_sections_present",
         "agents_sections_filled",
         "plan_freshness",
+        "plan_inventory_current",
         "baseline_yaml_freshness",
     }
     assert set(result.checks.keys()) == expected_checks
-    assert len(result.checks) == 14
+    assert len(result.checks) == 15
 
 
 # ── Custom plan_required_sections (--adopt-existing use case) ─────────────────
@@ -910,3 +915,126 @@ def test_agents_sections_partially_filled_reports_empty_keys(tmp_path):
     warning_text = " ".join(result.warnings)
     assert "must_test_paths" in warning_text
     assert "risk_levels" not in warning_text
+
+
+# ── plan_inventory_current ────────────────────────────────────────────────────
+
+def _write_baseline_yaml_with_inventory(
+    repo: Path,
+    agents_hash: str,
+    plan_hash: str,
+    contract_hash: str,
+    inventory_sections: list[str],
+) -> Path:
+    """Write baseline.yaml with an explicit plan_section_inventory."""
+    sections_block = "".join(f'  - "{s}"\n' for s in inventory_sections)
+    text = (
+        f'schema_version: "1"\n'
+        f'baseline_version: 1.0.0\n'
+        f'source_commit: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2\n'
+        f'framework_root: {FRAMEWORK_ROOT}\n'
+        f'initialized_at: 2026-03-22T00:00:00Z\n'
+        f'initialized_by: scripts/init-governance.sh\n'
+        f'sha256.AGENTS.base.md: {agents_hash}\n'
+        f'sha256.PLAN.md: {plan_hash}\n'
+        f'sha256.contract.yaml: {contract_hash}\n'
+        f'overridable.AGENTS.base.md: protected\n'
+        f'overridable.PLAN.md: overridable\n'
+        f'overridable.contract.yaml: overridable\n'
+        f'contract_required_fields:\n'
+        f'  - name\n  - framework_interface_version\n  - framework_compatible\n  - domain\n'
+        f'plan_required_sections:\n'
+        f'  - "## Current Phase"\n  - "## Active Sprint"\n  - "## Backlog"\n'
+        f'plan_section_inventory:\n{sections_block}'
+    )
+    gov_dir = repo / ".governance"
+    gov_dir.mkdir(exist_ok=True)
+    p = gov_dir / "baseline.yaml"
+    p.write_text(text, encoding="utf-8")
+    return p
+
+
+def test_plan_inventory_current_passes_when_inventory_matches(tmp_path):
+    """Recorded inventory matches current PLAN.md headings — check passes."""
+    agents = _write_agents_base(tmp_path)
+    plan = _write_plan(tmp_path)  # has ## Current Phase, ## Active Sprint, ## Backlog
+    contract = _write_contract(tmp_path)
+    _write_baseline_yaml_with_inventory(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+        inventory_sections=["## Current Phase", "## Active Sprint", "## Backlog"],
+    )
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    assert result.checks.get("plan_inventory_current") is True
+
+
+def test_plan_inventory_current_fails_when_section_removed(tmp_path):
+    """Inventory has a section that was later removed from PLAN.md — warning."""
+    agents = _write_agents_base(tmp_path)
+    plan = _write_plan(tmp_path)  # has ## Current Phase, ## Active Sprint, ## Backlog
+    contract = _write_contract(tmp_path)
+    # Inventory records an extra section that no longer exists
+    _write_baseline_yaml_with_inventory(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+        inventory_sections=["## Current Phase", "## Active Sprint", "## Backlog", "## Old Section"],
+    )
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    assert result.checks.get("plan_inventory_current") is False
+    warning_text = " ".join(result.warnings)
+    assert "Old Section" in warning_text
+    assert "refresh-baseline" in " ".join(result.remediation_hints)
+
+
+def test_plan_inventory_current_fails_when_section_added(tmp_path):
+    """PLAN.md gained a new section not in inventory — warning."""
+    agents = _write_agents_base(tmp_path)
+    # PLAN.md has an extra section beyond what inventory recorded
+    plan_text = (
+        "# PLAN.md\n\n"
+        "> **最後更新**: 2026-03-22\n"
+        "> **Owner**: Test\n"
+        "> **Freshness**: Sprint (7d)\n\n"
+        "## Current Phase\n\nwork\n\n"
+        "## Active Sprint\n\ntasks\n\n"
+        "## Backlog\n\nitems\n\n"
+        "## New Section\n\nnewly added\n"
+    )
+    plan = tmp_path / "PLAN.md"
+    plan.write_text(plan_text, encoding="utf-8")
+    contract = _write_contract(tmp_path)
+    agents_p = tmp_path / "AGENTS.base.md"
+    agents_p.write_bytes(agents.read_bytes() if agents.exists() else b"")
+    _write_baseline_yaml_with_inventory(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+        inventory_sections=["## Current Phase", "## Active Sprint", "## Backlog"],
+    )
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    assert result.checks.get("plan_inventory_current") is False
+    warning_text = " ".join(result.warnings)
+    assert "New Section" in warning_text
+
+
+def test_plan_inventory_current_passes_when_both_empty(tmp_path):
+    """Empty inventory + PLAN.md with no ## sections — both empty, no drift."""
+    agents = _write_agents_base(tmp_path)
+    plan = tmp_path / "PLAN.md"
+    plan.write_text("# PLAN\n\n> **最後更新**: 2026-03-22\n\nSome prose, no ## headings.\n",
+                    encoding="utf-8")
+    contract = _write_contract(tmp_path)
+    _write_baseline_yaml_with_inventory(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+        inventory_sections=[],
+    )
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    assert result.checks.get("plan_inventory_current") is True
