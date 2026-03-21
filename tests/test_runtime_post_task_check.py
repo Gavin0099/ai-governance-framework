@@ -381,6 +381,9 @@ def test_post_task_check_human_output_includes_evidence_summary():
                 "removed": [],
                 "added": ["public int Ping() => 0;"],
                 "warnings": ["Public API surface added or changed."],
+                "breaking_changes": [],
+                "non_breaking_changes": ["public int Ping() => 0;"],
+                "compatibility_risk": "low",
                 "errors": [],
             },
             "warnings": [],
@@ -554,7 +557,7 @@ def test_post_task_check_domain_validator_violation_can_trigger_hard_stop(tmp_pa
             "validator": "temp_validator",
             "rule_ids": ["TMP-001"],
             "detected_by": "domain validator",
-            "verdict_impact": "stop",
+            "verdict_impact": "escalate",
             "message": "Domain policy stop requested by hard_stop_rules: temp_validator -> TMP-VIOLATION-001 (rules: TMP-001)",
         }
     ]

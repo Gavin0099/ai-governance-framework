@@ -11,6 +11,7 @@ import re
 import sys
 from pathlib import Path
 
+from governance_tools.validator_interface import DomainValidator, ValidatorResult
 
 IRQL_PATTERNS = [
     r"\birql\b",
@@ -115,6 +116,27 @@ def validate_driver_evidence(checks: dict | None) -> dict:
             "diagnostic_count": len(diagnostics),
         },
     }
+
+
+class DriverEvidenceValidator(DomainValidator):
+    @property
+    def rule_ids(self) -> list[str]:
+        return ["kernel-driver"]
+
+    def validate(self, payload: dict) -> ValidatorResult:
+        checks = payload.get("checks", {})
+        result_dict = validate_driver_evidence(checks)
+        return ValidatorResult(
+            ok=result_dict["ok"],
+            rule_ids=self.rule_ids,
+            violations=result_dict["errors"],
+            warnings=result_dict["warnings"],
+            evidence_summary=str(result_dict["evidence_summary"]),
+            metadata={
+                "evidence_required": result_dict["evidence_required"],
+                "signals_detected": result_dict["signals_detected"],
+            }
+        )
 
 
 def main() -> None:

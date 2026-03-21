@@ -245,5 +245,5 @@ def test_assess_external_repo_classifies_missing_project_facts() -> None:
     assert result.checks["project_facts_intakeable"] is False
     assert result.project_facts["status"] == "missing"
     assert result.project_facts["available"] is False
-    assert "expected 02_tech_stack.md or 02_project_facts.md" in result.project_facts["reason"]
+    assert "No external project facts found under" in result.project_facts["reason"]
     assert result.project_facts["remediation_hint"].startswith("python governance_tools/external_project_facts_intake.py --repo")

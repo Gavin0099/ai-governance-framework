@@ -30,6 +30,10 @@ class MemoryJanitor:
     HOT_MEMORY_SOFT_LIMIT = 180  # 軟限制:產出警告
     HOT_MEMORY_HARD_LIMIT = 200  # 硬限制:建議掃除
     HOT_MEMORY_CRITICAL = 250    # 緊急限制:強制停止
+
+    HOT_MEMORY_SOFT_SIZE_LIMIT = 8000
+    HOT_MEMORY_HARD_SIZE_LIMIT = 10000
+    HOT_MEMORY_CRITICAL_SIZE_LIMIT = 12000
     
     def __init__(self, memory_root: Path):
         """
@@ -41,37 +45,39 @@ class MemoryJanitor:
         self.archive_dir = self.memory_root / "archive"
         self.archive_dir.mkdir(parents=True, exist_ok=True)
         
-    def check_hot_memory_status(self) -> Tuple[int, str]:
+    def check_hot_memory_status(self) -> Tuple[int, int, str]:
         """
         檢查熱記憶狀態
         
         Returns:
-            (行數, 狀態碼)
+            (行數, 字元數, 狀態碼)
             狀態碼: "SAFE" | "WARNING" | "CRITICAL" | "EMERGENCY"
         """
         if not self.active_task_file.exists():
-            return 0, "SAFE"
+            return 0, 0, "SAFE"
         
         with open(self.active_task_file, 'r', encoding='utf-8') as f:
-            line_count = sum(1 for _ in f)
+            content = f.read()
+            line_count = len(content.splitlines())
+            char_count = len(content)
         
-        if line_count >= self.HOT_MEMORY_CRITICAL:
-            return line_count, "EMERGENCY"
-        elif line_count >= self.HOT_MEMORY_HARD_LIMIT:
-            return line_count, "CRITICAL"
-        elif line_count >= self.HOT_MEMORY_SOFT_LIMIT:
-            return line_count, "WARNING"
+        if line_count >= self.HOT_MEMORY_CRITICAL or char_count >= self.HOT_MEMORY_CRITICAL_SIZE_LIMIT:
+            return line_count, char_count, "EMERGENCY"
+        elif line_count >= self.HOT_MEMORY_HARD_LIMIT or char_count >= self.HOT_MEMORY_HARD_SIZE_LIMIT:
+            return line_count, char_count, "CRITICAL"
+        elif line_count >= self.HOT_MEMORY_SOFT_LIMIT or char_count >= self.HOT_MEMORY_SOFT_SIZE_LIMIT:
+            return line_count, char_count, "WARNING"
         else:
-            return line_count, "SAFE"
+            return line_count, char_count, "SAFE"
     
-    def generate_warning_message(self, line_count: int, status: str) -> str:
+    def generate_warning_message(self, line_count: int, char_count: int, status: str) -> str:
         """產出警告訊息 (供 AI 在回應末尾顯示)"""
         if status == "EMERGENCY":
-            return f"🚨 **熱記憶緊急超限** ({line_count}/200 行) - **立即停止任務,強制執行掃除**"
+            return f"🚨 **熱記憶緊急超限** ({line_count}/200 行, {char_count}/10000 字元) - **立即停止任務,強制執行掃除**"
         elif status == "CRITICAL":
-            return f"⚠️ **熱記憶超過硬限制** ({line_count}/200 行) - 建議執行 `python memory_janitor.py --clean`"
+            return f"⚠️ **熱記憶超過硬限制** ({line_count}/200 行, {char_count}/10000 字元) - 建議執行 `python memory_janitor.py --clean`"
         elif status == "WARNING":
-            return f"⚠️ 熱記憶接近上限 ({line_count}/200 行),建議儘快掃除"
+            return f"⚠️ 熱記憶接近上限 ({line_count}/200 行, {char_count}/10000 字元),建議儘快掃除"
         else:
             return ""
     
@@ -119,14 +125,14 @@ class MemoryJanitor:
         Returns:
             Markdown 格式的掃除計畫報告
         """
-        line_count, status = self.check_hot_memory_status()
+        line_count, char_count, status = self.check_hot_memory_status()
         archivable = self.analyze_archivable_content()
         
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         report = f"""# 🧹 記憶掃除計畫
 **執行時間**: {timestamp}
-**當前狀態**: {status} ({line_count} 行)
+**當前狀態**: {status} ({line_count} 行, {char_count} 字元)
 
 ---
 
@@ -212,7 +218,8 @@ class MemoryJanitor:
             content = f.read()
 
         original_lines = len(content.splitlines())
-        _, status = self.check_hot_memory_status()
+        original_chars = len(content)
+        _, _, status = self.check_hot_memory_status()
 
         if dry_run:
             return (
@@ -248,7 +255,7 @@ class MemoryJanitor:
             f"<!-- 完整歷史請查閱: archive/{archive_filename} -->\n"
             f"\n"
             f"> **[歸檔紀錄]** {dt_human} — 本檔案已歸檔至 `archive/{archive_filename}`\n"
-            f"> 歸檔原因: 記憶壓力 {status}（原始 {original_lines} 行）\n"
+            f"> 歸檔原因: 記憶壓力 {status}（原始 {original_lines} 行, {original_chars} 字元）\n"
             f"\n"
             f"---\n\n"
         )
@@ -268,7 +275,7 @@ class MemoryJanitor:
             "source_file": str(self.active_task_file),
             "original_lines": original_lines,
             "new_lines": new_lines,
-            "reason": f"Memory pressure: {status} ({original_lines}/200 lines)",
+            "reason": f"Memory pressure: {status} ({original_lines}/{self.HOT_MEMORY_HARD_LIMIT} lines, {original_chars}/{self.HOT_MEMORY_HARD_SIZE_LIMIT} chars)",
         })
         self._save_manifest(manifest)
 
@@ -305,24 +312,28 @@ def main():
     janitor = MemoryJanitor(Path(args.memory_root))
 
     if args.check:
-        line_count, status = janitor.check_hot_memory_status()
-        warning = janitor.generate_warning_message(line_count, status)
+        line_count, char_count, status = janitor.check_hot_memory_status()
+        warning = janitor.generate_warning_message(line_count, char_count, status)
         if args.format == 'json':
             print(json.dumps({
                 "status": status,
                 "line_count": line_count,
+                "char_count": char_count,
                 "soft_limit": janitor.HOT_MEMORY_SOFT_LIMIT,
                 "hard_limit": janitor.HOT_MEMORY_HARD_LIMIT,
                 "critical": janitor.HOT_MEMORY_CRITICAL,
+                "soft_size_limit": janitor.HOT_MEMORY_SOFT_SIZE_LIMIT,
+                "hard_size_limit": janitor.HOT_MEMORY_HARD_SIZE_LIMIT,
+                "critical_size_limit": janitor.HOT_MEMORY_CRITICAL_SIZE_LIMIT,
             }, ensure_ascii=False))
         else:
-            print(f"狀態: {status} ({line_count} 行)")
+            print(f"狀態: {status} ({line_count} 行, {char_count} 字元)")
             if warning:
                 print(warning)
 
     elif args.plan:
         if args.format == 'json':
-            line_count, status = janitor.check_hot_memory_status()
+            line_count, char_count, status = janitor.check_hot_memory_status()
             archivable = janitor.analyze_archivable_content()
             recommendation_map = {
                 "EMERGENCY": "stop_and_manual_review",
@@ -333,9 +344,13 @@ def main():
             print(json.dumps({
                 "status": status,
                 "line_count": line_count,
+                "char_count": char_count,
                 "soft_limit": janitor.HOT_MEMORY_SOFT_LIMIT,
                 "hard_limit": janitor.HOT_MEMORY_HARD_LIMIT,
                 "critical": janitor.HOT_MEMORY_CRITICAL,
+                "soft_size_limit": janitor.HOT_MEMORY_SOFT_SIZE_LIMIT,
+                "hard_size_limit": janitor.HOT_MEMORY_HARD_SIZE_LIMIT,
+                "critical_size_limit": janitor.HOT_MEMORY_CRITICAL_SIZE_LIMIT,
                 "archivable": {
                     "completed_tasks": len(archivable["completed_tasks"]),
                     "obsolete_decisions": len(archivable["obsolete_decisions"]),
@@ -367,12 +382,12 @@ def main():
 
     else:
         # 預設行為:檢查並提示
-        line_count, status = janitor.check_hot_memory_status()
+        line_count, char_count, status = janitor.check_hot_memory_status()
         if status != "SAFE":
             plan = janitor.create_archive_plan()
             print(plan)
         else:
-            print(f"✅ 熱記憶狀態良好 ({line_count} 行)")
+            print(f"✅ 熱記憶狀態良好 ({line_count} 行, {char_count} 字元)")
 
 
 if __name__ == "__main__":

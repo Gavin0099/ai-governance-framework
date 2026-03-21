@@ -21,21 +21,44 @@ def _sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def resolve_external_project_facts_file(repo_root: Path) -> Path:
+def resolve_external_project_facts_file(repo_root: Path, logical_name: str = "tech_stack") -> Path:
     memory_root = repo_root / "memory"
-    candidate = resolve_memory_file(memory_root, "tech_stack")
+    candidate = resolve_memory_file(memory_root, logical_name)
     if not candidate.exists():
         raise FileNotFoundError(
-            f"external project facts not found under {memory_root}; expected 02_tech_stack.md or 02_project_facts.md"
+            f"external project facts not found under {memory_root}; expected mapping for {logical_name}"
         )
     return candidate
 
 
 def build_external_project_facts_intake(repo_root: Path) -> dict:
     repo_root = repo_root.resolve()
-    source_file = resolve_external_project_facts_file(repo_root)
-    content = source_file.read_text(encoding="utf-8")
+    memory_root = repo_root / "memory"
     captured_at = datetime.now(timezone.utc).isoformat()
+    
+    fact_sources = []
+    contents = {}
+    
+    for logical_name in ["tech_stack", "knowledge_base", "review_log", "active_task"]:
+        try:
+            source_file = resolve_external_project_facts_file(repo_root, logical_name)
+            content = source_file.read_text(encoding="utf-8")
+            fact_sources.append({
+                "logical_name": logical_name,
+                "source_file": str(source_file),
+                "source_filename": source_file.name,
+                "content_sha256": _sha256_text(content),
+            })
+            contents[logical_name] = content
+        except FileNotFoundError:
+            pass
+
+    if not fact_sources:
+        raise FileNotFoundError(
+            f"No external project facts found under {memory_root}"
+        )
+
+    primary = next((f for f in fact_sources if f["logical_name"] == "tech_stack"), fact_sources[0])
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -45,20 +68,17 @@ def build_external_project_facts_intake(repo_root: Path) -> dict:
             "name": repo_root.name,
             "root": str(repo_root),
         },
-        "fact_source": {
-            "logical_name": "tech_stack",
-            "source_file": str(source_file),
-            "source_filename": source_file.name,
-            "content_sha256": _sha256_text(content),
-        },
+        "fact_source": primary,
+        "fact_sources": fact_sources,
         "provenance": {
             "source_type": "external-memory-facts",
             "sync_direction": "external_to_framework",
-            "memory_root": str(source_file.parent),
+            "memory_root": str(memory_root),
             "repo_root": str(repo_root),
-            "captured_from": str(source_file),
+            "captured_from": str(primary["source_file"]),
         },
-        "content": content,
+        "content": contents.get(primary["logical_name"], ""),
+        "contents": contents,
     }
 
 
@@ -77,11 +97,12 @@ def format_human(payload: dict, output_path: Path | None = None) -> str:
         "[external_project_facts_intake]",
         f"repo={payload['repo']['name']}",
         f"repo_root={payload['repo']['root']}",
-        f"source_file={payload['fact_source']['source_file']}",
-        f"source_filename={payload['fact_source']['source_filename']}",
-        f"sync_direction={payload['provenance']['sync_direction']}",
-        f"content_sha256={payload['fact_source']['content_sha256']}",
     ]
+    for source in payload.get("fact_sources", [payload["fact_source"]]):
+        lines.append(f"source_file={source['source_file']}")
+        lines.append(f"source_filename={source['source_filename']}")
+        lines.append(f"content_sha256={source['content_sha256']}")
+    lines.append(f"sync_direction={payload['provenance']['sync_direction']}")
     if output_path is not None:
         lines.append(f"output={output_path}")
     return "\n".join(lines)

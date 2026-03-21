@@ -10,6 +10,9 @@ import json
 import re
 from pathlib import Path
 
+from governance_tools.validator_interface import DomainValidator, ValidatorResult
+
+
 
 PRIVATE_PEER_INCLUDE_RE = re.compile(
     r'#include\s+[<"](?P<path>(?:\.\./|[A-Za-z0-9_\-]+/).*(?:Global\.h|GlMySql\.h|[^">]+\.h))[>"]'
@@ -190,6 +193,33 @@ def check_architecture_drift(
 
     aggregate["ok"] = len(aggregate["errors"]) == 0
     return aggregate
+
+
+class ArchitectureDriftValidator(DomainValidator):
+    @property
+    def rule_ids(self) -> list[str]:
+        return ["feature", "refactor"]
+
+    def validate(self, payload: dict) -> ValidatorResult:
+        checks = payload.get("checks", {})
+        diff_text = payload.get("response_text", "")
+        scope = payload.get("contract_fields", {}).get("SCOPE", "feature")
+
+        result_dict = check_architecture_drift(
+            file_paths=[],
+            diff_text=diff_text,
+            scope=scope,
+            before_files=[],
+            after_files=[]
+        )
+        return ValidatorResult(
+            ok=result_dict.get("ok", False),
+            rule_ids=self.rule_ids,
+            violations=result_dict.get("errors", []),
+            warnings=result_dict.get("warnings", []),
+            evidence_summary=str(result_dict.get("findings", [])),
+            metadata={"files_scanned": result_dict.get("files", [])}
+        )
 
 
 def main() -> None:

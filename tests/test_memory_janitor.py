@@ -47,50 +47,50 @@ def _write_lines(path: Path, n: int, extra: str = "") -> None:
 
 class TestCheckHotMemoryStatus:
     def test_missing_file_returns_safe(self, janitor):
-        count, status = janitor.check_hot_memory_status()
+        count, _, status = janitor.check_hot_memory_status()
         assert count == 0
         assert status == "SAFE"
 
     def test_empty_file_returns_safe(self, janitor):
         janitor.active_task_file.write_text("", encoding="utf-8")
-        count, status = janitor.check_hot_memory_status()
+        count, _, status = janitor.check_hot_memory_status()
         assert count == 0
         assert status == "SAFE"
 
     def test_below_soft_limit_is_safe(self, janitor):
         _write_lines(janitor.active_task_file, 100)
-        _, status = janitor.check_hot_memory_status()
+        _, _, status = janitor.check_hot_memory_status()
         assert status == "SAFE"
 
     def test_at_soft_limit_is_warning(self, janitor):
         _write_lines(janitor.active_task_file, MemoryJanitor.HOT_MEMORY_SOFT_LIMIT)
-        count, status = janitor.check_hot_memory_status()
+        count, _, status = janitor.check_hot_memory_status()
         assert status == "WARNING"
         assert count == MemoryJanitor.HOT_MEMORY_SOFT_LIMIT
 
     def test_at_hard_limit_is_critical(self, janitor):
         _write_lines(janitor.active_task_file, MemoryJanitor.HOT_MEMORY_HARD_LIMIT)
-        _, status = janitor.check_hot_memory_status()
+        _, _, status = janitor.check_hot_memory_status()
         assert status == "CRITICAL"
 
     def test_between_hard_and_critical_is_critical(self, janitor):
         _write_lines(janitor.active_task_file, MemoryJanitor.HOT_MEMORY_HARD_LIMIT + 10)
-        _, status = janitor.check_hot_memory_status()
+        _, _, status = janitor.check_hot_memory_status()
         assert status == "CRITICAL"
 
     def test_at_emergency_limit_is_emergency(self, janitor):
         _write_lines(janitor.active_task_file, MemoryJanitor.HOT_MEMORY_CRITICAL)
-        _, status = janitor.check_hot_memory_status()
+        _, _, status = janitor.check_hot_memory_status()
         assert status == "EMERGENCY"
 
     def test_above_emergency_is_emergency(self, janitor):
         _write_lines(janitor.active_task_file, MemoryJanitor.HOT_MEMORY_CRITICAL + 50)
-        _, status = janitor.check_hot_memory_status()
+        _, _, status = janitor.check_hot_memory_status()
         assert status == "EMERGENCY"
 
     def test_just_below_soft_limit_is_safe(self, janitor):
         _write_lines(janitor.active_task_file, MemoryJanitor.HOT_MEMORY_SOFT_LIMIT - 1)
-        _, status = janitor.check_hot_memory_status()
+        _, _, status = janitor.check_hot_memory_status()
         assert status == "SAFE"
 
 
@@ -98,23 +98,23 @@ class TestCheckHotMemoryStatus:
 
 class TestGenerateWarningMessage:
     def test_safe_returns_empty(self, janitor):
-        assert janitor.generate_warning_message(50, "SAFE") == ""
+        assert janitor.generate_warning_message(50, 50, "SAFE") == ""
 
     def test_warning_message_contains_line_count(self, janitor):
-        msg = janitor.generate_warning_message(185, "WARNING")
+        msg = janitor.generate_warning_message(185, 185, "WARNING")
         assert "185" in msg
         assert msg  # non-empty
 
     def test_critical_message_contains_line_count(self, janitor):
-        msg = janitor.generate_warning_message(210, "CRITICAL")
+        msg = janitor.generate_warning_message(210, 210, "CRITICAL")
         assert "210" in msg
 
     def test_emergency_message_contains_line_count(self, janitor):
-        msg = janitor.generate_warning_message(260, "EMERGENCY")
+        msg = janitor.generate_warning_message(260, 260, "EMERGENCY")
         assert "260" in msg
 
     def test_unknown_status_returns_empty(self, janitor):
-        assert janitor.generate_warning_message(50, "UNKNOWN") == ""
+        assert janitor.generate_warning_message(50, 50, "UNKNOWN") == ""
 
 
 # ── C. analyze_archivable_content ─────────────────────────────────────────

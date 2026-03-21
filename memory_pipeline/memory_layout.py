@@ -9,7 +9,6 @@ from pathlib import Path
 
 
 MEMORY_FILE_ALIASES = {
-    "master_plan": ["00_master_plan.md"],
     "active_task": ["01_active_task.md"],
     "tech_stack": ["02_tech_stack.md", "02_project_facts.md"],
     "knowledge_base": ["03_knowledge_base.md", "03_decisions.md"],

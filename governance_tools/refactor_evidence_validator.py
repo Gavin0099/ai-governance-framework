@@ -10,6 +10,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from governance_tools.validator_interface import DomainValidator, ValidatorResult
 
 
 REGRESSION_PATTERNS = [
@@ -299,6 +300,27 @@ def validate_refactor_evidence(checks: dict | None) -> dict:
             "error_behavior_diff_count": len(error_behavior_diff) if isinstance(error_behavior_diff, list) else 0,
         },
     }
+
+
+class RefactorEvidenceValidator(DomainValidator):
+    @property
+    def rule_ids(self) -> list[str]:
+        return ["refactor"]
+
+    def validate(self, payload: dict) -> ValidatorResult:
+        checks = payload.get("checks", {})
+        result_dict = validate_refactor_evidence(checks)
+        return ValidatorResult(
+            ok=result_dict.get("ok", False),
+            rule_ids=self.rule_ids,
+            violations=result_dict.get("errors", []),
+            warnings=result_dict.get("warnings", []),
+            evidence_summary=str(result_dict.get("evidence_summary", "")),
+            metadata={
+                "evidence_required": result_dict.get("evidence_required", []),
+                "signals_detected": result_dict.get("signals_detected", {}),
+            }
+        )
 
 
 def main() -> None:

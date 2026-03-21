@@ -11,6 +11,9 @@ import re
 import sys
 from pathlib import Path
 
+from governance_tools.validator_interface import DomainValidator, ValidatorResult
+
+
 
 EXCEPTION_PATTERNS = [
     r"exception",
@@ -103,6 +106,24 @@ def validate_failure_completeness(checks: dict | None, require_cleanup: bool = F
         "warnings": warnings,
         "errors": errors,
     }
+
+
+class FailureCompletenessValidator(DomainValidator):
+    @property
+    def rule_ids(self) -> list[str]:
+        return ["feature", "refactor"]
+
+    def validate(self, payload: dict) -> ValidatorResult:
+        checks = payload.get("checks", {})
+        result_dict = validate_failure_completeness(checks)
+        return ValidatorResult(
+            ok=result_dict.get("ok", False),
+            rule_ids=self.rule_ids,
+            violations=result_dict.get("errors", []),
+            warnings=result_dict.get("warnings", []),
+            evidence_summary=str(result_dict.get("signals_detected", {})),
+            metadata={"signals_detected": result_dict.get("signals_detected", {})}
+        )
 
 
 def main() -> None:
