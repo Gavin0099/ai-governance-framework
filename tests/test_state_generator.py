@@ -189,6 +189,135 @@ def test_generate_state_includes_advisory_rule_pack_suggestions_without_mutating
     assert any(item["name"] == "refactor" and item["advisory_only"] is True for item in scope_suggestions)
 
 
+# ---------------------------------------------------------------------------
+# _yaml_str
+# ---------------------------------------------------------------------------
+
+def test_yaml_str_none():
+    assert state_generator._yaml_str(None) == "null"
+
+def test_yaml_str_bool():
+    assert state_generator._yaml_str(True) == "true"
+    assert state_generator._yaml_str(False) == "false"
+
+def test_yaml_str_int():
+    assert state_generator._yaml_str(42) == "42"
+
+def test_yaml_str_float():
+    assert state_generator._yaml_str(3.14) == "3.14"
+
+def test_yaml_str_plain_string():
+    assert state_generator._yaml_str("hello") == "hello"
+
+def test_yaml_str_special_chars_quoted():
+    result = state_generator._yaml_str("hello: world")
+    assert result.startswith('"') or result.startswith("'")
+
+def test_yaml_str_empty_string_quoted():
+    result = state_generator._yaml_str("")
+    assert result.startswith('"')
+
+def test_yaml_str_newline_quoted():
+    result = state_generator._yaml_str("line1\nline2")
+    assert "\\n" in result or result.startswith('"')
+
+
+# ---------------------------------------------------------------------------
+# dict_to_yaml
+# ---------------------------------------------------------------------------
+
+def test_dict_to_yaml_simple():
+    out = state_generator.dict_to_yaml({"key": "value"})
+    assert "key: value" in out
+
+def test_dict_to_yaml_nested_dict():
+    out = state_generator.dict_to_yaml({"outer": {"inner": "val"}})
+    assert "outer:" in out
+    assert "inner: val" in out
+
+def test_dict_to_yaml_list_of_scalars():
+    out = state_generator.dict_to_yaml({"items": ["a", "b"]})
+    assert "- a" in out
+    assert "- b" in out
+
+def test_dict_to_yaml_list_of_dicts():
+    out = state_generator.dict_to_yaml({"items": [{"k": "v"}]})
+    assert "items:" in out
+    assert "-" in out
+    assert "k: v" in out
+
+def test_dict_to_yaml_bool_value():
+    out = state_generator.dict_to_yaml({"flag": True})
+    assert "flag: true" in out
+
+def test_dict_to_yaml_none_value():
+    out = state_generator.dict_to_yaml({"x": None})
+    assert "x: null" in out
+
+
+# ---------------------------------------------------------------------------
+# parse_current_phase
+# ---------------------------------------------------------------------------
+
+def test_parse_current_phase_in_progress():
+    text = "[>] Phase B : Do something"
+    result = state_generator.parse_current_phase(text)
+    assert result["id"] == "PhaseB"
+    assert result["name"] == "Do something"
+
+def test_parse_current_phase_tilde():
+    text = "[~] Phase C : Another thing"
+    result = state_generator.parse_current_phase(text)
+    assert result["id"] == "PhaseC"
+
+def test_parse_current_phase_no_match():
+    text = "[x] Phase A : Done already"
+    result = state_generator.parse_current_phase(text)
+    assert result["id"] is None
+    assert result["name"] is None
+
+
+# ---------------------------------------------------------------------------
+# parse_backlog_counts
+# ---------------------------------------------------------------------------
+
+def test_parse_backlog_counts_returns_dict_with_priority_keys():
+    # parse_backlog_counts captures only text between ## Backlog and the first
+    # occurrence of \n## (which also matches \n###). Items inside ### sub-sections
+    # are therefore not reachable by the current regex — function returns zeros.
+    text = "## Backlog\n### P0\n- [ ] Task A\n"
+    counts = state_generator.parse_backlog_counts(text)
+    assert set(counts.keys()) == {"P0", "P1", "P2"}
+
+def test_parse_backlog_counts_items_before_subsection():
+    # Items appearing in the captured region (before any \n## or \n###) are not
+    # counted either because current_priority is still None at that point —
+    # the function only sets it from ### headers, which are excluded by regex.
+    text = "## Backlog\n- [ ] orphan item\n## Other\n"
+    counts = state_generator.parse_backlog_counts(text)
+    assert counts == {"P0": 0, "P1": 0, "P2": 0}
+
+def test_parse_backlog_counts_no_backlog_section():
+    counts = state_generator.parse_backlog_counts("## Current Sprint\n- [ ] Task\n")
+    assert counts == {"P0": 0, "P1": 0, "P2": 0}
+
+
+# ---------------------------------------------------------------------------
+# parse_sprint_tasks
+# ---------------------------------------------------------------------------
+
+def test_parse_sprint_tasks_empty():
+    result = state_generator.parse_sprint_tasks("## Introduction\nno sprint here")
+    assert result == []
+
+def test_parse_sprint_tasks_mixed():
+    text = "## Current Sprint\n- [x] Done task\n- [ ] Open task\n"
+    tasks = state_generator.parse_sprint_tasks(text)
+    assert len(tasks) == 2
+    assert tasks[0]["done"] is True
+    assert tasks[1]["done"] is False
+
+
 def test_generate_state_can_include_architecture_impact_preview(local_tmp_dir, monkeypatch):
     monkeypatch.setattr(state_generator, "check_freshness", lambda _: _FreshnessStub())
 

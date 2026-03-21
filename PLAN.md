@@ -130,8 +130,9 @@
 - [x] GitHub Actions 新增 strict runnable-example validation ✓ 2026/03/15
 
 **待處理（技術債與品質提升）**:
-- [ ] 補齊工具單元測試（state_generator、linear_integrator、notion_integrator）
-- [ ] 評估 BUG-003（記憶壓力多維度指標）
+- [ ] 補齊工具單元測試（state_generator）
+- [x] 補齊工具單元測試（linear_integrator、notion_integrator）✓ 2026/03/21
+- [x] 評估 BUG-003（記憶壓力多維度指標）✓ 2026/03/21 — 決定修：已加字元數閾值（soft 8000 / hard 10000 / critical 12000），防止單行塞大量內容繞過行數限制，結案
 - [ ] 補齊對外 release-facing 信號（GitHub Releases 實體頁面、alpha release note 對外同步）
 - [ ] 持續收斂 example / onboarding path，降低首次採用摩擦
 - [ ] 持續補強 practical interception coverage（git hook、CI gate、external onboarding），降低 direct commit 或非標準工作流繞過檢查的機率
@@ -140,8 +141,8 @@
 **Alpha → Beta 升級 Gate（明確驗收標準）**:
 - [ ] 至少一個外部專案完整跑完 session_start → pre_task → post_task → session_end → memory promotion 全程（不需要作者介入）
 - [ ] 獨立 reviewer 能在無引導情況下完成 onboarding 並提交第一個 governance-compliant session
-- [ ] state_generator / linear_integrator / notion_integrator 單元測試補齊（覆蓋率 ≥ 70%）
-- [ ] BUG-003 評估完畢，決定修或列為已知限制
+- [ ] state_generator / linear_integrator / notion_integrator 單元測試補齊（覆蓋率 ≥ 70%）— linear/notion ✓，state_generator 待補
+- [x] BUG-003 評估完畢，決定修或列為已知限制 ✓ 2026/03/21
 
 **邊界說明**:
 - 這裡的補強方向是 **commit/merge-time governance**
