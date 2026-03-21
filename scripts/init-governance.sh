@@ -4,6 +4,7 @@
 # Usage:
 #   bash scripts/init-governance.sh --target /path/to/repo
 #   bash scripts/init-governance.sh --target /path/to/repo --upgrade
+#   bash scripts/init-governance.sh --target /path/to/repo --adopt-existing
 #   bash scripts/init-governance.sh --target /path/to/repo --dry-run
 #
 # What it does (initial):
@@ -20,6 +21,15 @@
 #   - Overridable files: show diff, overwrite only with --auto-merge
 #   - Update baseline_version, source_commit, initialized_at
 #
+# What it does (--adopt-existing):
+#   For repos that already have their own PLAN.md / AGENTS.md / contract.yaml:
+#   - Protected files: always copy AGENTS.base.md (new file in existing repo)
+#   - Overridable files: copy from template ONLY if the file is missing
+#   - Auto-detects ## headings in existing PLAN.md and records them as
+#     plan_required_sections so the drift checker validates the real structure
+#   - Writes .governance/baseline.yaml with hashes of the actual current files
+#   No existing file is overwritten; only missing files are created.
+#
 # Environment:
 #   FRAMEWORK_ROOT  Override auto-detected framework root (default: script dir/..)
 
@@ -33,22 +43,24 @@ BASELINE_SOURCE="$FRAMEWORK_ROOT/baselines/repo-min"
 
 TARGET=""
 UPGRADE=false
+ADOPT_EXISTING=false
 DRY_RUN=false
 AUTO_MERGE=false
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --target)    TARGET="$2"; shift 2 ;;
-        --upgrade)   UPGRADE=true; shift ;;
-        --dry-run)   DRY_RUN=true; shift ;;
-        --auto-merge) AUTO_MERGE=true; shift ;;
-        *)           echo "Unknown option: $1"; exit 1 ;;
+        --target)         TARGET="$2"; shift 2 ;;
+        --upgrade)        UPGRADE=true; shift ;;
+        --adopt-existing) ADOPT_EXISTING=true; shift ;;
+        --dry-run)        DRY_RUN=true; shift ;;
+        --auto-merge)     AUTO_MERGE=true; shift ;;
+        *)                echo "Unknown option: $1"; exit 1 ;;
     esac
 done
 
 if [[ -z "$TARGET" ]]; then
     echo "ERROR: --target is required"
-    echo "Usage: bash scripts/init-governance.sh --target /path/to/repo [--upgrade] [--dry-run]"
+    echo "Usage: bash scripts/init-governance.sh --target /path/to/repo [--upgrade|--adopt-existing] [--dry-run]"
     exit 1
 fi
 
@@ -88,6 +100,20 @@ source_commit() {
     git -C "$FRAMEWORK_ROOT" rev-parse HEAD 2>/dev/null || echo "unknown"
 }
 
+# PLAN_SECTIONS: global array populated by detect_plan_sections().
+# If empty, write_baseline_yaml writes the default English headings.
+PLAN_SECTIONS=()
+
+detect_plan_sections() {
+    local target="$1"
+    PLAN_SECTIONS=()
+    if [[ -f "$target/PLAN.md" ]]; then
+        while IFS= read -r line; do
+            PLAN_SECTIONS+=("$line")
+        done < <(grep '^## ' "$target/PLAN.md" 2>/dev/null | head -20 | sed 's/[[:space:]]*$//')
+    fi
+}
+
 write_baseline_yaml() {
     local target="$1"
     local baseline_version
@@ -102,6 +128,20 @@ write_baseline_yaml() {
     hash_plan="$(sha256_of "$target/PLAN.md")"
     hash_contract="$(sha256_of "$target/contract.yaml")"
     hash_agents_ext="$(sha256_of "$target/AGENTS.md")"
+
+    # Build plan_required_sections block
+    local plan_sections_block
+    if [[ ${#PLAN_SECTIONS[@]} -gt 0 ]]; then
+        plan_sections_block="plan_required_sections:"
+        for s in "${PLAN_SECTIONS[@]}"; do
+            plan_sections_block+=$'\n'"  - \"$s\""
+        done
+    else
+        plan_sections_block='plan_required_sections:
+  - "## Current Phase"
+  - "## Active Sprint"
+  - "## Backlog"'
+    fi
 
     mkdir -p "$target/.governance"
     cat > "$target/.governance/baseline.yaml" <<EOF
@@ -136,10 +176,7 @@ contract_required_fields:
   - domain
 
 # Required sections in PLAN.md (heading text anchors)
-plan_required_sections:
-  - "## Current Phase"
-  - "## Active Sprint"
-  - "## Backlog"
+$plan_sections_block
 EOF
     echo "  Wrote $target/.governance/baseline.yaml"
 }
@@ -177,6 +214,74 @@ do_init() {
     echo "  5. Verify: python governance_tools/governance_drift_checker.py --repo $TARGET"
 }
 
+# ── Adopt Existing ────────────────────────────────────────────────────────────
+#
+# For repos that already have governance-like files. Only fills gaps; never
+# overwrites anything that already exists.
+
+do_adopt_existing() {
+    echo "Adopting governance baseline into existing repo: $TARGET"
+    echo "Baseline source: $BASELINE_SOURCE"
+    echo ""
+
+    if [[ "$DRY_RUN" == true ]]; then
+        echo "[dry-run] AGENTS.base.md — always copied (protected baseline, new to this repo)"
+        for f in AGENTS.md PLAN.md contract.yaml; do
+            if [[ -f "$TARGET/$f" ]]; then
+                echo "[dry-run] $f — kept as-is (already exists)"
+            else
+                echo "[dry-run] $f — would copy from template (missing)"
+            fi
+        done
+        if [[ -f "$TARGET/PLAN.md" ]]; then
+            detect_plan_sections "$TARGET"
+            if [[ ${#PLAN_SECTIONS[@]} -gt 0 ]]; then
+                echo "[dry-run] plan_required_sections — auto-detected ${#PLAN_SECTIONS[@]} heading(s) from existing PLAN.md:"
+                for s in "${PLAN_SECTIONS[@]}"; do
+                    echo "  $s"
+                done
+            fi
+        fi
+        echo "[dry-run] Would write: $TARGET/.governance/baseline.yaml"
+        return
+    fi
+
+    # Protected files: always copy AGENTS.base.md
+    cp "$BASELINE_SOURCE/AGENTS.base.md" "$TARGET/AGENTS.base.md"
+    echo "  Copied AGENTS.base.md (protected baseline)"
+
+    # Overridable files: create from template only if missing
+    for f in AGENTS.md PLAN.md contract.yaml; do
+        if [[ -f "$TARGET/$f" ]]; then
+            echo "  $f — kept as-is (already exists)"
+        else
+            cp "$BASELINE_SOURCE/$f" "$TARGET/$f"
+            echo "  $f — copied from template (was missing)"
+        fi
+    done
+
+    # Auto-detect plan sections from existing PLAN.md
+    detect_plan_sections "$TARGET"
+    if [[ ${#PLAN_SECTIONS[@]} -gt 0 ]]; then
+        echo ""
+        echo "  Auto-detected ${#PLAN_SECTIONS[@]} PLAN.md section(s) for plan_required_sections:"
+        for s in "${PLAN_SECTIONS[@]}"; do
+            echo "    $s"
+        done
+    fi
+
+    write_baseline_yaml "$TARGET"
+
+    echo ""
+    echo "Adoption complete. Next steps:"
+    echo "  1. Review $TARGET/contract.yaml — if newly created, fill in <repo-name> and <domain>"
+    echo "  2. Extend $TARGET/AGENTS.md with repo-specific risk levels and must-test paths"
+    echo "     (see baselines/repo-min/AGENTS.md for the section skeleton)"
+    echo "     (DO NOT edit AGENTS.base.md — it is protected and hash-verified)"
+    echo "  3. Commit: git add AGENTS.base.md AGENTS.md PLAN.md contract.yaml .governance/baseline.yaml"
+    echo "  4. Verify: python governance_tools/governance_drift_checker.py --repo $TARGET"
+}
+
 # ── Upgrade ───────────────────────────────────────────────────────────────────
 
 do_upgrade() {
@@ -190,7 +295,7 @@ do_upgrade() {
 
     if [[ "$DRY_RUN" == true ]]; then
         echo "[dry-run] Would overwrite (protected): AGENTS.base.md"
-        echo "[dry-run] Would diff (overridable): PLAN.md contract.yaml"
+        echo "[dry-run] Would diff (overridable): PLAN.md contract.yaml AGENTS.md"
         return
     fi
 
@@ -216,6 +321,9 @@ do_upgrade() {
         fi
     done
 
+    # Preserve existing plan_required_sections when upgrading
+    detect_plan_sections "$TARGET"
+
     # Update baseline.yaml with new hashes and version
     write_baseline_yaml "$TARGET"
 
@@ -229,13 +337,23 @@ do_upgrade() {
 if [[ "$UPGRADE" == true ]]; then
     if [[ ! -f "$TARGET/.governance/baseline.yaml" ]]; then
         echo "ERROR: no existing .governance/baseline.yaml found — run without --upgrade first"
+        echo "  If this repo already has governance files, use --adopt-existing instead."
         exit 1
     fi
     do_upgrade
+elif [[ "$ADOPT_EXISTING" == true ]]; then
+    if [[ -f "$TARGET/.governance/baseline.yaml" ]] && [[ "$DRY_RUN" == false ]]; then
+        echo "WARNING: $TARGET/.governance/baseline.yaml already exists."
+        echo "  --adopt-existing will overwrite it with refreshed hashes."
+        read -r -p "  Continue? [y/N] " confirm
+        [[ "$confirm" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 0; }
+    fi
+    do_adopt_existing
 else
     if [[ -f "$TARGET/.governance/baseline.yaml" ]] && [[ "$DRY_RUN" == false ]]; then
         echo "WARNING: $TARGET/.governance/baseline.yaml already exists."
         echo "  Re-initialising will overwrite baseline files. Use --upgrade to preserve overridable files."
+        echo "  If this repo already has its own governance files, use --adopt-existing."
         read -r -p "  Continue? [y/N] " confirm
         [[ "$confirm" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 0; }
     fi

@@ -498,3 +498,148 @@ def test_all_12_checks_present_in_ok_repo(clean_repo):
     }
     assert set(result.checks.keys()) == expected_checks
     assert len(result.checks) == 12
+
+
+# ── Custom plan_required_sections (--adopt-existing use case) ─────────────────
+
+def _write_plan_custom(repo: Path, sections: list[str]) -> Path:
+    """Write a PLAN.md whose H2 headings are the given sections."""
+    lines = [
+        "# PLAN.md",
+        "> **最後更新**: 2026-03-21",
+        "> **Owner**: Test",
+        "> **Freshness**: Sprint (7d)",
+        "",
+    ]
+    for section in sections:
+        lines += [section, "", "- content", ""]
+    p = repo / "PLAN.md"
+    p.write_text("\n".join(lines), encoding="utf-8")
+    return p
+
+
+def _write_baseline_yaml_custom_sections(
+    repo: Path,
+    agents_hash: str,
+    plan_hash: str,
+    contract_hash: str,
+    plan_sections: list[str],
+    source_commit: str = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+) -> Path:
+    sections_block = "plan_required_sections:\n" + "".join(
+        f'  - "{s}"\n' for s in plan_sections
+    )
+    text = (
+        f"schema_version: \"1\"\n"
+        f"baseline_version: 1.0.0\n"
+        f"source_commit: {source_commit}\n"
+        f"framework_root: {FRAMEWORK_ROOT}\n"
+        f"initialized_at: 2026-03-21T10:00:00Z\n"
+        f"initialized_by: scripts/init-governance.sh\n"
+        f"sha256.AGENTS.base.md: {agents_hash}\n"
+        f"sha256.PLAN.md: {plan_hash}\n"
+        f"sha256.contract.yaml: {contract_hash}\n"
+        f"overridable.AGENTS.base.md: protected\n"
+        f"overridable.PLAN.md: overridable\n"
+        f"overridable.contract.yaml: overridable\n"
+        f"contract_required_fields:\n"
+        f"  - name\n"
+        f"  - framework_interface_version\n"
+        f"  - framework_compatible\n"
+        f"  - domain\n"
+        + sections_block
+    )
+    gov_dir = repo / ".governance"
+    gov_dir.mkdir(exist_ok=True)
+    p = gov_dir / "baseline.yaml"
+    p.write_text(text, encoding="utf-8")
+    return p
+
+
+def test_custom_plan_sections_pass_when_present(tmp_path):
+    """plan_required_sections with non-English (emoji) headings pass when PLAN.md has them."""
+    chinese_sections = ["## 🏗️ 當前階段", "## 🔥 本輪聚焦", "## 📦 Phase 詳細規劃"]
+    agents = _write_agents_base(tmp_path)
+    plan = _write_plan_custom(tmp_path, chinese_sections)
+    contract = _write_contract(tmp_path)
+    _write_baseline_yaml_custom_sections(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+        plan_sections=chinese_sections,
+    )
+
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+
+    assert result.checks["plan_required_sections_present"] is True
+    assert result.severity in {"ok", "warning"}
+
+
+def test_custom_plan_sections_fail_when_missing(tmp_path):
+    """If baseline.yaml declares custom sections that don't exist in PLAN.md, check fails."""
+    agents = _write_agents_base(tmp_path)
+    plan = _write_plan_custom(tmp_path, ["## 🏗️ 當前階段", "## 🔥 本輪聚焦"])
+    contract = _write_contract(tmp_path)
+    _write_baseline_yaml_custom_sections(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+        # Baseline declares a section that doesn't exist in PLAN.md
+        plan_sections=["## 🏗️ 當前階段", "## 🔥 本輪聚焦", "## 📊 THIS SECTION DOES NOT EXIST"],
+    )
+
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+
+    assert result.checks["plan_required_sections_present"] is False
+    finding = next(f for f in result.findings if f["check"] == "plan_required_sections_present")
+    assert "THIS SECTION DOES NOT EXIST" in finding["detail"]
+
+
+def test_default_english_sections_used_when_baseline_has_none(tmp_path):
+    """If baseline.yaml has no plan_required_sections, defaults to English headings."""
+    agents = _write_agents_base(tmp_path)
+    plan = _write_plan(tmp_path)  # has ## Current Phase / ## Active Sprint / ## Backlog
+    contract = _write_contract(tmp_path)
+    _write_baseline_yaml(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+    )
+
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+
+    assert result.checks["plan_required_sections_present"] is True
+
+
+def test_adopt_existing_style_repo_passes_all_checks(tmp_path):
+    """Simulate a repo that was adopted via --adopt-existing with Chinese PLAN.md sections."""
+    chinese_sections = [
+        "## 📋 專案目標",
+        "## 🏗️ 當前階段",
+        "## 🔥 本輪聚焦",
+        "## 📦 Phase 詳細規劃",
+        "## 🎯 當前決策",
+        "## 🚫 現階段不要做",
+        "## 📝 變更歷史",
+    ]
+    agents = _write_agents_base(tmp_path)
+    plan = _write_plan_custom(tmp_path, chinese_sections)
+    contract = _write_contract(tmp_path)
+    _write_baseline_yaml_custom_sections(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+        plan_sections=chinese_sections,
+    )
+
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+
+    assert result.checks["plan_required_sections_present"] is True
+    assert result.checks["baseline_yaml_present"] is True
+    assert result.checks["source_commit_recorded"] is True
+    # Only warning-level issues at most (e.g. freshness)
+    assert result.severity in {"ok", "warning"}
