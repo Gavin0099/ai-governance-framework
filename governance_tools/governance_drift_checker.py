@@ -2,7 +2,7 @@
 """
 Check whether a repo's governance files have drifted from the recorded baseline.
 
-12 named checks across 4 categories:
+14 named checks across 4 categories:
 
   Category 1 — Baseline Metadata (4 checks):
     baseline_yaml_present       .governance/baseline.yaml exists and is parseable
@@ -15,10 +15,12 @@ Check whether a repo's governance files have drifted from the recorded baseline.
     protected_files_unmodified  sha256 of protected files matches recorded hash
     protected_file_sentinel_present  AGENTS.base.md contains governance sentinel comment
 
-  Category 3 — Overridable File Required Fields (3 checks):
+  Category 3 — Overridable File Required Fields (5 checks):
     contract_required_fields_present  contract.yaml has all required fields
     contract_agents_base_referenced   AGENTS.base.md wired into contract documents
+    contract_no_placeholders          contract.yaml values contain no <...> template tokens
     plan_required_sections_present    PLAN.md contains required section headings
+    agents_sections_filled            AGENTS.md governance:key sections have real content
 
   Category 4 — Freshness (2 checks):
     plan_freshness              PLAN.md freshness via plan_freshness.py
@@ -53,6 +55,9 @@ from governance_tools.plan_freshness import check_freshness
 BASELINE_YAML_RELPATH = ".governance/baseline.yaml"
 BASELINE_SOURCE_RELPATH = "baselines/repo-min"
 
+_PLACEHOLDER_RE = __import__("re").compile(r"<[A-Za-z][^>]+>")
+_GOVERNANCE_KEY_RE = __import__("re").compile(r"<!--\s*governance:key=(\S+)\s*-->")
+
 
 @dataclass
 class BaselineDriftResult:
@@ -83,6 +88,60 @@ def _as_list(value: object) -> list[str]:
     if isinstance(value, list):
         return [str(item) for item in value]
     return [str(value)]
+
+
+def _find_placeholders_in_contract(contract_data: dict) -> list[str]:
+    """Return field names whose string values still contain <...> template tokens."""
+    found: list[str] = []
+    for key, value in contract_data.items():
+        if isinstance(value, str) and _PLACEHOLDER_RE.search(value):
+            found.append(key)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, str) and _PLACEHOLDER_RE.search(item):
+                    found.append(key)
+                    break
+    return found
+
+
+def _find_empty_governance_sections(agents_text: str) -> list[str]:
+    """Return governance:key names whose sections contain no real content.
+
+    A section is considered empty if every non-blank line between the
+    governance:key anchor and the next ## heading (or EOF) is inside
+    an HTML comment block (single-line or multi-line <!-- ... -->).
+    """
+    lines = agents_text.splitlines()
+    empty_keys: list[str] = []
+    i = 0
+    while i < len(lines):
+        m = _GOVERNANCE_KEY_RE.match(lines[i].strip())
+        if m:
+            key = m.group(1)
+            i += 1
+            has_content = False
+            in_comment = False
+            while i < len(lines) and not lines[i].strip().startswith("##"):
+                stripped = lines[i].strip()
+                i += 1
+                if not stripped:
+                    continue
+                if in_comment:
+                    if "-->" in stripped:
+                        in_comment = False
+                    continue
+                if stripped.startswith("<!--"):
+                    if "-->" not in stripped:
+                        in_comment = True  # multi-line comment opened
+                    continue
+                # Non-blank line outside any comment — real content
+                has_content = True
+                break
+            if not has_content:
+                empty_keys.append(key)
+        else:
+            i += 1
+    return empty_keys
 
 
 def _read_baseline_yaml(repo_root: Path) -> dict | None:
@@ -310,6 +369,18 @@ def check_governance_drift(
                     "warning",
                     "AGENTS.base.md is not listed in contract.yaml documents or ai_behavior_override",
                 )
+
+            placeholder_fields = _find_placeholders_in_contract(contract_data)
+            if placeholder_fields:
+                _fail(
+                    "contract_no_placeholders",
+                    "warning",
+                    "contract.yaml still contains template placeholder values in: "
+                    + ", ".join(placeholder_fields)
+                    + " — replace <...> tokens with repo-specific values",
+                )
+            else:
+                _pass("contract_no_placeholders")
         except (ValueError, OSError) as exc:
             _fail("contract_required_fields_present", "critical", f"failed to parse contract.yaml: {exc}")
 
@@ -338,6 +409,26 @@ def check_governance_drift(
             _pass("plan_required_sections_present")
     else:
         _fail("plan_required_sections_present", "warning", "PLAN.md not found")
+
+    # agents_sections_filled — governance:key sections in AGENTS.md have real content
+    agents_md_path = repo_root / "AGENTS.md"
+    if agents_md_path.exists():
+        empty_sections = _find_empty_governance_sections(
+            agents_md_path.read_text(encoding="utf-8")
+        )
+        if empty_sections:
+            _fail(
+                "agents_sections_filled",
+                "warning",
+                "AGENTS.md governance:key sections have no repo-specific content yet: "
+                + ", ".join(empty_sections)
+                + " — fill in or remove the section if not applicable",
+            )
+        else:
+            _pass("agents_sections_filled")
+    else:
+        # AGENTS.md is optional (overridable) — skip rather than fail
+        _pass("agents_sections_filled")
 
     # ── Category 4: Freshness ─────────────────────────────────────────────────
 

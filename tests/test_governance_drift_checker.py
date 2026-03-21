@@ -479,8 +479,8 @@ def test_source_commit_invalid_sha_is_warning(tmp_path):
     assert result.checks.get("source_commit_recorded") is False
 
 
-def test_all_12_checks_present_in_ok_repo(clean_repo):
-    """Verify exactly 12 named checks appear in a fully valid repo."""
+def test_all_14_checks_present_in_ok_repo(clean_repo):
+    """Verify exactly 14 named checks appear in a fully valid repo."""
     result = check_governance_drift(clean_repo, framework_root=FRAMEWORK_ROOT)
     expected_checks = {
         "baseline_yaml_present",
@@ -492,12 +492,14 @@ def test_all_12_checks_present_in_ok_repo(clean_repo):
         "protected_file_sentinel_present",
         "contract_required_fields_present",
         "contract_agents_base_referenced",
+        "contract_no_placeholders",
         "plan_required_sections_present",
+        "agents_sections_filled",
         "plan_freshness",
         "baseline_yaml_freshness",
     }
     assert set(result.checks.keys()) == expected_checks
-    assert len(result.checks) == 12
+    assert len(result.checks) == 14
 
 
 # ── Custom plan_required_sections (--adopt-existing use case) ─────────────────
@@ -736,3 +738,175 @@ def test_default_plan_required_sections_pass_fresh_init_repo(tmp_path):
     result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
 
     assert result.checks["plan_required_sections_present"] is True
+
+
+# ── contract_no_placeholders ──────────────────────────────────────────────────
+
+def test_contract_no_placeholders_passes_for_filled_contract(tmp_path):
+    """contract.yaml with real values passes the placeholder check."""
+    agents = _write_agents_base(tmp_path)
+    plan = _write_plan(tmp_path)
+    contract = _write_contract(tmp_path)  # name=test-contract, domain=test — no <...>
+    _write_baseline_yaml(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+    )
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    assert result.checks.get("contract_no_placeholders") is True
+
+
+def test_contract_no_placeholders_fails_for_template_contract(tmp_path):
+    """contract.yaml with <repo-name>/<domain> placeholder values is a warning."""
+    agents = _write_agents_base(tmp_path)
+    plan = _write_plan(tmp_path)
+    contract = tmp_path / "contract.yaml"
+    contract.write_text(
+        "name: <repo-name>-contract\n"
+        "plugin_version: \"1.0.0\"\n"
+        "framework_interface_version: \"1\"\n"
+        "framework_compatible: \">=1.0.0,<2.0.0\"\n"
+        "domain: <domain>\n"
+        "documents:\n"
+        "  - AGENTS.base.md\n"
+        "ai_behavior_override:\n"
+        "  - AGENTS.base.md\n"
+        "validators:\n",
+        encoding="utf-8",
+    )
+    _write_baseline_yaml(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+    )
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    assert result.checks.get("contract_no_placeholders") is False
+    assert any("name" in w and "domain" in w for w in result.warnings)
+
+
+def test_contract_no_placeholders_not_present_when_contract_missing(tmp_path):
+    """When contract.yaml is absent, contract_no_placeholders is not in checks."""
+    agents = _write_agents_base(tmp_path)
+    plan = _write_plan(tmp_path)
+    _write_baseline_yaml(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash="0" * 64,
+    )
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    assert result.checks.get("contract_required_fields_present") is False
+    assert "contract_no_placeholders" not in result.checks
+
+
+# ── agents_sections_filled ────────────────────────────────────────────────────
+
+def _write_agents_md_template(repo: Path) -> Path:
+    """Write the unmodified baseline AGENTS.md template (all sections empty)."""
+    import shutil
+    src = Path(__file__).parent.parent / "baselines" / "repo-min" / "AGENTS.md"
+    dst = repo / "AGENTS.md"
+    shutil.copy(src, dst)
+    return dst
+
+
+def _write_agents_md_filled(repo: Path) -> Path:
+    """Write an AGENTS.md with all governance:key sections populated."""
+    text = (
+        "# AGENTS.md\n"
+        "<!-- governance-baseline: overridable -->\n\n"
+        "## Repo-Specific Risk Levels\n"
+        "<!-- governance:key=risk_levels -->\n\n"
+        "- HIGH: changes to auth paths\n"
+        "- LOW: docs-only changes\n\n"
+        "## Must-Test Paths\n"
+        "<!-- governance:key=must_test_paths -->\n\n"
+        "- src/auth/ requires integration tests\n\n"
+        "## L1 → L2 Escalation Triggers\n"
+        "<!-- governance:key=escalation_triggers -->\n\n"
+        "- Any schema migration\n\n"
+        "## Repo-Specific Forbidden Behaviors\n"
+        "<!-- governance:key=forbidden_behaviors -->\n\n"
+        "- Do not commit .env files\n"
+    )
+    p = repo / "AGENTS.md"
+    p.write_text(text, encoding="utf-8")
+    return p
+
+
+def test_agents_sections_filled_passes_when_content_present(tmp_path):
+    """AGENTS.md with real content in all governance:key sections passes."""
+    agents = _write_agents_base(tmp_path)
+    plan = _write_plan(tmp_path)
+    contract = _write_contract(tmp_path)
+    _write_agents_md_filled(tmp_path)
+    _write_baseline_yaml(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+    )
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    assert result.checks.get("agents_sections_filled") is True
+
+
+def test_agents_sections_filled_fails_for_template_agents_md(tmp_path):
+    """Unmodified baseline AGENTS.md (all sections empty) is a warning."""
+    agents = _write_agents_base(tmp_path)
+    plan = _write_plan(tmp_path)
+    contract = _write_contract(tmp_path)
+    _write_agents_md_template(tmp_path)
+    _write_baseline_yaml(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+    )
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    assert result.checks.get("agents_sections_filled") is False
+    assert any("risk_levels" in w for w in result.warnings)
+
+
+def test_agents_sections_filled_passes_when_agents_md_absent(tmp_path):
+    """Missing AGENTS.md is not penalised — check passes (file is optional)."""
+    agents = _write_agents_base(tmp_path)
+    plan = _write_plan(tmp_path)
+    contract = _write_contract(tmp_path)
+    _write_baseline_yaml(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+    )
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    assert result.checks.get("agents_sections_filled") is True
+
+
+def test_agents_sections_partially_filled_reports_empty_keys(tmp_path):
+    """Only sections that are still empty appear in the warning."""
+    agents = _write_agents_base(tmp_path)
+    plan = _write_plan(tmp_path)
+    contract = _write_contract(tmp_path)
+    text = (
+        "# AGENTS.md\n\n"
+        "## Repo-Specific Risk Levels\n"
+        "<!-- governance:key=risk_levels -->\n\n"
+        "- HIGH: auth changes\n\n"
+        "## Must-Test Paths\n"
+        "<!-- governance:key=must_test_paths -->\n\n"
+        "<!-- List modules here -->\n"
+    )
+    (tmp_path / "AGENTS.md").write_text(text, encoding="utf-8")
+    _write_baseline_yaml(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+    )
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    assert result.checks.get("agents_sections_filled") is False
+    warning_text = " ".join(result.warnings)
+    assert "must_test_paths" in warning_text
+    assert "risk_levels" not in warning_text
