@@ -1093,3 +1093,134 @@ def test_contract_not_framework_copy_passes_when_repo_is_framework(tmp_path):
     )
     result = check_governance_drift(tmp_path, framework_root=tmp_path, skip_hash=True)
     assert result.checks.get("contract_not_framework_copy") is True
+
+
+# ── plan_freshness_threshold_days CONTRACT override ───────────────────────────
+
+def _write_stale_plan(repo: Path, days_old: int = 10) -> Path:
+    """Write a PLAN.md that is *days_old* days old with no explicit Freshness header."""
+    from datetime import date, timedelta
+    last_updated = (date.today() - timedelta(days=days_old)).isoformat()
+    text = (
+        "# PLAN.md\n"
+        "<!-- governance-baseline: overridable -->\n\n"
+        f"> **最後更新**: {last_updated}\n"
+        "> **Owner**: Test\n\n"
+        "## Current Phase\n\n- [ ] Phase A\n\n"
+        "## Active Sprint\n\n- [ ] Task 1\n\n"
+        "## Backlog\n\n- P1: none\n"
+    )
+    p = repo / "PLAN.md"
+    p.write_text(text, encoding="utf-8")
+    return p
+
+
+def _write_baseline_yaml_with_freshness_override(
+    repo: Path,
+    agents_hash: str,
+    plan_hash: str,
+    contract_hash: str,
+    freshness_threshold_days: int | None = None,
+) -> Path:
+    """Write baseline.yaml with optional plan_freshness_threshold_days override."""
+    override_line = (
+        f"plan_freshness_threshold_days: {freshness_threshold_days}\n"
+        if freshness_threshold_days is not None
+        else ""
+    )
+    text = (
+        f'schema_version: "1"\n'
+        f'baseline_version: 1.0.0\n'
+        f'source_commit: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2\n'
+        f'framework_root: {FRAMEWORK_ROOT}\n'
+        f'initialized_at: 2026-03-22T00:00:00Z\n'
+        f'initialized_by: scripts/init-governance.sh\n'
+        f'sha256.AGENTS.base.md: {agents_hash}\n'
+        f'sha256.PLAN.md: {plan_hash}\n'
+        f'sha256.contract.yaml: {contract_hash}\n'
+        f'overridable.AGENTS.base.md: protected\n'
+        f'overridable.PLAN.md: overridable\n'
+        f'overridable.contract.yaml: overridable\n'
+        f'contract_required_fields:\n'
+        f'  - name\n  - framework_interface_version\n  - framework_compatible\n  - domain\n'
+        f'plan_required_sections:\n'
+        f'  - "## Current Phase"\n  - "## Active Sprint"\n  - "## Backlog"\n'
+        f'plan_section_inventory:\n'
+        f'  - "## Current Phase"\n  - "## Active Sprint"\n  - "## Backlog"\n'
+        + override_line
+    )
+    gov_dir = repo / ".governance"
+    gov_dir.mkdir(exist_ok=True)
+    p = gov_dir / "baseline.yaml"
+    p.write_text(text, encoding="utf-8")
+    return p
+
+
+def test_plan_freshness_override_relaxes_threshold(tmp_path):
+    """plan_freshness_threshold_days: 30 allows a 10-day-old PLAN to pass."""
+    agents = _write_agents_base(tmp_path)
+    plan = _write_stale_plan(tmp_path, days_old=10)
+    contract = _write_contract(tmp_path)
+    _write_baseline_yaml_with_freshness_override(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+        freshness_threshold_days=30,
+    )
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    assert result.checks.get("plan_freshness") is True
+
+
+def test_plan_freshness_override_tightens_threshold(tmp_path):
+    """plan_freshness_threshold_days: 3 fails a 5-day-old PLAN that would otherwise pass default 7d."""
+    agents = _write_agents_base(tmp_path)
+    plan = _write_stale_plan(tmp_path, days_old=5)
+    contract = _write_contract(tmp_path)
+    _write_baseline_yaml_with_freshness_override(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+        freshness_threshold_days=3,
+    )
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    assert result.checks.get("plan_freshness") is False
+    warning_text = " ".join(result.warnings)
+    assert "contract override: 3d" in warning_text
+
+
+def test_plan_freshness_override_visible_in_warning(tmp_path):
+    """When override is active, warning message names the source as 'contract override'."""
+    agents = _write_agents_base(tmp_path)
+    plan = _write_stale_plan(tmp_path, days_old=10)
+    contract = _write_contract(tmp_path)
+    _write_baseline_yaml_with_freshness_override(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+        freshness_threshold_days=5,
+    )
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    assert result.checks.get("plan_freshness") is False
+    warning_text = " ".join(result.warnings)
+    assert "contract override: 5d" in warning_text
+
+
+def test_plan_freshness_no_override_uses_plan_policy(tmp_path):
+    """Without override, threshold comes from PLAN.md Freshness header (Sprint = 7d)."""
+    agents = _write_agents_base(tmp_path)
+    plan = _write_plan(tmp_path)  # has Freshness: Sprint (7d), dated 2026-03-21
+    contract = _write_contract(tmp_path)
+    # No override — threshold_days should come from PLAN.md policy
+    _write_baseline_yaml_with_freshness_override(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+        freshness_threshold_days=None,
+    )
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    # plan is dated 2026-03-21 (1 day ago), Sprint 7d — should be FRESH
+    assert result.checks.get("plan_freshness") is True

@@ -27,6 +27,17 @@ class FrameworkVersionStatus:
 
 
 def repo_root_from_tooling() -> Path:
+    """Return the framework root directory.
+
+    Resolution order:
+      1. GOVERNANCE_FRAMEWORK_ROOT env var — allows repos that vendor a copy of
+         governance_tools/ to point back to the real framework installation.
+      2. __file__ parent.parent — correct when running from the framework itself.
+    """
+    import os
+    env_root = os.environ.get("GOVERNANCE_FRAMEWORK_ROOT", "").strip()
+    if env_root:
+        return Path(env_root).resolve()
     return Path(__file__).resolve().parent.parent
 
 

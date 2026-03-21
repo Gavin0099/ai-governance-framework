@@ -470,14 +470,40 @@ def check_governance_drift(
     # ── Category 4: Freshness ─────────────────────────────────────────────────
 
     if plan_path.exists():
-        freshness = check_freshness(plan_path)
+        _plan_freshness_override_raw = baseline_data.get("plan_freshness_threshold_days")
+        _plan_freshness_override: int | None = None
+        if _plan_freshness_override_raw is not None:
+            try:
+                _plan_freshness_override = int(_plan_freshness_override_raw)
+            except (TypeError, ValueError):
+                warnings.append(
+                    "plan_freshness: plan_freshness_threshold_days in baseline.yaml is not a valid integer"
+                    f" (got: {_plan_freshness_override_raw!r}) — using PLAN.md policy or default"
+                )
+        freshness = check_freshness(plan_path, threshold_override=_plan_freshness_override)
+        _threshold_source = (
+            f"contract override: {_plan_freshness_override}d"
+            if _plan_freshness_override is not None
+            else (
+                f"PLAN.md policy: {freshness.threshold_days}d"
+                if freshness.threshold_days is not None
+                else "framework default: 7d"
+            )
+        )
         if freshness.status == "FRESH":
             _pass("plan_freshness")
         elif freshness.status == "STALE":
             checks["plan_freshness"] = False
-            warnings.append(f"plan_freshness: PLAN.md is stale ({freshness.days_since_update} days old)")
+            warnings.append(
+                f"plan_freshness: PLAN.md is stale ({freshness.days_since_update} days old,"
+                f" threshold {_threshold_source})"
+            )
         else:
-            _fail("plan_freshness", "critical", f"PLAN.md freshness check returned {freshness.status}")
+            _fail(
+                "plan_freshness",
+                "critical",
+                f"PLAN.md freshness check returned {freshness.status} ({_threshold_source})",
+            )
 
     # plan_inventory_current — recorded inventory matches current PLAN.md headings
     # Signals that --refresh-baseline should be run after PLAN.md restructuring.

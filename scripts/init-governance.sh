@@ -281,8 +281,16 @@ overridable.AGENTS.md: overridable
 
 # ── CONTRACT (framework-enforced mandates) ────────────────────────────────────
 # Fields listed here are actively checked by drift checker; violations block ci/gate.
+# CONTRACT layer policy: only values that affect validation judgments belong here.
+#   Do NOT use this layer for metadata, notes, or domain-specific configuration.
 # plan_required_sections: ## headings that MUST be present in PLAN.md (governance mandate).
 #   Empty = no mandate enforced (adopt-existing default). Set explicitly to harden.
+# plan_freshness_threshold_days: CONTRACT OVERRIDE — changes the staleness threshold
+#   for plan_freshness check. Setting this is an explicit governance policy decision.
+#   The active threshold (override vs PLAN.md policy vs default) is always shown in
+#   drift output so deviations from the framework default remain auditable.
+#   Default: 7d (sprint) or as declared in PLAN.md Freshness: header.
+#   Example: plan_freshness_threshold_days: 14   # bi-weekly cadence
 contract_required_fields:
   - name
   - framework_interface_version
