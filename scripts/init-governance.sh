@@ -5,30 +5,25 @@
 #   bash scripts/init-governance.sh --target /path/to/repo
 #   bash scripts/init-governance.sh --target /path/to/repo --upgrade
 #   bash scripts/init-governance.sh --target /path/to/repo --adopt-existing
+#   bash scripts/init-governance.sh --target /path/to/repo --refresh-baseline
 #   bash scripts/init-governance.sh --target /path/to/repo --dry-run
 #
-# What it does (initial):
-#   1. Copies baselines/repo-min/* into target repo root
-#   2. Writes .governance/baseline.yaml with:
-#      - baseline_version (from AGENTS.base.md sentinel)
-#      - source_commit (git rev-parse HEAD of framework repo)
-#      - per-file sha256 hashes
-#      - overridability map (protected vs overridable)
-#      - initialized_at timestamp
+# Lifecycle stages:
+#   init              Fresh repo: copy all baseline files, record governance mandate + inventory
+#   --adopt-existing  Existing repo: copy only AGENTS.base.md (protected), create missing
+#                     overridable files from template, record inventory only (no mandate imposed)
+#   --upgrade         Framework version changed: update protected files, show diff for overridable,
+#                     preserve existing plan_required_sections, update inventory
+#   --refresh-baseline  Repo structure changed (PLAN.md reorganised, files edited) but framework
+#                     version unchanged: recompute hashes, update plan_section_inventory,
+#                     no files copied, plan_required_sections preserved
+#   drift-check       (separate tool) governance_drift_checker.py — detects deviation
 #
-# What it does (--upgrade):
-#   - Protected files: overwrite silently + update hash
-#   - Overridable files: show diff, overwrite only with --auto-merge
-#   - Update baseline_version, source_commit, initialized_at
-#
-# What it does (--adopt-existing):
-#   For repos that already have their own PLAN.md / AGENTS.md / contract.yaml:
-#   - Protected files: always copy AGENTS.base.md (new file in existing repo)
-#   - Overridable files: copy from template ONLY if the file is missing
-#   - Auto-detects ## headings in existing PLAN.md and records them as
-#     plan_required_sections so the drift checker validates the real structure
-#   - Writes .governance/baseline.yaml with hashes of the actual current files
-#   No existing file is overwritten; only missing files are created.
+# What plan_required_sections vs plan_section_inventory mean:
+#   plan_required_sections  — governance mandate: these sections MUST exist in PLAN.md
+#                             Only written by init (framework defaults) or by the user explicitly.
+#   plan_section_inventory  — observed snapshot: the ## headings that exist in PLAN.md right now.
+#                             Written by all modes; informational only, not enforced.
 #
 # Environment:
 #   FRAMEWORK_ROOT  Override auto-detected framework root (default: script dir/..)
@@ -44,23 +39,25 @@ BASELINE_SOURCE="$FRAMEWORK_ROOT/baselines/repo-min"
 TARGET=""
 UPGRADE=false
 ADOPT_EXISTING=false
+REFRESH_BASELINE=false
 DRY_RUN=false
 AUTO_MERGE=false
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --target)         TARGET="$2"; shift 2 ;;
-        --upgrade)        UPGRADE=true; shift ;;
-        --adopt-existing) ADOPT_EXISTING=true; shift ;;
-        --dry-run)        DRY_RUN=true; shift ;;
-        --auto-merge)     AUTO_MERGE=true; shift ;;
-        *)                echo "Unknown option: $1"; exit 1 ;;
+        --target)           TARGET="$2"; shift 2 ;;
+        --upgrade)          UPGRADE=true; shift ;;
+        --adopt-existing)   ADOPT_EXISTING=true; shift ;;
+        --refresh-baseline) REFRESH_BASELINE=true; shift ;;
+        --dry-run)          DRY_RUN=true; shift ;;
+        --auto-merge)       AUTO_MERGE=true; shift ;;
+        *)                  echo "Unknown option: $1"; exit 1 ;;
     esac
 done
 
 if [[ -z "$TARGET" ]]; then
     echo "ERROR: --target is required"
-    echo "Usage: bash scripts/init-governance.sh --target /path/to/repo [--upgrade|--adopt-existing] [--dry-run]"
+    echo "Usage: bash scripts/init-governance.sh --target /path/to/repo [--upgrade|--adopt-existing|--refresh-baseline] [--dry-run]"
     exit 1
 fi
 
@@ -100,18 +97,46 @@ source_commit() {
     git -C "$FRAMEWORK_ROOT" rev-parse HEAD 2>/dev/null || echo "unknown"
 }
 
-# PLAN_SECTIONS: global array populated by detect_plan_sections().
-# If empty, write_baseline_yaml writes the default English headings.
-PLAN_SECTIONS=()
+# ── Section Arrays ────────────────────────────────────────────────────────────
+#
+# PLAN_REQUIRED_SECTIONS  governance mandate: the drift checker enforces these
+# PLAN_INVENTORY_SECTIONS observed snapshot: informational, not enforced
 
+PLAN_REQUIRED_SECTIONS=()
+PLAN_INVENTORY_SECTIONS=()
+
+# Detect ## headings in existing PLAN.md → PLAN_INVENTORY_SECTIONS
 detect_plan_sections() {
     local target="$1"
-    PLAN_SECTIONS=()
+    PLAN_INVENTORY_SECTIONS=()
     if [[ -f "$target/PLAN.md" ]]; then
         while IFS= read -r line; do
-            PLAN_SECTIONS+=("$line")
+            PLAN_INVENTORY_SECTIONS+=("$line")
         done < <(grep '^## ' "$target/PLAN.md" 2>/dev/null | head -20 | sed 's/[[:space:]]*$//')
     fi
+}
+
+# Read plan_required_sections from an existing baseline.yaml → PLAN_REQUIRED_SECTIONS
+# Used by --upgrade and --refresh-baseline to preserve the governance mandate.
+preserve_plan_required_sections() {
+    local target="$1"
+    PLAN_REQUIRED_SECTIONS=()
+    local in_section=false
+    while IFS= read -r line; do
+        if [[ "$line" == "plan_required_sections:" ]]; then
+            in_section=true
+            continue
+        fi
+        if [[ "$in_section" == true ]]; then
+            if [[ "$line" =~ ^[[:space:]]*-[[:space:]] ]]; then
+                local val
+                val=$(printf '%s' "$line" | sed "s/^[[:space:]]*-[[:space:]]//;s/^[\"']//;s/[\"'][[:space:]]*$//")
+                PLAN_REQUIRED_SECTIONS+=("$val")
+            else
+                in_section=false
+            fi
+        fi
+    done < "$target/.governance/baseline.yaml"
 }
 
 write_baseline_yaml() {
@@ -129,18 +154,24 @@ write_baseline_yaml() {
     hash_contract="$(sha256_of "$target/contract.yaml")"
     hash_agents_ext="$(sha256_of "$target/AGENTS.md")"
 
-    # Build plan_required_sections block
-    local plan_sections_block
-    if [[ ${#PLAN_SECTIONS[@]} -gt 0 ]]; then
-        plan_sections_block="plan_required_sections:"
-        for s in "${PLAN_SECTIONS[@]}"; do
-            plan_sections_block+=$'\n'"  - \"$s\""
+    # Build plan_required_sections block (governance mandate — only if set)
+    local required_block=""
+    if [[ ${#PLAN_REQUIRED_SECTIONS[@]} -gt 0 ]]; then
+        required_block="plan_required_sections:"
+        for s in "${PLAN_REQUIRED_SECTIONS[@]}"; do
+            required_block+=$'\n'"  - \"$s\""
         done
-    else
-        plan_sections_block='plan_required_sections:
-  - "## Current Phase"
-  - "## Active Sprint"
-  - "## Backlog"'
+        required_block+=$'\n'
+    fi
+
+    # Build plan_section_inventory block (observed snapshot — always written when non-empty)
+    local inventory_block=""
+    if [[ ${#PLAN_INVENTORY_SECTIONS[@]} -gt 0 ]]; then
+        inventory_block="plan_section_inventory:"
+        for s in "${PLAN_INVENTORY_SECTIONS[@]}"; do
+            inventory_block+=$'\n'"  - \"$s\""
+        done
+        inventory_block+=$'\n'
     fi
 
     mkdir -p "$target/.governance"
@@ -175,8 +206,9 @@ contract_required_fields:
   - framework_compatible
   - domain
 
-# Required sections in PLAN.md (heading text anchors)
-$plan_sections_block
+# plan_required_sections: governance mandate (only sections listed here are enforced)
+# plan_section_inventory: observed snapshot of ## headings (informational, not enforced)
+${required_block}${inventory_block}
 EOF
     echo "  Wrote $target/.governance/baseline.yaml"
 }
@@ -194,6 +226,7 @@ do_init() {
             echo "  $BASELINE_SOURCE/$f -> $TARGET/$f"
         done
         echo "[dry-run] Would write: $TARGET/.governance/baseline.yaml"
+        echo "[dry-run] plan_required_sections: framework defaults (Current Phase / Active Sprint / Backlog)"
         return
     fi
 
@@ -202,6 +235,9 @@ do_init() {
         echo "  Copied $f"
     done
 
+    # Fresh init: governance mandate = framework defaults
+    PLAN_REQUIRED_SECTIONS=("## Current Phase" "## Active Sprint" "## Backlog")
+    detect_plan_sections "$TARGET"
     write_baseline_yaml "$TARGET"
 
     echo ""
@@ -209,6 +245,7 @@ do_init() {
     echo "  1. Edit $TARGET/PLAN.md — fill in Owner, phases, sprint tasks"
     echo "  2. Edit $TARGET/contract.yaml — replace <repo-name> and <domain>"
     echo "  3. Edit $TARGET/AGENTS.md — add repo-specific risk levels and must-test paths"
+    echo "     (see governance:key anchors in AGENTS.md for machine-readable section markers)"
     echo "     (DO NOT edit AGENTS.base.md — it is protected and hash-verified)"
     echo "  4. Commit: git add AGENTS.base.md AGENTS.md PLAN.md contract.yaml .governance/baseline.yaml"
     echo "  5. Verify: python governance_tools/governance_drift_checker.py --repo $TARGET"
@@ -218,6 +255,10 @@ do_init() {
 #
 # For repos that already have governance-like files. Only fills gaps; never
 # overwrites anything that already exists.
+#
+# Does NOT set plan_required_sections (no governance mandate is imposed on
+# existing repos). Writes plan_section_inventory only, so the repo owner can
+# inspect what exists and decide which sections to mandate.
 
 do_adopt_existing() {
     echo "Adopting governance baseline into existing repo: $TARGET"
@@ -233,15 +274,14 @@ do_adopt_existing() {
                 echo "[dry-run] $f — would copy from template (missing)"
             fi
         done
-        if [[ -f "$TARGET/PLAN.md" ]]; then
-            detect_plan_sections "$TARGET"
-            if [[ ${#PLAN_SECTIONS[@]} -gt 0 ]]; then
-                echo "[dry-run] plan_required_sections — auto-detected ${#PLAN_SECTIONS[@]} heading(s) from existing PLAN.md:"
-                for s in "${PLAN_SECTIONS[@]}"; do
-                    echo "  $s"
-                done
-            fi
+        detect_plan_sections "$TARGET"
+        if [[ ${#PLAN_INVENTORY_SECTIONS[@]} -gt 0 ]]; then
+            echo "[dry-run] plan_section_inventory — ${#PLAN_INVENTORY_SECTIONS[@]} heading(s) detected:"
+            for s in "${PLAN_INVENTORY_SECTIONS[@]}"; do
+                echo "  $s"
+            done
         fi
+        echo "[dry-run] plan_required_sections — NOT set (no mandate imposed on existing repo)"
         echo "[dry-run] Would write: $TARGET/.governance/baseline.yaml"
         return
     fi
@@ -260,14 +300,16 @@ do_adopt_existing() {
         fi
     done
 
-    # Auto-detect plan sections from existing PLAN.md
+    # No governance mandate imposed — only record inventory
+    PLAN_REQUIRED_SECTIONS=()
     detect_plan_sections "$TARGET"
-    if [[ ${#PLAN_SECTIONS[@]} -gt 0 ]]; then
+    if [[ ${#PLAN_INVENTORY_SECTIONS[@]} -gt 0 ]]; then
         echo ""
-        echo "  Auto-detected ${#PLAN_SECTIONS[@]} PLAN.md section(s) for plan_required_sections:"
-        for s in "${PLAN_SECTIONS[@]}"; do
+        echo "  plan_section_inventory: ${#PLAN_INVENTORY_SECTIONS[@]} heading(s) observed in PLAN.md"
+        for s in "${PLAN_INVENTORY_SECTIONS[@]}"; do
             echo "    $s"
         done
+        echo "  (recorded as inventory; no sections are enforced until you set plan_required_sections)"
     fi
 
     write_baseline_yaml "$TARGET"
@@ -275,11 +317,65 @@ do_adopt_existing() {
     echo ""
     echo "Adoption complete. Next steps:"
     echo "  1. Review $TARGET/contract.yaml — if newly created, fill in <repo-name> and <domain>"
-    echo "  2. Extend $TARGET/AGENTS.md with repo-specific risk levels and must-test paths"
-    echo "     (see baselines/repo-min/AGENTS.md for the section skeleton)"
+    echo "  2. Extend $TARGET/AGENTS.md with repo-specific sections (see governance:key anchors in"
+    echo "     baselines/repo-min/AGENTS.md for the recommended machine-readable pattern)"
     echo "     (DO NOT edit AGENTS.base.md — it is protected and hash-verified)"
-    echo "  3. Commit: git add AGENTS.base.md AGENTS.md PLAN.md contract.yaml .governance/baseline.yaml"
-    echo "  4. Verify: python governance_tools/governance_drift_checker.py --repo $TARGET"
+    echo "  3. Optionally add plan_required_sections to .governance/baseline.yaml to declare"
+    echo "     which PLAN.md sections are governance-mandated for this repo"
+    echo "  4. Commit: git add AGENTS.base.md AGENTS.md PLAN.md contract.yaml .governance/baseline.yaml"
+    echo "  5. Verify: python governance_tools/governance_drift_checker.py --repo $TARGET"
+}
+
+# ── Refresh Baseline ──────────────────────────────────────────────────────────
+#
+# Use when the REPO has changed (PLAN.md reorganised, AGENTS.md extended) but
+# the framework version has NOT changed. Recomputes file hashes and updates
+# plan_section_inventory. Does NOT copy any template files.
+#
+# Preserves plan_required_sections from the existing baseline so the governance
+# mandate is not silently lost.
+
+do_refresh_baseline() {
+    echo "Refreshing baseline hashes and section inventory: $TARGET"
+    echo ""
+
+    if [[ ! -f "$TARGET/.governance/baseline.yaml" ]]; then
+        echo "ERROR: no .governance/baseline.yaml found"
+        echo "  Run init or adopt-existing first."
+        exit 1
+    fi
+
+    if [[ "$DRY_RUN" == true ]]; then
+        detect_plan_sections "$TARGET"
+        echo "[dry-run] Would recompute hashes for: AGENTS.base.md AGENTS.md PLAN.md contract.yaml"
+        echo "[dry-run] plan_required_sections — preserved from existing baseline.yaml"
+        if [[ ${#PLAN_INVENTORY_SECTIONS[@]} -gt 0 ]]; then
+            echo "[dry-run] plan_section_inventory — ${#PLAN_INVENTORY_SECTIONS[@]} heading(s) detected:"
+            for s in "${PLAN_INVENTORY_SECTIONS[@]}"; do
+                echo "  $s"
+            done
+        fi
+        echo "[dry-run] No template files would be copied."
+        return
+    fi
+
+    # Preserve governance mandate from existing baseline
+    preserve_plan_required_sections "$TARGET"
+    if [[ ${#PLAN_REQUIRED_SECTIONS[@]} -gt 0 ]]; then
+        echo "  Preserved ${#PLAN_REQUIRED_SECTIONS[@]} plan_required_sections from existing baseline"
+    fi
+
+    # Detect current inventory
+    detect_plan_sections "$TARGET"
+    if [[ ${#PLAN_INVENTORY_SECTIONS[@]} -gt 0 ]]; then
+        echo "  plan_section_inventory: ${#PLAN_INVENTORY_SECTIONS[@]} heading(s) in PLAN.md"
+    fi
+
+    write_baseline_yaml "$TARGET"
+
+    echo ""
+    echo "Refresh complete. Verify with:"
+    echo "  python governance_tools/governance_drift_checker.py --repo $TARGET"
 }
 
 # ── Upgrade ───────────────────────────────────────────────────────────────────
@@ -296,6 +392,7 @@ do_upgrade() {
     if [[ "$DRY_RUN" == true ]]; then
         echo "[dry-run] Would overwrite (protected): AGENTS.base.md"
         echo "[dry-run] Would diff (overridable): PLAN.md contract.yaml AGENTS.md"
+        echo "[dry-run] plan_required_sections — preserved from existing baseline.yaml"
         return
     fi
 
@@ -321,10 +418,11 @@ do_upgrade() {
         fi
     done
 
-    # Preserve existing plan_required_sections when upgrading
+    # Preserve governance mandate; update inventory to current state
+    preserve_plan_required_sections "$TARGET"
     detect_plan_sections "$TARGET"
 
-    # Update baseline.yaml with new hashes and version
+    # Update baseline.yaml with new hashes, version, and inventory
     write_baseline_yaml "$TARGET"
 
     echo ""
@@ -334,7 +432,9 @@ do_upgrade() {
 
 # ── Entry Point ───────────────────────────────────────────────────────────────
 
-if [[ "$UPGRADE" == true ]]; then
+if [[ "$REFRESH_BASELINE" == true ]]; then
+    do_refresh_baseline
+elif [[ "$UPGRADE" == true ]]; then
     if [[ ! -f "$TARGET/.governance/baseline.yaml" ]]; then
         echo "ERROR: no existing .governance/baseline.yaml found — run without --upgrade first"
         echo "  If this repo already has governance files, use --adopt-existing instead."

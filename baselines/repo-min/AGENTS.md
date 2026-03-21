@@ -13,6 +13,7 @@ populate them as incidents, decisions, or domain requirements emerge.
 ---
 
 ## Repo-Specific Risk Levels
+<!-- governance:key=risk_levels -->
 
 <!-- Define what makes a change HIGH / MEDIUM / LOW risk in this repo. -->
 <!-- Example:
@@ -22,6 +23,7 @@ populate them as incidents, decisions, or domain requirements emerge.
 -->
 
 ## Must-Test Paths
+<!-- governance:key=must_test_paths -->
 
 <!-- List modules or code paths that require tests before merge. -->
 <!-- Example:
@@ -30,6 +32,7 @@ populate them as incidents, decisions, or domain requirements emerge.
 -->
 
 ## L1 → L2 Escalation Triggers
+<!-- governance:key=escalation_triggers -->
 
 <!-- When does this repo's work need the full L2 evidence checklist? -->
 <!-- Example:
@@ -39,6 +42,7 @@ populate them as incidents, decisions, or domain requirements emerge.
 -->
 
 ## Repo-Specific Forbidden Behaviors
+<!-- governance:key=forbidden_behaviors -->
 
 <!-- Add restrictions beyond the framework baseline. -->
 <!-- Example:

@@ -67,6 +67,7 @@ class BaselineDriftResult:
     warnings: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     remediation_hints: list[str] = field(default_factory=list)
+    plan_section_inventory: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -313,12 +314,16 @@ def check_governance_drift(
             _fail("contract_required_fields_present", "critical", f"failed to parse contract.yaml: {exc}")
 
     # PLAN.md required sections
+    # plan_required_sections = governance mandate (only enforced when explicitly set)
+    # plan_section_inventory = observed snapshot (informational, not enforced)
     plan_path = repo_root / "PLAN.md"
     required_plan_sections = _as_list(baseline_data.get("plan_required_sections"))
-    if not required_plan_sections:
-        required_plan_sections = ["## Current Phase", "## Active Sprint", "## Backlog"]
+    plan_section_inventory = _as_list(baseline_data.get("plan_section_inventory"))
 
-    if plan_path.exists():
+    if not required_plan_sections:
+        # No mandate configured — pass trivially (adopt-existing repos start here)
+        _pass("plan_required_sections_present")
+    elif plan_path.exists():
         plan_text = plan_path.read_text(encoding="utf-8")
         all_sections_ok = True
         for section in required_plan_sections:
@@ -385,6 +390,7 @@ def check_governance_drift(
         warnings=warnings,
         errors=errors,
         remediation_hints=hints,
+        plan_section_inventory=plan_section_inventory,
     )
 
 
@@ -403,6 +409,12 @@ def format_human(result: BaselineDriftResult) -> str:
     for key in sorted(result.checks):
         status = "PASS" if result.checks[key] else "FAIL"
         lines.append(f"  {key:<38} {status}")
+
+    if result.plan_section_inventory:
+        lines.append("")
+        lines.append(f"plan_section_inventory ({len(result.plan_section_inventory)} sections):")
+        for s in result.plan_section_inventory:
+            lines.append(f"  {s}")
 
     if result.findings:
         lines.append("")
@@ -432,7 +444,11 @@ def format_human(result: BaselineDriftResult) -> str:
 
 
 def format_json(result: BaselineDriftResult) -> str:
-    return json.dumps(result.to_dict(), ensure_ascii=False, indent=2)
+    d = result.to_dict()
+    # Ensure plan_section_inventory is always present in JSON output
+    if "plan_section_inventory" not in d:
+        d["plan_section_inventory"] = []
+    return json.dumps(d, ensure_ascii=False, indent=2)
 
 
 def build_parser() -> argparse.ArgumentParser:
