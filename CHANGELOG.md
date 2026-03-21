@@ -1,5 +1,24 @@
 # Changelog
 
+## post-alpha hardening (continued) - 2026-03-22 (part 2)
+
+**Framework root auto-discovery (❻)**
+- `is_framework_root(path)` — detects governance framework installation via `governance_tools/`, `governance/`, or `docs/governance-runtime*` markers
+- `discover_framework_root(start_path)` — walks upward from start_path to find nearest framework root; returns None if not found (no silent guess)
+- `check_governance_drift()` resolution order: CLI `framework_root=` → `GOVERNANCE_FRAMEWORK_ROOT` env → upward scan → `__file__` fallback
+- `init-governance.sh` adds `--framework-root` CLI flag; resolution order: `--framework-root` → `GOVERNANCE_FRAMEWORK_ROOT` → `FRAMEWORK_ROOT` (legacy) → upward scan → script dir fallback
+- `_discover_framework_root()` bash equivalent using same detection heuristics
+- Edge cases (nested repos, monorepos, symlinks): not handled — callers that need deterministic behaviour use explicit path; 9 new tests covering all detection cases and priority ordering
+
+**Freshness default hardened (❺ guardrail)**
+- `FRAMEWORK_DEFAULT_FRESHNESS_DAYS = 14` — framework default raised from 7 to 14
+- Threshold detection: `PLAN.md Freshness:` header is checked for *explicit* policy (via `.policy` field); absent header falls through to framework default 14d, not plan_freshness.py's internal 7d
+- Override guardrail: if `plan_freshness_threshold_days > 14`, drift output emits warning naming the override value and framework default — deviations are visible, not silent
+- 2 new tests: framework default 14d active when no header, override-above-default warning
+
+**Test coverage**
+- 870 tests passing (up from 859)
+
 ## post-alpha hardening (continued) - 2026-03-22
 
 **Drift check hardening (checks 13–16 + threshold visibility)**

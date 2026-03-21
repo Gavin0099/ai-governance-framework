@@ -10,7 +10,11 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from governance_tools.framework_versioning import repo_root_from_tooling
+from governance_tools.framework_versioning import (
+    discover_framework_root,
+    is_framework_root,
+    repo_root_from_tooling,
+)
 
 
 FRAMEWORK_ROOT = Path(__file__).parent.parent.resolve()
@@ -51,6 +55,71 @@ def test_governance_framework_root_absent_falls_back(monkeypatch):
     result = repo_root_from_tooling()
     assert result == FRAMEWORK_ROOT
 
+
+# ── is_framework_root ────────────────────────────────────────────────────────
+
+def test_is_framework_root_detects_governance_tools_dir(tmp_path):
+    (tmp_path / "governance_tools").mkdir()
+    assert is_framework_root(tmp_path) is True
+
+
+def test_is_framework_root_detects_governance_dir(tmp_path):
+    (tmp_path / "governance").mkdir()
+    assert is_framework_root(tmp_path) is True
+
+
+def test_is_framework_root_detects_docs_governance_runtime(tmp_path):
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "governance-runtime-v1").mkdir()
+    assert is_framework_root(tmp_path) is True
+
+
+def test_is_framework_root_rejects_unrelated_dir(tmp_path):
+    (tmp_path / "src").mkdir()
+    assert is_framework_root(tmp_path) is False
+
+
+def test_is_framework_root_true_for_actual_framework(monkeypatch):
+    assert is_framework_root(FRAMEWORK_ROOT) is True
+
+
+# ── discover_framework_root ──────────────────────────────────────────────────
+
+def test_discover_framework_root_finds_root_from_nested_dir(tmp_path):
+    (tmp_path / "governance_tools").mkdir()
+    nested = tmp_path / "sub" / "deep"
+    nested.mkdir(parents=True)
+    result = discover_framework_root(nested)
+    assert result == tmp_path
+
+
+def test_discover_framework_root_returns_start_if_root(tmp_path):
+    (tmp_path / "governance_tools").mkdir()
+    result = discover_framework_root(tmp_path)
+    assert result == tmp_path
+
+
+def test_discover_framework_root_returns_none_when_not_found(tmp_path):
+    nested = tmp_path / "unrelated" / "project"
+    nested.mkdir(parents=True)
+    result = discover_framework_root(nested)
+    assert result is None
+
+
+def test_discover_framework_root_stops_at_first_match(tmp_path):
+    """When multiple ancestors qualify, the closest one wins."""
+    (tmp_path / "governance_tools").mkdir()
+    inner = tmp_path / "inner"
+    inner.mkdir()
+    (inner / "governance_tools").mkdir()
+    nested = inner / "src"
+    nested.mkdir()
+    result = discover_framework_root(nested)
+    assert result == inner
+
+
+# ── priority order test ──────────────────────────────────────────────────────
 
 def test_governance_framework_root_cli_takes_priority_over_env(tmp_path, monkeypatch):
     """Explicit path passed to check_governance_drift(framework_root=...) wins over env var.

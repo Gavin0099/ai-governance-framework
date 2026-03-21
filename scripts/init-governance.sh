@@ -25,14 +25,37 @@
 #   plan_section_inventory  — observed snapshot: the ## headings that exist in PLAN.md right now.
 #                             Written by all modes; informational only, not enforced.
 #
-# Environment:
-#   FRAMEWORK_ROOT  Override auto-detected framework root (default: script dir/..)
+# Framework root resolution order:
+#   1. --framework-root CLI flag   (explicit, highest priority)
+#   2. GOVERNANCE_FRAMEWORK_ROOT   env var (user-controlled implicit)
+#   3. FRAMEWORK_ROOT              legacy env var (backwards compat)
+#   4. Upward scan from script dir (best effort)
+#   5. script dir/..               (fallback when running from framework itself)
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-FRAMEWORK_ROOT="${FRAMEWORK_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
-BASELINE_SOURCE="$FRAMEWORK_ROOT/baselines/repo-min"
+
+# ── Framework root auto-discovery ─────────────────────────────────────────────
+# Returns the nearest ancestor of $1 that contains governance_tools/, governance/,
+# or docs/governance-runtime*. Prints the path if found, nothing if not found.
+_discover_framework_root() {
+    local current
+    current="$(cd "$1" && pwd)"
+    while true; do
+        if [[ -d "$current/governance_tools" || -d "$current/governance" ]] || \
+           compgen -G "$current/docs/governance-runtime*" > /dev/null 2>&1; then
+            echo "$current"
+            return 0
+        fi
+        local parent
+        parent="$(dirname "$current")"
+        if [[ "$parent" == "$current" ]]; then
+            return 1
+        fi
+        current="$parent"
+    done
+}
 
 # ── Argument Parsing ──────────────────────────────────────────────────────────
 
@@ -42,10 +65,12 @@ ADOPT_EXISTING=false
 REFRESH_BASELINE=false
 DRY_RUN=false
 AUTO_MERGE=false
+_CLI_FRAMEWORK_ROOT=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --target)           TARGET="$2"; shift 2 ;;
+        --framework-root)   _CLI_FRAMEWORK_ROOT="$2"; shift 2 ;;
         --upgrade)          UPGRADE=true; shift ;;
         --adopt-existing)   ADOPT_EXISTING=true; shift ;;
         --refresh-baseline) REFRESH_BASELINE=true; shift ;;
@@ -55,9 +80,25 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Resolve FRAMEWORK_ROOT following the priority chain.
+if [[ -n "$_CLI_FRAMEWORK_ROOT" ]]; then
+    FRAMEWORK_ROOT="$(cd "$_CLI_FRAMEWORK_ROOT" && pwd)"
+elif [[ -n "${GOVERNANCE_FRAMEWORK_ROOT:-}" ]]; then
+    FRAMEWORK_ROOT="$(cd "$GOVERNANCE_FRAMEWORK_ROOT" && pwd)"
+elif [[ -n "${FRAMEWORK_ROOT:-}" ]]; then
+    FRAMEWORK_ROOT="$(cd "$FRAMEWORK_ROOT" && pwd)"
+else
+    _discovered="$(_discover_framework_root "$SCRIPT_DIR" 2>/dev/null || true)"
+    if [[ -n "$_discovered" ]]; then
+        FRAMEWORK_ROOT="$_discovered"
+    else
+        FRAMEWORK_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+    fi
+fi
+
 if [[ -z "$TARGET" ]]; then
     echo "ERROR: --target is required"
-    echo "Usage: bash scripts/init-governance.sh --target /path/to/repo [--upgrade|--adopt-existing|--refresh-baseline] [--dry-run]"
+    echo "Usage: bash scripts/init-governance.sh --target /path/to/repo [--framework-root /path] [--upgrade|--adopt-existing|--refresh-baseline] [--dry-run]"
     exit 1
 fi
 

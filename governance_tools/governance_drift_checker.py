@@ -50,12 +50,17 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from governance_tools.domain_contract_loader import _parse_contract_yaml
-from governance_tools.framework_versioning import compare_versions, repo_root_from_tooling
+from governance_tools.framework_versioning import (
+    compare_versions,
+    discover_framework_root,
+    repo_root_from_tooling,
+)
 from governance_tools.plan_freshness import check_freshness
 
 
 BASELINE_YAML_RELPATH = ".governance/baseline.yaml"
 BASELINE_SOURCE_RELPATH = "baselines/repo-min"
+FRAMEWORK_DEFAULT_FRESHNESS_DAYS = 14
 
 _PLACEHOLDER_RE = __import__("re").compile(r"<[A-Za-z][^>]+>")
 _GOVERNANCE_KEY_RE = __import__("re").compile(r"<!--\s*governance:key=(\S+)\s*-->")
@@ -185,7 +190,21 @@ def check_governance_drift(
     skip_hash: bool = False,
 ) -> BaselineDriftResult:
     repo_root = repo_root.resolve()
-    framework_root = (framework_root or repo_root_from_tooling()).resolve()
+    if framework_root is not None:
+        # Explicit caller-supplied path — highest priority, no discovery needed.
+        framework_root = framework_root.resolve()
+    else:
+        import os
+        _env_root = os.environ.get("GOVERNANCE_FRAMEWORK_ROOT", "").strip()
+        if _env_root:
+            # ENV var — user-controlled implicit; second priority.
+            framework_root = Path(_env_root).resolve()
+        else:
+            # Upward scan — best-effort; starts from repo_root.
+            framework_root = discover_framework_root(repo_root)
+            if framework_root is None:
+                # Last resort: __file__-based default (running from inside the framework).
+                framework_root = repo_root_from_tooling()
 
     checks: dict[str, bool] = {}
     findings: list[dict] = []
@@ -478,18 +497,38 @@ def check_governance_drift(
             except (TypeError, ValueError):
                 warnings.append(
                     "plan_freshness: plan_freshness_threshold_days in baseline.yaml is not a valid integer"
-                    f" (got: {_plan_freshness_override_raw!r}) — using PLAN.md policy or default"
+                    f" (got: {_plan_freshness_override_raw!r}) — using PLAN.md policy or framework default"
                 )
-        freshness = check_freshness(plan_path, threshold_override=_plan_freshness_override)
-        _threshold_source = (
-            f"contract override: {_plan_freshness_override}d"
-            if _plan_freshness_override is not None
-            else (
-                f"PLAN.md policy: {freshness.threshold_days}d"
-                if freshness.threshold_days is not None
-                else "framework default: 7d"
-            )
+        # When no CONTRACT override and PLAN.md has no Freshness header, apply
+        # the framework default (14d). Pass it as threshold_override so
+        # plan_freshness.py uses it instead of its own internal 7d fallback.
+        _effective_override = _plan_freshness_override
+        # Probe whether PLAN.md has an *explicit* Freshness policy header.
+        # check_freshness() always returns a threshold_days (it falls back to 7),
+        # so we inspect .policy (the raw header value) to detect presence.
+        _probe = check_freshness(plan_path)
+        _plan_has_own_policy = (
+            _probe.policy is not None
+            and _plan_freshness_override is None
         )
+        if _effective_override is None and not _plan_has_own_policy:
+            _effective_override = FRAMEWORK_DEFAULT_FRESHNESS_DAYS
+
+        freshness = check_freshness(plan_path, threshold_override=_effective_override)
+
+        if _plan_freshness_override is not None:
+            _threshold_source = f"contract override: {_plan_freshness_override}d"
+            if _plan_freshness_override > FRAMEWORK_DEFAULT_FRESHNESS_DAYS:
+                warnings.append(
+                    f"plan_freshness: threshold override ({_plan_freshness_override}d) exceeds"
+                    f" framework default ({FRAMEWORK_DEFAULT_FRESHNESS_DAYS}d)"
+                    " — verify this is an intentional governance policy decision"
+                )
+        elif _plan_has_own_policy:
+            _threshold_source = f"PLAN.md policy: {freshness.threshold_days}d"
+        else:
+            _threshold_source = f"framework default: {FRAMEWORK_DEFAULT_FRESHNESS_DAYS}d"
+
         if freshness.status == "FRESH":
             _pass("plan_freshness")
         elif freshness.status == "STALE":

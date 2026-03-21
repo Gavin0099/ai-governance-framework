@@ -1173,7 +1173,7 @@ def test_plan_freshness_override_relaxes_threshold(tmp_path):
 
 
 def test_plan_freshness_override_tightens_threshold(tmp_path):
-    """plan_freshness_threshold_days: 3 fails a 5-day-old PLAN that would otherwise pass default 7d."""
+    """plan_freshness_threshold_days: 3 fails a 5-day-old PLAN that would otherwise pass framework default 14d."""
     agents = _write_agents_base(tmp_path)
     plan = _write_stale_plan(tmp_path, days_old=5)
     contract = _write_contract(tmp_path)
@@ -1224,3 +1224,40 @@ def test_plan_freshness_no_override_uses_plan_policy(tmp_path):
     result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
     # plan is dated 2026-03-21 (1 day ago), Sprint 7d — should be FRESH
     assert result.checks.get("plan_freshness") is True
+
+
+def test_plan_freshness_no_override_no_plan_policy_uses_framework_default(tmp_path):
+    """No override and no PLAN.md Freshness header — uses framework default (14d)."""
+    agents = _write_agents_base(tmp_path)
+    # _write_stale_plan writes a PLAN.md with no Freshness header, 10 days old
+    plan = _write_stale_plan(tmp_path, days_old=10)
+    contract = _write_contract(tmp_path)
+    _write_baseline_yaml_with_freshness_override(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+        freshness_threshold_days=None,
+    )
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    # 10 days old, framework default 14d → FRESH
+    assert result.checks.get("plan_freshness") is True
+
+
+def test_plan_freshness_override_above_default_emits_warning(tmp_path):
+    """Override > framework default (14d) emits a guardrail warning."""
+    agents = _write_agents_base(tmp_path)
+    plan = _write_stale_plan(tmp_path, days_old=10)
+    contract = _write_contract(tmp_path)
+    _write_baseline_yaml_with_freshness_override(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+        freshness_threshold_days=30,
+    )
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    warning_text = " ".join(result.warnings)
+    assert "threshold override" in warning_text
+    assert "30" in warning_text
+    assert "14" in warning_text  # framework default visible in warning

@@ -26,6 +26,41 @@ class FrameworkVersionStatus:
     reasons: list[str]
 
 
+def is_framework_root(path: Path) -> bool:
+    """Return True if *path* looks like an AI Governance Framework installation.
+
+    Checks for the presence of any of:
+      - governance_tools/    (Python tooling directory)
+      - governance/          (governance data directory)
+      - docs/governance-runtime*  (documentation marker)
+    """
+    return (
+        (path / "governance_tools").is_dir()
+        or (path / "governance").is_dir()
+        or any(path.glob("docs/governance-runtime*"))
+    )
+
+
+def discover_framework_root(start_path: Path) -> Path | None:
+    """Walk upward from *start_path* to find a framework root directory.
+
+    Returns the first ancestor that satisfies :func:`is_framework_root`,
+    or ``None`` if none is found before reaching the filesystem root.
+
+    Edge cases (nested repos, monorepos, symlinks) are intentionally NOT
+    handled — callers that need deterministic behaviour should supply an
+    explicit path via CLI or GOVERNANCE_FRAMEWORK_ROOT env var.
+    """
+    current = start_path.resolve()
+    while True:
+        if is_framework_root(current):
+            return current
+        parent = current.parent
+        if parent == current:
+            return None
+        current = parent
+
+
 def repo_root_from_tooling() -> Path:
     """Return the framework root directory.
 
