@@ -35,6 +35,9 @@ logs/
 *.bak
 *.backup
 *_backup.md
+cov_out.txt
+test_out.txt
+capture*.py
 
 # Personal / Private
 personal/
@@ -72,6 +75,9 @@ validation_tmp3/
 # Runtime governance artifacts
 artifacts/runtime/
 memory/candidates/*.json
+
+# Nested repo clone (accidental copy of workspace root)
+ai-governance-framework/
 
 # Claude / local workspace
 .claude/*
