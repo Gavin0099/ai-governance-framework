@@ -15,6 +15,39 @@ PowerShell:
 $env:AI_GOVERNANCE_PYTHON='C:\Path\To\python.exe'
 ```
 
+## Adopting the baseline into your repo (first-time setup)
+
+If you want to apply this framework's governance baseline to a repo that already has
+its own `PLAN.md`, `AGENTS.md`, or other governance files:
+
+```bash
+bash scripts/init-governance.sh --target /path/to/your/repo --adopt-existing
+```
+
+This copies `AGENTS.base.md` (protected), creates any missing files from template, and
+records a `plan_section_inventory` of your existing PLAN.md structure — without
+overwriting anything that already exists.
+
+For a fresh repo (no existing governance files):
+
+```bash
+bash scripts/init-governance.sh --target /path/to/new/repo
+```
+
+After adoption, verify with:
+
+```bash
+python governance_tools/governance_drift_checker.py --repo /path/to/your/repo --framework-root .
+```
+
+When your repo's PLAN.md or other files change later, refresh the baseline hashes:
+
+```bash
+bash scripts/init-governance.sh --target /path/to/your/repo --refresh-baseline
+```
+
+---
+
 ## One-Command Smoke
 
 If you want the shortest possible verification path, run:

@@ -4,9 +4,9 @@
 
 schema_version: "1"
 baseline_version: 1.0.0
-source_commit: 47d7f1ebc83fd0d9952eacc2f050b4432b027b00
+source_commit: 6a0e0fadf546dc4266a4449595288e4d4804163c
 framework_root: /d/ai-governance-framework
-initialized_at: 2026-03-21T13:45:36Z
+initialized_at: 2026-03-21T14:04:46Z
 initialized_by: scripts/init-governance.sh
 
 # SHA256 hashes recorded at init time (prefix: sha256.<filename>)

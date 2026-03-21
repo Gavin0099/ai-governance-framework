@@ -16,6 +16,8 @@ def resolver_root():
     if path.exists():
         shutil.rmtree(path)
     path.mkdir(parents=True)
+    # .git stops _search_upward_for_contract from escaping into the framework root
+    (path / ".git").mkdir()
     try:
         yield path
     finally:

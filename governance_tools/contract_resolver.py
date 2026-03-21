@@ -73,7 +73,10 @@ def resolve_contract(
             continue
         path = Path(item).resolve()
         search_roots.append(path.parent if path.is_file() else path)
-    search_roots.append(Path.cwd().resolve())
+    # Only fall back to cwd when no project_root was given; adding cwd unconditionally
+    # would cause spurious ambiguity when the framework itself has a contract.yaml.
+    if project_root is None and not extra_paths:
+        search_roots.append(Path.cwd().resolve())
 
     seen_roots: set[Path] = set()
     for root in search_roots:
