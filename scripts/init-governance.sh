@@ -93,6 +93,44 @@ read_baseline_version() {
         | tr -d '[:space:]'
 }
 
+# Print a post-adoption drift summary by running governance_drift_checker.py.
+# Shows only warnings/findings so the user knows exactly what to fill in next.
+# Silently skips if Python or the checker script is not available.
+print_post_adoption_drift_summary() {
+    local repo="$1"
+    local py
+    py="${AI_GOVERNANCE_PYTHON:-python3}"
+    if ! command -v "$py" >/dev/null 2>&1; then
+        py=python
+    fi
+    local checker="$FRAMEWORK_ROOT/governance_tools/governance_drift_checker.py"
+    if [[ ! -f "$checker" ]]; then
+        return
+    fi
+    echo ""
+    echo "── Drift check (post-adoption) ──────────────────────────────────────"
+    local output
+    output=$("$py" "$checker" --repo "$repo" --framework-root "$FRAMEWORK_ROOT" \
+        --skip-hash --format human 2>/dev/null | tr -d '\r') || true
+    # Print only the [checks] block and findings/warnings
+    local in_checks=false
+    while IFS= read -r line; do
+        case "$line" in
+            \[checks\])        in_checks=true;  echo "$line" ;;
+            "plan_section_inventory"*) in_checks=false ;;
+            "findings"*|"warnings"*|"remediation_hints"*) in_checks=false; echo "$line" ;;
+            *)
+                if $in_checks; then
+                    echo "$line"
+                elif [[ "$line" == "  -"* ]] || [[ "$line" == "  ["* ]]; then
+                    echo "$line"
+                fi
+                ;;
+        esac
+    done <<< "$output"
+    echo "─────────────────────────────────────────────────────────────────────"
+}
+
 source_commit() {
     git -C "$FRAMEWORK_ROOT" rev-parse HEAD 2>/dev/null || echo "unknown"
 }
@@ -314,14 +352,14 @@ do_adopt_existing() {
 
     write_baseline_yaml "$TARGET"
 
+    print_post_adoption_drift_summary "$TARGET"
+
     echo ""
     echo "Adoption complete. Next steps:"
-    echo "  1. Review $TARGET/contract.yaml — if newly created, fill in <repo-name> and <domain>"
-    echo "  2. Extend $TARGET/AGENTS.md with repo-specific sections (see governance:key anchors in"
-    echo "     baselines/repo-min/AGENTS.md for the recommended machine-readable pattern)"
-    echo "     (DO NOT edit AGENTS.base.md — it is protected and hash-verified)"
-    echo "  3. Optionally add plan_required_sections to .governance/baseline.yaml to declare"
-    echo "     which PLAN.md sections are governance-mandated for this repo"
+    echo "  1. Fix any FAIL/warning items shown above (contract placeholders, empty AGENTS.md sections)"
+    echo "  2. When files change later, refresh hashes:"
+    echo "     bash scripts/init-governance.sh --target $TARGET --refresh-baseline"
+    echo "  3. Optionally harden mandate: add plan_required_sections to .governance/baseline.yaml"
     echo "  4. Commit: git add AGENTS.base.md AGENTS.md PLAN.md contract.yaml .governance/baseline.yaml"
     echo "  5. Verify: python governance_tools/governance_drift_checker.py --repo $TARGET"
 }
