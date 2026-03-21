@@ -18,6 +18,7 @@ from governance_tools.contract_resolver import resolve_contract
 from governance_tools.domain_contract_loader import load_domain_contract
 from governance_tools.external_project_facts_intake import build_external_project_facts_intake, default_output_path
 from governance_tools.framework_versioning import assess_framework_version_status
+from governance_tools.governance_drift_checker import check_governance_drift
 from governance_tools.hook_install_validator import validate_hook_install
 from governance_tools.plan_freshness import check_freshness
 
@@ -32,6 +33,7 @@ class ExternalRepoReadiness:
     plan: dict[str, object] | None = None
     hooks: dict[str, object] | None = None
     project_facts: dict[str, object] | None = None
+    governance_drift: dict[str, object] | None = None
     warnings: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
@@ -206,6 +208,22 @@ def assess_external_repo(
         }
         warnings.append(f"project-facts: intake failed ({exc})")
 
+    drift_result = check_governance_drift(repo_root, framework_root=framework_root, skip_hash=False)
+    governance_drift: dict[str, object] = {
+        "severity": drift_result.severity,
+        "baseline_version": drift_result.baseline_version,
+        "framework_version": drift_result.framework_version,
+        "checks": drift_result.checks,
+        "findings": drift_result.findings,
+        "remediation_hints": drift_result.remediation_hints,
+    }
+    checks["governance_baseline_present"] = drift_result.checks.get("baseline_yaml_present", False)
+    checks["governance_drift_clean"] = drift_result.severity == "ok"
+    for item in drift_result.errors:
+        warnings.append(f"governance-drift: {item}")
+    for item in drift_result.warnings:
+        warnings.append(f"governance-drift: {item}")
+
     version_status = assess_framework_version_status(repo_root, contract_raw=contract_raw)
     framework_version = {
         "current_release": version_status.current_release,
@@ -245,6 +263,7 @@ def assess_external_repo(
         plan=plan,
         hooks=hooks,
         project_facts=project_facts,
+        governance_drift=governance_drift,
         warnings=warnings,
         errors=errors,
     )
@@ -315,6 +334,20 @@ def format_human(result: ExternalRepoReadiness) -> str:
             ]
         )
 
+    if result.governance_drift:
+        lines.extend(
+            [
+                "",
+                "[governance_drift]",
+                f"severity           = {result.governance_drift.get('severity')}",
+                f"baseline_version   = {result.governance_drift.get('baseline_version')}",
+            ]
+        )
+        for finding in result.governance_drift.get("findings") or []:
+            lines.append(f"  [{finding['severity']}] {finding['check']}: {finding['detail']}")
+        for hint in result.governance_drift.get("remediation_hints") or []:
+            lines.append(f"  hint: {hint}")
+
     if result.project_facts:
         lines.extend(
             [
@@ -359,6 +392,7 @@ def format_json(result: ExternalRepoReadiness) -> str:
             "plan": result.plan,
             "hooks": result.hooks,
             "project_facts": result.project_facts,
+            "governance_drift": result.governance_drift,
             "errors": result.errors,
             "warnings": result.warnings,
         },

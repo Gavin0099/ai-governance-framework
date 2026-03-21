@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 from pathlib import Path
@@ -247,3 +248,118 @@ def test_assess_external_repo_classifies_missing_project_facts() -> None:
     assert result.project_facts["available"] is False
     assert "No external project facts found under" in result.project_facts["reason"]
     assert result.project_facts["remediation_hint"].startswith("python governance_tools/external_project_facts_intake.py --repo")
+
+
+# ── Governance drift integration tests ───────────────────────────────────────
+
+AGENTS_BASE_CONTENT = Path("baselines/repo-min/AGENTS.base.md").read_text(encoding="utf-8")
+
+
+def _write_valid_baseline_yaml(target_root: Path, agents_base_path: Path) -> None:
+    sha = hashlib.sha256(agents_base_path.read_bytes()).hexdigest()
+    plan_path = target_root / "PLAN.md"
+    contract_path = target_root / "contract.yaml"
+    agents_md_path = target_root / "AGENTS.md"
+    plan_sha = hashlib.sha256(plan_path.read_bytes()).hexdigest() if plan_path.exists() else "0" * 64
+    contract_sha = hashlib.sha256(contract_path.read_bytes()).hexdigest() if contract_path.exists() else "0" * 64
+    agents_md_sha = hashlib.sha256(agents_md_path.read_bytes()).hexdigest() if agents_md_path.exists() else "0" * 64
+    baseline = (
+        "schema_version: \"1\"\n"
+        "baseline_version: 1.0.0\n"
+        "source_commit: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2\n"
+        "initialized_at: 2026-03-21T00:00:00Z\n"
+        "initialized_by: scripts/init-governance.sh\n"
+        f"sha256.AGENTS.base.md: {sha}\n"
+        f"sha256.PLAN.md: {plan_sha}\n"
+        f"sha256.contract.yaml: {contract_sha}\n"
+        f"sha256.AGENTS.md: {agents_md_sha}\n"
+        "overridable.AGENTS.base.md: protected\n"
+        "overridable.PLAN.md: overridable\n"
+        "overridable.contract.yaml: overridable\n"
+        "overridable.AGENTS.md: overridable\n"
+        "contract_required_fields:\n"
+        "  - name\n"
+        "  - framework_interface_version\n"
+        "  - framework_compatible\n"
+        "  - domain\n"
+        "plan_required_sections:\n"
+        "  - \"## Current Phase\"\n"
+        "  - \"## Active Sprint\"\n"
+        "  - \"## Backlog\"\n"
+    )
+    gov_dir = target_root / ".governance"
+    gov_dir.mkdir(exist_ok=True)
+    (gov_dir / "baseline.yaml").write_text(baseline, encoding="utf-8")
+
+
+def test_governance_drift_field_present_when_no_baseline() -> None:
+    root = _reset_fixture("governance_drift_no_baseline")
+    target_root = root / "target"
+    _write(target_root / ".git" / "HEAD", "ref: refs/heads/main\n")
+
+    result = assess_external_repo(target_root)
+
+    assert result.governance_drift is not None
+    assert result.governance_drift["severity"] == "critical"
+    assert result.checks["governance_baseline_present"] is False
+    assert result.checks["governance_drift_clean"] is False
+    # non-blocking — repo may simply not have adopted the baseline yet
+    assert result.ready is False  # already False for other reasons, but drift is non-blocking
+
+
+def test_governance_drift_clean_repo_passes() -> None:
+    root = _reset_fixture("governance_drift_clean")
+    framework_root = root / "framework"
+    target_root = root / "target"
+
+    _make_framework(framework_root)
+    _make_target_repo(target_root, framework_root)
+    _write_lock(target_root, "v1.0.0-alpha")
+
+    # Write AGENTS.base.md (protected, exact content)
+    agents_base = target_root / "AGENTS.base.md"
+    agents_base.write_text(AGENTS_BASE_CONTENT, encoding="utf-8")
+
+    # Overwrite PLAN.md with sections the drift checker requires
+    _write(
+        target_root / "PLAN.md",
+        "> **最後更新**: 2026-03-21\n> **Owner**: test\n> **Freshness**: Sprint (7d)\n\n"
+        "## Current Phase\nAlpha\n\n## Active Sprint\n- task\n\n## Backlog\n- item\n",
+    )
+
+    # Overwrite AGENTS.md with minimal skeleton
+    _write(target_root / "AGENTS.md", "# AGENTS.md\n<!-- governance-baseline: overridable -->\n")
+
+    _write_valid_baseline_yaml(target_root, agents_base)
+
+    result = assess_external_repo(target_root)
+
+    assert result.governance_drift is not None
+    assert result.checks["governance_baseline_present"] is True
+    assert result.governance_drift["severity"] in {"ok", "warning"}  # freshness warning is ok
+
+
+def test_governance_drift_surfaces_in_format_human() -> None:
+    root = _reset_fixture("governance_drift_human_output")
+    target_root = root / "target"
+    _write(target_root / ".git" / "HEAD", "ref: refs/heads/main\n")
+
+    result = assess_external_repo(target_root)
+    rendered = format_human(result)
+
+    assert "[governance_drift]" in rendered
+    assert "severity" in rendered
+
+
+def test_governance_drift_surfaces_in_format_json() -> None:
+    from governance_tools.external_repo_readiness import format_json
+
+    root = _reset_fixture("governance_drift_json_output")
+    target_root = root / "target"
+    _write(target_root / ".git" / "HEAD", "ref: refs/heads/main\n")
+
+    result = assess_external_repo(target_root)
+    payload = json.loads(format_json(result))
+
+    assert "governance_drift" in payload
+    assert payload["governance_drift"]["severity"] == "critical"
