@@ -97,10 +97,11 @@ write_baseline_yaml() {
     local now
     now="$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || python3 -c 'from datetime import datetime,timezone; print(datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))')"
 
-    local hash_agents hash_plan hash_contract
+    local hash_agents hash_plan hash_contract hash_agents_ext
     hash_agents="$(sha256_of "$target/AGENTS.base.md")"
     hash_plan="$(sha256_of "$target/PLAN.md")"
     hash_contract="$(sha256_of "$target/contract.yaml")"
+    hash_agents_ext="$(sha256_of "$target/AGENTS.md")"
 
     mkdir -p "$target/.governance"
     cat > "$target/.governance/baseline.yaml" <<EOF
@@ -119,11 +120,13 @@ initialized_by: scripts/init-governance.sh
 sha256.AGENTS.base.md: $hash_agents
 sha256.PLAN.md: $hash_plan
 sha256.contract.yaml: $hash_contract
+sha256.AGENTS.md: $hash_agents_ext
 
 # Overridability: "protected" = must not change, "overridable" = repo may extend
 overridable.AGENTS.base.md: protected
 overridable.PLAN.md: overridable
 overridable.contract.yaml: overridable
+overridable.AGENTS.md: overridable
 
 # Required fields in contract.yaml
 contract_required_fields:
@@ -150,14 +153,14 @@ do_init() {
 
     if [[ "$DRY_RUN" == true ]]; then
         echo "[dry-run] Would copy:"
-        for f in AGENTS.base.md PLAN.md contract.yaml; do
+        for f in AGENTS.base.md AGENTS.md PLAN.md contract.yaml; do
             echo "  $BASELINE_SOURCE/$f -> $TARGET/$f"
         done
         echo "[dry-run] Would write: $TARGET/.governance/baseline.yaml"
         return
     fi
 
-    for f in AGENTS.base.md PLAN.md contract.yaml; do
+    for f in AGENTS.base.md AGENTS.md PLAN.md contract.yaml; do
         cp "$BASELINE_SOURCE/$f" "$TARGET/$f"
         echo "  Copied $f"
     done
@@ -168,8 +171,9 @@ do_init() {
     echo "Next steps:"
     echo "  1. Edit $TARGET/PLAN.md — fill in Owner, phases, sprint tasks"
     echo "  2. Edit $TARGET/contract.yaml — replace <repo-name> and <domain>"
-    echo "  3. Optionally add AGENTS.md for repo-specific rules (do NOT edit AGENTS.base.md)"
-    echo "  4. Commit: git add AGENTS.base.md PLAN.md contract.yaml .governance/baseline.yaml"
+    echo "  3. Edit $TARGET/AGENTS.md — add repo-specific risk levels and must-test paths"
+    echo "     (DO NOT edit AGENTS.base.md — it is protected and hash-verified)"
+    echo "  4. Commit: git add AGENTS.base.md AGENTS.md PLAN.md contract.yaml .governance/baseline.yaml"
     echo "  5. Verify: python governance_tools/governance_drift_checker.py --repo $TARGET"
 }
 
@@ -195,7 +199,7 @@ do_upgrade() {
     echo "  Overwrote AGENTS.base.md (protected)"
 
     # Overridable files: show diff, overwrite only if --auto-merge
-    for f in PLAN.md contract.yaml; do
+    for f in AGENTS.md PLAN.md contract.yaml; do
         if diff -u "$TARGET/$f" "$BASELINE_SOURCE/$f" > /dev/null 2>&1; then
             echo "  $f unchanged"
         else

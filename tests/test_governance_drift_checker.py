@@ -89,11 +89,12 @@ def _write_baseline_yaml(
     contract_hash: str,
     baseline_version: str = "1.0.0",
     initialized_at: str = "2026-03-21T10:00:00Z",
+    source_commit: str = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
 ) -> Path:
     text = (
         f"schema_version: \"1\"\n"
         f"baseline_version: {baseline_version}\n"
-        f"source_commit: abc1234\n"
+        f"source_commit: {source_commit}\n"
         f"framework_root: {FRAMEWORK_ROOT}\n"
         f"initialized_at: {initialized_at}\n"
         f"initialized_by: scripts/init-governance.sh\n"
@@ -421,3 +422,79 @@ def test_to_dict_serializable(clean_repo):
     assert "ok" in d
     assert "severity" in d
     assert "checks" in d
+
+
+# ── source_commit_recorded (12th check) ──────────────────────────────────────
+
+def test_source_commit_recorded_passes_with_valid_sha(clean_repo):
+    result = check_governance_drift(clean_repo, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    assert result.checks.get("source_commit_recorded") is True
+
+
+def test_source_commit_missing_is_warning(tmp_path):
+    agents = _write_agents_base(tmp_path)
+    plan = _write_plan(tmp_path)
+    contract = _write_contract(tmp_path)
+    _write_baseline_yaml(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+        source_commit="",       # empty
+    )
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    assert result.checks.get("source_commit_recorded") is False
+    finding = next(f for f in result.findings if f["check"] == "source_commit_recorded")
+    assert finding["severity"] == "warning"
+    assert any("init-governance.sh" in h for h in result.remediation_hints)
+
+
+def test_source_commit_unknown_is_warning(tmp_path):
+    agents = _write_agents_base(tmp_path)
+    plan = _write_plan(tmp_path)
+    contract = _write_contract(tmp_path)
+    _write_baseline_yaml(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+        source_commit="unknown",
+    )
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    assert result.checks.get("source_commit_recorded") is False
+
+
+def test_source_commit_invalid_sha_is_warning(tmp_path):
+    agents = _write_agents_base(tmp_path)
+    plan = _write_plan(tmp_path)
+    contract = _write_contract(tmp_path)
+    _write_baseline_yaml(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+        source_commit="not-a-valid-sha!",
+    )
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+    assert result.checks.get("source_commit_recorded") is False
+
+
+def test_all_12_checks_present_in_ok_repo(clean_repo):
+    """Verify exactly 12 named checks appear in a fully valid repo."""
+    result = check_governance_drift(clean_repo, framework_root=FRAMEWORK_ROOT)
+    expected_checks = {
+        "baseline_yaml_present",
+        "baseline_version_known",
+        "framework_version_current",
+        "source_commit_recorded",
+        "protected_files_present",
+        "protected_files_unmodified",
+        "protected_file_sentinel_present",
+        "contract_required_fields_present",
+        "contract_agents_base_referenced",
+        "plan_required_sections_present",
+        "plan_freshness",
+        "baseline_yaml_freshness",
+    }
+    assert set(result.checks.keys()) == expected_checks
+    assert len(result.checks) == 12

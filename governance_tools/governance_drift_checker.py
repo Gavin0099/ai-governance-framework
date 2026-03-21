@@ -2,10 +2,34 @@
 """
 Check whether a repo's governance files have drifted from the recorded baseline.
 
+12 named checks across 4 categories:
+
+  Category 1 — Baseline Metadata (4 checks):
+    baseline_yaml_present       .governance/baseline.yaml exists and is parseable
+    baseline_version_known      baseline_version field present and parseable
+    framework_version_current   recorded version matches current framework baseline
+    source_commit_recorded      source_commit is a valid git SHA (provenance enforcement)
+
+  Category 2 — Protected File Integrity (3 checks):
+    protected_files_present     all protected files exist on disk
+    protected_files_unmodified  sha256 of protected files matches recorded hash
+    protected_file_sentinel_present  AGENTS.base.md contains governance sentinel comment
+
+  Category 3 — Overridable File Required Fields (3 checks):
+    contract_required_fields_present  contract.yaml has all required fields
+    contract_agents_base_referenced   AGENTS.base.md wired into contract documents
+    plan_required_sections_present    PLAN.md contains required section headings
+
+  Category 4 — Freshness (2 checks):
+    plan_freshness              PLAN.md freshness via plan_freshness.py
+    baseline_yaml_freshness     baseline.yaml age within --freshness-threshold days
+
 Usage:
     python governance_tools/governance_drift_checker.py --repo /path/to/repo
     python governance_tools/governance_drift_checker.py --repo . --format json
     python governance_tools/governance_drift_checker.py --repo . --skip-hash
+
+Exit codes: 0=ok, 1=warning, 2=critical
 """
 
 from __future__ import annotations
@@ -162,6 +186,27 @@ def check_governance_drift(
                 hints.append(f"bash scripts/init-governance.sh --target {repo_root} --upgrade")
             else:
                 _pass("framework_version_current")
+
+    # source_commit provenance enforcement (12th check)
+    source_commit = baseline_data.get("source_commit", "")
+    _VALID_COMMIT_RE = __import__("re").compile(r"^[0-9a-f]{7,40}$")
+    if not source_commit or source_commit.strip().lower() == "unknown":
+        _fail(
+            "source_commit_recorded",
+            "warning",
+            "source_commit is missing or 'unknown' in baseline.yaml — "
+            "provenance cannot be traced; re-run init-governance.sh to record",
+        )
+        hints.append(f"bash scripts/init-governance.sh --target {repo_root}")
+    elif not _VALID_COMMIT_RE.match(source_commit.strip()):
+        _fail(
+            "source_commit_recorded",
+            "warning",
+            f"source_commit '{source_commit[:20]}' is not a valid git SHA — "
+            "baseline provenance may be unreliable",
+        )
+    else:
+        _pass("source_commit_recorded")
 
     # ── Category 2: Protected File Integrity ─────────────────────────────────
 
