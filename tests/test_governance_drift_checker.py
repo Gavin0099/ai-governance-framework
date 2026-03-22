@@ -418,7 +418,7 @@ def test_format_human_critical(tmp_path):
     out = format_human(result)
     assert "critical" in out
     assert "remediation:" in out
-    assert "$ bash" in out
+    assert any(kw in out for kw in ("$ bash", "$ python", "adopt_governance", "init-governance"))
 
 
 # ── format_json ──────────────────────────────────────────────────────────────
@@ -473,7 +473,10 @@ def test_source_commit_missing_is_warning(tmp_path):
     assert result.checks.get("source_commit_recorded") is False
     finding = next(f for f in result.findings if f["check"] == "source_commit_recorded")
     assert finding["severity"] == "warning"
-    assert any("init-governance.sh" in h for h in result.remediation_hints)
+    assert any(
+        "init-governance.sh" in h or "adopt_governance.py" in h
+        for h in result.remediation_hints
+    )
 
 
 def test_source_commit_unknown_is_warning(tmp_path):
@@ -1011,7 +1014,10 @@ def test_plan_inventory_current_fails_when_section_removed(tmp_path):
     assert result.checks.get("plan_inventory_current") is False
     warning_text = " ".join(result.warnings)
     assert "Old Section" in warning_text
-    assert "refresh-baseline" in " ".join(result.remediation_hints)
+    assert any(
+        "--refresh-baseline" in h or "--refresh" in h
+        for h in result.remediation_hints
+    )
 
 
 def test_plan_inventory_current_fails_when_section_added(tmp_path):

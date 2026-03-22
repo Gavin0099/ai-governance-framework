@@ -71,3 +71,31 @@ def test_resolve_contract_prefers_explicit_path(local_contract_root):
 
     assert resolution.path == contract_file.resolve()
     assert resolution.source == "explicit"
+
+
+def test_empty_validators_inline_list_is_valid(tmp_path):
+    """validators: [] (inline) must not produce a phantom path entry."""
+    c = tmp_path / "contract.yaml"
+    c.write_text(
+        'name: test\nplugin_version: "1.0"\nframework_interface_version: "1"\n'
+        'framework_compatible: ">=1.0.0,<2.0.0"\ndomain: test\n'
+        "documents: []\nai_behavior_override: []\nvalidators: []\n",
+        encoding="utf-8",
+    )
+    result = load_domain_contract(c)
+    assert result["validators"] == [], (
+        "validators: [] must load as empty list, not a phantom '[]' path entry"
+    )
+
+
+def test_empty_validators_multiline_list_is_valid(tmp_path):
+    """validators: with no items (block style) must also produce empty list."""
+    c = tmp_path / "contract.yaml"
+    c.write_text(
+        'name: test\nplugin_version: "1.0"\nframework_interface_version: "1"\n'
+        'framework_compatible: ">=1.0.0,<2.0.0"\ndomain: test\n'
+        "documents:\nai_behavior_override:\nvalidators:\n",
+        encoding="utf-8",
+    )
+    result = load_domain_contract(c)
+    assert result["validators"] == []

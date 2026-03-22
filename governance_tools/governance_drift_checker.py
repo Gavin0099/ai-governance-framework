@@ -41,6 +41,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -61,6 +62,14 @@ from governance_tools.plan_freshness import check_freshness
 BASELINE_YAML_RELPATH = ".governance/baseline.yaml"
 BASELINE_SOURCE_RELPATH = "baselines/repo-min"
 FRAMEWORK_DEFAULT_FRESHNESS_DAYS = 14
+
+
+def _adopt_hint(repo_root: Path, extra: str = "") -> str:
+    """Return a platform-appropriate remediation command hint."""
+    suffix = f" {extra}" if extra else ""
+    if os.name == "nt":
+        return f"python governance_tools/adopt_governance.py --target {repo_root}{suffix}"
+    return f"bash scripts/init-governance.sh --target {repo_root}{suffix}"
 
 _PLACEHOLDER_RE = __import__("re").compile(r"<[A-Za-z][^>]+>")
 _GOVERNANCE_KEY_RE = __import__("re").compile(r"<!--\s*governance:key=(\S+)\s*-->")
@@ -235,9 +244,9 @@ def check_governance_drift(
             "baseline_yaml_present",
             "critical",
             f"{BASELINE_YAML_RELPATH} not found — run: "
-            f"bash scripts/init-governance.sh --target {repo_root}",
+            + _adopt_hint(repo_root),
         )
-        hints.append(f"bash scripts/init-governance.sh --target {repo_root}")
+        hints.append(_adopt_hint(repo_root))
         return BaselineDriftResult(
             ok=False,
             severity="critical",
@@ -273,7 +282,7 @@ def check_governance_drift(
                     "warning",
                     f"baseline {baseline_version} is older than framework {current_fw_version} — upgrade recommended",
                 )
-                hints.append(f"bash scripts/init-governance.sh --target {repo_root} --upgrade")
+                hints.append(_adopt_hint(repo_root, "--upgrade"))
             else:
                 _pass("framework_version_current")
 
@@ -285,9 +294,9 @@ def check_governance_drift(
             "source_commit_recorded",
             "warning",
             "source_commit is missing or 'unknown' in baseline.yaml — "
-            "provenance cannot be traced; re-run init-governance.sh to record",
+            "provenance cannot be traced; re-run adopt_governance.py to record",
         )
-        hints.append(f"bash scripts/init-governance.sh --target {repo_root}")
+        hints.append(_adopt_hint(repo_root))
     elif not _VALID_COMMIT_RE.match(source_commit.strip()):
         _fail(
             "source_commit_recorded",
@@ -357,7 +366,7 @@ def check_governance_drift(
             "protected_file_sentinel_present",
             "critical",
             "AGENTS.base.md not found — copy from framework: "
-            "python governance_tools/adopt_governance.py --target .",
+            + _adopt_hint(repo_root),
         )
     elif "governance-baseline: protected" in agents_path.read_text(encoding="utf-8"):
         _pass("protected_file_sentinel_present")
@@ -574,13 +583,10 @@ def check_governance_drift(
                 "warning",
                 "plan_section_inventory is stale — PLAN.md has changed since last refresh"
                 + (f" ({'; '.join(parts)})" if parts else "")
-                + " — run: bash scripts/init-governance.sh --target "
-                + str(repo_root)
-                + " --refresh-baseline",
+                + " — run: "
+                + _adopt_hint(repo_root, "--refresh"),
             )
-            hints.append(
-                f"bash scripts/init-governance.sh --target {repo_root} --refresh-baseline"
-            )
+            hints.append(_adopt_hint(repo_root, "--refresh"))
 
     initialized_at_str = baseline_data.get("initialized_at", "")
     if initialized_at_str:

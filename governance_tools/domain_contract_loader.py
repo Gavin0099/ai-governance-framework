@@ -34,7 +34,11 @@ def _parse_contract_yaml(text: str) -> dict:
 
         if raw_line[: len(raw_line) - len(raw_line.lstrip(" "))]:
             if not current_list_key or not stripped.startswith("- "):
-                raise ValueError(f"Unsupported contract.yaml structure on line {line_number}: {raw_line}")
+                raise ValueError(
+                    f"contract.yaml line {line_number}: indented content outside a list block "
+                    f"— nested structures are not supported; use flat '- item' lists only.\n"
+                    f"  Line: {raw_line.rstrip()}"
+                )
             value = _parse_scalar(stripped[2:])
             data.setdefault(current_list_key, [])
             casted = data[current_list_key]
@@ -44,13 +48,17 @@ def _parse_contract_yaml(text: str) -> dict:
 
         current_list_key = None
         if ":" not in stripped:
-            raise ValueError(f"Invalid contract.yaml line {line_number}: {raw_line}")
+            raise ValueError(
+                f"contract.yaml line {line_number}: expected 'key: value' but found no ':' "
+                f"— check for missing colon or stray line.\n"
+                f"  Line: {raw_line.rstrip()}"
+            )
 
         key, raw_value = stripped.split(":", 1)
         key = key.strip().lstrip("\ufeff")
         value = raw_value.strip()
 
-        if not value:
+        if not value or value == "[]":
             data[key] = []
             current_list_key = key
             continue
