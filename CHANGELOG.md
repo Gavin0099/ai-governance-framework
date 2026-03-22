@@ -1,5 +1,20 @@
 # Changelog
 
+## post-alpha hardening (continued) - 2026-03-22 (part 4)
+
+**Cross-platform adopt tool (摩擦點 #2/#3)**
+- `governance_tools/adopt_governance.py` — Python equivalent of `bash scripts/init-governance.sh --adopt-existing`
+  for Windows users who cannot run bash scripts
+- Same semantics: copies AGENTS.base.md (protected), creates missing AGENTS.md/contract.yaml/PLAN.md
+  from templates, generates .governance/baseline.yaml with hashes + inventory, runs drift check inline
+- Adopt-existing semantics preserved: never overwrites existing files, no plan_required_sections
+  imposed, plan_path recorded for non-standard PLAN.md locations
+- Framework root resolution uses same priority chain: --framework-root > GOVERNANCE_FRAMEWORK_ROOT
+  env > upward scan > __file__ fallback
+- `--dry-run` flag: shows planned actions without writing anything
+- 17 tests covering all adoption scenarios: plan discovery, template creation, keep-existing,
+  non-standard PLAN.md path, baseline content, dry-run isolation, error handling
+
 ## post-alpha hardening (continued) - 2026-03-22 (part 3)
 
 **Adoption friction fixes (from validation report)**
