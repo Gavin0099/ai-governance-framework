@@ -87,9 +87,12 @@ def assess_external_repo(
         "errors": hook_result.errors,
         "warnings": hook_result.warnings,
     }
+    # hooks_ready is informational only — hooks are a deployment convenience,
+    # not a governance requirement. Missing hooks do NOT block readiness_ready.
     checks["hooks_ready"] = hook_result.valid
-    warnings.extend(f"hooks: {item}" for item in hook_result.warnings)
-    errors.extend(f"hooks: {item}" for item in hook_result.errors)
+    if not hook_result.valid:
+        warnings.extend(f"hooks (optional): {item}" for item in hook_result.errors)
+    warnings.extend(f"hooks (optional): {item}" for item in hook_result.warnings)
 
     plan_path = repo_root / "PLAN.md"
     plan: dict[str, object] | None = None
@@ -247,11 +250,13 @@ def assess_external_repo(
 
     ready = (
         checks["git_repo_present"]
-        and checks["hooks_ready"]
         and checks["plan_fresh_enough"]
         and checks["contract_resolved"]
         and checks["contract_files_complete"]
         and checks["framework_release_compatible"]
+        # hooks_ready intentionally excluded: hooks are a deployment convenience,
+        # not a governance gate. A repo with clean governance but no hooks installed
+        # is governance-ready. Use checks["hooks_ready"] for hook-specific reporting.
     )
 
     return ExternalRepoReadiness(

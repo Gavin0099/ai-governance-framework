@@ -127,7 +127,13 @@ def check_freshness(
     last_updated: Optional[date] = None
 
     if not raw_date:
-        errors.append("'最後更新' 欄位缺失（需格式: YYYY-MM-DD）")
+        errors.append(
+            "'最後更新' 欄位缺失（需格式: YYYY-MM-DD）\n"
+            "  框架使用繁體中文欄位名。請在 PLAN.md 開頭加入:\n"
+            "  > **最後更新**: YYYY-MM-DD\n"
+            "  > **Owner**: <負責人>\n"
+            "  > **Freshness**: Sprint (7d)"
+        )
     else:
         try:
             last_updated = datetime.strptime(raw_date, "%Y-%m-%d").date()

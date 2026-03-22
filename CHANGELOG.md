@@ -1,5 +1,17 @@
 # Changelog
 
+## post-alpha hardening (continued) - 2026-03-22 (part 3)
+
+**Adoption friction fixes (from validation report)**
+- `hooks_ready` removed from `readiness_ready` gate — hooks are a deployment convenience,
+  not a governance requirement; Windows users with clean governance no longer blocked
+- Hooks warnings relabelled as `hooks (optional): ...` so the non-blocking nature is
+  visible in output without digging into docs
+- PLAN.md `最後更新` missing-field error now includes a full 3-line example snippet
+  explaining that the framework uses Traditional Chinese field names (design decision)
+- New test: `test_assess_external_repo_ready_without_hooks` — explicit contract that
+  hooks=False must not block readiness_ready
+
 ## post-alpha hardening (continued) - 2026-03-22 (part 2)
 
 **Framework root auto-discovery (❻)**

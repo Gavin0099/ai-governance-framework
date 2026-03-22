@@ -153,6 +153,47 @@ def test_assess_external_repo_marks_outdated_without_failing_readiness() -> None
     assert result.checks["framework_version_current"] is False
 
 
+def test_assess_external_repo_ready_without_hooks() -> None:
+    """Hooks are optional — missing hooks must not block readiness_ready."""
+    root = _reset_fixture("without_git_hooks_installed")
+    framework_root = root / "framework"
+    target_root = root / "target"
+
+    _make_framework(framework_root)
+    # Set up target repo WITHOUT any hooks
+    _write(
+        target_root / "PLAN.md",
+        "> **最後更新**: 2026-03-14\n> **Owner**: test\n> **Freshness**: Sprint (7d)\n",
+    )
+    _write(target_root / ".git" / "HEAD", "ref: refs/heads/main\n")
+    _write(target_root / "AGENTS.md", "# Agents\n")
+    _write(target_root / "CHECKLIST.md", "# Checklist\n")
+    _write(target_root / "memory" / "02_project_facts.md", "# Project Facts\n\n- target_os: linux\n")
+    _write(target_root / "rules/domain/safety.md", "# rule\n")
+    _write(target_root / "validators/checker.py", "print('ok')\n")
+    _write(
+        target_root / "contract.yaml",
+        "name: test-no-hooks\ndomain: firmware\nplugin_version: \"1.0.0\"\n"
+        "framework_interface_version: \"1\"\nframework_compatible: \">=1.0.0,<2.0.0\"\n"
+        "documents:\n  - CHECKLIST.md\nai_behavior_override:\n  - AGENTS.md\nvalidators:\nrule_roots:\n",
+    )
+    _write_lock(target_root, "v1.0.0-alpha")
+
+    result = assess_external_repo(target_root, framework_root=framework_root)
+
+    assert result.checks["hooks_ready"] is False
+    assert result.ready is True, (
+        "hooks_ready=False must not block readiness_ready — "
+        f"actual ready={result.ready}, errors={result.errors}"
+    )
+    # hooks warnings are prefixed "hooks (optional):" — label is visible in output
+    hooks_warnings = [w for w in result.warnings if w.startswith("hooks")]
+    assert hooks_warnings, "expected at least one hooks warning"
+    assert all("optional" in w for w in hooks_warnings), (
+        f"hooks warnings should include '(optional)': {hooks_warnings}"
+    )
+
+
 def test_assess_external_repo_fails_when_current_release_is_incompatible() -> None:
     root = _reset_fixture("incompatible_release")
     framework_root = root / "framework"
