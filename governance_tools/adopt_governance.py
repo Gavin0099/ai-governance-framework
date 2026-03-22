@@ -340,6 +340,9 @@ def adopt_existing(
     print(f"  2. When files change: python governance_tools/adopt_governance.py --target {repo_root} --refresh")
     print(f"  3. Commit: git add AGENTS.base.md AGENTS.md PLAN.md contract.yaml .governance/baseline.yaml")
     print(f"  4. Verify: python governance_tools/governance_drift_checker.py --repo {repo_root}")
+    print()
+    print("  Reference: docs/minimum-legal-schema.md — expected check states, field semantics, and")
+    print("             which False results are non-blocking by design")
     return 0
 
 

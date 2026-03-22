@@ -386,6 +386,19 @@ def format_human(result: ExternalRepoReadiness) -> str:
         for item in result.warnings:
             lines.append(f"- {item}")
 
+    # Surface schema reference when contract or plan schema errors are present
+    schema_items = [
+        e for e in (result.errors or []) + (result.warnings or [])
+        if e.startswith(("contract:", "plan:"))
+    ]
+    if schema_items:
+        lines.extend([
+            "",
+            "reference: docs/minimum-legal-schema.md",
+            "  — minimum valid form of each governance file, field semantics,",
+            "    and which False states are non-blocking by design",
+        ])
+
     return "\n".join(lines)
 
 
