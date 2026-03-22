@@ -10,7 +10,12 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from governance_tools.adopt_governance import adopt_existing, _discover_plan_path
+from governance_tools.adopt_governance import (
+    adopt_existing,
+    refresh_baseline,
+    _discover_plan_path,
+    _read_baseline_state,
+)
 
 FRAMEWORK_ROOT = Path(__file__).parent.parent.resolve()
 BASELINE_SOURCE = FRAMEWORK_ROOT / "baselines" / "repo-min"
@@ -256,3 +261,140 @@ def test_adopt_fails_gracefully_with_missing_baseline_source(tmp_path):
     rc = adopt_existing(repo, fake_framework, dry_run=False)
 
     assert rc == 1
+
+
+# ── refresh_baseline ──────────────────────────────────────────────────────────
+
+def _adopt_repo(tmp_path: Path) -> Path:
+    """Create a fully adopted repo for refresh tests."""
+    repo = _make_git_repo(tmp_path / "repo")
+    _write_plan(repo)
+    _write_contract(repo)
+    adopt_existing(repo, FRAMEWORK_ROOT, dry_run=False)
+    return repo
+
+
+def test_refresh_updates_hashes(tmp_path):
+    """--refresh rewrites baseline.yaml with updated hashes after file change."""
+    repo = _adopt_repo(tmp_path)
+    baseline_before = (repo / ".governance" / "baseline.yaml").read_text(encoding="utf-8")
+
+    # Modify PLAN.md to trigger a hash change
+    (repo / "PLAN.md").write_text(
+        "> **最後更新**: 2026-03-22\n> **Owner**: Updated\n> **Freshness**: Sprint (7d)\n\n"
+        "## Current Phase\n\n- Phase B\n\n"
+        "## Active Sprint\n\n- Task 2\n\n"
+        "## Backlog\n\n- none\n",
+        encoding="utf-8",
+    )
+
+    rc = refresh_baseline(repo, FRAMEWORK_ROOT, dry_run=False)
+
+    assert rc == 0
+    baseline_after = (repo / ".governance" / "baseline.yaml").read_text(encoding="utf-8")
+    assert baseline_before != baseline_after
+
+
+def test_refresh_preserves_plan_required_sections(tmp_path):
+    """--refresh preserves plan_required_sections from existing baseline."""
+    repo = _adopt_repo(tmp_path)
+
+    # Manually add plan_required_sections to baseline
+    baseline_path = repo / ".governance" / "baseline.yaml"
+    content = baseline_path.read_text(encoding="utf-8")
+    content += 'plan_required_sections:\n  - "## Custom Section"\n'
+    baseline_path.write_text(content, encoding="utf-8")
+
+    rc = refresh_baseline(repo, FRAMEWORK_ROOT, dry_run=False)
+
+    assert rc == 0
+    refreshed = baseline_path.read_text(encoding="utf-8")
+    assert "## Custom Section" in refreshed
+
+
+def test_refresh_updates_inventory(tmp_path):
+    """--refresh detects new PLAN.md sections added after adoption."""
+    repo = _adopt_repo(tmp_path)
+
+    # Add a new section to PLAN.md
+    plan = repo / "PLAN.md"
+    plan.write_text(
+        plan.read_text(encoding="utf-8") + "\n## New Section\n\n- item\n",
+        encoding="utf-8",
+    )
+
+    refresh_baseline(repo, FRAMEWORK_ROOT, dry_run=False)
+
+    content = (repo / ".governance" / "baseline.yaml").read_text(encoding="utf-8")
+    assert "## New Section" in content
+
+
+def test_refresh_does_not_copy_template_files(tmp_path):
+    """--refresh must not copy AGENTS.md, contract.yaml, or PLAN.md templates."""
+    repo = _adopt_repo(tmp_path)
+
+    # Delete AGENTS.md to verify refresh does NOT recreate it
+    (repo / "AGENTS.md").unlink()
+
+    refresh_baseline(repo, FRAMEWORK_ROOT, dry_run=False)
+
+    assert not (repo / "AGENTS.md").exists(), "--refresh must not copy template files"
+
+
+def test_refresh_fails_without_baseline(tmp_path):
+    """--refresh returns exit code 1 when no baseline.yaml exists."""
+    repo = _make_git_repo(tmp_path / "repo")
+
+    rc = refresh_baseline(repo, FRAMEWORK_ROOT, dry_run=False)
+
+    assert rc == 1
+
+
+def test_refresh_dry_run_writes_nothing(tmp_path):
+    """--refresh --dry-run must not modify any files."""
+    repo = _adopt_repo(tmp_path)
+    baseline_before = (repo / ".governance" / "baseline.yaml").read_text(encoding="utf-8")
+
+    rc = refresh_baseline(repo, FRAMEWORK_ROOT, dry_run=True)
+
+    assert rc == 0
+    assert (repo / ".governance" / "baseline.yaml").read_text(encoding="utf-8") == baseline_before
+
+
+def test_read_baseline_state_reads_plan_path(tmp_path):
+    """_read_baseline_state returns plan_rel from baseline plan_path key."""
+    repo = _make_git_repo(tmp_path / "repo")
+    gov_dir = repo / ".governance"
+    gov_dir.mkdir()
+    (gov_dir / "baseline.yaml").write_text(
+        'schema_version: "1"\nplan_path: governance/PLAN.md\n',
+        encoding="utf-8",
+    )
+
+    state = _read_baseline_state(repo)
+    assert state["plan_rel"] == "governance/PLAN.md"
+
+
+def test_read_baseline_state_defaults_plan_path(tmp_path):
+    """_read_baseline_state defaults to PLAN.md when plan_path absent."""
+    repo = _make_git_repo(tmp_path / "repo")
+    gov_dir = repo / ".governance"
+    gov_dir.mkdir()
+    (gov_dir / "baseline.yaml").write_text('schema_version: "1"\n', encoding="utf-8")
+
+    state = _read_baseline_state(repo)
+    assert state["plan_rel"] == "PLAN.md"
+
+
+def test_read_baseline_state_reads_required_sections(tmp_path):
+    """_read_baseline_state reads plan_required_sections list."""
+    repo = _make_git_repo(tmp_path / "repo")
+    gov_dir = repo / ".governance"
+    gov_dir.mkdir()
+    (gov_dir / "baseline.yaml").write_text(
+        'schema_version: "1"\nplan_required_sections:\n  - "## Phase"\n  - "## Sprint"\n',
+        encoding="utf-8",
+    )
+
+    state = _read_baseline_state(repo)
+    assert state["required"] == ["## Phase", "## Sprint"]

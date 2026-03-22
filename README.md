@@ -553,6 +553,14 @@ python governance_tools/trust_signal_overview.py --project-root . --plan PLAN.md
 
 ### Tool Reference
 
+#### Onboarding
+
+| Tool | Purpose |
+|------|---------|
+| `adopt_governance.py` | Cross-platform adopt-existing + refresh-baseline (Windows-safe) |
+| `external_repo_readiness.py` | Assess whether an external repo is governance-ready |
+| `governance_drift_checker.py` | Authoritative compliance check against baseline |
+
 #### Trust Signals
 
 | Tool | Purpose |
@@ -635,6 +643,33 @@ Please read governance/SYSTEM_PROMPT.md in full,
 follow the initialization process in section 2,
 and report back with a [Governance Contract] block.
 ```
+
+### Adopting into an Existing Repo
+
+Use `adopt_governance.py` to onboard an existing project — it copies required framework files, creates missing templates, and generates `.governance/baseline.yaml` without overwriting anything you already have.
+
+**Cross-platform (macOS / Linux / Windows):**
+
+```bash
+python governance_tools/adopt_governance.py --target /path/to/your/repo
+```
+
+**Options:**
+
+| Flag | Effect |
+|------|--------|
+| `--target PATH` | Path to the repo to adopt (default: current directory) |
+| `--framework-root PATH` | Override framework root (default: auto-discovered) |
+| `--refresh` | Re-hash existing baseline without copying template files |
+| `--dry-run` | Preview planned actions without writing anything |
+
+**After initial adoption, refresh the baseline when governance files change:**
+
+```bash
+python governance_tools/adopt_governance.py --target /path/to/your/repo --refresh
+```
+
+> **Windows note:** `scripts/init-governance.sh` requires bash. Use `adopt_governance.py` instead — it is the canonical cross-platform equivalent.
 
 ### Example Projects
 

@@ -1,27 +1,41 @@
 #!/usr/bin/env python3
 """
-adopt_governance.py — Cross-platform Python equivalent of:
-  bash scripts/init-governance.sh --target <repo> --adopt-existing
+adopt_governance.py — Cross-platform Python equivalent of init-governance.sh.
 
 Designed for Windows users who cannot run bash scripts.
-Fills governance gaps without overwriting anything that already exists.
 
 Usage:
     python governance_tools/adopt_governance.py --target /path/to/repo
+    python governance_tools/adopt_governance.py --target . --refresh
     python governance_tools/adopt_governance.py --target . --dry-run
     python governance_tools/adopt_governance.py --target . --framework-root /path/to/framework
 
-What it does (adopt-existing semantics):
+Modes:
+    (default)  adopt-existing: fills governance gaps without overwriting anything
+    --refresh  refresh-baseline: recomputes hashes + inventory; no template files copied
+
+What adopt-existing does:
     1. Copies AGENTS.base.md from framework baseline (always; protected file)
     2. Creates AGENTS.md, contract.yaml from template (only if missing)
     3. Creates PLAN.md from template (only if not found in common locations)
     4. Generates .governance/baseline.yaml with hashes + inventory
     5. Runs drift checker inline and prints findings
 
-What it does NOT do:
+What adopt-existing does NOT do:
     - Set plan_required_sections (no mandate imposed on existing repos)
     - Overwrite files that already exist
     - Install git hooks (optional; use scripts/install-hooks.sh on Linux/Mac)
+
+What --refresh does:
+    1. Reads plan_path and plan_required_sections from existing baseline.yaml
+    2. Recomputes sha256 hashes for all tracked files
+    3. Re-detects plan_section_inventory from current PLAN.md
+    4. Rewrites .governance/baseline.yaml (preserves mandate, updates hashes + inventory)
+    5. Runs drift checker inline
+
+What --refresh does NOT do:
+    - Copy or overwrite any template files
+    - Change plan_required_sections
 """
 
 from __future__ import annotations
@@ -93,6 +107,7 @@ def _write_baseline_yaml(
     plan_rel: str,
     inventory: list[str],
     dry_run: bool,
+    plan_required_sections: list[str] | None = None,
 ) -> None:
     """Generate .governance/baseline.yaml."""
     from governance_tools.framework_versioning import current_framework_release
@@ -166,7 +181,13 @@ def _write_baseline_yaml(
         "  - framework_interface_version\n"
         "  - framework_compatible\n"
         "  - domain\n"
-        "\n"
+        + (
+            "plan_required_sections:\n"
+            + "".join(f'  - "{s}"\n' for s in plan_required_sections)
+            if plan_required_sections
+            else ""
+        )
+        + "\n"
         "# ── OBSERVED (repo snapshot — informational only, never enforced) ──────────────\n"
         "# plan_section_inventory: ## headings detected in PLAN.md at adoption/refresh time.\n"
         "#   Drift checker surfaces these for visibility but never fails on missing inventory items.\n"
@@ -318,31 +339,134 @@ def adopt_existing(
     return 0
 
 
+# ── Baseline reader (for --refresh) ──────────────────────────────────────────
+
+def _read_baseline_state(repo_root: Path) -> dict:
+    """Read plan_path and plan_required_sections from existing baseline.yaml.
+
+    Returns a dict with keys:
+        plan_rel        str   — relative path to PLAN.md (default: "PLAN.md")
+        required        list  — plan_required_sections values (may be empty)
+    """
+    from governance_tools.domain_contract_loader import _parse_contract_yaml
+
+    baseline_path = repo_root / ".governance" / "baseline.yaml"
+    if not baseline_path.exists():
+        return {"plan_rel": "PLAN.md", "required": []}
+
+    data = _parse_contract_yaml(baseline_path.read_text(encoding="utf-8"))
+    plan_rel = str(data.get("plan_path") or "PLAN.md")
+
+    raw_required = data.get("plan_required_sections")
+    if isinstance(raw_required, list):
+        required = [str(s) for s in raw_required]
+    else:
+        required = []
+
+    return {"plan_rel": plan_rel, "required": required}
+
+
+# ── Refresh baseline ──────────────────────────────────────────────────────────
+
+def refresh_baseline(
+    repo_root: Path,
+    framework_root: Path,
+    dry_run: bool = False,
+) -> int:
+    """Re-hash tracked files and refresh plan_section_inventory.
+
+    Equivalent to: bash scripts/init-governance.sh --target <repo> --refresh-baseline
+
+    Preserves plan_required_sections from the existing baseline (governance mandate).
+    Does NOT copy or overwrite any template files.
+    """
+    repo_root = repo_root.resolve()
+    framework_root = framework_root.resolve()
+
+    print(f"Refreshing baseline hashes and section inventory: {repo_root}")
+    print()
+
+    baseline_path = repo_root / ".governance" / "baseline.yaml"
+    if not baseline_path.exists():
+        print("ERROR: no .governance/baseline.yaml found")
+        print("  Run adopt first: python governance_tools/adopt_governance.py --target .")
+        return 1
+
+    # ── Read existing state ───────────────────────────────────────────────────
+    state = _read_baseline_state(repo_root)
+    plan_rel = state["plan_rel"]
+    required = state["required"]
+
+    if required:
+        print(f"  Preserved {len(required)} plan_required_sections from existing baseline")
+
+    # ── Re-detect plan inventory ──────────────────────────────────────────────
+    plan_path = repo_root / plan_rel
+    inventory: list[str] = []
+    if plan_path.exists():
+        inventory = _detect_plan_sections(plan_path.read_text(encoding="utf-8"))
+        if inventory:
+            print(f"  plan_section_inventory: {len(inventory)} heading(s) in {plan_rel}")
+
+    if dry_run:
+        print()
+        print(f"  [dry-run] Would recompute hashes for: AGENTS.base.md AGENTS.md {plan_rel} contract.yaml")
+        if required:
+            print(f"  [dry-run] plan_required_sections — {len(required)} section(s) preserved")
+        print(f"  [dry-run] Would rewrite: {baseline_path}")
+        print()
+        print("Dry-run complete. No files were written.")
+        return 0
+
+    # ── Write refreshed baseline ──────────────────────────────────────────────
+    # Build the required_block to re-inject into _write_baseline_yaml content.
+    # We do this by writing baseline via the standard writer then appending
+    # the plan_required_sections block if it was present before.
+    _write_baseline_yaml(
+        repo_root=repo_root,
+        framework_root=framework_root,
+        plan_rel=plan_rel,
+        inventory=inventory,
+        dry_run=False,
+        plan_required_sections=required,
+    )
+
+    print()
+    print("Refresh complete. Verify with:")
+    print(f"  python governance_tools/governance_drift_checker.py --repo {repo_root}")
+    return 0
+
+
 # ── CLI ───────────────────────────────────────────────────────────────────────
+
+def _resolve_framework_root(target: Path, cli_value: str | None) -> Path:
+    """Resolve framework root using the standard priority chain."""
+    if cli_value:
+        return Path(cli_value).resolve()
+    import os
+    env_root = os.environ.get("GOVERNANCE_FRAMEWORK_ROOT", "").strip()
+    if env_root:
+        return Path(env_root).resolve()
+    discovered = discover_framework_root(target)
+    return discovered if discovered else repo_root_from_tooling()
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Adopt AI Governance Framework into an existing repo (cross-platform)."
+        description="Adopt or refresh AI Governance Framework baseline (cross-platform)."
     )
     parser.add_argument("--target", required=True, help="Path to the target repository")
     parser.add_argument("--framework-root", help="Path to framework installation (auto-detected if omitted)")
+    parser.add_argument("--refresh", action="store_true",
+                        help="Refresh mode: recompute hashes + inventory without copying template files")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be done without writing files")
     args = parser.parse_args()
 
     target = Path(args.target).resolve()
+    framework_root = _resolve_framework_root(target, args.framework_root)
 
-    # Resolve framework root using the same priority chain as other tools
-    if args.framework_root:
-        framework_root = Path(args.framework_root).resolve()
-    else:
-        import os
-        env_root = os.environ.get("GOVERNANCE_FRAMEWORK_ROOT", "").strip()
-        if env_root:
-            framework_root = Path(env_root).resolve()
-        else:
-            discovered = discover_framework_root(target)
-            framework_root = discovered if discovered else repo_root_from_tooling()
-
+    if args.refresh:
+        return refresh_baseline(target, framework_root, dry_run=args.dry_run)
     return adopt_existing(target, framework_root, dry_run=args.dry_run)
 
 

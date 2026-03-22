@@ -17,6 +17,7 @@ if __package__ in (None, ""):
 from governance_tools.contract_resolver import resolve_contract
 from governance_tools.domain_contract_loader import load_domain_contract
 from governance_tools.external_project_facts_intake import build_external_project_facts_intake, default_output_path
+from governance_tools.adopt_governance import _discover_plan_path
 from governance_tools.framework_versioning import assess_framework_version_status
 from governance_tools.governance_drift_checker import check_governance_drift
 from governance_tools.hook_install_validator import validate_hook_install
@@ -94,7 +95,7 @@ def assess_external_repo(
         warnings.extend(f"hooks (optional): {item}" for item in hook_result.errors)
     warnings.extend(f"hooks (optional): {item}" for item in hook_result.warnings)
 
-    plan_path = repo_root / "PLAN.md"
+    plan_path = _discover_plan_path(repo_root) or (repo_root / "PLAN.md")
     plan: dict[str, object] | None = None
     if plan_path.exists():
         plan_result = check_freshness(plan_path)
@@ -113,7 +114,7 @@ def assess_external_repo(
     else:
         checks["plan_present"] = False
         checks["plan_fresh_enough"] = False
-        warnings.append("plan: PLAN.md not found")
+        warnings.append("plan: PLAN.md not found in standard locations (root, governance/, memory/, docs/)")
 
     resolution = resolve_contract(contract_path, project_root=repo_root)
     contract: dict[str, object] | None = None

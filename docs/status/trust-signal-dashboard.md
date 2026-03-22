@@ -1,6 +1,6 @@
 # Trust Signal Dashboard
 
-Updated: 2026-03-15
+Updated: 2026-03-22
 
 This page is the stable in-repo entry point for the framework's current adoption
 and release-facing trust signals.

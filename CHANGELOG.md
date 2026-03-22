@@ -1,99 +1,55 @@
 # Changelog
 
-## post-alpha hardening (continued) - 2026-03-22 (part 5)
+## v1.1.0 - 2026-03-22
 
-**Tool inconsistency fix — drift_checker now agrees with readiness on AGENTS.base.md (摩擦點 #4)**
-- `protected_file_sentinel_present` now fails with severity=critical when AGENTS.base.md is
-  absent (previously silently skipped), closing the gap with `readiness.contract_files_complete`
-  which already failed in this case — both tools now agree
-- Root cause: manually-created baseline.yaml (no `overridable.*` keys) caused drift_checker to
-  skip the protected-file existence check entirely while readiness still caught it via contract.yaml
-- Error message includes remediation: `python governance_tools/adopt_governance.py --target .`
-- `format_human` in `external_repo_readiness`: `[governance_drift]` section moved to appear
-  immediately after `[checks]`, labelled as "authoritative governance compliance check" — users
-  see drift findings before per-tool details
-- 2 new tests: absent AGENTS.base.md → critical in drift_checker; governance_drift section
-  appears before [contract] in readiness human output
+### Adoption tooling
 
-## post-alpha hardening (continued) - 2026-03-22 (part 4)
+- **`governance_tools/adopt_governance.py`** — cross-platform Python equivalent of `bash scripts/init-governance.sh --adopt-existing` for Windows users; same semantics: copies AGENTS.base.md (protected), creates missing AGENTS.md/contract.yaml/PLAN.md from templates, generates `.governance/baseline.yaml` with hashes + inventory
+  - `--refresh` mode: re-hashes existing baseline, updates section inventory, preserves `plan_required_sections` — does not copy template files
+  - `--dry-run` flag: previews planned actions without writing anything
+  - Framework root resolution: `--framework-root` > `GOVERNANCE_FRAMEWORK_ROOT` env > upward scan > `__file__` fallback
+  - 26 tests covering adopt + refresh scenarios
 
-**Cross-platform adopt tool (摩擦點 #2/#3)**
-- `governance_tools/adopt_governance.py` — Python equivalent of `bash scripts/init-governance.sh --adopt-existing`
-  for Windows users who cannot run bash scripts
-- Same semantics: copies AGENTS.base.md (protected), creates missing AGENTS.md/contract.yaml/PLAN.md
-  from templates, generates .governance/baseline.yaml with hashes + inventory, runs drift check inline
-- Adopt-existing semantics preserved: never overwrites existing files, no plan_required_sections
-  imposed, plan_path recorded for non-standard PLAN.md locations
-- Framework root resolution uses same priority chain: --framework-root > GOVERNANCE_FRAMEWORK_ROOT
-  env > upward scan > __file__ fallback
-- `--dry-run` flag: shows planned actions without writing anything
-- 17 tests covering all adoption scenarios: plan discovery, template creation, keep-existing,
-  non-standard PLAN.md path, baseline content, dry-run isolation, error handling
+### Drift check hardening (checks 13–16)
 
-## post-alpha hardening (continued) - 2026-03-22 (part 3)
-
-**Adoption friction fixes (from validation report)**
-- `hooks_ready` removed from `readiness_ready` gate — hooks are a deployment convenience,
-  not a governance requirement; Windows users with clean governance no longer blocked
-- Hooks warnings relabelled as `hooks (optional): ...` so the non-blocking nature is
-  visible in output without digging into docs
-- PLAN.md `最後更新` missing-field error now includes a full 3-line example snippet
-  explaining that the framework uses Traditional Chinese field names (design decision)
-- New test: `test_assess_external_repo_ready_without_hooks` — explicit contract that
-  hooks=False must not block readiness_ready
-
-## post-alpha hardening (continued) - 2026-03-22 (part 2)
-
-**Framework root auto-discovery (❻)**
-- `is_framework_root(path)` — detects governance framework installation via `governance_tools/`, `governance/`, or `docs/governance-runtime*` markers
-- `discover_framework_root(start_path)` — walks upward from start_path to find nearest framework root; returns None if not found (no silent guess)
-- `check_governance_drift()` resolution order: CLI `framework_root=` → `GOVERNANCE_FRAMEWORK_ROOT` env → upward scan → `__file__` fallback
-- `init-governance.sh` adds `--framework-root` CLI flag; resolution order: `--framework-root` → `GOVERNANCE_FRAMEWORK_ROOT` → `FRAMEWORK_ROOT` (legacy) → upward scan → script dir fallback
-- `_discover_framework_root()` bash equivalent using same detection heuristics
-- Edge cases (nested repos, monorepos, symlinks): not handled — callers that need deterministic behaviour use explicit path; 9 new tests covering all detection cases and priority ordering
-
-**Freshness default hardened (❺ guardrail)**
-- `FRAMEWORK_DEFAULT_FRESHNESS_DAYS = 14` — framework default raised from 7 to 14
-- Threshold detection: `PLAN.md Freshness:` header is checked for *explicit* policy (via `.policy` field); absent header falls through to framework default 14d, not plan_freshness.py's internal 7d
-- Override guardrail: if `plan_freshness_threshold_days > 14`, drift output emits warning naming the override value and framework default — deviations are visible, not silent
-- 2 new tests: framework default 14d active when no header, override-above-default warning
-
-**Test coverage**
-- 870 tests passing (up from 859)
-
-## post-alpha hardening (continued) - 2026-03-22
-
-**Drift check hardening (checks 13–16 + threshold visibility)**
 - Check #13 `contract_no_placeholders` — fails when contract.yaml still contains `<...>` template tokens
-- Check #14 `agents_sections_filled` — fails when governance:key sections in AGENTS.md have no real content; multi-line HTML comment tracking prevents false positives on template blocks
-- Check #15 `plan_inventory_current` — warns when plan_section_inventory in baseline no longer matches actual PLAN.md headings; emits `--refresh-baseline` hint
-- Check #16 `contract_not_framework_copy` — fails when contract.yaml name matches framework's own contract (catches verbatim copy); skips self when repo_root == framework_root
+- Check #14 `agents_sections_filled` — fails when governance:key sections in AGENTS.md have no real content
+- Check #15 `plan_inventory_current` — warns when plan_section_inventory in baseline no longer matches actual PLAN.md headings; emits `--refresh` hint
+- Check #16 `contract_not_framework_copy` — fails when contract.yaml name matches framework's own contract (verbatim-copy guard)
+- `protected_file_sentinel_present` now fails with severity=critical when AGENTS.base.md is absent (previously silently skipped) — closes gap with `readiness.contract_files_complete`; both tools now agree
 
-**PLAN.md path discovery**
-- `discover_plan_path()` in `init-governance.sh` scans `PLAN.md`, `governance/`, `memory/`, `docs/` to support non-root PLAN.md repos
-- Non-standard path recorded in baseline PROVENANCE layer as `plan_path:`
-- `--refresh-baseline` reads `plan_path` from existing baseline to re-hash the correct file
+### Freshness threshold (❺)
 
-**Framework root portability**
-- `GOVERNANCE_FRAMEWORK_ROOT` env var in `repo_root_from_tooling()` — lets repos that vendor a copy of `governance_tools/` point back to the real framework installation; resolution order: env var → `__file__` parent.parent
-- 6 tests cover all priority-order cases including empty-string fallback
+- `FRAMEWORK_DEFAULT_FRESHNESS_DAYS = 14` — framework default raised from 7 to 14
+- Threshold source always labelled in drift output: `contract override: Nd` / `PLAN.md policy: Nd` / `framework default: 14d`
+- Guardrail warning when `plan_freshness_threshold_days > 14` (override exceeds framework default)
+- `plan_freshness_threshold_days` in `baseline.yaml` CONTRACT layer overrides staleness threshold
 
-**Freshness threshold CONTRACT override**
-- `plan_freshness_threshold_days` in baseline.yaml CONTRACT layer overrides the staleness threshold for the `plan_freshness` check
-- Override source is always labelled in drift output: `contract override: Nd` / `PLAN.md policy: Nd` / `framework default: 7d` — deviations are auditable, not silent
-- CONTRACT layer policy documented: only values that affect validation judgments belong there
-- 4 tests cover: relaxed threshold passes, tightened threshold fails, warning labels source, no-override uses PLAN.md policy
+### Framework root auto-discovery (❻)
 
-**Post-adoption drift summary**
-- `--adopt-existing` now runs the drift checker inline and prints a filtered `[checks]` + findings summary, so adoption gaps are visible immediately
+- `is_framework_root(path)` — detects framework via `governance_tools/`, `governance/`, `docs/governance-runtime*` markers
+- `discover_framework_root(start_path)` — walks upward; returns None if not found (no silent guess)
+- `check_governance_drift()` resolution order: CLI → `GOVERNANCE_FRAMEWORK_ROOT` env → upward scan → `__file__` fallback
+- `init-governance.sh` gains `--framework-root` flag and `_discover_framework_root()` bash equivalent
+- `GOVERNANCE_FRAMEWORK_ROOT` env var in `repo_root_from_tooling()` for vendored-copy repos
 
-**Baseline semantic layers**
-- `baseline.yaml` now carries four-layer semantic comments: PROVENANCE / INTEGRITY / CONTRACT / OBSERVED
+### Adoption friction fixes
 
-**Test coverage**
-- 859 tests passing (up from 835)
-- New: `tests/test_framework_versioning.py` (6 tests)
-- New drift check tests: +18 tests across checks 13–16 and freshness threshold override
+- `hooks_ready` removed from `readiness_ready` gate — hooks are a deployment convenience, not a governance requirement; Windows users with clean governance are no longer blocked
+- Hooks warnings relabelled as `hooks (optional): ...` so non-blocking status is visible in output
+- PLAN.md `最後更新` missing-field error now includes a 3-line example snippet explaining Traditional Chinese field names are a framework design decision
+- `[governance_drift]` section in `external_repo_readiness` human output moved above `[contract]`, labelled "authoritative governance compliance check"
+- PLAN.md discovery in `external_repo_readiness`: scans `PLAN.md`, `governance/`, `memory/`, `docs/` (same as adopt tool)
+
+### Baseline
+
+- `baseline.yaml` carries four-layer semantic comments: PROVENANCE / INTEGRITY / CONTRACT / OBSERVED
+- `plan_path:` recorded for non-standard PLAN.md locations; read back by `--refresh` and drift checker
+
+### Test coverage
+
+- 889 tests passing (up from 835)
+- New test files: `tests/test_framework_versioning.py`, `tests/test_adopt_governance.py`
 
 ## post-alpha hardening - 2026-03-21
 
