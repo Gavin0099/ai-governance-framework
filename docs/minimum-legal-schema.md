@@ -273,7 +273,7 @@ Drift output 會標示來源：
 | `plan_inventory_current` | ✅ PASS | 剛 adopt，inventory 與 PLAN.md 一致 |
 | `baseline_yaml_freshness` | ✅ PASS | 剛生成 |
 
-**15/16 PASS 是 adopt 後的正常狀態**。`source_commit_recorded` 在 git repo 有 commit 時會自動升為 PASS。
+**16/16 PASS 是 adopt 後的正常狀態**。如果 `source_commit_recorded` 仍為 FAIL，表示 git repo 尚無 commit，或 baseline 在 commit 前生成；執行一次 commit 後重跑 drift check 即可轉為 PASS。
 
 ---
 

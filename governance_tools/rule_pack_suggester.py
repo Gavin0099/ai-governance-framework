@@ -59,6 +59,66 @@ SKILL_SIGNAL_PATTERNS = {
 }
 
 
+def _parse_contract_yaml_minimal(text: str) -> dict:
+    """Minimal stdlib-only contract.yaml parser — flat key-value and list items only."""
+    data: dict = {}
+    current_list_key: str | None = None
+    for raw_line in text.splitlines():
+        stripped = raw_line.lstrip("\ufeff").strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if raw_line[:len(raw_line) - len(raw_line.lstrip(" "))]:
+            if current_list_key and stripped.startswith("- "):
+                value = stripped[2:].strip().strip("'\"")
+                data.setdefault(current_list_key, [])
+                cast = data[current_list_key]
+                if isinstance(cast, list):
+                    cast.append(value)
+            continue
+        current_list_key = None
+        if ":" not in stripped:
+            continue
+        key, _, raw_value = stripped.partition(":")
+        key = key.strip().lstrip("\ufeff")
+        value = raw_value.strip().strip("'\"")
+        if not value or value == "[]":
+            data[key] = []
+            current_list_key = key
+        else:
+            data[key] = value
+    return data
+
+
+def _detect_domain_contract(project_root: Path) -> list[dict]:
+    """Read contract.yaml and return domain pack suggestions sourced from rule_roots and domain."""
+    contract_path = project_root / "contract.yaml"
+    if not contract_path.exists():
+        return []
+    try:
+        text = contract_path.read_text(encoding="utf-8", errors="ignore")
+        data = _parse_contract_yaml_minimal(text)
+    except OSError:
+        return []
+    domain = data.get("domain", "")
+    rule_roots = data.get("rule_roots", [])
+    if not domain and not rule_roots:
+        return []
+    suggestions = []
+    if domain and isinstance(domain, str):
+        reasons = [f"contract.yaml: domain={domain}"]
+        if isinstance(rule_roots, list):
+            reasons += [f"contract.yaml rule_root: {r}" for r in rule_roots[:3]]
+        suggestions.append(
+            {
+                "name": domain,
+                "category": "domain",
+                "confidence": "high",
+                "reasons": reasons,
+            }
+        )
+    return suggestions
+
+
 def _iter_files(project_root: Path) -> list[Path]:
     return [path for path in project_root.rglob("*") if path.is_file() and ".git" not in path.parts]
 
@@ -177,10 +237,11 @@ def _suggested_rules_preview(
     language_packs: list[dict],
     framework_packs: list[dict],
     scope_packs: list[dict],
+    domain_packs: list[dict] | None = None,
 ) -> list[str]:
     preview = ["common"]
 
-    for item in language_packs + framework_packs + scope_packs:
+    for item in (domain_packs or []) + language_packs + framework_packs + scope_packs:
         if item["name"] not in preview:
             preview.append(item["name"])
 
@@ -192,6 +253,7 @@ def suggest_rule_packs(project_root: Path, task_text: str = "") -> dict:
     language_packs = _detect_languages(files, project_root)
     framework_packs = _detect_frameworks(files, project_root)
     scope_packs = _suggest_scope(task_text)
+    domain_packs = _detect_domain_contract(project_root)
     suggested_skills = _suggest_skills(language_packs, framework_packs, task_text)
     suggested_agent = _suggest_agent(language_packs, suggested_skills, task_text)
 
@@ -200,11 +262,13 @@ def suggest_rule_packs(project_root: Path, task_text: str = "") -> dict:
         "language_packs": language_packs,
         "framework_packs": framework_packs,
         "scope_packs": scope_packs,
+        "domain_packs": domain_packs,
         "suggested_skills": suggested_skills,
         "suggested_agent": suggested_agent,
-        "suggested_rules": ["common"] + [item["name"] for item in language_packs + framework_packs],
-        "suggested_rules_preview": _suggested_rules_preview(language_packs, framework_packs, scope_packs),
+        "suggested_rules": ["common"] + [item["name"] for item in domain_packs + language_packs + framework_packs],
+        "suggested_rules_preview": _suggested_rules_preview(language_packs, framework_packs, scope_packs, domain_packs),
         "notes": [
+            "domain_packs are sourced from contract.yaml rule_roots and take highest priority",
             "language/framework packs are auto-suggested from repository signals",
             "scope packs are advisory only and should be confirmed by the contract or human reviewer",
             "suggested_rules_preview includes advisory scope packs for convenience, but does not mutate the contract",
@@ -229,7 +293,7 @@ def main() -> None:
         print("suggested_rules_preview=" + ",".join(result["suggested_rules_preview"]))
         print("suggested_skills=" + ",".join(result["suggested_skills"]))
         print("suggested_agent=" + result["suggested_agent"])
-        for group in ("language_packs", "framework_packs", "scope_packs"):
+        for group in ("domain_packs", "language_packs", "framework_packs", "scope_packs"):
             for item in result[group]:
                 advisory = " advisory-only" if item.get("advisory_only") else ""
                 print(f"{group}:{item['name']} [{item['confidence']}{advisory}]")
