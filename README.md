@@ -696,7 +696,7 @@ python governance_tools/adopt_governance.py --target /path/to/your/repo --refres
 
 > **Windows note:** `scripts/init-governance.sh` requires bash. Use `adopt_governance.py` instead — it is the canonical cross-platform equivalent.
 
-**After adoption, expect 15/16 checks to PASS.** If a check is still failing, consult the schema reference:
+**After adoption, expect the baseline drift checks to PASS or reduce to repo-specific follow-up only.** If a check is still failing, consult the schema reference:
 
 - [docs/minimum-legal-schema.md](docs/minimum-legal-schema.md) — minimum valid form of each governance file, which fields not to hand-edit, and which `False` states are non-blocking by design
 
