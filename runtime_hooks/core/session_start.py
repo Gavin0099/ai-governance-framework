@@ -26,8 +26,10 @@ from governance_tools.payload_audit_logger import (
 from governance_tools.change_proposal_builder import build_change_proposal
 from governance_tools.domain_governance_metadata import domain_risk_tier
 from governance_tools.domain_validator_loader import preflight_domain_validators
+from governance_tools.l0_domain_gate import get_l0_domain_skip_reason, should_load_domain_contract
 from governance_tools.state_generator import generate_state
 from runtime_hooks.core.human_summary import build_summary_line, format_contract_summary_label
+from runtime_hooks.core.payload_audit_logger import log_session_payload
 from runtime_hooks.core.pre_task_check import run_pre_task_check
 
 
@@ -45,9 +47,22 @@ def build_session_start_context(
     contract_file: Path | None = None,
     task_level: str = "L1",
     task_type: str = "general",
+    force_domain: bool = False,
 ) -> dict:
     impact_before_files = impact_before_files or []
     impact_after_files = impact_after_files or []
+
+    # Step 6 (5b): L0 domain contract gate — skip domain contract for L0 unless
+    # force_domain flag is set or task description contains domain keywords.
+    load_domain, _load_mode = should_load_domain_contract(
+        task_level=task_level,
+        force_domain=force_domain,
+        task_description=task_text,
+    )
+    domain_skip_reason: str | None = None
+    if not load_domain:
+        domain_skip_reason = get_l0_domain_skip_reason(task_text)
+        contract_file = None  # prevent pre_task_check from loading domain contract
 
     # Authority filter: determine allowed governance files for this session.
     # L0 → always-load only; L1/L2 → always + on-demand.
@@ -106,6 +121,7 @@ def build_session_start_context(
                 "risk": risk,
                 "has_domain_contract": domain_contract is not None,
                 "rule_pack_suggestions_count": len(pre_task.get("rule_pack_suggestions", {})),
+                **({"domain_skip_reason": domain_skip_reason} if domain_skip_reason else {}),
             },
         )
         write_audit_record(_audit_record)
@@ -133,6 +149,7 @@ def build_session_start_context(
         "resolved_contract_file": str(resolved_contract_file) if resolved_contract_file else None,
         "contract_resolution": pre_task.get("contract_resolution"),
         "domain_contract": domain_contract,
+        "domain_skip_reason": domain_skip_reason,
         "validator_preflight": validator_preflight,
         "state": state,
         "pre_task_check": pre_task,
@@ -260,6 +277,8 @@ def main() -> None:
                         help="Task level for authority filter and audit (default: L1)")
     parser.add_argument("--task-type", default="general",
                         help="Task type for audit log (ui/schema/api/domain/test/general)")
+    parser.add_argument("--force-domain", action="store_true", default=False,
+                        help="Force domain contract loading for L0 (summary only)")
     parser.add_argument("--format", choices=["human", "json"], default="human")
     parser.add_argument("--output")
     args = parser.parse_args()
@@ -277,11 +296,29 @@ def main() -> None:
         contract_file=Path(args.contract).resolve() if args.contract else None,
         task_level=args.task_level,
         task_type=args.task_type,
+        force_domain=args.force_domain,
     )
 
     rendered = json.dumps(result, ensure_ascii=False, indent=2) if args.format == "json" else format_human_result(result)
     if args.output:
         Path(args.output).write_text(rendered + "\n", encoding="utf-8")
+
+    # ── Payload audit logging ──────────────────────────────────────────────
+    try:
+        log_file = log_session_payload(
+            result,
+            project_root=Path(args.project_root).resolve(),
+            risk=args.risk,
+            rules=args.rules,
+            task_text=args.task_text,
+            format_mode=args.format,
+            rendered_output=rendered,
+        )
+        print(f"[audit] logged → {log_file}", file=sys.stderr)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[audit] warning: could not write audit log: {exc}", file=sys.stderr)
+    # ──────────────────────────────────────────────────────────────────────
+
     print(rendered)
     raise SystemExit(0 if result["ok"] else 1)
 

@@ -334,6 +334,123 @@ def _write_baseline_yaml(
 
 # ── Main adopt logic ──────────────────────────────────────────────────────────
 
+# ── Step 6: Payload layering + onboarding fix ─────────────────────────────────
+
+def _detect_repo_type(repo_root: Path) -> str:
+    """
+    Heuristically detect repo type based on file presence.
+    Returns: "firmware" | "product" | "service" | "generic"
+    """
+    has_cmake = (repo_root / "CMakeLists.txt").exists() or any(repo_root.rglob("CMakeLists.txt"))
+    has_c = any(repo_root.rglob("*.c"))
+    has_cpp = any(repo_root.rglob("*.cpp")) or any(repo_root.rglob("*.h"))
+    has_driver = any(repo_root.rglob("*.inf")) or any(repo_root.rglob("*.sys"))
+    has_package_json = (repo_root / "package.json").exists()
+    has_pyproject = (repo_root / "pyproject.toml").exists() or (repo_root / "setup.py").exists()
+
+    if has_driver or has_cmake or (has_c and has_cpp):
+        return "firmware"
+    if has_package_json:
+        return "product"
+    if has_pyproject:
+        return "service"
+    return "generic"
+
+
+def _get_default_rule_packs(target_repo_root: Path) -> list[str]:
+    """
+    Determine default rule packs for a repo based on its detected type.
+    Never returns 'onboarding' — that is not a valid rule pack name.
+    """
+    from governance_tools.rule_pack_loader import available_rule_packs
+
+    repo_type = _detect_repo_type(target_repo_root)
+    framework_root = Path(__file__).resolve().parent.parent
+    rules_root = framework_root / "governance" / "rules"
+    available = available_rule_packs(rules_root)
+
+    packs: list[str] = []
+    if "common" in available:
+        packs.append("common")
+
+    if repo_type == "firmware":
+        for candidate in ("cpp", "kernel-driver"):
+            if candidate in available:
+                packs.append(candidate)
+    elif repo_type == "product":
+        for candidate in ("typescript",):
+            if candidate in available:
+                packs.append(candidate)
+    elif repo_type == "service":
+        for candidate in ("python",):
+            if candidate in available:
+                packs.append(candidate)
+
+    return packs
+
+
+def _write_payload_layering_config(target_repo_root: Path, repo_type: str) -> None:
+    """
+    Write .governance-payload-config.yaml to an adopted repo so that
+    session_start can automatically use layered loading without manual config.
+    """
+    import yaml
+
+    config = {
+        "payload_layering": {
+            "version": "1.0.0",
+            "repo_type": repo_type,
+            "l0_context": {
+                "always_load": [
+                    "governance/SYSTEM_PROMPT.md",
+                    "governance/AGENT.md",
+                    "PLAN.md",
+                ],
+                "forbidden_load": [
+                    "governance/ARCHITECTURE.md",
+                    "governance/REVIEW_CRITERIA.md",
+                    "governance/HUMAN-OVERSIGHT.md",
+                    "governance/NATIVE-INTEROP.md",
+                ],
+                "domain_contract_policy": "skip",
+            },
+            "memory_policy": "incremental",
+            "authority_table_path": "governance/AUTHORITY.md",
+            "rule_registry_path": "governance/RULE_REGISTRY.md",
+        }
+    }
+
+    config_path = target_repo_root / ".governance-payload-config.yaml"
+    config_path.write_text(
+        yaml.dump(config, allow_unicode=True, default_flow_style=False),
+        encoding="utf-8",
+    )
+
+
+def _write_session_defaults(target_repo_root: Path, repo_type: str) -> None:
+    """
+    Update .governance-state.yaml with session defaults so adopted repos
+    start with the right configuration out of the box.
+    """
+    state_file = target_repo_root / ".governance-state.yaml"
+    if not state_file.exists():
+        return
+
+    import yaml
+
+    state = yaml.safe_load(state_file.read_text(encoding="utf-8")) or {}
+    state["session_defaults"] = {
+        "repo_type": repo_type,
+        "task_level_detection": "auto",
+        "domain_summary_first": True,
+        "memory_mode": "incremental",
+    }
+    state_file.write_text(
+        yaml.dump(state, allow_unicode=True, default_flow_style=False),
+        encoding="utf-8",
+    )
+
+
 def adopt_existing(
     repo_root: Path,
     framework_root: Path,
@@ -477,6 +594,18 @@ def adopt_existing(
                 print(line)
     except Exception as exc:
         print(f"  (drift check failed: {exc})")
+
+    # ── Step 6: Write payload layering config ─────────────────────────────────
+    if not dry_run:
+        repo_type = _detect_repo_type(repo_root)
+        _write_payload_layering_config(repo_root, repo_type)
+        print(f"  Wrote .governance-payload-config.yaml (repo_type={repo_type})")
+        _write_session_defaults(repo_root, repo_type)
+        if (repo_root / ".governance-state.yaml").exists():
+            print(f"  Updated .governance-state.yaml with session_defaults")
+    else:
+        repo_type = _detect_repo_type(repo_root)
+        print(f"  [dry-run] Would write .governance-payload-config.yaml (repo_type={repo_type})")
 
     print()
     print("Adoption complete. Next steps:")
