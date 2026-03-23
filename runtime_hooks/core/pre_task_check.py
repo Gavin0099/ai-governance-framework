@@ -84,13 +84,20 @@ def run_pre_task_check(
     impact_before_files: list[Path] | None = None,
     impact_after_files: list[Path] | None = None,
     contract_file: Path | None = None,
+    skip_domain_contract: bool = False,
 ) -> dict:
     plan_path = project_root / "PLAN.md"
     freshness = check_freshness(plan_path)
     requested_rules = parse_rule_list(rules)
-    contract_resolution = resolve_contract(contract_file, project_root=project_root)
-    resolved_contract_file = contract_resolution.path
-    domain_contract = load_domain_contract(resolved_contract_file) if resolved_contract_file else None
+    if skip_domain_contract:
+        from governance_tools.contract_resolver import ContractResolution
+        contract_resolution = ContractResolution(path=None, source="skipped")
+        resolved_contract_file = None
+        domain_contract = None
+    else:
+        contract_resolution = resolve_contract(contract_file, project_root=project_root)
+        resolved_contract_file = contract_resolution.path
+        domain_contract = load_domain_contract(resolved_contract_file) if resolved_contract_file else None
     rules_roots = [Path(path) for path in (domain_contract or {}).get("rule_roots", [])] + [Path(__file__).resolve().parents[2] / "governance" / "rules"]
     rule_packs = describe_rule_selection(requested_rules, rules_roots)
     active_rules = load_rule_content(requested_rules, rules_roots)

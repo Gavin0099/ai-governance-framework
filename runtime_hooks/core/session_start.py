@@ -94,6 +94,7 @@ def build_session_start_context(
         impact_before_files=impact_before_files,
         impact_after_files=impact_after_files,
         contract_file=contract_file,
+        skip_domain_contract=not load_domain,
     )
 
     proposal = build_change_proposal(
