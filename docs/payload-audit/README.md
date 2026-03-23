@@ -48,6 +48,7 @@ $env:GOVERNANCE_PAYLOAD_AUDIT="0"   # Windows PowerShell
 | `L0-baseline.md` | L0 任務 token 分布報告 |
 | `L1-baseline.md` | L1 任務 token 分布報告 |
 | `onboarding-baseline.md` | Onboarding 任務 token 分布報告 |
+| `step7-rebaseline-checklist.md` | Step 7 完成後的重測清單與記錄模板 |
 | `README.md` | 本文件 |
 
 ## 解讀報告
