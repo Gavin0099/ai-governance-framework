@@ -40,6 +40,24 @@ from runtime_hooks.core.payload_audit_logger import log_session_payload
 from runtime_hooks.core.pre_task_check import run_pre_task_check
 
 
+def _emit_rendered_output(rendered: str) -> None:
+    """
+    Print rendered output without crashing on Windows terminals that cannot
+    encode some Unicode characters under code pages such as cp950.
+    """
+    try:
+        print(rendered)
+    except UnicodeEncodeError:
+        stream = getattr(sys.stdout, "buffer", None)
+        encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+        if stream is None:
+            safe = rendered.encode(encoding, errors="replace").decode(encoding, errors="replace")
+            sys.stdout.write(safe)
+            sys.stdout.write("\n")
+            return
+        stream.write(rendered.encode(encoding, errors="replace") + b"\n")
+
+
 def build_session_start_context(
     *,
     project_root: Path,
@@ -362,6 +380,7 @@ def main() -> None:
         log_file = log_session_payload(
             result,
             project_root=Path(args.project_root).resolve(),
+            task_type=args.task_type,
             risk=args.risk,
             rules=args.rules,
             task_text=args.task_text,
@@ -373,7 +392,7 @@ def main() -> None:
         print(f"[audit] warning: could not write audit log: {exc}", file=sys.stderr)
     # ──────────────────────────────────────────────────────────────────────
 
-    print(rendered)
+    _emit_rendered_output(rendered)
     raise SystemExit(0 if result["ok"] else 1)
 
 

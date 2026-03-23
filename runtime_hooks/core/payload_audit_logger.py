@@ -65,6 +65,29 @@ def _infer_session_type(risk: str, rules: str, task_text: str = "") -> str:
     return "L1"
 
 
+def resolve_session_type(
+    *,
+    task_level: str = "",
+    task_type: str = "",
+    risk: str = "medium",
+    rules: str = "common",
+    task_text: str = "",
+) -> str:
+    """
+    Resolve the audit lane for a session.
+
+    `task_type=onboarding` should keep a distinct onboarding lane even when the
+    runtime task level is L1, because onboarding cost is tracked separately from
+    generic L1 implementation sessions.
+    """
+    if (task_type or "").lower() == "onboarding":
+        return "onboarding"
+    normalized_level = (task_level or "").upper()
+    if normalized_level in ("L0", "L1", "L2"):
+        return normalized_level
+    return _infer_session_type(risk, rules, task_text)
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -73,6 +96,7 @@ def log_session_payload(
     result: dict,
     *,
     project_root: Path,
+    task_type: str = "general",
     risk: str = "medium",
     rules: str = "common",
     task_text: str = "",
@@ -84,12 +108,14 @@ def log_session_payload(
 
     Returns the path of the log file written.
     """
-    # Prefer explicit task_level from result (L0/L1/L2); fall back to inference
-    task_level = (result.get("task_level") or "").upper()
-    if task_level in ("L0", "L1", "L2"):
-        session_type = task_level
-    else:
-        session_type = _infer_session_type(risk, rules, task_text)
+    task_level = result.get("task_level") or ""
+    session_type = resolve_session_type(
+        task_level=task_level,
+        task_type=task_type,
+        risk=risk,
+        rules=rules,
+        task_text=task_text,
+    )
     now = datetime.now(tz=timezone.utc)
     date_str = now.strftime("%Y-%m-%d")
     ts_str = now.isoformat()
@@ -107,6 +133,8 @@ def log_session_payload(
     entry = {
         "ts": ts_str,
         "session_type": session_type,
+        "task_level": task_level,
+        "task_type": task_type,
         "ok": result.get("ok"),
         "risk_input": risk,
         "rules_input": rules,

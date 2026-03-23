@@ -1,6 +1,6 @@
 # AI Governance Framework
 
-> Move from "asking AI to help write code" to "making AI work inside a governance framework."
+> A runnable AI governance runtime for multi-repo engineering workflows, now in the cost-and-efficiency hardening stage before full productization.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](CHANGELOG.md)
