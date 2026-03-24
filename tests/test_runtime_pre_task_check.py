@@ -85,6 +85,7 @@ def test_pre_task_check_exposes_cpp_active_rules(local_tmp_dir, monkeypatch):
         risk="medium",
         oversight="auto",
         memory_mode="candidate",
+        task_level="L2",
     )
     assert result["ok"] is True
     cpp_pack = [pack for pack in result["active_rules"]["active_rules"] if pack["name"] == "cpp"][0]
@@ -101,6 +102,7 @@ def test_pre_task_check_exposes_refactor_active_rules(local_tmp_dir, monkeypatch
         risk="medium",
         oversight="review-required",
         memory_mode="candidate",
+        task_level="L2",
     )
     assert result["ok"] is True
     refactor_pack = [pack for pack in result["active_rules"]["active_rules"] if pack["name"] == "refactor"][0]
@@ -118,6 +120,7 @@ def test_pre_task_check_exposes_csharp_avalonia_swift_active_rules(local_tmp_dir
         risk="medium",
         oversight="review-required",
         memory_mode="candidate",
+        task_level="L2",
     )
     assert result["ok"] is True
     contents = "\n".join(

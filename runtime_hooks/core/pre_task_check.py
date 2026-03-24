@@ -27,11 +27,52 @@ from governance_tools.output_tier import (
 from governance_tools.reasoning_compressor import compress_fragments
 from governance_tools.rule_pack_loader import describe_rule_selection, load_rule_content, parse_rule_list
 from governance_tools.rule_pack_suggester import suggest_rule_packs
+from governance_tools.rule_classifier import classify_task_topic, filter_rules_by_topic
 from runtime_hooks.core.human_summary import build_summary_line, format_contract_summary_label
 
 
 RISK_ORDER = {"low": 0, "medium": 1, "high": 2}
 OVERSIGHT_ORDER = {"auto": 0, "review-required": 1, "human-approval": 2}
+
+
+def _strip_rule_content(active_rules_result: dict, tier: OutputTier) -> dict:
+    """
+    Strip full rule file content from active_rules for TIER1/TIER2.
+
+    TIER1: pack name, category, and file count only — no titles or paths.
+    TIER2: pack name, category, file titles and paths — no content.
+    TIER3: full content (unchanged).
+
+    The stripped result includes 'content_stripped=True' so downstream
+    tooling can detect when full content is not present.
+    """
+    if tier >= OutputTier.TIER3:
+        return active_rules_result
+
+    stripped_packs = []
+    for pack in active_rules_result.get("active_rules", []):
+        if tier == OutputTier.TIER1:
+            stripped_packs.append({
+                "name": pack["name"],
+                "category": pack.get("category", ""),
+                "file_count": len(pack.get("files", [])),
+            })
+        else:  # TIER2
+            stripped_packs.append({
+                "name": pack["name"],
+                "category": pack.get("category", ""),
+                "files": [
+                    {"path": f["path"], "title": f["title"]}
+                    for f in pack.get("files", [])
+                ],
+            })
+
+    return {
+        **active_rules_result,
+        "active_rules": stripped_packs,
+        "content_stripped": True,
+        "content_tier": int(tier),
+    }
 
 
 def _append_suggestion_warnings(warnings: list[str], requested_rules: list[str], suggestions: dict) -> None:
@@ -94,10 +135,20 @@ def run_pre_task_check(
     skip_domain_contract: bool = False,
     task_level: str = "L1",
     output_tier: "OutputTier | None" = None,
+    task_topic: str | None = None,
 ) -> dict:
     plan_path = project_root / "PLAN.md"
     freshness = check_freshness(plan_path)
     requested_rules = parse_rule_list(rules)
+
+    # ── Topic-based rule filtering ──────────────────────────────────────────
+    # Infer task topic from task_text + requested_rules unless explicitly given.
+    # topic='general' disables filtering (safe default).
+    effective_topic = task_topic or classify_task_topic(task_text, requested_rules)
+    filtered_rules, topic_filtered_out = filter_rules_by_topic(requested_rules, effective_topic)
+    # Always load at minimum the originally requested rules (filtering is advisory
+    # for L0/L1; skip filtering if topic is 'general' or unknown).
+    rules_to_load = filtered_rules if filtered_rules else requested_rules
     if skip_domain_contract:
         from governance_tools.contract_resolver import ContractResolution
         contract_resolution = ContractResolution(path=None, source="skipped")
@@ -108,8 +159,8 @@ def run_pre_task_check(
         resolved_contract_file = contract_resolution.path
         domain_contract = load_domain_contract(resolved_contract_file) if resolved_contract_file else None
     rules_roots = [Path(path) for path in (domain_contract or {}).get("rule_roots", [])] + [Path(__file__).resolve().parents[2] / "governance" / "rules"]
-    rule_packs = describe_rule_selection(requested_rules, rules_roots)
-    active_rules = load_rule_content(requested_rules, rules_roots)
+    rule_packs = describe_rule_selection(rules_to_load, rules_roots)
+    active_rules = load_rule_content(rules_to_load, rules_roots)
     rule_pack_suggestions = suggest_rule_packs(project_root, task_text=task_text)
     impact_before_files = impact_before_files or []
     impact_after_files = impact_after_files or []
@@ -189,7 +240,12 @@ def run_pre_task_check(
         "rule_pack_suggestions": rule_pack_suggestions,
         "architecture_impact_preview": impact_preview,
         "rule_packs": rule_packs,
-        "active_rules": active_rules,
+        "active_rules": _strip_rule_content(active_rules, effective_tier),
+        "topic_filter": {
+            "task_topic": effective_topic,
+            "filtered_out": topic_filtered_out,
+            "rules_loaded": rules_to_load,
+        },
         "contract_resolution": {
             "source": contract_resolution.source,
             "path": str(resolved_contract_file) if resolved_contract_file else None,

@@ -185,3 +185,128 @@ def detect_repo_type(project_root: Path) -> str:
         return "service"
 
     return "tooling"
+
+
+# ── Coarse task topic model ───────────────────────────────────────────────────
+
+# Rule packs that are always safe to include regardless of topic.
+_UNIVERSAL_PACKS: frozenset[str] = frozenset({
+    "common", "refactor", "release", "review_gate",
+})
+
+# For each topic, packs that are conclusively NOT relevant.
+# Conservative by design: only packs with strong exclusive domain signals go here.
+# General language packs (python, cpp, csharp, swift) are NOT denied anywhere;
+# they are too generic to exclude for any topic safely.
+_TOPIC_DENY_PACKS: dict[str, frozenset[str]] = {
+    "general": frozenset(),
+    "kernel_driver": frozenset({
+        "avalonia", "electron", "nextjs", "typescript", "supabase", "firmware_isr",
+    }),
+    "firmware": frozenset({
+        "avalonia", "electron", "nextjs", "typescript", "supabase",
+        "kernel-driver", "kmdf", "wdm", "umdf",
+    }),
+    "ui_presentation": frozenset({
+        "kernel-driver", "kmdf", "wdm", "umdf", "firmware_isr",
+    }),
+    "api_schema": frozenset({
+        "kernel-driver", "kmdf", "wdm", "umdf", "firmware_isr", "avalonia",
+    }),
+    "runtime_governance": frozenset(),
+}
+
+# Keyword patterns (regex, word-boundary-aware) → topic.
+# Listed in specificity order; first match wins.
+_TASK_TOPIC_KEYWORD_RULES: list[tuple[str, list[str]]] = [
+    ("kernel_driver", [
+        r"\birql\b", r"\birp\b", r"\bdpc\b", r"\bisr\b",
+        r"\bwdm\b", r"\bkmdf\b", r"\bumdf\b",
+        r"\bkernel.driver\b", r"\bkd-\d+\b", r"\bkstate\b",
+    ]),
+    ("firmware", [
+        r"\bfirmware\b", r"\bembedded\b", r"\brtos\b",
+        r"\bflash\b", r"\bdma\b", r"\bbootloader\b",
+    ]),
+    ("ui_presentation", [
+        r"\bavalonia\b", r"\belectron\b", r"\bnextjs?\b",
+        r"\bfrontend\b", r"\bcomponent\b", r"\brender(ing)?\b",
+        r"\breact\b", r"\bvue\b",
+    ]),
+    ("runtime_governance", [
+        r"\bgovernance\b", r"\bruntime.hook\b",
+        r"\baudit\b", r"\bvalidator\b",
+    ]),
+    ("api_schema", [
+        r"\bapi\b", r"\bschema\b", r"\bendpoint\b",
+        r"\brest\b", r"\bgraphql\b", r"\bsupabase\b",
+    ]),
+]
+
+# Explicit rule-name → topic inference (takes precedence over keyword scan).
+_PACK_TOPIC_HINTS: dict[str, str] = {
+    "kernel-driver": "kernel_driver",
+    "kmdf": "kernel_driver",
+    "wdm": "kernel_driver",
+    "umdf": "kernel_driver",
+    "firmware": "firmware",
+    "firmware_isr": "firmware",
+    "avalonia": "ui_presentation",
+    "electron": "ui_presentation",
+    "nextjs": "ui_presentation",
+    "supabase": "api_schema",
+}
+
+
+def classify_task_topic(
+    task_text: str = "",
+    requested_rules: list[str] | None = None,
+) -> str:
+    """
+    Return a coarse topic label for a given task.
+
+    Priority:
+    1. If any requested rule pack strongly implies a domain, use that topic.
+    2. Scan task_text for keyword signals.
+    3. Default to 'general' (no filtering).
+    """
+    # 1. Explicit rule-name inference
+    for pack in (requested_rules or []):
+        hint = _PACK_TOPIC_HINTS.get(pack)
+        if hint:
+            return hint
+
+    # 2. Keyword scan
+    text_lower = task_text.lower()
+    for topic, patterns in _TASK_TOPIC_KEYWORD_RULES:
+        for pattern in patterns:
+            if re.search(pattern, text_lower):
+                return topic
+
+    return "general"
+
+
+def filter_rules_by_topic(
+    requested_rules: list[str],
+    task_topic: str,
+) -> tuple[list[str], list[str]]:
+    """
+    Remove rule packs that are conclusively not relevant for the given task_topic.
+
+    Returns:
+        (active_rules, filtered_out_rules)
+
+    Design (conservative denylist):
+    - topic='general' or unknown → no filtering; all rules pass through
+    - Universal packs (common, refactor, release, review_gate) always pass
+    - Packs in _TOPIC_DENY_PACKS[topic] are filtered out
+    - All other packs pass — general language packs (python, cpp, csharp, swift)
+      are never denied because they have no strong exclusive domain affinity
+    """
+    if task_topic == "general" or task_topic not in _TOPIC_DENY_PACKS:
+        return list(requested_rules), []
+
+    deny = _TOPIC_DENY_PACKS[task_topic] - _UNIVERSAL_PACKS  # never deny universal packs
+    active = [p for p in requested_rules if p not in deny]
+    filtered_out = [p for p in requested_rules if p in deny]
+    return active, filtered_out
