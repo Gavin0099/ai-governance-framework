@@ -211,3 +211,40 @@ def test_compute_overrides_empty_components_gives_empty_result() -> None:
         "repo_scope": "framework",
     }
     assert compute_overrides(signal) == {}
+
+
+def test_compute_overrides_summary_first_gate_sets_disable_flag() -> None:
+    write_risk_signal(
+        fw_root := Path(__file__).parent / "_tmp_signal_test",
+        affected_components=["summary_first_gate"],
+        severity="critical",
+        source="test",
+    )
+    sig = read_risk_signal(fw_root)
+    overrides = compute_overrides(sig)
+    assert overrides.get("disable_summary_first") is True
+    import shutil; shutil.rmtree(fw_root, ignore_errors=True)
+
+
+def test_compute_overrides_domain_contract_loading_sets_disable_flag(fw_root: Path) -> None:
+    write_risk_signal(
+        fw_root,
+        affected_components=["domain_contract_loading"],
+        severity="critical",
+        source="test",
+    )
+    sig = read_risk_signal(fw_root)
+    overrides = compute_overrides(sig)
+    assert overrides.get("disable_summary_first") is True
+
+
+def test_compute_overrides_rule_selection_does_not_set_disable_flag(fw_root: Path) -> None:
+    write_risk_signal(
+        fw_root,
+        affected_components=["rule_selection"],
+        severity="critical",
+        source="test",
+    )
+    sig = read_risk_signal(fw_root)
+    overrides = compute_overrides(sig)
+    assert "disable_summary_first" not in overrides

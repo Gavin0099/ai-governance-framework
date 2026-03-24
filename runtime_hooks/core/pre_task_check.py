@@ -137,6 +137,7 @@ def run_pre_task_check(
     task_level: str = "L1",
     output_tier: "OutputTier | None" = None,
     task_topic: str | None = None,
+    disable_summary_first: bool = False,
 ) -> dict:
     plan_path = project_root / "PLAN.md"
     freshness = check_freshness(plan_path)
@@ -165,7 +166,7 @@ def run_pre_task_check(
         # The domain summary will replace inline document content in session_start.
         # L2 always gets full content for reviewer/human-approval paths.
         summary_first_active = False
-        if resolved_contract_file and task_level != "L2":
+        if resolved_contract_file and task_level != "L2" and not disable_summary_first:
             summary = load_domain_summary(resolved_contract_file)
             summary_first_active = summary is not None
         domain_contract = (

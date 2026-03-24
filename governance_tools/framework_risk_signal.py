@@ -47,8 +47,8 @@ KNOWN_COMPONENTS: frozenset[str] = frozenset({
 
 COMPONENT_OVERRIDES: dict[str, dict] = {
     "task_level_detection":         {"min_task_level": "L1"},
-    "domain_contract_loading":      {"min_task_level": "L1"},
-    "summary_first_gate":           {"min_task_level": "L1"},
+    "domain_contract_loading":      {"min_task_level": "L1", "disable_summary_first": True},
+    "summary_first_gate":           {"min_task_level": "L1", "disable_summary_first": True},
     "rule_selection":               {"min_task_level": "L1"},
     "runtime_enforcement_entrypoint": {"min_task_level": "L1"},
     "drift_baseline_integrity":     {"min_task_level": "L1"},
@@ -186,6 +186,9 @@ def compute_overrides(signal: dict | None) -> dict:
                 current = merged.get(key)
                 if current is None or _level_rank(value) > _level_rank(current):
                     merged[key] = value
+            elif key == "disable_summary_first":
+                # Boolean OR — any component requiring this wins.
+                merged[key] = merged.get(key, False) or value
             else:
                 merged[key] = value
     return merged

@@ -165,6 +165,7 @@ def build_session_start_context(
         contract_file=contract_file,
         skip_domain_contract=not load_domain,
         task_level=final_level,
+        disable_summary_first=bool(_sig_overrides.get("disable_summary_first")),
     )
 
     proposal = build_change_proposal(
@@ -261,6 +262,34 @@ def format_human_result(result: dict) -> str:
         f"ok={result['ok']}",
         f"rules={','.join(result['runtime_contract'].get('rules', []))}",
     ]
+    # Risk signal banner — placed before all other output so AI reads it first.
+    _risk_sig = result.get("risk_signal") or {}
+    if _risk_sig.get("active"):
+        from datetime import datetime, timezone
+        from governance_tools.framework_risk_signal import read_risk_signal
+        from governance_tools.framework_versioning import repo_root_from_tooling as _fw_root_fn
+        _raw_sig = read_risk_signal(_fw_root_fn())
+        _age_str = ""
+        if _raw_sig and _raw_sig.get("generated_at"):
+            try:
+                _gen = datetime.fromisoformat(_raw_sig["generated_at"])
+                if _gen.tzinfo is None:
+                    _gen = _gen.replace(tzinfo=timezone.utc)
+                _age_h = (datetime.now(timezone.utc) - _gen).total_seconds() / 3600
+                _age_str = f", age={_age_h:.1f}h"
+            except ValueError:
+                pass
+        _comps = ", ".join((_raw_sig or {}).get("affected_components", []))
+        _src = (_raw_sig or {}).get("source", "unknown")
+        _sev = (_raw_sig or {}).get("severity", "unknown")
+        _applied = ", ".join(
+            f"{k}={v}" for k, v in _risk_sig.get("overrides", {}).items()
+        )
+        lines.insert(0, "[FRAMEWORK RISK SIGNAL ACTIVE]")
+        lines.insert(1, f"  severity={_sev}, source={_src}{_age_str}")
+        lines.insert(2, f"  affected={_comps or '<none>'}")
+        lines.insert(3, f"  applied_overrides={_applied or '<none>'}")
+        lines.insert(4, "")
     domain_contract = result.get("domain_contract") or {}
     domain_raw = domain_contract.get("raw") or {}
     contract_label = domain_raw.get("domain") or domain_contract.get("name")
