@@ -51,12 +51,28 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from governance_tools.domain_contract_loader import _parse_contract_yaml
+from governance_tools.framework_risk_signal import (
+    clear_risk_signal,
+    write_risk_signal,
+)
 from governance_tools.framework_versioning import (
     compare_versions,
     discover_framework_root,
     repo_root_from_tooling,
 )
 from governance_tools.plan_freshness import check_freshness
+
+# ── Framework drift → risk signal component mapping ──────────────────────────
+# Only critical-severity checks are mapped.  When a framework self-check
+# (emit_risk_signal=True) finds one of these failing, the corresponding
+# component is included in the risk signal.
+_FRAMEWORK_DRIFT_TO_COMPONENT: dict[str, str] = {
+    "baseline_yaml_present":          "drift_baseline_integrity",
+    "protected_files_present":        "runtime_enforcement_entrypoint",
+    "protected_files_unmodified":     "runtime_enforcement_entrypoint",
+    "protected_file_sentinel_present": "drift_baseline_integrity",
+    "contract_required_fields_present": "drift_baseline_integrity",
+}
 
 
 BASELINE_YAML_RELPATH = ".governance/baseline.yaml"
@@ -206,6 +222,7 @@ def check_governance_drift(
     framework_root: Path | None = None,
     freshness_threshold_days: int = 90,
     skip_hash: bool = False,
+    emit_risk_signal: bool = False,
 ) -> BaselineDriftResult:
     repo_root = repo_root.resolve()
     if framework_root is not None:
@@ -256,6 +273,13 @@ def check_governance_drift(
             + _adopt_hint(repo_root),
         )
         hints.append(_adopt_hint(repo_root))
+        if emit_risk_signal:
+            write_risk_signal(
+                framework_root,
+                affected_components=["drift_baseline_integrity"],
+                severity="critical",
+                source="governance_drift_checker",
+            )
         return BaselineDriftResult(
             ok=False,
             severity="critical",
@@ -623,6 +647,24 @@ def check_governance_drift(
     has_critical = any(f["severity"] == "critical" for f in findings)
     has_warning = any(f["severity"] == "warning" for f in findings)
     severity = "critical" if has_critical else ("warning" if has_warning else "ok")
+
+    # ── Risk signal emission ─────────────────────────────────────────────────
+    if emit_risk_signal:
+        if has_critical:
+            affected = list({
+                _FRAMEWORK_DRIFT_TO_COMPONENT[f["check"]]
+                for f in findings
+                if f["severity"] == "critical" and f["check"] in _FRAMEWORK_DRIFT_TO_COMPONENT
+            })
+            if affected:
+                write_risk_signal(
+                    framework_root,
+                    affected_components=affected,
+                    severity="critical",
+                    source="governance_drift_checker",
+                )
+        else:
+            clear_risk_signal(framework_root)
 
     return BaselineDriftResult(
         ok=not has_critical,

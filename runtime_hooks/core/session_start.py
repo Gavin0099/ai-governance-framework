@@ -27,6 +27,8 @@ from governance_tools.change_proposal_builder import build_change_proposal
 from governance_tools.domain_governance_metadata import domain_risk_tier
 from governance_tools.domain_summary_loader import inject_domain_summary
 from governance_tools.domain_validator_loader import preflight_domain_validators
+from governance_tools.framework_risk_signal import compute_overrides, read_risk_signal
+from governance_tools.framework_versioning import repo_root_from_tooling
 from governance_tools.l0_domain_gate import get_l0_domain_skip_reason, should_load_domain_contract
 from governance_tools.rule_pack_loader import get_context_aware_rule_packs
 from governance_tools.state_generator import generate_state
@@ -93,7 +95,21 @@ def build_session_start_context(
         "additional_loads": additional_loads,
     }
 
-    # ── L0 domain contract gate ──────────────────────────────────────────────
+    # ── Framework risk signal ─────────────────────────────────────────────
+    # A prior drift check may have written a signal recording a critical failure.
+    # When active, defensively upgrade task_level to at least the required minimum.
+    # Signal only upgrades defense — never changes rules or overrides policy.
+    _fw_root = repo_root_from_tooling()
+    _active_signal = read_risk_signal(_fw_root)
+    _sig_overrides = compute_overrides(_active_signal)
+    if _sig_overrides.get("min_task_level"):
+        _level_order = {"L0": 0, "L1": 1, "L2": 2}
+        _min = _sig_overrides["min_task_level"]
+        if _level_order.get(_min, 0) > _level_order.get(final_level, 0):
+            final_level = _min
+            level_decision["upgraded"] = True
+            level_decision["upgrade_reason"] = f"risk_signal:min_task_level={_min}"
+    level_decision["final"] = final_level
     # Skip domain contract for L0 unless force_domain is set or task description
     # contains domain keywords.
     load_domain, _load_mode = should_load_domain_contract(
@@ -223,6 +239,10 @@ def build_session_start_context(
         "domain_contract": domain_contract,
         "domain_skip_reason": domain_skip_reason,
         "validator_preflight": validator_preflight,
+        "risk_signal": {
+            "active": _active_signal is not None,
+            "overrides": _sig_overrides,
+        },
         "state": state,
         "pre_task_check": pre_task,
     }
