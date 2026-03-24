@@ -55,6 +55,7 @@ def test_usb_hub_example_pre_task_check_loads_external_rule_pack():
         memory_mode="candidate",
         task_text="Validate USB hub firmware response flow",
         contract_file=EXAMPLE_CONTRACT,
+        task_level="L2",
     )
 
     names = [pack["name"] for pack in result["active_rules"]["active_rules"]]

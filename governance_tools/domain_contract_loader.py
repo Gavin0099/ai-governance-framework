@@ -84,8 +84,15 @@ def _as_list(value: object) -> list[str]:
     return [str(value)]
 
 
-def _load_document(path: Path) -> dict:
+def _load_document(path: Path, skip_content: bool = False) -> dict:
     exists = path.exists()
+    if skip_content:
+        return {
+            "path": str(path),
+            "exists": exists,
+            "content": "",
+            "content_skipped": True,
+        }
     return {
         "path": str(path),
         "exists": exists,
@@ -115,7 +122,22 @@ def resolve_domain_contract(
     return resolution.path
 
 
-def load_domain_contract(contract_file: str | Path | None) -> dict | None:
+def load_domain_contract(
+    contract_file: str | Path | None,
+    *,
+    skip_document_content: bool = False,
+) -> dict | None:
+    """
+    Load a domain contract from a contract.yaml file.
+
+    Args:
+        contract_file: Path to contract.yaml.
+        skip_document_content: When True, document and ai_behavior_override file
+            contents are not read from disk (content="", content_skipped=True).
+            Use this when a domain summary will replace inline document content,
+            e.g. for L1 summary-first loading.  rule_roots and validators are
+            always resolved regardless.
+    """
     if contract_file is None:
         return None
 
@@ -132,11 +154,12 @@ def load_domain_contract(contract_file: str | Path | None) -> dict | None:
         "name": data.get("name", contract_path.stem),
         "contract_path": str(contract_path),
         "contract_root": str(contract_root),
-        "documents": [_load_document(path) for path in documents],
-        "ai_behavior_override": [_load_document(path) for path in ai_behavior_override],
+        "documents": [_load_document(path, skip_content=skip_document_content) for path in documents],
+        "ai_behavior_override": [_load_document(path, skip_content=skip_document_content) for path in ai_behavior_override],
         "rule_roots": [str(path) for path in rule_roots],
         "validators": [_load_validator(path) for path in validators],
         "raw": data,
+        **({"document_content_skipped": True} if skip_document_content else {}),
     }
 
 

@@ -28,6 +28,7 @@ from governance_tools.reasoning_compressor import compress_fragments
 from governance_tools.rule_pack_loader import describe_rule_selection, load_rule_content, parse_rule_list
 from governance_tools.rule_pack_suggester import suggest_rule_packs
 from governance_tools.rule_classifier import classify_task_topic, filter_rules_by_topic
+from governance_tools.domain_summary_loader import load_domain_summary
 from runtime_hooks.core.human_summary import build_summary_line, format_contract_summary_label
 
 
@@ -154,10 +155,24 @@ def run_pre_task_check(
         contract_resolution = ContractResolution(path=None, source="skipped")
         resolved_contract_file = None
         domain_contract = None
+        summary_first_active = False
     else:
         contract_resolution = resolve_contract(contract_file, project_root=project_root)
         resolved_contract_file = contract_resolution.path
-        domain_contract = load_domain_contract(resolved_contract_file) if resolved_contract_file else None
+        # ── Summary-first gate ───────────────────────────────────────────
+        # For L1 and below, if a domain adapter summary exists, load the contract
+        # metadata (rule_roots, validators) but skip loading document file content.
+        # The domain summary will replace inline document content in session_start.
+        # L2 always gets full content for reviewer/human-approval paths.
+        summary_first_active = False
+        if resolved_contract_file and task_level != "L2":
+            summary = load_domain_summary(resolved_contract_file)
+            summary_first_active = summary is not None
+        domain_contract = (
+            load_domain_contract(resolved_contract_file, skip_document_content=summary_first_active)
+            if resolved_contract_file
+            else None
+        )
     rules_roots = [Path(path) for path in (domain_contract or {}).get("rule_roots", [])] + [Path(__file__).resolve().parents[2] / "governance" / "rules"]
     rule_packs = describe_rule_selection(rules_to_load, rules_roots)
     active_rules = load_rule_content(rules_to_load, rules_roots)
@@ -254,6 +269,15 @@ def run_pre_task_check(
         },
         "domain_contract": domain_contract,
         "resolved_contract_file": str(resolved_contract_file) if resolved_contract_file else None,
+        "summary_first": {
+            "active": summary_first_active,
+            "task_level": task_level,
+            "note": (
+                "domain document content skipped; summary will be injected by caller"
+                if summary_first_active
+                else "full domain contract loaded"
+            ),
+        },
         "errors": errors,
         "warnings": warnings,
         # ── Tier-aware fields ──────────────────────────────────────────────
