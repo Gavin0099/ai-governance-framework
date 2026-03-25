@@ -432,6 +432,11 @@ It is not:
 Its role is to explain why recognition failed without becoming a shadow policy
 engine.
 
+When surfaced in observer output, diagnostic metadata should remain separate from
+policy metadata. In other words, `failure_source_class` should not be nested
+under a policy-shaped field such as `state_policy`, because that path invites
+downstream consumers to misread a diagnostic label as a policy token.
+
 ## Minimal Artifact Definitions
 
 ### `tech_spec` Artifact

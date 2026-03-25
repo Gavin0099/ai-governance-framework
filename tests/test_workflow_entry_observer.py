@@ -49,7 +49,7 @@ def test_observer_reports_missing_artifacts_when_no_files_exist(tmp_path: Path) 
     assert result["coverage_metric"] == "observation_coverage"
     assert result["state_counts"]["missing"] == 3
     assert result["artifact_observations"]["tech_spec"]["state"] == "missing"
-    assert result["artifact_observations"]["tech_spec"]["state_policy"]["failure_source_class"] == "no_artifact_present"
+    assert result["artifact_observations"]["tech_spec"]["diagnostics"]["failure_source_class"] == "no_artifact_present"
 
 
 def test_observer_recognizes_full_closed_loop(tmp_path: Path) -> None:
@@ -137,7 +137,7 @@ def test_observer_marks_scope_mismatch_as_unverifiable(tmp_path: Path) -> None:
     assert result["artifact_observations"]["tech_spec"]["state"] == "unverifiable"
     assert result["state_counts"]["unverifiable"] == 1
     assert (
-        result["artifact_observations"]["tech_spec"]["state_policy"]["failure_source_class"]
+        result["artifact_observations"]["tech_spec"]["diagnostics"]["failure_source_class"]
         == "artifact_present_but_trust_linkage_unavailable"
     )
 
@@ -228,3 +228,37 @@ def test_observer_surfaces_consumer_guardrails_for_missing_and_unverifiable(tmp_
     ]
     assert "policy_violation_judgment" in result["semantic_boundary"]["consumer_defaults"]["forbidden_observation_only_conclusions"]
     assert result["semantic_boundary"]["diagnostic_fields"]["failure_source_class"]["role"] == "diagnostic_aid"
+    assert "failure_source_class" not in missing_policy
+    assert "failure_source_class" not in unverifiable_policy
+    assert result["artifact_observations"]["validation_evidence"]["diagnostics"]["failure_source_class"] == "no_artifact_present"
+    assert result["artifact_observations"]["tech_spec"]["diagnostics"]["failure_source_class"] == "artifact_present_but_trust_linkage_unavailable"
+
+
+def test_observer_does_not_let_stale_mask_scope_mismatch(tmp_path: Path) -> None:
+    task_text = "Add loop"
+    task_dir = tmp_path / "artifacts" / "add-loop"
+    _write_json(
+        task_dir / "pr_handoff.json",
+        _artifact(
+            artifact_type="pr_handoff",
+            skill="create-pr",
+            status="completed",
+            project_root=tmp_path,
+            task_text="Different task",
+            timestamp=datetime.now(timezone.utc) - timedelta(days=30),
+            content={
+                "change_summary": "Added loop",
+                "scope_included": ["a"],
+                "scope_excluded": ["b"],
+                "risk_summary": "low",
+                "evidence_summary": ["focused tests"],
+            },
+        ),
+    )
+
+    result = observe_workflow_entry(project_root=tmp_path, artifacts_root=tmp_path / "artifacts", task_text=task_text)
+    observation = result["artifact_observations"]["pr_handoff"]
+
+    assert observation["state"] == "unverifiable"
+    assert observation["diagnostics"]["failure_source_class"] == "artifact_present_but_trust_linkage_unavailable"
+    assert "scope does not match the current observable context" in observation["reasons"]

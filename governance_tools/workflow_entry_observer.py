@@ -55,6 +55,12 @@ OBSERVATION_STATES = {"recognized", "missing", "incomplete", "stale", "unverifia
 DEFAULT_STALE_DAYS = 14
 
 
+def _split_state_policy(state: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    state_policy_data = state_policy(state)
+    failure_source_class = state_policy_data.pop("failure_source_class", None)
+    return state_policy_data, {"failure_source_class": failure_source_class}
+
+
 def _slugify(value: str) -> str:
     slug = re.sub(r"[^a-zA-Z0-9]+", "-", value.strip().lower()).strip("-")
     return slug or "task"
@@ -114,9 +120,6 @@ def _classify_artifact(
     if timestamp is None:
         reasons.append("timestamp is not a valid ISO 8601 value")
         return "unverifiable", reasons
-    if timestamp < datetime.now(timezone.utc) - timedelta(days=stale_days):
-        reasons.append(f"artifact older than {stale_days}d freshness window")
-        return "stale", reasons
 
     scope = payload.get("scope")
     if not isinstance(scope, dict) or not _scope_matches(scope, project_root=project_root, task_text=task_text):
@@ -146,6 +149,13 @@ def _classify_artifact(
         reasons.append(f"status {status!r} is not recognized for {artifact_type}")
         return "unverifiable", reasons
 
+    # Freshness is evaluated only after trust-linkage and recognition preconditions.
+    # Otherwise a stale timestamp can mask a more important unverifiable condition
+    # such as scope mismatch or missing provenance.
+    if timestamp < datetime.now(timezone.utc) - timedelta(days=stale_days):
+        reasons.append(f"artifact older than {stale_days}d freshness window")
+        return "stale", reasons
+
     return "recognized", reasons
 
 
@@ -164,22 +174,26 @@ def observe_workflow_entry(
         task_dir = default_task_artifact_dir(artifacts_root, task_text) if task_text else artifacts_root
         artifact_path = task_dir / f"{artifact_type}.json"
         if not artifact_path.exists():
+            state_policy_data, diagnostics = _split_state_policy("missing")
             observations[artifact_type] = {
                 "state": "missing",
                 "artifact_path": str(artifact_path),
                 "reasons": ["artifact file not found"],
-                "state_policy": state_policy("missing"),
+                "state_policy": state_policy_data,
+                "diagnostics": diagnostics,
             }
             continue
 
         try:
             payload = json.loads(artifact_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
+            state_policy_data, diagnostics = _split_state_policy("unverifiable")
             observations[artifact_type] = {
                 "state": "unverifiable",
                 "artifact_path": str(artifact_path),
                 "reasons": [f"artifact could not be parsed: {exc}"],
-                "state_policy": state_policy("unverifiable"),
+                "state_policy": state_policy_data,
+                "diagnostics": diagnostics,
             }
             continue
 
@@ -192,11 +206,13 @@ def observe_workflow_entry(
         )
         if state == "recognized":
             recognized_count += 1
+        state_policy_data, diagnostics = _split_state_policy(state)
         observations[artifact_type] = {
             "state": state,
             "artifact_path": str(artifact_path),
             "reasons": reasons,
-            "state_policy": state_policy(state),
+            "state_policy": state_policy_data,
+            "diagnostics": diagnostics,
         }
 
     state_counts = {state: 0 for state in OBSERVATION_STATES}
