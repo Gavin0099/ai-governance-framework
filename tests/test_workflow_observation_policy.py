@@ -29,6 +29,9 @@ def test_policy_forbids_direct_enforcement_from_observation_states() -> None:
     assert "compliance_judgment" in defaults["forbidden_observation_only_conclusions"]
     assert "intent_inference" in defaults["forbidden_observation_only_conclusions"]
     assert "observation-only combination inference" in defaults["combination_rule"]
+    assert "attention_priority" in defaults["forbidden_recomposition_uses"]
+    assert "action_escalation" in defaults["forbidden_recomposition_uses"]
+    assert "pseudo-policy" in defaults["recomposition_rule"]
 
     missing = state_policy("missing")
     unverifiable = state_policy("unverifiable")
@@ -47,3 +50,14 @@ def test_failure_source_class_is_diagnostic_only() -> None:
     assert "consequence_key" in policy["not_a"]
     assert "policy_severity" in policy["not_a"]
     assert "compliance_proxy" in policy["not_a"]
+
+
+def test_legal_surfaces_still_forbid_cross_surface_recomposition() -> None:
+    defaults = consumer_defaults()
+    metric = metric_policy()
+    diagnostics = state_diagnostics("missing")
+
+    assert diagnostics["failure_source_class"] == "no_artifact_present"
+    assert metric["name"] == "observation_coverage"
+    assert "review_queue_ordering" in defaults["forbidden_recomposition_uses"]
+    assert "severity_label" in defaults["forbidden_recomposition_uses"]

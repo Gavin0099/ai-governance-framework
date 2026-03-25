@@ -445,6 +445,12 @@ The same separation should hold in loader helpers: a helper named like
 `state_policy(...)` should return policy-facing state semantics only, while
 diagnostic-only fields should require an explicit diagnostic helper path.
 
+That separation is still insufficient if a downstream consumer simply merges the
+legal helper outputs back together. Cross-surface recomposition is also
+forbidden: `state_policy`, diagnostic metadata, and metric metadata must not be
+reassembled into a pseudo-policy, severity, attention-priority, or escalation
+view.
+
 ## Minimal Artifact Definitions
 
 ### `tech_spec` Artifact

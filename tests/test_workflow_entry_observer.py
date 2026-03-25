@@ -227,7 +227,10 @@ def test_observer_surfaces_consumer_guardrails_for_missing_and_unverifiable(tmp_
         "reviewer_visible_banner",
     ]
     assert "policy_violation_judgment" in result["semantic_boundary"]["consumer_defaults"]["forbidden_observation_only_conclusions"]
+    assert "attention_priority" in result["semantic_boundary"]["consumer_defaults"]["forbidden_recomposition_uses"]
     assert result["semantic_boundary"]["diagnostic_fields"]["failure_source_class"]["role"] == "diagnostic_aid"
+    assert result["semantic_boundary"]["surface_roles"]["state_policy"] == "observation-state semantics only"
+    assert result["semantic_boundary"]["surface_roles"]["diagnostics"] == "diagnostic-only metadata"
     assert "failure_source_class" not in missing_policy
     assert "failure_source_class" not in unverifiable_policy
     assert result["artifact_observations"]["validation_evidence"]["diagnostics"]["failure_source_class"] == "no_artifact_present"

@@ -53,7 +53,15 @@
       "intent_inference",
       "policy_violation_judgment"
     ],
-    "combination_rule": "observation lane must not, alone or via observation-only combination inference, produce compliance, intent, or policy-violation conclusions"
+    "forbidden_recomposition_uses": [
+      "attention_priority",
+      "severity_label",
+      "action_escalation",
+      "review_queue_ordering",
+      "pseudo_policy_profile"
+    ],
+    "combination_rule": "observation lane must not, alone or via observation-only combination inference, produce compliance, intent, or policy-violation conclusions",
+    "recomposition_rule": "legal observation surfaces must not be recomposed into a pseudo-policy, attention-priority, severity, or escalation view"
   },
   "diagnostic_fields": {
     "failure_source_class": {

@@ -243,6 +243,11 @@ def observe_workflow_entry(
             "allowed_states": sorted(OBSERVATION_STATES),
             "metric_policy": metric_policy(),
             "consumer_defaults": consumer_defaults(),
+            "surface_roles": {
+                "state_policy": "observation-state semantics only",
+                "diagnostics": "diagnostic-only metadata",
+                "metric_policy": "coverage-only metric semantics",
+            },
             "diagnostic_fields": {
                 "failure_source_class": diagnostic_field_policy("failure_source_class"),
             },
