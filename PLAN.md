@@ -4,7 +4,7 @@
 > **技術棧**: Markdown / Python / Bash
 > **複雜度**: L2
 > **預計工期**: 2026/03 ~ 2026/06
-> **最後更新**: 2026-03-21
+> **最後更新**: 2026-03-25
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 
@@ -128,6 +128,7 @@
 - [x] `quickstart_smoke.py` onboarding smoke，並接入 `verify_phase_gates.sh` ✓ 2026/03/15
 - [x] `example_readiness.py` 範例集健康度檢查 ✓ 2026/03/15
 - [x] GitHub Actions 新增 strict runnable-example validation ✓ 2026/03/15
+- [x] workflow entry layer 第一版規格與 tranche-1 Claude workflow skills（`tech-spec` / `precommit` / `codex-review-fast` / `create-pr`）✓ 2026/03/25
 
 **待處理（技術債與品質提升）**:
 - [x] 補齊工具單元測試（state_generator）✓ 2026/03/21 — 78% 覆蓋率
@@ -174,6 +175,7 @@
 - [x] C2. memory_janitor 單元測試 ✓ 2026/03/05
 - [x] C3. linear_integrator 錯誤處理強化 ✓ 2026/03/05
 - [x] D1. Linear 同步策略文件 ✓ 2026/03/05
+- [x] workflow entry-layer spec + tranche-1 workflow skills（`tech-spec` / `precommit` / `codex-review-fast` / `create-pr`）✓ 2026/03/25
 
 ### 低優先 (P2)
 - [x] C4. Git hook 一鍵安裝 ✓ 2026/03/05
@@ -271,3 +273,5 @@
 | 2026/03/06 | 完成 D2 GitHub Actions + GitLab CI | 實際 YAML 設定檔；governance.yml + .gitlab-ci.yml |
 | 2026/03/06 | 完成 D3 Notion 整合 | notion_integrator.py + docs/notion-source-of-truth.md；Phase D Gate 全部通過 |
 | 2026/03/15 | Alpha adoption hardening | requirements / quickstart / example readiness / CI strict example validation / release-facing docs |
+| 2026/03/25 | 定義 workflow entry-layer contract spec | 以 `tech-spec` → `precommit` → `create-pr` 的最小閉環，釘住 artifact、edge、recognition 與 consequence classes，避免 workflow skill 漂成獨立第二系統 |
+| 2026/03/25 | 完成 tranche-1 Claude workflow skills | 新增 `tech-spec`、`precommit`、`codex-review-fast`、`create-pr` 四個 workflow skills，並更新 `.claude/README.md` 索引 |
