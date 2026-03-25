@@ -36,6 +36,7 @@ KNOWN_COMPONENTS: frozenset[str] = frozenset({
     "summary_first_gate",
     "rule_selection",
     "runtime_enforcement_entrypoint",
+    "runtime_enforcement_quality_trend",
     "drift_baseline_integrity",
 })
 
@@ -51,6 +52,7 @@ COMPONENT_OVERRIDES: dict[str, dict] = {
     "summary_first_gate":           {"min_task_level": "L1", "disable_summary_first": True},
     "rule_selection":               {"min_task_level": "L1"},
     "runtime_enforcement_entrypoint": {"min_task_level": "L1"},
+    "runtime_enforcement_quality_trend": {"min_task_level": "L1"},
     "drift_baseline_integrity":     {"min_task_level": "L1"},
 }
 
@@ -160,6 +162,30 @@ def clear_risk_signal(framework_root: Path) -> bool:
         except OSError:
             return False
     return False
+
+
+def clear_risk_signal_for_source(framework_root: Path, source: str) -> bool:
+    """
+    Delete the framework risk signal only when it belongs to the given source.
+
+    This lets a producer clear its own stale signal without erasing a newer
+    signal from a different source while the framework still uses a single-file
+    substrate.
+    """
+    path = _signal_path(framework_root)
+    if not path.exists():
+        return False
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return False
+    if data.get("source") != source:
+        return False
+    try:
+        path.unlink()
+        return True
+    except OSError:
+        return False
 
 
 # ── Compute overrides ────────────────────────────────────────────────────────

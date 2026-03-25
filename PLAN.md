@@ -275,3 +275,6 @@
 | 2026/03/15 | Alpha adoption hardening | requirements / quickstart / example readiness / CI strict example validation / release-facing docs |
 | 2026/03/25 | 定義 workflow entry-layer contract spec | 以 `tech-spec` → `precommit` → `create-pr` 的最小閉環，釘住 artifact、edge、recognition 與 consequence classes，避免 workflow skill 漂成獨立第二系統 |
 | 2026/03/25 | 完成 tranche-1 Claude workflow skills | 新增 `tech-spec`、`precommit`、`codex-review-fast`、`create-pr` 四個 workflow skills，並更新 `.claude/README.md` 索引 |
+| 2026/03/25 | 接上 quality-only control loop，並拆出 workflow observation lane | shared runtime enforcement 會累積 7-day quality trend 並透過既有 risk signal substrate 影響下一次 `session_start`；同時新增 observation-only workflow artifact recognition，避免把 workflow completeness 混入 quality/risk 語意 |
+| 2026/03/25 | 收斂 observation lane 命名與 consumer guardrail | 將 `workflow_score` 改為 `observation_coverage`，並新增 machine-readable interpretation contract，禁止把 `missing` / `unverifiable` 直接翻譯成 compliance、bypass、block 或 task-level policy |
+| 2026/03/25 | 補上防組合濫讀與 diagnostic-only 邊界 | 明確禁止 observation-only 單點或組合推論導出 compliance / intent / policy violation 類結論，並將 `failure_source_class` 限定為 diagnostic aid，避免滑成第二套裁決 taxonomy |

@@ -287,6 +287,16 @@ python runtime_hooks/smoke_test.py --harness codex --event-type session_start
 python runtime_hooks/smoke_test.py --event-type session_start
 ```
 
+### Shared Runtime Enforcement
+
+The canonical CI / git-hook entrypoint is `scripts/run-runtime-governance.sh`.
+It wraps pre-task, post-task, and session hooks into a single shell call:
+
+```bash
+bash scripts/run-runtime-governance.sh --mode enforce
+bash scripts/run-runtime-governance.sh --mode ci
+```
+
 ## Payload Audit and Token Work
 
 The Step 1-Step 7 roadmap and rebaseline outputs live under [docs/payload-audit/](docs/payload-audit/README.md).

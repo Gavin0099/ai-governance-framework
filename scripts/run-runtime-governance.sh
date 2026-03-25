@@ -95,20 +95,65 @@ run_pytest_suite() {
         "${PYTEST_ARGS[@]}"
 }
 
+record_feedback() {
+    local smoke_status="$1"
+    local pytest_status="$2"
+    local framework_root="${PROJECT_ROOT_OVERRIDE:-.}"
+
+    "${PYTHON_CMD[@]}" governance_tools/runtime_enforcement_feedback.py \
+        record \
+        --framework-root "$framework_root" \
+        --mode "$MODE" \
+        --smoke-status "$smoke_status" \
+        --pytest-status "$pytest_status" \
+        --emit-signal
+}
+
 case "$MODE" in
     smoke)
         echo "[runtime-governance] mode=smoke"
-        run_smoke
+        smoke_status="pass"
+        if ! run_smoke; then
+            smoke_status="fail"
+        fi
+        record_feedback "$smoke_status" "skipped"
+        if [[ "$smoke_status" != "pass" ]]; then
+            exit 1
+        fi
         ;;
     ci)
         echo "[runtime-governance] mode=ci"
-        run_smoke
-        run_pytest_suite
+        smoke_status="pass"
+        pytest_status="skipped"
+        if ! run_smoke; then
+            smoke_status="fail"
+        else
+            pytest_status="pass"
+            if ! run_pytest_suite; then
+                pytest_status="fail"
+            fi
+        fi
+        record_feedback "$smoke_status" "$pytest_status"
+        if [[ "$smoke_status" != "pass" || "$pytest_status" == "fail" ]]; then
+            exit 1
+        fi
         ;;
     enforce)
         echo "[runtime-governance] mode=enforce"
-        run_smoke
-        run_pytest_suite
+        smoke_status="pass"
+        pytest_status="skipped"
+        if ! run_smoke; then
+            smoke_status="fail"
+        else
+            pytest_status="pass"
+            if ! run_pytest_suite; then
+                pytest_status="fail"
+            fi
+        fi
+        record_feedback "$smoke_status" "$pytest_status"
+        if [[ "$smoke_status" != "pass" || "$pytest_status" == "fail" ]]; then
+            exit 1
+        fi
         ;;
     *)
         echo "Unsupported mode: $MODE"

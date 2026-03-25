@@ -424,6 +424,64 @@ def test_post_task_check_can_validate_external_rule_pack_from_contract(tmp_path)
     assert result["rule_packs"]["valid"] is True
 
 
+def test_post_task_check_domain_contract_return_has_content_elided(tmp_path):
+    """Regression: return payload must not carry full document content.
+
+    Validators receive the full domain_contract during execution; the return
+    dict uses _slim_domain_contract() which replaces content with elision
+    markers.  This prevents the return payload from ballooning with dead-weight
+    file content that no caller needs after execution completes.
+    """
+    contract_root = tmp_path / "slim_test"
+    (contract_root / "rules" / "firmware").mkdir(parents=True)
+    (contract_root / "rules" / "firmware" / "safety.md").write_text(
+        "# Firmware rule\nValidate rollback.\n", encoding="utf-8"
+    )
+    doc_content = "A" * 500  # 500-char document; clearly non-empty
+    doc_file = contract_root / "CHECKLIST.md"
+    doc_file.write_text(doc_content, encoding="utf-8")
+    override_content = "B" * 200
+    override_file = contract_root / "AGENTS.md"
+    override_file.write_text(override_content, encoding="utf-8")
+    contract_file = contract_root / "contract.yaml"
+    contract_file.write_text(
+        "name: slim-test-contract\n"
+        "documents:\n"
+        "  - CHECKLIST.md\n"
+        "ai_behavior_override:\n"
+        "  - AGENTS.md\n"
+        "rule_roots:\n"
+        "  - rules\n",
+        encoding="utf-8",
+    )
+
+    result = run_post_task_check(
+        _contract(RULES="common,firmware"),
+        risk="medium",
+        oversight="review-required",
+        contract_file=contract_file,
+    )
+
+    dc = result["domain_contract"]
+    assert dc is not None
+    assert dc["name"] == "slim-test-contract"
+
+    # Content must be elided in the return payload
+    for doc in dc["documents"]:
+        assert doc["content"] == "", f"document content must be elided, got {len(doc['content'])} chars"
+        assert doc["content_elided_for_return"] is True
+        assert doc["content_char_count"] == 500, "char_count must reflect original size"
+
+    for entry in dc["ai_behavior_override"]:
+        assert entry["content"] == "", "ai_behavior_override content must be elided"
+        assert entry["content_elided_for_return"] is True
+        assert entry["content_char_count"] == 200
+
+    # Metadata must be intact
+    assert dc["rule_roots"]
+    assert result["rule_packs"]["valid"] is True
+
+
 def test_post_task_check_can_auto_discover_domain_contract_from_project_root(tmp_path):
     (tmp_path / "rules" / "firmware").mkdir(parents=True)
     (tmp_path / "rules" / "firmware" / "safety.md").write_text("# Firmware rule\nValidate rollback.\n", encoding="utf-8")
