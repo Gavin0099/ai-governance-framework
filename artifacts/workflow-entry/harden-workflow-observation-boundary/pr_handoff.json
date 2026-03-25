@@ -1,0 +1,116 @@
+{
+  "artifact_type": "pr_handoff",
+  "skill": "create-pr",
+  "scope": {
+    "task_text": "Harden workflow observation interpretation boundary before any consumer is attached",
+    "repo_root": "E:\\BackUp\\Git_EE\\ai-governance-framework",
+    "changed_surfaces": [
+      "docs/entry-layer-contract.md",
+      "governance/workflow_observation_interpretation.v1.json",
+      "governance_tools/workflow_entry_observer.py",
+      "governance_tools/workflow_observation_policy.py",
+      "tests/test_workflow_entry_observer.py",
+        "tests/test_workflow_observation_policy.py"
+    ]
+  },
+  "timestamp": "2026-03-25T14:17:04.3410085+08:00",
+  "status": "completed",
+  "provenance": {
+    "producer": "create-pr",
+    "repository_path": "E:\\BackUp\\Git_EE\\ai-governance-framework",
+    "framework_version": "local-working-tree",
+    "authoring_agent": "GitHub Copilot"
+  },
+  "content": {
+    "artifact_boundary": {
+      "role": "reviewer_aid_only",
+      "not_a": [
+        "source_of_governance_truth",
+        "governance_evidence",
+        "policy_input",
+        "compliance_indicator"
+      ],
+      "statement": "This artifact is a reviewer aid, not a source of governance truth. It must not be used as evidence, policy input, or a compliance indicator."
+    },
+    "change_summary": [
+      "Added a machine-readable workflow observation interpretation contract that defines allowed interpretations, forbidden interpretations, allowed consequences, and forbidden consequences for observation states.",
+      "Renamed the observer metric from workflow_score to observation_coverage and clarified that the observer is an artifact recognizer, not a workflow recognizer.",
+      "Added explicit guardrails against observation-only combination misuse and downgraded failure_source_class to diagnostic-only metadata rather than a policy key.",
+      "Exposed the interpretation boundary through a loader and surfaced policy metadata in observer output so future consumers must either follow or clearly violate the contract.",
+      "Added focused tests that verify forbidden interpretations, combination-misuse limits, and diagnostic-only field boundaries remain enforced."
+    ],
+    "scope_included": [
+      "Contract wording for observation-only semantics and forbidden consequence boundaries.",
+      "Machine-readable JSON policy for workflow observation interpretation.",
+      "Loader helpers for policy and diagnostic field metadata.",
+      "Observer output changes limited to semantic boundary metadata and naming cleanup.",
+      "Focused tests for observer semantics and policy boundary enforcement."
+    ],
+    "scope_excluded": [
+      "No signal integration for workflow observation lane.",
+      "No consumer surface attachment, including reviewer-visible banner, hint, or advisory note.",
+      "No compliance, intent, or policy-violation verdict generation from workflow observation states.",
+      "No block, raise minimum task level, or force extra evidence behavior wired from workflow observation outputs.",
+      "No attempt to resolve unrelated dirty working-tree changes in runtime feedback, payload audit, release artifacts, or post_task payload slimming."
+    ],
+    "risk_summary": [
+      "Primary risk under review is semantic leakage: a future consumer could still try to repackage observation-only data into judgment language if contract wording or loader fields remain ambiguous.",
+      "Primary reviewer target is not runtime breakage but interpretive loopholes in contract text, JSON shape, and diagnostic metadata naming.",
+      "This change intentionally constrains future expansion rather than adding new user-visible behavior; reviewers should evaluate whether the restriction surface is sufficiently hard, not whether a new feature appeared."
+    ],
+    "evidence_summary": [
+      "Focused validation passed for the observation-boundary suite.",
+      "Validation command: e:/BackUp/Git_EE/ai-governance-framework/.venv/Scripts/python.exe -m pytest tests/test_workflow_entry_observer.py tests/test_workflow_observation_policy.py -q.",
+      "Observer and policy files reported no editor/static errors after the contract hardening changes."
+    ],
+    "reviewer_focus": {
+      "contract_boundary": [
+        "Check whether observation lane outputs are unambiguously limited to observation facts.",
+        "Check whether the contract fully forbids direct and observation-only combination inference of compliance, intent, or policy-violation conclusions.",
+        "Check whether forbidden consequences are complete enough to prevent accidental pseudo-enforcement."
+      ],
+      "loader_surface": [
+        "Check whether workflow_observation_policy.py exposes only interpretation metadata and does not create shortcuts to consequence decisions.",
+        "Check whether the JSON structure leaves any ambiguous field that a consumer could reinterpret as a policy severity or verdict signal."
+      ],
+      "observer_outputs": [
+        "Check whether recognized, missing, incomplete, stale, and unverifiable remain semantically distinct and non-judgmental.",
+        "Check whether observation_coverage naming is now narrow enough to avoid comparison, ranking, or gate-like reading.",
+        "Check whether failure_source_class could still drift into a shadow severity taxonomy despite the new diagnostic-only rule."
+      ],
+      "test_evidence": [
+        "Check whether tests truly lock forbidden interpretations rather than only asserting happy-path fields.",
+        "Check whether observation-only combination misuse is covered strongly enough.",
+        "Check whether tests make it hard to reuse failure_source_class as a consequence key in future changes."
+      ]
+    },
+    "expected_reviewer_attacks": [
+      {
+        "area": "contract_boundary",
+        "question": "Can observation-only combinations still imply compliance, intent, or policy violation indirectly?",
+        "risk": "combinational leakage into implicit judgment semantics"
+      },
+      {
+        "area": "loader_surface",
+        "question": "Can a future consumer bypass the interpretation contract through direct field access or partial helper usage?",
+        "risk": "policy shortcut through loader misuse"
+      },
+      {
+        "area": "observer_outputs",
+        "question": "Is observation_coverage still likely to be read as a quality, ranking, or compliance score?",
+        "risk": "metric semantic drift"
+      },
+      {
+        "area": "diagnostic_metadata",
+        "question": "Can failure_source_class still evolve into a shadow severity or consequence taxonomy?",
+        "risk": "diagnostic metadata becoming a policy proxy"
+      },
+      {
+        "area": "test_evidence",
+        "question": "Do the focused tests actually block forbidden interpretation drift, or do they only restate the current intended shape?",
+        "risk": "false confidence from under-adversarial test coverage"
+      }
+    ],
+    "reviewer_entrypoint": "Start with governance/workflow_observation_interpretation.v1.json, then compare its boundary claims against governance_tools/workflow_observation_policy.py, governance_tools/workflow_entry_observer.py, and the focused tests."
+  }
+}

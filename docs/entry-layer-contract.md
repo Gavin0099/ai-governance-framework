@@ -124,6 +124,25 @@ Required fields:
 - `status`
 - `provenance`
 
+## Artifact Storage Convention
+
+The minimum storage convention should also be explicit, so observation does not
+depend on ad hoc file hunting.
+
+Recommended path:
+
+`artifacts/workflow-entry/<task-slug>/<artifact_type>.json`
+
+Examples:
+
+- `artifacts/workflow-entry/add-runtime-loop/tech_spec.json`
+- `artifacts/workflow-entry/add-runtime-loop/validation_evidence.json`
+- `artifacts/workflow-entry/add-runtime-loop/pr_handoff.json`
+
+This convention is not itself a verdict. It is only the stable location that
+lets a runtime-side observer ask whether recognizable artifacts exist for a
+given observable task scope.
+
 ### Required Field Semantics
 
 #### `artifact_type`
@@ -270,6 +289,148 @@ An artifact is recognized only if:
 - status is meaningful for the artifact type
 
 Artifact existence alone is insufficient.
+
+## Workflow Observation Semantics
+
+Before workflow artifacts influence policy, they should first be described in a
+strictly observational language.
+
+Allowed observation states:
+
+- `recognized`
+- `missing`
+- `incomplete`
+- `stale`
+- `unverifiable`
+
+These states are intentionally observational.
+
+They do **not** mean:
+
+- the AI certainly followed the workflow
+- the AI certainly skipped the workflow
+- the task is workflow-compliant
+- the task is workflow-non-compliant
+
+The safe statement boundary is:
+
+- `recognized` means a recognizable artifact was observed
+- `missing` means no artifact was observed at the expected location
+- `incomplete` means an artifact exists but is missing required observable fields
+- `stale` means an artifact exists but falls outside the freshness window
+- `unverifiable` means an artifact exists but scope/provenance/structure does not
+  justify treating it as a recognized observation
+
+This observer should be described precisely as an artifact recognizer, not a
+workflow recognizer.
+
+Current observation subject:
+
+- storage-backed workflow artifact traces written under the entry-layer storage
+  convention
+
+It does **not** directly observe:
+
+- whether a workflow node was semantically completed
+- whether the AI intentionally skipped a step
+- whether a workflow story is true internally
+
+### Observation Coverage Boundary
+
+If `observation_coverage` is computed, it should be treated as an observation-only
+coverage metric, not as a verdict or risk score.
+
+Safe interpretation:
+
+- how much of the minimum observable artifact loop is currently recognizable
+
+Unsafe interpretation:
+
+- whether the workflow was truly followed internally
+- whether the task is compliant or non-compliant
+- whether a policy consequence is automatically justified
+
+In other words:
+
+`observation_coverage` may summarize observable coverage, but it must not silently
+become a disguised compliance score.
+
+The term `workflow_score` should be avoided because it invites false ordering,
+thresholding, and gate semantics.
+
+## Observation Interpretation Guardrails
+
+The machine-readable source of truth for consumer behavior is:
+
+- `governance/workflow_observation_interpretation.v1.json`
+
+That file exists to stop downstream consumers from silently translating
+observation states into verdict language.
+
+It also forbids a softer loophole:
+
+- observation lane outputs may not, by themselves or through observation-only
+  combination logic, be repackaged into compliance, intent, or policy-violation
+  conclusions
+
+### State Meaning Boundary
+
+- `missing` means no artifact present at the expected storage location
+- `incomplete` means artifact present but minimal envelope or payload fields are
+  absent
+- `stale` means artifact present but outside the current task freshness window
+- `unverifiable` means artifact present but provenance, schema, scope, or time
+  linkage is not trustworthy enough for recognition
+
+### Forbidden Interpretation Baseline
+
+The following direct translations are forbidden:
+
+- `missing -> workflow was not done`
+- `missing -> non-compliance`
+- `unverifiable -> intentional bypass`
+- `unverifiable -> deception`
+- `stale -> task invalid`
+- `recognized -> compliance verdict`
+
+The following combination-style translations are also forbidden:
+
+- `missing + stale + low observation_coverage -> non-compliance`
+- `unverifiable + other observation warnings -> intentional bypass`
+- `repeated observation-only missing states -> policy violation`
+
+### Allowed Consequence Baseline
+
+Until a later contract explicitly changes this, workflow observation states are
+limited to:
+
+- `hint`
+- `advisory_note`
+- `reviewer_visible_banner`
+
+The following direct consequences are forbidden:
+
+- `block`
+- `raise_minimum_task_level`
+- `force_extra_evidence`
+- `mark_non_compliant`
+- `mark_intentional_bypass`
+
+These forbidden consequences remain forbidden even if a consumer only restates
+them as an observation-only aggregate.
+
+### Diagnostic Field Boundary
+
+`failure_source_class` exists as a diagnostic aid only.
+
+It is not:
+
+- a consequence key
+- a policy severity label
+- a compliance proxy
+
+Its role is to explain why recognition failed without becoming a shadow policy
+engine.
 
 ## Minimal Artifact Definitions
 
