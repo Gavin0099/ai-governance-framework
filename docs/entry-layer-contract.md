@@ -451,6 +451,153 @@ forbidden: `state_policy`, diagnostic metadata, and metric metadata must not be
 reassembled into a pseudo-policy, severity, attention-priority, or escalation
 view.
 
+## Attack Coverage Checkpoint
+
+Current state should be described narrowly:
+
+- a repeatable boundary absorption pattern now exists for three exercised attack
+  layers
+- attack-space coverage remains unknown
+- the workflow observation lane is still reviewer-ready only, not
+  consumer-ready
+
+The main value of the first three rounds is not raw attack count. It is the
+fact that pressure moved from single-surface cleanup to cross-surface misuse.
+
+The current taxonomy is intentionally structure-facing. It explains which layer
+was pressured. That is useful, but still incomplete on its own, because misuse
+arrives through consumer intent rather than through module boundaries.
+
+### Absorbed Attack Layers
+
+#### 1. State / Output Interpretation Layer
+
+Observed pressure included:
+
+- stale state masking trust-linkage failure
+- diagnostic metadata appearing on a policy-shaped path
+
+What this layer hardened:
+
+- state precedence now preserves trust-linkage failure instead of flattening it
+  into a simpler freshness story
+- policy-shaped outputs are narrower and diagnostic metadata is no longer
+  colocated with policy-facing state semantics
+
+#### 2. Helper / Metric Affordance Layer
+
+Observed pressure included:
+
+- `state_policy()` exposing diagnostic-only information through a policy helper
+- `observation_coverage` drifting toward score, ranking, or threshold meaning
+
+What this layer hardened:
+
+- helper boundaries now separate policy semantics from diagnostic-only fields
+- the metric contract now explicitly blocks score, ranking, threshold, and
+  compliance-proxy readings
+
+#### 3. Cross-Surface Composition Layer
+
+Observed pressure included:
+
+- legal observation surfaces being recomposed into pseudo-policy, severity,
+  attention-priority, or escalation views
+
+What this layer hardened:
+
+- cross-surface recomposition is now explicitly forbidden in both prose and the
+  machine-readable contract
+- observer output now names surface roles so consumers cannot plausibly claim
+  that surface boundaries were implicit
+
+### Common Failure Pattern
+
+Across all three exercised layers, the recurring problem was not just naming
+drift. The deeper pattern was structure and affordance drift:
+
+- output shape could imply a stronger meaning than prose intended
+- helper boundaries could expose the wrong semantic affordance even if field
+  names looked acceptable
+- legal surfaces could still be recombined into a shadow policy view
+
+Future boundary review should therefore prioritize structure, helper
+affordances, and composition paths before naming or prose cleanup.
+
+### Misuse Intent Overlay
+
+To avoid false coverage, the structure-facing taxonomy should be read together
+with a misuse-intent overlay.
+
+Current high-value misuse intents are:
+
+- `escalation_inference`
+- `severity_labeling`
+- `priority_or_ordering`
+- `compliance_inference`
+
+The review question is no longer only "which layer was attacked?" It must also
+be "which misuse intent was exercised, and through how many structurally
+different paths?"
+
+This matters because one misuse intent can travel through multiple attack
+routes. For example, an escalation-style reading might be induced through:
+
+- state misreading
+- metric drift
+- cross-surface recomposition
+
+If only one route is pressured, the misuse intent itself should not be treated
+as well covered.
+
+### Failure Threshold
+
+This checkpoint also needs a negative progression signal, not only a positive
+absorption summary.
+
+Until a later contract explicitly changes this, the following rule applies:
+
+- if any attack can derive attention-priority, severity, escalation, or
+  comparable pseudo-policy conclusions without violating explicit contract text,
+  then the boundary should be treated as not progression-ready
+
+In that case, the correct reading is not "the boundary was repaired" but
+instead:
+
+- the current contract still leaves a legal path to pseudo-policy
+- progression readiness is not yet established
+
+This threshold exists to prevent repair activity from being misread as maturity
+proof.
+
+### Not Yet Explicitly Pressure-Tested
+
+The following attack space is still materially under-exercised:
+
+- presentation-induced reinterpretation, where a future consumer surface makes
+  observation outputs feel like priority, severity, or compliance even when the
+  underlying data contract is legal
+- external reviewer attack quality, because all meaningful attacks so far are
+  self-red-team and not outside pressure
+- first weak consumer surface behavior, because no banner, hint, advisory, or
+  other consumer-facing attachment exists yet
+
+These remain candidates for later pressure, not proof gaps that should be
+patched speculatively right now.
+
+### Explicitly Out Of Scope For This Phase
+
+To preserve semantic-boundary signal quality, this checkpoint excludes:
+
+- real project integration noise
+- banner, hint, or advisory wording design
+- broad UX or usability tuning
+- performance, file-layout, or adoption-friction optimization
+
+Those concerns matter later, but they should not be allowed to dilute semantic
+boundary hardening before the first constrained consumer surface is even in
+scope.
+
 ## Minimal Artifact Definitions
 
 ### `tech_spec` Artifact
