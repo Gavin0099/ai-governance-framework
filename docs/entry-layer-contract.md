@@ -358,6 +358,10 @@ become a disguised compliance score.
 The term `workflow_score` should be avoided because it invites false ordering,
 thresholding, and gate semantics.
 
+`observation_coverage` should also remain separate from threshold-style control
+paths. It is not a ranking signal, not a risk threshold, and not a task-level
+or compliance decision input.
+
 ## Observation Interpretation Guardrails
 
 The machine-readable source of truth for consumer behavior is:
@@ -436,6 +440,10 @@ When surfaced in observer output, diagnostic metadata should remain separate fro
 policy metadata. In other words, `failure_source_class` should not be nested
 under a policy-shaped field such as `state_policy`, because that path invites
 downstream consumers to misread a diagnostic label as a policy token.
+
+The same separation should hold in loader helpers: a helper named like
+`state_policy(...)` should return policy-facing state semantics only, while
+diagnostic-only fields should require an explicit diagnostic helper path.
 
 ## Minimal Artifact Definitions
 

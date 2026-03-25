@@ -4,7 +4,9 @@ from governance_tools.workflow_observation_policy import (
     consumer_defaults,
     diagnostic_field_policy,
     load_workflow_observation_policy,
+    metric_policy,
     observation_metric_name,
+    state_diagnostics,
     state_policy,
 )
 
@@ -13,6 +15,11 @@ def test_policy_uses_observation_coverage_not_workflow_score() -> None:
     policy = load_workflow_observation_policy()
     assert observation_metric_name() == "observation_coverage"
     assert "workflow_score" in policy["metric"]["forbidden_aliases"]
+    metric = metric_policy()
+    assert "score" in metric["not_a"]
+    assert "risk_threshold" in metric["not_a"]
+    assert "threshold_gate" in metric["forbidden_uses"]
+    assert "task_level_decision" in metric["forbidden_uses"]
 
 
 def test_policy_forbids_direct_enforcement_from_observation_states() -> None:
@@ -27,10 +34,11 @@ def test_policy_forbids_direct_enforcement_from_observation_states() -> None:
     unverifiable = state_policy("unverifiable")
     stale = state_policy("stale")
 
-    assert missing["failure_source_class"] == "no_artifact_present"
+    assert "failure_source_class" not in missing
     assert "workflow was not done" in missing["forbidden_interpretations"]
     assert "intentional bypass occurred" in unverifiable["forbidden_interpretations"]
     assert "task is invalid" in stale["forbidden_interpretations"]
+    assert state_diagnostics("missing")["failure_source_class"] == "no_artifact_present"
 
 
 def test_failure_source_class_is_diagnostic_only() -> None:

@@ -16,6 +16,18 @@
     "name": "observation_coverage",
     "kind": "coverage",
     "description": "fraction of expected artifacts that are currently recognized under the entry-layer contract",
+    "not_a": [
+      "score",
+      "ranking",
+      "risk_threshold",
+      "compliance_proxy"
+    ],
+    "forbidden_uses": [
+      "threshold_gate",
+      "task_level_decision",
+      "risk_ranking",
+      "compliance_ordering"
+    ],
     "forbidden_aliases": [
       "workflow_score",
       "compliance_score",

@@ -27,7 +27,9 @@ from governance_tools.workflow_observation_policy import (
     consumer_defaults,
     diagnostic_field_policy,
     load_workflow_observation_policy,
+    metric_policy,
     observation_metric_name,
+    state_diagnostics,
     state_policy,
 )
 
@@ -56,9 +58,7 @@ DEFAULT_STALE_DAYS = 14
 
 
 def _split_state_policy(state: str) -> tuple[dict[str, Any], dict[str, Any]]:
-    state_policy_data = state_policy(state)
-    failure_source_class = state_policy_data.pop("failure_source_class", None)
-    return state_policy_data, {"failure_source_class": failure_source_class}
+    return state_policy(state), state_diagnostics(state)
 
 
 def _slugify(value: str) -> str:
@@ -241,7 +241,7 @@ def observe_workflow_entry(
             "not_a_workflow_fact": True,
             "forbidden_verdict_terms": ["followed", "skipped", "compliant", "non-compliant"],
             "allowed_states": sorted(OBSERVATION_STATES),
-            "forbidden_metric_aliases": policy.get("metric", {}).get("forbidden_aliases", []),
+            "metric_policy": metric_policy(),
             "consumer_defaults": consumer_defaults(),
             "diagnostic_fields": {
                 "failure_source_class": diagnostic_field_policy("failure_source_class"),
@@ -259,13 +259,14 @@ def format_human_result(result: dict[str, Any]) -> str:
         "[workflow_entry_observer]",
         f"observation_coverage={result['observation_coverage']}",
         f"coverage_metric={result['coverage_metric']}",
+        "metric_boundary=coverage-only; not-a-score-or-threshold",
         f"recognized_artifact_count={result['recognized_artifact_count']}/{result['expected_artifact_count']}",
         "semantic_boundary=observation_only",
         f"observation_subject={result['observation_subject']}",
     ]
     for artifact_type, observation in result["artifact_observations"].items():
         lines.append(f"{artifact_type}={observation['state']}")
-        failure_source_class = observation.get("state_policy", {}).get("failure_source_class")
+        failure_source_class = observation.get("diagnostics", {}).get("failure_source_class")
         if failure_source_class:
             lines.append(f"  failure_source_class={failure_source_class}")
         for reason in observation["reasons"]:
