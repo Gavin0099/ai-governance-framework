@@ -32,6 +32,12 @@
 - 實務上的 git hook / CI gate 攔截覆蓋率
 - 不同 repo 類型下的規則分級，降低最小 repo 的治理負擔
 
+## 完整技術文件
+
+如果你想看完整的系統說明、8 大法典、runtime hooks、靜態工具集、memory pipeline、external domain seam、CI 整合與採用細節，請直接看：
+
+- [docs/technical-overview.zh-TW.md](docs/technical-overview.zh-TW.md)
+
 ## 架構總覽
 
 ```mermaid
