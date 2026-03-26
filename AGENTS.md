@@ -31,6 +31,21 @@ If this file and `governance/AGENT.md` appear to overlap:
 - use `governance/AGENT.md` for repo engineering governance
 - if editor/adapter/workspace instructions conflict with repo-local governance on execution rigor, risk gates, or task classification, `governance/` wins for repo work and the mismatch should be corrected instead of silently improvised
 
+## Nested Repo / Submodule Rule
+
+When this repository is opened inside another repository as a nested checkout or
+submodule:
+- treat this repository root as a separate workspace, not as an extension of the parent repo
+- confirm the current repo root before reading or updating `memory/`, `artifacts/`, `PLAN.md`, or `governance/`
+- do not mix this repo's `memory/` files with the parent repo's `memory/` files
+- do not write review notes, active-task updates, or governance artifacts into the wrong repo just because both repos expose similarly named paths
+- when reporting findings, name which repo owns the file and which repo owns the decision
+
+If the parent repo wants to consume this framework through a submodule, treat
+submodule pointer updates as parent-repo decisions. Do not silently assume that
+advancing the framework checkout also updates the parent repo's intended pinned
+version.
+
 ## Memory
 
 You wake up fresh each session. These files are your continuity:

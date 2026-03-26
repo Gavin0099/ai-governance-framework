@@ -98,6 +98,28 @@ Not yet validated on:
 If your repo falls outside the validated scope, treat adoption as an experiment rather than a guaranteed path.
 The schema reference ([docs/minimum-legal-schema.md](docs/minimum-legal-schema.md)) and the `--dry-run` flag are your safest starting points.
 
+## Submodule Consumption Boundary
+
+If another repository consumes `ai-governance-framework` as a git submodule or a
+vendored nested checkout, keep these boundaries explicit:
+
+- submodule pointer updates are manual parent-repo decisions; new commits in this repo do not advance the parent repo automatically
+- this repo's `memory/`, `artifacts/`, `PLAN.md`, and `governance/` remain owned by this repo and must not be mixed with similarly named paths in the parent repo
+- agents and scripts should confirm the active repo root before reading or writing memory/governance files in nested-repo setups
+
+### CI Boundary For Consumers
+
+This repository does not assume that a consuming repo's CI pipeline will
+automatically initialize or scan the submodule contents.
+
+If a parent repo excludes `third_party/` or does not run `git submodule update --init`,
+that parent CI pipeline is treating the framework as an external pinned
+dependency, not as an in-scope scan surface. In that setup:
+
+- CI does not prove compatibility between the parent repo and a newer framework commit
+- SAST or static analysis results may intentionally exclude the framework checkout
+- any external host dependency in the parent repo's `.gitmodules` remains the parent repo's operational responsibility
+
 ## Comparison & Differentiation
 
 The simplest way to describe the difference is:
