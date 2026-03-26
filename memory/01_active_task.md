@@ -44,3 +44,4 @@
 - Keep reducing adoption friction for first-time users by validating example runnable paths and keeping quickstart docs aligned with the actual local environment.
 - Consider whether `quickstart_smoke.py` should eventually join CI or docs validation as a dedicated adoption-path regression check.
 - Keep IC / EDA Python governance as an evaluated future domain fit, but only after validating a narrow contract-first slice such as Cocotb mapping, golden-model translation, or internal toolchain scripting.
+- 2026-03-26 review: `ead27a1` needs follow-up because new reviewer-aid artifacts in `artifacts/workflow-entry/` do not match the minimum envelope enforced for recognizable workflow artifacts.

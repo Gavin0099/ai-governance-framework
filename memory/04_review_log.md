@@ -921,3 +921,25 @@
   - for domains like RTL / CDC, the framework should be framed more as a risk declaration and reviewer-focusing system than as a full automatic prevention layer
 - Noted `address_collision_validator.py` style address-map checking as a particularly strong future candidate because it combines high value with relatively tractable validation logic.
 
+## 2026-03-26 - Review: `ead27a1` Add workflow observation checkpoint artifacts
+
+- Verdict: `CHANGES_REQUESTED`
+- Risk: `Medium`
+- Blocking finding:
+  - The new reviewer-aid artifacts under `artifacts/workflow-entry/harden-workflow-observation-boundary/` do not satisfy the minimum entry-layer artifact envelope they are colocated with.
+  - Evidence:
+    - `docs/entry-layer-contract.md` defines `artifact_type`, `skill`, `scope`, `timestamp`, `status`, and `provenance` as required envelope fields.
+    - `governance_tools/workflow_entry_observer.py` enforces that same envelope and requires `content` plus recognized artifact-specific payload fields.
+    - `attack_coverage_checkpoint.json` and `reviewer_attack_shortlist.json` omit at least `skill`, `provenance`, and `content`.
+  - Consequence:
+    - The commit makes the `workflow-entry` storage surface internally inconsistent and invites future consumers to treat reviewer-only adjunct files as if they were runtime-recognizable workflow artifacts.
+- Warning:
+  - The new files reuse the `workflow-entry` namespace even though current runtime recognition only models `tech_spec`, `validation_evidence`, and `pr_handoff`.
+  - If reviewer-only adjunct artifacts are meant to stay outside the recognizable loop, they should either move to a separate reviewer namespace or gain an explicit “observer-ignored adjunct artifact” contract.
+- Suggestion:
+  - The repo already captures partial “do not add” reasoning through `non_goals`, `scope_excluded`, and `explicitly_not_now`, but it still lacks a forced decision record for:
+    - what breaks if a proposed mechanism is added
+    - what happens if it is not added
+    - whether it overlaps an existing mechanism
+    - the maintenance / complexity cost of adding it
+
