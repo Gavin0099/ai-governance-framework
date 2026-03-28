@@ -1,5 +1,6 @@
 import shutil
 import sys
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -96,7 +97,7 @@ def test_session_start_human_output_is_actionable(local_session_start_root):
 def test_session_start_can_load_domain_contract_with_external_rules(local_session_start_root):
     plan = local_session_start_root / "PLAN.md"
     plan.write_text(
-        "> **最後更新**: 2026-03-09\n"
+        f"> **最後更新**: {date.today().isoformat()}\n"
         "> **Owner**: Tester\n"
         "> **Freshness**: Sprint (7d)\n",
         encoding="utf-8",
@@ -141,7 +142,7 @@ def test_session_start_can_load_domain_contract_with_external_rules(local_sessio
 def test_session_start_can_auto_discover_domain_contract(local_session_start_root):
     plan = local_session_start_root / "PLAN.md"
     plan.write_text(
-        "> **最後更新**: 2026-03-09\n"
+        f"> **最後更新**: {date.today().isoformat()}\n"
         "> **Owner**: Tester\n"
         "> **Freshness**: Sprint (7d)\n",
         encoding="utf-8",

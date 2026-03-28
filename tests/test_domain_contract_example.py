@@ -219,7 +219,7 @@ def test_usb_hub_example_post_task_cli_can_consume_checks_file_fixture():
     completed = subprocess.run(
         command,
         cwd=Path(".").resolve(),
-        capture_output=True,
+        capture_output=True, stdin=subprocess.DEVNULL,
         text=True,
         check=False,
     )
@@ -288,7 +288,7 @@ index 1111111..2222222 100644
     completed = subprocess.run(
         command,
         cwd=Path(".").resolve(),
-        capture_output=True,
+        capture_output=True, stdin=subprocess.DEVNULL,
         text=True,
         check=False,
     )

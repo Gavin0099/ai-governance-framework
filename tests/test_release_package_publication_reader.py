@@ -90,7 +90,7 @@ def test_release_package_publication_reader_cli_supports_docs_release_root(tmp_p
             "human",
         ],
         check=True,
-        capture_output=True,
+        capture_output=True, stdin=subprocess.DEVNULL,
         text=True,
     )
 

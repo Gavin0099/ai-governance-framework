@@ -175,7 +175,7 @@ def test_publication_reader_cli_supports_direct_script_invocation(tmp_path):
             "human",
         ],
         check=True,
-        capture_output=True,
+        capture_output=True, stdin=subprocess.DEVNULL,
         text=True,
     )
 
@@ -219,7 +219,7 @@ def test_publication_reader_cli_can_use_docs_status_flag(tmp_path):
             "human",
         ],
         check=True,
-        capture_output=True,
+        capture_output=True, stdin=subprocess.DEVNULL,
         text=True,
     )
 

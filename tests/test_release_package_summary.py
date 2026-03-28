@@ -64,7 +64,7 @@ def test_release_package_summary_cli_supports_direct_script_invocation():
             "human",
         ],
         check=True,
-        capture_output=True,
+        capture_output=True, stdin=subprocess.DEVNULL,
         text=True,
     )
 

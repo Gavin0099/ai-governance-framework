@@ -83,7 +83,7 @@ def test_release_package_snapshot_cli_supports_direct_script_invocation(tmp_path
             "human",
         ],
         check=True,
-        capture_output=True,
+        capture_output=True, stdin=subprocess.DEVNULL,
         text=True,
     )
 

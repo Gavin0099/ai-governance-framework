@@ -242,7 +242,7 @@ def _run_cli(*args):
     return subprocess.run(
         [sys.executable, str(RUN_VALIDATORS.resolve()), *args],
         cwd=Path(".").resolve(),
-        capture_output=True,
+        capture_output=True, stdin=subprocess.DEVNULL,
         text=True,
         check=False,
     )

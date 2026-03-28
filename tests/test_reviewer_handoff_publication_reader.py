@@ -154,7 +154,7 @@ def test_reviewer_handoff_publication_reader_cli_supports_direct_script_invocati
             "human",
         ],
         check=True,
-        capture_output=True,
+        capture_output=True, stdin=subprocess.DEVNULL,
         text=True,
     )
 
@@ -204,7 +204,7 @@ def test_reviewer_handoff_publication_reader_cli_can_use_docs_status_flag(tmp_pa
             "human",
         ],
         check=True,
-        capture_output=True,
+        capture_output=True, stdin=subprocess.DEVNULL,
         text=True,
     )
 

@@ -193,7 +193,7 @@ def test_reviewer_handoff_summary_cli_supports_direct_script_invocation(tmp_path
             "human",
         ],
         check=True,
-        capture_output=True,
+        capture_output=True, stdin=subprocess.DEVNULL,
         text=True,
     )
 

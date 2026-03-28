@@ -193,7 +193,7 @@ def test_change_control_summary_cli_runs_as_direct_script(tmp_path):
             str(session_start_file),
         ],
         cwd=Path(__file__).parent.parent,
-        capture_output=True,
+        capture_output=True, stdin=subprocess.DEVNULL,
         text=True,
         check=False,
     )

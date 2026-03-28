@@ -175,7 +175,7 @@ def test_dispatcher_cli_can_apply_contract_override():
         ],
         cwd=Path(__file__).parent.parent,
         text=True,
-        capture_output=True,
+        capture_output=True, stdin=subprocess.DEVNULL,
         check=True,
     )
     assert "contract_source=explicit" in result.stdout
@@ -208,7 +208,7 @@ def test_dispatcher_cli_can_infer_project_root_and_plan_from_contract(tmp_path):
         ],
         cwd=Path(__file__).parent.parent,
         text=True,
-        capture_output=True,
+        capture_output=True, stdin=subprocess.DEVNULL,
         check=True,
     )
     payload = json.loads(result.stdout)
@@ -236,7 +236,7 @@ def test_dispatcher_cli_can_apply_post_task_response_and_checks_overrides(tmp_pa
         ],
         cwd=Path(__file__).parent.parent,
         text=True,
-        capture_output=True,
+        capture_output=True, stdin=subprocess.DEVNULL,
         check=False,
     )
     assert result.returncode == 0
