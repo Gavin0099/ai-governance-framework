@@ -19,7 +19,7 @@ Use it when you want one place to understand:
 python governance_tools/trust_signal_overview.py \
   --project-root . \
   --plan PLAN.md \
-  --release-version v1.0.0-alpha \
+  --release-version v1.1.0 \
   --contract examples/usb-hub-contract/contract.yaml \
   --external-contract-repo D:/USB-Hub-Firmware-Architecture-Contract \
   --external-contract-repo D:/Kernel-Driver-Contract \
@@ -33,7 +33,7 @@ If you want a shareable dashboard-style output:
 python governance_tools/trust_signal_overview.py \
   --project-root . \
   --plan PLAN.md \
-  --release-version v1.0.0-alpha \
+  --release-version v1.1.0 \
   --contract examples/usb-hub-contract/contract.yaml \
   --format markdown
 ```
@@ -44,7 +44,7 @@ If you want to publish a stable generated snapshot page:
 python governance_tools/trust_signal_snapshot.py \
   --project-root . \
   --plan PLAN.md \
-  --release-version v1.0.0-alpha \
+  --release-version v1.1.0 \
   --contract examples/usb-hub-contract/contract.yaml \
   --external-contract-repo D:/USB-Hub-Firmware-Architecture-Contract \
   --external-contract-repo D:/Kernel-Driver-Contract \
@@ -60,7 +60,7 @@ If you want the same publication to land under a stable repo-local docs path:
 python governance_tools/trust_signal_snapshot.py \
   --project-root . \
   --plan PLAN.md \
-  --release-version v1.0.0-alpha \
+  --release-version v1.1.0 \
   --contract examples/usb-hub-contract/contract.yaml \
   --external-contract-repo D:/USB-Hub-Firmware-Architecture-Contract \
   --external-contract-repo D:/Kernel-Driver-Contract \
@@ -119,6 +119,7 @@ come from and how to regenerate them locally.
 - [Status Index](README.md)
 - [Runtime Governance Status](runtime-governance-status.md)
 - [Next Steps](next-steps.md)
+- [Release Note](../releases/v1.1.0.md)
 - [Alpha Release Note](../releases/v1.0.0-alpha.md)
 - [Alpha Checklist](../releases/alpha-checklist.md)
 - [Known Limits](../LIMITATIONS.md)

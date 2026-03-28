@@ -39,6 +39,7 @@ The most precise current positioning is:
 Current release-facing status:
 
 - version: `v1.1.0` (2026-03-22)
+- release note: [docs/releases/v1.1.0.md](docs/releases/v1.1.0.md)
 - previous release: [docs/releases/v1.0.0-alpha.md](docs/releases/v1.0.0-alpha.md)
 - changelog: [CHANGELOG.md](CHANGELOG.md)
 - known limits: [docs/LIMITATIONS.md](docs/LIMITATIONS.md)
@@ -48,7 +49,7 @@ Current release-facing status:
 - schema reference: [docs/minimum-legal-schema.md](docs/minimum-legal-schema.md)
 
 This framework is suitable for evaluation, internal adoption trials, and domain-contract experimentation.
-It should still be treated as an early-stage framework rather than a fully closed enforcement platform:
+It should still be treated as a prototype rather than a fully closed enforcement platform:
 semantic verification depth, adoption smoothness, and rule classification remain open fronts.
 
 ### What Changed in v1.1.0 and Since
@@ -285,6 +286,15 @@ python runtime_hooks/core/session_end.py --project-root . --session-id 2026-03-1
 python runtime_hooks/smoke_test.py --harness claude_code --event-type pre_task
 python runtime_hooks/smoke_test.py --harness codex --event-type session_start
 python runtime_hooks/smoke_test.py --event-type session_start
+```
+
+### Shared Runtime Enforcement
+
+`scripts/run-runtime-governance.sh` is the shared shell wrapper that runs smoke, enforcement, and CI gate flows. It honors `AI_GOVERNANCE_PYTHON` before falling back to `python`, `python3`, or `py -3`.
+
+```bash
+bash scripts/run-runtime-governance.sh --mode smoke --contract examples/usb-hub-contract/contract.yaml --project-root . --plan-path PLAN.md
+bash scripts/run-runtime-governance.sh --mode ci
 ```
 
 ## Payload Audit and Token Work

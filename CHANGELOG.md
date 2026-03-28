@@ -2,6 +2,10 @@
 
 ## v1.1.0 - 2026-03-22
 
+See [docs/releases/README.md](docs/releases/README.md), [docs/releases/v1.1.0.md](docs/releases/v1.1.0.md), [docs/releases/v1.1.0-github-release.md](docs/releases/v1.1.0-github-release.md), and [docs/releases/v1.1.0-publish-checklist.md](docs/releases/v1.1.0-publish-checklist.md).
+
+
+
 ### Adoption tooling
 
 - **`governance_tools/adopt_governance.py`** — cross-platform Python equivalent of `bash scripts/init-governance.sh --adopt-existing` for Windows users; same semantics: copies AGENTS.base.md (protected), creates missing AGENTS.md/contract.yaml/PLAN.md from templates, generates `.governance/baseline.yaml` with hashes + inventory
