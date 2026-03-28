@@ -1,44 +1,179 @@
 # AI Governance Framework
 
-> A runnable AI governance runtime for multi-repo engineering workflows, now in the cost-and-efficiency hardening stage before full productization.
+> 一個可執行的 AI 治理運行時框架，面向多 repo 工程協作流程，現階段已完成真實 repo 驗證，並持續收斂採用摩擦、語義驗證深度與 CI / hook 攔截覆蓋率。
 
 [![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
-## What This Is
+## 為什麼用這個框架
 
-In long-lived projects, the most common AI failure modes are not one-off intelligence misses, but:
+大多數 AI 協作工作流的崩壞方式其實很像，不是模型本身不夠強，而是沒有機制在跨 session 之間維持一致性：
 
-- gradually forgetting context
-- drifting away from the current sprint or phase
-- breaking architectural boundaries
-- finishing work without leaving reviewable knowledge behind
+- AI 忘記你前幾天做過的決策
+- 它逐漸偏離目前的 sprint 或 phase
+- 它越過了本來不該碰的架構邊界
+- 它做完事情卻沒留下任何可審查的知識或 artifact
 
-This repository provides governance documents, validation tools, and runtime hooks that move an AI coding workflow from:
-
-`AI -> code -> human review`
-
-to:
+這個 repo 的核心不是再多寫幾份政策文件，而是提供一條可執行的治理運行時主幹，讓治理真的發生在每次 AI session 的邊界上：
 
 `AI -> runtime governance -> task execution -> session lifecycle -> memory governance`
 
-The most precise current positioning is:
+它目前的定位可以精準描述成：
 
-- a runnable `AI Coding Runtime Governance Framework`, already exercised on real repos
-- a framework with a real runtime governance spine, not just static policy documents
-- an established external domain validator seam with firmware, kernel-driver, and IC-verification slices already running
-- a cross-platform adopt toolchain (`adopt_governance.py`) validated against multiple repo types and self-hosting paths
-- a drift checker with 16 named checks and a minimum-legal schema reference that lets users onboard without reading source code
-- still actively strengthening:
-  - semantic verification depth
-  - practical git-hook / CI-gate interception coverage
-  - repo-type-specific rule classification to reduce governance overhead on minimal repos
+- 一個已在真實 repo 跑過的 `AI Coding Runtime Governance Framework`
+- 一個有實際 runtime governance spine 的框架，而不只是靜態治理文件集合
+- 一個已驗證外部 domain validator seam 的治理系統，現有 firmware、kernel-driver、IC-verification slice
+- 一套可跨平台採用的治理引入工具鏈，核心入口是 `adopt_governance.py`
+- 一個帶有 16 項具名檢查與 minimum-legal schema 參考的 drift 檢測基線
 
-## Status
+仍在持續補強的面向包括：
 
-Current release-facing status:
+- 語義驗證深度
+- 實務上的 git hook / CI gate 攔截覆蓋率
+- 不同 repo 類型下的規則分級，降低最小 repo 的治理負擔
 
-- version: `v1.1.0` (2026-03-22)
+## 完整技術文件
+
+如果你想看完整的系統說明、8 大法典、runtime hooks、靜態工具集、memory pipeline、external domain seam、CI 整合與採用細節，請直接看：
+
+- [docs/technical-overview.zh-TW.md](docs/technical-overview.zh-TW.md)
+
+## 架構總覽
+
+```mermaid
+flowchart TD
+    AI["AI 工具\nClaude · Codex · Gemini"]
+
+    RT["Runtime hooks\nsession_start → pre_task → post_task → session_end"]
+
+    subgraph Core["核心層"]
+        GC["治理憲法\nAGENTS.md · PLAN.md · contract.yaml"]
+        ST["靜態工具集\ndrift_checker · contract_validator · adopt_governance.py"]
+        MP["記憶流水線\nsession 快照 · curation · promotion policy"]
+    end
+
+    DS["外部 Domain Contract 接縫\ncontract.yaml 自動發現 · validator preflight · hard_stop_rules"]
+
+    subgraph Plugins["Domain Plugin（各自獨立 repo）"]
+        P1["USB-Hub-Firmware\nArchitecture Contract"]
+        P2["Kernel-Driver\nContract"]
+        P3["IC-Verification\nContract"]
+    end
+
+    CI["CI / Git hooks\ngovernance.yml · drift gate · exit codes"]
+    AR["Artifacts\nruntime verdicts · reviewer handoff · trust signals"]
+
+    AI --> RT
+    RT --> GC & ST & MP
+    GC & ST & MP --> DS
+    DS --> P1 & P2 & P3
+    P1 & P2 & P3 --> CI & AR
+```
+
+## 你實際能拿到什麼
+
+### 1. 會自我治理的 Session 生命週期
+
+`runtime_hooks/` 提供：
+
+- `session_start`
+- `pre_task_check`
+- `post_task_check`
+- `session_end`
+- Claude / Codex / Gemini adapter
+- 可落地到 `artifacts/runtime/` 的 verdict 與 trace artifact
+
+`session_start` 會在 AI 動手前載入 PLAN 與 contract。`pre_task_check` 會依規則與風險等級做 gate。`post_task_check` 會在輸出落地前驗證結果。`session_end` 會把本次 session 寫成可審查 artifact，讓下一個 session 可以接續。
+
+這套 runtime loop 是真的可運作的，但攔截覆蓋率尚未完全封閉；某些 IDE、local edit、直接 commit 路徑仍可能繞過它。
+
+### 2. 能抓到真實問題的 Drift 偵測
+
+`governance_tools/` 提供 contract validation、drift checking、readiness / onboarding、payload audit、reviewer handoff、release / trust surface 與 domain-specific evidence tooling。
+
+關鍵入口包括：
+
+- `adopt_governance.py`
+- `governance_drift_checker.py`
+- `external_repo_readiness.py`
+- `external_repo_onboarding_report.py`
+- `trust_signal_overview.py`
+- `reviewer_handoff_summary.py`
+
+目前 drift checker 有 16 項具名檢查，涵蓋：
+
+- placeholder token 偵測
+- 模板逐字複製防護
+- section inventory 過時
+- `AGENTS.md` 未填寫檢查
+
+全部都能輸出機器可讀結果與 exit code，CI 可直接用來 block。
+
+### 3. 可插拔的 Domain Contract 接縫
+
+框架目前支援：
+
+- `contract.yaml` discovery
+- external rule root
+- validator preflight
+- validator execution
+- `hard_stop_rules` 的 contract-level policy input
+- 具版本相容性的 validator payload envelope
+
+這是目前的 transitional seam，還不是最終決策架構；最終 verdict、violation handling 與 fallback 行為正逐步收斂進 runtime decision model。
+
+目前已驗證的外部 domain slice 包括：
+
+- `USB-Hub-Firmware-Architecture-Contract`
+- `Kernel-Driver-Contract`
+- `IC-Verification-Contract`
+
+為了降低採用摩擦，runtime hooks 已支援 contract auto-discovery 與 summary-first domain loading。`kernel-driver` 路徑目前會載入 [docs/domain-summaries/kernel-driver-adapter-summary.md](docs/domain-summaries/kernel-driver-adapter-summary.md) 作為 live low-token adapter。
+
+### 4. 記憶治理流水線
+
+`memory_pipeline/` 支援：
+
+- session snapshot
+- memory curation
+- promotion policy
+- memory promotion
+- 將 domain contract metadata 保留到 curated artifact
+
+這讓 AI session 不只是「做完任務」，而是能把可追溯知識往下一個 session 帶過去。
+
+### 5. 決策模型與 Rule Pack
+
+內建 rule pack 包括：
+
+- scope pack: `common`, `refactor`
+- language pack: `python`, `cpp`, `csharp`, `swift`
+- framework pack: `avalonia`
+- platform pack: `kernel-driver`
+
+下一階段 runtime 收斂方向見：
+
+- [docs/governance-runtime-v2.6.md](docs/governance-runtime-v2.6.md)
+- [governance/governance_decision_model.v2.6.json](governance/governance_decision_model.v2.6.json)
+
+該決策模型定義了 ownership、policy precedence、evidence trust、violation handling 與 determinism contract，可被機器檢查。
+
+## 它不嘗試做的事
+
+這個框架治理的是 task 與 session 邊界，不是在模型 token generation 內部做全面管制。它不：
+
+- 在 IDE 層攔截每一個 agent action
+- 取代 fine-tuning 或模型層級 alignment
+- 強制實作企業級 RBAC 或完整存取控制
+
+如果你要的是 per-action sandbox，這不是它的目標。
+如果你要的是跨多 repo 工作流的 session 邊界治理，這正是它要解的問題。
+
+## 當前狀態
+
+目前 release-facing 狀態：
+
+- version: `v1.1.0`（2026-03-22）
 - release note: [docs/releases/v1.1.0.md](docs/releases/v1.1.0.md)
 - previous release: [docs/releases/v1.0.0-alpha.md](docs/releases/v1.0.0-alpha.md)
 - changelog: [CHANGELOG.md](CHANGELOG.md)
@@ -48,75 +183,86 @@ Current release-facing status:
 - domain enforcement matrix: [docs/status/domain-enforcement-matrix.md](docs/status/domain-enforcement-matrix.md)
 - schema reference: [docs/minimum-legal-schema.md](docs/minimum-legal-schema.md)
 
-This framework is suitable for evaluation, internal adoption trials, and domain-contract experimentation.
-It should still be treated as a prototype rather than a fully closed enforcement platform:
-semantic verification depth, adoption smoothness, and rule classification remain open fronts.
+這個框架已適合做評估、內部採用試點與 domain-contract 實驗，但仍應視為 early-stage framework，而不是一個已完全封閉的 enforcement platform。語義驗證深度、採用平滑度與規則分級仍是持續開發面向。
 
-### What Changed in v1.1.0 and Since
+### v1.1.0 與近期改動
 
-- **Cross-platform adopt toolchain** - `adopt_governance.py` replaces bash-only `init-governance.sh` for Windows and now seeds a minimal drift CI workflow when missing
-- **Schema visibility** - adopt substitutes repo slug and today's date into templates, repairs the required `AGENTS.base.md` seam, and surfaces repo-specific `AGENTS.md` follow-up prompts
-- **16-check drift checker** - placeholder detection, template-copy guard, inventory staleness, and `AGENTS.md` fill checks are part of the named baseline
-- **Freshness threshold** - framework default raised to 14d; CONTRACT-layer override remains auditable in drift output, with a warning when override > 14d
-- **Framework root auto-discovery** - `GOVERNANCE_FRAMEWORK_ROOT` env var + upward scan are consistent across Python tools and bash scripts
-- **Minimum legal schema reference** - [docs/minimum-legal-schema.md](docs/minimum-legal-schema.md) is surfaced at multiple onboarding touch points
-- **Current test count** - `1,333 tests` at the end of the Step 7 token-optimization roadmap
-- **Recent hardening** - onboarding now has its own audit lane, Windows terminal output is safer, and `kernel-driver-adapter-summary.md` is live for summary-first contract loading
+- **Cross-platform adopt toolchain**：`adopt_governance.py` 取代 bash-only 的 `init-governance.sh`，Windows 可直接採用，且在目標 repo 缺少時會補最小 drift CI workflow
+- **Schema visibility**：adopt 會把 repo slug 與當日日期寫入模板、修補必要的 `AGENTS.base.md` seam，並指出 `AGENTS.md` 仍維持模板 `N/A` 的欄位
+- **16-check drift checker**：placeholder、template-copy guard、inventory staleness、`AGENTS.md` fill check 已成為命名基線的一部分
+- **Freshness threshold**：framework 預設閾值提高到 14 天；contract 層 override 仍可在 drift 輸出中被審計，且 override 大於 14 天時會警示
+- **Framework root auto-discovery**：`GOVERNANCE_FRAMEWORK_ROOT` 與 upward scan 已在 Python 工具與 bash 腳本上對齊
+- **Minimum legal schema reference**：[docs/minimum-legal-schema.md](docs/minimum-legal-schema.md) 已被放到多個 onboarding 觸點
+- **Current test count**：截至 Step 7 token-optimization roadmap 結束，現有 `1,333 tests`
+- **Recent hardening**：onboarding 有獨立 audit lane；Windows terminal output 更安全；`kernel-driver-adapter-summary.md` 已作為 summary-first contract loading 的實際入口
 
-### Validation Status
+## 驗證狀態
 
-| What Has Been Validated | Status |
-|-------------------------|--------|
-| Core governance tools pass automated test suite (`1,333 tests`) | Done |
-| Runtime hooks work across Claude / Codex / Gemini adapters | Done |
-| External domain contract seam (firmware, kernel-driver, IC-verification) | Done |
-| CI pipeline runs governance checks on every push | Done |
-| Quickstart smoke reproducible in < 5 minutes | Done |
-| Real-repo adoption validated across multiple repo types | Done |
-| Empty repo + adopt reaches a drift-clean or repo-specific-follow-up baseline without source edits | Done |
-| **Independent reviewer onboards without author guidance** | **Next Gate** |
-| Rule classification: core vs optional checks per repo type | Not yet |
+| 已驗證項目 | 狀態 |
+|------------|------|
+| 核心治理工具通過自動化測試套件（`1,333 tests`） | Done |
+| Runtime hooks 可跨 Claude / Codex / Gemini adapter 運作 | Done |
+| 外部 domain contract seam（firmware / kernel-driver / IC-verification） | Done |
+| CI pipeline 可在每次 push 執行 governance checks | Done |
+| Quickstart smoke 可在 5 分鐘內重現 | Done |
+| 真實 repo 採用流程已在多種 repo 類型驗證 | Done |
+| 空 repo 經 adopt 後可達到 drift-clean 或 repo-specific-follow-up baseline | Done |
+| **獨立 reviewer 在無作者引導下完成 onboarding** | **Next Gate** |
+| 規則分級：核心檢查 vs 可選檢查，依 repo 類型調整 | Not yet |
 
-### Tested Scope
+## 已驗證的 Repo 類型
 
-Adoption has been validated on:
+| Repo 類型 | 範例 | 結果 |
+|-----------|------|------|
+| Service（最小後端） | ziwei-service（Express HTTP wrapper） | 曾有採用摩擦，後續已修補 |
+| Tooling（Python validator 集合） | governance_tools subset | 曾有採用摩擦，後續已修補 |
+| Product（Next.js + Supabase + Claude） | Mirra | `ready=True`，drift 16/16 PASS |
+| Governance-heavy | ai-governance-framework | self-hosting |
+| 底層合約 repo | Kernel-Driver-Contract | contract loading、validator preflight、summary-first onboarding path 已驗證 |
 
-| Repo type | Example | Result |
-|-----------|---------|--------|
-| Service (minimal backend) | ziwei-service (Express HTTP wrapper) | adoption friction identified, then fixed |
-| Tooling (Python validator collection) | governance_tools subset | adoption friction identified, then fixed |
-| Product (Next.js + Supabase + Claude) | Mirra | `ready=True`, drift 16/16 PASS |
-| Governance-heavy (this repo) | ai-governance-framework | self-hosting |
-| Low-level contract repo | Kernel-Driver-Contract | contract loading, validator preflight, and summary-first onboarding path validated |
+尚未驗證：
 
-Not yet validated on:
+- 大型 monorepo 或 multi-package workspace
+- data pipeline 或 ML repo
+- 完全沒有 PLAN / contract 概念且也不打算引入的 repo
+- 大量外部 adopter 集合，尤其在目前 Python / TypeScript / C# / C/C++ 治理面以外
 
-- large monorepos or multi-package workspaces
-- data pipelines or ML repos
-- repos with no PLAN / contract concept and no intention to add one
-- large validated adopter sets outside the current Python / TypeScript / C# / C/C++ governance surfaces
+如果你的 repo 不在已驗證範圍內，請把採用視為實驗，而不是保證成功的路徑。最安全的起點是 [docs/minimum-legal-schema.md](docs/minimum-legal-schema.md) 與 `--dry-run`。
 
-If your repo falls outside the validated scope, treat adoption as an experiment rather than a guaranteed path.
-The schema reference ([docs/minimum-legal-schema.md](docs/minimum-legal-schema.md)) and the `--dry-run` flag are your safest starting points.
+## Submodule Consumption Boundary
 
-## Comparison & Differentiation
+如果其他 repo 以 git submodule 或 vendored nested checkout 方式引入 `ai-governance-framework`，請明確維持以下邊界：
 
-The simplest way to describe the difference is:
+- submodule pointer 更新是 parent repo 的人工決策；本 repo 新 commit 不會自動推進 parent repo 的版本
+- 本 repo 的 `memory/`、`artifacts/`、`PLAN.md`、`governance/` 仍屬於本 repo，不能與 parent repo 中相似路徑混用
+- agent 與 script 在 nested-repo 場景下，應先確認 active repo root，再讀寫 memory / governance 路徑
 
-- this repository is designed around a multi-repo runtime-governance stack with:
+### 給 Consumer 的 CI 邊界
+
+本 repo 不假設 consuming repo 的 CI 會自動初始化或掃描 submodule 內容。
+
+如果 parent repo 排除了 `third_party/`，或沒有執行 `git submodule update --init`，代表 parent CI 是把 framework 當成外部 pinned dependency，而非本次掃描範圍。在這種設定下：
+
+- CI 並不證明 parent repo 與更新後 framework commit 的相容性
+- SAST 或 static analysis 也可能刻意排除 framework checkout
+- parent repo `.gitmodules` 內的外部 host dependency 仍屬於 parent repo 的營運責任
+
+## 與其他方案的差異
+
+最簡單的說法是：
+
+- 這個 repo 的設計中心是一套 multi-repo runtime-governance stack，包含：
   - external domain contracts
-  - runtime policy input and runtime policy reclassification
-  - reviewer, trust, and release publication surfaces
-- and it operates primarily at the task/session boundary
-  - rather than trying to govern every agent action or every generation token inside the model runtime
+  - runtime policy input 與 runtime policy reclassification
+  - reviewer、trust、release 的 publication surfaces
+- 它主要治理 task / session boundary
+  - 而不是企圖在模型執行時攔下每個 agent action 或每個 generation token
 
-See [docs/competitive-landscape.md](docs/competitive-landscape.md) for the fuller comparison memo.
+完整比較可見 [docs/competitive-landscape.md](docs/competitive-landscape.md)。
 
-## Core Capabilities
+## 核心治理憲法
 
-### 1. Governance Constitution
-
-The `governance/` directory defines AI roles, boundaries, and stop conditions inside the repository:
+`governance/` 目錄定義 AI 在 repo 內的角色、邊界與 stop condition：
 
 - `SYSTEM_PROMPT.md`
 - `HUMAN-OVERSIGHT.md`
@@ -127,92 +273,23 @@ The `governance/` directory defines AI roles, boundaries, and stop conditions in
 - `NATIVE-INTEROP.md`
 - `PLAN.md`
 
-The repo also carries local workflow skills under [`.claude/skills/`](./.claude/skills/) with an index at [`.claude/README.md`](./.claude/README.md).
+repo 也帶有本地 workflow skills，位於 [`.claude/skills/`](./.claude/skills/)，索引見 [`.claude/README.md`](./.claude/README.md)。
 
-### 2. Static Governance Tooling
+## 快速開始
 
-`governance_tools/` includes contract validation, drift checking, readiness/onboarding, payload auditing, reviewer handoff, release/trust surfaces, and domain-specific evidence tooling.
+五分鐘導覽請從 [start_session.md](start_session.md) 開始。
 
-Key entry points:
-
-- `adopt_governance.py`
-- `governance_drift_checker.py`
-- `external_repo_readiness.py`
-- `external_repo_onboarding_report.py`
-- `trust_signal_overview.py`
-- `reviewer_handoff_summary.py`
-
-### 3. Runtime Governance
-
-`runtime_hooks/` supports:
-
-- `session_start`
-- `pre_task_check`
-- `post_task_check`
-- `session_end`
-- Claude / Codex / Gemini adapters
-- verdict and trace artifact emission under `artifacts/runtime/`
-
-This runtime governance loop is real and operational, but interception coverage is still not fully closed. Some IDE, local-edit, or direct-commit paths can still bypass it.
-
-### 4. Memory Pipeline
-
-`memory_pipeline/` supports:
-
-- session snapshots
-- memory curation
-- promotion policy
-- memory promotion
-- preservation of domain contract metadata into curated artifacts
-
-### 5. Rule Packs and Decision Model
-
-Built-in rule packs include:
-
-- scope packs: `common`, `refactor`
-- language packs: `python`, `cpp`, `csharp`, `swift`
-- framework packs: `avalonia`
-- platform packs: `kernel-driver`
-
-The next runtime step is captured in:
-
-- [docs/governance-runtime-v2.6.md](docs/governance-runtime-v2.6.md)
-- [governance/governance_decision_model.v2.6.json](governance/governance_decision_model.v2.6.json)
-
-That decision model defines ownership, policy precedence, evidence trust, violation handling, and a determinism contract as machine-checkable spec inputs.
-
-### 6. External Domain Seam
-
-The framework currently supports an external domain extension seam with:
-
-- `contract.yaml` discovery
-- external rule roots
-- validator preflight
-- validator execution
-- contract-level policy inputs for selected validator rule IDs via `hard_stop_rules`
-- versioned validator payload envelopes with backward-compatible legacy fields
-
-This is the current transitional seam, not the final decision architecture. Final verdict computation, violation handling, and fallback behavior are being pulled into the runtime decision model.
-
-Validated external slices currently include:
-
-- `USB-Hub-Firmware-Architecture-Contract`
-- `Kernel-Driver-Contract`
-- `IC-Verification-Contract`
-
-To reduce adoption friction, runtime hooks support contract auto-discovery and summary-first domain loading. The `kernel-driver` path now resolves [kernel-driver-adapter-summary.md](docs/domain-summaries/kernel-driver-adapter-summary.md) as a live low-token adapter rather than a placeholder.
-
-## Quick Start
-
-For a five-minute guided run, start with [start_session.md](start_session.md).
-
-Verify installation with one command:
+快速健康檢查：
 
 ```bash
-python governance_tools/quickstart_smoke.py --project-root . --plan PLAN.md --contract examples/usb-hub-contract/contract.yaml --format human
+python governance_tools/quickstart_smoke.py \
+  --project-root . \
+  --plan PLAN.md \
+  --contract examples/usb-hub-contract/contract.yaml \
+  --format human
 ```
 
-Expected output:
+預期輸出：
 
 ```text
 [quickstart_smoke]
@@ -220,47 +297,49 @@ ok=True
 summary=ok=True | pre_task_ok=True | session_start_ok=True | contract=firmware/medium
 ```
 
-## Adopting into an Existing Repo
+這個通過了，就代表治理層至少已經能正常運作。
 
-Use `adopt_governance.py` to onboard an existing project. It copies required framework files, creates missing templates, and generates `.governance/baseline.yaml` without overwriting anything you already have.
+## 導入到既有 Repo
 
-When an existing `contract.yaml` is kept, adopt still performs one framework-required repair: if `AGENTS.base.md` is not referenced in `documents` or `ai_behavior_override`, it adds `AGENTS.base.md` to `ai_behavior_override` so first-run drift does not fail on that single missing baseline reference.
+使用 `adopt_governance.py` 將治理能力導入既有專案。它會複製必要框架檔案、建立缺漏模板、產生 `.governance/baseline.yaml`，且不會覆寫你既有檔案。
 
-Adopt also:
+當既有 `contract.yaml` 被保留時，adopt 仍會做一個 framework-required repair：如果 `AGENTS.base.md` 沒有被列在 `documents` 或 `ai_behavior_override` 中，它會把 `AGENTS.base.md` 補進 `ai_behavior_override`，避免 first-run drift 因單一缺少基線引用而失敗。
 
-- seeds a minimal `.github/workflows/governance-drift.yml` when the target repo does not already have one
-- points out which `AGENTS.md` repo-specific sections are still at template `N/A` defaults
-- supports refresh delta summaries after baseline rewrites
-- works cross-platform on macOS, Linux, and Windows
+adopt 也會：
 
-Onboarding-shaped payload audits now emit a dedicated `onboarding-*.jsonl` lane, and Windows terminal output falls back safely when the active code page cannot encode some Unicode characters.
+- 在目標 repo 沒有現成 workflow 時，補一份最小 `.github/workflows/governance-drift.yml`
+- 指出 `AGENTS.md` 裡哪些 repo-specific 欄位仍停在模板 `N/A`
+- 支援 baseline rewrite 後的 refresh delta summary
+- 在 macOS、Linux、Windows 上一致運作
+
+onboarding 形狀的 payload audit 現在會輸出獨立 `onboarding-*.jsonl` lane，Windows terminal output 也會在 code page 無法編碼 Unicode 時安全降級。
 
 ```bash
 python governance_tools/adopt_governance.py --target /path/to/your/repo
 ```
 
-Common options:
+常用選項：
 
-| Flag | Effect |
-|------|--------|
-| `--target PATH` | Path to the repo to adopt (default: current directory) |
-| `--framework-root PATH` | Override framework root (default: auto-discovered) |
-| `--refresh` | Re-hash existing baseline without copying template files |
-| `--dry-run` | Preview planned actions without writing anything |
+| Flag | 效果 |
+|------|------|
+| `--target PATH` | 要導入治理的 repo 路徑（預設：目前目錄） |
+| `--framework-root PATH` | 覆寫 framework root（預設：自動發現） |
+| `--refresh` | 重算既有 baseline hash，不重新複製模板 |
+| `--dry-run` | 預覽將執行的變更，不落地寫檔 |
 
-Refresh after governance files change:
+治理檔案異動後可執行 refresh：
 
 ```bash
 python governance_tools/adopt_governance.py --target /path/to/your/repo --refresh
 ```
 
-> **Windows note:** `scripts/init-governance.sh` requires bash. Use `adopt_governance.py` instead - it is the canonical cross-platform equivalent.
+> **Windows 注意**：`scripts/init-governance.sh` 需要 bash。Windows 請直接使用 `adopt_governance.py`，它才是正式的跨平台入口。
 
-If a drift check is still failing after adoption, consult [docs/minimum-legal-schema.md](docs/minimum-legal-schema.md).
+如果 adopt 後 drift 仍失敗，請先看 [docs/minimum-legal-schema.md](docs/minimum-legal-schema.md)。
 
-## Common Entry Points
+## 常用入口
 
-### Static Governance Tools
+### 靜態治理工具
 
 ```bash
 python governance_tools/contract_validator.py --file ai_response.txt
@@ -290,27 +369,28 @@ python runtime_hooks/smoke_test.py --event-type session_start
 
 ### Shared Runtime Enforcement
 
-`scripts/run-runtime-governance.sh` is the shared shell wrapper that runs smoke, enforcement, and CI gate flows. It honors `AI_GOVERNANCE_PYTHON` before falling back to `python`, `python3`, or `py -3`.
+標準的 CI / git-hook 入口是 `scripts/run-runtime-governance.sh`。它把 pre-task、post-task 與 session hook 包成一個 shell call：
 
 ```bash
-bash scripts/run-runtime-governance.sh --mode smoke --contract examples/usb-hub-contract/contract.yaml --project-root . --plan-path PLAN.md
+bash scripts/run-runtime-governance.sh --mode enforce
 bash scripts/run-runtime-governance.sh --mode ci
 ```
 
-## Payload Audit and Token Work
+## Payload Audit 與 Token Work
 
-The Step 1-Step 7 roadmap and rebaseline outputs live under [docs/payload-audit/](docs/payload-audit/README.md).
+Step 1 到 Step 7 的 roadmap 與 rebaseline 輸出位於 [docs/payload-audit/](docs/payload-audit/README.md)。
 
-Current headline numbers:
+目前的 headline numbers：
 
-- strict comparable reduction (`L0 + L1`): `44073 -> 28114` (`-15959`, `-36.2%`)
-- observed total reduction: `104696 -> 49202` (`-55494`, `-53.0%`)
-- KDC summary-first onboarding recheck: `60623 -> 37142` (`-23481`, `-38.7%`)
+- strict comparable reduction（`L0 + L1`）：`44073 -> 28114`（`-15959`, `-36.2%`）
+- observed total reduction：`104696 -> 49202`（`-55494`, `-53.0%`）
+- KDC summary-first onboarding recheck：`60623 -> 37142`（`-23481`, `-38.7%`）
 
-The next high-leverage optimization target is not the kernel-driver summary itself anymore; it is the `pre_task_check` and rendered-output cost on the KDC onboarding path.
+下一個高槓桿優化目標已不再是 kernel-driver summary 本身，而是 KDC onboarding path 上 `pre_task_check` 與 rendered-output 的成本。
 
-## Further Reading
+## 延伸閱讀
 
+- [docs/architecture-challenge-response.zh-TW.md](docs/architecture-challenge-response.zh-TW.md)
 - [docs/competitive-landscape.md](docs/competitive-landscape.md)
 - [docs/runtime-governance-update.md](docs/runtime-governance-update.md)
 - [runtime_hooks/README.md](runtime_hooks/README.md)

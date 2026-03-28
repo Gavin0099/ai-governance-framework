@@ -122,6 +122,18 @@ def test_active_signal_overrides_surfaced_in_result() -> None:
     assert overrides.get("min_task_level") == "L1"
 
 
+def test_runtime_enforcement_quality_trend_signal_upgrades_l0_to_l1() -> None:
+    write_risk_signal(
+        _FW_ROOT,
+        affected_components=["runtime_enforcement_quality_trend"],
+        severity="warning",
+        source="test_suite",
+    )
+    result = build_session_start_context(**_base_kwargs(task_level="L0"))
+    assert result["risk_signal"]["active"] is True
+    assert result["task_level"] == "L1"
+
+
 def test_active_signal_does_not_change_rules() -> None:
     """Risk signal must not alter rule packs — only task_level."""
     write_risk_signal(

@@ -1,0 +1,81 @@
+{
+  "artifact_type": "reviewer_attack_shortlist",
+  "scope": {
+    "task_text": "Guide high-density reviewer attacks against the workflow observation semantic boundary",
+    "repo_root": "E:\\BackUp\\Git_EE\\ai-governance-framework",
+    "focus_surface": "workflow observation interpretation boundary"
+  },
+  "timestamp": "2026-03-25T00:00:00+08:00",
+  "status": "completed",
+  "artifact_boundary": {
+    "role": "reviewer_aid_only",
+    "not_a": [
+      "test_plan_completeness_proof",
+      "consumer_readiness_signal",
+      "attack_space_exhaustion_claim"
+    ],
+    "statement": "This shortlist is designed to increase reviewer attack density. It does not claim the listed attacks are exhaustive."
+  },
+  "review_priority_rule": "Prefer attacks that exercise one misuse intent through a structurally different path, rather than attacks that merely restate an already-absorbed path.",
+  "failure_threshold": "If a reviewer can derive attention, severity, escalation, or comparable pseudo-policy meaning without violating explicit contract text, treat the boundary as not progression-ready.",
+  "misuse_intent_shortlist": [
+    {
+      "intent": "escalation_inference",
+      "why_it_matters": "Escalation is a compact pseudo-policy outcome and can hide behind otherwise legal observation phrasing.",
+      "candidate_attacks": [
+        "Try to argue that a legal combination of state and consumer defaults implies extra scrutiny must happen now.",
+        "Try to reconstruct an escalation recommendation using only allowed observation outputs and reviewer-facing semantics."
+      ],
+      "already_exercised_paths": [
+        "cross_surface_composition"
+      ],
+      "high_value_new_path": "presentation_or_consumer_surface_reinterpretation"
+    },
+    {
+      "intent": "severity_labeling",
+      "why_it_matters": "Severity language can turn diagnostics into a shadow policy taxonomy even when no direct verdict field exists.",
+      "candidate_attacks": [
+        "Try to relabel failure_source_class or state names into seriousness labels without changing underlying data.",
+        "Try to rank states as mild vs severe using only contract-approved wording."
+      ],
+      "already_exercised_paths": [
+        "state_output_interpretation",
+        "cross_surface_composition"
+      ],
+      "high_value_new_path": "presentation_or_summary_formatting"
+    },
+    {
+      "intent": "priority_or_ordering",
+      "why_it_matters": "Priority drift can convert coverage metadata into review queue control without claiming formal enforcement.",
+      "candidate_attacks": [
+        "Try to justify review ordering from observation_coverage plus state combinations.",
+        "Try to turn a legal metric explanation into a queueing heuristic."
+      ],
+      "already_exercised_paths": [
+        "helper_metric_affordance",
+        "cross_surface_composition"
+      ],
+      "high_value_new_path": "presentation_or_dashboard_style_readout"
+    },
+    {
+      "intent": "compliance_inference",
+      "why_it_matters": "Compliance inference is the broadest misuse class and can be rebuilt through several softer readings rather than one explicit verdict.",
+      "candidate_attacks": [
+        "Try to infer non-compliance from repeated missing, incomplete, or unverifiable observations without using forbidden words directly.",
+        "Try to argue that recognition completeness is close enough to workflow completeness for reviewer use."
+      ],
+      "already_exercised_paths": [
+        "state_output_interpretation",
+        "helper_metric_affordance",
+        "cross_surface_composition"
+      ],
+      "high_value_new_path": "presentation_or_reviewer_summary_reframing"
+    }
+  ],
+  "explicitly_not_now": [
+    "real project integration",
+    "banner copy design",
+    "usability tuning",
+    "performance optimization"
+  ]
+}

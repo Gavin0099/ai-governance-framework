@@ -4,7 +4,7 @@
 > **技術棧**: Markdown / Python / Bash
 > **複雜度**: L2
 > **預計工期**: 2026/03 ~ 2026/06
-> **最後更新**: 2026-03-21
+> **最後更新**: 2026-03-25
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 
@@ -128,6 +128,7 @@
 - [x] `quickstart_smoke.py` onboarding smoke，並接入 `verify_phase_gates.sh` ✓ 2026/03/15
 - [x] `example_readiness.py` 範例集健康度檢查 ✓ 2026/03/15
 - [x] GitHub Actions 新增 strict runnable-example validation ✓ 2026/03/15
+- [x] workflow entry layer 第一版規格與 tranche-1 Claude workflow skills（`tech-spec` / `precommit` / `codex-review-fast` / `create-pr`）✓ 2026/03/25
 
 **待處理（技術債與品質提升）**:
 - [x] 補齊工具單元測試（state_generator）✓ 2026/03/21 — 78% 覆蓋率
@@ -174,6 +175,7 @@
 - [x] C2. memory_janitor 單元測試 ✓ 2026/03/05
 - [x] C3. linear_integrator 錯誤處理強化 ✓ 2026/03/05
 - [x] D1. Linear 同步策略文件 ✓ 2026/03/05
+- [x] workflow entry-layer spec + tranche-1 workflow skills（`tech-spec` / `precommit` / `codex-review-fast` / `create-pr`）✓ 2026/03/25
 
 ### 低優先 (P2)
 - [x] C4. Git hook 一鍵安裝 ✓ 2026/03/05
@@ -271,3 +273,8 @@
 | 2026/03/06 | 完成 D2 GitHub Actions + GitLab CI | 實際 YAML 設定檔；governance.yml + .gitlab-ci.yml |
 | 2026/03/06 | 完成 D3 Notion 整合 | notion_integrator.py + docs/notion-source-of-truth.md；Phase D Gate 全部通過 |
 | 2026/03/15 | Alpha adoption hardening | requirements / quickstart / example readiness / CI strict example validation / release-facing docs |
+| 2026/03/25 | 定義 workflow entry-layer contract spec | 以 `tech-spec` → `precommit` → `create-pr` 的最小閉環，釘住 artifact、edge、recognition 與 consequence classes，避免 workflow skill 漂成獨立第二系統 |
+| 2026/03/25 | 完成 tranche-1 Claude workflow skills | 新增 `tech-spec`、`precommit`、`codex-review-fast`、`create-pr` 四個 workflow skills，並更新 `.claude/README.md` 索引 |
+| 2026/03/25 | 接上 quality-only control loop，並拆出 workflow observation lane | shared runtime enforcement 會累積 7-day quality trend 並透過既有 risk signal substrate 影響下一次 `session_start`；同時新增 observation-only workflow artifact recognition，避免把 workflow completeness 混入 quality/risk 語意 |
+| 2026/03/25 | 收斂 observation lane 命名與 consumer guardrail | 將 `workflow_score` 改為 `observation_coverage`，並新增 machine-readable interpretation contract，禁止把 `missing` / `unverifiable` 直接翻譯成 compliance、bypass、block 或 task-level policy |
+| 2026/03/25 | 補上防組合濫讀與 diagnostic-only 邊界 | 明確禁止 observation-only 單點或組合推論導出 compliance / intent / policy violation 類結論，並將 `failure_source_class` 限定為 diagnostic aid，避免滑成第二套裁決 taxonomy |

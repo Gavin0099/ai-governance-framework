@@ -1,0 +1,3 @@
+display_name: Codex Review Fast
+short_description: Do a fast two-angle review before code leaves local development
+default_prompt: Review this change with a findings-first mindset, using two independent angles when possible, then consolidate the highest-severity issues, disagreements, and evidence gaps.

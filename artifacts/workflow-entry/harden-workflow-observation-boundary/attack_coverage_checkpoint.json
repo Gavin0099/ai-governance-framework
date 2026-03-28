@@ -1,0 +1,126 @@
+{
+  "artifact_type": "attack_coverage_checkpoint",
+  "scope": {
+    "task_text": "Checkpoint absorbed workflow observation boundary attack layers after three self-red-team rounds",
+    "repo_root": "E:\\BackUp\\Git_EE\\ai-governance-framework",
+    "focus_surface": "workflow observation interpretation boundary"
+  },
+  "timestamp": "2026-03-25T00:00:00+08:00",
+  "status": "completed",
+  "artifact_boundary": {
+    "role": "reviewer_aid_only",
+    "not_a": [
+      "coverage_proof",
+      "consumer_readiness_signal",
+      "integration_readiness_signal",
+      "governance_verdict"
+    ],
+    "statement": "This checkpoint summarizes exercised attack layers and current scope limits. It is not a claim that attack-space coverage is sufficient."
+  },
+  "current_state": {
+    "summary": "repeatable boundary absorption pattern established; attack-space coverage still unknown",
+    "consumer_readiness": "not_consumer_ready",
+    "phase_boundary": "boundary_hardening"
+  },
+  "taxonomy_orientation": {
+    "primary_view": "structure_facing",
+    "warning": "layer coverage must not be mistaken for misuse-intent coverage"
+  },
+  "absorbed_attack_layers": [
+    {
+      "layer": "state_output_interpretation",
+      "attacks": [
+        "stale masked trust-linkage failure",
+        "diagnostic metadata appeared on a policy-shaped path"
+      ],
+      "boundary_gain": [
+        "state precedence now preserves trust-linkage failure instead of flattening it into freshness-only output",
+        "diagnostic metadata is separated from policy-facing state semantics"
+      ]
+    },
+    {
+      "layer": "helper_metric_affordance",
+      "attacks": [
+        "state_policy helper exposed diagnostic-only information",
+        "observation_coverage drifted toward score, ranking, or threshold meaning"
+      ],
+      "boundary_gain": [
+        "helper surfaces now separate policy semantics from diagnostic-only fields",
+        "metric semantics now explicitly forbid score, ranking, threshold, and compliance-proxy use"
+      ]
+    },
+    {
+      "layer": "cross_surface_composition",
+      "attacks": [
+        "legal observation surfaces were recomposed into pseudo-policy, severity, attention-priority, or escalation views"
+      ],
+      "boundary_gain": [
+        "cross-surface recomposition is explicitly forbidden in prose and machine-readable contract",
+        "surface roles are explicit enough to make recomposition misuse reviewable"
+      ]
+    }
+  ],
+  "common_failure_pattern": {
+    "name": "structure_affordance_drift",
+    "statement": "Across the first three attack layers, structure, helper affordance, and composition paths were more likely than prose alone to shape downstream interpretation.",
+    "review_priority_rule": "future boundary review should prioritize structure, helper affordances, and composition paths before naming or prose cleanup"
+  },
+  "misuse_intent_overlay": [
+    {
+      "intent": "escalation_inference",
+      "question": "Can observation outputs be read as implying that attention or escalation is now justified?",
+      "pressure_paths_exercised": [
+        "cross_surface_composition"
+      ],
+      "coverage_state": "partially_exercised"
+    },
+    {
+      "intent": "severity_labeling",
+      "question": "Can observation outputs be read as a severity taxonomy or seriousness label?",
+      "pressure_paths_exercised": [
+        "state_output_interpretation",
+        "cross_surface_composition"
+      ],
+      "coverage_state": "partially_exercised"
+    },
+    {
+      "intent": "priority_or_ordering",
+      "question": "Can observation outputs be used to sort, prioritize, or queue work or reviews?",
+      "pressure_paths_exercised": [
+        "helper_metric_affordance",
+        "cross_surface_composition"
+      ],
+      "coverage_state": "partially_exercised"
+    },
+    {
+      "intent": "compliance_inference",
+      "question": "Can observation outputs be read as showing workflow compliance or non-compliance?",
+      "pressure_paths_exercised": [
+        "state_output_interpretation",
+        "helper_metric_affordance",
+        "cross_surface_composition"
+      ],
+      "coverage_state": "partially_exercised"
+    }
+  ],
+  "failure_threshold": {
+    "rule": "If any attack can derive attention, severity, escalation, or other pseudo-policy conclusions without violating explicit contract text, the boundary is not progression-ready.",
+    "reason": "Repair activity must not be mistaken for progression readiness while legal pseudo-policy paths still exist.",
+    "trigger_examples": [
+      "attention_priority can be reconstructed from legal observation surfaces",
+      "severity_label can be derived without breaking an explicit contract rule",
+      "action_escalation can be inferred from legal state or metric interpretation"
+    ]
+  },
+  "not_yet_explicitly_pressured": [
+    "presentation-induced reinterpretation on a future consumer surface",
+    "external reviewer attack quality beyond self-red-team",
+    "behavior of a first constrained consumer attachment"
+  ],
+  "explicitly_not_now": [
+    "real project integration",
+    "banner or hint wording",
+    "broad UX tuning",
+    "performance or adoption-friction optimization"
+  ]
+}

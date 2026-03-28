@@ -321,6 +321,43 @@ def _classify_missing_required_evidence(
     return violations
 
 
+def _slim_domain_contract(dc: dict | None) -> dict | None:
+    """Return domain_contract with document content elided for the return payload.
+
+    Design principle:
+        Heavy execution context may be used during validation, but must not be
+        echoed back in return payloads unless it remains semantically necessary
+        after execution completes.
+
+    Concretely:
+        - run_domain_validators() receives the full domain_contract (full content).
+        - The return dict does NOT need file content — callers care about
+          domain_validator_results, rule_packs, ok/errors/warnings, not the raw
+          document text that was already consumed.
+        - content_char_count preserves debuggability: callers can still tell
+          whether original content was present and how large it was.
+
+    IMPORTANT: Do not pass the return value of this function back into any
+    execution path (validators, build_domain_validation_payload, etc.).  It is
+    report-only.
+    """
+    if dc is None:
+        return None
+
+    def _slim_entry(entry: dict) -> dict:
+        content = entry.get("content", "")
+        slim = dict(entry)
+        slim["content"] = ""
+        slim["content_elided_for_return"] = True
+        slim["content_char_count"] = len(content)
+        return slim
+
+    slim = dict(dc)
+    slim["documents"] = [_slim_entry(d) for d in dc.get("documents", [])]
+    slim["ai_behavior_override"] = [_slim_entry(d) for d in dc.get("ai_behavior_override", [])]
+    return slim
+
+
 def _domain_hard_stop_rules(domain_contract: dict | None) -> set[str]:
     raw = (domain_contract or {}).get("raw") or {}
     values = raw.get("hard_stop_rules") or []
@@ -496,7 +533,7 @@ def run_post_task_check(
         "policy_violations": policy_violations,
         "domain_validator_results": domain_validator_results,
         "domain_hard_stop_rules": sorted(domain_hard_stop_rules),
-        "domain_contract": domain_contract,
+        "domain_contract": _slim_domain_contract(domain_contract),
         "rule_packs": resolved_rule_packs,
         "errors": errors,
         "warnings": warnings,

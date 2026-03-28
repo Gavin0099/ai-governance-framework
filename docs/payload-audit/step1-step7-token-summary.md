@@ -63,6 +63,44 @@ That said, the rebaseline shows the effect is uneven:
 - `output tier separation` helped make heavy onboarding-style output much cheaper
 - but it did not automatically reduce all normal `L1` sessions
 
+## Post-Step 7: post_task_check Return Contract Slimming (2026-03-24)
+
+**Scope:** `runtime_hooks/core/post_task_check.py` — return payload only.
+
+**Finding:** Profiling with Kernel-Driver-Contract (6 documents) showed:
+
+| | Tokens | % of total |
+|---|---:|---:|
+| `post_task_check` total (before) | 14,468 | 100% |
+| `domain_contract` | 14,067 | 97.2% |
+| `domain_contract.documents[*].content` | 11,828 | 81.8% |
+| `domain_contract.ai_behavior_override[*].content` | 1,699 | 11.7% |
+| Everything else | 401 | 2.8% |
+
+| | Tokens |
+|---|---:|
+| After slimming | 1,144 |
+| Reduction | −92.1% |
+
+**Root cause:** `domain_contract` was returned with full file content intact.
+Validators already consumed that content during execution; no caller needed it post-execution.
+
+**Fix:** `_slim_domain_contract()` elides `content` from `documents` and
+`ai_behavior_override` entries in the return dict, preserving `content_char_count`
+and `content_elided_for_return` as debug markers.  Validators still receive the
+full contract during execution.
+
+**Design principle established:**
+
+> Heavy execution context may be loaded for validation, but return payloads
+> must preserve only post-execution semantic value.
+
+This separates the *execution contract* (full context needed for validators) from
+the *report contract* (metadata + results only, no re-echoed source content).
+
+**session_end** was also profiled: return dict = 479 tokens.  Not a bottleneck;
+no changes required.
+
 ## Remaining Follow-Ups
 
 Highest-value next candidates:
