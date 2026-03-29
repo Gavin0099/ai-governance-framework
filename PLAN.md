@@ -152,51 +152,38 @@
 
 ---
 
-## 🔥 下一輪聚焦 — Beta 收斂 / Workflow Entry Layer 整合
+## 🔥 下一輪聚焦 — Beta 收斂
 
-**目標**: 把已存在的 workflow skills（`tech-spec` / `precommit` / `codex-review-fast` / `create-pr`）從「獨立 UX 工具」升級為「runtime 可識別的治理 entrypoint」，同時把外部驗證過的 CLAUDE.md 開發流程對齊到 governance 結構。
+**目標**: 確保 Beta Gate 剩餘條件（獨立 reviewer 無引導完成 onboarding）、持續補強 CI gate 覆蓋率與 onboarding 摩擦。
 
-**背景**:
-- `docs/entry-layer-contract.md` 已定義 entry-layer 物件模型與最小 closed loop（`tech-spec → precommit → create-pr`）
-- `workflow_entry_observer.py`、`runtime_enforcement_feedback.py` 已實作但尚未接入 runtime
-- 外部 CLAUDE.md 流程（Brainstorm → Plan → Implement → Review ×2 → Report）已驗證有效，與 governance 的 pre/post_task + change_control + reviewer_handoff 有明顯對應
+---
 
-**本輪任務**:
+## ⛔ 暫停授權項目 — Entry Layer（E1–E5）
 
-```
-E1. Entry-layer artifact schema 對齊
-    - 確認 workflow_entry_observer 的 EXPECTED_ARTIFACTS 與 .claude/skills/ 的實際輸出格式一致
-    - 驗證 tech-spec / precommit / create-pr 各自的 artifact envelope 欄位
-    狀態: [ ] 未開始
+**狀態: 已從 sprint 移出。在 justification 完成前，不授權任何 runtime 擴張。**
 
-E2. workflow_entry_observer 接入 session_start
-    - session_start 讀取 entry-layer artifacts（若存在）並輸出觀察狀態
-    - 只做 observation（recognized / missing / stale），不做 verdict
-    - 不影響 ok=True/False 判定（非阻斷）
-    狀態: [ ] 未開始
+> E1–E5 moved out of sprint, 2026-03-30
+> status: needs justification
+> no runtime expansion authorized from these items yet
 
-E3. runtime_enforcement_feedback 接入 run-runtime-governance.sh
-    - 每次 enforcement run 後寫入 artifacts/runtime/enforcement_feedback.jsonl
-    - 7 天滾動視窗計算 quality trend，觸發 advisory risk signal
-    狀態: [ ] 未開始
+**E2 撤回記錄**:
+- `workflow_entry_observer` 曾短暫接入 `session_start`（2026-03-30），隨即撤回
+- 撤回理由：已導入新 import、新觀測來源、新 dict key，跨過 runtime boundary，但未被證成存在必要性
+- 這不是「可有可無的小整理」，而是撤回一個未被證成的 runtime 擴張
 
-E4. repo_type 差別化（P1.1）
-    - contract.yaml 支援 repo_type: service / tooling / library
-    - governance_profile: minimal — 不強制 risk_levels / must_test_paths 等欄位
-    - 驗證報告草案已就緒（ziwei-service / governance_tools 碰撞案例）
-    狀態: [ ] 未開始
+**各項當前定性**:
 
-E5. Step 3b memory refactor 決策
-    - 正式決定實作或關閉
-    - 若關閉：在 PLAN.md 記錄決策理由，移除 deferred 標記
-    狀態: [ ] 未決策
-```
+| 項目 | 定性 |
+|------|------|
+| E1: schema alignment | 目前碰巧相容，但未被設計過，不能 build on top |
+| E2: observer → session_start | 已撤回；需先定義消費者是誰、在哪裡用 |
+| E3: enforcement feedback | 既存 surface，但角色未定義；不得納入規劃直到角色明確 |
+| E4: repo_type | 高風險 matrix explosion；需先確認是否只是 contract abstraction 沒做乾淨 |
+| E5: memory refactor | 連 problem statement 都沒有，不得以 sprint item 身分存在 |
 
-**Gate 條件（本輪結束）**:
-- [ ] `workflow_entry_observer` 在 session_start 輸出中可見（observation only）
-- [ ] `runtime_enforcement_feedback` 有至少一筆真實 history entry
-- [ ] `repo_type: minimal` 的 drift check 不強制 agents_sections_filled 的 4 個欄位
-- [ ] Step 3b 決策落地（做或不做，有明確記錄）
+**解封條件**: 完成 `docs/entry-layer-boundary.md` + `docs/entry-layer-justification.md`，且 justification 能回答：
+- 如果 entry layer 永遠不存在，framework 會失去什麼不可接受的能力？
+- 為什麼這個缺口不能在 pre_task_check 解？
 
 **當前阻礙**: 無
 
@@ -224,10 +211,7 @@ E5. Step 3b memory refactor 決策
 - [x] C3. linear_integrator 錯誤處理強化 ✓ 2026/03/05
 - [x] D1. Linear 同步策略文件 ✓ 2026/03/05
 - [x] workflow entry-layer spec + tranche-1 workflow skills（`tech-spec` / `precommit` / `codex-review-fast` / `create-pr`）✓ 2026/03/25
-- [ ] E2. workflow_entry_observer 接入 session_start（observation only）
-- [ ] E3. runtime_enforcement_feedback 接入 run-runtime-governance.sh
-- [ ] E4. repo_type 差別化（minimal profile，不強制 agents sections）
-- [ ] E5. Step 3b memory refactor 決策落地
+- [~] E1–E5. Entry Layer 相關項目 — 暫停授權，pending justification（2026-03-30）
 
 ### 低優先 (P2)
 - [x] C4. Git hook 一鍵安裝 ✓ 2026/03/05

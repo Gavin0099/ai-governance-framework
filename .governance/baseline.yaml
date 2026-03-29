@@ -11,16 +11,16 @@
 # ── PROVENANCE ────────────────────────────────────────────────────────────────
 schema_version: "1"
 baseline_version: 1.0.0
-source_commit: 20e22e56512d90fce832682d0f83d71551d250ae
+source_commit: 9648c944802a9f2204e41bd52ab3beb1e6cc3c3b
 framework_root: D:\ai-governance-framework
-initialized_at: 2026-03-29T15:44:00Z
+initialized_at: 2026-03-29T16:23:27Z
 initialized_by: governance_tools/adopt_governance.py
 
 # ── INTEGRITY ─────────────────────────────────────────────────────────────────
 # sha256.<file>: hash recorded at init/refresh time; "protected" files are hash-verified
 # overridable.<file>: protected = must not change | overridable = repo may extend freely
 sha256.AGENTS.base.md: 1465ac22cce87583d7c673bf4ad15ac554299d8588c9d4f3e9a42c8a99dc7baa
-sha256.PLAN.md: 01a05ab0544324a7e7dbc52b87e7c94160245637dea82eef38afe8b73e722424
+sha256.PLAN.md: 600527427a1289917b2a809f8c73f7c630eac1c13735af9d290b282d2be28119
 sha256.contract.yaml: 881230fe1ad69b1c8a260c998a6ca82340e849f610ffa6355666e52e83dca19a
 sha256.AGENTS.md: 59243d86c7774a1c270d166451eb12837923af83b4d8b6ccca6af698e1991e66
 overridable.AGENTS.base.md: protected
@@ -50,7 +50,8 @@ plan_section_inventory:
   - "## 🏗️ 當前階段"
   - "## 📦 Phase 詳細規劃"
   - "## 🔥 當前聚焦 — 維護期 / Alpha adoption hardening"
-  - "## 🔥 下一輪聚焦 — Beta 收斂 / Workflow Entry Layer 整合"
+  - "## 🔥 下一輪聚焦 — Beta 收斂"
+  - "## ⛔ 暫停授權項目 — Entry Layer（E1–E5）"
   - "## 📊 待辦清單 (Backlog)"
   - "## 🚫 不要做 (Anti-Goals)"
   - "## 🤖 AI 協作規則"
