@@ -3,6 +3,7 @@
 Unit tests for governance_tools/governance_drift_checker.py
 """
 import hashlib
+from datetime import date as _date
 import json
 import sys
 from pathlib import Path
@@ -46,7 +47,7 @@ def _write_plan(repo: Path) -> Path:
     text = (
         "# PLAN.md\n"
         "<!-- governance-baseline: overridable -->\n\n"
-        "> **最後更新**: 2026-03-21\n"
+        f"> **最後更新**: {_date.today().isoformat()}\n"
         "> **Owner**: Test\n"
         "> **Freshness**: Sprint (7d)\n\n"
         "## Current Phase\n\n- [ ] Phase A\n\n"

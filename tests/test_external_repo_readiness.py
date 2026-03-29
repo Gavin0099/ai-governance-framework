@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+from datetime import date as _date
 from pathlib import Path
 
 from governance_tools.external_repo_readiness import assess_external_repo, format_human
@@ -38,7 +39,7 @@ def _make_target_repo(target_root: Path, framework_root: Path) -> None:
     _write(hook_dir / "ai-governance-framework-root", str(framework_root))
     _write(
         target_root / "PLAN.md",
-        "> **最後更新**: 2026-03-14\n> **Owner**: test\n> **Freshness**: Sprint (7d)\n",
+        f"> **最後更新**: {_date.today().isoformat()}\n> **Owner**: test\n> **Freshness**: Sprint (7d)\n",
     )
     _write(target_root / "AGENTS.md", "# Agents\n")
     _write(target_root / "CHECKLIST.md", "# Checklist\n")
@@ -103,7 +104,7 @@ def test_assess_external_repo_reports_missing_contract_and_hooks() -> None:
     _write(target_root / ".git" / "HEAD", "ref: refs/heads/main\n")
     _write(
         target_root / "PLAN.md",
-        "> **最後更新**: 2026-03-14\n> **Owner**: test\n> **Freshness**: Sprint (7d)\n",
+        f"> **最後更新**: {_date.today().isoformat()}\n> **Owner**: test\n> **Freshness**: Sprint (7d)\n",
     )
 
     result = assess_external_repo(target_root)
@@ -126,7 +127,7 @@ def test_assess_external_repo_can_use_explicit_framework_root() -> None:
     _write(hook_dir / "pre-push", "# AI Governance Framework\n")
     _write(
         target_root / "PLAN.md",
-        "> **最後更新**: 2026-03-14\n> **Owner**: test\n> **Freshness**: Sprint (7d)\n",
+        f"> **最後更新**: {_date.today().isoformat()}\n> **Owner**: test\n> **Freshness**: Sprint (7d)\n",
     )
 
     result = assess_external_repo(target_root, framework_root=framework_root)
@@ -163,7 +164,7 @@ def test_assess_external_repo_ready_without_hooks() -> None:
     # Set up target repo WITHOUT any hooks
     _write(
         target_root / "PLAN.md",
-        "> **最後更新**: 2026-03-14\n> **Owner**: test\n> **Freshness**: Sprint (7d)\n",
+        f"> **最後更新**: {_date.today().isoformat()}\n> **Owner**: test\n> **Freshness**: Sprint (7d)\n",
     )
     _write(target_root / ".git" / "HEAD", "ref: refs/heads/main\n")
     _write(target_root / "AGENTS.md", "# Agents\n")
@@ -364,7 +365,7 @@ def test_governance_drift_clean_repo_passes() -> None:
     # Overwrite PLAN.md with sections the drift checker requires
     _write(
         target_root / "PLAN.md",
-        "> **最後更新**: 2026-03-21\n> **Owner**: test\n> **Freshness**: Sprint (7d)\n\n"
+        f"> **最後更新**: {_date.today().isoformat()}\n> **Owner**: test\n> **Freshness**: Sprint (7d)\n\n"
         "## Current Phase\nAlpha\n\n## Active Sprint\n- task\n\n## Backlog\n- item\n",
     )
 
