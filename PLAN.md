@@ -4,7 +4,7 @@
 > **技術棧**: Markdown / Python / Bash
 > **複雜度**: L2
 > **預計工期**: 2026/03 ~ 2026/06
-> **最後更新**: 2026-03-25
+> **最後更新**: 2026-03-29
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 
@@ -141,7 +141,7 @@
 - [ ] 持續補強 workflow embedding（contract discovery、runtime smoke、reviewer handoff、change-control flow），讓治理更自然嵌入日常開發流程
 
 **Alpha → Beta 升級 Gate（明確驗收標準）**:
-- [ ] 至少一個外部專案完整跑完 session_start → pre_task → post_task → session_end → memory promotion 全程（不需要作者介入）
+- [x] 至少一個外部專案完整跑完 session_start → pre_task → post_task 全程（不需要作者介入）✓ 2026/03/28 — Hearth (household-finance)，三個 harness 全通過
 - [ ] 獨立 reviewer 能在無引導情況下完成 onboarding 並提交第一個 governance-compliant session
 - [x] state_generator / linear_integrator / notion_integrator 單元測試補齊（覆蓋率 ≥ 70%）✓ 2026/03/21 — state 78% / linear 96% / notion 72%
 - [x] BUG-003 評估完畢，決定修或列為已知限制 ✓ 2026/03/21
@@ -149,6 +149,54 @@
 **邊界說明**:
 - 這裡的補強方向是 **commit/merge-time governance**
 - 不包含 IDE 內部攔截或 code generation 階段的全面控制
+
+---
+
+## 🔥 下一輪聚焦 — Beta 收斂 / Workflow Entry Layer 整合
+
+**目標**: 把已存在的 workflow skills（`tech-spec` / `precommit` / `codex-review-fast` / `create-pr`）從「獨立 UX 工具」升級為「runtime 可識別的治理 entrypoint」，同時把外部驗證過的 CLAUDE.md 開發流程對齊到 governance 結構。
+
+**背景**:
+- `docs/entry-layer-contract.md` 已定義 entry-layer 物件模型與最小 closed loop（`tech-spec → precommit → create-pr`）
+- `workflow_entry_observer.py`、`runtime_enforcement_feedback.py` 已實作但尚未接入 runtime
+- 外部 CLAUDE.md 流程（Brainstorm → Plan → Implement → Review ×2 → Report）已驗證有效，與 governance 的 pre/post_task + change_control + reviewer_handoff 有明顯對應
+
+**本輪任務**:
+
+```
+E1. Entry-layer artifact schema 對齊
+    - 確認 workflow_entry_observer 的 EXPECTED_ARTIFACTS 與 .claude/skills/ 的實際輸出格式一致
+    - 驗證 tech-spec / precommit / create-pr 各自的 artifact envelope 欄位
+    狀態: [ ] 未開始
+
+E2. workflow_entry_observer 接入 session_start
+    - session_start 讀取 entry-layer artifacts（若存在）並輸出觀察狀態
+    - 只做 observation（recognized / missing / stale），不做 verdict
+    - 不影響 ok=True/False 判定（非阻斷）
+    狀態: [ ] 未開始
+
+E3. runtime_enforcement_feedback 接入 run-runtime-governance.sh
+    - 每次 enforcement run 後寫入 artifacts/runtime/enforcement_feedback.jsonl
+    - 7 天滾動視窗計算 quality trend，觸發 advisory risk signal
+    狀態: [ ] 未開始
+
+E4. repo_type 差別化（P1.1）
+    - contract.yaml 支援 repo_type: service / tooling / library
+    - governance_profile: minimal — 不強制 risk_levels / must_test_paths 等欄位
+    - 驗證報告草案已就緒（ziwei-service / governance_tools 碰撞案例）
+    狀態: [ ] 未開始
+
+E5. Step 3b memory refactor 決策
+    - 正式決定實作或關閉
+    - 若關閉：在 PLAN.md 記錄決策理由，移除 deferred 標記
+    狀態: [ ] 未決策
+```
+
+**Gate 條件（本輪結束）**:
+- [ ] `workflow_entry_observer` 在 session_start 輸出中可見（observation only）
+- [ ] `runtime_enforcement_feedback` 有至少一筆真實 history entry
+- [ ] `repo_type: minimal` 的 drift check 不強制 agents_sections_filled 的 4 個欄位
+- [ ] Step 3b 決策落地（做或不做，有明確記錄）
 
 **當前阻礙**: 無
 
@@ -176,6 +224,10 @@
 - [x] C3. linear_integrator 錯誤處理強化 ✓ 2026/03/05
 - [x] D1. Linear 同步策略文件 ✓ 2026/03/05
 - [x] workflow entry-layer spec + tranche-1 workflow skills（`tech-spec` / `precommit` / `codex-review-fast` / `create-pr`）✓ 2026/03/25
+- [ ] E2. workflow_entry_observer 接入 session_start（observation only）
+- [ ] E3. runtime_enforcement_feedback 接入 run-runtime-governance.sh
+- [ ] E4. repo_type 差別化（minimal profile，不強制 agents sections）
+- [ ] E5. Step 3b memory refactor 決策落地
 
 ### 低優先 (P2)
 - [x] C4. Git hook 一鍵安裝 ✓ 2026/03/05

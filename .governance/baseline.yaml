@@ -1,5 +1,5 @@
 # .governance/baseline.yaml
-# Written by scripts/init-governance.sh — do not edit manually.
+# Written by governance_tools/adopt_governance.py — do not edit manually.
 # Verified by: python governance_tools/governance_drift_checker.py --repo .
 #
 # Semantic layers in this file:
@@ -11,18 +11,18 @@
 # ── PROVENANCE ────────────────────────────────────────────────────────────────
 schema_version: "1"
 baseline_version: 1.0.0
-source_commit: 8dd45c74830eb3cc186cc6fbd3a472eb52118ca5
-framework_root: /d/ai-governance-framework
-initialized_at: 2026-03-21T16:35:16Z
-initialized_by: scripts/init-governance.sh
+source_commit: 20e22e56512d90fce832682d0f83d71551d250ae
+framework_root: D:\ai-governance-framework
+initialized_at: 2026-03-29T15:44:00Z
+initialized_by: governance_tools/adopt_governance.py
 
 # ── INTEGRITY ─────────────────────────────────────────────────────────────────
 # sha256.<file>: hash recorded at init/refresh time; "protected" files are hash-verified
 # overridable.<file>: protected = must not change | overridable = repo may extend freely
 sha256.AGENTS.base.md: 1465ac22cce87583d7c673bf4ad15ac554299d8588c9d4f3e9a42c8a99dc7baa
-sha256.PLAN.md: d0d1bf5966eff4cc762ec5722a418c9b0b9afb8fc79d9018b2d5fca9777a30b6
+sha256.PLAN.md: 01a05ab0544324a7e7dbc52b87e7c94160245637dea82eef38afe8b73e722424
 sha256.contract.yaml: 881230fe1ad69b1c8a260c998a6ca82340e849f610ffa6355666e52e83dca19a
-sha256.AGENTS.md: 5ec49a2a2f7eabd9375fb9e70d2d52f3d704d46b45cd6e60f81d72611b32262d
+sha256.AGENTS.md: 59243d86c7774a1c270d166451eb12837923af83b4d8b6ccca6af698e1991e66
 overridable.AGENTS.base.md: protected
 overridable.PLAN.md: overridable
 overridable.contract.yaml: overridable
@@ -30,8 +30,12 @@ overridable.AGENTS.md: overridable
 
 # ── CONTRACT (framework-enforced mandates) ────────────────────────────────────
 # Fields listed here are actively checked by drift checker; violations block ci/gate.
+# CONTRACT layer policy: only values that affect validation judgments belong here.
+#   Do NOT use this layer for metadata, notes, or domain-specific configuration.
 # plan_required_sections: ## headings that MUST be present in PLAN.md (governance mandate).
 #   Empty = no mandate enforced (adopt-existing default). Set explicitly to harden.
+# plan_freshness_threshold_days: CONTRACT OVERRIDE — changes the staleness threshold
+#   for plan_freshness check. Default: 14d (framework default) or PLAN.md Freshness header.
 contract_required_fields:
   - name
   - framework_interface_version
@@ -46,6 +50,7 @@ plan_section_inventory:
   - "## 🏗️ 當前階段"
   - "## 📦 Phase 詳細規劃"
   - "## 🔥 當前聚焦 — 維護期 / Alpha adoption hardening"
+  - "## 🔥 下一輪聚焦 — Beta 收斂 / Workflow Entry Layer 整合"
   - "## 📊 待辦清單 (Backlog)"
   - "## 🚫 不要做 (Anti-Goals)"
   - "## 🤖 AI 協作規則"
@@ -54,4 +59,3 @@ plan_section_inventory:
   - "## 📝 已知問題"
   - "## 🔧 技術債務追蹤"
   - "## 🔄 變更歷史"
-
