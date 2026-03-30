@@ -97,3 +97,29 @@ docs/no-python-evidence-<YYYY-MM-DD>.md
 That file is the Gate re-run evidence. The author will review it against the
 pass criteria in `docs/beta-gate/onboarding-pass-criteria.md` and update the
 Gate verdict.
+
+---
+
+## For the author — Gate judgment checklist
+
+Do not judge this run until you can answer all three questions from the artifact alone,
+without asking the reviewer:
+
+1. **Environment was genuinely constrained.**
+   Did the reviewer enter Route B because all Python variants returned
+   "command not found" — not because Route A looked inconvenient?
+   Evidence: Section 1 exact output + Section 6 blocker record.
+
+2. **Failure is classifiable against the catalog.**
+   Does the failure in Section 6 match FM-001 (no-Python block), or is it
+   a new pattern not yet in `docs/beta-gate/failure-mode-catalog.md`?
+   If new: add an entry before closing the run.
+
+3. **Route B was not self-selected.**
+   Is there evidence the reviewer attempted Route A before arriving at Route B?
+   (Section 1 commands attempted, Section 6 blocker record.)
+   If Route B was entered without attempting `python`, `python3`, and `py`,
+   the run does not qualify as a valid Route B run.
+
+If any question cannot be answered from the artifact, the run is incomplete —
+request a clarification or treat it as a new FM rather than closing CP5.
