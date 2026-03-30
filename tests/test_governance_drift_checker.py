@@ -510,8 +510,8 @@ def test_source_commit_invalid_sha_is_warning(tmp_path):
     assert result.checks.get("source_commit_recorded") is False
 
 
-def test_all_16_checks_present_in_ok_repo(clean_repo):
-    """Verify exactly 16 named checks appear in a fully valid repo."""
+def test_all_17_checks_present_in_ok_repo(clean_repo):
+    """Verify exactly 17 named checks appear in a fully valid repo."""
     result = check_governance_drift(clean_repo, framework_root=FRAMEWORK_ROOT)
     expected_checks = {
         "baseline_yaml_present",
@@ -530,9 +530,10 @@ def test_all_16_checks_present_in_ok_repo(clean_repo):
         "plan_freshness",
         "plan_inventory_current",
         "baseline_yaml_freshness",
+        "expansion_boundary",
     }
     assert set(result.checks.keys()) == expected_checks
-    assert len(result.checks) == 16
+    assert len(result.checks) == 17
 
 
 # ── Custom plan_required_sections (--adopt-existing use case) ─────────────────

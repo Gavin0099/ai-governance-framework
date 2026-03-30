@@ -642,6 +642,27 @@ def check_governance_drift(
         except ValueError:
             _fail("baseline_yaml_freshness", "warning", f"cannot parse initialized_at: {initialized_at_str}")
 
+    # ── Expansion Boundary Check ─────────────────────────────────────────────
+    # Passive check: detects runtime surface expansions that bypassed the
+    # Expansion Admission Gate. Runs against the framework root itself (the
+    # three core hook files). Reports as warning, not critical — a violation
+    # means a gate was skipped, not that the repo is broken today.
+
+    try:
+        from governance_tools.expansion_boundary_checker import run_checks as _run_expansion_checks
+        _expansion_violations = _run_expansion_checks(framework_root)
+        if _expansion_violations:
+            for _v in _expansion_violations:
+                _fail(
+                    "expansion_boundary",
+                    "warning",
+                    f"{_v.kind}: {_v.detail}",
+                )
+        else:
+            _pass("expansion_boundary")
+    except Exception as _exc:
+        warnings.append(f"expansion_boundary: checker could not run ({_exc})")
+
     # ── Severity Roll-Up ─────────────────────────────────────────────────────
 
     has_critical = any(f["severity"] == "critical" for f in findings)

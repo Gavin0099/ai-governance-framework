@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import textwrap
+from datetime import date as _date
 from pathlib import Path
 
 from governance_tools.external_repo_smoke import format_human, infer_smoke_rules, run_external_repo_smoke
@@ -23,7 +24,7 @@ def test_infer_smoke_rules_includes_common_and_external_pack(tmp_path: Path) -> 
 def test_run_external_repo_smoke_succeeds_for_valid_external_contract(tmp_path: Path) -> None:
     _write(
         tmp_path / "PLAN.md",
-        "> **最後更新**: 2026-03-15\n> **Owner**: tester\n> **Freshness**: Sprint (7d)\n",
+        f"> **最後更新**: {_date.today().isoformat()}\n> **Owner**: tester\n> **Freshness**: Sprint (7d)\n",
     )
     _write(tmp_path / "AGENTS.md", "# Agents\n")
     _write(tmp_path / "CHECKLIST.md", "# Checklist\n")
@@ -59,7 +60,7 @@ def test_run_external_repo_smoke_succeeds_for_valid_external_contract(tmp_path: 
 def test_run_external_repo_smoke_replays_compliant_post_task_fixture(tmp_path: Path) -> None:
     _write(
         tmp_path / "PLAN.md",
-        "> **最後更新**: 2026-03-15\n> **Owner**: tester\n> **Freshness**: Sprint (7d)\n",
+        f"> **最後更新**: {_date.today().isoformat()}\n> **Owner**: tester\n> **Freshness**: Sprint (7d)\n",
     )
     _write(tmp_path / "AGENTS.md", "# Agents\n")
     _write(tmp_path / "CHECKLIST.md", "# Checklist\n")
@@ -152,7 +153,7 @@ def test_run_external_repo_smoke_replays_compliant_post_task_fixture(tmp_path: P
 def test_run_external_repo_smoke_fails_for_missing_external_rule_pack(tmp_path: Path) -> None:
     _write(
         tmp_path / "PLAN.md",
-        "> **最後更新**: 2026-03-15\n> **Owner**: tester\n> **Freshness**: Sprint (7d)\n",
+        f"> **最後更新**: {_date.today().isoformat()}\n> **Owner**: tester\n> **Freshness**: Sprint (7d)\n",
     )
     _write(
         tmp_path / "contract.yaml",
@@ -175,7 +176,7 @@ def test_run_external_repo_smoke_fails_for_missing_external_rule_pack(tmp_path: 
 def test_format_human_uses_shared_summary_shape(tmp_path: Path) -> None:
     _write(
         tmp_path / "PLAN.md",
-        "> **最後更新**: 2026-03-15\n> **Owner**: tester\n> **Freshness**: Sprint (7d)\n",
+        f"> **最後更新**: {_date.today().isoformat()}\n> **Owner**: tester\n> **Freshness**: Sprint (7d)\n",
     )
     _write(tmp_path / "AGENTS.md", "# Agents\n")
     _write(tmp_path / "CHECKLIST.md", "# Checklist\n")

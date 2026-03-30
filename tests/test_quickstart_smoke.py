@@ -1,4 +1,5 @@
 import sys
+from datetime import date as _date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -9,7 +10,7 @@ from governance_tools.quickstart_smoke import format_human_result, run_quickstar
 def test_quickstart_smoke_runs_without_contract_on_temp_repo(tmp_path):
     plan = tmp_path / "PLAN.md"
     plan.write_text(
-        "> **最後更新**: 2026-03-15\n"
+        f"> **最後更新**: {_date.today().isoformat()}\n"
         "> **Owner**: Tester\n"
         "> **Freshness**: Sprint (7d)\n"
         "\n"

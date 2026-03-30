@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import shutil
+from datetime import date as _date
 from pathlib import Path
 
 from governance_tools.external_repo_onboarding_report import (
@@ -42,7 +43,7 @@ def _make_contract_repo(repo_root: Path, framework_root: Path) -> None:
     _write(hook_dir / "ai-governance-framework-root", str(framework_root))
     _write(
         repo_root / "PLAN.md",
-        "> **最後更新**: 2026-03-15\n> **Owner**: tester\n> **Freshness**: Sprint (7d)\n",
+        f"> **最後更新**: {_date.today().isoformat()}\n> **Owner**: tester\n> **Freshness**: Sprint (7d)\n",
     )
     _write(repo_root / "AGENTS.md", "# Agents\n")
     _write(repo_root / "CHECKLIST.md", "# Checklist\n")

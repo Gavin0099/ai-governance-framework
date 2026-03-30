@@ -2,6 +2,7 @@ import json
 import shutil
 import subprocess
 import sys
+from datetime import date as _date
 from pathlib import Path
 
 import pytest
@@ -187,7 +188,7 @@ def test_dispatcher_cli_can_infer_project_root_and_plan_from_contract(tmp_path):
     plan_path = tmp_path / "PLAN.md"
     contract_file.write_text("name: local-contract\n", encoding="utf-8")
     plan_path.write_text(
-        "> **最後更新**: 2026-03-15\n"
+        f"> **最後更新**: {_date.today().isoformat()}\n"
         "> **Owner**: Tester\n"
         "> **Freshness**: Sprint (7d)\n"
         "\n"
