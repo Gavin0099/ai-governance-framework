@@ -4,7 +4,7 @@
 > **技術棧**: Markdown / Python / Bash
 > **複雜度**: L2
 > **預計工期**: 2026/03 ~ 2026/06
-> **最後更新**: 2026-03-29
+> **最後更新**: 2026-03-30
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 
@@ -155,6 +155,15 @@
 ## 🔥 下一輪聚焦 — Beta 收斂
 
 **目標**: 確保 Beta Gate 剩餘條件（獨立 reviewer 無引導完成 onboarding）、持續補強 CI gate 覆蓋率與 onboarding 摩擦。
+
+**2026-03-30 本輪完成**:
+- [x] 建立 Expansion Admission Gate（`docs/expansion-admission-gate.md`）— framework 新增「主動說不」的機制，定義 Q1–Q5 篩選條件與 decision outcome table
+- [x] 記錄第一個被拒絕的 expansion case（`docs/expansion-cases/entry-layer-rejected.md`）— entry layer → session_start 作為 anti-expansion precedent，記錄差點如何 drift in、為何被拒
+- [x] 新增 expansion_boundary_checker（`governance_tools/expansion_boundary_checker.py`）— 獨立 CLI 工具，被動偵測 banned imports 與 unrecognized return keys；尚未接入被動執行路徑
+
+**Beta Gate 狀態**:
+- [x] 條件 1：外部專案完整跑完 session lifecycle ✓ 2026/03/28
+- [ ] 條件 2：獨立 reviewer 無引導完成 onboarding — **open，blocked on independent reviewer run，不可用 code-only 工作偽裝進度**
 
 ---
 
