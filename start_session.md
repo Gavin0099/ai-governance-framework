@@ -38,6 +38,11 @@ Then proceed to [Adopting the baseline](#adopting-the-baseline-into-your-repo-fi
 
 ### Route B — no-Python onboarding evidence
 
+> **Use only if `python`, `python3`, and `py` all return "command not found".**
+> If any Python variant is available but failing for another reason (wrong PATH,
+> missing package), fix that first. Route B does not produce a machine-verifiable
+> artifact and cannot substitute for Route A when Python is reachable.
+
 Python is completely unavailable in this environment.
 
 Route B does not produce a tool-backed artifact. It produces a formal observation record instead — an evidence file that documents what you were able to verify without execution.

@@ -80,6 +80,29 @@ Fail: reviewer does not reach the point of attempting any tool execution.
 
 ---
 
+## Gate override rules
+
+Score-based results can be overridden by the following conditions.
+An override takes precedence over the scoring table above.
+
+| Condition | Override | Reason |
+|-----------|----------|--------|
+| CP5 (artifact production) fails | Automatic FAIL regardless of total score | Framework's core claim is that governance produces verifiable evidence. If onboarding cannot produce any artifact under realistic constraints, the claim cannot be verified. A 3/5 score that masks a CP5 failure misrepresents Gate status. |
+
+**How to apply an override:**
+
+Record the override explicitly in the reviewer run file:
+
+```
+Gate Verdict: FAIL
+Override applied: CP5 automatic FAIL rule
+Score-based result: X/5 (would have been: Pass / Fail)
+```
+
+Do not silently use the score-based result when an override applies.
+
+---
+
 ## Blocker classification
 
 When a reviewer fails a checkpoint, classify the blocker:
