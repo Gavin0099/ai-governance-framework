@@ -1,0 +1,139 @@
+# Reviewer Test Pack — Beta Gate Condition 2 (R2)
+
+> Version: 2.0
+> Created: 2026-03-30
+> For: external reviewer (cold start, no author guidance)
+
+---
+
+## Part 1 — What you are testing
+
+You are testing an open-source governance framework for AI-assisted development.
+
+**Your job is not to learn it. Your job is to try to use it, and record what happens.**
+
+Starting point: https://github.com/Gavin0099/ai-governance-framework
+
+Open that URL in a browser. Do not clone the repo unless a command explicitly tells you to.
+
+You have 30–60 minutes. Start whenever you are ready.
+
+---
+
+### Ground rules
+
+- **Only follow what the docs say.** Do not infer, guess, or reconstruct meaning from context.
+- **If something is unclear, log it and move on.** Do not read multiple files to fill in gaps unless the docs explicitly direct you to.
+- **Do not ask the author.** If you are stuck and the docs do not help, that is a failure worth recording.
+- **Log failures as they happen.** Do not wait until the end to write the failure log.
+
+---
+
+## Part 2 — Task
+
+Try to do this, in order:
+
+1. Figure out what this framework is for
+2. Figure out how you would adopt it in a project
+3. Run or describe the minimum flow you would follow when starting an AI-assisted work session
+4. Find out how to check if your governance is drifting
+
+Stop when you finish, or when you are stuck and cannot continue.
+
+---
+
+## Part 3 — Failure Log
+
+Fill this in as you go. Do not wait until the end.
+Honest, messy notes are more valuable than clean summaries.
+
+### 3.1 First confusion point
+
+The first moment something was unclear:
+
+```
+File or page I was looking at:
+
+What I expected to find there:
+
+What I actually saw:
+
+How long I had been going at this point (approximate):
+```
+
+---
+
+### 3.2 First blockage
+
+The first point where I could not move forward:
+
+```
+What I was trying to do:
+
+What I tried:
+
+Why it didn't work (as best as I can tell):
+
+Did I find a workaround? (Y/N)
+If yes, what was it:
+```
+
+---
+
+### 3.3 Concept confusion
+
+Any term or concept that I encountered and did not understand:
+
+```
+Term / concept:
+Where I saw it:
+What I thought it meant:
+What I think it actually means (if I figured it out):
+```
+
+*(Copy this block for each confusing concept. Leave blank if none.)*
+
+---
+
+### 3.4 Navigation confusion
+
+Any point where I did not know where to look next:
+
+```
+I was trying to find:
+I looked in:
+I eventually found it at (or: I never found it):
+```
+
+*(Copy this block for each navigation failure. Leave blank if none.)*
+
+---
+
+### 3.5 Final state
+
+```
+Did you complete Task 1 (understand what this is for)?   Y / N / Partial
+Did you complete Task 2 (understand adoption)?           Y / N / Partial
+Did you complete Task 3 (describe minimum session flow)? Y / N / Partial
+Did you complete Task 4 (find drift check)?              Y / N / Partial
+
+If you stopped early: what was the last thing you tried before stopping?
+
+One sentence describing what this framework is, in your own words:
+```
+
+---
+
+## Part 4 — Debrief questions
+
+Answer these after you are done:
+
+1. What was the first file you opened, and why?
+
+2. At what point (if any) did things start to make sense?
+
+3. What was the single biggest obstacle?
+
+4. If you had to tell a colleague whether to adopt this, what would you say?
+
+5. What one change would most reduce the friction you experienced?

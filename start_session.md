@@ -4,35 +4,43 @@ This file is the shortest path to seeing the framework produce real output.
 
 ## Prerequisites
 
-- Python 3.10+
-- `pip install -r requirements.txt`
+Verify your environment before running anything:
 
-If your Python interpreter is not on `PATH`, set `AI_GOVERNANCE_PYTHON` first.
+```bash
+python governance_tools/adopt_governance.py --check-env
+```
 
-PowerShell:
+Expected output:
 
-```powershell
-$env:AI_GOVERNANCE_PYTHON='C:\Path\To\python.exe'
+```
+[OK]   Python 3.x available
+[OK]   pyyaml installed
+[OK]   pytest installed
+```
+
+If `python` is not found, try `python3` or `py`. If none work:
+
+- Windows: install from [python.org/downloads](https://python.org/downloads)
+- macOS: `brew install python`
+- Linux: `sudo apt install python3` or equivalent
+
+Once Python is available:
+
+```bash
+pip install -r requirements.txt
 ```
 
 ## Adopting the baseline into your repo (first-time setup)
 
-If you want to apply this framework's governance baseline to a repo that already has
-its own `PLAN.md`, `AGENTS.md`, or other governance files:
+**Primary path (cross-platform, recommended):**
 
 ```bash
-bash scripts/init-governance.sh --target /path/to/your/repo --adopt-existing
+python governance_tools/adopt_governance.py --target /path/to/your/repo
 ```
 
 This copies `AGENTS.base.md` (protected), creates any missing files from template, and
 records a `plan_section_inventory` of your existing PLAN.md structure — without
 overwriting anything that already exists.
-
-For a fresh repo (no existing governance files):
-
-```bash
-bash scripts/init-governance.sh --target /path/to/new/repo
-```
 
 After adoption, verify with:
 
@@ -43,8 +51,17 @@ python governance_tools/governance_drift_checker.py --repo /path/to/your/repo --
 When your repo's PLAN.md or other files change later, refresh the baseline hashes:
 
 ```bash
-bash scripts/init-governance.sh --target /path/to/your/repo --refresh-baseline
+python governance_tools/adopt_governance.py --target /path/to/your/repo --refresh
 ```
+
+**Fallback path (if Python is unavailable — bash/Linux/macOS only):**
+
+```bash
+bash scripts/init-governance.sh --target /path/to/your/repo --adopt-existing
+```
+
+The bash script covers the same adoption flow. Use it only if Python is not available
+in your environment. On Windows, use the Python path above.
 
 ---
 

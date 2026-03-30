@@ -767,16 +767,54 @@ def _resolve_framework_root(target: Path, cli_value: str | None) -> Path:
     return discovered if discovered else repo_root_from_tooling()
 
 
+def _check_env() -> int:
+    """Check that the environment is ready to run the framework. Exit 0 if ok."""
+    import importlib
+    ok = True
+
+    py = sys.version_info
+    print(f"[OK]   Python {py.major}.{py.minor}.{py.micro} available")
+
+    for pkg, install_hint in [
+        ("yaml", "pip install pyyaml"),
+        ("pytest", "pip install pytest"),
+    ]:
+        try:
+            importlib.import_module(pkg)
+            label = "pyyaml" if pkg == "yaml" else pkg
+            print(f"[OK]   {label} installed")
+        except ImportError:
+            label = "pyyaml" if pkg == "yaml" else pkg
+            print(f"[FAIL] {label} not found — run: {install_hint}")
+            ok = False
+
+    if ok:
+        print("\nEnvironment ready. Next step:")
+        print("  python governance_tools/adopt_governance.py --target /path/to/your/repo")
+    else:
+        print("\nFix the above before running adopt.")
+
+    return 0 if ok else 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Adopt or refresh AI Governance Framework baseline (cross-platform)."
     )
-    parser.add_argument("--target", required=True, help="Path to the target repository")
+    parser.add_argument("--target", help="Path to the target repository")
     parser.add_argument("--framework-root", help="Path to framework installation (auto-detected if omitted)")
     parser.add_argument("--refresh", action="store_true",
                         help="Refresh mode: recompute hashes + inventory without copying template files")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be done without writing files")
+    parser.add_argument("--check-env", action="store_true",
+                        help="Check that Python and required packages are available, then exit")
     args = parser.parse_args()
+
+    if args.check_env:
+        return _check_env()
+
+    if not args.target:
+        parser.error("--target is required unless --check-env is specified")
 
     target = Path(args.target).resolve()
     framework_root = _resolve_framework_root(target, args.framework_root)
