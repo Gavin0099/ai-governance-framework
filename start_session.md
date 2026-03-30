@@ -18,17 +18,46 @@ Expected output:
 [OK]   pytest installed
 ```
 
-If `python` is not found, try `python3` or `py`. If none work:
+If `python` is not found, try `python3` or `py`.
 
-- Windows: install from [python.org/downloads](https://python.org/downloads)
-- macOS: `brew install python`
-- Linux: `sudo apt install python3` or equivalent
+**If all three fail, stop here and choose a route:**
 
-Once Python is available:
+---
+
+### Route A — tool-backed (normal path)
+
+Python is available. Install dependencies and continue:
 
 ```bash
 pip install -r requirements.txt
 ```
+
+Then proceed to [Adopting the baseline](#adopting-the-baseline-into-your-repo-first-time-setup) below.
+
+---
+
+### Route B — no-Python onboarding evidence
+
+Python is completely unavailable in this environment.
+
+Route B does not produce a tool-backed artifact. It produces a formal observation record instead — an evidence file that documents what you were able to verify without execution.
+
+**This is not a workaround. It is a defined onboarding path for constrained environments.**
+
+Steps:
+
+1. Copy the template at [`docs/no-python-onboarding-evidence.md`](docs/no-python-onboarding-evidence.md)
+2. Fill it in by reading the files it references — no execution required
+3. Save your completed record as `docs/no-python-evidence-<YYYY-MM-DD>.md`
+4. The completed file is your onboarding artifact for this environment
+
+If you need a working Python installation:
+
+- Windows: [python.org/downloads](https://python.org/downloads)
+- macOS: `brew install python`
+- Linux: `sudo apt install python3` or equivalent
+
+---
 
 ## Adopting the baseline into your repo (first-time setup)
 
