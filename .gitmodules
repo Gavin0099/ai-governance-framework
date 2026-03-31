@@ -1,0 +1,3 @@
+[submodule "SpecAuthority"]
+	path = SpecAuthority
+	url = https://github.com/Gavin0099/SpecAuthority.git
