@@ -107,6 +107,10 @@ Do not silently use the score-based result when an override applies.
 
 When a reviewer fails a checkpoint, classify the blocker:
 
+Use `docs/beta-gate/reviewer-signal-split.md` first to decide whether the run
+failed at discoverability, interpretation, decision reconstruction, or
+escalation judgment.
+
 | Type | Description | Implication |
 |------|-------------|-------------|
 | **Conceptual** | Reviewer doesn't understand what the thing is for | Needs explanation or example, not restructuring |

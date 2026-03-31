@@ -150,5 +150,8 @@ Record which failed. Each failure maps to one targeted fix, not a refactor.
 
 File the raw log at: `docs/beta-gate/reviewer-run-<YYYY-MM-DD>.md`
 
+Before proposing fixes, classify the first meaningful failure using:
+`docs/beta-gate/reviewer-signal-split.md`
+
 Do not fix anything until you have read the full log.
 Do not fix more than the lowest-level cause of each failure.
