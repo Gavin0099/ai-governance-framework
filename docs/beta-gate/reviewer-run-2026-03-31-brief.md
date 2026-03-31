@@ -21,15 +21,13 @@ reviewer-failure diagnostics, and Route B / reviewer-pack additions.
 
 ## Required inputs
 
-Use these three documents together:
+Author-side run setup uses these documents together:
 
 - `docs/beta-gate/reviewer-test-pack.md`
 - `docs/beta-gate/reviewer-signal-split.md`
 - `docs/beta-gate/reviewer-run-sheet.md`
-
-Supporting score / override reference:
-
 - `docs/beta-gate/onboarding-pass-criteria.md`
+- `docs/beta-gate/reviewer-test-brief.md`
 
 ## Run setup
 
@@ -39,6 +37,7 @@ Reviewer constraints:
 - Cold start
 - No author guidance
 - Start from repo URL only
+- Receive only the one-sentence framing from `reviewer-test-brief.md`
 
 Author constraints:
 
@@ -47,6 +46,8 @@ Author constraints:
 - Do not answer clarifying questions during the first pass; tell the reviewer
   to record the question and continue
 - Only tell the reviewer to keep going and record what they are thinking
+- Do not hand over `reviewer-test-pack.md`, `reviewer-signal-split.md`,
+  `reviewer-run-sheet.md`, or `onboarding-pass-criteria.md` before the run
 
 ## Recording checklist
 

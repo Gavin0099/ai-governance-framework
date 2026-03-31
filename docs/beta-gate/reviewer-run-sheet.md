@@ -24,10 +24,19 @@ It exists to ensure each run records:
 
 ## Inputs
 
-Before starting a run, confirm the reviewer is using:
+Before starting a run, confirm the author is using:
 
 - `docs/beta-gate/reviewer-test-pack.md`
 - `docs/beta-gate/onboarding-pass-criteria.md`
+- `docs/beta-gate/reviewer-test-brief.md`
+
+The reviewer should receive only what `reviewer-test-brief.md` permits:
+
+- the repo URL
+- one sentence of framing
+
+Do not hand the reviewer `reviewer-test-pack.md`,
+`onboarding-pass-criteria.md`, or `reviewer-signal-split.md` before the run.
 
 After the run, classify failures using:
 
