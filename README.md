@@ -390,6 +390,8 @@ Step 1 到 Step 7 的 roadmap 與 rebaseline 輸出位於 [docs/payload-audit/](
 
 ## 延伸閱讀
 
+- [docs/decision-boundary-layer.md](docs/decision-boundary-layer.md)
+- [docs/decision-boundary-first-slice.md](docs/decision-boundary-first-slice.md)
 - [docs/architecture-challenge-response.zh-TW.md](docs/architecture-challenge-response.zh-TW.md)
 - [docs/competitive-landscape.md](docs/competitive-landscape.md)
 - [docs/runtime-governance-update.md](docs/runtime-governance-update.md)

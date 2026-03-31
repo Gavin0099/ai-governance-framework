@@ -788,4 +788,11 @@ bash scripts/run-runtime-governance.sh --mode ci
 
 ---
 
+## 14. 延伸設計
+
+- [docs/decision-boundary-layer.md](docs/decision-boundary-layer.md)
+- [docs/decision-boundary-first-slice.md](docs/decision-boundary-first-slice.md)
+
+---
+
 *ai-governance-framework v1.1.0 · github.com/Gavin0099/ai-governance-framework*

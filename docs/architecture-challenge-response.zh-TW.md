@@ -450,6 +450,14 @@
    - 避免把系統描述成「全面治理 AI」
    - 改為「可審計、可驗證、可逐步強化 enforcement 的決策系統」
 
+6. 將 repo-local context 正式收斂為 decision-boundary 設計
+   - 不再停留在 `CLAUDE.md` / entry context 的文件層
+   - 改以 identity、invariant、precondition、capability 四層定義可被 runtime 消費的前置決策邊界
+
+7. 先凍結第一個 runtime slice 的 acceptance boundary
+   - 第一版優先驗證最小 precondition gate，而不是一次把四層全部 runtime 化
+   - 將 identity 降為 input / trace surface，延後到後續版本再談 enforcement
+
 ---
 
 ## 可直接採納的文案修正
