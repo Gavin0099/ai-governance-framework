@@ -13,6 +13,7 @@ from runtime_hooks.core.session_start import build_session_start_context, format
 
 EXAMPLE_CONTRACT = Path("examples/usb-hub-contract/contract.yaml")
 EXAMPLE_FIXTURES = Path("examples/usb-hub-contract/fixtures")
+DBL_EXAMPLE_CONTRACT = Path("examples/decision-boundary/minimal-preconditions/contract.yaml")
 
 
 def test_usb_hub_example_contract_loads():
@@ -298,3 +299,61 @@ index 1111111..2222222 100644
     assert result["ok"] is True
     assert "printf" in result["domain_validator_results"][0]["warnings"][0]
     assert result["domain_validator_results"][0]["metadata"]["interrupt_functions"] == ["USB_ISR"]
+
+
+def test_decision_boundary_minimal_example_contract_loads():
+    loaded = load_domain_contract(DBL_EXAMPLE_CONTRACT)
+
+    assert loaded is not None
+    assert loaded["name"] == "decision-boundary-minimal-preconditions"
+    assert loaded["raw"]["preconditions_missing_sample"] == ["pdf_parser"]
+    assert loaded["raw"]["preconditions_missing_spec"] == ["protocol_implementation"]
+    assert loaded["raw"]["preconditions_missing_fixture"] == ["bugfix"]
+
+
+def test_decision_boundary_minimal_example_changes_pre_task_verdicts():
+    l0 = run_pre_task_check(
+        project_root=Path(".").resolve(),
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="Implement a PDF parser for hub update reports",
+        contract_file=DBL_EXAMPLE_CONTRACT,
+        task_level="L0",
+    )
+    l1 = run_pre_task_check(
+        project_root=Path(".").resolve(),
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="Implement protocol handling for firmware packets",
+        contract_file=DBL_EXAMPLE_CONTRACT,
+        task_level="L1",
+    )
+    l2 = run_pre_task_check(
+        project_root=Path(".").resolve(),
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="Bugfix the firmware updater retry path",
+        contract_file=DBL_EXAMPLE_CONTRACT,
+        task_level="L2",
+    )
+
+    assert l0["ok"] is True
+    assert l0["decision_boundary"]["boundary_effect"] == "warn"
+    assert l0["decision_boundary"]["preconditions_checked"][0]["action"] == "analysis_only"
+
+    assert l1["ok"] is True
+    assert l1["decision_boundary"]["boundary_effect"] == "escalate"
+    assert any(
+        check["action"] == "restrict_code_generation_and_escalate"
+        for check in l1["decision_boundary"]["preconditions_checked"]
+    )
+
+    assert l2["ok"] is False
+    assert l2["decision_boundary"]["boundary_effect"] == "stop"
+    assert any(check["action"] == "stop" for check in l2["decision_boundary"]["preconditions_checked"])
