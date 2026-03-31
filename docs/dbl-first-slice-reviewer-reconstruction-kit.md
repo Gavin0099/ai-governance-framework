@@ -31,6 +31,9 @@ Give the reviewer only these materials:
 - `examples/decision-boundary/minimal-preconditions/README.md`
 - `examples/decision-boundary/insufficiency-like-preconditions/README.md`
 
+For a ready-to-send reviewer handoff, use
+`docs/dbl-first-slice-reviewer-test-pack.md`.
+
 Do not add oral clarification during the first pass.
 
 ---
