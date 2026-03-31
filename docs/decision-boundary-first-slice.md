@@ -155,3 +155,18 @@ Slice 1 is successful only if all are true:
 6. False stop / false escalate cases can be observed and classified rather than hand-waved away.
 
 If any of these fail, stop and revise before adding more layers.
+
+---
+
+## Next validation step
+
+The next step after slice 1 is not broader DBL expansion.
+
+Use [`dbl-first-slice-validation-plan.md`](dbl-first-slice-validation-plan.md)
+to validate:
+
+- reviewer reconstruction
+- insufficiency-like examples
+- adversarial / gaming cases
+
+before adding more decision-boundary surface.
