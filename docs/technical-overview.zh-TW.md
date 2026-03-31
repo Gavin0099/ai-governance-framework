@@ -796,3 +796,9 @@ bash scripts/run-runtime-governance.sh --mode ci
 ---
 
 *ai-governance-framework v1.1.0 · github.com/Gavin0099/ai-governance-framework*
+
+## 延伸閱讀
+
+- [Decision Boundary Layer](decision-boundary-layer.md)
+- [Decision Boundary First Slice](decision-boundary-first-slice.md)
+- [Machine-Interpretable Positioning](agent-native-positioning.md)

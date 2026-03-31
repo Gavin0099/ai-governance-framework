@@ -392,6 +392,7 @@ Step 1 到 Step 7 的 roadmap 與 rebaseline 輸出位於 [docs/payload-audit/](
 
 - [docs/decision-boundary-layer.md](docs/decision-boundary-layer.md)
 - [docs/decision-boundary-first-slice.md](docs/decision-boundary-first-slice.md)
+- [docs/agent-native-positioning.md](docs/agent-native-positioning.md) - Machine-Interpretable Positioning
 - [docs/architecture-challenge-response.zh-TW.md](docs/architecture-challenge-response.zh-TW.md)
 - [docs/competitive-landscape.md](docs/competitive-landscape.md)
 - [docs/runtime-governance-update.md](docs/runtime-governance-update.md)
