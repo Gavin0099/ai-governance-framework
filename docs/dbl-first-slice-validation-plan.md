@@ -92,6 +92,9 @@ This is still a **very small example**, not a new demo project.
 
 Use the current minimal example plus the second insufficiency-like example.
 
+Use `docs/dbl-first-slice-reviewer-reconstruction-kit.md` as the minimal
+reviewer prompt pack for this step.
+
 This is not yet the formal independent-reviewer gate.
 
 Instead, observe:

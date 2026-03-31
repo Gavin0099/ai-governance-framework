@@ -5,6 +5,10 @@ This example is intentionally small and intentionally incomplete.
 It exists to demonstrate the current boundary of the first executable DBL
 slice, not to pretend that semantic sufficiency is already solved.
 
+> This example demonstrates a current boundary, not a sufficiency capability.
+> A passing result here only shows that explicit precondition signals are
+> present. It must not be interpreted as semantic adequacy detection.
+
 ## Purpose
 
 The first minimal DBL slice currently checks explicit missing-state signals.

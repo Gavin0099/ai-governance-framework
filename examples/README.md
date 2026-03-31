@@ -21,3 +21,12 @@ This directory contains three different kinds of examples:
 6. Open `decision-boundary/minimal-preconditions/` if you want the smallest executable DBL precondition example
 7. Open `decision-boundary/insufficiency-like-preconditions/` if you want the smallest example of a current first-slice limitation
 8. Open `chaos-demo/` if you want a short architecture-governance narrative
+
+## Important DBL framing
+
+The `decision-boundary/insufficiency-like-preconditions/` example is a
+limitation proof, not a capability proof.
+
+A passing result there means only that the current first slice detected
+explicit precondition presence. It does not mean the framework already performs
+semantic adequacy or evidence-quality judgment.
