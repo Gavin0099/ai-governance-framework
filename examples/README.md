@@ -8,7 +8,7 @@ This directory contains three different kinds of examples:
 | [chaos-demo](chaos-demo/) | Walkthrough | Before/after narrative for architecture-boundary governance | No executable app |
 | [usb-hub-contract](usb-hub-contract/) | Runnable contract sample | Minimal external domain contract with rules and validator | Python stdlib |
 | [decision-boundary/minimal-preconditions](decision-boundary/minimal-preconditions/) | Minimal contract sample | First-slice DBL precondition example with deterministic verdict changes | Python stdlib |
-| [decision-boundary/insufficiency-like-preconditions](decision-boundary/insufficiency-like-preconditions/) | Minimal boundary sample | Shows what the current first slice does not yet distinguish about weak or irrelevant evidence | Python stdlib |
+| [decision-boundary/insufficiency-like-preconditions](decision-boundary/insufficiency-like-preconditions/) | Minimal boundary sample | Shows that the current first slice does not attempt to distinguish weak or irrelevant evidence | Python stdlib |
 | [starter-pack](starter-pack/) | Scaffold | Copy-ready governance starter files for a new repo | No executable app |
 
 ## Recommended Path

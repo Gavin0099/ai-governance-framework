@@ -36,7 +36,7 @@ preconditions_missing_fixture:
 
 - a consuming contract can opt into the first DBL runtime slice
 - the slice changes verdict deterministically by task level
-- reviewer-visible trace can show which precondition changed the result
+- reviewer-visible trace can show which precondition absence changed the result
 
 ## Expected effect by task level
 
