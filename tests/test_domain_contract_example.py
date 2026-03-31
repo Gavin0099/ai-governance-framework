@@ -14,6 +14,9 @@ from runtime_hooks.core.session_start import build_session_start_context, format
 EXAMPLE_CONTRACT = Path("examples/usb-hub-contract/contract.yaml")
 EXAMPLE_FIXTURES = Path("examples/usb-hub-contract/fixtures")
 DBL_EXAMPLE_CONTRACT = Path("examples/decision-boundary/minimal-preconditions/contract.yaml")
+DBL_INSUFFICIENCY_EXAMPLE_CONTRACT = Path(
+    "examples/decision-boundary/insufficiency-like-preconditions/contract.yaml"
+)
 
 
 def test_usb_hub_example_contract_loads():
@@ -357,3 +360,54 @@ def test_decision_boundary_minimal_example_changes_pre_task_verdicts():
     assert l2["ok"] is False
     assert l2["decision_boundary"]["boundary_effect"] == "stop"
     assert any(check["action"] == "stop" for check in l2["decision_boundary"]["preconditions_checked"])
+
+
+def test_decision_boundary_insufficiency_like_example_contract_loads():
+    loaded = load_domain_contract(DBL_INSUFFICIENCY_EXAMPLE_CONTRACT)
+
+    assert loaded is not None
+    assert loaded["name"] == "decision-boundary-insufficiency-like"
+    assert loaded["raw"]["preconditions_missing_spec"] == ["protocol_implementation"]
+    assert loaded["raw"]["preconditions_missing_sample"] == ["pdf_parser"]
+
+
+def test_decision_boundary_insufficiency_like_example_shows_current_limit():
+    spec_case = run_pre_task_check(
+        project_root=Path(".").resolve(),
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="Implement protocol handling for firmware packets using legacy-spec.md",
+        contract_file=DBL_INSUFFICIENCY_EXAMPLE_CONTRACT,
+        task_level="L1",
+    )
+    sample_case = run_pre_task_check(
+        project_root=Path(".").resolve(),
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="Implement a PDF parser using sample file happy-path-report.pdf",
+        contract_file=DBL_INSUFFICIENCY_EXAMPLE_CONTRACT,
+        task_level="L1",
+    )
+
+    spec_check = next(
+        check for check in spec_case["decision_boundary"]["preconditions_checked"]
+        if check["type"] == "missing_spec"
+    )
+    sample_check = next(
+        check for check in sample_case["decision_boundary"]["preconditions_checked"]
+        if check["type"] == "missing_sample"
+    )
+
+    assert spec_case["ok"] is True
+    assert spec_case["decision_boundary"]["boundary_effect"] == "pass"
+    assert spec_check["present"] is True
+    assert spec_check["action"] == "pass"
+
+    assert sample_case["ok"] is True
+    assert sample_case["decision_boundary"]["boundary_effect"] == "pass"
+    assert sample_check["present"] is True
+    assert sample_check["action"] == "pass"

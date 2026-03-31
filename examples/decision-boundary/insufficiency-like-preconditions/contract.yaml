@@ -1,0 +1,15 @@
+name: decision-boundary-insufficiency-like
+plugin_version: "1.0.0"
+framework_interface_version: "1"
+framework_compatible: ">=1.0.0,<2.0.0"
+domain: decision-boundary
+documents:
+  - README.md
+ai_behavior_override:
+  - README.md
+rule_roots:
+validators:
+preconditions_missing_spec:
+  - protocol_implementation
+preconditions_missing_sample:
+  - pdf_parser
