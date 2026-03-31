@@ -1,8 +1,8 @@
-# Onboarding Pass/Fail Criteria
+# Human Self-Serve Onboarding Pass/Fail Criteria
 
 > Status: **active**
 > Created: 2026-03-30
-> Applies to: Beta Gate condition 2
+> Applies to: Beta Gate condition 2 human self-serve track
 
 ---
 
@@ -10,6 +10,12 @@
 
 "Can the reviewer figure it out?" is not a measurable criterion.
 This document converts it into observable, recordable checkpoints.
+
+This document applies to the **human cold-start self-serve** gate only.
+
+Agent-assisted adoption is tracked separately in:
+
+- `docs/beta-gate/agent-adoption-pass-criteria.md`
 
 ---
 

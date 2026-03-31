@@ -2,7 +2,7 @@
 
 > Status: **ready for use**
 > Created: 2026-03-30
-> Gate condition: independent reviewer completes onboarding without author guidance
+> Gate condition: human self-serve onboarding without author guidance
 
 ---
 

@@ -107,4 +107,5 @@ If more than one failure layer appears:
 Do not add another feature before this run.
 
 The purpose of this pass is to measure whether the current onboarding and DBL
-surface are now legible enough to move Beta Gate condition 2 forward.
+surface are now legible enough to move the human self-serve track of Beta Gate
+condition 2 forward.

@@ -2,7 +2,7 @@
 
 > Status: active
 > Created: 2026-03-31
-> Applies to: Beta Gate condition 2 reviewer runs
+> Applies to: Beta Gate condition 2 human reviewer runs
 
 ---
 
