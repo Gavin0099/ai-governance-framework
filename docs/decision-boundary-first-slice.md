@@ -51,6 +51,55 @@ Task-level expectation:
 - `L1`: must at least escalate when prerequisite is missing
 - `L2`: may hard-stop when prerequisite is required for correctness
 
+### Temporary contract surface
+
+Slice 1 currently uses a deliberately narrow contract interface.
+
+Supported fields:
+
+- `preconditions_missing_sample`
+- `preconditions_missing_spec`
+- `preconditions_missing_fixture`
+
+Example:
+
+```yaml
+preconditions_missing_sample:
+  - pdf_parser
+
+preconditions_missing_spec:
+  - protocol_implementation
+
+preconditions_missing_fixture:
+  - bugfix
+```
+
+This is a **first-slice temporary contract surface**.
+
+It is intentionally:
+
+- flat
+- explicit
+- easy to inspect in `contract.yaml`
+- limited to missing-state checks only
+
+It is **not** yet:
+
+- the final Decision Boundary Layer schema
+- a general-purpose precondition authoring model
+- a semantic sufficiency model
+- a nested policy language
+
+In particular, slice 1 does **not** infer:
+
+- pseudo-presence
+- semantic insufficiency
+- sample/spec quality
+- evidence completeness beyond explicit presence signals in task context
+
+If later versions introduce a richer schema, this first-slice surface should be
+treated as a bootstrap interface, not as the long-term shape of DBL authoring.
+
 ---
 
 ## Explicitly excluded from slice 1
