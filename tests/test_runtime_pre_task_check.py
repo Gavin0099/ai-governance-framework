@@ -271,3 +271,138 @@ def test_pre_task_check_can_auto_discover_domain_contract(local_tmp_dir, monkeyp
     assert result["resolved_contract_file"].replace("\\", "/").endswith("/tests/_tmp_runtime_hooks/contract.yaml")
     output = pre_task_check.format_human_result(result)
     assert "contract=usb-hub-firmware/medium" in output or "contract=firmware/medium" in output
+
+
+def test_pre_task_check_l0_degrades_to_analysis_only_for_missing_sample(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    (local_tmp_dir / "contract.yaml").write_text(
+        "name: sample-contract\n"
+        "preconditions_missing_sample:\n"
+        "  - pdf_parser\n",
+        encoding="utf-8",
+    )
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="Implement a PDF parser for hub update reports",
+        task_level="L0",
+    )
+
+    assert result["ok"] is True
+    assert result["decision_boundary"]["boundary_effect"] == "warn"
+    check = result["decision_boundary"]["preconditions_checked"][0]
+    assert check["type"] == "missing_sample"
+    assert check["action"] == "analysis_only"
+    assert check["present"] is False
+    assert any("analysis_only" in warning for warning in result["warnings"])
+
+
+def test_pre_task_check_l1_escalates_for_missing_spec(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    (local_tmp_dir / "contract.yaml").write_text(
+        "name: protocol-contract\n"
+        "preconditions_missing_spec:\n"
+        "  - protocol_implementation\n",
+        encoding="utf-8",
+    )
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="Implement protocol handling for firmware packets",
+        task_level="L1",
+    )
+
+    assert result["ok"] is True
+    assert result["decision_boundary"]["boundary_effect"] == "escalate"
+    check = result["decision_boundary"]["preconditions_checked"][0]
+    assert check["action"] == "restrict_code_generation_and_escalate"
+    assert any("requires code-generation restriction and escalation" in warning for warning in result["warnings"])
+
+
+def test_pre_task_check_l2_stops_for_missing_fixture(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    (local_tmp_dir / "contract.yaml").write_text(
+        "name: bugfix-contract\n"
+        "preconditions_missing_fixture:\n"
+        "  - bugfix\n",
+        encoding="utf-8",
+    )
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="Bugfix the firmware updater retry path",
+        task_level="L2",
+    )
+
+    assert result["ok"] is False
+    assert result["decision_boundary"]["boundary_effect"] == "stop"
+    check = result["decision_boundary"]["preconditions_checked"][0]
+    assert check["action"] == "stop"
+    assert any("Decision boundary stop" in error for error in result["errors"])
+
+
+def test_pre_task_check_does_not_trigger_when_explicit_sample_signal_is_present(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    (local_tmp_dir / "contract.yaml").write_text(
+        "name: sample-contract\n"
+        "preconditions_missing_sample:\n"
+        "  - pdf_parser\n",
+        encoding="utf-8",
+    )
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="Implement a PDF parser using the attached sample file report.pdf",
+        task_level="L1",
+    )
+
+    assert result["ok"] is True
+    assert result["decision_boundary"]["boundary_effect"] == "pass"
+    check = result["decision_boundary"]["preconditions_checked"][0]
+    assert check["present"] is True
+    assert check["action"] == "pass"
+
+
+def test_pre_task_check_human_output_includes_decision_boundary_effect(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    (local_tmp_dir / "contract.yaml").write_text(
+        "name: protocol-contract\n"
+        "preconditions_missing_spec:\n"
+        "  - protocol_implementation\n",
+        encoding="utf-8",
+    )
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="Implement protocol handling for firmware packets",
+        task_level="L1",
+    )
+
+    output = pre_task_check.format_human_result(result)
+    assert "decision_boundary_effect=escalate" in output
+    assert "precondition: missing_spec action=restrict_code_generation_and_escalate" in output

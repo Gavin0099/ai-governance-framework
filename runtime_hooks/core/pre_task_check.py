@@ -34,14 +34,58 @@ from runtime_hooks.core.human_summary import build_summary_line, format_contract
 
 RISK_ORDER = {"low": 0, "medium": 1, "high": 2}
 OVERSIGHT_ORDER = {"auto": 0, "review-required": 1, "human-approval": 2}
+PRECONDITION_ACTIONS = {
+    "L0": "analysis_only",
+    "L1": "restrict_code_generation_and_escalate",
+    "L2": "stop",
+}
+PRECONDITION_SIGNAL_KEYS = {
+    "missing_sample": (
+        "sample",
+        "sample file",
+        "sample files",
+        "samples/",
+        "fixture",
+        "fixtures/",
+        ".pdf",
+        ".bin",
+        ".hex",
+    ),
+    "missing_spec": (
+        "spec",
+        "specification",
+        "protocol doc",
+        "design doc",
+        "requirements",
+        "contract",
+        ".md",
+        ".pdf",
+    ),
+    "missing_fixture": (
+        "fixture",
+        "fixtures/",
+        "repro",
+        "regression case",
+        "test case",
+        ".json",
+        ".txt",
+    ),
+}
+PRECONDITION_TASK_SIGNALS = {
+    "pdf_parser": ("pdf parser", "parse pdf", "pdf parsing"),
+    "parser_implementation": ("parser", "parsing", "parse "),
+    "protocol_implementation": ("protocol", "wire format", "packet", "message format"),
+    "bugfix": ("bugfix", "fix bug", "fix regression", "regression"),
+    "regression_fix": ("regression", "repro", "fix failing case"),
+}
 
 
 def _strip_rule_content(active_rules_result: dict, tier: OutputTier) -> dict:
     """
     Strip full rule file content from active_rules for TIER1/TIER2.
 
-    TIER1: pack name, category, and file count only — no titles or paths.
-    TIER2: pack name, category, file titles and paths — no content.
+    TIER1: pack name, category, and file count only; no titles or paths.
+    TIER2: pack name, category, file titles and paths; no content.
     TIER3: full content (unchanged).
 
     The stripped result includes 'content_stripped=True' so downstream
@@ -123,6 +167,66 @@ def _append_impact_warnings(warnings: list[str], impact_preview: dict | None, ri
         )
 
 
+def _task_matches_precondition(task_text: str, applies_to: list[str]) -> bool:
+    lowered = task_text.lower()
+    for item in applies_to:
+        signals = PRECONDITION_TASK_SIGNALS.get(item, (item.replace("_", " "),))
+        if any(signal in lowered for signal in signals):
+            return True
+    return False
+
+
+def _precondition_present(task_text: str, precondition_type: str) -> bool:
+    lowered = task_text.lower()
+    return any(signal in lowered for signal in PRECONDITION_SIGNAL_KEYS.get(precondition_type, ()))
+
+
+def _evaluate_preconditions(domain_contract: dict | None, task_text: str, task_level: str) -> dict:
+    raw = (domain_contract or {}).get("raw") or {}
+    normalized_level = task_level if task_level in PRECONDITION_ACTIONS else "L1"
+    checks: list[dict] = []
+    effect = "pass"
+
+    for precondition_type in ("missing_sample", "missing_spec", "missing_fixture"):
+        applies_to = [
+            str(item).strip()
+            for item in raw.get(f"preconditions_{precondition_type}", []) or []
+            if str(item).strip()
+        ]
+        if not applies_to:
+            continue
+
+        applies = _task_matches_precondition(task_text, applies_to)
+        present = _precondition_present(task_text, precondition_type) if applies else False
+        action = PRECONDITION_ACTIONS[normalized_level] if applies and not present else "pass"
+
+        if action == "stop":
+            effect = "stop"
+        elif action == "restrict_code_generation_and_escalate" and effect != "stop":
+            effect = "escalate"
+        elif action == "analysis_only" and effect == "pass":
+            effect = "warn"
+
+        reason = None
+        if applies and not present:
+            label = precondition_type.replace("missing_", "")
+            reason = f"task matched {applies_to!r} but no explicit {label} signal was found in task_text"
+
+        checks.append({
+            "type": precondition_type,
+            "applies_to": applies_to,
+            "applies": applies,
+            "present": present,
+            "task_level": normalized_level,
+            "action": action,
+            "reason": reason,
+        })
+
+    return {
+        "preconditions_checked": checks,
+        "boundary_effect": effect,
+    }
+
 def run_pre_task_check(
     project_root: Path,
     rules: str,
@@ -143,7 +247,7 @@ def run_pre_task_check(
     freshness = check_freshness(plan_path)
     requested_rules = parse_rule_list(rules)
 
-    # ── Topic-based rule filtering ──────────────────────────────────────────
+    # Topic-based rule filtering
     # Infer task topic from task_text + requested_rules unless explicitly given.
     # topic='general' disables filtering (safe default).
     effective_topic = task_topic or classify_task_topic(task_text, requested_rules)
@@ -160,7 +264,7 @@ def run_pre_task_check(
     else:
         contract_resolution = resolve_contract(contract_file, project_root=project_root)
         resolved_contract_file = contract_resolution.path
-        # ── Summary-first gate ───────────────────────────────────────────
+        # Summary-first gate
         # For L1 and below, if a domain adapter summary exists, load the contract
         # metadata (rule_roots, validators) but skip loading document file content.
         # The domain summary will replace inline document content in session_start.
@@ -210,7 +314,21 @@ def run_pre_task_check(
         )
         _append_impact_warnings(warnings, impact_preview, risk, oversight)
 
-    # ── Tier-aware output ─────────────────────────────────────────────────────
+    decision_boundary = _evaluate_preconditions(domain_contract, task_text, task_level)
+    for check in decision_boundary["preconditions_checked"]:
+        if not check["applies"] or check["action"] == "pass":
+            continue
+        if check["action"] == "analysis_only":
+            warnings.append(f"Decision boundary degraded to analysis_only: {check['reason']}")
+        elif check["action"] == "restrict_code_generation_and_escalate":
+            warnings.append(
+                "Decision boundary requires code-generation restriction and escalation: "
+                f"{check['reason']}"
+            )
+        elif check["action"] == "stop":
+            errors.append(f"Decision boundary stop: {check['reason']}")
+
+    # Tier-aware output
     trace_id = generate_trace_id(task_text, task_level)
     effective_tier = output_tier or get_default_tier(task_level)
 
@@ -279,9 +397,10 @@ def run_pre_task_check(
                 else "full domain contract loaded"
             ),
         },
+        "decision_boundary": decision_boundary,
         "errors": errors,
         "warnings": warnings,
-        # ── Tier-aware fields ──────────────────────────────────────────────
+        # Tier-aware fields
         "trace_id": trace_id,
         "output_tier": int(effective_tier),
         "reasoning_fragments": reasoning_fragments,
@@ -344,6 +463,15 @@ def format_human_result(result: dict) -> str:
         evidence = impact_preview.get("required_evidence") or []
         if evidence:
             lines.append(f"impact_evidence={','.join(evidence)}")
+    decision_boundary = result.get("decision_boundary") or {}
+    if decision_boundary.get("boundary_effect") not in {None, "pass"}:
+        lines.append(f"decision_boundary_effect={decision_boundary['boundary_effect']}")
+    for check in decision_boundary.get("preconditions_checked", []):
+        if check.get("action") != "pass":
+            lines.append(
+                "precondition: "
+                f"{check['type']} action={check['action']} applies={check['applies']} present={check['present']}"
+            )
     for warning in result["warnings"]:
         lines.append(f"warning: {warning}")
     for error in result["errors"]:
