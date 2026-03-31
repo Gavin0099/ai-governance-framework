@@ -56,6 +56,7 @@ def run_quickstart_smoke(
         "project_root": str(project_root),
         "plan_path": str(plan_path),
         "contract_path": str(contract_file.resolve()) if contract_file else None,
+        "contract_mode": "explicit" if contract_file else "repo-default",
         "contract_context": contract_context,
         "pre_task_ok": pre_task["ok"],
         "session_start_ok": session_start["ok"],
@@ -92,9 +93,13 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"project_root={result['project_root']}",
         f"plan_path={result['plan_path']}",
         f"contract_path={result.get('contract_path')}",
+        f"contract_mode={result.get('contract_mode')}",
         f"pre_task_ok={result['pre_task_ok']}",
         f"session_start_ok={result['session_start_ok']}",
     ]
+
+    if result.get("contract_mode") == "repo-default" and result.get("contract_path") is None:
+        lines.append("contract_note=no explicit --contract provided; using repo-local governance defaults")
 
     if result["pre_task"].get("suggested_rules_preview"):
         lines.append(
