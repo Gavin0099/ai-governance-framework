@@ -17,6 +17,9 @@ Agent-assisted adoption is tracked separately in:
 
 - `docs/beta-gate/agent-adoption-pass-criteria.md`
 
+Human self-serve failure does **not** automatically invalidate the
+agent-assisted path.
+
 ---
 
 ## Five observable checkpoints

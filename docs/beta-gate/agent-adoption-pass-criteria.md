@@ -31,6 +31,57 @@ It exists so the framework can honestly measure its intended operating model
 without pretending that human-only cold start and AI-assisted adoption are the
 same thing.
 
+Working policy:
+
+- human self-serve failure does **not** imply agent-assisted adoption failure
+- agent-assisted adoption failure does **not** imply human self-serve failure
+
+These are separate evaluation dimensions, not higher/lower difficulty versions
+of the same gate.
+
+For this framework, human self-serve failure is an acceptable outcome if the
+agent-assisted path remains governance-safe, reviewable, and effective.
+
+---
+
+## Allowed agent role
+
+The agent-assisted gate only evaluates agents acting within this minimum role:
+
+### Allowed inputs
+
+The agent may read:
+
+- repo files
+- contracts and rule packs
+- runtime outputs and reviewable artifacts
+
+### Forbidden compensation
+
+The agent must not silently compensate for missing governance inputs.
+
+Examples:
+
+- if spec is missing, the agent must not invent one
+- if a contract boundary is unclear, the agent must not silently normalize it
+- if runtime evidence is missing, the agent must not replace it with prompt-only inference
+
+### Evidence boundary
+
+Agent output counts as adoption evidence only when it is attached to a
+documented runtime or governance path.
+
+Examples:
+
+- adopt output
+- drift-check output
+- session_start output
+- pre_task output
+- reviewer-visible artifact generated from a documented command path
+
+Pure narrative explanation, prompt-only summary, or undocumented agent-side
+reasoning does not count as governance evidence.
+
 ---
 
 ## Five observable checkpoints
