@@ -38,7 +38,9 @@ Then proceed to [Adopting the baseline](#adopting-the-baseline-into-your-repo-fi
 
 ### Route B — no-Python onboarding evidence
 
-> **Use only if `python`, `python3`, and `py` all return "command not found".**
+> **Use only if `python`, `python3`, and `py` are all unavailable.**
+> Accept either `command not found` or an equivalent launcher message such as
+> `No installed Python found!`.
 > If any Python variant is available but failing for another reason (wrong PATH,
 > missing package), fix that first. Route B does not produce a machine-verifiable
 > artifact and cannot substitute for Route A when Python is reachable.

@@ -1,6 +1,7 @@
 # No-Python Onboarding Evidence Template
 
 > Use this template when `python`, `python3`, and `py` are all unavailable in your environment.
+> "Unavailable" may appear as `command not found` or an equivalent launcher message such as `No installed Python found!`.
 > Fill in every field. Save the completed file as `docs/no-python-evidence-<YYYY-MM-DD>.md`.
 > This file is a formal onboarding artifact, not a workaround.
 

@@ -1,4 +1,4 @@
-# Reviewer Brief — Route B Live Run
+# Reviewer Brief - Route B Live Run
 
 > Version: 1.0
 > Created: 2026-03-30
@@ -14,7 +14,7 @@ The failure was CP5: no governance artifact could be produced because Python was
 unavailable and no recovery path existed.
 
 Route B has since been added. This run verifies that Route B works as a real
-onboarding path — not a retroactive reconstruction, but a live fill under
+onboarding path, not a retroactive reconstruction, but a live fill under
 actual constraints.
 
 **This run is the Gate re-run. Its output is the CP5 evidence.**
@@ -28,15 +28,18 @@ unavailable on PATH.
 
 Verify this before starting:
 
-```
-python --version   → should fail
-python3 --version  → should fail
-py --version       → should fail
+```text
+python --version   - should fail
+python3 --version  - should fail
+py --version       - should fail
 ```
 
 If any of these succeed, this run does not qualify as a Route B run.
 Stop and find a different environment or disable the Python executable for
 the duration of the run.
+
+Accept either `command not found` or an equivalent launcher message such as
+`No installed Python found!` as evidence that the interpreter is unavailable.
 
 ---
 
@@ -55,7 +58,7 @@ tells you to.
 2. When you reach the Prerequisites section and all Python commands fail,
    follow the Route B instructions in that file
 3. Copy the template at `docs/no-python-onboarding-evidence.md`
-4. Fill in every field — live, as you go
+4. Fill in every field live, as you go
 5. Save your completed artifact as `docs/no-python-evidence-<YYYY-MM-DD>.md`
 
 ---
@@ -90,7 +93,7 @@ CP5 is considered resolved for this environment.
 
 File your completed artifact at:
 
-```
+```text
 docs/no-python-evidence-<YYYY-MM-DD>.md
 ```
 
@@ -100,14 +103,15 @@ Gate verdict.
 
 ---
 
-## For the author — Gate judgment checklist
+## For the author - Gate judgment checklist
 
 Do not judge this run until you can answer all three questions from the artifact alone,
 without asking the reviewer:
 
 1. **Environment was genuinely constrained.**
-   Did the reviewer enter Route B because all Python variants returned
-   "command not found" — not because Route A looked inconvenient?
+   Did the reviewer enter Route B because all Python variants were unavailable
+   (`command not found` or equivalent unavailable output), not because Route A
+   looked inconvenient?
    Evidence: Section 1 exact output + Section 6 blocker record.
 
 2. **Failure is classifiable against the catalog.**
@@ -121,5 +125,5 @@ without asking the reviewer:
    If Route B was entered without attempting `python`, `python3`, and `py`,
    the run does not qualify as a valid Route B run.
 
-If any question cannot be answered from the artifact, the run is incomplete —
-request a clarification or treat it as a new FM rather than closing CP5.
+If any question cannot be answered from the artifact, the run is incomplete.
+Request a clarification or treat it as a new failure mode rather than closing CP5.
