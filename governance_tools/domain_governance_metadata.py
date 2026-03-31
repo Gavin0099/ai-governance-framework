@@ -9,12 +9,14 @@ from __future__ import annotations
 DOMAIN_PRIORITY_RANK = {
     "kernel-driver": 0,
     "firmware": 1,
+    "gl-hub-vendor-cmd": 1,
     "ic-verification": 2,
 }
 
 DOMAIN_RISK_TIER = {
     "kernel-driver": "high",
     "firmware": "medium",
+    "gl-hub-vendor-cmd": "high",
     "ic-verification": "medium",
 }
 

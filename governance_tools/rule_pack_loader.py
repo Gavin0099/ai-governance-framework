@@ -32,6 +32,7 @@ RULE_PACK_CATEGORIES = {
     "kmdf": "platform",
     "wdm": "platform",
     "umdf": "platform",
+    "gl-hub-vendor-cmd": "platform",
 }
 
 
