@@ -1,0 +1,256 @@
+{
+  "generated_at": "2026-04-01T07:48:31.240700Z",
+  "repo_root": "E:\\BackUp\\Git_EE\\ai-governance-framework",
+  "repo_commit": "7762c0fd601d8bfeb7502d7d73433f8a85c64967",
+  "consumer": "reviewer",
+  "signal_posture": "soft-enforcement",
+  "surface_classifications": [
+    {
+      "surface_name": "session_start",
+      "surface_type": "runtime_entrypoint",
+      "coverage_role": "decision",
+      "requirement_level": "hard",
+      "used_by": [
+        "session_start_governance"
+      ],
+      "failure_modes_if_missing": [
+        {
+          "mode": "blind_spot",
+          "suggested_action": "require_review"
+        }
+      ]
+    },
+    {
+      "surface_name": "pre_task_check",
+      "surface_type": "runtime_entrypoint",
+      "coverage_role": "decision",
+      "requirement_level": "hard",
+      "used_by": [
+        "pre_task_governance"
+      ],
+      "failure_modes_if_missing": [
+        {
+          "mode": "false_allow",
+          "suggested_action": "require_review"
+        },
+        {
+          "mode": "pseudo_allow",
+          "suggested_action": "degrade_confidence"
+        }
+      ]
+    },
+    {
+      "surface_name": "post_task_check",
+      "surface_type": "runtime_entrypoint",
+      "coverage_role": "decision",
+      "requirement_level": "hard",
+      "used_by": [
+        "post_task_governance"
+      ],
+      "failure_modes_if_missing": [
+        {
+          "mode": "false_allow",
+          "suggested_action": "require_review"
+        },
+        {
+          "mode": "false_deny",
+          "suggested_action": "require_review"
+        }
+      ]
+    },
+    {
+      "surface_name": "session_end",
+      "surface_type": "runtime_entrypoint",
+      "coverage_role": "decision",
+      "requirement_level": "soft",
+      "used_by": [
+        "runtime_reviewability"
+      ],
+      "failure_modes_if_missing": [
+        {
+          "mode": "blind_spot",
+          "suggested_action": "degrade_confidence"
+        }
+      ]
+    },
+    {
+      "surface_name": "runtime_verdict_artifact",
+      "surface_type": "evidence_surface",
+      "coverage_role": "evidence",
+      "requirement_level": "hard",
+      "used_by": [
+        "runtime_reviewability"
+      ],
+      "failure_modes_if_missing": [
+        {
+          "mode": "pseudo_allow",
+          "suggested_action": "require_review"
+        }
+      ]
+    },
+    {
+      "surface_name": "runtime_trace_artifact",
+      "surface_type": "evidence_surface",
+      "coverage_role": "evidence",
+      "requirement_level": "hard",
+      "used_by": [
+        "runtime_reviewability"
+      ],
+      "failure_modes_if_missing": [
+        {
+          "mode": "blind_spot",
+          "suggested_action": "require_review"
+        }
+      ]
+    },
+    {
+      "surface_name": "runtime_decision_model",
+      "surface_type": "authority_surface",
+      "coverage_role": "authority",
+      "requirement_level": "hard",
+      "used_by": [
+        "session_start_governance",
+        "pre_task_governance",
+        "post_task_governance",
+        "runtime_reviewability"
+      ],
+      "failure_modes_if_missing": [
+        {
+          "mode": "blind_spot",
+          "suggested_action": "require_review"
+        }
+      ]
+    },
+    {
+      "surface_name": "decision_boundary_model",
+      "surface_type": "authority_surface",
+      "coverage_role": "authority",
+      "requirement_level": "soft",
+      "used_by": [
+        "pre_task_governance"
+      ],
+      "failure_modes_if_missing": [
+        {
+          "mode": "pseudo_allow",
+          "suggested_action": "degrade_confidence"
+        }
+      ]
+    },
+    {
+      "surface_name": "governance_authority_table",
+      "surface_type": "authority_surface",
+      "coverage_role": "authority",
+      "requirement_level": "soft",
+      "used_by": [
+        "runtime_reviewability"
+      ],
+      "failure_modes_if_missing": [
+        {
+          "mode": "blind_spot",
+          "suggested_action": "warn_only"
+        }
+      ]
+    }
+  ],
+  "decision_definitions": [
+    {
+      "decision": "session_start_governance",
+      "required_surfaces": [
+        "session_start"
+      ],
+      "evidence_surfaces": [],
+      "authority_surfaces": [
+        "runtime_decision_model"
+      ],
+      "requirement_level": {
+        "session_start": "hard",
+        "runtime_decision_model": "hard"
+      }
+    },
+    {
+      "decision": "pre_task_governance",
+      "required_surfaces": [
+        "pre_task_check"
+      ],
+      "evidence_surfaces": [],
+      "authority_surfaces": [
+        "runtime_decision_model",
+        "decision_boundary_model"
+      ],
+      "requirement_level": {
+        "pre_task_check": "hard",
+        "runtime_decision_model": "hard",
+        "decision_boundary_model": "soft"
+      }
+    },
+    {
+      "decision": "post_task_governance",
+      "required_surfaces": [
+        "post_task_check"
+      ],
+      "evidence_surfaces": [],
+      "authority_surfaces": [
+        "runtime_decision_model"
+      ],
+      "requirement_level": {
+        "post_task_check": "hard",
+        "runtime_decision_model": "hard"
+      }
+    },
+    {
+      "decision": "runtime_reviewability",
+      "required_surfaces": [
+        "session_end"
+      ],
+      "evidence_surfaces": [
+        "runtime_verdict_artifact",
+        "runtime_trace_artifact"
+      ],
+      "authority_surfaces": [
+        "runtime_decision_model",
+        "governance_authority_table"
+      ],
+      "requirement_level": {
+        "session_end": "soft",
+        "runtime_verdict_artifact": "hard",
+        "runtime_trace_artifact": "hard",
+        "runtime_decision_model": "hard",
+        "governance_authority_table": "soft"
+      }
+    }
+  ],
+  "decision_status": [
+    {
+      "decision": "session_start_governance",
+      "status": "covered",
+      "missing_hard": [],
+      "missing_soft": []
+    },
+    {
+      "decision": "pre_task_governance",
+      "status": "covered",
+      "missing_hard": [],
+      "missing_soft": []
+    },
+    {
+      "decision": "post_task_governance",
+      "status": "covered",
+      "missing_hard": [],
+      "missing_soft": []
+    },
+    {
+      "decision": "runtime_reviewability",
+      "status": "covered",
+      "missing_hard": [],
+      "missing_soft": []
+    }
+  ],
+  "coverage": {
+    "missing_hard_required": [],
+    "missing_soft_required": [],
+    "dead_surfaces": {
+      "never_observed": [],
+      "never_required": []
+    }
+  }
+}
