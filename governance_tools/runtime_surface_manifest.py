@@ -386,6 +386,14 @@ def build_runtime_surface_manifest(repo_root: Path | None = None) -> dict[str, A
     }
 
 
+def manifest_has_consistency_signal(manifest: dict[str, Any]) -> bool:
+    consistency = manifest["consistency"]
+    return any(
+        consistency[key]
+        for key in ("unknown_surfaces", "orphan_surfaces", "evidence_surface_mismatch")
+    )
+
+
 def render_markdown(manifest: dict[str, Any]) -> str:
     lines = [
         "# Runtime Surface Manifest",
@@ -537,9 +545,7 @@ def main() -> int:
         print(render_markdown(manifest), end="")
     else:
         print(format_human(manifest))
-    consistency = manifest["consistency"]
-    has_signal = any(consistency[key] for key in ("unknown_surfaces", "orphan_surfaces", "evidence_surface_mismatch"))
-    return 1 if has_signal else 0
+    return 1 if manifest_has_consistency_signal(manifest) else 0
 
 
 if __name__ == "__main__":
