@@ -71,6 +71,13 @@ KNOWN_PRE_TASK_KEYS = {
     "active_rules",
     "content_stripped",
     "content_tier",
+    # DBL first-slice output admitted into pre_task surface
+    "decision_boundary",
+    # _evaluate_preconditions() helper returns these keys and the current
+    # AST heuristic scans all return-dict literals in the file, not only the
+    # top-level run_pre_task_check() result.
+    "boundary_effect",
+    "preconditions_checked",
 }
 
 KNOWN_POST_TASK_KEYS = {
