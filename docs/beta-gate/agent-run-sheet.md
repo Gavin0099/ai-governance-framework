@@ -146,6 +146,23 @@ Auditability judgment:
 - If partial, what is missing?
 ```
 
+### 10. Decision context summary
+
+If the run produces `runtime-verdict`, `runtime-trace`, or `session_end`
+summary artifacts that include `decision_context`, record it explicitly here.
+
+```text
+Decision context:
+- surface_validity:
+- coverage_completeness:
+- memory_integrity:
+- Human-readable interpretation:
+```
+
+This section exists so the reviewer does not have to infer context quality from
+raw signals alone. The goal is to make the run record say, in plain language,
+what completeness conditions the decision was made under.
+
 ---
 
 ## Required summary block
