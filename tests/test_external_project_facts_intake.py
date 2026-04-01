@@ -53,6 +53,24 @@ def test_build_external_project_facts_intake_includes_provenance() -> None:
     assert payload["provenance"]["sync_direction"] == "external_to_framework"
     assert payload["content"].startswith("# Project Facts")
     assert payload["fact_source"]["content_sha256"]
+    assert payload["memory_schema_status"] == "partial"
+    assert payload["missing_logical_names"] == ["knowledge_base", "review_log", "active_task"]
+
+
+def test_build_external_project_facts_intake_marks_complete_schema() -> None:
+    root = _reset_fixture("build_complete_payload")
+    repo_root = root / "Kernel-Driver-Contract"
+    memory_root = repo_root / "memory"
+    memory_root.mkdir(parents=True)
+    (memory_root / "01_active_task.md").write_text("# Active Task\n", encoding="utf-8")
+    (memory_root / "02_project_facts.md").write_text("# Project Facts\n", encoding="utf-8")
+    (memory_root / "03_decisions.md").write_text("# Decisions\n", encoding="utf-8")
+    (memory_root / "04_validation_log.md").write_text("# Validation Log\n", encoding="utf-8")
+
+    payload = build_external_project_facts_intake(repo_root)
+
+    assert payload["memory_schema_status"] == "complete"
+    assert payload["missing_logical_names"] == []
 
 
 def test_write_intake_artifact_uses_framework_artifact_root() -> None:

@@ -2,7 +2,7 @@
 """
 Check whether a repo's governance files have drifted from the recorded baseline.
 
-16 named checks across 4 categories:
+18 named checks across 4 categories:
 
   Category 1 — Baseline Metadata (4 checks):
     baseline_yaml_present       .governance/baseline.yaml exists and is parseable
@@ -22,6 +22,7 @@ Check whether a repo's governance files have drifted from the recorded baseline.
     contract_not_framework_copy       contract.yaml is not a verbatim copy of the framework's own contract
     plan_required_sections_present    PLAN.md contains required section headings
     agents_sections_filled            AGENTS.md governance:key sections have real content
+    memory_schema_complete            memory/ has minimum logical files or accepted aliases
 
   Category 4 — Freshness (3 checks):
     plan_freshness              PLAN.md freshness via plan_freshness.py
@@ -61,6 +62,7 @@ from governance_tools.framework_versioning import (
     repo_root_from_tooling,
 )
 from governance_tools.plan_freshness import check_freshness
+from memory_pipeline.memory_layout import MEMORY_FILE_ALIASES
 
 # ── Framework drift → risk signal component mapping ──────────────────────────
 # Only critical-severity checks are mapped.  When a framework self-check
@@ -192,6 +194,15 @@ def _find_empty_governance_sections(agents_text: str) -> list[str]:
         else:
             i += 1
     return empty_keys
+
+
+def _missing_memory_schema_files(repo_root: Path) -> list[str]:
+    memory_root = repo_root / "memory"
+    missing: list[str] = []
+    for logical_name, names in MEMORY_FILE_ALIASES.items():
+        if not any((memory_root / name).exists() for name in names):
+            missing.append(logical_name)
+    return missing
 
 
 def _read_baseline_yaml(repo_root: Path) -> dict | None:
@@ -539,6 +550,18 @@ def check_governance_drift(
         _pass("agents_sections_filled")
 
     # ── Category 4: Freshness ─────────────────────────────────────────────────
+
+    missing_memory_files = _missing_memory_schema_files(repo_root)
+    if missing_memory_files:
+        _fail(
+            "memory_schema_complete",
+            "warning",
+            "memory/ schema is partial; missing logical file(s): "
+            + ", ".join(missing_memory_files)
+            + " ??adopt_governance.py now scaffolds 01/02/03/04 for new repos",
+        )
+    else:
+        _pass("memory_schema_complete")
 
     if plan_path.exists():
         _plan_freshness_override_raw = baseline_data.get("plan_freshness_threshold_days")

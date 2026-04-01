@@ -196,6 +196,20 @@ def test_adopt_creates_agents_md_from_template_when_missing(tmp_path):
     assert (repo / "AGENTS.md").exists()
 
 
+def test_adopt_creates_minimal_memory_scaffold(tmp_path):
+    """Adopt seeds the minimum memory schema for new repos."""
+    repo = _make_git_repo(tmp_path / "repo")
+    _write_plan(repo)
+    _write_contract(repo)
+
+    adopt_existing(repo, FRAMEWORK_ROOT, dry_run=False)
+
+    assert (repo / "memory" / "01_active_task.md").exists()
+    assert (repo / "memory" / "02_tech_stack.md").exists()
+    assert (repo / "memory" / "03_knowledge_base.md").exists()
+    assert (repo / "memory" / "04_review_log.md").exists()
+
+
 def test_adopt_creates_governance_drift_workflow_when_missing():
     """Adopt should seed the minimal drift workflow for new repos."""
     repo = _make_git_repo(_reset_fixture("drift_workflow_created") / "repo")

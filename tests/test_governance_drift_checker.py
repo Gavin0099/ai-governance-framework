@@ -510,8 +510,14 @@ def test_source_commit_invalid_sha_is_warning(tmp_path):
     assert result.checks.get("source_commit_recorded") is False
 
 
-def test_all_17_checks_present_in_ok_repo(clean_repo):
-    """Verify exactly 17 named checks appear in a fully valid repo."""
+def test_all_18_checks_present_in_ok_repo(clean_repo):
+    """Verify exactly 18 named checks appear in a fully valid repo."""
+    memory_root = clean_repo / "memory"
+    memory_root.mkdir()
+    (memory_root / "01_active_task.md").write_text("# Active Task\n", encoding="utf-8")
+    (memory_root / "02_tech_stack.md").write_text("# Tech Stack\n", encoding="utf-8")
+    (memory_root / "03_knowledge_base.md").write_text("# Knowledge Base\n", encoding="utf-8")
+    (memory_root / "04_review_log.md").write_text("# Review Log\n", encoding="utf-8")
     result = check_governance_drift(clean_repo, framework_root=FRAMEWORK_ROOT)
     expected_checks = {
         "baseline_yaml_present",
@@ -527,13 +533,14 @@ def test_all_17_checks_present_in_ok_repo(clean_repo):
         "contract_not_framework_copy",
         "plan_required_sections_present",
         "agents_sections_filled",
+        "memory_schema_complete",
         "plan_freshness",
         "plan_inventory_current",
         "baseline_yaml_freshness",
         "expansion_boundary",
     }
     assert set(result.checks.keys()) == expected_checks
-    assert len(result.checks) == 17
+    assert len(result.checks) == 18
 
 
 # ── Custom plan_required_sections (--adopt-existing use case) ─────────────────
@@ -919,6 +926,47 @@ def test_agents_sections_filled_passes_when_agents_md_absent(tmp_path):
     )
     result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
     assert result.checks.get("agents_sections_filled") is True
+
+
+def test_memory_schema_complete_warns_when_memory_files_are_missing(tmp_path):
+    agents = _write_agents_base(tmp_path)
+    plan = _write_plan(tmp_path)
+    contract = _write_contract(tmp_path)
+    _write_baseline_yaml(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+    )
+
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+
+    assert result.checks.get("memory_schema_complete") is False
+    warning_text = " ".join(result.warnings)
+    assert "memory/ schema is partial" in warning_text
+    assert "active_task" in warning_text
+
+
+def test_memory_schema_complete_passes_with_alias_files(tmp_path):
+    agents = _write_agents_base(tmp_path)
+    plan = _write_plan(tmp_path)
+    contract = _write_contract(tmp_path)
+    memory_root = tmp_path / "memory"
+    memory_root.mkdir()
+    (memory_root / "01_active_task.md").write_text("# Active Task\n", encoding="utf-8")
+    (memory_root / "02_project_facts.md").write_text("# Project Facts\n", encoding="utf-8")
+    (memory_root / "03_decisions.md").write_text("# Decisions\n", encoding="utf-8")
+    (memory_root / "04_validation_log.md").write_text("# Validation Log\n", encoding="utf-8")
+    _write_baseline_yaml(
+        tmp_path,
+        agents_hash=_compute_hash(agents),
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+    )
+
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+
+    assert result.checks.get("memory_schema_complete") is True
 
 
 def test_agents_sections_partially_filled_reports_empty_keys(tmp_path):

@@ -242,11 +242,14 @@ def test_assess_external_repo_surfaces_project_facts_intake() -> None:
     assert result.checks["project_facts_intakeable"] is True
     assert result.project_facts["status"] == "available"
     assert result.project_facts["source_filename"] == "02_project_facts.md"
+    assert result.project_facts["memory_schema_status"] == "partial"
+    assert result.checks["project_facts_schema_complete"] is False
     assert result.project_facts["sync_direction"] == "external_to_framework"
     assert result.project_facts["artifact_path"].replace("/", "\\").endswith(r"artifacts\external-project-facts\target.json")
     assert result.project_facts["artifact_exists"] is False
     assert result.project_facts["reason"] is None
     assert result.project_facts["remediation_hint"] is None
+    assert any("project-facts: intake succeeded with partial memory schema" in item for item in result.warnings)
 
 
 def test_assess_external_repo_detects_project_facts_artifact_drift() -> None:

@@ -35,11 +35,13 @@ def build_external_project_facts_intake(repo_root: Path) -> dict:
     repo_root = repo_root.resolve()
     memory_root = repo_root / "memory"
     captured_at = datetime.now(timezone.utc).isoformat()
-    
+
     fact_sources = []
     contents = {}
-    
-    for logical_name in ["tech_stack", "knowledge_base", "review_log", "active_task"]:
+    expected_logical_names = ["tech_stack", "knowledge_base", "review_log", "active_task"]
+    missing_logical_names = []
+
+    for logical_name in expected_logical_names:
         try:
             source_file = resolve_external_project_facts_file(repo_root, logical_name)
             content = source_file.read_text(encoding="utf-8")
@@ -51,7 +53,7 @@ def build_external_project_facts_intake(repo_root: Path) -> dict:
             })
             contents[logical_name] = content
         except FileNotFoundError:
-            pass
+            missing_logical_names.append(logical_name)
 
     if not fact_sources:
         raise FileNotFoundError(
@@ -70,6 +72,10 @@ def build_external_project_facts_intake(repo_root: Path) -> dict:
         },
         "fact_source": primary,
         "fact_sources": fact_sources,
+        "expected_logical_names": expected_logical_names,
+        "present_logical_names": [item["logical_name"] for item in fact_sources],
+        "missing_logical_names": missing_logical_names,
+        "memory_schema_status": "partial" if missing_logical_names else "complete",
         "provenance": {
             "source_type": "external-memory-facts",
             "sync_direction": "external_to_framework",
@@ -102,6 +108,9 @@ def format_human(payload: dict, output_path: Path | None = None) -> str:
         lines.append(f"source_file={source['source_file']}")
         lines.append(f"source_filename={source['source_filename']}")
         lines.append(f"content_sha256={source['content_sha256']}")
+    lines.append(f"memory_schema_status={payload.get('memory_schema_status')}")
+    if payload.get("missing_logical_names"):
+        lines.append(f"missing_logical_names={','.join(payload['missing_logical_names'])}")
     lines.append(f"sync_direction={payload['provenance']['sync_direction']}")
     if output_path is not None:
         lines.append(f"output={output_path}")

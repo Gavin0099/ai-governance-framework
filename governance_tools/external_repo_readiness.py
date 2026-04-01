@@ -178,6 +178,8 @@ def assess_external_repo(
             "source_file": facts_payload["fact_source"]["source_file"],
             "source_filename": facts_payload["fact_source"]["source_filename"],
             "content_sha256": facts_payload["fact_source"]["content_sha256"],
+            "memory_schema_status": facts_payload["memory_schema_status"],
+            "missing_logical_names": facts_payload["missing_logical_names"],
             "sync_direction": facts_payload["provenance"]["sync_direction"],
             "artifact_path": str(artifact_path),
             "artifact_exists": artifact_exists,
@@ -188,10 +190,17 @@ def assess_external_repo(
         }
         checks["project_facts_present"] = True
         checks["project_facts_intakeable"] = True
+        checks["project_facts_schema_complete"] = facts_payload["memory_schema_status"] == "complete"
         checks["project_facts_drift_free"] = not drift_detected
+        if facts_payload["memory_schema_status"] == "partial":
+            warnings.append(
+                "project-facts: intake succeeded with partial memory schema; missing logical file(s): "
+                + ", ".join(facts_payload["missing_logical_names"])
+            )
     except FileNotFoundError as exc:
         checks["project_facts_present"] = False
         checks["project_facts_intakeable"] = False
+        checks["project_facts_schema_complete"] = False
         checks["project_facts_drift_free"] = False
         project_facts = {
             "status": "missing",
@@ -203,6 +212,7 @@ def assess_external_repo(
     except Exception as exc:
         checks["project_facts_present"] = True
         checks["project_facts_intakeable"] = False
+        checks["project_facts_schema_complete"] = False
         checks["project_facts_drift_free"] = False
         project_facts = {
             "status": "intake-error",
@@ -365,6 +375,8 @@ def format_human(result: ExternalRepoReadiness) -> str:
                 f"available          = {result.project_facts.get('available')}",
                 f"source_file        = {result.project_facts.get('source_file')}",
                 f"source_filename    = {result.project_facts.get('source_filename')}",
+                f"schema_status      = {result.project_facts.get('memory_schema_status')}",
+                f"missing_logical    = {result.project_facts.get('missing_logical_names')}",
                 f"sync_direction     = {result.project_facts.get('sync_direction')}",
                 f"artifact_path      = {result.project_facts.get('artifact_path')}",
                 f"artifact_exists    = {result.project_facts.get('artifact_exists')}",

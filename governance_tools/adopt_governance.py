@@ -55,11 +55,36 @@ from governance_tools.framework_versioning import (
     discover_framework_root,
     repo_root_from_tooling,
 )
+from memory_pipeline.memory_layout import MEMORY_FILE_ALIASES
 
 
 # ── Plan path discovery ────────────────────────────────────────────────────────
 
 _PLAN_SEARCH_PATHS = ["PLAN.md", "governance/PLAN.md", "memory/PLAN.md", "docs/PLAN.md"]
+_MEMORY_SCAFFOLD_TEMPLATES: dict[str, str] = {
+    "active_task": (
+        "# Active Task\n\n"
+        "## Current Status\n\n"
+        "- Adopted governance baseline.\n\n"
+        "## Next Steps\n\n"
+        "- Update this file when task state changes.\n"
+    ),
+    "tech_stack": (
+        "# Tech Stack\n\n"
+        "## Repo Facts\n\n"
+        "- Fill in runtime, language, and tooling facts for this repo.\n"
+    ),
+    "knowledge_base": (
+        "# Knowledge Base\n\n"
+        "## Gotchas\n\n"
+        "- Record troubleshooting notes, anti-patterns, and fixes here.\n"
+    ),
+    "review_log": (
+        "# Review Log\n\n"
+        "## Entries\n\n"
+        "- Append review summaries and validation history here.\n"
+    ),
+}
 
 
 def _discover_plan_path(repo_root: Path) -> Path | None:
@@ -69,6 +94,24 @@ def _discover_plan_path(repo_root: Path) -> Path | None:
         if p.exists():
             return p
     return None
+
+
+def _ensure_memory_scaffold(repo_root: Path, dry_run: bool) -> None:
+    memory_root = repo_root / "memory"
+    for logical_name, candidate_names in MEMORY_FILE_ALIASES.items():
+        existing = next((memory_root / name for name in candidate_names if (memory_root / name).exists()), None)
+        if existing is not None:
+            print(f"  memory/{existing.name} -- kept as-is ({logical_name} already exists)")
+            continue
+
+        target = memory_root / candidate_names[0]
+        if dry_run:
+            print(f"  [dry-run] memory/{target.name} -- would create minimal scaffold ({logical_name})")
+            continue
+
+        memory_root.mkdir(parents=True, exist_ok=True)
+        target.write_text(_MEMORY_SCAFFOLD_TEMPLATES[logical_name], encoding="utf-8")
+        print(f"  memory/{target.name} -- created minimal scaffold ({logical_name})")
 
 
 def _ensure_contract_agents_base_reference(contract_path: Path, dry_run: bool) -> bool:
@@ -560,6 +603,9 @@ def adopt_existing(
         inventory=inventory,
         dry_run=dry_run,
     )
+
+    print()
+    _ensure_memory_scaffold(repo_root, dry_run=dry_run)
 
     if dry_run:
         print()
