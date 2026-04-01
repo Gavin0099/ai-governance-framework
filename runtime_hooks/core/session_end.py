@@ -16,11 +16,14 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from memory_pipeline.memory_curator import curate_candidate_artifact
+from memory_pipeline.memory_layout import MEMORY_FILE_ALIASES
 from memory_pipeline.memory_promoter import promote_candidate
 from memory_pipeline.promotion_policy import classify_promotion_policy
 from memory_pipeline.session_snapshot import create_session_snapshot
 from governance_tools.decision_model_loader import build_runtime_policy_ref, final_verdict_owner, runtime_decision_source, violation_verdict_impact
 from governance_tools.domain_governance_metadata import domain_risk_tier
+from governance_tools.execution_surface_coverage import build_execution_surface_coverage
+from governance_tools.runtime_surface_manifest import build_runtime_surface_manifest
 
 
 def _ensure_runtime_artifact_dirs(project_root: Path) -> tuple[Path, Path, Path, Path, Path]:
@@ -85,6 +88,58 @@ def _structured_decision_path(*steps: str) -> list[dict[str, Any]]:
     ]
 
 
+def _memory_schema_complete(project_root: Path) -> bool:
+    memory_root = project_root / "memory"
+    for names in MEMORY_FILE_ALIASES.values():
+        if not any((memory_root / name).exists() for name in names):
+            return False
+    return True
+
+
+def _build_decision_context(project_root: Path, memory_mode: str) -> dict[str, str]:
+    framework_root = Path(__file__).resolve().parents[2]
+    try:
+        manifest = build_runtime_surface_manifest(framework_root)
+        consistency = manifest["consistency"]
+        surface_validity = (
+            "complete"
+            if not (
+                consistency["unknown_surfaces"]
+                or consistency["orphan_surfaces"]
+                or consistency["evidence_surface_mismatch"]
+            )
+            else "partial"
+        )
+    except Exception:
+        surface_validity = "unknown"
+
+    try:
+        coverage = build_execution_surface_coverage(framework_root)["coverage"]
+        coverage_completeness = (
+            "complete"
+            if not (
+                coverage["missing_hard_required"]
+                or coverage["missing_soft_required"]
+                or coverage["dead_surfaces"]["never_observed"]
+                or coverage["dead_surfaces"]["never_required"]
+            )
+            else "partial"
+        )
+    except Exception:
+        coverage_completeness = "missing"
+
+    if memory_mode == "stateless":
+        memory_integrity = "not_applicable"
+    else:
+        memory_integrity = "complete" if _memory_schema_complete(project_root) else "partial"
+
+    return {
+        "surface_validity": surface_validity,
+        "coverage_completeness": coverage_completeness,
+        "memory_integrity": memory_integrity,
+    }
+
+
 def _build_policy_summary(policy: dict[str, Any]) -> dict[str, Any]:
     reasons = [str(reason) for reason in policy.get("reasons", []) if str(reason).strip()]
     return {
@@ -112,6 +167,7 @@ def _build_verdict_artifact(
     warnings: list[str],
     contract_resolution: dict[str, Any],
     domain_contract: dict[str, Any],
+    decision_context: dict[str, str],
 ) -> dict[str, Any]:
     override_present = bool(checks.get("override_trace") or checks.get("reviewer_override"))
     escalation_present = decision == "REVIEW_REQUIRED" or contract.get("oversight") != "auto"
@@ -134,6 +190,7 @@ def _build_verdict_artifact(
             "decision_owner": final_verdict_owner(),
             "policy_source": "memory_pipeline.promotion_policy.classify_promotion_policy",
         },
+        "decision_context": decision_context,
         "evidence_summary": {
             "check_keys": sorted(str(key) for key in checks.keys()),
             "public_api_diff_present": checks.get("public_api_diff") is not None,
@@ -157,6 +214,7 @@ def _build_runtime_failure_trace_artifact(
     domain_contract: dict[str, Any],
     stage: str,
     failure_message: str,
+    decision_context: dict[str, str],
 ) -> dict[str, Any]:
     return {
         "schema_version": "1.0",
@@ -171,6 +229,7 @@ def _build_runtime_failure_trace_artifact(
             "decision_owner": final_verdict_owner(),
             "policy_source": "memory_pipeline.promotion_policy.classify_promotion_policy",
         },
+        "decision_context": decision_context,
         "decision_path": _structured_decision_path(
             "normalize runtime contract",
             "runtime failure interception",
@@ -222,6 +281,7 @@ def _build_trace_artifact(
     warnings: list[str],
     contract_resolution: dict[str, Any],
     domain_contract: dict[str, Any],
+    decision_context: dict[str, str],
 ) -> dict[str, Any]:
     return {
         "schema_version": "1.0",
@@ -236,6 +296,7 @@ def _build_trace_artifact(
             "decision_owner": final_verdict_owner(),
             "policy_source": "memory_pipeline.promotion_policy.classify_promotion_policy",
         },
+        "decision_context": decision_context,
         "decision_path": _structured_decision_path(
             "normalize runtime contract",
             "evaluate promotion policy",
@@ -303,6 +364,7 @@ def run_session_end(
     promotion_result = None
     policy = classify_promotion_policy(contract, check_result=checks)
     decision = policy["decision"]
+    decision_context = _build_decision_context(project_root, contract["memory_mode"])
 
     memory_root = project_root / "memory"
     if contract["memory_mode"] != "stateless" and response_text:
@@ -388,6 +450,7 @@ def run_session_end(
             "promoted": promotion_result is not None,
             "warning_count": len(warnings),
             "error_count": len(errors),
+            "decision_context": decision_context,
         }
         verdict_payload = _build_verdict_artifact(
             session_id=session_id,
@@ -399,6 +462,7 @@ def run_session_end(
             warnings=warnings,
             contract_resolution=contract_resolution,
             domain_contract=domain_contract,
+            decision_context=decision_context,
         )
         trace_payload = _build_trace_artifact(
             session_id=session_id,
@@ -411,6 +475,7 @@ def run_session_end(
             warnings=warnings,
             contract_resolution=contract_resolution,
             domain_contract=domain_contract,
+            decision_context=decision_context,
         )
 
         _write_json(candidate_path, candidate_payload)
@@ -432,6 +497,7 @@ def run_session_end(
             domain_contract=domain_contract,
             stage="artifact_emission",
             failure_message=failure_message,
+            decision_context=decision_context,
         )
         _write_json(trace_path, failure_trace_payload)
 
@@ -448,6 +514,7 @@ def run_session_end(
         "summary_artifact": str(summary_path),
         "verdict_artifact": str(verdict_path),
         "trace_artifact": str(trace_path),
+        "decision_context": decision_context,
         "warnings": warnings,
         "errors": errors,
     }
@@ -472,6 +539,10 @@ def format_human_result(result: dict[str, Any]) -> str:
         lines.append(f"contract_domain={summary_payload.get('contract_domain')}")
         lines.append(f"contract_plugin_version={summary_payload.get('contract_plugin_version')}")
         lines.append(f"contract_risk_tier={summary_payload.get('contract_risk_tier')}")
+    if summary_payload.get("decision_context"):
+        lines.append(f"surface_validity={summary_payload['decision_context'].get('surface_validity')}")
+        lines.append(f"coverage_completeness={summary_payload['decision_context'].get('coverage_completeness')}")
+        lines.append(f"memory_integrity={summary_payload['decision_context'].get('memory_integrity')}")
     if result["snapshot"]:
         lines.append(f"snapshot={result['snapshot']['snapshot_path']}")
     if result["promotion"]:

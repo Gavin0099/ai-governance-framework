@@ -56,9 +56,13 @@ def test_session_end_auto_promotes_low_risk_candidate(local_project_root):
     verdict_payload = json.loads(Path(result["verdict_artifact"]).read_text(encoding="utf-8"))
     assert verdict_payload["artifact_type"] == "runtime-verdict"
     assert verdict_payload["verdict"]["decision"] == "AUTO_PROMOTE"
+    assert verdict_payload["decision_context"]["surface_validity"] == "complete"
+    assert verdict_payload["decision_context"]["coverage_completeness"] == "complete"
+    assert verdict_payload["decision_context"]["memory_integrity"] == "partial"
     trace_payload = json.loads(Path(result["trace_artifact"]).read_text(encoding="utf-8"))
     assert trace_payload["artifact_type"] == "runtime-trace"
     assert trace_payload["result"]["decision"] == "AUTO_PROMOTE"
+    assert trace_payload["decision_context"] == verdict_payload["decision_context"]
     assert trace_payload["decision_path"][0] == {"index": 1, "step": "normalize runtime contract"}
     assert trace_payload["result"]["policy"]["decision"] == "AUTO_PROMOTE"
     assert trace_payload["result"]["policy"]["reason_count"] >= 1
@@ -135,6 +139,7 @@ def test_session_end_records_public_api_diff_in_summary_and_curated_artifact(loc
     summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
     assert summary_payload["public_api_diff_present"] is True
     assert summary_payload["public_api_added_count"] == 1
+    assert summary_payload["decision_context"]["memory_integrity"] == "partial"
     curated_payload = json.loads(Path(result["curated_artifact"]).read_text(encoding="utf-8"))
     assert any(item["source"] == "public_api_diff.added" for item in curated_payload["items"])
 
@@ -264,10 +269,12 @@ def test_session_end_preserves_contract_context_in_summary_and_curated_artifact(
     assert verdict_payload["contract_identity"]["risk_tier"] == "high"
     assert verdict_payload["decision_governance"]["decision_source"] == "single decision computation source"
     assert verdict_payload["decision_governance"]["decision_owner"] == "runtime"
+    assert verdict_payload["decision_context"]["coverage_completeness"] == "complete"
     trace_payload = json.loads(Path(result["trace_artifact"]).read_text(encoding="utf-8"))
     assert trace_payload["contract_identity"]["plugin_version"] == "1.0.0"
     assert trace_payload["decision_governance"]["decision_source"] == "single decision computation source"
     assert trace_payload["decision_governance"]["decision_owner"] == "runtime"
+    assert trace_payload["decision_context"]["surface_validity"] == "complete"
 
     curated_payload = json.loads(Path(result["curated_artifact"]).read_text(encoding="utf-8"))
     assert any(item["source"] == "contract_resolution" for item in curated_payload["items"])
@@ -302,6 +309,9 @@ def test_session_end_human_output_includes_contract_context(local_project_root):
     assert "contract_domain=kernel-driver" in output
     assert "contract_plugin_version=1.0.0" in output
     assert "contract_risk_tier=high" in output
+    assert "surface_validity=complete" in output
+    assert "coverage_completeness=complete" in output
+    assert "memory_integrity=partial" in output
     assert "verdict_artifact=" in output
     assert "trace_artifact=" in output
 
@@ -333,7 +343,9 @@ def test_session_end_fails_closed_on_forced_runtime_failure(local_project_root):
     assert trace_payload["runtime_failure"]["stage"] == "artifact_emission"
     assert trace_payload["decision_governance"]["decision_source"] == "single decision computation source"
     assert trace_payload["decision_governance"]["decision_owner"] == "runtime"
+    assert trace_payload["decision_context"]["surface_validity"] == "complete"
     assert trace_payload["decision_governance"]["policy_source"] == "memory_pipeline.promotion_policy.classify_promotion_policy"
+    assert trace_payload["decision_context"]["memory_integrity"] == "partial"
     assert trace_payload["decision_path"][0] == {"index": 1, "step": "normalize runtime contract"}
     assert trace_payload["result"]["policy"]["decision"] == "STOP"
     assert trace_payload["result"]["policy"]["reasoning_fragments"][0]["kind"] == "runtime-failure"
@@ -388,6 +400,7 @@ def test_session_end_replay_preserves_verdict_for_same_input(local_project_root)
     assert verdict_a["policy_ref"]["runtime_version"] == "v2.6-draft-runtime"
     assert trace_a["policy_ref"]["runtime_version"] == "v2.6-draft-runtime"
     assert verdict_a["verdict"] == verdict_b["verdict"]
+    assert verdict_a["decision_context"] == verdict_b["decision_context"]
     assert verdict_a["contract_identity"] == verdict_b["contract_identity"]
     assert verdict_a["evidence_summary"] == verdict_b["evidence_summary"]
     assert trace_a["result"] == trace_b["result"]
