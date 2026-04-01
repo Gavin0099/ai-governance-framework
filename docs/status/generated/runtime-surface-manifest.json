@@ -1,0 +1,264 @@
+{
+  "generated_at": "2026-04-01T05:50:06.713972Z",
+  "repo_root": "E:\\BackUp\\Git_EE\\ai-governance-framework",
+  "repo_commit": "5ca7464f203661e9e62f7500a74557f753e44d51",
+  "adapters": [
+    {
+      "adapter_family": "claude_code",
+      "supported_events": [
+        "pre_task",
+        "post_task",
+        "normalize_event"
+      ],
+      "normalizer_path": "runtime_hooks/adapters/claude_code/normalize_event.py",
+      "runner_path": "runtime_hooks/adapters/shared_adapter_runner.py",
+      "contract_dependency": [
+        "runtime_hooks/ADAPTER_CONTRACT.md",
+        "runtime_hooks/event_contract.md"
+      ],
+      "notes": "Harness-specific wrapper for Claude Code payload normalization."
+    },
+    {
+      "adapter_family": "codex",
+      "supported_events": [
+        "pre_task",
+        "post_task",
+        "normalize_event"
+      ],
+      "normalizer_path": "runtime_hooks/adapters/codex/normalize_event.py",
+      "runner_path": "runtime_hooks/adapters/shared_adapter_runner.py",
+      "contract_dependency": [
+        "runtime_hooks/ADAPTER_CONTRACT.md",
+        "runtime_hooks/event_contract.md"
+      ],
+      "notes": "Harness-specific wrapper for Codex payload normalization."
+    },
+    {
+      "adapter_family": "gemini",
+      "supported_events": [
+        "pre_task",
+        "post_task",
+        "normalize_event"
+      ],
+      "normalizer_path": "runtime_hooks/adapters/gemini/normalize_event.py",
+      "runner_path": "runtime_hooks/adapters/shared_adapter_runner.py",
+      "contract_dependency": [
+        "runtime_hooks/ADAPTER_CONTRACT.md",
+        "runtime_hooks/event_contract.md"
+      ],
+      "notes": "Harness-specific wrapper for Gemini payload normalization."
+    }
+  ],
+  "runtime_entrypoints": [
+    {
+      "entrypoint_name": "session_start",
+      "path": "runtime_hooks/core/session_start.py",
+      "category": "runtime-startup",
+      "input_mode": "python-cli-and-dispatch",
+      "primary_output": "startup context envelope",
+      "artifact_effect": "governance startup context and handoff summary"
+    },
+    {
+      "entrypoint_name": "pre_task_check",
+      "path": "runtime_hooks/core/pre_task_check.py",
+      "category": "runtime-gate",
+      "input_mode": "python-cli-and-dispatch",
+      "primary_output": "pre-task decision envelope",
+      "artifact_effect": "warnings/errors plus decision-boundary effect"
+    },
+    {
+      "entrypoint_name": "post_task_check",
+      "path": "runtime_hooks/core/post_task_check.py",
+      "category": "runtime-gate",
+      "input_mode": "python-cli-and-dispatch",
+      "primary_output": "post-task validation envelope",
+      "artifact_effect": "validator/evidence evaluation before session close"
+    },
+    {
+      "entrypoint_name": "session_end",
+      "path": "runtime_hooks/core/session_end.py",
+      "category": "runtime-close",
+      "input_mode": "python-cli",
+      "primary_output": "runtime close envelope",
+      "artifact_effect": "writes runtime verdict and trace artifacts"
+    },
+    {
+      "entrypoint_name": "dispatcher",
+      "path": "runtime_hooks/dispatcher.py",
+      "category": "shared-dispatch",
+      "input_mode": "shared-event-json",
+      "primary_output": "event routing envelope",
+      "artifact_effect": "routes normalized event payloads into runtime core checks"
+    },
+    {
+      "entrypoint_name": "smoke_test",
+      "path": "runtime_hooks/smoke_test.py",
+      "category": "runtime-smoke",
+      "input_mode": "native-or-shared-example-payloads",
+      "primary_output": "smoke execution summary",
+      "artifact_effect": "replays documented runtime entry surfaces end-to-end"
+    },
+    {
+      "entrypoint_name": "run_runtime_governance",
+      "path": "scripts/run-runtime-governance.sh",
+      "category": "shared-enforcement",
+      "input_mode": "shell-wrapper",
+      "primary_output": "hook-or-ci execution status",
+      "artifact_effect": "shared enforcement entrypoint for local hooks and CI"
+    }
+  ],
+  "tool_entries": [
+    {
+      "tool_name": "adopt_governance",
+      "path": "governance_tools/adopt_governance.py",
+      "category": "adoption",
+      "canonical_use": "adopt framework baseline into an existing repo",
+      "human_track": true,
+      "agent_track": true,
+      "produces_artifact": true
+    },
+    {
+      "tool_name": "governance_drift_checker",
+      "path": "governance_tools/governance_drift_checker.py",
+      "category": "drift",
+      "canonical_use": "check baseline, contract, and governance drift state",
+      "human_track": true,
+      "agent_track": true,
+      "produces_artifact": true
+    },
+    {
+      "tool_name": "quickstart_smoke",
+      "path": "governance_tools/quickstart_smoke.py",
+      "category": "smoke",
+      "canonical_use": "verify documented quickstart path against real runtime hooks",
+      "human_track": true,
+      "agent_track": true,
+      "produces_artifact": true
+    },
+    {
+      "tool_name": "runtime_enforcement_smoke",
+      "path": "governance_tools/runtime_enforcement_smoke.py",
+      "category": "smoke",
+      "canonical_use": "validate framework runtime enforcement entrypoints",
+      "human_track": false,
+      "agent_track": true,
+      "produces_artifact": true
+    },
+    {
+      "tool_name": "reviewer_handoff_summary",
+      "path": "governance_tools/reviewer_handoff_summary.py",
+      "category": "reviewer-handoff",
+      "canonical_use": "generate reviewer-facing handoff summary",
+      "human_track": true,
+      "agent_track": true,
+      "produces_artifact": true
+    },
+    {
+      "tool_name": "trust_signal_overview",
+      "path": "governance_tools/trust_signal_overview.py",
+      "category": "release-surface",
+      "canonical_use": "summarize trust and release-facing governance signals",
+      "human_track": true,
+      "agent_track": true,
+      "produces_artifact": true
+    }
+  ],
+  "evidence_surfaces": [
+    {
+      "surface_name": "runtime_verdict_artifact",
+      "path_pattern": "artifacts/runtime/verdicts/<session_id>.json",
+      "producer": "session_end",
+      "artifact_type": "runtime-verdict",
+      "machine_readable": true,
+      "human_auditable": true,
+      "used_by": [
+        "reviewer_reconstruction",
+        "runtime_audit"
+      ]
+    },
+    {
+      "surface_name": "runtime_trace_artifact",
+      "path_pattern": "artifacts/runtime/traces/<session_id>.json",
+      "producer": "session_end",
+      "artifact_type": "runtime-trace",
+      "machine_readable": true,
+      "human_auditable": true,
+      "used_by": [
+        "reviewer_reconstruction",
+        "runtime_audit"
+      ]
+    },
+    {
+      "surface_name": "reviewer_handoff_summary",
+      "path_pattern": "artifacts/reviewer-handoff/<release>/latest.json",
+      "producer": "reviewer_handoff_summary",
+      "artifact_type": "reviewer-handoff",
+      "machine_readable": true,
+      "human_auditable": true,
+      "used_by": [
+        "reviewer_entrypoint",
+        "release_review"
+      ]
+    },
+    {
+      "surface_name": "quickstart_smoke_terminal_output",
+      "path_pattern": "stdout:quickstart_smoke",
+      "producer": "quickstart_smoke",
+      "artifact_type": "smoke-terminal-output",
+      "machine_readable": false,
+      "human_auditable": true,
+      "used_by": [
+        "adoption_review",
+        "agent_adoption_baseline"
+      ]
+    },
+    {
+      "surface_name": "governance_drift_checker_output",
+      "path_pattern": "stdout:governance_drift_checker",
+      "producer": "governance_drift_checker",
+      "artifact_type": "drift-structured-output",
+      "machine_readable": false,
+      "human_auditable": true,
+      "used_by": [
+        "adoption_review",
+        "framework_risk_triage"
+      ]
+    }
+  ],
+  "authority_surfaces": [
+    {
+      "authority_surface": "governance_authority_table",
+      "declared_source": "governance/AUTHORITY.md",
+      "scope": "governance document loading and authority precedence reference",
+      "can_change_verdict": false,
+      "notes": "Canonical authority inventory for governance documents."
+    },
+    {
+      "authority_surface": "runtime_decision_model",
+      "declared_source": "governance/governance_decision_model.v2.6.json",
+      "scope": "verdict impact, ownership, precedence, and determinism contract",
+      "can_change_verdict": true,
+      "notes": "Primary machine-readable governance decision source."
+    },
+    {
+      "authority_surface": "decision_boundary_model",
+      "declared_source": "docs/decision-boundary-layer.md",
+      "scope": "design-level pre-decision constraint model",
+      "can_change_verdict": false,
+      "notes": "Design boundary reference; not a direct runtime verdict source."
+    },
+    {
+      "authority_surface": "agent_adoption_boundary",
+      "declared_source": "docs/beta-gate/agent-adoption-pass-criteria.md",
+      "scope": "agent-assisted adoption evaluation semantics and authority boundaries",
+      "can_change_verdict": false,
+      "notes": "Gate-evaluation surface, not runtime verdict logic."
+    }
+  ],
+  "consistency": {
+    "unknown_surfaces": [],
+    "orphan_surfaces": [],
+    "evidence_surface_mismatch": [],
+    "signal_posture": "soft-enforcement"
+  }
+}
