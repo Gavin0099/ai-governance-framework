@@ -196,9 +196,9 @@ def test_adopt_creates_agents_md_from_template_when_missing(tmp_path):
     assert (repo / "AGENTS.md").exists()
 
 
-def test_adopt_creates_minimal_memory_scaffold(tmp_path):
+def test_adopt_creates_minimal_memory_scaffold():
     """Adopt seeds the minimum memory schema for new repos."""
-    repo = _make_git_repo(tmp_path / "repo")
+    repo = _make_git_repo(_reset_fixture("minimal_memory_scaffold") / "repo")
     _write_plan(repo)
     _write_contract(repo)
 
@@ -208,6 +208,35 @@ def test_adopt_creates_minimal_memory_scaffold(tmp_path):
     assert (repo / "memory" / "02_tech_stack.md").exists()
     assert (repo / "memory" / "03_knowledge_base.md").exists()
     assert (repo / "memory" / "04_review_log.md").exists()
+
+
+def test_adopt_copies_governance_markdown_pack():
+    """Adopt should seed the canonical governance markdown pack for consuming repos."""
+    repo = _make_git_repo(_reset_fixture("governance_markdown_pack") / "repo")
+    _write_plan(repo)
+    _write_contract(repo)
+
+    adopt_existing(repo, FRAMEWORK_ROOT, dry_run=False)
+
+    assert (repo / "governance" / "AGENT.md").exists()
+    assert (repo / "governance" / "SYSTEM_PROMPT.md").exists()
+    assert (repo / "governance" / "TESTING.md").exists()
+    assert (repo / "governance" / "PLAN.md").exists() is False
+
+
+def test_adopt_keeps_existing_governance_markdown_pack_file():
+    """Existing governance markdown files must not be overwritten during adopt."""
+    repo = _make_git_repo(_reset_fixture("governance_markdown_pack_kept") / "repo")
+    _write_plan(repo)
+    _write_contract(repo)
+    gov_dir = repo / "governance"
+    gov_dir.mkdir(parents=True, exist_ok=True)
+    custom = gov_dir / "AGENT.md"
+    custom.write_text("# Custom governance agent\n", encoding="utf-8")
+
+    adopt_existing(repo, FRAMEWORK_ROOT, dry_run=False)
+
+    assert custom.read_text(encoding="utf-8") == "# Custom governance agent\n"
 
 
 def test_adopt_creates_governance_drift_workflow_when_missing():

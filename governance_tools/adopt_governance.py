@@ -87,6 +87,31 @@ _MEMORY_SCAFFOLD_TEMPLATES: dict[str, str] = {
 }
 
 
+def _ensure_governance_markdown_pack(repo_root: Path, framework_root: Path, dry_run: bool) -> None:
+    source_root = framework_root / "governance"
+    target_root = repo_root / "governance"
+    if not source_root.is_dir():
+        return
+
+    for source in sorted(source_root.glob("*.md")):
+        # Root PLAN.md is handled separately by the existing adopt flow.
+        if source.name == "PLAN.md":
+            continue
+
+        target = target_root / source.name
+        if target.exists():
+            print(f"  governance/{source.name} -- kept as-is (already exists)")
+            continue
+
+        if dry_run:
+            print(f"  [dry-run] governance/{source.name} -- would copy canonical governance doc")
+            continue
+
+        target_root.mkdir(parents=True, exist_ok=True)
+        target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+        print(f"  governance/{source.name} -- copied canonical governance doc")
+
+
 def _discover_plan_path(repo_root: Path) -> Path | None:
     """Return the first PLAN.md found in standard locations, or None."""
     for rel in _PLAN_SEARCH_PATHS:
@@ -593,6 +618,9 @@ def adopt_existing(
 
     print()
     _ensure_memory_scaffold(repo_root, dry_run=dry_run)
+
+    print()
+    _ensure_governance_markdown_pack(repo_root, framework_root, dry_run=dry_run)
 
     if dry_run:
         print()
