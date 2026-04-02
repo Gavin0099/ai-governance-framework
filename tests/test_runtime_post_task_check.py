@@ -723,6 +723,7 @@ def test_post_task_check_classifies_missing_required_runtime_evidence():
     assert any("runtime-evidence: Missing required runtime evidence: public-api-diff" in error for error in result["errors"])
     output = format_human_result(result)
     assert "evidence_violation_count=1" in output
+    assert "advisory_signal: required_evidence_missing -> evidence_advisory; required evidence is incomplete for this decision surface; decision distance=enforced_elsewhere; not behavioral compliance proof; already handled by evidence-driven escalation or stop logic" in output
 
 
 

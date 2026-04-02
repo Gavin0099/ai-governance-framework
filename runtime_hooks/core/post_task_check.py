@@ -38,6 +38,17 @@ PUBLIC_API_DIFF_REQUIRED_KEYS = {
     "errors",
 }
 
+ADVISORY_SIGNAL_METADATA = {
+    "missing_required_evidence": {
+        "signal_name": "required_evidence_missing",
+        "signal_class": "evidence_advisory",
+        "decision_distance": "enforced_elsewhere",
+        "summary": "required evidence is incomplete for this decision surface",
+        "non_proof": "not behavioral compliance proof",
+        "usage": "already handled by evidence-driven escalation or stop logic",
+    }
+}
+
 
 def _merge_runtime_checks(errors: list[str], warnings: list[str], checks: dict | None) -> None:
     if not checks:
@@ -540,6 +551,20 @@ def run_post_task_check(
     }
 
 
+def _render_advisory_violation_line(violation: dict) -> str | None:
+    metadata = ADVISORY_SIGNAL_METADATA.get(violation.get("violation_type"))
+    if not metadata:
+        return None
+    return (
+        f"advisory_signal: {metadata['signal_name']} -> "
+        f"{metadata['signal_class']}; "
+        f"{metadata['summary']}; "
+        f"decision distance={metadata['decision_distance']}; "
+        f"{metadata['non_proof']}; "
+        f"{metadata['usage']}"
+    )
+
+
 def format_human_result(result: dict) -> str:
     domain_contract = result.get("domain_contract") or {}
     domain_raw = domain_contract.get("raw") or {}
@@ -578,6 +603,10 @@ def format_human_result(result: dict) -> str:
         lines.append(f"driver_evidence_ok={result['driver_evidence']['ok']}")
     if result.get("evidence_violations"):
         lines.append(f"evidence_violation_count={len(result['evidence_violations'])}")
+        for violation in result["evidence_violations"]:
+            advisory_line = _render_advisory_violation_line(violation)
+            if advisory_line:
+                lines.append(advisory_line)
     if result.get("policy_violations"):
         lines.append(f"policy_violation_count={len(result['policy_violations'])}")
     if result.get("domain_validator_results"):
