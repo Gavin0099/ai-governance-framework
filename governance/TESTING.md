@@ -81,6 +81,43 @@ For `L1+`, include evidence for:
 
 If a category does not apply, say so explicitly.
 
+### 3.1 Critical Function Test Quality
+
+Coverage can be high while test quality remains weak. AI is especially good at
+inflating coverage while avoiding the hardest and most decision-relevant paths.
+
+Treat a function as **critical** when any of the following is true:
+- it changes state (write, delete, command dispatch, irreversible transition)
+- it interacts with external systems (USB, file I/O, network, device API)
+- it is a relied-on seam for other modules (public interface, adapter layer,
+  shared entrypoint)
+- it is a known bug surface or previously regressed function
+
+For critical functions:
+- `L1` work must cover the applicable subset of:
+  - normal path
+  - failure path
+  - boundary input
+  - invalid input or invalid state
+- `L2` work should treat all four categories as the default expectation unless a
+  category is explicitly not applicable
+
+If one of these categories is missing, the work is not "fully tested" unless
+the omission is named and justified.
+
+Recommended naming pattern:
+- `test_[function]_[scenario]_[expected_outcome]`
+
+Preferred examples:
+- `test_parse_version_empty_string_returns_none`
+- `test_send_command_device_disconnected_raises_error`
+- `test_update_firmware_checksum_mismatch_aborts`
+
+Avoid names that hide intent:
+- `test_case_1`
+- `test_parse_version_2`
+- `testSendCommand`
+
 ---
 
 ## 4. Repo-Aware Build Policy
@@ -158,6 +195,32 @@ For I/O, native, time, environment, or legacy code:
 
 Mocking that hides real risk is forbidden.
 
+### 7.1 Assertion and Mocking Discipline
+
+Each test should contain at least one clear assertion about:
+- output value
+- state change
+- emitted error or failure signal
+
+Do not treat "no exception was raised" as the only passing condition unless the
+behavior under test is specifically "does not raise", and the test name says so.
+
+Preferred assertion style:
+- `assert result == expected_value`
+- `assert device.state == DeviceState.DISCONNECTED`
+- `assert "checksum mismatch" in error_log`
+
+Mock-only tests are insufficient when they assert only that a collaborator was
+called. For example:
+- weak: `mock_device.send.assert_called_once()`
+- stronger: assert the resulting status, emitted output, or persisted state
+
+Tests must also remain independent:
+- each test should be runnable on its own
+- setup/teardown must restore the environment
+- mutable state must not leak across tests
+- device, file, port, or external-resource setup must be explicit per test
+
 ---
 
 ## 8. Test Gap Records
@@ -177,4 +240,8 @@ Work is done when:
 - the chosen evidence matches the task risk
 - build verification matches the repo reality
 - failure-path thinking has been applied where relevant
+- critical functions have meaningful behavior assertions instead of ceremonial
+  coverage or mock-only checks
+- bug fixes include a regression test in the same change when reproduction is
+  practical
 - future reviewers can understand why the change is considered safe
