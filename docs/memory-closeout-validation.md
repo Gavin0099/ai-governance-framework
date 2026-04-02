@@ -71,6 +71,29 @@ $env:PYTHONPATH="additional/ai-governance-framework"
 
 若 framework 在其他相對路徑，請自行調整。
 
+## Canonical Framework Source
+
+做這份驗證時，請優先使用官方 remote：
+
+- `https://github.com/Gavin0099/ai-governance-framework.git`
+
+不要假設名稱相近的 fork 或鏡像一定同步。至少先確認：
+
+```powershell
+git remote -v
+git rev-parse HEAD
+git log --oneline -3
+```
+
+若你要驗的是 memory closeout visibility，framework 版本至少必須包含：
+
+- `6c9f0aa` `Add memory closeout visibility`
+- `dea37c5` `Add memory closeout validation guide`
+
+若 clone 來源不包含這些 commit，這份驗證最多只能證明舊版
+`session_end` closeout 仍可執行，不能算通過 memory closeout visibility
+驗證。
+
 ## 手動 closeout 驗證
 
 在 consuming repo 根目錄執行：
