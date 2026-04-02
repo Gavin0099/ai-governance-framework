@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Runtime pre-task governance checks.
 """
@@ -29,6 +29,7 @@ from governance_tools.rule_pack_loader import describe_rule_selection, load_rule
 from governance_tools.rule_pack_suggester import suggest_rule_packs
 from governance_tools.rule_classifier import classify_task_topic, filter_rules_by_topic
 from governance_tools.domain_summary_loader import load_domain_summary
+from governance_tools.runtime_injection_observation import observe_full_read_requirement
 from governance_tools.runtime_injection_snapshot import load_runtime_injection_snapshot
 from runtime_hooks.core.human_summary import build_summary_line, format_contract_summary_label
 
@@ -299,6 +300,31 @@ def _evaluate_runtime_injection_snapshot(
         "signals_checked": checks,
         "effect": effect,
     }
+
+
+def _build_consumption_observations(
+    snapshot: dict,
+    *,
+    domain_contract: dict | None,
+    summary_first_active: bool,
+) -> dict:
+    observations: list[dict] = []
+    requirements = set(snapshot.get("consumption_requirements") or [])
+
+    if "require_full_read_for_large_files" in requirements:
+        observations.append(
+            observe_full_read_requirement(
+                (domain_contract or {}).get("documents"),
+                summary_first_active=summary_first_active,
+            )
+        )
+
+    return {
+        "snapshot": snapshot.get("name"),
+        "observations": observations,
+    }
+
+
 def run_pre_task_check(
     project_root: Path,
     rules: str,
@@ -405,6 +431,11 @@ def run_pre_task_check(
         summary_first_active=summary_first_active,
         decision_boundary=decision_boundary,
     )
+    consumption_observations = _build_consumption_observations(
+        runtime_injection_snapshot,
+        domain_contract=domain_contract,
+        summary_first_active=summary_first_active,
+    )
     for check in runtime_injection["signals_checked"]:
         if not check["triggered"] or check["action"] == "pass":
             continue
@@ -420,6 +451,13 @@ def run_pre_task_check(
             )
         elif check["action"] == "stop":
             errors.append(f"Runtime injection snapshot stop: {check['reason']}")
+
+    for observation in consumption_observations["observations"]:
+        if observation.get("observation_status") == "partial":
+            warnings.append(
+                "Advisory consumption observation: "
+                f"{observation['requirement']} is partial via {observation['observable_proxy']}"
+            )
 
     # Tier-aware output
     trace_id = generate_trace_id(task_text, task_level)
@@ -492,6 +530,7 @@ def run_pre_task_check(
         },
         "decision_boundary": decision_boundary,
         "runtime_injection": runtime_injection,
+        "consumption_observations": consumption_observations,
         "errors": errors,
         "warnings": warnings,
         # Tier-aware fields
@@ -577,6 +616,13 @@ def format_human_result(result: dict) -> str:
                 "runtime_injection: "
                 f"{check['signal']} action={check['action']} triggered={check['triggered']}"
             )
+    consumption_observations = result.get("consumption_observations") or {}
+    for observation in consumption_observations.get("observations", []):
+        lines.append(
+            "consumption_observation: "
+            f"{observation['requirement']} status={observation['observation_status']} "
+            f"role={observation['decision_role']} confidence={observation['observation_confidence']}"
+        )
     for warning in result["warnings"]:
         lines.append(f"warning: {warning}")
     for error in result["errors"]:
@@ -620,6 +666,9 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+
 
 
 

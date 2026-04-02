@@ -464,3 +464,69 @@ def test_pre_task_check_human_output_includes_runtime_injection_effect(local_tmp
     assert "runtime_injection_snapshot=runtime-injection-snapshot-v0" in output
     assert "runtime_injection_effect=escalate" in output
     assert "runtime_injection: context_degraded action=restrict_code_generation_and_escalate triggered=True" in output
+
+
+def test_pre_task_check_adds_advisory_large_file_consumption_observation(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    monkeypatch.setattr(pre_task_check, "load_domain_summary", lambda _: {"domain": "summary-only"})
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    large_doc = local_tmp_dir / "AGENTS.base.md"
+    large_doc.write_text("\n".join(f"line {i}" for i in range(250)), encoding="utf-8")
+    (local_tmp_dir / "contract.yaml").write_text(
+        "name: injection-contract\n"
+        "documents:\n"
+        "  - AGENTS.base.md\n"
+        "rule_roots:\n"
+        "  - rules\n",
+        encoding="utf-8",
+    )
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="Review parser implementation",
+        task_level="L1",
+    )
+
+    observation = next(
+        item
+        for item in result["consumption_observations"]["observations"]
+        if item["requirement"] == "require_full_read_for_large_files"
+    )
+    assert observation["applicable"] is True
+    assert observation["observation_status"] == "partial"
+    assert observation["decision_role"] == "advisory_only"
+    assert observation["observation_confidence"] == "low"
+    assert any("Advisory consumption observation" in warning for warning in result["warnings"])
+
+
+def test_pre_task_check_human_output_includes_consumption_observation(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    monkeypatch.setattr(pre_task_check, "load_domain_summary", lambda _: {"domain": "summary-only"})
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    large_doc = local_tmp_dir / "AGENTS.base.md"
+    large_doc.write_text("\n".join(f"line {i}" for i in range(250)), encoding="utf-8")
+    (local_tmp_dir / "contract.yaml").write_text(
+        "name: injection-contract\n"
+        "documents:\n"
+        "  - AGENTS.base.md\n"
+        "rule_roots:\n"
+        "  - rules\n",
+        encoding="utf-8",
+    )
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="Review parser implementation",
+        task_level="L1",
+    )
+
+    output = pre_task_check.format_human_result(result)
+    assert "consumption_observation: require_full_read_for_large_files status=partial role=advisory_only confidence=low" in output

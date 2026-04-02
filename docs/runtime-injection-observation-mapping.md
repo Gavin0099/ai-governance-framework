@@ -97,6 +97,15 @@
 
 > 已經證明 agent 內在遵守了治理要求。
 
+## Non-Equivalence Rules
+
+下列推論在第一版中一律禁止：
+
+- observed proxy present ≠ requirement satisfied
+- observed proxy absent ≠ requirement violated
+- single event presence ≠ behavioral compliance
+- environment degradation ≠ behavioral failure
+
 ## 下一步候選
 
 如果這份 mapping 被接受，下一步才適合做一個更小的 executable slice：
