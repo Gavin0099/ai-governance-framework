@@ -239,6 +239,65 @@ def test_adopt_keeps_existing_governance_markdown_pack_file():
     assert custom.read_text(encoding="utf-8") == "# Custom governance agent\n"
 
 
+def test_adopt_repairs_existing_contract_with_missing_governance_documents():
+    """Existing contract.yaml should gain required governance documents when missing."""
+    repo = _make_git_repo(_reset_fixture("repair_contract_governance_docs") / "repo")
+    _write_plan(repo)
+    contract = repo / "contract.yaml"
+    contract.write_text(
+        "\n".join(
+            [
+                "name: demo-contract",
+                "plugin_version: \"1.0.0\"",
+                "framework_interface_version: \"1\"",
+                "framework_compatible: \">=1.0.0,<2.0.0\"",
+                "domain: demo",
+                "documents:",
+                "  - AGENTS.base.md",
+                "  - PLAN.md",
+                "ai_behavior_override:",
+                "  - AGENTS.base.md",
+                "rule_roots:",
+                "  - governance/rules",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    adopt_existing(repo, FRAMEWORK_ROOT, dry_run=False)
+
+    content = contract.read_text(encoding="utf-8")
+    assert "  - governance/TESTING.md" in content
+    assert "  - governance/ARCHITECTURE.md" in content
+
+
+def test_adopt_copies_governance_rules_pack():
+    """Adopt should seed the canonical governance rules pack for consuming repos."""
+    repo = _make_git_repo(_reset_fixture("governance_rules_pack") / "repo")
+    _write_plan(repo)
+    _write_contract(repo)
+
+    adopt_existing(repo, FRAMEWORK_ROOT, dry_run=False)
+
+    assert (repo / "governance" / "rules" / "python" / "coding.md").exists()
+
+
+def test_adopt_keeps_existing_governance_rule_file():
+    """Existing governance rule files must not be overwritten during adopt."""
+    repo = _make_git_repo(_reset_fixture("governance_rules_pack_kept") / "repo")
+    _write_plan(repo)
+    _write_contract(repo)
+    rule_dir = repo / "governance" / "rules" / "python"
+    rule_dir.mkdir(parents=True, exist_ok=True)
+    custom = rule_dir / "coding.md"
+    custom.write_text("# Custom coding rule\n", encoding="utf-8")
+
+    adopt_existing(repo, FRAMEWORK_ROOT, dry_run=False)
+
+    assert custom.read_text(encoding="utf-8") == "# Custom coding rule\n"
+
+
 def test_adopt_creates_governance_drift_workflow_when_missing():
     """Adopt should seed the minimal drift workflow for new repos."""
     repo = _make_git_repo(_reset_fixture("drift_workflow_created") / "repo")

@@ -112,6 +112,31 @@ def _ensure_governance_markdown_pack(repo_root: Path, framework_root: Path, dry_
         print(f"  governance/{source.name} -- copied canonical governance doc")
 
 
+def _ensure_governance_rules_pack(repo_root: Path, framework_root: Path, dry_run: bool) -> None:
+    source_root = framework_root / "governance" / "rules"
+    target_root = repo_root / "governance" / "rules"
+    if not source_root.is_dir():
+        return
+
+    for source in sorted(source_root.rglob("*")):
+        if source.is_dir():
+            continue
+
+        relative = source.relative_to(source_root)
+        target = target_root / relative
+        if target.exists():
+            print(f"  governance/rules/{relative.as_posix()} -- kept as-is (already exists)")
+            continue
+
+        if dry_run:
+            print(f"  [dry-run] governance/rules/{relative.as_posix()} -- would copy canonical rule pack file")
+            continue
+
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+        print(f"  governance/rules/{relative.as_posix()} -- copied canonical rule pack file")
+
+
 def _discover_plan_path(repo_root: Path) -> Path | None:
     """Return the first PLAN.md found in standard locations, or None."""
     for rel in _PLAN_SEARCH_PATHS:
@@ -186,6 +211,57 @@ def _ensure_contract_agents_base_reference(contract_path: Path, dry_run: bool) -
 
     contract_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("  contract.yaml — added AGENTS.base.md to ai_behavior_override")
+    return True
+
+
+def _ensure_contract_governance_docs(contract_path: Path, dry_run: bool) -> bool:
+    from governance_tools.domain_contract_loader import _as_list, _parse_contract_yaml
+
+    text = contract_path.read_text(encoding="utf-8")
+    data = _parse_contract_yaml(text)
+    documents = set(_as_list(data.get("documents")))
+    required = ["AGENTS.base.md", "PLAN.md", "governance/TESTING.md", "governance/ARCHITECTURE.md"]
+    missing = [entry for entry in required if entry not in documents]
+    if not missing:
+        print("  contract.yaml -- governance document references already present")
+        return False
+
+    lines = text.splitlines()
+    inserted = False
+    for index, raw_line in enumerate(lines):
+        stripped = raw_line.strip()
+        if stripped == "documents: []":
+            lines[index] = "documents:"
+            for offset, entry in enumerate(missing, start=1):
+                lines.insert(index + offset, f"  - {entry}")
+            inserted = True
+            break
+        if stripped == "documents:":
+            insert_at = index + 1
+            while insert_at < len(lines):
+                candidate = lines[insert_at]
+                if candidate.startswith("  - ") or not candidate.strip():
+                    insert_at += 1
+                    continue
+                break
+            for offset, entry in enumerate(missing):
+                lines.insert(insert_at + offset, f"  - {entry}")
+            inserted = True
+            break
+
+    if not inserted:
+        if lines and lines[-1].strip():
+            lines.append("")
+        lines.append("documents:")
+        for entry in missing:
+            lines.append(f"  - {entry}")
+
+    if dry_run:
+        print(f"  [dry-run] contract.yaml -- would add {', '.join(missing)} to documents")
+        return True
+
+    contract_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"  contract.yaml -- added {', '.join(missing)} to documents")
     return True
 
 
@@ -582,6 +658,7 @@ def adopt_existing(
             print(f"  {fname} — kept as-is (already exists)")
             if fname == "contract.yaml":
                 _ensure_contract_agents_base_reference(target, dry_run=dry_run)
+                _ensure_contract_governance_docs(target, dry_run=dry_run)
         else:
             if dry_run:
                 print(f"  [dry-run] {fname} — would copy from template (missing)")
@@ -621,6 +698,9 @@ def adopt_existing(
 
     print()
     _ensure_governance_markdown_pack(repo_root, framework_root, dry_run=dry_run)
+
+    print()
+    _ensure_governance_rules_pack(repo_root, framework_root, dry_run=dry_run)
 
     if dry_run:
         print()
