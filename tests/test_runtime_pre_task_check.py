@@ -1,4 +1,4 @@
-import shutil
+﻿import shutil
 import sys
 from pathlib import Path
 
@@ -406,3 +406,61 @@ def test_pre_task_check_human_output_includes_decision_boundary_effect(local_tmp
     output = pre_task_check.format_human_result(result)
     assert "decision_boundary_effect=escalate" in output
     assert "precondition: missing_spec action=restrict_code_generation_and_escalate" in output
+
+
+def test_pre_task_check_runtime_injection_escalates_when_summary_first_degrades_context(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    monkeypatch.setattr(pre_task_check, "load_domain_summary", lambda _: {"domain": "summary-only"})
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    (local_tmp_dir / "contract.yaml").write_text(
+        "name: injection-contract\n"
+        "rule_roots:\n"
+        "  - rules\n",
+        encoding="utf-8",
+    )
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="Review parser implementation",
+        task_level="L1",
+    )
+
+    assert result["ok"] is True
+    assert result["summary_first"]["active"] is True
+    assert result["runtime_injection"]["snapshot"]["name"] == "runtime-injection-snapshot-v0"
+    assert result["runtime_injection"]["effect"] == "escalate"
+    check = next(item for item in result["runtime_injection"]["signals_checked"] if item["signal"] == "context_degraded")
+    assert check["triggered"] is True
+    assert check["action"] == "restrict_code_generation_and_escalate"
+    assert any("Runtime injection snapshot requires escalation" in warning for warning in result["warnings"])
+
+
+def test_pre_task_check_human_output_includes_runtime_injection_effect(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    monkeypatch.setattr(pre_task_check, "load_domain_summary", lambda _: {"domain": "summary-only"})
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    (local_tmp_dir / "contract.yaml").write_text(
+        "name: injection-contract\n"
+        "rule_roots:\n"
+        "  - rules\n",
+        encoding="utf-8",
+    )
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="Review parser implementation",
+        task_level="L1",
+    )
+
+    output = pre_task_check.format_human_result(result)
+    assert "runtime_injection_snapshot=runtime-injection-snapshot-v0" in output
+    assert "runtime_injection_effect=escalate" in output
+    assert "runtime_injection: context_degraded action=restrict_code_generation_and_escalate triggered=True" in output

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Runtime pre-task governance checks.
 """
@@ -29,6 +29,7 @@ from governance_tools.rule_pack_loader import describe_rule_selection, load_rule
 from governance_tools.rule_pack_suggester import suggest_rule_packs
 from governance_tools.rule_classifier import classify_task_topic, filter_rules_by_topic
 from governance_tools.domain_summary_loader import load_domain_summary
+from governance_tools.runtime_injection_snapshot import load_runtime_injection_snapshot
 from runtime_hooks.core.human_summary import build_summary_line, format_contract_summary_label
 
 
@@ -78,6 +79,7 @@ PRECONDITION_TASK_SIGNALS = {
     "bugfix": ("bugfix", "fix bug", "fix regression", "regression"),
     "regression_fix": ("regression", "repro", "fix failing case"),
 }
+BOUNDARY_EFFECT_ORDER = {"pass": 0, "warn": 1, "escalate": 2, "stop": 3}
 
 
 def _strip_rule_content(active_rules_result: dict, tier: OutputTier) -> dict:
@@ -227,6 +229,76 @@ def _evaluate_preconditions(domain_contract: dict | None, task_text: str, task_l
         "boundary_effect": effect,
     }
 
+def _merge_boundary_effect(current: str, candidate: str) -> str:
+    if BOUNDARY_EFFECT_ORDER.get(candidate, 0) > BOUNDARY_EFFECT_ORDER.get(current, 0):
+        return candidate
+    return current
+
+
+def _evaluate_runtime_injection_snapshot(
+    snapshot: dict,
+    *,
+    task_level: str,
+    summary_first_active: bool,
+    decision_boundary: dict,
+) -> dict:
+    normalized_level = task_level if task_level in PRECONDITION_ACTIONS else "L1"
+    task_level_scope = snapshot.get("task_level_scope") or []
+    checks: list[dict] = []
+    effect = "pass"
+    action_to_effect = {
+        "analysis_only": "warn",
+        "restrict_code_generation_and_escalate": "escalate",
+        "stop": "stop",
+    }
+
+    if task_level_scope and normalized_level not in task_level_scope:
+        return {
+            "snapshot": snapshot,
+            "signals_checked": checks,
+            "effect": effect,
+        }
+
+    triggers = set(snapshot.get("escalation_triggers") or [])
+
+    if "escalate_if_context_degraded" in triggers:
+        triggered = bool(summary_first_active)
+        action = PRECONDITION_ACTIONS[normalized_level] if triggered else "pass"
+        if action != "pass":
+            effect = _merge_boundary_effect(effect, action_to_effect[action])
+        checks.append({
+            "signal": "context_degraded",
+            "triggered": triggered,
+            "action": action,
+            "reason": (
+                "summary-first loading reduced inline contract document content before execution"
+                if triggered
+                else None
+            ),
+        })
+
+    if "escalate_if_required_evidence_missing" in triggers:
+        boundary_checks = decision_boundary.get("preconditions_checked") or []
+        triggered = any(item.get("applies") and not item.get("present") for item in boundary_checks)
+        action = PRECONDITION_ACTIONS[normalized_level] if triggered else "pass"
+        if action != "pass":
+            effect = _merge_boundary_effect(effect, action_to_effect[action])
+        checks.append({
+            "signal": "required_evidence_missing",
+            "triggered": triggered,
+            "action": action,
+            "reason": (
+                "decision boundary detected missing explicit precondition evidence in task_text"
+                if triggered
+                else None
+            ),
+        })
+
+    return {
+        "snapshot": snapshot,
+        "signals_checked": checks,
+        "effect": effect,
+    }
 def run_pre_task_check(
     project_root: Path,
     rules: str,
@@ -277,8 +349,9 @@ def run_pre_task_check(
             load_domain_contract(resolved_contract_file, skip_document_content=summary_first_active)
             if resolved_contract_file
             else None
-        )
-    rules_roots = [Path(path) for path in (domain_contract or {}).get("rule_roots", [])] + [Path(__file__).resolve().parents[2] / "governance" / "rules"]
+        )    framework_root = Path(__file__).resolve().parents[2]
+    runtime_injection_snapshot = load_runtime_injection_snapshot(framework_root)
+    rules_roots = [Path(path) for path in (domain_contract or {}).get("rule_roots", [])] + [framework_root / "governance" / "rules"]
     rule_packs = describe_rule_selection(rules_to_load, rules_roots)
     active_rules = load_rule_content(rules_to_load, rules_roots)
     rule_pack_suggestions = suggest_rule_packs(project_root, task_text=task_text)
@@ -326,7 +399,27 @@ def run_pre_task_check(
                 f"{check['reason']}"
             )
         elif check["action"] == "stop":
-            errors.append(f"Decision boundary stop: {check['reason']}")
+            errors.append(f"Decision boundary stop: {check['reason']}")    runtime_injection = _evaluate_runtime_injection_snapshot(
+        runtime_injection_snapshot,
+        task_level=task_level,
+        summary_first_active=summary_first_active,
+        decision_boundary=decision_boundary,
+    )
+    for check in runtime_injection["signals_checked"]:
+        if not check["triggered"] or check["action"] == "pass":
+            continue
+        if check["action"] == "analysis_only":
+            warnings.append(
+                "Runtime injection snapshot degraded to analysis_only: "
+                f"{check['reason']}"
+            )
+        elif check["action"] == "restrict_code_generation_and_escalate":
+            warnings.append(
+                "Runtime injection snapshot requires escalation: "
+                f"{check['reason']}"
+            )
+        elif check["action"] == "stop":
+            errors.append(f"Runtime injection snapshot stop: {check['reason']}")
 
     # Tier-aware output
     trace_id = generate_trace_id(task_text, task_level)
@@ -398,6 +491,7 @@ def run_pre_task_check(
             ),
         },
         "decision_boundary": decision_boundary,
+        "runtime_injection": runtime_injection,
         "errors": errors,
         "warnings": warnings,
         # Tier-aware fields
@@ -471,6 +565,17 @@ def format_human_result(result: dict) -> str:
             lines.append(
                 "precondition: "
                 f"{check['type']} action={check['action']} applies={check['applies']} present={check['present']}"
+            )    runtime_injection = result.get("runtime_injection") or {}
+    snapshot = runtime_injection.get("snapshot") or {}
+    if snapshot.get("name"):
+        lines.append(f"runtime_injection_snapshot={snapshot['name']}")
+    if runtime_injection.get("effect") not in {None, "pass"}:
+        lines.append(f"runtime_injection_effect={runtime_injection['effect']}")
+    for check in runtime_injection.get("signals_checked", []):
+        if check.get("action") != "pass":
+            lines.append(
+                "runtime_injection: "
+                f"{check['signal']} action={check['action']} triggered={check['triggered']}"
             )
     for warning in result["warnings"]:
         lines.append(f"warning: {warning}")
@@ -515,3 +620,11 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
+
