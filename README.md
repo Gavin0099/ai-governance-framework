@@ -5,34 +5,31 @@
 [![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
-## Current Positioning
+## 目前定位
 
-This repository is still accurately described as an AI governance framework, but
-it is no longer only a prompt/rules wrapper or a static policy pack.
+這個 repo 仍然可以準確描述為一個 AI governance framework，但它已經不只是
+prompt / 規則包裝層，也不只是靜態政策文件集合。
 
-The current bounded reading is:
+目前比較準確、且有邊界的描述是：
 
-- a machine-interpretable governance runtime for AI-assisted development
-- with executable decision boundaries, reviewable artifacts, and state-aware
-  session governance
-- across execution, evidence, decision, memory/state, and reviewer surfaces
+- 一個面向 AI-assisted development 的 machine-interpretable governance runtime
+- 具備可執行的 decision boundary、可審查的 artifact，以及 state-aware 的 session governance
+- 橫跨 execution、evidence、decision、memory / state、reviewer surface
 
-What it already demonstrates:
+目前已經成立的能力：
 
-- a real runtime loop:
+- 真正可執行的 runtime loop：
   `session_start -> pre_task_check -> post_task_check -> session_end`
-- decision-aware artifacts such as verdicts, traces, and decision context
-- reviewer-visible advisory semantics that improve interpretation without
-  expanding verdict authority
-- execution/state integrity signals that can be inspected without turning them
-  into hidden policy sources
+- 帶有 decision context 的 verdict / trace / session artifact
+- reviewer-visible 的 advisory semantics，可降低誤讀但不擴張 verdict authority
+- 可被檢視的 execution / state integrity signal，而不是隱藏的 prompt 政策來源
 
-What it does not claim yet:
+目前**不主張**的範圍：
 
-- a full execution harness
-- a machine-authoritative advisory system
-- a generic multi-agent orchestration platform
-- full agent-ready determinism across every tool surface
+- 完整的 execution harness
+- machine-authoritative 的 advisory system
+- 通用型 multi-agent orchestration platform
+- 在所有 tool surface 上都已達成 full agent-ready determinism
 
 ## 為什麼用這個框架
 
@@ -202,7 +199,7 @@ flowchart TD
 
 目前 release-facing 狀態：
 
-- version: `v1.1.0`（2026-03-22）
+- 正式 release-facing 版本：`v1.1.0`（2026-03-22）
 - release note: [docs/releases/v1.1.0.md](docs/releases/v1.1.0.md)
 - previous release: [docs/releases/v1.0.0-alpha.md](docs/releases/v1.0.0-alpha.md)
 - changelog: [CHANGELOG.md](CHANGELOG.md)
@@ -211,6 +208,14 @@ flowchart TD
 - trust signal dashboard: [docs/status/trust-signal-dashboard.md](docs/status/trust-signal-dashboard.md)
 - domain enforcement matrix: [docs/status/domain-enforcement-matrix.md](docs/status/domain-enforcement-matrix.md)
 - schema reference: [docs/minimum-legal-schema.md](docs/minimum-legal-schema.md)
+
+補充說明：
+
+- 目前正式對外 release-facing 狀態仍以 `v1.1.0` 為準。
+- `main` 分支在此之後已累積多個 post-release hardening、runtime、adoption、advisory 相關改動，但尚未整理成新的正式 release note。
+- 因此：
+  - `docs/releases/v1.1.0.md` 代表最後一個正式對外發版狀態
+  - `README.md` 與 `docs/status/` 反映的是目前主分支較新的能力邊界與進度
 
 這個框架已適合做評估、內部採用試點與 domain-contract 實驗，但仍應視為 early-stage framework，而不是一個已完全封閉的 enforcement platform。語義驗證深度、採用平滑度與規則分級仍是持續開發面向。
 
