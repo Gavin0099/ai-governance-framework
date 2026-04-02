@@ -81,6 +81,7 @@ def test_build_onboarding_report_combines_readiness_and_smoke() -> None:
     assert report.ok is True
     assert report.readiness["ready"] is True
     assert report.smoke["ok"] is True
+    assert "framework_version" in report.readiness
     assert report.smoke["rules"] == ["common", "firmware"]
     assert report.readiness["project_facts"]["status"] == "available"
     assert report.readiness["project_facts"]["source_filename"] == "02_project_facts.md"
@@ -99,6 +100,7 @@ def test_format_human_surfaces_readiness_and_smoke_sections() -> None:
     assert "External Repo Onboarding Report" in rendered
     assert "project_facts      = status=available" in rendered
     assert "[readiness]" in rendered
+    assert "[framework_version]" in rendered
     assert "[project_facts]" in rendered
     assert "status" in rendered
     assert "artifact_path" in rendered
@@ -126,6 +128,7 @@ def test_write_report_bundle_creates_latest_history_and_index() -> None:
 
     latest_payload = json.loads(Path(bundle["latest_json"]).read_text(encoding="utf-8"))
     assert latest_payload["ok"] is True
+    assert "framework_version" in latest_payload["readiness"]
     assert latest_payload["readiness"]["project_facts"]["source_filename"] == "02_project_facts.md"
     assert latest_payload["readiness"]["project_facts"]["artifact_path"].replace("/", "\\").endswith(r"artifacts\external-project-facts\target.json")
     index_text = Path(bundle["index_txt"]).read_text(encoding="utf-8")

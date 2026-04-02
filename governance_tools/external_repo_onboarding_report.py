@@ -61,6 +61,7 @@ def build_onboarding_report(
             "ready": readiness.ready,
             "checks": readiness.checks,
             "contract": readiness.contract,
+            "framework_version": readiness.framework_version,
             "plan": readiness.plan,
             "hooks": readiness.hooks,
             "project_facts": readiness.project_facts,
@@ -113,6 +114,20 @@ def format_human(report: ExternalRepoOnboardingReport) -> str:
         lines.append(f"{key:<24} = {value}")
 
     project_facts = report.readiness.get("project_facts") or {}
+    framework_version = report.readiness.get("framework_version") or {}
+    if framework_version:
+        lines.extend(
+            [
+                "",
+                "[framework_version]",
+                f"state              = {framework_version.get('state')}",
+                f"current_release    = {framework_version.get('current_release')}",
+                f"adopted_release    = {framework_version.get('adopted_release')}",
+                f"adopted_commit     = {framework_version.get('adopted_commit')}",
+                f"framework_repo     = {framework_version.get('framework_repo')}",
+                f"canonical_repo     = {framework_version.get('canonical_framework_repo')}",
+            ]
+        )
     if project_facts:
         lines.extend(
             [
