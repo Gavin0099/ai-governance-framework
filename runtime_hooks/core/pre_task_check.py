@@ -81,6 +81,29 @@ PRECONDITION_TASK_SIGNALS = {
     "regression_fix": ("regression", "repro", "fix failing case"),
 }
 BOUNDARY_EFFECT_ORDER = {"pass": 0, "warn": 1, "escalate": 2, "stop": 3}
+ADVISORY_SIGNAL_METADATA = {
+    "context_degraded": {
+        "signal_class": "degradation_advisory",
+        "decision_distance": "enforced_elsewhere",
+        "summary": "runtime visibility dropped before execution",
+        "non_proof": "not proof of compliance or violation",
+        "usage": "already handled by an escalation path",
+    },
+    "required_evidence_missing": {
+        "signal_class": "evidence_advisory",
+        "decision_distance": "enforced_elsewhere",
+        "summary": "required evidence is incomplete for this decision surface",
+        "non_proof": "not behavioral compliance proof",
+        "usage": "already handled by evidence-driven escalation or stop logic",
+    },
+    "require_full_read_for_large_files": {
+        "signal_class": "degradation_advisory",
+        "decision_distance": "far",
+        "summary": "large-file visibility is partial, which raises review risk",
+        "non_proof": "not proof of compliance or violation",
+        "usage": "reviewer-visible advisory only; not verdict-bearing",
+    },
+}
 
 
 def _strip_rule_content(active_rules_result: dict, tier: OutputTier) -> dict:
@@ -323,6 +346,20 @@ def _build_consumption_observations(
         "snapshot": snapshot.get("name"),
         "observations": observations,
     }
+
+
+def _render_advisory_signal_line(signal_name: str) -> str | None:
+    metadata = ADVISORY_SIGNAL_METADATA.get(signal_name)
+    if not metadata:
+        return None
+    return (
+        f"advisory_signal: {signal_name} -> "
+        f"{metadata['signal_class']}; "
+        f"{metadata['summary']}; "
+        f"decision distance={metadata['decision_distance']}; "
+        f"{metadata['non_proof']}; "
+        f"{metadata['usage']}"
+    )
 
 
 def run_pre_task_check(
@@ -616,6 +653,9 @@ def format_human_result(result: dict) -> str:
                 "runtime_injection: "
                 f"{check['signal']} action={check['action']} triggered={check['triggered']}"
             )
+            advisory_line = _render_advisory_signal_line(check["signal"])
+            if advisory_line:
+                lines.append(advisory_line)
     consumption_observations = result.get("consumption_observations") or {}
     for observation in consumption_observations.get("observations", []):
         lines.append(
@@ -623,6 +663,9 @@ def format_human_result(result: dict) -> str:
             f"{observation['requirement']} status={observation['observation_status']} "
             f"role={observation['decision_role']} confidence={observation['observation_confidence']}"
         )
+        advisory_line = _render_advisory_signal_line(observation["requirement"])
+        if advisory_line:
+            lines.append(advisory_line)
     for warning in result["warnings"]:
         lines.append(f"warning: {warning}")
     for error in result["errors"]:

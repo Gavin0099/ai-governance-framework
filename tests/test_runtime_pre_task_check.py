@@ -1,4 +1,4 @@
-﻿import shutil
+import shutil
 import sys
 from pathlib import Path
 
@@ -328,6 +328,9 @@ def test_pre_task_check_l1_escalates_for_missing_spec(local_tmp_dir, monkeypatch
     assert check["action"] == "restrict_code_generation_and_escalate"
     assert any("requires code-generation restriction and escalation" in warning for warning in result["warnings"])
 
+    output = pre_task_check.format_human_result(result)
+    assert "advisory_signal: required_evidence_missing -> evidence_advisory; required evidence is incomplete for this decision surface; decision distance=enforced_elsewhere; not behavioral compliance proof; already handled by evidence-driven escalation or stop logic" in output
+
 
 def test_pre_task_check_l2_stops_for_missing_fixture(local_tmp_dir, monkeypatch):
     monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
@@ -464,6 +467,7 @@ def test_pre_task_check_human_output_includes_runtime_injection_effect(local_tmp
     assert "runtime_injection_snapshot=runtime-injection-snapshot-v0" in output
     assert "runtime_injection_effect=escalate" in output
     assert "runtime_injection: context_degraded action=restrict_code_generation_and_escalate triggered=True" in output
+    assert "advisory_signal: context_degraded -> degradation_advisory; runtime visibility dropped before execution; decision distance=enforced_elsewhere; not proof of compliance or violation; already handled by an escalation path" in output
 
 
 def test_pre_task_check_adds_advisory_large_file_consumption_observation(local_tmp_dir, monkeypatch):
@@ -530,3 +534,4 @@ def test_pre_task_check_human_output_includes_consumption_observation(local_tmp_
 
     output = pre_task_check.format_human_result(result)
     assert "consumption_observation: require_full_read_for_large_files status=partial role=advisory_only confidence=low" in output
+    assert "advisory_signal: require_full_read_for_large_files -> degradation_advisory; large-file visibility is partial, which raises review risk; decision distance=far; not proof of compliance or violation; reviewer-visible advisory only; not verdict-bearing" in output
