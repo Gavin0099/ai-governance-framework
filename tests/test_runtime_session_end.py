@@ -53,6 +53,9 @@ def test_session_end_auto_promotes_low_risk_candidate(local_project_root):
 
     summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
     assert summary_payload["promoted"] is True
+    assert summary_payload["memory_closeout"]["promotion_considered"] is True
+    assert summary_payload["memory_closeout"]["decision"] == "AUTO_PROMOTE"
+    assert summary_payload["memory_closeout"]["snapshot_created"] is True
     verdict_payload = json.loads(Path(result["verdict_artifact"]).read_text(encoding="utf-8"))
     assert verdict_payload["artifact_type"] == "runtime-verdict"
     assert verdict_payload["verdict"]["decision"] == "AUTO_PROMOTE"
@@ -86,6 +89,9 @@ def test_session_end_requires_review_for_high_risk(local_project_root):
     assert result["snapshot"] is not None
     assert result["curated"] is not None
     assert result["promotion"] is None
+    summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
+    assert summary_payload["memory_closeout"]["promotion_considered"] is True
+    assert summary_payload["memory_closeout"]["decision"] == "REVIEW_REQUIRED"
 
 
 def test_session_end_does_not_promote_stateless_session(local_project_root):
@@ -100,6 +106,9 @@ def test_session_end_does_not_promote_stateless_session(local_project_root):
     assert result["ok"] is True
     assert result["decision"] == "DO_NOT_PROMOTE"
     assert result["snapshot"] is None
+    summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
+    assert summary_payload["memory_closeout"]["promotion_considered"] is False
+    assert summary_payload["memory_closeout"]["reason"] == "memory_mode=stateless disables durable memory closeout"
 
 
 def test_session_end_blocks_missing_contract_fields(local_project_root):
@@ -139,6 +148,8 @@ def test_session_end_records_public_api_diff_in_summary_and_curated_artifact(loc
     summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
     assert summary_payload["public_api_diff_present"] is True
     assert summary_payload["public_api_added_count"] == 1
+    assert summary_payload["memory_closeout"]["candidate_detected"] is True
+    assert "public_api_change" in summary_payload["memory_closeout"]["candidate_signals"]
     assert summary_payload["decision_context"]["memory_integrity"] == "partial"
     curated_payload = json.loads(Path(result["curated_artifact"]).read_text(encoding="utf-8"))
     assert any(item["source"] == "public_api_diff.added" for item in curated_payload["items"])
@@ -312,9 +323,40 @@ def test_session_end_human_output_includes_contract_context(local_project_root):
     assert "surface_validity=complete" in output
     assert "coverage_completeness=complete" in output
     assert "memory_integrity=partial" in output
+    assert "memory_candidate_detected=False" in output
+    assert "memory_promotion_considered=True" in output
+    assert "memory_closeout_decision=REVIEW_REQUIRED" in output
     assert "verdict_artifact=" in output
     assert "trace_artifact=" in output
 
+
+
+def test_session_end_human_output_explains_memory_closeout_when_candidate_detected(local_project_root):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-10b",
+        runtime_contract=_contract(rules=["common", "refactor"]),
+        checks={
+            "ok": True,
+            "errors": [],
+            "public_api_diff": {
+                "ok": True,
+                "removed": [],
+                "added": ["public int Ping() => 0;"],
+                "warnings": [],
+                "errors": [],
+            },
+        },
+        response_text="runtime output",
+        summary="API change session",
+    )
+
+    output = format_human_result(result)
+
+    assert "memory_candidate_detected=True" in output
+    assert "memory_candidate_signals=public_api_change" in output
+    assert "memory_promotion_considered=True" in output
+    assert "memory_closeout_decision=REVIEW_REQUIRED" in output
 
 
 def test_session_end_fails_closed_on_forced_runtime_failure(local_project_root):

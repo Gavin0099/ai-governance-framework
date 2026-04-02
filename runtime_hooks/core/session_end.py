@@ -156,6 +156,76 @@ def _build_policy_summary(policy: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _detect_memory_candidate_signals(
+    *,
+    checks: dict[str, Any],
+    errors: list[str],
+    warnings: list[str],
+    architecture_impact_preview: dict[str, Any],
+    proposal_summary: dict[str, Any],
+) -> list[str]:
+    signals: list[str] = []
+
+    lowered_errors = " ".join(errors).lower()
+    lowered_warnings = " ".join(warnings).lower()
+
+    if any(token in lowered_errors for token in ("runtime_failure", "crash", "exception", "traceback")):
+        signals.append("crash_or_runtime_failure")
+
+    public_api_diff = checks.get("public_api_diff") if checks else None
+    if isinstance(public_api_diff, dict) and (
+        public_api_diff.get("removed") or public_api_diff.get("added") or public_api_diff.get("breaking_changes")
+    ):
+        signals.append("public_api_change")
+
+    if architecture_impact_preview.get("concerns"):
+        signals.append("architecture_boundary_risk")
+
+    if proposal_summary.get("concerns") or proposal_summary.get("required_evidence"):
+        signals.append("proposal_risk_or_required_evidence")
+
+    if "regression" in lowered_errors or "regression" in lowered_warnings:
+        signals.append("regression_fix")
+
+    return signals
+
+
+def _build_memory_closeout(
+    *,
+    contract: dict[str, Any],
+    policy: dict[str, Any],
+    snapshot_result: dict[str, Any] | None,
+    promotion_result: dict[str, Any] | None,
+    candidate_signals: list[str],
+    warnings: list[str],
+    errors: list[str],
+) -> dict[str, Any]:
+    reasons = [str(reason) for reason in policy.get("reasons", []) if str(reason).strip()]
+    if errors and any(error.startswith("runtime_failure:") for error in errors):
+        primary_reason = next((error for error in errors if error.startswith("runtime_failure:")), errors[0])
+    elif reasons:
+        primary_reason = reasons[0]
+    elif snapshot_result is None and contract.get("memory_mode") != "stateless":
+        primary_reason = "candidate snapshot not created"
+    else:
+        primary_reason = "no explicit closeout reason"
+
+    if contract.get("memory_mode") == "stateless":
+        primary_reason = "memory_mode=stateless disables durable memory closeout"
+    elif snapshot_result is None and "Session-end completed without response_text; candidate snapshot was skipped." in warnings:
+        primary_reason = "response_text missing; candidate snapshot skipped"
+
+    return {
+        "candidate_detected": bool(candidate_signals),
+        "candidate_signals": candidate_signals,
+        "promotion_considered": contract.get("memory_mode") != "stateless",
+        "snapshot_created": snapshot_result is not None,
+        "decision": str(policy.get("decision", "unknown")),
+        "promoted": promotion_result is not None,
+        "reason": primary_reason,
+    }
+
+
 def _build_verdict_artifact(
     *,
     session_id: str,
@@ -379,6 +449,14 @@ def run_session_end(
     elif contract["memory_mode"] != "stateless":
         warnings.append("Session-end completed without response_text; candidate snapshot was skipped.")
 
+    candidate_signals = _detect_memory_candidate_signals(
+        checks=checks,
+        errors=errors,
+        warnings=warnings,
+        architecture_impact_preview=architecture_impact_preview,
+        proposal_summary=proposal_summary,
+    )
+
     if decision == "AUTO_PROMOTE" and snapshot_result is not None:
         promotion_result = promote_candidate(
             memory_root=memory_root,
@@ -388,6 +466,16 @@ def run_session_end(
         )
     elif decision == "AUTO_PROMOTE" and snapshot_result is None:
         warnings.append("AUTO_PROMOTE policy resolved without a candidate snapshot.")
+
+    memory_closeout = _build_memory_closeout(
+        contract=contract,
+        policy=policy,
+        snapshot_result=snapshot_result,
+        promotion_result=promotion_result,
+        candidate_signals=candidate_signals,
+        warnings=warnings,
+        errors=errors,
+    )
 
     now = datetime.now(timezone.utc).isoformat()
     candidate_artifact, curated_artifact, summary_artifact, verdict_artifact_dir, trace_artifact_dir = _ensure_runtime_artifact_dirs(project_root)
@@ -448,6 +536,7 @@ def run_session_end(
             "public_api_added_count": len(public_api_diff.get("added", [])) if public_api_diff else 0,
             "snapshot_created": snapshot_result is not None,
             "promoted": promotion_result is not None,
+            "memory_closeout": memory_closeout,
             "warning_count": len(warnings),
             "error_count": len(errors),
             "decision_context": decision_context,
@@ -509,6 +598,7 @@ def run_session_end(
         "curated": curated_result,
         "snapshot": snapshot_result,
         "promotion": promotion_result,
+        "memory_closeout": memory_closeout,
         "candidate_artifact": str(candidate_path),
         "curated_artifact": str(curated_path),
         "summary_artifact": str(summary_path),
@@ -543,6 +633,15 @@ def format_human_result(result: dict[str, Any]) -> str:
         lines.append(f"surface_validity={summary_payload['decision_context'].get('surface_validity')}")
         lines.append(f"coverage_completeness={summary_payload['decision_context'].get('coverage_completeness')}")
         lines.append(f"memory_integrity={summary_payload['decision_context'].get('memory_integrity')}")
+    memory_closeout = summary_payload.get("memory_closeout") or {}
+    if memory_closeout:
+        lines.append(f"memory_candidate_detected={memory_closeout.get('candidate_detected')}")
+        candidate_signals = memory_closeout.get("candidate_signals") or []
+        if candidate_signals:
+            lines.append(f"memory_candidate_signals={','.join(candidate_signals)}")
+        lines.append(f"memory_promotion_considered={memory_closeout.get('promotion_considered')}")
+        lines.append(f"memory_closeout_decision={memory_closeout.get('decision')}")
+        lines.append(f"memory_closeout_reason={memory_closeout.get('reason')}")
     if result["snapshot"]:
         lines.append(f"snapshot={result['snapshot']['snapshot_path']}")
     if result["promotion"]:
