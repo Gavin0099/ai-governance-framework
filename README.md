@@ -5,6 +5,35 @@
 [![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
+## Current Positioning
+
+This repository is still accurately described as an AI governance framework, but
+it is no longer only a prompt/rules wrapper or a static policy pack.
+
+The current bounded reading is:
+
+- a machine-interpretable governance runtime for AI-assisted development
+- with executable decision boundaries, reviewable artifacts, and state-aware
+  session governance
+- across execution, evidence, decision, memory/state, and reviewer surfaces
+
+What it already demonstrates:
+
+- a real runtime loop:
+  `session_start -> pre_task_check -> post_task_check -> session_end`
+- decision-aware artifacts such as verdicts, traces, and decision context
+- reviewer-visible advisory semantics that improve interpretation without
+  expanding verdict authority
+- execution/state integrity signals that can be inspected without turning them
+  into hidden policy sources
+
+What it does not claim yet:
+
+- a full execution harness
+- a machine-authoritative advisory system
+- a generic multi-agent orchestration platform
+- full agent-ready determinism across every tool surface
+
 ## 為什麼用這個框架
 
 大多數 AI 協作工作流的崩壞方式其實很像，不是模型本身不夠強，而是沒有機制在跨 session 之間維持一致性：
