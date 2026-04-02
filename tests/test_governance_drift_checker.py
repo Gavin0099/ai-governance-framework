@@ -138,6 +138,11 @@ def clean_repo(tmp_path):
         plan_hash=_compute_hash(plan),
         contract_hash=_compute_hash(contract),
     )
+    # memory scaffold required by memory_schema_complete check
+    mem = tmp_path / "memory"
+    mem.mkdir()
+    for name in ("01_active_task.md", "02_tech_stack.md", "03_knowledge_base.md", "04_review_log.md"):
+        (mem / name).write_text(f"# {name}\n", encoding="utf-8")
     return tmp_path
 
 
@@ -513,7 +518,7 @@ def test_source_commit_invalid_sha_is_warning(tmp_path):
 def test_all_18_checks_present_in_ok_repo(clean_repo):
     """Verify exactly 18 named checks appear in a fully valid repo."""
     memory_root = clean_repo / "memory"
-    memory_root.mkdir()
+    memory_root.mkdir(exist_ok=True)
     (memory_root / "01_active_task.md").write_text("# Active Task\n", encoding="utf-8")
     (memory_root / "02_tech_stack.md").write_text("# Tech Stack\n", encoding="utf-8")
     (memory_root / "03_knowledge_base.md").write_text("# Knowledge Base\n", encoding="utf-8")

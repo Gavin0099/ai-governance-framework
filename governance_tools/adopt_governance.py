@@ -437,37 +437,27 @@ def _write_payload_layering_config(target_repo_root: Path, repo_type: str) -> No
     Write .governance-payload-config.yaml to an adopted repo so that
     session_start can automatically use layered loading without manual config.
     """
-    import yaml
-
-    config = {
-        "payload_layering": {
-            "version": "1.0.0",
-            "repo_type": repo_type,
-            "l0_context": {
-                "always_load": [
-                    "governance/SYSTEM_PROMPT.md",
-                    "governance/AGENT.md",
-                    "PLAN.md",
-                ],
-                "forbidden_load": [
-                    "governance/ARCHITECTURE.md",
-                    "governance/REVIEW_CRITERIA.md",
-                    "governance/HUMAN-OVERSIGHT.md",
-                    "governance/NATIVE-INTEROP.md",
-                ],
-                "domain_contract_policy": "skip",
-            },
-            "memory_policy": "incremental",
-            "authority_table_path": "governance/AUTHORITY.md",
-            "rule_registry_path": "governance/RULE_REGISTRY.md",
-        }
-    }
-
-    config_path = target_repo_root / ".governance-payload-config.yaml"
-    config_path.write_text(
-        yaml.dump(config, allow_unicode=True, default_flow_style=False),
-        encoding="utf-8",
+    text = (
+        "payload_layering:\n"
+        "  version: '1.0.0'\n"
+        f"  repo_type: {repo_type}\n"
+        "  l0_context:\n"
+        "    always_load:\n"
+        "    - governance/SYSTEM_PROMPT.md\n"
+        "    - governance/AGENT.md\n"
+        "    - PLAN.md\n"
+        "    forbidden_load:\n"
+        "    - governance/ARCHITECTURE.md\n"
+        "    - governance/REVIEW_CRITERIA.md\n"
+        "    - governance/HUMAN-OVERSIGHT.md\n"
+        "    - governance/NATIVE-INTEROP.md\n"
+        "    domain_contract_policy: skip\n"
+        "  memory_policy: incremental\n"
+        "  authority_table_path: governance/AUTHORITY.md\n"
+        "  rule_registry_path: governance/RULE_REGISTRY.md\n"
     )
+    config_path = target_repo_root / ".governance-payload-config.yaml"
+    config_path.write_text(text, encoding="utf-8")
 
 
 def _write_session_defaults(target_repo_root: Path, repo_type: str) -> None:
@@ -478,20 +468,17 @@ def _write_session_defaults(target_repo_root: Path, repo_type: str) -> None:
     state_file = target_repo_root / ".governance-state.yaml"
     if not state_file.exists():
         return
-
-    import yaml
-
-    state = yaml.safe_load(state_file.read_text(encoding="utf-8")) or {}
-    state["session_defaults"] = {
-        "repo_type": repo_type,
-        "task_level_detection": "auto",
-        "domain_summary_first": True,
-        "memory_mode": "incremental",
-    }
-    state_file.write_text(
-        yaml.dump(state, allow_unicode=True, default_flow_style=False),
-        encoding="utf-8",
+    content = state_file.read_text(encoding="utf-8")
+    if "session_defaults:" in content:
+        return  # already written; avoid duplication
+    block = (
+        "\nsession_defaults:\n"
+        f"  repo_type: {repo_type}\n"
+        "  task_level_detection: auto\n"
+        "  domain_summary_first: true\n"
+        "  memory_mode: incremental\n"
     )
+    state_file.write_text(content + block, encoding="utf-8")
 
 
 def adopt_existing(
