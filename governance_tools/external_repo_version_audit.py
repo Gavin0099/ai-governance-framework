@@ -33,6 +33,8 @@ def build_report(repo_roots: list[Path]) -> dict[str, object]:
                 "current_release": version.get("current_release"),
                 "adopted_release": version.get("adopted_release"),
                 "adopted_commit": version.get("adopted_commit"),
+                "framework_repo": version.get("framework_repo"),
+                "canonical_framework_repo": version.get("canonical_framework_repo"),
                 "compatibility_range": version.get("compatibility_range"),
                 "lock_file": version.get("lock_file"),
                 "warnings": result.warnings,
@@ -64,6 +66,7 @@ def format_human(report: dict[str, object]) -> str:
                         f"state={entry.get('version_state')}",
                         f"adopted_release={entry.get('adopted_release')}",
                         f"current_release={entry.get('current_release')}",
+                        f"source_ok={entry.get('framework_repo') == entry.get('canonical_framework_repo')}",
                         f"compatibility_range={entry.get('compatibility_range')}",
                     ]
                 )

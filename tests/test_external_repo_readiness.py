@@ -70,7 +70,7 @@ def _make_target_repo(target_root: Path, framework_root: Path) -> None:
 
 def _write_lock(target_root: Path, adopted_release: str, compatibility: str = ">=1.0.0,<2.0.0") -> None:
     payload = {
-        "framework_repo": "https://github.com/GavinWu672/ai-governance-framework",
+        "framework_repo": "https://github.com/Gavin0099/ai-governance-framework.git",
         "adopted_release": adopted_release,
         "adopted_commit": "abcdef123456",
         "framework_interface_version": "1",
@@ -94,6 +94,7 @@ def test_assess_external_repo_returns_ready_for_complete_repo() -> None:
     assert result.checks["hooks_ready"] is True
     assert result.checks["contract_resolved"] is True
     assert result.checks["framework_version_current"] is True
+    assert result.checks["framework_source_canonical"] is True
     assert result.framework_version["state"] == "current"
     assert result.contract["name"] == "sample-contract"
 
@@ -152,6 +153,25 @@ def test_assess_external_repo_marks_outdated_without_failing_readiness() -> None
     assert result.framework_version["state"] == "outdated"
     assert result.checks["framework_release_compatible"] is True
     assert result.checks["framework_version_current"] is False
+
+
+def test_assess_external_repo_surfaces_noncanonical_framework_source() -> None:
+    root = _reset_fixture("noncanonical_framework_source")
+    framework_root = root / "framework"
+    target_root = root / "target"
+
+    _make_framework(framework_root)
+    _make_target_repo(target_root, framework_root)
+    _write_lock(target_root, "v1.1.0")
+    payload = json.loads((target_root / "governance" / "framework.lock.json").read_text(encoding="utf-8"))
+    payload["framework_repo"] = "https://github.com/GavinWu672/ai-governance-framework"
+    _write(target_root / "governance" / "framework.lock.json", json.dumps(payload, indent=2))
+
+    result = assess_external_repo(target_root)
+
+    assert result.checks["framework_source_canonical"] is False
+    assert result.framework_version["framework_repo"] == "https://github.com/GavinWu672/ai-governance-framework"
+    assert any("framework repo does not match canonical official remote" in item for item in result.warnings)
 
 
 def test_assess_external_repo_ready_without_hooks() -> None:

@@ -16,6 +16,7 @@ _README_VERSION_PATTERN = re.compile(r"- version:\s*`([^`]+)`")
 _README_BADGE_VERSION_PATTERN = re.compile(r"badge/version-(\d+\.\d+\.\d+(?:-[^-\s]+)?)-")
 # CHANGELOG.md: ## v1.1.0 or ## 1.1.0 (first match = latest release)
 _CHANGELOG_VERSION_RE = re.compile(r"^##\s+v?(\d+\.\d+\.\d+(?:-[^\s]+)?)", re.MULTILINE)
+_CANONICAL_FRAMEWORK_REPO = "https://github.com/Gavin0099/ai-governance-framework.git"
 
 
 @dataclass
@@ -23,6 +24,8 @@ class FrameworkVersionStatus:
     current_release: str | None
     adopted_release: str | None
     adopted_commit: str | None
+    framework_repo: str | None
+    canonical_framework_repo: str
     framework_interface_version: str | None
     compatibility_range: str | None
     lock_file: str | None
@@ -207,6 +210,7 @@ def assess_framework_version_status(repo_root: Path, contract_raw: dict[str, obj
     current_release = current_framework_release()
     adopted_release = None
     adopted_commit = None
+    framework_repo = None
     interface_version = None
     compatibility_range = None
     lock_file = None
@@ -217,6 +221,7 @@ def assess_framework_version_status(repo_root: Path, contract_raw: dict[str, obj
         compatibility_range = str(contract_raw.get("framework_compatible") or "") or None
 
     if lock_payload:
+        framework_repo = str(lock_payload.get("framework_repo") or "") or None
         adopted_release = str(lock_payload.get("adopted_release") or "") or None
         adopted_commit = str(lock_payload.get("adopted_commit") or "") or None
         interface_version = str(lock_payload.get("framework_interface_version") or interface_version or "") or None
@@ -224,6 +229,9 @@ def assess_framework_version_status(repo_root: Path, contract_raw: dict[str, obj
         lock_file = str(lock_payload.get("_lock_file"))
     else:
         reasons.append("framework lock file missing")
+
+    if framework_repo and framework_repo.rstrip("/") != _CANONICAL_FRAMEWORK_REPO.rstrip("/"):
+        reasons.append("framework repo does not match canonical official remote")
 
     compatibility_ok = is_release_compatible(current_release, compatibility_range)
     if compatibility_ok is False:
@@ -257,6 +265,8 @@ def assess_framework_version_status(repo_root: Path, contract_raw: dict[str, obj
         current_release=current_release,
         adopted_release=adopted_release,
         adopted_commit=adopted_commit,
+        framework_repo=framework_repo,
+        canonical_framework_repo=_CANONICAL_FRAMEWORK_REPO,
         framework_interface_version=interface_version,
         compatibility_range=compatibility_range,
         lock_file=lock_file,

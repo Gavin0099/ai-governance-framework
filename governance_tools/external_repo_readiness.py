@@ -243,6 +243,8 @@ def assess_external_repo(
         "current_release": version_status.current_release,
         "adopted_release": version_status.adopted_release,
         "adopted_commit": version_status.adopted_commit,
+        "framework_repo": version_status.framework_repo,
+        "canonical_framework_repo": version_status.canonical_framework_repo,
         "framework_interface_version": version_status.framework_interface_version,
         "compatibility_range": version_status.compatibility_range,
         "lock_file": version_status.lock_file,
@@ -252,6 +254,10 @@ def assess_external_repo(
     checks["framework_version_known"] = version_status.adopted_release is not None
     checks["framework_version_current"] = version_status.state in {"current", "ahead"}
     checks["framework_release_compatible"] = version_status.state != "incompatible"
+    checks["framework_source_canonical"] = (
+        version_status.framework_repo is not None
+        and version_status.framework_repo.rstrip("/") == version_status.canonical_framework_repo.rstrip("/")
+    )
     if version_status.state == "incompatible":
         errors.extend(
             f"framework-version: {item}" for item in (version_status.reasons or ["framework release is incompatible"])
@@ -339,6 +345,8 @@ def format_human(result: ExternalRepoReadiness) -> str:
                 f"current_release    = {result.framework_version.get('current_release')}",
                 f"adopted_release    = {result.framework_version.get('adopted_release')}",
                 f"adopted_commit     = {result.framework_version.get('adopted_commit')}",
+                f"framework_repo     = {result.framework_version.get('framework_repo')}",
+                f"canonical_repo     = {result.framework_version.get('canonical_framework_repo')}",
                 f"interface_version  = {result.framework_version.get('framework_interface_version')}",
                 f"compatible_range   = {result.framework_version.get('compatibility_range')}",
                 f"lock_file          = {result.framework_version.get('lock_file')}",
