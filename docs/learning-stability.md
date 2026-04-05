@@ -1,7 +1,7 @@
 # Learning Stability
 
 > Version: 1.0
-> Related: docs/learning-loop.md, docs/falsifiability-layer.md
+> Related: docs/learning-loop.md, docs/falsifiability-layer.md, docs/decision-quality-invariants.md
 
 ---
 
@@ -58,7 +58,7 @@ environment failures. `cause_suspected` should be treated as `investigation_pend
 **Classification confidence decay:** A `cause_identified` classification does
 not remain valid indefinitely. It degrades in two conditions:
 - The identified cause is not supported by any new corroborating evidence
-  after two observation windows (decay to `cause_suspected`).
+  across N relevant observations (decay to `cause_suspected`).
 - A recurrence of the same failure after the identified cause was addressed
   directly contradicts the classification (decay to `cause_unknown`).
 
@@ -66,10 +66,31 @@ Stale `cause_identified` classifications are the most dangerous: they silently
 block correct changes because the reasoning appears complete. Classification
 decay makes the suppression visible.
 
-Evidence quality distinction: `cause_identified` requires structural evidence
+**Decay threshold calibration:** Decay is triggered by observation density, not
+elapsed time. "Two observation windows" is a default assuming roughly uniform
+observation frequency — approximately three or more relevant observations per
+window. When a failure category produces fewer than three relevant observations
+per window, the window does not count toward decay: the threshold is N
+observations without corroboration, not M calendar windows. Applying time-based
+decay to low-frequency categories converts "not yet tested" into "probably
+wrong" — which is the opposite error from what decay is meant to prevent. The
+appropriate N should be set per category based on expected observation frequency.
+When in doubt, require more observations, not fewer: premature decay is less
+dangerous than stale classification, but it is still an error.
+
+**Evidence quality distinction:** `cause_identified` requires structural evidence
 (log entries, verdict artifacts, traced reviewer behavior) not semantic evidence
 (the explanation seems reasonable). A cause that is only supported by plausible
 reasoning — without observable trace — is `cause_suspected` at best.
+
+**Evidence integrity caveat:** Structural evidence has its own reliability
+dimension. Log completeness, trace coverage, and reviewer attention bias all
+affect whether structural evidence reflects actual system behavior. A log that
+records only flagged events will miss unflagged ones; a trace covering one
+reviewer may not generalize. Before treating structural evidence as sufficient
+for `cause_identified`, ask: what would this evidence miss, and is what it misses
+relevant to the classification? Structural evidence that is complete is much
+stronger than structural evidence that is merely present.
 
 **3. The proposed change shifts uncertainty without reducing it.**
 If the direction check (did this reduce uncertainty or move it?) cannot be
@@ -152,9 +173,28 @@ executable signal in the same observation window, or when a pattern of the same
 advisory signal persists across three consecutive windows (which converts it to
 an executable signal requiring stability review).
 
+**Behavioral drift without policy drift:** Advisory containment governs the
+decision path — whether advisory signals appear in documented justifications.
+It does not directly govern decision behavior — whether the actual distribution
+of decisions shifts in response to advisory signals. A reviewer can technically
+comply with the containment rule (advisory signal not cited in justification)
+while the substance of the rule is violated (decision changed by unlabeled
+advisory influence). This is behavioral drift: policy unchanged, decision
+distribution changed. To detect it, the counterfactual check applies: if the
+advisory signal were absent, would this decision have been reached by the same
+path? This check cannot always be answered, but asking it surfaces cases where
+compliance is formal rather than substantive. Behavioral drift that is
+invisible to the containment rule will appear in decision distribution
+monitoring over time — decisions shifting without corresponding policy changes.
+
 **Advisory influence tracing:** When a reviewer changes a decision and cites
 an advisory signal as a contributing factor, this must be logged. Advisory
-influence that is untraced is indistinguishable from policy drift. If advisory
+influence that is untraced is indistinguishable from policy drift. Tracing
+catches explicit acknowledgment of advisory influence — it does not catch
+pre-decision bias, where the signal reshapes judgment before a justification
+is constructed. Pre-decision bias is harder to detect; its primary signal is
+decisions that are formally justified by executable signals but whose
+distribution shifts in response to advisory-only periods. If advisory
 signals are consistently influencing decisions without being combined with
 executable signals, the advisory/executable boundary has eroded and the signal
 classifications should be reviewed.

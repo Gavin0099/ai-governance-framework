@@ -1,7 +1,7 @@
 # Falsifiability Layer
 
 > Version: 1.0
-> Related: docs/misinterpretation-log.md, docs/anti-ritualization-patterns.md
+> Related: docs/misinterpretation-log.md, docs/anti-ritualization-patterns.md, docs/decision-quality-invariants.md
 
 ---
 
