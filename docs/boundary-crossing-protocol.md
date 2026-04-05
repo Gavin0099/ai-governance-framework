@@ -162,6 +162,52 @@ answer would be difficult to reverse and the boundary condition is B1 or B2
 
 ---
 
+## Action selection determinism
+
+The four response types exist to prevent "same uncertainty → different actions"
+depending on which reviewer handles the decision. To achieve consistency,
+response selection must follow the same criteria regardless of reviewer.
+
+The selection criteria are two dimensions:
+
+**Dimension 1: Reversibility**
+Can the decision be corrected after the fact if it turns out to be wrong?
+- Reversible: the decision can be revisited, corrected, or overridden without
+  permanent harm
+- Irreversible: wrong decision causes harm that cannot be undone within the
+  observation window or at acceptable cost
+
+**Dimension 2: Cost of not deciding**
+What happens if no decision is made now?
+- Low: deferral has minimal consequence; the situation can wait
+- High: deferral allows a harmful action to proceed, or closes a window that
+  cannot be reopened
+
+Selection matrix:
+
+| Reversibility | Cost of not deciding | External validation available? | → Required response |
+|--------------|---------------------|-------------------------------|---------------------|
+| Reversible | Low | — | `defer_with_condition` |
+| Reversible | High | Yes | `escalate` |
+| Reversible | High | No | `low_confidence_proceed` |
+| Irreversible | Low | — | `defer_with_condition` |
+| Irreversible | High | Yes | `escalate` → if unavailable in time: `hard_stop` |
+| Irreversible | High | No | `hard_stop` |
+
+**How to use this matrix:** Reversibility and cost-of-not-deciding must be
+assessed before selecting a response. A reviewer who selects `low_confidence_proceed`
+for an irreversible decision without documenting that external validation was
+unavailable has not applied the protocol. The assessment must be explicit,
+not assumed.
+
+**Consistency check:** Two reviewers facing the same boundary condition, the
+same reversibility, and the same cost of not deciding should reach the same
+response type. Divergence in response type is a consistency violation that
+must be examined — either the situation was not actually the same, or the
+criteria were applied differently.
+
+---
+
 ## Distinguishing genuine deferral from avoidance
 
 Both produce the same output: no decision. The distinction matters because
@@ -206,6 +252,39 @@ If the answer is "we'll see," this is avoidance.
 
 ---
 
+## Deferral pressure
+
+A deferral that is formally falsifiable but practically never checked is
+indistinguishable from avoidance in its effects. "Formally falsifiable,
+practically untested" is a distinct failure mode — more dangerous than
+obvious avoidance because it passes all surface tests while accumulating
+unresolved decisions.
+
+**Deferral decay rule:** A `defer_with_condition` entry that has not been
+checked against its resolution condition within two observation windows
+automatically upgrades its required action:
+
+- After two windows without resolution check: the deferral must be explicitly
+  reviewed and either renewed with updated resolution condition and deadline,
+  or converted to `low_confidence_proceed`, `escalate`, or `hard_stop`
+- A deferral that is renewed without evidence that the resolution condition
+  was actually checked is avoidance with an additional step
+
+**Deferral registry requirement:** Open deferrals must be tracked. At each
+window close, the review must include: how many deferrals are currently open,
+when each was created, and whether each resolution condition has been checked.
+An open deferral that does not appear in the window-close record has not been
+governed.
+
+**Maximum deferral age:** A deferral that has been renewed more than twice
+without resolution is structurally stuck. At that point it must be escalated
+or converted to `hard_stop` — not renewed again. Repeated renewal of the
+same deferral is a signal that the resolution condition itself is unachievable
+within the current observation model, which is a B1 condition requiring a
+different response than `defer_with_condition`.
+
+---
+
 ## Re-entry conditions
 
 A boundary condition resolves when:
@@ -243,6 +322,66 @@ reviewer judgment with no requirement for documentation or escalation. The
 result is a class of decisions that are neither validated nor flagged as
 unvalidated — they exist in the record as decided while actually being
 decided under structurally unsupported conditions.
+
+---
+
+## Invisible zone response
+
+Some failures are structurally invisible: they do not produce observable
+signals within the observation model, so no mechanism in the framework
+will fire to detect them. These are documented in adversarial-test-scenarios.md
+(Scenario C.3) as the unreachable category of the detection latency table.
+
+Naming a failure as structurally invisible is not sufficient. If the system
+identifies a region of its decision space as invisible and then does nothing,
+it has acknowledged a risk and declined to respond. That is not an acceptable
+governance outcome for decisions with significant consequences.
+
+**Required response to structurally invisible failure identification:**
+
+When a decision is identified as involving a structurally invisible failure
+mode — meaning the failure would not produce an observable signal if it
+occurred — the system must select one of the following responses, in order
+of preference:
+
+**Response 1: Forced exploration**
+Deliberately create conditions that would make the invisible failure visible
+if it exists. This requires designing a test or intervention that could
+produce an observable signal. If the failure is "decision is systematically
+over-conservative," a forced exploration injects some decisions that test
+the conservative boundary. If the failure is "coverage narrowing to familiar
+evidence types," a forced exploration introduces unfamiliar evidence types
+to see how they are handled.
+
+Forced exploration is the preferred response because it converts an invisible
+failure to potentially observable failure. It does not guarantee detection
+but it changes the detection probability from zero.
+
+**Response 2: External audit injection**
+An observer outside the current observation model reviews a sample of
+decisions in the invisible zone. The external observer is not bound by
+the same observation model and may detect patterns the framework cannot.
+
+This requires: (a) identifying who the external observer is, (b) specifying
+what sample they review, (c) specifying what criteria they apply. "Get
+someone else to look at it" is not external audit injection — it is offload.
+
+**Response 3: Explicit risk acceptance**
+If neither forced exploration nor external audit is feasible, the risk must
+be explicitly accepted and documented: which failure mode is invisible, what
+the estimated consequences would be if it occurs, and what would change in
+the observation model to make it detectable.
+
+Explicit risk acceptance is the weakest response. It acknowledges the gap
+without reducing it. It is acceptable when the cost of forced exploration
+or external audit exceeds the expected cost of the invisible failure. It
+is not acceptable as a default response to all invisible failures — that
+would make the concept of invisible zone response meaningless.
+
+**What is not acceptable:**
+Labeling a failure as structurally invisible and taking no further action.
+The invisible zone is not a governance-free zone. It is a zone where
+different governance mechanisms are required.
 
 ---
 

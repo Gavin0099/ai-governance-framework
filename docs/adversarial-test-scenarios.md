@@ -669,7 +669,85 @@ consequences.
 
 </details>
 
+### Scenario D.4: The confident wrong classification
+
+A reviewer classifies a failure as `cause_identified`. The structural evidence
+appears solid: two log entries, a traced reviewer behavior, a timing correlation
+between the identified cause and the failure event.
+
+The classification stands for three observation windows. No recurrence. No
+decay triggered (the two-window threshold has not yet elapsed).
+
+In window four, the same failure recurs — but the previously identified cause
+was addressed in window one. The identified cause is definitively not present.
+
+**Question:** What is the correct sequence of responses, and what does this
+reveal about the prior `cause_identified` classification?
+
+<details>
+<summary>Verdict</summary>
+
+**The recurrence directly contradicts the `cause_identified` classification.
+The classification degrades immediately to `cause_unknown`.**
+
+Per classification confidence decay: "a recurrence of the same failure after
+the identified cause was addressed directly contradicts the classification
+(decay to `cause_unknown`)." This is not a gradual decay — it is an
+immediate reclassification.
+
+The correct sequence:
+
+1. Log the recurrence as a new entry with resolution status `open`
+2. Update the prior `cause_identified` classification to `cause_unknown`:
+   the identified cause cannot be the root cause since it was absent when
+   the failure recurred
+3. Re-examine what the structural evidence actually showed: if the prior
+   evidence was real (log entries, traced behavior, timing), it may have
+   shown a *correlated* factor rather than the *causal* factor
+4. The prior `no_change_justified` outcome that relied on this classification
+   must be re-opened: it was based on a classification that is now invalid
+5. This is now a new failure requiring fresh root cause classification —
+   starting at `cause_unknown` with the prior evidence treated as evidence
+   about correlates, not causes
+
+**What this reveals about the prior classification:**
+
+The prior structural evidence was likely valid — the log entries, behavior
+trace, and timing correlation were real. But structural evidence can show
+correlation without causation. The prior `cause_identified` classification
+committed the error of treating correlated evidence as causal evidence.
+
+This is exactly the gap described in Scenario A.2: structural evidence
+with a hidden gap. The evidence was present; the causal chain was assumed
+rather than traced. The confidence felt justified by the evidence quality.
+The recurrence reveals it was not.
+
+**The critical failure mode this scenario tests:**
+
+A `cause_identified` that is wrong will not look wrong until something
+contradicts it. During the period when it is wrong but uncontradicted, it
+will:
+- Block model changes with the authority of `cause_identified`
+- Support `no_change_justified` for future similar failures
+- Propagate as precedent if future reviewers cite it
+
+This is "the system incorrectly believes it can judge" in its most concrete
+form. The correction mechanism is external to the reviewer's confidence:
+it requires recurrence to fire. Until recurrence fires, the framework has
+no mechanism to distinguish a correct `cause_identified` from a wrong one.
+
+This is why adversarial external validation (external audits, forced
+exploration) matters for high-confidence classifications specifically — not
+just for low-confidence ones.
+
+**Source:** learning-stability.md — Classification confidence decay (recurrence
+path). boundary-crossing-protocol.md — Invisible zone response.
+
+</details>
+
 ---
+
+## Using this pack alongside the conformance pack
 
 | | Conformance pack | Adversarial pack |
 |---|---|---|
