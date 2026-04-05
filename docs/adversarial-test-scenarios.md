@@ -444,31 +444,232 @@ The framework's detection mechanisms operate at the following speeds:
 | Decision quality invariants | Consistency/robustness violation | Not currently instrumented (deferred) |
 | Misaligned success | System optimizing wrong target | Not currently detectable |
 
-**The honest answer:** For misaligned success and governance overfitting —
-where the system is producing consistent, well-reasoned, internally coherent
-wrong decisions — the framework has no detection mechanism.
+**The honest answer, with a hidden assumption made explicit:**
 
-The earliest possible detection assumes a failure produces an observable
-signal that a falsification condition was specified for. If the failure mode
-is one that doesn't produce observable signals within the specified conditions,
-the framework will not detect it at all.
+The detection latency table above assumes observability — it shows detection
+time *given that the failure produces an observable signal*. This is not
+detection latency overall.
 
-This is not a failure of the framework design — it is a property of all
-closed-world governance systems. The correct response is not to add more
-mechanisms (which would produce more governance overfitting) but to name the
-boundary explicitly:
+A failure that never produces recurrence, never produces a degradation
+pattern, and never enters the observation structure is not "slow to detect."
+It is structurally invisible: it does not exist within the observation model,
+which means every mechanism in the framework will report clean results while
+the failure continues.
 
-**The framework can detect failures that produce observable signals within
-the defined observation structure. It cannot detect failures that are
-expressed only in the quality of decisions whose correctness is not
-independently verifiable.**
+Examples of structurally invisible failures:
+- Decision is consistently over-conservative → no recurrence, no failure signal
+- Exploration is suppressed → absence of signal is the failure
+- Subtle bias toward familiar evidence types → observable only in aggregate over long periods
+
+The corrected table:
+
+| Mechanism | Detects | Earliest detection | Assumes observability? |
+|-----------|---------|-------------------|----------------------|
+| Signal 2 | Same failure recurs twice | Window 2 | Yes — failure must recur |
+| Falsification condition fires | Decision was wrong | Window varies | Yes — falsification condition must be observable |
+| Classification decay | Root cause classification stale | Window 2–3 | Yes — failure must recur to trigger decay |
+| Signal 3 | Skepticism zone overdue | Window 4 | Yes — zone must have been opened |
+| Silent degradation signals A–E | Quality metrics declining | Window 3 | Yes — degradation must produce observable pattern |
+| Decision quality invariants | Consistency/robustness violation | Deferred | Yes — requires matched inputs to compare |
+| Misaligned success | System optimizing wrong target | **Never** | No — this failure produces no observable signal |
+| Governance overfitting | Framework correct internally, externally wrong | **Never** | No — internal consistency does not require external validity |
+
+For misaligned success and governance overfitting, the framework has no
+detection mechanism — and adding more mechanisms does not help, because
+these failure modes are expressed in the absence of the signals the
+framework monitors, not in their presence.
+
+**The accurate framing:**
+
+> Failures that remain silent within this model are not just undetected —
+> they are structurally invisible to the system. The framework can only
+> detect failures that manifest within its observation model.
+
+This is not a defect of the mechanism. It is a risk of the system. The
+correct response is not to add more mechanisms but to define what the system
+does when it knows it is operating at its observation boundary.
+
+See docs/boundary-crossing-protocol.md.
 
 This boundary must be acknowledged by any adopter choosing to rely on this
 framework for high-stakes decisions.
 
 ---
 
-## Using this pack alongside the conformance pack
+## Part D — Refusal correctness
+
+The hardest governance correctness is not giving the right answer. It is
+recognizing when giving any answer is itself incorrect.
+
+The scenarios in Parts A–C test whether reviewers apply mechanisms correctly.
+Part D tests whether reviewers stop when they should — when the mechanism
+cannot produce a valid answer and proceeding would be more harmful than
+deferring.
+
+"Boundary articulation" (being able to describe where the system stops) is
+not the same as "boundary-respecting behavior" (actually stopping when the
+boundary is reached). A reviewer who can describe the limits of `cause_identified`
+but still assigns it under pressure has passed the knowledge test and failed
+the behavioral test.
+
+---
+
+### Scenario D.1: The pressure to conclude
+
+A team is closing an observation window. They need to document the root cause
+classification for an open failure. The lead reviewer says: "We've been looking
+at this for two windows. We need to write something. What's our best guess?"
+
+The available evidence: three log entries, all from a single reviewer, no
+structural trace of a mechanism, no artifact linking cause to effect.
+
+**Question:** What is the correct response to "we need to write something"?
+
+<details>
+<summary>Verdict</summary>
+
+**The correct response is `cause_unknown`, documented with the reason why
+the evidence is insufficient to advance beyond `cause_unknown`.**
+
+"We need to write something" is pressure to produce a conclusion where no
+conclusion is warranted. The available evidence supports `cause_unknown`:
+single-source entries (not independent), no structural trace, no causal
+chain. Writing `cause_suspected` with a named mechanism would be semantically
+stronger than the evidence supports — it would manufacture a hypothesis from
+a pressure to conclude.
+
+The required output: a `cause_unknown` entry, with explicit documentation
+of what evidence would be needed to advance to `cause_suspected`, and a
+deadline by which that evidence will either be obtained or the failure
+will be treated as structurally uninvestigable within the current model.
+
+The failure mode: writing `cause_suspected` to satisfy the pressure. This
+produces a `cause_suspected` entry that is indistinguishable from a genuine
+`cause_suspected` entry in the log, but is actually a `cause_unknown`
+labeled more confidently than the evidence supports. Future reviewers will
+treat it as genuine `cause_suspected` and the error propagates.
+
+**Why this is the hardest scenario:** "We need to write something" is
+legitimate organizational pressure. The refusal to write something stronger
+than `cause_unknown` requires explicitly naming that the pressure to conclude
+is not a source of evidence. That is an uncomfortable thing to say, which
+is why it rarely happens.
+
+</details>
+
+---
+
+### Scenario D.2: The undecidable proposal
+
+A reviewer is evaluating an expansion proposal. The proposal passes all five
+gate questions. The counterfactual scaffold is genuinely completed. The
+falsification condition is specific and observable.
+
+But the reviewer realizes: the proposal is adding a dimension to address a
+failure mode that the current observation model cannot distinguish from a
+different failure mode. Both failure modes would produce the same log entries.
+The proposed dimension would address one but not the other. There is no way
+to determine which failure mode is actually occurring from within the
+current observation structure.
+
+**Question:** What should the reviewer do?
+
+<details>
+<summary>Verdict</summary>
+
+**The reviewer should not accept or reject the proposal — they should name
+the undecidability and defer with a specific resolution condition.**
+
+This is a boundary condition B1 (evidence below observability threshold):
+the evidence required to determine which failure mode is occurring is
+structurally unavailable within the current observation model. The proposal
+passes the gate, but the gate was not designed to handle proposals where
+the motivating evidence is ambiguous between two failure modes.
+
+Accepting: would add a dimension that may address the wrong failure mode,
+with no way to detect the error until the wrong mode produces effects the
+new dimension cannot prevent.
+
+Rejecting: would block a potentially valid proposal based on an
+observation model limitation rather than a problem with the proposal.
+
+The correct response: `defer_with_condition`. Document the undecidability
+explicitly: "the evidence base for this proposal is consistent with two
+distinct failure modes; the proposed dimension addresses only one; the
+observation model cannot currently distinguish them." Specify the resolution
+condition: what additional evidence or observation structure change would
+allow the decision to be made.
+
+This is a governance finding about the observation model, not a finding
+about the proposal. The proposal may be valid; the model cannot currently
+confirm it.
+
+**The failure modes:**
+- Accepting under pressure to resolve: looks like decisiveness; is actually
+  making a 50/50 guess while documenting it as a reviewed decision
+- Rejecting on grounds the proposal is ambiguous: misdirects the problem
+  from the observation model to the proposer
+- Deferring indefinitely: `defer_with_condition` requires a resolution
+  trigger; "defer until we know more" is not a valid deferral
+
+</details>
+
+---
+
+### Scenario D.3: When not deciding is the wrong answer
+
+A reviewer recognizes that a decision is outside the observation model
+boundary. They defer, citing Scenario D.2's logic: "The evidence doesn't
+support a decision. I'm marking this as undecidable."
+
+But this decision has a deadline: if no action is taken within this window,
+a deployment will proceed with an unreviewed change.
+
+**Question:** Does observation model boundary justify deferral when deferral
+itself has consequences?
+
+<details>
+<summary>Verdict</summary>
+
+**No. Deferral is not consequence-free. It must be evaluated against the
+consequences of the alternatives.**
+
+The boundary crossing protocol produces four responses: `defer_with_condition`,
+`low_confidence_proceed`, `escalate`, and `hard_stop`. `defer_with_condition`
+is the default but is not always correct.
+
+When deferral has a specific known consequence (deployment proceeds with
+unreviewed change), the correct analysis is:
+
+1. What are the expected costs of `defer_with_condition` (deployment proceeds
+   unreviewed)?
+2. What are the expected costs of `low_confidence_proceed` (decision made
+   under uncertainty, tagged explicitly as such)?
+3. Is `escalate` available and would it resolve the decision in time?
+
+Deferring while a harmful action proceeds uncontested is not epistemically
+cautious — it is a decision by omission. The framework does not endorse
+non-decisions as inherently more valid than decisions. "I cannot determine
+the answer" does not mean "therefore nothing should happen."
+
+The correct response in time-constrained boundary conditions: use
+`low_confidence_proceed` with an explicit uncertainty tag, document the
+boundary condition that applies, and flag the decision for re-evaluation
+as soon as resolution conditions can be met. A decision that acknowledges
+its own limitations is more honest than a deferral that ignores its own
+consequences.
+
+**The failure modes:**
+- "I can't decide" used as a general-purpose escape from difficult decisions
+  (avoidance masquerading as epistemic caution)
+- Treating all boundary conditions as equally blocking (ignoring the cost
+  structure of each response type)
+- Failing to distinguish "I cannot confirm this is correct" from "therefore
+  I should not act"
+
+</details>
+
+---
 
 | | Conformance pack | Adversarial pack |
 |---|---|---|

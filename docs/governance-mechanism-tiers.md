@@ -172,6 +172,18 @@ reasoning) rather than left open indefinitely.
 | Positive falsifiability: every accepted decision must have a condition under which it would be validated | **Diagnostic** | Can be checked at decision time by asking: "what specific outcome would constitute validation?" Currently a required question, not a gate, because positive falsifiability conditions have not been mandated in the proposal format |
 | Misaligned success detection: decision space narrowing, evidence type convergence, exploration reduction | **Diagnostic** | Partially overlaps silent degradation signals A and B; requires periodic review outside standard cadence |
 
+### Boundary crossing protocol (docs/boundary-crossing-protocol.md)
+
+| Mechanism | Tier | Notes |
+|-----------|------|-------|
+| Boundary condition detection: recognizing when a decision is outside the observation model (B1–B5) | **Diagnostic** | Requires reviewer to recognize the condition; cannot be automated. Protocol applies after recognition |
+| `defer_with_condition` response: boundary condition named, resolution condition specified, deadline set | **Enforceable** | Open-ended deferral without resolution condition is treated as avoidance; must satisfy all four genuineness conditions |
+| `low_confidence_proceed` response: decision made with explicit boundary tag and re-evaluation trigger | **Enforceable** | Tag must be visible to future reviewers using this decision as precedent; used only when deferral cost is non-trivial |
+| `escalate` response: specific question, specific deadline, external input sought | **Enforceable** | Escalation must name the boundary condition and ask a specific answerable question; offloading without a specific question is not escalation |
+| `hard_stop` response: decision blocked until boundary condition resolves | **Enforceable** | Reserved for irreversible decisions under B1 or B2; not a general-purpose block for uncertain decisions |
+| Deferral genuineness check: boundary condition named, resolution condition specific, deadline set, deferral itself falsifiable | **Enforceable** | A deferral that cannot satisfy condition 4 (falsifiability of the deferral) is avoidance |
+| Boundary recognition calibration: reviewer can identify which of B1–B5 applies | **Deferred** | Cannot be verified without probing; Part D of adversarial test pack tests this. Promotion condition: probing protocol run at least once per N windows |
+
 ---
 
 ## Calibration governance
