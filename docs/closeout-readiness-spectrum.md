@@ -41,21 +41,38 @@ when `activation_state=observed`).
 
 | Value | Meaning |
 |-------|---------|
-| `recent` | Most recent verdict within 30 days |
-| `stale` | Verdict artifacts exist but oldest one is older than 30 days |
+| `recent` | Most recent verdict artifact is within 30 days (by file mtime) |
+| `stale` | Verdict artifacts exist but most recent is older than 30 days |
 
-**Precise semantic definition:**
+**What `recent` actually checks:** The mtime of the most recent verdict artifact
+file. It does NOT check whether that session produced a `valid` or
+`content_sufficient` closeout. A repo can be `observed/recent` while the last
+10 sessions all ended in `closeout_missing`.
+
+`recent` is an operational heuristic, not a guarantee of current health. It
+answers "was the hook invoked recently?" — not "is the governance working?".
+
+**Precise semantic definitions:**
 
 `activation_state` indicates whether the repository has ever produced a
-closeout that satisfies the governance runtime. It does not imply ongoing
-compliance or guarantee system trustworthiness.
+closeout artifact that entered the governance runtime. It does not imply
+ongoing compliance or guarantee system trustworthiness.
 
-`observed` answers: "has this repo ever run closeout?" — not "is this repo
-currently reliable?". `observed` ≠ trustworthy. `observed` = observed at
-least once.
+`observed` = observed at least once. `observed` ≠ trustworthy.
 
-`activation_recency` refines this: `observed/stale` means the loop ran
-historically but may not reflect current behavior.
+`pending` = structural prerequisites met, but no observed run yet.
+`pending` does not mean partially validated or nearly reliable. It means
+no closeout run has been recorded. A pending repo has full structural
+capability but zero activation history.
+
+`unknown` = structural level too low to assess activation meaningfully.
+`unknown` is not a negative verdict — it is a gap in information. Do not
+treat it as equivalent to `pending`.
+
+`activation_recency` refines `observed`: `stale` means the loop ran
+historically but may not reflect current behavior. `stale` is the most
+diagnostically valuable state — it should trigger a reviewer question,
+not just be read as "imperfect observed".
 
 Activation reduces the risk of completely unverified operation. It does not
 eliminate errors or adversarial behavior.
@@ -68,6 +85,48 @@ eliminate errors or adversarial behavior.
 
 `prior_verdict_artifacts_exist` is an activation signal, not a structural one.
 It does not affect `repo_readiness_level`.
+
+---
+
+## Reviewer action mapping
+
+These are expected reviewer actions per activation state. This table converts
+the three-dimension model into workflow input — not decision input.
+
+| State combination | Expected reviewer action |
+|-------------------|--------------------------|
+| `pending` (any level) | Request one compliant closeout run before treating the repo as activated |
+| `observed/recent` | Proceed to inspect individual session verdict artifacts; do not assume health |
+| `observed/stale` | Ask: when did sessions stop? Why? Is the stop hook still configured? |
+| `unknown` | Check artifact write path and structural prerequisites before continuing |
+
+**Note:** These actions are suggestions, not enforcement. The verdict artifact
+for each individual session is the authoritative record, not the activation state.
+
+---
+
+## Known future gap: activation quality
+
+The current model answers three questions:
+1. Does the repo have structural capability? (`level`)
+2. Has closeout ever been observed? (`activation_state`)
+3. Was it observed recently? (`activation_recency`)
+
+It does not answer a fourth question:
+4. What quality did recent closeouts achieve?
+
+A repo that is `observed/recent` could have had every recent session end in
+`closeout_missing`. The current model cannot distinguish that from a repo
+where every recent session produced `valid + verified_state_update`.
+
+This gap is intentional for now. Adding a `recent_closeout_quality` or
+`recent_closeout_health` dimension would provide that signal, but adds
+runtime cost and complexity. The right trigger for that addition is when
+reviewers consistently report that `observed/recent` is misleading them
+about repo health — not before.
+
+Until then: always read individual verdict artifacts alongside the activation
+state. Activation state is an existence check, not a quality grade.
 
 ---
 

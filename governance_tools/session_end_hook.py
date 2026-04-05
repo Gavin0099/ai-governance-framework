@@ -438,16 +438,25 @@ def _detect_activation_state(project_root: Path) -> dict[str, Any]:
     Compute closeout_activation_state independently of structural level.
 
     Values:
-      observed  — at least one verdict artifact exists (closeout loop has been run)
+      observed  — at least one verdict artifact file exists in artifacts/runtime/verdicts/
       pending   — structural prerequisites met but no verdict artifacts yet
 
-    IMPORTANT SEMANTIC NOTE: 'observed' answers the question
-    "has this repo ever produced a closeout?" — NOT "is this repo currently reliable?"
-    observed ≠ trustworthy. observed = observed at least once.
+    IMPORTANT SEMANTIC NOTE:
+      'observed' answers "has the stop hook ever written a verdict?" — not
+      "is this repo currently reliable?" or "did recent sessions pass?".
+      observed ≠ trustworthy. observed = hook was invoked at least once.
 
-    activation_recency answers the follow-on question:
-      recent  — most recent verdict is within _ACTIVATION_RECENCY_DAYS days
-      stale   — verdicts exist but most recent is older than that threshold
+    activation_recency (only set when observed):
+      recent  — most recent verdict FILE mtime is within _ACTIVATION_RECENCY_DAYS days
+      stale   — verdict files exist but most recent mtime exceeds that threshold
+
+    What recency does NOT check:
+      - Whether the session produced closeout_status=valid
+      - Whether memory was promoted
+      - Whether the closeout content was sufficient
+
+    recent is an operational heuristic (was the hook invoked recently?), not a
+    health guarantee (is the governance working?).
 
     activation_state reduces the risk of completely unverified operation.
     It does not eliminate errors or adversarial behavior.
