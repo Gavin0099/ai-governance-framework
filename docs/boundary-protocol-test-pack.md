@@ -2,7 +2,8 @@
 
 > Covers commits: f0a9935 → e6f73d3
 > Scenario count: 16 (Parts A–F)
-> Passing score: 14–16 (strong pass); 11–13 (marginal pass — review Part D and E); <11 (fail)
+> Scenario IDs: A.1, A.2, B.1, B.2, B.3, C.1, C.2, C.3, D.1, D.2, E.1, E.2, F.1, F.2, F.3, F.4
+> Passing score: 14–16 (strong pass); 11–13 (marginal pass — review Part C, D, and F); <11 (fail)
 > Documents under test:
 > - docs/boundary-crossing-protocol.md    (Parts A–F)
 >
@@ -742,7 +743,7 @@ inference-based conclusions as confirmed observations.
 | Score | Interpretation |
 |-------|---------------|
 | 14–16 | Strong pass — mechanisms are operational |
-| 11–13 | Marginal pass — review Part D (baseline) and Part F (value function); these are the scenarios most commonly misread |
+| 11–13 | Marginal pass — review Part C (accumulation tiers), Part D (baseline), and Part F (value function); these are the scenarios most commonly misread |
 | 8–10  | Partial pass — the accumulation rules (Part C) and expiry discipline (Part F) are likely being applied at the wrong tier |
 | <8    | Fail — re-read docs/boundary-crossing-protocol.md before re-running; particularly the four response types, deferral genuineness conditions, and the system value function section |
 
