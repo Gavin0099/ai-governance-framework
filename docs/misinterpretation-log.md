@@ -6,6 +6,12 @@
 > **Not a bug tracker.** This log records cases where the system's output
 > was correctly produced but incorrectly interpreted.
 >
+> **Entries record observations, not conclusions.** What was observed and
+> what the field actually means are factual records. Severity, grouping, and
+> expansion justification must be derived from entries during review — not
+> embedded in the entry at write time. An entry that already contains its
+> own expansion argument is a conclusion dressed as evidence.
+>
 > **Expansion trigger:** patterns in this log are the primary evidence base
 > for adding new dimensions (e.g. activation quality). Do not expand the
 > model on theory alone.
@@ -160,6 +166,15 @@ A proposal that passes the gate is a candidate for evaluation. Passing the
 gate does not mean the dimension will be added — it means the proposal has
 sufficient substance to be worth reviewing.
 
+**Counterfactual check (required before accepting):** Before accepting an
+expansion, the reviewer must consider the alternative explanation: could the
+observed trend be driven by attention bias, a transient condition, or
+momentum from a previous decision rather than a structural gap? A proposal
+that cannot be falsified by this question — i.e., where the answer is
+"no, there is no plausible alternative explanation" — has passed the
+counterfactual check. A proposal where the alternative explanation is
+plausible but dismissed without argument has not.
+
 ## Expansion proposal log
 
 Record all proposals here, including rejections. Without this record,
@@ -225,6 +240,10 @@ The default state is stability, not expansion. This rule is only valid when
 actual reviewer interactions occurred during the observation window; absence
 of observation is not evidence of sufficiency. A clean log with no reviewer
 activity means nothing was measured, not that the model is working.
+Observations may reflect reviewer attention bias: increased entries in one
+category do not imply coverage of the overall system. A spike in one area
+should prompt the question "what are we not looking at?" — not just
+"what does this spike tell us?"
 
 First observed instance → "watch". Second confirmed instance from different
 context → proposal. High severity single instance → immediate review.
