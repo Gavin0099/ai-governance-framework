@@ -96,13 +96,53 @@ RECOMMENDED_MEMORY_UPDATE: memory/active_task — add note: memory pipeline gap 
 
 ---
 
+## Four-layer classification
+
+The runtime classifies each closeout across four independent layers.
+All layers run regardless of prior failures. The overall `closeout_status`
+is the worst layer that failed.
+
+| Layer | Values | What it checks |
+|-------|--------|---------------|
+| `presence` | `present` / `missing` | File exists and is readable |
+| `schema_validity` | `valid` / `invalid` | All 7 required fields present |
+| `content_sufficiency` | `sufficient` / `insufficient` | Fields contain specific, non-vague content |
+| `evidence_consistency` | `consistent` / `inconsistent` / `unchecked` | Claimed files/checks cross-referenced against filesystem |
+
+**`valid` ≠ schema_valid.** A closeout with all 7 fields filled with vague content
+(`schema_validity=valid`, `content_sufficiency=insufficient`) is classified as
+`content_insufficient`, not `valid`.
+
+### Content sufficiency rules
+
+`WORK_COMPLETED` and `CHECKS_RUN` are rejected as insufficient if they contain
+vague phrases such as: "made improvements", "worked on things", "updated files",
+"ran checks". Values must contain specific, verifiable claims.
+
+`TASK_INTENT` must be specific enough to be meaningful (more than one generic word).
+
+### Evidence consistency scope
+
+Evidence consistency is **best-effort** — it can only check what the filesystem
+exposes without running commands:
+
+- `FILES_TOUCHED`: if non-`NONE`, each listed file must exist in the project
+- `CHECKS_RUN`: if it claims governance tools were run, corresponding artifact
+  directories are spot-checked
+
+Passing evidence consistency does **not** prove claims are true — it only means
+no detectable inconsistency was found. This layer cannot catch fabricated check
+outputs or hallucinated file contents.
+
 ## What the runtime does with this artifact
 
-| Closeout state | Runtime behavior |
-|---------------|-----------------|
-| Valid and complete | `session_end` runs with content; memory closeout proceeds per policy |
-| Missing | `session_end` runs without content; verdict records `closeout_missing`; memory not updated |
-| Insufficient (hollow/invalid) | `session_end` runs; verdict records `closeout_insufficient`; memory not updated |
+| Overall closeout_status | Runtime behavior |
+|------------------------|-----------------|
+| `valid` | `session_end` runs with content; memory proceeds per promotion policy |
+| `closeout_missing` | `session_end` runs without content; verdict records missing; memory not updated |
+| `schema_invalid` | `session_end` runs without content; verdict records schema_invalid; memory not updated |
+| `content_insufficient` | `session_end` runs without content; verdict records content_insufficient; memory not updated |
+| `evidence_inconsistent` | `session_end` runs without content; verdict records evidence_inconsistent; memory not updated |
 
-The runtime **always runs** at stop. A missing or invalid closeout does not abort the
+The runtime **always runs** at stop. A degraded closeout does not abort the
 stop hook — it produces a degraded verdict that records the gap.
