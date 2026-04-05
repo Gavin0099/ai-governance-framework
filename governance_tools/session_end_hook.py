@@ -315,6 +315,105 @@ def _build_failure_signals(
     return signals
 
 
+# ── Readiness level detection (metadata only, never decision input) ───────────
+
+def detect_readiness_level(project_root: Path, framework_root: Path) -> dict[str, Any]:
+    """
+    Detect the current readiness level of the consuming repo.
+
+    Returns level (0-3) and per-level checklist results.
+
+    IMPORTANT: This result is injected into the checks dict as metadata so it
+    appears in verdict/trace artifacts. It is NEVER read back as decision input
+    by session_end_hook, session_end, or any verdict logic. A Level 0 repo can
+    produce a valid closeout. A Level 3 repo can produce closeout_missing.
+
+    See docs/closeout-readiness-spectrum.md for level definitions.
+    """
+    checks: dict[str, Any] = {}
+
+    # ── Level 0: hook can run + artifacts writable ────────────────────────────
+    artifacts_dir = project_root / "artifacts"
+    l0 = {
+        "hook_callable": True,  # always true if we got here
+        "artifacts_writable": _can_write(artifacts_dir),
+    }
+    checks["level_0"] = l0
+    if not all(l0.values()):
+        return {"level": 0, "checklist": checks, "limiting_factor": "artifacts_not_writable"}
+
+    # ── Level 1: schema doc + AGENTS.base.md closeout obligation ─────────────
+    schema_doc = (framework_root / "docs" / "session-closeout-schema.md").exists()
+    agents_base = _agents_base_has_obligation(project_root)
+    l1 = {
+        "schema_doc_present": schema_doc,
+        "agents_base_has_obligation": agents_base,
+    }
+    checks["level_1"] = l1
+    if not all(l1.values()):
+        return {"level": 0, "checklist": checks, "limiting_factor": _first_false(l1)}
+
+    # ── Level 2: content governance aligned ──────────────────────────────────
+    agents_has_anchors = _agents_base_has_anchor_guidance(project_root)
+    l2 = {
+        "agents_base_has_anchor_guidance": agents_has_anchors,
+    }
+    checks["level_2"] = l2
+    if not all(l2.values()):
+        return {"level": 1, "checklist": checks, "limiting_factor": _first_false(l2)}
+
+    # ── Level 3: cross-reference active ──────────────────────────────────────
+    verdicts_dir = project_root / "artifacts" / "runtime" / "verdicts"
+    prior_verdicts = verdicts_dir.exists() and any(verdicts_dir.glob("*.json"))
+    l3 = {
+        "tool_artifact_signals_configured": True,  # always true in current code
+        "prior_verdict_artifacts_exist": prior_verdicts,
+    }
+    checks["level_3"] = l3
+    if not all(l3.values()):
+        return {"level": 2, "checklist": checks, "limiting_factor": _first_false(l3)}
+
+    return {"level": 3, "checklist": checks, "limiting_factor": None}
+
+
+def _can_write(path: Path) -> bool:
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        test = path / ".write_test"
+        test.write_text("x")
+        test.unlink()
+        return True
+    except Exception:
+        return False
+
+
+def _agents_base_has_obligation(project_root: Path) -> bool:
+    for candidate in ["AGENTS.base.md", "AGENTS.md"]:
+        f = project_root / candidate
+        if f.exists():
+            try:
+                return "Session Closeout Obligation" in f.read_text(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
+    return False
+
+
+def _agents_base_has_anchor_guidance(project_root: Path) -> bool:
+    for candidate in ["AGENTS.base.md", "AGENTS.md"]:
+        f = project_root / candidate
+        if f.exists():
+            try:
+                text = f.read_text(encoding="utf-8", errors="replace")
+                return "observable anchor" in text.lower() or "vague" in text.lower()
+            except Exception:
+                pass
+    return False
+
+
+def _first_false(d: dict[str, Any]) -> str:
+    return next((k for k, v in d.items() if not v), "unknown")
+
+
 # ── Memory promotion tier ─────────────────────────────────────────────────────
 
 def _determine_memory_tier(
@@ -444,6 +543,12 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
     session_id = _generate_session_id()
     runtime_contract = _build_runtime_contract(fields, memory_tier)
 
+    # Detect readiness level as metadata — NEVER used as decision input.
+    # Injected into checks so it appears in verdict/trace artifacts for
+    # reviewer context and adoption debugging.
+    framework_root = Path(__file__).resolve().parents[1]
+    readiness = detect_readiness_level(project_root, framework_root)
+
     checks: dict[str, Any] = {
         "closeout_status": closeout_status,
         "closeout_file": str(closeout_path),
@@ -454,6 +559,9 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         "closeout_memory_tier": memory_tier,
         "closeout_per_layer_results": clf["per_layer_results"],
         "closeout_failure_signals": clf["failure_signals"],
+        # Readiness metadata — context only, never decision input
+        "repo_readiness_level": readiness["level"],
+        "repo_readiness_limiting_factor": readiness["limiting_factor"],
     }
 
     # Pass response_text for working_state and verified tiers.
@@ -478,6 +586,8 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         "session_id": session_id,
         "closeout_status": closeout_status,
         "memory_tier": memory_tier,
+        "repo_readiness_level": readiness["level"],
+        "repo_readiness_limiting_factor": readiness["limiting_factor"],
         "closeout_classification": {
             "presence": clf["presence"],
             "schema_validity": clf["schema_validity"],
@@ -507,6 +617,8 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"session_id={result['session_id']}",
         f"closeout_status={result['closeout_status']}",
         f"memory_tier={result['memory_tier']}",
+        f"repo_readiness_level={result['repo_readiness_level']}"
+        + (f" (limited by: {result['repo_readiness_limiting_factor']})" if result['repo_readiness_limiting_factor'] else ""),
     ]
 
     clf = result.get("closeout_classification") or {}

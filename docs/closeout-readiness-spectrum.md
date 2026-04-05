@@ -33,6 +33,24 @@ Readiness level shapes adoption expectations. It does not flow into
 artifacts. A Level 0 repo can still produce a `valid` closeout if the AI writes
 a correct one. A Level 3 repo can still produce a `closeout_missing` verdict.
 
+Level appears in verdict artifact metadata so reviewers have context. It is
+never read back as decision input.
+
+**Rule 3 — Readiness level is not a maturity score and MUST NOT be used as a
+performance or quality KPI.**
+
+Level 3 means the repo has cross-reference capability enabled. It does not mean
+the team is better, the AI is more reliable, or the code is higher quality.
+Using level as a KPI produces incentives to game the checklist rather than
+improve actual governance behaviour.
+
+**Rule 4 — Progression is capability expansion, not a mandatory upgrade path.**
+
+A repo that stays at Level 2 indefinitely is not a failure. Cross-reference
+(Level 3) is useful for repos where fabricated file claims are a realistic risk.
+For many repos, Level 2 content governance is the appropriate steady state.
+Upgrade when the capability is needed, not because the number is lower.
+
 ---
 
 ## Level 0 — Hook Entry Only
@@ -207,10 +225,37 @@ python -m governance_tools.session_end_hook --project-root <your-repo> --format 
 
 ---
 
+## Positioning of working_state_update
+
+`working_state_update` is not a degraded or "dirty" tier. It is the primary
+carrier of ongoing session reality.
+
+**working_state is the primary carrier of ongoing reality.
+verified_state is a filtered subset for high-confidence use.**
+
+A repo that consistently produces `working_state_update` is doing useful work.
+Memory that is 80% working_state is dramatically more useful than memory that
+is 0% because the `verified` bar is never reached. Do not treat `working_state`
+as something to be avoided or cleaned up.
+
+## Cross-reference is an inconsistency signal, not verification
+
+**Cross-reference increases the cost of fabrication, but does not guarantee
+correctness.**
+
+A file that exists may not have been meaningfully changed. A tool artifact that
+exists may predate the current session. A repo that passes all cross-reference
+checks is a repo where no detectable inconsistency was found — not a repo where
+all claims are proven true.
+
+Level 3 raises the cost of naive or accidental fabrication. It does not
+eliminate the possibility of deliberate fabrication. This distinction matters
+for how you communicate the system's guarantees to external reviewers.
+
 ## Non-goals
 
 - Readiness level is not a score or grade
 - Higher level does not mean the repo is "better governed"
 - Level 3 does not prevent a sufficiently motivated agent from gaming the system
 - This spectrum does not replace the verdict artifact as the authoritative record
-- Readiness level is not stored in any runtime artifact or checked by `session_end_hook`
+- Readiness level appears in verdict metadata but is never read back as decision input
