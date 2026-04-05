@@ -55,6 +55,22 @@ Only `cause_identified` supports `no_change_justified` for execution or
 environment failures. `cause_suspected` should be treated as `investigation_pending`.
 `cause_unknown` should be documented without a causal claim.
 
+**Classification confidence decay:** A `cause_identified` classification does
+not remain valid indefinitely. It degrades in two conditions:
+- The identified cause is not supported by any new corroborating evidence
+  after two observation windows (decay to `cause_suspected`).
+- A recurrence of the same failure after the identified cause was addressed
+  directly contradicts the classification (decay to `cause_unknown`).
+
+Stale `cause_identified` classifications are the most dangerous: they silently
+block correct changes because the reasoning appears complete. Classification
+decay makes the suppression visible.
+
+Evidence quality distinction: `cause_identified` requires structural evidence
+(log entries, verdict artifacts, traced reviewer behavior) not semantic evidence
+(the explanation seems reasonable). A cause that is only supported by plausible
+reasoning — without observable trace — is `cause_suspected` at best.
+
 **3. The proposed change shifts uncertainty without reducing it.**
 If the direction check (did this reduce uncertainty or move it?) cannot be
 answered affirmatively, the change does not improve the system. Defer the
@@ -123,6 +139,26 @@ together, or if rejection rises while failure severity is flat, the gate may
 be miscalibrated. Advisory: flag for gate calibration review; does not block
 proposals.
 
+**Advisory containment rule:** Advisory signals inform review — they must not
+directly trigger decision changes. The following behaviors are not permitted
+based on advisory signals alone:
+
+- Raising the evidence bar for proposals
+- Slowing or pausing proposal evaluation
+- Treating a category with increased skepticism
+
+Advisory signals may only influence decisions when combined with at least one
+executable signal in the same observation window, or when a pattern of the same
+advisory signal persists across three consecutive windows (which converts it to
+an executable signal requiring stability review).
+
+**Advisory influence tracing:** When a reviewer changes a decision and cites
+an advisory signal as a contributing factor, this must be logged. Advisory
+influence that is untraced is indistinguishable from policy drift. If advisory
+signals are consistently influencing decisions without being combined with
+executable signals, the advisory/executable boundary has eroded and the signal
+classifications should be reviewed.
+
 ---
 
 ## The stability check
@@ -180,6 +216,11 @@ calibrated. Treating responsiveness as intelligence, correction volume as
 learning quality, or gate strength as governance quality are each forms of
 the same error: confusing activity for progress.
 
+A system that cannot distinguish signal from reaction will eventually
+optimize for reaction — producing fast responses to noise while genuine
+structural failures go undetected because they do not generate the kind
+of observable events the system has learned to react to.
+
 A system that changes less because it has strong confidence in its current
 model is healthy. A system that changes less because it has stopped observing
 is not. The distinction is in whether untested assumptions are being named and
@@ -202,3 +243,59 @@ without skepticism zones forming), lower it.
 Threshold calibration is itself a learning loop outcome and requires the same
 falsifiability standards: what would we observe if the current threshold is
 wrong, and what would we change if we observed it?
+
+---
+
+## Silent degradation signals
+
+The over-correction signals above are detectable because they involve visible
+changes: more proposals, more rejections, more skepticism zones. Silent
+degradation is the opposite: the system appears healthy by all normal metrics
+while decision quality is declining.
+
+Silent degradation cannot be caught by the standard signals. It requires a
+separate set of indicators that look at outcomes, not activity.
+
+**Silent degradation signal A: Decision diversity declining.**
+If all recent proposals are in the same category, or all recent changes
+address the same class of misinterpretation, the system may be becoming
+locally over-optimized. Genuine breadth of observation should produce diverse
+signal types. Convergence on one area is either correct (that area has genuine
+problems) or a sign of observer tunnel vision.
+
+**Silent degradation signal B: Proposals becoming shorter and simpler over time.**
+If the average proposal is getting less specific — shorter falsifiability
+conditions, less detailed alternative mechanisms, vaguer blind spots — while
+the acceptance rate stays flat, the gate is degrading. Proposals are being
+accepted at lower quality, not because the bar was intentionally lowered but
+because the bar stopped being enforced.
+
+**Silent degradation signal C: The log records events but reviewers stop
+asking questions.**
+A healthy misinterpretation log produces discussion. If entries are being
+added without generating any follow-up questions, re-evaluations, or
+disagreements, one of two things is happening: either misinterpretations are
+genuinely becoming rarer and less consequential, or reviewers have stopped
+engaging critically with what they observe. The distinction is whether the
+entries are generating any observable reviewer inquiry.
+
+**Silent degradation signal D: No one can articulate the current model's
+known weaknesses.**
+At any point, someone should be able to name the two or three areas where the
+current model is most likely to be wrong. If no reviewer can name a current
+weakness, either the model is unusually mature (unlikely) or the habit of
+naming weaknesses has atrophied. This is not a formal check — it is a
+conversational probe.
+
+**Silent degradation signal E: "It's working" becomes the default answer.**
+If the most common response to any question about whether the current
+governance model is adequate is "it seems to be working", without reference to
+specific evidence or named untested assumptions, the model has shifted from
+evidence-based to inertia-based. The burden of proof has quietly reversed:
+change now requires justification, but the status quo no longer does.
+
+These signals are not added to the stability check checklist because they
+cannot be answered by reviewing the log. They require periodic direct review
+of reviewer behavior and proposal quality — outside the normal observation
+window cadence. Recommended: once per three observation windows, review these
+five signals in a brief, explicit assessment.
