@@ -532,14 +532,64 @@ action. Patterns are different.
 
 **Required outcomes for enforced deviation review:**
 
-| Outcome | Meaning | What it produces |
-|---------|---------|-----------------|
-| `cost_legitimate` | The cost of the correct response was genuinely prohibitive under current constraints | Document why; specify what organizational change would make the correct response feasible; this is now a named adoption blocker |
-| `calibration_error` | The dimension assessment (reversibility, cost of not deciding) was wrong; the matrix actually indicated the chosen response | Correct the classification; reconsider the decision if the corrected assessment changes the indicated response |
-| `drift_confirmed` | Cost-motivated drift is occurring; the correct response was available but not chosen for non-epistemic reasons | Name the pattern, name who is responsible for addressing it, specify what change is required |
+| Outcome | Meaning | Required downstream effect |
+|---------|---------|--------------------------|
+| `cost_legitimate` | The cost of the correct response was genuinely prohibitive under current constraints | Named adoption blocker: document why, specify what change would make the correct response feasible, assign ownership. The blocker is open until resolved or explicitly accepted as permanent risk |
+| `calibration_error` | The dimension assessment (reversibility, cost of not deciding) was wrong; the matrix actually indicated the chosen response | Correct the dimension classification in the reference record; re-evaluate the original decision under corrected assessment; if the re-evaluation changes the indicated response, the decision must be revisited |
+| `drift_confirmed` | Cost-motivated drift is occurring; the correct response was available but not chosen for non-epistemic reasons | A specific named change is required: to the process that makes the correct response too costly, to the escalation path, or to the threshold calibration. The outcome is not closed until the change is made or explicitly declined with documented reasoning |
 
 A review that does not produce one of these three outcomes has not completed
 the enforced review. The pattern continues to accumulate.
+
+**Outcome falsifiability requirement:**
+
+Each outcome classification must specify what would show it was incorrectly
+applied. This prevents outcomes from functioning as justification vocabulary
+rather than learning mechanisms.
+
+- `cost_legitimate` must answer: "What change would make this cost no longer
+  prohibitive?" If no answer exists, the constraint has not been named — it
+  has been labeled. A constraint with no path to resolution is a permanent
+  invisible failure zone, not a legitimate cost.
+
+- `calibration_error` must answer: "What reference example or criterion
+  change would prevent this miscalibration in future?" If no answer exists,
+  the error was not identified — it was acknowledged. An error with no
+  correction path is not calibration_error; it is an observation waiting
+  to be classified.
+
+- `drift_confirmed` must answer: "What specific observable behavior change
+  would indicate the drift has been corrected?" If no answer exists, the
+  confirmation is unfalsifiable — it names a pattern but specifies no
+  outcome that would close it.
+
+An outcome that cannot answer its falsifiability question is incomplete.
+The enforced review is not closed until all three fields are answerable.
+
+**Outcome downstream closure:**
+
+An examined deviation is not governance-complete when an outcome is produced.
+It is governance-complete when the downstream effect is either implemented
+or explicitly declined with documented reasoning.
+
+The distinction:
+- `outcome produced, effect pending` = investigation_pending (time-limited)
+- `outcome produced, effect implemented` = closed
+- `outcome produced, effect declined with reasoning` = closed with
+  documented risk acceptance
+- `outcome produced, effect never addressed` = silent non-response;
+  indistinguishable from not having examined the deviation
+
+This is the same closure logic as the learning loop: an observed failure with
+`investigation_pending` must convert within one window. An outcome with
+`effect pending` must either implement or explicitly decline within the next
+observation window.
+
+The consequence of repeated non-closure: a deviation that produces an outcome
+but no downstream effect in two consecutive windows upgrades: the deviation
+category is now subject to the same accumulation rule as the original
+deviations — it counts as a new pattern of non-response, triggering its own
+enforced review. Non-closure cannot accumulate silently.
 
 **The key diagnostic question:** Is the distribution of response types
 consistent with the distribution of epistemic states in the decisions being
