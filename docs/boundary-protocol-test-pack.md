@@ -143,7 +143,7 @@ conditions and identify which fail.
 <details>
 <summary>Verdict</summary>
 
-**This fails conditions 2, 3, and 4. It is avoidance, not deferral.**
+**This fails all four conditions. It is avoidance, not deferral.**
 
 Condition 1 — Boundary condition named: **Fail.** "Complex questions about
 cross-domain failures" does not name a specific boundary condition (B1–B5).
