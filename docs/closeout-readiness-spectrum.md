@@ -96,13 +96,19 @@ the three-dimension model into workflow input — not decision input.
 | State combination | Expected reviewer action |
 |-------------------|--------------------------|
 | `pending` (any level) | Before treating the repo as activated, require at least one recorded closeout session that produces a verdict artifact (`closeout_status` present in `artifacts/runtime/verdicts/`). The minimum bar is a **recorded run** — not necessarily `valid`. A `closeout_missing` verdict counts: it proves the hook fired. Meeting this bar only proves the hook fired — it does not imply any quality or completeness of the closeout. Do not treat activation as an unlock condition. |
-| `observed/recent` | Inspect individual session verdict artifacts. Do not assume health. `observed/recent` means the hook was invoked recently — not that recent sessions passed. Activation does not reflect the quality distribution of closeout runs; quality must be assessed at the session verdict level. |
-| `observed/stale` | Distinguish three causes before acting: **(1) wiring failed** — stop hook broke, artifact path changed, or CI workflow disconnected; **(2) usage interrupted** — hook works but sessions haven't happened recently; **(3) adoption stopped** — team stopped using the repo at the decision level. **Triage order:** rule out wiring first (cheapest to verify: check hook config and artifact path), then check recent session activity, and only then consider adoption-level stop. Reversing this order typically misdiagnoses the cause. |
+| `observed/recent` | Inspect individual session verdict artifacts. Do not assume health. `observed/recent` means artifact activity was detected recently — not that recent sessions passed or that the repo is actively in use. Automated pipelines or test runs can produce `observed/recent` without any meaningful development activity. Activation does not reflect quality distribution or workflow relevance; quality must be assessed at the session verdict level. |
+| `observed/stale` | Distinguish three causes before acting: **(1) wiring failed** — stop hook broke, artifact path changed, or CI workflow disconnected; **(2) usage interrupted** — hook works but sessions haven't happened recently; **(3) adoption stopped** — team stopped using the repo at the decision level. **Triage order:** rule out wiring first, then check recent session activity, then consider adoption-level stop. Reversing this order typically misdiagnoses the cause. **Minimal wiring checks:** (a) does `artifacts/runtime/verdicts/` still exist and is it writable? (b) is the stop hook still configured in `.claude/settings.json`? (c) is any CI or local workflow still connected to the hook? |
 | `unknown` | Check artifact write path and structural prerequisites. `unknown` is a gap in information, not a negative verdict. |
 
-**Note:** These are reviewer workflow actions, not enforcement. The verdict artifact
-for each individual session is the authoritative record, not the activation state.
-Activation state is an existence check, not a quality grade.
+**Authority boundary:** This table defines reviewer workflow guidance only.
+It does not participate in runtime decisions and must not influence verdict
+classification or memory promotion. Reading activation state as a factor in
+allow/deny or promotion decisions would break the separation between
+observation and judgment that this system depends on.
+
+**Note:** The verdict artifact for each individual session is the authoritative
+record, not the activation state. Activation state is an existence check,
+not a quality grade, not a usage signal, and not a decision input.
 
 ---
 
