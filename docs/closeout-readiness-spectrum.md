@@ -95,12 +95,12 @@ the three-dimension model into workflow input — not decision input.
 
 | State combination | Expected reviewer action |
 |-------------------|--------------------------|
-| `pending` (any level) | Request one compliant closeout run before treating the repo as activated |
-| `observed/recent` | Proceed to inspect individual session verdict artifacts; do not assume health |
-| `observed/stale` | Ask: when did sessions stop? Why? Is the stop hook still configured? |
-| `unknown` | Check artifact write path and structural prerequisites before continuing |
+| `pending` (any level) | Before treating the repo as activated, require at least one recorded closeout session that produces a verdict artifact (`closeout_status` present in `artifacts/runtime/verdicts/`). The minimum bar is a **recorded run** — not necessarily `valid`. A `closeout_missing` verdict counts: it proves the hook fired. |
+| `observed/recent` | Inspect individual session verdict artifacts. Do not assume health. `observed/recent` means the hook was invoked recently — not that recent sessions passed. |
+| `observed/stale` | Distinguish three causes before acting: **(1) adoption stopped** — team stopped using the repo; **(2) wiring failed** — stop hook broke, artifact path changed, or CI workflow disconnected; **(3) usage interrupted** — hook works but sessions haven't happened. The right action differs per cause. Start by checking whether the stop hook is still configured and whether any recent sessions produced output at all. `stale` is as likely to be an infrastructure problem as a usage problem. |
+| `unknown` | Check artifact write path and structural prerequisites. `unknown` is a gap in information, not a negative verdict. |
 
-**Note:** These actions are suggestions, not enforcement. The verdict artifact
+**Note:** These are reviewer workflow actions, not enforcement. The verdict artifact
 for each individual session is the authoritative record, not the activation state.
 
 ---
