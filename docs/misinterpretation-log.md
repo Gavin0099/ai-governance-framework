@@ -30,6 +30,7 @@
 **What the field actually means:** <the correct interpretation>
 **Correction applied:** <doc update, code change, or no action>
 **Resolution status:** doc_updated | training | ignored | requires_model_change | open
+**Owner:** reviewer | team | framework
 **Signal for model expansion:** yes | no | watch
 ```
 
@@ -52,10 +53,17 @@
 | `medium` | Misread leads to incorrect reviewer action (e.g. wrong triage path) |
 | `high` | Misread directly impacts decision boundaries — e.g. activation state used to influence allow/deny or memory promotion |
 
-**High-severity exception:** A single `high` severity event (any occurrence count)
-may justify earlier intervention — including doc hardening, code-level guard, or
-model expansion proposal — without waiting for the standard two-instance threshold.
-High severity = decision boundary impact, not just confusion.
+**High-severity exception:** A single `high` severity event may justify earlier
+intervention — doc hardening, code-level guard, or model expansion proposal —
+without waiting for the standard two-instance threshold.
+
+**Severity judgment rule:** `high` is reserved for misinterpretations that
+directly affect decision boundaries: allow/deny behavior, memory promotion,
+or policy precedence. All other misinterpretations default to `medium` or
+`low`. Confusion, wrong mental model, or incorrect triage does not qualify
+as high unless it produced or nearly produced a decision boundary violation.
+When in doubt, mark `medium` — not `high`. The exception path must not become
+the normal path.
 
 ## Resolution status
 
@@ -70,6 +78,18 @@ High severity = decision boundary impact, not just confusion.
 Tracking resolution status prevents false positives in the expansion trigger:
 the same misinterpretation appearing multiple times may reflect adoption lag
 (doc was already updated) rather than a structural model gap.
+
+## Owner
+
+| Owner | Meaning | Responsible action |
+|-------|---------|--------------------|
+| `reviewer` | Individual behavior correction needed | The reviewer who logged the entry reviews the correct interpretation |
+| `team` | Adoption or training gap | Team updates onboarding, training, or shared conventions |
+| `framework` | Model or documentation change needed | Framework maintainer evaluates doc update or model expansion |
+
+`owner` is assigned at log time, not after resolution. If resolution later reveals
+a different owner was appropriate, update the entry. Unowned entries default to
+`framework` since they require model-level attention to close.
 
 ---
 
@@ -92,6 +112,29 @@ Move to log entries when/if they occur in practice.
 | `activation_state` (any) | Used to influence verdict classification or memory promotion | **high** | watch |
 | `repo_readiness_level=3` | Interpreted as "governance is working correctly" | medium | watch |
 | `activation_state` (any) | Ignored entirely because "can't be used for decisions" | low | watch |
+
+---
+
+## Expansion proposal quality gate
+
+Before a triggered expansion proposal is evaluated, it must answer three
+questions. Proposals that cannot answer all three are returned without review.
+
+1. **What specific misinterpretation does this dimension address?**
+   Name the log entry (or entries) that motivated the proposal. Theory
+   alone is not a valid answer.
+
+2. **Why is documentation insufficient to resolve it?**
+   Describe what was tried (doc update, wording change, guard clause) and
+   why it did not stop the misinterpretation from recurring.
+
+3. **What is the risk of not adding this dimension?**
+   Describe the expected harm — reviewer error rate, decision boundary
+   violations, or specific failure modes — if the status quo continues.
+
+A proposal that passes the gate is a candidate for evaluation. Passing the
+gate does not mean the dimension will be added — it means the proposal has
+sufficient substance to be worth reviewing.
 
 ---
 
