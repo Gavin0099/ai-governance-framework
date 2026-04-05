@@ -72,6 +72,14 @@ the observation period), re-evaluate whether the severity should be escalated or
 whether the owner assignment should change. Medium must not become a category
 that entries enter and never leave.
 
+**Semantic grouping rule:** When counting recurrences, group by semantic
+category, not surface phrasing. Misinterpretations that differ in wording but
+share the same root (e.g., "activation used as quality proxy", "activation used
+as usage signal", "activation used as decision input" are all activation
+boundary violations) count toward the same recurrence threshold. Surface
+fragmentation must not be used — deliberately or accidentally — to avoid
+reaching the trigger threshold.
+
 ## Resolution status
 
 | Status | Meaning |
@@ -172,6 +180,12 @@ without a reason cannot be distinguished from "we forgot to look at it".
 (e.g., "reopen if `observed/recent` appears in log twice with
 `requires_model_change`"). Open-ended deferrals are treated as rejections.
 
+**History weight guard:** Past proposal decisions provide context but must not
+prevent re-evaluation when new evidence emerges. A previously rejected proposal
+may be re-raised if the log contains new entries that were not present at the
+time of rejection. A rejection without new evidence is not a re-raise — it is
+a duplicate.
+
 *(empty — no proposals yet)*
 
 ---
@@ -196,6 +210,11 @@ expansion proposal immediately, without waiting for a second instance.
 - Theory or predicted risk alone
 - Two instances where `resolution = doc_updated` (adoption lag, not model gap)
 - Reviewer confusion that was resolved by explanation without doc change
+
+**Negative pressure rule:** The absence of repeated misinterpretations is
+evidence that the current model is sufficient — expansion is not required.
+"No new entries" is a valid and positive outcome of an observation window.
+The default state is stability, not expansion.
 
 First observed instance → "watch". Second confirmed instance from different
 context → proposal. High severity single instance → immediate review.
