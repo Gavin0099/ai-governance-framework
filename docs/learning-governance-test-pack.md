@@ -13,6 +13,17 @@
 >
 > Maintenance note: if scenarios are added or removed, update scenario count,
 > score bands, and the manifest above. These three must stay in sync.
+>
+> **Schema integrity check** (verify before publishing an updated version):
+> - [ ] Scenario count in manifest == actual scenario count in document
+> - [ ] Score band max == scenario count
+> - [ ] Every enforceable mechanism in governance-mechanism-tiers.md has ≥1 scenario
+> - [ ] No document listed in manifest is absent from the scenario sources
+>
+> This pack is a **conformance test**: it verifies internal consistency and
+> correct application of mechanisms. It does not verify that the mechanisms
+> produce correct decisions. See docs/adversarial-test-scenarios.md for
+> external validity testing.
 
 ---
 
