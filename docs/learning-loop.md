@@ -64,6 +64,22 @@ a `doc_updated` response, the prior response must be re-evaluated — not
 reused. Recurring failure after a response is evidence that the response
 was at the wrong level, not just that the documentation needs more words.
 
+**"Same failure" taxonomy:** Recurrence matching requires care. Being too
+loose discards valid prior responses; being too strict misses the same causal
+pattern appearing in different form. Use the most specific match level that
+the evidence supports:
+
+| Level | Match condition | Implication for prior response |
+|-------|----------------|-------------------------------|
+| Exact symptom | Same observable behavior, same context | Prior response directly failed — re-evaluate |
+| Same class | Same misinterpretation type, different surface | Prior response may have been incomplete — extend |
+| Same root cause | Different surface, same underlying mechanism | Prior response targeted wrong layer — escalate |
+| Same location, different cause | Same field or mechanism, different failure mode | Prior response is unrelated — treat as new |
+
+"Same location, different cause" must not be treated as recurrence. A new
+failure in the activation state field is not evidence that a prior response to
+a different activation failure was wrong.
+
 **For `no_change_justified`:**
 A written argument that addresses the specific failure mode observed, explains
 why the existing model handles it correctly, and identifies what condition

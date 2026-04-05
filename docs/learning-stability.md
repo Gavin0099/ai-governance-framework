@@ -37,6 +37,24 @@ mistake, environment issue, or process error — rather than a wrong assumption
 in the model — the model does not need to change. Fix the execution; note the
 distinction explicitly.
 
+**Root cause classification reliability:** Root cause classification is itself
+an inference, not an observation. Before treating "this was an execution
+failure" as settled, ask: what evidence supports this classification, and what
+would we expect to see if the classification is wrong? When root cause
+confidence is low, the appropriate response is `investigation_pending`, not
+`no_change_justified`. Premature root cause closure moves over-correction one
+layer upstream — from wrong response to wrong attribution — and is harder to
+detect because the reasoning appears complete.
+
+Three classification states:
+- `cause_identified`: specific mechanism named, evidence cited, falsifiable
+- `cause_suspected`: plausible mechanism, insufficient evidence to confirm
+- `cause_unknown`: failure observed, no reliable causal inference yet
+
+Only `cause_identified` supports `no_change_justified` for execution or
+environment failures. `cause_suspected` should be treated as `investigation_pending`.
+`cause_unknown` should be documented without a causal claim.
+
 **3. The proposed change shifts uncertainty without reducing it.**
 If the direction check (did this reduce uncertainty or move it?) cannot be
 answered affirmatively, the change does not improve the system. Defer the
@@ -61,32 +79,49 @@ preserve them.
 Over-correction is harder to detect than under-correction because it looks
 like responsiveness. These are the signals to watch for:
 
-**Signal 1: Change rate increasing without log entry rate increasing.**
+Signals are classified as **advisory** (informs review; does not block
+proposals) or **executable** (triggers a required action). A signal that
+is treated as executable when it should be advisory produces over-reaction;
+one treated as advisory when it should be executable allows drift to continue
+undetected.
+
+**Signal 1 (advisory): Change rate increasing without log entry rate increasing.**
 If the model is changing more frequently but the number of observed
 misinterpretations is staying the same or increasing, the changes are not
-addressing the actual failure source.
+addressing the actual failure source. Advisory: does not block proposals, but
+should prompt a direction check on the last three accepted changes before the
+next one is evaluated.
 
-**Signal 2: The same failure type recurs after multiple responses.**
-If `doc_updated` has been applied to the same failure type twice and the
-failure still recurs, the response level is wrong — not the wording.
-Continuing to apply `doc_updated` to a problem that requires `model_adjusted`
-is a form of over-correction (responding repeatedly without effect).
+**Signal 2 (executable): The same failure recurs after two responses at the same level.**
+If `doc_updated` has been applied to the same failure type twice (matched at
+same-class or stricter, per the taxonomy in learning-loop.md) and the failure
+still recurs, escalate to `model_adjusted` review before applying a third
+`doc_updated`. Executable: the next response cannot be `doc_updated` without
+an explicit argument for why a third documentation change would succeed where
+the previous two failed.
 
-**Signal 3: Skepticism zones accumulating without retirement.**
+**Signal 3 (executable): Skepticism zones accumulating without retirement.**
 If multiple skepticism zones have been established and none have been retired,
 the system is becoming increasingly restrictive without evidence that
-restriction is improving outcomes. Review active zones: are they still
-warranted?
+restriction is improving outcomes. Executable: any skepticism zone older than
+three observation windows without a retirement evaluation must be reviewed
+before a new zone is opened.
 
-**Signal 4: The most recent change reversed or undid a previous change.**
-Oscillation often manifests as alternating adjustments. If the last change
-in a category is the functional opposite of a change made two windows ago,
-neither change may have been grounded in sufficient evidence.
+**Signal 4 (advisory): The most recent change functionally reversed a previous change.**
+Oscillation manifests as alternating adjustments. A functional undo is broader
+than an explicit reversal: if the new change makes the prior change's decision
+logic inapplicable, it is a functional undo even if it does not explicitly
+remove prior text. Advisory: document the reversal axis; does not block the
+change, but requires the change note to acknowledge and justify the reversal.
 
-**Signal 5: Proposals are being rejected at a higher rate than accepted.**
-A high rejection rate is not inherently bad — but if it is increasing over
-time, it may indicate that the proposal gate has become too restrictive or
-that the signal threshold is calibrated incorrectly.
+**Signal 5 (advisory): Proposals are being rejected at a higher rate than accepted,
+but high-cost failure rate is not declining.**
+A rising rejection rate is only an over-correction signal if it is not
+correlated with declining severe failures. If rejection rate rises and
+high-severity misinterpretations decrease, the gate is working. If both rise
+together, or if rejection rises while failure severity is flat, the gate may
+be miscalibrated. Advisory: flag for gate calibration review; does not block
+proposals.
 
 ---
 
@@ -139,6 +174,11 @@ The goal is:
 Not:
 
 **Maximum responsiveness to every observed signal.**
+
+A system that reacts to every signal is not highly adaptive — it is poorly
+calibrated. Treating responsiveness as intelligence, correction volume as
+learning quality, or gate strength as governance quality are each forms of
+the same error: confusing activity for progress.
 
 A system that changes less because it has strong confidence in its current
 model is healthy. A system that changes less because it has stopped observing
