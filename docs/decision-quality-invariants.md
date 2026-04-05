@@ -1,7 +1,8 @@
 # Decision Quality Invariants
 
 > Version: 1.0
-> Related: docs/falsifiability-layer.md, docs/learning-loop.md, docs/learning-stability.md
+> Related: docs/falsifiability-layer.md, docs/learning-loop.md, docs/learning-stability.md,
+>           docs/governance-mechanism-tiers.md
 
 ---
 
