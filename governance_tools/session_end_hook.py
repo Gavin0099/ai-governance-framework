@@ -340,7 +340,12 @@ def detect_readiness_level(project_root: Path, framework_root: Path) -> dict[str
     }
     checks["level_0"] = l0
     if not all(l0.values()):
-        return {"level": 0, "checklist": checks, "limiting_factor": "artifacts_not_writable"}
+        return {
+            "level": 0,
+            "checklist": checks,
+            "limiting_factor": "artifacts_not_writable",
+            "suggested_next_step": "mkdir -p artifacts/runtime && chmod -R u+w artifacts/",
+        }
 
     # ── Level 1: schema doc + AGENTS.base.md closeout obligation ─────────────
     schema_doc = (framework_root / "docs" / "session-closeout-schema.md").exists()
@@ -351,7 +356,18 @@ def detect_readiness_level(project_root: Path, framework_root: Path) -> dict[str
     }
     checks["level_1"] = l1
     if not all(l1.values()):
-        return {"level": 0, "checklist": checks, "limiting_factor": _first_false(l1)}
+        limiting = _first_false(l1)
+        next_step = (
+            "python -m governance_tools.upgrade_closeout --repo <repo>"
+            if limiting == "agents_base_has_obligation"
+            else "Ensure docs/session-closeout-schema.md is present in the framework repo"
+        )
+        return {
+            "level": 0,
+            "checklist": checks,
+            "limiting_factor": limiting,
+            "suggested_next_step": next_step,
+        }
 
     # ── Level 2: content governance aligned ──────────────────────────────────
     agents_has_anchors = _agents_base_has_anchor_guidance(project_root)
@@ -360,7 +376,15 @@ def detect_readiness_level(project_root: Path, framework_root: Path) -> dict[str
     }
     checks["level_2"] = l2
     if not all(l2.values()):
-        return {"level": 1, "checklist": checks, "limiting_factor": _first_false(l2)}
+        return {
+            "level": 1,
+            "checklist": checks,
+            "limiting_factor": _first_false(l2),
+            "suggested_next_step": (
+                "python -m governance_tools.upgrade_closeout --repo <repo>  "
+                "(re-run to patch anchor guidance)"
+            ),
+        }
 
     # ── Level 3: cross-reference active ──────────────────────────────────────
     verdicts_dir = project_root / "artifacts" / "runtime" / "verdicts"
@@ -371,9 +395,17 @@ def detect_readiness_level(project_root: Path, framework_root: Path) -> dict[str
     }
     checks["level_3"] = l3
     if not all(l3.values()):
-        return {"level": 2, "checklist": checks, "limiting_factor": _first_false(l3)}
+        return {
+            "level": 2,
+            "checklist": checks,
+            "limiting_factor": _first_false(l3),
+            "suggested_next_step": (
+                "Run one session with a valid closeout to produce the first verdict artifact; "
+                "or run: python -m governance_tools.session_end_hook --project-root <repo>"
+            ),
+        }
 
-    return {"level": 3, "checklist": checks, "limiting_factor": None}
+    return {"level": 3, "checklist": checks, "limiting_factor": None, "suggested_next_step": None}
 
 
 def _can_write(path: Path) -> bool:
