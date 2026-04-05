@@ -106,9 +106,22 @@ classification or memory promotion. Reading activation state as a factor in
 allow/deny or promotion decisions would break the separation between
 observation and judgment that this system depends on.
 
+**Intended use of activation state:** Activation state provides context for
+reviewer inquiry — not a basis for decisions. The right response to activation
+data is to ask better questions, not to reach conclusions. Ignoring activation
+state entirely because "it can't be used for decisions" discards useful
+diagnostic context.
+
 **Note:** The verdict artifact for each individual session is the authoritative
 record, not the activation state. Activation state is an existence check,
 not a quality grade, not a usage signal, and not a decision input.
+
+**Known liveness gap:** The wiring checks above verify *connectivity*
+(path exists, hook configured, CI connected). They do not verify *liveness*
+(hook is actually being fired, new artifacts are being written). A repo can
+pass all three wiring checks and still be stale if the trigger condition is
+never met. If wiring checks pass but stale persists, the next question is:
+are sessions actually happening?
 
 ---
 
