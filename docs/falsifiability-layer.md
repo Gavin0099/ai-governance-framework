@@ -94,9 +94,26 @@ automatic reversal. The correct response is:
    too strict
 4. Make an explicit decision: reverse, adjust, or maintain with updated
    justification
+5. Record what changed as a result: `doc_updated`, `model_adjusted`,
+   `threshold_changed`, or `no_change_with_justification`. If nothing
+   changed, say so explicitly — silent non-response to a falsification
+   event is indistinguishable from not having noticed it.
 
 "We observed the falsification condition but decided to keep the change"
 is a valid outcome — if it is documented with reasoning.
+
+**Guard against explanation drift:** When a falsification condition is
+observed, the first instinct may be to explain it away: edge case,
+temporary condition, unrelated factor. This is acceptable if the
+explanation can itself be falsified. Ask: what would we expect to observe
+if this explanation is also wrong? If no answer exists, the explanation
+is not an analysis — it is a narrative covering a failure.
+
+**Trajectory awareness:** Falsified proposals do not exist in isolation.
+A pattern of similar proposals repeatedly failing falsification should
+increase skepticism toward future proposals in the same category.
+The falsification history is not just a record — it is evidence about
+where the model's reasoning tends to be weakest.
 
 ---
 

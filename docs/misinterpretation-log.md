@@ -315,3 +315,9 @@ When the observation window closes, review these before deciding next steps:
       misread appear again? (distinguishes adoption lag from model gap)
 - [ ] Is the three-dimension model still adequate, or is a fourth dimension
       now justified by evidence?
+- [ ] Which assumptions underlying the current model have not been tested
+      by any falsification signal during this window? (Untested assumptions
+      are not necessarily wrong — but they should be named, not left implicit.)
+- [ ] For any falsification events observed: what concretely changed as a
+      result? If nothing changed, was that explicitly decided or just not
+      acted on?
