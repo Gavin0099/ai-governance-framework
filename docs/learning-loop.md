@@ -59,7 +59,10 @@ existing model with different wording.
 **For `doc_updated`:**
 A specific addition or revision to a document that changes what a reviewer
 would do when encountering the same situation again. Rewording that does not
-change behavior is not a learning response.
+change behavior is not a learning response. If the same failure recurs after
+a `doc_updated` response, the prior response must be re-evaluated — not
+reused. Recurring failure after a response is evidence that the response
+was at the wrong level, not just that the documentation needs more words.
 
 **For `no_change_justified`:**
 A written argument that addresses the specific failure mode observed, explains
@@ -83,11 +86,18 @@ category have had their falsification conditions triggered:
    it is a recognition that the model has been repeatedly wrong in this area
    and should be treated with corresponding caution.
 
-2. The pattern should be named explicitly: "We have had three proposals about
+2. Before establishing a skepticism zone, evaluate whether the failures share
+   a root cause or only a surface category. Execution failures (bad implementation),
+   environment failures (external conditions), and model failures (wrong assumption)
+   all look like "category failures" but require different responses.
+   A skepticism zone is only warranted when the shared root cause is in the model,
+   not when two independent causes happened to affect the same area.
+
+3. The pattern should be named explicitly: "We have had three proposals about
    activation state interpretation fail. Our model of how reviewers interpret
    activation may be systematically incorrect."
 
-3. Before accepting the next proposal in a skepticism zone, the proposer
+4. Before accepting the next proposal in a skepticism zone, the proposer
    must address the trajectory: why would this proposal succeed where
    previous ones failed?
 
@@ -117,6 +127,18 @@ The minimum evidence of learning is any of the following:
 If none of these apply after an observation window, the loop did not close.
 Review the window checklist and confirm whether falsification signals were
 checked and untested assumptions were named.
+
+**Untested assumptions are signals, not obligations.** Naming an untested
+assumption is useful; generating a backlog of assumptions that can never
+be tested is not. When naming untested assumptions, prioritize: which
+ones, if wrong, would most affect current decisions? The rest can be noted
+without requiring immediate investigation.
+
+**Direction check:** After any change, ask: did this reduce uncertainty,
+or merely move it? A model adjustment that resolves one ambiguity by
+introducing two others has not improved the system — it has rearranged it.
+The direction check is not a gate; it is a question that should be
+answerable after every accepted change.
 
 ---
 
