@@ -775,6 +775,33 @@ triggering outcome classification (see Outcome falsifiability requirement)
 is answered in the negative — the evidence that was cited does not support
 the classification. Rollback is not optional when the trigger condition is met.
 
+**Misattribution detection signal:**
+
+Rollback requires first detecting misattribution. The detection signal is:
+the same deviation pattern continues after the mandatory policy change that
+was supposed to address it. A policy change that does not reduce the pattern
+it was triggered by is either wrong (misattributed triggering pattern) or
+insufficient (root cause not addressed by the selected change type).
+
+The same-failure taxonomy from learning-loop.md applies: if the pattern
+persists at exact symptom level, the policy change failed directly. If it
+persists at same-class level, the change may have been incomplete. If it
+appears in a different category with the same underlying root cause, the
+change targeted the wrong layer.
+
+When persistence is detected after a policy change: the triggering pattern
+classification must be re-examined. This is not automatic rollback — it is
+automatic re-examination. Rollback occurs only if re-examination confirms
+misattribution. If re-examination confirms the pattern is genuine but the
+policy change was insufficient, a different policy change is required
+(escalation, not rollback).
+
+The absence of misattribution detection is itself a signal. If no policy
+changes have ever triggered re-examination, either the changes are all correct
+(unlikely at scale) or the post-change pattern check is not being performed.
+At periodic review, confirm that at least one policy change per N windows
+has been followed up with a post-change pattern check.
+
 **Consequence strength normalization:**
 
 The three outcome types currently produce changes of unequal governance
@@ -808,18 +835,34 @@ reflects a pattern of genuine governance failure. But accumulated constraints
 that are not periodically audited will eventually make the system more
 conservative than the evidence warrants.
 
-Apply the learning-stability.md Signal 1 check to this protocol's outputs:
-if the rate of new constraints is increasing without a corresponding decrease
-in deviation rate, the policy changes are not addressing root causes — they
-are accumulating in response to noise. This is the governance equivalent of
-the original over-correction signal: more changes, same failure rate.
+**Early rigidity signals** (leading indicators — detected before constraint
+accumulation rate diverges from deviation rate):
 
-If constraint accumulation is outpacing deviation rate improvement, apply
-the same response as Signal 1: before accepting the next mandatory policy
-change, run a direction check on the last three changes in the same category.
-Did they reduce deviation frequency, or did they move the deviations to
-different categories? A constraint that displaces rather than resolves a
-problem is not learning — it is rearrangement.
+| Signal | What it measures | Why it precedes constraint accumulation |
+|--------|-----------------|----------------------------------------|
+| Decision justification length increasing | Reviewers are reasoning around more constraints | Documents get longer before deviation rate changes |
+| Constraint cross-reference count increasing | Decisions cite multiple overlapping constraint zones | Layered constraints begin interacting before net impact shows in rates |
+| Decision latency increasing | More constraints → more reasoning required per decision | Latency rises before quality metrics change |
+| Reviewer disagreement rate increasing | Constraint interpretation becomes ambiguous | Disagreement about constraints precedes wrong decisions from constraints |
+
+When two or more early rigidity signals fire in the same window, initiate
+a constraint inventory before the next mandatory policy change is accepted.
+This is a leading check: it fires while there is still time to intervene
+before the lagging indicator (constraint accumulation without deviation
+improvement) becomes visible.
+
+**Over-learning accumulation rule (parallel to deviation accumulation):**
+
+| Pattern | Tier | Required action |
+|---------|------|----------------|
+| Over-learning signal (lagging) in 1 window | Diagnostic | Direction check on last three changes in affected category |
+| Over-learning signal in 2+ windows | Operationalized | Constraint inventory required; new mandatory changes in affected category paused pending inventory |
+| Over-learning signal in 3 consecutive windows | Enforced | Constraint accumulation paused across all categories until stability review produces `converging`, `oscillating`, or `stable_noise` outcome |
+
+This brings over-learning detection to parity with the deviation accumulation
+rule. A system that can detect over-learning but not enforce a correction is
+asymmetric: it enforces against drift, not against rigidity. Both are
+governance failures; both must have enforcement paths.
 
 The governance system must be able to make this assessment about itself. A
 system that cannot audit its own constraint accumulation will eventually reach
@@ -827,6 +870,104 @@ the same state it was designed to prevent: high activity, no improvement,
 increasingly rigid, increasingly wrong — with the additional problem that the
 rigidity is now dressed in the language of governance rather than in the
 language of the original failures.
+
+---
+
+## Governance fitness function
+
+The mechanisms above define what to avoid: drift, rigidity, misattribution,
+over-learning, strategic compliance. A system defined only by avoidance has
+no positive direction — it can detect failure but cannot confirm improvement.
+
+A governance system is improving when all four of the following hold:
+
+**1. Mandatory change rate is declining in established categories.**
+A category that has undergone several rounds of pattern-to-policy binding
+should require fewer mandatory changes over time, not more. Increasing change
+rate in a stable category indicates the changes are not addressing root causes.
+Declining change rate indicates genuine learning.
+
+**2. Exploration cost is stable or declining.**
+Exploration cost is the effort required to make a decision in a new or
+unfamiliar category — one without accumulated constraint zones or calibration
+history. If exploration cost is rising, constraints are blocking new territory.
+If stable or declining, constraints are clarifying existing territory without
+blocking new.
+
+**3. Post-change deviation recurrence is declining.**
+When a mandatory policy change is made, the pattern that triggered it should
+not recur. A declining recurrence rate after policy changes means changes are
+addressing root causes. A stable or rising recurrence rate after changes means
+the changes are targeting symptoms.
+
+**4. False positive rate is detectable and bounded.**
+A false positive is a constraint zone or policy change that was triggered by
+a misattributed pattern and subsequently rolled back. Some false positives
+are expected and acceptable — they indicate the system is sensitive enough to
+detect genuine patterns. Zero false positives means the system is not reaching
+the detection threshold. High false positive rate means the classification
+mechanisms are overclaiming.
+
+These four metrics do not require instrumentation to assess — they require
+periodic structured review. The periodic review (once per three observation
+windows) should answer all four questions explicitly. A system that cannot
+answer at least one of them has insufficient observability of its own fitness.
+
+---
+
+## Historical inertia and the right to forget
+
+A constraint zone that has not been tested — no decisions in that category
+during N observation windows — is not validated by absence of activity. It is
+untested. An untested constraint is not evidence of ongoing protection; it is
+a rule that may have outlived the conditions that justified it.
+
+**Untested constraint rule:**
+
+A constraint zone, `structurally_inaccessible` marking, or calibration update
+that has seen no decisions or activity in the relevant category for three
+consecutive observation windows must be actively re-evaluated, not assumed still
+valid. This is the negative pressure principle applied to the governance record
+itself: absence of testing is not evidence of correctness.
+
+Re-evaluation options:
+- **Renew with evidence:** active decision activity has since occurred and
+  confirmed the constraint is still needed; document the specific evidence
+- **Retire as obsolete:** the conditions that triggered the constraint have
+  changed and the original pattern is no longer expected; document why
+- **Retire as untestable:** the category has no decision activity and no
+  prospect of generating it; the constraint cannot be validated or invalidated;
+  it should be archived as historical context rather than active governance
+
+**What to discard:**
+
+Not all historical constraints should be retained. Specific conditions for
+discarding:
+
+1. The triggering pattern has been confirmed misattributed (rollback already
+   handled this)
+2. The category has been redesigned and the old constraint no longer maps to
+   any current decision type
+3. The constraint was a first-generation response that has been superseded by
+   a more precise version covering the same risk (compaction handles this)
+4. The constraint has been untested for more than five consecutive windows
+   with no prospect of becoming testable
+
+Discarding a constraint is not the same as forgetting the problem it addressed.
+The history of why the constraint existed should be preserved in an archive,
+not active governance. Active governance records contain constraints that are
+currently applicable; history records contain the reasoning behind expired ones.
+The distinction matters because an active record that includes too many expired
+constraints becomes unreadable — which has the same effect as no record at all.
+
+**When forgetting is wrong:**
+
+Not all old constraints should be retired on a schedule. A constraint in a
+high-consequence category should be retained even if untested, as long as the
+conditions that could trigger the original failure mode still exist. The
+relevant question is not "has this been tested recently?" but "if this
+constraint were absent, would the original failure mode be possible?" If yes,
+the constraint should be renewed, not retired, even with no recent testing.
 
 ---
 
