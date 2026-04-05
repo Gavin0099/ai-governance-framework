@@ -12,12 +12,13 @@
 > embedded in the entry at write time. An entry that already contains its
 > own expansion argument is a conclusion dressed as evidence.
 >
-> **Interpretive language test:** Before submitting an entry, ask: could a
-> reasonable reviewer interpret this entry differently based on the same data?
-> If the answer is no — if the entry admits only one reading — it likely
-> contains embedded interpretation. Words like "misused", "incorrectly",
-> "clearly" are interpretation signals, not observation signals. Describe
-> what was done; leave the verdict to review.
+> **Interpretive language test:** Before submitting an entry, ask: if a
+> statement leaves no room for alternative interpretation, it likely encodes
+> a conclusion. The test is not whether specific words appear ("misused",
+> "incorrectly", "clearly" are signals but not the only ones) — it is
+> whether the statement could be read differently by a reviewer with a
+> different prior. Describe what was done and what outcome occurred;
+> leave the verdict — whether that constitutes misuse — to review.
 >
 > **Expansion trigger:** patterns in this log are the primary evidence base
 > for adding new dimensions (e.g. activation quality). Do not expand the
@@ -171,9 +172,12 @@ questions. Proposals that cannot answer all three are returned without review.
 
 4. **Name at least one unobserved but potentially relevant area.**
    Identify a part of the system that may have similar problems but has
-   not appeared in the log — even speculatively. This is not a requirement
-   to fix that area; it is a requirement to acknowledge that your observations
-   may not cover the whole system. If you cannot name anything, that is
+   not appeared in the log — even speculatively. The area must be specific
+   enough to be investigable by another reviewer: "other modules" does not
+   qualify; "session_end vs pre_task_check mismatch under the same
+   misinterpretation pattern" does. This is not a requirement to fix that
+   area; it is a requirement to demonstrate that your observations do not
+   exhaust the search space. If you cannot name anything specific, that is
    itself a signal worth examining.
 
 A proposal that passes the gate is a candidate for evaluation. Passing the
@@ -198,11 +202,19 @@ Why this mechanism fails to explain the data:
 <Specific reason the alternative is implausible — not 'seems unlikely'
 but 'the pattern appeared across 3 different reviewers over 4 weeks,
 which attention bias cannot explain'>
+
+Which part of this reasoning are you least confident about?
+<Required. If you cannot answer this, the reasoning is likely shallow.
+If the answer comes easily, it identifies where the proposal is most
+vulnerable and should be examined first.>
 ```
 
 Stating "this could be transient but given repeated occurrences it is
 unlikely" does not satisfy the scaffold. A mechanism must be named and
 then refuted. Possibility without mechanism is not a counterfactual.
+If an alternative mechanism can be dismissed without referencing concrete
+system behavior (specific files, runs, reviewer identities, time ranges),
+it is likely too weak.
 
 ## Expansion proposal log
 
