@@ -834,6 +834,31 @@ The entropy classification itself must be documented when a category is first
 designated high-entropy. A category marked high-entropy without documented
 justification is using the classification as an avoidance route.
 
+**Baseline validity check:**
+
+An entropy baseline is not a neutral constant. It was formed under specific
+governance conditions: a particular constraint density, a particular detection
+capability, a particular exploration rate. If those conditions were themselves
+distorted — too many constraints suppressing deviation, insufficient detection
+missing failures, narrow exploration producing a homogenous sample — then the
+baseline encodes past governance distortions, not domain truth.
+
+A baseline that was formed under distorted governance is a historical artifact,
+not a calibration reference. Using it to normalize current persistence rates
+means calibrating toward the old distortion, not toward the actual domain.
+
+Baseline validity check: when a baseline is first established or used, the
+review record must answer: under what governance conditions was this baseline
+formed? Specifically, was the window in which baseline data was collected
+subject to over-constraint, under-detection, or reduced exploration that would
+make the sample unrepresentative?
+
+If the baseline was formed under conditions now classified as governance
+failure (confirmed `drift_confirmed` or over-learning finding in that window):
+the baseline is suspect. A suspect baseline may still be used, but must be
+tagged as provisional, not treated as ground truth. A suspect baseline that
+has not been re-calibrated within two subsequent windows is expired.
+
 **Consequence strength normalization:**
 
 The three outcome types currently produce changes of unequal governance
@@ -931,6 +956,22 @@ When a mandatory policy change is made, the pattern that triggered it should
 not recur. A declining recurrence rate after policy changes means changes are
 addressing root causes. A stable or rising recurrence rate after changes means
 the changes are targeting symptoms.
+
+Recurrence is measured in two forms, and both must be tracked:
+
+- **Count recurrence:** raw frequency of the pattern reappearing
+- **Severity-weighted recurrence:** each recurrence weighted by consequence
+  tier (reversible / partially reversible / irreversible / boundary-crossing)
+
+Count recurrence alone optimizes toward eliminating high-frequency low-severity
+patterns while leaving low-frequency high-severity patterns unaddressed. A
+system improving on count recurrence while severity-weighted recurrence is
+rising is optimizing for visibility, not for consequence reduction.
+
+Priority 1 (recurrence declining) is satisfied only when severity-weighted
+recurrence is declining, not just count recurrence. Count recurrence is a
+leading indicator; severity-weighted recurrence is the authoritative metric.
+When they diverge, severity-weighted recurrence takes precedence.
 
 **4. False positive rate is detectable and bounded.**
 A false positive is a constraint zone or policy change that was triggered by
@@ -1058,6 +1099,38 @@ that would confirm those conditions. If no such indicator can be named, the
 renewal is based on assumption, not evidence. The renewal may still be correct,
 but it should be tagged with lower confidence, not stated as confirmed.
 
+**`low_confidence_proceed` renewal and expiry discipline:**
+
+`low_confidence_proceed` is a legitimate response to unverifiable retention
+conditions — but it is not a free carry-forward. Without explicit expiry
+discipline, it becomes a softer form of silent indefinite retention: the
+constraint persists, the uncertainty is acknowledged, and neither is ever
+resolved.
+
+Required conditions for a `low_confidence_proceed` retention tag to remain
+valid:
+
+1. **Explicit re-evaluation trigger:** a named condition that, when observed,
+   requires re-assessment. "At next periodic review" is not a trigger — it is
+   a schedule. The trigger must be an observable condition, not a calendar date.
+
+2. **Maximum carry duration:** a `low_confidence_proceed` retention that has
+   not reached its re-evaluation trigger within two consecutive observation
+   windows automatically converts to a required re-evaluation. The carry does
+   not silently extend.
+
+3. **Re-evaluation must produce a different state:** the re-evaluation cannot
+   produce another `low_confidence_proceed` on the same basis. If the
+   observability gap that triggered the original low-confidence tag has not
+   been resolved, the constraint must be either retired to archive (with
+   documented reasoning) or escalated as a B1 boundary condition requiring
+   explicit `hard_stop` or `escalate` response.
+
+A second `low_confidence_proceed` on the same constraint, issued on the same
+unresolvable basis as the first, is silent carry-forward with extra steps.
+The second tag is not permitted unless the re-evaluation produced new
+information that partially resolved the original observability gap.
+
 ---
 
 ## System value function: when learning and forgetting conflict
@@ -1137,6 +1210,34 @@ is irreversible: learning takes priority and forgetting is deferred until after
 the new constraint is established. The threshold for this override must be
 documented at the time of the decision, not applied post-hoc. Undocumented
 overrides are not overrides — they are unrecorded priority violations.
+
+**System personality as an observability artifact:**
+
+The priority rule — forgetting first, learning second; protect against
+over-constraint because it is harder to detect — is not an arbitrary preference.
+It is derived from the asymmetry in the detection infrastructure: the deviation
+accumulation rule catches under-constraint within three windows; over-constraint
+requires periodic direct review and explicit exploration cost measurement.
+
+But this derivation has a consequence that adopters should understand: the
+system's behavioral lean is not fully external. The system will, over time,
+tend toward:
+
+- Earlier retirement of untested constraints
+- Later addition of new constraints
+- Preference for preserving decision mobility over decisional stability
+
+This is not a design error. It is the system's personality emerging from what
+it can and cannot see reliably. A system that defaults to protecting against
+the error it cannot detect will, by that default, exhibit a consistent lean
+in its decisions — even when no single decision reflects explicit preference.
+
+This means: the system's observability architecture is also its character
+architecture. The two cannot be fully separated. What the system finds hard
+to detect, it will systematically underweight. What it finds easy to detect,
+it will systematically overweight. The value function makes this explicit so
+that adopters can assess whether the lean is appropriate for their domain —
+rather than discovering it post-hoc as a pattern of seemingly neutral decisions.
 
 ---
 
