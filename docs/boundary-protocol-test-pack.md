@@ -1,8 +1,8 @@
 # Boundary Protocol Test Pack
 
 > Covers commits: f0a9935 → e6f73d3
-> Scenario count: 18 (Parts A–F)
-> Passing score: 16–18 (strong pass); 13–15 (marginal pass — review Part D and E); <13 (fail)
+> Scenario count: 16 (Parts A–F)
+> Passing score: 14–16 (strong pass); 11–13 (marginal pass — review Part D and E); <11 (fail)
 > Documents under test:
 > - docs/boundary-crossing-protocol.md    (Parts A–F)
 >
@@ -741,10 +741,10 @@ inference-based conclusions as confirmed observations.
 
 | Score | Interpretation |
 |-------|---------------|
-| 16–18 | Strong pass — mechanisms are operational |
-| 13–15 | Marginal pass — review Part D (baseline) and Part F (value function); these are the scenarios most commonly misread |
-| 10–12 | Partial pass — the accumulation rules (Part C) and expiry discipline (Part F) are likely being applied at the wrong tier |
-| <10 | Fail — re-read docs/boundary-crossing-protocol.md before re-running; particularly the four response types, deferral genuineness conditions, and the system value function section |
+| 14–16 | Strong pass — mechanisms are operational |
+| 11–13 | Marginal pass — review Part D (baseline) and Part F (value function); these are the scenarios most commonly misread |
+| 8–10  | Partial pass — the accumulation rules (Part C) and expiry discipline (Part F) are likely being applied at the wrong tier |
+| <8    | Fail — re-read docs/boundary-crossing-protocol.md before re-running; particularly the four response types, deferral genuineness conditions, and the system value function section |
 
 ## Common error patterns
 
