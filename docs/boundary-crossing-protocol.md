@@ -725,6 +725,111 @@ will show exactly where the system stopped responding to its own signals.
 
 ---
 
+## Protocol self-stability
+
+The pattern-to-policy binding generates policy changes: constraint zones,
+`structurally_inaccessible` markings, calibration updates. These are changes
+to governance parameters produced by governance mechanisms. They are subject
+to the same stability and correction requirements as any other governance
+decision.
+
+The learning-stability.md principles apply to this protocol's outputs:
+
+**Policy surface compaction:**
+
+Constraint zones, `structurally_inaccessible` markings, and calibration
+updates in the same category accumulate over time. Accumulation is normal;
+unreviewed accumulation is not. At each periodic review (same cadence as
+silent degradation review), apply this check to the protocol's own outputs:
+
+- Are multiple constraint zones in the same category expressing the same
+  root cause? If yes, consolidate: one precise change is more useful than
+  layered restrictions that obscure each other.
+- Are `structurally_inaccessible` markings still accurate? A path that was
+  inaccessible due to cost may become accessible if costs change. Markings
+  that are stale should be retired, not accumulated.
+- Are calibration updates building toward a coherent revised baseline, or
+  are they patchwork corrections? When patches accumulate, a baseline reset
+  may be more accurate than continued incremental updates.
+
+Compaction is not rollback — it is precision. A compacted governance record
+is easier to apply correctly than a layered one. The goal is not fewer
+constraints but fewer constraints that are redundant or stale.
+
+**Policy rollback trigger:**
+
+A policy change produced by pattern-to-policy binding may itself be wrong —
+if the triggering pattern was misattributed (all three triggering outcomes
+were `calibration_error` retroactively). When a policy change is found to be
+based on a misattributed pattern, it must be rolled back:
+
+- For behavioral constraint zones: the zone is retired with documentation
+  of why the triggering pattern was wrong; the category count resets
+- For `structurally_inaccessible` markings: the marking is removed and the
+  path is re-evaluated under corrected dimension assessments
+- For calibration updates: the stale update is identified, and the baseline
+  is corrected to the pre-update state if the update was net wrong
+
+Rollback trigger condition: when the falsifiability question for the
+triggering outcome classification (see Outcome falsifiability requirement)
+is answered in the negative — the evidence that was cited does not support
+the classification. Rollback is not optional when the trigger condition is met.
+
+**Consequence strength normalization:**
+
+The three outcome types currently produce changes of unequal governance
+weight. Left unchecked, this creates outcome selection bias: reviewers will
+route toward outcomes whose consequences feel more manageable, producing a
+systematic preference that does not reflect the actual distribution of failure
+types.
+
+Normalization rule: at periodic review, examine whether the distribution of
+outcome types over the past N windows reflects the actual distribution of
+failure modes, or whether one type is systematically over-represented. An
+over-representation of `cost_legitimate` relative to `calibration_error` or
+`drift_confirmed` is a signal that either (a) the constraints on the system
+are genuinely external and the paths genuinely inaccessible — in which case
+the `structurally_inaccessible` markings are accumulating correctly — or (b)
+outcome selection bias is present and reviewers are routing to the lower-cost
+outcome type.
+
+The distinction: if `cost_legitimate` is predominant and
+`structurally_inaccessible` markings are accumulating, the system is producing
+a governance finding. If `cost_legitimate` is predominant and no
+`structurally_inaccessible` markings have been produced, the outcome is being
+used as a terminal classification — a sign that the outcome falsifiability
+requirement is not being applied.
+
+**Over-learning guard:**
+
+Accumulated constraints reduce the decision space. This is intended: each
+constraint zone, calibration update, and `structurally_inaccessible` marking
+reflects a pattern of genuine governance failure. But accumulated constraints
+that are not periodically audited will eventually make the system more
+conservative than the evidence warrants.
+
+Apply the learning-stability.md Signal 1 check to this protocol's outputs:
+if the rate of new constraints is increasing without a corresponding decrease
+in deviation rate, the policy changes are not addressing root causes — they
+are accumulating in response to noise. This is the governance equivalent of
+the original over-correction signal: more changes, same failure rate.
+
+If constraint accumulation is outpacing deviation rate improvement, apply
+the same response as Signal 1: before accepting the next mandatory policy
+change, run a direction check on the last three changes in the same category.
+Did they reduce deviation frequency, or did they move the deviations to
+different categories? A constraint that displaces rather than resolves a
+problem is not learning — it is rearrangement.
+
+The governance system must be able to make this assessment about itself. A
+system that cannot audit its own constraint accumulation will eventually reach
+the same state it was designed to prevent: high activity, no improvement,
+increasingly rigid, increasingly wrong — with the additional problem that the
+rigidity is now dressed in the language of governance rather than in the
+language of the original failures.
+
+---
+
 ## What this protocol does not do
 
 This protocol governs behavior at the boundary. It does not:
