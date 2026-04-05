@@ -27,7 +27,7 @@ def run_quickstart_smoke(
     contract_file: Path | None = None,
     task_text: str = "Quickstart governance smoke",
 ) -> dict[str, Any]:
-    session_rules = "common,hub-firmware" if contract_file else "common"
+    session_rules = "common"
 
     pre_task = run_pre_task_check(
         project_root=project_root,

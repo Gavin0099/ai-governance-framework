@@ -44,7 +44,7 @@ def build_external_project_facts_intake(repo_root: Path) -> dict:
     for logical_name in expected_logical_names:
         try:
             source_file = resolve_external_project_facts_file(repo_root, logical_name)
-            content = source_file.read_text(encoding="utf-8")
+            content = source_file.read_text(encoding="utf-8", errors="replace")
             fact_sources.append({
                 "logical_name": logical_name,
                 "source_file": str(source_file),
