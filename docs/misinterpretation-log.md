@@ -65,6 +65,13 @@ as high unless it produced or nearly produced a decision boundary violation.
 When in doubt, mark `medium` — not `high`. The exception path must not become
 the normal path.
 
+**Medium severity guard:** `medium` indicates misinterpretations that require
+observation and evidence accumulation — not a terminal classification. If the
+same `medium` misinterpretation recurs in a short window (e.g., 3+ times within
+the observation period), re-evaluate whether the severity should be escalated or
+whether the owner assignment should change. Medium must not become a category
+that entries enter and never leave.
+
 ## Resolution status
 
 | Status | Meaning |
@@ -90,6 +97,12 @@ the same misinterpretation appearing multiple times may reflect adoption lag
 `owner` is assigned at log time, not after resolution. If resolution later reveals
 a different owner was appropriate, update the entry. Unowned entries default to
 `framework` since they require model-level attention to close.
+
+**Framework owner guard:** When `owner = framework`, include a one-line
+justification explaining why the issue is not resolvable at the `reviewer` or
+`team` layer. Assigning `framework` without justification is a sign that the
+entry was not triaged — not that the framework is responsible. Framework
+ownership must remain scarce or it becomes a responsibility sink.
 
 ---
 
@@ -135,6 +148,31 @@ questions. Proposals that cannot answer all three are returned without review.
 A proposal that passes the gate is a candidate for evaluation. Passing the
 gate does not mean the dimension will be added — it means the proposal has
 sufficient substance to be worth reviewing.
+
+## Expansion proposal log
+
+Record all proposals here, including rejections. Without this record,
+the same proposal will be re-raised repeatedly, consuming review cycles
+and obscuring whether the underlying problem has actually changed.
+
+```
+### YYYY-MM-DD — <proposal title>
+
+**Triggered by:** <log entry or watch item reference>
+**Proposed dimension:** <name>
+**Status:** accepted | rejected | deferred
+**Decision date:** YYYY-MM-DD
+**Rejection reason / deferral condition:** <required if rejected or deferred>
+```
+
+**Rejection reason is required** when `status = rejected`. A rejection
+without a reason cannot be distinguished from "we forgot to look at it".
+
+**Deferred proposals** must specify the condition that would reopen them
+(e.g., "reopen if `observed/recent` appears in log twice with
+`requires_model_change`"). Open-ended deferrals are treated as rejections.
+
+*(empty — no proposals yet)*
 
 ---
 
