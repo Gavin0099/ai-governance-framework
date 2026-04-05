@@ -172,39 +172,54 @@ The selection criteria are two dimensions:
 
 **Dimension 1: Reversibility**
 Can the decision be corrected after the fact if it turns out to be wrong?
-- Reversible: the decision can be revisited, corrected, or overridden without
-  permanent harm
-- Irreversible: wrong decision causes harm that cannot be undone within the
-  observation window or at acceptable cost
+
+Reversibility is not binary. Use the most specific tier the situation supports:
+
+| Tier | Definition | Example |
+|------|-----------|---------|
+| `fully_reversible` | Decision can be corrected within the current observation window with no residual harm | A doc update that can be revised |
+| `reversible_with_cost` | Decision can be corrected but requires significant re-work, re-evaluation, or affects downstream decisions that cited it | A skepticism zone classification that must be unwound |
+| `reversible_eventually` | Decision can be corrected but not before causing compounding effects | A `cause_identified` that was wrong and was cited as precedent |
+| `irreversible` | Wrong decision causes harm that cannot be undone within observation period at acceptable cost | A permanent deletion, a public disclosure |
+
+Classify at the **worst plausible tier**, not the best case. "We could probably fix it" is `reversible_with_cost` at minimum — not `fully_reversible` unless the path to reversal is clear and costless.
 
 **Dimension 2: Cost of not deciding**
-What happens if no decision is made now?
-- Low: deferral has minimal consequence; the situation can wait
-- High: deferral allows a harmful action to proceed, or closes a window that
-  cannot be reopened
+What happens if no decision is made now? Assess at the **system level**, not the local decision level.
+
+- **Low:** Deferral has minimal system-level consequence; situation can wait without enabling harm or closing an irreversible window
+- **High:** Deferral allows a harmful action to proceed uncontested, or closes a window that cannot be reopened, or prevents dependent decisions from being made
+
+Common miscalibration: rating cost as "local low" when the system-level cost is high. Example: "the decision only affects one log entry" — but if that log entry is the only opportunity to classify a failure before the next review cycle, the window is closing. Always ask: what system-level state changes if this decision does not get made in this window?
 
 Selection matrix:
 
 | Reversibility | Cost of not deciding | External validation available? | → Required response |
 |--------------|---------------------|-------------------------------|---------------------|
-| Reversible | Low | — | `defer_with_condition` |
-| Reversible | High | Yes | `escalate` |
-| Reversible | High | No | `low_confidence_proceed` |
-| Irreversible | Low | — | `defer_with_condition` |
-| Irreversible | High | Yes | `escalate` → if unavailable in time: `hard_stop` |
-| Irreversible | High | No | `hard_stop` |
+| fully_reversible | Low | — | `defer_with_condition` |
+| fully_reversible | High | Yes | `escalate` |
+| fully_reversible | High | No | `low_confidence_proceed` |
+| reversible_with_cost or worse | Low | — | `defer_with_condition` |
+| reversible_with_cost or worse | High | Yes | `escalate` → if unavailable in time: `hard_stop` |
+| reversible_with_cost or worse | High | No | `hard_stop` |
 
-**How to use this matrix:** Reversibility and cost-of-not-deciding must be
-assessed before selecting a response. A reviewer who selects `low_confidence_proceed`
-for an irreversible decision without documenting that external validation was
-unavailable has not applied the protocol. The assessment must be explicit,
-not assumed.
+**How to use this matrix:** Both dimensions must be classified explicitly before
+selecting a response. A reviewer who selects `low_confidence_proceed` for a
+`reversible_with_cost` or worse decision without documenting that external
+validation was unavailable has not applied the protocol.
 
 **Consistency check:** Two reviewers facing the same boundary condition, the
-same reversibility, and the same cost of not deciding should reach the same
-response type. Divergence in response type is a consistency violation that
-must be examined — either the situation was not actually the same, or the
-criteria were applied differently.
+same reversibility tier, and the same cost classification should reach the same
+response type. Divergence is a consistency violation requiring examination —
+either the situation was assessed differently (which must be reconciled) or the
+criteria were applied differently (which is a calibration gap).
+
+**Dimension drift guard:** Dimension classifications are themselves subject to
+the same consistency pressure as response types. If reviewers consistently
+classify the same categories of decisions as `fully_reversible` when a more
+conservative tier is warranted, the matrix produces correct-looking outputs
+from incorrect inputs. Monitor dimension classifications across reviewers at
+periodic review, not just response types.
 
 ---
 
@@ -283,6 +298,22 @@ same deferral is a signal that the resolution condition itself is unachievable
 within the current observation model, which is a B1 condition requiring a
 different response than `defer_with_condition`.
 
+**Evidence-gain condition for renewal:** Deferral renewal is not valid if the
+observation window that elapsed produced no new evidence types relevant to the
+resolution condition. Time passing is not progress. A renewal must document:
+- What new evidence arrived during the window (if any)
+- Why this evidence did not yet satisfy the resolution condition
+- What specifically is expected in the next window that was not present in this one
+
+A renewal that cannot answer these three questions is a time-based renewal,
+not an evidence-based one. It must be treated as maximum deferral age reached
+(escalate or hard_stop), not as a legitimate renewal.
+
+This distinction — time passing vs evidence accumulating — is the same error
+as time-based classification decay (treating "two windows elapsed" as equivalent
+to "corroboration failed to arrive"). The deferral system makes the same error
+if it allows time to substitute for evidence in renewal justification.
+
 ---
 
 ## Re-entry conditions
@@ -357,6 +388,30 @@ Forced exploration is the preferred response because it converts an invisible
 failure to potentially observable failure. It does not guarantee detection
 but it changes the detection probability from zero.
 
+**Forced exploration must be capable of falsification.** An exploration that
+cannot produce a result that would change the current assumption is activity
+without information gain. Before executing forced exploration, specify:
+
+1. What specific hypothesis is being tested? (e.g., "decisions in this
+   category are systematically over-conservative")
+2. What result would confirm the hypothesis? (e.g., "injected decisions that
+   should be accepted are rejected at rate > X%")
+3. What result would disconfirm it? (e.g., "injected decisions are accepted
+   at the expected rate, and the conservative pattern was specific to
+   observed cases")
+
+An exploration that is designed to produce only confirmatory evidence is
+not forced exploration — it is confirmation of a prior belief dressed as
+investigation. The disconfirmatory result must be genuinely possible given
+the exploration design; if the design makes disconfirmation impossible, the
+exploration is not falsifiable.
+
+**Cheap exploration failure mode:** Exploration that tests only low-stakes
+or familiar cases does not reach the invisible failure zone. If the invisible
+failure is expressed in a specific region of the decision space, the
+exploration must be designed to reach that region. Generic "do something
+different" exploration is activity without targeted information gain.
+
 **Response 2: External audit injection**
 An observer outside the current observation model reviews a sample of
 decisions in the invisible zone. The external observer is not bound by
@@ -382,6 +437,58 @@ would make the concept of invisible zone response meaningless.
 Labeling a failure as structurally invisible and taking no further action.
 The invisible zone is not a governance-free zone. It is a zone where
 different governance mechanisms are required.
+
+---
+
+## Incentive alignment
+
+The action selection matrix and response types are defined in terms of
+epistemic state (reversibility, cost of not deciding). But response selection
+happens in an environment where actions have different costs. If the cost of
+the correct response is systematically higher than the cost of an incorrect
+but lower-effort response, the system will produce cost-motivated decisions
+while documenting them as epistemically-motivated ones.
+
+This is the economic consistency problem: the cost of correct behavior must
+not systematically bias the system toward incorrect decisions.
+
+**Cost-motivated downgrade detection:**
+
+Any deviation from the matrix-indicated response must be logged explicitly
+with its reason. A reviewer who selects `low_confidence_proceed` when the
+matrix indicates `hard_stop` must document:
+- Which matrix cell applied (reversibility tier + cost classification)
+- Why the matrix-indicated response was not used
+- Whether cost was a factor in the deviation
+
+A deviation without documented reason is a protocol violation. A deviation
+where cost is acknowledged as the reason is permitted — but it becomes
+part of the deviation record.
+
+The deviation record is monitored at periodic review (same cadence as silent
+degradation review). Patterns in the deviation record are governance signals:
+
+- `escalate` consistently avoided → cost of escalation may be preventing
+  its correct use; review whether escalation path is accessible
+- `hard_stop` consistently avoided → system may be under implicit pressure
+  to keep processes moving; review whether hard_stop has been normalized
+  as an unacceptable outcome
+- `risk_acceptance` consistently chosen in invisible zone → explore whether
+  forced exploration is genuinely infeasible or merely avoided
+
+**The key diagnostic question:** Is the distribution of response types
+consistent with the distribution of epistemic states in the decisions being
+made? If high-cost responses (`hard_stop`, `escalate`) appear systematically
+less often than the observed uncertainty levels would predict, cost is likely
+influencing response selection.
+
+**Incentive alignment is not solved by this protocol.** This section detects
+cost-motivated drift after it has occurred. Preventing it requires that the
+costs of correct responses are manageable enough that reviewers do not face
+a systematic choice between epistemic correctness and operational feasibility.
+That is an organizational design question, not a governance mechanism question.
+The protocol's role is to make cost-motivated drift visible, not to eliminate
+the incentives that cause it.
 
 ---
 
