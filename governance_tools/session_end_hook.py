@@ -6,25 +6,34 @@ Intended to be called by Claude Code stop hook or manually.
 Always runs at session stop — missing or invalid closeout produces a degraded
 verdict, not a skipped run.
 
-Closeout is classified across four independent layers:
+Four independent classification layers:
 
-  presence          file exists or not
-  schema_validity   all required fields present
-  content_sufficiency   fields have non-vague, specific content
-  evidence_consistency  claimed files/checks can be partially cross-referenced
+  presence            file exists and is readable
+  schema_validity     all required fields present
+  content_sufficiency fields contain specific, non-vague content with observable anchors
+  evidence_consistency claimed files/checks cross-referenced against filesystem (best-effort)
 
-The overall closeout_status is the worst layer that failed.
+"Observable anchors" for content_sufficiency:
+  - WORK_COMPLETED must contain at least one filename (word with a dot extension)
+    or at least one specific tool/command name — or explicitly claim NONE
+  - CHECKS_RUN must name a specific check/command — or explicitly claim NONE
+
+evidence_consistency is an inconsistency signal, not a proof of execution.
+Passing it does not prove claims are true. It only means no detectable
+filesystem inconsistency was found.
+
+All layers run regardless of prior failures.
+Overall closeout_status = worst layer that failed.
 ok=True only when all four layers pass.
 
-Usage:
-    python -m governance_tools.session_end_hook --project-root .
-    python -m governance_tools.session_end_hook --project-root . --format json
+Memory promotion only occurs when closeout_status == valid.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import uuid
 from datetime import datetime, timezone
@@ -49,8 +58,8 @@ REQUIRED_FIELDS = [
     "RECOMMENDED_MEMORY_UPDATE",
 ]
 
-# Phrases that indicate vague / non-verifiable content
-_VAGUE_PHRASES = {
+# Vague phrases that indicate non-verifiable content
+_VAGUE_PHRASES = frozenset({
     "worked on things",
     "made improvements",
     "various changes",
@@ -59,28 +68,37 @@ _VAGUE_PHRASES = {
     "ran checks",
     "fixed stuff",
     "general updates",
-}
+    "some work",
+    "various fixes",
+})
+
+# Pattern for a filename-like token (word with a dot extension)
+_FILENAME_PATTERN = re.compile(r"\b\w[\w/-]*\.\w{1,6}\b")
+
+# Known governance / test tool names that count as observable anchors
+_TOOL_ANCHORS = frozenset({
+    "pytest", "python", "quickstart_smoke", "session_end_hook",
+    "governance_drift_checker", "adopt_governance", "pre_task_check",
+    "post_task_check", "session_start", "external_repo_readiness",
+    "external_project_facts_intake", "npm", "cargo", "go", "make",
+    "mypy", "ruff", "pylint", "flake8", "black",
+})
 
 # ── Layer result constants ────────────────────────────────────────────────────
 
-# Presence
 PRESENT = "present"
 MISSING = "missing"
 
-# Schema validity
 SCHEMA_VALID = "valid"
 SCHEMA_INVALID = "invalid"
 
-# Content sufficiency
 CONTENT_SUFFICIENT = "sufficient"
 CONTENT_INSUFFICIENT = "insufficient"
 
-# Evidence consistency
 EVIDENCE_CONSISTENT = "consistent"
 EVIDENCE_INCONSISTENT = "inconsistent"
-EVIDENCE_UNCHECKED = "unchecked"  # nothing to cross-reference
+EVIDENCE_UNCHECKED = "unchecked"
 
-# Overall closeout_status (worst-layer wins)
 STATUS_VALID = "valid"
 STATUS_MISSING = "closeout_missing"
 STATUS_SCHEMA_INVALID = "schema_invalid"
@@ -99,7 +117,6 @@ _DEFAULT_RUNTIME_CONTRACT: dict[str, Any] = {
 # ── Layer 1: Presence ─────────────────────────────────────────────────────────
 
 def _check_presence(path: Path) -> tuple[str, str]:
-    """Returns (presence, raw_text)."""
     if not path.exists():
         return MISSING, ""
     try:
@@ -123,104 +140,122 @@ def _parse_fields(text: str) -> dict[str, str]:
 
 
 def _check_schema(fields: dict[str, str]) -> tuple[str, list[str]]:
-    """Returns (schema_validity, missing_fields)."""
     missing = [f for f in REQUIRED_FIELDS if not fields.get(f)]
-    if missing:
-        return SCHEMA_INVALID, missing
-    return SCHEMA_VALID, []
+    return (SCHEMA_INVALID, missing) if missing else (SCHEMA_VALID, [])
 
 
-# ── Layer 3: Content sufficiency ──────────────────────────────────────────────
+# ── Layer 3: Content sufficiency (with observable anchors) ────────────────────
+
+def _has_observable_anchor(value: str) -> bool:
+    """
+    Returns True if value contains at least one observable anchor:
+    - a filename-like token (word.ext), OR
+    - a known tool/command name
+    """
+    if _FILENAME_PATTERN.search(value):
+        return True
+    lower_tokens = set(re.split(r"[\s,/\-]+", value.lower()))
+    return bool(lower_tokens & _TOOL_ANCHORS)
+
 
 def _is_vague(value: str) -> bool:
     lower = value.lower().strip()
-    if any(phrase in lower for phrase in _VAGUE_PHRASES):
-        return True
-    # Single word values for fields that need substance
-    if len(lower.split()) == 1 and lower not in {"none", "no_update"}:
-        return True
-    return False
+    return any(phrase in lower for phrase in _VAGUE_PHRASES)
 
 
-def _check_content(fields: dict[str, str]) -> tuple[str, list[str]]:
-    """Returns (content_sufficiency, insufficient_fields)."""
-    insufficient = []
+def _check_content(fields: dict[str, str]) -> tuple[str, list[dict[str, str]]]:
+    """
+    Returns (content_sufficiency, issues).
 
-    work = fields.get("WORK_COMPLETED", "")
-    if work.upper() not in {"NONE"} and _is_vague(work):
-        insufficient.append("WORK_COMPLETED")
+    Each issue has: field, reason, guidance.
+    Checks both vague-phrase rejection and observable-anchor presence.
+    """
+    issues: list[dict[str, str]] = []
 
-    checks = fields.get("CHECKS_RUN", "")
-    if checks.upper() not in {"NONE"} and _is_vague(checks):
-        insufficient.append("CHECKS_RUN")
+    def _assess(field: str, require_anchor: bool = True) -> None:
+        value = fields.get(field, "").strip()
+        upper = value.upper()
+        if upper in {"NONE", "NO_UPDATE"}:
+            return  # explicit null is always acceptable
 
-    task = fields.get("TASK_INTENT", "")
-    if _is_vague(task):
-        insufficient.append("TASK_INTENT")
+        if _is_vague(value):
+            issues.append({
+                "field": field,
+                "reason": "vague_phrase",
+                "guidance": "Avoid generic phrases. State specific files, commands, or outcomes.",
+            })
+            return  # no need to also check anchor
 
-    if insufficient:
-        return CONTENT_INSUFFICIENT, insufficient
-    return CONTENT_SUFFICIENT, []
+        if require_anchor and not _has_observable_anchor(value):
+            issues.append({
+                "field": field,
+                "reason": "no_observable_anchor",
+                "guidance": (
+                    "Include at least one filename (e.g. foo.py) or tool name "
+                    "(e.g. pytest, quickstart_smoke) so the claim can be cross-referenced."
+                ),
+            })
+
+    _assess("WORK_COMPLETED", require_anchor=True)
+    _assess("CHECKS_RUN", require_anchor=True)
+    _assess("TASK_INTENT", require_anchor=False)  # intent doesn't need a filename
+
+    return (CONTENT_INSUFFICIENT, issues) if issues else (CONTENT_SUFFICIENT, [])
 
 
-# ── Layer 4: Evidence consistency (best-effort) ───────────────────────────────
+# ── Layer 4: Evidence consistency (best-effort inconsistency signal) ──────────
 
 def _check_evidence(fields: dict[str, str], project_root: Path) -> tuple[str, list[str]]:
     """
-    Best-effort cross-reference of claimed artifacts against the filesystem.
+    Best-effort filesystem cross-reference.
 
-    Returns (evidence_consistency, inconsistencies).
-
-    This is not exhaustive — it only flags what can be checked without
-    running commands. Passing this layer does not prove claims are true.
+    This is an inconsistency signal, not a proof of execution.
+    Passing this layer does not prove claims are true.
     """
-    inconsistencies = []
+    inconsistencies: list[str] = []
 
-    # Check FILES_TOUCHED: if non-NONE, verify each listed file exists
     files_touched = fields.get("FILES_TOUCHED", "").strip()
-    if files_touched.upper() not in {"NONE", ""}:
+    if files_touched and files_touched.upper() not in {"NONE", ""}:
         claimed_files = [f.strip() for f in files_touched.split(",") if f.strip()]
-        missing_files = []
-        for claimed in claimed_files:
-            # Try relative to project root
-            candidate = project_root / claimed
-            if not candidate.exists():
-                # Also try as absolute path
-                abs_candidate = Path(claimed)
-                if not abs_candidate.exists():
-                    missing_files.append(claimed)
+        missing_files = [
+            f for f in claimed_files
+            if not (project_root / f).exists() and not Path(f).exists()
+        ]
         if missing_files:
             inconsistencies.append(
-                f"FILES_TOUCHED claims files not found: {missing_files}"
+                f"FILES_TOUCHED lists files not found on filesystem: {missing_files}"
             )
 
-    # Check CHECKS_RUN: if it mentions governance tools, check artifacts exist
     checks_run = fields.get("CHECKS_RUN", "").strip()
-    if checks_run.upper() not in {"NONE", ""} and "session_end_hook" in checks_run.lower():
-        # If claiming session_end_hook was run, there should be prior verdicts
-        verdicts_dir = project_root / "artifacts" / "runtime" / "verdicts"
-        if not verdicts_dir.exists() or not any(verdicts_dir.glob("*.json")):
-            inconsistencies.append(
-                "CHECKS_RUN claims session_end_hook was run but no prior verdicts found"
-            )
+    if checks_run and checks_run.upper() not in {"NONE", ""}:
+        if "session_end_hook" in checks_run.lower():
+            verdicts_dir = project_root / "artifacts" / "runtime" / "verdicts"
+            if not verdicts_dir.exists() or not any(verdicts_dir.glob("*.json")):
+                inconsistencies.append(
+                    "CHECKS_RUN claims session_end_hook was run but no prior verdicts found"
+                )
 
-    if not fields.get("FILES_TOUCHED") and not fields.get("CHECKS_RUN"):
+    # No checkable claims → unchecked
+    has_checkable = (
+        files_touched and files_touched.upper() not in {"NONE", ""}
+    ) or (
+        checks_run and checks_run.upper() not in {"NONE", ""}
+    )
+    if not has_checkable:
         return EVIDENCE_UNCHECKED, []
 
-    if inconsistencies:
-        return EVIDENCE_INCONSISTENT, inconsistencies
-
-    return EVIDENCE_CONSISTENT, []
+    return (EVIDENCE_INCONSISTENT, inconsistencies) if inconsistencies else (EVIDENCE_CONSISTENT, [])
 
 
 # ── Classification aggregate ──────────────────────────────────────────────────
 
 def classify_closeout(path: Path, project_root: Path) -> dict[str, Any]:
     """
-    Run all four classification layers and return a structured result.
+    Run all four layers independently. Return per-layer results and overall status.
 
-    Layers are independent — all run regardless of prior failures.
-    Overall closeout_status is the worst-layer result.
+    Overall status = worst layer that failed.
+    per_layer_results is always preserved so reviewers see all failures,
+    not just the first one.
     """
     presence, raw_text = _check_presence(path)
 
@@ -231,19 +266,22 @@ def classify_closeout(path: Path, project_root: Path) -> dict[str, Any]:
             "content_sufficiency": CONTENT_INSUFFICIENT,
             "evidence_consistency": EVIDENCE_UNCHECKED,
             "closeout_status": STATUS_MISSING,
-            "missing_fields": REQUIRED_FIELDS,
-            "insufficient_fields": [],
-            "inconsistencies": [],
+            "per_layer_results": {
+                "missing_fields": REQUIRED_FIELDS[:],
+                "content_issues": [],
+                "inconsistencies": [],
+            },
             "fields": {},
             "response_text": "",
         }
 
     fields = _parse_fields(raw_text)
+
     schema_validity, missing_fields = _check_schema(fields)
-    content_sufficiency, insufficient_fields = _check_content(fields)
+    content_sufficiency, content_issues = _check_content(fields)
     evidence_consistency, inconsistencies = _check_evidence(fields, project_root)
 
-    # Determine overall status (worst layer wins)
+    # Worst-layer status
     if schema_validity == SCHEMA_INVALID:
         status = STATUS_SCHEMA_INVALID
     elif content_sufficiency == CONTENT_INSUFFICIENT:
@@ -259,15 +297,17 @@ def classify_closeout(path: Path, project_root: Path) -> dict[str, Any]:
         "content_sufficiency": content_sufficiency,
         "evidence_consistency": evidence_consistency,
         "closeout_status": status,
-        "missing_fields": missing_fields,
-        "insufficient_fields": insufficient_fields,
-        "inconsistencies": inconsistencies,
+        "per_layer_results": {
+            "missing_fields": missing_fields,
+            "content_issues": content_issues,
+            "inconsistencies": inconsistencies,
+        },
         "fields": fields,
         "response_text": raw_text,
     }
 
 
-# ── Runtime contract ──────────────────────────────────────────────────────────
+# ── Runtime helpers ───────────────────────────────────────────────────────────
 
 def _build_runtime_contract(fields: dict[str, str]) -> dict[str, Any]:
     contract = dict(_DEFAULT_RUNTIME_CONTRACT)
@@ -279,40 +319,35 @@ def _build_runtime_contract(fields: dict[str, str]) -> dict[str, Any]:
 
 def _generate_session_id() -> str:
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
-    short = uuid.uuid4().hex[:6]
-    return f"session-{ts}-{short}"
+    return f"session-{ts}-{uuid.uuid4().hex[:6]}"
 
 
 # ── Main hook logic ───────────────────────────────────────────────────────────
 
 def run_session_end_hook(project_root: Path) -> dict[str, Any]:
     closeout_path = project_root / CLOSEOUT_FILE
-    classification = classify_closeout(closeout_path, project_root)
+    clf = classify_closeout(closeout_path, project_root)
 
-    closeout_status = classification["closeout_status"]
-    fields = classification["fields"]
-    response_text = classification["response_text"]
+    closeout_status = clf["closeout_status"]
+    fields = clf["fields"]
 
     session_id = _generate_session_id()
     runtime_contract = _build_runtime_contract(fields)
 
-    # Inject all four classification layers into checks so they are
-    # recorded in the session_end verdict and trace artifacts.
+    # All four layer results go into checks so they appear in verdict/trace artifacts.
     checks: dict[str, Any] = {
         "closeout_status": closeout_status,
         "closeout_file": str(closeout_path),
-        "closeout_presence": classification["presence"],
-        "closeout_schema_validity": classification["schema_validity"],
-        "closeout_content_sufficiency": classification["content_sufficiency"],
-        "closeout_evidence_consistency": classification["evidence_consistency"],
-        "closeout_missing_fields": classification["missing_fields"],
-        "closeout_insufficient_fields": classification["insufficient_fields"],
-        "closeout_inconsistencies": classification["inconsistencies"],
+        "closeout_presence": clf["presence"],
+        "closeout_schema_validity": clf["schema_validity"],
+        "closeout_content_sufficiency": clf["content_sufficiency"],
+        "closeout_evidence_consistency": clf["evidence_consistency"],
+        "closeout_per_layer_results": clf["per_layer_results"],
     }
 
-    # Only pass response_text when closeout is fully valid —
-    # insufficient content must not reach memory.
-    effective_response = response_text if closeout_status == STATUS_VALID else ""
+    # Only pass content to session_end when all four layers pass.
+    # Insufficient content must never reach memory even if schema is valid.
+    effective_response = clf["response_text"] if closeout_status == STATUS_VALID else ""
 
     result = run_session_end(
         project_root=project_root,
@@ -328,11 +363,12 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         "session_id": session_id,
         "closeout_status": closeout_status,
         "closeout_classification": {
-            "presence": classification["presence"],
-            "schema_validity": classification["schema_validity"],
-            "content_sufficiency": classification["content_sufficiency"],
-            "evidence_consistency": classification["evidence_consistency"],
+            "presence": clf["presence"],
+            "schema_validity": clf["schema_validity"],
+            "content_sufficiency": clf["content_sufficiency"],
+            "evidence_consistency": clf["evidence_consistency"],
         },
+        "per_layer_results": clf["per_layer_results"],
         "closeout_file": str(closeout_path),
         "decision": result["decision"],
         "snapshot_created": result["snapshot"] is not None,
@@ -362,6 +398,17 @@ def format_human_result(result: dict[str, Any]) -> str:
         lines.append(f"  content_sufficiency={clf.get('content_sufficiency')}")
         lines.append(f"  evidence_consistency={clf.get('evidence_consistency')}")
 
+    # Always show per_layer_results so multi-failure cases are visible
+    per = result.get("per_layer_results") or {}
+    if per.get("missing_fields"):
+        lines.append(f"  missing_fields={per['missing_fields']}")
+    if per.get("content_issues"):
+        for issue in per["content_issues"]:
+            lines.append(f"  content_issue: {issue['field']} — {issue['reason']}: {issue['guidance']}")
+    if per.get("inconsistencies"):
+        for inc in per["inconsistencies"]:
+            lines.append(f"  inconsistency: {inc}")
+
     lines += [
         f"decision={result['decision']}",
         f"snapshot_created={result['snapshot_created']}",
@@ -383,14 +430,11 @@ def format_human_result(result: dict[str, Any]) -> str:
         lines.append(f"hint: {CLOSEOUT_FILE} not found — write it before session ends")
         lines.append("hint: see docs/session-closeout-schema.md for required fields")
     elif status == STATUS_SCHEMA_INVALID:
-        lines.append("hint: closeout file is missing required fields")
-        lines.append("hint: see docs/session-closeout-schema.md for required fields")
+        lines.append("hint: closeout file is missing required fields (see missing_fields above)")
     elif status == STATUS_CONTENT_INSUFFICIENT:
-        lines.append("hint: closeout content is vague — use specific, verifiable claims")
-        lines.append("hint: vague values in WORK_COMPLETED or CHECKS_RUN will be rejected")
+        lines.append("hint: include specific filenames or tool names — see content_issue above")
     elif status == STATUS_EVIDENCE_INCONSISTENT:
-        lines.append("hint: closeout claims could not be cross-referenced against filesystem")
-        lines.append("hint: check FILES_TOUCHED lists files that actually exist")
+        lines.append("hint: FILES_TOUCHED lists files not found on filesystem")
 
     return "\n".join(lines)
 
@@ -400,9 +444,9 @@ def format_human_result(result: dict[str, Any]) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Session end hook — classifies session-closeout.txt across four layers "
-            "(presence / schema_validity / content_sufficiency / evidence_consistency) "
-            "and closes out the governance session. Always runs."
+            "Session end hook. Classifies session-closeout.txt across four independent layers "
+            "(presence / schema_validity / content_sufficiency / evidence_consistency). "
+            "Always runs. Missing or degraded closeout produces an auditable verdict."
         )
     )
     parser.add_argument("--project-root", default=".", help="Consuming repo root")
