@@ -440,6 +440,37 @@ different governance mechanisms are required.
 
 ---
 
+## Three-tier observation model
+
+Before addressing incentive alignment, a clarification about what this
+protocol has already built — and where it sits.
+
+Observations in this framework exist at three levels:
+
+| Tier | Definition | Example in this protocol |
+|------|-----------|------------------------|
+| **Observable** | Recorded in the log; can be retrieved | Deviation logged with reason |
+| **Operationalized** | Feeding into a review, signal, or metric that someone must engage with | Deviation pattern triggers periodic review item |
+| **Enforced** | Directly alters behavior: blocks an action, requires escalation, creates unavoidable cost | Deferral decay forces escalation after 3 renewals |
+
+Most governance systems stop at Observable. Visibility is treated as
+sufficient. It is not — a system with perfect observability and zero
+consequence for what it observes has not governed anything.
+
+**Current state of this protocol:**
+
+- Deferral decay → **Enforced**: maximum renewal forces escalation or hard_stop
+- Invisible zone response → **Enforced**: taking no action after naming an
+  invisible failure is not permitted; a required response must be selected
+- Forced exploration falsifiability → **Operationalized**: required before
+  execution, but the check is reviewer-assessed
+- Deviation logging → **Observable** only
+
+The goal of the incentive alignment section is to lift deviation logging
+from Observable to Operationalized, and — for persistent patterns — to Enforced.
+
+---
+
 ## Incentive alignment
 
 The action selection matrix and response types are defined in terms of
@@ -452,6 +483,29 @@ while documenting them as epistemically-motivated ones.
 This is the economic consistency problem: the cost of correct behavior must
 not systematically bias the system toward incorrect decisions.
 
+**What this protocol already does to incentives:**
+
+This protocol is not neutral with respect to incentives. Three existing
+mechanisms already shape behavior by making inaction costly:
+
+- **Deferral decay:** inaction (deferring indefinitely) is penalized by
+  forced escalation. Deferral has a cost now; it did not before.
+- **Invisible zone response:** inaction after naming a structurally invisible
+  failure is explicitly prohibited. The cost of naming-and-ignoring is now
+  higher than the cost of responding.
+- **Forced escalation and hard_stop:** both require the reviewer to absorb
+  the cost of stopping a process. These exist precisely because the natural
+  incentive is to keep processes moving.
+
+These are incentive interventions, not observation mechanisms. Calling them
+"just documentation" would be inaccurate. They are deliberate costs imposed
+on paths that were previously costless.
+
+The protocol therefore already occupies the incentive space partially. The
+remaining gap is: these interventions address specific behaviors (defer too
+long, ignore invisible failures, fail to stop). They do not address the
+broader pattern of cost-motivated response downgrade across the full matrix.
+
 **Cost-motivated downgrade detection:**
 
 Any deviation from the matrix-indicated response must be logged explicitly
@@ -462,33 +516,58 @@ matrix indicates `hard_stop` must document:
 - Whether cost was a factor in the deviation
 
 A deviation without documented reason is a protocol violation. A deviation
-where cost is acknowledged as the reason is permitted — but it becomes
-part of the deviation record.
+where cost is acknowledged as the reason is permitted — but it enters the
+deviation record.
 
-The deviation record is monitored at periodic review (same cadence as silent
-degradation review). Patterns in the deviation record are governance signals:
+**Deviation accumulation rule:**
 
-- `escalate` consistently avoided → cost of escalation may be preventing
-  its correct use; review whether escalation path is accessible
-- `hard_stop` consistently avoided → system may be under implicit pressure
-  to keep processes moving; review whether hard_stop has been normalized
-  as an unacceptable outcome
-- `risk_acceptance` consistently chosen in invisible zone → explore whether
-  forced exploration is genuinely infeasible or merely avoided
+A single deviation is logged and reviewed. It does not trigger required
+action. Patterns are different.
+
+| Pattern | Tier | Required action |
+|---------|------|----------------|
+| Same deviation type in 1 window | Observable | Logged; included in periodic review |
+| Same deviation type in 2+ windows | Operationalized | Must appear on the next periodic review agenda; reviewer must engage with it |
+| Same deviation type in 3 consecutive windows | Enforced | Required review before the next decision in the affected category; review must produce one of three outcomes |
+
+**Required outcomes for enforced deviation review:**
+
+| Outcome | Meaning | What it produces |
+|---------|---------|-----------------|
+| `cost_legitimate` | The cost of the correct response was genuinely prohibitive under current constraints | Document why; specify what organizational change would make the correct response feasible; this is now a named adoption blocker |
+| `calibration_error` | The dimension assessment (reversibility, cost of not deciding) was wrong; the matrix actually indicated the chosen response | Correct the classification; reconsider the decision if the corrected assessment changes the indicated response |
+| `drift_confirmed` | Cost-motivated drift is occurring; the correct response was available but not chosen for non-epistemic reasons | Name the pattern, name who is responsible for addressing it, specify what change is required |
+
+A review that does not produce one of these three outcomes has not completed
+the enforced review. The pattern continues to accumulate.
 
 **The key diagnostic question:** Is the distribution of response types
 consistent with the distribution of epistemic states in the decisions being
 made? If high-cost responses (`hard_stop`, `escalate`) appear systematically
 less often than the observed uncertainty levels would predict, cost is likely
-influencing response selection.
+influencing response selection beyond the documented deviations.
 
-**Incentive alignment is not solved by this protocol.** This section detects
-cost-motivated drift after it has occurred. Preventing it requires that the
-costs of correct responses are manageable enough that reviewers do not face
-a systematic choice between epistemic correctness and operational feasibility.
-That is an organizational design question, not a governance mechanism question.
-The protocol's role is to make cost-motivated drift visible, not to eliminate
-the incentives that cause it.
+**What this protocol does and does not do regarding incentives:**
+
+The protocol converts cost-motivated drift from a silent, untraceable bias
+into an explicit, attributable decision pattern. Single deviations are
+recorded. Patterns are surfaced. Persistent patterns are enforced into review.
+Enforced reviews produce attributed outcomes.
+
+This is not the same as eliminating the incentives that cause drift.
+`cost_legitimate` is a valid outcome — it names a real constraint. The
+protocol's claim is not that organizations will always choose the epistemically
+correct response. It is that when they do not, the pattern cannot remain
+invisible, and eventually cannot remain unattributed.
+
+The progression is: single deviation → observable → pattern → operationalized
+→ persistent pattern → enforced → attributed outcome. Whether `drift_confirmed`
+leads to organizational change depends on what the organization does with an
+attributed pattern. That is outside this protocol's scope. But an attributed
+pattern is very different from an invisible one. Repeated visibility, made
+unavoidable by the accumulation rule, eventually becomes pressure that cannot
+be ignored without explicitly deciding to ignore it — which is itself a decision
+that can be observed.
 
 ---
 
