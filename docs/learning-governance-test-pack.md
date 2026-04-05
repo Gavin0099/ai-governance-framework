@@ -1,13 +1,18 @@
 # Learning Governance Test Pack
 
 > Covers commits: d32444d → f4e7d33
+> Scenario count: 16 (Parts 1–7)
+> Passing score: 15–16
 > Documents under test:
-> - docs/anti-ritualization-patterns.md
-> - docs/falsifiability-layer.md
-> - docs/learning-loop.md
-> - docs/learning-stability.md
-> - docs/decision-quality-invariants.md
-> - docs/governance-mechanism-tiers.md
+> - docs/anti-ritualization-patterns.md  (Part 7)
+> - docs/falsifiability-layer.md         (Part 4)
+> - docs/learning-loop.md                (Part 1)
+> - docs/learning-stability.md           (Parts 2, 3)
+> - docs/decision-quality-invariants.md  (Part 5)
+> - docs/governance-mechanism-tiers.md   (Part 6)
+>
+> Maintenance note: if scenarios are added or removed, update scenario count,
+> score bands, and the manifest above. These three must stay in sync.
 
 ---
 
@@ -647,14 +652,14 @@ misinterpretation-log.md — Counterfactual scaffold requirements.
 ## Score interpretation
 
 Count the number of scenarios where your answer matched the verdict before
-reading the verdict.
+reading the verdict. Total scenarios: **16** (Parts 1–7).
 
 | Score | Interpretation |
 |-------|---------------|
-| 13–14 | Mechanisms are working as intended in this repo |
-| 10–12 | Minor calibration gaps; review the missed scenarios with your team |
-| 7–9   | Structural gaps in how the mechanisms are being applied; re-read source docs for missed areas |
-| <7    | Framework adoption is incomplete; run the onboarding checklist before using these mechanisms |
+| 15–16 | Mechanisms are working as intended in this repo |
+| 12–14 | Minor calibration gaps; review the missed scenarios with your team |
+| 8–11  | Structural gaps in how the mechanisms are being applied; re-read source docs for missed areas |
+| <8    | Framework adoption is incomplete; run the onboarding checklist before using these mechanisms |
 
 Disagreements with verdicts are more informative than wrong answers. If your
 reasoning differs from the verdict and you believe the verdict is wrong,
