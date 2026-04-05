@@ -78,7 +78,10 @@ share the same root (e.g., "activation used as quality proxy", "activation used
 as usage signal", "activation used as decision input" are all activation
 boundary violations) count toward the same recurrence threshold. Surface
 fragmentation must not be used — deliberately or accidentally — to avoid
-reaching the trigger threshold.
+reaching the trigger threshold. Grouping must be based on a shared underlying
+misconception, not merely because entries involve the same field. Over-grouping
+— merging entries that have different root causes to reach the threshold faster
+— is the opposite error from fragmentation and equally invalid.
 
 ## Resolution status
 
@@ -184,7 +187,11 @@ without a reason cannot be distinguished from "we forgot to look at it".
 prevent re-evaluation when new evidence emerges. A previously rejected proposal
 may be re-raised if the log contains new entries that were not present at the
 time of rejection. A rejection without new evidence is not a re-raise — it is
-a duplicate.
+a duplicate. New evidence must introduce a previously unobserved context,
+impact, or failure mode; repetition of the same pattern does not qualify.
+Adding a weak log entry specifically to satisfy the "new evidence" requirement
+is gaming the system — the entry must reflect a genuinely new observation, not
+be constructed to justify a re-raise.
 
 *(empty — no proposals yet)*
 
@@ -214,7 +221,10 @@ expansion proposal immediately, without waiting for a second instance.
 **Negative pressure rule:** The absence of repeated misinterpretations is
 evidence that the current model is sufficient — expansion is not required.
 "No new entries" is a valid and positive outcome of an observation window.
-The default state is stability, not expansion.
+The default state is stability, not expansion. This rule is only valid when
+actual reviewer interactions occurred during the observation window; absence
+of observation is not evidence of sufficiency. A clean log with no reviewer
+activity means nothing was measured, not that the model is working.
 
 First observed instance → "watch". Second confirmed instance from different
 context → proposal. High severity single instance → immediate review.
