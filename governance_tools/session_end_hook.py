@@ -319,14 +319,29 @@ def _build_failure_signals(
 
 def detect_readiness_level(project_root: Path, framework_root: Path) -> dict[str, Any]:
     """
-    Detect the current readiness level of the consuming repo.
+    Detect the structural readiness level of the consuming repo (0-3).
 
-    Returns level (0-3) and per-level checklist results.
+    Returns two independent dimensions:
 
-    IMPORTANT: This result is injected into the checks dict as metadata so it
-    appears in verdict/trace artifacts. It is NEVER read back as decision input
-    by session_end_hook, session_end, or any verdict logic. A Level 0 repo can
-    produce a valid closeout. A Level 3 repo can produce closeout_missing.
+      level (0-3)                 Structural capability — what governance
+                                  infrastructure is in place. Determined by
+                                  capability checklist, not session history.
+
+      closeout_activation_state   Whether the cross-reference loop has been
+        "active"                  observed in practice (verdict artifacts exist).
+        "pending"                 Structural prerequisites met but no verdicts yet.
+        "unknown"                 Structural level too low to activate.
+
+    These two dimensions are SEPARATE. A repo can be structural Level 3 with
+    activation=pending (all capability in place, no run yet). A repo can be
+    activation=active at Level 1 (has run, but content governance incomplete).
+
+    Prior verdict artifacts affect activation_state only. They do NOT affect level.
+    Level is determined purely by structural capability checklist.
+
+    IMPORTANT: This result is injected into verdict/trace artifacts as metadata.
+    It is NEVER read back as decision input. A Level 0 repo can produce a valid
+    closeout. A Level 3 repo can produce closeout_missing.
 
     See docs/closeout-readiness-spectrum.md for level definitions.
     """
@@ -345,6 +360,8 @@ def detect_readiness_level(project_root: Path, framework_root: Path) -> dict[str
             "checklist": checks,
             "limiting_factor": "artifacts_not_writable",
             "suggested_next_step": "mkdir -p artifacts/runtime && chmod -R u+w artifacts/",
+            "closeout_activation_state": "unknown",
+            "activation_gap": "structural_prerequisites_missing",
         }
 
     # ── Level 1: schema doc + AGENTS.base.md closeout obligation ─────────────
@@ -367,6 +384,8 @@ def detect_readiness_level(project_root: Path, framework_root: Path) -> dict[str
             "checklist": checks,
             "limiting_factor": limiting,
             "suggested_next_step": next_step,
+            "closeout_activation_state": "unknown",
+            "activation_gap": "structural_prerequisites_missing",
         }
 
     # ── Level 2: content governance aligned ──────────────────────────────────
@@ -376,6 +395,7 @@ def detect_readiness_level(project_root: Path, framework_root: Path) -> dict[str
     }
     checks["level_2"] = l2
     if not all(l2.values()):
+        activation = _detect_activation_state(project_root)
         return {
             "level": 1,
             "checklist": checks,
@@ -384,28 +404,49 @@ def detect_readiness_level(project_root: Path, framework_root: Path) -> dict[str
                 "python -m governance_tools.upgrade_closeout --repo <repo>  "
                 "(re-run to patch anchor guidance)"
             ),
+            **activation,
         }
 
-    # ── Level 3: cross-reference active ──────────────────────────────────────
-    verdicts_dir = project_root / "artifacts" / "runtime" / "verdicts"
-    prior_verdicts = verdicts_dir.exists() and any(verdicts_dir.glob("*.json"))
+    # ── Level 3: cross-reference capability ──────────────────────────────────
+    # Cross-reference (FILES_TOUCHED existence + CHECKS_RUN artifact signals)
+    # is always active in the current framework code. Level 3 structural
+    # capability is achieved whenever Level 2 is met.
+    # Prior verdict artifacts are an ACTIVATION signal, not a structural one.
     l3 = {
         "tool_artifact_signals_configured": True,  # always true in current code
-        "prior_verdict_artifacts_exist": prior_verdicts,
+        "working_vs_verified_split_active": True,  # always true in current code
     }
     checks["level_3"] = l3
-    if not all(l3.values()):
-        return {
-            "level": 2,
-            "checklist": checks,
-            "limiting_factor": _first_false(l3),
-            "suggested_next_step": (
-                "Run one session with a valid closeout to produce the first verdict artifact; "
-                "or run: python -m governance_tools.session_end_hook --project-root <repo>"
-            ),
-        }
 
-    return {"level": 3, "checklist": checks, "limiting_factor": None, "suggested_next_step": None}
+    activation = _detect_activation_state(project_root)
+    return {
+        "level": 3,
+        "checklist": checks,
+        "limiting_factor": None,
+        "suggested_next_step": None,
+        **activation,
+    }
+
+
+def _detect_activation_state(project_root: Path) -> dict[str, Any]:
+    """
+    Compute closeout_activation_state independently of structural level.
+
+    active   — at least one verdict artifact exists (cross-reference loop observed)
+    pending  — structural prerequisites met, but no verdicts yet
+
+    This is activation history, not structural capability. It does not affect
+    the structural level number. It surfaces separately in output so reviewers
+    can distinguish 'not set up yet' from 'set up but not yet exercised'.
+    """
+    verdicts_dir = project_root / "artifacts" / "runtime" / "verdicts"
+    has_verdicts = verdicts_dir.exists() and any(verdicts_dir.glob("*.json"))
+    if has_verdicts:
+        return {"closeout_activation_state": "active", "activation_gap": None}
+    return {
+        "closeout_activation_state": "pending",
+        "activation_gap": "no_prior_verdict_artifacts",
+    }
 
 
 def _can_write(path: Path) -> bool:
@@ -594,6 +635,8 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         # Readiness metadata — context only, never decision input
         "repo_readiness_level": readiness["level"],
         "repo_readiness_limiting_factor": readiness["limiting_factor"],
+        "repo_closeout_activation_state": readiness.get("closeout_activation_state", "unknown"),
+        "repo_activation_gap": readiness.get("activation_gap"),
     }
 
     # Pass response_text for working_state and verified tiers.
@@ -620,6 +663,8 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         "memory_tier": memory_tier,
         "repo_readiness_level": readiness["level"],
         "repo_readiness_limiting_factor": readiness["limiting_factor"],
+        "repo_closeout_activation_state": readiness.get("closeout_activation_state", "unknown"),
+        "repo_activation_gap": readiness.get("activation_gap"),
         "closeout_classification": {
             "presence": clf["presence"],
             "schema_validity": clf["schema_validity"],
@@ -650,7 +695,9 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"closeout_status={result['closeout_status']}",
         f"memory_tier={result['memory_tier']}",
         f"repo_readiness_level={result['repo_readiness_level']}"
-        + (f" (limited by: {result['repo_readiness_limiting_factor']})" if result['repo_readiness_limiting_factor'] else ""),
+        + (f" (limited by: {result['repo_readiness_limiting_factor']})" if result['repo_readiness_limiting_factor'] else "")
+        + f"  activation={result.get('repo_closeout_activation_state', 'unknown')}"
+        + (f" (gap: {result['repo_activation_gap']})" if result.get('repo_activation_gap') else ""),
     ]
 
     clf = result.get("closeout_classification") or {}

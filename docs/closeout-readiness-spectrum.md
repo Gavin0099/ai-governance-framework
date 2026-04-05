@@ -1,6 +1,6 @@
 # Closeout Readiness Spectrum
 
-> Version: 1.0
+> Version: 1.1
 > Related: docs/closeout-repo-readiness.md, docs/session-closeout-schema.md
 
 ---
@@ -15,6 +15,34 @@ progression from having a stop hook to having verified session closeout.
 Readiness levels describe **what closeout governance capability a repo currently
 supports**. They do not describe team quality, engineering maturity, or AI usage
 quality.
+
+---
+
+## Two independent dimensions
+
+Readiness output carries two separate values. They must not be merged.
+
+**`repo_readiness_level` (0-3)** — Structural capability checklist.
+What governance infrastructure is in place. Determined by files, config, and
+code — not by session history. A repo that just had `upgrade_closeout` applied
+can be structural Level 3 immediately.
+
+**`closeout_activation_state`** — Whether the cross-reference loop has been
+observed in practice.
+
+| Value | Meaning |
+|-------|---------|
+| `active` | At least one verdict artifact exists — the capability has been exercised |
+| `pending` | Structural prerequisites met but no verdict artifacts yet |
+| `unknown` | Structural level too low to activate meaningfully |
+
+**Why separate?** A repo can be structural Level 3 with `activation=pending`
+(full capability in place, but no session has run yet). Treating "no prior
+verdicts" as a structural deficiency would confuse two different things:
+capability readiness and activation history.
+
+`prior_verdict_artifacts_exist` is an activation signal, not a structural one.
+It does not affect `repo_readiness_level`.
 
 ---
 
@@ -141,6 +169,15 @@ The repo has filesystem and artifact cross-reference enabled. Claims in
   (e.g. `pytest` → `.pytest_cache`, `session_end_hook` → `artifacts/runtime/verdicts/`)
 - [ ] `cross_reference_results` appear in verdict artifacts
 - [ ] `working_state_update` vs `verified_state_update` distinction is active
+
+**Note on activation:** In the current framework, cross-reference is always
+active once Level 2 structural prerequisites are met — the capability is in
+the framework code, not in per-repo configuration. A repo that reaches
+Level 2 is immediately structural Level 3.
+
+Whether the cross-reference loop has been *observed* in practice is captured
+separately in `closeout_activation_state` (`active` / `pending`). Prior
+verdict artifacts affect `activation_state` only — not the structural level.
 
 **What this level supports:**
 - `evidence_consistent` closeouts possible

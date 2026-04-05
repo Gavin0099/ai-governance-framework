@@ -102,7 +102,9 @@ def audit_repo(repo: Path, framework_root: Path) -> dict[str, Any]:
             "level": level,
             "level_label": _LEVEL_LABEL.get(level, str(level)),
             "limiting_factor": limiting,
-            "suggested_next_step": _next_step_for(limiting, repo),
+            "suggested_next_step": result.get("suggested_next_step") or _next_step_for(limiting, repo),
+            "closeout_activation_state": result.get("closeout_activation_state", "unknown"),
+            "activation_gap": result.get("activation_gap"),
             "checklist": result.get("checklist", {}),
             "error": None,
         }
@@ -142,13 +144,13 @@ def _collect_repos(args: argparse.Namespace) -> list[Path]:
 def _print_table(results: list[dict[str, Any]]) -> None:
     # Column widths
     repo_width = max(len("REPO"), max((len(r["repo"]) for r in results), default=4))
-    repo_width = min(repo_width, 60)  # cap to 60 chars
+    repo_width = min(repo_width, 55)  # cap to 55 chars
 
     header = (
-        f"{'REPO':<{repo_width}}  {'LVL':>3}  {'LABEL':<28}  LIMITING FACTOR / NEXT STEP"
+        f"{'REPO':<{repo_width}}  {'LVL':>3}  {'ACT':<7}  LIMITING FACTOR / NEXT STEP"
     )
     print(header)
-    print("-" * len(header))
+    print("-" * min(len(header) + 40, 120))
 
     for r in results:
         repo_display = r["repo"]
@@ -156,37 +158,58 @@ def _print_table(results: list[dict[str, Any]]) -> None:
             repo_display = "…" + repo_display[-(repo_width - 1):]
 
         if r["error"]:
-            print(f"{repo_display:<{repo_width}}  {'ERR':>3}  {'error':<28}  {r['error']}")
+            print(f"{repo_display:<{repo_width}}  {'ERR':>3}  {'—':<7}  {r['error']}")
             continue
 
         level = str(r["level"])
-        label = r.get("level_label", "")[:28]
+        activation = r.get("closeout_activation_state", "—")
+        # Abbreviate activation for column
+        act_short = {"active": "active", "pending": "pending", "unknown": "—"}.get(activation, activation)
         limiting = r.get("limiting_factor") or "—"
         next_step = r.get("suggested_next_step") or "—"
 
         # Shorten next_step to fit terminal
         next_col = f"{limiting}  →  {next_step}"
-        if len(next_col) > 80:
-            next_col = next_col[:77] + "…"
+        if len(next_col) > 70:
+            next_col = next_col[:67] + "…"
 
-        print(f"{repo_display:<{repo_width}}  {level:>3}  {label:<28}  {next_col}")
+        print(f"{repo_display:<{repo_width}}  {level:>3}  {act_short:<7}  {next_col}")
 
 
 def _print_summary(results: list[dict[str, Any]]) -> None:
     from collections import Counter
-    counts = Counter(r["level"] for r in results if r["error"] is None)
+    good = [r for r in results if r["error"] is None]
     errors = sum(1 for r in results if r["error"])
     total = len(results)
 
+    level_counts = Counter(r["level"] for r in good)
+    factor_counts = Counter(r.get("limiting_factor") for r in good if r.get("limiting_factor"))
+    activation_counts = Counter(r.get("closeout_activation_state", "unknown") for r in good)
+
     print()
-    print("── Distribution ──────────────────────────────────────────────────────")
-    for lvl in sorted(counts):
+    print("── Structural level distribution ─────────────────────────────────────")
+    for lvl in sorted(level_counts):
         label = _LEVEL_LABEL.get(lvl, str(lvl))
-        bar = "█" * counts[lvl]
-        print(f"  Level {lvl} ({label:<28}): {counts[lvl]:>3}  {bar}")
+        bar = "█" * level_counts[lvl]
+        print(f"  Level {lvl} ({label:<28}): {level_counts[lvl]:>3}  {bar}")
     if errors:
         print(f"  Errors (could not audit)              : {errors:>3}")
     print(f"  Total repos scanned                   : {total:>3}")
+
+    if factor_counts:
+        print()
+        print("── Adoption blockers (limiting_factor counts) ────────────────────────")
+        for factor, count in factor_counts.most_common():
+            bar = "█" * count
+            print(f"  {factor:<44}: {count:>3}  {bar}")
+
+    if activation_counts:
+        print()
+        print("── Activation state ──────────────────────────────────────────────────")
+        for state in ("active", "pending", "unknown"):
+            if state in activation_counts:
+                bar = "█" * activation_counts[state]
+                print(f"  {state:<44}: {activation_counts[state]:>3}  {bar}")
 
 
 def main() -> None:

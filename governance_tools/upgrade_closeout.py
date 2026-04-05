@@ -29,6 +29,14 @@ What it does NOT do:
     - Does not run session_end_hook
     - Does not touch memory/ files
 
+IMPORTANT — anti-misuse:
+    Running upgrade_closeout means the obligation text is present in AGENTS.base.md.
+    It does NOT mean the repo has upgraded its governance quality, closeout
+    compliance, or memory promotion rate. It is an instruction surface change,
+    not a quality certification. Do not treat "ran upgrade_closeout" as equivalent
+    to "closeout governance is working". The stop hook provides enforcement;
+    this tool only provides instruction.
+
 Rollback:
     The patch is an append-only operation. To rollback:
         git checkout HEAD -- AGENTS.base.md
