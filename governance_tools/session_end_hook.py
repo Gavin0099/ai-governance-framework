@@ -361,6 +361,7 @@ def detect_readiness_level(project_root: Path, framework_root: Path) -> dict[str
             "limiting_factor": "artifacts_not_writable",
             "suggested_next_step": "mkdir -p artifacts/runtime && chmod -R u+w artifacts/",
             "closeout_activation_state": "unknown",
+            "activation_recency": None,
             "activation_gap": "structural_prerequisites_missing",
         }
 
@@ -385,6 +386,7 @@ def detect_readiness_level(project_root: Path, framework_root: Path) -> dict[str
             "limiting_factor": limiting,
             "suggested_next_step": next_step,
             "closeout_activation_state": "unknown",
+            "activation_recency": None,
             "activation_gap": "structural_prerequisites_missing",
         }
 
@@ -428,24 +430,54 @@ def detect_readiness_level(project_root: Path, framework_root: Path) -> dict[str
     }
 
 
+_ACTIVATION_RECENCY_DAYS = 30  # verdicts older than this are considered stale
+
+
 def _detect_activation_state(project_root: Path) -> dict[str, Any]:
     """
     Compute closeout_activation_state independently of structural level.
 
-    active   — at least one verdict artifact exists (cross-reference loop observed)
-    pending  — structural prerequisites met, but no verdicts yet
+    Values:
+      observed  — at least one verdict artifact exists (closeout loop has been run)
+      pending   — structural prerequisites met but no verdict artifacts yet
 
-    This is activation history, not structural capability. It does not affect
-    the structural level number. It surfaces separately in output so reviewers
-    can distinguish 'not set up yet' from 'set up but not yet exercised'.
+    IMPORTANT SEMANTIC NOTE: 'observed' answers the question
+    "has this repo ever produced a closeout?" — NOT "is this repo currently reliable?"
+    observed ≠ trustworthy. observed = observed at least once.
+
+    activation_recency answers the follow-on question:
+      recent  — most recent verdict is within _ACTIVATION_RECENCY_DAYS days
+      stale   — verdicts exist but most recent is older than that threshold
+
+    activation_state reduces the risk of completely unverified operation.
+    It does not eliminate errors or adversarial behavior.
     """
     verdicts_dir = project_root / "artifacts" / "runtime" / "verdicts"
-    has_verdicts = verdicts_dir.exists() and any(verdicts_dir.glob("*.json"))
-    if has_verdicts:
-        return {"closeout_activation_state": "active", "activation_gap": None}
+    if not verdicts_dir.exists():
+        return {
+            "closeout_activation_state": "pending",
+            "activation_recency": None,
+            "activation_gap": "no_prior_verdict_artifacts",
+        }
+
+    verdict_files = sorted(verdicts_dir.glob("*.json"), key=lambda p: p.stat().st_mtime)
+    if not verdict_files:
+        return {
+            "closeout_activation_state": "pending",
+            "activation_recency": None,
+            "activation_gap": "no_prior_verdict_artifacts",
+        }
+
+    # Most recent verdict file
+    latest = verdict_files[-1]
+    age_seconds = datetime.now(tz=timezone.utc).timestamp() - latest.stat().st_mtime
+    age_days = age_seconds / 86400
+    recency = "recent" if age_days <= _ACTIVATION_RECENCY_DAYS else "stale"
+
     return {
-        "closeout_activation_state": "pending",
-        "activation_gap": "no_prior_verdict_artifacts",
+        "closeout_activation_state": "observed",
+        "activation_recency": recency,
+        "activation_gap": None,
     }
 
 
@@ -636,6 +668,7 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         "repo_readiness_level": readiness["level"],
         "repo_readiness_limiting_factor": readiness["limiting_factor"],
         "repo_closeout_activation_state": readiness.get("closeout_activation_state", "unknown"),
+        "repo_activation_recency": readiness.get("activation_recency"),
         "repo_activation_gap": readiness.get("activation_gap"),
     }
 
@@ -664,6 +697,7 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         "repo_readiness_level": readiness["level"],
         "repo_readiness_limiting_factor": readiness["limiting_factor"],
         "repo_closeout_activation_state": readiness.get("closeout_activation_state", "unknown"),
+        "repo_activation_recency": readiness.get("activation_recency"),
         "repo_activation_gap": readiness.get("activation_gap"),
         "closeout_classification": {
             "presence": clf["presence"],
@@ -697,6 +731,7 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"repo_readiness_level={result['repo_readiness_level']}"
         + (f" (limited by: {result['repo_readiness_limiting_factor']})" if result['repo_readiness_limiting_factor'] else "")
         + f"  activation={result.get('repo_closeout_activation_state', 'unknown')}"
+        + (f"/{result['repo_activation_recency']}" if result.get('repo_activation_recency') else "")
         + (f" (gap: {result['repo_activation_gap']})" if result.get('repo_activation_gap') else ""),
     ]
 

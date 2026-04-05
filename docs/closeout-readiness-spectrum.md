@@ -27,19 +27,44 @@ What governance infrastructure is in place. Determined by files, config, and
 code — not by session history. A repo that just had `upgrade_closeout` applied
 can be structural Level 3 immediately.
 
-**`closeout_activation_state`** — Whether the cross-reference loop has been
-observed in practice.
+**`closeout_activation_state`** — Whether the closeout loop has been observed
+in practice.
 
 | Value | Meaning |
 |-------|---------|
-| `active` | At least one verdict artifact exists — the capability has been exercised |
+| `observed` | At least one verdict artifact exists — the loop has been run before |
 | `pending` | Structural prerequisites met but no verdict artifacts yet |
 | `unknown` | Structural level too low to activate meaningfully |
 
-**Why separate?** A repo can be structural Level 3 with `activation=pending`
-(full capability in place, but no session has run yet). Treating "no prior
-verdicts" as a structural deficiency would confuse two different things:
-capability readiness and activation history.
+**`activation_recency`** — How recently the loop was last observed (only set
+when `activation_state=observed`).
+
+| Value | Meaning |
+|-------|---------|
+| `recent` | Most recent verdict within 30 days |
+| `stale` | Verdict artifacts exist but oldest one is older than 30 days |
+
+**Precise semantic definition:**
+
+`activation_state` indicates whether the repository has ever produced a
+closeout that satisfies the governance runtime. It does not imply ongoing
+compliance or guarantee system trustworthiness.
+
+`observed` answers: "has this repo ever run closeout?" — not "is this repo
+currently reliable?". `observed` ≠ trustworthy. `observed` = observed at
+least once.
+
+`activation_recency` refines this: `observed/stale` means the loop ran
+historically but may not reflect current behavior.
+
+Activation reduces the risk of completely unverified operation. It does not
+eliminate errors or adversarial behavior.
+
+**Why separate from structural level?** A repo can be structural Level 3 with
+`activation=pending` (full capability in place, no session run yet). Treating
+"no prior verdicts" as a structural deficiency would conflate:
+- structural capability (what infrastructure is in place)
+- activation history (whether that infrastructure has been exercised)
 
 `prior_verdict_artifacts_exist` is an activation signal, not a structural one.
 It does not affect `repo_readiness_level`.

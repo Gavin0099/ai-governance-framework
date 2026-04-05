@@ -104,6 +104,7 @@ def audit_repo(repo: Path, framework_root: Path) -> dict[str, Any]:
             "limiting_factor": limiting,
             "suggested_next_step": result.get("suggested_next_step") or _next_step_for(limiting, repo),
             "closeout_activation_state": result.get("closeout_activation_state", "unknown"),
+            "activation_recency": result.get("activation_recency"),
             "activation_gap": result.get("activation_gap"),
             "checklist": result.get("checklist", {}),
             "error": None,
@@ -147,7 +148,7 @@ def _print_table(results: list[dict[str, Any]]) -> None:
     repo_width = min(repo_width, 55)  # cap to 55 chars
 
     header = (
-        f"{'REPO':<{repo_width}}  {'LVL':>3}  {'ACT':<7}  LIMITING FACTOR / NEXT STEP"
+        f"{'REPO':<{repo_width}}  {'LVL':>3}  {'ACTIVATION':<16}  LIMITING FACTOR / NEXT STEP"
     )
     print(header)
     print("-" * min(len(header) + 40, 120))
@@ -158,13 +159,16 @@ def _print_table(results: list[dict[str, Any]]) -> None:
             repo_display = "…" + repo_display[-(repo_width - 1):]
 
         if r["error"]:
-            print(f"{repo_display:<{repo_width}}  {'ERR':>3}  {'—':<7}  {r['error']}")
+            print(f"{repo_display:<{repo_width}}  {'ERR':>3}  {'—':<16}  {r['error']}")
             continue
 
         level = str(r["level"])
         activation = r.get("closeout_activation_state", "—")
-        # Abbreviate activation for column
-        act_short = {"active": "active", "pending": "pending", "unknown": "—"}.get(activation, activation)
+        recency = r.get("activation_recency")
+        # Abbreviate activation for column; show recency if observed
+        act_short = {"observed": "observed", "pending": "pending", "unknown": "—"}.get(activation, activation)
+        if recency:
+            act_short = f"{act_short}/{recency}"
         limiting = r.get("limiting_factor") or "—"
         next_step = r.get("suggested_next_step") or "—"
 
@@ -173,7 +177,7 @@ def _print_table(results: list[dict[str, Any]]) -> None:
         if len(next_col) > 70:
             next_col = next_col[:67] + "…"
 
-        print(f"{repo_display:<{repo_width}}  {level:>3}  {act_short:<7}  {next_col}")
+        print(f"{repo_display:<{repo_width}}  {level:>3}  {act_short:<16}  {next_col}")
 
 
 def _print_summary(results: list[dict[str, Any]]) -> None:
@@ -205,11 +209,21 @@ def _print_summary(results: list[dict[str, Any]]) -> None:
 
     if activation_counts:
         print()
-        print("── Activation state ──────────────────────────────────────────────────")
-        for state in ("active", "pending", "unknown"):
+        print("── Activation state (observed=ran before, pending=not yet) ───────────")
+        for state in ("observed", "pending", "unknown"):
             if state in activation_counts:
                 bar = "█" * activation_counts[state]
                 print(f"  {state:<44}: {activation_counts[state]:>3}  {bar}")
+        # Recency breakdown for observed repos
+        recency_counts: Counter = Counter(
+            r.get("activation_recency")
+            for r in good
+            if r.get("closeout_activation_state") == "observed" and r.get("activation_recency")
+        )
+        if recency_counts:
+            for recency, count in recency_counts.most_common():
+                bar = "█" * count
+                print(f"    of which {recency:<40}: {count:>3}  {bar}")
 
 
 def main() -> None:
