@@ -1022,6 +1022,48 @@ documented reasons to deviate. Deviations must be recorded with explicit
 justification and are subject to the same falsifiability requirement as any
 other documented decision.
 
+**Fitness function self-revision trigger:**
+
+The fitness function defines what improvement looks like. But the fitness
+function itself is a governance artifact — its metric definitions, priority
+ordering, and interpretation rules were set at a point in time, under
+particular governance conditions. Like any governance artifact, they can
+become miscalibrated without producing any failure within the observation model.
+
+The specific failure mode: two metrics that should move together (per the
+priority ordering) diverge persistently. The clearest case is priority 1
+declining alongside priority 3 rising — recurrence is falling, but exploration
+cost is rising with it. Per the priority ordering, this is acceptable: priority
+3 yields to priority 1. But if the divergence persists across three or more
+periodic reviews without stabilizing, the ordering may be resolving the wrong
+way: the system is achieving recurrence reduction by sacrificing exploration,
+and calling that improvement.
+
+This is not a conflict the priority ordering can resolve, because the priority
+ordering is what produces it. The fitness function itself requires re-examination.
+
+**Fitness function self-revision condition:** When any two adjacent-priority
+metrics diverge persistently across three or more consecutive periodic reviews
+— moving in opposite directions without either stabilizing — the periodic
+review must include a meta-question: is this divergence evidence that the
+governance system is improving in the right direction, or evidence that the
+fitness function's priority ordering is producing a systematic tradeoff that
+was not intended?
+
+The meta-question cannot be answered by applying the fitness function. It
+requires stepping outside the fitness function and asking whether the metrics
+themselves are measuring what was intended. This is not automated. It requires
+a reviewer who can assess whether the current priority ordering still reflects
+the system's actual needs, or whether the ordering has become a source of
+systematic mismeasurement.
+
+If the meta-question concludes that the fitness function requires revision: the
+revision must be documented with the same falsifiability requirement as any
+other governance change — what would the revised fitness function predict, how
+would that prediction be checked, and what would show the revision was wrong.
+A fitness function revision that cannot be falsified is a preference change
+dressed as a governance improvement.
+
 ---
 
 ## Historical inertia and the right to forget
@@ -1259,3 +1301,56 @@ protocol gap.
 
 The adversarial test pack (Part D) tests boundary recognition. The protocol
 governs what happens after recognition occurs.
+
+---
+
+## Terminal condition: the honest limit
+
+This system can enforce the following:
+
+- **No silent failure:** non-response, drift, pattern, and accumulation all
+  produce detectable and required downstream effects
+- **No silent bias:** baselines, priorities, and the system's own personality
+  are required to be explicit and subject to re-examination
+- **No cost-free escape:** deferral, legitimization, and override all leave
+  traces; traces have expiry and consequence
+
+What this system cannot do — and what no observation-bounded system can do:
+
+**A failure that has not yet produced an observable signal cannot be governed.**
+
+A latent design flaw, a long-tail interaction, an edge case that has never
+appeared, a failure mode that only manifests under conditions the system has
+not encountered — these exist outside the observation model. They are not
+deferred or low-confidence; they are, at this moment, unnamed.
+
+The system's response to this limit is honest and specific:
+
+1. **Naming is the threshold.** Once a failure mode is named — by any mechanism,
+   including external audit, near-miss, or deliberate exploration — it enters
+   the observation model. From that point, silence is no longer permitted.
+   The threshold is recognition, not occurrence.
+
+2. **Forced exploration expands the boundary.** The invisible zone response
+   (exploration with falsifiability requirement, external audit, risk acceptance)
+   exists precisely to reduce the surface area of the unnamed. Exploration does
+   not eliminate unknowns; it converts some unknowns into named risks with
+   observable indicators.
+
+3. **The system is designed to shrink the unnamed zone, not to claim it is
+   empty.** A claim that the system has no unnamed failure modes is not a
+   governance achievement — it is a signal that the exploration function has
+   stopped working, or that reviewers have stopped looking beyond the existing
+   observation model.
+
+The final statement of this protocol's scope:
+
+**Everything that has been named and observed: governed. Everything that remains
+unnamed: a boundary condition of type B5 (scope outside observation model),
+requiring the invisible zone response at the moment of recognition. Until
+recognition: genuinely outside the protocol's authority.**
+
+This is not a failure of design. It is the honest terminal condition of any
+system that governs by observation. The aim is not to extend governance to the
+unobservable. The aim is to ensure that the moment something becomes observable,
+it cannot remain ungoverned.
