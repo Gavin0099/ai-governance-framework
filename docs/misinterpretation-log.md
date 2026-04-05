@@ -12,6 +12,13 @@
 > embedded in the entry at write time. An entry that already contains its
 > own expansion argument is a conclusion dressed as evidence.
 >
+> **Interpretive language test:** Before submitting an entry, ask: could a
+> reasonable reviewer interpret this entry differently based on the same data?
+> If the answer is no — if the entry admits only one reading — it likely
+> contains embedded interpretation. Words like "misused", "incorrectly",
+> "clearly" are interpretation signals, not observation signals. Describe
+> what was done; leave the verdict to review.
+>
 > **Expansion trigger:** patterns in this log are the primary evidence base
 > for adding new dimensions (e.g. activation quality). Do not expand the
 > model on theory alone.
@@ -162,18 +169,40 @@ questions. Proposals that cannot answer all three are returned without review.
    Describe the expected harm — reviewer error rate, decision boundary
    violations, or specific failure modes — if the status quo continues.
 
+4. **Name at least one unobserved but potentially relevant area.**
+   Identify a part of the system that may have similar problems but has
+   not appeared in the log — even speculatively. This is not a requirement
+   to fix that area; it is a requirement to acknowledge that your observations
+   may not cover the whole system. If you cannot name anything, that is
+   itself a signal worth examining.
+
 A proposal that passes the gate is a candidate for evaluation. Passing the
 gate does not mean the dimension will be added — it means the proposal has
 sufficient substance to be worth reviewing.
 
-**Counterfactual check (required before accepting):** Before accepting an
-expansion, the reviewer must consider the alternative explanation: could the
-observed trend be driven by attention bias, a transient condition, or
-momentum from a previous decision rather than a structural gap? A proposal
-that cannot be falsified by this question — i.e., where the answer is
-"no, there is no plausible alternative explanation" — has passed the
-counterfactual check. A proposal where the alternative explanation is
-plausible but dismissed without argument has not.
+**Counterfactual check (required before accepting):** The reviewer must
+complete the following scaffold. A proposal that does not fill all three
+fields has not passed the counterfactual check, regardless of how strong
+the supporting evidence looks.
+
+```
+Observation:
+<What the log entries show — factual, no verdict language>
+
+Alternative mechanism:
+<A concrete mechanism that could produce the same observations without
+a structural model gap — e.g. "reviewer attention was focused on activation
+issues this week", "a CI change caused a spike in verdict artifacts">
+
+Why this mechanism fails to explain the data:
+<Specific reason the alternative is implausible — not 'seems unlikely'
+but 'the pattern appeared across 3 different reviewers over 4 weeks,
+which attention bias cannot explain'>
+```
+
+Stating "this could be transient but given repeated occurrences it is
+unlikely" does not satisfy the scaffold. A mechanism must be named and
+then refuted. Possibility without mechanism is not a counterfactual.
 
 ## Expansion proposal log
 
