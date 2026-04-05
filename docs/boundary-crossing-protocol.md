@@ -802,6 +802,38 @@ changes have ever triggered re-examination, either the changes are all correct
 At periodic review, confirm that at least one policy change per N windows
 has been followed up with a post-change pattern check.
 
+**Domain entropy baseline comparison:**
+
+Not all persistent patterns after a policy change indicate misattribution.
+Some categories are structurally high-entropy: the underlying domain has
+genuine variability that makes it difficult to eliminate pattern recurrence
+regardless of how correct the policy change is. In high-entropy categories,
+"pattern persists" is normal — and treating persistence as a misattribution
+signal will produce rollback of correct changes.
+
+The baseline comparison rule: before treating pattern persistence as a
+misattribution signal, compare the persistence rate against the expected
+baseline for that category type. The relevant comparison is not "did the
+pattern persist?" but "did the pattern persist at a higher rate than the
+expected baseline for this category?"
+
+Two category types have distinct expectations:
+
+| Category type | Persistence after correct change | Implication of persistence |
+|--------------|----------------------------------|---------------------------|
+| Low-entropy (deterministic failure modes) | Declining to near-zero within 2 windows | Persistence strongly suggests misattribution |
+| High-entropy (domain-variable failure modes) | Declining but not to zero; oscillating | Persistence may be correct-change baseline |
+
+When a category has no established baseline (fewer than 3 prior policy
+change cycles), treat it as unknown entropy. Unknown-entropy persistence
+is not automatically misattribution — it is insufficient data. The required
+response is: extend the observation window before triggering re-examination,
+rather than treating absence of baseline as evidence of misattribution.
+
+The entropy classification itself must be documented when a category is first
+designated high-entropy. A category marked high-entropy without documented
+justification is using the classification as an avoidance route.
+
 **Consequence strength normalization:**
 
 The three outcome types currently produce changes of unequal governance
@@ -913,6 +945,42 @@ periodic structured review. The periodic review (once per three observation
 windows) should answer all four questions explicitly. A system that cannot
 answer at least one of them has insufficient observability of its own fitness.
 
+**Priority ordering when metrics conflict:**
+
+The four metrics can produce conflicting signals. Reducing recurrence may
+require adding constraints that raise exploration cost. Bounding false
+positives may require accepting a higher mandatory change rate. When two or
+more metrics conflict, the following default priority ordering applies:
+
+1. **Post-change recurrence declining** — if changes are not addressing root
+   causes, all other metrics are unreliable. A system making changes that do
+   not reduce recurrence is not learning; it is generating activity that
+   looks like governance.
+
+2. **False positive rate detectable and bounded** — if the classification
+   mechanism cannot be evaluated for accuracy, the system cannot distinguish
+   genuine learning from systematic error. Priority 1 is meaningless without
+   reliable classification.
+
+3. **Exploration cost stable or declining** — if the system can make correct
+   changes (1) and detect wrong ones (2), then rising exploration cost indicates
+   the constraint architecture is impeding new territory without genuine benefit.
+
+4. **Mandatory change rate declining in established categories** — this is
+   the long-term health signal. It becomes meaningful only when priorities
+   1–3 are satisfied: a declining change rate in a system with unbound false
+   positives or rising exploration cost is not improvement; it is stagnation.
+
+When priority 1 is not satisfied, the other three metrics should not be used
+to assess fitness. A system with declining change rate, low exploration cost,
+and bounded false positives but rising recurrence is getting worse, not better
+— the other signals are masking a root cause failure.
+
+This ordering is a default, not a rule. A specific category may have
+documented reasons to deviate. Deviations must be recorded with explicit
+justification and are subject to the same falsifiability requirement as any
+other documented decision.
+
 ---
 
 ## Historical inertia and the right to forget
@@ -968,6 +1036,107 @@ conditions that could trigger the original failure mode still exist. The
 relevant question is not "has this been tested recently?" but "if this
 constraint were absent, would the original failure mode be possible?" If yes,
 the constraint should be renewed, not retired, even with no recent testing.
+
+**Condition observability requirement:**
+
+The question "do the conditions that could trigger the original failure mode
+still exist?" must be answerable by observation, not by reasoning alone. If
+the only way to assess whether the condition persists is to reason through
+a chain of assumptions — rather than to observe an indicator directly — then
+the retention decision is operating under B1 or B5 boundary conditions (evidence
+below observability threshold; scope outside observation model).
+
+When a "when forgetting is wrong" assessment cannot be made observably, the
+default is: retain the constraint and treat the retention as a
+`low_confidence_proceed` with an explicit re-evaluation trigger. Do not use
+unverifiable reasoning chains to conclude the condition has passed — that
+conclusion cannot be falsified.
+
+The practical test: before renewing a constraint on the grounds that its
+triggering conditions persist, identify the specific observable indicator
+that would confirm those conditions. If no such indicator can be named, the
+renewal is based on assumption, not evidence. The renewal may still be correct,
+but it should be tagged with lower confidence, not stated as confirmed.
+
+---
+
+## System value function: when learning and forgetting conflict
+
+The preceding sections define learning mechanisms (add constraints when
+patterns confirm failure modes) and forgetting mechanisms (remove constraints
+when conditions no longer hold). These can be triggered simultaneously on
+the same category. When they are, the system must choose. That choice
+reveals the system's implicit value function — what it considers more costly
+to get wrong.
+
+**The conflict case:**
+
+Learning is triggered when a deviation pattern has accumulated to the
+Enforced tier. Forgetting is triggered when a constraint in the same category
+has been untested for three or more windows and its retention condition cannot
+be confirmed observably.
+
+Both triggers are valid. One says: "this category needs a new constraint."
+The other says: "an existing constraint in this category may no longer apply."
+Applied simultaneously without a priority rule, they produce incoherent
+governance: adding a constraint to a category while simultaneously removing
+an unvalidated one, with no guarantee the removed constraint and the new
+constraint are actually independent.
+
+**The explicit priority rule:**
+
+When learning (add constraint) and forgetting (remove constraint) are
+simultaneously triggered on the same or overlapping category:
+
+**Forgetting evaluates first. Learning evaluates second, on the post-evaluation
+baseline.**
+
+The reason is asymmetric error cost:
+
+- Adding a constraint on top of an invalid existing constraint produces
+  compounded over-constraint. Two wrong constraints in the same category
+  are harder to diagnose and unwind than one.
+- Removing a constraint that should have been retained, when a new constraint
+  is about to be added, produces a clean baseline — and the new constraint is
+  evaluated against that baseline, not against accumulated historical noise.
+
+The priority rule does not mean forgetting wins. It means forgetting is
+evaluated first to establish whether the baseline is clean. After evaluation:
+
+- If the existing constraint is confirmed valid: learning proceeds against a
+  validated baseline. Both constraints coexist only if confirmed independent.
+- If the existing constraint is retired: learning proceeds against a clean
+  baseline. The new constraint is not contaminated by the removed one.
+- If the existing constraint is tagged `low_confidence_proceed`: the new
+  constraint proceeds but is flagged as operating in a contested zone.
+  Future recurrence in this category must distinguish between "new constraint
+  is wrong" and "old constraint removal was wrong" before re-examination
+  concludes anything.
+
+**What the priority rule makes explicit:**
+
+This system considers over-constraint a more persistent governance failure
+than under-constraint. The reasoning: under-constraint in a single window
+produces a detectable deviation. Over-constraint accumulates silently —
+each constraint that references another, each decision justified by multiple
+overlapping zones, each reviewer who reasons around more rules than necessary.
+Silent accumulation is harder to detect and harder to reverse than a single
+missed deviation.
+
+This is not a claim that under-constraint is acceptable. It is a claim about
+which error the detection mechanisms are better positioned to catch. The
+deviation accumulation rule catches under-constraint within three windows.
+Over-constraint requires periodic direct review and explicit measurement of
+exploration cost. Given asymmetric detectability, the default should protect
+against the harder-to-detect error — which is over-constraint.
+
+**When the priority rule should not apply:**
+
+In high-consequence, low-entropy categories where the cost of under-constraint
+is irreversible: learning takes priority and forgetting is deferred until after
+the new constraint is established. The threshold for this override must be
+documented at the time of the decision, not applied post-hoc. Undocumented
+overrides are not overrides — they are unrecorded priority violations.
 
 ---
 
