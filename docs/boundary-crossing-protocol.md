@@ -611,13 +611,117 @@ correct response. It is that when they do not, the pattern cannot remain
 invisible, and eventually cannot remain unattributed.
 
 The progression is: single deviation → observable → pattern → operationalized
-→ persistent pattern → enforced → attributed outcome. Whether `drift_confirmed`
-leads to organizational change depends on what the organization does with an
-attributed pattern. That is outside this protocol's scope. But an attributed
-pattern is very different from an invisible one. Repeated visibility, made
-unavoidable by the accumulation rule, eventually becomes pressure that cannot
-be ignored without explicitly deciding to ignore it — which is itself a decision
-that can be observed.
+→ persistent pattern → enforced → attributed outcome → mandatory system change
+(see Pattern-to-policy binding below). Whether change occurs is no longer
+solely dependent on organizational will — the pattern-to-policy rule forces
+specific system parameter updates when outcome patterns cross the threshold.
+
+---
+
+## Pattern-to-policy binding
+
+The accumulation and outcome mechanisms above produce attributed patterns.
+Attribution is necessary but not sufficient for the system to be genuinely
+self-correcting. A pattern that is attributed but produces no mandatory
+change to system behavior is a terminal record — informative historically,
+inert going forward.
+
+The missing step: specific outcome patterns must produce specific mandatory
+changes to system parameters. Not reviews. Not recommendations. Parameter changes.
+
+**Binding rule:**
+
+When the same outcome type appears in the same category three consecutive
+windows, the following changes are mandatory:
+
+| Repeated outcome | Mandatory system change |
+|-----------------|------------------------|
+| `calibration_error` × 3 in same dimension | The dimension calibration for that category must be updated in the reference record; reference examples for that dimension are stale and must be revised; existing decisions that relied on the stale calibration are flagged for re-evaluation |
+| `cost_legitimate` × 3 in same response category | The response path is marked `structurally_inaccessible` for that category in governance-mechanism-tiers.md; this is a mandatory disclosure to adopters: "response type X is theoretically required but practically unavailable in category Y" |
+| `drift_confirmed` × 3 in same category | The category enters a **behavioral constraint zone**: any future decision in this category requires an additional documentation field explaining why the matrix-indicated response was used (or why it was not, with attributed reason); the zone remains until two consecutive decisions in the category use the matrix-indicated response |
+
+These changes are not conditional on reviewer agreement. They are automatic
+consequences of the pattern count reaching the threshold. The decision to
+apply them does not require a new review — the threshold crossing is the
+trigger.
+
+**Why parameter changes, not additional reviews:**
+
+The accumulation rule already produces reviews at the enforced tier. Adding
+another review at the outcome accumulation tier would create closure inflation:
+every unresolved pattern generates a new review structure, review agenda items
+accumulate faster than they are resolved, and the system becomes operationally
+active while decision quality remains unchanged.
+
+The binding rule breaks this by making the downstream effect automatic and
+specific. The change happens to a documented artifact (reference record,
+governance-mechanism-tiers.md, constraint zone declaration) — not to a review
+agenda. Artifacts are versioned; reviewers can see what changed and when.
+Reviews can be skipped or de-prioritized. Versioned artifact changes cannot.
+
+**Strategic compliance guard:**
+
+A reviewer who repeatedly uses `cost_legitimate` to avoid change eventually
+produces the mandatory system change: the path is marked `structurally_inaccessible`.
+This is the opposite of avoidance — marking a path as structurally inaccessible
+is a stronger governance finding than any individual drift confirmation. It must
+be disclosed to adopters. Strategic compliance that routes through `cost_legitimate`
+eventually forces the constraint into the public governance record.
+
+Similarly, `drift_confirmed` repeated three times creates a behavioral constraint
+zone that makes future non-standard responses require explicit justification.
+The cost of repeated non-standard behavior increases over time, not stays flat.
+
+---
+
+## Closure inflation guard
+
+The recursive closure structure (deviation → loop → non-closure → new loop)
+creates a risk that the system becomes structurally active but behaviorally
+stagnant: many loops, many reviews, no change.
+
+**Signal materiality filter:**
+
+Not every deviation enters the accumulation count. A deviation is material
+for accumulation purposes only if it meets at least one of:
+- The decision involved a `reversible_with_cost` or worse reversibility tier
+- The cost-of-not-deciding was assessed as high
+- The same deviation type has appeared in a previous window (any recurrence
+  is automatically material regardless of tier)
+
+Single, well-documented deviations on `fully_reversible`, low-cost situations
+are logged but do not enter the accumulation count. This prevents trivial
+edge cases from generating enforcement loops.
+
+**Loop retirement:**
+
+An accumulation loop is retired when:
+- The pattern-to-policy binding produces its mandatory change (the change
+  resets the count for that category)
+- Two consecutive windows in the same category produce no deviation (the
+  constraint zone is retired by the same mechanism as skepticism zones)
+
+A loop that has been in enforced tier for three windows without producing
+its mandatory change must be explicitly escalated outside the protocol — it
+represents a governance failure of the protocol itself, not a governance
+failure within it.
+
+**The limit of self-correction:**
+
+The pattern-to-policy binding produces mandatory changes to system parameters.
+It does not produce mandatory changes to organizational behavior. An organization
+that has `structurally_inaccessible` marked for a response type, and `drift_confirmed`
+zones active, and behavioral constraint zones accumulating — but still does not
+change how it actually makes decisions — has exhausted the self-correction capacity
+of this protocol.
+
+At that point, the protocol has done what it can. The governance record is
+complete, attributable, and visible. The remaining gap is between governance
+record and governance effect — which is the organizational design problem that
+sits outside any mechanism this protocol can provide.
+
+What the protocol guarantees: that gap cannot be hidden. The governance record
+will show exactly where the system stopped responding to its own signals.
 
 ---
 
