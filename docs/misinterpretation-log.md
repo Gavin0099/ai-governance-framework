@@ -180,6 +180,14 @@ questions. Proposals that cannot answer all three are returned without review.
    exhaust the search space. If you cannot name anything specific, that is
    itself a signal worth examining.
 
+5. **If this proposal is wrong, what concrete failure would we expect to
+   observe later?**
+   Name a specific observable outcome — a pattern in future log entries, a
+   behavior in verdict artifacts, a reviewer action — that would indicate
+   the new dimension did not solve the problem or created new ones. A
+   proposal that cannot be falsified by future observation is not a
+   scientific claim — it is a preference.
+
 A proposal that passes the gate is a candidate for evaluation. Passing the
 gate does not mean the dimension will be added — it means the proposal has
 sufficient substance to be worth reviewing.
@@ -206,7 +214,11 @@ which attention bias cannot explain'>
 Which part of this reasoning are you least confident about?
 <Required. If you cannot answer this, the reasoning is likely shallow.
 If the answer comes easily, it identifies where the proposal is most
-vulnerable and should be examined first.>
+vulnerable and should be examined first.
+The uncertainty must be decision-relevant: resolving it differently would
+change whether the proposal should be accepted. 'The completeness of
+alternative mechanisms' is a safe non-answer. 'Whether the pattern is
+semantic grouping or three independent issues' is decision-relevant.>
 ```
 
 Stating "this could be transient but given repeated occurrences it is

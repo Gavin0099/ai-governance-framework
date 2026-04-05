@@ -18,6 +18,14 @@ looks like, and provides detection signals.
 It does not add new rules. It describes how to tell when existing rules have
 stopped working.
 
+**Scope limitation:** The scaffolds in this framework support explicit
+reasoning when justification is required. They do not replace experienced
+judgment in low-ambiguity contexts. A reviewer with strong pattern recognition
+should not be required to reconstruct that recognition into a scaffold in order
+for it to count. Forcing experienced judgment through analytical scaffolding
+can slow decisions without improving them. Use the scaffold when ambiguity
+or justification is genuinely required — not as a universal filter.
+
 ---
 
 ## What ritualization looks like
@@ -180,6 +188,11 @@ When a pattern is confirmed ritualized:
 **Do not add new mechanisms to compensate for a ritualized one.** A ritualized
 mechanism that gets a new companion mechanism will produce two ritualized
 mechanisms. Fix the original.
+
+If a mechanism persistently requires additional rules to prevent misuse, it
+may be operating at the wrong level of abstraction — not just poorly worded.
+The question to ask is not "what rule do we add?" but "are we trying to govern
+the right thing at the right layer?"
 
 ---
 
