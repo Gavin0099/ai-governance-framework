@@ -96,7 +96,89 @@ def _memory_schema_complete(project_root: Path) -> bool:
     return True
 
 
-def _build_decision_context(project_root: Path, memory_mode: str) -> dict[str, str]:
+def _classify_governance_strategy(
+    project_root: Path,
+    checks: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Derive governance classification from observable session-end evidence.
+
+    Conservative: classify down when uncertain.
+    See docs/governance-strategy-runtime.md for decision rules and field specs.
+    """
+    # Tool gate: session_end hook is executing — active and observed
+    tool_gate = "active"
+    tool_gate_source = "observed"
+
+    # File access: session_end runs with file I/O — confirmed observed
+    has_file_access = True
+    file_access_source = "observed"
+
+    # Instruction loaded: check for CLAUDE.md or AGENTS.md in project root or framework root
+    framework_root = Path(__file__).resolve().parents[2]
+    instruction_candidates = [
+        project_root / "CLAUDE.md",
+        project_root / "AGENTS.md",
+        framework_root / "CLAUDE.md",
+    ]
+    instruction_found = any(f.exists() for f in instruction_candidates)
+    instruction_loaded = "true" if instruction_found else "unknown"
+    instruction_source = "observed" if instruction_found else "assumed"
+
+    # Context integrity: look for degradation signals in post-task checks dict
+    context_integrity = "full"
+    context_source = "observed"
+    if checks:
+        _warnings = checks.get("warnings") or []
+        _errors = checks.get("errors") or []
+        _all_messages = " ".join(str(m) for m in _warnings + _errors).lower()
+        if any(sig in _all_messages for sig in ("truncat", "context_degraded", "token_budget", "token_warning")):
+            context_integrity = "degraded"
+            context_source = "observed"
+
+    classification_evidence = {
+        "has_file_access": {"value": has_file_access, "source": file_access_source},
+        "instruction_loaded": {"value": instruction_loaded, "source": instruction_source},
+        "context_integrity": {"value": context_integrity, "source": context_source},
+        "tool_gate": {"value": tool_gate, "source": tool_gate_source},
+    }
+
+    # Classification decision: conservative (classify down when uncertain)
+    # Mirrors the decision rules in docs/governance-strategy-runtime.md
+    if tool_gate == "missing":
+        effective_agent_class = "wrapper_only"
+    elif context_integrity == "degraded" or instruction_loaded == "false":
+        effective_agent_class = "instruction_limited"
+    elif (
+        has_file_access
+        and instruction_loaded in ("true", "unknown")
+        and context_integrity in ("full", "unknown")
+        and tool_gate == "active"
+    ):
+        effective_agent_class = "instruction_capable"
+    else:
+        effective_agent_class = "instruction_limited"  # conservative default
+
+    _strategy_map = {
+        "instruction_capable": "injection+enforcement",
+        "instruction_limited": "minimal_injection+enforcement",
+        "wrapper_only": "no_injection+strict_enforcement",
+    }
+    governance_strategy = _strategy_map[effective_agent_class]
+
+    return {
+        "classification_evidence": classification_evidence,
+        "effective_agent_class": effective_agent_class,
+        "governance_strategy": governance_strategy,
+        "injection_reliance": "none",  # invariant: enforcement never depends on injection
+    }
+
+
+def _build_decision_context(
+    project_root: Path,
+    memory_mode: str,
+    checks: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     framework_root = Path(__file__).resolve().parents[2]
     try:
         manifest = build_runtime_surface_manifest(framework_root)
@@ -133,11 +215,13 @@ def _build_decision_context(project_root: Path, memory_mode: str) -> dict[str, s
     else:
         memory_integrity = "complete" if _memory_schema_complete(project_root) else "partial"
 
-    return {
+    result: dict[str, Any] = {
         "surface_validity": surface_validity,
         "coverage_completeness": coverage_completeness,
         "memory_integrity": memory_integrity,
     }
+    result.update(_classify_governance_strategy(project_root, checks or {}))
+    return result
 
 
 def _build_policy_summary(policy: dict[str, Any]) -> dict[str, Any]:
@@ -434,7 +518,7 @@ def run_session_end(
     promotion_result = None
     policy = classify_promotion_policy(contract, check_result=checks)
     decision = policy["decision"]
-    decision_context = _build_decision_context(project_root, contract["memory_mode"])
+    decision_context = _build_decision_context(project_root, contract["memory_mode"], checks)
 
     memory_root = project_root / "memory"
     if contract["memory_mode"] != "stateless" and response_text:

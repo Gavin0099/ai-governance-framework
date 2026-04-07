@@ -193,6 +193,44 @@ def build_session_start_context(
 
     validator_preflight = preflight_domain_validators(resolved_contract_file) if resolved_contract_file else None
 
+    # ── Governance strategy classification (session-init first pass) ─────────
+    # Evidence is conservative: classify down when uncertain.
+    # See docs/governance-strategy-runtime.md for decision rules.
+    _instruction_candidates = [
+        project_root / "CLAUDE.md",
+        project_root / "AGENTS.md",
+        Path(__file__).resolve().parents[2] / "CLAUDE.md",
+    ]
+    _instruction_found = any(f.exists() for f in _instruction_candidates)
+    _instruction_loaded = "true" if _instruction_found else "unknown"
+    _session_classification_evidence = {
+        "has_file_access": {"value": True, "source": "observed"},
+        "instruction_loaded": {"value": _instruction_loaded, "source": "observed" if _instruction_found else "assumed"},
+        "context_integrity": {"value": "unknown", "source": "assumed"},  # no signals yet at session init
+        "tool_gate": {"value": "active", "source": "observed"},  # this hook is executing
+    }
+    _pre_task_warnings = pre_task.get("warnings") or []
+    if any("truncat" in w.lower() or "token_budget" in w.lower() for w in _pre_task_warnings):
+        _session_classification_evidence["context_integrity"] = {"value": "degraded", "source": "observed"}
+    _ctx = _session_classification_evidence["context_integrity"]["value"]
+    if _ctx == "degraded" or _instruction_loaded == "false":
+        _effective_agent_class = "instruction_limited"
+    elif _instruction_loaded in ("true", "unknown") and _ctx in ("unknown", "full"):
+        _effective_agent_class = "instruction_capable"
+    else:
+        _effective_agent_class = "instruction_limited"
+    _strategy_map = {
+        "instruction_capable": "injection+enforcement",
+        "instruction_limited": "minimal_injection+enforcement",
+        "wrapper_only": "no_injection+strict_enforcement",
+    }
+    session_governance_classification = {
+        "classification_evidence": _session_classification_evidence,
+        "effective_agent_class": _effective_agent_class,
+        "governance_strategy": _strategy_map[_effective_agent_class],
+        "injection_reliance": "none",
+    }
+
     # Payload audit hook — zero overhead when disabled (env var not set)
     if is_audit_enabled():
         _audit_contracts = [str(resolved_contract_file)] if resolved_contract_file else []
@@ -246,6 +284,7 @@ def build_session_start_context(
         },
         "state": state,
         "pre_task_check": pre_task,
+        "governance_classification": session_governance_classification,
     }
 
 

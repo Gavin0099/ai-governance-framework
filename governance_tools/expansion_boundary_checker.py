@@ -63,6 +63,8 @@ KNOWN_SESSION_START_KEYS = {
     "suggested_skills",
     "task_text",
     "validator_preflight",
+    # governance strategy classification admitted 6048f9f / governance-strategy-runtime
+    "governance_classification",
 }
 
 # pre_task_check spreads **active_rules_result so many keys are not literal in
