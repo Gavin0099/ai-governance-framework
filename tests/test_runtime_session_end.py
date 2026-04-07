@@ -448,3 +448,92 @@ def test_session_end_replay_preserves_verdict_for_same_input(local_project_root)
     assert trace_a["result"] == trace_b["result"]
     assert trace_a["decision_path"] == trace_b["decision_path"]
     assert trace_a["decision_path"][0] == {"index": 1, "step": "normalize runtime contract"}
+
+
+def test_verdict_no_governance_escalation_without_transition_tracking(local_project_root):
+    # Without initial_agent_class, classification_changed is None — no escalation.
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="governance-esc-01",
+        runtime_contract=_contract(),
+        checks={"ok": True, "errors": []},
+        response_text="output",
+    )
+
+    verdict_payload = json.loads(Path(result["verdict_artifact"]).read_text(encoding="utf-8"))
+    oe = verdict_payload["override_or_escalation"]
+    assert oe["governance_escalation_present"] is False
+    # escalation_present for auto low-risk should also be False (no escalation signals)
+    assert oe["escalation_present"] is False
+
+
+def test_verdict_governance_escalation_on_classification_downgrade(local_project_root):
+    # When initial_agent_class triggers a downgrade (context degraded), verdict escalates.
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="governance-esc-02",
+        runtime_contract=_contract(),
+        checks={
+            "ok": True,
+            "errors": [],
+            "warnings": ["context_degraded: token_budget exceeded"],
+        },
+        response_text="output",
+        initial_agent_class="instruction_capable",  # starts higher, degrades
+    )
+
+    verdict_payload = json.loads(Path(result["verdict_artifact"]).read_text(encoding="utf-8"))
+    dc = verdict_payload["decision_context"]
+    oe = verdict_payload["override_or_escalation"]
+
+    # Classification must have changed downward
+    assert dc["classification_changed"] is True
+    assert dc["reclassification_reason"] in ("context_degraded", "conservative_downgrade")
+    # Governance escalation must be present
+    assert oe["governance_escalation_present"] is True
+    assert oe["escalation_present"] is True
+    # A governance downgrade warning must appear
+    assert any("governance: classification_downgrade" in w for w in result["warnings"])
+
+
+def test_verdict_governance_escalation_on_anomaly_upgrade(local_project_root):
+    # An anomaly upgrade (proxy inconsistency) also triggers governance escalation.
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="governance-esc-03",
+        runtime_contract=_contract(),
+        checks={"ok": True, "errors": []},
+        response_text="output",
+        initial_agent_class="wrapper_only",  # starts lower → session_end sees higher
+    )
+
+    verdict_payload = json.loads(Path(result["verdict_artifact"]).read_text(encoding="utf-8"))
+    dc = verdict_payload["decision_context"]
+    oe = verdict_payload["override_or_escalation"]
+
+    # session_end should classify as instruction_capable (normal path), marking upgrade anomaly
+    assert dc["classification_changed"] is True
+    assert dc["reclassification_reason"] == "classification_anomaly_upgrade"
+    assert oe["governance_escalation_present"] is True
+    assert oe["escalation_present"] is True
+    # An anomaly warning must appear
+    assert any("classification_anomaly" in w for w in result["warnings"])
+
+
+def test_verdict_no_governance_escalation_when_class_unchanged(local_project_root):
+    # When initial and effective class are the same, no escalation.
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="governance-esc-04",
+        runtime_contract=_contract(),
+        checks={"ok": True, "errors": []},
+        response_text="output",
+        initial_agent_class="instruction_capable",  # same as session_end result
+    )
+
+    verdict_payload = json.loads(Path(result["verdict_artifact"]).read_text(encoding="utf-8"))
+    dc = verdict_payload["decision_context"]
+    oe = verdict_payload["override_or_escalation"]
+
+    assert dc["classification_changed"] is False
+    assert oe["governance_escalation_present"] is False

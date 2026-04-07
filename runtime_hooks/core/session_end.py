@@ -368,6 +368,15 @@ def _build_verdict_artifact(
 ) -> dict[str, Any]:
     override_present = bool(checks.get("override_trace") or checks.get("reviewer_override"))
     escalation_present = decision == "REVIEW_REQUIRED" or contract.get("oversight") != "auto"
+
+    # Governance escalation: any classification change (downgrade or anomaly upgrade)
+    # warrants explicit reviewer attention beyond the normal session verdict signal.
+    # Downgrade → governance strategy tightened; upgrade → proxy inconsistency detected.
+    # See docs/classification-reaction-policy.md for reaction rules.
+    governance_escalation_present = decision_context.get("classification_changed") is True
+    if governance_escalation_present:
+        escalation_present = True
+
     return {
         "schema_version": "1.0",
         "artifact_type": "runtime-verdict",
@@ -397,6 +406,7 @@ def _build_verdict_artifact(
         "override_or_escalation": {
             "override_present": override_present,
             "escalation_present": escalation_present,
+            "governance_escalation_present": governance_escalation_present,
         },
     }
 
