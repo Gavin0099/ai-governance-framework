@@ -40,6 +40,12 @@ _KNOWN_REASONS = frozenset(
 
 _KNOWN_CLASSES = frozenset({"instruction_capable", "instruction_limited", "wrapper_only"})
 
+# Threshold above which conservative_downgrade_rate triggers a classifier review flag.
+# Not a hard invariant — this is a drift indicator. If the rate climbs above this threshold
+# it suggests classification logic has an unhandled edge case, not that the system is broken.
+# See docs/classification-reaction-policy.md for policy_flags semantics.
+_CONSERVATIVE_DOWNGRADE_REVIEW_THRESHOLD = 0.10  # 10% of sessions
+
 
 def build_classification_session_summary(project_root: Path) -> dict[str, Any]:
     """
@@ -55,6 +61,12 @@ def build_classification_session_summary(project_root: Path) -> dict[str, Any]:
     - effective_class_distribution: {class_value: count, ...}
     - conservative_downgrade_rate: float | None (None if no sessions)
     - unknown_reasons: [reason_value, ...] values not in controlled taxonomy
+    - policy_flags: {
+        "anomaly_alert": bool,        — any anomaly_count > 0 (hard invariant: should be 0)
+        "classifier_review": bool,    — conservative_downgrade_rate > threshold (drift signal)
+        "taxonomy_breach": bool,      — any unknown_reasons present (schema drift)
+      }
+    - policy_ok: bool — True iff no policy_flags are raised
     """
     summaries_dir = project_root / "artifacts" / "runtime" / "summaries"
 
@@ -109,8 +121,23 @@ def build_classification_session_summary(project_root: Path) -> dict[str, Any]:
 
     unknown_reasons = sorted(r for r in reason_counts if r not in _KNOWN_REASONS)
 
+    # Policy flags: minimum judgment rules for governance health.
+    # anomaly_alert is a hard invariant — any nonzero count needs investigation.
+    # classifier_review is a drift signal — high rate implies classification logic gaps.
+    # taxonomy_breach is a schema contract signal — unknown reasons indicate spec drift.
+    policy_flags = {
+        "anomaly_alert": anomaly_count > 0,
+        "classifier_review": (
+            conservative_downgrade_rate is not None
+            and conservative_downgrade_rate > _CONSERVATIVE_DOWNGRADE_REVIEW_THRESHOLD
+        ),
+        "taxonomy_breach": len(unknown_reasons) > 0,
+    }
+    policy_ok = not any(policy_flags.values())
+
     return {
         "ok": True,
+        "policy_ok": policy_ok,
         "project_root": str(project_root),
         "summaries_dir": str(summaries_dir),
         "session_count": total,
@@ -121,6 +148,7 @@ def build_classification_session_summary(project_root: Path) -> dict[str, Any]:
         "effective_class_distribution": class_counts,
         "conservative_downgrade_rate": conservative_downgrade_rate,
         "unknown_reasons": unknown_reasons,
+        "policy_flags": policy_flags,
         "unreadable_files": unreadable,
     }
 
@@ -130,9 +158,12 @@ def format_human_result(result: dict[str, Any]) -> str:
     class_dist = result.get("effective_class_distribution") or {}
     total = result["session_count"]
     conservative_rate = result.get("conservative_downgrade_rate")
+    policy_flags = result.get("policy_flags") or {}
+    policy_ok = result.get("policy_ok", True)
 
     summary_line = build_summary_line(
         f"ok={result['ok']}",
+        f"policy_ok={policy_ok}",
         f"sessions={total}",
         f"downgrades={result['downgrade_count']}",
         f"anomalies={result['anomaly_count']}",
@@ -150,6 +181,15 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"anomaly_count={result['anomaly_count']}",
         f"conservative_downgrade_rate={conservative_rate}",
     ]
+
+    # Policy flags: show even when all False so reviewers can confirm health state
+    lines.append("[policy_flags]")
+    lines.append(f"  anomaly_alert={policy_flags.get('anomaly_alert', False)}"
+                 "  # hard invariant: any anomaly_count > 0 needs investigation")
+    lines.append(f"  classifier_review={policy_flags.get('classifier_review', False)}"
+                 f"  # drift signal: conservative_downgrade_rate > {_CONSERVATIVE_DOWNGRADE_REVIEW_THRESHOLD}")
+    lines.append(f"  taxonomy_breach={policy_flags.get('taxonomy_breach', False)}"
+                 "  # schema drift: unknown reason values detected")
 
     if reason_dist:
         lines.append("[reason_distribution]")

@@ -36,8 +36,13 @@
 ```python
 # _build_verdict_artifact() 中
 governance_escalation_present = decision_context.get("classification_changed") is True
+governance_escalation_type = None
 if governance_escalation_present:
     escalation_present = True
+    if reclassification_reason == "classification_anomaly_upgrade":
+        governance_escalation_type = "classification_anomaly_upgrade"
+    else:
+        governance_escalation_type = "classification_downgrade"
 ```
 
 **表面**：`artifacts/runtime/verdicts/{session_id}.json` 中的：
@@ -45,20 +50,24 @@ if governance_escalation_present:
 {
   "override_or_escalation": {
     "escalation_present": true,
-    "governance_escalation_present": true
+    "governance_escalation_present": true,
+    "governance_escalation_type": "classification_downgrade"
   }
 }
 ```
 
-**語義**：
-- `governance_escalation_present = True` 明確標示「governance 層偵測到 classification 變化」
-- `escalation_present = True` 讓所有 verdict 消費者（reviewer 工具、CI pipeline）知道本 session 需要關注
-- 這是獨立於 contract `oversight` 設定的 governance-layer 訊號
+**`governance_escalation_type` 語義**：
 
-**為什麼兩種 change 都觸發**：
-- Downgrade → governance strategy 收緊，reviewer 需確認收緊後的行為仍符合預期
-- Upgrade anomaly → proxy 訊號不一致，reviewer 需調查訊號來源
-- 兩者都屬於「classification 的實際行為與預期不一致」的情況，都值得 reviewer 注意
+| 值 | 事件本質 | Consumer 應如何解讀 |
+|----|---------|-------------------|
+| `"classification_downgrade"` | Agent 能力退化；governance strategy 收緊 | 確認收緊後行為是否仍符合預期；檢查 reclassification_reason |
+| `"classification_anomaly_upgrade"` | Proxy 訊號前後不一致；分類器可疑 | 調查 proxy signal 來源；不代表 agent 能力真的回升 |
+| `null` | 無 classification change | 不需要特別注意 |
+
+**為什麼區分兩種 escalation type**：
+- Downgrade 和 anomaly upgrade 本質不同：前者是 agent 路徑變化，後者是分類器自身的一致性問題
+- Consumer 不應把 `"governance_escalation_present": true` 當成單一信號——它代表兩種截然不同的問題來源
+- `governance_escalation_type` 讓 CI pipeline 和 reviewer 能做出不同的 triage 決定，而不是一律走同一條審查路徑
 
 ---
 
@@ -73,11 +82,15 @@ if governance_escalation_present:
 **輸出**：
 ```
 [classification_session_summary]
-summary=ok=True | sessions=5 | downgrades=2 | anomalies=0 | conservative_rate=0.2
+summary=ok=True | policy_ok=True | sessions=5 | downgrades=2 | anomalies=0 | conservative_rate=0.2
 session_count=5
 downgrade_count=2
 anomaly_count=0
 conservative_downgrade_rate=0.2
+[policy_flags]
+  anomaly_alert=False  # hard invariant: any anomaly_count > 0 needs investigation
+  classifier_review=False  # drift signal: conservative_downgrade_rate > 0.1
+  taxonomy_breach=False  # schema drift: unknown reason values detected
 [reason_distribution]
   context_degraded=1
   conservative_downgrade=1
@@ -86,18 +99,26 @@ conservative_downgrade_rate=0.2
   instruction_limited=2
 ```
 
-**主要用途**：
+**`policy_flags` 語義**：
 
-| 問題 | 對應指標 |
-|------|---------|
-| `conservative_downgrade` 是否異常高頻？ | `conservative_downgrade_rate` |
-| `classification_anomaly_upgrade` 有無出現？ | `anomaly_count` |
-| 哪個 effective class 最常見？ | `effective_class_distribution` |
-| 有無未知 reason value 出現（schema drift）？ | `unknown_reasons` |
+| 旗標 | 性質 | 觸發條件 | 應對方向 |
+|------|------|---------|---------|
+| `anomaly_alert` | Hard invariant | `anomaly_count > 0` | 調查 proxy 訊號不一致來源；這不應出現在正常運作中 |
+| `classifier_review` | Drift signal | `conservative_downgrade_rate > 10%` | 審查分類決策邏輯；尋找未處理的 edge case |
+| `taxonomy_breach` | Schema contract | `unknown_reasons` 非空 | 檢查 session_end 版本；reason 值是否與 taxonomy 不符 |
 
-**預期的正常範圍**：
-- `conservative_downgrade_rate` 應接近 0（如果高頻 > 10%，代表分類邏輯有漏洞）
-- `anomaly_count` 應永遠為 0（任何非零值都需要調查）
+**關於 `conservative_downgrade_rate` 的判讀**：
+
+這個指標不應追求「接近 0」的絕對標準。
+在某些環境（context 不穩定、instruction surface 不完整）下，適度的 conservative_downgrade 是正常的。
+
+更有意義的問題是：
+
+- 這個比率是否相對穩定（沒有突然暴增）？
+- 它是否在某個 adapter 版本或環境變更後驟升？
+- 它是否成為 downgrade 的「主導原因」而非少數例外？
+
+10% 閾值是 drift indicator，不是 zero-tolerance invariant。
 
 ---
 

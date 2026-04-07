@@ -371,11 +371,19 @@ def _build_verdict_artifact(
 
     # Governance escalation: any classification change (downgrade or anomaly upgrade)
     # warrants explicit reviewer attention beyond the normal session verdict signal.
-    # Downgrade → governance strategy tightened; upgrade → proxy inconsistency detected.
-    # See docs/classification-reaction-policy.md for reaction rules.
+    # governance_escalation_type distinguishes the two fundamentally different events:
+    #   "classification_downgrade"      — agent capability degraded; strategy tightened
+    #   "classification_anomaly_upgrade" — proxy signals inconsistent; classifier suspect
+    # See docs/classification-reaction-policy.md for escalation type semantics.
     governance_escalation_present = decision_context.get("classification_changed") is True
+    governance_escalation_type: str | None = None
     if governance_escalation_present:
         escalation_present = True
+        _escalation_reason = decision_context.get("reclassification_reason")
+        if _escalation_reason == "classification_anomaly_upgrade":
+            governance_escalation_type = "classification_anomaly_upgrade"
+        else:
+            governance_escalation_type = "classification_downgrade"
 
     return {
         "schema_version": "1.0",
@@ -407,6 +415,7 @@ def _build_verdict_artifact(
             "override_present": override_present,
             "escalation_present": escalation_present,
             "governance_escalation_present": governance_escalation_present,
+            "governance_escalation_type": governance_escalation_type,
         },
     }
 

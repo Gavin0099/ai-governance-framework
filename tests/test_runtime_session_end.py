@@ -463,6 +463,7 @@ def test_verdict_no_governance_escalation_without_transition_tracking(local_proj
     verdict_payload = json.loads(Path(result["verdict_artifact"]).read_text(encoding="utf-8"))
     oe = verdict_payload["override_or_escalation"]
     assert oe["governance_escalation_present"] is False
+    assert oe["governance_escalation_type"] is None
     # escalation_present for auto low-risk should also be False (no escalation signals)
     assert oe["escalation_present"] is False
 
@@ -489,8 +490,9 @@ def test_verdict_governance_escalation_on_classification_downgrade(local_project
     # Classification must have changed downward
     assert dc["classification_changed"] is True
     assert dc["reclassification_reason"] in ("context_degraded", "conservative_downgrade")
-    # Governance escalation must be present
+    # Governance escalation must be present with downgrade type
     assert oe["governance_escalation_present"] is True
+    assert oe["governance_escalation_type"] == "classification_downgrade"
     assert oe["escalation_present"] is True
     # A governance downgrade warning must appear
     assert any("governance: classification_downgrade" in w for w in result["warnings"])
@@ -515,6 +517,7 @@ def test_verdict_governance_escalation_on_anomaly_upgrade(local_project_root):
     assert dc["classification_changed"] is True
     assert dc["reclassification_reason"] == "classification_anomaly_upgrade"
     assert oe["governance_escalation_present"] is True
+    assert oe["governance_escalation_type"] == "classification_anomaly_upgrade"
     assert oe["escalation_present"] is True
     # An anomaly warning must appear
     assert any("classification_anomaly" in w for w in result["warnings"])
@@ -537,3 +540,4 @@ def test_verdict_no_governance_escalation_when_class_unchanged(local_project_roo
 
     assert dc["classification_changed"] is False
     assert oe["governance_escalation_present"] is False
+    assert oe["governance_escalation_type"] is None
