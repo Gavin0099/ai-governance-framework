@@ -226,7 +226,10 @@ def build_session_start_context(
     }
     session_governance_classification = {
         "classification_evidence": _session_classification_evidence,
+        "initial_agent_class": None,       # not applicable: this IS the initial classification
         "effective_agent_class": _effective_agent_class,
+        "classification_changed": None,    # not applicable at session_start
+        "reclassification_reason": None,   # not applicable at session_start
         "governance_strategy": _strategy_map[_effective_agent_class],
         "injection_reliance": "none",
     }

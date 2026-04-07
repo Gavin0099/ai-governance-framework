@@ -87,7 +87,10 @@
 > 如果沒有 affirmative degradation signal，頂多能說「未觀測到 degradation」，
 > 不能說「context 是 full 的」。
 
-**建議**：下一版考慮把 default 改為 `unknown`，只在有 affirmative observation 時才設為 `full`。
+**已實作**：`context_integrity` 預設值已改為 `unknown`（`context_source = "assumed"`）。
+只有在 checks 中觀測到 affirmative degradation signal 時，才設為 `degraded` / `observed`。
+`full` 值目前保留在 schema 中，但不由 session_end runtime 主動賦值；
+僅供未來有 positive affirmative observation 機制時使用。
 
 ---
 
@@ -153,24 +156,50 @@ post_task_hook_observed: true | false | unknown
 
 ---
 
-## Strategy Transition 的語義缺口（待補）
+## Strategy Transition 欄位（已實作）
 
-目前 `classification_evidence` 在 session_start 和 session_end 各做一次，但沒有對比機制。
+`classification_evidence` 在 session_start 和 session_end 各做一次，
+現在兩次之間有對比機制。
 
-需要補的欄位：
+已實作的四個欄位（在 `decision_context` 和 `governance_classification` 中）：
 
 ```
-initial_agent_class: "instruction_capable"
-effective_agent_class: "instruction_capable" | <downgraded value>
-classification_changed: true | false
-reclassification_reason: null | <signal that triggered downgrade>
+initial_agent_class:       session_start 的 effective_agent_class（session_end 讀入）
+                           None = session_start 資訊不可得
+effective_agent_class:     session_end 實際計算的 class
+classification_changed:    true | false | null（null = initial 不可得，無法比較）
+reclassification_reason:   null | "tool_gate_missing" | "context_degraded"
+                                | "instruction_load_failed" | "conservative_downgrade"
 ```
 
-只有這四個欄位存在，才能說系統有一個完整的 classification control loop，
-而不只是「前後各做一次標記」。
+**session_start** 的 `governance_classification` 結構：
+```python
+{
+    "initial_agent_class": None,    # this IS the initial classification
+    "effective_agent_class": "...",
+    "classification_changed": None,  # N/A at session_start
+    "reclassification_reason": None,
+    ...
+}
+```
 
-這個補丁見：`docs/governance-strategy-runtime.md` 的 Transition Rules 章節，
-那裡已有規則定義，但目前還沒有 runtime 欄位對應。
+**session_end** 的 `decision_context` 結構（當 `--session-start-file` 提供時）：
+```python
+{
+    "initial_agent_class": "instruction_capable",   # from session_start
+    "effective_agent_class": "instruction_capable" | <downgraded>,
+    "classification_changed": False | True,
+    "reclassification_reason": None | "context_degraded" | ...,
+    ...
+}
+```
+
+這樣 reviewer 能看到：
+- 這次 session 最終被判成什麼 class
+- 它中途有沒有降級
+- 為什麼降級（哪個 signal 觸發）
+
+這個補丁對應 `docs/governance-strategy-runtime.md` 的 Transition Rules 章節。
 
 ---
 

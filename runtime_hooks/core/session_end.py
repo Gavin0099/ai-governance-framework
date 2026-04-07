@@ -99,22 +99,31 @@ def _memory_schema_complete(project_root: Path) -> bool:
 def _classify_governance_strategy(
     project_root: Path,
     checks: dict[str, Any],
+    initial_agent_class: str | None = None,
 ) -> dict[str, Any]:
     """
     Derive governance classification from observable session-end evidence.
 
     Conservative: classify down when uncertain.
     See docs/governance-strategy-runtime.md for decision rules and field specs.
+    See docs/classification-evidence-semantics.md for what each evidence field can
+    and cannot represent.
+
+    ``initial_agent_class``: class recorded at session_start, used to compute
+    transition fields.  Pass None when not available (no transition comparison).
     """
     # Tool gate: session_end hook is executing — active and observed
+    # Note: proves closeout boundary only; does NOT prove full pre/post gate coverage.
     tool_gate = "active"
     tool_gate_source = "observed"
 
     # File access: session_end runs with file I/O — confirmed observed
+    # Note: host/runtime capability, NOT agent surface capability.
     has_file_access = True
     file_access_source = "observed"
 
     # Instruction loaded: check for CLAUDE.md or AGENTS.md in project root or framework root
+    # Note: presence evidence only — proves surface exists, NOT that agent consumed it.
     framework_root = Path(__file__).resolve().parents[2]
     instruction_candidates = [
         project_root / "CLAUDE.md",
@@ -125,9 +134,12 @@ def _classify_governance_strategy(
     instruction_loaded = "true" if instruction_found else "unknown"
     instruction_source = "observed" if instruction_found else "assumed"
 
-    # Context integrity: look for degradation signals in post-task checks dict
-    context_integrity = "full"
-    context_source = "observed"
+    # Context integrity: look for degradation signals in post-task checks dict.
+    # Default is "unknown", NOT "full": absence of degradation signal ≠ confirmed full.
+    # Only set to "degraded" on affirmative degradation signal; never set to "full"
+    # without a positive affirmative observation.
+    context_integrity = "unknown"
+    context_source = "assumed"
     if checks:
         _warnings = checks.get("warnings") or []
         _errors = checks.get("errors") or []
@@ -166,9 +178,29 @@ def _classify_governance_strategy(
     }
     governance_strategy = _strategy_map[effective_agent_class]
 
+    # Transition tracking: compare with session_start classification
+    # classification_changed is only meaningful when initial_agent_class is available.
+    classification_changed: bool | None = None
+    reclassification_reason: str | None = None
+    if initial_agent_class is not None:
+        classification_changed = initial_agent_class != effective_agent_class
+        if classification_changed:
+            # Identify which signal drove the downgrade
+            if tool_gate == "missing":
+                reclassification_reason = "tool_gate_missing"
+            elif context_integrity == "degraded":
+                reclassification_reason = "context_degraded"
+            elif instruction_loaded == "false":
+                reclassification_reason = "instruction_load_failed"
+            else:
+                reclassification_reason = "conservative_downgrade"
+
     return {
         "classification_evidence": classification_evidence,
+        "initial_agent_class": initial_agent_class,
         "effective_agent_class": effective_agent_class,
+        "classification_changed": classification_changed,
+        "reclassification_reason": reclassification_reason,
         "governance_strategy": governance_strategy,
         "injection_reliance": "none",  # invariant: enforcement never depends on injection
     }
@@ -178,6 +210,7 @@ def _build_decision_context(
     project_root: Path,
     memory_mode: str,
     checks: dict[str, Any] | None = None,
+    initial_agent_class: str | None = None,
 ) -> dict[str, Any]:
     framework_root = Path(__file__).resolve().parents[2]
     try:
@@ -220,7 +253,7 @@ def _build_decision_context(
         "coverage_completeness": coverage_completeness,
         "memory_integrity": memory_integrity,
     }
-    result.update(_classify_governance_strategy(project_root, checks or {}))
+    result.update(_classify_governance_strategy(project_root, checks or {}, initial_agent_class))
     return result
 
 
@@ -487,6 +520,7 @@ def run_session_end(
     response_text: str = "",
     summary: str = "",
     approved_by_auto: str = "governance-auto",
+    initial_agent_class: str | None = None,
 ) -> dict[str, Any]:
     contract = _normalize_runtime_contract(runtime_contract)
     checks = checks or {}
@@ -518,7 +552,7 @@ def run_session_end(
     promotion_result = None
     policy = classify_promotion_policy(contract, check_result=checks)
     decision = policy["decision"]
-    decision_context = _build_decision_context(project_root, contract["memory_mode"], checks)
+    decision_context = _build_decision_context(project_root, contract["memory_mode"], checks, initial_agent_class)
 
     memory_root = project_root / "memory"
     if contract["memory_mode"] != "stateless" and response_text:
@@ -714,9 +748,18 @@ def format_human_result(result: dict[str, Any]) -> str:
         lines.append(f"contract_plugin_version={summary_payload.get('contract_plugin_version')}")
         lines.append(f"contract_risk_tier={summary_payload.get('contract_risk_tier')}")
     if summary_payload.get("decision_context"):
-        lines.append(f"surface_validity={summary_payload['decision_context'].get('surface_validity')}")
-        lines.append(f"coverage_completeness={summary_payload['decision_context'].get('coverage_completeness')}")
-        lines.append(f"memory_integrity={summary_payload['decision_context'].get('memory_integrity')}")
+        dc = summary_payload["decision_context"]
+        lines.append(f"surface_validity={dc.get('surface_validity')}")
+        lines.append(f"coverage_completeness={dc.get('coverage_completeness')}")
+        lines.append(f"memory_integrity={dc.get('memory_integrity')}")
+        if dc.get("effective_agent_class"):
+            lines.append(f"effective_agent_class={dc.get('effective_agent_class')}")
+            lines.append(f"governance_strategy={dc.get('governance_strategy')}")
+        if dc.get("initial_agent_class") is not None and dc.get("classification_changed") is not None:
+            lines.append(f"initial_agent_class={dc.get('initial_agent_class')}")
+            lines.append(f"classification_changed={dc.get('classification_changed')}")
+            if dc.get("reclassification_reason"):
+                lines.append(f"reclassification_reason={dc.get('reclassification_reason')}")
     memory_closeout = summary_payload.get("memory_closeout") or {}
     if memory_closeout:
         lines.append(f"memory_candidate_detected={memory_closeout.get('candidate_detected')}")
@@ -769,6 +812,11 @@ def main() -> None:
     event_log = json.loads(Path(args.event_log_file).read_text(encoding="utf-8")) if args.event_log_file else None
     response_text = Path(args.response_file).read_text(encoding="utf-8") if args.response_file else ""
 
+    # Extract initial_agent_class from session_start governance_classification
+    # to enable transition tracking between session_start and session_end.
+    _gc = session_start_payload.get("governance_classification") or {}
+    initial_agent_class = _gc.get("effective_agent_class") or None
+
     result = run_session_end(
         project_root=Path(args.project_root).resolve(),
         session_id=args.session_id,
@@ -782,6 +830,7 @@ def main() -> None:
         response_text=response_text,
         summary=args.summary,
         approved_by_auto=args.approved_by_auto,
+        initial_agent_class=initial_agent_class,
     )
 
     if args.format == "json":
