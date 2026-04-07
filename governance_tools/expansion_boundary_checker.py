@@ -78,6 +78,12 @@ KNOWN_PRE_TASK_KEYS = {
     # top-level run_pre_task_check() result.
     "boundary_effect",
     "preconditions_checked",
+    # runtime injection snapshot slice admitted a9af544 / 2babeaf / 6f0dd34
+    # _evaluate_runtime_injection_snapshot() returns these; AST scans helpers
+    "effect",
+    "observations",
+    "signals_checked",
+    "snapshot",
 }
 
 KNOWN_POST_TASK_KEYS = {
