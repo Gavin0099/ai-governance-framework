@@ -4,7 +4,7 @@
 > **技術棧**: Markdown / Python / Bash
 > **複雜度**: L2
 > **預計工期**: 2026/03 ~ 2026/06
-> **最後更新**: 2026-03-30
+> **最後更新**: 2026-04-07
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 
@@ -152,18 +152,27 @@
 
 ---
 
-## 🔥 下一輪聚焦 — Beta 收斂
+## 🔥 下一輪聚焦 — Beta 收斂 / Runtime Architecture
 
-**目標**: 確保 Beta Gate 剩餘條件（獨立 reviewer 無引導完成 onboarding）、持續補強 CI gate 覆蓋率與 onboarding 摩擦。
+**目標**: 補強 runtime governance 的架構清晰度；讓 injection、enforcement、capability 三個概念有明確邊界定義。
 
 **2026-03-30 本輪完成**:
 - [x] 建立 Expansion Admission Gate（`docs/expansion-admission-gate.md`）— framework 新增「主動說不」的機制，定義 Q1–Q5 篩選條件與 decision outcome table
 - [x] 記錄第一個被拒絕的 expansion case（`docs/expansion-cases/entry-layer-rejected.md`）— entry layer → session_start 作為 anti-expansion precedent，記錄差點如何 drift in、為何被拒
 - [x] 新增 expansion_boundary_checker（`governance_tools/expansion_boundary_checker.py`）— 獨立 CLI 工具，被動偵測 banned imports 與 unrecognized return keys；尚未接入被動執行路徑
 
+**2026-04-07 本輪完成**:
+- [x] post-pull hardening — 48 commits 拉入後測試全線修復（trust_signal / drift_checker / expansion_boundary_checker / test_adopt 系列）
+- [x] TESTING.md v4.2 → v4.3 — 補 5 個缺口：Independent Oracle Rule、Test Sensitivity & Mutation、Stateful & Sequence Behavior、Determinism & Flakiness Control、Behavior Source & Test Plan；補 4 條 forbidden statement
+
+**本輪待完成**:
+- [ ] `docs/runtime-injection-layer-plan.md` — 定義 4-layer RIL 架構（Policy → Capability Model → Injection Strategy → Enforcement Strategy），寫死 "injection is advisory, enforcement is authoritative"
+- [ ] agent capability matrix — 定義 capability schema，分類 injection-dependent vs injection-agnostic runtime path
+- [ ] 獨立 reviewer 無引導完成 onboarding — **open，blocked on independent reviewer run**
+
 **Beta Gate 狀態**:
 - [x] 條件 1：外部專案完整跑完 session lifecycle ✓ 2026/03/28
-- [ ] 條件 2：獨立 reviewer 無引導完成 onboarding — **open，blocked on independent reviewer run，不可用 code-only 工作偽裝進度**
+- [ ] 條件 2：獨立 reviewer 無引導完成 onboarding — **open，不可用 code-only 工作偽裝進度**
 
 ---
 
@@ -323,3 +332,4 @@
 | 2026/03/25 | 接上 quality-only control loop，並拆出 workflow observation lane | shared runtime enforcement 會累積 7-day quality trend 並透過既有 risk signal substrate 影響下一次 `session_start`；同時新增 observation-only workflow artifact recognition，避免把 workflow completeness 混入 quality/risk 語意 |
 | 2026/03/25 | 收斂 observation lane 命名與 consumer guardrail | 將 `workflow_score` 改為 `observation_coverage`，並新增 machine-readable interpretation contract，禁止把 `missing` / `unverifiable` 直接翻譯成 compliance、bypass、block 或 task-level policy |
 | 2026/03/25 | 補上防組合濫讀與 diagnostic-only 邊界 | 明確禁止 observation-only 單點或組合推論導出 compliance / intent / policy violation 類結論，並將 `failure_source_class` 限定為 diagnostic aid，避免滑成第二套裁決 taxonomy |
+| 2026/04/07 | TESTING.md v4.2 → v4.3 | 補 5 個測試品質缺口（Independent Oracle / Sensitivity & Mutation / Stateful & Sequence / Determinism / Behavior Source & Test Plan）+ 4 條 forbidden statement；同步補強 test suite：post-pull regression 全修（trust_signal / drift_checker / expansion_boundary / test_adopt 系列）|
