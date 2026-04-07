@@ -99,6 +99,112 @@ Observation 至少分兩種：
 - observation 只有在被明確列為 decision input 時，才算真的接上 enforcement
 - 只有 artifact 而不進 decision model，仍然只是事後可看，不算 enforcement input
 
+## Core Invariant
+
+> **Injection is advisory. Enforcement is authoritative.**
+
+這是這條線最重要的一句話，必須在所有下游設計中保持有效。
+
+含義：
+- Injection 的目的是讓 agent 更容易做對事，但 injection 是否成功不影響 enforcement 的責任
+- 即使 injection 層完全失效（agent 忽略、壓縮、誤解），enforcement 路徑（pre_task / post_task / session_end）仍然必須能獨立成立
+- 任何讓 enforcement 依賴 injection 成功的設計，都是錯誤的信任假設
+
+推論：
+- 不能用「我已經注入了規則」作為 enforcement 的替代
+- 不能把 injection layer 的完整性當成 trust signal
+- Injection 的 ROI 只能用「降低 enforcement 需要攔截的次數」來衡量，不能用「替代 enforcement」來設計
+
+---
+
+## 三個注意事項（為什麼不能高估 Injection）
+
+### 1. Injection 不是確定性轉換
+
+直覺上 injection 是：
+
+```
+canonical policy → compile → agent payload → 行為
+```
+
+實際上是：
+
+```
+canonical policy → lossy projection → agent internal interpretation → 行為
+```
+
+Agent 會壓縮 instruction、忽略 context、甚至誤解 rule 的語義。
+所以 injection 輸出不等於 agent 行為，injection 成功不等於 policy 被遵守。
+
+### 2. 不同 agent 的承載能力不對等
+
+不是在做「格式轉換」，而是在做 **capability-aware policy reduction**。
+
+同一份 policy 在不同 surface 的有效性差距極大：
+
+| Agent | context | 持久 instruction | tool gate | 確定性 |
+|-------|---------|-----------------|-----------|--------|
+| Claude Code | 完整 | 支援 | 支援 | 高 |
+| Copilot | 幾乎無 | 幾乎無 | 無 | 低 |
+| ChatGPT Web | 無 local | 無 | 無 | 低 |
+
+對於低承載 agent，injection 只會製造虛假的「已治理」感，而真正的責任必須由外部 enforcement 承擔。
+
+### 3. Injection 是可替代層，不是必要層
+
+正確的層級關係：
+
+- Injection = optional optimization（可能提升 agent 行為品質）
+- Enforcement = required boundary（必須存在，不能依賴 injection）
+
+對 `wrapper_only` class 的 agent，injection 根本不應存在於設計路徑中。
+這不是退而求其次，而是對這類 agent 正確的治理策略：直接守住邊界，不浪費在內部注入。
+
+---
+
+## Capability Model
+
+Agent classification 的核心是它的 capability，而不是它的品牌或版本。
+相同的 capability profile 適用相同的 injection strategy。
+
+### Capability Schema（第一版）
+
+```yaml
+agent_capability:
+  has_file_access: true          # 可讀寫 repo 檔案
+  supports_persistent_instruction: true  # 可承載跨 session 的 instruction（如 CLAUDE.md）
+  supports_tool_gate: true       # 可被 pre/post hook 攔截
+  context_window: full           # full / limited / minimal
+  deterministic_execution: true  # 行為是否可預期、可重現
+  trust_level: high              # high / medium / low / untrusted
+```
+
+### Capability 到 Injection Strategy 的映射
+
+```
+if capability.supports_persistent_instruction AND trust_level in [high, medium]:
+    → use injection (advisory payload)
+    → include: selected rules, escalation triggers, hard prohibitions
+
+if capability.context_window == limited OR trust_level == low:
+    → minimal injection only
+    → include: hard prohibitions only (最高密度，最小切片)
+
+if capability.supports_tool_gate == false OR trust_level == untrusted:
+    → skip injection entirely
+    → rely on: external wrapper / post-execution artifact review / session boundary enforcement
+```
+
+### 與 Agent Classification 的對應
+
+| Class | capability profile | injection strategy |
+|-------|-------------------|-------------------|
+| `instruction_capable` | file_access=T, persistent_instruction=T, tool_gate=T, context=full, trust=high | full advisory payload |
+| `instruction_limited` | persistent_instruction=F or context=limited | hard prohibitions only |
+| `wrapper_only` | tool_gate=F or trust=untrusted | no injection; external enforcement only |
+
+---
+
 ## 目前 repo 的對應
 
 ### Canonical Source
@@ -186,6 +292,9 @@ Observation 至少分兩種：
 - 只把它當 execution surface
 
 ## Observation 到 Decision 的最小耦合
+
+> 詳細 observation signal 對照表見：
+> [`docs/runtime-injection-observation-mapping.md`](runtime-injection-observation-mapping.md)
 
 這一層最重要的不是產生更多 artifact，而是明確定義：
 
