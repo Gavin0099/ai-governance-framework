@@ -63,6 +63,7 @@ def _write_contract(repo: Path) -> Path:
         'framework_compatible: ">=1.0.0,<2.0.0"\n'
         "domain: test\n"
         "documents:\n  - AGENTS.base.md\n  - PLAN.md\n"
+        "  - governance/TESTING.md\n  - governance/ARCHITECTURE.md\n"
         "ai_behavior_override:\n  - AGENTS.base.md\n"
         "validators:\n"
     )
