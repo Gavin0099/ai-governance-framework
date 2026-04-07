@@ -7,9 +7,9 @@ default_load: on-demand
 ---
 
 # TESTING.md
-**Testing Strategy and Quality Gates - v4.2**
+**Testing Strategy and Quality Gates - v4.3**
 
-> **Version**: 4.2 | **Priority**: 6 (Quality Gatekeeper)
+> **Version**: 4.3 | **Priority**: 6 (Quality Gatekeeper)
 >
 > Defines under what conditions we can reasonably trust a piece of code.
 > Tests are guardrails, not KPIs.
@@ -118,6 +118,62 @@ Avoid names that hide intent:
 - `test_parse_version_2`
 - `testSendCommand`
 
+### 3.2 Independent Expected-Value Rule
+
+Expected results must be derived from spec, fixed examples, invariants, or
+independent fixtures — not by re-implementing the production algorithm inside
+the test.
+
+If a test computes its expected value using the same logic as the code under
+test, both will be wrong in the same way and the test provides no independent
+verification. This is one of the most common ways AI inflates apparent test
+coverage without adding real defensive value.
+
+If an independent expected value cannot be derived, the test must be labeled
+explicitly as a characterization test or weak coverage, not treated as a
+behavior proof.
+
+Re-implementing production logic in tests is forbidden.
+
+### 3.3 Test Sensitivity and Mutation Thinking
+
+A test that passes under a plausible logic error provides no protection. High
+coverage with low sensitivity is worse than low coverage with high sensitivity,
+because it creates false confidence.
+
+For critical functions and regression-sensitive paths, tests must be able to
+fail under a plausible logic mutation — for example:
+- a boundary flip (`>` changed to `>=`)
+- a reversed condition
+- a removed guard clause
+- an off-by-one in a loop bound
+
+For bug fixes: the test added must be able to fail if the original bug is
+re-introduced. If no test in the change would catch a regression of the exact
+defect being fixed, the fix is not regression-protected.
+
+If test sensitivity cannot be demonstrated, the coverage claim must be
+downgraded.
+
+### 3.4 Stateful and Sequence Behavior
+
+Single-point function tests are insufficient for stateful or workflow-driven
+code. The most common failures in such systems occur not within a single
+function call, but across a sequence of operations.
+
+For stateful or multi-step code, include sequence tests that validate:
+- the correct final state after a complete operation sequence
+- behavior when a step in the sequence fails midway
+- consistency after retry, rollback, or recovery paths
+
+Side-effect obligations by type:
+- external write (DB, file, device) → assert the persisted state, not only
+  that the write function was called
+- shared or global state modification → include explicit cleanup or restoration
+  verification
+- async dispatch → include evidence of completion behavior and failure-path
+  handling; do not treat fire-and-forget as fully tested
+
 ---
 
 ## 4. Repo-Aware Build Policy
@@ -221,6 +277,54 @@ Tests must also remain independent:
 - mutable state must not leak across tests
 - device, file, port, or external-resource setup must be explicit per test
 
+### 7.2 Determinism and Flakiness Control
+
+Tests must be deterministic. A test that produces inconsistent results across
+runs is not a test — it is noise that erodes trust in the entire suite.
+
+Unless nondeterminism is explicitly the behavior under test, avoid reliance on:
+- wall-clock time or `datetime.now()`
+- unseeded random values
+- execution order between tests
+- shared process state or global singletons across test boundaries
+- `sleep()` or timing-based synchronization
+
+When the system under test genuinely involves time, randomness, or async
+scheduling, control it through injection: fake clocks, seeded random, explicit
+harness control, or deterministic event replay.
+
+Claiming stable tests while relying on uncontrolled time, random, or execution
+order is forbidden.
+
+### 7.3 Behavior Source and Test Plan Requirement
+
+Tests without a trustworthy source of expected behavior are not tests — they
+are guesses dressed as verification.
+
+Before generating tests, identify the source of expected behavior:
+- specification or design document
+- public contract or interface definition
+- bug report with reproducible steps
+- acceptance criteria from reviewer or product owner
+- existing characterization baseline with known-good output
+- explicit reviewer instruction
+
+If no trustworthy source exists, the agent must say so explicitly and
+downgrade the confidence label of any tests produced. Deriving expected
+behavior solely by reading the existing implementation and assuming it is
+correct is not an acceptable source.
+
+For non-trivial work, produce a short test plan before writing test code. The
+plan must identify:
+- behavior source (what authorizes the expected behavior)
+- risk level and task classification
+- candidate critical paths and failure paths
+- any categories explicitly not applicable, with justification
+
+This sequencing prevents the most common AI failure mode: generating a large
+volume of structurally correct but low-value tests before the behavior contract
+has been established.
+
 ---
 
 ## 8. Test Gap Records
@@ -245,3 +349,11 @@ Work is done when:
 - bug fixes include a regression test in the same change when reproduction is
   practical
 - future reviewers can understand why the change is considered safe
+
+The following are explicitly forbidden and do not satisfy any evidence
+requirement, regardless of test count or coverage percentage:
+
+- Re-implementing production logic in tests is forbidden.
+- Claiming "fully tested" without independent expected-value reasoning is forbidden.
+- Declaring regression-safe without a regression test for a reproducible bug is forbidden.
+- Claiming stable tests while relying on uncontrolled time, random, or execution order is forbidden.
