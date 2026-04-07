@@ -554,7 +554,7 @@ def _write_plan_custom(repo: Path, sections: list[str]) -> Path:
     """Write a PLAN.md whose H2 headings are the given sections."""
     lines = [
         "# PLAN.md",
-        "> **最後更新**: 2026-03-21",
+        f"> **最後更新**: {_date.today().isoformat()}",
         "> **Owner**: Test",
         "> **Freshness**: Sprint (7d)",
         "",

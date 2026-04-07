@@ -308,6 +308,11 @@ python runtime_hooks/smoke_test.py --event-type session_start
 python runtime_hooks/smoke_test.py --harness claude_code --event-type pre_task
 ```
 
+### Shared Enforcement Entrypoint
+
+`scripts/run-runtime-governance.sh` is the shared enforcement entrypoint used by runtime hooks and CI.
+See [runtime_hooks/README.md](runtime_hooks/README.md) for details.
+
 ## 建議閱讀順序
 
 如果你第一次進這個 repo，建議順序：
