@@ -178,15 +178,25 @@ def _classify_governance_strategy(
     }
     governance_strategy = _strategy_map[effective_agent_class]
 
-    # Transition tracking: compare with session_start classification
+    # Transition tracking: compare with session_start classification.
     # classification_changed is only meaningful when initial_agent_class is available.
+    # Allowed reclassification_reason values are a controlled taxonomy:
+    # "context_degraded" | "instruction_load_failed" | "tool_gate_missing" |
+    # "conservative_downgrade" | "classification_anomaly_upgrade"
+    # See docs/classification-transition-semantics.md for full rules.
+    _class_order = {"wrapper_only": 0, "instruction_limited": 1, "instruction_capable": 2}
     classification_changed: bool | None = None
     reclassification_reason: str | None = None
     if initial_agent_class is not None:
         classification_changed = initial_agent_class != effective_agent_class
         if classification_changed:
-            # Identify which signal drove the downgrade
-            if tool_gate == "missing":
+            initial_order = _class_order.get(initial_agent_class, 1)
+            effective_order = _class_order.get(effective_agent_class, 1)
+            if effective_order > initial_order:
+                # Upgrade within a session: proxy signals are inconsistent.
+                # Session capability should only degrade, never improve.
+                reclassification_reason = "classification_anomaly_upgrade"
+            elif tool_gate == "missing":
                 reclassification_reason = "tool_gate_missing"
             elif context_integrity == "degraded":
                 reclassification_reason = "context_degraded"
@@ -553,6 +563,26 @@ def run_session_end(
     policy = classify_promotion_policy(contract, check_result=checks)
     decision = policy["decision"]
     decision_context = _build_decision_context(project_root, contract["memory_mode"], checks, initial_agent_class)
+
+    # ── Governance classification change warnings ─────────────────────────
+    # Emit advisory warnings when classification transitions are detected.
+    # See docs/classification-transition-semantics.md for transition rules.
+    if decision_context.get("classification_changed"):
+        _reason = decision_context.get("reclassification_reason") or "unknown"
+        _initial = decision_context.get("initial_agent_class")
+        _effective = decision_context.get("effective_agent_class")
+        _strategy = decision_context.get("governance_strategy")
+        if _reason == "classification_anomaly_upgrade":
+            warnings.append(
+                f"governance: classification_anomaly — agent class upgraded from "
+                f"{_initial!r} to {_effective!r} within session; "
+                "upgrades are unexpected and may indicate proxy inconsistency"
+            )
+        else:
+            warnings.append(
+                f"governance: classification_downgrade — {_initial!r} → {_effective!r} "
+                f"(reason: {_reason}); governance_strategy tightened to {_strategy!r}"
+            )
 
     memory_root = project_root / "memory"
     if contract["memory_mode"] != "stateless" and response_text:
