@@ -107,6 +107,23 @@ conservative_downgrade_rate=0.2
 | `classifier_review` | Drift signal | `conservative_downgrade_rate > 10%` | 審查分類決策邏輯；尋找未處理的 edge case |
 | `taxonomy_breach` | Schema contract | `unknown_reasons` 非空 | 檢查 session_end 版本；reason 值是否與 taxonomy 不符 |
 
+**`policy_ok` 的使用限制**：
+
+> **警告**：`policy_ok = False` 是方便的快速開關，但它把三種不同性質的事件重新壓回一個 boolean。
+> 三個 flag 的嚴重度不同（hard invariant vs drift signal vs schema drift）；
+> consumer **必須查看 `policy_flags` 細項**，不能只靠 `policy_ok` 做 triage 決定。
+
+**關於 `_CONSERVATIVE_DOWNGRADE_REVIEW_THRESHOLD` 的未來演進**：
+
+目前 10% 是靜態常數，且對所有 adapter / agent class 一視同仁。
+已知限制：
+- 不同 adapter 的 observation 穩定性本來就不同（e.g. context 容易截斷的環境 baseline 就高）
+- 不同 agent class 的分類路徑不同，各自的 conservative_downgrade 機率也不同
+- 目前沒有「歷史 baseline 比較」，只有瞬時 rate
+
+未來成熟形態：per-adapter baseline + observation window drift 計算。
+目前 10% 是 first slice，適合用來偵測顯著異常，不適合做精細 SLO 管理。
+
 **關於 `conservative_downgrade_rate` 的判讀**：
 
 這個指標不應追求「接近 0」的絕對標準。
