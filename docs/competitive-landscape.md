@@ -1,363 +1,356 @@
-# Competitive Landscape
+# 競品地景
 
-Updated: 2026-03-15
+更新日期：2026-04-08
 
-This document records the closest known open-source and commercial reference points for
-`ai-governance-framework`.
+這份文件用來記錄目前和 `ai-governance-framework` 最接近的開源或商業參考點。目的不是 claim feature parity，而是把 repo 的定位說清楚：
 
-Its purpose is not to claim feature parity. It is to keep the repository's positioning
-honest:
+- 哪些東西可以直接比較
+- 哪些只是相鄰
+- 這個 framework 現在真正獨特的地方是什麼
 
-- what is directly comparable
-- what is only adjacent
-- and what remains distinctive about this framework
+重要範圍提醒：
 
-Important scope note:
+- 這裡的比較是方向性的
+- 主要依據公開定位、repo 結構與可見 workflow
+- 不應被讀成對其他專案完整能力的最終審判
+- 這份文件更適合拿來校準本 repo 的自我敘事，而不是拿來對別人做過度結論
 
-- the comparisons below are directional
-- they are based on public positioning, repository-visible structure, and top-level workflow emphasis
-- they should not be read as exhaustive proof that another project cannot support a given pattern
-- this document is safer when used to explain this repository's design choices than when used to claim another project definitively lacks a feature
+## 短版定位
 
-## Short Positioning Summary
+目前最準的定位仍然是：
 
-The most precise current positioning is:
+- 一個 machine-interpretable governance runtime
+- 聚焦於 AI coding workflow 的 runtime governance
+- 核心結構是 external contract、mixed enforcement、reviewer/audit surface、session closeout
+- 刻意不走 full execution harness、generic orchestration platform、enterprise-wide compliance suite 這條路
 
-- a runtime-governance prototype for AI coding workflows
-- designed around multi-repo external domain contracts
-- currently emphasizes mixed enforcement and reviewer publication surfaces
-- intentionally not trying to become a full IDE-native interception layer or enterprise-wide AI compliance suite
+## 快速比較表
 
-## Quick Comparison View
+| 專案 | 可見重點 | 重心 | 為什麼值得比較 |
+|---|---|---|---|
+| `ai-governance-framework` | multi-repo runtime governance、mixed enforcement、reviewer publication | framework + external contracts 的 runtime governance | 參考列 |
+| `AI-Governor-Framework` | repo rule、architecture respect、guided behavior | repo-embedded governance rules | 適合比 rule UX 與 repo 內約束 |
+| `GAAI-framework` | governed workflow 與 delivery structure | governed delivery workflow | 適合比流程與 backlog discipline |
+| `agentic-engineering-framework` | mechanical repo enforcement、task gate | practical runtime/repo enforcement | 適合比 interception 與 commit/merge gate 想法 |
+| `agent-governance-toolkit` | agent action policy、sandbox、tool governance | action-level agent governance | 適合比 layer，不是直接 peer |
+| `TinySDLC` | role handoff 與 SDLC choreography | multi-role SDLC orchestration | 適合比 handoff / role separation |
 
-| Project | Visible emphasis | Primary center of gravity | Why it is useful to compare |
-|---------|------------------|---------------------------|-----------------------------|
-| `ai-governance-framework` | multi-repo runtime governance, mixed enforcement, reviewer publication | runtime governance across framework + external contracts | reference row |
-| `AI-Governor-Framework` | repo rules, architecture respect, guided behavior | repo-embedded governance rules | useful for rule UX and in-repo constraints |
-| `GAAI-framework` | governed workflow and delivery structure | governed delivery workflow | useful for process and backlog discipline |
-| `agentic-engineering-framework` | mechanical repo enforcement and task gating | mechanical runtime/repo enforcement | useful for practical interception ideas |
-| `agent-governance-toolkit` | agent action policy enforcement and sandboxing | action-level agent governance | useful for layer comparison against runtime architecture governance |
-| `TinySDLC` | role handoffs and SDLC choreography | multi-role SDLC orchestration | useful for handoff and role separation ideas |
-
-This table is intentionally directional and should be read as a comparison of visible emphasis, not an exhaustive feature audit.
-
-## Closest Open-Source References
+## 最接近的開源參考
 
 ### 1. AI-Governor-Framework
 
-Reference:
+參考：
 
 - <https://github.com/Fr-e-d/AI-Governor-Framework>
 
-Why it is close:
+接近點：
 
-- repo-embedded governance rules
-- project-aware constraints
-- emphasis on architecture respect
-- strong "AI should behave like a disciplined engineering partner" framing
+- repo-embedded governance rule
+- project-aware constraint
+- architecture respect
+- AI 應像 disciplined engineering partner 的 framing
 
-Where it most resembles this repository:
+和本 repo 最像的地方：
 
-- governance documents
-- rule-driven behavioral constraints
-- contract-like boundaries around AI work
+- governance 文件
+- rule-driven behavioral constraint
+- 對 AI work 設 boundary
 
-What this repository currently emphasizes in addition:
+本 repo 額外更強調的地方：
 
-- a stronger runtime lifecycle framing
-- an explicit external domain contract seam across multiple repos
-- richer reviewer/audit publication surfaces
-- validators that can affect post-task decisions, not only background rule guidance
+- 更完整的 runtime lifecycle
+- external domain contract seam
+- reviewer / audit publication surface
+- validator 能影響 post-task decision，而不是只有背景規則
 
 ### 2. GAAI-framework
 
-Reference:
+參考：
 
 - <https://github.com/Fr-e-d/GAAI-framework>
 
-Why it is close:
+接近點：
 
 - governed delivery system framing
-- explicit process boundaries
-- context isolation between workflow phases
+- process boundary 明確
+- workflow phase 之間有 context separation
 
-Where it most resembles this repository:
+和本 repo 最像的地方：
 
-- proposal/planning discipline
+- proposal / planning discipline
 - governed execution flow
-- emphasis on repeatable delivery structure rather than prompt craft alone
+- 重視 repeatable delivery structure，不只靠 prompt craft
 
-What this repository currently emphasizes in addition:
+本 repo 額外更強調的地方：
 
-- a stronger runtime hook / validator path
-- more explicit mixed enforcement through `hard_stop_rules`
-- more emphasis on trust-signal, release, and reviewer-handoff artifacts
-- more emphasis on architecture/runtime evidence than on delivery-phase role choreography
+- 更明確的 runtime hook / validator path
+- `hard_stop_rules` 驅動的 mixed enforcement
+- trust-signal / release / reviewer-handoff surface
+- 對 architecture/runtime evidence 的強調，高於 delivery role choreography
 
 ### 3. agentic-engineering-framework
 
-Reference:
+參考：
 
 - <https://github.com/DimitriGeelen/agentic-engineering-framework>
 
-Why it is close:
+接近點：
 
-- explicitly presents itself as a governance layer for AI coding tools
-- emphasizes mechanical enforcement rather than soft guidelines
-- focuses on continuity, rules, and blocking risky actions
+- 明確把自己定位成 AI coding governance layer
+- 強調 mechanical enforcement，不只是 soft guideline
+- 重 continuity、rules、blocking risky actions
 
-Where it most resembles this repository:
+和本 repo 最像的地方：
 
 - runtime governance framing
-- task gate mindset
+- task gate 心態
 - practical enforcement posture
 
-What this repository currently emphasizes in addition:
+本 repo 額外更強調的地方：
 
-- a broader reviewer/audit publication path
-- a stronger external domain contract story
-- richer cross-repo policy comparison and onboarding surfaces
-- a publishable, multi-domain governance posture rather than only a single-repo enforcement story
+- reviewer / audit publication 路徑更厚
+- external domain contract 故事更強
+- cross-repo onboarding / readiness / trust surface 更多
+- 更像 multi-repo governance stack，而不只是單 repo enforcement
 
-This is currently the closest reference point for interception-coverage thinking.
+這目前仍是最值得拿來比 practical interception coverage 的參考點之一。
 
 ### 4. TinySDLC
 
-Reference:
+參考：
 
 - <https://github.com/Minh-Tam-Solution/tinysdlc>
 
-Why it is adjacent:
+相鄰點：
 
-- structured handoffs
+- structured handoff
 - role separation
 - local-first orchestration
 
-Where it most resembles this repository:
+和本 repo 最像的地方：
 
-- reviewer handoff mindset
-- structured flow instead of ad hoc prompting
+- reviewer handoff 心態
+- 用 structure 取代 ad hoc prompt
 
-What this repository currently emphasizes instead:
+本 repo 更強調的地方：
 
-- repo-native runtime governance and external contract seams
-- contract-aware post-task runtime enforcement
-- reviewer/audit publication surfaces over role choreography
+- repo-native runtime governance
+- external contract seam
+- contract-aware post-task enforcement
+- reviewer/audit publication surface，而不是 role choreography
 
 ### 5. agent-governance-toolkit
 
-Reference:
+參考：
 
 - <https://github.com/microsoft/agent-governance-toolkit>
 
-Why it is close enough to matter:
+為什麼值得比較：
 
-- it treats governance as an execution-time concern rather than only prompt guidance
-- it emphasizes policy enforcement around agent actions and tool use
-- it is a strong reference point for action-level interception thinking
+- 它把 governance 當 execution-time concern，不只是 prompt guidance
+- 它重視 agent action / tool use 的 policy enforcement
+- 它是 action-level interception thinking 的重要參考點
 
-Where it differs in layer:
+與本 repo 的 layer 差異：
 
-- this repository focuses on task/session-boundary governance for coding work
-- it appears focused on agent-action governance, identity, and execution policy around the agent runtime itself
+- 本 repo 主要治理 coding task / session boundary
+- 它更接近 agent runtime 本身的 action governance、identity、execution policy
 
-Why that distinction matters:
+這個差異很重要，因為：
 
-- their core question is closer to "is this agent action allowed or safe?"
-- this repository's core question is closer to "does this code/task output respect architecture, domain, and review boundaries?"
+- 它在問：「這個 agent action 是否允許、是否安全？」
+- 本 repo 更常在問：「這個 coding output 是否尊重 architecture / domain / review boundary？」
 
-This makes it an important benchmark, but not a one-to-one peer.
+所以它是重要 benchmark，但不是一對一 peer。
 
-## Adjacent, But Not Direct Peers
+## 相鄰但不是直接 peer 的參考
 
 ### VerifyWise
 
-Reference:
+參考：
 
 - <https://github.com/bluewave-labs/verifywise>
 
-Use it as a benchmark for:
+適合借鏡：
 
 - auditability
 - governance visibility
-- higher-level AI governance communication
+- 高層 AI governance communication
 
-Not a direct peer because:
+不是直接 peer 的原因：
 
-- it is closer to AI governance / GRC than AI coding runtime governance
+- 它更接近 AI governance / GRC，而不是 AI coding runtime governance
 
 ### Guardrails AI
 
-References:
+參考：
 
 - <https://github.com/guardrails-ai/guardrails>
 - <https://guardrailsai.com/>
 
-Use it as a benchmark for:
+適合借鏡：
 
-- runtime validation patterns
+- runtime validation pattern
 - policy-style output control
 
-Not a direct peer because:
+不是直接 peer 的原因：
 
-- it is primarily an LLM-output/runtime validation system, not a repo-level coding governance framework
+- 它主要是 LLM output/runtime validation system，不是 repo-level coding governance framework
 
 ### CodeRabbit
 
-Reference:
+參考：
 
 - <https://www.coderabbit.ai/>
 
-Use it as a benchmark for:
+適合借鏡：
 
 - reviewer UX
-- PR-facing consumption surfaces
-- trust and adoption messaging
+- PR-facing consumption surface
+- trust / adoption messaging
 
-Not a direct peer because:
+不是直接 peer 的原因：
 
-- it is primarily an AI-assisted review product, not an external-contract runtime governance framework
+- 它主要是 AI-assisted review product，不是 external-contract runtime governance framework
 
 ### SAFi
 
-Reference:
+參考：
 
 - <https://github.com/jnamaya/SAFi>
 
-Use it as a benchmark for:
+適合借鏡：
 
 - runtime output governance
 - value/constitution framing
-- post-generation audit patterns
+- post-generation audit pattern
 
-Not a direct peer because:
+不是直接 peer 的原因：
 
-- it is better understood as output/runtime governance for AI behavior rather than repo-native coding architecture governance
+- 它更接近 AI behavior output governance，不是 repo-native coding architecture governance
 
 ### GitHub Spec Kit
 
-Reference:
+參考：
 
-- public GitHub Spec Kit materials / repos
+- 公開 GitHub Spec Kit 材料 / repo
 
-Use it as a benchmark for:
+適合借鏡：
 
 - spec-driven development
-- executable specification workflows
-- reducing "prompt-and-pray" through explicit planning artifacts
+- executable specification workflow
+- 降低 prompt-and-pray
 
-Not a direct peer because:
+不是直接 peer 的原因：
 
-- it is more naturally read as specification-driven implementation guidance than as mixed-enforcement runtime governance
+- 它更像 specification-driven implementation guidance，不是 mixed-enforcement runtime governance
 
-It is complementary:
-
-- spec-driven generation and contract-driven post-task governance can coexist
+它和本 repo 是互補，不是替代。
 
 ### Sovereign-OS
 
-Reference:
+參考：
 
-- public Sovereign-OS materials / repos
+- 公開 Sovereign-OS 材料 / repo
 
-Use it as a benchmark for:
+適合借鏡：
 
-- append-only governance trails
-- mission/budget/rule declaration
-- governance over agent resource usage
+- append-only governance trail
+- mission / budget / rule declaration
+- agent resource governance
 
-Not a direct peer because:
+不是直接 peer 的原因：
 
-- it is closer to budget/token/mission governance than software architecture boundary governance
+- 它更接近 budget/token/mission governance，而不是 software architecture boundary governance
 
 ### GitHub Agent HQ / Agentic Workflows
 
-Reference:
+參考：
 
-- public GitHub platform materials and reporting
+- 公開 GitHub platform 材料與報導
 
-Use it as a benchmark for:
+適合借鏡：
 
 - platform-level agent governance
 - central mission control and auditability
 - enterprise-facing agent operations
 
-Not a direct peer because:
+不是直接 peer 的原因：
 
-- it is platform governance for agent operations
-- this repository is domain-knowledge governance for architecture-sensitive coding workflows
+- 那是 platform governance for agent operations
+- 本 repo 是 domain-knowledge governance for architecture-sensitive coding workflows
 
-This distinction is important when explaining why a repo-level governance framework still has value alongside platform-native agent governance.
+這也是為什麼 repo-level governance framework 在 platform-native agent governance 存在時，仍然有價值。
 
-### Agent Behavioral Contracts (ABC) / POLARIS
+### Agent Behavioral Contracts（ABC）/ POLARIS
 
-References:
+參考：
 
-- public academic literature and workshop papers
+- 公開學術論文與 workshop paper
 
-Use them as benchmarks for:
+適合借鏡：
 
 - formal contract thinking
-- drift bounds
+- drift bound
 - validator-gated orchestration
-- stronger theoretical framing around runtime governance
+- runtime governance 的理論 framing
 
-Not direct peers because:
+不是直接 peer 的原因：
 
-- they are better treated as theory and research direction, not drop-in repo-native coding governance systems
+- 它們更適合當 research direction，不是 drop-in repo-native coding governance system
 
-## What Currently Feels Distinctive Here
+## 這個 repo 目前真正獨特的地方
 
-The clearest current differentiators of `ai-governance-framework` are:
+目前最清楚的 differentiator 包括：
 
-- a real runtime governance loop:
+- 真實的 runtime governance loop：
   - `session_start -> pre_task_check -> post_task_check -> session_end -> memory pipeline`
-- external domain contracts that live in separate repos
-- mixed enforcement through domain validators plus `hard_stop_rules`
-- reviewer-facing publication surfaces:
-  - trust signals
-  - release surfaces
-  - reviewer handoff bundles
-- memory artifacts that preserve domain contract metadata, not only generic session logs
-- domain-specific governance for high-context and safety-sensitive areas such as firmware, kernel-driver, and IC verification
+- external domain contract living in separate repos
+- mixed enforcement：domain validator + `hard_stop_rules`
+- reviewer-facing publication surface：
+  - trust signal
+  - release-facing status
+  - reviewer handoff
+- memory artifact 不只保 generic session log，也保 domain contract metadata
+- 對 firmware、kernel-driver、IC verification 這類 high-context / safety-sensitive domain 有治理形狀
 
-That means the repository is not only "AI rules in a repo."
+也就是說，它不只是「把 AI 規則放進 repo」。
 
-It is closer to:
+它更接近：
 
-- a multi-repo runtime governance stack for AI coding
+- multi-repo AI coding runtime governance stack
 
-than to:
+而不是：
 
-- a prompt pack
-- a role-play orchestrator
-- or a generic LLM guardrail wrapper
+- prompt pack
+- role-play orchestrator
+- generic LLM guardrail wrapper
 
-## Practical Borrowing Strategy
+## 實際借鏡策略
 
-The most useful thing is not to copy any one project wholesale.
+最有價值的做法不是照抄任何一個專案，而是有選擇地借：
 
-Instead:
+- 從 `agentic-engineering-framework` 借 git-hook / CI-gate interception 想法
+- 從 `agent-governance-toolkit` 借 action-level governance boundary 思維，但不要漂去 generation-time interception
+- 從 `AI-Governor-Framework` / `GAAI-framework` 借 repo-embedded rule UX
+- 從 `CodeRabbit` 借 reviewer surface clarity
+- 從 `VerifyWise` 借 auditability / visibility 想法
+- 把 `GitHub Spec Kit`、`ABC`、`POLARIS` 當 specification / contract rigor 的理論參考，不當成直接 implementation target
 
-- borrow git-hook / CI-gate interception ideas from `agentic-engineering-framework`
-- study action-level governance boundaries from `agent-governance-toolkit` without drifting into generation-time interception goals
-- borrow repo-embedded rule UX from `AI-Governor-Framework` and `GAAI-framework`
-- borrow reviewer-surface clarity from products like `CodeRabbit`
-- borrow auditability and visibility ideas from `VerifyWise`
-- treat `GitHub Spec Kit`, `ABC`, and `POLARIS` as useful framing for specification/contract rigor rather than direct implementation targets
+這樣比較不會為了模仿而模仿，最後把 repo 推到自己不想去的 scope。
 
-This keeps the repository grounded in the parts of those projects that match its actual scope,
-instead of drifting toward feature imitation for its own sake.
+## 要守住的邊界
 
-## Boundary To Preserve
+在借鏡這些專案時，這個 repo 仍然應避免漂成：
 
-While learning from these projects, this repository should still avoid drifting into:
+- plugin marketplace
+- generic multi-agent orchestration OS
+- code-generation-time interception layer
+- enterprise-wide AI compliance platform
 
-- a plugin marketplace
-- a generic multi-agent orchestration OS
-- a code-generation-time interception layer inside the AI tool itself
-- an enterprise-wide AI compliance platform far beyond coding governance
+## 一句話定位
 
-## One-Sentence Positioning
+和最接近的開源參考相比，`ai-governance-framework` 現在最穩的描述仍然是：
 
-Compared with the nearest open-source references, `ai-governance-framework` is strongest when described as a multi-repo AI coding runtime-governance prototype with external domain contracts, mixed enforcement, and reviewer/audit publication surfaces.
+> 一個 multi-repo、machine-interpretable 的 AI coding runtime governance framework，
+> 其重點在 external domain contract、mixed enforcement，以及 reviewer / audit publication surface。
