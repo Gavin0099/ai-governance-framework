@@ -24,6 +24,11 @@ from governance_tools.decision_model_loader import build_runtime_policy_ref, fin
 from governance_tools.domain_governance_metadata import domain_risk_tier
 from governance_tools.execution_surface_coverage import build_execution_surface_coverage
 from governance_tools.runtime_surface_manifest import build_runtime_surface_manifest
+from runtime_hooks.core._canonical_closeout import (
+    build_canonical_closeout,
+    pick_latest_candidate,
+    write_canonical_closeout,
+)
 
 
 def _ensure_runtime_artifact_dirs(project_root: Path) -> tuple[Path, Path, Path, Path, Path]:
@@ -39,6 +44,30 @@ def _ensure_runtime_artifact_dirs(project_root: Path) -> tuple[Path, Path, Path,
     verdicts_dir.mkdir(parents=True, exist_ok=True)
     traces_dir.mkdir(parents=True, exist_ok=True)
     return candidates_dir, curated_dir, summaries_dir, verdicts_dir, traces_dir
+
+
+def _append_session_index(canonical: dict[str, Any], project_root: Path) -> None:
+    """
+    Append a summary line to artifacts/session-index.ndjson (Slice 4).
+
+    Append-only; write failure is non-fatal (silently swallowed).
+    This file is NOT the source of truth — canonical closeout artifacts are.
+    It exists for fast scanning without reading individual closeout files.
+    """
+    try:
+        index_path = project_root / "artifacts" / "session-index.ndjson"
+        index_path.parent.mkdir(parents=True, exist_ok=True)
+        entry = {
+            "session_id": canonical["session_id"],
+            "closed_at": canonical["closed_at"],
+            "closeout_status": canonical["closeout_status"],
+            "task_intent": canonical.get("task_intent"),
+            "has_open_risks": bool(canonical.get("open_risks")),
+        }
+        with index_path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except Exception:
+        pass  # non-fatal: index is a cache, not the authority
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -645,12 +674,45 @@ def run_session_end(
     )
 
     now = datetime.now(timezone.utc).isoformat()
+
+    # ── Canonical closeout — orchestration layer input collection ─────────────
+    # build_canonical_closeout() is a pure function; all IO is collected here
+    # by the caller so the function itself remains deterministic and replayable.
+    _closeout_candidate = pick_latest_candidate(session_id, project_root)
+    _artifacts_referenced = (_closeout_candidate or {}).get("artifacts_referenced") or []
+    # WEAK SIGNAL: existence check only. Proves the path exists on disk; does
+    # NOT prove the file was created by this session, that the AI summary is
+    # accurate, or that any tool actually operated on it.
+    # See docs/closeout-schema.md — "Signal strength" for full semantics.
+    _existing_artifacts = frozenset(
+        p for p in _artifacts_referenced
+        if p and (project_root / p).exists()
+    )
+    # tools_executed: raw tool names from event_log["tool"] entries.
+    # Taxonomy is frozen in _canonical_closeout._VERIFIABLE_TOOLS.
+    # Names are matched case-insensitively; normalization (pytest vs python -m
+    # pytest) is NOT done here — callers that want normalized names must
+    # pre-normalize before passing event_log.
+    _tools_executed = [
+        entry["tool"] for entry in event_log
+        if isinstance(entry, dict) and entry.get("tool")
+    ]
+    _runtime_signals: dict[str, Any] = {"tools_executed": _tools_executed} if _tools_executed else {}
+    canonical_closeout = build_canonical_closeout(
+        session_id=session_id,
+        closed_at=now,
+        candidate_payload=_closeout_candidate,
+        existing_artifacts=_existing_artifacts,
+        runtime_signals=_runtime_signals,
+    )
+
     candidate_artifact, curated_artifact, summary_artifact, verdict_artifact_dir, trace_artifact_dir = _ensure_runtime_artifact_dirs(project_root)
     candidate_path = candidate_artifact / f"{session_id}.json"
     curated_path = curated_artifact / f"{session_id}.json"
     summary_path = summary_artifact / f"{session_id}.json"
     verdict_path = verdict_artifact_dir / f"{session_id}.json"
     trace_path = trace_artifact_dir / f"{session_id}.json"
+    closeout_path: Path | None = None
 
     try:
         _force_runtime_failure_if_requested(checks, "artifact_emission")
@@ -739,7 +801,10 @@ def run_session_end(
         _write_json(summary_path, summary_payload)
         _write_json(verdict_path, verdict_payload)
         _write_json(trace_path, trace_payload)
+        closeout_path = write_canonical_closeout(canonical_closeout, project_root)
+        _append_session_index(canonical_closeout, project_root)
     except Exception as exc:
+        closeout_path = None
         failure_message = str(exc)
         errors.append(f"runtime_failure: {failure_message}")
         decision = "RUNTIME_FAILURE"
@@ -771,6 +836,8 @@ def run_session_end(
         "summary_artifact": str(summary_path),
         "verdict_artifact": str(verdict_path),
         "trace_artifact": str(trace_path),
+        "canonical_closeout_artifact": str(closeout_path) if closeout_path else None,
+        "canonical_closeout": canonical_closeout,
         "decision_context": decision_context,
         "warnings": warnings,
         "errors": errors,

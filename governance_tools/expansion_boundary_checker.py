@@ -65,6 +65,10 @@ KNOWN_SESSION_START_KEYS = {
     "validator_preflight",
     # governance strategy classification admitted 6048f9f / governance-strategy-runtime
     "governance_classification",
+    # canonical closeout context injection admitted 2026-04-08 / session-workflow-enhancement
+    # Slice 5: reads prior-session canonical closeout for continuity context.
+    # Informational only — does not affect ok, task_level, risk, or oversight.
+    "closeout_context",
 }
 
 # pre_task_check spreads **active_rules_result so many keys are not literal in

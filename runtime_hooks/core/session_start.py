@@ -40,6 +40,7 @@ from governance_tools.task_level_detector import (
 from runtime_hooks.core.human_summary import build_summary_line, format_contract_summary_label
 from runtime_hooks.core.payload_audit_logger import log_session_payload
 from runtime_hooks.core.pre_task_check import run_pre_task_check
+from runtime_hooks.core._canonical_closeout_context import load_closeout_context
 
 
 def _emit_rendered_output(rendered: str) -> None:
@@ -234,6 +235,13 @@ def build_session_start_context(
         "injection_reliance": "none",
     }
 
+    # ── Canonical closeout context injection (Slice 5) ────────────────────────
+    # Reads the most recent canonical closeout artifact to provide continuity
+    # context from the previous session. Gracefully degrades on any failure.
+    # Only canonical closeouts are read — candidates and session-index are never
+    # consulted here. See docs/closeout-schema.md — Downstream Consumer Rules.
+    closeout_context = load_closeout_context(project_root)
+
     # Payload audit hook — zero overhead when disabled (env var not set)
     if is_audit_enabled():
         _audit_contracts = [str(resolved_contract_file)] if resolved_contract_file else []
@@ -288,6 +296,7 @@ def build_session_start_context(
         "state": state,
         "pre_task_check": pre_task,
         "governance_classification": session_governance_classification,
+        "closeout_context": closeout_context,
     }
 
 

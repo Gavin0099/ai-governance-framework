@@ -85,7 +85,21 @@ KNOWN_RUNTIME_ENTRYPOINTS: dict[str, dict[str, Any]] = {
         "category": "runtime-close",
         "input_mode": "python-cli",
         "primary_output": "runtime close envelope",
-        "artifact_effect": "writes runtime verdict and trace artifacts",
+        "artifact_effect": "writes runtime verdict, trace, and canonical closeout artifacts",
+    },
+    "_canonical_closeout": {
+        "path": "runtime_hooks/core/_canonical_closeout.py",
+        "category": "runtime-close",
+        "input_mode": "internal-library",
+        "primary_output": "canonical closeout artifact",
+        "artifact_effect": "writes artifacts/runtime/closeouts/{session_id}.json and appends session-index.ndjson",
+    },
+    "_canonical_closeout_context": {
+        "path": "runtime_hooks/core/_canonical_closeout_context.py",
+        "category": "runtime-init",
+        "input_mode": "internal-library",
+        "primary_output": "closeout continuity context",
+        "artifact_effect": "reads artifacts/runtime/closeouts/ to inject prior-session context at session start",
     },
     "dispatcher": {
         "path": "runtime_hooks/dispatcher.py",
