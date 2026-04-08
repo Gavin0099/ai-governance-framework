@@ -7,12 +7,12 @@ default_load: never
 ---
 
 # HUMAN-OVERSIGHT.md
-**Human Escalation and Oversight Protocol - v3.1**
+**人類升級與監督協定 - v3.1**
 
-> **Version**: 3.1 | **Priority**: 2 (Safety Valve)
+> **Version**: 3.1 | **Priority**: 2（安全閥）
 >
-> Defines when to continue, when to escalate, and when to stop.
-> All escalation behavior in other documents defers to this file.
+> 定義何時可以繼續、何時應該 escalate、何時必須 stop。
+> 其他文件中的 escalation 行為，最終都以這份文件為準。
 
 ---
 
@@ -20,89 +20,94 @@ default_load: never
 
 ### 1.1 Continue
 
-Agent may continue when:
-- the task is bounded
-- risk is low
-- evidence can be gathered locally
-- no meaningful human trade-off is being hidden
+當以下條件成立時，agent 可以繼續：
+- task 有明確邊界
+- risk 低
+- evidence 可以在本地蒐集
+- 沒有把重要的人類 trade-off 隱藏起來
 
 ### 1.2 Escalate
 
-Agent must escalate when:
-- requirements are materially ambiguous
-- more than one reasonable path exists with different trade-offs
-- architecture impact is unclear but not yet a hard violation
-- dirty worktree overlap or commit-scope ambiguity exists
-- a safe partial path exists, but the next step requires human direction
+當以下條件成立時，agent 必須 escalate：
+- requirement 存在實質歧義
+- 有多條合理路徑，且 trade-off 不同
+- architecture impact 還不清楚，但尚未踩到硬紅線
+- dirty worktree overlap 或 commit scope ambiguity 存在
+- 可以先走安全的 partial path，但下一步需要人類方向
 
 ### 1.3 Stop
 
-Agent must stop when:
-- a hard safety or architecture red line is triggered
-- governance documents conflict materially
-- correctness cannot be defended
-- human authorization is required for a high-risk action
+當以下條件成立時，agent 必須 stop：
+- 已觸發硬 safety 或 architecture red line
+- governance 文件之間存在實質衝突
+- correctness 無法被合理辯護
+- 高風險動作需要人類授權
 
-> **Do not treat all uncertainty as stop-worthy. Use escalate unless a true red line has been crossed.**
+> **不要把所有不確定性都當成 stop。除非真的踩到紅線，否則先用 escalate。**
 
 ---
 
 ## 2. Escalation Procedure
 
-When escalating:
-1. state what is unclear
-2. state why continuing unchecked is risky
-3. propose one to three concrete options with expected impact
-4. wait for human direction
+當需要 escalate 時：
+1. 說明不清楚的是什麼
+2. 說明若不受控繼續，風險在哪裡
+3. 提出一到三個具體選項與預期影響
+4. 等待人類指示
 
-No guessing. No silent direction choice under material ambiguity.
+不要猜測。不要在重大歧義下默默替人類選方向。
 
 ---
 
 ## 3. Stop Procedure
 
-When stopping:
-1. identify the triggering rule or red line
-2. explain why safe continuation is not defensible
-3. describe the nearest safe rollback or containment step
-4. wait for human authorization
+當需要 stop 時：
+1. 指出觸發的規則或紅線
+2. 說明為什麼安全繼續已無法辯護
+3. 描述最近的安全 rollback 或 containment step
+4. 等待人類授權
 
 ---
 
 ## 4. Authority Boundary
 
-Agent may analyze, propose, implement, verify, and refactor within safe bounds.
+Agent 可以在安全邊界內：
+- 分析
+- 提案
+- 實作
+- 驗證
+- refactor
 
-Only a human may authorize direction under unresolved material uncertainty or true high-risk deviation.
+只有人類可以在仍有重大不確定性或真實高風險偏離下授權方向。
 
 ---
 
 ## 5. State Recovery
 
-After interruption:
-1. re-read `memory/01_active_task.md`
-2. re-verify `LANG / LEVEL / SCOPE`
-3. restate the previous known task state before continuing
+發生中斷後：
+1. 重讀 `memory/01_active_task.md`
+2. 重新驗證 `LANG / LEVEL / SCOPE`
+3. 在繼續前，先重述上一個已知 task state
 
-Do not assume prior governance state is still valid.
+不要假設先前的 governance state 仍然有效。
 
 ---
 
 ## 6. Audit Trail
 
-Every meaningful task should leave a human-readable trace including:
-- start/end or current status
+每個有意義的 task 都應留下人類可讀的 trace，至少包含：
+- start / end 或 current status
 - `LANG / LEVEL / SCOPE`
 - bounded context
-- key decisions
-- applied guardrails
-- trade-offs, escalations, or stop reasons
+- 關鍵決策
+- 套用的 guardrail
+- trade-off、escalation 或 stop 理由
 
-Records must be human-understandable and traceable to governance rules.
+這些紀錄必須讓人類看得懂，且能對應回 governance 規則。
 
 ---
 
 ## 7. Final Principle
 
-> **Autonomy ends where accountability begins.**
-> **Escalation is for meaningful uncertainty; stopping is for defended impossibility or red-line risk.**
+> **Autonomy 在 accountability 開始的地方結束。**
+> **Escalation 是為了處理有意義的不確定性；stop 是給真正無法安全辯護的情況與紅線風險。**
