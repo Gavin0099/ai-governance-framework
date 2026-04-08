@@ -1,25 +1,23 @@
 # Decision Context Bridge
 
-## 目的
+> 狀態：context bridge defined
+> 更新日期：2026-04-08
 
-這份文件定義一個最小橋接層，將目前已存在的：
+## Purpose
 
-- execution surface signals
-- coverage completeness signals
-- memory integrity signals
+這份文件的目的不是新增一套 verdict rule engine，而是把已存在的 integrity signals 正式綁到 decision artifact 上，形成可讀的 `decision_context`。
 
-正式綁到 decision artifact 的語義中。
+它處理的不是：
 
-目標不是改 verdict，也不是增加新的 rule engine。
+- verdict 是什麼
 
-目標是：
+而是：
 
-> 讓每個 decision 都能明確說出：
-> 它是在什麼完整度上下文下做出的。
+- 這個 verdict 是在什麼完整度條件下成立
 
-## 問題定義
+## Why This Bridge Exists
 
-目前 repo 已經有兩條並行系統：
+本 repo 已經有兩條系統：
 
 ### 1. Decision System
 
@@ -32,22 +30,19 @@
 
 - runtime surface manifest
 - execution coverage
-- memory schema / memory sync signals
+- memory schema / sync signals
+- advisory observations
 
-現在的問題不是缺 signal，而是：
+如果這兩條線不綁起來，就會出現：
 
-> signal 還沒有正式進入 decision artifact。
+- decision 顯示 `ok`
+- 但 execution coverage 可能不完整
+- memory integrity 可能 partial
+- reviewer 不知道這個 decision 是在什麼品質條件下做出的
 
-所以目前可能出現：
+## Bridge Shape
 
-- decision = ok
-- 但 execution coverage incomplete
-- 但 memory integrity partial
-- 但 reviewer 不知道這些 signal 對該 decision 的可信度代表什麼
-
-## 最小橋接做法
-
-第一版只加一個欄位：
+第一版 bridge 採用最小欄位：
 
 ```json
 "decision_context": {
@@ -57,22 +52,22 @@
 }
 ```
 
-這個欄位的定位是：
+這些欄位的定位是：
 
 - context
 - not verdict
 - not policy
-- not enforcement
+- not authority
 
-## 三個 Context 維度
+## Context Fields
 
 ### 1. `surface_validity`
 
 回答：
 
-- 目前 decision 所依賴的 execution/evidence surface 是否完整且沒有明顯 mismatch
+- decision 所依賴的 execution / evidence surface 是否完整、是否有 mismatch
 
-第一版 signal 來源可接：
+目前主要對應 signal：
 
 - `unknown_surfaces`
 - `orphan_surfaces`
@@ -82,9 +77,9 @@
 
 回答：
 
-- 目前 decision 是否在可接受的 execution coverage 下做出
+- 某個 decision 是否在可接受的 execution coverage 條件下成立
 
-第一版 signal 來源可接：
+目前主要對應 signal：
 
 - `missing_hard_required`
 - `missing_soft_required`
@@ -95,87 +90,77 @@
 
 回答：
 
-- 目前與該 decision 相關的 repo memory / host-agent memory 狀態是否完整
+- repo memory / host-agent memory / sync semantics 是否處於可接受狀態
 
-第一版 signal 來源可接：
+目前主要對應 signal：
 
 - `memory_sync_missing`
 - `host_memory_not_applicable`
 - `repo_memory_written_only`
 - `memory_schema_status`
 
-## 第一版 Mapping 原則
+## Mapping Direction
 
-第一版不要做複雜加權或 scoring。
-
-只做最小 mapping：
+這一層刻意不用 numeric scoring，只做 bounded mapping。
 
 ### `surface_validity`
 
 - `complete`
-  - 無 `unknown_surfaces`
-  - 無 `orphan_surfaces`
-  - 無 `evidence_surface_mismatch`
+  - 沒有 unknown / orphan / evidence mismatch
 - `partial`
-  - 任一 signal 非空
+  - 有 signal，但尚未完全失效
 - `unknown`
-  - 無法取得 manifest / consistency 結果
+  - 連 manifest / consistency 本身都無法可靠提供
 
 ### `coverage_completeness`
 
 - `complete`
-  - `missing_hard_required=0`
-  - `missing_soft_required=0`
-  - 無 dead surface signal
+  - 沒有 missing hard/soft requirement，且沒有 dead surface signal
 - `partial`
-  - 任一 coverage signal 非空
+  - 有 coverage 缺口，但仍有 bounded interpretation
 - `missing`
-  - coverage model 未執行或 decision 無 coverage result
+  - coverage model 或 required surface 根本無法提供
 
 ### `memory_integrity`
 
 - `complete`
-  - memory schema complete
-  - 無 required sync missing
+  - memory schema 完整，且沒有 required sync 缺失
 - `partial`
-  - schema partial
-  - 或只有 repo memory，沒有 host sync
+  - schema partial、repo-only、或 sync 有缺口
 - `not_applicable`
-  - 這個 decision/track 不要求 host memory sync
+  - 這次 decision 本來就不應要求 host memory sync
 
-## 第一版 Consumer
+## Consumers
 
-第一版只服務三個 consumer：
+這一層第一批 consumer 應該是：
 
-1. reviewer
-2. agent adoption baseline
-3. future session_end / verdict artifact readers
+- reviewer
+- session summary reader
+- agent adoption baseline
+- run record / handoff reader
 
-先不要讓它直接影響：
+目前刻意不直接給：
 
-- runtime stop/pass
-- policy precedence
-- authority escalation
+- runtime stop/pass authority
+- policy precedence override
+- hard gate
 
-## 建議落點
+## Current Embedding Points
 
-第一版最適合加在：
+目前 `decision_context` 已接到：
 
-- `runtime-verdict`
-- `session_end` summary output
-- reviewer / adoption run record
+- runtime verdict / trace artifact
+- session_end summary
+- reviewer-facing baseline / run record surfaces
 
-不一定要一次全接。
+它的作用是：
 
-最小路徑可以是：
+- 幫 reviewer 理解 decision validity
+- 讓 baseline 不只看 raw signal，而能看 decision 所處條件
 
-1. 先定 schema
-2. 先在一個非阻擋 artifact 出現
-3. reviewer 先消費
+## Non-Goals
 
-## 非目標
-
-第一版不做：
+這份 bridge 不做：
 
 - trust score
 - numeric confidence score
@@ -183,17 +168,15 @@
 - runtime hard gate
 - policy override
 
-## 驗收條件
+## Success Condition
 
-第一版完成時，至少要滿足：
+這一層成功的標準不是「它更聰明」，而是：
 
-1. `decision_context` 不重寫現有 verdict semantics
-2. reviewer 能看出：
-   - decision 是在完整、部分、或未知上下文中做出
-3. context 值可回溯到既有 signal，而不是新發明的黑箱評分
-4. agent-assisted baseline 能引用這個 context，而不只引用 raw signal
+- reviewer 能看出 decision 的完整度上下文
+- adoption / run baseline 能把 integrity signal 轉成可解釋的判讀面
+- decision artifact 不再只顯示結果，也顯示 bounded validity context
 
-## 一句話總結
+## One-Line Summary
 
-> 這一步的目的不是讓 signal 變 verdict，
-> 而是讓 verdict 有正式可引用的完整度上下文。
+這份 bridge 的作用是：  
+不是讓 signal 直接改 verdict，而是讓 verdict 不再脫離它所依賴的完整度條件。

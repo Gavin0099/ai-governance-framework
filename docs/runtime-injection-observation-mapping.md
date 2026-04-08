@@ -1,125 +1,142 @@
 # Runtime Injection Observation Mapping
 
-## 目的
+> 狀態：bounded mapping defined
+> 更新日期：2026-04-08
 
-這份文件定義 `runtime injection snapshot` 與 `observation` 之間的最小對照邊界。
+## Purpose
 
-它不宣稱：
-- 可以直接證明 agent 真的理解了 injected policy
-- 可以直接證明 agent 內在遵守了所有 requirement
+這份文件的目的不是證明 agent 已遵守 injected policy，而是把：
 
-它只定義：
-- 哪些 `consumption requirement` 可以被哪些 **observable proxy** 間接回證
-- 哪些 signal 只是 environment degradation，不應被誤讀成 compliance proof
-- 哪些 proxy 可以進一步成為 enforcement 可依賴的 input 候選
+```text
+consumption requirement -> observable proxy -> interpretation boundary
+```
 
-## Signal Class
+這條線先寫清楚。
 
-這條線先明確分成兩類 signal，不混用。
+它要防止兩種常見誤判：
+
+- 把 trigger / proxy 誤當成 compliance proof
+- 把 environment degradation 誤當成 behavioral failure
+
+## What This Mapping Is
+
+這份 mapping 只處理：
+
+- 哪些 consumption requirement 可以被某些 observable proxy 間接回證
+- 哪些 proxy 只能算 `observable compliance evidence`
+- 哪些 signal 只能進 advisory / reviewer surface
+
+它不是：
+
+- proof-of-compliance engine
+- policy obedience detector
+- generic runtime authority layer
+
+## Signal Classes
 
 ### 1. Environment Degradation Signals
 
-特性：
-- 描述 runtime state / context quality
-- 不等於 consumption proof
-- 主要用於提高警戒、抬升 task level、或要求 escalation
+這類 signal 描述的是：
+
+- runtime state
+- context quality
+- visibility degradation
+
+它們可以提高警戒、抬高 reviewer 注意力，但不應被解讀成 behavioral non-compliance。
 
 例子：
+
 - `context_degraded`
 - `required_evidence_missing`
-- `truncation_detected`
+- truncation / partial visibility 類 signal
 
 ### 2. Behavioral Compliance Signals
 
-特性：
-- 描述 agent 外部可觀測行為是否與某 requirement 相容
-- 不能直接證明內在理解
-- 但可以作為 requirement 是否被滿足的 proxy
+這類 signal 描述的是：
 
-例子：
-- edit 前是否有對應 read event
-- large file 是否有足夠 read coverage
-- edit 後是否有 validation step
+- 某些可觀測行為與 requirement 的相容程度
+- execution pattern 是否與 requirement 比較一致
 
-## 最小 Mapping 原則
+它們也不能直接當成 proof，只能當成 behavioral compatibility evidence。
 
-第一版只處理兩種 requirement：
+## First-Slice Requirements
+
+目前這份 mapping 只正式處理兩個 requirement：
+
 - `reread_before_edit`
 - `require_full_read_for_large_files`
 
-選這兩條的原因：
-- 比 `must follow architecture rules` 更可觀測
-- 比 `must understand policy` 更不抽象
-- 可以讓 consumption observation 與 execution observation 開始真正接起來
+刻意不處理：
+
+- `must understand policy`
+- `must follow architecture rules`
+- 其他需要推定 agent 內在理解的 requirement
 
 ## Mapping Table
 
-| Consumption requirement | Acceptable observation proxy | Non-proof caveat | Intended enforcement use |
+| Consumption requirement | Acceptable observation proxy | Non-proof caveat | Intended use |
 |---|---|---|---|
-| `reread_before_edit` | edited file 在當前 task window 內存在對應 read event | 無法證明 agent 真的理解內容，只能證明它有重新接觸檔案 | 缺失時可 `escalate` 或要求 reviewer 注意 |
-| `require_full_read_for_large_files` | 超過門檻的大檔案存在 chunked read / repeated read coverage，且沒有 truncation signal | 無法證明 attention retention，只能證明 external read coverage 與 requirement 相容 | coverage 不足時可 `escalate` 或標示 `partial` |
-| `escalate_if_context_degraded` | `context_degraded` signal 存在 | 這是 environment state，不是 compliance proof | raise minimum task level / escalate |
-| `escalate_if_required_evidence_missing` | `required_evidence_missing` signal 存在 | 這是 execution completeness 問題，不是 consumption proof | escalate / stop |
+| `reread_before_edit` | edited file 在當前 task window 之前有對應 read event | 不能證明 agent 真的理解了 reread 內容，也不能證明 reread 與 edit 的關聯足夠強 | reviewer-visible warning / advisory escalation hint |
+| `require_full_read_for_large_files` | large file 被修改前出現 chunked read / repeated read coverage，且無 truncation signal | 不能證明 relevant section coverage，也不能證明 agent retention 充分 | partial visibility / review risk advisory |
+| `escalate_if_context_degraded` | `context_degraded` signal 存在 | 這是 environment state，不是 consumption proof | raise reviewer caution / escalate task posture |
+| `escalate_if_required_evidence_missing` | `required_evidence_missing` signal 存在 | 這是 execution completeness signal，不是 behavioral proof | escalate / stop path，或 reviewer-visible evidence gap |
 
-## First Slice Decision
+## Current Interpretation Boundary
 
-第一刀只做兩件事：
+目前所有 proxy 都應被讀成：
 
-1. 明確區分：
-- environment degradation
-- behavioral compliance
-
-2. 對這兩個 requirement 給出最小可用 proxy：
-- `reread_before_edit`
-- `require_full_read_for_large_files`
-
-第一刀不做：
-- generic proof-of-compliance engine
-- semantic understanding detection
-- adapter-specific instrumentation
-- runtime hard gate
-
-## Enforcement Posture
-
-這些 proxy 第一版只應被視為：
 - `observable compliance evidence`
 - `behavioral compatibility signal`
+- `reviewer-facing advisory substrate`
 
-不應被寫成：
+明確不是：
+
 - `proof_of_compliance`
+- `proof_of_violation`
 - `policy_fully_obeyed`
-
-也就是說，第一版的語意是：
-
-> 某些外部可觀測行為，與 injected requirement 相容或不相容。
-
-不是：
-
-> 已經證明 agent 內在遵守了治理要求。
 
 ## Non-Equivalence Rules
 
-下列推論在第一版中一律禁止：
+以下推論一律禁止：
 
 - observed proxy present ≠ requirement satisfied
 - observed proxy absent ≠ requirement violated
-- single event presence ≠ behavioral compliance
+- single event ≠ behavioral compliance
 - environment degradation ≠ behavioral failure
 
-## 下一步候選
+## First Executable Slice
 
-如果這份 mapping 被接受，下一步才適合做一個更小的 executable slice：
+目前已落地的 executable slice 是：
 
-1. 先產一個 machine-readable mapping artifact
-2. 再決定由哪個 runtime hook 消費
-3. 優先接 reviewer-facing / advisory surface
-4. 不直接升成 hard gate
+- `require_full_read_for_large_files`
 
-## 成功標準
+它的定位是：
 
-這份 mapping 成功的標準不是 coverage 變多，而是：
+- advisory-only executable proxy
+- partial visibility / review risk hint
+- 不改 verdict
+- 不當成 proof_of_compliance
+- 不當成 proof_of_violation
 
-1. `trigger` 與 `consumption proof` 不再混淆
-2. environment state 與 behavioral compliance 被正式切開
-3. 至少兩個 requirement 有明確、可解釋、可保留 caveat 的 observable proxy
-4. 後續 runtime implementation 不會把不可觀測的內在遵守誤寫成已驗證事實
+## What This Enables
+
+這份 mapping 的價值在於：
+
+- 把 `runtime injection snapshot` 與 observation 用同一套 bounded語義接起來
+- 讓 reviewer 能看懂 proxy 是什麼，不是 generic warning
+- 為未來的 post-task / execution-time observation 預留乾淨入口
+
+## Non-Goals
+
+這份 mapping 不做：
+
+- generic compliance proof engine
+- adapter-specific instrumentation matrix
+- runtime hard gate
+- semantic understanding detection
+- machine-authoritative consumption scoring
+
+## One-Line Summary
+
+這份文件固定的是：  
+runtime injection 的 requirement 可以被 bounded proxy 觀測，但這些 proxy 只能改善理解與審查，不足以單獨成立裁決權。
