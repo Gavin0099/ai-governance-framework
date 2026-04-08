@@ -10,7 +10,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from governance_tools.closeout_audit import build_closeout_audit, format_human_result
+from governance_tools.closeout_audit import (
+    build_closeout_audit,
+    build_status_markdown,
+    format_human_result,
+    write_status_outputs,
+)
 
 _FIXTURE_ROOT = Path(__file__).parent / "_tmp_closeout_audit"
 
@@ -243,3 +248,32 @@ class TestFormatHumanResult:
         assert "quality_review=" in output
         assert "schema_drift=" in output
         assert "taxonomy_breach=" in output
+
+
+class TestStatusOutputs:
+    def test_build_status_markdown_contains_summary(self):
+        repo = _reset_fixture("status_markdown")
+        _write_closeout(repo, "s1", "valid")
+        result = build_closeout_audit(repo)
+        result["generated_at"] = "2026-04-08T00:00:00+00:00"
+
+        output = build_status_markdown(result)
+
+        assert "# Closeout Audit" in output
+        assert "- valid_rate: `1.0`" in output
+        assert "| `valid` | `1` |" in output
+
+    def test_write_status_outputs_writes_json_and_markdown(self):
+        repo = _reset_fixture("write_status_outputs")
+        _write_closeout(repo, "s1", "missing")
+        result = build_closeout_audit(repo)
+        result["generated_at"] = "2026-04-08T00:00:00+00:00"
+
+        written = write_status_outputs(repo, result)
+
+        json_path = Path(written["json"])
+        md_path = Path(written["markdown"])
+        assert json_path.exists()
+        assert md_path.exists()
+        assert '"missing_count": 1' in json_path.read_text(encoding="utf-8")
+        assert "# Closeout Audit" in md_path.read_text(encoding="utf-8")

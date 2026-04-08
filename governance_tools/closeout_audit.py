@@ -38,6 +38,9 @@ _VALID_RATE_REVIEW_THRESHOLD = 0.50  # 50% of sessions should be valid
 # Window for recent_7d_valid_rate calculation.
 _RECENT_DAYS = 7
 
+_GENERATED_JSON = Path("docs/status/generated/closeout-audit.json")
+_GENERATED_MD = Path("docs/status/closeout-audit.md")
+
 
 def build_closeout_audit(project_root: Path) -> dict[str, Any]:
     """
@@ -218,20 +221,102 @@ def format_human_result(result: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def build_status_markdown(result: dict[str, Any]) -> str:
+    generated_at = result.get("generated_at")
+    lines = [
+        "# Closeout Audit",
+        "",
+        f"- generated_at: `{generated_at}`" if generated_at else "- generated_at: `(not recorded)`",
+        f"- project_root: `{result['project_root']}`",
+        f"- signal_posture: `aggregation-only`",
+        "",
+        "## Summary",
+        "",
+        f"- session_count: `{result['session_count']}`",
+        f"- valid_rate: `{result['valid_rate']}`",
+        f"- recent_7d_session_count: `{result['recent_7d_session_count']}`",
+        f"- recent_7d_valid_rate: `{result['recent_7d_valid_rate']}`",
+        f"- has_open_risks_count: `{result['has_open_risks_count']}`",
+        "",
+        "## Policy Flags",
+        "",
+        f"- quality_review: `{result['policy_flags']['quality_review']}`",
+        f"- schema_drift: `{result['policy_flags']['schema_drift']}`",
+        f"- taxonomy_breach: `{result['policy_flags']['taxonomy_breach']}`",
+        "",
+        "## Status Distribution",
+        "",
+    ]
+
+    status_dist = result.get("status_distribution") or {}
+    if status_dist:
+        lines.extend([
+            "| Status | Count |",
+            "|---|---|",
+        ])
+        for status, count in sorted(status_dist.items(), key=lambda kv: (-kv[1], kv[0])):
+            lines.append(f"| `{status}` | `{count}` |")
+    else:
+        lines.append("- `(none)`")
+
+    unknown_statuses = result.get("unknown_statuses") or []
+    if unknown_statuses:
+        lines.extend([
+            "",
+            "## Unknown Statuses",
+            "",
+            f"- `{', '.join(unknown_statuses)}`",
+        ])
+
+    unreadable_files = result.get("unreadable_files") or []
+    if unreadable_files:
+        lines.extend([
+            "",
+            "## Unreadable Files",
+            "",
+        ])
+        for path in unreadable_files:
+            lines.append(f"- `{path}`")
+
+    return "\n".join(lines) + "\n"
+
+
+def write_status_outputs(project_root: Path, result: dict[str, Any]) -> dict[str, str]:
+    json_path = project_root / _GENERATED_JSON
+    md_path = project_root / _GENERATED_MD
+    json_path.parent.mkdir(parents=True, exist_ok=True)
+    md_path.parent.mkdir(parents=True, exist_ok=True)
+    json_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    md_path.write_text(build_status_markdown(result), encoding="utf-8")
+    return {
+        "json": str(json_path),
+        "markdown": str(md_path),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Report canonical closeout health across session artifacts."
     )
     parser.add_argument("--project-root", default=".")
     parser.add_argument("--format", choices=("human", "json"), default="human")
+    parser.add_argument("--write", action="store_true", help="Write status outputs under docs/status/")
     args = parser.parse_args()
 
-    result = build_closeout_audit(Path(args.project_root).resolve())
+    project_root = Path(args.project_root).resolve()
+    result = build_closeout_audit(project_root)
+    result["generated_at"] = datetime.now(timezone.utc).isoformat()
+
+    if args.write:
+        result["written_outputs"] = write_status_outputs(project_root, result)
 
     if args.format == "json":
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
         print(format_human_result(result))
+        if args.write:
+            print(f"written_json={result['written_outputs']['json']}")
+            print(f"written_markdown={result['written_outputs']['markdown']}")
 
     return 0 if result["ok"] else 1
 

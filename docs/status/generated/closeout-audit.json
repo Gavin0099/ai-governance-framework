@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "policy_ok": true,
+  "project_root": "E:\\BackUp\\Git_EE\\ai-governance-framework",
+  "closeouts_dir": "E:\\BackUp\\Git_EE\\ai-governance-framework\\artifacts\\runtime\\closeouts",
+  "session_count": 0,
+  "status_distribution": {},
+  "valid_count": 0,
+  "missing_count": 0,
+  "content_insufficient_count": 0,
+  "inconsistent_count": 0,
+  "schema_invalid_count": 0,
+  "valid_rate": null,
+  "recent_7d_session_count": 0,
+  "recent_7d_valid_rate": null,
+  "has_open_risks_count": 0,
+  "unknown_statuses": [],
+  "policy_flags": {
+    "quality_review": false,
+    "schema_drift": false,
+    "taxonomy_breach": false
+  },
+  "unreadable_files": [],
+  "generated_at": "2026-04-08T07:16:09.407271+00:00"
+}
