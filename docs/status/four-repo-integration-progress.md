@@ -1,248 +1,201 @@
-# Four-Repo Integration Progress
+# 四倉整合進度
 
-Updated: 2026-03-19
-Status: Active Development
+更新日期：2026-04-08
+狀態：bounded runtime stack in progress
 
-## Current Snapshot
+## 當前快照
 
-This is the clearest current view of the four-repo governance stack:
+這份文件用來看四倉治理堆疊目前的整體位置：
 
-- `ai-governance-framework`: core runtime-governance engine, functionally complete at prototype level
-- `USB-Hub-Firmware-Architecture-Contract`: first real firmware contract slice, now on runtime policy reclassification via `hard_stop_rules` inputs
-- `Kernel-Driver-Contract`: strongest low-level domain slice, with onboarding flow and runtime policy-input enforcement seams
-- `IC-Verification-Contract`: narrow IC verification slice with machine-readable facts and runtime policy-input enforcement seams
+- `ai-governance-framework`：核心 machine-interpretable governance runtime
+- `USB-Hub-Firmware-Architecture-Contract`：第一個 firmware domain slice
+- `Kernel-Driver-Contract`：最成熟的 low-level domain slice 之一
+- `IC-Verification-Contract`：較窄但乾淨的 IC verification slice
 
-Practical maturity estimate:
+如果只看目前主線，這個四倉系統已經從「理論可整合」走到「實際可跑」，但仍然保持 bounded，沒有往 full platform 漂移。
 
-- `ai-governance-framework`: `85-90%` toward prototype completeness
-- `USB-Hub-Firmware-Architecture-Contract`: `70%`
-- `Kernel-Driver-Contract`: `80%`
-- `IC-Verification-Contract`: `80%`
-- cross-repo ecosystem as a whole: `~80%`
+## 已經成立的事情
 
-## What Is Already True
+### 1. Framework Engine 已經成形
 
-### Framework Engine
-
-The core governance loop is already closed:
+核心治理 loop 現在已經成立：
 
 `session_start -> pre_task_check -> post_task_check -> session_end -> memory pipeline`
 
-This is no longer a document-only framework. It already has:
+它不再只是 document-only framework，而已經具備：
 
-- contract resolution and contract loading
+- contract resolution / loading
 - runtime rule activation
-- domain-validator discovery and execution
-- runtime policy reclassification through `hard_stop_rules` inputs
-- review-facing artifacts and status surfaces
-- CI-backed phase gates and trust/release surfaces
+- domain-validator discovery 與 execution
+- `hard_stop_rules` 驅動的 mixed enforcement
+- review-facing artifact 與 status surface
+- CI / smoke / closeout / readiness 路徑
 
-Most important correction:
+最重要的修正是：
 
-- `validator execution` is no longer the primary gap
-- `post_task_check.py` already executes domain validators
-- validator findings can now influence decisions
-- selected rule IDs can be reclassified from advisory findings into runtime policy stops through contract-level `hard_stop_rules`
+- `validator execution` 已不再是主缺口
+- `post_task_check.py` 已會實際跑 domain validator
+- selected rule ID 已可經 `hard_stop_rules` 進 runtime policy stop
 
-### Domain Plugin State
+### 2. 三個 domain repo 都不再只是文件
 
-All three external contract repos now have real plugin structure, not only documentation:
+三個 external contract repo 都已至少具備真實 plugin / contract 結構，例如：
 
 - `contract.yaml`
 - domain rules
 - validators
-- fixtures / baselines
-- fact-intake or workflow guidance
+- fixtures / baseline
+- facts intake 或 workflow guidance
 
-They differ in maturity, but all three now participate in the runtime seam.
+成熟度不一樣，但都已經進入 runtime seam。
 
-## Historical Correction
+## 主問題已經轉移
 
-An earlier assessment was accurate at the time:
+以前的問題比較像 framework plumbing 不完整。現在主問題已經轉成下面幾件事。
 
-- plugin expansion briefly moved faster than framework hardening
+### 1. Real facts intake
 
-That specific gap is now closed:
+現在最大的缺口已不是 framework 會不會跑，而是能不能吃到真實 project truth。
 
-- validator execution exists
-- runtime policy-input enforcement exists
-- cross-domain policy comparison exists
-- onboarding smoke can now validate real post-task fixture replay
+目前各 domain repo 多半還偏 sample fixture / example facts：
 
-So the main problem has shifted.
+- USB-Hub 仍需要真實 chip / board facts
+- Kernel-Driver 仍需要真實 driver codebase intake
+- IC-Verification 仍需要真實 DUT signal-map intake
 
-## Current Real Gaps
+framework 已能跑，下一步更缺的是真實 domain truth。
 
-### 1. Real Facts Intake
+### 2. Workflow interception coverage
 
-The biggest remaining gap is no longer framework plumbing. It is real project grounding.
+架構上仍然存在 local edit / direct commit 的 bypass path。
 
-Current domain repos still rely mostly on sample fixtures and example facts:
+短中期比較實際的路線仍然是：
 
-- USB-Hub still needs real chip- and board-specific checklist facts
-- Kernel-Driver still needs real driver codebase intake
-- IC-Verification still needs real DUT signal-map intake
+- git hook
+- CI gate
+- external onboarding / readiness / smoke
 
-The framework can run. What it needs next is real domain truth.
+關鍵邊界仍然不變：
 
-### 2. Workflow Interception Coverage
+- framework 不攔截 AI 生成過程本身
+- 它治理的是 task 前後、runtime 與 review boundary
 
-The architecture still allows bypasses through local editing and direct commit paths.
+所以這裡真正的目標不是 IDE-native total interception，而是更穩的 commit / merge governance path。
 
-The practical short-term route is:
+### 3. Semantic verification depth
 
-- git hooks
-- CI gates
-- external repo onboarding + smoke verification
+目前 semantic layer 是真的存在，但仍多半偏 pattern-based。
 
-The important boundary is:
-
-- this framework does not try to intercept AI during code generation itself
-- it governs before/after task execution, at runtime and review boundaries
-
-So the realistic goal is not IDE-native total interception. The realistic goal is stronger commit/merge enforcement and lower-friction governance entrypoints.
-
-### 3. Semantic Verification Depth
-
-The current semantic layer is real, but still mostly pattern-based.
-
-It already includes:
+現在已經有：
 
 - domain validator execution
 - mixed enforcement
-- C# compatibility reasoning in `public_api_diff_checker.py`
+- `public_api_diff_checker.py` 等 interface reasoning
 
-But it is not yet:
+但還沒有到：
 
 - AST-based
 - data-flow-based
 - deep semantic proof
 
-So the right description is not "still only advisory." The right description is:
+所以比較準的說法是：
 
-- semantic verification exists
-- but most of it is still pattern-based rather than deep structural analysis
+- semantic verification 已存在
+- 但大部分仍是高訊號、pattern-based，而不是深層結構分析
 
-### 4. Release / Adoption Follow-Through
+### 4. Release / adoption follow-through
 
-The repo now has strong status, trust, release, and reviewer surfaces.
+repo 現在已經有 status、trust、release、reviewer surface。
 
-What remains is mostly operational:
+剩下的比較偏 operational：
 
-- actually publish GitHub Releases
-- keep docs and generated status paths current
-- continue validating runnable demo paths and external onboarding paths
+- 持續驗證 GitHub Release / docs / generated status path 對齊
+- 持續驗證 runnable demo path
+- 持續驗證 external onboarding path
 
-## Domain-by-Domain Snapshot
+## 各 domain 的當前位置
 
 ### USB-Hub Firmware Contract
 
-Current state:
+目前狀態：
 
-- full contract repo structure exists
-- rules, validators, fixtures, and memory exist
-- runtime policy-input enforcement exists
-- still needs real firmware facts intake
+- contract repo 結構已完整
+- rules / validators / fixtures / memory 已存在
+- runtime policy-input enforcement 已存在
+- 仍需要真實 firmware facts intake
 
-Best next step:
+最值得的下一步：
 
-- fill checklist facts from a real USB-Hub firmware codebase or hardware package
+- 連接真實 USB-Hub firmware codebase 或 hardware package，把 checklist facts 補成真實資料
 
 ### Kernel Driver Contract
 
-Current state:
+目前狀態：
 
-- most complete low-level contract repo
-- mixed enforcement already validated
-- onboarding and post-task smoke are in place
-- external hook onboarding and readiness now validate cleanly in a real sibling repo setup
-- still needs real driver facts and real codebase connection
+- 是最成熟的 low-level contract repo 之一
+- mixed enforcement 已驗過
+- onboarding 與 post-task smoke 已存在
+- sibling repo setup 下的 readiness / onboarding 已能乾淨驗證
+- 仍需要真實 driver facts 與真實 codebase 接入
 
-Recent integration signal:
+比較關鍵的觀察是：
 
-- a live coding response against a driver-adjacent task did show useful contract influence
-  - the model favored extracting pure C helper logic
-  - it reduced WDK dependency in tests
-  - it separated mapping logic from the driver-facing function
-- that is a real improvement in engineering shape, but it is not yet the full target behavior
-  - the response still read mostly as an implementation progress log
-  - it did not cite kernel-driver rules explicitly
-  - it did not state driver-sensitive boundaries up front
-  - it did not report verification evidence clearly
-  - it likely changed more files than the narrow task required
+- 這條線已經會影響模型的結構選擇
+- 但還沒有穩定強迫模型在 written response 中明確說出 driver-sensitive boundary、rule basis、verification evidence
 
-Interpretation:
-
-- Kernel-Driver-Contract is already influencing structure and testability choices
-- it is not yet consistently forcing driver-specific reasoning to appear in the model's written response
-- the next refinement should focus less on new validators and more on response-shaping:
-  - rule basis
-  - safety boundary declaration
-  - verification evidence
-  - tighter change-scope discipline
-
-Best next step:
-
-- connect a real driver repo and populate the first confirmed facts
-- pair that with a response template that requires:
-  - which driver-sensitive boundaries are intentionally untouched
-  - why extracted helper logic is safe outside the driver path
-  - what verification actually ran
+所以下一步與其再加 validator，不如補 response-shaping 與真實 repo 驗證。
 
 ### IC Verification Contract
 
-Current state:
+目前狀態：
 
-- narrowest and cleanest domain slice
-- machine-readable `signal_map.json`
-- mixed enforcement already validated
-- strongest current example of machine-readable facts driving validator behavior
+- 是最窄、也最乾淨的 domain slice
+- 已有 machine-readable `signal_map.json`
+- mixed enforcement 已驗過
+- 是 machine-readable facts 驅動 validator 行為的最好例子之一
 
-Best next step:
+最值得的下一步：
 
-- replace sample signal-map data with real DUT interface facts
+- 把 sample signal-map 換成真實 DUT interface facts
 
-## Recommended Next Sequence
+## 建議的下一步順序
 
-### 1. Real Facts Intake
+### 1. 先補真實 facts intake
 
-Pick one domain and connect real facts.
+先挑一個 domain，把真實 facts 接進來。
 
-Recommended first target:
+建議優先：
 
 - `USB-Hub-Firmware-Architecture-Contract`
 
-Reason:
+原因是它最早開始，也最需要擺脫 example fixture。
 
-- it is the oldest domain slice
-- it benefits most from moving beyond example fixtures
+### 2. 跑至少一次真實 AI session replay
 
-### 2. True AI Session Replay
+要驗的是：
 
-Run one real AI-assisted task end-to-end:
+- 不是只有 fixture
+- 不是只有 static smoke
+- 而是真實生成的 code / patch evidence 走完整個 `post_task_check`
 
-- not only fixtures
-- not only static smoke
-- real generated code or patch evidence through `post_task_check`
+### 3. 持續強化 practical interception
 
-### 3. Interception Hardening
+下一步仍應該放在：
 
-Strengthen the practical governance path through:
-
-- git hooks
-- CI gates
+- git hook
+- CI gate
 - smoother external onboarding
 
-without trying to become an IDE-native generation interceptor.
+不是把 repo 推去 IDE-native generation interception。
 
-### 4. Deeper Semantic Verification
+### 4. 再往更深 semantic verification 前進
 
-After real usage produces better evidence shapes, continue pushing:
+當真實 usage 帶來更好的 evidence shape 後，再持續推：
 
-- API compatibility reasoning
+- public API compatibility reasoning
 - architecture drift reasoning
-- richer domain validators
+- richer domain validator
 
-## One-Sentence Summary
+## 一句話總結
 
-The four-repo stack has moved from "plausibly integrable" to "actually runnable." The biggest remaining gaps are no longer validator execution, but real facts intake, stronger commit/merge-time interception, and deeper semantic analysis over real project evidence.
+> 四倉堆疊現在已經不是「大概能整合」，而是「實際可跑」；真正剩下的主缺口是 real facts intake、practical workflow coverage，以及更深的 semantic verification，而不是 validator 會不會執行。

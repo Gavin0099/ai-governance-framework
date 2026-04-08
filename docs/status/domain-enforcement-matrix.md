@@ -1,17 +1,14 @@
 # Domain Enforcement Matrix
 
-Updated: 2026-03-15
+更新日期：2026-04-08
 
-This page is the stable in-repo entry point for comparing enforcement posture
-across external domain-contract repos.
+這一頁是比較 external domain-contract repo enforcement posture 的穩定入口。它的用途是回答：
 
-Use it when you want to answer:
+- 哪些 domain 仍偏 advisory-only
+- 哪些 domain 已進入 mixed enforcement
+- 哪些 rule ID 目前有經過 `hard_stop_rules` 進 runtime decision
 
-- which domains are still advisory-only
-- which domains now support mixed enforcement
-- which rule IDs are currently routed through `hard_stop_rules`
-
-## Fastest Local Command
+## 最快本地指令
 
 ```bash
 python governance_tools/external_contract_policy_index.py \
@@ -21,7 +18,7 @@ python governance_tools/external_contract_policy_index.py \
   --format human
 ```
 
-Markdown output:
+Markdown 輸出：
 
 ```bash
 python governance_tools/external_contract_policy_index.py \
@@ -31,35 +28,34 @@ python governance_tools/external_contract_policy_index.py \
   --format markdown
 ```
 
-## Current Reading
+## 目前讀法
 
-At the moment, the framework's three real external contract repos all expose a
-runtime policy-input posture:
+目前三個真實 external contract repo 都已經暴露出 runtime policy-input posture：
 
 | Repo | Domain | Hard-Stop Rules | Advisory Surface |
 | --- | --- | --- | --- |
-| `USB-Hub-Firmware-Architecture-Contract` | `firmware` | `HUB-004` | broader firmware review, e.g. `HUB-001` |
-| `Kernel-Driver-Contract` | `kernel-driver` | `KD-002`, `KD-003` | pool-allocation guidance such as `KD-005` |
-| `IC-Verification-Contract` | `ic-verification` | `ICV-001` | clock/reset declaration checks such as `ICV-002` |
+| `USB-Hub-Firmware-Architecture-Contract` | `firmware` | `HUB-004` | 較廣的 firmware review，例如 `HUB-001` |
+| `Kernel-Driver-Contract` | `kernel-driver` | `KD-002`, `KD-003` | pool allocation guidance，例如 `KD-005` |
+| `IC-Verification-Contract` | `ic-verification` | `ICV-001` | clock/reset declaration 類檢查，例如 `ICV-002` |
 
-## Why This Matters
+## 這頁的重要意義
 
-This matrix makes one important project boundary explicit:
+這張 matrix 的價值不是說 framework 已經變成 full policy engine，而是把一個重要邊界說清楚：
 
-- the framework no longer stops at validator discovery
-- domain validators already execute
-- selected domain rule IDs can now affect runtime outcomes through runtime policy reclassification of `hard_stop_rules`
+- framework 已經不只停在 validator discovery
+- domain validator 已經真的執行
+- 部分 rule ID 已可透過 `hard_stop_rules` 進 runtime decision
 
-But this still does **not** mean:
+但這仍然**不代表**：
 
-- every domain rule is hard-stop
-- every domain has equally deep evidence
-- the framework has become a full policy engine
+- 每條 domain rule 都是 hard-stop
+- 每個 domain 的 evidence 深度都一樣
+- framework 已經變成通用 policy engine
 
-The matrix is here to keep those enforcement boundaries legible.
+這頁的作用就是讓這些 enforcement boundary 保持可見。
 
-## Related Sources
+## 相關頁面
 
 - [Status Index](README.md)
-- [Runtime Governance Status](runtime-governance-status.md)
+- [Runtime Governance 狀態](runtime-governance-status.md)
 - [Trust Signal Dashboard](trust-signal-dashboard.md)

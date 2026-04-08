@@ -1,136 +1,130 @@
 # Reviewer Handoff
 
-Updated: 2026-03-15
+更新日期：2026-04-08
 
-This page is the highest-level reviewer entry point for the repository's current
-governance posture.
+這一頁是 reviewer 進 repo 時最上層的 handoff 入口。它的目的不是取代所有 trust / release / runtime status page，而是提供一個先看整體、再決定往哪個 surface 深挖的入口。
 
-Use it when you do not want to decide up front whether the next thing to inspect
-is:
+適合在你還不想先決定下一步是看：
 
-- trust / adoption health
+- trust / adoption 健康度
 - release / package readiness
-- or the relationship between the two
+- 或兩者和 runtime boundary 的關係
 
-## Fastest Local Command
+時先讀這頁。
+
+## 最快本地指令
 
 ```bash
 python governance_tools/reviewer_handoff_summary.py \
   --project-root . \
   --plan PLAN.md \
-  --release-version v1.0.0-alpha \
+  --release-version v1.1.0 \
   --contract examples/usb-hub-contract/contract.yaml \
   --format human
 ```
 
-This command aggregates:
+這個 summary 會聚合：
 
 - `trust_signal_overview.py`
 - `release_surface_overview.py`
 
-So the first pass is one summary, not two different tool families.
+所以第一輪 reviewer 不需要先在兩個工具家族之間切換。
 
-If you want the same reviewer packet preserved as a latest/history/index bundle:
+## 如果要保留成可回讀 bundle
 
 ```bash
 python governance_tools/reviewer_handoff_snapshot.py \
   --project-root . \
   --plan PLAN.md \
-  --release-version v1.0.0-alpha \
+  --release-version v1.1.0 \
   --contract examples/usb-hub-contract/contract.yaml \
-  --write-bundle artifacts/reviewer-handoff/v1.0.0-alpha \
+  --write-bundle artifacts/reviewer-handoff/v1.1.0 \
   --format human
 ```
 
-To read that generated bundle back as a stable summary:
+回讀生成 bundle：
 
 ```bash
 python governance_tools/reviewer_handoff_reader.py \
-  --release-version v1.0.0-alpha \
-  --file artifacts/reviewer-handoff/v1.0.0-alpha/MANIFEST.json \
+  --release-version v1.1.0 \
+  --file artifacts/reviewer-handoff/v1.1.0/MANIFEST.json \
   --format human
 ```
 
-If you want the publication-layer summary over that same bundle:
+如果要看 publication-layer summary：
 
 ```bash
 python governance_tools/reviewer_handoff_publication_reader.py \
-  --release-version v1.0.0-alpha \
+  --release-version v1.1.0 \
   --file artifacts/reviewer-handoff/PUBLICATION_MANIFEST.json \
   --format human
 ```
 
-If you want the same reviewer-handoff publication written to a stable repo-local docs path:
+## 如果要發布到穩定 docs 路徑
 
 ```bash
 python governance_tools/reviewer_handoff_snapshot.py \
   --project-root . \
   --plan PLAN.md \
-  --release-version v1.0.0-alpha \
+  --release-version v1.1.0 \
   --contract examples/usb-hub-contract/contract.yaml \
   --publish-docs-status \
   --format human
 ```
 
-That stable generated path can then be read back with:
+之後可用：
 
 ```bash
 python governance_tools/reviewer_handoff_publication_reader.py \
   --project-root . \
-  --release-version v1.0.0-alpha \
+  --release-version v1.1.0 \
   --docs-status \
   --format human
 ```
 
-## When To Use This Page
+## 何時先看這頁
 
-Use this first when you want:
+先看這頁的情境：
 
-- one reviewer-facing summary instead of multiple raw manifests
-- the current alpha posture across both trust and release surfaces
-- a quick "is this repo handoff-ready?" answer before drilling deeper
+- 想要一份 reviewer-facing summary，而不是先讀多份 raw manifest
+- 想快速知道目前 handoff-ready 程度
+- 想先辨識問題比較偏 trust、release，還是 runtime posture
 
-## Suggested Reading Flow
+## 建議閱讀順序
 
-1. Start with `reviewer_handoff_summary.py`
-2. If the trust side is the question, move to [Trust Signal Dashboard](trust-signal-dashboard.md)
-3. If the release/package side is the question, move to [Runtime Governance Status](runtime-governance-status.md) and the release docs under [../releases/README.md](../releases/README.md)
-4. If you need exact cross-domain policy posture, move to [Domain Enforcement Matrix](domain-enforcement-matrix.md)
+1. 先跑 `reviewer_handoff_summary.py`
+2. 如果問題偏 trust / adoption，轉去 [Trust Signal Dashboard](trust-signal-dashboard.md)
+3. 如果問題偏 release / package / runtime 邊界，轉去 [Runtime Governance 狀態](runtime-governance-status.md)
+4. 如果要看 external domain 的 enforcement posture，轉去 [Domain Enforcement Matrix](domain-enforcement-matrix.md)
 
-## CI Artifacts
+## 產物路徑
 
-CI now emits reviewer handoff artifacts under:
+CI 或本地 bundle 目前會落在：
 
-- `artifacts/reviewer-handoff/v1.0.0-alpha/latest.txt`
-- `artifacts/reviewer-handoff/v1.0.0-alpha/latest.json`
-- `artifacts/reviewer-handoff/v1.0.0-alpha/latest.md`
-- `artifacts/reviewer-handoff/v1.0.0-alpha/INDEX.md`
-- `artifacts/reviewer-handoff/v1.0.0-alpha/MANIFEST.json`
+- `artifacts/reviewer-handoff/v1.1.0/latest.txt`
+- `artifacts/reviewer-handoff/v1.1.0/latest.json`
+- `artifacts/reviewer-handoff/v1.1.0/latest.md`
+- `artifacts/reviewer-handoff/v1.1.0/INDEX.md`
+- `artifacts/reviewer-handoff/v1.1.0/MANIFEST.json`
 - `artifacts/reviewer-handoff/published/reviewer-handoff-latest.md`
 - `artifacts/reviewer-handoff/published/reviewer-handoff-latest.json`
 - `artifacts/reviewer-handoff/PUBLICATION_MANIFEST.json`
 - `artifacts/reviewer-handoff/PUBLICATION_INDEX.md`
 
-These artifacts are intended to be the highest-level reviewer packet when
-sharing pipeline output.
-
-## Stable Generated Docs Path
-
-When you want a repo-local, stable consumption path instead of ad-hoc artifacts,
-the generated reviewer-handoff root becomes:
+穩定 docs 路徑則是：
 
 - `docs/status/generated/reviewer-handoff/`
 
-Its main entry points are:
+主要入口：
 
 - `docs/status/generated/reviewer-handoff/README.md`
 - `docs/status/generated/reviewer-handoff/PUBLICATION_MANIFEST.json`
 - `docs/status/generated/reviewer-handoff/site/README.md`
 
-## Related Sources
+## 相關頁面
 
 - [Status Index](README.md)
 - [Trust Signal Dashboard](trust-signal-dashboard.md)
-- [Runtime Governance Status](runtime-governance-status.md)
+- [Runtime Governance 狀態](runtime-governance-status.md)
 - [Domain Enforcement Matrix](domain-enforcement-matrix.md)
-- [Alpha Release Note](../releases/v1.0.0-alpha.md)
+- [Release Index](../releases/README.md)

@@ -1,19 +1,16 @@
 # Trust Signal Dashboard
 
-Updated: 2026-03-22
+更新日期：2026-04-08
 
-This page is the stable in-repo entry point for the framework's current adoption
-and release-facing trust signals.
+這一頁是 framework adoption 與 release-facing trust signal 的穩定入口。它的用途不是提供所有細節，而是讓你在同一頁先回答：
 
-Use it when you want one place to understand:
+- quickstart 還能不能跑
+- bundled example 是否仍健康
+- release-facing 文件是否對齊
+- governance self-audit 是否仍然過關
+- external contract repo 是否仍維持預期的 enforcement posture
 
-- whether the documented quickstart still works
-- whether bundled examples are still healthy
-- whether release-facing docs are aligned
-- whether the governance self-audit still passes
-- and, when provided, whether external domain repos still expose the expected enforcement posture
-
-## Fastest Local Command
+## 最快本地指令
 
 ```bash
 python governance_tools/trust_signal_overview.py \
@@ -27,7 +24,7 @@ python governance_tools/trust_signal_overview.py \
   --format human
 ```
 
-If you want a shareable dashboard-style output:
+如果想產生可分享的 dashboard-style 輸出：
 
 ```bash
 python governance_tools/trust_signal_overview.py \
@@ -38,7 +35,7 @@ python governance_tools/trust_signal_overview.py \
   --format markdown
 ```
 
-If you want to publish a stable generated snapshot page:
+## 生成 publication snapshot
 
 ```bash
 python governance_tools/trust_signal_snapshot.py \
@@ -54,7 +51,7 @@ python governance_tools/trust_signal_snapshot.py \
   --format human
 ```
 
-If you want the same publication to land under a stable repo-local docs path:
+如果要直接寫到穩定 docs path：
 
 ```bash
 python governance_tools/trust_signal_snapshot.py \
@@ -69,7 +66,7 @@ python governance_tools/trust_signal_snapshot.py \
   --format human
 ```
 
-If you want to read the latest publication metadata as a compact summary:
+回讀 publication metadata：
 
 ```bash
 python governance_tools/trust_signal_publication_reader.py \
@@ -77,7 +74,7 @@ python governance_tools/trust_signal_publication_reader.py \
   --format human
 ```
 
-If you are using the stable repo-local generated path instead:
+如果走 repo-local docs status：
 
 ```bash
 python governance_tools/trust_signal_publication_reader.py \
@@ -86,11 +83,25 @@ python governance_tools/trust_signal_publication_reader.py \
   --format human
 ```
 
-That generated root now also writes its own `generated/README.md`, so the repo-local path has a human-readable landing page even before you open the manifest directly.
+## 這頁在看什麼
 
-## CI Artifacts
+目前這個 dashboard 最主要在看：
 
-CI now emits trust-signal snapshot artifacts under:
+- framework 自己的 quickstart / readiness / audit 是否健康
+- release-facing 文件是否仍與目前主線一致
+- external contract repo 是否仍暴露預期的 cross-domain enforcement posture
+
+它不是拿來宣告：
+
+- full interception coverage 已完成
+- 所有 domain validator 都是 hard-stop
+- semantic verification 已達到 full policy engine 等級
+
+這些邊界仍然應該保持可見。
+
+## CI / generated artifacts
+
+目前信號 bundle 會寫到：
 
 - `artifacts/trust-signals/latest.txt`
 - `artifacts/trust-signals/latest.json`
@@ -105,39 +116,12 @@ CI now emits trust-signal snapshot artifacts under:
 - `artifacts/trust-signals/published/history/*`
 - `artifacts/trust-signals/published/INDEX.md`
 
-The bundle and published directories now also include manifest JSON so downstream tools and the publication reader can identify the current snapshot directly.
-When external contract repos are provided, the publication metadata now also carries a compact cross-domain enforcement summary, including profile counts and per-repo hard-stop posture.
-The generated status surface now also includes a dedicated `domain-enforcement-matrix.md` page on the published side, so cross-domain enforcement posture is shareable as a first-class status page rather than only embedded inside manifests.
+當 external contract repo 有提供時，publication metadata 也會帶 compact 的 cross-domain enforcement summary。
 
-These artifacts are the generated status snapshot bundle.
-
-This page is the stable landing page that explains where those generated reports
-come from and how to regenerate them locally.
-
-## Related Sources
+## 相關頁面
 
 - [Status Index](README.md)
-- [Runtime Governance Status](runtime-governance-status.md)
+- [Runtime Governance 狀態](runtime-governance-status.md)
 - [Next Steps](next-steps.md)
-- [Release Note](../releases/v1.1.0.md)
-- [Alpha Release Note](../releases/v1.0.0-alpha.md)
-- [Alpha Checklist](../releases/alpha-checklist.md)
+- [Release Index](../releases/README.md)
 - [Known Limits](../LIMITATIONS.md)
-
-## What “Healthy” Currently Means
-
-For the current alpha, the expected high-level posture is:
-
-- quickstart smoke passes
-- example readiness passes
-- release readiness passes
-- governance auditor passes
-
-This does **not** mean:
-
-- full interception coverage is closed
-- domain validators are universally hard-stop
-- semantic verification is equivalent to a full policy engine
-
-Those boundaries remain part of the current alpha honesty model and should stay
-visible in release-facing communication.
