@@ -7,56 +7,56 @@ default_load: never
 ---
 
 # REVIEW_CRITERIA.md
-**Code Review and Audit Protocol - v1.2**
+**Code Review 與 Audit Protocol - v1.2**
 
-> **Version**: 1.2 | **Priority**: 3 (Audit Protocol)
+> **Version**: 1.2 | **Priority**: 3（稽核協定）
 >
-> Defines how to audit, critique, and verify code changes.
-> Loaded when `SCOPE = review`.
+> 定義如何 audit、批判、驗證 code change。
+> 當 `SCOPE = review` 時載入。
 
 ---
 
 ## 0. Activation
 
-This document activates when `SCOPE = review`.
+當 `SCOPE = review` 時，這份文件生效。
 
-When active:
-- the agent stays governance-first
-- behavioral mode becomes skeptical verifier rather than implementer
-- findings must be tied to evidence, not intuition
+啟用後：
+- agent 應保持 governance-first
+- 行為模式應轉成 skeptical verifier，而不是 implementer
+- findings 必須綁定 evidence，而不是靠直覺
 
 ---
 
 ## 1. Review Philosophy
 
-Review goal:
-- verify the change is predictable
-- verify the change is safe
-- verify the change is reviewable under governance
+review 的目標是：
+- 驗證變更是否可預期
+- 驗證變更是否安全
+- 驗證變更是否能在 governance 下被 review
 
-Never assume a change works merely because it is small.
-Never issue approval without naming the evidence used.
+不要因為變更很小，就假設它沒問題。
+也不要在沒有指明 evidence 的情況下給 approval。
 
 ---
 
 ## 2. Verdict Model
 
-| Verdict | Meaning | Use When |
+| Verdict | 意義 | 使用時機 |
 |---|---|---|
-| `APPROVED` | Safe enough to accept | No blocking governance or correctness issue remains |
-| `CHANGES_REQUESTED` | Fixes required | Concrete blocking issues exist |
-| `ESCALATED` | Human decision needed | Risk/trade-off ambiguity remains after review |
+| `APPROVED` | 足夠安全，可接受 | 不再有 blocking governance 或 correctness 問題 |
+| `CHANGES_REQUESTED` | 必須修正 | 存在明確 blocking issue |
+| `ESCALATED` | 需要人類決策 | review 後仍有重大 risk / trade-off ambiguity |
 
 ### 2.1 Finding Levels
 
-| Level | Meaning |
+| Level | 意義 |
 |---|---|
-| `BLOCKING` | Governance, correctness, or safety issue that must be fixed |
-| `WARNING` | Risk, debt, or weak evidence that should be called out explicitly |
-| `SUGGESTION` | Non-blocking improvement |
+| `BLOCKING` | 必須修掉的 governance / correctness / safety 問題 |
+| `WARNING` | 必須顯性指出的風險、技術債、或弱 evidence |
+| `SUGGESTION` | 不阻擋的改善建議 |
 
-Do not confuse `ESCALATED` with `BLOCKING`.  
-Escalation is for unresolved material ambiguity, not only for defects.
+不要把 `ESCALATED` 和 `BLOCKING` 混為一談。  
+Escalation 是給仍未解決的重大歧義，不只是 defect。
 
 ---
 
@@ -64,72 +64,72 @@ Escalation is for unresolved material ambiguity, not only for defects.
 
 ### 3.1 Boundary and Architecture
 
-Check:
-- does domain code touch forbidden I/O, UI, OS, or native concerns
-- is ACL usage appropriate when external/native models are involved
-- does the change conflict with an ADR or boundary rule
+檢查：
+- domain code 是否碰到 forbidden I/O、UI、OS、或 native concern
+- external / native model 介入時，ACL 使用是否合理
+- 變更是否與 ADR 或 boundary rule 衝突
 
 ### 3.2 Physical and Native Safety
 
-When native interop is in scope, check:
-- memory ownership is explicit
-- ABI layout is explicit where required
-- panic/fail-fast vs recoverable error handling is coherent
+若涉及 native interop，檢查：
+- memory ownership 是否明確
+- 需要時 ABI layout 是否明確
+- panic / fail-fast 與 recoverable error handling 是否一致
 
-If native interop is absent, mark this section `N/A`.
+若不涉及 native interop，標記 `N/A`。
 
 ### 3.3 Quality and Verification
 
-Check:
-- does the evidence match task risk
-- are failure paths considered where applicable
-- does verification lock behavior rather than implementation trivia
-- for legacy refactors, was baseline buildability actually established
+檢查：
+- evidence 是否符合 task risk
+- failure path 在適用時是否有被考慮
+- verification 是否鎖定 behavior，而不是 implementation trivia
+- legacy refactor 是否真的先確認 baseline buildability
 
 ### 3.4 Thread Safety and Async Safety
 
-When UI or async paths are touched, check:
-- UI-affecting updates stay on the correct thread
-- async failure paths are handled
+若碰到 UI 或 async path，檢查：
+- 影響 UI 的更新是否留在正確 thread
+- async failure path 是否有處理
 
-If irrelevant, mark `N/A`.
+若無關，標記 `N/A`。
 
 ### 3.5 Dirty Worktree and Scope Hygiene
 
-When the worktree was dirty during implementation or review, check:
-- unrelated dirty files were not silently mixed into the reviewed scope
-- touched-file overlap was either handled or explicitly escalated
-- the commit/review boundary is understandable
+若 implementation 或 review 當時 worktree 是 dirty，檢查：
+- unrelated dirty file 是否沒有被靜默混進 scope
+- touched-file overlap 是否已處理或明確 escalate
+- commit / review boundary 是否仍然可理解
 
 ---
 
 ## 4. Knowledge Base Cross-Check
 
-Before issuing a verdict, scan `memory/03_knowledge_base.md` for:
-1. anti-pattern matches
-2. previously recorded regression patterns
+在給 verdict 前，檢查 `memory/03_knowledge_base.md`：
+1. 有沒有 anti-pattern match
+2. 有沒有已記錄過的 regression pattern
 
-If a known anti-pattern reappears, call it out explicitly.
+若已知 anti-pattern 再次出現，要明確點出來。
 
 ---
 
 ## 5. Legacy Refactor Review Addendum
 
-For legacy repos, refactors, rollbacks, or baseline resets, review must check:
-- was the claimed baseline actually verified with the authoritative build path
-- was the canonical toolchain identified
-- is the change being presented as a safe refactor despite unstable baseline evidence
+對 legacy repo、refactor、rollback、或 baseline reset，review 還必須檢查：
+- 所宣稱的 baseline 是否真的用 authoritative build path 驗過
+- canonical toolchain 是否已辨識
+- 這次變更是否在 baseline 不穩定時，仍被包裝成安全 refactor
 
-If the baseline is unverified:
-- do not describe the result as a clean refactor
-- issue at least a `WARNING`
-- escalate when the conclusion depends on the baseline being stable
+若 baseline 未驗證：
+- 不要把結果描述成 clean refactor
+- 至少出一個 `WARNING`
+- 若結論依賴 baseline 穩定，則應 escalate
 
 ---
 
 ## 6. Review Output Format
 
-Every review response should include:
+每次 review 回應都應包含：
 
 ```markdown
 ### [Decision Summary]
@@ -156,7 +156,7 @@ Every review response should include:
 - Result: Pass | Conflict Found
 ```
 
-Every non-trivial finding must name:
+每個 non-trivial finding 都必須指明：
 - location
 - evidence
 - rule reference
@@ -165,30 +165,30 @@ Every non-trivial finding must name:
 
 ## 7. Post-Review Memory Actions
 
-After issuing a verdict:
+發出 verdict 後：
 
-1. append full review record to `memory/04_review_log.md`
-2. add one-line summary to `memory/01_active_task.md`
-3. if a new anti-pattern was discovered, record it in `memory/03_knowledge_base.md`
+1. 將完整 review record append 到 `memory/04_review_log.md`
+2. 在 `memory/01_active_task.md` 加一行摘要
+3. 若發現新的 anti-pattern，記到 `memory/03_knowledge_base.md`
 
-Keep `memory/01_active_task.md` short; do not dump full findings there.
+`memory/01_active_task.md` 應保持精簡，不要把完整 findings 全倒進去。
 
 ---
 
 ## 8. C++ Build Boundary Addendum
 
-Use this addendum when review touches C++ project files, header layout, or build configuration.
+當 review 碰到 C++ project file、header layout、或 build configuration 時，套用這段補充。
 
-Hard checks:
-- `AdditionalIncludeDirectories` or equivalent must not point into peer-project private trees
-- cross-project private headers must not be normalized as acceptable merely because the build passes
-- if a header is shared, it should live in an explicit shared boundary layer
+硬檢查：
+- `AdditionalIncludeDirectories` 或同類設定，不得指向 peer-project 的 private tree
+- cross-project private header 不得因為 build pass 就被合理化
+- 若 header 是 shared，應放在有明確 ownership 的 shared boundary layer
 
-Treat this as a boundary issue, not a style issue.
+這是 boundary issue，不是 style issue。
 
 ---
 
 ## 9. Final Principle
 
-> **A review without named evidence is not a valid review.**
-> **Use escalation when the conclusion depends on ambiguity; use blocking findings when the violation is concrete.**
+> **沒有指名 evidence 的 review，不是有效 review。**
+> **結論若依賴歧義，用 escalation；違規若已具體成立，用 blocking finding。**

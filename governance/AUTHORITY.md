@@ -6,22 +6,22 @@
 
 ## Authority Levels
 
-- `canonical` — 唯一真實來源，衝突時最高優先，不得被 derived 覆蓋
-- `reference`  — 可信來源，可被 canonical 覆蓋，不得被 derived 覆蓋
-- `derived`    — 從 canonical/reference 生成的快取或摘要，衝突時最低優先
+- `canonical`：最高權威來源。若與其他來源衝突，以它為準；其他只能是 derived 或補充層。
+- `reference`：輔助性權威來源。可提供解釋與判準，但不能覆蓋 canonical。
+- `derived`：由 canonical / reference 推導出的工作性輸出，可快取、摘要、投影，但不能反向覆蓋上游真相。
 
 ## Audience Types
 
-- `agent-runtime`   — session_start 永遠載入
-- `agent-on-demand` — 命中特定條件才載入
-- `human-only`      — agent 永遠不載入
+- `agent-runtime`：在 `session_start` 或等效 runtime path 中會被直接讀入
+- `agent-on-demand`：只在特定情境、特定 task 類型下按需讀入
+- `human-only`：提供給人類 reviewer / operator 參考，不屬於 agent 預設 runtime 載入面
 
 ## Default Load Modes
 
-- `always`       — 無條件載入（僅限 canonical/derived agent-runtime 文件）
-- `on-demand`    — 依 context 判斷是否載入
-- `incremental`  — 只載增量 candidates，不做 full rescan
-- `never`        — 永遠不載入（human-only 文件）
+- `always`：每次 session 都應載入；通常只給 canonical / derived 的 agent-runtime surface
+- `on-demand`：只有當 context 需要時才讀
+- `incremental`：只增量讀取最近候選，不做 full rescan
+- `never`：agent 不自動載入；通常對應 human-only 文件
 
 ---
 
@@ -29,42 +29,43 @@
 
 | document | audience | authority | can_override | overridden_by | default_load |
 |----------|----------|-----------|--------------|---------------|--------------|
-| `governance/SYSTEM_PROMPT.md` | agent-runtime | canonical | false | — | always |
-| `governance/AGENT.md` | agent-runtime | canonical | false | — | always |
-| `governance/PLAN.md` | agent-runtime | canonical | false | — | always |
+| `governance/SYSTEM_PROMPT.md` | agent-runtime | canonical | false | ~ | always |
+| `governance/AGENT.md` | agent-runtime | canonical | false | ~ | always |
+| `governance/PLAN.md` | agent-runtime | canonical | false | ~ | always |
 | `governance/ARCHITECTURE.md` | agent-on-demand | reference | false | SYSTEM_PROMPT.md | on-demand |
 | `governance/TESTING.md` | agent-on-demand | reference | false | AGENT.md | on-demand |
 | `governance/NATIVE-INTEROP.md` | agent-on-demand | reference | false | AGENT.md | on-demand |
-| `governance/HUMAN-OVERSIGHT.md` | human-only | reference | false | — | never |
-| `governance/REVIEW_CRITERIA.md` | human-only | reference | false | — | never |
+| `governance/HUMAN-OVERSIGHT.md` | human-only | reference | false | ~ | never |
+| `governance/REVIEW_CRITERIA.md` | human-only | reference | false | ~ | never |
 | `AGENTS.md` (workspace) | agent-runtime | derived | false | AGENT.md | always |
 | `.github/copilot-instructions.md` | agent-runtime | derived | false | AGENT.md | always |
 | `.github/agents/*.agent.md` | agent-on-demand | derived | false | AGENT.md | on-demand |
-| `domain contract (full)` | agent-on-demand | canonical | false | — | on-demand |
+| `domain contract (full)` | agent-on-demand | canonical | false | ~ | on-demand |
 | `domain adapter summary` | agent-runtime | derived | false | domain contract | always |
-| `memory/02_project_facts.md` | agent-runtime | canonical | false | — | incremental |
-| `memory/03_decisions.md` | agent-runtime | canonical | false | — | incremental |
+| `memory/02_project_facts.md` | agent-runtime | canonical | false | ~ | incremental |
+| `memory/03_decisions.md` | agent-runtime | canonical | false | ~ | incremental |
 | `memory/reviewer_handoff_*` | agent-on-demand | derived | false | 03_decisions.md | on-demand |
-| `memory/framework_artifact_*` | agent-on-demand | derived | false | — | on-demand |
-| `memory/external_repo_aliases` | agent-on-demand | reference | false | — | on-demand |
+| `memory/framework_artifact_*` | agent-on-demand | derived | false | ~ | on-demand |
+| `memory/external_repo_aliases` | agent-on-demand | reference | false | ~ | on-demand |
 
 ---
 
 ## Conflict Resolution Rules
 
-優先順序（高到低）：
-```
+衝突處理的基本順序是：
+
+```text
 canonical > reference > derived
 ```
 
 具體規則：
 
-1. `canonical` vs `reference` → canonical 優先，reference 的衝突欄位被忽略
-2. `canonical` vs `derived`   → canonical 優先，derived 視為過期快取
-3. `reference` vs `derived`   → reference 優先
-4. workspace instruction（AGENTS.md、copilot-instructions）→ 永遠不得覆蓋 repo canonical
-5. `agent-on-demand` 文件     → 可讀取 reference，但不得修改 canonical 的判斷結果
-6. `derived` 文件             → 禁止作為 session_start 的唯一判斷依據
+1. `canonical` vs `reference`：以 canonical 為準，reference 只能補充或說明
+2. `canonical` vs `derived`：以 canonical 為準，derived 必須被視為可失效投影
+3. `reference` vs `derived`：以 reference 為準
+4. workspace instruction（如 `AGENTS.md`、`copilot-instructions`）不得覆蓋 repo canonical
+5. `agent-on-demand` 載入時，可以引入 reference，但不得改寫 canonical 的主張
+6. `derived` 載入時，只能幫助 session_start 或 task context 收斂，不能創造新的 authority
 
 ---
 
@@ -72,12 +73,12 @@ canonical > reference > derived
 
 | memory source | authority | promotion policy |
 |---------------|-----------|-----------------|
-| `02_project_facts.md` | canonical | 直接 promote |
-| `03_decisions.md` | canonical | 直接 promote |
-| `04_patterns.md` | reference | 評估後 promote |
-| reviewer handoff summary | derived | cache only，不 promote 為 truth |
-| framework artifact cache | derived | cache only，不 promote 為 truth |
-| external repo aliases | reference | 評估後 promote，不覆蓋 canonical |
+| `02_project_facts.md` | canonical | 可直接 promote |
+| `03_decisions.md` | canonical | 可直接 promote |
+| `04_patterns.md` | reference | 視情況 promote |
+| reviewer handoff summary | derived | cache only，不得 promote 成 truth |
+| framework artifact cache | derived | cache only，不得 promote 成 truth |
+| external repo aliases | reference | 可視情況 promote，但仍需對照 canonical |
 
 ---
 
@@ -85,7 +86,7 @@ canonical > reference > derived
 
 | task_level | always | on-demand | incremental | never |
 |------------|--------|-----------|-------------|-------|
-| L0 | ✅ | ❌ | ✅ candidates only | ❌ |
-| L1 | ✅ | ✅ | ✅ candidates only | ❌ |
-| L2 | ✅ | ✅ | ✅ candidates only | ❌ |
-| any | human-only 永遠 ❌ | | | |
+| L0 | canonical runtime core | minimal reference only when needed | candidates only | human-only docs |
+| L1 | canonical runtime core | boundary / testing / domain reference | candidates only | human-only docs |
+| L2 | canonical runtime core | broader reference + contract context | candidates only | human-only docs |
+| any | human-only surface 不自動載入 | | | |
