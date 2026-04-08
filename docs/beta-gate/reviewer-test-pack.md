@@ -1,106 +1,106 @@
 # Reviewer Test Pack - Beta Gate Condition 2
 
-> Version: 1.1
-> Created: 2026-03-30
-> Updated: 2026-03-31
-> For: author-side test operator
-> Do not give this file to the reviewer before they start
+> 版本：1.1
+> 建立：2026-03-30
+> 更新：2026-04-08
+> 適用：author-side test operator
+> 不要在 reviewer 開始前把這份文件給他
 
 ---
 
-## Part 1 - What you are testing
+## Part 1 - 你在測什麼
 
-This file defines the author-side structure for a cold-start reviewer run.
+這份文件定義的是作者端如何跑一次 cold-start reviewer run。
 
-The reviewer does **not** receive this file before the run.
+reviewer 在開始前**不會**拿到這份文件。
 
-The reviewer starting point is defined in `reviewer-test-brief.md`:
+reviewer 的起始條件由 `reviewer-test-brief.md` 定義：
 
-- the GitHub repo URL
-- one sentence of framing
-- no file pointers
-- no author guidance
+- GitHub repo URL
+- 一句 framing
+- 不提供 file pointer
+- 不提供作者導讀
 
 ---
 
-## Part 2 - Reviewer task target
+## Part 2 - reviewer 的任務目標
 
-The reviewer is expected to attempt, in order:
+預期 reviewer 會依序嘗試：
 
-1. Figure out what this framework is for
-2. Figure out how you would adopt it in a project
-3. Run or describe the minimum flow you would follow when starting an AI-assisted work session
-4. Find out how to check if your governance is drifting
+1. 弄清楚這個 framework 是做什麼的
+2. 弄清楚如果要導入 project，應該怎麼 adopt
+3. 跑或至少描述 AI-assisted work session 的最小 flow
+4. 找到治理漂移時要怎麼檢查
 
-Stop when they finish, or when they are stuck and cannot continue.
+當 reviewer 完成，或卡住到無法繼續時，就停止。
 
 ---
 
 ## Part 3 - Failure Log
 
-Use this section to capture the raw reviewer experience.
-Do not retrofit the notes after the fact.
-Honest, messy notes are more valuable than clean summaries.
+這一段用來保留 reviewer 的原始體感。不要事後把它修成太乾淨的總結。真實、凌亂的筆記通常比整理過頭的摘要更有價值。
 
-### 3.1 First confusion point
+### 3.1 第一個 confusion point
 
-The first moment something was unclear:
+第一個出現「我看不懂」的時刻：
 
 ```text
-File or page I was looking at:
+當時正在看的 file 或 page:
 
-What I expected to find there:
+我原本期待在這裡看到什麼:
 
-What I actually saw:
+我實際看到什麼:
 
-How long I had been going at this point (approximate):
+到這個時候大概花了多久:
 ```
 
 ---
 
-### 3.2 First blockage
+### 3.2 第一個 blockage
 
-The first point where the reviewer could not move forward:
+第一個真正卡住、無法往前推的地方：
 
 ```text
-What I was trying to do:
+我當時在嘗試什麼:
 
-What I tried:
+我做了哪些嘗試:
 
-Why it didn't work (as best as I can tell):
+為什麼沒有成功（依我當下理解）:
 
-Did I find a workaround? (Y/N)
-If yes, what was it:
+有沒有找到 workaround? (Y/N)
+如果有，是什麼:
 ```
 
 ---
 
 ### 3.3 Concept confusion
 
-Any term or concept that the reviewer encountered and didn't understand:
+任何 reviewer 遇到但不理解的名詞 / 概念：
 
 ```text
 Term / concept:
-Where I saw it:
-What I thought it meant:
-What I think it actually means (if I figured it out):
+在哪裡看到的:
+我原本以為它是什麼:
+如果後來有搞懂，我現在認為它是什麼:
 ```
 
-Copy this block for each confusing concept. Leave blank if none.
+每個 confusing concept 都複製一份 block。若沒有，可留白。
 
 ---
 
 ### 3.4 Navigation confusion
 
-Any point where the reviewer didn't know where to look next:
+任何 reviewer 不知道下一步該去哪裡找的時刻：
 
 ```text
-I was trying to find:
-I looked in:
-I eventually found it at (or: I never found it):
+我當時在找:
+
+我去看了哪些地方:
+
+最後在哪裡找到（或：一直沒找到）:
 ```
 
-Copy this block for each navigation failure. Leave blank if none.
+每次 navigation failure 複製一份 block。若沒有，可留白。
 
 ---
 
@@ -121,38 +121,45 @@ One sentence describing what this framework is, in your own words:
 
 ## Part 4 - Debrief questions
 
-Answer these after the reviewer is done:
+reviewer 結束後，再問：
 
-1. What was the first file you opened, and why?
-2. At what point (if any) did things start to make sense?
-3. What was the single biggest obstacle?
-4. If you had to tell a colleague whether to adopt this, what would you say?
-5. What one change would most reduce the friction you experienced?
+1. 你第一個打開的檔案是什麼？為什麼？
+2. 從哪個時點開始，你覺得事情有開始變清楚？
+3. 最大的阻礙是什麼？
+4. 如果要跟同事說值不值得 adopt，你會怎麼說？
+5. 你覺得哪一個改動最能減少摩擦？
 
 ---
 
 ## Part 5 - Author interpretation
 
-### How to interpret failure log entries
+### 如何判讀 failure log
 
-| Symptom | Failure type | Do not do | Do instead |
+| 症狀 | Failure type | 不要這樣做 | 應該這樣做 |
 |---------|-------------|-----------|------------|
-| Cannot find entry point after 10 min | Structural | Rewrite README | Add one clearer pointer at repo root |
-| Finds correct file but misreads purpose | Naming | Add more explanation | Change the heading or first sentence |
-| Understands concept but cannot execute | Friction | Add more docs | Fix the command or add one example |
-| Understands nothing after 20 min | Conceptual | Restructure everything | Identify the one concept that unlocks the rest |
-| Conflates framework repo with project repo | Conceptual | Add a warning | Make the distinction the first thing README states |
+| 10 分鐘後仍找不到入口 | Structural | 直接重寫 README | 先在 repo root 加一個更清楚的 pointer |
+| 找到對的檔案，但誤解其用途 | Naming | 一直加解釋 | 修標題或第一句 |
+| 概念懂了，但跑不起來 | Friction | 一直加文件 | 修命令或補一個例子 |
+| 20 分鐘後還是完全搞不懂 | Conceptual | 全部重構 | 找出最關鍵、能打開其他理解的那個概念 |
+| 把 framework repo 和 consuming repo 混在一起 | Conceptual | 只加 warning | 讓 distinction 變成 README 第一層就會看到的內容 |
 
-### Scoring
+### 計分
 
-Use `docs/beta-gate/onboarding-pass-criteria.md` after the run.
+跑完後，用：
 
-### After receiving the log
+- `docs/beta-gate/onboarding-pass-criteria.md`
 
-File the raw log at: `docs/beta-gate/reviewer-run-<YYYY-MM-DD>.md`
+### 收到 log 後
 
-Before proposing fixes, classify the first meaningful failure using:
-`docs/beta-gate/reviewer-signal-split.md`
+原始 reviewer log 請存到：
 
-Do not fix anything until you have read the full log.
-Do not fix more than the lowest-level cause of each failure.
+- `docs/beta-gate/reviewer-run-<YYYY-MM-DD>.md`
+
+在提修法前，先用：
+
+- `docs/beta-gate/reviewer-signal-split.md`
+
+分類第一個有意義的 failure。
+
+在看完整份 log 之前，不要急著修。
+也不要一次修超過每個 failure 的最低層原因。

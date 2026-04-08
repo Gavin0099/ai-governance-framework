@@ -1,99 +1,119 @@
 # Beta Gate Condition 2 — Reviewer Test Brief
 
-> Status: **ready for use**
-> Created: 2026-03-30
-> Gate condition: human self-serve onboarding without author guidance
+> 狀態：ready for use
+> 建立：2026-03-30
+> Gate condition：human self-serve onboarding without author guidance
 
 ---
 
 ## Purpose
 
-This brief defines the test condition, not the framework.
-Do not give this document to the reviewer before they start.
-Use it to set up the test and debrief afterward.
+這份 brief 定義的是測試條件，不是 framework 教學文件。
+
+不要在 reviewer 開始前把這份文件給 reviewer。
+它主要用來：
+
+- 設定測試條件
+- 在跑完後做 debrief
 
 ---
 
-## Reviewer starting point
+## Reviewer 起始條件
 
-The reviewer receives exactly:
-- The GitHub repo URL: https://github.com/Gavin0099/ai-governance-framework
-- One sentence: "This is a governance framework for AI-assisted development. See if you can figure out how to use it."
+reviewer 只會拿到：
 
-Nothing else. No verbal context. No pointer to a starting file.
+- GitHub repo URL：`https://github.com/Gavin0099/ai-governance-framework`
+- 一句話：
+  - `This is a governance framework for AI-assisted development. See if you can figure out how to use it.`
 
----
+除此之外，不給：
 
-## What the reviewer is allowed to do
-
-- Read any file in the repo
-- Run any tool they find
-- Spend as much time as they need (target: 30–60 minutes)
-- Stop early and report where they got stuck
+- 口頭補充背景
+- 起始 file pointer
+- 作者導覽
 
 ---
 
-## What the author is not allowed to do
+## Reviewer 可以做什麼
 
-- Answer questions before the session ends
-- Point to a file or section
-- Explain what anything is for
-- Confirm or deny whether the reviewer is on the right track
+- 讀 repo 裡任何檔案
+- 跑任何他自己找到的工具
+- 花他需要的時間（目標觀察範圍：約 30–60 分鐘）
+- 提早停止，並說明卡在哪裡
 
-The author may only say: "Keep going, record what you're thinking."
+---
+
+## 作者不能做什麼
+
+在 session 結束前，作者不能：
+
+- 回答問題
+- 指路到某個 file 或 section
+- 解釋某個東西是做什麼的
+- 告訴 reviewer 他現在是不是在正確方向上
+
+作者唯一能說的話應該像：
+
+> 繼續走，並記錄你現在的想法。
 
 ---
 
 ## Success condition
 
-The reviewer is considered to have passed if they can, without prompting:
+若 reviewer 能在沒有提示的情況下做到以下內容，可視為通過：
 
-1. Identify the main entry point for adopting the framework
-2. Run or describe the minimum adoption flow (what commands, in what order)
-3. Explain what `session_start → pre_task → post_task` means in their own words
-4. Know what to do if governance drift is detected
-5. Produce one governance-compliant artifact (any of: a session start, a drift check output, a contract, a change proposal)
+1. 找到 adopt framework 的主要入口
+2. 跑或描述最小 adoption flow（哪些命令、順序大概是什麼）
+3. 用自己的話說清楚 `session_start -> pre_task -> post_task` 在做什麼
+4. 知道 governance drift 發生時要怎麼處理
+5. 產出至少一個 governance-compliant artifact（例如：session start、drift-check output、contract、change proposal）
 
-Not all five are required. Passing 3 of 5 counts as a pass.
-
----
-
-## Failure indicators to watch for
-
-Record these if they occur:
-
-- Reviewer opens README.md and immediately closes it
-- Reviewer cannot find the entry point after 10 minutes
-- Reviewer conflates framework governance with project governance
-- Reviewer concludes the framework "is just documentation"
-- Reviewer cannot distinguish `governance_tools/` from `runtime_hooks/`
-- Reviewer asks "where do I start?" (counts as one navigation failure)
+這 5 項不必全過；依 gate 規則，3/5 可以算 pass。
 
 ---
 
-## Debrief questions (asked after the session)
+## 要觀察的 failure indicator
 
-1. What was the first file you opened? Why?
-2. Where did you first understand what this is for?
-3. What was the first thing that confused you?
-4. If you had to describe this to a colleague in one sentence, what would you say?
-5. What would you change about the entry path?
+若出現以下情況，要記錄：
 
----
-
-## What to record
-
-- Time to first meaningful action (not README skimming, but purposeful exploration)
-- First file that produced understanding (not confusion)
-- First blocker: the exact file, section, and what was unclear
-- Whether the reviewer reached the minimum adoption flow unprompted
-- Debrief responses verbatim (or close)
+- reviewer 打開 `README.md` 後立刻關掉
+- 10 分鐘後還找不到 entry point
+- reviewer 把 framework governance 和 project governance 混為一談
+- reviewer 得出「這只是文件」的結論
+- reviewer 分不清 `governance_tools/` 和 `runtime_hooks/`
+- reviewer 問「我要從哪裡開始？」
 
 ---
 
-## After the test
+## Debrief questions（session 結束後問）
 
-File findings at: `docs/beta-gate/reviewer-run-<date>.md`
+1. 你第一個打開的檔案是什麼？為什麼？
+2. 從哪裡開始，你覺得這東西是做什麼的開始變清楚？
+3. 第一個讓你困惑的點是什麼？
+4. 如果你要用一句話跟同事描述這個 framework，你會怎麼說？
+5. 你會改 entry path 的哪一點？
 
-Use the findings to answer: was the blocker conceptual, structural, or naming?
-That answer determines the next onboarding change, if any.
+---
+
+## 需要記錄的東西
+
+- 到第一個 meaningful action 所花的時間
+  - 不是 README skim，而是有方向的探索
+- 第一個讓 reviewer 產生理解的檔案
+- 第一個 blocker：哪個 file、哪個 section、哪裡不清楚
+- reviewer 是否在無提示下走到 minimum adoption flow
+- debrief 回答，盡量原文保留
+
+---
+
+## 測試之後
+
+將發現記錄在：
+
+- `docs/beta-gate/reviewer-run-<date>.md`
+
+接著回答一件事：
+
+- 這次 blocker 比較像 conceptual、structural，還是 naming？
+
+這個答案才決定下一個 onboarding change 應該修哪裡。

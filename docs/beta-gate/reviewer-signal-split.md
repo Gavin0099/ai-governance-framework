@@ -1,121 +1,118 @@
 # Reviewer Signal Split
 
-> Status: active
-> Created: 2026-03-31
-> Applies to: Beta Gate condition 2 and later reviewer runs
+> 狀態：active
+> 建立：2026-03-31
+> 適用：Beta Gate condition 2 與之後的 reviewer run
 
 ---
 
-## Why this exists
+## 為什麼需要這份文件
 
-Reviewer onboarding failures are too coarse when recorded as a single pass/fail.
+如果 reviewer onboarding failure 只被記成單一 pass/fail，資訊會太粗。
 
-The same failed run can mean very different things:
+同樣一個 failed run，背後可能是完全不同的問題：
 
-- the reviewer could not find the entry point
-- the reviewer found the right file but misread it
-- the reviewer understood the files but reconstructed the runtime boundary incorrectly
-- the reviewer understood the boundary but escalated or judged it incorrectly
+- reviewer 找不到入口
+- reviewer 找到對的檔案，但看錯用途
+- reviewer 讀了文件，卻重建錯 runtime boundary
+- reviewer 理解表面內容，但判錯 escalation / judgment
 
-Without splitting these signals, onboarding results are noisy and can lead to
-the wrong fix.
+如果不把這些 signal 分開，最後很容易修錯地方。
 
 ---
 
-## Four diagnostic layers
+## 四個診斷層
 
 ### 1. Discoverability failure
 
-The reviewer cannot find where to start or where to look next.
+reviewer 不知道從哪裡開始，或不知道下一步去哪裡找。
 
-Typical signs:
+常見徵象：
 
-- stays at repo root with no direction
-- misses `README.md`, `start_session.md`, or the relevant reviewer pack
-- cannot locate the drift checker or adoption path
+- 停在 repo root 沒方向
+- 錯過 `README.md`、`start_session.md`、或相關 reviewer pack
+- 找不到 drift checker 或 adoption path
 
-Interpretation:
+通常代表：
 
-- entry path problem
-- navigation problem
-- README / root-pointer problem
+- entry path 問題
+- navigation 問題
+- README / root pointer 問題
 
 ---
 
 ### 2. Interpretation failure
 
-The reviewer finds the right file but misreads what it means.
+reviewer 找到對的檔案，但誤解它在說什麼。
 
-Typical signs:
+常見徵象：
 
-- treats the framework as static docs only
-- conflates framework governance with consuming-repo governance
-- confuses rule packs, runtime hooks, and domain contracts
+- 把 framework 當成純文件集合
+- 把 framework governance 與 consuming-repo governance 混在一起
+- 把 rule pack、runtime hook、domain contract 混成同一層
 
-Interpretation:
+通常代表：
 
-- naming problem
-- framing problem
-- heading / first-sentence problem
+- naming 問題
+- framing 問題
+- heading / first-sentence 問題
 
 ---
 
 ### 3. Decision reconstruction failure
 
-The reviewer reads the DBL or runtime materials but reconstructs the wrong
-system boundary.
+reviewer 讀了 DBL 或 runtime 相關材料，但重建出錯的 system boundary。
 
-Typical signs:
+常見徵象：
 
-- treats limitation examples as capability examples
-- assumes semantic sufficiency where only explicit presence is checked
-- silently upgrades the runtime with reviewer-side intuition
+- 把 limitation example 看成 capability example
+- 在只有 explicit presence check 的地方，腦補成 semantic sufficiency
+- 用 reviewer 自己的直覺偷偷升級 runtime 能力
 
-Interpretation:
+通常代表：
 
-- DBL framing problem
-- artifact contract problem
-- example/reviewer-pack mismatch
+- DBL framing 問題
+- artifact contract 問題
+- example / reviewer-pack mismatch
 
 ---
 
 ### 4. Escalation judgment failure
 
-The reviewer understands the surface but applies the wrong judgment to the
-result.
+reviewer 其實看懂 surface，但對結果套了錯的 judgment。
 
-Typical signs:
+常見徵象：
 
-- treats a reconstruction failure as a runtime bug
-- treats an onboarding blockage as a DBL limitation
-- recommends runtime expansion where wording clarification would suffice
+- 把 reconstruction failure 當成 runtime bug
+- 把 onboarding blockage 當成 DBL limitation
+- 明明只是 wording 問題，卻提議擴 runtime authority
 
-Interpretation:
+通常代表：
 
-- authority / decision-model communication problem
-- reviewer guidance problem
-
----
-
-## Recording rule
-
-Every reviewer run should classify the first meaningful failure under one of
-these four layers before proposing a fix.
-
-If multiple layers are involved, record the earliest one first.
-
-Do not jump directly from a failed run to a framework change without recording
-which layer actually failed.
+- authority / decision-model communication 問題
+- reviewer guidance 問題
 
 ---
 
-## Working rule for authors
+## 記錄規則
 
-When a reviewer run fails:
+每次 reviewer run fail 時，在提修法前，都要先把**第一個有意義的 failure** 分到這四層之一。
 
-- fix the lowest-level failure first
-- do not treat a discoverability failure as a DBL problem
-- do not treat a wording problem as a runtime problem
-- do not treat a runtime boundary limitation as an onboarding-only problem
+如果同時有多層問題：
 
-This document exists to keep those distinctions explicit.
+- 先記最早出現的那一層
+
+不要從 failed run 直接跳到 framework 變更，而沒有先記錄失敗屬於哪一層。
+
+---
+
+## 作者的工作規則
+
+當 reviewer run fail 時：
+
+- 先修最低層 failure
+- 不要把 discoverability failure 當成 DBL 問題
+- 不要把 wording 問題當成 runtime 問題
+- 不要把 runtime boundary limitation 當成單純 onboarding 問題
+
+這份文件的存在，就是為了把這些 distinction 固定住。
