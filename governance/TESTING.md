@@ -7,65 +7,64 @@ default_load: on-demand
 ---
 
 # TESTING.md
-**Testing Strategy and Quality Gates - v4.3**
+**測試策略與品質門檻 - v4.3**
 
-> **Version**: 4.3 | **Priority**: 6 (Quality Gatekeeper)
+> **Version**: 4.3 | **Priority**: 6（品質守門）
 >
-> Defines under what conditions we can reasonably trust a piece of code.
-> Tests are guardrails, not KPIs.
+> 定義在什麼條件下，我們可以合理相信一段程式碼。
+> 測試是 guardrail，不是 KPI。
 
 ---
 
-## 1. Core Philosophy
+## 1. 核心哲學
 
-- protect behavior
-- prevent regression
-- support safe refactoring
-- prefer meaningful evidence over ceremonial checklists
+- 保護行為
+- 防止 regression
+- 支持安全 refactoring
+- 偏好有意義的 evidence，而不是儀式化 checklist
 
-Coverage is not a quality metric by itself.
+Coverage 本身不是品質指標。
 
 ---
 
-## 2. Test Levels
+## 2. 測試層級
 
-### L0 - Minimal Confidence
+### L0 - 最低信心
 
-Use only when scope is truly small and rollback is trivial.
+只在 scope 確實很小、rollback 成本也很低時使用。
 
-Acceptable evidence:
+可接受的 evidence：
 - smoke test
 - manual checklist
 - characterization check
-- visual confirmation for presentation-only work
-- before/after screenshot or equivalent lightweight UI evidence when useful
+- presentation-only work 的視覺確認
+- 有需要時的 before / after screenshot 或同等輕量 UI evidence
 
-`L0` must not be used to dodge required verification.
+`L0` 不得被用來逃避本來就需要的 verification。
 
-For `L0 fast-track` work:
-- one lightweight verification step is enough when the task stays presentation-only
-- do not require a full regression matrix unless the task upgrades out of `L0`
-- if the change starts affecting behavior, schema, async flow, or shared logic,
-  upgrade to `L1`
+對 `L0 fast-track` 工作：
+- 只要 task 維持 presentation-only，一個輕量 verification step 就夠
+- 除非 task 升出 `L0`，否則不必要求完整 regression matrix
+- 一旦變更開始影響 behavior、schema、async flow、或 shared logic，就必須升到 `L1`
 
-### L1 - Maintainable
+### L1 - 可維護
 
-Default bar for normal work.
+一般工作的預設門檻。
 
-Expected evidence includes the applicable subset of:
-- unit tests
-- characterization tests
-- contract tests
+預期 evidence 應包含適用的子集合：
+- unit test
+- characterization test
+- contract test
 - build verification
 - failure-path evidence
 
-Not every task needs every test type, but every task needs enough evidence to defend safety.
+不是每個 task 都需要每一種 test，但每個 task 都要有足夠 evidence 來為其安全性辯護。
 
-### L2 - Critical
+### L2 - 關鍵層
 
-Must include strong evidence across:
+必須在以下面向都有強 evidence：
 - behavior
-- boundaries
+- boundary
 - integration
 - regression
 - human-reviewable acceptance criteria
@@ -74,105 +73,83 @@ Must include strong evidence across:
 
 ## 3. Mandatory Failure-Path Thinking
 
-For `L1+`, include evidence for:
-- one invalid input or invalid state when applicable
-- one boundary value when applicable
-- one failure path when applicable
+對 `L1+`，至少要在適用時提供以下 evidence：
+- 一個 invalid input 或 invalid state
+- 一個 boundary value
+- 一條 failure path
 
-If a category does not apply, say so explicitly.
+若某類別不適用，必須明說。
 
 ### 3.1 Critical Function Test Quality
 
-Coverage can be high while test quality remains weak. AI is especially good at
-inflating coverage while avoiding the hardest and most decision-relevant paths.
+coverage 可以很高，但測試品質仍然很弱。AI 特別擅長把 coverage 灌高，卻避開最難測、也最決策相關的路徑。
 
-Treat a function as **critical** when any of the following is true:
-- it changes state (write, delete, command dispatch, irreversible transition)
-- it interacts with external systems (USB, file I/O, network, device API)
-- it is a relied-on seam for other modules (public interface, adapter layer,
-  shared entrypoint)
-- it is a known bug surface or previously regressed function
+當任一條件成立時，該 function 應視為 **critical**：
+- 會改變 state（write、delete、command dispatch、irreversible transition）
+- 會和 external system 互動（USB、file I/O、network、device API）
+- 是其他模組依賴的接縫（public interface、adapter layer、shared entrypoint）
+- 曾經是 bug surface，或過去發生過 regression
 
-For critical functions:
-- `L1` work must cover the applicable subset of:
+對 critical function：
+- `L1` work 必須涵蓋適用子集合：
   - normal path
   - failure path
   - boundary input
-  - invalid input or invalid state
-- `L2` work should treat all four categories as the default expectation unless a
-  category is explicitly not applicable
+  - invalid input 或 invalid state
+- `L2` work 應把這四類視為預設期待，除非某類別明確不適用
 
-If one of these categories is missing, the work is not "fully tested" unless
-the omission is named and justified.
+若缺任何一類，除非有明講且合理說明，否則不能稱作「fully tested」。
 
-Recommended naming pattern:
+建議命名格式：
 - `test_[function]_[scenario]_[expected_outcome]`
 
-Preferred examples:
+較好的例子：
 - `test_parse_version_empty_string_returns_none`
 - `test_send_command_device_disconnected_raises_error`
 - `test_update_firmware_checksum_mismatch_aborts`
 
-Avoid names that hide intent:
+避免隱藏意圖的命名：
 - `test_case_1`
 - `test_parse_version_2`
 - `testSendCommand`
 
 ### 3.2 Independent Expected-Value Rule
 
-Expected results must be derived from spec, fixed examples, invariants, or
-independent fixtures — not by re-implementing the production algorithm inside
-the test.
+expected result 必須來自 spec、固定範例、invariant、或 independent fixture，**不能**在 test 裡重寫一遍 production algorithm 來算 expected value。
 
-If a test computes its expected value using the same logic as the code under
-test, both will be wrong in the same way and the test provides no independent
-verification. This is one of the most common ways AI inflates apparent test
-coverage without adding real defensive value.
+若 test 用與 production 相同的邏輯計算 expected value，兩邊就可能一起錯，測試不再具備獨立驗證價值。這是 AI 最常用來膨脹 coverage、卻沒有增加防禦力的方式之一。
 
-If an independent expected value cannot be derived, the test must be labeled
-explicitly as a characterization test or weak coverage, not treated as a
-behavior proof.
+若無法導出 independent expected value，必須明確把這個 test 標成 characterization test 或 weak coverage，而不能把它當 behavior proof。
 
-Re-implementing production logic in tests is forbidden.
+在 test 內重寫 production logic 是禁止的。
 
 ### 3.3 Test Sensitivity and Mutation Thinking
 
-A test that passes under a plausible logic error provides no protection. High
-coverage with low sensitivity is worse than low coverage with high sensitivity,
-because it creates false confidence.
+如果一個 test 在合理的邏輯錯誤下仍然會 pass，它就沒有保護力。高 coverage 但低 sensitivity，比低 coverage 但高 sensitivity 更糟，因為它會製造假信心。
 
-For critical functions and regression-sensitive paths, tests must be able to
-fail under a plausible logic mutation — for example:
-- a boundary flip (`>` changed to `>=`)
-- a reversed condition
-- a removed guard clause
-- an off-by-one in a loop bound
+對 critical function 與 regression-sensitive path，test 至少要能在合理的邏輯 mutation 下失敗，例如：
+- boundary flip（`>` 被改成 `>=`）
+- reversed condition
+- removed guard clause
+- loop bound 的 off-by-one
 
-For bug fixes: the test added must be able to fail if the original bug is
-re-introduced. If no test in the change would catch a regression of the exact
-defect being fixed, the fix is not regression-protected.
+對 bug fix：新增的 test 必須能在原 bug 被重新引入時失敗。若這次修改裡沒有任何 test 能抓到原 defect 的回歸，就不能說 fix 已有 regression protection。
 
-If test sensitivity cannot be demonstrated, the coverage claim must be
-downgraded.
+若無法證明 test sensitivity，coverage claim 必須降級。
 
 ### 3.4 Stateful and Sequence Behavior
 
-Single-point function tests are insufficient for stateful or workflow-driven
-code. The most common failures in such systems occur not within a single
-function call, but across a sequence of operations.
+對 stateful 或 workflow-driven code，只做單點 function test 是不夠的。這類系統最常見的失敗，不是出在單一 function call，而是出在一連串操作之間。
 
-For stateful or multi-step code, include sequence tests that validate:
-- the correct final state after a complete operation sequence
-- behavior when a step in the sequence fails midway
-- consistency after retry, rollback, or recovery paths
+對 stateful 或 multi-step code，應加入 sequence test，驗證：
+- 完整 sequence 後的 final state 是否正確
+- sequence 中途失敗時行為如何
+- retry、rollback、recovery path 後的一致性
 
-Side-effect obligations by type:
-- external write (DB, file, device) → assert the persisted state, not only
-  that the write function was called
-- shared or global state modification → include explicit cleanup or restoration
-  verification
-- async dispatch → include evidence of completion behavior and failure-path
-  handling; do not treat fire-and-forget as fully tested
+依 side-effect 類型還要補：
+- external write（DB、file、device）：要 assert persisted state，不只驗證 write function 被呼叫
+- shared / global state modification：要有明確 cleanup 或 restoration verification
+- async dispatch：要有 completion behavior 與 failure-path evidence；不能把 fire-and-forget 當 fully tested
 
 ---
 
@@ -180,40 +157,40 @@ Side-effect obligations by type:
 
 ### 4.1 Authoritative Build Config
 
-Each repo should declare at least one **authoritative** or **known-good** build configuration.
+每個 repo 至少應宣告一個 **authoritative** 或 **known-good** build configuration。
 
-Minimum expectation per task:
-- verify at least one known-good config
+每個 task 的最低期待：
+- 驗至少一個 known-good config
 
 ### 4.2 Phase-Based Matrix
 
-Build breadth scales by task risk:
+build breadth 應隨 task risk 調整：
 
 | Task Type | Minimum Build Expectation |
 |---|---|
-| Low-risk UI / wording / presentation | Known-good config |
-| Normal feature / bugfix / refactor | Known-good config plus any touched-path verification needed |
-| Critical boundary / release / L2 | Expanded matrix appropriate to the boundary risk |
+| 低風險 UI / wording / presentation | Known-good config |
+| 一般 feature / bugfix / refactor | Known-good config，再加 touched path 需要的驗證 |
+| 關鍵邊界 / release / L2 | 擴大到與 boundary risk 相稱的 matrix |
 
-Do not require a full Debug/Release or platform matrix when the repo's real baseline does not support it.
+當 repo 現實 baseline 本來就不支持 full Debug / Release 或跨平台 matrix 時，不要硬性要求完整矩陣。
 
 ### 4.3 Warning Policy
 
-Use a **baseline-aware** warning policy:
-- do not introduce new warnings in touched files
-- do not worsen the declared warning baseline without explicit justification
-- existing legacy warnings do not automatically block completion if they are unchanged
+採用 **baseline-aware** warning policy：
+- touched file 不得引入新 warning
+- 不得在沒有明確說明的情況下惡化既有 warning baseline
+- 若 legacy warning 沒變，不必自動阻擋完成
 
 ---
 
 ## 5. Legacy Refactor Baseline Validation
 
-For refactors in legacy repos, required baseline evidence is:
-- baseline commit or rollback point build result
-- modified state build result
-- confirmation of canonical toolchain and canonical build command
+對 legacy repo 的 refactor，必備 baseline evidence：
+- baseline commit 或 rollback point 的 build 結果
+- modified state 的 build 結果
+- canonical toolchain 與 canonical build command 的確認
 
-If the baseline cannot build, mark the task as operating on an unstable baseline and do not represent it as a clean regression-proof refactor.
+若 baseline 本身無法 build，必須明示這次工作是在 unstable baseline 上進行，不能把它表述成 clean、regression-proof 的 refactor。
 
 ---
 
@@ -221,139 +198,122 @@ If the baseline cannot build, mark the task as operating on an unstable baseline
 
 ### 6.1 Minimum Refactor Evidence
 
-Acceptable evidence examples:
-- before/after build results
+可接受的 evidence 例如：
+- before / after build result
 - touched-file diff review
 - key call-chain comparison
-- characterization or smoke verification of preserved behavior
+- characterization 或 smoke verification，證明核心 behavior 未變
 
 ### 6.2 High-Risk Rule Evidence
 
-For high-risk work, evidence should be concrete and human-reviewable. Examples:
+對高風險工作，evidence 應具體且能讓人 review。例子：
 
 | Rule Type | Acceptable Evidence Examples |
 |---|---|
-| Flash / sequencing safety | before/after diff, ordered call-path listing, build pass, explicit unchanged sequence note |
-| Layer boundary | touched entrypoint list, dependency-path inspection, confirmation no direct forbidden access |
-| Thread safety | UI update path list, dispatcher usage confirmation, failure-path note |
-| Legacy baseline | canonical toolchain, canonical build command, baseline build, modified build |
+| Flash / sequencing safety | before/after diff、ordered call-path list、build pass、explicit unchanged sequence note |
+| Layer boundary | touched entrypoint list、dependency-path inspection、確認無 direct forbidden access |
+| Thread safety | UI update path list、dispatcher usage 確認、failure-path note |
+| Legacy baseline | canonical toolchain、canonical build command、baseline build、modified build |
 
-Do not claim "verified" without naming the evidence used.
+不要在沒有指出 evidence 的情況下宣稱 `verified`。
 
 ---
 
 ## 7. Hard-to-Test Areas
 
-For I/O, native, time, environment, or legacy code:
-- isolate what can be isolated
-- use characterization where exact unit coverage is unrealistic
-- prefer observed behavior over mocked fantasy
+對 I/O、native、time、environment、或 legacy code：
+- 能 isolate 的先 isolate
+- 單元級 coverage 不現實時，用 characterization
+- 偏好 observed behavior，而不是 mocked fantasy
 
-Mocking that hides real risk is forbidden.
+會遮蔽真實風險的 mocking 是禁止的。
 
 ### 7.1 Assertion and Mocking Discipline
 
-Each test should contain at least one clear assertion about:
+每個 test 至少應有一個清楚 assertion，針對：
 - output value
 - state change
-- emitted error or failure signal
+- emitted error 或 failure signal
 
-Do not treat "no exception was raised" as the only passing condition unless the
-behavior under test is specifically "does not raise", and the test name says so.
+除非行為本身就是「不拋例外」，且 test name 已明說，否則不能把「沒有 exception」當成唯一通過條件。
 
-Preferred assertion style:
+較好的 assertion 風格：
 - `assert result == expected_value`
 - `assert device.state == DeviceState.DISCONNECTED`
 - `assert "checksum mismatch" in error_log`
 
-Mock-only tests are insufficient when they assert only that a collaborator was
-called. For example:
-- weak: `mock_device.send.assert_called_once()`
-- stronger: assert the resulting status, emitted output, or persisted state
+只斷言 collaborator 被呼叫的 mock-only test 不夠。例如：
+- 弱：`mock_device.send.assert_called_once()`
+- 較強：assert resulting status、emitted output、或 persisted state
 
-Tests must also remain independent:
-- each test should be runnable on its own
-- setup/teardown must restore the environment
-- mutable state must not leak across tests
-- device, file, port, or external-resource setup must be explicit per test
+測試也必須保持獨立：
+- 每個 test 都應可單獨執行
+- setup / teardown 必須恢復環境
+- mutable state 不得跨 test 洩漏
+- device、file、port、或 external resource setup 必須在每個 test 中明確處理
 
 ### 7.2 Determinism and Flakiness Control
 
-Tests must be deterministic. A test that produces inconsistent results across
-runs is not a test — it is noise that erodes trust in the entire suite.
+測試必須 deterministic。若一個 test 多跑幾次結果不一致，它就不是 test，而是雜訊。
 
-Unless nondeterminism is explicitly the behavior under test, avoid reliance on:
-- wall-clock time or `datetime.now()`
-- unseeded random values
-- execution order between tests
-- shared process state or global singletons across test boundaries
-- `sleep()` or timing-based synchronization
+除非 nondeterminism 本身就是被測行為，否則避免依賴：
+- wall-clock time 或 `datetime.now()`
+- 未 seed 的 random
+- test 執行順序
+- 跨 test 共享的 process state 或 global singleton
+- `sleep()` 或 timing-based synchronization
 
-When the system under test genuinely involves time, randomness, or async
-scheduling, control it through injection: fake clocks, seeded random, explicit
-harness control, or deterministic event replay.
+若 system under test 真的牽涉 time、random、或 async scheduling，應透過 injection 控制：fake clock、seeded random、explicit harness control、或 deterministic event replay。
 
-Claiming stable tests while relying on uncontrolled time, random, or execution
-order is forbidden.
+若測試依賴未受控的 time、random、或 execution order，卻仍宣稱 stable，屬於禁止行為。
 
 ### 7.3 Behavior Source and Test Plan Requirement
 
-Tests without a trustworthy source of expected behavior are not tests — they
-are guesses dressed as verification.
+沒有可信 expected behavior source 的 test，不是 test，而是猜測偽裝成 verification。
 
-Before generating tests, identify the source of expected behavior:
-- specification or design document
-- public contract or interface definition
-- bug report with reproducible steps
-- acceptance criteria from reviewer or product owner
-- existing characterization baseline with known-good output
-- explicit reviewer instruction
+生成 test 前，先識別 expected behavior 的來源：
+- specification 或 design doc
+- public contract 或 interface definition
+- 具有可重現步驟的 bug report
+- reviewer 或 product owner 提供的 acceptance criteria
+- known-good output 的 existing characterization baseline
+- 明確 reviewer instruction
 
-If no trustworthy source exists, the agent must say so explicitly and
-downgrade the confidence label of any tests produced. Deriving expected
-behavior solely by reading the existing implementation and assuming it is
-correct is not an acceptable source.
+若沒有可信來源，必須明說，並下調所有產出測試的 confidence label。不能只靠閱讀現有 implementation 並假設它是對的，就當作 expected behavior source。
 
-For non-trivial work, produce a short test plan before writing test code. The
-plan must identify:
-- behavior source (what authorizes the expected behavior)
-- risk level and task classification
-- candidate critical paths and failure paths
-- any categories explicitly not applicable, with justification
+對 non-trivial work，寫 test code 前先給一個簡短 test plan。至少指出：
+- behavior source（誰授權這個 expected behavior）
+- risk level 與 task classification
+- candidate critical path 與 failure path
+- 哪些 category 明確不適用，以及理由
 
-This sequencing prevents the most common AI failure mode: generating a large
-volume of structurally correct but low-value tests before the behavior contract
-has been established.
+這個順序是為了防止 AI 最常見的失敗模式：在 behavior contract 都還沒立起來前，就先生成大量結構正確但價值很低的測試。
 
 ---
 
 ## 8. Test Gap Records
 
-When a meaningful test is currently infeasible, record:
-- reason
-- risk
+當一個有意義的 test 目前做不到時，必須記錄：
+- 原因
+- 風險
 - remediation condition
 
-No remediation condition means hidden debt.
+若沒有 remediation condition，就是隱藏技術債。
 
 ---
 
 ## 9. Definition of Done
 
-Work is done when:
-- the chosen evidence matches the task risk
-- build verification matches the repo reality
-- failure-path thinking has been applied where relevant
-- critical functions have meaningful behavior assertions instead of ceremonial
-  coverage or mock-only checks
-- bug fixes include a regression test in the same change when reproduction is
-  practical
-- future reviewers can understand why the change is considered safe
+工作完成的條件是：
+- 選用的 evidence 與 task risk 相稱
+- build verification 符合 repo reality
+- relevant failure-path thinking 已套用
+- critical function 有真正的 behavior assertion，而不是儀式化 coverage 或 mock-only check
+- bug fix 在可重現時，與修復同一 change 中附上 regression test
+- 後續 reviewer 能理解為什麼這次變更被視為安全
 
-The following are explicitly forbidden and do not satisfy any evidence
-requirement, regardless of test count or coverage percentage:
-
-- Re-implementing production logic in tests is forbidden.
-- Claiming "fully tested" without independent expected-value reasoning is forbidden.
-- Declaring regression-safe without a regression test for a reproducible bug is forbidden.
-- Claiming stable tests while relying on uncontrolled time, random, or execution order is forbidden.
+以下做法明確禁止，無論 test count 或 coverage 百分比多高，都不算 evidence：
+- 在 test 中重寫 production logic
+- 在沒有 independent expected-value reasoning 下宣稱 fully tested
+- 對可重現 bug 沒有 regression test 卻宣稱 regression-safe
+- 依賴未受控的 time、random、或 execution order，卻宣稱 stable test

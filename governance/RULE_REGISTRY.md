@@ -6,44 +6,44 @@ default_load: always
 
 # Governance Rule Registry
 
-This file is the authoritative registry of valid rule pack names.
-Any rule pack not listed here will cause `Unknown rule packs: [...]` errors.
+這份文件是 valid rule pack name 的 authoritative registry。
+任何未列在這裡的 rule pack，都會觸發 `Unknown rule packs: [...]` 類錯誤。
 
-Machine-readable by `governance_tools/rule_classifier.py`.
+它可被 `governance_tools/rule_classifier.py` machine-read。
 
-Rule packs are selected at session start based on:
+rule pack 的選擇時機在 session start，依據：
 - `repo_type`: firmware | product | service | tooling
 - `task_type`: general | refactor | release | review | onboarding | test
 - `load_mode`: always | context_aware
 
-`always` packs are loaded in every session regardless of context.
-`context_aware` packs are activated only when `repo_type` and `task_type` match.
+`always` pack 每次 session 都會載入，不受 context 影響。
+`context_aware` pack 只有在 `repo_type` 與 `task_type` 匹配時才啟用。
 
 ---
 
-## Valid Rule Packs (Quick Reference)
+## Valid Rule Packs（Quick Reference）
 
 | Pack Name | Description | Typical Use |
 |---|---|---|
-| `common` | Universal baseline rules | All repos (always include) |
-| `cpp` | C/C++ code standards | Firmware, driver, embedded repos |
-| `csharp` | C# code standards | .NET, Avalonia repos |
-| `kernel-driver` | Kernel/driver-specific constraints | KDC and similar driver repos |
-| `python` | Python code standards | Service, tooling repos |
-| `refactor` | Refactoring guidance | Any repo undergoing refactor |
-| `release` | Release checklist rules | Release sessions |
-| `review_gate` | Review gate checklist | Review sessions |
-| `swift` | Swift code standards | iOS/macOS repos |
-| `avalonia` | Avalonia UI framework rules | Desktop app repos |
-| `typescript` | TypeScript/Node.js standards | Product repos |
-| `electron` | Electron IPC security rules | Electron app repos |
-| `nextjs` | Next.js routing and rendering rules | Next.js product repos |
-| `supabase` | Supabase RLS and auth rules | Supabase-backed repos |
-| `firmware_isr` | ISR safety and RTOS constraints | Firmware repos |
+| `common` | 通用 baseline 規則 | 所有 repo（永遠載入） |
+| `cpp` | C / C++ 規則 | firmware、driver、embedded repo |
+| `csharp` | C# 規則 | .NET、Avalonia repo |
+| `kernel-driver` | kernel / driver 特定限制 | KDC 與同類 driver repo |
+| `python` | Python 規則 | service、tooling repo |
+| `refactor` | refactoring 指引 | 任何進行 refactor 的 repo |
+| `release` | release checklist 規則 | release session |
+| `review_gate` | review gate checklist | review session |
+| `swift` | Swift 規則 | iOS / macOS repo |
+| `avalonia` | Avalonia UI framework 規則 | desktop app repo |
+| `typescript` | TypeScript / Node.js 規則 | product repo |
+| `electron` | Electron IPC 安全規則 | Electron app repo |
+| `nextjs` | Next.js routing / rendering 規則 | Next.js product repo |
+| `supabase` | Supabase RLS 與 auth 規則 | Supabase-backed repo |
+| `firmware_isr` | ISR safety 與 RTOS 限制 | firmware repo |
 
 ---
 
-## Rule Packs (Machine-Readable Metadata)
+## Rule Packs（Machine-Readable Metadata）
 
 ### common
 
@@ -53,7 +53,7 @@ load_mode: always
 repo_type: [all]
 task_type: [all]
 risk_level: [all]
-description: "Core coding standards — loaded in every session"
+description: "Core coding standards; loaded in every session"
 ```
 
 ### refactor
@@ -64,7 +64,7 @@ load_mode: context_aware
 repo_type: [all]
 task_type: [refactor]
 risk_level: [all]
-description: "Refactoring patterns — activated when task_type=refactor"
+description: "Refactoring patterns; activated when task_type=refactor"
 ```
 
 ### release
@@ -75,7 +75,7 @@ load_mode: context_aware
 repo_type: [all]
 task_type: [release]
 risk_level: [all]
-description: "Release checklist rules — activated when task_type=release"
+description: "Release checklist rules; activated when task_type=release"
 ```
 
 ### typescript
@@ -207,41 +207,45 @@ load_mode: context_aware
 repo_type: [all]
 task_type: [review]
 risk_level: [all]
-description: "Review gate checklist — activated for review task sessions"
+description: "Review gate checklist; activated for review task sessions"
 ```
 
 ---
 
 ## How Rule Packs Are Selected
 
-Rule packs are selected by `_get_default_rule_packs()` in `adopt_governance.py`
-based on detected repo type, or passed explicitly via `--rules` CLI argument.
+rule pack 由 `adopt_governance.py` 的 `_get_default_rule_packs()` 根據偵測到的 repo type 選出，或由 `--rules` CLI argument 明確指定。
 
-Use `get_context_aware_rule_packs()` or `available_rule_packs()` from
-`governance_tools/rule_pack_loader.py` to enumerate valid options programmatically.
+若要在程式中列舉有效選項，使用：
+- `get_context_aware_rule_packs()`
+- `available_rule_packs()`
+
+這兩者都位於 `governance_tools/rule_pack_loader.py`。
 
 ---
 
-## ⚠️ `onboarding` is NOT a valid rule pack
+## 為什麼 `onboarding` 不是合法 rule pack
 
-`onboarding` is **not** a rule pack name. If you see:
+`onboarding` **不是** rule pack 名稱。若你看到：
 
-```
+```text
 Unknown rule packs: ['onboarding']
 ```
 
-This means `adopt_governance.py` or a calling script is passing `"onboarding"` as a
-rule pack argument. Fix by removing it and using `get_context_aware_rule_packs()` or
-an explicit valid pack from the table above.
+這表示 `adopt_governance.py` 或某個呼叫它的 script，把 `"onboarding"` 當成 rule pack 傳入。
 
-**Correct approach for onboarding sessions:**
+正確修法是：
+- 移除這個值
+- 改用 `get_context_aware_rule_packs()`
+- 或從上表中選擇明確合法的 pack
+
+**對 onboarding session 的正確做法：**
 
 | Repo Type | Rule Packs |
 |---|---|
-| Firmware / driver repo | `["common", "cpp", "kernel-driver"]` |
-| Product repo (TypeScript) | `["common"]` |
-| Service repo (Python) | `["common", "python"]` |
-| Unknown | `["common"]` |
+| Firmware / driver repo | `['common', 'cpp', 'kernel-driver']` |
+| Product repo (TypeScript) | `['common']` |
+| Service repo (Python) | `['common', 'python']` |
+| Unknown | `['common']` |
 
-Onboarding sessions use the same rule packs as regular L1 sessions for that repo type.
-There is no special `onboarding` rule pack.
+onboarding session 使用的 rule pack，應與該 repo type 的一般 L1 session 一致；不存在特殊的 `onboarding` rule pack。

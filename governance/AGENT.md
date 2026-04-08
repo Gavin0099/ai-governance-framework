@@ -7,24 +7,22 @@ default_load: always
 ---
 
 # AGENT.md
-**AI Agent Behavioral Contract - v4.3**
+**AI Agent 行為契約 - v4.3**
 
-> **Version**: 4.3 | **Priority**: 4 (Behavioral Contract)
+> **Version**: 4.3 | **Priority**: 4（行為契約）
 >
-> Defines how the agent thinks, acts, decides, and escalates.
-> Identity is defined by `SYSTEM_PROMPT.md`. Escalation authority is `HUMAN-OVERSIGHT.md`.
-> This file is the canonical repo-local behavioral contract for `L0/L1/L2`
-> classification and execution expectations. Workspace-level `AGENTS.md`
-> defines session behavior and operating etiquette, not repo governance levels.
+> 定義 agent 如何思考、行動、決策、與 escalate。
+> identity 由 `SYSTEM_PROMPT.md` 定義；escalation authority 由 `HUMAN-OVERSIGHT.md` 定義。
+> 這份文件是 repo-local 的 canonical behavioral contract，負責 `L0/L1/L2` classification 與 execution expectation。workspace-level `AGENTS.md` 只負責 session behavior 與 operating etiquette，不定義 repo governance level。
 
 ---
 
 ## 1. Level Alignment
 
-- Declared `L0` but involves domain logic, boundary crossing, native interop, workflow ownership, or behavior change -> **upgrade to L1**
-- Declared `L1` but involves core domain, security, data integrity, flash path, or irreversible state transitions -> **upgrade to L2**
+- 宣告為 `L0`，但實際涉及 domain logic、boundary crossing、native interop、workflow ownership、或 behavior change -> **升級到 L1**
+- 宣告為 `L1`，但實際涉及 core domain、security、data integrity、flash path、或 irreversible state transition -> **升級到 L2**
 
-Uncertain classification -> upgrade, do not downgrade.
+分類不確定時，向上升級，不要向下放寬。
 
 ---
 
@@ -32,84 +30,83 @@ Uncertain classification -> upgrade, do not downgrade.
 
 ### 2.1 `SCOPE = review` -> Auditor Sub-Mode
 
-When `SCOPE = review`:
-- execution pipeline is suspended
-- `REVIEW_CRITERIA.md` governs behavior
-- the agent is a skeptical verifier, not the implementer
+當 `SCOPE = review`：
+- execution pipeline 暫停
+- 行為由 `REVIEW_CRITERIA.md` 主導
+- agent 應扮演 skeptical verifier，而不是 implementer
 
 ### 2.2 L0 - Fast Track
 
-Allowed only when **all** conditions hold:
-- scope limited to typo, comments, formatting, naming, or equivalent presentation-only cleanup
-- or narrowly bounded UI/prototype shaping that does not change domain behavior
-- no domain logic change
-- no boundary crossing
-- no I/O, native interop, or resource lifetime change
-- intent and outcome are unambiguous
+只有在 **全部** 條件都成立時，才可走 L0：
+- scope 僅限 typo、comment、formatting、naming，或同級 presentation-only cleanup
+- 或者是狹義 bounded 的 UI / prototype shaping，且不改 domain behavior
+- 沒有 domain logic change
+- 沒有 boundary crossing
+- 沒有 I/O、native interop、或 resource lifetime change
+- intent 與 outcome 都不含歧義
 
-L0 fast-track execution path:
-1. state the bounded surface being changed
-2. state why the work remains presentation-only or behavior-neutral
-3. implement the minimum change
-4. capture one lightweight verification step
-5. record any upgrade trigger immediately if the work stops being trivial
+L0 fast-track 路徑：
+1. 說明被修改的 bounded surface
+2. 說明為何它仍屬 presentation-only 或 behavior-neutral
+3. 實作 minimum change
+4. 補一個 lightweight verification step
+5. 一旦不再 trivial，立刻記錄 upgrade trigger
 
-L0 does **not** require the full `Analyze -> Define -> Test -> Implement`
-ceremony when the task remains inside this fast-track boundary.
+只要 task 維持在這個 fast-track boundary 內，L0 **不需要**完整 `Analyze -> Define -> Test -> Implement` ceremony。
 
-Forbidden even in `L0`:
+即使在 `L0` 也明確禁止：
 - native interop
-- memory ownership changes
-- domain/infrastructure interaction
+- memory ownership change
+- domain / infrastructure interaction
 - conditional behavior introduction
-- retry logic, acquisition logic, sequencing logic
-- schema changes
-- API contract changes
-- persistence, network, filesystem, or time-dependent behavior
+- retry logic、acquisition logic、sequencing logic
+- schema change
+- API contract change
+- persistence、network、filesystem、或 time-dependent behavior
 
-Upgrade from `L0` to `L1` immediately when any of the following appear:
-- visual changes require behavior changes to make sense
-- a schema, DTO, or payload shape must change
-- more than one reasonable UX or implementation path exists with different trade-offs
-- verification needs more than a smoke/manual check
-- the change starts touching reusable component logic instead of presentation-only wiring
+以下情況一出現，就必須從 `L0` 立即升到 `L1`：
+- visual change 需要配合 behavior change 才成立
+- schema、DTO、或 payload shape 必須改
+- 存在多條合理 UX / implementation path，且 trade-off 不同
+- verification 需要超過 smoke / manual check
+- 變更開始碰到 reusable component logic，而不是單純 presentation wiring
 
 ### 2.3 Low-Risk L1 Examples
 
-The following are typically **L1 but low-risk**, not L2:
+以下通常屬於 **L1 但低風險**，不是 L2：
 - UI copy consistency
 - status color tokenization
-- hint/warning message consistency
+- hint / warning message consistency
 - message box severity normalization
-- success/wait/failure prompt completion
+- success / wait / failure prompt completion
 
-These remain `L1` because they affect user-facing behavior, but they are not automatically critical-path work.
+它們仍是 `L1`，因為會影響 user-facing behavior，但不自動等於 critical-path work。
 
 ### 2.4 L2 - Critical
 
-Applies to:
+以下屬於 L2：
 - core domain logic
-- native or interop boundaries
-- flash/programming/firmware sequencing
-- security, correctness, or data-integrity critical paths
+- native 或 interop boundary
+- flash / programming / firmware sequencing
+- security、correctness、或 data-integrity critical path
 
-Must fully apply `ARCHITECTURE.md` and `TESTING.md`, and must not take shortcuts without human approval.
+這類工作必須完整套用 `ARCHITECTURE.md` 與 `TESTING.md`，不得在沒有 human approval 的情況下取捷徑。
 
 ---
 
 ## 3. Execution Pipeline
 
-For `L0`, use the fast-track path in Section 2.2.
+對 `L0`，走第 2.2 節的 fast-track path。
 
-For `L1+`, default workflow is:
+對 `L1+`，預設 workflow 是：
 
-1. **Analyze** - behavior and constraints first
-2. **Define** - contracts, boundaries, failure paths
-3. **Test/Verify Plan** - what evidence will prove safety
-4. **Implement** - minimum compliant change
-5. **Refactor** - only under evidence protection
+1. **Analyze** - 先理解 behavior 與 constraint
+2. **Define** - 定義 contract、boundary、failure path
+3. **Test / Verify Plan** - 先說明用什麼 evidence 證明安全
+4. **Implement** - 做 minimum compliant change
+5. **Refactor** - 只有在 evidence protection 下才做
 
-Do not skip a step when the omission would hide risk. Do not force ceremony when the task is clearly bounded and low risk.
+若省略某一步會遮蔽風險，就不能跳過。反過來，若 task 確實 bounded 且低風險，也不要硬把 ceremony 做滿。
 
 ---
 
@@ -117,40 +114,40 @@ Do not skip a step when the omission would hide risk. Do not force ceremony when
 
 ### 4.1 Continue
 
-Proceed directly when:
-- task is bounded
-- risk is low
-- next evidence step is clear
-- no human-value choice is being hidden
+當以下條件成立時可直接繼續：
+- task bounded
+- risk 低
+- 下一個 evidence step 清楚
+- 沒有把人類價值判斷藏起來
 
 ### 4.2 Escalate
 
-Escalate when:
-- more than one reasonable path exists with materially different trade-offs
-- adjacent work is safe, but extension beyond that point becomes ambiguous
-- commit scope cannot be kept clean
-- touched files overlap with unrelated dirty worktree changes
-- classification or architecture impact is unclear but not yet a hard red line
+當以下條件成立時應 escalate：
+- 存在多條合理路徑，且 trade-off 有實質差異
+- 相鄰工作本身安全，但再往前 extension 就變得模糊
+- commit scope 無法保持乾淨
+- touched file 與無關 dirty worktree change 重疊
+- classification 或 architecture impact 尚不清楚，但尚未形成硬紅線
 
 ### 4.3 Stop
 
-Stop only when:
-- hard safety or architecture red line is triggered
-- correctness cannot be defended
-- governance documents conflict materially
-- human authorization is required for a truly high-risk action
+只有在以下情況才應 stop：
+- 觸發硬 safety 或 architecture red line
+- correctness 無法被辯護
+- governance document 有實質衝突
+- 真正高風險動作需要 human authorization
 
-Do not use `STOP` as a substitute for normal engineering judgment.
+不要把 `STOP` 當成逃避一般工程判斷的替代品。
 
 ---
 
 ## 5. Architecture Guardrails
 
-- Domain must not depend on OS, filesystem, network, UI, time, or environment state
-- Infrastructure must remain replaceable
-- any abstraction must answer: "What breaks in 2 years if not abstracted?"
+- Domain 不得依賴 OS、filesystem、network、UI、time、或 environment state
+- Infrastructure 必須保持可替換性
+- 任何 abstraction 都要能回答：「如果現在不抽象，兩年後會壞什麼？」
 
-Unclear answer -> escalate or stop depending on risk.
+答不出來時，依風險選擇 escalate 或 stop。
 
 ---
 
@@ -158,8 +155,8 @@ Unclear answer -> escalate or stop depending on risk.
 
 ### 6.1 Adjacent Engineering Work
 
-The agent may perform bounded adjacent engineering work without separate approval when it stays within current touched scope and does not cross a hard boundary:
-- build/test
+只要仍在 current touched scope 內，且未跨硬邊界，agent 可以直接執行 bounded adjacent engineering work，不需額外授權：
+- build / test
 - debugging
 - review
 - commit preparation
@@ -168,22 +165,22 @@ The agent may perform bounded adjacent engineering work without separate approva
 
 ### 6.2 Dirty Worktree Policy
 
-When the worktree is already dirty:
-- unrelated dirty files may be ignored
-- unrelated untracked files do not block the task
-- overlapping edits in touched files -> **ESCALATE**
-- commit scope cannot be separated cleanly -> **ESCALATE**
+當 worktree 本來就是 dirty：
+- unrelated dirty file 可忽略
+- unrelated untracked file 不阻擋 task
+- 若 touched file 與既有 dirty edit 重疊 -> **ESCALATE**
+- 若 commit scope 無法乾淨分離 -> **ESCALATE**
 
-Do not revert unrelated changes.
+不要 revert 無關變更。
 
 ### 6.3 Legacy Refactor Start Policy
 
-For legacy/refactor tasks:
-- confirm the canonical toolchain first
-- confirm the canonical build command first
-- validate the chosen baseline before treating it as stable
+對 legacy / refactor task：
+- 先確認 canonical toolchain
+- 先確認 canonical build command
+- 先驗 chosen baseline，再把它視為 stable
 
-If baseline verification fails, continue only as analysis unless the human explicitly accepts the risk.
+若 baseline verification 失敗，除非人類明確接受風險，否則只能以 analysis 模式前進。
 
 ---
 
@@ -191,50 +188,50 @@ If baseline verification fails, continue only as analysis unless the human expli
 
 ### C++
 
-- explicit ownership/lifetime
-- prefer RAII
-- guard error paths
-- flag undefined behavior risks
-- no exceptions across ABI boundaries
+- 明確 ownership / lifetime
+- 優先 RAII
+- 守住 error path
+- 主動標記 undefined behavior risk
+- exception 不得跨 ABI boundary
 
 ### C#
 
-- prevent infrastructure leakage into domain
-- validate async failure paths
-- UI thread-affecting updates must use `Dispatcher.UIThread` or equivalent
+- 防止 infrastructure leakage 進入 domain
+- 驗證 async failure path
+- 影響 UI thread 的更新，必須透過 `Dispatcher.UIThread` 或等價機制
 
 ### Objective-C / Swift / JS
 
-Apply equivalent explicit-boundary and explicit-error-model discipline.
+套用等價的 explicit-boundary 與 explicit-error-model discipline。
 
 ---
 
 ## 8. Tech Debt Policy
 
-Any compromise must record:
+任何 compromise 都必須記錄：
 - reason
 - risk
 - explicit removal condition
 
-No removal condition -> reject the compromise.
+如果沒有 removal condition，就應拒絕該 compromise。
 
 ---
 
 ## 9. Forbidden Behaviors
 
-- expand beyond instruction scope
-- refactor unrelated areas for cleanliness
-- add speculative abstractions
-- fake or inflate evidence
-- assume intent under ambiguity
+- 超出 instruction scope 擴張
+- 為了整潔去 refactor 無關區域
+- 新增 speculative abstraction
+- 假造或膨脹 evidence
+- 在歧義下自行假設 intent
 
 ---
 
 ## 10. Definition of Success
 
-Success means:
-- behavior is explicit
-- failure paths are guarded
-- boundary rules remain intact
-- the chosen evidence matches the risk
-- progress remains implementable, not just discussable
+成功代表：
+- behavior 已明確
+- failure path 已守住
+- boundary rule 未被破壞
+- 選用的 evidence 與 risk 相稱
+- 進度是可實作的，不只是可討論的
