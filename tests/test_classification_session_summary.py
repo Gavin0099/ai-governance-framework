@@ -14,10 +14,16 @@ from governance_tools.classification_session_summary import (
 
 
 @pytest.fixture
-def project_root(tmp_path):
-    summaries = tmp_path / "artifacts" / "runtime" / "summaries"
-    summaries.mkdir(parents=True)
-    yield tmp_path
+def project_root():
+    path = Path("tests") / "_tmp_classification_session_summary"
+    if path.exists():
+        shutil.rmtree(path, ignore_errors=True)
+    summaries = path / "artifacts" / "runtime" / "summaries"
+    summaries.mkdir(parents=True, exist_ok=True)
+    try:
+        yield path
+    finally:
+        shutil.rmtree(path, ignore_errors=True)
 
 
 def _write_summary(summaries_dir: Path, session_id: str, decision_context: dict) -> None:
@@ -52,13 +58,20 @@ def test_empty_summaries_dir(project_root):
     assert result["policy_ok"] is True
 
 
-def test_no_summaries_dir(tmp_path):
+def test_no_summaries_dir():
     # No artifacts/runtime/summaries dir at all — should not raise.
-    result = build_classification_session_summary(tmp_path)
+    path = Path("tests") / "_tmp_classification_session_summary_no_dir"
+    if path.exists():
+        shutil.rmtree(path, ignore_errors=True)
+    path.mkdir(parents=True, exist_ok=True)
+    try:
+        result = build_classification_session_summary(path)
 
-    assert result["ok"] is True
-    assert result["session_count"] == 0
-    assert result["policy_ok"] is True
+        assert result["ok"] is True
+        assert result["session_count"] == 0
+        assert result["policy_ok"] is True
+    finally:
+        shutil.rmtree(path, ignore_errors=True)
 
 
 def test_sessions_without_classification_change(project_root):
