@@ -1,142 +1,152 @@
 # Human Self-Serve Onboarding Pass/Fail Criteria
 
-> Status: **active**
-> Created: 2026-03-30
-> Applies to: Beta Gate condition 2 human self-serve track
+> 狀態：active
+> 建立：2026-03-30
+> 適用：Beta Gate condition 2 的 human self-serve track
 
 ---
 
-## Why this document exists
+## 為什麼需要這份文件
 
-"Can the reviewer figure it out?" is not a measurable criterion.
-This document converts it into observable, recordable checkpoints.
+「reviewer 能不能自己搞懂」這句話太抽象，不能直接當 gate。這份文件的作用就是把它拆成可觀測、可記錄、可比較的 checkpoint。
 
-This document applies to the **human cold-start self-serve** gate only.
+這份文件只適用於 **human cold-start self-serve** gate。
 
-Agent-assisted adoption is tracked separately in:
+Agent-assisted adoption 另有獨立文件：
 
 - `docs/beta-gate/agent-adoption-pass-criteria.md`
 
-Human self-serve failure does **not** automatically invalidate the
-agent-assisted path.
+也就是說：
+
+- human self-serve failure 不會自動否定 agent-assisted path
+- 兩者是不同 gate，不是同一條路的高低難度版
 
 ---
 
-## Five observable checkpoints
+## 五個可觀測 checkpoint
 
-### CP1: Entry point found
-**Observable**: Reviewer navigates to `README.md`, `docs/start_session.md`,
-or `governance_tools/adopt_governance.py` without being told these exist.
+### CP1：找到入口
 
-Pass: reached within 15 minutes of starting.
-Fail: reviewer is still at repo root with no direction after 15 minutes.
+**Observable**：reviewer 能在沒有被提醒的情況下，自己導航到：
 
----
+- `README.md`
+- `docs/start_session.md`
+- 或 `governance_tools/adopt_governance.py`
 
-### CP2: Minimum adoption path described
-**Observable**: Reviewer can describe (not necessarily run) this flow:
-
-> adopt → drift check → session_start → pre_task → post_task
-
-in any words. Does not need to name the exact commands. Conceptual understanding counts.
-
-Pass: reviewer articulates the sequence unprompted.
-Fail: reviewer believes the framework is a static documentation set with no runtime.
+Pass：15 分鐘內找到入口。
+Fail：15 分鐘後仍停在 repo root，沒有方向。
 
 ---
 
-### CP3: Core concepts distinguished
-**Observable**: Reviewer can distinguish between:
+### CP2：能描述最小 adopt path
 
-- framework governance (this repo) vs. project governance (consuming repo)
-- `governance_tools/` (tools you run) vs. `runtime_hooks/` (hooks that run per session)
-- domain contract (what rules apply to a specific project) vs. rule packs (generic rule sets)
+**Observable**：reviewer 能用自己的話描述出：
 
-Pass: reviewer correctly identifies at least 2 of 3 distinctions without prompting.
-Fail: reviewer treats everything as one flat documentation system.
+> adopt -> drift check -> session_start -> pre_task -> post_task
 
----
+不要求他背精確指令，但至少要理解這是一條 runtime path，不只是靜態文件集合。
 
-### CP4: Drift detection understood
-**Observable**: Given the scenario "you come back to a project after two weeks," reviewer
-knows that `governance_drift_checker` exists and can explain what it checks for.
-
-Pass: reviewer finds or describes the drift checker independently.
-Fail: reviewer does not know how to verify governance health on a returning session.
+Pass：reviewer 能主動說出這條概念流程。
+Fail：reviewer 以為 framework 只是 documentation set。
 
 ---
 
-### CP5: Produces one governance artifact
-**Observable**: Reviewer runs or meaningfully attempts one of:
+### CP3：核心概念有分清楚
 
-- `python -m governance_tools.adopt_governance` on a temp directory
-- `python -m governance_tools.governance_drift_checker` on a repo
-- A manual `session_start` on an example contract
+**Observable**：reviewer 能分辨至少 2 組：
 
-Pass: artifact is produced or attempt is substantive (ran the command, understood the output).
-Fail: reviewer does not reach the point of attempting any tool execution.
+- framework governance（本 repo） vs project governance（consuming repo）
+- `governance_tools/`（你主動跑的工具）vs `runtime_hooks/`（session 中會跑的 hook）
+- domain contract（特定專案適用的規則）vs rule pack（較通用的規則集合）
+
+Pass：至少 2 組 distinction 能在無提示下說對。
+Fail：把所有東西當成同一層扁平文件系統。
 
 ---
 
-## Scoring
+### CP4：理解 drift detection 的存在與用途
+
+**Observable**：給 reviewer 一個情境：「兩週後你回來看這個 project」，他知道 `governance_drift_checker` 存在，且能說出它大致在檢查什麼。
+
+Pass：reviewer 能自己找到或描述 drift checker。
+Fail：reviewer 不知道 returning session 要怎麼驗 governance health。
+
+---
+
+### CP5：產生至少一個 governance artifact
+
+**Observable**：reviewer 有跑或至少做出具體嘗試，對下面任一條：
+
+- `python -m governance_tools.adopt_governance`（temp directory）
+- `python -m governance_tools.governance_drift_checker`（某 repo）
+- 手動 `session_start`（某 example contract）
+
+Pass：有 artifact 產生，或嘗試本身是實質的（有跑指令、有看懂輸出）。
+Fail：連任何工具執行都沒走到。
+
+---
+
+## 計分
 
 | CPs passed | Result |
 |-----------|--------|
 | 5 of 5 | Strong pass — Beta Gate condition 2 met |
-| 3–4 of 5 | Pass — Gate met, record which CPs failed for onboarding improvement |
-| 2 of 5 | Fail — Gate not met, blocker must be diagnosed and fixed |
-| 0–1 of 5 | Fail — entry path needs significant rework |
+| 3–4 of 5 | Pass — Gate met，但要記錄哪些 CP 失敗，作為 onboarding 改善輸入 |
+| 2 of 5 | Fail — Gate not met，必須診斷 blocker |
+| 0–1 of 5 | Fail — entry path 仍需明顯重工 |
 
 ---
 
-## Gate override rules
+## Gate override 規則
 
-Score-based results can be overridden by the following conditions.
-An override takes precedence over the scoring table above.
+分數不是唯一判準，下列 override 會直接蓋過 score table。
 
 | Condition | Override | Reason |
 |-----------|----------|--------|
-| CP5 (artifact production) fails | Automatic FAIL regardless of total score | Framework's core claim is that governance produces verifiable evidence. If onboarding cannot produce any artifact under realistic constraints, the claim cannot be verified. A 3/5 score that masks a CP5 failure misrepresents Gate status. |
+| CP5（artifact production）失敗 | Automatic FAIL | 這個 framework 的核心主張之一是 governance 能產出可驗證 evidence。如果 onboarding 連任何 artifact 都產不出，這個主張就無法被驗證。 |
 
-**How to apply an override:**
+套用 override 時，要在 reviewer run 檔案中明確寫：
 
-Record the override explicitly in the reviewer run file:
-
-```
+```text
 Gate Verdict: FAIL
 Override applied: CP5 automatic FAIL rule
 Score-based result: X/5 (would have been: Pass / Fail)
 ```
 
-Do not silently use the score-based result when an override applies.
+不要在 override 已觸發時，還默默沿用 score-based result。
 
 ---
 
-## Blocker classification
+## Blocker 分類
 
-When a reviewer fails a checkpoint, classify the blocker:
+當 reviewer fail 某個 checkpoint，要先分類 blocker，而不是直接大改 framework。
 
-Use `docs/beta-gate/reviewer-signal-split.md` first to decide whether the run
-failed at discoverability, interpretation, decision reconstruction, or
-escalation judgment.
+先用：
+
+- `docs/beta-gate/reviewer-signal-split.md`
+
+判斷這次失敗比較接近 discoverability、interpretation、decision reconstruction，還是 escalation judgment。
+
+再往下可歸成：
 
 | Type | Description | Implication |
 |------|-------------|-------------|
-| **Conceptual** | Reviewer doesn't understand what the thing is for | Needs explanation or example, not restructuring |
-| **Structural** | Reviewer cannot find the relevant file or tool | Entry path or README needs a clearer pointer |
-| **Naming** | Reviewer finds the right thing but misreads its purpose | Name or heading needs clarification |
-| **Friction** | Reviewer understands but cannot execute (missing dep, unclear command) | Tooling or quickstart needs a fix |
+| **Conceptual** | reviewer 不懂這個東西是做什麼的 | 需要更好的解釋或例子，不一定要重構 |
+| **Structural** | reviewer 找不到對的檔案或工具 | entry path / README 需要更清楚的 pointer |
+| **Naming** | reviewer 找到對的東西，但誤會其用途 | 名稱或標題需要修正 |
+| **Friction** | reviewer 懂，但跑不起來 | tooling / quickstart / dependency path 要修 |
 
-One blocker type = one targeted fix.
-Do not refactor the whole framework to fix a naming issue.
+一個 blocker type 對應一個 targeted fix。不要為了修 naming 問題去重寫整個 framework。
 
 ---
 
-## What does NOT count as a failure
+## 哪些不算 failure
 
-- Reviewer reads files in a different order than expected
-- Reviewer uses the wrong tool first, then corrects
-- Reviewer asks clarifying questions about AI/governance theory (not framework mechanics)
-- Reviewer takes longer than 60 minutes but still reaches pass criteria
+以下情況不算 fail：
 
-The test is about whether they can get there, not how fast or how linearly.
+- reviewer 閱讀順序和預期不同
+- reviewer 一開始跑錯工具，但後來修正
+- reviewer 問 AI/governance 理論問題，而不是 framework mechanics
+- reviewer 花超過 60 分鐘，但最後仍成功達到 pass criteria
+
+這個 gate 在意的是：能不能抵達，不是是不是以最短路徑抵達。
