@@ -1,15 +1,20 @@
 # Runtime Observation Phase Boundary
 
+> 狀態：phase semantics fixed
+> 更新日期：2026-04-08
+
 ## Purpose
 
-這份文件定義 observation signal 在不同 runtime phase 中的時間語義與責任歸屬。
+這份文件的目的不是做 pre/post 功能分工表，而是把 observation signal 的**時間語義**寫死。
 
-目的不是做元件分工表，而是先回答三件事：
-- 哪些 signal 在 task execution 前就可成立
-- 哪些 signal 必須依賴 execution 後事件才成立
-- 哪些 signal 雖然在 pre 可見，但必須到 post 才能形成閉環
+它要防止的誤解是：
 
-這份文件只處理目前已存在、且已被 runtime 或 docs 觸碰到的三個 signal：
+- 還沒成熟的 signal 被太早拿來做判斷
+- pre-task signal 被拿去推論未來執行行為
+- post-task signal 被誤用成 agent 已理解 injected policy 的證明
+
+目前只用 3 個現有 signal 當例子：
+
 - `context_degraded`
 - `required_evidence_missing`
 - `require_full_read_for_large_files`
@@ -18,137 +23,193 @@
 
 ### Pre-Task Observation
 
-定義：
-- task execution 前即可成立的 observation
-- 偏向環境狀態、前置可見性、policy projection、minimum risk posture
+回答：
 
-適合處理：
-- context quality
-- missing preconditions known before action
+- task execution 前就能成立的觀測
+- 風險、前置可見性、環境狀態
 - snapshot-derived escalation hints
 
-不適合處理：
-- 未來執行行為的推定
-- edit 前 reread 是否真的發生
-- validation 是否真的執行
+典型內容：
+
+- context quality
+- missing preconditions known before action
+- policy projection / minimum risk posture
+
+不應假裝知道：
+
+- edit 前是否真的 reread
+- validation 是否真的會發生
+- execution 過程中會產生哪些 evidence
 
 ### In-Task / Execution Observation
 
-定義：
-- task execution 進行中才會產生的 observation
-- 偏向 read / edit / tool / validation / file-scope 行為事件
+回答：
 
-適合處理：
+- execution 過程中真實發生的 read / edit / tool / validation 行為
+- file-scope / coverage / reread / validation order 等 execution-time signals
+
+典型內容：
+
 - read coverage
 - edit-before-reread patterns
 - validation-after-edit presence
 
-目前 repo 尚未有正式的 generic in-task observation layer。
-這一層先保留為 architecture slot，避免把 execution-time signal 硬擠進 pre 或 post。
+目前 repo 還沒有 generic in-task observation layer，但 architecture 上必須承認這個 phase 的存在，避免把 execution-time signal 硬擠進 pre 或 post。
 
 ### Post-Task Observation
 
-定義：
-- task execution 後才能較完整判讀的 observation
-- 偏向 evidence completeness、behavior compatibility、advisory compliance proxy、trace reconstruction
+回答：
 
-適合處理：
-- edit 後 evidence 是否真的產出
-- advisory proxy 是否具備較完整的行為脈絡
-- pre-task risk 是否在 post-task 形成實際後果
+- task execution 後才能完整觀測的結果
+- evidence completeness
+- behavioral compatibility
+- advisory compliance proxy
+- trace reconstruction
 
-不適合處理：
-- 回溯宣稱 agent 已理解 injected policy
-- 將 absent observation 直接當成 compliance proof
+典型內容：
+
+- edit 後 evidence 是否產出
+- validation 是否真的執行
+- advisory proxy 是否有較完整的 execution backing
+
+不應假裝證明：
+
+- agent 已理解 injected policy
+- absent observation 就等於 compliance proof
 
 ## Signal Admissibility by Phase
 
-| Signal | Producible in pre | Producible in in-task | Producible in post | Usable in verdict | Notes |
+| Signal | Pre 可成立 | In-task 可成立 | Post 可成立 | 可否進 verdict | Notes |
 |---|---|---|---|---|---|
-| `context_degraded` | yes | yes | yes | indirect / enforced elsewhere | 屬於 environment / context quality，不是 behavioral compliance |
-| `required_evidence_missing` | partial | yes | yes | yes / enforced elsewhere | pre 只能看到明確缺失；post 才能看到實際 evidence completeness |
-| `require_full_read_for_large_files` | weak | stronger | stronger | no, advisory only | pre 階段只能看到 large-file visibility 風險；不能假裝推定未來讀取行為 |
+| `context_degraded` | yes | yes | yes | indirect / enforced elsewhere | environment / context quality，不等於 behavioral compliance |
+| `required_evidence_missing` | partial | yes | yes | yes / enforced elsewhere | pre 只能先看到部分風險；post 才能較完整判 evidence completeness |
+| `require_full_read_for_large_files` | weak | stronger | stronger | no, advisory only | pre 只能先看到 visibility 風險；post 才較適合當 behavioral compatibility evidence |
 
 ## Boundary Rules
 
-以下規則先寫死：
+以下規則固定不變：
 
 - pre-task signal 不得假裝推定未來執行行為
-- post-task signal 不得回溯宣稱 agent 已理解 injected policy
+- post-task signal 不得回溯聲稱 agent 已理解 injected policy
 - absent observation 不得當作 compliance proof
-- advisory signal 在任一 phase 都不得單獨改 verdict
-- environment degradation signal 不得被重新解讀成 behavioral failure
+- advisory signal 在任何 phase 都不得單獨改 verdict
+- environment degradation signal 不得被改寫成 behavioral failure
 
-## Current Signal Notes
+## Current Signals
 
 ### `context_degraded`
 
-- 現在最自然的落點是 `pre_task_check`
-- 在 `pre` 成立時，可作為 escalation context
-- 到 `post` 時，只能與後續 evidence / behavior 一起解讀，不可單獨推導 failure
+現在主要由：
+
+- `pre_task_check`
+
+承接。
+
+它的語義是：
+
+- environment / context quality 下降
+- 可影響 escalation posture
+- 不是 behavioral failure
+
+在 post-task 中，它可以幫助 reviewer 理解：
+
+- agent 是在 degraded 條件下執行
+- 但不能單獨被用來宣告這次 execution 不合規
 
 ### `required_evidence_missing`
 
-- 在 `pre` 階段可部分成立：
-  - 例如 task_text 已明確缺 precondition signal
-- 在 `post` 階段可更完整成立：
-  - evidence 應產出卻未產出
-  - validation result 應存在卻不存在
-- 這個 signal 雖在 taxonomy 中屬 advisory family，但已有既有 escalation / stop 路徑處理其決策效果
+這個 signal 比其他 advisory signal 更靠近 execution completeness。
+
+pre-task：
+
+- 只能先看到部分 evidence risk
+- 例如 task text 或前置條件提示該有某些 evidence
+
+post-task：
+
+- 才能更完整地判斷 evidence 是否真的缺失
+- 因此它與 escalation / stop 路徑相鄰，但仍不能被誤降級成單純 reviewer hint
 
 ### `require_full_read_for_large_files`
 
-- 目前只適合作為 advisory-only observation
-- `pre` 階段只能產出：
-  - large-file visibility / truncation / summary-first 風險提醒
-- 若未來進入 `post`，也只能變成：
-  - stronger behavioral compatibility evidence
-- 它仍然不是：
-  - proof_of_compliance
-  - proof_of_violation
-  - edit legitimacy gate
+目前定位是：
+
+- advisory-only observation
+- 比較接近 partial visibility / truncation / review risk
+
+pre-task：
+
+- 只能先提醒 large-file visibility 風險
+
+post-task：
+
+- 才比較可能形成較強的 behavioral compatibility evidence
+
+明確不是：
+
+- proof_of_compliance
+- proof_of_violation
+- edit legitimacy gate
 
 ## Pre/Post Closure Pattern
 
-有些 signal 不是 pre 或 post 二選一，而是要看閉環：
+有些 signal 不應該被看成 pre 或 post 二選一，而是：
 
-- `pre`
-  - 看見風險或 degradation
-- `post`
-  - 才能判讀這個風險是否在 execution 後形成實際後果
+```text
+pre 提醒風險 -> post 評估後果
+```
 
-第一個應採用這種閉環思維的 signal：
+這種 closure pattern 目前最適合的例子是：
+
 - `context_degraded`
 - `require_full_read_for_large_files`
 
-這代表：
-- `pre_task_check` 適合做 risk posture / advisory warning
-- `post_task_check` 更適合做 behavior compatibility / evidence completeness interpretation
+對應意思是：
+
+- `pre_task_check` 提供 risk posture / advisory warning
+- `post_task_check` 再用 execution 後的 evidence 補上 interpretation
 
 ## Current Posture
 
-目前 repo 的健康邊界是：
+目前 repo 的實際落點是：
 
-- `pre_task_check`
-  - environment state
-  - minimum precondition surface
-  - snapshot-derived escalation hints
-  - advisory-only large-file visibility proxy
+### `pre_task_check`
 
-- `post_task_check`
-  - evidence completeness
-  - domain validator results
-  - runtime / validator output interpretation
+負責：
 
-尚未成立的是：
+- environment state
+- minimum precondition surface
+- snapshot-derived escalation hints
+- advisory-only large-file visibility proxy
+
+### `post_task_check`
+
+負責：
+
+- evidence completeness
+- domain validator results
+- runtime / validator output interpretation
+
+目前刻意不做：
+
 - generic in-task observation layer
 - direct advisory-to-verdict coupling
-- proof-bearing compliance signal derived from a single proxy
+- single-proxy derived proof-bearing compliance signal
 
 ## Next Move
 
-下一步若要繼續，應優先考慮：
-- 補 `pre_task` / `post_task` 的 signal producer contract
-- 或選一個真正適合 post-task 的 advisory proxy
+如果未來要往前走，優先應補的是：
 
-而不是把更多 execution-time推定硬塞進 `pre_task_check`。
+- `pre_task` / `post_task` 的 signal producer contract
+- execution-time signal 的 bounded producer
+- post-task 的 advisory proxy interpretation
+
+但不應默默滑向：
+
+- 把所有 observation 都塞進 `pre_task_check`
+- 把 phase semantics 擴成 machine authority
+
+## One-Line Summary
+
+這份文件固定的是：signal 不只分種類，也分成熟時間。  
+沒有時間語義的 observation，最後很容易變成「訊號很多，但判斷時機錯了」。
