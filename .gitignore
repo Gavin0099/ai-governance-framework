@@ -74,7 +74,10 @@ validation_tmp3/
 
 # Runtime governance artifacts
 artifacts/runtime/
+artifacts/external-project-facts/
+artifacts/reviewer-handoff/
 memory/candidates/*.json
+.governance-audit/
 
 # Nested repo clone (accidental copy of workspace root)
 ai-governance-framework/
@@ -89,6 +92,11 @@ ai-governance-framework/
 
 # Payload audit raw log（含路徑資訊，不 commit）
 docs/payload-audit/audit_log.jsonl
+docs/payload-audit/*.jsonl
 
 # Documentation build
 docs/_build/
+
+# Local scratch / one-off checks
+scratch_quickstart_smoke/
+_integration_check.py
