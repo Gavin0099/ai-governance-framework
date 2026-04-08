@@ -1,61 +1,58 @@
-# Status Index
+# 狀態索引
 
-Updated: 2026-03-15
+更新日期：2026-04-08
 
-This directory contains the repository's stable status-facing documents.
+本目錄收納的是這個 repo 對外或對 reviewer 可讀的穩定狀態頁。它的用途不是取代原始 artifact，而是提供較低成本的入口，讓人知道目前 runtime、closeout、trust signal 與後續方向各自停在哪裡。
 
-## Current Entry Points
+## 主要入口
 
 - [Reviewer Handoff](reviewer-handoff.md)
-  - the highest-level reviewer-facing summary across trust and release surfaces
-  - points to `reviewer_handoff_summary.py` and CI `artifacts/reviewer-handoff/`
-  - can also be published to `generated/reviewer-handoff/` for a stable repo-local consumption path
-  - use this when you want one handoff packet before drilling into lower-level status pages
-
-- [Trust Signal Dashboard](trust-signal-dashboard.md)
-  - the fastest stable landing page for adoption and release-facing trust signals
-  - points to `trust_signal_overview.py`, `trust_signal_snapshot.py`, `trust_signal_publication_reader.py`, and CI-generated trust-signal artifacts
-  - the generated artifacts now also carry publication-level manifest/index metadata plus published history/index pages for stable linking, browsing, and reader-friendly consumption
+  - reviewer-facing 的高階交接頁
+  - 適合先看整體 handoff，再往下鑽較細的 status surface
 
 - [Runtime Governance Status](runtime-governance-status.md)
-  - the broader implementation and maturity snapshot
-  - describes what is complete, what is still advisory, and where the main gaps remain
+  - 目前最值得優先閱讀的主敘事頁
+  - 說明 repo 現在的 bounded runtime reality、已完成能力，以及刻意不擴張的邊界
 
-- [Runtime Failure-Mode Progress - 2026-03-20](runtime-failure-mode-progress-2026-03-20.md)
-  - the focused memo for the first execution-layer failure-mode slice
-  - use this when you want to know which v2.6 failure categories are now actually running in the runtime
+- [Closeout Audit](closeout-audit.md)
+  - session workflow / canonical closeout 的 observation surface
+  - 適合用來看 closeout valid rate、warning/none 分布與 audit flags
 
-- [Four-Repo Integration Progress](four-repo-integration-progress.md)
-  - the clearest current cross-repo progress memo for the framework plus the three live domain contracts
-  - explains what is already closed, what was historically true but is no longer the blocker, and what the real remaining gaps are now
+- [Trust Signal Dashboard](trust-signal-dashboard.md)
+  - 對 adoption 與 release-facing trust signal 的快速總覽
+  - 適合看目前 consuming repo / publication / trust snapshot 的外部狀態
 
-- [Domain Enforcement Matrix](domain-enforcement-matrix.md)
-  - the clearest cross-domain view of `hard_stop_rules` vs advisory-only policy
-  - use this when you want to compare enforcement posture across external contract repos
+- [Runtime Surface Manifest](runtime-surface-manifest.md)
+  - execution / evidence / authority surface 的 inventory 與 consistency signal 狀態
+  - 適合確認 runtime surface 是否完整、是否有 unknown/orphan/mismatch
 
-- Generated Status Snapshot (`generated/`)
-  - optional local/published output from `trust_signal_snapshot.py --publish-docs-status`
-  - intended for a stable repo-local consumption path when you want latest/history/site outputs under one predictable directory
-  - read it through `governance_tools/trust_signal_publication_reader.py --docs-status` if you want the latest generated publication summary without resolving file paths manually
-  - `generated/README.md` is the landing page for that generated root
-  - core generated pages:
-    - `generated/README.md`
-    - `generated/PUBLICATION_INDEX.md`
-    - `generated/site/README.md`
-    - `generated/site/domain-enforcement-matrix.md`
+- [Execution Surface Coverage](execution-surface-coverage.md)
+  - decision-aware coverage 的 bounded first slice
+  - 適合看 required/optional surface 是否缺失，與 dead surface 是否出現
 
 - [Next Steps](next-steps.md)
-  - forward-looking work recommendations
-  - use this when you want direction, not only current-state reporting
+  - 接下來最值得做的事
+  - 用於收斂方向，而不是重述已完成內容
 
-## Recommended Reading Order
+## 生成型狀態輸出
 
-1. Start with [Reviewer Handoff](reviewer-handoff.md)
-2. Then read [Trust Signal Dashboard](trust-signal-dashboard.md)
-3. Then read [Runtime Governance Status](runtime-governance-status.md)
-4. Then read [Runtime Failure-Mode Progress - 2026-03-20](runtime-failure-mode-progress-2026-03-20.md)
-5. Then read [Four-Repo Integration Progress](four-repo-integration-progress.md)
-6. Then read [Domain Enforcement Matrix](domain-enforcement-matrix.md)
-7. If generated, start with `generated/README.md`
-8. Then review `generated/site/README.md` for the latest published snapshot
-9. Use [Next Steps](next-steps.md) for future work planning
+以下頁面或 JSON 由 status / audit tooling 生成，適合在想快速確認目前 generated state 時閱讀：
+
+- `generated/runtime-surface-manifest.json`
+- `generated/execution-surface-coverage.json`
+- `generated/closeout-audit.json`
+
+若要讀 generated root 的其他 publication-style 狀態，也可以再看：
+
+- `generated/README.md`
+- `generated/PUBLICATION_INDEX.md`
+
+## 建議閱讀順序
+
+1. 先看 [Runtime Governance Status](runtime-governance-status.md)
+2. 再看 [Closeout Audit](closeout-audit.md)
+3. 再看 [Reviewer Handoff](reviewer-handoff.md)
+4. 若要看 runtime surface，讀 [Runtime Surface Manifest](runtime-surface-manifest.md)
+5. 若要看 decision-aware completeness，讀 [Execution Surface Coverage](execution-surface-coverage.md)
+6. 若要看 external adoption / release-facing trust 狀態，讀 [Trust Signal Dashboard](trust-signal-dashboard.md)
+7. 若要看後續方向，最後讀 [Next Steps](next-steps.md)

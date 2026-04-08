@@ -1,211 +1,108 @@
 # Next Steps
 
-Updated: 2026-03-15
+更新日期：2026-04-08
 
-## Current Focus
+## 當前 posture
 
-The runtime spine is complete enough that the highest-value work is no longer "add more framework pieces."
+這個 repo 目前最不缺的是新概念。真正高價值的下一步，不是再長更多 layer，而是確認已經落地的 bounded runtime 能不能穩定地被 consuming repo、reviewer 與 shared path 真正用起來。
 
-The next phase is:
+所以現在的優先順序應該是：
 
-- connect real project facts to the existing domain slices
-- deepen semantic verification from pattern-based checks toward stronger structure-aware analysis
-- reduce workflow friction and strengthen practical commit/merge-time governance
-- strengthen proposal-time guidance without turning the repo into a policy engine
-- tighten the review surface around startup and change-control artifacts
+- 真實 consuming repo 驗證
+- session workflow / closeout 的 semantics observation
+- status / entry surface 對齊
+- shared path 是否真的能跑到正確 runtime lane
+- 保持 companion slice 受限，不讓它們變成新 authority
 
-## Highest-Value Remaining Work
+## 最高價值的下一步
 
-### 1. Real Facts Intake
+### 1. 真實 consuming repo 驗證
 
-Current status:
+目前很多主線能力都已在 framework repo 內驗到，也開始用 Hearth、Mirra、`usb_2_0_eep_tool` 等 consuming repo 做 spot check。下一步最值得做的是把這件事變得更系統化：
 
-- three external domain contracts now exist
-- mixed enforcement already runs across firmware, kernel-driver, and ic-verification slices
-- most current validation still depends on fixtures or sample facts, not production codebases
+- 持續驗證 adopt 後的 `governance/` pack、`memory/01~04` scaffold、rule roots 與 readiness surfaces
+- 確認 canonical framework source 是否一致
+- 確認新版 closeout / runtime status / onboarding report 是否真的在 consuming repo 被看見
 
-Next step:
+這一步的價值是把「framework repo 自己看起來成立」變成「external repo 也真的走得到」。
 
-- connect one real domain repo to the existing fact-intake flow
-- prioritize confirmed facts over broader new abstractions
-- run at least one true AI-session replay against real evidence, not only fixtures
+### 2. Session Workflow 的 semantics observation
 
-Why this matters:
+`Session Workflow Enhancement` 目前已進入 `implementation-complete, semantics-observation phase`。所以現在更值得做的是觀察，而不是擴功能。
 
-- the main gap is no longer runtime plumbing; it is grounding the existing system in real project truth
+建議持續追的指標：
 
-### 2. Public API Diff Deepening
+- canonical closeout valid rate
+- `warning_only / none` 的 session 比例
+- audit flags 穩定度
 
-Current status:
+這些指標能幫忙判斷：
 
-- `public_api_diff_checker.py` exists
-- public API diff already affects post-task verdicts and audit artifacts
+- `/wrap-up` 是否在實務上形成操作依賴
+- frozen taxonomy 是否開始出現 recall 壓力
+- closeout audit 的語義是否穩定
 
-Next step:
+### 3. 狀態頁與入口對齊
 
-- improve signature normalization
-- better distinguish additive changes from compatibility risk
-- keep pushing the checker from pattern-based compatibility hints toward stronger structure-aware reasoning
+README、status pages、validation guides、onboarding docs 目前大致已追上主線，但還是要持續檢查是否有舊敘事殘留，避免出現這種落差：
 
-Why this matters:
+- code 很克制
+- 但入口文件暗示 repo 比實際更大、更完整
 
-- interface stability is still one of the weakest proof chains
+這一步不是 marketing，而是 anti-expansion guard。
 
-### 3. Architecture Drift Reasoning
+### 4. Consumption / Closeout Shared Path 驗證
 
-Current status:
+closeout visibility 已經存在，但還要持續驗證 consuming repo 的常用途徑到底有沒有真的跑到 `session_end`，而不是只有手動測試能看到。
 
-- `architecture_drift_checker.py` already performs edge-diff and heuristic boundary checks
-- `architecture_impact_estimator.py` now uses these signals in proposal-time guidance
+目前更值得問的是：
 
-Next step:
+- shared enforcement path 是否穩定走到 `session_end`
+- 常用 workflow 能否看到 `memory_closeout`
+- no-write reason 是否真的被 reviewer / operator 看到
 
-- broaden dependency reasoning beyond edge additions/removals
-- improve module-boundary summaries
-- correlate public/private API drift and boundary drift
+這一步的目標不是 promotion 擴權，而是確認 closeout 不再停在「只有功能存在，實務上沒人走到」。
 
-Why this matters:
+### 5. Classification / Closeout Companion Surface 維持 bounded
 
-- the framework can detect more drift than before, but not yet reason deeply about architecture semantics
+classification governance companion slice 已收主線，但它現在最重要的不是擴大，而是維持 companion posture：
 
-### 4. Workflow Interception Coverage
+- 不變成第二套 authority
+- 不污染主 runtime artifact
+- 不追 full matrix coverage
 
-Current status:
+也就是說，這條線接下來的目標是穩定，而不是長大。
 
-- `pre_task_check` and `post_task_check` human outputs are more usable
-- `suggested_rules_preview`, `suggested_skills`, `suggested_agent` exist
-- `session_start.py` and `change_proposal_builder.py` provide startup/proposal context
-- `change_control_summary.py` and `change_control_index.py` provide review-facing startup/change-control artifacts
-- contract-aware smoke/dispatcher paths now exist
-- external hook installation, onboarding, readiness, and smoke flows already exist
+## 現在不該優先做的事
 
-Next step:
+以下事情目前都不值得優先：
 
-- keep reducing friction in everyday usage
-- make git-hook and CI-gate paths harder to skip in normal commit/merge flows
-- keep improving external onboarding and contract-aware runtime entrypoints
-- avoid framing IDE-native or token-by-token code-generation interception as an in-scope goal
+- 擴更多 advisory signal
+- 把 advisory semantics 接進 verdict authority
+- 把 closeout / advisory 擴成 machine-facing authority
+- 把 runtime injection 推成 full adapter matrix
+- 把 execution coverage 做成 full signal × full surface matrix
+- 因為「還能做」就繼續延伸已經封邊的 slice
 
-Why this matters:
+這些方向最大的風險不是做錯，而是讓 repo 再次回到 complexity creep。
 
-- the main interception problem is now practical workflow coverage, not missing validator execution
+## 為什麼這個順序比較對
 
-### 5. Failure Completeness Refinement
+因為現在主線最大的風險已經不是 skeleton 不夠，而是：
 
-Current status:
+- runtime reality
+- boundary documents
+- status entry surfaces
+- consuming repo adoption
 
-- failure validators already exist
-- runtime can gate on failure completeness evidence
+這四者會不會再慢慢漂開。
 
-Next step:
+所以比較好的順序不是「再發明下一個 layer」，而是：
 
-- strengthen exception-path evidence handling
-- improve rollback / cleanup verification quality
-- support richer metadata instead of relying mainly on signals and naming
+1. 先驗證現在的 bounded runtime 是否真的被使用
+2. 再觀察語義與 closeout 分布是否穩定
+3. 最後才決定是否有必要重開某條已封邊的 slice
 
-Why this matters:
+## 一句話總結
 
-- current checks are useful but still partly heuristic
-
-## Current Completed Milestones
-
-The following items are now in place on `main`:
-
-- `public_api_diff_checker.py`
-- `kernel-driver` seed platform pack
-- `platform` rule-pack category
-- `driver_evidence_validator.py`
-- driver-oriented ingestion in `test_result_ingestor.py`
-- architecture drift v2 with before/after dependency-edge diff
-- advisory `rule_pack_suggestions` in `state_generator.py`
-- `.github` agent / skill governance layer
-- `session_start.py` and shared session-start runtime flow
-- proposal-time guidance and `change_proposal_builder.py`
-- human-readable startup/proposal output improvements
-- `change_control_summary.py` and `change_control_index.py`
-- CI/runtime smoke startup artifacts: handoff notes, JSON envelopes, summaries, and index
-
-### 6. Kernel-Driver Pack Refinement
-
-Current kernel-driver pack is a strong seed, but still generic.
-
-Recommended next split:
-
-- `kernel-driver`
-- later optional `kmdf`
-- later optional `wdm`
-- later optional `umdf`
-
-Why this is not first:
-
-- the generic seed pack is already useful
-- splitting too early increases maintenance cost before usage patterns stabilize
-
-### 7. Evidence Ingestion Expansion
-
-Current ingestion supports:
-
-- `pytest-text`
-- `junit-xml`
-- `sdv-text`
-- `msbuild-warning-text`
-- `sarif`
-- `wdk-analysis-text`
-
-Reasonable next additions:
-
-- `compiler-warning-json`
-- additional driver/security-tool evidence shapes when real usage justifies them
-
-Why this matters:
-
-- these formats are closer to real static-analysis and security-tool outputs
-- they reduce ad hoc parsing in downstream validators
-
-### 8. Memory / Audit Tightening
-
-Potential follow-up work:
-
-- store evidence summaries in session close artifacts
-- preserve driver-specific evidence decisions in curated memory or audit summaries
-- make promotion decisions more transparent for high-risk platform work
-- keep proposal-time impact and runtime evidence linked in durable audit records
-
-### 9. Review Surface Tightening
-
-Potential follow-up work:
-
-- make `change_control_summary` consume session-end summaries directly from more workflow entry points
-- keep CI artifact naming and README instructions tightly aligned
-- decide whether `INDEX.txt` should evolve into a richer human summary or stay intentionally lightweight
-
-## Why The `passed` Count Changes
-
-The `passed` number is not expected to stay fixed across turns.
-
-Reasons:
-
-- each turn only runs the most relevant test subset for the files changed in that step
-- some turns validate a single tool or validator
-- other turns validate a larger integration slice across runtime hooks, rule packs, and evidence ingestion
-
-This means:
-
-- different `passed` counts do **not** imply instability by themselves
-- the meaningful signal is whether the targeted suite for that step passed cleanly
-
-## Boundary To Protect
-
-The repo should continue to evolve by:
-
-- adding rule content
-- adding evidence validators
-- adding lightweight structural checks
-- adding guided startup/proposal layers
-
-It should avoid turning into:
-
-- a heavy language-analysis platform
-- a driver-development IDE workflow replacement
-- a generic policy-engine runtime
-- a code-generation-time interception layer inside the AI tool itself
+> 現在最值得做的不是擴權，而是驗證這個 repo 已經落地的 bounded runtime，是否真的在真實 consuming repo 與 shared workflow 中被穩定消費。

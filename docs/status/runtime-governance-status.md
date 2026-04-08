@@ -1,488 +1,172 @@
-# Runtime Governance Status
+# Runtime Governance 狀態
 
-Updated: 2026-03-15
+更新日期：2026-04-08
 
-## Summary
+## 摘要
 
-The repository is no longer a prompt-only governance framework.
+這個 repo 現在不只是文件型的 `AI governance framework`。更準確地說，它已經是一個 **machine-interpretable governance runtime**，能把治理規則、execution surface、evidence、decision、memory / state 與 reviewer-facing surface 串成可觀測、可審查、可生成 artifact 的 bounded runtime。
 
-It now operates as an AI coding runtime-governance framework with:
+同時也要明講它目前**不是**：
 
-- multi-harness event normalization
-- shared runtime enforcement
-- loadable rule packs
-- typed rule-pack categories
-- agent and skill governance assets
-- advisory rule, skill, and agent suggestions
-- proposal-time architecture impact estimation
-- session-start governance context
-- proposal-to-runtime change-control summaries
-- session lifecycle closeout
-- memory curation and promotion policy
-- evidence-based runtime validation
-- governance self-audit
+- full execution harness
+- machine-authoritative advisory system
+- generic multi-agent orchestration platform
 
-Practical status:
+目前比較準的整體狀態是：
 
-- overall maturity: `v1.0.0-alpha`
-- current phase: `runtime spine complete, proposal-time guidance and evidence-aware enforcement active, adoption hardening in progress`
-- external domain posture: `three live mixed-enforcement slices (firmware, kernel-driver, ic-verification)`
+- 主 runtime spine 已完成
+- closeout / decision_context / observation surface 已落地
+- adoption、status surface、consuming repo 驗證持續收斂中
 
-## Completed
+## 目前能力分層
 
-### Governance Constitution
+### 1. Decision Layer
 
-Core governance documents are present and actively referenced:
+這是最早成形、也是仍然最核心的一層。主要處理：
 
-- `governance/SYSTEM_PROMPT.md`
-- `governance/HUMAN-OVERSIGHT.md`
-- `governance/AGENT.md`
-- `governance/ARCHITECTURE.md`
-- `governance/REVIEW_CRITERIA.md`
-- `governance/TESTING.md`
-- `governance/NATIVE-INTEROP.md`
-- `PLAN.md`
+- contract / risk / oversight / memory_mode 等 machine-readable governance state
+- `pre_task_check` / `post_task_check` / `session_end` 的 verdict 與 trace
+- evidence-based enforcement
+- proposal-time guidance 與 change-control summary
 
-Assessment:
-
-- maturity: `85%`
-- strong document coverage
-- runtime alignment now exists for key parts of the constitution
-
-### Contract / State
-
-Machine-readable governance state is now established through:
+代表性元件：
 
 - `governance_tools/contract_validator.py`
 - `governance_tools/state_generator.py`
-
-Key runtime-facing fields:
-
-- `RULES`
-- `RISK`
-- `OVERSIGHT`
-- `MEMORY_MODE`
-
-State generation now also includes:
-
-- advisory `rule_pack_suggestions`
-- `suggested_rules_preview`
-- advisory `suggested_skills`
-- advisory `suggested_agent`
-- `proposal_guidance`
-- optional `architecture_impact_preview`
-- suggested `language/framework` packs from repository signals
-- advisory `scope` pack suggestions from task text
-
-Assessment:
-
-- maturity: `85%`
-- stable enough to drive runtime checks
-- suggestion flow is now part of the state, but does not mutate the active contract
-- proposal-time guidance is available before implementation begins
-
-### Rule Pack System
-
-The rule-pack layer now supports:
-
-- discovery
-- typed categories
-- content loading
-- runtime injection
-- advisory suggestion
-
-Current categories:
-
-- `scope`
-- `language`
-- `framework`
-- `platform`
-- `custom`
-
-Current built-in packs:
-
-- scope: `common`, `refactor`
-- language: `python`, `cpp`, `csharp`, `swift`
-- framework: `avalonia`
-- platform: `kernel-driver`
-
-Key files:
-
-- `governance_tools/rule_pack_loader.py`
-- `governance_tools/rule_pack_suggester.py`
-
-Assessment:
-
-- maturity: `85%` as a loadable governance-context system
-- intentionally not a policy engine
-
-### Agent / Skill Governance Layer
-
-The repository now defines a pre-change governance interaction layer through:
-
-- `.github/copilot-instructions.md`
-- `.github/agents/*.agent.md`
-- `.github/skills/*/skill.md`
-
-Current built-in roles:
-
-- `advanced-agent`
-- `python-agent`
-- `cli-agent`
-
-Current built-in skills:
-
-- `code-style`
-- `python`
-- `governance-runtime`
-- `human-readable-cli`
-
-Assessment:
-
-- maturity: `75%`
-- strong enough to provide repo baseline, role guidance, and behavior policy
-- still advisory, not a mandatory activation layer
-
-### Runtime Governance Skeleton
-
-The runtime path is now real:
-
-`AI event -> normalize -> dispatcher -> session_start/pre_task/post_task -> session_end`
-
-Key files:
-
-- `runtime_hooks/core/session_start.py`
 - `runtime_hooks/core/pre_task_check.py`
 - `runtime_hooks/core/post_task_check.py`
 - `runtime_hooks/core/session_end.py`
-- `runtime_hooks/dispatcher.py`
-- `scripts/run-runtime-governance.sh`
-
-Multi-harness adapters exist for:
-
-- Claude Code
-- Codex
-- Gemini
-
-Assessment:
-
-- maturity: `85%`
-- skeleton is complete
-- enforcement is shared across CI and local pre-push
-- session-start context is now part of the shared runtime path
-- CI/runtime smoke now preserves startup notes, JSON envelopes, change-control summaries, and an index artifact
-- still not fully impossible to bypass in every development path
-
-### Adoption / Onboarding
-
-Current onboarding-facing assets now include:
-
-- `requirements.txt`
-- `start_session.md`
-- `governance_tools/quickstart_smoke.py`
-- `governance_tools/example_readiness.py`
-- external repo onboarding / readiness / smoke / report / index tooling
-
-Assessment:
-
-- maturity: `75%`
-- strong enough for evaluation and internal trials
-- still improving trust signals, release communication, and first-run ergonomics
-
-### Memory Lifecycle
-
-The memory system now has a real lifecycle:
-
-`snapshot -> curated candidate -> promotion policy -> durable memory`
-
-Key files:
-
-- `memory_pipeline/session_snapshot.py`
-- `memory_pipeline/memory_curator.py`
-- `memory_pipeline/promotion_policy.py`
-- `memory_pipeline/memory_promoter.py`
-
-Assessment:
-
-- maturity: `80%`
-- strong separation between raw session output and durable project truth
-- proposal-time concerns, proposal summaries, and public API diff summaries now enter the audit trail
-
-### Evidence / Signal Ingestion
-
-The repository now ingests and interprets runtime evidence through:
-
-- `governance_tools/test_result_ingestor.py`
-- `governance_tools/failure_test_validator.py`
-- `governance_tools/failure_completeness_validator.py`
-- `governance_tools/public_api_diff_checker.py`
-- `governance_tools/driver_evidence_validator.py`
-- `governance_tools/refactor_evidence_validator.py`
-- `governance_tools/architecture_impact_estimator.py`
-- `governance_tools/change_proposal_builder.py`
 - `governance_tools/change_control_summary.py`
-- `governance_tools/change_control_index.py`
 
-Current support:
+### 2. Execution Awareness Layer
 
-- `pytest-text`
-- `junit-xml`
-- `sdv-text`
-- `msbuild-warning-text`
-- `sarif`
-- `wdk-analysis-text`
-- naming/signal-based failure-path validation
-- lightweight public API surface diff
-- driver-oriented evidence validation from external analysis output
-- proposal-time architecture impact reporting
-- reviewable change-control summaries derived from startup/runtime artifacts
+這一層處理「runtime 實際治理了哪些 surface」與「哪些 surface 應該存在但還沒被接住」。
 
-Assessment:
+目前已落地：
 
-- test evidence ingestion: `80%`
-- failure completeness: `70%`
-- interface stability evidence: `75%`
-- driver evidence ingestion: `75%`
-- proposal-time impact estimation: `70%`
+- runtime surface manifest
+- manifest consistency smoke
+- execution surface coverage first slice
 
-### Architecture / Governance Audit
+代表性元件：
 
-Current enforcement and audit helpers:
+- `governance_tools/runtime_surface_manifest.py`
+- `governance_tools/runtime_surface_manifest_smoke.py`
+- `governance_tools/execution_surface_coverage.py`
+- `governance_tools/execution_surface_coverage_smoke.py`
 
-- `governance_tools/architecture_drift_checker.py`
-- `governance_tools/governance_auditor.py`
+### 3. Advisory / Observation Layer
 
-Assessment:
+這一層不是新的 authority，而是把 advisory signal 的位階、時間語義與 producer responsibility 寫死，避免 observation 被誤升格成 proof 或 verdict input。
 
-- drift detection: `70%`
-- governance self-audit: `75%`
+目前已完成的 bounded slice：
 
-Recent improvement:
+- advisory signal taxonomy
+- runtime observation phase boundary
+- advisory signal producer contract
+- pre / post reviewer-facing advisory rendering
+- 至少一個跨 surface consistency example
 
-- `governance_auditor.py` can now optionally combine:
-  - constitution/runtime alignment
-  - external onboarding status
-  - release-facing trust-signal alignment
-  in the same high-level audit pass.
+這一層目前刻意維持：
 
-## Alpha / Seed Areas
+- reviewer-visible
+- non-verdict-bearing
+- non-machine-authoritative
 
-These areas are useful, but still intentionally lightweight:
+### 4. Memory / State Integrity Layer
 
-### Failure-Path Validation
+這一層處理 memory schema、host-agent sync gap 與 session closeout promotion visibility。
 
-Current behavior:
+目前已落地：
 
-- detects `invalid_input`
-- detects `boundary`
-- detects `failure_path`
-- optionally detects `rollback_cleanup`
-- accepts richer metadata for exception and cleanup verification
+- consuming repo `memory/01~04` scaffold
+- `memory schema partial/complete` 檢查
+- host-agent memory gap / sync policy / sync signal
+- `session_end` 的 `memory_closeout` visibility
 
-Current limitation:
+這表示系統至少能回答：
 
-- still partly heuristic and pattern-based
-- not yet AST-based or data-flow-based semantic test-behavior verification
+- 這次 session 是否被視為高價值 candidate
+- promotion 是否被考慮
+- 最終 decision 與 reason 是什麼
 
-### Drift Detection
+### 5. Session Workflow / Closeout Layer
 
-Current behavior:
+這是近期補齊的主線。核心不是多一個 closeout 文件，而是把 session 收尾從 AI 自述，改成有 trust boundary 的 canonical workflow。
 
-- cross-project private include checks
-- suspicious include-directory checks
-- refactor boundary-drift heuristics
-- before/after dependency-edge diff for includes/imports/usings
+目前形狀是：
 
-Current limitation:
+- producer 寫 candidate
+- system 產 canonical closeout
+- downstream consumer 只吃 canonical
 
-- not yet a full dependency/import/include graph analyzer
-- still heuristic-first and pattern-based, not a semantic architecture model
+對應能力包括：
 
-### Rule-Pack Suggestion
+- canonical closeout producer
+- closeout context injection
+- closeout audit
+- session index
+- `/wrap-up` candidate drafting surface
 
-Current behavior:
+## 已穩定的 bounded capabilities
 
-- auto-suggests language/framework packs from repo signals
-- suggests scope packs from task text
-- suggests skills and a likely agent
-- exposes `suggested_rules_preview`
-- `state_generator.py` and `pre_task_check.py` expose these suggestions without mutating the active contract
+以下能力現在可視為已收斂、可用，但仍維持 bounded scope：
 
-Current limitation:
+- runtime governance spine
+- canonical closeout workflow
+- `decision_context` bridge
+- runtime surface manifest / coverage
+- memory closeout visibility
+- classification governance companion slice
 
-- scope remains advisory only
-- suggestions do not auto-bind the contract
-- skills and agents are suggested, not activated automatically
+這些能力的共通特徵是：
 
-### Kernel-Driver Governance
+- 有明確 producer / canonical / consumer 邊界
+- 有至少一個真實 consumer
+- 有對應測試或 smoke
+- 沒有被過早擴張成 generic platform
 
-Current behavior:
+## 刻意保守的邊界
 
-- `kernel-driver` exists as a `platform` pack
-- seed rules cover IRQL boundaries, memory / buffer trust boundaries, and cleanup / unwind symmetry
-- `driver_evidence_validator.py` enforces evidence expectations from normalized checks
-- preferred evidence sources include SDV / SAL / WDK-style diagnostics
+目前 repo 仍刻意**不做**以下事情：
 
-Current limitation:
+- 不把 advisory signal 直接接進 verdict authority
+- 不把 advisory semantics 擴成 machine-facing authority
+- 不把 execution coverage 做成 full matrix completion game
+- 不把 `/wrap-up` 變成唯一官方 closeout 入口
+- 不把 runtime injection 擴成 full adapter matrix / generic orchestration substrate
 
-- no KMDF / WDM / UMDF specialization yet
-- runtime still depends on normalized external evidence rather than deep driver semantics
+換句話說，這個 repo 現在追求的是：
 
-### Proposal-Time Guidance
+- 可審查
+- 可觀測
+- 可驗證
 
-Current behavior:
+不是：
 
-- `architecture_impact_estimator.py` emits structured impact reports
-- `change_proposal_builder.py` collects task, rule, impact, and guidance into a single proposal artifact
-- `session_start.py` exposes startup context for agent handoff and initialization
-- `change_control_summary.py` merges proposal/startup context with runtime outcomes into a single reviewable summary
-- `change_control_index.py` provides a lightweight index over generated startup/change-control artifacts
+- 大而全
+- 到處攔截
+- 自動裁決一切
 
-Current limitation:
+## 建議閱讀順序
 
-- impact estimation is still heuristic-first
-- guidance remains advisory rather than an automatic gate
+如果你想理解這個 repo 現在的 bounded runtime reality，建議依序讀：
 
-## Current Position
+1. `README.md`
+2. `docs/decision-context-bridge.md`
+3. `docs/session-workflow-enhancement-plan.md`
+4. `docs/status/closeout-audit.md`
+5. `docs/status/runtime-surface-manifest.md`
+6. `docs/status/execution-surface-coverage.md`
 
-The most important completed asset is not any single checker or rule pack.
+## 當前判斷
 
-It is the runtime governance pipeline:
+目前最重要的不是再多加幾個 checker，而是：
 
-`AI coding event -> session-start guidance -> runtime checks -> session close -> curated memory -> reviewable change-control summary`
+- 讓 consuming repo 實際走到這些 bounded runtime path
+- 觀察 closeout / advisory / audit 的真實 session 分布
+- 保持 status surface、README 與實際 runtime 邊界一致
 
-This means the repo has already crossed the line from:
+一句話總結：
 
-- prompt framework
-
-to:
-
-- runtime governance framework
-
-The strongest current direction of travel is:
-
-`evidence-based enforcement -> proposal-time guidance -> reviewable change-control artifacts -> lightweight semantic verification`
-
-## Next Steps
-
-### 1. Deeper Semantic Verification
-
-Goal:
-
-- keep moving from high-signal evidence checks toward stronger semantic proof
-
-Recommended work:
-
-- deepen `public_api_diff_checker.py` beyond surface extraction
-- continue evolving `architecture_drift_checker.py` toward broader structural reasoning
-- tighten failure completeness with richer evidence semantics
-
-Why this is first:
-
-- the runtime spine already exists; the next meaningful gains come from more trustworthy verification
-
-### 2. Workflow Embedding
-
-Goal:
-
-- reduce adoption friction in normal day-to-day development while tightening the practical commit/merge-time governance path
-
-Recommended work:
-
-- continue improving human-readable pre/post outputs
-- surface proposal guidance and evidence expectations earlier
-- make startup and handoff context easier to consume from agent tooling
-- keep startup/change-control summaries easy to review from CI artifacts and local smoke runs
-- keep strengthening git-hook and CI-gate paths for the entrypoints the framework is actually designed to govern
-
-Why this matters:
-
-- the next bottleneck is not missing validators, but whether developers naturally stay on the governance path at commit and merge time
-
-### 3. Kernel-Driver Pack Refinement
-
-Goal:
-
-- grow driver governance without turning the repo into a driver-development platform
-
-Recommended work:
-
-- keep `kernel-driver` as the generic high-risk platform pack
-- only split into `kmdf`, `wdm`, `umdf` when usage patterns justify it
-- avoid adding platform-specific lifecycle engines to core runtime
-
-Why this matters:
-
-- the seed pack is useful today, but premature specialization would add maintenance cost
-
-### 4. Evidence Ingestion Expansion
-
-Goal:
-
-- ingest more realistic external analysis outputs without bloating validators
-
-Recommended work:
-
-- add kinds such as `wdk-analysis-text`, `compiler-warning-json`, or `sarif`
-- keep validators focused on evidence presence and policy mapping
-- avoid embedding heavy parser logic directly in runtime hooks
-
-Why this matters:
-
-- this improves evidence quality while preserving current framework boundaries
-
-### 5. Agent-Agnostic Context Injection
-
-Goal:
-
-- make governance context easier to activate consistently across multiple agent surfaces
-
-Recommended work:
-
-- extend `session_start` into more native adapter and workflow entry points
-- keep rule/skill/agent activation advisory, but easier to consume
-- avoid hidden automatic contract mutation
-
-Why this is later:
-
-- the repository already has startup context; the next step is broadening adoption without over-automating
-
-### 6. Review Surface Tightening
-
-Goal:
-
-- make proposal-time and runtime-time governance outputs easier to consume as one review object
-
-Recommended work:
-
-- keep refining `change_control_summary.py` and `change_control_index.py`
-- ensure startup JSON envelopes, human notes, and summaries remain aligned
-- avoid requiring reviewers to manually correlate multiple raw artifacts
-
-Why this matters:
-
-- the artifact chain now exists; the next improvement is lowering review friction
-
-## Boundary To Protect
-
-The main risk is no longer missing skeleton pieces.
-
-The main risk is complexity creep.
-
-This repository should remain:
-
-- a governance framework
-
-Not become:
-
-- a full AI development platform
-- a policy-engine ecosystem
-- a generic orchestration OS
-
-Practical rule:
-
-- rule packs provide governance context
-- skills provide behavior guidance
-- runtime checks and policies make decisions
-- suggestion layers propose, but do not silently bind contracts
-- governance checks frame task/session boundaries; this repository does not try to intercept code generation token-by-token inside the AI tool itself
+> 這個 repo 現在已經是一個 machine-interpretable governance runtime，但它仍刻意把自己限制在 reviewer-friendly、evidence-aware、bounded governance substrate，而不是 full execution platform。
