@@ -1,5 +1,5 @@
 # Swift Native Interop
 
-- Objective-C bridging and native platform APIs must remain behind explicit boundaries when they affect domain logic.
-- Unsafe pointer or unmanaged resource handling must document ownership and cleanup rules.
-- Platform capability checks should not silently leak into higher-level business rules.
+- 當 Objective-C bridging 或 native platform API 會影響 domain logic 時，它們必須被放在明確邊界後面。
+- `unsafe pointer` 或 unmanaged resource handling 必須說清 ownership 與 cleanup rule。
+- platform capability check 不應靜默滲入較高層的 business rule。

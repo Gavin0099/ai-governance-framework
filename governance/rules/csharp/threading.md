@@ -1,5 +1,5 @@
 # C# Threading Safety
 
-- UI state changes must occur on the correct UI thread or dispatcher boundary.
-- Do not treat `async void` as an acceptable default outside explicit event-handler boundaries.
-- Cross-thread mutation without a synchronization strategy is a governance violation, not a style issue.
+- UI state change 必須發生在正確的 UI thread 或 dispatcher boundary。
+- 除了明確的 event-handler boundary 之外，不要把 `async void` 當成可接受預設。
+- 沒有同步策略的 cross-thread mutation，是 governance violation，不是 style issue。

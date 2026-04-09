@@ -1,5 +1,5 @@
 # Refactor No Partial Cleanup Rule Pack
 
-- Refactor work must not leave partial side effects or half-cleaned resources on exception or midway failure paths.
-- Cleanup, rollback, dispose, release, or revert behavior must be evidenced when the refactor touches resource ownership or multi-step operations.
-- A refactor that preserves the happy path but weakens failure cleanup is not considered safe.
+- refactor work 不得在 exception 或中途失敗路徑中留下 partial side effect 或 half-cleaned resource。
+- 當 refactor 牽涉 resource ownership 或 multi-step operation 時，必須對 cleanup、rollback、dispose、release、或 revert behavior 提供 evidence。
+- 如果 refactor 保住了 happy path，卻削弱 failure cleanup，就不能視為安全。

@@ -1,5 +1,5 @@
 # Refactor Required Regression Tests Rule Pack
 
-- Refactor work must provide regression evidence, not just a passing test summary.
-- Acceptable signals include regression tests, characterization tests, behavior-lock tests, or contract tests that preserve observable behavior.
-- "Tests passed" without identifiable regression-oriented evidence is insufficient for high-confidence refactor approval.
+- refactor work 必須提供 regression evidence，不能只丟一份 passing test summary。
+- 可接受的訊號包括：regression test、characterization test、behavior-lock test、或能保住可觀測行為的 contract test。
+- 若沒有可辨識、明確指向 regression 的 evidence，只說「tests passed」不足以支撐高信心 refactor approval。

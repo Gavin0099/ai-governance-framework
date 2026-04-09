@@ -6,888 +6,316 @@ overridden_by: ~
 default_load: always
 ---
 
-# PLAN.md — 專案規劃治理規範
+# PLAN.md 模板與治理說明
 
-> ⚠️ **這是「規範文件」，不是專案計畫**
-> 本文件定義如何撰寫 PLAN.md（格式規範、章節要求、AI 行為規則）。
-> **實際的專案計畫在根目錄的 [`PLAN.md`](../PLAN.md)**。
-
----
-
-> **文件類型**: 治理規範 (Governance Standard / Template)
-> **適用範圍**: 所有專案必須遵循此格式建立 PLAN.md
-> **維護者**: 架構團隊
-> **版本**: v1.0
-> **Priority**: — (Project Context) — 定義「做什麼」；行為規則衝突時讓位給 SYSTEM_PROMPT.md §3 ranks 1–7
+> **這是 repo 的規劃單一真相來源範本。**
+> 真正提供 AI 與 reviewer 使用的專案規劃檔，應放在 repo root 的 [`PLAN.md`](../PLAN.md)。
+> 本文件的角色是說明 PLAN 應該長什麼樣，以及為什麼需要它。
 
 ---
 
-## § 1. 目的與範圍
+## 1. PLAN.md 的角色
 
-### § 1.1 為什麼需要 PLAN.md?
+`PLAN.md` 不是 README，也不是任意備忘錄。它是專案目前規劃狀態的 canonical source，負責：
+- 當前 focus 是什麼
+- 目前在第幾個 phase
+- 這個 phase 明確要做什麼
+- 哪些事情刻意不做
+- AI 在這個 phase 中怎麼判斷 scope 與 next step
 
-**問題**: AI Agent 不知道「今天該做什麼」
-
-```
-沒有 PLAN.md:
-User: 幫我加個功能
-AI: 好的，開始實作... (不知道優先級，可能打亂計畫)
-
-有 PLAN.md:
-User: 幫我加個功能
-AI: 我看到 PLAN.md 本週目標是 A、B、C
-    這個功能不在清單中。要調整計畫嗎?
-```
-
-**PLAN.md 解決的核心問題**:
-1. ✅ AI 知道「當前階段」是什麼
-2. ✅ AI 知道「本週目標」vs「待辦清單」
-3. ✅ AI 會主動提醒「這不在計畫中」
-4. ✅ AI 能建議「下一步該做什麼」
-
-### § 1.2 建築師類比
-
-```
-PLAN.md = 施工計畫表
-
-建築工地:
-  工頭每天早上要看「今天蓋哪層樓」
-
-軟體專案:
-  AI 每次開始前要看「當前該做什麼」
-```
+如果沒有 `PLAN.md`，AI 很容易：
+- 看見 backlog 就一路往外擴
+- 把相鄰工程工作與 feature expansion 混在一起
+- 在沒有 anti-goal 的情況下誤解使用者意圖
 
 ---
 
-## § 2. 強制結構 (Mandatory Structure)
+## 2. PLAN 的基本原則
 
-**每個專案的 PLAN.md 必須包含以下章節，順序不可調整**:
+### 2.1 Single Source of Truth
+
+對 planned work、phase status、anti-goals 而言：
+
+```text
+PLAN.md = 單一真相來源
+```
+
+其他文件可以補充，但不應各自維護另一份長期規劃，並讓它和 `PLAN.md` 漂移。
+
+### 2.2 AI 會怎麼用它
+
+AI 讀 `PLAN.md` 主要是為了回答：
+- 當前 phase 是什麼
+- 哪些 backlog 還沒輪到
+- 哪些工作雖然看似合理，但被 anti-goals 明確排除
+- 使用者新要求屬於：當前 phase、相鄰工程、還是 feature expansion
+
+### 2.3 它不是萬能阻擋器
+
+`PLAN.md` 管的是 feature priority，不是用來阻止所有相鄰工程活動。
+
+預設仍屬於可直接處理的相鄰工程包括：
+- build
+- test
+- debugging
+- review
+- commit preparation
+- documentation synchronization
+- bounded governance analysis
+
+只有當這些工作跨到 hard boundary、risk gate、或 feature expansion，才需要 escalate。
+
+---
+
+## 3. Mandatory Structure
+
+每個 repo 的 root `PLAN.md` 至少應包含以下區塊：
 
 ```markdown
-# PLAN.md — [專案名稱]
+# PLAN.md - [Project Name]
 
-> **專案類型**: [類型]
-> **技術棧**: [語言/框架]
-> **複雜度**: L1 / L2 / L3
-> **預計工期**: [開始] ~ [結束]
-> **最後更新**: YYYY-MM-DD
-> **Owner**: [姓名]
+> **Project Type**: [type]
+> **Primary Language**: [language]
+> **Task Level**: L1 / L2 / L3
+> **Planning Window**: [start] ~ [end]
+> **Last Updated**: YYYY-MM-DD
+> **Owner**: [name]
+> **Freshness**: Sprint (7d) | Phase (30d) | Custom (Nd)
+
+---
+
+## 專案目標
+
+## 當前階段與 phase 狀態
+
+## 當前 Sprint / 當前工作
+
+## Backlog
+
+## Anti-Goals
+
+## AI 執行規則
+
+## Gate / 完成條件
+
+## 已知問題或技術債（選填）
+
+## 里程碑
+
+## 更新紀錄
+```
+
+缺少這些基本區塊，AI 就比較難穩定判斷目前「該做什麼」與「不該做什麼」。
+
+---
+
+## 4. Header 欄位
+
+`Last Updated`、`Owner`、`Freshness` 必須在 header 中明示。
+
+```markdown
+> **Last Updated**: YYYY-MM-DD
+> **Owner**: <owner>
+> **Freshness**: Sprint (7d)
+```
+
+Freshness policy：
+
+| Policy | 說明 | 判定 |
+|---|---|---|
+| `Sprint (7d)` | 以 sprint 為單位 | 超過 7 天可視為 stale |
+| `Phase (30d)` | 以 phase 為單位 | 超過 30 天可視為 stale |
+| `Custom (Nd)` | 自定義天數 | 超過 N 天可視為 stale |
+
+`governance_tools/plan_freshness.py` 會使用這些欄位做 freshness 檢查。
+
+---
+
+## 5. 內容區塊說明
+
+### 5.1 專案目標
+
+這裡要簡短說清楚：
+- 專案在解什麼問題
+- bounded context 是什麼
+- 明確不負責什麼
+
+至少應回答：
+- responsible for X
+- NOT responsible for Y
+
+### 5.2 當前階段與 phase 狀態
+
+應清楚標出：
+- phase 序列
+- 當前 phase
+- 已完成 / 進行中 / 尚未開始
+
+範例：
+
+```markdown
+## 當前階段與 phase 狀態
+
+- [x] Phase A: 基礎建置
+- [>] Phase B: 核心功能整合
+- [ ] Phase C: 驗證與收斂
+- [ ] Phase D: 發版準備
+
+**Current Phase**: Phase B - 核心功能整合
+```
+
+### 5.3 當前 Sprint / 當前工作
+
+這裡要回答：
+- 這個 sprint / 這個 phase 現在真正要做什麼
+- 哪些任務是當前 focus
+- 哪些工作雖存在，但不屬於 current sprint
+
+### 5.4 Backlog
+
+Backlog 應至少分成：
+- P0
+- P1
+- P2
+
+避免把所有想法平鋪成一個巨大清單，讓 AI 誤以為都可以立刻開始做。
+
+### 5.5 Anti-Goals
+
+這是最重要的區塊之一。它明確說明：
+- 這個 phase / sprint 刻意不做什麼
+- 哪些看似合理的延伸其實不屬於目前 scope
+
+如果沒有 anti-goals，AI 很容易把「可以做」誤解成「現在就該做」。
+
+### 5.6 AI 執行規則
+
+這裡應清楚告訴 AI：
+- 遇到不在 current phase 的工作時怎麼判斷
+- 什麼時候可以視為 adjacent engineering work
+- 什麼時候要 escalate
+
+### 5.7 Gate / 完成條件
+
+對 L2+ repo，建議列出：
+- phase gate
+- build / test / validation 最低要求
+- release 或 reviewer-facing completion condition
+
+### 5.8 里程碑與更新紀錄
+
+至少應留下：
+- milestone 名稱
+- 預計日期
+- 當前狀態
+- update log
+
+這能讓 reviewer 與未來 session 看得出規劃是活的，不是一次性文件。
+
+---
+
+## 6. AI 使用規則
+
+AI 在讀 `PLAN.md` 時，至少要做這些事：
+- 對照當前請求是否落在 current phase
+- 對照 anti-goals，避免默默擴 scope
+- 對照 backlog priority，避免跳過明顯更重要的項目
+- 在不確定時，提出選項而不是自行重排 roadmap
+
+若 `PLAN.md` 結構明顯不完整、欄位缺失、或 freshness 過舊，應明說這個風險，而不是假裝規劃仍然可靠。
+
+---
+
+## 7. L1 / L2 / L3 適用建議
+
+### L1
+
+可用較輕量的 phase / sprint 結構，但仍應具備：
+- 專案目標
+- 當前工作
+- backlog
+- anti-goals
+- AI 執行規則
+
+### L2
+
+應完整具備本文件列出的 mandatory structure。
+
+### L3
+
+除了完整結構，還建議補：
+- ADR 對應
+- 明確 phase gate
+- 更清楚的 reviewer / release criteria
+
+---
+
+## 8. 最小範例
+
+```markdown
+# PLAN.md - Example Project
+
+> **Project Type**: tooling
+> **Primary Language**: Python
+> **Task Level**: L1
+> **Planning Window**: 2026-04-01 ~ 2026-04-30
+> **Last Updated**: 2026-04-08
+> **Owner**: example-owner
 > **Freshness**: Sprint (7d)
 
----
+## 專案目標
 
-## 📋 專案目標
-
-## 🏗️ 當前階段
-
-## 📦 Phase 詳細規劃
-
-## 🔥 本週聚焦
-
-## 📊 待辦清單 (Backlog)
-
-## 🚫 不要做 (Anti-Goals)
-
-## 🤖 AI 協作規則
-
-## 🎯 Gate 與驗收標準
-
-## 📝 已知問題
-
-## 🔧 技術債務追蹤
-
-## 📅 里程碑
-
-## 🔄 變更歷史
-```
-
----
-
-## § 2.1 Freshness 欄位規範
-
-**`最後更新`、`Owner`、`Freshness` 為必填 header 欄位。**
-
-```markdown
-> **最後更新**: YYYY-MM-DD   ← 每次修改 PLAN.md 時必須更新
-> **Owner**: <姓名>          ← 對 PLAN.md 內容負責的人
-> **Freshness**: Sprint (7d) ← freshness policy
-```
-
-**Freshness Policy 選項**:
-
-| Policy | 格式 | 含義 |
-|--------|------|------|
-| Sprint  | `Sprint (7d)`  | Sprint 週期，>7d 發出 STALE 警告 |
-| Phase   | `Phase (30d)`  | Phase 週期，>30d 發出 STALE 警告 |
-| Custom  | `Custom (Nd)`  | 自訂天數 |
-
-**閾值規則**:
-- `FRESH` — 距今 ≤ threshold
-- `STALE` — 距今 > threshold（警告但不阻擋）
-- `CRITICAL` — 距今 > 2× threshold（強烈警告）
-
-**工具**: `governance_tools/plan_freshness.py` 自動偵測並輸出狀態。
-
----
-
-## § 3. 各章節規範
-
-### § 3.1 專案目標 (Mandatory)
-
-**格式**:
-```markdown
-## 📋 專案目標
-
-[一句話描述專案要達成什麼，≤100 字]
-
-**Bounded Context** (範圍內):
-- [此專案負責的核心功能 1]
-- [此專案負責的核心功能 2]
-- [此專案負責的核心功能 3]
-
-**不負責** (範圍外):
-- [明確排除的功能 1]
-- [明確排除的功能 2]
-```
-
-**AI 檢查點**:
-- [ ] 專案目標是否為一句話? (超過 100 字需簡化)
-- [ ] Bounded Context 是否明確? (至少 2 項)
-- [ ] 「不負責」是否列出? (避免範圍蔓延)
-
-**範例**:
-```markdown
-## 📋 專案目標
-
-建立統一的身份驗證與資料庫存取服務，取代各模組直連 DB。
+這個 repo 負責生成與驗證治理 artifact。
 
 **Bounded Context**:
-- LDAP 身份驗證
-- 操作授權與權限檢查
-- DB 讀寫操作
-- 審計日誌記錄
+- governance toolchain
+- status generation
+- repo-local validation
 
-**不負責**:
-- TLS handshake 細節
-- Dongle 操作
-- 簽章運算
-- 網域帳號管理
+**Not Responsible For**:
+- 外部部署系統
+- 非 repo-local production orchestration
+
+## 當前階段與 phase 狀態
+
+- [x] Phase A: baseline 建立
+- [>] Phase B: runtime hardening
+- [ ] Phase C: adoption cleanup
+
+**Current Phase**: Phase B - runtime hardening
+
+## 當前 Sprint / 當前工作
+
+- closeout audit status surface
+- adoption source audit
+- docs 中文主敘事清理
+
+## Backlog
+
+### P0
+- consuming repo readiness gaps
+
+### P1
+- additional release surface cleanup
+
+### P2
+- optional comparative docs refinement
+
+## Anti-Goals
+
+- 不在這一輪做 full multi-agent orchestration
+- 不把 advisory 直接升格成 verdict authority
+
+## AI 執行規則
+
+- 當前 phase 外的 feature expansion 先 escalate
+- bounded docs / test / status cleanup 可直接做
 ```
 
 ---
 
-### § 3.2 當前階段 (Mandatory)
+## 9. Final Principle
 
-**格式**:
-```markdown
-## 🏗️ 當前階段
+`PLAN.md` 的目的不是把 repo 寫得很完整，而是讓 AI 與 reviewer 對「現在該做什麼、刻意不做什麼」有同一張圖。
 
-```
-階段進度:
-├─ [✓] Phase A: [階段名稱]       ([完成日期])
-├─ [🔄] Phase B: [階段名稱]       (進行中，預計 [日期])
-├─ [⏳] Phase C: [階段名稱]       (待開始)
-└─ [⏳] Phase D: [階段名稱]       (待開始)
-```
-
-**當前 Phase**: **Phase B - [階段名稱]**
-```
-
-**AI 檢查點**:
-- [ ] 必須有至少 2 個 Phase
-- [ ] 當前 Phase 必須標註 [🔄]
-- [ ] 已完成 Phase 標註 [✓]
-- [ ] 未開始 Phase 標註 [⏳]
-- [ ] 當前 Phase 必須在底部明確宣告
-
-**圖示規範**:
-- `[✓]` = 已完成
-- `[🔄]` = 進行中 (只能有一個)
-- `[⏳]` = 待開始
-
----
-
-### § 3.3 Phase 詳細規劃 (Mandatory)
-
-**格式**:
-```markdown
-## 📦 Phase 詳細規劃
-
-### Phase A: [階段名稱] ([狀態])
-
-**目標**: [一句話描述此階段目標]
-
-**任務清單**:
-```
-核心模組:
-├─ [✓] 1. [任務名稱]
-├─ [🔄] 2. [任務名稱]        ← 當前進行中
-├─ [⏳] 3. [任務名稱]
-└─ [⏳] 4. [任務名稱]
-```
-
-**Gate 條件**:
-- [ ] [驗收條件 1]
-- [ ] [驗收條件 2]
-- [ ] [驗收條件 3]
-```
-
-**AI 檢查點**:
-- [ ] 每個 Phase 必須有「目標」
-- [ ] 每個 Phase 必須有「任務清單」
-- [ ] 每個 Phase 必須有「Gate 條件」(至少 2 條)
-- [ ] 任務清單必須用樹狀結構
-- [ ] 當前進行中的任務標註 `← 當前進行中`
-
-**Gate 條件規範**:
-- 必須是**機器可驗證**的條件（能用腳本或 CI 自動確認）
-- ✅ 正確: 「Unit test 覆蓋率 ≥ 80%（`pytest --cov` 驗證）」
-- ✅ 正確: 「`scripts/verify_phase_gates.sh` 全部通過」
-- ✅ 正確: 「PLAN.md freshness = FRESH（`plan_freshness.py` 驗證）」
-- ❌ 錯誤: 「代碼寫得很好」（不可驗證）
-- ❌ 錯誤: 「功能已完成」（靠人工判斷 [✓]）
-
-**人工宣告 [✓] 不算完成**，除非有對應的 Gate 腳本或 CI job 通過作為佐證。
-
----
-
-### § 3.4 本週聚焦 (Mandatory)
-
-**格式**:
-```markdown
-## 🔥 本週聚焦 (當前 Sprint)
-
-**Sprint [編號]** ([日期範圍])
-
-**目標**: [本週要達成什麼]
-
-**任務清單** (≤5 項):
-- [ ] [任務 1] (預計 [小時])
-- [ ] [任務 2] (預計 [小時])
-- [ ] [任務 3] (預計 [小時])
-
-**下一步** (完成本週後):
-1. [下一步動作 1]
-2. [下一步動作 2]
-
-**當前阻礙**:
-- ❌ [阻礙描述] (或「無」)
-
-**需要決策**:
-- ⚠️ [待決策問題] (截止日期) (或「無」)
-```
-
-**AI 檢查點**:
-- [ ] 本週任務 ≤ 5 項 (超過需拆分)
-- [ ] 每個任務有預計時數
-- [ ] 「下一步」明確列出 (AI 完成本週後自動建議)
-- [ ] 「當前阻礙」必須填寫 (無則寫「無」)
-
-**AI 行為規則**:
-```
-當 User 提出新需求時，AI 必須:
-1. 檢查是否在「本週任務」中
-2. 如果不在，檢查是否在「下一步」中
-3. 如果都不在，詢問 User 是否調整計畫
-
-範例:
-User: 幫我加個功能 X
-AI: 我看到本週任務是 A、B、C，
-    功能 X 不在清單中。
-    
-    選項:
-    A) 加入本週任務 (會延後其他任務)
-    B) 加入「下一步」(下週處理)
-    C) 加入 Backlog (未來處理)
-    
-    你希望如何處理?
-```
-
----
-
-### § 3.5 待辦清單 (Backlog) (Mandatory)
-
-**格式**:
-```markdown
-## 📊 待辦清單 (Backlog)
-
-### 高優先 (P0)
-- [ ] [任務描述]
-- [ ] [任務描述]
-
-### 中優先 (P1)
-- [ ] [任務描述]
-- [ ] [任務描述]
-
-### 低優先 (P2)
-- [ ] [任務描述]
-- [ ] [任務描述]
-```
-
-**AI 檢查點**:
-- [ ] 必須有 P0/P1/P2 三個優先級
-- [ ] P0 不應超過 5 項 (超過代表規劃有問題)
-- [ ] 每項任務描述清晰 (AI 可理解)
-
-**優先級定義**:
-- **P0**: 阻塞性任務，影響 Gate 條件
-- **P1**: 重要但不阻塞
-- **P2**: Nice-to-have
-
----
-
-### § 3.6 不要做 (Anti-Goals) (Mandatory)
-
-**格式**:
-```markdown
-## 🚫 不要做 (Anti-Goals)
-
-在當前 Phase 明確禁止的事項:
-
-❌ **Phase [X] 禁止**:
-- 不要 [禁止事項 1] ([理由])
-- 不要 [禁止事項 2] ([理由])
-- 不要 [禁止事項 3] ([理由])
-```
-
-**AI 檢查點**:
-- [ ] 每個禁止事項必須有理由
-- [ ] 禁止事項與當前 Phase 相關
-- [ ] 至少 2 項禁止事項
-
-**常見 Anti-Goals**:
-```
-Phase A (基礎架構):
-❌ 不要實作業務邏輯 (架構未穩定)
-❌ 不要考慮效能優化 (過早優化)
-
-Phase B (核心功能):
-❌ 不要處理邊緣情況 (先跑通主流程)
-❌ 不要美化 UI (功能優先)
-
-Phase C (整合測試):
-❌ 不要新增功能 (穩定性優先)
-❌ 不要重構核心邏輯 (風險過高)
-```
-
-**AI 行為規則**:
-```
-當 User 要求做「禁止事項」時:
-
-AI: 我看到 PLAN.md 的「不要做」清單中有:
-    ❌ 不要 [X] ([理由])
-    
-    這是 Phase [N] 的明確禁止事項。
-    
-    選項:
-    A) 遵守計畫，Phase [N+1] 再處理
-    B) 認為規則不合理，修改 PLAN.md
-    
-    你希望如何處理?
-```
-
----
-
-### § 3.7 AI 協作規則 (Mandatory)
-
-**格式**:
-```markdown
-## 🤖 AI 協作規則
-
-**AI 在實作任何功能前，必須確認**:
-
-1. ✅ 這項任務在「本週聚焦」或「下一步」中嗎?
-2. ✅ 是否符合當前 Phase 的範圍?
-3. ✅ 是否在「不要做」清單中?
-
-**如果不符合上述條件**:
-- 先詢問是否調整 PLAN
-- 不要自行決定優先級
-- 提供明確的選項 (A/B/C)
-
-**範例**:
-```
-User: 幫我加個效能監控功能
-AI: 我看到 PLAN.md:
-    - 當前 Phase B (核心功能)
-    - 效能監控在 Backlog P2
-    - Phase B 禁止提前優化
-    
-    選項:
-    A) 先完成 Phase B Gate，Phase C 再處理
-    B) 調整計畫，將效能監控升為本週目標
-    
-    你希望如何處理?
-```
-```
-
-**AI 檢查點**:
-- [ ] 3 個檢查點必須存在
-- [ ] 必須有「如果不符合」的處理流程
-- [ ] 必須有實際範例
-
----
-
-### § 3.8 Gate 與驗收標準 (Mandatory for L2+)
-
-**格式**:
-```markdown
-## 🎯 Gate 與驗收標準
-
-### Phase [X] Gate (必須全部通過才能進 Phase [X+1])
-
-**功能完整性**:
-- [ ] [驗收條件 1]
-- [ ] [驗收條件 2]
-
-**代碼品質**:
-- [ ] Unit test 覆蓋率 ≥ 80%
-- [ ] 無 memory leak (工具: Valgrind)
-- [ ] 靜態分析通過 (工具: cppcheck)
-
-**文檔完整性**:
-- [ ] 所有 public API 有註解
-- [ ] ADR 文件更新
-```
-
-**AI 檢查點**:
-- [ ] Gate 條件必須可量化驗證
-- [ ] 必須包含「功能」+「品質」+「文檔」三維度
-- [ ] 工具名稱必須明確 (如: Valgrind, cppcheck)
-
----
-
-### § 3.9 已知問題 (Optional)
-
-**格式**:
-```markdown
-## 📝 已知問題 (Known Issues)
-
-| ID | 問題 | 嚴重程度 | 狀態 | 負責人 |
-|---|---|---|---|---|
-| BUG-001 | [問題描述] | P0/P1/P2 | 🔄/⏳/✓ | [名字] |
-| BUG-002 | [問題描述] | P0/P1/P2 | 🔄/⏳/✓ | [名字] |
-```
-
-**嚴重程度**:
-- **P0**: 阻塞開發
-- **P1**: 影響功能但有 workaround
-- **P2**: 不影響開發
-
----
-
-### § 3.10 技術債務追蹤 (Optional)
-
-**格式**:
-```markdown
-## 🔧 技術債務追蹤
-
-| ID | 債務描述 | 預計償還時間 | 優先級 |
-|---|---|---|---|
-| DEBT-001 | [描述] | Phase C | P0/P1/P2 |
-| DEBT-002 | [描述] | Phase D | P0/P1/P2 |
-```
-
----
-
-### § 3.11 里程碑 (Mandatory)
-
-**格式**:
-```markdown
-## 📅 里程碑 (Milestones)
-
-| 里程碑 | 目標日期 | 狀態 | 交付物 |
-|---|---|---|---|
-| M1: [名稱] | YYYY/MM/DD | ✅/🔄/⏳ | [交付物] |
-| M2: [名稱] | YYYY/MM/DD | ✅/🔄/⏳ | [交付物] |
-| M3: [名稱] | YYYY/MM/DD | ✅/🔄/⏳ | [交付物] |
-| M4: [名稱] | YYYY/MM/DD | ✅/🔄/⏳ | [交付物] |
-```
-
-**AI 檢查點**:
-- [ ] 至少 2 個里程碑
-- [ ] 每個里程碑有明確日期
-- [ ] 每個里程碑有可驗證的交付物
-
----
-
-### § 3.12 變更歷史 (Mandatory)
-
-**格式**:
-```markdown
-## 🔄 變更歷史
-
-| 日期 | 變更內容 | 原因 |
-|---|---|---|
-| YYYY/MM/DD | [變更描述] | [原因] |
-| YYYY/MM/DD | [變更描述] | [原因] |
-```
-
-**AI 行為規則**:
-```
-當修改 PLAN.md 時，AI 必須:
-1. 在「變更歷史」新增一筆記錄
-2. 記錄日期、變更內容、原因
-3. 保持歷史記錄 (不刪除)
-```
-
----
-
-## § 4. 複雜度分級規範
-
-### § 4.1 L1 專案 (Simple)
-
-**定義**: 單一模組，≤2 週工期
-
-**簡化規則**:
-- Gate 條件可簡化
-- 技術債務可省略
-- 已知問題可省略
-
-**範例**: 小型工具、腳本、單一功能模組
-
----
-
-### § 4.2 L2 專案 (Medium)
-
-**定義**: 多模組，2-8 週工期
-
-**完整規則**:
-- 所有 Mandatory 章節必須存在
-- Gate 條件必須詳細
-- 必須有技術債務追蹤
-
-**範例**: DatabaseService, API 重構
-
----
-
-### § 4.3 L3 專案 (Complex)
-
-**定義**: 跨系統，>8 週工期
-
-**額外要求**:
-- 必須有 ADR (Architecture Decision Records)
-- 必須有風險管理章節
-- 必須有依賴管理
-
-**範例**: 系統遷移、大型重構
-
----
-
-## § 5. AI 檢查清單 (Validation Rules)
-
-**AI 在讀取 PLAN.md 時，必須執行以下檢查**:
-
-### § 5.1 結構完整性
-- [ ] 所有 Mandatory 章節存在
-- [ ] 章節順序正確
-- [ ] 每個章節有內容 (非空)
-
-### § 5.2 當前狀態
-- [ ] 「當前階段」明確標註
-- [ ] 「本週聚焦」有具體任務
-- [ ] 「下一步」清楚列出
-
-### § 5.3 可執行性
-- [ ] Gate 條件可驗證
-- [ ] 任務描述清晰
-- [ ] 優先級合理 (P0 ≤ 5 項)
-
-### § 5.4 一致性
-- [ ] 本週任務 ⊆ 當前 Phase 任務
-- [ ] Anti-Goals 與 Phase 對應
-- [ ] 里程碑日期合理
-
-**AI 發現問題時的行為**:
-```
-AI: 我檢查了 PLAN.md，發現以下問題:
-    ❌ 缺少「本週聚焦」章節
-    ❌ Gate 條件不可驗證 (「代碼寫得好」)
-    
-    建議:
-    1. 新增「本週聚焦」章節
-    2. 修改 Gate 條件為「Unit test 覆蓋率 ≥ 80%」
-    
-    要我協助修正嗎?
-```
-
----
-
-## § 6. 範例 PLAN.md
-
-**完整範例請參考**: `PLAN_TEMPLATE.md`
-
-**快速範例** (L2 專案):
-
-```markdown
-# PLAN.md — DatabaseService
-
-> **專案類型**: 後端服務  
-> **技術棧**: C++  
-> **複雜度**: L2  
-> **預計工期**: 2025/03/01 ~ 2025/06/01
-
----
-
-## 📋 專案目標
-
-建立統一的身份驗證與資料庫存取服務。
-
-**Bounded Context**:
-- LDAP 身份驗證
-- 操作授權
-- DB 讀寫
-- 審計日誌
-
-**不負責**:
-- TLS handshake
-- Dongle 操作
-
----
-
-## 🏗️ 當前階段
-
-```
-階段進度:
-├─ [✓] Phase A: 基礎架構       (2025/03/01 完成)
-├─ [🔄] Phase B: 核心功能       (進行中，預計 2025/04/15)
-├─ [⏳] Phase C: 整合測試       (待開始)
-└─ [⏳] Phase D: 上線部署       (待開始)
-```
-
-**當前 Phase**: **Phase B - 核心功能**
-
----
-
-## 📦 Phase 詳細規劃
-
-### Phase B: 核心功能 (進行中 🔄)
-
-**目標**: 實作主要業務邏輯
-
-**任務清單**:
-```
-核心模組:
-├─ [✓] 1. SessionHandler 骨架
-├─ [✓] 2. Auth 模組
-├─ [🔄] 3. Key 操作模組        ← 當前進行中
-├─ [⏳] 4. Token 操作模組
-└─ [⏳] 5. Log 操作模組
-```
-
-**Gate 條件**:
-- [ ] 所有模組實作完成
-- [ ] Unit test 覆蓋率 ≥ 80%
-- [ ] Integration tests 通過
-
----
-
-## 🔥 本週聚焦
-
-**Sprint 10** (2025/03/04 - 03/10)
-
-**目標**: 完成 Key 操作模組
-
-**任務清單**:
-- [ ] DoQueryKey 實作 (4h)
-- [ ] DoNewKey 實作 (6h)
-- [ ] DoBanKey + DoResetKey (4h)
-- [ ] 單元測試 (6h)
-
-**下一步**:
-1. Token 操作模組
-2. PC 操作模組
-
-**當前阻礙**: 無
-
-**需要決策**: 無
-
----
-
-## 📊 待辦清單 (Backlog)
-
-### 高優先 (P0)
-- [ ] DBFO_SIGN_RESOLVE 實作
-
-### 中優先 (P1)
-- [ ] LDAP failover 測試
-- [ ] SQL injection 防護
-
-### 低優先 (P2)
-- [ ] 效能監控儀表板
-
----
-
-## 🚫 不要做 (Anti-Goals)
-
-❌ **Phase B 禁止**:
-- 不要提前優化效能 (Phase C 才做)
-- 不要實作連線池 (Phase E 才考慮)
-- 不要處理生產環境部署問題
-
----
-
-## 🤖 AI 協作規則
-
-**AI 在實作任何功能前，必須確認**:
-
-1. ✅ 這項任務在「本週聚焦」或「下一步」中嗎?
-2. ✅ 是否符合當前 Phase B 的範圍?
-3. ✅ 是否在「不要做」清單中?
-
-**如果不符合**:
-- 先詢問是否調整 PLAN
-- 提供明確選項
-
----
-
-## 🎯 Gate 與驗收標準
-
-### Phase B Gate
-
-**功能完整性**:
-- [ ] 所有 Handler 模組實作完成
-- [ ] 所有 opcode 測試通過
-
-**代碼品質**:
-- [ ] Unit test 覆蓋率 ≥ 80%
-- [ ] Valgrind 無 memory leak
-- [ ] cppcheck 靜態分析通過
-
-**文檔完整性**:
-- [ ] Public API 有註解
-- [ ] ADR 文件更新
-
----
-
-## 📅 里程碑
-
-| 里程碑 | 目標日期 | 狀態 | 交付物 |
-|---|---|---|---|
-| M1: 基礎架構 | 2025/03/01 | ✅ | 專案骨架 |
-| M2: 核心功能 | 2025/04/15 | 🔄 | 所有 Handler |
-| M3: 整合測試 | 2025/05/01 | ⏳ | 壓力測試 |
-| M4: 上線 | 2025/06/01 | ⏳ | 零停機遷移 |
-
----
-
-## 🔄 變更歷史
-
-| 日期 | 變更內容 | 原因 |
-|---|---|---|
-| 2025/03/05 | Phase B 延後 1 週 | LDAP 整合複雜 |
-| 2025/03/01 | 專案啟動 | - |
-
----
-
-**最後更新**: 2025/03/05  
-**維護者**: GavinWu
-```
-
----
-
-## § 7. 違規處理
-
-### § 7.1 AI 發現格式違規
-
-```
-AI: PLAN.md 格式檢查失敗:
-    ❌ 缺少「本週聚焦」章節 (Mandatory)
-    ❌ Gate 條件不可驗證
-    ⚠️ P0 任務超過 5 項 (建議拆分)
-    
-    我無法確定當前該做什麼。
-    要我協助修正 PLAN.md 嗎?
-```
-
-### § 7.2 User 要求違反 PLAN
-
-```
-User: 幫我做 X (不在 PLAN 中)
-
-AI: 我看到 PLAN.md:
-    - 當前階段: Phase B
-    - 本週任務: A, B, C
-    - X 不在任何清單中
-    
-    根據「AI 協作規則」§3.7，
-    我需要先確認是否調整計畫。
-    
-    選項:
-    A) 加入本週任務 (會影響進度)
-    B) 加入「下一步」
-    C) 加入 Backlog P1
-    
-    你希望如何處理?
-```
-
----
-
-## § 8. 附錄
-
-### § 8.1 常見問題
-
-**Q: PLAN.md 放哪裡?**  
-A: 專案根目錄，與 README.md 同層
-
-**Q: 多久更新一次?**  
-A: 
-- 「本週聚焦」每週更新
-- 「當前階段」每 Phase 更新
-- 「變更歷史」每次修改都記錄
-
-**Q: L1 專案可以簡化到什麼程度?**  
-A: 最低限度:
-- 專案目標
-- 當前階段
-- 本週聚焦
-- AI 協作規則
-
-**Q: 如果 AI 不遵守 PLAN.md?**  
-A: 
-1. 檢查 PLAN.md 格式是否符合規範
-2. 明確告訴 AI:「請遵守 PLAN.md 的 AI 協作規則 §3.7」
-3. 如果仍不遵守,在對話開頭重申規則
-
----
-
-## § 9. 治理整合
-
-**PLAN.md 在治理架構中的位置**:
-
-```
-治理架構 (8 大法典):
-
-🧠 意識層
-  └─ SYSTEM_PROMPT.md (AI 身份)
-
-📋 規劃層 ← PLAN.md 在這裡
-  └─ PLAN.md (專案施工計畫)
-
-⚙️ 執行層
-  ├─ AGENT.md (執行流程)
-  ├─ ARCHITECTURE.md (架構紅線)
-  └─ NATIVE-INTEROP.md (跨平台)
-
-✅ 品質層
-  └─ REVIEW_CRITERIA.md (代碼審查)
-
-🛑 安全閥
-  └─ HUMAN-OVERSIGHT.md (緊急停工)
-
-📝 記憶層
-  └─ MEMORY.md (記憶管理)
-```
-
-**與其他治理文件的關係**:
-- **AGENT.md**: 定義「怎麼做」，PLAN.md 定義「做什麼」
-- **ARCHITECTURE.md**: 定義「紅線在哪」，PLAN.md 定義「今天碰哪條線」
-- **HUMAN-OVERSIGHT.md**: 定義「何時停」，PLAN.md 定義「停之前該做完什麼」
-
----
-
-**版本**: v1.0  
-**最後更新**: 2025/03/05  
-**維護者**: 架構團隊  
-**適用範圍**: 所有專案  
-**強制程度**: Mandatory for L2+ projects
+如果這張圖不存在，擴張幾乎一定會發生。

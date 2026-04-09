@@ -7,37 +7,37 @@
 `hard-stop`
 
 ## Requirement
-Refactor tasks must make error-path behavior explicit before and after the change:
+refactor task 必須在變更前後都把 error-path behavior 顯性化：
 
-- produce `error_path_inventory` during pre-task planning
-- submit `error_behavior_diff` during post-task review
-- flag any intentional behavior change so a reviewer can treat it as a behavior change, not a pure refactor
+- 在 pre-task planning 產出 `error_path_inventory`
+- 在 post-task review 提交 `error_behavior_diff`
+- 若有刻意的 behavior 變更，必須明確標記，讓 reviewer 能把它視為 behavior change，而不是 pure refactor
 
 ## `error_path_inventory` format
-Each error case must include:
+每個 error case 至少要包含：
 
 - `error_id`: unique identifier
-- `trigger`: condition that causes the error path
-- `pre_refactor_behavior`: expected behavior before the refactor
-- `affected_by_refactor`: `true` or `false`
+- `trigger`: 觸發此 error path 的條件
+- `pre_refactor_behavior`: refactor 前的預期行為
+- `affected_by_refactor`: `true` 或 `false`
 
 ## `error_behavior_diff` format
-Each affected error case must include:
+每個受影響的 error case 至少要包含：
 
-- `error_id`: reference back to the inventory entry
-- `pre_behavior`: behavior before the refactor
-- `post_behavior`: behavior after the refactor
-- `status`: `unchanged`, `changed`, or `removed`
-- `reviewer_note`: required when `status` is not `unchanged`
+- `error_id`: 對應回 inventory entry
+- `pre_behavior`: refactor 前行為
+- `post_behavior`: refactor 後行為
+- `status`: `unchanged`、`changed`、或 `removed`
+- `reviewer_note`: 當 `status` 不是 `unchanged` 時必填
 
 ## Hard-stop conditions
-- `error_path_inventory` missing
-- an `affected_by_refactor: true` error case has no matching `error_behavior_diff` entry
-- `status: changed` or `status: removed` without a `reviewer_note`
+- 缺少 `error_path_inventory`
+- 某個 `affected_by_refactor: true` 的 error case 沒有對應的 `error_behavior_diff`
+- `status: changed` 或 `status: removed` 卻沒有 `reviewer_note`
 
 ## Scope boundary
-This rule validates structure and reviewer-facing traceability only.
+這條規則只驗證結構與 reviewer-facing traceability。
 
-- The framework checks that the inventory and diff exist and are internally consistent.
-- The framework does **not** prove that the error-case list is exhaustive.
-- Exhaustiveness and semantic correctness remain a reviewer and testing responsibility.
+- framework 只檢查 inventory 與 diff 是否存在、且內部一致
+- framework **不會**證明 error-case 清單是否已完整列舉
+- exhaustiveness 與 semantic correctness 仍屬 reviewer 與 testing 的責任
