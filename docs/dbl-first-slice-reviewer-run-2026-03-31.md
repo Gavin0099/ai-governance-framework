@@ -1,8 +1,8 @@
-# DBL First-Slice Reviewer Run - 2026-03-31
+﻿# DBL First-Slice Reviewer Run — 2026-03-31
 
-> Status: internal dry run
-> Scope: Step 2 reconstruction sanity check
-> Not independent reviewer evidence
+> 狀態：internal dry run
+> 範圍：Step 2 reconstruction sanity check
+> 不算 independent reviewer evidence
 
 ---
 
@@ -17,59 +17,36 @@
 
 ## Reviewer answers
 
-1. What does the current first-slice DBL gate appear able to judge?
+### Q1. 目前 first-slice DBL gate 看起來能判斷什麼？
 
-It appears able to judge explicit missing-state conditions for a very small
-precondition surface. In the current examples, it can distinguish whether a
-task clearly requires a sample, spec, or fixture and whether an explicit signal
-for that prerequisite is present in the task text.
+它看起來能判 explicit missing-state 的 very small precondition surface。
 
-2. What does the current first-slice DBL gate appear unable to judge?
+在目前的 examples 裡，它能分辨：
 
-It does not appear able to judge semantic sufficiency, relevance, completeness,
-or evidence quality. It cannot determine whether a provided spec is the right
-spec, whether a sample covers failure paths, or whether a fixture is meaningful
-for the actual failing condition.
+- 某個 task 是否明確需要 sample、spec、fixture
+- 任務上下文中是否出現對應的 explicit missing signal
 
-3. In what kind of situation would the current gate still pass even though the
-evidence may be semantically weak or incomplete?
+### Q2. 目前 first-slice DBL gate 看起來不能判斷什麼？
 
-It would still pass when explicit signal tokens are present but the evidence is
-weak in substance. The insufficiency-like example shows this directly:
-`legacy-spec.md` and `happy-path-report.pdf` satisfy explicit presence checks,
-but they do not prove that the evidence is relevant or adequate for safe
-implementation.
+它不能判：
 
-4. Is the insufficiency-like example a capability proof or a limitation proof?
-Why?
+- semantic sufficiency
+- pseudo-presence
+- sample/spec/fixture 的品質
+- evidence 是否雖然存在，但其實不夠用
 
-It is a limitation proof. The example is framed as a current boundary case, and
-the passing result is explicitly described as presence-only behavior. Nothing in
-the example claims that the runtime can judge adequacy or semantic
-completeness.
+### Q3. 什麼情況下它仍可能 pass，但 evidence 語意上其實很弱？
+
+如果 sample、spec、fixture 只是形式存在，但和真正 failing condition 無關，當前 gate 仍可能 pass。
+
+### Q4. insufficiency-like example 是 capability proof 還是 limitation proof？
+
+它應該被讀成 limitation proof。
+
+它的作用是顯示目前 first slice 尚未處理 semantic insufficiency，而不是宣告系統已能判 adequacy。
 
 ---
 
-## Reconstruction result
+## 結論
 
-- Status: `reconstructed correctly`
-
----
-
-## Misread source
-
-- No single sentence forced a misread in this dry run.
-- The largest residual risk is not the README language itself; it is the
-  possibility that a future reviewer infers too much from green tests unless
-  they also read the framing note and the reconstruction kit.
-
----
-
-## Follow-up judgment
-
-- Fix type: `framing-only`
-- Notes:
-  - The current framing is strong enough for an internal sanity check.
-  - This is still not independent reviewer evidence.
-  - The next useful step remains a small external reconstruction pass using the
-    same pack with no author-side oral clarification.
+這份 internal dry run 的價值，不是替 first slice 背書，而是先確認目前 example 與 framing 是否足以讓 reviewer 重建出正確邊界，而不會過度腦補成更大的能力宣稱。
