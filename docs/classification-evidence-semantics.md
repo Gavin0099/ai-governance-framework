@@ -1,216 +1,135 @@
-# Classification Evidence Semantics
+# Classification Evidence Semantics：classification evidence 代表什麼，不代表什麼
 
 ## 目的
 
-這份文件定義每個 `classification_evidence` 欄位的語義邊界。
+這份文件定義 `classification_evidence` 裡各種 evidence field 的語義邊界。
 
-它只做三件事：
+它要回答三件事：
 
-1. 每個欄位代表什麼（証明能力範圍）
-2. 每個欄位**不能**代表什麼（不得推論的結論）
-3. 哪些欄位只是 presence evidence，哪些接近 stronger observation
+1. 每個 evidence field 到底在表達什麼
+2. 每個 evidence field **不能**被解讀成什麼
+3. 哪些欄位只屬於 presence evidence，哪些欄位比較接近 observation evidence
 
-**為什麼需要這份文件**
+核心原則：
 
-治理系統最常見的語義錯誤不是欄位缺失，而是欄位名稱比證據本身更強。
-例如 `instruction_loaded: true` 看起來像 consumption evidence，但實際上只是 availability evidence。
-如果 reviewer 把 proxy 當 truth 讀，整條治理路徑的風險判斷都會偏低。
+> classification 是 proxy-based governance classification，不是 capability truth model。
 
----
-
-## 兩層證據分類
-
-| 層級 | 定義 | 能支撐的結論 |
-|------|------|-------------|
-| **Presence evidence** | 某個 surface 或 capability 的存在被確認 | 治理前提條件存在；不能推論實際被消費或正確執行 |
-| **Observation evidence** | 某個 action 或 state 被直接觀測到 | 可以支撐更強的治理結論，但仍需說明觀測方式 |
+這些 evidence field 的任務，是幫 reviewer 看出 session 中有哪些治理 proxy 被觀測到，而不是證明 agent 真實能力。
 
 ---
 
-## 欄位語義表
+## 兩種 evidence 類型
+
+| 類型 | 定義 | 不能被解讀成 |
+|---|---|---|
+| **Presence evidence** | 某個 surface 或 capability 的外部存在訊號 | 不能直接推成語義上已被 agent 消化或正確使用 |
+| **Observation evidence** | 某個 action / state 被真正觀測到的訊號 | 仍然不等於 capability truth，但比單純 presence 更強 |
+
+---
+
+## 主要 evidence 欄位
 
 ### `has_file_access`
 
-**目前 proxy 行為**：`True` / `observed`，因為 session_end 能執行 I/O
+它代表：
 
-**代表什麼**：
-- runtime process（本 hook script）對 repo 有讀寫能力
-- host-level file access 已確認
+- runtime process / hook script 具有 repo file I/O 能力
 
-**不能代表什麼**：
-- agent surface（AI model 本身）是否具備 file access
-- 這個 session 的任何具體 tool call 是否真的讀了 repo 檔案
-- 未來 agent 版本或不同 surface 是否仍然有 file access
+它**不代表**：
 
-**精確名稱（下一版考慮）**：`runtime_repo_access_observed`
+- agent surface 本身已獲得 file access
+- 該 session 中真的發生了對 repo 的有效 tool call
+- 這個 agent 一定能穩定使用 file access
 
-**注意**：host capability ≠ agent capability。這個 proxy 觀測的是 runtime environment，不是 agent surface。
+更準確的替代表述：
 
----
+- `runtime_repo_access_observed`
 
 ### `instruction_loaded`
 
-**目前 proxy 行為**：檢查 CLAUDE.md / AGENTS.md 是否存在
+它代表：
 
-**代表什麼**：
-- instruction surface 存在於 repo（availability）
-- agent 有機會讀到這份文件（precondition）
+- instruction surface 在 repo 中可被找到
+- agent 至少面對過這個 instruction surface 的存在條件
 
-**不能代表什麼**：
-- agent 這一輪是否真的讀了這份文件
-- agent 是否把 instruction 吃進 context（consumption）
-- agent 對 instruction 的理解是否正確（interpretation）
-- instruction 是否未被 context compression 壓掉
+它**不代表**：
 
-**精確名稱（下一版考慮）**：`instruction_surface_present`
+- agent 已真正消化 instruction
+- agent 已把 instruction 正確納入 context
+- agent 的 interpretation 與 instruction 一致
 
-**注意**：這是 presence evidence，不是 consumption evidence。用 `instruction_loaded` 作為欄位名稱會讓 reviewer 誤以為有更強的保證。
+更準確的替代表述：
 
----
+- `instruction_surface_present`
 
 ### `context_integrity`
 
-**目前 proxy 行為**：掃描 checks.warnings / checks.errors 的特定 keyword（truncat / context_degraded / token_budget / token_warning）
+它代表：
 
-**代表什麼**：
-- 如果有匹配：post-task checks 中出現了 context degradation signal，這是 `degraded` 的 observed 依據
-- 如果無匹配：沒有觀測到已知 degradation signal（不等於確定 full）
+- runtime 是否觀測到 affirmative degradation signal
+- context condition 是否出現已知 degradation
 
-**不能代表什麼**：
-- context 真的沒有被壓縮或截斷（absence of signal ≠ absence of problem）
-- 沒有 warning 就代表 instruction 完整被接收
-- token 使用量是否接近 limit
+它**不代表**：
 
-**現行預設 `full` 的風險**：
-> `context_integrity: full` 的 default 應該被視為 `unknown` 的保守代號，
-> 而不是「確認 context 完整」。
-> 如果沒有 affirmative degradation signal，頂多能說「未觀測到 degradation」，
-> 不能說「context 是 full 的」。
+- 沒有 degradation signal 就等於 `full`
+- 沒有 warning 就等於 context 完整
+- token budget / truncation 一定已被完全排除
 
-**已實作**：`context_integrity` 預設值已改為 `unknown`（`context_source = "assumed"`）。
-只有在 checks 中觀測到 affirmative degradation signal 時，才設為 `degraded` / `observed`。
-`full` 值目前保留在 schema 中，但不由 session_end runtime 主動賦值；
-僅供未來有 positive affirmative observation 機制時使用。
+因此：
 
----
+- `full` 不應是預設值
+- 預設較合理的是 `unknown`
+- 只有在有正向 affirmative observation 時，才應收斂到 `full`
 
 ### `tool_gate`
 
-**目前 proxy 行為**：`active` / `observed`，因為 session_end hook 正在執行
+它代表：
 
-**代表什麼**：
-- session closeout boundary 有被攔截（session_end 執行了）
-- session 邊界級別的 hook 路徑存在
+- session closeout boundary 是否可被 hook 觀測到
+- session 是否至少在 closeout path 上具備可觀測 gating
 
-**不能代表什麼**：
-- pre_task hook 是否確實執行過
-- post_task hook 是否確實執行過
-- 整個 session 期間每一個 task 都有完整 pre/post interception
-- 未來 session 的 hook 路徑仍然有效
+它**不代表**：
 
-**精確描述（下一版考慮拆分）**：
+- 整個 session 中每個 task 都被 pre/post gate 完整攔截
+- pre_task hook / post_task hook 一定都存在
+- agent 一定被完整治理
 
-```
-session_boundary_observed: true       # session_end hook 執行
+比較安全的拆法是：
+
+```text
+session_boundary_observed: true
 pre_task_hook_observed: true | false | unknown
 post_task_hook_observed: true | false | unknown
 ```
 
-**注意**：「到達 session_end」只能證明 closeout path 有執行，
-不能推論整個 session 都有完整的 pre/post gate 覆蓋。
-這是目前三個 proxy 中最容易高估 agent class 的一個。
+---
+
+## 目前 posture
+
+這些欄位都應被視為：
+
+> proxy-based governance classification 的 evidence
+
+也就是：
+
+- 幫 reviewer 看 session 中有哪些治理 proxy 被觀測到
+- 幫 reviewer 看有哪些 proxy 缺失或退化
+- 幫 reviewer 避免把 availability / presence 誤讀成 capability truth
+
+它們目前**不是**：
+
+- `instruction_capable` 的真實能力證明
+- `injection+enforcement` 已完全成立的證明
+- `tool_gate: active` 就代表全流程受控的證明
 
 ---
 
-## 綜合風險評估
+## 與 transition / reaction 的關係
 
-| 欄位 | 實際層級 | 命名暗示層級 | 風險等級 |
-|------|---------|------------|---------|
-| `has_file_access` | host process capability | agent capability | 中 — 容易混淆 runtime 和 agent |
-| `instruction_loaded` | presence（file exists） | consumption（file was read） | 高 — 直接誤導 reviewer |
-| `context_integrity` | signal absence | confirmed full | 中 — default full 過於自信 |
-| `tool_gate` | closeout boundary | full session gate coverage | 高 — 暗示完整 interception |
+`classification_evidence` 主要回答的是 evidence 的語義邊界。  
+如果 evidence 進一步造成 classification 變動，則應交由：
 
----
+- `docs/classification-transition-semantics.md`
+- `docs/classification-reaction-policy.md`
 
-## 目前 classification 的正確定位
-
-基於以上語義邊界，目前這套 classification 的準確定義是：
-
-> **第一版 proxy-based governance classification**
->
-> 這不是 capability truth model，而是：
-> 系統根據目前可得的 proxy evidence，
-> 對本 session 的治理路徑做出保守推論，
-> 並讓 reviewer 能追溯推論依據。
-
-這個定義允許：
-- reviewer 看到 session 如何被分類
-- reviewer 看到分類的依據是什麼
-- reviewer 質疑依據是否足夠
-
-這個定義不允許：
-- 把 `instruction_capable` 當成 agent capability 的保證
-- 把 `injection+enforcement` 當成 injection 確實有效的保證
-- 把 `tool_gate: active` 當成所有 task 都被 gated 的保證
-
----
-
-## Strategy Transition 欄位（已實作）
-
-`classification_evidence` 在 session_start 和 session_end 各做一次，
-現在兩次之間有對比機制。
-
-已實作的四個欄位（在 `decision_context` 和 `governance_classification` 中）：
-
-```
-initial_agent_class:       session_start 的 effective_agent_class（session_end 讀入）
-                           None = session_start 資訊不可得
-effective_agent_class:     session_end 實際計算的 class
-classification_changed:    true | false | null（null = initial 不可得，無法比較）
-reclassification_reason:   null | "tool_gate_missing" | "context_degraded"
-                                | "instruction_load_failed" | "conservative_downgrade"
-```
-
-**session_start** 的 `governance_classification` 結構：
-```python
-{
-    "initial_agent_class": None,    # this IS the initial classification
-    "effective_agent_class": "...",
-    "classification_changed": None,  # N/A at session_start
-    "reclassification_reason": None,
-    ...
-}
-```
-
-**session_end** 的 `decision_context` 結構（當 `--session-start-file` 提供時）：
-```python
-{
-    "initial_agent_class": "instruction_capable",   # from session_start
-    "effective_agent_class": "instruction_capable" | <downgraded>,
-    "classification_changed": False | True,
-    "reclassification_reason": None | "context_degraded" | ...,
-    ...
-}
-```
-
-這樣 reviewer 能看到：
-- 這次 session 最終被判成什麼 class
-- 它中途有沒有降級
-- 為什麼降級（哪個 signal 觸發）
-
-這個補丁對應 `docs/governance-strategy-runtime.md` 的 Transition Rules 章節。
-
----
-
-## 邊界
-
-這份文件不負責：
-- 決定現在要不要改欄位名稱（改名有向後相容成本）
-- 定義更強的 observation signal 的收集方式
-- 改動 classification_evidence schema
-
-它只負責：
-- 讓任何讀 `classification_evidence` 的人知道每個欄位代表什麼
-- 讓任何寫新 evidence signal 的人知道不要跨越 presence → consumption 的語義邊界
-- 防止 reviewer 把弱 proxy 當強保證
+處理 transition 規則與 downstream reaction。

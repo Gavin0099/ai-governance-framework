@@ -1,160 +1,114 @@
-# Classification Reaction Policy
+# Classification Reaction Policy：classification change 對下游 surface 的影響
 
 ## 目的
 
-這份文件定義當 governance classification 發生變化時，系統的**具體反應**。
+這份文件定義 governance classification 變動後，哪些 downstream surface 應該收到 reaction，以及 reaction 的位階是什麼。
 
-它只做兩件事：
-1. 每種 classification change 觸發哪些 downstream surface 反應
-2. 哪些反應已實作，哪些是未來工作
+它和 `docs/classification-transition-semantics.md` 的分工是：
 
-這是 `docs/classification-transition-semantics.md` 的延伸。
-那份文件說清楚「哪些 transition 合法，以及 session_end 的 runtime reaction（warning 發出）」；
-這份文件說清楚「那個 warning 之後，還有哪些 downstream surface 受到影響」。
+- transition semantics：哪些變動合法、reason 是什麼
+- reaction policy：這些變動怎麼被投影到 warnings、artifacts、summary tools
 
 ---
 
-## 已實作的 Reaction
+## 目前的 reaction surfaces
 
-### 1. Session-end warnings（classification-transition-semantics.md 定義）
+### 1. `session_end` warnings
 
-**觸發條件**：`classification_changed == True`
+觸發條件：
 
-**動作**：
-- Downgrade：`warnings[]` 中加入 `"governance: classification_downgrade — ..."` advisory
-- Upgrade anomaly：`warnings[]` 中加入 `"governance: classification_anomaly — ..."` advisory
+- `classification_changed == True`
 
-**表面**：session_end return dict 的 `warnings[]` 欄位
+行為：
 
----
+- downgrade 時，`warnings[]` 增加 `classification_downgrade` advisory
+- anomaly upgrade 時，`warnings[]` 增加 `classification_anomaly` advisory
 
-### 2. Verdict artifact escalation（本文件定義，已實作）
+來源：
 
-**觸發條件**：`classification_changed == True`（downgrade 或 upgrade anomaly 均觸發）
+- `session_end` return dict 的 `warnings[]`
 
-**動作**：
-```python
-# _build_verdict_artifact() 中
-governance_escalation_present = decision_context.get("classification_changed") is True
-governance_escalation_type = None
-if governance_escalation_present:
-    escalation_present = True
-    if reclassification_reason == "classification_anomaly_upgrade":
-        governance_escalation_type = "classification_anomaly_upgrade"
-    else:
-        governance_escalation_type = "classification_downgrade"
-```
+### 2. Verdict artifact escalation
 
-**表面**：`artifacts/runtime/verdicts/{session_id}.json` 中的：
-```json
-{
-  "override_or_escalation": {
-    "escalation_present": true,
-    "governance_escalation_present": true,
-    "governance_escalation_type": "classification_downgrade"
-  }
-}
-```
+觸發條件：
 
-**`governance_escalation_type` 語義**：
+- `classification_changed == True`
 
-| 值 | 事件本質 | Consumer 應如何解讀 |
-|----|---------|-------------------|
-| `"classification_downgrade"` | Agent 能力退化；governance strategy 收緊 | 確認收緊後行為是否仍符合預期；檢查 reclassification_reason |
-| `"classification_anomaly_upgrade"` | Proxy 訊號前後不一致；分類器可疑 | 調查 proxy signal 來源；不代表 agent 能力真的回升 |
-| `null` | 無 classification change | 不需要特別注意 |
+行為：
 
-**為什麼區分兩種 escalation type**：
-- Downgrade 和 anomaly upgrade 本質不同：前者是 agent 路徑變化，後者是分類器自身的一致性問題
-- Consumer 不應把 `"governance_escalation_present": true` 當成單一信號——它代表兩種截然不同的問題來源
-- `governance_escalation_type` 讓 CI pipeline 和 reviewer 能做出不同的 triage 決定，而不是一律走同一條審查路徑
+- `override_or_escalation.governance_escalation_present = true`
+- `governance_escalation_type` 依 reason 區分：
+  - `classification_downgrade`
+  - `classification_anomaly_upgrade`
 
----
+這個 escalation type 的作用，是讓下游 consumer 不只知道「有 escalation」，也知道 escalation 的性質是保守 downgrade，還是 anomaly。
 
-### 3. Classification session summary tool（本文件定義，已實作）
+### 3. Classification session summary tool
 
-**用途**：讓 reviewer 和系統管理員看到跨 session 的 classification 分布統計。
+用途：
 
-**工具**：`governance_tools/classification_session_summary.py`
+- 讓 reviewer / maintainer 看到某段期間內 classification 漂移的分布
 
-**輸入**：掃描 `artifacts/runtime/summaries/*.json`，讀取每個 session 的 `decision_context`
+主要輸出：
 
-**輸出**：
-```
-[classification_session_summary]
-summary=ok=True | policy_ok=True | sessions=5 | downgrades=2 | anomalies=0 | conservative_rate=0.2
-session_count=5
-downgrade_count=2
-anomaly_count=0
-conservative_downgrade_rate=0.2
-[policy_flags]
-  anomaly_alert=False  # hard invariant: any anomaly_count > 0 needs investigation
-  classifier_review=False  # drift signal: conservative_downgrade_rate > 0.1
-  taxonomy_breach=False  # schema drift: unknown reason values detected
-[reason_distribution]
-  context_degraded=1
-  conservative_downgrade=1
-[effective_class_distribution]
-  instruction_capable=3
-  instruction_limited=2
-```
+- `downgrade_count`
+- `anomaly_count`
+- `conservative_downgrade_rate`
+- `policy_flags`
+- `reason_distribution`
+- `effective_class_distribution`
 
-**`policy_flags` 語義**：
+## `policy_flags` 語義
 
-| 旗標 | 性質 | 觸發條件 | 應對方向 |
-|------|------|---------|---------|
-| `anomaly_alert` | Hard invariant | `anomaly_count > 0` | 調查 proxy 訊號不一致來源；這不應出現在正常運作中 |
-| `classifier_review` | Drift signal | `conservative_downgrade_rate > 10%` | 審查分類決策邏輯；尋找未處理的 edge case |
-| `taxonomy_breach` | Schema contract | `unknown_reasons` 非空 | 檢查 session_end 版本；reason 值是否與 taxonomy 不符 |
+| Flag | 類型 | 觸發條件 | 代表什麼 |
+|---|---|---|---|
+| `anomaly_alert` | hard invariant | `anomaly_count > 0` | proxy inconsistency 需要立即調查 |
+| `classifier_review` | drift signal | `conservative_downgrade_rate > threshold` | downgrade 分布偏高，需要回看 classifier / adapter |
+| `taxonomy_breach` | schema contract | unknown reason values 出現 | `reclassification_reason` 脫離 taxonomy |
 
-**`policy_ok` 的使用限制**：
+## `policy_ok` 的解讀
 
-> **警告**：`policy_ok = False` 是方便的快速開關，但它把三種不同性質的事件重新壓回一個 boolean。
-> 三個 flag 的嚴重度不同（hard invariant vs drift signal vs schema drift）；
-> consumer **必須查看 `policy_flags` 細項**，不能只靠 `policy_ok` 做 triage 決定。
+`policy_ok = False` 不代表某個單一 hard failure。  
+它只是壓縮後的總覽布林值。
 
-**關於 `_CONSERVATIVE_DOWNGRADE_REVIEW_THRESHOLD` 的未來演進**：
+真正需要拿來 triage 的，應該是 `policy_flags`：
 
-目前 10% 是靜態常數，且對所有 adapter / agent class 一視同仁。
-已知限制：
-- 不同 adapter 的 observation 穩定性本來就不同（e.g. context 容易截斷的環境 baseline 就高）
-- 不同 agent class 的分類路徑不同，各自的 conservative_downgrade 機率也不同
-- 目前沒有「歷史 baseline 比較」，只有瞬時 rate
+- 哪個是 hard invariant
+- 哪個是 drift signal
+- 哪個是 schema breach
 
-未來成熟形態：per-adapter baseline + observation window drift 計算。
-目前 10% 是 first slice，適合用來偵測顯著異常，不適合做精細 SLO 管理。
+consumer 不應只看 `policy_ok`。
 
-**關於 `conservative_downgrade_rate` 的判讀**：
+## Conservative Downgrade Threshold
 
-這個指標不應追求「接近 0」的絕對標準。
-在某些環境（context 不穩定、instruction surface 不完整）下，適度的 conservative_downgrade 是正常的。
+`conservative_downgrade_rate` 的 threshold 應被視為 drift indicator，不是 zero-tolerance invariant。
 
-更有意義的問題是：
+它主要在回答：
 
-- 這個比率是否相對穩定（沒有突然暴增）？
-- 它是否在某個 adapter 版本或環境變更後驟升？
-- 它是否成為 downgrade 的「主導原因」而非少數例外？
+- adapter / observation baseline 是否過於保守
+- 某種 agent class 是否一直被 proxy 拉低
+- 是否需要回頭看 classification evidence 的設計
 
-10% 閾值是 drift indicator，不是 zero-tolerance invariant。
+這個 rate 不應被誤讀成：
 
----
+- 只要大於 0 就是系統壞掉
+- 只要偏高就代表 agent 一定不可用
 
-## 未來工作（超出目前範圍）
+## 目前不做的 reaction
 
-| Reaction | 說明 | 阻礙 |
-|---------|------|------|
-| Mid-session class lock | Session 內一旦 downgrade，有效 class 即使後期 proxy 回升也不改變 | 需要 mid-session checkpoint（目前只有 session start/end 兩點） |
-| Downstream governance threshold adaptation | Downgrade 後，enforcement threshold 自動收緊 | 需要 enforcement layer 讀取 classification 狀態 |
-| Subsequent session conservative default | 前一 session 如果 downgrade，下一 session 的初始 class 偏保守 | 需要 cross-session state（目前每 session 各自獨立分類） |
-| Reviewer surface annotation | Trust signal 或 reviewer handoff summary 顯示 classification downgrade flag | reviewer 工具目前不讀 session runtime artifacts |
+以下 reaction 目前都**不做**：
 
----
+- mid-session class lock
+- 因 downgrade 直接調整 enforcement threshold
+- 跨 session 持續保守預設
+- 把 classification 直接寫進 hard gate
 
-## 與現有文件的對應
+## 相關文件
 
-| 文件 | 覆蓋範圍 |
-|------|---------|
-| `docs/classification-evidence-semantics.md` | 每個 evidence 欄位代表什麼（不能代表什麼） |
-| `docs/classification-transition-semantics.md` | 哪些 transition 合法 + reclassification_reason 允許值 + session_end warnings |
-| `docs/classification-reaction-policy.md`（本文件） | Warning 之後，哪些 downstream surface 受影響，以及統計工具 |
-| `docs/governance-strategy-runtime.md` | Classification 決策規則與 governance_strategy 映射 |
+- `docs/classification-evidence-semantics.md`
+- `docs/classification-transition-semantics.md`
+- `docs/governance-strategy-runtime.md`
+
+## 一句話結論
+
+classification reaction policy 目前只負責把變動安全地投影到 reviewer-visible 與 artifact-visible surface；它不是新的 authority source，也不是新的 enforcement engine。

@@ -1,121 +1,98 @@
-# Entry-Layer Contract for AI Governance Framework
+# Entry-Layer Contract：workflow artifact 最小閉環契約
 
-## Purpose
+## 目的
 
-Define the minimum contract that lets workflow skills become runtime-recognizable
-governance entrypoints instead of remaining a disconnected UX layer.
+這份文件定義最小 contract，讓 workflow skills 產生的 artifact 能被 runtime 辨識，而不是停留在脫離治理系統的 UX layer。
 
-This specification does not try to make the repository a full workflow engine.
-It defines the smallest closed loop that can later be recognized by runtime
-governance without over-claiming enforcement or drifting into a second system.
-
-The minimum closed loop is:
+它不是要把 repo 變成完整 workflow engine，而是先定義一個最小閉環：
 
 `tech-spec -> precommit -> create-pr`
 
-## Why This Exists
+## 為什麼需要這份 contract
 
-This repository already has:
+目前 repo 已經有：
 
 - runtime governance hooks
-- reviewer handoff and trust surfaces
-- focused workflow-oriented skills
-- CI and repo-boundary validation
+- reviewer handoff 與 trust surfaces
+- 導向 workflow 的 skills
+- CI 與 repo boundary validation
 
-What it does not yet have is a contract that answers:
+但還缺一個明確 contract 去回答：
 
-- what a workflow skill produces
-- what runtime is allowed to recognize
-- what relationship exists between those workflow steps
-- what consequence class applies when a step is missing
+- workflow skill 到底產出什麼
+- runtime 允許辨識什麼
+- 各 workflow step 之間是什麼關係
+- 某一步缺失時，現階段屬於哪種 consequence class
 
-Without that contract, workflow skills expand the number of entrypoints but do
-not expand system understanding.
+如果沒有這份 contract，workflow skill 只會增加入口數量，不會增加系統理解力。
 
-## Scope
+## 範圍
 
-This spec defines:
+這份 spec 定義：
 
-- the minimum workflow object model for the entry layer
-- the edge semantics for the first closed loop
-- the minimum recognition criteria for three workflow artifacts
-- consequence classes that can be used before hard enforcement exists
+- entry layer 的最小 object model
+- 第一個 closed loop 的 edge semantics
+- 三種 workflow artifact 的最低辨識條件
+- 在 hard enforcement 尚未存在前，可以先使用哪些 consequence class
 
-This spec does not define:
+這份 spec **不定義**：
 
-- a generic DAG engine
+- generic DAG engine
 - multi-agent orchestration
-- automatic proof that an AI did not skip internal reasoning
-- universal workflow coverage for every task
-- replacement of domain/runtime evidence with workflow evidence
+- AI 是否真的沒跳過內部推理的自動證明
+- 每個 task 都必須完整走過 workflow
+- 以 workflow evidence 取代 domain/runtime evidence
 
-## Boundary To Preserve
+## 必須保留的邊界
 
-This repository remains primarily:
+這個 repo 主要仍是：
 
-- a runtime governance system
-- an evidence and reviewer-surface system
+- runtime governance system
+- evidence / reviewer-surface system
 
-The entry layer is an upstream coordination layer that can later feed runtime
-recognition. It is not a separate governance authority.
+entry layer 是上游協調層，未來可以供 runtime 辨識，但它不是另一套治理 authority。
 
-## Minimal Closed Loop
+## 最小閉環
 
-The first closed loop is intentionally small.
+### `tech_spec`
 
-### `tech-spec`
+角色：
 
-Role:
+- 把非 trivial 的意圖轉成有範圍、可審查的計畫
 
-- convert non-trivial intent into a scoped, reviewable plan
+### `validation_evidence`
 
-### `precommit`
+角色：
 
-Role:
+- 在 reviewer handoff 之前，留下本地驗證證據
 
-- produce local validation evidence before the change is prepared for reviewer
-  handoff
+### `pr_handoff`
 
-### `create-pr`
+角色：
 
-Role:
+- 把範圍、風險、與證據打包成 reviewer 可讀的 handoff
 
-- package scope, risk, and evidence into a reviewer-ready handoff
-
-The design goal is not to prove every possible workflow path. The goal is to
-make one meaningful path explicit, recognizable, and bounded.
+目標不是證明所有 workflow path，而是讓**至少一條有意義的 path**明確、可辨識、且邊界清楚。
 
 ## Workflow Object Model
 
-Runtime should not trust a plain claim that a step was used.
-
-The minimum recognizable unit is a verifiable workflow artifact, not a chat
-statement and not a skill name alone.
+runtime 不應相信單純的聊天宣稱。  
+最小可辨識單位必須是**可驗證的 workflow artifact**，不是 skill 名稱，也不是口頭描述。
 
 ### Object Types
 
-#### 1. Workflow Artifact
+1. **Workflow Artifact**  
+   某個 workflow step 產生，供後續辨識的檔案或結構化紀錄
 
-A file or structured record created by a workflow step and intended for later
-recognition.
+2. **Workflow Recognition Result**  
+   runtime 端對 artifact 是否存在、是否有效、是否適用於目前 scope 的解讀
 
-This is the primary object runtime may inspect.
-
-#### 2. Workflow Recognition Result
-
-The runtime-side interpretation of whether a workflow artifact exists, is valid,
-and is relevant to the current scope.
-
-#### 3. Workflow Consequence Class
-
-A classification of what missing or invalid recognition means before hard
-enforcement is enabled.
+3. **Workflow Consequence Class**  
+   在 hard enforcement 尚未存在前，missing / invalid recognition 應該落在哪一類後果
 
 ## Artifact Envelope
 
-All entry-layer workflow artifacts should conform to one minimum envelope.
-
-Required fields:
+所有 entry-layer artifact 最少都應包含：
 
 - `artifact_type`
 - `skill`
@@ -126,176 +103,128 @@ Required fields:
 
 ## Artifact Storage Convention
 
-The minimum storage convention should also be explicit, so observation does not
-depend on ad hoc file hunting.
-
-Recommended path:
+建議路徑：
 
 `artifacts/workflow-entry/<task-slug>/<artifact_type>.json`
 
-Examples:
+例如：
 
 - `artifacts/workflow-entry/add-runtime-loop/tech_spec.json`
 - `artifacts/workflow-entry/add-runtime-loop/validation_evidence.json`
 - `artifacts/workflow-entry/add-runtime-loop/pr_handoff.json`
 
-This convention is not itself a verdict. It is only the stable location that
-lets a runtime-side observer ask whether recognizable artifacts exist for a
-given observable task scope.
+這個 convention 本身不是 verdict，只是讓 runtime-side observer 能用穩定位置辨識 artifact。
 
-### Required Field Semantics
+## 必要欄位語義
 
-#### `artifact_type`
+### `artifact_type`
 
-Identifies the kind of workflow artifact.
-
-Examples:
+標識 artifact 類型，例如：
 
 - `tech_spec`
 - `validation_evidence`
 - `pr_handoff`
 
-#### `skill`
+### `skill`
 
-Identifies which workflow skill produced the artifact.
-
-Examples:
+標識是哪個 workflow skill 產生，例如：
 
 - `tech-spec`
 - `precommit`
 - `create-pr`
 
-#### `scope`
+### `scope`
 
-Binds the artifact to a recognizable unit of work.
+把 artifact 綁定到可辨識的工作範圍。最少應包含：
 
-Minimum fields:
+- `task_text` 或等價的 task identifier
+- 相關 repo root
+- changed surface hint（檔案、diff 範圍、或 PR scope）
 
-- `task_text` or equivalent task identifier
-- relevant repository root
-- changed surface hint such as file paths, diff scope, or PR scope
+如果 scope 無法和目前工作對應，runtime 不應視為 applicable。
 
-Runtime should not treat an artifact as applicable if scope cannot be matched to
-the current work context.
+### `timestamp`
 
-#### `timestamp`
+記錄 artifact 產生時間，供未來 freshness / ordering 規則使用。
 
-Records when the artifact was produced.
+### `status`
 
-This allows later freshness or ordering rules without requiring them yet.
-
-#### `status`
-
-Captures the outcome class of the step.
-
-Allowed minimum values:
+記錄該 step 的結果類型。最小允許值：
 
 - `completed`
 - `passed`
 - `failed`
 - `partial`
 
-#### `provenance`
+### `provenance`
 
-Records how the artifact was produced.
+記錄 artifact 是如何產生的，至少應包含：
 
-Minimum fields:
-
-- producing tool or skill identity
+- producing tool / skill identity
 - repository path context
-- tool or framework version when available
-
-Without provenance, recognition may detect an artifact but should not assign it
-high trust.
+- tool 或 framework version（若可取得）
 
 ## Edge Semantics
 
-Arrows are not enough. Each edge must declare what kind of relationship it
-represents.
+第一個 closed loop 的 edge 不是單純箭頭，而要說清楚關係型別。
 
-This spec recognizes four edge types.
+### `sequencing`
 
-### 1. `sequencing`
+表示某一步通常發生在另一步之前。  
+這是順序建議，不是 prerequisite 證明。
 
-Meaning:
+### `prerequisite`
 
-- one step normally happens before another
+表示後續步驟若缺少前一步 artifact，就不應被視為 fully valid。
 
-This is ordering guidance, not proof of prerequisite satisfaction.
+### `coverage`
 
-### 2. `prerequisite`
+表示某一步的結果，能覆蓋後續步驟的某種 trust / completeness 面向。
 
-Meaning:
+### `recommendation`
 
-- a later step is not considered fully valid unless the earlier artifact exists
-  and is recognizable
+表示該步驟在特定條件下建議出現，但不是 minimum closed loop 的一部分。
 
-### 3. `coverage`
+## 最小閉環的 edge 定義
 
-Meaning:
+### `tech_spec -> validation_evidence`
 
-- one step provides evidence for a later step's trustworthiness or completeness
-
-### 4. `recommendation`
-
-Meaning:
-
-- a step is suggested under certain conditions but is not part of the minimum
-  closed loop
-
-## Closed-Loop Edge Definitions
-
-For the minimum loop:
-
-### `tech-spec -> precommit`
-
-Edge types:
+edge types：
 
 - `sequencing`
 - `coverage`
 
-Meaning:
+意義：
 
-- `tech-spec` should usually happen before validation for non-trivial work
-- the spec provides scope context that helps interpret later validation evidence
+- 非 trivial work 通常應先有 `tech_spec`
+- spec 能幫助後續 validation evidence 的解讀
 
-This is not yet a strict prerequisite in the minimum version.
+### `validation_evidence -> pr_handoff`
 
-### `precommit -> create-pr`
-
-Edge types:
+edge types：
 
 - `prerequisite`
 - `coverage`
 
-Meaning:
+意義：
 
-- `create-pr` should not be treated as fully trusted unless local validation
-  evidence exists
-- `precommit` evidence covers the local validation aspect of reviewer handoff
+- 沒有本地 validation evidence 的 `create-pr` 不應被視為 fully trusted
+- `precommit` 產生的 evidence 能覆蓋 reviewer handoff 的本地驗證面向
 
 ## Recognition Rules
 
-Recognition must remain specific enough for runtime use, but not so abstract
-that it becomes a workflow engine.
+artifact 只有在以下條件都成立時，才算 recognized：
 
-### General Recognition Rule
+- envelope 結構有效
+- scope 可對應到目前工作上下文
+- provenance 存在
+- status 對該 artifact 類型有意義
 
-An artifact is recognized only if:
+「檔案存在」本身不夠。
 
-- the envelope is structurally valid
-- the scope can be matched to the current work context
-- provenance is present
-- status is meaningful for the artifact type
+## Observation States
 
-Artifact existence alone is insufficient.
-
-## Workflow Observation Semantics
-
-Before workflow artifacts influence policy, they should first be described in a
-strictly observational language.
-
-Allowed observation states:
+在 policy 介入之前，workflow artifact 應先被描述成純 observation 語言：
 
 - `recognized`
 - `missing`
@@ -303,461 +232,61 @@ Allowed observation states:
 - `stale`
 - `unverifiable`
 
-These states are intentionally observational.
-
-They do **not** mean:
-
-- the AI certainly followed the workflow
-- the AI certainly skipped the workflow
-- the task is workflow-compliant
-- the task is workflow-non-compliant
-
-The safe statement boundary is:
-
-- `recognized` means a recognizable artifact was observed
-- `missing` means no artifact was observed at the expected location
-- `incomplete` means an artifact exists but is missing required observable fields
-- `stale` means an artifact exists but falls outside the freshness window
-- `unverifiable` means an artifact exists but scope/provenance/structure does not
-  justify treating it as a recognized observation
-
-This observer should be described precisely as an artifact recognizer, not a
-workflow recognizer.
-
-Current observation subject:
-
-- storage-backed workflow artifact traces written under the entry-layer storage
-  convention
-
-It does **not** directly observe:
-
-- whether a workflow node was semantically completed
-- whether the AI intentionally skipped a step
-- whether a workflow story is true internally
-
-### Observation Coverage Boundary
-
-If `observation_coverage` is computed, it should be treated as an observation-only
-coverage metric, not as a verdict or risk score.
-
-Safe interpretation:
-
-- how much of the minimum observable artifact loop is currently recognizable
-
-Unsafe interpretation:
-
-- whether the workflow was truly followed internally
-- whether the task is compliant or non-compliant
-- whether a policy consequence is automatically justified
-
-In other words:
-
-`observation_coverage` may summarize observable coverage, but it must not silently
-become a disguised compliance score.
-
-The term `workflow_score` should be avoided because it invites false ordering,
-thresholding, and gate semantics.
-
-`observation_coverage` should also remain separate from threshold-style control
-paths. It is not a ranking signal, not a risk threshold, and not a task-level
-or compliance decision input.
-
-## Observation Interpretation Guardrails
-
-The machine-readable source of truth for consumer behavior is:
-
-- `governance/workflow_observation_interpretation.v1.json`
-
-That file exists to stop downstream consumers from silently translating
-observation states into verdict language.
-
-It also forbids a softer loophole:
-
-- observation lane outputs may not, by themselves or through observation-only
-  combination logic, be repackaged into compliance, intent, or policy-violation
-  conclusions
-
-### State Meaning Boundary
-
-- `missing` means no artifact present at the expected storage location
-- `incomplete` means artifact present but minimal envelope or payload fields are
-  absent
-- `stale` means artifact present but outside the current task freshness window
-- `unverifiable` means artifact present but provenance, schema, scope, or time
-  linkage is not trustworthy enough for recognition
-
-### Forbidden Interpretation Baseline
-
-The following direct translations are forbidden:
-
-- `missing -> workflow was not done`
-- `missing -> non-compliance`
-- `unverifiable -> intentional bypass`
-- `unverifiable -> deception`
-- `stale -> task invalid`
-- `recognized -> compliance verdict`
-
-The following combination-style translations are also forbidden:
-
-- `missing + stale + low observation_coverage -> non-compliance`
-- `unverifiable + other observation warnings -> intentional bypass`
-- `repeated observation-only missing states -> policy violation`
-
-### Allowed Consequence Baseline
-
-Until a later contract explicitly changes this, workflow observation states are
-limited to:
-
-- `hint`
-- `advisory_note`
-- `reviewer_visible_banner`
-
-The following direct consequences are forbidden:
-
-- `block`
-- `raise_minimum_task_level`
-- `force_extra_evidence`
-- `mark_non_compliant`
-- `mark_intentional_bypass`
-
-These forbidden consequences remain forbidden even if a consumer only restates
-them as an observation-only aggregate.
-
-### Diagnostic Field Boundary
-
-`failure_source_class` exists as a diagnostic aid only.
-
-It is not:
-
-- a consequence key
-- a policy severity label
-- a compliance proxy
-
-Its role is to explain why recognition failed without becoming a shadow policy
-engine.
-
-When surfaced in observer output, diagnostic metadata should remain separate from
-policy metadata. In other words, `failure_source_class` should not be nested
-under a policy-shaped field such as `state_policy`, because that path invites
-downstream consumers to misread a diagnostic label as a policy token.
-
-The same separation should hold in loader helpers: a helper named like
-`state_policy(...)` should return policy-facing state semantics only, while
-diagnostic-only fields should require an explicit diagnostic helper path.
-
-That separation is still insufficient if a downstream consumer simply merges the
-legal helper outputs back together. Cross-surface recomposition is also
-forbidden: `state_policy`, diagnostic metadata, and metric metadata must not be
-reassembled into a pseudo-policy, severity, attention-priority, or escalation
-view.
-
-## Attack Coverage Checkpoint
-
-Current state should be described narrowly:
-
-- a repeatable boundary absorption pattern now exists for three exercised attack
-  layers
-- attack-space coverage remains unknown
-- the workflow observation lane is still reviewer-ready only, not
-  consumer-ready
-
-The main value of the first three rounds is not raw attack count. It is the
-fact that pressure moved from single-surface cleanup to cross-surface misuse.
-
-The current taxonomy is intentionally structure-facing. It explains which layer
-was pressured. That is useful, but still incomplete on its own, because misuse
-arrives through consumer intent rather than through module boundaries.
-
-### Absorbed Attack Layers
-
-#### 1. State / Output Interpretation Layer
-
-Observed pressure included:
-
-- stale state masking trust-linkage failure
-- diagnostic metadata appearing on a policy-shaped path
-
-What this layer hardened:
-
-- state precedence now preserves trust-linkage failure instead of flattening it
-  into a simpler freshness story
-- policy-shaped outputs are narrower and diagnostic metadata is no longer
-  colocated with policy-facing state semantics
-
-#### 2. Helper / Metric Affordance Layer
-
-Observed pressure included:
-
-- `state_policy()` exposing diagnostic-only information through a policy helper
-- `observation_coverage` drifting toward score, ranking, or threshold meaning
-
-What this layer hardened:
-
-- helper boundaries now separate policy semantics from diagnostic-only fields
-- the metric contract now explicitly blocks score, ranking, threshold, and
-  compliance-proxy readings
-
-#### 3. Cross-Surface Composition Layer
-
-Observed pressure included:
-
-- legal observation surfaces being recomposed into pseudo-policy, severity,
-  attention-priority, or escalation views
-
-What this layer hardened:
-
-- cross-surface recomposition is now explicitly forbidden in both prose and the
-  machine-readable contract
-- observer output now names surface roles so consumers cannot plausibly claim
-  that surface boundaries were implicit
-
-### Common Failure Pattern
-
-Across all three exercised layers, the recurring problem was not just naming
-drift. The deeper pattern was structure and affordance drift:
-
-- output shape could imply a stronger meaning than prose intended
-- helper boundaries could expose the wrong semantic affordance even if field
-  names looked acceptable
-- legal surfaces could still be recombined into a shadow policy view
-
-Future boundary review should therefore prioritize structure, helper
-affordances, and composition paths before naming or prose cleanup.
-
-### Misuse Intent Overlay
-
-To avoid false coverage, the structure-facing taxonomy should be read together
-with a misuse-intent overlay.
-
-Current high-value misuse intents are:
-
-- `escalation_inference`
-- `severity_labeling`
-- `priority_or_ordering`
-- `compliance_inference`
-
-The review question is no longer only "which layer was attacked?" It must also
-be "which misuse intent was exercised, and through how many structurally
-different paths?"
-
-This matters because one misuse intent can travel through multiple attack
-routes. For example, an escalation-style reading might be induced through:
-
-- state misreading
-- metric drift
-- cross-surface recomposition
-
-If only one route is pressured, the misuse intent itself should not be treated
-as well covered.
-
-### Failure Threshold
-
-This checkpoint also needs a negative progression signal, not only a positive
-absorption summary.
-
-Until a later contract explicitly changes this, the following rule applies:
-
-- if any attack can derive attention-priority, severity, escalation, or
-  comparable pseudo-policy conclusions without violating explicit contract text,
-  then the boundary should be treated as not progression-ready
-
-In that case, the correct reading is not "the boundary was repaired" but
-instead:
-
-- the current contract still leaves a legal path to pseudo-policy
-- progression readiness is not yet established
-
-This threshold exists to prevent repair activity from being misread as maturity
-proof.
-
-### Not Yet Explicitly Pressure-Tested
-
-The following attack space is still materially under-exercised:
-
-- presentation-induced reinterpretation, where a future consumer surface makes
-  observation outputs feel like priority, severity, or compliance even when the
-  underlying data contract is legal
-- external reviewer attack quality, because all meaningful attacks so far are
-  self-red-team and not outside pressure
-- first weak consumer surface behavior, because no banner, hint, advisory, or
-  other consumer-facing attachment exists yet
-
-These remain candidates for later pressure, not proof gaps that should be
-patched speculatively right now.
-
-### Explicitly Out Of Scope For This Phase
-
-To preserve semantic-boundary signal quality, this checkpoint excludes:
-
-- real project integration noise
-- banner, hint, or advisory wording design
-- broad UX or usability tuning
-- performance, file-layout, or adoption-friction optimization
-
-Those concerns matter later, but they should not be allowed to dilute semantic
-boundary hardening before the first constrained consumer surface is even in
-scope.
-
-## Minimal Artifact Definitions
-
-### `tech_spec` Artifact
-
-Produced by:
-
-- `tech-spec`
-
-Required payload fields:
-
-- `task`
-- `problem`
-- `scope`
-- `non_goals`
-- `evidence_plan`
-
-Recognition goal:
-
-- runtime can tell that non-trivial work had an explicit scoped plan artifact
-
-Recognition limits:
-
-- runtime does not need to judge whether the spec is brilliant
-- runtime only needs to judge whether a minimally valid scoped plan exists
-
-### `validation_evidence` Artifact
-
-Produced by:
-
-- `precommit`
-
-Required payload fields:
-
-- `entrypoint`
-- `mode`
-- `result`
-- `summary`
-
-Recommended payload fields:
-
-- `commands`
-- `focused_surfaces`
-- `artifacts`
-
-Recognition goal:
-
-- runtime can tell that the local gate actually ran and whether it passed,
-  failed, or was only partial
-
-Recognition limits:
-
-- runtime should not treat a free-form pasted log as equivalent to structured
-  validation evidence
-
-### `pr_handoff` Artifact
-
-Produced by:
-
-- `create-pr`
-
-Required payload fields:
-
-- `change_summary`
-- `scope_included`
-- `scope_excluded`
-- `risk_summary`
-- `evidence_summary`
-
-Recognition goal:
-
-- runtime or reviewer surfaces can tell whether a reviewer-ready handoff exists
-  and whether it references earlier evidence
-
-Recognition limits:
-
-- `pr_handoff` does not replace release, trust-signal, or domain-validation
-  evidence
+這些狀態只表示 observation 結果，不表示：
+
+- AI 一定做了某步
+- AI 一定跳過某步
+- task 已 workflow-compliant
+- task 已 workflow-non-compliant
 
 ## Consequence Classes
 
-This spec defines classes first, not hard penalties.
-
 ### `informational`
 
-Meaning:
-
-- recognized or missing state is recorded but has no trust impact yet
+只記錄狀態，暫時沒有 trust 影響。
 
 ### `advisory_degradation`
 
-Meaning:
-
-- missing recognition lowers the quality of workflow guidance but does not reduce
-  runtime trust directly
+缺少 recognition 會降低 workflow guidance 品質，但不直接降低 runtime trust。
 
 ### `confidence_reduction`
 
-Meaning:
-
-- missing recognition should reduce confidence in the completeness of the
-  handoff or process path
+缺少 recognition 會降低 handoff / process 完整性的可信度。
 
 ### `escalation_candidate`
 
-Meaning:
-
-- missing recognition may justify human review or additional scrutiny
+缺少 recognition 可能值得引發人工 review 或額外 scrutiny。
 
 ### `verdict_prerequisite`
 
-Meaning:
-
-- a future class for steps that must exist before a later stage can be treated
-  as valid
-
-This class is defined now for forward compatibility but is not enabled by this
-minimum contract.
+未來相容欄位：某步若缺，後續不能被視為 fully valid。  
+但目前 minimum contract 尚未啟用這個 class。
 
 ## Initial Consequence Mapping
 
-For the minimum closed loop:
-
 ### Missing `tech_spec`
 
-Default class:
+預設 class：
 
 - `advisory_degradation`
 
-Reason:
+### Missing / failed `validation_evidence` before `create-pr`
 
-- the repository should notice that scoped planning is absent, but the minimum
-  contract should not yet hard-block downstream work
-
-### Missing or failed `validation_evidence` before `create-pr`
-
-Default class:
+預設 class：
 
 - `confidence_reduction`
 
-Possible escalation:
+可進一步視情況升到：
 
 - `escalation_candidate`
 
-Reason:
-
-- reviewer handoff without local validation should not be treated as equally
-  trustworthy
-
 ### Missing `pr_handoff`
 
-Default class:
+預設 class：
 
 - `informational`
 
-Reason:
-
-- the current repository already has reviewer surfaces; this contract should not
-  pretend that absence of a new artifact is a hard governance failure on day one
-
-## Minimum Operable Contract Example
+## 最小可運作範例
 
 ```yaml
 entry_layer_contract:
@@ -812,23 +341,12 @@ entry_layer_contract:
     missing_pr_handoff: informational
 ```
 
-## Explicit Non-Goals
+## 下一步建議
 
-This spec intentionally does not do the following:
+不要先加更多 workflow skills。  
+比較合理的順序是：
 
-- define a general workflow runtime
-- define a generic node-and-edge orchestration platform
-- claim that skill artifacts prove internal reasoning compliance
-- require every task to traverse the full loop
-- replace runtime, domain, test, or reviewer evidence with workflow artifacts
-
-## Recommended Next Step
-
-Do not add more workflow skills first.
-
-Instead:
-
-1. align `tech-spec`, `precommit`, and `create-pr` with this artifact contract
-2. define where those artifacts should live and how they should be named
-3. add runtime-side recognition logic for the minimum envelope only
-4. keep consequence classes advisory until recognition is proven stable
+1. 先讓 `tech-spec`、`precommit`、`create-pr` 對齊這份 artifact contract
+2. 定義 artifact 應落在哪裡、命名怎麼固定
+3. 只為 minimum envelope 加上 runtime-side recognition logic
+4. 在 recognition 穩定前，保持 consequence class 為 advisory

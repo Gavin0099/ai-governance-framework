@@ -1,107 +1,118 @@
-# Entry Layer Justification
+# Entry Layer Justification：entry layer 是否值得進 runtime
 
-> Status: **incomplete — entry layer not yet justified**
-> Created: 2026-03-30
-> Constraint document: `docs/entry-layer-boundary.md`
-
----
-
-## Purpose of This Document
-
-This is a **counter-argument document**, not a feature proposal.
-
-Its job is to establish whether the entry layer has an irreplaceable role in
-the framework — or whether it is a nice-to-have visibility layer that belongs
-outside the runtime.
-
-If this document cannot be completed, the conclusion is:
-**entry layer does not meet the bar for runtime integration. Do not proceed.**
+> 狀態：**incomplete，entry layer 尚未被證成**  
+> 建立日期：2026-03-30  
+> 對應約束文件：`docs/entry-layer-boundary.md`
 
 ---
 
-## A. What the existing system already handles
+## 這份文件的角色
 
-### session_start already provides
+這不是 feature proposal，而是一份**反方論證文件**。
 
-- task level detection (L0 / L1 / L2) from task text and risk signals
-- domain contract loading and domain gate (L0 short-circuit)
-- rule pack loading with context-aware suggestions
+它要回答的是：entry layer 是否真的有不可替代的角色，值得被納入 framework runtime；還是它其實只是可見性輔助層，應留在 runtime 外面。
+
+如果這份文件無法完成，結論就是：
+
+**entry layer 還沒有達到 runtime integration 的門檻，不應繼續。**
+
+---
+
+## A. 既有系統已經能做什麼
+
+### `session_start` 已經提供
+
+- task level detection（`L0 / L1 / L2`）
+- domain contract loading 與 domain gate
+- rule pack loading 與 context-aware suggestions
 - authority table validation
-- risk signal override from prior drift check results
-- change proposal with oversight requirement and expected validators
+- risk signal override
+- change proposal 與 oversight requirement
 - domain validator preflight
 
-### pre_task_check already provides
+### `pre_task_check` 已經提供
 
-- PLAN.md freshness gate
-- runtime contract (rules, risk, oversight, memory mode)
+- `PLAN.md` freshness gate
+- runtime contract（rules、risk、oversight、memory mode）
 - architecture impact preview
-- suggested skills and agent
+- suggested skills / agent
 
-### existing artifacts already provide
+### 既有 artifact 已經提供
 
-- `change_control_summary` — proposal-time change record
-- `reviewer_handoff_summary` — review-facing evidence and trust signal
-- `session_end` artifacts — post-session knowledge record
-- `governance_drift_checker` — governance file health
-
----
-
-## B. What gap the entry layer claims to fill
-
-> **This section is incomplete. The gap has not been defined.**
-
-Known candidate gaps (not yet evaluated):
-
-- Visibility into whether a `tech-spec` artifact existed before session_start ran
-- Traceability from a PR back to the original task spec
-- Pre-session evidence that the change was scoped before implementation began
-
-None of the above have been tested against the question:
-**Does the absence of this visibility cause a wrong decision anywhere in the runtime?**
+- `change_control_summary`
+- `reviewer_handoff_summary`
+- `session_end` artifacts
+- `governance_drift_checker`
 
 ---
 
-## C. Smaller alternatives not yet evaluated
+## B. Entry layer 自稱要補的缺口
 
-Before accepting runtime integration, these must be ruled out:
+> **本段仍未完成。真正的 gap 尚未被明確定義。**
 
-| Alternative | Why it might be sufficient |
-|-------------|---------------------------|
-| Document-only convention | Teams write tech-spec, no machine checks needed |
-| Offline observer (CLI only) | `workflow_entry_observer.py` runs as standalone audit tool, not part of runtime |
-| Post-run reporting | Included in `reviewer_handoff_summary` after the fact |
-| Pre-task evidence reuse | `pre_task_check` extended to accept an optional `--spec-file` flag |
+目前只知道一些候選 gap：
 
----
+- `session_start` 執行前，是否存在 `tech-spec` artifact 的可見性
+- 從 PR 回溯到原始 task spec 的 traceability
+- implementation 開始前，是否已完成 scope planning 的前置證據
 
-## D. Why smaller alternatives are insufficient
+但這些候選 gap 都還沒有回答同一個關鍵問題：
 
-> **This section is incomplete. No argument has been made.**
+**如果缺少這些可見性，runtime 哪裡會因此做錯 decision？**
 
 ---
 
-## E. Irreplaceability test
+## C. 尚未被排除的較小替代方案
 
-> **Neither question has been answered.**
+在接受 runtime integration 之前，至少應先排除以下替代方案：
 
-**Q1: If entry layer never existed, what capability would the framework irreversibly lose?**
-
-Answer: *unknown*
-
-**Q2: Why can that capability not be addressed in `pre_task_check`?**
-
-Answer: *unknown*
+| 替代方案 | 為什麼可能已足夠 |
+|---|---|
+| 文件約定 | 團隊照樣寫 `tech-spec`，不必機器辨識 |
+| 離線 observer（CLI only） | `workflow_entry_observer.py` 當獨立 audit 工具，不進 runtime |
+| 事後報告 | 將資訊放進 `reviewer_handoff_summary` 即可 |
+| `pre_task_check` 可選證據 | 擴充 `--spec-file` 類選項，而不是新 entry layer |
 
 ---
 
-## Current conclusion
+## D. 為什麼較小替代方案不夠
 
-Entry layer has not met the bar for runtime integration.
+> **本段仍未完成。現在還沒有足夠論證。**
 
-`docs/entry-layer-boundary.md` constraints remain fully active.
+---
 
-This document should be completed before any of the following:
-- re-adding `workflow_entry_observer` to `session_start`
-- treating entry-layer observation states as policy inputs
-- implementing E1–E4 from the suspended sprint items
+## E. Irreplaceability Test
+
+> **這兩題目前都還沒被回答。**
+
+### Q1：如果 entry layer 永遠不存在，framework 會不可逆地失去什麼能力？
+
+答案：`unknown`
+
+### Q2：為什麼這個能力不能在 `pre_task_check` 中解決？
+
+答案：`unknown`
+
+---
+
+## 目前結論
+
+entry layer 目前尚未達到 runtime integration 的門檻。
+
+因此：
+
+- `docs/entry-layer-boundary.md` 中的所有約束仍完全有效
+- 在 justification 完成前，不應：
+  - 重新把 `workflow_entry_observer` 接回 `session_start`
+  - 把 entry-layer observation state 當作 policy input
+  - 重新啟動先前暫停的 E1–E4 類整合工作
+
+---
+
+## 什麼情況下才應重開
+
+只有在以下問題能被明確回答時，才值得重新打開這條線：
+
+1. 缺少 entry layer，runtime 會在哪個 decision 上反覆失真？
+2. 這個失真為什麼無法靠 `pre_task_check`、reviewer handoff、或離線 observer 解決？
+3. 最小整合版本能否只提供該能力，而不長出第二套 authority？
