@@ -1,12 +1,12 @@
 # Manual Memory Closeout Check — 2026-04-02
 
-## Status
+## 狀態
 
-Passed on the official framework remote with memory closeout visibility present.
+已在官方 framework source 上通過 `memory closeout visibility` 驗證。
 
-## Test Date
+## 測試日期
 
-- Local date: 2026-04-02
+- Local date: `2026-04-02`
 - Session ID: `manual-memory-closeout-check`
 
 ## Framework Source
@@ -15,24 +15,26 @@ Passed on the official framework remote with memory closeout visibility present.
 - Verified remote HEAD: `dea37c5c27538f9b04ce3987dba50eab41633337`
 - Test path: `additional/ai-governance-framework-gavin0099`
 
-## Context
+## 背景
 
-An earlier run used `https://github.com/GavinWu672/ai-governance-framework`,
-whose `main` was still at `a5807aca59944cbe8eeb39a7ec07089ffe62ac60`.
-That older source did not yet contain the memory closeout visibility changes.
+先前曾用 `https://github.com/GavinWu672/ai-governance-framework` 重跑同一份驗證，但那個來源當時的 `main` 仍停在較舊 commit，尚未包含 `memory closeout visibility` 相關變更。
 
-This rerun uses the official `Gavin0099` remote, where the newer memory closeout
-observability is present.
+這次改用官方 `Gavin0099` remote 後，才驗到新版 observability：
 
-## Test Purpose
+- human output 出現 `memory_candidate_detected`
+- human output 出現 `memory_promotion_considered`
+- human output 出現 `memory_closeout_decision`
+- summary artifact 寫入結構化 `memory_closeout`
 
-Validate that `run_session_end`:
+## 測試目的
 
-- completes the manual closeout flow
-- emits human-readable memory closeout visibility
-- writes structured `memory_closeout` data into the summary artifact
+驗證 `run_session_end` 是否能：
 
-Test conditions:
+- 完成手動 closeout flow
+- 輸出 human-readable memory closeout visibility
+- 在 summary artifact 中寫入結構化 `memory_closeout`
+
+測試條件：
 
 - `memory_mode="candidate"`
 - `oversight="review-required"`
@@ -40,7 +42,7 @@ Test conditions:
 - `rules=["common", "refactor"]`
 - `public_api_diff.added=["public int Ping() => 0;"]`
 
-## Execution
+## 執行方式
 
 ```powershell
 $env:PYTHONPATH="additional/ai-governance-framework-gavin0099"
@@ -83,81 +85,47 @@ print(result["summary_artifact"])
 '@ | python -
 ```
 
-## Human Output Result
+## Human Output 結果
+
+重點欄位如下：
 
 ```text
-ok=True
-session_id=manual-memory-closeout-check
-decision=REVIEW_REQUIRED
-candidate_artifact=E:\BackUp\Git_EE\Mirra\artifacts\runtime\candidates\manual-memory-closeout-check.json
-curated_artifact=E:\BackUp\Git_EE\Mirra\artifacts\runtime\curated\manual-memory-closeout-check.json
-summary_artifact=E:\BackUp\Git_EE\Mirra\artifacts\runtime\summaries\manual-memory-closeout-check.json
-verdict_artifact=E:\BackUp\Git_EE\Mirra\artifacts\runtime\verdicts\manual-memory-closeout-check.json
-trace_artifact=E:\BackUp\Git_EE\Mirra\artifacts\runtime\traces\manual-memory-closeout-check.json
-contract_source=None
-contract_path=None
-contract_name=None
-contract_domain=None
-contract_plugin_version=None
-contract_risk_tier=unknown
-surface_validity=complete
-coverage_completeness=complete
-memory_integrity=partial
 memory_candidate_detected=True
 memory_candidate_signals=public_api_change
 memory_promotion_considered=True
 memory_closeout_decision=REVIEW_REQUIRED
 memory_closeout_reason=High-risk sessions require human review before memory promotion.
-snapshot=E:\BackUp\Git_EE\Mirra\memory\candidates\session_20260402T100720Z.json
-E:\BackUp\Git_EE\Mirra\artifacts\runtime\summaries\manual-memory-closeout-check.json
 ```
 
-## Summary Artifact Result
+這表示：
 
-`artifacts/runtime/summaries/manual-memory-closeout-check.json`
+- 這次 session 被視為值得進 closeout consideration 的 candidate
+- promotion decision 確實有發生
+- 最終沒有 auto-promote 的原因是 high-risk session 需要 human review
+
+## Summary Artifact 結果
+
+檔案：
+
+- `artifacts/runtime/summaries/manual-memory-closeout-check.json`
+
+核心欄位：
 
 ```json
-{
-  "session_id": "manual-memory-closeout-check",
-  "closed_at": "2026-04-02T10:07:20.211236+00:00",
-  "task": "unspecified-task",
-  "decision": "REVIEW_REQUIRED",
-  "risk": "high",
-  "oversight": "review-required",
-  "memory_mode": "candidate",
-  "rules": [
-    "common",
-    "refactor"
+"memory_closeout": {
+  "candidate_detected": true,
+  "candidate_signals": [
+    "public_api_change"
   ],
-  "contract_resolution_present": true,
-  "contract_risk_tier": "unknown",
-  "public_api_diff_present": true,
-  "public_api_removed_count": 0,
-  "public_api_added_count": 1,
+  "promotion_considered": true,
   "snapshot_created": true,
+  "decision": "REVIEW_REQUIRED",
   "promoted": false,
-  "memory_closeout": {
-    "candidate_detected": true,
-    "candidate_signals": [
-      "public_api_change"
-    ],
-    "promotion_considered": true,
-    "snapshot_created": true,
-    "decision": "REVIEW_REQUIRED",
-    "promoted": false,
-    "reason": "High-risk sessions require human review before memory promotion."
-  },
-  "warning_count": 0,
-  "error_count": 0,
-  "decision_context": {
-    "surface_validity": "complete",
-    "coverage_completeness": "complete",
-    "memory_integrity": "partial"
-  }
+  "reason": "High-risk sessions require human review before memory promotion."
 }
 ```
 
-## Output Artifacts
+## 產出 artifact
 
 - Summary: `artifacts/runtime/summaries/manual-memory-closeout-check.json`
 - Candidate: `artifacts/runtime/candidates/manual-memory-closeout-check.json`
@@ -166,19 +134,23 @@ E:\BackUp\Git_EE\Mirra\artifacts\runtime\summaries\manual-memory-closeout-check.
 - Trace: `artifacts/runtime/traces/manual-memory-closeout-check.json`
 - Snapshot: `memory/candidates/session_20260402T100720Z.json`
 
-## Validation Outcome
+## 驗證結果
 
-Validated successfully:
+本次驗證已成立：
 
 - `memory_candidate_detected=True`
 - `memory_candidate_signals=public_api_change`
 - `memory_promotion_considered=True`
 - `memory_closeout_decision=REVIEW_REQUIRED`
 - `memory_closeout_reason=High-risk sessions require human review before memory promotion.`
-- summary artifact contains structured `memory_closeout`
+- summary artifact 含有結構化 `memory_closeout`
 
-## Conclusion
+## 結論
 
-This test passes memory closeout visibility validation on the official framework
-source `Gavin0099/ai-governance-framework` at commit
-`dea37c5c27538f9b04ce3987dba50eab41633337`.
+這次測試證明：在官方 framework source `Gavin0099/ai-governance-framework@dea37c5c27538f9b04ce3987dba50eab41633337` 上，`memory closeout visibility` 已經成立。  
+系統不只會產生 closeout 結果，還會清楚說明：
+
+- 是否有 candidate
+- 是否進 promotion consideration
+- 最後決策是什麼
+- 為什麼沒有直接寫入 durable memory
