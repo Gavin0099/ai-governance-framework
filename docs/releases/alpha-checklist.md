@@ -1,15 +1,13 @@
-# Alpha Release Checklist
+# Alpha 發版信心檢查清單
 
-更新日期：2026-04-08
+更新日期：2026-04-09
 
-目前追蹤的正式 release：`v1.1.0`
+這份清單用來確認 `v1.1.0` 發版前的基本信心是否成立。它不是宣告系統已成為完整 policy engine，而是確認目前這個 bounded runtime-governance release 可以被說明、檢查、重現與交付。
 
-這份 checklist 刻意保持輕量。它的作用是把 release-facing trust signal 變成可 review 的顯性項，而不是散落在 CI、README 註記與零散 terminal output 中。
+## 核心信心檢查
 
-## Core Confidence Checks
-
-- [x] `requirements.txt` 存在，且符合文件中的 local setup path
-- [x] `start_session.md` 提供五分鐘可走通的 guided entry path
+- [x] `requirements.txt` 可支撐本地安裝與啟動路徑
+- [x] `start_session.md` 提供 guided entry path
 - [x] `python governance_tools/quickstart_smoke.py --project-root . --plan PLAN.md --contract examples/usb-hub-contract/contract.yaml --format human`
 - [x] `python governance_tools/example_readiness.py --format human`
 - [x] `python governance_tools/release_readiness.py --version v1.1.0 --format human`
@@ -23,26 +21,26 @@
 - [x] `python governance_tools/release_surface_overview.py --version v1.1.0 --format human`
 - [x] `bash scripts/verify_phase_gates.sh`
 
-## Release-Facing Artifacts
+## 對外發布面檢查
 
-- [x] `README.md` 已反映當前 release 定位
-- [x] `CHANGELOG.md` 已連到 `docs/releases/v1.1.0.md`
-- [x] `docs/releases/v1.1.0.md` 存在
-- [x] `docs/releases/v1.1.0-github-release.md` 存在
-- [x] `docs/releases/v1.1.0-publish-checklist.md` 存在
-- [x] `docs/releases/v1.0.0-alpha.md` 存在（previous release）
-- [x] `docs/releases/v1.0.0-alpha-github-release.md` 存在（previous release）
-- [x] `docs/releases/v1.0.0-alpha-publish-checklist.md` 存在（previous release）
-- [x] `docs/status/runtime-governance-status.md` 已反映當前 maturity
-- [x] `docs/status/README.md` 已指向 generated status landing path
-- [x] `docs/status/trust-signal-dashboard.md` 已說清 repo-local generated status path
-- [x] `docs/releases/generated/README.md` 存在，可作 generated release-package 入口
-- [x] `docs/LIMITATIONS.md` 有誠實描述當前邊界
+- [x] `README.md` 已能說明 release-facing 邊界
+- [x] `CHANGELOG.md` 與 `docs/releases/v1.1.0.md` 對齊
+- [x] `docs/releases/v1.1.0.md` 已就位
+- [x] `docs/releases/v1.1.0-github-release.md` 已就位
+- [x] `docs/releases/v1.1.0-publish-checklist.md` 已就位
+- [x] `docs/releases/v1.0.0-alpha.md` 保留作為上一版 release 參照
+- [x] `docs/releases/v1.0.0-alpha-github-release.md` 保留作為上一版 release 參照
+- [x] `docs/releases/v1.0.0-alpha-publish-checklist.md` 保留作為上一版 release 參照
+- [x] `docs/status/runtime-governance-status.md` 能反映目前 maturity 說法
+- [x] `docs/status/README.md` 提供 generated status landing path
+- [x] `docs/status/trust-signal-dashboard.md` 提供 repo-local generated status path
+- [x] `docs/releases/generated/README.md` 提供 generated release-package 入口
+- [x] `docs/LIMITATIONS.md` 明確說明目前能力邊界與不主張範圍
 
-## 要保持可見的已知邊界
+## 仍需誠實揭露的限制
 
-- [x] interception coverage 仍是 partial，不是 fully closed
-- [x] 多數 domain validation 仍是 advisory-first
-- [x] semantic verification 仍淺於 full policy engine
-- [x] rule classification 尚未按 repo type 分化
-- [x] external domain seam 雖然真實存在，但還不是 versioned plugin marketplace
+- [x] workflow interception coverage 仍是 partial，不可宣稱 fully closed
+- [x] domain validation / enforcement 仍以 advisory-first 為主，不可宣稱全面 hard-stop
+- [x] semantic verification 仍不是 full policy engine
+- [x] rule classification 仍依 repo type 與 rule pack 組合推定，不是完整語意理解
+- [x] external domain seam 仍是 versioned contract / plugin marketplace 的前置形態
