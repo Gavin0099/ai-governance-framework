@@ -1,108 +1,65 @@
 # Beta Gate Failure Mode Catalog
 
-> Status: active
-> Created: 2026-03-30
-> Purpose: canonical record of observed onboarding failures, used to classify
-> whether a new reviewer run is reproducing a known failure or surfacing a new one.
+> 狀態：active
+> 建立日期：2026-03-30
+> 目的：作為 onboarding failure 的 canonical 記錄，用來判斷新的 reviewer run 是重現既有 failure，還是暴露新的 failure。
 
 ---
 
-## How to use this catalog
+## 這份 catalog 怎麼用
 
-When a reviewer run produces a failure, check here first:
+當 reviewer run 出現 failure 時，先檢查這裡：
 
-1. Does the failure match a known entry? Record as reproduction and note any variance.
-2. Does it not match? Add a new entry, do not force-fit into an existing one.
+1. 這次 failure 是否符合既有條目？若符合，記成 reproduction，並說明差異。
+2. 若不符合，新增一條，不要硬塞進舊分類。
 
-Do not merge distinct failures into one entry just to keep the catalog tidy.
-A false merge hides signal.
-
----
-
-## FM-001: No-Python Execution Block
-
-**First observed:** R2 reviewer run, 2026-03-30
-
-**Observation:**
-
-```text
-Commands attempted:
-  python --version  - not found
-  python3 --version - not found
-  py --version      - not found / no installed Python
-
-Result: all documented execution steps blocked at prerequisites.
-No governance artifact produced.
-```
-
-**Classification:** Onboarding Blocking (Friction subtype)
-
-Not classified as simple Friction because it blocked the entire execution path
-with no recovery route at the time. Distinguished from ordinary friction by:
-
-- affects all tools, not one command
-- no documented bypass existed
-- reviewer stopped onboarding, not just skipped a step
-
-**CP affected:** CP5 (artifact production)
-
-**Gate impact:** Hard Fail, triggers automatic Gate FAIL regardless of other CP scores.
-See `onboarding-pass-criteria.md` Gate override rules.
-
-**Mitigation:** Route B (no-Python onboarding evidence branch)
-
-- Defined in: `start_session.md` Prerequisites -> Route B
-- Template: `docs/no-python-onboarding-evidence.md`
-- Reviewer brief: `docs/beta-gate/reviewer-route-b-brief.md`
-
-**Mitigation status:** Deployed. Pending live validation run.
-
-**Variance notes:**
-If a future run hits a different execution blocker, for example wrong shell,
-permission denied, or missing repo files, check whether it matches this entry:
-
-| Dimension | FM-001 | Different failure? |
-|-----------|--------|--------------------|
-| All python variants unavailable | Y | N -> check FM-002+ |
-| Failure is at prerequisites before any tool runs | Y | N -> may be a different FM |
-| No artifact produced | Y | N -> may be partial, not total block |
-| Reviewer had no documented recovery path | Y at time of run | N -> Route B exists now |
+不要為了讓 catalog 看起來整齊，就把不同 failure 合併成同一條。  
+錯誤合併會吃掉真正的訊號。
 
 ---
 
-## FM-002: README Entry Density / Slow Orientation
+## FM-001：No-Python Execution Block
 
-**First observed:** R2 reviewer run, 2026-03-30 (also noted in R1 run)
+**首次觀察：** R2 reviewer run，2026-03-30
 
-**Observation:**
+### 描述
 
-```text
-File: README.md
-Expected: Short reviewer-first path, clear first step
-Observed: Dense overview with architecture, release, trust-signal, runtime,
-          domain-contract, and adoption content mixed together.
-          Pointer to start_session.md present but required scanning.
-Time to orient: 3-5 minutes
-```
+reviewer 無法產生 governance artifact，原因不是 reviewer 停止操作，而是：
 
-**Classification:** Friction
+- `python`、`python3`、`py` 都不可用
+- 文件中當時也沒有 recovery path
 
-Does not block onboarding. Reviewer eventually found the entrypoint.
-Classified as Friction, not Structural, because the pointer exists.
-It is just not surfaced early enough.
+### 這類 failure 的辨識要點
 
-**CP affected:** CP1 (entry point found), borderline pass, not fail.
+- 問題發生在 execution 開始前後
+- onboarding 理解本身可能成立
+- 但 adoption / drift / runtime tool 無法真正執行
 
-**Gate impact:** None. CP1 still passed within the time limit.
+### 分類意義
 
-**Mitigation:** Not yet applied. Lowest-cost fix would be a short
-"start here" block at the top of README.md above the architecture overview.
+這類 failure 不應被誤記成：
 
-**Mitigation status:** Unresolved. Low urgency while CP1 is still passing.
+- reviewer 不夠熟悉流程
+- reviewer 沒依指示操作
+- governance artifact 遺失
+
+它是 execution precondition 不成立。
 
 ---
 
-## Entries pending
+## Catalog 使用規則
 
-No further failures observed. Add entries here as new reviewer runs produce
-new failure patterns.
+每次新增或重現 failure mode 時，至少要記：
+
+- 首次觀察時間
+- 觸發條件
+- failure 的真正層級
+- 容易被誤分類成什麼
+
+這樣 catalog 才不會變成一堆模糊標題，而能真的幫 reviewer run 分流。
+
+---
+
+## 一句話結論
+
+`Beta Gate Failure Mode Catalog` 的工作不是蒐集所有壞事，而是把 reviewer onboarding / execution / governance failure 分類清楚，避免後續把不同 failure 誤當成同一個問題。

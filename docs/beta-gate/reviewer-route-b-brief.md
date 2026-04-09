@@ -1,129 +1,76 @@
-# Reviewer Brief - Route B Live Run
+# Reviewer Brief — Route B Live Run
 
-> Version: 1.0
-> Created: 2026-03-30
-> Purpose: Gate re-run for Beta Gate Condition 2 (CP5)
-> Required environment: Python unavailable on PATH
-
----
-
-## What this run is for
-
-A previous reviewer run (R2, 2026-03-30) produced a Gate Verdict of FAIL.
-The failure was CP5: no governance artifact could be produced because Python was
-unavailable and no recovery path existed.
-
-Route B has since been added. This run verifies that Route B works as a real
-onboarding path, not a retroactive reconstruction, but a live fill under
-actual constraints.
-
-**This run is the Gate re-run. Its output is the CP5 evidence.**
+> 版本：1.0
+> 建立日期：2026-03-30
+> 目的：作為 Beta Gate Condition 2（CP5）的 gate re-run brief
+> 必要環境：PATH 上沒有可用 Python
 
 ---
 
-## Your environment constraint
+## 這次 run 要驗什麼
 
-You must be in an environment where `python`, `python3`, and `py` are all
-unavailable on PATH.
+先前一輪 reviewer run（R2，2026-03-30）得到的 Gate Verdict 是 `FAIL`。  
+造成 failure 的是 `CP5`：
 
-Verify this before starting:
+- 無法產生 governance artifact
+- 原因是 Python 不可用
+- 且當時沒有 recovery path
 
-```text
-python --version   - should fail
-python3 --version  - should fail
-py --version       - should fail
-```
+後來 `Route B` 已加入。  
+這次 run 要驗的是：
 
-If any of these succeed, this run does not qualify as a Route B run.
-Stop and find a different environment or disable the Python executable for
-the duration of the run.
+> Route B 是否真的是一條可實際執行的 onboarding 路徑，
+> 而不是事後補敘述的 reconstruction。
 
-Accept either `command not found` or an equivalent launcher message such as
-`No installed Python found!` as evidence that the interpreter is unavailable.
+**這次 run 本身就是 gate re-run，它的輸出就是 CP5 的新證據。**
 
 ---
 
-## Starting point
+## 你的環境限制
 
-https://github.com/Gavin0099/ai-governance-framework
+你這次不是在「一般環境」做 reviewer run。  
+你是在一個刻意缺少 Python 的環境下，驗證：
 
-Open that URL in a browser. Do not clone the repo unless a file explicitly
-tells you to.
-
----
-
-## Your task
-
-1. Follow `start_session.md` from the top
-2. When you reach the Prerequisites section and all Python commands fail,
-   follow the Route B instructions in that file
-3. Copy the template at `docs/no-python-onboarding-evidence.md`
-4. Fill in every field live, as you go
-5. Save your completed artifact as `docs/no-python-evidence-<YYYY-MM-DD>.md`
+- 沒有 Python 時，reviewer 還能不能完成最小 onboarding
+- failure 能不能被正確記錄成 artifact
+- recovery path 是否真的存在，而不是只寫在文件裡
 
 ---
 
-## Ground rules
+## 執行重點
 
-- **Only follow what the docs say.** Do not infer or reconstruct from context.
-- **Fill the template as you go.** Do not reconstruct from memory at the end.
-- **Record exact output.** For failed commands, copy the literal terminal message.
-- **Do not ask the author.** If the docs do not tell you what to do next, that
-  is a failure worth recording in section 6.
-- **Section 1b is a gate.** If you cannot locate both files named there, stop
-  and record the failure before continuing.
+這次不要驗太多東西。  
+只要聚焦在：
 
----
-
-## What a passing artifact looks like
-
-When you are done, your completed file should satisfy all three validity
-conditions in the template's "Artifact validity" section:
-
-1. All seven sections filled (no blank fields)
-2. Section 6 records exact failure output, not a paraphrase
-3. Section 7 contains a concrete next step, not "install Python"
-
-If your file meets these three conditions, it is a valid Route B artifact and
-CP5 is considered resolved for this environment.
+1. 能否理解 framework 是做什麼
+2. 能否找到 adoption path
+3. 在沒有 Python 的情況下，能否完成 Route B 要求的最小證據記錄
+4. 能否把 failure 寫成 reviewer 可用的 artifact
 
 ---
 
-## After you finish
+## 成功條件
 
-File your completed artifact at:
+這次 Route B live run 只有在以下條件都成立時，才算成功：
 
-```text
-docs/no-python-evidence-<YYYY-MM-DD>.md
-```
-
-That file is the Gate re-run evidence. The author will review it against the
-pass criteria in `docs/beta-gate/onboarding-pass-criteria.md` and update the
-Gate verdict.
+- reviewer 能在 no-python 條件下完成 evidence template
+- artifact 中有精確失敗命令與輸出
+- onboarding 理解與 execution blockage 被清楚分開
+- 結果不是口頭敘述，而是正式 artifact
 
 ---
 
-## For the author - Gate judgment checklist
+## 失敗條件
 
-Do not judge this run until you can answer all three questions from the artifact alone,
-without asking the reviewer:
+以下任一成立，就仍算 CP5 failure 未解除：
 
-1. **Environment was genuinely constrained.**
-   Did the reviewer enter Route B because all Python variants were unavailable
-   (`command not found` or equivalent unavailable output), not because Route A
-   looked inconvenient?
-   Evidence: Section 1 exact output + Section 6 blocker record.
+- reviewer 仍無法形成可接受的 artifact
+- 記錄內容空泛，只剩「沒有 Python」
+- 流程沒有明確指出下一步應如何處理
+- Route B 只能在事後回填，不能 live run
 
-2. **Failure is classifiable against the catalog.**
-   Does the failure in Section 6 match FM-001 (no-Python block), or is it
-   a new pattern not yet in `docs/beta-gate/failure-mode-catalog.md`?
-   If new: add an entry before closing the run.
+---
 
-3. **Route B was not self-selected.**
-   Is there evidence the reviewer attempted Route A before arriving at Route B?
-   (Section 1 commands attempted, Section 6 blocker record.)
-   If Route B was entered without attempting `python`, `python3`, and `py`,
-   the run does not qualify as a valid Route B run.
+## 一句話結論
 
-If any question cannot be answered from the artifact, the run is incomplete.
-Request a clarification or treat it as a new failure mode rather than closing CP5.
+這份 brief 的目的，不是再跑一次一般 onboarding，而是檢查 `Route B` 是否真的能在 no-python 限制下產生有效治理證據，從而解除先前的 `CP5` failure。
