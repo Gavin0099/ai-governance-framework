@@ -1,34 +1,34 @@
 # Step 7 Rebaseline Checklist
 
-> Purpose: rerun the three baseline task shapes after Step 7 `output tier separation`
-> so token savings and remaining deferred work can be evaluated from fresh data.
+> 目的：在 Step 7 `output tier separation` 之後，重新量測三種 baseline task shape，  
+> 用最新資料確認 token 節省幅度，以及 deferred work 是否該重新排序。
 
-## Scope
+## 範圍
 
-Re-measure these three flows:
+重新量測以下三條 flow：
 
-1. `L0` UI / presentation task
-2. `L1` normal implementation task
-3. `Onboarding` / adoption task
+1. `L0` UI / presentation 任務
+2. `L1` 一般實作任務
+3. `Onboarding` / adoption 任務
 
-Do not compare new runs against pre-Step-7 intuition only.
-Always compare against the current committed baselines:
+不要只拿新結果和 Step 7 之前的印象比較。  
+一定要和目前已提交的 baseline 比：
 
 - [L0-baseline.md](/e:/BackUp/Git_EE/ai-governance-framework/docs/payload-audit/L0-baseline.md)
 - [L1-baseline.md](/e:/BackUp/Git_EE/ai-governance-framework/docs/payload-audit/L1-baseline.md)
 - [onboarding-baseline.md](/e:/BackUp/Git_EE/ai-governance-framework/docs/payload-audit/onboarding-baseline.md)
 
-## Preflight
+## 前置檢查
 
-- Pull latest `main`
-- Confirm Step 7 commit is present: `e35f60c`
-- Use the same Python/runtime path as the previous payload audit runs
-- Clear expectation drift:
-  - `L0` should stay clearly below the old L1 baseline
-  - `L1` should improve mainly from output compression, not from domain removal
-  - `Onboarding` should reflect `summary-first` impact before any new deferred optimization
+- pull 最新 `main`
+- 確認 Step 7 commit 已存在：`e35f60c`
+- 使用和前一次 payload audit 相同的 Python/runtime 路徑
+- 先校正期待值：
+  - `L0` 應明顯低於舊的 `L1` baseline
+  - `L1` 的改善應主要來自 output 壓縮，而不是 domain 被移除
+  - `Onboarding` 應先反映 `summary-first` 的效果，再談新的 deferred optimization
 
-## Commands
+## 命令
 
 ### L0
 
@@ -75,38 +75,38 @@ python runtime_hooks/core/session_start.py ^
   --format json
 ```
 
-## What To Record
+## 要記錄的欄位
 
-For each run, capture:
+每次 run 至少記下：
 
-- task shape: `L0` / `L1` / `Onboarding`
+- task shape：`L0` / `L1` / `Onboarding`
 - commit SHA
-- date
-- whether output is `ok`
+- 日期
+- output 是否 `ok`
 - `task_level`
 - `repo_type`
 - `output_tier`
-- total token estimate
+- token estimate 總量
 - top token contributors
-- whether `domain_contract` loaded
-- whether Tier 3 artifact path was emitted
-- notable warnings / blockers
+- `domain_contract` 是否有載入
+- 是否有輸出 Tier 3 artifact path
+- 重要 warning / blocker
 
-## Decision Questions
+## 決策問題
 
-After the three reruns, answer these before doing more optimization work:
+三條 flow 都重跑完之後，再回答這四題，才決定是否做下一輪 payload 優化：
 
-1. Did Step 7 materially reduce `L1` and `Onboarding`, or mostly just `L0` presentation?
-2. After `kernel-driver-adapter-summary.md` is in place, is the next bottleneck `pre_task_check` / rendered output rather than `domain_contract` itself?
-3. Is `Step 3b` full memory refactor still justified after the new baseline?
-4. Does `Onboarding` still deserve its own short-circuit, or is `summary-first` enough?
+1. Step 7 是否實質降低了 `L1` 和 `Onboarding`，還是只壓到 `L0` presentation？
+2. `kernel-driver-adapter-summary.md` 上線後，下一個瓶頸是否已經是 `pre_task_check` / rendered output，而不是 `domain_contract` 本身？
+3. 新 baseline 出來後，`Step 3b` 的 full memory refactor 是否仍有必要？
+4. `Onboarding` 還需要獨立 short-circuit，還是 `summary-first` 已經足夠？
 
-## Recording Template
+## 記錄模板
 
-Copy this into the relevant baseline file or a dated note.
+把下面這段貼進對應 baseline 檔或某份 dated note：
 
 ```markdown
-## Step 7 Rebaseline — <task-shape>
+## Step 7 Rebaseline <task-shape>
 
 - Date: <YYYY-MM-DD>
 - Commit: <sha>
@@ -132,12 +132,12 @@ Copy this into the relevant baseline file or a dated note.
   - <stop / defer / continue specific optimization>
 ```
 
-## Exit Criteria
+## 完成條件
 
-You are done with Step 7 rebaseline when:
+滿足以下條件，才算 Step 7 rebaseline 完成：
 
-- all three task shapes were rerun
-- each has a recorded token number
-- each has a short interpretation
-- one updated comparison summary exists
-- deferred items are re-ranked from measured data, not estimates
+- 三種 task shape 都已重跑
+- 每一種都有記下 token 數
+- 每一種都有短版 interpretation
+- 已有一份更新後的 comparison summary
+- deferred items 已依據**實測資料**重新排序，而不是靠估計

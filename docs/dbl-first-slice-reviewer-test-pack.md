@@ -1,118 +1,114 @@
 # DBL First-Slice Reviewer Test Pack
 
-> Version: 1.0
-> Created: 2026-03-31
-> For: external reviewer (no author-side oral clarification)
-> Scope: Step 2 reconstruction only
+> 版本：1.0  
+> 建立日期：2026-03-31  
+> 對象：外部 reviewer（第一輪不接受作者口頭補充）  
+> 範圍：只測 Step 2 reconstruction
 
 ---
 
-## Part 1 - What you are testing
+## Part 1：你在測什麼
 
-You are **not** testing full framework onboarding in this exercise.
+這份測試**不是**要你驗完整 framework onboarding。
 
-You are testing whether the current first executable slice of the Decision
-Boundary Layer (DBL) can be correctly reconstructed from its examples and
-framing materials.
+你要測的是：目前 `Decision Boundary Layer (DBL)` 的第一個可執行 slice，  
+是否能只靠範例與 framing materials 被正確重建。
 
-Your job is not to improve the framework while reading.
+你在閱讀時的任務不是順手幫 framework 改進。
 
-Your job is to read the provided materials, answer the questions below, and
-record where the examples or wording caused you to over-infer, under-infer, or
- hesitate.
+你的任務是：
+
+- 閱讀指定材料
+- 回答下面四個問題
+- 記錄哪些地方讓你過度推論、低估、或產生猶豫
 
 ---
 
-## Part 2 - Materials to review
+## Part 2：第一輪要讀的材料
 
-Read only these files for the first pass:
+第一輪只讀這三份：
 
 1. `examples/README.md`
 2. `examples/decision-boundary/minimal-preconditions/README.md`
 3. `examples/decision-boundary/insufficiency-like-preconditions/README.md`
 
-Do not ask the author for clarification during the first pass.
+第一輪閱讀期間，不要向作者詢問補充說明。
 
 ---
 
-## Part 3 - Reviewer task sheet
+## Part 3：Reviewer 任務單
 
-Answer all four questions in your own words.
+請用自己的話回答以下四題：
 
-1. What does the current first-slice DBL gate appear able to judge?
-2. What does the current first-slice DBL gate appear unable to judge?
-3. In what situation would the current gate still pass even though the evidence
-   may be semantically weak or incomplete?
-4. Is the insufficiency-like example a capability proof or a limitation proof?
-   Why?
+1. 目前這個 first-slice DBL gate 看起來**能判什麼**？
+2. 目前這個 first-slice DBL gate 看起來**不能判什麼**？
+3. 在什麼情況下，雖然證據在語義上偏弱或不完整，這個 gate 仍可能會通過？
+4. `insufficiency-like` 那個例子是 capability proof 還是 limitation proof？為什麼？
 
 ---
 
-## Part 4 - Misread log
+## Part 4：誤讀記錄
 
-Fill this in as you go. Short notes are fine.
+閱讀過程中請隨手填，短句即可。
 
-### 4.1 First over-inference point
+### 4.1 第一個 over-inference 點
 
-```
-File or sentence I was reading:
+```text
+我當時在讀哪個檔案或句子：
 
-What I thought the framework was claiming at that point:
+我以為 framework 在主張什麼：
 
-What made me think that:
-```
-
----
-
-### 4.2 First hesitation point
-
-```
-Where I slowed down or became unsure:
-
-What I was unsure about:
-
-What I expected the file to clarify but it did not:
+哪個措辭讓我產生這個想法：
 ```
 
 ---
 
-### 4.3 Final classification
+### 4.2 第一個 hesitation 點
 
+```text
+我在哪裡停住或不確定：
+
+我不確定的是什麼：
+
+我原本期待檔案補充什麼，但它沒有：
 ```
-Did the examples let me distinguish explicit presence from semantic sufficiency?
+
+---
+
+### 4.3 最終分類
+
+```text
+這些例子是否讓我分清 explicit presence 和 semantic sufficiency？
 Y / N / Partial
 
-Did I interpret the insufficiency-like example as a limitation proof?
+我是否把 insufficiency-like 例子理解成 limitation proof？
 Y / N / Partial
 
-Did any green test / passing result make me think the framework already checks
-adequacy?
+任何 green test / passing result 是否讓我以為 framework 已能判 adequacy？
 Y / N
 
-If yes, where did that impression come from?
+如果有，這個 impression 來自哪裡？
 ```
 
 ---
 
-## Part 5 - Submission format
+## Part 5：提交格式
 
-Save your notes using this path:
+請把你的筆記存成：
 
 `docs/dbl-first-slice-reviewer-run-<YYYY-MM-DD>-<initials>.md`
 
-You may use `docs/dbl-first-slice-reviewer-findings-template.md` as a template.
+如果要用模板，可從 `docs/dbl-first-slice-reviewer-findings-template.md` 開始。
 
 ---
 
-## Part 6 - What counts as a successful reconstruction
+## Part 6：怎樣算成功重建
 
-The reconstruction is only counted as correct if the reviewer clearly concludes
-that:
+只有在 reviewer 明確得出以下結論時，才算重建成功：
 
-- the current slice is explicit-precondition / missingness oriented
-- semantic sufficiency is still out of scope
-- the insufficiency-like example is demonstrating a limitation, not a new
-  capability
+- 目前這個 slice 主要面向 `explicit-precondition / missingness`
+- `semantic sufficiency` 仍然不在目前範圍內
+- `insufficiency-like` 範例展示的是限制，不是新能力
 
-If the reviewer interprets the insufficiency-like example as evidence that the
-runtime already judges adequacy, treat that as a failed reconstruction.
+如果 reviewer 把 `insufficiency-like` 例子理解成「runtime 已能判 adequacy」的證據，  
+這次 reconstruction 應視為失敗。
