@@ -1,19 +1,16 @@
-# Step 7 Rebaseline Checklist
+﻿# Step 7 Rebaseline Checklist
 
-> 目的：在 Step 7 `output tier separation` 之後，重新量測三種 baseline task shape，  
-> 用最新資料確認 token 節省幅度，以及 deferred work 是否該重新排序。
+> 目的：讓 Step 7 `output tier separation` 上線後，重新建立對應 baseline task shape  
+> 這份清單只處理 token 結構與 payload 變化，不處理 deferred work 的最終設計
 
 ## 範圍
 
-重新量測以下三條 flow：
+重新建立基線時，至少要覆蓋：
+1. `L0` UI / presentation
+2. `L1` schema / logic
+3. `Onboarding` / adoption
 
-1. `L0` UI / presentation 任務
-2. `L1` 一般實作任務
-3. `Onboarding` / adoption 任務
-
-不要只拿新結果和 Step 7 之前的印象比較。  
-一定要和目前已提交的 baseline 比：
-
+目前 baseline 參考：
 - [L0-baseline.md](/e:/BackUp/Git_EE/ai-governance-framework/docs/payload-audit/L0-baseline.md)
 - [L1-baseline.md](/e:/BackUp/Git_EE/ai-governance-framework/docs/payload-audit/L1-baseline.md)
 - [onboarding-baseline.md](/e:/BackUp/Git_EE/ai-governance-framework/docs/payload-audit/onboarding-baseline.md)
@@ -21,14 +18,11 @@
 ## 前置檢查
 
 - pull 最新 `main`
-- 確認 Step 7 commit 已存在：`e35f60c`
-- 使用和前一次 payload audit 相同的 Python/runtime 路徑
-- 先校正期待值：
-  - `L0` 應明顯低於舊的 `L1` baseline
-  - `L1` 的改善應主要來自 output 壓縮，而不是 domain 被移除
-  - `Onboarding` 應先反映 `summary-first` 的效果，再談新的 deferred optimization
+- 確認 Step 7 對應 commit 已存在，例如 `e35f60c`
+- 確認 payload audit 所需 Python/runtime 路徑可執行
+- 確認這次 run 的目標是重建 baseline，而不是混入其他優化實驗
 
-## 命令
+## 命令範例
 
 ### L0
 
@@ -75,11 +69,9 @@ python runtime_hooks/core/session_start.py ^
   --format json
 ```
 
-## 要記錄的欄位
+## 每次 run 至少要記的欄位
 
-每次 run 至少記下：
-
-- task shape：`L0` / `L1` / `Onboarding`
+- task shape（`L0` / `L1` / `Onboarding`）
 - commit SHA
 - 日期
 - output 是否 `ok`
@@ -88,22 +80,20 @@ python runtime_hooks/core/session_start.py ^
 - `output_tier`
 - token estimate 總量
 - top token contributors
-- `domain_contract` 是否有載入
-- 是否有輸出 Tier 3 artifact path
-- 重要 warning / blocker
+- `domain_contract` 是否載入
+- Tier 3 artifact path 是否存在
+- notable warnings / blocker
 
-## 決策問題
+## 解讀原則
 
-三條 flow 都重跑完之後，再回答這四題，才決定是否做下一輪 payload 優化：
+重建 baseline 的目的是看 Step 7 是否真的改變 payload 結構，而不是只看總 token 有沒有下降。
+重點包括：
+1. `L1` 與 `Onboarding` 是否與 `L0` 明顯分層
+2. `domain_contract` 與 rendered output 的相對佔比是否改變
+3. 是否需要把 `Step 3b` 的 full memory refactor 納入後續檢查
+4. `Onboarding` 是否仍屬於 `summary-first` 之外的 deferred optimization
 
-1. Step 7 是否實質降低了 `L1` 和 `Onboarding`，還是只壓到 `L0` presentation？
-2. `kernel-driver-adapter-summary.md` 上線後，下一個瓶頸是否已經是 `pre_task_check` / rendered output，而不是 `domain_contract` 本身？
-3. 新 baseline 出來後，`Step 3b` 的 full memory refactor 是否仍有必要？
-4. `Onboarding` 還需要獨立 short-circuit，還是 `summary-first` 已經足夠？
-
-## 記錄模板
-
-把下面這段貼進對應 baseline 檔或某份 dated note：
+## 建議記錄格式
 
 ```markdown
 ## Step 7 Rebaseline <task-shape>
@@ -132,12 +122,6 @@ python runtime_hooks/core/session_start.py ^
   - <stop / defer / continue specific optimization>
 ```
 
-## 完成條件
+## 一句總結
 
-滿足以下條件，才算 Step 7 rebaseline 完成：
-
-- 三種 task shape 都已重跑
-- 每一種都有記下 token 數
-- 每一種都有短版 interpretation
-- 已有一份更新後的 comparison summary
-- deferred items 已依據**實測資料**重新排序，而不是靠估計
+Step 7 rebaseline 的重點，是確認 `output tier separation` 之後 payload 結構是否真的改變，而不是只把舊 baseline 換成新數字。
