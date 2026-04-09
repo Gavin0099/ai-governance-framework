@@ -1,4 +1,4 @@
-# Beta Gate Reviewer Run - 2026-03-31
+﻿# Beta Gate Reviewer Run — 2026-03-31
 
 ## 目標
 
@@ -22,84 +22,39 @@ author 端應搭配：
 - `docs/beta-gate/reviewer-signal-split.md`
 - `docs/beta-gate/reviewer-run-sheet.md`
 - `docs/beta-gate/onboarding-pass-criteria.md`
-- `docs/beta-gate/reviewer-test-brief.md`
 
-## Run Setup
+## 這次 run 要回答的問題
 
-Reviewer constraints：
+這次不是再做一次泛泛的 onboarding 檢查。  
+它真正要回答的是：
 
-- External reviewer
-- Cold start
-- No author guidance
-- 只從 repo URL 開始
-- 只給 `reviewer-test-brief.md` 允許的一句 framing
+1. reviewer 是否更容易找到正確入口
+2. reviewer 是否能把 DBL first slice 正確理解為 bounded decision surface
+3. failure 若仍存在，問題比較像是 wording、surface、還是 authority communication
 
-Author constraints：
+## 成功與失敗的判讀
 
-- 不提示 reviewer 去特定檔案
-- 不現場解釋概念
-- 第一輪不回答澄清問題，只要求 reviewer 記錄問題並繼續
-- 不提前交出 `reviewer-test-pack.md`、`reviewer-signal-split.md`、`reviewer-run-sheet.md`、`onboarding-pass-criteria.md`
+### 成功
 
-## Recording Checklist
+若 reviewer 能：
 
-把 raw reviewer log 存成：
+- 找到正確入口
+- 說清楚 framework 的定位
+- 正確理解 DBL first slice 的邊界
+- 並留下可比較的 run record
 
-- `docs/beta-gate/reviewer-run-<YYYY-MM-DD>.md`
+則這次 run 應視為有效正向訊號。
 
-然後在提出修法前，先完整記下：
+### 失敗
 
-```text
-Time markers:
-- Time to first confusion point:
-- Time to first blockage:
+若 reviewer 仍：
 
-Signal split:
-- First meaningful failure layer: discoverability | interpretation | decision reconstruction | escalation judgment | none
-- Why this layer was chosen:
+- 找不到正確入口
+- 把 DBL 誤讀成更大的能力宣稱
+- 或無法分辨 failure 是 onboarding、DBL、還是 authority 問題
 
-Gate score:
-- CP1:
-- CP2:
-- CP3:
-- CP4:
-- CP5:
+則這次 run 的價值仍然存在，但意義是暴露下一個修補點，而不是證明通過。
 
-Override:
-- Applied: Y/N
-- Reason:
+## 一句話結論
 
-Smallest next fix:
-- ...
-```
-
-## Run 後的判讀規則
-
-如果第一個 meaningful failure layer 是：
-
-- `discoverability`
-- `interpretation`
-
-就先修 entry path、wording、headings 或 README/start-session pointers。
-
-如果是：
-
-- `decision reconstruction`
-
-就回到 DBL surface、examples 與 reviewer-pack boundary framing。
-
-如果是：
-
-- `escalation judgment`
-
-就優先修 authority language、gate override communication 或 decision-model wording。
-
-若一次 run 混出多層 failure：
-- 先修最早出現的那層
-- 不要直接拿後面層的症狀當第一修補目標
-
-## Non-Goal
-
-在這次 run 之前，不要再加新功能。
-
-這次 run 的目的，是量測目前 onboarding 與 DBL surface 是否已經夠清楚，能讓 Beta Gate condition 2 的 human self-serve 路徑再往前推。
+這份 brief 的目的，是把 2026-03-31 的 reviewer run 固定成一個有明確診斷目的的 beta-gate 檢查，而不是單純再做一次「看起來像 onboarding」的測試。

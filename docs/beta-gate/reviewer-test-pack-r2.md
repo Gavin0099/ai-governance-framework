@@ -1,139 +1,70 @@
-# Reviewer Test Pack — Beta Gate Condition 2 (R2)
+﻿# Reviewer Test Pack — Beta Gate Condition 2（R2）
 
-> Version: 2.0
-> Created: 2026-03-30
-> For: external reviewer (cold start, no author guidance)
-
----
-
-## Part 1 — What you are testing
-
-You are testing an open-source governance framework for AI-assisted development.
-
-**Your job is not to learn it. Your job is to try to use it, and record what happens.**
-
-Starting point: https://github.com/Gavin0099/ai-governance-framework
-
-Open that URL in a browser. Do not clone the repo unless a command explicitly tells you to.
-
-You have 30–60 minutes. Start whenever you are ready.
+> 版本：2.0
+> 建立日期：2026-03-30
+> 適用對象：external reviewer（cold start, no author guidance）
 
 ---
 
-### Ground rules
+## Part 1 — 你在測什麼
 
-- **Only follow what the docs say.** Do not infer, guess, or reconstruct meaning from context.
-- **If something is unclear, log it and move on.** Do not read multiple files to fill in gaps unless the docs explicitly direct you to.
-- **Do not ask the author.** If you are stuck and the docs do not help, that is a failure worth recording.
-- **Log failures as they happen.** Do not wait until the end to write the failure log.
+你要測的是一個用於 AI-assisted development 的 open-source governance framework。
 
----
+**你的工作不是先把它學會；你的工作是試著使用它，並記錄實際發生了什麼。**
 
-## Part 2 — Task
+起點：<https://github.com/Gavin0099/ai-governance-framework>
 
-Try to do this, in order:
+請先用瀏覽器打開這個 URL。除非命令明確要求，否則不要先 clone repo。
 
-1. Figure out what this framework is for
-2. Figure out how you would adopt it in a project
-3. Run or describe the minimum flow you would follow when starting an AI-assisted work session
-4. Find out how to check if your governance is drifting
-
-Stop when you finish, or when you are stuck and cannot continue.
+時間預算：約 30–60 分鐘。
 
 ---
 
-## Part 3 — Failure Log
+## Part 2 — Ground rules
 
-Fill this in as you go. Do not wait until the end.
-Honest, messy notes are more valuable than clean summaries.
+- 不要向作者提問
+- 不要靠作者補口頭背景
+- 不要用 context 猜測缺失步驟
+- 只根據 repo 內可見文件與可執行路徑操作
 
-### 3.1 First confusion point
+如果某一步走不下去，請記錄：
 
-The first moment something was unclear:
-
-```
-File or page I was looking at:
-
-What I expected to find there:
-
-What I actually saw:
-
-How long I had been going at this point (approximate):
-```
+- 你在哪一步卡住
+- 你看到的精確 failure
+- 你是如何判斷沒有下一步的
 
 ---
 
-### 3.2 First blockage
+## Part 3 — 你需要交付什麼
 
-The first point where I could not move forward:
+你要留下的不是隨意筆記，而是一份 reviewer run artifact。至少要包含：
 
-```
-What I was trying to do:
+- 你從哪個入口開始
+- 你讀了哪些文件
+- 你實際嘗試了哪些命令
+- 第一個真正的 blocker 是什麼
+- 你最後的 gate verdict 是什麼
 
-What I tried:
+如有需要，可搭配：
 
-Why it didn't work (as best as I can tell):
-
-Did I find a workaround? (Y/N)
-If yes, what was it:
-```
-
----
-
-### 3.3 Concept confusion
-
-Any term or concept that I encountered and did not understand:
-
-```
-Term / concept:
-Where I saw it:
-What I thought it meant:
-What I think it actually means (if I figured it out):
-```
-
-*(Copy this block for each confusing concept. Leave blank if none.)*
+- `docs/beta-gate/reviewer-run-sheet.md`
+- `docs/beta-gate/reviewer-signal-split.md`
+- `docs/beta-gate/onboarding-pass-criteria.md`
 
 ---
 
-### 3.4 Navigation confusion
+## Part 4 — 評分重點
 
-Any point where I did not know where to look next:
+這個 test pack 關注的不是「你有沒有很努力」，而是：
 
-```
-I was trying to find:
-I looked in:
-I eventually found it at (or: I never found it):
-```
-
-*(Copy this block for each navigation failure. Leave blank if none.)*
+- cold-start reviewer 能不能自己找到正確入口
+- onboarding wording 是否足夠清楚
+- minimum session flow 是否可依文件重建
+- execution path 是否真的可走
+- failure 能否被正確歸因，而不是只剩 pass/fail
 
 ---
 
-### 3.5 Final state
+## 一句話結論
 
-```
-Did you complete Task 1 (understand what this is for)?   Y / N / Partial
-Did you complete Task 2 (understand adoption)?           Y / N / Partial
-Did you complete Task 3 (describe minimum session flow)? Y / N / Partial
-Did you complete Task 4 (find drift check)?              Y / N / Partial
-
-If you stopped early: what was the last thing you tried before stopping?
-
-One sentence describing what this framework is, in your own words:
-```
-
----
-
-## Part 4 — Debrief questions
-
-Answer these after you are done:
-
-1. What was the first file you opened, and why?
-
-2. At what point (if any) did things start to make sense?
-
-3. What was the single biggest obstacle?
-
-4. If you had to tell a colleague whether to adopt this, what would you say?
-
-5. What one change would most reduce the friction you experienced?
+R2 test pack 的目的，是讓 external reviewer 在沒有作者幫助的情況下，真實暴露這個 framework 的 onboarding / execution / communication 問題，而不是替它補敘述後再給分。
