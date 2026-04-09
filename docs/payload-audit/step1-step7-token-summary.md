@@ -1,19 +1,19 @@
-# Step 1-Step 7 Token Summary
+﻿# Step 1-Step 7 Token Summary
 
-> Date: 2026-03-23
-> Purpose: summarize the token impact of the full Step 1-Step 7 roadmap.
+> 日期：2026-03-23
+> 目的：摘要比較完整 Step 1-Step 7 roadmap 的 token 影響。
 
-## Measurement Basis
+## 量測基礎
 
-This summary uses:
+這份摘要使用：
 
-- Step 1 initial baselines already recorded in:
+- 已記錄於下列文件中的 Step 1 初始 baseline：
   - [L0-baseline.md](/e:/BackUp/Git_EE/ai-governance-framework/docs/payload-audit/L0-baseline.md)
   - [L1-baseline.md](/e:/BackUp/Git_EE/ai-governance-framework/docs/payload-audit/L1-baseline.md)
   - [onboarding-baseline.md](/e:/BackUp/Git_EE/ai-governance-framework/docs/payload-audit/onboarding-baseline.md)
-- Step 7 rebaseline measurements recorded in the same files
+- 同檔中的 Step 7 rebaseline 量測結果
 
-## Per-Flow Change
+## 逐流程變化
 
 | Flow | Step 1 | Step 7 | Delta | Reduction |
 |------|-------:|-------:|------:|----------:|
@@ -23,9 +23,9 @@ This summary uses:
 
 ## Combined Totals
 
-### Observed total
+### 觀察總量
 
-This uses all three current Step 7 measurements as-is.
+這裡直接使用目前三條 Step 7 量測值。
 
 | Metric | Total |
 |------|------:|
@@ -34,9 +34,9 @@ This uses all three current Step 7 measurements as-is.
 | Net reduction | `-55494` |
 | Overall reduction | `-53.0%` |
 
-### Strict comparable total
+### 嚴格可比總量
 
-This excludes the onboarding comparison because the old onboarding baseline was a heavy `Kernel-Driver-Contract` run, while the new Step 7 onboarding-shaped measurement was a framework self-run. That makes it useful, but not fully apples-to-apples.
+這裡排除 onboarding comparison，因為舊 onboarding baseline 是重型 `Kernel-Driver-Contract` run，而新的 Step 7 onboarding-shaped 量測是 framework self-run；它仍有操作上的參考價值，但不完全是 apples-to-apples。
 
 | Metric | Total |
 |------|------:|
@@ -45,29 +45,28 @@ This excludes the onboarding comparison because the old onboarding baseline was 
 | Net reduction | `-15959` |
 | Overall reduction | `-36.2%` |
 
-## Interpretation
+## 解讀
 
-- The roadmap clearly succeeded for `L0`.
-- The roadmap produced a real but smaller gain for generic `L1`.
-- The biggest observed reduction came from the onboarding-shaped path.
-- Step 7 itself did not make generic `L1` cheaper; the `L1` Step 7 run is slightly above the prior post-Step-5b+6 number.
-- The strongest remaining optimization leverage is still domain-summary / onboarding shaping, not more output-tier work in isolation.
+- roadmap 對 `L0` 的效果非常明顯
+- 對一般 `L1` path 也有真實改善，但幅度較小
+- 最大的觀察降幅來自 onboarding-shaped path
+- Step 7 本身並沒有讓 generic `L1` 變得非常便宜；`L1` Step 7 run 仍略高於先前 Step 5b+6 之後的數字
+- 目前最強的剩餘優化空間仍在 domain-summary / onboarding shaping，而不是單純再壓 output tier
 
-## Key Inflection
+## 關鍵轉折
 
-The most important shift in this roadmap was not just reducing input payload.
-It was recognizing that output design was also part of the token problem.
+這條 roadmap 最重要的變化，不只是降低 input payload，還包括承認 output design 本身也是 token 問題的一部分。
 
-That said, the rebaseline shows the effect is uneven:
+不過 rebaseline 也顯示，效果並不平均：
 
-- `output tier separation` helped make heavy onboarding-style output much cheaper
-- but it did not automatically reduce all normal `L1` sessions
+- `output tier separation` 對重型 onboarding-style output 幫助很大
+- 但它不會自動讓所有一般 `L1` session 都變便宜
 
-## Post-Step 7: post_task_check Return Contract Slimming (2026-03-24)
+## Post-Step 7：post_task_check Return Contract Slimming（2026-03-24）
 
 **Scope:** `runtime_hooks/core/post_task_check.py` — return payload only.
 
-**Finding:** Profiling with Kernel-Driver-Contract (6 documents) showed:
+**Finding:** Profiling with Kernel-Driver-Contract（6 documents）showed:
 
 | | Tokens | % of total |
 |---|---:|---:|
@@ -82,37 +81,29 @@ That said, the rebaseline shows the effect is uneven:
 | After slimming | 1,144 |
 | Reduction | −92.1% |
 
-**Root cause:** `domain_contract` was returned with full file content intact.
-Validators already consumed that content during execution; no caller needed it post-execution.
+**Root cause:** `domain_contract` was returned with full file content intact. Validators already consumed that content during execution; no caller needed it post-execution.
 
-**Fix:** `_slim_domain_contract()` elides `content` from `documents` and
-`ai_behavior_override` entries in the return dict, preserving `content_char_count`
-and `content_elided_for_return` as debug markers.  Validators still receive the
-full contract during execution.
+**Fix:** `_slim_domain_contract()` elides `content` from `documents` and `ai_behavior_override` entries in the return dict, preserving `content_char_count` and `content_elided_for_return` as debug markers. Validators still receive the full contract during execution.
 
 **Design principle established:**
 
-> Heavy execution context may be loaded for validation, but return payloads
-> must preserve only post-execution semantic value.
+> Heavy execution context may be loaded for validation, but return payloads must preserve only post-execution semantic value.
 
-This separates the *execution contract* (full context needed for validators) from
-the *report contract* (metadata + results only, no re-echoed source content).
+這把 *execution contract*（validator 執行時需要的完整上下文）和 *report contract*（僅保留 metadata + result，不重送 source content）正式分開。
 
-**session_end** was also profiled: return dict = 479 tokens.  Not a bottleneck;
-no changes required.
+`session_end` 也一併做過 profiling：return dict = 479 tokens，不是瓶頸，因此不需要改。
 
 ## Remaining Follow-Ups
 
-Highest-value next candidates:
+目前最有價值的後續項目：
 
-1. Reduce `pre_task_check` / rendered-output cost on the KDC onboarding path now that summary-first has already cut the domain slice
-2. Decide whether onboarding deserves its own explicit short-circuit path
-3. Re-evaluate whether `Step 3b` full memory refactor is still worth the cost
-4. Extend the new Windows-safe output path to any other CLI surfaces that still assume terminal Unicode support
+1. 進一步降低 KDC onboarding path 上 `pre_task_check` / rendered-output 成本
+2. 決定 onboarding 是否值得有自己的 explicit short-circuit path
+3. 重新評估 `Step 3b` full memory refactor 是否仍值得成本
+4. 把新的 Windows-safe output path 延伸到其他仍假設 terminal Unicode 支援的 CLI surface
 
 ## Caveats
 
-- The onboarding comparison is operationally useful but not fully like-for-like.
-- Windows CLI output now uses a safe fallback when the active terminal code page cannot encode some Unicode characters.
-
-- A true external-repo onboarding rerun currently needs write access to the external repo's `docs/payload-audit/` directory; the summary-first KDC recheck above was measured in-process instead.
+- onboarding comparison 在操作上有參考價值，但不完全 like-for-like
+- Windows CLI output 現在會在 active terminal code page 無法編碼某些 Unicode 字元時，自動走 safe fallback
+- 真正 external-repo onboarding rerun 目前仍需要對外部 repo 的 `docs/payload-audit/` 目錄有寫權限；上面引用的 summary-first KDC recheck 則是在本 repo 內量測

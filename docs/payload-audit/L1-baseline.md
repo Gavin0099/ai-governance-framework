@@ -1,11 +1,20 @@
-# L1 Payload Baseline
+﻿# L1 Payload Baseline
 
-> 最後更新: 2026-03-23（Step 5b+6 完成）
-> 樣本數: 3 批次（Step 1–3 × Hearth+KDC；Step 4–5 × ai-governance-framework；Step 5b+6 × ai-governance-framework）
-> Token 計算方式: estimate（JSON 字元數 ÷ 4）
-> Tool: `governance_tools/payload_audit_logger.py`
+> 最後更新：2026-03-23（Step 5b+6 完成）
+> 樣本數：3 批次（Step 1–3 × Hearth+KDC；Step 4–5 × ai-governance-framework；Step 5b+6 × ai-governance-framework）
+> Token 計算方式：estimate（JSON 字元數 ÷ 4）
+> Tool：`governance_tools/payload_audit_logger.py`
 
 ---
+
+## 說明
+
+這份文件保存 `L1` 路徑在 payload audit 中的基準值與 rebaseline 結果。  
+它主要用途是：
+
+- 追蹤 L1 engineering path 的 payload 變化
+- 觀察 rule pack、state、proposal 等欄位在 runtime 中的重量
+- 提供後續優化與 adoption 對照基準
 
 ## Step 7 Rebaseline -- ai-governance-framework (2026-03-23)
 
