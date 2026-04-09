@@ -1,201 +1,109 @@
-# Decision Quality Invariants
+# Decision Quality Invariants：如何區分「真的正確」與「只是還沒被打臉」
 
-> Version: 1.0
-> Related: docs/falsifiability-layer.md, docs/learning-loop.md, docs/learning-stability.md,
->           docs/governance-mechanism-tiers.md
+> 版本：1.0  
+> 相關文件：`docs/falsifiability-layer.md`、`docs/learning-loop.md`、`docs/learning-stability.md`、`docs/governance-mechanism-tiers.md`
 
----
+## 目的
 
-## Purpose
+一個 decision 沒有產生 failure，不等於它已被驗證；它只是不曾被反駁。
 
-A decision that produces no failures has not been validated — it has been
-uncontradicted. Absence of failure is evidence of three things
-indistinguishably: the decision was correct, it has not yet been tested, or
-the testing conditions did not include the cases where it would fail.
+absence of failure 可能代表三種情況：
 
-The learning loop handles failure. The falsifiability layer handles whether
-decisions can be proven wrong. This document handles the remaining gap:
+1. decision 真的是對的
+2. decision 還沒被充分測到
+3. 測試條件根本沒涵蓋它會失敗的情境
 
-**What would it mean for a decision to be genuinely correct, not just
-unchallenged?**
+learning loop 處理的是 failure。  
+falsifiability layer 處理的是「如何證明 decision 錯了」。  
+這份文件補的是最後那個缺口：
 
-Without an answer to this question, the system can enter a state called
-misaligned success: observable metrics look healthy (low failure rate, stable
-verdicts, clean logs) while actual decision quality is declining. The system
-optimizes toward whatever avoids measured failure — which is not the same as
-optimizing toward correct decisions. Over-conservatism, blame-avoidance,
-reduced exploration, and narrowing to well-covered cases are all consistent
-with low measured failure rates while being forms of quality degradation.
+> 一個 decision 要怎樣才算 genuinely correct，而不只是暫時沒被挑戰？
 
-Misaligned success is the ceiling above which the standard learning mechanisms
-cannot see.
+## 三個 invariants
 
----
+### 1. Consistency
 
-## The three decision quality invariants
+**同樣的 evidence，應導出同樣的 decision。**
 
-These invariants are not rules — they are diagnostic properties that any
-decision system making genuine claims about quality must satisfy. Failure to
-satisfy them does not mean a specific decision was wrong; it means the system
-cannot currently distinguish correct decisions from unchallenged ones.
+如果兩個 reviewer 或同一 reviewer 在不同時間，對 materially identical input 做出不同 decision，至少有一個 decision 有問題，或者 decision process 並沒有真的被既定 criteria 約束。
 
-### Invariant 1: Consistency
+Consistency 不是 uniformity，而是：
 
-**Same evidence → same decision.**
+- decision 由 evidence 和 stated criteria 決定
+- 不該由 reviewer 身分、時機、或無關上下文決定
 
-If two reviewers, or the same reviewer at different times, reach different
-decisions on materially identical inputs, at least one decision is wrong — or
-the decision process is not actually governed by the stated criteria.
+### 2. Robustness
 
-Consistency is not uniformity. It is the property that decisions are determined
-by the evidence and the stated criteria, not by factors that should not affect
-the decision (reviewer identity, recent context, unrelated prior decisions).
+**不相關的變化，不應改變 decision。**
 
-**How to check:** Take a sample of past decisions. Would materially similar
-inputs in a different context have produced the same decision? If the answer
-is "it depends on who reviewed it" or "it depends on the timing," consistency
-is not satisfied.
+如果 decision 會因 wording、順序、reviewer 疲勞、環境脈絡等 irrelevant variation 而改變，表示 decision basis 混入了噪音。
 
-**Common failure mode:** Consistency is violated locally before it is violated
-globally. Individual reviewers develop local conventions that diverge from
-each other and from the stated criteria, while summary statistics still look
-uniform. The divergence is only visible when decisions from different reviewers
-on similar inputs are compared directly.
+Robustness 不是 rigidity，而是：
 
-### Invariant 2: Robustness
+- 該穩定的地方保持穩定
+- 真正 relevant 的變數才允許影響結果
 
-**Irrelevant variation → no decision change.**
+### 3. Positive Falsifiability
 
-A decision that changes in response to factors that do not bear on the
-stated criteria has incorporated noise into its basis. The decision is not
-governed by the criteria — it is influenced by something else.
+**每個被接受的 decision，都應該有一個可觀測條件，讓我們日後能說它是對的。**
 
-Robustness is not rigidity. It is the property that decisions are stable
-under variations that should not matter: different phrasing of the same
-evidence, different order of presentation, reviewer fatigue, ambient context.
+falsifiability layer 定義的是「什麼情況下 decision 會被證明錯」。  
+positive falsifiability 則要求：
 
-**How to check:** Identify recent decisions. What factors were present that
-should not have affected the outcome? Is there evidence that these factors
-changed the decision? If yes, robustness is not satisfied.
+> 什麼觀測結果會讓我們說：這個 decision 被驗證了，而不是只是沒出事。
 
-**Common failure mode:** Robustness failures are systematically
-under-detected because they require comparing the actual decision to a
-counterfactual. The counterfactual — "what decision would have been reached
-without this irrelevant factor?" — is never recorded. Robustness can only be
-estimated by deliberate probing, not by reviewing decision logs.
+可接受的形式應類似：
 
-### Invariant 3: Positive falsifiability
+> 如果在某個時間範圍內出現某個具體可觀測結果，且沒有某個 confound，那麼這個 decision 可視為得到正向驗證。
 
-**Every accepted decision must have a condition under which we would conclude
-it was correct.**
+## Misaligned Success
 
-The falsifiability layer (docs/falsifiability-layer.md) requires specifying
-what would show a decision was wrong. Positive falsifiability is the
-complementary requirement: specifying what would show the decision was right.
+misaligned success 指的是：
 
-If a decision has no positive falsifiability condition — no observable outcome
-that would constitute genuine validation — then the decision is unfalsifiable
-in the success direction. Absence of failure is then the only available
-evidence of correctness. And absence of failure does not distinguish correct
-decisions from decisions that have not yet been tested.
+- 系統的表面指標看起來健康
+- failure rate 很低
+- log 很乾淨
+- verdict 也很穩定
 
-**How to specify a positive falsifiability condition:**
+但實際上 decision quality 正在下降。
 
-> "This decision will have been validated if [specific observable outcome]
-> occurs within [time period], without evidence that [confound that would
-> make the outcome misleading]."
+常見形式：
 
-Example:
-> "This documentation change will have been validated if the affected
-> misinterpretation type does not recur across three or more observation
-> windows from different reviewers, provided those windows contained at
-> least [N] relevant observations each."
+- **over-conservatism**：系統只敢在熟悉區域做決策
+- **blame-avoidance routing**：選擇較不容易被歸責的決策路徑
+- **coverage narrowing**：能影響決策的 evidence type 越來越少
+- **exploration reduction**：系統不再測試自己的邊界
 
-**What does not count as a positive falsifiability condition:**
-- "No new failures appeared" (absence of failure; tested above)
-- "The process was followed correctly" (process quality ≠ decision quality)
-- "The next review will evaluate it" (deferred to future state, not current)
+這些情況都可能維持低 failure rate，卻是 decision quality degradation。
 
----
+## 與 learning loop 的關係
 
-## Misaligned success
+learning loop 在 failure 出現時閉環。  
+decision quality invariants 則要求：就算沒有 failure，也要問 decision 是否真的被驗證。
 
-Misaligned success occurs when the system's optimization target has quietly
-shifted from "decision quality" to "absence of measured failure." The two
-targets overlap most of the time — which is why the shift is hard to detect.
-Where they diverge, the system produces decisions that minimize detectable
-failure while degrading in ways that are not measured.
+最低限度的正向證據應至少符合一項：
 
-Common forms:
+- 相似 evidence 由不同 reviewer 複核後得到相同 decision
+- 經 irrelevant variation 測試後，decision 沒變
+- 事先定義的 positive falsifiability condition 被觀測到
 
-**Over-conservatism:** Decisions narrow to well-covered territory. Proposals
-outside the established pattern are rejected at higher rates not because they
-are worse but because they are less familiar. Failure rate stays low because
-the system stops taking decisions where failures are more likely.
+如果三者都沒有，就不能說 decision 已被驗證；最多只能說它尚未被反駁。
 
-**Blame-avoidance routing:** Decisions route toward outcomes that distribute
-responsibility more broadly, making individual decisions harder to evaluate.
-Failure rate stays low because accountability is diffuse.
+## 目前不提供的東西
 
-**Coverage narrowing:** The range of evidence types that influence decisions
-shrinks over time. Decisions become reliable for the kinds of evidence the
-system has processed before, while becoming less sensitive to new evidence
-types. Failure rate stays low for familiar cases; unfamiliar cases are not
-recognized as such.
+這份文件目前**不提供**：
 
-**Exploration reduction:** Decisions that would test the model's assumptions
-are avoided in favor of decisions that apply known patterns. The model stops
-learning its own boundaries.
+- consistency 的自動量測系統
+- robustness 的完整 probing framework
+- positive falsifiability 的 runtime hard gate
 
-**Detection:** Misaligned success is not detectable by failure rate monitoring
-alone. It requires checking whether the decision space is narrowing (Coverage
-narrowing), whether evidence types are diversifying or converging (Exploration
-reduction), and whether decisions would hold up against positive falsifiability
-conditions (not just absence of failure).
+也就是說，這三個 invariant 目前主要是：
 
-The silent degradation signals in docs/learning-stability.md cover some of
-these: declining decision diversity (Signal A), proposals becoming simpler
-(Signal B). Misaligned success extends this by asking whether the decisions
-themselves — not just the proposals — are becoming narrower or less testable.
+- diagnostic properties
+- periodic review prompts
 
----
+而不是 fully instrumented control mechanisms。
 
-## Relationship to the learning loop
+## 一句話結論
 
-The learning loop closes when a failure produces a documented outcome. The
-decision quality invariants close the loop in the other direction: when
-there is no failure, the system must still ask whether the absence of failure
-constitutes evidence that the decisions were correct.
-
-The minimum evidence of positive quality is any of the following:
-
-- A decision has been replicated by a different reviewer on materially similar
-  evidence (consistency evidence)
-- A decision has been checked against variations that should not matter and
-  did not change (robustness evidence)
-- A decision's positive falsifiability condition has been observed
-  (validation evidence)
-
-If none of these apply, the decision has not been validated. It has been
-uncontradicted. The distinction matters when building confidence across
-accumulated decisions: uncontradicted decisions do not compound into
-validated governance. They compound into a larger mass of assumptions
-that have not yet been tested.
-
----
-
-## What this document does not provide
-
-This document names three invariants and one failure mode. It does not provide
-a measurement system. The invariants are diagnostic properties: they tell you
-what questions to ask, not what the answers should be.
-
-Building automated measurement for consistency, robustness, or positive
-falsifiability requires instrumentation that does not currently exist in this
-framework. The purpose of naming the invariants now is to prevent the system
-from treating their absence as acceptable indefinitely.
-
-When the framework is mature enough to instrument these invariants, the
-threshold at which instrumentation is required should be specified here.
-Until then, the invariants function as periodic review prompts — the same
-cadence as the silent degradation review (once per three observation windows).
+這份文件要守住的是：低 failure rate 不等於高 decision quality；若沒有 consistency、robustness、與 positive falsifiability，系統只是在累積「還沒被證偽的決策」。

@@ -1,263 +1,161 @@
-# Governance Mechanism Tiers
+# Governance Mechanism Tiers：哪些機制可執行、哪些只能診斷、哪些仍是 deferred
 
-> Version: 1.0
-> Related: docs/learning-loop.md, docs/learning-stability.md, docs/falsifiability-layer.md,
->           docs/misinterpretation-log.md, docs/decision-quality-invariants.md,
->           docs/anti-ritualization-patterns.md
+> 版本：1.0  
+> 相關文件：`docs/learning-loop.md`、`docs/learning-stability.md`、`docs/falsifiability-layer.md`、`docs/misinterpretation-log.md`、`docs/decision-quality-invariants.md`、`docs/anti-ritualization-patterns.md`
 
----
+## 目的
 
-## Purpose
+隨著 framework 成熟，描述性語言與可執行規則看起來會越來越像。  
+兩者都寫得很嚴謹，但 operational status 不一樣：
 
-As a governance framework matures, descriptive language and enforceable policy
-begin to look identical on the page. Both are written carefully; both are
-presented with reasoning; both use similar vocabulary. The difference is
-operational: one can be checked at decision time and produces a required
-action when violated; the other informs judgment and produces a better question.
+- 有些機制可以在 decision time 被檢查，違反時會導出**必須動作**
+- 有些機制只能提出**必須面對的問題**
+- 有些機制目前只能被承認為缺口
 
-Conflating them produces two failure modes in opposite directions:
+這份文件把主要機制分成三個 tier：
 
-**Over-reading:** Reviewers treat diagnostic principles as runtime rules,
-applying them as gates when they were meant as prompts. This produces
-over-constraint and ritual compliance with criteria that were never designed
-to be enforced mechanically.
+- **enforceable**
+- **diagnostic**
+- **deferred**
 
-**Under-reading:** Reviewers treat enforceable rules as advisory guidelines,
-giving them weight proportional to how persuasive they seem rather than
-applying them consistently. This produces governance drift invisible to any
-single reviewer.
+這不是重要性排名，而是目前 operational status 的說明。
 
-This document maps every significant mechanism in the framework to one of
-three tiers: **enforceable**, **diagnostic**, or **deferred**. The tiers
-are not judgments of importance — a diagnostic mechanism may matter more than
-an enforceable one. They are descriptions of current operational status.
-
-**A mechanism's tier can change.** Tier upgrades require specifying what
-additional instrumentation or evidence makes enforcement possible. Tier
-downgrades require explaining why a previously enforceable mechanism can no
-longer be reliably checked. Both are recorded in the promotion log at the
-end of this document.
-
----
-
-## Tier definitions
+## Tier Definitions
 
 ### Enforceable
 
-A mechanism is **enforceable** when:
+一個機制屬於 enforceable，表示：
 
-1. The check can be completed by reviewing log entries, verdict artifacts,
-   or documented reviewer behavior — without requiring additional experiments
-   or subjective assessment
-2. A specific required action follows from a positive check result
-3. The check is repeatable: two different reviewers given the same inputs
-   would reach the same result
+1. 可透過 log、artifact、或明確 reviewer behavior 重複檢查
+2. positive result 會導出具體 required action
+3. 兩個 reviewer 面對同樣輸入，應得到同樣結論
 
-Enforceable mechanisms produce gates. An enforceable condition that is not
-checked is a governance failure, not a judgment call.
+enforceable 代表 gate。沒檢查就是 governance failure。
 
 ### Diagnostic
 
-A mechanism is **diagnostic** when:
+一個機制屬於 diagnostic，表示：
 
-1. It identifies a signal that should inform the next decision or review
-2. The signal does not, by itself, determine what the next decision must be
-3. Two reviewers may reasonably interpret the same signal differently
+1. 它提供一個應被面對的 signal
+2. 這個 signal 本身不決定唯一的 required action
+3. 合理 reviewer 仍可能得出不同解讀
 
-Diagnostic mechanisms produce questions. A diagnostic signal that is ignored
-is a governance failure, but the required response is engagement with the
-question — not a specific action.
-
-**Advisory vs diagnostic distinction:** Some mechanisms in this framework are
-explicitly labeled advisory (learning-stability.md, Signals 1, 4, 5). Advisory
-and diagnostic are overlapping categories: advisory signals are always
-diagnostic, but diagnostic mechanisms are not always advisory. A diagnostic
-mechanism that an advisory signal is based on may have its own enforcement
-rules (e.g., advisory influence must be traced even though the advisory signal
-itself does not trigger required actions).
+diagnostic 代表 question，不代表 gate。
 
 ### Deferred
 
-A mechanism is **deferred** when:
+一個機制屬於 deferred，表示：
 
-1. The problem the mechanism addresses has been named and understood
-2. The mechanism cannot currently be made enforceable or reliably diagnostic
-   due to missing instrumentation, insufficient baseline data, or
-   calibration dependencies that are not yet governed
-3. The deferred status is explicit, not implicit
+1. 問題已被命名
+2. 目前因 instrumentation、baseline、或 calibration 不足，尚不能可靠 enforce 或 diagnose
+3. deferred 是明示狀態，不是默默拖延
 
-Deferred mechanisms are not aspirational wishes. They are documented
-acknowledged gaps with a promotion condition — what would need to be true
-for the mechanism to move to diagnostic or enforceable status.
+deferred 代表治理債。若沒有合理 promotion path，未來應明確關閉而不是一直懸著。
 
-**Deferred mechanisms accumulate governance debt.** Each deferred item is
-a gap that the framework's runtime authority does not cover. Deferred items
-that have no plausible promotion path should be explicitly closed (with
-reasoning) rather than left open indefinitely.
+## 目前機制分布
 
----
-
-## Mechanism map
-
-### Learning loop (docs/learning-loop.md)
+### Learning Loop
 
 | Mechanism | Tier | Notes |
-|-----------|------|-------|
-| Every observed failure requires a documented outcome (model_adjusted / doc_updated / no_change_justified / investigation_pending) | **Enforceable** | Silent non-response is a governance failure; checked at window close |
-| `investigation_pending` must convert within next observation window | **Enforceable** | Open-ended investigation is indistinguishable from inaction |
-| `doc_updated` that does not change reviewer behavior does not count as learning response | **Enforceable** | Checked by asking: would a reviewer encountering the same situation do something different? |
-| Recurring failure after `doc_updated` requires re-evaluation of prior response, not reuse | **Enforceable** | Same-failure taxonomy determines match level; same location, different cause is NOT recurrence |
-| Skepticism zone required when two proposals in same category fail with shared model-level root cause | **Enforceable** | Root cause must be in model layer, not execution or environment |
-| Skepticism zone retirement after two consecutive successes | **Enforceable** | Requires explicit documentation |
-| Direction check after any change (did this reduce uncertainty or move it?) | **Diagnostic** | Not a gate; a required question that should be answerable |
-| Untested assumptions should be named and prioritized by impact on current decisions | **Diagnostic** | Naming is required; full investigation is not |
+|---|---|---|
+| 每個 observed failure 都必須有 documented outcome | **Enforceable** | 沒有回應就是治理失敗 |
+| `investigation_pending` 必須在下一個 observation window 轉換 | **Enforceable** | 無限 investigation 等同不作為 |
+| `doc_updated` 若不改 reviewer behavior，就不算 learning response | **Enforceable** | 不是有寫文件就算完成 |
+| recurrence after `doc_updated` 必須重審 prior response | **Enforceable** | 不可重複套用舊回應 |
+| direction check after change | **Diagnostic** | 提出必須面對的問題，但不是 gate |
+| untested assumptions naming | **Diagnostic** | 命名是必須的，全面調查不是 |
 
-### Falsifiability layer (docs/falsifiability-layer.md)
+### Falsifiability Layer
 
 | Mechanism | Tier | Notes |
-|-----------|------|-------|
-| Every accepted expansion proposal must specify a falsification condition | **Enforceable** | Condition must be specific, observable, time-bounded, decision-reversing |
-| Observed falsification condition triggers documented re-evaluation | **Enforceable** | "We noticed but decided to continue" is valid if documented; silence is not |
-| Guard against explanation drift: an explanation that explains away falsification must itself be falsifiable | **Diagnostic** | Required question; no specific action required unless the explanation cannot be falsified |
-| Trajectory awareness: repeated falsifications in same category increase skepticism | **Diagnostic** | Informs proposal evaluation; does not block proposals automatically |
+|---|---|---|
+| accepted proposal 必須有 falsification condition | **Enforceable** | 條件必須 specific / observable / time-bounded / decision-reversing |
+| falsification 發生後必須有 documented re-evaluation | **Enforceable** | 不能默默忽略 |
+| explanation drift guard | **Diagnostic** | 問題必須被回答，但不自動導出單一動作 |
+| trajectory awareness | **Diagnostic** | 提供 proposal review 的上下文 |
 
-### Misinterpretation log (docs/misinterpretation-log.md)
-
-| Mechanism | Tier | Notes |
-|-----------|------|-------|
-| Expansion proposal gate: all five questions must be answered | **Enforceable** | Proposals that cannot answer all five are returned without review |
-| Counterfactual scaffold: all four fields required, including "least confident" | **Enforceable** | Scaffold with empty or non-decision-relevant "least confident" field has not been completed |
-| Rejection reason required when status = rejected | **Enforceable** | Rejection without reason is indistinguishable from oversight |
-| `framework` owner requires one-line justification explaining why reviewer/team cannot resolve it | **Enforceable** | Framework ownership must remain scarce |
-| New evidence required to re-raise a previously rejected proposal | **Enforceable** | Repetition of same pattern without new context is a duplicate, not a re-raise |
-| Observation vs conclusion separation: entries record what happened, not verdicts | **Enforceable** | Interpretive language test: could a reviewer with a different prior read this differently? |
-| Semantic grouping: group by shared underlying misconception, not surface phrasing | **Diagnostic** | Over-grouping and fragmentation are both errors; exact boundary requires judgment |
-| Sampling bias check: spike in one area → "what are we not looking at?" | **Diagnostic** | Required question at window close; no specific action required |
-| Negative pressure validity: clean log is evidence of sufficiency only if actual interactions occurred | **Enforceable** | Fewer than 3 distinct reviewer interactions: window result may not be meaningful |
-| Medium severity guard: 3+ recurrences in window → re-evaluate severity | **Enforceable** | Not re-classification; re-evaluation required |
-| High-severity exception: single decision-boundary impact may trigger immediate review | **Enforceable** | High is reserved for decision boundary violations; when in doubt, mark medium |
-
-### Learning stability (docs/learning-stability.md)
+### Misinterpretation Log
 
 | Mechanism | Tier | Notes |
-|-----------|------|-------|
-| Signal 2 (executable): same failure after two responses at same level → escalate to model_adjusted review | **Enforceable** | Third `doc_updated` requires explicit argument for why it would succeed where two failed |
-| Signal 3 (executable): skepticism zone >3 windows without retirement review → blocks new zone | **Enforceable** | New zone cannot be opened until overdue review is completed |
-| Root cause for no_change_justified must be cause_identified (not cause_suspected) | **Enforceable** | cause_suspected → investigation_pending; cause_unknown → documented without causal claim |
-| Classification confidence decay: trigger by N relevant observations without corroboration | **Diagnostic** | N is per-category; what counts as "relevant" requires per-category definition. Decay decision cannot be automated without calibrated thresholds (see Calibration governance below) |
-| Signal 1 (advisory): change rate up without log rate down | **Diagnostic** | Advisory: informs direction check on last three accepted changes before next is evaluated |
-| Signal 4 (advisory): functional reversal of previous change | **Diagnostic** | Advisory: change note must acknowledge and justify reversal axis |
-| Signal 5 (advisory): rejection rate rising without high-severity failure declining | **Diagnostic** | Advisory: flag for gate calibration review |
-| Advisory containment rule: listed behaviors not permitted based on advisory signals alone | **Enforceable** | Decision path compliance: advisory not cited in justification for restricted behaviors |
-| Advisory influence tracing: reviewer cites advisory signal → must be logged | **Enforceable** | Tracing requirement covers explicit acknowledgment |
-| Behavioral drift detection: decision distribution shifts in response to advisory-only periods | **Diagnostic** | Detection requires baseline + sample size; currently a detection hypothesis, not a control mechanism |
-| Pre-decision bias detection | **Deferred** | Cannot be detected by tracing alone; requires distribution monitoring over time with sufficient baseline. Promotion condition: defined baseline and minimum sample threshold per category |
-| Stability review when 2+ signals present: produces converging / oscillating / stable_noise | **Enforceable** | Must be supported by log data, not reviewer impression |
-| Silent degradation signals A–E | **Diagnostic** | Require periodic direct review outside standard window cadence; not answerable by reviewing log alone. Cannot be made enforceable without defining what constitutes degradation per signal |
+|---|---|---|
+| expansion proposal gate：五題都要回答 | **Enforceable** | 回答不完整就退回 |
+| counterfactual scaffold 四欄完整 | **Enforceable** | 含 least-confident 欄位 |
+| rejected proposal 必須有 rejection reason | **Enforceable** | 否則無法區分 oversight |
+| framework owner 必須有一行 justification | **Enforceable** | framework ownership 應保持稀缺 |
+| re-raise rejected proposal 必須有新 evidence | **Enforceable** | 重複提交不算 re-raise |
+| semantic grouping | **Diagnostic** | 邊界需 judgment |
+| sampling bias check | **Diagnostic** | 需提出問題，不是自動動作 |
 
-### Anti-ritualization patterns (docs/anti-ritualization-patterns.md)
+### Learning Stability
 
 | Mechanism | Tier | Notes |
-|-----------|------|-------|
-| Pattern detection signals (entries getting shorter, same phrases recurring, etc.) | **Diagnostic** | Signals that ritualization may be happening; require review, not automatic action |
-| When ritualization confirmed: note in log as under-reading, identify mechanism adjustment | **Enforceable** | Confirmed ritualization requires a mechanism response, not behavioral correction of reviewer |
-| Do not add new mechanisms to compensate for a ritualized one | **Enforceable** | A ritualized mechanism that gets a companion mechanism will produce two ritualized mechanisms |
+|---|---|---|
+| Signal 2：same failure after two same-level responses | **Enforceable** | 必須升到 `model_adjusted` review |
+| Signal 3：skepticism zone 逾期未退場 | **Enforceable** | 會 block 新 zone |
+| `no_change_justified` 需 `cause_identified` | **Enforceable** | `cause_suspected` 不足以支撐 |
+| classification confidence decay | **Diagnostic** | 仍依賴 per-category calibration |
+| Signal 1 / 4 / 5 advisory family | **Diagnostic** | 只能影響 review 問題，不直接當 gate |
+| advisory containment rule | **Enforceable** | advisory 不得越權成決策 authority |
+| behavioral drift detection | **Diagnostic** | 缺 baseline 與 sample size |
+| pre-decision bias detection | **Deferred** | tracing 不足以支撐 |
 
-### Decision quality invariants (docs/decision-quality-invariants.md)
-
-| Mechanism | Tier | Notes |
-|-----------|------|-------|
-| Consistency invariant: same evidence → same decision | **Deferred** | Checking requires comparing decisions across reviewers on matched inputs; no current infrastructure. Promotion condition: reviewer agreement rate tracking on a sample of decisions per observation window |
-| Robustness invariant: irrelevant variation → no decision change | **Deferred** | Requires counterfactual; not directly observable. Promotion condition: deliberate probing protocol defined and run at least once per N windows |
-| Positive falsifiability: every accepted decision must have a condition under which it would be validated | **Diagnostic** | Can be checked at decision time by asking: "what specific outcome would constitute validation?" Currently a required question, not a gate, because positive falsifiability conditions have not been mandated in the proposal format |
-| Misaligned success detection: decision space narrowing, evidence type convergence, exploration reduction | **Diagnostic** | Partially overlaps silent degradation signals A and B; requires periodic review outside standard cadence |
-
-### Boundary crossing protocol (docs/boundary-crossing-protocol.md)
+### Anti-Ritualization
 
 | Mechanism | Tier | Notes |
-|-----------|------|-------|
-| Boundary condition detection: recognizing when a decision is outside the observation model (B1–B5) | **Diagnostic** | Requires reviewer to recognize the condition; cannot be automated. Protocol applies after recognition |
-| `defer_with_condition` response: boundary condition named, resolution condition specified, deadline set | **Enforceable** | Open-ended deferral without resolution condition is treated as avoidance; must satisfy all four genuineness conditions |
-| `low_confidence_proceed` response: decision made with explicit boundary tag and re-evaluation trigger | **Enforceable** | Tag must be visible to future reviewers using this decision as precedent; used only when deferral cost is non-trivial |
-| `escalate` response: specific question, specific deadline, external input sought | **Enforceable** | Escalation must name the boundary condition and ask a specific answerable question; offloading without a specific question is not escalation |
-| `hard_stop` response: decision blocked until boundary condition resolves | **Enforceable** | Reserved for irreversible decisions under B1 or B2; not a general-purpose block for uncertain decisions |
-| Deferral genuineness check: boundary condition named, resolution condition specific, deadline set, deferral itself falsifiable | **Enforceable** | A deferral that cannot satisfy condition 4 (falsifiability of the deferral) is avoidance |
-| Boundary recognition calibration: reviewer can identify which of B1–B5 applies | **Deferred** | Cannot be verified without probing; Part D of adversarial test pack tests this. Promotion condition: probing protocol run at least once per N windows |
+|---|---|---|
+| ritualization pattern detection | **Diagnostic** | 是警訊，不是自動處罰 |
+| ritualization confirmed 後必須有 mechanism response | **Enforceable** | 不能只怪 reviewer |
+| 不可用新機制去補 ritualized 舊機制 | **Enforceable** | 否則只會得到兩套 ritualized 機制 |
 
----
+### Decision Quality Invariants
 
-## Calibration governance
+| Mechanism | Tier | Notes |
+|---|---|---|
+| consistency invariant | **Deferred** | 需要 matched-input 比較基礎設施 |
+| robustness invariant | **Deferred** | 需要 deliberate probing |
+| positive falsifiability | **Diagnostic** | 現在仍是 required question，不是 gate |
+| misaligned success detection | **Diagnostic** | 需定期回顧，不可只看 failure rate |
 
-Several enforceable and diagnostic mechanisms depend on calibrated values
-whose definition is not yet governed. These are distinct from deferred
-mechanisms: the mechanism itself is operative, but a key parameter is
-currently set by judgment rather than governed policy.
+### Boundary Crossing Protocol
 
-| Parameter | Used by | Current state | Governance gap |
-|-----------|---------|---------------|----------------|
-| Per-category N (relevant observations for decay trigger) | Classification confidence decay | Defined per reviewer at window close | Who approves N for a category? What triggers N revision? |
-| "Relevant observation" definition per category | Classification confidence decay | Implicitly defined by reviewer | Not formalized; different reviewers may use different criteria |
-| Minimum interaction threshold for negative pressure validity | Negative pressure rule | Currently "fewer than 3" | Based on initial calibration; no revision process defined |
-| Evidence completeness relevance criteria | Evidence integrity caveat | Assessed at review time | No formal scope boundary; susceptible to post-hoc rationalization |
-| Distribution baseline for behavioral drift | Behavioral drift detection | Not yet established | No baseline defined; mechanism cannot currently fire |
-| Observation window size and end conditions | All window-close mechanisms | 10 interactions OR 30 days | Fixed at framework version; revision process not defined |
+| Mechanism | Tier | Notes |
+|---|---|---|
+| boundary condition detection | **Diagnostic** | 需 reviewer 能辨識哪一種 boundary |
+| `defer_with_condition` | **Enforceable** | 必須有 resolution condition 與 deadline |
+| `low_confidence_proceed` | **Enforceable** | 必須帶 boundary tag 與 re-evaluation trigger |
+| `escalate` | **Enforceable** | 必須問具體、可回答的問題 |
+| `hard_stop` | **Enforceable** | 僅限高風險邊界 |
 
-**Calibration governance gap:** The values above are currently set by
-whoever performs the review at window close. This is appropriate for an
-early framework, but as the framework matures, ungoverned calibration
-values become a vector for gradual drift: reviewers adjust values
-implicitly to reach preferred outcomes, without any mechanism to detect
-or prevent it.
+## Calibration Governance Gap
 
-**Minimum governance for calibration values:** For each parameter above,
-the framework should eventually specify:
-1. Who has authority to set and revise the value
-2. What evidence is required to revise it
-3. What would falsify the current calibration
+有些機制雖然已 operable，但關鍵參數仍未被正式治理，例如：
 
-Until formal calibration governance exists, calibration values should be
-documented explicitly in each window-close record — not left implicit.
-Explicit documentation makes silent drift visible.
+- per-category N
+- relevant observation 的定義
+- negative pressure validity 的 interaction threshold
+- evidence completeness relevance criteria
+- behavioral drift baseline
+- observation window size
 
----
+在 formal calibration governance 出來前，這些值應被**顯式記錄**，不能默默讓 reviewer 各自調整。
 
-## Deferred item summary
-
-Deferred items are not failures. They are named gaps. Each must specify a
-promotion condition — what would need to be true for the mechanism to move
-to diagnostic or enforceable status.
+## Deferred Item Summary
 
 | Mechanism | Deferred because | Promotion condition |
-|-----------|-----------------|---------------------|
-| Pre-decision bias detection | Requires distribution baseline + sample size; tracing alone insufficient | Define baseline per category; specify minimum observation count required to detect drift signal |
-| Consistency invariant | Requires reviewer agreement tracking on matched inputs | Define matched-input sampling protocol; run for one full observation window |
-| Robustness invariant | Counterfactual not directly observable | Define deliberate probing protocol; specify cadence |
-| Positive falsifiability (as gate) | Positive conditions not yet required in proposal format | Add positive falsifiability condition to expansion proposal gate; run for one window to assess burden |
+|---|---|---|
+| pre-decision bias detection | 缺 baseline 與 sample size | 定義 baseline 與最小 observation count |
+| consistency invariant | 缺 matched-input sampling | 建立 reviewer agreement sampling protocol |
+| robustness invariant | 反事實不可直接觀測 | 建立 deliberate probing protocol |
+| positive falsifiability as gate | proposal format 尚未要求 | 將正向 falsifiability 納入 gate 後觀察一個 window |
 
----
+## Reading Guidance
 
-## Promotion log
+採用這份 framework 時，應檢查三件事：
 
-Record when mechanisms change tiers, with reasoning.
+1. enforceable 機制是否覆蓋你在乎的 failure modes
+2. deferred gap 裡有沒有你無法接受的項目
+3. calibration governance gap 是否會影響你要依賴的機制
 
-*(empty — mechanism tiers established at framework version 1.0)*
+## 一句話結論
 
----
-
-## Reading this document
-
-This document is not a specification of what the framework should eventually
-become. It is a snapshot of what each mechanism currently is.
-
-A reader evaluating whether the framework is adequate for a given use case
-should:
-
-1. Check whether the enforceable mechanisms cover the failure modes they
-   care about
-2. Check whether the deferred gaps include anything they consider essential
-3. Check whether the calibration governance gaps affect mechanisms they
-   would rely on
-
-A reader adopting the framework should understand: enforceable mechanisms
-will be checked; diagnostic mechanisms will be engaged with; deferred
-mechanisms are named gaps that adopters are absorbing by choosing to proceed.
+這份 tier map 的目的，不是證明 framework 完整，而是誠實區分：哪些機制現在真的能 enforce，哪些只能提出問題，哪些仍然只是已命名的缺口。
