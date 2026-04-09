@@ -1,32 +1,32 @@
 # DBL First-Slice Reviewer Findings Template
 
-> Use this after a Step 2 reconstruction exercise.
+> 在 Step 2 reconstruction exercise 後使用。
 
-## Inputs reviewed
+## 已閱讀輸入
 
 - `examples/README.md`
 - `examples/decision-boundary/minimal-preconditions/README.md`
 - `examples/decision-boundary/insufficiency-like-preconditions/README.md`
 
-## Reviewer answers
+## Reviewer 回答
 
-1. What does the current first-slice DBL gate appear able to judge?
+1. 目前 first-slice DBL gate 看起來能判斷什麼？
 
-2. What does the current first-slice DBL gate appear unable to judge?
+2. 目前 first-slice DBL gate 看起來不能判斷什麼？
 
-3. In what kind of situation would the current gate still pass even though the evidence may be semantically weak or incomplete?
+3. 在什麼情況下，當前 gate 仍可能 pass，但 evidence 在語意上其實偏弱或不完整？
 
-4. Is the insufficiency-like example a capability proof or a limitation proof? Why?
+4. insufficiency-like example 是 capability proof，還是 limitation proof？為什麼？
 
-## Reconstruction result
+## Reconstruction 結果
 
-- Status: `reconstructed correctly | reconstructed partially | reconstructed incorrectly`
+- 狀態：`reconstructed correctly | reconstructed partially | reconstructed incorrectly`
 
-## Misread source
+## 誤讀來源
 
-- File or sentence that appears to have caused the misread:
+- 造成誤讀的檔案、句子或 example：
 
-## Follow-up judgment
+## 後續判斷
 
-- Fix type: `framing-only | docs-structure | runtime-gap | mixed`
-- Notes:
+- 修正類型：`framing-only | docs-structure | runtime-gap | mixed`
+- 備註：

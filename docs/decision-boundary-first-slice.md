@@ -1,67 +1,66 @@
 # Decision Boundary First Slice
 
-> Status: planning note
-> Created: 2026-03-31
-> Depends on: `docs/decision-boundary-layer.md`
+> 狀態：規劃中的第一個 runtime-facing slice
+> 建立日期：2026-03-31
+> 依賴：`docs/decision-boundary-layer.md`
 
 ---
 
-## Purpose
+## 目的
 
-This note freezes the acceptance boundary for the first runtime-facing slice of
-the Decision Boundary Layer.
+這份文件用來固定 `Decision Boundary Layer` 第一個 runtime slice 的接受邊界。
 
-It exists to prevent the obvious failure mode:
+它的作用是避免最常見的擴張錯誤：
 
-> trying to prove the whole model at once, then introducing too much new
-> runtime surface before any single slice has demonstrated value.
+> 想一次證明整個模型，結果在任何一個 slice 真正證明價值之前，就先把 runtime surface 擴得太大。
 
 ---
 
-## First slice goal
+## First slice 只要證明一件事
 
-The first slice should prove one thing only:
+第一個 slice 只需要證明：
 
-> a pre-decision boundary can change a real runtime verdict in a way that is
-> reviewer-reconstructable from artifact alone.
+> pre-decision boundary 可以改變真實 runtime verdict，而且 reviewer 能只靠 artifact 重建這個變化。
 
-That is enough for version one.
+對 version one 來說，這就夠了。
 
 ---
 
-## Included in slice 1
+## Slice 1 包含什麼
 
-Slice 1 includes only minimal precondition handling for implementation start.
+Slice 1 只包含 implementation start 前的最小 precondition handling。
 
-Target checks:
+目標檢查：
 
 - `missing_sample`
 - `missing_spec`
 - `missing_fixture`
 
-Allowed outcomes:
+允許結果：
 
 - `analysis_only`
 - `restrict_code_generation_and_escalate`
 - `stop`
 
-Task-level expectation:
+對 task level 的預期：
 
-- `L0`: may degrade to exploration or analysis-only with warning
-- `L1`: must at least escalate when prerequisite is missing
-- `L2`: may hard-stop when prerequisite is required for correctness
+- `L0`：可以降級成 exploration / analysis-only，但要留下 warning
+- `L1`：缺少必要前提時至少要 escalate
+- `L2`：若前提對 correctness 屬必要條件，可以 hard-stop
 
-### Temporary contract surface
+---
 
-Slice 1 currently uses a deliberately narrow contract interface.
+## 暫時的 contract surface
 
-Supported fields:
+Slice 1 現在使用一個刻意很窄的 contract interface。
+
+支援欄位：
 
 - `preconditions_missing_sample`
 - `preconditions_missing_spec`
 - `preconditions_missing_fixture`
 
-Example:
+範例：
 
 ```yaml
 preconditions_missing_sample:
@@ -74,99 +73,87 @@ preconditions_missing_fixture:
   - bugfix
 ```
 
-This is a **first-slice temporary contract surface**.
-
-It is intentionally:
+這個 surface 是第一階段的 bootstrap 介面，特性是：
 
 - flat
 - explicit
-- easy to inspect in `contract.yaml`
-- limited to missing-state checks only
+- 在 `contract.yaml` 中容易檢視
+- 只處理 explicit missing-state
 
-It is **not** yet:
+它現在還不是：
 
-- the final Decision Boundary Layer schema
-- a general-purpose precondition authoring model
-- a semantic sufficiency model
-- a nested policy language
+- 最終的 DBL schema
+- 通用 precondition authoring model
+- semantic sufficiency model
+- nested policy language
 
-In particular, slice 1 does **not** infer:
+特別是第一階段**不會**推論：
 
 - pseudo-presence
 - semantic insufficiency
 - sample/spec quality
-- evidence completeness beyond explicit presence signals in task context
-
-If later versions introduce a richer schema, this first-slice surface should be
-treated as a bootstrap interface, not as the long-term shape of DBL authoring.
+- 超出明示存在訊號之外的 evidence completeness
 
 ---
 
-## Explicitly excluded from slice 1
+## Slice 1 明確排除什麼
 
-Do not include the following in the first runtime slice:
+第一個 runtime slice 不應包含：
 
 - full repo identity enforcement
-- any identity-only escalate / stop behavior
+- 只靠 identity 就改成 `escalate` / `stop`
 - proposal semantic classification
-- broad repo taxonomy design
-- capability constraint expansion beyond existing scope/evidence surfaces
-- new invariant authoring system
-- new policy precedence branches beyond what is minimally needed for the first gate
-- pseudo-presence or semantic-insufficiency validation beyond explicit missing-state checks
+- 廣義 repo taxonomy 設計
+- 超出既有 scope / evidence surface 的 capability expansion
+- 新的 invariant authoring system
+- 超出第一道 gate 所需的 policy precedence branch
+- explicit missing-state 以外的 pseudo-presence / semantic insufficiency 驗證
 
 ---
 
-## Why this ordering
+## 為什麼要這樣排序
 
-Minimal precondition gates are the best first proof point because they:
+minimal precondition gate 是最好的第一個 proof point，因為它：
 
-- map directly to real mistakes
-- are easy for reviewers to understand
-- are easy to trace in artifacts
-- can degrade instead of only blocking
-- avoid the identity taxonomy problem in the first iteration
+- 對真實錯誤有直接對應
+- reviewer 容易理解
+- 容易在 artifact 裡留下 trace
+- 可以做 degradation，不只能硬擋
+- 避開 identity taxonomy 這個早期最容易失控的問題
 
-Identity should come later as:
+Identity 更適合後面才做，而且順序應該是：
 
-1. loadable input
-2. trace surface
-3. eventually, bounded enforcement
+1. 可載入 input
+2. 可顯示於 trace
+3. 最後才考慮 bounded enforcement
 
-Not as the first hard gate.
-
-First-slice rule:
-
-- identity may be loaded
-- identity may appear in trace and reviewer-facing artifacts
-- identity must not, by itself, change verdict to `escalate` or `stop`
+不是一開始就拿來當 hard gate。
 
 ---
 
-## Acceptance criteria
+## 接受標準
 
-Slice 1 is successful only if all are true:
+Slice 1 只有在以下條件都成立時才算成功：
 
-1. A missing prerequisite changes the runtime verdict.
-2. The changed verdict is visible in trace or artifact.
-3. A reviewer can explain why the verdict changed without extra author context.
-4. The implementation does not introduce a duplicate truth source.
-5. The feature adds less complexity than the failure mode it prevents.
-6. False stop / false escalate cases can be observed and classified rather than hand-waved away.
+1. 缺少必要前提時，runtime verdict 真的會改變。
+2. 這個 verdict 變化可在 trace 或 artifact 中看見。
+3. reviewer 不需要額外作者背景就能解釋為什麼變了。
+4. 實作沒有引入 duplicate truth source。
+5. 這個 slice 帶來的複雜度，小於它阻止的 failure mode。
+6. false stop / false escalate 可以被觀察、分類，而不是被口頭帶過。
 
-If any of these fail, stop and revise before adding more layers.
+如果其中任一條不成立，就先停在這裡修正，不要往更多 layer 擴。
 
 ---
 
-## Next validation step
+## 下一步驗證
 
-The next step after slice 1 is not broader DBL expansion.
+Slice 1 的下一步不是擴更多 DBL surface。
 
-Use [`dbl-first-slice-validation-plan.md`](dbl-first-slice-validation-plan.md)
-to validate:
+下一步應該用 [`dbl-first-slice-validation-plan.md`](dbl-first-slice-validation-plan.md) 來驗：
 
 - reviewer reconstruction
-- insufficiency-like examples
-- adversarial / gaming cases
+- insufficiency-like example
+- adversarial / gaming case
 
-before adding more decision-boundary surface.
+先確認這個 first slice 是真實 decision surface，不只是小型 demo，再考慮擴張。

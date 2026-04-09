@@ -1,98 +1,94 @@
 # DBL First-Slice Reviewer Reconstruction Kit
 
-> Status: review aid
-> Created: 2026-03-31
-> Depends on: `docs/dbl-first-slice-validation-plan.md`
+> 狀態：review 輔助包
+> 建立日期：2026-03-31
+> 依賴：`docs/dbl-first-slice-validation-plan.md`
 
 ---
 
-## Why this exists
+## 為什麼需要這份 kit
 
-Step 2 is not a feature test.
+Step 2 不是功能測試，而是 current first-slice DBL surface 的 reconstruction test。
 
-It is a reconstruction test for the current first-slice DBL surface.
+目標是確認獨立 reviewer 能否正確推論：
 
-The goal is to find out whether an independent reviewer can correctly infer:
+- 現在這個 slice 實際能判什麼
+- 它明確不能判什麼
+- insufficiency-like example 應被讀成 limitation proof，而不是 capability claim
 
-- what the current slice actually checks
-- what it explicitly does not check
-- whether the insufficiency-like example is read as a limitation proof rather
-  than a capability claim
-
-This kit should be used without author-side verbal explanation.
+這份 kit 應該在沒有作者口頭補充的情況下使用。
 
 ---
 
-## Inputs
+## 要給 reviewer 的輸入
 
-Give the reviewer only these materials:
+第一輪只給 reviewer 這些材料：
 
 - `examples/README.md`
 - `examples/decision-boundary/minimal-preconditions/README.md`
 - `examples/decision-boundary/insufficiency-like-preconditions/README.md`
 
-For a ready-to-send reviewer handoff, use
-`docs/dbl-first-slice-reviewer-test-pack.md`.
+若要直接交給 reviewer，可使用：
 
-Do not add oral clarification during the first pass.
+- `docs/dbl-first-slice-reviewer-test-pack.md`
 
----
-
-## Reviewer Task Sheet
-
-Ask the reviewer to answer these four questions in writing:
-
-1. What does the current first-slice DBL gate appear able to judge?
-2. What does the current first-slice DBL gate appear unable to judge?
-3. In what kind of situation would the current gate still pass even though the
-   evidence may be semantically weak or incomplete?
-4. Is the insufficiency-like example a capability proof or a limitation proof?
-   Explain why.
+第一輪不要加任何口頭說明。
 
 ---
 
-## Expected Reconstruction Rubric
+## Reviewer 任務
 
-Treat the reconstruction as correct only if the reviewer clearly captures most
-or all of these points:
+請 reviewer 以書面回答這四題：
 
-- explicit signal presence is not the same thing as semantic sufficiency
-- the current first slice is precondition-level only
-- the insufficiency-like example is intentionally non-claiming
-- a passing result in that example does not imply adequacy judgment
-- the semantic insufficiency gap remains open by design
+1. 目前 first-slice DBL gate 看起來能判斷什麼？
+2. 目前 first-slice DBL gate 看起來不能判斷什麼？
+3. 在什麼情況下，當前 gate 仍可能 pass，但 evidence 在語意上其實偏弱或不完整？
+4. insufficiency-like example 是 capability proof，還是 limitation proof？請說明理由。
 
 ---
 
-## Failure Signals
+## 預期的正確重建
 
-Treat the exercise as failed if the reviewer:
+只有當 reviewer 清楚抓到大部分以下要點時，才算重建正確：
 
-- claims the current slice already performs semantic sufficiency judgment
-- treats the green test result as evidence-quality proof
-- reads the insufficiency-like example as a new capability demo
-- cannot clearly distinguish presence from sufficiency
+- explicit signal presence 不等於 semantic sufficiency
+- current first slice 只到 precondition level
+- insufficiency-like example 是刻意不主張能力的例子
+- 那個 example 的 pass 不代表 adequacy judgment
+- semantic insufficiency gap 是設計上刻意保留的開口
 
 ---
 
-## Output Format
+## 失敗訊號
 
-Record the result as one of:
+若 reviewer 出現以下情況，應視為重建失敗：
+
+- 認為 current slice 已能做 semantic sufficiency judgment
+- 把綠燈測試結果當成 evidence-quality proof
+- 把 insufficiency-like example 當成新的 capability demo
+- 無法清楚分辨 presence 與 sufficiency
+
+---
+
+## 輸出格式
+
+請把結果記成以下其中一個：
 
 - `reconstructed correctly`
 - `reconstructed partially`
 - `reconstructed incorrectly`
 
-Also note:
+並額外記下：
 
-- which sentence, file, or example caused the misread
-- whether the fix appears to be framing-only or runtime-related
+- 哪句話、哪個檔案、或哪個 example 造成誤讀
+- 這個問題看起來是 framing-only，還是 runtime-related
 
 ---
 
-## Working rule
+## 工作規則
 
-Step 2 is not asking whether the reviewer is strong enough.
+這一步不是在問 reviewer 夠不夠強。
 
-It is asking whether the current examples and framing are strong enough to
-prevent reviewer-side over-inference.
+真正要問的是：
+
+> 目前的 example 與 framing，是否夠強到能防止 reviewer 自己過度腦補系統能力。

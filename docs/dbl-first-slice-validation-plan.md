@@ -1,190 +1,187 @@
 # DBL First-Slice Validation Plan
 
-> Status: validation plan
-> Created: 2026-03-31
-> Depends on: `docs/decision-boundary-first-slice.md`
+> 狀態：驗證計畫
+> 建立日期：2026-03-31
+> 依賴：`docs/decision-boundary-first-slice.md`
 
 ---
 
-## Why this exists
+## 為什麼需要這份計畫
 
-The first executable slice of the Decision Boundary Layer now exists in
-runtime, docs, and a minimal example.
+`Decision Boundary Layer` 的第一個 executable slice 已經存在於：
 
-That is enough to prove:
+- runtime
+- docs
+- minimal example
 
-- the slice can run
-- the slice can change verdicts
-- the slice can be demonstrated in a small external example
+這足以證明：
 
-It is **not** enough to prove:
+- slice 能執行
+- slice 能改變 verdict
+- slice 能在小型外部 example 中被展示
 
-- the slice can be reconstructed by external reviewers
-- the slice resists misuse or gaming
-- reviewer onboarding failures are onboarding problems rather than DBL problems
+但這還不足以證明：
 
-This plan exists to validate those questions before adding more DBL surface.
+- 外部 reviewer 能否只靠 artifact 重建它
+- 它能不能抵抗誤讀、誤用或被 gaming
+- reviewer onboarding fail 是 onboarding 問題，還是 DBL 本身的問題
 
----
-
-## Validation principle
-
-The next step is not feature expansion.
-
-The next step is to test whether the current first slice:
-
-1. can be reconstructed by others
-2. can be distinguished from documentation-only guidance
-3. can resist obvious false-pass / false-compliance patterns
-
-In short:
-
-> do not ask only whether the slice can be used;
-> ask whether it can be misused, misread, or wrongly passed.
+所以在擴更多 DBL surface 前，先做這份驗證。
 
 ---
 
-## Step 0: Split the reviewer signal
+## 驗證原則
 
-Before using reviewer results as a gate, separate what is being tested.
+下一步不是 feature expansion，而是驗證目前 first slice 是否：
 
-Reviewer outcomes currently mix:
+1. 能被他人重建
+2. 能和單純文件指引區分開來
+3. 能暴露 obvious false-pass / false-compliance pattern
+
+簡單說：
+
+> 不只問這個 slice 能不能用，
+> 還要問它會不會被誤用、誤讀，或被錯誤放行。
+
+---
+
+## Step 0：先拆 reviewer signal
+
+在把 reviewer 結果當成 gate 之前，要先拆清楚 reviewer failure 到底在測什麼。
+
+目前 reviewer outcome 可能混在一起的有：
 
 - onboarding UX
-- document interpretation
+- 文件理解
 - decision reconstruction
 - escalation judgment
 
-A simple fail is not enough.
+單純一個 fail 不夠用。
 
-The reviewer exercise should record which layer failed:
+review exercise 應至少把 failure 分成：
 
 - discoverability failure
 - interpretation failure
 - decision reconstruction failure
 - escalation failure
 
-Without this split, reviewer onboarding is too coarse to evaluate DBL.
+不先拆開，reviewer onboarding 對 DBL 的訊號就太粗。
 
 ---
 
-## Step 1: Add a second very small example
+## Step 1：加一個很小的第二個 example
 
-The second example should not repeat the first-slice absence case.
+第二個 example 不應重複第一個 absence case。
 
-It should deliberately target an insufficiency-like case, for example:
+它應該刻意碰一個 insufficiency-like case，例如：
 
-- spec exists but is irrelevant to the actual task
-- sample exists but covers only a happy path
-- fixture exists but does not exercise the failing condition
+- spec 存在，但和真正 task 無關
+- sample 存在，但只覆蓋 happy path
+- fixture 存在，但沒碰到 failing condition
 
-Purpose:
+目的：
 
-- test the current boundary of the first slice
-- expose what the current gate cannot distinguish
-- prevent the team from confusing "works on absence" with "handles sufficiency"
+- 測目前 first slice 的邊界
+- 暴露它目前還分不清哪些 insufficiency
+- 防止團隊把「absence case 能跑」誤解成「已能處理 sufficiency」
 
-This is still a **very small example**, not a new demo project.
-
----
-
-## Step 2: Run reviewer reconstruction on both examples
-
-Use the current minimal example plus the second insufficiency-like example.
-
-Use `docs/dbl-first-slice-reviewer-reconstruction-kit.md` as the minimal
-reviewer prompt pack for this step.
-
-This is not yet the formal independent-reviewer gate.
-
-Instead, observe:
-
-- where the reviewer can reconstruct the decision cleanly
-- where the reviewer starts filling gaps with human intuition
-- where the reviewer assumes the system checks more than it actually checks
-
-Purpose:
-
-- validate DBL reconstruction quality
-- find the first places where human interpretation exceeds runtime truth
+這仍然是很小的 example，不是新的 demo project。
 
 ---
 
-## Step 2.5: Add an adversarial / gaming case
+## Step 2：對兩個 example 跑 reviewer reconstruction
 
-Before claiming the first slice is stable, test a case designed to pass form
-without real grounding.
+使用：
 
-Examples:
+- 現有 minimal example
+- 新的 insufficiency-like example
 
-- a spec that exists but is irrelevant
-- a sample that exists but lacks failure-path coverage
-- a fixture that exists but carries no meaningful assertion
+並搭配 [`docs/dbl-first-slice-reviewer-reconstruction-kit.md`](dbl-first-slice-reviewer-reconstruction-kit.md)。
 
-Purpose:
+這一步還不是正式獨立 reviewer gate，而是先觀察：
 
-- see whether the current gate can be trivially gamed
-- distinguish "minimal" from "easily bypassed"
+- reviewer 哪些地方能乾淨重建
+- 哪些地方 reviewer 開始自己補 intuition
+- 哪些地方 reviewer 以為系統檢查得比實際還多
 
-If the current gate passes such a case, that is not necessarily a failure of
-slice 1 design, but it is evidence that:
+目的：
 
-- the slice is still explicit-missing-state only
-- future validation must address insufficiency, not just absence
+- 驗 DBL reconstruction quality
+- 找出 human interpretation 超過 runtime truth 的第一批位置
 
 ---
 
-## Step 3: Return to independent reviewer onboarding
+## Step 2.5：加入 adversarial / gaming case
 
-Only after Steps 0, 1, 2, and 2.5 should the formal reviewer onboarding gate be
-used as the next maturity check.
+在宣告 first slice 穩定之前，要加一個刻意「形式成立，但語意不足」的 case。
 
-At that point, failures become diagnosable:
+例如：
 
-- fails in discoverability -> onboarding problem
-- fails in interpretation -> document/interface problem
-- fails in reconstruction -> DBL problem
-- fails in escalation -> decision model / authority problem
+- spec 存在，但其實不相關
+- sample 存在，但沒有 failure-path coverage
+- fixture 存在，但 assertion 沒有意義
 
-This makes the reviewer gate useful rather than noisy.
+目的：
+
+- 看當前 gate 是否容易被 trivially gamed
+- 區分「minimal」和「容易被繞過」
+
+如果當前 gate 放過這種 case，未必代表 slice 1 設計失敗；  
+但它至少證明：
+
+- 目前仍是 explicit-missing-state only
+- 後續驗證應處理 insufficiency，不只是 absence
 
 ---
 
-## Success criteria
+## Step 3：回到正式 independent reviewer onboarding
 
-The first slice is meaningfully validated only if all of the following become
-true:
+只有在 Step 0、1、2、2.5 做完之後，才適合把 formal reviewer onboarding gate 當成下一個 maturity check。
 
-1. External reviewers can reconstruct first-slice decisions from artifact alone.
-2. Reviewers do not need to silently upgrade the system with their own intuition.
-3. The insufficiency-like example clearly exposes current limits instead of being misdescribed as supported.
-4. The adversarial case reveals whether the slice is easy to game.
-5. Reviewer failure can be attributed to a specific layer rather than a generic onboarding fail.
+這樣 failure 才能被診斷：
+
+- discoverability fail -> onboarding 問題
+- interpretation fail -> docs / interface 問題
+- reconstruction fail -> DBL 問題
+- escalation fail -> decision model / authority 問題
+
+這樣 reviewer gate 才有價值，而不是 noisy fail。
+
+---
+
+## 成功標準
+
+第一個 slice 要算「有意義地被驗證」，至少要成立：
+
+1. 外部 reviewer 能只靠 artifact 重建 first-slice decision。
+2. reviewer 不需要默默用自己的 intuition 替系統補能力。
+3. insufficiency-like example 清楚暴露目前限制，而不是被誤寫成 supported capability。
+4. adversarial case 能看出這個 slice 是否容易被 gaming。
+5. reviewer failure 能被歸因到特定 layer，而不是一個模糊 onboarding fail。
 
 ---
 
 ## Non-goals
 
-This plan does not authorize:
+這份驗證計畫不授權：
 
-- immediate expansion to identity enforcement
-- immediate capability runtime integration
-- full semantic sufficiency inference
-- full precedence engine implementation
+- 立刻擴到 identity enforcement
+- 立刻擴 capability runtime integration
+- 立刻做 full semantic sufficiency inference
+- 立刻做完整 precedence engine
 
-Those may come later, but only after the current slice is validated as a real
-decision surface rather than a narrow runtime demo.
+那些可以以後再來，但前提是目前 first slice 已被證明是「真的 decision surface」，不是狹窄 demo。
 
 ---
 
-## Working conclusion
+## 工作結論
 
-The current question is not:
+現在真正該問的不是：
 
-> can the first slice be used?
+> first slice 能不能用？
 
-The more important question is:
+更重要的是：
 
-> can the first slice avoid being misused, misread, or wrongly passed?
+> first slice 能不能避免被誤用、誤讀，或被錯誤放行？
 
-That is the next validation boundary.
+這才是目前的下一個驗證邊界。
