@@ -1,205 +1,150 @@
 # Learning Loop
 
 > Version: 1.0
-> Related: docs/falsifiability-layer.md, docs/misinterpretation-log.md
+> Related: `docs/falsifiability-layer.md`, `docs/misinterpretation-log.md`
 
 ---
 
-## Purpose
+## 目的
 
-A system that can detect failure but does not change as a result of failure
-is not learning — it is logging.
+一個能偵測 failure、卻不會因此改變的系統，不叫 learning，只叫 logging。
 
-This document defines the minimal learning loop for this framework: what
-must happen after a failure is observed, what form the minimum change takes,
-and how repeated failures should shape future decisions.
+這份文件定義本 framework 的最小 learning loop：
+- failure 被觀察到之後，至少要發生什麼
+- 哪些變化才算 learning response
+- repeated failure 應如何改變之後的決策
 
-The learning loop is not about punishment or blame. It is about ensuring that
-observations produce updates, and that the system becomes different — not just
-better-informed — as a result of experience.
+learning loop 不是用來追究責任，而是確保觀察會產生更新，讓系統因經驗而變得不同。
 
 ---
 
-## The three questions
+## 三個核心問題
 
-### 1. Does every observed failure require a change?
+### 1. 每個 observed failure 都一定要改嗎？
 
-**No.** But every observed failure requires an explicit decision about whether
-to change.
+**不用。**  
+但每個 observed failure 都必須有一個明確決定：改，還是不改。
 
-The minimum response to an observed falsification event is a documented
-decision with one of four outcomes:
+最小合法回應必須落在以下四種之一：
 
 | Outcome | Meaning | Required documentation |
 |---------|---------|----------------------|
-| `model_adjusted` | A dimension, threshold, or mechanism changed | What changed and why |
-| `doc_updated` | Documentation was clarified but model unchanged | What was clarified and why that is sufficient |
-| `no_change_justified` | Failure was examined and the current model is still correct | Why the observed failure does not invalidate the model |
-| `investigation_pending` | Not enough information yet to decide | What information is needed and by when |
+| `model_adjusted` | 維度、threshold 或 mechanism 改了 | 改了什麼、為什麼 |
+| `doc_updated` | 只澄清文件，模型不變 | 澄清了什麼、為什麼足夠 |
+| `no_change_justified` | 看過後確認現行模型仍正確 | 為何這次 failure 不推翻模型 |
+| `investigation_pending` | 資訊還不夠，先不決定 | 還缺什麼資訊、何時補齊 |
 
-`investigation_pending` is time-limited. It must convert to one of the other
-three within the next observation window. Open-ended investigation is
-indistinguishable from inaction.
+`investigation_pending` 不是無限期狀態。  
+它必須在下一個 observation window 內轉成另外三種之一。
 
-**Silent non-response is not allowed.** An observed falsification condition
-with no documented outcome means the learning loop did not close.
-
----
-
-### 2. What is the minimum form of change?
-
-The minimum change that counts as a learning response is whichever of the
-following applies:
-
-**For `model_adjusted`:**
-A specific, observable difference in how a dimension is defined, how a
-threshold is set, or how a mechanism works — not a restatement of the
-existing model with different wording.
-
-**For `doc_updated`:**
-A specific addition or revision to a document that changes what a reviewer
-would do when encountering the same situation again. Rewording that does not
-change behavior is not a learning response. If the same failure recurs after
-a `doc_updated` response, the prior response must be re-evaluated — not
-reused. Recurring failure after a response is evidence that the response
-was at the wrong level, not just that the documentation needs more words.
-
-**"Same failure" taxonomy:** Recurrence matching requires care. Being too
-loose discards valid prior responses; being too strict misses the same causal
-pattern appearing in different form. Use the most specific match level that
-the evidence supports:
-
-| Level | Match condition | Implication for prior response |
-|-------|----------------|-------------------------------|
-| Exact symptom | Same observable behavior, same context | Prior response directly failed — re-evaluate |
-| Same class | Same misinterpretation type, different surface | Prior response may have been incomplete — extend |
-| Same root cause | Different surface, same underlying mechanism | Prior response targeted wrong layer — escalate |
-| Same location, different cause | Same field or mechanism, different failure mode | Prior response is unrelated — treat as new |
-
-"Same location, different cause" must not be treated as recurrence. A new
-failure in the activation state field is not evidence that a prior response to
-a different activation failure was wrong.
-
-**For `no_change_justified`:**
-A written argument that addresses the specific failure mode observed, explains
-why the existing model handles it correctly, and identifies what condition
-would cause the model to be reconsidered. "The model is fine" is not
-sufficient. "The model is fine because X, and if we observed Y it would not be"
-is sufficient.
+**不允許 silent non-response。**  
+有 falsification event 卻沒有 documented outcome，等同 learning loop 沒有關閉。
 
 ---
 
-### 3. How should repeated failures change future decisions?
+### 2. 最小有效 change 長什麼樣？
 
-Repeated failures in the same category are evidence about the model's
-structural weaknesses — not just individual incidents to be resolved.
+#### 對 `model_adjusted`
 
-**Trajectory shaping rule:** When two or more accepted proposals in the same
-category have had their falsification conditions triggered:
+必須是：
+- 維度定義不同了
+- threshold 真的變了
+- mechanism 行為真的不同了
 
-1. The category becomes a **skepticism zone**: future proposals in the same
-   area face a higher effective evidence bar. This is not a prohibition —
-   it is a recognition that the model has been repeatedly wrong in this area
-   and should be treated with corresponding caution.
+不能只是換句話說同一件事。
 
-2. Before establishing a skepticism zone, evaluate whether the failures share
-   a root cause or only a surface category. Execution failures (bad implementation),
-   environment failures (external conditions), and model failures (wrong assumption)
-   all look like "category failures" but require different responses.
-   A skepticism zone is only warranted when the shared root cause is in the model,
-   not when two independent causes happened to affect the same area.
+#### 對 `doc_updated`
 
-3. The pattern should be named explicitly: "We have had three proposals about
-   activation state interpretation fail. Our model of how reviewers interpret
-   activation may be systematically incorrect."
+必須是具體文件變更，而且能改變 reviewer 下一次遇到同類情況時的做法。  
+若只是重寫 wording，卻不改變行為，不算 learning response。
 
-4. Before accepting the next proposal in a skepticism zone, the proposer
-   must address the trajectory: why would this proposal succeed where
-   previous ones failed?
+如果同一 failure 再發生，先前的 `doc_updated` 就必須被重新檢查，而不是直接沿用。
 
-**Skepticism zones do not persist indefinitely.** A zone can be retired when
-two consecutive proposals in the same category succeed (falsification condition
-not triggered after full observation window). Retirement requires explicit
-documentation.
+#### 對 `no_change_justified`
+
+必須書面說明：
+- 這次 failure mode 是什麼
+- 為什麼現行模型仍能正確處理
+- 如果未來觀察到什麼，才會改變這個判斷
+
+只有「模型沒問題」是不夠的。
 
 ---
 
-## What "learning" means in this system
+### 3. Repeated failure 應如何改變未來決策？
 
-Learning is not the same as knowing more. It is the system behaving
-differently because of what it has observed.
+同一類 failure 一再出現，不只是個別 incident，而是對模型結構的訊號。
 
-A system that reads its log entries and then makes the same decisions as
-before has not learned. A system that makes a different decision — even
-if only about where to direct skepticism — has learned.
+當同一類 proposal 兩次以上被 falsify：
 
-The minimum evidence of learning is any of the following:
+1. 這個類別進入 **skepticism zone**
+2. 後續 proposal 在這區域需要更高 evidence bar
+3. 必須明確把 pattern 命名出來，而不是只看成多個獨立 incident
+4. 下一個 proposal 進來時，提案者必須回答：
+   - 為什麼這次會成功，而前幾次失敗？
 
-- A decision was made differently than it would have been before the failure
-- A category was treated with more skepticism than it would have been before
-- A mechanism was adjusted based on observed failure, not theory
-- An assumption was named as untested and placed under observation
-
-If none of these apply after an observation window, the loop did not close.
-Review the window checklist and confirm whether falsification signals were
-checked and untested assumptions were named.
-
-**Untested assumptions are signals, not obligations.** Naming an untested
-assumption is useful; generating a backlog of assumptions that can never
-be tested is not. When naming untested assumptions, prioritize: which
-ones, if wrong, would most affect current decisions? The rest can be noted
-without requiring immediate investigation.
-
-**Direction check:** After any change, ask: did this reduce uncertainty,
-or merely move it? A model adjustment that resolves one ambiguity by
-introducing two others has not improved the system — it has rearranged it.
-The direction check is not a gate; it is a question that should be
-answerable after every accepted change.
+**skepticism zone 不是永久狀態。**  
+若同一類連續兩次 proposal 都安全度過完整 observation window，就可以明確 retire 該 zone。
 
 ---
 
-## The learning loop in sequence
+## 在這個系統裡，Learning 是什麼
 
-```
+learning 不是知道得更多，而是：
+
+> 因為曾經觀察到 failure，系統之後真的表現得不一樣
+
+最小 evidence 可以是：
+
+- 某個決策和以前不一樣了
+- 某個 category 被更審慎對待了
+- 某個 mechanism 因 failure 被調整了
+- 某個 assumption 被正式點名成尚未驗證
+
+如果 failure 發生後，上述事情都沒有發生，那 learning loop 就沒有關閉。
+
+---
+
+## Learning Loop 的順序
+
+```text
 Proposal accepted with falsifiability condition
-        ↓
-Observation window runs
-        ↓
-Window close: check falsification conditions + untested assumptions
-        ↓
-   [No failure]                     [Failure observed]
-       ↓                                    ↓
-Name untested assumptions       Document: what changed?
-Confirm model is still adequate  (model_adjusted / doc_updated /
-Negative pressure applies        no_change_justified / investigation_pending)
-                                            ↓
-                                 If repeated failure in same category:
-                                 Name as skepticism zone
-                                 Require trajectory address for next proposal
+        ->
+Observation window 執行
+        ->
+Window close：檢查 falsification condition 與 untested assumptions
+        ->
+   [No failure]                         [Failure observed]
+        ->                                      ->
+命名未驗證 assumptions                     記錄 outcome：
+確認模型仍足夠                             model_adjusted / doc_updated /
+negative pressure 生效                      no_change_justified / investigation_pending
 ```
 
----
-
-## What the loop does not do
-
-- It does not guarantee the model converges to correctness. Convergence
-  requires that the falsifiability conditions are well-designed and that
-  failure signals are genuine.
-- It does not automate decisions. Every outcome in the loop requires a
-  human decision with documentation.
-- It does not eliminate the need for judgment. The loop structures where
-  judgment is applied — it does not replace it.
+若同一 category repeated failure：
+- 命名成 skepticism zone
+- 之後 proposal 必須回應 trajectory
 
 ---
 
-## Relationship to other documents
+## Learning Loop 不做什麼
 
-| Document | Role in the loop |
-|----------|-----------------|
-| `misinterpretation-log.md` | Records observations and triggers falsification checks |
-| `falsifiability-layer.md` | Defines what counts as a falsification condition |
-| `anti-ritualization-patterns.md` | Identifies when the loop itself is being complied with ritually |
-| `learning-loop.md` (this) | Defines what must happen after a falsification event |
+- 不保證模型一定收斂到正確
+- 不自動做決策
+- 不取代 judgment
 
-The loop closes when an observation produces a documented outcome. It
-remains open — and visible as open — until that happens.
+它只是決定：
+- failure 被看見後，最低限度必須怎麼回應
+
+---
+
+## 與其他文件的關係
+
+| Document | Role |
+|----------|------|
+| `misinterpretation-log.md` | 記 observation，觸發 falsification check |
+| `falsifiability-layer.md` | 定義什麼叫 falsification condition |
+| `anti-ritualization-patterns.md` | 檢查 learning loop 本身是否 ritualized |
+| `learning-loop.md` | 定義 failure 發生後最低限度必須如何關閉 loop |
+
+只有當 observation 真的產生 documented outcome，learning loop 才算關閉。
