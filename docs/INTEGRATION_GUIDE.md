@@ -1,189 +1,222 @@
-# 🚀 治理架構整合部署指南
+# INTEGRATION_GUIDE.md - 整合指南
 
-> **版本**: v1.0  
-> **最後更新**: 2025-02-25  
-> **目的**: 指導如何將新增的記憶管理與 Linear 整合工具部署到現有治理架構中
-
----
-
-## 📦 交付清單
-
-本次整合新增以下檔案:
-
-| 檔案 | 類型 | 優先級 | 用途 |
-|------|------|--------|------|
-| `SYSTEM_PROMPT_v5.2.md` | 治理文件 | Priority 1 | 核心意識 (含記憶掃除機制) |
-| `governance_tools/memory_janitor.py` | 自動化工具 | Priority 8 | 記憶掃除執行器 |
-| `governance_tools/linear_integrator.py` | 自動化工具 | Priority 9 | Linear API 整合 |
-| `INTEGRATION_GUIDE.md` | 說明文件 | - | 本文件 |
-
----
-
-## 🔧 部署步驟
-
-### Step 1: 更新 SYSTEM_PROMPT.md
-
-**選項 A: 完整替換 (推薦)**
-```bash
-# 備份現有版本
-cp memory/governance/SYSTEM_PROMPT.md memory/governance/SYSTEM_PROMPT_v5.1_backup.md
-
-# 部署新版本
-cp SYSTEM_PROMPT_v5.2.md memory/governance/SYSTEM_PROMPT.md
-```
-
-**選項 B: 手動合併** (如果您對現有版本有自訂修改)
-- 參考 v5.2 的 §2.⑥ 和 §6.4
-- 手動加入記憶壓力檢測邏輯
-- 更新 §8.1 目錄結構,新增 `governance_tools/`
-
----
-
-### Step 2: 部署自動化工具
-
-工具已經建立在 `governance_tools/` 目錄中,無需額外操作。
-
-驗證:
-```bash
-ls -lh governance_tools/
-# 預期輸出:
-# memory_janitor.py
-# linear_integrator.py
-```
-
----
-
-### Step 3: 設定 Linear API (選擇性)
-
-**僅在需要使用 Linear 整合時執行此步驟**
-
-1. 取得 Linear API Key:
-   - 前往 Linear Settings → API → Personal API Keys
-   - 建立新的 API Key
-
-2. 設定環境變數:
-   ```bash
-   # 加入到 ~/.bashrc 或 ~/.zshrc
-   export LINEAR_API_KEY="lin_api_xxxxxxxxxxxxxxxxxxxxxxxxxx"
-   
-   # 套用設定
-   source ~/.bashrc
-   ```
-
-3. 驗證設定:
-   ```bash
-   python governance_tools/linear_integrator.py --list-teams
-   ```
-
----
-
-## 🎯 使用方式
-
-### 記憶掃除工具
-
-#### 檢查狀態
-```bash
-python governance_tools/memory_janitor.py --check
-```
-
-#### 產出掃除計畫
-```bash
-python governance_tools/memory_janitor.py --plan
-```
-
-#### 執行掃除
-```bash
-# 先模擬
-python governance_tools/memory_janitor.py --execute --dry-run
-
-# 正式執行
-python governance_tools/memory_janitor.py --execute
-```
-
----
-
-### Linear 整合工具
-
-#### 列出 Teams
-```bash
-python governance_tools/linear_integrator.py --list-teams
-```
-
-#### 同步任務
-```bash
-python governance_tools/linear_integrator.py \
-  --sync \
-  --team-id <your-team-id> \
-  --priority 2
-```
-
----
-
-## 🤖 AI 自動化行為
-
-AI 會在每次回應前自動檢測 `memory/01_active_task.md` 行數:
-
-| 行數 | 行為 |
-|------|------|
-| 0-179 | 正常運作 |
-| 180-199 | 顯示警告 |
-| 200-249 | 建議執行掃除 |
-| 250+ | **立即停止任務** |
-
-**重要**: AI 僅會建議,不會自動執行掃除。
-
----
-
-## 🛡️ 驗收測試
-
-```bash
-# 測試記憶工具
-python governance_tools/memory_janitor.py --check
-
-# 測試掃除計畫
-python governance_tools/memory_janitor.py --plan
-
-# 測試 Linear (需 API Key)
-python governance_tools/linear_integrator.py --list-teams
-```
-
----
-
-## 📊 完整優先級結構
-
-| 優先級 | 文件/工具 |
-|--------|-----------|
-| 1 | SYSTEM_PROMPT.md (v5.2) |
-| 2 | HUMAN-OVERSIGHT.md |
-| 3 | REVIEW_CRITERIA.md |
-| 4 | AGENT.md |
-| 5 | ARCHITECTURE.md |
-| 6 | TESTING.md |
-| 7 | NATIVE-INTEROP.md |
-| **8** | **memory_janitor.py** |
-| **9** | **linear_integrator.py** |
-
----
-
-## 🆘 故障排除
-
-### Python 版本過舊
-```bash
-python3 --version  # 需 >= 3.4
-```
-
-### Linear API 401 錯誤
-```bash
-echo $LINEAR_API_KEY  # 確認已設定
-```
-
-### AI 未檢測記憶壓力
-確認 `memory/governance/SYSTEM_PROMPT.md` 包含 v5.2 的 §6.4 內容。
-
----
-
-## 🧭 最終原則
-
-> **工具是為了減少認知負擔,而非增加複雜度**
+> **Version**: v1.0
+> **Last Updated**: 2026-04-09
 >
-> **人永遠是治理的最終裁決者**
+> 這份文件說明如何把 `ai-governance-framework` 整合進實際 repo，並以最小風險建立可運作的 adoption path。
+>
+> 這不是 generic platform setup guide；它聚焦的是 **repo-level governance integration**。
+
+---
+
+## 1. 整合目標
+
+整合這個 framework 的目的，是讓 consuming repo 具備以下能力：
+- 有 canonical governance baseline
+- 有可檢查的 drift / readiness / onboarding surface
+- 有最小 memory scaffold 與 governance markdown pack
+- 有可執行的 runtime hook / review / status 路徑
+- 有 bounded session workflow 與 closeout path
+
+如果你要的是完整 multi-agent orchestration platform，這份指南不是在處理那件事。
+
+---
+
+## 2. 最小整合組成
+
+一個最小、可工作的整合，至少包含：
+
+- framework source（建議用 submodule）
+- `adopt_governance.py` 跑過一次
+- `.governance/baseline.yaml`
+- `AGENTS.base.md`
+- `contract.yaml`
+- root `PLAN.md`
+- `memory/01_active_task.md`
+- `memory/02_tech_stack.md`
+- `memory/03_knowledge_base.md`
+- `memory/04_review_log.md`
+- `governance/*.md`
+- `governance/rules/**`
+
+若缺少這些，通常代表只是把 framework 拉進 repo，還沒有真正 adopt。
+
+---
+
+## 3. 建議的整合方式
+
+### 3.1 使用官方 canonical source
+
+建議使用：
+
+```text
+https://github.com/Gavin0099/ai-governance-framework.git
+```
+
+不要把落後 fork 當成等價來源。
+現在 framework 已經能在 readiness / onboarding / version audit 中顯示 canonical source 是否正確。
+
+### 3.2 用 submodule 導入
+
+典型做法：
+
+```powershell
+git submodule add https://github.com/Gavin0099/ai-governance-framework.git additional/ai-governance-framework
+git submodule update --init --recursive
+```
+
+也可以用直接 clone，但 submodule 較容易保留 consuming repo 自己的 pinned version 決策。
+
+### 3.3 跑 adopt
+
+在 consuming repo 根目錄執行：
+
+```powershell
+python additional/ai-governance-framework/governance_tools/adopt_governance.py --target . --framework-root additional/ai-governance-framework
+```
+
+這會：
+- 建立 baseline
+- 複製 governance markdown pack
+- 建立 `governance/rules/`
+- 建立最小 memory scaffold
+- 修補 `contract.yaml` 的必要 documents
+
+---
+
+## 4. Adopt 後的第一輪驗證
+
+### 4.1 檔案存在性
+
+至少確認這些檔案存在：
+
+- `.governance/baseline.yaml`
+- `AGENTS.base.md`
+- `contract.yaml`
+- `PLAN.md`
+- `memory/01_active_task.md`
+- `memory/02_tech_stack.md`
+- `memory/03_knowledge_base.md`
+- `memory/04_review_log.md`
+- `governance/TESTING.md`
+- `governance/ARCHITECTURE.md`
+- `governance/rules/common/core.md`
+
+### 4.2 跑 readiness / drift
+
+```powershell
+python additional/ai-governance-framework/governance_tools/governance_drift_checker.py --repo . --framework-root additional/ai-governance-framework
+
+python additional/ai-governance-framework/governance_tools/external_repo_readiness.py --repo . --framework-root additional/ai-governance-framework --format human
+```
+
+你要確認的是：
+- 沒有 critical drift
+- `memory_schema_status` 不是隱性 partial
+- framework source 是 canonical
+
+### 4.3 跑 quickstart / smoke
+
+```powershell
+python additional/ai-governance-framework/governance_tools/quickstart_smoke.py
+python additional/ai-governance-framework/governance_tools/runtime_surface_manifest_smoke.py --format human
+```
+
+若這些都過，代表 adoption 已經從「文件存在」跨到「基本 runtime 可用」。
+
+---
+
+## 5. Memory 與 Closeout 整合現況
+
+這個 framework 現在已經有：
+- memory schema scaffold
+- memory sync signal
+- memory closeout visibility
+
+但要注意：
+- adopt 只保證 scaffold，不保證每次都自動寫 memory
+- `session_end` 是否真的被 shared path 接到，要看 consuming repo 的實際 workflow
+- closeout 現在能明確輸出：
+  - `candidate_detected`
+  - `promotion_considered`
+  - `decision`
+  - `reason`
+
+所以更正確的期待是：
+- system 能說明為什麼沒寫
+- 不代表它一定會自動幫你寫進 long-term memory
+
+---
+
+## 6. Rule Pack 與 Contract 整合
+
+`contract.yaml` 可宣告：
+- `rule_roots`
+- `documents`
+- repo-local risk / language / domain 資訊
+
+目前最重要的是：
+- `governance/rules/` 必須存在
+- `documents:` 至少要能把 `TESTING.md`、`ARCHITECTURE.md` 等高價值文件接進 agent 可讀路徑
+
+rule pack name 必須來自 `governance/RULE_REGISTRY.md`，例如：
+- `common`
+- `python`
+- `cpp`
+- `csharp`
+- `kernel-driver`
+- `refactor`
+
+`onboarding` 不是合法 rule pack 名稱。
+
+---
+
+## 7. 常見整合失敗型態
+
+### 7.1 只有 submodule，沒有 adopt
+
+現象：
+- framework 在 repo 裡，但 `.governance/baseline.yaml`、memory scaffold、governance pack 都不存在
+
+這代表只是 clone 了 framework，沒有真的導入。
+
+### 7.2 memory schema partial 卻被誤認為完整
+
+舊版本很容易出現：
+- 只有 `02_tech_stack.md`
+- intake 還能繼續
+
+現在 framework 已補上 partial / complete visibility，但 consuming repo 仍要跑新版工具才能看見。
+
+### 7.3 用錯 framework source
+
+若 consuming repo 指到落後 fork，可能會看到：
+- 行為比官方主線舊
+- 缺少新 signal / closeout / readiness surface
+
+現在已有 canonical source 檢查，應直接用它辨識。
+
+### 7.4 把 advisory 誤當 authority
+
+advisory signal 目前是 reviewer-visible、non-verdict-bearing。不要在 consuming repo 端自行把它升格成硬裁決依據。
+
+---
+
+## 8. 建議的整合節奏
+
+最穩的節奏是：
+
+1. **導入 source**
+2. **跑 adopt**
+3. **確認 baseline / memory / governance pack 存在**
+4. **跑 drift / readiness / smoke**
+5. **確認 runtime hook 至少有一條可讀輸出**
+6. **再決定是否接 closeout / audit / reviewer surface**
+
+不要一開始就把所有 signal、status、memory、closeout、advisory 全部一起打開。
+
+---
+
+## 9. 一句話整合原則
+
+> 先把 consuming repo 接成一個可驗證、可檢查、可回退的 bounded governance path，再考慮擴到更多 runtime surface；不要一開始就把整個 framework 當成全自動平台能力一次導入。

@@ -1,140 +1,197 @@
-# LIMITATIONS.md — 框架邊界、限制與誠實評估
+# LIMITATIONS.md - 目前邊界與已知限制
 
-> **為什麼有這份文件？**
-> 一個聲稱「治理 AI」的框架，若無法誠實描述自己的邊界與失敗案例，
-> 就是把「合規儀式」當成「實際安全」。這份文件是框架自我治理的一部分。
-
----
-
-## 這個框架「是什麼」
-
-| ✅ 適用場景 | 說明 |
-|------------|------|
-| 工程師與 AI 助手（Claude Code 等）的**協作工作流程治理** | 確保 AI 讀規範、守計畫、必要時停機 |
-| 管理 AI 在**單一專案**內的行為邊界 | 防止 AI 越過 Phase 範圍、自行擴大任務 |
-| 建立**可審計的協作記錄** | Governance Contract + memory_janitor + plan_freshness |
-| 對**早期採用團隊**傳達治理意識 | 讓工程師從「餵指令」升級到「定規則」 |
+> 這份文件的目的，不是替 repo 降低期待，而是把**現在已做到什麼、刻意還沒做到什麼、以及哪類風險仍需要人類判斷**說清楚。
+>
+> `ai-governance-framework` 目前是一個 **machine-interpretable governance runtime**。它已經能治理 execution、evidence、decision、memory / state 與 reviewer-facing surface，但仍是 **bounded system**，不是萬能代理平台。
 
 ---
 
-## 這個框架「不是什麼」
+## 1. 目前已經成立的能力
 
-| ❌ 不適用場景 | 原因 |
-|-------------|------|
-| **企業 AI 模型治理**（NIST AI RMF / EU AI Act 合規） | 本框架不管理 ML 模型的公平性、偏差、XAI |
-| **AI 輸出的技術強制執行** | AI 遵守治理文件屬「指導性」，非硬性攔截 |
-| **金融/醫療等高風險 AI 系統的法規合規** | 不涵蓋模型 Drift 偵測、特徵偏差、資料隱私稽核 |
-| **替代 code review 或 QA 流程** | 治理文件不能取代技術審查機制 |
-| **多 AI Agent 協作的資源隔離或許可權控制** | 不提供 RBAC、Sandbox、Agent 間信任機制 |
+### 1.1 Governance Runtime 主線
 
----
+目前 repo 已成立的主線包括：
+- `session_start`
+- `pre_task_check`
+- `post_task_check`
+- `session_end`
+- change-control / reviewer-facing artifact
+- decision context / advisory surface
+- bounded closeout / canonical closeout workflow
 
-## 已知限制
+也就是說，它不再只是 prompt 或文件集合，而是能產生 runtime artifact、status surface、與可追蹤 decision path 的治理系統。
 
-### L1 — AI 遵守治理文件屬「指導性」，非強制執行
+### 1.2 Repo-Local Adoption Path
 
-**現象**: AI 在長對話中可能逐漸「遺忘」治理文件，開始自行擴大範圍。
+目前已具備：
+- `adopt_governance.py` cross-platform adopt path
+- `governance_drift_checker.py`
+- external repo readiness / onboarding / source audit
+- canonical framework source 檢查
+- memory schema scaffold 與 partial / complete visibility
 
-**根本原因**: LLM 的 context window 是有限的，且 attention 會隨對話長度衰減。框架依賴 AI「讀過並遵守」，但無法在技術層面確保每個 token 都被治理文件約束。
+這些能力足以支撐 consuming repo 做 bounded adoption，但不等於任何 repo 都會自動進入 fully governed state。
 
-**緩解措施**:
-- `memory_janitor --check` 監控 context 壓力
-- 每次對話開頭重申 Governance Contract
-- `contract_validator.py` 可驗證 AI 回覆是否包含合規的初始化宣告
+### 1.3 Review / Status / Audit Surface
 
-**尚未解決的問題**: 對話中段的 AI 行為漂移（Session Drift）目前沒有自動偵測機制。
+目前已有：
+- trust-signal / status surface
+- closeout audit
+- execution surface coverage
+- runtime surface manifest
+- reviewer handoff 與 release-facing status page
 
----
-
-### L2 — Phase 完成的人工宣告問題
-
-**現象**: 在 `PLAN.md` 標記 `[✓]` 不等於功能真的完成，只是「聲稱完成」。
-
-**根本原因**: 框架早期版本缺乏機器驗證 Gate，Phase 完成依賴人工判斷。
-
-**已改善**: `scripts/verify_phase_gates.sh` + CI `phase-gates` job 現在提供可驗證條件（tests pass、PLAN.md fresh、工具可執行、文件完整）。
-
-**仍有缺口**: 功能完整性（「所有 demo 場景可跑通」）尚未自動化驗證。
+這些 surface 已可用於 reviewer 與 adoption 驗證，但多數仍是 **observability-first**，不是 enforcement-first。
 
 ---
 
-### L3 — 框架本身的「可觀測性」不足
+## 2. 目前刻意不主張的能力
 
-**現象**: 框架很難告訴你「AI 目前遵守治理文件的程度是幾分」。
+以下能力**不是**這個 repo 現在的對外主張：
 
-**根本原因**: 沒有量化的「治理遵守率」指標。現有的 `contract_validator.py` 只驗證初始化宣告的格式，不追蹤整個對話期間的行為一致性。
+### 2.1 不是 Full Execution Harness
 
-**影響**: 很難做 before/after 對比，難以向其他工程師「證明」框架有效。
+這個 repo 雖然有 runtime hook、surface inventory、coverage plan、decision context，但它不是完整 execution harness。
 
----
+它沒有提供：
+- 通用 agent orchestration substrate
+- 全面 workflow interception
+- 通用 multi-agent runtime scheduler
+- 全部工具鏈的統一執行控制層
 
-### L4 — 採用成本在初創小團隊中偏高
+### 2.2 不是 Machine-Authoritative Advisory System
 
-**現象**: 8 大法典 + 6 個工具對 2-3 人的初創團隊是沉重的認知負擔。
+advisory signal 目前是：
+- reviewer-visible
+- bounded
+- non-verdict-bearing
 
-**已改善**: `examples/starter-pack/` — 只需 `SYSTEM_PROMPT.md` + `PLAN.md` + `memory_janitor.py` 3 個文件，5 分鐘可跑起來的最小版本。簡化版 Governance Contract 只有 2 個欄位（`PLAN` + `PRESSURE`），認知負擔從 8 法典 + 6 工具降到 3 個文件。
+它們的作用是降低誤讀、補 decision context、提升 reviewer 可判讀性，而不是直接變成 machine authority。
 
-**仍有缺口**: Starter Pack 與完整框架之間沒有「漸進升級路徑」的自動化工具（目前只有文件指引）。
+也就是說：
+- advisory signal ≠ proof of compliance
+- advisory signal ≠ proof of violation
+- advisory signal ≠ final verdict input
 
----
+### 2.3 不是 Generic Multi-Agent Orchestration Platform
 
-## Before / After 對比
+這個 repo 雖然有 session workflow、closeout、decision surface、advisory taxonomy、injection plan，但它不是通用 multi-agent platform。
 
-### Before（沒有治理框架）
-
-```
-── 對話 1 ────────────────────────────────
-User: 幫我加個快取功能
-AI: 好的，我來實作 Redis 快取...
-    [直接開始寫程式，沒有確認是否在計畫範圍內]
-
-── 對話 8（3 天後）─────────────────────
-User: 為什麼這個 bug 還沒修？
-AI: 我不確定上次的狀態...
-    [沒有記憶管理，前幾次對話的決策已消失在 context 中]
-```
-
-**結果**: AI 不知道優先級，每次對話重新理解，越長越失控。
-
-### After（有治理框架）
-
-```
-── 對話 1 ────────────────────────────────
-User: 幫我加個快取功能
-AI: [Governance Contract] 已讀取
-    PLAN.md 本週目標：修復 BUG-003、補齊測試覆蓋率
-    快取功能在 Backlog P2，不在本週範圍。
-    選項：A) 移入本週（影響現有優先項）B) 維持 P2 C) 調整計畫
-
-── 對話 8（3 天後）────────────────────────
-[memory_janitor --check: SAFE (45/200 lines)]
-User: 為什麼這個 bug 還沒修？
-AI: 根據 PLAN.md 已知問題 BUG-003，狀態為「待評估」。
-    上次決策：優先完成 Phase D Gate 後才評估。
-    現在要處理嗎？
-```
-
-**結果**: AI 主動確認優先級、記憶有管理機制、決策可追溯。
+它目前不處理：
+- 通用 agent marketplace
+- 多代理全域調度
+- 任意工具 / 任意平台的動態策略編排
 
 ---
 
-## 哪些假設尚未被壓力測試
+## 3. 當前主要限制
 
-1. **框架在長達 4 週的連續專案中是否仍有效？** — 目前只有 demo 場景驗證，沒有真實專案的長期使用資料。
+### 3.1 Workflow Interception Coverage 仍然 Partial
 
-2. **多人協作（3+ 工程師）時 PLAN.md 的衝突解法是否足夠？** — 目前假設 single owner，多人並行修改 PLAN.md 的流程未定義。
+目前一些 runtime path 已被治理，但「代理實際執行的所有行為」還沒有完整被攔截與驗證。
 
-3. **AI 模型升級後治理行為是否一致？** — 框架對 Claude 3 → Claude 4 的行為變化沒有回歸測試。
+因此：
+- 有些路徑是可觀測的
+- 有些路徑只有 reviewer-visible signal
+- 有些路徑仍然依賴外部 discipline，而非強制執行
+
+### 3.2 Advisory / Observation 仍以 Semantics-Observation 為主
+
+目前 advisory slice 已收斂，但它是：
+- 受限
+- reviewer-visible
+- non-verdict-bearing
+
+這是刻意設計，不是缺漏。代價是：
+- 可降低誤讀
+- 但不追求 machine authority
+- 也不追求 full signal × full surface matrix
+
+### 3.3 Memory 與 Host-Agent Memory 尚未打通
+
+目前 repo 已有：
+- memory schema
+- memory sync signal
+- memory closeout visibility
+
+但以下仍未成立：
+- host-agent memory adapter
+- 對外部 agent memory API 的強制同步
+- 通用 session-closeout 自動寫入外部記憶系統
+
+所以目前能治理的是 **repo memory / artifact truth**，不是所有外部平台記憶機制。
+
+### 3.4 Policy 與 Semantic Verification 仍非 Full Policy Engine
+
+目前系統已能：
+- 提供 risk gate
+- 做 bounded decision support
+- 產生 reviewer-facing trace
+- 做 phase / surface / coverage / closeout 相關檢查
+
+但它仍不是：
+- 全面 semantic policy engine
+- 可對任意 repo / 任意 agent / 任意 domain 自動給出無歧義裁決的系統
+
+### 3.5 Taxonomy 採 Precision-First，不是 Completeness-First
+
+像 closeout taxonomy、advisory taxonomy、classification slice、以及多個 runtime signal，目前都偏向：
+- precision-first
+- stability-first
+
+這代表：
+- false positive 較少
+- 但 recall 壓力會較高
+- 有些值得辨識的情況，第一版可能不會被抓到
+
+這是取捨，不是意外。
 
 ---
 
-## 建議的使用前提
+## 4. 目前最常見的誤解
 
-在引入本框架前，確認以下條件：
+### 誤解 1：有很多 artifact，所以一定是全自動治理
 
-- [ ] 你的主要痛點是「AI 在長對話中失控、偏離計畫」，而非其他問題
-- [ ] 團隊有意願維護 PLAN.md（每週更新）
-- [ ] 使用的是 Claude Code 或支援讀取 markdown 的 AI 工具
-- [ ] 不需要硬性技術攔截（只需要指導性治理）
+不是。artifact 多，代表 observability 在增強；不代表ทุก一條路徑都已經被 machine-authoritative 地接管。
 
-**如果你需要硬性技術攔截**（AI 不能物理上違反規則），本框架的 `contract_validator.py` + Git hook 可以提供部分攔截，但仍依賴 AI 的配合，不是 OS 層或 sandbox 層的強制執行。
+### 誤解 2：有 advisory signal，所以 system 已能自動裁決
+
+不是。advisory signal 目前的位階被刻意限制在 reviewer-visible、non-verdict-bearing。
+
+### 誤解 3：有 execution / decision / memory，所以它已是完整 runtime platform
+
+不是。這些能力已經讓它超越純文件 framework，但仍是 bounded runtime，不是 full platform。
+
+### 誤解 4：導入 framework 後，memory 一定會自動更新
+
+不是。現在已補上 `memory_closeout` visibility，但「是否 promote、為什麼沒寫」仍受 closeout path、policy、risk、oversight 與 consuming repo 實際接線影響。
+
+---
+
+## 5. 對 adopter / reviewer 的實際建議
+
+### 對 adopter
+
+如果你要導入這個 framework，應預期：
+- 它能給你一條 bounded governance path
+- 它能提高 traceability、reviewability、與 adoption consistency
+- 但你仍需要為自己的 repo 定義：
+  - canonical build path
+  - domain boundary
+  - reviewer discipline
+  - memory / closeout 使用方式
+
+### 對 reviewer
+
+review 時應把它看成：
+- 一個能讓 decision 與 review artifact 更可讀的 runtime
+- 一組可觀測的 trust surface
+- 一套 bounded governance mechanism
+
+不要把它當成萬能 policy machine，也不要把 reviewer 的判斷責任完全外包給 signal。
+
+---
+
+## 6. 一句話總結
+
+> `ai-governance-framework` 已經是一個可執行、可觀測、可審查的 governance runtime；但它仍刻意停在 bounded、precision-first、reviewer-compatible 的位階，而不是 full execution harness 或 machine-authoritative policy platform。
