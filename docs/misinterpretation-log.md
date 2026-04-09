@@ -1,47 +1,41 @@
 # Misinterpretation Log
 
-> Purpose: collect real misuse and misreading evidence from reviewer and
-> adopter behavior. Used to determine when model expansion is justified.
+> 目的：收集 reviewer 與 adopter 在真實使用中出現的誤讀、誤用與解讀偏差，作為模型是否應擴張的主要證據來源。
 >
-> **Not a bug tracker.** This log records cases where the system's output
-> was correctly produced but incorrectly interpreted.
+> **這不是 bug tracker。**  
+> 它記錄的是：系統輸出本身也許沒有錯，但人如何把它讀錯、用錯。
 >
-> **Entries record observations, not conclusions.** What was observed and
-> what the field actually means are factual records. Severity, grouping, and
-> expansion justification must be derived from entries during review — not
-> embedded in the entry at write time. An entry that already contains its
-> own expansion argument is a conclusion dressed as evidence.
+> **entry 記 observation，不記 conclusion。**  
+> entry 應描述：
+> - 看到了什麼
+> - 該欄位真正的語義是什麼
 >
-> **Interpretive language test:** Before submitting an entry, ask: if a
-> statement leaves no room for alternative interpretation, it likely encodes
-> a conclusion. The test is not whether specific words appear ("misused",
-> "incorrectly", "clearly" are signals but not the only ones) — it is
-> whether the statement could be read differently by a reviewer with a
-> different prior. Describe what was done and what outcome occurred;
-> leave the verdict — whether that constitutes misuse — to review.
+> 至於 severity、grouping、是否值得擴模型，應該在 review 時再推導。  
+> 如果 entry 一開始就把 expansion argument 一起寫進去，那是把 conclusion 偽裝成 evidence。
 >
-> **Expansion trigger:** patterns in this log are the primary evidence base
-> for adding new dimensions (e.g. activation quality). Do not expand the
-> model on theory alone.
+> **Interpretive language test：**  
+> 在提交 entry 前先問自己：這句話是否還保留其他解讀空間？  
+> 如果完全沒有，通常已經不是 observation，而是 verdict。
 >
-> **Observation period:** begins at commit 608be20 (2026-04-05).
-> Ends after 10 reviewer interactions OR 30 days, whichever comes first.
-> After the window closes, review log entries and pending watch items
-> to determine whether model expansion, documentation changes, or no action
-> is warranted.
+> **Expansion trigger：**  
+> 這份 log 是新增模型維度的主證據來源。不要只靠理論就擴模型。
+>
+> **Observation period：**  
+> 從 commit `608be20`（2026-04-05）開始。  
+> 10 次 reviewer interaction 或 30 天後關窗，屆時統一 review。
 
 ---
 
-## How to add an entry
+## 如何新增一筆 Entry
 
-```
-### YYYY-MM-DD — <short description>
+```text
+### YYYY-MM-DD - <short description>
 
 **Affected field:** repo_readiness_level | closeout_activation_state | activation_recency | reviewer mapping
 **Misinterpretation type:** over-reading | under-reading | category confusion | decision leak
 **Severity:** low | medium | high
-**What was observed:** <what the reviewer/adopter did or concluded>
-**What the field actually means:** <the correct interpretation>
+**What was observed:** <reviewer/adopter 實際做了什麼、說了什麼>
+**What the field actually means:** <這個欄位真正語義是什麼>
 **Correction applied:** <doc update, code change, or no action>
 **Resolution status:** doc_updated | training | ignored | requires_model_change | open
 **Owner:** reviewer | team | framework
@@ -50,192 +44,140 @@
 
 ---
 
-## Entry types
+## Entry Types
 
 | Type | Description |
 |------|-------------|
-| `over-reading` | Treating a weaker signal as a stronger guarantee (e.g. `observed` → "currently reliable") |
-| `under-reading` | Ignoring a field because "it can't be used for decisions" |
-| `category confusion` | Mixing structural level with activation state, or activation with quality |
-| `decision leak` | Using activation state or readiness level to influence verdict or memory promotion |
+| `over-reading` | 把較弱 signal 誤讀成更強保證 |
+| `under-reading` | 因為「不能拿來做決策」就直接忽略這個欄位 |
+| `category confusion` | 把 structural level、activation state、quality、usage 混在一起 |
+| `decision leak` | 把 activation state / readiness level 偷渡進 verdict 或 memory promotion |
 
-## Severity levels
+## Severity Levels
 
 | Severity | Definition |
 |----------|------------|
-| `low` | Misread causes incorrect mental model but no incorrect action taken |
-| `medium` | Misread leads to incorrect reviewer action (e.g. wrong triage path) |
-| `high` | Misread directly impacts decision boundaries — e.g. activation state used to influence allow/deny or memory promotion |
+| `low` | 誤讀造成錯誤 mental model，但沒有導致錯誤行動 |
+| `medium` | 誤讀導致錯誤 reviewer action，例如走錯 triage path |
+| `high` | 直接碰到 decision boundary，例如 allow/deny 或 memory promotion 被影響 |
 
-**High-severity exception:** A single `high` severity event may justify earlier
-intervention — doc hardening, code-level guard, or model expansion proposal —
-without waiting for the standard two-instance threshold.
+**High-severity exception：**  
+若單一 `high` event 已直接碰到 decision boundary，可提前觸發 intervention，不必等到標準兩次門檻。
 
-**Severity judgment rule:** `high` is reserved for misinterpretations that
-directly affect decision boundaries: allow/deny behavior, memory promotion,
-or policy precedence. All other misinterpretations default to `medium` or
-`low`. Confusion, wrong mental model, or incorrect triage does not qualify
-as high unless it produced or nearly produced a decision boundary violation.
-When in doubt, mark `medium` — not `high`. The exception path must not become
-the normal path.
+**Severity judgment rule：**  
+只有真的碰到 allow/deny、memory promotion、policy precedence 這類 decision boundary，才算 `high`。  
+概念混淆、triage 錯誤、mental model 不清楚，原則上應落在 `medium` 或 `low`。
 
-**Medium severity guard:** `medium` indicates misinterpretations that require
-observation and evidence accumulation — not a terminal classification. If the
-same `medium` misinterpretation recurs in a short window (e.g., 3+ times within
-the observation period), re-evaluate whether the severity should be escalated or
-whether the owner assignment should change. Medium must not become a category
-that entries enter and never leave.
+**Medium severity guard：**  
+`medium` 不是終局分類，而是持續觀察狀態。若同一類 `medium` 在短時間內多次 recurrence，應重新評估 severity 與 owner。
 
-**Semantic grouping rule:** When counting recurrences, group by semantic
-category, not surface phrasing. Misinterpretations that differ in wording but
-share the same root (e.g., "activation used as quality proxy", "activation used
-as usage signal", "activation used as decision input" are all activation
-boundary violations) count toward the same recurrence threshold. Surface
-fragmentation must not be used — deliberately or accidentally — to avoid
-reaching the trigger threshold. Grouping must be based on a shared underlying
-misconception, not merely because entries involve the same field. Over-grouping
-— merging entries that have different root causes to reach the threshold faster
-— is the opposite error from fragmentation and equally invalid.
+**Semantic grouping rule：**  
+recurrence 要按語義根因分組，不按表面措辭分組。  
+例如：
+- `activation used as quality proxy`
+- `activation used as usage signal`
+- `activation used as decision input`
 
-## Resolution status
+雖然字面不同，但都屬 activation boundary violation，應算同類 recurrence。  
+反過來也不能 over-group，把根因不同的 entry 硬湊成同一類，只為了快點達到 trigger threshold。
+
+## Resolution Status
 
 | Status | Meaning |
 |--------|---------|
-| `doc_updated` | Misinterpretation addressed by updating documentation |
-| `training` | Addressed by reviewer guidance or onboarding update |
-| `ignored` | Determined to be acceptable ambiguity; no action taken |
-| `requires_model_change` | Documentation cannot resolve it; model dimension needed |
-| `open` | Not yet resolved |
+| `doc_updated` | 透過文件更新處理 |
+| `training` | 透過 reviewer guidance / onboarding 更新處理 |
+| `ignored` | 確認屬於可接受 ambiguity，不處理 |
+| `requires_model_change` | 文件已不足，必須靠模型層擴張 |
+| `open` | 尚未解決 |
 
-Tracking resolution status prevents false positives in the expansion trigger:
-the same misinterpretation appearing multiple times may reflect adoption lag
-(doc was already updated) rather than a structural model gap.
+追蹤 resolution status 的目的，是避免把 adoption lag 誤判成 structural model gap。
 
 ## Owner
 
 | Owner | Meaning | Responsible action |
 |-------|---------|--------------------|
-| `reviewer` | Individual behavior correction needed | The reviewer who logged the entry reviews the correct interpretation |
-| `team` | Adoption or training gap | Team updates onboarding, training, or shared conventions |
-| `framework` | Model or documentation change needed | Framework maintainer evaluates doc update or model expansion |
+| `reviewer` | 主要是個別 reviewer 行為修正 | reviewer 自行回看正確解讀 |
+| `team` | adoption / training gap | team 更新 onboarding 或 shared convention |
+| `framework` | 模型或文件層級需調整 | framework maintainer 評估 doc update 或 model expansion |
 
-`owner` is assigned at log time, not after resolution. If resolution later reveals
-a different owner was appropriate, update the entry. Unowned entries default to
-`framework` since they require model-level attention to close.
+`owner` 在 log entry 當下就要先給，不是等 resolution 後才補。  
+若後續發現 owner 判錯，可以更新。
 
-**Framework owner guard:** When `owner = framework`, include a one-line
-justification explaining why the issue is not resolvable at the `reviewer` or
-`team` layer. Assigning `framework` without justification is a sign that the
-entry was not triaged — not that the framework is responsible. Framework
-ownership must remain scarce or it becomes a responsibility sink.
+**Framework owner guard：**  
+若 `owner = framework`，要補一句說明：為什麼這不是 reviewer 或 team 層就能處理的問題。  
+否則 `framework` 很容易變成責任垃圾桶。
 
 ---
 
-## Log entries
+## Log Entries
 
-*(empty — observation phase begins after commit 608be20, 2026-04-05)*
+*(empty - observation phase begins after commit `608be20`, 2026-04-05)*
 
 ---
 
-## Pending watch items
+## Pending Watch Items
 
-These are predicted misinterpretation risks that have not yet been observed.
-Move to log entries when/if they occur in practice.
+這些是預測會發生、但尚未真正觀測到的誤讀風險。  
+若真發生，再移入正式 log entries。
 
 | Field | Predicted misread | Severity if occurs | Status |
 |-------|-------------------|--------------------|--------|
-| `observed/recent` | Interpreted as "healthy" or "actively maintained" | medium | watch |
-| `pending` | Interpreted as "almost activated" or "nearly ready" | low | watch |
-| `observed/stale` | Root cause assumed to be adoption-stopped without checking wiring | medium | watch |
-| `activation_state` (any) | Used to influence verdict classification or memory promotion | **high** | watch |
-| `repo_readiness_level=3` | Interpreted as "governance is working correctly" | medium | watch |
-| `activation_state` (any) | Ignored entirely because "can't be used for decisions" | low | watch |
+| `observed/recent` | 被讀成「健康」或「正在維護中」 | medium | watch |
+| `pending` | 被讀成「快 ready 了」 | low | watch |
+| `observed/stale` | 不先查 wiring 就直接推成 adoption stopped | medium | watch |
+| `activation_state` | 被拿去影響 verdict 或 memory promotion | high | watch |
+| `repo_readiness_level=3` | 被讀成「治理運作正常」 | medium | watch |
+| `activation_state` | 因為「不能拿來做決策」而被完全忽略 | low | watch |
 
 ---
 
-## Expansion proposal quality gate
+## Expansion Proposal Quality Gate
 
-Before a triggered expansion proposal is evaluated, it must answer three
-questions. Proposals that cannot answer all three are returned without review.
+任何 triggered expansion proposal 在進 review 前，都必須回答以下問題：
 
-1. **What specific misinterpretation does this dimension address?**
-   Name the log entry (or entries) that motivated the proposal. Theory
-   alone is not a valid answer.
+1. **這個 proposal 想解決哪一種具體 misinterpretation？**  
+   必須點名對應 log entry。不能只給理論。
 
-2. **Why is documentation insufficient to resolve it?**
-   Describe what was tried (doc update, wording change, guard clause) and
-   why it did not stop the misinterpretation from recurring.
+2. **為什麼 documentation 不夠？**  
+   要說明已嘗試過哪些 doc update / wording / guard clause，以及它們為何無法止住 recurrence。
 
-3. **What is the risk of not adding this dimension?**
-   Describe the expected harm — reviewer error rate, decision boundary
-   violations, or specific failure modes — if the status quo continues.
+3. **如果不加這個 dimension，風險是什麼？**  
+   必須描述具體 harm，例如 reviewer error rate、decision boundary violation、特定 failure mode。
 
-4. **Name at least one unobserved but potentially relevant area.**
-   Identify a part of the system that may have similar problems but has
-   not appeared in the log — even speculatively. The area must be specific
-   enough to be investigable by another reviewer: "other modules" does not
-   qualify; "session_end vs pre_task_check mismatch under the same
-   misinterpretation pattern" does. This is not a requirement to fix that
-   area; it is a requirement to demonstrate that your observations do not
-   exhaust the search space. If you cannot name anything specific, that is
-   itself a signal worth examining.
+4. **至少指出一個尚未觀測、但可能相關的 area。**  
+   這不是要求立刻修，而是要求提案者證明：自己沒有把目前觀察範圍誤當成整個 search space。
 
-5. **If this proposal is wrong, what concrete failure would we expect to
-   observe later?**
-   Name a specific observable outcome — a pattern in future log entries, a
-   behavior in verdict artifacts, a reviewer action — that would indicate
-   the new dimension did not solve the problem or created new ones. A
-   proposal that cannot be falsified by future observation is not a
-   scientific claim — it is a preference.
+5. **如果這個 proposal 是錯的，未來會看到什麼具體 failure？**  
+   proposal 必須可被未來 observation falsify，否則只是一種 preference。
 
-A proposal that passes the gate is a candidate for evaluation. Passing the
-gate does not mean the dimension will be added — it means the proposal has
-sufficient substance to be worth reviewing.
+### Counterfactual Check（接受前必填）
 
-**Counterfactual check (required before accepting):** The reviewer must
-complete the following scaffold. A proposal that does not fill all three
-fields has not passed the counterfactual check, regardless of how strong
-the supporting evidence looks.
-
-```
+```text
 Observation:
-<What the log entries show — factual, no verdict language>
+<log entry 真正顯示了什麼，純事實，不寫 verdict>
 
 Alternative mechanism:
-<A concrete mechanism that could produce the same observations without
-a structural model gap — e.g. "reviewer attention was focused on activation
-issues this week", "a CI change caused a spike in verdict artifacts">
+<還有哪個具體機制，也能產生同樣 observation，但不代表需要模型擴張>
 
 Why this mechanism fails to explain the data:
-<Specific reason the alternative is implausible — not 'seems unlikely'
-but 'the pattern appeared across 3 different reviewers over 4 weeks,
-which attention bias cannot explain'>
+<為什麼 alternative 不足以解釋目前 evidence>
 
 Which part of this reasoning are you least confident about?
-<Required. If you cannot answer this, the reasoning is likely shallow.
-If the answer comes easily, it identifies where the proposal is most
-vulnerable and should be examined first.
-The uncertainty must be decision-relevant: resolving it differently would
-change whether the proposal should be accepted. 'The completeness of
-alternative mechanisms' is a safe non-answer. 'Whether the pattern is
-semantic grouping or three independent issues' is decision-relevant.>
+<必填，且必須是 decision-relevant uncertainty>
 ```
 
-Stating "this could be transient but given repeated occurrences it is
-unlikely" does not satisfy the scaffold. A mechanism must be named and
-then refuted. Possibility without mechanism is not a counterfactual.
-If an alternative mechanism can be dismissed without referencing concrete
-system behavior (specific files, runs, reviewer identities, time ranges),
-it is likely too weak.
+若無法填完這四格，proposal 就不算通過 quality gate。
 
-## Expansion proposal log
+---
 
-Record all proposals here, including rejections. Without this record,
-the same proposal will be re-raised repeatedly, consuming review cycles
-and obscuring whether the underlying problem has actually changed.
+## Expansion Proposal Log
 
-```
-### YYYY-MM-DD — <proposal title>
+所有 proposal，包括 rejection，都應記在這裡。  
+否則同一個 proposal 會被不斷重新提出，浪費 review cycle。
+
+```text
+### YYYY-MM-DD - <proposal title>
 
 **Triggered by:** <log entry or watch item reference>
 **Proposed dimension:** <name>
@@ -244,80 +186,52 @@ and obscuring whether the underlying problem has actually changed.
 **Rejection reason / deferral condition:** <required if rejected or deferred>
 ```
 
-**Rejection reason is required** when `status = rejected`. A rejection
-without a reason cannot be distinguished from "we forgot to look at it".
+若 `status = rejected`，一定要填 rejection reason。  
+若 `status = deferred`，一定要寫 reopen condition。開放式 deferral 視同 rejection。
 
-**Deferred proposals** must specify the condition that would reopen them
-(e.g., "reopen if `observed/recent` appears in log twice with
-`requires_model_change`"). Open-ended deferrals are treated as rejections.
-
-**History weight guard:** Past proposal decisions provide context but must not
-prevent re-evaluation when new evidence emerges. A previously rejected proposal
-may be re-raised if the log contains new entries that were not present at the
-time of rejection. A rejection without new evidence is not a re-raise — it is
-a duplicate. New evidence must introduce a previously unobserved context,
-impact, or failure mode; repetition of the same pattern does not qualify.
-Adding a weak log entry specifically to satisfy the "new evidence" requirement
-is gaming the system — the entry must reflect a genuinely new observation, not
-be constructed to justify a re-raise.
-
-*(empty — no proposals yet)*
+*(empty - no proposals yet)*
 
 ---
 
-## Model expansion trigger rule
+## Model Expansion Trigger Rule
 
-A new dimension (e.g. `recent_closeout_quality`) is justified when **any one** of:
+新增維度（例如 `recent_closeout_quality`）只有在滿足以下任一條件時才合理：
 
-**Standard path (two-instance rule):**
-1. A specific misinterpretation appears in the log **at least twice** from
-   different contexts (different repos, reviewers, or sessions), AND
-2. The existing three-dimension model cannot address it through documentation
-   alone (`resolution != doc_updated` for both instances), AND
-3. The cost of the misinterpretation is higher than the complexity cost of
-   adding the new dimension.
+### Standard path（two-instance rule）
 
-**High-severity exception:**
-A single `high` severity entry (decision boundary impact) may trigger an
-expansion proposal immediately, without waiting for a second instance.
+1. 同一類 misinterpretation 在不同 context 下至少出現兩次  
+2. 現有三維模型無法只靠 documentation 解決  
+3. 這個 misinterpretation 的成本高於新增維度的複雜度成本
 
-**Not sufficient to trigger expansion:**
-- Theory or predicted risk alone
-- Two instances where `resolution = doc_updated` (adoption lag, not model gap)
-- Reviewer confusion that was resolved by explanation without doc change
+### High-severity exception
 
-**Negative pressure rule:** The absence of repeated misinterpretations is
-evidence that the current model is sufficient — expansion is not required.
-"No new entries" is a valid and positive outcome of an observation window.
-The default state is stability, not expansion. This rule is only valid when
-actual reviewer interactions occurred during the observation window; absence
-of observation is not evidence of sufficiency. A clean log with no reviewer
-activity means nothing was measured, not that the model is working.
-Observations may reflect reviewer attention bias: increased entries in one
-category do not imply coverage of the overall system. A spike in one area
-should prompt the question "what are we not looking at?" — not just
-"what does this spike tell us?"
+單一 `high` severity 事件，如果直接碰到 decision boundary，可立即進 expansion proposal review。
 
-First observed instance → "watch". Second confirmed instance from different
-context → proposal. High severity single instance → immediate review.
+### 不能單獨觸發 expansion 的情況
+
+- 純理論或預測風險
+- 兩次 instance 都以 `doc_updated` 收尾
+- 只靠現場解釋就能解掉的 reviewer confusion
+
+### Negative pressure rule
+
+如果 observation window 內沒有 repeated misinterpretation，這本身就是證據，表示當前模型也許已經夠用。  
+預設狀態是 stability，不是 expansion。
+
+但這條 rule 只有在真的有 reviewer interaction 時才有效。  
+沒有觀察，不代表 sufficiency。
 
 ---
 
-## Observation window end checklist
+## Observation Window End Checklist
 
-When the observation window closes, review these before deciding next steps:
+觀察窗關閉時，至少檢查：
 
-- [ ] How many log entries exist?
-- [ ] Are any entries `high` severity?
-- [ ] Are any entries `requires_model_change`?
-- [ ] Are any watch items still unobserved? (may indicate the risk was overstated)
-- [ ] Did any `doc_updated` resolutions stop recurrence, or did the same
-      misread appear again? (distinguishes adoption lag from model gap)
-- [ ] Is the three-dimension model still adequate, or is a fourth dimension
-      now justified by evidence?
-- [ ] Which assumptions underlying the current model have not been tested
-      by any falsification signal during this window? (Untested assumptions
-      are not necessarily wrong — but they should be named, not left implicit.)
-- [ ] For any falsification events observed: what concretely changed as a
-      result? If nothing changed, was that explicitly decided or just not
-      acted on?
+- [ ] 共有幾筆 log entry？
+- [ ] 有沒有任何 `high` severity？
+- [ ] 有沒有任何 `requires_model_change`？
+- [ ] watch item 有哪些仍未出現？
+- [ ] `doc_updated` 之後，誤讀是否真的停止 recurrence？
+- [ ] 現有三維模型是否仍足夠？
+- [ ] 這個 window 中有哪些 assumption 還沒被任何 falsification signal 測到？
+- [ ] 若已有 falsification event，之後具體改了什麼？

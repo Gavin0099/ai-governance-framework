@@ -2,91 +2,78 @@
 
 > Status: proposed design direction
 > Created: 2026-03-31
-> Purpose: define the machine-consumable constraint surface that should exist before AI-assisted implementation begins
+> Purpose: 在 AI-assisted implementation 開始前，定義可被 machine 消費的 constraint surface
 
 ---
 
-## Why this exists
+## 為什麼需要這一層
 
-The framework already governs AI work at the session and task boundary:
+framework 已經在 session / task 邊界上有不少治理能力：
 
 - `session_start`
 - `pre_task_check`
 - `post_task_check`
 - drift checks
-- artifacts and reviewer handoff
+- artifacts / reviewer handoff
 
-That is strong on discipline, evidence, and replay.
+這讓它在 discipline、evidence、replay 上很強。
 
-It is weaker at a different point:
+但它仍弱在另一個點：
 
-> before the system decides what kind of solution is even allowed,
-> whether implementation may begin,
-> and how much change is permitted for this task.
+> 在系統決定「允許哪一類解法」、「可不可以開始實作」、「這次任務最多能改多少」之前，
+> 其實還缺一個正式的 pre-decision constraint layer。
 
-This document names that missing surface explicitly.
-
-It is not an "entry prompt" layer.
-It is not another documentation bundle.
-It is a proposed **pre-decision constraint system** that the runtime can consume, trace, and review.
+這份文件的目的，就是把這個缺口顯性化。
 
 ---
 
-## Core idea
+## Core Idea
 
-The missing problem is not simply "repo-specific context."
+真正缺的不是單純的「repo-specific context」。
 
-The real problem is:
+真正缺的是：
 
-> constraints that matter before implementation starts are often implicit,
-> human-local, or only present in prior conversation.
+> 在 implementation 開始前就很重要、但常常只存在於人腦、前一輪對話或 repo note 裡的 constraint。
 
-If those constraints are only written in a repo note, they can still be ignored.
-To become governance-relevant, they must be:
+若它們只寫在註記裡，就仍然可能被忽略。  
+要成為 governance-relevant，至少要滿足：
 
-- structured enough to be consumed
-- attached to a decision point
-- included in trace output
-- governed by precedence
-- able to degrade, not only hard-stop
+- 結構化到可被消費
+- 綁到實際 decision point
+- 進入 trace output
+- 服從 precedence
+- 能 degradation，不只有 hard-stop
 
-This document calls that whole surface the **Decision Boundary Layer**.
-
----
-
-## Scope
-
-This layer is intended to answer four questions before implementation:
-
-1. What class of repo/problem is this?
-2. What classes of solution are invalid even if technically possible?
-3. What must exist before implementation is allowed to begin?
-4. How much change is this task allowed to make?
-
-Those are different questions.
-They must not be collapsed into one "context file."
+這整個 surface，就叫 **Decision Boundary Layer**。
 
 ---
 
-## The four constraint layers
+## 範圍
 
-### Layer 0: Identity Constraint
+這一層試圖在 implementation 之前先回答四個問題：
 
-Purpose:
-- constrain repo routing and solution framing
-- prevent category mistakes before deeper reasoning begins
+1. 這是什麼類型的 repo / problem？
+2. 哪些 solution class 即使技術上可行，也是不合法的？
+3. implementation 開始前，哪些條件一定要先存在？
+4. 這個 task 最多允許改到什麼程度？
 
-Examples:
-- this is a firmware tool repo, not a GUI application
-- this is a proxy group-buy system, not a bookstore
-- this is a CLI-first tool, not a web service
+這四個問題不同，不能被壓成一個模糊的「context file」。
 
-This layer should answer:
-- what this repo is
-- what it is not
-- what misclassifications are explicitly forbidden
+---
 
-Suggested shape:
+## 四層 Constraint Layers
+
+### Layer 0：Identity Constraint
+
+作用：
+- 限制 repo routing 與 solution framing
+- 在更深推理開始前就擋掉類別誤判
+
+例如：
+- 這是 firmware tool，不是 GUI app
+- 這是 CLI-first tool，不是 web service
+
+建議形狀：
 
 ```yaml
 repo_identity:
@@ -97,34 +84,27 @@ repo_identity:
     - web_service
 ```
 
-This layer is not useful if it remains metadata only.
-It must be consumable by decision routing.
+若 identity 只停在 metadata，就沒有治理價值。  
+它必須能進 decision routing。
 
-Required runtime effect:
-- if the proposed solution class conflicts with `repo_identity`, the system must at least `escalate`
-- high-risk mismatches may `reject`
+最低 runtime effect：
+- 若 proposal solution class 與 `repo_identity` 衝突，至少要 `escalate`
+- 高風險 mismatch 可以直接 `reject`
 
----
+### Layer 1：Invariant Constraint
 
-### Layer 1: Invariant Constraint
+作用：
+- 限制這個 repo / domain 內允許的 solution space
 
-Purpose:
-- constrain the allowed solution space inside this repo or domain
+例如：
+- matching 必須 automatic
+- manual selector UI 禁止
+- public flashing path 必須保持 single-owner
 
-Examples:
-- matching must be automatic
-- manual selector UI is forbidden
-- public flashing path must remain single-owner
+這些不是單純 context note，而是 local policy。  
+它們不應只住在 `CLAUDE.md` 或任意 repo note。
 
-These are not "context notes."
-They are local policy and should live in a formal contract source, not only in `CLAUDE.md` or equivalent repo notes.
-
-This layer should answer:
-- what solution classes are disallowed
-- what product or domain invariants must remain true
-- what patterns require escalation even if they compile and pass tests
-
-Suggested shape:
+建議形狀：
 
 ```yaml
 local_invariants:
@@ -135,40 +115,28 @@ local_invariants:
     - automatic_matching_only
 ```
 
-Required runtime effect:
-- invariant violations should appear in the same decision path as other contract-driven policy
-- they must be traceable as constraint-based rejections, not just prose guidance
+最低 runtime effect：
+- invariant violation 必須進同一條 contract-driven decision path
+- 它應被當成 constraint-based rejection，而不是 prose guidance
 
----
+### Layer 2：Precondition Constraint
 
-### Layer 2: Precondition Constraint
+作用：
+- 決定 implementation 是否允許開始
 
-Purpose:
-- decide whether implementation is allowed to begin
+例如：
+- parser 工作需要 sample files
+- protocol implementation 需要 spec
+- migration 需要 rollback plan
 
-Examples:
-- parser work requires sample files
-- protocol implementation requires spec and error-handling definition
-- migration work requires rollback plan
-
-This layer is the most immediately valuable part of the model.
-It catches "started correctly according to form, but without enough grounding to implement safely."
-
-However, a simple existence check is not enough.
-There are three levels:
+這一層最有 immediate value。  
+但不能只做 existence check，因為真實世界還有：
 
 1. explicit absence
 2. pseudo-presence
 3. semantic insufficiency
 
-Examples:
-- spec missing entirely
-- spec exists but does not cover this case
-- sample exists but lacks failure-path coverage
-
-So preconditions need validation, not just presence tests.
-
-Suggested shape:
+建議形狀：
 
 ```yaml
 preconditions:
@@ -190,36 +158,25 @@ preconditions:
       L2: stop
 ```
 
-Required runtime effect:
-- preconditions must be checked by `pre_task_check` or an equivalent pre-task validation path
-- absence or insufficiency must produce a deterministic verdict
-- the verdict must support degradation, not only binary stop/pass
+最低 runtime effect：
+- `pre_task_check` 應檢查 preconditions
+- 缺失或不足時，要有 deterministic verdict
+- verdict 必須支援 degradation，不只能 pass/stop
 
----
+### Layer 3：Capability Constraint
 
-### Layer 3: Capability Constraint
+作用：
+- 限制這次 task 允許改動的範圍與類型
 
-Purpose:
-- limit how much change this task is permitted to make
+例如：
+- 不得引入新 framework
+- 不得 public API break
+- 不得 cross-module refactor
 
-Examples:
-- no new framework introduction
-- no public API break
-- no cross-module refactor
-- no persistence schema change in an L0/L1 fast path
+這些與 identity、invariant 都不同。  
+它們屬於 task-bounded mutation constraints。
 
-These are not repo identity and not domain invariants.
-They are task-bounded mutation constraints.
-
-This layer is already partially present in the framework through:
-- scope control
-- public API diff tooling
-- refactor evidence requirements
-- task level and risk handling
-
-The missing piece is to surface them as one coherent pre-decision layer.
-
-Suggested shape:
+建議形狀：
 
 ```yaml
 capability_constraints:
@@ -231,131 +188,88 @@ capability_constraints:
     - cross_module_refactor
 ```
 
-Required runtime effect:
-- capability violations should trigger scope-based escalation or rejection
-- they must be evaluated before large implementation begins, not only after diff review
+最低 runtime effect：
+- capability violation 應觸發 scope-based escalation 或 rejection
+- 而且應在 implementation 開始前被處理，不是等 diff review 才補抓
 
 ---
 
-## Why this is not just CLAUDE.md
+## 為什麼這不是 `CLAUDE.md`
 
-Repo-local context files can still be useful, but their scope must stay narrow.
+repo-local context file 當然可以存在，但它的角色應很窄：
 
-They are appropriate for:
+適合放：
 - vocabulary
 - repo orientation
-- quick framing
-- links to canonical sources
+- major folders / entrypoints
+- canonical source links
 
-They are not a safe primary home for:
-- invariants
-- hard gates
-- deterministic policy
-
-If hard constraints live only in repo-local prose, they remain weakly enforced.
-
-Recommended rule:
-
-- repo-local orientation docs may describe
-- formal constraint sources must decide
-
-### CLAUDE.md scope boundary
-
-If a repo uses `CLAUDE.md` or an equivalent local orientation file, its role
-must be explicitly limited.
-
-Allowed content:
-
-- repo identity summary
-- vocabulary and naming conventions
-- quick orientation for major folders or entrypoints
-- links to canonical sources of truth
-
-Forbidden content:
-
+不適合當 primary home 的內容：
 - hard-stop rules
 - task gate logic
-- policy precedence rules
-- capability constraints that affect verdicts
-- duplicate copies of contract-driven invariants
+- policy precedence
+- capability constraints
 - enforcement logic
-- gate conditions
 
-In other words:
+一句話：
 
-- `CLAUDE.md` is not a policy source
-- `CLAUDE.md` is not a gate source
-- `CLAUDE.md` may help framing
-- `CLAUDE.md` must not silently become enforcement
+- `CLAUDE.md` 可以幫忙 framing
+- 但 `CLAUDE.md` 不是 policy source
+- 更不是 gate source
 
 ---
 
-## Decision model integration
+## Decision Model Integration
 
-This layer is only meaningful if it is consumed by the runtime.
+這一層只有在 runtime 真的吃進去時才有意義。
 
-Minimum required consumers:
+最低 consumer 應包括：
 
 - `session_start`
-  - may load identity/framing context
-  - may attach preview data for trace
-
+  - 可載入 identity / framing preview
 - `pre_task_check`
-  - must evaluate preconditions
-  - should evaluate identity mismatches and capability overreach
-
+  - 必須檢查 preconditions
+  - 應檢查 identity mismatch 與 capability overreach
 - decision model / runtime verdict path
-  - must apply precedence and degradation policy
+  - 必須處理 precedence 與 degradation
 
-Minimum trace outputs:
+最低 trace output 應可回答：
+- 載入了哪些 constraints
+- 評估了哪些 constraints
+- 哪些 constraint 改變了 verdict
+- 結果是 `pass` / `warn` / `restrict` / `escalate` / `stop`
 
-- which constraints were loaded
-- which constraints were evaluated
-- which verdict they influenced
-- whether the result was pass / warn / restrict / escalate / stop
-
-If these are not observable in artifacts, this layer is not yet governance-relevant.
-
----
-
-## Policy precedence
-
-Once identity, invariant, precondition, and capability constraints all exist, precedence must be explicit.
-
-Otherwise different sessions and reviewers will resolve conflicts differently.
-
-A starting model:
-
-1. Precondition constraint
-2. Invariant constraint
-3. Capability constraint
-4. Identity constraint
-
-This order is only a proposed default.
-It must be reviewed against the existing v2.6 precedence model before adoption.
-
-Declarative interpretation:
-
-- precondition answers "may this task begin implementation now?"
-- invariant answers "is this solution class allowed here at all?"
-- capability answers "is this amount/type of change allowed for this task?"
-- identity answers "is this proposal framed as the right kind of repo/problem?"
-
-The important point is not the exact order.
-The important point is:
-
-> precedence must be defined, not improvised.
+若這些資訊不進 artifact，這一層就還不算 governance-relevant。
 
 ---
 
-## Degradation paths
+## Policy Precedence
 
-A pure hard-gate system will eventually become too rigid.
+Identity、Invariant、Precondition、Capability 一旦同時存在，precedence 就必須明寫。
 
-The framework already has strong replay, artifact, and review capabilities.
-That means some failures should degrade rather than only stop.
+否則不同 reviewer / session 會各自 improvisation。
 
-Examples:
+一個起始順序可以是：
+
+1. Precondition
+2. Invariant
+3. Capability
+4. Identity
+
+這只是提議，不是既定真理。  
+重要的不是「順序一定長這樣」，而是：
+
+> precedence 必須被定義，而不是臨場猜
+
+---
+
+## Degradation Paths
+
+純 hard-gate 系統很快就會變得太僵。
+
+由於 framework 已有 replay、artifact、review 能力，某些 failure 更適合 degradation，而不是一律 stop。
+
+例如：
 
 ```yaml
 missing_sample:
@@ -369,89 +283,71 @@ spec_incomplete:
   L2: stop
 ```
 
-This keeps the system from collapsing into "AI can never proceed" while still making missing grounding visible, reviewable, and deterministic.
+這能避免系統滑向「AI 什麼都不能做」，同時又讓 grounding 不足的狀態保持可見、可追蹤、可 review。
 
-Task-level binding is required.
-
-The same degradation must not apply equally to every task level.
-At minimum, the design must be able to express:
-
-- degradations allowed in `L0`
-- degradations that force escalation in `L1`
-- degradations that become hard stop in `L2`
-
-Without task-level binding, degradation paths will turn into self-excusing bypasses.
+但 degradation 一定要綁 task level。  
+否則它很容易變成自我開脫的 bypass。
 
 ---
 
-## Non-goals
+## Non-Goals
 
-This layer should not become:
+這一層不應變成：
 
-- a second copy of the governance constitution
-- a replacement for domain contracts
-- a free-form repo diary
-- a new catch-all schema for every local preference
+- 第二份治理憲法
+- domain contract 的替代品
+- catch-all repo diary
+- 收納所有 local preference 的新 schema
 
-If it grows without a decision consumer, it becomes context inflation.
-If it duplicates existing rules, it becomes governance duplication.
-
----
-
-## Relationship to current entry-layer documents
-
-The current `entry-layer` documents were written to stop unjustified runtime expansion.
-
-That boundary remains useful.
-
-This document does not argue that the old entry layer should be reintroduced as-is.
-Instead, it reframes the actual need:
-
-- not more observation
-- not more runtime surface by default
-- but a smaller, explicit decision-boundary model tied to real verdicts
-
-In other words:
-
-- `entry-layer-boundary.md` remains a valid anti-expansion constraint
-- this document describes what a justified successor would need to be
+若它沒有真正 decision consumer，就只會變成 context inflation。  
+若它重複既有規則，就會變成 governance duplication。
 
 ---
 
-## Minimal implementation path
+## 與現有 Entry-Layer 文件的關係
 
-If this direction is pursued, start with the smallest path that changes real decisions:
+現有 `entry-layer` 文件原本的任務，是防止 unjustified runtime expansion。
 
-1. Add machine-readable `repo_identity`
-2. Add one or two precondition validators with degradation paths
-3. Route both through `pre_task_check`
-4. Emit trace showing which boundary constraint changed the verdict
-5. Only then consider broader invariant/capability expansion
+那個邊界仍然有效。  
+這份文件不是要把舊 entry layer 重新拉回來，而是想把真正需要的 successor shape 講清楚：
 
-If step 4 cannot be achieved, stop.
-That would mean the system added structure without adding verifiable value.
+- 不是再加更多 observation
+- 不是默默長更多 runtime surface
+- 而是更小、更明確、能綁到 real verdict 的 pre-decision model
 
 ---
 
-## First runtime slice recommendation
+## Minimal Implementation Path
 
-The first runtime slice should not attempt to implement the full four-layer
-model at once.
+若真的要落地，最小路徑應該是：
 
-Recommended order:
+1. 先加 machine-readable `repo_identity`
+2. 只加一兩個高價值 precondition validator
+3. 透過 `pre_task_check` 跑它們
+4. 在 trace 中清楚標出是哪個 boundary constraint 改變 verdict
+5. 做不到第 4 步就停
 
-1. Minimal precondition gate
-2. Minimal capability hook
-3. Identity as input and trace surface
-4. Identity as enforcement
+如果沒辦法在 trace 中說清楚 constraint 如何改變 verdict，那就代表只是多長一層結構，沒有多出可驗證價值。
 
-Reasoning:
+---
 
-- preconditions are easiest to validate against real mistakes
-- capability constraints already align with existing evidence/scope tools
-- identity is valuable, but high risk to overfit or under-specify too early
+## First Runtime Slice Recommendation
 
-The first slice should therefore target only a narrow, high-value subset:
+第一個 runtime slice 不應一次實作完整四層。
+
+建議順序：
+
+1. minimal precondition gate
+2. minimal capability hook
+3. identity 當 input / trace surface
+4. identity 真正進 enforcement
+
+理由：
+- preconditions 最容易對應真實錯誤
+- capability 已和現有 scope / evidence tooling 比較接得上
+- identity 雖重要，但太早做 enforcement 容易 overfit
+
+建議 first slice：
 
 ```yaml
 first_slice:
@@ -469,62 +365,50 @@ first_slice:
     - repo taxonomy growth
 ```
 
-Success for the first slice means:
-
-- the boundary changes a real verdict
-- the reason is visible in trace
-- reviewer can reconstruct the decision from artifact alone
-- the slice does not duplicate existing contract truth
-- false stop / false escalate cases are observable and explainable
-
-Deliberately deferred:
-
-- semantic identity classification
-- multi-layer conflict resolution beyond the initial precedence model
-- broad invariant authoring for many repos
-- new repo taxonomy work
-- pseudo-presence and semantic-insufficiency validation beyond the minimal first slice
-- capability runtime enforcement beyond reuse of existing evidence / scope surfaces
+成功條件：
+- boundary 真的改變過至少一個 real verdict
+- 原因能在 trace 中看見
+- reviewer 能只靠 artifact 重建決策
+- 不製造 duplicate truth source
+- false stop / false escalate 是可觀測、可解釋的
 
 ---
 
-## Alignment with existing framework surfaces
+## Alignment With Existing Framework Surfaces
 
-This layer should reuse existing framework strengths instead of renaming them.
+這一層若要成立，應盡量重用 framework 已有 surface，而不是重造一個 parallel system。
 
-Current alignment candidates:
+對應關係大致是：
 
 - precondition constraint
   - `pre_task_check`
   - runtime contract
-  - proposal guidance / escalation path
+  - escalation path
 
 - capability constraint
   - public API diff checks
   - refactor evidence
   - scope control
-  - source-of-truth boundary checks
 
 - invariant constraint
   - domain contracts
-  - rule packs only where they already act as formal policy input
+  - 正式 rule pack
 
 - identity constraint
-  - repo typing only after a bounded first slice proves trace value
+  - 先當 trace / routing input，之後再考慮 enforcement
 
-If an implementation cannot point to one of these existing surfaces, it may be
-inventing a parallel system rather than extending the current one.
+如果某個實作無法明確對應現有 surface，很可能不是在延伸 framework，而是在偷偷長第二套系統。
 
 ---
 
-## Success criteria
+## Success Criteria
 
-This layer is only successful if it can demonstrate all of the following:
+這一層只有在以下條件都能成立時，才算成功：
 
-- a wrong proposal class is caught by identity routing
-- a missing or insufficient prerequisite changes the verdict deterministically
-- the decision is reconstructable from artifact alone
-- the new layer does not require duplicate truth sources in repo notes and contracts
-- token and complexity growth remain bounded
+- 錯的 proposal class 能被 identity routing 擋下
+- missing / insufficient prerequisite 能 deterministically 改變 verdict
+- reviewer 可只靠 artifact 重建 decision
+- 不需要 repo note 與 contract 各寫一份真相
+- token / complexity 成長保持有界
 
-Without those properties, this should remain a design memo, not runtime behavior.
+若做不到，這份文件就應維持 design memo，而不是 runtime 行為。
