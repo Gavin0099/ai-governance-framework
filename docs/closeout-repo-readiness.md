@@ -2,86 +2,106 @@
 
 > Version: 1.0
 
-A repo is **closeout-ready** when it meets the following minimum conditions.
-Meeting these conditions does not guarantee closeout quality — it only means
-the infrastructure for session closeout is in place.
+repo 若要被視為 **closeout-ready**，至少要滿足以下條件。  
+這不代表 closeout 品質已經很好，只代表 session closeout 的基礎設施已經到位。
 
 ---
 
-## Minimum conditions
+## 最低條件
 
-### 1. AGENTS.base.md present and contains closeout obligation
+### 1. `AGENTS.base.md` 存在，且包含 closeout obligation
 
-The adopted repo must have `AGENTS.base.md` (or the obligation text included
-in `AGENTS.md`) with the Session Closeout Obligation section.
+adopt 後的 repo 應具備 `AGENTS.base.md`，或至少把相同 obligation 放進 `AGENTS.md`。  
+其中必須包含 `Session Closeout Obligation` 段落。
 
-Verify:
+驗證：
+
 ```bash
 grep -l "Session Closeout Obligation" AGENTS.base.md AGENTS.md 2>/dev/null
 ```
 
-If missing, re-adopt:
+若缺失，重新 adopt：
+
 ```bash
 python governance_tools/adopt_governance.py --target <repo> --framework-root <ai-gov>
 ```
 
 ---
 
-### 2. Artifact write path exists or can be created
+### 2. Artifact 寫入路徑存在或可建立
 
-`session_end_hook` writes to `artifacts/session-closeout.txt` and
-`artifacts/runtime/`. The repo must not block writes to these paths.
+`session_end_hook` 會寫：
+- `artifacts/session-closeout.txt`
+- `artifacts/runtime/`
 
-Verify:
+repo 不能阻擋這些路徑的寫入。
+
+驗證：
+
 ```bash
 mkdir -p artifacts/runtime && echo "ok" > artifacts/.write-test && rm artifacts/.write-test
 ```
 
 ---
 
-### 3. `session_end_hook` is executable from the framework repo
+### 3. 能從 framework repo 執行 `session_end_hook`
 
-The stop hook calls `python -m governance_tools.session_end_hook`.
-This requires:
-- Python with framework dependencies installed
-- The framework repo on the Python path (`cd` to framework root or use `-m`)
+stop hook 會呼叫：
 
-Verify:
 ```bash
-# From framework repo root
+python -m governance_tools.session_end_hook
+```
+
+這表示環境至少要具備：
+- 可執行的 Python
+- framework repo 在 Python path 之中（例如先切到 framework root）
+
+驗證：
+
+```bash
+# 從 framework repo root 執行
 python -m governance_tools.session_end_hook --project-root <your-repo> --format human
 ```
 
-Expected output: `closeout_status=closeout_missing` (file not there yet) with exit code 1.
-If you see a Python error, dependencies are not installed.
+預期輸出：`closeout_status=closeout_missing`，exit code 為 1。  
+若直接看到 Python import error，表示依賴或路徑尚未接好。
 
 ---
 
-### 4. Schema document is accessible
+### 4. Schema 文件可被引用
 
-`docs/session-closeout-schema.md` must be present in the framework repo so the
-AI can reference it when writing the closeout.
+framework repo 中應存在：
 
-Verify:
+```text
+docs/session-closeout-schema.md
+```
+
+AI 才能在寫 closeout 時參照合法 schema。
+
+驗證：
+
 ```bash
 test -f docs/session-closeout-schema.md && echo "present"
 ```
 
 ---
 
-### 5. Stop hook configured (for automatic closeout)
+### 5. Stop hook 已設定（若要自動 closeout）
 
-For automatic closeout on every session, `.claude/settings.json` must have a
-`Stop` hook. See `docs/stop-hook-setup.md`.
+若希望每次 session 自動 closeout，`.claude/settings.json` 需要設定 `Stop` hook。  
+可參考 [stop-hook-setup.md](/e:/BackUp/Git_EE/ai-governance-framework/docs/stop-hook-setup.md)。
 
-Manual fallback: run `python -m governance_tools.session_end_hook --project-root .`
-before ending a session.
+手動備援方式：
+
+```bash
+python -m governance_tools.session_end_hook --project-root .
+```
 
 ---
 
-## Readiness check command
+## Readiness 檢查命令
 
-Run all five conditions at once:
+最小檢查：
 
 ```bash
 python -m governance_tools.session_end_hook --project-root <your-repo> --format human
@@ -89,42 +109,38 @@ python -m governance_tools.session_end_hook --project-root <your-repo> --format 
 
 | Output | Meaning |
 |--------|---------|
-| `closeout_status=closeout_missing` | Infrastructure ready; AI has not written closeout yet |
-| `closeout_status=valid` + `promoted=True` | Fully ready and last session closed cleanly |
-| Python `ModuleNotFoundError` | Dependencies not installed |
-| `FileNotFoundError` on project-root | Path does not exist |
+| `closeout_status=closeout_missing` | 基礎設施已就緒，但 AI 還沒寫 closeout |
+| `closeout_status=valid` + `promoted=True` | closeout 流程已完整跑通，且上次 session 有成功 promotion |
+| Python `ModuleNotFoundError` | 依賴未安裝或 path 未接好 |
+| `FileNotFoundError` on project-root | 指定的 repo 路徑不存在 |
 
 ---
 
-## What readiness does NOT guarantee
+## Readiness 不保證什麼
 
-- That the AI will write a valid closeout (schema and content are the AI's obligation)
-- That memory will update (promotion still requires `closeout_status=valid`)
-- That evidence claims are true (evidence_consistency is best-effort only)
-- That the repo is fully governance-compliant in all other dimensions
+- 不保證 AI 一定會寫出合法 closeout
+- 不保證 memory 一定更新
+- 不保證 evidence claims 一定為真
+- 不保證 repo 在其他治理維度都已完全合規
 
-Readiness is a prerequisite for the closeout contract to function.
-It is not a certification of governance quality.
+Readiness 只是讓 closeout contract 能運作的前提，不是治理品質證書。
 
 ---
 
-## Memory promotion note
+## Memory Promotion Note
 
-Memory is updated only when `closeout_status=valid` (all four layers pass).
+memory 只有在 `closeout_status=valid` 時才會更新。
 
-This is intentionally conservative. There is a known trade-off:
+這是刻意保守的策略，也帶來明確取捨：
 
-- **Too strict**: valid closeouts that fail evidence_consistency due to
-  filesystem layout differences will not update memory, even if the
-  underlying work was real.
-- **Too permissive**: accepting content_insufficient closeouts into memory
-  allows AI self-report to bypass verification.
+- **太嚴**：若 evidence consistency 因環境差異誤判，真實工作也可能無法更新 memory
+- **太鬆**：若允許 `content_insufficient` closeout 也寫入 memory，就會讓 AI 自述繞過驗證
 
-The current policy errs toward strict. If evidence_consistency false-positives
-become a recurring problem (e.g. cross-drive paths, CI environments), the
-appropriate fix is to adjust the evidence consistency checks — not to lower
-the `valid` bar.
+目前 policy 偏向保守。  
+如果未來 recurring false positive 變多，應優先修 evidence consistency 檢查，而不是直接降低 `valid` 門檻。
 
-A two-tier memory promotion model (`memory_safe_update` for content_sufficient
-but evidence_unchecked closeouts, `memory_high_confidence_update` for fully
-valid closeouts) is a future option if the strict gate causes memory starvation.
+長期來看可以考慮兩層 memory promotion：
+- `memory_safe_update`：內容可信，但 evidence 未完全驗證
+- `memory_high_confidence_update`：四層都通過
+
+但那是未來選項，不是目前 contract。

@@ -1,354 +1,285 @@
 # Closeout Readiness Spectrum
 
 > Version: 1.1
-> Related: docs/closeout-repo-readiness.md, docs/session-closeout-schema.md
+> Related: `docs/closeout-repo-readiness.md`, `docs/session-closeout-schema.md`
 
 ---
 
-## Purpose
+## 目的
 
-This document defines four readiness levels for session closeout governance.
+這份文件把 session closeout governance 的 readiness 拆成四個 level。
 
-It exists because "ready / not-ready" does not accurately describe the
-progression from having a stop hook to having verified session closeout.
+原因很簡單：只用「ready / not-ready」無法描述從 stop hook 接通，到 closeout 真正可驗證之間的差距。
 
-Readiness levels describe **what closeout governance capability a repo currently
-supports**. They do not describe team quality, engineering maturity, or AI usage
-quality.
+readiness level 描述的是：
+
+> 一個 repo 目前具備哪些 closeout governance capability
+
+它不描述：
+- 團隊成熟度
+- 工程品質
+- AI 使用品質
 
 ---
 
-## Two independent dimensions
+## 兩個獨立維度
 
-Readiness output carries two separate values. They must not be merged.
+readiness output 應至少帶兩個互不相混的值。
 
-**`repo_readiness_level` (0-3)** — Structural capability checklist.
-What governance infrastructure is in place. Determined by files, config, and
-code — not by session history. A repo that just had `upgrade_closeout` applied
-can be structural Level 3 immediately.
+### `repo_readiness_level`（0-3）
 
-**`closeout_activation_state`** — Whether the closeout loop has been observed
-in practice.
+這是**結構能力**，由檔案、設定、程式路徑決定，而不是由 session 歷史決定。  
+repo 即使剛完成 `upgrade_closeout`，也可能立刻具備結構上的 Level 3。
+
+### `closeout_activation_state`
+
+這是**是否曾在實務上觀測到 closeout loop 被跑起來**。
 
 | Value | Meaning |
 |-------|---------|
-| `observed` | At least one verdict artifact exists — the loop has been run before |
-| `pending` | Structural prerequisites met but no verdict artifacts yet |
-| `unknown` | Structural level too low to activate meaningfully |
+| `observed` | 至少已有一份 verdict artifact，代表 loop 曾被跑過 |
+| `pending` | 結構條件已就緒，但尚未觀測到任何 run |
+| `unknown` | 結構層級太低，無法有意義地談 activation |
 
-**`activation_recency`** — How recently the loop was last observed (only set
-when `activation_state=observed`).
+### `activation_recency`
+
+只在 `activation_state=observed` 時才有意義。
 
 | Value | Meaning |
 |-------|---------|
-| `recent` | Most recent verdict artifact is within 30 days (by file mtime) |
-| `stale` | Verdict artifacts exist but most recent is older than 30 days |
+| `recent` | 最近一份 verdict artifact 的 mtime 在 30 天內 |
+| `stale` | 有 verdict artifact，但最近一份已超過 30 天 |
 
-**What `recent` actually checks:** The mtime of the most recent verdict artifact
-file. It does NOT check whether that session produced a `valid` or
-`content_sufficient` closeout. A repo can be `observed/recent` while the last
-10 sessions all ended in `closeout_missing`.
+**`recent` 真正檢查的是什麼？**  
+它只看最近一份 verdict artifact 的檔案 mtime。  
+它不表示最近 closeout 都是 `valid`，也不表示治理品質健康。
 
-`recent` is an operational heuristic, not a guarantee of current health. It
-answers "was the hook invoked recently?" — not "is the governance working?".
+換句話說：
+- `observed` 只代表曾經觀測過
+- `recent` 只代表最近曾被觸發
+- 兩者都不是 trustworthiness 保證
 
-**Precise semantic definitions:**
+### 為什麼要和 structural level 分開？
 
-`activation_state` indicates whether the repository has ever produced a
-closeout artifact that entered the governance runtime. It does not imply
-ongoing compliance or guarantee system trustworthiness.
+因為 repo 可能是：
+- 結構上已完整（例如 Level 3）
+- 但 activation 還是 `pending`
 
-`observed` = observed at least once. `observed` ≠ trustworthy.
+如果把「沒有歷史 artifact」誤算成 structural deficiency，就會混淆：
+- capability
+- activation history
 
-`pending` = structural prerequisites met, but no observed run yet.
-`pending` does not mean partially validated or nearly reliable. It means
-no closeout run has been recorded. A pending repo has full structural
-capability but zero activation history.
-
-`unknown` = structural level too low to assess activation meaningfully.
-`unknown` is not a negative verdict — it is a gap in information. Do not
-treat it as equivalent to `pending`.
-
-`activation_recency` refines `observed`: `stale` means the loop ran
-historically but may not reflect current behavior. `stale` is the most
-diagnostically valuable state — it should trigger a reviewer question,
-not just be read as "imperfect observed".
-
-Activation reduces the risk of completely unverified operation. It does not
-eliminate errors or adversarial behavior.
-
-**Why separate from structural level?** A repo can be structural Level 3 with
-`activation=pending` (full capability in place, no session run yet). Treating
-"no prior verdicts" as a structural deficiency would conflate:
-- structural capability (what infrastructure is in place)
-- activation history (whether that infrastructure has been exercised)
-
-`prior_verdict_artifacts_exist` is an activation signal, not a structural one.
-It does not affect `repo_readiness_level`.
+`prior_verdict_artifacts_exist` 是 activation signal，不是 structural signal。
 
 ---
 
-## Reviewer action mapping
+## Reviewer Action Mapping
 
-These are expected reviewer actions per activation state. This table converts
-the three-dimension model into workflow input — not decision input.
+下表是 reviewer workflow guidance，不是 runtime decision rule。
 
 | State combination | Expected reviewer action |
 |-------------------|--------------------------|
-| `pending` (any level) | Before treating the repo as activated, require at least one recorded closeout session that produces a verdict artifact (`closeout_status` present in `artifacts/runtime/verdicts/`). The minimum bar is a **recorded run** — not necessarily `valid`. A `closeout_missing` verdict counts: it proves the hook fired. Meeting this bar only proves the hook fired — it does not imply any quality or completeness of the closeout. Do not treat activation as an unlock condition. |
-| `observed/recent` | Inspect individual session verdict artifacts. Do not assume health. `observed/recent` means artifact activity was detected recently — not that recent sessions passed or that the repo is actively in use. Automated pipelines or test runs can produce `observed/recent` without any meaningful development activity. Activation does not reflect quality distribution or workflow relevance; quality must be assessed at the session verdict level. |
-| `observed/stale` | Distinguish three causes before acting: **(1) wiring failed** — stop hook broke, artifact path changed, or CI workflow disconnected; **(2) usage interrupted** — hook works but sessions haven't happened recently; **(3) adoption stopped** — team stopped using the repo at the decision level. **Triage order:** rule out wiring first, then check recent session activity, then consider adoption-level stop. Reversing this order typically misdiagnoses the cause. **Minimal wiring checks:** (a) does `artifacts/runtime/verdicts/` still exist and is it writable? (b) is the stop hook still configured in `.claude/settings.json`? (c) is any CI or local workflow still connected to the hook? |
-| `unknown` | Check artifact write path and structural prerequisites. `unknown` is a gap in information, not a negative verdict. |
+| `pending` | 至少要求一個有記錄的 closeout session，最小標準是產生一份帶 `closeout_status` 的 verdict artifact。即使是 `closeout_missing` 也算，因為它證明 hook 確實被觸發。 |
+| `observed/recent` | 仍需打開個別 verdict artifact 檢查，不可把 `observed/recent` 誤讀成 closeout 品質健康。 |
+| `observed/stale` | 先依序排查：1. wiring 是否斷了；2. 最近是否根本沒有 session；3. 是否 adoption 已停止。不要直接跳到「團隊不用了」這種解釋。 |
+| `unknown` | 先補 artifact 路徑與 structural prerequisites，再談 activation。 |
 
-**Authority boundary:** This table defines reviewer workflow guidance only.
-It does not participate in runtime decisions and must not influence verdict
-classification or memory promotion. Reading activation state as a factor in
-allow/deny or promotion decisions would break the separation between
-observation and judgment that this system depends on.
+**Authority boundary：**  
+這張表只給 reviewer 工作流參考，不能影響：
+- verdict classification
+- allow / deny
+- memory promotion
 
-**Intended use of activation state:** Activation state provides context for
-reviewer inquiry — not a basis for decisions. The right response to activation
-data is to ask better questions, not to reach conclusions. Ignoring activation
-state entirely because "it can't be used for decisions" discards useful
-diagnostic context.
-
-**Note:** The verdict artifact for each individual session is the authoritative
-record, not the activation state. Activation state is an existence check,
-not a quality grade, not a usage signal, and not a decision input.
-
-**Known liveness gap:** The wiring checks above verify *connectivity*
-(path exists, hook configured, CI connected). They do not verify *liveness*
-(hook is actually being fired, new artifacts are being written). A repo can
-pass all three wiring checks and still be stale if the trigger condition is
-never met. If wiring checks pass but stale persists, the next question is:
-are sessions actually happening?
+activation state 是 reviewer 問題導向，不是 decision input。
 
 ---
 
-## Known future gap: activation quality
+## 已知未補的 gap：activation quality
 
-The current model answers three questions:
-1. Does the repo have structural capability? (`level`)
-2. Has closeout ever been observed? (`activation_state`)
-3. Was it observed recently? (`activation_recency`)
+目前模型回答了三個問題：
 
-It does not answer a fourth question:
-4. What quality did recent closeouts achieve?
+1. repo 是否具備結構能力？  
+2. closeout loop 是否曾被觀測到？  
+3. 最近是否仍有被觸發？
 
-A repo that is `observed/recent` could have had every recent session end in
-`closeout_missing`. The current model cannot distinguish that from a repo
-where every recent session produced `valid + verified_state_update`.
+但它**還沒回答第四個問題**：
 
-This gap is intentional for now. Adding a `recent_closeout_quality` or
-`recent_closeout_health` dimension would provide that signal, but adds
-runtime cost and complexity. The right trigger for that addition is when
-reviewers consistently report that `observed/recent` is misleading them
-about repo health — not before.
+4. 最近 closeout 的品質如何？
 
-Until then: always read individual verdict artifacts alongside the activation
-state. Activation state is an existence check, not a quality grade.
+一個 repo 可能 `observed/recent`，但最近十次全部都是 `closeout_missing`。  
+現有模型無法把這類 repo 和「最近都能穩定產出 valid closeout」的 repo 區分開來。
 
----
+這個缺口目前是刻意保留的。  
+只有當 reviewer 持續回報 `observed/recent` 對 repo 健康度的判讀產生誤導時，才值得新增 `recent_closeout_quality` 類維度。
 
-## Hard rules
+在那之前，activation state 只用來回答：
+- loop 是否被跑過
+- 最近是否還有被跑
 
-**Rule 1 — Level is determined by capability checklist, not a single condition.**
-
-A repo is not Level 2 because it "has AGENTS.base.md". It is Level 2 when the
-specific capability checklist for Level 2 is satisfied. Partial checklists
-result in the lower level.
-
-**Rule 2 — Level does not affect individual session verdict logic.**
-
-Readiness level shapes adoption expectations. It does not flow into
-`session_end_hook` classification, memory promotion decisions, or verdict
-artifacts. A Level 0 repo can still produce a `valid` closeout if the AI writes
-a correct one. A Level 3 repo can still produce a `closeout_missing` verdict.
-
-Level appears in verdict artifact metadata so reviewers have context. It is
-never read back as decision input.
-
-**Rule 3 — Readiness level is not a maturity score and MUST NOT be used as a
-performance or quality KPI.**
-
-Level 3 means the repo has cross-reference capability enabled. It does not mean
-the team is better, the AI is more reliable, or the code is higher quality.
-Using level as a KPI produces incentives to game the checklist rather than
-improve actual governance behaviour.
-
-**Rule 4 — Progression is capability expansion, not a mandatory upgrade path.**
-
-A repo that stays at Level 2 indefinitely is not a failure. Cross-reference
-(Level 3) is useful for repos where fabricated file claims are a realistic risk.
-For many repos, Level 2 content governance is the appropriate steady state.
-Upgrade when the capability is needed, not because the number is lower.
+不回答品質。
 
 ---
 
-## Level 0 — Hook Entry Only
+## Hard Rules
 
-The stop hook can call `session_end_hook`. Nothing else is guaranteed.
+### Rule 1：Level 來自 capability checklist，不來自單一條件
 
-**Capability checklist:**
-- [ ] `python -m governance_tools.session_end_hook --project-root <repo>` runs without Python error
-- [ ] Stop hook configured (`.claude/settings.json`) or manual call path documented
-- [ ] `artifacts/` directory is writable
+repo 不是因為「有 AGENTS.base.md」就算 Level 2。  
+只有在對應 checklist 都成立時，才算該 level。
 
-**What this level supports:**
-- Stop-time entry into the closeout pipeline
-- Degraded verdicts (`closeout_missing`, `schema_invalid`) are recorded
+### Rule 2：Level 不回流成單一 session 的 decision input
 
-**What this level does NOT support:**
-- Canonical closeout artifact production
-- Content validation
-- Memory updates of any kind
+readiness level 可以出現在 verdict metadata，幫 reviewer 提供背景。  
+但它不能反過來影響：
+- `session_end_hook` classification
+- memory promotion
+- verdict 決策邏輯
 
-**Typical state:** repo just connected to global stop hook; no closeout schema
-has been communicated to the AI.
+### Rule 3：Readiness level 不是 maturity score
 
----
+Level 3 只代表 cross-reference capability 已接上。  
+它不代表：
+- 團隊比較成熟
+- AI 比較可靠
+- 程式碼品質比較高
 
-## Level 1 — Canonical Closeout Ready
+不能拿 readiness level 當 KPI。
 
-The repo can produce a structurally valid closeout. The 7-field schema is
-available to the AI and the artifact path is writable.
+### Rule 4：Progression 是 capability expansion，不是強制升級路線
 
-**Capability checklist (Level 0 +):**
-- [ ] `docs/session-closeout-schema.md` (or equivalent) is accessible in the framework repo
-- [ ] `AGENTS.base.md` contains the Session Closeout Obligation section
-- [ ] `artifacts/session-closeout.txt` write path exists or can be created
-- [ ] AI can reference the 7-field schema when writing closeout
-
-**What this level supports:**
-- `schema_valid` closeouts possible
-- `session_end_hook` can classify `presence`, `schema_validity`
-- Verdict artifacts are produced
-
-**What this level does NOT support:**
-- Content sufficiency check is not reliably guided
-- No pre-validation before closeout is written
-- Evidence cross-reference is not meaningful yet
-
-**Expected verdict distribution:** `closeout_missing` or `schema_invalid` common
-until AI has internalized the schema. First `schema_valid` closeouts appear.
+repo 若長期停在 Level 2，並不等於失敗。  
+Level 3 適合需要 cross-reference 的 repo；如果 repo 的穩態只需要 Level 2，就不應為了數字好看硬升級。
 
 ---
 
-## Level 2 — Content-Governed Closeout
+## Level 0：Hook Entry Only
 
-The repo has pre-validation guidance aligned with runtime judgment. The AI
-knows what makes content insufficient before `session_end_hook` classifies it.
+stop hook 已能呼叫 `session_end_hook`，但其他事情都尚未保證。
 
-**Capability checklist (Level 1 +):**
-- [ ] `AGENTS.base.md` closeout obligation includes content rules:
-  - must name specific files or tool commands (observable anchor)
-  - vague phrases are listed and rejected
-  - `NOT_DONE` and `OPEN_RISKS` must not be omitted under pressure
-- [ ] Pre-validation checklist in agent instructions matches `session_end_hook` judgment criteria
-- [ ] `failure_signals` and `per_layer_results` are observable in verdict artifacts
+**Capability checklist：**
+- [ ] `python -m governance_tools.session_end_hook --project-root <repo>` 可執行
+- [ ] 已設定 stop hook，或至少有手動執行路徑
+- [ ] `artifacts/` 可寫
 
-**What this level supports:**
-- `content_sufficient` closeouts possible
-- `working_state_update` memory tier becomes meaningful
-- `failure_signals` help diagnose why closeouts fail
-- Naïve faking (vague phrases, empty fields) is consistently caught
+**支援：**
+- stop-time entry into closeout pipeline
+- degraded verdicts（如 `closeout_missing`）被記錄
 
-**What this level does NOT support:**
-- Syntactic anchors that refer to non-existent files are not caught
-- Tool names that appear in `CHECKS_RUN` without artifact evidence are not challenged
-
-**Expected verdict distribution:** `content_insufficient` drops. `valid` and
-`evidence_inconsistent` become the dominant non-trivial states.
+**不支援：**
+- canonical closeout production 的穩定品質
+- content validation
+- memory update
 
 ---
 
-## Level 3 — Cross-Referenced Closeout
+## Level 1：Canonical Closeout Ready
 
-The repo has filesystem and artifact cross-reference enabled. Claims in
-`FILES_TOUCHED` and `CHECKS_RUN` are spot-checked against observable signals.
+repo 已具備合法 closeout schema 的基本條件，AI 也有機會依 schema 產出 structurally valid closeout。
 
-**Capability checklist (Level 2 +):**
-- [ ] `FILES_TOUCHED` values are checked for filesystem existence at closeout time
-- [ ] `CHECKS_RUN` tool names are mapped to expected artifact directories
-  (e.g. `pytest` → `.pytest_cache`, `session_end_hook` → `artifacts/runtime/verdicts/`)
-- [ ] `cross_reference_results` appear in verdict artifacts
-- [ ] `working_state_update` vs `verified_state_update` distinction is active
+**Capability checklist（Level 0 +）：**
+- [ ] `docs/session-closeout-schema.md` 可被引用
+- [ ] `AGENTS.base.md` 含 `Session Closeout Obligation`
+- [ ] `artifacts/session-closeout.txt` 可寫
+- [ ] AI 能在 closeout 時看得到七欄 schema
 
-**Note on activation:** In the current framework, cross-reference is always
-active once Level 2 structural prerequisites are met — the capability is in
-the framework code, not in per-repo configuration. A repo that reaches
-Level 2 is immediately structural Level 3.
+**支援：**
+- `schema_valid` closeout 有可能出現
+- `session_end_hook` 能分類 `presence` / `schema_validity`
+- verdict artifact 穩定產出
 
-Whether the cross-reference loop has been *observed* in practice is captured
-separately in `closeout_activation_state` (`active` / `pending`). Prior
-verdict artifacts affect `activation_state` only — not the structural level.
-
-**What this level supports:**
-- `evidence_consistent` closeouts possible
-- `verified_state_update` memory promotion has evidence prerequisite
-- Syntactic gaming (real filenames that were never touched) raises cost
-- `cross_reference_results` give reviewers specific inconsistency signals
-
-**What this level does NOT support:**
-- Proof of execution — cross-reference is an inconsistency signal, not verification
-- Prevention of a determined adversarial agent constructing all required artifacts
-- Semantic correctness of claimed code changes
-
-**Expected verdict distribution:** `evidence_inconsistent` now catches repos
-where AI claims files it didn't touch. `valid` + `verified_state_update`
-becomes the achievable steady state for compliant sessions.
+**不支援：**
+- content sufficiency 仍不穩
+- evidence cross-reference 尚未有實質意義
 
 ---
 
-## Progression path
+## Level 2：Content-Governed Closeout
 
-```
-Level 0                    Level 1                   Level 2                  Level 3
-Hook entry only      →   Schema available       →   Content governed    →   Cross-referenced
-                          AGENTS.base.md             pre-validation           file + tool check
-                          7-field schema             observable anchor        artifact signals
-                          artifact path writable     failure_signals          working/verified split
+repo 已把 pre-validation guidance 和 runtime judgment 對齊。  
+AI 在寫 closeout 之前，已能知道什麼叫 content insufficient。
+
+**Capability checklist（Level 1 +）：**
+- [ ] `AGENTS.base.md` 的 closeout obligation 包含 content rules
+- [ ] 明列 observable anchor：需點名檔案、工具、命令
+- [ ] 明列 vague phrases 為不合法寫法
+- [ ] `NOT_DONE` / `OPEN_RISKS` 不能在壓力下被省略
+- [ ] verdict artifact 可觀測 `failure_signals` 與 `per_layer_results`
+
+**支援：**
+- `content_sufficient` closeout
+- `working_state_update` memory tier 開始有意義
+- reviewer 能用 `failure_signals` 快速定位缺口
+- 空泛造假比較容易被抓到
+
+**不支援：**
+- 只靠語法上看似真實的檔名，仍可能混過去
+- `CHECKS_RUN` 若只寫了名稱，仍可能缺乏真 evidence
+
+---
+
+## Level 3：Cross-Referenced Closeout
+
+repo 已接上 filesystem / artifact cross-reference，`FILES_TOUCHED` 與 `CHECKS_RUN` 不再只靠 AI 自述。
+
+**Capability checklist（Level 2 +）：**
+- [ ] `FILES_TOUCHED` 會在 session end 檢查檔案是否存在
+- [ ] `CHECKS_RUN` 的工具名稱會對應到預期 artifact 路徑
+- [ ] verdict artifact 會帶 `cross_reference_results`
+- [ ] `working_state_update` / `verified_state_update` 的 distinction 已啟用
+
+**支援：**
+- `evidence_consistent` closeout
+- `verified_state_update` memory promotion 有 evidence prerequisite
+- syntactic gaming 的成本提高
+- reviewer 可看到更具體的不一致信號
+
+**不支援：**
+- proof of execution
+- 完全防止惡意 agent 造假
+- 語意正確性的保證
+
+**重要說明：**  
+目前 framework 中，cross-reference capability 一旦 structural prerequisites 成立，基本上就和 Level 2 一起存在。  
+是否真的在實務上被觀測到，要看 `closeout_activation_state`，不是看 structural level。
+
+---
+
+## Progression Path
+
+```text
+Level 0                -> Level 1                 -> Level 2                  -> Level 3
+Hook entry only           Schema available           Content governed            Cross-referenced
+                           AGENTS.base.md            pre-validation              file + tool check
+                           7-field schema            observable anchors          artifact signals
+                           writable artifact path    failure_signals             working/verified split
 ```
 
-**Typical progression time:** Each level can be reached in a single session if
-the repo owner actively addresses the checklist. Most repos reach Level 2
-within two to three sessions after adoption.
+---
+
+## 與 Memory Promotion 的關係
+
+| Repo level | 常見 memory tier | 說明 |
+|-----------|------------------|------|
+| Level 0 | `no_update` | 通常 schema 都還沒建立好 |
+| Level 1 | `no_update` 或 `working_state_update` | schema 開始成立，但內容常常不夠 |
+| Level 2 | `working_state_update` | 內容較可信，但 evidence 仍偏弱 |
+| Level 3 | `working_state_update` 或 `verified_state_update` | 取決於單次 session 結果 |
+
+**這是常見結果，不是硬映射。**  
+memory tier 永遠由單次 session 的 closeout classification 決定，不由 repo readiness level 直接決定。
 
 ---
 
-## Relationship to memory promotion
-
-| Repo level | Likely memory tier | Notes |
-|-----------|-------------------|-------|
-| Level 0 | `no_update` | Schema usually missing, memory_mode=stateless |
-| Level 1 | `no_update` or `working_state_update` | Schema valid but content often insufficient |
-| Level 2 | `working_state_update` | Content sufficient, evidence unchecked |
-| Level 3 | `working_state_update` or `verified_state_update` | Depends on individual session result |
-
-**Important:** This table describes typical outcomes, not automatic mapping.
-A Level 2 repo can still produce `verified_state_update` if the AI writes a
-closeout that happens to pass all four layers. A Level 3 repo can still produce
-`no_update` if the AI writes a missing or schema-invalid closeout.
-
-Memory tier is always determined by the single-session classification result,
-not by repo readiness level.
-
----
-
-## How to check your repo's current level
+## 如何檢查 repo 目前在哪個 level
 
 ```bash
-# Step 1 — can session_end_hook run?
+# Step 1：session_end_hook 能不能跑
 python -m governance_tools.session_end_hook --project-root <your-repo> --format human
 
-# If this runs without error: Level 0 minimum
-
-# Step 2 — check AGENTS.base.md has closeout obligation
+# Step 2：AGENTS.base.md 是否有 closeout obligation
 grep -c "Session Closeout Obligation" <your-repo>/AGENTS.base.md <your-repo>/AGENTS.md 2>/dev/null
 
-# If present: Level 1 candidate (check full L1 checklist)
-
-# Step 3 — write a test closeout and check content classification
+# Step 3：手動寫一份測試 closeout
 cat > <your-repo>/artifacts/session-closeout.txt << 'EOF'
 TASK_INTENT: test content validation
 WORK_COMPLETED: updated main.py to fix edge case handling
@@ -358,45 +289,49 @@ OPEN_RISKS: NONE
 NOT_DONE: NONE
 RECOMMENDED_MEMORY_UPDATE: NO_UPDATE
 EOF
-python -m governance_tools.session_end_hook --project-root <your-repo> --format human
 
-# If content_sufficiency=sufficient: Level 2 candidate
-# If cross_reference_results present with tool checks: Level 3 candidate
+python -m governance_tools.session_end_hook --project-root <your-repo> --format human
 ```
+
+判讀：
+- `content_sufficiency=sufficient`：可視為 Level 2 候選
+- 有 `cross_reference_results`：可視為 Level 3 候選
 
 ---
 
-## Positioning of working_state_update
+## `working_state_update` 的定位
 
-`working_state_update` is not a degraded or "dirty" tier. It is the primary
-carrier of ongoing session reality.
+`working_state_update` 不是 degraded tier，也不是應被避免的 dirty 狀態。  
+它是持續工作現況的主要載體。
 
-**working_state is the primary carrier of ongoing reality.
-verified_state is a filtered subset for high-confidence use.**
+更準確地說：
 
-A repo that consistently produces `working_state_update` is doing useful work.
-Memory that is 80% working_state is dramatically more useful than memory that
-is 0% because the `verified` bar is never reached. Do not treat `working_state`
-as something to be avoided or cleaned up.
+> working_state 是 ongoing reality 的主要承載層  
+> verified_state 是 high-confidence subset
 
-## Cross-reference is an inconsistency signal, not verification
+如果一個 repo 穩定產生 `working_state_update`，那通常比「因 verified 門檻過高而什麼都不更新」更有價值。
 
-**Cross-reference increases the cost of fabrication, but does not guarantee
-correctness.**
+---
 
-A file that exists may not have been meaningfully changed. A tool artifact that
-exists may predate the current session. A repo that passes all cross-reference
-checks is a repo where no detectable inconsistency was found — not a repo where
-all claims are proven true.
+## Cross-reference 是 inconsistency signal，不是 verification
 
-Level 3 raises the cost of naive or accidental fabrication. It does not
-eliminate the possibility of deliberate fabrication. This distinction matters
-for how you communicate the system's guarantees to external reviewers.
+cross-reference 的作用是**提高造假成本**，不是保證 claim 為真。
 
-## Non-goals
+檔案存在，不代表本次 session 真的有做出有意義的修改。  
+artifact 存在，也不代表它一定屬於這次 session。
 
-- Readiness level is not a score or grade
-- Higher level does not mean the repo is "better governed"
-- Level 3 does not prevent a sufficiently motivated agent from gaming the system
-- This spectrum does not replace the verdict artifact as the authoritative record
-- Readiness level appears in verdict metadata but is never read back as decision input
+所以 Level 3 的保證是：
+- 沒有發現可檢出的不一致
+
+而不是：
+- 所有內容都已被證明正確
+
+---
+
+## Non-Goals
+
+- readiness level 不是分數或等級制度
+- higher level 不代表「治理更好」
+- Level 3 也無法阻止有意識的高成本造假
+- 這份 spectrum 不取代 verdict artifact 本身
+- readiness level 可出現在 metadata，但不得回流成 decision input

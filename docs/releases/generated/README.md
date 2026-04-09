@@ -1,9 +1,12 @@
 # Generated Release Packages
 
-這個目錄是 generated release-package snapshot 的穩定 repo-local 落點。
+這個目錄存放由工具產生的 repo-local release package snapshot。  
+它不是正式對外發布頁，而是 generated entrypoint，主要供：
+- release package 檢查
+- publication reader
+- 本地驗證與對照
 
-當 release-package publishing 跑過後，最新的 generated entrypoint 會維持在這裡：
-
+目前常見輸出包括：
 - `latest.md`
 - `latest.json`
 - `PUBLICATION_MANIFEST.json`
@@ -11,13 +14,13 @@
 - `<version>/README.md`
 - `<version>/MANIFEST.json`
 
-可用以下命令生成或刷新這個路徑：
+若要在本地生成 release package：
 
 ```bash
 python governance_tools/release_package_snapshot.py --version v1.0.0-alpha --publish-docs-release --format human
 ```
 
-可用以下命令讀取 generated release root：
+若要讀取 generated release root：
 
 ```bash
 python governance_tools/release_package_publication_reader.py --project-root . --docs-release-root --format human

@@ -1,151 +1,174 @@
 # Closeout Readiness Rollout
 
 > Version: 1.0
-> Related: docs/closeout-readiness-spectrum.md, docs/closeout-repo-readiness.md
+> Related: `docs/closeout-readiness-spectrum.md`, `docs/closeout-repo-readiness.md`
 
 ---
 
-## Problem
+## 問題
 
-The Session Closeout Obligation was added to `baselines/repo-min/AGENTS.base.md`
-after some repos were already adopted. Those repos correctly report Level 0 in the
-readiness audit because their `AGENTS.base.md` predates the obligation.
+`baselines/repo-min/AGENTS.base.md` 中的 `Session Closeout Obligation` 是後來才加進去的。  
+因此，一些較早 adopt 的 repo 即使現在跑 readiness audit，也會正確地被判成 Level 0，因為它們的 `AGENTS.base.md` 還停在 obligation 加入之前的版本。
 
-The wrong fix: re-adopt all repos at once. This risks:
-- Overwriting uncommitted changes in `AGENTS.md` / `AGENTS.base.md`
-- Triggering full re-adoption logic when only one section needs to change
-- No diff review before write
+錯的修法是一次對所有 repo 重新 adopt。  
+這樣會帶來：
+- 覆寫現有 `AGENTS.md` / `AGENTS.base.md` 的風險
+- 觸發整套 adopt 流程，即使其實只差一個 section
+- 寫入前沒有先看 diff
 
-The right fix: observable, incremental, rollback-safe.
+比較對的作法是：
+
+> observable、incremental、rollback-safe
 
 ---
 
-## Three-phase rollout
+## 三階段 rollout
 
-### Phase 1 — Audit: understand before fixing
+### Phase 1：Audit，先理解再修
 
 ```bash
-# Single repo
+# 單一 repo
 python -m governance_tools.readiness_audit --repo /path/to/repo
 
-# Multiple repos
+# 多個 repo
 python -m governance_tools.readiness_audit --repo /path/a /path/b /path/c
 
-# Scan a workspace directory for all git repos
+# 掃整個 workspace 目錄中的 git repos
 python -m governance_tools.readiness_audit --scan-dir /workspace
 
-# JSON output for scripting
+# 給腳本用的 JSON 輸出
 python -m governance_tools.readiness_audit --repo /path --format json
 ```
 
-Output: a table showing each repo's level, limiting factor, and suggested next step.
+輸出會告訴你：
+- 每個 repo 的 level
+- 當前 limiting factor
+- 建議的 `suggested_next_step`
 
-**Rule:** Run Phase 1 before Phase 2. Do not start patching repos whose level
-you don't know yet. Level 2 or Level 3 repos need no closeout patch — patching
-them anyway is waste and risk.
+**規則：**  
+一定先跑 Phase 1，再做 Phase 2。  
+不要在不知道 readiness level 的情況下，直接去 patch repo。
 
 ---
 
-### Phase 2 — Patch: opt-in, diff-first, single file only
+### Phase 2：Patch，opt-in、先看 diff、只動單一檔案
 
 ```bash
-# Preview (no writes)
+# 預覽，不寫入
 python -m governance_tools.upgrade_closeout --repo /path/to/repo --dry-run
 
-# Apply after reviewing diff
+# 確認 diff 後才套用
 python -m governance_tools.upgrade_closeout --repo /path/to/repo
 
-# Multiple repos
+# 多個 repo
 python -m governance_tools.upgrade_closeout --repo /path/a /path/b
 ```
 
-What it touches: **only `AGENTS.base.md` (or `AGENTS.md`)**.
-What it does: appends the `## Session Closeout Obligation` section.
-What it skips: repos that already have the obligation (idempotent).
+**它只會碰：**
+- `AGENTS.base.md`
+- 或必要時碰 `AGENTS.md`
 
-**Rollback:**
+**它會做的事：**
+- 補上 `## Session Closeout Obligation` 區段
+
+**它不會做的事：**
+- 重新 adopt 全 repo
+- 改 `contract.yaml`
+- 改 `.governance/`
+- 改 memory
+
+若 repo 已經有 obligation，工具會自動跳過，不重複寫入。
+
+**Rollback：**
+
 ```bash
 cd /path/to/repo
 git checkout HEAD -- AGENTS.base.md
 ```
 
-Or manually: remove everything from `## Session Closeout Obligation` to end of file.
+或手動刪掉從 `## Session Closeout Obligation` 開始到檔尾的段落。
 
 ---
 
-### Phase 3 — Verify: re-audit after patching
+### Phase 3：Verify，patch 後再 audit 一次
 
 ```bash
-# Re-run audit to confirm level has advanced
 python -m governance_tools.readiness_audit --repo /path/to/repo
 ```
 
-Expected after Phase 2: Level 0 → Level 1 (if schema_doc and artifacts are present).
+預期：
+- 原本的 Level 0 至少應提升到 Level 1 候選（如果 schema_doc、artifact path 等條件也成立）
 
-If still Level 0 after patching: check `limiting_factor` — the diff may have
-introduced a non-UTF-8 encoding or the `suggested_next_step` points at something
-else.
+若 patch 後仍停在 Level 0，就去看：
+- `limiting_factor`
+- `suggested_next_step`
+
+不要先假設 patch 沒生效。也可能是 encoding、artifact path、schema document 等其他因素仍缺失。
 
 ---
 
-## What `suggested_next_step` means
+## `suggested_next_step` 代表什麼
 
-Every `readiness_audit` and `session_end_hook` output includes a
-`suggested_next_step` keyed to the specific `limiting_factor`.
+`readiness_audit` 與 `session_end_hook` 都會輸出 `suggested_next_step`。  
+它是針對當前 `limiting_factor` 的建議動作。
 
 | Limiting factor | Suggested next step |
 |----------------|---------------------|
 | `artifacts_not_writable` | `mkdir -p artifacts/runtime && chmod -R u+w artifacts/` |
 | `agents_base_has_obligation` | `python -m governance_tools.upgrade_closeout --repo <repo>` |
-| `agents_base_has_anchor_guidance` | `python -m governance_tools.upgrade_closeout --repo <repo>` (re-run) |
-| `prior_verdict_artifacts_exist` | Run one compliant session to produce first verdict |
-| `schema_doc_present` | Ensure `docs/session-closeout-schema.md` exists in framework repo |
+| `agents_base_has_anchor_guidance` | 再跑一次 `upgrade_closeout`，確認 obligation 是否完整 |
+| `prior_verdict_artifacts_exist` | 跑至少一個 session，產生第一份 verdict |
+| `schema_doc_present` | 確保 framework repo 內存在 `docs/session-closeout-schema.md` |
 
-`suggested_next_step` is advisory, not automated. It requires human review
-and opt-in execution.
+這些建議是 advisory，不會自動執行。  
+仍然需要人先看懂情況，再決定是否要套用。
 
 ---
 
-## Framework repo self-upgrade
+## Framework Repo Self-Upgrade
 
-The framework repo itself (`d:/ai-governance-framework`) reports Level 0 because
-its root `AGENTS.base.md` predates the closeout obligation update to
-`baselines/repo-min/AGENTS.base.md`.
+framework repo 自己也可能因為 `AGENTS.base.md` 比 baseline 舊，而被 readiness audit 判成 Level 0。
 
-To upgrade:
+若要自升級，可執行：
+
 ```bash
 python -m governance_tools.upgrade_closeout --repo .
 ```
 
-This is intentionally not done automatically. The framework repo's own governance
-files are under active development. Patching them in an automated rollout risks
-overwriting work in progress.
+這件事刻意不自動做，因為 framework 自己的治理檔案本來就常在 active development 中。  
+若由 rollout 自動 patch，反而可能覆蓋進行中的工作。
 
 ---
 
-## What this rollout does NOT do
+## 這份 rollout 不做什麼
 
-- Does not re-adopt repos (no contract.yaml changes, no .governance/ changes)
-- Does not modify memory/ files
-- Does not automatically advance repos past Level 1 (anchor guidance and
-  prior verdict artifacts require active session work, not just a patch)
-- Does not guarantee that AI agents will write valid closeouts after patching —
-  the obligation section is instruction, not enforcement
+- 不重新 adopt repo
+- 不修改 `contract.yaml`
+- 不修改 `.governance/`
+- 不修改 `memory/`
+- 不保證 repo 自動升到 Level 2 或 Level 3
+- 不保證 AI patch 後就一定會寫出 valid closeout
 
-The stop hook provides enforcement. The patch provides instruction.
-Both are required for Level 1 to be meaningful.
+patch 只補 instruction。  
+真正的 enforcement 還是來自 stop hook 與 `session_end_hook`。
 
 ---
 
-## Observable signals that the rollout is working
+## 可觀測到 rollout 生效的信號
 
-After patching a repo and running at least one session:
+在 patch 完 repo，並至少跑過一個 session 後，通常應看到：
 
-1. `readiness_audit` reports Level 1 (or higher) for that repo
-2. `session_end_hook` verdict artifacts appear in `artifacts/runtime/verdicts/`
-3. Closeout status advances from `closeout_missing` to `schema_valid` or better
-4. `repo_readiness_level` in verdict metadata matches the audit output
+1. `readiness_audit` 顯示該 repo 已達 Level 1 或以上
+2. `artifacts/runtime/verdicts/` 開始出現 verdict artifact
+3. `closeout_status` 從 `closeout_missing` 往 `schema_valid` 或更高狀態前進
+4. verdict metadata 中的 `repo_readiness_level` 與 audit 結果一致
 
-If verdict status is still `closeout_missing` after multiple sessions, the AI
-has not internalized the obligation. Review the `AGENTS.base.md` content and
-confirm the stop hook is configured (see `docs/stop-hook-setup.md`).
+如果 patch 後連續多個 session 仍然都是 `closeout_missing`，問題通常不是 patch 失敗，而是：
+- AI 還沒內化 obligation
+- `AGENTS.base.md` 內容不足
+- stop hook 沒真的接上
+
+這時應回頭檢查：
+- `AGENTS.base.md`
+- stop hook 設定
+- `docs/stop-hook-setup.md`
