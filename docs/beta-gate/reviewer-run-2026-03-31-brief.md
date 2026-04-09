@@ -1,27 +1,22 @@
 # Beta Gate Reviewer Run - 2026-03-31
 
-## Goal
+## 目標
 
-Run one new external cold-start onboarding pass against
-`https://github.com/Gavin0099/ai-governance-framework` and use the result to
-decide whether the next fix belongs to onboarding wording, DBL surface, or
-authority/decision-model communication.
+對 `https://github.com/Gavin0099/ai-governance-framework` 再做一次新的 external cold-start onboarding pass，並用結果判斷：
 
-This is the next highest-value step after the recent DBL first-slice,
-reviewer-failure diagnostics, and Route B / reviewer-pack additions.
+- 下一個修補點應落在 onboarding wording
+- DBL surface
+- 或 authority / decision-model communication
 
-## Why this run is next
+## 為什麼現在該做這次 run
 
-- DBL first slice now has runtime boundary material, example material, external
-  reconstruction, and adversarial before-state coverage.
-- Reviewer failure diagnosis is no longer a single pass/fail bucket; it now has
-  `reviewer-signal-split.md` and `reviewer-run-sheet.md`.
-- Without a fresh reviewer run, we still do not know whether those additions
-  materially improve Beta Gate condition 2.
+- DBL first slice 已補上 runtime boundary material、example material、external reconstruction 與 adversarial before-state coverage
+- reviewer failure diagnosis 已從單純 pass/fail，細化為 `reviewer-signal-split.md` 與 `reviewer-run-sheet.md`
+- 如果沒有一個新的 reviewer run，我們仍不知道這些補強是否真的改善 Beta Gate condition 2
 
-## Required inputs
+## Required Inputs
 
-Author-side run setup uses these documents together:
+author 端應搭配：
 
 - `docs/beta-gate/reviewer-test-pack.md`
 - `docs/beta-gate/reviewer-signal-split.md`
@@ -29,33 +24,30 @@ Author-side run setup uses these documents together:
 - `docs/beta-gate/onboarding-pass-criteria.md`
 - `docs/beta-gate/reviewer-test-brief.md`
 
-## Run setup
+## Run Setup
 
-Reviewer constraints:
+Reviewer constraints：
 
 - External reviewer
 - Cold start
 - No author guidance
-- Start from repo URL only
-- Receive only the one-sentence framing from `reviewer-test-brief.md`
+- 只從 repo URL 開始
+- 只給 `reviewer-test-brief.md` 允許的一句 framing
 
-Author constraints:
+Author constraints：
 
-- Do not point to files
-- Do not explain concepts during the run
-- Do not answer clarifying questions during the first pass; tell the reviewer
-  to record the question and continue
-- Only tell the reviewer to keep going and record what they are thinking
-- Do not hand over `reviewer-test-pack.md`, `reviewer-signal-split.md`,
-  `reviewer-run-sheet.md`, or `onboarding-pass-criteria.md` before the run
+- 不提示 reviewer 去特定檔案
+- 不現場解釋概念
+- 第一輪不回答澄清問題，只要求 reviewer 記錄問題並繼續
+- 不提前交出 `reviewer-test-pack.md`、`reviewer-signal-split.md`、`reviewer-run-sheet.md`、`onboarding-pass-criteria.md`
 
-## Recording checklist
+## Recording Checklist
 
-Save the raw reviewer log as:
+把 raw reviewer log 存成：
 
 - `docs/beta-gate/reviewer-run-<YYYY-MM-DD>.md`
 
-Then record all of the following before proposing any fix:
+然後在提出修法前，先完整記下：
 
 ```text
 Time markers:
@@ -81,31 +73,33 @@ Smallest next fix:
 - ...
 ```
 
-## Decision rule after the run
+## Run 後的判讀規則
 
-If the first meaningful failure layer is `discoverability` or
-`interpretation`:
+如果第一個 meaningful failure layer 是：
 
-- fix entry path, wording, headings, or README/start-session pointers
+- `discoverability`
+- `interpretation`
 
-If the first meaningful failure layer is `decision reconstruction`:
+就先修 entry path、wording、headings 或 README/start-session pointers。
 
-- return to DBL surface, examples, and reviewer-pack boundary framing
+如果是：
 
-If the first meaningful failure layer is `escalation judgment`:
+- `decision reconstruction`
 
-- refine authority language, gate override communication, or decision-model
-  wording
+就回到 DBL surface、examples 與 reviewer-pack boundary framing。
 
-If more than one failure layer appears:
+如果是：
 
-- fix the earliest one first
-- do not treat later-layer symptoms as the first repair target
+- `escalation judgment`
 
-## Non-goal
+就優先修 authority language、gate override communication 或 decision-model wording。
 
-Do not add another feature before this run.
+若一次 run 混出多層 failure：
+- 先修最早出現的那層
+- 不要直接拿後面層的症狀當第一修補目標
 
-The purpose of this pass is to measure whether the current onboarding and DBL
-surface are now legible enough to move the human self-serve track of Beta Gate
-condition 2 forward.
+## Non-Goal
+
+在這次 run 之前，不要再加新功能。
+
+這次 run 的目的，是量測目前 onboarding 與 DBL surface 是否已經夠清楚，能讓 Beta Gate condition 2 的 human self-serve 路徑再往前推。

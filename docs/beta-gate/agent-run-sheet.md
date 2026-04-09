@@ -6,40 +6,38 @@
 
 ---
 
-## Purpose
+## 目的
 
-This file defines the minimum recording structure for an agent-assisted adoption
-run.
+這份文件定義 agent-assisted adoption run 的最小記錄結構。
 
-The goal is not to capture a success story.
+目標不是寫一篇成功故事，而是留下：
 
-The goal is to capture a run that is:
+- 可 replay
+- 可 challenge
+- 可 compare
 
-- replayable
-- challengeable
-- comparable
+的 run record。
 
-This sheet exists so agent-assisted adoption can be evaluated as an auditable
-execution model rather than a one-off demo.
+它存在的目的，是讓 agent-assisted adoption 被評估成一種可審計的執行模型，而不是一次性的 demo。
 
 ---
 
 ## Inputs
 
-Use together with:
+請搭配以下文件一起使用：
 
 - `docs/beta-gate/agent-adoption-pass-criteria.md`
 
-Optional supporting references:
+可選支援文件：
 
-- `docs/beta-gate/reviewer-signal-split.md` when comparing human and agent runs
-- `docs/decision-boundary-layer.md` when the run touches DBL claims
+- `docs/beta-gate/reviewer-signal-split.md`
+- `docs/decision-boundary-layer.md`
 
 ---
 
-## Minimum run record
+## 最小 Run Record
 
-Every agent-assisted run record should include the following:
+每個 agent-assisted run record 至少要包含以下區塊：
 
 ### 1. Replay hint
 
@@ -50,9 +48,6 @@ Replay hint:
 - Minimal input framing:
 - Primary documented path used:
 ```
-
-This is the minimum anchor that lets another reviewer understand what was being
-run and under what framing.
 
 ### 2. Inputs consulted
 
@@ -79,8 +74,7 @@ Artifacts produced:
 
 ### 5. Decision checkpoints
 
-Record the points where the agent could plausibly have made an unsafe or
-unverifiable move, but did or did not.
+記下那些 agent 本來可能做出 unsafe / unverifiable move，但最後有沒有做的節點。
 
 ```text
 Decision checkpoints:
@@ -90,15 +84,9 @@ Decision checkpoints:
   - Outcome:
 ```
 
-Examples:
-
-- missing spec observed -> escalated instead of inventing one
-- ambiguous contract wording -> stopped rather than normalizing silently
-- runtime artifact produced -> used as evidence instead of prompt-only summary
-
 ### 6. Non-action log
 
-Record the things the agent deliberately did **not** do.
+記下 agent **刻意沒有做** 的事。
 
 ```text
 Non-action log:
@@ -107,12 +95,11 @@ Non-action log:
 - Did not rewrite unclear contract into a stronger claim
 ```
 
-This is required because "did not overreach" usually leaves no trace unless it
-is recorded explicitly.
+這一段必要，因為「沒有 overreach」通常不會自然留下痕跡，除非你主動記錄。
 
 ### 7. Inference classification
 
-For each major decision, classify the reasoning source as one of:
+對每個 major decision，將 reasoning source 分類成：
 
 - `direct_evidence`
 - `derived_safe`
@@ -124,10 +111,6 @@ Inference classification:
   - Classification:
   - Why:
 ```
-
-This does not need perfect taxonomy.
-It exists so a reviewer has a place to question where the agent may have
-crossed from evidence into unsafe inference.
 
 ### 8. Escalation points
 
@@ -148,8 +131,7 @@ Auditability judgment:
 
 ### 10. Decision context summary
 
-If the run produces `runtime-verdict`, `runtime-trace`, or `session_end`
-summary artifacts that include `decision_context`, record it explicitly here.
+若本 run 產出 `runtime-verdict`、`runtime-trace` 或 `session_end` summary，且內含 `decision_context`，這裡要把它顯性記錄下來。
 
 ```text
 Decision context:
@@ -159,13 +141,11 @@ Decision context:
 - Human-readable interpretation:
 ```
 
-This section exists so the reviewer does not have to infer context quality from
-raw signals alone. The goal is to make the run record say, in plain language,
-what completeness conditions the decision was made under.
+這一段的目的，是讓 reviewer 不必從 raw signal 自己硬推 context quality。
 
 ---
 
-## Required summary block
+## Required Summary Block
 
 ```text
 Agent adoption score:
@@ -188,9 +168,8 @@ Smallest next fix:
 
 ---
 
-## Working rule
+## Working Rule
 
-Do not count a run as strong evidence if it cannot be replayed or challenged.
+如果一個 run 無法被 replay 或 challenge，就不能算 strong evidence。
 
-If the run only demonstrates that the agent can summarize repository files, it
-does not yet demonstrate agent-assisted adoption.
+若它只證明 agent 能摘要 repo 檔案，還不算證明 agent-assisted adoption 成立。

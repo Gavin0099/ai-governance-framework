@@ -4,23 +4,23 @@
 > Time budget used: ~30 minutes
 > Starting point used: repo root / README-first
 
-## Part 1 - What I was testing
+## Part 1 - 這次在測什麼
 
-I was testing whether I could understand and start using this AI governance framework without help from the author.
+這次是在測：如果沒有 author 幫忙，是否能理解並開始使用這個 AI governance framework。
 
 ## Part 2 - Run Notes
 
-What I actually did, in order:
+實際流程如下：
 
-1. Opened the workspace root `README.md`
-2. Realized that file described a bookstore app, not the governance framework
-3. Searched the repo and found a nested `ai-governance-framework/` directory
-4. Opened `ai-governance-framework/README.md`
-5. Opened `ai-governance-framework/start_session.md`
-6. Tried to run the minimum commands from the docs
-7. Hit a Python runtime blockage (`python` and `py` were both unavailable in this environment)
-8. Continued by reading `docs/minimum-legal-schema.md`, `governance_tools/README.md`, and `baselines/repo-min/README.md`
-9. Inferred the minimum adoption flow and drift-check flow from docs rather than full execution
+1. 打開 workspace root `README.md`
+2. 發現那份 README 在描述書店 app，而不是 governance framework
+3. 搜尋 repo 後找到巢狀的 `ai-governance-framework/`
+4. 打開 `ai-governance-framework/README.md`
+5. 打開 `ai-governance-framework/start_session.md`
+6. 嘗試依文件執行最小命令
+7. 遇到 Python runtime blockage（`python` 與 `py` 都不可用）
+8. 改成閱讀 `docs/minimum-legal-schema.md`、`governance_tools/README.md`、`baselines/repo-min/README.md`
+9. 靠文件推導 minimum adoption flow 與 drift-check flow
 
 ---
 
@@ -37,12 +37,7 @@ The top-level explanation of the AI governance framework repo
 
 What I actually saw:
 A README for "Mei & Ray Bookstore", which looked like an unrelated product repo
-
-How long I had been going at this point (approximate):
-2-3 minutes
 ```
-
----
 
 ### 3.2 First blockage
 
@@ -50,22 +45,12 @@ How long I had been going at this point (approximate):
 What I was trying to do:
 Run the minimum session-start / quickstart commands from the docs
 
-What I tried:
-- python --version
-- python governance_tools/contract_validator.py --help
-- python governance_tools/quickstart_smoke.py --project-root . --plan PLAN.md --contract examples/usb-hub-contract/contract.yaml --format human
-- py --version
+Why it didn't work:
+The environment did not have `python` or `py` on PATH
 
-Why it didn't work (as best as I can tell):
-The environment did not have `python` or `py` available on PATH, so the documented commands were not directly runnable
-
-Did I find a workaround? (Y/N)
+Did I find a workaround?
 N
-If yes, what was it:
-N/A
 ```
-
----
 
 ### 3.3 Concept confusion
 
@@ -73,45 +58,24 @@ N/A
 Term / concept:
 Drift
 
-Where I saw it:
-README.md, start_session.md, minimum-legal-schema.md
+What I first thought:
+可能是長時間 AI session 的行為 drift
 
-What I thought it meant:
-Possibly model behavior drift during a long AI session
-
-What I think it actually means (if I figured it out):
-Mainly governance-file / baseline drift: whether the adopted governance files still match the expected protected baseline and minimum schema
+What I think it actually means:
+治理檔案 / baseline drift，檢查 repo 的 governance files 是否仍符合預期狀態
 ```
 
 ```text
 Term / concept:
 AGENTS.base.md vs AGENTS.md
 
-Where I saw it:
-README.md, minimum-legal-schema.md, baselines/repo-min/README.md
+What I first thought:
+兩個很像的 policy file，但 ownership 不清楚
 
-What I thought it meant:
-Two similar policy files with unclear ownership
-
-What I think it actually means (if I figured it out):
-`AGENTS.base.md` is the protected framework baseline; `AGENTS.md` is the repo-specific extension that adopters can edit
+What I think it actually means:
+`AGENTS.base.md` 是 framework 保護的 baseline；
+`AGENTS.md` 是 repo-specific extension
 ```
-
-```text
-Term / concept:
-contract.yaml
-
-Where I saw it:
-README.md, start_session.md, minimum-legal-schema.md
-
-What I thought it meant:
-Maybe a plugin manifest or maybe the main project config
-
-What I think it actually means (if I figured it out):
-The repo's domain governance contract: compatibility, documents, rule roots, validators, and policy inputs for runtime and drift tooling
-```
-
----
 
 ### 3.4 Navigation confusion
 
@@ -119,36 +83,17 @@ The repo's domain governance contract: compatibility, documents, rule roots, val
 I was trying to find:
 The real entry point for the framework
 
-I looked in:
-Workspace root README.md
-
-I eventually found it at (or: I never found it):
+I eventually found it at:
 ai-governance-framework/README.md
 ```
 
 ```text
 I was trying to find:
-The canonical adoption command for a Windows user
+The canonical adoption command for Windows
 
-I looked in:
-start_session.md first, then README.md, then CHANGELOG references via search
-
-I eventually found it at (or: I never found it):
-README.md made it clear that `python governance_tools/adopt_governance.py --target /path/to/your/repo` is the canonical cross-platform entrypoint
+I eventually found it at:
+README.md
 ```
-
-```text
-I was trying to find:
-What files the framework actually installs into a target repo
-
-I looked in:
-README.md first
-
-I eventually found it at (or: I never found it):
-baselines/repo-min/README.md
-```
-
----
 
 ### 3.5 Final state
 
@@ -157,37 +102,38 @@ Did you complete Task 1 (understand what this is for)?  Y
 Did you complete Task 2 (understand adoption)?          Y
 Did you complete Task 3 (describe minimum session flow)? Partial
 Did you complete Task 4 (find drift check)?             Y
-
-If you stopped early: what was the last thing you tried before stopping?
-I tried to run the documented Python commands for contract validation and quickstart smoke, then checked whether `py` was available as a fallback.
-
-One sentence describing what this framework is, in your own words:
-This is a governance runtime and tooling framework for AI-assisted software work that tries to make session rules, project context, and drift checks executable instead of purely documentary.
 ```
 
 ---
 
 ## Part 4 - Debrief Questions
 
-1. What was the first file you opened, and why?
+1. 第一個打開的檔案是什麼，為什麼？
 
-I opened the workspace root `README.md` first because that is the normal cold-start entry point for a repo.
+repo root `README.md`，因為那是一般 cold-start 的自然入口。
 
-2. At what point (if any) did things start to make sense?
+2. 什麼時候開始覺得事情有意義？
 
-Things started to make sense after I found the nested `ai-governance-framework/README.md`. The picture became clearer once I saw three ideas together: runtime hooks, adoption tooling, and drift checks.
+找到巢狀的 `ai-governance-framework/README.md` 之後才開始成形，再看到 runtime hooks、adoption tooling 與 drift checks 三者連在一起時才真正理解。
 
-3. What was the single biggest obstacle?
+3. 最大障礙是什麼？
 
-The biggest obstacle was not conceptual complexity by itself. It was the combination of an ambiguous repo entry point and split onboarding guidance, especially because `start_session.md` still foregrounded the bash script while `README.md` says the Python adopt tool is the real cross-platform entrypoint.
+不是單純概念複雜，而是：
+- repo 入口有歧義
+- onboarding guidance 分散在多個檔案
+- `start_session.md` 與 `README.md` 對主入口敘事不夠一致
 
-4. If you had to tell a colleague whether to adopt this, what would you say?
+4. 如果要推薦給同事，你會怎麼說？
 
-I would say it looks promising if you specifically want AI-session governance, not just docs templates, and you are willing to adopt it as an early-stage framework. I would also warn them that the entry path still has enough friction that they should expect one setup pass and some doc cross-checking.
+如果你要的是 AI session governance，而不是只要 prompt 模板，這個 framework 有潛力；但目前仍需一次 setup pass 與一些文件交叉確認。
 
-5. What one change would most reduce the friction you experienced?
+5. 哪一個改動最能降低阻力？
 
-Put one unmissable onboarding block at the true repo root that says, in plain language: what this framework is, the one canonical adoption command, the one canonical quickstart command, and the one canonical drift-check command. In my run, that single clarification would have removed both the wrong-repo confusion and the bash-vs-Python ambiguity.
+在真正的 repo root 放一個不可錯過的 onboarding block，清楚寫出：
+- 這是什麼
+- canonical adoption command
+- canonical quickstart command
+- canonical drift-check command
 
 ---
 
@@ -195,20 +141,18 @@ Put one unmissable onboarding block at the true repo root that says, in plain la
 
 What worked:
 
-- The framework purpose is eventually understandable from the README
-- The repo does appear to have a real mental model, not just slogans
-- The adoption and drift story becomes clearer once `README.md`, `minimum-legal-schema.md`, and `baselines/repo-min/README.md` are read together
+- framework purpose 最終是能理解的
+- adoption 與 drift story 在多份文件一起讀後會逐漸清楚
 
 What hurt:
 
-- Wrong repo/root ambiguity was my first experience
-- Canonical onboarding flow is split across multiple files
-- `start_session.md` and `README.md` do not feel fully aligned on the primary adoption entrypoint
-- The docs assume runnable Python commands, but the fallback story is not strong enough when Python is not directly available
+- 第一個體驗是錯 repo / 錯 root
+- canonical onboarding flow 分散
+- 文件預設 Python 可直接執行，但 fallback 不夠強
 
 Gate read:
 
-- I can explain the framework
-- I can explain how I would adopt it
-- I can identify the drift checker
-- I could not fully execute the minimum flow in this environment because the documented runtime dependency was unavailable
+- 可以解釋 framework 是什麼
+- 可以解釋 adoption 怎麼做
+- 可以指出 drift checker
+- 但在這個環境裡，不能完整跑出 minimum flow

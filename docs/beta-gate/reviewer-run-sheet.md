@@ -6,58 +6,55 @@
 
 ---
 
-## Purpose
+## 目的
 
-This file is the minimum author-side checklist for running and recording a
-reviewer onboarding pass after `reviewer-signal-split.md` was introduced.
+這份文件是 author 端在 reviewer onboarding pass 中的最小記錄清單。
 
-It does not replace the reviewer test pack.
+它不取代 reviewer test pack。  
+它存在的目的，是確保每次 run 至少會留下：
 
-It exists to ensure each run records:
-
-- the raw reviewer experience
-- the checkpoint score
-- the override decision, if any
-- the first meaningful failure layer
+- reviewer 的原始體驗
+- checkpoint score
+- override decision（若有）
+- 第一個真正有意義的 failure layer
 
 ---
 
 ## Inputs
 
-Before starting a run, confirm the author is using:
+在開始 run 前，author 應確認自己會搭配以下文件：
 
 - `docs/beta-gate/reviewer-test-pack.md`
 - `docs/beta-gate/onboarding-pass-criteria.md`
 - `docs/beta-gate/reviewer-test-brief.md`
 
-The reviewer should receive only what `reviewer-test-brief.md` permits:
+reviewer 在 run 開始前只應收到：
 
-- the repo URL
-- one sentence of framing
+- repo URL
+- `reviewer-test-brief.md` 所允許的一句 framing
 
-Do not hand the reviewer `reviewer-test-pack.md`,
-`onboarding-pass-criteria.md`, or `reviewer-signal-split.md` before the run.
-
-After the run, classify failures using:
+在 run 結束後，再用：
 
 - `docs/beta-gate/reviewer-signal-split.md`
 
+來分類 failure。
+
 ---
 
-## Minimum recording sequence
+## Minimum Recording Sequence
 
-1. Save the raw reviewer log at:
+1. 把 raw reviewer log 存成：
    - `docs/beta-gate/reviewer-run-<YYYY-MM-DD>.md`
-2. Score CP1 through CP5 using `onboarding-pass-criteria.md`
-3. Apply override rules if needed
-4. Record the first meaningful failure layer using `reviewer-signal-split.md`
-5. Only then propose the smallest fix
+2. 依 `onboarding-pass-criteria.md` 對 CP1~CP5 打分
+3. 若需要，套用 override
+4. 依 `reviewer-signal-split.md` 記錄第一個 meaningful failure layer
+5. 完成以上之後，才提出 smallest next fix
 
 ---
 
-## Required summary block
+## Required Summary Block
 
-Every reviewer run record should include this block near the end:
+每份 reviewer run record 結尾附近都應包含：
 
 ```text
 Signal split:
@@ -81,9 +78,8 @@ Smallest next fix:
 
 ---
 
-## Author rule
+## Author Rule
 
-Do not propose a fix before recording the first meaningful failure layer.
+在記下第一個 meaningful failure layer 之前，不要先提修法。
 
-If the run mixes multiple failures, record the earliest one first and keep the
-later ones as secondary notes.
+若一次 run 混有多種 failure，先記最早出現的那一層，後面其他層留作 secondary notes。
