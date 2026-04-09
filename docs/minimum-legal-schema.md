@@ -1,22 +1,20 @@
-# Minimum Legal Schema Reference：adopt 後最小合法結構
+﻿# Minimum Legal Schema Reference：adopt 後 consuming repo 的最小合法結構
 
-> 適用範圍：新導入 repo、`governance_tools` 驗證、以及 consuming repo readiness 檢查  
-> 目的：定義什麼叫做「最小可接受、可被 framework 辨識」的 adoption 結構
+> 用途：提供 consuming repo、`governance_tools` 與 readiness 檢查的共同最小 schema 參考  
+> 目標：定義哪些檔案與欄位是 adoption 後最低限度必須成立的結構
 
 ## 目的
 
-這份文件的用途不是取代 source code，而是定義 adopt 後 consuming repo 至少要長成什麼樣子，才不會在第一輪 check 就出現結構性失敗。
+這份文件不是 source code，而是用來說明 adopt 後 consuming repo 至少要長成什麼樣子，才能讓 framework 正常接上、並讓 readiness / drift / version audit 有共同判準。
 
-它說明：
-
+它主要描述：
 - `contract.yaml` 至少要有哪些欄位
-- `.governance/baseline.yaml` 至少要有哪些 provenance / integrity / contract 欄位
-- `AGENTS.md` 裡哪些 repo-specific section 是合法最小值
-- `PLAN.md` freshness 要如何被解讀
+- `.governance/baseline.yaml` 至少要有哪些 provenance / integrity / contract 資訊
+- `AGENTS.md` 與 `PLAN.md` 在 repo 中的最小位置與作用
 
 ## 1. `contract.yaml`
 
-### 最小合法形狀
+### 最小合法樣式
 
 ```yaml
 name: my-service-contract
@@ -34,37 +32,39 @@ rule_roots:
 validators: []
 ```
 
-### 關鍵欄位說明
+### 欄位說明
 
-| 欄位 | 必要性 | 說明 |
+| 欄位 | 是否必要 | 說明 |
 |---|---|---|
 | `name` | 必要 | repo contract 名稱 |
-| `plugin_version` | 必要 | 目前 contract schema/plugin 版本 |
-| `framework_interface_version` | 必要 | framework 介面版本 |
-| `framework_compatible` | 必要 | 相容 framework 範圍 |
+| `plugin_version` | 必要 | contract schema/plugin 版本 |
+| `framework_interface_version` | 必要 | framework interface 版本 |
+| `framework_compatible` | 必要 | 允許的 framework 版本範圍 |
 | `domain` | 必要 | repo domain 名稱 |
-| `documents` | 建議 | 至少列出 `AGENTS.base.md`、`PLAN.md`，必要時再加 governance docs |
-| `ai_behavior_override` | 建議 | 通常至少包含 `AGENTS.base.md` |
-| `rule_roots` | 必要 | 預設應指向 `governance/rules` |
-| `validators` | 必要 | 可以是空陣列，但 key 應存在 |
+| `documents` | 建議 | 至少列出 `AGENTS.base.md`、`PLAN.md`，以及 repo-local governance docs |
+| `ai_behavior_override` | 建議 | 用來聲明 AI 行為覆寫入口 |
+| `rule_roots` | 必要 | 預設至少包含 `governance/rules` |
+| `validators` | 必要 | 可以為空，但 key 本身應存在 |
 
 ### 常見錯誤
 
-- placeholder 沒被替換，例如 `<repo-name>`、`<domain>`
-- `validators` 整個欄位缺失
-- `documents` 寫成錯誤巢狀結構
-- `rule_roots` 指到不存在的路徑
+- placeholder 沒有替換，例如 `<repo-name>`、`<domain>`
+- `validators` 完全缺失
+- `documents` 沒有跟 adopt 後實際文件對齊
+- `rule_roots` 指向不存在路徑
 
-### 不影響 legality、但會影響 readiness 的欄位
+### Legality 與 readiness 的差別
 
+以下項目通常影響 readiness，但不一定影響 legality：
 - `framework.lock.json` 缺失
 - hooks 未安裝
+- adopted release 尚未記錄
 
-這些不一定讓 adoption 非法，但會影響 readiness 與 drift / version audit 的結果。
+也就是說，合法結構不等於 readiness 已完全通過。
 
 ## 2. `.governance/baseline.yaml`
 
-### 最小合法形狀
+### 最小合法樣式
 
 ```yaml
 schema_version: "1"
@@ -81,109 +81,37 @@ sha256.contract.yaml: <hash>
 overridable.PLAN.md: overridable
 overridable.contract.yaml: overridable
 
-# CONTRACT layer — values here override validation thresholds
-# plan_freshness_threshold_days: 14
-
 plan_section_inventory:
-  - "## Current Phase"
-  - "## Active Sprint"
+  required:
+    - Current Status
 ```
 
-### 欄位分層
+### 必要元素
 
-- **PROVENANCE**
-  - `initialized_by`
-  - `initialized_at`
-  - `source_commit`
-- **INTEGRITY**
-  - `sha256.*`
-  - `overridable.*`
-- **CONTRACT**
-  - `plan_freshness_threshold_days` 之類的 override
-- **OBSERVED**
-  - `plan_section_inventory`
+- schema / baseline / framework 版本資訊
+- initialization provenance
+- protected file hashes
+- overridable file 宣告
+- 最小 `plan_section_inventory`
 
-### 關鍵點
+### 不要求的東西
 
-- `sha256.*` 缺失會讓 protected file 類檢查失效
-- `initialized_at` 影響 baseline freshness 類檢查
-- `plan_section_inventory` 影響 plan inventory 類 drift check
+- 每個 consuming repo 都必須有相同的 custom threshold
+- 每個 baseline 都要有完整 lock metadata
+- 每個 repo 都要在 baseline 中寫滿 release 歷史
 
-## 3. `AGENTS.md`
+## 3. 其他最小檔案
 
-### adopt 後最小合法 repo-specific section
+adopt 後 consuming repo 至少還應具備：
+- `AGENTS.base.md`
+- `PLAN.md`
+- `memory/01_active_task.md`
+- `memory/02_tech_stack.md`
+- `memory/03_knowledge_base.md`
+- `memory/04_review_log.md`
+- `governance/` markdown pack
+- `governance/rules/` pack
 
-```markdown
-## Repo-Specific Risk Levels
-<!-- governance:key=risk_levels -->
-N/A
+## 4. 一句總結
 
-## Must-Test Paths
-<!-- governance:key=must_test_paths -->
-N/A
-
-## L1 / L2 Escalation Triggers
-<!-- governance:key=escalation_triggers -->
-N/A
-
-## Repo-Specific Forbidden Behaviors
-<!-- governance:key=forbidden_behaviors -->
-N/A
-```
-
-### `governance:key` 的作用
-
-這些 anchor 讓 drift checker 能辨識：
-
-- 該 section 是否存在
-- repo-specific 區塊是否仍是合法最小值
-
-`N/A` 目前是 prototype / minimal repo 的合法值，不應被當成自動失敗。
-
-### `AGENTS.base.md` vs `AGENTS.md`
-
-| 文件 | 角色 | 規則 |
-|---|---|---|
-| `AGENTS.base.md` | protected canonical baseline | 不應被任意修改 |
-| `AGENTS.md` | overridable repo-specific layer | 可由 consuming repo 補充 |
-
-## 4. `PLAN.md` Freshness
-
-### 最小 header 形狀
-
-```markdown
-> **Last Updated**: 2026-03-22
-> **Owner**: your-name
-> **Freshness**: Sprint (7d)
-```
-
-### Freshness policy 解讀順序
-
-1. `PLAN.md` 內寫的 freshness header
-2. `.governance/baseline.yaml` / CONTRACT override
-3. framework default（通常 `14d`）
-
-如果 override 大於 framework default，可能會出現 guardrail warning，但不必然代表 adoption 非法。
-
-### 常見錯誤
-
-- freshness label 格式不對
-- 少了括號或天數
-- header key 大小寫漂移到 parser 無法辨識
-
-## adopt 後預期會通過的核心檢查
-
-至少應能讓以下檢查成立：
-
-- `baseline_yaml_present`
-- `baseline_version_known`
-- `protected_files_present`
-- `contract_required_fields_present`
-- `contract_agents_base_referenced`
-- `contract_no_placeholders`
-- `plan_required_sections_present`
-- `agents_sections_filled`
-
-## 一句話結論
-
-這份 reference 的作用，是把「最小合法 adoption」寫清楚：不是要求 consuming repo 一開始就完美，而是要求它至少具備能被 framework 正確辨識、檢查、與維護的基礎結構。
+`minimum legal schema` 的目的是讓 adopt 後的 consuming repo 至少有一個可被 framework、readiness、drift 與 reviewer 共同理解的最低治理結構；它不是在保證 repo 已經 fully ready，而是在定義「至少沒有連骨架都缺」。

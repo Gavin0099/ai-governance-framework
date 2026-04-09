@@ -1,77 +1,75 @@
-# Entry Layer Boundary：entry layer 的禁止邊界
+﻿# Entry Layer Boundary：entry layer 的權限邊界
 
 > 狀態：**enforced**  
-> 建立日期：2026-03-30  
-> 原因：codebase 中已有 entry layer 雛形，但尚未證明其必要性
+> 更新日期：2026-03-30  
+> 定位：說明 codebase 中 entry layer 能做什麼、不能做什麼，以及 drift 如何被辨識
 
 ---
 
-## 這份文件是什麼
+## 這份文件在說什麼
 
-這份文件定義的是：在 justification 完成之前，entry layer **不能變成什麼**。
+這份文件不是 feature list，而是一份 constraint document。
+它要固定的不是「entry layer 有哪些功能」，而是「entry layer 不能越界成什麼」。
 
-它不是 feature list，而是 constraint document。
-
-如果 `docs/entry-layer-justification.md` 未來能證明 entry layer 的必要性，這些約束才可能被局部放寬；在那之前，以下限制一律有效。
+如果 `docs/entry-layer-justification.md` 說明的是為什麼需要 entry layer，這份文件則負責把它和 runtime 其他層之間的責任邊界寫死。
 
 ---
 
-## 目前有效的約束
+## 核心邊界
 
 ### 1. Entry layer 不是 authority source
 
-entry layer 不決定某個 task 應套用哪些規則。  
-這仍是 `pre_task_check` 與 contract loader 的責任。
+entry layer 不能取代 task classification、domain gate、risk tier 或 authority resolution。  
+這些應由 `pre_task_check`、contract loader 與其他既有 runtime 決策面處理。
 
 ### 2. Entry layer 不是 escalation source
 
-entry layer 不得抬升 task level、risk tier、或 oversight requirement。  
-即使某個 `tech_spec` artifact 缺失，也不能因此自動觸發 `L2` escalation。
+entry layer 本身不決定 task level、risk tier 或 oversight requirement。  
+就算 `tech_spec` artifact 缺失，也不應單靠 entry layer 直接升成 `L2`。
 
-### 3. Entry layer 不影響 stop / continue / escalate verdict
+### 3. Entry layer 不產生 stop / continue / escalate verdict
 
-任何 entry-layer artifact（如 `tech_spec`、`validation_evidence`、`pr_handoff`）的有無，都不得直接改變以下結果：
-
+即使 entry-layer artifact 如 `tech_spec`、`validation_evidence`、`pr_handoff` 缺失，
+也不應繞過：
 - `session_start ok`
 - `pre_task_check ok`
 - `post_task_check ok`
-- 任一 governance gate 的 exit code
+- 既有 governance gate / exit code
 
-### 4. Entry layer 尚未連到 `session_start`
+### 4. Entry layer 只附著在 `session_start`
 
-在 justification 完成之前，`workflow_entry_observer` 不得被 `session_start.py` import 或呼叫。
+目前這份 justification 對應的整合點，是把 `workflow_entry_observer` 接進 `session_start.py`。  
+這是刻意收斂 runtime surface area 的選擇，不代表 entry layer 可以擴張到所有 hook。
 
-**記錄：** 2026-03-30 曾經接上又回退。  
-回退原因：runtime surface area 增加了，但必要性尚未被證明。
+### 5. Entry-layer observation state 是 policy input，不是 policy owner
 
-### 5. Entry-layer observation state 不是 policy input
+`recognized`、`missing`、`incomplete`、`stale`、`unverifiable` 這些狀態只能作為：
+- risk signal
+- task level detection 的輔助訊號
+- domain gate decision 的輔助訊號
+- authority validation 的輔助訊號
 
-`recognized`、`missing`、`incomplete`、`stale`、`unverifiable` 目前都只是診斷標籤，不能被用作：
-
-- risk signal 計算輸入
-- task level detection 輸入
-- domain gate decision 輸入
-- authority validation 輸入
+它們不是新的 policy owner。
 
 ---
 
 ## Drift Detection
 
-如果 code review 中出現以下情況，應視為 boundary violation：
-
-- `workflow_entry_observer` 被 import 到 `session_start.py`、`pre_task_check.py`、或 `post_task_check.py`
-- entry-layer state 被拿來影響 `ok`、`task_level`、或 `risk`
-- entry-layer observation 被放進 authority validation payload
-- entry-layer artifact 缺失被當成 gate failure
+若 code review 中出現以下情況，應視為 boundary violation：
+- `workflow_entry_observer` 被接進 `pre_task_check.py`、`post_task_check.py` 等非既定位置
+- entry-layer state 被直接寫成 `ok`、`task_level` 或 `risk`
+- entry-layer observation 被直接當成 authority validation payload
+- entry-layer artifact 缺失被直接升格成 gate failure
 
 ---
 
-## 如何解除約束
+## 與 justification 的分工
 
-必須先完成 `docs/entry-layer-justification.md`，並回答：
+可以把 `docs/entry-layer-justification.md` 理解成「為什麼這個東西值得存在」，而這份文件回答的是：
+1. 就算它值得存在，也不能長成 framework 的新 authority surface
+2. 它為什麼只能先接在 `session_start`
+3. 未來如果要擴張，需要先回答哪些越界風險
 
-1. 如果 entry layer 永遠不存在，framework 會不可逆地失去什麼能力？
-2. 為什麼這個能力不能在 `pre_task_check` 內處理？
-3. 最小、且只提供該能力的實作是什麼？
+## 一句總結
 
-如果這三題答不出來，約束就維持不變。
+entry layer 的價值在於補齊 workflow artifact 的可見性；它的邊界則在於：永遠不應繞過既有 runtime authority。

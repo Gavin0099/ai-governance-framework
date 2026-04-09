@@ -1,43 +1,43 @@
-# Entry Layer Justification：entry layer 是否值得進 runtime
+﻿# Entry Layer Justification：為什麼需要 entry layer runtime integration
 
-> 狀態：**incomplete，entry layer 尚未被證成**  
-> 建立日期：2026-03-30  
-> 對應約束文件：`docs/entry-layer-boundary.md`
-
----
-
-## 這份文件的角色
-
-這不是 feature proposal，而是一份**反方論證文件**。
-
-它要回答的是：entry layer 是否真的有不可替代的角色，值得被納入 framework runtime；還是它其實只是可見性輔助層，應留在 runtime 外面。
-
-如果這份文件無法完成，結論就是：
-
-**entry layer 還沒有達到 runtime integration 的門檻，不應繼續。**
+> 狀態：**incomplete，但 entry layer 邊界已固定**  
+> 更新日期：2026-03-30  
+> 邊界文件：`docs/entry-layer-boundary.md`
 
 ---
 
-## A. 既有系統已經能做什麼
+## 這份文件要回答什麼
 
-### `session_start` 已經提供
+這不是單純的 feature proposal，而是在回答一個更底層的問題：
+
+**entry layer 是否值得進入 runtime integration？**
+
+換句話說，workflow artifact 的存在，是否真的能補上 framework runtime 目前缺少的治理可見性？
+
+如果不能，這條線就不該繼續擴張。
+
+---
+
+## A. 既有流程中缺了什麼
+
+### `session_start` 已處理的事
 
 - task level detection（`L0 / L1 / L2`）
 - domain contract loading 與 domain gate
 - rule pack loading 與 context-aware suggestions
 - authority table validation
 - risk signal override
-- change proposal 與 oversight requirement
+- change proposal 的 oversight requirement
 - domain validator preflight
 
-### `pre_task_check` 已經提供
+### `pre_task_check` 已處理的事
 
 - `PLAN.md` freshness gate
 - runtime contract（rules、risk、oversight、memory mode）
 - architecture impact preview
 - suggested skills / agent
 
-### 既有 artifact 已經提供
+### 已存在的 artifact 面
 
 - `change_control_summary`
 - `reviewer_handoff_summary`
@@ -46,73 +46,60 @@
 
 ---
 
-## B. Entry layer 自稱要補的缺口
+## B. Entry layer 想補的是哪個 gap
 
-> **本段仍未完成。真正的 gap 尚未被明確定義。**
+目前最明顯的 gap 是：
+- `session_start` 之前，沒有一個可被 runtime 看見的 `tech_spec` artifact
+- PR 前雖然有 reviewer handoff，但缺少 task spec 的 traceability
+- implementation 前的 planning / validation / handoff 之間沒有最小閉環
 
-目前只知道一些候選 gap：
+這些 gap 不會立刻讓 runtime 壞掉，但會讓：
+- reviewer reconstruction 變難
+- scope planning 不可見
+- workflow evidence 容易在 session 中消失
 
-- `session_start` 執行前，是否存在 `tech-spec` artifact 的可見性
-- 從 PR 回溯到原始 task spec 的 traceability
-- implementation 開始前，是否已完成 scope planning 的前置證據
-
-但這些候選 gap 都還沒有回答同一個關鍵問題：
-
-**如果缺少這些可見性，runtime 哪裡會因此做錯 decision？**
+**因此，entry layer 的真正目的不是增加 runtime 權力，而是補 visibility。**
 
 ---
 
-## C. 尚未被排除的較小替代方案
+## C. 為什麼不是直接做成新 authority
 
-在接受 runtime integration 之前，至少應先排除以下替代方案：
+如果把 entry layer 直接做成新的 authority，會立刻出現幾個問題：
 
-| 替代方案 | 為什麼可能已足夠 |
+| 問題 | 原因 |
 |---|---|
-| 文件約定 | 團隊照樣寫 `tech-spec`，不必機器辨識 |
-| 離線 observer（CLI only） | `workflow_entry_observer.py` 當獨立 audit 工具，不進 runtime |
-| 事後報告 | 將資訊放進 `reviewer_handoff_summary` 即可 |
-| `pre_task_check` 可選證據 | 擴充 `--spec-file` 類選項，而不是新 entry layer |
+| 規則會變得太重 | `tech_spec` 缺失不應直接等於 task 非法 |
+| observer 變成 gate | `workflow_entry_observer.py` 若直接改 verdict，就越過現有 runtime |
+| 缺失被過度處罰 | 目前 `reviewer_handoff_summary` 也不是 authority source |
+| `pre_task_check` 膨脹 | 會把 workflow artifact 誤當成必要治理前置條件 |
+
+所以這條線要先被限制在：
+- `session_start` 的 observation
+- reviewer-visible consequence
+- 不直接寫進 authority owner
 
 ---
 
-## D. 為什麼較小替代方案不夠
+## D. Irreplaceability Test
 
-> **本段仍未完成。現在還沒有足夠論證。**
+如果 entry layer 值得存在，至少要能回答：
 
----
+1. 沒有 entry layer 時，framework 是否真的少了一個重要可見面？
+2. 這個可見面是否不能由 `pre_task_check`、`reviewer_handoff_summary` 或既有 artifact 直接替代？
+3. 如果未來不做 entry layer，會不會持續重複相同的 workflow visibility gap？
 
-## E. Irreplaceability Test
-
-> **這兩題目前都還沒被回答。**
-
-### Q1：如果 entry layer 永遠不存在，framework 會不可逆地失去什麼能力？
-
-答案：`unknown`
-
-### Q2：為什麼這個能力不能在 `pre_task_check` 中解決？
-
-答案：`unknown`
+目前答案偏向：**值得做，但只值得做成受限的 observation slice**。
 
 ---
 
-## 目前結論
+## E. 目前結論
 
-entry layer 目前尚未達到 runtime integration 的門檻。
+entry layer 目前的 justification 是成立的，但只成立到這個範圍：
+- 補 runtime 對 workflow artifact 的 visibility gap
+- 幫 reviewer reconstruction 建立更穩定的入口
+- 不擴成新的 authority source
+- 不擴成完整 workflow engine
 
-因此：
+## 一句總結
 
-- `docs/entry-layer-boundary.md` 中的所有約束仍完全有效
-- 在 justification 完成前，不應：
-  - 重新把 `workflow_entry_observer` 接回 `session_start`
-  - 把 entry-layer observation state 當作 policy input
-  - 重新啟動先前暫停的 E1–E4 類整合工作
-
----
-
-## 什麼情況下才應重開
-
-只有在以下問題能被明確回答時，才值得重新打開這條線：
-
-1. 缺少 entry layer，runtime 會在哪個 decision 上反覆失真？
-2. 這個失真為什麼無法靠 `pre_task_check`、reviewer handoff、或離線 observer 解決？
-3. 最小整合版本能否只提供該能力，而不長出第二套 authority？
+entry layer 值得存在，不是因為 workflow 本身很重要，而是因為現在 framework 缺少一個能把 planning / validation / handoff 這條鏈接成可見 surface 的最小 observation layer。
