@@ -1,9 +1,9 @@
-# Failure Mode Test Plan
+﻿# Failure Mode Test Plan
 
 這份文件定義 governance runtime 第一批刻意 break-test 的方向。  
 目標不是驗 happy path，而是確認：
 
-> 當 evidence、policy 或 runtime execution 出錯時，系統是否仍然可預測、可審查
+> 當 evidence、policy 或 runtime execution 出錯時，系統是否仍然可預測、可審查。
 
 ## 當前位置
 
