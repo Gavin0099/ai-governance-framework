@@ -1,24 +1,34 @@
-# Governance Revision - 2026-03-20
+﻿# Governance Revision — 2026-03-20
 
-## Summary
+## 摘要
 
-This revision reduces workflow friction for low-risk engineering work while preserving hard safety and architecture boundaries.
+這次 revision 的目標，是在保留 hard safety 與 architecture boundary 的前提下，降低低風險工程工作的 workflow friction。
 
-The update is motivated by two recurring failure modes:
-- governance was too eager to stop adjacent engineering work such as build, test, review, commit preparation, and governance retrospectives
-- governance did not explicitly require baseline validation for legacy refactors, rollbacks, and unstable historical commits
+這次更新主要回應兩個 recurring failure mode：
+
+- governance 對 build、test、review、commit preparation、governance retrospective 這類相鄰工程工作過度容易 stop
+- governance 沒有明確要求 legacy refactor、rollback、unstable historical commit 等情境先做 baseline validation
 
 ---
 
-## What Changed
+## 這次改了什麼
 
-### 1. Agent Identity and Scope
+### 1. Agent identity 與 scope
 
-Core governance now treats the assistant as a **governance-first coding agent**, not a pure reviewer.
+core governance 現在把 assistant 視為：
 
-`PLAN.md` continues to govern planned feature scope, but bounded adjacent engineering work is now default in-scope unless it crosses a hard boundary.
+> governance-first coding agent
 
-Examples of adjacent engineering work now treated as normal:
+而不是純 reviewer。
+
+這代表：
+
+- `PLAN.md` 仍負責 planned feature scope
+- bounded adjacent engineering work 預設在正常範圍內
+- 只有越過 hard boundary 時才需要停止或升級
+
+現在被視為正常相鄰工程工作的例子包括：
+
 - build
 - test
 - debugging
@@ -27,105 +37,48 @@ Examples of adjacent engineering work now treated as normal:
 - governance analysis
 - documentation sync
 
-### 2. Decision Model
+### 2. Decision model 與 baseline discipline
 
-The governance model now distinguishes:
-- `Continue`
-- `Escalate`
-- `Stop`
+revision 也明確收斂了另一個問題：
 
-This replaces the prior tendency to collapse ordinary uncertainty into stop conditions.
+> 對 legacy refactor、rollback、unstable historical commit 這類情境，原本沒有強制 baseline validation，容易讓後續 failure 難以歸因。
 
-The intended interpretation is:
-- use `Continue` for bounded low-risk work
-- use `Escalate` when ambiguity is real but not yet a hard violation
-- use `Stop` only for true red lines, undefendable correctness risk, or hard governance conflicts
+因此這次更新後，對以下情境應先做 baseline validation：
 
-### 3. Governance Contract and Memory Cadence
-
-The Governance Contract is no longer required before every small progress update.
-
-It is now required at:
-- task start
-- milestone completion
-- scope change
-- stop/escalation events
-- other material contract-state changes
-
-Memory updates are also reduced to meaningful checkpoints:
-- milestone completion
-- known-good build pass that changes task state
-- commit preparation
-- task close
-
-### 4. Dirty Worktree and Review Hygiene
-
-Governance now explicitly allows unrelated dirty files to remain in the worktree.
-
-Escalation is required only when:
-- touched files overlap with unrelated edits
-- commit scope cannot be separated cleanly
-- review boundaries become unclear
-
-### 5. Low-Risk L1 Examples
-
-The updated rules now explicitly classify common UI/UX polish work as low-risk `L1`, not automatically critical-path work.
-
-Examples:
-- UI copy consistency
-- status color tokenization
-- hint and warning text consistency
-- message box severity normalization
-- success/wait/failure prompt completion
-
-### 6. Repo-Aware Build and Warning Policy
-
-Testing and build governance now require repo-aware verification:
-- each repo should declare at least one authoritative or known-good build configuration
-- every non-trivial task should verify at least one known-good config
-- warning policy is baseline-aware rather than idealized
-
-Baseline-aware warning policy means:
-- do not introduce new warnings in touched files
-- do not worsen the declared warning baseline without explicit justification
-- unchanged legacy warnings do not automatically block task completion
-
-### 7. Legacy Refactor Baseline Validation
-
-Legacy refactors now require explicit baseline validation.
-
-The rules now require:
-- rollback points and refactor baselines must be validated with the authoritative build path before being treated as stable
-- canonical toolchain and canonical build command must be identified first
-- unverified historical commits must not be described as trusted baselines
-
-Minimum refactor evidence now includes:
-- baseline build result
-- modified-state build result
-- key observable behavior preserved or intentionally documented
-
-This change is specifically intended to prevent mid-refactor discovery that the assumed baseline was not actually buildable.
+- legacy refactor
+- rollback
+- unstable historical commit
+- 歷史狀態不乾淨、難以判斷 drift 來源的工作樹
 
 ---
 
-## Files Updated
+## 這次沒有改什麼
 
-- `governance/SYSTEM_PROMPT.md`
-- `governance/AGENT.md`
-- `governance/HUMAN-OVERSIGHT.md`
-- `governance/ARCHITECTURE.md`
-- `governance/REVIEW_CRITERIA.md`
-- `governance/TESTING.md`
-- `memory/01_active_task.md`
+這次 revision 不是全面放寬治理。  
+它沒有改變：
+
+- hard safety stop
+- architecture gate
+- authority precedence
+- high-risk task 的 stricter discipline
+
+因此這次更新應被理解成：
+
+> 把原本太容易阻擋正常低風險工程工作的地方收斂回合理邊界，
+> 而不是把治理本身放鬆掉。
 
 ---
 
-## Intent
+## 影響
 
-The goal of this revision is not to weaken governance.
+這次 revision 之後：
 
-The goal is to:
-- keep hard safety and architecture red lines hard
-- reduce unnecessary stop-heavy friction in ordinary engineering flow
-- make review and implementation rules better match legacy-repo reality
-- require baseline validation before claiming refactor safety
+- 低風險正常工程工作更接近「可預期可做」
+- 不再每次都像例外放行
+- 對高風險或歷史不穩定情境，反而更明確要求 baseline、validation、可追溯 evidence
+
+---
+
+## 一句話結論
+
+2026-03-20 的 governance revision，不是在弱化治理，而是在保留 hard boundary 的前提下，降低相鄰低風險工程工作的不必要摩擦，並把 legacy / unstable context 的 baseline discipline 正式寫清楚。

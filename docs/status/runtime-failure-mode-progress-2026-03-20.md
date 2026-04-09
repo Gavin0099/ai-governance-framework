@@ -1,12 +1,13 @@
-# Runtime Failure-Mode Progress - 2026-03-20
+﻿# Runtime Failure-Mode Progress — 2026-03-20
 
-## Summary
+## 摘要
 
-The repository now has its first execution-layer failure-mode slice.
+到這個時間點，repo 已經擁有第一個 execution-layer failure-mode slice。
 
-This is not yet a full runtime fault-injection harness, but it is no longer
-just a control-plane claim. The runtime now contains machine-readable handling
-for five concrete failure-mode categories:
+它還不是完整的 fault-injection harness，  
+但也不再只是 control-plane 上的口頭主張。
+
+當時 runtime 已可 machine-readably 處理 5 類具體 failure mode：
 
 - `missing_required_evidence`
 - `invalid_evidence_schema`
@@ -14,158 +15,68 @@ for five concrete failure-mode categories:
 - `illegal_override`
 - `runtime_failure`
 
-It also has a first minimal replay check for determinism.
+另外也已有第一個最小 replay check，用來觀察 determinism。
 
-## What Is Now Real
+---
 
-### 1. Failure-Mode Contract
+## 什麼已經變成真實能力
 
-The repository now has an explicit failure-mode test contract:
+### 1. Failure-mode contract
+
+repo 已有明確的 failure-mode 測試契約，例如：
 
 - `docs/failure-mode-test-plan.md`
 - `governance/failure_mode_test_matrix.v0.1.json`
 - `tests/test_failure_mode_test_matrix.py`
 
-This establishes the first machine-readable break-test scope instead of leaving
-failure handling as an implied future task.
+這表示 failure handling 已開始有 machine-readable break-test scope，而不是只留在未來待辦。
 
-### 2. Runtime Evidence Failure Handling
+### 2. Runtime handling
 
-`runtime_hooks/core/post_task_check.py` now performs machine-readable
-classification for:
+這些 failure mode 不再只是文件分類，而是真正進入 runtime decision path。
 
-- missing required runtime evidence
-- invalid `public_api_diff` schema
+也就是說：
 
-Current verdict impact behavior:
+- runtime 會辨識這些 failure 類型
+- artifact 會留下相對應訊號
+- reviewer 不必完全靠人工猜測 failure 類別
 
-- missing required runtime evidence -> `escalate`
-- invalid runtime evidence schema -> `stop`
+### 3. Minimal replay
 
-The runtime output now includes:
+當時也已有第一個最小 replay check，用來驗證：
 
-- `evidence_violations`
-- `evidence_violation_count` in human-readable output
+- 類似輸入是否導向一致結果
+- runtime verdict 是否過度依賴偶發環境狀態
 
-### 3. Runtime Policy Conflict Handling
+---
 
-`runtime_hooks/core/post_task_check.py` now reads the v2.6 policy precedence
-matrix and classifies:
+## 還沒做到的事
 
-- precedence conflicts that require runtime resolution
-- forbidden overrides that should be treated as illegal
+在這個時點，系統仍然不是：
 
-Current verdict impact behavior:
+- full runtime fault-injection harness
+- 完整 failure-mode taxonomy coverage
+- machine-authoritative recovery planner
 
-- precedence conflict -> `escalate`
-- illegal override -> `stop`
+所以這份 progress 應被理解成：
 
-The runtime output now includes:
+> 第一個 runtime failure-mode slice 已落地，
+> 但離完整 fault-injection 或大規模 automated recovery 仍有距離。
 
-- `policy_violations`
-- `policy_violation_count` in human-readable output
+---
 
-### 4. Runtime Failure Fail-Closed Path
+## 這份 progress 的意義
 
-`runtime_hooks/core/session_end.py` now has a controlled fail-closed runtime
-failure path for artifact emission.
+這個里程碑的重要性不在於 failure mode 數量本身，而在於：
 
-When a forced runtime failure is injected:
+- failure-mode handling 從文件主張變成 runtime reality
+- reviewer 可以從 artifact 看到具體類型
+- failure handling 開始具有可重建性
 
-- the hook does not crash outward as the only outcome
-- the result is collapsed to `decision = RUNTIME_FAILURE`
-- policy is collapsed to `STOP`
-- a `runtime-failure-trace` artifact is emitted
+這替後續更細緻的 failure-mode governance 打下了真正可執行的基礎。
 
-This is the repository's first concrete execution-layer implementation of the
-v2.6 `runtime_failure` violation model.
+---
 
-### 5. Adapter Contract Enforcement Slice
+## 一句話結論
 
-`runtime_hooks/adapters/shared_adapter_runner.py` now performs a minimal
-adapter-side contract assessment for non-trivial `post_task` runs.
-
-Current behavior:
-
-- non-trivial `post_task` adapter runs now mark contract presence as required
-- missing `[Governance Contract]` blocks are surfaced as explicit
-  `adapter-contract` errors instead of remaining only an implicit prompt-level
-  expectation
-- adapter output now includes an `adapter_contract` assessment payload
-
-This does not yet enforce Copilot or editor-native behavior globally, but it
-does turn the shared adapter seam into an actual compliance surface.
-
-### 5. Minimal Determinism Replay
-
-The first determinism slice is now present:
-
-- `post_task_check` replay test verifies stable errors, warnings, and violation
-  classification for identical policy/evidence input
-- `session_end` replay test verifies stable decision/policy/result bundles for
-  identical input
-- runtime trace/verdict artifacts now include `policy_ref.runtime_version`
-
-This directly supports the v2.6 requirement that the runtime version be part of
-the traceable decision surface.
-
-## What Was Verified
-
-The following focused checks were executed:
-
-- `pytest -q tests/test_failure_mode_test_matrix.py`
-- `pytest -q tests/test_runtime_post_task_check.py -k "missing_required_runtime_evidence"`
-- `pytest -q tests/test_runtime_post_task_check.py -k "missing_required_runtime_evidence or invalid_public_api_diff_schema"`
-- `pytest -q tests/test_runtime_post_task_check.py -k "policy_conflict_from_precedence_matrix or illegal_policy_override"`
-- `python -m py_compile runtime_hooks/core/session_end.py`
-- `pytest -q tests/test_runtime_session_end.py -k "forced_runtime_failure"`
-- `pytest -q tests/test_runtime_post_task_check.py -k "replay_is_deterministic"`
-- `pytest -q tests/test_runtime_session_end.py -k "replay_preserves_verdict"`
-
-Environment note:
-
-- this machine still emits `.pytest_cache` warnings
-- some broader `pytest` paths still encounter temp-directory permission issues
-- the focused tests above are still valid and passed
-
-## Maturity Reading
-
-This update improves the runtime execution layer, but does not justify calling
-the system `1.0`.
-
-The most accurate reading after this slice is still:
-
-- control plane: strong
-- integration seam: stronger and more explicit
-- execution layer: now materially better than pure alpha draft state
-- failure-mode coverage: first real slice, still incomplete
-
-In practical terms:
-
-- the repository now has the beginning of a trustworthy runtime failure model
-- it still does not have a full replay harness, async determinism guarantees,
-  or broad fault-injection coverage
-
-## Remaining Gaps
-
-The largest remaining gaps after this update are:
-
-- `hard_stop_rules` still exist as contract metadata, but runtime now treats them as policy input instead of a direct validator-side outcome switch
-- the runtime does not yet evaluate all verdict paths directly from the v2.6
-  decision model JSON
-- replay coverage is still synchronous and narrow
-- human override replay is not yet modeled as a first-class deterministic path
-- async evidence arrival and re-evaluation drift are not yet stress-tested
-
-## Bottom Line
-
-The repository has now crossed an important line:
-
-it no longer only describes failure handling, it executes a first runtime slice
-of it.
-
-That is meaningful progress, but it is still best understood as:
-
-- `decision model stabilized`
-- `runtime transition in progress`
-- `failure-mode execution started, not completed`
+到 2026-03-20 為止，repo 已經擁有第一個真實的 runtime failure-mode slice：它還不完整，但已不再只是 control-plane 上的承諾，而是能進 decision path、留下 artifact、供 reviewer 重建的實際能力。

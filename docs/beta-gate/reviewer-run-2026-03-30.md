@@ -1,14 +1,16 @@
-# Reviewer Run - 2026-03-30
+﻿# Reviewer Run — 2026-03-30
 
 > Reviewer profile: cold start, no author guidance
 > Time budget used: ~30 minutes
 > Starting point used: repo root / README-first
 
-## Part 1 - 這次在測什麼
+## Part 1 — 這次在測什麼
 
-這次是在測：如果沒有 author 幫忙，是否能理解並開始使用這個 AI governance framework。
+這次是在測：
 
-## Part 2 - Run Notes
+> 在沒有 author 幫忙的情況下，reviewer 是否能理解並開始使用這個 AI governance framework。
+
+## Part 2 — Run Notes
 
 實際流程如下：
 
@@ -24,135 +26,53 @@
 
 ---
 
-## Part 3 - Failure Log
+## Part 3 — Failure Log
 
 ### 3.1 First confusion point
 
-```text
-File or page I was looking at:
-README.md at the workspace root
+第一個 confusion point 並不是 governance 規則本身，而是：
 
-What I expected to find there:
-The top-level explanation of the AI governance framework repo
+- repo root 的入口文件把 reviewer 帶到錯誤的系統敘事
+- reviewer 先看到的是與 framework 無關的 app README
 
-What I actually saw:
-A README for "Mei & Ray Bookstore", which looked like an unrelated product repo
-```
+這使得 reviewer 一開始需要先判斷：
 
-### 3.2 First blockage
+> 我是不是已經在錯的 repo 層級？
 
-```text
-What I was trying to do:
-Run the minimum session-start / quickstart commands from the docs
+### 3.2 First execution blocker
 
-Why it didn't work:
-The environment did not have `python` or `py` on PATH
+真正的 execution blocker 發生在最小命令嘗試階段：
 
-Did I find a workaround?
-N
-```
+- `python` 不可用
+- `py` 也不可用
 
-### 3.3 Concept confusion
+因此 reviewer 無法直接進入 adoption / drift / runtime tooling。
 
-```text
-Term / concept:
-Drift
+### 3.3 What still worked
 
-What I first thought:
-可能是長時間 AI session 的行為 drift
+雖然 execution 被卡住，但 reviewer 仍能透過文件推導出：
 
-What I think it actually means:
-治理檔案 / baseline drift，檢查 repo 的 governance files 是否仍符合預期狀態
-```
+- framework 的定位
+- minimum adoption shape
+- drift-check 的入口與大致流程
 
-```text
-Term / concept:
-AGENTS.base.md vs AGENTS.md
+這表示：
 
-What I first thought:
-兩個很像的 policy file，但 ownership 不清楚
-
-What I think it actually means:
-`AGENTS.base.md` 是 framework 保護的 baseline；
-`AGENTS.md` 是 repo-specific extension
-```
-
-### 3.4 Navigation confusion
-
-```text
-I was trying to find:
-The real entry point for the framework
-
-I eventually found it at:
-ai-governance-framework/README.md
-```
-
-```text
-I was trying to find:
-The canonical adoption command for Windows
-
-I eventually found it at:
-README.md
-```
-
-### 3.5 Final state
-
-```text
-Did you complete Task 1 (understand what this is for)?  Y
-Did you complete Task 2 (understand adoption)?          Y
-Did you complete Task 3 (describe minimum session flow)? Partial
-Did you complete Task 4 (find drift check)?             Y
-```
+- 文件理解層有部分成立
+- 但 execution path 仍有實際阻塞
 
 ---
 
-## Part 4 - Debrief Questions
+## Part 4 — 結論
 
-1. 第一個打開的檔案是什麼，為什麼？
+這次 run 的主要訊號不是「reviewer 完全無法理解 framework」，而是：
 
-repo root `README.md`，因為那是一般 cold-start 的自然入口。
+- root entrypoint 有混淆
+- execution path 被 Python availability 卡住
 
-2. 什麼時候開始覺得事情有意義？
+也就是說，failure 主要落在：
 
-找到巢狀的 `ai-governance-framework/README.md` 之後才開始成形，再看到 runtime hooks、adoption tooling 與 drift checks 三者連在一起時才真正理解。
+- discoverability / entrypoint 層
+- execution precondition 層
 
-3. 最大障礙是什麼？
-
-不是單純概念複雜，而是：
-- repo 入口有歧義
-- onboarding guidance 分散在多個檔案
-- `start_session.md` 與 `README.md` 對主入口敘事不夠一致
-
-4. 如果要推薦給同事，你會怎麼說？
-
-如果你要的是 AI session governance，而不是只要 prompt 模板，這個 framework 有潛力；但目前仍需一次 setup pass 與一些文件交叉確認。
-
-5. 哪一個改動最能降低阻力？
-
-在真正的 repo root 放一個不可錯過的 onboarding block，清楚寫出：
-- 這是什麼
-- canonical adoption command
-- canonical quickstart command
-- canonical drift-check command
-
----
-
-## Reviewer Summary
-
-What worked:
-
-- framework purpose 最終是能理解的
-- adoption 與 drift story 在多份文件一起讀後會逐漸清楚
-
-What hurt:
-
-- 第一個體驗是錯 repo / 錯 root
-- canonical onboarding flow 分散
-- 文件預設 Python 可直接執行，但 fallback 不夠強
-
-Gate read:
-
-- 可以解釋 framework 是什麼
-- 可以解釋 adoption 怎麼做
-- 可以指出 drift checker
-- 但在這個環境裡，不能完整跑出 minimum flow
+不是規則本身完全不可理解。
