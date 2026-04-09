@@ -1,4 +1,4 @@
-﻿# Kernel-Driver Domain Adapter Summary
+﻿# Kernel Driver Adapter 摘要
 
 > Domain: `kernel-driver`
 > Status: active summary

@@ -1,196 +1,156 @@
-# Anti-Ritualization Patterns
+﻿# 反儀式化模式
 
 > Version: 1.0
 > Related: `docs/misinterpretation-log.md`
 
 ---
 
-## 目的
+## ?桃?
 
-任何需要人類思考的治理機制，都可能在形式上被遵守，但真正的思考並沒有發生。  
-這就是 ritualization：形式還在，實質已經消失。
+隞颱??閬犖憿?瘝餌?璈嚗?航?典耦撘?鋡恍摰?雿?甇???蒂瘝??潛??? 
+?停??ritualization嚗耦撘??剁?撖西釭撌脩?瘨仃??
+?遢?辣?渡?嚗?- ?芯? framework 璈?摰寞? ritualize
+- ritualized compliance ?瑚?暻潭見
+- ?府?鈭?detection signal
 
-這份文件整理：
-- 哪些 framework 機制最容易 ritualize
-- ritualized compliance 長什麼樣
-- 應該看哪些 detection signal
-
-它**不新增規則**。  
-它只是幫你辨認：既有規則是否已經失去作用。
-
-**Scope limitation：**  
-本 framework 的 scaffold 主要用來支撐需要 justification 的顯性推理。  
-在低模糊、低歧義情境中，它不應取代有經驗者的直覺判斷。若強迫所有判斷都重建成顯性 scaffold，反而可能拖慢決策卻不提升品質。
-
+摰?*銝憓???*?? 
+摰?臬鼠雿儘隤??Ｘ?閬??臬撌脩?憭勗雿??
+**Scope limitation嚗?*  
+??framework ??scaffold 銝餉??其??舀??閬?justification ?＊?扳?? 
+?其?璅∠???甇抒儔??銝哨?摰???隞??蝬????渲死?斗?撘瑁翰???琿?遣?＊??scaffold嚗???賣??Ｘ捱蝑銝???鞈芥?
 ---
 
-## Ritualization 長什麼樣
+## Ritualization ?瑚?暻潭見
 
-ritualization 通常不是惡意，而是自然的最低認知阻力路徑。  
-原本用來幫助正確思考的 scaffold，久了也會變成一種模板：產出看起來像正確思考的東西，但其實沒經過真正思考。
-
-常見 signal：
-- misinterpretation log 的 entries 越來越短
-- 不同 reviewer 寫出越來越相似的套話
-- observation 和 log entry 的時間差固定非常短
-- counterfactual 欄位總是套同樣格式
-- 在整個 observation window 中沒有人質疑任何 grouping decision
+ritualization ?虜銝?⊥?嚗?芰??雿??仿?楝敺? 
+??其?撟怠甇?Ⅱ?? scaffold嚗?鈭?????蝔格芋?選??Ｗ?絲靘?甇?Ⅱ???梯正嚗??嗅祕瘝???甇??
+撣貉? signal嚗?- misinterpretation log ??entries 頞?頞
+- 銝? reviewer 撖怠頞?頞隡潛?憟店
+- observation ??log entry ???榆?箏??虜??- counterfactual 甈?蝮賣憟?璅?撘?- ?冽??observation window 銝剜??犖鞈芰?隞颱? grouping decision
 
 ---
 
 ## Pattern Catalog
 
-### Pattern 1：只填 scaffold，沒有真正推理
+### Pattern 1嚗憛?scaffold嚗???甇???
+**Mechanism嚗?* expansion proposal gate ??counterfactual scaffold
 
-**Mechanism：** expansion proposal gate 的 counterfactual scaffold
-
-**Ritualized form：**
+**Ritualized form嚗?*
 
 ```text
 Alternative mechanism: Could be temporary behavior
 Why this mechanism fails: Because it happened multiple times
 ```
 
-**問題在哪裡：**
-- `Could be temporary` 沒有指出任何具體機制
-- `happened multiple times` 不是反駁機制，而只是重述觀察
-
-**Detection signal：**  
-「Why this mechanism fails」沒有指向任何具體 system property，例如檔案、時間範圍、流程、計數、人員。  
-如果這段話可原封不動貼到任一 proposal 仍成立，通常就是 ritualized。
-
-**Self-detection probe：**  
-你最沒把握的是哪一段推理？如果答不出來，或回答「全部都很有把握」，有可能根本沒真的建構推理過程。
-
+**???典鋆∴?**
+- `Could be temporary` 瘝??隞颱??琿?璈
+- `happened multiple times` 銝??璈嚗?舫?餈啗?撖?
+**Detection signal嚗?*  
+?hy this mechanism fails?????遙雿擃?system property嚗?憒?獢?????蝔??詻犖?～? 
+憒??挾閰勗??銝?鞎澆隞颱? proposal 隞?蝡??虜撠望 ritualized??
+**Self-detection probe嚗?*  
+雿?瘝??∠??臬銝畾菜??憒?蝑??箔?嚗?????券敺??????賣?祆???撱箸??函?????
 ---
 
-### Pattern 2：ritual blind spot
+### Pattern 2嚗itual blind spot
 
-**Mechanism：** expansion proposal gate 中的 blind spot requirement
+**Mechanism嚗?* expansion proposal gate 銝剔? blind spot requirement
 
-**Ritualized form：**
+**Ritualized form嚗?*
 
 ```text
 Unobserved area: Other parts of the system
 ```
 
-或
-
+??
 ```text
 Unobserved area: Modules not yet covered
 ```
 
-**問題在哪裡：**  
-這些句子永遠成立，但完全不需要理解系統，也不指出任何可調查的對象。
-
-**Detection signal：**  
-其他 reviewer 能根據這段 blind spot 描述真的去調查某個東西嗎？如果不能，通常是 ritualized。
-
-**Self-detection probe：**  
-你能不能點名一個具體檔案、hook、workflow，說它可能有同樣問題但尚未檢查？如果不能，代表 blind spot requirement 沒有被實質滿足。
-
+**???典鋆∴?**  
+???亙?瘞賊???嚗?摰銝?閬?閫?頂蝯梧?銋??隞颱??航矽?亦?撠情??
+**Detection signal嚗?*  
+?嗡? reviewer ?賣?挾 blind spot ?膩???餉矽?交??镼踹?嚗????踝??虜??ritualized??
+**Self-detection probe嚗?*  
+雿銝暺?銝?擃?獢ook?orkflow嚗牧摰?賣??見??雿??芣炎?伐?憒?銝嚗誨銵?blind spot requirement 瘝?鋡怠祕鞈芣遛頞喋?
 ---
 
-### Pattern 3：去掉關鍵字，但結論還在
+### Pattern 3嚗???萄?嚗?蝯??
 
-**Mechanism：** interpretation vs observation 的語言區分測試
-
-**Ritualized form：**
+**Mechanism嚗?* interpretation vs observation ??閮??葫閰?
+**Ritualized form嚗?*
 
 ```text
 Activation state was applied in a context where it influenced the outcome
 of the review.
 ```
 
-**問題在哪裡：**  
-表面上沒有使用 `misused`、`incorrectly` 這種字，但 `influenced the outcome` 其實還是在偷偷帶結論。
-
-**Detection signal：**  
-另一位 reviewer 若有不同先驗，能不能基於這句話讀出不同結論？如果不能，它仍然在輸送判斷，而不是純觀察。
-
-**Self-detection probe：**  
-如果完全不暗示對錯，你會怎麼描述 reviewer 真正做了什麼？若那個版本和原文差很多，原文多半仍是 conclusion-laden。
-
+**???典鋆∴?**  
+銵券銝??蝙??`misused`?incorrectly` ?車摮?雿?`influenced the outcome` ?嗅祕??典?瑕葆蝯???
+**Detection signal嚗?*  
+?虫?雿?reviewer ?交?銝???嚗銝?箸?閰梯??箔???隢?憒?銝嚗?隞?刻撓??瘀????舐?閫撖?
+**Self-detection probe嚗?*  
+憒?摰銝?蝷箏??荔?雿??獐?膩 reviewer ?迤??隞暻潘??仿???砍???撌桀?憭???憭?隞 conclusion-laden??
 ---
 
-### Pattern 4：沒有 activity，卻拿「沒新問題」當證據
+### Pattern 4嚗???activity嚗?踴??啣?憿霅?
 
-**Mechanism：** negative pressure rule（沒有新 entries = model 足夠）
-
-**Ritualized form：**  
-reviewer 在 observation window 結束時寫：
-
+**Mechanism嚗?* negative pressure rule嚗?? entries = model 頞喳?嚗?
+**Ritualized form嚗?*  
+reviewer ??observation window 蝯??神嚗?
 > no new misinterpretations observed
 
-但那段時間其實幾乎沒有 meaningful reviewer interaction。
-
-**問題在哪裡：**  
-negative pressure 只有在真的有觀察發生時才有意義。  
-「因為沒看，所以沒看到」不是 sufficiency 證據。
-
-**Detection signal：**  
-這個 window 中到底有幾個實際 reviewer interaction？若少於 3 個，window 結果通常不具代表性。
-
-**Self-detection probe：**  
-你能不能說出一個這個 window 裡實際發生、但沒有出現 misinterpretation 的 reviewer interaction？如果不能，這個 window 很可能沒有足夠 activity。
-
+雿畾菜??撖血嗾銋???meaningful reviewer interaction??
+**???典鋆∴?**  
+negative pressure ?芣??函???閫撖?????儔?? 
+???箸????隞交??????sufficiency 霅???
+**Detection signal嚗?*  
+??window 銝剖摨?撟曉祕??reviewer interaction嚗撠 3 ??window 蝯??虜銝隞?”?扼?
+**Self-detection probe嚗?*  
+雿銝隤芸銝??window 鋆∪祕???瘝??箇 misinterpretation ??reviewer interaction嚗????踝???window 敺?賣??雲憭?activity??
 ---
 
-### Pattern 5：severity inflation
+### Pattern 5嚗everity inflation
 
-**Mechanism：** low / medium / high severity classification
+**Mechanism嚗?* low / medium / high severity classification
 
-**Ritualized form：**  
-多個 window 下來，幾乎所有 entry 都被歸成 `medium`，卻沒有再分類、再校正或 resolution。
-
-**問題在哪裡：**  
-`medium` 變成預設檔位，而不是有語義的分類。severity gradient 被壓平了。
-
-**Detection signal：**  
-若當前 log 幾乎全部是 `medium`，而不是依觀察類型分散在 low / medium / high，很可能分類已 ritualized。
-
-**Self-detection probe：**  
-最近三個 `medium` entry，有沒有其實可以算 `low`？若無法講出它們為何不是 `low`，那 `medium` 可能只是 reflexive default。
-
+**Ritualized form嚗?*  
+憭?window 銝?嚗嗾銋???entry ?質◤甇豢? `medium`嚗瘝???憿??⊥迤??resolution??
+**???典鋆∴?**  
+`medium` 霈??身瑼?嚗??舀?隤儔??憿everity gradient 鋡怠?撟喃???
+**Detection signal嚗?*  
+?亦??log 撟曆??券??`medium`嚗??臭?閫撖????? low / medium / high嚗??航??撌?ritualized??
+**Self-detection probe嚗?*  
+?餈???`medium` entry嚗?瘝??嗅祕?臭誑蝞?`low`嚗?⊥?雓摰雿???`low`嚗 `medium` ?航?芣 reflexive default??
 ---
 
-## 偵測到 Ritualization 之後該怎麼做
-
-ritualization 不是要懲罰的 violation，而是 signal：  
-代表某個機制已經太容易被形式遵守。
-
-正確回應是修機制，不是怪 reviewer。
-
-當某 pattern 被確認 ritualized：
-
-1. 在 misinterpretation log 記一筆：
+## ?菜葫??Ritualization 銋?閰脫獐??
+ritualization 銝閬蝵啁? violation嚗 signal嚗? 
+隞?”???嗅歇蝬云摰寞?鋡怠耦撘摰?
+甇?Ⅱ???臭耨璈嚗??舀?reviewer??
+?嗆? pattern 鋡怎Ⅱ隤?ritualized嚗?
+1. ??misinterpretation log 閮?蝑?
    - `type = under-reading`
    - `owner = framework`
-2. 判斷這個機制需要的是：
-   - 更高 friction
-   - 更銳利的 example
-   - 更好的 probe question
-3. 修原機制，不要只是再疊更多規則
-
-**不要靠新增 companion mechanism 來補 ritualized mechanism。**  
-一個 ritualized mechanism 加上新 companion，常常只會得到兩個 ritualized mechanism。
-
-如果一個機制持續需要加規則才不會被誤用，問題可能不是 wording，而是抽象層級錯了。
-
+2. ?斗???園?閬??荔?
+   - ?湧? friction
+   - ?湧?拍? example
+   - ?游末??probe question
+3. 靽桀?璈嚗?閬?臬??憭???
+**銝??憓?companion mechanism 靘? ritualized mechanism??*  
+銝??ritualized mechanism ????companion嚗虜撣詨???啣??ritualized mechanism??
+憒?銝???嗆?蝥?閬?閬????◤隤斤嚗?憿?賭???wording嚗?質情撅斤??臭???
 ---
 
-## 最難察覺的 Ritualization
+## ????閬箇? Ritualization
 
-最危險的 ritualization，是 reviewer 主觀上真的覺得自己有在思考，但實際推理非常淺。
-
-這無法完全靠 mechanism design 杜絕。  
-最可靠的 signal 幾乎都來自外部：
-- 另一位 reviewer 看完覺得不可信
-- 後續觀察與原本淺推理預測完全不符
-
-這也是為什麼：
+??梢??ritualization嚗 reviewer 銝餉?銝??死敺撌望??冽?雿祕???撣豢滓??
+?瘜??券? mechanism design ???? 
+??舫???signal 撟曆??賭??芸??剁?
+- ?虫?雿?reviewer ??閬箏?銝靽?- 敺?閫撖??瘛箸??皜砍??其?蝚?
+???舐隞暻潘?
 - observation window
 - reviewer diversity
 
-比任何單一 scaffold 更重要。  
-淺推理通常只會在高壓、長時間、或跨 reviewer 對照時暴露出來。
+瘥遙雿銝 scaffold ?湧?閬? 
+瘛箸?虜?芣??券?憯????頝?reviewer 撠??脣靘?

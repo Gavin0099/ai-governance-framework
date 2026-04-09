@@ -1,4 +1,4 @@
-﻿# Failure Mode Test Plan
+﻿# Failure Mode 測試計畫
 
 這份文件定義 governance runtime 第一批刻意 break-test 的方向。  
 目標不是驗 happy path，而是確認：

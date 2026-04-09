@@ -1,108 +1,84 @@
-# Next Steps
+﻿# 下一步
 
-更新日期：2026-04-08
+?湔?交?嚗?026-04-08
 
-## 當前 posture
+## ?嗅? posture
 
-這個 repo 目前最不缺的是新概念。真正高價值的下一步，不是再長更多 layer，而是確認已經落地的 bounded runtime 能不能穩定地被 consuming repo、reviewer 與 shared path 真正用起來。
+??repo ?桀??銝撩??唳?敹萸?甇???孵潛?銝?甇伐?銝??游? layer嚗蝣箄?撌脩??賢??bounded runtime ?賭??賜帘摰鋡?consuming repo?eviewer ??shared path ?迤?刻絲靘?
+?隞亦?函??芸????府?荔?
 
-所以現在的優先順序應該是：
+- ?祕 consuming repo 撽?
+- session workflow / closeout ??semantics observation
+- status / entry surface 撠?
+- shared path ?臬???質??唳迤蝣?runtime lane
+- 靽? companion slice ??嚗?霈???? authority
 
-- 真實 consuming repo 驗證
-- session workflow / closeout 的 semantics observation
-- status / entry surface 對齊
-- shared path 是否真的能跑到正確 runtime lane
-- 保持 companion slice 受限，不讓它們變成新 authority
+## ?擃?潛?銝?甇?
+### 1. ?祕 consuming repo 撽?
 
-## 最高價值的下一步
+?桀?敺?銝餌??賢??賢歇??framework repo ?折??堆?銋?憪 Hearth?irra?usb_2_0_eep_tool` 蝑?consuming repo ??spot check??銝甇交??澆????舀??辣鈭?敺蝟餌絞??
 
-### 1. 真實 consuming repo 驗證
+- ??撽? adopt 敺? `governance/` pack?memory/01~04` scaffold?ule roots ??readiness surfaces
+- 蝣箄? canonical framework source ?臬銝??- 蝣箄??啁? closeout / runtime status / onboarding report ?臬????consuming repo 鋡怎?閬?
+??甇亦??孵潭?ramework repo ?芸楛?絲靘?蝡??xternal repo 銋??粥敺??
+### 2. Session Workflow ??semantics observation
 
-目前很多主線能力都已在 framework repo 內驗到，也開始用 Hearth、Mirra、`usb_2_0_eep_tool` 等 consuming repo 做 spot check。下一步最值得做的是把這件事變得更系統化：
-
-- 持續驗證 adopt 後的 `governance/` pack、`memory/01~04` scaffold、rule roots 與 readiness surfaces
-- 確認 canonical framework source 是否一致
-- 確認新版 closeout / runtime status / onboarding report 是否真的在 consuming repo 被看見
-
-這一步的價值是把「framework repo 自己看起來成立」變成「external repo 也真的走得到」。
-
-### 2. Session Workflow 的 semantics observation
-
-`Session Workflow Enhancement` 目前已進入 `implementation-complete, semantics-observation phase`。所以現在更值得做的是觀察，而不是擴功能。
-
-建議持續追的指標：
-
+`Session Workflow Enhancement` ?桀?撌脤脣 `implementation-complete, semantics-observation phase`??隞亦?冽?澆????航?撖????舀???
+撱箄降??餈賜???嚗?
 - canonical closeout valid rate
-- `warning_only / none` 的 session 比例
-- audit flags 穩定度
+- `warning_only / none` ??session 瘥?
+- audit flags 蝛拙?摨?
+?????賢鼠敹?瘀?
 
-這些指標能幫忙判斷：
+- `/wrap-up` ?臬?典祕??敶Ｘ???靘陷
+- frozen taxonomy ?臬???箇 recall 憯?
+- closeout audit ??蝢拇?衣帘摰?
+### 3. ???????朣?
+README?tatus pages?alidation guides?nboarding docs ?桀?憭扯撌脰蕭銝蜓蝺?雿??航???瑼Ｘ?臬????畾?嚗??暸車?賢榆嚗?
+- code 敺???- 雿???隞嗆?蝷?repo 瘥祕?憭扼摰
 
-- `/wrap-up` 是否在實務上形成操作依賴
-- frozen taxonomy 是否開始出現 recall 壓力
-- closeout audit 的語義是否穩定
+??甇乩???marketing嚗 anti-expansion guard??
+### 4. Consumption / Closeout Shared Path 撽?
 
-### 3. 狀態頁與入口對齊
+closeout visibility 撌脩?摮嚗?????撽? consuming repo ?虜?券??啣?????????`session_end`嚗??臬???葫閰西???
+?桀??游澆????荔?
 
-README、status pages、validation guides、onboarding docs 目前大致已追上主線，但還是要持續檢查是否有舊敘事殘留，避免出現這種落差：
+- shared enforcement path ?臬蝛拙?韏啣 `session_end`
+- 撣貊 workflow ?賢? `memory_closeout`
+- no-write reason ?臬??鋡?reviewer / operator ?
 
-- code 很克制
-- 但入口文件暗示 repo 比實際更大、更完整
+??甇亦??格?銝 promotion ?湔?嚗蝣箄? closeout 銝??????賢??剁?撖血?銝?鈭箄粥?啜?
+### 5. Classification / Closeout Companion Surface 蝬剜? bounded
 
-這一步不是 marketing，而是 anti-expansion guard。
+classification governance companion slice 撌脫銝餌?嚗?摰?冽??????舀憭改??蝬剜? companion posture嚗?
+- 銝??洵鈭? authority
+- 銝情?蜓 runtime artifact
+- 銝蕭 full matrix coverage
 
-### 4. Consumption / Closeout Shared Path 驗證
+銋停?航牧嚗?蝺銝??璅蝛拙?嚗??舫憭扼?
+## ?曉銝府?芸???鈭?
+隞乩?鈭??桀??賭??澆??芸?嚗?
+- ?湔憭?advisory signal
+- ??advisory semantics ?仿?verdict authority
+- ??closeout / advisory ?湔? machine-facing authority
+- ??runtime injection ?冽? full adapter matrix
+- ??execution coverage ?? full signal ? full surface matrix
+- ????賢??停蝜潛?撱嗡撓撌脩?撠???slice
 
-closeout visibility 已經存在，但還要持續驗證 consuming repo 的常用途徑到底有沒有真的跑到 `session_end`，而不是只有手動測試能看到。
+???孵??憭抒?憸券銝?嚗霈?repo ?活? complexity creep??
+## ?箔?暻潮?摨?頛?
 
-目前更值得問的是：
-
-- shared enforcement path 是否穩定走到 `session_end`
-- 常用 workflow 能否看到 `memory_closeout`
-- no-write reason 是否真的被 reviewer / operator 看到
-
-這一步的目標不是 promotion 擴權，而是確認 closeout 不再停在「只有功能存在，實務上沒人走到」。
-
-### 5. Classification / Closeout Companion Surface 維持 bounded
-
-classification governance companion slice 已收主線，但它現在最重要的不是擴大，而是維持 companion posture：
-
-- 不變成第二套 authority
-- 不污染主 runtime artifact
-- 不追 full matrix coverage
-
-也就是說，這條線接下來的目標是穩定，而不是長大。
-
-## 現在不該優先做的事
-
-以下事情目前都不值得優先：
-
-- 擴更多 advisory signal
-- 把 advisory semantics 接進 verdict authority
-- 把 closeout / advisory 擴成 machine-facing authority
-- 把 runtime injection 推成 full adapter matrix
-- 把 execution coverage 做成 full signal × full surface matrix
-- 因為「還能做」就繼續延伸已經封邊的 slice
-
-這些方向最大的風險不是做錯，而是讓 repo 再次回到 complexity creep。
-
-## 為什麼這個順序比較對
-
-因為現在主線最大的風險已經不是 skeleton 不夠，而是：
-
+??曉銝餌??憭抒?憸券撌脩?銝 skeleton 銝?嚗嚗?
 - runtime reality
 - boundary documents
 - status entry surfaces
 - consuming repo adoption
 
-這四者會不會再慢慢漂開。
+????銝???Ｘ???
+?隞交?頛末??摨??胯??潭?銝???layer???嚗?
+1. ??霅?函? bounded runtime ?臬??鋡思蝙??2. ??撖?蝢抵? closeout ???臬蝛拙?
+3. ?敺?瘙箏??臬??閬???璇歇撠???slice
 
-所以比較好的順序不是「再發明下一個 layer」，而是：
+## 銝?亥店蝮賜?
 
-1. 先驗證現在的 bounded runtime 是否真的被使用
-2. 再觀察語義與 closeout 分布是否穩定
-3. 最後才決定是否有必要重開某條已封邊的 slice
-
-## 一句話總結
-
-> 現在最值得做的不是擴權，而是驗證這個 repo 已經落地的 bounded runtime，是否真的在真實 consuming repo 與 shared workflow 中被穩定消費。
+> ?曉??澆???銝?湔?嚗撽???repo 撌脩??賢??bounded runtime嚗?衣???祕 consuming repo ??shared workflow 銝剛◤蝛拙?瘨祥??

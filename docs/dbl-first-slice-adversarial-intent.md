@@ -1,19 +1,13 @@
-# DBL First-Slice Adversarial Intent
+﻿# DBL First Slice 對抗式意圖測試
 
-> 狀態：Step 2.5 補充說明
-> 日期：2026-03-31
+> ???Step 2.5 鋆?隤芣?
+> ?交?嚗?026-03-31
 
-這個 adversarial formal-presence example 的目的，是把目前系統的 before-state 鎖下來。
-
-它要展示的是：
-
-> 當前第一個 DBL slice 可能被「形式存在」滿足，即使 semantic sufficiency 仍然不足。
-
-這不是 regression。  
-這不是隱藏能力。
-
-它是一份明確的 limitation record，讓後續若擴到 pseudo-presence 或 semantic-insufficiency handling 時，仍能回頭看見：
-
-- 第一階段的邊界在哪裡
-- 哪些 pass 其實只是 formal presence 的結果
-- 為什麼後續擴張需要新的驗證，而不是靠語意補敘述
+??adversarial formal-presence example ????舀??桀?蝟餌絞??before-state ??靘?
+摰?撅內?嚗?
+> ?嗅?蝚砌???DBL slice ?航鋡怒耦撘??具遛頞喉??喃蝙 semantic sufficiency 隞銝雲??
+????regression?? 
+???舫???
+摰銝隞賣?蝣箇? limitation record嚗?敺??交??pseudo-presence ??semantic-insufficiency handling ??隞???嚗?
+- 蝚砌??挾????芾ㄐ
+- ?芯? pass ?嗅祕?芣 formal presence ????- ?箔?暻澆?蝥撘菟?閬??霅????舫?隤?鋆?餈?

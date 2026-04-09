@@ -1,12 +1,11 @@
-# Execution Surface Coverage
+﻿# Execution Surface Coverage 狀態
 
 - generated_at: `2026-04-01T07:48:31.240700Z`
 - repo_commit: `7762c0fd601d8bfeb7502d7d73433f8a85c64967`
 - consumer: `reviewer`
 - signal_posture: `soft-enforcement`
 
-這個頁面是 execution surface coverage 的人類可讀摘要。它不是在做 execution harness，而是在說明：目前哪些 decision surface 已有最低 coverage，以及還有哪些缺口。
-
+???Ｘ execution surface coverage ?犖憿霈????銝?典? execution harness嚗?刻牧???桀??芯? decision surface 撌脫??雿?coverage嚗誑???鈭撩???
 ## Decision Status
 
 | Decision | Status | Missing Hard | Missing Soft |

@@ -1,152 +1,118 @@
-# Human Self-Serve Onboarding Pass/Fail Criteria
+﻿# Onboarding 通過準則
 
-> 狀態：active
-> 建立：2026-03-30
-> 適用：Beta Gate condition 2 的 human self-serve track
+> ???active
+> 撱箇?嚗?026-03-30
+> ?拍嚗eta Gate condition 2 ??human self-serve track
 
 ---
 
-## 為什麼需要這份文件
+## ?箔?暻潮?閬遢?辣
 
-「reviewer 能不能自己搞懂」這句話太抽象，不能直接當 gate。這份文件的作用就是把它拆成可觀測、可記錄、可比較的 checkpoint。
-
-這份文件只適用於 **human cold-start self-serve** gate。
-
-Agent-assisted adoption 另有獨立文件：
-
+?eviewer ?賭??質撌望??閰勗云?質情嚗??賜?亦 gate?遢?辣???典停?舀?摰??閫皜研閮??瘥???checkpoint??
+?遢?辣?芷?冽 **human cold-start self-serve** gate??
+Agent-assisted adoption ?行??函??辣嚗?
 - `docs/beta-gate/agent-adoption-pass-criteria.md`
 
-也就是說：
-
-- human self-serve failure 不會自動否定 agent-assisted path
-- 兩者是不同 gate，不是同一條路的高低難度版
+銋停?航牧嚗?
+- human self-serve failure 銝??芸??血? agent-assisted path
+- ?抵銝? gate嚗??臬?銝璇楝??雿摨衣?
 
 ---
 
-## 五個可觀測 checkpoint
+## 鈭閫皜?checkpoint
 
-### CP1：找到入口
-
-**Observable**：reviewer 能在沒有被提醒的情況下，自己導航到：
+### CP1嚗?啣??
+**Observable**嚗eviewer ?賢瘝?鋡急?????銝??芸楛撠?堆?
 
 - `README.md`
 - `docs/start_session.md`
-- 或 `governance_tools/adopt_governance.py`
+- ??`governance_tools/adopt_governance.py`
 
-Pass：15 分鐘內找到入口。
-Fail：15 分鐘後仍停在 repo root，沒有方向。
-
+Pass嚗?5 ???扳?啣???Fail嚗?5 ??敺?? repo root嚗????
 ---
 
-### CP2：能描述最小 adopt path
+### CP2嚗?膩?撠?adopt path
 
-**Observable**：reviewer 能用自己的話描述出：
+**Observable**嚗eviewer ?賜?芸楛?店?膩?綽?
 
 > adopt -> drift check -> session_start -> pre_task -> post_task
 
-不要求他背精確指令，但至少要理解這是一條 runtime path，不只是靜態文件集合。
-
-Pass：reviewer 能主動說出這條概念流程。
-Fail：reviewer 以為 framework 只是 documentation set。
-
+銝?瘙??移蝣箸?隞歹?雿撠??圾?銝璇?runtime path嚗??芣???辣????
+Pass嚗eviewer ?賭蜓?牧?粹?璁艙瘚???Fail嚗eviewer 隞亦 framework ?芣 documentation set??
 ---
 
-### CP3：核心概念有分清楚
+### CP3嚗敹?敹菜???璆?
+**Observable**嚗eviewer ?賢?颲刻撠?2 蝯?
 
-**Observable**：reviewer 能分辨至少 2 組：
+- framework governance嚗 repo嚗?vs project governance嚗onsuming repo嚗?- `governance_tools/`嚗?銝餃?頝?撌亙嚗s `runtime_hooks/`嚗ession 銝剜?頝? hook嚗?- domain contract嚗摰?獢?函?閬?嚗s rule pack嚗????????
 
-- framework governance（本 repo） vs project governance（consuming repo）
-- `governance_tools/`（你主動跑的工具）vs `runtime_hooks/`（session 中會跑的 hook）
-- domain contract（特定專案適用的規則）vs rule pack（較通用的規則集合）
-
-Pass：至少 2 組 distinction 能在無提示下說對。
-Fail：把所有東西當成同一層扁平文件系統。
-
+Pass嚗撠?2 蝯?distinction ?賢?⊥?蝷箔?隤芸???Fail嚗???镼輻??銝撅斗?撟單?隞嗥頂蝯晞?
 ---
 
-### CP4：理解 drift detection 的存在與用途
-
-**Observable**：給 reviewer 一個情境：「兩週後你回來看這個 project」，他知道 `governance_drift_checker` 存在，且能說出它大致在檢查什麼。
-
-Pass：reviewer 能自己找到或描述 drift checker。
-Fail：reviewer 不知道 returning session 要怎麼驗 governance health。
-
+### CP4嚗?閫?drift detection ???刻??券?
+**Observable**嚗策 reviewer 銝??憓???勗?雿?靘???project??隞??`governance_drift_checker` 摮嚗??質牧?箏?憭扯?冽炎?乩?暻潦?
+Pass嚗eviewer ?質撌望?唳??膩 drift checker??Fail嚗eviewer 銝??returning session 閬獐撽?governance health??
 ---
 
-### CP5：產生至少一個 governance artifact
+### CP5嚗?撠???governance artifact
 
-**Observable**：reviewer 有跑或至少做出具體嘗試，對下面任一條：
+**Observable**嚗eviewer ???撠??箏擃?閰佗?撠??Ｖ遙銝璇?
 
-- `python -m governance_tools.adopt_governance`（temp directory）
-- `python -m governance_tools.governance_drift_checker`（某 repo）
-- 手動 `session_start`（某 example contract）
-
-Pass：有 artifact 產生，或嘗試本身是實質的（有跑指令、有看懂輸出）。
-Fail：連任何工具執行都沒走到。
-
+- `python -m governance_tools.adopt_governance`嚗emp directory嚗?- `python -m governance_tools.governance_drift_checker`嚗? repo嚗?- ?? `session_start`嚗? example contract嚗?
+Pass嚗? artifact ?Ｙ?嚗??岫?祈澈?臬祕鞈芰?嚗?頝?隞扎???頛詨嚗?Fail嚗?遙雿極?瑕銵瘝粥?啜?
 ---
 
-## 計分
+## 閮?
 
 | CPs passed | Result |
 |-----------|--------|
-| 5 of 5 | Strong pass — Beta Gate condition 2 met |
-| 3–4 of 5 | Pass — Gate met，但要記錄哪些 CP 失敗，作為 onboarding 改善輸入 |
-| 2 of 5 | Fail — Gate not met，必須診斷 blocker |
-| 0–1 of 5 | Fail — entry path 仍需明顯重工 |
+| 5 of 5 | Strong pass ??Beta Gate condition 2 met |
+| 3?? of 5 | Pass ??Gate met嚗?閬??鈭?CP 憭望?嚗???onboarding ?孵?頛詨 |
+| 2 of 5 | Fail ??Gate not met嚗??那??blocker |
+| 0?? of 5 | Fail ??entry path 隞??＊?極 |
 
 ---
 
-## Gate override 規則
+## Gate override 閬?
 
-分數不是唯一判準，下列 override 會直接蓋過 score table。
-
+?銝?臭??斗?嚗???override ??亥???score table??
 | Condition | Override | Reason |
 |-----------|----------|--------|
-| CP5（artifact production）失敗 | Automatic FAIL | 這個 framework 的核心主張之一是 governance 能產出可驗證 evidence。如果 onboarding 連任何 artifact 都產不出，這個主張就無法被驗證。 |
+| CP5嚗rtifact production嚗仃??| Automatic FAIL | ??framework ?敹蜓撘萎?銝??governance ?賜?箏撽? evidence????onboarding ??遙雿?artifact ?賜銝嚗蜓撘萄停?⊥?鋡恍?霅?|
 
-套用 override 時，要在 reviewer run 檔案中明確寫：
-
+憟 override ??閬 reviewer run 瑼?銝剜?蝣箏神嚗?
 ```text
 Gate Verdict: FAIL
 Override applied: CP5 automatic FAIL rule
 Score-based result: X/5 (would have been: Pass / Fail)
 ```
 
-不要在 override 已觸發時，還默默沿用 score-based result。
-
+銝???override 撌脰孛?潭?嚗?暺?瘝輻 score-based result??
 ---
 
-## Blocker 分類
+## Blocker ??
 
-當 reviewer fail 某個 checkpoint，要先分類 blocker，而不是直接大改 framework。
-
-先用：
-
+??reviewer fail ??checkpoint嚗???憿?blocker嚗??舐?亙之??framework??
+?嚗?
 - `docs/beta-gate/reviewer-signal-split.md`
 
-判斷這次失敗比較接近 discoverability、interpretation、decision reconstruction，還是 escalation judgment。
-
-再往下可歸成：
-
+?斗?活憭望?瘥??亥? discoverability?nterpretation?ecision reconstruction嚗???escalation judgment??
+??銝甇豢?嚗?
 | Type | Description | Implication |
 |------|-------------|-------------|
-| **Conceptual** | reviewer 不懂這個東西是做什麼的 | 需要更好的解釋或例子，不一定要重構 |
-| **Structural** | reviewer 找不到對的檔案或工具 | entry path / README 需要更清楚的 pointer |
-| **Naming** | reviewer 找到對的東西，但誤會其用途 | 名稱或標題需要修正 |
-| **Friction** | reviewer 懂，但跑不起來 | tooling / quickstart / dependency path 要修 |
+| **Conceptual** | reviewer 銝??镼踵??暻潛? | ?閬憟賜?閫????摮?銝?摰??? |
+| **Structural** | reviewer ?曆??啣???獢?撌亙 | entry path / README ?閬皜???pointer |
+| **Naming** | reviewer ?曉撠??梯正嚗?隤斗??嗥??| ?迂??憿?閬耨甇?|
+| **Friction** | reviewer ??雿?銝絲靘?| tooling / quickstart / dependency path 閬耨 |
 
-一個 blocker type 對應一個 targeted fix。不要為了修 naming 問題去重寫整個 framework。
-
+銝??blocker type 撠?銝??targeted fix??閬鈭耨 naming ???駁?撖急??framework??
 ---
 
-## 哪些不算 failure
+## ?芯?銝? failure
 
-以下情況不算 fail：
+隞乩???銝? fail嚗?
+- reviewer ?梯?????????- reviewer 銝??頝撌亙嚗?敺?靽格迤
+- reviewer ??AI/governance ????嚗???framework mechanics
+- reviewer ?梯???60 ??嚗??敺???? pass criteria
 
-- reviewer 閱讀順序和預期不同
-- reviewer 一開始跑錯工具，但後來修正
-- reviewer 問 AI/governance 理論問題，而不是 framework mechanics
-- reviewer 花超過 60 分鐘，但最後仍成功達到 pass criteria
-
-這個 gate 在意的是：能不能抵達，不是是不是以最短路徑抵達。
+??gate ?冽??嚗銝?菟?嚗??舀銝隞交??剛楝敺??

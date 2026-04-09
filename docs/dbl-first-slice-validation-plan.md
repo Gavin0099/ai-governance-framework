@@ -1,187 +1,150 @@
-# DBL First-Slice Validation Plan
+﻿# DBL First Slice 驗證計畫
 
-> 狀態：驗證計畫
-> 建立日期：2026-03-31
-> 依賴：`docs/decision-boundary-first-slice.md`
+> ???撽?閮
+> 撱箇??交?嚗?026-03-31
+> 靘陷嚗docs/decision-boundary-first-slice.md`
 
 ---
 
-## 為什麼需要這份計畫
+## ?箔?暻潮?閬遢閮
 
-`Decision Boundary Layer` 的第一個 executable slice 已經存在於：
+`Decision Boundary Layer` ?洵銝??executable slice 撌脩?摮?潘?
 
 - runtime
 - docs
 - minimal example
 
-這足以證明：
+?雲隞亥???
 
-- slice 能執行
-- slice 能改變 verdict
-- slice 能在小型外部 example 中被展示
+- slice ?賢銵?- slice ?賣霈?verdict
+- slice ?賢撠?憭 example 銝剛◤撅內
 
-但這還不足以證明：
+雿?銝雲隞亥???
 
-- 外部 reviewer 能否只靠 artifact 重建它
-- 它能不能抵抗誤讀、誤用或被 gaming
-- reviewer onboarding fail 是 onboarding 問題，還是 DBL 本身的問題
-
-所以在擴更多 DBL surface 前，先做這份驗證。
-
+- 憭 reviewer ?賢?芷? artifact ?遣摰?- 摰銝?菜?隤方??炊?冽?鋡?gaming
+- reviewer onboarding fail ??onboarding ??嚗???DBL ?祈澈??憿?
+?隞亙?湔憭?DBL surface ?????遢撽???
 ---
 
-## 驗證原則
+## 撽???
 
-下一步不是 feature expansion，而是驗證目前 first slice 是否：
+銝?甇乩???feature expansion嚗撽??桀? first slice ?臬嚗?
+1. ?質◤隞犖?遣
+2. ?賢??桃??辣?????靘?3. ?賣??obvious false-pass / false-compliance pattern
 
-1. 能被他人重建
-2. 能和單純文件指引區分開來
-3. 能暴露 obvious false-pass / false-compliance pattern
+蝪∪隤迎?
 
-簡單說：
-
-> 不只問這個 slice 能不能用，
-> 還要問它會不會被誤用、誤讀，或被錯誤放行。
-
+> 銝??slice ?賭??賜嚗?> ???????◤隤斤?炊霈嚗?鋡恍隤斗銵?
 ---
 
-## Step 0：先拆 reviewer signal
+## Step 0嚗???reviewer signal
 
-在把 reviewer 結果當成 gate 之前，要先拆清楚 reviewer failure 到底在測什麼。
-
-目前 reviewer outcome 可能混在一起的有：
+?冽? reviewer 蝯??嗆? gate 銋?嚗???皜? reviewer failure ?啣??冽葫隞暻潦?
+?桀? reviewer outcome ?航瘛瑕銝韏瑞???
 
 - onboarding UX
-- 文件理解
+- ?辣?圾
 - decision reconstruction
 - escalation judgment
 
-單純一個 fail 不夠用。
-
-review exercise 應至少把 failure 分成：
-
+?桃?銝??fail 銝??具?
+review exercise ?撠? failure ??嚗?
 - discoverability failure
 - interpretation failure
 - decision reconstruction failure
 - escalation failure
 
-不先拆開，reviewer onboarding 對 DBL 的訊號就太粗。
+銝???嚗eviewer onboarding 撠?DBL ???停憭芰???
+---
+
+## Step 1嚗?銝??撠?蝚砌???example
+
+蝚砌???example 銝???蝚砌???absence case??
+摰?閰脣?１銝??insufficiency-like case嚗?憒?
+
+- spec 摮嚗???甇?task ?⊿?
+- sample 摮嚗??芾???happy path
+- fixture 摮嚗?瘝１??failing condition
+
+?桃?嚗?
+- 皜祉??first slice ????- ?湧摰????皜鈭?insufficiency
+- ?脫迫???bsence case ?質??炊閫???歇?質???sufficiency??
+???嗆敺???example嚗??舀??demo project??
+---
+
+## Step 2嚗??拙?example 頝?reviewer reconstruction
+
+雿輻嚗?
+- ?暹? minimal example
+- ?啁? insufficiency-like example
+
+銝行??[`docs/dbl-first-slice-reviewer-reconstruction-kit.md`](dbl-first-slice-reviewer-reconstruction-kit.md)??
+??甇仿?銝甇???函? reviewer gate嚗??撖?
+
+- reviewer ?芯??唳?賭嗾瘛券?撱?- ?芯??唳 reviewer ???芸楛鋆?intuition
+- ?芯??唳 reviewer 隞亦蝟餌絞瑼Ｘ敺?撖阡???
+
+?桃?嚗?
+- 撽?DBL reconstruction quality
+- ?曉 human interpretation 頞? runtime truth ?洵銝?嫣?蝵?
+---
+
+## Step 2.5嚗???adversarial / gaming case
+
+?典恐??first slice 蝛拙?銋?嚗?????耦撘?蝡?雿???頞喋? case??
+靘?嚗?
+- spec 摮嚗??嗅祕銝??- sample 摮嚗?瘝? failure-path coverage
+- fixture 摮嚗? assertion 瘝??儔
+
+?桃?嚗?
+- ???gate ?臬摰寞?鋡?trivially gamed
+- ??inimal???捆?◤蝜???
+憒??嗅? gate ?暸??車 case嚗敹誨銵?slice 1 閮剛?憭望?嚗? 
+雿??喳?霅?嚗?
+- ?桀?隞 explicit-missing-state only
+- 敺?撽?????insufficiency嚗??芣 absence
 
 ---
 
-## Step 1：加一個很小的第二個 example
+## Step 3嚗??唳迤撘?independent reviewer onboarding
 
-第二個 example 不應重複第一個 absence case。
+?芣???Step 0??????.5 ??銋?嚗??拙???formal reviewer onboarding gate ?嗆?銝???maturity check??
+?見 failure ?鋡怨那?瘀?
 
-它應該刻意碰一個 insufficiency-like case，例如：
+- discoverability fail -> onboarding ??
+- interpretation fail -> docs / interface ??
+- reconstruction fail -> DBL ??
+- escalation fail -> decision model / authority ??
 
-- spec 存在，但和真正 task 無關
-- sample 存在，但只覆蓋 happy path
-- fixture 存在，但沒碰到 failing condition
-
-目的：
-
-- 測目前 first slice 的邊界
-- 暴露它目前還分不清哪些 insufficiency
-- 防止團隊把「absence case 能跑」誤解成「已能處理 sufficiency」
-
-這仍然是很小的 example，不是新的 demo project。
-
+?見 reviewer gate ???孵潘?????noisy fail??
 ---
 
-## Step 2：對兩個 example 跑 reviewer reconstruction
+## ??璅?
 
-使用：
+蝚砌???slice 閬????儔?啗◤撽????喳?閬?蝡?
 
-- 現有 minimal example
-- 新的 insufficiency-like example
-
-並搭配 [`docs/dbl-first-slice-reviewer-reconstruction-kit.md`](dbl-first-slice-reviewer-reconstruction-kit.md)。
-
-這一步還不是正式獨立 reviewer gate，而是先觀察：
-
-- reviewer 哪些地方能乾淨重建
-- 哪些地方 reviewer 開始自己補 intuition
-- 哪些地方 reviewer 以為系統檢查得比實際還多
-
-目的：
-
-- 驗 DBL reconstruction quality
-- 找出 human interpretation 超過 runtime truth 的第一批位置
-
----
-
-## Step 2.5：加入 adversarial / gaming case
-
-在宣告 first slice 穩定之前，要加一個刻意「形式成立，但語意不足」的 case。
-
-例如：
-
-- spec 存在，但其實不相關
-- sample 存在，但沒有 failure-path coverage
-- fixture 存在，但 assertion 沒有意義
-
-目的：
-
-- 看當前 gate 是否容易被 trivially gamed
-- 區分「minimal」和「容易被繞過」
-
-如果當前 gate 放過這種 case，未必代表 slice 1 設計失敗；  
-但它至少證明：
-
-- 目前仍是 explicit-missing-state only
-- 後續驗證應處理 insufficiency，不只是 absence
-
----
-
-## Step 3：回到正式 independent reviewer onboarding
-
-只有在 Step 0、1、2、2.5 做完之後，才適合把 formal reviewer onboarding gate 當成下一個 maturity check。
-
-這樣 failure 才能被診斷：
-
-- discoverability fail -> onboarding 問題
-- interpretation fail -> docs / interface 問題
-- reconstruction fail -> DBL 問題
-- escalation fail -> decision model / authority 問題
-
-這樣 reviewer gate 才有價值，而不是 noisy fail。
-
----
-
-## 成功標準
-
-第一個 slice 要算「有意義地被驗證」，至少要成立：
-
-1. 外部 reviewer 能只靠 artifact 重建 first-slice decision。
-2. reviewer 不需要默默用自己的 intuition 替系統補能力。
-3. insufficiency-like example 清楚暴露目前限制，而不是被誤寫成 supported capability。
-4. adversarial case 能看出這個 slice 是否容易被 gaming。
-5. reviewer failure 能被歸因到特定 layer，而不是一個模糊 onboarding fail。
-
+1. 憭 reviewer ?賢??artifact ?遣 first-slice decision??2. reviewer 銝?閬?暺?芸楛??intuition ?輻頂蝯梯??賢???3. insufficiency-like example 皜??湧?桀??嚗??航◤隤文神??supported capability??4. adversarial case ?賜??粹?slice ?臬摰寞?鋡?gaming??5. reviewer failure ?質◤甇詨??啁摰?layer嚗??臭??芋蝟?onboarding fail??
 ---
 
 ## Non-goals
 
-這份驗證計畫不授權：
+?遢撽?閮銝?甈?
 
-- 立刻擴到 identity enforcement
-- 立刻擴 capability runtime integration
-- 立刻做 full semantic sufficiency inference
-- 立刻做完整 precedence engine
+- 蝡?游 identity enforcement
+- 蝡??capability runtime integration
+- 蝡??full semantic sufficiency inference
+- 蝡????precedence engine
 
-那些可以以後再來，但前提是目前 first slice 已被證明是「真的 decision surface」，不是狹窄 demo。
-
+????臭誑隞亙???嚗????舐??first slice 撌脰◤霅??胯???decision surface??銝?寧? demo??
 ---
 
-## 工作結論
+## 撌乩?蝯?
 
-現在真正該問的不是：
+?曉?迤閰脣????荔?
 
-> first slice 能不能用？
+> first slice ?賭??賜嚗?
+?湧?閬??荔?
 
-更重要的是：
+> first slice ?賭??賡?◤隤斤?炊霈嚗?鋡恍隤斗銵?
 
-> first slice 能不能避免被誤用、誤讀，或被錯誤放行？
-
-這才是目前的下一個驗證邊界。
+???舐??銝???霅???

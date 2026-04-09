@@ -1,17 +1,15 @@
-# Trust Signal Dashboard
+﻿# Trust Signal Dashboard
 
-更新日期：2026-04-09
+?湔?交?嚗?026-04-09
 
-這份頁面整理 framework adoption 與 release-facing trust signal，供 reviewer 與 adopter 快速查看。當前預設展示版本以 `v1.1.0` 為 release-facing 基準；若要檢查其他版本，請搭配對應 release note 與 release readiness 指令使用。歷史版本 `v1.0.0-alpha` 仍可透過同一組 trust signal / release readiness 工具重現與審查。
+?遢??渡? framework adoption ??release-facing trust signal嚗? reviewer ??adopter 敹恍???閮剖?蝷箇??砌誑 `v1.1.0` ??release-facing ?箸?嚗閬炎?亙隞??穿?隢????release note ??release readiness ?誘雿輻?風?脩???`v1.0.0-alpha` 隞????蝯?trust signal / release readiness 撌亙??祟?乓?
+摰蜓閬?蝑嗾隞嗡?嚗?- quickstart ?臬?航?
+- bundled example ?臬?舫?
+- release-facing trust surface ?臬??
+- governance self-audit ?臬?航?
+- external contract repo ??cross-domain enforcement posture ?臬?航◤餈質馱
 
-它主要回答幾件事：
-- quickstart 是否可跑
-- bundled example 是否可驗
-- release-facing trust surface 是否成立
-- governance self-audit 是否可讀
-- external contract repo 的 cross-domain enforcement posture 是否可被追蹤
-
-## 核心指令
+## ?詨??誘
 
 ```bash
 python governance_tools/trust_signal_overview.py \
@@ -25,8 +23,7 @@ python governance_tools/trust_signal_overview.py \
   --format human
 ```
 
-如果要看 dashboard-style 的 markdown：
-```bash
+憒?閬? dashboard-style ??markdown嚗?```bash
 python governance_tools/trust_signal_overview.py \
   --project-root . \
   --plan PLAN.md \
@@ -51,8 +48,7 @@ python governance_tools/trust_signal_snapshot.py \
   --format human
 ```
 
-若要把結果發布到 repo-local docs status path：
-```bash
+?亥????撣 repo-local docs status path嚗?```bash
 python governance_tools/trust_signal_snapshot.py \
   --project-root . \
   --plan PLAN.md \
@@ -65,34 +61,28 @@ python governance_tools/trust_signal_snapshot.py \
   --format human
 ```
 
-讀 publication metadata：
-```bash
+霈 publication metadata嚗?```bash
 python governance_tools/trust_signal_publication_reader.py \
   --file artifacts/trust-signals/PUBLICATION_MANIFEST.json \
   --format human
 ```
 
-讀 repo-local docs status：
-```bash
+霈 repo-local docs status嚗?```bash
 python governance_tools/trust_signal_publication_reader.py \
   --project-root . \
   --docs-status \
   --format human
 ```
 
-## Dashboard 的語義邊界
+## Dashboard ??蝢拚???
+?遢 dashboard ??reviewer-facing ??trust overview嚗?隞?”嚗?- full interception coverage
+- 瘥?domain validator ?賢歇? hard-stop
+- semantic verification 撌脩???full policy engine
 
-這份 dashboard 是 reviewer-facing 的 trust overview，不代表：
-- full interception coverage
-- 每個 domain validator 都已成為 hard-stop
-- semantic verification 已等同 full policy engine
-
-它是 bounded、release-facing 的 trust overview，可用於 `v1.1.0` 與 `v1.0.0-alpha` 這類已發版版本的回放與檢查。
-
+摰 bounded?elease-facing ??trust overview嚗?冽 `v1.1.0` ??`v1.0.0-alpha` ??撌脩???祉???炎?乓?
 ## CI / Generated Artifacts
 
-常見 trust-signal bundle 輸出包括：
-- `artifacts/trust-signals/latest.txt`
+撣貉? trust-signal bundle 頛詨?嚗?- `artifacts/trust-signals/latest.txt`
 - `artifacts/trust-signals/latest.json`
 - `artifacts/trust-signals/latest.md`
 - `artifacts/trust-signals/history/*`
@@ -105,9 +95,8 @@ python governance_tools/trust_signal_publication_reader.py \
 - `artifacts/trust-signals/published/history/*`
 - `artifacts/trust-signals/published/INDEX.md`
 
-對 external contract repo 來說，這些 publication metadata 會形成 compact 的 cross-domain enforcement summary。
-
-## 相關頁面
+撠?external contract repo 靘牧嚗? publication metadata ?耦??compact ??cross-domain enforcement summary??
+## ?賊??
 
 - [Status Index](README.md)
 - [Runtime Governance Status](runtime-governance-status.md)

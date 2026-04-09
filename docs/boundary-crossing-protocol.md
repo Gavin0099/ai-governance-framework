@@ -1,4 +1,4 @@
-﻿# Boundary Crossing Protocol
+﻿# Boundary Crossing Protocol：跨邊界處理協定
 
 > 版本：1.0
 > 相關文件：

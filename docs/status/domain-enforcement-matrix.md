@@ -1,15 +1,13 @@
-# Domain Enforcement Matrix
+﻿# Domain Enforcement Matrix
 
-更新日期：2026-04-08
+?湔?交?嚗?026-04-08
 
-這一頁是比較 external domain-contract repo enforcement posture 的穩定入口。它的用途是回答：
+???瘥? external domain-contract repo enforcement posture ?帘摰???????嚗?
+- ?芯? domain 隞? advisory-only
+- ?芯? domain 撌脤脣 mixed enforcement
+- ?芯? rule ID ?桀?????`hard_stop_rules` ??runtime decision
 
-- 哪些 domain 仍偏 advisory-only
-- 哪些 domain 已進入 mixed enforcement
-- 哪些 rule ID 目前有經過 `hard_stop_rules` 進 runtime decision
-
-## 最快本地指令
-
+## ?敹急?唳?隞?
 ```bash
 python governance_tools/external_contract_policy_index.py \
   --repo /path/to/USB-Hub-Firmware-Architecture-Contract \
@@ -18,8 +16,7 @@ python governance_tools/external_contract_policy_index.py \
   --format human
 ```
 
-Markdown 輸出：
-
+Markdown 頛詨嚗?
 ```bash
 python governance_tools/external_contract_policy_index.py \
   --repo /path/to/USB-Hub-Firmware-Architecture-Contract \
@@ -28,34 +25,27 @@ python governance_tools/external_contract_policy_index.py \
   --format markdown
 ```
 
-## 目前讀法
-
-目前三個真實 external contract repo 都已經暴露出 runtime policy-input posture：
-
+## ?桀?霈瘜?
+?桀?銝?撖?external contract repo ?賢歇蝬?脣 runtime policy-input posture嚗?
 | Repo | Domain | Hard-Stop Rules | Advisory Surface |
 | --- | --- | --- | --- |
-| `USB-Hub-Firmware-Architecture-Contract` | `firmware` | `HUB-004` | 較廣的 firmware review，例如 `HUB-001` |
-| `Kernel-Driver-Contract` | `kernel-driver` | `KD-002`, `KD-003` | pool allocation guidance，例如 `KD-005` |
-| `IC-Verification-Contract` | `ic-verification` | `ICV-001` | clock/reset declaration 類檢查，例如 `ICV-002` |
+| `USB-Hub-Firmware-Architecture-Contract` | `firmware` | `HUB-004` | 頛誨??firmware review嚗?憒?`HUB-001` |
+| `Kernel-Driver-Contract` | `kernel-driver` | `KD-002`, `KD-003` | pool allocation guidance嚗?憒?`KD-005` |
+| `IC-Verification-Contract` | `ic-verification` | `ICV-001` | clock/reset declaration 憿炎?伐?靘? `ICV-002` |
 
-## 這頁的重要意義
+## ????閬?蝢?
+?撐 matrix ??潔??航牧 framework 撌脩?霈? full policy engine嚗????閬??牧皜?嚗?
+- framework 撌脩?銝? validator discovery
+- domain validator 撌脩????瑁?
+- ?典? rule ID 撌脣?? `hard_stop_rules` ??runtime decision
 
-這張 matrix 的價值不是說 framework 已經變成 full policy engine，而是把一個重要邊界說清楚：
+雿???*銝誨銵?*嚗?
+- 瘥? domain rule ?賣 hard-stop
+- 瘥?domain ??evidence 瘛勗漲?賭?璅?- framework 撌脩?霈?? policy engine
 
-- framework 已經不只停在 validator discovery
-- domain validator 已經真的執行
-- 部分 rule ID 已可透過 `hard_stop_rules` 進 runtime decision
-
-但這仍然**不代表**：
-
-- 每條 domain rule 都是 hard-stop
-- 每個 domain 的 evidence 深度都一樣
-- framework 已經變成通用 policy engine
-
-這頁的作用就是讓這些 enforcement boundary 保持可見。
-
-## 相關頁面
+?????典停?航??? enforcement boundary 靽??航???
+## ?賊??
 
 - [Status Index](README.md)
-- [Runtime Governance 狀態](runtime-governance-status.md)
+- [Runtime Governance ??(runtime-governance-status.md)
 - [Trust Signal Dashboard](trust-signal-dashboard.md)

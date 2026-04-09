@@ -1,32 +1,29 @@
-# DBL First-Slice Reviewer Findings Template
+﻿# DBL First Slice Reviewer Findings 範本
 
-> 在 Step 2 reconstruction exercise 後使用。
-
-## 已閱讀輸入
+> ??Step 2 reconstruction exercise 敺蝙?具?
+## 撌脤霈頛詨
 
 - `examples/README.md`
 - `examples/decision-boundary/minimal-preconditions/README.md`
 - `examples/decision-boundary/insufficiency-like-preconditions/README.md`
 
-## Reviewer 回答
+## Reviewer ??
 
-1. 目前 first-slice DBL gate 看起來能判斷什麼？
+1. ?桀? first-slice DBL gate ?絲靘?斗隞暻潘?
 
-2. 目前 first-slice DBL gate 看起來不能判斷什麼？
+2. ?桀? first-slice DBL gate ?絲靘??賢?瑚?暻潘?
 
-3. 在什麼情況下，當前 gate 仍可能 pass，但 evidence 在語意上其實偏弱或不完整？
+3. ?其?暻潭?瘜?嚗??gate 隞??pass嚗? evidence ?刻????嗅祕?摹??摰嚗?
+4. insufficiency-like example ??capability proof嚗???limitation proof嚗隞暻潘?
 
-4. insufficiency-like example 是 capability proof，還是 limitation proof？為什麼？
+## Reconstruction 蝯?
 
-## Reconstruction 結果
+- ???`reconstructed correctly | reconstructed partially | reconstructed incorrectly`
 
-- 狀態：`reconstructed correctly | reconstructed partially | reconstructed incorrectly`
+## 隤方?靘?
 
-## 誤讀來源
+- ??隤方???獢摮? example嚗?
+## 敺??斗
 
-- 造成誤讀的檔案、句子或 example：
-
-## 後續判斷
-
-- 修正類型：`framing-only | docs-structure | runtime-gap | mixed`
-- 備註：
+- 靽格迤憿?嚗framing-only | docs-structure | runtime-gap | mixed`
+- ?酉嚗?

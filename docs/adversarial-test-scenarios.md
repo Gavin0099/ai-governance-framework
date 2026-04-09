@@ -1,4 +1,4 @@
-﻿# Adversarial Test Scenarios
+﻿# 對抗式測試情境
 
 > 版本：1.0  
 > 相關文件：`docs/learning-governance-test-pack.md`、`docs/decision-quality-invariants.md`、`docs/governance-mechanism-tiers.md`

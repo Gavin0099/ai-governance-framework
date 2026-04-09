@@ -1,67 +1,56 @@
-# Decision Boundary First Slice
+﻿# Decision Boundary First Slice
 
-> 狀態：規劃中的第一個 runtime-facing slice
-> 建立日期：2026-03-31
-> 依賴：`docs/decision-boundary-layer.md`
-
----
-
-## 目的
-
-這份文件用來固定 `Decision Boundary Layer` 第一個 runtime slice 的接受邊界。
-
-它的作用是避免最常見的擴張錯誤：
-
-> 想一次證明整個模型，結果在任何一個 slice 真正證明價值之前，就先把 runtime surface 擴得太大。
+> ???閬?銝剔?蝚砌???runtime-facing slice
+> 撱箇??交?嚗?026-03-31
+> 靘陷嚗docs/decision-boundary-layer.md`
 
 ---
 
-## First slice 只要證明一件事
+## ?桃?
 
-第一個 slice 只需要證明：
+?遢?辣?其??箏? `Decision Boundary Layer` 蝚砌???runtime slice ?????
+摰?雿?舫??撣貉??撘菟隤歹?
 
-> pre-decision boundary 可以改變真實 runtime verdict，而且 reviewer 能只靠 artifact 重建這個變化。
-
-對 version one 來說，這就夠了。
-
+> ?喃?甈∟???芋??蝯??其遙雿???slice ?迤霅??孵潔???撠勗???runtime surface ?游?憭芸之??
 ---
 
-## Slice 1 包含什麼
+## First slice ?芾?霅?銝隞嗡?
 
-Slice 1 只包含 implementation start 前的最小 precondition handling。
+蝚砌???slice ?芷?閬???
 
-目標檢查：
+> pre-decision boundary ?臭誑?寡??祕 runtime verdict嚗? reviewer ?賢??artifact ?遣????
+撠?version one 靘牧嚗停憭???
+---
 
+## Slice 1 ?隞暻?
+Slice 1 ?芸???implementation start ???撠?precondition handling??
+?格?瑼Ｘ嚗?
 - `missing_sample`
 - `missing_spec`
 - `missing_fixture`
 
-允許結果：
-
+?迂蝯?嚗?
 - `analysis_only`
 - `restrict_code_generation_and_escalate`
 - `stop`
 
-對 task level 的預期：
+撠?task level ????
 
-- `L0`：可以降級成 exploration / analysis-only，但要留下 warning
-- `L1`：缺少必要前提時至少要 escalate
-- `L2`：若前提對 correctness 屬必要條件，可以 hard-stop
+- `L0`嚗隞仿?蝝? exploration / analysis-only嚗?閬?銝?warning
+- `L1`嚗撩撠?閬????喳?閬?escalate
+- `L2`嚗??撠?correctness 撅砍?閬?隞塚??臭誑 hard-stop
 
 ---
 
-## 暫時的 contract surface
+## ?急???contract surface
 
-Slice 1 現在使用一個刻意很窄的 contract interface。
-
-支援欄位：
-
+Slice 1 ?曉雿輻銝???蝒? contract interface??
+?舀甈?嚗?
 - `preconditions_missing_sample`
 - `preconditions_missing_spec`
 - `preconditions_missing_fixture`
 
-範例：
-
+蝭?嚗?
 ```yaml
 preconditions_missing_sample:
   - pdf_parser
@@ -73,87 +62,68 @@ preconditions_missing_fixture:
   - bugfix
 ```
 
-這個 surface 是第一階段的 bootstrap 介面，特性是：
-
+??surface ?舐洵銝?挾??bootstrap 隞嚗?扳嚗?
 - flat
 - explicit
-- 在 `contract.yaml` 中容易檢視
-- 只處理 explicit missing-state
+- ??`contract.yaml` 銝剖捆?炎閬?- ?芾???explicit missing-state
 
-它現在還不是：
-
-- 最終的 DBL schema
-- 通用 precondition authoring model
+摰?券?銝嚗?
+- ?蝯? DBL schema
+- ? precondition authoring model
 - semantic sufficiency model
 - nested policy language
 
-特別是第一階段**不會**推論：
-
+?孵?舐洵銝?挾**銝?**?刻?嚗?
 - pseudo-presence
 - semantic insufficiency
 - sample/spec quality
-- 超出明示存在訊號之外的 evidence completeness
+- 頞?內摮閮?銋???evidence completeness
 
 ---
 
-## Slice 1 明確排除什麼
-
-第一個 runtime slice 不應包含：
-
+## Slice 1 ?Ⅱ?隞暻?
+蝚砌???runtime slice 銝??嚗?
 - full repo identity enforcement
-- 只靠 identity 就改成 `escalate` / `stop`
+- ?芷? identity 撠望??`escalate` / `stop`
 - proposal semantic classification
-- 廣義 repo taxonomy 設計
-- 超出既有 scope / evidence surface 的 capability expansion
-- 新的 invariant authoring system
-- 超出第一道 gate 所需的 policy precedence branch
-- explicit missing-state 以外的 pseudo-presence / semantic insufficiency 驗證
+- 撱?儔 repo taxonomy 閮剛?
+- 頞?Ｘ? scope / evidence surface ??capability expansion
+- ?啁? invariant authoring system
+- 頞蝚砌???gate ????policy precedence branch
+- explicit missing-state 隞亙???pseudo-presence / semantic insufficiency 撽?
 
 ---
 
-## 為什麼要這樣排序
+## ?箔?暻潸??見??
 
-minimal precondition gate 是最好的第一個 proof point，因為它：
+minimal precondition gate ?舀?憟賜?蝚砌???proof point嚗??箏?嚗?
+- 撠?撖阡隤斗??湔撠?
+- reviewer 摰寞??圾
+- 摰寞???artifact 鋆∠?銝?trace
+- ?臭誑??degradation嚗??芾蝖祆?
+- ?輸? identity taxonomy ???摰寞?憭望??憿?
+Identity ?湧???Ｘ????????府?荔?
 
-- 對真實錯誤有直接對應
-- reviewer 容易理解
-- 容易在 artifact 裡留下 trace
-- 可以做 degradation，不只能硬擋
-- 避開 identity taxonomy 這個早期最容易失控的問題
+1. ?航???input
+2. ?舫＊蝷箸 trace
+3. ?敺?? bounded enforcement
 
-Identity 更適合後面才做，而且順序應該是：
-
-1. 可載入 input
-2. 可顯示於 trace
-3. 最後才考慮 bounded enforcement
-
-不是一開始就拿來當 hard gate。
-
+銝銝??撠望靘 hard gate??
 ---
 
-## 接受標準
+## ?亙?璅?
 
-Slice 1 只有在以下條件都成立時才算成功：
+Slice 1 ?芣??其誑銝?隞園????蝞???
 
-1. 缺少必要前提時，runtime verdict 真的會改變。
-2. 這個 verdict 變化可在 trace 或 artifact 中看見。
-3. reviewer 不需要額外作者背景就能解釋為什麼變了。
-4. 實作沒有引入 duplicate truth source。
-5. 這個 slice 帶來的複雜度，小於它阻止的 failure mode。
-6. false stop / false escalate 可以被觀察、分類，而不是被口頭帶過。
-
-如果其中任一條不成立，就先停在這裡修正，不要往更多 layer 擴。
-
+1. 蝻箏?敹?????runtime verdict ???霈?2. ??verdict 霈??臬 trace ??artifact 銝剔?閬?3. reviewer 銝?閬?憭????臬停?質圾?隞暻潸?鈭?4. 撖虫?瘝?撘 duplicate truth source??5. ??slice 撣嗡????漲嚗??澆??餅迫??failure mode??6. false stop / false escalate ?臭誑鋡怨?撖?憿????航◤??撣園???
+憒??嗡葉隞颱?璇???嚗停???券ㄐ靽格迤嚗?閬??游? layer ?氬?
 ---
 
-## 下一步驗證
-
-Slice 1 的下一步不是擴更多 DBL surface。
-
-下一步應該用 [`dbl-first-slice-validation-plan.md`](dbl-first-slice-validation-plan.md) 來驗：
-
+## 銝?甇仿?霅?
+Slice 1 ??銝甇乩??舀?游? DBL surface??
+銝?甇交?閰脩 [`dbl-first-slice-validation-plan.md`](dbl-first-slice-validation-plan.md) 靘?嚗?
 - reviewer reconstruction
 - insufficiency-like example
 - adversarial / gaming case
 
-先確認這個 first slice 是真實 decision surface，不只是小型 demo，再考慮擴張。
+?Ⅱ隤?first slice ?舐?撖?decision surface嚗??芣撠? demo嚗???游撐??

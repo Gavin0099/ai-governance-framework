@@ -1,4 +1,4 @@
-﻿# DBL First-Slice Reviewer Test Pack
+﻿# DBL First Slice Reviewer 測試包
 
 > 版本：1.0  
 > 建立日期：2026-03-31  

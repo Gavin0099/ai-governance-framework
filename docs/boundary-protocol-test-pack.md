@@ -1,4 +1,4 @@
-﻿# Boundary Protocol Test Pack
+﻿# Boundary Protocol 測試包
 
 > Covers commits: `f0a9935` -> `e6f73d3`
 > Scenario count: 16（Parts A-F）

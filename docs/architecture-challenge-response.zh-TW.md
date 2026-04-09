@@ -1,4 +1,4 @@
-﻿# Architecture Challenge Response
+﻿# 架構挑戰回應
 
 > 對外部批判意見的整理、判斷與下一步方向回應
 

@@ -1,4 +1,4 @@
-﻿# Classification Governance Integration Test
+﻿# Classification Governance 整合測試
 
 > 更新日期：2026-04-08  
 > 目的：驗證 classification governance 在 `session_end`、verdict artifact 與 session summary 之間，是否維持 bounded companion slice 的一致性
