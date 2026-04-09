@@ -1,194 +1,145 @@
 # Governance Runtime v2.6
 
-Updated: 2026-03-20
+> 更新日期：2026-03-20
 
-This document captures the next architecture step after the current runtime
-spine: move from "mixed enforcement with selected hard stops" to a
-runtime-centered decision system with explicit constraint handling.
+這份文件記錄 current runtime spine 之後的下一個架構方向：
 
-The machine-readable companion artifact is
-`governance/governance_decision_model.v2.6.json`.
+> 從「混合式 enforcement，夾帶少量 hard stop」，
+> 走向「以 runtime 為中心、能明確處理 constraint 的 decision system」。
 
-## Why v2.6 Exists
+對應的 machine-readable artifact 是：
 
-The current repository already has:
+- `governance/governance_decision_model.v2.6.json`
 
-- a real runtime path
+---
+
+## 為什麼需要 v2.6
+
+目前 repo 已經有：
+
+- 真實 runtime path
 - external domain contracts
 - validator execution
 - evidence ingestion
-- selected `hard_stop_rules`
+- 部分 `hard_stop_rules`
 
-That is enough to prove the seam is real, but it is still a transitional
-enforcement model. The missing piece is a constraint layer that answers four
-questions consistently:
+這證明接縫已經是真的，但整體仍屬 transitional enforcement model。
 
-1. Was a governance rule violated?
-2. Who owns the decision?
-3. How does that violation affect the verdict?
-4. What fallback behavior is mandatory when the runtime is uncertain or broken?
+真正缺的是一層能穩定回答下列問題的 constraint layer：
 
-v2.6 introduces that missing contract.
+1. 這個 task 在什麼前提下可以開始？
+2. 缺少哪些 evidence 時應降級、升級或停止？
+3. 哪些 change class 超出目前允許邊界？
+4. 哪些 decision 應能被 reviewer 從 artifact 重建？
 
-## Core Addition
+---
 
-### Enforcement Model
+## v2.6 的目標
 
-The `Governance Constraint Layer` is not a new repo layer. It is the runtime's
-decision contract.
+v2.6 不是要把 framework 變成更大的 orchestration platform。  
+它要做的是把 runtime decision system 的幾個核心面收斂清楚：
 
-Its job is to make the following machine-checkable:
+- constraint handling
+- degradation path
+- evidence-aware decision
+- reviewer-reconstructable artifact
 
-- ownership constraints
-- policy precedence
-- evidence validity and trust
-- violation impact on verdicts
-- fallback behavior under runtime or integration failure
+換句話說，v2.6 追求的是：
 
-The runtime remains the only place allowed to compute the final governance
-verdict. External domain repos keep supplying domain knowledge, not local
-decision engines.
+> decision system 的一致性與可重建性，
+> 不是功能面積的擴張。
 
-## Executable Matrices
+---
 
-v2.6 upgrades three existing matrices and adds one new matrix.
+## 核心轉變
 
-### 1. Decision Ownership Matrix
+從舊形態：
 
-Required fields:
+- 規則分散在多個 surface
+- 某些 hard stop 是局部 patch
+- reviewer 需要用大量人工理解把訊號拼回來
 
-| Field | Purpose |
-| --- | --- |
-| `concern` | What decision area is being governed |
-| `owner` | Runtime, policy author, reviewer, or domain contract |
-| `can_override` | Who may override the default owner |
-| `override_path` | Required escalation path |
-| `trace_required` | Whether the override must leave durable trace |
-| `violation_effect` | `stop`, `escalate`, `degrade`, or `record-only` |
+轉到較清楚的形態：
 
-This closes the old gap where ownership was descriptive but not enforceable.
+- constraint 有可辨識位置
+- degradation path 可追溯
+- verdict 不是單純 pass / stop，而是 bounded decision outcome
+- artifact 能說明為什麼這次被限制、升級或停止
 
-### 2. Policy Precedence Matrix
+---
 
-Required fields:
+## 核心組件
 
-| Field | Purpose |
-| --- | --- |
-| `policy_type` | Runtime, repo, domain, reviewer, or emergency policy |
-| `scope` | Where the policy applies |
-| `override_target` | Which lower layer it may override |
-| `allowed` | Whether the override is legal |
-| `conflict_resolution` | How ties or conflicts are resolved |
-| `violation_effect` | Verdict impact when precedence is violated |
+### 1. Contract
 
-This prevents illegal or ambiguous override behavior from remaining implicit.
+`contract.yaml` 仍是 repo-local governance runtime 的主要入口之一。  
+它應負責提供：
 
-### 3. Evidence Classification Matrix
+- repo / domain identity
+- rule pack roots
+- task-level boundary
+- precondition / closeout / evidence 相關設定
 
-Required fields:
+### 2. Runtime hooks
 
-| Field | Purpose |
-| --- | --- |
-| `evidence_kind` | The normalized evidence type |
-| `required` | Whether it is mandatory for a decision path |
-| `producer` | Expected source |
-| `schema` | Expected structure |
-| `validation_rule` | How validity is checked |
-| `trust_level` | `high`, `medium`, `low`, or `unknown` |
-| `missing_effect` | Verdict impact if missing |
+`session_start`、`pre_task_check`、`post_task_check`、`session_end` 是 decision runtime 的骨架。
 
-This separates "evidence exists" from "evidence is valid and trustworthy."
+它們不應各自長出獨立 authority，而應共享一致的 decision model。
 
-### 4. Violation Handling Matrix
+### 3. Evidence ingestion
 
-Required fields:
+runtime 需要的不只是規則，也包括：
 
-| Field | Purpose |
-| --- | --- |
-| `violation_type` | The normalized failure or contract breach |
-| `detected_by` | Runtime component that detects it |
-| `severity` | Expected seriousness |
-| `default_verdict_impact` | Default verdict impact |
-| `override_allowed` | Whether a human may legally override it |
-| `trace_required` | Whether override or downgrade must be logged |
+- validator outputs
+- public API diff
+- test / typecheck 結果
+- closeout / session summary
 
-This is the table that turns exceptions into predictable behavior.
+沒有 evidence，decision 只能是假裝嚴格。
 
-Minimum v2.6 violation types:
+### 4. Degradation / escalation path
 
-- `missing_required_evidence`
-- `invalid_evidence_schema`
-- `policy_conflict`
-- `illegal_override`
-- `runtime_failure`
-- `integration_failure`
-- `domain_contract_violation`
+v2.6 特別強調：
 
-## Determinism Contract
+- 缺前提時不一定直接 stop
+- 但也不能裝作沒事 pass
 
-The runtime can no longer assume perfect determinism once evidence order, async
-pipelines, retries, and LLM-assisted reasoning are involved.
+所以系統必須支援：
 
-v2.6 therefore defines a lightweight determinism contract:
+- `analysis_only`
+- `restrict_code_generation_and_escalate`
+- `review_required`
+- `stop`
 
-- the same evidence snapshot plus the same policy snapshot must produce the same
-  verdict
-- reasoning traces may differ in wording, but not in policy inputs, evidence
-  references, or final verdict
-- re-evaluation is allowed, but result changes require a recorded cause
-- accepted causes are evidence change, policy change, runtime version change, or
-  an explicitly traced human override
+這類 bounded outcome。
 
-This protects trust when the same commit is evaluated more than once.
+---
 
-## External Contract Boundary
+## 和 DBL / advisory / closeout 的關係
 
-The external contract repos are affected, but not invalidated.
+這份文件是較高層的 runtime direction，不取代後續 slice 文件。
 
-### Domain Assets That Stay
+它和其他線的關係是：
 
-- `contract.yaml`
-- domain rules
-- validator logic
-- fixtures
-- domain documents
+- DBL：補強 pre-decision constraint
+- advisory：補齊 reviewer-visible semantics，但不偷渡 authority
+- closeout：讓 session 結束時的 decision surface 可被 canonical 化與審核
 
-### Integration Seams That Must Move
+它們都屬 v2.6 之後 runtime-centered decision system 的不同側面。
 
-- hook-stage-specific enforcement assumptions
-- direct `hard_stop_rules` outcome escalation as the main decision mechanism
-- advisory versus blocking logic defined outside the runtime decision contract
-- fixture assumptions that depend on old hook-stage routing
+---
 
-### Boundary To Protect
+## Non-goals
 
-Do not push final decision logic into each domain repo.
+v2.6 不主張：
 
-The correct split is:
+- full execution harness
+- generic multi-agent orchestration
+- 把所有 reviewer signal 都變成 machine-authoritative verdict input
+- 以更大 surface 取代邏輯清楚的 bounded runtime
 
-- domain repos provide facts, rules, validators, and evidence producers
-- the framework runtime owns verdict computation, precedence resolution,
-  violation handling, and fallback behavior
+---
 
-## Current Interpretation
+## 一句話結論
 
-Today:
-
-- the repo has a working runtime spine
-- selected domain rules can already block outcomes
-- enforcement is still transitional and partly seam-driven
-
-Target:
-
-- runtime becomes the single decision source
-- matrices become executable specification, not just documentation
-- violations affect verdicts through one normalized model
-- external contracts keep their domain assets while losing scattered decision
-  ownership
-
-## Related Files
-
-- `governance/governance_decision_model.v2.6.json`
-- `docs/status/domain-enforcement-matrix.md`
-- `docs/status/runtime-governance-status.md`
-- `runtime_hooks/README.md`
+`Governance Runtime v2.6` 的重點，不是再新增更多 runtime feature，而是把既有 contract、evidence、constraint、degradation 與 artifact 收斂成一個更一致、可重建的 decision system。

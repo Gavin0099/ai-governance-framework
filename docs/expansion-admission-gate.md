@@ -1,136 +1,143 @@
 # Expansion Admission Gate
 
-> Status: **active**
-> Created: 2026-03-30
-> Applies to: any proposed addition to the governance runtime
+> 狀態：active
+> 建立日期：2026-03-30
+> 適用範圍：所有擬加入 governance runtime 的新 surface
 
 ---
 
-## Purpose
+## 目的
 
-This gate exists because the most common way a governance framework fails is not
-from bad implementations — it is from good-sounding additions that were never
-necessary.
+治理框架最常見的失敗方式，不是實作很差，而是：
 
-Every new runtime surface (import, hook, signal source, dict key, decision input)
-must pass this gate before it enters the codebase.
+> 加進了許多聽起來合理、實際上卻不必要的新 runtime surface。
 
-The gate is not a bureaucratic checkpoint. It is a forcing function that surfaces
-the question that is easy to skip: **does this need to exist at all?**
+因此，任何新的：
 
----
+- import
+- hook
+- signal source
+- dict key
+- decision input
 
-## What Triggers This Gate
+都必須先通過這道 gate，才能進 codebase。
 
-A change triggers this gate if it introduces any of the following:
+這不是官僚檢查點，而是一個強迫你回答關鍵問題的機制：
 
-- a new import in `session_start.py`, `pre_task_check.py`, or `post_task_check.py`
-- a new key in the dict returned by any of those three functions
-- a new source that influences `ok`, `task_level`, `risk`, or `oversight`
-- a new escalation path (anything that can raise task_level)
-- a new schema (a new JSON/YAML structure that other code will parse)
-- a new runtime hook (anything that runs automatically during session lifecycle)
-- a new `governance_tools/` module that the runtime is expected to call
-
-A change does **not** trigger this gate if it:
-- fixes a bug in existing behavior
-- adds tests for existing behavior
-- improves error messages or output formatting
-- adds a standalone CLI tool with no runtime integration
+> 這個東西真的有存在必要嗎？
 
 ---
 
-## Required Questions
+## 什麼情況會觸發這道 gate
 
-Every proposed addition must answer all five. If any cannot be answered, the
-addition is rejected.
+以下任一成立時，就要進 `Expansion Admission Gate`：
 
-### Q1: What failure mode does this solve?
+- 新增 runtime-consumed signal
+- 新增 governance artifact 欄位
+- 新增 influence verdict 的 decision input
+- 新增需要被 reviewer 理解的新 surface
+- 新增跨 hook / tool / artifact 的耦合欄位
 
-Name a specific, observable failure that happens today without this addition.
-Not a hypothetical. Not a "would be nice to know." A thing that actually goes
-wrong.
+如果只是：
 
-> If you cannot name a failure mode, stop here.
+- wording cleanup
+- typo fix
+- 不影響 runtime / reviewer semantics 的純文件整理
 
-### Q2: Why can existing layers not solve it?
-
-Show that the following were considered and found insufficient:
-- `pre_task_check`
-- `session_start` state loading
-- `governance_drift_checker`
-- `post_task_check` validators
-- offline CLI tools (no runtime integration)
-
-If any of those can solve it, use that instead.
-
-### Q3: What wrong decision occurs without it?
-
-Describe the specific decision that would be wrong without this addition.
-A decision means: a change to `ok`, `task_level`, `risk`, `oversight`, or
-a gate exit code.
-
-If the answer is "no decision changes, only visibility" — the addition belongs
-outside the runtime, not inside it.
-
-### Q4: Does this add a new decision input?
-
-Answer yes or no.
-
-If yes: this is a high-risk addition. It must justify why an additional decision
-input is worth the complexity and determinism cost. The burden of proof is higher.
-
-If no: confirm that the new surface cannot influence any of the five outputs named
-in Q3, under any code path including future changes.
-
-### Q5: What is the token and complexity cost?
-
-Estimate:
-- added tokens to the session_start / pre_task payload
-- added imports and call paths
-- added schema surface that will need to be maintained
-
-If the cost is non-trivial and Q1–Q3 are weak, reject.
+則不需要進這道 gate。
 
 ---
 
-## Decision Outcomes
+## 核心問題
 
-| Q1 | Q2 | Q3 | Q4 | Outcome |
-|----|----|----|----|----|
-| answered | answered | answered | no | Proceed with review |
-| answered | answered | answered | yes | Proceed with elevated scrutiny |
-| not answered | — | — | — | Rejected: no failure mode |
-| answered | not answered | — | — | Rejected: existing layer sufficient |
-| answered | answered | "visibility only" | — | Rejected: belongs outside runtime |
+每個 proposed addition 至少要回答：
 
----
+1. 它要防的是哪個 failure mode？
+2. 這個 failure mode 現在真的存在嗎？
+3. 為什麼不能用既有 surface 處理？
+4. 它會不會引入新的 authority、duplication 或 interpretive burden？
+5. 它進來後，誰要消費它？
 
-## How to Submit
-
-Create a file at `docs/expansion-cases/<slug>-proposed.md` using the structure:
-
-```
-# Expansion Proposal: <name>
-
-## Proposed addition
-<describe the import / hook / key / schema>
-
-## Q1: Failure mode
-## Q2: Why existing layers are insufficient
-## Q3: Wrong decision without this
-## Q4: New decision input? (yes/no + justification)
-## Q5: Token and complexity cost
-
-## Recommendation
-```
-
-Submit the file for review before writing any code.
+若答不清楚，就不應擴。
 
 ---
 
-## Rejected Cases
+## 最小接受條件
 
-| Case | Date | Rejection reason |
-|------|------|-----------------|
-| [Entry layer → session_start](expansion-cases/entry-layer-rejected.md) | 2026-03-30 | Q3 unanswerable: no decision changes, visibility only |
+新 surface 只有在以下條件都成立時才應被接受：
+
+- 有明確 failure mode 對應
+- 有明確 consumer
+- 不重複既有 truth source
+- 不偷渡新 authority
+- 複雜度小於它防止的 failure mode
+
+若只是：
+
+- 「以後可能有用」
+- 「看起來很合理」
+- 「先放著也無妨」
+
+都不算接受理由。
+
+---
+
+## 常見拒絕理由
+
+以下情況應預設拒絕：
+
+- 只是把同一個 signal 用另一種名字再包一層
+- 只是把 human-readable note 結構化，但沒有 consumer
+- 想先擴 surface，再回頭找失敗模式
+- 會讓 reviewer / runtime / docs 各自長出不同語意
+- 只因為「還能做」而不是「非做不可」
+
+---
+
+## 和 entry-layer 的關係
+
+`Expansion Admission Gate` 的工作是判斷：
+
+> 這個 runtime surface 是否應該存在。
+
+`entry-layer` 的工作是判斷：
+
+> 一旦它存在，它應該以什麼 bounded shape 進來。
+
+也就是：
+
+- expansion admission 解決「要不要有」
+- entry-layer 解決「進來後長什麼樣」
+
+---
+
+## 和 advisory / closeout 線的關係
+
+這道 gate 之所以重要，是因為 advisory、closeout、runtime injection 這幾條線都很容易發生相同問題：
+
+- 一開始只有觀測需求
+- 後來慢慢長成 authority
+- 最後 consumer 與 producer 各自演化成不同語意
+
+用這道 gate 的目的，就是在進 codebase 前先擋下「因為能擴所以擴」的慣性。
+
+---
+
+## Non-goals
+
+這道 gate 不負責：
+
+- 決定 feature 的最終 UX 細節
+- 取代正式設計文件
+- 取代 code review
+- 為已被接受的 surface 補寫 justification
+
+它的工作只有一個：
+
+> 在 runtime surface 進場前，先確認它值得存在。
+
+---
+
+## 一句話結論
+
+如果一個 proposed addition 無法明確說明它防的是什麼 failure、為什麼既有 surface 不夠、以及誰會真的消費它，那它就不該進 governance runtime。
