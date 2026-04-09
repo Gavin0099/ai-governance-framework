@@ -1,11 +1,11 @@
-# External Repo Functional Test Checklist：外部 repo 功能驗證清單
+﻿# External Repo Functional Test Checklist：外部 repo 功能驗證清單
 
 > 版本：2026-04-05 rev2  
-> Framework 狀態：Beta（Beta Gate passed 2026-03-28）
+> Framework 狀態：Beta Gate passed 2026-03-28
 
 ## 目的
 
-這份清單用來驗證：`ai-governance-framework` 套用到外部 repo 後，核心功能是否真的能正常工作。
+這份清單用來驗證 `ai-governance-framework` 導入到外部 repo 後，是否真的在功能層面接上，而不只是檔案存在。
 
 ## 前置條件
 
@@ -15,20 +15,19 @@ cd ai-gov
 pip install -r requirements.txt
 ```
 
-被測 repo 至少要：
-
-- 是 git repository
-- 可被本機路徑存取
-- memory 檔案為 UTF-8（非 UTF-8 會被 replace，不會 crash）
+對外部 repo 另需確認：
+- 是合法 git repository
+- Python / runtime 路徑可執行
+- memory 相關檔案以 UTF-8 存放，避免因編碼造成 crash
 
 ## F1：Onboarding Adoption
 
-驗證 `adopt_governance.py` 能否把治理骨架寫進新 repo。
+驗證 `adopt_governance.py` 能否把最小治理骨架導入外部 repo。
 
 ### Pass Criteria
 
-- dry-run 不寫檔但能正確預覽
-- live run 會寫出：
+- dry-run 無結構性錯誤
+- live run 會建立：
   - `contract.yaml`
   - `AGENTS.md`
   - `.governance/baseline.yaml`
@@ -36,17 +35,17 @@ pip install -r requirements.txt
 
 ## F2：Governance Drift Check
 
-驗證 consuming repo 是否能被 drift checker 正確檢查。
+驗證 consuming repo 的 drift checker 是否能正常工作。
 
 ### Pass Criteria
 
-- 輸出含 `ok`、`severity`、`findings`、`errors`
-- `ok=True` 代表無 blocking drift
-- `warning` 可存在，但必須可解釋
+- 能輸出 `ok`、`severity`、`findings`、`errors`
+- `ok=True` 代表沒有 blocking drift
+- 若有 `warning`，能被解釋而不是黑箱
 
 ## F3：Quickstart Smoke
 
-驗證最小 runtime（`session_start` + `pre_task`）是否可用。
+驗證最小 runtime 路徑（`session_start` + `pre_task`）是否可跑。
 
 ### Pass Criteria
 
@@ -56,17 +55,17 @@ pip install -r requirements.txt
 
 ## F4：Session Lifecycle
 
-驗證 `pre_task_check` / `post_task_check` 能否在真實 task 路徑上返回結構化輸出。
+驗證 `pre_task_check` / `post_task_check` 是否能在 task 邊界上產出可讀輸出。
 
 ### Pass Criteria
 
-- `pre_task_check` 能回傳結構化 JSON
-- `decision_boundary.preconditions_checked` 存在
-- `post_task_check` 不應拋未處理例外
+- `pre_task_check` 可輸出結構化 JSON
+- `decision_boundary.preconditions_checked` 有被填入
+- `post_task_check` 也能產出對應 artifact
 
 ## F5：DBL Enforcement
 
-驗證 DBL 不是只做文件敘事，而是真的在 runtime path 上執行 precondition gate。
+驗證 DBL 是否真的進入 runtime path，而不是只存在文件中。
 
 ### Pass Criteria
 
@@ -76,56 +75,23 @@ pip install -r requirements.txt
 
 ## F6：Domain Rule Packs
 
-驗證 contract 指定的 domain / rule pack 是否真的存在並能被載入。
+驗證 contract 指向的 domain / rule pack 是否能被載入，而不是只有檔案存在。
 
 ### Pass Criteria
 
 - `governance/rules/<domain>/...` 存在
-- `quickstart_smoke` 可成功載入
+- `quickstart_smoke` 或等價測試可看見對應 rule pack
 
 ## F7：External Repo Readiness
 
-驗證 framework 能否正確說明外部 repo 是否 ready。
+驗證 framework 能否正確判定外部 repo 的 readiness。
 
 ### Pass Criteria
 
-- 有結構化輸出
-- 明確給出 `ready=True` 或 `ready=False`
-- 缺失檔案會被明講，不會被靜默略過
+- 產出可讀 readiness 報告
+- 能區分合法 adoption 與不完整 adoption
+- 能識別 canonical framework source 與非 canonical source
 
-## F8：Project Facts Intake
+## 一句總結
 
-驗證 framework 能否從 adopted repo 讀出 project facts 與 memory schema 狀態。
-
-### Pass Criteria
-
-- command exit 0
-- 產生 `artifacts/external-project-facts/<repo>.json`
-- 含 `fact_sources`
-- 含 `memory_schema_status`
-
-## F9：Session Closeout 與 Memory Update
-
-驗證 `session_end_hook`、closeout artifact、memory promotion path 是否可被觀測。
-
-### 至少應驗三種情境
-
-1. `closeout_missing`
-2. `closeout_insufficient`
-3. `closeout_valid`
-
-### Pass Criteria
-
-- degraded 狀態不 crash
-- 有結構化 verdict artifact
-- valid closeout 時，能看到 snapshot / promotion 決策
-
-## 已知限制
-
-- 某些 long-CI / release surface 測試不屬於這份清單的最小核心範圍
-- 若外部 contract 引用了不存在的 rule pack，`quickstart_smoke` 會失敗
-- facts intake 要用 module invocation，避免直接 script invocation 的 import 問題
-
-## 一句話結論
-
-這份清單的目的，不是把所有測試一次跑滿，而是確認外部 repo 已至少完成：adopt、drift、smoke、runtime hook、facts intake、以及 closeout 可觀測性。
+這份 checklist 的目的，是確認外部 repo 導入後，framework 的 adopt、runtime、rule pack、readiness 與 DBL enforcement 都真的接上，而不是只完成靜態複製。
