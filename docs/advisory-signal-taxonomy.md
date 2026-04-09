@@ -1,8 +1,8 @@
-﻿# Advisory Signal Taxonomy
+# Advisory Signal Taxonomy
 
-## Purpose
+## 目的
 
-這份文件的目的不是增加 detection coverage，而是先把 advisory signal 的治理位階寫死。
+這份文件不是為了增加 detection coverage，而是先把 advisory signal 的治理位階固定下來。
 
 它負責三件事：
 - 統一 advisory signal 的語義分類
@@ -11,7 +11,7 @@
 
 這份 taxonomy 不新增新的 runtime authority，也不直接改變 verdict semantics。
 
-## Signal Classes
+## 訊號類別
 
 ### Degradation Advisory
 
@@ -49,7 +49,7 @@
 典型例子：
 - `required_evidence_missing`
 
-## Allowed Uses
+## 允許用途
 
 advisory signal 目前允許的用途：
 - reviewer trace 可見
@@ -60,7 +60,7 @@ advisory signal 目前允許的用途：
 
 在明確文件化前，advisory signal 不應被擴張到更多 runtime authority。
 
-## Disallowed Uses
+## 禁止用途
 
 advisory signal 目前不得被用於：
 - `proof_of_compliance`
@@ -82,7 +82,7 @@ advisory signal 目前不得被用於：
 - `enforced_elsewhere`
   - 屬於 advisory family，但已有其他 runtime path 處理其決策效果
 
-## Current Signals Mapping
+## 當前訊號對照
 
 | Signal | Class | Producer | Current consumer | Decision distance | Allowed uses | Disallowed uses | Notes |
 |---|---|---|---|---|---|---|---|
@@ -99,7 +99,7 @@ advisory signal 目前不得被用於：
 - single event presence ≠ behavioral compliance
 - environment degradation ≠ behavioral failure
 
-## Current Posture
+## 目前 posture
 
 目前這條線的定位是：
 
