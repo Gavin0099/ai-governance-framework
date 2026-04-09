@@ -1,135 +1,116 @@
-# Classification Evidence Semantics：classification evidence 代表什麼，不代表什麼
+﻿# Classification Evidence Semantics：classification evidence 的語義與限制
 
 ## 目的
 
-這份文件定義 `classification_evidence` 裡各種 evidence field 的語義邊界。
-
+這份文件定義 `classification_evidence` 中各欄位的語義邊界。
 它要回答三件事：
 
-1. 每個 evidence field 到底在表達什麼
-2. 每個 evidence field **不能**被解讀成什麼
-3. 哪些欄位只屬於 presence evidence，哪些欄位比較接近 observation evidence
+1. 每個 evidence field 代表什麼
+2. 每個 evidence field **不代表**什麼
+3. 哪些欄位屬於 presence evidence，哪些屬於 observation evidence
 
 核心原則：
 
 > classification 是 proxy-based governance classification，不是 capability truth model。
 
-這些 evidence field 的任務，是幫 reviewer 看出 session 中有哪些治理 proxy 被觀測到，而不是證明 agent 真實能力。
+這些 evidence field 的用途，是讓 reviewer 與 runtime 知道這次 session 應採用哪種治理姿態，而不是證明 agent 的內在能力。
 
 ---
 
 ## 兩種 evidence 類型
 
-| 類型 | 定義 | 不能被解讀成 |
+| 類型 | 定義 | 不應被解讀成 |
 |---|---|---|
-| **Presence evidence** | 某個 surface 或 capability 的外部存在訊號 | 不能直接推成語義上已被 agent 消化或正確使用 |
-| **Observation evidence** | 某個 action / state 被真正觀測到的訊號 | 仍然不等於 capability truth，但比單純 presence 更強 |
+| **Presence evidence** | 某個 surface 或 capability 是否存在的訊號 | 不能直接推論 agent 已理解或遵守規則 |
+| **Observation evidence** | 某個 action / state 是否真的被觀測到 | 不等於 capability truth，仍需結合 presence 與邊界條件 |
 
 ---
 
-## 主要 evidence 欄位
+## 各欄位語義
 
 ### `has_file_access`
 
-它代表：
+代表：
+- runtime process / hook script 觀測到 repo file I/O 能力存在
 
-- runtime process / hook script 具有 repo file I/O 能力
+不代表：
+- agent 已完整閱讀檔案
+- 本次 session 已對相關檔案做出正確 read
+- file access 本身可以替代 reviewer reconstruction
 
-它**不代表**：
-
-- agent surface 本身已獲得 file access
-- 該 session 中真的發生了對 repo 的有效 tool call
-- 這個 agent 一定能穩定使用 file access
-
-更準確的替代表述：
-
+較接近的外部證據：
 - `runtime_repo_access_observed`
 
 ### `instruction_loaded`
 
-它代表：
+代表：
+- instruction surface 有被載入到本次 session 的證據
 
-- instruction surface 在 repo 中可被找到
-- agent 至少面對過這個 instruction surface 的存在條件
+不代表：
+- agent 已理解 instruction
+- agent 已正確遵守 instruction
+- instruction 一定足以支撐治理正確性
 
-它**不代表**：
-
-- agent 已真正消化 instruction
-- agent 已把 instruction 正確納入 context
-- agent 的 interpretation 與 instruction 一致
-
-更準確的替代表述：
-
+較接近的外部證據：
 - `instruction_surface_present`
 
 ### `context_integrity`
 
-它代表：
+代表：
+- runtime 已觀測到 affirmative degradation signal
+- 或目前 context condition 足以讓 reviewer 合理懷疑完整性下降
 
-- runtime 是否觀測到 affirmative degradation signal
-- context condition 是否出現已知 degradation
+不代表：
+- `full` 就一定沒有風險
+- token budget / truncation 一定已被完整量化
+- context 完整就等於 decision 正確
 
-它**不代表**：
-
-- 沒有 degradation signal 就等於 `full`
-- 沒有 warning 就等於 context 完整
-- token budget / truncation 一定已被完全排除
-
-因此：
-
-- `full` 不應是預設值
-- 預設較合理的是 `unknown`
-- 只有在有正向 affirmative observation 時，才應收斂到 `full`
+補充：
+- 缺少 affirmative degradation signal 時，通常維持 `full`
+- 若證據不足，不應硬推成 `full`；可保留 `unknown`
 
 ### `tool_gate`
 
-它代表：
+代表：
+- session closeout boundary 或 task boundary 的 hook / gate 是否可見
+- session 是否具備最低限度的 pre/post gating surface
 
-- session closeout boundary 是否可被 hook 觀測到
-- session 是否至少在 closeout path 上具備可觀測 gating
+不代表：
+- agent 本身具有高能力
+- 只要存在 hook 就代表 enforcement 完整
+- tool gate 存在即可推論治理品質足夠
 
-它**不代表**：
-
-- 整個 session 中每個 task 都被 pre/post gate 完整攔截
-- pre_task hook / post_task hook 一定都存在
-- agent 一定被完整治理
-
-比較安全的拆法是：
-
+較接近的外部證據：
 ```text
 session_boundary_observed: true
-pre_task_hook_observed: true | false | unknown
-post_task_hook_observed: true | false | unknown
+pre_task_hook_present: true
+post_task_hook_present: true
 ```
 
 ---
 
-## 目前 posture
+## Evidence 組合原則
 
-這些欄位都應被視為：
+classification evidence 必須組合判讀，不應單欄位過度推論。
 
-> proxy-based governance classification 的 evidence
-
-也就是：
-
-- 幫 reviewer 看 session 中有哪些治理 proxy 被觀測到
-- 幫 reviewer 看有哪些 proxy 缺失或退化
-- 幫 reviewer 避免把 availability / presence 誤讀成 capability truth
-
-它們目前**不是**：
-
-- `instruction_capable` 的真實能力證明
-- `injection+enforcement` 已完全成立的證明
-- `tool_gate: active` 就代表全流程受控的證明
+例子：
+- `instruction_loaded=true` 只表示 instruction surface 出現，不能推論 policy 已被吸收
+- `has_file_access=true` 只表示檔案存取能力存在，不能推論 relevant files 已被正確閱讀
+- `tool_gate=active` 只表示 gating surface 可見，不能推論所有 enforcement 都已成功執行
 
 ---
 
-## 與 transition / reaction 的關係
+## 與 classification 的關係
 
-`classification_evidence` 主要回答的是 evidence 的語義邊界。  
-如果 evidence 進一步造成 classification 變動，則應交由：
+這些 evidence 最終會被 runtime 用來推導：
+- `effective_agent_class`
+- `governance_strategy`
+- `injection_reliance`
 
-- `docs/classification-transition-semantics.md`
-- `docs/classification-reaction-policy.md`
+但 evidence 本身不等於 classification 結果，也不等於最終的 reviewer judgment。
 
-處理 transition 規則與 downstream reaction。
+---
+
+## 一句總結
+
+`classification_evidence` 的用途，是為 session-level governance classification 提供可觀測 proxy；它幫助 runtime 做保守分類，但不構成 capability truth。
