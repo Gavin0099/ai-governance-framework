@@ -1,4 +1,5 @@
 import sys
+import shutil
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -65,11 +66,11 @@ def test_load_rule_content_can_load_refactor_pack():
     assert loaded["valid"] is True
     assert loaded["active_rules"][0]["name"] == "refactor"
     contents = "\n".join(file["content"] for file in loaded["active_rules"][0]["files"]).lower()
-    assert "observable behavior remains unchanged" in contents
-    assert "must not introduce new boundary crossings" in contents
+    assert "可觀測行為保持不變" in contents
+    assert "新的 boundary crossing" in contents
     assert "regression evidence" in contents
-    assert "partial side effects" in contents
-    assert "cleanup, rollback, dispose, release, or revert" in contents
+    assert "partial side effect" in contents
+    assert "cleanup、rollback、dispose、release、或 revert" in contents
 
 
 def test_load_rule_content_can_load_csharp_avalonia_swift_packs():
@@ -107,15 +108,20 @@ def test_rule_pack_category_defaults_to_custom_for_unknown_packs():
     assert rule_pack_category("my-team-pack") == "custom"
 
 
-def test_rule_loader_supports_external_rule_roots(tmp_path):
-    external_root = tmp_path / "rules"
+def test_rule_loader_supports_external_rule_roots():
+    external_root = Path("tests") / "_tmp_rule_pack_loader" / "rules"
+    if external_root.parent.exists():
+        shutil.rmtree(external_root.parent)
     firmware_pack = external_root / "firmware"
     firmware_pack.mkdir(parents=True)
-    (firmware_pack / "safety.md").write_text("# Firmware safety\nUse bounded DMA.\n", encoding="utf-8")
+    try:
+        (firmware_pack / "safety.md").write_text("# Firmware safety\nUse bounded DMA.\n", encoding="utf-8")
 
-    loaded = load_rule_content(["common", "firmware"], [external_root, Path("governance/rules")])
+        loaded = load_rule_content(["common", "firmware"], [external_root, Path("governance/rules")])
 
-    assert loaded["valid"] is True
-    assert [pack["name"] for pack in loaded["active_rules"]] == ["common", "firmware"]
-    assert loaded["active_rules"][1]["category"] == "custom"
-    assert "bounded DMA" in loaded["active_rules"][1]["files"][0]["content"]
+        assert loaded["valid"] is True
+        assert [pack["name"] for pack in loaded["active_rules"]] == ["common", "firmware"]
+        assert loaded["active_rules"][1]["category"] == "custom"
+        assert "bounded DMA" in loaded["active_rules"][1]["files"][0]["content"]
+    finally:
+        shutil.rmtree(external_root.parent, ignore_errors=True)

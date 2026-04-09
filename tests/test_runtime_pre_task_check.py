@@ -107,7 +107,7 @@ def test_pre_task_check_exposes_refactor_active_rules(local_tmp_dir, monkeypatch
     assert result["ok"] is True
     refactor_pack = [pack for pack in result["active_rules"]["active_rules"] if pack["name"] == "refactor"][0]
     contents = "\n".join(file["content"] for file in refactor_pack["files"])
-    assert "observable behavior remains unchanged" in contents
+    assert "可觀測行為保持不變" in contents
 
 
 def test_pre_task_check_exposes_csharp_avalonia_swift_active_rules(local_tmp_dir, monkeypatch):

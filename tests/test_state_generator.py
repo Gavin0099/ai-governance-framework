@@ -115,7 +115,7 @@ def test_generate_state_can_include_refactor_active_rules(local_tmp_dir, monkeyp
 
     refactor_pack = [pack for pack in state["active_rules"]["active_rules"] if pack["name"] == "refactor"][0]
     contents = "\n".join(file["content"] for file in refactor_pack["files"])
-    assert "must not introduce new boundary crossings" in contents
+    assert "新的 boundary crossing" in contents
 
 
 def test_generate_state_can_include_csharp_avalonia_swift_active_rules(local_tmp_dir, monkeypatch):

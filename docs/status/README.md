@@ -1,58 +1,57 @@
 # 狀態索引
 
-更新日期：2026-04-08
+更新日期：2026-04-09
 
-本目錄收納的是這個 repo 對外或對 reviewer 可讀的穩定狀態頁。它的用途不是取代原始 artifact，而是提供較低成本的入口，讓人知道目前 runtime、closeout、trust signal 與後續方向各自停在哪裡。
+本目錄是這個 repo 的 reviewer-facing 狀態入口，用來集中呈現 runtime、closeout、trust signal、coverage 與 handoff surface。它不是 generated artifact 的替代品，而是幫 reviewer 快速找到該看哪裡。
 
 ## 主要入口
 
 - [Reviewer Handoff](reviewer-handoff.md)
-  - reviewer-facing 的高階交接頁
-  - 適合先看整體 handoff，再往下鑽較細的 status surface
+  - reviewer-facing 的 handoff / summary surface
+  - 適合在單次 review 或 session closeout 後快速理解狀態
 
 - [Runtime Governance Status](runtime-governance-status.md)
-  - 目前最值得優先閱讀的主敘事頁
-  - 說明 repo 現在的 bounded runtime reality、已完成能力，以及刻意不擴張的邊界
+  - 說明目前 runtime governance 主線的 bounded reality
+  - 適合掌握 repo 的 maturity 與現行邊界
 
 - [Closeout Audit](closeout-audit.md)
   - session workflow / canonical closeout 的 observation surface
-  - 適合用來看 closeout valid rate、warning/none 分布與 audit flags
+  - 適合觀察 closeout valid rate、warning/none 比例與 audit flags
 
 - [Trust Signal Dashboard](trust-signal-dashboard.md)
-  - 對 adoption 與 release-facing trust signal 的快速總覽
-  - 適合看目前 consuming repo / publication / trust snapshot 的外部狀態
+  - adoption / release-facing 的 trust signal 概覽
+  - 適合查看 consuming repo、publication 與 trust snapshot 路徑
+
+- [Domain Enforcement Matrix](domain-enforcement-matrix.md)
+  - external contract seam 與 domain enforcement posture 的對照頁
+  - 適合查看各 domain 是否屬 advisory-first、mixed，或已有更強 enforcement
 
 - [Runtime Surface Manifest](runtime-surface-manifest.md)
-  - execution / evidence / authority surface 的 inventory 與 consistency signal 狀態
-  - 適合確認 runtime surface 是否完整、是否有 unknown/orphan/mismatch
+  - execution / evidence / authority surface 的 inventory 與 consistency signal
 
 - [Execution Surface Coverage](execution-surface-coverage.md)
   - decision-aware coverage 的 bounded first slice
-  - 適合看 required/optional surface 是否缺失，與 dead surface 是否出現
 
 - [Next Steps](next-steps.md)
-  - 接下來最值得做的事
-  - 用於收斂方向，而不是重述已完成內容
+  - 目前主線後續順序與 bounded non-goals
 
-## 生成型狀態輸出
+## Generated 狀態入口
 
-以下頁面或 JSON 由 status / audit tooling 生成，適合在想快速確認目前 generated state 時閱讀：
-
+repo-local generated state 會落在 `docs/status/generated/`，常見入口包括：
 - `generated/runtime-surface-manifest.json`
 - `generated/execution-surface-coverage.json`
 - `generated/closeout-audit.json`
-
-若要讀 generated root 的其他 publication-style 狀態，也可以再看：
-
 - `generated/README.md`
 - `generated/PUBLICATION_INDEX.md`
+- `generated/site/README.md`
 
 ## 建議閱讀順序
 
-1. 先看 [Runtime Governance Status](runtime-governance-status.md)
-2. 再看 [Closeout Audit](closeout-audit.md)
-3. 再看 [Reviewer Handoff](reviewer-handoff.md)
-4. 若要看 runtime surface，讀 [Runtime Surface Manifest](runtime-surface-manifest.md)
-5. 若要看 decision-aware completeness，讀 [Execution Surface Coverage](execution-surface-coverage.md)
-6. 若要看 external adoption / release-facing trust 狀態，讀 [Trust Signal Dashboard](trust-signal-dashboard.md)
-7. 若要看後續方向，最後讀 [Next Steps](next-steps.md)
+1. [Runtime Governance Status](runtime-governance-status.md)
+2. [Closeout Audit](closeout-audit.md)
+3. [Reviewer Handoff](reviewer-handoff.md)
+4. [Domain Enforcement Matrix](domain-enforcement-matrix.md)
+5. [Runtime Surface Manifest](runtime-surface-manifest.md)
+6. [Execution Surface Coverage](execution-surface-coverage.md)
+7. [Trust Signal Dashboard](trust-signal-dashboard.md)
+8. [Next Steps](next-steps.md)
