@@ -5,6 +5,8 @@
 - consumer: `reviewer`
 - signal_posture: `soft-enforcement`
 
+這個頁面是 execution surface coverage 的人類可讀摘要。它不是在做 execution harness，而是在說明：目前哪些 decision surface 已有最低 coverage，以及還有哪些缺口。
+
 ## Decision Status
 
 | Decision | Status | Missing Hard | Missing Soft |

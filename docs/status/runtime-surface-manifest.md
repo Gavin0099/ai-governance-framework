@@ -4,6 +4,11 @@
 - repo_commit: `5ca7464f203661e9e62f7500a74557f753e44d51`
 - signal_posture: `soft-enforcement`
 
+這個頁面是 runtime surface manifest 的人類可讀版。它的目的不是做裁決，而是把目前 repo 內有哪些 execution / evidence / authority surface 已被列舉出來，讓 reviewer 與 maintainer 能檢查：
+- surface 是否存在
+- 類型是否合理
+- consistency signal 是否乾淨
+
 ## Adapter Inventory
 
 | Adapter | Events | Normalizer | Runner |

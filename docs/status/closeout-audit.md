@@ -4,6 +4,8 @@
 - project_root: `E:\BackUp\Git_EE\ai-governance-framework`
 - signal_posture: `aggregation-only`
 
+這個頁面是 closeout audit 的人類可讀摘要。它不新增 authority，也不取代 canonical closeout；它只把目前 closeout audit 的分布與 policy flag 聚合出來，方便觀察期使用。
+
 ## Summary
 
 - session_count: `0`

@@ -1,16 +1,17 @@
 # Trust Signal Dashboard
 
-更新日期：2026-04-08
+更新日期：2026-04-09
 
-這一頁是 framework adoption 與 release-facing trust signal 的穩定入口。它的用途不是提供所有細節，而是讓你在同一頁先回答：
+這個頁面整理 framework adoption 與 release-facing trust signal 的主要觀測面，讓 reviewer 或 adopter 不必逐一手動比對 terminal output、artifact bundle、與零散狀態頁。
 
-- quickstart 還能不能跑
-- bundled example 是否仍健康
-- release-facing 文件是否對齊
-- governance self-audit 是否仍然過關
-- external contract repo 是否仍維持預期的 enforcement posture
+它回答的核心問題是：
+- quickstart 是否可走通
+- bundled example 是否可驗證
+- release-facing trust surface 是否已形成
+- governance self-audit 是否有顯著異常
+- external contract repo 是否能提供 cross-domain enforcement posture
 
-## 最快本地指令
+## 最快的本地檢查命令
 
 ```bash
 python governance_tools/trust_signal_overview.py \
@@ -24,7 +25,7 @@ python governance_tools/trust_signal_overview.py \
   --format human
 ```
 
-如果想產生可分享的 dashboard-style 輸出：
+若想要 dashboard-style 的 markdown 輸出：
 
 ```bash
 python governance_tools/trust_signal_overview.py \
@@ -35,7 +36,7 @@ python governance_tools/trust_signal_overview.py \
   --format markdown
 ```
 
-## 生成 publication snapshot
+## Publication Snapshot
 
 ```bash
 python governance_tools/trust_signal_snapshot.py \
@@ -51,7 +52,7 @@ python governance_tools/trust_signal_snapshot.py \
   --format human
 ```
 
-如果要直接寫到穩定 docs path：
+若要直接寫入 repo-local docs status path：
 
 ```bash
 python governance_tools/trust_signal_snapshot.py \
@@ -66,7 +67,7 @@ python governance_tools/trust_signal_snapshot.py \
   --format human
 ```
 
-回讀 publication metadata：
+讀取 publication metadata：
 
 ```bash
 python governance_tools/trust_signal_publication_reader.py \
@@ -74,7 +75,7 @@ python governance_tools/trust_signal_publication_reader.py \
   --format human
 ```
 
-如果走 repo-local docs status：
+讀取 repo-local docs status：
 
 ```bash
 python governance_tools/trust_signal_publication_reader.py \
@@ -83,25 +84,23 @@ python governance_tools/trust_signal_publication_reader.py \
   --format human
 ```
 
-## 這頁在看什麼
+## 這個 Dashboard 看什麼
 
-目前這個 dashboard 最主要在看：
+這個 dashboard 的目的，是把以下幾條線收成同一個 reviewer-facing 面：
+- framework 自身的 quickstart / readiness / audit 狀態
+- release-facing trust surface 是否能被讀出
+- external contract repo 是否能提供最低限度的 cross-domain enforcement posture
 
-- framework 自己的 quickstart / readiness / audit 是否健康
-- release-facing 文件是否仍與目前主線一致
-- external contract repo 是否仍暴露預期的 cross-domain enforcement posture
-
-它不是拿來宣告：
-
+它不代表：
 - full interception coverage 已完成
-- 所有 domain validator 都是 hard-stop
-- semantic verification 已達到 full policy engine 等級
+- 所有 domain validator 都已進 hard-stop
+- semantic verification 已達 full policy engine
 
-這些邊界仍然應該保持可見。
+它提供的是 bounded、release-facing 的 trust overview。
 
-## CI / generated artifacts
+## CI / Generated Artifacts
 
-目前信號 bundle 會寫到：
+若已產出 trust-signal bundle，常見落點包括：
 
 - `artifacts/trust-signals/latest.txt`
 - `artifacts/trust-signals/latest.json`
@@ -116,7 +115,7 @@ python governance_tools/trust_signal_publication_reader.py \
 - `artifacts/trust-signals/published/history/*`
 - `artifacts/trust-signals/published/INDEX.md`
 
-當 external contract repo 有提供時，publication metadata 也會帶 compact 的 cross-domain enforcement summary。
+若有 external contract repo，一般 publication metadata 也會帶 compact 的 cross-domain enforcement summary。
 
 ## 相關頁面
 

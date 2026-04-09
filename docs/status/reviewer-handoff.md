@@ -1,18 +1,15 @@
 # Reviewer Handoff
 
-更新日期：2026-04-08
+更新日期：2026-04-09
 
-這一頁是 reviewer 進 repo 時最上層的 handoff 入口。它的目的不是取代所有 trust / release / runtime status page，而是提供一個先看整體、再決定往哪個 surface 深挖的入口。
-
-適合在你還不想先決定下一步是看：
-
-- trust / adoption 健康度
+這個頁面整理 reviewer 在 repo 中接手時最需要看的 handoff surface。目的是讓 reviewer 不必逐一翻 trust、release、runtime status page，也能快速建立：
+- trust / adoption 現況
 - release / package readiness
-- 或兩者和 runtime boundary 的關係
+- runtime boundary 與 current posture
 
-時先讀這頁。
+它不是新的 authority layer，而是 reviewer-facing 的聚合入口。
 
-## 最快本地指令
+## 最快的本地檢查命令
 
 ```bash
 python governance_tools/reviewer_handoff_summary.py \
@@ -24,13 +21,12 @@ python governance_tools/reviewer_handoff_summary.py \
 ```
 
 這個 summary 會聚合：
-
 - `trust_signal_overview.py`
 - `release_surface_overview.py`
 
-所以第一輪 reviewer 不需要先在兩個工具家族之間切換。
+適合讓 reviewer 用單一入口快速建立當前狀態。
 
-## 如果要保留成可回讀 bundle
+## 產出 Reviewer Bundle
 
 ```bash
 python governance_tools/reviewer_handoff_snapshot.py \
@@ -42,7 +38,7 @@ python governance_tools/reviewer_handoff_snapshot.py \
   --format human
 ```
 
-回讀生成 bundle：
+讀取 bundle：
 
 ```bash
 python governance_tools/reviewer_handoff_reader.py \
@@ -51,7 +47,7 @@ python governance_tools/reviewer_handoff_reader.py \
   --format human
 ```
 
-如果要看 publication-layer summary：
+讀取 publication-layer summary：
 
 ```bash
 python governance_tools/reviewer_handoff_publication_reader.py \
@@ -60,7 +56,7 @@ python governance_tools/reviewer_handoff_publication_reader.py \
   --format human
 ```
 
-## 如果要發布到穩定 docs 路徑
+## 寫入 Repo-Local Docs 狀態
 
 ```bash
 python governance_tools/reviewer_handoff_snapshot.py \
@@ -72,7 +68,7 @@ python governance_tools/reviewer_handoff_snapshot.py \
   --format human
 ```
 
-之後可用：
+再用：
 
 ```bash
 python governance_tools/reviewer_handoff_publication_reader.py \
@@ -82,24 +78,23 @@ python governance_tools/reviewer_handoff_publication_reader.py \
   --format human
 ```
 
-## 何時先看這頁
+## 這個 Surface 提供什麼
 
-先看這頁的情境：
+這個 surface 的設計目標是：
+- 給 reviewer 一份可直接閱讀的 summary，而不是只給 raw manifest
+- 提供 handoff-ready 的信號密度
+- 在 trust、release、runtime posture 之間建立一個可追蹤的 reviewer 入口
 
-- 想要一份 reviewer-facing summary，而不是先讀多份 raw manifest
-- 想快速知道目前 handoff-ready 程度
-- 想先辨識問題比較偏 trust、release，還是 runtime posture
-
-## 建議閱讀順序
+## 建議的 Reviewer 流程
 
 1. 先跑 `reviewer_handoff_summary.py`
-2. 如果問題偏 trust / adoption，轉去 [Trust Signal Dashboard](trust-signal-dashboard.md)
-3. 如果問題偏 release / package / runtime 邊界，轉去 [Runtime Governance 狀態](runtime-governance-status.md)
-4. 如果要看 external domain 的 enforcement posture，轉去 [Domain Enforcement Matrix](domain-enforcement-matrix.md)
+2. 若要看 trust / adoption 狀態，再讀 [Trust Signal Dashboard](trust-signal-dashboard.md)
+3. 若要看 release / package / runtime 主線，再讀 [Runtime Governance 狀態](runtime-governance-status.md)
+4. 若要看 external domain 的 enforcement posture，再讀 [Domain Enforcement Matrix](domain-enforcement-matrix.md)
 
-## 產物路徑
+## 常見 Artifact 路徑
 
-CI 或本地 bundle 目前會落在：
+若 CI 已產出 reviewer handoff bundle，常見路徑包括：
 
 - `artifacts/reviewer-handoff/v1.1.0/latest.txt`
 - `artifacts/reviewer-handoff/v1.1.0/latest.json`
@@ -111,12 +106,10 @@ CI 或本地 bundle 目前會落在：
 - `artifacts/reviewer-handoff/PUBLICATION_MANIFEST.json`
 - `artifacts/reviewer-handoff/PUBLICATION_INDEX.md`
 
-穩定 docs 路徑則是：
-
+若已同步到 docs status，則一般位於：
 - `docs/status/generated/reviewer-handoff/`
 
-主要入口：
-
+常見入口：
 - `docs/status/generated/reviewer-handoff/README.md`
 - `docs/status/generated/reviewer-handoff/PUBLICATION_MANIFEST.json`
 - `docs/status/generated/reviewer-handoff/site/README.md`
