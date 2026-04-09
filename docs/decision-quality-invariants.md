@@ -1,109 +1,100 @@
-# Decision Quality Invariants：如何區分「真的正確」與「只是還沒被打臉」
+﻿# Decision Quality Invariants：決策品質的不變條件
 
 > 版本：1.0  
-> 相關文件：`docs/falsifiability-layer.md`、`docs/learning-loop.md`、`docs/learning-stability.md`、`docs/governance-mechanism-tiers.md`
+> 關聯文件：`docs/falsifiability-layer.md`、`docs/learning-loop.md`、`docs/learning-stability.md`、`docs/governance-mechanism-tiers.md`
 
 ## 目的
 
-一個 decision 沒有產生 failure，不等於它已被驗證；它只是不曾被反駁。
+這份文件定義 decision quality 不應只靠 failure absence 來判定。
+沒有失敗，不代表：
+1. decision 本身是正確的
+2. decision 的依據是穩定的
+3. 系統具備在真實壓力下維持品質的能力
 
-absence of failure 可能代表三種情況：
+`learning loop` 負責收集 failure。  
+`falsifiability layer` 負責確保 decision 可被檢驗。  
+這份文件則定義那些即使 failure rate 看起來不高，也不能被放棄的品質不變條件。
 
-1. decision 真的是對的
-2. decision 還沒被充分測到
-3. 測試條件根本沒涵蓋它會失敗的情境
+> 一個 decision 要被視為 genuinely correct，不能只靠「沒有出事」來證明。
 
-learning loop 處理的是 failure。  
-falsifiability layer 處理的是「如何證明 decision 錯了」。  
-這份文件補的是最後那個缺口：
-
-> 一個 decision 要怎樣才算 genuinely correct，而不只是暫時沒被挑戰？
-
-## 三個 invariants
+## 核心 invariants
 
 ### 1. Consistency
 
-**同樣的 evidence，應導出同樣的 decision。**
+**在相同 evidence 與相同 criteria 下，應得到相容的 decision。**
 
-如果兩個 reviewer 或同一 reviewer 在不同時間，對 materially identical input 做出不同 decision，至少有一個 decision 有問題，或者 decision process 並沒有真的被既定 criteria 約束。
+如果兩個 reviewer 或兩次重建在 materially identical input 下得到不同 decision，問題不一定在結果本身，也可能在 decision process 的 criteria 不夠穩定。
 
-Consistency 不是 uniformity，而是：
-
-- decision 由 evidence 和 stated criteria 決定
-- 不該由 reviewer 身分、時機、或無關上下文決定
+Consistency 不等於 uniformity，而是要求：
+- decision 能對應到 stated criteria
+- reviewer 之間不會因無關變因而產生實質分歧
 
 ### 2. Robustness
 
-**不相關的變化，不應改變 decision。**
+**在無關變因改變時，decision 不應輕易漂移。**
 
-如果 decision 會因 wording、順序、reviewer 疲勞、環境脈絡等 irrelevant variation 而改變，表示 decision basis 混入了噪音。
+如果 decision 會因 wording、reviewer 表達方式、或其他 irrelevant variation 而改變，代表 decision basis 對噪音過度敏感。
 
-Robustness 不是 rigidity，而是：
-
-- 該穩定的地方保持穩定
-- 真正 relevant 的變數才允許影響結果
+Robustness 不等於 rigidity，而是要求：
+- 能抵抗無關的表述差異
+- 對 relevant variation 保持足夠敏感
 
 ### 3. Positive Falsifiability
 
-**每個被接受的 decision，都應該有一個可觀測條件，讓我們日後能說它是對的。**
+**系統必須能指出：在什麼條件下，現在的 decision 會被推翻或被證明不足。**
 
-falsifiability layer 定義的是「什麼情況下 decision 會被證明錯」。  
-positive falsifiability 則要求：
+`falsifiability layer` 的意義，不是要否定 decision，而是要讓 decision 具備可被檢驗的條件。
+`positive falsifiability` 的重點是：
 
-> 什麼觀測結果會讓我們說：這個 decision 被驗證了，而不是只是沒出事。
+> 若沒有辦法指出什麼 evidence、什麼情境、或什麼 probing 會改變目前的 decision，就很難說這個 decision 真正可被驗證。
 
-可接受的形式應類似：
-
-> 如果在某個時間範圍內出現某個具體可觀測結果，且沒有某個 confound，那麼這個 decision 可視為得到正向驗證。
+這不是鼓勵隨意推翻，而是要求系統能明示 confound、反例條件與可檢驗界線。
 
 ## Misaligned Success
 
-misaligned success 指的是：
+`misaligned success` 指的是：
 
-- 系統的表面指標看起來健康
-- failure rate 很低
-- log 很乾淨
-- verdict 也很穩定
+- 指標看起來進步，但實際決策品質沒有提高
+- failure rate 下降
+- log 看起來乾淨
+- verdict 看起來穩定
 
-但實際上 decision quality 正在下降。
+但 decision quality 仍然可能退化。  
+常見形式包括：
+- **over-conservatism**：過度保守，避開高風險情境以換取表面穩定
+- **blame-avoidance routing**：把責任推向更安全的路徑，而不是改善判斷品質
+- **coverage narrowing**：只關注容易量化的 evidence type，忽略關鍵訊號
+- **exploration reduction**：減少 probing，讓錯誤不容易被發現
 
-常見形式：
-
-- **over-conservatism**：系統只敢在熟悉區域做決策
-- **blame-avoidance routing**：選擇較不容易被歸責的決策路徑
-- **coverage narrowing**：能影響決策的 evidence type 越來越少
-- **exploration reduction**：系統不再測試自己的邊界
-
-這些情況都可能維持低 failure rate，卻是 decision quality degradation。
+因此，光看 failure rate，無法保證沒有 decision quality degradation。
 
 ## 與 learning loop 的關係
 
-learning loop 在 failure 出現時閉環。  
-decision quality invariants 則要求：就算沒有 failure，也要問 decision 是否真的被驗證。
+`learning loop` 收集 failure 與改進訊號；  
+`decision quality invariants` 則避免系統把「failure 變少」誤認為「decision 變好」。
 
-最低限度的正向證據應至少符合一項：
+真正值得追蹤的，不只是某次修復是否通過，而是：
 
-- 相似 evidence 由不同 reviewer 複核後得到相同 decision
-- 經 irrelevant variation 測試後，decision 沒變
-- 事先定義的 positive falsifiability condition 被觀測到
+- 相同 evidence 是否仍能被 reviewer 穩定重建成相容 decision
+- irrelevant variation 是否仍會讓 decision 漂移
+- 是否仍能指出 positive falsifiability condition
 
-如果三者都沒有，就不能說 decision 已被驗證；最多只能說它尚未被反駁。
+如果這些條件不成立，即使 failure rate 暫時下降，也不能直接宣稱 decision 品質已經提高。
 
-## 目前不提供的東西
+## 在目前 repo 的定位
 
-這份文件目前**不提供**：
-
-- consistency 的自動量測系統
+這份文件目前是**方法論約束**，不是：
+- consistency 的自動化 gate
 - robustness 的完整 probing framework
 - positive falsifiability 的 runtime hard gate
 
-也就是說，這三個 invariant 目前主要是：
-
+它目前提供的是：
 - diagnostic properties
 - periodic review prompts
+- 用來校正 learning loop 的判讀邏輯
 
-而不是 fully instrumented control mechanisms。
+不是 fully instrumented control mechanism。
 
-## 一句話結論
+## 一句總結
 
-這份文件要守住的是：低 failure rate 不等於高 decision quality；若沒有 consistency、robustness、與 positive falsifiability，系統只是在累積「還沒被證偽的決策」。
+這份文件要表達的是：降低 failure 不是 decision quality 的充分條件；只有當 consistency、robustness 與 positive falsifiability 都維持住，才比較能說 decision 系統真的變好。
