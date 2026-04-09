@@ -1,5 +1,5 @@
-﻿# Misinterpretation Log
-
+﻿# 誤讀紀錄
+> 目的：記錄 reviewer 或 adopter 對治理訊號的典型誤讀，避免同一類誤判反覆發生。  
 > 目的：記錄 reviewer 或 adopter 對治理訊號的典型誤讀，避免同一類誤判反覆發生。  
 > **這不是 bug tracker。**  
 > 這份記錄的重點，是保存哪些欄位或 surface 容易被錯讀，以及後來怎麼修正敘事或邊界。  

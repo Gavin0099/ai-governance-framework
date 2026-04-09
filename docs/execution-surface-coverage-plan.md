@@ -1,4 +1,4 @@
-﻿# Execution Surface Coverage Plan：從 surface inventory 走向 decision-aware coverage
+﻿# Execution Surface Coverage 計畫：從 surface inventory 走向 decision-aware coverage
 
 ## 目的
 

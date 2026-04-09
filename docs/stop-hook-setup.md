@@ -1,5 +1,5 @@
-﻿# Stop Hook Setup
-
+﻿# Stop Hook 安裝設定
+這份文件說明如何把 Claude Code 的 stop / session 結束事件接到 `session_end_hook`。
 這份文件說明如何把 Claude Code 的 stop / session 結束事件接到 `session_end_hook`。
 目的不是把 closeout 變成 agent 自述，而是讓 session closeout 經過 runtime 驗證，留下可審計的 artifact。
 

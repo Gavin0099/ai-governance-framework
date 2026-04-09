@@ -1,4 +1,4 @@
-﻿# External Repo Functional Test Checklist：外部 repo 功能驗證清單
+﻿# 外部 Repo 功能驗證清單
 
 > 版本：2026-04-05 rev2  
 > Framework 狀態：Beta Gate passed 2026-03-28

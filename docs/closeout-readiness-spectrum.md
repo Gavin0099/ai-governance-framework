@@ -1,4 +1,4 @@
-﻿# Closeout Readiness Spectrum
+﻿# Closeout Readiness 分級光譜
 
 > 版本：1.1  
 > 關聯文件：`docs/closeout-repo-readiness.md`、`docs/session-closeout-schema.md`

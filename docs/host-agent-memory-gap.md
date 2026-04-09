@@ -1,4 +1,4 @@
-﻿# Host-Agent Memory Gap：repo memory 與 host memory 之間的缺口
+﻿# Host-Agent Memory 缺口：repo memory 與 host memory 之間的斷層
 
 > 狀態：draft  
 > 更新日期：2026-04-01

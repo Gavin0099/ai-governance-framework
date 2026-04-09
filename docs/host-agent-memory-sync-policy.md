@@ -1,4 +1,4 @@
-﻿# Host-Agent Memory Sync Policy：repo memory 與 host-agent memory 的同步原則
+﻿# Host-Agent Memory 同步原則：repo memory 與 host-agent memory 的 sync posture
 
 > 狀態：draft  
 > 更新日期：2026-04-01

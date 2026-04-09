@@ -1,4 +1,4 @@
-﻿# Classification Evidence Semantics：classification evidence 的語義與限制
+﻿# Classification Evidence 語義：欄位意義與限制
 
 ## 目的
 

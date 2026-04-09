@@ -1,4 +1,4 @@
-﻿# Classification Reaction Policy：classification 變化應如何反映到 surface
+﻿# Classification Reaction Policy：classification 變化如何反映到 surface
 
 ## 目的
 
