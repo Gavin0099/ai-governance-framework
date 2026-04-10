@@ -34,7 +34,8 @@
 - [x] Phase A : 建立治理工具核心與 baseline
 - [x] Phase B : 補齊 adoption / validator / freshness / memory 基礎能力
 - [x] Phase C : 建立 runtime governance、DBL 與 observation surfaces
-- [>] Phase D : 收斂 session workflow、external adoption 與文件入口
+- [x] Phase D : 收斂 session workflow、external adoption 與文件入口
+- [>] Phase E : Failure decision boundary、exclusion governance、usage enforcement
 
 ## Current Sprint
 
@@ -44,6 +45,30 @@
 - [x] 修正高可見度 docs / governance 文件的亂碼與英文主敘事殘留
 - [x] 重建 root PLAN / state source of truth，讓 state_generator 與 freshness surface 回到可維護狀態
 - [x] 建立 starter-pack 自動升級路徑，讓 starter-pack 不只停在手動複製
+
+## Phase E Sprint（Current）
+
+- [x] E1：建立 failure_disposition.py（FailureKind + ActionPolicy + confidence）
+- [x] E1.5：seed corpus 10 筆 ground truth，作為 taxonomy calibration baseline
+- [x] E2：建立 test_exclusion_registry.yaml + exclusion_registry_tool.py
+- [ ] E2+：run_filtered_tests.py — 唯一合法的 filtered suite 入口，強制 registry 使用
+- [ ] E1 usage enforcement：agent/workflow 必須經過 FailureKind → ActionPolicy，不能直接解讀 pytest 結果
+- [ ] Phase E replay 驗證：用 seed corpus 跑一次結構化 decision output，對比人工分析前後差異
+
+## Phase E Decision Impact
+
+> 這節記錄 Phase E 的改變對系統行為的實際影響，不是進度紀錄。
+
+| 面向 | Before E1/E2 | After E1/E2 |
+|------|-------------|-------------|
+| Failure 判斷 | 人工看 pytest 結果做分類 | 必須經過 `FailureKind → ActionPolicy`，有 confidence 標記 |
+| Filtered suite 邊界 | 手寫 `-k "not xxx..."` 字串，implicit | 由 `test_exclusion_registry.yaml` 生成，每條有 justification / expiry |
+| Unknown failure 處置 | 無規則，agent 自行判斷 | 強制 `escalate`，禁止 `ignore_for_verdict` |
+| Registry 腐化偵測 | 無 | `audit` 指令偵測過期/缺 justification/integrity 違規 |
+
+**E2+ 完成後的強制約束：**
+- filtered suite 只能透過 `run_filtered_tests.py` 執行，不允許手寫 `-k`
+- 這不是建議，是 tooling 層的唯一入口
 
 ## Backlog
 
@@ -123,3 +148,5 @@
 | 2026-04-08 | session workflow enhancement 主線收斂 | 進入 semantics-observation phase |
 | 2026-04-10 | 先修 source of truth 再做 starter-pack upgrade | 避免在壞掉的 state surface 上擴 starter-pack 流程 |
 | 2026-04-10 | Phase D sprint 全部完成，進入 maintenance mode | state source of truth 重建、starter-pack upgrade path 完成，三端同步 |
+| 2026-04-10 | E1/E2 建立 failure decision boundary | failure 不再直接看 pytest 結果；filtered suite 不再手寫 -k；unknown 必須 escalate |
+| 2026-04-10 | E2+ 強制 registry 使用，禁止 bypass | run_filtered_tests.py 成為唯一合法入口；手寫 -k 視為違規 |
