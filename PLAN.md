@@ -42,15 +42,15 @@
 - [x] 補齊 consuming repo adoption 缺口，包括 governance markdown pack、rules pack 與 framework source audit
 - [x] 補上 memory closeout visibility，讓 no-write reason 可觀測
 - [x] 修正高可見度 docs / governance 文件的亂碼與英文主敘事殘留
-- [ ] 重建 root PLAN / state source of truth，讓 state_generator 與 freshness surface 回到可維護狀態
-- [ ] 建立 starter-pack 自動升級路徑，讓 starter-pack 不只停在手動複製
+- [x] 重建 root PLAN / state source of truth，讓 state_generator 與 freshness surface 回到可維護狀態
+- [x] 建立 starter-pack 自動升級路徑，讓 starter-pack 不只停在手動複製
 
 ## Backlog
 
 ### P0
 
-- [ ] 讓 starter-pack 有最小可用的 opt-in upgrade / refresh 路徑
-- [ ] 確認 regenerated `.governance-state.yaml` 與 runtime/status surfaces 一致
+- [x] 讓 starter-pack 有最小可用的 opt-in upgrade / refresh 路徑
+- [x] 確認 regenerated `.governance-state.yaml` 與 runtime/status surfaces 一致
 
 ### P1
 
@@ -97,8 +97,8 @@
 
 - `/wrap-up` 目前是 candidate drafting surface，不是 closeout 官方 authority
 - advisory slice 目前是受限、reviewer-visible、non-verdict-bearing 的語義層
-- starter-pack 目前仍偏手動流程，尚未完成自動升級閉環
-- root `PLAN.md` 與 `.governance-state.yaml` 若失真，會影響 state surface 的可信度
+- starter-pack opt-in upgrade path 已完成（`upgrade_starter_pack.py`），README 有手動/自動分界說明
+- `.governance-state.yaml` 已可重新生成且內容可讀
 
 ---
 
@@ -106,10 +106,10 @@
 
 本 sprint 要達成的最低條件：
 
-- [ ] `PLAN.md` 可被 `state_generator.py`、`plan_freshness.py` 穩定解析
-- [ ] `.governance-state.yaml` 能重新生成且內容可讀
-- [ ] starter-pack 有明確的 opt-in upgrade path
-- [ ] starter-pack README 說清楚手動初始化與自動升級的分界
+- [x] `PLAN.md` 可被 `state_generator.py`、`plan_freshness.py` 穩定解析
+- [x] `.governance-state.yaml` 能重新生成且內容可讀
+- [x] starter-pack 有明確的 opt-in upgrade path
+- [x] starter-pack README 說清楚手動初始化與自動升級的分界
 
 ---
 
@@ -122,3 +122,4 @@
 | 2026-04-02 | advisory signal 停在 reviewer-visible 邊界 | 不把 advisory 過早接進 verdict authority |
 | 2026-04-08 | session workflow enhancement 主線收斂 | 進入 semantics-observation phase |
 | 2026-04-10 | 先修 source of truth 再做 starter-pack upgrade | 避免在壞掉的 state surface 上擴 starter-pack 流程 |
+| 2026-04-10 | Phase D sprint 全部完成，進入 maintenance mode | state source of truth 重建、starter-pack upgrade path 完成，三端同步 |
