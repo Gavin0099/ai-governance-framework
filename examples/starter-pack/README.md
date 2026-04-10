@@ -1,150 +1,146 @@
 # Starter Pack
 
-Status: scaffold only. This directory is meant to be copied into a new repo, not executed as an application.
+狀態：這是一組可複製的治理起始檔，不是可直接執行的應用程式。
 
-# Starter Pack — 5 分鐘開始使用 AI Governance
+`starter-pack` 的目的，是讓新 repo 在還沒導入完整 framework 前，就能先有一個最小可用的治理骨架：
 
-最小可用版本。3 個文件，解決一個核心問題：
+- `SYSTEM_PROMPT.md`
+- `PLAN.md`
+- `memory/01_active_task.md`
+- AI adapter surfaces（Claude / Gemini / Copilot）
+- `memory_janitor.py`
 
-> **AI 在長對話中會忘記你的計畫，然後做它自己覺得對的事。**
+當專案已經長大、開始需要 runtime governance、drift check、adopt / readiness / audit 等能力時，應升級到完整 framework，而不是永遠停在 starter-pack。
 
-**先看效果**: [demo.md](demo.md) — 5 分鐘看懂治理在運作時長什麼樣子 ⭐
+## 這份 starter-pack 解決什麼
 
----
+- 讓 AI 每次 session 都先讀 `PLAN.md`
+- 讓工作焦點、記憶壓力、架構邊界有一個最小可依賴的入口
+- 讓新 repo 在沒有完整 adopt 前，也有一個明確的治理起點
 
-## 你需要的文件
+## 這份 starter-pack 不主張什麼
 
-**核心文件（所有 AI 工具共用）：**
-
-| 文件 | 來源 | 作用 |
-|------|------|------|
-| `SYSTEM_PROMPT.md` | 本目錄 | 治理規則 master（所有工具讀這份） |
-| `PLAN.md` | 本目錄（填入後使用） | 專案計畫，AI 每次對話決定任務範圍 |
-| `memory/01_active_task.md` | 本目錄 | AI 跨 session 的狀態記憶 |
-| `memory_janitor.py` | `../../governance_tools/` | 監控記憶體壓力 |
-
-**AI 工具 Adapter（擇一或全部複製）：**
-
-| 文件 | 工具 | 說明 |
-|------|------|------|
-| `CLAUDE.md` | Claude Code | 自動讀取，指向 SYSTEM_PROMPT.md |
-| `GEMINI.md` | Gemini Code Assist | 自動讀取，指向 SYSTEM_PROMPT.md |
-| `.github/copilot-instructions.md` | GitHub Copilot | 內嵌關鍵規則（Copilot 不讀其他文件） |
+- 不提供完整 runtime governance
+- 不提供 closeout / audit / readiness / drift 的正式閉環
+- 不等於已導入完整 `ai-governance-framework`
 
 ---
 
-## 步驟一：複製文件到你的專案
+## 檔案說明
+
+| 檔案 | 用途 |
+|---|---|
+| `SYSTEM_PROMPT.md` | starter-pack 的最小治理提示，作為 AI 每次 session 的固定入口 |
+| `PLAN.md` | 專案工作焦點與當前 sprint 的唯一文字來源 |
+| `memory/01_active_task.md` | 當前任務記錄 |
+| `CLAUDE.md` | Claude Code adapter |
+| `GEMINI.md` | Gemini adapter |
+| `.github/copilot-instructions.md` | GitHub Copilot adapter |
+| `demo.md` | 範例說明 |
+
+另外還需要從 framework repo 帶出：
+
+| 檔案 | 來源 |
+|---|---|
+| `memory_janitor.py` | `governance_tools/memory_janitor.py` |
+
+---
+
+## 初始化方式
+
+### 方式 A：手動複製
 
 ```bash
-# 核心文件
 cp examples/starter-pack/SYSTEM_PROMPT.md        /your/project/
 cp examples/starter-pack/PLAN.md                 /your/project/
 cp governance_tools/memory_janitor.py            /your/project/
-cp -r examples/starter-pack/memory/             /your/project/
+cp -r examples/starter-pack/memory/              /your/project/
 
-# AI 工具 Adapter（依你使用的工具選擇）
 cp examples/starter-pack/CLAUDE.md               /your/project/          # Claude Code
 cp examples/starter-pack/GEMINI.md               /your/project/          # Gemini
 mkdir -p /your/project/.github
 cp examples/starter-pack/.github/copilot-instructions.md \
-   /your/project/.github/                                                 # GitHub Copilot
+   /your/project/.github/
 ```
 
----
+### 方式 B：使用自動升級 / 補齊工具
 
-## 步驟二：填寫 PLAN.md（2 分鐘）
-
-打開 `PLAN.md`，填入：
-
-1. 第 1 行：專案名稱
-2. `最後更新` 日期
-3. `當前階段`：你現在在做什麼
-4. `本週聚焦`：這週要完成的 1-3 件事
-5. `架構紅線`：AI 不能穿越的邊界（沒有的話刪掉這段也可以）
-
-其他欄位保持範本格式，之後慢慢填。
-
----
-
-## 步驟三：設定你的 AI 工具
-
-**Claude Code**:
+對已經採用 starter-pack 的 repo，可以用：
 
 ```bash
-# 在你的專案根目錄建立 CLAUDE.md，加入：
-echo "Read SYSTEM_PROMPT.md and PLAN.md at the start of every conversation." >> CLAUDE.md
+python -m governance_tools.upgrade_starter_pack --repo /your/project --dry-run
+python -m governance_tools.upgrade_starter_pack --repo /your/project
 ```
 
-**ChatGPT / 其他工具**:
+這條路徑的定位是：
 
-將 `SYSTEM_PROMPT.md` 內容貼入 Custom Instructions 或 System Prompt 欄位。
+- 補齊缺失的 starter-pack 檔案
+- 視需要 refresh adapter / prompt surfaces
+- 不把 repo 自動升級成完整 framework
+
+> `upgrade_starter_pack` 是 instruction / scaffold refresh，不是治理品質認證。
 
 ---
 
-## 步驟四：驗證有效（30 秒）
+## 使用規則
 
-開啟新對話，輸入任何任務，確認 AI 回覆**開頭**出現：
+### 1. 先維護 `PLAN.md`
 
-```
-[Governance Contract]
-PLAN     = Phase 1 / 本週聚焦 / [你的任務]
-PRESSURE = SAFE (0/200)
-```
+`PLAN.md` 是 starter-pack 的核心。每次 session 前，AI 都應先讀這份檔案。
 
-如果出現這個 block，代表 AI 已讀取 PLAN.md 並初始化治理。
+至少要維護：
 
-如果沒有出現 → 確認 SYSTEM_PROMPT.md 有被 AI 讀取到。
+- 專案目標
+- 目前 phase
+- `## Current Sprint`
+- `## Backlog`
+- 架構邊界與 anti-goals
 
----
+### 2. 控制記憶壓力
 
-## 步驟五：維持習慣（每次對話後）
-
-1. **更新 `memory/01_active_task.md`**（AI 會提醒你，你也可以自己更新）
-2. **每週更新 `PLAN.md` 的「本週聚焦」**（5 分鐘）
-3. **定期監控記憶壓力**：
+若 `memory/01_active_task.md` 逐漸膨脹，應使用：
 
 ```bash
-python memory_janitor.py --check
+python memory_janitor.py --plan
 ```
+
+確認整理方案後再執行：
+
+```bash
+python memory_janitor.py --execute
+```
+
+### 3. 專案長大後應升級
+
+當 repo 進入以下狀態時，應考慮升級到完整 framework：
+
+- 需要 runtime governance
+- 需要 closeout / audit / readiness
+- 需要 external repo adoption baseline
+- 需要規則 pack、drift check、source audit
 
 ---
 
-## 你會得到什麼
+## 常見誤解
 
-**沒有框架時**:
-```
-對話 1: AI 開始寫你沒要求的快取功能
-對話 8: AI 忘記 3 天前的決策，重新解釋問題
-```
+### 誤解 1：有 starter-pack 就等於已導入 framework
 
-**有這 3 個文件後**:
-```
-對話 1: AI 確認任務在本週範圍，詢問優先級後再動手
-對話 8: AI 讀取 PLAN.md，知道目前狀態，延續上次決策
-```
+不是。starter-pack 只是最小治理起點，不是完整 adopt。
 
----
+### 誤解 2：跑過 upgrade_starter_pack 就等於治理成熟
 
-## 遇到問題？
+不是。這只代表 starter-pack managed files 已補齊或 refresh。
 
-| 問題 | 原因 | 解法 |
-|------|------|------|
-| AI 沒有輸出 Governance Contract | SYSTEM_PROMPT.md 未被讀取 | 確認 AI 工具的 system prompt 設定 |
-| AI 無視 PLAN.md 的範圍限制 | Attention decay（正常現象） | 每次對話開頭手動提醒「請先讀 PLAN.md」 |
-| memory_janitor 報錯 | `memory/` 資料夾不存在 | `mkdir -p memory && touch memory/01_active_task.md` |
+### 誤解 3：`PLAN.md` 可以長期不更新
+
+不行。starter-pack 的治理效果高度依賴 `PLAN.md` 是否還是可信的 source of truth。
 
 ---
 
-## 準備升級？
+## 下一步
 
-當你需要以下功能時，切換到完整框架：
+如果你要的是完整治理框架，而不是最小提示骨架，請回到 framework root 參考：
 
-| 需求 | 對應文件 |
-|------|----------|
-| 架構邊界強制執行 | `governance/ARCHITECTURE.md` |
-| 程式碼 Review 標準 | `governance/REVIEW_CRITERIA.md` |
-| 多 Agent 協作 | `governance/AGENT.md` |
-| CI 自動驗證 | `scripts/verify_phase_gates.sh` |
-| Governance Contract 驗證 | `governance_tools/contract_validator.py` |
-
-完整框架：[返回 repo 根目錄](../../README.md)
+- `README.md`
+- `docs/INTEGRATION_GUIDE.md`
+- `governance_tools/adopt_governance.py`
