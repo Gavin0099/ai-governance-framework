@@ -1,4 +1,4 @@
-﻿# Reviewer Run Sheet
+﻿# Reviewer 執行記錄表
 
 > 狀態：active
 > 建立：2026-03-31

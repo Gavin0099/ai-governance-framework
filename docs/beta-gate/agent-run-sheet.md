@@ -1,4 +1,4 @@
-﻿# Agent Run Sheet
+﻿# Agent 執行記錄表
 
 > 狀態：active
 > 建立日期：2026-03-31
