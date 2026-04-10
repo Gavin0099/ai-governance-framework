@@ -7,9 +7,9 @@ default_load: on-demand
 ---
 
 # TESTING.md
-**測試策略與品質門檻 - v4.3**
+**測試策略與品質門檻 - v4.4**
 
-> **Version**: 4.3 | **Priority**: 6（品質守門）
+> **Version**: 4.4 | **Priority**: 6（品質守門）
 >
 > 定義在什麼條件下，我們可以合理相信一段程式碼。
 > 測試是 guardrail，不是 KPI。
@@ -151,6 +151,22 @@ expected result 必須來自 spec、固定範例、invariant、或 independent f
 - shared / global state modification：要有明確 cleanup 或 restoration verification
 - async dispatch：要有 completion behavior 與 failure-path evidence；不能把 fire-and-forget 當 fully tested
 
+### 3.5 Pure Function and Never-Raises Contracts
+
+宣告了「never raises」或「always returns well-formed output」保證的函式，需要專屬測試策略。保證本身必須由測試來持守，不能只靠文件說明。
+
+**Never-raises 保證**的測試要求：
+- 每種異常輸入類型（`None`、空值、格式錯誤、schema 違反）都必須有獨立測試案例
+- 測試必須 assert 回傳值的結構與 status，不能只驗證「未拋例外」
+- 最壞情況（完全無效輸入）仍必須回傳有用的 degraded output；測試必須明確斷言這個 degraded output 的形狀
+
+**Graceful degradation**（失敗時回傳 `inject=False` 或等效降級結果）的測試要求：
+- 必須覆蓋：目錄不存在、檔案不可讀、JSON 解析失敗、必要欄位缺失
+- 每個失敗路徑的測試都必須 assert 降級回傳值的完整結構，不只確認 flag 值
+- 降級後的回傳值必須符合與正常路徑相同的 key contract
+
+若一個 function 宣稱 never-raises，但測試套件中沒有針對異常輸入的測試，這個保證不能算已驗證。
+
 ---
 
 ## 4. Repo-Aware Build Policy
@@ -180,6 +196,23 @@ build breadth 應隨 task risk 調整：
 - touched file 不得引入新 warning
 - 不得在沒有明確說明的情況下惡化既有 warning baseline
 - 若 legacy warning 沒變，不必自動阻擋完成
+
+### 4.4 stdlib-Only Testing Constraints
+
+本專案僅使用 Python stdlib（不允許 `pip install`）。測試必須遵守相同限制：
+
+**允許**：
+- `unittest.mock`（stdlib）
+- `tempfile`、`pathlib`、`os`、`io` 等 stdlib 模組做 fixture isolation
+- `pytest` 作為測試執行器（工具，非 production dependency）
+
+**不允許**：
+- 任何第三方測試輔助函式庫（`faker`、`factory_boy`、`responses`、`freezegun` 等）
+- 任何需要外部服務或 API key 的測試（除非有明確 mock harness）
+
+若某個 test 看起來需要第三方函式庫，這通常是測試設計問題的信號：應以 injection、fixture、或 in-process stub 取代。
+
+注意：test runner（`pytest`）本身不受此限制；限制對象是 production dependency 和 test-helper libraries。
 
 ---
 
@@ -216,6 +249,27 @@ build breadth 應隨 task risk 調整：
 | Legacy baseline | canonical toolchain、canonical build command、baseline build、modified build |
 
 不要在沒有指出 evidence 的情況下宣稱 `verified`。
+
+### 6.3 Cross-Tool Integration Evidence
+
+當一個 task 修改的 governance tool 與其他工具有跨邊界互動（例如 `session_start` → `session_end` → audit），evidence 必須涵蓋**邊界**，不只是單個工具。
+
+兩個各自通過的 unit test 不等於 integration evidence。
+
+可接受的 integration evidence：
+- 涵蓋完整呼叫鏈的 end-to-end test，使用現實輸入
+- 跨邊界的 return dict shape 驗證（不只驗單一函式內部）
+- producer 輸出降級時，consumer 能正確處理的測試
+
+**不**算 integration evidence：
+- 兩個獨立 unit test 各自通過
+- 只測試 happy path 的 integration sequence
+- mock-only 驗證 downstream function 被呼叫
+
+典型需要 integration evidence 的邊界：
+- `session_end` 寫入 canonical → `session_start` 讀取並注入 context
+- `write_candidate()` 寫入 → `build_canonical_closeout()` 處理 → `closeout_audit` 聚合
+- `pre_task_check` 完成 → `post_task_check` 接收 contract
 
 ---
 
@@ -267,7 +321,26 @@ build breadth 應隨 task risk 調整：
 
 若測試依賴未受控的 time、random、或 execution order，卻仍宣稱 stable，屬於禁止行為。
 
-### 7.3 Behavior Source and Test Plan Requirement
+### 7.3 Trust Boundary Tests
+
+宣告了信任邊界的元件（例如「只讀 canonical，不讀 candidates」）必須有測試驗證該邊界確實被遵守。信任邊界違反是**靜默失敗**：結果看起來有效，但資料來自不受信任的來源。
+
+**Trust boundary test 的要求**：
+- 若元件宣稱不讀取路徑 X，測試必須在路徑 X 存在且有資料的情況下，驗證結果不受其影響
+- 不能只測試「有讀取路徑 Y」；必須同時測試「沒有讀取路徑 X」
+- 每條已宣告的 trust rule 至少對應一個 boundary test
+
+本專案中典型的 trust boundary pattern：
+
+| 元件 | 宣告的信任規則 | Boundary test 驗證方式 |
+|---|---|---|
+| `closeout_audit` | 只讀 `artifacts/runtime/closeouts/` | 在 candidates dir 放資料，確認 audit 結果不受影響 |
+| `_canonical_closeout_context` | 只讀最新 canonical（依 `closed_at`）；不讀 session-index | 在 session-index 放舊資料，確認 context 回傳的是正確 canonical |
+| `run_session_end` 整合 | canonical 只由 system 寫入；AI candidate 為 untrusted input | candidate 為 schema invalid 時，canonical status 正確反映，不 propagate candidate 的 fields |
+
+若一個元件宣稱有 trust boundary，但 test suite 中沒有任何 boundary test，這個宣告不能算已驗證。
+
+### 7.4 Behavior Source and Test Plan Requirement
 
 沒有可信 expected behavior source 的 test，不是 test，而是猜測偽裝成 verification。
 
@@ -299,6 +372,30 @@ build breadth 應隨 task risk 調整：
 - remediation condition
 
 若沒有 remediation condition，就是隱藏技術債。
+
+### 8.1 Gap Record Format
+
+每筆 gap record 必須自我完備，包含：
+
+```text
+GAP: [工具名稱或函式名稱]
+REASON: [為何目前無法寫出此測試]
+RISK: [哪些失敗模式目前無法被偵測]
+REMEDIATION: [什麼條件成立後，這個 gap 應該被關閉]
+```
+
+範例：
+
+```text
+GAP: linear_integrator API response validation
+REASON: 無 test mode 或 mock API key；CI 環境無法連線外部服務
+RISK: 格式錯誤的 API response 在 runtime 才會被發現
+REMEDIATION: 加入 recorded fixture 或 in-process mock server 後
+```
+
+若無法填寫 REMEDIATION，表示此 gap 為**永久技術債**，必須明確標記，不能靜默略過。
+
+Gap records 的位置：直接寫在本節，或寫在對應工具的 `tests/` 目錄下的 `GAPS.md`，兩者選一，保持一致。
 
 ---
 
