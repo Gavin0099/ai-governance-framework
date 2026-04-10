@@ -1,197 +1,206 @@
-# LIMITATIONS.md - 目前邊界與已知限制
+# LIMITATIONS.md - 當前限制
 
-> 這份文件的目的，不是替 repo 降低期待，而是把**現在已做到什麼、刻意還沒做到什麼、以及哪類風險仍需要人類判斷**說清楚。
->
-> `ai-governance-framework` 目前是一個 **machine-interpretable governance runtime**。它已經能治理 execution、evidence、decision、memory / state 與 reviewer-facing surface，但仍是 **bounded system**，不是萬能代理平台。
+這份文件不是在否定 framework，而是在說清楚它**目前已做到什麼、刻意沒做到什麼、以及 adopter / reviewer 應如何理解它的邊界**。
 
----
+`ai-governance-framework` 目前是一個 **machine-interpretable governance runtime**，不是 full execution platform。
 
-## 1. 目前已經成立的能力
+## 1. 目前已成立的能力
 
-### 1.1 Governance Runtime 主線
+### 1.1 Governance Runtime
 
-目前 repo 已成立的主線包括：
+目前已建立的核心 runtime surfaces 包括：
+
 - `session_start`
 - `pre_task_check`
 - `post_task_check`
 - `session_end`
-- change-control / reviewer-facing artifact
-- decision context / advisory surface
+- decision / evidence / closeout / reviewer-facing artifacts
+- decision context / advisory semantics
 - bounded closeout / canonical closeout workflow
 
-也就是說，它不再只是 prompt 或文件集合，而是能產生 runtime artifact、status surface、與可追蹤 decision path 的治理系統。
+這代表 framework 已經超過單純的 prompt discipline，但仍是 bounded runtime，不是全代理執行平台。
 
 ### 1.2 Repo-Local Adoption Path
 
-目前已具備：
-- `adopt_governance.py` cross-platform adopt path
-- `governance_drift_checker.py`
-- external repo readiness / onboarding / source audit
-- canonical framework source 檢查
-- memory schema scaffold 與 partial / complete visibility
+目前已建立：
 
-這些能力足以支撐 consuming repo 做 bounded adoption，但不等於任何 repo 都會自動進入 fully governed state。
+- `adopt_governance.py`
+- drift checker
+- readiness / onboarding / source audit
+- memory scaffold
+- governance markdown pack
+- governance rules pack
+
+也就是說，consuming repo 已可被帶到一條 bounded adoption path，但不代表所有 repo 一 adopt 就會自然進入成熟治理狀態。
 
 ### 1.3 Review / Status / Audit Surface
 
 目前已有：
-- trust-signal / status surface
+
+- trust-signal / status surfaces
 - closeout audit
 - execution surface coverage
 - runtime surface manifest
-- reviewer handoff 與 release-facing status page
+- reviewer handoff
 
-這些 surface 已可用於 reviewer 與 adoption 驗證，但多數仍是 **observability-first**，不是 enforcement-first。
+這些能力偏向 observability-first，而不是 enforcement-first。
 
----
-
-## 2. 目前刻意不主張的能力
-
-以下能力**不是**這個 repo 現在的對外主張：
+## 2. 明確不主張的範圍
 
 ### 2.1 不是 Full Execution Harness
 
-這個 repo 雖然有 runtime hook、surface inventory、coverage plan、decision context，但它不是完整 execution harness。
+本 repo 雖然有 runtime hooks、surface inventory、coverage 與 closeout workflow，但並不是：
 
-它沒有提供：
-- 通用 agent orchestration substrate
-- 全面 workflow interception
+- 完整的 agent orchestration substrate
+- 完整的 workflow interception layer
 - 通用 multi-agent runtime scheduler
-- 全部工具鏈的統一執行控制層
+- 任意工具 / 任意 agent 的統一執行平台
 
 ### 2.2 不是 Machine-Authoritative Advisory System
 
 advisory signal 目前是：
-- reviewer-visible
+
 - bounded
+- reviewer-visible
 - non-verdict-bearing
 
-它們的作用是降低誤讀、補 decision context、提升 reviewer 可判讀性，而不是直接變成 machine authority。
+它們可以輔助 reviewer 理解風險與上下文，但不能被當成：
 
-也就是說：
-- advisory signal ≠ proof of compliance
-- advisory signal ≠ proof of violation
-- advisory signal ≠ final verdict input
+- proof of compliance
+- proof of violation
+- final verdict authority
 
 ### 2.3 不是 Generic Multi-Agent Orchestration Platform
 
-這個 repo 雖然有 session workflow、closeout、decision surface、advisory taxonomy、injection plan，但它不是通用 multi-agent platform。
+repo 裡雖然已有 session workflow、closeout、decision context、advisory taxonomy、injection plan 等結構，但這不等於通用 multi-agent platform。
 
-它目前不處理：
-- 通用 agent marketplace
-- 多代理全域調度
-- 任意工具 / 任意平台的動態策略編排
+目前沒有主張：
 
----
+- agent marketplace
+- 通用代理排程與任務分發
+- 多 agent 之間的權限、記憶、共識治理層
 
-## 3. 當前主要限制
+## 3. 當前限制
 
-### 3.1 Workflow Interception Coverage 仍然 Partial
+### 3.1 Workflow Interception Coverage 仍是 Partial
 
-目前一些 runtime path 已被治理，但「代理實際執行的所有行為」還沒有完整被攔截與驗證。
+framework 已能觀測一部分 runtime path，但還沒有保證每一種實際工作流程都會被完整接住。
 
-因此：
-- 有些路徑是可觀測的
-- 有些路徑只有 reviewer-visible signal
-- 有些路徑仍然依賴外部 discipline，而非強制執行
+因此目前比較接近：
 
-### 3.2 Advisory / Observation 仍以 Semantics-Observation 為主
+- 有 bounded governance path
+- 有 reviewer-visible trust surface
+- 有可追蹤的 closeout / audit / status
 
-目前 advisory slice 已收斂，但它是：
-- 受限
+但不是「所有工作都一定被 framework 完整攔截」。
+
+### 3.2 Advisory Slice 仍在 Semantics-Observation Phase
+
+advisory signal 已有：
+
+- taxonomy
+- phase boundary
+- producer contract
+- reviewer-visible rendering
+
+但這條線刻意停在：
+
 - reviewer-visible
 - non-verdict-bearing
+- 不進 machine authority
 
-這是刻意設計，不是缺漏。代價是：
-- 可降低誤讀
-- 但不追求 machine authority
-- 也不追求 full signal × full surface matrix
+這是設計選擇，不是未完成 bug。
 
-### 3.3 Memory 與 Host-Agent Memory 尚未打通
+### 3.3 Memory / Host-Agent Memory 仍有邊界
 
 目前 repo 已有：
+
 - memory schema
 - memory sync signal
 - memory closeout visibility
 
-但以下仍未成立：
-- host-agent memory adapter
-- 對外部 agent memory API 的強制同步
-- 通用 session-closeout 自動寫入外部記憶系統
+但仍沒有：
 
-所以目前能治理的是 **repo memory / artifact truth**，不是所有外部平台記憶機制。
+- host-agent memory 統一 adapter
+- 通用 agent memory API
+- 自動保證每次工作都寫入 durable memory
 
-### 3.4 Policy 與 Semantic Verification 仍非 Full Policy Engine
+目前補到的是「為什麼沒寫 memory 可被看見」，不是「所有工作都一定更新 memory」。
 
-目前系統已能：
-- 提供 risk gate
-- 做 bounded decision support
-- 產生 reviewer-facing trace
-- 做 phase / surface / coverage / closeout 相關檢查
+### 3.4 Policy / Semantic Verification 不是 Full Policy Engine
 
-但它仍不是：
-- 全面 semantic policy engine
-- 可對任意 repo / 任意 agent / 任意 domain 自動給出無歧義裁決的系統
+目前已有：
+
+- bounded risk gate
+- bounded decision support
+- reviewer-facing trace
+- phase / surface / coverage / closeout 的可觀測規則
+
+但還沒有：
+
+- 通用 semantic policy engine
+- 全 repo / 全 agent / 全 domain 的統一政策推理系統
 
 ### 3.5 Taxonomy 採 Precision-First，不是 Completeness-First
 
-像 closeout taxonomy、advisory taxonomy、classification slice、以及多個 runtime signal，目前都偏向：
+像 closeout taxonomy、advisory taxonomy、classification slice 目前都偏向：
+
 - precision-first
 - stability-first
 
 這代表：
-- false positive 較少
-- 但 recall 壓力會較高
-- 有些值得辨識的情況，第一版可能不會被抓到
 
-這是取捨，不是意外。
+- false positive 風險較低
+- 但 recall 之後仍會面對壓力
 
----
+這是有意識的取捨，不是現階段缺陷。
 
-## 4. 目前最常見的誤解
+## 4. 容易誤解的地方
 
-### 誤解 1：有很多 artifact，所以一定是全自動治理
+### 4.1 有 artifact 不等於有 authority
 
-不是。artifact 多，代表 observability 在增強；不代表ทุก一條路徑都已經被 machine-authoritative 地接管。
+某個 signal、trace、status page 出現，不代表它已經成為最終裁決權。
 
-### 誤解 2：有 advisory signal，所以 system 已能自動裁決
+### 4.2 有 advisory 不等於有 machine verdict
 
-不是。advisory signal 目前的位階被刻意限制在 reviewer-visible、non-verdict-bearing。
+advisory signal 的主要角色仍是 reviewer-facing semantic aid，不是 policy verdict engine。
 
-### 誤解 3：有 execution / decision / memory，所以它已是完整 runtime platform
+### 4.3 有 execution / decision / memory 不等於 full runtime platform
 
-不是。這些能力已經讓它超越純文件 framework，但仍是 bounded runtime，不是 full platform。
+目前是 bounded runtime，不是完整 execution substrate。
 
-### 誤解 4：導入 framework 後，memory 一定會自動更新
+### 4.4 memory closeout 可見，不等於 memory 一定會更新
 
-不是。現在已補上 `memory_closeout` visibility，但「是否 promote、為什麼沒寫」仍受 closeout path、policy、risk、oversight 與 consuming repo 實際接線影響。
+現在補到的是：
 
----
+- candidate detected?
+- promotion considered?
+- decision / reason?
 
-## 5. 對 adopter / reviewer 的實際建議
+而不是「所有 session 都自動進 durable memory」。
+
+## 5. adopter / reviewer 應如何理解
 
 ### 對 adopter
 
-如果你要導入這個 framework，應預期：
-- 它能給你一條 bounded governance path
-- 它能提高 traceability、reviewability、與 adoption consistency
-- 但你仍需要為自己的 repo 定義：
-  - canonical build path
-  - domain boundary
-  - reviewer discipline
-  - memory / closeout 使用方式
+應把這個 framework 理解成：
+
+- 一條 bounded governance adoption path
+- 一套可被檢查的 baseline / readiness / drift / closeout / reviewer surface
+- 一個能讓 repo 漸進進入治理狀態的 framework
+
+不要把它想成一個會自動接管整個 repo 工程品質的萬用平台。
 
 ### 對 reviewer
 
-review 時應把它看成：
-- 一個能讓 decision 與 review artifact 更可讀的 runtime
-- 一組可觀測的 trust surface
-- 一套 bounded governance mechanism
+應把它理解成：
 
-不要把它當成萬能 policy machine，也不要把 reviewer 的判斷責任完全外包給 signal。
+- 提供 decision / trace / closeout / status 的可檢查輸出
+- 降低誤讀風險
+- 提供 bounded governance evidence
 
----
+而不是取代 reviewer judgment 本身。
 
 ## 6. 一句話總結
 
-> `ai-governance-framework` 已經是一個可執行、可觀測、可審查的 governance runtime；但它仍刻意停在 bounded、precision-first、reviewer-compatible 的位階，而不是 full execution harness 或 machine-authoritative policy platform。
+> `ai-governance-framework` 目前是一個 bounded、precision-first、reviewer-compatible 的 governance runtime；它已經超過 prompt discipline，但刻意還不是 full execution harness 或 machine-authoritative policy platform。

@@ -1,51 +1,36 @@
-# INTEGRATION_GUIDE.md - 整合指南
+# INTEGRATION_GUIDE.md - 導入指南
 
-> **Version**: v1.0
-> **Last Updated**: 2026-04-09
->
-> 這份文件說明如何把 `ai-governance-framework` 整合進實際 repo，並以最小風險建立可運作的 adoption path。
->
-> 這不是 generic platform setup guide；它聚焦的是 **repo-level governance integration**。
+> **Version**: v1.0  
+> **Last Updated**: 2026-04-10
 
----
+這份文件說明如何把 `ai-governance-framework` 導入到 consuming repo。  
+它的重點是 **repo-level governance integration**，不是 generic platform setup。
 
-## 1. 整合目標
+## 1. 導入後會得到什麼
 
-整合這個 framework 的目的，是讓 consuming repo 具備以下能力：
-- 有 canonical governance baseline
-- 有可檢查的 drift / readiness / onboarding surface
-- 有最小 memory scaffold 與 governance markdown pack
-- 有可執行的 runtime hook / review / status 路徑
-- 有 bounded session workflow 與 closeout path
+導入 framework 後，consuming repo 會得到：
 
-如果你要的是完整 multi-agent orchestration platform，這份指南不是在處理那件事。
+- canonical governance baseline
+- memory scaffold
+- governance markdown pack
+- governance rule pack
+- drift / readiness / onboarding surface
+- bounded session workflow 與 closeout path
 
----
+這不代表 consuming repo 立刻變成完整 AI runtime platform；它只是有了可被檢查、可被採用、可被 reviewer 理解的治理骨架。
 
-## 2. 最小整合組成
+## 2. 先決條件
 
-一個最小、可工作的整合，至少包含：
+建議 consuming repo 至少有：
 
-- framework source（建議用 submodule）
-- `adopt_governance.py` 跑過一次
-- `.governance/baseline.yaml`
-- `AGENTS.base.md`
-- `contract.yaml`
-- root `PLAN.md`
-- `memory/01_active_task.md`
-- `memory/02_tech_stack.md`
-- `memory/03_knowledge_base.md`
-- `memory/04_review_log.md`
-- `governance/*.md`
-- `governance/rules/**`
+- 正確的 framework source（canonical repo 或 pinned submodule）
+- 可執行的 Python 環境
+- repo root 可寫入：
+  - `.governance/`
+  - `memory/`
+  - `governance/`
 
-若缺少這些，通常代表只是把 framework 拉進 repo，還沒有真正 adopt。
-
----
-
-## 3. 建議的整合方式
-
-### 3.1 使用官方 canonical source
+## 3. canonical source
 
 建議使用：
 
@@ -53,42 +38,40 @@
 https://github.com/Gavin0099/ai-governance-framework.git
 ```
 
-不要把落後 fork 當成等價來源。
-現在 framework 已經能在 readiness / onboarding / version audit 中顯示 canonical source 是否正確。
+不要把落後 fork 當成正常版本差異。  
+`external_repo_readiness.py`、`external_repo_version_audit.py`、`external_repo_onboarding_report.py` 都會把 framework source 是否 canonical 顯式浮出來。
 
-### 3.2 用 submodule 導入
-
-典型做法：
+## 4. submodule 導入
 
 ```powershell
 git submodule add https://github.com/Gavin0099/ai-governance-framework.git additional/ai-governance-framework
 git submodule update --init --recursive
 ```
 
-也可以用直接 clone，但 submodule 較容易保留 consuming repo 自己的 pinned version 決策。
+submodule 的版本是 parent repo 的決策。  
+framework checkout 更新，不等於 parent repo 已正式接受新的 pinned version。
 
-### 3.3 跑 adopt
+## 5. adopt 流程
 
-在 consuming repo 根目錄執行：
+在 consuming repo root 執行：
 
 ```powershell
 python additional/ai-governance-framework/governance_tools/adopt_governance.py --target . --framework-root additional/ai-governance-framework
 ```
 
-這會：
-- 建立 baseline
-- 複製 governance markdown pack
-- 建立 `governance/rules/`
-- 建立最小 memory scaffold
-- 修補 `contract.yaml` 的必要 documents
+adopt 會：
 
----
+- 建立 `.governance/baseline.yaml`
+- 複製 `AGENTS.base.md`
+- 建立或修補 `contract.yaml`
+- 建立 root `PLAN.md`
+- 建立 `memory/01~04`
+- 複製 `governance/*.md`
+- 複製 `governance/rules/**`
 
-## 4. Adopt 後的第一輪驗證
+## 6. adopt 後的最小檢查
 
-### 4.1 檔案存在性
-
-至少確認這些檔案存在：
+至少確認以下檔案存在：
 
 - `.governance/baseline.yaml`
 - `AGENTS.base.md`
@@ -102,121 +85,121 @@ python additional/ai-governance-framework/governance_tools/adopt_governance.py -
 - `governance/ARCHITECTURE.md`
 - `governance/rules/common/core.md`
 
-### 4.2 跑 readiness / drift
+## 7. readiness / drift / smoke
+
+### Drift
 
 ```powershell
 python additional/ai-governance-framework/governance_tools/governance_drift_checker.py --repo . --framework-root additional/ai-governance-framework
+```
 
+### Readiness
+
+```powershell
 python additional/ai-governance-framework/governance_tools/external_repo_readiness.py --repo . --framework-root additional/ai-governance-framework --format human
 ```
 
-你要確認的是：
-- 沒有 critical drift
-- `memory_schema_status` 不是隱性 partial
-- framework source 是 canonical
-
-### 4.3 跑 quickstart / smoke
+### Quickstart / runtime surface smoke
 
 ```powershell
 python additional/ai-governance-framework/governance_tools/quickstart_smoke.py
 python additional/ai-governance-framework/governance_tools/runtime_surface_manifest_smoke.py --format human
 ```
 
-若這些都過，代表 adoption 已經從「文件存在」跨到「基本 runtime 可用」。
+目標是確認：
 
----
+- 沒有 critical drift
+- `memory_schema_status` 不是 partial
+- framework source 是 canonical
+- runtime surface 基本一致
 
-## 5. Memory 與 Closeout 整合現況
+## 8. memory 與 closeout 要怎麼理解
 
-這個 framework 現在已經有：
-- memory schema scaffold
+framework 目前已補上：
+
+- memory scaffold
 - memory sync signal
 - memory closeout visibility
 
 但要注意：
-- adopt 只保證 scaffold，不保證每次都自動寫 memory
-- `session_end` 是否真的被 shared path 接到，要看 consuming repo 的實際 workflow
-- closeout 現在能明確輸出：
-  - `candidate_detected`
-  - `promotion_considered`
-  - `decision`
-  - `reason`
 
-所以更正確的期待是：
-- system 能說明為什麼沒寫
-- 不代表它一定會自動幫你寫進 long-term memory
+- adopt 只建立 scaffold，不會保證每次工作都自動寫入 memory
+- `session_end` 需要真的進 shared path，closeout 才會被看見
+- `memory_closeout` 目前補的是可見性，不是 promotion 擴權
 
----
+你現在至少可以看到：
 
-## 6. Rule Pack 與 Contract 整合
+- `candidate_detected`
+- `promotion_considered`
+- `decision`
+- `reason`
 
-`contract.yaml` 可宣告：
+也就是說，「為什麼這次 memory 沒更新」不再是黑箱。
+
+## 9. rule pack 與 contract
+
+`contract.yaml` 應正確維護：
+
 - `rule_roots`
 - `documents`
-- repo-local risk / language / domain 資訊
+- repo-local risk / language / domain 設定
 
-目前最重要的是：
-- `governance/rules/` 必須存在
-- `documents:` 至少要能把 `TESTING.md`、`ARCHITECTURE.md` 等高價值文件接進 agent 可讀路徑
+adopt 後，至少應讓 `documents:` 指向像這些檔案：
 
-rule pack name 必須來自 `governance/RULE_REGISTRY.md`，例如：
-- `common`
-- `python`
-- `cpp`
-- `csharp`
-- `kernel-driver`
-- `refactor`
+- `governance/TESTING.md`
+- `governance/ARCHITECTURE.md`
 
-`onboarding` 不是合法 rule pack 名稱。
+否則 agent 雖然有 baseline，但不會自然讀到 repo-level testing / architecture guardrails。
 
----
+## 10. starter-pack 與完整 adopt 的差別
 
-## 7. 常見整合失敗型態
+如果專案還很小，只需要最小治理起點，可以先看：
 
-### 7.1 只有 submodule，沒有 adopt
+- [examples/starter-pack/README.md](../examples/starter-pack/README.md)
+- [governance_tools/upgrade_starter_pack.py](../governance_tools/upgrade_starter_pack.py)
 
-現象：
-- framework 在 repo 裡，但 `.governance/baseline.yaml`、memory scaffold、governance pack 都不存在
+但 starter-pack 只提供：
 
-這代表只是 clone 了 framework，沒有真的導入。
+- `SYSTEM_PROMPT.md`
+- `PLAN.md`
+- `memory/01_active_task.md`
+- 基本 adapter files
 
-### 7.2 memory schema partial 卻被誤認為完整
+它**不等於**完整 framework adopt，也不會自動提供：
 
-舊版本很容易出現：
-- 只有 `02_tech_stack.md`
-- intake 還能繼續
+- drift checker
+- readiness surface
+- governance/rules pack
+- closeout / audit 閉環
 
-現在 framework 已補上 partial / complete visibility，但 consuming repo 仍要跑新版工具才能看見。
+## 11. 常見錯誤
 
-### 7.3 用錯 framework source
+### 只有 submodule，沒有 adopt
 
-若 consuming repo 指到落後 fork，可能會看到：
-- 行為比官方主線舊
-- 缺少新 signal / closeout / readiness surface
+這種情況通常會缺：
 
-現在已有 canonical source 檢查，應直接用它辨識。
+- `.governance/baseline.yaml`
+- `AGENTS.base.md`
+- `memory scaffold`
 
-### 7.4 把 advisory 誤當 authority
+### memory schema partial
 
-advisory signal 目前是 reviewer-visible、non-verdict-bearing。不要在 consuming repo 端自行把它升格成硬裁決依據。
+例如只有 `02_tech_stack.md`，卻沒有 `01/03/04`。  
+現在 framework 會把這種情況辨識成 partial，不會再誤當成 complete。
 
----
+### 使用錯誤 framework source
 
-## 8. 建議的整合節奏
+如果 repo 指向落後 fork，雖然看起來是同一套 framework，實際上可能少掉較新的 signal、closeout、readiness 或 audit 修正。
 
-最穩的節奏是：
+## 12. 最小導入順序
 
-1. **導入 source**
-2. **跑 adopt**
-3. **確認 baseline / memory / governance pack 存在**
-4. **跑 drift / readiness / smoke**
-5. **確認 runtime hook 至少有一條可讀輸出**
-6. **再決定是否接 closeout / audit / reviewer surface**
+1. 確認 source
+2. 加入 submodule 或 clone
+3. 執行 adopt
+4. 確認 baseline / memory / governance pack 存在
+5. 跑 drift / readiness / smoke
+6. 再開始看 runtime hook、closeout、reviewer surface
 
-不要一開始就把所有 signal、status、memory、closeout、advisory 全部一起打開。
+## 13. 一句話總結
 
----
-
-## 9. 一句話整合原則
-
-> 先把 consuming repo 接成一個可驗證、可檢查、可回退的 bounded governance path，再考慮擴到更多 runtime surface；不要一開始就把整個 framework 當成全自動平台能力一次導入。
+> 導入 consuming repo 的目標，不是把 framework 檔案堆進 repo，而是把 repo 帶到一條可被檢查、可被 reviewer 理解、也能逐步進入 bounded governance runtime 的 adoption path。
