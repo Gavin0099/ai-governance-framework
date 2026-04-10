@@ -1,156 +1,165 @@
-# Consuming Repo 導入驗證清單
+# Consuming Repo 導入檢查清單
 
 ## 目的
 
-這份清單用來驗證：
+這份清單用來確認 consuming repo 是真的把 `ai-governance-framework` 導進來，而不是只有把 framework clone 進 repo 或加了一個 submodule。
 
-> 使用者在一個尚未導入的專案裡，把 `ai-governance-framework` 以 submodule 或等價方式拉進來後，是否真的完成導入。
+它的重點是：
 
-關鍵不是「framework clone 進 repo」而已，而是要確認：
+- framework source 正確
+- adopt 流程有跑
+- scaffold / governance pack / rules pack 有落地
+- drift / smoke / runtime path 能工作
 
-- framework 檔案真的接進 consuming repo
-- adopt 已執行
-- drift / smoke 可跑
-- runtime hook 已經能產生治理輸出
+## Step 1：確認 framework source
 
-## Step 1：確認 submodule / scaffold 是否存在
+至少要先確認：
 
-至少應看到：
+- framework checkout 來自 canonical source
+- consuming repo 的 submodule / clone 版本是預期的 pinned version
 
-- `ai-governance-framework/`
-- `.governance/baseline.yaml`
-- `AGENTS.base.md`
-- `contract.yaml`
-- `PLAN.md`
-- `.github/workflows/governance-drift.yml`
+建議 source：
 
-以及最小 memory scaffold：
+```text
+https://github.com/Gavin0099/ai-governance-framework.git
+```
 
-- `memory/01_active_task.md`
-- `memory/02_tech_stack.md`
-- `memory/03_knowledge_base.md`
-- `memory/04_review_log.md`
+## Step 2：選擇導入路徑
 
-如果只有 submodule，卻沒有上面這些檔案，表示只是 clone 了 framework，還沒真的 adopt。
+### 路徑 A：完整 adopt
 
-## Step 2：執行 adopt
+適用於：
+
+- 希望直接接上 drift / readiness / runtime governance
+- 需要 `governance/`、`memory/01~04`、`contract.yaml`
+
+### 路徑 B：starter-pack
+
+適用於：
+
+- repo 還很小
+- 目前只需要最小治理骨架
+- 還不想導入完整 baseline
+
+starter-pack 目前可搭配：
+
+- [examples/starter-pack/README.md](../examples/starter-pack/README.md)
+- [governance_tools/upgrade_starter_pack.py](../governance_tools/upgrade_starter_pack.py)
+
+但要注意：starter-pack 不等於完整 adopt。
+
+## Step 3：完整 adopt 檢查
+
+執行：
 
 ```powershell
 python ai-governance-framework/governance_tools/adopt_governance.py --target . --framework-root ./ai-governance-framework
 ```
 
-### 預期結果
+至少應看到：
 
-- 無 critical adopt failure
-- 會寫出 baseline / scaffold
-- 既有檔案若可保留，應保留而不是粗暴覆蓋
+- `.governance/baseline.yaml`
+- `AGENTS.base.md`
+- `contract.yaml`
+- `PLAN.md`
+- `memory/01_active_task.md`
+- `memory/02_tech_stack.md`
+- `memory/03_knowledge_base.md`
+- `memory/04_review_log.md`
+- `governance/*.md`
+- `governance/rules/**`
 
-## Step 3：跑 drift
+## Step 4：starter-pack 檢查
+
+如果走的是 starter-pack 路徑，至少應確認：
+
+- `SYSTEM_PROMPT.md`
+- `PLAN.md`
+- `memory/01_active_task.md`
+- adapter files（如 `CLAUDE.md`、`GEMINI.md`、`.github/copilot-instructions.md`）
+- `memory_janitor.py`
+
+可用以下方式補齊 / refresh：
+
+```powershell
+python ai-governance-framework/governance_tools/upgrade_starter_pack.py --repo . --dry-run
+python ai-governance-framework/governance_tools/upgrade_starter_pack.py --repo .
+```
+
+重點邊界：
+
+- 它會補齊 starter-pack managed files
+- 它不會自動把 repo 升級成完整 framework
+- 它不會自動覆寫 repo 專屬 `PLAN.md`
+
+## Step 5：drift / readiness
+
+完整 adopt 路徑應至少跑：
 
 ```powershell
 python ai-governance-framework/governance_tools/governance_drift_checker.py --repo . --framework-root ./ai-governance-framework
-```
-
-### 預期結果
-
-- 無 `critical`
-- 若有 `warning`，必須可解釋
-
-特別要看：
-
-- `baseline_yaml_present`
-- `protected_files_present`
-- `protected_files_unmodified`
-- `contract_required_fields_present`
-- `memory_schema_complete`
-
-## Step 4：跑 quickstart smoke
-
-```powershell
-python ai-governance-framework/governance_tools/quickstart_smoke.py
-```
-
-### 預期結果
-
-- `ok=True`
-- `pre_task_ok=True`
-- `session_start_ok=True`
-
-## Step 5：跑 runtime surface consistency smoke
-
-```powershell
-python ai-governance-framework/governance_tools/runtime_surface_manifest_smoke.py --format human
-```
-
-### 預期結果
-
-- `unknown_surfaces=0`
-- `orphan_surfaces=0`
-- `evidence_surface_mismatch=0`
-
-## Step 6：跑 project facts intake / readiness
-
-```powershell
-python ai-governance-framework/governance_tools/external_project_facts_intake.py --repo . --project-root ./ai-governance-framework --format human
 python ai-governance-framework/governance_tools/external_repo_readiness.py --repo . --framework-root ./ai-governance-framework --format human
 ```
 
-### 預期結果
+目標：
 
-- `memory_schema_status=complete` 或明確顯示 `partial`
-- readiness 不會把 partial schema 假裝成 complete
+- 沒有 critical drift
+- `memory_schema_status` 不是 partial
+- framework source 是 canonical
 
-## Step 7：驗 runtime hook 是否真的進 decision path
+## Step 6：runtime smoke
 
-至少跑一次 `pre_task_check`：
+```powershell
+python ai-governance-framework/governance_tools/quickstart_smoke.py
+python ai-governance-framework/governance_tools/runtime_surface_manifest_smoke.py --format human
+```
+
+## Step 7：runtime hook 路徑
+
+至少驗一次 `pre_task_check`：
 
 ```powershell
 python ai-governance-framework/runtime_hooks/core/pre_task_check.py --contract ./contract.yaml --task-level L1 --task-text "Implement parser without sample file"
 ```
 
-### 預期結果
+目標：
 
 - 有 `decision_boundary`
 - 有 `boundary_effect`
-- hook 不是只回文字，而是真的進入 governance decision path
+- hook 有真的進到 governance decision path
 
-## 最小成功標準
+## 失敗類型
 
-下列條件都成立，才算「正確導入」：
+### 類型 A：只有 framework checkout，沒有 adopt
 
-1. submodule / framework checkout 存在
-2. `adopt_governance.py` 已跑過
-3. `governance_drift_checker.py` 無 critical
-4. memory scaffold 存在
-5. `quickstart_smoke.py` 回傳 `ok=True`
-6. `runtime_surface_manifest_smoke.py` 無 consistency signal
-7. 至少一個 runtime hook 有產生治理輸出
+通常缺：
 
-## 常見失敗類型
+- `.governance/baseline.yaml`
+- `AGENTS.base.md`
+- memory scaffold
 
-### 類型 A：只有 submodule，沒有 adopt
+### 類型 B：adopt 有跑，但 schema / docs / rules 不完整
 
-現象：
-
-- 沒有 `.governance/baseline.yaml`
-- 沒有 `AGENTS.base.md`
-- 沒有 memory scaffold
-
-### 類型 B：adopt 完成，但 memory schema 仍 partial
-
-現象：
+例如：
 
 - `memory_schema_status=partial`
-- `memory_schema_complete` warning
+- 缺 `governance/rules/`
+- `contract.yaml` 沒有帶 `TESTING.md` / `ARCHITECTURE.md`
 
-### 類型 C：靜態導入成功，但 runtime 沒接上
+### 類型 C：只有 starter-pack，卻誤以為已完整導入 framework
 
-現象：
+這是常見誤讀。
 
-- 檔案都在
-- drift / smoke 可能也能跑
-- 但 runtime hook 沒有治理輸出
+starter-pack 只代表：
 
-## 一句話結論
+- 已有最小治理骨架
 
-正確導入 `ai-governance-framework`，不是「submodule 在」而已，而是：adopt 已完成、drift 可檢、smoke 可跑、memory schema 狀態可見、且 runtime hook 已真的進 decision path。
+不代表：
+
+- 已有 drift checker
+- 已有 readiness surface
+- 已有 closeout / audit / review runtime
+
+## 一句話
+
+導入成功，不是指「檔案有了」，而是 repo 已經進入一條可被檢查、可被 reviewer 理解、也可逐步進入 bounded governance runtime 的 adoption path。

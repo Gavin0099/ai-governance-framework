@@ -33,6 +33,11 @@ pip install -r requirements.txt
   - `.governance/baseline.yaml`
   - `memory/01..04`
 
+補充：
+
+- 如果外部 repo 目前只想要最小治理骨架，也可以先走 starter-pack 路徑
+- 但 starter-pack 只驗「最小 scaffold 是否可用」，不能替代完整 adopt 驗證
+
 ## F2：Governance Drift Check
 
 驗證 consuming repo 的 drift checker 是否能正常工作。
@@ -92,6 +97,17 @@ pip install -r requirements.txt
 - 能區分合法 adoption 與不完整 adoption
 - 能識別 canonical framework source 與非 canonical source
 
+## F8：Starter-Pack Upgrade Path
+
+驗證 `upgrade_starter_pack.py` 能否把 starter-pack repo 補齊到可用狀態。
+
+### Pass Criteria
+
+- dry-run 可列出 planned actions
+- live run 可補齊缺失的 starter-pack managed files
+- 不會自動覆寫既有 `PLAN.md`
+- 不會把 starter-pack 誤報成完整 framework adoption
+
 ## 一句總結
 
-這份 checklist 的目的，是確認外部 repo 導入後，framework 的 adopt、runtime、rule pack、readiness 與 DBL enforcement 都真的接上，而不是只完成靜態複製。
+這份 checklist 的目的，是確認外部 repo 導入後，framework 的 adopt、starter-pack、runtime、rule pack、readiness 與 DBL enforcement 都真的接上，而不是只完成靜態複製。

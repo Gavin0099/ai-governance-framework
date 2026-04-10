@@ -38,6 +38,7 @@ def test_example_readiness_human_output_surfaces_runtime_status():
     assert "[example_readiness]" in output
     assert "summary=name=todo-app-demo | kind=runnable-demo | ok=True" in output
     assert "summary=name=usb-hub-contract | kind=domain-contract | ok=True | runtime_ready=True" in output
+    assert "note[starter-pack]=Use governance_tools/upgrade_starter_pack.py for opt-in scaffold refresh" in output
 
     todo = next(item for item in result["examples"] if item["name"] == "todo-app-demo")
     if not todo["runtime_ready"]:

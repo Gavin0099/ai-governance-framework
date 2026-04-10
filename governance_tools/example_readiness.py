@@ -210,6 +210,10 @@ def format_human_result(result: dict[str, Any]) -> str:
         lines.append(f"summary={' | '.join(summary_parts)}")
         if item.get("run_command"):
             lines.append(f"run_command[{item['name']}]={item['run_command']}")
+        if item["name"] == "starter-pack":
+            lines.append(
+                "note[starter-pack]=Use governance_tools/upgrade_starter_pack.py for opt-in scaffold refresh; this does not equal full framework adoption."
+            )
         for warning in item.get("warnings", []):
             lines.append(f"warning[{item['name']}]: {warning}")
         for error in item.get("errors", []):
