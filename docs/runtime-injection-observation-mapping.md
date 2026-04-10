@@ -1,26 +1,28 @@
-﻿# Runtime Injection Observation Mapping
+# Runtime Injection Observation Mapping
 
 > bounded mapping defined
-> ?湔?交?嚗?026-04-09
+> 更新日期：2026-04-09
 
-## ?桃?
+## 目的
 
-?遢?辣??consumption requirement ??observable proxy ??靽神皜?嚗?
+本文定義 consumption requirement → observable proxy → interpretation boundary 的有界映射：
+
 ```text
 consumption requirement -> observable proxy -> interpretation boundary
 ```
 
-摰???銝??proxy 霈? compliance proof嚗?????神甇鳴?
-- 銝? trigger / proxy ?嗆? compliance proof
-- 銝? environment degradation ?嗆? behavioral failure
+本文**不**把 proxy 當作 compliance proof，核心主張：
+- 任何 trigger / proxy 都不等同於 compliance proof
+- 任何 environment degradation 都不等同於 behavioral failure
 
-## ?遢 mapping ?臭?暻?
-?遢 mapping ?芸?銝辣鈭?
-- 摰儔 consumption requirement ?臭誑撠??芯? observable proxy
-- ?? proxy ?芾蝞?`observable compliance evidence`
-- 霈?signal ?賢 advisory / reviewer surface 銝剛◤雿輻
+## 本文 mapping 的適用範圍
 
-摰??荔?
+本文 mapping 適用於以下三個使用場景：
+- 為每個 consumption requirement 提供可觀測的 observable proxy
+- 把 proxy 結果轉為 `observable compliance evidence`
+- 把 signal 結果輸出到 advisory / reviewer surface 供人工參閱
+
+**不適用**：
 - proof-of-compliance engine
 - policy obedience detector
 - generic runtime authority layer
@@ -29,84 +31,92 @@ consumption requirement -> observable proxy -> interpretation boundary
 
 ### 1. Environment Degradation Signals
 
-?? signal 銵函內嚗?- runtime state
+此類 signal 反映：
+- runtime state
 - context quality
 - visibility degradation
 
-?? signal ?臭誑?? reviewer 霅行?嚗?銝鋡怨圾霈??behavioral non-compliance??
-靘?嚗?- `context_degraded`
+此類 signal 應傳遞給 reviewer 供人工判斷，但**不代表 behavioral non-compliance**。
+例如：
+- `context_degraded`
 - `required_evidence_missing`
-- truncation / partial visibility 憿?signal
+- truncation / partial visibility 相關 signal
 
 ### 2. Behavioral Compliance Signals
 
-?? signal 銵函內嚗?- ???航?皜祈??箄? requirement ?臬?詨捆
-- execution pattern ?臬??requirement 銵?
+此類 signal 反映：
+- 有無合乎特定 proxy 要求的執行行為被記錄
+- execution pattern 是否與 requirement 吻合
 
-摰?銝???proof嚗??behavioral compatibility evidence??
+這類 signal 是「behavioral compatibility evidence」（非 proof）。
+
 ## First-Slice Requirements
 
-?桀??遢 mapping ?芾????requirement嚗?- `reread_before_edit`
+本文 mapping 的初始優先 requirement：
+- `reread_before_edit`
 - `require_full_read_for_large_files`
 
-銝???
+**不在初始範圍**：
 - `must understand policy`
 - `must follow architecture rules`
-- 隞颱?靘陷 agent ?批?圾??requirement
+- 任何依賴 agent 意圖判斷的 requirement
 
 ## Mapping Table
 
 | Consumption requirement | Acceptable observation proxy | Non-proof caveat | Intended use |
 |---|---|---|---|
-| `reread_before_edit` | edited file ?典?銝??task window ?扳? read event | 銝霅? agent ?臬???圾 reread ?批捆嚗?銝霅? reread ??edit ???航雲憭撥 | reviewer-visible warning / advisory escalation hint |
-| `require_full_read_for_large_files` | large file ?雲憭?chunked read / repeated read coverage嚗???truncation signal | 銝霅???relevant section coverage嚗?銝霅? agent retention | partial visibility / review risk advisory |
-| `escalate_if_context_degraded` | `context_degraded` signal ?? | ? environment state嚗???consumption proof | raise reviewer caution / escalate task posture |
-| `escalate_if_required_evidence_missing` | `required_evidence_missing` signal ?? | ? execution completeness signal嚗???behavioral proof | escalate / stop path嚗蒂?? reviewer-visible evidence gap |
+| `reread_before_edit` | edited file 在同一 task window 中有 read event | 無法驗證 agent 是否真正依照 reread 的內容進行 edit，無法驗證 reread 是否在 edit 之前發生 | reviewer-visible warning / advisory escalation hint |
+| `require_full_read_for_large_files` | large file 有 chunked read / repeated read coverage，且無 truncation signal | 無法驗證相關 section coverage，無法驗證 agent retention | partial visibility / review risk advisory |
+| `escalate_if_context_degraded` | `context_degraded` signal 出現 | 只是 environment state，不是 consumption proof | raise reviewer caution / escalate task posture |
+| `escalate_if_required_evidence_missing` | `required_evidence_missing` signal 出現 | 只是 execution completeness signal，不是 behavioral proof | escalate / stop path，把 reviewer-visible evidence gap 標出 |
 
-## ?嗅? interpretation boundary
+## 合法的 interpretation boundary
 
-?桀??? proxy ?芾鋡怨??綽?
+以下是 proxy 結果可合法標記的：
 - `observable compliance evidence`
 - `behavioral compatibility signal`
 - `reviewer-facing advisory substrate`
 
-銝鋡怨??綽?
+以下**不能**由 proxy 結果標記：
 - `proof_of_compliance`
 - `proof_of_violation`
 - `policy_fully_obeyed`
 
 ## Non-Equivalence Rules
 
-隞乩??刻?銝敺?甇ｇ?
-- observed proxy present ??requirement satisfied
-- observed proxy absent ??requirement violated
-- single event ??behavioral compliance
-- environment degradation ??behavioral failure
+以下等號在本框架中一律不成立：
+- observed proxy present ≠ requirement satisfied
+- observed proxy absent ≠ requirement violated
+- single event ≠ behavioral compliance
+- environment degradation ≠ behavioral failure
 
 ## First Executable Slice
 
-?桀?蝚砌???executable slice ?荔?
+初始可執行 slice 只處理：
 - `require_full_read_for_large_files`
 
-摰?摰??荔?
+此 slice 的性質：
 - advisory-only executable proxy
 - partial visibility / review risk hint
-- 銝 verdict
-- 銝???proof_of_compliance
-- 銝???proof_of_violation
+- 無 verdict
+- 無法給出 `proof_of_compliance`
+- 無法給出 `proof_of_violation`
 
-## ?遢 mapping 撣嗡?隞暻?
-- 霈?`runtime injection snapshot` ??observation ?洵銝??bounded 撠
-- 霈?reviewer ?賜???proxy ?祕????????generic warning
-- ??post-task / execution-time observation ??銋暹楊???脰楝敺?
+## 本文 mapping 的維護邊界
+
+- 若新增 `runtime injection snapshot` 的 observation 項目，需補充此文件的 bounded 說明
+- 若 reviewer 要求使用 proxy 結果作為 generic warning，需澄清此處的 interpretation boundary
+- 禁止把 post-task / execution-time observation 做成 non-human-reviewable 的自動裁決
+
 ## Non-Goals
 
-?遢 mapping 銝?嚗?- generic compliance proof engine
+本文 mapping 不包含：
+- generic compliance proof engine
 - adapter-specific instrumentation matrix
 - runtime hard gate
 - semantic understanding detection
 - machine-authoritative consumption scoring
 
-## 銝?亥店蝮賜?
+## 設計決定
 
-?遢?辣??鈭嚗? runtime injection requirement ?質◤?芯? bounded proxy ??隤芣?璆?雿??鈭?proxy ????compliance authority??
+本文定義的是：runtime injection requirement 的每個 bounded proxy 及其對應決定。proxy 本身**不具備** compliance authority。
