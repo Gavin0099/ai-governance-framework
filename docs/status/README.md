@@ -1,30 +1,30 @@
-# 狀態索引
+﻿# 狀態入口
 
-更新日期：2026-04-09
+更新日期：2026-04-10
 
-本目錄是這個 repo 的 reviewer-facing 狀態入口，用來集中呈現 runtime、closeout、trust signal、coverage 與 handoff surface。它不是 generated artifact 的替代品，而是幫 reviewer 快速找到該看哪裡。
+這個目錄收的是 repo 的 reviewer-facing 狀態頁。它們的目的不是取代 generated artifact，而是把 runtime、closeout、trust signal、coverage、handoff 等 surface 整理成 reviewer 可讀的入口。
 
 ## 主要入口
 
 - [Reviewer Handoff](reviewer-handoff.md)
-  - reviewer-facing 的 handoff / summary surface
-  - 適合在單次 review 或 session closeout 後快速理解狀態
+  - reviewer-facing handoff / summary surface
+  - 用來看 reviewer 在接手時需要的最小治理上下文
 
 - [Runtime Governance Status](runtime-governance-status.md)
-  - 說明目前 runtime governance 主線的 bounded reality
-  - 適合掌握 repo 的 maturity 與現行邊界
+  - 說明 repo 目前的 bounded runtime reality
+  - 用來避免把 repo 誤讀成 full platform
 
 - [Closeout Audit](closeout-audit.md)
   - session workflow / canonical closeout 的 observation surface
-  - 適合觀察 closeout valid rate、warning/none 比例與 audit flags
+  - 用來看 closeout valid rate、warning/none 比例與 audit flags
 
 - [Trust Signal Dashboard](trust-signal-dashboard.md)
-  - adoption / release-facing 的 trust signal 概覽
-  - 適合查看 consuming repo、publication 與 trust snapshot 路徑
+  - adoption / release-facing 的 trust signal 摘要
+  - 用來看 consuming repo、publication、status 之間的信號一致性
 
 - [Domain Enforcement Matrix](domain-enforcement-matrix.md)
-  - external contract seam 與 domain enforcement posture 的對照頁
-  - 適合查看各 domain 是否屬 advisory-first、mixed，或已有更強 enforcement
+  - external contract seam 的 enforcement posture 對照表
+  - 用來看各 domain 是 advisory-first、mixed 還是較強 enforcement
 
 - [Runtime Surface Manifest](runtime-surface-manifest.md)
   - execution / evidence / authority surface 的 inventory 與 consistency signal
@@ -33,11 +33,12 @@
   - decision-aware coverage 的 bounded first slice
 
 - [Next Steps](next-steps.md)
-  - 目前主線後續順序與 bounded non-goals
+  - bounded runtime reality 下的下一步順序與 non-goals
 
-## Generated 狀態入口
+## Generated 入口
 
-repo-local generated state 會落在 `docs/status/generated/`，常見入口包括：
+repo-local generated state 位於 `docs/status/generated/`，包括：
+
 - `generated/runtime-surface-manifest.json`
 - `generated/execution-surface-coverage.json`
 - `generated/closeout-audit.json`
