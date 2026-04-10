@@ -358,3 +358,81 @@ def test_generate_state_can_include_architecture_impact_preview(local_tmp_dir, m
     assert guidance["recommended_risk"] == "medium"
     assert "public_api_diff_checker" in guidance["expected_validators"]
     assert "public-api-review" in guidance["required_evidence"]
+
+
+# ---------------------------------------------------------------------------
+# parse_header
+# ---------------------------------------------------------------------------
+
+def test_parse_header_basic():
+    text = "> **Owner**: Alice\n> **Version**: 2.1\n"
+    result = state_generator.parse_header(text)
+    assert result == {"Owner": "Alice", "Version": "2.1"}
+
+
+def test_parse_header_empty():
+    assert state_generator.parse_header("") == {}
+    assert state_generator.parse_header("No bold keys here\n") == {}
+
+
+# ---------------------------------------------------------------------------
+# parse_gate_status
+# ---------------------------------------------------------------------------
+
+def test_parse_gate_status_all_states():
+    text = (
+        "[x] Phase 1: Done\n"
+        "[X] Phase 2: Also done\n"
+        "[>] Phase 3: In progress\n"
+        "[ ] Phase 4: Pending\n"
+    )
+    result = state_generator.parse_gate_status(text)
+    assert result["Phase1"] == "passed"
+    assert result["Phase2"] == "passed"
+    assert result["Phase3"] == "in_progress"
+    assert result["Phase4"] == "pending"
+
+
+def test_parse_gate_status_empty():
+    assert state_generator.parse_gate_status("") == {}
+    assert state_generator.parse_gate_status("no phases here\n") == {}
+
+
+# ---------------------------------------------------------------------------
+# main() CLI
+# ---------------------------------------------------------------------------
+
+def test_main_dry_run_yaml(local_tmp_dir, monkeypatch, capsys):
+    monkeypatch.setattr(state_generator, "check_freshness", lambda _: _FreshnessStub())
+    plan = local_tmp_dir / "PLAN.md"
+    plan.write_text(
+        "> **Owner**: Tester\n"
+        "> **Freshness**: Sprint (7d)\n"
+        "\n"
+        "## Current Sprint\n"
+        "- [ ] Task A\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(sys, "argv", [
+        "prog", "--plan", str(plan), "--dry-run",
+    ])
+    state_generator.main()
+    out = capsys.readouterr().out
+    assert "governance-state" in out or "runtime_contract" in out
+
+
+def test_main_dry_run_json(local_tmp_dir, monkeypatch, capsys):
+    monkeypatch.setattr(state_generator, "check_freshness", lambda _: _FreshnessStub())
+    plan = local_tmp_dir / "PLAN.md"
+    plan.write_text(
+        "> **Owner**: Tester\n"
+        "> **Freshness**: Sprint (7d)\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(sys, "argv", [
+        "prog", "--plan", str(plan), "--dry-run", "--format", "json",
+    ])
+    state_generator.main()
+    out = capsys.readouterr().out
+    data = __import__("json").loads(out)
+    assert "runtime_contract" in data

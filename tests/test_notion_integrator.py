@@ -9,6 +9,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from governance_tools.notion_integrator import NotionClient, NotionIntegrator
+import governance_tools.notion_integrator as notion_integrator_module
 
 @pytest.fixture
 def api_key_env(monkeypatch):
@@ -240,3 +241,103 @@ def test_extract_page_title_no_title_property(api_key_env):
     client = NotionClient()
     page = {"properties": {"Status": {"type": "select", "select": {"name": "Done"}}}}
     assert client._extract_page_title(page) == "(無標題)"
+
+
+def test_extract_page_title_with_title(api_key_env):
+    """Returns concatenated plain_text when title property exists."""
+    client = NotionClient()
+    page = {
+        "properties": {
+            "Name": {
+                "type": "title",
+                "title": [{"plain_text": "My "}, {"plain_text": "Task"}],
+            }
+        }
+    }
+    assert client._extract_page_title(page) == "My Task"
+
+
+# ---------------------------------------------------------------------------
+# main() CLI paths
+# ---------------------------------------------------------------------------
+
+def _make_notion_client_and_integrator(monkeypatch, temp_memory, databases=None, tasks=None):
+    mock_client = MagicMock(spec=NotionClient)
+    mock_client.search_databases.return_value = databases or [
+        {"title": "TestDB", "id": "db-001", "url": "https://notion.so/db-001"}
+    ]
+    mock_integrator = MagicMock(spec=NotionIntegrator)
+    mock_integrator.parse_active_task.return_value = tasks or []
+    monkeypatch.setattr(notion_integrator_module, "NotionClient", lambda: mock_client)
+    monkeypatch.setattr(notion_integrator_module, "NotionIntegrator", lambda *a: mock_integrator)
+    return mock_client, mock_integrator
+
+
+def test_main_list_databases_human(api_key_env, monkeypatch, temp_memory, capsys):
+    _make_notion_client_and_integrator(monkeypatch, temp_memory)
+    monkeypatch.setattr(sys, "argv", [
+        "prog", "--memory-root", str(temp_memory), "--list-databases"
+    ])
+    notion_integrator_module.main()
+    out = capsys.readouterr().out
+    assert "TestDB" in out
+
+
+def test_main_list_databases_json(api_key_env, monkeypatch, temp_memory, capsys):
+    _make_notion_client_and_integrator(monkeypatch, temp_memory)
+    monkeypatch.setattr(sys, "argv", [
+        "prog", "--memory-root", str(temp_memory), "--list-databases", "--format", "json"
+    ])
+    notion_integrator_module.main()
+    out = capsys.readouterr().out
+    data = json.loads(out)
+    assert "databases" in data
+    assert data["databases"][0]["title"] == "TestDB"
+
+
+def test_main_list_databases_empty_human(api_key_env, monkeypatch, temp_memory, capsys):
+    _make_notion_client_and_integrator(monkeypatch, temp_memory, databases=[])
+    monkeypatch.setattr(sys, "argv", [
+        "prog", "--memory-root", str(temp_memory), "--list-databases"
+    ])
+    notion_integrator_module.main()
+    out = capsys.readouterr().out
+    assert "找不到" in out or "Database" in out
+
+
+def test_main_sync_no_database_id_exits(api_key_env, monkeypatch, temp_memory):
+    _make_notion_client_and_integrator(monkeypatch, temp_memory)
+    monkeypatch.delenv("NOTION_DATABASE_ID", raising=False)
+    monkeypatch.setattr(sys, "argv", [
+        "prog", "--memory-root", str(temp_memory), "--sync"
+    ])
+    with pytest.raises(SystemExit):
+        notion_integrator_module.main()
+
+
+def test_main_sync_with_database_id(api_key_env, monkeypatch, temp_memory):
+    task = {"title": "T1", "description": "D", "is_completed": False, "notion_id": None}
+    mock_client, mock_integrator = _make_notion_client_and_integrator(
+        monkeypatch, temp_memory, tasks=[task]
+    )
+    mock_integrator.sync_task_to_notion.return_value = "page-abc123"
+    mock_integrator.parse_active_task.return_value = [task]
+    monkeypatch.setattr(sys, "argv", [
+        "prog", "--memory-root", str(temp_memory),
+        "--sync", "--database-id", "db-001", "--batch-delay", "0"
+    ])
+    notion_integrator_module.main()
+    mock_integrator.sync_task_to_notion.assert_called_once()
+    mock_integrator.update_active_task_with_notion_ids.assert_called_once()
+
+
+def test_main_generic_error_exits(api_key_env, monkeypatch, temp_memory):
+    monkeypatch.setattr(
+        notion_integrator_module, "NotionClient",
+        MagicMock(side_effect=RuntimeError("boom"))
+    )
+    monkeypatch.setattr(sys, "argv", [
+        "prog", "--memory-root", str(temp_memory), "--list-databases"
+    ])
+    with pytest.raises(SystemExit):
+        notion_integrator_module.main()
