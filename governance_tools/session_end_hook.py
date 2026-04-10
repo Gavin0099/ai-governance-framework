@@ -45,6 +45,10 @@ from runtime_hooks.core.session_end import run_session_end
 
 CLOSEOUT_FILE = "artifacts/session-closeout.txt"
 
+# Standard path where test_result_ingestor writes the ingested test result.
+# session_end_hook reads this to apply the failure_disposition gate.
+_TEST_RESULT_ARTIFACT = "artifacts/runtime/test-results/latest.json"
+
 REQUIRED_FIELDS = [
     "TASK_INTENT",
     "WORK_COMPLETED",
@@ -698,8 +702,30 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         summary=fields.get("TASK_INTENT", ""),
     )
 
+    # Read test result artifact if the agent ran tests this session.
+    # This is the Slice 3 gate: production_fix_required → verdict_blocked → ok=False.
+    # If no artifact exists (agent did not run tests), gate is skipped silently.
+    failure_disposition_data: dict | None = None
+    test_artifact_path = project_root / _TEST_RESULT_ARTIFACT
+    if test_artifact_path.exists():
+        try:
+            tr = json.loads(test_artifact_path.read_text(encoding="utf-8"))
+            failure_disposition_data = tr.get("failure_disposition")
+        except Exception:
+            pass  # Malformed artifact — skip gate, do not block session
+
+    gate_errors: list[str] = list(result["errors"])
+    base_ok = result["ok"] and closeout_status == STATUS_VALID
+    if failure_disposition_data and failure_disposition_data.get("verdict_blocked"):
+        base_ok = False
+        pfr = failure_disposition_data.get("by_action", {}).get("production_fix_required", 0)
+        gate_errors.append(
+            f"[GATE:production_fix_required] {pfr} test failure(s) require production code fix "
+            f"before session can close — see failure_disposition for details"
+        )
+
     return {
-        "ok": result["ok"] and closeout_status == STATUS_VALID,
+        "ok": base_ok,
         "session_id": session_id,
         "closeout_status": closeout_status,
         "memory_tier": memory_tier,
@@ -716,6 +742,7 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         },
         "per_layer_results": clf["per_layer_results"],
         "failure_signals": clf["failure_signals"],
+        "failure_disposition": failure_disposition_data,
         "closeout_file": str(closeout_path),
         "decision": result["decision"],
         "snapshot_created": result["snapshot"] is not None,
@@ -724,7 +751,7 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         "verdict_artifact": result["verdict_artifact"],
         "trace_artifact": result["trace_artifact"],
         "warnings": result["warnings"],
-        "errors": result["errors"],
+        "errors": gate_errors,
     }
 
 
@@ -770,6 +797,23 @@ def format_human_result(result: dict[str, Any]) -> str:
         lines.append(
             f"  signal[{sig['type']}] affects={sig['affects']}: {sig.get('guidance', '')}"
         )
+
+    disp = result.get("failure_disposition") or {}
+    if disp:
+        lines.append(
+            f"failure_disposition: verdict_blocked={disp.get('verdict_blocked')} "
+            f"unknown={disp.get('unknown_count', 0)} total={disp.get('total', 0)}"
+        )
+        by_action = disp.get("by_action") or {}
+        if by_action.get("production_fix_required", 0) > 0:
+            lines.append(
+                f"  [GATE] production_fix_required={by_action['production_fix_required']}: "
+                f"agent must not continue without fixing production code"
+            )
+        if disp.get("taxonomy_expansion_signal"):
+            lines.append(
+                f"  [SIGNAL] taxonomy_expansion_signal: unknown_count={disp.get('unknown_count', 0)}"
+            )
 
     lines += [
         f"decision={result['decision']}",

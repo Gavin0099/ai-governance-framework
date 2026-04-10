@@ -51,7 +51,11 @@
 - [x] E1：建立 failure_disposition.py（FailureKind + ActionPolicy + confidence）
 - [x] E1.5：seed corpus 10 筆 ground truth，作為 taxonomy calibration baseline
 - [x] E2：建立 test_exclusion_registry.yaml + exclusion_registry_tool.py
-- [ ] E2+：run_filtered_tests.py — 唯一合法的 filtered suite 入口，強制 registry 使用
+- [x] E2+：run_filtered_tests.py — 唯一合法的 filtered suite 入口，強制 registry 使用
+- [x] E3-Slice1：test_result_ingestor._apply_failure_disposition — 所有 ingest 自動分類，不可繞過
+- [x] E3-Slice1.5：test_result_ingestor main() 加 --out PATH，寫標準 artifact（artifacts/runtime/test-results/latest.json）
+- [x] E3-Slice2：session_end_hook.format_human_result 顯示 failure_disposition 摘要（verdict_blocked / [GATE] / [SIGNAL]）
+- [x] E3-Slice3：session_end_hook.run_session_end_hook 讀 test-results artifact — production_fix_required → ok=False gate
 - [ ] E1 usage enforcement：agent/workflow 必須經過 FailureKind → ActionPolicy，不能直接解讀 pytest 結果
 - [ ] Phase E replay 驗證：用 seed corpus 跑一次結構化 decision output，對比人工分析前後差異
 
@@ -65,6 +69,8 @@
 | Filtered suite 邊界 | 手寫 `-k "not xxx..."` 字串，implicit | 由 `test_exclusion_registry.yaml` 生成，每條有 justification / expiry |
 | Unknown failure 處置 | 無規則，agent 自行判斷 | 強制 `escalate`，禁止 `ignore_for_verdict` |
 | Registry 腐化偵測 | 無 | `audit` 指令偵測過期/缺 justification/integrity 違規 |
+| Session 行為強制 | failure_disposition opt-in，agent 可繞過 | session_end_hook 讀 artifact → `production_fix_required` → `ok=False` 強制 gate |
+| Test result artifact | 無標準路徑 | `test_result_ingestor --out artifacts/runtime/test-results/latest.json` |
 
 **E2+ 完成後的強制約束：**
 - filtered suite 只能透過 `run_filtered_tests.py` 執行，不允許手寫 `-k`

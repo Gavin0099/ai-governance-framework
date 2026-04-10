@@ -16,6 +16,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from governance_tools.failure_test_validator import validate_failure_test_coverage
+from governance_tools.failure_disposition import classify_batch
 
 
 def _base_result(source: str, passed: int = 0, failed: int = 0, skipped: int = 0) -> dict:
@@ -28,11 +29,68 @@ def _base_result(source: str, passed: int = 0, failed: int = 0, skipped: int = 0
         },
         "test_names": [],
         "failure_test_validation": None,
+        "failure_disposition": None,
         "diagnostics": [],
         "warnings": [],
         "errors": [],
         "ok": failed == 0,
     }
+
+
+def _apply_failure_disposition(result: dict) -> dict:
+    """
+    Classify all failing test IDs through the failure_disposition pipeline.
+
+    Failing tests are derived from result["errors"] (lines starting with
+    FAILED/ERROR) plus any names already in result["test_names"].
+
+    The disposition result is stored in result["failure_disposition"].
+    If any failure has action=production_fix_required, a governance warning
+    is promoted to result["warnings"] so it surfaces without blocking the
+    ingestor's ok flag (Slice 3 gate is in session_end_hook).
+    """
+    # Collect failing test IDs from errors list
+    failing_ids: list[str] = []
+    extra_signals_map: dict[str, list[str]] = {}
+
+    for err_line in result.get("errors", []):
+        # Only consume lines that are actual test failure records.
+        # "FAILED tests/foo.py::bar - message" or "ERROR tests/foo.py::bar"
+        # Governance/validator error messages (e.g. "failure_path_missing: …")
+        # must not be treated as test IDs.
+        if not (err_line.startswith("FAILED ") or err_line.startswith("ERROR ")):
+            continue
+        cleaned = err_line[7:] if err_line.startswith("FAILED ") else err_line[6:]
+        parts = cleaned.split(" - ", 1)
+        test_id = parts[0].strip()
+        extra = [parts[1].strip()] if len(parts) > 1 else []
+        if test_id and test_id not in failing_ids:
+            failing_ids.append(test_id)
+            if extra:
+                extra_signals_map[test_id] = extra
+
+    if not failing_ids:
+        result["failure_disposition"] = None
+        return result
+
+    disposition = classify_batch(failing_ids, extra_signals_map=extra_signals_map)
+    result["failure_disposition"] = disposition.to_dict()
+
+    # Promote production_fix_required to advisory warning (not a hard block here)
+    if disposition.by_action.get("production_fix_required", 0) > 0:
+        result["warnings"].append(
+            f"[failure_disposition] {disposition.by_action['production_fix_required']} failure(s) "
+            f"classified as production_fix_required — verdict_blocked={disposition.verdict_blocked}"
+        )
+
+    # Promote taxonomy_expansion_signal
+    if disposition.taxonomy_expansion_signal:
+        result["warnings"].append(
+            f"[failure_disposition] taxonomy_expansion_signal: "
+            f"{disposition.unknown_count} unknown failures >= threshold"
+        )
+
+    return result
 
 
 def _finalize_result(result: dict, require_rollback: bool = False, validate_failure_tests: bool = True) -> dict:
@@ -46,6 +104,11 @@ def _finalize_result(result: dict, require_rollback: bool = False, validate_fail
         result["errors"].extend(failure_validation["errors"])
     else:
         result["failure_test_validation"] = None
+
+    # Always apply failure disposition — raw pytest result must not be
+    # the final decision input. Disposition runs on all failed test IDs.
+    _apply_failure_disposition(result)
+
     result["ok"] = result["summary"]["failed"] == 0 and len(result["errors"]) == 0
     return result
 
@@ -283,10 +346,22 @@ def main() -> None:
     parser.add_argument("--file", required=True)
     parser.add_argument("--kind", choices=["pytest-text", "junit-xml", "sdv-text", "msbuild-warning-text", "sarif", "wdk-analysis-text"], required=True)
     parser.add_argument("--require-rollback", action="store_true")
+    parser.add_argument(
+        "--out",
+        default=None,
+        help="Write result JSON to this path (parent dirs are created automatically). "
+             "Standard artifact path: artifacts/runtime/test-results/latest.json",
+    )
     args = parser.parse_args()
 
     result = ingest_test_results(Path(args.file), args.kind, require_rollback=args.require_rollback)
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    out_str = json.dumps(result, ensure_ascii=False, indent=2)
+    print(out_str)
+
+    if args.out:
+        out_path = Path(args.out)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(out_str, encoding="utf-8")
 
     sys.exit(0 if result["ok"] else 1)
 
