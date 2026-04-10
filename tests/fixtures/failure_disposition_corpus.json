@@ -1,0 +1,126 @@
+[
+  {
+    "_comment": "Seed corpus — real failures from hp-firmware-stresstest-tool 2026-04-10 session",
+    "_schema": "failure_disposition_corpus_v1",
+    "_note": "Each entry is ground truth for taxonomy calibration. Add new entries when a new real failure is encountered and classified by a human reviewer.",
+
+    "case_id": "TF-001-a",
+    "test_id": "tests/test_tool_adapter.py::TestRunUpdateWindowsCommand::test_folder_flag_always_present",
+    "extra_signals": ["'-folder' not in cmd", "assert '-folder' in"],
+    "expected_kind": "stale_assertion",
+    "expected_action": "test_fix_only",
+    "expected_confidence": "high",
+    "expected_reviewer_note_contains": "assertion reflects removed",
+    "source": "hp-firmware-stresstest-tool commit 1d905d9 removed -folder flag",
+    "added_by": "GavinWu",
+    "added_at": "2026-04-10"
+  },
+  {
+    "case_id": "TF-001-b",
+    "test_id": "tests/test_tool_adapter.py::TestRunUpdateWindowsCommand::test_includes_log_flag",
+    "extra_signals": ["folder_flag"],
+    "expected_kind": "stale_assertion",
+    "expected_action": "test_fix_only",
+    "expected_confidence": "high",
+    "expected_reviewer_note_contains": "Test assertion reflects removed",
+    "source": "hp-firmware-stresstest-tool same class as TF-001-a",
+    "added_by": "GavinWu",
+    "added_at": "2026-04-10"
+  },
+  {
+    "case_id": "TF-001-c",
+    "test_id": "tests/test_tool_adapter.py::TestRunUpdateWindowsCommand::test_includes_source_path_when_different_from_tool_dir",
+    "extra_signals": ["folder_flag"],
+    "expected_kind": "stale_assertion",
+    "expected_action": "test_fix_only",
+    "expected_confidence": "high",
+    "expected_reviewer_note_contains": "Test assertion reflects removed",
+    "source": "hp-firmware-stresstest-tool same class as TF-001-a",
+    "added_by": "GavinWu",
+    "added_at": "2026-04-10"
+  },
+  {
+    "case_id": "TF-002-a",
+    "test_id": "tests/test_tool_adapter.py::TestRunUpdateMacOSExeDetection::test_folder_a_uses_its_own_bundle_binary",
+    "extra_signals": ["UnsupportedOperation", "PosixPath", "cannot instantiate PosixPath on your system"],
+    "expected_kind": "platform_mock",
+    "expected_action": "test_fix_only",
+    "expected_confidence": "high",
+    "expected_reviewer_note_contains": "platform-specific mock",
+    "source": "Python 3.13 pathlib tightened cross-platform instantiation; patch('os.name','posix') no longer works on Windows",
+    "added_by": "GavinWu",
+    "added_at": "2026-04-10"
+  },
+  {
+    "case_id": "TF-002-b",
+    "test_id": "tests/test_tool_adapter.py::TestRunUpdateMacOSExeDetection::test_falls_back_to_plain_binary_when_no_bundle_binary",
+    "extra_signals": ["posix", "PosixPath", "bundle_binary"],
+    "expected_kind": "platform_mock",
+    "expected_action": "test_fix_only",
+    "expected_confidence": "high",
+    "expected_reviewer_note_contains": "platform-specific mock",
+    "source": "Same root cause as TF-002-a",
+    "added_by": "GavinWu",
+    "added_at": "2026-04-10"
+  },
+  {
+    "case_id": "TF-003-a",
+    "test_id": "tests/test_runner_integration.py::TestDfuModeSequence::test_run_dfu_check_called_once",
+    "extra_signals": ["run_dfu_check", "called 0 times", "expected 1"],
+    "expected_kind": "integration_drift",
+    "expected_action": "production_fix_required",
+    "expected_confidence": "high",
+    "expected_reviewer_note_contains": "decoupled from current production call path",
+    "source": "DFU flow entry point changed in TestRunner; integration test mock not re-anchored",
+    "added_by": "GavinWu",
+    "added_at": "2026-04-10"
+  },
+  {
+    "case_id": "TF-003-b",
+    "test_id": "tests/test_runner_integration.py::TestDfuModeSequence::test_run_dfu_update_called_once",
+    "extra_signals": ["run_dfu_update", "called 0 times"],
+    "expected_kind": "integration_drift",
+    "expected_action": "production_fix_required",
+    "expected_confidence": "high",
+    "expected_reviewer_note_contains": "decoupled from current production call path",
+    "source": "Same root cause as TF-003-a",
+    "added_by": "GavinWu",
+    "added_at": "2026-04-10"
+  },
+  {
+    "case_id": "TF-003-c",
+    "test_id": "tests/test_runner_integration.py::TestDfuModeSequence::test_verdict_is_pass_on_successful_dfu",
+    "extra_signals": ["run_dfu", "dfu_sequence"],
+    "expected_kind": "integration_drift",
+    "expected_action": "production_fix_required",
+    "expected_confidence": "high",
+    "expected_reviewer_note_contains": "decoupled from current production call path",
+    "source": "Same root cause as TF-003-a",
+    "added_by": "GavinWu",
+    "added_at": "2026-04-10"
+  },
+  {
+    "case_id": "AGF-EX-001",
+    "test_id": "tests/test_trust_signal_overview.py::test_trust_signal_overview_runs",
+    "extra_signals": ["trust_signal"],
+    "expected_kind": "external_exclusion",
+    "expected_action": "quarantine",
+    "expected_confidence": "high",
+    "expected_reviewer_note_contains": "external infrastructure",
+    "source": "ai-governance-framework: depends on external repo / publish infrastructure",
+    "added_by": "GavinWu",
+    "added_at": "2026-04-10"
+  },
+  {
+    "case_id": "AGF-EX-002",
+    "test_id": "tests/test_reviewer_handoff_summary.py::test_reviewer_handoff_summary",
+    "extra_signals": ["reviewer_handoff"],
+    "expected_kind": "external_exclusion",
+    "expected_action": "quarantine",
+    "expected_confidence": "high",
+    "expected_reviewer_note_contains": "external infrastructure",
+    "source": "ai-governance-framework: requires external snapshot, long-CI path",
+    "added_by": "GavinWu",
+    "added_at": "2026-04-10"
+  }
+]
