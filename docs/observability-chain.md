@@ -56,6 +56,11 @@ with an explicit `evidence_scope` field.
 does not assert correctness beyond labelled cases."*  This is intentional and must
 not be weakened.
 
+**Propagation note:**  
+Downstream signals (E7–E1a) rely on the classifier behaviour validated in E6.
+Limitations in E6 scope propagate to interpretation layers — a gap in the seed
+corpus is a gap in the observability chain's correctness guarantee.
+
 ---
 
 ## E7 — Single-session canonical footprint signal
@@ -112,6 +117,12 @@ defined in E8a itself — it only writes.
 trend computation (E8b) and nothing else.  Do not use it as a source of truth about
 which repo produced which session.
 
+**Silent failure note:**  
+Log write failures are not surfaced in any result key.  If persistence is degraded
+(disk full, permission error, interrupted write), E8b will read fewer entries than
+actually occurred — trend interpretation may under-report signals.  There is no
+current mechanism to detect this condition.
+
 ---
 
 ## E8b — Multi-session trend interpretation
@@ -141,6 +152,18 @@ recent `window_size` entries sorted by timestamp, and computes:
 `advisory_only=True` is hard-coded and literal.  The field name is intentional:
 any code path that connects `adoption_risk` to a blocking decision is a contract
 violation.
+
+**Window semantics:**  
+The sliding window is **entry-count based, not time-based**.  `window_size=20`
+means the 20 most recent log entries, regardless of when they were written.  In
+repos with irregular session frequency, a window may span days or hours depending
+on activity level.  Do not interpret `signal_ratio` as a rate-per-time-period.
+
+**repo_name collision note:**  
+Trend results may mix data from multiple working directories that share the same
+`repo_name` — for example, two local checkouts of the same repo, a fork with an
+identical directory name, or CI and local environments running in parallel.  The
+`scope_note` field in every result records this limitation explicitly.
 
 ---
 
@@ -177,6 +200,12 @@ Takes the already-computed E7 (`canonical_path_audit`) and E8b
 E1a is a **naming layer**.  It answers "what should a reviewer call this situation?"
 not "what should the system do about it?".  If `usage_status` is ever used as a
 gate input, it is a misuse of the field.
+
+**Diagnostic rule:**  
+`canonical_usage_audit` is not sufficient for diagnosis on its own.  Always
+cross-check the raw E7 (`canonical_path_audit`) and E8b (`canonical_audit_trend`)
+signals before forming a judgment.  `usage_status` names a combination; it does
+not provide the evidence behind it.
 
 **Fallback behaviour:**  
 If `_build_canonical_usage_audit` raises for any reason, the result contains
