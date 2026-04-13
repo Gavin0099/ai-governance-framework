@@ -47,6 +47,9 @@ from governance_tools.gate_policy import (
     evaluate_gate,
     ARTIFACT_STATE_ABSENT,
     ARTIFACT_STATE_OK,
+    POLICY_SOURCE_REPO_LOCAL,
+    POLICY_SOURCE_FRAMEWORK_DEFAULT,
+    POLICY_SOURCE_BUILTIN_DEFAULT,
 )
 
 
@@ -711,10 +714,9 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
     )
 
     # Gate evaluation — policy-driven, not hardcoded.
-    # load_policy reads governance/gate_policy.yaml; falls back to defaults.
-    # classify_artifact determines absent/malformed/stale/ok.
-    # evaluate_gate applies fail_mode + blocking_actions + unknown_treatment.
-    policy = load_policy()
+    # load_policy discovers: project_root/governance/gate_policy.yaml first,
+    # then framework default, then builtin.  Provenance is always recorded.
+    policy = load_policy(project_root=project_root)
     artifact_path = project_root / _TEST_RESULT_ARTIFACT
     artifact_result = classify_artifact(artifact_path, policy)
     gate = evaluate_gate(artifact_result, policy)
@@ -724,6 +726,15 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
     base_ok = result["ok"] and closeout_status == STATUS_VALID and not gate.blocked
     gate_errors: list[str] = list(result["errors"]) + gate.errors
     gate_warnings: list[str] = list(result["warnings"]) + gate.warnings
+
+    # Adoption gap signal: if no repo-local policy, warn so the gap is explicit.
+    if not policy.repo_policy_present:
+        gate_warnings.append(
+            "[gate_policy] repo_local_policy_missing: "
+            "no gate_policy.yaml found in project governance/ — "
+            f"using {policy.policy_source} policy ({policy.policy_path or 'builtin'}); "
+            "create governance/gate_policy.yaml to declare this repo's risk posture"
+        )
 
     return {
         "ok": base_ok,
@@ -748,7 +759,11 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
             "fail_mode": policy.fail_mode,
             "artifact_state": artifact_result.state,
             "blocked": gate.blocked,
-            "source": policy.source,
+            # Provenance — reviewer-visible authority record
+            "policy_source": policy.policy_source,
+            "policy_path": policy.policy_path,
+            "fallback_used": policy.fallback_used,
+            "repo_policy_present": policy.repo_policy_present,
         },
         "closeout_file": str(closeout_path),
         "decision": result["decision"],
@@ -829,6 +844,14 @@ def format_human_result(result: dict[str, Any]) -> str:
             f"artifact_state={gp.get('artifact_state')} "
             f"blocked={gp.get('blocked')}"
         )
+        lines.append(
+            f"  policy_source={gp.get('policy_source')} "
+            f"fallback_used={gp.get('fallback_used')} "
+            f"repo_policy_present={gp.get('repo_policy_present')}"
+        )
+        policy_path = gp.get('policy_path')
+        if policy_path:
+            lines.append(f"  policy_path={policy_path}")
 
     lines += [
         f"decision={result['decision']}",

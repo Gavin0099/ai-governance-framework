@@ -34,6 +34,8 @@ from governance_tools.gate_policy import (
     FAIL_MODE_STRICT,
     FAIL_MODE_PERMISSIVE,
     FAIL_MODE_AUDIT,
+    POLICY_SOURCE_BUILTIN_DEFAULT,
+    POLICY_SOURCE_FRAMEWORK_DEFAULT,
 )
 from governance_tools.session_end_hook import run_session_end_hook
 
@@ -95,23 +97,23 @@ def test_load_policy_reads_governance_yaml():
 
 
 def test_load_policy_falls_back_to_defaults_when_file_missing(tmp_path):
-    policy = load_policy(tmp_path / "nonexistent.yaml")
+    policy = load_policy(path=tmp_path / "nonexistent.yaml")
     assert policy.fail_mode == FAIL_MODE_STRICT          # default
-    assert "not found" in policy.source
+    assert policy.policy_source == POLICY_SOURCE_BUILTIN_DEFAULT
 
 
 def test_load_policy_falls_back_to_defaults_on_bad_yaml(tmp_path):
     bad = tmp_path / "bad.yaml"
     bad.write_text(": : : invalid yaml :::", encoding="utf-8")
     # PyYAML may or may not raise on this — what matters is we get a policy back
-    policy = load_policy(bad)
+    policy = load_policy(path=bad)
     assert isinstance(policy, GatePolicy)
 
 
 def test_load_policy_honours_custom_fail_mode(tmp_path):
     cfg = tmp_path / "policy.yaml"
     cfg.write_text("version: '1'\nfail_mode: permissive\n", encoding="utf-8")
-    policy = load_policy(cfg)
+    policy = load_policy(path=cfg)
     assert policy.fail_mode == FAIL_MODE_PERMISSIVE
 
 
@@ -339,18 +341,14 @@ def test_session_end_hook_strict_absent_sets_ok_false(tmp_project_root):
 
 
 def test_session_end_hook_permissive_absent_does_not_block(tmp_project_root):
-    """Override policy to permissive → absent artifact is ignored."""
-    cfg = tmp_project_root / "gate_policy_override.yaml"
-    cfg.write_text("version: '1'\nfail_mode: permissive\n", encoding="utf-8")
-
-    # Patch load_policy to use our override
-    import governance_tools.gate_policy as gp_mod
-    original = gp_mod._DEFAULT_POLICY_PATH
-    try:
-        gp_mod._DEFAULT_POLICY_PATH = cfg
-        result = run_session_end_hook(project_root=tmp_project_root)
-    finally:
-        gp_mod._DEFAULT_POLICY_PATH = original
+    """Repo-local policy set to permissive → absent artifact is ignored."""
+    # Place the policy in the proper repo-local location
+    pol_dir = tmp_project_root / "governance"
+    pol_dir.mkdir(parents=True, exist_ok=True)
+    (pol_dir / "gate_policy.yaml").write_text(
+        "version: '1'\nfail_mode: permissive\n", encoding="utf-8"
+    )
+    result = run_session_end_hook(project_root=tmp_project_root)
 
     assert result["gate_policy"]["artifact_state"] == ARTIFACT_STATE_ABSENT
     assert result["gate_policy"]["blocked"] is False
@@ -364,16 +362,13 @@ def test_session_end_hook_ok_artifact_no_failures_passes_gate(tmp_project_root):
         json.dumps({"source": "pytest-text", "failure_disposition": None}),
         encoding="utf-8",
     )
-    # With permissive mode (so absent-gate doesn't fire before we check disposition)
-    import governance_tools.gate_policy as gp_mod
-    cfg = tmp_project_root / "pol.yaml"
-    cfg.write_text("version: '1'\nfail_mode: permissive\n", encoding="utf-8")
-    original = gp_mod._DEFAULT_POLICY_PATH
-    try:
-        gp_mod._DEFAULT_POLICY_PATH = cfg
-        result = run_session_end_hook(project_root=tmp_project_root)
-    finally:
-        gp_mod._DEFAULT_POLICY_PATH = original
+    # Place repo-local permissive policy
+    pol_dir = tmp_project_root / "governance"
+    pol_dir.mkdir(parents=True, exist_ok=True)
+    (pol_dir / "gate_policy.yaml").write_text(
+        "version: '1'\nfail_mode: permissive\n", encoding="utf-8"
+    )
+    result = run_session_end_hook(project_root=tmp_project_root)
 
     assert result["gate_policy"]["blocked"] is False
     assert not any("[GATE:" in e for e in result["errors"])
@@ -399,7 +394,10 @@ def test_session_end_hook_format_includes_gate_policy_line(tmp_project_root):
             "fail_mode": "strict",
             "artifact_state": "absent",
             "blocked": True,
-            "source": "governance/gate_policy.yaml",
+            "policy_source": "framework_default",
+            "policy_path": "governance/gate_policy.yaml",
+            "fallback_used": True,
+            "repo_policy_present": False,
         },
         "closeout_file": "artifacts/session-closeout.txt",
         "decision": "DO_NOT_PROMOTE",
