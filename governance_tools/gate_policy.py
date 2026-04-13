@@ -119,8 +119,15 @@ class ArtifactResult:
     state: str                              # absent | malformed | stale | ok
     failure_disposition: dict | None = None
     stale_seconds: float | None = None     # age when state=stale
-    load_error: str | None = None          # message when state=malformed
-
+    load_error: str | None = None          # message when state=malformed    # True when the artifact JSON contains a "failure_disposition" key,
+    # regardless of whether its value is null.  False when the artifact is
+    # absent, malformed, or was produced by a tool that omitted the key.
+    #
+    # Canonical ingestor (test_result_ingestor._base_result) always emits
+    # this key (value may be null when there are no failing tests).  A
+    # non-canonical artifact — or one produced by an older tool version —
+    # will have failure_disposition_key_present=False.
+    failure_disposition_key_present: bool = False
 
 @dataclass
 class GateDecision:
@@ -309,6 +316,7 @@ def classify_artifact(
                 return ArtifactResult(
                     state=ARTIFACT_STATE_STALE,
                     failure_disposition=data.get("failure_disposition"),
+                    failure_disposition_key_present="failure_disposition" in data,
                     stale_seconds=age,
                 )
         except OSError:
@@ -317,6 +325,7 @@ def classify_artifact(
     return ArtifactResult(
         state=ARTIFACT_STATE_OK,
         failure_disposition=data.get("failure_disposition"),
+        failure_disposition_key_present="failure_disposition" in data,
     )
 
 
