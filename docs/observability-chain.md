@@ -139,7 +139,9 @@ Consequence: E8b trend interpretation is more precisely stated as
 “recent *hook-observed* sessions” rather than “recent sessions”.  Do not treat
 a low `signal_ratio` or `adoption_risk=False` as evidence of healthy adoption
 across *all* sessions — only across sessions that reached the hook.
-
+The gap risk depends on how the hook is triggered, which depends on the agent.
+See `docs/hook-coverage-model.md` for the agent tier classification model and
+guidance on how tier affects E8b trend reliability.
 ---
 
 ## E8b — Multi-session trend interpretation

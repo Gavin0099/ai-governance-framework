@@ -82,3 +82,14 @@ canonical_audit_trend:
 # Prefer this over raising signal_threshold_ratio to suppress false positives.
 
 skip_test_result_check: false
+
+# ── hook coverage tier ─────────────────────────────────────────────
+# Declares the session_end_hook triggering mechanism for this repo.
+# Tier A: native auto-closeout (Claude Code Stop hook)
+# Tier B: wrapper-based (Copilot VS Code task, Gemini CLI wrapper)
+# Tier C: manual only
+#
+# Affects how E8b trend results should be interpreted.
+# See: docs/hook-coverage-model.md
+#
+# hook_coverage_tier: A
