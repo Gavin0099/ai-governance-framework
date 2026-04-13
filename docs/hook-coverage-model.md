@@ -77,6 +77,13 @@ on E8b data from Tier B or C repos where hook coverage rate is unobserved.  Only
 Tier A repos have a sufficiently defined observable population to support stronger
 enforcement claims.
 
+**Cross-tier comparison:** Signal ratios are not directly comparable across tiers
+due to differing coverage characteristics.  A Tier B repo with signal_ratio=10%
+and a Tier A repo with signal_ratio=10% are not equivalent findings — the Tier B
+value reflects only the fraction of hook-observed sessions, while the Tier A value
+reflects the actual session population.  Always identify the tier before comparing
+or ranking repos by metric.
+
 ---
 
 ## Declaring tier per consuming repo
