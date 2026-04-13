@@ -642,6 +642,17 @@ def classify_closeout(path: Path, project_root: Path) -> dict[str, Any]:
 
 # ── Canonical path audit ──────────────────────────────────────────────────────
 
+# Path of the canonical audit log relative to project_root.
+# The log is append-only, repo-local, and NOT authoritative — it is an
+# observability substrate only.  Authority of truth remains the single-session
+# result dict produced by run_session_end_hook().
+_CANONICAL_AUDIT_LOG_RELPATH = Path("artifacts") / "runtime" / "canonical-audit-log.jsonl"
+
+# Maximum number of entries retained in the log before rotation.
+# Oldest entries are removed when this limit is exceeded, so the log
+# never grows without bound.  Set conservatively — observability, not audit.
+_CANONICAL_AUDIT_LOG_MAX_ENTRIES = 500
+
 def _build_canonical_path_audit(artifact_result: Any) -> dict:
     """
     Audit whether the test-result artifact carries a canonical interpretation
@@ -707,6 +718,95 @@ def _build_canonical_path_audit(artifact_result: Any) -> dict:
         "signals": signals,
         "audit_note": audit_note,
     }
+
+
+def _append_canonical_audit_log(
+    project_root: Path,
+    session_id: str,
+    artifact_state: str,
+    canonical_path_audit: dict,
+    gate_blocked: bool,
+    policy_source: str,
+    policy_path: str,
+    fallback_used: bool,
+    repo_policy_present: bool,
+) -> None:
+    """
+    Append one entry to the canonical audit log for this session.
+
+    Authority note
+    --------------
+    This log is an append-only observability substrate.
+    It is NOT the authority of truth for any session outcome.
+    Authority remains the single-session result dict produced by
+    run_session_end_hook().  This log exists only to make multi-session
+    canonical footprint patterns observable without requiring external tooling.
+
+    Repo-local
+    ----------
+    Written to <project_root>/artifacts/runtime/canonical-audit-log.jsonl so
+    that framework and consuming repos maintain separate histories.
+
+    Failure handling
+    ----------------
+    Any write failure is silently swallowed — the canonical audit log must
+    never block or degrade core session_end behaviour.  The caller should not
+    assume the entry was persisted.
+
+    Rotation
+    --------
+    When the log exceeds _CANONICAL_AUDIT_LOG_MAX_ENTRIES lines, the oldest
+    entries are removed so the file does not grow without bound.  Partial
+    writes during rotation are transactional via a temp-file swap.
+    """
+    log_path = project_root / _CANONICAL_AUDIT_LOG_RELPATH
+
+    entry: dict = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "session_id": session_id,
+        # repo_name is an observability hint, not a canonical repo identifier.
+        # project_root.resolve().name avoids any subprocess / git dependency.
+        "repo_name": project_root.resolve().name,
+        "artifact_state": artifact_state,
+        "signals": canonical_path_audit.get("signals", []),
+        "audit_note": canonical_path_audit.get("audit_note", ""),
+        "gate_blocked": gate_blocked,
+        "policy_provenance": {
+            "policy_source": policy_source,
+            "policy_path": policy_path,
+            "fallback_used": fallback_used,
+            "repo_policy_present": repo_policy_present,
+        },
+    }
+
+    try:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Read existing entries (tolerate empty or missing file).
+        existing: list[str] = []
+        if log_path.exists():
+            try:
+                existing = [
+                    line for line in log_path.read_text(encoding="utf-8").splitlines()
+                    if line.strip()
+                ]
+            except OSError:
+                existing = []
+
+        new_line = json.dumps(entry, separators=(",", ":"))
+        all_lines = existing + [new_line]
+
+        # Rotate: keep only the most recent _CANONICAL_AUDIT_LOG_MAX_ENTRIES.
+        if len(all_lines) > _CANONICAL_AUDIT_LOG_MAX_ENTRIES:
+            all_lines = all_lines[-_CANONICAL_AUDIT_LOG_MAX_ENTRIES:]
+
+        # Atomic write via temp file + rename so partial writes cannot corrupt.
+        tmp_path = log_path.with_suffix(".jsonl.tmp")
+        tmp_path.write_text("\n".join(all_lines) + "\n", encoding="utf-8")
+        tmp_path.replace(log_path)
+
+    except Exception:  # noqa: BLE001  — intentionally broad; must not propagate
+        pass  # Log append failure is silent — never blocks session_end.
 
 
 # ── Runtime helpers ───────────────────────────────────────────────────────────
@@ -814,6 +914,20 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
     # so they are visible but clearly distinguishable from gate decisions.
     for sig in canonical_path_audit["signals"]:
         gate_warnings.append(f"[canonical_path_audit] {sig}: {canonical_path_audit['audit_note']}")
+
+    # Persist canonical audit entry — non-blocking, repo-local, observability only.
+    # See _append_canonical_audit_log() for authority boundary documentation.
+    _append_canonical_audit_log(
+        project_root=project_root,
+        session_id=session_id,
+        artifact_state=artifact_result.state,
+        canonical_path_audit=canonical_path_audit,
+        gate_blocked=gate.blocked,
+        policy_source=policy.policy_source,
+        policy_path=policy.policy_path,
+        fallback_used=policy.fallback_used,
+        repo_policy_present=policy.repo_policy_present,
+    )
 
     return {
         "ok": base_ok,
