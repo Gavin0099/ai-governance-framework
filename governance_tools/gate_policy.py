@@ -5,7 +5,15 @@ gate_policy.py — load and evaluate the test-result gate policy.
 The policy authorises (or withholds authorisation for) session closeout
 based on the failure_disposition in the test-result artifact.
 
-Policy source: governance/gate_policy.yaml
+Policy discovery order (E5 — repo-local authority):
+  1. <project_root>/governance/gate_policy.yaml      policy_source = repo_local
+  2. <framework_root>/governance/gate_policy.yaml    policy_source = framework_default
+  3. Built-in hardcoded defaults                     policy_source = builtin_default
+
+The authority source is always visible to reviewers through provenance fields.
+If a consuming repo has not placed its own gate_policy.yaml, a
+``repo_local_policy_missing`` warning is emitted so adoption gaps are
+explicit — not silently absorbed by a framework default.
 
 Three concerns are handled here and nowhere else:
 
@@ -51,9 +59,20 @@ ARTIFACT_STATE_MALFORMED = "malformed"
 ARTIFACT_STATE_STALE = "stale"
 ARTIFACT_STATE_OK = "ok"
 
-_DEFAULT_POLICY_PATH = (
+POLICY_SOURCE_REPO_LOCAL = "repo_local"
+POLICY_SOURCE_FRAMEWORK_DEFAULT = "framework_default"
+POLICY_SOURCE_BUILTIN_DEFAULT = "builtin_default"
+
+# Framework-level default policy file (shipped with the framework).
+_FRAMEWORK_POLICY_PATH = (
     Path(__file__).resolve().parents[1] / "governance" / "gate_policy.yaml"
 )
+
+# Relative path within a project_root where the repo-local policy lives.
+_REPO_POLICY_RELPATH = Path("governance") / "gate_policy.yaml"
+
+# Legacy alias kept so existing call-sites that pass an explicit path still work.
+_DEFAULT_POLICY_PATH = _FRAMEWORK_POLICY_PATH
 
 _DEFAULTS: dict[str, Any] = {
     "version": "1",
@@ -73,7 +92,25 @@ class GatePolicy:
     unknown_treatment_mode: str
     unknown_treatment_threshold: int
     artifact_stale_seconds: int
-    source: str = "defaults"
+    # Provenance — always set by load_policy(); never set manually.
+    # policy_source   : who owns this policy decision
+    # policy_path     : actual filesystem path used (empty string = builtin)
+    # fallback_used   : True when project_root policy was absent and we fell back
+    # repo_policy_present : True when project_root/governance/gate_policy.yaml exists
+    source: str = "defaults"                       # legacy; kept for compat
+    policy_source: str = POLICY_SOURCE_BUILTIN_DEFAULT
+    policy_path: str = ""
+    fallback_used: bool = False
+    repo_policy_present: bool = False
+
+    def to_provenance_dict(self) -> dict:
+        """Serialisable snapshot for embedding in session artifacts."""
+        return {
+            "policy_source": self.policy_source,
+            "policy_path": self.policy_path,
+            "fallback_used": self.fallback_used,
+            "repo_policy_present": self.repo_policy_present,
+        }
 
 
 @dataclass
@@ -103,32 +140,117 @@ class GateDecision:
 
 # ── Policy loading ────────────────────────────────────────────────────────────
 
-def load_policy(path: Path | None = None) -> GatePolicy:
+def load_policy(
+    project_root: Path | None = None,
+    *,
+    path: Path | None = None,  # explicit override; bypasses discovery
+) -> GatePolicy:
     """
-    Load gate_policy.yaml.  Falls back to hardcoded defaults on any read/parse
-    error so the session-end hook can always run.  The source field records
-    whether defaults were used.
+    Discover and load the gate policy with explicit precedence:
+
+      1. ``path`` (explicit override, for tests / CLI)
+      2. ``project_root / governance / gate_policy.yaml``  → policy_source=repo_local
+      3. framework ``governance/gate_policy.yaml``         → policy_source=framework_default
+      4. Built-in hardcoded _DEFAULTS                      → policy_source=builtin_default
+
+    ``fallback_used`` is True when a consuming repo has no local policy and
+    execution fell back to (3) or (4).
+
+    ``repo_policy_present`` records whether the repo-local file exists,
+    regardless of whether it was loaded (useful for adoption gap detection).
     """
-    target = path or _DEFAULT_POLICY_PATH
+    # ── Explicit override (tests, CLI) — no fallback, no provenance ──────────
+    if path is not None:
+        return _load_from_path(path, policy_source=POLICY_SOURCE_REPO_LOCAL,
+                               fallback_used=False, repo_policy_present=True)
+
+    # ── Discovery: check repo-local first ────────────────────────────────────
+    repo_local_path: Path | None = None
+    repo_policy_present = False
+    if project_root is not None:
+        candidate = project_root / _REPO_POLICY_RELPATH
+        repo_policy_present = candidate.exists()
+        if repo_policy_present:
+            repo_local_path = candidate
+
+    if repo_local_path is not None:
+        return _load_from_path(
+            repo_local_path,
+            policy_source=POLICY_SOURCE_REPO_LOCAL,
+            fallback_used=False,
+            repo_policy_present=True,
+        )
+
+    # ── Fallback 1: framework default ────────────────────────────────────────
+    if _FRAMEWORK_POLICY_PATH.exists():
+        policy = _load_from_path(
+            _FRAMEWORK_POLICY_PATH,
+            policy_source=POLICY_SOURCE_FRAMEWORK_DEFAULT,
+            fallback_used=(project_root is not None),  # only a fallback if discovery was tried
+            repo_policy_present=repo_policy_present,
+        )
+        return policy
+
+    # ── Fallback 2: builtin defaults — hardcoded minimum ────────────────────
+    raw = dict(_DEFAULTS)
+    return _build_policy(
+        raw,
+        source="builtin_defaults",
+        policy_source=POLICY_SOURCE_BUILTIN_DEFAULT,
+        policy_path="",
+        fallback_used=True,
+        repo_policy_present=repo_policy_present,
+    )
+
+
+def _load_from_path(
+    target: Path,
+    *,
+    policy_source: str,
+    fallback_used: bool,
+    repo_policy_present: bool,
+) -> GatePolicy:
+    """Internal: load a specific path and return a GatePolicy with provenance."""
     raw: dict[str, Any] = dict(_DEFAULTS)
+    if not _HAS_YAML:
+        return _build_policy(
+            raw,
+            source=f"builtin_defaults (yaml unavailable, checked {target})",
+            policy_source=POLICY_SOURCE_BUILTIN_DEFAULT,
+            policy_path=str(target),
+            fallback_used=True,
+            repo_policy_present=repo_policy_present,
+        )
+    try:
+        loaded = yaml.safe_load(target.read_text(encoding="utf-8")) or {}
+        raw.update({k: v for k, v in loaded.items() if v is not None})
+        return _build_policy(
+            raw,
+            source=str(target),
+            policy_source=policy_source,
+            policy_path=str(target),
+            fallback_used=fallback_used,
+            repo_policy_present=repo_policy_present,
+        )
+    except Exception as exc:
+        return _build_policy(
+            dict(_DEFAULTS),
+            source=f"builtin_defaults (load error: {exc}; path={target})",
+            policy_source=POLICY_SOURCE_BUILTIN_DEFAULT,
+            policy_path=str(target),
+            fallback_used=True,
+            repo_policy_present=repo_policy_present,
+        )
 
-    if target.exists():
-        if not _HAS_YAML:
-            # yaml not installed — use defaults, record it
-            return _build_policy(raw, source=f"defaults (yaml unavailable, checked {target})")
-        try:
-            loaded = yaml.safe_load(target.read_text(encoding="utf-8")) or {}
-            raw.update({k: v for k, v in loaded.items() if v is not None})
-            source = str(target)
-        except Exception as exc:
-            source = f"defaults (load error: {exc})"
-    else:
-        source = f"defaults (policy file not found: {target})"
 
-    return _build_policy(raw, source=source)
-
-
-def _build_policy(raw: dict[str, Any], source: str) -> GatePolicy:
+def _build_policy(
+    raw: dict[str, Any],
+    source: str,
+    policy_source: str = POLICY_SOURCE_BUILTIN_DEFAULT,
+    policy_path: str = "",
+    fallback_used: bool = False,
+    repo_policy_present: bool = False,
+) -> GatePolicy:
     ut = raw.get("unknown_treatment") or {}
     if isinstance(ut, str):
         # allow shorthand: unknown_treatment: never_block
@@ -140,6 +262,10 @@ def _build_policy(raw: dict[str, Any], source: str) -> GatePolicy:
         unknown_treatment_threshold=int(ut.get("threshold", 3)),
         artifact_stale_seconds=int(raw.get("artifact_stale_seconds", 86400)),
         source=source,
+        policy_source=policy_source,
+        policy_path=policy_path,
+        fallback_used=fallback_used,
+        repo_policy_present=repo_policy_present,
     )
 
 
