@@ -106,8 +106,24 @@ Once a consuming repo has ≥20 entries in its canonical audit log:
 
 - [ ] Is `adoption_risk=True` reflecting a real gap or a false signal?
   - Real gap examples: ingestor not integrated, artifact not written to correct path.
-  - False signal examples: structural-absence repo without `skip_test_result_check`,
-    window includes pre-integration sessions, repo_name collision mixing unrelated data.
+  - False signal examples (window dilution): `skip_test_result_check` newly added
+    or hook recently integrated — window still contains pre-integration entries that
+    carry gap signals.  Early post-integration windows legitimately overstate adoption
+    risk until pre-integration entries age out of the entry-count window.
+  - False signal examples (other): repo_name collision mixing unrelated data,
+    structural-absence repo without `skip_test_result_check`.
+
+- [ ] Is a low or improving `signal_ratio` evidence of healthy adoption?
+  - Not necessarily if hook coverage is incomplete (hook coverage gap).
+  - E8b only reflects sessions that reached `session_end_hook`.  Sessions skipped by
+    Tier B operators (manual trigger not run), hooks wired in README but not called,
+    or CI steps that were commented out are **outside the observable set** and leave
+    no entry in the log.
+  - The fraction of sessions that were observed is itself unknown.  A clean trend
+    does not confirm that the canonical path was followed in all sessions — only in
+    the sessions that were observed.
+  - Window dilution (temporary bias) vs hook coverage gap (systematic bias) are
+    different problems.  Dilution self-corrects; coverage gap does not.
 
 - [ ] Is `signal_threshold_ratio` calibrated for this repo's workflow?
   - Default `0.5` (50% of sessions lack footprint triggers alert).

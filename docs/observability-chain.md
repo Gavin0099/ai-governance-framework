@@ -123,6 +123,23 @@ Log write failures are not surfaced in any result key.  If persistence is degrad
 actually occurred — trend interpretation may under-report signals.  There is no
 current mechanism to detect this condition.
 
+**Hook coverage gap — the observable set is not all sessions:**  
+E8a can only record sessions that reach `session_end_hook`.  Sessions where the hook
+is not triggered — because the agent workflow skips the final step, the operator
+skips the VS Code task (Tier B), the CI job fails before hook execution, or the hook
+call is simply not wired — are **outside the observable set** and leave no entry in
+the log.
+
+This is not a data-quality problem within the log; it is a **sampling boundary**.
+The log accurately represents what it observed.  What it cannot represent is its own
+coverage rate — the fraction of actual sessions that were observed is itself
+unobserved.  There is no current mechanism to measure this.
+
+Consequence: E8b trend interpretation is more precisely stated as
+“recent *hook-observed* sessions” rather than “recent sessions”.  Do not treat
+a low `signal_ratio` or `adoption_risk=False` as evidence of healthy adoption
+across *all* sessions — only across sessions that reached the hook.
+
 ---
 
 ## E8b — Multi-session trend interpretation
@@ -158,6 +175,23 @@ The sliding window is **entry-count based, not time-based**.  `window_size=20`
 means the 20 most recent log entries, regardless of when they were written.  In
 repos with irregular session frequency, a window may span days or hours depending
 on activity level.  Do not interpret `signal_ratio` as a rate-per-time-period.
+
+**Window dilution — pre-integration entries inflate early signal ratios:**  
+When `session_end_hook` is first integrated into a repo, or when `skip_test_result_check`
+is added after several sessions have already been logged, the window will contain a
+mixture of pre-integration entries (which carry gap signals) and post-integration
+entries (which do not).  During this period `signal_ratio` will be legitimately
+elevated without reflecting a current adoption gap.
+
+This effect is temporary: as new sessions accumulate, pre-integration entries age
+out of the entry-count window and `signal_ratio` naturally decreases.  It does not
+require action unless `signal_ratio` remains high after a full window of post-
+integration sessions has been recorded.
+
+Window dilution and hook coverage gap are **distinct biases** with different
+characteristics:
+- *Window dilution* — causes temporary overstatement; self-corrects as window fills
+- *Hook coverage gap* — causes systematic understatement or distortion; does not self-correct
 
 **repo_name collision note:**  
 Trend results may mix data from multiple working directories that share the same

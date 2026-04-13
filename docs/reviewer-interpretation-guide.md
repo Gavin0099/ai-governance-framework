@@ -176,6 +176,23 @@ workflow (e.g. many sessions legitimately do not run tests), the consuming repo
 should lower `signal_threshold_ratio` in `governance/gate_policy.yaml`.  This is
 a repo-local decision.
 
+**Hook coverage gap — low ratios may be falsely reassuring:**  
+E8b only aggregates sessions that reached `session_end_hook`.  If hook coverage is
+incomplete — Tier B (Copilot Wrapper) requires manual trigger; hooks may be wired
+in README but not called from actual workflow; CI governance step may be commented
+out — the trend reflects only the *observed subset*, not all sessions.
+
+A low `signal_ratio` or `adoption_risk=False` does not mean the canonical path was
+followed in all sessions.  It means the canonical path was followed in the sessions
+that were observed.  The fraction of sessions that were observed is itself unknown.
+
+**Window dilution — early post-integration ratios may be elevated:**  
+When `session_end_hook` is first integrated or `skip_test_result_check` is newly
+added, the window will contain pre-integration entries that carry gap signals.
+This causes a temporary, self-correcting elevation in `signal_ratio`.  Treat
+`adoption_risk=True` in a small early window as "window includes pre-integration
+history" until a full window of post-integration sessions has accumulated.
+
 ---
 
 ## Consistent interpretation across reviewers
@@ -203,3 +220,5 @@ from **workflow variation** (expected, no action).
   workflow design question, not an observability question
 - When to escalate to E1b-style enforcement — that decision requires real-world
   E8b data and is not yet supported
+- What fraction of sessions were actually observed — the hook coverage rate is
+  unobserved; E8b cannot report on sessions that never triggered `session_end_hook`
