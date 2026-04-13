@@ -3,6 +3,21 @@
 > This checklist is for periodic maintenance of the runtime governance layer —
 > not for individual session review.  Run it when things feel stale or before a
 > significant consuming-repo change.
+>
+> **Operator** (you, running this checklist) ≠ **Reviewer** (reading individual
+> session output).  The reviewer-facing doc is `reviewer-interpretation-guide.md`.
+
+### Run this checklist when:
+
+- `adoption_risk=True` persists across multiple sessions
+- `canonical_usage_audit` shows repeated `missing` or `trend_risk_context` status
+- `drift_checker` reports unexpected changes
+- A new E-level feature has shipped (E7, E8a, E8b, E1a, E9a…)
+- A consuming repo is being onboarded or significantly restructured
+- Something "looks wrong" but you are not sure where to start
+
+Frequency is event-driven, not calendar-driven.  The table below is a fallback
+guide only — use the trigger list above to decide when to actually open this doc.
 
 ---
 
@@ -69,6 +84,15 @@ For each consuming repo's `artifacts/runtime/canonical-audit-log.jsonl`:
   - If you need longer history, increase `_CANONICAL_AUDIT_LOG_MAX_ENTRIES` in
     `session_end_hook.py` — but note that larger logs slow E8b reads.
 
+- [ ] Has the log been unexpectedly reset (sudden drop in line count)?
+  - Possible causes: rotation bug, CI clean-workspace policy, path misconfiguration,
+    artifact directory deleted and recreated.
+  - Effect: E8b trend is recomputed against a much smaller history window — signal_ratio
+    may suddenly drop to 0.0 even if real gaps exist.  Trend results look clean but are
+    based on near-empty history.
+  - No automated detection exists.  Compare current line count to previous known count
+    or check `entries_read` vs `window_size` in the `canonical_audit_trend` result.
+
 ---
 
 ## 3. Advisory Signal Calibration
@@ -89,6 +113,9 @@ Once a consuming repo has ≥20 entries in its canonical audit log:
   - Default `0.5` (50% of sessions lack footprint triggers alert).
   - Repos with infrequent test runs may need a higher ratio to avoid noise.
   - Repos with strict canonical-path requirements may want a lower ratio.
+  - **Note:** `signal_ratio` is based on entry-count window, not time duration.
+    `window_size=20` means the 20 most recent log entries regardless of when they
+    were written.  Do not interpret the ratio as a rate per day or per week.
 
 - [ ] Do `top_signals` show one dominant signal or a mix?
   - `test_result_artifact_absent` dominant → test execution / artifact write gap.
@@ -138,6 +165,18 @@ After a framework E-level feature ships (E7, E8a, E8b, E1a, E9a, etc.):
 - [ ] Has the `consuming-repo-adoption-checklist.md` been read by the consuming
   repo maintainer since the last framework release?
 
+- [ ] Are the session hooks actually being triggered in the consuming repo workflow?
+  - Hooks: `session_start.py`, `pre_task_check.py`, `post_task_check.py`,
+    `session_end_hook.py`.
+  - Not triggered = no data in `canonical-audit-log.jsonl`, no gate decisions,
+    no advisory signals — the governance layer exists but produces no output.
+  - Check: does `artifacts/runtime/canonical-audit-log.jsonl` grow after a session
+    run?  Does `artifacts/runtime/test-results/latest.json` exist and have a recent
+    mtime?  Is there a CI step or agent workflow line that calls these hooks?
+  - Common failure modes: hooks wired in README but never called from actual agent
+    workflow, CI pipeline has governance step commented out, `session_end_hook`
+    called manually only (missed sessions are invisible).
+
 ---
 
 ## Quick Health Check Command
@@ -145,14 +184,20 @@ After a framework E-level feature ships (E7, E8a, E8b, E1a, E9a, etc.):
 Run from the consuming repo root:
 
 ```powershell
-# Drift + readiness (adapt paths as needed)
+# ── Drift / readiness checks (consuming-repo health vs framework baseline) ──
 python ai-governance-framework/governance_tools/governance_drift_checker.py --repo . --framework-root ./ai-governance-framework
 python ai-governance-framework/governance_tools/external_repo_readiness.py --repo . --framework-root ./ai-governance-framework --format human
 
-# Framework self-check
+# ── Framework self-check (framework internal consistency) ───────────────────
 python ai-governance-framework/governance_tools/governance_drift_checker.py --repo . --emit-risk-signal
+
+# ── Runtime enforcement smoke (framework enforcement boundary) ──────────────
 python ai-governance-framework/governance_tools/runtime_enforcement_smoke.py
 ```
+
+- **Drift / readiness**: answers "is this consuming repo still aligned with the framework?"
+- **Framework self-check**: answers "is the framework itself internally consistent?"
+- **Runtime enforcement smoke**: answers "are the enforcement boundary contracts still intact?"
 
 ---
 
