@@ -937,6 +937,110 @@ def _generate_session_id() -> str:
     return f"session-{ts}-{uuid.uuid4().hex[:6]}"
 
 
+def _build_canonical_usage_audit(
+    canonical_path_audit: dict,
+    canonical_audit_trend: dict,
+) -> dict:
+    """
+    Synthesise E7 (single-session footprint) and E8b (multi-session trend) into
+    a single reviewer-facing usage_status name.
+
+    Interpretation layer — NOT a signal producer
+    ---------------------------------------------
+    This function introduces no new authority, no new signal sources, and no new
+    policy parameters.  It names a combination of two pre-existing signals so
+    reviewers do not have to cross-reference canonical_path_audit and
+    canonical_audit_trend manually.
+
+    Usage status 2x2 matrix
+    -----------------------
+
+        E7 footprint present / E8b adoption_risk=False  →  "observed"
+        E7 footprint missing / E8b adoption_risk=False  →  "missing"
+        E7 footprint present / E8b adoption_risk=True   →  "observed_with_trend_risk"
+        E7 footprint missing / E8b adoption_risk=True   →  "trend_risk_context"
+
+    canonical_key_present semantics
+    --------------------------------
+    True means: the artifact JSON contains the failure_disposition key that
+    canonical ingestors write.  It does NOT assert that the ingestor was called —
+    only that the artifact looks like ingestor output.  This distinction is
+    intentional and must not be eroded.
+
+    Failure handling
+    ----------------
+    Any exception returns a minimal result with usage_status="observed",
+    advisory_only=True, and internal_error=True so that the fallback is never
+    mistaken for a genuine observation.  Never blocks.
+    """
+    try:
+        # --- E7 inputs ---
+        cpa = canonical_path_audit or {}
+        artifact_present: bool = bool(cpa.get("artifact_present", False))
+        canonical_key_present: bool = bool(
+            cpa.get("failure_disposition_key_present", False)
+        )
+        # footprint = artifact exists AND canonical ingestor marker key is present
+        footprint_present = artifact_present and canonical_key_present
+        e7_has_signals = bool(cpa.get("signals"))
+
+        # --- E8b inputs ---
+        cat = canonical_audit_trend or {}
+        trend_adoption_risk: bool = bool(cat.get("adoption_risk", False))
+        trend_signal_ratio: float = float(cat.get("signal_ratio", 0.0))
+
+        # --- 2x2 synthesis ---
+        if not e7_has_signals and not trend_adoption_risk:
+            usage_status = "observed"
+            usage_note = "canonical interpretation footprint present; no trend concern"
+        elif e7_has_signals and not trend_adoption_risk:
+            usage_status = "missing"
+            audit_note = cpa.get("audit_note", "")
+            usage_note = (
+                "canonical footprint absent this session; "
+                "no sustained trend pattern yet"
+                + (f"; {audit_note}" if audit_note else "")
+            )
+        elif not e7_has_signals and trend_adoption_risk:
+            usage_status = "observed_with_trend_risk"
+            usage_note = (
+                "canonical footprint present this session; "
+                "trend signals repeated adoption gap in recent history (advisory)"
+            )
+        else:  # e7 signals AND trend risk
+            usage_status = "trend_risk_context"
+            usage_note = (
+                "canonical footprint absent this session and trend signals repeated "
+                "adoption gap; reviewer context warranted (advisory only \u2014 no gate effect)"
+            )
+
+        return {
+            "artifact_present": artifact_present,
+            "canonical_key_present": canonical_key_present,
+            "trend_adoption_risk": trend_adoption_risk,
+            "trend_signal_ratio": round(trend_signal_ratio, 4),
+            "usage_status": usage_status,
+            "usage_note": usage_note,
+            "advisory_only": True,
+            "basis": "E7+E8b synthesis",
+        }
+
+    except Exception:  # noqa: BLE001
+        # Fallback: safe default, but NOT silent success — internal_error=True
+        # signals that this result is a default, not a genuine observation.
+        return {
+            "artifact_present": False,
+            "canonical_key_present": False,
+            "trend_adoption_risk": False,
+            "trend_signal_ratio": 0.0,
+            "usage_status": "observed",
+            "usage_note": "canonical usage audit unavailable due to internal error",
+            "advisory_only": True,
+            "basis": "E7+E8b synthesis",
+            "internal_error": True,
+        }
+
+
 # ── Main hook logic ───────────────────────────────────────────────────────────
 
 def run_session_end_hook(project_root: Path) -> dict[str, Any]:
@@ -1047,6 +1151,14 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         signal_threshold_ratio=policy.canonical_audit_trend_signal_threshold_ratio,
     )
 
+    # Synthesise E7 + E8b into a single reviewer-facing usage_status — advisory only.
+    # This is an interpretation layer, not a signal producer.  It never contributes
+    # to gate.blocked.  See _build_canonical_usage_audit() for boundary documentation.
+    canonical_usage_audit = _build_canonical_usage_audit(
+        canonical_path_audit=canonical_path_audit,
+        canonical_audit_trend=canonical_audit_trend,
+    )
+
     return {
         "ok": base_ok,
         "session_id": session_id,
@@ -1085,6 +1197,7 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         "trace_artifact": result["trace_artifact"],
         "canonical_path_audit": canonical_path_audit,
         "canonical_audit_trend": canonical_audit_trend,
+        "canonical_usage_audit": canonical_usage_audit,
         "warnings": gate_warnings,
         "errors": gate_errors,
     }
@@ -1196,6 +1309,22 @@ def format_human_result(result: dict[str, Any]) -> str:
             top_str = ", ".join(f"{k}={v}" for k, v in top.items()) if top else "none"
             lines.append(f"  [ADVISORY] adoption_risk: top_signals=[{top_str}]")
             lines.append(f"  scope: {cat.get('scope_note', '')}")
+
+    # E1a synthesis — always advisory_only; displayed after E7 and E8b blocks
+    # so the reviewer can see the raw signals and then the named synthesis.
+    cua = result.get("canonical_usage_audit") or {}
+    if cua:
+        status = cua.get("usage_status", "?")
+        lines.append(
+            f"canonical_usage_audit: "
+            f"usage_status={status} "
+            f"artifact={cua.get('artifact_present')} "
+            f"canonical_key={cua.get('canonical_key_present')} "
+            f"trend_risk={cua.get('trend_adoption_risk')}"
+            + (" [internal_error]" if cua.get("internal_error") else "")
+        )
+        if status != "observed" or cua.get("internal_error"):
+            lines.append(f"  [ADVISORY] canonical usage: {cua.get('usage_note', '')}")
 
     lines += [
         f"decision={result['decision']}",
