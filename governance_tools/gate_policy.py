@@ -80,6 +80,7 @@ _DEFAULTS: dict[str, Any] = {
     "blocking_actions": ["production_fix_required"],
     "unknown_treatment": {"mode": "block_if_count_exceeds", "threshold": 3},
     "artifact_stale_seconds": 86400,
+    "canonical_audit_trend": {"window_size": 20, "signal_threshold_ratio": 0.5},
 }
 
 
@@ -92,6 +93,11 @@ class GatePolicy:
     unknown_treatment_mode: str
     unknown_treatment_threshold: int
     artifact_stale_seconds: int
+    # canonical_audit_trend — configurable sliding-window advisory trend.
+    # These values are consumed by _compute_canonical_audit_trend() in
+    # session_end_hook.py.  They never affect gate.blocked.
+    canonical_audit_trend_window_size: int = 20
+    canonical_audit_trend_signal_threshold_ratio: float = 0.5
     # Provenance — always set by load_policy(); never set manually.
     # policy_source   : who owns this policy decision
     # policy_path     : actual filesystem path used (empty string = builtin)
@@ -262,12 +268,17 @@ def _build_policy(
     if isinstance(ut, str):
         # allow shorthand: unknown_treatment: never_block
         ut = {"mode": ut, "threshold": 0}
+    cat = raw.get("canonical_audit_trend") or {}
     return GatePolicy(
         fail_mode=str(raw.get("fail_mode", FAIL_MODE_STRICT)),
         blocking_actions=list(raw.get("blocking_actions", ["production_fix_required"])),
         unknown_treatment_mode=str(ut.get("mode", "block_if_count_exceeds")),
         unknown_treatment_threshold=int(ut.get("threshold", 3)),
         artifact_stale_seconds=int(raw.get("artifact_stale_seconds", 86400)),
+        canonical_audit_trend_window_size=int(cat.get("window_size", 20)),
+        canonical_audit_trend_signal_threshold_ratio=float(
+            cat.get("signal_threshold_ratio", 0.5)
+        ),
         source=source,
         policy_source=policy_source,
         policy_path=policy_path,
