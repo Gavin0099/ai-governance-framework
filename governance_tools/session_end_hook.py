@@ -640,6 +640,75 @@ def classify_closeout(path: Path, project_root: Path) -> dict[str, Any]:
     }
 
 
+# ── Canonical path audit ──────────────────────────────────────────────────────
+
+def _build_canonical_path_audit(artifact_result: Any) -> dict:
+    """
+    Audit whether the test-result artifact carries a canonical interpretation
+    footprint — i.e. whether test_result_ingestor._apply_failure_disposition
+    has been called.
+
+    Two distinct signal codes:
+
+      test_result_artifact_absent
+          The artifact file does not exist at session boundary.  Canonical
+          path *may* have run but left no persistent evidence.
+
+      canonical_interpretation_missing
+          Artifact exists (ok or stale) but the ``failure_disposition`` key is
+          absent from the JSON — meaning the artifact was not produced by the
+          canonical ingestor (or was produced by an older version that did not
+          include the key).
+
+    ``failure_disposition_key_present=True`` with ``failure_disposition=None``
+    is NOT flagged.  That is a valid canonical output when no tests failed.
+
+    This is an advisory surface only — signals are appended to warnings and
+    never cause gate blocking.
+    """
+    from governance_tools.gate_policy import ARTIFACT_STATE_ABSENT
+
+    state = getattr(artifact_result, "state", None)
+    artifact_present = state != ARTIFACT_STATE_ABSENT
+
+    # key_present distinguishes "canonical ingestor ran (key exists, value may
+    # be null due to no failures)" from "non-canonical artifact (key absent)".
+    failure_disposition_key_present: bool = getattr(
+        artifact_result, "failure_disposition_key_present", False
+    )
+    failure_disposition_non_null: bool = artifact_result.failure_disposition is not None
+
+    # For human display, "failure_disposition_present" means the key is in the
+    # artifact JSON (value may legitimately be null when no tests failed).
+    failure_disposition_present = artifact_present and failure_disposition_key_present
+
+    signals: list[str] = []
+
+    if not artifact_present:
+        signals.append("test_result_artifact_absent")
+    elif not failure_disposition_key_present:
+        # Artifact exists but canonical ingestor key is missing.
+        signals.append("canonical_interpretation_missing")
+    # else: key present (null or dict) — canonical path footprint confirmed.
+
+    if not artifact_present:
+        audit_note = "test result artifact absent at session boundary"
+    elif failure_disposition_key_present and failure_disposition_non_null:
+        audit_note = "canonical interpretation footprint present (with classified failures)"
+    elif failure_disposition_key_present:
+        audit_note = "canonical interpretation footprint present (no failures to classify)"
+    else:
+        audit_note = "artifact present but canonical interpretation footprint missing"
+
+    return {
+        "artifact_present": artifact_present,
+        "failure_disposition_key_present": failure_disposition_key_present,
+        "failure_disposition_present": failure_disposition_present,
+        "signals": signals,
+        "audit_note": audit_note,
+    }
+
+
 # ── Runtime helpers ───────────────────────────────────────────────────────────
 
 def _build_runtime_contract(fields: dict[str, str], memory_tier: str) -> dict[str, Any]:
@@ -723,6 +792,11 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
 
     failure_disposition_data = artifact_result.failure_disposition
 
+    # Canonical path audit — runs after gate so gate.blocked is not affected.
+    # Emits advisory signals when the session boundary lacks a canonical
+    # interpretation footprint.  Advisory only; never contributes to gate.blocked.
+    canonical_path_audit = _build_canonical_path_audit(artifact_result)
+
     base_ok = result["ok"] and closeout_status == STATUS_VALID and not gate.blocked
     gate_errors: list[str] = list(result["errors"]) + gate.errors
     gate_warnings: list[str] = list(result["warnings"]) + gate.warnings
@@ -735,6 +809,11 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
             f"using {policy.policy_source} policy ({policy.policy_path or 'builtin'}); "
             "create governance/gate_policy.yaml to declare this repo's risk posture"
         )
+
+    # Advisory signals from canonical path audit — appended after gate warnings
+    # so they are visible but clearly distinguishable from gate decisions.
+    for sig in canonical_path_audit["signals"]:
+        gate_warnings.append(f"[canonical_path_audit] {sig}: {canonical_path_audit['audit_note']}")
 
     return {
         "ok": base_ok,
@@ -772,6 +851,7 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         "memory_closeout": result["memory_closeout"],
         "verdict_artifact": result["verdict_artifact"],
         "trace_artifact": result["trace_artifact"],
+        "canonical_path_audit": canonical_path_audit,
         "warnings": gate_warnings,
         "errors": gate_errors,
     }
@@ -852,6 +932,21 @@ def format_human_result(result: dict[str, Any]) -> str:
         policy_path = gp.get('policy_path')
         if policy_path:
             lines.append(f"  policy_path={policy_path}")
+
+    # Canonical path audit advisory — displayed after gate policy, before decision.
+    # gate block (if any) is already shown in the failure_disposition section above.
+    cpa = result.get("canonical_path_audit") or {}
+    if cpa:
+        lines.append(
+            f"canonical_path_audit: "
+            f"artifact_present={cpa.get('artifact_present')} "
+            f"failure_disposition_key_present={cpa.get('failure_disposition_key_present')} "
+            f"failure_disposition_present={cpa.get('failure_disposition_present')}"
+        )
+        if cpa.get("signals"):
+            for sig in cpa["signals"]:
+                lines.append(f"  [ADVISORY] {sig}")
+            lines.append(f"  note: {cpa.get('audit_note', '')}")
 
     lines += [
         f"decision={result['decision']}",
