@@ -64,3 +64,21 @@ artifact_stale_seconds: 86400   # 24 h
 canonical_audit_trend:
   window_size: 20
   signal_threshold_ratio: 0.5
+
+# ── skip_test_result_check ────────────────────────────────────────────
+# Set to true for repos that structurally cannot produce a test-result
+# artifact (e.g. C++ projects, pure documentation repos, tooling repos
+# with no Python test suite).
+#
+# Effect: suppresses test_result_artifact_absent from canonical_path_audit
+# signals.  The audit log entry is still written with signals=[] so that
+# the absence of a signal can itself be observed over time.
+#
+# Does NOT affect gate.blocked — gating behaviour is unchanged.
+# Does NOT suppress canonical_interpretation_missing — that signal requires
+# the artifact to be present, so it cannot be emitted in the absent case.
+#
+# This is an explicit structural declaration, not a threshold workaround.
+# Prefer this over raising signal_threshold_ratio to suppress false positives.
+
+skip_test_result_check: false

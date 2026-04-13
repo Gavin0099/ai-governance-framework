@@ -653,11 +653,20 @@ _CANONICAL_AUDIT_LOG_RELPATH = Path("artifacts") / "runtime" / "canonical-audit-
 # never grows without bound.  Set conservatively — observability, not audit.
 _CANONICAL_AUDIT_LOG_MAX_ENTRIES = 500
 
-def _build_canonical_path_audit(artifact_result: Any) -> dict:
+def _build_canonical_path_audit(
+    artifact_result: Any,
+    skip_test_result_check: bool = False,
+) -> dict:
     """
     Audit whether the test-result artifact carries a canonical interpretation
     footprint — i.e. whether test_result_ingestor._apply_failure_disposition
     has been called.
+
+    If ``skip_test_result_check=True`` and the artifact is absent, the absence
+    is treated as a declared structural fact rather than an adoption gap.  No
+    ``test_result_artifact_absent`` signal is emitted; ``audit_note`` records
+    the declaration.  Use this for repos that structurally cannot produce test
+    artifacts (e.g. C++ firmware, documentation-only repos).
 
     Two distinct signal codes:
 
@@ -696,13 +705,18 @@ def _build_canonical_path_audit(artifact_result: Any) -> dict:
     signals: list[str] = []
 
     if not artifact_present:
-        signals.append("test_result_artifact_absent")
+        if skip_test_result_check:
+            pass  # structural absence declared — not an adoption signal
+        else:
+            signals.append("test_result_artifact_absent")
     elif not failure_disposition_key_present:
         # Artifact exists but canonical ingestor key is missing.
         signals.append("canonical_interpretation_missing")
     # else: key present (null or dict) — canonical path footprint confirmed.
 
-    if not artifact_present:
+    if not artifact_present and skip_test_result_check:
+        audit_note = "test result check skipped (structural absence declared)"
+    elif not artifact_present:
         audit_note = "test result artifact absent at session boundary"
     elif failure_disposition_key_present and failure_disposition_non_null:
         audit_note = "canonical interpretation footprint present (with classified failures)"
@@ -717,6 +731,7 @@ def _build_canonical_path_audit(artifact_result: Any) -> dict:
         "failure_disposition_present": failure_disposition_present,
         "signals": signals,
         "audit_note": audit_note,
+        "skip_test_result_check": skip_test_result_check,
     }
 
 
@@ -1108,7 +1123,10 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
     # Canonical path audit — runs after gate so gate.blocked is not affected.
     # Emits advisory signals when the session boundary lacks a canonical
     # interpretation footprint.  Advisory only; never contributes to gate.blocked.
-    canonical_path_audit = _build_canonical_path_audit(artifact_result)
+    canonical_path_audit = _build_canonical_path_audit(
+        artifact_result,
+        skip_test_result_check=policy.skip_test_result_check,
+    )
 
     base_ok = result["ok"] and closeout_status == STATUS_VALID and not gate.blocked
     gate_errors: list[str] = list(result["errors"]) + gate.errors
@@ -1292,6 +1310,9 @@ def format_human_result(result: dict[str, Any]) -> str:
         if cpa.get("signals"):
             for sig in cpa["signals"]:
                 lines.append(f"  [ADVISORY] {sig}")
+            lines.append(f"  note: {cpa.get('audit_note', '')}")
+        elif cpa.get("skip_test_result_check") and not cpa.get("artifact_present"):
+            lines.append("  [skipped] test_result_check: structural absence declared")
             lines.append(f"  note: {cpa.get('audit_note', '')}")
 
     # Multi-session trend — always advisory_only, never contributes to gate.

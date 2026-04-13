@@ -98,6 +98,12 @@ class GatePolicy:
     # session_end_hook.py.  They never affect gate.blocked.
     canonical_audit_trend_window_size: int = 20
     canonical_audit_trend_signal_threshold_ratio: float = 0.5
+    # skip_test_result_check — structural absence declaration.
+    # Set True for repos that cannot produce a test-result artifact by design
+    # (e.g. C++ projects, documentation repos).  Suppresses
+    # test_result_artifact_absent from canonical_path_audit signals.
+    # Does NOT affect gate.blocked.  Does NOT suppress canonical_interpretation_missing.
+    skip_test_result_check: bool = False
     # Provenance — always set by load_policy(); never set manually.
     # policy_source   : who owns this policy decision
     # policy_path     : actual filesystem path used (empty string = builtin)
@@ -279,6 +285,7 @@ def _build_policy(
         canonical_audit_trend_signal_threshold_ratio=float(
             cat.get("signal_threshold_ratio", 0.5)
         ),
+        skip_test_result_check=bool(raw.get("skip_test_result_check", False)),
         source=source,
         policy_source=policy_source,
         policy_path=policy_path,
