@@ -1,0 +1,46 @@
+# gate_policy.yaml
+#
+# Defines how session_end_hook evaluates the test-result artifact and
+# decides whether to block session closeout.
+#
+# This is the ONLY authoritative source for gating behaviour.
+# session_end_hook must NOT hardcode any of these decisions.
+#
+# ── fail_mode ─────────────────────────────────────────────────────────────────
+# strict      → absent artifact = error, malformed = error, stale = warning+gate
+# permissive  → absent / malformed / stale all skip the gate silently
+# audit       → any artifact state is recorded in warnings; gate is never triggered
+#
+# Default is strict for production governance.
+# Tests that want to isolate gate behaviour may create a local override.
+#
+# ── blocking_actions ──────────────────────────────────────────────────────────
+# List of ActionPolicy values that MUST block closeout (ok=False) when present
+# in the failure_disposition of the test result artifact.
+#
+# ── unknown_treatment ─────────────────────────────────────────────────────────
+# never_block           → unknowns never trigger a gate (escalate advisory only)
+# block_if_count_exceeds N → block when unknown_count > N
+# always_block          → any unknown failure blocks closeout
+#
+# ── artifact_stale_seconds ────────────────────────────────────────────────────
+# An artifact whose mtime is older than this threshold is considered stale.
+# stale behaviour depends on fail_mode:
+#   strict     → stale = warning added, gate still applied
+#   permissive → stale = skip silently
+#   audit      → stale = warning added, gate not applied
+#
+# Set to 0 to disable stale detection.
+
+version: "1"
+
+fail_mode: strict
+
+blocking_actions:
+  - production_fix_required
+
+unknown_treatment:
+  mode: block_if_count_exceeds
+  threshold: 3
+
+artifact_stale_seconds: 86400   # 24 h
