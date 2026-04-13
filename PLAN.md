@@ -101,7 +101,7 @@
 ### P1
 
 - [ ] 觀察 session workflow enhancement 的真實 session 分布
-- [ ] 整理 closeout / advisory / runtime observation 的 maintenance checklist
+- [x] 整理 closeout / advisory / runtime observation 的 maintenance checklist → docs/governance-maintenance-checklist.md（gate policy review / audit log health / advisory signal calibration / E6 corpus / framework-consumer sync）
 - [ ] 釐清 consuming repo 常用 workflow 對 memory closeout 的實際可見性
 
 ### P2
