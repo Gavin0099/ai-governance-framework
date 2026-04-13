@@ -41,12 +41,20 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from runtime_hooks.core.session_end import run_session_end
+from governance_tools.gate_policy import (
+    load_policy,
+    classify_artifact,
+    evaluate_gate,
+    ARTIFACT_STATE_ABSENT,
+    ARTIFACT_STATE_OK,
+)
 
 
 CLOSEOUT_FILE = "artifacts/session-closeout.txt"
 
 # Standard path where test_result_ingestor writes the ingested test result.
-# session_end_hook reads this to apply the failure_disposition gate.
+# Gate decisions are delegated entirely to gate_policy.py — session_end_hook
+# never hardcodes blocking logic.
 _TEST_RESULT_ARTIFACT = "artifacts/runtime/test-results/latest.json"
 
 REQUIRED_FIELDS = [
@@ -702,27 +710,20 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         summary=fields.get("TASK_INTENT", ""),
     )
 
-    # Read test result artifact if the agent ran tests this session.
-    # This is the Slice 3 gate: production_fix_required → verdict_blocked → ok=False.
-    # If no artifact exists (agent did not run tests), gate is skipped silently.
-    failure_disposition_data: dict | None = None
-    test_artifact_path = project_root / _TEST_RESULT_ARTIFACT
-    if test_artifact_path.exists():
-        try:
-            tr = json.loads(test_artifact_path.read_text(encoding="utf-8"))
-            failure_disposition_data = tr.get("failure_disposition")
-        except Exception:
-            pass  # Malformed artifact — skip gate, do not block session
+    # Gate evaluation — policy-driven, not hardcoded.
+    # load_policy reads governance/gate_policy.yaml; falls back to defaults.
+    # classify_artifact determines absent/malformed/stale/ok.
+    # evaluate_gate applies fail_mode + blocking_actions + unknown_treatment.
+    policy = load_policy()
+    artifact_path = project_root / _TEST_RESULT_ARTIFACT
+    artifact_result = classify_artifact(artifact_path, policy)
+    gate = evaluate_gate(artifact_result, policy)
 
-    gate_errors: list[str] = list(result["errors"])
-    base_ok = result["ok"] and closeout_status == STATUS_VALID
-    if failure_disposition_data and failure_disposition_data.get("verdict_blocked"):
-        base_ok = False
-        pfr = failure_disposition_data.get("by_action", {}).get("production_fix_required", 0)
-        gate_errors.append(
-            f"[GATE:production_fix_required] {pfr} test failure(s) require production code fix "
-            f"before session can close — see failure_disposition for details"
-        )
+    failure_disposition_data = artifact_result.failure_disposition
+
+    base_ok = result["ok"] and closeout_status == STATUS_VALID and not gate.blocked
+    gate_errors: list[str] = list(result["errors"]) + gate.errors
+    gate_warnings: list[str] = list(result["warnings"]) + gate.warnings
 
     return {
         "ok": base_ok,
@@ -743,6 +744,12 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         "per_layer_results": clf["per_layer_results"],
         "failure_signals": clf["failure_signals"],
         "failure_disposition": failure_disposition_data,
+        "gate_policy": {
+            "fail_mode": policy.fail_mode,
+            "artifact_state": artifact_result.state,
+            "blocked": gate.blocked,
+            "source": policy.source,
+        },
         "closeout_file": str(closeout_path),
         "decision": result["decision"],
         "snapshot_created": result["snapshot"] is not None,
@@ -750,7 +757,7 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         "memory_closeout": result["memory_closeout"],
         "verdict_artifact": result["verdict_artifact"],
         "trace_artifact": result["trace_artifact"],
-        "warnings": result["warnings"],
+        "warnings": gate_warnings,
         "errors": gate_errors,
     }
 
@@ -814,6 +821,14 @@ def format_human_result(result: dict[str, Any]) -> str:
             lines.append(
                 f"  [SIGNAL] taxonomy_expansion_signal: unknown_count={disp.get('unknown_count', 0)}"
             )
+
+    gp = result.get("gate_policy") or {}
+    if gp:
+        lines.append(
+            f"gate_policy: fail_mode={gp.get('fail_mode')} "
+            f"artifact_state={gp.get('artifact_state')} "
+            f"blocked={gp.get('blocked')}"
+        )
 
     lines += [
         f"decision={result['decision']}",
