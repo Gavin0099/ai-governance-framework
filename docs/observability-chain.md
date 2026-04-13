@@ -248,11 +248,13 @@ not be designed until data from E8b has been observed across actual consuming re
 ## Reading order for new reviewers
 
 1. This file — to understand the chain and its limits
-2. [E6 replay evidence](../artifacts/runtime/replay-evidence/latest.json) — to see
+2. [Reviewer Interpretation Guide](reviewer-interpretation-guide.md) — how to read
+   each signal state in practice; when to act, when to treat as background context
+3. [E6 replay evidence](../artifacts/runtime/replay-evidence/latest.json) — to see
    bounded correctness evidence for the seed corpus
-3. `run_session_end_hook` result for the current session — `canonical_path_audit`,
+4. `run_session_end_hook` result for the current session — `canonical_path_audit`,
    `canonical_audit_trend`, `canonical_usage_audit` keys
-4. [E8b trend config](../governance/gate_policy.yaml) — `canonical_audit_trend`
+5. [E8b trend config](../governance/gate_policy.yaml) — `canonical_audit_trend`
    section if the consuming repo has customised window or threshold
 
 Do not start from `canonical_usage_audit` alone.  It is a synthesis; reading the
