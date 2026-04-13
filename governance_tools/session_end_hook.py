@@ -809,6 +809,115 @@ def _append_canonical_audit_log(
         pass  # Log append failure is silent — never blocks session_end.
 
 
+def _compute_canonical_audit_trend(
+    project_root: Path,
+    window_size: int,
+    signal_threshold_ratio: float,
+) -> dict:
+    """
+    Compute a sliding-window advisory trend from the canonical audit log.
+
+    Authority boundary
+    ------------------
+    This is ALWAYS advisory_only=True.  The result MUST NOT be connected to
+    gate.blocked or any blocking mechanism.  It is a reviewer-facing adoption
+    risk signal only.
+
+    Semantics
+    ---------
+    Reads the most recent ``window_size`` entries from the canonical audit log,
+    sorted by timestamp (not by file position — silent write failures may
+    produce gaps).  Returns the fraction of those entries that carry at least
+    one advisory signal.  If that fraction >= signal_threshold_ratio, emits
+    adoption_risk=True.
+
+    repo_name grouping
+    ------------------
+    Entries are filtered to those whose repo_name matches
+    project_root.resolve().name.  This is best-effort identity — it does not
+    handle same-name directories, nested checkouts, or forks.  The scope_note
+    field in the output makes this limitation explicit.
+
+    Failure handling
+    ----------------
+    Any read failure returns a minimal result with entries_available=0 and
+    adoption_risk=False.  Trend computation must never block session_end.
+    """
+    log_path = project_root / _CANONICAL_AUDIT_LOG_RELPATH
+    repo_name = project_root.resolve().name
+
+    try:
+        if not log_path.exists():
+            raw_entries: list[dict] = []
+        else:
+            lines = [
+                l for l in log_path.read_text(encoding="utf-8").splitlines()
+                if l.strip()
+            ]
+            raw_entries = []
+            for line in lines:
+                try:
+                    raw_entries.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue  # skip malformed lines; tolerate partial writes
+    except Exception:  # noqa: BLE001
+        return {
+            "window_size": window_size,
+            "entries_read": 0,
+            "entries_available": 0,
+            "entries_with_signals": 0,
+            "signal_ratio": 0.0,
+            "top_signals": {},
+            "adoption_risk": False,
+            "advisory_only": True,
+            "scope_note": (
+                "best-effort grouping by repo_name; not canonical repo identity; "
+                "log read failed"
+            ),
+        }
+
+    # Filter to this repo and sort by timestamp (newest last).
+    repo_entries = [e for e in raw_entries if e.get("repo_name") == repo_name]
+    try:
+        repo_entries.sort(key=lambda e: e.get("timestamp", ""))
+    except Exception:  # noqa: BLE001
+        pass  # sorting failure is acceptable — use file order as fallback
+
+    entries_available = len(repo_entries)
+
+    # Window: most recent window_size entries.
+    window = repo_entries[-window_size:] if len(repo_entries) > window_size else repo_entries
+    entries_read = len(window)
+
+    # Count entries with at least one advisory signal and tally signal codes.
+    entries_with_signals = 0
+    top_signals: dict[str, int] = {}
+    for entry in window:
+        sigs = entry.get("signals") or []
+        if sigs:
+            entries_with_signals += 1
+            for s in sigs:
+                top_signals[s] = top_signals.get(s, 0) + 1
+
+    signal_ratio = entries_with_signals / entries_read if entries_read > 0 else 0.0
+    adoption_risk = signal_ratio >= signal_threshold_ratio and entries_read > 0
+
+    return {
+        "window_size": window_size,
+        "entries_read": entries_read,
+        "entries_available": entries_available,
+        "entries_with_signals": entries_with_signals,
+        "signal_ratio": round(signal_ratio, 4),
+        "top_signals": top_signals,
+        "adoption_risk": adoption_risk,
+        "advisory_only": True,
+        "scope_note": (
+            "best-effort grouping by repo_name; not canonical repo identity; "
+            "does not account for renamed directories or forks"
+        ),
+    }
+
+
 # ── Runtime helpers ───────────────────────────────────────────────────────────
 
 def _build_runtime_contract(fields: dict[str, str], memory_tier: str) -> dict[str, Any]:
@@ -929,6 +1038,15 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         repo_policy_present=policy.repo_policy_present,
     )
 
+    # Compute multi-session trend — reads the log just written to, advisory only.
+    # This MUST NOT contribute to gate.blocked.  Config comes from policy so
+    # consuming repos can tune window_size and signal_threshold_ratio.
+    canonical_audit_trend = _compute_canonical_audit_trend(
+        project_root=project_root,
+        window_size=policy.canonical_audit_trend_window_size,
+        signal_threshold_ratio=policy.canonical_audit_trend_signal_threshold_ratio,
+    )
+
     return {
         "ok": base_ok,
         "session_id": session_id,
@@ -966,6 +1084,7 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         "verdict_artifact": result["verdict_artifact"],
         "trace_artifact": result["trace_artifact"],
         "canonical_path_audit": canonical_path_audit,
+        "canonical_audit_trend": canonical_audit_trend,
         "warnings": gate_warnings,
         "errors": gate_errors,
     }
@@ -1061,6 +1180,22 @@ def format_human_result(result: dict[str, Any]) -> str:
             for sig in cpa["signals"]:
                 lines.append(f"  [ADVISORY] {sig}")
             lines.append(f"  note: {cpa.get('audit_note', '')}")
+
+    # Multi-session trend — always advisory_only, never contributes to gate.
+    # Displayed as a separate block so it is not confused with single-session signals.
+    cat = result.get("canonical_audit_trend") or {}
+    if cat:
+        lines.append(
+            f"canonical_audit_trend: "
+            f"entries_read={cat.get('entries_read', 0)}/{cat.get('window_size', '?')} "
+            f"signal_ratio={cat.get('signal_ratio', 0.0):.0%} "
+            f"adoption_risk={cat.get('adoption_risk')}"
+        )
+        if cat.get("adoption_risk"):
+            top = cat.get("top_signals") or {}
+            top_str = ", ".join(f"{k}={v}" for k, v in top.items()) if top else "none"
+            lines.append(f"  [ADVISORY] adoption_risk: top_signals=[{top_str}]")
+            lines.append(f"  scope: {cat.get('scope_note', '')}")
 
     lines += [
         f"decision={result['decision']}",
