@@ -10,13 +10,22 @@
 
 ## Before you read the signals
 
+**If you only have time to scan one thing:** read the table in the
+[Consistent interpretation](#consistent-interpretation-across-reviewers) section
+and follow the primary question for the signal state you see.  The rest of this
+guide expands on why those questions are the right ones.
+
 Two things to hold in mind:
 
 1. Every signal in this chain is **advisory only**.  None of them cause a gate
    block.  Your interpretation is the action layer — the system provides naming,
    not judgment.
 
-2. `canonical_usage_audit.usage_status` is a synthesis.  If you want to
+2. Do not make decisions based on a single session.  Interpret signals across
+   multiple sessions.  A single `trend_risk_context` has much less weight than
+   the same state appearing consistently across sessions with different task types.
+
+3. `canonical_usage_audit.usage_status` is a synthesis.  If you want to
    understand _why_ a session is in a given state, look at the raw
    `canonical_path_audit` (E7) and `canonical_audit_trend` (E8b) signals.
    The synthesis is a convenience, not a primary source.
@@ -69,6 +78,8 @@ in `canonical_audit_trend` directly.
 A single `missing` is background noise.  Three or more `missing` states in the
 last ten sessions without an `observed_with_trend_risk` or `trend_risk_context`
 deserves a closer look — the trend window may not have reached the threshold yet.
+This rule of thumb is independent of the configured trend threshold and is intended
+as an early signal only; it is not a policy decision.
 
 ---
 
@@ -92,10 +103,17 @@ about the repo's recent adoption trajectory.
 
 **What to do:**  
 Review the `top_signals` in `canonical_audit_trend` to see which signal code is
-most frequent in the window.  If `test_result_artifact_absent` dominates, the
-issue is likely that tests are not being run in many sessions.  If
-`canonical_interpretation_missing` dominates, the artifact is being produced but
-not through the canonical path.  These have different remediation paths.
+most frequent in the window:
+
+- `test_result_artifact_absent` dominates → likely a **test execution gap**: tests
+  are not being run in many sessions, so no artifact is produced at all.  This
+  suggests a workflow or tooling setup issue.
+- `canonical_interpretation_missing` dominates → likely an **integration/ingestion
+  path gap**: tests are running and producing an artifact, but not through the
+  canonical ingestor path.  This suggests the ingestor is not wired into the
+  workflow despite tests being present.
+
+These have different remediation paths.
 
 ---
 
