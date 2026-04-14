@@ -654,6 +654,12 @@ _CANONICAL_AUDIT_LOG_RELPATH = Path("artifacts") / "runtime" / "canonical-audit-
 # never grows without bound.  Set conservatively — observability, not audit.
 _CANONICAL_AUDIT_LOG_MAX_ENTRIES = 500
 
+# E1b Phase 1 — Passive Observation Layer.
+# Minimum entropy ratio below which an observation window is considered
+# degenerate (state sampling rather than event sampling).
+# A degenerate window must never be used to trigger E1b enforcement.
+_E1B_MIN_VALID_ENTROPY = 0.3
+
 def _build_canonical_path_audit(
     artifact_result: Any,
     skip_test_result_check: bool = False,
@@ -931,6 +937,129 @@ def _compute_canonical_audit_trend(
             "best-effort grouping by repo_name; not canonical repo identity; "
             "does not account for renamed directories or forks"
         ),
+    }
+
+
+# ── E1b Phase 1: Passive Observation Layer ───────────────────────────────────
+
+def _build_e1b_observation(
+    project_root: Path,
+    window_size: int,
+) -> dict:
+    """
+    E1b Phase 1 — Passive Observation Layer.
+
+    Reads the canonical audit log and computes entropy-based measurement
+    quality metrics.  Returns an advisory-only observation dict.
+
+    Purpose
+    -------
+    Determine whether the current log window contains enough state diversity
+    (entropy) to be statistically meaningful for drift detection.
+    This is a passive observer — it NEVER influences gate.blocked or ok.
+
+    Entropy definition
+    ------------------
+    Uses artifact_state (absent / ok / stale / malformed) as the state proxy.
+    entropy = distinct_states / entries_in_window.
+    Full state_hash (content_hash + mtime) is not tracked here — that level
+    of fidelity requires the G1-G4 fixture layer for synthetic scenarios.
+
+    Degenerate dataset (is_degenerate=True):
+      entropy < _E1B_MIN_VALID_ENTROPY (0.3)
+      => all recent sessions saw the same artifact_state
+      => the window cannot support E1b-style statistical interpretation
+
+    Authority boundary
+    ------------------
+    advisory_only=True is HARD-CODED.  This function must never be extended
+    to contribute to gate.blocked without a separate, deliberate design decision
+    recorded in PLAN.md.
+    """
+    log_path = project_root / _CANONICAL_AUDIT_LOG_RELPATH
+    repo_name = project_root.resolve().name
+
+    try:
+        if not log_path.exists():
+            raw_entries: list[dict] = []
+        else:
+            lines = [
+                line for line in log_path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            raw_entries = []
+            for line in lines:
+                try:
+                    raw_entries.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+    except Exception:  # noqa: BLE001
+        return {
+            "raw_entries": 0,
+            "valid_entries": 0,
+            "distinct_states": 0,
+            "entropy": 0.0,
+            "signal_ratio": 0.0,
+            "is_degenerate": True,
+            "observation_note": "observation unavailable due to internal error",
+            "advisory_only": True,
+            "internal_error": True,
+        }
+
+    # Filter to this repo and sort by timestamp.
+    repo_entries = [e for e in raw_entries if e.get("repo_name") == repo_name]
+    try:
+        repo_entries.sort(key=lambda e: e.get("timestamp", ""))
+    except Exception:  # noqa: BLE001
+        pass
+
+    window = repo_entries[-window_size:] if len(repo_entries) > window_size else repo_entries
+    entries_in_window = len(window)
+
+    if entries_in_window == 0:
+        return {
+            "raw_entries": 0,
+            "valid_entries": 0,
+            "distinct_states": 0,
+            "entropy": 0.0,
+            "signal_ratio": 0.0,
+            "is_degenerate": True,
+            "observation_note": "no entries in log for this repo",
+            "advisory_only": True,
+        }
+
+    # Entropy using artifact_state as state proxy.
+    state_values = [e.get("artifact_state", "unknown") for e in window]
+    distinct_states = len(set(state_values))
+    entropy = round(distinct_states / entries_in_window, 4)
+    is_degenerate = entropy < _E1B_MIN_VALID_ENTROPY
+
+    # Signal ratio: fraction of window entries that recorded at least one signal.
+    entries_with_signals = sum(1 for e in window if e.get("signals"))
+    signal_ratio = round(entries_with_signals / entries_in_window, 4)
+
+    if is_degenerate:
+        note = (
+            f"degenerate window: all {entries_in_window} entries share "
+            f"{distinct_states} distinct state(s) — entropy={entropy} < "
+            f"threshold={_E1B_MIN_VALID_ENTROPY}; "
+            "window cannot support E1b statistical interpretation"
+        )
+    else:
+        note = (
+            f"observation valid: entropy={entropy} >= threshold={_E1B_MIN_VALID_ENTROPY}; "
+            f"distinct_states={distinct_states} over {entries_in_window} entries"
+        )
+
+    return {
+        "raw_entries": entries_in_window,
+        "valid_entries": entries_in_window,  # session_ids are unique; no dedup at this layer
+        "distinct_states": distinct_states,
+        "entropy": entropy,
+        "signal_ratio": signal_ratio,
+        "is_degenerate": is_degenerate,
+        "observation_note": note,
+        "advisory_only": True,
     }
 
 
@@ -1259,6 +1388,16 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         canonical_audit_trend=canonical_audit_trend,
     )
 
+    # E1b Phase 1: Passive Observation Layer — advisory only, never blocks.
+    # Computes entropy from the artifact_state distribution in the audit log.
+    # is_degenerate=True means the window cannot support E1b statistical
+    # interpretation (all entries share the same artifact_state).
+    # This result MUST NOT be used to make gate decisions.
+    e1b_observation = _build_e1b_observation(
+        project_root=project_root,
+        window_size=policy.canonical_audit_trend_window_size,
+    )
+
     # F4: Taxonomy remediation trace.
     # When taxonomy_expansion_signal fires, append a 'pending' log entry so that
     # operator action (or inaction) becomes traceable across sessions.
@@ -1323,6 +1462,7 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         "canonical_path_audit": canonical_path_audit,
         "canonical_audit_trend": canonical_audit_trend,
         "canonical_usage_audit": canonical_usage_audit,
+        "e1b_observation": e1b_observation,
         "taxonomy_expansion_log_entry": taxonomy_expansion_log_entry,
         # gate_verdict is DERIVED from ok/gate_policy.blocked/warnings/errors.
         # It is a human-readable abstraction, not an authoritative gate signal.
@@ -1568,6 +1708,20 @@ def format_human_result(result: dict[str, Any]) -> str:
         )
         if status != "observed" or cua.get("internal_error"):
             lines.append(f"  [ADVISORY] canonical usage: {cua.get('usage_note', '')}")
+
+    e1b = result.get("e1b_observation") or {}
+    if e1b:
+        lines.append(
+            f"e1b_observation: "
+            f"entropy={e1b.get('entropy', 0.0)} "
+            f"distinct_states={e1b.get('distinct_states', 0)} "
+            f"entries={e1b.get('raw_entries', 0)} "
+            f"signal_ratio={e1b.get('signal_ratio', 0.0):.0%} "
+            f"is_degenerate={e1b.get('is_degenerate')}"
+            + (" [internal_error]" if e1b.get("internal_error") else "")
+        )
+        if e1b.get("is_degenerate") or e1b.get("internal_error"):
+            lines.append(f"  [ADVISORY] e1b: {e1b.get('observation_note', '')}")
 
     lines += [
         f"decision={result['decision']}",
