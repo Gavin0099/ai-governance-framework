@@ -290,6 +290,9 @@ E1b 開工條件：
 | `hp-oci-avalonia` | C# / Avalonia — 測試 non-Python 生態的 canonical footprint | canonical_interpretation_missing |
 | `gl_electron_tool` | JS — 測試 JS 生態 + 無 Python test artifact | test_result_artifact_absent |
 | `Standard_ISP_Tool` | firmware，類 cli — 驗證跨 C++ project signal 一致性 | 同 cli |
+| `Kernel-Driver-Contract` | **Tier A** — 唯一 Tier A repo，填補 E1b 覆蓋空缺 | closeout_file_missing (Tier A enforcement) |
+| `SpecAuthority` | spec-driven governance 工具，Python，high-trust pipeline | structural absence declared |
+| `Enumd` | governance-pipeline adjacent，Notion-to-Markdown extraction | structural absence declared |
 
 ### 公開 GitHub Repo（如需更多樣本）
 
@@ -334,7 +337,61 @@ E1b 開工條件：
 
 ---
 
-## 第一輪測試紀錄（2026-04-14）
+## 第二輪測試紀錄（2026-04-14）
+
+**新增三個 repo 並完成累積：**
+
+| Repo | 設定動作 | 最終 verdict | tier | entries | ratio | adoption_risk |
+|------|---------|-------------|------|---------|-------|---------------|
+| `Kernel-Driver-Contract` | `hook_coverage_tier: A` uncomment（已有 fail_mode=audit, skip=true） | `NON-GATE-FAILURE` | A | 10/10 ✅ | 0% | False |
+| `SpecAuthority` | 新建 gate_policy.yaml（Tier B, skip=true） | `OK+ADVISORIES` | B | 20/20 ✅ | 0% | False |
+| `Enumd` | 新建 gate_policy.yaml（Tier B, skip=true） | `OK+ADVISORIES` | B | 20/20 ✅ | 0% | False |
+
+**KDC Tier A 行為說明：**
+- `ok=False` = Tier A closeout 宣告為必要（`closeout_file_missing`）
+- `gate_policy.blocked=False` — `fail_mode=audit` 確保 gate 永不 block
+- `NON-GATE-FAILURE` 是 Tier A doc/contract repo 的正確狀態（設計如此）
+
+---
+
+## E1b 條件評估（第二輪，2026-04-14）
+
+```
+日期：2026-04-14
+
+[✅] Bookstore-Scraper  entries=20  signal_ratio=0%   adoption_risk=False
+[✅] cli                entries=20  signal_ratio=0%   adoption_risk=False
+[✅] hp-oci-avalonia    entries=20  signal_ratio=0%   adoption_risk=False
+[✅] Standard_ISP_Tool  entries=20  signal_ratio=0%   adoption_risk=False
+[✅] gl_electron_tool   entries=20  signal_ratio=30%  adoption_risk=False  ← 稀釋中（舊 skip-before entries）
+[✅] Kernel-Driver-Contract  entries=10  signal_ratio=0%  adoption_risk=False  (window_size=10)
+[✅] SpecAuthority      entries=20  signal_ratio=0%   adoption_risk=False
+[✅] Enumd              entries=20  signal_ratio=0%   adoption_risk=False
+
+觀察到的高頻 signal：
+  - 本輪：無新 signal（所有 skip 均宣告，canonical path signals 全為 []）
+  - gl_electron_tool ratio=30% 來自歷史遺留 entries（skip 宣告前），稀釋中
+
+跨 repo 一致性：
+  [✅] 多個 repo skip 宣告後 signals=[]（操作一致，非框架問題）
+  [✅] 無新的跨 repo 系統性 signal 出現
+
+Tier 覆蓋：
+  [✅] Tier A：Kernel-Driver-Contract（entries=10/10，ratio=0%，risk=False）
+  [✅] Tier B：7 個 repo，均 >= 20 entries
+
+E1b 開工條件評估：
+  [✅] 所有 repo entries >= window_size
+  [❌] signal_ratio >= 50% 在多 repo 一致：全部 < 50%（gl_electron_tool=30%，其餘=0%）
+  [❌] 跨 repo 相同 signal（系統性問題迹象）：無
+  [✅] Tier A + Tier B 均有足夠資料
+
+結論：E1b 不開工。
+  原因：signal_ratio 全部低於門檻（max=30%，其餘均=0%）。
+  無系統性 canonical path 問題需要 enforcement 層介入。
+  E8a 資料顯示：目前的 skip 宣告與 structural absence 處理是正常的，
+  不是 canonical path failure — 是正確的 opt-out 聲明。
+```
 
 **執行結果與決策：**
 
