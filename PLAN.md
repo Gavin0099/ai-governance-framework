@@ -66,8 +66,18 @@
 - [x] E9a：structural absence opt-out — skip_test_result_check: false in gate_policy.yaml（default=false）；GatePolicy.skip_test_result_check bool field；_build_canonical_path_audit suppresses test_result_artifact_absent when skip=True（structural absence declared）；canonical_interpretation_missing still fires normally（artifact must be present to trigger it）；format_human_result shows [skipped] instead of [ADVISORY] when skip+absent；gate.blocked completely unaffected；E8a log still written with signals=[]；return dict carries skip_test_result_check key for display layer；5/5 tests
 - [ ] E1b：canonical usage enforcement（強制版） — 只有在 stable observability + 足夠歷史 evidence 後才考慮；E1b 存在的合理性必須由 E8a/E8b 資料面撐腰，不能只靠主張
   - [x] **Phase 1（完成 db5f20f）**: Passive Observation — `_build_e1b_observation()`，advisory_only=True；資料收集 layer，NEVER 影響 gate；見 G5
-  - [ ] **Phase 2（未開工）**: Distribution Understanding — 需要真實 session footprints；loop replay 不能替代；觀測 entropy/signal_ratio 分布、repo-to-repo variance、baseline CI
-  - [ ] **Phase 3（未開工）**: Decision / Trigger — 動態 threshold、trend_direction、cross-repo correlation；只在 Phase 2 有足夠 evidence baseline 後開工
+  - [ ] **Phase 2（進行中，見 G6）**: Distribution Understanding
+    - Phase 2 不是純等待，而是兩件事同時進行：
+      - A. 等真實 session 在不同 repo 下累積 canonical audit log entries
+      - B. 運行 `scripts/analyze_e1b_distribution.py` 觀察 pool 是否正在長成可用分布
+    - Analysis surface（G6）至少能回答：repo-level entropy、signal_ratio 分布、degenerate rate、是否有單一 repo 壟斷樣本
+    - **Phase 2 → Phase 3 readiness gate（四個條件全部滿足）**：
+      1. 總 session 數 ≥ 20（可配置 `--min-sessions`）
+      2. 獨立 repo 數 ≥ 3（可配置 `--min-repos`）
+      3. 非 degenerate repo 比例 ≥ 0.5（可配置 `--min-nondegenerate`）
+      4. 最大單一 repo 佔比 ≤ 0.6（可配置 `--max-dominance`）
+    - loop replay 無法代替真實 session（loop 產生退化資料，不具統計效力）
+  - [ ] **Phase 3（blocked）**: Trigger Design — 動態 threshold、trend_direction、cross-repo correlation；必須等 Phase 2 readiness gate 全過才能開工；不允許在沒有 evidence baseline 的情況下拍腦袋設 threshold
 
 > 排序根據：E8a 先讓 signal 有歷史，E8b 才能讓歷史有語意，E1a/E1b 再決定是否有可靠證據基礎支持更強約束。
 > E1b 不等同於「系統已 enforce agent behavior」——agent 中途決策無法直接 observe，強制版頂多能驗到 artifact footprint 層，不能聲稱 runtime exclusivity。
@@ -266,6 +276,20 @@ API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`
     - advisory_only=True 不得在沒有 PLAN.md 條目的情況下放鬆
   - 6/6 tests (`tests/test_e1b_observation.py`)：empty log → degenerate；均一態 → degenerate；
     混合態 → valid；advisory_only=True 永遠成立；result schema 含 key；format 渲染
+
+- [x] G6：E1b Phase 2 — Distribution Analysis Surface（2026-04-18）
+  - `scripts/analyze_e1b_distribution.py`：讀取一或多個 canonical-audit-log.jsonl，計算 per-repo 分布
+  - Per-repo 指標：session_count, distinct_states, entropy, is_degenerate, signal_ratio,
+    state_breakdown, gate_blocked_count, first_seen / last_seen
+  - 跨 repo 聚合：entropy median/p90/p95、signal_ratio median/p90/p95、degenerate rate
+  - Phase 2 readiness gate（四條件全過 → READY，可進 Phase 3）：
+    - min_sessions ≥ 20（`--min-sessions`）
+    - min_repos ≥ 3（`--min-repos`）
+    - non-degenerate ratio ≥ 0.5（`--min-nondegenerate`）
+    - max repo dominance ≤ 0.6（`--max-dominance`）
+  - 支援 `--json` 輸出（機器可讀）
+  - 支援多 log path 合併（跨 repo 合并視圖：`--log-path a.jsonl b.jsonl c.jsonl`）
+  - 純分析工具，NEVER 影響 gate；不寫入任何 artifact
 
 **執行結果（--repeats 10）**：
 
