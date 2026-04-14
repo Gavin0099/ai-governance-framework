@@ -44,6 +44,7 @@ E1b Phase roadmap
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import sys
 from collections import defaultdict
@@ -231,6 +232,16 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
 
 # ── Fleet coverage layer ──────────────────────────────────────────────────────
 
+# Stale threshold for temporary_skip repos: if adoption debt is older than
+# this many days without being resolved, it is flagged as stale.
+_TEMPORARY_SKIP_STALE_DAYS: int = 90
+
+# Fleet representativeness threshold: if lifecycle_capable_ratio falls below
+# this value, the entropy baseline may not represent fleet reality even when
+# Phase 2 gate passes.
+_LIFECYCLE_CAPABLE_MIN_RATIO: float = 0.3
+
+
 def compute_fleet_coverage(repo_stats: dict[str, dict]) -> dict:
     """
     Layer 1: Fleet Coverage summary.
@@ -244,6 +255,16 @@ def compute_fleet_coverage(repo_stats: dict[str, dict]) -> dict:
     structural_skip   : skip declared as permanent (non-Python stack, doc repo)
     temporary_skip    : skip declared as provisional (adoption debt)
     unclassified_skip : skip=true but skip_type not declared in log
+
+    Additional signals (hardening layer)
+    ------------------------------------
+    lifecycle_capable_ratio  : lifecycle_capable_count / total_repos
+    baseline_representative  : True when ratio >= _LIFECYCLE_CAPABLE_MIN_RATIO
+    structural_skip_inconsistencies : structural repos with observed lifecycle
+        activity (signal_ratio > 0 or non-absent state) — policy may be
+        dishonest; soft advisory, not a gate blocker
+    temporary_skip_aging     : per-repo adoption-debt age; flags stale entries
+        (age_days > _TEMPORARY_SKIP_STALE_DAYS without becoming lifecycle-capable)
     """
     total = len(repo_stats)
     lifecycle_capable = [r for r, s in repo_stats.items() if s["lifecycle_capable"]]
@@ -259,6 +280,54 @@ def compute_fleet_coverage(repo_stats: dict[str, dict]) -> dict:
         r for r, s in repo_stats.items()
         if not s["lifecycle_capable"] and s["skip_type"] is None
     ]
+
+    lifecycle_capable_ratio = round(
+        len(lifecycle_capable) / total if total > 0 else 0.0, 4
+    )
+    baseline_representative = lifecycle_capable_ratio >= _LIFECYCLE_CAPABLE_MIN_RATIO
+
+    # structural_skip consistency check:
+    # A structural skip repo should never show lifecycle activity.
+    # observation data contradicting the skip_type declaration is a signal
+    # that the label may have been used to escape governance pressure.
+    structural_skip_inconsistencies: list[dict] = []
+    for r in structural_skip:
+        s = repo_stats[r]
+        has_non_absent = any(state != "absent" for state in s["state_breakdown"])
+        if s["signal_ratio"] > 0 or has_non_absent:
+            structural_skip_inconsistencies.append({
+                "repo": r,
+                "signal_ratio": s["signal_ratio"],
+                "states": s["state_breakdown"],
+                "advisory": (
+                    "structural_skip declared but lifecycle activity observed; "
+                    "verify skip_type is correct"
+                ),
+            })
+
+    # temporary_skip aging: track how long adoption debt has been outstanding.
+    # temporary skip is a provisional state — it should eventually become
+    # lifecycle_capable. Stale entries indicate unresolved adoption gaps.
+    today = datetime.date.today()
+    temporary_skip_aging: list[dict] = []
+    for r in temporary_skip:
+        s = repo_stats[r]
+        first = s.get("first_seen", "unknown")
+        age_days: int | None = None
+        try:
+            if first and first != "unknown":
+                first_d = datetime.date.fromisoformat(first[:10])
+                age_days = (today - first_d).days
+        except (ValueError, TypeError):
+            pass
+        stale = age_days is not None and age_days > _TEMPORARY_SKIP_STALE_DAYS
+        temporary_skip_aging.append({
+            "repo": r,
+            "first_seen": first,
+            "age_days": age_days,
+            "stale": stale,
+        })
+
     return {
         "total_repos": total,
         "lifecycle_capable": lifecycle_capable,
@@ -269,6 +338,10 @@ def compute_fleet_coverage(repo_stats: dict[str, dict]) -> dict:
         "structural_skip_count": len(structural_skip),
         "temporary_skip_count": len(temporary_skip),
         "unclassified_skip_count": len(unclassified_skip),
+        "lifecycle_capable_ratio": lifecycle_capable_ratio,
+        "baseline_representative": baseline_representative,
+        "structural_skip_inconsistencies": structural_skip_inconsistencies,
+        "temporary_skip_aging": temporary_skip_aging,
     }
 
 
@@ -423,28 +496,66 @@ def _print_human(
     print()
 
     # ── Layer 1: Fleet Coverage ───────────────────────────────────────────────
+    lc_ratio = fleet["lifecycle_capable_ratio"]
+    lc_ratio_advisory = (
+        f"  [ADVISORY] ratio={lc_ratio:.2f} < {_LIFECYCLE_CAPABLE_MIN_RATIO:.2f}: "
+        f"baseline may not represent fleet"
+        if not fleet["baseline_representative"] else ""
+    )
     print("  ┌── Layer 1: Fleet Coverage ─────────────────────────────────────┐")
-    print(f"  │  total repos        : {fleet['total_repos']}")
-    print(f"  │  lifecycle_capable  : {fleet['lifecycle_capable_count']}  {fleet['lifecycle_capable']}")
+    print(f"  │  total repos              : {fleet['total_repos']}")
+    print(
+        f"  │  lifecycle_capable        : {fleet['lifecycle_capable_count']}  "
+        f"{fleet['lifecycle_capable']}"
+    )
+    print(
+        f"  │  lifecycle_capable_ratio  : {lc_ratio:.4f}  "
+        + ("[OK]" if fleet["baseline_representative"] else
+           f"[LOW] < {_LIFECYCLE_CAPABLE_MIN_RATIO}: baseline not representative of fleet")
+    )
     if fleet["structural_skip"]:
         print(
-            f"  │  structural_skip    : {fleet['structural_skip_count']}  "
+            f"  │  structural_skip          : {fleet['structural_skip_count']}  "
             f"{fleet['structural_skip']}"
         )
     else:
-        print(f"  │  structural_skip    : 0")
+        print(f"  │  structural_skip          : 0")
     if fleet["temporary_skip"]:
         print(
-            f"  │  temporary_skip     : {fleet['temporary_skip_count']}  "
+            f"  │  temporary_skip           : {fleet['temporary_skip_count']}  "
             f"{fleet['temporary_skip']}"
         )
     else:
-        print(f"  │  temporary_skip     : 0")
+        print(f"  │  temporary_skip           : 0")
     if fleet["unclassified_skip"]:
         print(
-            f"  │  unclassified_skip  : {fleet['unclassified_skip_count']}  "
-            f"{fleet['unclassified_skip']}  ← add skip_type to gate_policy.yaml"
+            f"  │  unclassified_skip        : {fleet['unclassified_skip_count']}  "
+            f"{fleet['unclassified_skip']}  <- add skip_type to gate_policy.yaml"
         )
+    # structural_skip consistency advisory
+    if fleet["structural_skip_inconsistencies"]:
+        print("  │")
+        print("  │  [ADVISORY] structural_skip inconsistencies detected:")
+        for item in fleet["structural_skip_inconsistencies"]:
+            states_str = "  ".join(
+                f"{k}:{v}" for k, v in sorted(item["states"].items())
+            )
+            print(
+                f"  │    {item['repo']}: signal_ratio={item['signal_ratio']:.4f}  "
+                f"states={states_str}"
+            )
+            print(f"  │      -> {item['advisory']}")
+    # temporary_skip aging table
+    if fleet["temporary_skip_aging"]:
+        print("  │")
+        print("  │  temporary_skip aging (adoption debt tracker):")
+        for item in fleet["temporary_skip_aging"]:
+            age_str = f"{item['age_days']}d" if item["age_days"] is not None else "unknown"
+            stale_tag = "  [STALE >90d]" if item["stale"] else ""
+            print(
+                f"  │    {item['repo']:<30} first_seen={item['first_seen'][:10]}  "
+                f"age={age_str}{stale_tag}"
+            )
     print("  └────────────────────────────────────────────────────────────────┘")
     print()
 
@@ -529,6 +640,26 @@ def _print_human(
                 f"{mark}  {check['label']:<36} "
                 f"required={check['required']}  "
                 f"actual={check['actual']}"
+            )
+        # baseline representativeness advisory (post-gate)
+        if not fleet["baseline_representative"]:
+            print("  │")
+            lc_r = fleet["lifecycle_capable_ratio"]
+            lc_n = fleet["lifecycle_capable_count"]
+            tot = fleet["total_repos"]
+            print(
+                f"  │  [ADVISORY] lifecycle_capable_ratio={lc_r:.4f} "
+                f"< {_LIFECYCLE_CAPABLE_MIN_RATIO:.2f}:"
+            )
+            print(
+                f"  │    only {lc_n}/{tot} repos are lifecycle-capable;"
+            )
+            print(
+                "  │    a READY verdict here reflects quality of a narrow subset,"
+            )
+            print(
+                "  │    not fleet-wide lifecycle health. "
+                "E1b != adoption completeness."
             )
         print("  └────────────────────────────────────────────────────────────────┘")
     print(sep)

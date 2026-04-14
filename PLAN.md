@@ -380,6 +380,43 @@ API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`
 - `skip_type: structural` = 永遠不適用（非 Python 技術棧）
 - `skip_type: temporary` = 理論上可以，但尚未接通（採用缺口）
 
+**Phase 2.5 Hardening（2026-04-14）— 防誤用層**：
+
+三個防誤用機制加入 `analyze_e1b_distribution.py`：
+
+1. **structural_skip consistency advisory**（`structural_skip_inconsistencies`）
+   - 檢查：`skip_type=structural` 但曾出現 `signal_ratio > 0` 或 non-absent state
+   - 語意：觀測資料反推 policy 誠實性。structural 宣告代表「永遠不走 lifecycle」，
+     若有 lifecycle activity 出現，代表 skip_type 可能是逃避 governance 的標籤
+   - 行為：soft advisory（不 block gate），輸出在 Layer 1 Fleet Coverage 區塊
+
+2. **temporary_skip aging**（`temporary_skip_aging`）
+   - 計算每個 temporary skip repo 的 `age_days`（`first_seen` 起算至今）
+   - Stale 閾值：90 天（`_TEMPORARY_SKIP_STALE_DAYS`）
+   - 語意：temporary 是「理論上可以，但尚未接通」的狀態，不是永久分類。
+     如果一直不轉正（變 lifecycle_capable），會顯示 `[STALE >90d]`
+   - 行為：Layer 1 Fleet Coverage 顯示 aging table
+
+3. **lifecycle_capable_ratio**（`lifecycle_capable_ratio`）
+   - 計算：`lifecycle_capable_count / total_repos`
+   - 閾值：< 0.3（`_LIFECYCLE_CAPABLE_MIN_RATIO`）觸發 `baseline_not_representative`
+   - 語意：就算 Phase 2 gate READY，如果 lifecycle_capable 母體佔 fleet < 30%，
+     這個 baseline 只反映少數健康 repo 的狀態，不代表 fleet 整體 adoption 現況
+   - 行為：Layer 1 顯示 `[LOW]` 標記；Layer 2 Gate 下方顯示 advisory banner
+
+**語意邊界（強制明記）**：
+
+> **E1b ≠ adoption completeness**
+>
+> E1b 只評估 lifecycle-capable 子母體的 entropy quality。
+> ``lifecycle_capable_ratio`` 低不影響 Phase 2 gate 的 READY/NOT_READY 判定，
+> 但會觸發 advisory 警告：這個 baseline 不代表 fleet 現實。
+>
+> 要知道「有多少 repo 走了 lifecycle」→ 看 ``lifecycle_capable_ratio``（Fleet Coverage）
+> 要知道「走了 lifecycle 的 repo 品質如何」→ 看 Entropy Quality（E1b gate）
+>
+> 兩者是正交指標，不能互相替代。
+
 **執行結果（--repeats 10）**：
 
 | Scenario | verdict | entropy | effective/raw | signal_ratio | expected_match |
