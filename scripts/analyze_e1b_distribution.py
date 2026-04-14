@@ -46,6 +46,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
+import math
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -53,6 +54,17 @@ from pathlib import Path
 # ── Constants ─────────────────────────────────────────────────────────────────
 
 _E1B_MIN_VALID_ENTROPY: float = 0.3
+
+# Thresholds for lifecycle_class classification (v2 degenerate model).
+# Separates "stuck_absent" (adoption failure) from "stable_ok" (healthy convergence).
+# A repo is "stuck_absent" when:
+#   - dominant state is absent/malformed (not ok)
+#   - that state occupies >= _LC_DOMINANT_SHARE_THRESHOLD of all sessions
+#   - fingerprint diversity is below _LC_FROZEN_DIVERSITY_THRESHOLD (pattern frozen)
+# A repo is "stable_ok" when dominant state is "ok" with high share.
+# Everything else is "mixed_active" (genuine variety or insufficient data).
+_LC_DOMINANT_SHARE_THRESHOLD: float = 0.90
+_LC_FROZEN_DIVERSITY_THRESHOLD: float = 0.10
 
 # Default Phase 2 readiness gate thresholds.
 # These can be overridden via CLI flags.
@@ -117,6 +129,30 @@ def _session_fingerprint(entry: dict) -> tuple:
     return (artifact_state, signals, gate_blocked)
 
 
+def _normalized_shannon_entropy(state_breakdown: dict[str, int], n: int) -> float:
+    """
+    Shannon entropy normalized to [0, 1] by log(4).
+
+    Unlike the legacy entropy (distinct_states / session_count), this value does
+    NOT decay as session count grows.  A repo with 300 sessions all in state
+    'absent' has normalized_state_entropy = 0.0; a repo with 4 equally distributed
+    states has 1.0 regardless of sample size.
+
+    Normalization divisor: log(4) — the theoretical maximum for 4 artifact states.
+    Using a fixed divisor (not log(K)) makes values comparable across repos.
+    Returns 0.0 when n <= 0.
+    """
+    if n <= 0:
+        return 0.0
+    h = 0.0
+    for count in state_breakdown.values():
+        if count > 0:
+            p = count / n
+            h -= p * math.log(p)
+    max_h = math.log(4)  # 4 artifact states: absent, ok, stale, malformed
+    return round(h / max_h, 4)
+
+
 # ── Data loading ──────────────────────────────────────────────────────────────
 
 def _load_entries(log_paths: list[Path]) -> list[dict]:
@@ -149,8 +185,12 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
     -------
     session_count      number of entries for this repo
     distinct_states    number of unique artifact_state values seen
-    entropy            distinct_states / session_count  (0..1)
-    is_degenerate      entropy < _E1B_MIN_VALID_ENTROPY
+    entropy            distinct_states / session_count  (0..1)  [LEGACY]
+                       Decays naturally as session count grows — do not use for
+                       comparing repos with different session counts.
+    is_degenerate      entropy < _E1B_MIN_VALID_ENTROPY            [LEGACY]
+                       False-positives: healthy stable_ok repos with many sessions
+                       appear degenerate. Use is_degenerate_v2 instead.
     signal_ratio       fraction of entries that recorded at least one signal
     state_breakdown    count per artifact_state value
     gate_blocked_count entries where gate_blocked=True
@@ -158,6 +198,20 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
     last_seen          latest timestamp
     skip_type          'structural' | 'temporary' | None (from policy_provenance)
     lifecycle_capable  True when skip_test_result_check is not set / False when skip=false
+
+    Shadow metrics (v2 — not yet gate-blocking, informational):
+    normalized_state_entropy  Shannon entropy / log(4); stable across session counts
+    dominant_state            the artifact_state with the highest occurrence count
+    dominant_state_share      dominant_state count / session_count
+    lifecycle_class           three-way classification for degenerate semantics:
+                                stuck_absent  — dominant state is absent/malformed AND
+                                               share >= 0.90 AND fingerprint frozen
+                                               → adoption failure (lifecycle never ran)
+                                stable_ok     — dominant state is ok AND share >= 0.90
+                                               → lifecycle healthy; low entropy is EXPECTED
+                                mixed_active  — genuine variety or insufficient data
+    is_degenerate_v2          True only when lifecycle_class == 'stuck_absent'
+                              Does NOT misclassify stable_ok repos as degenerate.
     """
     by_repo: dict[str, list[dict]] = defaultdict(list)
     for e in entries:
@@ -248,11 +302,44 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
             round(distinct_fingerprint_count / n, 4) if n > 0 else 0.0
         )
 
+        # ── Shadow v2 metrics ─────────────────────────────────────────────────
+        # These replace the legacy entropy/is_degenerate pair.
+        # They are informational-only; not yet used as gate blockers.
+
+        normalized_state_entropy = _normalized_shannon_entropy(dict(state_breakdown), n)
+
+        dominant_state = (
+            max(state_breakdown, key=state_breakdown.get)
+            if state_breakdown else "unknown"
+        )
+        dominant_state_share = (
+            round(state_breakdown.get(dominant_state, 0) / n, 4) if n > 0 else 0.0
+        )
+
+        # lifecycle_class: separates "stuck_absent" (adoption failure) from
+        # "stable_ok" (healthy convergence) — the legacy formula cannot tell them apart.
+        _STUCK_STATES = {"absent", "malformed", "unknown"}
+        if (
+            dominant_state in _STUCK_STATES
+            and dominant_state_share >= _LC_DOMINANT_SHARE_THRESHOLD
+            and fingerprint_diversity < _LC_FROZEN_DIVERSITY_THRESHOLD
+        ):
+            lifecycle_class = "stuck_absent"
+        elif (
+            dominant_state == "ok"
+            and dominant_state_share >= _LC_DOMINANT_SHARE_THRESHOLD
+        ):
+            lifecycle_class = "stable_ok"
+        else:
+            lifecycle_class = "mixed_active"
+
+        is_degenerate_v2 = lifecycle_class == "stuck_absent"
+
         stats[repo] = {
             "session_count": n,
             "distinct_states": distinct,
-            "entropy": entropy,
-            "is_degenerate": is_degenerate,
+            "entropy": entropy,            # [LEGACY] decays with session count
+            "is_degenerate": is_degenerate,  # [LEGACY] false-positives stable_ok
             "signal_ratio": signal_ratio,
             "state_breakdown": dict(state_breakdown),
             "gate_blocked_count": gate_blocked_count,
@@ -265,6 +352,12 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
             "post_skip_lifecycle_count": post_skip_lifecycle_count,
             "distinct_fingerprint_count": distinct_fingerprint_count,
             "fingerprint_diversity": fingerprint_diversity,
+            # Shadow v2 metrics
+            "normalized_state_entropy": normalized_state_entropy,
+            "dominant_state": dominant_state,
+            "dominant_state_share": dominant_state_share,
+            "lifecycle_class": lifecycle_class,
+            "is_degenerate_v2": is_degenerate_v2,
         }
     return stats
 
@@ -458,6 +551,18 @@ def evaluate_phase2_gate(
     nondegenerate_ratio = (
         round(nondegenerate_repos / repo_count, 4) if repo_count > 0 else 0.0
     )
+
+    # Shadow v2: non-stuck-absent ratio using lifecycle_class.
+    # Fixes the false-positive from the legacy entropy formula:
+    # stable_ok repos (nearly all sessions in 'ok') are no longer classified
+    # as degenerate; only genuine adoption failures (stuck_absent) are counted.
+    # This is informational only — not yet a gate blocker.
+    non_stuck_absent_repos_v2 = sum(
+        1 for s in lc_stats.values() if s.get("lifecycle_class") != "stuck_absent"
+    )
+    non_stuck_absent_ratio_v2 = (
+        round(non_stuck_absent_repos_v2 / repo_count, 4) if repo_count > 0 else 0.0
+    )
     max_sessions_any = max(
         (s["session_count"] for s in lc_stats.values()), default=0
     )
@@ -540,6 +645,9 @@ def evaluate_phase2_gate(
         "degenerate_rate": degenerate_rate,
         "degenerate_rate_interpretation": degen_interp,
         "checks": checks,
+        # Shadow v2
+        "non_stuck_absent_repos_v2": non_stuck_absent_repos_v2,
+        "non_stuck_absent_ratio_v2": non_stuck_absent_ratio_v2,
     }
 
 
@@ -694,43 +802,64 @@ def _print_human(
         col_w = max((len(r) for r in lc_stats), default=4) + 2
         col_w = max(col_w, 20)
         hdr = (
-            f"  │  {'repo':<{col_w}} {'sessions':>8} {'entropy':>8} "
-            f"{'sig_ratio':>9} {'degenerate':>11}  states"
+            f"  │  {'repo':<{col_w}} {'sessions':>8} {'ns_ent[v2]':>10} "
+            f"{'sig_ratio':>9} {'lifecycle[v2]':>14}  {'degen[L]':>9}  states"
         )
         print(hdr)
         print(
-            f"  │  {'─'*col_w} {'─'*8} {'─'*8} {'─'*9} {'─'*11}  {'─'*20}"
+            f"  │  {'─'*col_w} {'─'*8} {'─'*10} {'─'*9} {'─'*14}  {'─'*9}  {'─'*20}"
         )
         for repo, s in sorted(
             lc_stats.items(), key=lambda kv: kv[1]["session_count"], reverse=True
         ):
-            degen_mark = "YES(!!)" if s["is_degenerate"] else "no"
+            degen_mark = "YES!![L]" if s["is_degenerate"] else "no[L]"
+            lc = s.get("lifecycle_class", "unknown")
+            ns_ent = s.get("normalized_state_entropy", 0.0)
             state_str = "  ".join(
                 f"{k}:{v}" for k, v in sorted(s["state_breakdown"].items())
             )
             print(
-                f"  │  {repo:<{col_w}} {s['session_count']:>8} {s['entropy']:>8.4f} "
-                f"{s['signal_ratio']:>9.4f} {degen_mark:>11}  {state_str}"
+                f"  │  {repo:<{col_w}} {s['session_count']:>8} {ns_ent:>10.4f} "
+                f"{s['signal_ratio']:>9.4f} {lc:>14}  {degen_mark:>9}  {state_str}"
             )
+        print("  │")
+        print("  │  Legend: ns_ent=normalized Shannon entropy (stable across session counts)")
+        print("  │          lifecycle[v2]: stuck_absent=adoption failure  stable_ok=converged healthy")
+        print("  │          degen[L]: legacy metric (distinct_states/n < 0.3) — false-positives stable_ok")
 
         entropies = [s["entropy"] for s in lc_stats.values()]
+        ns_entropies = [s.get("normalized_state_entropy", 0.0) for s in lc_stats.values()]
         signal_ratios = [s["signal_ratio"] for s in lc_stats.values()]
         degenerate_count = sum(1 for s in lc_stats.values() if s["is_degenerate"])
         degenerate_pct = int(degenerate_count / len(lc_stats) * 100)
+        lifecycle_classes = [s.get("lifecycle_class", "unknown") for s in lc_stats.values()]
+        stuck_count = lifecycle_classes.count("stuck_absent")
+        stable_ok_count = lifecycle_classes.count("stable_ok")
+        mixed_count = lifecycle_classes.count("mixed_active")
         print("  │")
         print("  │  Distribution (lifecycle-capable repos):")
         print(
-            f"  │    entropy   — median={_percentile(entropies, 50):.4f}  "
+            f"  │    entropy[L]  — median={_percentile(entropies, 50):.4f}  "
             f"p90={_percentile(entropies, 90):.4f}  "
-            f"p95={_percentile(entropies, 95):.4f}"
+            f"p95={_percentile(entropies, 95):.4f}  (legacy)"
         )
         print(
-            f"  │    sig_ratio — median={_percentile(signal_ratios, 50):.4f}  "
+            f"  │    ns_ent[v2]  — median={_percentile(ns_entropies, 50):.4f}  "
+            f"p90={_percentile(ns_entropies, 90):.4f}  "
+            f"p95={_percentile(ns_entropies, 95):.4f}"
+        )
+        print(
+            f"  │    sig_ratio   — median={_percentile(signal_ratios, 50):.4f}  "
             f"p90={_percentile(signal_ratios, 90):.4f}  "
             f"p95={_percentile(signal_ratios, 95):.4f}"
         )
         print(
-            f"  │    degenerate repos: {degenerate_count}/{len(lc_stats)} ({degenerate_pct}%)"
+            f"  │    degenerate[L]:  {degenerate_count}/{len(lc_stats)} ({degenerate_pct}%)  (legacy)"
+        )
+        print(
+            f"  │    lifecycle[v2]:  stuck_absent={stuck_count}  "
+            f"stable_ok={stable_ok_count}  mixed_active={mixed_count}  "
+            f"(non-stuck={len(lc_stats)-stuck_count}/{len(lc_stats)})"
         )
         print(
             f"  │    unique patterns : {gate['unique_patterns']}/{gate['total_sessions']} "
@@ -755,6 +884,20 @@ def _print_human(
                 f"required={check['required']}  "
                 f"actual={check['actual']}"
             )
+        # Shadow v2 gate comparison line
+        nsa_ratio = gate.get("non_stuck_absent_ratio_v2", 0.0)
+        nsa_repos = gate.get("non_stuck_absent_repos_v2", 0)
+        nsa_pass = nsa_ratio >= _PHASE2_MIN_NONDEGENERATE_RATIO
+        nsa_mark = "[OK]" if nsa_pass else "[NO]"
+        print(
+            f"  │    [SHADOW-v2] {nsa_mark} non-stuck-absent ratio        "
+            f"required={_PHASE2_MIN_NONDEGENERATE_RATIO}  "
+            f"actual={nsa_ratio:.4f} ({nsa_repos}/{gate['repo_count']} repos)"
+        )
+        print(
+            "  │    [SHADOW-v2] ^-- v2 gate uses lifecycle_class; stable_ok"
+            " repos NOT counted as degenerate"
+        )
         # baseline representativeness advisory (post-gate)
         if not fleet["baseline_representative"]:
             print("  │")
