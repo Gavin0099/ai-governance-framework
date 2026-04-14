@@ -159,7 +159,8 @@ class BatchDispositionResult:
     by_confidence: dict[str, int]
     verdict_blocked: bool              # True if any failure requires production_fix or escalate
     unknown_count: int
-    taxonomy_expansion_signal: bool    # unknown_count >= threshold
+    unknown_threshold: int             # threshold value that triggered taxonomy_expansion_signal
+    taxonomy_expansion_signal: bool    # unknown_count >= unknown_threshold
     results: list[dict]
 
     def to_dict(self) -> dict:
@@ -247,6 +248,7 @@ def classify_batch(
         by_confidence=by_confidence,
         verdict_blocked=verdict_blocked,
         unknown_count=unknown_count,
+        unknown_threshold=UNKNOWN_ESCALATION_THRESHOLD,
         taxonomy_expansion_signal=unknown_count >= UNKNOWN_ESCALATION_THRESHOLD,
         results=[r.to_dict() for r in results],
     )

@@ -87,7 +87,7 @@ def _apply_failure_disposition(result: dict) -> dict:
     if disposition.taxonomy_expansion_signal:
         result["warnings"].append(
             f"[failure_disposition] taxonomy_expansion_signal: "
-            f"{disposition.unknown_count} unknown failures >= threshold"
+            f"{disposition.unknown_count} unknown failures >= threshold ({disposition.unknown_threshold})"
         )
 
     return result

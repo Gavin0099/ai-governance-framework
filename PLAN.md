@@ -118,14 +118,23 @@ API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`
   - 16/16 tests passing（`tests/test_f1_tier_aware_closeout.py`）
 
 ### F2 pyyaml Fail-Fast
-- [ ] F2：pyyaml config presence → hard config error（非靜默 bypass）
-  - 當 gate_policy.yaml 存在但 pyyaml 不可用 → `RuntimeError`（明確要求 install）
-  - requirements.txt 已加 `pyyaml>=6.0`（`e318297`），F2 補強 fail-fast path
+- [x] F2：pyyaml config presence → hard config error（非靜默 bypass）
+  - guard 範圍：`policy_source == POLICY_SOURCE_REPO_LOCAL`（user-declared file）
+  - repo-local yaml 存在但 pyyaml 不可用 → `RuntimeError`：refusing silent fallback to builtin default
+  - framework default 仍在 pyyaml 缺席時 gracefully fall to builtin（非 user-declared）
+  - 2 new tests：F2-1（yaml+nopyaml→RuntimeError），F2-2（noyaml+nopyaml→builtin OK）
+  - 18/18 tests passing（`tests/test_f1_tier_aware_closeout.py`，加上 F1 的 16）
 
 ### F3 taxonomy_expansion_signal action contract
-- [ ] F3：明確定義 `taxonomy_expansion_signal` 觸發時 agent 應採取的動作
-  - 目前：advisory 顯示，無 prescribed action
-  - 目標：action contract 文件 + test coverage
+- [x] F3a：`unknown_threshold` 加入 `BatchDispositionResult` artifact output
+  - `BatchDispositionResult.unknown_threshold: int` field（值 = `UNKNOWN_ESCALATION_THRESHOLD`）
+  - ingestor warning：`{unknown_count} unknown failures >= threshold ({unknown_threshold})`
+  - gate_policy advisory warning：同格式含 threshold 數值
+- [x] F3b：action contract doc（`docs/taxonomy-action-contract.md`）
+  - 定義 signal 語義、prescribed operator response、threshold tuning 原則
+- [x] F3c：2 new tests（`tests/test_failure_disposition.py`）
+  - `test_batch_result_carries_unknown_threshold`：artifact to_dict() 含 unknown_threshold
+  - `test_taxonomy_signal_threshold_matches_at_boundary`：boundary / off-by-one 確認
 
 ### F4 Failure Walkthrough
 - [ ] F4：為 Tier B adoption failure 建立 walkthrough doc（主要給 consuming repo 讀）

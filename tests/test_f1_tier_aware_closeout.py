@@ -1,16 +1,20 @@
 """
-test_f1_tier_aware_closeout.py — F1 Tier-Aware Closeout Contract
+test_f1_tier_aware_closeout.py — F1 Tier-Aware Closeout Contract + F2 pyyaml Guard
 
 Tests:
-  1. Policy parsing: valid A/B/C tiers parsed correctly
-  2. Policy parsing: invalid tier value → ValueError (config error, not silent)
-  3. Policy parsing: missing tier → None
-  4. Closeout eval: Tier A + missing closeout → ok=False, signal=closeout_file_missing
-  5. Closeout eval: Tier B + missing closeout → ok unchanged, signal=closeout_missing_tier_b
-  6. Closeout eval: Tier C + missing closeout → ok unchanged, no signal
-  7. Closeout eval: undeclared tier + missing closeout → ok=False, two signals
-  8. Closeout eval: Tier B + closeout present+valid → ok=True, clean pass
-  9. Artifact visibility: result contains hook_coverage_tier + closeout_evaluation
+  1.  Policy parsing: valid A/B/C tiers parsed correctly
+  2.  Policy parsing: invalid tier value → ValueError (config error, not silent)
+  3.  Policy parsing: missing tier → None
+  4.  Closeout eval: Tier A + missing closeout → ok=False, signal=closeout_file_missing
+  5.  Closeout eval: Tier B + missing closeout → ok unchanged, signal=closeout_missing_tier_b
+  6.  Closeout eval: Tier C + missing closeout → ok unchanged, no signal
+  7.  Closeout eval: undeclared tier + missing closeout → ok=False, two signals
+  8.  Closeout eval: Tier B + closeout present+valid → ok=True, clean pass
+  9.  Artifact visibility: result contains hook_coverage_tier + closeout_evaluation
+  10. Integration Tier B missing closeout → ok not False
+  11. Integration Tier A missing closeout → ok=False
+  F2-1. yaml file present + no pyyaml → RuntimeError (config integrity, no silent fallback)
+  F2-2. no yaml file + no pyyaml → builtin default (no error)
 """
 
 from __future__ import annotations
@@ -205,3 +209,52 @@ def test_integration_artifact_visibility(tmp_path):
     assert "ok_effect" in ce
     assert "classification" in ce
     assert "signals" in ce
+
+
+# ── F2: pyyaml configuration integrity guard ─────────────────────────────────
+
+def _patch_has_yaml(monkeypatch, value: bool) -> None:
+    """Patch _HAS_YAML in gate_policy module to simulate missing PyYAML."""
+    import governance_tools.gate_policy as gp
+    monkeypatch.setattr(gp, "_HAS_YAML", value)
+
+
+def test_f2_yaml_file_present_no_pyyaml_raises(tmp_path, monkeypatch):
+    """
+    F2 correctness: gate_policy.yaml exists but PyYAML unavailable.
+    Must raise RuntimeError — must NOT silently fall back to builtin default.
+
+    This is a configuration integrity failure: the user declared an explicit policy
+    but the system cannot load it. Silent fallback would substitute a different
+    policy_source without any signal, violating the governance contract.
+    """
+    _write_policy(tmp_path, fail_mode="audit")  # creates governance/gate_policy.yaml
+    _patch_has_yaml(monkeypatch, False)
+
+    with pytest.raises(RuntimeError) as exc_info:
+        load_policy(project_root=tmp_path)
+
+    msg = str(exc_info.value)
+    assert "PyYAML" in msg or "pyyaml" in msg.lower()
+    assert "builtin default" in msg or "builtin_default" in msg
+    assert "refusing silent fallback" in msg
+
+
+def test_f2_no_yaml_file_no_pyyaml_uses_builtin(tmp_path, monkeypatch):
+    """
+    F2 contrast: no REPO-LOCAL gate_policy.yaml AND no PyYAML.
+    Must succeed — no file = no user-declared explicit policy intent, so
+    fallback to builtin default is legitimate (no configuration integrity violation).
+
+    The guard only fires when a repo-local policy file is present (user-declared).
+    When there is no repo-local file, the framework falls through to framework
+    default or builtin default without raising.
+    """
+    _patch_has_yaml(monkeypatch, False)
+    # tmp_path has no governance/gate_policy.yaml (no repo-local file)
+    # load_policy with project_root=tmp_path: repo_local absent → discovers
+    # framework default → _HAS_YAML=False → framework default gets builtin fallback
+    # (framework default is not user-declared, so no hard error)
+    policy = load_policy(project_root=tmp_path)
+    from governance_tools.gate_policy import POLICY_SOURCE_BUILTIN_DEFAULT
+    assert policy.policy_source == POLICY_SOURCE_BUILTIN_DEFAULT

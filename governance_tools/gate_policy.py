@@ -239,6 +239,27 @@ def _load_from_path(
     """Internal: load a specific path and return a GatePolicy with provenance."""
     raw: dict[str, Any] = dict(_DEFAULTS)
     if not _HAS_YAML:
+        # F2: configuration integrity guard (repo-local policy only).
+        #
+        # A repo-local gate_policy.yaml represents an explicit user decision:
+        # "this repo's policy is defined here".  If PyYAML is unavailable we
+        # cannot honour that decision, and silently substituting builtin defaults
+        # would be a policy source substitution — the system would behave as if
+        # no external policy existed, with no visible signal.
+        #
+        # Guard applies ONLY to repo_local (user-declared file).  When loading
+        # the framework-shipped default, falling back to builtin default is
+        # acceptable because neither file represents a consuming-repo decision.
+        if policy_source == POLICY_SOURCE_REPO_LOCAL:
+            raise RuntimeError(
+                f"gate_policy.yaml is present at {target} "
+                f"but PyYAML is not installed; "
+                f"cannot load external policy file — "
+                f"refusing silent fallback to builtin default. "
+                f"Fix: pip install pyyaml  (or: pip install -r requirements.txt)"
+            )
+        # Framework default or explicit-override path with no pyyaml:
+        # fall back to builtin so the system can still operate.
         return _build_policy(
             raw,
             source=f"builtin_defaults (yaml unavailable, checked {target})",
@@ -511,8 +532,9 @@ def _add_advisory_warnings(disp: dict, policy: GatePolicy, warnings: list[str]) 
     """Append non-blocking advisory notices from disposition to warnings list."""
     if disp.get("taxonomy_expansion_signal"):
         uc = disp.get("unknown_count", 0)
+        ut = disp.get("unknown_threshold", 0)
         if not any("taxonomy_expansion_signal" in w for w in warnings):
             warnings.append(
                 f"[gate_policy:signal] taxonomy_expansion_signal: "
-                f"{uc} unknown failures >= escalation threshold"
+                f"{uc} unknown failures >= escalation threshold ({ut})"
             )

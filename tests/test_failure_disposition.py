@@ -212,6 +212,34 @@ def test_batch_result_serialisable():
     _ = json.dumps(d)  # must not raise
 
 
+# ── F3: unknown_threshold artifact context ────────────────────────────────────
+
+def test_batch_result_carries_unknown_threshold():
+    """BatchDispositionResult.to_dict() must expose unknown_threshold so reviewers
+    can verify the taxonomy_expansion_signal basis without reading source code."""
+    from governance_tools.failure_disposition import UNKNOWN_ESCALATION_THRESHOLD
+    ids = ["test_folder_flag_always_present"]
+    result = classify_batch(ids)
+    d = result.to_dict()
+    assert "unknown_threshold" in d, "artifact must carry unknown_threshold"
+    assert d["unknown_threshold"] == UNKNOWN_ESCALATION_THRESHOLD
+    assert isinstance(d["unknown_threshold"], int)
+
+
+def test_taxonomy_signal_threshold_matches_at_boundary():
+    """Signal fires at exactly UNKNOWN_ESCALATION_THRESHOLD unknowns and not below."""
+    from governance_tools.failure_disposition import UNKNOWN_ESCALATION_THRESHOLD
+    threshold = UNKNOWN_ESCALATION_THRESHOLD
+    # Build threshold-many unrecognised test ids (guaranteed unknown)
+    below = [f"test_zzz_unrecognised_xyzzy_{i}" for i in range(threshold - 1)]
+    at = [f"test_zzz_unrecognised_xyzzy_{i}" for i in range(threshold)]
+    result_below = classify_batch(below)
+    result_at = classify_batch(at)
+    assert result_below.taxonomy_expansion_signal is False, "below threshold must not fire"
+    assert result_at.taxonomy_expansion_signal is True, "at threshold must fire"
+    assert result_at.unknown_threshold == threshold
+
+
 # ── Seed corpus calibration ───────────────────────────────────────────────────
 
 def _load_corpus():
