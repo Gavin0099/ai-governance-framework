@@ -214,6 +214,40 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
         # We conservatively keep it in the lifecycle pool if we can't tell.
         lifecycle_capable = not has_any_skip
 
+        # skip_type_entry_count: how many entries carry the skip_type field.
+        # Tracks schema migration completeness: old entries pre-date the field.
+        skip_type_entry_count = sum(
+            1 for e in repo_entries
+            if (e.get("policy_provenance") or {}).get("skip_type") is not None
+        )
+        skip_type_coverage_ratio = (
+            round(skip_type_entry_count / n, 4) if n > 0 else 0.0
+        )
+
+        # post_skip_lifecycle_count: entries where skip_type was ALREADY set in
+        # policy_provenance AND lifecycle activity was observed in the same session.
+        # This is the true semantic inconsistency — not pre-policy historical noise.
+        # Pre-policy entries (no skip_type in provenance) are intentionally excluded:
+        # early signals before policy config are normal adoption sequence.
+        post_skip_lifecycle_count = sum(
+            1 for e in repo_entries
+            if (e.get("policy_provenance") or {}).get("skip_type") is not None
+            and (
+                bool(e.get("signals"))
+                or e.get("artifact_state", "absent") != "absent"
+            )
+        )
+
+        # fingerprint_diversity: distinct fingerprints / session_count.
+        # Proxy for adoption progress in temporary_skip repos.
+        # Near-zero = lifecycle pattern completely frozen (adoption dead).
+        # > 0.1     = pattern changing, adoption is slow but moving.
+        fingerprints_local = [_session_fingerprint(e) for e in repo_entries]
+        distinct_fingerprint_count = len(set(fingerprints_local))
+        fingerprint_diversity = (
+            round(distinct_fingerprint_count / n, 4) if n > 0 else 0.0
+        )
+
         stats[repo] = {
             "session_count": n,
             "distinct_states": distinct,
@@ -226,6 +260,11 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
             "last_seen": timestamps[-1] if timestamps else "unknown",
             "skip_type": skip_type,
             "lifecycle_capable": lifecycle_capable,
+            "skip_type_entry_count": skip_type_entry_count,
+            "skip_type_coverage_ratio": skip_type_coverage_ratio,
+            "post_skip_lifecycle_count": post_skip_lifecycle_count,
+            "distinct_fingerprint_count": distinct_fingerprint_count,
+            "fingerprint_diversity": fingerprint_diversity,
         }
     return stats
 
@@ -240,6 +279,16 @@ _TEMPORARY_SKIP_STALE_DAYS: int = 90
 # this value, the entropy baseline may not represent fleet reality even when
 # Phase 2 gate passes.
 _LIFECYCLE_CAPABLE_MIN_RATIO: float = 0.3
+
+# Temporal era thresholds for skip_type field coverage.
+# When a new field is added to the log schema, historical entries lack it.
+# Tracking coverage ratio reveals whether the distribution was built in a
+# pre-classification era (most entries have no skip_type) or has migrated.
+#   CURRENT         >= 0.7  — most entries carry skip_type; classification reliable
+#   TRANSITION      >= 0.3  — mix of old + new entries; interpret with care
+#   PRE-SKIP-TYPE-ERA < 0.3 — mostly pre-schema entries; classifications are inferred
+_SKIP_TYPE_COVERAGE_CURRENT_THRESHOLD: float = 0.7
+_SKIP_TYPE_COVERAGE_TRANSITION_THRESHOLD: float = 0.3
 
 
 def compute_fleet_coverage(repo_stats: dict[str, dict]) -> dict:
@@ -256,15 +305,17 @@ def compute_fleet_coverage(repo_stats: dict[str, dict]) -> dict:
     temporary_skip    : skip declared as provisional (adoption debt)
     unclassified_skip : skip=true but skip_type not declared in log
 
-    Additional signals (hardening layer)
-    ------------------------------------
-    lifecycle_capable_ratio  : lifecycle_capable_count / total_repos
-    baseline_representative  : True when ratio >= _LIFECYCLE_CAPABLE_MIN_RATIO
-    structural_skip_inconsistencies : structural repos with observed lifecycle
-        activity (signal_ratio > 0 or non-absent state) — policy may be
-        dishonest; soft advisory, not a gate blocker
-    temporary_skip_aging     : per-repo adoption-debt age; flags stale entries
-        (age_days > _TEMPORARY_SKIP_STALE_DAYS without becoming lifecycle-capable)
+    Hardening signals
+    -----------------
+    lifecycle_capable_ratio         : lifecycle_capable_count / total_repos
+    baseline_representative         : True when ratio >= _LIFECYCLE_CAPABLE_MIN_RATIO
+    fleet_skip_type_coverage_ratio  : entries with skip_type set / total entries
+    fleet_era_tag                   : CURRENT / TRANSITION / PRE-SKIP-TYPE-ERA
+    structural_skip_inconsistencies : structural repos where post-policy lifecycle
+        activity was observed — only flags AFTER skip_type was set in provenance,
+        excluding pre-policy noise from normal adoption sequence
+    temporary_skip_aging            : per-repo adoption-debt age + activity score
+        (fingerprint_diversity distinguishes adoption-slow from adoption-dead)
     """
     total = len(repo_stats)
     lifecycle_capable = [r for r, s in repo_stats.items() if s["lifecycle_capable"]]
@@ -286,28 +337,49 @@ def compute_fleet_coverage(repo_stats: dict[str, dict]) -> dict:
     )
     baseline_representative = lifecycle_capable_ratio >= _LIFECYCLE_CAPABLE_MIN_RATIO
 
-    # structural_skip consistency check:
-    # A structural skip repo should never show lifecycle activity.
-    # observation data contradicting the skip_type declaration is a signal
-    # that the label may have been used to escape governance pressure.
+    # Fleet-wide skip_type coverage ratio: tracks temporal drift from pre-schema era.
+    # Old log entries (before skip_type was added to gate_policy schema) have no
+    # skip_type in policy_provenance. A low ratio means the distribution was
+    # accumulated before classifications existed — interpret with caution.
+    total_entries_fleet = sum(s["session_count"] for s in repo_stats.values())
+    skip_type_entries_fleet = sum(
+        s.get("skip_type_entry_count", 0) for s in repo_stats.values()
+    )
+    fleet_skip_type_coverage_ratio = round(
+        skip_type_entries_fleet / total_entries_fleet
+        if total_entries_fleet > 0 else 0.0,
+        4,
+    )
+    if fleet_skip_type_coverage_ratio >= _SKIP_TYPE_COVERAGE_CURRENT_THRESHOLD:
+        fleet_era_tag = "CURRENT"
+    elif fleet_skip_type_coverage_ratio >= _SKIP_TYPE_COVERAGE_TRANSITION_THRESHOLD:
+        fleet_era_tag = "TRANSITION"
+    else:
+        fleet_era_tag = "PRE-SKIP-TYPE-ERA"
+
+    # Structural skip consistency check — post-policy only.
+    # Only flag entries where skip_type was already set in policy_provenance
+    # AND lifecycle activity was observed. Pre-policy signals are intentionally
+    # excluded: they are normal artifacts of the adoption sequence (repo ran
+    # sessions before gate_policy.yaml was written with skip=true).
     structural_skip_inconsistencies: list[dict] = []
     for r in structural_skip:
         s = repo_stats[r]
-        has_non_absent = any(state != "absent" for state in s["state_breakdown"])
-        if s["signal_ratio"] > 0 or has_non_absent:
+        if s.get("post_skip_lifecycle_count", 0) > 0:
             structural_skip_inconsistencies.append({
                 "repo": r,
-                "signal_ratio": s["signal_ratio"],
-                "states": s["state_breakdown"],
+                "post_skip_lifecycle_count": s["post_skip_lifecycle_count"],
                 "advisory": (
-                    "structural_skip declared but lifecycle activity observed; "
-                    "verify skip_type is correct"
+                    "structural_skip declared but post-policy lifecycle activity "
+                    "observed; verify skip_type is not used to escape governance"
                 ),
             })
 
-    # temporary_skip aging: track how long adoption debt has been outstanding.
-    # temporary skip is a provisional state — it should eventually become
-    # lifecycle_capable. Stale entries indicate unresolved adoption gaps.
+    # Temporary skip aging: track adoption debt duration and progress.
+    # age_days    — calendar days since first observed session
+    # stale       — age > _TEMPORARY_SKIP_STALE_DAYS without becoming lifecycle-capable
+    # activity    — 'slow' if fingerprint_diversity > 0.1 (lifecycle pattern changing
+    #               even if slowly); 'dead' if completely frozen
     today = datetime.date.today()
     temporary_skip_aging: list[dict] = []
     for r in temporary_skip:
@@ -321,11 +393,15 @@ def compute_fleet_coverage(repo_stats: dict[str, dict]) -> dict:
         except (ValueError, TypeError):
             pass
         stale = age_days is not None and age_days > _TEMPORARY_SKIP_STALE_DAYS
+        fd = s.get("fingerprint_diversity", 0.0)
+        activity = "slow" if fd > 0.1 else "dead"
         temporary_skip_aging.append({
             "repo": r,
             "first_seen": first,
             "age_days": age_days,
             "stale": stale,
+            "fingerprint_diversity": fd,
+            "activity": activity,
         })
 
     return {
@@ -340,6 +416,8 @@ def compute_fleet_coverage(repo_stats: dict[str, dict]) -> dict:
         "unclassified_skip_count": len(unclassified_skip),
         "lifecycle_capable_ratio": lifecycle_capable_ratio,
         "baseline_representative": baseline_representative,
+        "fleet_skip_type_coverage_ratio": fleet_skip_type_coverage_ratio,
+        "fleet_era_tag": fleet_era_tag,
         "structural_skip_inconsistencies": structural_skip_inconsistencies,
         "temporary_skip_aging": temporary_skip_aging,
     }
@@ -497,11 +575,12 @@ def _print_human(
 
     # ── Layer 1: Fleet Coverage ───────────────────────────────────────────────
     lc_ratio = fleet["lifecycle_capable_ratio"]
-    lc_ratio_advisory = (
-        f"  [ADVISORY] ratio={lc_ratio:.2f} < {_LIFECYCLE_CAPABLE_MIN_RATIO:.2f}: "
-        f"baseline may not represent fleet"
-        if not fleet["baseline_representative"] else ""
-    )
+    era_tag = fleet["fleet_era_tag"]
+    era_note = {
+        "CURRENT": "",
+        "TRANSITION": "  [ADVISORY] <70% entries carry skip_type; temporal drift present",
+        "PRE-SKIP-TYPE-ERA": "  [ADVISORY] <30% entries carry skip_type; distribution predates classification",
+    }[era_tag]
     print("  ┌── Layer 1: Fleet Coverage ─────────────────────────────────────┐")
     print(f"  │  total repos              : {fleet['total_repos']}")
     print(
@@ -512,6 +591,10 @@ def _print_human(
         f"  │  lifecycle_capable_ratio  : {lc_ratio:.4f}  "
         + ("[OK]" if fleet["baseline_representative"] else
            f"[LOW] < {_LIFECYCLE_CAPABLE_MIN_RATIO}: baseline not representative of fleet")
+    )
+    cov_r = fleet["fleet_skip_type_coverage_ratio"]
+    print(
+        f"  │  skip_type_coverage       : {cov_r:.4f}  [{era_tag}]{era_note}"
     )
     if fleet["structural_skip"]:
         print(
@@ -532,29 +615,29 @@ def _print_human(
             f"  │  unclassified_skip        : {fleet['unclassified_skip_count']}  "
             f"{fleet['unclassified_skip']}  <- add skip_type to gate_policy.yaml"
         )
-    # structural_skip consistency advisory
+    # structural_skip consistency advisory (post-policy only — excludes pre-policy
+    # adoption-sequence signals that are expected and non-actionable)
     if fleet["structural_skip_inconsistencies"]:
         print("  │")
-        print("  │  [ADVISORY] structural_skip inconsistencies detected:")
+        print("  │  [ADVISORY] structural_skip inconsistencies (post-policy activity):")
         for item in fleet["structural_skip_inconsistencies"]:
-            states_str = "  ".join(
-                f"{k}:{v}" for k, v in sorted(item["states"].items())
-            )
             print(
-                f"  │    {item['repo']}: signal_ratio={item['signal_ratio']:.4f}  "
-                f"states={states_str}"
+                f"  │    {item['repo']}: post_skip_lifecycle_count="
+                f"{item['post_skip_lifecycle_count']}"
             )
             print(f"  │      -> {item['advisory']}")
-    # temporary_skip aging table
+    # temporary_skip aging table with adoption activity score
     if fleet["temporary_skip_aging"]:
         print("  │")
         print("  │  temporary_skip aging (adoption debt tracker):")
         for item in fleet["temporary_skip_aging"]:
-            age_str = f"{item['age_days']}d" if item["age_days"] is not None else "unknown"
+            age_str = f"{item['age_days']}d" if item["age_days"] is not None else "?"
             stale_tag = "  [STALE >90d]" if item["stale"] else ""
+            fd = item.get("fingerprint_diversity", 0.0)
+            act = item.get("activity", "?")
             print(
-                f"  │    {item['repo']:<30} first_seen={item['first_seen'][:10]}  "
-                f"age={age_str}{stale_tag}"
+                f"  │    {item['repo']:<30} age={age_str}  "
+                f"activity=[{act}]  diversity={fd:.4f}{stale_tag}"
             )
     print("  └────────────────────────────────────────────────────────────────┘")
     print()

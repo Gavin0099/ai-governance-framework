@@ -417,6 +417,58 @@ API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`
 >
 > 兩者是正交指標，不能互相替代。
 
+**Phase 2.5 Temporal Hardening（2026-04-14）— 時間維度防護**：
+
+三個問題的修正：
+
+1. **Temporal Drift — 歷史資料與新語意混用**
+   - 問題：舊 log entries 無 `skip_type`，一律算 `lifecycle_capable`，與新語意混用
+   - 修正：加入 `skip_type_coverage_ratio`（每個 entry 是否攜帶 skip_type 欄位的比率）
+   - Fleet ERA 標籤：`CURRENT` ≥ 0.7 / `TRANSITION` ≥ 0.3 / `PRE-SKIP-TYPE-ERA` < 0.3
+   - 目的：報表消費者可判斷「這份 distribution 是在語意完整之前還是之後建立的」
+
+2. **Structural consistency false positive — 暫態不一致的誤報**
+   - 問題：舊 guard 對整個 repo 歷史做 `signal_ratio > 0` 判斷，把 pre-policy 配置前
+     的 signal（正常採用序列）也當作語意矛盾
+   - 修正：改用 `post_skip_lifecycle_count`（只看 `policy_provenance.skip_type` 已設定
+     的 entries 是否還有 lifecycle activity）
+   - 效果：pre-policy 的 signal 不再觸發 advisory；只有「明確宣告 structural 後
+     卻仍在走 lifecycle」的情況才算矛盾
+
+3. **Temporary aging lacks progress — 時間 vs 進展的分離**
+   - 問題：stale 標記只看天數，無法分辨「慢但在動」vs「完全死掉」
+   - 修正：加入 `fingerprint_diversity`（distinct session fingerprints / session_count）
+   - `activity` 欄位：`slow`（diversity > 0.1，lifecycle pattern 有在變化）vs `dead`
+     （diversity ≤ 0.1，lifecycle pattern 完全凍結）
+   - 意義：兩種 stale temporary 的治理行動完全不同：
+     slow = 需要耐心或 CI infra 支援
+     dead = 需要重新評估是否應改為 structural 或真正接通 lifecycle
+
+**三層觀測模型（E1b 的完整架構）**：
+
+```
+Layer 1 — Coverage（誰在玩）
+  lifecycle_capable / structural_skip / temporary_skip
+  lifecycle_capable_ratio
+  skip_type_coverage (ERA 標籤) ← 新：時間維度
+  structural inconsistencies    ← 新：post-policy only
+  temporary aging + activity    ← 新：slow vs dead
+
+Layer 2 — Quality（玩得好不好）
+  entropy / signal_ratio / gate readiness
+  degenerate detection
+  unique_pattern_ratio
+
+Layer 3 — Integrity（有沒有自欺）
+  structural consistency (post-policy guard)
+  temporary aging (adoption-dead detection)
+  baseline_representative (lifecycle_capable_ratio)
+  temporal era (skip_type_coverage_ratio)
+```
+
+> **E1b 不再僅是統計指標，而是結合 coverage、quality 與 integrity 的觀測系統。**
+> Phase 2 的目標不是通過 gate，而是確保觀測結果在語意、時間與母體上具備可解釋性。
+
 **執行結果（--repeats 10）**：
 
 | Scenario | verdict | entropy | effective/raw | signal_ratio | expected_match |
