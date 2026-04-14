@@ -58,16 +58,44 @@ _E1B_MIN_VALID_ENTROPY: float = 0.3
 # The rationale for each:
 #   min_sessions=20  — below 20 the entropy estimate is unreliable
 #   min_repos=3      — single-repo pool cannot reveal repo-level variance
-#   min_nondegenerate=0.5 — majority of repos must have mixed artifact states
+#   min_nondegenerate=0.7 — most repos must have mixed artifact states (raised from 0.5)
 #   max_dominance=0.6 — no single repo should supply more than 60% of samples
+#   min_unique_pattern=0.4 — at least 40% of sessions must have distinct signatures
+#     (guards against pseudo-diversity: 3 repos all running identical lifecycle pattern)
 _PHASE2_MIN_SESSIONS: int = 20
 _PHASE2_MIN_REPOS: int = 3
-_PHASE2_MIN_NONDEGENERATE_RATIO: float = 0.5
+_PHASE2_MIN_NONDEGENERATE_RATIO: float = 0.7
 _PHASE2_MAX_REPO_DOMINANCE: float = 0.6
+_PHASE2_MIN_UNIQUE_PATTERN_RATIO: float = 0.4
 
 _DEFAULT_LOG_PATH = (
     Path("artifacts") / "runtime" / "canonical-audit-log.jsonl"
 )
+
+
+# ── Session fingerprint ──────────────────────────────────────────────────────
+
+def _session_fingerprint(entry: dict) -> tuple:
+    """
+    Compact signature for a single audit-log entry.
+
+    Used to estimate session-level diversity across the pool.
+    Two entries with the same fingerprint represent statistically the same
+    kind of session — repeated observations of an identical lifecycle pattern.
+
+    Components
+    ----------
+    artifact_state  — absent / ok / stale / malformed
+    signals         — sorted tuple of emitted signal codes
+    gate_blocked    — whether the gate was blocked this session
+
+    Not included: repo_name, timestamp, policy_provenance.
+    We want to measure lifecycle diversity, not repo identity.
+    """
+    artifact_state = entry.get("artifact_state", "unknown")
+    signals = tuple(sorted(entry.get("signals") or []))
+    gate_blocked = bool(entry.get("gate_blocked"))
+    return (artifact_state, signals, gate_blocked)
 
 
 # ── Data loading ──────────────────────────────────────────────────────────────
@@ -160,11 +188,13 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
 # ── Phase 2 readiness gate ────────────────────────────────────────────────────
 
 def evaluate_phase2_gate(
+    entries: list[dict],
     repo_stats: dict[str, dict],
     min_sessions: int,
     min_repos: int,
     min_nondegenerate_ratio: float,
     max_dominance: float,
+    min_unique_pattern_ratio: float,
 ) -> dict:
     """
     Evaluate whether the accumulated observation pool satisfies Phase 2 gate.
@@ -173,6 +203,15 @@ def evaluate_phase2_gate(
     needed to understand the shortfall.
 
     Phase 3 (trigger design) must not start until this gate is READY.
+
+    Gate conditions (all five must pass):
+      Coverage   — total_sessions, distinct_repos
+      Validity   — non_degenerate_ratio >= threshold
+      Diversity  — max_repo_dominance, unique_pattern_ratio
+
+    Advisory (not a gate blocker):
+      degenerate_rate_interpretation — warns when degenerate_rate < 0.05
+      (too-clean pool may indicate broken-pipeline scenarios are not observed)
     """
     total_sessions = sum(s["session_count"] for s in repo_stats.values())
     repo_count = len(repo_stats)
@@ -192,6 +231,34 @@ def evaluate_phase2_gate(
         if total_sessions > 0
         else 0.0
     )
+
+    # Unique session pattern ratio: distinct fingerprints / total sessions.
+    # Guards against pseudo-diversity — 3 repos all running the same lifecycle
+    # pattern look like repos=3, but the pool has pattern_ratio near 0.
+    fingerprints = [_session_fingerprint(e) for e in entries]
+    unique_patterns = len(set(fingerprints))
+    unique_pattern_ratio = (
+        round(unique_patterns / total_sessions, 4) if total_sessions > 0 else 0.0
+    )
+
+    # Degenerate rate interpretation — advisory, not a gate blocker.
+    # degenerate_rate near 0 is NOT automatically good:
+    #   it may mean broken-pipeline / skip-abuse patterns are never observed.
+    degenerate_rate = (
+        round(degenerate_repos / repo_count, 4) if repo_count > 0 else 0.0
+    )
+    if degenerate_rate < 0.05:
+        degen_interp = (
+            "low (<0.05) — verify that broken-pipeline / skip-abuse "
+            "scenarios are reachable in real sessions"
+        )
+    elif degenerate_rate <= 0.30:
+        degen_interp = "expected mixed (0.05–0.30) — normal range"
+    else:
+        degen_interp = (
+            "high (>0.30) — possible systemic instability "
+            "or persistently unhealthy lifecycle patterns"
+        )
 
     checks: dict[str, dict] = {
         "min_sessions": {
@@ -218,6 +285,12 @@ def evaluate_phase2_gate(
             "actual": max_dominance_actual,
             "pass": max_dominance_actual <= max_dominance,
         },
+        "unique_pattern_ratio": {
+            "label": "unique session patterns ≥ ratio",
+            "required": min_unique_pattern_ratio,
+            "actual": unique_pattern_ratio,
+            "pass": unique_pattern_ratio >= min_unique_pattern_ratio,
+        },
     }
 
     all_pass = all(c["pass"] for c in checks.values())
@@ -228,6 +301,10 @@ def evaluate_phase2_gate(
         "degenerate_repos": degenerate_repos,
         "nondegenerate_ratio": nondegenerate_ratio,
         "max_repo_dominance": max_dominance_actual,
+        "unique_patterns": unique_patterns,
+        "unique_pattern_ratio": unique_pattern_ratio,
+        "degenerate_rate": degenerate_rate,
+        "degenerate_rate_interpretation": degen_interp,
         "checks": checks,
     }
 
@@ -307,6 +384,16 @@ def _print_human(
     print(
         f"    degenerate repos: {degenerate_count}/{len(stats)} ({degenerate_pct}%)"
     )
+    print(
+        f"    unique patterns : {gate['unique_patterns']}/{gate['total_sessions']} "
+        f"(ratio={gate['unique_pattern_ratio']:.4f})"
+    )
+    degen_interp = gate.get("degenerate_rate_interpretation", "")
+    if degen_interp:
+        print(
+            f"    degenerate_rate : {gate['degenerate_rate']:.4f}  "
+            f"[{degen_interp}]"
+        )
     print()
 
     # Phase 2 readiness gate
@@ -383,6 +470,16 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--min-unique-pattern",
+        type=float,
+        default=_PHASE2_MIN_UNIQUE_PATTERN_RATIO,
+        metavar="R",
+        help=(
+            f"Min unique session pattern ratio — guards pseudo-diversity "
+            f"(default: {_PHASE2_MIN_UNIQUE_PATTERN_RATIO})"
+        ),
+    )
+    parser.add_argument(
         "--json",
         action="store_true",
         dest="emit_json",
@@ -413,11 +510,13 @@ def main() -> int:
 
     repo_stats = compute_repo_stats(entries)
     gate = evaluate_phase2_gate(
+        entries,
         repo_stats,
         min_sessions=args.min_sessions,
         min_repos=args.min_repos,
         min_nondegenerate_ratio=args.min_nondegenerate,
         max_dominance=args.max_dominance,
+        min_unique_pattern_ratio=args.min_unique_pattern,
     )
 
     if args.emit_json:

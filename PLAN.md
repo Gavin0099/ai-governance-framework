@@ -71,11 +71,15 @@
       - A. 等真實 session 在不同 repo 下累積 canonical audit log entries
       - B. 運行 `scripts/analyze_e1b_distribution.py` 觀察 pool 是否正在長成可用分布
     - Analysis surface（G6）至少能回答：repo-level entropy、signal_ratio 分布、degenerate rate、是否有單一 repo 壟斷樣本
-    - **Phase 2 → Phase 3 readiness gate（四個條件全部滿足）**：
+    - **Phase 2 → Phase 3 readiness gate（五個條件全部満足）**：
       1. 總 session 數 ≥ 20（可配置 `--min-sessions`）
       2. 獨立 repo 數 ≥ 3（可配置 `--min-repos`）
-      3. 非 degenerate repo 比例 ≥ 0.5（可配置 `--min-nondegenerate`）
+      3. 非 degenerate repo 比例 ≥ 0.7（可配置 `--min-nondegenerate`）
       4. 最大單一 repo 佔比 ≤ 0.6（可配置 `--max-dominance`）
+      5. unique session pattern ratio ≥ 0.4（可配置 `--min-unique-pattern`）
+         — 防止 pseudo-diversity：3 個 repo 但全部跑同一種生命周期 pattern
+      『 advisory 不是 gate 條件』 degenerate_rate < 0.05 → 「low (verify coverage)」警告》
+         — degenerate_rate 太低也可能代表 broken-pipeline / skip-abuse scenario 沒有被觀測到
     - loop replay 無法代替真實 session（loop 產生退化資料，不具統計效力）
   - [ ] **Phase 3（blocked）**: Trigger Design — 動態 threshold、trend_direction、cross-repo correlation；必須等 Phase 2 readiness gate 全過才能開工；不允許在沒有 evidence baseline 的情況下拍腦袋設 threshold
 
@@ -282,11 +286,18 @@ API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`
   - Per-repo 指標：session_count, distinct_states, entropy, is_degenerate, signal_ratio,
     state_breakdown, gate_blocked_count, first_seen / last_seen
   - 跨 repo 聚合：entropy median/p90/p95、signal_ratio median/p90/p95、degenerate rate
-  - Phase 2 readiness gate（四條件全過 → READY，可進 Phase 3）：
+  - 新增 `_session_fingerprint(entry)`：(artifact_state, sorted_signals, gate_blocked) 元組
+    主要防御：3 個 repo 但跑同一種 lifecycle pattern → unique_pattern_ratio 挪出 pseudo-diversity
+  - 新增 `degenerate_rate_interpretation`（advisory，不是 gate blocker）：
+    - < 0.05 → 「low — verify coverage」（degenerate 太少可能代表 broken-pipeline 沒有被觀測）
+    - 0.05–0.30 → 「expected mixed」
+    - > 0.30 → 「high — possible systemic instability」
+  - Phase 2 readiness gate（**五條件**，全過 → READY，可進 Phase 3）：
     - min_sessions ≥ 20（`--min-sessions`）
     - min_repos ≥ 3（`--min-repos`）
-    - non-degenerate ratio ≥ 0.5（`--min-nondegenerate`）
+    - non-degenerate ratio ≥ 0.7（`--min-nondegenerate`，從 0.5 提高）
     - max repo dominance ≤ 0.6（`--max-dominance`）
+    - unique_pattern_ratio ≥ 0.4（`--min-unique-pattern`） ← 新增
   - 支援 `--json` 輸出（機器可讀）
   - 支援多 log path 合併（跨 repo 合并視圖：`--log-path a.jsonl b.jsonl c.jsonl`）
   - 純分析工具，NEVER 影響 gate；不寫入任何 artifact
