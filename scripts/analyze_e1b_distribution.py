@@ -58,7 +58,10 @@ _E1B_MIN_VALID_ENTROPY: float = 0.3
 # The rationale for each:
 #   min_sessions=20  — below 20 the entropy estimate is unreliable
 #   min_repos=3      — single-repo pool cannot reveal repo-level variance
-#   min_nondegenerate=0.7 — most repos must have mixed artifact states (raised from 0.5)
+#   min_nondegenerate=0.7 — conservative pre-empirical governance threshold;
+#     NOT derived from observed data. A policy choice to prevent heavily-degenerate
+#     pools from anchoring a spurious baseline.
+#     Revise downward only after empirical distribution has been established.
 #   max_dominance=0.6 — no single repo should supply more than 60% of samples
 #   min_unique_pattern=0.4 — at least 40% of sessions must have distinct signatures
 #     (guards against pseudo-diversity: 3 repos all running identical lifecycle pattern)
@@ -91,6 +94,21 @@ def _session_fingerprint(entry: dict) -> tuple:
 
     Not included: repo_name, timestamp, policy_provenance.
     We want to measure lifecycle diversity, not repo identity.
+
+    Limitation (design boundary)
+    ----------------------------
+    This fingerprint is sufficient as a GATE GUARD against pseudo-diversity.
+    It is NOT a session type classifier.
+
+    Two sessions may share the same fingerprint yet have operationally different
+    meanings — e.g. (absent, [], False) can represent::
+      - transient artifact absence
+      - long-running static absent lifecycle
+      - post-create deletion tail-state
+
+    If Phase 3 requires pattern-level analysis (transition sequences, lifecycle
+    length, state trajectory), this fingerprint must be upgraded before use.
+    Do not treat unique_pattern_ratio as proof of lifecycle diversity.
     """
     artifact_state = entry.get("artifact_state", "unknown")
     signals = tuple(sorted(entry.get("signals") or []))
@@ -249,8 +267,9 @@ def evaluate_phase2_gate(
     )
     if degenerate_rate < 0.05:
         degen_interp = (
-            "low (<0.05) — verify that broken-pipeline / skip-abuse "
-            "scenarios are reachable in real sessions"
+            "low (<0.05) — coverage review required: confirm this reflects "
+            "genuine stability, not missing broken-pipeline / skip-abuse "
+            "observations; absence of degenerate sessions is not inherently bad"
         )
     elif degenerate_rate <= 0.30:
         degen_interp = "expected mixed (0.05–0.30) — normal range"

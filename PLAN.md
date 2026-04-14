@@ -289,7 +289,7 @@ API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`
   - 新增 `_session_fingerprint(entry)`：(artifact_state, sorted_signals, gate_blocked) 元組
     主要防御：3 個 repo 但跑同一種 lifecycle pattern → unique_pattern_ratio 挪出 pseudo-diversity
   - 新增 `degenerate_rate_interpretation`（advisory，不是 gate blocker）：
-    - < 0.05 → 「low — verify coverage」（degenerate 太少可能代表 broken-pipeline 沒有被觀測）
+    - < 0.05 → 「coverage review required」—— 確認是真正健康，而非 broken-pipeline 根本未被觀測；degenerate_rate 低本身不是問題，但需要能回答「為什麼低」
     - 0.05–0.30 → 「expected mixed」
     - > 0.30 → 「high — possible systemic instability」
   - Phase 2 readiness gate（**五條件**，全過 → READY，可進 Phase 3）：
@@ -301,6 +301,11 @@ API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`
   - 支援 `--json` 輸出（機器可讀）
   - 支援多 log path 合併（跨 repo 合并視圖：`--log-path a.jsonl b.jsonl c.jsonl`）
   - 純分析工具，NEVER 影響 gate；不寫入任何 artifact
+  - **設計邊界（已釘住，不得遺忘）**：
+    1. `_session_fingerprint` 是 gate guard，不是 session type classifier。同 fingerprint ≠ 同 operational meaning（absent 可能是短暫缺失、長期靜態、create 後被刪的 tail-state）。若 Phase 3 需要 pattern-level 分析，fingerprint 必須升級再使用。
+    2. `min_nondegenerate=0.7` 是 pre-empirical 政策值，不是 empirically derived threshold。它是在沒有 baseline 的情況下避免爛資料主導判斷的保守選擇。若未來觀測到真實分布，可以依據數據調整，但在有數據之前不能用「0.7 被實證」來宣稱。
+    3. `degenerate_rate` 解讀層的目的是 coverage review，不是紅旗。degenerate_rate = 0 不是 fail，它是一個可解釋性要求：需要回答「是真的健康，還是觀測面太窄」。
+  - **Phase 2 真正的下一步**：用現有工具跑第一批真實資料，觀察五條 gate 哪條最先被卡，那才是比繼續修 gate 更有資訊量的動作。
 
 **執行結果（--repeats 10）**：
 
