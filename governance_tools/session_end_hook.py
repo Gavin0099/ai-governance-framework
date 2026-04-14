@@ -1277,6 +1277,11 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
                 f"[taxonomy_expansion_log] failed to write remediation trace entry: {exc}"
             )
 
+    # F5: compute gate_verdict — a single human-readable verdict name that
+    # distinguishes gate-blocking failures from non-gate ok=False cases so
+    # operators (especially Tier B) can interpret the result at a glance.
+    gate_verdict = _compute_gate_verdict(base_ok, gate.blocked, gate_warnings, gate_errors)
+
     return {
         "ok": base_ok,
         "session_id": session_id,
@@ -1319,6 +1324,7 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         "canonical_audit_trend": canonical_audit_trend,
         "canonical_usage_audit": canonical_usage_audit,
         "taxonomy_expansion_log_entry": taxonomy_expansion_log_entry,
+        "gate_verdict": gate_verdict,
         "warnings": gate_warnings,
         "errors": gate_errors,
     }
@@ -1326,10 +1332,100 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
 
 # ── Output formatting ─────────────────────────────────────────────────────────
 
+# F5: gate verdict semantic tiers
+GATE_VERDICT_BLOCKED = "BLOCKED"
+GATE_VERDICT_NON_GATE_FAILURE = "NON-GATE-FAILURE"
+GATE_VERDICT_OK_WITH_ADVISORIES = "OK+ADVISORIES"
+GATE_VERDICT_OK = "OK"
+
+
+def _compute_gate_verdict(
+    ok: bool,
+    gate_blocked: bool,
+    warnings: list[str],
+    errors: list[str],
+) -> str:
+    """
+    Derive a single semantic verdict name from ok/blocked/warnings/errors.
+
+    Priority:
+      BLOCKED            gate.blocked=True OR errors present
+                         Production code or test infra must be fixed.
+      NON-GATE-FAILURE   ok=False but gate is not blocked.
+                         Structural/process issue (e.g. missing closeout).
+                         Does NOT require a production code fix.
+      OK+ADVISORIES      ok=True with advisory warnings present.
+      OK                 ok=True, no warnings.
+    """
+    if gate_blocked or errors:
+        return GATE_VERDICT_BLOCKED
+    if not ok:
+        return GATE_VERDICT_NON_GATE_FAILURE
+    if warnings:
+        return GATE_VERDICT_OK_WITH_ADVISORIES
+    return GATE_VERDICT_OK
+
+
+# F5b: semantic prefix dispatchers for warnings / errors
+_ADVISORY_PREFIXES = (
+    "[gate_policy:signal]",
+    "[gate_policy:audit]",
+    "[gate_policy]",
+    "[closeout_evaluation:",
+    "[canonical_path_audit]",
+    "[canonical_audit_trend]",
+    "[taxonomy_expansion_log]",
+)
+
+_BLOCKED_PREFIXES = (
+    "[GATE:",
+    "[gate_policy:strict]",
+)
+
+
+def _semantic_warning_label(w: str) -> str:
+    if any(w.startswith(p) for p in _ADVISORY_PREFIXES):
+        return "ADVISORY"
+    return "WARNING"
+
+
+def _semantic_error_label(e: str) -> str:
+    if any(e.startswith(p) for p in _BLOCKED_PREFIXES):
+        return "BLOCKED"
+    return "ERROR"
+
+
 def format_human_result(result: dict[str, Any]) -> str:
+    ok = result["ok"]
+    gate_blocked = (result.get("gate_policy") or {}).get("blocked", False)
+    warnings = result.get("warnings", [])
+    errors = result.get("errors", [])
+
+    # F5a: gate_verdict — computed from result dict if present, else derived inline.
+    gate_verdict = result.get("gate_verdict") or _compute_gate_verdict(
+        ok, gate_blocked, warnings, errors
+    )
+
     lines = [
         "[session_end_hook]",
-        f"ok={result['ok']}",
+        f"ok={ok}",
+        f"gate_verdict={gate_verdict}",
+    ]
+
+    # F5a: reading guide for NON-GATE-FAILURE — the common Tier B confusion point.
+    # ok=False caused by a non-gate issue means no production code fix is required.
+    if gate_verdict == GATE_VERDICT_NON_GATE_FAILURE:
+        lines.append(
+            "  ok=False is caused by a non-gate issue (e.g. missing or incomplete closeout)."
+        )
+        lines.append(
+            "  gate_policy.blocked=False — no production code fix is required."
+        )
+        lines.append(
+            "  See closeout_evaluation below for what triggered the failure."
+        )
+
+    lines += [
         f"session_id={result['session_id']}",
         f"closeout_status={result['closeout_status']}",
         f"memory_tier={result['memory_tier']}",
@@ -1420,7 +1516,6 @@ def format_human_result(result: dict[str, Any]) -> str:
             lines.append(f"  policy_path={policy_path}")
 
     # Canonical path audit advisory — displayed after gate policy, before decision.
-    # gate block (if any) is already shown in the failure_disposition section above.
     cpa = result.get("canonical_path_audit") or {}
     if cpa:
         lines.append(
@@ -1437,8 +1532,6 @@ def format_human_result(result: dict[str, Any]) -> str:
             lines.append("  [skipped] test_result_check: structural absence declared")
             lines.append(f"  note: {cpa.get('audit_note', '')}")
 
-    # Multi-session trend — always advisory_only, never contributes to gate.
-    # Displayed as a separate block so it is not confused with single-session signals.
     cat = result.get("canonical_audit_trend") or {}
     if cat:
         lines.append(
@@ -1453,8 +1546,6 @@ def format_human_result(result: dict[str, Any]) -> str:
             lines.append(f"  [ADVISORY] adoption_risk: top_signals=[{top_str}]")
             lines.append(f"  scope: {cat.get('scope_note', '')}")
 
-    # E1a synthesis — always advisory_only; displayed after E7 and E8b blocks
-    # so the reviewer can see the raw signals and then the named synthesis.
     cua = result.get("canonical_usage_audit") or {}
     if cua:
         status = cua.get("usage_status", "?")
@@ -1480,10 +1571,12 @@ def format_human_result(result: dict[str, Any]) -> str:
         lines.append(f"memory_closeout_decision={closeout.get('decision')}")
         lines.append(f"memory_closeout_reason={closeout.get('reason')}")
 
-    for w in result["warnings"]:
-        lines.append(f"warning: {w}")
-    for e in result["errors"]:
-        lines.append(f"error: {e}")
+    # F5b: semantic labels for warnings and errors so operators can distinguish
+    # advisory notices from hard failures without parsing warning string content.
+    for w in warnings:
+        lines.append(f"[{_semantic_warning_label(w)}] {w}")
+    for e in errors:
+        lines.append(f"[{_semantic_error_label(e)}] {e}")
 
     return "\n".join(lines)
 

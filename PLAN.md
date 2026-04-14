@@ -181,9 +181,21 @@ API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`
     - reviewed with just note → succeeds
     - dismissed with note → succeeds
 
-### F5 Failure Walkthrough / UX
-- [ ] F5a：為 Tier B adoption failure 建立 walkthrough doc（主要給 consuming repo 讀）
-- [ ] F5b：`ok=False` + `blocked=False` 在 Tier B 情況下的輸出可讀性改善
+### F5 Operator-Facing Output Semantics
+- [x] F5a：`gate_verdict` field in `run_session_end_hook()` result dict
+  - `BLOCKED` — `gate.blocked=True` OR errors present（production/infra fix required）
+  - `NON-GATE-FAILURE` — `ok=False` but gate not blocked（structural/process issue, e.g. missing closeout）
+  - `OK+ADVISORIES` — `ok=True` with advisory warnings
+  - `OK` — clean
+  - `format_human_result()` shows `gate_verdict=` prominently (line 3, after `ok=`)
+  - `NON-GATE-FAILURE` prints 3-line reading guide: distinguishes Tier B advisory from hard gate failure
+  - `format_human_result()` derives `gate_verdict` inline if not provided（backward-compatible）
+- [x] F5b：Semantic prefix labels for warnings / errors in `format_human_result()`
+  - Advisory warning prefixes（`[gate_policy:signal]`, `[closeout_evaluation:...]`, etc.）→ `[ADVISORY]`
+  - Gate error prefixes（`[GATE:...]`, `[gate_policy:strict]`）→ `[BLOCKED]`
+  - Other warnings → `[WARNING]`（no longer plain `warning: `）
+  - Other errors → `[ERROR]`（no longer plain `error: `）
+  - 28 tests in `tests/test_f5_gate_verdict_semantics.py`（28 passed）
 
 ## Backlog
 
