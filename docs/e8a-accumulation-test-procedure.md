@@ -293,6 +293,9 @@ E1b 開工條件：
 | `Kernel-Driver-Contract` | **Tier A** — 唯一 Tier A repo，填補 E1b 覆蓋空缺 | closeout_file_missing (Tier A enforcement) |
 | `SpecAuthority` | spec-driven governance 工具，Python，high-trust pipeline | structural absence declared |
 | `Enumd` | governance-pipeline adjacent，Notion-to-Markdown extraction | structural absence declared |
+| `lenovo_isp_tool` | C# Lenovo 顯示器韌體工具 — 多設備 ISP | structural absence declared |
+| `Command_Line_Tool` | C++ CLI 韌體更新工具 | structural absence declared |
+| `usb_2_0_eep_tool` | C++ USB 2.0 EEPROM 工具 | structural absence declared |
 
 ### 公開 GitHub Repo（如需更多樣本）
 
@@ -334,6 +337,24 @@ E1b 開工條件：
    新加入 `skip_test_result_check: true` 後，舊 window entries 仍記錄著有 signal 的歷史。
    ratio 會隨後續 clean run 自然稀釋，不需要手動清 log。
    觀察 `adoption_risk` 從 True 降回 False 的速度，可以驗算 window_size 設定是否合理。
+
+---
+
+## 第三輪測試紀錄（2026-04-14）
+
+**新增三個 green-field 韌體工具 repo：**
+
+| Repo | 語言 | 設定動作 | 最終 verdict | tier | entries | ratio | adoption_risk |
+|------|------|---------|-------------|------|---------|-------|---------------|
+| `lenovo_isp_tool` | C# | adopt + gate_policy.yaml (Tier B, skip=true) | `OK+ADVISORIES` | B | 20/20 ✅ | 0% | False |
+| `Command_Line_Tool` | C++ | adopt + gate_policy.yaml (Tier B, skip=true) | `OK+ADVISORIES` | B | 20/20 ✅ | 0% | False |
+| `usb_2_0_eep_tool` | C++ | adopt + gate_policy.yaml (Tier B, skip=true) | `OK+ADVISORIES` | B | 20/20 ✅ | 0% | False |
+
+**E1b 條件評估（第三輪）：**
+- 11 個 repo 全部 entries ≥ window_size ✅
+- signal_ratio：仍全部 ≤ 30%（max = gl_electron_tool 歷史遺留，稀釋中）❌
+- 無跨 repo 系統性 signal ❌
+- **結論：E1b 不開工。** 韌體工具類型的 repo 覆蓋已達飽和，繼續增加同類 repo 不會改變結論。
 
 ---
 
