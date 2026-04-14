@@ -933,6 +933,64 @@ def _compute_canonical_audit_trend(
     }
 
 
+# ── Tier-aware closeout enforcement ──────────────────────────────────────────
+
+def _evaluate_closeout_by_tier(
+    closeout_status: str,
+    hook_coverage_tier: str | None,
+) -> dict[str, Any]:
+    """
+    Apply tier-aware closeout contract, returning a structured evaluation.
+
+    Determines whether a missing closeout file blocks session ok.
+
+    Tier matrix (applies when closeout_status == STATUS_MISSING):
+      A or undeclared  — required / violation / fail
+                          → ok=False, signal=closeout_file_missing
+      B                — expected_but_optional / incomplete_observation / advisory
+                          → ok unchanged, signal=closeout_missing_tier_b
+      C                — not_expected / not_applicable / none
+                          → ok unchanged, no signal
+
+    undeclared additionally emits hook_coverage_tier_undeclared advisory signal.
+    For non-missing closeout statuses the fields are still returned for
+    artifact visibility, with classification="ok" and ok_effect="pass".
+    """
+    resolved_tier = hook_coverage_tier if hook_coverage_tier in ("A", "B", "C") else None
+    tier_label = resolved_tier or "undeclared"
+
+    # (expectation, classification, enforcement) per tier
+    _TIER_CONTRACT: dict[str | None, tuple[str, str, str]] = {
+        "A": ("required", "violation", "fail"),
+        "B": ("expected_but_optional", "incomplete_observation", "advisory"),
+        "C": ("not_expected", "not_applicable", "none"),
+        None: ("required", "violation", "fail"),  # undeclared = conservative Tier A
+    }
+
+    expectation, classification, enforcement = _TIER_CONTRACT[resolved_tier]
+
+    is_missing = closeout_status == STATUS_MISSING
+
+    signals: list[str] = []
+    if is_missing:
+        if enforcement == "fail":
+            signals.append("closeout_file_missing")
+        elif enforcement == "advisory":
+            signals.append("closeout_missing_tier_b")
+        # enforcement == "none": no signal
+        if resolved_tier is None:
+            signals.append("hook_coverage_tier_undeclared")
+
+    return {
+        "hook_coverage_tier": tier_label,
+        "expectation": expectation,
+        "classification": classification if is_missing else "ok",
+        "enforcement": enforcement,
+        "ok_effect": "fail" if (is_missing and enforcement == "fail") else "pass",
+        "signals": signals,
+    }
+
+
 # ── Runtime helpers ───────────────────────────────────────────────────────────
 
 def _build_runtime_contract(fields: dict[str, str], memory_tier: str) -> dict[str, Any]:
@@ -1128,7 +1186,14 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         skip_test_result_check=policy.skip_test_result_check,
     )
 
-    base_ok = result["ok"] and closeout_status == STATUS_VALID and not gate.blocked
+    # F1b: Tier-aware closeout enforcement.
+    # Tier A / undeclared: closeout_missing → ok=False (existing behaviour, conservative).
+    # Tier B: closeout_missing → advisory only; ok is not pulled down.
+    # Tier C: closeout_missing → no enforcement; ok is not pulled down.
+    closeout_eval = _evaluate_closeout_by_tier(closeout_status, policy.hook_coverage_tier)
+    closeout_ok = closeout_status == STATUS_VALID or closeout_eval["ok_effect"] == "pass"
+
+    base_ok = result["ok"] and closeout_ok and not gate.blocked
     gate_errors: list[str] = list(result["errors"]) + gate.errors
     gate_warnings: list[str] = list(result["warnings"]) + gate.warnings
 
@@ -1140,6 +1205,22 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
             f"using {policy.policy_source} policy ({policy.policy_path or 'builtin'}); "
             "create governance/gate_policy.yaml to declare this repo's risk posture"
         )
+
+    # Tier-aware closeout evaluation advisory signals.
+    for sig in closeout_eval["signals"]:
+        if sig == "hook_coverage_tier_undeclared":
+            gate_warnings.append(
+                "[closeout_evaluation:hook_coverage_tier_undeclared] "
+                "hook_coverage_tier not declared in gate_policy.yaml — "
+                "treating as Tier A (conservative); "
+                "set hook_coverage_tier: A|B|C to make tier explicit"
+            )
+        elif closeout_eval["enforcement"] == "advisory":
+            gate_warnings.append(
+                f"[closeout_evaluation:{sig}] "
+                f"tier={closeout_eval['hook_coverage_tier']} enforcement=advisory — "
+                f"closeout file absent but not required for Tier B repos"
+            )
 
     # Advisory signals from canonical path audit — appended after gate warnings
     # so they are visible but clearly distinguishable from gate decisions.
@@ -1182,6 +1263,8 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         "session_id": session_id,
         "closeout_status": closeout_status,
         "memory_tier": memory_tier,
+        "hook_coverage_tier": closeout_eval["hook_coverage_tier"],
+        "closeout_evaluation": closeout_eval,
         "repo_readiness_level": readiness["level"],
         "repo_readiness_limiting_factor": readiness["limiting_factor"],
         "repo_closeout_activation_state": readiness.get("closeout_activation_state", "unknown"),
@@ -1236,6 +1319,25 @@ def format_human_result(result: dict[str, Any]) -> str:
         + (f"/{result['repo_activation_recency']}" if result.get('repo_activation_recency') else "")
         + (f" (gap: {result['repo_activation_gap']})" if result.get('repo_activation_gap') else ""),
     ]
+
+    # Tier-aware closeout evaluation — displayed early so Tier B/C repos see
+    # their advisory status before the per-layer detail.
+    ce = result.get("closeout_evaluation") or {}
+    if ce:
+        lines.append(
+            f"closeout_evaluation: "
+            f"tier={ce.get('hook_coverage_tier')} "
+            f"enforcement={ce.get('enforcement')} "
+            f"ok_effect={ce.get('ok_effect')} "
+            f"classification={ce.get('classification')}"
+        )
+        for sig in ce.get("signals", []):
+            if ce.get("enforcement") == "advisory":
+                lines.append(f"  [ADVISORY] {sig}")
+            elif sig == "hook_coverage_tier_undeclared":
+                lines.append(f"  [ADVISORY] {sig}")
+            else:
+                lines.append(f"  [ENFORCEMENT] {sig}")
 
     clf = result.get("closeout_classification") or {}
     if clf:

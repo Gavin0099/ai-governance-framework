@@ -91,6 +91,48 @@
 - filtered suite 只能透過 `run_filtered_tests.py` 執行，不允許手寫 `-k`
 - 這不是建議，是 tooling 層的唯一入口
 
+## Phase F Sprint（Adoption Contract Repair）
+
+### 背景
+Bookstore-Scraper 和 cli 兩個 adoption test（各 8/8、9/9 PASS，agent=Copilot Tier B）
+揭露了三個系統性問題：
+
+1. **Tier B misfit**：Tier B repo 沒寫 closeout → `ok=False`（Tier A 語義強加）
+2. **pyyaml silent bypass**：pyyaml 不在 venv → policy 靜默回 builtin_default → `blocked=True`
+3. **API parameter bugs**：`session_end_hook.py` 和 `pre_task_check.py` 文件參數名稱錯誤
+
+API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`）。
+
+### F1 Closeout Contract by Tier
+- [x] F1a：`GatePolicy.hook_coverage_tier` 成為 parsed field（str | None）
+  - 有效值 A/B/C；invalid → `ValueError`（config error，非靜默 fallback）
+  - `governance/gate_policy.yaml`：`hook_coverage_tier: A`（framework default 啟用）
+  - `_load_from_path()`：`_build_policy()` 移出 try/except，讓 config ValueError 傳播
+- [x] F1b：tier-aware closeout enforcement（`_evaluate_closeout_by_tier()`）
+  - Tier A / undeclared：`closeout_missing → ok=False`（violation / fail）
+  - Tier B：`closeout_missing → advisory only`（ok 不被拉低）
+  - Tier C：`closeout_missing → no enforcement`（ok 不受影響）
+  - undeclared 額外 advisory signal：`hook_coverage_tier_undeclared`
+  - 結果輸出：`hook_coverage_tier` + `closeout_evaluation` 新增至 result dict
+  - `format_human_result()` 渲染 closeout_evaluation（tier/enforcement/ok_effect/signals）
+  - 16/16 tests passing（`tests/test_f1_tier_aware_closeout.py`）
+
+### F2 pyyaml Fail-Fast
+- [ ] F2：pyyaml config presence → hard config error（非靜默 bypass）
+  - 當 gate_policy.yaml 存在但 pyyaml 不可用 → `RuntimeError`（明確要求 install）
+  - requirements.txt 已加 `pyyaml>=6.0`（`e318297`），F2 補強 fail-fast path
+
+### F3 taxonomy_expansion_signal action contract
+- [ ] F3：明確定義 `taxonomy_expansion_signal` 觸發時 agent 應採取的動作
+  - 目前：advisory 顯示，無 prescribed action
+  - 目標：action contract 文件 + test coverage
+
+### F4 Failure Walkthrough
+- [ ] F4：為 Tier B adoption failure 建立 walkthrough doc（主要給 consuming repo 讀）
+
+### F5 UX
+- [ ] F5：`ok=False` + `blocked=False` 在 Tier B 情況下的輸出可讀性改善
+
 ## Backlog
 
 ### P0

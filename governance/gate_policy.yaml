@@ -92,4 +92,4 @@ skip_test_result_check: false
 # Affects how E8b trend results should be interpreted.
 # See: docs/hook-coverage-model.md
 #
-# hook_coverage_tier: A
+hook_coverage_tier: A

@@ -104,6 +104,13 @@ class GatePolicy:
     # test_result_artifact_absent from canonical_path_audit signals.
     # Does NOT affect gate.blocked.  Does NOT suppress canonical_interpretation_missing.
     skip_test_result_check: bool = False
+    # hook_coverage_tier — declares the session_end_hook triggering mechanism.
+    # A: native auto-closeout (Claude Code Stop hook)
+    # B: wrapper-based (Copilot VS Code task, Gemini CLI wrapper)
+    # C: manual only
+    # None (absent): treated conservatively as Tier A by closeout enforcement.
+    # Invalid value: raises ValueError at load time (config error, not silent fallback).
+    hook_coverage_tier: str | None = None
     # Provenance — always set by load_policy(); never set manually.
     # policy_source   : who owns this policy decision
     # policy_path     : actual filesystem path used (empty string = builtin)
@@ -243,14 +250,6 @@ def _load_from_path(
     try:
         loaded = yaml.safe_load(target.read_text(encoding="utf-8")) or {}
         raw.update({k: v for k, v in loaded.items() if v is not None})
-        return _build_policy(
-            raw,
-            source=str(target),
-            policy_source=policy_source,
-            policy_path=str(target),
-            fallback_used=fallback_used,
-            repo_policy_present=repo_policy_present,
-        )
     except Exception as exc:
         return _build_policy(
             dict(_DEFAULTS),
@@ -260,6 +259,17 @@ def _load_from_path(
             fallback_used=True,
             repo_policy_present=repo_policy_present,
         )
+    # _build_policy() runs OUTSIDE the yaml try/except so that ValueError from
+    # invalid config values (e.g. bad hook_coverage_tier) propagates to the
+    # caller rather than being silently absorbed into a builtin fallback.
+    return _build_policy(
+        raw,
+        source=str(target),
+        policy_source=policy_source,
+        policy_path=str(target),
+        fallback_used=fallback_used,
+        repo_policy_present=repo_policy_present,
+    )
 
 
 def _build_policy(
@@ -275,6 +285,18 @@ def _build_policy(
         # allow shorthand: unknown_treatment: never_block
         ut = {"mode": ut, "threshold": 0}
     cat = raw.get("canonical_audit_trend") or {}
+    # hook_coverage_tier: validate before constructing policy so an invalid value
+    # is a hard config error — not a silent fallback to defaults.
+    tier_raw = raw.get("hook_coverage_tier", None)
+    if tier_raw is not None:
+        tier_str = str(tier_raw).strip()
+        if tier_str not in ("A", "B", "C"):
+            raise ValueError(
+                f"gate_policy: invalid hook_coverage_tier {tier_raw!r} — "
+                "must be one of: A, B, C"
+            )
+    else:
+        tier_str = None
     return GatePolicy(
         fail_mode=str(raw.get("fail_mode", FAIL_MODE_STRICT)),
         blocking_actions=list(raw.get("blocking_actions", ["production_fix_required"])),
@@ -286,6 +308,7 @@ def _build_policy(
             cat.get("signal_threshold_ratio", 0.5)
         ),
         skip_test_result_check=bool(raw.get("skip_test_result_check", False)),
+        hook_coverage_tier=tier_str,
         source=source,
         policy_source=policy_source,
         policy_path=policy_path,
