@@ -88,6 +88,40 @@ _DEFAULT_LOG_PATH = (
     Path("artifacts") / "runtime" / "canonical-audit-log.jsonl"
 )
 
+_AUDIT_LOG_RELPATH = Path("artifacts") / "runtime" / "canonical-audit-log.jsonl"
+
+
+def _auto_discover_logs(start_dir: Path | None = None) -> list[Path]:
+    """
+    Scan sibling directories of start_dir for canonical-audit-log.jsonl files.
+
+    Looks in:
+      1. start_dir itself (the framework repo)
+      2. All direct subdirectories of start_dir.parent (sibling repos)
+
+    Returns all discovered paths that exist, sorted for determinism.
+    Falls back to [_DEFAULT_LOG_PATH] if nothing is found.
+    """
+    if start_dir is None:
+        start_dir = Path.cwd()
+    parent = start_dir.parent
+    candidates: list[Path] = []
+    # Check the framework repo itself first
+    own = start_dir / _AUDIT_LOG_RELPATH
+    if own.exists():
+        candidates.append(own)
+    # Check siblings
+    try:
+        for sibling in sorted(parent.iterdir()):
+            if sibling == start_dir or not sibling.is_dir():
+                continue
+            candidate = sibling / _AUDIT_LOG_RELPATH
+            if candidate.exists():
+                candidates.append(candidate)
+    except OSError:
+        pass
+    return candidates if candidates else [_DEFAULT_LOG_PATH]
+
 
 # ── Session fingerprint ──────────────────────────────────────────────────────
 
@@ -991,6 +1025,15 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--auto-discover",
+        action="store_true",
+        dest="auto_discover",
+        help=(
+            "Scan sibling directories for canonical-audit-log.jsonl files. "
+            "Mutually exclusive with --log-path."
+        ),
+    )
+    parser.add_argument(
         "--json",
         action="store_true",
         dest="emit_json",
@@ -998,11 +1041,21 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    log_paths = (
-        [Path(p) for p in args.log_path]
-        if args.log_path
-        else [_DEFAULT_LOG_PATH]
-    )
+    if args.auto_discover and args.log_path:
+        print(
+            "error: --auto-discover and --log-path are mutually exclusive",
+            file=sys.stderr,
+        )
+        return 1
+
+    if args.auto_discover:
+        log_paths = _auto_discover_logs(Path.cwd())
+        if not args.emit_json:
+            print(f"  auto-discovered {len(log_paths)} log file(s)")
+    elif args.log_path:
+        log_paths = [Path(p) for p in args.log_path]
+    else:
+        log_paths = [_DEFAULT_LOG_PATH]
 
     entries = _load_entries(log_paths)
 
