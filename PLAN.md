@@ -613,6 +613,63 @@ v2 升格為正式 gate blocker 必須同時確認三件事：
 
 ---
 
+### Post-schema Semantic Probe Set（2026-04-14，待執行）
+
+**目的聲明（語意要準確）：**
+
+這三個 session 的目的不是證明 v2 已穩定，  
+而是確認 v2 的三個核心語意槽位在 post-schema reality 中可被正確承載，  
+並判斷是否值得進一步擴大樣本。
+
+不叫「驗證 sessions」，叫 **post-schema semantic probe set**：  
+補的不是資料量，是探測三個語意槽位有沒有被真實 evidence 正確承載。
+
+**三探針目標（精確版）：**
+
+| 順序 | Repo | skip_type | 真正驗證目標 |
+|---|---|---|---|
+| 1 | Bookstore-Scraper | 無 | 驗證 post-schema 下 `stable_ok` + `lifecycle_capable` 語意仍正確，新 schema 不破壞唯一已知健康樣本 |
+| 2 | Kernel-Driver-Contract | structural | 驗證 structural skip repo 被正確排除於 lifecycle 母體之外，不被 `stuck_absent` 誤讀 |
+| 3 | Enumd / SpecAuthority | temporary | 驗證 temporary classification 與 aging wiring **開始生效**（不是驗 aging 本身，aging 需要時間維度） |
+
+**Pass/fail 驗收條件（六個，明確）：**
+
+Bookstore-Scraper：
+- [ ] `migration_state.classifications_interpretable` 開始改善（或不再退化）
+- [ ] repo 仍被歸為 `lifecycle_capable`
+- [ ] `lifecycle_class == stable_ok`
+- [ ] 不觸發 `stuck_absent`
+
+Kernel-Driver-Contract：
+- [ ] repo 被歸為 structural skip
+- [ ] 不進入 `lifecycle_capable` baseline 母體
+- [ ] 不觸發 `stuck_absent`
+- [ ] 不出現 structural inconsistency advisory
+
+Enumd / SpecAuthority：
+- [ ] repo 被歸為 temporary skip
+- [ ] temporary aging 欄位開始出現
+- [ ] `age_days` 有基準值（不為 null）
+- [ ] activity 欄不為空
+
+**期待值邊界（不可超越）：**
+
+跑完這三個後，最多只能確認：
+
+> v2 在三種基本語意槽位上可運作，且沒有出現一階錯誤分類。
+
+「穩定」需要：多 repo、多 session、至少一點時間差、沒有因 schema 遷移出現跳動。  
+這三個 probe sessions 不足以宣告穩定。  
+跑完判斷的是：**是否值得擴大樣本**，不是「v2 已穩定」。
+
+**驗證指令：**
+```powershell
+cd e:\BackUp\Git_EE\ai-governance-framework
+python scripts/analyze_e1b_distribution.py --auto-discover
+```
+
+---
+
 ### P2
 
 - [ ] 評估 BUG-003 後續是否需要從 byte-size 再擴到更高階的多維記憶壓力信號
