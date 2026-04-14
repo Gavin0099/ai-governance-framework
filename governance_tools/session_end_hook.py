@@ -1482,7 +1482,14 @@ def main() -> int:
     args = parser.parse_args()
 
     project_root = Path(args.project_root).resolve()
-    result = run_session_end_hook(project_root=project_root)
+    try:
+        result = run_session_end_hook(project_root=project_root)
+    except RuntimeError as exc:
+        # F2: policy loading integrity failure — repo-local yaml present but
+        # PyYAML unavailable.  This is a hard stop; do not continue with a
+        # silently substituted builtin default.
+        print(f"[gate_policy] FATAL: {exc}", file=sys.stderr)
+        return 1
 
     if args.format == "json":
         print(json.dumps(result, ensure_ascii=False, indent=2))

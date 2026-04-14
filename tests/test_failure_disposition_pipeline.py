@@ -264,3 +264,55 @@ def test_run_session_end_hook_artifact_with_no_disposition_field_skips_gate(tmp_
     result = run_session_end_hook(project_root=tmp_project_root)
     assert result["failure_disposition"] is None
     assert not any("[GATE:production_fix_required]" in e for e in result["errors"])
+
+
+# ── F3.5: taxonomy signal observability contract ──────────────────────────────
+
+def test_f3_5_add_advisory_warnings_includes_threshold_number():
+    """F3.5 unit: _add_advisory_warnings() must produce a warning string that
+    contains both unknown_count AND unknown_threshold as visible numbers.
+    Operators must be able to verify the judgment basis from the warning text
+    alone, without reading source code."""
+    from governance_tools.gate_policy import _add_advisory_warnings, load_policy  # noqa: PLC0415
+
+    disp = {
+        "taxonomy_expansion_signal": True,
+        "unknown_count": 5,
+        "unknown_threshold": 3,
+    }
+    policy = load_policy()  # builtin default — only used to satisfy signature
+    warnings: list[str] = []
+    _add_advisory_warnings(disp, policy, warnings)
+
+    assert len(warnings) == 1, f"expected 1 advisory warning, got {warnings}"
+    w = warnings[0]
+    assert "taxonomy_expansion_signal" in w, f"signal name missing: {w!r}"
+    assert "5" in w, f"unknown_count (5) not in warning: {w!r}"
+    assert "3" in w, f"unknown_threshold (3) not in warning: {w!r}"
+
+
+def test_f3_5_taxonomy_signal_visible_with_threshold_in_hook_warnings(tmp_project_root):
+    """F3.5 E2E: when the test-result artifact carries taxonomy_expansion_signal=True,
+    run_session_end_hook() must surface a warning that includes both the unknown_count
+    and the unknown_threshold value — so operators have the full judgment basis
+    from the hook output alone."""
+    _write_test_artifact(tmp_project_root, disposition={
+        "verdict_blocked": False,
+        "total": 5,
+        "unknown_count": 5,
+        "unknown_threshold": 3,
+        "taxonomy_expansion_signal": True,
+        "by_action": {"escalate": 5},
+        "by_kind": {"unknown": 5},
+        "by_confidence": {"unknown": 5},
+        "results": [],
+    })
+    result = run_session_end_hook(project_root=tmp_project_root)
+
+    taxonomy_warnings = [w for w in result["warnings"] if "taxonomy_expansion_signal" in w]
+    assert len(taxonomy_warnings) >= 1, (
+        f"expected at least one taxonomy_expansion_signal warning; got {result['warnings']}"
+    )
+    w = taxonomy_warnings[0]
+    assert "5" in w, f"unknown_count not in warning: {w!r}"
+    assert "3" in w, f"unknown_threshold not in warning: {w!r}"

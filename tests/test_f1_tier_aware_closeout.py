@@ -258,3 +258,23 @@ def test_f2_no_yaml_file_no_pyyaml_uses_builtin(tmp_path, monkeypatch):
     policy = load_policy(project_root=tmp_path)
     from governance_tools.gate_policy import POLICY_SOURCE_BUILTIN_DEFAULT
     assert policy.policy_source == POLICY_SOURCE_BUILTIN_DEFAULT
+
+
+# ── F2 end-to-end: propagation through run_session_end_hook ──────────────────
+
+def test_f2_end_to_end_run_session_end_hook_raises_when_repo_yaml_present_no_pyyaml(
+    tmp_path, monkeypatch
+):
+    """
+    F2 end-to-end: RuntimeError from _load_from_path() must propagate through
+    run_session_end_hook() without being swallowed by any intermediate caller.
+
+    This confirms the hard-failure semantics are not undermined by a broad
+    except clause somewhere in the call stack between _load_from_path() and
+    the CLI entry point.
+    """
+    _write_policy(tmp_path, fail_mode="audit")  # creates governance/gate_policy.yaml
+    _patch_has_yaml(monkeypatch, False)
+
+    with pytest.raises(RuntimeError, match="refusing silent fallback"):
+        run_session_end_hook(project_root=tmp_path)
