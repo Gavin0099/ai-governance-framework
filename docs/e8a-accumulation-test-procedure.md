@@ -321,3 +321,33 @@ E1b 開工條件：
 4. **E1b 評估是 deliberate decision，不是自動觸發**  
    `adoption_risk=True` 出現 ≠ 立刻開工 E1b。
    需要 human review：severity 夠高嗎？原因是系統性還是操作性？
+
+5. **`hook_coverage_tier` 未宣告 = Tier A fallback（最嚴格）**  
+   未宣告的 repo 會把 `closeout_file_missing` 當成 violation（`ok=False`），
+   而非 advisory。這不代表 governance 判斷是錯的——它反映的是「沒有宣告 = 不知道你的情況 = 保守處理」。
+   **任何 repo 在納入 E8a 累積測試前，都應先在 `gate_policy.yaml` 宣告 `hook_coverage_tier`。**
+
+6. **signal_ratio 高但 skip 剛宣告 = 歷史 entries 尚未 flush**  
+   新加入 `skip_test_result_check: true` 後，舊 window entries 仍記錄著有 signal 的歷史。
+   ratio 會隨後續 clean run 自然稀釋，不需要手動清 log。
+   觀察 `adoption_risk` 從 True 降回 False 的速度，可以驗算 window_size 設定是否合理。
+
+---
+
+## 第一輪測試紀錄（2026-04-14）
+
+**執行結果與決策：**
+
+| Repo | 發現的問題 | 採取的行動 | 修正後 verdict |
+|------|-----------|-----------|---------------|
+| `Bookstore-Scraper` | `hook_coverage_tier` 未宣告 → Tier A fallback → `ok=False` | 宣告 `hook_coverage_tier: B` | `OK+ADVISORIES` ✅ |
+| `cli` | 同上 | 同上 | `OK+ADVISORIES` ✅ |
+| `hp-oci-avalonia` | 同上 | 同上 | `OK+ADVISORIES` ✅ |
+| `gl_electron_tool` | `skip_test_result_check` 未設 → 100% signal_ratio | 加入 `skip_test_result_check: true` | signals=[] （ratio 稀釋中）✅ |
+| `Standard_ISP_Tool` | 正常，tier=B + skip 均已設 | 無需動作 | `OK+ADVISORIES` ✅ |
+
+**E1b 條件評估（第一輪）：**
+- entries 均 < 20：❌ 未達標
+- signal_ratio 多 repo 一致 >= 50%：❌ 修正後均低於門檻
+- 跨 repo 相同 signal：✅（`test_result_artifact_absent` 出現於多個 repo，但 skip 宣告後已抑制）
+- **結論：E1b 不開工。繼續累積至每 repo >= 20 筆。**
