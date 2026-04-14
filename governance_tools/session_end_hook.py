@@ -51,6 +51,7 @@ from governance_tools.gate_policy import (
     POLICY_SOURCE_FRAMEWORK_DEFAULT,
     POLICY_SOURCE_BUILTIN_DEFAULT,
 )
+from governance_tools.taxonomy_expansion_log import append_pending_entry
 
 
 CLOSEOUT_FILE = "artifacts/session-closeout.txt"
@@ -1258,6 +1259,24 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         canonical_audit_trend=canonical_audit_trend,
     )
 
+    # F4: Taxonomy remediation trace.
+    # When taxonomy_expansion_signal fires, append a 'pending' log entry so that
+    # operator action (or inaction) becomes traceable across sessions.
+    # Advisory-only — log write failures must not interrupt the session result.
+    taxonomy_expansion_log_entry: dict | None = None
+    if failure_disposition_data and failure_disposition_data.get("taxonomy_expansion_signal"):
+        try:
+            taxonomy_expansion_log_entry = append_pending_entry(
+                project_root=project_root,
+                session_id=session_id,
+                unknown_count=failure_disposition_data.get("unknown_count", 0),
+                unknown_threshold=failure_disposition_data.get("unknown_threshold", 0),
+            )
+        except Exception as exc:  # noqa: BLE001
+            gate_warnings.append(
+                f"[taxonomy_expansion_log] failed to write remediation trace entry: {exc}"
+            )
+
     return {
         "ok": base_ok,
         "session_id": session_id,
@@ -1299,6 +1318,7 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         "canonical_path_audit": canonical_path_audit,
         "canonical_audit_trend": canonical_audit_trend,
         "canonical_usage_audit": canonical_usage_audit,
+        "taxonomy_expansion_log_entry": taxonomy_expansion_log_entry,
         "warnings": gate_warnings,
         "errors": gate_errors,
     }

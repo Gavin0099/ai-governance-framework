@@ -136,11 +136,31 @@ API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`
   - `test_batch_result_carries_unknown_threshold`：artifact to_dict() 含 unknown_threshold
   - `test_taxonomy_signal_threshold_matches_at_boundary`：boundary / off-by-one 確認
 
-### F4 Failure Walkthrough
-- [ ] F4：為 Tier B adoption failure 建立 walkthrough doc（主要給 consuming repo 讀）
+### F3.5 observability contract （補強 F2 + F3）
+- [x] F2 E2E：`RuntimeError` 從 `_load_from_path()` 穿透至 `run_session_end_hook()` 不被吞掉
+  - `test_f2_end_to_end_run_session_end_hook_raises_when_repo_yaml_present_no_pyyaml`
+  - `session_end_hook.main()` catch `RuntimeError` → clean fatal message → exit 1
+- [x] F3.5 unit：`_add_advisory_warnings()` warning string 契約測試（含 count + threshold 數值）
+  - `test_f3_5_add_advisory_warnings_includes_threshold_number`
+- [x] F3.5 E2E：hook output warnings 含 threshold 數值（operator 不用看 source code）
+  - `test_f3_5_taxonomy_signal_visible_with_threshold_in_hook_warnings`
 
-### F5 UX
-- [ ] F5：`ok=False` + `blocked=False` 在 Tier B 情況下的輸出可讀性改善
+### F4 Taxonomy Remediation Trace
+- [x] F4a：`governance_tools/taxonomy_expansion_log.py` substrate
+  - `append_pending_entry()` / `read_log()` / `list_pending()`
+  - NDJSON log：`governance/taxonomy_expansion_log.ndjson`
+  - Entry schema：`session_id`, `timestamp_utc`, `unknown_count`, `unknown_threshold`
+    `review_status`（pending|reviewed|updated|dismissed）, `review_note`, `review_evidence`
+- [x] F4b：`session_end_hook` 接入
+  - `taxonomy_expansion_signal=True` → `append_pending_entry()` → `taxonomy_expansion_log_entry` 在 result
+  - 非阻斷：write 失敗 → warning only，gate 不受影響
+- [x] F4c：8 tests（`tests/test_f4_taxonomy_expansion_log.py`）
+  - substrate：schema, persistence, list_pending, multi-entry accumulation, empty read
+  - E2E：signal fires → log written；signal absent → no log；gate unaffected by log
+
+### F5 Failure Walkthrough / UX
+- [ ] F5a：為 Tier B adoption failure 建立 walkthrough doc（主要給 consuming repo 讀）
+- [ ] F5b：`ok=False` + `blocked=False` 在 Tier B 情況下的輸出可讀性改善
 
 ## Backlog
 
