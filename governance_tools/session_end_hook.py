@@ -1324,6 +1324,9 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         "canonical_audit_trend": canonical_audit_trend,
         "canonical_usage_audit": canonical_usage_audit,
         "taxonomy_expansion_log_entry": taxonomy_expansion_log_entry,
+        # gate_verdict is DERIVED from ok/gate_policy.blocked/warnings/errors.
+        # It is a human-readable abstraction, not an authoritative gate signal.
+        # Source of truth for automation: ok + gate_policy.blocked.
         "gate_verdict": gate_verdict,
         "warnings": gate_warnings,
         "errors": gate_errors,
@@ -1347,6 +1350,12 @@ def _compute_gate_verdict(
 ) -> str:
     """
     Derive a single semantic verdict name from ok/blocked/warnings/errors.
+
+    DERIVED — NOT AUTHORITATIVE.
+    gate_verdict is a human-readable abstraction computed from the machine-
+    level fields (ok, gate_policy.blocked, warnings, errors).  Those fields
+    remain the source of truth.  Tooling and CI MUST NOT gate on gate_verdict
+    alone; always check ok and gate_policy.blocked directly.
 
     Priority:
       BLOCKED            gate.blocked=True OR errors present
