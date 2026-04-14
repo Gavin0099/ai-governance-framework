@@ -494,6 +494,70 @@ Layer 3 — Integrity（有沒有自欺）
 - 這次 `expected_match_ratio = 1.0` 證明的是：fixture 設計與 validator 判定對齊。
   它不是「E1b 已在真實 repo / 真實 agent workflow 下完成實證」的依據。
 
+---
+
+**E1b 作為 Adoption Failure Detector（2026-04-14 fleet 實地診斷）**
+
+首次以全艦隊視角（10 repos / 272 sessions）執行 `analyze_e1b_distribution.py`，觀測到：
+
+| 指標 | 數值 |
+|---|---|
+| degenerate repos | 9/10 (90%) |
+| entropy median | 0.042 |
+| sig_ratio median | 0.024 |
+| unique session patterns | 4/272 (ratio=0.015) |
+
+**兩層原因必須分開處理（不能混在一起）：**
+
+**Layer A — skip_type migration 未完成（PRE-SKIP-TYPE-ERA）**
+- 所有 audit log entries 均無 `skip_type` 欄位
+- skip_type-based classification（structural/temporary/lifecycle_capable）**UNAVAILABLE**
+- 這是 control plane 與 data plane 的時間差，需要補 post-schema session 解決
+- 解法：在各類型 repo 實際完成 session，讓 audit log 產生攜帶 `skip_type` 的條目
+
+**Layer B — lifecycle 根本沒有被執行（與 skip_type 完全無關）**
+- `artifact_state` 幾乎永遠是 `absent`（lifecycle gate 從未被走過）
+- 這是獨立的 adoption 問題，不是 ERA 偏差
+- **即使 skip_type migration 完成，Layer 2 的 degenerate pattern 很可能仍然存在**
+
+> 兩層原因是正交的。Layer A 修完不會讓 Layer B 消失。必須分別追蹤與處理。
+
+**關鍵結論（不可被 PRE-ERA 狀態覆蓋）：**
+
+> 9/10 repos degenerate 不是因為資料還沒準備好，而是因為 E1b 偵測到
+> **大部分 repo 根本沒有進入 lifecycle**。
+> skip_type migration 只會讓這個結論更可解釋，不會讓它消失。
+
+**E1b 的角色轉換：**
+
+E1b 原本設計為「統計品質測量工具」，但全艦隊資料揭露了一個更重要的功能：
+
+> **E1b 是 adoption failure detector** —— 它能精確識別哪些 repo「應該走 lifecycle 卻沒走」。
+
+**下一步行動優先序（已修正）：**
+
+| 步驟 | 目標 | 問題類型 |
+|---|---|---|
+| Step 1 | 跑 3–5 個 post-skip-type session | Layer A：讓 PRE-ERA 結束，classification 可用 |
+| Step 2 | 針對 9 個 degenerate repo 診斷：lifecycle 為何沒發生 | Layer B：真實 adoption 問題 |
+| Step 3 | 分類 degenerate 原因（no-test / 未接通 / CI-only / tool gap） | Layer B：治理行動分類 |
+
+**degenerate repo 原因分類框架：**
+
+| 類型 | 可能原因 | 治理行動 |
+|---|---|---|
+| 真正 no-test | 無 artifact lifecycle 可走（正常 structural） | 確認 skip_type=structural |
+| test 可跑但未接通 | adoption gap | 引導接通 lifecycle gate |
+| CI-only | workflow 未整合 | infra 支援 |
+| tool 未 integration | system gap | onboarding 補完 |
+
+**語意釘住：**
+- `lifecycle_capable_ratio = 1.0（10/10）`：因為 PRE-ERA，所有 repo 被視為 lifecycle_capable（假陽性）
+- `degenerate_rate = 0.9`：這是真實觀測，不是測量誤差
+- 兩者都需要 Layer A 修完後才能再評估實際分布，但 Layer B 的問題現在已經可以行動
+
+---
+
 ### P2
 
 - [ ] 評估 BUG-003 後續是否需要從 byte-size 再擴到更高階的多維記憶壓力信號
