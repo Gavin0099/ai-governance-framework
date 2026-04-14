@@ -360,6 +360,26 @@ API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`
 
 **Standard_ISP_Tool 待辦**：補 gate_policy.yaml 的 skip 說明 comment。
 
+**決策（2026-04-18 執行）**：採用 **策略 C + A**（dual-layer report + lifecycle-capable 子母體）。
+
+實施內容：
+- `gate_policy.yaml` schema 新增 `skip_type: structural | temporary` 欄位（含驗證，invalid 值嚴格拒絕）
+- `GatePolicy` dataclass 新增 `skip_type: str | None = None`；透過 `to_provenance_dict()` 傳入 E8a log
+- `session_end_hook.py` — E8a log policy_provenance 現在記錄 `skip_type`
+- `analyze_e1b_distribution.py` 重構為雙層輸出：
+  - **Layer 1 (Fleet Coverage)**：所有 repo 分類（lifecycle_capable / structural_skip / temporary_skip / unclassified_skip）
+  - **Layer 2 (Entropy Quality)**：僅 lifecycle_capable 子母體，phase 2 readiness gate 只對此母體負責
+- `compute_fleet_coverage()` 獨立函式，`evaluate_phase2_gate()` 改為 lifecycle-capable only
+- 8 consuming repos gate_policy.yaml 已補 `skip_type` 標記：
+  - `structural`：gl_electron_tool, hp-oci-avalonia, Kernel-Driver-Contract, lenovo_isp_tool, Standard_ISP_Tool
+  - `temporary`：cli, Enumd, SpecAuthority
+- 新增 4 個 skip_type 測試（parse structural/temporary、拒絕 invalid、預設 None）
+
+現況（C+A 實施後）：
+- fleet 1 lifecycle_capable repo（ai-governance-framework），Phase 2 gate 繼續 NOT_READY，但現在給出正確的理由：母體只有 1 repo / 1 session
+- `skip_type: structural` = 永遠不適用（非 Python 技術棧）
+- `skip_type: temporary` = 理論上可以，但尚未接通（採用缺口）
+
 **執行結果（--repeats 10）**：
 
 | Scenario | verdict | entropy | effective/raw | signal_ratio | expected_match |

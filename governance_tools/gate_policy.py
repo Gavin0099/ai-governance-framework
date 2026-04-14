@@ -104,6 +104,14 @@ class GatePolicy:
     # test_result_artifact_absent from canonical_path_audit signals.
     # Does NOT affect gate.blocked.  Does NOT suppress canonical_interpretation_missing.
     skip_test_result_check: bool = False
+    # skip_type — classification for skip_test_result_check=True repos.
+    # structural : repo cannot produce a test artifact by design (non-Python stack,
+    #              doc-only repo, firmware tool with no Python test runner)
+    # temporary  : artifact lifecycle is theoretically possible but not yet wired
+    #              (e.g. Python repo without pytest runner, CI-gated test suite)
+    # None (absent): unclassified; treated as temporary in fleet analysis.
+    # Only meaningful when skip_test_result_check=True.
+    skip_type: str | None = None
     # hook_coverage_tier — declares the session_end_hook triggering mechanism.
     # A: native auto-closeout (Claude Code Stop hook)
     # B: wrapper-based (Copilot VS Code task, Gemini CLI wrapper)
@@ -129,6 +137,7 @@ class GatePolicy:
             "policy_path": self.policy_path,
             "fallback_used": self.fallback_used,
             "repo_policy_present": self.repo_policy_present,
+            "skip_type": self.skip_type,
         }
 
 
@@ -318,6 +327,17 @@ def _build_policy(
             )
     else:
         tier_str = None
+    # skip_type: validate when present
+    skip_type_raw = raw.get("skip_type", None)
+    if skip_type_raw is not None:
+        skip_type_str = str(skip_type_raw).strip()
+        if skip_type_str not in ("structural", "temporary"):
+            raise ValueError(
+                f"gate_policy: invalid skip_type {skip_type_raw!r} — "
+                "must be one of: structural, temporary"
+            )
+    else:
+        skip_type_str = None
     return GatePolicy(
         fail_mode=str(raw.get("fail_mode", FAIL_MODE_STRICT)),
         blocking_actions=list(raw.get("blocking_actions", ["production_fix_required"])),
@@ -330,6 +350,7 @@ def _build_policy(
         ),
         skip_test_result_check=bool(raw.get("skip_test_result_check", False)),
         hook_coverage_tier=tier_str,
+        skip_type=skip_type_str,
         source=source,
         policy_source=policy_source,
         policy_path=policy_path,

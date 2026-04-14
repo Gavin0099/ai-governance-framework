@@ -155,6 +155,8 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
     gate_blocked_count entries where gate_blocked=True
     first_seen         earliest timestamp in this repo's entries
     last_seen          latest timestamp
+    skip_type          'structural' | 'temporary' | None (from policy_provenance)
+    lifecycle_capable  True when skip_test_result_check is not set / False when skip=false
     """
     by_repo: dict[str, list[dict]] = defaultdict(list)
     for e in entries:
@@ -189,6 +191,28 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
             e.get("timestamp", "") for e in repo_entries if e.get("timestamp")
         ]
 
+        # skip_type: take the most recent non-null value from policy_provenance.
+        skip_type: str | None = None
+        for e in reversed(repo_entries):
+            prov = e.get("policy_provenance") or {}
+            st = prov.get("skip_type")
+            if st is not None:
+                skip_type = st
+                break
+        # lifecycle_capable: repo is in entropy analysis pool when skip_type is
+        # not set (repo-local policy was never skip=true) or when there is no
+        # skip declaration at all in the log.
+        # Repos with any skip declaration (structural OR temporary) are NOT in
+        # the entropy baseline pool.
+        has_any_skip = any(
+            (e.get("policy_provenance") or {}).get("skip_type") is not None
+            for e in repo_entries
+        )
+        # If no skip_type in any entry, infer from state distribution:
+        # purely absent + no signals suggests silent skip.
+        # We conservatively keep it in the lifecycle pool if we can't tell.
+        lifecycle_capable = not has_any_skip
+
         stats[repo] = {
             "session_count": n,
             "distinct_states": distinct,
@@ -199,8 +223,53 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
             "gate_blocked_count": gate_blocked_count,
             "first_seen": timestamps[0] if timestamps else "unknown",
             "last_seen": timestamps[-1] if timestamps else "unknown",
+            "skip_type": skip_type,
+            "lifecycle_capable": lifecycle_capable,
         }
     return stats
+
+
+# ── Fleet coverage layer ──────────────────────────────────────────────────────
+
+def compute_fleet_coverage(repo_stats: dict[str, dict]) -> dict:
+    """
+    Layer 1: Fleet Coverage summary.
+
+    Reports the structural composition of the fleet without conflating
+    governance classification with entropy quality.
+
+    Categories
+    ----------
+    lifecycle_capable : skip not declared — eligible for entropy analysis
+    structural_skip   : skip declared as permanent (non-Python stack, doc repo)
+    temporary_skip    : skip declared as provisional (adoption debt)
+    unclassified_skip : skip=true but skip_type not declared in log
+    """
+    total = len(repo_stats)
+    lifecycle_capable = [r for r, s in repo_stats.items() if s["lifecycle_capable"]]
+    structural_skip = [
+        r for r, s in repo_stats.items()
+        if not s["lifecycle_capable"] and s["skip_type"] == "structural"
+    ]
+    temporary_skip = [
+        r for r, s in repo_stats.items()
+        if not s["lifecycle_capable"] and s["skip_type"] == "temporary"
+    ]
+    unclassified_skip = [
+        r for r, s in repo_stats.items()
+        if not s["lifecycle_capable"] and s["skip_type"] is None
+    ]
+    return {
+        "total_repos": total,
+        "lifecycle_capable": lifecycle_capable,
+        "structural_skip": structural_skip,
+        "temporary_skip": temporary_skip,
+        "unclassified_skip": unclassified_skip,
+        "lifecycle_capable_count": len(lifecycle_capable),
+        "structural_skip_count": len(structural_skip),
+        "temporary_skip_count": len(temporary_skip),
+        "unclassified_skip_count": len(unclassified_skip),
+    }
 
 
 # ── Phase 2 readiness gate ────────────────────────────────────────────────────
@@ -217,43 +286,38 @@ def evaluate_phase2_gate(
     """
     Evaluate whether the accumulated observation pool satisfies Phase 2 gate.
 
-    Returns a structured verdict dict with per-check pass/fail and all values
-    needed to understand the shortfall.
+    IMPORTANT: this gate operates ONLY on lifecycle-capable repos (skip=false).
+    Structural/temporary skip repos are excluded from entropy baseline analysis.
+    Fleet composition is reported separately in compute_fleet_coverage().
 
     Phase 3 (trigger design) must not start until this gate is READY.
-
-    Gate conditions (all five must pass):
-      Coverage   — total_sessions, distinct_repos
-      Validity   — non_degenerate_ratio >= threshold
-      Diversity  — max_repo_dominance, unique_pattern_ratio
-
-    Advisory (not a gate blocker):
-      degenerate_rate_interpretation — warns when degenerate_rate < 0.05
-      (too-clean pool may indicate broken-pipeline scenarios are not observed)
     """
-    total_sessions = sum(s["session_count"] for s in repo_stats.values())
-    repo_count = len(repo_stats)
+    # Filter to lifecycle-capable repos only (skip repos excluded from entropy pool).
+    lc_stats = {r: s for r, s in repo_stats.items() if s["lifecycle_capable"]}
+    lc_entries = [
+        e for e in entries
+        if (e.get("repo_name") or "unknown") in lc_stats
+    ]
+    total_sessions = sum(s["session_count"] for s in lc_stats.values())
+    repo_count = len(lc_stats)
     degenerate_repos = sum(
-        1 for s in repo_stats.values() if s["is_degenerate"]
+        1 for s in lc_stats.values() if s["is_degenerate"]
     )
     nondegenerate_repos = repo_count - degenerate_repos
     nondegenerate_ratio = (
         round(nondegenerate_repos / repo_count, 4) if repo_count > 0 else 0.0
     )
-
     max_sessions_any = max(
-        (s["session_count"] for s in repo_stats.values()), default=0
+        (s["session_count"] for s in lc_stats.values()), default=0
     )
     max_dominance_actual = (
-        round(max_sessions_any / total_sessions, 4)
-        if total_sessions > 0
-        else 0.0
+        round(max_sessions_any / total_sessions, 4) if total_sessions > 0 else 0.0
     )
 
     # Unique session pattern ratio: distinct fingerprints / total sessions.
     # Guards against pseudo-diversity — 3 repos all running the same lifecycle
     # pattern look like repos=3, but the pool has pattern_ratio near 0.
-    fingerprints = [_session_fingerprint(e) for e in entries]
+    fingerprints = [_session_fingerprint(e) for e in lc_entries]
     unique_patterns = len(set(fingerprints))
     unique_pattern_ratio = (
         round(unique_patterns / total_sessions, 4) if total_sessions > 0 else 0.0
@@ -342,12 +406,11 @@ def _percentile(values: list[float], pct: int) -> float:
 
 def _print_human(
     stats: dict[str, dict],
+    fleet: dict,
     gate: dict,
     log_paths: list[Path],
 ) -> None:
     sep = "─" * 72
-    entropies = [s["entropy"] for s in stats.values()]
-    signal_ratios = [s["signal_ratio"] for s in stats.values()]
 
     print(sep)
     print("  E1b Phase 2 — Distribution Analysis")
@@ -359,74 +422,115 @@ def _print_human(
     print(f"  distinct repos: {len(stats)}")
     print()
 
-    # Per-repo table
-    col_w = max((len(r) for r in stats), default=4) + 2
-    col_w = max(col_w, 20)
-    hdr = (
-        f"  {'repo':<{col_w}} {'sessions':>8} {'entropy':>8} "
-        f"{'sig_ratio':>9} {'degenerate':>11}  states"
-    )
-    print(hdr)
-    print(
-        f"  {'─'*col_w} {'─'*8} {'─'*8} {'─'*9} {'─'*11}  {'─'*20}"
-    )
-    for repo, s in sorted(
-        stats.items(), key=lambda kv: kv[1]["session_count"], reverse=True
-    ):
-        degen_mark = "YES ⚠" if s["is_degenerate"] else "no"
-        state_str = "  ".join(
-            f"{k}:{v}" for k, v in sorted(s["state_breakdown"].items())
-        )
+    # ── Layer 1: Fleet Coverage ───────────────────────────────────────────────
+    print("  ┌── Layer 1: Fleet Coverage ─────────────────────────────────────┐")
+    print(f"  │  total repos        : {fleet['total_repos']}")
+    print(f"  │  lifecycle_capable  : {fleet['lifecycle_capable_count']}  {fleet['lifecycle_capable']}")
+    if fleet["structural_skip"]:
         print(
-            f"  {repo:<{col_w}} {s['session_count']:>8} {s['entropy']:>8.4f} "
-            f"{s['signal_ratio']:>9.4f} {degen_mark:>11}  {state_str}"
+            f"  │  structural_skip    : {fleet['structural_skip_count']}  "
+            f"{fleet['structural_skip']}"
         )
-
+    else:
+        print(f"  │  structural_skip    : 0")
+    if fleet["temporary_skip"]:
+        print(
+            f"  │  temporary_skip     : {fleet['temporary_skip_count']}  "
+            f"{fleet['temporary_skip']}"
+        )
+    else:
+        print(f"  │  temporary_skip     : 0")
+    if fleet["unclassified_skip"]:
+        print(
+            f"  │  unclassified_skip  : {fleet['unclassified_skip_count']}  "
+            f"{fleet['unclassified_skip']}  ← add skip_type to gate_policy.yaml"
+        )
+    print("  └────────────────────────────────────────────────────────────────┘")
     print()
 
-    # Distribution summary (across repos)
-    print("  Distribution (across repos):")
-    print(
-        f"    entropy   — median={_percentile(entropies, 50):.4f}  "
-        f"p90={_percentile(entropies, 90):.4f}  "
-        f"p95={_percentile(entropies, 95):.4f}"
+    # ── Layer 2: Entropy Quality (lifecycle-capable repos only) ───────────────
+    lc_stats = {r: s for r, s in stats.items() if s["lifecycle_capable"]}
+    excluded = len(stats) - len(lc_stats)
+    excluded_note = (
+        f" ({excluded} repo{'s' if excluded != 1 else ''} with "
+        f"structural/temporary skip excluded)"
+        if excluded > 0 else ""
     )
     print(
-        f"    sig_ratio — median={_percentile(signal_ratios, 50):.4f}  "
-        f"p90={_percentile(signal_ratios, 90):.4f}  "
-        f"p95={_percentile(signal_ratios, 95):.4f}"
+        f"  ┌── Layer 2: Entropy Quality (lifecycle-capable repos only){excluded_note}"
     )
-    degenerate_count = sum(1 for s in stats.values() if s["is_degenerate"])
-    degenerate_pct = (
-        int(degenerate_count / len(stats) * 100) if stats else 0
-    )
-    print(
-        f"    degenerate repos: {degenerate_count}/{len(stats)} ({degenerate_pct}%)"
-    )
-    print(
-        f"    unique patterns : {gate['unique_patterns']}/{gate['total_sessions']} "
-        f"(ratio={gate['unique_pattern_ratio']:.4f})"
-    )
-    degen_interp = gate.get("degenerate_rate_interpretation", "")
-    if degen_interp:
-        print(
-            f"    degenerate_rate : {gate['degenerate_rate']:.4f}  "
-            f"[{degen_interp}]"
-        )
-    print()
+    print("  │")
 
-    # Phase 2 readiness gate
-    verdict = gate["verdict"]
-    verdict_label = "READY" if verdict == "READY" else "NOT_READY"
-    verdict_marker = "✓" if verdict == "READY" else "✗"
-    print(f"  Phase 2 Readiness Gate — {verdict_marker} {verdict_label}")
-    for check in gate["checks"].values():
-        mark = "  ✓" if check["pass"] else "  ✗"
-        print(
-            f"{mark}  {check['label']:<36} "
-            f"required={check['required']}  "
-            f"actual={check['actual']}"
+    if not lc_stats:
+        print("  │  (no lifecycle-capable repos in pool)")
+        print("  └────────────────────────────────────────────────────────────────┘")
+    else:
+        # Per-repo table (lifecycle-capable only)
+        col_w = max((len(r) for r in lc_stats), default=4) + 2
+        col_w = max(col_w, 20)
+        hdr = (
+            f"  │  {'repo':<{col_w}} {'sessions':>8} {'entropy':>8} "
+            f"{'sig_ratio':>9} {'degenerate':>11}  states"
         )
+        print(hdr)
+        print(
+            f"  │  {'─'*col_w} {'─'*8} {'─'*8} {'─'*9} {'─'*11}  {'─'*20}"
+        )
+        for repo, s in sorted(
+            lc_stats.items(), key=lambda kv: kv[1]["session_count"], reverse=True
+        ):
+            degen_mark = "YES(!!)" if s["is_degenerate"] else "no"
+            state_str = "  ".join(
+                f"{k}:{v}" for k, v in sorted(s["state_breakdown"].items())
+            )
+            print(
+                f"  │  {repo:<{col_w}} {s['session_count']:>8} {s['entropy']:>8.4f} "
+                f"{s['signal_ratio']:>9.4f} {degen_mark:>11}  {state_str}"
+            )
+
+        entropies = [s["entropy"] for s in lc_stats.values()]
+        signal_ratios = [s["signal_ratio"] for s in lc_stats.values()]
+        degenerate_count = sum(1 for s in lc_stats.values() if s["is_degenerate"])
+        degenerate_pct = int(degenerate_count / len(lc_stats) * 100)
+        print("  │")
+        print("  │  Distribution (lifecycle-capable repos):")
+        print(
+            f"  │    entropy   — median={_percentile(entropies, 50):.4f}  "
+            f"p90={_percentile(entropies, 90):.4f}  "
+            f"p95={_percentile(entropies, 95):.4f}"
+        )
+        print(
+            f"  │    sig_ratio — median={_percentile(signal_ratios, 50):.4f}  "
+            f"p90={_percentile(signal_ratios, 90):.4f}  "
+            f"p95={_percentile(signal_ratios, 95):.4f}"
+        )
+        print(
+            f"  │    degenerate repos: {degenerate_count}/{len(lc_stats)} ({degenerate_pct}%)"
+        )
+        print(
+            f"  │    unique patterns : {gate['unique_patterns']}/{gate['total_sessions']} "
+            f"(ratio={gate['unique_pattern_ratio']:.4f})"
+        )
+        degen_interp = gate.get("degenerate_rate_interpretation", "")
+        if degen_interp:
+            print(
+                f"  │    degenerate_rate : {gate['degenerate_rate']:.4f}  [{degen_interp}]"
+            )
+        print("  │")
+
+        # Phase 2 readiness gate
+        verdict = gate["verdict"]
+        verdict_label = "READY" if verdict == "READY" else "NOT_READY"
+        verdict_marker = "[OK]" if verdict == "READY" else "[NO]"
+        print(f"  │  Phase 2 Readiness Gate — {verdict_marker} {verdict_label}")
+        for check in gate["checks"].values():
+            mark = "  │    [OK]" if check["pass"] else "  │    [NO]"
+            print(
+                f"{mark}  {check['label']:<36} "
+                f"required={check['required']}  "
+                f"actual={check['actual']}"
+            )
+        print("  └────────────────────────────────────────────────────────────────┘")
     print(sep)
 
 
@@ -528,6 +632,7 @@ def main() -> int:
         return 0
 
     repo_stats = compute_repo_stats(entries)
+    fleet = compute_fleet_coverage(repo_stats)
     gate = evaluate_phase2_gate(
         entries,
         repo_stats,
@@ -539,10 +644,13 @@ def main() -> int:
     )
 
     if args.emit_json:
-        print(json.dumps({"repos": repo_stats, "phase2_gate": gate}, indent=2))
+        print(json.dumps(
+            {"repos": repo_stats, "fleet_coverage": fleet, "phase2_gate": gate},
+            indent=2,
+        ))
         return 0
 
-    _print_human(repo_stats, gate, log_paths)
+    _print_human(repo_stats, fleet, gate, log_paths)
     return 0
 
 

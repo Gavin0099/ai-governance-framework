@@ -411,3 +411,52 @@ def test_session_end_hook_format_includes_gate_policy_line(tmp_project_root):
     assert "gate_policy:" in output
     assert "fail_mode=strict" in output
     assert "artifact_state=absent" in output
+
+
+# ── skip_type field ───────────────────────────────────────────────────────────
+
+def test_load_policy_parses_skip_type_structural(tmp_path):
+    pol_dir = tmp_path / "governance"
+    pol_dir.mkdir(parents=True)
+    (pol_dir / "gate_policy.yaml").write_text(
+        "version: '1'\nskip_test_result_check: true\nskip_type: structural\n",
+        encoding="utf-8",
+    )
+    policy = load_policy(path=pol_dir / "gate_policy.yaml")
+    assert policy.skip_test_result_check is True
+    assert policy.skip_type == "structural"
+    assert policy.to_provenance_dict()["skip_type"] == "structural"
+
+
+def test_load_policy_parses_skip_type_temporary(tmp_path):
+    pol_dir = tmp_path / "governance"
+    pol_dir.mkdir(parents=True)
+    (pol_dir / "gate_policy.yaml").write_text(
+        "version: '1'\nskip_test_result_check: true\nskip_type: temporary\n",
+        encoding="utf-8",
+    )
+    policy = load_policy(path=pol_dir / "gate_policy.yaml")
+    assert policy.skip_type == "temporary"
+
+
+def test_load_policy_rejects_invalid_skip_type(tmp_path):
+    pol_dir = tmp_path / "governance"
+    pol_dir.mkdir(parents=True)
+    (pol_dir / "gate_policy.yaml").write_text(
+        "version: '1'\nskip_test_result_check: true\nskip_type: unknown_value\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="skip_type"):
+        load_policy(path=pol_dir / "gate_policy.yaml")
+
+
+def test_load_policy_skip_type_defaults_to_none(tmp_path):
+    pol_dir = tmp_path / "governance"
+    pol_dir.mkdir(parents=True)
+    (pol_dir / "gate_policy.yaml").write_text(
+        "version: '1'\nfail_mode: permissive\n",
+        encoding="utf-8",
+    )
+    policy = load_policy(path=pol_dir / "gate_policy.yaml")
+    assert policy.skip_type is None
+    assert policy.to_provenance_dict()["skip_type"] is None

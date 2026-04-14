@@ -752,6 +752,7 @@ def _append_canonical_audit_log(
     policy_path: str,
     fallback_used: bool,
     repo_policy_present: bool,
+    skip_type: str | None = None,
 ) -> None:
     """
     Append one entry to the canonical audit log for this session.
@@ -798,6 +799,7 @@ def _append_canonical_audit_log(
             "policy_path": policy_path,
             "fallback_used": fallback_used,
             "repo_policy_present": repo_policy_present,
+            "skip_type": skip_type,
         },
     }
 
@@ -1369,6 +1371,7 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         policy_path=policy.policy_path,
         fallback_used=policy.fallback_used,
         repo_policy_present=policy.repo_policy_present,
+        skip_type=policy.skip_type,
     )
 
     # Compute multi-session trend — reads the log just written to, advisory only.
