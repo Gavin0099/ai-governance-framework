@@ -164,12 +164,22 @@ API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`
   - returns updated entry or None if session_id not found（不 raise）
   - invalid status → `ValueError`
   - review_note + review_evidence 欄位可一併更新
-  - 5 tests added to `tests/test_f4_taxonomy_expansion_log.py`（total 13 tests）
-    - pending→reviewed 遷移 + 持久化
-    - review_note + review_evidence 欄位更新
-    - invalid status → ValueError
-    - missing session_id → None（不 raise）
-    - list_pending 遷移後排除
+  - 5 tests added
+
+### F4.6 Close-Path Evidence Expectation
+- [x] F4.6：close-path evidence expectation（`_check_close_path_evidence()`）
+  - `dismissed` → `review_note` 必須非空（dismissal reason required）
+  - `updated` → `review_evidence` 必須非空（taxonomy/corpus change reference required）
+  - `reviewed` → `review_note` 或 `review_evidence` 至少一個非空
+  - `pending` 無要求（initial state，不是 close path）
+  - check 在 apply 新值後、寫入前（resultant state 驗證）
+  - check 失敗 → `ValueError`，不寫檔案（caller 可修正後重試）
+  - 5 new tests in `tests/test_f4_taxonomy_expansion_log.py`（total 18 tests）
+    - dismissed without note → ValueError（entry untouched）
+    - updated without evidence → ValueError（entry untouched）
+    - reviewed without either → ValueError（entry untouched）
+    - reviewed with just note → succeeds
+    - dismissed with note → succeeds
 
 ### F5 Failure Walkthrough / UX
 - [ ] F5a：為 Tier B adoption failure 建立 walkthrough doc（主要給 consuming repo 讀）

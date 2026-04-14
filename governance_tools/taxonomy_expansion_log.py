@@ -121,7 +121,17 @@ def update_entry_status(
 
     Returns the updated entry dict on success.
     Returns None if no entry with that session_id is found (not an error).
-    Raises ValueError if new_status is not a recognised review status.
+    Raises ValueError if new_status is not a recognised review status, or if
+    the close path evidence expectation is not met (see below).
+
+    Close-path evidence expectations (F4.6):
+      reviewed  — at least review_note OR review_evidence must be non-empty
+      updated   — review_evidence must be non-empty (path/ref of updated taxonomy)
+      dismissed — review_note must be non-empty (reason for dismissal)
+
+    The expectation is evaluated against the *resultant* entry state after
+    applying the supplied values, so passing a note on an entry that already
+    has evidence also satisfies the 'reviewed' requirement.
 
     Implementation: read-modify-rewrite.  The log file is small governance data;
     full rewrite avoids tombstone complexity and keeps read_log() simple.
@@ -151,6 +161,10 @@ def update_entry_status(
     if updated_entry is None:
         return None
 
+    # F4.6: close-path evidence expectation — checked AFTER applying new values,
+    # BEFORE writing.  If the requirement is not met, raise without modifying the file.
+    _check_close_path_evidence(updated_entry)
+
     # Rewrite the file atomically enough for governance data (not high-volume).
     log_file = _log_path(project_root)
     log_file.parent.mkdir(parents=True, exist_ok=True)
@@ -159,3 +173,37 @@ def update_entry_status(
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
     return updated_entry
+
+
+def _check_close_path_evidence(entry: dict) -> None:
+    """
+    Enforce minimum evidence expectations for close-path transitions.
+
+    Raises ValueError describing what is missing.
+    Only fires for reviewed, updated, and dismissed statuses.
+    pending has no evidence requirement (it is the initial state, not a close).
+    """
+    status = entry.get("review_status")
+    note = entry.get("review_note") or ""
+    evidence = entry.get("review_evidence") or ""
+
+    if status == REVIEW_STATUS_DISMISSED:
+        if not note.strip():
+            raise ValueError(
+                "dismissed requires review_note — "
+                "provide a reason so the dismissal is traceable "
+                "(e.g. 'confirmed test infrastructure issue, not a taxonomy gap')"
+            )
+    elif status == REVIEW_STATUS_UPDATED:
+        if not evidence.strip():
+            raise ValueError(
+                "updated requires review_evidence — "
+                "provide the path or reference of the updated taxonomy/corpus "
+                "(e.g. 'governance/data/failure_disposition_corpus.json')"
+            )
+    elif status == REVIEW_STATUS_REVIEWED:
+        if not note.strip() and not evidence.strip():
+            raise ValueError(
+                "reviewed requires at least review_note or review_evidence — "
+                "provide one to make the review traceable"
+            )

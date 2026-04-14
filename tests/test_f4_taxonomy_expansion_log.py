@@ -207,10 +207,14 @@ def test_f4_e2e_hook_result_ok_unaffected_by_log(tmp_path):
 # ── F4.5: state transition ────────────────────────────────────────────────────
 
 def test_f4_5_update_status_pending_to_reviewed(tmp_path):
-    """update_entry_status transitions pending -> reviewed and persists the change."""
+    """update_entry_status transitions pending -> reviewed and persists the change.
+    F4.6: reviewed requires at least review_note or review_evidence."""
     append_pending_entry(tmp_path, "session-tr-001", unknown_count=4, unknown_threshold=3)
 
-    result = update_entry_status(tmp_path, "session-tr-001", REVIEW_STATUS_REVIEWED)
+    result = update_entry_status(
+        tmp_path, "session-tr-001", REVIEW_STATUS_REVIEWED,
+        review_note="confirmed: existing classification patterns cover all cases",
+    )
 
     assert result is not None
     assert result["session_id"] == "session-tr-001"
@@ -252,10 +256,15 @@ def test_f4_5_update_status_invalid_raises_value_error(tmp_path):
 
 
 def test_f4_5_update_status_missing_session_returns_none(tmp_path):
-    """update_entry_status returns None when session_id is not found — not an error."""
+    """update_entry_status returns None when session_id is not found — not an error.
+    Evidence expectation does not apply (entry not found → None returned before check)."""
     append_pending_entry(tmp_path, "session-tr-004", unknown_count=3, unknown_threshold=3)
 
-    result = update_entry_status(tmp_path, "session-nonexistent", REVIEW_STATUS_DISMISSED)
+    # session-nonexistent does not exist; None is returned without checking evidence
+    result = update_entry_status(
+        tmp_path, "session-nonexistent", REVIEW_STATUS_DISMISSED
+        # no review_note — but irrelevant because the session_id is not found
+    )
     assert result is None
 
     # Original entry must be untouched
@@ -283,3 +292,71 @@ def test_f4_5_list_pending_excludes_transitioned_entries(tmp_path):
     assert len(all_entries) == 2
     dismissed = next(e for e in all_entries if e["session_id"] == "session-close")
     assert dismissed["review_status"] == REVIEW_STATUS_DISMISSED
+
+
+# ── F4.6: close-path evidence expectation ────────────────────────────────────
+
+def test_f4_6_dismissed_without_note_raises(tmp_path):
+    """F4.6: dismissed without review_note raises ValueError.
+    Dismissed is easy to abuse as an escape hatch; requiring a note makes
+    the rationale traceable."""
+    append_pending_entry(tmp_path, "session-f46-a", unknown_count=3, unknown_threshold=3)
+
+    with pytest.raises(ValueError, match="dismissed requires review_note"):
+        update_entry_status(tmp_path, "session-f46-a", REVIEW_STATUS_DISMISSED)
+
+    # Entry must NOT have been modified (check is pre-write)
+    entries = read_log(tmp_path)
+    assert entries[0]["review_status"] == REVIEW_STATUS_PENDING
+
+
+def test_f4_6_updated_without_evidence_raises(tmp_path):
+    """F4.6: updated without review_evidence raises ValueError.
+    'Updated' means taxonomy was changed; evidence must point to where."""
+    append_pending_entry(tmp_path, "session-f46-b", unknown_count=3, unknown_threshold=3)
+
+    with pytest.raises(ValueError, match="updated requires review_evidence"):
+        update_entry_status(
+            tmp_path, "session-f46-b", REVIEW_STATUS_UPDATED,
+            review_note="fixed the classifier",  # note alone is not enough for 'updated'
+        )
+
+    entries = read_log(tmp_path)
+    assert entries[0]["review_status"] == REVIEW_STATUS_PENDING
+
+
+def test_f4_6_reviewed_without_note_or_evidence_raises(tmp_path):
+    """F4.6: reviewed with neither note nor evidence raises ValueError."""
+    append_pending_entry(tmp_path, "session-f46-c", unknown_count=3, unknown_threshold=3)
+
+    with pytest.raises(ValueError, match="reviewed requires at least review_note or review_evidence"):
+        update_entry_status(tmp_path, "session-f46-c", REVIEW_STATUS_REVIEWED)
+
+    entries = read_log(tmp_path)
+    assert entries[0]["review_status"] == REVIEW_STATUS_PENDING
+
+
+def test_f4_6_reviewed_with_only_note_succeeds(tmp_path):
+    """F4.6: reviewed with just review_note satisfies minimum expectation."""
+    append_pending_entry(tmp_path, "session-f46-d", unknown_count=3, unknown_threshold=3)
+
+    result = update_entry_status(
+        tmp_path, "session-f46-d", REVIEW_STATUS_REVIEWED,
+        review_note="spot-checked: all 3 unknowns are aliased forms of platform_mock",
+    )
+    assert result is not None
+    assert result["review_status"] == REVIEW_STATUS_REVIEWED
+    assert result["review_evidence"] is None  # evidence optional for 'reviewed'
+
+
+def test_f4_6_dismissed_with_note_succeeds(tmp_path):
+    """F4.6: dismissed with review_note satisfies the close-path requirement."""
+    append_pending_entry(tmp_path, "session-f46-e", unknown_count=3, unknown_threshold=3)
+
+    result = update_entry_status(
+        tmp_path, "session-f46-e", REVIEW_STATUS_DISMISSED,
+        review_note="CI environment churn produced transient unknowns; not a taxonomy gap",
+    )
+    assert result is not None
+    assert result["review_status"] == REVIEW_STATUS_DISMISSED
+    assert result["review_note"].startswith("CI environment")
