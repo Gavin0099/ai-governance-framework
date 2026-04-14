@@ -210,6 +210,58 @@ API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`
 - [x] 整理 closeout / advisory / runtime observation 的 maintenance checklist → docs/governance-maintenance-checklist.md（gate policy review / audit log health / advisory signal calibration / E6 corpus / framework-consumer sync）
 - [ ] 釐清 consuming repo 常用 workflow 對 memory closeout 的實際可見性
 
+### E8a Phase 2 — Event-Based Measurement Layer（2026-04-14）
+
+**動機**：E8a loop 產生的資料是「靜態狀態 × N 次觀測」，不是「N 個獨立 session 事件」。
+這使得 E1b precondition `entries >= 20` 在統計意義上等於 `sample_size = 1`。
+需要 artifact lifecycle 時間序列作為 E1b 的有效 input。
+
+**設計合約（已釘住）**：
+- event_id = sha1(repo + scenario + t + state_hash)
+- state_hash = sha1(exists + content_hash + mtime_floor)
+- 去重：consecutive same state_hash = same event（不計入 effective_entries）
+- entropy = distinct_states / raw_entries；< 0.3 → E1b invalid measurement
+
+- [x] G1：Event fixture base layer
+  - `tests/fixtures/e8a_event_scenarios/base.py`：EventStep dataclass + state_hash/event_id 計算 + entropy helpers
+  - `compute_effective_entries`, `compute_entropy`, `compute_signal_ratio` 純函數
+  - `validate_monotonic_timeline`：強制 t 嚴格遞增
+
+- [x] G2：三個 lifecycle scenario
+  - `scenario_a_normal_ci.py`：absent → create → touch（healthy CI path）；expected ratio≈1/3
+  - `scenario_b_broken_pipeline.py`：present → delete → noop（artifact disappears）；expected ratio≈2/3
+  - `scenario_c_skip_abuse.py`：absent+noskip → absent+skip → absent+skip（suppression pattern）；expected ratio=1/3
+  - 所有 scenario 的 `expected_match_ratio = 1.0`（信號預測完全正確）
+
+- [x] G3：runner `scripts/run_e8a_fixture.py`
+  - 逐 t 設定檔案（create/delete/touch/noop）+ 改寫 gate_policy（skip 欄位）
+  - 呼叫 `run_session_end_hook()` 得到真實 E8a log entry
+  - 計算 state_hash/event_id 並寫入 `artifacts/e8a_fixture_output/e8a-event-log-{scenario}.ndjson`
+  - `--repeats N`：重複執行 N 次，讓真實 canonical-audit-log 累積多 session footprint
+
+- [x] G4：validator `scripts/validate_e8a_entropy.py`
+  - 讀 event log → 去重 → 計算 effective_entries / entropy / signal_ratio / expected_match_ratio
+  - Verdict：VALID（entropy ≥ 0.3）/ INVALID（degenerate）/ EMPTY
+  - E1b readiness：READY / PARTIAL / NOT_READY
+
+**執行結果（--repeats 10）**：
+
+| Scenario | verdict | entropy | effective | signal_ratio | expected_match |
+|----------|---------|---------|-----------|-------------|---------------|
+| a_normal_ci | VALID ✅ | 0.70 | 21/30 | 0.048 | 1.00 |
+| b_broken_pipeline | INVALID ✅* | 0.167 | 6/30 | 0.333 | 1.00 |
+| c_skip_abuse | INVALID ✅* | 0.033 | 3/30 | 0.333 | 1.00 |
+
+\* INVALID 是預期且正確的：`absent` 狀態在迴圈下無 mtime 可追蹤（mtime_floor=0），
+state_hash 不變，entropy 崩塌。validator 正確識別這是 "degenerate (state sampling)"。
+這驗證了核心設計原則：**只有 artifact 真正變化的 lifecycle 才有統計效力**。
+
+**關鍵發現**：
+- a_normal_ci 有高 entropy 是因為 `touch` 步驟改了檔案內容，讓 state_hash 真的前進
+- b/c 的 absent 迴圈沒有 entropy，無法支撐 E1b 評估
+- 這與 "只有 `session-level entropy` 才能支撐 E1b" 的設計理論完全吻合
+- 真實的 B/C 類型資料只能來自真實的 agent session（CI 真的壞掉、skip 真的被加入）
+
 ### P2
 
 - [ ] 評估 BUG-003 後續是否需要從 byte-size 再擴到更高階的多維記憶壓力信號
