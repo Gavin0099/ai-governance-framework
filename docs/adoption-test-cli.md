@@ -128,9 +128,11 @@ rule_roots:
 ```powershell
 python e:\BackUp\Git_EE\ai-governance-framework\runtime_hooks\core\pre_task_check.py `
   --contract .\contract.yaml `
-  --task-level L1 `
+  --risk L1 `
   --task-text "Add new ISP command for hub model XY"
 ```
+
+> ⚠️ 正確參數為 `--risk`，不是 `--task-level`（已於 2026-04-14 測試確認）
 
 | Check | Actual | PASS/WARN/FAIL |
 |-------|--------|----------------|
@@ -145,9 +147,10 @@ python e:\BackUp\Git_EE\ai-governance-framework\runtime_hooks\core\pre_task_chec
 
 ```powershell
 python e:\BackUp\Git_EE\ai-governance-framework\governance_tools\session_end_hook.py `
-  --repo . `
-  --framework-root e:\BackUp\Git_EE\ai-governance-framework
+  --project-root .
 ```
+
+> ⚠️ `session_end_hook.py` 只接受 `--project-root`，無 `--repo` / `--framework-root` 參數（已於 2026-04-14 測試確認）
 
 **預期行為：**
 - `repo_local_policy_missing` → fallback strict
@@ -251,8 +254,7 @@ artifact_stale_seconds: 86400
 **寫入後執行第二次 hook：**
 ```powershell
 python e:\BackUp\Git_EE\ai-governance-framework\governance_tools\session_end_hook.py `
-  --repo . `
-  --framework-root e:\BackUp\Git_EE\ai-governance-framework
+  --project-root .
 ```
 
 | Check | Actual | PASS/WARN/FAIL |
@@ -297,6 +299,8 @@ python e:\BackUp\Git_EE\ai-governance-framework\governance_tools\governance_drif
   --repo . `
   --framework-root e:\BackUp\Git_EE\ai-governance-framework
 ```
+
+> `governance_drift_checker.py` 的 `--repo` / `--framework-root` 是正確參數（非 session_end_hook）。
 
 **預期：**
 - baseline.yaml 剛建立 → drift 應為 none 或 minimal

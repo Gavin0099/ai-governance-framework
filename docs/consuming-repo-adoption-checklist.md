@@ -119,7 +119,7 @@ python ai-governance-framework/governance_tools/runtime_surface_manifest_smoke.p
 至少驗一次 `pre_task_check`：
 
 ```powershell
-python ai-governance-framework/runtime_hooks/core/pre_task_check.py --contract ./contract.yaml --task-level L1 --task-text "Implement parser without sample file"
+python ai-governance-framework/runtime_hooks/core/pre_task_check.py --contract ./contract.yaml --risk L1 --task-text "Implement parser without sample file"
 ```
 
 目標：
