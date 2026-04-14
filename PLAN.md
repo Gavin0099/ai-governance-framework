@@ -620,6 +620,50 @@ v2 升格為正式 gate blocker 必須同時確認三件事：
 
 ---
 
+### SOUL Observability — 分析紀錄（2026-04-14，已評估，暫不實作）
+
+**背景問題**：`SOUL.md` 目前是靜態 persona 宣言，完全在 governance runtime 之外。
+按照 repo 自身的 evidence 標準：無可觀測性、無可驗證性、無 artifact、無 hooks。
+
+**可以做的部分（observable facts，符合既有 evidence 標準）**：
+
+```python
+soul_check = {
+    "soul_file_present": (project_root / "SOUL.md").exists(),
+    "soul_hash": _sha1(soul_path) if soul_path.exists() else None,
+    "soul_drift": prev_soul_hash != current_soul_hash,
+}
+```
+
+接法與 `governance_drift_checker.py` 對齊，hash 比對存入 `.governance-state.yaml`，
+在 `session_start.py` 加 advisory signal。這是可測試、可 replay、無語意歧義的。
+
+**不適合做的部分（behavioral inference）**：
+
+```python
+# 這些無法用 repo 標準驗：
+"no_opinion_detected": True       # 需要 LLM audit LLM → circular
+"filler_language_detected": False  # 非 deterministic，無法 replay
+"assumption_not_challenged": True  # 無 actionable downstream decision
+```
+
+驗證標準（用 repo 自身框架）：
+> 若 signal 出現，reviewer 的決策是什麼？能寫進 `replay_verification.py` 嗎？能設 `expected_match` 嗎？
+
+以上三個皆否 → 是 governance theater，不是 governance。
+
+**結論（已釘住）**：
+
+| 做法 | 評估 |
+|---|---|
+| SOUL.md 的 hash drift 追蹤 | ✅ 符合標準，低成本，可接 session_start |
+| behavioral audit（opinion/filler/stance） | ❌ 語意上不 fit；需要獨立 LLM eval pipeline，那是另一個 project |
+| 完整 soul_profile artifact（assertiveness: 0.6 等） | ❌ 無 deterministic anchor，無法 replay |
+
+**當前優先序**：E1b fleet 資料問題更迫切。SOUL hash drift 追蹤列入 backlog，等 E1b Phase 2 穩定後再考慮。
+
+---
+
 ## 目前主線
 
 ### 1. Session Workflow Enhancement
