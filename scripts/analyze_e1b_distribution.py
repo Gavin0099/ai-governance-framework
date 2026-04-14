@@ -571,6 +571,37 @@ def _print_human(
         f"  total entries : {sum(s['session_count'] for s in stats.values())}"
     )
     print(f"  distinct repos: {len(stats)}")
+
+    # ── Migration-blocked banner ──────────────────────────────────────────────
+    # When no audit log entries carry skip_type in policy_provenance, all
+    # skip_type-based classifications are unavailable — not zero, unavailable.
+    # The control plane (gate_policy.yaml) may already be updated, but the
+    # data plane (audit log) has not yet been written by a post-schema session.
+    # Displaying per-repo structural/temporary/lifecycle_capable counts in this
+    # state is misleading: they reflect pre-schema semantics, not current policy.
+    era_tag = fleet.get("fleet_era_tag", "PRE-SKIP-TYPE-ERA")
+    cov = fleet.get("fleet_skip_type_coverage_ratio", 0.0)
+    if era_tag == "PRE-SKIP-TYPE-ERA":
+        print()
+        print("  ╔══ [MIGRATION BLOCKED] " + "═" * 49 + "╗")
+        print("  ║  skip_type schema not yet reflected in audit log.            ║")
+        print("  ║  skip_type_coverage = 0.000 — all entries predate schema.    ║")
+        print("  ║                                                               ║")
+        print("  ║  skip_type-based classifications are UNAVAILABLE, not zero:  ║")
+        print("  ║    structural_skip / temporary_skip / lifecycle_capable       ║")
+        print("  ║    post_skip consistency / temporary aging / activity score   ║")
+        print("  ║                                                               ║")
+        print("  ║  Actionable: run at least one session on each of:            ║")
+        print("  ║    1+ structural skip repo (e.g. Kernel-Driver-Contract)     ║")
+        print("  ║    1+ temporary skip repo  (e.g. Enumd or SpecAuthority)     ║")
+        print("  ║    1+ lifecycle-capable repo (e.g. Bookstore-Scraper)        ║")
+        print("  ║  to generate the first post-schema entries.                  ║")
+        print("  ╚" + "═" * 65 + "╝")
+    elif era_tag == "TRANSITION":
+        print()
+        print(f"  [TRANSITION] skip_type_coverage={cov:.4f} — partial schema migration.")
+        print(f"  Interpret structural/temporary/lifecycle_capable distributions")
+        print(f"  with caution: {round((1-cov)*100):.0f}% of entries still carry pre-schema semantics.")
     print()
 
     # ── Layer 1: Fleet Coverage ───────────────────────────────────────────────
@@ -858,8 +889,29 @@ def main() -> int:
     )
 
     if args.emit_json:
+        era = fleet.get("fleet_era_tag", "PRE-SKIP-TYPE-ERA")
+        cov = fleet.get("fleet_skip_type_coverage_ratio", 0.0)
+        migration_state = {
+            "era_tag": era,
+            "skip_type_coverage_ratio": cov,
+            "classifications_interpretable": era == "CURRENT",
+            "note": (
+                "skip_type-based classifications unavailable: all entries predate schema"
+                if era == "PRE-SKIP-TYPE-ERA"
+                else (
+                    "partial schema migration: interpret distributions with caution"
+                    if era == "TRANSITION"
+                    else "schema migration complete"
+                )
+            ),
+        }
         print(json.dumps(
-            {"repos": repo_stats, "fleet_coverage": fleet, "phase2_gate": gate},
+            {
+                "migration_state": migration_state,
+                "repos": repo_stats,
+                "fleet_coverage": fleet,
+                "phase2_gate": gate,
+            },
             indent=2,
         ))
         return 0
