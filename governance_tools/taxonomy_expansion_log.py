@@ -10,9 +10,13 @@ Authority:
   - A "pending" entry does NOT block anything — it is a visibility record.
   - The log exists so that repeated unreviewed signals accumulate visibly
     instead of silently disappearing each session.
+  - write failure -> warning only; session gate must not be affected.
+  - This substrate is NOT a strong authority. It is a traceability aid.
+    Do not make gate decisions based on log contents.
 
 Storage: <project_root>/governance/taxonomy_expansion_log.ndjson
-  One JSON object per line.  Appended; never overwritten.
+  One JSON object per line.  Transitions rewrite the file in-place
+  (governance data is small; rewrite is safe and avoids tombstone complexity).
 
 Entry schema:
   session_id:       str   — matches session_end_hook session_id
@@ -102,3 +106,56 @@ def read_log(project_root: Path) -> list[dict]:
 def list_pending(project_root: Path) -> list[dict]:
     """Return only entries where review_status == 'pending'."""
     return [e for e in read_log(project_root) if e.get("review_status") == REVIEW_STATUS_PENDING]
+
+
+def update_entry_status(
+    project_root: Path,
+    session_id: str,
+    new_status: str,
+    *,
+    review_note: str | None = None,
+    review_evidence: str | None = None,
+) -> dict | None:
+    """
+    Transition the review_status of the entry matching session_id.
+
+    Returns the updated entry dict on success.
+    Returns None if no entry with that session_id is found (not an error).
+    Raises ValueError if new_status is not a recognised review status.
+
+    Implementation: read-modify-rewrite.  The log file is small governance data;
+    full rewrite avoids tombstone complexity and keeps read_log() simple.
+
+    Authority note: this function modifies the traceability substrate only.
+    It has no effect on gate decisions — the log is advisory, not authority.
+    """
+    if new_status not in VALID_REVIEW_STATUSES:
+        raise ValueError(
+            f"Invalid review_status {new_status!r}. "
+            f"Must be one of: {sorted(VALID_REVIEW_STATUSES)}"
+        )
+
+    entries = read_log(project_root)
+    updated_entry: dict | None = None
+
+    for entry in entries:
+        if entry.get("session_id") == session_id:
+            entry["review_status"] = new_status
+            if review_note is not None:
+                entry["review_note"] = review_note
+            if review_evidence is not None:
+                entry["review_evidence"] = review_evidence
+            updated_entry = entry
+            break  # session_id is treated as unique; update first match only
+
+    if updated_entry is None:
+        return None
+
+    # Rewrite the file atomically enough for governance data (not high-volume).
+    log_file = _log_path(project_root)
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    with log_file.open("w", encoding="utf-8") as fh:
+        for entry in entries:
+            fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+    return updated_entry

@@ -1,12 +1,20 @@
 """
-F4 tests — Taxonomy remediation trace (taxonomy_expansion_log).
+F4 / F4.5 tests — Taxonomy remediation trace (taxonomy_expansion_log).
 
 Test contract:
+  F4 (substrate + E2E):
   1. append_pending_entry writes an entry with the correct schema and review_status="pending"
   2. list_pending returns entries where review_status=="pending"
   3. E2E: run_session_end_hook appends a pending entry when taxonomy_expansion_signal=True
   4. run_session_end_hook does NOT write a log entry when taxonomy_expansion_signal=False/absent
   5. Log write failure must not affect gate result (warning emitted only)
+
+  F4.5 (state transition):
+  6. update_entry_status transitions pending -> reviewed and persists change
+  7. update_entry_status sets review_note and review_evidence fields
+  8. update_entry_status with invalid status raises ValueError
+  9. update_entry_status returns None when session_id not found (not an error)
+  10. list_pending excludes entries that were transitioned away from pending
 """
 
 import json
@@ -18,10 +26,14 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from governance_tools.taxonomy_expansion_log import (
+    REVIEW_STATUS_DISMISSED,
     REVIEW_STATUS_PENDING,
+    REVIEW_STATUS_REVIEWED,
+    REVIEW_STATUS_UPDATED,
     append_pending_entry,
     list_pending,
     read_log,
+    update_entry_status,
 )
 
 
@@ -190,3 +202,84 @@ def test_f4_e2e_hook_result_ok_unaffected_by_log(tmp_path):
     assert not any(
         "taxonomy_expansion_log" in e for e in result["errors"]
     ), f"log entry must not produce errors; got {result['errors']}"
+
+
+# ── F4.5: state transition ────────────────────────────────────────────────────
+
+def test_f4_5_update_status_pending_to_reviewed(tmp_path):
+    """update_entry_status transitions pending -> reviewed and persists the change."""
+    append_pending_entry(tmp_path, "session-tr-001", unknown_count=4, unknown_threshold=3)
+
+    result = update_entry_status(tmp_path, "session-tr-001", REVIEW_STATUS_REVIEWED)
+
+    assert result is not None
+    assert result["session_id"] == "session-tr-001"
+    assert result["review_status"] == REVIEW_STATUS_REVIEWED
+
+    # Persisted to file
+    entries = read_log(tmp_path)
+    assert len(entries) == 1
+    assert entries[0]["review_status"] == REVIEW_STATUS_REVIEWED
+
+
+def test_f4_5_update_status_sets_note_and_evidence(tmp_path):
+    """update_entry_status populates review_note and review_evidence fields."""
+    append_pending_entry(tmp_path, "session-tr-002", unknown_count=3, unknown_threshold=3)
+
+    result = update_entry_status(
+        tmp_path,
+        "session-tr-002",
+        REVIEW_STATUS_UPDATED,
+        review_note="added 2 new corpus entries",
+        review_evidence="governance/data/failure_disposition_corpus.json",
+    )
+
+    assert result["review_note"] == "added 2 new corpus entries"
+    assert result["review_evidence"] == "governance/data/failure_disposition_corpus.json"
+    assert result["review_status"] == REVIEW_STATUS_UPDATED
+
+    persisted = read_log(tmp_path)[0]
+    assert persisted["review_note"] == "added 2 new corpus entries"
+    assert persisted["review_evidence"] == "governance/data/failure_disposition_corpus.json"
+
+
+def test_f4_5_update_status_invalid_raises_value_error(tmp_path):
+    """update_entry_status raises ValueError for unrecognised status strings."""
+    append_pending_entry(tmp_path, "session-tr-003", unknown_count=3, unknown_threshold=3)
+
+    with pytest.raises(ValueError, match="Invalid review_status"):
+        update_entry_status(tmp_path, "session-tr-003", "in_progress")  # not a valid status
+
+
+def test_f4_5_update_status_missing_session_returns_none(tmp_path):
+    """update_entry_status returns None when session_id is not found — not an error."""
+    append_pending_entry(tmp_path, "session-tr-004", unknown_count=3, unknown_threshold=3)
+
+    result = update_entry_status(tmp_path, "session-nonexistent", REVIEW_STATUS_DISMISSED)
+    assert result is None
+
+    # Original entry must be untouched
+    entries = read_log(tmp_path)
+    assert len(entries) == 1
+    assert entries[0]["review_status"] == REVIEW_STATUS_PENDING
+
+
+def test_f4_5_list_pending_excludes_transitioned_entries(tmp_path):
+    """After update_entry_status, the transitioned entry must not appear in list_pending."""
+    append_pending_entry(tmp_path, "session-keep", unknown_count=3, unknown_threshold=3)
+    append_pending_entry(tmp_path, "session-close", unknown_count=5, unknown_threshold=3)
+
+    update_entry_status(
+        tmp_path, "session-close", REVIEW_STATUS_DISMISSED,
+        review_note="classified as test infrastructure issue, not taxonomy gap"
+    )
+
+    pending = list_pending(tmp_path)
+    assert len(pending) == 1
+    assert pending[0]["session_id"] == "session-keep"
+
+    # Dismissed entry still exists in full log
+    all_entries = read_log(tmp_path)
+    assert len(all_entries) == 2
+    dismissed = next(e for e in all_entries if e["session_id"] == "session-close")
+    assert dismissed["review_status"] == REVIEW_STATUS_DISMISSED

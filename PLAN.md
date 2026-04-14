@@ -158,6 +158,19 @@ API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`
   - substrate：schema, persistence, list_pending, multi-entry accumulation, empty read
   - E2E：signal fires → log written；signal absent → no log；gate unaffected by log
 
+### F4.5 Remediation State Transition
+- [x] F4.5：`update_entry_status()` — pending → reviewed/updated/dismissed
+  - rewrite-on-update（governance data 量小，避免 tombstone complexity）
+  - returns updated entry or None if session_id not found（不 raise）
+  - invalid status → `ValueError`
+  - review_note + review_evidence 欄位可一併更新
+  - 5 tests added to `tests/test_f4_taxonomy_expansion_log.py`（total 13 tests）
+    - pending→reviewed 遷移 + 持久化
+    - review_note + review_evidence 欄位更新
+    - invalid status → ValueError
+    - missing session_id → None（不 raise）
+    - list_pending 遷移後排除
+
 ### F5 Failure Walkthrough / UX
 - [ ] F5a：為 Tier B adoption failure 建立 walkthrough doc（主要給 consuming repo 讀）
 - [ ] F5b：`ok=False` + `blocked=False` 在 Tier B 情況下的輸出可讀性改善
