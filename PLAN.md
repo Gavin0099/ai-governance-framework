@@ -65,6 +65,9 @@
 - [x] E1a：canonical usage auditability — _build_canonical_usage_audit() pure synthesis of E7 + E8b into usage_status (observed / missing / observed_with_trend_risk / trend_risk_context)；canonical_key_present（命名精確：marker key present，不宣稱 ingestor 一定被呼叫）；advisory_only=True hard-coded；NEVER gate.blocked；internal_error fallback 不 silent success；basis="E7+E8b synthesis" derivation anchor；format_human_result 渲染 [ADVISORY] for all non-observed states；interpretation layer，非 signal producer；5/5 tests
 - [x] E9a：structural absence opt-out — skip_test_result_check: false in gate_policy.yaml（default=false）；GatePolicy.skip_test_result_check bool field；_build_canonical_path_audit suppresses test_result_artifact_absent when skip=True（structural absence declared）；canonical_interpretation_missing still fires normally（artifact must be present to trigger it）；format_human_result shows [skipped] instead of [ADVISORY] when skip+absent；gate.blocked completely unaffected；E8a log still written with signals=[]；return dict carries skip_test_result_check key for display layer；5/5 tests
 - [ ] E1b：canonical usage enforcement（強制版） — 只有在 stable observability + 足夠歷史 evidence 後才考慮；E1b 存在的合理性必須由 E8a/E8b 資料面撐腰，不能只靠主張
+  - [x] **Phase 1（完成 db5f20f）**: Passive Observation — `_build_e1b_observation()`，advisory_only=True；資料收集 layer，NEVER 影響 gate；見 G5
+  - [ ] **Phase 2（未開工）**: Distribution Understanding — 需要真實 session footprints；loop replay 不能替代；觀測 entropy/signal_ratio 分布、repo-to-repo variance、baseline CI
+  - [ ] **Phase 3（未開工）**: Decision / Trigger — 動態 threshold、trend_direction、cross-repo correlation；只在 Phase 2 有足夠 evidence baseline 後開工
 
 > 排序根據：E8a 先讓 signal 有歷史，E8b 才能讓歷史有語意，E1a/E1b 再決定是否有可靠證據基礎支持更強約束。
 > E1b 不等同於「系統已 enforce agent behavior」——agent 中途決策無法直接 observe，強制版頂多能驗到 artifact footprint 層，不能聲稱 runtime exclusivity。
@@ -243,6 +246,26 @@ API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`
   - 讀 event log → 去重 → 計算 effective_entries / entropy / signal_ratio / expected_match_ratio
   - Verdict：VALID（entropy ≥ 0.3）/ INVALID（degenerate）/ EMPTY
   - E1b readiness：READY / PARTIAL / NOT_READY
+
+- [x] G5：E1b Phase 1 — Passive Observation Layer（2026-04-18）
+  - `_E1B_MIN_VALID_ENTROPY = 0.3` 常數（`session_end_hook.py`，與 G1-G4 fixture layer 鏡像）
+  - `_build_e1b_observation(project_root, window_size) -> dict` 純觀測函數
+    - 從 canonical-audit-log.jsonl 讀取當前 window
+    - 狀態代理：`artifact_state`（absent / ok / stale / malformed）
+    - entropy = distinct_states / entries_in_window
+    - is_degenerate = entropy < 0.3（所有 entry 同 state → 無統計解讀能力）
+    - signal_ratio：同 E8b 計算，但標籤分離
+    - `advisory_only: True` 硬編碼；NEVER 影響 `gate.blocked` 或 `ok`
+    - 任何讀取錯誤 → is_degenerate=True、internal_error=True（fail-safe）
+  - `run_session_end_hook()` result 新增 key：`e1b_observation`
+    - schema：raw_entries, valid_entries, distinct_states, entropy,
+      signal_ratio, is_degenerate, observation_note, advisory_only
+  - `format_human_result()` 渲染 `e1b_observation:` summary line（always）
+    + `[ADVISORY] e1b:` 當 is_degenerate=True 或 internal_error=True
+  - **authority boundary 明確釘住**：Phase 1 輸出只能被 read、不能被 enforce
+    - advisory_only=True 不得在沒有 PLAN.md 條目的情況下放鬆
+  - 6/6 tests (`tests/test_e1b_observation.py`)：empty log → degenerate；均一態 → degenerate；
+    混合態 → valid；advisory_only=True 永遠成立；result schema 含 key；format 渲染
 
 **執行結果（--repeats 10）**：
 
