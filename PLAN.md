@@ -246,21 +246,28 @@ API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`
 
 **執行結果（--repeats 10）**：
 
-| Scenario | verdict | entropy | effective | signal_ratio | expected_match |
-|----------|---------|---------|-----------|-------------|---------------|
+| Scenario | verdict | entropy | effective/raw | signal_ratio | expected_match |
+|----------|---------|---------|--------------|-------------|---------------|
 | a_normal_ci | VALID ✅ | 0.70 | 21/30 | 0.048 | 1.00 |
-| b_broken_pipeline | INVALID ✅* | 0.167 | 6/30 | 0.333 | 1.00 |
-| c_skip_abuse | INVALID ✅* | 0.033 | 3/30 | 0.333 | 1.00 |
+| b_broken_pipeline | INVALID ✅ | 0.167 | 6/30 | 0.333 | 1.00 |
+| c_skip_abuse | INVALID ✅ | 0.033 | 3/30 | 0.333 | 1.00 |
 
-\* INVALID 是預期且正確的：`absent` 狀態在迴圈下無 mtime 可追蹤（mtime_floor=0），
-state_hash 不變，entropy 崩塌。validator 正確識別這是 "degenerate (state sampling)"。
-這驗證了核心設計原則：**只有 artifact 真正變化的 lifecycle 才有統計效力**。
+**結論（精確版）**：
+- `expected_match_ratio = 1.0` 三個 scenario 全部通過，代表 fixture 期望與 validator 判定完全對齊。
+- b/c 被判為 INVALID 是預期且正確的結果，不是 bug。
+- 在重複 loop 模擬下，`absent` 狀態沒有前進的 artifact timestamp（mtime_floor=0），
+  連續的 absent 步驟會收斂到相同的 state_hash，產生 degenerate dataset。
+- 只有具備真實 artifact 狀態前進（如 create / touch）的 lifecycle 才有足夠 entropy
+  用於 E1b 統計解讀。
 
-**關鍵發現**：
-- a_normal_ci 有高 entropy 是因為 `touch` 步驟改了檔案內容，讓 state_hash 真的前進
-- b/c 的 absent 迴圈沒有 entropy，無法支撐 E1b 評估
-- 這與 "只有 `session-level entropy` 才能支撐 E1b" 的設計理論完全吻合
-- 真實的 B/C 類型資料只能來自真實的 agent session（CI 真的壞掉、skip 真的被加入）
+**設計邊界（明確釘住）**：
+- 本次驗證支持的是：`E8a loop fixture 只適合驗證有狀態前進的 lifecycle`。
+- 對於靜態 absent 類型的模式（b/c），loop replay 只能驗證 validator 會正確拒收
+  degenerate data，不能替代真實 session evidence。
+- b/c 類型資料在目前設計下，不能靠重複 loop replay 取得統計效力；
+  是否能在真實 agent session 中形成足夠 entropy，**仍需後續觀測確認**。
+- 這次 `expected_match_ratio = 1.0` 證明的是：fixture 設計與 validator 判定對齊。
+  它不是「E1b 已在真實 repo / 真實 agent workflow 下完成實證」的依據。
 
 ### P2
 
