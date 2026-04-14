@@ -56,22 +56,24 @@ def assess_release_readiness(project_root: Path, *, version: str) -> dict:
     add_check("trust_signal_dashboard", trust_dashboard_path.is_file(), "missing docs/status/trust-signal-dashboard.md")
     add_check("domain_enforcement_matrix", domain_matrix_path.is_file(), "missing docs/status/domain-enforcement-matrix.md")
 
-    readme_text = readme_path.read_text(encoding="utf-8") if readme_path.is_file() else ""
-    changelog_text = changelog_path.read_text(encoding="utf-8") if changelog_path.is_file() else ""
-    release_index_text = release_index_path.read_text(encoding="utf-8") if release_index_path.is_file() else ""
-    release_note_text = release_note_path.read_text(encoding="utf-8") if release_note_path.is_file() else ""
+    # errors="replace" protects against non-UTF-8 docs (e.g. Big5-encoded reviewer-handoff.md).
+    # Replacement character (�) is benign for the string-presence checks that follow.
+    readme_text = readme_path.read_text(encoding="utf-8", errors="replace") if readme_path.is_file() else ""
+    changelog_text = changelog_path.read_text(encoding="utf-8", errors="replace") if changelog_path.is_file() else ""
+    release_index_text = release_index_path.read_text(encoding="utf-8", errors="replace") if release_index_path.is_file() else ""
+    release_note_text = release_note_path.read_text(encoding="utf-8", errors="replace") if release_note_path.is_file() else ""
     github_release_draft_text = (
-        github_release_draft_path.read_text(encoding="utf-8") if github_release_draft_path.is_file() else ""
+        github_release_draft_path.read_text(encoding="utf-8", errors="replace") if github_release_draft_path.is_file() else ""
     )
-    publish_checklist_text = publish_checklist_path.read_text(encoding="utf-8") if publish_checklist_path.is_file() else ""
-    alpha_checklist_text = alpha_checklist_path.read_text(encoding="utf-8") if alpha_checklist_path.is_file() else ""
+    publish_checklist_text = publish_checklist_path.read_text(encoding="utf-8", errors="replace") if publish_checklist_path.is_file() else ""
+    alpha_checklist_text = alpha_checklist_path.read_text(encoding="utf-8", errors="replace") if alpha_checklist_path.is_file() else ""
     generated_release_root_text = (
-        generated_release_root_path.read_text(encoding="utf-8") if generated_release_root_path.is_file() else ""
+        generated_release_root_path.read_text(encoding="utf-8", errors="replace") if generated_release_root_path.is_file() else ""
     )
-    status_index_text = status_index_path.read_text(encoding="utf-8") if status_index_path.is_file() else ""
-    reviewer_handoff_text = reviewer_handoff_path.read_text(encoding="utf-8") if reviewer_handoff_path.is_file() else ""
-    trust_dashboard_text = trust_dashboard_path.read_text(encoding="utf-8") if trust_dashboard_path.is_file() else ""
-    domain_matrix_text = domain_matrix_path.read_text(encoding="utf-8") if domain_matrix_path.is_file() else ""
+    status_index_text = status_index_path.read_text(encoding="utf-8", errors="replace") if status_index_path.is_file() else ""
+    reviewer_handoff_text = reviewer_handoff_path.read_text(encoding="utf-8", errors="replace") if reviewer_handoff_path.is_file() else ""
+    trust_dashboard_text = trust_dashboard_path.read_text(encoding="utf-8", errors="replace") if trust_dashboard_path.is_file() else ""
+    domain_matrix_text = domain_matrix_path.read_text(encoding="utf-8", errors="replace") if domain_matrix_path.is_file() else ""
 
     add_check("readme_exists", readme_path.is_file(), "missing README.md")
     if readme_text:

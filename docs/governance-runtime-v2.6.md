@@ -1,5 +1,7 @@
 # Governance Runtime v2.6
 
+<!-- anchors: Governance Constraint Layer | Violation Handling Matrix | Determinism Contract -->
+
 > 更新日期：2026-03-20
 
 這份文件記錄 current runtime spine 之後的下一個架構方向：

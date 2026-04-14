@@ -46,6 +46,7 @@ machine-readable source of truth 是：
 只有當 runtime 能逐步證明以下幾件事，這份 plan 才算真正成立：
 
 - 相同 evidence + policy snapshot 重放時，會得到相同 verdict
+  （determinism must be checked with repeated inputs）
 - degraded input 仍能產出 reviewer 可讀的 runtime artifact
 - policy conflict 不會繞過 runtime ownership
 - runtime failure 會 fail closed 或以已宣告方式 escalate
