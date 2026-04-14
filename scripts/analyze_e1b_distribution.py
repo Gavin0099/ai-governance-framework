@@ -591,7 +591,7 @@ def _print_human(
         print("  ║    structural_skip / temporary_skip / lifecycle_capable       ║")
         print("  ║    post_skip consistency / temporary aging / activity score   ║")
         print("  ║                                                               ║")
-        print("  ║  Actionable: run at least one session on each of:            ║")
+        print("  ║  Actionable: record at least one new post-schema session on:   ║")
         print("  ║    1+ structural skip repo (e.g. Kernel-Driver-Contract)     ║")
         print("  ║    1+ temporary skip repo  (e.g. Enumd or SpecAuthority)     ║")
         print("  ║    1+ lifecycle-capable repo (e.g. Bookstore-Scraper)        ║")
@@ -891,19 +891,21 @@ def main() -> int:
     if args.emit_json:
         era = fleet.get("fleet_era_tag", "PRE-SKIP-TYPE-ERA")
         cov = fleet.get("fleet_skip_type_coverage_ratio", 0.0)
+        if era == "PRE-SKIP-TYPE-ERA":
+            reason_code = "skip_type_not_observed_in_audit_log"
+            note = "skip_type-based classifications unavailable: all entries predate schema"
+        elif era == "TRANSITION":
+            reason_code = "skip_type_partial_coverage"
+            note = "partial schema migration: interpret distributions with caution"
+        else:
+            reason_code = None
+            note = "schema migration complete"
         migration_state = {
             "era_tag": era,
             "skip_type_coverage_ratio": cov,
             "classifications_interpretable": era == "CURRENT",
-            "note": (
-                "skip_type-based classifications unavailable: all entries predate schema"
-                if era == "PRE-SKIP-TYPE-ERA"
-                else (
-                    "partial schema migration: interpret distributions with caution"
-                    if era == "TRANSITION"
-                    else "schema migration complete"
-                )
-            ),
+            "reason_code": reason_code,
+            "note": note,
         }
         print(json.dumps(
             {
