@@ -307,6 +307,59 @@ API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`
     3. `degenerate_rate` 解讀層的目的是 coverage review，不是紅旗。degenerate_rate = 0 不是 fail，它是一個可解釋性要求：需要回答「是真的健康，還是觀測面太窄」。
   - **Phase 2 真正的下一步**：用現有工具跑第一批真實資料，觀察五條 gate 哪條最先被卡，那才是比繼續修 gate 更有資訊量的動作。
 
+---
+
+### Phase 2.5 — Fleet Reality Assessment（2026-04-18）
+
+**觀測結果（10 repos / 272 sessions）**：
+
+| Repo | skip | policy_source | 信號歷史 | 評估 |
+|------|------|---------------|---------|------|
+| Bookstore-Scraper | false | repo_local | ok:40 absent:1 | **lifecycle 正常運作** |
+| gl_electron_tool | true | repo_local | 前 20 sessions 有 signal，後零 | skip 是在初期幾次 session 之後才寫入；signals 是 pre-skip 歷史 artifact |
+| hp-oci-avalonia | true | repo_local | 第 1 筆是 framework_default + signal，之後零 | 第一次 session 無 repo-local policy，配置後 signal 消失 |
+| cli | true | repo_local | 前 2 筆是 builtin_default + signal，之後零 | 前兩次 session 無 repo-local policy，配置後正常 |
+| Enumd | true | repo_local | 0 signals 全程 | Python/JS repo，聲明 no pytest runner |
+| Standard_ISP_Tool | true | repo_local | 0 signals 全程 | skip=true，**無說明原因**（待補） |
+| Kernel-Driver-Contract | true | repo_local | 0 signals 全程 | contract/doc repo，正確 declared |
+| SpecAuthority | true | repo_local | 0 signals 全程 | Python repo，聲明 no pytest runner |
+| lenovo_isp_tool | true | repo_local | 0 signals 全程 | C# firmware，正確 declared |
+| ai-governance-framework | false | repo_local | 1 筆 absent + signal | 框架本身，尚未有 test artifact |
+
+**fleet 分類（事後）**：
+
+| 分類 | Repos | 含義 |
+|------|-------|------|
+| `declared_no_test` ← 正確 | gl_electron_tool, hp-oci-avalonia, Kernel-Driver-Contract, lenovo_isp_tool | 非 Python 技術棧，lifecycle 不會發生，skip 語意正確 |
+| `test_expected_not_wired` ← 採用缺口 | Enumd, SpecAuthority | Python repo，但未配置 pytest；skip 是 workaround，不是宣告 |
+| `test_requires_ci` ← infra gap | cli | C++ GTest 需要 CI Docker，本地不可執行；正確聲明 |
+| `undeclared_reason` ← 需補說明 | Standard_ISP_Tool | skip=true 但無 comment，無法確認分類 |
+| `lifecycle_active` ← 目標狀態 | Bookstore-Scraper | test 跑通，lifecycle 正常 |
+
+**關鍵發現（修正前一版的錯誤判斷）**：
+
+1. **「absent + signals」不是執行斷裂**。三個 repo（gl/hp/cli）的 signals 全部來自「尚未配置 gate_policy.yaml 的早期 session」。policy 配置後 signal 消失。這是配置時序問題，不是 ingestor 斷裂。
+
+2. **degenerate_rate = 0.9 是正確反映 fleet 選擇，不是 instability**。9/10 repos 聲明 skip=true（其中大部分有明確理由）。這不是系統壞掉，是 fleet 主動選擇不走 artifact lifecycle。
+
+3. **E1b gate 卡在第 3、5 條是因為 fleet 組成，不是資料不夠**。即使再累積 10,000 sessions，degenerate_rate 仍會在 0.9 附近，unique_pattern_ratio 仍會很低。這個 gate 設計是基於「假設 fleet 有混合 lifecycle」，但現實 fleet 主要是 skip。
+
+**Phase 2.5 的核心選擇（需要明確對齊）**：
+
+> E1b 裡想要觀測的「lifecycle entropy」，前提是 fleet 裡有足夠多的 repo 在走 artifact lifecycle。
+> 現實是 fleet 裡至少 60% 的 repo 永遠宣告 skip。
+> 這意味著：是要把 E1b 當「監測已走 lifecycle 的 repo 健康」，還是「推動更多 repo 走 lifecycle」？
+
+| 策略 | 含義 | 下一步 |
+|------|------|--------|
+| A. Observation scope   | E1b 只分析 `skip=false` 的 repo；skip repo 不進 entropy 計算 | 重新設計 analyze tool 以排除 skip repo；有效 pool = Bookstore-Scraper + cli（CI）|
+| B. Adoption driver | E1b 作為壓力：要求 Enumd、SpecAuthority 實際配置 pytest；skip 需要人工 review | 對 `test_expected_not_wired` 分類的 repo 建立最小的 pytest onboarding 路徑 |
+| C. Dual-track | skip repo 進 `fleet_coverage` 報表；active repo 進 `entropy quality` 報表 | 分層輸出，兩個 tier 有不同 gate 條件 |
+
+**目前建議**：策略 A 是最誠實也最省力的 immediate fix；策略 B 是中期目標（Enumd + SpecAuthority 值得推動）；策略 C 是將來 Phase 3 前的正確形式。
+
+**Standard_ISP_Tool 待辦**：補 gate_policy.yaml 的 skip 說明 comment。
+
 **執行結果（--repeats 10）**：
 
 | Scenario | verdict | entropy | effective/raw | signal_ratio | expected_match |
