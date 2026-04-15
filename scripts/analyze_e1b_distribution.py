@@ -733,7 +733,7 @@ def _print_human(
         print()
         print("  ╔══ [MIGRATION BLOCKED] " + "═" * 49 + "╗")
         print("  ║  skip_type schema not yet reflected in audit log.            ║")
-        print("  ║  skip_type_coverage = 0.000 — all entries predate schema.    ║")
+        print(f"  ║  skip_type_coverage = {cov:.4f} — all entries predate schema.   ║")
         print("  ║                                                               ║")
         print("  ║  skip_type-based classifications are UNAVAILABLE, not zero:  ║")
         print("  ║    structural_skip / temporary_skip / lifecycle_capable       ║")
