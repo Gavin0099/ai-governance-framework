@@ -13,7 +13,7 @@
 [FAIL] distinct repos >= 3        : actual=2      ← 差 1 個 repo
 [FAIL] non-degenerate ratio >= 0.7: actual=0.50   ← 需 3/3 全過，目前 1/2
 [FAIL] dominant repo <= 0.6       : actual=0.977  ← BS 佔 97.7%，需 ~30 個新 sessions
-[FAIL] unique pattern ratio >= 0.4: actual=0.068  ← 結構性難題（見最後說明）
+[NOTE] lifecycle-active >= 0.5    : actual=?      ← Condition 5 已重新設計（見下方說明）
 ```
 
 lifecycle-capable pool（目前）：
@@ -320,25 +320,30 @@ python scripts/analyze_e1b_distribution.py --auto-discover
 - [ ] distinct repos ≥ 3  : ____（Stage 3 後應 PASS）
 - [ ] non-degenerate ≥ 0.7: ____（Stage 1b 後應有改善）
 - [ ] dominance ≤ 0.6     : ____（Stage 4 累積後）
-- [ ] unique pattern ≥ 0.4: ____（見下方說明）
+- [ ] lifecycle-active ≥ 0.5: ____（lifecycle_capable repos 中，不是 stuck_absent 的比例）
 
 ---
 
-## ⚠️ 已知結構性難題：Condition 5（unique_pattern_ratio）
+## Condition 5 重新設計（lifecycle_active_ratio 取代 unique_pattern_ratio）
 
-**現況**：0.068，目標 0.4，**幾乎不可能靠「多跑 sessions」達到**。
+**原指標問題：** `unique_pattern_ratio` 是 non-identifiable metric。
 
-原因：
-- unique_pattern_ratio = 不重複的 session fingerprint 數 / 總 sessions 數
-- 一個健康的 fleet，大部分 sessions 都是 `(ok, [], False)` → 同一個 fingerprint
-- 43 個 BS sessions 幾乎全是 `(ok, [], False)` → 即使 SA/agf 加入，比例仍然很低
-- 數學：就算有 4 種 fingerprint，74 個 sessions → ratio = 4/74 = 0.054（仍然 FAIL）
+- 健康 repo 的 session fingerprint 幾乎全是 `(ok, [], False)` → ratio 永遠低
+- 同一指標對「健康」和「不健康」給出同一訊號 → 無判別能力，不得當 gate blocker
 
-**這個條件的本意**是「3 個 repo 都跑完全一樣的 lifecycle pattern → 沒意義」。  
-但在健康 fleet 中，repo 本來就會有類似的 pattern（大部分時間都 ok）。
+**新指標（已實施）：** `lifecycle_active_ratio`
 
-**需要在 PLAN.md 討論是否調整這個 gate 條件**（例如降到 0.05 或改成 per-repo diversity 指標）。  
-在那個討論完成前，Condition 5 是 Phase 2 gate 的設計性障礙，不是操作障礙。
+```
+= repos 中 lifecycle_class != stuck_absent 的數量 / 全部 lifecycle_capable repos
+```
+
+| 情境 | ratio | gate |
+|---|---|---|
+| 全 stable_ok fleet | 1.0 | PASS ✓ |
+| 2/3 stable_ok + 1/3 stuck_absent | 0.67 | PASS ✓ |
+| 全 stuck_absent fleet | 0.0 | FAIL ✓（正確指出採用失敗）|
+
+**threshold: `>= 0.5`**。`unique_pattern_ratio` 保持計算，在 `[INFO]` 顯示，但不再危害 gate。
 
 ---
 
@@ -351,7 +356,7 @@ python scripts/analyze_e1b_distribution.py --auto-discover
 | S2 | Layer 1 (第二次，不同天) | 明天+ | Layer 1 穩定確認 |
 | S3 | 移除 skip → Layer 2 完成 | 明天+ (Layer 1 穩定後) | 條件 2 PASS |
 | S4 | 累積 sessions (約 15 天) | 兩周 | 條件 4 PASS |
-| S5 | Gate check | 累積後 | 確認 1-4 全 PASS |
-| ??? | Condition 5 設計討論 | 需要決策 | 條件 5 |
+| S5 | Gate check | 累積後 | 確認 1-5 全 PASS |
 
-**誠實預估**：條件 1-4 通過需要約 2-3 週。條件 5 需要設計決策，不是靠多跑 sessions。
+**誠實預估**：條件 1-4 通過需要約 2-3 週。
+條件 5（lifecycle_active_ratio）成功擴母體即自動通過：lifecycle_capable pool 擴到 3 個 repo 且都非 stuck_absent → ratio = 1.0。

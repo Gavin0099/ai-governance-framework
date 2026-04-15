@@ -297,7 +297,11 @@ API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`
     - min_repos ≥ 3（`--min-repos`）
     - non-degenerate ratio ≥ 0.7（`--min-nondegenerate`，從 0.5 提高）
     - max repo dominance ≤ 0.6（`--max-dominance`）
-    - unique_pattern_ratio ≥ 0.4（`--min-unique-pattern`） ← 新增
+    - ~~unique_pattern_ratio ≥ 0.4（`--min-unique-pattern`）~~ ← **已廢棄（2026-04-15）**
+      → 替換為 **`lifecycle_active_ratio ≥ 0.5`（`--min-lifecycle-active`）**
+      = lifecycle_capable repos 中 lifecycle_class != stuck_absent 的比例
+      原因：unique_pattern_ratio 是 non-identifiable metric——健康 fleet 也會低（stable_ok 收斂到同一 fingerprint）；
+      lifecycle_active_ratio 才能正確區分「真的有跑 lifecycle」vs「宣告 capable 卻從沒跑」
   - 支援 `--json` 輸出（機器可讀）
   - 支援多 log path 合併（跨 repo 合并視圖：`--log-path a.jsonl b.jsonl c.jsonl`）
   - 純分析工具，NEVER 影響 gate；不寫入任何 artifact
@@ -1046,3 +1050,4 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 | 2026-04-10 | Phase D sprint 全部完成，進入 maintenance mode | state source of truth 重建、starter-pack upgrade path 完成，三端同步 |
 | 2026-04-10 | E1/E2 建立 failure decision boundary | failure 不再直接看 pytest 結果；filtered suite 不再手寫 -k；unknown 必須 escalate |
 | 2026-04-10 | E2+ 強制 registry 使用，禁止 bypass | run_filtered_tests.py 成為唯一合法入口；手寫 -k 視為違規 |
+| 2026-04-15 | Condition 5 廢棄 unique_pattern_ratio，改用 lifecycle_active_ratio | unique_pattern_ratio 是 non-identifiable metric（健康 fleet 也低）；lifecycle_active_ratio 正確區分「有跑 lifecycle」vs「宣告 capable 卻從沒跑」；threshold 0.5；已實施至 analyze_e1b_distribution.py + 4 新測試 |

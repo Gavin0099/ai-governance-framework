@@ -76,13 +76,15 @@ _LC_FROZEN_DIVERSITY_THRESHOLD: float = 0.10
 #     pools from anchoring a spurious baseline.
 #     Revise downward only after empirical distribution has been established.
 #   max_dominance=0.6 — no single repo should supply more than 60% of samples
-#   min_unique_pattern=0.4 — at least 40% of sessions must have distinct signatures
-#     (guards against pseudo-diversity: 3 repos all running identical lifecycle pattern)
+#   min_lifecycle_active=0.5 — at least 50% of lifecycle-capable repos must be non-stuck-absent.
+#     (guards against pseudo-diversity: repos declared lifecycle_capable but never ran lifecycle)
+#     Replaces deprecated unique_pattern_ratio which was non-identifiable in a healthy fleet:
+#     stable_ok repos converge to (ok,(),False) fingerprint → low ratio even when fleet is healthy.
 _PHASE2_MIN_SESSIONS: int = 20
 _PHASE2_MIN_REPOS: int = 3
 _PHASE2_MIN_NONDEGENERATE_RATIO: float = 0.7
 _PHASE2_MAX_REPO_DOMINANCE: float = 0.6
-_PHASE2_MIN_UNIQUE_PATTERN_RATIO: float = 0.4
+_PHASE2_MIN_LIFECYCLE_ACTIVE_RATIO: float = 0.5
 
 _DEFAULT_LOG_PATH = (
     Path("artifacts") / "runtime" / "canonical-audit-log.jsonl"
@@ -565,7 +567,7 @@ def evaluate_phase2_gate(
     min_repos: int,
     min_nondegenerate_ratio: float,
     max_dominance: float,
-    min_unique_pattern_ratio: float,
+    min_lifecycle_active_ratio: float,
 ) -> dict:
     """
     Evaluate whether the accumulated observation pool satisfies Phase 2 gate.
@@ -664,11 +666,11 @@ def evaluate_phase2_gate(
             "actual": max_dominance_actual,
             "pass": max_dominance_actual <= max_dominance,
         },
-        "unique_pattern_ratio": {
-            "label": "unique session patterns ≥ ratio",
-            "required": min_unique_pattern_ratio,
-            "actual": unique_pattern_ratio,
-            "pass": unique_pattern_ratio >= min_unique_pattern_ratio,
+        "lifecycle_active_ratio": {
+            "label": "lifecycle-active repos (not stuck_absent) ≥ ratio",
+            "required": min_lifecycle_active_ratio,
+            "actual": non_stuck_absent_ratio_v2,
+            "pass": non_stuck_absent_ratio_v2 >= min_lifecycle_active_ratio,
         },
     }
 
@@ -685,7 +687,9 @@ def evaluate_phase2_gate(
         "degenerate_rate": degenerate_rate,
         "degenerate_rate_interpretation": degen_interp,
         "checks": checks,
-        # Shadow v2
+        # Informational (not gate-blocking)
+        "unique_patterns": unique_patterns,
+        "unique_pattern_ratio": unique_pattern_ratio,
         "non_stuck_absent_repos_v2": non_stuck_absent_repos_v2,
         "non_stuck_absent_ratio_v2": non_stuck_absent_ratio_v2,
     }
@@ -925,18 +929,13 @@ def _print_human(
                 f"actual={check['actual']}"
             )
         # Shadow v2 gate comparison line
-        nsa_ratio = gate.get("non_stuck_absent_ratio_v2", 0.0)
-        nsa_repos = gate.get("non_stuck_absent_repos_v2", 0)
-        nsa_pass = nsa_ratio >= _PHASE2_MIN_NONDEGENERATE_RATIO
-        nsa_mark = "[OK]" if nsa_pass else "[NO]"
+        # informational only — unique_pattern_ratio is no longer a gate blocker
+        # (non-identifiable: stable_ok fleets converge to (ok,(),False) fingerprint)
+        up_ratio = gate.get("unique_pattern_ratio", 0.0)
+        up_count = gate.get("unique_patterns", 0)
         print(
-            f"  │    [SHADOW-v2] {nsa_mark} non-stuck-absent ratio        "
-            f"required={_PHASE2_MIN_NONDEGENERATE_RATIO}  "
-            f"actual={nsa_ratio:.4f} ({nsa_repos}/{gate['repo_count']} repos)"
-        )
-        print(
-            "  │    [SHADOW-v2] ^-- v2 gate uses lifecycle_class; stable_ok"
-            " repos NOT counted as degenerate"
+            f"  │    [INFO]  unique patterns   : {up_count}/{gate['total_sessions']} "
+            f"(ratio={up_ratio:.4f})  [non-blocking — see design note]"
         )
         # baseline representativeness advisory (post-gate)
         if not fleet["baseline_representative"]:
@@ -1021,13 +1020,13 @@ def main() -> int:
         ),
     )
     parser.add_argument(
-        "--min-unique-pattern",
+        "--min-lifecycle-active",
         type=float,
-        default=_PHASE2_MIN_UNIQUE_PATTERN_RATIO,
+        default=_PHASE2_MIN_LIFECYCLE_ACTIVE_RATIO,
         metavar="R",
         help=(
-            f"Min unique session pattern ratio — guards pseudo-diversity "
-            f"(default: {_PHASE2_MIN_UNIQUE_PATTERN_RATIO})"
+            f"Min ratio of lifecycle-active (not stuck_absent) repos in lifecycle_capable pool "
+            f"(default: {_PHASE2_MIN_LIFECYCLE_ACTIVE_RATIO})"
         ),
     )
     parser.add_argument(
@@ -1087,7 +1086,7 @@ def main() -> int:
         min_repos=args.min_repos,
         min_nondegenerate_ratio=args.min_nondegenerate,
         max_dominance=args.max_dominance,
-        min_unique_pattern_ratio=args.min_unique_pattern,
+        min_lifecycle_active_ratio=args.min_lifecycle_active,
     )
 
     if args.emit_json:

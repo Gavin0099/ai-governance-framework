@@ -39,6 +39,7 @@ from scripts.analyze_e1b_distribution import (
     _LC_DOMINANT_SHARE_THRESHOLD,
     _LC_FROZEN_DIVERSITY_THRESHOLD,
     _PHASE2_MIN_NONDEGENERATE_RATIO,
+    _PHASE2_MIN_LIFECYCLE_ACTIVE_RATIO,
 )
 
 _AUDIT_LOG_RELPATH = Path("artifacts") / "runtime" / "canonical-audit-log.jsonl"
@@ -321,9 +322,64 @@ class TestGateV2ShadowFields:
         assert gate["non_stuck_absent_ratio_v2"] == pytest.approx(1.0)
 
 
-# ── _auto_discover_logs ───────────────────────────────────────────────────────
+# ── lifecycle_active_ratio gate condition ─────────────────────────────────────
 
-class TestAutoDiscoverLogs:
+class TestLifecycleActiveRatioGateCondition:
+    """Condition 5 uses non_stuck_absent_ratio_v2 (not unique_pattern_ratio).
+
+    Design: unique_pattern_ratio was non-identifiable in a healthy fleet.
+    stable_ok repos converge to (ok,(),False) fingerprint -> low ratio even when
+    fleet IS healthy.  Replaced by lifecycle_active_ratio = repos where
+    lifecycle_class != stuck_absent / total lifecycle_capable repos.
+    """
+
+    def test_lifecycle_active_ratio_appears_in_checks(self):
+        """checks dict must have 'lifecycle_active_ratio' key (not unique_pattern_ratio)."""
+        entries = _entries_n("repo-a", "ok", 20)
+        stats = compute_repo_stats(entries)
+        gate = evaluate_phase2_gate(entries, stats, 1, 1, 0.0, 1.0,
+                                    _PHASE2_MIN_LIFECYCLE_ACTIVE_RATIO)
+        assert "lifecycle_active_ratio" in gate["checks"]
+        assert "unique_pattern_ratio" not in gate["checks"]
+
+    def test_lifecycle_active_ratio_passes_for_all_stable_ok(self):
+        """All stable_ok fleet: ratio=1.0 >= 0.5 -> Condition 5 PASS."""
+        entries = (
+            _entries_n("repo-a", "ok", 20)
+            + _entries_n("repo-b", "ok", 20)
+            + _entries_n("repo-c", "ok", 20)
+        )
+        stats = compute_repo_stats(entries)
+        gate = evaluate_phase2_gate(entries, stats, 20, 3, 0.7, 0.6,
+                                    _PHASE2_MIN_LIFECYCLE_ACTIVE_RATIO)
+        cond5 = gate["checks"]["lifecycle_active_ratio"]
+        assert cond5["pass"] is True
+        assert cond5["actual"] == pytest.approx(1.0)
+
+    def test_lifecycle_active_ratio_fails_for_all_stuck_absent(self):
+        """All stuck_absent fleet: ratio=0.0 < 0.5 -> Condition 5 FAIL."""
+        entries = (
+            _entries_n("repo-a", "absent", 20)
+            + _entries_n("repo-b", "absent", 20)
+            + _entries_n("repo-c", "absent", 20)
+        )
+        stats = compute_repo_stats(entries)
+        gate = evaluate_phase2_gate(entries, stats, 20, 3, 0.7, 0.6,
+                                    _PHASE2_MIN_LIFECYCLE_ACTIVE_RATIO)
+        cond5 = gate["checks"]["lifecycle_active_ratio"]
+        assert cond5["pass"] is False
+        assert cond5["actual"] == pytest.approx(0.0)
+
+    def test_unique_pattern_ratio_still_informational(self):
+        """unique_pattern_ratio remains in gate result as informational key (non-blocking)."""
+        entries = _entries_n("repo-x", "ok", 20)
+        stats = compute_repo_stats(entries)
+        gate = evaluate_phase2_gate(entries, stats, 1, 1, 0.0, 1.0,
+                                    _PHASE2_MIN_LIFECYCLE_ACTIVE_RATIO)
+        assert "unique_pattern_ratio" in gate  # informational key present
+        assert "unique_patterns" in gate
+
+
     def test_discovers_own_log(self, tmp_path):
         """Framework repo log is included in auto-discover results."""
         log = tmp_path / "artifacts" / "runtime" / "canonical-audit-log.jsonl"
