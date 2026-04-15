@@ -345,6 +345,27 @@ python scripts/analyze_e1b_distribution.py --auto-discover
 
 **threshold: `>= 0.5`**。`unique_pattern_ratio` 保持計算，在 `[INFO]` 顯示，但不再危害 gate。
 
+**語意邊界（釘住，不得偷渡）：**
+
+`lifecycle_active_ratio` 是「樣本池是否活著」指標，**不是「樣本池是否成熟」指標**。
+`stable_ok` 與 `mixed_active` 在這裡都算過——兩者在治理語意上差很多。
+
+**Gate 分層結構（不得混用）**：
+
+| 類型 | 條件 | 回答的問題 |
+|---|---|---|
+| **Type A（存在性 gate）** | distinct repos ≥ 3, lifecycle_active_ratio ≥ 0.5 | 有沒有足夠多活的樣本池？ |
+| **Type B（品質 / 分布 gate）** | non-degenerate ≥ 0.7, dominance ≤ 0.6 | 樣本池品質與分布是否夠好？ |
+
+**SpecAuthority 接通只解 Type A**：
+- SA 將 distinct_repos 從 2 推到 3
+- SA lifecycle_class 脫離 stuck_absent → lifecycle_active_ratio 從 0.5 推到 0.67（假設 agf 也活著）
+- **但 Type B 兩條不會自動通過**，它們需要 Stage 2/3/4 的累積來解
+
+**SA 接通前提精確聲明：**
+`lifecycle_active_ratio` 檢驗的前提是 SA stuck_absent 被穩定脫離。
+若 SA 後續在 `mixed_active` 與 `stuck_absent` 間抖動，Condition 5 仍展神。
+正確說法：**SpecAuthority 完成 Layer 1 且穩定脫離 stuck_absent，Condition 5 才會自然通過。**
 ---
 
 ## 快速進度總覽
@@ -359,4 +380,17 @@ python scripts/analyze_e1b_distribution.py --auto-discover
 | S5 | Gate check | 累積後 | 確認 1-5 全 PASS |
 
 **誠實預估**：條件 1-4 通過需要約 2-3 週。
-條件 5（lifecycle_active_ratio）成功擴母體即自動通過：lifecycle_capable pool 擴到 3 個 repo 且都非 stuck_absent → ratio = 1.0。
+
+條件 5（lifecycle_active_ratio）：**SpecAuthority 完成 Layer 1 且穩定脫離 stuck_absent 後，才會通過**。
+不是「接上就自動過」，而是「SA lifecycle_class 被穩定證明脫離 stuck_absent 後過」。
+
+**現階段的準確路圖**：
+```
+SA 接通 (Stage 1-3)
+  → Type A gate 有機會通過 (distinct repos=3, lifecycle_active_ratio ≥ 0.5)
+  ↓ 這時候 Phase 2 進入「樣本池品質待驗」，不是「快通過」
+
+agf + SA sessions 累積 (~15 天, Stage 4)
+  → Type B gate 有機會通過 (non-degenerate, dominance ≤ 0.6)
+  ↓ 這才是 Phase 2 READY
+```

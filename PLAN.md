@@ -302,6 +302,19 @@ API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`
       = lifecycle_capable repos 中 lifecycle_class != stuck_absent 的比例
       原因：unique_pattern_ratio 是 non-identifiable metric——健康 fleet 也會低（stable_ok 收斂到同一 fingerprint）；
       lifecycle_active_ratio 才能正確區分「真的有跑 lifecycle」vs「宣告 capable 卻從沒跑」
+  - **Gate 分層結構（不得混用，已釘住）**：
+    - **Type A（存在性 gate）**：`distinct repos ≥ 3` + `lifecycle_active_ratio ≥ 0.5`
+      回答：有沒有足夠多活的樣本池？
+      `lifecycle_active_ratio` 是「樣本池是否活著」指標，**不是「樣本池是否成熟」指標**。
+      `stable_ok` 與 `mixed_active` 在這裡都算過——兩者的包含是此指標的 naive 粗粒化上限，
+      不代表 mixed_active 等同 stable_ok（後者的語意差距交由 Type B 回答）。
+    - **Type B（品質 / 分布 gate）**：`non-degenerate ratio ≥ 0.7` + `dominant repo ≤ 0.6`
+      回答：樣本池品質與分布是否夠好？
+    - **診斷次序**：SA 接通 → Type A 有機會過 → 再看 Type B 兩條——這才是正確的進度鄰接。
+      SA 接通**只解存在性**，不等於 Type B 自動通過；Type B 需要 Stage 2/3/4 的累積。
+    - **SA → Condition 5 的前提**：`lifecycle_active_ratio` 通過的前提是 SA stuck_absent 被穩定脫離。
+      若 SA 後續在 `mixed_active` 與 `stuck_absent` 間抖動，Condition 5 仍展神。
+      正確說法：**SpecAuthority 完成 Layer 1 且穩定脫離 stuck_absent，Condition 5 才會自然通過。**
   - 支援 `--json` 輸出（機器可讀）
   - 支援多 log path 合併（跨 repo 合并視圖：`--log-path a.jsonl b.jsonl c.jsonl`）
   - 純分析工具，NEVER 影響 gate；不寫入任何 artifact
