@@ -735,10 +735,9 @@ Enumd / SpecAuthority：
 
    **Phase 2 當前行動定義（釘住）：**
 
-   > Phase 2 目前不是缺樣本數，而是缺第三個成熟或至少穩定運作中的 lifecycle-capable repo。
-   > 基於現有艦隊條件，SpecAuthority 是最短路徑候選；
-   > 其成功標誌不是單次 probe，而是完成 pytest→ingestor→artifact→session_end 的閉環，
-   > 並累積足夠 evidence 使 temporary skip 可以被移除。
+   > Phase 2 的進展不再以 session 數量衡量，而以 lifecycle-capable 母體是否擴張衡量。
+   > SpecAuthority 是最短路徑候選，但只有在 wiring 閉環穩定、並留下多筆 post-wiring evidence 後，
+   > 才可視為第三個有效母體。
 
    **兩層結構（不得合併成一步）：**
 
@@ -752,6 +751,12 @@ Enumd / SpecAuthority：
 
    Layer 1 完成代表：wiring 活了，lifecycle gate 有辦法走完。
    **Layer 1 未穩定之前，不得更動 gate_policy.yaml。**
+
+   **Layer 1「穩定」最小判定標準（文件層定義，不要求全部，但必須說清楚）：**
+   - 連續成功次數：至少 2 次獨立執行均通過（不能只有 1 次 probe 就宣告）
+   - session 獨立性：橫跨至少 2 個不同 session（同一天連續執行不算獨立）
+   - 自然性比例：至少 1 次來自非手動 probe 的自然工作流（純手動 probe 不構成 Layer 1 穩定）
+   - 判定是否穩定不得以「應該沒問題」替代，需要明文記錄哪幾次通過、各自的 session_id 或日期
 
    **Layer 2：證明可以移除 temporary skip（Layer 1 穩定後才做）**
 
@@ -865,6 +870,12 @@ python scripts/analyze_e1b_distribution.py --auto-discover
   - `policy_provenance` 加 `policy_source=fallback_due_to_parse_error` + parse error message（provenance 層）
   - session_end_hook output 加 `[ADVISORY] gate_policy: YAML parse failed, using builtin_defaults`（operator 層）
   - E8a log 標記 `parse_error: true`（observability substrate 層）
+
+  **⚠️ 這三選一是最低保底，不是終態。**  
+  parse failure 的本質是 fleet observability integrity issue，不是操作提醒。  
+  advisory / provenance / log 只解決「不再靜默」的問題，但這類錯誤如果只停留在 advisory，  
+  仍然容易被忽略。長期走向是更強的可見性（阻斷或強制 operator ack），目前先以三選一保底，  
+  但這條不能被視為「解決了」，只能視為「最小保底」。
 
 ---
 
