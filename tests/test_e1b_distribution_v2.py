@@ -22,6 +22,7 @@ NOT tested here:
 """
 from __future__ import annotations
 
+import json
 import math
 import tempfile
 from pathlib import Path
@@ -30,7 +31,9 @@ import pytest
 
 from scripts.analyze_e1b_distribution import (
     _auto_discover_logs,
+    _load_entries,
     _normalized_shannon_entropy,
+    compute_fleet_coverage,
     compute_repo_stats,
     evaluate_phase2_gate,
     _LC_DOMINANT_SHARE_THRESHOLD,
@@ -44,9 +47,19 @@ _AUDIT_LOG_RELPATH = Path("artifacts") / "runtime" / "canonical-audit-log.jsonl"
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _entry(repo: str, state: str, signals: list[str] | None = None,
-           skip_type: str | None = None) -> dict:
+           skip_type: str | None = None,
+           schema_aware: bool = False) -> dict:
+    """Build a fake audit log entry.
+
+    schema_aware=True simulates a new-schema session_end_hook that always
+    writes the 'skip_type' key (even when the value is None/null).
+    schema_aware=False (default) simulates a pre-schema entry that lacks the
+    key entirely.
+    """
     prov: dict = {}
-    if skip_type is not None:
+    if schema_aware:
+        prov["skip_type"] = skip_type  # key always present; value may be null
+    elif skip_type is not None:
         prov["skip_type"] = skip_type
     return {
         "timestamp": "2026-04-14T00:00:00+00:00",
@@ -367,3 +380,74 @@ class TestAutoDiscoverLogs:
         found1 = _auto_discover_logs(framework)
         found2 = _auto_discover_logs(framework)
         assert found1 == found2
+
+
+# ── ERA skip_type coverage — schema-migration detection ──────────────────────
+
+class TestEraSkipTypeCoverage:
+    """Tests for skip_type_entry_count / fleet ERA calculation.
+
+    The ERA progression tracks whether audit log entries were written by a
+    schema-aware session_end_hook (one that always writes the 'skip_type' key,
+    even when the value is null for lifecycle-capable repos).
+
+    Old entries (pre-schema) have NO 'skip_type' key in policy_provenance.
+    New lifecycle-capable entries have 'skip_type': null (key present, value null).
+    New structural/temporary skip entries have 'skip_type': 'structural'/'temporary'.
+
+    Only key PRESENCE (not non-null value) counts as schema-aware.
+    """
+
+    def test_null_skip_type_key_counts_as_schema_aware(self):
+        """Entry with 'skip_type': null key IS schema-aware (counts toward ERA)."""
+        e = _entry("repo-a", "ok", schema_aware=True, skip_type=None)
+        prov = e["policy_provenance"]
+        assert "skip_type" in prov, "schema_aware entry must have skip_type key"
+        assert prov["skip_type"] is None
+        # simulate what compute_repo_stats does
+        count = sum(1 for x in [e] if "skip_type" in (x.get("policy_provenance") or {}))
+        assert count == 1
+
+    def test_missing_key_does_not_count_toward_era(self):
+        """Old entry without 'skip_type' key is NOT schema-aware."""
+        e = _entry("repo-a", "ok")  # pre-schema, no key
+        prov = e["policy_provenance"]
+        assert "skip_type" not in prov
+        count = sum(1 for x in [e] if "skip_type" in (x.get("policy_provenance") or {}))
+        assert count == 0
+
+    def test_lifecycle_capable_sessions_advance_era(self, tmp_path):
+        """New sessions from lifecycle-capable repos advance fleet ERA ratio."""
+        log = tmp_path / "artifacts" / "runtime" / "canonical-audit-log.jsonl"
+        log.parent.mkdir(parents=True)
+        # 1 old entry (no key) + 9 new schema-aware lifecycle entries (key=null)
+        old = _entry("repo-a", "ok")
+        new_entries = [_entry("repo-a", "ok", schema_aware=True) for _ in range(9)]
+        text = "\n".join(json.dumps(e) for e in [old] + new_entries)
+        log.write_text(text)
+
+        entries = _load_entries([log])
+        stats = compute_repo_stats(entries)
+        s = stats["repo-a"]
+        # 9 of 10 entries are schema-aware → coverage = 0.9
+        assert s["skip_type_entry_count"] == 9
+        assert s["skip_type_coverage_ratio"] == 0.9
+
+    def test_fleet_era_current_when_coverage_reaches_threshold(self, tmp_path):
+        """Fleet ERA = CURRENT when >= 0.7 of entries carry skip_type key."""
+        from scripts.analyze_e1b_distribution import compute_fleet_coverage
+        log = tmp_path / "artifacts" / "runtime" / "canonical-audit-log.jsonl"
+        log.parent.mkdir(parents=True)
+        # 7 schema-aware lifecycle-capable + 3 old entries = 0.7 coverage
+        entries = (
+            [_entry("repo-a", "ok", schema_aware=True) for _ in range(7)]
+            + [_entry("repo-a", "ok") for _ in range(3)]
+        )
+        log.write_text("\n".join(json.dumps(e) for e in entries))
+        loaded = _load_entries([log])
+        stats = compute_repo_stats(loaded)
+        fleet = compute_fleet_coverage(stats)
+        assert fleet["fleet_era_tag"] == "CURRENT", (
+            f"expected CURRENT but got {fleet['fleet_era_tag']!r}; "
+            f"coverage={fleet['fleet_skip_type_coverage_ratio']}"
+        )

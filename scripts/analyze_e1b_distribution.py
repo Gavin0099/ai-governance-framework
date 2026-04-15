@@ -304,9 +304,15 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
 
         # skip_type_entry_count: how many entries carry the skip_type field.
         # Tracks schema migration completeness: old entries pre-date the field.
+        # NOTE: check KEY PRESENCE, not non-null value.
+        # New entries from lifecycle-capable repos write "skip_type": null —
+        # they are schema-aware (key is present) even though the value is null.
+        # Old entries (pre-schema) have no "skip_type" key at all.
+        # Using `is not None` would incorrectly exclude all lifecycle-capable
+        # repos from ERA progress, making CURRENT era unreachable.
         skip_type_entry_count = sum(
             1 for e in repo_entries
-            if (e.get("policy_provenance") or {}).get("skip_type") is not None
+            if "skip_type" in (e.get("policy_provenance") or {})
         )
         skip_type_coverage_ratio = (
             round(skip_type_entry_count / n, 4) if n > 0 else 0.0

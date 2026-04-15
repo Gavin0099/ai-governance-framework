@@ -613,7 +613,7 @@ v2 升格為正式 gate blocker 必須同時確認三件事：
 
 ---
 
-### Post-schema Semantic Probe Set（2026-04-14，待執行）
+### Post-schema Semantic Probe Set（2026-04-14，**已執行 2026-04-15**）
 
 **目的聲明（語意要準確）：**
 
@@ -632,25 +632,44 @@ v2 升格為正式 gate blocker 必須同時確認三件事：
 | 2 | Kernel-Driver-Contract | structural | 驗證 structural skip repo 被正確排除於 lifecycle 母體之外，不被 `stuck_absent` 誤讀 |
 | 3 | Enumd / SpecAuthority | temporary | 驗證 temporary classification 與 aging wiring **開始生效**（不是驗 aging 本身，aging 需要時間維度） |
 
-**Pass/fail 驗收條件（六個，明確）：**
+**Pass/fail 驗收條件 + 執行結果（2026-04-15）：**
+
+前置修正：執行前發現 ERA detect bug — `skip_type_entry_count` 用 `is not None` 而非 key presence，  
+導致 lifecycle-capable repo 的 post-schema entries（`"skip_type": null`）永遠不計入 ERA coverage。  
+已修 `scripts/analyze_e1b_distribution.py` + 4 個覆蓋測試（`test_e1b_distribution_v2.py` 33/33）。
 
 Bookstore-Scraper：
-- [ ] `migration_state.classifications_interpretable` 開始改善（或不再退化）
-- [ ] repo 仍被歸為 `lifecycle_capable`
-- [ ] `lifecycle_class == stable_ok`
-- [ ] 不觸發 `stuck_absent`
+- [x] `migration_state.classifications_interpretable` 開始改善（ERA coverage 從 0 → 0.011，已起步）
+- [x] repo 仍被歸為 `lifecycle_capable`
+- [x] `lifecycle_class == stable_ok`
+- [x] 不觸發 `stuck_absent`
 
 Kernel-Driver-Contract：
-- [ ] repo 被歸為 structural skip
-- [ ] 不進入 `lifecycle_capable` baseline 母體
-- [ ] 不觸發 `stuck_absent`
-- [ ] 不出現 structural inconsistency advisory
+- [x] repo 被歸為 structural skip（`structural_skip: 1 ['Kernel-Driver-Contract']`）
+- [x] 不進入 `lifecycle_capable` baseline 母體
+- [x] 不觸發 `stuck_absent`
+- [x] 不出現 structural inconsistency advisory
 
 Enumd / SpecAuthority：
-- [ ] repo 被歸為 temporary skip
-- [ ] temporary aging 欄位開始出現
-- [ ] `age_days` 有基準值（不為 null）
-- [ ] activity 欄不為空
+- [x] SpecAuthority 被歸為 temporary skip（`temporary_skip: 1 ['SpecAuthority']`）
+- [x] temporary aging 欄位出現（`age=1d`）
+- [x] `age_days` 有基準值（不為 null）
+- [x] activity 欄不為空（`activity=[dead]`，正確反映無 lifecycle 活動）
+
+**所有 6 個 pass/fail 條件全部通過。**
+
+**探針後的真實限制（釘住不可偷渡）：**
+
+1. ERA 仍在 PRE-SKIP-TYPE-ERA（coverage = 0.011 < 0.3 threshold for TRANSITION）。  
+   三個探針 session 只佔 3/276 = 1.1%。ERA meaningful 需更多 sessions 時間積累。
+
+2. 艦隊仍以 `stuck_absent` 為主（8 個 lifecycle-capable repo 中 6 個 = 75%）。  
+   即使 ERA 推進，Phase 2 readiness gate 的第 3、5 條仍會卡：  
+   non-degenerate ratio = 0.125（需 ≥ 0.7）、unique patterns = 0.022（需 ≥ 0.4）。
+
+3. 艦隊 `stuck_absent` 根因是 lifecycle 未走，不是資料不足。解法是採用策略 A（scope 縮至可走 lifecycle 的子集）或策略 B（推動更多 repo 接通），不是繼續等資料。
+
+**探針判斷：v2 語意槽位可運作，可擴大樣本。**
 
 **期待值邊界（不可超越）：**
 
@@ -667,6 +686,69 @@ Enumd / SpecAuthority：
 cd e:\BackUp\Git_EE\ai-governance-framework
 python scripts/analyze_e1b_distribution.py --auto-discover
 ```
+
+---
+
+### Harness Engineering 外部文章評估（2026-04-15，已評估）
+
+**文章核心主張（三點）：**
+1. Hallucination 根源是「沒有被強迫看現實」，不是模型能力問題
+2. Harness = 認知框架 + 能力邊界 + 工作流程（Planner → Generator → Evaluator）
+3. Feedback loop quality 決定學習方向
+
+**對這個 repo 的對應關係：**
+
+| 文章概念 | 此 repo 對應 | 狀態 |
+|---|---|---|
+| Harness 工作流程 | session_start → pre_task_check → post_task_check → session_end | ✅ 超越 |
+| Evaluator | post_task_check | ✅ 已有 |
+| 記憶整理 | session_end + canonical closeout | ✅ 已有 |
+| agents.md（自然語言規則） | AGENTS.md + decision_boundary_layer（機器可解讀） | ✅ 已超越 |
+| Ralph Loop（generate → feedback → regenerate） | 跨 session long-loop + memory injection | ✅ 已超越 |
+
+**有效批評（2 點真正成立）：**
+
+**① Feedback 仍在 process-semantic，缺 outcome-semantic**
+
+現有 feedback 信號：`missing_evidence`、`artifact_state=absent`、`taxonomy_signal` → process level  
+缺少的：「你的 closeout 結論與觀測到的信號不一致」→ outcome/semantic level
+
+這是真實缺口。現有 feedback 是「結構正確性」，不是「決策一致性」。  
+未來可補：post_task_check 增加 closeout-vs-signal 一致性對比（rule-based，不需 LLM）。
+
+**② pre_task_check 是結構驗證，缺 goal interpretation check**
+
+現有 pre_task_check：rule filtering、scope classification、task topic routing → 驗 WHAT is asked  
+缺少的：確認 AI 理解的任務意圖與 task context 是否一致 → 驗 WHY is asked + plan makes sense
+
+這是真實缺口，但難以用 deterministic rule 覆蓋。需要一層「plan propose → validate → approve」  
+的輕量結構，代價相對高，放 backlog。
+
+**無效批評（3 點，對此 repo 不適用）：**
+
+- **「你過度相信結構，低估認知引導」**：decision_boundary_layer + advisory taxonomy 已是語意層，  
+  不只是 schema 層。文章低估了現有架構的深度。
+
+- **「Evaluator 來得太晚」**：pre_task_check 已做 task classification + rule scope 篩選，  
+  文章描述的 "Evaluator front-movement" 在結構上已存在，只缺 semantic 層。  
+  這是精確的（結構完整，語意待補），不是「完全沒有前驗」。
+
+- **「情緒污染 / prompt tone」**：warning/error 是給 operator 看的 machine-readable 信號，  
+  不是 LLM 的 instruction stream。這個點對 stateless execution 框架不適用。
+
+**結論（釘住優先序）：**
+
+| 項目 | 評估 | 行動 |
+|---|---|---|
+| Outcome-semantic feedback | ✅ 真實缺口，low-medium cost | 列 backlog，ERA 穩定後考慮 |
+| Goal interpretation pre-check | ✅ 真實缺口，medium-high cost | 列 backlog |
+| Cognitive Harness 整體重構 | ❌ 架構已覆蓋，過度工程 | 不做 |
+| Prompt tone audit | ❌ 對此框架不適用 | 不做 |
+
+**不得偷渡：** 「文章說要補 cognitive control」不是本 phase 任務的依據。  
+這個評估只是確認現有架構在語意邊界上的 gap 定位，不是 Phase 3 前的必做項。
+
+
 
 ---
 
