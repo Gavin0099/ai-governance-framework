@@ -742,6 +742,30 @@ def _build_canonical_path_audit(
     }
 
 
+_PLAN_CONTEXT_PROVENANCE_SIDECAR = Path("artifacts") / "runtime" / "plan-context-provenance.json"
+
+
+def _read_plan_context_provenance(project_root: Path) -> dict | None:
+    """
+    Read the plan context provenance sidecar written by session_start or plan_summary.
+
+    Returns None if not present (full PLAN.md presumed, no provenance is recorded).
+    Returns dict with fidelity/origin/summary_kind if present.
+    Non-blocking: any read failure returns None silently.
+    """
+    sidecar = project_root / _PLAN_CONTEXT_PROVENANCE_SIDECAR
+    if not sidecar.exists():
+        return None
+    try:
+        data = json.loads(sidecar.read_text(encoding="utf-8"))
+        # Only return if fidelity key present (guards against corrupted sidecar)
+        if isinstance(data, dict) and "fidelity" in data:
+            return data
+    except Exception:  # noqa: BLE001
+        pass
+    return None
+
+
 def _append_canonical_audit_log(
     project_root: Path,
     session_id: str,
@@ -753,6 +777,7 @@ def _append_canonical_audit_log(
     fallback_used: bool,
     repo_policy_present: bool,
     skip_type: str | None = None,
+    plan_context_provenance: dict | None = None,
 ) -> None:
     """
     Append one entry to the canonical audit log for this session.
@@ -802,6 +827,8 @@ def _append_canonical_audit_log(
             "skip_type": skip_type,
         },
     }
+    if plan_context_provenance is not None:
+        entry["plan_context_provenance"] = plan_context_provenance
 
     try:
         log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1372,6 +1399,7 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         fallback_used=policy.fallback_used,
         repo_policy_present=policy.repo_policy_present,
         skip_type=policy.skip_type,
+        plan_context_provenance=_read_plan_context_provenance(project_root),
     )
 
     # Compute multi-session trend — reads the log just written to, advisory only.

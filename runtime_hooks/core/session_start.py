@@ -61,6 +61,35 @@ def _emit_rendered_output(rendered: str) -> None:
         stream.write(rendered.encode(encoding, errors="replace") + b"\n")
 
 
+_PLAN_CONTEXT_PROVENANCE_SIDECAR = Path("artifacts") / "runtime" / "plan-context-provenance.json"
+_PLAN_PROVENANCE_MARKER_PREFIX = "<!-- plan_context_provenance "
+
+
+def _detect_plan_context_provenance(plan_path: Path) -> dict:
+    """
+    Detect whether the plan file is a compressed summary (plan_summary.py output)
+    or the full PLAN.md, by reading only the first line.
+
+    Full PLAN.md:       fidelity=full, no summary_kind
+    plan_summary.py:    fidelity=summarized, summary_kind=deterministic_extract
+    """
+    try:
+        first_line = plan_path.read_text(encoding="utf-8").split("\n", 1)[0]
+        if first_line.startswith(_PLAN_PROVENANCE_MARKER_PREFIX):
+            return {
+                "fidelity": "summarized",
+                "origin": "plan_summary.py",
+                "summary_kind": "deterministic_extract",
+            }
+    except OSError:
+        pass
+    return {
+        "fidelity": "full",
+        "origin": plan_path.name,
+        "summary_kind": None,
+    }
+
+
 def build_session_start_context(
     *,
     project_root: Path,
@@ -297,6 +326,11 @@ def build_session_start_context(
         "pre_task_check": pre_task,
         "governance_classification": session_governance_classification,
         "closeout_context": closeout_context,
+        # Compression provenance — decision precondition metadata.
+        # Records whether this session was started with the full PLAN.md or a
+        # compressed summary (plan_summary.py output).  Lets session_end and
+        # replay_verification know under what fidelity a decision was made.
+        "plan_context_provenance": _detect_plan_context_provenance(plan_path),
     }
 
 
@@ -490,6 +524,20 @@ def main() -> None:
         print(f"[audit] logged → {log_file}", file=sys.stderr)
     except Exception as exc:  # noqa: BLE001
         print(f"[audit] warning: could not write audit log: {exc}", file=sys.stderr)
+
+    # ── Plan context provenance sidecar ────────────────────────────────────
+    # Written so session_end_hook can read the provenance even when the agent
+    # does not pass it explicitly. Non-blocking: failure must not abort session.
+    try:
+        provenance = result.get("plan_context_provenance") or {}
+        sidecar = Path(args.project_root).resolve() / _PLAN_CONTEXT_PROVENANCE_SIDECAR
+        sidecar.parent.mkdir(parents=True, exist_ok=True)
+        sidecar.write_text(
+            json.dumps(provenance, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except Exception:  # noqa: BLE001
+        pass
     # ──────────────────────────────────────────────────────────────────────
 
     _emit_rendered_output(rendered)

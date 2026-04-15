@@ -150,6 +150,28 @@ def _parse_phase2_gate_status(text: str) -> list[str]:
     return lines[:6]
 
 
+# ── compression provenance ────────────────────────────────────────────────
+
+# These values are fixed for plan_summary.py output.
+# fidelity=summarized: agent sees extracted subset, not full PLAN.md
+# origin: which tool produced this view
+# summary_kind: deterministic_extract = rule-based extraction, not AI-rewritten narrative
+_PLAN_CONTEXT_PROVENANCE: dict = {
+    "fidelity": "summarized",
+    "origin": "plan_summary.py",
+    "summary_kind": "deterministic_extract",
+}
+
+# Marker embedded at line 1 of human-format output so session_start.py can
+# detect without parsing the full file.
+_PROVENANCE_MARKER = (
+    "<!-- plan_context_provenance "
+    "fidelity=summarized origin=plan_summary.py summary_kind=deterministic_extract -->"
+)
+
+_PROVENANCE_SIDECAR_PATH = Path("artifacts") / "runtime" / "plan-context-provenance.json"
+
+
 # ── main summary builder ───────────────────────────────────────────────────
 
 def build_plan_summary(plan_path: Path, project_root: Path) -> dict:
@@ -185,11 +207,17 @@ def build_plan_summary(plan_path: Path, project_root: Path) -> dict:
         "sa_layer1_stability": sa_status,
         "phase2_gate_conditions": phase2_gate,
         "recent_decisions": decisions,
+        # Compression provenance — always present in plan_summary output.
+        # Lets session_start and session_end know context was compressed.
+        "plan_context_provenance": _PLAN_CONTEXT_PROVENANCE,
     }
 
 
 def format_human(summary: dict) -> str:
     lines: list[str] = []
+    # Provenance marker MUST be line 1 so session_start.py can detect it by
+    # reading only the first line of the file (cheap, no full parse needed).
+    lines.append(_PROVENANCE_MARKER)
     lines.append("# PLAN.md Compressed View")
     lines.append(f"generated: {summary['generated_at']}  |  HEAD: {summary['head_commit']}")
     lines.append(f"plan: {summary['plan_path']}  |  last_updated: {summary['last_updated']}  |  owner: {summary['owner']}")
@@ -281,6 +309,18 @@ def main() -> None:
         print(f"[plan_summary] wrote {args.out}")
     else:
         print(output)
+
+    # Always write provenance sidecar so session_end_hook can read it
+    # even when plan_summary output goes to stdout (not to a file).
+    sidecar_path = project_root / _PROVENANCE_SIDECAR_PATH
+    try:
+        sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+        sidecar_path.write_text(
+            json.dumps(_PLAN_CONTEXT_PROVENANCE, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except OSError:
+        pass  # Non-blocking: sidecar write failure must not abort summary output
 
 
 if __name__ == "__main__":
