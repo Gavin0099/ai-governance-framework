@@ -694,9 +694,14 @@ Enumd / SpecAuthority：
 
 2. **Fleet reality（2026-04-15 清除兩個 bug 後的確認）：**
 
-   清除 YAML parse fallback 與 banner 顯示 bug 後，fleet 中僅剩 **2 個 repo 被歸為 lifecycle-capable**；
-   其中只有 Bookstore-Scraper 具備有意義的 `stable_ok` evidence，
-   ai-governance-framework 目前仍只有單筆 `mixed_active` observation。
+   清除 YAML parse fallback 與 banner 顯示 bug 後，fleet 中僅剩 **2 個 repo 被歸為 lifecycle-capable**；  
+   但**實際成熟母體只有 1 個**：
+
+   - **Bookstore-Scraper**：唯一有意義的 `stable_ok`，是現階段唯一可信 baseline
+   - **ai-governance-framework**：技術上屬 lifecycle-capable，但目前單筆 `mixed_active`，  
+     不算成熟母體。不得拿它「湊數」成「已有 2 個」，  
+     更誠實的表述是：**1 個成熟 + 1 個尚未形成穩定證據的候選**
+
    Phase 2 無法通過 `distinct repos ≥ 3`，反映的是 fleet 母體不足，而不是分析器過嚴。
 
    **真實 fleet 組成（釘住，不得混淆）：**
@@ -705,8 +710,8 @@ Enumd / SpecAuthority：
    |---|---|---|
    | structural_skip | gl_electron_tool, hp-oci-avalonia, Kernel-Driver-Contract, lenovo_isp_tool, Standard_ISP_Tool | 明確不進 baseline |
    | temporary_skip | cli, Enumd, SpecAuthority | adoption/wiring debt；**Phase 2 擴母體唯一候選** |
-   | lifecycle_capable | Bookstore-Scraper | 唯一成熟 `stable_ok` baseline |
-   | lifecycle_capable | ai-governance-framework | 技術上符合但目前單筆 `mixed_active`，不算成熟母體 |
+   | lifecycle_capable（成熟） | Bookstore-Scraper | 唯一有意義的 `stable_ok` baseline |
+   | lifecycle_capable（候選） | ai-governance-framework | 單筆 `mixed_active`，尚未形成穩定證據 |
 
    **Phase 2 真正的 blocker 重整：**
    - **Blocker A（fleet 母體不足）**：lifecycle-capable 實際只有 1 個成熟 repo，
@@ -715,8 +720,28 @@ Enumd / SpecAuthority：
    - **Blocker B（post-schema evidence 未自然產生）**：ERA coverage=0.055（16/289），仍在 PRE-SKIP-TYPE-ERA。
      即使 Blocker A 解了，若 lifecycle-capable repo 的 hook 沒自然觸發，ERA 仍不進。
 
-   兩個 blocker 有交集（lifecycle 沒走 → hook 沒跑 → 兩者都卡），但診斷路徑不同。
-   臨時 repo 「接通」才是最近的解鎖路徑。
+   兩個 blocker 有交集（lifecycle 沒走 → hook 沒跑 → 兩者都卡），但診斷路徑不同。  
+   **臨時 repo 接通才是最近的解鎖路徑。**
+
+3. **temporary 三選一升級評估（2026-04-15 調查）：**
+
+   | Repo | 測試現況 | 接通難度 | 評估 |
+   |---|---|---|---|
+   | cli | 0 py test files，C++ GTest，需 CI Docker（本地無 cmake）| 高（CI-only path）| **最難：本地無法接通，需 CI infra 工作** |
+   | Enumd | 0 py test files，純 JS/Node.js（lib/、no tests/）| 高（非 Python，需新建 pytest layer）| **難：無現成 Python test 可接，需從零建測試** |
+   | SpecAuthority | `spec_truth/` 有 27 個 py 檔，其中含 `test_*.py`（498 tests 已驗證通過）| **低（tests 已存在，只需接 ingestor + 移除 skip）** | **首選：路徑最短** |
+
+   **結論：SpecAuthority 是最有機會第一個脫離 temporary debt 的 repo。**
+
+   路徑：
+   1. 在 SpecAuthority 跑 `python -m pytest spec_truth/ --tb=short`，輸出 pytest text
+   2. 接 `test_result_ingestor --file ... --kind pytest-text --out artifacts/runtime/test-results/latest.json`
+   3. 驗證 artifact 生成後，gate_policy 移除 `skip_test_result_check: true`（或改 `false`），移除 `skip_type: temporary`
+   4. 跑 session_end_hook → 觀察 `artifact_state=ok`，`lifecycle_class` 從 stuck_absent 變為非 degenerate
+
+   **未做之前不得宣稱 SpecAuthority 已 lifecycle-capable。**
+
+
 
 **探針判斷：v2 語意槽位可運作，可擴大樣本。**
 
@@ -805,11 +830,13 @@ python scripts/analyze_e1b_distribution.py --auto-discover
 
 - [ ] 評估 BUG-003 後續是否需要從 byte-size 再擴到更高階的多維記憶壓力信號
 - [ ] 評估 starter-pack 升級路徑是否要補 lock/manifest，而不是只有 refresh
-- [ ] **gate_policy parse failure 靜默 fallback 問題**：目前 YAML parse 失敗時，系統靜默回退 `builtin_defaults`，
-  不發出任何 advisory signal。這次 cli 個案是靠分類異常倒推才發現，但未來不能依賴這個條件。
-  方向：parse failure 時在 `policy_provenance` 中記錄 `policy_source=fallback_due_to_parse_error` + parse error message，
-  或至少在 session_end_hook output 加一條 advisory。
-  此時 `skip_type=None` + `fallback_used=True` 是既有信號，但沒有足夠明確的可觀測性。
+- [ ] **gate_policy parse failure 靜默 fallback（高風險，不應只當一般 backlog）**：  
+  YAML parse 失敗時系統靜默回退 `builtin_defaults`，`skip_type=None`，`fallback_used=True` 雖存在但  
+  沒有足夠可觀測的 signal，容易偽裝成正常觀測污染 fleet reality。  
+  cli 個案靠「分類異常」倒推才被發現；下次不能靠偶然觀察。  
+  **最小可接受修法（任一即可）：**  
+  - `policy_provenance` 加 `policy_source=fallback_due_to_parse_error` + parse error message  
+  - session_end_hook output 加 `[ADVISORY] gate_policy: YAML parse failed, using builtin_defaults`
 
 ---
 
