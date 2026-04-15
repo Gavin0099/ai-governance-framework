@@ -692,14 +692,31 @@ Enumd / SpecAuthority：
    **這個 checkpoint 結果會決定後續路徑，不得用「時間還不夠」替代判斷。**
 
 
-2. **Phase 2 有兩個獨立 blocker，不能合併：**
-   - **Blocker A（lifecycle adoption failure）**：`stuck_absent` 佔 lifecycle-capable 的 75%（6/8）。  
-     non-degenerate ratio = 0.125（需 ≥ 0.7）、unique patterns = 0.022（需 ≥ 0.4）。  
-     根因是 lifecycle 未走，不是資料不足。解法是策略 A（scope 縮至可走 lifecycle 的子集）或策略 B（推動接通）。  
-   - **Blocker B（post-schema evidence 未自然產生）**：ERA 低 coverage 是獨立問題。  
-     即使策略 A 縮小 scope，若那幾個 lifecycle-capable repo 的 hook 也沒自然觸發，ERA 仍不進。  
-   
-   兩個 blocker 有部分交集（lifecycle 沒走 → hook 沒跑 → 兩者都卡），但診斷路徑不同。
+2. **Fleet reality（2026-04-15 清除兩個 bug 後的確認）：**
+
+   清除 YAML parse fallback 與 banner 顯示 bug 後，fleet 中僅剩 **2 個 repo 被歸為 lifecycle-capable**；
+   其中只有 Bookstore-Scraper 具備有意義的 `stable_ok` evidence，
+   ai-governance-framework 目前仍只有單筆 `mixed_active` observation。
+   Phase 2 無法通過 `distinct repos ≥ 3`，反映的是 fleet 母體不足，而不是分析器過嚴。
+
+   **真實 fleet 組成（釘住，不得混淆）：**
+
+   | 分類 | Repo | 說明 |
+   |---|---|---|
+   | structural_skip | gl_electron_tool, hp-oci-avalonia, Kernel-Driver-Contract, lenovo_isp_tool, Standard_ISP_Tool | 明確不進 baseline |
+   | temporary_skip | cli, Enumd, SpecAuthority | adoption/wiring debt；**Phase 2 擴母體唯一候選** |
+   | lifecycle_capable | Bookstore-Scraper | 唯一成熟 `stable_ok` baseline |
+   | lifecycle_capable | ai-governance-framework | 技術上符合但目前單筆 `mixed_active`，不算成熟母體 |
+
+   **Phase 2 真正的 blocker 重整：**
+   - **Blocker A（fleet 母體不足）**：lifecycle-capable 實際只有 1 個成熟 repo，
+     `distinct repos ≥ 3` 不是門檻太嚴，而是 fleet 現實就是這麼瘦。
+     解法不是修分析器，而是讓 temporary 三選一（cli/Enumd/SpecAuthority）中至少一個升級為真正 lifecycle-capable。
+   - **Blocker B（post-schema evidence 未自然產生）**：ERA coverage=0.055（16/289），仍在 PRE-SKIP-TYPE-ERA。
+     即使 Blocker A 解了，若 lifecycle-capable repo 的 hook 沒自然觸發，ERA 仍不進。
+
+   兩個 blocker 有交集（lifecycle 沒走 → hook 沒跑 → 兩者都卡），但診斷路徑不同。
+   臨時 repo 「接通」才是最近的解鎖路徑。
 
 **探針判斷：v2 語意槽位可運作，可擴大樣本。**
 
@@ -788,6 +805,11 @@ python scripts/analyze_e1b_distribution.py --auto-discover
 
 - [ ] 評估 BUG-003 後續是否需要從 byte-size 再擴到更高階的多維記憶壓力信號
 - [ ] 評估 starter-pack 升級路徑是否要補 lock/manifest，而不是只有 refresh
+- [ ] **gate_policy parse failure 靜默 fallback 問題**：目前 YAML parse 失敗時，系統靜默回退 `builtin_defaults`，
+  不發出任何 advisory signal。這次 cli 個案是靠分類異常倒推才發現，但未來不能依賴這個條件。
+  方向：parse failure 時在 `policy_provenance` 中記錄 `policy_source=fallback_due_to_parse_error` + parse error message，
+  或至少在 session_end_hook output 加一條 advisory。
+  此時 `skip_type=None` + `fallback_used=True` 是既有信號，但沒有足夠明確的可觀測性。
 
 ---
 
