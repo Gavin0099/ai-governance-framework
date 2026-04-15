@@ -660,14 +660,30 @@ Enumd / SpecAuthority：
 
 **探針後的真實限制（釘住不可偷渡）：**
 
-1. ERA 仍在 PRE-SKIP-TYPE-ERA（coverage = 0.011 < 0.3 threshold for TRANSITION）。  
-   三個探針 session 只佔 3/276 = 1.1%。ERA meaningful 需更多 sessions 時間積累。
+1. **ERA 是 adoption distribution 問題，不是時間問題。**  
+   coverage = 0.011（3/276）。這 3 筆是手動 probe，不是自然流量。  
+   核心問題不是「需要更多 session」，而是：  
+   > **「有多少 repo 會在自然工作流程中產生 post-schema entries？」**  
+   
+   ERA coverage ≈ (自然產生 post-schema entry 的 repo 數) / (全艦隊活躍 repo 數)  
+   
+   如果多數 repo 的 session_end_hook 沒被正常觸發，或 lifecycle 根本沒走，  
+   再多 session 也不會讓 coverage 推進。  
+   
+   **下一步行動（觀察，不是寫 code）：**  
+   - Step 1：觀察下一個「自然 session」（非 probe）是否產生 `skip_type` entry  
+   - Step 2：若沒有 → 診斷為何：lifecycle 沒走 / hook 沒觸發 / ingestor 沒接  
+   - Step 3：只對 2–3 個「應該有 lifecycle」的 repo 做最小修補（Bookstore-Scraper 已 OK，Enumd / SpecAuthority 為候選）  
+   - 目標：coverage 從 1% → 10–20%（有意義的跳躍，不是追求 CURRENT threshold）
 
-2. 艦隊仍以 `stuck_absent` 為主（8 個 lifecycle-capable repo 中 6 個 = 75%）。  
-   即使 ERA 推進，Phase 2 readiness gate 的第 3、5 條仍會卡：  
-   non-degenerate ratio = 0.125（需 ≥ 0.7）、unique patterns = 0.022（需 ≥ 0.4）。
-
-3. 艦隊 `stuck_absent` 根因是 lifecycle 未走，不是資料不足。解法是採用策略 A（scope 縮至可走 lifecycle 的子集）或策略 B（推動更多 repo 接通），不是繼續等資料。
+2. **Phase 2 有兩個獨立 blocker，不能合併：**
+   - **Blocker A（lifecycle adoption failure）**：`stuck_absent` 佔 lifecycle-capable 的 75%（6/8）。  
+     non-degenerate ratio = 0.125（需 ≥ 0.7）、unique patterns = 0.022（需 ≥ 0.4）。  
+     根因是 lifecycle 未走，不是資料不足。解法是策略 A（scope 縮至可走 lifecycle 的子集）或策略 B（推動接通）。  
+   - **Blocker B（post-schema evidence 未自然產生）**：ERA 低 coverage 是獨立問題。  
+     即使策略 A 縮小 scope，若那幾個 lifecycle-capable repo 的 hook 也沒自然觸發，ERA 仍不進。  
+   
+   兩個 blocker 有部分交集（lifecycle 沒走 → hook 沒跑 → 兩者都卡），但診斷路徑不同。
 
 **探針判斷：v2 語意槽位可運作，可擴大樣本。**
 
