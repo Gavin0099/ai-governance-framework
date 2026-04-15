@@ -670,11 +670,27 @@ Enumd / SpecAuthority：
    如果多數 repo 的 session_end_hook 沒被正常觸發，或 lifecycle 根本沒走，  
    再多 session 也不會讓 coverage 推進。  
    
-   **下一步行動（觀察，不是寫 code）：**  
-   - Step 1：觀察下一個「自然 session」（非 probe）是否產生 `skip_type` entry  
-   - Step 2：若沒有 → 診斷為何：lifecycle 沒走 / hook 沒觸發 / ingestor 沒接  
-   - Step 3：只對 2–3 個「應該有 lifecycle」的 repo 做最小修補（Bookstore-Scraper 已 OK，Enumd / SpecAuthority 為候選）  
-   - 目標：coverage 從 1% → 10–20%（有意義的跳躍，不是追求 CURRENT threshold）
+   **下一步：有條件的觀察，不是單純等待。**
+
+   在下一批自然 session（非手動 probe）後，執行一次 `analyze_e1b_distribution.py --auto-discover --emit-json`，
+   記錄以下三個觀察目標的狀態：
+
+   | 觀察目標 | 記錄項目 |
+   |---|---|
+   | 是否有新的 `skip_type` entry 出現 | 新增 entry 數 |
+   | 這些 entry 來自幾個不同 repo | 不同 repo 數 |
+   | 來源 repo 屬於哪一類 | structural / temporary / lifecycle-capable 各幾筆 |
+
+   **最小判定（三岔：不得模糊）：**
+
+   - **若 skip_type 完全沒有新增**：Blocker B 不是「等待更多時間」，而是
+     natural path 沒有接上。需升級為 adoption/wiring 問題診斷。
+   - **若只有手動 probe 過的 repo 出現**：系統 wiring 可用，但自然工作流沒有觸發
+     session_end_hook → 診斷觸發路徑（Tier B wrapper / VS Code task）。
+   - **若多個 repo 自然出現 skip_type**：Blocker B 鬆動，可繼續積累。
+
+   **這個 checkpoint 結果會決定後續路徑，不得用「時間還不夠」替代判斷。**
+
 
 2. **Phase 2 有兩個獨立 blocker，不能合併：**
    - **Blocker A（lifecycle adoption failure）**：`stuck_absent` 佔 lifecycle-capable 的 75%（6/8）。  
