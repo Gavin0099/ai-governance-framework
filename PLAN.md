@@ -767,6 +767,11 @@ soul_check = {
 - 依賴外部 API / env（如 Enumd 的 `test:graph`）
 - 非 Python/pytest 技術棧且無本地 runner（如 Command_Line_Tool .NET sln）
 
+**重要：unverified ≠ neutral（中止推論，不是綠燈）**
+
+unverified repo 不能被拿來支持「沒有 regression」，也不能被拿來支持「有 regression」。  
+它應留在真正中止推論的狀態，不得被心理上視為綠燈或紅燈。
+
 **本輪 meiandraybook sync 完成後的 post-sync diff 記錄（2026-04-14）：**
 
 sync 前：22 failed, 1360 passed（pre-sync，governance version drift）
@@ -783,9 +788,27 @@ sync 動作（按發現順序）：
 
 sync 後核心模組驗證：**290/290 passed**（test_gate_policy, test_f1~f5, test_e1b_distribution_v2, test_canonical_closeout, test_failure_disposition_pipeline, test_session_end_closeout_integration 等）
 
-**結論（post-sync diff 已關閉）：**
-- meiandraybook 的 22 failures 是 governance version drift，不是 app 業務新缺陷
-- sync 後 290/290 通過，drift 判讀已被硬性對照驗證取代
+**結論（精確版，2026-04-15 收緊）：**
+
+meiandraybook 先前 22 failures 所對應的 **governance drift 假設**，已由 post-sync 核心模組 290/290 通過而關閉。  
+關閉範圍：governance version drift 對核心治理模組的影響。  
+未關閉範圍：meiandraybook 整體所有 integration risk；未來 sync 後不再漂移的保證。
+
+Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illegal_control_characters`）  
+已定位為 test-schema drift（`_HEADERS` col3 已改為「評分」，test 基於舊 col3=書名）。  
+`_sanitize_cell_value` 邏輯仍存在且可運作。  
+關閉範圍：那 1 個 regression-like case 與 framework 改動無交集。  
+未關閉範圍：Bookstore-Scraper 整體仍有一整包 test-schema drift / fixture drift / external dependency 問題，整體仍屬 noisy，不適合做太強的正負向結論。
+
+**可合理宣稱的主結論：**
+
+> 主線與合約層均全綠；meiandraybook 先前的 governance version drift 已由 post-sync 核心模組 290/290 通過而硬性關閉；Bookstore-Scraper 的 regression-like failure 已定位為 test-schema drift，與 framework 改動無交集。基於目前已同步且可驗證的 consuming repo 子集，未觀察到任何 framework 改動引入 regression。Kernel-Driver-Contract、Enumd、Command_Line_Tool 目前仍屬 unverified under current local conditions，尚不納入 regression 正反結論。
+
+**尚未解決 / 不得偷渡的問題：**
+- Kernel-Driver-Contract / Enumd / Command_Line_Tool：unverified，中止推論
+- Bookstore-Scraper 整體 17 failures：属既有漂移，尚未清理
+- **E1b v2 是否能升格為正式 gate：不是 code correctness 問題，仍是 post-schema semantics 問題**  
+  「測試都過了」≠「Phase 3 快可以開了」，這條邊界必須守住
 
 ---
 
