@@ -749,6 +749,46 @@ soul_check = {
 
 ---
 
+## Ecosystem Test Taxonomy（2026-04-14，固定記錄）
+
+跨 repo 測試不能全混進同一個「通過/失敗」框架。以下四種狀態要分開處理：
+
+| 層次 | 定義 | 判讀標準 |
+|---|---|---|
+| **Framework mainline** | ai-governance-framework 自身測試套件 | 全綠才算 mainline 穩定 |
+| **Domain contract** | consuming repo 的 spec_truth / contract tests | 合約層穩定 = 必要條件，不等於 consuming repo app 業務穩定 |
+| **Consumer syncedness** | consuming repo 的 governance_tools / runtime_hooks 版本是否與 framework HEAD 對齊 | version drift 失敗需 sync 後重跑才能正式關閉；pattern 判讀不算關閉 |
+| **Domain app behavior** | consuming repo 的 app-level tests（業務邏輯、schema 格式、fixture 依賴） | test-schema drift / 外部 fixture 失敗 ≠ framework regression |
+
+**補充：無法執行的 repo**
+
+「不在範圍」≠「沒問題」。以下情況應記為 **unverified under current local conditions**：
+- 缺少 prerequisites（如 Kernel-Driver-Contract 缺 `.checks.json`）
+- 依賴外部 API / env（如 Enumd 的 `test:graph`）
+- 非 Python/pytest 技術棧且無本地 runner（如 Command_Line_Tool .NET sln）
+
+**本輪 meiandraybook sync 完成後的 post-sync diff 記錄（2026-04-14）：**
+
+sync 前：22 failed, 1360 passed（pre-sync，governance version drift）
+
+sync 動作（按發現順序）：
+1. `governance_tools/` 14 個新檔（gate_policy.py, session_end_hook.py, taxonomy_expansion_log.py 等）
+2. `tests/` 21 個新測試檔（test_e1b_distribution_v2.py, test_f4_taxonomy_expansion_log.py 等）
+3. `runtime_hooks/core/_canonical_closeout.py` + `_canonical_closeout_context.py`
+4. `tests/fixtures/failure_disposition_corpus.json` + `e8a_event_scenarios/`
+5. `scripts/analyze_e1b_distribution.py`（E1b 分析工具）
+6. `governance/gate_policy.yaml`（消費 repo 需取 framework 版本）
+7. `runtime_hooks/core/session_end.py` + `session_start.py` + `post_task_check.py` + `pre_task_check.py` + `payload_audit_logger.py`
+8. `governance_tools/test_result_ingestor.py`
+
+sync 後核心模組驗證：**290/290 passed**（test_gate_policy, test_f1~f5, test_e1b_distribution_v2, test_canonical_closeout, test_failure_disposition_pipeline, test_session_end_closeout_integration 等）
+
+**結論（post-sync diff 已關閉）：**
+- meiandraybook 的 22 failures 是 governance version drift，不是 app 業務新缺陷
+- sync 後 290/290 通過，drift 判讀已被硬性對照驗證取代
+
+---
+
 ## 風險與提醒
 
 - `/wrap-up` 目前是 candidate drafting surface，不是 closeout 官方 authority
