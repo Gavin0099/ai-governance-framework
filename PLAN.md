@@ -779,6 +779,14 @@ Enumd / SpecAuthority：
    - 自然性比例：至少 1 次來自非手動 probe 的自然工作流（純手動 probe 不構成 Layer 1 穩定）
    - 判定是否穩定不得以「應該沒問題」替代，需要明文記錄哪幾次通過、各自的 session_id 或日期
 
+   **Layer 1 執行紀錄（不得刪除，累積 evidence）：**
+
+   | 次數 | 日期 | session_id | source | artifact_state | artifact_present | 備註 |
+   |---|---|---|---|---|---|---|
+   | #1 | 2026-04-15 | session-20260415T070356-a10167 | pytest-text | ok | True | 首次成功；手動 probe；ok=false 來自 failure_test_validation 命名模式（非 pipeline 斷裂）|
+
+   **Layer 1 穩定狀態**：❌ 未達標（需第 2 筆跨 session，且更接近自然 workflow）
+
    **Layer 2：證明可以移除 temporary skip（Layer 1 穩定後才做）**
 
    - Checkpoint 4：多次自然 session 後累積不只 1 筆 post-wiring evidence，且 `lifecycle_class` 不再是 `stuck_absent`
