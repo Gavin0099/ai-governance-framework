@@ -362,6 +362,10 @@ python scripts/analyze_e1b_distribution.py --auto-discover
 - SA lifecycle_class 脫離 stuck_absent → lifecycle_active_ratio 從 0.5 推到 0.67（假設 agf 也活著）
 - **但 Type B 兩條不會自動通過**，它們需要 Stage 2/3/4 的累積來解
 
+> **Type A PASS 只表示樣本池具備可評估性，不表示樣本池已具備可通過性。**
+> Type A 過 = 終於有足夠活著的母體，可以開始認真看品質。
+> Type A 過 ≠ 品質已好、readiness 快通過、Phase 3 近了。
+
 **SA 接通前提精確聲明：**
 `lifecycle_active_ratio` 檢驗的前提是 SA stuck_absent 被穩定脫離。
 若 SA 後續在 `mixed_active` 與 `stuck_absent` 間抖動，Condition 5 仍展神。

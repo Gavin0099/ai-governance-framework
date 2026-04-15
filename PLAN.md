@@ -312,6 +312,10 @@ API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`
       回答：樣本池品質與分布是否夠好？
     - **診斷次序**：SA 接通 → Type A 有機會過 → 再看 Type B 兩條——這才是正確的進度鄰接。
       SA 接通**只解存在性**，不等於 Type B 自動通過；Type B 需要 Stage 2/3/4 的累積。
+    - **Type A PASS 的語意邊界（不得混淆）**：
+      **Type A PASS 只表示樣本池具備可評估性，不表示樣本池已具備可通過性。**
+      Type A 過，代表終於有足夠活著的母體可以開始認真看品質；
+      不代表品質已經好、readiness 快通過、Phase 3 近了。
     - **SA → Condition 5 的前提**：`lifecycle_active_ratio` 通過的前提是 SA stuck_absent 被穩定脫離。
       若 SA 後續在 `mixed_active` 與 `stuck_absent` 間抖動，Condition 5 仍展神。
       正確說法：**SpecAuthority 完成 Layer 1 且穩定脫離 stuck_absent，Condition 5 才會自然通過。**
