@@ -952,7 +952,47 @@ soul_check = {
 
 ---
 
-## 目前主線
+### Compression Provenance Layer（2026-04-15，Phase 1 完成）
+
+**Phase 1 完成：Plan Context Provenance（`b3b1bbc`）**
+
+`plan_summary.py` / `session_start.py` / `session_end_hook.py` 三條鏈路已可記錄：
+
+- `plan_context_fidelity`：`full` | `summarized`
+- `plan_context_origin`：`PLAN.md` | `plan_summary.py`
+- `plan_context_summary_kind`：`deterministic_extract` | `null`
+
+這使得 canonical audit log 的每筆 entry 可攜帶 `plan_context_provenance`，讓 replay / 比較 / 審查知道該次 session 是在什麼 context fidelity 下做決策的。
+
+**Phase 1 的精確定位（不得超越）：**
+
+> Phase 1 不證明 full 與 summarized 等價；它只把兩者差異變成可觀測、可審計的事實。
+>
+> 已能觀測：decision 發生時的 context fidelity 類型（full / summarized）
+> 尚未觀測：rule-level retention 差異、summarized 版本的裁切是否影響某次 decision
+
+**三個釘住的語意邊界（不得自欺）：**
+
+1. **`no_sidecar` → `assumed_full_for_backward_compatibility`，非 `proven_full`**
+   無 sidecar 有三種可能：真的 full、full 但 sidecar 寫失敗、fidelity 根本未知。
+   現在把三種壓成 `assumed_full` 是相容舊資料的務實選擇，不是語意上的乾淨聲明。
+
+2. **`summary_kind=deterministic_extract` 只回答「怎麼產生的」，不回答「裁掉了什麼」**
+   有了 provenance ≠ fidelity impact 已可比較。
+   知道是 deterministic_extract ≠ 知道哪些 rule 被保留 / 裁掉 / 裁掉是否影響 decision。
+
+3. **human marker 是 reviewer convenience，不是主要真相來源**
+   真正可信的 source：structured JSON key + audit log entry + sidecar。
+   不應讓後續工具依賴 human text marker 判讀 fidelity。
+
+**Phase 2 / Phase 3 邊界（deferred，釘住位置）：**
+
+| Phase | 目標 | 前提 |
+|---|---|---|
+| Phase 2 | `rule_fidelity`：記錄 topic filtering / stripping 保留了哪些 rule pack | ERA 穩定、E1b Phase 2 有足夠樣本後評估 |
+| Phase 3 | `cli_output_fidelity`：interactive dev session 的 CLI 壓縮觀測 | governance pipeline 內已由 ingestor 解決，Phase 3 只對 interactive 路徑有意義 |
+
+---
 
 ### 1. Session Workflow Enhancement
 
@@ -1076,3 +1116,4 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 | 2026-04-10 | E1/E2 建立 failure decision boundary | failure 不再直接看 pytest 結果；filtered suite 不再手寫 -k；unknown 必須 escalate |
 | 2026-04-10 | E2+ 強制 registry 使用，禁止 bypass | run_filtered_tests.py 成為唯一合法入口；手寫 -k 視為違規 |
 | 2026-04-15 | Condition 5 廢棄 unique_pattern_ratio，改用 lifecycle_active_ratio | unique_pattern_ratio 是 non-identifiable metric（健康 fleet 也低）；lifecycle_active_ratio 正確區分「有跑 lifecycle」vs「宣告 capable 卻從沒跑」；threshold 0.5；已實施至 analyze_e1b_distribution.py + 4 新測試 |
+| 2026-04-15 | Compression Provenance Layer Phase 1 — plan context | fidelity+origin+summary_kind 三條鏈路（plan_summary→session_start→session_end→audit log）；Phase 1 不證明 full 與 summarized 等價，只把差異變成可觀測事實；no_sidecar=assumed_full_for_backward_compatibility 非 proven_full；Phase 2/3 deferred |
