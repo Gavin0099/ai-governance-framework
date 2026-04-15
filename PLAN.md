@@ -721,7 +721,7 @@ Enumd / SpecAuthority：
      即使 Blocker A 解了，若 lifecycle-capable repo 的 hook 沒自然觸發，ERA 仍不進。
 
    兩個 blocker 有交集（lifecycle 沒走 → hook 沒跑 → 兩者都卡），但診斷路徑不同。  
-   **臨時 repo 接通才是最近的解鎖路徑。**
+   **臨時 repo 接通才是最近的解鎖路徑。SpecAuthority → 完成兩層 wiring 證明 → 移除 skip → 第三個 lifecycle-capable。**
 
 3. **temporary 三選一升級評估（2026-04-15 調查）：**
 
@@ -733,13 +733,38 @@ Enumd / SpecAuthority：
 
    **結論：SpecAuthority 是最有機會第一個脫離 temporary debt 的 repo。**
 
-   路徑：
-   1. 在 SpecAuthority 跑 `python -m pytest spec_truth/ --tb=short`，輸出 pytest text
-   2. 接 `test_result_ingestor --file ... --kind pytest-text --out artifacts/runtime/test-results/latest.json`
-   3. 驗證 artifact 生成後，gate_policy 移除 `skip_test_result_check: true`（或改 `false`），移除 `skip_type: temporary`
-   4. 跑 session_end_hook → 觀察 `artifact_state=ok`，`lifecycle_class` 從 stuck_absent 變為非 degenerate
+   **Phase 2 當前行動定義（釘住）：**
 
-   **未做之前不得宣稱 SpecAuthority 已 lifecycle-capable。**
+   > Phase 2 目前不是缺樣本數，而是缺第三個成熟或至少穩定運作中的 lifecycle-capable repo。
+   > 基於現有艦隊條件，SpecAuthority 是最短路徑候選；
+   > 其成功標誌不是單次 probe，而是完成 pytest→ingestor→artifact→session_end 的閉環，
+   > 並累積足夠 evidence 使 temporary skip 可以被移除。
+
+   **兩層結構（不得合併成一步）：**
+
+   **Layer 1：證明 lifecycle wiring 活了（先做）**
+
+   在移除任何 skip 宣告之前，必須先確認：
+
+   - Checkpoint 1：`pytest spec_truth/ --tb=short` 輸出可被現有 ingestor 正常解析
+   - Checkpoint 2：`test_result_ingestor --out artifacts/runtime/test-results/latest.json` 確實生成 artifact（不是空檔或 malformed）
+   - Checkpoint 3：`session_end_hook` 讀到 artifact，回報 `artifact_state=ok`，而非 absent/malformed
+
+   Layer 1 完成代表：wiring 活了，lifecycle gate 有辦法走完。
+   **Layer 1 未穩定之前，不得更動 gate_policy.yaml。**
+
+   **Layer 2：證明可以移除 temporary skip（Layer 1 穩定後才做）**
+
+   - Checkpoint 4：多次自然 session 後累積不只 1 筆 post-wiring evidence，且 `lifecycle_class` 不再是 `stuck_absent`
+
+   > **只有單次成功不算 Layer 2 達成。**
+   > 單次可能是手動特例、probe、或非自然工作流。
+   > 此 repo 已有「單筆樣本被高估」的紀錄，不得再犯。
+
+   Layer 2 完成後，才允許：`gate_policy.yaml` 移除 `skip_test_result_check: true` 與 `skip_type: temporary`，
+   SpecAuthority 才算正式進入 lifecycle-capable pool，才算 Phase 2 gate 的第三個有效 repo。
+
+   **未完成 Layer 1 + Layer 2 之前不得宣稱 SpecAuthority 已 lifecycle-capable。**
 
 
 
@@ -830,13 +855,16 @@ python scripts/analyze_e1b_distribution.py --auto-discover
 
 - [ ] 評估 BUG-003 後續是否需要從 byte-size 再擴到更高階的多維記憶壓力信號
 - [ ] 評估 starter-pack 升級路徑是否要補 lock/manifest，而不是只有 refresh
-- [ ] **gate_policy parse failure 靜默 fallback（高風險，不應只當一般 backlog）**：  
-  YAML parse 失敗時系統靜默回退 `builtin_defaults`，`skip_type=None`，`fallback_used=True` 雖存在但  
-  沒有足夠可觀測的 signal，容易偽裝成正常觀測污染 fleet reality。  
-  cli 個案靠「分類異常」倒推才被發現；下次不能靠偶然觀察。  
-  **最小可接受修法（任一即可）：**  
-  - `policy_provenance` 加 `policy_source=fallback_due_to_parse_error` + parse error message  
-  - session_end_hook output 加 `[ADVISORY] gate_policy: YAML parse failed, using builtin_defaults`
+- [ ] **gate_policy parse failure（observability integrity risk，不是一般 backlog）**：  
+  這不是單純解析錯一個 repo 的問題，而是：  
+  「設定錯 → 靜默回退 → 偽正常觀測」三步被包成同一個外觀。  
+  `skip_type=None`、`fallback_used=True` 雖然存在，但對觀測者而言外觀與「正常 repo」無法區分，  
+  直接破壞 fleet reality 的信任度。cli 個案是靠「分類異常」才倒推發現；  
+  下次不能靠偶然觀察。**每一個被靜默吸收的 parse error 都是一次未被記錄的 fleet 污染。**  
+  **最低可接受結果（三選一，不要求全做，但必須有一層可見）：**  
+  - `policy_provenance` 加 `policy_source=fallback_due_to_parse_error` + parse error message（provenance 層）
+  - session_end_hook output 加 `[ADVISORY] gate_policy: YAML parse failed, using builtin_defaults`（operator 層）
+  - E8a log 標記 `parse_error: true`（observability substrate 層）
 
 ---
 
