@@ -862,7 +862,29 @@ Enumd / SpecAuthority：
    - lifecycle_capable repos：3（Bookstore-Scraper, SpecAuthority, ai-governance-framework）
    - Phase 2 gate `min_repos ≥ 3`：✅ PASS
    - Phase 2 gate `min_nondegenerate_ratio ≥ 0.7`：❌ FAIL（legacy entropy metric；all 3 repos are stable_ok by v2，但 entropy 低於 0.3 觸發 legacy false-positive）
+   - Phase 2 gate `lifecycle_active_ratio ≥ 0.5`：✅ PASS（1.0，shadow v2 metric）
    - 剩餘 blocker 是 legacy v2-upgrade 問題，不是母體不足
+
+   **Phase 2 精確現況（2026-04-16，釘住不得混淆）：**
+
+   > **Phase 2 blocked by metric promotion decision, not by repository readiness.**
+
+   fleet pool 已足夠（3 lifecycle_capable repos，99 sessions），但 `min_nondegenerate_ratio` 仍讀 legacy `is_degenerate`（distinct_states/n < 0.3），對所有 stable_ok repo 均回傳 false positive。v2 等效指標（`lifecycle_active_ratio=1.0`）已健康，但尚未升格成正式 gate check。
+
+   不做 v2 gate promote 的理由（已釘住，不得繞過）：
+
+   | 原因 | 說明 |
+   |---|---|
+   | gate semantics 升格，不是 bugfix | promote 改變的是 Phase 2 通過條件、fleet readiness 判準、reviewer 對 degenerate 的理解方式，是政策升格 |
+   | mixed_active 拆分未完成 | 升格前必做的語意清理仍 pending |
+   | 三 repo pool 樣本偏小 | 三個 stable_ok repo 是目前觀測；不排除是剛好乾淨的 pool，非充分證據 |
+   | PRE-ERA coverage 仍低 | 資料分布仍帶時代切換痕跡，此時升 gate 容易把「目前觀測上合理」誤當「正式可依賴」 |
+
+   promote 的正式前提（全部滿足才做）：
+   1. `mixed_active` 拆成 `insufficient_evidence` / `transitioning_active`（語意清理）
+   2. 三 repo 觀測時間差夠長，非集中於同一時段
+   3. 明確 promote decision，說明不會在 stable_ok-heavy fleet 引入樂觀偏誤
+   4. PLAN.md 有對應的政策切換記錄條目（不得只改 code）
 
    **待清理項（Layer 2 完成後仍需處理）：**
    session_end_hook 輸出的 `e1b_observation.is_degenerate=True` 是 legacy entropy 公式（entropy < 0.3）殘留。
