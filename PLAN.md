@@ -1272,14 +1272,28 @@ Soft-verifiable 不接受「單次看起來沒問題」作為結論。
 3. `confidence is window-scoped`  
    `confidence_level` 必須是對 observation window 的判讀，不得是單次 sample 的自評。
 4. `downgrade requires explicit closure`  
-   歷史 `observed` 若要降為 `mitigated/closed`，必須同時具備：
+   歷史 `observed` 若要降為 `closure_verified`，必須同時具備：
    - 具體修正已導入（修正識別可追溯）
    - 修正後在定義好的 observation window 內無再現
    - 測試覆蓋原 misuse path
    若任一缺漏，結果只能是 `risk_persists` / `risk_not_reobserved_yet` / `insufficient_closure_evidence`。
 
+`aggregation_result.current_state` 必須使用 canonical enum（禁止自由文字）：
+- `insufficient_observation`
+- `risk_observed`
+- `risk_persists`
+- `risk_not_reobserved_yet`
+- `insufficient_closure_evidence`
+- `closure_verified`
+
+`not_observed_in_window` 不得單獨作為 Phase 2 promote 依據；必須與 window adequacy + historical observed context 一起判讀。
+
 `misuse_evidence_status` Phase 2.6 命名更新為：`observed` / `not_observed_in_window` / `not_tested`。  
 `none_observed` 僅作 backward-compat alias，不得在新報告中作為 primary label。
+alias lifecycle 規則（強制）：
+- `none_observed` 僅允許作為 legacy input。
+- 新輸出必須一律使用 `not_observed_in_window`。
+- downstream consumer 必須先正規化：`none_observed -> not_observed_in_window`，再做 aggregation。
 
 **Phase 2 Observer Constraint（新）— 防自評循環依賴：**
 

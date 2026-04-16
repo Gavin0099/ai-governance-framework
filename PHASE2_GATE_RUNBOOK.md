@@ -41,6 +41,7 @@ temporary_skip（不計入 Phase 2 gate）：
 - 若 observation window 不足，只能輸出 insufficient_observation，不得宣告 stable / ready。
 - Phase 2 結果必須支援 multi-run aggregation；單次 observation 不構成最終判斷。
 - `none_observed` 僅允許作為 legacy input alias；新輸出統一使用 `not_observed_in_window`。
+- downstream consumer 先正規化 `none_observed -> not_observed_in_window`，再做 aggregation。
 
 ### Aggregation Precedence（必遵守）
 
@@ -51,7 +52,19 @@ temporary_skip（不計入 Phase 2 gate）：
 3. Rule 3 — confidence belongs to window  
    `confidence_level` 必須對 observation window 評估，不是單次 run 自評。
 4. Rule 4 — downgrade requires explicit closure  
-   只有在「修正已導入 + 觀察窗口內無再現 + 覆蓋原 misuse path」同時成立時，才可從歷史 `observed` 降級為 `mitigated/closed`。
+   只有在「修正已導入 + 觀察窗口內無再現 + 覆蓋原 misuse path」同時成立時，才可從歷史 `observed` 降級為 `closure_verified`。
+
+### Canonical Aggregation Result Enum（window-level）
+
+`aggregation_result.current_state` 允許值僅限：
+- `insufficient_observation`
+- `risk_observed`
+- `risk_persists`
+- `risk_not_reobserved_yet`
+- `insufficient_closure_evidence`
+- `closure_verified`
+
+禁止自由文字狀態；`not_observed_in_window` 不得單獨作為 phase promotion 依據。
 
 ### Fixed Output Template（sample-level / window-level 分層）
 
@@ -68,7 +81,7 @@ sample_level:
   confidence_level: low | medium | high
 window_level:
   aggregation_result:
-    current_state: insufficient_observation | risk_observed | no_misuse_observed_in_window | risk_not_reobserved_yet | insufficient_closure_evidence | mitigated | closed
+    current_state: insufficient_observation | risk_observed | risk_persists | risk_not_reobserved_yet | insufficient_closure_evidence | closure_verified
     historical_observed: true | false
     closure_condition_met: true | false
   review_notes: "..."
@@ -83,7 +96,7 @@ window_level:
 - Case C：多次 `not_observed_in_window` 但 window 太小  
   期望：`current_state=insufficient_observation`；不得升級為 stable/ready。
 - Case D：曾 `observed`，修正後滿足 closure conditions  
-  期望：`current_state=mitigated` 或 `closed`；可進入後續 gate 討論。
+  期望：`current_state=closure_verified`；可進入後續 gate 討論。
 
 ---
 
