@@ -71,8 +71,30 @@ def test_adoption_audit_flags_parallel_phase3_logic(tmp_path):
     assert any(v["rule"] == "potential_parallel_phase3_decision_logic" for v in result["violations"])
 
 
+def test_adoption_audit_flags_workflow_phase3_terms_without_canonical_gate(tmp_path):
+    _write(
+        tmp_path / ".github" / "workflows" / "governance.yml",
+        "name: governance\njobs:\n  x:\n    steps:\n      - run: echo phase3_entry_allowed\n",
+    )
+    _write(tmp_path / "governance_tools" / "phase3_promotion_gate.py", "phase3_entry_allowed=True\n")
+    _write(tmp_path / "governance_tools" / "phase2_aggregation_consumer.py", "current_state='closure_verified'\n")
+
+    result = audit_phase3_gate_adoption(tmp_path)
+    assert result["ok"] is False
+    assert any(v["rule"] == "workflow_phase3_terms_without_canonical_gate" for v in result["violations"])
+
+
+def test_adoption_audit_flags_doc_bypass_phrases(tmp_path):
+    _write(tmp_path / "governance_tools" / "phase3_promotion_gate.py", "phase3_entry_allowed=True\n")
+    _write(tmp_path / "governance_tools" / "phase2_aggregation_consumer.py", "current_state='closure_verified'\n")
+    _write(tmp_path / "docs" / "bad.md", "Please skip phase3 gate when urgent.")
+
+    result = audit_phase3_gate_adoption(tmp_path)
+    assert result["ok"] is False
+    assert any(v["rule"] == "doc_mentions_promotion_bypass" for v in result["violations"])
+
+
 def test_adoption_audit_passes_current_repo():
     repo_root = Path(__file__).resolve().parents[1]
     result = audit_phase3_gate_adoption(repo_root)
     assert result["ok"] is True, result["violations"]
-

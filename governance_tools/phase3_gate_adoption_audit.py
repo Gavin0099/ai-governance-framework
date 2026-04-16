@@ -15,22 +15,27 @@ from pathlib import Path
 from typing import Any
 
 _SCOPES = ("governance_tools", "scripts")
+_WORKFLOW_SCOPE = ".github/workflows"
+_DOC_SCOPE = "docs"
 
 _ALLOW_CLOSURE_VERIFIED = {
     "governance_tools/phase2_aggregation_consumer.py",
     "governance_tools/phase3_promotion_gate.py",
     "governance_tools/phase3_gate_adoption_audit.py",
+    "governance_tools/external_observation_adapter.py",
     "scripts/phase2_aggregation_dry_run.py",
 }
 
 _ALLOW_PHASE3_ENTRY_ALLOWED = {
     "governance_tools/phase3_promotion_gate.py",
     "governance_tools/phase3_gate_adoption_audit.py",
+    "governance_tools/external_observation_adapter.py",
 }
 
 _ALLOW_PARALLEL_DECISION_SCAN = {
     "governance_tools/phase3_promotion_gate.py",
     "governance_tools/phase3_gate_adoption_audit.py",
+    "governance_tools/external_observation_adapter.py",
     "scripts/phase2_aggregation_dry_run.py",
 }
 
@@ -45,8 +50,27 @@ def _iter_python_files(repo_root: Path) -> list[Path]:
     return out
 
 
+def _iter_text_files(repo_root: Path, base: str, pattern: str) -> list[Path]:
+    root = repo_root / base
+    if not root.exists():
+        return []
+    return sorted(root.rglob(pattern))
+
+
+def _read_text_fallback(path: Path) -> str:
+    for enc in ("utf-8", "cp950", "latin-1"):
+        try:
+            return path.read_text(encoding=enc)
+        except UnicodeDecodeError:
+            continue
+    # Last resort: replace undecodable bytes.
+    return path.read_text(encoding="utf-8", errors="replace")
+
+
 def audit_phase3_gate_adoption(repo_root: Path) -> dict[str, Any]:
     files = _iter_python_files(repo_root)
+    workflow_files = _iter_text_files(repo_root, _WORKFLOW_SCOPE, "*.yml")
+    doc_files = _iter_text_files(repo_root, _DOC_SCOPE, "*.md")
     violations: list[dict[str, str]] = []
 
     for fpath in files:
@@ -88,9 +112,48 @@ def audit_phase3_gate_adoption(repo_root: Path) -> dict[str, Any]:
                     }
                 )
 
+    # Workflow-level adoption proof:
+    # if workflow references phase3 promotion authority terms, it must route via canonical gate module.
+    for wf in workflow_files:
+        rel = wf.relative_to(repo_root).as_posix()
+        text = _read_text_fallback(wf)
+        mentions_phase3_terms = any(
+            token in text for token in ("phase3_entry_allowed", "promote_eligible", "closure_verified")
+        )
+        if mentions_phase3_terms and "phase3_promotion_gate.py" not in text:
+            violations.append(
+                {
+                    "path": rel,
+                    "rule": "workflow_phase3_terms_without_canonical_gate",
+                    "detail": "workflow references phase3 promotion terms but does not route via phase3_promotion_gate.py",
+                }
+            )
+
+    # Docs-level bypass check for explicit manual bypass instructions.
+    _BYPASS_PATTERNS = (
+        "skip phase3 gate",
+        "bypass phase3 gate",
+        "manual promote override",
+        "direct promote without gate",
+    )
+    for doc in doc_files:
+        rel = doc.relative_to(repo_root).as_posix()
+        lower = _read_text_fallback(doc).lower()
+        for pat in _BYPASS_PATTERNS:
+            if pat in lower:
+                violations.append(
+                    {
+                        "path": rel,
+                        "rule": "doc_mentions_promotion_bypass",
+                        "detail": f"documentation contains bypass phrase: {pat!r}",
+                    }
+                )
+
     return {
         "ok": len(violations) == 0,
         "checked_files": len(files),
+        "checked_workflows": len(workflow_files),
+        "checked_docs": len(doc_files),
         "violations": violations,
         "policy_source": "phase3_gate_adoption_audit.v1",
     }
