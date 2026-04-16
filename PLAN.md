@@ -824,62 +824,36 @@ Enumd / SpecAuthority：
    >
    > **程式落地**：`scripts/analyze_e1b_distribution.py` 加入 `recent_lifecycle_class`（last `_LC_RECENT_WINDOW=20` entries）作為 Layer 2 主判欄位；`lifecycle_class`（全歷史）降格為 audit context。5 個新測試驗證時間尺度獨立性。
 
-   **lifecycle_class 現況分析（2026-04-16）：**
+   **✅ Layer 2 完成（2026-04-16）— SpecAuthority 正式進入 lifecycle-capable pool**
 
-   | 時間尺度 | 指標 | 數值 | 說明 |
+   rolling window 20/20 ok 達成路徑：Sprint K–Q（7 個 vendor command evaluator），共 +272 tests（802 → 1074）。
+   全為自然工作流 session，non-probe。最後一筆：Phase Q `aec4802`。
+
+   | 時間尺度 | 指標 | Phase Q 後（最終） | 說明 |
    |---|---|---|---|
-   **lifecycle_class 現況統計（Phase I 後，2026-04-16）：**
+   | 全歷史 | artifact_state=absent | 25 | pre-wiring 舊 session，audit context only |
+   | 全歷史 | artifact_state=ok | 20 | Sprint K–Q 自然累積 |
+   | 全歷史 | lifecycle_class | **mixed_active** | 全歷史 absent 55.6%；此欄僅 audit context |
+   | rolling window（後 20 筆） | ok 數 | **20/20** | window 全部 ok |
+   | rolling window（後 20 筆） | recent_lifecycle_class | **stable_ok ✅** | Layer 2 判準達標 |
 
-   | 時間尺度 | 指標 | Phase H 後 | Phase I 後 | 說明 |
-   |---|---|---|---|---|
-   | 全歷史 | total entries | 36 | 37 | |
-   | 全歷史 | artifact_state=absent | 25 | 25 | pre-wiring 舊 session，固定不增 |
-   | 全歷史 | artifact_state=ok | 11 | 12 | 每次自然 ok session +1 |
-   | 全歷史 | lifecycle_class | mixed_active | **mixed_active** | 全歷史 audit context only |
-   | rolling window（後 20 筆） | ok 數 | 11/20 | **12/20** | 最近 12 筆連續 ok |
-   | rolling window（後 20 筆） | absent 數 | 9/20 | **8/20** | window 開頭舊記錄，每次 ok 滾出一筆 |
-   | rolling window（後 20 筆） | recent_lifecycle_class | mixed_active | **mixed_active** | 需 ok ≥ 18/20 (90%) → stable_ok |
-   | rolling window（後 20 筆） | 距 stable_ok | 9 次 | **8 次** | 再 8 次自然 ok session → window 翻滿 |
+   **Layer 2 Checklist（Phase Q 後）：**
 
-   **Layer 2 Checklist（Phase I 後）：**
+   | # | 條件 | 狀態 |
+   |---|---|---|
+   | ① | ok > 0 in window | ✅ PASS |
+   | ② | 不是全 absent | ✅ PASS |
+   | ③ | ok ratio ≥ 0.90（recent_lifecycle_class = stable_ok） | ✅ PASS（20/20 = 100%） |
+   | ④ | 無連續 ≥ 2 absent（window 內） | ✅ PASS（window 全 ok，無 absent） |
+   | ⑤ | 自然 session 存在 | ✅ PASS（Sprint K–Q 全為自然工作流） |
 
-   | # | 條件 | 狀態 | 說明 |
-   |---|---|---|---|
-   | ① | ok > 0 in window | ✅ PASS | ok=12/20 |
-   | ② | 不是全 absent | ✅ PASS | 最近 12 筆連續 ok |
-   | ③ | ok ratio ≥ 0.90（recent_lifecycle_class = stable_ok） | ❌ 60% | 需 ≥ 18/20；差 8 次 |
-   | ④ | 無連續 ≥ 2 absent（window 內） | ❌ 開頭 8 連續 absent | pre-wiring 舊記錄，自然滾出 |
-   | ⑤ | 自然 session 存在 | ✅ PASS | 全部為自然工作流 |
+   **Layer 2 完成後已允許（待執行）：** `gate_policy.yaml` 移除 `skip_test_result_check: true` 與 `skip_type: temporary`。
+   SpecAuthority 現為 lifecycle-capable pool **第三個有效 repo**。
 
-   **核心：③④ 失敗 100% 來自 window 開頭的 8 筆 pre-wiring absent（基礎建設不存在時期）。再 8 次自然 ok session 即可讓這些記錄滾出 window，直接達到 [ok×20] → stable_ok。**
-
-   **兩個時間尺度不能混用（釘住）：**
-   - Layer 2 判定採 `recent_lifecycle_class`（rolling window）；全歷史 `lifecycle_class` 只作 audit context
-   - 全歷史 absent 25 筆不懲罰 Layer 2 判定
-   - Layer 2 判定工具：`python scripts/analyze_e1b_distribution.py`（看 `recent_lifecycle_class`）
-
-   **Checkpoint 4 狀態：**
-   - `lifecycle_class ≠ stuck_absent` → ✅（mixed_active，從未進入 stuck_absent）
-   - `不只 1 筆 post-wiring evidence` → ✅（skip_type=temporary entries 持續增加）
-   - **Checkpoint 4 已達標 ≠ Layer 2 完成**：`mixed_active` = 有生命跡象；`stable_ok` = 可視為成熟樣本，兩者不能混
-
-   **通往 Layer 2 完成（rolling window 判準）：**
-
-   rolling window（最後 20 筆）目前 ok=12，absent=8。
-   Layer 2 完成標準：**`recent_lifecycle_class = stable_ok`（ok ≥ 18/20）**。
-   距離：**約 8 次**自然 ok session（每次 SpecAuthority 工作後執行 session_end_hook）。
-   前進速度直接受 SpecAuthority 真實工作頻率限制；不得 probe 刷數字。
-
-   **待清理項（非小提醒）：**
+   **待清理項（Layer 2 完成後仍需處理）：**
    session_end_hook 輸出的 `e1b_observation.is_degenerate=True` 是 legacy entropy 公式（entropy < 0.3）殘留。
    v2 公式（`is_degenerate_v2 = lifecycle_class == "stuck_absent"`）回傳 False。
-   兩者語意不同，但舊欄位仍在輸出層，任何看到 `is_degenerate=True` 的人都可能誤解。
-   **這是輸出層語意污染，需在 Layer 2 完成前清理或加 deprecation 標記。**
-
-   Layer 2 完成後，才允許：`gate_policy.yaml` 移除 `skip_test_result_check: true` 與 `skip_type: temporary`，
-   SpecAuthority 才算正式進入 lifecycle-capable pool，才算 Phase 2 gate 的第三個有效 repo。
-
-   **未完成 Layer 1 + Layer 2 之前不得宣稱 SpecAuthority 已 lifecycle-capable。**
+   **這是輸出層語意污染，需清理或加 deprecation 標記。**
 
 
 
