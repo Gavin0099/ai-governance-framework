@@ -779,13 +779,34 @@ Enumd / SpecAuthority：
    - 自然性比例：至少 1 次來自非手動 probe 的自然工作流（純手動 probe 不構成 Layer 1 穩定）
    - 判定是否穩定不得以「應該沒問題」替代，需要明文記錄哪幾次通過、各自的 session_id 或日期
 
+   **⚠️ 觸發路徑現實（2026-04-16 確認，不得低估）：**
+
+   session_end_hook 在 GitHub Copilot 環境（Tier B）下**沒有自動觸發路徑**：
+   - `~/.claude/settings.json` 的 `"hooks": { "Stop": [...] }` 是 Claude-native hook；Copilot 不支援此機制
+   - 目前 permission 清單中的 session_end_hook 是 allow-listed bash 命令，不是觸發器
+   - Copilot session 結束時，不會自動執行任何 governance hook
+
+   因此，「自然工作流」在 Tier B 的正確定義是：
+
+   > **在真實 SpecAuthority 開發工作結束後，作為收尾程序手動執行 session_end_hook**（不是因為要測試 hook，而是因為工作結束了）。
+
+   這與「手動 probe」的區別是**動機與脈絡**，不是機制：
+   - 手動 probe = 為了驗證 hook 而跑 hook
+   - Tier B 自然工作流 = 為了結束真實工作 session 而跑 hook
+
+   若要建立更接近 Tier A 的自動觸發，可選項為：
+   - VS Code task（在 `.vscode/tasks.json` 加入 session end task，手動觸發但有固定入口）
+   - 但此為 Layer 2 後的優化；Layer 1 的自然性條件以 Tier B 定義即可
+
    **Layer 1 執行紀錄（不得刪除，累積 evidence）：**
 
    | 次數 | 日期 | session_id | source | artifact_state | artifact_present | 備註 |
    |---|---|---|---|---|---|---|
    | #1 | 2026-04-15 | session-20260415T070356-a10167 | pytest-text | ok | True | 首次成功；手動 probe；ok=false 來自 failure_test_validation 命名模式（非 pipeline 斷裂）|
+   | #2 | 2026-04-16 | session-20260416T015634-fafa87 | pytest-text | ok | True | 手動 probe；跨 session 確認 pipeline 可行；ok=false 同 #1（命名模式，非斷裂）；自然性條件未驗證 |
+   | #3 | 2026-04-16 | — | pytest-text | ok | True | **Tier B 自然工作流**；Phase G 真實開發 session 收尾；gate_verdict=OK；closeout_status=valid；memory_tier=verified_state_update；641 tests 0 failures；commits 8621554 + ef0e40e |
 
-   **Layer 1 穩定狀態**：❌ 未達標（需第 2 筆跨 session，且更接近自然 workflow）
+   **Layer 1 穩定狀態**：✅ STABLE（3 次跨 session 成功；#3 為 Tier B 自然工作流，非 probe；自然性條件達標）
 
    **Layer 2：證明可以移除 temporary skip（Layer 1 穩定後才做）**
 
@@ -794,6 +815,45 @@ Enumd / SpecAuthority：
    > **只有單次成功不算 Layer 2 達成。**
    > 單次可能是手動特例、probe、或非自然工作流。
    > 此 repo 已有「單筆樣本被高估」的紀錄，不得再犯。
+
+   **⚠️ Layer 2 時間尺度宣告（必須先釘住，不得後補）：**
+
+   > 新完成 wiring 的 repo，其 Layer 2 穩定性以**近期 rolling window** 判定，不以全歷史分布作為主要成功條件。
+   > 全歷史僅保留作為 adoption history 與遷移脈絡，不作為 stable_ok 的主要判準。
+   > 理由：用全歷史懲罰已穩定修復的 repo，在治理語意上不合理；早期 absent 反映 wiring 前狀態，不反映當前 lifecycle 成熟度。
+
+   **lifecycle_class 現況分析（2026-04-16）：**
+
+   | 時間尺度 | 指標 | 數值 | 說明 |
+   |---|---|---|---|
+   | 全歷史（33 entries） | artifact_state=absent | 25（75.76%） | 大量為 pre-wiring 舊 session |
+   | 全歷史（33 entries） | artifact_state=ok | 8（24.24%） | post-wiring 成功 |
+   | 全歷史（33 entries） | lifecycle_class | **mixed_active** | absent 75.8% < 90% 門檻 → 非 stuck_absent |
+   | rolling window（後 20 筆） | ok 數 | 8/20 | 後 8 筆為 ok，前 12 筆為 absent |
+   | rolling window（後 20 筆） | 距 stable_ok | **約 12 次** | window 全翻 ok 需再 12 次自然 ok session |
+
+   **兩個時間尺度不能混用（釘住）：**
+   - 「還需 12 次自然 ok session」**只對 rolling window 目標成立**，不代表全歷史分布收斂
+   - 全歷史 33 筆中 absent 占 75.8%，即使 rolling window 達標，全歷史仍是 mixed_active
+   - Layer 2 判定採 rolling window；全歷史只作 audit context
+
+   **Checkpoint 4 狀態：**
+   - `lifecycle_class ≠ stuck_absent` → ✅（mixed_active，從未進入 stuck_absent）
+   - `不只 1 筆 post-wiring evidence` → ✅（9 筆 skip_type=temporary）
+   - **Checkpoint 4 已達標 ≠ Layer 2 完成**：`mixed_active` = 有生命跡象；`stable_ok` = 可視為成熟樣本，兩者不能混
+
+   **通往 Layer 2 完成（rolling window 判準）：**
+
+   rolling window（最後 20 筆）目前 ok=8，absent=12。
+   Layer 2 完成標準：**rolling window 20 筆全部 ok**。
+   距離：約 12 次自然 ok session，但**前進速度直接受 SpecAuthority 真實工作頻率限制**，不是時間本身，也不是單純 session 數量。
+   不得為了數字硬刷 probe——probe 會污染 Layer 2 的自然性。
+
+   **待清理項（非小提醒）：**
+   session_end_hook 輸出的 `e1b_observation.is_degenerate=True` 是 legacy entropy 公式（entropy < 0.3）殘留。
+   v2 公式（`is_degenerate_v2 = lifecycle_class == "stuck_absent"`）回傳 False。
+   兩者語意不同，但舊欄位仍在輸出層，任何看到 `is_degenerate=True` 的人都可能誤解。
+   **這是輸出層語意污染，需在 Layer 2 完成前清理或加 deprecation 標記。**
 
    Layer 2 完成後，才允許：`gate_policy.yaml` 移除 `skip_test_result_check: true` 與 `skip_type: temporary`，
    SpecAuthority 才算正式進入 lifecycle-capable pool，才算 Phase 2 gate 的第三個有效 repo。
