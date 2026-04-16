@@ -1213,6 +1213,18 @@ Mode B（Hermes）明確記錄為 docs-only，實作未著手。
 
 **Track B（mixed_active 語意拆分）仍待做，但驅動原因是 v2 promote 前置整理，不是本批評的 remediation。** 兩件事驅動原因不同，不得混讀。
 
+**補充說明：目前邊界是 trust-based，尚未是 constraint-based**
+
+現有防線（`is_runtime_eligible()`、routing directive、mapping 禁用清單）均為 discipline-based：正確使用者遵守即有效，但不能阻止 downstream consumer（含 LLM agent）繞過。真正的 constraint-based 防線需要 enforcement 層（schema validation at consumption point 或 gated read API），目前不存在。
+
+**Observation vs Decision Boundary — 未來觀察項（不是現在的 code task）：**
+
+若日後出現以下任一情況，視為邊界侵蝕，需立即處理，不得當 feature：
+- `external_analysis_artifact` 被用作 lifecycle classification 輸入
+- `calibration_profile` 或 `advisories` 被當成 gate decision evidence
+- Enumd 的 threshold 值出現在任何非 Enumd 的判斷邏輯中
+- `semantic_boundary` 被 consumer 自行重新解讀成允許影響 decision 的依據
+
 ---
 
 ### 1. Session Workflow Enhancement
