@@ -1194,6 +1194,27 @@ Mode B（Hermes）明確記錄為 docs-only，實作未著手。
 
 ---
 
+**Enumd integration 架構批評回應（2026-04-16，釘住不得回溯）：**
+
+> **Track A closes with no article-driven code changes required. Track B remains an internal taxonomy-upgrade task, not a remediation for any external critique.**
+
+背景：一份外部架構評論提出四點批評：① Enumd ≠ 事實（只是 observation model）、② Governance = 盲裁判（evidence completeness 不足）、③ 閉環缺 rollback/decay、④ Hermes ≠ 執行器（系統演化來源）。
+
+對照現有 code 的有效結論：
+
+| 批評 | 當前狀態 | 依據 |
+|---|---|---|
+| Enumd ≠ 事實 | **已處理**（conservative design） | `observation_class="external_analysis_artifact"`；`represents_agent_behavior=false`；`is_runtime_eligible()=False`；mapping 明文禁止 threshold / advisory / verdict 轉義 |
+| Governance = 盲裁判 | **不是當前 code 缺陷，但屬潛在 consumer semantics 風險** | distribution gate 防止單點信任；`calibration_profile` 保存 evidence scope；但不自動保證 downstream consumer 不過度解讀——目前無發生證據，不值得新增 code |
+| 缺 rollback/decay | **當前豁免，非永久已解** | memory promotion / execution loop coupling 尚未引入 scope，故尚未暴露；這是未來架構前提，不是當前缺陷 |
+| Hermes 複雜性 | **不適用（無此組件）** | 當前豁免源於尚未引入，不是架構天然回答 |
+
+這篇文章對當前 codebase 的有效影響是：**驗證現有保守邊界設計成立**，不是觸發新的實作修補。
+
+**Track B（mixed_active 語意拆分）仍待做，但驅動原因是 v2 promote 前置整理，不是本批評的 remediation。** 兩件事驅動原因不同，不得混讀。
+
+---
+
 ### 1. Session Workflow Enhancement
 
 - producer / canonical / consumer 已分層
