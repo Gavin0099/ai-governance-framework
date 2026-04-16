@@ -1001,6 +1001,13 @@ def _build_e1b_observation(
       => all recent sessions saw the same artifact_state
       => the window cannot support E1b-style statistical interpretation
 
+    NOTE: is_degenerate uses the LEGACY entropy formula (distinct_states/n < 0.3).
+    This formula generates false-positives for stable_ok repos (converged entropy is
+    EXPECTED to be low). The authoritative v2 signal is lifecycle_class / is_degenerate_v2
+    computed by scripts/analyze_e1b_distribution.py (requires fingerprint_diversity).
+    is_degenerate here is kept for backward compatibility ONLY — do not use it as
+    a primary governance signal.
+
     Authority boundary
     ------------------
     advisory_only=True is HARD-CODED.  This function must never be extended
@@ -1032,6 +1039,7 @@ def _build_e1b_observation(
             "entropy": 0.0,
             "signal_ratio": 0.0,
             "is_degenerate": True,
+            "is_degenerate_formula": "legacy_entropy",
             "observation_note": "observation unavailable due to internal error",
             "advisory_only": True,
             "internal_error": True,
@@ -1055,6 +1063,7 @@ def _build_e1b_observation(
             "entropy": 0.0,
             "signal_ratio": 0.0,
             "is_degenerate": True,
+            "is_degenerate_formula": "legacy_entropy",
             "observation_note": "no entries in log for this repo",
             "advisory_only": True,
         }
@@ -1088,7 +1097,11 @@ def _build_e1b_observation(
         "distinct_states": distinct_states,
         "entropy": entropy,
         "signal_ratio": signal_ratio,
+        # LEGACY: entropy-based formula (distinct_states/n < 0.3).
+        # Generates false-positives for stable_ok repos (converged window is expected low-entropy).
+        # Authoritative v2: lifecycle_class / is_degenerate_v2 in analyze_e1b_distribution.py.
         "is_degenerate": is_degenerate,
+        "is_degenerate_formula": "legacy_entropy",
         "observation_note": note,
         "advisory_only": True,
     }
@@ -1758,12 +1771,17 @@ def format_human_result(result: dict[str, Any]) -> str:
             f"distinct_states={e1b.get('distinct_states', 0)} "
             f"entries={e1b.get('raw_entries', 0)} "
             f"signal_ratio={e1b.get('signal_ratio', 0.0):.0%} "
-            f"is_degenerate={e1b.get('is_degenerate')}"
+            f"is_degenerate={e1b.get('is_degenerate')} [legacy_entropy]"
             + (" [internal_error]" if e1b.get("internal_error") else "")
         )
         if e1b.get("is_degenerate") or e1b.get("internal_error"):
             lines.append(f"  [ADVISORY] e1b: {e1b.get('observation_note', '')}")
-
+            if e1b.get("is_degenerate") and not e1b.get("internal_error"):
+                lines.append(
+                    "  [NOTE] is_degenerate uses legacy entropy formula; "
+                    "for authoritative v2 signal run: "
+                    "scripts/analyze_e1b_distribution.py (lifecycle_class / is_degenerate_v2)"
+                )
     lines += [
         f"decision={result['decision']}",
         f"snapshot_created={result['snapshot_created']}",
