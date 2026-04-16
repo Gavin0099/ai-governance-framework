@@ -507,3 +507,90 @@ class TestEraSkipTypeCoverage:
             f"expected CURRENT but got {fleet['fleet_era_tag']!r}; "
             f"coverage={fleet['fleet_skip_type_coverage_ratio']}"
         )
+
+
+# ── recent_lifecycle_class (rolling window, Layer 2 primary signal) ───────────
+
+class TestRecentLifecycleClass:
+    """
+    Verify that recent_lifecycle_class uses only the last _LC_RECENT_WINDOW
+    entries and is independent of full-history lifecycle_class.
+
+    These tests enforce the Layer 2 time-scale contract:
+      - Full-history lifecycle_class is audit context only.
+      - recent_lifecycle_class is the authoritative Layer 2 stability signal.
+      - Early pre-wiring absent entries must NOT permanently penalise a repo
+        that has since converged to stable recent behaviour.
+    """
+
+    def test_recent_stable_ok_despite_full_history_mixed(self):
+        """
+        Repo has 25 old absent entries (pre-wiring) + 20 recent ok entries.
+        full-history lifecycle_class should be mixed_active (absent=55.6%<90%).
+        recent_lifecycle_class should be stable_ok (last 20 = all ok).
+        """
+        old_absent = _entries_n("SA", "absent", 25)
+        recent_ok = _entries_n("SA", "ok", 20)
+        entries = old_absent + recent_ok
+        stats = compute_repo_stats(entries)
+        r = stats["SA"]
+        # Full history: absent dominant but < 90% → mixed_active
+        assert r["lifecycle_class"] == "mixed_active"
+        # Rolling window: all ok → stable_ok
+        assert r["recent_lifecycle_class"] == "stable_ok"
+        assert r["recent_ok_count"] == 20
+        assert r["recent_window_size"] == 20
+
+    def test_recent_mixed_when_window_not_yet_converted(self):
+        """
+        Repo has 25 absent + 8 ok. Rolling window (last 20) = 5 absent + 8 ok.
+        recent_lifecycle_class should be mixed_active (ok share 8/13 < 90%).
+        """
+        old_absent = _entries_n("SA", "absent", 25)
+        partial_ok = _entries_n("SA", "ok", 8)
+        entries = old_absent + partial_ok
+        stats = compute_repo_stats(entries)
+        r = stats["SA"]
+        assert r["recent_lifecycle_class"] == "mixed_active"
+        assert r["recent_ok_count"] == 8
+        assert r["recent_window_size"] == 20
+
+    def test_recent_window_capped_at_constant_when_fewer_entries(self):
+        """
+        Repo has only 5 entries total. recent_window_size == 5, not 20.
+        """
+        entries = _entries_n("small", "ok", 5)
+        stats = compute_repo_stats(entries)
+        r = stats["small"]
+        assert r["recent_window_size"] == 5
+        assert r["recent_ok_count"] == 5
+        # 5 entries all ok → ok share = 1.0 ≥ 0.90 → stable_ok
+        assert r["recent_lifecycle_class"] == "stable_ok"
+
+    def test_recent_lifecycle_not_affected_by_old_stuck_absent(self):
+        """
+        Repo was stuck_absent early (30 absent entries, diversity frozen),
+        then fixed and ran 20 ok sessions. recent_lifecycle_class must reflect
+        the fix, not the historical failure.
+        """
+        old_stuck = [
+            _entry("repo", "absent", skip_type="temporary")
+            for _ in range(30)
+        ]
+        fixed_ok = _entries_n("repo", "ok", 20)
+        entries = old_stuck + fixed_ok
+        stats = compute_repo_stats(entries)
+        r = stats["repo"]
+        # Full history: absent=30/50=60%, mixed_active (< 90 threshold)
+        assert r["lifecycle_class"] == "mixed_active"
+        # Recent window: all ok → stable_ok
+        assert r["recent_lifecycle_class"] == "stable_ok"
+
+    def test_fields_always_present_in_output(self):
+        """recent_lifecycle_class, recent_ok_count, recent_window_size always set."""
+        entries = [_entry("r", "ok")]
+        stats = compute_repo_stats(entries)
+        r = stats["r"]
+        assert "recent_lifecycle_class" in r
+        assert "recent_ok_count" in r
+        assert "recent_window_size" in r

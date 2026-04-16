@@ -66,6 +66,13 @@ _E1B_MIN_VALID_ENTROPY: float = 0.3
 _LC_DOMINANT_SHARE_THRESHOLD: float = 0.90
 _LC_FROZEN_DIVERSITY_THRESHOLD: float = 0.10
 
+# Rolling window size for recent_lifecycle_class.
+# Mirrors the E8a canonical_audit_trend window.
+# Layer 2 stability for newly-wired repos is evaluated on this window,
+# not on full historical distribution (which would permanently penalise
+# pre-wiring absent entries).
+_LC_RECENT_WINDOW: int = 20
+
 # Default Phase 2 readiness gate thresholds.
 # These can be overridden via CLI flags.
 # The rationale for each:
@@ -377,6 +384,46 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
 
         is_degenerate_v2 = lifecycle_class == "stuck_absent"
 
+        # ── recent_lifecycle_class (rolling window) ───────────────────────────
+        # Computes lifecycle_class over the LAST _LC_RECENT_WINDOW entries only.
+        # This is the Layer 2 stability signal for newly-wired repos.
+        # Full-history lifecycle_class is kept for audit context; it must NOT
+        # be used as the primary Layer 2 acceptance criterion — early absent
+        # entries pre-date wiring and would permanently penalise a stable repo.
+        recent_entries = repo_entries[-_LC_RECENT_WINDOW:]
+        r_n = len(recent_entries)
+        r_states = [e.get("artifact_state", "unknown") for e in recent_entries]
+        r_state_breakdown: dict[str, int] = defaultdict(int)
+        for s in r_states:
+            r_state_breakdown[s] += 1
+        r_dominant = (
+            max(r_state_breakdown, key=r_state_breakdown.get)
+            if r_state_breakdown else "unknown"
+        )
+        r_dominant_share = (
+            round(r_state_breakdown.get(r_dominant, 0) / r_n, 4) if r_n > 0 else 0.0
+        )
+        r_fingerprints = [_session_fingerprint(e) for e in recent_entries]
+        r_fp_diversity = (
+            round(len(set(r_fingerprints)) / r_n, 4) if r_n > 0 else 0.0
+        )
+        _STUCK_STATES_R = {"absent", "malformed", "unknown"}
+        if (
+            r_dominant in _STUCK_STATES_R
+            and r_dominant_share >= _LC_DOMINANT_SHARE_THRESHOLD
+            and r_fp_diversity < _LC_FROZEN_DIVERSITY_THRESHOLD
+        ):
+            recent_lifecycle_class = "stuck_absent"
+        elif (
+            r_dominant == "ok"
+            and r_dominant_share >= _LC_DOMINANT_SHARE_THRESHOLD
+        ):
+            recent_lifecycle_class = "stable_ok"
+        else:
+            recent_lifecycle_class = "mixed_active"
+        recent_ok_count = r_state_breakdown.get("ok", 0)
+        recent_window_size = r_n
+
         stats[repo] = {
             "session_count": n,
             "distinct_states": distinct,
@@ -400,6 +447,12 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
             "dominant_state_share": dominant_state_share,
             "lifecycle_class": lifecycle_class,
             "is_degenerate_v2": is_degenerate_v2,
+            # Rolling-window metrics (Layer 2 primary signal)
+            # recent_lifecycle_class is the authoritative Layer 2 stability signal.
+            # lifecycle_class (full-history) is audit context only.
+            "recent_lifecycle_class": recent_lifecycle_class,
+            "recent_ok_count": recent_ok_count,
+            "recent_window_size": recent_window_size,
         }
     return stats
 

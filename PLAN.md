@@ -816,11 +816,13 @@ Enumd / SpecAuthority：
    > 單次可能是手動特例、probe、或非自然工作流。
    > 此 repo 已有「單筆樣本被高估」的紀錄，不得再犯。
 
-   **⚠️ Layer 2 時間尺度宣告（必須先釘住，不得後補）：**
+   **✅ Layer 2 時間尺度宣告（已落地到分析器，2026-04-16）：**
 
    > 新完成 wiring 的 repo，其 Layer 2 穩定性以**近期 rolling window** 判定，不以全歷史分布作為主要成功條件。
    > 全歷史僅保留作為 adoption history 與遷移脈絡，不作為 stable_ok 的主要判準。
    > 理由：用全歷史懲罰已穩定修復的 repo，在治理語意上不合理；早期 absent 反映 wiring 前狀態，不反映當前 lifecycle 成熟度。
+   >
+   > **程式落地**：`scripts/analyze_e1b_distribution.py` 加入 `recent_lifecycle_class`（last `_LC_RECENT_WINDOW=20` entries）作為 Layer 2 主判欄位；`lifecycle_class`（全歷史）降格為 audit context。5 個新測試驗證時間尺度獨立性。
 
    **lifecycle_class 現況分析（2026-04-16）：**
 
