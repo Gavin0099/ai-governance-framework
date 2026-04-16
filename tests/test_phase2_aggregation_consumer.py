@@ -58,6 +58,7 @@ def test_case_d_closure_conditions_met_is_closure_verified():
         historical_observed=True,
         remediation_introduced=True,
         covers_original_misuse_path=True,
+        closure_review_approved=True,
     )
     assert result["current_state"] == "closure_verified"
     assert result["closure_condition_met"] is True
@@ -96,4 +97,3 @@ def test_current_state_is_always_single_canonical_enum_value():
     )
     assert result["current_state"] in CANONICAL_CURRENT_STATES
     assert isinstance(result["current_state"], str)
-

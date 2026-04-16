@@ -5,6 +5,11 @@ from __future__ import annotations
 
 import json
 import sys
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 from governance_tools.phase2_aggregation_consumer import (
     CANONICAL_CURRENT_STATES,
@@ -55,6 +60,7 @@ def _run_case_matrix() -> list[dict]:
                 historical_observed=True,
                 remediation_introduced=True,
                 covers_original_misuse_path=True,
+                closure_review_approved=True,
             ),
             "closure_verified",
             True,

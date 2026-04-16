@@ -61,6 +61,7 @@ def aggregate_phase2_state(
     historical_observed: bool,
     remediation_introduced: bool = False,
     covers_original_misuse_path: bool = False,
+    closure_review_approved: bool = False,
 ) -> dict[str, Any]:
     """
     Deterministic aggregation based on canonical precedence.
@@ -90,6 +91,7 @@ def aggregate_phase2_state(
         and window.adequate
         and (not has_observed_in_window)
         and has_tested_evidence
+        and closure_review_approved
     )
 
     if has_observed_in_window:
@@ -119,4 +121,3 @@ def aggregate_phase2_state(
         "normalized_statuses": normalized,
         "promote_eligible": current_state == "closure_verified",
     }
-
