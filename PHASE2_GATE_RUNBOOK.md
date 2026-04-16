@@ -30,7 +30,7 @@ temporary_skip（不計入 Phase 2 gate）：
 - Minimum sample size 是**進入判讀的必要條件**，不是充分條件。
 - 評估輸出必須同時包含：
   - observed_behavior_summary
-  - misuse_evidence_status（`none_observed` / `observed` / `not_tested`）
+  - misuse_evidence_status（`observed` / `not_observed_in_window` / `not_tested`）
   - misuse_evidence_detail（當 status=`observed` 時必填；`not_tested` 不得視為 safe）
   - confidence_level（low / medium / high）
 - confidence_level 最小語意錨點：
@@ -40,6 +40,50 @@ temporary_skip（不計入 Phase 2 gate）：
 - N 不可單獨作為 promotion 依據；N 只表示 observation coverage，不表示 safety 保證。
 - 若 observation window 不足，只能輸出 insufficient_observation，不得宣告 stable / ready。
 - Phase 2 結果必須支援 multi-run aggregation；單次 observation 不構成最終判斷。
+- `none_observed` 僅允許作為 legacy input alias；新輸出統一使用 `not_observed_in_window`。
+
+### Aggregation Precedence（必遵守）
+
+1. Rule 1 — observed has memory  
+   歷史曾 `observed` 時，不得因單次 `not_observed_in_window` 或單次 `high` 自動清風險。
+2. Rule 2 — not_tested is null evidence  
+   `not_tested` 不得視為安全證據，也不得提高 confidence。
+3. Rule 3 — confidence belongs to window  
+   `confidence_level` 必須對 observation window 評估，不是單次 run 自評。
+4. Rule 4 — downgrade requires explicit closure  
+   只有在「修正已導入 + 觀察窗口內無再現 + 覆蓋原 misuse path」同時成立時，才可從歷史 `observed` 降級為 `mitigated/closed`。
+
+### Fixed Output Template（sample-level / window-level 分層）
+
+```yaml
+observation_window:
+  runs: 3
+  sessions: 2
+  time_range: "2026-04-14T00:00:00Z..2026-04-16T23:59:59Z"
+sample_level:
+  observed_behavior_summary: "..."
+  misuse_evidence:
+    status: observed | not_observed_in_window | not_tested
+    evidence_refs: []
+  confidence_level: low | medium | high
+window_level:
+  aggregation_result:
+    current_state: insufficient_observation | risk_observed | no_misuse_observed_in_window | risk_not_reobserved_yet | insufficient_closure_evidence | mitigated | closed
+    historical_observed: true | false
+    closure_condition_met: true | false
+  review_notes: "..."
+```
+
+### Mock Dry Run Matrix（決策誤判防護）
+
+- Case A：全部 `not_tested`  
+  期望：`current_state=insufficient_observation`；不得進 Phase 3。
+- Case B：先 `observed`，後續 `not_observed_in_window/high`  
+  期望：`current_state=risk_not_reobserved_yet` 或 `insufficient_closure_evidence`；不得自動清風險。
+- Case C：多次 `not_observed_in_window` 但 window 太小  
+  期望：`current_state=insufficient_observation`；不得升級為 stable/ready。
+- Case D：曾 `observed`，修正後滿足 closure conditions  
+  期望：`current_state=mitigated` 或 `closed`；可進入後續 gate 討論。
 
 ---
 
