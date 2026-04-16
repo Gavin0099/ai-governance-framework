@@ -850,6 +850,20 @@ Enumd / SpecAuthority：
    **Layer 2 完成後已允許（待執行）：** `gate_policy.yaml` 移除 `skip_test_result_check: true` 與 `skip_type: temporary`。
    SpecAuthority 現為 lifecycle-capable pool **第三個有效 repo**。
 
+   **✅ gate_policy.yaml 清理已確認（2026-04-16）：**
+   SpecAuthority `gate_policy.yaml` 已無 `skip_test_result_check` 與 `skip_type` 欄位。
+
+   **⚠️ lifecycle_capable 語意 bug 修正（2026-04-16，`analyze_e1b_distribution.py`）：**
+   舊邏輯 `has_any_skip`（全歷史 any）會讓 SpecAuthority 因歷史 `skip_type: temporary` entries 永遠被排除在 lifecycle_capable 之外，即使 gate_policy.yaml 已清理。
+   已修正為：使用最近一筆 schema-aware entry（`policy_provenance` 中 `skip_type` key 存在的 entry）的 skip_type 值。
+   若最近 schema-aware entry 的 skip_type=null → lifecycle_capable=True；pre-schema repo 仍 fallback 到舊邏輯。
+
+   **修正後 fleet 狀態（2026-04-16）：**
+   - lifecycle_capable repos：3（Bookstore-Scraper, SpecAuthority, ai-governance-framework）
+   - Phase 2 gate `min_repos ≥ 3`：✅ PASS
+   - Phase 2 gate `min_nondegenerate_ratio ≥ 0.7`：❌ FAIL（legacy entropy metric；all 3 repos are stable_ok by v2，但 entropy 低於 0.3 觸發 legacy false-positive）
+   - 剩餘 blocker 是 legacy v2-upgrade 問題，不是母體不足
+
    **待清理項（Layer 2 完成後仍需處理）：**
    session_end_hook 輸出的 `e1b_observation.is_degenerate=True` 是 legacy entropy 公式（entropy < 0.3）殘留。
    v2 公式（`is_degenerate_v2 = lifecycle_class == "stuck_absent"`）回傳 False。
@@ -1132,6 +1146,29 @@ One-callsite abstraction 現在提取是 premature；等出現第二個消費點
 **明確記錄：Mode B 實作未著手。**  
 前提條件：需要真實 Hermes instance + 真實 session_closeout.json 樣本 + 明確 operator flow。  
 在此之前，`hermes.md` 是設計文件，不是已上線的 integration。
+
+**Enumd seam drift detector（`cfd46b8`）：**
+
+`scripts/check_enumd_integration_state.py` — 12 assertions，exit 0/1，支援 `--json`：
+- 4 seam file existence checks
+- 2 critical content checks in ingestor.py（routing directive + provenance root）
+- 1 analysis boundary check（`is_runtime_eligible` in analyze_e1b_distribution.py）
+- 4 critical test function name checks（T1-T4 semantic guards）
+
+**pytest wrapper（`tests/test_enumd_integration_state.py`，13 tests）：**
+
+把 seam state check 納入 pytest filtered suite，每次測試自動驗證 seam 結構完整性：
+- `test_enumd_integration_state_all_pass`（aggregate，12 checks）
+- 4 × seam file existence（parametrized）
+- P1 test file existence
+- ingestor routing directive check
+- ingestor provenance root check
+- P2 analysis boundary check
+- 4 × semantic guard presence（parametrized）
+
+**測試結果（路線 2 + 路線 3 合併）：1824 passed，0 failed**（+19 新測試，無 regression）
+
+Mode B（Hermes）明確記錄為 docs-only，實作未著手。
 
 ---
 

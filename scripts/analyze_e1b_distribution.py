@@ -336,19 +336,41 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
             if st is not None:
                 skip_type = st
                 break
-        # lifecycle_capable: repo is in entropy analysis pool when skip_type is
-        # not set (repo-local policy was never skip=true) or when there is no
-        # skip declaration at all in the log.
-        # Repos with any skip declaration (structural OR temporary) are NOT in
-        # the entropy baseline pool.
+        # lifecycle_capable: repo is in entropy analysis pool when no skip is
+        # currently declared in gate_policy.yaml.
+        #
+        # Strategy: use the most recent SCHEMA-AWARE entry to determine the
+        # current policy.  A "schema-aware" entry has the "skip_type" KEY
+        # present in policy_provenance (value may be null).
+        #   - null  → current policy has no skip  → lifecycle_capable = True
+        #   - "structural" / "temporary" → skip still declared → False
+        #
+        # Fall back to has_any_skip only when NO schema-aware entries exist
+        # (pre-schema repos that pre-date the skip_type field).
+        #
+        # This allows repos that cleared their skip declaration (gate_policy.yaml
+        # no longer contains skip_type) to correctly re-enter the baseline pool
+        # once a new session_end_hook run produces an entry with skip_type=null.
+        # Without this, historical "temporary" entries would permanently exclude
+        # such repos from lifecycle_capable even after the policy was cleaned.
         has_any_skip = any(
             (e.get("policy_provenance") or {}).get("skip_type") is not None
             for e in repo_entries
         )
-        # If no skip_type in any entry, infer from state distribution:
-        # purely absent + no signals suggests silent skip.
-        # We conservatively keep it in the lifecycle pool if we can't tell.
-        lifecycle_capable = not has_any_skip
+        most_recent_aware_skip: str | None = None
+        _found_aware_entry: bool = False
+        for _e in reversed(repo_entries):
+            _prov = _e.get("policy_provenance") or {}
+            if "skip_type" in _prov:
+                most_recent_aware_skip = _prov.get("skip_type")
+                _found_aware_entry = True
+                break
+        if _found_aware_entry:
+            # Post-schema: current declared policy governs.
+            lifecycle_capable = most_recent_aware_skip is None
+        else:
+            # Pre-schema: conservatively fall back to any-skip check.
+            lifecycle_capable = not has_any_skip
 
         # skip_type_entry_count: how many entries carry the skip_type field.
         # Tracks schema migration completeness: old entries pre-date the field.
