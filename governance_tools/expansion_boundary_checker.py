@@ -69,6 +69,14 @@ KNOWN_SESSION_START_KEYS = {
     # Slice 5: reads prior-session canonical closeout for continuity context.
     # Informational only — does not affect ok, task_level, risk, or oversight.
     "closeout_context",
+    # plan context provenance admitted 2026-04-15 / plan-summary-compression
+    # _detect_plan_context_provenance() returns fidelity/origin/summary_kind;
+    # plan_context_provenance carries the whole provenance dict.
+    # Informational only — does not affect ok, task_level, risk, or oversight.
+    "plan_context_provenance",
+    "fidelity",
+    "origin",
+    "summary_kind",
 }
 
 # pre_task_check spreads **active_rules_result so many keys are not literal in

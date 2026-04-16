@@ -44,7 +44,7 @@ def _run_cli(*args):
         [sys.executable, str(RUN_VALIDATORS.resolve()), *args],
         cwd=Path(".").resolve(),
         capture_output=True, stdin=subprocess.DEVNULL,
-        text=True,
+        text=True, encoding="utf-8",
         check=False,
     )
 
@@ -373,7 +373,7 @@ def test_codex_pre_task_hook_runs():
         [sys.executable, str((EXAMPLE_DIR / "hooks" / "codex_pre_task.py").resolve())],
         cwd=Path(".").resolve(),
         capture_output=True, stdin=subprocess.DEVNULL,
-        text=True,
+        text=True, encoding="utf-8",
         check=False,
     )
     assert proc.returncode == 0

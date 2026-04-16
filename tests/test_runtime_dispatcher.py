@@ -208,7 +208,7 @@ def test_dispatcher_cli_can_infer_project_root_and_plan_from_contract(tmp_path):
             "json",
         ],
         cwd=Path(__file__).parent.parent,
-        text=True,
+        text=True, encoding="utf-8",
         capture_output=True, stdin=subprocess.DEVNULL,
         check=True,
     )
