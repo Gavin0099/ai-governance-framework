@@ -1165,9 +1165,24 @@ One-callsite abstraction 現在提取是 premature；等出現第二個消費點
 - 最小 attestation schema（`session_closeout.json`）透過 `on_session_end()` 發出
 - 驗證不對稱性是**永久特性**，不是暫時缺口
 
-**明確記錄：Mode B 實作未著手。**  
-前提條件：需要真實 Hermes instance + 真實 session_closeout.json 樣本 + 明確 operator flow。  
-在此之前，`hermes.md` 是設計文件，不是已上線的 integration。
+**明確記錄：Mode B 實作未著手。**
+
+真正的 blocker 不是「缺三個技術前提」，而是「缺 constraint-based consumption boundary」（更深一層）：
+
+| 缺少什麼 | 說明 |
+|---|---|
+| Constraint-based boundary | 目前防線是 trust-based（文件＋標記）；Hermes 作為 agent consumer 會自行推論，文件無法約束 |
+| session_closeout schema 驗證點 | 沒有在 consumption point 做 schema gate，Hermes 輸出進不了可驗路徑 |
+| 真實 operator flow 定義 | 誰觸發、誰驗、輸出去哪——未定義則無法設計 boundary |
+
+**Hermes 導入的系統性質改變（必須在做之前理解）：**
+
+目前系統是「開放觀測、封閉決策」（Enumd artifact 被隔離，不影響 decision）。
+Hermes 一旦進來，系統會變成「開放觀測 + 開放決策」——因為 agent 會自行推論 external artifact 的含義。
+
+這代表 Hermes 導入前必須先有 constraint-based 邊界（不是文件，是 enforcement）：阻止 Hermes 把 `external_analysis_artifact` 當 lifecycle hint / decision evidence / policy calibration input。
+
+在 constraint-based 邊界存在之前，`hermes.md` 是設計文件，不是已上線的 integration。
 
 **Enumd seam drift detector（`cfd46b8`）：**
 
@@ -1191,6 +1206,28 @@ One-callsite abstraction 現在提取是 premature；等出現第二個消費點
 **測試結果（路線 2 + 路線 3 合併）：1824 passed，0 failed**（+19 新測試，無 regression）
 
 Mode B（Hermes）明確記錄為 docs-only，實作未著手。
+
+**Enumd Integration Phase Taxonomy（2026-04-16，釘住）：**
+
+| Phase | 狀態 | 描述 |
+|---|---|---|
+| Phase 1：schema-ready + guard-tested | ✅ 完成 | ingestor 可接 report、routing directive 驗證、P1/P2 測試守門、seam drift detector |
+| Phase 2：ingestion validation（真實資料） | 🔜 下一步 | 用真實 Enumd report 跑 ingestion，只觀察 artifact shape / distribution，**不接任何 downstream decision** |
+| Phase 3：production integration | ❌ blocked | 需要 Phase 2 觀察結果＋語意穩定性確認後才能開 |
+
+Phase 1 完成不等於「可以串」，只等於「ingestion 技術路徑就緒」。
+
+**Enumd Real-Data Ingestion Probe（Phase 2 入場 checklist）：**
+
+當有真實 `governance_report.json` 可用時，用以下 checklist 觀察（不做任何 downstream 接入）：
+
+1. 欄位完整性：`semantic_boundary` / `calibration_profile` / `producer` 是否在真實輸出中穩定存在
+2. Edge case 分布：mixed classification、不完整欄位、threshold edge（0.29/0.31）是否出現
+3. 語意誘導測試：artifact 的 `advisories` / `calibration_profile` 內容，是否有讓人「想用來做 decision」的語意傾向
+4. 隔離確認：`is_runtime_eligible()` 在真實 report 上是否穩定回傳 False
+5. Consumer semantics 觀察：如果有任何 consumer 讀到這份 artifact，是否存在誤讀到 decision layer 的傾向
+
+只有 probe checklist 5 個問題全部沒有問題，才進 Phase 3 討論。
 
 ---
 
