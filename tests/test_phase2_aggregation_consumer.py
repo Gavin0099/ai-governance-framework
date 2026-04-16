@@ -65,6 +65,34 @@ def test_case_d_closure_conditions_met_is_closure_verified():
     assert result["promote_eligible"] is True
 
 
+def test_closure_review_not_approved_cannot_be_closure_verified():
+    result = aggregate_phase2_state(
+        sample_statuses=["not_observed_in_window", "not_observed_in_window", "not_observed_in_window"],
+        window=WindowSpec(runs=3, sessions=2),
+        historical_observed=True,
+        remediation_introduced=True,
+        covers_original_misuse_path=True,
+        closure_review_approved=False,
+    )
+    assert result["current_state"] == "risk_not_reobserved_yet"
+    assert result["closure_condition_met"] is False
+    assert result["promote_eligible"] is False
+
+
+def test_closure_review_missing_defaults_to_not_approved():
+    result = aggregate_phase2_state(
+        sample_statuses=["not_observed_in_window", "not_observed_in_window"],
+        window=WindowSpec(runs=3, sessions=2),
+        historical_observed=True,
+        remediation_introduced=True,
+        covers_original_misuse_path=True,
+        # closure_review_approved intentionally omitted (default False)
+    )
+    assert result["current_state"] == "risk_not_reobserved_yet"
+    assert result["closure_condition_met"] is False
+    assert result["promote_eligible"] is False
+
+
 def test_historical_observed_with_insufficient_window_is_insufficient_closure_evidence():
     result = aggregate_phase2_state(
         sample_statuses=["not_observed_in_window", "not_observed_in_window"],
@@ -72,8 +100,23 @@ def test_historical_observed_with_insufficient_window_is_insufficient_closure_ev
         historical_observed=True,
         remediation_introduced=True,
         covers_original_misuse_path=True,
+        closure_review_approved=True,
     )
     assert result["current_state"] == "insufficient_closure_evidence"
+    assert result["promote_eligible"] is False
+
+
+def test_approved_cannot_override_insufficient_window():
+    result = aggregate_phase2_state(
+        sample_statuses=["not_observed_in_window", "not_observed_in_window", "not_observed_in_window"],
+        window=WindowSpec(runs=1, sessions=1),
+        historical_observed=True,
+        remediation_introduced=True,
+        covers_original_misuse_path=True,
+        closure_review_approved=True,
+    )
+    assert result["current_state"] == "insufficient_closure_evidence"
+    assert result["closure_condition_met"] is False
     assert result["promote_eligible"] is False
 
 
@@ -84,6 +127,7 @@ def test_observed_in_window_has_precedence_over_all_other_signals():
         historical_observed=True,
         remediation_introduced=True,
         covers_original_misuse_path=True,
+        closure_review_approved=True,
     )
     assert result["current_state"] == "risk_observed"
     assert result["promote_eligible"] is False
