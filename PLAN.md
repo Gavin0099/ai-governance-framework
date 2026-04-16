@@ -1,6 +1,6 @@
-# PLAN.md - AI Governance Framework
+﻿# PLAN.md - AI Governance Framework
 
-> **最後更新**: 2026-04-10
+> **最後更新**: 2026-04-16
 > **?敺??*: 2026-04-10
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
@@ -1046,6 +1046,92 @@ soul_check = {
 |---|---|---|
 | Phase 2 | `rule_fidelity`：記錄 topic filtering / stripping 保留了哪些 rule pack | ERA 穩定、E1b Phase 2 有足夠樣本後評估 |
 | Phase 3 | `cli_output_fidelity`：interactive dev session 的 CLI 壓縮觀測 | governance pipeline 內已由 ingestor 解決，Phase 3 只對 interactive 路徑有意義 |
+
+---
+
+### External Integration Seam — Enumd + Hermes（2026-04-16，已完成）
+
+**背景**：Enumd（`E:\BackUp\Git_EE\Enumd`）是一個 domain-calibrated synthesis pipeline，
+以 ai-governance-framework 作為 submodule。先前無任何橋接機制；governance report 只停在 Enumd 本地。
+
+**已完成的三層工作（commits `af8e45b` + `b17eeac`）：**
+
+#### Enumd External Observation Seam（Mode A）
+
+`integrations/enumd/` 建立四個檔：
+
+| 檔案 | 職責 |
+|---|---|
+| `schema.sample.json` | canonical sample（含 routing directive 注解和 calibration threshold 警告）|
+| `ingestor.py` | 驗證 provenance → assert `represents_agent_behavior=false` → 輸出 `artifacts/external-observations/enumd-{run_id}.json` |
+| `mapping.md` | 欄位對應表 + 7 條非等值硬限制 + 被明確排除的 Enumd internals 清單 |
+| `usage.md` | CLI 用法、output schema、不等值警告（3-question format）|
+
+**Enumd internals 明確排除於 integration surface 之外（不得偷渡）：**
+- `CROSS_DOMAIN_SLUG_PATTERNS`（corpus-specific slug 清單）
+- `LOW_OVERLAP_THRESHOLD = 0.40`（Enumd Wave 1 corpus 校準值，不是 framework 門檻）
+- `HANDOFF` threshold `0.30`、any-node threshold `0.50`（同上）
+- `STRUCTURAL_ALLOWLIST`（含中文 marker 的 synthesis artifact）
+- `SANITIZATION_PATTERNS`（20 個 regex，Enumd claim ingestion 用）
+- `KalResult`（CONVERGED / THIN_SYNTHESIS / SKIPPED）、`THIN_CONTEXT_MARKERS`
+
+**非等值硬限制（不得做以下對應）：**
+
+| Enumd 概念 | 禁止對應到 | 原因 |
+|---|---|---|
+| KEEP | framework `ignore` | 不同 evidence model |
+| DOWNGRADE | `test_fix` | 不同決策語意 |
+| REMOVE | `production_fix` / `escalate` | 不同 action scope |
+| `LOW_OVERLAP_THRESHOLD=0.40` | 任何 framework 門檻 | corpus-calibrated，不 generalizable |
+| `domain_misalignment_risk` advisory | framework risk signal | synthesis-local，不影響 session_start overrides |
+
+#### P1 — 測試守門（`tests/test_enumd_ingestor.py`）
+
+6 個 tests，全 pass，鎖住以下邊界：
+
+| Test | 守住的邊界 |
+|---|---|
+| `test_valid_sample_pass` | schema.sample.json 被接受；routing directive 在 envelope 保存；policy_applied 原封不動在 payload |
+| `test_missing_semantic_boundary_fail` | 沒有 semantic_boundary → reject（routing guard 不可省）|
+| `test_represents_agent_behavior_true_fail` | `represents_agent_behavior=True` → reject，error 可審計 |
+| `test_missing_provenance_field_fail` | 沒有 calibration_profile → reject（provenance root 不可缺）|
+| `test_validate_report_clean_sample` | `validate_report()` 對 sample 返回 empty list |
+| `test_validate_report_wrong_producer` | 非 enumd producer → 被 flag |
+
+#### P2 — Analysis Boundary（`scripts/analyze_e1b_distribution.py`）
+
+新增 `is_runtime_eligible()` 為**模組級 public 函式**：
+
+```python
+def is_runtime_eligible(obs: dict) -> bool:
+    """True only for observations representing agent runtime behaviour."""
+    return obs.get("semantic_boundary", {}).get("represents_agent_behavior", True)
+```
+
+`_load_entries()` 在 entry 進 `compute_repo_stats` 之前先 filter：
+- `represents_agent_behavior=False` 的 entry 被排除於 lifecycle_class、E1b、Phase 2 gate 之外
+- 預設 `True`：舊 entry（無 semantic_boundary 欄位）向後相容，不受影響
+- 被 filter 的數量 emit 到 stderr 作 diagnostic，不影響 exit code
+
+**為何不做 Option B（把 filter 移到 governance_tools/ 作 shared utility）**：
+目前 `canonical-audit-log.jsonl` 是 framework runtime sessions 的專屬路徑；
+Enumd ingestor 寫至 `external-observations/`，不寫 canonical-audit-log。
+真實危險路徑是手動操作問題，不是程式問題。
+One-callsite abstraction 現在提取是 premature；等出現第二個消費點再做。
+
+**測試結果（P1 + P2 合併）：1811 passed，0 failed**（+6 新測試，無 regression）
+
+#### Mode B — Hermes Instance（docs-only，實作未著手）
+
+`docs/governed-agents/hermes.md` 定義：
+- Hermes 是公開 OSS（NousResearch，91k stars），NOT a local repo
+- 框架只能提供「要求」（contract.yaml + AGENTS.base.md），無法驗證內部執行
+- 最小 attestation schema（`session_closeout.json`）透過 `on_session_end()` 發出
+- 驗證不對稱性是**永久特性**，不是暫時缺口
+
+**明確記錄：Mode B 實作未著手。**  
+前提條件：需要真實 Hermes instance + 真實 session_closeout.json 樣本 + 明確 operator flow。  
+在此之前，`hermes.md` 是設計文件，不是已上線的 integration。
 
 ---
 
