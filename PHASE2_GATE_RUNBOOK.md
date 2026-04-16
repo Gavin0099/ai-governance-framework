@@ -25,6 +25,24 @@ temporary_skip（不計入 Phase 2 gate）：
 
 ---
 
+## Observation Window Requirement（Phase 2.6 對齊，先行治理）
+
+- Minimum sample size 是**進入判讀的必要條件**，不是充分條件。
+- 評估輸出必須同時包含：
+  - observed_behavior_summary
+  - misuse_evidence_status（`none_observed` / `observed` / `not_tested`）
+  - misuse_evidence_detail（當 status=`observed` 時必填；`not_tested` 不得視為 safe）
+  - confidence_level（low / medium / high）
+- confidence_level 最小語意錨點：
+  - low：observation window 不足，或有未解釋異常
+  - medium：無明確 misuse，但 observation 不穩定或樣本偏單一
+  - high：無 misuse，且跨多樣情境觀察仍穩定
+- N 不可單獨作為 promotion 依據；N 只表示 observation coverage，不表示 safety 保證。
+- 若 observation window 不足，只能輸出 insufficient_observation，不得宣告 stable / ready。
+- Phase 2 結果必須支援 multi-run aggregation；單次 observation 不構成最終判斷。
+
+---
+
 ## Stage 0：Pre-flight（今天就做，5 分鐘）
 
 ### S0-1 確認工具版本

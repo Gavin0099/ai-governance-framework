@@ -1175,6 +1175,15 @@ One-callsite abstraction 現在提取是 premature；等出現第二個消費點
 | session_closeout schema 驗證點 | 沒有在 consumption point 做 schema gate，Hermes 輸出進不了可驗路徑 |
 | 真實 operator flow 定義 | 誰觸發、誰驗、輸出去哪——未定義則無法設計 boundary |
 
+**Boundary 完成條件（Minimal Acceptance Criteria，定義「何時算存在」，非要求當下實作）：**
+
+- `external_analysis_artifact` 不可被用於 lifecycle classification（hard block / filtered out）
+- `external_analysis_artifact` 不可被用於 gate decision（schema-level exclusion）
+- 若 Hermes consumer 讀取該 artifact，必須標記為 `non-decision-support evidence`
+- 在 closeout 中必須顯式保留來源鏈（provenance chain）
+
+只要上述任一條件無法被驗證，`constraint-based boundary` 視為不存在，Hermes integration 維持 blocked。
+
 **Hermes 導入的系統性質改變（必須在做之前理解）：**
 
 目前系統是「開放觀測、封閉決策」（Enumd artifact 被隔離，不影響 decision）。
@@ -1217,17 +1226,74 @@ Mode B（Hermes）明確記錄為 docs-only，實作未著手。
 
 Phase 1 完成不等於「可以串」，只等於「ingestion 技術路徑就緒」。
 
-**Enumd Real-Data Ingestion Probe（Phase 2 入場 checklist）：**
+**Enumd Real-Data Ingestion Probe（Phase 2 入場 checklist，Decision Criteria）：**
 
 當有真實 `governance_report.json` 可用時，用以下 checklist 觀察（不做任何 downstream 接入）：
 
-1. 欄位完整性：`semantic_boundary` / `calibration_profile` / `producer` 是否在真實輸出中穩定存在
-2. Edge case 分布：mixed classification、不完整欄位、threshold edge（0.29/0.31）是否出現
-3. 語意誘導測試：artifact 的 `advisories` / `calibration_profile` 內容，是否有讓人「想用來做 decision」的語意傾向
-4. 隔離確認：`is_runtime_eligible()` 在真實 report 上是否穩定回傳 False
-5. Consumer semantics 觀察：如果有任何 consumer 讀到這份 artifact，是否存在誤讀到 decision layer 的傾向
+1. 欄位完整性：`semantic_boundary` / `calibration_profile` / `producer` 是否在真實輸出中穩定存在  
+   FAIL：缺關鍵欄位，導致 `semantic_boundary` 無法被一致解釋
+2. Edge case 分布：mixed classification、不完整欄位、threshold edge（0.29/0.31）是否出現  
+   FAIL：大量 borderline / inconsistent cases，影響 interpretation stability
+3. 語意誘導測試（最重要）：artifact 的 `advisories` / `calibration_profile` 是否會讓合理 observer（含 LLM）傾向拿來做 decision  
+   FAIL：observer 傾向把 artifact 當 decision signal，或可推導 pseudo-threshold 行為
+4. 隔離確認：`is_runtime_eligible()` 在真實 report 上是否穩定回傳 False  
+   FAIL：任何 artifact 穿透 filter 進入 runtime path
+5. Consumer semantics 觀察：如果有任何 consumer 讀到這份 artifact，是否存在誤讀到 decision layer 的傾向  
+   FAIL：出現以下任一行為：用 external artifact 解釋 lifecycle 狀態、補 decision reasoning、或 implicit threshold reuse
 
-只有 probe checklist 5 個問題全部沒有問題，才進 Phase 3 討論。
+只有 probe checklist 5 項全部非 FAIL，才可進入 Phase 3 討論。
+**但 Phase 2 PASS 只代表「不破壞邊界（safety）」；不代表「值得整合進 decision ecosystem（value）」；PASS ≠ promote。**
+
+**Phase 2.6（新）— Boundary Verifiability Split（2026-04-16，後續 contract 草案）：**
+
+目的：避免「不可驗證 = 永久 blocked」與「宣稱安全 = 任意放行」兩個極端。
+
+| 類型 | 性質 | 進場要求 |
+|---|---|---|
+| Hard-verifiable boundary | 機械可驗證（schema / routing / runtime filter） | **必須全部成立**，否則維持 blocked |
+| Soft-verifiable boundary | 觀察性可驗證（consumer semantics / interpretation drift） | 不作單點放行條件；作為風險監測與降級依據 |
+
+Hermes blocker 的判讀語義更新為：  
+`Hard` 任一不成立 => boundary 不存在（blocked）；  
+`Soft` 無法完全證明不視為自動放行，需進入觀察窗口與人工審核。
+
+Soft-verifiable 不接受「單次看起來沒問題」作為結論。  
+每次判讀必須附 observation window（以 `N sessions` 或 `N runs` 明確記錄）；  
+若 observation window 未達最低要求，結論只能是 `insufficient_observation`，不得判定為 stable。
+
+**Phase 2 Observer Constraint（新）— 防自評循環依賴：**
+
+`語意誘導測試` 的 FAIL/PASS 判讀不可單靠 LLM observer。  
+每次 Phase 2 評估至少需要：
+
+1. 一個 deterministic check（例：禁用欄位映射檢查、runtime path trace、schema exclusion check）
+2. 一個 human rule review（針對「是否被解讀成 decision signal」做明確判定）
+
+若缺任一項，Phase 2 評估結果視為不完整，不得作為 Phase 3 entry 依據。
+human review 的角色預設為 `adversarial misuse review`：  
+目標是主動找出誤用路徑，而不是替 artifact 合理性背書；  
+若 reviewer 僅提供「看起來合理」且未列出 misuse 嘗試，視為 review 無效。
+
+**Phase 3 Entry Contract（草案）— Value-Oriented Promote Gate：**
+
+Phase 2 PASS 僅證明「不破壞邊界」；Phase 3 還需滿足至少一個 `promote rationale type`：
+
+1. `decision_quality_gain`：可證明提升 decision quality，不是僅增加資訊量
+2. `framework_signal_gap_fill`：提供 framework 內生路徑無法產生的訊號
+3. `no_new_shortcut`：不引入新的 decision shortcut（含 implicit threshold reuse）
+
+若三類理由皆不成立：維持 `observe-only`，不得 promote 到 decision ecosystem。
+
+**Promote rationale 的最小證據形態（audit-ready，避免語意宣告）：**
+
+1. `decision_quality_gain`  
+   最少一組前後對照案例（before/after decision trace），顯示決策品質提升而非僅資訊增加。
+2. `framework_signal_gap_fill`  
+   明確列出 framework 原生不存在的 signal，及其不可由既有 evidence 重建的理由。
+3. `no_new_shortcut`  
+   提供 negative proof 清單：本次 promote 明確「未使用」的資訊類型（含 threshold 類、verdict 類、lifecycle hint 類）。
+
+若理由成立但證據形態缺漏，結論為 `rationale_unproven`，不得 promote。
 
 ---
 
