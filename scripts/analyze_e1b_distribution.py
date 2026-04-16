@@ -198,9 +198,35 @@ def _normalized_shannon_entropy(state_breakdown: dict[str, int], n: int) -> floa
 
 # ── Data loading ──────────────────────────────────────────────────────────────
 
+def is_runtime_eligible(obs: dict) -> bool:
+    """
+    Return True only for observations that represent agent runtime behaviour.
+
+    Observations with semantic_boundary.represents_agent_behavior=False are
+    external analysis artifacts (e.g. Enumd governance_report.json) and must
+    NEVER be included in lifecycle_class, E1b, session_count, or Phase 2 gate
+    computations.  Including them would falsely inflate session counts and
+    corrupt lifecycle statistics.
+
+    Default is True so that legacy entries without a semantic_boundary field
+    (pre-dating the Enumd integration) continue to be treated as runtime
+    observations.  Only explicit False opt-outs are excluded.
+
+    See also: integrations/enumd/mapping.md — Routing Directives section.
+    """
+    return obs.get("semantic_boundary", {}).get("represents_agent_behavior", True)
+
+
 def _load_entries(log_paths: list[Path]) -> list[dict]:
-    """Load and merge JSONL entries from one or more log files."""
+    """
+    Load and merge JSONL entries from one or more log files.
+
+    Non-runtime observations (is_runtime_eligible() == False) are filtered out
+    so that external analysis artifacts (e.g. Enumd Mode A observations) never
+    reach lifecycle / E1b / Phase 2 gate computations.
+    """
     entries: list[dict] = []
+    skipped = 0
     for path in log_paths:
         if not path.exists():
             continue
@@ -210,11 +236,24 @@ def _load_entries(log_paths: list[Path]) -> list[dict]:
                 if not line:
                     continue
                 try:
-                    entries.append(json.loads(line))
+                    entry = json.loads(line)
                 except json.JSONDecodeError:
                     continue
+                if not is_runtime_eligible(entry):
+                    skipped += 1
+                    continue
+                entries.append(entry)
         except OSError:
             continue
+    if skipped:
+        # Surface as a diagnostic but do not block — the script must remain
+        # readable even when external observations land in the same directory.
+        import sys as _sys
+        print(
+            f"  [is_runtime_eligible] filtered {skipped} non-runtime observation(s) "
+            f"from lifecycle analysis",
+            file=_sys.stderr,
+        )
     return entries
 
 
