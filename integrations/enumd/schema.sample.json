@@ -1,0 +1,80 @@
+{
+  "_comment": "Canonical sample of a governance_report.json produced by Enumd and accepted by integrations/enumd/ingestor.py.",
+  "producer": "enumd",
+  "artifact_type": "governance_report",
+  "schema_version": "1.0",
+  "observation_class": "external_analysis_artifact",
+  "observation_type": "synthesis_governance_report",
+  "run_type": "production_wave",
+  "run_id": "wave-5",
+  "domain": "usb_windows_firmware",
+  "semantic_scope": "enumd-specific",
+  "instrumentation_version": "slice1-v1",
+  "semantic_boundary": {
+    "represents_agent_behavior": false,
+    "derivation": "synthesis_pipeline",
+    "_note": "represents_agent_behavior=false is a routing directive. This observation must NOT feed lifecycle_class, E1b, or runtime session_count statistics."
+  },
+  "calibration_profile": {
+    "name": "production_v1",
+    "overlap_thresholds": {
+      "low_overlap": 0.40,
+      "handoff": 0.30,
+      "any_node": 0.50
+    },
+    "notes": [
+      "Thresholds calibrated on Enumd corpus only.",
+      "Do NOT adopt these values as framework-wide policy defaults.",
+      "LOW_OVERLAP_THRESHOLD=0.40 applies only to Enumd corpus and must not generalize."
+    ]
+  },
+  "observed": {
+    "total_nodes": 15,
+    "total_claims": 886,
+    "explicit_claims": 635,
+    "derived_claims": 251,
+    "overlap_summary": {
+      "below_low_overlap": 3,
+      "above_any_node": 10,
+      "in_handoff_zone": 2
+    }
+  },
+  "policy_applied": {
+    "policy_id": "tiered-enforcement-policy-v1",
+    "calibration_profile": "production_v1",
+    "outcomes": {
+      "suppressed": 3,
+      "flagged": 2,
+      "passed": 10
+    },
+    "_note": "policy_id + calibration_profile pair must always be present so trend analysis can distinguish behavioral degradation from threshold changes."
+  },
+  "advisories": [
+    {
+      "signal": "domain_misalignment_risk",
+      "severity": "warning",
+      "decision_distance": "advisory_only",
+      "source": "enumd",
+      "details": {
+        "node_slug": "xcode-architecture-settings",
+        "overlap_score": 0.21,
+        "threshold_applied": 0.40
+      }
+    },
+    {
+      "signal": "thin_synthesis",
+      "severity": "info",
+      "decision_distance": "advisory_only",
+      "source": "enumd",
+      "details": {
+        "node_slug": "cmake-cross-compile",
+        "verdict": "THIN_SYNTHESIS",
+        "evidence_count": 2
+      }
+    }
+  ],
+  "raw_artifacts": {
+    "audit_json_path": "artifacts/wave-5/audit.json",
+    "claim_store_path": "artifacts/wave-5/claims.jsonl"
+  }
+}
