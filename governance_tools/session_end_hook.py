@@ -778,6 +778,7 @@ def _append_canonical_audit_log(
     repo_policy_present: bool,
     skip_type: str | None = None,
     plan_context_provenance: dict | None = None,
+    policy_load_error: str | None = None,
 ) -> None:
     """
     Append one entry to the canonical audit log for this session.
@@ -825,6 +826,7 @@ def _append_canonical_audit_log(
             "fallback_used": fallback_used,
             "repo_policy_present": repo_policy_present,
             "skip_type": skip_type,
+            **(({"policy_load_error": policy_load_error}) if policy_load_error is not None else {}),
         },
     }
     if plan_context_provenance is not None:
@@ -1400,6 +1402,7 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         repo_policy_present=policy.repo_policy_present,
         skip_type=policy.skip_type,
         plan_context_provenance=_read_plan_context_provenance(project_root),
+        policy_load_error=policy.policy_load_error,
     )
 
     # Compute multi-session trend — reads the log just written to, advisory only.
@@ -1482,6 +1485,7 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
             "policy_path": policy.policy_path,
             "fallback_used": policy.fallback_used,
             "repo_policy_present": policy.repo_policy_present,
+            "policy_load_error": policy.policy_load_error,
         },
         "closeout_file": str(closeout_path),
         "decision": result["decision"],
@@ -1694,6 +1698,12 @@ def format_human_result(result: dict[str, Any]) -> str:
         policy_path = gp.get('policy_path')
         if policy_path:
             lines.append(f"  policy_path={policy_path}")
+        policy_load_error = gp.get('policy_load_error')
+        if policy_load_error:
+            lines.append(
+                f"  [ADVISORY] gate_policy: YAML parse failed, using builtin_defaults"
+            )
+            lines.append(f"    parse_error={policy_load_error}")
 
     # Canonical path audit advisory — displayed after gate policy, before decision.
     cpa = result.get("canonical_path_audit") or {}

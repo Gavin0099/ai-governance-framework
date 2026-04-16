@@ -110,6 +110,37 @@ def test_load_policy_falls_back_to_defaults_on_bad_yaml(tmp_path):
     assert isinstance(policy, GatePolicy)
 
 
+def test_load_policy_parse_error_sets_policy_load_error(tmp_path):
+    """YAML parse failure must populate policy_load_error, not silently discard the error."""
+    bad = tmp_path / "bad.yaml"
+    bad.write_text("key: [unclosed bracket", encoding="utf-8")
+    policy = load_policy(path=bad)
+    # Falls back to builtin_default — error must be captured
+    assert policy.policy_source == POLICY_SOURCE_BUILTIN_DEFAULT
+    assert policy.policy_load_error is not None
+    assert len(policy.policy_load_error) > 0
+
+
+def test_load_policy_parse_error_in_provenance_dict(tmp_path):
+    """policy_load_error is included in to_provenance_dict() when set."""
+    bad = tmp_path / "bad.yaml"
+    bad.write_text("key: [unclosed bracket", encoding="utf-8")
+    policy = load_policy(path=bad)
+    provenance = policy.to_provenance_dict()
+    assert "policy_load_error" in provenance
+    assert provenance["policy_load_error"] == policy.policy_load_error
+
+
+def test_load_policy_no_parse_error_absent_from_provenance_dict(tmp_path):
+    """policy_load_error must NOT appear in to_provenance_dict() when parsing succeeded."""
+    good = tmp_path / "good.yaml"
+    good.write_text("fail_mode: permissive\n", encoding="utf-8")
+    policy = load_policy(path=good)
+    provenance = policy.to_provenance_dict()
+    assert "policy_load_error" not in provenance
+    assert policy.policy_load_error is None
+
+
 def test_load_policy_honours_custom_fail_mode(tmp_path):
     cfg = tmp_path / "policy.yaml"
     cfg.write_text("version: '1'\nfail_mode: permissive\n", encoding="utf-8")

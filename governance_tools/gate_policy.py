@@ -129,16 +129,22 @@ class GatePolicy:
     policy_path: str = ""
     fallback_used: bool = False
     repo_policy_present: bool = False
+    # Set when the YAML file existed but failed to parse; None otherwise.
+    # Distinguishes parse-error fallback from normal builtin/framework fallback.
+    policy_load_error: str | None = None
 
     def to_provenance_dict(self) -> dict:
         """Serialisable snapshot for embedding in session artifacts."""
-        return {
+        d: dict = {
             "policy_source": self.policy_source,
             "policy_path": self.policy_path,
             "fallback_used": self.fallback_used,
             "repo_policy_present": self.repo_policy_present,
             "skip_type": self.skip_type,
         }
+        if self.policy_load_error is not None:
+            d["policy_load_error"] = self.policy_load_error
+        return d
 
 
 @dataclass
@@ -288,6 +294,7 @@ def _load_from_path(
             policy_path=str(target),
             fallback_used=True,
             repo_policy_present=repo_policy_present,
+            policy_load_error=str(exc),
         )
     # _build_policy() runs OUTSIDE the yaml try/except so that ValueError from
     # invalid config values (e.g. bad hook_coverage_tier) propagates to the
@@ -309,6 +316,7 @@ def _build_policy(
     policy_path: str = "",
     fallback_used: bool = False,
     repo_policy_present: bool = False,
+    policy_load_error: str | None = None,
 ) -> GatePolicy:
     ut = raw.get("unknown_treatment") or {}
     if isinstance(ut, str):
@@ -356,6 +364,7 @@ def _build_policy(
         policy_path=policy_path,
         fallback_used=fallback_used,
         repo_policy_present=repo_policy_present,
+        policy_load_error=policy_load_error,
     )
 
 
