@@ -10,6 +10,7 @@ Covers:
 """
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -49,6 +50,7 @@ def _run_cli(*args):
         cwd=Path(".").resolve(),
         capture_output=True, stdin=subprocess.DEVNULL,
         text=True, encoding="utf-8",
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
         check=False,
     )
 
@@ -529,6 +531,7 @@ def test_codex_pre_task_hook_runs():
         cwd=Path(".").resolve(),
         capture_output=True, stdin=subprocess.DEVNULL,
         text=True, encoding="utf-8",
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
         check=False,
     )
     assert proc.returncode == 0
