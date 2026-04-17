@@ -54,7 +54,7 @@
 - escalation_closed: yes | no
 - closure_rationale:
 - owner:
-- status: open | triaged | mitigated | accepted-risk
+- status: open | triaged | mitigated | unverified_mitigation | accepted-risk
 - dual_state_note:
 - linked_runtime_log:
 ```
@@ -108,6 +108,6 @@
 - escalation_closed: `no`
 - closure_rationale: redesigned composition passes lightweight Round 3 AI adversarial check, but strict closure remains unfulfilled without fresh human-only verification. AI/adversarial evidence is non-authoritative for closure, so this remains implemented-but-unvalidated under human cognition constraints.
 - owner: `framework`
-- status: `mitigated`
+- status: `unverified_mitigation`
 - dual_state_note: Engineering track = implemented; Governance track = validation pending. Closure is blocked until governance validation completes (or explicit policy waiver is recorded).
 - linked_runtime_log: `artifacts/runtime/e1b-phase-b-escalation/phase-b-escalation-log.jsonl`

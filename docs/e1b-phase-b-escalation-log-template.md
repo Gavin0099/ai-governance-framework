@@ -47,12 +47,16 @@
 - `triaged`: misinterpretation path and remediation direction documented.
 - `mitigated`: remediation implemented, but effectiveness may still be
   unvalidated unless closure evidence is complete.
+- `unverified_mitigation`: remediation implemented, closure not granted, and
+  no human-only strong validation obtained within the observation window.
 - `accepted-risk`: risk accepted with explicit rationale and boundary.
 
 Interpretation guard:
 - `mitigated` does NOT imply closure.
 - Treat `mitigated` as `implemented_not_validated` unless strict closure
   conditions are explicitly satisfied.
+- `unverified_mitigation` is a non-closed steady state (not equivalent to
+  `open`, `mitigated-validated`, or `accepted-risk`).
 
 ## Classification Mapping
 

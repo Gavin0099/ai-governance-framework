@@ -218,6 +218,9 @@ false-positive escalation with reviewer consistency check).
   and no confidence shift under noise.
 - For composition-level cases, strict closure additionally requires
   `actionability_source=fact_fields` in both clean and noise checks.
+- If remediation is implemented but human-only strong validation is not
+  obtained within the observation window, escalation may transition to
+  `unverified_mitigation` (non-closed steady state).
 
 ### Composition-Level Output Guardrails (Mandatory for mixed-signal cases)
 

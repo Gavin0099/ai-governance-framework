@@ -137,3 +137,15 @@ If decision changes after delayed exposure, treat as pathway not removed.
 
 Phase B remains conservative under uncertainty, progresses with explicit
 remediation choices, and avoids cross-event policy drift.
+
+## Exit Policy (No Human Validation Path)
+
+If remediation is implemented but no human-only strong validation is obtained
+within a reasonable observation window, escalation may transition to:
+
+- `unverified_mitigation` (non-closed, non-open steady state)
+
+Constraints:
+- this state is not closure.
+- this state does not satisfy strict profile evidence.
+- AI/adversarial evidence may support implementation confidence only.
