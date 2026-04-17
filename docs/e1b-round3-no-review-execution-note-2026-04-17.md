@@ -22,8 +22,12 @@ reviewer response in this run.
 - Escalation status: `mitigated` but still `open`.
 - Closure: not granted under strict profile because no new human-only
   confirmation was collected in this run.
+- Dual-state interpretation:
+  - Engineering track: implemented
+  - Governance track: validation pending
 
 ## Why kept open
 
 Current strict policy treats AI/adversarial evidence as lightweight.
+AI/adversarial evidence is non-authoritative for closure.
 Without new human-only evidence, closure cannot be asserted as "high confidence".

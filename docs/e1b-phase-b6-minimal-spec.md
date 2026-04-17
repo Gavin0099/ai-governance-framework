@@ -30,18 +30,20 @@ escalation events, not only single-event correctness.
    observations across different contexts.
 7. `ai_adversarial_simulation` evidence is lightweight only and cannot by
    itself satisfy strong closure evidence.
-8. For escalations with prior `decision_confidence_shift=significant`, closure
+8. AI/adversarial evidence is non-authoritative and cannot be used to satisfy
+   closure conditions.
+9. For escalations with prior `decision_confidence_shift=significant`, closure
    uses strict profile: post-remediation confidence shift must be `none` and
    human-only review must report no residual decision lean with
    decision_engagement=`yes`.
-9. Recommended noise robustness check: validate strict profile once under
+10. Recommended noise robustness check: validate strict profile once under
    mixed-signal context to ensure pathway removal remains stable outside
    clean-context evaluation.
-10. For composition-level cases, strict closure also requires
+11. For composition-level cases, strict closure also requires
     `actionability_source=fact_fields` in clean/noise human-only checks.
-11. Strict closure requires `free_text_synthesis=no` in clean/noise checks;
+12. Strict closure requires `free_text_synthesis=no` in clean/noise checks;
     any implicit synthesis in free-text reasoning invalidates closure.
-12. `free_text_synthesis` is directional-only: neutral absence-based reasoning
+13. `free_text_synthesis` is directional-only: neutral absence-based reasoning
     is recorded as `free_text_synthesis_type=neutral_reasoning` and does not
     trigger automatic failure.
 

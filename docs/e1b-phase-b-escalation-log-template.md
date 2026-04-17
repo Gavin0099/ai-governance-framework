@@ -45,8 +45,14 @@
 
 - `open`: detected but not yet triaged.
 - `triaged`: misinterpretation path and remediation direction documented.
-- `mitigated`: remediation implemented and verified.
+- `mitigated`: remediation implemented, but effectiveness may still be
+  unvalidated unless closure evidence is complete.
 - `accepted-risk`: risk accepted with explicit rationale and boundary.
+
+Interpretation guard:
+- `mitigated` does NOT imply closure.
+- Treat `mitigated` as `implemented_not_validated` unless strict closure
+  conditions are explicitly satisfied.
 
 ## Classification Mapping
 
