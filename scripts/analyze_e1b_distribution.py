@@ -62,9 +62,17 @@ _E1B_MIN_VALID_ENTROPY: float = 0.3
 #   - that state occupies >= _LC_DOMINANT_SHARE_THRESHOLD of all sessions
 #   - fingerprint diversity is below _LC_FROZEN_DIVERSITY_THRESHOLD (pattern frozen)
 # A repo is "stable_ok" when dominant state is "ok" with high share.
-# Everything else is "mixed_active" (genuine variety or insufficient data).
+# A repo is "insufficient_evidence" when session_count < _LC_INSUFFICIENT_EVIDENCE_MIN_SESSIONS
+#   (not enough data to make any lifecycle classification judgment).
+# Otherwise it is "transitioning_active" (genuine state variety with enough data).
+# NOTE: "mixed_active" is the deprecated predecessor of "transitioning_active".
+#   Any consumer that reads lifecycle_class must treat both as equivalent non-stuck values.
 _LC_DOMINANT_SHARE_THRESHOLD: float = 0.90
 _LC_FROZEN_DIVERSITY_THRESHOLD: float = 0.10
+# Minimum sessions needed before a lifecycle_class judgment is meaningful.
+# Below this threshold the repo is classified as "insufficient_evidence" rather than
+# attempting a quality judgment on too-small a sample.
+_LC_INSUFFICIENT_EVIDENCE_MIN_SESSIONS: int = 3
 
 # Rolling window size for recent_lifecycle_class.
 # Mirrors the E8a canonical_audit_trend window.
@@ -285,13 +293,17 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
     normalized_state_entropy  Shannon entropy / log(4); stable across session counts
     dominant_state            the artifact_state with the highest occurrence count
     dominant_state_share      dominant_state count / session_count
-    lifecycle_class           three-way classification for degenerate semantics:
-                                stuck_absent  — dominant state is absent/malformed AND
-                                               share >= 0.90 AND fingerprint frozen
-                                               → adoption failure (lifecycle never ran)
-                                stable_ok     — dominant state is ok AND share >= 0.90
-                                               → lifecycle healthy; low entropy is EXPECTED
-                                mixed_active  — genuine variety or insufficient data
+    lifecycle_class           four-way classification for degenerate semantics:
+                                stuck_absent         — dominant state is absent/malformed AND
+                                                       share >= 0.90 AND fingerprint frozen
+                                                       → adoption failure (lifecycle never ran)
+                                stable_ok            — dominant state is ok AND share >= 0.90
+                                                       → lifecycle healthy; low entropy is EXPECTED
+                                insufficient_evidence— session_count < 3; not enough data to judge
+                                transitioning_active — enough data, genuine state variety
+                                                       (deprecated alias: mixed_active)
+                              Note: consumers MUST treat both "transitioning_active" and
+                              "mixed_active" as equivalent non-stuck, non-stable values.
     is_degenerate_v2          True only when lifecycle_class == 'stuck_absent'
                               Does NOT misclassify stable_ok repos as degenerate.
     """
@@ -428,8 +440,12 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
 
         # lifecycle_class: separates "stuck_absent" (adoption failure) from
         # "stable_ok" (healthy convergence) — the legacy formula cannot tell them apart.
+        # "insufficient_evidence" is new: n < threshold → no quality judgment possible.
+        # "transitioning_active" replaces the ambiguous "mixed_active" bucket.
         _STUCK_STATES = {"absent", "malformed", "unknown"}
-        if (
+        if n < _LC_INSUFFICIENT_EVIDENCE_MIN_SESSIONS:
+            lifecycle_class = "insufficient_evidence"
+        elif (
             dominant_state in _STUCK_STATES
             and dominant_state_share >= _LC_DOMINANT_SHARE_THRESHOLD
             and fingerprint_diversity < _LC_FROZEN_DIVERSITY_THRESHOLD
@@ -441,7 +457,7 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
         ):
             lifecycle_class = "stable_ok"
         else:
-            lifecycle_class = "mixed_active"
+            lifecycle_class = "transitioning_active"
 
         is_degenerate_v2 = lifecycle_class == "stuck_absent"
 
@@ -469,7 +485,9 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
             round(len(set(r_fingerprints)) / r_n, 4) if r_n > 0 else 0.0
         )
         _STUCK_STATES_R = {"absent", "malformed", "unknown"}
-        if (
+        if r_n < _LC_INSUFFICIENT_EVIDENCE_MIN_SESSIONS:
+            recent_lifecycle_class = "insufficient_evidence"
+        elif (
             r_dominant in _STUCK_STATES_R
             and r_dominant_share >= _LC_DOMINANT_SHARE_THRESHOLD
             and r_fp_diversity < _LC_FROZEN_DIVERSITY_THRESHOLD
@@ -481,7 +499,7 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
         ):
             recent_lifecycle_class = "stable_ok"
         else:
-            recent_lifecycle_class = "mixed_active"
+            recent_lifecycle_class = "transitioning_active"
         recent_ok_count = r_state_breakdown.get("ok", 0)
         recent_window_size = r_n
 
@@ -983,6 +1001,7 @@ def _print_human(
         print("  │")
         print("  │  Legend: ns_ent=normalized Shannon entropy (stable across session counts)")
         print("  │          lifecycle[v2]: stuck_absent=adoption failure  stable_ok=converged healthy")
+        print("  │                        transitioning_active=genuine variety  insufficient_evidence=n<3")
         print("  │          degen[L]: legacy metric (distinct_states/n < 0.3) — false-positives stable_ok")
 
         entropies = [s["entropy"] for s in lc_stats.values()]
@@ -993,7 +1012,8 @@ def _print_human(
         lifecycle_classes = [s.get("lifecycle_class", "unknown") for s in lc_stats.values()]
         stuck_count = lifecycle_classes.count("stuck_absent")
         stable_ok_count = lifecycle_classes.count("stable_ok")
-        mixed_count = lifecycle_classes.count("mixed_active")
+        transitioning_count = lifecycle_classes.count("transitioning_active")
+        insuf_count = lifecycle_classes.count("insufficient_evidence")
         print("  │")
         print("  │  Distribution (lifecycle-capable repos):")
         print(
@@ -1016,7 +1036,8 @@ def _print_human(
         )
         print(
             f"  │    lifecycle[v2]:  stuck_absent={stuck_count}  "
-            f"stable_ok={stable_ok_count}  mixed_active={mixed_count}  "
+            f"stable_ok={stable_ok_count}  transitioning_active={transitioning_count}  "
+            f"insufficient_evidence={insuf_count}  "
             f"(non-stuck={len(lc_stats)-stuck_count}/{len(lc_stats)})"
         )
         print(
