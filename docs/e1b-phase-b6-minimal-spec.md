@@ -34,6 +34,9 @@ escalation events, not only single-event correctness.
    uses strict profile: post-remediation confidence shift must be `none` and
    human-only review must report no residual decision lean with
    decision_engagement=`yes`.
+9. Recommended noise robustness check: validate strict profile once under
+   mixed-signal context to ensure pathway removal remains stable outside
+   clean-context evaluation.
 
 ## Remediation Consistency Rule
 

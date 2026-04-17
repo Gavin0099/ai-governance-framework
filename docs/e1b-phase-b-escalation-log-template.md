@@ -146,6 +146,19 @@ Borderline handling:
   with hesitation or unclear rationale), require second confirmation before
   closure.
 
+## Context Noise Check (Recommended)
+
+For strict closure profile, run at least one mixed-signal observation by adding
+one plausible but non-decision signal to the same output context.
+
+Expected result under noise:
+
+- `residual_decision_lean = no`
+- `decision_confidence_shift = none`
+
+If either condition fails, treat as residual pathway risk and keep escalation
+open.
+
 If verification fails:
 
 - if decision shift reappears: upgrade to `potential_structural_pattern`.
