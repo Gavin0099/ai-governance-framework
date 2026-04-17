@@ -34,9 +34,13 @@
 - post_remediation_information_preserved: yes | no | pending
 - post_remediation_residual_decision_lean: yes | no | pending
 - post_remediation_decision_engagement: yes | no | pending
+- post_remediation_actionability_source: fact_fields | directional_summary | insufficient_signal | mixed | pending
 - post_remediation_noise_check_used: yes | no | pending
 - post_remediation_noise_residual_decision_lean: yes | no | pending
 - post_remediation_noise_decision_confidence_shift: none | minor | significant | pending
+- post_remediation_noise_actionability_source: fact_fields | directional_summary | insufficient_signal | mixed | pending
+- composition_guardrail_required: yes | no
+- composition_guardrail_status: pending | implemented | verified | failed
 - closure_threshold_profile: default | strict_no_minor_after_prior_significant
 - escalation_closed: yes | no
 - closure_rationale:
@@ -57,9 +61,9 @@
 - reviewer_consistency: `mixed`
 - misinterpretation_path: structured field recombination may create implicit readiness proxy and shift hold->promote interpretation.
 - classification_rationale: primary reviewer observed decision-shift risk while backup second opinion remained hold/no-change; non-convergent handling therefore defaults to interpretation_sensitive with low reproducibility.
-- remediation_decision: consumer guidance update (upgraded from wording clarification).
-- remediation_scope: consumer summaries that co-present status/lifecycle/confidence in readiness-like phrasing.
-- remediation_rationale: human-only strong observation shows clean context loses decision engagement while mixed-signal context reintroduces directional lean/minor confidence shift; wording-only remediation is insufficient and guidance-level guardrail is required.
+- remediation_decision: composition-level output guardrail update (presentation composition constraints).
+- remediation_scope: consumer outputs that co-present transition status, confidence cues, and positive metrics.
+- remediation_rationale: human-only strong observation shows clean context loses decision engagement while mixed-signal context reintroduces directional lean/minor confidence shift; issue is composition-level and cannot be closed by wording tweaks alone.
 - controlled_divergence: `no`
 - divergence_rationale: n/a
 - recurrence_signal: `observed_once`
@@ -74,12 +78,16 @@
 - post_remediation_information_preserved: `no` (clean engagement dropped)
 - post_remediation_residual_decision_lean: `no` (clean)
 - post_remediation_decision_engagement: `no` (clean)
+- post_remediation_actionability_source: `insufficient_signal` (clean)
 - post_remediation_noise_check_used: `yes`
 - post_remediation_noise_residual_decision_lean: `yes`
 - post_remediation_noise_decision_confidence_shift: `minor`
+- post_remediation_noise_actionability_source: `directional_summary`
+- composition_guardrail_required: `yes`
+- composition_guardrail_status: `pending`
 - closure_threshold_profile: `strict_no_minor_after_prior_significant`
 - escalation_closed: `no`
-- closure_rationale: strict closure failed. Clean context passes shift/lean but fails decision_engagement, and noise context reintroduces residual lean with minor confidence shift. Escalation remains open and remediation is upgraded.
+- closure_rationale: strict closure failed. Clean context fails actionability (`insufficient_signal`) and decision_engagement, while noise context reintroduces lean/minor shift through directional synthesis. Composition-level guardrail remediation is required before re-test.
 - owner: `framework`
 - status: `triaged`
 - linked_runtime_log: `artifacts/runtime/e1b-phase-b-escalation/phase-b-escalation-log.jsonl`

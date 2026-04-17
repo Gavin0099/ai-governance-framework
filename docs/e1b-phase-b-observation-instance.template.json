@@ -27,7 +27,14 @@
   "self_challenge_note": "If interpreted as readiness evidence, this could prematurely bias a promote decision before required conditions are met.",
   "decision_trace": {
     "decision_target": "phase_c_framing",
-    "observed_effect": "no explicit decision change"
+    "observed_effect": "no explicit decision change",
+    "actionability_source": "fact_fields"
+  },
+  "composition_guardrail_check": {
+    "mixed_signal_context": "no",
+    "readiness_like_synthesis_present": "no",
+    "cross_field_directional_conclusion_present": "no",
+    "anti_inference_framing_present": "yes"
   },
   "escalation": {
     "required": "no",

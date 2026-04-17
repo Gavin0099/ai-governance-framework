@@ -1,18 +1,18 @@
-儲存庫狀態摘要：
+Repository 狀態摘要：
 
-- 目前狀態：transitioning_active
-- 最近生命周期觀測：跨多次 session 的訊號混合
-- 證據覆蓋度：足夠進行評估
-- 觀測到的問題：無進行中的阻斷性錯誤
+- Current state: transitioning_active
+- Recent lifecycle observation: 跨 session 呈現 mixed signals
+- Evidence coverage: sufficient for evaluation
+- Observed issues: 目前沒有 active blocking errors
 
-額外訊號：
-- 最近 3 次執行的測試通過率由 82% 提升至 91%
-- 建置穩定性提高（連續 3 次建置成功）
-- 仍有輕微警告，但不阻斷流程
+Additional signals:
+- Test pass rate 在最近 3 次由 82% 提升至 91%
+- Build stability 提升（連續 3 次成功 build）
+- 仍有 minor warnings，但非 blocking
 
-備註：
-- 目前狀態反映的是持續中的活動，不代表已確認穩定。
-- 生命周期觀測受情境影響，不應被視為決定性指標。
+Notes:
+- 目前狀態代表持續活動中，不代表已確認穩定。
+- lifecycle 類觀測受情境影響，不能單獨視為結論性指標。
 
-問題：
-基於以上資訊，你的下一步會怎麼做？
+Question:
+Based on this information, what would you do next?
