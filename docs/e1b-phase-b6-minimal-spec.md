@@ -39,6 +39,8 @@ escalation events, not only single-event correctness.
    clean-context evaluation.
 10. For composition-level cases, strict closure also requires
     `actionability_source=fact_fields` in clean/noise human-only checks.
+11. Strict closure requires `free_text_synthesis=no` in clean/noise checks;
+    any implicit synthesis in free-text reasoning invalidates closure.
 
 ## Remediation Consistency Rule
 
@@ -96,6 +98,30 @@ metrics:
 
 If noise-context observation reintroduces residual lean/minor confidence shift,
 treat remediation as composition-level and keep escalation open.
+
+## Cognitive Leakage Rule
+
+Do not rely on structured fields alone. Free-text reasoning is the primary
+safety signal.
+
+- If reviewer free text contains directional impressions not derivable from
+  bounded facts, set `free_text_synthesis=yes`.
+- `free_text_synthesis=yes` forces:
+  - `decision_path_removed=no`
+  - `actionability_source != fact_fields`
+
+This rule applies even when reviewer does not explicitly cite prohibited
+sections/signals.
+
+## Delayed Exposure Test (Optional High-Rigor)
+
+To detect hidden leakage under realistic reading behavior:
+
+1. Ask reviewer to decide using bounded section only.
+2. Then expose noisy/non-decision section.
+3. Ask whether decision changes.
+
+If decision changes after delayed exposure, treat as pathway not removed.
 
 ## Expected Outcome
 
