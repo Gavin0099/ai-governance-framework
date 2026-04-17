@@ -37,6 +37,8 @@ escalation events, not only single-event correctness.
 9. Recommended noise robustness check: validate strict profile once under
    mixed-signal context to ensure pathway removal remains stable outside
    clean-context evaluation.
+10. For composition-level cases, strict closure also requires
+    `actionability_source=fact_fields` in clean/noise human-only checks.
 
 ## Remediation Consistency Rule
 
@@ -81,6 +83,19 @@ If `recurrence_signal` is triggered:
 - re-evaluate classification independent of prior remediation consistency.
 - do not use remediation consistency itself as evidence against structural
   classification.
+
+## Composition Guardrail Rule
+
+When outputs combine transition status, confidence-like cues, and positive
+metrics:
+
+- list facts without readiness/progress synthesis.
+- do not emit cross-field directional conclusion sentences.
+- include explicit anti-inference framing that these signals are not readiness
+  or promote evidence.
+
+If noise-context observation reintroduces residual lean/minor confidence shift,
+treat remediation as composition-level and keep escalation open.
 
 ## Expected Outcome
 

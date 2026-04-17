@@ -14,6 +14,7 @@
 - If `impact_scope=decision_relevant`, escalate immediately.
 - `decision_confidence_shift` is required even when `impact_scope=none`.
 - `self_challenge_note` is required for every instance.
+- For post-remediation strict checks, `actionability_source` is required.
 
 ## Entry Format (Markdown)
 
@@ -51,6 +52,13 @@
 - decision_trace:
   - decision_target: <promote/block/readiness/phase-c-framing>
   - observed_effect: <none or specific shift>
+  - actionability_source: fact_fields | directional_summary | insufficient_signal | mixed
+
+- composition_guardrail_check:
+  - mixed_signal_context: yes | no
+  - readiness_like_synthesis_present: yes | no
+  - cross_field_directional_conclusion_present: yes | no
+  - anti_inference_framing_present: yes | no
 
 - escalation:
   - required: yes | no

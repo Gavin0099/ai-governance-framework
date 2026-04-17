@@ -177,6 +177,11 @@ observed, Phase B primary track shifts from observation accumulation to
 escalation triage and remediation analysis. Additional observations may continue
 for scoping only; they do not nullify the escalation trigger.
 
+**Escalation scope upgrade rule**: If clean-context wording remediation suppresses
+direct shift but mixed-signal context still produces residual lean/confidence
+tilt, classify the issue as a **composition-level consumer safety problem**
+(presentation composition), not a wording-only defect.
+
 **Current stage after first falsifying instance**: classification convergence
 (confirm whether escalation is structural flaw, interpretation-sensitive, or
 false-positive escalation with reviewer consistency check).
@@ -209,6 +214,23 @@ false-positive escalation with reviewer consistency check).
 - Recommended for production-level confidence: include one mixed-signal context
   check (add one plausible non-decision signal) and confirm no residual lean
   and no confidence shift under noise.
+- For composition-level cases, strict closure additionally requires
+  `actionability_source=fact_fields` in both clean and noise checks.
+
+### Composition-Level Output Guardrails (Mandatory for mixed-signal cases)
+
+When output co-presents `transitioning_active` with confidence-like cues and
+positive metrics, enforce all three rules:
+
+1. **No readiness-like synthesis**
+   - Do not generate claims like "approaching ready", "stabilizing",
+     "can progress/promote", or equivalent direction narrative.
+2. **No cross-field directional conclusion sentence**
+   - Facts may be listed per field, but do not compose multi-field direction
+     conclusions from transition + confidence + positive metrics.
+3. **Required anti-inference framing**
+   - Include an explicit boundary sentence: these signals are local observations
+     and must not be interpreted as readiness/stable/promote evidence.
 
 ---
 
@@ -300,6 +322,24 @@ Phase B does not have a time limit — it has an **evidence threshold**.
 **These conditions exist to prevent premature closure.**  A small sample with
 no `decision_relevant` observations does not mean escapes are harmless — it
 may mean the sample is too narrow to surface the risk.
+
+---
+
+### Post-remediation actionability source check (strict profile)
+
+For strict closure of previously significant cases, record
+`actionability_source`:
+
+| value | meaning |
+|-------|---------|
+| `fact_fields` | Decision rationale is grounded in bounded facts without directional synthesis |
+| `directional_summary` | Rationale relies on implied progress/readiness direction |
+| `insufficient_signal` | Reviewer cannot act confidently because output is too weak/unclear |
+| `mixed` | Multiple sources present; must be explained |
+
+Strict closure requires `actionability_source=fact_fields` in clean and noise
+checks. Any `directional_summary` or `insufficient_signal` outcome keeps the
+escalation open.
 
 ---
 
