@@ -143,8 +143,8 @@ class TestLifecycleClassStuckAbsent:
         # dominant_state_share = 1.0; fingerprint_diversity = 0.0 (< 0.10) → stuck_absent
         assert s["lifecycle_class"] == "stuck_absent"
 
-    def test_just_over_threshold_is_stuck_absent(self):
-        """Exactly at _LC_DOMINANT_SHARE_THRESHOLD (0.90)."""
+    def test_just_over_threshold_is_transitioning_active(self):
+        """Exactly at _LC_DOMINANT_SHARE_THRESHOLD (0.90) but diversity above frozen threshold."""
         n = 10
         absent_count = int(n * _LC_DOMINANT_SHARE_THRESHOLD)  # 9
         ok_count = n - absent_count  # 1
@@ -152,9 +152,9 @@ class TestLifecycleClassStuckAbsent:
         stats = compute_repo_stats(entries)
         s = stats["repo-t"]
         # share = 0.90 (absent), fingerprint: 2 distinct (absent-no-sig vs ok-no-sig)
-        # fingerprint_diversity = 2/10 = 0.2 >= 0.10 threshold → NOT frozen
-        # so lifecycle_class should be mixed_active (not stuck_absent)
-        assert s["lifecycle_class"] == "mixed_active"
+        # fingerprint_diversity = 2/10 = 0.2 >= 0.10 threshold → NOT frozen → not stuck_absent
+        # n=10 >= 3 → not insufficient_evidence → transitioning_active
+        assert s["lifecycle_class"] == "transitioning_active"
 
     def test_below_share_threshold_not_stuck(self):
         """80% absent (< 0.90) → not stuck_absent."""
@@ -201,30 +201,51 @@ class TestLifecycleClassStableOk:
         assert stats["repo-small"]["lifecycle_class"] == "stable_ok"
 
 
-# ── lifecycle_class — mixed_active ────────────────────────────────────────────
+# ── lifecycle_class — transitioning_active / insufficient_evidence ────────────
 
-class TestLifecycleClassMixedActive:
-    def test_genuine_variety_is_mixed_active(self):
-        """absent/ok/stale with reasonable spread → mixed_active."""
+class TestLifecycleClassTransitioningAndInsufficient:
+    def test_genuine_variety_is_transitioning_active(self):
+        """absent/ok/stale with reasonable spread and enough sessions → transitioning_active."""
         entries = (
             _entries_n("repo-mix", "absent", 5)
             + _entries_n("repo-mix", "ok", 10)
             + _entries_n("repo-mix", "stale", 5)
         )
         stats = compute_repo_stats(entries)
-        assert stats["repo-mix"]["lifecycle_class"] == "mixed_active"
+        assert stats["repo-mix"]["lifecycle_class"] == "transitioning_active"
 
-    def test_single_session_is_mixed_active(self):
-        """1 session → mixed_active (insufficient evidence)."""
+    def test_single_session_is_insufficient_evidence(self):
+        """1 session (< _LC_INSUFFICIENT_EVIDENCE_MIN_SESSIONS=3) → insufficient_evidence."""
         entries = [_entry("repo-1", "absent")]
         stats = compute_repo_stats(entries)
-        assert stats["repo-1"]["lifecycle_class"] == "mixed_active"
+        assert stats["repo-1"]["lifecycle_class"] == "insufficient_evidence"
 
-    def test_mixed_active_not_degenerate_v2(self):
-        """mixed_active → is_degenerate_v2=False."""
+    def test_two_sessions_is_insufficient_evidence(self):
+        """2 sessions (< 3) → insufficient_evidence regardless of state variety."""
+        entries = [_entry("repo-2a", "absent"), _entry("repo-2a", "ok")]
+        stats = compute_repo_stats(entries)
+        assert stats["repo-2a"]["lifecycle_class"] == "insufficient_evidence"
+
+    def test_three_sessions_not_insufficient_evidence(self):
+        """3 sessions (== threshold) → not insufficient_evidence."""
+        entries = _entries_n("repo-3", "absent", 3)
+        stats = compute_repo_stats(entries)
+        # 3 sessions, all absent, diversity=1/3=0.33 >= 0.10 → not stuck, not stable → transitioning_active
+        assert stats["repo-3"]["lifecycle_class"] != "insufficient_evidence"
+
+    def test_transitioning_active_not_degenerate_v2(self):
+        """transitioning_active → is_degenerate_v2=False."""
         entries = _entries_n("repo-m2", "absent", 5) + _entries_n("repo-m2", "ok", 5)
         stats = compute_repo_stats(entries)
+        assert stats["repo-m2"]["lifecycle_class"] == "transitioning_active"
         assert stats["repo-m2"]["is_degenerate_v2"] is False
+
+    def test_insufficient_evidence_not_degenerate_v2(self):
+        """insufficient_evidence → is_degenerate_v2=False (not enough data, not adoption failure)."""
+        entries = [_entry("repo-ie", "absent")]
+        stats = compute_repo_stats(entries)
+        assert stats["repo-ie"]["lifecycle_class"] == "insufficient_evidence"
+        assert stats["repo-ie"]["is_degenerate_v2"] is False
 
 
 # ── dominant_state + dominant_state_share ────────────────────────────────────
@@ -534,8 +555,8 @@ class TestRecentLifecycleClass:
         entries = old_absent + recent_ok
         stats = compute_repo_stats(entries)
         r = stats["SA"]
-        # Full history: absent dominant but < 90% → mixed_active
-        assert r["lifecycle_class"] == "mixed_active"
+        # Full history: absent dominant but < 90% → transitioning_active (n=45 >= 3)
+        assert r["lifecycle_class"] == "transitioning_active"
         # Rolling window: all ok → stable_ok
         assert r["recent_lifecycle_class"] == "stable_ok"
         assert r["recent_ok_count"] == 20
@@ -544,14 +565,14 @@ class TestRecentLifecycleClass:
     def test_recent_mixed_when_window_not_yet_converted(self):
         """
         Repo has 25 absent + 8 ok. Rolling window (last 20) = 5 absent + 8 ok.
-        recent_lifecycle_class should be mixed_active (ok share 8/13 < 90%).
+        recent_lifecycle_class should be transitioning_active (ok share 8/13 < 90%, window n=20>=3).
         """
         old_absent = _entries_n("SA", "absent", 25)
         partial_ok = _entries_n("SA", "ok", 8)
         entries = old_absent + partial_ok
         stats = compute_repo_stats(entries)
         r = stats["SA"]
-        assert r["recent_lifecycle_class"] == "mixed_active"
+        assert r["recent_lifecycle_class"] == "transitioning_active"
         assert r["recent_ok_count"] == 8
         assert r["recent_window_size"] == 20
 
@@ -581,8 +602,8 @@ class TestRecentLifecycleClass:
         entries = old_stuck + fixed_ok
         stats = compute_repo_stats(entries)
         r = stats["repo"]
-        # Full history: absent=30/50=60%, mixed_active (< 90 threshold)
-        assert r["lifecycle_class"] == "mixed_active"
+        # Full history: absent=30/50=60%, transitioning_active (n=50>=3, < 90% threshold)
+        assert r["lifecycle_class"] == "transitioning_active"
         # Recent window: all ok → stable_ok
         assert r["recent_lifecycle_class"] == "stable_ok"
 

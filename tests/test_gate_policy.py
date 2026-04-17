@@ -444,6 +444,91 @@ def test_session_end_hook_format_includes_gate_policy_line(tmp_project_root):
     assert "artifact_state=absent" in output
 
 
+def test_format_human_result_shows_advisory_on_parse_error(tmp_project_root):
+    """
+    When gate_policy.policy_load_error is set, format_human_result() must emit
+    '[ADVISORY] gate_policy: YAML parse failed' so the operator is not silently
+    left with builtin_defaults while believing a real policy was loaded.
+    This covers the P2 gate_policy parse failure observability requirement (option 2 of 3).
+    """
+    from governance_tools.session_end_hook import format_human_result
+    fake = {
+        "ok": False,
+        "session_id": "s-parse-err",
+        "closeout_status": "closeout_missing",
+        "memory_tier": "no_update",
+        "repo_readiness_level": 0,
+        "repo_readiness_limiting_factor": None,
+        "repo_closeout_activation_state": "unknown",
+        "repo_activation_recency": None,
+        "repo_activation_gap": None,
+        "closeout_classification": None,
+        "per_layer_results": {},
+        "failure_signals": [],
+        "failure_disposition": None,
+        "gate_policy": {
+            "fail_mode": "strict",
+            "artifact_state": "absent",
+            "blocked": False,
+            "policy_source": "builtin_default",
+            "policy_path": "/some/repo/governance/gate_policy.yaml",
+            "fallback_used": True,
+            "repo_policy_present": True,
+            "policy_load_error": "yaml.scanner.ScannerError: mapping values are not allowed here",
+        },
+        "closeout_file": "artifacts/session-closeout.txt",
+        "decision": "DO_NOT_PROMOTE",
+        "snapshot_created": False,
+        "promoted": False,
+        "memory_closeout": None,
+        "warnings": [],
+        "errors": [],
+    }
+    output = format_human_result(fake)
+    assert "[ADVISORY] gate_policy: YAML parse failed" in output
+    assert "parse_error=" in output
+
+
+def test_format_human_result_no_advisory_without_parse_error(tmp_project_root):
+    """
+    When policy_load_error is absent (clean load), no parse-error advisory is emitted.
+    """
+    from governance_tools.session_end_hook import format_human_result
+    fake = {
+        "ok": True,
+        "session_id": "s-clean",
+        "closeout_status": "valid",
+        "memory_tier": "no_update",
+        "repo_readiness_level": 0,
+        "repo_readiness_limiting_factor": None,
+        "repo_closeout_activation_state": "unknown",
+        "repo_activation_recency": None,
+        "repo_activation_gap": None,
+        "closeout_classification": None,
+        "per_layer_results": {},
+        "failure_signals": [],
+        "failure_disposition": None,
+        "gate_policy": {
+            "fail_mode": "strict",
+            "artifact_state": "ok",
+            "blocked": False,
+            "policy_source": "repo_local",
+            "policy_path": "/some/repo/governance/gate_policy.yaml",
+            "fallback_used": False,
+            "repo_policy_present": True,
+        },
+        "closeout_file": "artifacts/session-closeout.txt",
+        "decision": "PROMOTE",
+        "snapshot_created": True,
+        "promoted": False,
+        "memory_closeout": None,
+        "warnings": [],
+        "errors": [],
+    }
+    output = format_human_result(fake)
+    assert "YAML parse failed" not in output
+
+
 # ── skip_type field ───────────────────────────────────────────────────────────
 
 def test_load_policy_parses_skip_type_structural(tmp_path):
