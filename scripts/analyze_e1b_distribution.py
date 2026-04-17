@@ -526,8 +526,11 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
             "dominant_state_share": dominant_state_share,
             "lifecycle_class": lifecycle_class,
             "is_degenerate_v2": is_degenerate_v2,
-            # Rolling-window metrics (Layer 2 primary signal)
-            # recent_lifecycle_class is the authoritative Layer 2 stability signal.
+            # Rolling-window metrics (Layer 2 directional reference — NOT a verdict)
+            # recent_lifecycle_class is a directional reference: it CAN distinguish
+            # an improving repo (recent ok convergence) from an oscillating one.
+            # It MUST NOT single-handedly drive a promote decision.
+            # See docs/e1b-classification-semantic-limits.md — Section 2.
             # lifecycle_class (full-history) is audit context only.
             "recent_lifecycle_class": recent_lifecycle_class,
             "recent_ok_count": recent_ok_count,
@@ -1056,6 +1059,16 @@ def _print_human(
         verdict_label = "READY" if verdict == "READY" else "NOT_READY"
         verdict_marker = "[OK]" if verdict == "READY" else "[NO]"
         print(f"  │  Phase 2 Readiness Gate — {verdict_marker} {verdict_label}")
+        if verdict == "READY":
+            print(
+                "  │    [NOTE] READY = quantitative conditions met (policy proxy)."
+            )
+            print(
+                "  │           READY != classification validated across diverse contexts."
+            )
+            print(
+                "  │           See docs/e1b-classification-semantic-limits.md"
+            )
         for check in gate["checks"].values():
             mark = "  │    [OK]" if check["pass"] else "  │    [NO]"
             print(
