@@ -270,3 +270,179 @@ class TestCleanSummaries:
         assert "P4" not in pids, (
             f"False positive: correct READY framing flagged as P4. Got: {pids}"
         )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Phase A.7 — Escape Analysis (known coverage boundary)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestConsumerAuditEscape:
+    """
+    ESCAPE ANALYSIS — inputs that are semantically problematic but evade
+    the regex-based scanner.
+
+    These tests assert scan_consumer_text() returns EMPTY violations ([] ).
+    They are intentionally designed to FAIL detection, documenting the known
+    coverage boundary of the current scanner.
+
+    Purpose
+    -------
+    L3-instrumented (scanner exists) ≠ L3-validated (evasion is hard).
+    These tests pin the gap between them.  They answer:
+      "If I want to bypass the audit, what can I write?"
+
+    Four escape categories documented here:
+      E1  Semantic synonym / vocabulary weakening (no P1 trigger words)
+      E2  Implicit direction (confidence/readiness implied, not stated)
+      E3  Structural drift (semantic recombination across fields/lines)
+      E4  Paraphrase of temporal precision claim (no P3 trigger words)
+
+    IMPORTANT: If a future scanner improvement causes any test here to
+    DETECT a violation (test fails), the test should be MOVED to the
+    corresponding injection scenario class — not deleted.  The failure
+    means coverage improved, which is correct behavior.
+
+    Reference: docs/e1b-consumer-audit-checklist.md — Escape Analysis gap
+    """
+
+    # ── E1: Semantic synonym / vocabulary weakening ──────────────────────────
+
+    def test_e1_stabilization_evades_p1(self):
+        """
+        KNOWN EVASION (E1 — semantic synonym):
+        'transitioning_active indicates gradual stabilization'
+
+        'stabilization' implies directional progress (state is stabilizing)
+        but is not in the P1 trigger vocabulary (improv / positive trend /
+        on track / progressing / getting better).
+
+        Semantic risk: reader infers "repo is converging toward stable_ok".
+        Scanner result: no violation (P1 misses the synonym).
+        """
+        text = "transitioning_active indicates gradual stabilization."
+        violations = scan_consumer_text(text)
+        assert violations == [], (
+            "Scanner unexpectedly caught E1 evasion — update: move this test "
+            "to TestMisleadingSummaryInjection and document pattern added."
+        )
+
+    def test_e1_forward_progress_evades_p1(self):
+        """
+        KNOWN EVASION (E1 — noun vs verb form):
+        'lifecycle shows forward progress'
+
+        P1 pattern includes 'progressing' (verb) but not 'progress' (noun).
+        Semantic risk: reader infers "lifecycle is advancing".
+        Scanner result: no P1 violation.
+        """
+        text = "The lifecycle shows forward progress toward a stable state."
+        violations = scan_consumer_text(text)
+        assert violations == [], (
+            "Scanner unexpectedly caught E1 evasion — update accordingly."
+        )
+
+    # ── E2: Implicit direction / soft promotion language ─────────────────────
+
+    def test_e2_readiness_approaching_evades_p4(self):
+        """
+        KNOWN EVASION (E2 — implicit promote without trigger):
+        'conditions suggest readiness is approaching'
+
+        P4 looks for 'likely ready for promot', 'gate/verdict passed + promot',
+        'READY + classifier reliable / can promote'.
+        'readiness is approaching' implies imminent promotion without triggering
+        any of these literal patterns.
+
+        Semantic risk: reader treats this as "almost ready to promote".
+        Scanner result: no P4 violation.
+        """
+        text = "conditions suggest readiness is approaching."
+        violations = scan_consumer_text(text)
+        assert violations == [], (
+            "Scanner unexpectedly caught E2 evasion — update accordingly."
+        )
+
+    def test_e2_adoption_landed_evades_all(self):
+        """
+        KNOWN EVASION (E2 — verdict without pattern words):
+        'recent_lifecycle_class=stable_ok indicates the adoption has landed'
+
+        Using recent_lifecycle_class as a verdict ("adoption has landed")
+        without using "confirmed" / "proven" / "READY" / "promote".
+        This violates Section 2 of semantic-limits (recent_lifecycle_class
+        must not be used as a trend verdict) but triggers no scanner pattern.
+
+        Semantic risk: reader treats stable_ok recent window as completion proof.
+        Scanner result: no violation.
+        """
+        text = (
+            "recent_lifecycle_class=stable_ok indicates the adoption has landed "
+            "and the repo is now governance-mature."
+        )
+        violations = scan_consumer_text(text)
+        assert violations == [], (
+            "Scanner unexpectedly caught E2 evasion — update accordingly."
+        )
+
+    # ── E3: Structural drift (semantic recombination) ────────────────────────
+
+    def test_e3_status_plus_confidence_evades_all(self):
+        """
+        KNOWN EVASION (E3 — semantic recombination across fields):
+        status = "transitioning"
+        confidence = "high"
+
+        Individually, neither field triggers a violation.  Together they
+        imply "transitioning AND high confidence" — a combined semantic claim
+        that the system is reliably in a known state.
+
+        Semantic risk: downstream code combines these fields into a verdict.
+        Scanner result: no violation (pattern matching is per-string, not
+        across field combinations).
+        """
+        text = 'status = "transitioning"\nconfidence = "high"'
+        violations = scan_consumer_text(text)
+        assert violations == [], (
+            "Scanner unexpectedly caught E3 evasion — update accordingly."
+        )
+
+    # ── E4: Paraphrase of temporal precision claim ───────────────────────────
+
+    def test_e4_stronger_basis_evades_p3(self):
+        """
+        KNOWN EVASION (E4 — paraphrase of temporal precision claim):
+        'more sessions → stronger basis for classification decisions'
+
+        P3 triggers on: more reliable / more accurate / higher precision /
+        more confident.  'stronger basis' is a paraphrase of the same claim
+        that avoids these exact words.
+
+        Semantic risk: reader infers "classification is better with more data",
+        which violates the temporal boundary (time raises reviewer confidence,
+        not model precision).
+        Scanner result: no P3 violation.
+        """
+        text = (
+            "The more sessions we collect, the stronger our basis "
+            "for classification decisions."
+        )
+        violations = scan_consumer_text(text)
+        assert violations == [], (
+            "Scanner unexpectedly caught E4 evasion — update accordingly."
+        )
+
+    def test_e4_validated_by_time_evades_p3(self):
+        """
+        KNOWN EVASION (E4 — temporal validation without 'reliable' keyword):
+        'cross-session observation validates the classification'
+
+        P3 triggers on 'more reliable / more accurate / higher precision'.
+        'validates' is not in the trigger vocabulary but carries the same
+        forbidden implication (observation → validation of model output).
+        Scanner result: no P3 violation.
+        """
+        text = "Cross-session observation over multiple days validates the classification."
+        violations = scan_consumer_text(text)
+        assert violations == [], (
+            "Scanner unexpectedly caught E4 evasion — update accordingly."
+        )
