@@ -66,7 +66,7 @@
 - potential_structural_pattern: `no`
 - emerging_pattern: `no`
 - remediation_consistency_review: `not_required`
-- post_remediation_evidence_ref: `docs/e1b-post-remediation-adversarial-2026-04-17.json` (lightweight; not strong closure evidence)
+- post_remediation_evidence_ref: `docs/e1b-post-remediation-adversarial-2026-04-17.json` (lightweight; not strong closure evidence) + pending human-only pack `docs/e1b-human-only-strong-observation-pack-2026-04-17.md`
 - post_remediation_decision_shift_observed: `no`
 - post_remediation_decision_confidence_shift: `minor`
 - post_remediation_decision_path_removed: `yes`
