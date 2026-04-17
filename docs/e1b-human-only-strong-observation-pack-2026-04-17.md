@@ -51,6 +51,50 @@ strict closure profile，並檢查修正後是否仍存在方向性推力。
 - `insufficient_signal`: 因訊號不足或模糊，無法有信心採取行動。
 - `mixed`: 同時存在以上來源，需補充說明。
 
+### Cross-field synthesis disqualification rule
+
+**若 reviewer 的自由文字理由包含跨欄位抽象總結，則不得判為 `fact_fields`。**
+
+以下語句不論 reviewer 如何自填結構欄位，皆應升格為 `directional_summary` 或 `mixed`：
+
+| 語句類型 | 範例 | 應判為 |
+|----------|------|--------|
+| 跨欄位合成趨勢 | 「最近測試提升、建置穩定，所以傾向往前」 | `directional_summary` |
+| 方向性整合 | 「整體顯示正向改善」 | `directional_summary` |
+| 軟 readiness 推論 | 「雖然還在 transitioning，但整體往正向發展」 | `directional_summary` |
+| 跨欄位合成但有保留 | 「測試提升算是正向，不過我沒有完全確定」 | `mixed` |
+
+**判讀原則**：表面來源是 fact fields，但認知路徑已做方向合成 → 不算 `fact_fields`。
+審查 reviewer 的自由文字理由，不只看 structured 欄位填什麼。
+
+## Two Failure Modes（必須分開辨識）
+
+回填結果不成立時，先判定是哪一種 failure，再決定下一步：
+
+### Failure A — Directional Reactivation
+
+Noise 下仍出現：
+- `residual_lean = yes`
+- `confidence_shift = minor` 或 `significant`
+- reviewer 自由文字含跨欄位方向合成語句
+
+代表：**composition guardrail 失敗**。guardrail 未能阻止 reviewer 把多欄位拼成 readiness 敘事。
+
+下一步：升級為 **presentation composition redesign**（重新決定哪些欄位可同屏、哪些必須拆開、哪些 summary 句型禁止生成）。
+
+### Failure B — Safe but Unusable
+
+Clean 雖通過安全條件，但：
+- `decision_engagement = no`
+- `actionability_source = unclear / none / insufficient_signal`
+- reviewer 只能選擇 hold，因資訊已碎化至無法判斷
+
+代表：**guardrail 過度抑制**，安全但不可用。
+
+下一步：不得以「安全」直接關閉 escalation。需重新評估呈現密度 — guardrail 不應讓 clean output 失去決策可用性。
+
+---
+
 ## Strict Closure 判定（esc-20260417-001）
 
 必須同時成立：
@@ -70,5 +114,13 @@ strict closure profile，並檢查修正後是否仍存在方向性推力。
 任一條件不成立：
 
 - 不可關單。
-- 若 Noise 出現 lean 或 minor shift：升級為 composition-level guardrail remediation。
-- 若 engagement=no：視為訊號弱化，不得以「安全」直接關閉 escalation。
+- 若 Noise 出現 lean / shift / reviewer 自由文字含跨欄位合成語句：**Failure A → 升級為 presentation composition redesign**，不再做 wording 微調。
+- 若 Clean 的 engagement=no 或 actionability_source=insufficient_signal：**Failure B → 不得以「安全」關閉**。
+- 若兩者均未成立但理由不確定：回填 `mixed` 並附說明，交人工裁決。
+
+### Free-text audit requirement
+
+**回填 `actionability_source` 前，必須先審 reviewer 的第 Q1 和 Q4 自由文字。**
+
+不能只看 structured 欄位。Q1（free text）和 Q4（reasoning）的語句若含跨欄位抽象合成，
+依 Cross-field synthesis disqualification rule 升格，structured 欄位填什麼不影響這個判定。
