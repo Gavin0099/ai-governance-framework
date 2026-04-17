@@ -6,7 +6,12 @@
 >
 > **Companion doc**: [docs/e1b-classification-semantic-limits.md](e1b-classification-semantic-limits.md)
 >
-> **Status**: 定義完成 — 2026-04-17.  Actual consumer audit is open (pending Phase B).
+> **Scanner**: `governance_tools/e1b_consumer_audit.py` — `scan_consumer_text(text)`
+> implements the 4 forbidden patterns as regex detection.
+> Tests: `tests/test_e1b_consumer_audit.py` (13 passing, 3 injection scenarios).
+>
+> **Status**: 定義完成 + scanner 實作完成 — 2026-04-17.
+> Actual consumer audit of existing surfaces is open (pending Phase B).
 
 ---
 
