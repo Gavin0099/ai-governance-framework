@@ -204,7 +204,8 @@ false-positive escalation with reviewer consistency check).
   as lightweight evidence and cannot by itself satisfy strong closure evidence.
 - For cases that previously reached `decision_confidence_shift=significant`,
   apply strict closure profile: require post-remediation `confidence_shift=none`
-  and no residual decision lean in human-only strong observation.
+  and no residual decision lean in human-only strong observation, with
+  decision_engagement=`yes`.
 
 ---
 

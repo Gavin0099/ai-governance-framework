@@ -131,6 +131,8 @@ Closure additionally requires all of:
 - information preservation check passes (output still provides sufficient signal
   for decision-making).
 - reviewer reports no residual decision lean from the output wording/structure.
+- decision engagement check = `yes` (reviewer felt confident enough to make a
+  decision using the output).
 
 Severity-aware tightening:
 
