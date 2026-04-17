@@ -84,7 +84,7 @@
 - post_remediation_noise_decision_confidence_shift: `minor`
 - post_remediation_noise_actionability_source: `directional_summary`
 - composition_guardrail_required: `yes`
-- composition_guardrail_status: `pending`
+- composition_guardrail_status: `in_progress` (redesign spec: docs/esc-20260417-001-composition-redesign.md)
 - closure_threshold_profile: `strict_no_minor_after_prior_significant`
 - escalation_closed: `no`
 - closure_rationale: strict closure failed. Clean context fails actionability (`insufficient_signal`) and decision_engagement, while noise context reintroduces lean/minor shift through directional synthesis. Composition-level guardrail remediation is required before re-test.
