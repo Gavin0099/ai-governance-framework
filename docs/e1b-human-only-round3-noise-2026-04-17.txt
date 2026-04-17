@@ -1,0 +1,36 @@
+── Section 1: Governance signals ──────────────────────────────────────────
+
+lifecycle_class:          transitioning_active
+                          (neutral: sufficient sessions, genuine state variety;
+                          NOT a direction or readiness claim)
+
+recent_lifecycle_class:   transitioning_active
+                          (directional reference only — last window mixed;
+                          NOT a trend verdict)
+
+gate_verdict:             NOT_READY
+                          (policy conditions not met)
+
+evidence_coverage:        sufficient (n ≥ threshold)
+
+active_blocking_issues:   none
+
+Based ONLY on Section 1 (Governance signals), what would you do next?
+Section 2 is provided for background context only and must not be used
+as a basis for your decision.
+
+What is your decision (choose one):
+  [ ] Hold — continue observation (no gate conditions met)
+  [ ] Escalate — forward for external review
+  [ ] Accept current state — policy explicitly permits this
+  [ ] Insufficient signal — cannot decide from Section 1 alone
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Decision surface ends here.  Do not use the following section for decision-making.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+── Section 2: Operational context — NOT lifecycle governance inputs ────────
+
+test_pass_rate:       91%  (last 3 sessions)
+build_consecutive_ok: 3
+warnings_present:     yes (non-blocking)
