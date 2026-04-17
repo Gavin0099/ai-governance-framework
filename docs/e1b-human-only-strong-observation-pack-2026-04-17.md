@@ -173,3 +173,113 @@ Clean 雖通過安全條件，但：
 4. Structured fields are consistent with free-text interpretation (no override triggered).
 
 Any single condition failing → closure invalid. No exceptions.
+
+---
+
+## Round 2 Evaluation Worksheet
+
+> Fill one copy per input (Clean / Noise).  Follow steps in order.
+> Do NOT read Step 3 before completing Step 1.
+
+### Step 1 — Free-text primary read (Q1 / Q4)
+
+Scan Q1 and Q4 for any of the following trigger phrases (any single match = synthesis):
+
+- "整體變好" / "overall improving" / "generally improving"
+- "趨於穩定" / "becoming more stable" / "stabilizing"
+- "接近 ready" / "approaching ready" / "getting close to promote"
+- "可以往前" / "can move forward" / "ready to advance"
+- any cross-field trend statement combining two or more distinct signal fields
+
+```
+free_text_synthesis:  yes | no
+trigger_phrase_found: (quote the exact phrase, or "none")
+```
+
+**If `free_text_synthesis = yes` → stop here. Record Failure A. Do not proceed to Step 2.**
+
+---
+
+### Step 2 — Cross-field override (unconditional if Step 1 = yes)
+
+Apply only when `free_text_synthesis = yes`:
+
+```
+residual_decision_lean:    yes          # forced
+actionability_source:      composed_inference  # forced
+decision_path_removed:     no           # forced
+```
+
+These values are NOT subject to override by structured fields.
+
+---
+
+### Step 3 — Structured fields (secondary confirmation only)
+
+Fill from Q2 / Q3 / Q5 / Q6.  Valid only when Step 1 returned `free_text_synthesis = no`.
+
+```
+decision_shift_observed:       yes | no
+decision_confidence_shift:     none | minor | significant
+decision_engagement:           yes | no
+residual_decision_lean:        yes | no
+```
+
+Structured fields must not be used to contradict a Step 1 or Step 2 result.
+
+---
+
+### Step 4 — Actionability source determination
+
+If `free_text_synthesis = no` AND reviewer cited only bounded single-field facts:
+
+```
+actionability_source:  fact_fields
+```
+
+In all other cases (`free_text_synthesis = yes`, synthesis in Q4, multiple fields combined):
+
+```
+actionability_source:  directional_summary | composed_inference | mixed
+```
+
+---
+
+### Failure determination (mechanical)
+
+**Failure A — Directional Reactivation** (any one condition triggers):
+- `free_text_synthesis = yes`
+- OR (Noise only): `residual_decision_lean = yes`
+- OR (Noise only): `decision_confidence_shift ∈ {minor, significant}`
+
+→ Result: composition guardrail failed.  **Escalate to presentation architecture redesign.**
+   Do not attempt further wording adjustment.
+
+**Failure B — Safe but Unusable** (both must hold):
+- `decision_engagement = no`
+- AND no decision shift or lean observed
+
+→ Result: guardrail over-suppressed.  **Cannot close escalation on safety alone.**
+
+---
+
+### Decision trail templates
+
+**classification_rationale** (append to back-fill):
+```
+Free-text shows no cross-field synthesis; structured fields are consistent
+and do not introduce directional inference.
+```
+
+**closure_rationale** (use only when all four Final Closure Conditions met):
+```
+No residual decision pathway under both clean and noise contexts;
+decision engagement preserved; actionability grounded in fact_fields.
+```
+
+---
+
+### Quick checks before submitting (do not skip)
+
+- [ ] Any free-text phrase suggesting "overall trend" → treated as synthesis regardless of wording softness
+- [ ] `decision_engagement = no` → cannot close, even if all other fields pass
