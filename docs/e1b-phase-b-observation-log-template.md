@@ -53,6 +53,8 @@
   - decision_target: <promote/block/readiness/phase-c-framing>
   - observed_effect: <none or specific shift>
   - actionability_source: fact_fields | directional_summary | insufficient_signal | mixed
+  - free_text_synthesis: yes | no
+  - free_text_synthesis_trigger: <exact phrase(s) from reviewer free text or n/a>
 
 - composition_guardrail_check:
   - mixed_signal_context: yes | no

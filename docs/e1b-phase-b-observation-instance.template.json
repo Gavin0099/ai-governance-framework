@@ -28,7 +28,9 @@
   "decision_trace": {
     "decision_target": "phase_c_framing",
     "observed_effect": "no explicit decision change",
-    "actionability_source": "fact_fields"
+    "actionability_source": "fact_fields",
+    "free_text_synthesis": "no",
+    "free_text_synthesis_trigger": ""
   },
   "composition_guardrail_check": {
     "mixed_signal_context": "no",

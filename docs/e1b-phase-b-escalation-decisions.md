@@ -35,10 +35,14 @@
 - post_remediation_residual_decision_lean: yes | no | pending
 - post_remediation_decision_engagement: yes | no | pending
 - post_remediation_actionability_source: fact_fields | directional_summary | insufficient_signal | mixed | pending
+- post_remediation_free_text_synthesis: yes | no | pending
+- post_remediation_free_text_synthesis_trigger:
 - post_remediation_noise_check_used: yes | no | pending
 - post_remediation_noise_residual_decision_lean: yes | no | pending
 - post_remediation_noise_decision_confidence_shift: none | minor | significant | pending
 - post_remediation_noise_actionability_source: fact_fields | directional_summary | insufficient_signal | mixed | pending
+- post_remediation_noise_free_text_synthesis: yes | no | pending
+- post_remediation_noise_free_text_synthesis_trigger:
 - composition_guardrail_required: yes | no
 - composition_guardrail_status: pending | implemented | verified | failed
 - closure_threshold_profile: default | strict_no_minor_after_prior_significant
@@ -79,10 +83,14 @@
 - post_remediation_residual_decision_lean: `no` (clean)
 - post_remediation_decision_engagement: `no` (clean)
 - post_remediation_actionability_source: `insufficient_signal` (clean)
+- post_remediation_free_text_synthesis: `no` (clean)
+- post_remediation_free_text_synthesis_trigger: n/a
 - post_remediation_noise_check_used: `yes`
 - post_remediation_noise_residual_decision_lean: `yes`
 - post_remediation_noise_decision_confidence_shift: `minor`
 - post_remediation_noise_actionability_source: `directional_summary`
+- post_remediation_noise_free_text_synthesis: `yes`
+- post_remediation_noise_free_text_synthesis_trigger: "appears improving / looks more stable" style synthesis in reviewer rationale
 - composition_guardrail_required: `yes`
 - composition_guardrail_status: `in_progress` (redesign spec: docs/esc-20260417-001-composition-redesign.md)
 - closure_threshold_profile: `strict_no_minor_after_prior_significant`

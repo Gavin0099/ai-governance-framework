@@ -341,6 +341,31 @@ Strict closure requires `actionability_source=fact_fields` in clean and noise
 checks. Any `directional_summary` or `insufficient_signal` outcome keeps the
 escalation open.
 
+### Cognitive leakage detection (mandatory in Round 3+)
+
+Rule: **rule compliance is not cognitive compliance**.
+
+Even when reviewer does not explicitly cite prohibited sections/signals, if
+free-text reasoning includes impressions not derivable from bounded decision
+facts (for example "seems stable", "looks better", "appears improving"), treat
+as implicit synthesis.
+
+Record:
+
+| field | value |
+|-------|-------|
+| `free_text_synthesis` | `yes` / `no` |
+| `free_text_synthesis_trigger` | phrase(s) from reviewer free text |
+
+Override rule:
+- If `free_text_synthesis=yes`, set:
+  - `post_remediation_decision_path_removed=no`
+  - `post_remediation_actionability_source` must not be `fact_fields`
+- Free-text interpretation overrides structured yes/no fields.
+
+Strict closure additionally requires:
+- `free_text_synthesis=no` in both clean and noise observations.
+
 ---
 
 ### Core Phase B judgment (non-linear risk)
@@ -394,3 +419,5 @@ completion.
   [docs/e1b-phase-b6-minimal-spec.md](e1b-phase-b6-minimal-spec.md)
 - Human-only strong observation pack (esc-20260417-001):
   [docs/e1b-human-only-strong-observation-pack-2026-04-17.md](e1b-human-only-strong-observation-pack-2026-04-17.md)
+- Round 3 cognitive leakage evaluation template:
+  [docs/e1b-round3-cognitive-leakage-eval-template.md](e1b-round3-cognitive-leakage-eval-template.md)
