@@ -38,16 +38,16 @@
 ### 2026-04-17 - esc-20260417-001
 
 - instance_id: `obs-20260417-002-structured-high`
-- classification_type: `pending_classification`
-- decision_shift_observed: `pending_human_confirmation`
-- reproducibility: `pending_human_confirmation`
-- is_confirmed_decision_relevant: `pending_human_confirmation`
-- reviewer_consistency: `pending_second_opinion`
+- classification_type: `interpretation_sensitive`
+- decision_shift_observed: `yes`
+- reproducibility: `low`
+- is_confirmed_decision_relevant: `yes`
+- reviewer_consistency: `mixed`
 - misinterpretation_path: structured field recombination may create implicit readiness proxy and shift hold->promote interpretation.
-- classification_rationale: awaiting independent reviewer output and lightweight second opinion consistency check.
-- remediation_decision: pending human confirmation classification.
-- remediation_scope: consumer output surfaces co-presenting status/lifecycle with confidence and recent stability cues.
-- remediation_rationale: if consistency converges with decision shift, remediation remains schema/surface-first; if mixed, downgrade to interpretation-sensitive path.
+- classification_rationale: primary reviewer observed decision-shift risk while backup second opinion remained hold/no-change; non-convergent handling therefore defaults to interpretation_sensitive with low reproducibility.
+- remediation_decision: wording clarification.
+- remediation_scope: consumer summaries that co-present status/lifecycle/confidence in readiness-like phrasing.
+- remediation_rationale: this case does not meet structural_flaw threshold due mixed reviewer signal and low reproducibility, but still requires explicit wording guardrail to prevent implicit readiness inference.
 - controlled_divergence: `no`
 - divergence_rationale: n/a
 - recurrence_signal: `observed_once`
@@ -55,7 +55,7 @@
 - emerging_pattern: `no`
 - remediation_consistency_review: `not_required`
 - escalation_closed: `no`
-- closure_rationale: waiting for convergence outputs (independent reviewer + backup second opinion).
+- closure_rationale: classification converged to interpretation_sensitive, but closure is deferred until one post-remediation independent observation confirms non-critical decision impact under revised wording.
 - owner: `framework`
 - status: `triaged`
 - linked_runtime_log: `artifacts/runtime/e1b-phase-b-escalation/phase-b-escalation-log.jsonl`
