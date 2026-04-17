@@ -1,0 +1,24 @@
+#!/bin/sh
+
+EXPECTED_ORIGIN_PUSHURL="https://github.com/Gavin0099/ai-governance-framework.git"
+EXPECTED_USER_NAME="Gavin0099"
+EXPECTED_USER_EMAIL="Gavin0099@users.noreply.github.com"
+
+actual_origin_pushurl="$(git remote get-url --push origin 2>/dev/null)"
+if [ "$actual_origin_pushurl" != "$EXPECTED_ORIGIN_PUSHURL" ]; then
+  echo "ERROR: origin pushurl mismatch."
+  echo "Expected: $EXPECTED_ORIGIN_PUSHURL"
+  echo "Actual:   $actual_origin_pushurl"
+  exit 1
+fi
+
+actual_user_name="$(git config --get user.name 2>/dev/null)"
+actual_user_email="$(git config --get user.email 2>/dev/null)"
+if [ "$actual_user_name" != "$EXPECTED_USER_NAME" ] || [ "$actual_user_email" != "$EXPECTED_USER_EMAIL" ]; then
+  echo "ERROR: git identity mismatch."
+  echo "Expected: $EXPECTED_USER_NAME <$EXPECTED_USER_EMAIL>"
+  echo "Actual:   $actual_user_name <$actual_user_email>"
+  exit 1
+fi
+
+exit 0
