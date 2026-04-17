@@ -32,6 +32,8 @@
 - post_remediation_decision_path_removed: yes | no | pending
 - post_remediation_path_removal_rationale:
 - post_remediation_information_preserved: yes | no | pending
+- post_remediation_residual_decision_lean: yes | no | pending
+- closure_threshold_profile: default | strict_no_minor_after_prior_significant
 - escalation_closed: yes | no
 - closure_rationale:
 - owner:
@@ -66,8 +68,10 @@
 - post_remediation_decision_path_removed: `yes`
 - post_remediation_path_removal_rationale: explicit disclaimer now states confidence is not readiness/promote evidence, removing prior inference path.
 - post_remediation_information_preserved: `yes`
+- post_remediation_residual_decision_lean: `pending` (human-only strong check not yet run)
+- closure_threshold_profile: `strict_no_minor_after_prior_significant`
 - escalation_closed: `no`
-- closure_rationale: first post-remediation result is borderline (`minor` confidence shift) and sourced from ai_adversarial_simulation (lightweight only); per robustness rule, a second independent observation is required before closure.
+- closure_rationale: prior state included significant confidence shift; this escalation now uses strict closure profile requiring human-only strong evidence with confidence_shift=none and no residual decision lean.
 - owner: `framework`
 - status: `triaged`
 - linked_runtime_log: `artifacts/runtime/e1b-phase-b-escalation/phase-b-escalation-log.jsonl`
