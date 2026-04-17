@@ -19,7 +19,7 @@ reviewer response in this run.
 ## Governance outcome
 
 - Remediation status: `implemented`.
-- Escalation status: `mitigated` but still `open`.
+- Escalation status: `unverified_mitigation` (non-closed steady state).
 - Closure: not granted under strict profile because no new human-only
   confirmation was collected in this run.
 - Dual-state interpretation:
