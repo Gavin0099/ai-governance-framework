@@ -120,10 +120,22 @@ If an escalation previously reached `decision_relevant`:
 
 Closure additionally requires all of:
 
-- at least one independent post-remediation observation.
+- minimal robustness requirement:
+  - one strong independent observation (`human-only`, no prior context), OR
+  - two lightweight independent observations across different contexts.
 - `decision_shift_observed = no` in post-remediation check.
 - `decision_confidence_shift` is not `significant`.
 - `misinterpretation_path` no longer leads to decision inference.
+- reviewer can explicitly explain what wording/structure change removed the
+  previous inference path.
+- information preservation check passes (output still provides sufficient signal
+  for decision-making).
+
+Borderline handling:
+
+- if first observation is borderline (e.g., `decision_confidence_shift=minor`
+  with hesitation or unclear rationale), require second confirmation before
+  closure.
 
 If verification fails:
 

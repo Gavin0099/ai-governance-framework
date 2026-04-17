@@ -30,6 +30,8 @@
 - post_remediation_decision_shift_observed: yes | no | pending
 - post_remediation_decision_confidence_shift: none | minor | significant | pending
 - post_remediation_decision_path_removed: yes | no | pending
+- post_remediation_path_removal_rationale:
+- post_remediation_information_preserved: yes | no | pending
 - escalation_closed: yes | no
 - closure_rationale:
 - owner:
@@ -62,6 +64,8 @@
 - post_remediation_decision_shift_observed: `pending`
 - post_remediation_decision_confidence_shift: `pending`
 - post_remediation_decision_path_removed: `pending`
+- post_remediation_path_removal_rationale: pending
+- post_remediation_information_preserved: `pending`
 - escalation_closed: `no`
 - closure_rationale: classification converged to interpretation_sensitive, but closure is deferred until one post-remediation independent observation confirms non-critical decision impact under revised wording.
 - owner: `framework`

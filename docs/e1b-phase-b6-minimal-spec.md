@@ -25,6 +25,9 @@ escalation events, not only single-event correctness.
    and explicit remediation decision.
 5. For previously `decision_relevant` escalations, closure requires
    post-remediation evidence that decision pathway is removed.
+6. Robustness floor for previously `decision_relevant` escalations:
+   one strong independent observation, or two lightweight independent
+   observations across different contexts.
 
 ## Remediation Consistency Rule
 
