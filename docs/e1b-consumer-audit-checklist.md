@@ -190,6 +190,10 @@ false-positive escalation with reviewer consistency check).
   (wording clarification, guidance update, or accepted ambiguity with rationale).
 - Repeated similar misinterpretation paths across independent contexts require
   re-evaluation as potential structural pattern.
+- Similar paths may diverge in remediation only under controlled divergence with
+  explicit divergence rationale.
+- If recurrence is triggered, re-evaluate classification independently; do not
+  use prior remediation consistency as evidence against structural classification.
 
 ---
 

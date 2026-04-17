@@ -20,6 +20,8 @@
 - remediation_decision:
 - remediation_scope:
 - remediation_rationale:
+- controlled_divergence: yes | no
+- divergence_rationale:
 - recurrence_signal: none | observed_once | repeated_independent_contexts
 - potential_structural_pattern: yes | no
 - emerging_pattern: yes | no
@@ -46,6 +48,8 @@
 - remediation_decision: pending human confirmation classification.
 - remediation_scope: consumer output surfaces co-presenting status/lifecycle with confidence and recent stability cues.
 - remediation_rationale: if consistency converges with decision shift, remediation remains schema/surface-first; if mixed, downgrade to interpretation-sensitive path.
+- controlled_divergence: `no`
+- divergence_rationale: n/a
 - recurrence_signal: `observed_once`
 - potential_structural_pattern: `no`
 - emerging_pattern: `no`
