@@ -40,7 +40,7 @@
   - repo_name: <repo>
   - repo_type: tool | app | infra | experiment
   - session_type: bugfix | feature | analysis
-  - reviewer_mode: AI-assisted | human-only
+  - reviewer_mode: AI-assisted | human-only | ai_adversarial_simulation
 
 - interpretation_note: >
     <why this instance was labeled with current impact_scope and confidence_shift>
@@ -74,3 +74,7 @@ Expected first-batch signal quality:
   re-sample with more adversarial cases.
 
 Do not summarize distribution yet. Keep case-by-case records.
+
+Note:
+- `ai_adversarial_simulation` observations count as lightweight evidence only.
+- They do not satisfy strong human-only closure requirements.
