@@ -352,3 +352,5 @@ completion.
   [docs/e1b-phase-b-escalation-decisions.md](e1b-phase-b-escalation-decisions.md)
 - Phase B.6 minimal spec:
   [docs/e1b-phase-b6-minimal-spec.md](e1b-phase-b6-minimal-spec.md)
+- Human-only strong observation pack (esc-20260417-001):
+  [docs/e1b-human-only-strong-observation-pack-2026-04-17.md](e1b-human-only-strong-observation-pack-2026-04-17.md)
