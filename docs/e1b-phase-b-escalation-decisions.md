@@ -26,6 +26,10 @@
 - potential_structural_pattern: yes | no
 - emerging_pattern: yes | no
 - remediation_consistency_review: required | not_required
+- post_remediation_evidence_ref:
+- post_remediation_decision_shift_observed: yes | no | pending
+- post_remediation_decision_confidence_shift: none | minor | significant | pending
+- post_remediation_decision_path_removed: yes | no | pending
 - escalation_closed: yes | no
 - closure_rationale:
 - owner:
@@ -54,6 +58,10 @@
 - potential_structural_pattern: `no`
 - emerging_pattern: `no`
 - remediation_consistency_review: `not_required`
+- post_remediation_evidence_ref: pending
+- post_remediation_decision_shift_observed: `pending`
+- post_remediation_decision_confidence_shift: `pending`
+- post_remediation_decision_path_removed: `pending`
 - escalation_closed: `no`
 - closure_rationale: classification converged to interpretation_sensitive, but closure is deferred until one post-remediation independent observation confirms non-critical decision impact under revised wording.
 - owner: `framework`
