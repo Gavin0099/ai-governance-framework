@@ -1,0 +1,37 @@
+{
+  "schema_version": "v1",
+  "phase": "B",
+  "observation_id": "obs-20260417-001",
+  "observed_at_utc": "2026-04-17T10:30:00Z",
+  "observer": "reviewer",
+  "source_type": "session_note",
+  "source_ref": "memory/2026-04-17.md",
+  "consumer_surface": "phase-summary-text",
+  "escape_class": "E2",
+  "escape_risk_tier": "HIGH",
+  "escape_phrase_or_pattern": "conditions suggest readiness is approaching",
+  "audit_questions": {
+    "q1_escape_present": "yes",
+    "q2_human_misinterpretation_likely": "yes",
+    "q3_affects_decision_outcome": "no"
+  },
+  "impact_scope": "interpretive_only",
+  "decision_confidence_shift": "minor",
+  "context": {
+    "repo_name": "ai-governance-framework",
+    "repo_type": "infra",
+    "session_type": "analysis",
+    "reviewer_mode": "AI-assisted"
+  },
+  "interpretation_note": "Wording can tilt readiness sentiment, but no explicit promote/block shift was observed in this instance.",
+  "self_challenge_note": "If interpreted as readiness evidence, this could prematurely bias a promote decision before required conditions are met.",
+  "decision_trace": {
+    "decision_target": "phase_c_framing",
+    "observed_effect": "no explicit decision change"
+  },
+  "escalation": {
+    "required": "no",
+    "reason": "",
+    "human_review_ref": "n/a"
+  }
+}
