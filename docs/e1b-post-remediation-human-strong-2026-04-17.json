@@ -1,0 +1,31 @@
+{
+  "schema_version": "v1",
+  "phase": "B",
+  "artifact_type": "post_remediation_human_strong_observation",
+  "observation_id": "obs-20260417-004-post-remediation-human-strong",
+  "escalation_id": "esc-20260417-001",
+  "reviewer_mode": "human_only",
+  "evidence_strength": "strong",
+  "source_ref": "docs/e1b-human-only-strong-observation-pack-2026-04-17.md",
+  "results": {
+    "clean": {
+      "post_remediation_decision_shift_observed": "no",
+      "post_remediation_decision_confidence_shift": "none",
+      "post_remediation_residual_decision_lean": "no",
+      "post_remediation_decision_engagement": "no",
+      "post_remediation_decision_path_removed": "yes",
+      "post_remediation_information_preserved": "no"
+    },
+    "noise": {
+      "post_remediation_decision_shift_observed": "yes",
+      "post_remediation_decision_confidence_shift": "minor",
+      "post_remediation_residual_decision_lean": "yes",
+      "post_remediation_decision_engagement": "yes",
+      "post_remediation_decision_path_removed": "no",
+      "post_remediation_information_preserved": "yes"
+    }
+  },
+  "interpretation_note": "Reviewer answers indicate clean context suppresses lean but loses engagement, while mixed-signal context reintroduces directional lean. This fails strict closure and suggests the original pathway can be reactivated by contextual positive signals.",
+  "recommended_action": "do_not_close_and_upgrade_remediation",
+  "recommended_remediation_upgrade": "consumer_guidance_update"
+}
