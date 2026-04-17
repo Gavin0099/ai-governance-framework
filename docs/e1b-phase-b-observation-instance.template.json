@@ -30,6 +30,7 @@
     "observed_effect": "no explicit decision change",
     "actionability_source": "fact_fields",
     "free_text_synthesis": "no",
+    "free_text_synthesis_type": "neutral_reasoning",
     "free_text_synthesis_trigger": ""
   },
   "composition_guardrail_check": {

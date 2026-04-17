@@ -41,6 +41,9 @@ escalation events, not only single-event correctness.
     `actionability_source=fact_fields` in clean/noise human-only checks.
 11. Strict closure requires `free_text_synthesis=no` in clean/noise checks;
     any implicit synthesis in free-text reasoning invalidates closure.
+12. `free_text_synthesis` is directional-only: neutral absence-based reasoning
+    is recorded as `free_text_synthesis_type=neutral_reasoning` and does not
+    trigger automatic failure.
 
 ## Remediation Consistency Rule
 
@@ -106,6 +109,11 @@ safety signal.
 
 - If reviewer free text contains directional impressions not derivable from
   bounded facts, set `free_text_synthesis=yes`.
+- Classify synthesis type:
+  - `directional_positive`: pushes toward readiness/progress/promote.
+  - `directional_negative`: pushes toward block/failure from non-bounded cues.
+  - `neutral_reasoning`: uncertainty/insufficient-evidence language without
+    directional push.
 - `free_text_synthesis=yes` forces:
   - `decision_path_removed=no`
   - `actionability_source != fact_fields`
