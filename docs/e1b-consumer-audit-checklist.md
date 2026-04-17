@@ -113,7 +113,7 @@ apply the checklist to the AI output before accepting it as canonical.
 > It requires demonstrating that escape-induced misinterpretation does not materially
 > affect downstream decision outcomes.
 
-### Per-consumer output: 3-question audit
+### Per-consumer output: 3-question audit + impact_scope
 
 For each consumer output that passes the scanner (no P1–P4 violations):
 
@@ -128,8 +128,35 @@ For each consumer output that passes the scanner (no P1–P4 violations):
 3. **Affects decision outcome?** — If the misinterpretation occurred, would it
    change a promote/block decision, a gate-advance vote, or a Phase C framing?
 
+**Record `impact_scope` for each observed escape** (three values only):
+
+| value | meaning |
+|-------|---------|
+| `none` | Wording drift only; no semantic over-claim; no reviewer confusion expected |
+| `interpretive_only` | Reviewer might read it ambiguously, but no documented promote/block influence |
+| `decision_relevant` | Escape could plausibly shift a readiness / promote / lifecycle interpretation |
+
+Record this alongside observed/escaped/human-flagged in Phase B session notes.
+Separating these three avoids collapsing harmless wording drift and actual decision-risk
+into the same bucket, which would distort Phase B aggregate findings.
+
 **Action threshold**: If Q1=yes AND Q3=yes → escalate for manual review regardless
-of scanner result.
+of scanner result.  Record as `impact_scope: decision_relevant`.
+
+---
+
+### Conclusion language boundary (mandatory)
+
+**Permitted conclusion** after Phase B observation:
+> "No observed material decision impact under current observation scope."
+
+**Forbidden conclusion**:
+> "Consumer reinterpretation risk resolved."
+
+The distinction: absence of observed impact under a given observation scope is not
+proof that the risk is gone.  A different set of repos, reviewers, or summary
+surfaces may still produce material misinterpretation.  The conclusion must always
+carry the scope qualifier.
 
 ---
 

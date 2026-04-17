@@ -88,6 +88,16 @@
       Phase B validation focuses on whether such escapes materially influence
       downstream decisions, rather than attempting full semantic capture.
       Reference: `docs/e1b-consumer-audit-checklist.md` — Decision Impact Analysis.
+    - **Phase B definition** (Phase A.7 — 2026-04-17):
+      Phase B is not passive natural observation.  It is structured
+      decision-impact observation: known escape classes, risk tiers (HIGH /
+      MEDIUM / LOW), 3-question audit, and `impact_scope` recording are
+      already defined.  The Phase B question is not "did violations occur?"
+      but "did known escapes materially affect any readiness / promote /
+      lifecycle interpretation?"
+      Permitted Phase B conclusion: "No observed material decision impact
+      under current observation scope."  Forbidden: "Consumer reinterpretation
+      risk resolved."
   - [ ] **Phase 3（blocked）**: Trigger Design — 動態 threshold、trend_direction、cross-repo correlation；必須等 Phase 2 readiness gate 全過才能開工；不允許在沒有 evidence baseline 的情況下拍腦袋設 threshold
 
 > 排序根據：E8a 先讓 signal 有歷史，E8b 才能讓歷史有語意，E1a/E1b 再決定是否有可靠證據基礎支持更強約束。
