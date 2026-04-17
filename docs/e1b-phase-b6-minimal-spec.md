@@ -32,7 +32,8 @@ escalation events, not only single-event correctness.
    itself satisfy strong closure evidence.
 8. For escalations with prior `decision_confidence_shift=significant`, closure
    uses strict profile: post-remediation confidence shift must be `none` and
-   human-only review must report no residual decision lean.
+   human-only review must report no residual decision lean with
+   decision_engagement=`yes`.
 
 ## Remediation Consistency Rule
 
