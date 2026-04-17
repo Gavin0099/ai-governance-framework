@@ -114,6 +114,23 @@ An escalation can be closed only when:
 - `classification_rationale` is documented.
 - remediation decision is explicitly chosen (including `no change`).
 
+## Post-Remediation Verification Rule
+
+If an escalation previously reached `decision_relevant`:
+
+Closure additionally requires all of:
+
+- at least one independent post-remediation observation.
+- `decision_shift_observed = no` in post-remediation check.
+- `decision_confidence_shift` is not `significant`.
+- `misinterpretation_path` no longer leads to decision inference.
+
+If verification fails:
+
+- if decision shift reappears: upgrade to `potential_structural_pattern`.
+- if decision shift does not reappear but misinterpretation path persists:
+  remain `interpretation_sensitive` and strengthen remediation.
+
 ## Remediation Decision Rule (Interpretation-Sensitive)
 
 If `classification_type = interpretation_sensitive`:

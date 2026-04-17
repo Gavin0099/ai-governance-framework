@@ -23,6 +23,8 @@ escalation events, not only single-event correctness.
    `potential_structural_pattern` re-evaluation.
 4. Escalation closure requires stable classification, classification rationale,
    and explicit remediation decision.
+5. For previously `decision_relevant` escalations, closure requires
+   post-remediation evidence that decision pathway is removed.
 
 ## Remediation Consistency Rule
 

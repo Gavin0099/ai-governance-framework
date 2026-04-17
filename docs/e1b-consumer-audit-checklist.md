@@ -194,6 +194,9 @@ false-positive escalation with reviewer consistency check).
   explicit divergence rationale.
 - If recurrence is triggered, re-evaluate classification independently; do not
   use prior remediation consistency as evidence against structural classification.
+- For previously `decision_relevant` escalations, closure requires independent
+  post-remediation verification that decision pathway is removed (not only
+  temporary absence of observed decision shift).
 
 ---
 
