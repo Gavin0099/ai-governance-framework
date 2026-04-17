@@ -92,16 +92,31 @@
       Phase B is verifiable observation mode — not passive natural observation.
       Known escape classes, risk tiers (HIGH / MEDIUM / LOW), 3-question audit,
       `impact_scope` recording, and observation validity criteria are already
-      defined.  The Phase B question is: "Do any known escape paths produce
+      defined as evidence schema + decision rule.  What is pending is evidence
+      instance accumulation (falsification attempts), not schema design.
+      The Phase B question is: "Do any known escape paths produce
       decision-relevant impact under realistic usage?"
       This is non-linear risk: one `decision_relevant` instance is sufficient
       to trigger human review, regardless of how many `none` or
       `interpretive_only` observations exist.
+      Phase B is therefore in a verification-ready state, pending falsification
+      attempts across defined contexts.
       Phase B sufficiency requires ALL FOUR: (1) coverage across contexts per
       HIGH-risk escape, (2) zero `decision_relevant` instances, (3) at least one
       human interpretation check, (4) no single-session/repo concentration.
       Permitted conclusion: "No observed material decision impact under current
       observation scope."  Forbidden: "Consumer reinterpretation risk resolved."
+      Required caveat sentence: "Phase B does not prove the absence of
+      decision-impacting escapes. It establishes that no such impact has been
+      observed within the defined escape classes, contexts, and observation
+      scope."
+      Runtime status update (2026-04-17): first falsifying instance observed
+      (`obs-20260417-002-structured-high`, `impact_scope=decision_relevant`,
+      `decision_confidence_shift=significant`). Primary track is now escalation
+      triage and remediation analysis; further observation is scoping-only until
+      this escalation is resolved.
+      Phase B.6 minimal spec is now defined for cross-event consistency and
+      anti-drift governance: `docs/e1b-phase-b6-minimal-spec.md`.
       Reference: `docs/e1b-consumer-audit-checklist.md` — Observation validity
       criteria.
   - [ ] **Phase 3（blocked）**: Trigger Design — 動態 threshold、trend_direction、cross-repo correlation；必須等 Phase 2 readiness gate 全過才能開工；不允許在沒有 evidence baseline 的情況下拍腦袋設 threshold

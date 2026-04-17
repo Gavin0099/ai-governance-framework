@@ -112,8 +112,13 @@ apply the checklist to the AI output before accepting it as canonical.
 > **Key principle**: L3 validation does not require eliminating escape paths.
 > It requires demonstrating that escape-induced misinterpretation does not materially
 > affect downstream decision outcomes.
+>
+> **Schema status**: Evidence schema is already defined (escape classes, risk
+> tiers, `impact_scope`, validity criteria, and non-linear decision rule).
+> Phase B work is now evidence-instance accumulation and falsification attempts,
+> not schema design.
 
-### Per-consumer output: 3-question audit + impact_scope
+### Per-consumer output: 3-question audit + evidence instance fields
 
 For each consumer output that passes the scanner (no P1–P4 violations):
 
@@ -140,8 +145,51 @@ Record this alongside observed/escaped/human-flagged in Phase B session notes.
 Separating these three avoids collapsing harmless wording drift and actual decision-risk
 into the same bucket, which would distort Phase B aggregate findings.
 
+**Also record `decision_confidence_shift`** (captures subtle decision drift even
+when no explicit wrong decision is observed):
+
+| value | meaning |
+|-------|---------|
+| `none` | No visible shift in reviewer decision confidence |
+| `minor` | Slight tilt in readiness / promote confidence, but no explicit decision flip |
+| `significant` | Clear confidence shift that could materially bias decision direction |
+
+`impact_scope` and `decision_confidence_shift` must be recorded together.
+`decision_relevant` remains the binary fail trigger; confidence-shift data is
+used to detect false-negative blind spots.
+
+**Record context dimensions** for each observation instance:
+
+| field | allowed values |
+|-------|----------------|
+| `repo_type` | `tool` \| `app` \| `infra` \| `experiment` |
+| `session_type` | `bugfix` \| `feature` \| `analysis` |
+| `reviewer_mode` | `AI-assisted` \| `human-only` |
+
+These fields are minimal metadata for coverage interpretation; no scoring model
+is required in Phase B.
+
 **Action threshold**: If Q1=yes AND Q3=yes → escalate for manual review regardless
 of scanner result.  Record as `impact_scope: decision_relevant`.
+
+**Mode switch rule (mandatory)**: Once any `decision_relevant` instance is
+observed, Phase B primary track shifts from observation accumulation to
+escalation triage and remediation analysis. Additional observations may continue
+for scoping only; they do not nullify the escalation trigger.
+
+**Current stage after first falsifying instance**: classification convergence
+(confirm whether escalation is structural flaw, interpretation-sensitive, or
+false-positive escalation with reviewer consistency check).
+
+**Convergence discipline**:
+- Do not force convergence. If reviewer outputs are mixed, classify as
+  `interpretation_sensitive` by default.
+- Escalation closure requires stable classification, documented rationale, and
+  explicit remediation decision (including `no change`).
+- For `interpretation_sensitive`, remediation must be explicitly selected
+  (wording clarification, guidance update, or accepted ambiguity with rationale).
+- Repeated similar misinterpretation paths across independent contexts require
+  re-evaluation as potential structural pattern.
 
 ---
 
@@ -157,6 +205,9 @@ The distinction: absence of observed impact under a given observation scope is n
 proof that the risk is gone.  A different set of repos, reviewers, or summary
 surfaces may still produce material misinterpretation.  The conclusion must always
 carry the scope qualifier.
+
+**Required caveat sentence** (include in Phase B closeout text):
+> "Phase B does not prove the absence of decision-impacting escapes. It establishes that no such impact has been observed within the defined escape classes, contexts, and observation scope."
 
 ---
 
@@ -205,7 +256,9 @@ Phase B does not have a time limit — it has an **evidence threshold**.
 1. **Coverage**: Each HIGH-risk escape class has been observed in at least one
    independent context per distinct source type (session note / MEMORY update /
    Phase C draft candidate).  One occurrence from a single session does not
-   constitute coverage.
+   constitute coverage.  "Independent context" means at least one differing
+   context dimension (`repo_type`, `session_type`, or `reviewer_mode`) relative
+   to prior observations of the same escape class.
 
 2. **No decision-relevant instance**: No observed occurrence of any known
    escape (HIGH, MEDIUM, or LOW) results in `impact_scope: decision_relevant`.
@@ -219,7 +272,8 @@ Phase B does not have a time limit — it has an **evidence threshold**.
 
 4. **No concentration**: Observations are not concentrated within a single
    session, repo, or workflow type.  Coverage across at least two independent
-   repos and two session types (e.g., analysis + repair) is required.
+   repos and two session types (e.g., analysis + repair) is required.  Review
+   records must include context dimensions so concentration can be audited.
 
 **These conditions exist to prevent premature closure.**  A small sample with
 no `decision_relevant` observations does not mean escapes are harmless — it
@@ -261,3 +315,18 @@ The following surfaces have NOT yet been audited against this checklist:
 Primary human output and code comments were de-risked in Phase A.5
 (2026-04-17, commit cf1c17a).  Full consumer audit is deferred to Phase B
 completion.
+
+---
+
+## Operational Templates (Phase B Start)
+
+- Markdown log template:
+  [docs/e1b-phase-b-observation-log-template.md](e1b-phase-b-observation-log-template.md)
+- JSON instance template:
+  [docs/e1b-phase-b-observation-instance.template.json](e1b-phase-b-observation-instance.template.json)
+- Escalation log template:
+  [docs/e1b-phase-b-escalation-log-template.md](e1b-phase-b-escalation-log-template.md)
+- Versioned escalation decisions:
+  [docs/e1b-phase-b-escalation-decisions.md](e1b-phase-b-escalation-decisions.md)
+- Phase B.6 minimal spec:
+  [docs/e1b-phase-b6-minimal-spec.md](e1b-phase-b6-minimal-spec.md)
