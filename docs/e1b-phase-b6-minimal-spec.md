@@ -30,6 +30,9 @@ escalation events, not only single-event correctness.
    observations across different contexts.
 7. `ai_adversarial_simulation` evidence is lightweight only and cannot by
    itself satisfy strong closure evidence.
+8. For escalations with prior `decision_confidence_shift=significant`, closure
+   uses strict profile: post-remediation confidence shift must be `none` and
+   human-only review must report no residual decision lean.
 
 ## Remediation Consistency Rule
 

@@ -130,6 +130,13 @@ Closure additionally requires all of:
   previous inference path.
 - information preservation check passes (output still provides sufficient signal
   for decision-making).
+- reviewer reports no residual decision lean from the output wording/structure.
+
+Severity-aware tightening:
+
+- if prior state included `decision_confidence_shift = significant`, closure
+  requires `post_remediation_decision_confidence_shift = none` (minor is not
+  sufficient for closure).
 
 Borderline handling:
 
