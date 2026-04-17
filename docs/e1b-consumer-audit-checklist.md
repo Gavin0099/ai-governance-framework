@@ -197,6 +197,9 @@ false-positive escalation with reviewer consistency check).
 - For previously `decision_relevant` escalations, closure requires independent
   post-remediation verification that decision pathway is removed (not only
   temporary absence of observed decision shift).
+- For previously `decision_relevant` escalations, closure robustness requires
+  either one strong independent human-only observation or two lightweight
+  independent observations across different contexts.
 
 ---
 
