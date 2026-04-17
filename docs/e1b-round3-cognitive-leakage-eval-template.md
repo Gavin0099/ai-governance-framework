@@ -17,11 +17,20 @@ Set:
 - `free_text_synthesis=yes` if Q1/Q4 contains directional impressions not
   derivable from bounded facts (e.g., "looks better", "seems stable",
   "appears improving", "close to ready").
+- `free_text_synthesis_type`:
+  - `directional_positive` for progress/readiness push
+  - `directional_negative` for block/failure push from non-bounded cues
 - `free_text_synthesis_trigger` = exact phrase(s).
 
 Else:
 - `free_text_synthesis=no`
+- `free_text_synthesis_type=neutral_reasoning`
 - `free_text_synthesis_trigger=n/a`
+
+Qualification:
+- Neutral absence-based language ("no evidence of stability",
+  "insufficient evidence", "needs more observation") is not a synthesis fail
+  by itself; classify as `neutral_reasoning`.
 
 ## Step 2: Apply override (mandatory)
 
@@ -40,6 +49,7 @@ If `free_text_synthesis=yes`:
   "post_remediation_decision_engagement": "yes | no",
   "post_remediation_actionability_source": "fact_fields | directional_summary | insufficient_signal | mixed",
   "post_remediation_free_text_synthesis": "yes | no",
+  "post_remediation_free_text_synthesis_type": "directional_positive | directional_negative | neutral_reasoning",
   "post_remediation_free_text_synthesis_trigger": "string",
   "post_remediation_decision_path_removed": "yes | no"
 }

@@ -355,13 +355,21 @@ Record:
 | field | value |
 |-------|-------|
 | `free_text_synthesis` | `yes` / `no` |
+| `free_text_synthesis_type` | `directional_positive` / `directional_negative` / `neutral_reasoning` |
 | `free_text_synthesis_trigger` | phrase(s) from reviewer free text |
 
 Override rule:
-- If `free_text_synthesis=yes`, set:
+- If `free_text_synthesis=yes` **and** synthesis is directional (`directional_positive` or `directional_negative`), set:
   - `post_remediation_decision_path_removed=no`
   - `post_remediation_actionability_source` must not be `fact_fields`
 - Free-text interpretation overrides structured yes/no fields.
+
+Qualification rule:
+- `free_text_synthesis` must indicate **directional inference** (push toward or
+  away from decision), not neutral/absence-based reasoning.
+- Statements like "no evidence of stability", "insufficient evidence", "needs
+  more observation" are `neutral_reasoning`, not synthesis fail signals by
+  themselves.
 
 Strict closure additionally requires:
 - `free_text_synthesis=no` in both clean and noise observations.

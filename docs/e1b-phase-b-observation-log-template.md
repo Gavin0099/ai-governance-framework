@@ -54,6 +54,7 @@
   - observed_effect: <none or specific shift>
   - actionability_source: fact_fields | directional_summary | insufficient_signal | mixed
   - free_text_synthesis: yes | no
+  - free_text_synthesis_type: directional_positive | directional_negative | neutral_reasoning
   - free_text_synthesis_trigger: <exact phrase(s) from reviewer free text or n/a>
 
 - composition_guardrail_check:
