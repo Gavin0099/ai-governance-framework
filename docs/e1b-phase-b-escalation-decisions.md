@@ -76,7 +76,7 @@
 - potential_structural_pattern: `no`
 - emerging_pattern: `no`
 - remediation_consistency_review: `not_required`
-- post_remediation_evidence_ref: `docs/e1b-post-remediation-adversarial-2026-04-17.json` (lightweight) + `docs/e1b-post-remediation-human-strong-2026-04-17.json` (strong)
+- post_remediation_evidence_ref: `docs/e1b-post-remediation-adversarial-2026-04-17.json` (lightweight) + `docs/e1b-post-remediation-human-strong-2026-04-17.json` (strong) + `docs/e1b-post-remediation-round3-ai-2026-04-17.json` (lightweight, redesigned composition)
 - post_remediation_decision_shift_observed: `no` (clean)
 - post_remediation_decision_confidence_shift: `none` (clean)
 - post_remediation_decision_path_removed: `yes` (clean only)
@@ -96,10 +96,10 @@
 - post_remediation_noise_free_text_synthesis_type: `directional_positive`
 - post_remediation_noise_free_text_synthesis_trigger: "appears improving / looks more stable" style synthesis in reviewer rationale
 - composition_guardrail_required: `yes`
-- composition_guardrail_status: `in_progress` (redesign spec: docs/esc-20260417-001-composition-redesign.md)
+- composition_guardrail_status: `implemented` (redesign spec + Round 3 AI adversarial check completed)
 - closure_threshold_profile: `strict_no_minor_after_prior_significant`
 - escalation_closed: `no`
-- closure_rationale: strict closure failed. Clean context fails actionability (`insufficient_signal`) and decision_engagement, while noise context reintroduces lean/minor shift through directional synthesis. Composition-level guardrail remediation is required before re-test.
+- closure_rationale: redesigned composition passes lightweight Round 3 AI adversarial check, but strict closure remains unfulfilled without fresh human-only verification. Per current policy this stays open; user requested no additional reviewer, so state is kept as mitigated-open rather than closed.
 - owner: `framework`
-- status: `triaged`
+- status: `mitigated`
 - linked_runtime_log: `artifacts/runtime/e1b-phase-b-escalation/phase-b-escalation-log.jsonl`
