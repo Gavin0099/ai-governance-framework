@@ -28,6 +28,8 @@ escalation events, not only single-event correctness.
 6. Robustness floor for previously `decision_relevant` escalations:
    one strong independent observation, or two lightweight independent
    observations across different contexts.
+7. `ai_adversarial_simulation` evidence is lightweight only and cannot by
+   itself satisfy strong closure evidence.
 
 ## Remediation Consistency Rule
 

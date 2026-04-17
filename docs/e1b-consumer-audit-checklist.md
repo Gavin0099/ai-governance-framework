@@ -164,7 +164,7 @@ used to detect false-negative blind spots.
 |-------|----------------|
 | `repo_type` | `tool` \| `app` \| `infra` \| `experiment` |
 | `session_type` | `bugfix` \| `feature` \| `analysis` |
-| `reviewer_mode` | `AI-assisted` \| `human-only` |
+| `reviewer_mode` | `AI-assisted` \| `human-only` \| `ai_adversarial_simulation` |
 
 These fields are minimal metadata for coverage interpretation; no scoring model
 is required in Phase B.
@@ -200,6 +200,8 @@ false-positive escalation with reviewer consistency check).
 - For previously `decision_relevant` escalations, closure robustness requires
   either one strong independent human-only observation or two lightweight
   independent observations across different contexts.
+- `ai_adversarial_simulation` may be used for worst-case probing but counts only
+  as lightweight evidence and cannot by itself satisfy strong closure evidence.
 
 ---
 

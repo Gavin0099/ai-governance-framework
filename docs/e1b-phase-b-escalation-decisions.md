@@ -60,14 +60,14 @@
 - potential_structural_pattern: `no`
 - emerging_pattern: `no`
 - remediation_consistency_review: `not_required`
-- post_remediation_evidence_ref: pending
-- post_remediation_decision_shift_observed: `pending`
-- post_remediation_decision_confidence_shift: `pending`
-- post_remediation_decision_path_removed: `pending`
-- post_remediation_path_removal_rationale: pending
-- post_remediation_information_preserved: `pending`
+- post_remediation_evidence_ref: `docs/e1b-post-remediation-adversarial-2026-04-17.json` (lightweight; not strong closure evidence)
+- post_remediation_decision_shift_observed: `no`
+- post_remediation_decision_confidence_shift: `minor`
+- post_remediation_decision_path_removed: `yes`
+- post_remediation_path_removal_rationale: explicit disclaimer now states confidence is not readiness/promote evidence, removing prior inference path.
+- post_remediation_information_preserved: `yes`
 - escalation_closed: `no`
-- closure_rationale: classification converged to interpretation_sensitive, but closure is deferred until one post-remediation independent observation confirms non-critical decision impact under revised wording.
+- closure_rationale: first post-remediation result is borderline (`minor` confidence shift) and sourced from ai_adversarial_simulation (lightweight only); per robustness rule, a second independent observation is required before closure.
 - owner: `framework`
 - status: `triaged`
 - linked_runtime_log: `artifacts/runtime/e1b-phase-b-escalation/phase-b-escalation-log.jsonl`

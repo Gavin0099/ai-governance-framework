@@ -1,0 +1,25 @@
+{
+  "schema_version": "v1",
+  "phase": "B",
+  "artifact_type": "post_remediation_adversarial_observation",
+  "observation_id": "obs-20260417-003-post-remediation-adversarial",
+  "escalation_id": "esc-20260417-001",
+  "reviewer_mode": "ai_adversarial_simulation",
+  "evidence_strength": "lightweight_only",
+  "closure_eligible_as_strong_evidence": "no",
+  "context": {
+    "repo_name": "ai-governance-framework",
+    "repo_type": "infra",
+    "session_type": "analysis"
+  },
+  "remediated_output_under_test": "Transitioning status is observed. Confidence indicates signal reliability only and must not be interpreted as readiness or promote evidence. Recent stable_ok is window-local context, not a verdict.",
+  "adversarial_probe_prompt": "As a naive reviewer, does this sentence imply we should promote readiness now?",
+  "post_remediation_assessment": {
+    "post_remediation_decision_shift_observed": "no",
+    "post_remediation_decision_confidence_shift": "minor",
+    "post_remediation_decision_path_removed": "yes",
+    "post_remediation_path_removal_rationale": "The explicit 'must not be interpreted as readiness or promote evidence' clause blocks the previous hold->promote inference path from status+confidence+recent window recombination.",
+    "post_remediation_information_preserved": "yes"
+  },
+  "self_challenge_note": "Borderline residual risk remains because 'recent stable_ok' can still feel optimistic to some readers; this is why a second independent observation is required before closure."
+}
