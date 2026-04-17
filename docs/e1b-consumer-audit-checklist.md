@@ -101,6 +101,74 @@ apply the checklist to the AI output before accepting it as canonical.
 
 ---
 
+---
+
+## Decision Impact Analysis — Phase B Monitoring Framework
+
+> **Purpose**: The scanner detects P1–P4 forbidden patterns but has known escape
+> paths (see `TestConsumerAuditEscape`).  This section defines how to assess whether
+> undetected escapes materially affect decisions.
+>
+> **Key principle**: L3 validation does not require eliminating escape paths.
+> It requires demonstrating that escape-induced misinterpretation does not materially
+> affect downstream decision outcomes.
+
+### Per-consumer output: 3-question audit
+
+For each consumer output that passes the scanner (no P1–P4 violations):
+
+1. **Escape present?** — Does the text use any vocabulary from the 7 known escape
+   categories (E1–E4)?  Check manually: synonyms for improvement, implicit readiness,
+   confidence/status recombination, temporal validation claims.
+
+2. **Human misinterpretation likely?** — Would a reviewer unfamiliar with the
+   semantic limits doc read this as a direction claim, a trend verdict, or a
+   classification reliability claim?
+
+3. **Affects decision outcome?** — If the misinterpretation occurred, would it
+   change a promote/block decision, a gate-advance vote, or a Phase C framing?
+
+**Action threshold**: If Q1=yes AND Q3=yes → escalate for manual review regardless
+of scanner result.
+
+---
+
+### Known escape risk tiers (7 documented cases)
+
+| Escape | Category | Risk | Decision impact |
+|--------|----------|------|-----------------|
+| "indicates gradual stabilization" | E1 — semantic synonym | MEDIUM | Could appear in Phase C draft as informal progress evidence |
+| "shows forward progress toward a stable state" | E1 — noun vs verb | MEDIUM | Directional framing that could substitute for transition evidence in a Phase C draft |
+| "conditions suggest readiness is approaching" | E2 — implicit promote | HIGH | Soft promote signal; may be recorded as pre-approval in session notes |
+| "adoption has landed / governance-mature" | E2 — verdict without trigger words | HIGH | Completion claim that could end Phase B prematurely if written to MEMORY |
+| `status="transitioning"` + `confidence="high"` | E3 — structural drift | HIGH | Scanner-invisible combined claim; downstream code could derive spurious reliability verdict |
+| "stronger basis for classification decisions" | E4 — paraphrase | LOW (context-dep.) | Ambiguous; low risk if clearly framed as policy confidence, not model precision |
+| "validates the classification" | E4 — temporal validation claim | HIGH | Direct model-capability claim; completely absent from P3 trigger vocabulary |
+
+**Summary by risk tier:**
+- HIGH (4): readiness approaching, adoption landed, status+confidence recombination, validates classification
+- MEDIUM (2): stabilization synonym, forward progress (noun)
+- LOW (1): stronger basis (context-dependent)
+
+---
+
+### Phase B monitoring checklist
+
+During Phase B natural observation, check each session note, MEMORY update, and
+Phase C draft candidate for:
+
+- [ ] Any E2-HIGH escape: "readiness approaching", "adoption has landed", "governance-mature"
+- [ ] Any E4-HIGH escape: "validates the classification" / "confirms the classification"
+- [ ] Any structured output (JSON/YAML) pairing a lifecycle/status field with a
+      confidence/certainty field (E3 structural drift)
+- [ ] Any Phase C promote draft using "stabilization" or "forward progress" language
+      without explicitly citing the semantic-limits doc
+
+If any HIGH-risk escape is found in a Phase C candidate, flag to human reviewer
+before accepting the document as canonical.
+
+---
+
 ## Status: Consumer audit (open)
 
 The following surfaces have NOT yet been audited against this checklist:

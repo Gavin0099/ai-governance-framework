@@ -318,6 +318,12 @@ class TestConsumerAuditEscape:
 
         Semantic risk: reader infers "repo is converging toward stable_ok".
         Scanner result: no violation (P1 misses the synonym).
+
+        Decision impact risk: MEDIUM.
+        Reviewer may anchor on "stabilizing" as informal evidence of progress,
+        but is unlikely to treat it as sufficient alone for a promote decision.
+        Phase B monitor: check whether any Phase C draft uses "stabilization"
+        language in a promote-justification context.
         """
         text = "transitioning_active indicates gradual stabilization."
         violations = scan_consumer_text(text)
@@ -334,6 +340,11 @@ class TestConsumerAuditEscape:
         P1 pattern includes 'progressing' (verb) but not 'progress' (noun).
         Semantic risk: reader infers "lifecycle is advancing".
         Scanner result: no P1 violation.
+
+        Decision impact risk: MEDIUM.
+        "Forward progress toward a stable state" is directional framing that
+        could be used in a Phase C draft to imply improvement trajectory.
+        Phase B monitor: same as E1-stabilization — watch Phase C draft language.
         """
         text = "The lifecycle shows forward progress toward a stable state."
         violations = scan_consumer_text(text)
@@ -355,6 +366,12 @@ class TestConsumerAuditEscape:
 
         Semantic risk: reader treats this as "almost ready to promote".
         Scanner result: no P4 violation.
+
+        Decision impact risk: HIGH.
+        This phrasing is a soft promote signal that could appear in a Phase C
+        draft or MEMORY update as a verdict substitute.  A reviewer reading this
+        without checklist context may record it as a pre-approval signal.
+        Phase B monitor: flag any occurrence in Phase C docs or session notes.
         """
         text = "conditions suggest readiness is approaching."
         violations = scan_consumer_text(text)
@@ -374,6 +391,13 @@ class TestConsumerAuditEscape:
 
         Semantic risk: reader treats stable_ok recent window as completion proof.
         Scanner result: no violation.
+
+        Decision impact risk: HIGH.
+        "Adoption has landed" is a completion claim that could end Phase B
+        prematurely.  If written into a MEMORY file or session note it may be
+        read as a gate-advance justification without triggering any P1–P4 check.
+        Phase B monitor: flag any "adoption has landed" / "governance-mature"
+        phrasing in Phase B session notes or MEMORY updates.
         """
         text = (
             "recent_lifecycle_class=stable_ok indicates the adoption has landed "
@@ -399,6 +423,14 @@ class TestConsumerAuditEscape:
         Semantic risk: downstream code combines these fields into a verdict.
         Scanner result: no violation (pattern matching is per-string, not
         across field combinations).
+
+        Decision impact risk: HIGH.
+        If a consumer emits a structured JSON object with status+confidence
+        fields, the scanner cannot detect the combined claim.  Downstream code
+        that reads both fields could derive a spurious reliability verdict
+        without any text pattern to catch.
+        Phase B monitor: audit any structured output (JSON, YAML) that pairs
+        a lifecycle/status field with a confidence/certainty field.
         """
         text = 'status = "transitioning"\nconfidence = "high"'
         violations = scan_consumer_text(text)
@@ -421,6 +453,14 @@ class TestConsumerAuditEscape:
         which violates the temporal boundary (time raises reviewer confidence,
         not model precision).
         Scanner result: no P3 violation.
+
+        Decision impact risk: LOW (context-dependent).
+        "Stronger basis" is ambiguous — it could mean reviewer confidence (permitted)
+        or model precision (forbidden).  Decision impact depends on surrounding
+        context.  If used in a sentence that clearly frames "basis" as policy
+        confidence (not model accuracy), the risk is low.
+        Phase B monitor: read the sentence context; flag if basis is linked to
+        classification precision rather than reviewer/policy confidence.
         """
         text = (
             "The more sessions we collect, the stronger our basis "
@@ -440,6 +480,14 @@ class TestConsumerAuditEscape:
         'validates' is not in the trigger vocabulary but carries the same
         forbidden implication (observation → validation of model output).
         Scanner result: no P3 violation.
+
+        Decision impact risk: HIGH.
+        "Validates the classification" is a direct model-capability claim that
+        would satisfy a reviewer looking for evidence that the classifier is
+        trustworthy.  This is one of the most dangerous E4 escapes: it is both
+        semantically clear and completely absent from the P3 trigger vocabulary.
+        Phase B monitor: flag any use of "validates" / "confirms" / "proves"
+        in proximity to "classification" in Phase B/C session notes or docs.
         """
         text = "Cross-session observation over multiple days validates the classification."
         violations = scan_consumer_text(text)
