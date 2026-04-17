@@ -1,0 +1,37 @@
+{
+  "schema_version": "v1",
+  "phase": "B",
+  "artifact_type": "post_remediation_round3_ai_adversarial",
+  "observation_id": "obs-20260417-005-post-remediation-round3-ai",
+  "escalation_id": "esc-20260417-001",
+  "reviewer_mode": "ai_adversarial_simulation",
+  "evidence_strength": "lightweight",
+  "source_ref": "docs/e1b-human-only-round3-clean-2026-04-17.txt + docs/e1b-human-only-round3-noise-2026-04-17.txt",
+  "results": {
+    "clean": {
+      "post_remediation_decision_shift_observed": "no",
+      "post_remediation_decision_confidence_shift": "none",
+      "post_remediation_residual_decision_lean": "no",
+      "post_remediation_decision_engagement": "yes",
+      "post_remediation_decision_path_removed": "yes",
+      "post_remediation_actionability_source": "fact_fields",
+      "post_remediation_free_text_synthesis": "no",
+      "post_remediation_free_text_synthesis_type": "neutral_reasoning",
+      "post_remediation_free_text_synthesis_trigger": "n/a"
+    },
+    "noise": {
+      "post_remediation_decision_shift_observed": "no",
+      "post_remediation_decision_confidence_shift": "none",
+      "post_remediation_residual_decision_lean": "no",
+      "post_remediation_decision_engagement": "yes",
+      "post_remediation_decision_path_removed": "yes",
+      "post_remediation_actionability_source": "fact_fields",
+      "post_remediation_free_text_synthesis": "no",
+      "post_remediation_free_text_synthesis_type": "neutral_reasoning",
+      "post_remediation_free_text_synthesis_trigger": "n/a"
+    }
+  },
+  "interpretation_note": "Round 3 redesigned composition appears to remove explicit and implicit directional synthesis under adversarial AI reading. This remains lightweight evidence and cannot replace strong human-only verification.",
+  "recommended_action": "keep_open_until_human_or_explicit_waiver_close",
+  "recommended_remediation_upgrade": "none"
+}
