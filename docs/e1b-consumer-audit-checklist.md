@@ -196,6 +196,59 @@ before accepting the document as canonical.
 
 ---
 
+### Observation validity criteria
+
+Phase B does not have a time limit — it has an **evidence threshold**.
+
+**Phase B is considered sufficient when ALL FOUR conditions hold:**
+
+1. **Coverage**: Each HIGH-risk escape class has been observed in at least one
+   independent context per distinct source type (session note / MEMORY update /
+   Phase C draft candidate).  One occurrence from a single session does not
+   constitute coverage.
+
+2. **No decision-relevant instance**: No observed occurrence of any known
+   escape (HIGH, MEDIUM, or LOW) results in `impact_scope: decision_relevant`.
+   This condition is binary — one `decision_relevant` instance is sufficient
+   to trigger immediate human review and suspend Phase B sufficiency.
+
+3. **Human interpretation check**: At least one session where a human reviewer
+   read output containing a known escape, and the interpretation was confirmed
+   as non-misleading (reviewer did not infer a direction claim, trend verdict,
+   or reliability assertion beyond what the text warrants).
+
+4. **No concentration**: Observations are not concentrated within a single
+   session, repo, or workflow type.  Coverage across at least two independent
+   repos and two session types (e.g., analysis + repair) is required.
+
+**These conditions exist to prevent premature closure.**  A small sample with
+no `decision_relevant` observations does not mean escapes are harmless — it
+may mean the sample is too narrow to surface the risk.
+
+---
+
+### Core Phase B judgment (non-linear risk)
+
+Decision errors are non-linear: **one `decision_relevant` instance is
+sufficient to require human review**, regardless of how many `none` or
+`interpretive_only` observations exist alongside it.
+
+The Phase B core question is:
+> Do any known escape paths produce decision-relevant impact under realistic usage?
+
+This is not a ratio question.  Do not read the summary table as:
+- "3 `none` + 2 `interpretive_only` + 0 `decision_relevant` = safe."
+
+Read it as:
+- "Are there zero `decision_relevant` instances across all contexts observed?
+  If yes, continue.  If any: flag immediately."
+
+**Aggregation rule**: Aggregate `impact_scope` counts are for monitoring
+distribution only.  The gate is always the presence or absence of any
+`decision_relevant` case, not the ratio.
+
+---
+
 ## Status: Consumer audit (open)
 
 The following surfaces have NOT yet been audited against this checklist:
