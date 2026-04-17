@@ -1001,12 +1001,16 @@ def _build_e1b_observation(
       => all recent sessions saw the same artifact_state
       => the window cannot support E1b-style statistical interpretation
 
-    NOTE: is_degenerate uses the LEGACY entropy formula (distinct_states/n < 0.3).
+    DEPRECATION NOTE: is_degenerate uses the LEGACY entropy formula (distinct_states/n < 0.3).
     This formula generates false-positives for stable_ok repos (converged entropy is
     EXPECTED to be low). The authoritative v2 signal is lifecycle_class / is_degenerate_v2
     computed by scripts/analyze_e1b_distribution.py (requires fingerprint_diversity).
     is_degenerate here is kept for backward compatibility ONLY — do not use it as
     a primary governance signal.
+
+    The output dict carries is_degenerate_deprecated=True to make this legacy status
+    machine-readable.  Downstream consumers MUST NOT use is_degenerate as a Phase 2
+    gate criterion — use is_degenerate_v2 from analyze_e1b_distribution.py instead.
 
     Authority boundary
     ------------------
@@ -1038,7 +1042,10 @@ def _build_e1b_observation(
             "distinct_states": 0,
             "entropy": 0.0,
             "signal_ratio": 0.0,
+            # DEPRECATED: legacy entropy formula; always True here due to error path.
+            # Do NOT use as gate criterion. See is_degenerate_v2 in analyze_e1b_distribution.py.
             "is_degenerate": True,
+            "is_degenerate_deprecated": True,
             "is_degenerate_formula": "legacy_entropy",
             "observation_note": "observation unavailable due to internal error",
             "advisory_only": True,
@@ -1062,7 +1069,10 @@ def _build_e1b_observation(
             "distinct_states": 0,
             "entropy": 0.0,
             "signal_ratio": 0.0,
+            # DEPRECATED: legacy entropy formula; always True for empty window.
+            # Do NOT use as gate criterion. See is_degenerate_v2 in analyze_e1b_distribution.py.
             "is_degenerate": True,
+            "is_degenerate_deprecated": True,
             "is_degenerate_formula": "legacy_entropy",
             "observation_note": "no entries in log for this repo",
             "advisory_only": True,
@@ -1097,10 +1107,13 @@ def _build_e1b_observation(
         "distinct_states": distinct_states,
         "entropy": entropy,
         "signal_ratio": signal_ratio,
-        # LEGACY: entropy-based formula (distinct_states/n < 0.3).
+        # DEPRECATED: legacy entropy-based formula (distinct_states/n < 0.3).
         # Generates false-positives for stable_ok repos (converged window is expected low-entropy).
+        # is_degenerate_deprecated=True marks this field as legacy so downstream
+        # consumers can detect the deprecation machine-readably and switch to v2.
         # Authoritative v2: lifecycle_class / is_degenerate_v2 in analyze_e1b_distribution.py.
         "is_degenerate": is_degenerate,
+        "is_degenerate_deprecated": True,
         "is_degenerate_formula": "legacy_entropy",
         "observation_note": note,
         "advisory_only": True,
@@ -1771,14 +1784,15 @@ def format_human_result(result: dict[str, Any]) -> str:
             f"distinct_states={e1b.get('distinct_states', 0)} "
             f"entries={e1b.get('raw_entries', 0)} "
             f"signal_ratio={e1b.get('signal_ratio', 0.0):.0%} "
-            f"is_degenerate={e1b.get('is_degenerate')} [legacy_entropy]"
+            f"is_degenerate={e1b.get('is_degenerate')} [DEPRECATED:legacy_entropy]"
             + (" [internal_error]" if e1b.get("internal_error") else "")
         )
         if e1b.get("is_degenerate") or e1b.get("internal_error"):
             lines.append(f"  [ADVISORY] e1b: {e1b.get('observation_note', '')}")
             if e1b.get("is_degenerate") and not e1b.get("internal_error"):
                 lines.append(
-                    "  [NOTE] is_degenerate uses legacy entropy formula; "
+                    "  [DEPRECATED] is_degenerate uses legacy entropy formula \u2014 "
+                    "DO NOT use as Phase 2 gate criterion; "
                     "for authoritative v2 signal run: "
                     "scripts/analyze_e1b_distribution.py (lifecycle_class / is_degenerate_v2)"
                 )

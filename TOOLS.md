@@ -37,3 +37,7 @@ Add whatever helps you do your job. This is your cheat sheet.
 
 ## Python Environment
 - Discovered Python Path: `C:\Users\daish\AppData\Local\Python\pythoncore-3.14-64\python.exe`
+
+## Git Upload Accounts
+- GitHub: `Gavin0099`
+- GitLab: `GavinWu`

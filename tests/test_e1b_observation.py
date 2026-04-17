@@ -3,13 +3,17 @@ tests/test_e1b_observation.py
 ==============================
 E1b Phase 1 — Passive Observation Layer tests.
 
-Six tests covering:
+Six tests covering the original authority-boundary contract,
+plus three Track A deprecation tests:
   1. Empty log → is_degenerate=True, entropy=0, advisory_only=True
   2. All-same artifact_state (degenerate: all absent) → entropy<0.3 → is_degenerate=True
   3. Mixed artifact_states (ok + absent) → entropy>=0.3 → is_degenerate=False
   4. advisory_only=True is hard-coded; is_degenerate never affects gate.blocked
   5. run_session_end_hook() result includes e1b_observation key with required schema
   6. format_human_result() renders e1b_observation line; degenerate shows [ADVISORY]
+  7. [Track A] is_degenerate_deprecated=True present in all three return paths
+  8. [Track A] format_human_result renders [DEPRECATED:legacy_entropy] in e1b line
+  9. [Track A] format_human_result renders [DEPRECATED] advisory (not [NOTE])
 
 Authority boundary tests
 ------------------------
@@ -220,4 +224,98 @@ def test_format_human_result_renders_e1b_observation(tmp_path):
     if obs.get("is_degenerate") or obs.get("internal_error"):
         assert "[ADVISORY] e1b:" in human, (
             "format_human_result must render '[ADVISORY] e1b:' when is_degenerate=True"
+        )
+
+
+# ── Track A: is_degenerate_deprecated presence (all three return paths) ────────
+
+
+def test_track_a_is_degenerate_deprecated_empty_log(tmp_path):
+    """
+    [Track A] Empty log path → is_degenerate_deprecated=True must be present.
+    Guards against narrative drift: reading is_degenerate=True from an empty-log
+    artifact must NOT be interpreted as 'Phase 2 not passed'.
+    """
+    result = _build_e1b_observation(project_root=tmp_path, window_size=20)
+    assert result.get("is_degenerate_deprecated") is True, (
+        "is_degenerate_deprecated must be True in empty-log return path (Track A)"
+    )
+
+
+def test_track_a_is_degenerate_deprecated_uniform_degenerate(tmp_path):
+    """
+    [Track A] Uniform-state degenerate window → is_degenerate_deprecated=True present.
+    """
+    repo_name = tmp_path.resolve().name
+    entries = [_make_audit_entry(repo_name, "absent") for _ in range(20)]
+    _write_audit_log(tmp_path, entries)
+
+    result = _build_e1b_observation(project_root=tmp_path, window_size=20)
+    assert result["is_degenerate"] is True  # still fires
+    assert result.get("is_degenerate_deprecated") is True, (
+        "is_degenerate_deprecated must be True in degenerate return path (Track A)"
+    )
+
+
+def test_track_a_is_degenerate_deprecated_valid_window(tmp_path):
+    """
+    [Track A] Valid (non-degenerate) window → is_degenerate_deprecated=True still present.
+    The deprecation flag is always set, regardless of the is_degenerate value,
+    because the *field itself* is deprecated (not the True/False result).
+    """
+    repo_name = tmp_path.resolve().name
+    entries = [
+        _make_audit_entry(repo_name, "absent"),
+        _make_audit_entry(repo_name, "ok"),
+        _make_audit_entry(repo_name, "stale"),
+    ]
+    _write_audit_log(tmp_path, entries)
+
+    result = _build_e1b_observation(project_root=tmp_path, window_size=20)
+    assert result["is_degenerate"] is False
+    assert result.get("is_degenerate_deprecated") is True, (
+        "is_degenerate_deprecated must be True even when is_degenerate=False (Track A)"
+    )
+
+
+def test_track_a_format_human_result_deprecated_label(tmp_path):
+    """
+    [Track A] format_human_result must render '[DEPRECATED:legacy_entropy]' in the
+    e1b_observation summary line — NOT the old '[legacy_entropy]' label.
+    """
+    closeout = tmp_path / "artifacts" / "session-closeout.txt"
+    closeout.parent.mkdir(parents=True, exist_ok=True)
+    closeout.write_text(_MINIMAL_CLOSEOUT, encoding="utf-8")
+
+    result = run_session_end_hook(tmp_path)
+    human = format_human_result(result)
+
+    assert "[DEPRECATED:legacy_entropy]" in human, (
+        "format_human_result must render '[DEPRECATED:legacy_entropy]' label (Track A)"
+    )
+    assert "[legacy_entropy]" not in human.replace("[DEPRECATED:legacy_entropy]", ""), (
+        "Old '[legacy_entropy]' label must not appear outside the DEPRECATED prefix (Track A)"
+    )
+
+
+def test_track_a_format_human_result_deprecated_advisory(tmp_path):
+    """
+    [Track A] When is_degenerate=True, format_human_result must render
+    '[DEPRECATED]' advisory (not '[NOTE]') to prevent narrative drift.
+    """
+    closeout = tmp_path / "artifacts" / "session-closeout.txt"
+    closeout.parent.mkdir(parents=True, exist_ok=True)
+    closeout.write_text(_MINIMAL_CLOSEOUT, encoding="utf-8")
+
+    result = run_session_end_hook(tmp_path)
+    obs = result.get("e1b_observation", {})
+    human = format_human_result(result)
+
+    if obs.get("is_degenerate") and not obs.get("internal_error"):
+        assert "[DEPRECATED] is_degenerate" in human, (
+            "format_human_result must render '[DEPRECATED] is_degenerate' advisory (Track A), "
+            "not '[NOTE]'"
+        )
+        assert "[NOTE] is_degenerate" not in human, (
+            "Old '[NOTE] is_degenerate' label must not appear (Track A)"
         )
