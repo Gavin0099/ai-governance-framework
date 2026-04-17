@@ -206,6 +206,9 @@ false-positive escalation with reviewer consistency check).
   apply strict closure profile: require post-remediation `confidence_shift=none`
   and no residual decision lean in human-only strong observation, with
   decision_engagement=`yes`.
+- Recommended for production-level confidence: include one mixed-signal context
+  check (add one plausible non-decision signal) and confirm no residual lean
+  and no confidence shift under noise.
 
 ---
 
