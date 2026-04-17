@@ -67,6 +67,16 @@ strict closure profile，並檢查修正後是否仍存在方向性推力。
 **判讀原則**：表面來源是 fact fields，但認知路徑已做方向合成 → 不算 `fact_fields`。
 審查 reviewer 的自由文字理由，不只看 structured 欄位填什麼。
 
+**Free-text overrides structured fields (mechanical rule, not judgment call).**
+
+If conflict exists between free-text and structured fields:
+- `actionability_source` MUST be downgraded from `fact_fields`.
+- Classification follows free-text interpretation, not structured input.
+- No case-by-case discretion: if cross-field synthesis appears in free-text,
+  the override is unconditional.
+
+> Free-text is ground truth. Structured fields are secondary confirmation only.
+
 ## Two Failure Modes（必須分開辨識）
 
 回填結果不成立時，先判定是哪一種 failure，再決定下一步：
@@ -93,6 +103,12 @@ Clean 雖通過安全條件，但：
 
 下一步：不得以「安全」直接關閉 escalation。需重新評估呈現密度 — guardrail 不應讓 clean output 失去決策可用性。
 
+**Hard closure prohibition:**
+> Closure is invalid if `decision_engagement = no`, even when no decision shift
+> or lean is observed.
+
+「沉默成功」（safe + not misleading + reviewer cannot act）不算通過。
+
 ---
 
 ## Strict Closure 判定（esc-20260417-001）
@@ -118,9 +134,42 @@ Clean 雖通過安全條件，但：
 - 若 Clean 的 engagement=no 或 actionability_source=insufficient_signal：**Failure B → 不得以「安全」關閉**。
 - 若兩者均未成立但理由不確定：回填 `mixed` 並附說明，交人工裁決。
 
+### Interpretation order (mandatory sequence)
+
+**判讀必須依以下順序，不允許顛倒：**
+
+1. **Free-text reasoning (Q1, Q4)** — primary signal
+   Read first. Identify any cross-field synthesis or directional language.
+
+2. **Cross-field synthesis detection** — override layer
+   If synthesis found: unconditionally override structured fields.
+   `actionability_source` is downgraded; no discretion.
+
+3. **Structured fields** — secondary confirmation only
+   Valid only if consistent with free-text interpretation.
+   Structured fields must not be used to contradict a validated free-text
+   interpretation.
+
+> Decision safety is evaluated based on human reasoning traces (free-text),
+> not on structured outputs alone. Structured fields are considered valid
+> only if consistent with free-text reasoning and free from cross-field synthesis.
+
 ### Free-text audit requirement
 
 **回填 `actionability_source` 前，必須先審 reviewer 的第 Q1 和 Q4 自由文字。**
 
 不能只看 structured 欄位。Q1（free text）和 Q4（reasoning）的語句若含跨欄位抽象合成，
 依 Cross-field synthesis disqualification rule 升格，structured 欄位填什麼不影響這個判定。
+
+---
+
+### Final closure condition
+
+**Closure is valid only if ALL of the following hold:**
+
+1. Free-text (Q1, Q4) shows no directional synthesis or cross-field abstraction.
+2. `decision_engagement = yes` (both clean and noise).
+3. No `residual_lean` under both clean and noise contexts.
+4. Structured fields are consistent with free-text interpretation (no override triggered).
+
+Any single condition failing → closure invalid. No exceptions.
