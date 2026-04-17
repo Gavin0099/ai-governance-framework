@@ -1,5 +1,13 @@
 # Knowledge Base
 
+## Memory And Account Guardrails (2026-04-17)
+
+- Long-term memory path is standardized to `memory/00_long_term.md`.
+- Repo root `MEMORY.md` is forbidden; policy is enforced by `tests/test_memory_path_policy.py`.
+- Account mapping:
+  - GitHub upload account: `Gavin0099`
+  - GitLab upload account: `GavinWu`
+
 ## Runtime Governance Maturity Snapshot
 
 - The repository now operates as an AI Coding Runtime Governance Framework prototype with a full runtime spine:
