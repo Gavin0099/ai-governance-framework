@@ -31,6 +31,8 @@
   "classification_type": "structural_flaw|interpretation_sensitive|false_positive_escalation|pending_classification",
   "recommended_remediation": "wording|audit_rule|schema_or_surface_redesign|combined",
   "remediation_scope": "specific components/files/surfaces affected",
+  "controlled_divergence": "yes|no",
+  "divergence_rationale": "required when controlled_divergence=yes",
   "emerging_pattern": "yes|no",
   "remediation_consistency_review": "required|not_required",
   "status": "open|triaged|mitigated|accepted-risk",
@@ -159,3 +161,24 @@ threshold is not yet met:
 
 - set `emerging_pattern = yes`.
 - continue monitoring for recurrence escalation.
+
+## Controlled Divergence Rule
+
+If a case shares similar `misinterpretation_path` but context differs
+meaningfully:
+
+- alternative remediation may be proposed.
+- set `controlled_divergence = yes`.
+- `divergence_rationale` is mandatory.
+
+If multiple controlled-divergence cases converge:
+
+- update default remediation mapping.
+
+## Recurrence Override Consistency Rule
+
+If `recurrence_signal` is triggered:
+
+- re-evaluate classification independent of prior remediation consistency.
+- do not treat remediation consistency as evidence against structural
+  classification.

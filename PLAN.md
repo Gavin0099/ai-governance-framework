@@ -117,6 +117,8 @@
       this escalation is resolved.
       Phase B.6 minimal spec is now defined for cross-event consistency and
       anti-drift governance: `docs/e1b-phase-b6-minimal-spec.md`.
+      B.6 extension (2026-04-17): added anti-inertia controls via controlled
+      divergence rule and recurrence-override-consistency rule.
       Reference: `docs/e1b-consumer-audit-checklist.md` — Observation validity
       criteria.
   - [ ] **Phase 3（blocked）**: Trigger Design — 動態 threshold、trend_direction、cross-repo correlation；必須等 Phase 2 readiness gate 全過才能開工；不允許在沒有 evidence baseline 的情況下拍腦袋設 threshold

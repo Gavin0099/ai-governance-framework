@@ -46,6 +46,28 @@ threshold is not yet met:
 
 This signal does not force structural classification by itself.
 
+## Controlled Divergence Rule
+
+If a case shares similar `misinterpretation_path` but context differs
+meaningfully:
+
+- alternative remediation may be proposed.
+- explicit divergence rationale is required.
+- mark `controlled_divergence = yes`.
+
+Periodic review:
+
+- if multiple `controlled_divergence` cases converge, update default
+  remediation mapping.
+
+## Recurrence Override Consistency Rule
+
+If `recurrence_signal` is triggered:
+
+- re-evaluate classification independent of prior remediation consistency.
+- do not use remediation consistency itself as evidence against structural
+  classification.
+
 ## Expected Outcome
 
 Phase B remains conservative under uncertainty, progresses with explicit
