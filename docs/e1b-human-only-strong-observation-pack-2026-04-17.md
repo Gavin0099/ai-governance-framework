@@ -176,47 +176,47 @@ Any single condition failing → closure invalid. No exceptions.
 
 ---
 
-## Round 2 Evaluation Worksheet
+## 第二輪判讀工作表
 
-> Fill one copy per input (Clean / Noise).  Follow steps in order.
-> Do NOT read Step 3 before completing Step 1.
+> 每份輸入（Clean / Noise）各填一份。依步驟順序填，不允許跳步。
+> 未完成第一步前，不得看第三步。
 
-### Step 1 — Free-text primary read (Q1 / Q4)
+### 第一步 — 自由文字主判讀（Q1 / Q4）
 
-Scan Q1 and Q4 for any of the following trigger phrases (any single match = synthesis):
+逐字掃描 Q1 和 Q4，看是否出現以下任一觸發語句（出現一句即算 synthesis）：
 
-- "整體變好" / "overall improving" / "generally improving"
-- "趨於穩定" / "becoming more stable" / "stabilizing"
-- "接近 ready" / "approaching ready" / "getting close to promote"
-- "可以往前" / "can move forward" / "ready to advance"
-- any cross-field trend statement combining two or more distinct signal fields
+- 「整體變好」「整體趨勢向好」
+- 「趨於穩定」「越來越穩定」「在穩定中」
+- 「接近 ready」「快到了」「快可以 promote」
+- 「可以往前」「可以推進」「可以考慮升級」
+- 任何把兩個以上不同欄位的訊號合成為方向性判斷的語句
 
 ```
-free_text_synthesis:  yes | no
-trigger_phrase_found: (quote the exact phrase, or "none")
+free_text_synthesis:    yes | no
+trigger_phrase_found:   （原文引用，或填「無」）
 ```
 
-**If `free_text_synthesis = yes` → stop here. Record Failure A. Do not proceed to Step 2.**
+**若 `free_text_synthesis = yes` → 停止，直接記錄 Failure A，不繼續填後面步驟。**
 
 ---
 
-### Step 2 — Cross-field override (unconditional if Step 1 = yes)
+### 第二步 — 跨欄位覆蓋（第一步為 yes 時無條件執行）
 
-Apply only when `free_text_synthesis = yes`:
+只有 `free_text_synthesis = yes` 時才填此步驟：
 
 ```
-residual_decision_lean:    yes          # forced
-actionability_source:      composed_inference  # forced
-decision_path_removed:     no           # forced
+residual_decision_lean:    yes          # 強制覆蓋
+actionability_source:      composed_inference  # 強制覆蓋
+decision_path_removed:     no           # 強制覆蓋
 ```
 
-These values are NOT subject to override by structured fields.
+以上三欄由第一步結果決定，不受第三步 structured 欄位影響。
 
 ---
 
-### Step 3 — Structured fields (secondary confirmation only)
+### 第三步 — 結構欄位（僅確認用）
 
-Fill from Q2 / Q3 / Q5 / Q6.  Valid only when Step 1 returned `free_text_synthesis = no`.
+從 Q2 / Q3 / Q5 / Q6 填入。**只有第一步 `free_text_synthesis = no` 時才有效。**
 
 ```
 decision_shift_observed:       yes | no
@@ -225,19 +225,19 @@ decision_engagement:           yes | no
 residual_decision_lean:        yes | no
 ```
 
-Structured fields must not be used to contradict a Step 1 or Step 2 result.
+第三步結果不得用來推翻第一步或第二步的結論。
 
 ---
 
-### Step 4 — Actionability source determination
+### 第四步 — Actionability source 判定
 
-If `free_text_synthesis = no` AND reviewer cited only bounded single-field facts:
+若 `free_text_synthesis = no` 且 reviewer 的理由只引用單一有邊界的事實欄位：
 
 ```
 actionability_source:  fact_fields
 ```
 
-In all other cases (`free_text_synthesis = yes`, synthesis in Q4, multiple fields combined):
+其他情況（`free_text_synthesis = yes`、Q4 有合成語句、多欄位合併判斷）：
 
 ```
 actionability_source:  directional_summary | composed_inference | mixed
@@ -245,41 +245,40 @@ actionability_source:  directional_summary | composed_inference | mixed
 
 ---
 
-### Failure determination (mechanical)
+### Failure 判定（機械式）
 
-**Failure A — Directional Reactivation** (any one condition triggers):
+**Failure A — 方向性重激活**（任一條件成立即觸發）：
 - `free_text_synthesis = yes`
-- OR (Noise only): `residual_decision_lean = yes`
-- OR (Noise only): `decision_confidence_shift ∈ {minor, significant}`
+- 或（僅 Noise）：`residual_decision_lean = yes`
+- 或（僅 Noise）：`decision_confidence_shift ∈ {minor, significant}`
 
-→ Result: composition guardrail failed.  **Escalate to presentation architecture redesign.**
-   Do not attempt further wording adjustment.
+→ 結論：composition guardrail 失敗。**直接升級為 presentation architecture redesign。**
+   不再進行 wording 調整。
 
-**Failure B — Safe but Unusable** (both must hold):
+**Failure B — 安全但不可用**（兩項同時成立）：
 - `decision_engagement = no`
-- AND no decision shift or lean observed
+- 且 無 decision shift 也無 lean
 
-→ Result: guardrail over-suppressed.  **Cannot close escalation on safety alone.**
-
----
-
-### Decision trail templates
-
-**classification_rationale** (append to back-fill):
-```
-Free-text shows no cross-field synthesis; structured fields are consistent
-and do not introduce directional inference.
-```
-
-**closure_rationale** (use only when all four Final Closure Conditions met):
-```
-No residual decision pathway under both clean and noise contexts;
-decision engagement preserved; actionability grounded in fact_fields.
-```
+→ 結論：guardrail 過度抑制。**不得以「安全」關閉 escalation。**
 
 ---
 
-### Quick checks before submitting (do not skip)
+### 決策軌跡範本
 
-- [ ] Any free-text phrase suggesting "overall trend" → treated as synthesis regardless of wording softness
-- [ ] `decision_engagement = no` → cannot close, even if all other fields pass
+**`classification_rationale`**（回填時附加）：
+```
+自由文字無跨欄位合成；structured 欄位與自由文字判讀一致，未引入方向性推論。
+```
+
+**`closure_rationale`**（僅當四條 Final Closure Conditions 全部成立時使用）：
+```
+Clean 與 Noise 均無殘餘決策路徑；decision engagement 保留；
+actionability 來源確認為 fact_fields。
+```
+
+---
+
+### 提交前快速檢查（不可跳過）
+
+- [ ] 自由文字中有任何「整體趨勢」語句 → 一律當 synthesis，不論語氣軟硬
+- [ ] `decision_engagement = no` → 一律不可關單，即使其他欄位全部通過
