@@ -47,11 +47,15 @@
 - post_remediation_noise_free_text_synthesis_trigger:
 - composition_guardrail_required: yes | no
 - composition_guardrail_status: pending | implemented | verified | failed
+- mitigation_validation_state: pending_human_validation | validated | waived_by_policy
+- governance_track_state: pending_validation | closure_eligible | closed
+- engineering_track_state: not_implemented | implemented
 - closure_threshold_profile: default | strict_no_minor_after_prior_significant
 - escalation_closed: yes | no
 - closure_rationale:
 - owner:
 - status: open | triaged | mitigated | accepted-risk
+- dual_state_note:
 - linked_runtime_log:
 ```
 
@@ -97,9 +101,13 @@
 - post_remediation_noise_free_text_synthesis_trigger: "appears improving / looks more stable" style synthesis in reviewer rationale
 - composition_guardrail_required: `yes`
 - composition_guardrail_status: `implemented` (redesign spec + Round 3 AI adversarial check completed)
+- mitigation_validation_state: `pending_human_validation`
+- governance_track_state: `pending_validation`
+- engineering_track_state: `implemented`
 - closure_threshold_profile: `strict_no_minor_after_prior_significant`
 - escalation_closed: `no`
-- closure_rationale: redesigned composition passes lightweight Round 3 AI adversarial check, but strict closure remains unfulfilled without fresh human-only verification. Per current policy this stays open; user requested no additional reviewer, so state is kept as mitigated-open rather than closed.
+- closure_rationale: redesigned composition passes lightweight Round 3 AI adversarial check, but strict closure remains unfulfilled without fresh human-only verification. AI/adversarial evidence is non-authoritative for closure, so this remains implemented-but-unvalidated under human cognition constraints.
 - owner: `framework`
 - status: `mitigated`
+- dual_state_note: Engineering track = implemented; Governance track = validation pending. Closure is blocked until governance validation completes (or explicit policy waiver is recorded).
 - linked_runtime_log: `artifacts/runtime/e1b-phase-b-escalation/phase-b-escalation-log.jsonl`

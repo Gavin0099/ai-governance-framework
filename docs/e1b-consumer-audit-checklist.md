@@ -207,6 +207,8 @@ false-positive escalation with reviewer consistency check).
   independent observations across different contexts.
 - `ai_adversarial_simulation` may be used for worst-case probing but counts only
   as lightweight evidence and cannot by itself satisfy strong closure evidence.
+- AI/adversarial evidence is non-authoritative and must not be used to satisfy
+  closure conditions.
 - For cases that previously reached `decision_confidence_shift=significant`,
   apply strict closure profile: require post-remediation `confidence_shift=none`
   and no residual decision lean in human-only strong observation, with
