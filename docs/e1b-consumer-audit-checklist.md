@@ -245,6 +245,9 @@ Phase C draft candidate for:
       confidence/certainty field (E3 structural drift)
 - [ ] Any Phase C promote draft using "stabilization" or "forward progress" language
       without explicitly citing the semantic-limits doc
+- [ ] Any summary phrase equivalent to "high confidence transitioning state with
+      recent stability signal" used as readiness implication (treat as
+      interpretation-sensitive risk unless explicitly bounded)
 
 If any HIGH-risk escape is found in a Phase C candidate, flag to human reviewer
 before accepting the document as canonical.
