@@ -327,7 +327,7 @@ class TestGateV2ShadowFields:
     def test_legacy_degenerate_diverges_from_v2_for_stable_ok(self):
         """
         DESIGN BOUNDARY: fleet of stable_ok repos → legacy marks many as degenerate
-        but v2 non_stuck_absent_ratio_v2 = 1.0.
+        but v2 non_stuck_absent_ratio_v2 = 1.0 and gate verdict follows v2.
         Documents the intentional split.
         """
         entries = (
@@ -341,6 +341,27 @@ class TestGateV2ShadowFields:
         assert gate["nondegenerate_ratio"] == 0.0, "legacy should see all as degenerate"
         # v2: non_stuck_absent_ratio = 1.0 (stable_ok, not adoption failure)
         assert gate["non_stuck_absent_ratio_v2"] == pytest.approx(1.0)
+        assert gate["checks"]["min_non_stuck_absent_ratio_v2"]["pass"] is True
+        assert gate["legacy_nondegenerate_ratio_deprecated"] is True
+        assert gate["gate_basis_version"] == "v2"
+        assert gate["verdict"] == "READY"
+
+    def test_all_stuck_absent_still_fails_under_v2_gate(self):
+        """
+        Regression guard: switching to v2 basis must NOT weaken real stuck_absent
+        failure detection.
+        """
+        entries = (
+            _entries_n("repo-a", "absent", 20)
+            + _entries_n("repo-b", "absent", 20)
+            + _entries_n("repo-c", "absent", 20)
+        )
+        stats = compute_repo_stats(entries)
+        gate = evaluate_phase2_gate(entries, stats, 20, 3, 0.7, 0.6, 0.5)
+        assert gate["non_stuck_absent_ratio_v2"] == 0.0
+        assert gate["checks"]["min_non_stuck_absent_ratio_v2"]["pass"] is False
+        assert gate["checks"]["lifecycle_active_ratio"]["pass"] is False
+        assert gate["verdict"] == "NOT_READY"
 
 
 # ── lifecycle_active_ratio gate condition ─────────────────────────────────────

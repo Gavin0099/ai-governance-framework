@@ -27,12 +27,11 @@ Three verifications (釘住 — 2026-04-17):
      Test pins: n<3 → insufficient_evidence; n>=3 from burst → classified
      (no temporal_diversity signal exposed).
 
-  3. Gate Promotion Resistance
-     High-volume transitioning_active fleets do NOT auto-promote through the
-     Phase 2 gate.  The legacy nondegenerate_ratio check acts as a conservative
-     barrier when session counts grow large enough to decay legacy entropy.
+  3. Gate Promotion Semantics (v2)
+     Phase 2 gate readiness uses v2 non-stuck-absent semantics.
+     Legacy nondegenerate_ratio is retained for reporting only.
      Test pins:
-       - 20-session transitioning fleet → gate NOT_READY (legacy blocks)
+       - 20-session transitioning fleet → gate READY (v2 basis)
        - 7-session high-variety transitioning fleet → gate CAN be READY
        - lifecycle_active_ratio passes with ONLY transitioning_active repos
        - lifecycle_active_ratio requires NOT stuck_absent, not stable_ok
@@ -351,39 +350,23 @@ class TestObservationWindowBias:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 3. GATE PROMOTION RESISTANCE TESTS
+# 3. GATE PROMOTION SEMANTICS (V2)
 # ══════════════════════════════════════════════════════════════════════════════
 
-class TestGatePromotionResistance:
+class TestGatePromotionSemanticsV2:
     """
-    Pin: high-volume transitioning_active fleets do NOT auto-promote through
-    Phase 2 gate.
+    Pin: Phase 2 verdict follows v2 lifecycle semantics.
 
-    The legacy nondegenerate_ratio check (entropy = distinct_states / n) decays
-    as session count grows.  With 20+ sessions and only 2–3 distinct states,
-    entropy = 2/20 = 0.1 < 0.3 → is_degenerate = True (legacy).
-
-    Result: the legacy metric provides conservative resistance even when the v2
-    lifecycle_active_ratio check passes (all repos are non-stuck-absent).
-
-    This resistance is NOT from a deliberate gate design choice — it is an
-    artifact of the legacy entropy formula's decay.  It will disappear once the
-    v2 metric is formally promoted in PLAN.md.  Until then, it acts as a safety
-    brake for high-session-count fleets.
-
-    Tests document both the resistance scenario AND the valid low-volume path
-    where a transitioning_active fleet can legitimately pass the gate.
+    legacy nondegenerate_ratio (distinct_states / n) is reporting-only and must
+    not block a fleet that is non-stuck under v2.
     """
 
-    def test_high_volume_transitioning_fleet_gate_not_ready(self):
+    def test_high_volume_transitioning_fleet_gate_ready_under_v2(self):
         """
         3 repos × 20 sessions each (alternating absent/ok) → all transitioning_active.
         v2: lifecycle_active_ratio = 1.0 → PASSES.
-        Legacy: entropy = 2/20 = 0.1 < 0.3 → all degenerate → nondegenerate_ratio = 0.0 → FAILS.
-        Gate verdict = NOT_READY.
-
-        Documents: legacy entropy decay provides conservative gate resistance
-        for high-volume fleets until v2 is promoted.
+        Legacy: entropy = 2/20 = 0.1 < 0.3 → all legacy-degenerate.
+        Gate verdict = READY because v2 non-stuck basis passes.
         """
         entries = (
             _n("r-a", "absent", 10) + _n("r-a", "ok", 10)
@@ -415,22 +398,23 @@ class TestGatePromotionResistance:
         assert gate["checks"]["lifecycle_active_ratio"]["pass"] is True
         assert gate["non_stuck_absent_ratio_v2"] == pytest.approx(1.0)
 
-        # Legacy nondegenerate_ratio: all degenerate → FAILS
-        assert gate["checks"]["min_nondegenerate_ratio"]["pass"] is False
+        # V2 readiness check: all non-stuck -> PASS
+        assert gate["checks"]["min_non_stuck_absent_ratio_v2"]["pass"] is True
         assert gate["nondegenerate_ratio"] == pytest.approx(0.0)
+        assert gate["legacy_nondegenerate_ratio_deprecated"] is True
+        assert gate["gate_basis_version"] == "v2"
 
-        # Overall gate: NOT_READY despite v2 positive
-        assert gate["verdict"] == "NOT_READY"
+        # Overall gate: READY (legacy reporting does not block)
+        assert gate["verdict"] == "READY"
 
     def test_low_volume_high_variety_transitioning_fleet_can_pass(self):
         """
         3 repos × 7 sessions each (3 distinct states) → all transitioning_active.
-        Legacy entropy = 3/7 ≈ 0.43 >= 0.3 → NOT degenerate → legacy check passes.
+        Legacy entropy = 3/7 ≈ 0.43 >= 0.3 (reporting-only).
         All 5 gate conditions pass → verdict = READY.
 
         Documents: Phase 2 READY is achievable with a transitioning_active fleet
-        when session counts are small enough that legacy entropy does not decay.
-        The gate does NOT require any repo to be stable_ok.
+        and does not require any repo to be stable_ok.
         """
         # 3 absent + 2 ok + 2 stale = 7 sessions, 3 states → entropy = 3/7 ≈ 0.43
         entries = (
@@ -459,7 +443,7 @@ class TestGatePromotionResistance:
         # All 5 conditions should pass
         assert gate["checks"]["min_sessions"]["pass"] is True       # 21 >= 20
         assert gate["checks"]["min_repos"]["pass"] is True          # 3 >= 3
-        assert gate["checks"]["min_nondegenerate_ratio"]["pass"] is True   # 1.0 >= 0.7
+        assert gate["checks"]["min_non_stuck_absent_ratio_v2"]["pass"] is True   # 1.0 >= 0.7
         assert gate["checks"]["max_repo_dominance"]["pass"] is True # 7/21 = 0.33 <= 0.6
         assert gate["checks"]["lifecycle_active_ratio"]["pass"] is True    # 1.0 >= 0.5
 

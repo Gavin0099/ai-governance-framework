@@ -15,11 +15,17 @@ Running this script after real sessions accumulate answers:
   - Are there low-entropy / degenerate repos dominating the pool?
   - Does the pool have enough repo diversity to build a valid baseline?
 
-Phase 2 readiness gate (all four conditions must pass before Phase 3):
+Phase 2 readiness gate (all conditions must pass before Phase 3):
   --min-sessions N          total session entries across all repos
   --min-repos   M           distinct contributing repos
-  --min-nondegenerate R     fraction of repos that are NOT degenerate
+  --min-non-stuck-absent-v2 R
+                            fraction of repos where lifecycle_class != stuck_absent
   --max-dominance R         max fraction any one repo can occupy
+  --min-lifecycle-active R  floor guard on non-stuck lifecycle activity
+
+Legacy note:
+  --min-nondegenerate is retained as a deprecated compatibility alias and
+  no longer gates readiness. Legacy nondegenerate_ratio remains reporting-only.
 
 Usage
 -----
@@ -97,7 +103,11 @@ _LC_RECENT_WINDOW: int = 20
 #     stable_ok repos converge to (ok,(),False) fingerprint → low ratio even when fleet is healthy.
 _PHASE2_MIN_SESSIONS: int = 20
 _PHASE2_MIN_REPOS: int = 3
-_PHASE2_MIN_NONDEGENERATE_RATIO: float = 0.7
+# v2 authoritative threshold: fraction of repos where lifecycle_class != stuck_absent.
+_PHASE2_MIN_NON_STUCK_ABSENT_RATIO_V2: float = 0.7
+# Deprecated compatibility alias. Keep for older callers / tests, but do not
+# use the legacy nondegenerate_ratio metric for gating.
+_PHASE2_MIN_NONDEGENERATE_RATIO: float = _PHASE2_MIN_NON_STUCK_ABSENT_RATIO_V2
 _PHASE2_MAX_REPO_DOMINANCE: float = 0.6
 _PHASE2_MIN_LIFECYCLE_ACTIVE_RATIO: float = 0.5
 
@@ -703,6 +713,8 @@ def evaluate_phase2_gate(
     min_nondegenerate_ratio: float,
     max_dominance: float,
     min_lifecycle_active_ratio: float,
+    *,
+    min_non_stuck_absent_ratio_v2: float | None = None,
 ) -> dict:
     """
     Evaluate whether the accumulated observation pool satisfies Phase 2 gate.
@@ -729,16 +741,27 @@ def evaluate_phase2_gate(
         round(nondegenerate_repos / repo_count, 4) if repo_count > 0 else 0.0
     )
 
-    # Shadow v2: non-stuck-absent ratio using lifecycle_class.
-    # Fixes the false-positive from the legacy entropy formula:
-    # stable_ok repos (nearly all sessions in 'ok') are no longer classified
-    # as degenerate; only genuine adoption failures (stuck_absent) are counted.
-    # This is informational only — not yet a gate blocker.
+    # V2 readiness basis: non-stuck-absent ratio using lifecycle_class.
+    # Fixes the metric-object mismatch in legacy entropy:
+    #   distinct_states / session_count decays as session_count grows and can
+    #   mark healthy stable_ok fleets as "degenerate".
+    # Gate now uses the v2 semantic metric (stuck_absent vs non-stuck).
+    # Legacy nondegenerate_ratio stays reporting-only.
     non_stuck_absent_repos_v2 = sum(
         1 for s in lc_stats.values() if s.get("lifecycle_class") != "stuck_absent"
     )
     non_stuck_absent_ratio_v2 = (
         round(non_stuck_absent_repos_v2 / repo_count, 4) if repo_count > 0 else 0.0
+    )
+    threshold_v2 = (
+        min_non_stuck_absent_ratio_v2
+        if min_non_stuck_absent_ratio_v2 is not None
+        else min_nondegenerate_ratio
+    )
+    threshold_source = (
+        "min_non_stuck_absent_ratio_v2"
+        if min_non_stuck_absent_ratio_v2 is not None
+        else "deprecated_min_nondegenerate_ratio_alias"
     )
     max_sessions_any = max(
         (s["session_count"] for s in lc_stats.values()), default=0
@@ -789,11 +812,11 @@ def evaluate_phase2_gate(
             "actual": repo_count,
             "pass": repo_count >= min_repos,
         },
-        "min_nondegenerate_ratio": {
-            "label": "non-degenerate repos ≥ ratio",
-            "required": min_nondegenerate_ratio,
-            "actual": nondegenerate_ratio,
-            "pass": nondegenerate_ratio >= min_nondegenerate_ratio,
+        "min_non_stuck_absent_ratio_v2": {
+            "label": "non-stuck-absent repos [v2] ≥ ratio",
+            "required": threshold_v2,
+            "actual": non_stuck_absent_ratio_v2,
+            "pass": non_stuck_absent_ratio_v2 >= threshold_v2,
         },
         "max_repo_dominance": {
             "label": "dominant repo fraction ≤ limit",
@@ -812,6 +835,14 @@ def evaluate_phase2_gate(
     all_pass = all(c["pass"] for c in checks.values())
     return {
         "verdict": "READY" if all_pass else "NOT_READY",
+        "gate_basis_version": "v2",
+        "legacy_nondegenerate_ratio_deprecated": True,
+        "legacy_nondegenerate_gate_disabled": True,
+        "v2_threshold_source": threshold_source,
+        "legacy_note": (
+            "legacy nondegenerate_ratio retained for reporting only; "
+            "readiness gating uses v2 non-stuck-absent lifecycle semantics"
+        ),
         "total_sessions": total_sessions,
         "repo_count": repo_count,
         "degenerate_repos": degenerate_repos,
@@ -822,6 +853,10 @@ def evaluate_phase2_gate(
         "degenerate_rate": degenerate_rate,
         "degenerate_rate_interpretation": degen_interp,
         "checks": checks,
+        "distribution_metrics": {
+            "legacy_nondegenerate_ratio": nondegenerate_ratio,
+            "non_stuck_absent_ratio_v2": non_stuck_absent_ratio_v2,
+        },
         # Informational (not gate-blocking)
         "unique_patterns": unique_patterns,
         "unique_pattern_ratio": unique_pattern_ratio,
@@ -1059,6 +1094,15 @@ def _print_human(
         verdict_label = "READY" if verdict == "READY" else "NOT_READY"
         verdict_marker = "[OK]" if verdict == "READY" else "[NO]"
         print(f"  │  Phase 2 Readiness Gate — {verdict_marker} {verdict_label}")
+        print(
+            f"  │    gate_basis_version={gate.get('gate_basis_version', 'unknown')}"
+            f"  threshold_source={gate.get('v2_threshold_source', 'unknown')}"
+        )
+        if gate.get("legacy_nondegenerate_ratio_deprecated"):
+            print(
+                "  │    [INFO] legacy nondegenerate_ratio is reporting-only; "
+                "not used for gate verdict"
+            )
         if verdict == "READY":
             print(
                 "  │    [NOTE] READY = quantitative conditions met (policy proxy)."
@@ -1148,13 +1192,23 @@ def main() -> int:
         help=f"Min distinct repos for Phase 2 gate (default: {_PHASE2_MIN_REPOS})",
     )
     parser.add_argument(
-        "--min-nondegenerate",
+        "--min-non-stuck-absent-v2",
         type=float,
-        default=_PHASE2_MIN_NONDEGENERATE_RATIO,
+        default=None,
         metavar="R",
         help=(
-            f"Min non-degenerate repo fraction (default: "
-            f"{_PHASE2_MIN_NONDEGENERATE_RATIO})"
+            f"Min v2 non-stuck-absent repo fraction for readiness gate "
+            f"(default: {_PHASE2_MIN_NON_STUCK_ABSENT_RATIO_V2})"
+        ),
+    )
+    parser.add_argument(
+        "--min-nondegenerate",
+        type=float,
+        default=None,
+        metavar="R",
+        help=(
+            "DEPRECATED compatibility alias for --min-non-stuck-absent-v2. "
+            "Legacy nondegenerate_ratio is reporting-only."
         ),
     )
     parser.add_argument(
@@ -1227,14 +1281,42 @@ def main() -> int:
 
     repo_stats = compute_repo_stats(entries)
     fleet = compute_fleet_coverage(repo_stats)
+
+    # Threshold resolution for v2 readiness basis.
+    threshold_v2 = _PHASE2_MIN_NON_STUCK_ABSENT_RATIO_V2
+    use_deprecated_alias = False
+    if args.min_non_stuck_absent_v2 is not None:
+        threshold_v2 = args.min_non_stuck_absent_v2
+    if args.min_nondegenerate is not None:
+        if (
+            args.min_non_stuck_absent_v2 is not None
+            and args.min_nondegenerate != args.min_non_stuck_absent_v2
+        ):
+            print(
+                "error: --min-nondegenerate and --min-non-stuck-absent-v2 "
+                "provided with different values",
+                file=sys.stderr,
+            )
+            return 1
+        if args.min_non_stuck_absent_v2 is None:
+            threshold_v2 = args.min_nondegenerate
+            use_deprecated_alias = True
+
     gate = evaluate_phase2_gate(
         entries,
         repo_stats,
         min_sessions=args.min_sessions,
         min_repos=args.min_repos,
-        min_nondegenerate_ratio=args.min_nondegenerate,
+        min_nondegenerate_ratio=(
+            args.min_nondegenerate
+            if args.min_nondegenerate is not None
+            else _PHASE2_MIN_NONDEGENERATE_RATIO
+        ),
         max_dominance=args.max_dominance,
         min_lifecycle_active_ratio=args.min_lifecycle_active,
+        min_non_stuck_absent_ratio_v2=(
+            None if use_deprecated_alias else threshold_v2
+        ),
     )
 
     if args.emit_json:
