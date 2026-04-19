@@ -548,6 +548,9 @@ def write_publication_manifest(
     manifest_json = root_dir / "PUBLICATION_MANIFEST.json"
     index_md = root_dir / "PUBLICATION_INDEX.md"
     readme_md = root_dir / "README.md"
+    handoff = snapshot.get("handoff") or {}
+    lint = handoff.get("reviewer_lint") or {}
+    lint_policy = handoff.get("reviewer_lint_policy") or {}
     manifest_payload = {
         "ok": snapshot["ok"],
         "generated_at": snapshot["generated_at"],
@@ -560,14 +563,18 @@ def write_publication_manifest(
         "external_contract_repo_count": len(snapshot.get("external_contract_repos") or []),
         "external_onboarding_project_facts": _external_project_facts_summaries(snapshot),
         "strict_runtime": snapshot["strict_runtime"],
-        "trust_ok": snapshot["handoff"].get("trust_signal", {}).get("ok"),
-        "release_ok": snapshot["handoff"].get("release_surface", {}).get("ok"),
+        "trust_ok": handoff.get("trust_signal", {}).get("ok"),
+        "release_ok": handoff.get("release_surface", {}).get("ok"),
+        "handoff_clean_identity": handoff.get("handoff_clean_identity"),
+        "lint_status": lint.get("status"),
+        "lint_violation_count": lint.get("violation_count"),
+        "lint_highest_severity": lint.get("highest_severity"),
+        "lint_violations": lint.get("violations") or [],
+        "lint_policy": lint_policy,
         "bundle_published": bundle_paths is not None,
         "status_pages_published": published_paths is not None,
         "override_decision_reason": (
-            (snapshot.get("handoff") or {})
-            .get("reviewer_lint_policy", {})
-            .get("override_decision_reason")
+            lint_policy.get("override_decision_reason")
         ),
         "bundle": bundle_paths,
         "published": published_paths,
