@@ -70,6 +70,34 @@
     "artifacts/enumd-probe/non_equivalence_registry.json"
   ],
 
+  "reprobe_trigger_note": {
+    "pipeline_activation_verified": true,
+    "closeout_path_repaired": false,
+    "current_state_precise": "Stop hook / pipeline activation verified (ok=true, activation_state=observed, activation_recency=recent). closeout_status=closeout_missing is an expected and correctly-observed record — NOT evidence of hook failure, but also NOT evidence of closeout repair.",
+    "critical_distinction": "pipeline_activation_verified != closeout_path_repaired. Observing activation only means the pipeline can run. It does not mean the closeout artifact has been written or will pass the schema contract.",
+    "does_not_mean": [
+      "integration_ready",
+      "closeout_issue_resolved",
+      "re-probe can be triggered now"
+    ],
+    "gate_1_closeout_artifact_existence": {
+      "condition": "closeout_status == valid",
+      "requires": [
+        "artifacts/session-closeout.txt written before session end",
+        "All 7 required fields present (TASK_INTENT, WORK_COMPLETED, FILES_TOUCHED, CHECKS_RUN, OPEN_RISKS, NOT_DONE, RECOMMENDED_MEMORY_UPDATE)",
+        "closeout_schema_validity == valid (not invalid or missing)"
+      ],
+      "risk_to_watch": "File can exist with incomplete fields. hook running != canonical closeout written. First valid closeout may fail on content sufficiency even if file is present."
+    },
+    "gate_2_reprobe": {
+      "condition": "Gate 1 achieved",
+      "action": "Run targeted residual probe per reprobe_success_conditions",
+      "note": "Gate 2 does not auto-follow from Gate 1. Gate 1 is a prerequisite, not a guarantee."
+    },
+    "reprobe_trigger_condition": "closeout_status == valid (first clean closeout artifact)",
+    "next_true_milestone": "First session that produces closeout_status: valid with all 7 fields — THEN and only then trigger re-probe"
+  },
+
   "safety_vs_value_separation": {
     "note": "These two axes are independent and must NOT be conflated.",
     "safety_side": {
