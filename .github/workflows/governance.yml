@@ -127,6 +127,30 @@ jobs:
           path: artifacts/reviewer-handoff/
           if-no-files-found: warn
 
+  reviewer-policy-gate:
+    name: Reviewer Handoff Policy Gate
+    runs-on: ubuntu-latest
+    if: github.event_name != 'push'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'requirements.txt'
+
+      - name: Install documented dependencies
+        run: pip install -r requirements.txt
+
+      - name: Enforce reviewer handoff override policy tests
+        run: |
+          python -m pytest -q \
+            tests/test_reviewer_handoff_summary.py::test_allow_non_clean_missing_reason_code_is_invalid \
+            tests/test_reviewer_handoff_summary.py::test_non_overridable_claim_cannot_be_overridden \
+            tests/test_reviewer_handoff_summary.py::test_cli_allow_non_clean_requires_reason_code
+
   memory-pressure:
     name: Memory Pressure
     runs-on: ubuntu-latest
