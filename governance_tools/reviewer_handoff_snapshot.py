@@ -48,6 +48,8 @@ def build_reviewer_handoff_snapshot(
     fail_on_non_clean: bool = True,
     allow_non_clean: bool = False,
     lint_override_source: str | None = None,
+    override_reason_code: str | None = None,
+    override_reason_note: str | None = None,
 ) -> dict[str, Any]:
     handoff = assess_reviewer_handoff(
         project_root=project_root,
@@ -61,6 +63,8 @@ def build_reviewer_handoff_snapshot(
         fail_on_non_clean=fail_on_non_clean,
         allow_non_clean=allow_non_clean,
         lint_override_source=lint_override_source,
+        override_reason_code=override_reason_code,
+        override_reason_note=override_reason_note,
     )
     return {
         "ok": handoff["ok"],
@@ -637,6 +641,17 @@ def main() -> int:
         default=True,
     )
     parser.add_argument("--allow-non-clean", action="store_true")
+    parser.add_argument(
+        "--allow-non-clean-reason-code",
+        choices=(
+            "manual_audit_required",
+            "known_policy_violation_for_review",
+            "pipeline_debugging_only",
+            "temporary_reader_visibility",
+            "other_requires_note",
+        ),
+    )
+    parser.add_argument("--allow-non-clean-reason-note")
     parser.add_argument("--format", choices=("human", "json", "markdown"), default="human")
     parser.add_argument("--output")
     parser.add_argument("--write-bundle")
@@ -644,6 +659,16 @@ def main() -> int:
     parser.add_argument("--publication-root")
     parser.add_argument("--publish-docs-status", action="store_true")
     args = parser.parse_args()
+    if args.allow_non_clean and not args.allow_non_clean_reason_code:
+        parser.error("--allow-non-clean requires --allow-non-clean-reason-code")
+    if (
+        args.allow_non_clean
+        and args.allow_non_clean_reason_code == "other_requires_note"
+        and not (args.allow_non_clean_reason_note or "").strip()
+    ):
+        parser.error(
+            "--allow-non-clean-reason-note is required when reason code is other_requires_note"
+        )
 
     project_root = Path(args.project_root).resolve()
     snapshot = build_reviewer_handoff_snapshot(
@@ -660,6 +685,8 @@ def main() -> int:
         fail_on_non_clean=bool(args.fail_on_non_clean),
         allow_non_clean=bool(args.allow_non_clean),
         lint_override_source="cli_allow_non_clean" if args.allow_non_clean else None,
+        override_reason_code=args.allow_non_clean_reason_code,
+        override_reason_note=args.allow_non_clean_reason_note,
     )
     handoff = snapshot["handoff"]
     if args.format == "json":
