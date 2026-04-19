@@ -155,6 +155,20 @@ jobs:
             tests/test_reviewer_summary_linter_calibration_dataset.py \
             tests/test_reviewer_summary_linter_pressure.py
 
+      - name: Build reviewer calibration summary (advisory only)
+        run: |
+          mkdir -p artifacts/reviewer-calibration
+          python governance_tools/reviewer_linter_calibration_summary.py --format json --output artifacts/reviewer-calibration/summary.json
+          python governance_tools/reviewer_linter_calibration_summary.py --format human --output artifacts/reviewer-calibration/summary.txt
+
+      - name: Upload reviewer calibration summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reviewer-calibration
+          path: artifacts/reviewer-calibration/
+          if-no-files-found: warn
+
   memory-pressure:
     name: Memory Pressure
     runs-on: ubuntu-latest
