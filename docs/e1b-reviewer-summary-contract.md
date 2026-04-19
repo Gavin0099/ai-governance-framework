@@ -79,3 +79,25 @@ as clean/approved/ready-for-review status.
 - Override must not change identity: non-clean remains non-clean.
 - Override usage must record provenance (`override_active`, `override_source`,
   `override_effect`) in handoff output/manifest.
+
+### Structured Override Reason (Mandatory)
+
+`--allow-non-clean` requires:
+
+- `--allow-non-clean-reason-code` from:
+  - `manual_audit_required`
+  - `known_policy_violation_for_review`
+  - `pipeline_debugging_only`
+  - `temporary_reader_visibility`
+  - `other_requires_note`
+- `--allow-non-clean-reason-note` is required when reason code is
+  `other_requires_note`.
+
+### Non-Overridable Classes
+
+Even with override request, flow must remain blocked for high-severity claims in:
+
+- `readiness_claim`
+- `promotion_claim`
+- `stability_claim`
+- `confidence_laundering`

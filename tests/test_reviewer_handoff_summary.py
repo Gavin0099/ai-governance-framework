@@ -312,7 +312,7 @@ def test_allow_non_clean_flow_does_not_whiten_identity(monkeypatch):
     monkeypatch.setattr(
         "governance_tools.reviewer_handoff_summary._commands",
         lambda *_args, **_kwargs: [
-            {"name": "Recommendation: can proceed to promote discussion", "command": "echo promote"}
+            {"name": "Overall: healthy and trend positive", "command": "echo monitor"}
         ],
     )
 
@@ -325,6 +325,8 @@ def test_allow_non_clean_flow_does_not_whiten_identity(monkeypatch):
         fail_on_non_clean=True,
         allow_non_clean=True,
         lint_override_source="test_override",
+        override_reason_code="temporary_reader_visibility",
+        override_reason_note="manual triage window",
     )
     assert result["upstream_ok"] is True
     assert result["reviewer_lint"]["status"] == "non-clean"
@@ -332,3 +334,90 @@ def test_allow_non_clean_flow_does_not_whiten_identity(monkeypatch):
     assert result["handoff_clean_identity"] is False
     assert result["reviewer_lint_policy"]["override_active"] is True
     assert result["reviewer_lint_policy"]["override_source"] == "test_override"
+    assert result["reviewer_lint_policy"]["override_reason_code"] == "temporary_reader_visibility"
+
+
+def test_allow_non_clean_missing_reason_code_is_invalid(monkeypatch):
+    monkeypatch.setattr(
+        "governance_tools.reviewer_handoff_summary.assess_trust_signal_overview",
+        lambda **_: {
+            "ok": True,
+            "quickstart": {"ok": True},
+            "examples": {"ok": True},
+            "release": {"ok": True},
+            "auditor": {"ok": True, "external_onboarding": {"top_issues": []}},
+        },
+    )
+    monkeypatch.setattr(
+        "governance_tools.reviewer_handoff_summary.assess_release_surface",
+        lambda *_args, **_kwargs: {
+            "ok": True,
+            "readiness": {"ok": True},
+            "package": {"ok": True},
+            "bundle_manifest": {"available": True, "source": "explicit", "ok": True},
+            "publication_manifest": {"available": True, "source": "explicit", "ok": True},
+        },
+    )
+    monkeypatch.setattr(
+        "governance_tools.reviewer_handoff_summary._commands",
+        lambda *_args, **_kwargs: [
+            {"name": "Overall: healthy", "command": "echo lint"}
+        ],
+    )
+    from governance_tools.reviewer_handoff_summary import assess_reviewer_handoff
+
+    result = assess_reviewer_handoff(
+        project_root=Path(".").resolve(),
+        plan_path=Path("PLAN.md"),
+        release_version="v1.0.0-alpha",
+        fail_on_non_clean=True,
+        allow_non_clean=True,
+    )
+    assert result["ok"] is False
+    assert result["reviewer_lint_policy"]["allow_request_valid"] is False
+    assert result["reviewer_lint_policy"]["allow_request_error"] == "allow_non_clean_reason_code_invalid_or_missing"
+
+
+def test_non_overridable_claim_cannot_be_overridden(monkeypatch):
+    monkeypatch.setattr(
+        "governance_tools.reviewer_handoff_summary.assess_trust_signal_overview",
+        lambda **_: {
+            "ok": True,
+            "quickstart": {"ok": True},
+            "examples": {"ok": True},
+            "release": {"ok": True},
+            "auditor": {"ok": True, "external_onboarding": {"top_issues": []}},
+        },
+    )
+    monkeypatch.setattr(
+        "governance_tools.reviewer_handoff_summary.assess_release_surface",
+        lambda *_args, **_kwargs: {
+            "ok": True,
+            "readiness": {"ok": True},
+            "package": {"ok": True},
+            "bundle_manifest": {"available": True, "source": "explicit", "ok": True},
+            "publication_manifest": {"available": True, "source": "explicit", "ok": True},
+        },
+    )
+    monkeypatch.setattr(
+        "governance_tools.reviewer_handoff_summary._commands",
+        lambda *_args, **_kwargs: [
+            {"name": "Recommendation: can proceed to promote discussion", "command": "echo lint"}
+        ],
+    )
+    from governance_tools.reviewer_handoff_summary import assess_reviewer_handoff
+
+    result = assess_reviewer_handoff(
+        project_root=Path(".").resolve(),
+        plan_path=Path("PLAN.md"),
+        release_version="v1.0.0-alpha",
+        fail_on_non_clean=True,
+        allow_non_clean=True,
+        lint_override_source="manual",
+        override_reason_code="manual_audit_required",
+    )
+    assert result["ok"] is False
+    assert result["reviewer_lint"]["status"] == "non-clean"
+    assert result["reviewer_lint_policy"]["override_active"] is False
+    assert result["reviewer_lint_policy"]["override_blocked_by_non_overridable"] is True
+    assert "promotion_claim" in result["reviewer_lint_policy"]["non_overridable_claim_types"]
