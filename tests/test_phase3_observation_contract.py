@@ -193,6 +193,21 @@ def test_main_json_emits_downstream_reuse_contract(monkeypatch, capsys):
     ]
     assert contract["interpretation_requires_separate_phase_contract"] is True
     assert contract["required_phase_contract"] == "phase3_interpretation_contract"
+    reviewer = payload["phase3_observation_contract"]["reviewer_interpretation_boundary"]
+    assert reviewer["human_authored_commentary_non_authoritative"] is True
+    assert reviewer["allowed_summary_scope"] == [
+        "raw_observation_restatement",
+        "coverage_gap_note",
+        "schema_migration_context",
+        "evidence_scope_caveat",
+    ]
+    assert reviewer["forbidden_summary_claims"] == [
+        "readiness_declared",
+        "promotion_recommended",
+        "stability_conclusion_declared",
+        "interpretation_authority_substitution",
+    ]
+    assert reviewer["interpretation_requires_explicit_phase_transition"] is True
 
 
 def test_cumulative_illusion_does_not_create_interpretation_fields():

@@ -182,6 +182,20 @@ _PHASE3_DOWNSTREAM_FORBIDDEN_USE: tuple[str, ...] = (
     "policy_threshold_calibration_input",
 )
 
+_PHASE3_REVIEWER_ALLOWED_SUMMARY_SCOPE: tuple[str, ...] = (
+    "raw_observation_restatement",
+    "coverage_gap_note",
+    "schema_migration_context",
+    "evidence_scope_caveat",
+)
+
+_PHASE3_REVIEWER_FORBIDDEN_SUMMARY_CLAIMS: tuple[str, ...] = (
+    "readiness_declared",
+    "promotion_recommended",
+    "stability_conclusion_declared",
+    "interpretation_authority_substitution",
+)
+
 
 def _auto_discover_logs(start_dir: Path | None = None) -> list[Path]:
     """
@@ -1586,6 +1600,16 @@ def main() -> int:
                         "forbidden_use": list(_PHASE3_DOWNSTREAM_FORBIDDEN_USE),
                         "interpretation_requires_separate_phase_contract": True,
                         "required_phase_contract": "phase3_interpretation_contract",
+                    },
+                    "reviewer_interpretation_boundary": {
+                        "human_authored_commentary_non_authoritative": True,
+                        "allowed_summary_scope": list(
+                            _PHASE3_REVIEWER_ALLOWED_SUMMARY_SCOPE
+                        ),
+                        "forbidden_summary_claims": list(
+                            _PHASE3_REVIEWER_FORBIDDEN_SUMMARY_CLAIMS
+                        ),
+                        "interpretation_requires_explicit_phase_transition": True,
                     },
                     "validation": phase3_validation,
                 },
