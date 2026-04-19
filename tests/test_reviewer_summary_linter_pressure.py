@@ -41,3 +41,47 @@ def test_pressure_false_positive_guard_clean_when_explicitly_non_interpretive():
     assert result["status"] == "clean"
     assert result["violation_count"] == 0
 
+
+def test_surface_drift_mixed_language_is_detected():
+    text = "目前看起來 stable，可往下一步；Next: move toward interpretation."
+    result = lint_text(text)
+    assert result["status"] == "non-clean"
+    types = _claim_types(text)
+    assert "stability_claim" in types or "directional_interpretation" in types
+
+
+def test_surface_drift_abbreviation_shortcodes_are_detected():
+    text = "Status: R4R, GTG. Promo candidate."
+    result = lint_text(text)
+    assert result["status"] == "non-clean"
+    types = _claim_types(text)
+    assert "readiness_claim" in types
+    assert "promotion_claim" in types
+
+
+def test_surface_drift_heading_labels_are_detected():
+    text = "Overall Stability\nPromotion Context\nStatus: healthy"
+    result = lint_text(text)
+    assert result["status"] == "non-clean"
+    types = _claim_types(text)
+    assert "stability_claim" in types
+    assert "promotion_claim" in types
+    assert "quality_verdict" in types
+
+
+def test_surface_drift_short_chinese_labels_are_detected():
+    text = "狀態: 穩。建議: 可升。"
+    result = lint_text(text)
+    assert result["status"] == "non-clean"
+    types = _claim_types(text)
+    assert "stability_claim" in types
+    assert "promotion_claim" in types
+
+
+def test_surface_drift_false_positive_guard_for_policy_only_status_words():
+    text = (
+        "本文件列出禁用標籤：Status: stable、Status: healthy、Promo candidate。"
+        "以上僅作政策說明，不作 readiness / promotion / stability 結論。"
+    )
+    result = lint_text(text)
+    assert result["status"] == "clean"

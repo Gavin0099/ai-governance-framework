@@ -106,6 +106,27 @@ _NON_OVERRIDABLE_CLAIM_TYPES: frozenset[str] = frozenset(
 )
 
 
+def _resolve_override_decision_reason(
+    *,
+    lint_clean: bool,
+    allow_non_clean: bool,
+    allow_request_valid: bool,
+    override_blocked: bool,
+    override_active: bool,
+) -> str | None:
+    if lint_clean:
+        return "clean_no_override_needed"
+    if not allow_non_clean:
+        return None
+    if not allow_request_valid:
+        return "invalid_override_request"
+    if override_blocked:
+        return "blocked_non_overridable_claim"
+    if override_active:
+        return "allowed_for_manual_review"
+    return "invalid_override_request"
+
+
 def _evaluate_override_policy(
     *,
     lint_result: dict[str, Any],
@@ -147,6 +168,13 @@ def _evaluate_override_policy(
         and allow_request_valid
         and not override_blocked
     )
+    override_decision_reason = _resolve_override_decision_reason(
+        lint_clean=lint_clean,
+        allow_non_clean=allow_non_clean,
+        allow_request_valid=allow_request_valid,
+        override_blocked=override_blocked,
+        override_active=override_active,
+    )
 
     return {
         "fail_on_non_clean": bool(fail_on_non_clean),
@@ -158,6 +186,7 @@ def _evaluate_override_policy(
         "override_effect": "flow_allowed_non_clean" if override_active else "none",
         "override_reason_code": override_reason_code if allow_non_clean else None,
         "override_reason_note": override_reason_note if allow_non_clean else None,
+        "override_decision_reason": override_decision_reason,
         "override_blocked_by_non_overridable": override_blocked,
         "non_overridable_claim_types": sorted(
             {str(v.get("claim_type")) for v in non_overridable_matches}
@@ -301,6 +330,7 @@ def format_human_result(result: dict[str, Any]) -> str:
             f"override_effect={lint_policy.get('override_effect')}",
             f"override_reason_code={lint_policy.get('override_reason_code')}",
             f"override_reason_note={lint_policy.get('override_reason_note')}",
+            f"override_decision_reason={lint_policy.get('override_decision_reason')}",
             f"allow_request_valid={lint_policy.get('allow_request_valid')}",
             f"allow_request_error={lint_policy.get('allow_request_error')}",
             f"override_blocked_by_non_overridable={lint_policy.get('override_blocked_by_non_overridable')}",
@@ -362,7 +392,7 @@ def format_markdown_result(result: dict[str, Any]) -> str:
         f"| Trust signal | `{trust['ok']}` | quickstart=`{trust['quickstart']['ok']}` examples=`{trust['examples']['ok']}` auditor=`{trust['auditor']['ok']}` |",
         f"| Release surface | `{release['ok']}` | readiness=`{release['readiness']['ok']}` package=`{release['package']['ok']}` bundle=`{'missing' if not release['bundle_manifest']['available'] else release['bundle_manifest']['ok']}` publication=`{'missing' if not release['publication_manifest']['available'] else release['publication_manifest']['ok']}` |",
         f"| Reviewer lint | `{lint.get('status') == 'clean'}` | status=`{lint.get('status')}` violations=`{lint.get('violation_count')}` highest_severity=`{lint.get('highest_severity')}` |",
-        f"| Lint policy | `{result.get('handoff_clean_identity')}` | fail_on_non_clean=`{lint_policy.get('fail_on_non_clean')}` allow_non_clean=`{lint_policy.get('allow_non_clean')}` override_active=`{lint_policy.get('override_active')}` reason_code=`{lint_policy.get('override_reason_code')}` |",
+        f"| Lint policy | `{result.get('handoff_clean_identity')}` | fail_on_non_clean=`{lint_policy.get('fail_on_non_clean')}` allow_non_clean=`{lint_policy.get('allow_non_clean')}` override_active=`{lint_policy.get('override_active')}` reason_code=`{lint_policy.get('override_reason_code')}` decision_reason=`{lint_policy.get('override_decision_reason')}` |",
         "",
     ]
     if lint.get("violations"):

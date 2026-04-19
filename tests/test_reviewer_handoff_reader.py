@@ -145,11 +145,22 @@ def test_reader_surfaces_lint_by_severity_claim_excerpt(tmp_path):
                 "lint_highest_severity": "high",
                 "lint_violations": [
                     {
+                        "severity": "medium",
+                        "claim_type": "quality_verdict",
+                        "excerpt": "Status: healthy",
+                    },
+                    {
                         "severity": "high",
                         "claim_type": "stability_claim",
                         "excerpt": "Status: stable enough for next phase",
                     }
                 ],
+                "lint_policy": {
+                    "override_reason_code": "temporary_reader_visibility",
+                    "override_decision_reason": "allowed_for_manual_review",
+                    "override_blocked_by_non_overridable": False,
+                    "non_overridable_claim_types": [],
+                },
             },
             ensure_ascii=False,
             indent=2,
@@ -158,6 +169,9 @@ def test_reader_surfaces_lint_by_severity_claim_excerpt(tmp_path):
         encoding="utf-8",
     )
     rendered = format_human_result(assess_manifest(manifest_path))
+    assert "[policy_not_clean]" in rendered
     assert "lint_status=non-clean" in rendered
+    assert "override_decision_reason=allowed_for_manual_review" in rendered
+    assert "top_violation_excerpt=Status: stable enough for next phase" in rendered
     assert "lint_highest_severity=high" in rendered
     assert "high|stability_claim|Status: stable enough for next phase" in rendered
