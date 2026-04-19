@@ -1,0 +1,255 @@
+{
+  "schema_version": "1.0",
+  "artifact_type": "enumd-ingestion-contract-report",
+  "generated_at": "2026-04-19T16:14:21.808094+00:00",
+  "source_dir": "D:\\Enumd\\artifacts\\runtime\\candidates",
+  "n": 24,
+  "batch_conclusion_before": "observe_only_with_semantic_collision",
+  "batch_conclusion_after": "observe_only_with_inducement_risk",
+  "downgrade_achieved": true,
+  "mitigation_complete_count": 24,
+  "reinterpretation_failure_count": 0,
+  "safety_check": "risk_contained",
+  "samples": [
+    {
+      "session_id": "session-20260414T060717-061315",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060757-7d239a",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060757-a8b607",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060757-c6c594",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060757-fdf0ae",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060758-86b59c",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060819-0e0a47",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060819-96bf52",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060819-9df163",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060819-aecf19",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060820-1e684f",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060820-451f40",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060820-8457d1",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060820-91c084",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060820-e4d079",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060821-1c5225",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060821-56c18c",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060821-9d5377",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060821-e6e4c1",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060822-18f454",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060822-f8fdf7",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060834-f2187f",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060844-c4f377",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    },
+    {
+      "session_id": "session-20260414T060856-1f945f",
+      "before_inducement_risk": "high",
+      "after_inducement_risk": "medium",
+      "collision_mitigation_complete": true,
+      "reinterpretations_applied": [
+        "policy.decision"
+      ],
+      "reinterpretation_failures": []
+    }
+  ]
+}
