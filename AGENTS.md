@@ -71,6 +71,12 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 - When you make a mistake ??document it so future-you doesn't repeat it
 - **Text > Brain** ??
 
+### Post-Push Memory Protocol (Cross-Repo)
+- After every push in a main session, append one short entry to `memory/YYYY-MM-DD.md`
+- Keep the entry compact and structured: `what changed`, `commit hash`, `test evidence`, `next step`
+- If the push introduced a durable workflow preference, also update `memory/00_long_term.md`
+- This protocol is portable: apply the same pattern in other repos with a local `memory/` directory
+
 ## Safety
 
 - Don't exfiltrate private data. Ever.
