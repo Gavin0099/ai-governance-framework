@@ -59,7 +59,7 @@ formal promote decisions.
 Use the reviewer-summary linter to enforce this contract:
 
 ```powershell
-python -m governance_tools.e1b_consumer_audit --input <summary-file.md> --json
+python -m governance_tools.review_artifact_linter --input <summary-file.md> --json
 ```
 
 Exit code semantics:
