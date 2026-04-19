@@ -118,15 +118,36 @@ _DEFAULT_LOG_PATH = (
 _AUDIT_LOG_RELPATH = Path("artifacts") / "runtime" / "canonical-audit-log.jsonl"
 
 # Phase 3 observation-only contract (pre-authority-promote hard boundary).
-# Only raw observational keys are allowed in phase3_observation payloads.
-_PHASE3_OBSERVATION_ALLOWED_FIELDS: set[str] = {
-    "total_sessions",
-    "repo_count",
-    "repo_session_counts",
-    "artifact_state_counts",
-    "repo_state_breakdown",
-    "state_transition_matrix",
+# The payload surface is defined as an allowlist of RAW observation classes.
+# Future field additions must be explicitly placed in one of these classes and
+# pass validate_phase3_observation_payload().
+_PHASE3_OBSERVATION_ALLOWLIST_BY_CLASS: dict[str, frozenset[str]] = {
+    "raw_counts": frozenset({
+        "total_sessions",
+        "repo_count",
+        "repo_session_counts",
+        "artifact_state_counts",
+    }),
+    "raw_ratios": frozenset({
+        "repo_session_ratios",
+        "artifact_state_ratios",
+    }),
+    "raw_distributions": frozenset({
+        "repo_state_breakdown",
+    }),
+    "raw_transition_data": frozenset({
+        "state_transition_matrix",
+    }),
+    "raw_repo_partition_data": frozenset({
+        "repo_session_counts",
+        "repo_session_ratios",
+        "repo_state_breakdown",
+    }),
 }
+
+_PHASE3_OBSERVATION_ALLOWED_FIELDS: frozenset[str] = frozenset().union(
+    *_PHASE3_OBSERVATION_ALLOWLIST_BY_CLASS.values()
+)
 # Interpretive-class token detector (guards alias-based smuggling).
 _INTERPRETIVE_KEY_TOKENS: tuple[str, ...] = (
     "trend",
@@ -144,6 +165,21 @@ _INTERPRETIVE_KEY_TOKENS: tuple[str, ...] = (
     "alignment",
     "hint",
     "score",
+)
+
+_PHASE3_DOWNSTREAM_ALLOWED_USE: tuple[str, ...] = (
+    "raw_observation_review",
+    "coverage_audit",
+    "schema_migration_monitoring",
+    "phase2_observation_baseline_tracking",
+)
+
+_PHASE3_DOWNSTREAM_FORBIDDEN_USE: tuple[str, ...] = (
+    "readiness_inference",
+    "promotion_decision_support",
+    "trend_quality_verdict",
+    "stability_health_summary",
+    "policy_threshold_calibration_input",
 )
 
 
@@ -250,6 +286,20 @@ def _build_state_transition_matrix(entries: list[dict]) -> dict[str, int]:
     return dict(sorted(matrix.items()))
 
 
+def _to_ratio_map(counts: dict[str, int], denominator: int) -> dict[str, float]:
+    """
+    Convert integer count map into a normalized ratio map.
+
+    Ratios are rounded to 4 decimals for stable JSON output.
+    """
+    if denominator <= 0:
+        return {k: 0.0 for k in sorted(counts)}
+    return {
+        k: round(v / denominator, 4)
+        for k, v in sorted(counts.items())
+    }
+
+
 def build_phase3_observation_payload(
     entries: list[dict],
     repo_stats: dict[str, dict],
@@ -272,11 +322,15 @@ def build_phase3_observation_payload(
         for state, n in state_breakdown.items():
             artifact_state_counts[state] += n
 
+    total_sessions = sum(repo_session_counts.values())
+
     return {
-        "total_sessions": sum(repo_session_counts.values()),
+        "total_sessions": total_sessions,
         "repo_count": len(repo_stats),
         "repo_session_counts": dict(sorted(repo_session_counts.items())),
+        "repo_session_ratios": _to_ratio_map(repo_session_counts, total_sessions),
         "artifact_state_counts": dict(sorted(artifact_state_counts.items())),
+        "artifact_state_ratios": _to_ratio_map(artifact_state_counts, total_sessions),
         "repo_state_breakdown": dict(sorted(repo_state_breakdown.items())),
         "state_transition_matrix": _build_state_transition_matrix(entries),
     }
@@ -295,13 +349,14 @@ def validate_phase3_observation_payload(payload: dict) -> dict:
     """
     violations: list[dict] = []
     for key in payload.keys():
-        if key in _PHASE3_OBSERVATION_ALLOWED_FIELDS:
-            continue
         if _looks_interpretive_key(key):
             violations.append({
                 "key": key,
                 "reason": "interpretive_class_forbidden",
             })
+            continue
+        if key in _PHASE3_OBSERVATION_ALLOWED_FIELDS:
+            continue
         else:
             violations.append({
                 "key": key,
@@ -312,6 +367,25 @@ def validate_phase3_observation_payload(payload: dict) -> dict:
         "violations": violations,
         "non_decision_support": True,
     }
+
+
+def enforce_phase3_observation_contract(validation: dict) -> None:
+    """
+    Hard-fail on contract violations to prevent schema drift from widening
+    observation payload into interpretive space.
+    """
+    if validation.get("valid", False):
+        return
+
+    violations = validation.get("violations", [])
+    details = ", ".join(
+        f"{v.get('key', '<unknown>')}:{v.get('reason', 'violation')}"
+        for v in violations
+    )
+    raise ValueError(
+        "phase3 observation contract violation: "
+        f"{details or 'unknown contract violation'}"
+    )
 
 
 def _normalized_shannon_entropy(state_breakdown: dict[str, int], n: int) -> float:
@@ -1430,6 +1504,11 @@ def main() -> int:
     fleet = compute_fleet_coverage(repo_stats)
     phase3_observation = build_phase3_observation_payload(entries, repo_stats)
     phase3_validation = validate_phase3_observation_payload(phase3_observation)
+    try:
+        enforce_phase3_observation_contract(phase3_validation)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
 
     # Threshold resolution for v2 readiness basis.
     threshold_v2 = _PHASE2_MIN_NON_STUCK_ABSENT_RATIO_V2
@@ -1502,6 +1581,12 @@ def main() -> int:
                         "trend_quality",
                         "stability_verdict",
                     ],
+                    "downstream_reuse_contract": {
+                        "allowed_use": list(_PHASE3_DOWNSTREAM_ALLOWED_USE),
+                        "forbidden_use": list(_PHASE3_DOWNSTREAM_FORBIDDEN_USE),
+                        "interpretation_requires_separate_phase_contract": True,
+                        "required_phase_contract": "phase3_interpretation_contract",
+                    },
                     "validation": phase3_validation,
                 },
             },

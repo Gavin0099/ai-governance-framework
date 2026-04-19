@@ -120,9 +120,27 @@ It MUST say something like:
   - `phase2_semantic_lock_required=true`
   - `phase3_observation_only=true`
   - `phase3_interpretation=null`
+  - class-based Phase 3 observation allowlist:
+    `raw_counts`, `raw_ratios`, `raw_distributions`, `raw_transition_data`,
+    `raw_repo_partition_data`
   - explicit forbidden interpretation fields (`trend_direction`, `cross_repo_correlation`, etc.)
   - `phase3_observation_contract.non_decision_support=true`
+  - `phase3_observation_contract.downstream_reuse_contract`:
+    fixed `allowed_use` / `forbidden_use` plus
+    `interpretation_requires_separate_phase_contract=true`
   - `phase3_observation_contract.validation` (rejects interpretive-class and alias smuggling keys)
+  - interpretive-class keys are rejected even if someone tries to add them into
+    a broad allowlist (hard boundary against future schema drift)
+
+**Downstream reuse contract (2026-04-19)**:
+- Allowed use is observation-only:
+  `raw_observation_review`, `coverage_audit`,
+  `schema_migration_monitoring`, `phase2_observation_baseline_tracking`.
+- Forbidden use includes interpretation shortcuts:
+  `readiness_inference`, `promotion_decision_support`,
+  `trend_quality_verdict`, `stability_health_summary`,
+  `policy_threshold_calibration_input`.
+- If interpretation output is needed, it MUST use a separate phase contract.
 
 **Boundary**:
 These fields are guardrails against semantic drift. They are not, by themselves,
