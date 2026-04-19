@@ -937,6 +937,10 @@ Enumd / SpecAuthority：
       - 允許：`state_transition_matrix`、`session_delta_distribution`、`repo_variance_vector`
       - 禁止：`trend_direction`、`cross_repo_correlation`、`improving/degrading` 類結論欄位
    5. **advisory 不是無影響訊號**：任何 advisory 欄位都要視為 potential weak decision signal，需明示語意邊界與非授權用途。
+   6. **interpretive-class 禁止規則（2026-04-19）**：不只禁欄位名，還禁語義類型；
+      任何方向性/品質評價/成熟度暗示/promotion hint 欄位（含 alias）都不得出現在 Phase 3 observation payload。
+   7. **consumer 邊界（2026-04-19）**：Phase 3 observation artifacts 為 non-decision-support signals；
+      consumer MUST NOT 以其推論 readiness/promotion/trend quality/stability verdict。
 
    **待清理項（Layer 2 完成後仍需處理）：**
    session_end_hook 輸出的 `e1b_observation.is_degenerate=True` 是 legacy entropy 公式（entropy < 0.3）殘留。
