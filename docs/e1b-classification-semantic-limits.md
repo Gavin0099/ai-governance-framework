@@ -150,6 +150,14 @@ It MUST say something like:
 - Interpretation requires an explicit phase transition and cannot emerge from
   repeated observation exposure.
 
+**Reviewer interpretation boundary (2026-04-19)**:
+- Human-authored reviewer summaries are non-authoritative by default.
+- Reviewer summaries MUST NOT declare readiness, promotion, or stability
+  conclusions from observation-only artifacts.
+- If interpretation is required, the output must move to a separate
+  interpretation artifact under an explicit phase transition.
+- Human commentary MUST NOT substitute for formal metric-authority promotion.
+
 **Boundary**:
 These fields are guardrails against semantic drift. They are not, by themselves,
 proof that Phase 2 semantics are fully validated for promote decisions.

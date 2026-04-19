@@ -950,6 +950,9 @@ Enumd / SpecAuthority：
    10. **interpretation trigger boundary（2026-04-19）**：在 Phase 2 metric authority 正式 promote 前，
        Phase 3 observation artifacts MUST NOT be interpreted。觀測資料累積本身不得形成 implicit readiness；
        interpretation 只能由明確 phase transition 啟動，不能由 repeated observation exposure 自然生成。
+   11. **reviewer interpretation boundary（2026-04-19）**：human-authored reviewer summary 預設 non-authoritative；
+       不得宣告 readiness/promotion/stability 結論，也不得替代正式 promote decision。
+       若需 interpretation，必須產生獨立 interpretation artifact 並記錄顯式 phase transition。
 
    **待清理項（Layer 2 完成後仍需處理）：**
    session_end_hook 輸出的 `e1b_observation.is_degenerate=True` 是 legacy entropy 公式（entropy < 0.3）殘留。
@@ -1555,3 +1558,4 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 | 2026-04-15 | Topic filtering adoption gap 分析 — 釘住邊界 | `pre_task_check` topic filtering 對 consuming repos 的實際覆蓋率極低：session_start 呼叫 pre_task_check 時 task_text="" → classify_task_topic 永遠回 "general" → 無 filtering；AGENTS.base.md 無 pre_task_check 指示；無 CI hook / pre-commit hook；唯一有效情境：AI 主動傳 `--task-text` 或 domain rule pack 觸發 _PACK_TOPIC_HINTS；KDC 的 `kernel-driver` pack 是目前唯一自動 topic 的 repo；此為 coverage gap，非 regression；不修復，只記錄邊界 |
 | 2026-04-19 | Phase 3.1 downstream reuse boundary | observation contract 從 producer-only 擴到 reuse boundary：`phase3_observation_contract` 固定輸出 `downstream_reuse_contract`（allowed_use / forbidden_use）；主流程維持 hard fail 防 interpretive payload；任何 interpretation 需求必須走獨立 phase contract，不得在 observation 路徑二次包裝 |
 | 2026-04-19 | Phase 3.2 interpretation trigger boundary | 明確禁止「觀測累積 => 隱性可解讀」：Phase 2 authority 未 promote 前，Phase 3 artifacts 僅 observation；interpretation 必須經顯式 phase transition 啟動，不得由 repeated exposure 自動浮現 |
+| 2026-04-19 | Phase 3.3 reviewer interpretation boundary | 封鎖 human-authored backdoor：reviewer summary 預設 non-authoritative，不得宣告 readiness/promotion/stability，也不得替代 promote decision；如需 interpretation 必須輸出獨立 artifact 並附顯式 phase transition |
