@@ -142,6 +142,14 @@ It MUST say something like:
   `policy_threshold_calibration_input`.
 - If interpretation output is needed, it MUST use a separate phase contract.
 
+**Interpretation trigger boundary (2026-04-19)**:
+- Phase 3 observation artifacts MUST NOT be interpreted unless Phase 2 metric
+  authority is formally promoted.
+- Accumulation of observation data does not constitute implicit readiness for
+  interpretation.
+- Interpretation requires an explicit phase transition and cannot emerge from
+  repeated observation exposure.
+
 **Boundary**:
 These fields are guardrails against semantic drift. They are not, by themselves,
 proof that Phase 2 semantics are fully validated for promote decisions.

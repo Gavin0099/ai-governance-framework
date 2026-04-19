@@ -193,3 +193,23 @@ def test_main_json_emits_downstream_reuse_contract(monkeypatch, capsys):
     ]
     assert contract["interpretation_requires_separate_phase_contract"] is True
     assert contract["required_phase_contract"] == "phase3_interpretation_contract"
+
+
+def test_cumulative_illusion_does_not_create_interpretation_fields():
+    # 20 sessions with gradually improving raw states; output must remain raw.
+    entries = []
+    for i in range(20):
+        state = "absent" if i < 8 else ("stale" if i < 12 else "ok")
+        entries.append(_entry("repo-a", i, state))
+        entries.append(_entry("repo-b", i + 20, state))
+
+    stats = compute_repo_stats(entries)
+    payload = build_phase3_observation_payload(entries, stats)
+    check = validate_phase3_observation_payload(payload)
+
+    assert check["valid"] is True
+    assert set(payload) == set(_PHASE3_OBSERVATION_ALLOWED_FIELDS)
+    assert "trend_direction" not in payload
+    assert "improving" not in payload
+    assert "health_summary" not in payload
+    assert "readiness_signal" not in payload
