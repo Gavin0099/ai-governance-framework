@@ -70,5 +70,46 @@
     "artifacts/enumd-probe/non_equivalence_registry.json"
   ],
 
-  "next_decision_point": "When Enumd fixes the closeout file path upstream, re-run candidate probe to verify residual fields disappear. If they do, phase can advance. If they persist independently, re-evaluate for second-order remediation."
+  "safety_vs_value_separation": {
+    "note": "These two axes are independent and must NOT be conflated.",
+    "safety_side": {
+      "question": "Is the semantic collision risk contained to an acceptable level?",
+      "current_answer": "Yes — primary blocker resolved, residual fields are downstream effects under observation.",
+      "what_would_change_this": "Closeout path fix → candidate re-probe → check if residual fields disappear"
+    },
+    "value_side": {
+      "question": "Does Enumd provide decision value that justifies integration?",
+      "current_answer": "Not addressed in Phase Enumd-1. Safety-side work is a prerequisite, not a substitute.",
+      "what_would_change_this": "Separate value-case assessment — independent of safety probe results"
+    },
+    "critical_non_equivalence": "safety_blocker_reduced != integration_ready. A clean safety profile is necessary but not sufficient for integration."
+  },
+
+  "reprobe_success_conditions": {
+    "trigger": "Enumd fixes the closeout file path (E:\\BackUp\\Git_EE\\Enumd\\artifacts\\session-closeout.txt)",
+    "run": "python governance_tools/enumd_ingestion_contract.py --mode targeted-residual --candidates-dir <new_candidates_dir>",
+    "outcomes": [
+      {
+        "result": "batch_conclusion drops to observe_only_safe",
+        "interpretation": "safety-side residual risk has naturally resolved; residual_downstream_effect hypothesis fully confirmed",
+        "next_action": "close safety-side observation; begin value-case assessment independently",
+        "does_not_mean": "integration_ready — value-case not yet assessed"
+      },
+      {
+        "result": "batch_conclusion remains observe_only_with_inducement_risk",
+        "interpretation": "at least one residual field has independent misread power beyond closeout absence",
+        "next_action": "re-run targeted probe to identify which field family persists; evaluate for second-order remediation",
+        "does_not_mean": "integration blocked permanently — need to isolate specific persisting field"
+      },
+      {
+        "result": "batch_conclusion rises back to observe_only_with_semantic_collision",
+        "interpretation": "new high-collision fields introduced in updated Enumd schema",
+        "next_action": "treat as new Phase Enumd-2 diagnosis; do not reuse Phase Enumd-1 containment conclusions",
+        "does_not_mean": "prior work was wasted — containment tools are reusable"
+      }
+    ],
+    "invariant": "None of the three outcomes automatically triggers integration_ready status. Value-case assessment is always a separate gate."
+  },
+
+  "phase_summary": "Phase Enumd-1 completed primary semantic collision diagnosis and first-round containment. policy.decision was the sole high-collision field in candidate schema; ingestion-layer reinterpretation downgraded batch from observe_only_with_semantic_collision to observe_only_with_inducement_risk. Closeout surface does not amplify candidate risk. Residual medium/low fields confirmed as co-located downstream effects via targeted probe (finding=residual_downstream_effect). Safety-side next decision point is closeout-path fix + re-probe; this is not equivalent to integration readiness."
 }
