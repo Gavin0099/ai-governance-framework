@@ -15,6 +15,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from governance_tools.human_summary import build_summary_line
+from governance_tools.review_artifact_linter import lint_text
 from governance_tools.release_surface_overview import assess_release_surface
 from governance_tools.trust_signal_overview import assess_trust_signal_overview
 
@@ -49,6 +50,44 @@ def _commands(release_version: str, contract_file: Path | None = None) -> list[d
     ]
 
 
+def _build_lint_surface(
+    *,
+    release_version: str,
+    contract_path: str | None,
+    trust_ok: bool,
+    release_ok: bool,
+    commands: list[dict[str, str]],
+) -> str:
+    lines = [
+        "# Reviewer Handoff Summary",
+        "## Handoff Status",
+        f"release_version={release_version}",
+        f"contract_path={contract_path}",
+        f"trust_ok={trust_ok}",
+        f"release_ok={release_ok}",
+        "## Suggested Commands",
+    ]
+    for item in commands:
+        lines.append(f"- {item['name']}: {item['command']}")
+    return "\n".join(lines)
+
+
+def _severity_rank(level: str) -> int:
+    if level == "high":
+        return 3
+    if level == "medium":
+        return 2
+    if level == "low":
+        return 1
+    return 0
+
+
+def _highest_severity(violations: list[dict[str, Any]]) -> str:
+    if not violations:
+        return "none"
+    return max((str(v.get("severity", "low")) for v in violations), key=_severity_rank)
+
+
 def assess_reviewer_handoff(
     *,
     project_root: Path,
@@ -74,28 +113,50 @@ def assess_reviewer_handoff(
         bundle_manifest=release_bundle_manifest,
         publication_manifest=release_publication_manifest,
     )
+    commands = _commands(release_version, contract_file)
+    contract_path = str(contract_file.resolve()) if contract_file else None
+    lint_surface = _build_lint_surface(
+        release_version=release_version,
+        contract_path=contract_path,
+        trust_ok=trust["ok"],
+        release_ok=release["ok"],
+        commands=commands,
+    )
+    lint = lint_text(lint_surface)
+    lint_result = {
+        "status": lint["status"],
+        "violation_count": lint["violation_count"],
+        "highest_severity": _highest_severity(lint["violations"]),
+        "violations": lint["violations"],
+    }
+    is_clean = lint_result["status"] == "clean"
 
     return {
-        "ok": trust["ok"] and release["ok"],
+        "ok": trust["ok"] and release["ok"] and is_clean,
+        "upstream_ok": trust["ok"] and release["ok"],
         "project_root": str(project_root),
         "plan_path": str(plan_path),
         "release_version": release_version,
-        "contract_path": str(contract_file.resolve()) if contract_file else None,
+        "contract_path": contract_path,
         "external_contract_repos": [str(path.resolve()) for path in (external_contract_repos or [])],
         "strict_runtime": strict_runtime,
         "trust_signal": trust,
         "release_surface": release,
-        "commands": _commands(release_version, contract_file),
+        "commands": commands,
+        "reviewer_lint": lint_result,
     }
 
 
 def format_human_result(result: dict[str, Any]) -> str:
     trust = result["trust_signal"]
     release = result["release_surface"]
+    lint = result.get("reviewer_lint") or {}
     summary_line = build_summary_line(
         f"ok={result['ok']}",
+        f"upstream_ok={result.get('upstream_ok')}",
         f"trust={trust['ok']}",
         f"release={release['ok']}",
+        f"lint={lint.get('status', 'unknown')}",
         f"release_version={result['release_version']}",
         f"contract={result.get('contract_path') or 'none'}",
     )
@@ -123,6 +184,23 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"bundle_source={release['bundle_manifest']['source']}",
         f"publication_source={release['publication_manifest']['source']}",
     ]
+    lines.extend(
+        [
+            "[reviewer_lint]",
+            f"status={lint.get('status')}",
+            f"violation_count={lint.get('violation_count')}",
+            f"highest_severity={lint.get('highest_severity')}",
+        ]
+    )
+    if lint.get("violations"):
+        for v in sorted(
+            lint["violations"],
+            key=lambda item: _severity_rank(str(item.get("severity", "low"))),
+            reverse=True,
+        )[:5]:
+            lines.append(
+                f"violation={v.get('severity')}|{v.get('claim_type')}|{v.get('excerpt')}"
+            )
     if release["bundle_manifest"].get("manifest_file"):
         lines.append(f"bundle_manifest_file={release['bundle_manifest']['manifest_file']}")
     if release["publication_manifest"].get("manifest_file"):
@@ -140,10 +218,13 @@ def format_human_result(result: dict[str, Any]) -> str:
 def format_markdown_result(result: dict[str, Any]) -> str:
     trust = result["trust_signal"]
     release = result["release_surface"]
+    lint = result.get("reviewer_lint") or {}
     summary_line = build_summary_line(
         f"ok={result['ok']}",
+        f"upstream_ok={result.get('upstream_ok')}",
         f"trust={trust['ok']}",
         f"release={release['ok']}",
+        f"lint={lint.get('status', 'unknown')}",
         f"release_version={result['release_version']}",
         f"contract={result.get('contract_path') or 'none'}",
     )
@@ -162,8 +243,20 @@ def format_markdown_result(result: dict[str, Any]) -> str:
         "| --- | --- | --- |",
         f"| Trust signal | `{trust['ok']}` | quickstart=`{trust['quickstart']['ok']}` examples=`{trust['examples']['ok']}` auditor=`{trust['auditor']['ok']}` |",
         f"| Release surface | `{release['ok']}` | readiness=`{release['readiness']['ok']}` package=`{release['package']['ok']}` bundle=`{'missing' if not release['bundle_manifest']['available'] else release['bundle_manifest']['ok']}` publication=`{'missing' if not release['publication_manifest']['available'] else release['publication_manifest']['ok']}` |",
+        f"| Reviewer lint | `{lint.get('status') == 'clean'}` | status=`{lint.get('status')}` violations=`{lint.get('violation_count')}` highest_severity=`{lint.get('highest_severity')}` |",
         "",
     ]
+    if lint.get("violations"):
+        lines.extend(["## Lint Violations", ""])
+        for v in sorted(
+            lint["violations"],
+            key=lambda item: _severity_rank(str(item.get("severity", "low"))),
+            reverse=True,
+        )[:5]:
+            lines.append(
+                f"- `{v.get('severity')}` `{v.get('claim_type')}` — `{v.get('excerpt')}`"
+            )
+        lines.append("")
     fact_summaries = _external_project_facts_summaries(result)
     if fact_summaries:
         lines.extend(["## External Fact States", ""] + [f"- `{item}`" for item in fact_summaries] + [""])
