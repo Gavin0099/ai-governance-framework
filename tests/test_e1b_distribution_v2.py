@@ -324,6 +324,27 @@ class TestGateV2ShadowFields:
         assert "non_stuck_absent_ratio_v2" in gate
         assert "non_stuck_absent_repos_v2" in gate
 
+    def test_phase2_authority_contract_is_explicit(self):
+        """
+        Phase 2 READY under v2 is candidate operational authority, not final
+        semantic authority, and Phase 3 outputs must remain observation-only.
+        """
+        entries = (
+            _entries_n("repo-a", "ok", 20)
+            + _entries_n("repo-b", "ok", 20)
+            + _entries_n("repo-c", "ok", 20)
+        )
+        stats = compute_repo_stats(entries)
+        gate = evaluate_phase2_gate(entries, stats, 20, 3, 0.7, 0.6, 0.4)
+        assert gate["authority_status"] == "candidate_operational_indicator"
+        assert gate["phase2_semantic_lock_required"] is True
+        assert gate["phase3_observation_only"] is True
+        assert gate["phase3_interpretation"] is None
+        assert "trend_direction" in gate["phase3_forbidden_interpretation_fields"]
+        assert "cross_repo_correlation" in gate["phase3_forbidden_interpretation_fields"]
+        assert "trend_direction" not in gate
+        assert "cross_repo_correlation" not in gate
+
     def test_legacy_degenerate_diverges_from_v2_for_stable_ok(self):
         """
         DESIGN BOUNDARY: fleet of stable_ok repos → legacy marks many as degenerate

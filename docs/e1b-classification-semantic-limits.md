@@ -101,3 +101,25 @@ It MUST say something like:
 | `recent_lifecycle_class` | directional reference (rolling window) | trend verdict; promotion proxy |
 | `READY` gate verdict | quantitative conditions met (policy choice) | proof that proxy set is universally valid |
 | Phase B time accumulation | reviewer confidence / policy defensibility | model capability improvement |
+
+---
+
+## 4. Phase 2.5 Metric Authority Resolution
+
+**Contract**:
+- v2 metrics are candidate operational indicators, not final semantic authority.
+- Phase 2 readiness MUST NOT be concluded solely from shadow-metric narration.
+- Legacy entropy is retained as reporting-only historical heuristic.
+- Phase 3 outputs must stay observation-only until semantic authority is explicitly promoted.
+
+**Implementation note (2026-04-19)**:
+- `scripts/analyze_e1b_distribution.py` now emits:
+  - `authority_status=candidate_operational_indicator`
+  - `phase2_semantic_lock_required=true`
+  - `phase3_observation_only=true`
+  - `phase3_interpretation=null`
+  - explicit forbidden interpretation fields (`trend_direction`, `cross_repo_correlation`, etc.)
+
+**Boundary**:
+These fields are guardrails against semantic drift. They are not, by themselves,
+proof that Phase 2 semantics are fully validated for promote decisions.
