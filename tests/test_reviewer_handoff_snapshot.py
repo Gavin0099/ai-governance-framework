@@ -78,11 +78,13 @@ def test_write_reviewer_handoff_snapshot_bundle_creates_latest_history_manifest(
     assert manifest["latest"]["json"].endswith("latest.json")
     assert manifest["trust_ok"] is True
     assert manifest["release_ok"] is True
+    assert manifest["override_decision_reason"] == "clean_no_override_needed"
     assert "# Reviewer Handoff Snapshot" in Path(bundle["readme_md"]).read_text(encoding="utf-8")
     publication = json.loads(Path(bundle["publication_manifest_json"]).read_text(encoding="utf-8"))
     assert publication["publication_scope"] == "bundle"
     assert publication["ok"] is True
     assert publication["release_version"] == "v1.0.0-alpha"
+    assert publication["override_decision_reason"] == "clean_no_override_needed"
 
 
 def test_format_index_handles_empty_history(tmp_path):

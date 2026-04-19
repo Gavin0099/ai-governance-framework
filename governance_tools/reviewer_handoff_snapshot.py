@@ -179,6 +179,7 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
     release = handoff.get("release_surface") or {}
     lint = handoff.get("reviewer_lint") or {}
     lint_policy = handoff.get("reviewer_lint_policy") or {}
+    override_decision_reason = lint_policy.get("override_decision_reason")
     json_text = json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n"
     human_text = format_human_result(handoff) + "\n"
     markdown_text = format_markdown_result(handoff) + "\n"
@@ -212,6 +213,7 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
                 "lint_highest_severity": lint.get("highest_severity"),
                 "lint_violations": lint.get("violations") or [],
                 "lint_policy": lint_policy,
+                "override_decision_reason": override_decision_reason,
                 "latest": {
                     "json": str(latest_json),
                     "text": str(latest_txt),
@@ -253,6 +255,7 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
                 "lint_violation_count": lint.get("violation_count"),
                 "lint_highest_severity": lint.get("highest_severity"),
                 "lint_policy": lint_policy,
+                "override_decision_reason": override_decision_reason,
                 "latest_json": str(latest_json),
                 "latest_txt": str(latest_txt),
                 "latest_md": str(latest_md),
@@ -441,6 +444,9 @@ def write_published_status(snapshot: dict[str, Any], publish_dir: Path) -> dict[
                 "lint_violation_count": snapshot["handoff"].get("reviewer_lint", {}).get("violation_count"),
                 "lint_highest_severity": snapshot["handoff"].get("reviewer_lint", {}).get("highest_severity"),
                 "lint_policy": snapshot["handoff"].get("reviewer_lint_policy") or {},
+                "override_decision_reason": (
+                    (snapshot["handoff"].get("reviewer_lint_policy") or {}).get("override_decision_reason")
+                ),
                 "published": {
                     "markdown": str(latest_md),
                     "json": str(latest_json),
@@ -558,6 +564,11 @@ def write_publication_manifest(
         "release_ok": snapshot["handoff"].get("release_surface", {}).get("ok"),
         "bundle_published": bundle_paths is not None,
         "status_pages_published": published_paths is not None,
+        "override_decision_reason": (
+            (snapshot.get("handoff") or {})
+            .get("reviewer_lint_policy", {})
+            .get("override_decision_reason")
+        ),
         "bundle": bundle_paths,
         "published": published_paths,
         "readme_md": str(readme_md),

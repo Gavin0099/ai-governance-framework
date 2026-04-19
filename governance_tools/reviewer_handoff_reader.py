@@ -43,6 +43,7 @@ def assess_manifest(manifest_path: Path) -> dict[str, Any]:
     return {
         "ok": bool(payload.get("ok", False)),
         "upstream_ok": bool(payload.get("upstream_ok", payload.get("ok", False))),
+        "handoff_clean_identity": payload.get("handoff_clean_identity"),
         "exists": True,
         "manifest_file": str(manifest_path),
         "generated_at": payload.get("generated_at"),
@@ -60,6 +61,7 @@ def assess_manifest(manifest_path: Path) -> dict[str, Any]:
         "lint_highest_severity": payload.get("lint_highest_severity"),
         "lint_violations": payload.get("lint_violations") or [],
         "lint_policy": payload.get("lint_policy") or {},
+        "override_decision_reason": payload.get("override_decision_reason"),
         "latest_json": (payload.get("latest") or {}).get("json"),
         "latest_txt": (payload.get("latest") or {}).get("text"),
         "latest_md": (payload.get("latest") or {}).get("markdown"),
@@ -69,6 +71,16 @@ def assess_manifest(manifest_path: Path) -> dict[str, Any]:
         "index_md": payload.get("index"),
         "readme_md": payload.get("readme"),
     }
+
+
+def _severity_rank(level: str) -> int:
+    if level == "high":
+        return 3
+    if level == "medium":
+        return 2
+    if level == "low":
+        return 1
+    return 0
 
 
 def format_human_result(result: dict[str, Any]) -> str:
@@ -94,11 +106,33 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"strict_runtime={result.get('strict_runtime')}",
         f"trust_ok={result.get('trust_ok')}",
         f"release_ok={result.get('release_ok')}",
+        f"handoff_clean_identity={result.get('handoff_clean_identity')}",
         f"lint_status={result.get('lint_status')}",
         f"lint_violation_count={result.get('lint_violation_count')}",
         f"lint_highest_severity={result.get('lint_highest_severity')}",
     ]
     lint_policy = result.get("lint_policy") or {}
+    sorted_violations = sorted(
+        result.get("lint_violations") or [],
+        key=lambda item: (
+            -_severity_rank(str(item.get("severity", "low"))),
+            str(item.get("claim_type", "")),
+            str(item.get("excerpt", "")),
+        ),
+    )
+    top_excerpt = sorted_violations[0].get("excerpt") if sorted_violations else None
+    lines.extend(
+        [
+            "[policy_not_clean]",
+            f"lint_status={result.get('lint_status')}",
+            f"override_reason_code={lint_policy.get('override_reason_code')}",
+            f"override_decision_reason={result.get('override_decision_reason') or lint_policy.get('override_decision_reason')}",
+            f"override_blocked_by_non_overridable={lint_policy.get('override_blocked_by_non_overridable')}",
+            "non_overridable_claim_types="
+            + ",".join(lint_policy.get("non_overridable_claim_types") or []),
+            f"top_violation_excerpt={top_excerpt}",
+        ]
+    )
     lines.extend(
         [
             f"lint_fail_on_non_clean={lint_policy.get('fail_on_non_clean')}",
@@ -117,7 +151,7 @@ def format_human_result(result: dict[str, Any]) -> str:
             "[lint_violations]",
         ]
     )
-    for v in result.get("lint_violations") or []:
+    for v in sorted_violations:
         lines.append(
             f"{v.get('severity')}|{v.get('claim_type')}|{v.get('excerpt')}"
         )

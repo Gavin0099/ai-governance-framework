@@ -149,7 +149,9 @@ jobs:
           python -m pytest -q \
             tests/test_reviewer_handoff_summary.py::test_allow_non_clean_missing_reason_code_is_invalid \
             tests/test_reviewer_handoff_summary.py::test_non_overridable_claim_cannot_be_overridden \
+            tests/test_reviewer_handoff_summary.py::test_clean_handoff_uses_clean_no_override_needed_reason \
             tests/test_reviewer_handoff_summary.py::test_cli_allow_non_clean_requires_reason_code \
+            tests/test_reviewer_handoff_reader.py::test_reader_surfaces_lint_by_severity_claim_excerpt \
             tests/test_reviewer_summary_linter_pressure.py
 
   memory-pressure:

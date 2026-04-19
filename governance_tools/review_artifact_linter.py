@@ -18,6 +18,8 @@ _LAYER1_CLAIM_PATTERNS: list[dict[str, Any]] = [
             r"(?i)\bread(y|iness)\b.{0,24}(met|established|confirmed|成立|已成)",
             r"(?i)(可|足以).{0,20}(support|支持).{0,20}(readiness|ready)",
             r"(?i)\breadiness\b.{0,24}(basis|foundation|approach|forming|基礎|成形|正在形成)",
+            r"(?i)\b(status|next|overall|狀態|状态)\s*:\s*(ready(\s*for\s*review)?|ready-?ish|r4r|gtg)\b",
+            r"(?i)(可往下走|可往下一步|可往下階段)",
         ],
     },
     {
@@ -28,6 +30,9 @@ _LAYER1_CLAIM_PATTERNS: list[dict[str, Any]] = [
         "regexes": [
             r"(?i)\bpromot(e|ion)\b",
             r"(?i)(可|值得|應該|足以).{0,20}(升格|promot)",
+            r"(?i)\bpromo(\s*candidate|[-\s]?ish)?\b",
+            r"(?i)(可升|可升格)",
+            r"(?i)\bpromotion\s+context\b",
         ],
     },
     {
@@ -38,6 +43,8 @@ _LAYER1_CLAIM_PATTERNS: list[dict[str, Any]] = [
         "regexes": [
             r"(?i)(可視為|can\s+be|already|已經).{0,20}(stable|stability|穩定)",
             r"(?i)(穩定性).{0,20}(結論|已成|成立)",
+            r"(?i)\b(status|overall|狀態|状态)\s*:\s*(stable|stability|穩定|穩)\b",
+            r"(?i)\boverall\s+stability\b",
         ],
     },
     {
@@ -48,6 +55,8 @@ _LAYER1_CLAIM_PATTERNS: list[dict[str, Any]] = [
         "regexes": [
             r"(?i)(整體|overall).{0,20}(healthy|健康|令人安心|reassuring|looks\s+good)",
             r"(?i)(趨勢|trend).{0,20}(正向|positive)",
+            r"(?i)\b(status|overall|狀態|状态)\s*:\s*(healthy|健康|positive|正向)\b",
+            r"(?i)(整體|overall).{0,10}(偏正向|正向)",
         ],
     },
     {
@@ -58,6 +67,7 @@ _LAYER1_CLAIM_PATTERNS: list[dict[str, Any]] = [
         "regexes": [
             r"(?i)(朝|toward|towards).{0,20}(interpretation|判讀|升格)",
             r"(?i)(進一步).{0,20}(判讀|interpretation).{0,20}(基礎|basis)",
+            r"(?i)\bnext\s*:\s*(move|go|proceed).{0,24}(toward|to).{0,20}(interpretation|判讀|升格)",
         ],
     },
     {
@@ -100,6 +110,9 @@ _NEGATION_TOKENS: tuple[str, ...] = (
     "不支援",
     "不作",
     "未進",
+    "禁用",
+    "policy only",
+    "僅作政策說明",
     "not support",
     "does not support",
     "do not",
