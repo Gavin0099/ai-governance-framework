@@ -1,0 +1,519 @@
+{
+  "schema_version": "1.0",
+  "artifact_type": "enumd-closeout-probe",
+  "generated_at": "2026-04-19T16:08:32.914884+00:00",
+  "source_dir": "D:\\Enumd\\artifacts\\runtime\\closeouts",
+  "candidates_dir": "D:\\Enumd\\artifacts\\runtime\\candidates",
+  "n": 24,
+  "with_narrative_content": 0,
+  "narrative_risk_delta_distribution": {
+    "reduced": 24
+  },
+  "batch_conclusion": "observe_only_safe",
+  "samples": [
+    {
+      "session_id": "session-20260414T060717-061315",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060717-061315.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060757-7d239a",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060757-7d239a.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060757-a8b607",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060757-a8b607.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060757-c6c594",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060757-c6c594.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060757-fdf0ae",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060757-fdf0ae.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060758-86b59c",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060758-86b59c.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060819-0e0a47",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060819-0e0a47.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060819-96bf52",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060819-96bf52.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060819-9df163",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060819-9df163.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060819-aecf19",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060819-aecf19.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060820-1e684f",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060820-1e684f.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060820-451f40",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060820-451f40.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060820-8457d1",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060820-8457d1.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060820-91c084",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060820-91c084.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060820-e4d079",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060820-e4d079.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060821-1c5225",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060821-1c5225.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060821-56c18c",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060821-56c18c.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060821-9d5377",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060821-9d5377.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060821-e6e4c1",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060821-e6e4c1.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060822-18f454",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060822-18f454.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060822-f8fdf7",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060822-f8fdf7.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060834-f2187f",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060834-f2187f.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060844-c4f377",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060844-c4f377.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    },
+    {
+      "session_id": "session-20260414T060856-1f945f",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\closeouts\\session-20260414T060856-1f945f.json",
+      "closeout_status": "missing",
+      "has_narrative_content": false,
+      "authority_like_fields": [
+        {
+          "field": "closeout_status",
+          "family": "binary_verdict",
+          "actual_scope": "session_closeout_file_presence",
+          "misread_scope": "governance_session_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "missing",
+          "non_equivalence": "closeout_status != governance session status"
+        }
+      ],
+      "narrative_risk_delta": "reduced",
+      "candidate_inducement_risk": "high",
+      "notes": "null narrative content — no amplification of candidate signals; risk reduced relative to candidate layer"
+    }
+  ]
+}

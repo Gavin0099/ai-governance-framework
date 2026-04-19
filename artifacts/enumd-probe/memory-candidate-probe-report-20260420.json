@@ -1,0 +1,92 @@
+{
+  "schema_version": "1.0",
+  "artifact_type": "enumd-memory-candidate-probe",
+  "generated_at": "2026-04-19T16:08:39.417597+00:00",
+  "source_dir": "D:\\Enumd\\ai-governance-framework\\memory\\candidates",
+  "n": 2,
+  "policy_decision_absent_count": 2,
+  "low_risk_count": 2,
+  "key_finding": "policy.decision absent in all memory candidates — memory_mode=candidate does not trigger DO_NOT_PROMOTE; risk profile reduced vs stateless runtime candidates",
+  "samples": [
+    {
+      "sample_id": "session_20260419T125505Z",
+      "source_path": "D:\\Enumd\\ai-governance-framework\\memory\\candidates\\session_20260419T125505Z.json",
+      "memory_mode": "candidate",
+      "policy_decision_present": false,
+      "authority_like_fields": [
+        {
+          "field": "risk",
+          "family": "categorical_risk_label",
+          "actual_scope": "session_risk_documentation",
+          "misread_scope": "integration_risk_gate",
+          "reinterpretation_required": false,
+          "collision_risk": "low",
+          "observed_value": "medium",
+          "non_equivalence": "risk field is documentation metadata, not a gate"
+        },
+        {
+          "field": "oversight",
+          "family": "oversight_label",
+          "actual_scope": "session_oversight_documentation",
+          "misread_scope": "governance_oversight_requirement",
+          "reinterpretation_required": false,
+          "collision_risk": "low",
+          "observed_value": "review-required",
+          "non_equivalence": "oversight field is documentation metadata, not a requirement signal"
+        },
+        {
+          "field": "status",
+          "family": "workflow_state",
+          "actual_scope": "memory_promotion_workflow_state",
+          "misread_scope": "governance_artifact_status",
+          "reinterpretation_required": false,
+          "collision_risk": "low",
+          "observed_value": "candidate",
+          "non_equivalence": "status=candidate is a workflow position, not a governance verdict"
+        }
+      ],
+      "risk_profile": "low",
+      "notes": "policy.decision absent — memory_mode=candidate does not trigger DO_NOT_PROMOTE; risk profile: low — only documentation metadata fields present"
+    },
+    {
+      "sample_id": "session_20260419T125859Z",
+      "source_path": "D:\\Enumd\\ai-governance-framework\\memory\\candidates\\session_20260419T125859Z.json",
+      "memory_mode": "candidate",
+      "policy_decision_present": false,
+      "authority_like_fields": [
+        {
+          "field": "risk",
+          "family": "categorical_risk_label",
+          "actual_scope": "session_risk_documentation",
+          "misread_scope": "integration_risk_gate",
+          "reinterpretation_required": false,
+          "collision_risk": "low",
+          "observed_value": "medium",
+          "non_equivalence": "risk field is documentation metadata, not a gate"
+        },
+        {
+          "field": "oversight",
+          "family": "oversight_label",
+          "actual_scope": "session_oversight_documentation",
+          "misread_scope": "governance_oversight_requirement",
+          "reinterpretation_required": false,
+          "collision_risk": "low",
+          "observed_value": "review-required",
+          "non_equivalence": "oversight field is documentation metadata, not a requirement signal"
+        },
+        {
+          "field": "status",
+          "family": "workflow_state",
+          "actual_scope": "memory_promotion_workflow_state",
+          "misread_scope": "governance_artifact_status",
+          "reinterpretation_required": false,
+          "collision_risk": "low",
+          "observed_value": "candidate",
+          "non_equivalence": "status=candidate is a workflow position, not a governance verdict"
+        }
+      ],
+      "risk_profile": "low",
+      "notes": "policy.decision absent — memory_mode=candidate does not trigger DO_NOT_PROMOTE; risk profile: low — only documentation metadata fields present"
+    }
+  ]
+}
