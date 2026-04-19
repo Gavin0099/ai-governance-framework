@@ -7,9 +7,16 @@ import pytest
 
 from governance_tools.enumd_semantic_isolation import (
     analyze_candidate,
+    analyze_closeout,
+    analyze_memory_candidate,
     run_probe,
+    run_closeout_probe,
+    run_memory_candidate_probe,
     _classify_batch_conclusion,
+    _closeout_batch_conclusion,
     SampleProbeResult,
+    CloseoutProbeResult,
+    MemoryCandidateResult,
     AuthorityLikeField,
 )
 
@@ -250,3 +257,228 @@ class TestRunProbe:
         report = run_probe(tmp_path)
         assert report["n"] == 0
         assert report["batch_conclusion"] == "observe_only_safe"
+
+
+# ── closeout fixtures ─────────────────────────────────────────────────────────
+
+def _null_closeout(session_id: str = "test-closeout") -> dict:
+    """Typical Enumd closeout with no narrative content (all null/empty)."""
+    return {
+        "session_id": session_id,
+        "closed_at": "2026-04-14T06:07:17Z",
+        "closeout_status": "missing",
+        "task_intent": None,
+        "work_summary": None,
+        "evidence_summary": {"tools_used": [], "artifacts_referenced": []},
+        "open_risks": [],
+    }
+
+
+def _narrative_closeout(session_id: str = "narrative-closeout") -> dict:
+    """Closeout with actual narrative content."""
+    return {
+        "session_id": session_id,
+        "closed_at": "2026-04-14T06:07:17Z",
+        "closeout_status": "complete",
+        "task_intent": "Implement feature X",
+        "work_summary": "Added handler for X",
+        "evidence_summary": {"tools_used": ["Edit"], "artifacts_referenced": ["src/x.py"]},
+        "open_risks": ["integration not yet tested"],
+    }
+
+
+def _memory_candidate(session_id: str = "mem-cand") -> dict:
+    """Typical Enumd memory candidate (different schema from runtime candidate)."""
+    return {
+        "captured_at": "2026-04-19T12:55:05Z",
+        "task": "Capture final output",
+        "summary": "Candidate memory from Gemini output",
+        "risk": "medium",
+        "oversight": "review-required",
+        "source_text": (
+            "[Governance Contract]\n"
+            "LANG = C++\nLEVEL = L2\nSCOPE = feature\n"
+            "MEMORY_MODE = candidate\n"
+        ),
+        "status": "candidate",
+    }
+
+
+# ── analyze_closeout ──────────────────────────────────────────────────────────
+
+class TestAnalyzeCloseout:
+    def test_null_closeout_has_no_narrative_content(self):
+        result = analyze_closeout(_null_closeout(), "/fake/test-closeout.json")
+        assert result.has_narrative_content is False
+
+    def test_narrative_closeout_detected(self):
+        result = analyze_closeout(_narrative_closeout(), "/fake/narrative.json")
+        assert result.has_narrative_content is True
+
+    def test_closeout_status_detected_as_authority_like(self):
+        result = analyze_closeout(_null_closeout(), "/fake/test-closeout.json")
+        fields = {f.field for f in result.authority_like_fields}
+        assert "closeout_status" in fields
+
+    def test_closeout_status_is_low_collision(self):
+        result = analyze_closeout(_null_closeout(), "/fake/test-closeout.json")
+        f = next(x for x in result.authority_like_fields if x.field == "closeout_status")
+        assert f.collision_risk == "low"
+
+    def test_null_closeout_with_high_collision_candidate_gives_reduced_delta(self):
+        candidate_result = analyze_candidate(_stateless_candidate(), "/fake/candidate.json")
+        result = analyze_closeout(_null_closeout(), "/fake/test-closeout.json", candidate_result)
+        assert result.narrative_risk_delta == "reduced"
+
+    def test_narrative_closeout_with_high_collision_candidate_gives_amplified_delta(self):
+        candidate_result = analyze_candidate(_stateless_candidate(), "/fake/candidate.json")
+        result = analyze_closeout(_narrative_closeout(), "/fake/narrative.json", candidate_result)
+        assert result.narrative_risk_delta == "amplified"
+
+    def test_null_closeout_no_candidate_gives_neutral_delta(self):
+        result = analyze_closeout(_null_closeout(), "/fake/test-closeout.json", None)
+        assert result.narrative_risk_delta == "neutral"
+
+    def test_candidate_inducement_risk_propagated(self):
+        candidate_result = analyze_candidate(_stateless_candidate(), "/fake/candidate.json")
+        result = analyze_closeout(_null_closeout(), "/fake/test-closeout.json", candidate_result)
+        assert result.candidate_inducement_risk == "high"
+
+    def test_to_dict_has_required_keys(self):
+        result = analyze_closeout(_null_closeout(), "/fake/test-closeout.json")
+        d = result.to_dict()
+        for key in ("session_id", "closeout_status", "has_narrative_content",
+                    "authority_like_fields", "narrative_risk_delta", "candidate_inducement_risk"):
+            assert key in d
+
+
+# ── closeout batch conclusion ─────────────────────────────────────────────────
+
+class TestCloseoutBatchConclusion:
+    def _make_closeout_result(self, delta: str, has_narrative: bool) -> CloseoutProbeResult:
+        return CloseoutProbeResult(
+            session_id="x",
+            source_path="/x",
+            closeout_status="missing",
+            has_narrative_content=has_narrative,
+            authority_like_fields=[],
+            narrative_risk_delta=delta,
+            candidate_inducement_risk="high",
+        )
+
+    def test_amplified_delta_gives_semantic_collision(self):
+        results = [self._make_closeout_result("amplified", True)]
+        assert _closeout_batch_conclusion(results) == "observe_only_with_semantic_collision"
+
+    def test_narrative_no_amplified_gives_inducement_risk(self):
+        results = [self._make_closeout_result("maintained", True)]
+        assert _closeout_batch_conclusion(results) == "observe_only_with_inducement_risk"
+
+    def test_all_reduced_gives_safe(self):
+        results = [self._make_closeout_result("reduced", False) for _ in range(5)]
+        assert _closeout_batch_conclusion(results) == "observe_only_safe"
+
+    def test_empty_gives_safe(self):
+        assert _closeout_batch_conclusion([]) == "observe_only_safe"
+
+
+# ── run_closeout_probe ────────────────────────────────────────────────────────
+
+class TestRunCloseoutProbe:
+    def _write(self, tmp_path: Path, name: str, data: dict) -> None:
+        (tmp_path / name).write_text(json.dumps(data), encoding="utf-8")
+
+    def test_null_batch_is_safe(self, tmp_path):
+        for i in range(5):
+            self._write(tmp_path, f"closeout-{i}.json", _null_closeout(f"s{i}"))
+        report = run_closeout_probe(tmp_path)
+        assert report["batch_conclusion"] == "observe_only_safe"
+        assert report["with_narrative_content"] == 0
+
+    def test_narrative_batch_is_inducement_risk(self, tmp_path):
+        self._write(tmp_path, "closeout.json", _narrative_closeout())
+        report = run_closeout_probe(tmp_path)
+        assert report["batch_conclusion"] == "observe_only_with_inducement_risk"
+
+    def test_cross_reference_populates_candidate_risk(self, tmp_path):
+        closeouts_dir = tmp_path / "closeouts"
+        candidates_dir = tmp_path / "candidates"
+        closeouts_dir.mkdir()
+        candidates_dir.mkdir()
+        sid = "session-abc"
+        (closeouts_dir / f"{sid}.json").write_text(
+            json.dumps({**_null_closeout(sid), "session_id": sid}), encoding="utf-8"
+        )
+        (candidates_dir / f"{sid}.json").write_text(
+            json.dumps({**_stateless_candidate(sid), "session_id": sid}), encoding="utf-8"
+        )
+        report = run_closeout_probe(closeouts_dir, candidates_dir)
+        assert report["samples"][0]["candidate_inducement_risk"] == "high"
+        assert report["samples"][0]["narrative_risk_delta"] == "reduced"
+
+    def test_report_schema_keys(self, tmp_path):
+        self._write(tmp_path, "x.json", _null_closeout())
+        report = run_closeout_probe(tmp_path)
+        for key in ("schema_version", "artifact_type", "generated_at", "n",
+                    "with_narrative_content", "narrative_risk_delta_distribution",
+                    "batch_conclusion", "samples"):
+            assert key in report
+
+
+# ── analyze_memory_candidate ──────────────────────────────────────────────────
+
+class TestAnalyzeMemoryCandidate:
+    def test_policy_decision_absent_in_memory_candidate(self):
+        result = analyze_memory_candidate(_memory_candidate(), "/fake/mem.json")
+        assert result.policy_decision_present is False
+
+    def test_memory_mode_extracted_from_source_text(self):
+        result = analyze_memory_candidate(_memory_candidate(), "/fake/mem.json")
+        assert result.memory_mode == "candidate"
+
+    def test_risk_profile_low_for_typical_memory_candidate(self):
+        result = analyze_memory_candidate(_memory_candidate(), "/fake/mem.json")
+        assert result.risk_profile == "low"
+
+    def test_documentation_fields_detected_but_low_collision(self):
+        result = analyze_memory_candidate(_memory_candidate(), "/fake/mem.json")
+        families = {f.family for f in result.authority_like_fields}
+        assert families <= {"categorical_risk_label", "oversight_label", "workflow_state"}
+        assert all(f.collision_risk == "low" for f in result.authority_like_fields)
+
+    def test_no_reinterpretation_required_for_memory_candidate_fields(self):
+        result = analyze_memory_candidate(_memory_candidate(), "/fake/mem.json")
+        assert all(not f.reinterpretation_required for f in result.authority_like_fields)
+
+    def test_to_dict_has_required_keys(self):
+        result = analyze_memory_candidate(_memory_candidate(), "/fake/mem.json")
+        d = result.to_dict()
+        for key in ("sample_id", "memory_mode", "policy_decision_present",
+                    "authority_like_fields", "risk_profile"):
+            assert key in d
+
+
+# ── run_memory_candidate_probe ────────────────────────────────────────────────
+
+class TestRunMemoryCandidateProbe:
+    def _write(self, tmp_path: Path, name: str, data: dict) -> None:
+        (tmp_path / name).write_text(json.dumps(data), encoding="utf-8")
+
+    def test_all_policy_absent_key_finding(self, tmp_path):
+        for i in range(2):
+            self._write(tmp_path, f"mem-{i}.json", _memory_candidate(f"m{i}"))
+        report = run_memory_candidate_probe(tmp_path)
+        assert report["policy_decision_absent_count"] == 2
+        assert "policy.decision absent" in report["key_finding"]
+
+    def test_all_low_risk(self, tmp_path):
+        self._write(tmp_path, "mem.json", _memory_candidate())
+        report = run_memory_candidate_probe(tmp_path)
+        assert report["low_risk_count"] == 1
+
+    def test_report_schema_keys(self, tmp_path):
+        self._write(tmp_path, "x.json", _memory_candidate())
+        report = run_memory_candidate_probe(tmp_path)
+        for key in ("schema_version", "artifact_type", "n",
+                    "policy_decision_absent_count", "low_risk_count", "key_finding", "samples"):
+            assert key in report
