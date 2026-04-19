@@ -45,6 +45,7 @@ _LAYER1_CLAIM_PATTERNS: list[dict[str, Any]] = [
             r"(?i)(穩定性).{0,20}(結論|已成|成立)",
             r"(?i)\b(status|overall|狀態|状态)\s*:\s*(stable|stability|穩定|穩)\b",
             r"(?i)\boverall\s+stability\b",
+            r"(?i)(看起來|looks|seems).{0,10}(stable|穩定)",
         ],
     },
     {

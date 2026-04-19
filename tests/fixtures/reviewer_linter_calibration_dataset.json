@@ -1,0 +1,93 @@
+[
+  {
+    "id": "readiness_explicit",
+    "bucket": "readiness_claim",
+    "text": "readiness 已成立，可進下一階段。",
+    "expected_status": "non-clean",
+    "must_include_claim_types": ["readiness_claim"]
+  },
+  {
+    "id": "promotion_explicit",
+    "bucket": "promotion_claim",
+    "text": "可支持 promote 討論。",
+    "expected_status": "non-clean",
+    "must_include_claim_types": ["promotion_claim"]
+  },
+  {
+    "id": "stability_explicit",
+    "bucket": "stability_claim",
+    "text": "目前可視為穩定。",
+    "expected_status": "non-clean",
+    "must_include_claim_types": ["stability_claim"]
+  },
+  {
+    "id": "confidence_laundering",
+    "bucket": "confidence_laundering",
+    "text": "雖然不能直接下結論，但大致上可視為穩定。",
+    "expected_status": "non-clean",
+    "must_include_claim_types": ["confidence_laundering"]
+  },
+  {
+    "id": "directional_hint",
+    "bucket": "directional_hint",
+    "text": "Next: move toward interpretation.",
+    "expected_status": "non-clean",
+    "must_include_claim_types": ["directional_interpretation"]
+  },
+  {
+    "id": "short_surface_verdict_en",
+    "bucket": "short_surface_verdict",
+    "text": "Status: healthy",
+    "expected_status": "non-clean",
+    "must_include_claim_types": ["quality_verdict"]
+  },
+  {
+    "id": "short_surface_verdict_zh",
+    "bucket": "short_surface_verdict",
+    "text": "狀態: 穩",
+    "expected_status": "non-clean",
+    "must_include_claim_types": ["stability_claim"]
+  },
+  {
+    "id": "mixed_language_surface",
+    "bucket": "short_surface_verdict",
+    "text": "目前看起來 stable，可往下一步。",
+    "expected_status": "non-clean",
+    "must_include_claim_types": ["readiness_claim", "stability_claim"]
+  },
+  {
+    "id": "heading_only_surface",
+    "bucket": "short_surface_verdict",
+    "text": "Overall Stability\nPromotion Context",
+    "expected_status": "non-clean",
+    "must_include_claim_types": ["stability_claim", "promotion_claim"]
+  },
+  {
+    "id": "shorthand_only_surface",
+    "bucket": "short_surface_verdict",
+    "text": "Status: R4R. Promo candidate.",
+    "expected_status": "non-clean",
+    "must_include_claim_types": ["readiness_claim", "promotion_claim"]
+  },
+  {
+    "id": "policy_disclaimer_en_clean",
+    "bucket": "policy_safe_disclaimer",
+    "text": "This report is observation-only and does not support readiness, promotion, or stability conclusions.",
+    "expected_status": "clean",
+    "must_exclude_claim_types": ["readiness_claim", "promotion_claim", "stability_claim"]
+  },
+  {
+    "id": "policy_disclaimer_zh_clean",
+    "bucket": "policy_safe_disclaimer",
+    "text": "本報告僅提供 observation，不支援 readiness 判讀，且不作穩定性結論。",
+    "expected_status": "clean",
+    "must_exclude_claim_types": ["readiness_claim", "stability_claim"]
+  },
+  {
+    "id": "negation_safe_non_claim",
+    "bucket": "negation_safe_non_claim",
+    "text": "未進 interpretation phase，故不作 readiness / promotion / stability 結論。",
+    "expected_status": "clean",
+    "must_exclude_claim_types": ["readiness_claim", "promotion_claim", "stability_claim"]
+  }
+]
