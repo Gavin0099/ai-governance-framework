@@ -73,7 +73,7 @@ def test_reviewer_handoff_summary_human_and_markdown_outputs_are_summary_first()
     rendered_human = format_human_result(result)
     rendered_markdown = format_markdown_result(result)
 
-    assert rendered_human.startswith("summary=ok=True | trust=True | release=True | release_version=v1.0.0-alpha")
+    assert rendered_human.startswith("summary=ok=True | upstream_ok=True | trust=True | release=True | lint=clean | release_version=v1.0.0-alpha")
     assert "[reviewer_handoff_summary]" in rendered_human
     assert "[trust_signal]" in rendered_human
     assert "[release_surface]" in rendered_human
@@ -197,5 +197,92 @@ def test_reviewer_handoff_summary_cli_supports_direct_script_invocation(tmp_path
         text=True,
     )
 
-    assert "summary=ok=True | trust=True | release=True | release_version=v1.0.0-alpha" in result.stdout
+    assert "summary=ok=True | upstream_ok=True | trust=True | release=True | lint=clean | release_version=v1.0.0-alpha" in result.stdout
     assert "[reviewer_handoff_summary]" in result.stdout
+
+
+def test_reviewer_handoff_non_clean_cannot_appear_clean():
+    rendered_human = format_human_result(
+        {
+            "ok": False,
+            "upstream_ok": True,
+            "project_root": ".",
+            "plan_path": "PLAN.md",
+            "release_version": "v1.0.0-alpha",
+            "contract_path": "example/contract.yaml",
+            "strict_runtime": False,
+            "external_contract_repos": [],
+            "trust_signal": {
+                "ok": True,
+                "quickstart": {"ok": True},
+                "examples": {"ok": True},
+                "release": {"ok": True},
+                "auditor": {"ok": True, "external_onboarding": {"top_issues": []}},
+            },
+            "release_surface": {
+                "ok": True,
+                "readiness": {"ok": True},
+                "package": {"ok": True},
+                "bundle_manifest": {"available": True, "source": "explicit"},
+                "publication_manifest": {"available": True, "source": "explicit"},
+            },
+            "reviewer_lint": {
+                "status": "non-clean",
+                "violation_count": 1,
+                "highest_severity": "high",
+                "violations": [
+                    {
+                        "severity": "high",
+                        "claim_type": "promotion_claim",
+                        "excerpt": "Recommendation: can proceed to promote discussion",
+                    }
+                ],
+            },
+            "commands": [],
+        }
+    )
+    assert "summary=ok=False" in rendered_human
+    assert "lint=non-clean" in rendered_human
+    assert "violation=high|promotion_claim|Recommendation: can proceed to promote discussion" in rendered_human
+
+
+def test_reviewer_handoff_lints_heading_and_next_step_fields(monkeypatch):
+    monkeypatch.setattr(
+        "governance_tools.reviewer_handoff_summary.assess_trust_signal_overview",
+        lambda **_: {
+            "ok": True,
+            "quickstart": {"ok": True},
+            "examples": {"ok": True},
+            "release": {"ok": True},
+            "auditor": {"ok": True, "external_onboarding": {"top_issues": []}},
+        },
+    )
+    monkeypatch.setattr(
+        "governance_tools.reviewer_handoff_summary.assess_release_surface",
+        lambda *_args, **_kwargs: {
+            "ok": True,
+            "readiness": {"ok": True},
+            "package": {"ok": True},
+            "bundle_manifest": {"available": True, "source": "explicit", "ok": True},
+            "publication_manifest": {"available": True, "source": "explicit", "ok": True},
+        },
+    )
+    monkeypatch.setattr(
+        "governance_tools.reviewer_handoff_summary._commands",
+        lambda *_args, **_kwargs: [
+            {"name": "Status: stable enough for next phase, ready for promote", "command": "echo noop"},
+            {"name": "Next: can proceed to promote discussion", "command": "echo ready"},
+        ],
+    )
+
+    from governance_tools.reviewer_handoff_summary import assess_reviewer_handoff
+
+    result = assess_reviewer_handoff(
+        project_root=Path(".").resolve(),
+        plan_path=Path("PLAN.md"),
+        release_version="v1.0.0-alpha",
+    )
+    assert result["upstream_ok"] is True
+    assert result["ok"] is False
+    assert result["reviewer_lint"]["status"] == "non-clean"
+    assert result["reviewer_lint"]["violation_count"] >= 1

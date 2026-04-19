@@ -66,3 +66,9 @@ Exit code semantics:
 
 - `0` = clean
 - `2` = non-clean (one or more forbidden claims detected)
+
+## Handoff Integration Rule
+
+Reviewer-handoff surfaces must carry lint metadata (`lint_status`,
+`violation_count`, `highest_severity`) and must not present non-clean artifacts
+as clean/approved/ready-for-review status.

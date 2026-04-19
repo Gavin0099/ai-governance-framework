@@ -42,6 +42,7 @@ def assess_manifest(manifest_path: Path) -> dict[str, Any]:
 
     return {
         "ok": bool(payload.get("ok", False)),
+        "upstream_ok": bool(payload.get("upstream_ok", payload.get("ok", False))),
         "exists": True,
         "manifest_file": str(manifest_path),
         "generated_at": payload.get("generated_at"),
@@ -54,6 +55,10 @@ def assess_manifest(manifest_path: Path) -> dict[str, Any]:
         "strict_runtime": payload.get("strict_runtime"),
         "trust_ok": payload.get("trust_ok"),
         "release_ok": payload.get("release_ok"),
+        "lint_status": payload.get("lint_status"),
+        "lint_violation_count": payload.get("lint_violation_count"),
+        "lint_highest_severity": payload.get("lint_highest_severity"),
+        "lint_violations": payload.get("lint_violations") or [],
         "latest_json": (payload.get("latest") or {}).get("json"),
         "latest_txt": (payload.get("latest") or {}).get("text"),
         "latest_md": (payload.get("latest") or {}).get("markdown"),
@@ -68,8 +73,10 @@ def assess_manifest(manifest_path: Path) -> dict[str, Any]:
 def format_human_result(result: dict[str, Any]) -> str:
     summary_line = build_summary_line(
         f"ok={result['ok']}",
+        f"upstream_ok={result.get('upstream_ok')}",
         f"trust={result.get('trust_ok')}",
         f"release={result.get('release_ok')}",
+        f"lint={result.get('lint_status')}",
         f"release_version={result.get('release_version')}",
         f"contract={result.get('contract_path') or 'none'}",
     )
@@ -86,12 +93,24 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"strict_runtime={result.get('strict_runtime')}",
         f"trust_ok={result.get('trust_ok')}",
         f"release_ok={result.get('release_ok')}",
+        f"lint_status={result.get('lint_status')}",
+        f"lint_violation_count={result.get('lint_violation_count')}",
+        f"lint_highest_severity={result.get('lint_highest_severity')}",
     ]
 
     if result.get("error"):
         lines.append(f"error={result['error']}")
         return "\n".join(lines)
 
+    lines.extend(
+        [
+            "[lint_violations]",
+        ]
+    )
+    for v in result.get("lint_violations") or []:
+        lines.append(
+            f"{v.get('severity')}|{v.get('claim_type')}|{v.get('excerpt')}"
+        )
     lines.extend(
         [
             "[latest]",

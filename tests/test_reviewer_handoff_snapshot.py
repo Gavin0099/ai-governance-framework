@@ -150,7 +150,7 @@ def test_reviewer_handoff_snapshot_cli_supports_direct_script_invocation(tmp_pat
         text=True,
     )
 
-    assert "summary=ok=True | trust=True | release=True | release_version=v1.0.0-alpha" in result.stdout
+    assert "summary=ok=True | upstream_ok=True | trust=True | release=True | lint=clean | release_version=v1.0.0-alpha" in result.stdout
     assert "[reviewer_handoff_snapshot]" in result.stdout
     assert (bundle_dir / "latest.json").is_file()
 

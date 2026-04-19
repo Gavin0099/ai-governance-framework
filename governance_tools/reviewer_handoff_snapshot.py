@@ -167,6 +167,7 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
     handoff = snapshot["handoff"]
     trust = handoff.get("trust_signal") or {}
     release = handoff.get("release_surface") or {}
+    lint = handoff.get("reviewer_lint") or {}
     json_text = json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n"
     human_text = format_human_result(handoff) + "\n"
     markdown_text = format_markdown_result(handoff) + "\n"
@@ -191,8 +192,13 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
                 "external_onboarding_project_facts": _external_project_facts_summaries(snapshot),
                 "strict_runtime": snapshot["strict_runtime"],
                 "ok": snapshot["ok"],
+                "upstream_ok": handoff.get("upstream_ok"),
                 "trust_ok": trust.get("ok"),
                 "release_ok": release.get("ok"),
+                "lint_status": lint.get("status"),
+                "lint_violation_count": lint.get("violation_count"),
+                "lint_highest_severity": lint.get("highest_severity"),
+                "lint_violations": lint.get("violations") or [],
                 "latest": {
                     "json": str(latest_json),
                     "text": str(latest_txt),
@@ -229,6 +235,9 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
                 "strict_runtime": snapshot["strict_runtime"],
                 "trust_ok": trust.get("ok"),
                 "release_ok": release.get("ok"),
+                "lint_status": lint.get("status"),
+                "lint_violation_count": lint.get("violation_count"),
+                "lint_highest_severity": lint.get("highest_severity"),
                 "latest_json": str(latest_json),
                 "latest_txt": str(latest_txt),
                 "latest_md": str(latest_md),
@@ -412,6 +421,9 @@ def write_published_status(snapshot: dict[str, Any], publish_dir: Path) -> dict[
                 "strict_runtime": snapshot["strict_runtime"],
                 "trust_ok": snapshot["handoff"].get("trust_signal", {}).get("ok"),
                 "release_ok": snapshot["handoff"].get("release_surface", {}).get("ok"),
+                "lint_status": snapshot["handoff"].get("reviewer_lint", {}).get("status"),
+                "lint_violation_count": snapshot["handoff"].get("reviewer_lint", {}).get("violation_count"),
+                "lint_highest_severity": snapshot["handoff"].get("reviewer_lint", {}).get("highest_severity"),
                 "published": {
                     "markdown": str(latest_md),
                     "json": str(latest_json),
