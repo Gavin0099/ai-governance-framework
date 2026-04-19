@@ -421,3 +421,26 @@ def test_non_overridable_claim_cannot_be_overridden(monkeypatch):
     assert result["reviewer_lint_policy"]["override_active"] is False
     assert result["reviewer_lint_policy"]["override_blocked_by_non_overridable"] is True
     assert "promotion_claim" in result["reviewer_lint_policy"]["non_overridable_claim_types"]
+
+
+def test_cli_allow_non_clean_requires_reason_code():
+    project_root = Path(".").resolve()
+    result = subprocess.run(
+        [
+            sys.executable,
+            "governance_tools/reviewer_handoff_summary.py",
+            "--project-root",
+            str(project_root),
+            "--plan",
+            str(project_root / "PLAN.md"),
+            "--release-version",
+            "v1.0.0-alpha",
+            "--allow-non-clean",
+        ],
+        check=False,
+        capture_output=True,
+        stdin=subprocess.DEVNULL,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "--allow-non-clean requires --allow-non-clean-reason-code" in result.stderr
