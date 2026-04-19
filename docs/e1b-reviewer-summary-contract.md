@@ -72,3 +72,10 @@ Exit code semantics:
 Reviewer-handoff surfaces must carry lint metadata (`lint_status`,
 `violation_count`, `highest_severity`) and must not present non-clean artifacts
 as clean/approved/ready-for-review status.
+
+### Override Semantics (Mandatory)
+
+- `--allow-non-clean` may allow artifact circulation for manual inspection.
+- Override must not change identity: non-clean remains non-clean.
+- Override usage must record provenance (`override_active`, `override_source`,
+  `override_effect`) in handoff output/manifest.

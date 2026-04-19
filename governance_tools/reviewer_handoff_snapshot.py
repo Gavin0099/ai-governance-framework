@@ -45,6 +45,9 @@ def build_reviewer_handoff_snapshot(
     strict_runtime: bool = False,
     release_bundle_manifest: Path | None = None,
     release_publication_manifest: Path | None = None,
+    fail_on_non_clean: bool = True,
+    allow_non_clean: bool = False,
+    lint_override_source: str | None = None,
 ) -> dict[str, Any]:
     handoff = assess_reviewer_handoff(
         project_root=project_root,
@@ -55,6 +58,9 @@ def build_reviewer_handoff_snapshot(
         strict_runtime=strict_runtime,
         release_bundle_manifest=release_bundle_manifest,
         release_publication_manifest=release_publication_manifest,
+        fail_on_non_clean=fail_on_non_clean,
+        allow_non_clean=allow_non_clean,
+        lint_override_source=lint_override_source,
     )
     return {
         "ok": handoff["ok"],
@@ -168,6 +174,7 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
     trust = handoff.get("trust_signal") or {}
     release = handoff.get("release_surface") or {}
     lint = handoff.get("reviewer_lint") or {}
+    lint_policy = handoff.get("reviewer_lint_policy") or {}
     json_text = json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n"
     human_text = format_human_result(handoff) + "\n"
     markdown_text = format_markdown_result(handoff) + "\n"
@@ -193,12 +200,14 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
                 "strict_runtime": snapshot["strict_runtime"],
                 "ok": snapshot["ok"],
                 "upstream_ok": handoff.get("upstream_ok"),
+                "handoff_clean_identity": handoff.get("handoff_clean_identity"),
                 "trust_ok": trust.get("ok"),
                 "release_ok": release.get("ok"),
                 "lint_status": lint.get("status"),
                 "lint_violation_count": lint.get("violation_count"),
                 "lint_highest_severity": lint.get("highest_severity"),
                 "lint_violations": lint.get("violations") or [],
+                "lint_policy": lint_policy,
                 "latest": {
                     "json": str(latest_json),
                     "text": str(latest_txt),
@@ -235,9 +244,11 @@ def write_snapshot_bundle(snapshot: dict[str, Any], bundle_dir: Path) -> dict[st
                 "strict_runtime": snapshot["strict_runtime"],
                 "trust_ok": trust.get("ok"),
                 "release_ok": release.get("ok"),
+                "handoff_clean_identity": handoff.get("handoff_clean_identity"),
                 "lint_status": lint.get("status"),
                 "lint_violation_count": lint.get("violation_count"),
                 "lint_highest_severity": lint.get("highest_severity"),
+                "lint_policy": lint_policy,
                 "latest_json": str(latest_json),
                 "latest_txt": str(latest_txt),
                 "latest_md": str(latest_md),
@@ -421,9 +432,11 @@ def write_published_status(snapshot: dict[str, Any], publish_dir: Path) -> dict[
                 "strict_runtime": snapshot["strict_runtime"],
                 "trust_ok": snapshot["handoff"].get("trust_signal", {}).get("ok"),
                 "release_ok": snapshot["handoff"].get("release_surface", {}).get("ok"),
+                "handoff_clean_identity": snapshot["handoff"].get("handoff_clean_identity"),
                 "lint_status": snapshot["handoff"].get("reviewer_lint", {}).get("status"),
                 "lint_violation_count": snapshot["handoff"].get("reviewer_lint", {}).get("violation_count"),
                 "lint_highest_severity": snapshot["handoff"].get("reviewer_lint", {}).get("highest_severity"),
+                "lint_policy": snapshot["handoff"].get("reviewer_lint_policy") or {},
                 "published": {
                     "markdown": str(latest_md),
                     "json": str(latest_json),
@@ -618,6 +631,12 @@ def main() -> int:
     parser.add_argument("--strict-runtime", action="store_true")
     parser.add_argument("--release-bundle-manifest")
     parser.add_argument("--release-publication-manifest")
+    parser.add_argument(
+        "--fail-on-non-clean",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+    parser.add_argument("--allow-non-clean", action="store_true")
     parser.add_argument("--format", choices=("human", "json", "markdown"), default="human")
     parser.add_argument("--output")
     parser.add_argument("--write-bundle")
@@ -638,6 +657,9 @@ def main() -> int:
         release_publication_manifest=(
             Path(args.release_publication_manifest).resolve() if args.release_publication_manifest else None
         ),
+        fail_on_non_clean=bool(args.fail_on_non_clean),
+        allow_non_clean=bool(args.allow_non_clean),
+        lint_override_source="cli_allow_non_clean" if args.allow_non_clean else None,
     )
     handoff = snapshot["handoff"]
     if args.format == "json":
