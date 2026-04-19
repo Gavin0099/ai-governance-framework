@@ -17,6 +17,7 @@ _LAYER1_CLAIM_PATTERNS: list[dict[str, Any]] = [
         "regexes": [
             r"(?i)\bread(y|iness)\b.{0,24}(met|established|confirmed|成立|已成)",
             r"(?i)(可|足以).{0,20}(support|支持).{0,20}(readiness|ready)",
+            r"(?i)\breadiness\b.{0,24}(basis|foundation|approach|forming|基礎|成形|正在形成)",
         ],
     },
     {
@@ -67,6 +68,7 @@ _LAYER1_CLAIM_PATTERNS: list[dict[str, Any]] = [
         "regexes": [
             r"(?i)(雖然|although|while).{0,80}(不能|not).{0,40}(結論|conclude).{0,80}(可視為|basically|大致上).{0,40}(穩定|stable|ready|健康)",
             r"(?i)(不構成|does\s+not\s+constitute).{0,60}(依據|basis|promot|升格).{0,80}(但|but).{0,40}(健康|stable|ready|正向)",
+            r"(?i)(不構成|does\s+not\s+constitute).{0,60}(promot|升格).{0,80}(但|but).{0,40}(建議|suggest).{0,60}(升格|promot|討論|discussion)",
         ],
     },
 ]
@@ -107,7 +109,7 @@ _NEGATION_TOKENS: tuple[str, ...] = (
 
 
 def _is_negated_context(text: str, start: int, end: int) -> bool:
-    window = text[max(0, start - 24): min(len(text), end + 24)].lower()
+    window = text[max(0, start - 80): min(len(text), end + 40)].lower()
     return any(tok in window for tok in _NEGATION_TOKENS)
 
 

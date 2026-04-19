@@ -149,7 +149,8 @@ jobs:
           python -m pytest -q \
             tests/test_reviewer_handoff_summary.py::test_allow_non_clean_missing_reason_code_is_invalid \
             tests/test_reviewer_handoff_summary.py::test_non_overridable_claim_cannot_be_overridden \
-            tests/test_reviewer_handoff_summary.py::test_cli_allow_non_clean_requires_reason_code
+            tests/test_reviewer_handoff_summary.py::test_cli_allow_non_clean_requires_reason_code \
+            tests/test_reviewer_summary_linter_pressure.py
 
   memory-pressure:
     name: Memory Pressure
