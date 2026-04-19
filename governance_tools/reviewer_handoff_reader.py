@@ -59,6 +59,7 @@ def assess_manifest(manifest_path: Path) -> dict[str, Any]:
         "lint_violation_count": payload.get("lint_violation_count"),
         "lint_highest_severity": payload.get("lint_highest_severity"),
         "lint_violations": payload.get("lint_violations") or [],
+        "lint_policy": payload.get("lint_policy") or {},
         "latest_json": (payload.get("latest") or {}).get("json"),
         "latest_txt": (payload.get("latest") or {}).get("text"),
         "latest_md": (payload.get("latest") or {}).get("markdown"),
@@ -97,6 +98,15 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"lint_violation_count={result.get('lint_violation_count')}",
         f"lint_highest_severity={result.get('lint_highest_severity')}",
     ]
+    lint_policy = result.get("lint_policy") or {}
+    lines.extend(
+        [
+            f"lint_fail_on_non_clean={lint_policy.get('fail_on_non_clean')}",
+            f"lint_allow_non_clean={lint_policy.get('allow_non_clean')}",
+            f"lint_override_active={lint_policy.get('override_active')}",
+            f"lint_override_source={lint_policy.get('override_source')}",
+        ]
+    )
 
     if result.get("error"):
         lines.append(f"error={result['error']}")

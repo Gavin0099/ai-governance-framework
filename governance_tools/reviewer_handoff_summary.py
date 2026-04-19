@@ -98,6 +98,9 @@ def assess_reviewer_handoff(
     strict_runtime: bool = False,
     release_bundle_manifest: Path | None = None,
     release_publication_manifest: Path | None = None,
+    fail_on_non_clean: bool = True,
+    allow_non_clean: bool = False,
+    lint_override_source: str | None = None,
 ) -> dict[str, Any]:
     trust = assess_trust_signal_overview(
         project_root=project_root,
@@ -129,11 +132,23 @@ def assess_reviewer_handoff(
         "highest_severity": _highest_severity(lint["violations"]),
         "violations": lint["violations"],
     }
-    is_clean = lint_result["status"] == "clean"
+    lint_clean = lint_result["status"] == "clean"
+    upstream_ok = trust["ok"] and release["ok"]
+    override_active = bool(allow_non_clean and not lint_clean)
+    effective_ok = upstream_ok and (lint_clean or allow_non_clean or not fail_on_non_clean)
+    handoff_clean_identity = bool(upstream_ok and lint_clean)
+    lint_policy = {
+        "fail_on_non_clean": bool(fail_on_non_clean),
+        "allow_non_clean": bool(allow_non_clean),
+        "override_active": override_active,
+        "override_source": lint_override_source if override_active else None,
+        "override_effect": "flow_allowed_non_clean" if override_active else "none",
+    }
 
     return {
-        "ok": trust["ok"] and release["ok"] and is_clean,
-        "upstream_ok": trust["ok"] and release["ok"],
+        "ok": effective_ok,
+        "upstream_ok": upstream_ok,
+        "handoff_clean_identity": handoff_clean_identity,
         "project_root": str(project_root),
         "plan_path": str(plan_path),
         "release_version": release_version,
@@ -144,6 +159,7 @@ def assess_reviewer_handoff(
         "release_surface": release,
         "commands": commands,
         "reviewer_lint": lint_result,
+        "reviewer_lint_policy": lint_policy,
     }
 
 
@@ -151,12 +167,14 @@ def format_human_result(result: dict[str, Any]) -> str:
     trust = result["trust_signal"]
     release = result["release_surface"]
     lint = result.get("reviewer_lint") or {}
+    lint_policy = result.get("reviewer_lint_policy") or {}
     summary_line = build_summary_line(
         f"ok={result['ok']}",
         f"upstream_ok={result.get('upstream_ok')}",
         f"trust={trust['ok']}",
         f"release={release['ok']}",
         f"lint={lint.get('status', 'unknown')}",
+        f"identity={'clean' if result.get('handoff_clean_identity') else 'non-clean'}",
         f"release_version={result['release_version']}",
         f"contract={result.get('contract_path') or 'none'}",
     )
@@ -192,6 +210,17 @@ def format_human_result(result: dict[str, Any]) -> str:
             f"highest_severity={lint.get('highest_severity')}",
         ]
     )
+    lines.extend(
+        [
+            "[reviewer_lint_policy]",
+            f"fail_on_non_clean={lint_policy.get('fail_on_non_clean')}",
+            f"allow_non_clean={lint_policy.get('allow_non_clean')}",
+            f"override_active={lint_policy.get('override_active')}",
+            f"override_source={lint_policy.get('override_source')}",
+            f"override_effect={lint_policy.get('override_effect')}",
+            f"handoff_clean_identity={result.get('handoff_clean_identity')}",
+        ]
+    )
     if lint.get("violations"):
         for v in sorted(
             lint["violations"],
@@ -219,12 +248,14 @@ def format_markdown_result(result: dict[str, Any]) -> str:
     trust = result["trust_signal"]
     release = result["release_surface"]
     lint = result.get("reviewer_lint") or {}
+    lint_policy = result.get("reviewer_lint_policy") or {}
     summary_line = build_summary_line(
         f"ok={result['ok']}",
         f"upstream_ok={result.get('upstream_ok')}",
         f"trust={trust['ok']}",
         f"release={release['ok']}",
         f"lint={lint.get('status', 'unknown')}",
+        f"identity={'clean' if result.get('handoff_clean_identity') else 'non-clean'}",
         f"release_version={result['release_version']}",
         f"contract={result.get('contract_path') or 'none'}",
     )
@@ -244,6 +275,7 @@ def format_markdown_result(result: dict[str, Any]) -> str:
         f"| Trust signal | `{trust['ok']}` | quickstart=`{trust['quickstart']['ok']}` examples=`{trust['examples']['ok']}` auditor=`{trust['auditor']['ok']}` |",
         f"| Release surface | `{release['ok']}` | readiness=`{release['readiness']['ok']}` package=`{release['package']['ok']}` bundle=`{'missing' if not release['bundle_manifest']['available'] else release['bundle_manifest']['ok']}` publication=`{'missing' if not release['publication_manifest']['available'] else release['publication_manifest']['ok']}` |",
         f"| Reviewer lint | `{lint.get('status') == 'clean'}` | status=`{lint.get('status')}` violations=`{lint.get('violation_count')}` highest_severity=`{lint.get('highest_severity')}` |",
+        f"| Lint policy | `{result.get('handoff_clean_identity')}` | fail_on_non_clean=`{lint_policy.get('fail_on_non_clean')}` allow_non_clean=`{lint_policy.get('allow_non_clean')}` override_active=`{lint_policy.get('override_active')}` |",
         "",
     ]
     if lint.get("violations"):
@@ -276,6 +308,17 @@ def main() -> int:
     parser.add_argument("--strict-runtime", action="store_true")
     parser.add_argument("--release-bundle-manifest")
     parser.add_argument("--release-publication-manifest")
+    parser.add_argument(
+        "--fail-on-non-clean",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Fail handoff status when reviewer lint is non-clean (default: true).",
+    )
+    parser.add_argument(
+        "--allow-non-clean",
+        action="store_true",
+        help="Allow non-clean summary to flow while preserving non-clean identity.",
+    )
     parser.add_argument("--format", choices=("human", "json", "markdown"), default="human")
     parser.add_argument("--output")
     args = parser.parse_args()
@@ -289,6 +332,9 @@ def main() -> int:
         strict_runtime=args.strict_runtime,
         release_bundle_manifest=Path(args.release_bundle_manifest).resolve() if args.release_bundle_manifest else None,
         release_publication_manifest=Path(args.release_publication_manifest).resolve() if args.release_publication_manifest else None,
+        fail_on_non_clean=bool(args.fail_on_non_clean),
+        allow_non_clean=bool(args.allow_non_clean),
+        lint_override_source="cli_allow_non_clean" if args.allow_non_clean else None,
     )
     if args.format == "json":
         rendered = json.dumps(result, ensure_ascii=False, indent=2)
