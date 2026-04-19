@@ -1,0 +1,57 @@
+{
+  "schema_version": "1.0",
+  "artifact_type": "enumd-targeted-residual-probe",
+  "generated_at": "2026-04-19T16:23:35.377375+00:00",
+  "source_dir": "D:\\Enumd\\artifacts\\runtime\\candidates",
+  "n": 24,
+  "probe_question": "Are repo_readiness_level and closeout_schema_validity independent second-order collisions, or residual downstream effects?",
+  "baseline": {
+    "mask_fields": [],
+    "batch_conclusion": "observe_only_with_inducement_risk",
+    "avg_authority_fields_per_sample": 4.0
+  },
+  "probe_a_mask_repo_readiness_level": {
+    "mask_fields": [
+      "checks.repo_readiness_level"
+    ],
+    "batch_conclusion": "observe_only_with_inducement_risk",
+    "avg_authority_fields_per_sample": 3.0,
+    "conclusion_changed": false
+  },
+  "probe_b_mask_closeout_schema_validity": {
+    "mask_fields": [
+      "checks.closeout_schema_validity"
+    ],
+    "batch_conclusion": "observe_only_with_inducement_risk",
+    "avg_authority_fields_per_sample": 3.0,
+    "conclusion_changed": false
+  },
+  "mask_both_medium": {
+    "mask_fields": [
+      "checks.repo_readiness_level",
+      "checks.closeout_schema_validity"
+    ],
+    "batch_conclusion": "observe_only_with_inducement_risk",
+    "avg_authority_fields_per_sample": 2.0,
+    "conclusion_changed": false
+  },
+  "mask_all_medium_low": {
+    "mask_fields": [
+      "checks.repo_readiness_level",
+      "checks.closeout_schema_validity",
+      "checks.closeout_content_sufficiency",
+      "checks.repo_closeout_activation_state"
+    ],
+    "batch_conclusion": "observe_only_safe",
+    "avg_authority_fields_per_sample": 0.0,
+    "conclusion_changed": true
+  },
+  "universal_colocated_fields": [
+    "checks.closeout_content_sufficiency",
+    "checks.closeout_schema_validity",
+    "checks.repo_closeout_activation_state",
+    "checks.repo_readiness_level"
+  ],
+  "finding": "residual_downstream_effect",
+  "interpretation": "Individual field masking does not change batch_conclusion — fields are co-present from same root cause (closeout file absent) and have no independent misread dominance. Full clearance requires addressing root cause, not per-field reinterpretation."
+}
