@@ -836,6 +836,18 @@ def evaluate_phase2_gate(
     return {
         "verdict": "READY" if all_pass else "NOT_READY",
         "gate_basis_version": "v2",
+        "authority_status": "candidate_operational_indicator",
+        "phase2_semantic_lock_required": True,
+        "phase3_observation_only": True,
+        "phase3_interpretation": None,
+        "phase3_forbidden_interpretation_fields": [
+            "trend_direction",
+            "cross_repo_correlation",
+            "improving",
+            "degrading",
+            "stable",
+            "unstable",
+        ],
         "legacy_nondegenerate_ratio_deprecated": True,
         "legacy_nondegenerate_gate_disabled": True,
         "v2_threshold_source": threshold_source,
@@ -1098,6 +1110,17 @@ def _print_human(
             f"  │    gate_basis_version={gate.get('gate_basis_version', 'unknown')}"
             f"  threshold_source={gate.get('v2_threshold_source', 'unknown')}"
         )
+        print(
+            "  │    authority_status="
+            f"{gate.get('authority_status', 'unknown')}  "
+            "phase3_observation_only="
+            f"{gate.get('phase3_observation_only', True)}"
+        )
+        if gate.get("phase2_semantic_lock_required"):
+            print(
+                "  │    [INFO] Phase 2 READY is a policy-proxy result, "
+                "not final semantic authority."
+            )
         if gate.get("legacy_nondegenerate_ratio_deprecated"):
             print(
                 "  │    [INFO] legacy nondegenerate_ratio is reporting-only; "

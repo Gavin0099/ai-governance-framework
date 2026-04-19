@@ -926,6 +926,18 @@ Enumd / SpecAuthority：
    3. 明確 promote decision，說明不會在 stable_ok-heavy fleet 引入樂觀偏誤
    4. PLAN.md 有對應的政策切換記錄條目（不得只改 code）
 
+   **Phase 2.5 — Metric Authority Resolution（2026-04-19）**
+
+   這層是 Phase 2 與 Phase 3 之間的語意鎖，不是新的統計門檻：
+
+   1. `v2` 指標目前定位為 **candidate operational indicator**，不是最終 semantic authority。
+   2. `Phase 2 READY` 只能表示「政策代理條件達成」，**不得**單獨推論為「可安全進 Phase 3 interpretation」。
+   3. legacy entropy（`distinct_states / n`）降級為 reporting-only historical heuristic；不得回流成 gate verdict 依據。
+   4. Phase 3 在 authority promote 前，輸出層只能是 observation layer：
+      - 允許：`state_transition_matrix`、`session_delta_distribution`、`repo_variance_vector`
+      - 禁止：`trend_direction`、`cross_repo_correlation`、`improving/degrading` 類結論欄位
+   5. **advisory 不是無影響訊號**：任何 advisory 欄位都要視為 potential weak decision signal，需明示語意邊界與非授權用途。
+
    **待清理項（Layer 2 完成後仍需處理）：**
    session_end_hook 輸出的 `e1b_observation.is_degenerate=True` 是 legacy entropy 公式（entropy < 0.3）殘留。
    v2 公式（`is_degenerate_v2 = lifecycle_class == "stuck_absent"`）回傳 False。
