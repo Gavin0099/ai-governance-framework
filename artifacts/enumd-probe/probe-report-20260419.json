@@ -1,0 +1,1529 @@
+{
+  "schema_version": "1.0",
+  "artifact_type": "enumd-semantic-isolation-probe",
+  "generated_at": "2026-04-19T15:49:07.533624+00:00",
+  "source_dir": "D:\\Enumd\\artifacts\\runtime\\candidates",
+  "registry_path": "built-in",
+  "n": 24,
+  "batch_conclusion": "observe_only_with_semantic_collision",
+  "systematic_collision_fields": [
+    "policy.decision"
+  ],
+  "boundary_fail_count": 0,
+  "ingestion_valid_count": 0,
+  "semantic_isolation_applied_count": 24,
+  "samples": [
+    {
+      "sample_id": "session-20260414T060717-061315",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060717-061315.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "pending",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060757-7d239a",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060757-7d239a.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060757-a8b607",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060757-a8b607.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060757-c6c594",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060757-c6c594.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060757-fdf0ae",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060757-fdf0ae.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060758-86b59c",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060758-86b59c.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060819-0e0a47",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060819-0e0a47.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060819-96bf52",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060819-96bf52.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060819-9df163",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060819-9df163.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060819-aecf19",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060819-aecf19.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060820-1e684f",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060820-1e684f.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060820-451f40",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060820-451f40.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060820-8457d1",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060820-8457d1.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060820-91c084",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060820-91c084.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060820-e4d079",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060820-e4d079.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060821-1c5225",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060821-1c5225.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060821-56c18c",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060821-56c18c.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060821-9d5377",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060821-9d5377.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060821-e6e4c1",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060821-e6e4c1.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060822-18f454",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060822-18f454.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060822-f8fdf7",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060822-f8fdf7.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060834-f2187f",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060834-f2187f.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060844-c4f377",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060844-c4f377.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    },
+    {
+      "sample_id": "session-20260414T060856-1f945f",
+      "source_path": "D:\\Enumd\\artifacts\\runtime\\candidates\\session-20260414T060856-1f945f.json",
+      "ingestion_valid": false,
+      "boundary_status": "pass",
+      "runtime_eligible_result": "observe_only",
+      "inducement_risk": "high",
+      "misread_risk": "high",
+      "authority_like_fields": [
+        {
+          "field": "policy.decision",
+          "family": "promotion_like",
+          "actual_scope": "session_memory_promotion",
+          "misread_scope": "repo_integration_decision",
+          "reinterpretation_required": true,
+          "collision_risk": "high",
+          "observed_value": "DO_NOT_PROMOTE",
+          "non_equivalence": "policy.decision != framework verdict.decision"
+        },
+        {
+          "field": "checks.repo_readiness_level",
+          "family": "numeric_threshold",
+          "actual_scope": "closeout_completeness_proxy",
+          "misread_scope": "integration_readiness_gate",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": 3,
+          "non_equivalence": "repo_readiness_level != readiness_gate"
+        },
+        {
+          "field": "checks.closeout_schema_validity",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_presence_and_structure",
+          "misread_scope": "governance_validity",
+          "reinterpretation_required": true,
+          "collision_risk": "medium",
+          "observed_value": "invalid",
+          "non_equivalence": "closeout_schema_validity != governance_validity"
+        },
+        {
+          "field": "checks.closeout_content_sufficiency",
+          "family": "binary_verdict",
+          "actual_scope": "artifact_file_content_completeness",
+          "misread_scope": "governance_content_sufficiency",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "insufficient",
+          "non_equivalence": "closeout_content_sufficiency != governance_content_sufficiency"
+        },
+        {
+          "field": "checks.repo_closeout_activation_state",
+          "family": "state_machine",
+          "actual_scope": "session_activation_lifecycle",
+          "misread_scope": "integration_activation_status",
+          "reinterpretation_required": true,
+          "collision_risk": "low",
+          "observed_value": "observed",
+          "non_equivalence": "repo_closeout_activation_state != integration_activation_status"
+        }
+      ],
+      "semantic_isolation_applied": true,
+      "notes": "boundary pass despite ingestion failure; 5 authority-like field(s) detected; semantic isolation applied"
+    }
+  ]
+}
