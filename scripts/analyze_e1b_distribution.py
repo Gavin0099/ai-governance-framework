@@ -117,6 +117,35 @@ _DEFAULT_LOG_PATH = (
 
 _AUDIT_LOG_RELPATH = Path("artifacts") / "runtime" / "canonical-audit-log.jsonl"
 
+# Phase 3 observation-only contract (pre-authority-promote hard boundary).
+# Only raw observational keys are allowed in phase3_observation payloads.
+_PHASE3_OBSERVATION_ALLOWED_FIELDS: set[str] = {
+    "total_sessions",
+    "repo_count",
+    "repo_session_counts",
+    "artifact_state_counts",
+    "repo_state_breakdown",
+    "state_transition_matrix",
+}
+# Interpretive-class token detector (guards alias-based smuggling).
+_INTERPRETIVE_KEY_TOKENS: tuple[str, ...] = (
+    "trend",
+    "direction",
+    "correlation",
+    "health",
+    "quality",
+    "readiness",
+    "promotion",
+    "improv",
+    "degrad",
+    "stable",
+    "stability",
+    "mature",
+    "alignment",
+    "hint",
+    "score",
+)
+
 
 def _auto_discover_logs(start_dir: Path | None = None) -> list[Path]:
     """
@@ -188,6 +217,101 @@ def _session_fingerprint(entry: dict) -> tuple:
     signals = tuple(sorted(entry.get("signals") or []))
     gate_blocked = bool(entry.get("gate_blocked"))
     return (artifact_state, signals, gate_blocked)
+
+
+def _normalize_key(key: str) -> str:
+    return key.lower().replace("_", "").replace("-", "")
+
+
+def _looks_interpretive_key(key: str) -> bool:
+    k = _normalize_key(key)
+    return any(token in k for token in _INTERPRETIVE_KEY_TOKENS)
+
+
+def _build_state_transition_matrix(entries: list[dict]) -> dict[str, int]:
+    """
+    Build global state transition counts across repos.
+
+    Output key format: "<from_state>-><to_state>".
+    """
+    grouped: dict[str, list[dict]] = defaultdict(list)
+    for e in entries:
+        repo = e.get("repo_name") or "unknown"
+        grouped[repo].append(e)
+
+    matrix: dict[str, int] = defaultdict(int)
+    for repo_entries in grouped.values():
+        # ISO8601 timestamp strings are lexicographically sortable.
+        ordered = sorted(repo_entries, key=lambda x: x.get("timestamp") or "")
+        for i in range(1, len(ordered)):
+            a = ordered[i - 1].get("artifact_state", "unknown")
+            b = ordered[i].get("artifact_state", "unknown")
+            matrix[f"{a}->{b}"] += 1
+    return dict(sorted(matrix.items()))
+
+
+def build_phase3_observation_payload(
+    entries: list[dict],
+    repo_stats: dict[str, dict],
+) -> dict:
+    """
+    Build raw observation payload for Phase 3 pre-authority mode.
+
+    This payload is intentionally observation-only:
+    raw counts, raw distributions, raw transitions.
+    No directional or quality interpretation fields are allowed.
+    """
+    artifact_state_counts: dict[str, int] = defaultdict(int)
+    repo_session_counts: dict[str, int] = {}
+    repo_state_breakdown: dict[str, dict[str, int]] = {}
+
+    for repo, s in repo_stats.items():
+        repo_session_counts[repo] = int(s.get("session_count", 0))
+        state_breakdown = dict(sorted((s.get("state_breakdown") or {}).items()))
+        repo_state_breakdown[repo] = state_breakdown
+        for state, n in state_breakdown.items():
+            artifact_state_counts[state] += n
+
+    return {
+        "total_sessions": sum(repo_session_counts.values()),
+        "repo_count": len(repo_stats),
+        "repo_session_counts": dict(sorted(repo_session_counts.items())),
+        "artifact_state_counts": dict(sorted(artifact_state_counts.items())),
+        "repo_state_breakdown": dict(sorted(repo_state_breakdown.items())),
+        "state_transition_matrix": _build_state_transition_matrix(entries),
+    }
+
+
+def validate_phase3_observation_payload(payload: dict) -> dict:
+    """
+    Validate observation-only contract and detect interpretation smuggling.
+
+    Returns:
+      {
+        "valid": bool,
+        "violations": [ ... ],
+        "non_decision_support": True
+      }
+    """
+    violations: list[dict] = []
+    for key in payload.keys():
+        if key in _PHASE3_OBSERVATION_ALLOWED_FIELDS:
+            continue
+        if _looks_interpretive_key(key):
+            violations.append({
+                "key": key,
+                "reason": "interpretive_class_forbidden",
+            })
+        else:
+            violations.append({
+                "key": key,
+                "reason": "non_raw_field_forbidden",
+            })
+    return {
+        "valid": len(violations) == 0,
+        "violations": violations,
+        "non_decision_support": True,
+    }
 
 
 def _normalized_shannon_entropy(state_breakdown: dict[str, int], n: int) -> float:
@@ -1304,6 +1428,8 @@ def main() -> int:
 
     repo_stats = compute_repo_stats(entries)
     fleet = compute_fleet_coverage(repo_stats)
+    phase3_observation = build_phase3_observation_payload(entries, repo_stats)
+    phase3_validation = validate_phase3_observation_payload(phase3_observation)
 
     # Threshold resolution for v2 readiness basis.
     threshold_v2 = _PHASE2_MIN_NON_STUCK_ABSENT_RATIO_V2
@@ -1367,6 +1493,17 @@ def main() -> int:
                 "repos": repo_stats,
                 "fleet_coverage": fleet,
                 "phase2_gate": gate,
+                "phase3_observation": phase3_observation,
+                "phase3_observation_contract": {
+                    "non_decision_support": True,
+                    "must_not_infer": [
+                        "readiness",
+                        "promotion",
+                        "trend_quality",
+                        "stability_verdict",
+                    ],
+                    "validation": phase3_validation,
+                },
             },
             indent=2,
         ))

@@ -111,6 +111,8 @@ It MUST say something like:
 - Phase 2 readiness MUST NOT be concluded solely from shadow-metric narration.
 - Legacy entropy is retained as reporting-only historical heuristic.
 - Phase 3 outputs must stay observation-only until semantic authority is explicitly promoted.
+- Consumer boundary: Phase 3 observation artifacts are non-decision-support signals
+  and MUST NOT be used to infer readiness, promotion, trend quality, or stability verdict.
 
 **Implementation note (2026-04-19)**:
 - `scripts/analyze_e1b_distribution.py` now emits:
@@ -119,6 +121,8 @@ It MUST say something like:
   - `phase3_observation_only=true`
   - `phase3_interpretation=null`
   - explicit forbidden interpretation fields (`trend_direction`, `cross_repo_correlation`, etc.)
+  - `phase3_observation_contract.non_decision_support=true`
+  - `phase3_observation_contract.validation` (rejects interpretive-class and alias smuggling keys)
 
 **Boundary**:
 These fields are guardrails against semantic drift. They are not, by themselves,
