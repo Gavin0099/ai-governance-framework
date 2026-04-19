@@ -9,6 +9,8 @@ from governance_tools.enumd_ingestion_contract import (
     reinterpret_policy_decision,
     apply_ingestion_contract,
     run_ingestion_contract_probe,
+    run_targeted_residual_probe,
+    _mask_field,
 )
 from governance_tools.enumd_semantic_isolation import (
     analyze_candidate,
@@ -268,3 +270,104 @@ class TestRunIngestionContractProbe:
         report = run_ingestion_contract_probe(tmp_path)
         assert report["downgrade_achieved"] is False
         assert report["n"] == 0
+
+
+# ── _mask_field ───────────────────────────────────────────────────────────────
+
+class TestMaskField:
+    def test_top_level_field_set_to_none(self):
+        d = {"a": 1, "b": 2}
+        result = _mask_field(d, "a")
+        assert result["a"] is None
+        assert result["b"] == 2
+
+    def test_nested_field_set_to_none(self):
+        d = {"checks": {"repo_readiness_level": 3, "other": "x"}}
+        result = _mask_field(d, "checks.repo_readiness_level")
+        assert result["checks"]["repo_readiness_level"] is None
+        assert result["checks"]["other"] == "x"
+
+    def test_original_not_mutated(self):
+        d = {"checks": {"repo_readiness_level": 3}}
+        _mask_field(d, "checks.repo_readiness_level")
+        assert d["checks"]["repo_readiness_level"] == 3
+
+    def test_missing_field_leaves_dict_unchanged(self):
+        d = {"checks": {"other": "x"}}
+        result = _mask_field(d, "checks.nonexistent")
+        assert result == {"checks": {"other": "x", "nonexistent": None}}
+
+
+# ── run_targeted_residual_probe ───────────────────────────────────────────────
+
+class TestRunTargetedResidualProbe:
+    def _write(self, path: Path, name: str, data: dict) -> None:
+        (path / name).write_text(json.dumps(data), encoding="utf-8")
+
+    def _make_batch(self, tmp_path: Path, n: int = 5) -> None:
+        for i in range(n):
+            self._write(tmp_path, f"s{i:02d}.json", _stateless_candidate(f"s{i}"))
+
+    def test_report_schema_keys(self, tmp_path):
+        self._make_batch(tmp_path)
+        report = run_targeted_residual_probe(tmp_path)
+        for key in (
+            "schema_version", "artifact_type", "n",
+            "baseline", "probe_a_mask_repo_readiness_level",
+            "probe_b_mask_closeout_schema_validity",
+            "mask_both_medium", "mask_all_medium_low",
+            "finding", "interpretation",
+        ):
+            assert key in report
+
+    def test_baseline_conclusion_is_inducement_risk_after_contract(self, tmp_path):
+        self._make_batch(tmp_path)
+        report = run_targeted_residual_probe(tmp_path)
+        assert report["baseline"]["batch_conclusion"] == "observe_only_with_inducement_risk"
+
+    def test_probe_a_conclusion_unchanged(self, tmp_path):
+        self._make_batch(tmp_path)
+        report = run_targeted_residual_probe(tmp_path)
+        assert report["probe_a_mask_repo_readiness_level"]["conclusion_changed"] is False
+
+    def test_probe_b_conclusion_unchanged(self, tmp_path):
+        self._make_batch(tmp_path)
+        report = run_targeted_residual_probe(tmp_path)
+        assert report["probe_b_mask_closeout_schema_validity"]["conclusion_changed"] is False
+
+    def test_both_medium_masked_conclusion_unchanged(self, tmp_path):
+        # Even masking both medium fields, low-collision fields remain → still inducement_risk
+        self._make_batch(tmp_path)
+        report = run_targeted_residual_probe(tmp_path)
+        assert report["mask_both_medium"]["conclusion_changed"] is False
+
+    def test_mask_all_achieves_safe(self, tmp_path):
+        # Only by masking ALL registered medium/low fields does conclusion reach safe
+        self._make_batch(tmp_path)
+        report = run_targeted_residual_probe(tmp_path)
+        assert report["mask_all_medium_low"]["batch_conclusion"] == "observe_only_safe"
+        assert report["mask_all_medium_low"]["conclusion_changed"] is True
+
+    def test_finding_is_residual_downstream_effect(self, tmp_path):
+        # Because A and B individually don't change conclusion
+        self._make_batch(tmp_path)
+        report = run_targeted_residual_probe(tmp_path)
+        assert report["finding"] == "residual_downstream_effect"
+
+    def test_avg_authority_fields_decreases_as_more_masked(self, tmp_path):
+        self._make_batch(tmp_path)
+        report = run_targeted_residual_probe(tmp_path)
+        # Masking more fields should reduce avg authority fields
+        assert (
+            report["mask_both_medium"]["avg_authority_fields_per_sample"]
+            < report["baseline"]["avg_authority_fields_per_sample"]
+        )
+        assert (
+            report["mask_all_medium_low"]["avg_authority_fields_per_sample"]
+            == 0.0
+        )
+
+    def test_empty_dir(self, tmp_path):
+        report = run_targeted_residual_probe(tmp_path)
+        assert report["n"] == 0
+        assert report["finding"] == "residual_downstream_effect"

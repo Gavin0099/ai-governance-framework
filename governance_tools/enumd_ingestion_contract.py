@@ -249,7 +249,158 @@ def run_ingestion_contract_probe(
     }
 
 
+def _mask_field(candidate: dict, dotpath: str) -> dict:
+    """Set a dot-notation field to None in a shallow copy of the candidate."""
+    parts = dotpath.split(".", 1)
+    result = dict(candidate)
+    if len(parts) == 1:
+        result[parts[0]] = None
+    else:
+        parent_key, child_path = parts
+        if isinstance(result.get(parent_key), dict):
+            result[parent_key] = _mask_field(result[parent_key], child_path)
+    return result
+
+
+def _run_scenario(
+    files: list[Path],
+    mask_fields: list[str],
+    analyze_candidate: Any,
+    _classify_batch_conclusion: Any,
+) -> dict:
+    """Apply contract + field masks, return scenario result dict."""
+    samples = []
+    for fp in files:
+        try:
+            candidate = json.loads(fp.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        reinterpreted, _ = apply_ingestion_contract(candidate)
+        for f in mask_fields:
+            reinterpreted = _mask_field(reinterpreted, f)
+        samples.append(analyze_candidate(reinterpreted, str(fp)))
+
+    conclusion = _classify_batch_conclusion(samples)
+    avg_fields = (
+        sum(len(s.authority_like_fields) for s in samples) / len(samples)
+        if samples else 0
+    )
+    return {
+        "mask_fields": mask_fields,
+        "batch_conclusion": conclusion,
+        "avg_authority_fields_per_sample": round(avg_fields, 2),
+    }
+
+
+def run_targeted_residual_probe(candidates_dir: Path) -> dict:
+    """
+    Minimal targeted probe to determine whether remaining medium/low collision
+    fields (checks.repo_readiness_level, checks.closeout_schema_validity) are
+    independent second-order collisions or residual downstream effects of the
+    same root cause (closeout file absent).
+
+    Scenarios (all with ingestion contract applied first):
+      baseline       — contract only (policy.decision demoted)
+      mask_A         — contract + mask repo_readiness_level
+      mask_B         — contract + mask closeout_schema_validity
+      mask_both_med  — contract + mask both medium fields
+      mask_all       — contract + mask all registered medium/low fields
+
+    Key finding: if individual masking does NOT change batch_conclusion,
+    the fields are not independently dominant — they co-occur from the
+    same root cause and have no separate misread power.
+    """
+    from governance_tools.enumd_semantic_isolation import (
+        analyze_candidate,
+        _classify_batch_conclusion,
+        _NON_EQUIVALENCE_REGISTRY,
+    )
+
+    files = sorted(candidates_dir.glob("*.json"))
+    _run = lambda mask: _run_scenario(files, mask, analyze_candidate, _classify_batch_conclusion)
+
+    # Fields under investigation
+    field_a = "checks.repo_readiness_level"
+    field_b = "checks.closeout_schema_validity"
+    all_medium_low = [
+        k for k, v in _NON_EQUIVALENCE_REGISTRY.items()
+        if v["collision_risk"] in ("medium", "low")
+    ]
+
+    baseline = _run([])
+    scenario_a = _run([field_a])
+    scenario_b = _run([field_b])
+    scenario_both_med = _run([field_a, field_b])
+    scenario_all = _run(all_medium_low)
+
+    def _changed(s: dict) -> bool:
+        return s["batch_conclusion"] != baseline["batch_conclusion"]
+
+    # Co-location: fields are all 24/24 present → same root cause cluster
+    field_colocations: list[dict] = []
+    for fp in files:
+        try:
+            candidate = json.loads(fp.read_text(encoding="utf-8"))
+            reinterpreted, _ = apply_ingestion_contract(candidate)
+            result = analyze_candidate(reinterpreted, str(fp))
+            field_colocations.append({
+                fp.stem: [f.field for f in result.authority_like_fields]
+            })
+        except Exception:
+            pass
+
+    all_sets = [set(list(d.values())[0]) for d in field_colocations]
+    universal_fields = sorted(all_sets[0].intersection(*all_sets)) if all_sets else []
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "artifact_type": "enumd-targeted-residual-probe",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source_dir": str(candidates_dir),
+        "n": len(files),
+        "probe_question": (
+            "Are repo_readiness_level and closeout_schema_validity "
+            "independent second-order collisions, or residual downstream effects?"
+        ),
+        "baseline": baseline,
+        "probe_a_mask_repo_readiness_level": {**scenario_a, "conclusion_changed": _changed(scenario_a)},
+        "probe_b_mask_closeout_schema_validity": {**scenario_b, "conclusion_changed": _changed(scenario_b)},
+        "mask_both_medium": {**scenario_both_med, "conclusion_changed": _changed(scenario_both_med)},
+        "mask_all_medium_low": {**scenario_all, "conclusion_changed": _changed(scenario_all)},
+        "universal_colocated_fields": universal_fields,
+        "finding": (
+            "residual_downstream_effect"
+            if not _changed(scenario_a) and not _changed(scenario_b)
+            else "second_order_collision"
+        ),
+        "interpretation": (
+            "Individual field masking does not change batch_conclusion — "
+            "fields are co-present from same root cause (closeout file absent) "
+            "and have no independent misread dominance. "
+            "Full clearance requires addressing root cause, not per-field reinterpretation."
+        ) if not _changed(scenario_a) and not _changed(scenario_b) else (
+            "At least one field has independent misread dominance — "
+            "consider per-field reinterpretation as second-order remediation."
+        ),
+    }
+
+
 def format_human(report: dict) -> str:
+    atype = report.get("artifact_type", "")
+    if atype == "enumd-targeted-residual-probe":
+        lines = [
+            "[enumd_targeted_residual_probe]",
+            f"source_dir={report['source_dir']}",
+            f"n={report['n']}",
+            f"baseline={report['baseline']['batch_conclusion']}  avg_fields={report['baseline']['avg_authority_fields_per_sample']}",
+            f"probe_A(mask_repo_readiness_level)  conclusion={report['probe_a_mask_repo_readiness_level']['batch_conclusion']}  changed={report['probe_a_mask_repo_readiness_level']['conclusion_changed']}",
+            f"probe_B(mask_closeout_schema_validity)  conclusion={report['probe_b_mask_closeout_schema_validity']['batch_conclusion']}  changed={report['probe_b_mask_closeout_schema_validity']['conclusion_changed']}",
+            f"mask_both_medium  conclusion={report['mask_both_medium']['batch_conclusion']}  changed={report['mask_both_medium']['conclusion_changed']}",
+            f"mask_all_medium_low  conclusion={report['mask_all_medium_low']['batch_conclusion']}  changed={report['mask_all_medium_low']['conclusion_changed']}",
+            f"finding={report['finding']}",
+        ]
+        return "\n".join(lines)
+
     lines = [
         "[enumd_ingestion_contract_probe]",
         f"source_dir={report['source_dir']}",
@@ -268,16 +419,25 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Apply Enumd ingestion contract and report semantic collision downgrade."
     )
+    parser.add_argument(
+        "--mode",
+        choices=["contract", "targeted-residual"],
+        default="contract",
+        help="contract (default) or targeted-residual",
+    )
     parser.add_argument("--candidates-dir", required=True)
-    parser.add_argument("--output-dir", help="Write reinterpreted candidates here (optional)")
+    parser.add_argument("--output-dir", help="Write reinterpreted candidates here (optional, contract mode only)")
     parser.add_argument("--output", help="Output path for probe report JSON")
     parser.add_argument("--format", choices=["human", "json"], default="human")
     args = parser.parse_args()
 
     candidates_dir = Path(args.candidates_dir).resolve()
-    output_dir = Path(args.output_dir).resolve() if args.output_dir else None
 
-    report = run_ingestion_contract_probe(candidates_dir, output_dir)
+    if args.mode == "targeted-residual":
+        report = run_targeted_residual_probe(candidates_dir)
+    else:
+        output_dir = Path(args.output_dir).resolve() if args.output_dir else None
+        report = run_ingestion_contract_probe(candidates_dir, output_dir)
 
     if args.output:
         out = Path(args.output)

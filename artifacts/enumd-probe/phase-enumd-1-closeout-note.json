@@ -1,0 +1,74 @@
+{
+  "schema_version": "1.0",
+  "artifact_type": "phase-closeout-note",
+  "phase": "Enumd-1",
+  "title": "Enumd Candidate Semantic Isolation: Phase 1 Closeout",
+  "closed_at": "2026-04-20",
+  "status": "phase_closed",
+
+  "proven": [
+    {
+      "claim": "policy.decision is the primary semantic collision source in the candidate schema",
+      "evidence": "probe-report-20260419.json — batch_conclusion=observe_only_with_semantic_collision, systematic_collision_fields=[policy.decision], 24/24 samples"
+    },
+    {
+      "claim": "Ingestion-layer semantic reinterpretation reduces batch_conclusion from observe_only_with_semantic_collision to observe_only_with_inducement_risk",
+      "evidence": "ingestion-contract-report-20260420.json — downgrade_achieved=True, mitigation_complete_count=24, safety_check=risk_contained"
+    },
+    {
+      "claim": "Remaining medium/low collision fields (repo_readiness_level, closeout_schema_validity, closeout_content_sufficiency, repo_closeout_activation_state) are residual downstream effects, not independent second-order collisions",
+      "evidence": "targeted-residual-probe-20260420.json — finding=residual_downstream_effect; probe_A changed=False, probe_B changed=False; all 4 fields co-present 24/24 from same root cause (closeout file absent at capture path)"
+    },
+    {
+      "claim": "Closeout layer does not amplify candidate decision-shaped signals",
+      "evidence": "closeout-probe-report-20260420.json — batch_conclusion=observe_only_safe, narrative_risk_delta_distribution={reduced: 24}"
+    },
+    {
+      "claim": "Memory candidate schema (memory_mode=candidate) does not trigger DO_NOT_PROMOTE and has low risk profile",
+      "evidence": "memory-candidate-probe-report-20260420.json — policy_decision_absent_count=2/2, low_risk_count=2/2"
+    }
+  ],
+
+  "not_yet_proven": [
+    {
+      "claim": "Whether repo_readiness_level and closeout_schema_validity will naturally disappear once the closeout file path is fixed upstream in Enumd",
+      "why_matters": "If they disappear, the residual_downstream_effect hypothesis is fully confirmed and no further per-field reinterpretation is needed",
+      "observation_trigger": "Re-run candidate probe when Enumd fixes the closeout file path (E:\\BackUp\\Git_EE\\Enumd\\artifacts\\session-closeout.txt)"
+    },
+    {
+      "claim": "Whether these residual fields have independent misread power in consumer surfaces not yet tested",
+      "why_matters": "Current probe only tests the governance framework's ingestion surface; other consumers may read these fields differently",
+      "observation_trigger": "Targeted observation if new consumer surfaces are identified"
+    }
+  ],
+
+  "current_system_state": {
+    "integration_status": "not_integration_ready",
+    "containment_status": "observe_only_with_controlled_inducement_risk",
+    "primary_blocker_status": "resolved_to_contained_risk",
+    "residual_fields_status": "under_observation_not_promoted_to_blocker",
+    "batch_conclusion": "observe_only_with_inducement_risk"
+  },
+
+  "what_was_not_done": [
+    "Per-field reinterpretation of repo_readiness_level and closeout_schema_validity — not warranted; they are residual effects, not independent blockers",
+    "Expanding probe sample size beyond 24 — not warranted; 100% homogeneous batch confirms structural pattern, not sampling gap",
+    "Promoting observe_only_with_inducement_risk to integration_ready — risk is contained, not removed"
+  ],
+
+  "probe_artifacts": [
+    "probe-report-20260419.json",
+    "closeout-probe-report-20260420.json",
+    "memory-candidate-probe-report-20260420.json",
+    "ingestion-contract-report-20260420.json",
+    "targeted-residual-probe-20260420.json"
+  ],
+
+  "tools_built": [
+    "governance_tools/enumd_semantic_isolation.py (candidate/closeout/memory-candidate modes, 49 tests)",
+    "governance_tools/enumd_ingestion_contract.py (contract/targeted-residual modes, 47 tests)",
+    "artifacts/enumd-probe/non_equivalence_registry.json"
+  ],
+
+  "next_decision_point": "When Enumd fixes the closeout file path upstream, re-run candidate probe to verify residual fields disappear. If they do, phase can advance. If they persist independently, re-evaluate for second-order remediation."
+}
