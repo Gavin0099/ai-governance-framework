@@ -41,9 +41,28 @@ This checklist does **not** authorize:
 - Machine-readable probe log (`json`)
 - Human-readable summary (`md` or `txt`)
 - Explicit pass/fail per question above
+- Per-sample minimum fields:
+  - `sample_id`
+  - `ingestion_valid`
+  - `boundary_status`
+  - `runtime_eligible_result`
+  - `semantic_inducement_risk`
+  - `consumer_misread_risk`
+  - `notes`
+- Batch conclusion enum:
+  - `safe_for_observe_only`
+  - `observe_only_with_inducement_risk`
+  - `boundary_fail_do_not_progress`
 - Explicit caveat:
   - "Probe pass means containment under observe-only scope; it does not imply
     integration-ready value justification."
+
+## Reference Runner (First Batch)
+
+```bash
+python governance_tools/enumd_observe_only_probe.py --format json
+python governance_tools/enumd_observe_only_probe.py --format human
+```
 
 ## Exit Criteria
 

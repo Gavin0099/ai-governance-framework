@@ -153,7 +153,8 @@ jobs:
             tests/test_reviewer_handoff_summary.py::test_cli_allow_non_clean_requires_reason_code \
             tests/test_reviewer_handoff_reader.py::test_reader_surfaces_lint_by_severity_claim_excerpt \
             tests/test_reviewer_summary_linter_calibration_dataset.py \
-            tests/test_reviewer_summary_linter_pressure.py
+            tests/test_reviewer_summary_linter_pressure.py \
+            tests/test_enumd_observe_only_probe.py
 
       - name: Build reviewer calibration summary (advisory only)
         run: |
@@ -161,12 +162,26 @@ jobs:
           python governance_tools/reviewer_linter_calibration_summary.py --format json --output artifacts/reviewer-calibration/summary.json
           python governance_tools/reviewer_linter_calibration_summary.py --format human --output artifacts/reviewer-calibration/summary.txt
 
+      - name: Build Enumd observe-only probe (advisory only)
+        run: |
+          mkdir -p artifacts/enumd-observe-probe
+          python governance_tools/enumd_observe_only_probe.py --format json --output artifacts/enumd-observe-probe/first-batch.json
+          python governance_tools/enumd_observe_only_probe.py --format human --output artifacts/enumd-observe-probe/first-batch.txt
+
       - name: Upload reviewer calibration summary
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: reviewer-calibration
           path: artifacts/reviewer-calibration/
+          if-no-files-found: warn
+
+      - name: Upload Enumd observe-only probe
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: enumd-observe-probe
+          path: artifacts/enumd-observe-probe/
           if-no-files-found: warn
 
   memory-pressure:
