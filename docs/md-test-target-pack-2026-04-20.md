@@ -9,6 +9,7 @@ remediation in the 4-repo wave:
 - Enumd
 
 Method contract: `docs/md-test-pack-template.md`
+Scope contract: `docs/md-test-scope-filter-2026-04-20.md`
 
 ## Fixed Test Rule
 
@@ -22,6 +23,9 @@ Closure gate (per file):
 - `clean pass` + `noise pass`
 - `directional_synthesis = no`
 - `actionability_source = fact_fields`
+
+Do not fill closure results from broad whole-repo scans. Use the scope contract
+to build a bounded target list first.
 
 ## Repo Target Map
 
@@ -75,4 +79,3 @@ Recommended test ids:
 - `md-test-20260420-KDC-001`
 - `md-test-20260420-BS-001`
 - `md-test-20260420-ENUMD-001`
-
