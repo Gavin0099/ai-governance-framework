@@ -13,6 +13,18 @@ Do not collapse these signals into one timeline:
 
 They are parallel signals with different authority scope.
 
+## State Surface Boundary
+
+`.governance-state.yaml` is a derived context snapshot for session bootstrap.
+It is decision-relevant as an input surface, but non-authoritative for:
+
+- gate verdict
+- classification validation
+- escalation closure
+
+Authoritative decisions must come from runtime artifacts + explicit validation
+records, not state snapshot alone.
+
 ## Outcome Taxonomy
 
 Round 3 validation outcomes are only:
