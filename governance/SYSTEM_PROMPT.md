@@ -208,7 +208,7 @@ repo-local governance 真相應維持單一邊界，不應讓 workspace 層、ad
 ### 3.2 PLAN.md Interpretation
 
 `PLAN.md` 決定的是 **feature work 的優先順序**。
-它不會自動阻止 bounded adjacent engineering work，例如 build / test / review / commit preparation / governance analysis，除非那些工作跨到 hard safety 或 architecture boundary。
+它不會自動阻止 bounded adjacent engineering work，例如 build / test / review / commit preparation / governance analysis，除非那些工作跨到 hard safety or architecture boundary。
 
 ### 3.3 Loading Triggers
 

@@ -23,6 +23,7 @@ _ALLOW_CLOSURE_VERIFIED = {
     "governance_tools/phase3_promotion_gate.py",
     "governance_tools/phase3_gate_adoption_audit.py",
     "governance_tools/external_observation_adapter.py",
+    "governance_tools/enumd_observe_only_probe.py",
     "scripts/phase2_aggregation_dry_run.py",
 }
 
@@ -30,12 +31,14 @@ _ALLOW_PHASE3_ENTRY_ALLOWED = {
     "governance_tools/phase3_promotion_gate.py",
     "governance_tools/phase3_gate_adoption_audit.py",
     "governance_tools/external_observation_adapter.py",
+    "governance_tools/enumd_observe_only_probe.py",
 }
 
 _ALLOW_PARALLEL_DECISION_SCAN = {
     "governance_tools/phase3_promotion_gate.py",
     "governance_tools/phase3_gate_adoption_audit.py",
     "governance_tools/external_observation_adapter.py",
+    "governance_tools/enumd_observe_only_probe.py",
     "scripts/phase2_aggregation_dry_run.py",
 }
 

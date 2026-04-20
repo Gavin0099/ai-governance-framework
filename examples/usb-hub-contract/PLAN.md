@@ -1,4 +1,4 @@
-> **最後更新**: 2026-04-02
+> **最後更新**: 2026-04-17
 > **Owner**: framework-example
 > **Freshness**: Sprint (7d)
 
