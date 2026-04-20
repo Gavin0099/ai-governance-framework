@@ -757,6 +757,7 @@ python governance_tools/plan_freshness.py --format json
 ## state_generator.py
 
 讀取 PLAN.md header，生成 `.governance-state.yaml` 狀態快照，供 AI session 初始化使用。
+> Boundary: `.governance-state.yaml` 是 derived bootstrap snapshot，不是 gate verdict、classification validation、escalation closure 的 authority。
 
 ```bash
 # 生成狀態快照
