@@ -13,6 +13,34 @@ derive a single governance conclusion about composition-level decision risk.
 
 Method basis: `docs/md-test-pack-template.md`
 Target pack: `docs/md-test-target-pack-2026-04-20.md`
+Scope filter: `docs/md-test-scope-filter-2026-04-20.md`
+
+## Discovery Scan Update (md-test-20260420-001)
+
+The submitted whole-repo scan is classified as a discovery scan, not a
+closure-grade rerun. It scans useful but over-broad surfaces, including copied
+framework trees, generated outputs, dependency docs, historical artifacts,
+temporary/cache outputs, and memory/history material.
+
+Discovery conclusion: all reported repos remain elevated for triage. The v2
+after-state rerun board below remains pending until the closure-grade target
+set is rerun with the scope filter.
+
+| Repo | Scan Result | Warning / Gap | Interpretation |
+|---|---|---|---|
+| SpecAuthority | `ok=True`, `post_task_ok=True`, elevated | suggested `python` pack not enabled | Whole-file discovery still finds directional risk; earlier keyed-section conclusions remain scoped to their keyed sections only. |
+| Kernel-Driver-Contract | `ok=True`, elevated | `dispatch_compliant=false`, `dpc_compliant=false`, many driver-evidence / failure-completeness gaps | Markdown wording risk and kernel evidence gaps are both real, but the dispatch/DPC failures are engineering-evidence blockers rather than wording-only findings. |
+| Bookstore-Scraper | `ok=True`, `post_task_ok=None`, elevated | no suitable fixtures; `PLAN.md` stale | Broad scan includes copied framework/history/cache-like surfaces; use decision-proximal operational docs for closure rerun. |
+| Enumd | `ok=True`, `post_task_ok=None`, elevated | `PLAN.md` stale; suggested `electron` pack not enabled | Broad scan includes `node_modules`, framework copies, generated knowledge, and memory/history surfaces; closure requires a filtered target set. |
+| cli | `ok=True`, `post_task_ok=None` | suggested `objective-c` pack not enabled | Keep as insufficient for after-state closure until decision-proximal targets are rerun with enabled fixture coverage. |
+
+Discovery-scan handling rule:
+
+- broad `repo_classification=elevated` is an open triage signal
+- broad aggregate does not update closure status
+- closure requires rerun over included target files only
+- excluded vendored/generated/historical surfaces may inform target discovery
+  but must not dominate aggregate closure
 
 ## Per-Repo Outcome
 
