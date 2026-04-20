@@ -43,7 +43,7 @@
 - [x] 補齊 consuming repo adoption 缺口，包括 governance markdown pack、rules pack 與 framework source audit
 - [x] 補上 memory closeout visibility，讓 no-write reason 可觀測
 - [x] 修正高可見度 docs / governance 文件的亂碼與英文主敘事殘留
-- [x] 重建 root PLAN / state source of truth，讓 state_generator 與 freshness surface 回到可維護狀態
+- [x] 重建 root PLAN/state surface 邊界（PLAN = source of truth；`.governance-state.yaml` = derived bootstrap snapshot），讓 state_generator 與 freshness surface 回到可維護狀態
 - [x] 建立 starter-pack 自動升級路徑，讓 starter-pack 不只停在手動複製
 
 ## Phase E Sprint（Current）
@@ -1526,7 +1526,7 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 - `/wrap-up` 目前是 candidate drafting surface，不是 closeout 官方 authority
 - advisory slice 目前是受限、reviewer-visible、non-verdict-bearing 的語義層
 - starter-pack opt-in upgrade path 已完成（`upgrade_starter_pack.py`），README 有手動/自動分界說明
-- `.governance-state.yaml` 已可重新生成且內容可讀
+- `.governance-state.yaml` 已可重新生成且內容可讀（bootstrap snapshot only，不是 closure/promotion authority）
 
 ---
 
@@ -1535,7 +1535,7 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 本 sprint 要達成的最低條件：
 
 - [x] `PLAN.md` 可被 `state_generator.py`、`plan_freshness.py` 穩定解析
-- [x] `.governance-state.yaml` 能重新生成且內容可讀
+- [x] `.governance-state.yaml` 能重新生成且內容可讀，且 authority boundary 明確（non-authoritative for gate/classification/closure）
 - [x] starter-pack 有明確的 opt-in upgrade path
 - [x] starter-pack README 說清楚手動初始化與自動升級的分界
 

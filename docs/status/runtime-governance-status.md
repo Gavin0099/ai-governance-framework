@@ -38,6 +38,8 @@
 - `runtime_hooks/core/session_end.py`
 - `governance_tools/change_control_summary.py`
 
+補充邊界：`.governance-state.yaml`（由 `state_generator.py` 生成）是 session bootstrap snapshot，非 gate/classification/closure authority。
+
 ### 2. Execution Awareness Layer
 
 這一層負責把 runtime 實際涉及的 surfaces 顯性化，不再把 execution 當成黑箱。
