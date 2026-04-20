@@ -1,4 +1,4 @@
-# Cross-Repo MD Test Final Report v2 (2026-04-20)
+# Cross-Repo MD Test Final Report v3 (2026-04-20)
 
 Purpose: consolidate markdown noise-test outcomes across the 5-repo pool and
 derive a single governance conclusion about composition-level decision risk.
@@ -41,6 +41,35 @@ Discovery-scan handling rule:
 - closure requires rerun over included target files only
 - excluded vendored/generated/historical surfaces may inform target discovery
   but must not dominate aggregate closure
+
+## Submitted Report Reconciliation
+
+A follow-up Chinese final-report draft was submitted with smoke summaries and a
+claim that `cli` report wording was neutralized in:
+
+- `Doc/adoption-test-report-2026-04-14.md`
+- `Doc/md-test-20260420-001.md`
+
+Treat this as submitted remediation evidence, not as closure evidence, until the
+affected `cli` decision-proximal markdown is rerun under the clean/noise method
+and the scope filter.
+
+Reconciled decisions:
+
+- keep the governance recommendation as open remediation
+- preserve the `cli` after-state as pending rerun, not pass
+- keep Bookstore-Scraper and Enumd as insufficient for closure while
+  `post_task_ok=None` and fixture gaps remain
+- treat Kernel driver-evidence / failure-completeness failures as engineering
+  evidence blockers separate from markdown wording risk
+- prefer the full clean/noise rerun path before any PR/merge/promotion action
+
+Operational implication:
+
+- Option 1 (filtered clean/noise rerun with inserted noise variants) is the
+  correct next closure step.
+- Option 2 (commit/push/PR of neutralized wording) is premature unless paired
+  with rerun evidence and explicit closure-gate results.
 
 ## Per-Repo Outcome
 
