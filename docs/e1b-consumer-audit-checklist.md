@@ -434,5 +434,7 @@ completion.
   [docs/e1b-human-only-strong-observation-pack-2026-04-17.md](e1b-human-only-strong-observation-pack-2026-04-17.md)
 - Round 3 cognitive leakage evaluation template:
   [docs/e1b-round3-cognitive-leakage-eval-template.md](e1b-round3-cognitive-leakage-eval-template.md)
+- Round 3 validation contract:
+  [docs/e1b-round3-validation-contract.md](e1b-round3-validation-contract.md)
 - Round 3 no-review execution note:
   [docs/e1b-round3-no-review-execution-note-2026-04-17.md](e1b-round3-no-review-execution-note-2026-04-17.md)

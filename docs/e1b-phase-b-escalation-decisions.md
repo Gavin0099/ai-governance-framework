@@ -45,6 +45,8 @@
 - post_remediation_noise_free_text_synthesis: yes | no | pending
 - post_remediation_noise_free_text_synthesis_type: directional_positive | directional_negative | neutral_reasoning | pending
 - post_remediation_noise_free_text_synthesis_trigger:
+- round3_validation_contract_ref:
+- round3_validation_outcome: pass | fail | insufficient_validation | pending
 - composition_guardrail_required: yes | no
 - composition_guardrail_status: pending | implemented | verified | failed
 - mitigation_validation_state: pending_human_validation | validated | waived_by_policy
@@ -99,6 +101,8 @@
 - post_remediation_noise_free_text_synthesis: `yes`
 - post_remediation_noise_free_text_synthesis_type: `directional_positive`
 - post_remediation_noise_free_text_synthesis_trigger: "appears improving / looks more stable" style synthesis in reviewer rationale
+- round3_validation_contract_ref: `docs/e1b-round3-validation-contract.md`
+- round3_validation_outcome: `insufficient_validation`
 - composition_guardrail_required: `yes`
 - composition_guardrail_status: `implemented` (redesign spec + Round 3 AI adversarial check completed)
 - mitigation_validation_state: `pending_human_validation`
