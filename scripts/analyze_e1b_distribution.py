@@ -1047,6 +1047,9 @@ def evaluate_phase2_gate(
     all_pass = all(c["pass"] for c in checks.values())
     return {
         "verdict": "READY" if all_pass else "NOT_READY",
+        # Explicitly scope READY to avoid semantic over-read.
+        "verdict_scope": "distribution_gate_only",
+        "classification_validation": "NOT_EVALUATED",
         "gate_basis_version": "v2",
         "authority_status": "candidate_operational_indicator",
         "phase2_semantic_lock_required": True,
@@ -1315,9 +1318,19 @@ def _print_human(
 
         # Phase 2 readiness gate
         verdict = gate["verdict"]
-        verdict_label = "READY" if verdict == "READY" else "NOT_READY"
+        verdict_label = (
+            "READY (distribution gate only)"
+            if verdict == "READY"
+            else "NOT_READY (distribution gate only)"
+        )
         verdict_marker = "[OK]" if verdict == "READY" else "[NO]"
         print(f"  │  Phase 2 Readiness Gate — {verdict_marker} {verdict_label}")
+        print(
+            "  │    distribution_gate="
+            f"{verdict}  "
+            "classification_validation="
+            f"{gate.get('classification_validation', 'NOT_EVALUATED')}"
+        )
         print(
             f"  │    gate_basis_version={gate.get('gate_basis_version', 'unknown')}"
             f"  threshold_source={gate.get('v2_threshold_source', 'unknown')}"

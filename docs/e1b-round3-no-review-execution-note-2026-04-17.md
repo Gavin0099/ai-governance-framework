@@ -22,6 +22,7 @@ reviewer response in this run.
 - Escalation status: `unverified_mitigation` (non-closed steady state).
 - Closure: not granted under strict profile because no new human-only
   confirmation was collected in this run.
+- Round 3 validation outcome: `insufficient_validation` (per validation contract).
 - Dual-state interpretation:
   - Engineering track: implemented
   - Governance track: validation pending

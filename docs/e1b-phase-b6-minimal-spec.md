@@ -149,3 +149,17 @@ Constraints:
 - this state is not closure.
 - this state does not satisfy strict profile evidence.
 - AI/adversarial evidence may support implementation confidence only.
+
+## Validation Semantics Contract
+
+Round 3 interpretation must use explicit outcomes:
+
+- `pass`
+- `fail`
+- `insufficient_validation`
+
+`insufficient_validation` is not equivalent to `fail`; it indicates evidence
+quality is inadequate for classification and must preserve non-closed state.
+
+Reference:
+- `docs/e1b-round3-validation-contract.md`
