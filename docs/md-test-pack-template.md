@@ -117,3 +117,17 @@ For previously failed files, close only when:
 - engagement remains yes
 - rationale is fact-grounded (not impression-grounded)
 
+## 11) Tier A Strict Profile (Checklist-Class Surfaces)
+
+For Tier A checklist-like files, apply zero-tolerance contamination policy:
+
+- directional progress wording is forbidden in checklist body and adjacent prose
+- progress narrative must be moved to `STATUS.md` (or equivalent)
+- `STATUS.md` must run an independent noise test
+
+If any directional progress wording is detected on Tier A checklist surfaces:
+
+- `directional_synthesis = yes`
+- `classification_outcome = fail`
+
+Reference: `docs/tier-a-checklist-contamination-policy.md`
