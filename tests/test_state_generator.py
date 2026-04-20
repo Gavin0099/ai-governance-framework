@@ -54,6 +54,9 @@ def test_generate_state_includes_runtime_contract(local_tmp_dir, monkeypatch):
     assert state["runtime_contract"]["risk"] == "high"
     assert state["runtime_contract"]["oversight"] == "review-required"
     assert state["runtime_contract"]["memory_mode"] == "candidate"
+    assert state["state_surface_contract"]["surface_role"] == "derived_context_snapshot"
+    assert state["state_surface_contract"]["authority_scope"] == "session_context_only"
+    assert "classification_validation" in state["state_surface_contract"]["non_authoritative_for"]
     assert state["rule_packs"]["valid"] is True
     assert state["active_rules"]["valid"] is True
     assert state["active_rules"]["active_rules"][0]["files"]
