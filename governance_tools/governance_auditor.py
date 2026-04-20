@@ -90,6 +90,12 @@ def audit_governance(
 
     readme_path = project_root / "README.md"
     readme_text = _read_text(readme_path) if readme_path.is_file() else ""
+    # LITERAL GOVERNANCE ANCHOR: "scripts/run-runtime-governance.sh" is a normative
+    # literal that must appear verbatim in README.md. Do not rename, reword, or omit
+    # this string when editing README. It is machine-checked as the canonical enforcement
+    # entrypoint reference. Translating or paraphrasing will silently break this check.
+    # Known fragility: README is a human-facing doc; any content rewrite can drop this
+    # reference. Consider adding a stable canonical policy doc as backup (technical debt).
     add_check(
         "docs:readme-enforcement",
         "scripts/run-runtime-governance.sh" in readme_text,
@@ -104,6 +110,16 @@ def audit_governance(
     if cpp_pack_path.is_file():
         cpp_pack_text = _read_text(cpp_pack_path)
 
+    # LITERAL GOVERNANCE ANCHORS: the marker strings below are normative English literals
+    # that must appear verbatim in their respective governance documents. These are not
+    # arbitrary keywords — they are canonical boundary-rule phrases. Rules:
+    #   1. Do NOT translate "or" to "或" or any other language equivalent.
+    #   2. Do NOT replace with synonyms (e.g. "safety boundary", "architectural limit").
+    #   3. If a governance doc is rewritten (e.g. localized to Chinese), at least one
+    #      of these exact English phrases must be preserved in the file.
+    # Rationale: This check enforces alignment across SYSTEM_PROMPT, ARCHITECTURE,
+    # REVIEW_CRITERIA, and the cpp rule pack. Semantic equivalence is NOT sufficient;
+    # the literal string must be present so that any drift is machine-detectable.
     system_prompt_has_boundary_marker = any(
         marker in system_prompt_text
         for marker in (
