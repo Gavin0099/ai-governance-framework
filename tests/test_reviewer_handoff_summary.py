@@ -73,7 +73,7 @@ def test_reviewer_handoff_summary_human_and_markdown_outputs_are_summary_first()
     rendered_human = format_human_result(result)
     rendered_markdown = format_markdown_result(result)
 
-    assert rendered_human.startswith("summary=ok=True | upstream_ok=True | trust=True | release=True | lint=clean | release_version=v1.0.0-alpha")
+    assert rendered_human.startswith("summary=ok=True | upstream_ok=True | trust=True | release=True | lint=clean | identity=clean | release_version=v1.0.0-alpha")
     assert "[reviewer_handoff_summary]" in rendered_human
     assert "[trust_signal]" in rendered_human
     assert "[release_surface]" in rendered_human
@@ -197,7 +197,7 @@ def test_reviewer_handoff_summary_cli_supports_direct_script_invocation(tmp_path
         text=True,
     )
 
-    assert "summary=ok=True | upstream_ok=True | trust=True | release=True | lint=clean | release_version=v1.0.0-alpha" in result.stdout
+    assert "summary=ok=True | upstream_ok=True | trust=True | release=True | lint=clean | identity=clean | release_version=v1.0.0-alpha" in result.stdout
     assert "[reviewer_handoff_summary]" in result.stdout
 
 

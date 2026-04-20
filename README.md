@@ -43,6 +43,8 @@
 - [runtime_hooks/core/post_task_check.py](runtime_hooks/core/post_task_check.py)
 - [runtime_hooks/core/session_end.py](runtime_hooks/core/session_end.py)
 
+`scripts/run-runtime-governance.sh` is the shared enforcement entrypoint used by runtime hooks and CI.
+
 ### Governance Tools
 
 - [governance_tools/](governance_tools/)
