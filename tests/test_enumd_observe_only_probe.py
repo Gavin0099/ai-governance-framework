@@ -82,4 +82,96 @@ def test_probe_cli_json_output_and_file_write(tmp_path):
     payload = json.loads(result.stdout)
     assert payload["advisory_only"] is True
     assert payload["sample_count"] == 2
+    assert payload["review_required_advisory_only"] is True
+    assert "review_required_sample_count" in payload
+    assert "review_required_sample_ids" in payload
     assert output.is_file()
+
+
+def test_node_signals_consumed_false_keeps_safe_pass_profile():
+    sample = _load_fixture("looks_safe_not_tested")
+    sample["nodeSignals_consumed"] = False
+    sample["advisories"] = []
+
+    result = probe_report(sample, sample_id="looks_safe_not_tested")
+
+    assert result["boundary_status"] == "pass"
+    assert result["reevaluation_required"] is False
+    assert result["sample_conclusion"] == "safe_for_observe_only"
+
+
+def test_node_signals_consumed_true_requires_reevaluation_without_hard_fail():
+    sample = _load_fixture("looks_safe_not_tested")
+    sample["nodeSignals_consumed"] = True
+    sample["advisories"] = []
+
+    result = probe_report(sample, sample_id="looks_safe_not_tested")
+
+    assert result["boundary_status"] == "pass"
+    assert result["reevaluation_required"] is True
+    assert result["sample_conclusion"] == "observe_only_with_inducement_risk"
+    assert "node_signals_consumed_requires_semantic_reevaluation" in result["notes"]
+
+
+def test_instrumentation_major_change_triggers_advisory_not_gate_block():
+    sample = _load_fixture("looks_safe_not_tested")
+    sample["advisories"] = []
+    sample["instrumentation_version"] = {"major": 2, "minor": 0}
+    sample["instrumentation_version_baseline"] = {"major": 1, "minor": 9}
+
+    result = probe_report(sample, sample_id="major-change")
+
+    assert result["boundary_status"] == "pass"
+    assert result["reevaluation_required"] is True
+    assert result["instrumentation_version_change"]["major_changed"] is True
+    assert "instrumentation_major_change_advisory" in result["notes"]
+
+
+def test_instrumentation_minor_change_has_no_gate_escalation():
+    sample = _load_fixture("looks_safe_not_tested")
+    sample["advisories"] = []
+    sample["instrumentation_version"] = {"major": 1, "minor": 2}
+    sample["instrumentation_version_baseline"] = {"major": 1, "minor": 1}
+
+    result = probe_report(sample, sample_id="minor-change")
+
+    assert result["boundary_status"] == "pass"
+    assert result["reevaluation_required"] is False
+    assert result["instrumentation_version_change"]["minor_changed"] is True
+    assert "instrumentation_minor_change_no_gate_escalation" in result["notes"]
+
+
+def test_domain_advisory_consumed_fixture_requires_review_only():
+    sample = _load_fixture("domain_advisory_consumed_advisory_case")
+    result = probe_report(sample, sample_id="domain_advisory_consumed_advisory_case")
+
+    assert result["boundary_status"] == "pass"
+    assert result["reevaluation_required"] is True
+    assert result["sample_conclusion"] == "observe_only_with_inducement_risk"
+
+
+def test_domain_advisory_major_change_fixture_requires_review_only():
+    sample = _load_fixture("domain_advisory_major_version_change_case")
+    result = probe_report(sample, sample_id="domain_advisory_major_version_change_case")
+
+    assert result["boundary_status"] == "pass"
+    assert result["reevaluation_required"] is True
+    assert result["instrumentation_version_change"]["major_changed"] is True
+    assert result["sample_conclusion"] == "observe_only_with_inducement_risk"
+
+
+def test_run_probe_emits_review_required_summary_surface():
+    result = run_probe(
+        [
+            FIXTURES_DIR / "domain_advisory_consumed_advisory_case.json",
+            FIXTURES_DIR / "domain_advisory_major_version_change_case.json",
+            FIXTURES_DIR / "looks_safe_not_tested.json",
+        ]
+    )
+
+    assert result["review_required_advisory_only"] is True
+    assert result["review_required_sample_count"] == 2
+    assert set(result["review_required_sample_ids"]) == {
+        "domain_advisory_consumed_advisory_case",
+        "domain_advisory_major_version_change_case",
+    }

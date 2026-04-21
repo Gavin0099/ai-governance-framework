@@ -1,0 +1,44 @@
+{
+  "_fixture_id": "domain_advisory_major_version_change_case",
+  "_fixture_purpose": "major instrumentation version change must trigger advisory re-evaluation signal without changing gate verdict.",
+  "producer": "enumd",
+  "artifact_type": "governance_report",
+  "schema_version": "1.0",
+  "observation_class": "external_analysis_artifact",
+  "observation_type": "synthesis_governance_report",
+  "run_type": "production_wave",
+  "run_id": "wave-domain-advisory-major-change",
+  "domain": "usb_windows_firmware",
+  "semantic_scope": "enumd-specific",
+  "instrumentation_version": {
+    "major": 2,
+    "minor": 0
+  },
+  "instrumentation_version_baseline": {
+    "major": 1,
+    "minor": 9
+  },
+  "nodeSignals_consumed": false,
+  "semantic_boundary": {
+    "represents_agent_behavior": false,
+    "derivation": "synthesis_pipeline"
+  },
+  "calibration_profile": {
+    "name": "production_v1",
+    "overlap_thresholds": {
+      "low_overlap": 0.4,
+      "handoff": 0.3,
+      "any_node": 0.5
+    }
+  },
+  "policy_applied": {
+    "policy_id": "tiered-enforcement-policy-v1",
+    "calibration_profile": "production_v1",
+    "outcomes": {
+      "suppressed": 0,
+      "flagged": 0,
+      "passed": 8
+    }
+  },
+  "advisories": []
+}

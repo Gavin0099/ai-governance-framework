@@ -362,3 +362,26 @@ def test_misuse_evidence_status_always_not_tested(fixture_name: str) -> None:
         "Non-equivalence violation: Enumd synthesis verdicts must not map to "
         "framework risk states."
     )
+
+
+def test_structured_instrumentation_version_is_preserved_in_provenance() -> None:
+    report = _load("valid_wave5")
+    report["instrumentation_version"] = {"major": 1, "minor": 5}
+
+    env = adapt_enumd_report(report)
+
+    assert env["ingest_status"] == "accepted"
+    assert env["source"]["producer_version"].endswith("instr:1.5")
+    prov = env["enumd_provenance"]
+    assert prov["instrumentation_version"] == {"major": 1, "minor": 5}
+
+
+def test_node_signals_consumed_is_provenance_only_non_gating() -> None:
+    report = _load("looks_safe_not_tested")
+    report["nodeSignals_consumed"] = True
+
+    env = adapt_enumd_report(report)
+
+    assert env["ingest_status"] == "accepted"
+    assert env["observation"]["misuse_evidence_status"] == "not_tested"
+    assert env["enumd_provenance"]["nodeSignals_consumed"] is True
