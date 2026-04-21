@@ -223,6 +223,9 @@ def summarize_repo(repo_spec: dict, noise_phrase: str, directional_re: re.Patter
             "any_noise_fail": any_noise_fail,
             "closure_gate": closure_gate,
             "scope_filter_compliance": "verified" if not missing_targets else "unverified",
+            "review_required_sample_count": 0,
+            "review_required_sample_ids": [],
+            "review_required_advisory_only": True,
         },
     }
 
