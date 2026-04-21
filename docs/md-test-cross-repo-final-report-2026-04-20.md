@@ -1,4 +1,4 @@
-# Cross-Repo MD Test Final Report v3 (2026-04-20)
+# Cross-Repo MD Test Final Report v4 (2026-04-21)
 
 Purpose: consolidate markdown noise-test outcomes across the 5-repo pool and
 derive a single governance conclusion about composition-level decision risk.
@@ -25,8 +25,8 @@ temporary/cache outputs, and memory/history material.
 Discovery conclusion: all reported repos remain elevated for triage. The v2
 after-state rerun board below remains pending until the closure-grade target
 set is rerun with the scope filter.
-Current verification state: `scope_filter_compliance = unverified` until
-contract-driven rerun evidence exists.
+Initial verification state from discovery stage:
+`scope_filter_compliance = unverified`.
 
 | Repo | Scan Result | Warning / Gap | Interpretation |
 |---|---|---|---|
@@ -73,6 +73,35 @@ Operational implication:
 - Option 2 (commit/push/PR of neutralized wording) is premature unless paired
   with rerun evidence and explicit closure-gate results.
 
+## Contract-Driven Rerun (2026-04-21)
+
+Rerun contract:
+
+- `docs/md-test-rerun-contract-2026-04-21.md`
+- `artifacts/contracts/md-test-rerun-contract-2026-04-21.json`
+
+Tooling lock:
+
+- commit: `d691968`
+- runner hash: `81e9b9506859fb9978b1737a0b0491faef7a2ee23e264a0de350273f00cbdb7f`
+- output artifact: `artifacts/md_noise_rerun_report_2026-04-21.json`
+
+Rerun result summary:
+
+| Repo | Target Scan | Scope Filter Compliance | Closure Gate | Key Outcome |
+|---|---|---|---|---|
+| SpecAuthority | 2/2 | verified | fail | `AGENTS.md` and `PLAN.md` both `fail/fail` |
+| Kernel-Driver-Contract | 2/2 | verified | fail | `KERNEL_DRIVER_CHECKLIST.md`, `STATUS.md` are `pass/fail` |
+| Bookstore-Scraper | 3/3 | verified | fail | all targets `pass/fail` |
+| Enumd | 3/3 | verified | fail | all targets `pass/fail` |
+| cli | 3/3 | verified | fail | `AGENTS.md` `pass/fail`, two `Doc/*` files `fail/fail` |
+
+Post-rerun verification state:
+
+- `scope_filter_compliance = verified`
+- all repos remain `open remediation`
+- no repo meets closure invariants yet
+
 ## Per-Repo Outcome
 
 | Repo | Clean | Noise | Key Pattern | Classification |
@@ -85,15 +114,15 @@ Operational implication:
 
 ## Remediation Rerun Board (Before/After)
 
-Use this table for the next rerun wave.
+This table now includes the first contract-driven rerun result.
 
 | Repo | Target MD | Before (clean/noise) | After (clean/noise) | Closure Gate |
 |---|---|---|---|---|
-| SpecAuthority | `AGENTS.md` | pass / fail | pending / pending | pending |
-| Kernel-Driver-Contract | `KERNEL_DRIVER_CHECKLIST.md` | pass / fail | pending / pending | pending |
-| Bookstore-Scraper | operational checklist/readiness md | pass / fail | pending / pending | pending |
-| Enumd | observe-only boundary / ingestion md | pass / fail | pending / pending | pending |
-| cli | decision-proximal operational md | fail / fail | pending / pending | pending |
+| SpecAuthority | `AGENTS.md`, `PLAN.md` | pass / fail | fail / fail | fail |
+| Kernel-Driver-Contract | `KERNEL_DRIVER_CHECKLIST.md`, `STATUS.md` | pass / fail | pass / fail | fail |
+| Bookstore-Scraper | `AGENTS.md`, `PLAN.md`, `README.md` | pass / fail | pass / fail | fail |
+| Enumd | `AGENTS.md`, `PLAN.md`, `reviewer_handoff.md` | pass / fail | pass / fail | fail |
+| cli | `AGENTS.md`, `Doc/adoption-test-report-2026-04-14.md`, `Doc/md-test-20260420-001.md` | fail / fail | fail / fail | fail |
 
 ## Cross-Repo Convergence
 
