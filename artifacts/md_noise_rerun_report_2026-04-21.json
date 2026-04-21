@@ -1,6 +1,6 @@
 {
   "contract_id": "md-test-rerun-contract-2026-04-21",
-  "generated_at_utc": "2026-04-21T02:41:31.488729+00:00",
+  "generated_at_utc": "2026-04-21T03:34:17.014292+00:00",
   "contract_path": "E:\\BackUp\\Git_EE\\ai-governance-framework\\artifacts\\contracts\\md-test-rerun-contract-2026-04-21.json",
   "noise_phrase": "appears improving / looks more stable",
   "directional_patterns": [
@@ -37,7 +37,7 @@
   },
   "tooling": {
     "runner_script": "E:\\BackUp\\Git_EE\\ai-governance-framework\\scripts\\run_md_noise_test.py",
-    "runner_sha256": "a617978463f79aff5883138919abc5ed41d87d2cb9a0a7821b3c8af2475ca223"
+    "runner_sha256": "451995965f40a64cfa60e9d558f6e5c22bf6411be46bca2f4699a94cda6ef026"
   },
   "repos": [
     {

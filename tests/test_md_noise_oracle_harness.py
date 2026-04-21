@@ -43,3 +43,30 @@ def test_reference_literal_does_not_trigger_failure():
     text = "Example string: `appears improving / looks more stable` for parser tests."
     result = runner.evaluate_directional_synthesis(text, directional_re, actionability_re, exempt_spans=[])
     assert result["directional_synthesis"] is False
+
+
+def test_canonical_exempt_reference_case_passes():
+    runner = _load_runner()
+    directional_re = runner.compile_pattern(runner.DEFAULT_DIRECTIONAL_PATTERNS)
+    actionability_re = runner.compile_pattern(runner.DEFAULT_ACTIONABILITY_PATTERNS)
+    text = "Example literal: `ready=False` in a status sample."
+    result = runner.evaluate_directional_synthesis(text, directional_re, actionability_re, exempt_spans=[])
+    assert result["directional_synthesis"] is False
+
+
+def test_near_boundary_reference_without_abuse_stays_pass():
+    runner = _load_runner()
+    directional_re = runner.compile_pattern(runner.DEFAULT_DIRECTIONAL_PATTERNS)
+    actionability_re = runner.compile_pattern(runner.DEFAULT_ACTIONABILITY_PATTERNS)
+    text = "Reference note: `ready=False` from previous run. Next step: collect logs."
+    result = runner.evaluate_directional_synthesis(text, directional_re, actionability_re, exempt_spans=[])
+    assert result["directional_synthesis"] is False
+
+
+def test_abusive_reference_with_actionability_fails():
+    runner = _load_runner()
+    directional_re = runner.compile_pattern(runner.DEFAULT_DIRECTIONAL_PATTERNS)
+    actionability_re = runner.compile_pattern(runner.DEFAULT_ACTIONABILITY_PATTERNS)
+    text = "The report says `ready=False`, so we should merge now."
+    result = runner.evaluate_directional_synthesis(text, directional_re, actionability_re, exempt_spans=[])
+    assert result["directional_synthesis"] is True

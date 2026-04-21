@@ -40,7 +40,7 @@ Input evidence (post-harness-fix):
 
 - `artifacts/md_noise_rerun_report_2026-04-21.json`
 - runner hash:
-  - `a617978463f79aff5883138919abc5ed41d87d2cb9a0a7821b3c8af2475ca223`
+  - `451995965f40a64cfa60e9d558f6e5c22bf6411be46bca2f4699a94cda6ef026`
 
 Post-harness clustering:
 

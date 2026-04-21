@@ -116,14 +116,14 @@ Guardrails implemented:
 - semantic table:
   - `docs/md-noise-oracle-semantics-2026-04-21.md`
 - regression tests:
-  - `tests/test_md_noise_oracle_harness.py` (`3 passed`)
+  - `tests/test_md_noise_oracle_harness.py` (`6 passed`)
 - policy statement embedded in runner output:
   - "This remediation restores oracle satisfiability by removing structural self-triggering; it does not lower the directional policy threshold."
 
 Pass 2 tooling lock:
 
 - runner hash:
-  - `a617978463f79aff5883138919abc5ed41d87d2cb9a0a7821b3c8af2475ca223`
+  - `451995965f40a64cfa60e9d558f6e5c22bf6411be46bca2f4699a94cda6ef026`
 - output artifact:
   - `artifacts/md_noise_rerun_report_2026-04-21.json`
 
@@ -139,10 +139,14 @@ Pass 2 result summary:
 
 Interpretation:
 
-- `F-ORACLE-UNSAT` is resolved.
+- `F-ORACLE-UNSAT` is resolved under current guarded cases.
 - residuals are now interpretable and currently concentrated in `cli` docs.
 - final residual-layer assignment is pending doc-level classification:
   - `docs/cli-residual-classification-2026-04-21.md`
+- oracle-level unsatisfiability remains resolved; at least one `cli` residual
+  family still has unresolved attribution between reference-exemption boundary
+  gap and true content defect:
+  - `docs/cli-residual-adjudication-2026-04-21.md`
 
 ## Root-Cause Clustering (Before Remediation)
 
