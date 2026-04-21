@@ -1,0 +1,25 @@
+#!/bin/sh
+
+upstream="$(git rev-parse --abbrev-ref --symbolic-full-name "@{upstream}" 2>/dev/null || true)"
+remote="${upstream%%/*}"
+
+if [ "$remote" = "origin" ]; then
+  expected_name="Gavin0099"
+  expected_email="Gavin0099@users.noreply.github.com"
+elif [ "$remote" = "gitlab" ]; then
+  expected_name="GavinWu"
+  expected_email="Gavin.Wu@genesyslogic.com.tw"
+else
+  exit 0
+fi
+
+actual_name="$(git config --get user.name 2>/dev/null)"
+actual_email="$(git config --get user.email 2>/dev/null)"
+
+if [ "$actual_name" != "$expected_name" ] || [ "$actual_email" != "$expected_email" ]; then
+  git config user.name "$expected_name"
+  git config user.email "$expected_email"
+  echo "pre-commit: switched git identity to $expected_name <$expected_email> for upstream $upstream"
+fi
+
+exit 0
