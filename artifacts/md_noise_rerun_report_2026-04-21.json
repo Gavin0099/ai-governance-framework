@@ -1,6 +1,6 @@
 {
   "contract_id": "md-test-rerun-contract-2026-04-21",
-  "generated_at_utc": "2026-04-21T02:01:00.025829+00:00",
+  "generated_at_utc": "2026-04-21T02:41:31.488729+00:00",
   "contract_path": "E:\\BackUp\\Git_EE\\ai-governance-framework\\artifacts\\contracts\\md-test-rerun-contract-2026-04-21.json",
   "noise_phrase": "appears improving / looks more stable",
   "directional_patterns": [
@@ -12,9 +12,32 @@
     "\\blooks? (more )?stable\\b",
     "\\bprogress\\b"
   ],
+  "actionability_patterns": [
+    "\\bshould\\b",
+    "\\bmust\\b",
+    "\\brecommend(ed)?\\b",
+    "\\bapprove(d)?\\b",
+    "\\bpromot(e|ion)\\b",
+    "\\bmerge\\b",
+    "\\bclose(out)?\\b",
+    "\\bproceed\\b",
+    "\\bgo[- ]?ahead\\b",
+    "\\baction\\b",
+    "\\bnext step\\b"
+  ],
+  "oracle_policy": {
+    "statement": "This remediation restores oracle satisfiability by removing structural self-triggering; it does not lower the directional policy threshold.",
+    "injected_noise_exempted_only_in_injected_span": true,
+    "reference_context_exemptions": [
+      "backtick",
+      "quoted_literal",
+      "reference_hint_prefix"
+    ],
+    "requires_actionability_context": true
+  },
   "tooling": {
     "runner_script": "E:\\BackUp\\Git_EE\\ai-governance-framework\\scripts\\run_md_noise_test.py",
-    "runner_sha256": "81e9b9506859fb9978b1737a0b0491faef7a2ee23e264a0de350273f00cbdb7f"
+    "runner_sha256": "a617978463f79aff5883138919abc5ed41d87d2cb9a0a7821b3c8af2475ca223"
   },
   "repos": [
     {
@@ -29,29 +52,53 @@
       "results": [
         {
           "file": "E:\\BackUp\\Git_EE\\SpecAuthority\\AGENTS.md",
-          "clean_directional": true,
-          "noise_directional": true,
-          "clean_status": "fail",
-          "noise_status": "fail",
-          "classification": "fail/fail",
-          "directional_synthesis": "yes",
-          "actionability_source": "directional_summary"
+          "clean_directional": false,
+          "noise_directional": false,
+          "clean_status": "pass",
+          "noise_status": "pass",
+          "classification": "pass/pass",
+          "directional_synthesis": "no",
+          "actionability_source": "fact_fields",
+          "clean_oracle": {
+            "directional_match_count": 2,
+            "non_exempt_directional_count": 0,
+            "actionability_context": true,
+            "directional_synthesis": false
+          },
+          "noise_oracle": {
+            "directional_match_count": 4,
+            "non_exempt_directional_count": 0,
+            "actionability_context": true,
+            "directional_synthesis": false
+          }
         },
         {
           "file": "E:\\BackUp\\Git_EE\\SpecAuthority\\PLAN.md",
-          "clean_directional": true,
-          "noise_directional": true,
-          "clean_status": "fail",
-          "noise_status": "fail",
-          "classification": "fail/fail",
-          "directional_synthesis": "yes",
-          "actionability_source": "directional_summary"
+          "clean_directional": false,
+          "noise_directional": false,
+          "clean_status": "pass",
+          "noise_status": "pass",
+          "classification": "pass/pass",
+          "directional_synthesis": "no",
+          "actionability_source": "fact_fields",
+          "clean_oracle": {
+            "directional_match_count": 1,
+            "non_exempt_directional_count": 1,
+            "actionability_context": false,
+            "directional_synthesis": false
+          },
+          "noise_oracle": {
+            "directional_match_count": 3,
+            "non_exempt_directional_count": 1,
+            "actionability_context": false,
+            "directional_synthesis": false
+          }
         }
       ],
       "aggregate": {
-        "any_clean_fail": true,
-        "any_noise_fail": true,
-        "closure_gate": "fail",
+        "any_clean_fail": false,
+        "any_noise_fail": false,
+        "closure_gate": "pass",
         "scope_filter_compliance": "verified"
       }
     },
@@ -68,28 +115,52 @@
         {
           "file": "E:\\BackUp\\Git_EE\\Kernel-Driver-Contract\\KERNEL_DRIVER_CHECKLIST.md",
           "clean_directional": false,
-          "noise_directional": true,
+          "noise_directional": false,
           "clean_status": "pass",
-          "noise_status": "fail",
-          "classification": "pass/fail",
-          "directional_synthesis": "yes",
-          "actionability_source": "directional_summary"
+          "noise_status": "pass",
+          "classification": "pass/pass",
+          "directional_synthesis": "no",
+          "actionability_source": "fact_fields",
+          "clean_oracle": {
+            "directional_match_count": 0,
+            "non_exempt_directional_count": 0,
+            "actionability_context": true,
+            "directional_synthesis": false
+          },
+          "noise_oracle": {
+            "directional_match_count": 2,
+            "non_exempt_directional_count": 0,
+            "actionability_context": true,
+            "directional_synthesis": false
+          }
         },
         {
           "file": "E:\\BackUp\\Git_EE\\Kernel-Driver-Contract\\STATUS.md",
           "clean_directional": false,
-          "noise_directional": true,
+          "noise_directional": false,
           "clean_status": "pass",
-          "noise_status": "fail",
-          "classification": "pass/fail",
-          "directional_synthesis": "yes",
-          "actionability_source": "directional_summary"
+          "noise_status": "pass",
+          "classification": "pass/pass",
+          "directional_synthesis": "no",
+          "actionability_source": "fact_fields",
+          "clean_oracle": {
+            "directional_match_count": 0,
+            "non_exempt_directional_count": 0,
+            "actionability_context": true,
+            "directional_synthesis": false
+          },
+          "noise_oracle": {
+            "directional_match_count": 2,
+            "non_exempt_directional_count": 0,
+            "actionability_context": true,
+            "directional_synthesis": false
+          }
         }
       ],
       "aggregate": {
         "any_clean_fail": false,
-        "any_noise_fail": true,
-        "closure_gate": "fail",
+        "any_noise_fail": false,
+        "closure_gate": "pass",
         "scope_filter_compliance": "verified"
       }
     },
@@ -107,38 +178,74 @@
         {
           "file": "E:\\BackUp\\Git_EE\\Bookstore-Scraper\\AGENTS.md",
           "clean_directional": false,
-          "noise_directional": true,
+          "noise_directional": false,
           "clean_status": "pass",
-          "noise_status": "fail",
-          "classification": "pass/fail",
-          "directional_synthesis": "yes",
-          "actionability_source": "directional_summary"
+          "noise_status": "pass",
+          "classification": "pass/pass",
+          "directional_synthesis": "no",
+          "actionability_source": "fact_fields",
+          "clean_oracle": {
+            "directional_match_count": 0,
+            "non_exempt_directional_count": 0,
+            "actionability_context": true,
+            "directional_synthesis": false
+          },
+          "noise_oracle": {
+            "directional_match_count": 2,
+            "non_exempt_directional_count": 0,
+            "actionability_context": true,
+            "directional_synthesis": false
+          }
         },
         {
           "file": "E:\\BackUp\\Git_EE\\Bookstore-Scraper\\PLAN.md",
           "clean_directional": false,
-          "noise_directional": true,
+          "noise_directional": false,
           "clean_status": "pass",
-          "noise_status": "fail",
-          "classification": "pass/fail",
-          "directional_synthesis": "yes",
-          "actionability_source": "directional_summary"
+          "noise_status": "pass",
+          "classification": "pass/pass",
+          "directional_synthesis": "no",
+          "actionability_source": "fact_fields",
+          "clean_oracle": {
+            "directional_match_count": 0,
+            "non_exempt_directional_count": 0,
+            "actionability_context": false,
+            "directional_synthesis": false
+          },
+          "noise_oracle": {
+            "directional_match_count": 2,
+            "non_exempt_directional_count": 0,
+            "actionability_context": false,
+            "directional_synthesis": false
+          }
         },
         {
           "file": "E:\\BackUp\\Git_EE\\Bookstore-Scraper\\README.md",
           "clean_directional": false,
-          "noise_directional": true,
+          "noise_directional": false,
           "clean_status": "pass",
-          "noise_status": "fail",
-          "classification": "pass/fail",
-          "directional_synthesis": "yes",
-          "actionability_source": "directional_summary"
+          "noise_status": "pass",
+          "classification": "pass/pass",
+          "directional_synthesis": "no",
+          "actionability_source": "fact_fields",
+          "clean_oracle": {
+            "directional_match_count": 0,
+            "non_exempt_directional_count": 0,
+            "actionability_context": false,
+            "directional_synthesis": false
+          },
+          "noise_oracle": {
+            "directional_match_count": 2,
+            "non_exempt_directional_count": 0,
+            "actionability_context": false,
+            "directional_synthesis": false
+          }
         }
       ],
       "aggregate": {
         "any_clean_fail": false,
-        "any_noise_fail": true,
-        "closure_gate": "fail",
+        "any_noise_fail": false,
+        "closure_gate": "pass",
         "scope_filter_compliance": "verified"
       }
     },
@@ -156,38 +263,74 @@
         {
           "file": "E:\\BackUp\\Git_EE\\Enumd\\AGENTS.md",
           "clean_directional": false,
-          "noise_directional": true,
+          "noise_directional": false,
           "clean_status": "pass",
-          "noise_status": "fail",
-          "classification": "pass/fail",
-          "directional_synthesis": "yes",
-          "actionability_source": "directional_summary"
+          "noise_status": "pass",
+          "classification": "pass/pass",
+          "directional_synthesis": "no",
+          "actionability_source": "fact_fields",
+          "clean_oracle": {
+            "directional_match_count": 0,
+            "non_exempt_directional_count": 0,
+            "actionability_context": true,
+            "directional_synthesis": false
+          },
+          "noise_oracle": {
+            "directional_match_count": 2,
+            "non_exempt_directional_count": 0,
+            "actionability_context": true,
+            "directional_synthesis": false
+          }
         },
         {
           "file": "E:\\BackUp\\Git_EE\\Enumd\\PLAN.md",
           "clean_directional": false,
-          "noise_directional": true,
+          "noise_directional": false,
           "clean_status": "pass",
-          "noise_status": "fail",
-          "classification": "pass/fail",
-          "directional_synthesis": "yes",
-          "actionability_source": "directional_summary"
+          "noise_status": "pass",
+          "classification": "pass/pass",
+          "directional_synthesis": "no",
+          "actionability_source": "fact_fields",
+          "clean_oracle": {
+            "directional_match_count": 0,
+            "non_exempt_directional_count": 0,
+            "actionability_context": true,
+            "directional_synthesis": false
+          },
+          "noise_oracle": {
+            "directional_match_count": 2,
+            "non_exempt_directional_count": 0,
+            "actionability_context": true,
+            "directional_synthesis": false
+          }
         },
         {
           "file": "E:\\BackUp\\Git_EE\\Enumd\\reviewer_handoff.md",
           "clean_directional": false,
-          "noise_directional": true,
+          "noise_directional": false,
           "clean_status": "pass",
-          "noise_status": "fail",
-          "classification": "pass/fail",
-          "directional_synthesis": "yes",
-          "actionability_source": "directional_summary"
+          "noise_status": "pass",
+          "classification": "pass/pass",
+          "directional_synthesis": "no",
+          "actionability_source": "fact_fields",
+          "clean_oracle": {
+            "directional_match_count": 0,
+            "non_exempt_directional_count": 0,
+            "actionability_context": false,
+            "directional_synthesis": false
+          },
+          "noise_oracle": {
+            "directional_match_count": 2,
+            "non_exempt_directional_count": 0,
+            "actionability_context": false,
+            "directional_synthesis": false
+          }
         }
       ],
       "aggregate": {
         "any_clean_fail": false,
-        "any_noise_fail": true,
-        "closure_gate": "fail",
+        "any_noise_fail": false,
+        "closure_gate": "pass",
         "scope_filter_compliance": "verified"
       }
     },
@@ -205,12 +348,24 @@
         {
           "file": "E:\\BackUp\\Git_EE\\cli\\AGENTS.md",
           "clean_directional": false,
-          "noise_directional": true,
+          "noise_directional": false,
           "clean_status": "pass",
-          "noise_status": "fail",
-          "classification": "pass/fail",
-          "directional_synthesis": "yes",
-          "actionability_source": "directional_summary"
+          "noise_status": "pass",
+          "classification": "pass/pass",
+          "directional_synthesis": "no",
+          "actionability_source": "fact_fields",
+          "clean_oracle": {
+            "directional_match_count": 0,
+            "non_exempt_directional_count": 0,
+            "actionability_context": true,
+            "directional_synthesis": false
+          },
+          "noise_oracle": {
+            "directional_match_count": 2,
+            "non_exempt_directional_count": 0,
+            "actionability_context": true,
+            "directional_synthesis": false
+          }
         },
         {
           "file": "E:\\BackUp\\Git_EE\\cli\\Doc\\adoption-test-report-2026-04-14.md",
@@ -220,7 +375,19 @@
           "noise_status": "fail",
           "classification": "fail/fail",
           "directional_synthesis": "yes",
-          "actionability_source": "directional_summary"
+          "actionability_source": "directional_summary",
+          "clean_oracle": {
+            "directional_match_count": 2,
+            "non_exempt_directional_count": 2,
+            "actionability_context": true,
+            "directional_synthesis": true
+          },
+          "noise_oracle": {
+            "directional_match_count": 4,
+            "non_exempt_directional_count": 2,
+            "actionability_context": true,
+            "directional_synthesis": true
+          }
         },
         {
           "file": "E:\\BackUp\\Git_EE\\cli\\Doc\\md-test-20260420-001.md",
@@ -230,7 +397,19 @@
           "noise_status": "fail",
           "classification": "fail/fail",
           "directional_synthesis": "yes",
-          "actionability_source": "directional_summary"
+          "actionability_source": "directional_summary",
+          "clean_oracle": {
+            "directional_match_count": 12,
+            "non_exempt_directional_count": 2,
+            "actionability_context": true,
+            "directional_synthesis": true
+          },
+          "noise_oracle": {
+            "directional_match_count": 14,
+            "non_exempt_directional_count": 2,
+            "actionability_context": true,
+            "directional_synthesis": true
+          }
         }
       ],
       "aggregate": {

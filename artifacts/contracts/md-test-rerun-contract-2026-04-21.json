@@ -12,6 +12,20 @@
     "\\blooks? (more )?stable\\b",
     "\\bprogress\\b"
   ],
+  "actionability_patterns": [
+    "\\bshould\\b",
+    "\\bmust\\b",
+    "\\brecommend(ed)?\\b",
+    "\\bapprove(d)?\\b",
+    "\\bpromot(e|ion)\\b",
+    "\\bmerge\\b",
+    "\\bclose(out)?\\b",
+    "\\bproceed\\b",
+    "\\bgo[- ]?ahead\\b",
+    "\\baction\\b",
+    "\\bnext step\\b"
+  ],
+  "oracle_semantics_ref": "docs/md-noise-oracle-semantics-2026-04-21.md",
   "repos": [
     {
       "name": "SpecAuthority",

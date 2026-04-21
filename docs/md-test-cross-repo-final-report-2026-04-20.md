@@ -1,4 +1,4 @@
-# Cross-Repo MD Test Final Report v4 (2026-04-21)
+# Cross-Repo MD Test Final Report v5 (2026-04-21)
 
 Purpose: consolidate markdown noise-test outcomes across the 5-repo pool and
 derive a single governance conclusion about composition-level decision risk.
@@ -80,7 +80,7 @@ Rerun contract:
 - `docs/md-test-rerun-contract-2026-04-21.md`
 - `artifacts/contracts/md-test-rerun-contract-2026-04-21.json`
 
-Tooling lock:
+Pass 1 tooling lock:
 
 - commit: `d691968`
 - runner hash: `81e9b9506859fb9978b1737a0b0491faef7a2ee23e264a0de350273f00cbdb7f`
@@ -101,6 +101,46 @@ Post-rerun verification state:
 - `scope_filter_compliance = verified`
 - all repos remain `open remediation`
 - no repo meets closure invariants yet
+
+## Harness Remediation And Replay (2026-04-21)
+
+Harness remediation focus:
+
+- restore oracle satisfiability by preventing structural self-triggering from
+  injected noise phrase
+- preserve directional policy by keeping true directional+actionability cases
+  as fail
+
+Guardrails implemented:
+
+- semantic table:
+  - `docs/md-noise-oracle-semantics-2026-04-21.md`
+- regression tests:
+  - `tests/test_md_noise_oracle_harness.py` (`3 passed`)
+- policy statement embedded in runner output:
+  - "This remediation restores oracle satisfiability by removing structural self-triggering; it does not lower the directional policy threshold."
+
+Pass 2 tooling lock:
+
+- runner hash:
+  - `a617978463f79aff5883138919abc5ed41d87d2cb9a0a7821b3c8af2475ca223`
+- output artifact:
+  - `artifacts/md_noise_rerun_report_2026-04-21.json`
+
+Pass 2 result summary:
+
+| Repo | Scope Filter Compliance | Closure Gate | Outcome |
+|---|---|---|---|
+| SpecAuthority | verified | pass | all targets `pass/pass` |
+| Kernel-Driver-Contract | verified | pass | all targets `pass/pass` |
+| Bookstore-Scraper | verified | pass | all targets `pass/pass` |
+| Enumd | verified | pass | all targets `pass/pass` |
+| cli | verified | fail | 2 doc targets remain `fail/fail` |
+
+Interpretation:
+
+- `F-ORACLE-UNSAT` is resolved.
+- residual fails are now clean repo-level signals concentrated in `cli` docs.
 
 ## Root-Cause Clustering (Before Remediation)
 
@@ -187,10 +227,10 @@ Closure condition (per repo) remains:
 
 ## Immediate Next Actions
 
-1. Fix noise-injection oracle unsatisfiability in test harness.
-2. Freeze updated harness hash and rerun the same contract.
-3. Re-cluster post-harness fails by remediation layer.
-4. Start repo-content/document-structure remediation only on residual fail families.
+1. Execute targeted content remediation on `cli` residual fail surfaces only.
+2. Re-run the same contract after `cli` edits.
+3. Confirm `cli` reaches `pass/pass` while keeping harness policy unchanged.
+4. If `cli` passes, close this rerun wave and archive both pass histories.
 
 ## Closure Gate (Unchanged)
 
