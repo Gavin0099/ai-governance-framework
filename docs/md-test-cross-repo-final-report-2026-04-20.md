@@ -246,6 +246,33 @@ A repo is closure-eligible only when:
 - `directional_synthesis = no`
 - `actionability_source = fact_fields`
 
+## Final Closure Replay (2026-04-21)
+
+Same-contract replay artifact:
+
+- `artifacts/md_noise_rerun_report_2026-04-21.json`
+- `generated_at_utc`: `2026-04-21T05:40:45.260605+00:00`
+- `artifact_sha256`: `dcbea0d080cd434d6145799629baee1511339999846ec670282f3e9eb7ad9bd2`
+- `runner_sha256`: `5096758552b83d4ad4fbe4c2614cffcd968903d044a25e2c38c0c7779922babf`
+
+Closure replay outcome:
+
+| Repo | Closure Gate |
+|---|---|
+| SpecAuthority | pass |
+| Kernel-Driver-Contract | pass |
+| Bookstore-Scraper | pass |
+| Enumd | pass |
+| cli | pass |
+
+Cross-repo commit linkage:
+
+- governance remediation commit (GitHub `origin/main`): `c7ec082`
+- governance remediation mirror (GitLab `main`): `1571526`
+- consuming repo `cli` doc-only remediation commit:
+  - `bfa7232` on `feature/adopt-ai-governance-framework`
+  - scope: `Doc/md-test-20260420-001.md` only
+
 ## Final Statement
 
 Cross-repo evidence supports a stable conclusion:
