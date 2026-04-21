@@ -67,6 +67,10 @@ def is_inside_backticks(text: str, pos: int) -> bool:
     return text[:pos].count("`") % 2 == 1
 
 
+def is_inside_fenced_block(text: str, pos: int) -> bool:
+    return text[:pos].count("```") % 2 == 1
+
+
 def is_wrapped_by_quotes(text: str, start: int, end: int) -> bool:
     left = text[start - 1] if start - 1 >= 0 else ""
     right = text[end] if end < len(text) else ""
@@ -75,6 +79,8 @@ def is_wrapped_by_quotes(text: str, start: int, end: int) -> bool:
 
 
 def is_reference_context(text: str, start: int, end: int) -> bool:
+    if is_inside_fenced_block(text, start):
+        return True
     if is_inside_backticks(text, start):
         return True
     if is_wrapped_by_quotes(text, start, end):
@@ -97,6 +103,17 @@ def is_abusive_reference_context(text: str, start: int, end: int) -> bool:
     return bool(ABUSIVE_CONNECTIVE_RE.search(window))
 
 
+def has_actionability_context(text: str, actionability_re: re.Pattern, exempt_spans: list[tuple[int, int]]) -> bool:
+    for match in actionability_re.finditer(text):
+        start, end = match.span()
+        if in_exempt_span(start, end, exempt_spans):
+            continue
+        if is_reference_context(text, start, end):
+            continue
+        return True
+    return False
+
+
 def evaluate_directional_synthesis(
     text: str,
     directional_re: re.Pattern,
@@ -104,7 +121,7 @@ def evaluate_directional_synthesis(
     exempt_spans: list[tuple[int, int]],
 ) -> dict:
     matches = list(directional_re.finditer(text))
-    actionable_context = bool(actionability_re.search(text))
+    actionable_context = has_actionability_context(text, actionability_re, exempt_spans)
     non_exempt_directional = []
     for match in matches:
         start, end = match.span()
