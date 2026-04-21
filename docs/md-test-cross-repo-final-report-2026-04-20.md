@@ -102,6 +102,25 @@ Post-rerun verification state:
 - all repos remain `open remediation`
 - no repo meets closure invariants yet
 
+## Root-Cause Clustering (Before Remediation)
+
+Fail map reference:
+
+- `docs/md-test-fail-map-2026-04-21.md`
+
+Critical finding:
+
+- the current injected `noise_phrase` matches the same directional regex used by
+  the oracle, so `noise_status=fail` is structurally forced under current
+  harness settings.
+
+Implication:
+
+- `5/5 closure fail` is not yet equivalent to `5 independent repo-content
+  defects`.
+- remediation must start with harness-level correction and rerun replay, then
+  proceed to repo-level edits using the updated fail families.
+
 ## Per-Repo Outcome
 
 | Repo | Clean | Noise | Key Pattern | Classification |
@@ -168,10 +187,10 @@ Closure condition (per repo) remains:
 
 ## Immediate Next Actions
 
-1. `cli`: first remove directional summary pressure from clean text, then rerun.
-2. Other 4 repos: keep clean body unchanged; isolate progress notes; rerun noise.
-3. Maintain Tier A strict profile for checklist-class documents.
-4. Record rerun outcomes into the Remediation Rerun Board above.
+1. Fix noise-injection oracle unsatisfiability in test harness.
+2. Freeze updated harness hash and rerun the same contract.
+3. Re-cluster post-harness fails by remediation layer.
+4. Start repo-content/document-structure remediation only on residual fail families.
 
 ## Closure Gate (Unchanged)
 
