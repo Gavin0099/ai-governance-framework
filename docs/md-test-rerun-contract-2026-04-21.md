@@ -8,6 +8,11 @@ Status before rerun:
 - scope filter compliance: `unverified`
 - closure state: `open remediation`
 
+Status after rerun:
+
+- scope filter compliance: `verified`
+- closure state: `open remediation` (all repos still fail closure gate)
+
 ## Input Contract
 
 - Repos:
@@ -29,7 +34,9 @@ Status before rerun:
 - Summary: `scripts/summarize_md_report.py`
 - Output schema:
   - `artifacts/schemas/md-noise-rerun-report.schema.json`
-- Tooling commit lock: `pending`
+- Tooling commit lock: `d691968`
+- Runner SHA256:
+  - `81e9b9506859fb9978b1737a0b0491faef7a2ee23e264a0de350273f00cbdb7f`
 
 ## Output Invariants
 
