@@ -70,3 +70,21 @@ def test_abusive_reference_with_actionability_fails():
     text = "The report says `ready=False`, so we should merge now."
     result = runner.evaluate_directional_synthesis(text, directional_re, actionability_re, exempt_spans=[])
     assert result["directional_synthesis"] is True
+
+
+def test_fenced_status_literal_is_exempt():
+    runner = _load_runner()
+    directional_re = runner.compile_pattern(runner.DEFAULT_DIRECTIONAL_PATTERNS)
+    actionability_re = runner.compile_pattern(runner.DEFAULT_ACTIONABILITY_PATTERNS)
+    text = "```text\nready = False\n```\nNext step: gather logs."
+    result = runner.evaluate_directional_synthesis(text, directional_re, actionability_re, exempt_spans=[])
+    assert result["directional_synthesis"] is False
+
+
+def test_actionability_literal_in_fenced_block_is_not_context():
+    runner = _load_runner()
+    directional_re = runner.compile_pattern(runner.DEFAULT_DIRECTIONAL_PATTERNS)
+    actionability_re = runner.compile_pattern(runner.DEFAULT_ACTIONABILITY_PATTERNS)
+    text = "Overall readiness status is listed below.\n```text\ncloseout_status=closeout_missing\n```"
+    result = runner.evaluate_directional_synthesis(text, directional_re, actionability_re, exempt_spans=[])
+    assert result["directional_synthesis"] is False

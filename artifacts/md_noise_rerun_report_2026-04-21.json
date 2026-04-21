@@ -1,6 +1,6 @@
 {
   "contract_id": "md-test-rerun-contract-2026-04-21",
-  "generated_at_utc": "2026-04-21T03:34:17.014292+00:00",
+  "generated_at_utc": "2026-04-21T05:40:45.260605+00:00",
   "contract_path": "E:\\BackUp\\Git_EE\\ai-governance-framework\\artifacts\\contracts\\md-test-rerun-contract-2026-04-21.json",
   "noise_phrase": "appears improving / looks more stable",
   "directional_patterns": [
@@ -37,7 +37,7 @@
   },
   "tooling": {
     "runner_script": "E:\\BackUp\\Git_EE\\ai-governance-framework\\scripts\\run_md_noise_test.py",
-    "runner_sha256": "451995965f40a64cfa60e9d558f6e5c22bf6411be46bca2f4699a94cda6ef026"
+    "runner_sha256": "5096758552b83d4ad4fbe4c2614cffcd968903d044a25e2c38c0c7779922babf"
   },
   "repos": [
     {
@@ -369,53 +369,53 @@
         },
         {
           "file": "E:\\BackUp\\Git_EE\\cli\\Doc\\adoption-test-report-2026-04-14.md",
-          "clean_directional": true,
-          "noise_directional": true,
-          "clean_status": "fail",
-          "noise_status": "fail",
-          "classification": "fail/fail",
-          "directional_synthesis": "yes",
-          "actionability_source": "directional_summary",
+          "clean_directional": false,
+          "noise_directional": false,
+          "clean_status": "pass",
+          "noise_status": "pass",
+          "classification": "pass/pass",
+          "directional_synthesis": "no",
+          "actionability_source": "fact_fields",
           "clean_oracle": {
             "directional_match_count": 2,
-            "non_exempt_directional_count": 2,
-            "actionability_context": true,
-            "directional_synthesis": true
+            "non_exempt_directional_count": 1,
+            "actionability_context": false,
+            "directional_synthesis": false
           },
           "noise_oracle": {
             "directional_match_count": 4,
-            "non_exempt_directional_count": 2,
-            "actionability_context": true,
-            "directional_synthesis": true
+            "non_exempt_directional_count": 1,
+            "actionability_context": false,
+            "directional_synthesis": false
           }
         },
         {
           "file": "E:\\BackUp\\Git_EE\\cli\\Doc\\md-test-20260420-001.md",
-          "clean_directional": true,
-          "noise_directional": true,
-          "clean_status": "fail",
-          "noise_status": "fail",
-          "classification": "fail/fail",
-          "directional_synthesis": "yes",
-          "actionability_source": "directional_summary",
+          "clean_directional": false,
+          "noise_directional": false,
+          "clean_status": "pass",
+          "noise_status": "pass",
+          "classification": "pass/pass",
+          "directional_synthesis": "no",
+          "actionability_source": "fact_fields",
           "clean_oracle": {
-            "directional_match_count": 12,
-            "non_exempt_directional_count": 2,
+            "directional_match_count": 9,
+            "non_exempt_directional_count": 0,
             "actionability_context": true,
-            "directional_synthesis": true
+            "directional_synthesis": false
           },
           "noise_oracle": {
-            "directional_match_count": 14,
-            "non_exempt_directional_count": 2,
+            "directional_match_count": 11,
+            "non_exempt_directional_count": 0,
             "actionability_context": true,
-            "directional_synthesis": true
+            "directional_synthesis": false
           }
         }
       ],
       "aggregate": {
-        "any_clean_fail": true,
-        "any_noise_fail": true,
-        "closure_gate": "fail",
+        "any_clean_fail": false,
+        "any_noise_fail": false,
+        "closure_gate": "pass",
         "scope_filter_compliance": "verified"
       }
     }
