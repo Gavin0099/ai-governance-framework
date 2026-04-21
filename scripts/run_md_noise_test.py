@@ -32,6 +32,7 @@ DEFAULT_ACTIONABILITY_PATTERNS = [
     r"\bnext step\b",
 ]
 REFERENCE_HINT_RE = re.compile(r"(example|string|literal|quoted|quote|test|regex|pattern|sample)", re.IGNORECASE)
+ABUSIVE_CONNECTIVE_RE = re.compile(r"\b(so|therefore|thus|hence|because)\b", re.IGNORECASE)
 
 
 def file_sha256(path: Path) -> str:
@@ -69,7 +70,7 @@ def is_inside_backticks(text: str, pos: int) -> bool:
 def is_wrapped_by_quotes(text: str, start: int, end: int) -> bool:
     left = text[start - 1] if start - 1 >= 0 else ""
     right = text[end] if end < len(text) else ""
-    quote_chars = {'"', "'", "“", "”", "‘", "’"}
+    quote_chars = {'"', "'"}
     return left in quote_chars and right in quote_chars
 
 
@@ -89,6 +90,13 @@ def in_exempt_span(start: int, end: int, exempt_spans: list[tuple[int, int]]) ->
     return False
 
 
+def is_abusive_reference_context(text: str, start: int, end: int) -> bool:
+    window_start = max(0, start - 96)
+    window_end = min(len(text), end + 96)
+    window = text[window_start:window_end]
+    return bool(ABUSIVE_CONNECTIVE_RE.search(window))
+
+
 def evaluate_directional_synthesis(
     text: str,
     directional_re: re.Pattern,
@@ -103,8 +111,17 @@ def evaluate_directional_synthesis(
         if in_exempt_span(start, end, exempt_spans):
             continue
         if is_reference_context(text, start, end):
+            if actionable_context and is_abusive_reference_context(text, start, end):
+                non_exempt_directional.append(
+                    {
+                        "term": match.group(0),
+                        "start": start,
+                        "end": end,
+                        "source": "abusive_reference",
+                    }
+                )
             continue
-        non_exempt_directional.append({"term": match.group(0), "start": start, "end": end})
+        non_exempt_directional.append({"term": match.group(0), "start": start, "end": end, "source": "plain"})
     directional_synthesis = bool(non_exempt_directional) and actionable_context
     return {
         "directional_match_count": len(matches),
