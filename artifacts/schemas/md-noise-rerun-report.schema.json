@@ -7,6 +7,8 @@
     "contract_id",
     "generated_at_utc",
     "contract_path",
+    "actionability_patterns",
+    "oracle_policy",
     "tooling",
     "repos"
   ],
@@ -27,6 +29,38 @@
       "type": "array",
       "items": {
         "type": "string"
+      }
+    },
+    "actionability_patterns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "oracle_policy": {
+      "type": "object",
+      "required": [
+        "statement",
+        "injected_noise_exempted_only_in_injected_span",
+        "reference_context_exemptions",
+        "requires_actionability_context"
+      ],
+      "properties": {
+        "statement": {
+          "type": "string"
+        },
+        "injected_noise_exempted_only_in_injected_span": {
+          "type": "boolean"
+        },
+        "reference_context_exemptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requires_actionability_context": {
+          "type": "boolean"
+        }
       }
     },
     "tooling": {
@@ -92,7 +126,9 @@
                 "noise_status",
                 "classification",
                 "directional_synthesis",
-                "actionability_source"
+                "actionability_source",
+                "clean_oracle",
+                "noise_oracle"
               ],
               "properties": {
                 "file": {
@@ -134,6 +170,56 @@
                     "fact_fields",
                     "directional_summary"
                   ]
+                },
+                "clean_oracle": {
+                  "type": "object",
+                  "required": [
+                    "directional_match_count",
+                    "non_exempt_directional_count",
+                    "actionability_context",
+                    "directional_synthesis"
+                  ],
+                  "properties": {
+                    "directional_match_count": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "non_exempt_directional_count": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "actionability_context": {
+                      "type": "boolean"
+                    },
+                    "directional_synthesis": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "noise_oracle": {
+                  "type": "object",
+                  "required": [
+                    "directional_match_count",
+                    "non_exempt_directional_count",
+                    "actionability_context",
+                    "directional_synthesis"
+                  ],
+                  "properties": {
+                    "directional_match_count": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "non_exempt_directional_count": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "actionability_context": {
+                      "type": "boolean"
+                    },
+                    "directional_synthesis": {
+                      "type": "boolean"
+                    }
+                  }
                 }
               }
             }

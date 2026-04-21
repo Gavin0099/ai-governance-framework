@@ -11,7 +11,7 @@ Status before rerun:
 Status after rerun:
 
 - scope filter compliance: `verified`
-- closure state: `open remediation` (all repos still fail closure gate)
+- closure state: `partial closure` (4 repos pass; `cli` remains open remediation)
 
 ## Input Contract
 
@@ -34,9 +34,16 @@ Status after rerun:
 - Summary: `scripts/summarize_md_report.py`
 - Output schema:
   - `artifacts/schemas/md-noise-rerun-report.schema.json`
-- Tooling commit lock: `d691968`
+- Oracle semantics:
+  - `docs/md-noise-oracle-semantics-2026-04-21.md`
+- Tooling commit lock: `pending` (post-harness-remediation)
 - Runner SHA256:
-  - `81e9b9506859fb9978b1737a0b0491faef7a2ee23e264a0de350273f00cbdb7f`
+  - `a617978463f79aff5883138919abc5ed41d87d2cb9a0a7821b3c8af2475ca223`
+
+Policy assurance:
+
+This remediation restores oracle satisfiability by removing structural
+self-triggering; it does not lower the directional policy threshold.
 
 ## Output Invariants
 

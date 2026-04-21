@@ -2,13 +2,13 @@
 
 Purpose: cluster first rerun failures before repo-level remediation.
 
-Input evidence:
+Input evidence (pre-harness-fix):
 
 - `artifacts/md_noise_rerun_report_2026-04-21.json`
 - runner hash:
   - `81e9b9506859fb9978b1737a0b0491faef7a2ee23e264a0de350273f00cbdb7f`
 
-## Fail Clustering
+## Fail Clustering (Pre-Harness Fix)
 
 | Repo | Fail Surface | Suspected Root Cause Family | Recommended Remediation Layer |
 |---|---|---|---|
@@ -33,3 +33,27 @@ Input evidence:
 3. Rerun the same contract.
 4. Re-cluster fails into content/document-structure/policy families.
 5. Only then execute repo-level wording remediation.
+
+## Post-Harness Rerun Snapshot
+
+Input evidence (post-harness-fix):
+
+- `artifacts/md_noise_rerun_report_2026-04-21.json`
+- runner hash:
+  - `a617978463f79aff5883138919abc5ed41d87d2cb9a0a7821b3c8af2475ca223`
+
+Post-harness clustering:
+
+| Repo | Fail Surface | Root Cause Family | Recommended Remediation Layer |
+|---|---|---|---|
+| SpecAuthority | none | cleared | none |
+| Kernel-Driver-Contract | none | cleared | none |
+| Bookstore-Scraper | none | cleared | none |
+| Enumd | none | cleared | none |
+| cli | `Doc/adoption-test-report-2026-04-14.md`, `Doc/md-test-20260420-001.md` (`fail/fail`) | `F-CLEAN-LEXICAL-RESIDUAL` | content fix |
+
+Validation outcome:
+
+- `F-ORACLE-UNSAT` no longer holds.
+- true directional cases still fail under actionability context.
+- residual failures are now clean repo-level signals (`cli` docs).
