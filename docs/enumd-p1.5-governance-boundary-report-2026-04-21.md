@@ -226,6 +226,8 @@ Interpretation guard:
 
 - advisory visibility does not imply gate promotion/block semantics
 - this mapping is boundary instrumentation, not policy finalization
+- `review_required_sample_count` is a visibility metric, not a severity/escalation metric
+- `review_required_sample_count` must not be used for ranking, prioritization, or escalation decisions
 
 ## Validation Environment Note
 
