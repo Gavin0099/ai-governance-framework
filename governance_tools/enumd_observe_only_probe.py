@@ -54,6 +54,44 @@ def _max_risk(a: str, b: str) -> str:
     return a if _severity_rank(a) >= _severity_rank(b) else b
 
 
+def _read_node_signals_consumed(report: dict[str, Any]) -> tuple[bool, list[str]]:
+    notes: list[str] = []
+    raw = report.get("nodeSignals_consumed", False)
+    if isinstance(raw, bool):
+        return raw, notes
+    notes.append("node_signals_consumed_malformed_treated_as_false")
+    return False, notes
+
+
+def _read_instrumentation_version(raw: Any) -> dict[str, int] | None:
+    if not isinstance(raw, dict):
+        return None
+    major = raw.get("major")
+    minor = raw.get("minor")
+    if isinstance(major, int) and isinstance(minor, int):
+        return {"major": major, "minor": minor}
+    return None
+
+
+def _assess_instrumentation_version_change(report: dict[str, Any]) -> dict[str, Any]:
+    current = _read_instrumentation_version(report.get("instrumentation_version"))
+    baseline = _read_instrumentation_version(report.get("instrumentation_version_baseline"))
+
+    major_changed = False
+    minor_changed = False
+    if current and baseline:
+        major_changed = current["major"] != baseline["major"]
+        minor_changed = current["minor"] != baseline["minor"]
+
+    return {
+        "current": current,
+        "baseline": baseline,
+        "major_changed": major_changed,
+        "minor_changed": minor_changed,
+        "advisory_only": True,
+    }
+
+
 def probe_report(report: dict[str, Any], sample_id: str) -> dict[str, Any]:
     notes: list[str] = []
     validation_errors = validate_report(report)
@@ -84,6 +122,12 @@ def probe_report(report: dict[str, Any], sample_id: str) -> dict[str, Any]:
     forbidden_seen = sorted(k for k in _FORBIDDEN_AUTHORITY_FIELDS if k in report)
     advisory_signals = envelope.get("advisory_signals") or []
     advisories = report.get("advisories") or []
+    node_signals_consumed, consumed_notes = _read_node_signals_consumed(report)
+    notes.extend(consumed_notes)
+    instrumentation_change = _assess_instrumentation_version_change(report)
+    instrumentation_major_changed = bool(instrumentation_change["major_changed"])
+    instrumentation_minor_changed = bool(instrumentation_change["minor_changed"])
+    reevaluation_required = node_signals_consumed or instrumentation_major_changed
 
     semantic_inducement_risk = "low"
     consumer_misread_risk = "low"
@@ -95,6 +139,16 @@ def probe_report(report: dict[str, Any], sample_id: str) -> dict[str, Any]:
         semantic_inducement_risk = "high"
         consumer_misread_risk = "high"
         notes.append("forbidden_authority_fields_present")
+    if node_signals_consumed:
+        semantic_inducement_risk = _max_risk(semantic_inducement_risk, "medium")
+        consumer_misread_risk = _max_risk(consumer_misread_risk, "medium")
+        notes.append("node_signals_consumed_requires_semantic_reevaluation")
+    if instrumentation_major_changed:
+        semantic_inducement_risk = _max_risk(semantic_inducement_risk, "medium")
+        consumer_misread_risk = _max_risk(consumer_misread_risk, "medium")
+        notes.append("instrumentation_major_change_advisory")
+    elif instrumentation_minor_changed:
+        notes.append("instrumentation_minor_change_no_gate_escalation")
     if boundary_status == "fail":
         semantic_inducement_risk = _max_risk(semantic_inducement_risk, "high")
         consumer_misread_risk = _max_risk(consumer_misread_risk, "high")
@@ -117,6 +171,9 @@ def probe_report(report: dict[str, Any], sample_id: str) -> dict[str, Any]:
         "validation_error_count": len(validation_errors),
         "validation_errors": validation_errors,
         "forbidden_authority_fields_seen": forbidden_seen,
+        "nodeSignals_consumed": node_signals_consumed,
+        "reevaluation_required": reevaluation_required,
+        "instrumentation_version_change": instrumentation_change,
         "sample_conclusion": sample_conclusion,
     }
 
@@ -176,11 +233,20 @@ def run_probe(sample_paths: list[Path]) -> dict[str, Any]:
     else:
         batch_conclusion = "safe_for_observe_only"
 
+    review_required_sample_ids = [
+        str(r.get("sample_id"))
+        for r in records
+        if bool(r.get("reevaluation_required"))
+    ]
+
     return {
         "advisory_only": True,
         "probe_kind": "enumd_real_data_observe_only",
         "sample_count": len(records),
         "batch_conclusion": batch_conclusion,
+        "review_required_sample_count": len(review_required_sample_ids),
+        "review_required_sample_ids": review_required_sample_ids,
+        "review_required_advisory_only": True,
         "samples": records,
         "caveat": (
             "Probe pass means containment under observe-only scope; "
@@ -195,6 +261,8 @@ def format_human(result: dict[str, Any]) -> str:
         f"advisory_only={result.get('advisory_only')}",
         f"sample_count={result.get('sample_count')}",
         f"batch_conclusion={result.get('batch_conclusion')}",
+        f"review_required_sample_count={result.get('review_required_sample_count')}",
+        "review_required_advisory_only=True",
         f"caveat={result.get('caveat')}",
         "[samples]",
     ]
@@ -206,12 +274,18 @@ def format_human(result: dict[str, Any]) -> str:
                     f"ingestion_valid={sample.get('ingestion_valid')}",
                     f"boundary_status={sample.get('boundary_status')}",
                     f"runtime_pass={(sample.get('runtime_eligible_result') or {}).get('pass')}",
+                    f"reevaluation_required={sample.get('reevaluation_required')}",
                     f"semantic_inducement_risk={sample.get('semantic_inducement_risk')}",
                     f"consumer_misread_risk={sample.get('consumer_misread_risk')}",
                     f"sample_conclusion={sample.get('sample_conclusion')}",
                 ]
             )
         )
+    ids = result.get("review_required_sample_ids") or []
+    if ids:
+        lines.append("[review_required_samples]")
+        for sample_id in ids:
+            lines.append(f"- {sample_id}")
     return "\n".join(lines)
 
 

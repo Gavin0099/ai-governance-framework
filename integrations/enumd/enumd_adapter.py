@@ -92,6 +92,47 @@ _ENUMD_FORBIDDEN_AUTHORITY_FIELDS = frozenset({
 _ENUMD_ADVISORY_MAX = 10
 
 
+def _normalize_instrumentation_version(
+    raw: Any,
+) -> tuple[dict[str, int] | None, str | None]:
+    """
+    Normalize instrumentation_version into {"major": int, "minor": int}.
+
+    Returns:
+      - normalized object when shape is valid
+      - optional warning string when a dict is provided but invalid
+    """
+    if isinstance(raw, dict):
+        major = raw.get("major")
+        minor = raw.get("minor")
+        if isinstance(major, int) and isinstance(minor, int):
+            return {"major": major, "minor": minor}, None
+        return None, (
+            "enumd_adapter: instrumentation_version dict must include integer "
+            "major/minor; treating as advisory metadata only"
+        )
+    return None, None
+
+
+def _normalize_node_signals_consumed(raw: Any) -> tuple[bool | None, str | None]:
+    """
+    Normalize nodeSignals_consumed into bool when explicitly present.
+
+    Returns:
+      - bool when valid
+      - None when absent
+      - warning when present but non-bool
+    """
+    if raw is None:
+        return None, None
+    if isinstance(raw, bool):
+        return raw, None
+    return None, (
+        "enumd_adapter: nodeSignals_consumed must be boolean when present; "
+        "ignoring malformed value"
+    )
+
+
 def _build_advisory_signals(report: dict[str, Any]) -> list[dict[str, Any]]:
     """
     Extract Enumd advisory signals into structured signal records.
@@ -160,10 +201,13 @@ def _derive_producer_version(report: dict[str, Any]) -> str | None:
     """Combine schema_version and instrumentation_version for provenance."""
     schema_v = report.get("schema_version")
     instr_v = report.get("instrumentation_version")
+    instr_obj, _ = _normalize_instrumentation_version(instr_v)
     parts = []
     if isinstance(schema_v, str) and schema_v.strip():
         parts.append(f"schema:{schema_v.strip()}")
-    if isinstance(instr_v, str) and instr_v.strip():
+    if instr_obj is not None:
+        parts.append(f"instr:{instr_obj['major']}.{instr_obj['minor']}")
+    elif isinstance(instr_v, str) and instr_v.strip():
         parts.append(f"instr:{instr_v.strip()}")
     return "/".join(parts) if parts else None
 
@@ -219,6 +263,18 @@ def adapt_enumd_report(report: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(run_id, str) or not run_id.strip():
         run_id = None
         warnings.append("enumd_adapter: missing run_id — cannot identify source run")
+
+    instrumentation_obj, instrumentation_warning = _normalize_instrumentation_version(
+        report.get("instrumentation_version")
+    )
+    if instrumentation_warning:
+        warnings.append(instrumentation_warning)
+
+    node_signals_consumed, consumed_warning = _normalize_node_signals_consumed(
+        report.get("nodeSignals_consumed")
+    )
+    if consumed_warning:
+        warnings.append(consumed_warning)
 
     source_id = f"enumd:{run_id}" if run_id else "enumd:unknown_run"
 
@@ -297,6 +353,8 @@ def adapt_enumd_report(report: dict[str, Any]) -> dict[str, Any]:
             if isinstance(semantic_boundary, dict)
             else None
         ),
+        "nodeSignals_consumed": node_signals_consumed,
+        "instrumentation_version": instrumentation_obj,
     }
 
     return envelope
