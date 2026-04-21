@@ -50,10 +50,11 @@ Post-harness clustering:
 | Kernel-Driver-Contract | none | cleared | none |
 | Bookstore-Scraper | none | cleared | none |
 | Enumd | none | cleared | none |
-| cli | `Doc/adoption-test-report-2026-04-14.md`, `Doc/md-test-20260420-001.md` (`fail/fail`) | `F-CLEAN-LEXICAL-RESIDUAL` | content fix |
+| cli | `Doc/adoption-test-report-2026-04-14.md`, `Doc/md-test-20260420-001.md` (`fail/fail`) | `F-REFERENCE-EXEMPTION-GAP` (with possible `F-CLEAN-LEXICAL-RESIDUAL`) | residual classification first, then minimal harness/content fix by family |
 
 Validation outcome:
 
 - `F-ORACLE-UNSAT` no longer holds.
 - true directional cases still fail under actionability context.
-- residual failures are now clean repo-level signals (`cli` docs).
+- residual failures are interpretable and currently concentrated in `cli`, but
+  still require doc-level residual classification before final layer assignment.

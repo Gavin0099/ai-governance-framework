@@ -140,7 +140,9 @@ Pass 2 result summary:
 Interpretation:
 
 - `F-ORACLE-UNSAT` is resolved.
-- residual fails are now clean repo-level signals concentrated in `cli` docs.
+- residuals are now interpretable and currently concentrated in `cli` docs.
+- final residual-layer assignment is pending doc-level classification:
+  - `docs/cli-residual-classification-2026-04-21.md`
 
 ## Root-Cause Clustering (Before Remediation)
 
@@ -227,10 +229,10 @@ Closure condition (per repo) remains:
 
 ## Immediate Next Actions
 
-1. Execute targeted content remediation on `cli` residual fail surfaces only.
-2. Re-run the same contract after `cli` edits.
-3. Confirm `cli` reaches `pass/pass` while keeping harness policy unchanged.
-4. If `cli` passes, close this rerun wave and archive both pass histories.
+1. Keep residual classification first for `cli` docs (trigger phrase + trigger family + layer).
+2. Apply minimal remediation by family (`harness literal/reference` vs `content lexical`) without broad rewrite.
+3. Re-run the same contract without changing baseline acceptance criteria.
+4. Confirm whether residuals collapse to `pass/pass`; only then discuss wave closure.
 
 ## Closure Gate (Unchanged)
 
