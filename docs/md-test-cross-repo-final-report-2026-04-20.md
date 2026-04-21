@@ -25,6 +25,8 @@ temporary/cache outputs, and memory/history material.
 Discovery conclusion: all reported repos remain elevated for triage. The v2
 after-state rerun board below remains pending until the closure-grade target
 set is rerun with the scope filter.
+Current verification state: `scope_filter_compliance = unverified` until
+contract-driven rerun evidence exists.
 
 | Repo | Scan Result | Warning / Gap | Interpretation |
 |---|---|---|---|

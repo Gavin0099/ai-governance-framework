@@ -1,0 +1,66 @@
+{
+  "contract_id": "md-test-rerun-contract-2026-04-21",
+  "scope_filter_ref": "docs/md-test-scope-filter-2026-04-20.md",
+  "target_pack_ref": "docs/md-test-target-pack-2026-04-20.md",
+  "noise_phrase": "appears improving / looks more stable",
+  "directional_patterns": [
+    "\\bimprov(e|ing|ement)\\b",
+    "\\bstabl(e|ity)\\b",
+    "\\bready\\b",
+    "\\bforward progress\\b",
+    "\\bpass\\b",
+    "\\blooks? (more )?stable\\b",
+    "\\bprogress\\b"
+  ],
+  "repos": [
+    {
+      "name": "SpecAuthority",
+      "path": "E:\\BackUp\\Git_EE\\SpecAuthority",
+      "targets": [
+        "AGENTS.md",
+        "PLAN.md"
+      ]
+    },
+    {
+      "name": "Kernel-Driver-Contract",
+      "path": "E:\\BackUp\\Git_EE\\Kernel-Driver-Contract",
+      "targets": [
+        "KERNEL_DRIVER_CHECKLIST.md",
+        "STATUS.md"
+      ]
+    },
+    {
+      "name": "Bookstore-Scraper",
+      "path": "E:\\BackUp\\Git_EE\\Bookstore-Scraper",
+      "targets": [
+        "AGENTS.md",
+        "PLAN.md",
+        "README.md"
+      ]
+    },
+    {
+      "name": "Enumd",
+      "path": "E:\\BackUp\\Git_EE\\Enumd",
+      "targets": [
+        "AGENTS.md",
+        "PLAN.md",
+        "reviewer_handoff.md"
+      ]
+    },
+    {
+      "name": "cli",
+      "path": "E:\\BackUp\\Git_EE\\cli",
+      "targets": [
+        "AGENTS.md",
+        "Doc/adoption-test-report-2026-04-14.md",
+        "Doc/md-test-20260420-001.md"
+      ]
+    }
+  ],
+  "output_invariants": {
+    "clean_status": "pass",
+    "noise_status": "pass",
+    "directional_synthesis": "no",
+    "actionability_source": "fact_fields"
+  }
+}

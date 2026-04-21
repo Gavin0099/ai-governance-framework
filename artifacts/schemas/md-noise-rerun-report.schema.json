@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "md-noise-rerun-report.schema.json",
+  "title": "MD Noise Rerun Report",
+  "type": "object",
+  "required": [
+    "contract_id",
+    "generated_at_utc",
+    "contract_path",
+    "tooling",
+    "repos"
+  ],
+  "properties": {
+    "contract_id": {
+      "type": "string"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "contract_path": {
+      "type": "string"
+    },
+    "noise_phrase": {
+      "type": "string"
+    },
+    "directional_patterns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tooling": {
+      "type": "object",
+      "required": [
+        "runner_script",
+        "runner_sha256"
+      ],
+      "properties": {
+        "runner_script": {
+          "type": "string"
+        },
+        "runner_sha256": {
+          "type": "string"
+        }
+      }
+    },
+    "repos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "repo",
+          "repo_path",
+          "targets_requested",
+          "targets_scanned",
+          "missing_targets",
+          "results",
+          "aggregate"
+        ],
+        "properties": {
+          "repo": {
+            "type": "string"
+          },
+          "repo_path": {
+            "type": "string"
+          },
+          "targets_requested": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "targets_scanned": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "missing_targets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "file",
+                "clean_directional",
+                "noise_directional",
+                "clean_status",
+                "noise_status",
+                "classification",
+                "directional_synthesis",
+                "actionability_source"
+              ],
+              "properties": {
+                "file": {
+                  "type": "string"
+                },
+                "clean_directional": {
+                  "type": "boolean"
+                },
+                "noise_directional": {
+                  "type": "boolean"
+                },
+                "clean_status": {
+                  "type": "string",
+                  "enum": [
+                    "pass",
+                    "fail"
+                  ]
+                },
+                "noise_status": {
+                  "type": "string",
+                  "enum": [
+                    "pass",
+                    "fail"
+                  ]
+                },
+                "classification": {
+                  "type": "string"
+                },
+                "directional_synthesis": {
+                  "type": "string",
+                  "enum": [
+                    "yes",
+                    "no"
+                  ]
+                },
+                "actionability_source": {
+                  "type": "string",
+                  "enum": [
+                    "fact_fields",
+                    "directional_summary"
+                  ]
+                }
+              }
+            }
+          },
+          "aggregate": {
+            "type": "object",
+            "required": [
+              "any_clean_fail",
+              "any_noise_fail",
+              "closure_gate",
+              "scope_filter_compliance"
+            ],
+            "properties": {
+              "any_clean_fail": {
+                "type": "boolean"
+              },
+              "any_noise_fail": {
+                "type": "boolean"
+              },
+              "closure_gate": {
+                "type": "string",
+                "enum": [
+                  "pass",
+                  "fail"
+                ]
+              },
+              "scope_filter_compliance": {
+                "type": "string",
+                "enum": [
+                  "verified",
+                  "unverified"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
