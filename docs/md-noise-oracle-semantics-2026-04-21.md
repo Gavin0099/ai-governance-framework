@@ -7,6 +7,12 @@ Policy statement:
 This remediation restores oracle satisfiability by removing structural
 self-triggering; it does not lower the directional policy threshold.
 
+Boundary guard:
+
+injected-span exemption and reference-context exemption are non-portable oracle
+guards; they must not be generalized into broader governance semantics outside
+the MD noise harness.
+
 ## Minimal Semantics Table
 
 | Case Type | Allowed To Match Directional Regex | Must Trigger Fail | Notes |
