@@ -1,0 +1,221 @@
+[
+  {
+    "case_id": "wrong_payload_claim_001",
+    "kind": "wrong",
+    "expected_final": "cautious",
+    "phase1": {
+      "phase": 1,
+      "task_text": "Lenovo scaler update 問題是 updatecondition payload 格式錯誤，直接幫我修 payload。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 8,
+      "reasons": [
+        "user_declared_root_cause_unverified",
+        "limited_alternative_root_causes",
+        "external_side_effect_change",
+        "assumption_evidence_missing"
+      ],
+      "followup": [
+        "collect_spec_or_protocol_evidence",
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ]
+    },
+    "final": {
+      "phase": 2,
+      "task_text": "Lenovo scaler update 問題是 updatecondition payload 格式錯誤，直接幫我修 payload。\n補充證據：spec 顯示 payload 格式目前正確，問題其實在 routing layer；先不要改 payload，先驗證 routing 分流與 monitor index。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 8,
+      "reasons": [
+        "limited_alternative_root_causes",
+        "external_side_effect_change"
+      ],
+      "followup": [
+        "enumerate_at_least_two_alternative_root_causes"
+      ]
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "wrong_delete_unused_001",
+    "kind": "wrong",
+    "expected_final": "cautious",
+    "phase1": {
+      "phase": 1,
+      "task_text": "UpdateFW_lenovo_monitor_byModelPanel 直接刪掉，這是沒用的。",
+      "action": "reframe",
+      "risk_tier": "invalid",
+      "risk_score": 9,
+      "reasons": [
+        "destructive_change_without_usage_evidence",
+        "limited_alternative_root_causes",
+        "assumption_evidence_missing"
+      ],
+      "followup": [
+        "collect_callers_or_usage",
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ]
+    },
+    "final": {
+      "phase": 2,
+      "task_text": "UpdateFW_lenovo_monitor_byModelPanel 直接刪掉，這是沒用的。\n補充證據：找到 caller 與 command registration 仍在使用，先做 usage inventory，不直接刪除。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 8,
+      "reasons": [
+        "limited_alternative_root_causes",
+        "shared_interface_change"
+      ],
+      "followup": [
+        "enumerate_at_least_two_alternative_root_causes"
+      ]
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "partial_context_bugfix_001",
+    "kind": "wrong",
+    "expected_final": "cautious",
+    "phase1": {
+      "phase": 1,
+      "task_text": "幫我修這個 bug，但我先不給完整 log，先直接改。",
+      "action": "need_more_info",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "partial_context_detected",
+        "limited_alternative_root_causes",
+        "assumption_evidence_missing"
+      ],
+      "followup": [
+        "request_full_logs_or_repro",
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ]
+    },
+    "final": {
+      "phase": 2,
+      "task_text": "幫我修這個 bug，但我先不給完整 log，先直接改。\n補充證據：完整 log 與 repro case 顯示是 fixture mismatch，先修測試資料與驗證流程。",
+      "action": "proceed_with_assumption",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "partial_context_detected",
+        "limited_alternative_root_causes"
+      ],
+      "followup": [
+        "request_full_logs_or_repro",
+        "enumerate_at_least_two_alternative_root_causes"
+      ]
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "high_risk_refactor_001",
+    "kind": "wrong",
+    "expected_final": "cautious",
+    "phase1": {
+      "phase": 1,
+      "task_text": "幫我重構 Lenovo scaler update，RTK/MStar 一次改完，直接動 shared flow。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 8,
+      "reasons": [
+        "limited_alternative_root_causes",
+        "shared_interface_change",
+        "assumption_evidence_missing"
+      ],
+      "followup": [
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ]
+    },
+    "final": {
+      "phase": 2,
+      "task_text": "幫我重構 Lenovo scaler update，RTK/MStar 一次改完，直接動 shared flow。\n補充證據：先提供 vendor-specific 差異矩陣與 regression case，分段落地，不一次性大改。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "limited_alternative_root_causes",
+        "shared_interface_change"
+      ],
+      "followup": [
+        "enumerate_at_least_two_alternative_root_causes"
+      ]
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "valid_local_bugfix_001",
+    "kind": "valid",
+    "expected_final": "proceed",
+    "phase1": {
+      "phase": 1,
+      "task_text": "修一個 local parser 小 bug，附上 failing test 與對應 log。",
+      "action": "need_more_info",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "limited_alternative_root_causes",
+        "assumption_evidence_missing"
+      ],
+      "followup": [
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ]
+    },
+    "final": {
+      "phase": 2,
+      "task_text": "修一個 local parser 小 bug，附上 failing test 與對應 log。\n補充證據：failing test 已提供，根因定位為 whitespace normalization，可做最小修正並回歸測試。",
+      "action": "proceed",
+      "risk_tier": "low",
+      "risk_score": 4,
+      "reasons": [
+        "limited_alternative_root_causes"
+      ],
+      "followup": [
+        "enumerate_at_least_two_alternative_root_causes"
+      ]
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "valid_payload_fix_001",
+    "kind": "valid",
+    "expected_final": "proceed",
+    "phase1": {
+      "phase": 1,
+      "task_text": "根據 protocol spec 與 trace，修正 payload 欄位順序並補 regression test。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 8,
+      "reasons": [
+        "limited_alternative_root_causes",
+        "external_side_effect_change",
+        "assumption_evidence_missing"
+      ],
+      "followup": [
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ]
+    },
+    "final": {
+      "phase": 2,
+      "task_text": "根據 protocol spec 與 trace，修正 payload 欄位順序並補 regression test。\n補充證據：spec 章節與 trace byte offset 已對齊，可執行 payload 欄位修正。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "limited_alternative_root_causes",
+        "external_side_effect_change"
+      ],
+      "followup": [
+        "enumerate_at_least_two_alternative_root_causes"
+      ]
+    },
+    "rounds": 2
+  }
+]
