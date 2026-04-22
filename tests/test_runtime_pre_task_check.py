@@ -212,6 +212,54 @@ def test_pre_task_check_human_output_includes_suggested_rules_preview(local_tmp_
     assert "suggested_agent=advanced-agent" in output
 
 
+def test_pre_task_check_warns_when_assumption_check_structure_is_missing(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="Fix payload format quickly.",
+        task_level="L1",
+    )
+
+    assert result["ok"] is True
+    assert result["assumption_check"]["complete"] is False
+    assert any("Assumption check missing before modification planning" in warning for warning in result["warnings"])
+    output = pre_task_check.format_human_result(result)
+    assert "assumption_check:" in output
+    assert "advisory_signal: assumption_check_missing -> behavioral_advisory;" in output
+
+
+def test_pre_task_check_accepts_task_text_with_assumption_check_structure(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    task_text = (
+        "[Assumption Check]\n"
+        "assumptions: payload format mismatch\n"
+        "alternative root causes: vendor routing mismatch; library matching issue\n"
+        "evidence: failing log only\n"
+        "reframe: validate routing before patch\n"
+    )
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text=task_text,
+        task_level="L1",
+    )
+
+    assert result["ok"] is True
+    assert result["assumption_check"]["complete"] is True
+    assert not any("Assumption check missing before modification planning" in warning for warning in result["warnings"])
+
+
 def test_pre_task_check_includes_architecture_impact_preview(local_tmp_dir, monkeypatch):
     monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
     (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
