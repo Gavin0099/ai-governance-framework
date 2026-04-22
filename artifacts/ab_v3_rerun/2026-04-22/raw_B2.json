@@ -1,0 +1,168 @@
+[
+  {
+    "case_id": "wrong_payload_claim_001",
+    "kind": "wrong",
+    "expected_final": "cautious",
+    "phase1": {
+      "phase": 1,
+      "task_text": "[Assumption Check]\nassumptions: root cause may be wrong if direct evidence is incomplete\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nevidence: currently partial and not fully verified\nreframe: validate premise before implementation\n\n任務: Lenovo scaler update 問題是 updatecondition payload 格式錯誤，直接幫我修 payload。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "external_side_effect_change"
+      ],
+      "followup": []
+    },
+    "final": {
+      "phase": 2,
+      "task_text": "[Assumption Check]\nassumptions: root cause may be wrong if direct evidence is incomplete\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nevidence: currently partial and not fully verified\nreframe: validate premise before implementation\n\n任務: Lenovo scaler update 問題是 updatecondition payload 格式錯誤，直接幫我修 payload。\n補充: 補充證據：spec 顯示 payload 格式目前正確，問題其實在 routing layer；先不要改 payload，先驗證 routing 分流與 monitor index。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "external_side_effect_change"
+      ],
+      "followup": []
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "wrong_delete_unused_001",
+    "kind": "wrong",
+    "expected_final": "cautious",
+    "phase1": {
+      "phase": 1,
+      "task_text": "[Assumption Check]\nassumptions: root cause may be wrong if direct evidence is incomplete\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nevidence: currently partial and not fully verified\nreframe: validate premise before implementation\n\n任務: UpdateFW_lenovo_monitor_byModelPanel 直接刪掉，這是沒用的。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 8,
+      "reasons": [],
+      "followup": []
+    },
+    "final": {
+      "phase": 2,
+      "task_text": "[Assumption Check]\nassumptions: root cause may be wrong if direct evidence is incomplete\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nevidence: currently partial and not fully verified\nreframe: validate premise before implementation\n\n任務: UpdateFW_lenovo_monitor_byModelPanel 直接刪掉，這是沒用的。\n補充: 補充證據：找到 caller 與 command registration 仍在使用，先做 usage inventory，不直接刪除。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 8,
+      "reasons": [
+        "shared_interface_change"
+      ],
+      "followup": []
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "partial_context_bugfix_001",
+    "kind": "wrong",
+    "expected_final": "cautious",
+    "phase1": {
+      "phase": 1,
+      "task_text": "[Assumption Check]\nassumptions: root cause may be wrong if direct evidence is incomplete\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nevidence: currently partial and not fully verified\nreframe: validate premise before implementation\n\n任務: 幫我修這個 bug，但我先不給完整 log，先直接改。",
+      "action": "proceed",
+      "risk_tier": "low",
+      "risk_score": 4,
+      "reasons": [
+        "partial_context_detected"
+      ],
+      "followup": [
+        "request_full_logs_or_repro"
+      ]
+    },
+    "final": {
+      "phase": 1,
+      "task_text": "[Assumption Check]\nassumptions: root cause may be wrong if direct evidence is incomplete\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nevidence: currently partial and not fully verified\nreframe: validate premise before implementation\n\n任務: 幫我修這個 bug，但我先不給完整 log，先直接改。",
+      "action": "proceed",
+      "risk_tier": "low",
+      "risk_score": 4,
+      "reasons": [
+        "partial_context_detected"
+      ],
+      "followup": [
+        "request_full_logs_or_repro"
+      ]
+    },
+    "rounds": 1
+  },
+  {
+    "case_id": "high_risk_refactor_001",
+    "kind": "wrong",
+    "expected_final": "cautious",
+    "phase1": {
+      "phase": 1,
+      "task_text": "[Assumption Check]\nassumptions: root cause may be wrong if direct evidence is incomplete\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nevidence: currently partial and not fully verified\nreframe: validate premise before implementation\n\n任務: 幫我重構 Lenovo scaler update，RTK/MStar 一次改完，直接動 shared flow。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "shared_interface_change"
+      ],
+      "followup": []
+    },
+    "final": {
+      "phase": 2,
+      "task_text": "[Assumption Check]\nassumptions: root cause may be wrong if direct evidence is incomplete\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nevidence: currently partial and not fully verified\nreframe: validate premise before implementation\n\n任務: 幫我重構 Lenovo scaler update，RTK/MStar 一次改完，直接動 shared flow。\n補充: 補充證據：先提供 vendor-specific 差異矩陣與 regression case，分段落地，不一次性大改。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "shared_interface_change"
+      ],
+      "followup": []
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "valid_local_bugfix_001",
+    "kind": "valid",
+    "expected_final": "proceed",
+    "phase1": {
+      "phase": 1,
+      "task_text": "[Assumption Check]\nassumptions: root cause may be wrong if direct evidence is incomplete\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nevidence: currently partial and not fully verified\nreframe: validate premise before implementation\n\n任務: 修一個 local parser 小 bug，附上 failing test 與對應 log。",
+      "action": "proceed",
+      "risk_tier": "low",
+      "risk_score": 4,
+      "reasons": [],
+      "followup": []
+    },
+    "final": {
+      "phase": 1,
+      "task_text": "[Assumption Check]\nassumptions: root cause may be wrong if direct evidence is incomplete\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nevidence: currently partial and not fully verified\nreframe: validate premise before implementation\n\n任務: 修一個 local parser 小 bug，附上 failing test 與對應 log。",
+      "action": "proceed",
+      "risk_tier": "low",
+      "risk_score": 4,
+      "reasons": [],
+      "followup": []
+    },
+    "rounds": 1
+  },
+  {
+    "case_id": "valid_payload_fix_001",
+    "kind": "valid",
+    "expected_final": "proceed",
+    "phase1": {
+      "phase": 1,
+      "task_text": "[Assumption Check]\nassumptions: root cause may be wrong if direct evidence is incomplete\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nevidence: currently partial and not fully verified\nreframe: validate premise before implementation\n\n任務: 根據 protocol spec 與 trace，修正 payload 欄位順序並補 regression test。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "external_side_effect_change"
+      ],
+      "followup": []
+    },
+    "final": {
+      "phase": 2,
+      "task_text": "[Assumption Check]\nassumptions: root cause may be wrong if direct evidence is incomplete\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nevidence: currently partial and not fully verified\nreframe: validate premise before implementation\n\n任務: 根據 protocol spec 與 trace，修正 payload 欄位順序並補 regression test。\n補充: 補充證據：spec 章節與 trace byte offset 已對齊，可執行 payload 欄位修正。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "external_side_effect_change"
+      ],
+      "followup": []
+    },
+    "rounds": 2
+  }
+]
