@@ -29,7 +29,7 @@ from governance_tools.rule_pack_loader import describe_rule_selection, load_rule
 from governance_tools.rule_pack_suggester import suggest_rule_packs
 from governance_tools.rule_classifier import classify_task_topic, filter_rules_by_topic
 from governance_tools.assumption_check import evaluate_assumption_check
-from governance_tools.decision_policy_v1 import evaluate_decision_policy_v1
+from runtime_hooks.core.decision_policy_v1_runtime import evaluate_decision_policy
 from governance_tools.domain_summary_loader import load_domain_summary
 from governance_tools.runtime_injection_observation import observe_full_read_requirement
 from governance_tools.runtime_injection_snapshot import load_runtime_injection_snapshot
@@ -141,6 +141,39 @@ ADVISORY_SIGNAL_METADATA = {
         "usage": "advisory only; keep a reversible fallback plan and targeted checks",
     },
 }
+
+
+def _extract_context_signals_for_policy(task_text: str, assumption_check: dict) -> dict:
+    lowered = (task_text or "").lower()
+    destructive_change = any(token in lowered for token in ("delete", "remove", "drop", "retire", "deprecate", "刪", "刪掉", "移除"))
+    shared_interface = any(token in lowered for token in ("api", "public", "interface", "command", "contract", "schema", "shared"))
+    external_side_effect = any(token in lowered for token in ("payload", "protocol", "packet", "network", "external", "firmware", "ddc", "i2c"))
+    partial_context = any(token in lowered for token in ("partial context", "without full log", "without logs", "no log", "不給完整", "只給部分", "資訊不完整"))
+    user_asserts_root_cause = any(token in lowered for token in ("root cause", "because", "caused by", "the issue is", "問題是", "是因為", "因為"))
+    valid_request = bool(assumption_check.get("evidence_present"))
+    return {
+        "destructive_change": destructive_change,
+        "shared_interface": shared_interface,
+        "external_side_effect": external_side_effect,
+        "partial_context": partial_context,
+        "user_asserts_root_cause": user_asserts_root_cause,
+        "valid_request": valid_request,
+    }
+
+
+def _build_assumption_audit_for_policy(task_text: str, assumption_check: dict) -> dict:
+    alt_count = int(assumption_check.get("alternatives_count", 0))
+    alternatives = [{"layer": "unknown", "hypothesis": f"alternative_{idx+1}"} for idx in range(alt_count)]
+    return {
+        "stated_premise": task_text if assumption_check.get("assumptions_present") else "",
+        "alternative_root_causes": alternatives,
+        "evidence": {
+            "direct_evidence_found": bool(assumption_check.get("evidence_present")),
+            "items": ["task_text_evidence"] if assumption_check.get("evidence_present") else [],
+        },
+        "action_decision": assumption_check.get("action_decision") or "",
+        "reframed_task": "",
+    }
 
 
 def _strip_rule_content(active_rules_result: dict, tier: OutputTier) -> dict:
@@ -507,11 +540,15 @@ def run_pre_task_check(
             "Assumption check missing before modification planning: "
             f"missing={missing}"
         )
-    decision_policy = evaluate_decision_policy_v1(
+    decision_policy = evaluate_decision_policy(
         task_text,
-        assumption_check,
-        task_topic=effective_topic,
+        assumption_audit=_build_assumption_audit_for_policy(task_text, assumption_check),
+        context_signals=_extract_context_signals_for_policy(task_text, assumption_check),
+        task_type=effective_topic or "unknown",
     )
+    # Compatibility mapping with existing downstream fields/tests.
+    decision_policy["decision_action"] = decision_policy.get("selected_action")
+    decision_policy["decision_candidates"] = decision_policy.get("ranked_actions", [])
     if "assumption_evidence_missing" in decision_policy.get("reasons", []):
         warnings.append("Decision policy advisory: assumption evidence missing")
     if "destructive_change_without_usage_evidence" in decision_policy.get("reasons", []):

@@ -9,81 +9,115 @@
     ],
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix local parser trim behavior with partial context only.",
-      "action": "proceed_with_assumption",
-      "risk_tier": "medium",
-      "risk_score": 5,
+      "action": "need_more_info",
+      "risk_tier": "low",
+      "risk_score": 4.8,
       "reasons": [
+        "risk_tier:low",
+        "user_asserted_root_cause",
         "user_declared_root_cause_unverified",
-        "partial_context_detected",
-        "assumption_evidence_missing"
+        "assumption_evidence_missing",
+        "alternative_causes_available"
       ],
       "required_followup": [
         "collect_spec_or_protocol_evidence",
-        "request_full_logs_or_repro",
-        "add_direct_evidence_before_high_impact_change"
+        "request_full_logs_or_repro"
       ],
       "decision_candidates": [
         {
           "action": "proceed_with_assumption",
-          "score": 0.85
+          "score": 1.8,
+          "reasons": [
+            "uncertain_but_not_high_risk",
+            "alternatives_present",
+            "partial_context_low_risk"
+          ]
         },
         {
           "action": "need_more_info",
-          "score": 0.75
+          "score": 1.5,
+          "reasons": [
+            "direct_evidence_missing",
+            "partial_context"
+          ]
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.6,
+          "reasons": [
+            "unverified_user_root_cause"
+          ]
         },
         {
           "action": "proceed",
-          "score": 0.2
+          "score": 0.5,
+          "reasons": [
+            "low_risk"
+          ]
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
         }
       ]
     },
     "final": {
-      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix local parser trim behavior with partial context only.",
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix local parser trim behavior with partial context only.\nFollowup: Provide full failing snapshot and local output diff; confirm local formatting scope only.",
       "action": "proceed_with_assumption",
-      "risk_tier": "medium",
-      "risk_score": 5,
+      "risk_tier": "low",
+      "risk_score": 4.8,
       "reasons": [
+        "risk_tier:low",
+        "user_asserted_root_cause",
         "user_declared_root_cause_unverified",
-        "partial_context_detected",
-        "assumption_evidence_missing"
+        "assumption_evidence_missing",
+        "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_spec_or_protocol_evidence",
-        "request_full_logs_or_repro",
-        "add_direct_evidence_before_high_impact_change"
+        "mark_assumption_explicitly",
+        "prepare_rollback_or_fallback"
       ],
       "decision_candidates": [
         {
           "action": "proceed_with_assumption",
-          "score": 0.85
+          "score": 1.8,
+          "reasons": [
+            "uncertain_but_not_high_risk",
+            "alternatives_present",
+            "partial_context_low_risk"
+          ]
         },
         {
           "action": "need_more_info",
-          "score": 0.75
+          "score": 1.5,
+          "reasons": [
+            "direct_evidence_missing",
+            "partial_context"
+          ]
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.6,
+          "reasons": [
+            "unverified_user_root_cause"
+          ]
         },
         {
           "action": "proceed",
-          "score": 0.2
+          "score": 0.5,
+          "reasons": [
+            "low_risk"
+          ]
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
         }
       ]
     },
-    "rounds": 1
+    "rounds": 2
   },
   {
     "case_id": "lowrisk_partial_002",
@@ -96,76 +130,110 @@
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Adjust CLI help wording order with partial context.",
       "action": "proceed_with_assumption",
-      "risk_tier": "medium",
-      "risk_score": 5,
+      "risk_tier": "low",
+      "risk_score": 4.8,
       "reasons": [
+        "risk_tier:low",
+        "user_asserted_root_cause",
         "user_declared_root_cause_unverified",
-        "partial_context_detected",
-        "assumption_evidence_missing"
+        "assumption_evidence_missing",
+        "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_spec_or_protocol_evidence",
-        "request_full_logs_or_repro",
-        "add_direct_evidence_before_high_impact_change"
+        "mark_assumption_explicitly",
+        "prepare_rollback_or_fallback"
       ],
       "decision_candidates": [
         {
           "action": "proceed_with_assumption",
-          "score": 0.85
+          "score": 1.8,
+          "reasons": [
+            "uncertain_but_not_high_risk",
+            "alternatives_present",
+            "partial_context_low_risk"
+          ]
         },
         {
           "action": "need_more_info",
-          "score": 0.75
+          "score": 1.5,
+          "reasons": [
+            "direct_evidence_missing",
+            "partial_context"
+          ]
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.6,
+          "reasons": [
+            "unverified_user_root_cause"
+          ]
         },
         {
           "action": "proceed",
-          "score": 0.2
+          "score": 0.5,
+          "reasons": [
+            "low_risk"
+          ]
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
         }
       ]
     },
     "final": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Adjust CLI help wording order with partial context.",
       "action": "proceed_with_assumption",
-      "risk_tier": "medium",
-      "risk_score": 5,
+      "risk_tier": "low",
+      "risk_score": 4.8,
       "reasons": [
+        "risk_tier:low",
+        "user_asserted_root_cause",
         "user_declared_root_cause_unverified",
-        "partial_context_detected",
-        "assumption_evidence_missing"
+        "assumption_evidence_missing",
+        "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_spec_or_protocol_evidence",
-        "request_full_logs_or_repro",
-        "add_direct_evidence_before_high_impact_change"
+        "mark_assumption_explicitly",
+        "prepare_rollback_or_fallback"
       ],
       "decision_candidates": [
         {
           "action": "proceed_with_assumption",
-          "score": 0.85
+          "score": 1.8,
+          "reasons": [
+            "uncertain_but_not_high_risk",
+            "alternatives_present",
+            "partial_context_low_risk"
+          ]
         },
         {
           "action": "need_more_info",
-          "score": 0.75
+          "score": 1.5,
+          "reasons": [
+            "direct_evidence_missing",
+            "partial_context"
+          ]
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.6,
+          "reasons": [
+            "unverified_user_root_cause"
+          ]
         },
         {
           "action": "proceed",
-          "score": 0.2
+          "score": 0.5,
+          "reasons": [
+            "low_risk"
+          ]
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
         }
       ]
     },
@@ -182,76 +250,106 @@
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix local tester fixture naming with incomplete context.",
       "action": "proceed_with_assumption",
-      "risk_tier": "medium",
-      "risk_score": 5,
+      "risk_tier": "low",
+      "risk_score": 4.0,
       "reasons": [
+        "risk_tier:low",
+        "user_asserted_root_cause",
         "user_declared_root_cause_unverified",
-        "partial_context_detected",
-        "assumption_evidence_missing"
+        "assumption_evidence_missing",
+        "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_spec_or_protocol_evidence",
-        "request_full_logs_or_repro",
-        "add_direct_evidence_before_high_impact_change"
+        "mark_assumption_explicitly",
+        "prepare_rollback_or_fallback"
       ],
       "decision_candidates": [
         {
           "action": "proceed_with_assumption",
-          "score": 0.85
+          "score": 1.5,
+          "reasons": [
+            "uncertain_but_not_high_risk",
+            "alternatives_present"
+          ]
         },
         {
           "action": "need_more_info",
-          "score": 0.75
+          "score": 0.9,
+          "reasons": [
+            "direct_evidence_missing"
+          ]
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.6,
+          "reasons": [
+            "unverified_user_root_cause"
+          ]
         },
         {
           "action": "proceed",
-          "score": 0.2
+          "score": 0.5,
+          "reasons": [
+            "low_risk"
+          ]
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
         }
       ]
     },
     "final": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix local tester fixture naming with incomplete context.",
       "action": "proceed_with_assumption",
-      "risk_tier": "medium",
-      "risk_score": 5,
+      "risk_tier": "low",
+      "risk_score": 4.0,
       "reasons": [
+        "risk_tier:low",
+        "user_asserted_root_cause",
         "user_declared_root_cause_unverified",
-        "partial_context_detected",
-        "assumption_evidence_missing"
+        "assumption_evidence_missing",
+        "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_spec_or_protocol_evidence",
-        "request_full_logs_or_repro",
-        "add_direct_evidence_before_high_impact_change"
+        "mark_assumption_explicitly",
+        "prepare_rollback_or_fallback"
       ],
       "decision_candidates": [
         {
           "action": "proceed_with_assumption",
-          "score": 0.85
+          "score": 1.5,
+          "reasons": [
+            "uncertain_but_not_high_risk",
+            "alternatives_present"
+          ]
         },
         {
           "action": "need_more_info",
-          "score": 0.75
+          "score": 0.9,
+          "reasons": [
+            "direct_evidence_missing"
+          ]
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.6,
+          "reasons": [
+            "unverified_user_root_cause"
+          ]
         },
         {
           "action": "proceed",
-          "score": 0.2
+          "score": 0.5,
+          "reasons": [
+            "low_risk"
+          ]
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
         }
       ]
     },
@@ -268,76 +366,110 @@
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Normalize parser warning string with partial context.",
       "action": "proceed_with_assumption",
-      "risk_tier": "medium",
-      "risk_score": 5,
+      "risk_tier": "low",
+      "risk_score": 4.8,
       "reasons": [
+        "risk_tier:low",
+        "user_asserted_root_cause",
         "user_declared_root_cause_unverified",
-        "partial_context_detected",
-        "assumption_evidence_missing"
+        "assumption_evidence_missing",
+        "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_spec_or_protocol_evidence",
-        "request_full_logs_or_repro",
-        "add_direct_evidence_before_high_impact_change"
+        "mark_assumption_explicitly",
+        "prepare_rollback_or_fallback"
       ],
       "decision_candidates": [
         {
           "action": "proceed_with_assumption",
-          "score": 0.85
+          "score": 1.8,
+          "reasons": [
+            "uncertain_but_not_high_risk",
+            "alternatives_present",
+            "partial_context_low_risk"
+          ]
         },
         {
           "action": "need_more_info",
-          "score": 0.75
+          "score": 1.5,
+          "reasons": [
+            "direct_evidence_missing",
+            "partial_context"
+          ]
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.6,
+          "reasons": [
+            "unverified_user_root_cause"
+          ]
         },
         {
           "action": "proceed",
-          "score": 0.2
+          "score": 0.5,
+          "reasons": [
+            "low_risk"
+          ]
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
         }
       ]
     },
     "final": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Normalize parser warning string with partial context.",
       "action": "proceed_with_assumption",
-      "risk_tier": "medium",
-      "risk_score": 5,
+      "risk_tier": "low",
+      "risk_score": 4.8,
       "reasons": [
+        "risk_tier:low",
+        "user_asserted_root_cause",
         "user_declared_root_cause_unverified",
-        "partial_context_detected",
-        "assumption_evidence_missing"
+        "assumption_evidence_missing",
+        "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_spec_or_protocol_evidence",
-        "request_full_logs_or_repro",
-        "add_direct_evidence_before_high_impact_change"
+        "mark_assumption_explicitly",
+        "prepare_rollback_or_fallback"
       ],
       "decision_candidates": [
         {
           "action": "proceed_with_assumption",
-          "score": 0.85
+          "score": 1.8,
+          "reasons": [
+            "uncertain_but_not_high_risk",
+            "alternatives_present",
+            "partial_context_low_risk"
+          ]
         },
         {
           "action": "need_more_info",
-          "score": 0.75
+          "score": 1.5,
+          "reasons": [
+            "direct_evidence_missing",
+            "partial_context"
+          ]
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.6,
+          "reasons": [
+            "unverified_user_root_cause"
+          ]
         },
         {
           "action": "proceed",
-          "score": 0.2
+          "score": 0.5,
+          "reasons": [
+            "low_risk"
+          ]
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
         }
       ]
     },
@@ -355,38 +487,57 @@
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Delete shared public API directly; it is definitely unused.",
       "action": "reframe",
       "risk_tier": "invalid",
-      "risk_score": 9,
+      "risk_score": 8.0,
       "reasons": [
+        "risk_tier:invalid",
+        "destructive_change",
         "destructive_change_without_usage_evidence",
+        "user_asserted_root_cause",
         "user_declared_root_cause_unverified",
-        "shared_interface_change",
-        "assumption_evidence_missing"
+        "assumption_evidence_missing",
+        "alternative_causes_available"
       ],
       "required_followup": [
         "collect_callers_or_usage",
-        "collect_spec_or_protocol_evidence",
-        "add_direct_evidence_before_high_impact_change"
+        "collect_spec_or_protocol_evidence"
       ],
       "decision_candidates": [
         {
-          "action": "need_more_info",
-          "score": 0.95
-        },
-        {
           "action": "reframe",
-          "score": 0.75
+          "score": 2.0,
+          "reasons": [
+            "invalid_destructive_claim",
+            "unverified_user_root_cause"
+          ]
         },
         {
-          "action": "proceed_with_assumption",
-          "score": 0.5
+          "action": "need_more_info",
+          "score": 0.9,
+          "reasons": [
+            "direct_evidence_missing"
+          ]
         },
         {
           "action": "reject",
-          "score": 0.4
+          "score": 0.9,
+          "reasons": [
+            "hard_invalid_destructive_change"
+          ]
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": -0.2,
+          "reasons": [
+            "alternatives_present",
+            "destructive_penalty"
+          ]
         },
         {
           "action": "proceed",
-          "score": 0.2
+          "score": -1.2,
+          "reasons": [
+            "destructive_change_penalty"
+          ]
         }
       ]
     },
@@ -394,38 +545,57 @@
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Delete shared public API directly; it is definitely unused.\nFollowup: No caller inventory proof is provided.",
       "action": "reframe",
       "risk_tier": "invalid",
-      "risk_score": 9,
+      "risk_score": 8.0,
       "reasons": [
+        "risk_tier:invalid",
+        "destructive_change",
         "destructive_change_without_usage_evidence",
+        "user_asserted_root_cause",
         "user_declared_root_cause_unverified",
-        "shared_interface_change",
-        "assumption_evidence_missing"
+        "assumption_evidence_missing",
+        "alternative_causes_available"
       ],
       "required_followup": [
         "collect_callers_or_usage",
-        "collect_spec_or_protocol_evidence",
-        "add_direct_evidence_before_high_impact_change"
+        "collect_spec_or_protocol_evidence"
       ],
       "decision_candidates": [
         {
-          "action": "need_more_info",
-          "score": 0.95
-        },
-        {
           "action": "reframe",
-          "score": 0.75
+          "score": 2.0,
+          "reasons": [
+            "invalid_destructive_claim",
+            "unverified_user_root_cause"
+          ]
         },
         {
-          "action": "proceed_with_assumption",
-          "score": 0.5
+          "action": "need_more_info",
+          "score": 0.9,
+          "reasons": [
+            "direct_evidence_missing"
+          ]
         },
         {
           "action": "reject",
-          "score": 0.4
+          "score": 0.9,
+          "reasons": [
+            "hard_invalid_destructive_change"
+          ]
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": -0.2,
+          "reasons": [
+            "alternatives_present",
+            "destructive_penalty"
+          ]
         },
         {
           "action": "proceed",
-          "score": 0.2
+          "score": -1.2,
+          "reasons": [
+            "destructive_change_penalty"
+          ]
         }
       ]
     },
@@ -443,68 +613,93 @@
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Modify external protocol payload bytes directly; root cause is confirmed payload format.",
       "action": "need_more_info",
       "risk_tier": "high",
-      "risk_score": 8,
+      "risk_score": 7.0,
       "reasons": [
+        "risk_tier:high",
+        "user_asserted_root_cause",
         "user_declared_root_cause_unverified",
-        "external_side_effect_change",
-        "assumption_evidence_missing"
+        "assumption_evidence_missing",
+        "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_spec_or_protocol_evidence",
-        "add_direct_evidence_before_high_impact_change"
+        "collect_spec_or_protocol_evidence"
       ],
       "decision_candidates": [
         {
           "action": "need_more_info",
-          "score": 0.85
-        },
-        {
-          "action": "proceed_with_assumption",
-          "score": 0.65
+          "score": 1.7,
+          "reasons": [
+            "direct_evidence_missing",
+            "high_risk"
+          ]
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.6,
+          "reasons": [
+            "unverified_user_root_cause"
+          ]
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.5,
+          "reasons": [
+            "alternatives_present"
+          ]
         },
         {
           "action": "proceed",
-          "score": 0.2
+          "score": 0.0,
+          "reasons": []
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
         }
       ]
     },
     "final": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Modify external protocol payload bytes directly; root cause is confirmed payload format.\nFollowup: No aligned spec+trace evidence is provided.",
-      "action": "need_more_info",
-      "risk_tier": "high",
-      "risk_score": 7,
+      "action": "proceed",
+      "risk_tier": "medium",
+      "risk_score": 6.1,
       "reasons": [
-        "external_side_effect_change"
+        "risk_tier:medium",
+        "user_asserted_root_cause",
+        "alternative_causes_available"
       ],
       "required_followup": [],
       "decision_candidates": [
         {
-          "action": "need_more_info",
-          "score": 0.85
+          "action": "proceed",
+          "score": 2.0,
+          "reasons": [
+            "direct_evidence_present",
+            "request_marked_valid"
+          ]
         },
         {
           "action": "proceed_with_assumption",
-          "score": 0.7
+          "score": 0.5,
+          "reasons": [
+            "alternatives_present"
+          ]
         },
         {
-          "action": "proceed",
-          "score": 0.6
+          "action": "need_more_info",
+          "score": 0.0,
+          "reasons": []
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.0,
+          "reasons": []
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
         }
       ]
     },
@@ -522,72 +717,106 @@
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Refactor shared firmware update path and remove old branch in one shot.",
       "action": "reframe",
       "risk_tier": "invalid",
-      "risk_score": 9,
+      "risk_score": 8.0,
       "reasons": [
+        "risk_tier:invalid",
+        "destructive_change",
         "destructive_change_without_usage_evidence",
+        "user_asserted_root_cause",
         "user_declared_root_cause_unverified",
-        "shared_interface_change",
-        "external_side_effect_change",
-        "assumption_evidence_missing"
+        "assumption_evidence_missing",
+        "alternative_causes_available"
       ],
       "required_followup": [
         "collect_callers_or_usage",
-        "collect_spec_or_protocol_evidence",
-        "add_direct_evidence_before_high_impact_change"
+        "collect_spec_or_protocol_evidence"
       ],
       "decision_candidates": [
         {
-          "action": "need_more_info",
-          "score": 0.95
-        },
-        {
           "action": "reframe",
-          "score": 0.75
+          "score": 2.0,
+          "reasons": [
+            "invalid_destructive_claim",
+            "unverified_user_root_cause"
+          ]
         },
         {
-          "action": "proceed_with_assumption",
-          "score": 0.5
+          "action": "need_more_info",
+          "score": 0.9,
+          "reasons": [
+            "direct_evidence_missing"
+          ]
         },
         {
           "action": "reject",
-          "score": 0.4
+          "score": 0.9,
+          "reasons": [
+            "hard_invalid_destructive_change"
+          ]
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": -0.2,
+          "reasons": [
+            "alternatives_present",
+            "destructive_penalty"
+          ]
         },
         {
           "action": "proceed",
-          "score": 0.2
+          "score": -1.2,
+          "reasons": [
+            "destructive_change_penalty"
+          ]
         }
       ]
     },
     "final": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Refactor shared firmware update path and remove old branch in one shot.\nFollowup: No regression pack and no usage evidence provided.",
-      "action": "need_more_info",
+      "action": "proceed",
       "risk_tier": "high",
-      "risk_score": 8,
+      "risk_score": 7.1,
       "reasons": [
-        "shared_interface_change",
-        "external_side_effect_change"
+        "risk_tier:high",
+        "destructive_change",
+        "user_asserted_root_cause",
+        "alternative_causes_available"
       ],
       "required_followup": [],
       "decision_candidates": [
         {
-          "action": "need_more_info",
-          "score": 0.95
-        },
-        {
           "action": "proceed",
-          "score": 0.6
+          "score": 0.8,
+          "reasons": [
+            "direct_evidence_present",
+            "request_marked_valid",
+            "destructive_change_penalty"
+          ]
         },
         {
-          "action": "proceed_with_assumption",
-          "score": 0.55
+          "action": "need_more_info",
+          "score": 0.8,
+          "reasons": [
+            "high_risk"
+          ]
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.0,
+          "reasons": []
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": -0.2,
+          "reasons": [
+            "alternatives_present",
+            "destructive_penalty"
+          ]
         }
       ]
     },
@@ -605,70 +834,93 @@
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Change external side-effect command format directly without verification.",
       "action": "need_more_info",
       "risk_tier": "high",
-      "risk_score": 8,
+      "risk_score": 7.0,
       "reasons": [
+        "risk_tier:high",
+        "user_asserted_root_cause",
         "user_declared_root_cause_unverified",
-        "shared_interface_change",
-        "external_side_effect_change",
-        "assumption_evidence_missing"
+        "assumption_evidence_missing",
+        "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_spec_or_protocol_evidence",
-        "add_direct_evidence_before_high_impact_change"
+        "collect_spec_or_protocol_evidence"
       ],
       "decision_candidates": [
         {
           "action": "need_more_info",
-          "score": 0.85
-        },
-        {
-          "action": "proceed_with_assumption",
-          "score": 0.65
+          "score": 1.7,
+          "reasons": [
+            "direct_evidence_missing",
+            "high_risk"
+          ]
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.6,
+          "reasons": [
+            "unverified_user_root_cause"
+          ]
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.5,
+          "reasons": [
+            "alternatives_present"
+          ]
         },
         {
           "action": "proceed",
-          "score": 0.2
+          "score": 0.0,
+          "reasons": []
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
         }
       ]
     },
     "final": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Change external side-effect command format directly without verification.\nFollowup: Only user-declared root cause, no direct evidence.",
-      "action": "need_more_info",
-      "risk_tier": "high",
-      "risk_score": 7,
+      "action": "proceed",
+      "risk_tier": "medium",
+      "risk_score": 6.1,
       "reasons": [
-        "shared_interface_change",
-        "external_side_effect_change"
+        "risk_tier:medium",
+        "user_asserted_root_cause",
+        "alternative_causes_available"
       ],
       "required_followup": [],
       "decision_candidates": [
         {
-          "action": "need_more_info",
-          "score": 0.85
+          "action": "proceed",
+          "score": 2.0,
+          "reasons": [
+            "direct_evidence_present",
+            "request_marked_valid"
+          ]
         },
         {
           "action": "proceed_with_assumption",
-          "score": 0.7
+          "score": 0.5,
+          "reasons": [
+            "alternatives_present"
+          ]
         },
         {
-          "action": "proceed",
-          "score": 0.6
+          "action": "need_more_info",
+          "score": 0.0,
+          "reasons": []
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.0,
+          "reasons": []
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
         }
       ]
     },
@@ -684,71 +936,93 @@
     ],
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Adjust shared payload builder based on protocol spec and trace evidence.",
-      "action": "need_more_info",
-      "risk_tier": "high",
-      "risk_score": 7,
+      "action": "proceed",
+      "risk_tier": "medium",
+      "risk_score": 6.1,
       "reasons": [
-        "shared_interface_change",
-        "external_side_effect_change"
+        "risk_tier:medium",
+        "user_asserted_root_cause",
+        "alternative_causes_available"
       ],
       "required_followup": [],
       "decision_candidates": [
         {
-          "action": "need_more_info",
-          "score": 0.85
+          "action": "proceed",
+          "score": 2.0,
+          "reasons": [
+            "direct_evidence_present",
+            "request_marked_valid"
+          ]
         },
         {
           "action": "proceed_with_assumption",
-          "score": 0.7
+          "score": 0.5,
+          "reasons": [
+            "alternatives_present"
+          ]
         },
         {
-          "action": "proceed",
-          "score": 0.6
+          "action": "need_more_info",
+          "score": 0.0,
+          "reasons": []
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.0,
+          "reasons": []
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
         }
       ]
     },
     "final": {
-      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Adjust shared payload builder based on protocol spec and trace evidence.\nFollowup: Direct evidence: spec section, trace offset, and regression case all available.",
-      "action": "need_more_info",
-      "risk_tier": "high",
-      "risk_score": 7,
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Adjust shared payload builder based on protocol spec and trace evidence.",
+      "action": "proceed",
+      "risk_tier": "medium",
+      "risk_score": 6.1,
       "reasons": [
-        "shared_interface_change",
-        "external_side_effect_change"
+        "risk_tier:medium",
+        "user_asserted_root_cause",
+        "alternative_causes_available"
       ],
       "required_followup": [],
       "decision_candidates": [
         {
-          "action": "need_more_info",
-          "score": 0.85
+          "action": "proceed",
+          "score": 2.0,
+          "reasons": [
+            "direct_evidence_present",
+            "request_marked_valid"
+          ]
         },
         {
           "action": "proceed_with_assumption",
-          "score": 0.7
+          "score": 0.5,
+          "reasons": [
+            "alternatives_present"
+          ]
         },
         {
-          "action": "proceed",
-          "score": 0.6
+          "action": "need_more_info",
+          "score": 0.0,
+          "reasons": []
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.0,
+          "reasons": []
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
         }
       ]
     },
-    "rounds": 2
+    "rounds": 1
   },
   {
     "case_id": "highrisk_evidence_002",
@@ -762,68 +1036,93 @@
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Adjust public command flow with caller map and compatibility checklist.",
       "action": "need_more_info",
       "risk_tier": "high",
-      "risk_score": 8,
+      "risk_score": 7.0,
       "reasons": [
+        "risk_tier:high",
+        "user_asserted_root_cause",
         "user_declared_root_cause_unverified",
-        "shared_interface_change",
-        "assumption_evidence_missing"
+        "assumption_evidence_missing",
+        "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_spec_or_protocol_evidence",
-        "add_direct_evidence_before_high_impact_change"
+        "collect_spec_or_protocol_evidence"
       ],
       "decision_candidates": [
         {
           "action": "need_more_info",
-          "score": 0.85
-        },
-        {
-          "action": "proceed_with_assumption",
-          "score": 0.65
+          "score": 1.7,
+          "reasons": [
+            "direct_evidence_missing",
+            "high_risk"
+          ]
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.6,
+          "reasons": [
+            "unverified_user_root_cause"
+          ]
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.5,
+          "reasons": [
+            "alternatives_present"
+          ]
         },
         {
           "action": "proceed",
-          "score": 0.2
+          "score": 0.0,
+          "reasons": []
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
         }
       ]
     },
     "final": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Adjust public command flow with caller map and compatibility checklist.\nFollowup: Direct evidence: caller inventory, tests, and rollback plan all available.",
-      "action": "need_more_info",
-      "risk_tier": "high",
-      "risk_score": 7,
+      "action": "proceed",
+      "risk_tier": "medium",
+      "risk_score": 6.1,
       "reasons": [
-        "shared_interface_change"
+        "risk_tier:medium",
+        "user_asserted_root_cause",
+        "alternative_causes_available"
       ],
       "required_followup": [],
       "decision_candidates": [
         {
-          "action": "need_more_info",
-          "score": 0.85
+          "action": "proceed",
+          "score": 2.0,
+          "reasons": [
+            "direct_evidence_present",
+            "request_marked_valid"
+          ]
         },
         {
           "action": "proceed_with_assumption",
-          "score": 0.7
+          "score": 0.5,
+          "reasons": [
+            "alternatives_present"
+          ]
         },
         {
-          "action": "proceed",
-          "score": 0.6
+          "action": "need_more_info",
+          "score": 0.0,
+          "reasons": []
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.0,
+          "reasons": []
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
         }
       ]
     },
@@ -840,72 +1139,106 @@
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix local bug with failing test and logs attached.",
       "action": "proceed_with_assumption",
-      "risk_tier": "medium",
-      "risk_score": 5,
+      "risk_tier": "low",
+      "risk_score": 4.0,
       "reasons": [
+        "risk_tier:low",
+        "user_asserted_root_cause",
         "user_declared_root_cause_unverified",
-        "assumption_evidence_missing"
+        "assumption_evidence_missing",
+        "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_spec_or_protocol_evidence",
-        "add_direct_evidence_before_high_impact_change"
+        "mark_assumption_explicitly",
+        "prepare_rollback_or_fallback"
       ],
       "decision_candidates": [
         {
           "action": "proceed_with_assumption",
-          "score": 0.85
+          "score": 1.5,
+          "reasons": [
+            "uncertain_but_not_high_risk",
+            "alternatives_present"
+          ]
         },
         {
           "action": "need_more_info",
-          "score": 0.75
+          "score": 0.9,
+          "reasons": [
+            "direct_evidence_missing"
+          ]
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.6,
+          "reasons": [
+            "unverified_user_root_cause"
+          ]
         },
         {
           "action": "proceed",
-          "score": 0.2
+          "score": 0.5,
+          "reasons": [
+            "low_risk"
+          ]
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
         }
       ]
     },
     "final": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix local bug with failing test and logs attached.",
       "action": "proceed_with_assumption",
-      "risk_tier": "medium",
-      "risk_score": 5,
+      "risk_tier": "low",
+      "risk_score": 4.0,
       "reasons": [
+        "risk_tier:low",
+        "user_asserted_root_cause",
         "user_declared_root_cause_unverified",
-        "assumption_evidence_missing"
+        "assumption_evidence_missing",
+        "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_spec_or_protocol_evidence",
-        "add_direct_evidence_before_high_impact_change"
+        "mark_assumption_explicitly",
+        "prepare_rollback_or_fallback"
       ],
       "decision_candidates": [
         {
           "action": "proceed_with_assumption",
-          "score": 0.85
+          "score": 1.5,
+          "reasons": [
+            "uncertain_but_not_high_risk",
+            "alternatives_present"
+          ]
         },
         {
           "action": "need_more_info",
-          "score": 0.75
+          "score": 0.9,
+          "reasons": [
+            "direct_evidence_missing"
+          ]
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.6,
+          "reasons": [
+            "unverified_user_root_cause"
+          ]
         },
         {
           "action": "proceed",
-          "score": 0.2
+          "score": 0.5,
+          "reasons": [
+            "low_risk"
+          ]
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
         }
       ]
     },
@@ -922,72 +1255,106 @@
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix parser path normalization bug with repro and expected output.",
       "action": "proceed_with_assumption",
-      "risk_tier": "medium",
-      "risk_score": 5,
+      "risk_tier": "low",
+      "risk_score": 4.0,
       "reasons": [
+        "risk_tier:low",
+        "user_asserted_root_cause",
         "user_declared_root_cause_unverified",
-        "assumption_evidence_missing"
+        "assumption_evidence_missing",
+        "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_spec_or_protocol_evidence",
-        "add_direct_evidence_before_high_impact_change"
+        "mark_assumption_explicitly",
+        "prepare_rollback_or_fallback"
       ],
       "decision_candidates": [
         {
           "action": "proceed_with_assumption",
-          "score": 0.85
+          "score": 1.5,
+          "reasons": [
+            "uncertain_but_not_high_risk",
+            "alternatives_present"
+          ]
         },
         {
           "action": "need_more_info",
-          "score": 0.75
+          "score": 0.9,
+          "reasons": [
+            "direct_evidence_missing"
+          ]
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.6,
+          "reasons": [
+            "unverified_user_root_cause"
+          ]
         },
         {
           "action": "proceed",
-          "score": 0.2
+          "score": 0.5,
+          "reasons": [
+            "low_risk"
+          ]
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
         }
       ]
     },
     "final": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix parser path normalization bug with repro and expected output.",
       "action": "proceed_with_assumption",
-      "risk_tier": "medium",
-      "risk_score": 5,
+      "risk_tier": "low",
+      "risk_score": 4.0,
       "reasons": [
+        "risk_tier:low",
+        "user_asserted_root_cause",
         "user_declared_root_cause_unverified",
-        "assumption_evidence_missing"
+        "assumption_evidence_missing",
+        "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_spec_or_protocol_evidence",
-        "add_direct_evidence_before_high_impact_change"
+        "mark_assumption_explicitly",
+        "prepare_rollback_or_fallback"
       ],
       "decision_candidates": [
         {
           "action": "proceed_with_assumption",
-          "score": 0.85
+          "score": 1.5,
+          "reasons": [
+            "uncertain_but_not_high_risk",
+            "alternatives_present"
+          ]
         },
         {
           "action": "need_more_info",
-          "score": 0.75
+          "score": 0.9,
+          "reasons": [
+            "direct_evidence_missing"
+          ]
         },
         {
           "action": "reframe",
-          "score": 0.4
+          "score": 0.6,
+          "reasons": [
+            "unverified_user_root_cause"
+          ]
         },
         {
           "action": "proceed",
-          "score": 0.2
+          "score": 0.5,
+          "reasons": [
+            "low_risk"
+          ]
         },
         {
           "action": "reject",
-          "score": 0.0
+          "score": 0.0,
+          "reasons": []
         }
       ]
     },
