@@ -583,3 +583,59 @@ def test_pre_task_check_human_output_includes_consumption_observation(local_tmp_
     output = pre_task_check.format_human_result(result)
     assert "consumption_observation: require_full_read_for_large_files status=partial role=advisory_only confidence=low" in output
     assert "advisory_signal: require_full_read_for_large_files -> degradation_advisory; large-file visibility is partial, which raises review risk; decision distance=far; not proof of compliance or violation; reviewer-visible advisory only; not verdict-bearing" in output
+
+
+def test_pre_task_check_emits_decision_policy_for_destructive_unverified_request(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="UpdateFW_lenovo_monitor_byModelPanel 直接幫我刪掉 這是沒有用的",
+        task_level="L1",
+    )
+
+    policy = result["decision_policy"]
+    assert policy["risk_tier"] == "invalid"
+    assert policy["decision_action"] == "reframe"
+    assert "destructive_change_without_usage_evidence" in policy["reasons"]
+    assert any("Decision policy advisory: destructive change without usage proof" in warning for warning in result["warnings"])
+
+    output = pre_task_check.format_human_result(result)
+    assert "decision_policy: risk_tier=invalid" in output
+    assert "advisory_signal: destructive_change_without_usage_proof -> risk_advisory;" in output
+
+
+def test_pre_task_check_decision_policy_can_proceed_under_assumption(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    task_text = (
+        "[Assumption Check]\n"
+        "assumptions: parser output order may drift under low-risk formatting changes\n"
+        "alternative root causes: stale fixture may be outdated\n"
+        "alternative root causes: parser whitespace normalization mismatch\n"
+        "evidence: local snapshot diff confirms behavior-only formatting drift\n"
+        "reframe: validate output snapshot after localized cleanup\n"
+    )
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text=task_text,
+        task_level="L1",
+    )
+
+    policy = result["decision_policy"]
+    assert policy["risk_tier"] == "low"
+    assert policy["decision_action"] == "proceed"
+    assert policy["fallback_plan"] == ""
+
+    output = pre_task_check.format_human_result(result)
+    assert "decision_policy: risk_tier=low" in output

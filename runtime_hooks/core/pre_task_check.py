@@ -29,6 +29,7 @@ from governance_tools.rule_pack_loader import describe_rule_selection, load_rule
 from governance_tools.rule_pack_suggester import suggest_rule_packs
 from governance_tools.rule_classifier import classify_task_topic, filter_rules_by_topic
 from governance_tools.assumption_check import evaluate_assumption_check
+from governance_tools.decision_policy_v1 import evaluate_decision_policy_v1
 from governance_tools.domain_summary_loader import load_domain_summary
 from governance_tools.runtime_injection_observation import observe_full_read_requirement
 from governance_tools.runtime_injection_snapshot import load_runtime_injection_snapshot
@@ -110,6 +111,34 @@ ADVISORY_SIGNAL_METADATA = {
         "summary": "no explicit assumption-check structure was found before implementation planning",
         "non_proof": "not proof of invalidity; indicates missing premise-validation trace",
         "usage": "reviewer-visible advisory only; do not treat as gate or blocker",
+    },
+    "assumption_evidence_missing": {
+        "signal_class": "behavioral_advisory",
+        "decision_distance": "far",
+        "summary": "assumption evidence is missing on the decision surface",
+        "non_proof": "not proof that the change is wrong; indicates elevated uncertainty",
+        "usage": "advisory only; collect direct evidence before high-impact actions",
+    },
+    "destructive_change_without_usage_proof": {
+        "signal_class": "risk_advisory",
+        "decision_distance": "near",
+        "summary": "destructive request lacks usage/caller evidence",
+        "non_proof": "not proof that deletion is invalid; indicates high-risk uncertainty",
+        "usage": "advisory only; request usage proof or reframe task before implementation",
+    },
+    "user_declared_root_cause_unverified": {
+        "signal_class": "risk_advisory",
+        "decision_distance": "near",
+        "summary": "user-declared root cause is unverified by direct evidence",
+        "non_proof": "not proof that the root cause is false; indicates verification gap",
+        "usage": "advisory only; gather spec/trace/diff evidence before patching",
+    },
+    "proceeding_under_assumption": {
+        "signal_class": "execution_advisory",
+        "decision_distance": "near",
+        "summary": "runtime decided to proceed under explicit assumptions",
+        "non_proof": "not proof of correctness; requires fallback and verification",
+        "usage": "advisory only; keep a reversible fallback plan and targeted checks",
     },
 }
 
@@ -478,6 +507,19 @@ def run_pre_task_check(
             "Assumption check missing before modification planning: "
             f"missing={missing}"
         )
+    decision_policy = evaluate_decision_policy_v1(
+        task_text,
+        assumption_check,
+        task_topic=effective_topic,
+    )
+    if "assumption_evidence_missing" in decision_policy.get("reasons", []):
+        warnings.append("Decision policy advisory: assumption evidence missing")
+    if "destructive_change_without_usage_evidence" in decision_policy.get("reasons", []):
+        warnings.append("Decision policy advisory: destructive change without usage proof")
+    if "user_declared_root_cause_unverified" in decision_policy.get("reasons", []):
+        warnings.append("Decision policy advisory: user-declared root cause unverified")
+    if decision_policy.get("decision_action") == "proceed_with_assumption":
+        warnings.append("Decision policy advisory: proceeding under assumption")
     runtime_injection = _evaluate_runtime_injection_snapshot(
         runtime_injection_snapshot,
         task_level=task_level,
@@ -583,6 +625,7 @@ def run_pre_task_check(
         },
         "decision_boundary": decision_boundary,
         "assumption_check": assumption_check,
+        "decision_policy": decision_policy,
         "runtime_injection": runtime_injection,
         "consumption_observations": consumption_observations,
         "errors": errors,
@@ -672,6 +715,39 @@ def format_human_result(result: dict) -> str:
         if assumption_check.get("missing"):
             lines.append(f"assumption_check_missing={','.join(assumption_check['missing'])}")
             advisory_line = _render_advisory_signal_line("assumption_check_missing")
+            if advisory_line:
+                lines.append(advisory_line)
+    decision_policy = result.get("decision_policy") or {}
+    if decision_policy:
+        lines.append(
+            "decision_policy: "
+            f"risk_tier={decision_policy.get('risk_tier')} "
+            f"risk_score={decision_policy.get('risk_score')} "
+            f"action={decision_policy.get('decision_action')} "
+            f"confidence={decision_policy.get('confidence')}"
+        )
+        reasons = decision_policy.get("reasons") or []
+        if reasons:
+            lines.append(f"decision_policy_reasons={','.join(reasons)}")
+        followup = decision_policy.get("required_followup") or []
+        if followup:
+            lines.append(f"decision_policy_followup={','.join(followup)}")
+        if decision_policy.get("reframed_task"):
+            lines.append(f"decision_policy_reframed_task={decision_policy['reframed_task']}")
+        if "assumption_evidence_missing" in reasons:
+            advisory_line = _render_advisory_signal_line("assumption_evidence_missing")
+            if advisory_line:
+                lines.append(advisory_line)
+        if "destructive_change_without_usage_evidence" in reasons:
+            advisory_line = _render_advisory_signal_line("destructive_change_without_usage_proof")
+            if advisory_line:
+                lines.append(advisory_line)
+        if "user_declared_root_cause_unverified" in reasons:
+            advisory_line = _render_advisory_signal_line("user_declared_root_cause_unverified")
+            if advisory_line:
+                lines.append(advisory_line)
+        if decision_policy.get("decision_action") == "proceed_with_assumption":
+            advisory_line = _render_advisory_signal_line("proceeding_under_assumption")
             if advisory_line:
                 lines.append(advisory_line)
     runtime_injection = result.get("runtime_injection") or {}
