@@ -19,6 +19,7 @@ from governance_tools.contract_resolver import resolve_contract
 from governance_tools.domain_governance_metadata import domain_risk_tier
 from governance_tools.domain_contract_loader import load_domain_contract
 from governance_tools.domain_validator_loader import build_domain_validation_payload, run_domain_validators
+from governance_tools.assumption_check import evaluate_assumption_check, has_modification_intent
 from governance_tools.driver_evidence_validator import validate_driver_evidence
 from governance_tools.failure_completeness_validator import validate_failure_completeness
 from governance_tools.public_api_diff_checker import check_public_api_diff
@@ -46,6 +47,14 @@ ADVISORY_SIGNAL_METADATA = {
         "summary": "required evidence is incomplete for this decision surface",
         "non_proof": "not behavioral compliance proof",
         "usage": "already handled by evidence-driven escalation or stop logic",
+    },
+    "assumption_check_missing": {
+        "signal_name": "assumption_check_missing",
+        "signal_class": "behavioral_advisory",
+        "decision_distance": "far",
+        "summary": "no explicit assumption validation found before modification",
+        "non_proof": "not proof of invalidity; indicates premise-validation trace is missing",
+        "usage": "advisory only; do not treat as a gate or blocker",
     }
 }
 
@@ -421,6 +430,8 @@ def run_post_task_check(
     validation = validate_contract(response_text, available_rules=available_rules if domain_contract else None)
     errors = list(validation.errors)
     warnings = list(validation.warnings)
+    assumption_check = evaluate_assumption_check(response_text, require_action_decision=True)
+    assumption_advisories: list[dict] = []
     fields = validation.fields
     resolved_memory_mode = memory_mode or fields.get("MEMORY_MODE", "").strip() or "candidate"
     resolved_rules = parse_rule_list(fields.get("RULES", ""))
@@ -451,6 +462,21 @@ def run_post_task_check(
         resolved_rule_packs = None
 
     _merge_runtime_checks(errors, warnings, effective_checks)
+    if has_modification_intent(response_text) and not assumption_check["complete"]:
+        missing = ",".join(assumption_check["missing"])
+        warning = (
+            "Assumption check missing before modification: "
+            f"missing={missing}"
+        )
+        warnings.append(warning)
+        assumption_advisories.append(
+            {
+                "violation_type": "assumption_check_missing",
+                "detected_by": "post-task assumption-check observer",
+                "message": warning,
+                "missing": list(assumption_check["missing"]),
+            }
+        )
     public_api_diff = _merge_public_api_diff_checks(
         errors,
         warnings,
@@ -529,6 +555,8 @@ def run_post_task_check(
         "rules": resolved_rules,
         "snapshot": snapshot_result,
         "checks": effective_checks if effective_checks else None,
+        "assumption_check": assumption_check,
+        "assumption_advisories": assumption_advisories,
         "resolved_contract_file": str(resolved_contract_file) if resolved_contract_file else None,
         "contract_resolution": {
             "source": contract_resolution.source,
@@ -601,6 +629,24 @@ def format_human_result(result: dict) -> str:
         lines.append(f"refactor_evidence_ok={result['refactor_evidence']['ok']}")
     if result["driver_evidence"] is not None:
         lines.append(f"driver_evidence_ok={result['driver_evidence']['ok']}")
+    assumption_check = result.get("assumption_check") or {}
+    if assumption_check:
+        lines.append(
+            "assumption_check: "
+            f"complete={assumption_check.get('complete')} "
+            f"assumptions={assumption_check.get('assumptions_present')} "
+            f"alternatives={assumption_check.get('alternatives_present')} "
+            f"evidence={assumption_check.get('evidence_present')} "
+            f"reframe={assumption_check.get('reframe_present')} "
+            f"action_decision={assumption_check.get('action_decision')}"
+        )
+        if assumption_check.get("missing"):
+            lines.append(f"assumption_check_missing={','.join(assumption_check['missing'])}")
+    if result.get("assumption_advisories"):
+        lines.append(f"assumption_advisory_count={len(result['assumption_advisories'])}")
+        advisory_line = _render_advisory_violation_line({"violation_type": "assumption_check_missing"})
+        if advisory_line:
+            lines.append(advisory_line)
     if result.get("evidence_violations"):
         lines.append(f"evidence_violation_count={len(result['evidence_violations'])}")
         for violation in result["evidence_violations"]:

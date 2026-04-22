@@ -128,6 +128,32 @@ def probe_report(report: dict[str, Any], sample_id: str) -> dict[str, Any]:
     instrumentation_major_changed = bool(instrumentation_change["major_changed"])
     instrumentation_minor_changed = bool(instrumentation_change["minor_changed"])
     reevaluation_required = node_signals_consumed or instrumentation_major_changed
+    advisory_signal_present = bool(
+        advisories
+        or advisory_signals
+        or node_signals_consumed
+        or instrumentation_major_changed
+        or instrumentation_minor_changed
+    )
+    semantic_shift_candidate_reasons: list[str] = []
+    if instrumentation_major_changed:
+        semantic_shift_candidate_reasons.append("instrumentation_major_change")
+    semantic_shift_candidate = bool(semantic_shift_candidate_reasons)
+    event_metadata = {
+        "event_name": report.get("event_name") if isinstance(report.get("event_name"), str) else None,
+        "event_channel": report.get("event_channel") if isinstance(report.get("event_channel"), str) else None,
+        "run_type": report.get("run_type") if isinstance(report.get("run_type"), str) else None,
+        "observation_type": report.get("observation_type") if isinstance(report.get("observation_type"), str) else None,
+        "semantic_scope": report.get("semantic_scope") if isinstance(report.get("semantic_scope"), str) else None,
+    }
+    source = envelope.get("source") if isinstance(envelope.get("source"), dict) else {}
+    observation = envelope.get("observation") if isinstance(envelope.get("observation"), dict) else {}
+    source_provenance = {
+        "run_id": report.get("run_id") if isinstance(report.get("run_id"), str) else None,
+        "source_id": source.get("source_id") if isinstance(source.get("source_id"), str) else None,
+        "source_type": source.get("source_type") if isinstance(source.get("source_type"), str) else None,
+        "evidence_refs": observation.get("evidence_refs") if isinstance(observation.get("evidence_refs"), list) else [],
+    }
 
     semantic_inducement_risk = "low"
     consumer_misread_risk = "low"
@@ -171,8 +197,13 @@ def probe_report(report: dict[str, Any], sample_id: str) -> dict[str, Any]:
         "validation_error_count": len(validation_errors),
         "validation_errors": validation_errors,
         "forbidden_authority_fields_seen": forbidden_seen,
+        "advisory_signal_present": advisory_signal_present,
+        "event_metadata": event_metadata,
+        "source_provenance": source_provenance,
         "nodeSignals_consumed": node_signals_consumed,
         "reevaluation_required": reevaluation_required,
+        "semantic_shift_candidate": semantic_shift_candidate,
+        "semantic_shift_candidate_reasons": semantic_shift_candidate_reasons,
         "instrumentation_version_change": instrumentation_change,
         "sample_conclusion": sample_conclusion,
     }
@@ -199,6 +230,31 @@ def run_probe(sample_paths: list[Path]) -> dict[str, Any]:
                     "validation_error_count": 1,
                     "validation_errors": [f"sample_not_found:{path}"],
                     "forbidden_authority_fields_seen": [],
+                    "advisory_signal_present": False,
+                    "event_metadata": {
+                        "event_name": None,
+                        "event_channel": None,
+                        "run_type": None,
+                        "observation_type": None,
+                        "semantic_scope": None,
+                    },
+                    "source_provenance": {
+                        "run_id": None,
+                        "source_id": None,
+                        "source_type": None,
+                        "evidence_refs": [],
+                    },
+                    "nodeSignals_consumed": False,
+                    "reevaluation_required": False,
+                    "semantic_shift_candidate": False,
+                    "semantic_shift_candidate_reasons": [],
+                    "instrumentation_version_change": {
+                        "current": None,
+                        "baseline": None,
+                        "major_changed": False,
+                        "minor_changed": False,
+                        "advisory_only": True,
+                    },
                     "sample_conclusion": "boundary_fail_do_not_progress",
                 }
             )
@@ -218,6 +274,31 @@ def run_probe(sample_paths: list[Path]) -> dict[str, Any]:
                     "validation_error_count": 1,
                     "validation_errors": [f"sample_unreadable:{exc}"],
                     "forbidden_authority_fields_seen": [],
+                    "advisory_signal_present": False,
+                    "event_metadata": {
+                        "event_name": None,
+                        "event_channel": None,
+                        "run_type": None,
+                        "observation_type": None,
+                        "semantic_scope": None,
+                    },
+                    "source_provenance": {
+                        "run_id": None,
+                        "source_id": None,
+                        "source_type": None,
+                        "evidence_refs": [],
+                    },
+                    "nodeSignals_consumed": False,
+                    "reevaluation_required": False,
+                    "semantic_shift_candidate": False,
+                    "semantic_shift_candidate_reasons": [],
+                    "instrumentation_version_change": {
+                        "current": None,
+                        "baseline": None,
+                        "major_changed": False,
+                        "minor_changed": False,
+                        "advisory_only": True,
+                    },
                     "sample_conclusion": "boundary_fail_do_not_progress",
                 }
             )
@@ -274,7 +355,9 @@ def format_human(result: dict[str, Any]) -> str:
                     f"ingestion_valid={sample.get('ingestion_valid')}",
                     f"boundary_status={sample.get('boundary_status')}",
                     f"runtime_pass={(sample.get('runtime_eligible_result') or {}).get('pass')}",
+                    f"advisory_signal_present={sample.get('advisory_signal_present')}",
                     f"reevaluation_required={sample.get('reevaluation_required')}",
+                    f"semantic_shift_candidate={sample.get('semantic_shift_candidate')}",
                     f"semantic_inducement_risk={sample.get('semantic_inducement_risk')}",
                     f"consumer_misread_risk={sample.get('consumer_misread_risk')}",
                     f"sample_conclusion={sample.get('sample_conclusion')}",

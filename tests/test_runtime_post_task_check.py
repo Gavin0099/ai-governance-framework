@@ -400,6 +400,45 @@ def test_post_task_check_human_output_includes_evidence_summary():
     assert "refactor_evidence_ok=" in output
 
 
+def test_post_task_check_adds_assumption_advisory_for_direct_modification_without_structure():
+    response = _contract() + "\nImplemented payload patch and updated parser flow."
+    result = run_post_task_check(
+        response,
+        risk="medium",
+        oversight="review-required",
+    )
+
+    assert result["ok"] is True
+    assert result["assumption_check"]["complete"] is False
+    assert result["assumption_advisories"] != []
+    assert any("Assumption check missing before modification" in warning for warning in result["warnings"])
+    output = format_human_result(result)
+    assert "assumption_advisory_count=1" in output
+    assert "advisory_signal: assumption_check_missing -> behavioral_advisory;" in output
+
+
+def test_post_task_check_reads_structured_action_decision_from_response():
+    response = _contract() + (
+        "\n{\n"
+        '  "assumptions": ["payload mismatch"],\n'
+        '  "alternative_causes": ["vendor routing mismatch", "library mapping mismatch"],\n'
+        '  "evidence": ["single failing payload capture"],\n'
+        '  "action_decision": "need_more_info"\n'
+        "}\n"
+        "Reframe: validate routing table first.\n"
+    )
+    result = run_post_task_check(
+        response,
+        risk="medium",
+        oversight="review-required",
+    )
+
+    assert result["ok"] is True
+    assert result["assumption_check"]["action_decision"] == "need_more_info"
+    assert result["assumption_check"]["complete"] is True
+    assert result["assumption_advisories"] == []
+
+
 def test_post_task_check_can_validate_external_rule_pack_from_contract(tmp_path):
     contract_root = tmp_path / "usb_hub_contract"
     (contract_root / "rules" / "firmware").mkdir(parents=True)

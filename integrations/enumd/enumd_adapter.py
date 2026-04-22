@@ -355,6 +355,13 @@ def adapt_enumd_report(report: dict[str, Any]) -> dict[str, Any]:
         ),
         "nodeSignals_consumed": node_signals_consumed,
         "instrumentation_version": instrumentation_obj,
+        "event_metadata": {
+            "event_name": report.get("event_name") if isinstance(report.get("event_name"), str) else None,
+            "event_channel": report.get("event_channel") if isinstance(report.get("event_channel"), str) else None,
+            "run_type": report.get("run_type") if isinstance(report.get("run_type"), str) else None,
+            "observation_type": report.get("observation_type") if isinstance(report.get("observation_type"), str) else None,
+            "semantic_scope": report.get("semantic_scope") if isinstance(report.get("semantic_scope"), str) else None,
+        },
     }
 
     return envelope

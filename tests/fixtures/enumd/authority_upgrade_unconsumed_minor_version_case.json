@@ -1,0 +1,46 @@
+{
+  "_fixture_id": "authority_upgrade_unconsumed_minor_version_case",
+  "_fixture_purpose": "P2 authority_upgrade minor-version drift without downstream consumption stays advisory-only and must not become a semantic-shift candidate.",
+  "producer": "enumd",
+  "artifact_type": "governance_report",
+  "schema_version": "1.0",
+  "observation_class": "external_analysis_artifact",
+  "observation_type": "synthesis_governance_report",
+  "run_type": "p2_authority_upgrade",
+  "run_id": "authority-upgrade-unconsumed-minor",
+  "domain": "usb_windows_firmware",
+  "semantic_scope": "enumd-specific",
+  "event_name": "authority_upgrade",
+  "event_channel": "domain_advisory",
+  "instrumentation_version": {
+    "major": 1,
+    "minor": 1
+  },
+  "instrumentation_version_baseline": {
+    "major": 1,
+    "minor": 0
+  },
+  "nodeSignals_consumed": false,
+  "semantic_boundary": {
+    "represents_agent_behavior": false,
+    "derivation": "synthesis_pipeline"
+  },
+  "calibration_profile": {
+    "name": "production_v1",
+    "overlap_thresholds": {
+      "low_overlap": 0.4,
+      "handoff": 0.3,
+      "any_node": 0.5
+    }
+  },
+  "policy_applied": {
+    "policy_id": "tiered-enforcement-policy-v1",
+    "calibration_profile": "production_v1",
+    "outcomes": {
+      "suppressed": 0,
+      "flagged": 0,
+      "passed": 6
+    }
+  },
+  "advisories": []
+}

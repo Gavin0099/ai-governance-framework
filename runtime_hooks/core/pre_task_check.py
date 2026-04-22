@@ -28,6 +28,7 @@ from governance_tools.reasoning_compressor import compress_fragments
 from governance_tools.rule_pack_loader import describe_rule_selection, load_rule_content, parse_rule_list
 from governance_tools.rule_pack_suggester import suggest_rule_packs
 from governance_tools.rule_classifier import classify_task_topic, filter_rules_by_topic
+from governance_tools.assumption_check import evaluate_assumption_check
 from governance_tools.domain_summary_loader import load_domain_summary
 from governance_tools.runtime_injection_observation import observe_full_read_requirement
 from governance_tools.runtime_injection_snapshot import load_runtime_injection_snapshot
@@ -102,6 +103,13 @@ ADVISORY_SIGNAL_METADATA = {
         "summary": "large-file visibility is partial, which raises review risk",
         "non_proof": "not proof of compliance or violation",
         "usage": "reviewer-visible advisory only; not verdict-bearing",
+    },
+    "assumption_check_missing": {
+        "signal_class": "behavioral_advisory",
+        "decision_distance": "far",
+        "summary": "no explicit assumption-check structure was found before implementation planning",
+        "non_proof": "not proof of invalidity; indicates missing premise-validation trace",
+        "usage": "reviewer-visible advisory only; do not treat as gate or blocker",
     },
 }
 
@@ -462,7 +470,15 @@ def run_pre_task_check(
                 f"{check['reason']}"
             )
         elif check["action"] == "stop":
-            errors.append(f"Decision boundary stop: {check['reason']}")    runtime_injection = _evaluate_runtime_injection_snapshot(
+            errors.append(f"Decision boundary stop: {check['reason']}")
+    assumption_check = evaluate_assumption_check(task_text, require_action_decision=False)
+    if task_level in {"L1", "L2"} and not assumption_check["complete"]:
+        missing = ", ".join(assumption_check["missing"])
+        warnings.append(
+            "Assumption check missing before modification planning: "
+            f"missing={missing}"
+        )
+    runtime_injection = _evaluate_runtime_injection_snapshot(
         runtime_injection_snapshot,
         task_level=task_level,
         summary_first_active=summary_first_active,
@@ -566,6 +582,7 @@ def run_pre_task_check(
             ),
         },
         "decision_boundary": decision_boundary,
+        "assumption_check": assumption_check,
         "runtime_injection": runtime_injection,
         "consumption_observations": consumption_observations,
         "errors": errors,
@@ -641,7 +658,23 @@ def format_human_result(result: dict) -> str:
             lines.append(
                 "precondition: "
                 f"{check['type']} action={check['action']} applies={check['applies']} present={check['present']}"
-            )    runtime_injection = result.get("runtime_injection") or {}
+            )
+    assumption_check = result.get("assumption_check") or {}
+    if assumption_check:
+        lines.append(
+            "assumption_check: "
+            f"complete={assumption_check.get('complete')} "
+            f"assumptions={assumption_check.get('assumptions_present')} "
+            f"alternatives={assumption_check.get('alternatives_present')} "
+            f"evidence={assumption_check.get('evidence_present')} "
+            f"reframe={assumption_check.get('reframe_present')}"
+        )
+        if assumption_check.get("missing"):
+            lines.append(f"assumption_check_missing={','.join(assumption_check['missing'])}")
+            advisory_line = _render_advisory_signal_line("assumption_check_missing")
+            if advisory_line:
+                lines.append(advisory_line)
+    runtime_injection = result.get("runtime_injection") or {}
     snapshot = runtime_injection.get("snapshot") or {}
     if snapshot.get("name"):
         lines.append(f"runtime_injection_snapshot={snapshot['name']}")
@@ -709,6 +742,9 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+
 
 
 
