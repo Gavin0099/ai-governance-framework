@@ -734,6 +734,10 @@ def format_human_result(result: dict) -> str:
             lines.append(f"decision_policy_followup={','.join(followup)}")
         if decision_policy.get("reframed_task"):
             lines.append(f"decision_policy_reframed_task={decision_policy['reframed_task']}")
+        candidates = decision_policy.get("decision_candidates") or []
+        if candidates:
+            compact = ",".join(f"{item['action']}:{item['score']}" for item in candidates[:3])
+            lines.append(f"decision_policy_candidates_top3={compact}")
         if "assumption_evidence_missing" in reasons:
             advisory_line = _render_advisory_signal_line("assumption_evidence_missing")
             if advisory_line:

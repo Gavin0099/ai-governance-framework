@@ -1,0 +1,1016 @@
+[
+  {
+    "case_id": "lowrisk_partial_001",
+    "kind": "valid",
+    "category": "low-risk+partial-context",
+    "expected_actions": [
+      "proceed_with_assumption",
+      "proceed"
+    ],
+    "phase1": {
+      "task_text": "Fix local parser trim behavior with partial context only.",
+      "action": "proceed_with_assumption",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "partial_context_detected",
+        "limited_alternative_root_causes",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "request_full_logs_or_repro",
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ],
+      "decision_candidates": [
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.85
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.75
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "proceed",
+          "score": 0.2
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "final": {
+      "task_text": "Fix local parser trim behavior with partial context only.",
+      "action": "proceed_with_assumption",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "partial_context_detected",
+        "limited_alternative_root_causes",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "request_full_logs_or_repro",
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ],
+      "decision_candidates": [
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.85
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.75
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "proceed",
+          "score": 0.2
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "rounds": 1
+  },
+  {
+    "case_id": "lowrisk_partial_002",
+    "kind": "valid",
+    "category": "low-risk+partial-context",
+    "expected_actions": [
+      "proceed_with_assumption",
+      "proceed"
+    ],
+    "phase1": {
+      "task_text": "Adjust CLI help wording order with partial context.",
+      "action": "proceed_with_assumption",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "partial_context_detected",
+        "limited_alternative_root_causes",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "request_full_logs_or_repro",
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ],
+      "decision_candidates": [
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.85
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.75
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "proceed",
+          "score": 0.2
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "final": {
+      "task_text": "Adjust CLI help wording order with partial context.",
+      "action": "proceed_with_assumption",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "partial_context_detected",
+        "limited_alternative_root_causes",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "request_full_logs_or_repro",
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ],
+      "decision_candidates": [
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.85
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.75
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "proceed",
+          "score": 0.2
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "rounds": 1
+  },
+  {
+    "case_id": "lowrisk_partial_003",
+    "kind": "valid",
+    "category": "low-risk+partial-context",
+    "expected_actions": [
+      "proceed_with_assumption",
+      "proceed"
+    ],
+    "phase1": {
+      "task_text": "Fix local tester fixture naming with incomplete context.",
+      "action": "proceed_with_assumption",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "partial_context_detected",
+        "limited_alternative_root_causes",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "request_full_logs_or_repro",
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ],
+      "decision_candidates": [
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.85
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.75
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "proceed",
+          "score": 0.2
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "final": {
+      "task_text": "Fix local tester fixture naming with incomplete context.",
+      "action": "proceed_with_assumption",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "partial_context_detected",
+        "limited_alternative_root_causes",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "request_full_logs_or_repro",
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ],
+      "decision_candidates": [
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.85
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.75
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "proceed",
+          "score": 0.2
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "rounds": 1
+  },
+  {
+    "case_id": "lowrisk_partial_004",
+    "kind": "valid",
+    "category": "low-risk+partial-context",
+    "expected_actions": [
+      "proceed_with_assumption",
+      "proceed"
+    ],
+    "phase1": {
+      "task_text": "Normalize parser warning string with partial context.",
+      "action": "proceed_with_assumption",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "partial_context_detected",
+        "limited_alternative_root_causes",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "request_full_logs_or_repro",
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ],
+      "decision_candidates": [
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.85
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.75
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "proceed",
+          "score": 0.2
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "final": {
+      "task_text": "Normalize parser warning string with partial context.",
+      "action": "proceed_with_assumption",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "partial_context_detected",
+        "limited_alternative_root_causes",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "request_full_logs_or_repro",
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ],
+      "decision_candidates": [
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.85
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.75
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "proceed",
+          "score": 0.2
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "rounds": 1
+  },
+  {
+    "case_id": "highrisk_wrong_001",
+    "kind": "wrong",
+    "category": "high-risk+wrong-premise",
+    "expected_actions": [
+      "need_more_info",
+      "reframe"
+    ],
+    "phase1": {
+      "task_text": "Delete shared public API directly; it is definitely unused.",
+      "action": "reframe",
+      "risk_tier": "invalid",
+      "risk_score": 9,
+      "reasons": [
+        "destructive_change_without_usage_evidence",
+        "limited_alternative_root_causes",
+        "shared_interface_change",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "collect_callers_or_usage",
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ],
+      "decision_candidates": [
+        {
+          "action": "need_more_info",
+          "score": 0.95
+        },
+        {
+          "action": "reframe",
+          "score": 0.75
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.5
+        },
+        {
+          "action": "reject",
+          "score": 0.4
+        },
+        {
+          "action": "proceed",
+          "score": 0.2
+        }
+      ]
+    },
+    "final": {
+      "task_text": "Delete shared public API directly; it is definitely unused.\nNo caller inventory proof is provided.",
+      "action": "reframe",
+      "risk_tier": "invalid",
+      "risk_score": 9,
+      "reasons": [
+        "destructive_change_without_usage_evidence",
+        "limited_alternative_root_causes",
+        "shared_interface_change",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "collect_callers_or_usage",
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ],
+      "decision_candidates": [
+        {
+          "action": "need_more_info",
+          "score": 0.95
+        },
+        {
+          "action": "reframe",
+          "score": 0.75
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.5
+        },
+        {
+          "action": "reject",
+          "score": 0.4
+        },
+        {
+          "action": "proceed",
+          "score": 0.2
+        }
+      ]
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "highrisk_wrong_002",
+    "kind": "wrong",
+    "category": "high-risk+wrong-premise",
+    "expected_actions": [
+      "need_more_info",
+      "reframe"
+    ],
+    "phase1": {
+      "task_text": "Modify external protocol payload bytes directly; root cause is confirmed payload format.",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 8,
+      "reasons": [
+        "user_declared_root_cause_unverified",
+        "limited_alternative_root_causes",
+        "external_side_effect_change",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "collect_spec_or_protocol_evidence",
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ],
+      "decision_candidates": [
+        {
+          "action": "need_more_info",
+          "score": 0.85
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.65
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "proceed",
+          "score": 0.2
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "final": {
+      "task_text": "Modify external protocol payload bytes directly; root cause is confirmed payload format.\nNo aligned spec+trace evidence is provided.",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 8,
+      "reasons": [
+        "limited_alternative_root_causes",
+        "external_side_effect_change"
+      ],
+      "required_followup": [
+        "enumerate_at_least_two_alternative_root_causes"
+      ],
+      "decision_candidates": [
+        {
+          "action": "need_more_info",
+          "score": 0.85
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.7
+        },
+        {
+          "action": "proceed",
+          "score": 0.6
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "highrisk_wrong_003",
+    "kind": "wrong",
+    "category": "high-risk+wrong-premise",
+    "expected_actions": [
+      "need_more_info",
+      "reframe"
+    ],
+    "phase1": {
+      "task_text": "Refactor shared firmware update path and remove old branch in one shot.",
+      "action": "reframe",
+      "risk_tier": "invalid",
+      "risk_score": 9,
+      "reasons": [
+        "destructive_change_without_usage_evidence",
+        "limited_alternative_root_causes",
+        "shared_interface_change",
+        "external_side_effect_change",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "collect_callers_or_usage",
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ],
+      "decision_candidates": [
+        {
+          "action": "need_more_info",
+          "score": 0.95
+        },
+        {
+          "action": "reframe",
+          "score": 0.75
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.5
+        },
+        {
+          "action": "reject",
+          "score": 0.4
+        },
+        {
+          "action": "proceed",
+          "score": 0.2
+        }
+      ]
+    },
+    "final": {
+      "task_text": "Refactor shared firmware update path and remove old branch in one shot.\nNo regression pack and no usage evidence provided.",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 8,
+      "reasons": [
+        "limited_alternative_root_causes",
+        "shared_interface_change",
+        "external_side_effect_change"
+      ],
+      "required_followup": [
+        "enumerate_at_least_two_alternative_root_causes"
+      ],
+      "decision_candidates": [
+        {
+          "action": "need_more_info",
+          "score": 0.95
+        },
+        {
+          "action": "proceed",
+          "score": 0.6
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.55
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "highrisk_wrong_004",
+    "kind": "wrong",
+    "category": "high-risk+wrong-premise",
+    "expected_actions": [
+      "need_more_info",
+      "reframe"
+    ],
+    "phase1": {
+      "task_text": "Change external side-effect command format directly without verification.",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 8,
+      "reasons": [
+        "limited_alternative_root_causes",
+        "shared_interface_change",
+        "external_side_effect_change",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ],
+      "decision_candidates": [
+        {
+          "action": "need_more_info",
+          "score": 0.85
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.65
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "proceed",
+          "score": 0.2
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "final": {
+      "task_text": "Change external side-effect command format directly without verification.\nOnly user-declared root cause, no direct evidence.",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 8,
+      "reasons": [
+        "limited_alternative_root_causes",
+        "shared_interface_change",
+        "external_side_effect_change"
+      ],
+      "required_followup": [
+        "enumerate_at_least_two_alternative_root_causes"
+      ],
+      "decision_candidates": [
+        {
+          "action": "need_more_info",
+          "score": 0.85
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.7
+        },
+        {
+          "action": "proceed",
+          "score": 0.6
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "highrisk_evidence_001",
+    "kind": "valid",
+    "category": "high-risk+strong-evidence",
+    "expected_actions": [
+      "proceed_with_assumption",
+      "proceed"
+    ],
+    "phase1": {
+      "task_text": "Adjust shared payload builder based on protocol spec and trace evidence.",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "limited_alternative_root_causes",
+        "shared_interface_change",
+        "external_side_effect_change"
+      ],
+      "required_followup": [
+        "enumerate_at_least_two_alternative_root_causes"
+      ],
+      "decision_candidates": [
+        {
+          "action": "need_more_info",
+          "score": 0.85
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.7
+        },
+        {
+          "action": "proceed",
+          "score": 0.6
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "final": {
+      "task_text": "Adjust shared payload builder based on protocol spec and trace evidence.\nDirect evidence: spec section, trace offset, and regression case all available.",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "limited_alternative_root_causes",
+        "shared_interface_change",
+        "external_side_effect_change"
+      ],
+      "required_followup": [
+        "enumerate_at_least_two_alternative_root_causes"
+      ],
+      "decision_candidates": [
+        {
+          "action": "need_more_info",
+          "score": 0.85
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.7
+        },
+        {
+          "action": "proceed",
+          "score": 0.6
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "highrisk_evidence_002",
+    "kind": "valid",
+    "category": "high-risk+strong-evidence",
+    "expected_actions": [
+      "proceed_with_assumption",
+      "proceed"
+    ],
+    "phase1": {
+      "task_text": "Adjust public command flow with caller map and compatibility checklist.",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 8,
+      "reasons": [
+        "limited_alternative_root_causes",
+        "shared_interface_change",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ],
+      "decision_candidates": [
+        {
+          "action": "need_more_info",
+          "score": 0.85
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.65
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "proceed",
+          "score": 0.2
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "final": {
+      "task_text": "Adjust public command flow with caller map and compatibility checklist.\nDirect evidence: caller inventory, tests, and rollback plan all available.",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "limited_alternative_root_causes",
+        "shared_interface_change"
+      ],
+      "required_followup": [
+        "enumerate_at_least_two_alternative_root_causes"
+      ],
+      "decision_candidates": [
+        {
+          "action": "need_more_info",
+          "score": 0.85
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.7
+        },
+        {
+          "action": "proceed",
+          "score": 0.6
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "valid_baseline_001",
+    "kind": "valid",
+    "category": "valid-baseline",
+    "expected_actions": [
+      "proceed_with_assumption",
+      "proceed"
+    ],
+    "phase1": {
+      "task_text": "Fix local bug with failing test and logs attached.",
+      "action": "proceed_with_assumption",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "limited_alternative_root_causes",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ],
+      "decision_candidates": [
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.85
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.75
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "proceed",
+          "score": 0.2
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "final": {
+      "task_text": "Fix local bug with failing test and logs attached.",
+      "action": "proceed_with_assumption",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "limited_alternative_root_causes",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ],
+      "decision_candidates": [
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.85
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.75
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "proceed",
+          "score": 0.2
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "rounds": 1
+  },
+  {
+    "case_id": "valid_baseline_002",
+    "kind": "valid",
+    "category": "valid-baseline",
+    "expected_actions": [
+      "proceed_with_assumption",
+      "proceed"
+    ],
+    "phase1": {
+      "task_text": "Fix parser path normalization bug with repro and expected output.",
+      "action": "proceed_with_assumption",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "limited_alternative_root_causes",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ],
+      "decision_candidates": [
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.85
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.75
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "proceed",
+          "score": 0.2
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "final": {
+      "task_text": "Fix parser path normalization bug with repro and expected output.",
+      "action": "proceed_with_assumption",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "limited_alternative_root_causes",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "enumerate_at_least_two_alternative_root_causes",
+        "add_direct_evidence_before_high_impact_change"
+      ],
+      "decision_candidates": [
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.85
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.75
+        },
+        {
+          "action": "reframe",
+          "score": 0.4
+        },
+        {
+          "action": "proceed",
+          "score": 0.2
+        },
+        {
+          "action": "reject",
+          "score": 0.0
+        }
+      ]
+    },
+    "rounds": 1
+  }
+]

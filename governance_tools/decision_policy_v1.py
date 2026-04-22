@@ -1,7 +1,12 @@
 """
 Deterministic advisory decision policy for pre-task runtime.
 
-This module is advisory-only. It never blocks execution.
+This module remains advisory-only and preserves the v1 public function name:
+    evaluate_decision_policy_v1(...)
+
+Internally it includes v2 behavior:
+- risk-aware proceed_with_assumption trigger
+- decision candidate ranking surface
 """
 
 from __future__ import annotations
@@ -33,16 +38,16 @@ def _classify_task_type(task_text: str, task_topic: str | None) -> str:
     text = (task_text or "").lower()
     if _contains_any(text, ("payload", "packet", "protocol", "wire format", "payload format")):
         return "payload_change"
-    if _contains_any(text, ("delete", "remove", "drop", "retire", "deprecate", "刪", "移除")):
+    if _contains_any(text, ("delete", "remove", "drop", "retire", "deprecate", "刪", "刪掉", "移除")):
         if _contains_any(text, ("api", "interface", "public", "command", "function", "method")):
             return "delete_interface"
     if _contains_any(text, ("api", "endpoint", "contract", "schema")) and _contains_any(
-        text, ("modify", "change", "adjust", "update", "rewrite", "調整", "修改")
+        text, ("modify", "change", "adjust", "update", "rewrite")
     ):
         return "modify_api"
-    if _contains_any(text, ("refactor", "重構")):
+    if _contains_any(text, ("refactor",)):
         return "refactor"
-    if _contains_any(text, ("bug", "bugfix", "regression", "fix", "錯誤", "修")):
+    if _contains_any(text, ("bug", "bugfix", "regression", "fix")):
         return "bugfix"
     if task_topic == "api_schema":
         return "modify_api"
@@ -53,64 +58,23 @@ def _extract_context_signals(task_text: str) -> dict:
     text = (task_text or "").lower()
     destructive_change = _contains_any(
         text,
-        (
-            "delete",
-            "remove",
-            "drop",
-            "retire",
-            "deprecate",
-            "刪",
-            "移除",
-        ),
+        ("delete", "remove", "drop", "retire", "deprecate", "刪", "刪掉", "移除"),
     )
     shared_interface = _contains_any(
         text,
-        (
-            "api",
-            "public",
-            "interface",
-            "command",
-            "contract",
-            "schema",
-            "shared",
-        ),
+        ("api", "public", "interface", "command", "contract", "schema", "shared"),
     )
     external_side_effect = _contains_any(
         text,
-        (
-            "payload",
-            "protocol",
-            "packet",
-            "network",
-            "external",
-            "firmware",
-            "ddc",
-            "i2c",
-        ),
+        ("payload", "protocol", "packet", "network", "external", "firmware", "ddc", "i2c"),
     )
     partial_context = _contains_any(
         text,
-        (
-            "partial context",
-            "without full log",
-            "without logs",
-            "no log",
-            "不給完整",
-            "只給部分",
-            "資訊不完整",
-        ),
+        ("partial context", "without full log", "without logs", "no log", "incomplete context"),
     )
     user_asserts_root_cause = _contains_any(
         text,
-        (
-            "root cause",
-            "because",
-            "caused by",
-            "the issue is",
-            "問題是",
-            "是因為",
-            "因為",
-        ),
+        ("root cause", "because", "caused by", "the issue is"),
     )
     return {
         "destructive_change": destructive_change,
@@ -158,7 +122,17 @@ def _map_risk_tier(score: int, assumption_check: dict, signals: dict) -> RiskTie
     return RiskTier.LOW
 
 
-def _decide_action(risk_tier: RiskTier, assumption_check: dict) -> DecisionAction:
+def _base_decide_action(
+    risk_tier: RiskTier,
+    assumption_check: dict,
+    *,
+    impact: int,
+    uncertainty: int,
+) -> DecisionAction:
+    # v2 structural rule: uncertainty high + impact low -> proceed_with_assumption.
+    if uncertainty == 3 and impact == 1:
+        return DecisionAction.PROCEED_WITH_ASSUMPTION
+
     if risk_tier == RiskTier.INVALID:
         return DecisionAction.REFRAME
     if risk_tier == RiskTier.HIGH:
@@ -170,6 +144,81 @@ def _decide_action(risk_tier: RiskTier, assumption_check: dict) -> DecisionActio
     if assumption_check.get("evidence_present"):
         return DecisionAction.PROCEED
     return DecisionAction.PROCEED_WITH_ASSUMPTION
+
+
+def _score_action(
+    action: DecisionAction,
+    *,
+    risk_tier: RiskTier,
+    impact: int,
+    uncertainty: int,
+    assumption_check: dict,
+    signals: dict,
+) -> float:
+    base: dict[DecisionAction, float] = {
+        DecisionAction.PROCEED: 0.5,
+        DecisionAction.PROCEED_WITH_ASSUMPTION: 0.5,
+        DecisionAction.NEED_MORE_INFO: 0.5,
+        DecisionAction.REFRAME: 0.4,
+        DecisionAction.REJECT: 0.2,
+    }
+
+    score = base[action]
+    evidence_present = bool(assumption_check.get("evidence_present"))
+
+    if action == DecisionAction.PROCEED:
+        score += 0.2 if evidence_present else -0.2
+        score += 0.1 if risk_tier == RiskTier.LOW else -0.1
+
+    if action == DecisionAction.PROCEED_WITH_ASSUMPTION:
+        score += 0.25 if impact == 1 else 0.05
+        score += 0.1 if uncertainty >= 2 else 0.0
+        score += -0.15 if signals["destructive_change"] else 0.0
+        score += 0.05 if evidence_present else 0.0
+
+    if action == DecisionAction.NEED_MORE_INFO:
+        score += 0.25 if uncertainty >= 2 else -0.1
+        score += 0.1 if risk_tier in {RiskTier.HIGH, RiskTier.INVALID} else 0.0
+        score += 0.1 if signals["destructive_change"] else 0.0
+
+    if action == DecisionAction.REFRAME:
+        score += 0.25 if risk_tier == RiskTier.INVALID else 0.0
+        score += 0.1 if signals["destructive_change"] and not evidence_present else 0.0
+
+    if action == DecisionAction.REJECT:
+        score += 0.2 if risk_tier == RiskTier.INVALID and signals["destructive_change"] else -0.2
+
+    return round(max(0.0, min(1.0, score)), 2)
+
+
+def _rank_decision_candidates(
+    *,
+    risk_tier: RiskTier,
+    impact: int,
+    uncertainty: int,
+    assumption_check: dict,
+    signals: dict,
+) -> list[dict]:
+    actions = [
+        DecisionAction.PROCEED,
+        DecisionAction.PROCEED_WITH_ASSUMPTION,
+        DecisionAction.NEED_MORE_INFO,
+        DecisionAction.REFRAME,
+        DecisionAction.REJECT,
+    ]
+    ranked = [
+        {"action": action.value, "score": _score_action(
+            action,
+            risk_tier=risk_tier,
+            impact=impact,
+            uncertainty=uncertainty,
+            assumption_check=assumption_check,
+            signals=signals,
+        )}
+        for action in actions
+    ]
+    ranked.sort(key=lambda item: item["score"], reverse=True)
+    return ranked
 
 
 def _build_reasons(signals: dict, assumption_check: dict) -> list[str]:
@@ -213,7 +262,7 @@ def _build_reframed_task(task_type: str, action: DecisionAction, task_text: str)
         return "Verify whether the target interface/function is truly unused before deletion."
     if task_type == "payload_change":
         return "Validate protocol/payload spec and runtime trace before changing payload format."
-    if "root cause" in (task_text or "").lower() or "因為" in (task_text or ""):
+    if "root cause" in (task_text or "").lower():
         return "Validate root-cause evidence first, then apply the smallest reversible change."
     return "Collect missing evidence and re-define the task before implementation."
 
@@ -226,7 +275,23 @@ def evaluate_decision_policy_v1(task_text: str, assumption_check: dict, task_top
     reversibility = _classify_reversibility(signals)
     risk_score = impact + uncertainty + reversibility
     risk_tier = _map_risk_tier(risk_score, assumption_check, signals)
-    action = _decide_action(risk_tier, assumption_check)
+
+    base_action = _base_decide_action(
+        risk_tier,
+        assumption_check,
+        impact=impact,
+        uncertainty=uncertainty,
+    )
+    decision_candidates = _rank_decision_candidates(
+        risk_tier=risk_tier,
+        impact=impact,
+        uncertainty=uncertainty,
+        assumption_check=assumption_check,
+        signals=signals,
+    )
+
+    # Keep deterministic behavior: choose base action, but expose ranking for v2 evaluation.
+    action = base_action
     reasons = _build_reasons(signals, assumption_check)
     required_followup = _build_followup(reasons)
     fallback_plan = (
@@ -247,6 +312,7 @@ def evaluate_decision_policy_v1(task_text: str, assumption_check: dict, task_top
         "risk_tier": risk_tier.value,
         "risk_score": risk_score,
         "decision_action": action.value,
+        "decision_candidates": decision_candidates,
         "confidence": confidence,
         "reasons": reasons,
         "required_followup": required_followup,
