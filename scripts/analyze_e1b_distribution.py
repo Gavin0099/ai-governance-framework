@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 E1b Phase 2 — Distribution Analysis Script.
 
@@ -1013,31 +1013,31 @@ def evaluate_phase2_gate(
 
     checks: dict[str, dict] = {
         "min_sessions": {
-            "label": "total sessions ≥ N",
+            "label": "total sessions >= N",
             "required": min_sessions,
             "actual": total_sessions,
             "pass": total_sessions >= min_sessions,
         },
         "min_repos": {
-            "label": "distinct repos ≥ M",
+            "label": "distinct repos >= M",
             "required": min_repos,
             "actual": repo_count,
             "pass": repo_count >= min_repos,
         },
         "min_non_stuck_absent_ratio_v2": {
-            "label": "non-stuck-absent repos [v2] ≥ ratio",
+            "label": "non-stuck-absent repos [v2] >= ratio",
             "required": threshold_v2,
             "actual": non_stuck_absent_ratio_v2,
             "pass": non_stuck_absent_ratio_v2 >= threshold_v2,
         },
         "max_repo_dominance": {
-            "label": "dominant repo fraction ≤ limit",
+            "label": "dominant repo fraction <= limit",
             "required": max_dominance,
             "actual": max_dominance_actual,
             "pass": max_dominance_actual <= max_dominance,
         },
         "lifecycle_active_ratio": {
-            "label": "lifecycle-active repos (not stuck_absent) ≥ ratio",
+            "label": "lifecycle-active repos (not stuck_absent) >= ratio",
             "required": min_lifecycle_active_ratio,
             "actual": non_stuck_absent_ratio_v2,
             "pass": non_stuck_absent_ratio_v2 >= min_lifecycle_active_ratio,
