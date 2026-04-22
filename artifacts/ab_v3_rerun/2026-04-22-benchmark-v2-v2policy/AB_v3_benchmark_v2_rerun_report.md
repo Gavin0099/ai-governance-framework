@@ -9,12 +9,12 @@
 
 | Metric | B1 | B2 | B3 |
 |---|---:|---:|---:|
-| wrong_action_rate | 0.00 | 0.00 | 0.00 |
-| false_positive_rate | 0.17 | 0.17 | 0.17 |
-| justified_action_rate | 0.83 | 0.83 | 0.83 |
-| recovery_accuracy | 0.67 | 0.67 | 0.67 |
-| decision_efficiency | 1.50 | 1.50 | 1.50 |
-| proceed_with_assumption_rate | 0.50 | 0.50 | 0.50 |
+| wrong_action_rate | 0.25 | 0.25 | 0.25 |
+| false_positive_rate | 0.25 | 0.00 | 0.00 |
+| justified_action_rate | 0.50 | 0.75 | 0.75 |
+| recovery_accuracy | 0.33 | 0.50 | 0.50 |
+| decision_efficiency | 1.75 | 1.50 | 1.50 |
+| proceed_with_assumption_rate | 0.17 | 0.50 | 0.42 |
 
 ## Artifacts
 
