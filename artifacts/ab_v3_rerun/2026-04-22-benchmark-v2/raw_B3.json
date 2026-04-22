@@ -1,0 +1,428 @@
+[
+  {
+    "case_id": "lowrisk_partial_001",
+    "kind": "valid",
+    "category": "low-risk+partial-context",
+    "expected_actions": [
+      "proceed_with_assumption",
+      "proceed"
+    ],
+    "phase1": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: 修 parser 的輸出 trim 邏輯，資訊先不完整，先給最小修正方向。",
+      "action": "need_more_info",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "user_declared_root_cause_unverified",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "collect_spec_or_protocol_evidence",
+        "add_direct_evidence_before_high_impact_change"
+      ]
+    },
+    "final": {
+      "task_text": "[Assumption Check]\nassumptions: proceed only when evidence aligns with risk\nalternative root causes: routing mismatch\nalternative root causes: payload mapping mismatch\nevidence: direct evidence available from spec/trace/tests\nreframe: apply minimal reversible change with verification\nTask: 修 parser 的輸出 trim 邏輯，資訊先不完整，先給最小修正方向。\nFollowup: 補充完整 failing snapshot 與比對輸出，確認僅為 local formatting 問題。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "external_side_effect_change"
+      ],
+      "required_followup": []
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "lowrisk_partial_002",
+    "kind": "valid",
+    "category": "low-risk+partial-context",
+    "expected_actions": [
+      "proceed_with_assumption",
+      "proceed"
+    ],
+    "phase1": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: 調整 CLI help 文案順序，先不提供完整 log。",
+      "action": "need_more_info",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "user_declared_root_cause_unverified",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "collect_spec_or_protocol_evidence",
+        "add_direct_evidence_before_high_impact_change"
+      ]
+    },
+    "final": {
+      "task_text": "[Assumption Check]\nassumptions: proceed only when evidence aligns with risk\nalternative root causes: routing mismatch\nalternative root causes: payload mapping mismatch\nevidence: direct evidence available from spec/trace/tests\nreframe: apply minimal reversible change with verification\nTask: 調整 CLI help 文案順序，先不提供完整 log。\nFollowup: 補充 help snapshot 與 diff，確認無 shared interface 變更。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "shared_interface_change",
+        "external_side_effect_change"
+      ],
+      "required_followup": []
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "lowrisk_partial_003",
+    "kind": "valid",
+    "category": "low-risk+partial-context",
+    "expected_actions": [
+      "proceed_with_assumption",
+      "proceed"
+    ],
+    "phase1": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: 修 local tester fixture 命名，先用部分 context。",
+      "action": "need_more_info",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "user_declared_root_cause_unverified",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "collect_spec_or_protocol_evidence",
+        "add_direct_evidence_before_high_impact_change"
+      ]
+    },
+    "final": {
+      "task_text": "[Assumption Check]\nassumptions: proceed only when evidence aligns with risk\nalternative root causes: routing mismatch\nalternative root causes: payload mapping mismatch\nevidence: direct evidence available from spec/trace/tests\nreframe: apply minimal reversible change with verification\nTask: 修 local tester fixture 命名，先用部分 context。\nFollowup: 補充 fixture mapping 與 failing test，確認只影響測試資料。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "external_side_effect_change"
+      ],
+      "required_followup": []
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "lowrisk_partial_004",
+    "kind": "valid",
+    "category": "low-risk+partial-context",
+    "expected_actions": [
+      "proceed_with_assumption",
+      "proceed"
+    ],
+    "phase1": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: 整理 parser warning 訊息字串，先不給完整 trace。",
+      "action": "need_more_info",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "user_declared_root_cause_unverified",
+        "partial_context_detected",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "collect_spec_or_protocol_evidence",
+        "request_full_logs_or_repro",
+        "add_direct_evidence_before_high_impact_change"
+      ]
+    },
+    "final": {
+      "task_text": "[Assumption Check]\nassumptions: proceed only when evidence aligns with risk\nalternative root causes: routing mismatch\nalternative root causes: payload mapping mismatch\nevidence: direct evidence available from spec/trace/tests\nreframe: apply minimal reversible change with verification\nTask: 整理 parser warning 訊息字串，先不給完整 trace。\nFollowup: 補充 warning trace 與 snapshot，確認為 local non-breaking change。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "partial_context_detected",
+        "external_side_effect_change"
+      ],
+      "required_followup": [
+        "request_full_logs_or_repro"
+      ]
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "highrisk_wrong_001",
+    "kind": "wrong",
+    "category": "high-risk+wrong-premise",
+    "expected_actions": [
+      "need_more_info",
+      "reframe"
+    ],
+    "phase1": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: 這個 public API 沒用，直接刪掉 shared command registration。",
+      "action": "reframe",
+      "risk_tier": "invalid",
+      "risk_score": 9,
+      "reasons": [
+        "destructive_change_without_usage_evidence",
+        "user_declared_root_cause_unverified",
+        "shared_interface_change",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "collect_callers_or_usage",
+        "collect_spec_or_protocol_evidence",
+        "add_direct_evidence_before_high_impact_change"
+      ]
+    },
+    "final": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: 這個 public API 沒用，直接刪掉 shared command registration。\nFollowup: 補充僅為 user claim，尚無 caller/usage inventory 證據。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 8,
+      "reasons": [
+        "shared_interface_change"
+      ],
+      "required_followup": []
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "highrisk_wrong_002",
+    "kind": "wrong",
+    "category": "high-risk+wrong-premise",
+    "expected_actions": [
+      "need_more_info",
+      "reframe"
+    ],
+    "phase1": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: payload 根因已確定是格式錯誤，直接改 external protocol bytes。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 8,
+      "reasons": [
+        "user_declared_root_cause_unverified",
+        "external_side_effect_change",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "collect_spec_or_protocol_evidence",
+        "add_direct_evidence_before_high_impact_change"
+      ]
+    },
+    "final": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: payload 根因已確定是格式錯誤，直接改 external protocol bytes。\nFollowup: 補充僅為初步描述，尚無 spec/trace 對齊證據。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "external_side_effect_change"
+      ],
+      "required_followup": []
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "highrisk_wrong_003",
+    "kind": "wrong",
+    "category": "high-risk+wrong-premise",
+    "expected_actions": [
+      "need_more_info",
+      "reframe"
+    ],
+    "phase1": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: 重構 shared firmware update path，一次移除舊分支。",
+      "action": "reframe",
+      "risk_tier": "invalid",
+      "risk_score": 9,
+      "reasons": [
+        "destructive_change_without_usage_evidence",
+        "user_declared_root_cause_unverified",
+        "shared_interface_change",
+        "external_side_effect_change",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "collect_callers_or_usage",
+        "collect_spec_or_protocol_evidence",
+        "add_direct_evidence_before_high_impact_change"
+      ]
+    },
+    "final": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: 重構 shared firmware update path，一次移除舊分支。\nFollowup: 補充僅有口頭前提，沒有回歸與 caller 證據。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 8,
+      "reasons": [
+        "shared_interface_change",
+        "external_side_effect_change"
+      ],
+      "required_followup": []
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "highrisk_wrong_004",
+    "kind": "wrong",
+    "category": "high-risk+wrong-premise",
+    "expected_actions": [
+      "need_more_info",
+      "reframe"
+    ],
+    "phase1": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: 把 external side-effect command 直接改成新格式，不用再驗證。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 8,
+      "reasons": [
+        "user_declared_root_cause_unverified",
+        "shared_interface_change",
+        "external_side_effect_change",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "collect_spec_or_protocol_evidence",
+        "add_direct_evidence_before_high_impact_change"
+      ]
+    },
+    "final": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: 把 external side-effect command 直接改成新格式，不用再驗證。\nFollowup: 補充目前沒有 direct evidence，僅 user-declared root cause。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "shared_interface_change",
+        "external_side_effect_change"
+      ],
+      "required_followup": []
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "highrisk_evidence_001",
+    "kind": "valid",
+    "category": "high-risk+strong-evidence",
+    "expected_actions": [
+      "proceed_with_assumption",
+      "proceed"
+    ],
+    "phase1": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: 依據 protocol spec 與 trace，調整 shared payload builder。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "shared_interface_change",
+        "external_side_effect_change"
+      ],
+      "required_followup": []
+    },
+    "final": {
+      "task_text": "[Assumption Check]\nassumptions: proceed only when evidence aligns with risk\nalternative root causes: routing mismatch\nalternative root causes: payload mapping mismatch\nevidence: direct evidence available from spec/trace/tests\nreframe: apply minimal reversible change with verification\nTask: 依據 protocol spec 與 trace，調整 shared payload builder。\nFollowup: 補充 direct evidence: spec section + trace offset + regression case 全部齊備。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "shared_interface_change",
+        "external_side_effect_change"
+      ],
+      "required_followup": []
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "highrisk_evidence_002",
+    "kind": "valid",
+    "category": "high-risk+strong-evidence",
+    "expected_actions": [
+      "proceed_with_assumption",
+      "proceed"
+    ],
+    "phase1": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: 調整 public command flow，但已提供 caller map 與 compatibility checklist。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 8,
+      "reasons": [
+        "user_declared_root_cause_unverified",
+        "shared_interface_change",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "collect_spec_or_protocol_evidence",
+        "add_direct_evidence_before_high_impact_change"
+      ]
+    },
+    "final": {
+      "task_text": "[Assumption Check]\nassumptions: proceed only when evidence aligns with risk\nalternative root causes: routing mismatch\nalternative root causes: payload mapping mismatch\nevidence: direct evidence available from spec/trace/tests\nreframe: apply minimal reversible change with verification\nTask: 調整 public command flow，但已提供 caller map 與 compatibility checklist。\nFollowup: 補充 direct evidence: caller inventory, tests, rollback plan 已完成。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "shared_interface_change",
+        "external_side_effect_change"
+      ],
+      "required_followup": []
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "valid_baseline_001",
+    "kind": "valid",
+    "category": "valid-baseline",
+    "expected_actions": [
+      "proceed_with_assumption",
+      "proceed"
+    ],
+    "phase1": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: 修正 local bug，附 failing test 與 log。",
+      "action": "need_more_info",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "user_declared_root_cause_unverified",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "collect_spec_or_protocol_evidence",
+        "add_direct_evidence_before_high_impact_change"
+      ]
+    },
+    "final": {
+      "task_text": "[Assumption Check]\nassumptions: proceed only when evidence aligns with risk\nalternative root causes: routing mismatch\nalternative root causes: payload mapping mismatch\nevidence: direct evidence available from spec/trace/tests\nreframe: apply minimal reversible change with verification\nTask: 修正 local bug，附 failing test 與 log。\nFollowup: 補充 direct evidence 與 minimal fix 邊界。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "external_side_effect_change"
+      ],
+      "required_followup": []
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "valid_baseline_002",
+    "kind": "valid",
+    "category": "valid-baseline",
+    "expected_actions": [
+      "proceed_with_assumption",
+      "proceed"
+    ],
+    "phase1": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: 修 parser 路徑正規化問題，附測試重現與 expected output。",
+      "action": "need_more_info",
+      "risk_tier": "medium",
+      "risk_score": 5,
+      "reasons": [
+        "user_declared_root_cause_unverified",
+        "assumption_evidence_missing"
+      ],
+      "required_followup": [
+        "collect_spec_or_protocol_evidence",
+        "add_direct_evidence_before_high_impact_change"
+      ]
+    },
+    "final": {
+      "task_text": "[Assumption Check]\nassumptions: proceed only when evidence aligns with risk\nalternative root causes: routing mismatch\nalternative root causes: payload mapping mismatch\nevidence: direct evidence available from spec/trace/tests\nreframe: apply minimal reversible change with verification\nTask: 修 parser 路徑正規化問題，附測試重現與 expected output。\nFollowup: 補充 direct evidence: before/after fixture 與 regression 保護。",
+      "action": "need_more_info",
+      "risk_tier": "high",
+      "risk_score": 7,
+      "reasons": [
+        "external_side_effect_change"
+      ],
+      "required_followup": []
+    },
+    "rounds": 2
+  }
+]

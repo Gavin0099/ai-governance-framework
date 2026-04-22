@@ -1,0 +1,26 @@
+{
+  "B1": {
+    "wrong_action_rate": 0,
+    "false_positive_rate": 0.5,
+    "justified_action_rate": 0.5,
+    "recovery_accuracy": 0.5,
+    "decision_efficiency": 2,
+    "proceed_with_assumption_rate": 0
+  },
+  "B2": {
+    "wrong_action_rate": 0,
+    "false_positive_rate": 0.5,
+    "justified_action_rate": 0.5,
+    "recovery_accuracy": 0.5,
+    "decision_efficiency": 2,
+    "proceed_with_assumption_rate": 0
+  },
+  "B3": {
+    "wrong_action_rate": 0,
+    "false_positive_rate": 0.67,
+    "justified_action_rate": 0.33,
+    "recovery_accuracy": 0.33,
+    "decision_efficiency": 2,
+    "proceed_with_assumption_rate": 0
+  }
+}
