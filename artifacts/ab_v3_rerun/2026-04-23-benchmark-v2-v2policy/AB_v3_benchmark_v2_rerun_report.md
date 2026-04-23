@@ -9,15 +9,15 @@
 
 | Metric | B1 | B2 | B3 |
 |---|---:|---:|---:|
-| wrong_action_rate | 0.25 | 0.25 | 0.25 |
-| false_positive_rate | 0.25 | 0.00 | 0.00 |
-| justified_action_rate | 0.50 | 0.75 | 0.75 |
-| recovery_accuracy | 0.33 | 0.50 | 0.50 |
-| decision_efficiency | 1.75 | 1.50 | 1.50 |
-| proceed_with_assumption_rate | 0.17 | 0.50 | 0.42 |
-| evidence_consistency_rate | 0.67 | 0.67 | 0.67 |
+| wrong_action_rate | 0.00 | 0.00 | 0.00 |
+| false_positive_rate | 0.25 | 0.00 | 0.08 |
+| justified_action_rate | 0.75 | 1.00 | 0.92 |
+| recovery_accuracy | 0.70 | 1.00 | 0.86 |
+| decision_efficiency | 1.83 | 1.58 | 1.58 |
+| proceed_with_assumption_rate | 0.08 | 0.42 | 0.33 |
+| evidence_consistency_rate | 0.58 | 0.50 | 0.50 |
 
-- Hard Fail (wrong+proceed): B1=True (count=3), B2=True (count=3), B3=True (count=3)
+- Hard Fail (wrong+proceed): B1=False (count=0), B2=False (count=0), B3=False (count=0)
 
 ## Artifacts
 

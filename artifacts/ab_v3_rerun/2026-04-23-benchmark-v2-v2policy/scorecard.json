@@ -1,35 +1,35 @@
 {
   "B1": {
-    "wrong_action_rate": 0.25,
+    "wrong_action_rate": 0,
     "false_positive_rate": 0.25,
-    "justified_action_rate": 0.5,
-    "recovery_accuracy": 0.33,
-    "decision_efficiency": 1.75,
-    "proceed_with_assumption_rate": 0.17,
-    "evidence_consistency_rate": 0.67,
-    "wrong_proceed_count": 3,
-    "hard_fail_wrong_proceed": true
+    "justified_action_rate": 0.75,
+    "recovery_accuracy": 0.7,
+    "decision_efficiency": 1.83,
+    "proceed_with_assumption_rate": 0.08,
+    "evidence_consistency_rate": 0.58,
+    "wrong_proceed_count": 0,
+    "hard_fail_wrong_proceed": false
   },
   "B2": {
-    "wrong_action_rate": 0.25,
+    "wrong_action_rate": 0,
     "false_positive_rate": 0,
-    "justified_action_rate": 0.75,
-    "recovery_accuracy": 0.5,
-    "decision_efficiency": 1.5,
-    "proceed_with_assumption_rate": 0.5,
-    "evidence_consistency_rate": 0.67,
-    "wrong_proceed_count": 3,
-    "hard_fail_wrong_proceed": true
+    "justified_action_rate": 1,
+    "recovery_accuracy": 1,
+    "decision_efficiency": 1.58,
+    "proceed_with_assumption_rate": 0.42,
+    "evidence_consistency_rate": 0.5,
+    "wrong_proceed_count": 0,
+    "hard_fail_wrong_proceed": false
   },
   "B3": {
-    "wrong_action_rate": 0.25,
-    "false_positive_rate": 0,
-    "justified_action_rate": 0.75,
-    "recovery_accuracy": 0.5,
-    "decision_efficiency": 1.5,
-    "proceed_with_assumption_rate": 0.42,
-    "evidence_consistency_rate": 0.67,
-    "wrong_proceed_count": 3,
-    "hard_fail_wrong_proceed": true
+    "wrong_action_rate": 0,
+    "false_positive_rate": 0.08,
+    "justified_action_rate": 0.92,
+    "recovery_accuracy": 0.86,
+    "decision_efficiency": 1.58,
+    "proceed_with_assumption_rate": 0.33,
+    "evidence_consistency_rate": 0.5,
+    "wrong_proceed_count": 0,
+    "hard_fail_wrong_proceed": false
   }
 }
