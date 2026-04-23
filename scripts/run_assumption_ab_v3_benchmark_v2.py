@@ -252,6 +252,110 @@ CASES: list[Case] = [
     ),
 ]
 
+SEPARATION_CASES: list[Case] = [
+    Case(
+        case_id="sep_lowrisk_epistemic_cost_001",
+        kind="wrong",
+        category="separation+low-risk+high-epistemic-cost",
+        base_task="Rename local parser variable directly; root cause is definitely naming confusion.",
+        followup_evidence="Only one symptom screenshot; no causal proof and no regression guard.",
+        expected_actions=("need_more_info", "reframe"),
+        b3_followup_enables_proceed=False,
+        ground_truth_direct_evidence=False,
+        epistemic_risk="high",
+        fixture={
+            "change_surface": "local",
+            "reversibility": "easy",
+            "partial_context": True,
+            "user_asserts_root_cause": True,
+            "has_direct_evidence": False,
+            "has_tests": False,
+        },
+        trial_costs={
+            "proceed": 1.0,
+            "proceed_with_assumption": 0.9,
+            "need_more_info": 0.2,
+            "reframe": 0.1,
+            "reject": 0.1,
+        },
+    ),
+    Case(
+        case_id="sep_lowrisk_cheap_trial_001",
+        kind="valid",
+        category="separation+low-risk+cheap-trial",
+        base_task="Apply a local reversible logging tweak to test parser branch hypothesis quickly.",
+        followup_evidence="Direct evidence: local failing snapshot and quick rollback patch are available.",
+        expected_actions=("proceed_with_assumption", "need_more_info"),
+        b3_followup_enables_proceed=True,
+        ground_truth_direct_evidence=True,
+        epistemic_risk="low",
+        fixture={
+            "change_surface": "local",
+            "reversibility": "easy",
+            "partial_context": True,
+            "has_tests": True,
+            "has_direct_evidence": False,
+        },
+        trial_costs={
+            "proceed": 0.2,
+            "proceed_with_assumption": 0.1,
+            "need_more_info": 0.2,
+            "reframe": 0.3,
+            "reject": 0.3,
+        },
+    ),
+    Case(
+        case_id="sep_highrisk_partial_evidence_001",
+        kind="valid",
+        category="separation+high-risk+partial-evidence",
+        base_task="Adjust shared protocol mapping with only one evidence source available.",
+        followup_evidence="Spec excerpt exists, but no aligned trace and no caller inventory yet.",
+        expected_actions=("need_more_info", "proceed_with_assumption"),
+        b3_followup_enables_proceed=True,
+        ground_truth_direct_evidence=False,
+        epistemic_risk="high",
+        fixture={
+            "change_surface": "shared",
+            "shared_interface": True,
+            "external_side_effect": True,
+            "reversibility": "bounded",
+            "has_spec": True,
+            "has_trace": False,
+            "has_tests": False,
+            "has_usage_evidence": False,
+            "has_caller_inventory_or_compat_check": False,
+            "has_direct_evidence": False,
+            "partial_context": True,
+        },
+    ),
+    Case(
+        case_id="sep_asserted_conflicting_hint_001",
+        kind="wrong",
+        category="separation+asserted-root-cause+conflicting-hint",
+        base_task="User insists whitespace trim caused parser failure; patch trim path directly.",
+        followup_evidence="A weak trace hints queue ordering conflict, so root-cause claim is not aligned.",
+        expected_actions=("need_more_info", "reframe"),
+        b3_followup_enables_proceed=False,
+        ground_truth_direct_evidence=False,
+        epistemic_risk="high",
+        fixture={
+            "change_surface": "local",
+            "reversibility": "easy",
+            "partial_context": True,
+            "user_asserts_root_cause": True,
+            "has_direct_conflicting_evidence": True,
+            "has_direct_evidence": False,
+        },
+        trial_costs={
+            "proceed": 0.9,
+            "proceed_with_assumption": 0.8,
+            "need_more_info": 0.2,
+            "reframe": 0.1,
+            "reject": 0.1,
+        },
+    ),
+]
+
 
 ASSUMPTION_TEMPLATE_NO_EVIDENCE = (
     "[Assumption Check]\n"
@@ -616,10 +720,12 @@ def _compute_metrics(rows: list[dict]) -> dict:
     }
 
 
-def _evaluate_arm(project_root: Path, arm: str, enforcement_profile: str) -> tuple[list[dict], dict]:
+def _evaluate_arm(
+    project_root: Path, arm: str, enforcement_profile: str, cases: list[Case], enable_anti_collapse: bool
+) -> tuple[list[dict], dict]:
     rows: list[dict] = []
 
-    for case in CASES:
+    for case in cases:
         phase1 = _run_precheck(
             project_root, _build_task_text(case, arm, phase=1), case, phase="phase1", enforcement_profile=enforcement_profile
         )
@@ -649,7 +755,8 @@ def _evaluate_arm(project_root: Path, arm: str, enforcement_profile: str) -> tup
             }
         )
 
-    _apply_anti_collapse(rows, arm)
+    if enable_anti_collapse:
+        _apply_anti_collapse(rows, arm)
     metrics = _compute_metrics(rows)
 
     # remove embedded dataclass from raw output
@@ -661,12 +768,59 @@ def _evaluate_arm(project_root: Path, arm: str, enforcement_profile: str) -> tup
     return sanitized, metrics
 
 
-def _render_report(output_dir: Path, scorecard: dict, run_date: str, enforcement_profile: str) -> str:
+def _top2_actions(row: dict) -> list[str]:
+    candidates = row.get("final", {}).get("decision_candidates", []) or []
+    return [item.get("action", "") for item in candidates[:2]]
+
+
+def _build_arm_separation(rows_b1: list[dict], rows_b2: list[dict], rows_b3: list[dict]) -> dict:
+    by_arm = {"B1": rows_b1, "B2": rows_b2, "B3": rows_b3}
+    ids = [row["case_id"] for row in rows_b1]
+    details = []
+    action_sep_count = 0
+    ranking_sep_count = 0
+
+    for case_id in ids:
+        rows = {arm: next(r for r in arm_rows if r["case_id"] == case_id) for arm, arm_rows in by_arm.items()}
+        actions = {arm: rows[arm]["final"]["action"] for arm in ("B1", "B2", "B3")}
+        top2 = {arm: _top2_actions(rows[arm]) for arm in ("B1", "B2", "B3")}
+        action_separated = len(set(actions.values())) > 1
+        ranking_separated = len({tuple(v) for v in top2.values()}) > 1
+        if action_separated:
+            action_sep_count += 1
+        if ranking_separated:
+            ranking_sep_count += 1
+        details.append(
+            {
+                "case_id": case_id,
+                "category": rows["B1"]["category"],
+                "actions": actions,
+                "top2": top2,
+                "action_separated": action_separated,
+                "ranking_separated": ranking_separated,
+            }
+        )
+
+    separated_cases = [d for d in details if d["action_separated"] or d["ranking_separated"]]
+    return {
+        "cases_total": len(details),
+        "action_separated_cases": action_sep_count,
+        "ranking_separated_cases": ranking_sep_count,
+        "action_or_ranking_separated_cases": len(separated_cases),
+        "stop_rule_min_cases": 2,
+        "stop_rule_pass": len(separated_cases) >= 2,
+        "details": details,
+    }
+
+
+def _render_report(
+    output_dir: Path, scorecard: dict, run_date: str, enforcement_profile: str, case_pack: str, arm_separation: dict
+) -> str:
     lines = [
         "# AB v3 Benchmark v2 Rerun Report (Decision Policy v2)",
         "",
         f"- Date: {run_date}",
-        f"- Scope: decision-policy runtime with benchmark v2 gradient case pack ({len(CASES)} cases)",
+        f"- Scope: decision-policy runtime case pack `{case_pack}` ({arm_separation.get('cases_total', 0)} cases)",
         f"- Enforcement Profile: {enforcement_profile}",
         "- Arms: B1 (runtime only), B2 (assumption forcing), B3 (assumption + evidence feedback)",
         "- Note: exploration anti-collapse constraint enabled for B2/B3 in this experiment.",
@@ -710,12 +864,31 @@ def _render_report(output_dir: Path, scorecard: dict, run_date: str, enforcement
     lines.extend(
         [
             "",
+            "## Arm Separation",
+            "",
+            f"- action_separated_cases: {arm_separation['action_separated_cases']}",
+            f"- ranking_separated_cases: {arm_separation['ranking_separated_cases']}",
+            f"- action_or_ranking_separated_cases: {arm_separation['action_or_ranking_separated_cases']}",
+            f"- stop_rule_pass(min>={arm_separation['stop_rule_min_cases']}): {arm_separation['stop_rule_pass']}",
+        ]
+    )
+    for item in arm_separation.get("details", []):
+        lines.append(
+            f"- {item['case_id']} ({item['category']}): "
+            f"actions B1/B2/B3={item['actions']['B1']}/{item['actions']['B2']}/{item['actions']['B3']}; "
+            f"top2 B1={item['top2']['B1']} B2={item['top2']['B2']} B3={item['top2']['B3']}; "
+            f"action_sep={item['action_separated']} ranking_sep={item['ranking_separated']}"
+        )
+    lines.extend(
+        [
+            "",
             "## Artifacts",
             "",
             f"- Raw: `{output_dir / 'raw_B1.json'}`",
             f"- Raw: `{output_dir / 'raw_B2.json'}`",
             f"- Raw: `{output_dir / 'raw_B3.json'}`",
             f"- Scorecard: `{output_dir / 'scorecard.json'}`",
+            f"- Arm Separation: `{output_dir / 'arm_separation.json'}`",
         ]
     )
     return "\n".join(lines) + "\n"
@@ -726,6 +899,7 @@ def main() -> None:
     parser.add_argument("--project-root", default=".")
     parser.add_argument("--output-dir")
     parser.add_argument("--enforcement-profile", default="advisory_mainline")
+    parser.add_argument("--case-pack", choices=["full_v2", "separation_v1"], default="full_v2")
     args = parser.parse_args()
 
     project_root = Path(args.project_root).resolve()
@@ -737,23 +911,40 @@ def main() -> None:
     )
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    rows_b1, metrics_b1 = _evaluate_arm(project_root, "B1", args.enforcement_profile)
-    rows_b2, metrics_b2 = _evaluate_arm(project_root, "B2", args.enforcement_profile)
-    rows_b3, metrics_b3 = _evaluate_arm(project_root, "B3", args.enforcement_profile)
+    if args.case_pack == "separation_v1":
+        cases = SEPARATION_CASES
+        enable_anti_collapse = False
+    else:
+        cases = CASES
+        enable_anti_collapse = True
+
+    rows_b1, metrics_b1 = _evaluate_arm(project_root, "B1", args.enforcement_profile, cases, enable_anti_collapse)
+    rows_b2, metrics_b2 = _evaluate_arm(project_root, "B2", args.enforcement_profile, cases, enable_anti_collapse)
+    rows_b3, metrics_b3 = _evaluate_arm(project_root, "B3", args.enforcement_profile, cases, enable_anti_collapse)
 
     (output_dir / "raw_B1.json").write_text(json.dumps(rows_b1, ensure_ascii=False, indent=2), encoding="utf-8")
     (output_dir / "raw_B2.json").write_text(json.dumps(rows_b2, ensure_ascii=False, indent=2), encoding="utf-8")
     (output_dir / "raw_B3.json").write_text(json.dumps(rows_b3, ensure_ascii=False, indent=2), encoding="utf-8")
 
     scorecard = {"B1": metrics_b1, "B2": metrics_b2, "B3": metrics_b3}
+    arm_separation = _build_arm_separation(rows_b1, rows_b2, rows_b3)
     (output_dir / "scorecard.json").write_text(json.dumps(scorecard, ensure_ascii=False, indent=2), encoding="utf-8")
-    report = _render_report(output_dir, scorecard, run_date, args.enforcement_profile)
+    (output_dir / "arm_separation.json").write_text(json.dumps(arm_separation, ensure_ascii=False, indent=2), encoding="utf-8")
+    report = _render_report(output_dir, scorecard, run_date, args.enforcement_profile, args.case_pack, arm_separation)
     report_path = output_dir / "AB_v3_benchmark_v2_rerun_report.md"
     report_path.write_text(report, encoding="utf-8")
 
     print(
         json.dumps(
-            {"output_dir": str(output_dir), "report": str(report_path), "scorecard": scorecard},
+            {
+                "output_dir": str(output_dir),
+                "report": str(report_path),
+                "scorecard": scorecard,
+                "arm_separation": {
+                    "action_or_ranking_separated_cases": arm_separation["action_or_ranking_separated_cases"],
+                    "stop_rule_pass": arm_separation["stop_rule_pass"],
+                },
+            },
             ensure_ascii=False,
             indent=2,
         )
