@@ -773,6 +773,114 @@ def _top2_actions(row: dict) -> list[str]:
     return [item.get("action", "") for item in candidates[:2]]
 
 
+def _top3_with_scores(snapshot: dict) -> list[dict]:
+    out = []
+    for item in (snapshot.get("decision_candidates", []) or [])[:3]:
+        out.append({"action": item.get("action"), "score": item.get("score")})
+    return out
+
+
+def _feature_tuple(snapshot: dict) -> tuple[str, str, str, str]:
+    return (
+        str(snapshot.get("premise_status") or ""),
+        str(snapshot.get("evidence_alignment") or ""),
+        str(snapshot.get("execution_scope") or ""),
+        str(snapshot.get("correctness_mode") or ""),
+    )
+
+
+def _top3_tuple(snapshot: dict) -> tuple[tuple[str, float | None], ...]:
+    top3 = _top3_with_scores(snapshot)
+    return tuple((str(item.get("action") or ""), item.get("score")) for item in top3)
+
+
+def _build_collapse_locator(rows_b1: list[dict], rows_b2: list[dict], rows_b3: list[dict]) -> tuple[list[dict], dict]:
+    by_arm = {"B1": rows_b1, "B2": rows_b2, "B3": rows_b3}
+    ids = [row["case_id"] for row in rows_b1]
+    dump: list[dict] = []
+    summaries: list[dict] = []
+    counts = {
+        "feature_extraction_collapse": 0,
+        "score_mapping_collapse": 0,
+        "phase_transition_collapse": 0,
+        "not_collapsed_or_mixed": 0,
+    }
+
+    for case_id in ids:
+        rows = {arm: next(r for r in arm_rows if r["case_id"] == case_id) for arm, arm_rows in by_arm.items()}
+        arms_payload = {}
+        for arm in ("B1", "B2", "B3"):
+            phase1 = rows[arm]["phase1"]
+            final = rows[arm]["final"]
+            arms_payload[arm] = {
+                "phase1": {
+                    "premise_status": phase1.get("premise_status"),
+                    "evidence_alignment": phase1.get("evidence_alignment"),
+                    "execution_scope": phase1.get("execution_scope"),
+                    "correctness_mode": phase1.get("correctness_mode"),
+                    "top3": _top3_with_scores(phase1),
+                },
+                "final": {
+                    "premise_status": final.get("premise_status"),
+                    "evidence_alignment": final.get("evidence_alignment"),
+                    "execution_scope": final.get("execution_scope"),
+                    "correctness_mode": final.get("correctness_mode"),
+                    "top3": _top3_with_scores(final),
+                },
+            }
+
+        phase1_features = {arm: _feature_tuple(rows[arm]["phase1"]) for arm in ("B1", "B2", "B3")}
+        final_features = {arm: _feature_tuple(rows[arm]["final"]) for arm in ("B1", "B2", "B3")}
+        final_top3 = {arm: _top3_tuple(rows[arm]["final"]) for arm in ("B1", "B2", "B3")}
+        phase1_top3 = {arm: _top3_tuple(rows[arm]["phase1"]) for arm in ("B1", "B2", "B3")}
+
+        phase1_feature_delta_across_arms = len(set(phase1_features.values())) > 1
+        final_feature_delta_across_arms = len(set(final_features.values())) > 1
+        top3_delta_across_arms = len(set(final_top3.values())) > 1
+        phase1_to_final_delta_within_arm = {
+            arm: (phase1_features[arm] != final_features[arm] or phase1_top3[arm] != final_top3[arm])
+            for arm in ("B1", "B2", "B3")
+        }
+
+        if not phase1_feature_delta_across_arms and not final_feature_delta_across_arms:
+            collapse_type = "feature_extraction_collapse"
+        elif phase1_feature_delta_across_arms and not final_feature_delta_across_arms:
+            collapse_type = "phase_transition_collapse"
+        elif (phase1_feature_delta_across_arms or final_feature_delta_across_arms) and not top3_delta_across_arms:
+            collapse_type = "score_mapping_collapse"
+        else:
+            collapse_type = "not_collapsed_or_mixed"
+        counts[collapse_type] += 1
+
+        dump.append(
+            {
+                "case_id": case_id,
+                "category": rows["B1"]["category"],
+                "arms": arms_payload,
+            }
+        )
+        summaries.append(
+            {
+                "case_id": case_id,
+                "category": rows["B1"]["category"],
+                "phase1_feature_delta_across_arms": phase1_feature_delta_across_arms,
+                "final_feature_delta_across_arms": final_feature_delta_across_arms,
+                "top3_delta_across_arms": top3_delta_across_arms,
+                "phase1_to_final_delta_within_arm": phase1_to_final_delta_within_arm,
+                "collapse_type": collapse_type,
+            }
+        )
+
+    dominant = max(counts, key=lambda k: counts[k]) if counts else "unknown"
+    summary = {
+        "cases_total": len(summaries),
+        "counts": counts,
+        "dominant_collapse_type": dominant,
+        "case_summaries": summaries,
+    }
+    return dump, summary
+
+
 def _build_arm_separation(rows_b1: list[dict], rows_b2: list[dict], rows_b3: list[dict]) -> dict:
     by_arm = {"B1": rows_b1, "B2": rows_b2, "B3": rows_b3}
     ids = [row["case_id"] for row in rows_b1]
@@ -814,7 +922,13 @@ def _build_arm_separation(rows_b1: list[dict], rows_b2: list[dict], rows_b3: lis
 
 
 def _render_report(
-    output_dir: Path, scorecard: dict, run_date: str, enforcement_profile: str, case_pack: str, arm_separation: dict
+    output_dir: Path,
+    scorecard: dict,
+    run_date: str,
+    enforcement_profile: str,
+    case_pack: str,
+    arm_separation: dict,
+    collapse_summary: dict | None = None,
 ) -> str:
     lines = [
         "# AB v3 Benchmark v2 Rerun Report (Decision Policy v2)",
@@ -879,6 +993,16 @@ def _render_report(
             f"top2 B1={item['top2']['B1']} B2={item['top2']['B2']} B3={item['top2']['B3']}; "
             f"action_sep={item['action_separated']} ranking_sep={item['ranking_separated']}"
         )
+    if collapse_summary:
+        lines.extend(
+            [
+                "",
+                "## Collapse Locator",
+                "",
+                f"- dominant_collapse_type: {collapse_summary.get('dominant_collapse_type')}",
+                f"- counts: {collapse_summary.get('counts')}",
+            ]
+        )
     lines.extend(
         [
             "",
@@ -889,6 +1013,8 @@ def _render_report(
             f"- Raw: `{output_dir / 'raw_B3.json'}`",
             f"- Scorecard: `{output_dir / 'scorecard.json'}`",
             f"- Arm Separation: `{output_dir / 'arm_separation.json'}`",
+            f"- Per-phase Feature Delta Dump: `{output_dir / 'per_phase_feature_delta_dump.json'}`",
+            f"- Collapse Summary: `{output_dir / 'collapse_summary.json'}`",
         ]
     )
     return "\n".join(lines) + "\n"
@@ -928,9 +1054,18 @@ def main() -> None:
 
     scorecard = {"B1": metrics_b1, "B2": metrics_b2, "B3": metrics_b3}
     arm_separation = _build_arm_separation(rows_b1, rows_b2, rows_b3)
+    per_phase_dump, collapse_summary = _build_collapse_locator(rows_b1, rows_b2, rows_b3)
     (output_dir / "scorecard.json").write_text(json.dumps(scorecard, ensure_ascii=False, indent=2), encoding="utf-8")
     (output_dir / "arm_separation.json").write_text(json.dumps(arm_separation, ensure_ascii=False, indent=2), encoding="utf-8")
-    report = _render_report(output_dir, scorecard, run_date, args.enforcement_profile, args.case_pack, arm_separation)
+    (output_dir / "per_phase_feature_delta_dump.json").write_text(
+        json.dumps(per_phase_dump, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    (output_dir / "collapse_summary.json").write_text(
+        json.dumps(collapse_summary, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    report = _render_report(
+        output_dir, scorecard, run_date, args.enforcement_profile, args.case_pack, arm_separation, collapse_summary
+    )
     report_path = output_dir / "AB_v3_benchmark_v2_rerun_report.md"
     report_path.write_text(report, encoding="utf-8")
 
@@ -943,6 +1078,10 @@ def main() -> None:
                 "arm_separation": {
                     "action_or_ranking_separated_cases": arm_separation["action_or_ranking_separated_cases"],
                     "stop_rule_pass": arm_separation["stop_rule_pass"],
+                },
+                "collapse_summary": {
+                    "dominant_collapse_type": collapse_summary["dominant_collapse_type"],
+                    "counts": collapse_summary["counts"],
                 },
             },
             ensure_ascii=False,
