@@ -1,0 +1,584 @@
+{
+  "contract_version": "v1",
+  "contract_source": "docs/arm_feature_contract.md",
+  "arms": {
+    "B1": {
+      "description": "runtime only",
+      "expected_feature_effect": {
+        "premise_status": "no extra intervention",
+        "evidence_alignment": "no extra boost/downgrade",
+        "execution_scope": "no extra conservative shift",
+        "correctness_mode": "no explicit bias to need_more_info"
+      }
+    },
+    "B2": {
+      "description": "assumption forcing",
+      "expected_feature_effect": {
+        "premise_status": "unknown paths should preserve alternative-cause uncertainty trace",
+        "evidence_alignment": "unknown without direct evidence can be downgraded to weak/absent",
+        "execution_scope": "no direct scope override; still from context signals",
+        "correctness_mode": "should prefer ask_for_evidence over bounded_trial for epistemically-unsafe unknowns"
+      }
+    },
+    "B3": {
+      "description": "assumption + evidence feedback",
+      "expected_feature_effect": {
+        "premise_status": "same as B2 baseline unless stronger evidence appears",
+        "evidence_alignment": "evidence feedback should make weak/absent state explicit",
+        "execution_scope": "no direct scope override; still from context signals",
+        "correctness_mode": "when evidence weak/absent, should be at least as cautious as B2"
+      }
+    }
+  },
+  "cases_total_with_expectation": 4,
+  "cases_with_any_expected_feature_separation": 0,
+  "cases_missing_expected_feature_separation": 4,
+  "possible_reason_counts": {
+    "contract_overstates_difference": 0,
+    "arm_signal_not_machine_consumable": 0,
+    "extractor_ignores_arm_signal": 4,
+    "separated": 0
+  },
+  "details": [
+    {
+      "case_id": "sep_lowrisk_epistemic_cost_001",
+      "category": "separation+low-risk+high-epistemic-cost",
+      "contract_says_should_separate_on": [
+        "premise_status",
+        "evidence_alignment",
+        "correctness_mode"
+      ],
+      "actual_extracted_features": {
+        "phase1": {
+          "B1": {
+            "premise_status": "unsupported",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          },
+          "B2": {
+            "premise_status": "unsupported",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          },
+          "B3": {
+            "premise_status": "unsupported",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          }
+        },
+        "final": {
+          "B1": {
+            "premise_status": "unsupported",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          },
+          "B2": {
+            "premise_status": "unsupported",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          },
+          "B3": {
+            "premise_status": "unsupported",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          }
+        }
+      },
+      "expected_features": [
+        "premise_status",
+        "evidence_alignment",
+        "correctness_mode"
+      ],
+      "has_any_expected_separation": false,
+      "possible_reason_for_non_separation": "extractor_ignores_arm_signal",
+      "reason_note": "Parsed arm signals differ, but phase-A features remain identical across arms.",
+      "arm_text_delta_detected": true,
+      "parsed_arm_signal_delta_detected": true,
+      "parsed_arm_signals": {
+        "phase1": {
+          "B1": [
+            false,
+            1,
+            false,
+            false
+          ],
+          "B2": [
+            false,
+            3,
+            false,
+            true
+          ],
+          "B3": [
+            false,
+            3,
+            false,
+            true
+          ]
+        },
+        "final": {
+          "B1": [
+            false,
+            1,
+            false,
+            false
+          ],
+          "B2": [
+            false,
+            3,
+            false,
+            true
+          ],
+          "B3": [
+            false,
+            3,
+            false,
+            true
+          ]
+        }
+      },
+      "feature_checks": [
+        {
+          "feature": "premise_status",
+          "phase1_values": {
+            "B1": "unsupported",
+            "B2": "unsupported",
+            "B3": "unsupported"
+          },
+          "final_values": {
+            "B1": "unsupported",
+            "B2": "unsupported",
+            "B3": "unsupported"
+          },
+          "phase1_separated": false,
+          "final_separated": false,
+          "observed_separated": false
+        },
+        {
+          "feature": "evidence_alignment",
+          "phase1_values": {
+            "B1": "weak",
+            "B2": "weak",
+            "B3": "weak"
+          },
+          "final_values": {
+            "B1": "weak",
+            "B2": "weak",
+            "B3": "weak"
+          },
+          "phase1_separated": false,
+          "final_separated": false,
+          "observed_separated": false
+        },
+        {
+          "feature": "correctness_mode",
+          "phase1_values": {
+            "B1": "reframe_claim",
+            "B2": "reframe_claim",
+            "B3": "reframe_claim"
+          },
+          "final_values": {
+            "B1": "reframe_claim",
+            "B2": "reframe_claim",
+            "B3": "reframe_claim"
+          },
+          "phase1_separated": false,
+          "final_separated": false,
+          "observed_separated": false
+        }
+      ]
+    },
+    {
+      "case_id": "sep_lowrisk_cheap_trial_001",
+      "category": "separation+low-risk+cheap-trial",
+      "contract_says_should_separate_on": [
+        "correctness_mode"
+      ],
+      "actual_extracted_features": {
+        "phase1": {
+          "B1": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "direct_fix"
+          },
+          "B2": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "direct_fix"
+          },
+          "B3": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "direct_fix"
+          }
+        },
+        "final": {
+          "B1": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "direct_fix"
+          },
+          "B2": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "direct_fix"
+          },
+          "B3": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "direct_fix"
+          }
+        }
+      },
+      "expected_features": [
+        "correctness_mode"
+      ],
+      "has_any_expected_separation": false,
+      "possible_reason_for_non_separation": "extractor_ignores_arm_signal",
+      "reason_note": "Parsed arm signals differ, but phase-A features remain identical across arms.",
+      "arm_text_delta_detected": true,
+      "parsed_arm_signal_delta_detected": true,
+      "parsed_arm_signals": {
+        "phase1": {
+          "B1": [
+            false,
+            0,
+            false,
+            false
+          ],
+          "B2": [
+            false,
+            2,
+            false,
+            true
+          ],
+          "B3": [
+            false,
+            2,
+            false,
+            true
+          ]
+        },
+        "final": {
+          "B1": [
+            false,
+            0,
+            false,
+            false
+          ],
+          "B2": [
+            false,
+            2,
+            false,
+            true
+          ],
+          "B3": [
+            false,
+            2,
+            false,
+            true
+          ]
+        }
+      },
+      "feature_checks": [
+        {
+          "feature": "correctness_mode",
+          "phase1_values": {
+            "B1": "direct_fix",
+            "B2": "direct_fix",
+            "B3": "direct_fix"
+          },
+          "final_values": {
+            "B1": "direct_fix",
+            "B2": "direct_fix",
+            "B3": "direct_fix"
+          },
+          "phase1_separated": false,
+          "final_separated": false,
+          "observed_separated": false
+        }
+      ]
+    },
+    {
+      "case_id": "sep_highrisk_partial_evidence_001",
+      "category": "separation+high-risk+partial-evidence",
+      "contract_says_should_separate_on": [
+        "evidence_alignment",
+        "correctness_mode"
+      ],
+      "actual_extracted_features": {
+        "phase1": {
+          "B1": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "external_side_effect",
+            "correctness_mode": "direct_fix"
+          },
+          "B2": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "external_side_effect",
+            "correctness_mode": "direct_fix"
+          },
+          "B3": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "external_side_effect",
+            "correctness_mode": "direct_fix"
+          }
+        },
+        "final": {
+          "B1": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "external_side_effect",
+            "correctness_mode": "direct_fix"
+          },
+          "B2": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "external_side_effect",
+            "correctness_mode": "direct_fix"
+          },
+          "B3": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "external_side_effect",
+            "correctness_mode": "direct_fix"
+          }
+        }
+      },
+      "expected_features": [
+        "evidence_alignment",
+        "correctness_mode"
+      ],
+      "has_any_expected_separation": false,
+      "possible_reason_for_non_separation": "extractor_ignores_arm_signal",
+      "reason_note": "Parsed arm signals differ, but phase-A features remain identical across arms.",
+      "arm_text_delta_detected": true,
+      "parsed_arm_signal_delta_detected": true,
+      "parsed_arm_signals": {
+        "phase1": {
+          "B1": [
+            false,
+            0,
+            true,
+            false
+          ],
+          "B2": [
+            true,
+            2,
+            true,
+            true
+          ],
+          "B3": [
+            true,
+            2,
+            true,
+            true
+          ]
+        },
+        "final": {
+          "B1": [
+            false,
+            0,
+            true,
+            false
+          ],
+          "B2": [
+            true,
+            2,
+            true,
+            true
+          ],
+          "B3": [
+            true,
+            2,
+            true,
+            true
+          ]
+        }
+      },
+      "feature_checks": [
+        {
+          "feature": "evidence_alignment",
+          "phase1_values": {
+            "B1": "partial",
+            "B2": "partial",
+            "B3": "partial"
+          },
+          "final_values": {
+            "B1": "partial",
+            "B2": "partial",
+            "B3": "partial"
+          },
+          "phase1_separated": false,
+          "final_separated": false,
+          "observed_separated": false
+        },
+        {
+          "feature": "correctness_mode",
+          "phase1_values": {
+            "B1": "direct_fix",
+            "B2": "direct_fix",
+            "B3": "direct_fix"
+          },
+          "final_values": {
+            "B1": "direct_fix",
+            "B2": "direct_fix",
+            "B3": "direct_fix"
+          },
+          "phase1_separated": false,
+          "final_separated": false,
+          "observed_separated": false
+        }
+      ]
+    },
+    {
+      "case_id": "sep_asserted_conflicting_hint_001",
+      "category": "separation+asserted-root-cause+conflicting-hint",
+      "contract_says_should_separate_on": [
+        "premise_status",
+        "correctness_mode"
+      ],
+      "actual_extracted_features": {
+        "phase1": {
+          "B1": {
+            "premise_status": "contradicted",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          },
+          "B2": {
+            "premise_status": "contradicted",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          },
+          "B3": {
+            "premise_status": "contradicted",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          }
+        },
+        "final": {
+          "B1": {
+            "premise_status": "contradicted",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          },
+          "B2": {
+            "premise_status": "contradicted",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          },
+          "B3": {
+            "premise_status": "contradicted",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          }
+        }
+      },
+      "expected_features": [
+        "premise_status",
+        "correctness_mode"
+      ],
+      "has_any_expected_separation": false,
+      "possible_reason_for_non_separation": "extractor_ignores_arm_signal",
+      "reason_note": "Parsed arm signals differ, but phase-A features remain identical across arms.",
+      "arm_text_delta_detected": true,
+      "parsed_arm_signal_delta_detected": true,
+      "parsed_arm_signals": {
+        "phase1": {
+          "B1": [
+            false,
+            0,
+            false,
+            false
+          ],
+          "B2": [
+            false,
+            2,
+            false,
+            true
+          ],
+          "B3": [
+            false,
+            2,
+            false,
+            true
+          ]
+        },
+        "final": {
+          "B1": [
+            false,
+            0,
+            false,
+            false
+          ],
+          "B2": [
+            false,
+            2,
+            false,
+            true
+          ],
+          "B3": [
+            false,
+            2,
+            false,
+            true
+          ]
+        }
+      },
+      "feature_checks": [
+        {
+          "feature": "premise_status",
+          "phase1_values": {
+            "B1": "contradicted",
+            "B2": "contradicted",
+            "B3": "contradicted"
+          },
+          "final_values": {
+            "B1": "contradicted",
+            "B2": "contradicted",
+            "B3": "contradicted"
+          },
+          "phase1_separated": false,
+          "final_separated": false,
+          "observed_separated": false
+        },
+        {
+          "feature": "correctness_mode",
+          "phase1_values": {
+            "B1": "reframe_claim",
+            "B2": "reframe_claim",
+            "B3": "reframe_claim"
+          },
+          "final_values": {
+            "B1": "reframe_claim",
+            "B2": "reframe_claim",
+            "B3": "reframe_claim"
+          },
+          "phase1_separated": false,
+          "final_separated": false,
+          "observed_separated": false
+        }
+      ]
+    }
+  ]
+}
