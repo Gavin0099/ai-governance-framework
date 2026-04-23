@@ -1,0 +1,530 @@
+[
+  {
+    "case_id": "sep_lowrisk_epistemic_cost_001",
+    "category": "separation+low-risk+high-epistemic-cost",
+    "arms": {
+      "B1": {
+        "phase1": {
+          "premise_status": "unsupported",
+          "evidence_alignment": "weak",
+          "execution_scope": "local_reversible",
+          "correctness_mode": "reframe_claim",
+          "top3": [
+            {
+              "action": "reframe",
+              "score": 1.4
+            },
+            {
+              "action": "need_more_info",
+              "score": 0.8
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.3
+            }
+          ]
+        },
+        "final": {
+          "premise_status": "unsupported",
+          "evidence_alignment": "weak",
+          "execution_scope": "local_reversible",
+          "correctness_mode": "reframe_claim",
+          "top3": [
+            {
+              "action": "reframe",
+              "score": 1.4
+            },
+            {
+              "action": "need_more_info",
+              "score": 0.8
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.3
+            }
+          ]
+        }
+      },
+      "B2": {
+        "phase1": {
+          "premise_status": "unsupported",
+          "evidence_alignment": "weak",
+          "execution_scope": "local_reversible",
+          "correctness_mode": "ask_for_evidence",
+          "top3": [
+            {
+              "action": "need_more_info",
+              "score": 1.5
+            },
+            {
+              "action": "reframe",
+              "score": 0.7
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.3
+            }
+          ]
+        },
+        "final": {
+          "premise_status": "unsupported",
+          "evidence_alignment": "weak",
+          "execution_scope": "local_reversible",
+          "correctness_mode": "ask_for_evidence",
+          "top3": [
+            {
+              "action": "need_more_info",
+              "score": 1.5
+            },
+            {
+              "action": "reframe",
+              "score": 0.7
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.3
+            }
+          ]
+        }
+      },
+      "B3": {
+        "phase1": {
+          "premise_status": "unsupported",
+          "evidence_alignment": "weak",
+          "execution_scope": "local_reversible",
+          "correctness_mode": "ask_for_evidence",
+          "top3": [
+            {
+              "action": "need_more_info",
+              "score": 1.5
+            },
+            {
+              "action": "reframe",
+              "score": 0.7
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.3
+            }
+          ]
+        },
+        "final": {
+          "premise_status": "unsupported",
+          "evidence_alignment": "weak",
+          "execution_scope": "local_reversible",
+          "correctness_mode": "ask_for_evidence",
+          "top3": [
+            {
+              "action": "need_more_info",
+              "score": 1.5
+            },
+            {
+              "action": "reframe",
+              "score": 0.7
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.3
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "case_id": "sep_lowrisk_cheap_trial_001",
+    "category": "separation+low-risk+cheap-trial",
+    "arms": {
+      "B1": {
+        "phase1": {
+          "premise_status": "supported",
+          "evidence_alignment": "partial",
+          "execution_scope": "local_reversible",
+          "correctness_mode": "direct_fix",
+          "top3": [
+            {
+              "action": "proceed",
+              "score": 1.3
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.7
+            },
+            {
+              "action": "need_more_info",
+              "score": 0.4
+            }
+          ]
+        },
+        "final": {
+          "premise_status": "supported",
+          "evidence_alignment": "partial",
+          "execution_scope": "local_reversible",
+          "correctness_mode": "direct_fix",
+          "top3": [
+            {
+              "action": "proceed",
+              "score": 1.3
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.7
+            },
+            {
+              "action": "need_more_info",
+              "score": 0.4
+            }
+          ]
+        }
+      },
+      "B2": {
+        "phase1": {
+          "premise_status": "supported",
+          "evidence_alignment": "weak",
+          "execution_scope": "local_reversible",
+          "correctness_mode": "ask_for_evidence",
+          "top3": [
+            {
+              "action": "need_more_info",
+              "score": 1.5
+            },
+            {
+              "action": "reframe",
+              "score": 0.7
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.3
+            }
+          ]
+        },
+        "final": {
+          "premise_status": "supported",
+          "evidence_alignment": "partial",
+          "execution_scope": "local_reversible",
+          "correctness_mode": "direct_fix",
+          "top3": [
+            {
+              "action": "proceed",
+              "score": 1.3
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.7
+            },
+            {
+              "action": "need_more_info",
+              "score": 0.4
+            }
+          ]
+        }
+      },
+      "B3": {
+        "phase1": {
+          "premise_status": "supported",
+          "evidence_alignment": "weak",
+          "execution_scope": "local_reversible",
+          "correctness_mode": "ask_for_evidence",
+          "top3": [
+            {
+              "action": "need_more_info",
+              "score": 1.5
+            },
+            {
+              "action": "reframe",
+              "score": 0.7
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.3
+            }
+          ]
+        },
+        "final": {
+          "premise_status": "supported",
+          "evidence_alignment": "partial",
+          "execution_scope": "external_side_effect",
+          "correctness_mode": "direct_fix",
+          "top3": [
+            {
+              "action": "proceed",
+              "score": 1.3
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.7
+            },
+            {
+              "action": "need_more_info",
+              "score": 0.4
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "case_id": "sep_highrisk_partial_evidence_001",
+    "category": "separation+high-risk+partial-evidence",
+    "arms": {
+      "B1": {
+        "phase1": {
+          "premise_status": "supported",
+          "evidence_alignment": "partial",
+          "execution_scope": "external_side_effect",
+          "correctness_mode": "direct_fix",
+          "top3": [
+            {
+              "action": "proceed",
+              "score": 1.3
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.7
+            },
+            {
+              "action": "need_more_info",
+              "score": 0.4
+            }
+          ]
+        },
+        "final": {
+          "premise_status": "supported",
+          "evidence_alignment": "partial",
+          "execution_scope": "external_side_effect",
+          "correctness_mode": "direct_fix",
+          "top3": [
+            {
+              "action": "proceed",
+              "score": 1.3
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.7
+            },
+            {
+              "action": "need_more_info",
+              "score": 0.4
+            }
+          ]
+        }
+      },
+      "B2": {
+        "phase1": {
+          "premise_status": "supported",
+          "evidence_alignment": "weak",
+          "execution_scope": "external_side_effect",
+          "correctness_mode": "ask_for_evidence",
+          "top3": [
+            {
+              "action": "need_more_info",
+              "score": 1.5
+            },
+            {
+              "action": "reframe",
+              "score": 0.7
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.3
+            }
+          ]
+        },
+        "final": {
+          "premise_status": "supported",
+          "evidence_alignment": "partial",
+          "execution_scope": "external_side_effect",
+          "correctness_mode": "direct_fix",
+          "top3": [
+            {
+              "action": "proceed",
+              "score": 1.3
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.7
+            },
+            {
+              "action": "need_more_info",
+              "score": 0.4
+            }
+          ]
+        }
+      },
+      "B3": {
+        "phase1": {
+          "premise_status": "supported",
+          "evidence_alignment": "weak",
+          "execution_scope": "external_side_effect",
+          "correctness_mode": "ask_for_evidence",
+          "top3": [
+            {
+              "action": "need_more_info",
+              "score": 1.5
+            },
+            {
+              "action": "reframe",
+              "score": 0.7
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.3
+            }
+          ]
+        },
+        "final": {
+          "premise_status": "supported",
+          "evidence_alignment": "partial",
+          "execution_scope": "external_side_effect",
+          "correctness_mode": "direct_fix",
+          "top3": [
+            {
+              "action": "proceed",
+              "score": 1.3
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.7
+            },
+            {
+              "action": "need_more_info",
+              "score": 0.4
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "case_id": "sep_asserted_conflicting_hint_001",
+    "category": "separation+asserted-root-cause+conflicting-hint",
+    "arms": {
+      "B1": {
+        "phase1": {
+          "premise_status": "contradicted",
+          "evidence_alignment": "weak",
+          "execution_scope": "local_reversible",
+          "correctness_mode": "reframe_claim",
+          "top3": [
+            {
+              "action": "reframe",
+              "score": 1.4
+            },
+            {
+              "action": "need_more_info",
+              "score": 0.8
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.3
+            }
+          ]
+        },
+        "final": {
+          "premise_status": "contradicted",
+          "evidence_alignment": "weak",
+          "execution_scope": "local_reversible",
+          "correctness_mode": "reframe_claim",
+          "top3": [
+            {
+              "action": "reframe",
+              "score": 1.4
+            },
+            {
+              "action": "need_more_info",
+              "score": 0.8
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.3
+            }
+          ]
+        }
+      },
+      "B2": {
+        "phase1": {
+          "premise_status": "contradicted",
+          "evidence_alignment": "weak",
+          "execution_scope": "local_reversible",
+          "correctness_mode": "reframe_claim",
+          "top3": [
+            {
+              "action": "reframe",
+              "score": 1.4
+            },
+            {
+              "action": "need_more_info",
+              "score": 0.8
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.3
+            }
+          ]
+        },
+        "final": {
+          "premise_status": "contradicted",
+          "evidence_alignment": "weak",
+          "execution_scope": "local_reversible",
+          "correctness_mode": "reframe_claim",
+          "top3": [
+            {
+              "action": "reframe",
+              "score": 1.4
+            },
+            {
+              "action": "need_more_info",
+              "score": 0.8
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.3
+            }
+          ]
+        }
+      },
+      "B3": {
+        "phase1": {
+          "premise_status": "contradicted",
+          "evidence_alignment": "weak",
+          "execution_scope": "local_reversible",
+          "correctness_mode": "reframe_claim",
+          "top3": [
+            {
+              "action": "reframe",
+              "score": 1.4
+            },
+            {
+              "action": "need_more_info",
+              "score": 0.8
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.3
+            }
+          ]
+        },
+        "final": {
+          "premise_status": "contradicted",
+          "evidence_alignment": "weak",
+          "execution_scope": "local_reversible",
+          "correctness_mode": "reframe_claim",
+          "top3": [
+            {
+              "action": "reframe",
+              "score": 1.4
+            },
+            {
+              "action": "need_more_info",
+              "score": 0.8
+            },
+            {
+              "action": "proceed_with_assumption",
+              "score": 0.3
+            }
+          ]
+        }
+      }
+    }
+  }
+]

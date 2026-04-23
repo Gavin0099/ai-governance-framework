@@ -640,3 +640,77 @@ def test_pre_task_check_decision_policy_can_proceed_under_assumption(local_tmp_d
 
     output = pre_task_check.format_human_result(result)
     assert "decision_policy: risk_tier=" in output
+
+
+def test_pre_task_check_assumption_forcing_downgrades_phase_a_features(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    task_text = (
+        "[Assumption Check]\n"
+        "assumptions: premise may be wrong under uncertainty\n"
+        "alternative root causes: routing mismatch\n"
+        "alternative root causes: library matching drift\n"
+        "evidence: one source only\n"
+        "reframe: validate premise before implementation\n"
+        "Task: Adjust shared protocol mapping with only one evidence source available."
+    )
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text=task_text,
+        task_level="L1",
+        policy_fixture={
+            "change_surface": "shared",
+            "shared_interface": True,
+            "external_side_effect": True,
+            "reversibility": "bounded",
+            "has_spec": True,
+            "has_trace": False,
+            "has_tests": False,
+            "has_usage_evidence": False,
+            "has_caller_inventory_or_compat_check": False,
+            "has_direct_evidence": False,
+            "partial_context": True,
+        },
+    )
+
+    policy = result["decision_policy"]
+    assert policy["evidence_alignment"] == "weak"
+    assert policy["correctness_mode"] == "ask_for_evidence"
+
+
+def test_pre_task_check_without_assumption_forcing_keeps_baseline_phase_a_features(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    task_text = "Adjust shared protocol mapping with only one evidence source available."
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text=task_text,
+        task_level="L1",
+        policy_fixture={
+            "change_surface": "shared",
+            "shared_interface": True,
+            "external_side_effect": True,
+            "reversibility": "bounded",
+            "has_spec": True,
+            "has_trace": False,
+            "has_tests": False,
+            "has_usage_evidence": False,
+            "has_caller_inventory_or_compat_check": False,
+            "has_direct_evidence": False,
+            "partial_context": True,
+        },
+    )
+
+    policy = result["decision_policy"]
+    assert policy["evidence_alignment"] == "partial"
+    assert policy["correctness_mode"] == "direct_fix"
