@@ -1,0 +1,114 @@
+{
+  "run_date": "2026-04-23",
+  "summary": {
+    "cases_total": 4,
+    "cases_passed": 2,
+    "cases_failed": 2
+  },
+  "cases": [
+    {
+      "case_id": "missing_reset_codegen",
+      "description": "missing reset, with codegen intent",
+      "expected": {
+        "recommended_mode": "allow_draft_with_assumptions",
+        "missing_preconditions": [
+          "missing_reset_definition"
+        ],
+        "forbidden_claims": [
+          "claim_reset_safe_codegen"
+        ]
+      },
+      "observed": {
+        "recommended_mode": "allow_draft_with_assumptions",
+        "missing_preconditions": [],
+        "forbidden_claims": [],
+        "ok": true
+      },
+      "checks": {
+        "recommended_mode_match": true,
+        "forbidden_claims_match": false,
+        "missing_preconditions_match": false,
+        "surface_consistent": true
+      },
+      "passed": false
+    },
+    {
+      "case_id": "missing_handshake_codegen",
+      "description": "missing handshake, with codegen intent",
+      "expected": {
+        "recommended_mode": "allow_analysis_only",
+        "missing_preconditions": [
+          "missing_interface_or_handshake_definition"
+        ],
+        "forbidden_claims": [
+          "claim_interface_correctness_codegen"
+        ]
+      },
+      "observed": {
+        "recommended_mode": "allow_draft_with_assumptions",
+        "missing_preconditions": [],
+        "forbidden_claims": [],
+        "ok": true
+      },
+      "checks": {
+        "recommended_mode_match": false,
+        "forbidden_claims_match": false,
+        "missing_preconditions_match": false,
+        "surface_consistent": true
+      },
+      "passed": false
+    },
+    {
+      "case_id": "ready_for_codegen",
+      "description": "reset + handshake present, allow-codegen",
+      "expected": {
+        "recommended_mode": "allow_draft_with_assumptions",
+        "missing_preconditions": [],
+        "forbidden_claims": []
+      },
+      "observed": {
+        "recommended_mode": "allow_draft_with_assumptions",
+        "missing_preconditions": [],
+        "forbidden_claims": [],
+        "ok": true
+      },
+      "checks": {
+        "recommended_mode_match": true,
+        "forbidden_claims_match": true,
+        "missing_preconditions_match": true,
+        "surface_consistent": true
+      },
+      "passed": true
+    },
+    {
+      "case_id": "analysis_task_missing_preconditions",
+      "description": "non-codegen analysis task with missing preconditions",
+      "expected": {
+        "recommended_mode": "allow_analysis_only",
+        "missing_preconditions": [
+          "missing_interface_or_handshake_definition"
+        ],
+        "forbidden_claims": [
+          "claim_interface_correctness_codegen"
+        ]
+      },
+      "observed": {
+        "recommended_mode": "allow_analysis_only",
+        "missing_preconditions": [
+          "missing_interface_or_handshake_definition"
+        ],
+        "forbidden_claims": [
+          "claim_interface_correctness_codegen"
+        ],
+        "ok": false
+      },
+      "checks": {
+        "recommended_mode_match": true,
+        "forbidden_claims_match": true,
+        "missing_preconditions_match": true,
+        "surface_consistent": true
+      },
+      "passed": true
+    }
+  ]
+}
