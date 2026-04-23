@@ -1,0 +1,110 @@
+{
+  "cases_total": 4,
+  "action_separated_cases": 0,
+  "ranking_separated_cases": 0,
+  "action_or_ranking_separated_cases": 0,
+  "stop_rule_min_cases": 2,
+  "stop_rule_pass": false,
+  "details": [
+    {
+      "case_id": "sep_lowrisk_epistemic_cost_001",
+      "category": "separation+low-risk+high-epistemic-cost",
+      "actions": {
+        "B1": "reframe",
+        "B2": "reframe",
+        "B3": "reframe"
+      },
+      "top2": {
+        "B1": [
+          "reframe",
+          "need_more_info"
+        ],
+        "B2": [
+          "reframe",
+          "need_more_info"
+        ],
+        "B3": [
+          "reframe",
+          "need_more_info"
+        ]
+      },
+      "action_separated": false,
+      "ranking_separated": false
+    },
+    {
+      "case_id": "sep_lowrisk_cheap_trial_001",
+      "category": "separation+low-risk+cheap-trial",
+      "actions": {
+        "B1": "proceed",
+        "B2": "proceed",
+        "B3": "proceed"
+      },
+      "top2": {
+        "B1": [
+          "proceed",
+          "proceed_with_assumption"
+        ],
+        "B2": [
+          "proceed",
+          "proceed_with_assumption"
+        ],
+        "B3": [
+          "proceed",
+          "proceed_with_assumption"
+        ]
+      },
+      "action_separated": false,
+      "ranking_separated": false
+    },
+    {
+      "case_id": "sep_highrisk_partial_evidence_001",
+      "category": "separation+high-risk+partial-evidence",
+      "actions": {
+        "B1": "proceed",
+        "B2": "proceed",
+        "B3": "proceed"
+      },
+      "top2": {
+        "B1": [
+          "proceed",
+          "proceed_with_assumption"
+        ],
+        "B2": [
+          "proceed",
+          "proceed_with_assumption"
+        ],
+        "B3": [
+          "proceed",
+          "proceed_with_assumption"
+        ]
+      },
+      "action_separated": false,
+      "ranking_separated": false
+    },
+    {
+      "case_id": "sep_asserted_conflicting_hint_001",
+      "category": "separation+asserted-root-cause+conflicting-hint",
+      "actions": {
+        "B1": "reframe",
+        "B2": "reframe",
+        "B3": "reframe"
+      },
+      "top2": {
+        "B1": [
+          "reframe",
+          "need_more_info"
+        ],
+        "B2": [
+          "reframe",
+          "need_more_info"
+        ],
+        "B3": [
+          "reframe",
+          "need_more_info"
+        ]
+      },
+      "action_separated": false,
+      "ranking_separated": false
+    }
+  ]
+}

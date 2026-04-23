@@ -356,6 +356,47 @@ SEPARATION_CASES: list[Case] = [
     ),
 ]
 
+ARM_FEATURE_CONTRACT: dict[str, dict[str, Any]] = {
+    "B1": {
+        "description": "runtime only",
+        "expected_feature_effect": {
+            "premise_status": "no extra intervention",
+            "evidence_alignment": "no extra boost/downgrade",
+            "execution_scope": "no extra conservative shift",
+            "correctness_mode": "no explicit bias to need_more_info",
+        },
+    },
+    "B2": {
+        "description": "assumption forcing",
+        "expected_feature_effect": {
+            "premise_status": "unknown paths should preserve alternative-cause uncertainty trace",
+            "evidence_alignment": "unknown without direct evidence can be downgraded to weak/absent",
+            "execution_scope": "no direct scope override; still from context signals",
+            "correctness_mode": "should prefer ask_for_evidence over bounded_trial for epistemically-unsafe unknowns",
+        },
+    },
+    "B3": {
+        "description": "assumption + evidence feedback",
+        "expected_feature_effect": {
+            "premise_status": "same as B2 baseline unless stronger evidence appears",
+            "evidence_alignment": "evidence feedback should make weak/absent state explicit",
+            "execution_scope": "no direct scope override; still from context signals",
+            "correctness_mode": "when evidence weak/absent, should be at least as cautious as B2",
+        },
+    },
+}
+
+SEPARATION_CASE_EXPECTED_FEATURES: dict[str, list[str]] = {
+    # Unknown + high epistemic risk should separate B1 from B2/B3 on mode/evidence handling.
+    "sep_lowrisk_epistemic_cost_001": ["premise_status", "evidence_alignment", "correctness_mode"],
+    # Cheap bounded local trial can separate B1 from assumption-aware arms on mode.
+    "sep_lowrisk_cheap_trial_001": ["correctness_mode"],
+    # High-risk partial evidence should separate B3 from B2 on evidence/mode feedback strictness.
+    "sep_highrisk_partial_evidence_001": ["evidence_alignment", "correctness_mode"],
+    # Conflicting hint should separate assumption-aware arms from runtime baseline on premise/mode.
+    "sep_asserted_conflicting_hint_001": ["premise_status", "correctness_mode"],
+}
+
 
 ASSUMPTION_TEMPLATE_NO_EVIDENCE = (
     "[Assumption Check]\n"
@@ -515,6 +556,7 @@ def _run_precheck(project_root: Path, text: str, case: Case, phase: str, enforce
     policy = result.get("decision_policy", {})
     evidence_integrity = result.get("evidence_integrity", {})
     evidence_gate = result.get("evidence_integrity_gate", {})
+    assumption_check = result.get("assumption_check", {})
     return {
         "task_text": text,
         "action": policy.get("decision_action"),
@@ -532,6 +574,10 @@ def _run_precheck(project_root: Path, text: str, case: Case, phase: str, enforce
         "evidence_alignment": policy.get("evidence_alignment"),
         "execution_scope": policy.get("execution_scope"),
         "correctness_mode": policy.get("correctness_mode"),
+        "assumption_check_complete": bool(assumption_check.get("complete", False)),
+        "assumption_alternatives_count": int(assumption_check.get("alternatives_count", 0)),
+        "assumption_evidence_present": bool(assumption_check.get("evidence_present", False)),
+        "assumption_reframe_present": bool(assumption_check.get("reframe_present", False)),
         "fixture": fixture,
     }
 
@@ -921,6 +967,136 @@ def _build_arm_separation(rows_b1: list[dict], rows_b2: list[dict], rows_b3: lis
     }
 
 
+def _build_arm_feature_contract_check(rows_b1: list[dict], rows_b2: list[dict], rows_b3: list[dict]) -> dict:
+    by_arm = {"B1": rows_b1, "B2": rows_b2, "B3": rows_b3}
+    details: list[dict] = []
+    reason_counts = {
+        "contract_overstates_difference": 0,
+        "arm_signal_not_machine_consumable": 0,
+        "extractor_ignores_arm_signal": 0,
+        "separated": 0,
+    }
+    expected_case_count = 0
+    separated_case_count = 0
+
+    for case_id, expected_features in SEPARATION_CASE_EXPECTED_FEATURES.items():
+        rows = {arm: next((r for r in arm_rows if r["case_id"] == case_id), None) for arm, arm_rows in by_arm.items()}
+        if any(v is None for v in rows.values()):
+            continue
+        expected_case_count += 1
+        category = rows["B1"]["category"]
+        feature_checks: list[dict] = []
+        case_separated = False
+        for feature in expected_features:
+            phase1_values = {arm: rows[arm]["phase1"].get(feature) for arm in ("B1", "B2", "B3")}
+            final_values = {arm: rows[arm]["final"].get(feature) for arm in ("B1", "B2", "B3")}
+            phase1_separated = len(set(phase1_values.values())) > 1
+            final_separated = len(set(final_values.values())) > 1
+            observed_separated = phase1_separated or final_separated
+            case_separated = case_separated or observed_separated
+            feature_checks.append(
+                {
+                    "feature": feature,
+                    "phase1_values": phase1_values,
+                    "final_values": final_values,
+                    "phase1_separated": phase1_separated,
+                    "final_separated": final_separated,
+                    "observed_separated": observed_separated,
+                }
+            )
+
+        phase1_task_texts = {arm: rows[arm]["phase1"].get("task_text") for arm in ("B1", "B2", "B3")}
+        final_task_texts = {arm: rows[arm]["final"].get("task_text") for arm in ("B1", "B2", "B3")}
+        arm_text_delta = len(set(phase1_task_texts.values())) > 1 or len(set(final_task_texts.values())) > 1
+
+        assumption_phase1 = {
+            arm: (
+                rows[arm]["phase1"].get("assumption_check_complete"),
+                rows[arm]["phase1"].get("assumption_alternatives_count"),
+                rows[arm]["phase1"].get("assumption_evidence_present"),
+                rows[arm]["phase1"].get("assumption_reframe_present"),
+            )
+            for arm in ("B1", "B2", "B3")
+        }
+        assumption_final = {
+            arm: (
+                rows[arm]["final"].get("assumption_check_complete"),
+                rows[arm]["final"].get("assumption_alternatives_count"),
+                rows[arm]["final"].get("assumption_evidence_present"),
+                rows[arm]["final"].get("assumption_reframe_present"),
+            )
+            for arm in ("B1", "B2", "B3")
+        }
+        parsed_arm_signal_delta = len(set(assumption_phase1.values())) > 1 or len(set(assumption_final.values())) > 1
+
+        if case_separated:
+            separated_case_count += 1
+            reason = "separated"
+            reason_note = "At least one expected feature separated across arms."
+        elif not arm_text_delta:
+            reason = "contract_overstates_difference"
+            reason_note = "Arm prompts did not produce observable text delta for this case."
+        elif not parsed_arm_signal_delta:
+            reason = "arm_signal_not_machine_consumable"
+            reason_note = "Arm text differs, but parsed assumption signals are still identical across arms."
+        else:
+            reason = "extractor_ignores_arm_signal"
+            reason_note = "Parsed arm signals differ, but phase-A features remain identical across arms."
+        reason_counts[reason] += 1
+
+        actual_extracted_features = {
+            "phase1": {
+                arm: {
+                    "premise_status": rows[arm]["phase1"].get("premise_status"),
+                    "evidence_alignment": rows[arm]["phase1"].get("evidence_alignment"),
+                    "execution_scope": rows[arm]["phase1"].get("execution_scope"),
+                    "correctness_mode": rows[arm]["phase1"].get("correctness_mode"),
+                }
+                for arm in ("B1", "B2", "B3")
+            },
+            "final": {
+                arm: {
+                    "premise_status": rows[arm]["final"].get("premise_status"),
+                    "evidence_alignment": rows[arm]["final"].get("evidence_alignment"),
+                    "execution_scope": rows[arm]["final"].get("execution_scope"),
+                    "correctness_mode": rows[arm]["final"].get("correctness_mode"),
+                }
+                for arm in ("B1", "B2", "B3")
+            },
+        }
+
+        details.append(
+            {
+                "case_id": case_id,
+                "category": category,
+                "contract_says_should_separate_on": expected_features,
+                "actual_extracted_features": actual_extracted_features,
+                "expected_features": expected_features,
+                "has_any_expected_separation": case_separated,
+                "possible_reason_for_non_separation": reason,
+                "reason_note": reason_note,
+                "arm_text_delta_detected": arm_text_delta,
+                "parsed_arm_signal_delta_detected": parsed_arm_signal_delta,
+                "parsed_arm_signals": {
+                    "phase1": assumption_phase1,
+                    "final": assumption_final,
+                },
+                "feature_checks": feature_checks,
+            }
+        )
+
+    return {
+        "contract_version": "v1",
+        "contract_source": "docs/arm_feature_contract.md",
+        "arms": ARM_FEATURE_CONTRACT,
+        "cases_total_with_expectation": expected_case_count,
+        "cases_with_any_expected_feature_separation": separated_case_count,
+        "cases_missing_expected_feature_separation": expected_case_count - separated_case_count,
+        "possible_reason_counts": reason_counts,
+        "details": details,
+    }
+
+
 def _render_report(
     output_dir: Path,
     scorecard: dict,
@@ -928,6 +1104,7 @@ def _render_report(
     enforcement_profile: str,
     case_pack: str,
     arm_separation: dict,
+    arm_feature_contract_check: dict | None = None,
     collapse_summary: dict | None = None,
 ) -> str:
     lines = [
@@ -993,6 +1170,25 @@ def _render_report(
             f"top2 B1={item['top2']['B1']} B2={item['top2']['B2']} B3={item['top2']['B3']}; "
             f"action_sep={item['action_separated']} ranking_sep={item['ranking_separated']}"
         )
+    if arm_feature_contract_check:
+        lines.extend(
+            [
+                "",
+                "## Arm-to-Feature Contract Check",
+                "",
+                f"- cases_total_with_expectation: {arm_feature_contract_check.get('cases_total_with_expectation', 0)}",
+                f"- cases_with_any_expected_feature_separation: {arm_feature_contract_check.get('cases_with_any_expected_feature_separation', 0)}",
+                f"- cases_missing_expected_feature_separation: {arm_feature_contract_check.get('cases_missing_expected_feature_separation', 0)}",
+                f"- possible_reason_counts: {arm_feature_contract_check.get('possible_reason_counts', {})}",
+            ]
+        )
+        for item in arm_feature_contract_check.get("details", []):
+            lines.append(
+                f"- {item['case_id']} ({item['category']}): "
+                f"expected_features={item['expected_features']}; "
+                f"has_any_expected_separation={item['has_any_expected_separation']}; "
+                f"possible_reason={item.get('possible_reason_for_non_separation')}"
+            )
     if collapse_summary:
         lines.extend(
             [
@@ -1013,6 +1209,7 @@ def _render_report(
             f"- Raw: `{output_dir / 'raw_B3.json'}`",
             f"- Scorecard: `{output_dir / 'scorecard.json'}`",
             f"- Arm Separation: `{output_dir / 'arm_separation.json'}`",
+            f"- Arm Feature Contract Check: `{output_dir / 'arm_feature_contract_check.json'}`",
             f"- Per-phase Feature Delta Dump: `{output_dir / 'per_phase_feature_delta_dump.json'}`",
             f"- Collapse Summary: `{output_dir / 'collapse_summary.json'}`",
         ]
@@ -1054,9 +1251,13 @@ def main() -> None:
 
     scorecard = {"B1": metrics_b1, "B2": metrics_b2, "B3": metrics_b3}
     arm_separation = _build_arm_separation(rows_b1, rows_b2, rows_b3)
+    arm_feature_contract_check = _build_arm_feature_contract_check(rows_b1, rows_b2, rows_b3)
     per_phase_dump, collapse_summary = _build_collapse_locator(rows_b1, rows_b2, rows_b3)
     (output_dir / "scorecard.json").write_text(json.dumps(scorecard, ensure_ascii=False, indent=2), encoding="utf-8")
     (output_dir / "arm_separation.json").write_text(json.dumps(arm_separation, ensure_ascii=False, indent=2), encoding="utf-8")
+    (output_dir / "arm_feature_contract_check.json").write_text(
+        json.dumps(arm_feature_contract_check, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     (output_dir / "per_phase_feature_delta_dump.json").write_text(
         json.dumps(per_phase_dump, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -1064,7 +1265,14 @@ def main() -> None:
         json.dumps(collapse_summary, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     report = _render_report(
-        output_dir, scorecard, run_date, args.enforcement_profile, args.case_pack, arm_separation, collapse_summary
+        output_dir,
+        scorecard,
+        run_date,
+        args.enforcement_profile,
+        args.case_pack,
+        arm_separation,
+        arm_feature_contract_check,
+        collapse_summary,
     )
     report_path = output_dir / "AB_v3_benchmark_v2_rerun_report.md"
     report_path.write_text(report, encoding="utf-8")
@@ -1078,6 +1286,15 @@ def main() -> None:
                 "arm_separation": {
                     "action_or_ranking_separated_cases": arm_separation["action_or_ranking_separated_cases"],
                     "stop_rule_pass": arm_separation["stop_rule_pass"],
+                },
+                "arm_feature_contract_check": {
+                    "cases_total_with_expectation": arm_feature_contract_check["cases_total_with_expectation"],
+                    "cases_with_any_expected_feature_separation": arm_feature_contract_check[
+                        "cases_with_any_expected_feature_separation"
+                    ],
+                    "cases_missing_expected_feature_separation": arm_feature_contract_check[
+                        "cases_missing_expected_feature_separation"
+                    ],
                 },
                 "collapse_summary": {
                     "dominant_collapse_type": collapse_summary["dominant_collapse_type"],
