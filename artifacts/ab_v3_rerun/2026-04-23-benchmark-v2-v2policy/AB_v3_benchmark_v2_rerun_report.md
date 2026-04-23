@@ -10,12 +10,16 @@
 | Metric | B1 | B2 | B3 |
 |---|---:|---:|---:|
 | wrong_action_rate | 0.00 | 0.00 | 0.00 |
-| false_positive_rate | 0.25 | 0.00 | 0.08 |
-| justified_action_rate | 0.75 | 1.00 | 0.92 |
-| recovery_accuracy | 0.70 | 1.00 | 0.86 |
-| decision_efficiency | 1.83 | 1.58 | 1.58 |
-| proceed_with_assumption_rate | 0.08 | 0.42 | 0.33 |
-| evidence_consistency_rate | 0.58 | 0.50 | 0.50 |
+| false_positive_rate | 0.00 | 0.00 | 0.00 |
+| justified_action_rate | 1.00 | 1.00 | 1.00 |
+| correct_action_rate | 1.00 | 1.00 | 1.00 |
+| recovery_accuracy | 1.00 | 1.00 | 1.00 |
+| decision_efficiency | 1.33 | 1.33 | 1.33 |
+| proceed_with_assumption_rate | 0.33 | 0.33 | 0.33 |
+| bounded_execution_capture_rate | 1.00 | 1.00 | 1.00 |
+| evidence_consistency_rate | 0.33 | 0.33 | 0.33 |
+| premise_misclassification_rate | 0.00 | 0.00 | 0.00 |
+| strong_evidence_underuse_rate | 0.00 | 0.00 | 0.00 |
 | evidence_gate_violation_rate | 0.00 | 0.00 | 0.00 |
 
 - Hard Fail (wrong+proceed): B1=False (count=0), B2=False (count=0), B3=False (count=0)

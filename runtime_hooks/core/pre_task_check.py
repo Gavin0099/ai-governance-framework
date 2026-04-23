@@ -512,6 +512,7 @@ def run_pre_task_check(
     benchmark_kind: str = "unknown",
     ground_truth_direct_evidence: bool | None = None,
     phase: str = "final",
+    policy_fixture: dict | None = None,
 ) -> dict:
     plan_path = project_root / "PLAN.md"
     freshness = check_freshness(plan_path)
@@ -606,6 +607,8 @@ def run_pre_task_check(
             f"missing={missing}"
         )
     context_signals = _extract_context_signals_for_policy(task_text, assumption_check)
+    if policy_fixture:
+        context_signals.update(policy_fixture)
     evidence_integrity = _evaluate_evidence_integrity(task_text, context_signals, assumption_check)
     decision_policy = evaluate_decision_policy(
         task_text,
@@ -852,6 +855,13 @@ def format_human_result(result: dict) -> str:
             f"risk_score={decision_policy.get('risk_score')} "
             f"action={decision_policy.get('decision_action')} "
             f"confidence={decision_policy.get('confidence')}"
+        )
+        lines.append(
+            "decision_policy_phaseA: "
+            f"premise={decision_policy.get('premise_status')} "
+            f"evidence={decision_policy.get('evidence_alignment')} "
+            f"scope={decision_policy.get('execution_scope')} "
+            f"mode={decision_policy.get('correctness_mode')}"
         )
         reasons = decision_policy.get("reasons") or []
         if reasons:
