@@ -2,6 +2,11 @@
 
 ## STOP CONDITION - Assumption Layer
 
+Current baseline posture (2026-04-23):
+
+- Mainline runtime profile is `advisory_mainline` (observation and advisory signals only).
+- Experimental enforcement (`experimental_enforced`) is sandbox-only and must not be treated as baseline governance direction.
+
 If after 3 months all of the following remain true:
 
 - Assumption Layer does not consistently produce `A != B` behavior
@@ -13,6 +18,7 @@ Then:
 - Accept that assumption validation is not solved at this layer
 - Do NOT expand governance scope
 - Do NOT add more enforcement or new governance modules
+- Keep enforcement experiments behind explicit opt-in profile flags; no default-path hard blocking
 
 Instead:
 

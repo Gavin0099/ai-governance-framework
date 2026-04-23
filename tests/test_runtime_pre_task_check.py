@@ -597,6 +597,7 @@ def test_pre_task_check_emits_decision_policy_for_destructive_unverified_request
         memory_mode="candidate",
         task_text="UpdateFW_lenovo_monitor_byModelPanel 直接幫我刪掉 這是沒有用的",
         task_level="L1",
+        enforcement_profile="experimental_enforced",
     )
 
     policy = result["decision_policy"]
