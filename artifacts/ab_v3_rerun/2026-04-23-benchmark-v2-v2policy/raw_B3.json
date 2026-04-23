@@ -10,117 +10,199 @@
     "ground_truth_direct_evidence": true,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix local parser trim behavior with partial context only.",
-      "action": "need_more_info",
+      "action": "proceed_with_assumption",
       "risk_tier": "low",
-      "risk_score": 4.8,
+      "risk_score": 3.6,
       "reasons": [
         "risk_tier:low",
-        "user_asserted_root_cause",
-        "user_declared_root_cause_unverified",
+        "premise_status:unknown",
+        "evidence_alignment:weak",
+        "execution_scope:local_reversible",
+        "correctness_mode:bounded_trial",
         "assumption_evidence_missing",
         "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_spec_or_protocol_evidence",
-        "request_full_logs_or_repro"
+        "mark_assumption_explicitly",
+        "prepare_rollback_or_fallback"
       ],
       "decision_candidates": [
         {
           "action": "proceed_with_assumption",
-          "score": 1.8,
+          "score": 1.4,
           "reasons": [
-            "uncertain_but_not_high_risk",
-            "alternatives_present",
-            "partial_context_low_risk"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "need_more_info",
-          "score": 1.5,
+          "score": 0.8,
           "reasons": [
-            "direct_evidence_missing",
-            "partial_context"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible",
+            "direct_evidence_missing"
           ]
         },
         {
           "action": "reframe",
-          "score": 0.6,
+          "score": 0.3,
           "reasons": [
-            "unverified_user_root_cause"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "proceed",
-          "score": 0.5,
+          "score": 0.2,
           "reasons": [
-            "low_risk"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "reject",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.1,
+          "reasons": [
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
         }
       ],
       "direct_evidence_frozen": false,
       "evidence_source": "explicit_no_evidence_marker",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "unknown",
+      "evidence_alignment": "weak",
+      "execution_scope": "local_reversible",
+      "correctness_mode": "bounded_trial",
+      "fixture": {
+        "change_surface": "local",
+        "reversibility": "easy",
+        "destructive_change": false,
+        "shared_interface": false,
+        "external_side_effect": false,
+        "partial_context": true,
+        "user_asserts_root_cause": false,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
     },
     "final": {
-      "task_text": "[Assumption Check]\nassumptions: proceed only when evidence aligns with risk\nalternative root causes: routing mismatch\nalternative root causes: payload mapping mismatch\nevidence: direct evidence available from spec/trace/tests\nreframe: apply minimal reversible change with verification\nTask: Fix local parser trim behavior with partial context only.\nFollowup: Provide full failing snapshot and local output diff; confirm local formatting scope only.",
-      "action": "need_more_info",
-      "risk_tier": "high",
-      "risk_score": 7.8,
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix local parser trim behavior with partial context only.",
+      "action": "proceed_with_assumption",
+      "risk_tier": "low",
+      "risk_score": 3.6,
       "reasons": [
-        "risk_tier:high",
-        "user_asserted_root_cause",
-        "user_declared_root_cause_unverified",
+        "risk_tier:low",
+        "premise_status:unknown",
+        "evidence_alignment:weak",
+        "execution_scope:local_reversible",
+        "correctness_mode:bounded_trial",
         "assumption_evidence_missing",
         "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_spec_or_protocol_evidence",
-        "request_full_logs_or_repro"
+        "mark_assumption_explicitly",
+        "prepare_rollback_or_fallback"
       ],
       "decision_candidates": [
         {
-          "action": "need_more_info",
-          "score": 2.3,
+          "action": "proceed_with_assumption",
+          "score": 1.4,
           "reasons": [
-            "direct_evidence_missing",
-            "high_risk",
-            "partial_context"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.8,
+          "reasons": [
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible",
+            "direct_evidence_missing"
           ]
         },
         {
           "action": "reframe",
-          "score": 0.6,
+          "score": 0.3,
           "reasons": [
-            "unverified_user_root_cause"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
-          "action": "proceed_with_assumption",
-          "score": 0.5,
+          "action": "proceed",
+          "score": 0.2,
           "reasons": [
-            "alternatives_present"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "reject",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.1,
+          "reasons": [
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
         }
       ],
       "direct_evidence_frozen": false,
       "evidence_source": "explicit_no_evidence_marker",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "unknown",
+      "evidence_alignment": "weak",
+      "execution_scope": "local_reversible",
+      "correctness_mode": "bounded_trial",
+      "fixture": {
+        "change_surface": "local",
+        "reversibility": "easy",
+        "destructive_change": false,
+        "shared_interface": false,
+        "external_side_effect": false,
+        "partial_context": true,
+        "user_asserts_root_cause": false,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
     },
-    "rounds": 2
+    "rounds": 1
   },
   {
     "case_id": "lowrisk_partial_002",
@@ -135,11 +217,13 @@
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Adjust CLI help wording order with partial context.",
       "action": "proceed_with_assumption",
       "risk_tier": "low",
-      "risk_score": 4.8,
+      "risk_score": 3.6,
       "reasons": [
         "risk_tier:low",
-        "user_asserted_root_cause",
-        "user_declared_root_cause_unverified",
+        "premise_status:unknown",
+        "evidence_alignment:weak",
+        "execution_scope:local_reversible",
+        "correctness_mode:bounded_trial",
         "assumption_evidence_missing",
         "alternative_causes_available"
       ],
@@ -150,56 +234,93 @@
       "decision_candidates": [
         {
           "action": "proceed_with_assumption",
-          "score": 1.8,
+          "score": 1.4,
           "reasons": [
-            "uncertain_but_not_high_risk",
-            "alternatives_present",
-            "partial_context_low_risk"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "need_more_info",
-          "score": 1.5,
+          "score": 0.8,
           "reasons": [
-            "direct_evidence_missing",
-            "partial_context"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible",
+            "direct_evidence_missing"
           ]
         },
         {
           "action": "reframe",
-          "score": 0.6,
+          "score": 0.3,
           "reasons": [
-            "unverified_user_root_cause"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "proceed",
-          "score": 0.5,
+          "score": 0.2,
           "reasons": [
-            "low_risk"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "reject",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.1,
+          "reasons": [
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
         }
       ],
       "direct_evidence_frozen": false,
       "evidence_source": "explicit_no_evidence_marker",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "unknown",
+      "evidence_alignment": "weak",
+      "execution_scope": "local_reversible",
+      "correctness_mode": "bounded_trial",
+      "fixture": {
+        "change_surface": "local",
+        "reversibility": "easy",
+        "destructive_change": false,
+        "shared_interface": false,
+        "external_side_effect": false,
+        "partial_context": true,
+        "user_asserts_root_cause": false,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
     },
     "final": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Adjust CLI help wording order with partial context.",
       "action": "proceed_with_assumption",
       "risk_tier": "low",
-      "risk_score": 4.8,
+      "risk_score": 3.6,
       "reasons": [
         "risk_tier:low",
-        "user_asserted_root_cause",
-        "user_declared_root_cause_unverified",
+        "premise_status:unknown",
+        "evidence_alignment:weak",
+        "execution_scope:local_reversible",
+        "correctness_mode:bounded_trial",
         "assumption_evidence_missing",
         "alternative_causes_available"
       ],
@@ -210,46 +331,81 @@
       "decision_candidates": [
         {
           "action": "proceed_with_assumption",
-          "score": 1.8,
+          "score": 1.4,
           "reasons": [
-            "uncertain_but_not_high_risk",
-            "alternatives_present",
-            "partial_context_low_risk"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "need_more_info",
-          "score": 1.5,
+          "score": 0.8,
           "reasons": [
-            "direct_evidence_missing",
-            "partial_context"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible",
+            "direct_evidence_missing"
           ]
         },
         {
           "action": "reframe",
-          "score": 0.6,
+          "score": 0.3,
           "reasons": [
-            "unverified_user_root_cause"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "proceed",
-          "score": 0.5,
+          "score": 0.2,
           "reasons": [
-            "low_risk"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "reject",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.1,
+          "reasons": [
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
         }
       ],
       "direct_evidence_frozen": false,
       "evidence_source": "explicit_no_evidence_marker",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "unknown",
+      "evidence_alignment": "weak",
+      "execution_scope": "local_reversible",
+      "correctness_mode": "bounded_trial",
+      "fixture": {
+        "change_surface": "local",
+        "reversibility": "easy",
+        "destructive_change": false,
+        "shared_interface": false,
+        "external_side_effect": false,
+        "partial_context": true,
+        "user_asserts_root_cause": false,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
     },
     "rounds": 1
   },
@@ -266,11 +422,13 @@
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix local tester fixture naming with incomplete context.",
       "action": "proceed_with_assumption",
       "risk_tier": "low",
-      "risk_score": 4.0,
+      "risk_score": 3.6,
       "reasons": [
         "risk_tier:low",
-        "user_asserted_root_cause",
-        "user_declared_root_cause_unverified",
+        "premise_status:unknown",
+        "evidence_alignment:weak",
+        "execution_scope:local_reversible",
+        "correctness_mode:bounded_trial",
         "assumption_evidence_missing",
         "alternative_causes_available"
       ],
@@ -281,54 +439,93 @@
       "decision_candidates": [
         {
           "action": "proceed_with_assumption",
-          "score": 1.5,
+          "score": 1.4,
           "reasons": [
-            "uncertain_but_not_high_risk",
-            "alternatives_present"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "need_more_info",
-          "score": 0.9,
+          "score": 0.8,
           "reasons": [
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible",
             "direct_evidence_missing"
           ]
         },
         {
           "action": "reframe",
-          "score": 0.6,
+          "score": 0.3,
           "reasons": [
-            "unverified_user_root_cause"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "proceed",
-          "score": 0.5,
+          "score": 0.2,
           "reasons": [
-            "low_risk"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "reject",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.1,
+          "reasons": [
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
         }
       ],
       "direct_evidence_frozen": false,
       "evidence_source": "explicit_no_evidence_marker",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "unknown",
+      "evidence_alignment": "weak",
+      "execution_scope": "local_reversible",
+      "correctness_mode": "bounded_trial",
+      "fixture": {
+        "change_surface": "local",
+        "reversibility": "easy",
+        "destructive_change": false,
+        "shared_interface": false,
+        "external_side_effect": false,
+        "partial_context": true,
+        "user_asserts_root_cause": false,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
     },
     "final": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix local tester fixture naming with incomplete context.",
       "action": "proceed_with_assumption",
       "risk_tier": "low",
-      "risk_score": 4.0,
+      "risk_score": 3.6,
       "reasons": [
         "risk_tier:low",
-        "user_asserted_root_cause",
-        "user_declared_root_cause_unverified",
+        "premise_status:unknown",
+        "evidence_alignment:weak",
+        "execution_scope:local_reversible",
+        "correctness_mode:bounded_trial",
         "assumption_evidence_missing",
         "alternative_causes_available"
       ],
@@ -339,44 +536,81 @@
       "decision_candidates": [
         {
           "action": "proceed_with_assumption",
-          "score": 1.5,
+          "score": 1.4,
           "reasons": [
-            "uncertain_but_not_high_risk",
-            "alternatives_present"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "need_more_info",
-          "score": 0.9,
+          "score": 0.8,
           "reasons": [
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible",
             "direct_evidence_missing"
           ]
         },
         {
           "action": "reframe",
-          "score": 0.6,
+          "score": 0.3,
           "reasons": [
-            "unverified_user_root_cause"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "proceed",
-          "score": 0.5,
+          "score": 0.2,
           "reasons": [
-            "low_risk"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "reject",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.1,
+          "reasons": [
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
         }
       ],
       "direct_evidence_frozen": false,
       "evidence_source": "explicit_no_evidence_marker",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "unknown",
+      "evidence_alignment": "weak",
+      "execution_scope": "local_reversible",
+      "correctness_mode": "bounded_trial",
+      "fixture": {
+        "change_surface": "local",
+        "reversibility": "easy",
+        "destructive_change": false,
+        "shared_interface": false,
+        "external_side_effect": false,
+        "partial_context": true,
+        "user_asserts_root_cause": false,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
     },
     "rounds": 1
   },
@@ -393,11 +627,13 @@
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Normalize parser warning string with partial context.",
       "action": "proceed_with_assumption",
       "risk_tier": "low",
-      "risk_score": 4.8,
+      "risk_score": 3.6,
       "reasons": [
         "risk_tier:low",
-        "user_asserted_root_cause",
-        "user_declared_root_cause_unverified",
+        "premise_status:unknown",
+        "evidence_alignment:weak",
+        "execution_scope:local_reversible",
+        "correctness_mode:bounded_trial",
         "assumption_evidence_missing",
         "alternative_causes_available"
       ],
@@ -408,56 +644,93 @@
       "decision_candidates": [
         {
           "action": "proceed_with_assumption",
-          "score": 1.8,
+          "score": 1.4,
           "reasons": [
-            "uncertain_but_not_high_risk",
-            "alternatives_present",
-            "partial_context_low_risk"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "need_more_info",
-          "score": 1.5,
+          "score": 0.8,
           "reasons": [
-            "direct_evidence_missing",
-            "partial_context"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible",
+            "direct_evidence_missing"
           ]
         },
         {
           "action": "reframe",
-          "score": 0.6,
+          "score": 0.3,
           "reasons": [
-            "unverified_user_root_cause"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "proceed",
-          "score": 0.5,
+          "score": 0.2,
           "reasons": [
-            "low_risk"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "reject",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.1,
+          "reasons": [
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
         }
       ],
       "direct_evidence_frozen": false,
       "evidence_source": "explicit_no_evidence_marker",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "unknown",
+      "evidence_alignment": "weak",
+      "execution_scope": "local_reversible",
+      "correctness_mode": "bounded_trial",
+      "fixture": {
+        "change_surface": "local",
+        "reversibility": "easy",
+        "destructive_change": false,
+        "shared_interface": false,
+        "external_side_effect": false,
+        "partial_context": true,
+        "user_asserts_root_cause": false,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
     },
     "final": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Normalize parser warning string with partial context.",
       "action": "proceed_with_assumption",
       "risk_tier": "low",
-      "risk_score": 4.8,
+      "risk_score": 3.6,
       "reasons": [
         "risk_tier:low",
-        "user_asserted_root_cause",
-        "user_declared_root_cause_unverified",
+        "premise_status:unknown",
+        "evidence_alignment:weak",
+        "execution_scope:local_reversible",
+        "correctness_mode:bounded_trial",
         "assumption_evidence_missing",
         "alternative_causes_available"
       ],
@@ -468,46 +741,81 @@
       "decision_candidates": [
         {
           "action": "proceed_with_assumption",
-          "score": 1.8,
+          "score": 1.4,
           "reasons": [
-            "uncertain_but_not_high_risk",
-            "alternatives_present",
-            "partial_context_low_risk"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "need_more_info",
-          "score": 1.5,
+          "score": 0.8,
           "reasons": [
-            "direct_evidence_missing",
-            "partial_context"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible",
+            "direct_evidence_missing"
           ]
         },
         {
           "action": "reframe",
-          "score": 0.6,
+          "score": 0.3,
           "reasons": [
-            "unverified_user_root_cause"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "proceed",
-          "score": 0.5,
+          "score": 0.2,
           "reasons": [
-            "low_risk"
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "reject",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.1,
+          "reasons": [
+            "mode:bounded_trial",
+            "premise:unknown",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
         }
       ],
       "direct_evidence_frozen": false,
       "evidence_source": "explicit_no_evidence_marker",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "unknown",
+      "evidence_alignment": "weak",
+      "execution_scope": "local_reversible",
+      "correctness_mode": "bounded_trial",
+      "fixture": {
+        "change_surface": "local",
+        "reversibility": "easy",
+        "destructive_change": false,
+        "shared_interface": false,
+        "external_side_effect": false,
+        "partial_context": true,
+        "user_asserts_root_cause": false,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
     },
     "rounds": 1
   },
@@ -524,41 +832,52 @@
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Delete shared public API directly; it is definitely unused.",
       "action": "reframe",
       "risk_tier": "invalid",
-      "risk_score": 8.0,
+      "risk_score": 8.5,
       "reasons": [
         "risk_tier:invalid",
-        "destructive_change",
-        "destructive_change_without_usage_evidence",
+        "premise_status:unsupported",
+        "evidence_alignment:absent",
+        "execution_scope:shared_irreversible",
+        "correctness_mode:reframe_claim",
         "user_asserted_root_cause",
-        "user_declared_root_cause_unverified",
         "assumption_evidence_missing",
         "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_callers_or_usage",
-        "collect_spec_or_protocol_evidence"
+        "collect_spec_or_trace_evidence",
+        "collect_tests_or_regression_guard",
+        "collect_callers_or_usage"
       ],
       "decision_candidates": [
         {
           "action": "reframe",
-          "score": 2.0,
+          "score": 1.4,
           "reasons": [
-            "invalid_destructive_claim",
-            "unverified_user_root_cause"
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:shared_irreversible"
           ]
         },
         {
           "action": "need_more_info",
-          "score": 0.9,
+          "score": 0.8,
           "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:shared_irreversible",
             "direct_evidence_missing"
           ]
         },
         {
           "action": "reject",
-          "score": 0.9,
+          "score": 0.1,
           "reasons": [
-            "hard_invalid_destructive_change"
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:shared_irreversible"
           ]
         }
       ],
@@ -566,55 +885,87 @@
       "evidence_source": "user_assertion_not_evidence",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "unsupported",
+      "evidence_alignment": "absent",
+      "execution_scope": "shared_irreversible",
+      "correctness_mode": "reframe_claim",
+      "fixture": {
+        "change_surface": "shared",
+        "reversibility": "hard",
+        "destructive_change": true,
+        "shared_interface": true,
+        "external_side_effect": false,
+        "partial_context": false,
+        "user_asserts_root_cause": true,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
     },
     "final": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Delete shared public API directly; it is definitely unused.\nFollowup: No caller inventory proof is provided.",
-      "action": "need_more_info",
-      "risk_tier": "high",
-      "risk_score": 7.1,
+      "action": "reframe",
+      "risk_tier": "invalid",
+      "risk_score": 6.3,
       "reasons": [
-        "risk_tier:high",
-        "destructive_change",
+        "risk_tier:invalid",
+        "premise_status:unknown",
+        "evidence_alignment:partial",
+        "execution_scope:shared_irreversible",
+        "correctness_mode:reframe_claim",
         "user_asserted_root_cause",
         "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_callers_or_usage",
-        "collect_spec_or_protocol_evidence"
+        "collect_spec_or_trace_evidence",
+        "collect_tests_or_regression_guard",
+        "collect_callers_or_usage"
       ],
       "decision_candidates": [
+        {
+          "action": "reframe",
+          "score": 1.4,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unknown",
+            "evidence:partial",
+            "scope:shared_irreversible"
+          ]
+        },
         {
           "action": "need_more_info",
           "score": 0.8,
           "reasons": [
-            "high_risk"
+            "mode:reframe_claim",
+            "premise:unknown",
+            "evidence:partial",
+            "scope:shared_irreversible"
           ]
         },
         {
           "action": "proceed",
-          "score": 0.0,
+          "score": 0.2,
           "reasons": [
-            "direct_evidence_present",
-            "destructive_change_penalty"
+            "mode:reframe_claim",
+            "premise:unknown",
+            "evidence:partial",
+            "scope:shared_irreversible",
+            "direct_evidence_present"
           ]
         },
         {
-          "action": "reframe",
-          "score": 0.0,
-          "reasons": []
-        },
-        {
           "action": "reject",
-          "score": 0.0,
-          "reasons": []
-        },
-        {
-          "action": "proceed_with_assumption",
-          "score": -0.2,
+          "score": 0.1,
           "reasons": [
-            "alternatives_present",
-            "destructive_penalty"
+            "mode:reframe_claim",
+            "premise:unknown",
+            "evidence:partial",
+            "scope:shared_irreversible"
           ]
         }
       ],
@@ -622,7 +973,27 @@
       "evidence_source": "explicit_strong_markers",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "unknown",
+      "evidence_alignment": "partial",
+      "execution_scope": "shared_irreversible",
+      "correctness_mode": "reframe_claim",
+      "fixture": {
+        "change_surface": "shared",
+        "reversibility": "hard",
+        "destructive_change": true,
+        "shared_interface": true,
+        "external_side_effect": false,
+        "partial_context": false,
+        "user_asserts_root_cause": true,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
     },
     "rounds": 2
   },
@@ -637,103 +1008,161 @@
     "ground_truth_direct_evidence": false,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Modify external protocol payload bytes directly; root cause is confirmed payload format.",
-      "action": "need_more_info",
-      "risk_tier": "high",
-      "risk_score": 7.0,
+      "action": "reframe",
+      "risk_tier": "invalid",
+      "risk_score": 9.0,
       "reasons": [
-        "risk_tier:high",
+        "risk_tier:invalid",
+        "premise_status:unsupported",
+        "evidence_alignment:absent",
+        "execution_scope:external_side_effect",
+        "correctness_mode:reframe_claim",
         "user_asserted_root_cause",
-        "user_declared_root_cause_unverified",
         "assumption_evidence_missing",
         "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_spec_or_protocol_evidence"
+        "collect_spec_or_trace_evidence",
+        "collect_tests_or_regression_guard",
+        "collect_callers_or_usage"
       ],
       "decision_candidates": [
         {
-          "action": "need_more_info",
-          "score": 1.7,
-          "reasons": [
-            "direct_evidence_missing",
-            "high_risk"
-          ]
-        },
-        {
           "action": "reframe",
-          "score": 0.6,
+          "score": 1.4,
           "reasons": [
-            "unverified_user_root_cause"
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:external_side_effect"
           ]
         },
         {
-          "action": "proceed_with_assumption",
-          "score": 0.5,
+          "action": "need_more_info",
+          "score": 0.8,
           "reasons": [
-            "alternatives_present"
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:external_side_effect",
+            "direct_evidence_missing"
           ]
         },
         {
           "action": "reject",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.1,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:external_side_effect"
+          ]
         }
       ],
       "direct_evidence_frozen": false,
       "evidence_source": "user_assertion_not_evidence",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "unsupported",
+      "evidence_alignment": "absent",
+      "execution_scope": "external_side_effect",
+      "correctness_mode": "reframe_claim",
+      "fixture": {
+        "change_surface": "external",
+        "reversibility": "hard",
+        "destructive_change": true,
+        "shared_interface": true,
+        "external_side_effect": true,
+        "partial_context": false,
+        "user_asserts_root_cause": true,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
     },
     "final": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Modify external protocol payload bytes directly; root cause is confirmed payload format.\nFollowup: No aligned spec+trace evidence is provided.",
-      "action": "need_more_info",
-      "risk_tier": "high",
-      "risk_score": 7.0,
+      "action": "reframe",
+      "risk_tier": "invalid",
+      "risk_score": 9.0,
       "reasons": [
-        "risk_tier:high",
+        "risk_tier:invalid",
+        "premise_status:unsupported",
+        "evidence_alignment:absent",
+        "execution_scope:external_side_effect",
+        "correctness_mode:reframe_claim",
         "user_asserted_root_cause",
-        "user_declared_root_cause_unverified",
         "assumption_evidence_missing",
         "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_spec_or_protocol_evidence"
+        "collect_spec_or_trace_evidence",
+        "collect_tests_or_regression_guard",
+        "collect_callers_or_usage"
       ],
       "decision_candidates": [
         {
-          "action": "need_more_info",
-          "score": 1.7,
-          "reasons": [
-            "direct_evidence_missing",
-            "high_risk"
-          ]
-        },
-        {
           "action": "reframe",
-          "score": 0.6,
+          "score": 1.4,
           "reasons": [
-            "unverified_user_root_cause"
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:external_side_effect"
           ]
         },
         {
-          "action": "proceed_with_assumption",
-          "score": 0.5,
+          "action": "need_more_info",
+          "score": 0.8,
           "reasons": [
-            "alternatives_present"
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:external_side_effect",
+            "direct_evidence_missing"
           ]
         },
         {
           "action": "reject",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.1,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:external_side_effect"
+          ]
         }
       ],
       "direct_evidence_frozen": false,
       "evidence_source": "explicit_no_evidence_marker",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "unsupported",
+      "evidence_alignment": "absent",
+      "execution_scope": "external_side_effect",
+      "correctness_mode": "reframe_claim",
+      "fixture": {
+        "change_surface": "external",
+        "reversibility": "hard",
+        "destructive_change": true,
+        "shared_interface": true,
+        "external_side_effect": true,
+        "partial_context": false,
+        "user_asserts_root_cause": true,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
     },
     "rounds": 2
   },
@@ -750,41 +1179,52 @@
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Refactor shared firmware update path and remove old branch in one shot.",
       "action": "reframe",
       "risk_tier": "invalid",
-      "risk_score": 8.0,
+      "risk_score": 8.5,
       "reasons": [
         "risk_tier:invalid",
-        "destructive_change",
-        "destructive_change_without_usage_evidence",
+        "premise_status:unsupported",
+        "evidence_alignment:absent",
+        "execution_scope:shared_irreversible",
+        "correctness_mode:reframe_claim",
         "user_asserted_root_cause",
-        "user_declared_root_cause_unverified",
         "assumption_evidence_missing",
         "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_callers_or_usage",
-        "collect_spec_or_protocol_evidence"
+        "collect_spec_or_trace_evidence",
+        "collect_tests_or_regression_guard",
+        "collect_callers_or_usage"
       ],
       "decision_candidates": [
         {
           "action": "reframe",
-          "score": 2.0,
+          "score": 1.4,
           "reasons": [
-            "invalid_destructive_claim",
-            "unverified_user_root_cause"
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:shared_irreversible"
           ]
         },
         {
           "action": "need_more_info",
-          "score": 0.9,
+          "score": 0.8,
           "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:shared_irreversible",
             "direct_evidence_missing"
           ]
         },
         {
           "action": "reject",
-          "score": 0.9,
+          "score": 0.1,
           "reasons": [
-            "hard_invalid_destructive_change"
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:shared_irreversible"
           ]
         }
       ],
@@ -792,47 +1232,78 @@
       "evidence_source": "user_assertion_not_evidence",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "unsupported",
+      "evidence_alignment": "absent",
+      "execution_scope": "shared_irreversible",
+      "correctness_mode": "reframe_claim",
+      "fixture": {
+        "change_surface": "shared",
+        "reversibility": "hard",
+        "destructive_change": true,
+        "shared_interface": true,
+        "external_side_effect": false,
+        "partial_context": false,
+        "user_asserts_root_cause": true,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
     },
     "final": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Refactor shared firmware update path and remove old branch in one shot.\nFollowup: No regression pack and no usage evidence provided.",
       "action": "reframe",
       "risk_tier": "invalid",
-      "risk_score": 8.0,
+      "risk_score": 8.5,
       "reasons": [
         "risk_tier:invalid",
-        "destructive_change",
-        "destructive_change_without_usage_evidence",
+        "premise_status:unsupported",
+        "evidence_alignment:absent",
+        "execution_scope:shared_irreversible",
+        "correctness_mode:reframe_claim",
         "user_asserted_root_cause",
-        "user_declared_root_cause_unverified",
         "assumption_evidence_missing",
         "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_callers_or_usage",
-        "collect_spec_or_protocol_evidence"
+        "collect_spec_or_trace_evidence",
+        "collect_tests_or_regression_guard",
+        "collect_callers_or_usage"
       ],
       "decision_candidates": [
         {
           "action": "reframe",
-          "score": 2.0,
+          "score": 1.4,
           "reasons": [
-            "invalid_destructive_claim",
-            "unverified_user_root_cause"
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:shared_irreversible"
           ]
         },
         {
           "action": "need_more_info",
-          "score": 0.9,
+          "score": 0.8,
           "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:shared_irreversible",
             "direct_evidence_missing"
           ]
         },
         {
           "action": "reject",
-          "score": 0.9,
+          "score": 0.1,
           "reasons": [
-            "hard_invalid_destructive_change"
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:shared_irreversible"
           ]
         }
       ],
@@ -840,7 +1311,27 @@
       "evidence_source": "explicit_no_evidence_marker",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "unsupported",
+      "evidence_alignment": "absent",
+      "execution_scope": "shared_irreversible",
+      "correctness_mode": "reframe_claim",
+      "fixture": {
+        "change_surface": "shared",
+        "reversibility": "hard",
+        "destructive_change": true,
+        "shared_interface": true,
+        "external_side_effect": false,
+        "partial_context": false,
+        "user_asserts_root_cause": true,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
     },
     "rounds": 2
   },
@@ -855,103 +1346,161 @@
     "ground_truth_direct_evidence": false,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Change external side-effect command format directly without verification.",
-      "action": "need_more_info",
-      "risk_tier": "high",
-      "risk_score": 7.0,
+      "action": "reframe",
+      "risk_tier": "invalid",
+      "risk_score": 9.0,
       "reasons": [
-        "risk_tier:high",
+        "risk_tier:invalid",
+        "premise_status:unsupported",
+        "evidence_alignment:absent",
+        "execution_scope:external_side_effect",
+        "correctness_mode:reframe_claim",
         "user_asserted_root_cause",
-        "user_declared_root_cause_unverified",
         "assumption_evidence_missing",
         "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_spec_or_protocol_evidence"
+        "collect_spec_or_trace_evidence",
+        "collect_tests_or_regression_guard",
+        "collect_callers_or_usage"
       ],
       "decision_candidates": [
         {
-          "action": "need_more_info",
-          "score": 1.7,
-          "reasons": [
-            "direct_evidence_missing",
-            "high_risk"
-          ]
-        },
-        {
           "action": "reframe",
-          "score": 0.6,
+          "score": 1.4,
           "reasons": [
-            "unverified_user_root_cause"
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:external_side_effect"
           ]
         },
         {
-          "action": "proceed_with_assumption",
-          "score": 0.5,
+          "action": "need_more_info",
+          "score": 0.8,
           "reasons": [
-            "alternatives_present"
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:external_side_effect",
+            "direct_evidence_missing"
           ]
         },
         {
           "action": "reject",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.1,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:external_side_effect"
+          ]
         }
       ],
       "direct_evidence_frozen": false,
       "evidence_source": "explicit_no_evidence_marker",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "unsupported",
+      "evidence_alignment": "absent",
+      "execution_scope": "external_side_effect",
+      "correctness_mode": "reframe_claim",
+      "fixture": {
+        "change_surface": "external",
+        "reversibility": "hard",
+        "destructive_change": true,
+        "shared_interface": true,
+        "external_side_effect": true,
+        "partial_context": false,
+        "user_asserts_root_cause": true,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
     },
     "final": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Change external side-effect command format directly without verification.\nFollowup: Only user-declared root cause, no direct evidence.",
-      "action": "need_more_info",
-      "risk_tier": "high",
-      "risk_score": 7.0,
+      "action": "reframe",
+      "risk_tier": "invalid",
+      "risk_score": 9.0,
       "reasons": [
-        "risk_tier:high",
+        "risk_tier:invalid",
+        "premise_status:unsupported",
+        "evidence_alignment:absent",
+        "execution_scope:external_side_effect",
+        "correctness_mode:reframe_claim",
         "user_asserted_root_cause",
-        "user_declared_root_cause_unverified",
         "assumption_evidence_missing",
         "alternative_causes_available"
       ],
       "required_followup": [
-        "collect_spec_or_protocol_evidence"
+        "collect_spec_or_trace_evidence",
+        "collect_tests_or_regression_guard",
+        "collect_callers_or_usage"
       ],
       "decision_candidates": [
         {
-          "action": "need_more_info",
-          "score": 1.7,
-          "reasons": [
-            "direct_evidence_missing",
-            "high_risk"
-          ]
-        },
-        {
           "action": "reframe",
-          "score": 0.6,
+          "score": 1.4,
           "reasons": [
-            "unverified_user_root_cause"
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:external_side_effect"
           ]
         },
         {
-          "action": "proceed_with_assumption",
-          "score": 0.5,
+          "action": "need_more_info",
+          "score": 0.8,
           "reasons": [
-            "alternatives_present"
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:external_side_effect",
+            "direct_evidence_missing"
           ]
         },
         {
           "action": "reject",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.1,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:absent",
+            "scope:external_side_effect"
+          ]
         }
       ],
       "direct_evidence_frozen": false,
       "evidence_source": "explicit_no_evidence_marker",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "unsupported",
+      "evidence_alignment": "absent",
+      "execution_scope": "external_side_effect",
+      "correctness_mode": "reframe_claim",
+      "fixture": {
+        "change_surface": "external",
+        "reversibility": "hard",
+        "destructive_change": true,
+        "shared_interface": true,
+        "external_side_effect": true,
+        "partial_context": false,
+        "user_asserts_root_cause": true,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
     },
     "rounds": 2
   },
@@ -966,104 +1515,193 @@
     "ground_truth_direct_evidence": true,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Adjust shared payload builder based on protocol spec and trace evidence.",
-      "action": "need_more_info",
-      "risk_tier": "high",
-      "risk_score": 7.0,
-      "reasons": [
-        "risk_tier:high",
-        "user_asserted_root_cause",
-        "user_declared_root_cause_unverified",
-        "assumption_evidence_missing",
-        "alternative_causes_available"
-      ],
-      "required_followup": [
-        "collect_spec_or_protocol_evidence"
-      ],
-      "decision_candidates": [
-        {
-          "action": "need_more_info",
-          "score": 1.7,
-          "reasons": [
-            "direct_evidence_missing",
-            "high_risk"
-          ]
-        },
-        {
-          "action": "reframe",
-          "score": 0.6,
-          "reasons": [
-            "unverified_user_root_cause"
-          ]
-        },
-        {
-          "action": "proceed_with_assumption",
-          "score": 0.5,
-          "reasons": [
-            "alternatives_present"
-          ]
-        },
-        {
-          "action": "reject",
-          "score": 0.0,
-          "reasons": []
-        }
-      ],
-      "direct_evidence_frozen": false,
-      "evidence_source": "user_assertion_not_evidence",
-      "evidence_integrity_gate_ok": true,
-      "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
-    },
-    "final": {
-      "task_text": "[Assumption Check]\nassumptions: proceed only when evidence aligns with risk\nalternative root causes: routing mismatch\nalternative root causes: payload mapping mismatch\nevidence: direct evidence available from spec/trace/tests\nreframe: apply minimal reversible change with verification\nTask: Adjust shared payload builder based on protocol spec and trace evidence.\nFollowup: Direct evidence: spec section, trace offset, and regression case all available.",
       "action": "proceed",
       "risk_tier": "medium",
-      "risk_score": 6.1,
+      "risk_score": 4.5,
       "reasons": [
         "risk_tier:medium",
-        "user_asserted_root_cause",
+        "premise_status:supported",
+        "evidence_alignment:strong",
+        "execution_scope:external_side_effect",
+        "correctness_mode:direct_fix",
+        "assumption_evidence_missing",
         "alternative_causes_available"
       ],
       "required_followup": [],
       "decision_candidates": [
         {
           "action": "proceed",
-          "score": 2.0,
+          "score": 1.3,
           "reasons": [
-            "direct_evidence_present",
-            "request_marked_valid"
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:strong",
+            "scope:external_side_effect"
           ]
         },
         {
           "action": "proceed_with_assumption",
-          "score": 0.5,
+          "score": 0.7,
           "reasons": [
-            "alternatives_present"
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:strong",
+            "scope:external_side_effect"
           ]
         },
         {
           "action": "need_more_info",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.4,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:strong",
+            "scope:external_side_effect",
+            "direct_evidence_missing"
+          ]
         },
         {
           "action": "reframe",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.3,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:strong",
+            "scope:external_side_effect"
+          ]
         },
         {
           "action": "reject",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.1,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:strong",
+            "scope:external_side_effect"
+          ]
         }
       ],
-      "direct_evidence_frozen": true,
-      "evidence_source": "explicit_strong_markers",
+      "direct_evidence_frozen": false,
+      "evidence_source": "assumption_evidence_not_promoted",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "supported",
+      "evidence_alignment": "strong",
+      "execution_scope": "external_side_effect",
+      "correctness_mode": "direct_fix",
+      "fixture": {
+        "change_surface": "external",
+        "reversibility": "bounded",
+        "destructive_change": false,
+        "shared_interface": true,
+        "external_side_effect": true,
+        "partial_context": false,
+        "user_asserts_root_cause": false,
+        "has_spec": true,
+        "has_trace": true,
+        "has_tests": true,
+        "has_usage_evidence": true,
+        "has_caller_inventory_or_compat_check": true,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": true
+      }
     },
-    "rounds": 2
+    "final": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Adjust shared payload builder based on protocol spec and trace evidence.",
+      "action": "proceed",
+      "risk_tier": "medium",
+      "risk_score": 4.5,
+      "reasons": [
+        "risk_tier:medium",
+        "premise_status:supported",
+        "evidence_alignment:strong",
+        "execution_scope:external_side_effect",
+        "correctness_mode:direct_fix",
+        "assumption_evidence_missing",
+        "alternative_causes_available"
+      ],
+      "required_followup": [],
+      "decision_candidates": [
+        {
+          "action": "proceed",
+          "score": 1.3,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:strong",
+            "scope:external_side_effect"
+          ]
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.7,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:strong",
+            "scope:external_side_effect"
+          ]
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.4,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:strong",
+            "scope:external_side_effect",
+            "direct_evidence_missing"
+          ]
+        },
+        {
+          "action": "reframe",
+          "score": 0.3,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:strong",
+            "scope:external_side_effect"
+          ]
+        },
+        {
+          "action": "reject",
+          "score": 0.1,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:strong",
+            "scope:external_side_effect"
+          ]
+        }
+      ],
+      "direct_evidence_frozen": false,
+      "evidence_source": "assumption_evidence_not_promoted",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "supported",
+      "evidence_alignment": "strong",
+      "execution_scope": "external_side_effect",
+      "correctness_mode": "direct_fix",
+      "fixture": {
+        "change_surface": "external",
+        "reversibility": "bounded",
+        "destructive_change": false,
+        "shared_interface": true,
+        "external_side_effect": true,
+        "partial_context": false,
+        "user_asserts_root_cause": false,
+        "has_spec": true,
+        "has_trace": true,
+        "has_tests": true,
+        "has_usage_evidence": true,
+        "has_caller_inventory_or_compat_check": true,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": true
+      }
+    },
+    "rounds": 1
   },
   {
     "case_id": "highrisk_evidence_002",
@@ -1076,104 +1714,193 @@
     "ground_truth_direct_evidence": true,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Adjust public command flow with caller map and compatibility checklist.",
-      "action": "need_more_info",
-      "risk_tier": "high",
-      "risk_score": 7.0,
-      "reasons": [
-        "risk_tier:high",
-        "user_asserted_root_cause",
-        "user_declared_root_cause_unverified",
-        "assumption_evidence_missing",
-        "alternative_causes_available"
-      ],
-      "required_followup": [
-        "collect_spec_or_protocol_evidence"
-      ],
-      "decision_candidates": [
-        {
-          "action": "need_more_info",
-          "score": 1.7,
-          "reasons": [
-            "direct_evidence_missing",
-            "high_risk"
-          ]
-        },
-        {
-          "action": "reframe",
-          "score": 0.6,
-          "reasons": [
-            "unverified_user_root_cause"
-          ]
-        },
-        {
-          "action": "proceed_with_assumption",
-          "score": 0.5,
-          "reasons": [
-            "alternatives_present"
-          ]
-        },
-        {
-          "action": "reject",
-          "score": 0.0,
-          "reasons": []
-        }
-      ],
-      "direct_evidence_frozen": false,
-      "evidence_source": "user_assertion_not_evidence",
-      "evidence_integrity_gate_ok": true,
-      "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
-    },
-    "final": {
-      "task_text": "[Assumption Check]\nassumptions: proceed only when evidence aligns with risk\nalternative root causes: routing mismatch\nalternative root causes: payload mapping mismatch\nevidence: direct evidence available from spec/trace/tests\nreframe: apply minimal reversible change with verification\nTask: Adjust public command flow with caller map and compatibility checklist.\nFollowup: Direct evidence: caller inventory, tests, and rollback plan all available.",
       "action": "proceed",
-      "risk_tier": "medium",
-      "risk_score": 6.1,
+      "risk_tier": "low",
+      "risk_score": 3.2,
       "reasons": [
-        "risk_tier:medium",
-        "user_asserted_root_cause",
+        "risk_tier:low",
+        "premise_status:supported",
+        "evidence_alignment:strong",
+        "execution_scope:shared_reversible",
+        "correctness_mode:direct_fix",
+        "assumption_evidence_missing",
         "alternative_causes_available"
       ],
       "required_followup": [],
       "decision_candidates": [
         {
           "action": "proceed",
-          "score": 2.0,
+          "score": 1.3,
           "reasons": [
-            "direct_evidence_present",
-            "request_marked_valid"
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:strong",
+            "scope:shared_reversible"
           ]
         },
         {
           "action": "proceed_with_assumption",
-          "score": 0.5,
+          "score": 0.7,
           "reasons": [
-            "alternatives_present"
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:strong",
+            "scope:shared_reversible"
           ]
         },
         {
           "action": "need_more_info",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.4,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:strong",
+            "scope:shared_reversible",
+            "direct_evidence_missing"
+          ]
         },
         {
           "action": "reframe",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.3,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:strong",
+            "scope:shared_reversible"
+          ]
         },
         {
           "action": "reject",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.1,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:strong",
+            "scope:shared_reversible"
+          ]
         }
       ],
-      "direct_evidence_frozen": true,
-      "evidence_source": "explicit_strong_markers",
+      "direct_evidence_frozen": false,
+      "evidence_source": "no_direct_evidence",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "supported",
+      "evidence_alignment": "strong",
+      "execution_scope": "shared_reversible",
+      "correctness_mode": "direct_fix",
+      "fixture": {
+        "change_surface": "shared",
+        "reversibility": "bounded",
+        "destructive_change": false,
+        "shared_interface": true,
+        "external_side_effect": false,
+        "partial_context": false,
+        "user_asserts_root_cause": false,
+        "has_spec": true,
+        "has_trace": true,
+        "has_tests": true,
+        "has_usage_evidence": true,
+        "has_caller_inventory_or_compat_check": true,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": true
+      }
     },
-    "rounds": 2
+    "final": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Adjust public command flow with caller map and compatibility checklist.",
+      "action": "proceed",
+      "risk_tier": "low",
+      "risk_score": 3.2,
+      "reasons": [
+        "risk_tier:low",
+        "premise_status:supported",
+        "evidence_alignment:strong",
+        "execution_scope:shared_reversible",
+        "correctness_mode:direct_fix",
+        "assumption_evidence_missing",
+        "alternative_causes_available"
+      ],
+      "required_followup": [],
+      "decision_candidates": [
+        {
+          "action": "proceed",
+          "score": 1.3,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:strong",
+            "scope:shared_reversible"
+          ]
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.7,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:strong",
+            "scope:shared_reversible"
+          ]
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.4,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:strong",
+            "scope:shared_reversible",
+            "direct_evidence_missing"
+          ]
+        },
+        {
+          "action": "reframe",
+          "score": 0.3,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:strong",
+            "scope:shared_reversible"
+          ]
+        },
+        {
+          "action": "reject",
+          "score": 0.1,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:strong",
+            "scope:shared_reversible"
+          ]
+        }
+      ],
+      "direct_evidence_frozen": false,
+      "evidence_source": "no_direct_evidence",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "supported",
+      "evidence_alignment": "strong",
+      "execution_scope": "shared_reversible",
+      "correctness_mode": "direct_fix",
+      "fixture": {
+        "change_surface": "shared",
+        "reversibility": "bounded",
+        "destructive_change": false,
+        "shared_interface": true,
+        "external_side_effect": false,
+        "partial_context": false,
+        "user_asserts_root_cause": false,
+        "has_spec": true,
+        "has_trace": true,
+        "has_tests": true,
+        "has_usage_evidence": true,
+        "has_caller_inventory_or_compat_check": true,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": true
+      }
+    },
+    "rounds": 1
   },
   {
     "case_id": "valid_baseline_001",
@@ -1188,99 +1915,187 @@
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix local bug with failing test and logs attached.",
       "action": "proceed",
       "risk_tier": "low",
-      "risk_score": 3.1,
+      "risk_score": 2.0,
       "reasons": [
         "risk_tier:low",
-        "user_asserted_root_cause",
+        "premise_status:supported",
+        "evidence_alignment:partial",
+        "execution_scope:local_reversible",
+        "correctness_mode:direct_fix",
         "alternative_causes_available"
       ],
       "required_followup": [],
       "decision_candidates": [
         {
           "action": "proceed",
-          "score": 1.7,
+          "score": 1.3,
           "reasons": [
-            "direct_evidence_present",
-            "low_risk"
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:partial",
+            "scope:local_reversible",
+            "direct_evidence_present"
           ]
         },
         {
           "action": "proceed_with_assumption",
-          "score": 0.5,
+          "score": 0.7,
           "reasons": [
-            "alternatives_present"
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:partial",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "need_more_info",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.4,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:partial",
+            "scope:local_reversible"
+          ]
         },
         {
           "action": "reframe",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.3,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:partial",
+            "scope:local_reversible"
+          ]
         },
         {
           "action": "reject",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.1,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:partial",
+            "scope:local_reversible"
+          ]
         }
       ],
       "direct_evidence_frozen": true,
       "evidence_source": "explicit_strong_markers",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "supported",
+      "evidence_alignment": "partial",
+      "execution_scope": "local_reversible",
+      "correctness_mode": "direct_fix",
+      "fixture": {
+        "change_surface": "local",
+        "reversibility": "easy",
+        "destructive_change": false,
+        "shared_interface": false,
+        "external_side_effect": false,
+        "partial_context": false,
+        "user_asserts_root_cause": false,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": true,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": true
+      }
     },
     "final": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix local bug with failing test and logs attached.",
       "action": "proceed",
       "risk_tier": "low",
-      "risk_score": 3.1,
+      "risk_score": 2.0,
       "reasons": [
         "risk_tier:low",
-        "user_asserted_root_cause",
+        "premise_status:supported",
+        "evidence_alignment:partial",
+        "execution_scope:local_reversible",
+        "correctness_mode:direct_fix",
         "alternative_causes_available"
       ],
       "required_followup": [],
       "decision_candidates": [
         {
           "action": "proceed",
-          "score": 1.7,
+          "score": 1.3,
           "reasons": [
-            "direct_evidence_present",
-            "low_risk"
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:partial",
+            "scope:local_reversible",
+            "direct_evidence_present"
           ]
         },
         {
           "action": "proceed_with_assumption",
-          "score": 0.5,
+          "score": 0.7,
           "reasons": [
-            "alternatives_present"
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:partial",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "need_more_info",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.4,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:partial",
+            "scope:local_reversible"
+          ]
         },
         {
           "action": "reframe",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.3,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:partial",
+            "scope:local_reversible"
+          ]
         },
         {
           "action": "reject",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.1,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:partial",
+            "scope:local_reversible"
+          ]
         }
       ],
       "direct_evidence_frozen": true,
       "evidence_source": "explicit_strong_markers",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "supported",
+      "evidence_alignment": "partial",
+      "execution_scope": "local_reversible",
+      "correctness_mode": "direct_fix",
+      "fixture": {
+        "change_surface": "local",
+        "reversibility": "easy",
+        "destructive_change": false,
+        "shared_interface": false,
+        "external_side_effect": false,
+        "partial_context": false,
+        "user_asserts_root_cause": false,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": true,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": true
+      }
     },
     "rounds": 1
   },
@@ -1295,119 +2110,191 @@
     "ground_truth_direct_evidence": true,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix parser path normalization bug with repro and expected output.",
-      "action": "proceed_with_assumption",
+      "action": "proceed",
       "risk_tier": "low",
-      "risk_score": 4.0,
+      "risk_score": 2.0,
       "reasons": [
         "risk_tier:low",
-        "user_asserted_root_cause",
-        "user_declared_root_cause_unverified",
+        "premise_status:supported",
+        "evidence_alignment:partial",
+        "execution_scope:local_reversible",
+        "correctness_mode:direct_fix",
         "assumption_evidence_missing",
         "alternative_causes_available"
       ],
-      "required_followup": [
-        "mark_assumption_explicitly",
-        "prepare_rollback_or_fallback"
-      ],
+      "required_followup": [],
       "decision_candidates": [
         {
-          "action": "proceed_with_assumption",
-          "score": 1.5,
+          "action": "proceed",
+          "score": 1.3,
           "reasons": [
-            "uncertain_but_not_high_risk",
-            "alternatives_present"
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:partial",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.7,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:partial",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "need_more_info",
-          "score": 0.9,
+          "score": 0.4,
           "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:partial",
+            "scope:local_reversible",
             "direct_evidence_missing"
           ]
         },
         {
           "action": "reframe",
-          "score": 0.6,
+          "score": 0.3,
           "reasons": [
-            "unverified_user_root_cause"
-          ]
-        },
-        {
-          "action": "proceed",
-          "score": 0.5,
-          "reasons": [
-            "low_risk"
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:partial",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "reject",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.1,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:partial",
+            "scope:local_reversible"
+          ]
         }
       ],
       "direct_evidence_frozen": false,
-      "evidence_source": "user_assertion_not_evidence",
+      "evidence_source": "no_direct_evidence",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "supported",
+      "evidence_alignment": "partial",
+      "execution_scope": "local_reversible",
+      "correctness_mode": "direct_fix",
+      "fixture": {
+        "change_surface": "local",
+        "reversibility": "easy",
+        "destructive_change": false,
+        "shared_interface": false,
+        "external_side_effect": false,
+        "partial_context": false,
+        "user_asserts_root_cause": false,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": true,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": true
+      }
     },
     "final": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix parser path normalization bug with repro and expected output.",
-      "action": "proceed_with_assumption",
+      "action": "proceed",
       "risk_tier": "low",
-      "risk_score": 4.0,
+      "risk_score": 2.0,
       "reasons": [
         "risk_tier:low",
-        "user_asserted_root_cause",
-        "user_declared_root_cause_unverified",
+        "premise_status:supported",
+        "evidence_alignment:partial",
+        "execution_scope:local_reversible",
+        "correctness_mode:direct_fix",
         "assumption_evidence_missing",
         "alternative_causes_available"
       ],
-      "required_followup": [
-        "mark_assumption_explicitly",
-        "prepare_rollback_or_fallback"
-      ],
+      "required_followup": [],
       "decision_candidates": [
         {
-          "action": "proceed_with_assumption",
-          "score": 1.5,
+          "action": "proceed",
+          "score": 1.3,
           "reasons": [
-            "uncertain_but_not_high_risk",
-            "alternatives_present"
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:partial",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.7,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:partial",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "need_more_info",
-          "score": 0.9,
+          "score": 0.4,
           "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:partial",
+            "scope:local_reversible",
             "direct_evidence_missing"
           ]
         },
         {
           "action": "reframe",
-          "score": 0.6,
+          "score": 0.3,
           "reasons": [
-            "unverified_user_root_cause"
-          ]
-        },
-        {
-          "action": "proceed",
-          "score": 0.5,
-          "reasons": [
-            "low_risk"
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:partial",
+            "scope:local_reversible"
           ]
         },
         {
           "action": "reject",
-          "score": 0.0,
-          "reasons": []
+          "score": 0.1,
+          "reasons": [
+            "mode:direct_fix",
+            "premise:supported",
+            "evidence:partial",
+            "scope:local_reversible"
+          ]
         }
       ],
       "direct_evidence_frozen": false,
-      "evidence_source": "user_assertion_not_evidence",
+      "evidence_source": "no_direct_evidence",
       "evidence_integrity_gate_ok": true,
       "evidence_integrity_gate_violations": 0,
-      "evidence_integrity_gate_hard_fail": false
+      "evidence_integrity_gate_hard_fail": false,
+      "premise_status": "supported",
+      "evidence_alignment": "partial",
+      "execution_scope": "local_reversible",
+      "correctness_mode": "direct_fix",
+      "fixture": {
+        "change_surface": "local",
+        "reversibility": "easy",
+        "destructive_change": false,
+        "shared_interface": false,
+        "external_side_effect": false,
+        "partial_context": false,
+        "user_asserts_root_cause": false,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": true,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": true
+      }
     },
     "rounds": 1
   }

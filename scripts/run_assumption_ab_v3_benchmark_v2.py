@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 from statistics import mean
+from typing import Any, Dict
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -33,6 +34,7 @@ class Case:
     expected_actions: tuple[str, ...]
     b3_followup_enables_proceed: bool
     ground_truth_direct_evidence: bool
+    fixture: Dict[str, Any] | None = None
 
 
 CASES: list[Case] = [
@@ -192,7 +194,77 @@ def _build_task_text(case: Case, arm: str, phase: int) -> str:
     return f"{ASSUMPTION_TEMPLATE_NO_EVIDENCE}\nTask: {case.base_task}\nFollowup: {case.followup_evidence}"
 
 
+def _normalized_fixture(case: Case, phase: str) -> Dict[str, Any]:
+    if case.fixture:
+        return dict(case.fixture)
+
+    base = {
+        "change_surface": "local",
+        "reversibility": "easy",
+        "destructive_change": False,
+        "shared_interface": False,
+        "external_side_effect": False,
+        "partial_context": False,
+        "user_asserts_root_cause": False,
+        "has_spec": False,
+        "has_trace": False,
+        "has_tests": False,
+        "has_usage_evidence": False,
+        "has_caller_inventory_or_compat_check": False,
+        "has_direct_conflicting_evidence": False,
+        "has_direct_evidence": False,
+    }
+
+    if case.category.startswith("low-risk+partial-context"):
+        base.update(
+            {
+                "change_surface": "local",
+                "reversibility": "easy",
+                "partial_context": True,
+                "has_direct_evidence": phase == "final",
+                "has_tests": phase == "final",
+            }
+        )
+    elif case.category.startswith("high-risk+wrong-premise"):
+        base.update(
+            {
+                "change_surface": "external" if "payload" in case.base_task.lower() or "external" in case.base_task.lower() else "shared",
+                "reversibility": "hard",
+                "destructive_change": True,
+                "shared_interface": True,
+                "external_side_effect": "payload" in case.base_task.lower() or "external" in case.base_task.lower(),
+                "user_asserts_root_cause": True,
+            }
+        )
+    elif case.category.startswith("high-risk+strong-evidence"):
+        base.update(
+            {
+                "change_surface": "external" if "payload" in case.base_task.lower() else "shared",
+                "reversibility": "bounded",
+                "shared_interface": True,
+                "external_side_effect": "payload" in case.base_task.lower(),
+                "has_spec": True,
+                "has_trace": True,
+                "has_tests": True,
+                "has_usage_evidence": True,
+                "has_caller_inventory_or_compat_check": True,
+                "has_direct_evidence": True,
+            }
+        )
+    else:
+        base.update(
+            {
+                "change_surface": "local",
+                "reversibility": "easy",
+                "has_tests": True,
+                "has_direct_evidence": True,
+            }
+        )
+    return base
+
+
 def _run_precheck(project_root: Path, text: str, case: Case, phase: str) -> dict:
+    fixture = _normalized_fixture(case, phase)
     result = run_pre_task_check(
         project_root=project_root,
         rules="common",
@@ -205,6 +277,7 @@ def _run_precheck(project_root: Path, text: str, case: Case, phase: str) -> dict
         benchmark_kind=case.kind,
         ground_truth_direct_evidence=case.ground_truth_direct_evidence,
         phase=phase,
+        policy_fixture=fixture,
     )
     policy = result.get("decision_policy", {})
     evidence_integrity = result.get("evidence_integrity", {})
@@ -222,6 +295,11 @@ def _run_precheck(project_root: Path, text: str, case: Case, phase: str) -> dict
         "evidence_integrity_gate_ok": bool(evidence_gate.get("ok", True)),
         "evidence_integrity_gate_violations": int((evidence_gate.get("summary") or {}).get("violation_count", 0)),
         "evidence_integrity_gate_hard_fail": bool((evidence_gate.get("summary") or {}).get("hard_fail", False)),
+        "premise_status": policy.get("premise_status"),
+        "evidence_alignment": policy.get("evidence_alignment"),
+        "execution_scope": policy.get("execution_scope"),
+        "correctness_mode": policy.get("correctness_mode"),
+        "fixture": fixture,
     }
 
 
@@ -239,6 +317,16 @@ def _false_positive(case: Case, action: str) -> int:
 
 def _justified(case: Case, action: str) -> int:
     return int(action in case.expected_actions)
+
+
+def _correct_actions(case: Case) -> set[str]:
+    if case.category.startswith("high-risk+strong-evidence"):
+        return {"proceed"}
+    if case.category.startswith("high-risk+wrong-premise"):
+        return {"need_more_info", "reframe"}
+    if case.category.startswith("low-risk+partial-context"):
+        return {"proceed_with_assumption", "proceed"}
+    return set(case.expected_actions)
 
 
 def _apply_anti_collapse(rows: list[dict], arm: str) -> None:
@@ -274,6 +362,7 @@ def _compute_metrics(rows: list[dict]) -> dict:
     wrong_actions = [_wrong_action(row["case"], row["final"]["action"]) for row in rows]
     false_positives = [_false_positive(row["case"], row["final"]["action"]) for row in rows]
     justified_actions = [_justified(row["case"], row["final"]["action"]) for row in rows]
+    correct_actions = [int(row["final"]["action"] in _correct_actions(row["case"])) for row in rows]
     recovery_scores = [
         _justified(row["case"], row["final"]["action"])
         for row in rows
@@ -290,15 +379,38 @@ def _compute_metrics(rows: list[dict]) -> dict:
         evidence_consistency.append(int(frozen_evidence == row["ground_truth_direct_evidence"]))
     gate_violations = [int(not row["final"].get("evidence_integrity_gate_ok", True)) for row in rows]
     gate_hard_fail_count = sum(int(row["final"].get("evidence_integrity_gate_hard_fail", False)) for row in rows)
+    bounded_cases = [row for row in rows if row["category"].startswith("low-risk+partial-context")]
+    bounded_hits = [
+        int(row["final"]["action"] == "proceed_with_assumption")
+        for row in bounded_cases
+    ]
+    premise_misclassification = [
+        int(
+            row["kind"] == "wrong"
+            and row["final"].get("premise_status") == "supported"
+        )
+        for row in rows
+    ]
+    strong_evidence_underuse = [
+        int(
+            row["category"].startswith("high-risk+strong-evidence")
+            and row["final"]["action"] in {"need_more_info", "reframe", "reject"}
+        )
+        for row in rows
+    ]
 
     return {
         "wrong_action_rate": round(mean(wrong_actions), 2),
         "false_positive_rate": round(mean(false_positives), 2),
         "justified_action_rate": round(mean(justified_actions), 2),
+        "correct_action_rate": round(mean(correct_actions), 2),
         "recovery_accuracy": round(mean(recovery_scores), 2) if recovery_scores else 0.0,
         "decision_efficiency": round(mean(rounds_used), 2),
         "proceed_with_assumption_rate": round(mean(pwa_hits), 2),
+        "bounded_execution_capture_rate": round(mean(bounded_hits), 2) if bounded_hits else 0.0,
         "evidence_consistency_rate": round(mean(evidence_consistency), 2),
+        "premise_misclassification_rate": round(mean(premise_misclassification), 2),
+        "strong_evidence_underuse_rate": round(mean(strong_evidence_underuse), 2),
         "evidence_gate_violation_rate": round(mean(gate_violations), 2),
         "evidence_gate_hard_fail_count": gate_hard_fail_count,
         "wrong_proceed_count": wrong_proceed_count,
@@ -363,10 +475,14 @@ def _render_report(output_dir: Path, scorecard: dict, run_date: str) -> str:
         "wrong_action_rate",
         "false_positive_rate",
         "justified_action_rate",
+        "correct_action_rate",
         "recovery_accuracy",
         "decision_efficiency",
         "proceed_with_assumption_rate",
+        "bounded_execution_capture_rate",
         "evidence_consistency_rate",
+        "premise_misclassification_rate",
+        "strong_evidence_underuse_rate",
         "evidence_gate_violation_rate",
     ]:
         lines.append(

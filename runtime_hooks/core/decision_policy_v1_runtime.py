@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -19,6 +19,42 @@ class DecisionAction(str, Enum):
     NEED_MORE_INFO = "need_more_info"
     REFRAME = "reframe"
     REJECT = "reject"
+
+
+class PremiseStatus(str, Enum):
+    SUPPORTED = "supported"
+    UNKNOWN = "unknown"
+    UNSUPPORTED = "unsupported"
+    CONTRADICTED = "contradicted"
+
+
+class EvidenceAlignment(str, Enum):
+    STRONG = "strong"
+    PARTIAL = "partial"
+    WEAK = "weak"
+    ABSENT = "absent"
+
+
+class ExecutionScope(str, Enum):
+    LOCAL_REVERSIBLE = "local_reversible"
+    LOCAL_IRREVERSIBLE = "local_irreversible"
+    SHARED_REVERSIBLE = "shared_reversible"
+    SHARED_IRREVERSIBLE = "shared_irreversible"
+    EXTERNAL_SIDE_EFFECT = "external_side_effect"
+
+
+class Reversibility(str, Enum):
+    EASY = "easy"
+    BOUNDED = "bounded"
+    HARD = "hard"
+
+
+class CorrectnessMode(str, Enum):
+    DIRECT_FIX = "direct_fix"
+    BOUNDED_TRIAL = "bounded_trial"
+    ASK_FOR_EVIDENCE = "ask_for_evidence"
+    REFRAME_CLAIM = "reframe_claim"
+    HARD_STOP = "hard_stop"
 
 
 @dataclass
@@ -88,6 +124,15 @@ class ContextSignals:
     partial_context: bool = False
     user_asserts_root_cause: bool = False
     valid_request: bool = False
+    change_surface: str = "local"
+    reversibility_hint: str = "easy"
+    has_spec: bool = False
+    has_trace: bool = False
+    has_tests: bool = False
+    has_usage_evidence: bool = False
+    has_caller_inventory_or_compat_check: bool = False
+    has_direct_conflicting_evidence: bool = False
+    has_direct_evidence: bool = False
 
     @classmethod
     def from_obj(cls, obj: Any) -> "ContextSignals":
@@ -102,6 +147,16 @@ class ContextSignals:
             partial_context=bool(obj.get("partial_context", False)),
             user_asserts_root_cause=bool(obj.get("user_asserts_root_cause", False)),
             valid_request=bool(obj.get("valid_request", False)),
+            change_surface=str(obj.get("change_surface", "local")).strip().lower() or "local",
+            reversibility_hint=str(obj.get("reversibility", obj.get("reversibility_hint", "easy"))).strip().lower()
+            or "easy",
+            has_spec=bool(obj.get("has_spec", False)),
+            has_trace=bool(obj.get("has_trace", False)),
+            has_tests=bool(obj.get("has_tests", obj.get("has_tests_or_regression_guard", False))),
+            has_usage_evidence=bool(obj.get("has_usage_evidence", False)),
+            has_caller_inventory_or_compat_check=bool(obj.get("has_caller_inventory_or_compat_check", False)),
+            has_direct_conflicting_evidence=bool(obj.get("has_direct_conflicting_evidence", False)),
+            has_direct_evidence=bool(obj.get("has_direct_evidence", False)),
         )
 
 
@@ -133,6 +188,11 @@ class ActionScore:
 class DecisionPolicyResult:
     risk_tier: RiskTier
     risk_score: float
+    premise_status: PremiseStatus
+    evidence_alignment: EvidenceAlignment
+    execution_scope: ExecutionScope
+    reversibility: Reversibility
+    correctness_mode: CorrectnessMode
     selected_action: DecisionAction
     ranked_actions: List[ActionScore]
     confidence: float
@@ -145,6 +205,11 @@ class DecisionPolicyResult:
     def to_dict(self) -> Dict[str, Any]:
         out = asdict(self)
         out["risk_tier"] = self.risk_tier.value
+        out["premise_status"] = self.premise_status.value
+        out["evidence_alignment"] = self.evidence_alignment.value
+        out["execution_scope"] = self.execution_scope.value
+        out["reversibility"] = self.reversibility.value
+        out["correctness_mode"] = self.correctness_mode.value
         out["selected_action"] = self.selected_action.value
         out["ranked_actions"] = [
             {"action": item.action.value, "score": round(item.score, 4), "reasons": item.reasons}
@@ -161,24 +226,35 @@ class DecisionPolicyV1:
         self.enable_soft_exploration = enable_soft_exploration
 
     def evaluate(self, policy_input: PolicyInput) -> DecisionPolicyResult:
-        impact = self._impact_score(policy_input)
-        uncertainty = self._uncertainty_score(policy_input)
-        reversibility = self._reversibility_score(policy_input)
-        risk_score = impact + uncertainty + reversibility
-        risk_tier = self._risk_tier(policy_input, risk_score)
-        ranked_actions = self._rank_actions(policy_input, risk_tier)
+        premise_status = self._classify_premise(policy_input)
+        evidence_alignment = self._classify_evidence_alignment(policy_input)
+        execution_scope = self._classify_execution_scope(policy_input)
+        reversibility = self._classify_reversibility(policy_input, execution_scope)
+        mode = self._select_mode(policy_input, premise_status, evidence_alignment, execution_scope)
+        risk_tier, risk_score = self._risk_from_phase_a(
+            policy_input, premise_status, evidence_alignment, execution_scope, reversibility
+        )
+
+        ranked_actions = self._rank_actions(
+            policy_input,
+            mode,
+            premise_status,
+            evidence_alignment,
+            execution_scope,
+            risk_tier,
+        )
         selected_action = self._select_action(policy_input, ranked_actions)
         confidence = self._compute_confidence(ranked_actions)
 
-        reasons = [f"risk_tier:{risk_tier.value}"]
-        if policy_input.context_signals.destructive_change:
-            reasons.append("destructive_change")
-            if not policy_input.assumption_audit.evidence.direct_evidence_found:
-                reasons.append("destructive_change_without_usage_evidence")
+        reasons = [
+            f"risk_tier:{risk_tier.value}",
+            f"premise_status:{premise_status.value}",
+            f"evidence_alignment:{evidence_alignment.value}",
+            f"execution_scope:{execution_scope.value}",
+            f"correctness_mode:{mode.value}",
+        ]
         if policy_input.context_signals.user_asserts_root_cause:
             reasons.append("user_asserted_root_cause")
-            if not policy_input.assumption_audit.evidence.direct_evidence_found:
-                reasons.append("user_declared_root_cause_unverified")
         if not policy_input.assumption_audit.evidence.direct_evidence_found:
             reasons.append("assumption_evidence_missing")
         if len(policy_input.assumption_audit.alternative_root_causes) >= 2:
@@ -186,10 +262,9 @@ class DecisionPolicyV1:
 
         followup: List[str] = []
         if selected_action in {DecisionAction.NEED_MORE_INFO, DecisionAction.REFRAME, DecisionAction.REJECT}:
+            followup.extend(["collect_spec_or_trace_evidence", "collect_tests_or_regression_guard"])
             if policy_input.context_signals.destructive_change:
                 followup.append("collect_callers_or_usage")
-            if policy_input.context_signals.user_asserts_root_cause:
-                followup.append("collect_spec_or_protocol_evidence")
             if policy_input.context_signals.partial_context:
                 followup.append("request_full_logs_or_repro")
         if selected_action == DecisionAction.PROCEED_WITH_ASSUMPTION:
@@ -197,28 +272,28 @@ class DecisionPolicyV1:
 
         fallback = ""
         if selected_action == DecisionAction.PROCEED_WITH_ASSUMPTION:
-            fallback = "Proceed with minimal reversible change and rollback scope."
+            fallback = "Proceed with bounded local change and explicit rollback plan."
 
         reframed = policy_input.assumption_audit.reframed_task
         if selected_action in {DecisionAction.REFRAME, DecisionAction.NEED_MORE_INFO} and not reframed:
-            if policy_input.context_signals.destructive_change:
-                reframed = f"Verify unused claim before deletion: {policy_input.task_text}"
-            elif policy_input.context_signals.user_asserts_root_cause:
-                reframed = f"Verify root cause before patching: {policy_input.task_text}"
-            else:
-                reframed = f"Gather evidence before acting on: {policy_input.task_text}"
+            reframed = f"Verify premise and evidence before acting on: {policy_input.task_text}"
 
         advisories: List[str] = []
-        if not policy_input.assumption_audit.evidence.direct_evidence_found:
-            advisories.append("assumption_evidence_missing")
         if selected_action == DecisionAction.PROCEED_WITH_ASSUMPTION:
             advisories.append("proceeding_under_assumption")
         if policy_input.context_signals.destructive_change and selected_action != DecisionAction.PROCEED:
             advisories.append("destructive_change_requires_review")
+        if evidence_alignment in {EvidenceAlignment.WEAK, EvidenceAlignment.ABSENT}:
+            advisories.append("assumption_evidence_missing")
 
         return DecisionPolicyResult(
             risk_tier=risk_tier,
             risk_score=risk_score,
+            premise_status=premise_status,
+            evidence_alignment=evidence_alignment,
+            execution_scope=execution_scope,
+            reversibility=reversibility,
+            correctness_mode=mode,
             selected_action=selected_action,
             ranked_actions=ranked_actions,
             confidence=confidence,
@@ -229,120 +304,180 @@ class DecisionPolicyV1:
             advisory_signals=advisories,
         )
 
-    def _impact_score(self, inp: PolicyInput) -> float:
+    def _classify_premise(self, inp: PolicyInput) -> PremiseStatus:
         s = inp.context_signals
-        if s.destructive_change or s.shared_interface or s.external_side_effect:
-            return 3.0
-        if inp.task_type in {"refactor", "payload_change", "modify_api", "delete_interface"}:
-            return 2.0
-        return 1.0
+        if s.has_direct_conflicting_evidence:
+            return PremiseStatus.CONTRADICTED
+        if s.has_spec or s.has_trace or s.has_tests or s.has_caller_inventory_or_compat_check or s.has_direct_evidence:
+            return PremiseStatus.SUPPORTED
+        if s.user_asserts_root_cause and not inp.assumption_audit.evidence.direct_evidence_found:
+            return PremiseStatus.UNSUPPORTED
+        return PremiseStatus.UNKNOWN
 
-    def _uncertainty_score(self, inp: PolicyInput) -> float:
-        a = inp.assumption_audit
+    def _classify_evidence_alignment(self, inp: PolicyInput) -> EvidenceAlignment:
         s = inp.context_signals
-        score = 0.5
-        if not a.stated_premise:
-            score += 0.7
-        if not a.evidence.direct_evidence_found:
-            score += 0.9
-        if len(a.alternative_root_causes) < 2:
-            score += 0.5
+        kinds = int(s.has_spec) + int(s.has_trace) + int(s.has_tests) + int(s.has_caller_inventory_or_compat_check)
+        if kinds >= 2:
+            return EvidenceAlignment.STRONG
+        if kinds == 1 or inp.assumption_audit.evidence.direct_evidence_found:
+            return EvidenceAlignment.PARTIAL
         if s.partial_context:
-            score += 0.8
-        if s.user_asserts_root_cause:
-            score += 0.6
-        return min(score, 3.0)
+            return EvidenceAlignment.WEAK
+        return EvidenceAlignment.ABSENT
 
-    def _reversibility_score(self, inp: PolicyInput) -> float:
+    def _classify_execution_scope(self, inp: PolicyInput) -> ExecutionScope:
         s = inp.context_signals
+        surface = s.change_surface
+        if s.external_side_effect or surface == "external":
+            return ExecutionScope.EXTERNAL_SIDE_EFFECT
+        if (s.shared_interface or surface == "shared") and s.destructive_change:
+            return ExecutionScope.SHARED_IRREVERSIBLE
+        if s.shared_interface or surface == "shared":
+            return ExecutionScope.SHARED_REVERSIBLE
         if s.destructive_change:
-            return 3.0
-        if s.shared_interface or s.external_side_effect:
-            return 2.0
-        return 1.0
+            return ExecutionScope.LOCAL_IRREVERSIBLE
+        return ExecutionScope.LOCAL_REVERSIBLE
 
-    def _risk_tier(self, inp: PolicyInput, risk_score: float) -> RiskTier:
-        if inp.context_signals.destructive_change and not inp.assumption_audit.evidence.direct_evidence_found:
-            return RiskTier.INVALID
-        if risk_score >= 7.0:
-            return RiskTier.HIGH
-        if risk_score >= 5.0:
-            return RiskTier.MEDIUM
-        return RiskTier.LOW
+    def _classify_reversibility(self, inp: PolicyInput, scope: ExecutionScope) -> Reversibility:
+        hint = inp.context_signals.reversibility_hint
+        if hint == "hard":
+            return Reversibility.HARD
+        if hint == "bounded":
+            return Reversibility.BOUNDED
+        if scope in {ExecutionScope.SHARED_IRREVERSIBLE, ExecutionScope.EXTERNAL_SIDE_EFFECT}:
+            return Reversibility.HARD
+        if scope in {ExecutionScope.LOCAL_IRREVERSIBLE, ExecutionScope.SHARED_REVERSIBLE}:
+            return Reversibility.BOUNDED
+        return Reversibility.EASY
 
-    def _rank_actions(self, inp: PolicyInput, risk_tier: RiskTier) -> List[ActionScore]:
-        a = inp.assumption_audit
+    def _select_mode(
+        self,
+        inp: PolicyInput,
+        premise: PremiseStatus,
+        evidence: EvidenceAlignment,
+        scope: ExecutionScope,
+    ) -> CorrectnessMode:
         s = inp.context_signals
-        direct = a.evidence.direct_evidence_found
-        disallowed: set[DecisionAction] = set()
+        if s.destructive_change and not s.has_usage_evidence:
+            return CorrectnessMode.REFRAME_CLAIM
+        if scope == ExecutionScope.EXTERNAL_SIDE_EFFECT and evidence in {EvidenceAlignment.WEAK, EvidenceAlignment.ABSENT}:
+            return CorrectnessMode.ASK_FOR_EVIDENCE
+        if premise == PremiseStatus.CONTRADICTED:
+            return CorrectnessMode.REFRAME_CLAIM
+        if premise == PremiseStatus.SUPPORTED and evidence in {EvidenceAlignment.STRONG, EvidenceAlignment.PARTIAL}:
+            return CorrectnessMode.DIRECT_FIX
+        if scope == ExecutionScope.LOCAL_REVERSIBLE and premise in {PremiseStatus.UNKNOWN, PremiseStatus.UNSUPPORTED}:
+            return CorrectnessMode.BOUNDED_TRIAL
+        if premise in {PremiseStatus.UNKNOWN, PremiseStatus.UNSUPPORTED}:
+            return CorrectnessMode.ASK_FOR_EVIDENCE
+        return CorrectnessMode.ASK_FOR_EVIDENCE
 
-        # Evidence-integrity hard gate: do not keep risky "proceed" branches
-        # in candidate space when direct evidence is missing.
-        if not direct and risk_tier in {RiskTier.HIGH, RiskTier.INVALID}:
+    def _risk_from_phase_a(
+        self,
+        inp: PolicyInput,
+        premise: PremiseStatus,
+        evidence: EvidenceAlignment,
+        scope: ExecutionScope,
+        reversibility: Reversibility,
+    ) -> tuple[RiskTier, float]:
+        premise_score = {
+            PremiseStatus.SUPPORTED: 0.5,
+            PremiseStatus.UNKNOWN: 1.3,
+            PremiseStatus.UNSUPPORTED: 2.2,
+            PremiseStatus.CONTRADICTED: 2.8,
+        }[premise]
+        evidence_score = {
+            EvidenceAlignment.STRONG: 0.3,
+            EvidenceAlignment.PARTIAL: 0.9,
+            EvidenceAlignment.WEAK: 1.7,
+            EvidenceAlignment.ABSENT: 2.2,
+        }[evidence]
+        scope_score = {
+            ExecutionScope.LOCAL_REVERSIBLE: 0.3,
+            ExecutionScope.LOCAL_IRREVERSIBLE: 1.0,
+            ExecutionScope.SHARED_REVERSIBLE: 1.5,
+            ExecutionScope.SHARED_IRREVERSIBLE: 2.3,
+            ExecutionScope.EXTERNAL_SIDE_EFFECT: 2.8,
+        }[scope]
+        rev_score = {
+            Reversibility.EASY: 0.3,
+            Reversibility.BOUNDED: 0.9,
+            Reversibility.HARD: 1.8,
+        }[reversibility]
+        risk_score = premise_score + evidence_score + scope_score + rev_score
+        if premise == PremiseStatus.CONTRADICTED:
+            return RiskTier.INVALID, risk_score
+        if inp.context_signals.destructive_change and not inp.context_signals.has_usage_evidence:
+            return RiskTier.INVALID, risk_score
+        if risk_score >= 6.2:
+            return RiskTier.HIGH, risk_score
+        if risk_score >= 4.2:
+            return RiskTier.MEDIUM, risk_score
+        return RiskTier.LOW, risk_score
+
+    def _rank_actions(
+        self,
+        inp: PolicyInput,
+        mode: CorrectnessMode,
+        premise: PremiseStatus,
+        evidence: EvidenceAlignment,
+        scope: ExecutionScope,
+        risk_tier: RiskTier,
+    ) -> List[ActionScore]:
+        preferred = {
+            CorrectnessMode.DIRECT_FIX: DecisionAction.PROCEED,
+            CorrectnessMode.BOUNDED_TRIAL: DecisionAction.PROCEED_WITH_ASSUMPTION,
+            CorrectnessMode.ASK_FOR_EVIDENCE: DecisionAction.NEED_MORE_INFO,
+            CorrectnessMode.REFRAME_CLAIM: DecisionAction.REFRAME,
+            CorrectnessMode.HARD_STOP: DecisionAction.REJECT,
+        }[mode]
+        secondary = {
+            CorrectnessMode.DIRECT_FIX: DecisionAction.PROCEED_WITH_ASSUMPTION,
+            CorrectnessMode.BOUNDED_TRIAL: DecisionAction.NEED_MORE_INFO,
+            CorrectnessMode.ASK_FOR_EVIDENCE: DecisionAction.REFRAME,
+            CorrectnessMode.REFRAME_CLAIM: DecisionAction.NEED_MORE_INFO,
+            CorrectnessMode.HARD_STOP: DecisionAction.REFRAME,
+        }[mode]
+
+        base = {
+            DecisionAction.PROCEED: 0.2,
+            DecisionAction.PROCEED_WITH_ASSUMPTION: 0.3,
+            DecisionAction.NEED_MORE_INFO: 0.4,
+            DecisionAction.REFRAME: 0.3,
+            DecisionAction.REJECT: 0.1,
+        }
+        base[preferred] += 1.1
+        base[secondary] += 0.4
+
+        # Hard action gates
+        disallowed: set[DecisionAction] = set()
+        if scope in {ExecutionScope.SHARED_IRREVERSIBLE, ExecutionScope.EXTERNAL_SIDE_EFFECT} and evidence in {
+            EvidenceAlignment.WEAK,
+            EvidenceAlignment.ABSENT,
+        }:
+            disallowed.update({DecisionAction.PROCEED, DecisionAction.PROCEED_WITH_ASSUMPTION})
+        if premise == PremiseStatus.CONTRADICTED:
             disallowed.add(DecisionAction.PROCEED)
-        if not direct and risk_tier == RiskTier.INVALID:
+        if risk_tier in {RiskTier.HIGH, RiskTier.INVALID} and not inp.assumption_audit.evidence.direct_evidence_found:
+            disallowed.add(DecisionAction.PROCEED)
+        if risk_tier == RiskTier.INVALID:
             disallowed.add(DecisionAction.PROCEED_WITH_ASSUMPTION)
 
-        scores: Dict[DecisionAction, float] = {
-            DecisionAction.PROCEED: 0.0,
-            DecisionAction.PROCEED_WITH_ASSUMPTION: 0.0,
-            DecisionAction.NEED_MORE_INFO: 0.0,
-            DecisionAction.REFRAME: 0.0,
-            DecisionAction.REJECT: 0.0,
-        }
-        reasons: Dict[DecisionAction, List[str]] = {k: [] for k in scores}
-
-        if direct:
-            scores[DecisionAction.PROCEED] += 1.2
+        reasons: Dict[DecisionAction, List[str]] = {k: [] for k in base}
+        for action in reasons:
+            reasons[action].append(f"mode:{mode.value}")
+            reasons[action].append(f"premise:{premise.value}")
+            reasons[action].append(f"evidence:{evidence.value}")
+            reasons[action].append(f"scope:{scope.value}")
+        if inp.assumption_audit.evidence.direct_evidence_found:
             reasons[DecisionAction.PROCEED].append("direct_evidence_present")
-        if s.valid_request:
-            scores[DecisionAction.PROCEED] += 0.8
-            reasons[DecisionAction.PROCEED].append("request_marked_valid")
-        if risk_tier == RiskTier.LOW:
-            scores[DecisionAction.PROCEED] += 0.5
-            reasons[DecisionAction.PROCEED].append("low_risk")
-        if s.destructive_change:
-            scores[DecisionAction.PROCEED] -= 1.2
-            reasons[DecisionAction.PROCEED].append("destructive_change_penalty")
-
-        if not direct and risk_tier in {RiskTier.LOW, RiskTier.MEDIUM}:
-            scores[DecisionAction.PROCEED_WITH_ASSUMPTION] += 1.0
-            reasons[DecisionAction.PROCEED_WITH_ASSUMPTION].append("uncertain_but_not_high_risk")
-        if len(a.alternative_root_causes) >= 2:
-            scores[DecisionAction.PROCEED_WITH_ASSUMPTION] += 0.5
-            reasons[DecisionAction.PROCEED_WITH_ASSUMPTION].append("alternatives_present")
-        if s.partial_context and risk_tier == RiskTier.LOW:
-            scores[DecisionAction.PROCEED_WITH_ASSUMPTION] += 0.3
-            reasons[DecisionAction.PROCEED_WITH_ASSUMPTION].append("partial_context_low_risk")
-        if s.destructive_change:
-            scores[DecisionAction.PROCEED_WITH_ASSUMPTION] -= 0.7
-            reasons[DecisionAction.PROCEED_WITH_ASSUMPTION].append("destructive_penalty")
-
-        if not direct:
-            scores[DecisionAction.NEED_MORE_INFO] += 0.9
+        else:
             reasons[DecisionAction.NEED_MORE_INFO].append("direct_evidence_missing")
-        if risk_tier == RiskTier.HIGH:
-            scores[DecisionAction.NEED_MORE_INFO] += 0.8
-            reasons[DecisionAction.NEED_MORE_INFO].append("high_risk")
-        if s.partial_context:
-            scores[DecisionAction.NEED_MORE_INFO] += 0.6
-            reasons[DecisionAction.NEED_MORE_INFO].append("partial_context")
-
-        if risk_tier == RiskTier.INVALID:
-            scores[DecisionAction.REFRAME] += 1.4
-            reasons[DecisionAction.REFRAME].append("invalid_destructive_claim")
-        if s.user_asserts_root_cause and not direct:
-            scores[DecisionAction.REFRAME] += 0.6
-            reasons[DecisionAction.REFRAME].append("unverified_user_root_cause")
-
-        if risk_tier == RiskTier.INVALID and s.destructive_change:
-            scores[DecisionAction.REJECT] += 0.9
-            reasons[DecisionAction.REJECT].append("hard_invalid_destructive_change")
 
         ranked = [
-            ActionScore(action=k, score=v, reasons=reasons[k])
-            for k, v in scores.items()
-            if k not in disallowed
+            ActionScore(action=action, score=score, reasons=reasons[action])
+            for action, score in base.items()
+            if action not in disallowed
         ]
         ranked.sort(key=lambda x: x.score, reverse=True)
         return ranked
@@ -357,7 +492,7 @@ class DecisionPolicyV1:
         h = hashlib.sha256(key.encode("utf-8")).hexdigest()
         draw = int(h[:8], 16) / 0xFFFFFFFF
         margin = ranked[0].score - ranked[1].score
-        if draw < self.exploration_rate and margin < 0.35:
+        if draw < self.exploration_rate and margin < 0.25:
             return ranked[1].action
         return selected
 
@@ -400,8 +535,5 @@ def evaluate_decision_policy(
         context_signals=context_signals,
         task_type=task_type,
     )
-    engine = DecisionPolicyV1(
-        exploration_rate=exploration_rate,
-        enable_soft_exploration=enable_soft_exploration,
-    )
+    engine = DecisionPolicyV1(exploration_rate=exploration_rate, enable_soft_exploration=enable_soft_exploration)
     return engine.evaluate(policy_input).to_dict()
