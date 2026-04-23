@@ -53,7 +53,10 @@
         }
       ],
       "direct_evidence_frozen": false,
-      "evidence_source": "explicit_no_evidence_marker"
+      "evidence_source": "explicit_no_evidence_marker",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "final": {
       "task_text": "Fix local parser trim behavior with partial context only.\nProvide full failing snapshot and local output diff; confirm local formatting scope only.",
@@ -100,7 +103,10 @@
         }
       ],
       "direct_evidence_frozen": false,
-      "evidence_source": "explicit_no_evidence_marker"
+      "evidence_source": "explicit_no_evidence_marker",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "rounds": 2
   },
@@ -158,7 +164,10 @@
         }
       ],
       "direct_evidence_frozen": false,
-      "evidence_source": "explicit_no_evidence_marker"
+      "evidence_source": "explicit_no_evidence_marker",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "final": {
       "task_text": "Adjust CLI help wording order with partial context.\nProvide help snapshot and diff; confirm no shared interface changes.",
@@ -199,7 +208,10 @@
         }
       ],
       "direct_evidence_frozen": false,
-      "evidence_source": "explicit_no_evidence_marker"
+      "evidence_source": "explicit_no_evidence_marker",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "rounds": 2
   },
@@ -259,7 +271,10 @@
         }
       ],
       "direct_evidence_frozen": false,
-      "evidence_source": "explicit_no_evidence_marker"
+      "evidence_source": "explicit_no_evidence_marker",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "final": {
       "task_text": "Fix local tester fixture naming with incomplete context.",
@@ -308,7 +323,10 @@
         }
       ],
       "direct_evidence_frozen": false,
-      "evidence_source": "explicit_no_evidence_marker"
+      "evidence_source": "explicit_no_evidence_marker",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "rounds": 1
   },
@@ -366,7 +384,10 @@
         }
       ],
       "direct_evidence_frozen": false,
-      "evidence_source": "explicit_no_evidence_marker"
+      "evidence_source": "explicit_no_evidence_marker",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "final": {
       "task_text": "Normalize parser warning string with partial context.\nProvide warning trace and snapshot; confirm local non-breaking change.",
@@ -413,7 +434,10 @@
         }
       ],
       "direct_evidence_frozen": false,
-      "evidence_source": "explicit_no_evidence_marker"
+      "evidence_source": "explicit_no_evidence_marker",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "rounds": 2
   },
@@ -464,7 +488,10 @@
         }
       ],
       "direct_evidence_frozen": false,
-      "evidence_source": "no_direct_evidence"
+      "evidence_source": "no_direct_evidence",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "final": {
       "task_text": "Delete shared public API directly; it is definitely unused.\nNo caller inventory proof is provided.",
@@ -513,7 +540,10 @@
         }
       ],
       "direct_evidence_frozen": true,
-      "evidence_source": "explicit_strong_markers"
+      "evidence_source": "explicit_strong_markers",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "rounds": 2
   },
@@ -568,7 +598,10 @@
         }
       ],
       "direct_evidence_frozen": false,
-      "evidence_source": "user_assertion_not_evidence"
+      "evidence_source": "user_assertion_not_evidence",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "final": {
       "task_text": "Modify external protocol payload bytes directly; root cause is confirmed payload format.\nNo aligned spec+trace evidence is provided.",
@@ -612,7 +645,10 @@
         }
       ],
       "direct_evidence_frozen": false,
-      "evidence_source": "explicit_no_evidence_marker"
+      "evidence_source": "explicit_no_evidence_marker",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "rounds": 2
   },
@@ -663,7 +699,10 @@
         }
       ],
       "direct_evidence_frozen": false,
-      "evidence_source": "no_direct_evidence"
+      "evidence_source": "no_direct_evidence",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "final": {
       "task_text": "Refactor shared firmware update path and remove old branch in one shot.\nNo regression pack and no usage evidence provided.",
@@ -703,7 +742,10 @@
         }
       ],
       "direct_evidence_frozen": false,
-      "evidence_source": "explicit_no_evidence_marker"
+      "evidence_source": "explicit_no_evidence_marker",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "rounds": 2
   },
@@ -752,7 +794,10 @@
         }
       ],
       "direct_evidence_frozen": false,
-      "evidence_source": "explicit_no_evidence_marker"
+      "evidence_source": "explicit_no_evidence_marker",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "final": {
       "task_text": "Change external side-effect command format directly without verification.\nOnly user-declared root cause, no direct evidence.",
@@ -796,7 +841,10 @@
         }
       ],
       "direct_evidence_frozen": false,
-      "evidence_source": "explicit_no_evidence_marker"
+      "evidence_source": "explicit_no_evidence_marker",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "rounds": 2
   },
@@ -845,7 +893,10 @@
         }
       ],
       "direct_evidence_frozen": false,
-      "evidence_source": "assumption_evidence_not_promoted"
+      "evidence_source": "assumption_evidence_not_promoted",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "final": {
       "task_text": "Adjust shared payload builder based on protocol spec and trace evidence.\nDirect evidence: spec section, trace offset, and regression case all available.",
@@ -887,7 +938,10 @@
         }
       ],
       "direct_evidence_frozen": true,
-      "evidence_source": "explicit_strong_markers"
+      "evidence_source": "explicit_strong_markers",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "rounds": 2
   },
@@ -936,7 +990,10 @@
         }
       ],
       "direct_evidence_frozen": false,
-      "evidence_source": "no_direct_evidence"
+      "evidence_source": "no_direct_evidence",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "final": {
       "task_text": "Adjust public command flow with caller map and compatibility checklist.\nDirect evidence: caller inventory, tests, and rollback plan all available.",
@@ -978,7 +1035,10 @@
         }
       ],
       "direct_evidence_frozen": true,
-      "evidence_source": "explicit_strong_markers"
+      "evidence_source": "explicit_strong_markers",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "rounds": 2
   },
@@ -1031,7 +1091,10 @@
         }
       ],
       "direct_evidence_frozen": true,
-      "evidence_source": "explicit_strong_markers"
+      "evidence_source": "explicit_strong_markers",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "final": {
       "task_text": "Fix local bug with failing test and logs attached.",
@@ -1073,7 +1136,10 @@
         }
       ],
       "direct_evidence_frozen": true,
-      "evidence_source": "explicit_strong_markers"
+      "evidence_source": "explicit_strong_markers",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "rounds": 1
   },
@@ -1130,7 +1196,10 @@
         }
       ],
       "direct_evidence_frozen": false,
-      "evidence_source": "no_direct_evidence"
+      "evidence_source": "no_direct_evidence",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "final": {
       "task_text": "Fix parser path normalization bug with repro and expected output.\nDirect evidence: before/after fixtures and regression guard available.",
@@ -1173,7 +1242,10 @@
         }
       ],
       "direct_evidence_frozen": true,
-      "evidence_source": "explicit_strong_markers"
+      "evidence_source": "explicit_strong_markers",
+      "evidence_integrity_gate_ok": true,
+      "evidence_integrity_gate_violations": 0,
+      "evidence_integrity_gate_hard_fail": false
     },
     "rounds": 2
   }

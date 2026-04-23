@@ -16,8 +16,10 @@
 | decision_efficiency | 1.83 | 1.58 | 1.58 |
 | proceed_with_assumption_rate | 0.08 | 0.42 | 0.33 |
 | evidence_consistency_rate | 0.58 | 0.50 | 0.50 |
+| evidence_gate_violation_rate | 0.00 | 0.00 | 0.00 |
 
 - Hard Fail (wrong+proceed): B1=False (count=0), B2=False (count=0), B3=False (count=0)
+- Gate Hard Fail (evidence gate): B1=0, B2=0, B3=0
 
 ## Artifacts
 
