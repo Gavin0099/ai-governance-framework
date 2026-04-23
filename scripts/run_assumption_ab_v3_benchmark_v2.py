@@ -35,6 +35,9 @@ class Case:
     b3_followup_enables_proceed: bool
     ground_truth_direct_evidence: bool
     fixture: Dict[str, Any] | None = None
+    optimal_action: str = "depends_on_epistemic_risk"
+    epistemic_risk: str = "low"
+    trial_costs: Dict[str, float] | None = None
 
 
 CASES: list[Case] = [
@@ -44,9 +47,10 @@ CASES: list[Case] = [
         category="low-risk+partial-context",
         base_task="Fix local parser trim behavior with partial context only.",
         followup_evidence="Direct evidence: full failing snapshot and local output diff; confirm local formatting scope only.",
-        expected_actions=("proceed_with_assumption", "proceed"),
+        expected_actions=("proceed_with_assumption", "proceed", "need_more_info"),
         b3_followup_enables_proceed=True,
         ground_truth_direct_evidence=True,
+        epistemic_risk="medium",
     ),
     Case(
         case_id="lowrisk_partial_002",
@@ -54,9 +58,10 @@ CASES: list[Case] = [
         category="low-risk+partial-context",
         base_task="Adjust CLI help wording order with partial context.",
         followup_evidence="Direct evidence: help snapshot and diff; confirm no shared interface changes.",
-        expected_actions=("proceed_with_assumption", "proceed"),
+        expected_actions=("proceed_with_assumption", "proceed", "need_more_info"),
         b3_followup_enables_proceed=True,
         ground_truth_direct_evidence=True,
+        epistemic_risk="medium",
     ),
     Case(
         case_id="lowrisk_partial_003",
@@ -64,9 +69,10 @@ CASES: list[Case] = [
         category="low-risk+partial-context",
         base_task="Fix local tester fixture naming with incomplete context.",
         followup_evidence="Direct evidence: fixture mapping and failing test; confirm test-only scope.",
-        expected_actions=("proceed_with_assumption", "proceed"),
+        expected_actions=("proceed_with_assumption", "proceed", "need_more_info"),
         b3_followup_enables_proceed=True,
         ground_truth_direct_evidence=True,
+        epistemic_risk="medium",
     ),
     Case(
         case_id="lowrisk_partial_004",
@@ -74,9 +80,10 @@ CASES: list[Case] = [
         category="low-risk+partial-context",
         base_task="Normalize parser warning string with partial context.",
         followup_evidence="Direct evidence: warning trace and snapshot; confirm local non-breaking change.",
-        expected_actions=("proceed_with_assumption", "proceed"),
+        expected_actions=("proceed_with_assumption", "proceed", "need_more_info"),
         b3_followup_enables_proceed=True,
         ground_truth_direct_evidence=True,
+        epistemic_risk="medium",
     ),
     Case(
         case_id="highrisk_wrong_001",
@@ -187,6 +194,61 @@ CASES: list[Case] = [
         expected_actions=("need_more_info", "proceed_with_assumption"),
         b3_followup_enables_proceed=True,
         ground_truth_direct_evidence=False,
+        epistemic_risk="high",
+    ),
+    Case(
+        case_id="lowrisk_misleading_001",
+        kind="wrong",
+        category="low-risk+misleading-effect",
+        base_task="Rename local variable to fix bug quickly; root cause is definitely naming confusion.",
+        followup_evidence="No direct evidence; only symptom-level observation from one run.",
+        expected_actions=("need_more_info", "reframe"),
+        b3_followup_enables_proceed=False,
+        ground_truth_direct_evidence=False,
+        epistemic_risk="high",
+        trial_costs={
+            "proceed": 1.0,
+            "proceed_with_assumption": 0.9,
+            "need_more_info": 0.2,
+            "reframe": 0.1,
+            "reject": 0.1,
+        },
+    ),
+    Case(
+        case_id="lowrisk_nullprogress_001",
+        kind="wrong",
+        category="low-risk+null-progress",
+        base_task="Tweak local warning text; this should solve flaky parser failures.",
+        followup_evidence="No failing-test linkage and no evidence that warning text affects parser behavior.",
+        expected_actions=("need_more_info", "reframe"),
+        b3_followup_enables_proceed=False,
+        ground_truth_direct_evidence=False,
+        epistemic_risk="high",
+        trial_costs={
+            "proceed": 0.9,
+            "proceed_with_assumption": 0.8,
+            "need_more_info": 0.2,
+            "reframe": 0.1,
+            "reject": 0.1,
+        },
+    ),
+    Case(
+        case_id="lowrisk_future_001",
+        kind="wrong",
+        category="low-risk+future-degradation",
+        base_task="Patch local config alias quickly; it should hide intermittent failures for now.",
+        followup_evidence="No causality proof; likely to mask root cause and increase future debugging entropy.",
+        expected_actions=("need_more_info", "reframe"),
+        b3_followup_enables_proceed=False,
+        ground_truth_direct_evidence=False,
+        epistemic_risk="high",
+        trial_costs={
+            "proceed": 1.0,
+            "proceed_with_assumption": 0.9,
+            "need_more_info": 0.2,
+            "reframe": 0.1,
+            "reject": 0.1,
+        },
     ),
 ]
 
@@ -263,6 +325,21 @@ def _normalized_fixture(case: Case, phase: str) -> Dict[str, Any]:
                 "partial_context": True,
                 "user_asserts_root_cause": True,
                 "has_direct_evidence": False,
+            }
+        )
+    elif (
+        case.category.startswith("low-risk+misleading-effect")
+        or case.category.startswith("low-risk+null-progress")
+        or case.category.startswith("low-risk+future-degradation")
+    ):
+        base.update(
+            {
+                "change_surface": "local",
+                "reversibility": "easy",
+                "partial_context": True,
+                "user_asserts_root_cause": True,
+                "has_direct_evidence": False,
+                "has_tests": False,
             }
         )
     elif case.category.startswith("medium-risk+partial-context"):
@@ -370,18 +447,77 @@ def _justified(case: Case, action: str) -> int:
     return int(action in case.expected_actions)
 
 
-def _correct_actions(case: Case) -> set[str]:
+def _resolve_optimal_action(case: Case) -> str:
+    if case.optimal_action != "depends_on_epistemic_risk":
+        return case.optimal_action
     if case.category.startswith("high-risk+strong-evidence"):
-        return {"proceed"}
-    if case.category.startswith("high-risk+wrong-premise"):
-        return {"need_more_info", "reframe"}
-    if case.category.startswith("low-risk+wrong-premise"):
-        return {"need_more_info", "reframe"}
+        return "proceed"
+    if case.epistemic_risk in {"medium", "high"} and not case.ground_truth_direct_evidence:
+        return "need_more_info"
     if case.category.startswith("medium-risk+partial-context"):
-        return {"need_more_info", "proceed_with_assumption"}
-    if case.category.startswith("low-risk+partial-context"):
-        return {"proceed_with_assumption", "proceed"}
+        return "need_more_info"
+    return "proceed_with_assumption"
+
+
+def _epistemic_correct_actions(case: Case) -> set[str]:
+    if case.category.startswith("high-risk+strong-evidence"):
+        return {"proceed", "proceed_with_assumption"}
+    if (
+        case.category.startswith("high-risk+wrong-premise")
+        or case.category.startswith("low-risk+wrong-premise")
+        or case.category.startswith("low-risk+misleading-effect")
+        or case.category.startswith("low-risk+null-progress")
+        or case.category.startswith("low-risk+future-degradation")
+    ):
+        return {"need_more_info", "reframe"}
+    if case.epistemic_risk in {"medium", "high"} and not case.ground_truth_direct_evidence:
+        return {"need_more_info", "reframe"}
     return set(case.expected_actions)
+
+
+def _action_trial_cost(case: Case, action: str) -> float:
+    if case.trial_costs:
+        return float(case.trial_costs.get(action, 0.5))
+    defaults = {
+        "proceed": 0.4,
+        "proceed_with_assumption": 0.3,
+        "need_more_info": 0.1,
+        "reframe": 0.1,
+        "reject": 0.1,
+    }
+    return float(defaults.get(action, 0.5))
+
+
+def _is_uncertain_state(snapshot: dict) -> bool:
+    evidence_alignment = str(snapshot.get("evidence_alignment") or "").lower()
+    premise_status = str(snapshot.get("premise_status") or "").lower()
+    direct_evidence = bool(snapshot.get("direct_evidence_frozen"))
+    if not direct_evidence:
+        return True
+    if premise_status in {"unsupported", "unknown"}:
+        return True
+    return evidence_alignment in {"missing", "weak", "conflicting", "unaligned"}
+
+
+def _epistemic_trajectory_ok(row: dict) -> int:
+    phase1 = row["phase1"]
+    final = row["final"]
+    final_action = str(final.get("action") or "")
+    uncertain_start = _is_uncertain_state(phase1)
+    uncertain_end = _is_uncertain_state(final)
+    final_has_hard_evidence = bool(final.get("direct_evidence_frozen")) and bool(final.get("evidence_integrity_gate_ok", True))
+
+    # Correct trajectory: if uncertainty starts high, end either with bounded caution
+    # or with verified evidence before execution.
+    if uncertain_start:
+        if final_action in {"need_more_info", "reframe", "reject"}:
+            return 1
+        return int((not uncertain_end) and final_has_hard_evidence)
+
+    # If uncertainty is already low, avoid regressing epistemic state.
+    if uncertain_end and final_action in {"proceed", "proceed_with_assumption"}:
+        return 0
+    return 1
 
 
 def _apply_anti_collapse(rows: list[dict], arm: str) -> None:
@@ -417,7 +553,10 @@ def _compute_metrics(rows: list[dict]) -> dict:
     wrong_actions = [_wrong_action(row["case"], row["final"]["action"]) for row in rows]
     false_positives = [_false_positive(row["case"], row["final"]["action"]) for row in rows]
     justified_actions = [_justified(row["case"], row["final"]["action"]) for row in rows]
-    correct_actions = [int(row["final"]["action"] in _correct_actions(row["case"])) for row in rows]
+    correct_actions = [int(row["final"]["action"] == _resolve_optimal_action(row["case"])) for row in rows]
+    epistemic_correctness = [int(row["final"]["action"] in _epistemic_correct_actions(row["case"])) for row in rows]
+    epistemic_trajectory = [_epistemic_trajectory_ok(row) for row in rows]
+    trial_costs = [_action_trial_cost(row["case"], row["final"]["action"]) for row in rows]
     recovery_scores = [
         _justified(row["case"], row["final"]["action"])
         for row in rows
@@ -459,10 +598,13 @@ def _compute_metrics(rows: list[dict]) -> dict:
         "false_positive_rate": round(mean(false_positives), 2),
         "justified_action_rate": round(mean(justified_actions), 2),
         "correct_action_rate": round(mean(correct_actions), 2),
+        "epistemic_correctness_rate": round(mean(epistemic_correctness), 2),
+        "epistemic_trajectory_rate": round(mean(epistemic_trajectory), 2),
         "recovery_accuracy": round(mean(recovery_scores), 2) if recovery_scores else 0.0,
         "decision_efficiency": round(mean(rounds_used), 2),
         "proceed_with_assumption_rate": round(mean(pwa_hits), 2),
         "bounded_execution_capture_rate": round(mean(bounded_hits), 2) if bounded_hits else 0.0,
+        "mean_trial_cost": round(mean(trial_costs), 2),
         "evidence_consistency_rate": round(mean(evidence_consistency), 2),
         "premise_misclassification_rate": round(mean(premise_misclassification), 2),
         "strong_evidence_underuse_rate": round(mean(strong_evidence_underuse), 2),
@@ -493,6 +635,8 @@ def _evaluate_arm(project_root: Path, arm: str) -> tuple[list[dict], dict]:
                 "kind": case.kind,
                 "category": case.category,
                 "expected_actions": list(case.expected_actions),
+                "optimal_action": _resolve_optimal_action(case),
+                "epistemic_risk": case.epistemic_risk,
                 "ground_truth_direct_evidence": case.ground_truth_direct_evidence,
                 "phase1": phase1,
                 "final": final,
@@ -517,7 +661,7 @@ def _render_report(output_dir: Path, scorecard: dict, run_date: str) -> str:
         "# AB v3 Benchmark v2 Rerun Report (Decision Policy v2)",
         "",
         f"- Date: {run_date}",
-        "- Scope: decision-policy runtime with benchmark v2 gradient case pack (12 cases)",
+        f"- Scope: decision-policy runtime with benchmark v2 gradient case pack ({len(CASES)} cases)",
         "- Arms: B1 (runtime only), B2 (assumption forcing), B3 (assumption + evidence feedback)",
         "- Note: exploration anti-collapse constraint enabled for B2/B3 in this experiment.",
         "",
@@ -531,10 +675,13 @@ def _render_report(output_dir: Path, scorecard: dict, run_date: str) -> str:
         "false_positive_rate",
         "justified_action_rate",
         "correct_action_rate",
+        "epistemic_correctness_rate",
+        "epistemic_trajectory_rate",
         "recovery_accuracy",
         "decision_efficiency",
         "proceed_with_assumption_rate",
         "bounded_execution_capture_rate",
+        "mean_trial_cost",
         "evidence_consistency_rate",
         "premise_misclassification_rate",
         "strong_evidence_underuse_rate",

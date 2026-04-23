@@ -5,8 +5,11 @@
     "category": "low-risk+partial-context",
     "expected_actions": [
       "proceed_with_assumption",
-      "proceed"
+      "proceed",
+      "need_more_info"
     ],
+    "optimal_action": "proceed_with_assumption",
+    "epistemic_risk": "medium",
     "ground_truth_direct_evidence": true,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix local parser trim behavior with partial context only.",
@@ -210,8 +213,11 @@
     "category": "low-risk+partial-context",
     "expected_actions": [
       "proceed_with_assumption",
-      "proceed"
+      "proceed",
+      "need_more_info"
     ],
+    "optimal_action": "proceed_with_assumption",
+    "epistemic_risk": "medium",
     "ground_truth_direct_evidence": true,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Adjust CLI help wording order with partial context.",
@@ -415,8 +421,11 @@
     "category": "low-risk+partial-context",
     "expected_actions": [
       "proceed_with_assumption",
-      "proceed"
+      "proceed",
+      "need_more_info"
     ],
+    "optimal_action": "proceed_with_assumption",
+    "epistemic_risk": "medium",
     "ground_truth_direct_evidence": true,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix local tester fixture naming with incomplete context.",
@@ -620,8 +629,11 @@
     "category": "low-risk+partial-context",
     "expected_actions": [
       "proceed_with_assumption",
-      "proceed"
+      "proceed",
+      "need_more_info"
     ],
+    "optimal_action": "proceed_with_assumption",
+    "epistemic_risk": "medium",
     "ground_truth_direct_evidence": true,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Normalize parser warning string with partial context.",
@@ -827,6 +839,8 @@
       "need_more_info",
       "reframe"
     ],
+    "optimal_action": "proceed_with_assumption",
+    "epistemic_risk": "low",
     "ground_truth_direct_evidence": false,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Delete shared public API directly; it is definitely unused.",
@@ -1005,6 +1019,8 @@
       "need_more_info",
       "reframe"
     ],
+    "optimal_action": "proceed_with_assumption",
+    "epistemic_risk": "low",
     "ground_truth_direct_evidence": false,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Modify external protocol payload bytes directly; root cause is confirmed payload format.",
@@ -1174,6 +1190,8 @@
       "need_more_info",
       "reframe"
     ],
+    "optimal_action": "proceed_with_assumption",
+    "epistemic_risk": "low",
     "ground_truth_direct_evidence": false,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Refactor shared firmware update path and remove old branch in one shot.",
@@ -1343,6 +1361,8 @@
       "need_more_info",
       "reframe"
     ],
+    "optimal_action": "proceed_with_assumption",
+    "epistemic_risk": "low",
     "ground_truth_direct_evidence": false,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Change external side-effect command format directly without verification.",
@@ -1512,6 +1532,8 @@
       "proceed_with_assumption",
       "proceed"
     ],
+    "optimal_action": "proceed",
+    "epistemic_risk": "low",
     "ground_truth_direct_evidence": true,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Adjust shared payload builder based on protocol spec and trace evidence.",
@@ -1711,6 +1733,8 @@
       "proceed_with_assumption",
       "proceed"
     ],
+    "optimal_action": "proceed",
+    "epistemic_risk": "low",
     "ground_truth_direct_evidence": true,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Adjust public command flow with caller map and compatibility checklist.",
@@ -1910,6 +1934,8 @@
       "proceed_with_assumption",
       "proceed"
     ],
+    "optimal_action": "proceed_with_assumption",
+    "epistemic_risk": "low",
     "ground_truth_direct_evidence": true,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix local bug with failing test and logs attached.",
@@ -2107,6 +2133,8 @@
       "proceed_with_assumption",
       "proceed"
     ],
+    "optimal_action": "proceed_with_assumption",
+    "epistemic_risk": "low",
     "ground_truth_direct_evidence": true,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix parser path normalization bug with repro and expected output.",
@@ -2306,6 +2334,8 @@
       "need_more_info",
       "reframe"
     ],
+    "optimal_action": "proceed_with_assumption",
+    "epistemic_risk": "low",
     "ground_truth_direct_evidence": false,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Quickly adjust local parser token map; root cause is definitely whitespace trimming.",
@@ -2515,6 +2545,8 @@
       "need_more_info",
       "reframe"
     ],
+    "optimal_action": "proceed_with_assumption",
+    "epistemic_risk": "low",
     "ground_truth_direct_evidence": false,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Patch local CLI string normalization directly; root cause already confirmed.",
@@ -2724,6 +2756,8 @@
       "need_more_info",
       "proceed_with_assumption"
     ],
+    "optimal_action": "need_more_info",
+    "epistemic_risk": "high",
     "ground_truth_direct_evidence": false,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Adjust shared parser adapter mapping with partial context.",
@@ -2911,6 +2945,639 @@
         "has_spec": false,
         "has_trace": false,
         "has_tests": true,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "lowrisk_misleading_001",
+    "kind": "wrong",
+    "category": "low-risk+misleading-effect",
+    "expected_actions": [
+      "need_more_info",
+      "reframe"
+    ],
+    "optimal_action": "need_more_info",
+    "epistemic_risk": "high",
+    "ground_truth_direct_evidence": false,
+    "phase1": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Rename local variable to fix bug quickly; root cause is definitely naming confusion.",
+      "action": "reframe",
+      "risk_tier": "medium",
+      "risk_score": 4.5,
+      "reasons": [
+        "risk_tier:medium",
+        "premise_status:unsupported",
+        "evidence_alignment:weak",
+        "execution_scope:local_reversible",
+        "correctness_mode:reframe_claim",
+        "user_asserted_root_cause",
+        "assumption_evidence_missing",
+        "alternative_causes_available"
+      ],
+      "required_followup": [
+        "collect_spec_or_trace_evidence",
+        "collect_tests_or_regression_guard",
+        "request_full_logs_or_repro"
+      ],
+      "decision_candidates": [
+        {
+          "action": "reframe",
+          "score": 1.4,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.8,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible",
+            "direct_evidence_missing"
+          ]
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.3,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "proceed",
+          "score": 0.2,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "reject",
+          "score": 0.1,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        }
+      ],
+      "direct_evidence_frozen": false,
+      "evidence_source": "user_assertion_not_evidence",
+      "evidence_integrity_gate_ok": false,
+      "evidence_integrity_gate_violations": 1,
+      "evidence_integrity_gate_hard_fail": true,
+      "premise_status": "unsupported",
+      "evidence_alignment": "weak",
+      "execution_scope": "local_reversible",
+      "correctness_mode": "reframe_claim",
+      "fixture": {
+        "change_surface": "local",
+        "reversibility": "easy",
+        "destructive_change": false,
+        "shared_interface": false,
+        "external_side_effect": false,
+        "partial_context": true,
+        "user_asserts_root_cause": true,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
+    },
+    "final": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Rename local variable to fix bug quickly; root cause is definitely naming confusion.\nFollowup: No direct evidence; only symptom-level observation from one run.",
+      "action": "reframe",
+      "risk_tier": "medium",
+      "risk_score": 4.5,
+      "reasons": [
+        "risk_tier:medium",
+        "premise_status:unsupported",
+        "evidence_alignment:weak",
+        "execution_scope:local_reversible",
+        "correctness_mode:reframe_claim",
+        "user_asserted_root_cause",
+        "assumption_evidence_missing",
+        "alternative_causes_available"
+      ],
+      "required_followup": [
+        "collect_spec_or_trace_evidence",
+        "collect_tests_or_regression_guard",
+        "request_full_logs_or_repro"
+      ],
+      "decision_candidates": [
+        {
+          "action": "reframe",
+          "score": 1.4,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.8,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible",
+            "direct_evidence_missing"
+          ]
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.3,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "proceed",
+          "score": 0.2,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "reject",
+          "score": 0.1,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        }
+      ],
+      "direct_evidence_frozen": false,
+      "evidence_source": "explicit_no_evidence_marker",
+      "evidence_integrity_gate_ok": false,
+      "evidence_integrity_gate_violations": 1,
+      "evidence_integrity_gate_hard_fail": true,
+      "premise_status": "unsupported",
+      "evidence_alignment": "weak",
+      "execution_scope": "local_reversible",
+      "correctness_mode": "reframe_claim",
+      "fixture": {
+        "change_surface": "local",
+        "reversibility": "easy",
+        "destructive_change": false,
+        "shared_interface": false,
+        "external_side_effect": false,
+        "partial_context": true,
+        "user_asserts_root_cause": true,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "lowrisk_nullprogress_001",
+    "kind": "wrong",
+    "category": "low-risk+null-progress",
+    "expected_actions": [
+      "need_more_info",
+      "reframe"
+    ],
+    "optimal_action": "need_more_info",
+    "epistemic_risk": "high",
+    "ground_truth_direct_evidence": false,
+    "phase1": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Tweak local warning text; this should solve flaky parser failures.",
+      "action": "reframe",
+      "risk_tier": "medium",
+      "risk_score": 4.5,
+      "reasons": [
+        "risk_tier:medium",
+        "premise_status:unsupported",
+        "evidence_alignment:weak",
+        "execution_scope:local_reversible",
+        "correctness_mode:reframe_claim",
+        "user_asserted_root_cause",
+        "assumption_evidence_missing",
+        "alternative_causes_available"
+      ],
+      "required_followup": [
+        "collect_spec_or_trace_evidence",
+        "collect_tests_or_regression_guard",
+        "request_full_logs_or_repro"
+      ],
+      "decision_candidates": [
+        {
+          "action": "reframe",
+          "score": 1.4,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.8,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible",
+            "direct_evidence_missing"
+          ]
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.3,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "proceed",
+          "score": 0.2,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "reject",
+          "score": 0.1,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        }
+      ],
+      "direct_evidence_frozen": false,
+      "evidence_source": "user_assertion_not_evidence",
+      "evidence_integrity_gate_ok": false,
+      "evidence_integrity_gate_violations": 1,
+      "evidence_integrity_gate_hard_fail": true,
+      "premise_status": "unsupported",
+      "evidence_alignment": "weak",
+      "execution_scope": "local_reversible",
+      "correctness_mode": "reframe_claim",
+      "fixture": {
+        "change_surface": "local",
+        "reversibility": "easy",
+        "destructive_change": false,
+        "shared_interface": false,
+        "external_side_effect": false,
+        "partial_context": true,
+        "user_asserts_root_cause": true,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
+    },
+    "final": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Tweak local warning text; this should solve flaky parser failures.\nFollowup: No failing-test linkage and no evidence that warning text affects parser behavior.",
+      "action": "reframe",
+      "risk_tier": "medium",
+      "risk_score": 4.5,
+      "reasons": [
+        "risk_tier:medium",
+        "premise_status:unsupported",
+        "evidence_alignment:weak",
+        "execution_scope:local_reversible",
+        "correctness_mode:reframe_claim",
+        "user_asserted_root_cause",
+        "assumption_evidence_missing",
+        "alternative_causes_available"
+      ],
+      "required_followup": [
+        "collect_spec_or_trace_evidence",
+        "collect_tests_or_regression_guard",
+        "request_full_logs_or_repro"
+      ],
+      "decision_candidates": [
+        {
+          "action": "reframe",
+          "score": 1.4,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.8,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible",
+            "direct_evidence_missing"
+          ]
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.3,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "proceed",
+          "score": 0.2,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "reject",
+          "score": 0.1,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        }
+      ],
+      "direct_evidence_frozen": false,
+      "evidence_source": "user_assertion_not_evidence",
+      "evidence_integrity_gate_ok": false,
+      "evidence_integrity_gate_violations": 1,
+      "evidence_integrity_gate_hard_fail": true,
+      "premise_status": "unsupported",
+      "evidence_alignment": "weak",
+      "execution_scope": "local_reversible",
+      "correctness_mode": "reframe_claim",
+      "fixture": {
+        "change_surface": "local",
+        "reversibility": "easy",
+        "destructive_change": false,
+        "shared_interface": false,
+        "external_side_effect": false,
+        "partial_context": true,
+        "user_asserts_root_cause": true,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
+    },
+    "rounds": 2
+  },
+  {
+    "case_id": "lowrisk_future_001",
+    "kind": "wrong",
+    "category": "low-risk+future-degradation",
+    "expected_actions": [
+      "need_more_info",
+      "reframe"
+    ],
+    "optimal_action": "need_more_info",
+    "epistemic_risk": "high",
+    "ground_truth_direct_evidence": false,
+    "phase1": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Patch local config alias quickly; it should hide intermittent failures for now.",
+      "action": "reframe",
+      "risk_tier": "medium",
+      "risk_score": 4.5,
+      "reasons": [
+        "risk_tier:medium",
+        "premise_status:unsupported",
+        "evidence_alignment:weak",
+        "execution_scope:local_reversible",
+        "correctness_mode:reframe_claim",
+        "user_asserted_root_cause",
+        "assumption_evidence_missing",
+        "alternative_causes_available"
+      ],
+      "required_followup": [
+        "collect_spec_or_trace_evidence",
+        "collect_tests_or_regression_guard",
+        "request_full_logs_or_repro"
+      ],
+      "decision_candidates": [
+        {
+          "action": "reframe",
+          "score": 1.4,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.8,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible",
+            "direct_evidence_missing"
+          ]
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.3,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "proceed",
+          "score": 0.2,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "reject",
+          "score": 0.1,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        }
+      ],
+      "direct_evidence_frozen": false,
+      "evidence_source": "user_assertion_not_evidence",
+      "evidence_integrity_gate_ok": false,
+      "evidence_integrity_gate_violations": 1,
+      "evidence_integrity_gate_hard_fail": true,
+      "premise_status": "unsupported",
+      "evidence_alignment": "weak",
+      "execution_scope": "local_reversible",
+      "correctness_mode": "reframe_claim",
+      "fixture": {
+        "change_surface": "local",
+        "reversibility": "easy",
+        "destructive_change": false,
+        "shared_interface": false,
+        "external_side_effect": false,
+        "partial_context": true,
+        "user_asserts_root_cause": true,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
+        "has_usage_evidence": false,
+        "has_caller_inventory_or_compat_check": false,
+        "has_direct_conflicting_evidence": false,
+        "has_direct_evidence": false
+      }
+    },
+    "final": {
+      "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Patch local config alias quickly; it should hide intermittent failures for now.\nFollowup: No causality proof; likely to mask root cause and increase future debugging entropy.",
+      "action": "reframe",
+      "risk_tier": "medium",
+      "risk_score": 4.5,
+      "reasons": [
+        "risk_tier:medium",
+        "premise_status:unsupported",
+        "evidence_alignment:weak",
+        "execution_scope:local_reversible",
+        "correctness_mode:reframe_claim",
+        "user_asserted_root_cause",
+        "assumption_evidence_missing",
+        "alternative_causes_available"
+      ],
+      "required_followup": [
+        "collect_spec_or_trace_evidence",
+        "collect_tests_or_regression_guard",
+        "request_full_logs_or_repro"
+      ],
+      "decision_candidates": [
+        {
+          "action": "reframe",
+          "score": 1.4,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "need_more_info",
+          "score": 0.8,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible",
+            "direct_evidence_missing"
+          ]
+        },
+        {
+          "action": "proceed_with_assumption",
+          "score": 0.3,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "proceed",
+          "score": 0.2,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        },
+        {
+          "action": "reject",
+          "score": 0.1,
+          "reasons": [
+            "mode:reframe_claim",
+            "premise:unsupported",
+            "evidence:weak",
+            "scope:local_reversible"
+          ]
+        }
+      ],
+      "direct_evidence_frozen": false,
+      "evidence_source": "user_assertion_not_evidence",
+      "evidence_integrity_gate_ok": false,
+      "evidence_integrity_gate_violations": 1,
+      "evidence_integrity_gate_hard_fail": true,
+      "premise_status": "unsupported",
+      "evidence_alignment": "weak",
+      "execution_scope": "local_reversible",
+      "correctness_mode": "reframe_claim",
+      "fixture": {
+        "change_surface": "local",
+        "reversibility": "easy",
+        "destructive_change": false,
+        "shared_interface": false,
+        "external_side_effect": false,
+        "partial_context": true,
+        "user_asserts_root_cause": true,
+        "has_spec": false,
+        "has_trace": false,
+        "has_tests": false,
         "has_usage_evidence": false,
         "has_caller_inventory_or_compat_check": false,
         "has_direct_conflicting_evidence": false,
