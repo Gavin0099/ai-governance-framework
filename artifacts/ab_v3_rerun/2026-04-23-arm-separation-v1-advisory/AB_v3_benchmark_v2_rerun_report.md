@@ -40,6 +40,11 @@
 - sep_highrisk_partial_evidence_001 (separation+high-risk+partial-evidence): actions B1/B2/B3=proceed/proceed/proceed; top2 B1=['proceed', 'proceed_with_assumption'] B2=['proceed', 'proceed_with_assumption'] B3=['proceed', 'proceed_with_assumption']; action_sep=False ranking_sep=False
 - sep_asserted_conflicting_hint_001 (separation+asserted-root-cause+conflicting-hint): actions B1/B2/B3=reframe/reframe/reframe; top2 B1=['reframe', 'need_more_info'] B2=['reframe', 'need_more_info'] B3=['reframe', 'need_more_info']; action_sep=False ranking_sep=False
 
+## Collapse Locator
+
+- dominant_collapse_type: feature_extraction_collapse
+- counts: {'feature_extraction_collapse': 4, 'score_mapping_collapse': 0, 'phase_transition_collapse': 0, 'not_collapsed_or_mixed': 0}
+
 ## Artifacts
 
 - Raw: `artifacts\ab_v3_rerun\2026-04-23-arm-separation-v1-advisory\raw_B1.json`
@@ -47,3 +52,5 @@
 - Raw: `artifacts\ab_v3_rerun\2026-04-23-arm-separation-v1-advisory\raw_B3.json`
 - Scorecard: `artifacts\ab_v3_rerun\2026-04-23-arm-separation-v1-advisory\scorecard.json`
 - Arm Separation: `artifacts\ab_v3_rerun\2026-04-23-arm-separation-v1-advisory\arm_separation.json`
+- Per-phase Feature Delta Dump: `artifacts\ab_v3_rerun\2026-04-23-arm-separation-v1-advisory\per_phase_feature_delta_dump.json`
+- Collapse Summary: `artifacts\ab_v3_rerun\2026-04-23-arm-separation-v1-advisory\collapse_summary.json`
