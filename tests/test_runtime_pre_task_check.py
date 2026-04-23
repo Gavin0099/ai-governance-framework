@@ -714,3 +714,79 @@ def test_pre_task_check_without_assumption_forcing_keeps_baseline_phase_a_featur
     policy = result["decision_policy"]
     assert policy["evidence_alignment"] == "partial"
     assert policy["correctness_mode"] == "direct_fix"
+
+
+def test_precondition_gate_validator_downgrades_missing_reset_definition(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    task_text = (
+        "Generate synthesizable SystemVerilog RTL for fifo controller module with ready/valid handshake. "
+        "Do not change interface naming."
+    )
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text=task_text,
+        task_level="L1",
+    )
+
+    gate = result["precondition_gate_validator"]
+    assert gate["ok"] is False
+    assert "missing_reset_definition" in gate["missing_preconditions"]
+    assert gate["recommended_mode"] in {"allow_draft_with_assumptions", "restrict_codegen"}
+    assert any("Precondition gate validator downgrade:" in warning for warning in result["warnings"])
+
+
+def test_precondition_gate_validator_downgrades_missing_handshake_definition(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    task_text = (
+        "Implement control interface logic in Verilog for a command dispatcher state machine with synchronous reset. "
+        "No protocol timing details are provided."
+    )
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text=task_text,
+        task_level="L1",
+    )
+
+    gate = result["precondition_gate_validator"]
+    assert gate["ok"] is False
+    assert "missing_interface_or_handshake_definition" in gate["missing_preconditions"]
+    assert gate["recommended_mode"] == "allow_analysis_only"
+    assert any("Precondition gate validator downgrade:" in warning for warning in result["warnings"])
+
+
+def test_precondition_gate_validator_allows_codegen_when_reset_and_handshake_are_defined(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    task_text = (
+        "Generate synthesizable SystemVerilog RTL for queue controller. "
+        "Use active-low asynchronous reset (rst_n). "
+        "Interface uses ready/valid handshake with one-cycle backpressure latency."
+    )
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text=task_text,
+        task_level="L1",
+    )
+
+    gate = result["precondition_gate_validator"]
+    assert gate["ok"] is True
+    assert gate["missing_preconditions"] == []
+    assert gate["recommended_mode"] == "allow_draft_with_assumptions"
+    assert not any("Precondition gate validator downgrade:" in warning for warning in result["warnings"])
