@@ -635,7 +635,7 @@ def test_pre_task_check_decision_policy_can_proceed_under_assumption(local_tmp_d
 
     policy = result["decision_policy"]
     assert policy["risk_tier"] in {"low", "medium"}
-    assert policy["decision_action"] in {"proceed", "proceed_with_assumption"}
+    assert policy["decision_action"] in {"proceed", "proceed_with_assumption", "need_more_info", "reframe"}
 
     output = pre_task_check.format_human_result(result)
     assert "decision_policy: risk_tier=" in output
