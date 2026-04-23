@@ -867,7 +867,8 @@ def format_human_result(result: dict) -> str:
             "precondition_gate_validator: "
             f"ok={precondition_gate.get('ok')} "
             f"recommended_mode={precondition_gate.get('recommended_mode')} "
-            f"missing={','.join(precondition_gate.get('missing_preconditions', []))}"
+            f"missing={','.join(precondition_gate.get('missing_preconditions', []))} "
+            f"forbidden_claims={','.join(precondition_gate.get('forbidden_claims', []))}"
         )
     assumption_check = result.get("assumption_check") or {}
     if assumption_check:

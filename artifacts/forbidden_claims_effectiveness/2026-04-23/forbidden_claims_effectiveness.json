@@ -1,0 +1,98 @@
+{
+  "run_date": "2026-04-23",
+  "summary": {
+    "cases_total": 4,
+    "cases_passed": 4,
+    "cases_failed": 0
+  },
+  "cases": [
+    {
+      "case_id": "missing_reset_codegen_claim_boundary",
+      "description": "missing reset -> must forbid reset-correctness codegen claim",
+      "expected": {
+        "forbidden_claims": [
+          "claim_reset_safe_codegen"
+        ],
+        "must_be_empty": false
+      },
+      "observed": {
+        "forbidden_claims": [
+          "claim_reset_safe_codegen"
+        ],
+        "recommended_mode": "allow_draft_with_assumptions",
+        "ok": false
+      },
+      "checks": {
+        "forbidden_claims_match": true,
+        "no_false_positive": true,
+        "surface_consistent": true
+      },
+      "passed": true
+    },
+    {
+      "case_id": "missing_handshake_codegen_claim_boundary",
+      "description": "missing handshake -> must forbid interface-correctness codegen claim",
+      "expected": {
+        "forbidden_claims": [
+          "claim_interface_correctness_codegen"
+        ],
+        "must_be_empty": false
+      },
+      "observed": {
+        "forbidden_claims": [
+          "claim_interface_correctness_codegen"
+        ],
+        "recommended_mode": "allow_analysis_only",
+        "ok": false
+      },
+      "checks": {
+        "forbidden_claims_match": true,
+        "no_false_positive": true,
+        "surface_consistent": true
+      },
+      "passed": true
+    },
+    {
+      "case_id": "preconditions_satisfied_no_false_positive",
+      "description": "preconditions satisfied -> forbidden claims should be empty",
+      "expected": {
+        "forbidden_claims": [],
+        "must_be_empty": true
+      },
+      "observed": {
+        "forbidden_claims": [],
+        "recommended_mode": "allow_draft_with_assumptions",
+        "ok": true
+      },
+      "checks": {
+        "forbidden_claims_match": true,
+        "no_false_positive": true,
+        "surface_consistent": true
+      },
+      "passed": true
+    },
+    {
+      "case_id": "analysis_task_missing_preconditions_claim_boundary",
+      "description": "analysis-only task still exposes claim-boundary when handshake missing",
+      "expected": {
+        "forbidden_claims": [
+          "claim_interface_correctness_codegen"
+        ],
+        "must_be_empty": false
+      },
+      "observed": {
+        "forbidden_claims": [
+          "claim_interface_correctness_codegen"
+        ],
+        "recommended_mode": "allow_analysis_only",
+        "ok": false
+      },
+      "checks": {
+        "forbidden_claims_match": true,
+        "no_false_positive": true,
+        "surface_consistent": true
+      },
+      "passed": true
+    }
+  ]
+}

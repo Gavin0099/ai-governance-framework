@@ -110,9 +110,11 @@ def evaluate_precondition_gate(
         r"\bno\s+(?:ready\s*/\s*valid|valid\s*/\s*ready|req\s*/\s*ack|handshake|backpressure)\b",
         r"\bwithout\s+(?:ready\s*/\s*valid|valid\s*/\s*ready|req\s*/\s*ack|handshake|backpressure)\b",
         r"\bmissing\s+(?:ready\s*/\s*valid|valid\s*/\s*ready|req\s*/\s*ack|handshake|backpressure)\b",
-        r"\b(?:handshake|backpressure|latency)\s+(?:is\s+)?not\s+(?:defined|specified|provided)\b",
-        r"\b(?:handshake|backpressure|latency|protocol\s+timing)\s+(?:definition|behavior|semantics)?\s*(?:is\s+)?(?:missing|undefined|absent|not\s+specified)\b",
-        r"\bno\s+protocol\s+timing\b",
+        r"\b(?:handshake|backpressure|latency)\s+(?:(?:is|are)\s+)?not\s+(?:defined|specified|provided)\b",
+        r"\b(?:handshake|backpressure|latency|protocol\s+timing|protocol\s+timing\s*/\s*backpressure)\s+"
+        r"(?:definition|definitions|behavior|behaviors|semantics|details)?\s*"
+        r"(?:(?:is|are)\s+)?(?:missing|undefined|absent|not\s+specified|not\s+provided)\b",
+        r"\bno\s+protocol\s+timing(?:\s*/\s*backpressure)?\b",
     )
 
     reset_structured = _structured_flag(
