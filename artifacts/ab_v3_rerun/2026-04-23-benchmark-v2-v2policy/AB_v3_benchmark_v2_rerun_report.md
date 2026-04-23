@@ -11,19 +11,19 @@
 |---|---:|---:|---:|
 | wrong_action_rate | 0.00 | 0.00 | 0.00 |
 | false_positive_rate | 0.00 | 0.00 | 0.00 |
-| justified_action_rate | 1.00 | 1.00 | 1.00 |
-| correct_action_rate | 1.00 | 1.00 | 1.00 |
-| recovery_accuracy | 1.00 | 1.00 | 1.00 |
-| decision_efficiency | 1.33 | 1.33 | 1.33 |
-| proceed_with_assumption_rate | 0.33 | 0.33 | 0.33 |
+| justified_action_rate | 0.93 | 0.93 | 0.93 |
+| correct_action_rate | 0.93 | 0.93 | 0.93 |
+| recovery_accuracy | 0.86 | 0.86 | 0.86 |
+| decision_efficiency | 1.47 | 1.47 | 1.47 |
+| proceed_with_assumption_rate | 0.27 | 0.27 | 0.27 |
 | bounded_execution_capture_rate | 1.00 | 1.00 | 1.00 |
-| evidence_consistency_rate | 0.33 | 0.33 | 0.33 |
+| evidence_consistency_rate | 0.47 | 0.47 | 0.47 |
 | premise_misclassification_rate | 0.00 | 0.00 | 0.00 |
 | strong_evidence_underuse_rate | 0.00 | 0.00 | 0.00 |
-| evidence_gate_violation_rate | 0.00 | 0.00 | 0.00 |
+| evidence_gate_violation_rate | 0.13 | 0.13 | 0.13 |
 
 - Hard Fail (wrong+proceed): B1=False (count=0), B2=False (count=0), B3=False (count=0)
-- Gate Hard Fail (evidence gate): B1=0, B2=0, B3=0
+- Gate Hard Fail (evidence gate): B1=2, B2=2, B3=2
 
 ## Artifacts
 

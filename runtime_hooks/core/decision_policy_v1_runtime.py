@@ -358,6 +358,9 @@ class DecisionPolicyV1:
         scope: ExecutionScope,
     ) -> CorrectnessMode:
         s = inp.context_signals
+        # Premise precedence: unsupported premise cannot execute as proceed/proceed_with_assumption.
+        if premise == PremiseStatus.UNSUPPORTED:
+            return CorrectnessMode.REFRAME_CLAIM if s.user_asserts_root_cause else CorrectnessMode.ASK_FOR_EVIDENCE
         if s.destructive_change and not s.has_usage_evidence:
             return CorrectnessMode.REFRAME_CLAIM
         if scope == ExecutionScope.EXTERNAL_SIDE_EFFECT and evidence in {EvidenceAlignment.WEAK, EvidenceAlignment.ABSENT}:

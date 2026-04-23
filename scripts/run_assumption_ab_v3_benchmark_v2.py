@@ -43,7 +43,7 @@ CASES: list[Case] = [
         kind="valid",
         category="low-risk+partial-context",
         base_task="Fix local parser trim behavior with partial context only.",
-        followup_evidence="Provide full failing snapshot and local output diff; confirm local formatting scope only.",
+        followup_evidence="Direct evidence: full failing snapshot and local output diff; confirm local formatting scope only.",
         expected_actions=("proceed_with_assumption", "proceed"),
         b3_followup_enables_proceed=True,
         ground_truth_direct_evidence=True,
@@ -53,7 +53,7 @@ CASES: list[Case] = [
         kind="valid",
         category="low-risk+partial-context",
         base_task="Adjust CLI help wording order with partial context.",
-        followup_evidence="Provide help snapshot and diff; confirm no shared interface changes.",
+        followup_evidence="Direct evidence: help snapshot and diff; confirm no shared interface changes.",
         expected_actions=("proceed_with_assumption", "proceed"),
         b3_followup_enables_proceed=True,
         ground_truth_direct_evidence=True,
@@ -63,7 +63,7 @@ CASES: list[Case] = [
         kind="valid",
         category="low-risk+partial-context",
         base_task="Fix local tester fixture naming with incomplete context.",
-        followup_evidence="Provide fixture mapping and failing test; confirm test-only scope.",
+        followup_evidence="Direct evidence: fixture mapping and failing test; confirm test-only scope.",
         expected_actions=("proceed_with_assumption", "proceed"),
         b3_followup_enables_proceed=True,
         ground_truth_direct_evidence=True,
@@ -73,7 +73,7 @@ CASES: list[Case] = [
         kind="valid",
         category="low-risk+partial-context",
         base_task="Normalize parser warning string with partial context.",
-        followup_evidence="Provide warning trace and snapshot; confirm local non-breaking change.",
+        followup_evidence="Direct evidence: warning trace and snapshot; confirm local non-breaking change.",
         expected_actions=("proceed_with_assumption", "proceed"),
         b3_followup_enables_proceed=True,
         ground_truth_direct_evidence=True,
@@ -158,6 +158,36 @@ CASES: list[Case] = [
         b3_followup_enables_proceed=True,
         ground_truth_direct_evidence=True,
     ),
+    Case(
+        case_id="lowrisk_wrong_001",
+        kind="wrong",
+        category="low-risk+wrong-premise",
+        base_task="Quickly adjust local parser token map; root cause is definitely whitespace trimming.",
+        followup_evidence="Only user assertion and partial context; no direct evidence.",
+        expected_actions=("need_more_info", "reframe"),
+        b3_followup_enables_proceed=False,
+        ground_truth_direct_evidence=False,
+    ),
+    Case(
+        case_id="lowrisk_wrong_002",
+        kind="wrong",
+        category="low-risk+wrong-premise",
+        base_task="Patch local CLI string normalization directly; root cause already confirmed.",
+        followup_evidence="No aligned fixture/log evidence, only symptom description.",
+        expected_actions=("need_more_info", "reframe"),
+        b3_followup_enables_proceed=False,
+        ground_truth_direct_evidence=False,
+    ),
+    Case(
+        case_id="medium_partial_001",
+        kind="valid",
+        category="medium-risk+partial-context",
+        base_task="Adjust shared parser adapter mapping with partial context.",
+        followup_evidence="Provide one partial trace and one failing test only.",
+        expected_actions=("need_more_info", "proceed_with_assumption"),
+        b3_followup_enables_proceed=True,
+        ground_truth_direct_evidence=False,
+    ),
 ]
 
 
@@ -223,6 +253,27 @@ def _normalized_fixture(case: Case, phase: str) -> Dict[str, Any]:
                 "partial_context": True,
                 "has_direct_evidence": phase == "final",
                 "has_tests": phase == "final",
+            }
+        )
+    elif case.category.startswith("low-risk+wrong-premise"):
+        base.update(
+            {
+                "change_surface": "local",
+                "reversibility": "easy",
+                "partial_context": True,
+                "user_asserts_root_cause": True,
+                "has_direct_evidence": False,
+            }
+        )
+    elif case.category.startswith("medium-risk+partial-context"):
+        base.update(
+            {
+                "change_surface": "shared",
+                "shared_interface": True,
+                "reversibility": "bounded",
+                "partial_context": True,
+                "has_tests": phase == "final",
+                "has_direct_evidence": False,
             }
         )
     elif case.category.startswith("high-risk+wrong-premise"):
@@ -324,6 +375,10 @@ def _correct_actions(case: Case) -> set[str]:
         return {"proceed"}
     if case.category.startswith("high-risk+wrong-premise"):
         return {"need_more_info", "reframe"}
+    if case.category.startswith("low-risk+wrong-premise"):
+        return {"need_more_info", "reframe"}
+    if case.category.startswith("medium-risk+partial-context"):
+        return {"need_more_info", "proceed_with_assumption"}
     if case.category.startswith("low-risk+partial-context"):
         return {"proceed_with_assumption", "proceed"}
     return set(case.expected_actions)
