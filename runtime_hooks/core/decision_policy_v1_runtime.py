@@ -274,6 +274,14 @@ class DecisionPolicyV1:
         a = inp.assumption_audit
         s = inp.context_signals
         direct = a.evidence.direct_evidence_found
+        disallowed: set[DecisionAction] = set()
+
+        # Evidence-integrity hard gate: do not keep risky "proceed" branches
+        # in candidate space when direct evidence is missing.
+        if not direct and risk_tier in {RiskTier.HIGH, RiskTier.INVALID}:
+            disallowed.add(DecisionAction.PROCEED)
+        if not direct and risk_tier == RiskTier.INVALID:
+            disallowed.add(DecisionAction.PROCEED_WITH_ASSUMPTION)
 
         scores: Dict[DecisionAction, float] = {
             DecisionAction.PROCEED: 0.0,
@@ -331,7 +339,11 @@ class DecisionPolicyV1:
             scores[DecisionAction.REJECT] += 0.9
             reasons[DecisionAction.REJECT].append("hard_invalid_destructive_change")
 
-        ranked = [ActionScore(action=k, score=v, reasons=reasons[k]) for k, v in scores.items()]
+        ranked = [
+            ActionScore(action=k, score=v, reasons=reasons[k])
+            for k, v in scores.items()
+            if k not in disallowed
+        ]
         ranked.sort(key=lambda x: x.score, reverse=True)
         return ranked
 

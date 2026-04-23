@@ -603,6 +603,8 @@ def test_pre_task_check_emits_decision_policy_for_destructive_unverified_request
     assert policy["risk_tier"] == "invalid"
     assert policy["decision_action"] == "reframe"
     assert "destructive_change_without_usage_evidence" in policy["reasons"]
+    assert not any(item["action"] == "proceed" for item in policy.get("decision_candidates", []))
+    assert not any(item["action"] == "proceed_with_assumption" for item in policy.get("decision_candidates", []))
     assert any("Decision policy advisory: destructive change without usage proof" in warning for warning in result["warnings"])
 
     output = pre_task_check.format_human_result(result)
