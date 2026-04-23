@@ -15,6 +15,9 @@
 | recovery_accuracy | 0.33 | 0.50 | 0.50 |
 | decision_efficiency | 1.75 | 1.50 | 1.50 |
 | proceed_with_assumption_rate | 0.17 | 0.50 | 0.42 |
+| evidence_consistency_rate | 0.67 | 0.67 | 0.67 |
+
+- Hard Fail (wrong+proceed): B1=True (count=3), B2=True (count=3), B3=True (count=3)
 
 ## Artifacts
 

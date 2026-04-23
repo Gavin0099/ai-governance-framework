@@ -32,6 +32,7 @@ class Case:
     followup_evidence: str
     expected_actions: tuple[str, ...]
     b3_followup_enables_proceed: bool
+    ground_truth_direct_evidence: bool
 
 
 CASES: list[Case] = [
@@ -43,6 +44,7 @@ CASES: list[Case] = [
         followup_evidence="Provide full failing snapshot and local output diff; confirm local formatting scope only.",
         expected_actions=("proceed_with_assumption", "proceed"),
         b3_followup_enables_proceed=True,
+        ground_truth_direct_evidence=True,
     ),
     Case(
         case_id="lowrisk_partial_002",
@@ -52,6 +54,7 @@ CASES: list[Case] = [
         followup_evidence="Provide help snapshot and diff; confirm no shared interface changes.",
         expected_actions=("proceed_with_assumption", "proceed"),
         b3_followup_enables_proceed=True,
+        ground_truth_direct_evidence=True,
     ),
     Case(
         case_id="lowrisk_partial_003",
@@ -61,6 +64,7 @@ CASES: list[Case] = [
         followup_evidence="Provide fixture mapping and failing test; confirm test-only scope.",
         expected_actions=("proceed_with_assumption", "proceed"),
         b3_followup_enables_proceed=True,
+        ground_truth_direct_evidence=True,
     ),
     Case(
         case_id="lowrisk_partial_004",
@@ -70,6 +74,7 @@ CASES: list[Case] = [
         followup_evidence="Provide warning trace and snapshot; confirm local non-breaking change.",
         expected_actions=("proceed_with_assumption", "proceed"),
         b3_followup_enables_proceed=True,
+        ground_truth_direct_evidence=True,
     ),
     Case(
         case_id="highrisk_wrong_001",
@@ -79,6 +84,7 @@ CASES: list[Case] = [
         followup_evidence="No caller inventory proof is provided.",
         expected_actions=("need_more_info", "reframe"),
         b3_followup_enables_proceed=False,
+        ground_truth_direct_evidence=False,
     ),
     Case(
         case_id="highrisk_wrong_002",
@@ -88,6 +94,7 @@ CASES: list[Case] = [
         followup_evidence="No aligned spec+trace evidence is provided.",
         expected_actions=("need_more_info", "reframe"),
         b3_followup_enables_proceed=False,
+        ground_truth_direct_evidence=False,
     ),
     Case(
         case_id="highrisk_wrong_003",
@@ -97,6 +104,7 @@ CASES: list[Case] = [
         followup_evidence="No regression pack and no usage evidence provided.",
         expected_actions=("need_more_info", "reframe"),
         b3_followup_enables_proceed=False,
+        ground_truth_direct_evidence=False,
     ),
     Case(
         case_id="highrisk_wrong_004",
@@ -106,6 +114,7 @@ CASES: list[Case] = [
         followup_evidence="Only user-declared root cause, no direct evidence.",
         expected_actions=("need_more_info", "reframe"),
         b3_followup_enables_proceed=False,
+        ground_truth_direct_evidence=False,
     ),
     Case(
         case_id="highrisk_evidence_001",
@@ -115,6 +124,7 @@ CASES: list[Case] = [
         followup_evidence="Direct evidence: spec section, trace offset, and regression case all available.",
         expected_actions=("proceed_with_assumption", "proceed"),
         b3_followup_enables_proceed=True,
+        ground_truth_direct_evidence=True,
     ),
     Case(
         case_id="highrisk_evidence_002",
@@ -124,6 +134,7 @@ CASES: list[Case] = [
         followup_evidence="Direct evidence: caller inventory, tests, and rollback plan all available.",
         expected_actions=("proceed_with_assumption", "proceed"),
         b3_followup_enables_proceed=True,
+        ground_truth_direct_evidence=True,
     ),
     Case(
         case_id="valid_baseline_001",
@@ -133,6 +144,7 @@ CASES: list[Case] = [
         followup_evidence="Direct evidence and minimal-fix scope are provided.",
         expected_actions=("proceed_with_assumption", "proceed"),
         b3_followup_enables_proceed=True,
+        ground_truth_direct_evidence=True,
     ),
     Case(
         case_id="valid_baseline_002",
@@ -142,6 +154,7 @@ CASES: list[Case] = [
         followup_evidence="Direct evidence: before/after fixtures and regression guard available.",
         expected_actions=("proceed_with_assumption", "proceed"),
         b3_followup_enables_proceed=True,
+        ground_truth_direct_evidence=True,
     ),
 ]
 
@@ -257,6 +270,14 @@ def _compute_metrics(rows: list[dict]) -> dict:
     ]
     rounds_used = [row["rounds"] for row in rows]
     pwa_hits = [int(row["final"]["action"] == "proceed_with_assumption") for row in rows]
+    wrong_proceed_count = sum(
+        1 for row in rows if row["kind"] == "wrong" and row["final"]["action"] in {"proceed", "proceed_with_assumption"}
+    )
+    evidence_consistency = []
+    for row in rows:
+        reasons = row["final"].get("reasons", [])
+        inferred_direct_evidence = "direct_evidence_missing" not in reasons
+        evidence_consistency.append(int(inferred_direct_evidence == row["ground_truth_direct_evidence"]))
 
     return {
         "wrong_action_rate": round(mean(wrong_actions), 2),
@@ -265,6 +286,9 @@ def _compute_metrics(rows: list[dict]) -> dict:
         "recovery_accuracy": round(mean(recovery_scores), 2) if recovery_scores else 0.0,
         "decision_efficiency": round(mean(rounds_used), 2),
         "proceed_with_assumption_rate": round(mean(pwa_hits), 2),
+        "evidence_consistency_rate": round(mean(evidence_consistency), 2),
+        "wrong_proceed_count": wrong_proceed_count,
+        "hard_fail_wrong_proceed": wrong_proceed_count > 0,
     }
 
 
@@ -288,6 +312,7 @@ def _evaluate_arm(project_root: Path, arm: str) -> tuple[list[dict], dict]:
                 "kind": case.kind,
                 "category": case.category,
                 "expected_actions": list(case.expected_actions),
+                "ground_truth_direct_evidence": case.ground_truth_direct_evidence,
                 "phase1": phase1,
                 "final": final,
                 "rounds": rounds,
@@ -327,10 +352,19 @@ def _render_report(output_dir: Path, scorecard: dict, run_date: str) -> str:
         "recovery_accuracy",
         "decision_efficiency",
         "proceed_with_assumption_rate",
+        "evidence_consistency_rate",
     ]:
         lines.append(
             f"| {key} | {scorecard['B1'][key]:.2f} | {scorecard['B2'][key]:.2f} | {scorecard['B3'][key]:.2f} |"
         )
+    lines.extend(
+        [
+            "",
+            f"- Hard Fail (wrong+proceed): B1={scorecard['B1']['hard_fail_wrong_proceed']} (count={scorecard['B1']['wrong_proceed_count']}), "
+            f"B2={scorecard['B2']['hard_fail_wrong_proceed']} (count={scorecard['B2']['wrong_proceed_count']}), "
+            f"B3={scorecard['B3']['hard_fail_wrong_proceed']} (count={scorecard['B3']['wrong_proceed_count']})",
+        ]
+    )
     lines.extend(
         [
             "",

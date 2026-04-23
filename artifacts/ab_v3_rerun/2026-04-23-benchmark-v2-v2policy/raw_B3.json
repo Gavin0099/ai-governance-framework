@@ -7,6 +7,7 @@
       "proceed_with_assumption",
       "proceed"
     ],
+    "ground_truth_direct_evidence": true,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix local parser trim behavior with partial context only.",
       "action": "need_more_info",
@@ -118,6 +119,7 @@
       "proceed_with_assumption",
       "proceed"
     ],
+    "ground_truth_direct_evidence": true,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Adjust CLI help wording order with partial context.",
       "action": "proceed_with_assumption",
@@ -238,6 +240,7 @@
       "proceed_with_assumption",
       "proceed"
     ],
+    "ground_truth_direct_evidence": true,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix local tester fixture naming with incomplete context.",
       "action": "proceed_with_assumption",
@@ -354,6 +357,7 @@
       "proceed_with_assumption",
       "proceed"
     ],
+    "ground_truth_direct_evidence": true,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Normalize parser warning string with partial context.",
       "action": "proceed_with_assumption",
@@ -474,6 +478,7 @@
       "need_more_info",
       "reframe"
     ],
+    "ground_truth_direct_evidence": false,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Delete shared public API directly; it is definitely unused.",
       "action": "reframe",
@@ -600,6 +605,7 @@
       "need_more_info",
       "reframe"
     ],
+    "ground_truth_direct_evidence": false,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Modify external protocol payload bytes directly; root cause is confirmed payload format.",
       "action": "need_more_info",
@@ -704,6 +710,7 @@
       "need_more_info",
       "reframe"
     ],
+    "ground_truth_direct_evidence": false,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Refactor shared firmware update path and remove old branch in one shot.",
       "action": "reframe",
@@ -821,6 +828,7 @@
       "need_more_info",
       "reframe"
     ],
+    "ground_truth_direct_evidence": false,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Change external side-effect command format directly without verification.",
       "action": "need_more_info",
@@ -925,6 +933,7 @@
       "proceed_with_assumption",
       "proceed"
     ],
+    "ground_truth_direct_evidence": true,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Adjust shared payload builder based on protocol spec and trace evidence.",
       "action": "proceed",
@@ -1023,6 +1032,7 @@
       "proceed_with_assumption",
       "proceed"
     ],
+    "ground_truth_direct_evidence": true,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Adjust public command flow with caller map and compatibility checklist.",
       "action": "need_more_info",
@@ -1127,6 +1137,7 @@
       "proceed_with_assumption",
       "proceed"
     ],
+    "ground_truth_direct_evidence": true,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix local bug with failing test and logs attached.",
       "action": "proceed_with_assumption",
@@ -1243,6 +1254,7 @@
       "proceed_with_assumption",
       "proceed"
     ],
+    "ground_truth_direct_evidence": true,
     "phase1": {
       "task_text": "[Assumption Check]\nassumptions: premise may be wrong under uncertainty\nalternative root causes: routing mismatch\nalternative root causes: library matching drift\nreframe: validate premise before implementation\n\nTask: Fix parser path normalization bug with repro and expected output.",
       "action": "proceed_with_assumption",

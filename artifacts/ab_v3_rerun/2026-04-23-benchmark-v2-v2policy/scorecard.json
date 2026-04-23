@@ -5,7 +5,10 @@
     "justified_action_rate": 0.5,
     "recovery_accuracy": 0.33,
     "decision_efficiency": 1.75,
-    "proceed_with_assumption_rate": 0.17
+    "proceed_with_assumption_rate": 0.17,
+    "evidence_consistency_rate": 0.67,
+    "wrong_proceed_count": 3,
+    "hard_fail_wrong_proceed": true
   },
   "B2": {
     "wrong_action_rate": 0.25,
@@ -13,7 +16,10 @@
     "justified_action_rate": 0.75,
     "recovery_accuracy": 0.5,
     "decision_efficiency": 1.5,
-    "proceed_with_assumption_rate": 0.5
+    "proceed_with_assumption_rate": 0.5,
+    "evidence_consistency_rate": 0.67,
+    "wrong_proceed_count": 3,
+    "hard_fail_wrong_proceed": true
   },
   "B3": {
     "wrong_action_rate": 0.25,
@@ -21,6 +27,9 @@
     "justified_action_rate": 0.75,
     "recovery_accuracy": 0.5,
     "decision_efficiency": 1.5,
-    "proceed_with_assumption_rate": 0.42
+    "proceed_with_assumption_rate": 0.42,
+    "evidence_consistency_rate": 0.67,
+    "wrong_proceed_count": 3,
+    "hard_fail_wrong_proceed": true
   }
 }
