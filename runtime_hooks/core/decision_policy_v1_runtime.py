@@ -221,9 +221,16 @@ class DecisionPolicyResult:
 
 
 class DecisionPolicyV1:
-    def __init__(self, *, exploration_rate: float = 0.12, enable_soft_exploration: bool = True) -> None:
+    def __init__(
+        self,
+        *,
+        exploration_rate: float = 0.12,
+        enable_soft_exploration: bool = True,
+        enable_candidate_pruning: bool = True,
+    ) -> None:
         self.exploration_rate = max(0.0, min(1.0, exploration_rate))
         self.enable_soft_exploration = enable_soft_exploration
+        self.enable_candidate_pruning = enable_candidate_pruning
 
     def evaluate(self, policy_input: PolicyInput) -> DecisionPolicyResult:
         premise_status = self._classify_premise(policy_input)
@@ -452,19 +459,20 @@ class DecisionPolicyV1:
         base[preferred] += 1.1
         base[secondary] += 0.4
 
-        # Hard action gates
+        # Experimental hard action gates
         disallowed: set[DecisionAction] = set()
-        if scope in {ExecutionScope.SHARED_IRREVERSIBLE, ExecutionScope.EXTERNAL_SIDE_EFFECT} and evidence in {
-            EvidenceAlignment.WEAK,
-            EvidenceAlignment.ABSENT,
-        }:
-            disallowed.update({DecisionAction.PROCEED, DecisionAction.PROCEED_WITH_ASSUMPTION})
-        if premise == PremiseStatus.CONTRADICTED:
-            disallowed.add(DecisionAction.PROCEED)
-        if risk_tier in {RiskTier.HIGH, RiskTier.INVALID} and not inp.assumption_audit.evidence.direct_evidence_found:
-            disallowed.add(DecisionAction.PROCEED)
-        if risk_tier == RiskTier.INVALID:
-            disallowed.add(DecisionAction.PROCEED_WITH_ASSUMPTION)
+        if self.enable_candidate_pruning:
+            if scope in {ExecutionScope.SHARED_IRREVERSIBLE, ExecutionScope.EXTERNAL_SIDE_EFFECT} and evidence in {
+                EvidenceAlignment.WEAK,
+                EvidenceAlignment.ABSENT,
+            }:
+                disallowed.update({DecisionAction.PROCEED, DecisionAction.PROCEED_WITH_ASSUMPTION})
+            if premise == PremiseStatus.CONTRADICTED:
+                disallowed.add(DecisionAction.PROCEED)
+            if risk_tier in {RiskTier.HIGH, RiskTier.INVALID} and not inp.assumption_audit.evidence.direct_evidence_found:
+                disallowed.add(DecisionAction.PROCEED)
+            if risk_tier == RiskTier.INVALID:
+                disallowed.add(DecisionAction.PROCEED_WITH_ASSUMPTION)
 
         reasons: Dict[DecisionAction, List[str]] = {k: [] for k in base}
         for action in reasons:
@@ -531,6 +539,7 @@ def evaluate_decision_policy(
     task_type: str = "unknown",
     exploration_rate: float = 0.12,
     enable_soft_exploration: bool = True,
+    enable_candidate_pruning: bool = True,
 ) -> Dict[str, Any]:
     policy_input = build_decision_policy_input(
         task_text,
@@ -538,5 +547,9 @@ def evaluate_decision_policy(
         context_signals=context_signals,
         task_type=task_type,
     )
-    engine = DecisionPolicyV1(exploration_rate=exploration_rate, enable_soft_exploration=enable_soft_exploration)
+    engine = DecisionPolicyV1(
+        exploration_rate=exploration_rate,
+        enable_soft_exploration=enable_soft_exploration,
+        enable_candidate_pruning=enable_candidate_pruning,
+    )
     return engine.evaluate(policy_input).to_dict()

@@ -391,7 +391,7 @@ def _normalized_fixture(case: Case, phase: str) -> Dict[str, Any]:
     return base
 
 
-def _run_precheck(project_root: Path, text: str, case: Case, phase: str) -> dict:
+def _run_precheck(project_root: Path, text: str, case: Case, phase: str, enforcement_profile: str) -> dict:
     fixture = _normalized_fixture(case, phase)
     result = run_pre_task_check(
         project_root=project_root,
@@ -406,6 +406,7 @@ def _run_precheck(project_root: Path, text: str, case: Case, phase: str) -> dict
         ground_truth_direct_evidence=case.ground_truth_direct_evidence,
         phase=phase,
         policy_fixture=fixture,
+        enforcement_profile=enforcement_profile,
     )
     policy = result.get("decision_policy", {})
     evidence_integrity = result.get("evidence_integrity", {})
@@ -615,16 +616,20 @@ def _compute_metrics(rows: list[dict]) -> dict:
     }
 
 
-def _evaluate_arm(project_root: Path, arm: str) -> tuple[list[dict], dict]:
+def _evaluate_arm(project_root: Path, arm: str, enforcement_profile: str) -> tuple[list[dict], dict]:
     rows: list[dict] = []
 
     for case in CASES:
-        phase1 = _run_precheck(project_root, _build_task_text(case, arm, phase=1), case, phase="phase1")
+        phase1 = _run_precheck(
+            project_root, _build_task_text(case, arm, phase=1), case, phase="phase1", enforcement_profile=enforcement_profile
+        )
         final = phase1
         rounds = 1
 
         if _is_cautious(phase1["action"]):
-            phase2 = _run_precheck(project_root, _build_task_text(case, arm, phase=2), case, phase="final")
+            phase2 = _run_precheck(
+                project_root, _build_task_text(case, arm, phase=2), case, phase="final", enforcement_profile=enforcement_profile
+            )
             final = phase2
             rounds = 2
 
@@ -656,12 +661,13 @@ def _evaluate_arm(project_root: Path, arm: str) -> tuple[list[dict], dict]:
     return sanitized, metrics
 
 
-def _render_report(output_dir: Path, scorecard: dict, run_date: str) -> str:
+def _render_report(output_dir: Path, scorecard: dict, run_date: str, enforcement_profile: str) -> str:
     lines = [
         "# AB v3 Benchmark v2 Rerun Report (Decision Policy v2)",
         "",
         f"- Date: {run_date}",
         f"- Scope: decision-policy runtime with benchmark v2 gradient case pack ({len(CASES)} cases)",
+        f"- Enforcement Profile: {enforcement_profile}",
         "- Arms: B1 (runtime only), B2 (assumption forcing), B3 (assumption + evidence feedback)",
         "- Note: exploration anti-collapse constraint enabled for B2/B3 in this experiment.",
         "",
@@ -719,6 +725,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run AB v3 benchmark v2 rerun.")
     parser.add_argument("--project-root", default=".")
     parser.add_argument("--output-dir")
+    parser.add_argument("--enforcement-profile", default="advisory_mainline")
     args = parser.parse_args()
 
     project_root = Path(args.project_root).resolve()
@@ -730,9 +737,9 @@ def main() -> None:
     )
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    rows_b1, metrics_b1 = _evaluate_arm(project_root, "B1")
-    rows_b2, metrics_b2 = _evaluate_arm(project_root, "B2")
-    rows_b3, metrics_b3 = _evaluate_arm(project_root, "B3")
+    rows_b1, metrics_b1 = _evaluate_arm(project_root, "B1", args.enforcement_profile)
+    rows_b2, metrics_b2 = _evaluate_arm(project_root, "B2", args.enforcement_profile)
+    rows_b3, metrics_b3 = _evaluate_arm(project_root, "B3", args.enforcement_profile)
 
     (output_dir / "raw_B1.json").write_text(json.dumps(rows_b1, ensure_ascii=False, indent=2), encoding="utf-8")
     (output_dir / "raw_B2.json").write_text(json.dumps(rows_b2, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -740,7 +747,7 @@ def main() -> None:
 
     scorecard = {"B1": metrics_b1, "B2": metrics_b2, "B3": metrics_b3}
     (output_dir / "scorecard.json").write_text(json.dumps(scorecard, ensure_ascii=False, indent=2), encoding="utf-8")
-    report = _render_report(output_dir, scorecard, run_date)
+    report = _render_report(output_dir, scorecard, run_date, args.enforcement_profile)
     report_path = output_dir / "AB_v3_benchmark_v2_rerun_report.md"
     report_path.write_text(report, encoding="utf-8")
 

@@ -513,6 +513,7 @@ def run_pre_task_check(
     ground_truth_direct_evidence: bool | None = None,
     phase: str = "final",
     policy_fixture: dict | None = None,
+    enforcement_profile: str = "advisory_mainline",
 ) -> dict:
     plan_path = project_root / "PLAN.md"
     freshness = check_freshness(plan_path)
@@ -557,9 +558,17 @@ def run_pre_task_check(
     impact_before_files = impact_before_files or []
     impact_after_files = impact_after_files or []
     impact_preview = None
+    effective_enforcement_profile = (
+        enforcement_profile if enforcement_profile in {"advisory_mainline", "experimental_enforced"} else "advisory_mainline"
+    )
+    experimental_enforcement_enabled = effective_enforcement_profile == "experimental_enforced"
 
     errors = []
     warnings = []
+    if enforcement_profile != effective_enforcement_profile:
+        warnings.append(
+            f"Unknown enforcement_profile '{enforcement_profile}', fallback to '{effective_enforcement_profile}'"
+        )
 
     if freshness.status in {"CRITICAL", "ERROR"}:
         errors.append(f"PLAN.md freshness is {freshness.status}")
@@ -615,6 +624,7 @@ def run_pre_task_check(
         assumption_audit=_build_assumption_audit_for_policy(task_text, assumption_check, evidence_integrity),
         context_signals=context_signals,
         task_type=effective_topic or "unknown",
+        enable_candidate_pruning=experimental_enforcement_enabled,
     )
     # Compatibility mapping with existing downstream fields/tests.
     decision_policy["decision_action"] = decision_policy.get("selected_action")
@@ -642,12 +652,15 @@ def run_pre_task_check(
         }
     ).to_dict()
     if not evidence_gate.get("ok", True):
-        errors.append(
-            {
-                "type": "evidence_integrity_gate_failed",
-                "details": evidence_gate,
-            }
-        )
+        if experimental_enforcement_enabled:
+            errors.append(
+                {
+                    "type": "evidence_integrity_gate_failed",
+                    "details": evidence_gate,
+                }
+            )
+        else:
+            warnings.append("Evidence integrity gate advisory: non-blocking violation observed")
     runtime_injection = _evaluate_runtime_injection_snapshot(
         runtime_injection_snapshot,
         task_level=task_level,
@@ -721,6 +734,8 @@ def run_pre_task_check(
             "risk": risk,
             "oversight": oversight,
             "memory_mode": memory_mode,
+            "enforcement_profile": effective_enforcement_profile,
+            "experimental_enforcement_enabled": experimental_enforcement_enabled,
         },
         "suggested_rules_preview": rule_pack_suggestions.get("suggested_rules_preview", []),
         "suggested_skills": rule_pack_suggestions.get("suggested_skills", []),
@@ -781,6 +796,7 @@ def format_human_result(result: dict) -> str:
         f"freshness={result['freshness']['status']}",
         f"rules={', '.join(result['runtime_contract']['rules'])}",
     ]
+    lines.append(f"enforcement_profile={result['runtime_contract'].get('enforcement_profile')}")
     lines.append(
         build_summary_line(
             f"ok={result['ok']}",
@@ -950,6 +966,7 @@ def main() -> None:
     parser.add_argument("--impact-before", action="append", default=[])
     parser.add_argument("--impact-after", action="append", default=[])
     parser.add_argument("--contract")
+    parser.add_argument("--enforcement-profile", default="advisory_mainline")
     parser.add_argument("--format", choices=["human", "json"], default="human")
     args = parser.parse_args()
 
@@ -963,6 +980,7 @@ def main() -> None:
         impact_before_files=[Path(path) for path in args.impact_before],
         impact_after_files=[Path(path) for path in args.impact_after],
         contract_file=Path(args.contract).resolve() if args.contract else None,
+        enforcement_profile=args.enforcement_profile,
     )
 
     if args.format == "json":
