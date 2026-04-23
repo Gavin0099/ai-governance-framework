@@ -203,6 +203,7 @@ def _run_precheck(project_root: Path, text: str) -> dict:
         task_level="L1",
     )
     policy = result.get("decision_policy", {})
+    evidence_integrity = result.get("evidence_integrity", {})
     return {
         "task_text": text,
         "action": policy.get("decision_action"),
@@ -211,6 +212,8 @@ def _run_precheck(project_root: Path, text: str) -> dict:
         "reasons": policy.get("reasons", []),
         "required_followup": policy.get("required_followup", []),
         "decision_candidates": policy.get("decision_candidates", []),
+        "direct_evidence_frozen": bool(evidence_integrity.get("direct_evidence_frozen")),
+        "evidence_source": evidence_integrity.get("source"),
     }
 
 
@@ -275,9 +278,8 @@ def _compute_metrics(rows: list[dict]) -> dict:
     )
     evidence_consistency = []
     for row in rows:
-        reasons = row["final"].get("reasons", [])
-        inferred_direct_evidence = "direct_evidence_missing" not in reasons
-        evidence_consistency.append(int(inferred_direct_evidence == row["ground_truth_direct_evidence"]))
+        frozen_evidence = bool(row["final"].get("direct_evidence_frozen"))
+        evidence_consistency.append(int(frozen_evidence == row["ground_truth_direct_evidence"]))
 
     return {
         "wrong_action_rate": round(mean(wrong_actions), 2),

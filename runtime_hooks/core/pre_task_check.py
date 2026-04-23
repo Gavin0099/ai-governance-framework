@@ -161,15 +161,75 @@ def _extract_context_signals_for_policy(task_text: str, assumption_check: dict) 
     }
 
 
-def _build_assumption_audit_for_policy(task_text: str, assumption_check: dict) -> dict:
+def _evaluate_evidence_integrity(task_text: str, context_signals: dict, assumption_check: dict) -> dict:
+    """
+    Evidence Integrity Gate:
+    - direct evidence can only be granted by explicit strong evidence markers
+    - user-asserted root cause and partial context can never auto-upgrade to direct evidence
+    - explicit no-evidence markers hard-block direct evidence
+    """
+    lowered = (task_text or "").lower()
+
+    strong_markers = (
+        "direct evidence",
+        "spec section",
+        "trace offset",
+        "aligned spec+trace",
+        "caller inventory",
+        "failing test and logs attached",
+        "before/after fixtures",
+        "regression case all available",
+        "rollback plan all available",
+    )
+    no_evidence_markers = (
+        "no aligned spec+trace evidence",
+        "no regression pack",
+        "no usage evidence",
+        "only user-declared root cause",
+        "without verification",
+        "partial context",
+        "incomplete context",
+        "without full log",
+        "without logs",
+        "no direct evidence",
+    )
+
+    has_strong = any(token in lowered for token in strong_markers)
+    has_no_evidence = any(token in lowered for token in no_evidence_markers)
+    blocked_by_assertion = bool(context_signals.get("user_asserts_root_cause") and not has_strong)
+    blocked_by_partial = bool(context_signals.get("partial_context") and not has_strong)
+
+    frozen_direct_evidence = bool(has_strong and not has_no_evidence and not blocked_by_assertion and not blocked_by_partial)
+    if frozen_direct_evidence:
+        source = "explicit_strong_markers"
+    elif has_no_evidence:
+        source = "explicit_no_evidence_marker"
+    elif blocked_by_assertion:
+        source = "user_assertion_not_evidence"
+    elif blocked_by_partial:
+        source = "partial_context_not_evidence"
+    elif assumption_check.get("evidence_present"):
+        source = "assumption_evidence_not_promoted"
+    else:
+        source = "no_direct_evidence"
+
+    return {
+        "direct_evidence_frozen": frozen_direct_evidence,
+        "source": source,
+        "has_strong_marker": has_strong,
+        "has_no_evidence_marker": has_no_evidence,
+    }
+
+
+def _build_assumption_audit_for_policy(task_text: str, assumption_check: dict, evidence_integrity: dict) -> dict:
     alt_count = int(assumption_check.get("alternatives_count", 0))
     alternatives = [{"layer": "unknown", "hypothesis": f"alternative_{idx+1}"} for idx in range(alt_count)]
     return {
         "stated_premise": task_text if assumption_check.get("assumptions_present") else "",
         "alternative_root_causes": alternatives,
         "evidence": {
-            "direct_evidence_found": bool(assumption_check.get("evidence_present")),
-            "items": ["task_text_evidence"] if assumption_check.get("evidence_present") else [],
+            "direct_evidence_found": bool(evidence_integrity.get("direct_evidence_frozen")),
+            "items": [f"frozen:{evidence_integrity.get('source')}"] if evidence_integrity.get("direct_evidence_frozen") else [],
         },
         "action_decision": assumption_check.get("action_decision") or "",
         "reframed_task": "",
@@ -540,10 +600,12 @@ def run_pre_task_check(
             "Assumption check missing before modification planning: "
             f"missing={missing}"
         )
+    context_signals = _extract_context_signals_for_policy(task_text, assumption_check)
+    evidence_integrity = _evaluate_evidence_integrity(task_text, context_signals, assumption_check)
     decision_policy = evaluate_decision_policy(
         task_text,
-        assumption_audit=_build_assumption_audit_for_policy(task_text, assumption_check),
-        context_signals=_extract_context_signals_for_policy(task_text, assumption_check),
+        assumption_audit=_build_assumption_audit_for_policy(task_text, assumption_check, evidence_integrity),
+        context_signals=context_signals,
         task_type=effective_topic or "unknown",
     )
     # Compatibility mapping with existing downstream fields/tests.
@@ -662,6 +724,7 @@ def run_pre_task_check(
         },
         "decision_boundary": decision_boundary,
         "assumption_check": assumption_check,
+        "evidence_integrity": evidence_integrity,
         "decision_policy": decision_policy,
         "runtime_injection": runtime_injection,
         "consumption_observations": consumption_observations,
@@ -791,6 +854,13 @@ def format_human_result(result: dict) -> str:
             advisory_line = _render_advisory_signal_line("proceeding_under_assumption")
             if advisory_line:
                 lines.append(advisory_line)
+    evidence_integrity = result.get("evidence_integrity") or {}
+    if evidence_integrity:
+        lines.append(
+            "evidence_integrity: "
+            f"direct_evidence_frozen={evidence_integrity.get('direct_evidence_frozen')} "
+            f"source={evidence_integrity.get('source')}"
+        )
     runtime_injection = result.get("runtime_injection") or {}
     snapshot = runtime_injection.get("snapshot") or {}
     if snapshot.get("name"):
