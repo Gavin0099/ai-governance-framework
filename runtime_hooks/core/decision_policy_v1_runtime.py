@@ -311,6 +311,22 @@ class DecisionPolicyV1:
             advisory_signals=advisories,
         )
 
+    def _has_assumption_forcing_bundle(self, inp: PolicyInput) -> bool:
+        lowered = inp.task_text.lower()
+        return (
+            "[assumption check]" in lowered
+            and "alternative root causes" in lowered
+            and "reframe:" in lowered
+            and len(inp.assumption_audit.alternative_root_causes) >= 2
+        )
+
+    def _has_evidence_feedback_marker(self, inp: PolicyInput) -> bool:
+        lowered = inp.task_text.lower()
+        return (
+            "proceed only when evidence aligns with risk" in lowered
+            or "evidence: direct evidence available from spec/trace/tests" in lowered
+        )
+
     def _classify_premise(self, inp: PolicyInput) -> PremiseStatus:
         s = inp.context_signals
         if s.has_direct_conflicting_evidence:
@@ -325,12 +341,26 @@ class DecisionPolicyV1:
         s = inp.context_signals
         kinds = int(s.has_spec) + int(s.has_trace) + int(s.has_tests) + int(s.has_caller_inventory_or_compat_check)
         if kinds >= 2:
-            return EvidenceAlignment.STRONG
-        if kinds == 1 or inp.assumption_audit.evidence.direct_evidence_found:
-            return EvidenceAlignment.PARTIAL
-        if s.partial_context:
-            return EvidenceAlignment.WEAK
-        return EvidenceAlignment.ABSENT
+            base = EvidenceAlignment.STRONG
+        elif kinds == 1 or inp.assumption_audit.evidence.direct_evidence_found:
+            base = EvidenceAlignment.PARTIAL
+        elif s.partial_context:
+            base = EvidenceAlignment.WEAK
+        else:
+            base = EvidenceAlignment.ABSENT
+
+        # Minimal extractor patch:
+        # assumption/evidence feedback markers can downgrade optimistic evidence
+        # when direct evidence is still missing under partial context.
+        if not inp.assumption_audit.evidence.direct_evidence_found and s.partial_context:
+            if self._has_evidence_feedback_marker(inp):
+                if base == EvidenceAlignment.STRONG:
+                    return EvidenceAlignment.PARTIAL
+                if base == EvidenceAlignment.PARTIAL:
+                    return EvidenceAlignment.WEAK
+            if self._has_assumption_forcing_bundle(inp) and base == EvidenceAlignment.PARTIAL:
+                return EvidenceAlignment.WEAK
+        return base
 
     def _classify_execution_scope(self, inp: PolicyInput) -> ExecutionScope:
         s = inp.context_signals
@@ -365,6 +395,16 @@ class DecisionPolicyV1:
         scope: ExecutionScope,
     ) -> CorrectnessMode:
         s = inp.context_signals
+        has_assumption_forcing = self._has_assumption_forcing_bundle(inp)
+        has_direct_evidence = bool(inp.assumption_audit.evidence.direct_evidence_found)
+
+        # Minimal extractor patch:
+        # structured assumption forcing under missing direct evidence should keep
+        # mode epistemically cautious instead of falling through to direct_fix.
+        if has_assumption_forcing and not has_direct_evidence and s.partial_context:
+            if premise != PremiseStatus.CONTRADICTED:
+                return CorrectnessMode.ASK_FOR_EVIDENCE
+
         # Premise precedence: unsupported premise cannot execute as proceed/proceed_with_assumption.
         if premise == PremiseStatus.UNSUPPORTED:
             return CorrectnessMode.REFRAME_CLAIM if s.user_asserts_root_cause else CorrectnessMode.ASK_FOR_EVIDENCE
