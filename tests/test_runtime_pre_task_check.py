@@ -790,3 +790,25 @@ def test_precondition_gate_validator_allows_codegen_when_reset_and_handshake_are
     assert gate["missing_preconditions"] == []
     assert gate["recommended_mode"] == "allow_draft_with_assumptions"
     assert not any("Precondition gate validator downgrade:" in warning for warning in result["warnings"])
+
+
+def test_precondition_gate_validator_human_surface_includes_forbidden_claims(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    task_text = (
+        "Generate synthesizable SystemVerilog RTL for fifo controller with ready/valid handshake. "
+        "No reset behavior is specified."
+    )
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text=task_text,
+        task_level="L1",
+    )
+    output = pre_task_check.format_human_result(result)
+    assert "precondition_gate_validator:" in output
+    assert "forbidden_claims=claim_reset_safe_codegen" in output
