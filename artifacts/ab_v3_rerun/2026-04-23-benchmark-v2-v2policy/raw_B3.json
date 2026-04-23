@@ -92,13 +92,6 @@
           ]
         },
         {
-          "action": "proceed",
-          "score": 0.8,
-          "reasons": [
-            "request_marked_valid"
-          ]
-        },
-        {
           "action": "reframe",
           "score": 0.6,
           "reasons": [
@@ -543,21 +536,6 @@
           "reasons": [
             "hard_invalid_destructive_change"
           ]
-        },
-        {
-          "action": "proceed_with_assumption",
-          "score": -0.2,
-          "reasons": [
-            "alternatives_present",
-            "destructive_penalty"
-          ]
-        },
-        {
-          "action": "proceed",
-          "score": -1.2,
-          "reasons": [
-            "destructive_change_penalty"
-          ]
         }
       ],
       "direct_evidence_frozen": false,
@@ -666,11 +644,6 @@
           ]
         },
         {
-          "action": "proceed",
-          "score": 0.0,
-          "reasons": []
-        },
-        {
           "action": "reject",
           "score": 0.0,
           "reasons": []
@@ -701,13 +674,6 @@
           "reasons": [
             "direct_evidence_missing",
             "high_risk"
-          ]
-        },
-        {
-          "action": "proceed",
-          "score": 0.8,
-          "reasons": [
-            "request_marked_valid"
           ]
         },
         {
@@ -784,21 +750,6 @@
           "reasons": [
             "hard_invalid_destructive_change"
           ]
-        },
-        {
-          "action": "proceed_with_assumption",
-          "score": -0.2,
-          "reasons": [
-            "alternatives_present",
-            "destructive_penalty"
-          ]
-        },
-        {
-          "action": "proceed",
-          "score": -1.2,
-          "reasons": [
-            "destructive_change_penalty"
-          ]
         }
       ],
       "direct_evidence_frozen": false,
@@ -843,22 +794,6 @@
           "score": 0.9,
           "reasons": [
             "hard_invalid_destructive_change"
-          ]
-        },
-        {
-          "action": "proceed_with_assumption",
-          "score": -0.2,
-          "reasons": [
-            "alternatives_present",
-            "destructive_penalty"
-          ]
-        },
-        {
-          "action": "proceed",
-          "score": -0.4,
-          "reasons": [
-            "request_marked_valid",
-            "destructive_change_penalty"
           ]
         }
       ],
@@ -915,11 +850,6 @@
           ]
         },
         {
-          "action": "proceed",
-          "score": 0.0,
-          "reasons": []
-        },
-        {
           "action": "reject",
           "score": 0.0,
           "reasons": []
@@ -950,13 +880,6 @@
           "reasons": [
             "direct_evidence_missing",
             "high_risk"
-          ]
-        },
-        {
-          "action": "proceed",
-          "score": 0.8,
-          "reasons": [
-            "request_marked_valid"
           ]
         },
         {
@@ -1015,13 +938,6 @@
           "reasons": [
             "direct_evidence_missing",
             "high_risk"
-          ]
-        },
-        {
-          "action": "proceed",
-          "score": 0.8,
-          "reasons": [
-            "request_marked_valid"
           ]
         },
         {
@@ -1141,11 +1057,6 @@
           "reasons": [
             "alternatives_present"
           ]
-        },
-        {
-          "action": "proceed",
-          "score": 0.0,
-          "reasons": []
         },
         {
           "action": "reject",
