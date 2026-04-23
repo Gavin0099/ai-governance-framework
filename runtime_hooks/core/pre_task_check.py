@@ -35,6 +35,7 @@ from governance_tools.domain_summary_loader import load_domain_summary
 from governance_tools.runtime_injection_observation import observe_full_read_requirement
 from governance_tools.runtime_injection_snapshot import load_runtime_injection_snapshot
 from runtime_hooks.core.human_summary import build_summary_line, format_contract_summary_label
+from validators.precondition_gate_validator import evaluate_precondition_gate
 
 
 RISK_ORDER = {"low": 0, "medium": 1, "high": 2}
@@ -616,6 +617,17 @@ def run_pre_task_check(
             f"missing={missing}"
         )
     context_signals = _extract_context_signals_for_policy(task_text, assumption_check)
+    precondition_gate_validator = evaluate_precondition_gate(task_text)
+    if not precondition_gate_validator.get("ok", True):
+        warnings.append(
+            "Precondition gate validator downgrade: "
+            f"recommended_mode={precondition_gate_validator.get('recommended_mode')} "
+            f"missing={','.join(precondition_gate_validator.get('missing_preconditions', []))}"
+        )
+        # Advisory-first behavior: feed downgrade into policy context as higher uncertainty.
+        context_signals["partial_context"] = True
+        if precondition_gate_validator.get("recommended_mode") == "restrict_codegen":
+            warnings.append("Precondition gate validator recommends restrict_codegen surface")
     if policy_fixture:
         context_signals.update(policy_fixture)
     evidence_integrity = _evaluate_evidence_integrity(task_text, context_signals, assumption_check)
@@ -767,6 +779,7 @@ def run_pre_task_check(
             ),
         },
         "decision_boundary": decision_boundary,
+        "precondition_gate_validator": precondition_gate_validator,
         "assumption_check": assumption_check,
         "evidence_integrity": evidence_integrity,
         "evidence_integrity_gate": evidence_gate,
@@ -848,6 +861,14 @@ def format_human_result(result: dict) -> str:
                 "precondition: "
                 f"{check['type']} action={check['action']} applies={check['applies']} present={check['present']}"
             )
+    precondition_gate = result.get("precondition_gate_validator") or {}
+    if precondition_gate:
+        lines.append(
+            "precondition_gate_validator: "
+            f"ok={precondition_gate.get('ok')} "
+            f"recommended_mode={precondition_gate.get('recommended_mode')} "
+            f"missing={','.join(precondition_gate.get('missing_preconditions', []))}"
+        )
     assumption_check = result.get("assumption_check") or {}
     if assumption_check:
         lines.append(
