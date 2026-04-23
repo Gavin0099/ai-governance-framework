@@ -30,6 +30,7 @@ from governance_tools.rule_pack_suggester import suggest_rule_packs
 from governance_tools.rule_classifier import classify_task_topic, filter_rules_by_topic
 from governance_tools.assumption_check import evaluate_assumption_check
 from runtime_hooks.core.decision_policy_v1_runtime import evaluate_decision_policy
+from runtime_hooks.core.evidence_integrity_gate import evaluate_evidence_integrity_gate
 from governance_tools.domain_summary_loader import load_domain_summary
 from governance_tools.runtime_injection_observation import observe_full_read_requirement
 from governance_tools.runtime_injection_snapshot import load_runtime_injection_snapshot
@@ -507,6 +508,10 @@ def run_pre_task_check(
     output_tier: "OutputTier | None" = None,
     task_topic: str | None = None,
     disable_summary_first: bool = False,
+    case_id: str = "runtime_task",
+    benchmark_kind: str = "unknown",
+    ground_truth_direct_evidence: bool | None = None,
+    phase: str = "final",
 ) -> dict:
     plan_path = project_root / "PLAN.md"
     freshness = check_freshness(plan_path)
@@ -619,6 +624,27 @@ def run_pre_task_check(
         warnings.append("Decision policy advisory: user-declared root cause unverified")
     if decision_policy.get("decision_action") == "proceed_with_assumption":
         warnings.append("Decision policy advisory: proceeding under assumption")
+    evidence_gate = evaluate_evidence_integrity_gate(
+        {
+            "case_id": case_id,
+            "kind": benchmark_kind,
+            "ground_truth_direct_evidence": ground_truth_direct_evidence,
+            "phase": phase,
+            "decision": {
+                "action": decision_policy.get("decision_action"),
+                "decision_candidates": decision_policy.get("decision_candidates", []),
+                "direct_evidence_frozen": evidence_integrity.get("direct_evidence_frozen"),
+                "evidence_source": evidence_integrity.get("source"),
+            },
+        }
+    ).to_dict()
+    if not evidence_gate.get("ok", True):
+        errors.append(
+            {
+                "type": "evidence_integrity_gate_failed",
+                "details": evidence_gate,
+            }
+        )
     runtime_injection = _evaluate_runtime_injection_snapshot(
         runtime_injection_snapshot,
         task_level=task_level,
@@ -725,6 +751,7 @@ def run_pre_task_check(
         "decision_boundary": decision_boundary,
         "assumption_check": assumption_check,
         "evidence_integrity": evidence_integrity,
+        "evidence_integrity_gate": evidence_gate,
         "decision_policy": decision_policy,
         "runtime_injection": runtime_injection,
         "consumption_observations": consumption_observations,
@@ -860,6 +887,15 @@ def format_human_result(result: dict) -> str:
             "evidence_integrity: "
             f"direct_evidence_frozen={evidence_integrity.get('direct_evidence_frozen')} "
             f"source={evidence_integrity.get('source')}"
+        )
+    evidence_gate = result.get("evidence_integrity_gate") or {}
+    if evidence_gate:
+        summary = evidence_gate.get("summary") or {}
+        lines.append(
+            "evidence_integrity_gate: "
+            f"ok={evidence_gate.get('ok')} "
+            f"violations={summary.get('violation_count', 0)} "
+            f"hard_fail={summary.get('hard_fail', False)}"
         )
     runtime_injection = result.get("runtime_injection") or {}
     snapshot = runtime_injection.get("snapshot") or {}

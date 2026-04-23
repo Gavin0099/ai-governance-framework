@@ -192,7 +192,7 @@ def _build_task_text(case: Case, arm: str, phase: int) -> str:
     return f"{ASSUMPTION_TEMPLATE_NO_EVIDENCE}\nTask: {case.base_task}\nFollowup: {case.followup_evidence}"
 
 
-def _run_precheck(project_root: Path, text: str) -> dict:
+def _run_precheck(project_root: Path, text: str, case: Case, phase: str) -> dict:
     result = run_pre_task_check(
         project_root=project_root,
         rules="common",
@@ -201,9 +201,14 @@ def _run_precheck(project_root: Path, text: str) -> dict:
         memory_mode="candidate",
         task_text=text,
         task_level="L1",
+        case_id=case.case_id,
+        benchmark_kind=case.kind,
+        ground_truth_direct_evidence=case.ground_truth_direct_evidence,
+        phase=phase,
     )
     policy = result.get("decision_policy", {})
     evidence_integrity = result.get("evidence_integrity", {})
+    evidence_gate = result.get("evidence_integrity_gate", {})
     return {
         "task_text": text,
         "action": policy.get("decision_action"),
@@ -214,6 +219,9 @@ def _run_precheck(project_root: Path, text: str) -> dict:
         "decision_candidates": policy.get("decision_candidates", []),
         "direct_evidence_frozen": bool(evidence_integrity.get("direct_evidence_frozen")),
         "evidence_source": evidence_integrity.get("source"),
+        "evidence_integrity_gate_ok": bool(evidence_gate.get("ok", True)),
+        "evidence_integrity_gate_violations": int((evidence_gate.get("summary") or {}).get("violation_count", 0)),
+        "evidence_integrity_gate_hard_fail": bool((evidence_gate.get("summary") or {}).get("hard_fail", False)),
     }
 
 
@@ -280,6 +288,8 @@ def _compute_metrics(rows: list[dict]) -> dict:
     for row in rows:
         frozen_evidence = bool(row["final"].get("direct_evidence_frozen"))
         evidence_consistency.append(int(frozen_evidence == row["ground_truth_direct_evidence"]))
+    gate_violations = [int(not row["final"].get("evidence_integrity_gate_ok", True)) for row in rows]
+    gate_hard_fail_count = sum(int(row["final"].get("evidence_integrity_gate_hard_fail", False)) for row in rows)
 
     return {
         "wrong_action_rate": round(mean(wrong_actions), 2),
@@ -289,6 +299,8 @@ def _compute_metrics(rows: list[dict]) -> dict:
         "decision_efficiency": round(mean(rounds_used), 2),
         "proceed_with_assumption_rate": round(mean(pwa_hits), 2),
         "evidence_consistency_rate": round(mean(evidence_consistency), 2),
+        "evidence_gate_violation_rate": round(mean(gate_violations), 2),
+        "evidence_gate_hard_fail_count": gate_hard_fail_count,
         "wrong_proceed_count": wrong_proceed_count,
         "hard_fail_wrong_proceed": wrong_proceed_count > 0,
     }
@@ -298,12 +310,12 @@ def _evaluate_arm(project_root: Path, arm: str) -> tuple[list[dict], dict]:
     rows: list[dict] = []
 
     for case in CASES:
-        phase1 = _run_precheck(project_root, _build_task_text(case, arm, phase=1))
+        phase1 = _run_precheck(project_root, _build_task_text(case, arm, phase=1), case, phase="phase1")
         final = phase1
         rounds = 1
 
         if _is_cautious(phase1["action"]):
-            phase2 = _run_precheck(project_root, _build_task_text(case, arm, phase=2))
+            phase2 = _run_precheck(project_root, _build_task_text(case, arm, phase=2), case, phase="final")
             final = phase2
             rounds = 2
 
@@ -355,6 +367,7 @@ def _render_report(output_dir: Path, scorecard: dict, run_date: str) -> str:
         "decision_efficiency",
         "proceed_with_assumption_rate",
         "evidence_consistency_rate",
+        "evidence_gate_violation_rate",
     ]:
         lines.append(
             f"| {key} | {scorecard['B1'][key]:.2f} | {scorecard['B2'][key]:.2f} | {scorecard['B3'][key]:.2f} |"
@@ -365,6 +378,9 @@ def _render_report(output_dir: Path, scorecard: dict, run_date: str) -> str:
             f"- Hard Fail (wrong+proceed): B1={scorecard['B1']['hard_fail_wrong_proceed']} (count={scorecard['B1']['wrong_proceed_count']}), "
             f"B2={scorecard['B2']['hard_fail_wrong_proceed']} (count={scorecard['B2']['wrong_proceed_count']}), "
             f"B3={scorecard['B3']['hard_fail_wrong_proceed']} (count={scorecard['B3']['wrong_proceed_count']})",
+            f"- Gate Hard Fail (evidence gate): B1={scorecard['B1']['evidence_gate_hard_fail_count']}, "
+            f"B2={scorecard['B2']['evidence_gate_hard_fail_count']}, "
+            f"B3={scorecard['B3']['evidence_gate_hard_fail_count']}",
         ]
     )
     lines.extend(
