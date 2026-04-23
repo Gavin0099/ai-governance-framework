@@ -1,0 +1,546 @@
+{
+  "probe_scope": "separation_v1",
+  "cases_total": 4,
+  "path_counts": {
+    "arm_encoding_not_observable_pre_extraction": 0,
+    "extractor_collapses_visible_arm_signal": 4,
+    "separated_through_extractor": 0,
+    "unexpected_post_only_delta": 0
+  },
+  "closure_recommendation": "extractor_patch",
+  "closure_reason": "Pre-extraction deltas are visible but collapse before/within phase-A extraction.",
+  "details": [
+    {
+      "case_id": "sep_lowrisk_epistemic_cost_001",
+      "category": "separation+low-risk+high-epistemic-cost",
+      "pre_extraction_arm_signal_surface": {
+        "phase1": {
+          "B1": {
+            "assumption_check_header": false,
+            "assumption_forcing_marker": false,
+            "alternative_causes_marker": false,
+            "evidence_feedback_marker": false,
+            "reframe_marker": false,
+            "followup_marker": false,
+            "assumption_check_complete": false,
+            "assumption_alternatives_count": 1,
+            "assumption_evidence_present": false,
+            "assumption_reframe_present": false
+          },
+          "B2": {
+            "assumption_check_header": true,
+            "assumption_forcing_marker": true,
+            "alternative_causes_marker": true,
+            "evidence_feedback_marker": false,
+            "reframe_marker": true,
+            "followup_marker": false,
+            "assumption_check_complete": false,
+            "assumption_alternatives_count": 3,
+            "assumption_evidence_present": false,
+            "assumption_reframe_present": true
+          },
+          "B3": {
+            "assumption_check_header": true,
+            "assumption_forcing_marker": true,
+            "alternative_causes_marker": true,
+            "evidence_feedback_marker": false,
+            "reframe_marker": true,
+            "followup_marker": false,
+            "assumption_check_complete": false,
+            "assumption_alternatives_count": 3,
+            "assumption_evidence_present": false,
+            "assumption_reframe_present": true
+          }
+        },
+        "final": {
+          "B1": {
+            "assumption_check_header": false,
+            "assumption_forcing_marker": false,
+            "alternative_causes_marker": false,
+            "evidence_feedback_marker": false,
+            "reframe_marker": false,
+            "followup_marker": false,
+            "assumption_check_complete": false,
+            "assumption_alternatives_count": 1,
+            "assumption_evidence_present": false,
+            "assumption_reframe_present": false
+          },
+          "B2": {
+            "assumption_check_header": true,
+            "assumption_forcing_marker": true,
+            "alternative_causes_marker": true,
+            "evidence_feedback_marker": false,
+            "reframe_marker": true,
+            "followup_marker": true,
+            "assumption_check_complete": false,
+            "assumption_alternatives_count": 3,
+            "assumption_evidence_present": false,
+            "assumption_reframe_present": true
+          },
+          "B3": {
+            "assumption_check_header": true,
+            "assumption_forcing_marker": true,
+            "alternative_causes_marker": true,
+            "evidence_feedback_marker": false,
+            "reframe_marker": true,
+            "followup_marker": true,
+            "assumption_check_complete": false,
+            "assumption_alternatives_count": 3,
+            "assumption_evidence_present": false,
+            "assumption_reframe_present": true
+          }
+        }
+      },
+      "post_extraction_phase_a_features": {
+        "phase1": {
+          "B1": {
+            "premise_status": "unsupported",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          },
+          "B2": {
+            "premise_status": "unsupported",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          },
+          "B3": {
+            "premise_status": "unsupported",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          }
+        },
+        "final": {
+          "B1": {
+            "premise_status": "unsupported",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          },
+          "B2": {
+            "premise_status": "unsupported",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          },
+          "B3": {
+            "premise_status": "unsupported",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          }
+        }
+      },
+      "delta_summary": {
+        "pre_extraction_delta_phase1": true,
+        "pre_extraction_delta_final": true,
+        "post_extraction_delta_phase1": false,
+        "post_extraction_delta_final": false,
+        "pre_extraction_delta_any": true,
+        "post_extraction_delta_any": false
+      },
+      "path_classification": "extractor_collapses_visible_arm_signal"
+    },
+    {
+      "case_id": "sep_lowrisk_cheap_trial_001",
+      "category": "separation+low-risk+cheap-trial",
+      "pre_extraction_arm_signal_surface": {
+        "phase1": {
+          "B1": {
+            "assumption_check_header": false,
+            "assumption_forcing_marker": false,
+            "alternative_causes_marker": false,
+            "evidence_feedback_marker": false,
+            "reframe_marker": false,
+            "followup_marker": false,
+            "assumption_check_complete": false,
+            "assumption_alternatives_count": 0,
+            "assumption_evidence_present": false,
+            "assumption_reframe_present": false
+          },
+          "B2": {
+            "assumption_check_header": true,
+            "assumption_forcing_marker": true,
+            "alternative_causes_marker": true,
+            "evidence_feedback_marker": false,
+            "reframe_marker": true,
+            "followup_marker": false,
+            "assumption_check_complete": false,
+            "assumption_alternatives_count": 2,
+            "assumption_evidence_present": false,
+            "assumption_reframe_present": true
+          },
+          "B3": {
+            "assumption_check_header": true,
+            "assumption_forcing_marker": true,
+            "alternative_causes_marker": true,
+            "evidence_feedback_marker": false,
+            "reframe_marker": true,
+            "followup_marker": false,
+            "assumption_check_complete": false,
+            "assumption_alternatives_count": 2,
+            "assumption_evidence_present": false,
+            "assumption_reframe_present": true
+          }
+        },
+        "final": {
+          "B1": {
+            "assumption_check_header": false,
+            "assumption_forcing_marker": false,
+            "alternative_causes_marker": false,
+            "evidence_feedback_marker": false,
+            "reframe_marker": false,
+            "followup_marker": false,
+            "assumption_check_complete": false,
+            "assumption_alternatives_count": 0,
+            "assumption_evidence_present": false,
+            "assumption_reframe_present": false
+          },
+          "B2": {
+            "assumption_check_header": true,
+            "assumption_forcing_marker": true,
+            "alternative_causes_marker": true,
+            "evidence_feedback_marker": false,
+            "reframe_marker": true,
+            "followup_marker": false,
+            "assumption_check_complete": false,
+            "assumption_alternatives_count": 2,
+            "assumption_evidence_present": false,
+            "assumption_reframe_present": true
+          },
+          "B3": {
+            "assumption_check_header": true,
+            "assumption_forcing_marker": true,
+            "alternative_causes_marker": true,
+            "evidence_feedback_marker": false,
+            "reframe_marker": true,
+            "followup_marker": false,
+            "assumption_check_complete": false,
+            "assumption_alternatives_count": 2,
+            "assumption_evidence_present": false,
+            "assumption_reframe_present": true
+          }
+        }
+      },
+      "post_extraction_phase_a_features": {
+        "phase1": {
+          "B1": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "direct_fix"
+          },
+          "B2": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "direct_fix"
+          },
+          "B3": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "direct_fix"
+          }
+        },
+        "final": {
+          "B1": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "direct_fix"
+          },
+          "B2": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "direct_fix"
+          },
+          "B3": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "direct_fix"
+          }
+        }
+      },
+      "delta_summary": {
+        "pre_extraction_delta_phase1": true,
+        "pre_extraction_delta_final": true,
+        "post_extraction_delta_phase1": false,
+        "post_extraction_delta_final": false,
+        "pre_extraction_delta_any": true,
+        "post_extraction_delta_any": false
+      },
+      "path_classification": "extractor_collapses_visible_arm_signal"
+    },
+    {
+      "case_id": "sep_highrisk_partial_evidence_001",
+      "category": "separation+high-risk+partial-evidence",
+      "pre_extraction_arm_signal_surface": {
+        "phase1": {
+          "B1": {
+            "assumption_check_header": false,
+            "assumption_forcing_marker": false,
+            "alternative_causes_marker": false,
+            "evidence_feedback_marker": false,
+            "reframe_marker": false,
+            "followup_marker": false,
+            "assumption_check_complete": false,
+            "assumption_alternatives_count": 0,
+            "assumption_evidence_present": true,
+            "assumption_reframe_present": false
+          },
+          "B2": {
+            "assumption_check_header": true,
+            "assumption_forcing_marker": true,
+            "alternative_causes_marker": true,
+            "evidence_feedback_marker": false,
+            "reframe_marker": true,
+            "followup_marker": false,
+            "assumption_check_complete": true,
+            "assumption_alternatives_count": 2,
+            "assumption_evidence_present": true,
+            "assumption_reframe_present": true
+          },
+          "B3": {
+            "assumption_check_header": true,
+            "assumption_forcing_marker": true,
+            "alternative_causes_marker": true,
+            "evidence_feedback_marker": false,
+            "reframe_marker": true,
+            "followup_marker": false,
+            "assumption_check_complete": true,
+            "assumption_alternatives_count": 2,
+            "assumption_evidence_present": true,
+            "assumption_reframe_present": true
+          }
+        },
+        "final": {
+          "B1": {
+            "assumption_check_header": false,
+            "assumption_forcing_marker": false,
+            "alternative_causes_marker": false,
+            "evidence_feedback_marker": false,
+            "reframe_marker": false,
+            "followup_marker": false,
+            "assumption_check_complete": false,
+            "assumption_alternatives_count": 0,
+            "assumption_evidence_present": true,
+            "assumption_reframe_present": false
+          },
+          "B2": {
+            "assumption_check_header": true,
+            "assumption_forcing_marker": true,
+            "alternative_causes_marker": true,
+            "evidence_feedback_marker": false,
+            "reframe_marker": true,
+            "followup_marker": false,
+            "assumption_check_complete": true,
+            "assumption_alternatives_count": 2,
+            "assumption_evidence_present": true,
+            "assumption_reframe_present": true
+          },
+          "B3": {
+            "assumption_check_header": true,
+            "assumption_forcing_marker": true,
+            "alternative_causes_marker": true,
+            "evidence_feedback_marker": false,
+            "reframe_marker": true,
+            "followup_marker": false,
+            "assumption_check_complete": true,
+            "assumption_alternatives_count": 2,
+            "assumption_evidence_present": true,
+            "assumption_reframe_present": true
+          }
+        }
+      },
+      "post_extraction_phase_a_features": {
+        "phase1": {
+          "B1": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "external_side_effect",
+            "correctness_mode": "direct_fix"
+          },
+          "B2": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "external_side_effect",
+            "correctness_mode": "direct_fix"
+          },
+          "B3": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "external_side_effect",
+            "correctness_mode": "direct_fix"
+          }
+        },
+        "final": {
+          "B1": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "external_side_effect",
+            "correctness_mode": "direct_fix"
+          },
+          "B2": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "external_side_effect",
+            "correctness_mode": "direct_fix"
+          },
+          "B3": {
+            "premise_status": "supported",
+            "evidence_alignment": "partial",
+            "execution_scope": "external_side_effect",
+            "correctness_mode": "direct_fix"
+          }
+        }
+      },
+      "delta_summary": {
+        "pre_extraction_delta_phase1": true,
+        "pre_extraction_delta_final": true,
+        "post_extraction_delta_phase1": false,
+        "post_extraction_delta_final": false,
+        "pre_extraction_delta_any": true,
+        "post_extraction_delta_any": false
+      },
+      "path_classification": "extractor_collapses_visible_arm_signal"
+    },
+    {
+      "case_id": "sep_asserted_conflicting_hint_001",
+      "category": "separation+asserted-root-cause+conflicting-hint",
+      "pre_extraction_arm_signal_surface": {
+        "phase1": {
+          "B1": {
+            "assumption_check_header": false,
+            "assumption_forcing_marker": false,
+            "alternative_causes_marker": false,
+            "evidence_feedback_marker": false,
+            "reframe_marker": false,
+            "followup_marker": false,
+            "assumption_check_complete": false,
+            "assumption_alternatives_count": 0,
+            "assumption_evidence_present": false,
+            "assumption_reframe_present": false
+          },
+          "B2": {
+            "assumption_check_header": true,
+            "assumption_forcing_marker": true,
+            "alternative_causes_marker": true,
+            "evidence_feedback_marker": false,
+            "reframe_marker": true,
+            "followup_marker": false,
+            "assumption_check_complete": false,
+            "assumption_alternatives_count": 2,
+            "assumption_evidence_present": false,
+            "assumption_reframe_present": true
+          },
+          "B3": {
+            "assumption_check_header": true,
+            "assumption_forcing_marker": true,
+            "alternative_causes_marker": true,
+            "evidence_feedback_marker": false,
+            "reframe_marker": true,
+            "followup_marker": false,
+            "assumption_check_complete": false,
+            "assumption_alternatives_count": 2,
+            "assumption_evidence_present": false,
+            "assumption_reframe_present": true
+          }
+        },
+        "final": {
+          "B1": {
+            "assumption_check_header": false,
+            "assumption_forcing_marker": false,
+            "alternative_causes_marker": false,
+            "evidence_feedback_marker": false,
+            "reframe_marker": false,
+            "followup_marker": false,
+            "assumption_check_complete": false,
+            "assumption_alternatives_count": 0,
+            "assumption_evidence_present": false,
+            "assumption_reframe_present": false
+          },
+          "B2": {
+            "assumption_check_header": true,
+            "assumption_forcing_marker": true,
+            "alternative_causes_marker": true,
+            "evidence_feedback_marker": false,
+            "reframe_marker": true,
+            "followup_marker": true,
+            "assumption_check_complete": false,
+            "assumption_alternatives_count": 2,
+            "assumption_evidence_present": false,
+            "assumption_reframe_present": true
+          },
+          "B3": {
+            "assumption_check_header": true,
+            "assumption_forcing_marker": true,
+            "alternative_causes_marker": true,
+            "evidence_feedback_marker": false,
+            "reframe_marker": true,
+            "followup_marker": true,
+            "assumption_check_complete": false,
+            "assumption_alternatives_count": 2,
+            "assumption_evidence_present": false,
+            "assumption_reframe_present": true
+          }
+        }
+      },
+      "post_extraction_phase_a_features": {
+        "phase1": {
+          "B1": {
+            "premise_status": "contradicted",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          },
+          "B2": {
+            "premise_status": "contradicted",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          },
+          "B3": {
+            "premise_status": "contradicted",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          }
+        },
+        "final": {
+          "B1": {
+            "premise_status": "contradicted",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          },
+          "B2": {
+            "premise_status": "contradicted",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          },
+          "B3": {
+            "premise_status": "contradicted",
+            "evidence_alignment": "weak",
+            "execution_scope": "local_reversible",
+            "correctness_mode": "reframe_claim"
+          }
+        }
+      },
+      "delta_summary": {
+        "pre_extraction_delta_phase1": true,
+        "pre_extraction_delta_final": true,
+        "post_extraction_delta_phase1": false,
+        "post_extraction_delta_final": false,
+        "pre_extraction_delta_any": true,
+        "post_extraction_delta_any": false
+      },
+      "path_classification": "extractor_collapses_visible_arm_signal"
+    }
+  ]
+}

@@ -51,6 +51,17 @@
 - sep_highrisk_partial_evidence_001 (separation+high-risk+partial-evidence): expected_features=['evidence_alignment', 'correctness_mode']; has_any_expected_separation=False; possible_reason=extractor_ignores_arm_signal
 - sep_asserted_conflicting_hint_001 (separation+asserted-root-cause+conflicting-hint): expected_features=['premise_status', 'correctness_mode']; has_any_expected_separation=False; possible_reason=extractor_ignores_arm_signal
 
+## Arm Signal Visibility Probe
+
+- scope: separation_v1
+- path_counts: {'arm_encoding_not_observable_pre_extraction': 0, 'extractor_collapses_visible_arm_signal': 4, 'separated_through_extractor': 0, 'unexpected_post_only_delta': 0}
+- closure_recommendation: extractor_patch
+- closure_reason: Pre-extraction deltas are visible but collapse before/within phase-A extraction.
+- sep_lowrisk_epistemic_cost_001 (separation+low-risk+high-epistemic-cost): pre_delta_any=True post_delta_any=False path=extractor_collapses_visible_arm_signal
+- sep_lowrisk_cheap_trial_001 (separation+low-risk+cheap-trial): pre_delta_any=True post_delta_any=False path=extractor_collapses_visible_arm_signal
+- sep_highrisk_partial_evidence_001 (separation+high-risk+partial-evidence): pre_delta_any=True post_delta_any=False path=extractor_collapses_visible_arm_signal
+- sep_asserted_conflicting_hint_001 (separation+asserted-root-cause+conflicting-hint): pre_delta_any=True post_delta_any=False path=extractor_collapses_visible_arm_signal
+
 ## Collapse Locator
 
 - dominant_collapse_type: feature_extraction_collapse
@@ -64,5 +75,6 @@
 - Scorecard: `artifacts\ab_v3_rerun\2026-04-23-arm-separation-v1-contract-check\scorecard.json`
 - Arm Separation: `artifacts\ab_v3_rerun\2026-04-23-arm-separation-v1-contract-check\arm_separation.json`
 - Arm Feature Contract Check: `artifacts\ab_v3_rerun\2026-04-23-arm-separation-v1-contract-check\arm_feature_contract_check.json`
+- Arm Signal Visibility Probe: `artifacts\ab_v3_rerun\2026-04-23-arm-separation-v1-contract-check\arm_signal_visibility_probe.json`
 - Per-phase Feature Delta Dump: `artifacts\ab_v3_rerun\2026-04-23-arm-separation-v1-contract-check\per_phase_feature_delta_dump.json`
 - Collapse Summary: `artifacts\ab_v3_rerun\2026-04-23-arm-separation-v1-contract-check\collapse_summary.json`

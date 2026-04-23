@@ -26,3 +26,9 @@ Purpose: define which feature-level differences B1/B2/B3 are expected to create 
 - `contract_overstates_difference`: contract expects separation, but arm inputs are not materially different for the case.
 - `arm_signal_not_machine_consumable`: arm prompts differ, but parsed assumption-layer signals are still identical.
 - `extractor_ignores_arm_signal`: parsed arm signals differ, but phase-A extracted features remain identical.
+
+## Visibility Probe Rule
+
+- Use `arm_signal_visibility_probe.json` to separate two paths:
+- If pre-extraction delta is mostly absent, prioritize arm encoding redesign.
+- If pre-extraction delta exists but post-extraction phase-A delta is absent, prioritize extractor patching.

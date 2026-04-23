@@ -835,6 +835,132 @@ def _feature_tuple(snapshot: dict) -> tuple[str, str, str, str]:
     )
 
 
+def _pre_extraction_surface(snapshot: dict) -> dict:
+    text = str(snapshot.get("task_text") or "")
+    return {
+        "assumption_check_header": "[Assumption Check]" in text,
+        "assumption_forcing_marker": "assumptions:" in text.lower(),
+        "alternative_causes_marker": "alternative root causes:" in text.lower(),
+        "evidence_feedback_marker": "evidence:" in text.lower(),
+        "reframe_marker": "reframe:" in text.lower(),
+        "followup_marker": "followup:" in text.lower(),
+        "assumption_check_complete": bool(snapshot.get("assumption_check_complete", False)),
+        "assumption_alternatives_count": int(snapshot.get("assumption_alternatives_count", 0)),
+        "assumption_evidence_present": bool(snapshot.get("assumption_evidence_present", False)),
+        "assumption_reframe_present": bool(snapshot.get("assumption_reframe_present", False)),
+    }
+
+
+def _surface_tuple(surface: dict) -> tuple[Any, ...]:
+    return (
+        surface.get("assumption_check_header"),
+        surface.get("assumption_forcing_marker"),
+        surface.get("alternative_causes_marker"),
+        surface.get("evidence_feedback_marker"),
+        surface.get("reframe_marker"),
+        surface.get("followup_marker"),
+        surface.get("assumption_check_complete"),
+        surface.get("assumption_alternatives_count"),
+        surface.get("assumption_evidence_present"),
+        surface.get("assumption_reframe_present"),
+    )
+
+
+def _build_arm_signal_visibility_probe(rows_b1: list[dict], rows_b2: list[dict], rows_b3: list[dict]) -> dict:
+    by_arm = {"B1": rows_b1, "B2": rows_b2, "B3": rows_b3}
+    details: list[dict] = []
+    path_counts = {
+        "arm_encoding_not_observable_pre_extraction": 0,
+        "extractor_collapses_visible_arm_signal": 0,
+        "separated_through_extractor": 0,
+        "unexpected_post_only_delta": 0,
+    }
+
+    case_ids = [item["case_id"] for item in rows_b1 if item["case_id"] in SEPARATION_CASE_EXPECTED_FEATURES]
+    for case_id in case_ids:
+        rows = {arm: next((r for r in arm_rows if r["case_id"] == case_id), None) for arm, arm_rows in by_arm.items()}
+        if any(v is None for v in rows.values()):
+            continue
+
+        pre_phase1 = {arm: _pre_extraction_surface(rows[arm]["phase1"]) for arm in ("B1", "B2", "B3")}
+        pre_final = {arm: _pre_extraction_surface(rows[arm]["final"]) for arm in ("B1", "B2", "B3")}
+        post_phase1 = {
+            arm: {
+                "premise_status": rows[arm]["phase1"].get("premise_status"),
+                "evidence_alignment": rows[arm]["phase1"].get("evidence_alignment"),
+                "execution_scope": rows[arm]["phase1"].get("execution_scope"),
+                "correctness_mode": rows[arm]["phase1"].get("correctness_mode"),
+            }
+            for arm in ("B1", "B2", "B3")
+        }
+        post_final = {
+            arm: {
+                "premise_status": rows[arm]["final"].get("premise_status"),
+                "evidence_alignment": rows[arm]["final"].get("evidence_alignment"),
+                "execution_scope": rows[arm]["final"].get("execution_scope"),
+                "correctness_mode": rows[arm]["final"].get("correctness_mode"),
+            }
+            for arm in ("B1", "B2", "B3")
+        }
+
+        pre_phase1_delta = len({_surface_tuple(pre_phase1[arm]) for arm in ("B1", "B2", "B3")}) > 1
+        pre_final_delta = len({_surface_tuple(pre_final[arm]) for arm in ("B1", "B2", "B3")}) > 1
+        post_phase1_delta = len({_feature_tuple(rows[arm]["phase1"]) for arm in ("B1", "B2", "B3")}) > 1
+        post_final_delta = len({_feature_tuple(rows[arm]["final"]) for arm in ("B1", "B2", "B3")}) > 1
+        pre_delta = pre_phase1_delta or pre_final_delta
+        post_delta = post_phase1_delta or post_final_delta
+
+        if not pre_delta and not post_delta:
+            path = "arm_encoding_not_observable_pre_extraction"
+        elif pre_delta and not post_delta:
+            path = "extractor_collapses_visible_arm_signal"
+        elif pre_delta and post_delta:
+            path = "separated_through_extractor"
+        else:
+            path = "unexpected_post_only_delta"
+        path_counts[path] += 1
+
+        details.append(
+            {
+                "case_id": case_id,
+                "category": rows["B1"]["category"],
+                "pre_extraction_arm_signal_surface": {
+                    "phase1": pre_phase1,
+                    "final": pre_final,
+                },
+                "post_extraction_phase_a_features": {
+                    "phase1": post_phase1,
+                    "final": post_final,
+                },
+                "delta_summary": {
+                    "pre_extraction_delta_phase1": pre_phase1_delta,
+                    "pre_extraction_delta_final": pre_final_delta,
+                    "post_extraction_delta_phase1": post_phase1_delta,
+                    "post_extraction_delta_final": post_final_delta,
+                    "pre_extraction_delta_any": pre_delta,
+                    "post_extraction_delta_any": post_delta,
+                },
+                "path_classification": path,
+            }
+        )
+
+    if path_counts["arm_encoding_not_observable_pre_extraction"] >= path_counts["extractor_collapses_visible_arm_signal"]:
+        closure_recommendation = "arm_encoding_redesign"
+        closure_reason = "Pre-extraction signal deltas are absent or not dominant across separation cases."
+    else:
+        closure_recommendation = "extractor_patch"
+        closure_reason = "Pre-extraction deltas are visible but collapse before/within phase-A extraction."
+
+    return {
+        "probe_scope": "separation_v1",
+        "cases_total": len(details),
+        "path_counts": path_counts,
+        "closure_recommendation": closure_recommendation,
+        "closure_reason": closure_reason,
+        "details": details,
+    }
+
+
 def _top3_tuple(snapshot: dict) -> tuple[tuple[str, float | None], ...]:
     top3 = _top3_with_scores(snapshot)
     return tuple((str(item.get("action") or ""), item.get("score")) for item in top3)
@@ -1105,6 +1231,7 @@ def _render_report(
     case_pack: str,
     arm_separation: dict,
     arm_feature_contract_check: dict | None = None,
+    arm_signal_visibility_probe: dict | None = None,
     collapse_summary: dict | None = None,
 ) -> str:
     lines = [
@@ -1189,6 +1316,26 @@ def _render_report(
                 f"has_any_expected_separation={item['has_any_expected_separation']}; "
                 f"possible_reason={item.get('possible_reason_for_non_separation')}"
             )
+    if arm_signal_visibility_probe:
+        lines.extend(
+            [
+                "",
+                "## Arm Signal Visibility Probe",
+                "",
+                f"- scope: {arm_signal_visibility_probe.get('probe_scope')}",
+                f"- path_counts: {arm_signal_visibility_probe.get('path_counts', {})}",
+                f"- closure_recommendation: {arm_signal_visibility_probe.get('closure_recommendation')}",
+                f"- closure_reason: {arm_signal_visibility_probe.get('closure_reason')}",
+            ]
+        )
+        for item in arm_signal_visibility_probe.get("details", []):
+            delta = item.get("delta_summary") or {}
+            lines.append(
+                f"- {item['case_id']} ({item['category']}): "
+                f"pre_delta_any={delta.get('pre_extraction_delta_any')} "
+                f"post_delta_any={delta.get('post_extraction_delta_any')} "
+                f"path={item.get('path_classification')}"
+            )
     if collapse_summary:
         lines.extend(
             [
@@ -1210,6 +1357,7 @@ def _render_report(
             f"- Scorecard: `{output_dir / 'scorecard.json'}`",
             f"- Arm Separation: `{output_dir / 'arm_separation.json'}`",
             f"- Arm Feature Contract Check: `{output_dir / 'arm_feature_contract_check.json'}`",
+            f"- Arm Signal Visibility Probe: `{output_dir / 'arm_signal_visibility_probe.json'}`",
             f"- Per-phase Feature Delta Dump: `{output_dir / 'per_phase_feature_delta_dump.json'}`",
             f"- Collapse Summary: `{output_dir / 'collapse_summary.json'}`",
         ]
@@ -1252,11 +1400,15 @@ def main() -> None:
     scorecard = {"B1": metrics_b1, "B2": metrics_b2, "B3": metrics_b3}
     arm_separation = _build_arm_separation(rows_b1, rows_b2, rows_b3)
     arm_feature_contract_check = _build_arm_feature_contract_check(rows_b1, rows_b2, rows_b3)
+    arm_signal_visibility_probe = _build_arm_signal_visibility_probe(rows_b1, rows_b2, rows_b3)
     per_phase_dump, collapse_summary = _build_collapse_locator(rows_b1, rows_b2, rows_b3)
     (output_dir / "scorecard.json").write_text(json.dumps(scorecard, ensure_ascii=False, indent=2), encoding="utf-8")
     (output_dir / "arm_separation.json").write_text(json.dumps(arm_separation, ensure_ascii=False, indent=2), encoding="utf-8")
     (output_dir / "arm_feature_contract_check.json").write_text(
         json.dumps(arm_feature_contract_check, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    (output_dir / "arm_signal_visibility_probe.json").write_text(
+        json.dumps(arm_signal_visibility_probe, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     (output_dir / "per_phase_feature_delta_dump.json").write_text(
         json.dumps(per_phase_dump, ensure_ascii=False, indent=2), encoding="utf-8"
@@ -1272,6 +1424,7 @@ def main() -> None:
         args.case_pack,
         arm_separation,
         arm_feature_contract_check,
+        arm_signal_visibility_probe,
         collapse_summary,
     )
     report_path = output_dir / "AB_v3_benchmark_v2_rerun_report.md"
@@ -1295,6 +1448,10 @@ def main() -> None:
                     "cases_missing_expected_feature_separation": arm_feature_contract_check[
                         "cases_missing_expected_feature_separation"
                     ],
+                },
+                "arm_signal_visibility_probe": {
+                    "path_counts": arm_signal_visibility_probe["path_counts"],
+                    "closure_recommendation": arm_signal_visibility_probe["closure_recommendation"],
                 },
                 "collapse_summary": {
                     "dominant_collapse_type": collapse_summary["dominant_collapse_type"],
