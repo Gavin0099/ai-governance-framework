@@ -25,6 +25,7 @@ from governance_tools.failure_completeness_validator import validate_failure_com
 from governance_tools.public_api_diff_checker import check_public_api_diff
 from governance_tools.refactor_evidence_validator import validate_refactor_evidence
 from governance_tools.rule_pack_loader import available_rule_packs, describe_rule_selection, parse_rule_list
+from governance_tools.runtime_phase_policy import build_phase_classification
 from memory_pipeline.session_snapshot import create_session_snapshot
 from runtime_hooks.core.human_summary import build_summary_line, format_contract_summary_label
 
@@ -57,6 +58,23 @@ ADVISORY_SIGNAL_METADATA = {
         "usage": "advisory only; do not treat as a gate or blocker",
     }
 }
+
+
+def _build_post_task_phase_classification(
+    *,
+    evidence_violations: list[dict],
+    assumption_advisories: list[dict],
+) -> dict:
+    action_ids: list[str] = []
+    if assumption_advisories:
+        action_ids.append("assumption_check_missing")
+    for violation in evidence_violations:
+        violation_type = str(violation.get("violation_type", "")).strip()
+        if violation_type == "missing_required_evidence":
+            action_ids.append("required_evidence_missing")
+        elif violation_type == "invalid_evidence_schema":
+            action_ids.append("invalid_evidence_schema")
+    return build_phase_classification(action_ids=action_ids, hook="post_task_check")
 
 
 def _merge_runtime_checks(errors: list[str], warnings: list[str], checks: dict | None) -> None:
@@ -570,6 +588,10 @@ def run_post_task_check(
         "driver_evidence": driver_evidence,
         "evidence_violations": evidence_violations,
         "policy_violations": policy_violations,
+        "phase_classification": _build_post_task_phase_classification(
+            evidence_violations=evidence_violations,
+            assumption_advisories=assumption_advisories,
+        ),
         "domain_validator_results": domain_validator_results,
         "domain_hard_stop_rules": sorted(domain_hard_stop_rules),
         "domain_contract": _slim_domain_contract(domain_contract),
@@ -605,6 +627,13 @@ def format_human_result(result: dict) -> str:
         f"compliant={result['compliant']}",
         f"memory_mode={result['memory_mode']}",
     ]
+    phase_classification = result.get("phase_classification") or {}
+    if phase_classification.get("phase_summary"):
+        compact = " | ".join(
+            f"{phase}={','.join(actions)}"
+            for phase, actions in phase_classification["phase_summary"].items()
+        )
+        lines.append(f"phase_classification={compact}")
     lines.append(
         build_summary_line(
             f"ok={result['ok']}",

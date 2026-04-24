@@ -4,6 +4,7 @@ from datetime import date
 from pathlib import Path
 
 import pytest
+import yaml
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -22,7 +23,23 @@ def local_session_start_root():
         shutil.rmtree(path, ignore_errors=True)
 
 
+def _write_version_manifest(root: Path, **overrides) -> None:
+    defaults = {
+        "schema_version": "1.0",
+        "governance_version": "0.4.0",
+        "contract_schema_version": "1.2.0",
+        "runtime_entrypoint_version": "1.1.0",
+        "hook_wiring_version": "1.0.0",
+        "artifact_layout_version": "1.0.0",
+        "memory_layout_version": "1.0.0",
+    }
+    manifest_path = root / ".governance" / "version_manifest.yaml"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(yaml.dump({**defaults, **overrides}), encoding="utf-8")
+
+
 def test_session_start_context_merges_state_and_pre_task(local_session_start_root):
+    _write_version_manifest(local_session_start_root)
     plan = local_session_start_root / "PLAN.md"
     plan.write_text(
         "> **Owner**: Tester\n"
@@ -68,6 +85,7 @@ def test_session_start_context_merges_state_and_pre_task(local_session_start_roo
 
 
 def test_session_start_human_output_is_actionable(local_session_start_root):
+    _write_version_manifest(local_session_start_root)
     plan = local_session_start_root / "PLAN.md"
     plan.write_text(
         "> **Owner**: Tester\n"
@@ -95,6 +113,7 @@ def test_session_start_human_output_is_actionable(local_session_start_root):
 
 
 def test_session_start_can_load_domain_contract_with_external_rules(local_session_start_root):
+    _write_version_manifest(local_session_start_root)
     plan = local_session_start_root / "PLAN.md"
     plan.write_text(
         f"> **最後更新**: {date.today().isoformat()}\n"
@@ -140,6 +159,7 @@ def test_session_start_can_load_domain_contract_with_external_rules(local_sessio
 
 
 def test_session_start_can_auto_discover_domain_contract(local_session_start_root):
+    _write_version_manifest(local_session_start_root)
     plan = local_session_start_root / "PLAN.md"
     plan.write_text(
         f"> **最後更新**: {date.today().isoformat()}\n"

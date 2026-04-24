@@ -34,6 +34,7 @@ from runtime_hooks.core.evidence_integrity_gate import evaluate_evidence_integri
 from governance_tools.domain_summary_loader import load_domain_summary
 from governance_tools.runtime_injection_observation import observe_full_read_requirement
 from governance_tools.runtime_injection_snapshot import load_runtime_injection_snapshot
+from governance_tools.runtime_phase_policy import build_phase_classification
 from runtime_hooks.core.human_summary import build_summary_line, format_contract_summary_label
 from validators.precondition_gate_validator import evaluate_precondition_gate
 
@@ -143,6 +144,24 @@ ADVISORY_SIGNAL_METADATA = {
         "usage": "advisory only; keep a reversible fallback plan and targeted checks",
     },
 }
+
+
+def _build_pre_task_phase_classification(
+    *,
+    precondition_gate_validator: dict,
+    assumption_check: dict,
+    consumption_observations: dict,
+) -> dict:
+    action_ids = ["precondition_gate"]
+    if precondition_gate_validator.get("forbidden_claims"):
+        action_ids.append("forbidden_claims")
+    if assumption_check.get("missing"):
+        action_ids.append("assumption_check_missing")
+    for observation in consumption_observations.get("observations", []):
+        if observation.get("requirement") == "required_evidence_missing":
+            action_ids.append("required_evidence_missing")
+            break
+    return build_phase_classification(action_ids=action_ids, hook="pre_task_check")
 
 
 def _extract_context_signals_for_policy(task_text: str, assumption_check: dict) -> dict:
@@ -786,6 +805,11 @@ def run_pre_task_check(
         "decision_policy": decision_policy,
         "runtime_injection": runtime_injection,
         "consumption_observations": consumption_observations,
+        "phase_classification": _build_pre_task_phase_classification(
+            precondition_gate_validator=precondition_gate_validator,
+            assumption_check=assumption_check,
+            consumption_observations=consumption_observations,
+        ),
         "errors": errors,
         "warnings": warnings,
         # Tier-aware fields
@@ -810,6 +834,13 @@ def format_human_result(result: dict) -> str:
         f"rules={', '.join(result['runtime_contract']['rules'])}",
     ]
     lines.append(f"enforcement_profile={result['runtime_contract'].get('enforcement_profile')}")
+    phase_classification = result.get("phase_classification") or {}
+    if phase_classification.get("phase_summary"):
+        compact = " | ".join(
+            f"{phase}={','.join(actions)}"
+            for phase, actions in phase_classification["phase_summary"].items()
+        )
+        lines.append(f"phase_classification={compact}")
     lines.append(
         build_summary_line(
             f"ok={result['ok']}",

@@ -1,16 +1,15 @@
-"""Tests for P5a: governance version compatibility advisory integration in session_start.
+"""Tests for governance version compatibility integration in session_start.
 
 These tests verify:
   - version_compatibility key is always present in session_start result
-  - advisory_only is always True (dry-run — no blocking in P5a)
+  - compatible/degraded/migration_required remain advisory_only=True
+  - unsupported triggers controlled refusal and advisory_only=False
+  - migration_required enters legacy_only instead of blocking
   - format_human_result always emits version_compat= line
   - compatible verdict produces no advisory warning lines
-  - degraded/migration_required/unsupported produce appropriate advisory lines
-  - session_start never blocks regardless of verdict
+  - degraded/migration_required/unsupported produce appropriate output lines
   - session_start does not re-derive feature matrix logic
-
-Note: tests use temp project roots that do not have version_manifest.yaml,
-so the verdict will be unsupported — which is the correct advisory-only response.
+  - unsupported semantics remain unchanged while legacy_only skips new-runtime consumers
 """
 
 from __future__ import annotations
@@ -27,9 +26,8 @@ from runtime_hooks.core.session_start import (
 )
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+FIXTURE_ROOT = Path("tests/_tmp_session_start_version_compat")
+
 
 def _minimal_plan(root: Path) -> Path:
     plan = root / "PLAN.md"
@@ -58,11 +56,17 @@ def _write_version_manifest(root: Path, **overrides) -> None:
 
 
 @pytest.fixture()
-def session_root(tmp_path):
-    plan = _minimal_plan(tmp_path)
-    (tmp_path / "tool.py").write_text("print('ok')", encoding="utf-8")
-    yield tmp_path
-    shutil.rmtree(tmp_path, ignore_errors=True)
+def session_root(request):
+    path = FIXTURE_ROOT / request.node.name
+    if path.exists():
+        shutil.rmtree(path)
+    path.mkdir(parents=True, exist_ok=True)
+    _minimal_plan(path)
+    (path / "tool.py").write_text("print('ok')", encoding="utf-8")
+    try:
+        yield path
+    finally:
+        shutil.rmtree(path, ignore_errors=True)
 
 
 def _run(root: Path, plan: Path | None = None) -> dict:
@@ -79,19 +83,23 @@ def _run(root: Path, plan: Path | None = None) -> dict:
     )
 
 
-# ---------------------------------------------------------------------------
-# version_compatibility key is always present
-# ---------------------------------------------------------------------------
-
 def test_version_compatibility_key_always_present(session_root) -> None:
     result = _run(session_root)
     assert "version_compatibility" in result
 
 
-def test_version_compatibility_advisory_only_always_true(session_root) -> None:
+def test_version_compatibility_advisory_only_true_for_supported_verdicts(session_root) -> None:
+    _write_version_manifest(session_root)
     result = _run(session_root)
     vc = result["version_compatibility"]
     assert vc["advisory_only"] is True
+
+
+def test_version_compatibility_unsupported_is_not_advisory_only(session_root) -> None:
+    result = _run(session_root)
+    vc = result["version_compatibility"]
+    assert vc["verdict"] == "unsupported"
+    assert vc["advisory_only"] is False
 
 
 def test_version_compatibility_has_verdict(session_root) -> None:
@@ -100,18 +108,14 @@ def test_version_compatibility_has_verdict(session_root) -> None:
     assert vc["verdict"] in ("compatible", "compatible_with_degradation", "migration_required", "unsupported")
 
 
-# ---------------------------------------------------------------------------
-# Session start never blocks regardless of verdict
-# ---------------------------------------------------------------------------
-
-def test_session_start_not_blocked_when_manifest_missing(session_root) -> None:
-    # No version_manifest.yaml — advisory verdict = unsupported
-    # Session must still produce a result (ok may be False for other reasons, but never None)
+def test_session_start_controlled_refusal_when_manifest_missing(session_root) -> None:
     result = _run(session_root)
     vc = result["version_compatibility"]
     assert vc["verdict"] == "unsupported"
-    # Session start completed — result is a dict (not an exception)
-    assert isinstance(result, dict)
+    assert result["status"] == "blocked"
+    assert result["mode"] == "controlled_refusal"
+    assert result["reason"] == "version_compatibility_unsupported"
+    assert result["ok"] is False
 
 
 def test_session_start_not_blocked_when_manifest_present_compatible(session_root) -> None:
@@ -119,6 +123,7 @@ def test_session_start_not_blocked_when_manifest_present_compatible(session_root
     result = _run(session_root)
     vc = result["version_compatibility"]
     assert vc["verdict"] == "compatible"
+    assert vc["advisory_only"] is True
     assert isinstance(result, dict)
 
 
@@ -127,6 +132,7 @@ def test_session_start_not_blocked_when_manifest_degraded(session_root) -> None:
     result = _run(session_root)
     vc = result["version_compatibility"]
     assert vc["verdict"] == "compatible_with_degradation"
+    assert vc["advisory_only"] is True
     assert isinstance(result, dict)
 
 
@@ -135,12 +141,12 @@ def test_session_start_not_blocked_when_migration_required(session_root) -> None
     result = _run(session_root)
     vc = result["version_compatibility"]
     assert vc["verdict"] == "migration_required"
+    assert vc["advisory_only"] is True
+    assert result["status"] == "degraded"
+    assert result["mode"] == "legacy_only"
+    assert result["reason"] == "version_compatibility_migration_required"
     assert isinstance(result, dict)
 
-
-# ---------------------------------------------------------------------------
-# format_human_result always emits version_compat= line
-# ---------------------------------------------------------------------------
 
 def test_format_human_result_always_has_version_compat_line(session_root) -> None:
     result = _run(session_root)
@@ -164,7 +170,6 @@ def test_format_human_result_degraded_has_disabled_line(session_root) -> None:
     assert "version_compat=compatible_with_degradation" in output
     assert "version_compat_disabled=" in output
     assert "session_index" in output
-    # advisory warning NOT required for degraded (session still runs)
     assert "manual action required" not in output
 
 
@@ -173,27 +178,29 @@ def test_format_human_result_migration_required_has_advisory(session_root) -> No
     result = _run(session_root)
     output = format_human_result(result)
     assert "version_compat=migration_required" in output
+    assert "status=degraded" in output
+    assert "mode=legacy_only" in output
     assert "version_compat_advisory=manual action required" in output
+    assert "legacy_only_boundary=feature_gated_runtime_extensions_not_loaded" in output
+    assert "legacy_allowed_features=core_pre_task_check,core_post_task_check,basic_version_compatibility_artifact_write" in output
+    assert "legacy_disabled_features=post_task_check,pre_task_check" in output
+    assert "legacy_no_reinference_rule=" in output
 
 
-def test_format_human_result_unsupported_has_advisory(session_root) -> None:
-    # No manifest → unsupported
+def test_format_human_result_unsupported_has_controlled_refusal_lines(session_root) -> None:
     result = _run(session_root)
     output = format_human_result(result)
     assert "version_compat=unsupported" in output
     assert "version_compat_advisory=manual action required" in output
+    assert "status=blocked" in output
+    assert "mode=controlled_refusal" in output
+    assert "controlled_refusal_boundary=downstream_governance_features_not_loaded" in output
 
-
-# ---------------------------------------------------------------------------
-# Feature matrix is not re-derived in session_start
-# ---------------------------------------------------------------------------
 
 def test_disabled_features_come_from_check_output_not_session_logic(session_root) -> None:
-    # Degrade memory_layout_version → session_index should be disabled
     _write_version_manifest(session_root, memory_layout_version="0.9.0")
     result = _run(session_root)
     vc = result["version_compatibility"]
-    # session_start must not re-derive this — it comes from check output
     assert "session_index" in vc["disabled_runtime_features"]
     assert "pre_task_check" in vc["enabled_runtime_features"]
 
@@ -202,6 +209,50 @@ def test_enabled_features_come_from_check_output(session_root) -> None:
     _write_version_manifest(session_root)
     result = _run(session_root)
     vc = result["version_compatibility"]
-    # All 6 features should be enabled when manifest is fully satisfied
     assert len(vc["enabled_runtime_features"]) == 6
     assert vc["disabled_runtime_features"] == []
+
+
+def test_migration_required_short_circuits_new_runtime_consumers(session_root, monkeypatch) -> None:
+    _write_version_manifest(session_root, hook_wiring_version="0.9.0")
+    calls: list[str] = []
+
+    def _record_if_called(name: str):
+        def _inner(*args, **kwargs):
+            calls.append(name)
+            raise AssertionError(f"{name} should not be called in legacy_only mode")
+        return _inner
+
+    monkeypatch.setattr("runtime_hooks.core.session_start.generate_state", _record_if_called("generate_state"))
+    monkeypatch.setattr("runtime_hooks.core.session_start.build_change_proposal", _record_if_called("build_change_proposal"))
+    monkeypatch.setattr("runtime_hooks.core.session_start.load_closeout_context", _record_if_called("load_closeout_context"))
+
+    result = _run(session_root)
+
+    assert result["mode"] == "legacy_only"
+    assert result["closeout_context"] is None
+    assert result["legacy_capability_policy"]["mode"] == "legacy_only"
+    assert result["legacy_capability_policy"]["disabled_features"] == ["post_task_check", "pre_task_check"]
+    assert result["legacy_capability_policy"]["artifact_write_policy"]["allowed"] == [
+        "artifacts/governance/version_compatibility.json"
+    ]
+    assert calls == []
+
+
+def test_unsupported_short_circuits_downstream_consumption(session_root, monkeypatch) -> None:
+    calls: list[str] = []
+
+    def _fail_if_called(name: str):
+        def _inner(*args, **kwargs):
+            calls.append(name)
+            raise AssertionError(f"{name} should not be called under controlled refusal")
+        return _inner
+
+    monkeypatch.setattr("runtime_hooks.core.session_start.generate_state", _fail_if_called("generate_state"))
+    monkeypatch.setattr("runtime_hooks.core.session_start.run_pre_task_check", _fail_if_called("run_pre_task_check"))
+    monkeypatch.setattr("runtime_hooks.core.session_start.load_closeout_context", _fail_if_called("load_closeout_context"))
+
+    result = _run(session_root)
+
+    assert result["mode"] == "controlled_refusal"
+    assert calls == []

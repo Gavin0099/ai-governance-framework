@@ -1,6 +1,6 @@
 ﻿# PLAN.md - AI Governance Framework
 
-> **最後更新**: 2026-04-16
+> **最後更新**: 2026-04-24
 > **?敺??*: 2026-04-10
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
@@ -45,6 +45,234 @@
 - [x] 修正高可見度 docs / governance 文件的亂碼與英文主敘事殘留
 - [x] 重建 root PLAN/state surface 邊界（PLAN = source of truth；`.governance-state.yaml` = derived bootstrap snapshot），讓 state_generator 與 freshness surface 回到可維護狀態
 - [x] 建立 starter-pack 自動升級路徑，讓 starter-pack 不只停在手動複製
+- [>] 建立 `AGENTS.md` candidate rule promotion 與 agent compatibility 主線，避免把 scaffold / generic fill 誤讀成 repo-specific governance completion
+
+## AGENTS Candidate Rule Promotion Framework
+
+### Purpose
+
+把 `AGENTS.md` 從 adoption 時的一次性模板，收斂成由 runtime evidence、review history 與明確 promotion 邊界驅動的治理 surface。
+
+這條主線不把 `AGENTS.md` 視為「導入完就寫死」的靜態文件，而是：
+
+`real work -> repeated evidence -> candidate rule -> human review -> promotion`
+
+### Problem Statement
+
+目前 adopt flow 會產生合法的 `AGENTS.md` scaffold，但這個 scaffold 很容易被上層流程或人類閱讀誤解成「repo-specific governance 已完成」。
+
+主要風險不是 template 本身，而是三種 false positive：
+
+- scaffold presence 被誤讀為 governance completion
+- generic-but-filled content 被誤讀為 repo-specific calibration
+- 同一份 `AGENTS.md` 被假設能被不同 agent 以相近方式理解
+
+### Initial Scope (v0.1)
+
+Included:
+
+- candidate rule extraction surface
+- reviewable promotion workflow
+- AGENTS calibration maturity model
+- agent compatibility layer
+- operator-facing human surface
+- machine-readable candidate / maturity state
+
+Excluded:
+
+- automatic `AGENTS.md` mutation without approval
+- autonomous rule promotion
+- full semantic scoring of AGENTS quality
+- agent-specific governance truth forks
+- policy engine rewrite
+
+### Candidate Rule Sources
+
+Candidate rules must come from repeated runtime or review evidence, not freeform completion.
+
+Allowed sources:
+
+- `pre_task_check` advisories
+- `post_task_check` advisories
+- repeated reviewer escalations
+- repeated regression failures
+- repeated required test evidence
+- repeated forbidden action attempts
+- repeated memory / session closeout observations
+
+Disallowed:
+
+- single one-off event
+- generic AI suggestion without evidence
+- template completion guess
+
+### Candidate Rule Types
+
+Supported v0.1 types:
+
+- `must_test_path`
+- `forbidden_behavior`
+- `escalation_trigger`
+- `risk_level_boundary`
+
+Each candidate must map to one of these classes. v0.1 does not allow freeform rule taxonomies.
+
+### Promotion Boundary
+
+Promotion requires:
+
+- repeated evidence
+- repo-local specificity
+- human review
+
+AI may:
+
+- extract
+- normalize
+- suggest
+- draft
+- challenge generic content
+
+AI must not:
+
+- declare promotion complete
+- auto-edit protected governance truth
+- mark `reviewer_verified` automatically
+
+### Candidate Schema Constraints
+
+v0.1 candidate artifacts must have stable identity and bounded evidence semantics. At minimum:
+
+- `candidate_id`
+- `candidate_type`
+- `section_key`
+- `normalized_candidate`
+- `evidence_count`
+- `evidence_window_days`
+- `observed_from`
+- `repo_specificity`
+- `status`
+- `first_seen_at`
+- `last_seen_at`
+
+`candidate_id` exists to prevent near-duplicate phrasing from inflating evidence counts.
+
+`evidence_window_days` exists to prevent slow historical accumulation from being treated like current repeated pressure.
+
+### Promotion Ledger Requirement
+
+Candidate artifact alone is not enough. Promotion must leave a separate reviewer-auditable ledger recording:
+
+- which candidate was reviewed
+- who approved or rejected it
+- when the decision happened
+- which evidence justified the decision
+- which `AGENTS.md` section the rule maps to
+- whether the resulting patch is only proposed or actually landed
+
+Rejected candidates must remain visible as negative memory so generic rules do not keep resurfacing as fresh proposals.
+
+### AGENTS Calibration Maturity Model
+
+This framework uses maturity levels, not a binary ready/not-ready flag:
+
+- Level 0 `scaffold_only`: template placeholders or all sections `N/A`
+- Level 1 `generic_filled`: content exists but is broadly reusable across repos and carries little repo-local governance value
+- Level 2 `repo_specific_minimal`: at least one real path, command, irreversible boundary, or concrete domain constraint exists
+- Level 3 `reviewer_verified`: repo-specific guidance has been explicitly reviewed and later proven useful in real review flow
+
+Readiness surfaces must expose maturity level directly. They must not collapse this into a simple boolean.
+
+### Governance Truth vs Agent Compatibility
+
+`AGENTS.md` is not a neutral specification. Different agents can react very differently to the same text. This framework therefore separates:
+
+- `Governance Truth Layer`: canonical contract truth, protected baseline, promoted repo rules, authority boundaries
+- `Agent Compatibility Layer`: delivery optimization so different agents are more likely to follow the same truth correctly
+
+The truth layer must not fork per agent.
+
+Allowed:
+
+- one canonical rule set
+- multiple derived delivery surfaces
+- runtime or adapter-specific rendering differences
+
+Disallowed:
+
+- `Claude rules`
+- `Codex rules`
+- `Copilot rules`
+
+when those are treated as separate authorities instead of derived views of the same governance truth.
+
+### Agent Compatibility Layer
+
+This initiative supports `agent_compatibility_layer`, not `agent_specific_governance`.
+
+Compatibility artifacts may include:
+
+- derived `AGENTS` renderings optimized for specific agents
+- runtime-injected summaries
+- machine-readable adapter surfaces
+- agent behavior notes describing likely interpretation strengths / weaknesses
+
+These are delivery hints, not policy truth.
+
+Typical examples:
+
+- some agents respond better to explicit decision boundaries and refusal semantics
+- some agents respond better to concrete commands and executable validation steps
+- some agents are weak on long generic policy sections
+
+Any adapter surface must remain mechanically or procedurally derived from the same canonical source.
+
+### Agent Compliance Benchmark
+
+Prompt optimization is not enough. We also need evidence about which agents are safe to trust for which task classes.
+
+This initiative therefore includes an `agent compliance benchmark` concept:
+
+- run the same governance-sensitive cases across multiple agents
+- compare whether they escalate, proceed, ignore warnings, or overclaim verification
+- measure behavior under destructive, irreversible, evidence-sensitive, and review-sensitive cases
+
+The goal is not only to improve delivery surfaces, but to determine whether some agents should be restricted from certain task classes entirely.
+
+This benchmark is about authorization fitness, not branding preference.
+
+### Success Criteria
+
+Success is not:
+
+- `AGENTS.md` became longer
+- more sections were filled
+- more adapters were added
+
+Success is:
+
+- candidate rules arise from repeated evidence
+- generic candidate promotion is reduced
+- scaffold is no longer confused with repo-specific governance completion
+- reviewer can reconstruct why a rule exists
+- compatibility improvements do not fork governance truth
+- some agent/task combinations can be explicitly judged safe, unsafe, or not yet trustworthy
+
+### Explicitly Not Doing
+
+Not building:
+
+- a self-writing governance system
+- agent-specific authority forks
+- autonomous policy promotion
+
+Not claiming:
+
+- AI-generated `AGENTS.md` is trustworthy by default
+- adapter-specific wording changes are equivalent to governance truth
+- all agents are equally governable if prompted well enough
+
+This initiative enforces promotion discipline and authority boundaries, not autonomous governance.
 
 ## Phase E Sprint（Current）
 

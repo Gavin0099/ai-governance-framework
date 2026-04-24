@@ -14,6 +14,7 @@ from pathlib import Path
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from governance_tools.agents_calibration_maturity import assess_agents_calibration_maturity
 from governance_tools.contract_resolver import resolve_contract
 from governance_tools.domain_contract_loader import load_domain_contract
 from governance_tools.external_project_facts_intake import build_external_project_facts_intake, default_output_path
@@ -35,6 +36,7 @@ class ExternalRepoReadiness:
     hooks: dict[str, object] | None = None
     project_facts: dict[str, object] | None = None
     governance_drift: dict[str, object] | None = None
+    agents_calibration: dict[str, object] | None = None
     warnings: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
@@ -238,6 +240,15 @@ def assess_external_repo(
     for item in drift_result.warnings:
         warnings.append(f"governance-drift: {item}")
 
+    agents_calibration_result = assess_agents_calibration_maturity(repo_root)
+    agents_calibration = agents_calibration_result.to_dict()
+    if agents_calibration_result.status in {"scaffold_only", "generic_filled"}:
+        warnings.append(
+            "agents-calibration: "
+            f"AGENTS.md maturity is {agents_calibration_result.status}"
+            f" ({agents_calibration_result.reason})"
+        )
+
     version_status = assess_framework_version_status(repo_root, contract_raw=contract_raw)
     framework_version = {
         "current_release": version_status.current_release,
@@ -286,6 +297,7 @@ def assess_external_repo(
         hooks=hooks,
         project_facts=project_facts,
         governance_drift=governance_drift,
+        agents_calibration=agents_calibration,
         warnings=warnings,
         errors=errors,
     )
@@ -394,6 +406,26 @@ def format_human(result: ExternalRepoReadiness) -> str:
             ]
         )
 
+    if result.agents_calibration:
+        lines.extend(
+            [
+                "",
+                "[agents_calibration]",
+                f"status             = {result.agents_calibration.get('status')}",
+                f"reason             = {result.agents_calibration.get('reason')}",
+                f"path               = {result.agents_calibration.get('path')}",
+                f"reviewer_signal    = {result.agents_calibration.get('reviewer_signal')}",
+            ]
+        )
+        repo_specific_signals = result.agents_calibration.get("repo_specific_signals") or []
+        if repo_specific_signals:
+            lines.append(f"repo_specific_signals = {repo_specific_signals}")
+        next_questions = result.agents_calibration.get("next_questions") or []
+        if next_questions:
+            lines.append("next_questions:")
+            for item in next_questions:
+                lines.append(f"- {item}")
+
     if result.errors:
         lines.append("")
         lines.append(f"errors: {len(result.errors)}")
@@ -434,6 +466,7 @@ def format_json(result: ExternalRepoReadiness) -> str:
             "hooks": result.hooks,
             "project_facts": result.project_facts,
             "governance_drift": result.governance_drift,
+            "agents_calibration": result.agents_calibration,
             "errors": result.errors,
             "warnings": result.warnings,
         },

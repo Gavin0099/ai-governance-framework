@@ -5,6 +5,8 @@ import shutil
 from datetime import date as _date
 from pathlib import Path
 
+import yaml
+
 from governance_tools.external_repo_onboarding_report import (
     build_onboarding_report,
     format_human,
@@ -28,6 +30,21 @@ def _write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def _write_version_manifest(root: Path, **overrides) -> None:
+    defaults = {
+        "schema_version": "1.0",
+        "governance_version": "0.4.0",
+        "contract_schema_version": "1.2.0",
+        "runtime_entrypoint_version": "1.1.0",
+        "hook_wiring_version": "1.0.0",
+        "artifact_layout_version": "1.0.0",
+        "memory_layout_version": "1.0.0",
+    }
+    path = root / ".governance" / "version_manifest.yaml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml.dump({**defaults, **overrides}), encoding="utf-8")
+
+
 def _make_framework(framework_root: Path) -> None:
     _write(framework_root / "scripts/lib/python.sh", "")
     _write(framework_root / "scripts/run-runtime-governance.sh", "")
@@ -38,6 +55,7 @@ def _make_framework(framework_root: Path) -> None:
 def _make_contract_repo(repo_root: Path, framework_root: Path) -> None:
     hook_dir = repo_root / ".git" / "hooks"
     _make_framework(framework_root)
+    _write_version_manifest(repo_root)
     _write(hook_dir / "pre-commit", "# AI Governance Framework\n")
     _write(hook_dir / "pre-push", "# AI Governance Framework\n")
     _write(hook_dir / "ai-governance-framework-root", str(framework_root))
@@ -93,6 +111,18 @@ def test_format_human_surfaces_readiness_and_smoke_sections() -> None:
     repo_root = root / "target"
     _write(repo_root / ".git" / "HEAD", "ref: refs/heads/main\n")
     _write(repo_root / "memory" / "02_project_facts.md", "# Project Facts\n\n- target_os: windows\n")
+    _write(
+        repo_root / "AGENTS.md",
+        "\n".join(
+            [
+                "# AGENTS.md",
+                "## Repo-Specific Risk Levels",
+                "<!-- governance:key=risk_levels -->",
+                "N/A",
+            ]
+        ),
+    )
+    _write_version_manifest(repo_root)
 
     report = build_onboarding_report(repo_root)
     rendered = format_human(report)
@@ -102,6 +132,7 @@ def test_format_human_surfaces_readiness_and_smoke_sections() -> None:
     assert "[readiness]" in rendered
     assert "[framework_version]" in rendered
     assert "[project_facts]" in rendered
+    assert "[agents_calibration]" in rendered
     assert "status" in rendered
     assert "artifact_path" in rendered
     assert "artifact_drift" in rendered
@@ -129,6 +160,7 @@ def test_write_report_bundle_creates_latest_history_and_index() -> None:
     latest_payload = json.loads(Path(bundle["latest_json"]).read_text(encoding="utf-8"))
     assert latest_payload["ok"] is True
     assert "framework_version" in latest_payload["readiness"]
+    assert "agents_calibration" in latest_payload["readiness"]
     assert latest_payload["readiness"]["project_facts"]["source_filename"] == "02_project_facts.md"
     assert latest_payload["readiness"]["project_facts"]["artifact_path"].replace("/", "\\").endswith(r"artifacts\external-project-facts\target.json")
     index_text = Path(bundle["index_txt"]).read_text(encoding="utf-8")
