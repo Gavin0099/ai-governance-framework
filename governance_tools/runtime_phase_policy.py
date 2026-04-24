@@ -17,6 +17,62 @@ PHASE_ORDER = (
     "async_audit",
     "manual_review_only",
 )
+REQUIRED_RULES = {
+    "sync_gate_blocks_execution": True,
+    "sync_advisory_hidden_gate_allowed": False,
+    "async_audit_can_retroactively_change_verdict": False,
+}
+REQUIRED_PHASE_EFFECTS = {
+    "sync_gate": "blocks_execution",
+    "sync_advisory": "advisory_only",
+    "async_closeout": "deferred_closeout",
+    "async_audit": "deferred_audit",
+    "manual_review_only": "human_authority_required",
+}
+
+
+def _validate_runtime_phase_policy(data: dict[str, Any], *, path: Path) -> dict[str, Any]:
+    schema_version = str(data.get("schema_version", "")).strip()
+    if not schema_version:
+        raise ValueError(f"runtime phase policy missing schema_version: {path}")
+
+    rules = data.get("rules")
+    if not isinstance(rules, dict):
+        raise ValueError(f"runtime phase policy rules must be a mapping: {path}")
+    for rule_name, expected_value in REQUIRED_RULES.items():
+        actual_value = rules.get(rule_name)
+        if actual_value is not expected_value:
+            raise ValueError(
+                f"runtime phase policy rule {rule_name} must be {expected_value!r}: {path}"
+            )
+
+    phases = data.get("phases")
+    if not isinstance(phases, dict):
+        raise ValueError(f"runtime phase policy phases must be a mapping: {path}")
+    for phase_name in PHASE_ORDER:
+        spec = phases.get(phase_name)
+        if not isinstance(spec, dict):
+            raise ValueError(f"runtime phase policy phase {phase_name} must be a mapping: {path}")
+        expected_effect = REQUIRED_PHASE_EFFECTS[phase_name]
+        actual_effect = str(spec.get("execution_effect", "")).strip()
+        if actual_effect != expected_effect:
+            raise ValueError(
+                f"runtime phase policy phase {phase_name} must declare execution_effect={expected_effect!r}: {path}"
+            )
+
+    actions = data.get("actions")
+    if not isinstance(actions, dict):
+        raise ValueError(f"runtime phase policy actions must be a mapping: {path}")
+    for action_name, spec in actions.items():
+        if not isinstance(spec, dict):
+            raise ValueError(f"runtime phase policy action {action_name} must be a mapping: {path}")
+        phase = str(spec.get("phase", "")).strip()
+        if phase not in PHASE_ORDER:
+            raise ValueError(
+                f"runtime phase policy action {action_name} references unknown phase {phase!r}: {path}"
+            )
+
+    return data
 
 
 def load_runtime_phase_policy(*, framework_root: Path | None = None) -> dict[str, Any]:
@@ -25,7 +81,7 @@ def load_runtime_phase_policy(*, framework_root: Path | None = None) -> dict[str
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise ValueError(f"runtime phase policy must be a mapping: {path}")
-    return data
+    return _validate_runtime_phase_policy(data, path=path)
 
 
 def build_phase_classification(
