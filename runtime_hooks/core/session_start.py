@@ -18,6 +18,13 @@ from governance_tools.authority_loader import (
     load_authority_table,
     validate_session_payload,
 )
+from governance_tools.governance_version_check import (
+    DEFAULT_ARTIFACT_PATH as _VERSION_COMPAT_ARTIFACT_PATH,
+    DEFAULT_REQUIRED_VERSIONS_PATH,
+    DEFAULT_VERSION_MANIFEST_PATH,
+    check_version_compatibility,
+    write_compatibility_artifact,
+)
 from governance_tools.payload_audit_logger import (
     build_audit_record,
     is_audit_enabled,
@@ -62,6 +69,54 @@ def _emit_rendered_output(rendered: str) -> None:
 
 
 _PLAN_CONTEXT_PROVENANCE_SIDECAR = Path("artifacts") / "runtime" / "plan-context-provenance.json"
+
+
+def _run_version_compatibility_advisory(
+    *,
+    framework_root: Path,
+    project_root: Path,
+) -> dict:
+    """Run version compatibility check in advisory-only mode (P5a dry-run).
+
+    - framework_root: where required_versions.yaml lives (the governance framework repo)
+    - project_root:   where version_manifest.yaml lives (the consuming repo)
+
+    Never blocks session start.  Feature matrix output is the sole authority for
+    enabled/disabled feature state.  This function must never re-implement or
+    re-derive version check logic.
+
+    On any exception the result degrades to unsupported/advisory_only rather than
+    raising, so session start is never blocked by a check failure.
+    """
+    try:
+        result = check_version_compatibility(
+            required_versions_path=framework_root / DEFAULT_REQUIRED_VERSIONS_PATH,
+            version_manifest_path=project_root / DEFAULT_VERSION_MANIFEST_PATH,
+        )
+        # Write artifact non-blocking — failure must not abort session start.
+        try:
+            write_compatibility_artifact(result, project_root / _VERSION_COMPAT_ARTIFACT_PATH)
+        except Exception:  # noqa: BLE001
+            pass
+        return {
+            "verdict": result.verdict,
+            "enabled_runtime_features": result.enabled_runtime_features,
+            "disabled_runtime_features": result.disabled_runtime_features,
+            "missing_migrations": result.missing_migrations,
+            "repo_manifest_found": result.repo_manifest_found,
+            "error": result.error,
+            "advisory_only": True,
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "verdict": "unsupported",
+            "enabled_runtime_features": [],
+            "disabled_runtime_features": [],
+            "missing_migrations": [],
+            "repo_manifest_found": False,
+            "error": f"check_exception:{exc}",
+            "advisory_only": True,
+        }
 _PLAN_PROVENANCE_MARKER_PREFIX = "<!-- plan_context_provenance "
 
 
@@ -108,6 +163,15 @@ def build_session_start_context(
 ) -> dict:
     impact_before_files = impact_before_files or []
     impact_after_files = impact_after_files or []
+
+    # ── Governance version compatibility (P5a — advisory-only dry-run) ───────
+    # Must run before any other logic.  Never blocks.  Feature matrix output is
+    # authoritative — session_start does not re-derive enabled/disabled logic.
+    _fw_root_for_vc = repo_root_from_tooling()
+    _version_compat = _run_version_compatibility_advisory(
+        framework_root=_fw_root_for_vc,
+        project_root=project_root,
+    )
 
     # ── Task level detection ─────────────────────────────────────────────────
     # Explicit task_level takes priority; None triggers keyword-based auto-detection.
@@ -331,6 +395,9 @@ def build_session_start_context(
         # compressed summary (plan_summary.py output).  Lets session_end and
         # replay_verification know under what fidelity a decision was made.
         "plan_context_provenance": _detect_plan_context_provenance(plan_path),
+        # Version compatibility advisory (P5a dry-run — always advisory_only=True).
+        # Feature matrix output is authoritative; session_start does not re-derive.
+        "version_compatibility": _version_compat,
     }
 
 
@@ -396,6 +463,19 @@ def format_human_result(result: dict) -> str:
             ),
         )
     )
+    # Version compatibility advisory line — always emitted, never suppressed.
+    # session_start does not re-derive logic; it only surfaces the feature matrix verdict.
+    _vc = result.get("version_compatibility") or {}
+    _vc_verdict = _vc.get("verdict")
+    if _vc_verdict:
+        lines.append(f"version_compat={_vc_verdict}")
+        if _vc_verdict != "compatible":
+            _disabled = ",".join(_vc.get("disabled_runtime_features") or [])
+            if _disabled:
+                lines.append(f"version_compat_disabled={_disabled}")
+            if _vc_verdict in ("migration_required", "unsupported"):
+                lines.append("version_compat_advisory=manual action required before governance features activate")
+
     if result.get("suggested_rules_preview"):
         lines.append(f"suggested_rules_preview={','.join(result['suggested_rules_preview'])}")
     if result.get("suggested_skills"):
