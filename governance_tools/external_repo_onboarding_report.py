@@ -65,6 +65,7 @@ def build_onboarding_report(
             "plan": readiness.plan,
             "hooks": readiness.hooks,
             "project_facts": readiness.project_facts,
+            "agents_calibration": readiness.agents_calibration,
             "warnings": readiness.warnings,
             "errors": readiness.errors,
         },
@@ -115,6 +116,7 @@ def format_human(report: ExternalRepoOnboardingReport) -> str:
 
     project_facts = report.readiness.get("project_facts") or {}
     framework_version = report.readiness.get("framework_version") or {}
+    agents_calibration = report.readiness.get("agents_calibration") or {}
     if framework_version:
         lines.extend(
             [
@@ -142,6 +144,17 @@ def format_human(report: ExternalRepoOnboardingReport) -> str:
                 f"artifact_drift     = {project_facts.get('artifact_drift')}",
                 f"reason             = {project_facts.get('reason')}",
                 f"remediation_hint   = {project_facts.get('remediation_hint')}",
+            ]
+        )
+    if agents_calibration:
+        lines.extend(
+            [
+                "",
+                "[agents_calibration]",
+                f"status             = {agents_calibration.get('status')}",
+                f"reason             = {agents_calibration.get('reason')}",
+                f"path               = {agents_calibration.get('path')}",
+                f"reviewer_signal    = {agents_calibration.get('reviewer_signal')}",
             ]
         )
 

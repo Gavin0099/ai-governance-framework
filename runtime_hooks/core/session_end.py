@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -23,6 +24,7 @@ from memory_pipeline.session_snapshot import create_session_snapshot
 from governance_tools.decision_model_loader import build_runtime_policy_ref, final_verdict_owner, runtime_decision_source, violation_verdict_impact
 from governance_tools.domain_governance_metadata import domain_risk_tier
 from governance_tools.execution_surface_coverage import build_execution_surface_coverage
+from governance_tools.runtime_phase_policy import aggregate_phase_classifications, build_phase_classification
 from governance_tools.runtime_surface_manifest import build_runtime_surface_manifest
 from runtime_hooks.core._canonical_closeout import (
     build_canonical_closeout,
@@ -72,6 +74,153 @@ def _append_session_index(canonical: dict[str, Any], project_root: Path) -> None
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _build_post_task_phase_classification_from_checks(checks: dict[str, Any]) -> dict[str, Any]:
+    action_ids: list[str] = []
+    for error in checks.get("errors", []) or []:
+        if "Missing required" in str(error):
+            action_ids.append("required_evidence_missing")
+            break
+    if checks.get("required_runtime_evidence"):
+        action_ids.append("required_evidence_missing")
+    if checks.get("public_api_diff") and not isinstance(checks.get("public_api_diff"), dict):
+        action_ids.append("invalid_evidence_schema")
+    return build_phase_classification(action_ids=action_ids, hook="post_task_check")
+
+
+def _build_session_end_phase_classification(
+    *,
+    memory_mode: str,
+    snapshot_result: dict[str, Any] | None,
+    promotion_result: dict[str, Any] | None,
+    decision: str,
+    checks: dict[str, Any],
+) -> dict[str, Any]:
+    action_ids = ["canonical_closeout"]
+    if memory_mode != "stateless":
+        action_ids.append("daily_memory_append")
+    if snapshot_result is not None:
+        action_ids.append("memory_candidate_snapshot")
+    if snapshot_result is not None or promotion_result is not None:
+        action_ids.append("memory_promotion_candidate")
+    if decision == "REVIEW_REQUIRED":
+        action_ids.append("reviewer_promotion_decision")
+    if checks.get("cross_repo_drift_analysis"):
+        action_ids.append("cross_repo_drift_analysis")
+    return build_phase_classification(action_ids=action_ids, hook="session_end")
+
+
+def _current_local_date() -> str:
+    return datetime.now().astimezone().date().isoformat()
+
+
+def _resolve_head_commit(project_root: Path) -> str:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except Exception:
+        return "UNCOMMITTED"
+
+    commit = result.stdout.strip()
+    return commit or "UNCOMMITTED"
+
+
+def _default_next_step(
+    *,
+    decision: str,
+    promoted: bool,
+    open_risks: list[str],
+    canonical_closeout: dict[str, Any],
+) -> str:
+    if open_risks:
+        return open_risks[0]
+    if decision == "REVIEW_REQUIRED":
+        return "Review the session outcome and decide whether to promote durable memory."
+    if not promoted:
+        return "Continue the next session from the recorded closeout and pending memory state."
+    return (
+        "Resume from the latest canonical closeout state"
+        f" (status={canonical_closeout.get('closeout_status', 'unknown')})."
+    )
+
+
+def _build_daily_memory_record(
+    *,
+    project_root: Path,
+    session_id: str,
+    task: str,
+    decision: str,
+    summary: str,
+    promoted: bool,
+    snapshot_created: bool,
+    canonical_closeout: dict[str, Any],
+) -> dict[str, str]:
+    open_risks = [str(item).strip() for item in canonical_closeout.get("open_risks", []) if str(item).strip()]
+    summary_text = summary.strip() or "Session closeout recorded without an explicit summary."
+    return {
+        "what_changed": (
+            f"session_end auto-closeout recorded for `{task}` "
+            f"(session={session_id}, decision={decision}, snapshot_created={snapshot_created}, promoted={promoted}). "
+            f"Summary: {summary_text}"
+        ),
+        "commit": _resolve_head_commit(project_root),
+        "test_evidence": (
+            f"`session_end` => canonical_closeout_status={canonical_closeout.get('closeout_status', 'unknown')}, "
+            f"snapshot_created={snapshot_created}, promoted={promoted}, open_risk_count={len(open_risks)}"
+        ),
+        "next_step": _default_next_step(
+            decision=decision,
+            promoted=promoted,
+            open_risks=open_risks,
+            canonical_closeout=canonical_closeout,
+        ),
+    }
+
+
+def _append_daily_memory_entry(
+    *,
+    project_root: Path,
+    session_id: str,
+    task: str,
+    decision: str,
+    summary: str,
+    promoted: bool,
+    snapshot_created: bool,
+    canonical_closeout: dict[str, Any],
+) -> Path:
+    memory_root = project_root / "memory"
+    memory_root.mkdir(parents=True, exist_ok=True)
+    daily_path = memory_root / f"{_current_local_date()}.md"
+    if not daily_path.exists():
+        daily_path.write_text(f"# {_current_local_date()}\n\n", encoding="utf-8")
+
+    record = _build_daily_memory_record(
+        project_root=project_root,
+        session_id=session_id,
+        task=task,
+        decision=decision,
+        summary=summary,
+        promoted=promoted,
+        snapshot_created=snapshot_created,
+        canonical_closeout=canonical_closeout,
+    )
+    entry = (
+        f"- what_changed: {record['what_changed']}\n"
+        f"  commit: {record['commit']}\n"
+        f"  test_evidence: {record['test_evidence']}\n"
+        f"  next_step: {record['next_step']}\n"
+    )
+    with daily_path.open("a", encoding="utf-8") as fh:
+        if daily_path.stat().st_size > 0:
+            fh.write("\n")
+        fh.write(entry)
+    return daily_path
 
 
 def _force_runtime_failure_if_requested(checks: dict[str, Any], stage: str) -> None:
@@ -579,6 +728,7 @@ def run_session_end(
     summary: str = "",
     approved_by_auto: str = "governance-auto",
     initial_agent_class: str | None = None,
+    session_start_phase_classification: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     contract = _normalize_runtime_contract(runtime_contract)
     checks = checks or {}
@@ -608,6 +758,8 @@ def run_session_end(
     snapshot_result = None
     curated_result = None
     promotion_result = None
+    daily_memory_path: Path | None = None
+    daily_memory_record: dict[str, str] | None = None
     policy = classify_promotion_policy(contract, check_result=checks)
     decision = policy["decision"]
     decision_context = _build_decision_context(project_root, contract["memory_mode"], checks, initial_agent_class)
@@ -705,6 +857,17 @@ def run_session_end(
         existing_artifacts=_existing_artifacts,
         runtime_signals=_runtime_signals,
     )
+    if contract["memory_mode"] != "stateless":
+        daily_memory_record = _build_daily_memory_record(
+            project_root=project_root,
+            session_id=session_id,
+            task=contract["task"],
+            decision=decision,
+            summary=summary,
+            promoted=promotion_result is not None,
+            snapshot_created=snapshot_result is not None,
+            canonical_closeout=canonical_closeout,
+        )
 
     candidate_artifact, curated_artifact, summary_artifact, verdict_artifact_dir, trace_artifact_dir = _ensure_runtime_artifact_dirs(project_root)
     candidate_path = candidate_artifact / f"{session_id}.json"
@@ -712,6 +875,25 @@ def run_session_end(
     summary_path = summary_artifact / f"{session_id}.json"
     verdict_path = verdict_artifact_dir / f"{session_id}.json"
     trace_path = trace_artifact_dir / f"{session_id}.json"
+    governance_artifact_dir = project_root / "artifacts" / "governance"
+    governance_artifact_dir.mkdir(parents=True, exist_ok=True)
+    runtime_phase_summary_path = governance_artifact_dir / "runtime_phase_summary.json"
+    pre_task_phase_classification = session_start_phase_classification or {}
+    post_task_phase_classification = _build_post_task_phase_classification_from_checks(checks)
+    session_end_phase_classification = _build_session_end_phase_classification(
+        memory_mode=contract["memory_mode"],
+        snapshot_result=snapshot_result,
+        promotion_result=promotion_result,
+        decision=decision,
+        checks=checks,
+    )
+    runtime_phase_summary = aggregate_phase_classifications(
+        phase_classifications={
+            "pre_task_check": pre_task_phase_classification,
+            "post_task_check": post_task_phase_classification,
+            "session_end": session_end_phase_classification,
+        }
+    )
     closeout_path: Path | None = None
 
     try:
@@ -733,6 +915,7 @@ def run_session_end(
             "promotion": promotion_result,
             "warnings": warnings,
             "errors": errors,
+            "phase_classification": session_end_phase_classification,
         }
         summary_payload = {
             "session_id": session_id,
@@ -765,7 +948,11 @@ def run_session_end(
             "public_api_added_count": len(public_api_diff.get("added", [])) if public_api_diff else 0,
             "snapshot_created": snapshot_result is not None,
             "promoted": promotion_result is not None,
+            "daily_memory_path": str(daily_memory_path) if daily_memory_path else None,
+            "daily_memory_record": daily_memory_record,
             "memory_closeout": memory_closeout,
+            "phase_classification": session_end_phase_classification,
+            "runtime_phase_summary_path": str(runtime_phase_summary_path),
             "warning_count": len(warnings),
             "error_count": len(errors),
             "decision_context": decision_context,
@@ -801,8 +988,20 @@ def run_session_end(
         _write_json(summary_path, summary_payload)
         _write_json(verdict_path, verdict_payload)
         _write_json(trace_path, trace_payload)
+        _write_json(runtime_phase_summary_path, runtime_phase_summary)
         closeout_path = write_canonical_closeout(canonical_closeout, project_root)
         _append_session_index(canonical_closeout, project_root)
+        if contract["memory_mode"] != "stateless":
+            daily_memory_path = _append_daily_memory_entry(
+                project_root=project_root,
+                session_id=session_id,
+                task=contract["task"],
+                decision=decision,
+                summary=summary,
+                promoted=promotion_result is not None,
+                snapshot_created=snapshot_result is not None,
+                canonical_closeout=canonical_closeout,
+            )
     except Exception as exc:
         closeout_path = None
         failure_message = str(exc)
@@ -836,6 +1035,9 @@ def run_session_end(
         "summary_artifact": str(summary_path),
         "verdict_artifact": str(verdict_path),
         "trace_artifact": str(trace_path),
+        "runtime_phase_summary_artifact": str(runtime_phase_summary_path),
+        "phase_classification": session_end_phase_classification,
+        "daily_memory_path": str(daily_memory_path) if daily_memory_path else None,
         "canonical_closeout_artifact": str(closeout_path) if closeout_path else None,
         "canonical_closeout": canonical_closeout,
         "decision_context": decision_context,
@@ -854,7 +1056,10 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"summary_artifact={result['summary_artifact']}",
         f"verdict_artifact={result['verdict_artifact']}",
         f"trace_artifact={result['trace_artifact']}",
+        f"runtime_phase_summary_artifact={result['runtime_phase_summary_artifact']}",
     ]
+    if result.get("daily_memory_path"):
+        lines.append(f"daily_memory_path={result['daily_memory_path']}")
     summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
     if summary_payload.get("contract_resolution_present"):
         lines.append(f"contract_source={summary_payload.get('contract_source')}")
@@ -876,6 +1081,13 @@ def format_human_result(result: dict[str, Any]) -> str:
             lines.append(f"classification_changed={dc.get('classification_changed')}")
             if dc.get("reclassification_reason"):
                 lines.append(f"reclassification_reason={dc.get('reclassification_reason')}")
+    phase_classification = summary_payload.get("phase_classification") or {}
+    if phase_classification.get("phase_summary"):
+        compact = " | ".join(
+            f"{phase}={','.join(actions)}"
+            for phase, actions in phase_classification["phase_summary"].items()
+        )
+        lines.append(f"phase_classification={compact}")
     memory_closeout = summary_payload.get("memory_closeout") or {}
     if memory_closeout:
         lines.append(f"memory_candidate_detected={memory_closeout.get('candidate_detected')}")
@@ -947,6 +1159,7 @@ def main() -> None:
         summary=args.summary,
         approved_by_auto=args.approved_by_auto,
         initial_agent_class=initial_agent_class,
+        session_start_phase_classification=(session_start_payload.get("pre_task_check") or {}).get("phase_classification"),
     )
 
     if args.format == "json":

@@ -125,6 +125,8 @@ KNOWN_RUNTIME_ENTRYPOINTS: dict[str, dict[str, Any]] = {
 }
 
 CORE_SUPPORT_FILES = {
+    "decision_policy_v1_runtime.py",
+    "evidence_integrity_gate.py",
     "human_summary.py",
     "payload_audit_logger.py",
     "__init__.py",

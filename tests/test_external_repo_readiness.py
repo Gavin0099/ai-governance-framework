@@ -434,3 +434,57 @@ def test_governance_drift_surfaces_in_format_json() -> None:
 
     assert "governance_drift" in payload
     assert payload["governance_drift"]["severity"] == "critical"
+
+
+def test_assess_external_repo_surfaces_agents_calibration_maturity() -> None:
+    root = _reset_fixture("agents_calibration_surface")
+    framework_root = root / "framework"
+    target_root = root / "target"
+
+    _make_framework(framework_root)
+    _make_target_repo(target_root, framework_root)
+    _write_lock(target_root, "v1.1.0")
+    _write(
+        target_root / "AGENTS.md",
+        "\n".join(
+            [
+                "# AGENTS.md",
+                "## Repo-Specific Risk Levels",
+                "<!-- governance:key=risk_levels -->",
+                "- HIGH: changes under runtime_hooks/core/ can alter pre-task routing",
+                "",
+                "## Must-Test Paths",
+                "<!-- governance:key=must_test_paths -->",
+                "- `python -m pytest -q tests/test_runtime_pre_task_check.py`",
+            ]
+        ),
+    )
+
+    result = assess_external_repo(target_root)
+
+    assert result.agents_calibration is not None
+    assert result.agents_calibration["status"] == "repo_specific_minimal"
+    assert result.agents_calibration["reason"] == "repo_local_paths_commands_or_boundaries_detected"
+
+
+def test_format_human_surfaces_agents_calibration_section() -> None:
+    root = _reset_fixture("agents_calibration_human_output")
+    target_root = root / "target"
+    _write(target_root / ".git" / "HEAD", "ref: refs/heads/main\n")
+    _write(
+        target_root / "AGENTS.md",
+        "\n".join(
+            [
+                "# AGENTS.md",
+                "## Repo-Specific Risk Levels",
+                "<!-- governance:key=risk_levels -->",
+                "N/A",
+            ]
+        ),
+    )
+
+    result = assess_external_repo(target_root)
+    rendered = format_human(result)
+
+    assert "[agents_calibration]" in rendered
+    assert "status             = scaffold_only" in rendered

@@ -30,6 +30,7 @@ from governance_tools.payload_audit_logger import (
     is_audit_enabled,
     write_audit_record,
 )
+from governance_tools.legacy_capability_policy import build_legacy_capability_policy
 from governance_tools.change_proposal_builder import build_change_proposal
 from governance_tools.domain_governance_metadata import domain_risk_tier
 from governance_tools.domain_summary_loader import inject_domain_summary
@@ -117,6 +118,95 @@ def _run_version_compatibility_advisory(
             "error": f"check_exception:{exc}",
             "advisory_only": True,
         }
+
+
+def _build_controlled_refusal_result(
+    *,
+    project_root: Path,
+    task_level: str,
+    task_text: str,
+    version_compatibility: dict,
+) -> dict:
+    return {
+        "ok": False,
+        "project_root": str(project_root),
+        "task_level": task_level,
+        "task_text": task_text,
+        "status": "blocked",
+        "mode": "controlled_refusal",
+        "reason": "version_compatibility_unsupported",
+        "advisory_only": False,
+        "runtime_contract": {
+            "rules": [],
+            "risk": None,
+            "oversight": None,
+            "memory_mode": None,
+        },
+        "pre_task_check": {
+            "ok": False,
+            "warnings": [],
+            "errors": ["version_compatibility_unsupported"],
+        },
+        "state": {
+            "error": "version_compatibility_unsupported",
+        },
+        "version_compatibility": {
+            **version_compatibility,
+            "advisory_only": False,
+        },
+    }
+
+
+def _build_legacy_only_result(
+    *,
+    project_root: Path,
+    task_level: str,
+    task_text: str,
+    level_decision: dict,
+    authority_validation: dict,
+    pre_task: dict,
+    version_compatibility: dict,
+    risk_signal_active: bool,
+    risk_signal_overrides: dict,
+    plan_path: Path,
+) -> dict:
+    legacy_policy = build_legacy_capability_policy(
+        disabled_runtime_features=version_compatibility.get("disabled_runtime_features") or [],
+    )
+    return {
+        "ok": pre_task["ok"] and authority_validation["ok"],
+        "project_root": str(project_root),
+        "task_level": task_level,
+        "level_decision": level_decision,
+        "task_text": task_text,
+        "status": "degraded",
+        "mode": "legacy_only",
+        "reason": "version_compatibility_migration_required",
+        "runtime_contract": pre_task["runtime_contract"],
+        "suggested_rules_preview": pre_task.get("suggested_rules_preview", []),
+        "suggested_skills": pre_task.get("suggested_skills", []),
+        "suggested_agent": pre_task.get("suggested_agent"),
+        "rule_pack_suggestions": pre_task.get("rule_pack_suggestions", {}),
+        "architecture_impact_preview": pre_task.get("architecture_impact_preview"),
+        "authority_filter": {
+            "allowed_count": 0,
+            "include_on_demand": task_level != "L0",
+            "validation_ok": authority_validation["ok"],
+            "violations": authority_validation["violations"],
+        },
+        "risk_signal": {
+            "active": risk_signal_active,
+            "overrides": risk_signal_overrides,
+        },
+        "state": {
+            "status": "not_loaded_in_legacy_only",
+        },
+        "pre_task_check": pre_task,
+        "closeout_context": None,
+        "legacy_capability_policy": legacy_policy.to_dict(),
+        "plan_context_provenance": _detect_plan_context_provenance(plan_path),
+        "version_compatibility": version_compatibility,
+    }
 _PLAN_PROVENANCE_MARKER_PREFIX = "<!-- plan_context_provenance "
 
 
@@ -189,6 +279,14 @@ def build_session_start_context(
         "additional_loads": additional_loads,
     }
 
+    if _version_compat.get("verdict") == "unsupported":
+        return _build_controlled_refusal_result(
+            project_root=project_root,
+            task_level=final_level,
+            task_text=task_text,
+            version_compatibility=_version_compat,
+        )
+
     # ── Framework risk signal ─────────────────────────────────────────────
     # A prior drift check may have written a signal recording a critical failure.
     # When active, defensively upgrade task_level to at least the required minimum.
@@ -235,18 +333,6 @@ def build_session_start_context(
 
     authority_validation = validate_session_payload(allowed_governance_files, authority_table)
 
-    state = generate_state(
-        plan_path=plan_path,
-        rules=rules,
-        risk=risk,
-        oversight=oversight,
-        memory_mode=memory_mode,
-        project_root=project_root,
-        task_text=task_text or None,
-        impact_before_files=impact_before_files,
-        impact_after_files=impact_after_files,
-    )
-
     pre_task = run_pre_task_check(
         project_root=project_root,
         rules=rules,
@@ -260,6 +346,32 @@ def build_session_start_context(
         skip_domain_contract=not load_domain,
         task_level=final_level,
         disable_summary_first=bool(_sig_overrides.get("disable_summary_first")),
+    )
+
+    if _version_compat.get("verdict") == "migration_required":
+        return _build_legacy_only_result(
+            project_root=project_root,
+            task_level=final_level,
+            task_text=task_text,
+            level_decision=level_decision,
+            authority_validation=authority_validation,
+            pre_task=pre_task,
+            version_compatibility=_version_compat,
+            risk_signal_active=_active_signal is not None,
+            risk_signal_overrides=_sig_overrides,
+            plan_path=plan_path,
+        )
+
+    state = generate_state(
+        plan_path=plan_path,
+        rules=rules,
+        risk=risk,
+        oversight=oversight,
+        memory_mode=memory_mode,
+        project_root=project_root,
+        task_text=task_text or None,
+        impact_before_files=impact_before_files,
+        impact_after_files=impact_after_files,
     )
 
     proposal = build_change_proposal(
@@ -414,6 +526,14 @@ def format_human_result(result: dict) -> str:
         f"ok={result['ok']}",
         f"rules={','.join(result['runtime_contract'].get('rules', []))}",
     ]
+    if result.get("mode") == "controlled_refusal":
+        lines.append("status=blocked")
+        lines.append("mode=controlled_refusal")
+        lines.append(f"reason={result.get('reason')}")
+    elif result.get("mode") == "legacy_only":
+        lines.append("status=degraded")
+        lines.append("mode=legacy_only")
+        lines.append(f"reason={result.get('reason')}")
     # Risk signal banner — placed before all other output so AI reads it first.
     _risk_sig = result.get("risk_signal") or {}
     if _risk_sig.get("active"):
@@ -475,6 +595,20 @@ def format_human_result(result: dict) -> str:
                 lines.append(f"version_compat_disabled={_disabled}")
             if _vc_verdict in ("migration_required", "unsupported"):
                 lines.append("version_compat_advisory=manual action required before governance features activate")
+
+    if result.get("mode") == "controlled_refusal":
+        lines.append("controlled_refusal_boundary=downstream_governance_features_not_loaded")
+        return "\n".join(lines)
+    if result.get("mode") == "legacy_only":
+        legacy_policy = result.get("legacy_capability_policy") or {}
+        if legacy_policy.get("allowed_features"):
+            lines.append(f"legacy_allowed_features={','.join(legacy_policy['allowed_features'])}")
+        lines.append("legacy_only_boundary=feature_gated_runtime_extensions_not_loaded")
+        if legacy_policy.get("disabled_features"):
+            lines.append(f"legacy_disabled_features={','.join(legacy_policy['disabled_features'])}")
+        if legacy_policy.get("no_reinference_rule"):
+            lines.append(f"legacy_no_reinference_rule={legacy_policy['no_reinference_rule']}")
+        return "\n".join(lines)
 
     if result.get("suggested_rules_preview"):
         lines.append(f"suggested_rules_preview={','.join(result['suggested_rules_preview'])}")

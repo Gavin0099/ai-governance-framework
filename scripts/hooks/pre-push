@@ -30,6 +30,7 @@ fi
 . "$PYTHON_LIB"
 
 TOOL="$FRAMEWORK_ROOT/governance_tools/contract_validator.py"
+DAILY_MEMORY_GUARD="$FRAMEWORK_ROOT/governance_tools/daily_memory_guard.py"
 SNAPSHOT_DIR="$TARGET_REPO_ROOT/memory/governance_snapshots"
 RUNTIME_SCRIPT="$FRAMEWORK_ROOT/scripts/run-runtime-governance.sh"
 
@@ -73,6 +74,13 @@ if [ -f "$RUNTIME_SCRIPT" ]; then
         echo "  bypass once: git push --no-verify"
         echo ""
         exit 1
+    fi
+fi
+
+if [ -f "$DAILY_MEMORY_GUARD" ] && [ "${#PYTHON_CMD[@]}" -gt 0 ]; then
+    DAILY_MEMORY_WARNING=$("${PYTHON_CMD[@]}" "$DAILY_MEMORY_GUARD" --project-root "$TARGET_REPO_ROOT" --format human 2>/dev/null || true)
+    if [ -n "$DAILY_MEMORY_WARNING" ]; then
+        echo "$DAILY_MEMORY_WARNING"
     fi
 fi
 
