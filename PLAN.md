@@ -357,6 +357,10 @@ This initiative enforces promotion discipline and authority boundaries, not auto
       - 釘住：`pending_human_validation` ≠ `pending_creator_validation`；作者自我驗證
         必須走 Tier 2 independence protocol，不能當 sole authority；
         沒有此 contract，Phase B closure 預設退化為 self-certification
+      - 狀態語意需誠實分離：`validator authority semantics defined` ≠
+        `authority provenance runtime enforced`
+      - 目前明確列為 `trust root debt`：在 runtime 尚未強制寫入 validator provenance
+        之前，authority model 仍是 partially trust-based，不得宣稱 fully auditable
   - [ ] **Phase 3（🔓 unblocked 2026-04-27）**: Trigger Design — 動態 threshold、trend_direction、cross-repo correlation；Phase 2 gate READY，可進入 Phase 3 設計；Phase 2.5 語意鎖仍有效（raw observation only，禁止 interpretive-class key）
 
 > 排序根據：E8a 先讓 signal 有歷史，E8b 才能讓歷史有語意，E1a/E1b 再決定是否有可靠證據基礎支持更強約束。
@@ -1199,6 +1203,11 @@ Enumd / SpecAuthority：
    **Fail-open rule**：protected claim 若未引用 `coverage_era`，或引用的 repo 之 `coverage_era ≠ CURRENT`，
    結論必須附加 caveat：`"not_supported_under_current_coverage"`；不得以 stable_ok 直接支持該結論。
    這是 contract，不是 advisory——沒有引用 coverage metadata 的 protected claim 是無效的 governance claim。
+   **Invalidation consequence mapping（hard-stop，不可降級為 warning）**：
+   - `promotion proposal`：若含 invalid protected claim，提案必須退回，不得進入 promote 討論
+   - `release gate summary`：若用 invalid protected claim 支持「已穩定/可釋出」，gate 必須阻斷
+   - `governance report signoff`：Phase B/E2 completion 報告若含 invalid protected claim，簽核必須 blocked
+   - `reviewer discretion` 不可覆寫上述三個 hard-stop；只能要求補件後重提
 
    **Unexplained Adoption Friction Defaults to Framework Defect（2026-04-27）**：
    Bookstore-Scraper 7 errors（temp directory permission / environment isolation 問題）屬於「原因未解釋的 friction」。
@@ -1249,6 +1258,12 @@ Enumd / SpecAuthority：
    - **Classification semantics drift**：修改 lifecycle_class 語意使更多 repo 自動升格（e.g., insufficient_evidence → transitioning_active）
    - **Simplifying closure by weakening authority**：讓 Tier 2 成為常態；waiver 頻繁使用而未升級
    - **Making reviewer experience easier at the cost of depth**：讓 reviewer 更快給 positive verdict，而不是更準確判斷
+   **Known bad patterns（判斷 exemplars）**：
+   - 預填正向摘要（pre-filled positive summary）
+   - 預設樂觀解讀（default optimistic interpretation）
+   - 以「looks good」語句引導 reviewer framing
+   - 把 stale warning 藏在次要 UI（secondary panel / collapsed section）
+   - 把 provisional closure 視覺弱化成接近已關閉狀態
    任何「讓 E2 累積加快」但實際上是「讓 evidence bar 降低」的改動，都是 contamination。
    **E2 acceleration 必須讓 framework 面對更多現實，不是讓 framework 更容易說服自己已達成。**
 
