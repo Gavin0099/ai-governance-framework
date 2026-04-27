@@ -657,3 +657,55 @@ class TestRecentLifecycleClass:
         assert "recent_lifecycle_class" in r
         assert "recent_ok_count" in r
         assert "recent_window_size" in r
+
+
+# ── coverage_era + pre_era_fraction ───────────────────────────────────────────
+
+class TestCoverageEraPerRepo:
+    """Per-repo coverage_era and pre_era_fraction are machine-readable trust signals.
+
+    These fields allow downstream consumers to qualify lifecycle_class conclusions
+    with the fraction of history that predates the skip_type schema. A repo with
+    pre_era_fraction close to 1.0 should NOT be cited as 'proven stable' even if
+    lifecycle_class == 'stable_ok'.
+    """
+
+    def test_coverage_era_current_when_all_entries_schema_aware(self):
+        """All entries schema_aware → skip_type_coverage_ratio=1.0 → coverage_era=CURRENT."""
+        entries = [_entry("r", "ok", schema_aware=True) for _ in range(10)]
+        stats = compute_repo_stats(entries)
+        r = stats["r"]
+        assert r["coverage_era"] == "CURRENT"
+        assert r["pre_era_fraction"] == pytest.approx(0.0, abs=1e-4)
+
+    def test_coverage_era_pre_era_when_no_entries_schema_aware(self):
+        """No schema_aware entries → skip_type_coverage_ratio=0.0 → PRE-SKIP-TYPE-ERA."""
+        entries = [_entry("r", "ok") for _ in range(10)]
+        stats = compute_repo_stats(entries)
+        r = stats["r"]
+        assert r["coverage_era"] == "PRE-SKIP-TYPE-ERA"
+        assert r["pre_era_fraction"] == pytest.approx(1.0, abs=1e-4)
+
+    def test_coverage_era_transition_at_partial_coverage(self):
+        """5 schema_aware + 5 pre-schema → coverage_ratio=0.5 → TRANSITION."""
+        schema = [_entry("r", "ok", schema_aware=True) for _ in range(5)]
+        legacy = [_entry("r", "ok") for _ in range(5)]
+        stats = compute_repo_stats(schema + legacy)
+        r = stats["r"]
+        assert r["coverage_era"] == "TRANSITION"
+        assert r["pre_era_fraction"] == pytest.approx(0.5, abs=1e-4)
+
+    def test_pre_era_fraction_plus_coverage_ratio_equals_one(self):
+        """pre_era_fraction must equal 1 - skip_type_coverage_ratio (rounding-safe)."""
+        schema = [_entry("r", "ok", schema_aware=True) for _ in range(3)]
+        legacy = [_entry("r", "ok") for _ in range(7)]
+        stats = compute_repo_stats(schema + legacy)
+        r = stats["r"]
+        assert abs(r["pre_era_fraction"] + r["skip_type_coverage_ratio"] - 1.0) < 1e-3
+
+    def test_coverage_era_fields_always_present(self):
+        """coverage_era and pre_era_fraction must always be present in repo stats."""
+        stats = compute_repo_stats([_entry("r", "ok")])
+        r = stats["r"]
+        assert "coverage_era" in r
+        assert "pre_era_fraction" in r
