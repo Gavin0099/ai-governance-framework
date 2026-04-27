@@ -349,6 +349,9 @@ This initiative enforces promotion discipline and authority boundaries, not auto
       divergence rule and recurrence-override-consistency rule.
       Reference: `docs/e1b-consumer-audit-checklist.md` — Observation validity
       criteria.
+      **Participating repo guides (2026-04-27)**:
+      - `docs/e1b-phase-b-repo-participation-guide.md` — 外部 repo 如何貢獻 Phase B 觀測實例（步驟 + 簡化記錄格式）
+      - `docs/e1b-phase2-lifecycle-capable-setup.md` — 外部 repo 如何成為 lifecycle_capable 並進入 Phase 2 metric 母體
   - [ ] **Phase 3（blocked）**: Trigger Design — 動態 threshold、trend_direction、cross-repo correlation；必須等 Phase 2 readiness gate 全過才能開工；不允許在沒有 evidence baseline 的情況下拍腦袋設 threshold
 
 > 排序根據：E8a 先讓 signal 有歷史，E8b 才能讓歷史有語意，E1a/E1b 再決定是否有可靠證據基礎支持更強約束。
