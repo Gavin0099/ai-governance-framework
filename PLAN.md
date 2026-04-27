@@ -647,7 +647,7 @@ API bugs 已在 2026-04-14 前的 session 修正（commits `1728e07` / `e318297`
 
 **目前建議**：策略 A 是最誠實也最省力的 immediate fix；策略 B 是中期目標（Enumd + SpecAuthority 值得推動）；策略 C 是將來 Phase 3 前的正確形式。
 
-**Standard_ISP_Tool 待辦**：補 gate_policy.yaml 的 skip 說明 comment。
+**Standard_ISP_Tool ✅ 已完成**：gate_policy.yaml 已有 `skip_type: structural` 及 C/C++ firmware 說明 comment。
 
 **決策（2026-04-18 執行）**：採用 **策略 C + A**（dual-layer report + lifecycle-capable 子母體）。
 
@@ -1185,7 +1185,7 @@ Enumd / SpecAuthority：
    **待清理項（Layer 2 完成後仍需處理）：**
    session_end_hook 輸出的 `e1b_observation.is_degenerate=True` 是 legacy entropy 公式（entropy < 0.3）殘留。
    v2 公式（`is_degenerate_v2 = lifecycle_class == "stuck_absent"`）回傳 False。
-   **這是輸出層語意污染，需清理或加 deprecation 標記。**
+   **✅ 已加 deprecation 標記（2026-04-27）**：`is_degenerate_deprecated=True`、`is_degenerate_formula="legacy_entropy"` 在三個 return path 均已設定；`format_human_result` 渲染 `[DEPRECATED:legacy_entropy]` 並附 advisory；5 個 Track A 測試通過。改公式為長期工作，不在本次範圍。
 
 
 
