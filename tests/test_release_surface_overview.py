@@ -1,3 +1,4 @@
+import json
 import subprocess
 import sys
 import shutil
@@ -31,6 +32,8 @@ def test_release_surface_overview_passes_for_current_alpha():
     assert result["ok"] is True
     assert result["readiness"]["ok"] is True
     assert result["package"]["ok"] is True
+    assert "escalation_authority" in result
+    assert result["escalation_authority"]["source"] in {"unavailable", "authority-writer-monopoly"}
     assert result["bundle_manifest"]["source"] in {"unavailable", "docs-release", "artifact-bundle"}
     assert result["publication_manifest"]["source"] in {"unavailable", "docs-release-root", "artifact-bundle"}
     assert any(item["name"] == "release_package_snapshot_docs" for item in result["commands"])
@@ -79,6 +82,7 @@ def test_release_surface_overview_human_and_markdown_outputs_are_summary_first()
         assert "[release_surface_overview]" in rendered_human
         assert "[bundle_manifest]" in rendered_human
         assert "[publication_manifest]" in rendered_human
+        assert "[escalation_authority]" in rendered_human
         assert rendered_markdown.startswith("# Release Surface Overview")
         assert "- Summary: `summary=ok=True | version=v1.0.0-alpha" in rendered_markdown
         assert "## Surface Status" in rendered_markdown
@@ -114,5 +118,54 @@ def test_release_surface_overview_cli_supports_direct_script_invocation():
 
         assert "summary=ok=True | version=v1.0.0-alpha" in result.stdout
         assert "[release_surface_overview]" in result.stdout
+        assert "[escalation_authority]" in result.stdout
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_release_surface_overview_fails_closed_on_untrusted_escalation_authority():
+    tmp_path = _local_tmp("untrusted_authority")
+    try:
+        authority_dir = tmp_path / "artifacts" / "runtime" / "e1b-phase-b-escalation" / "authority"
+        authority_dir.mkdir(parents=True, exist_ok=True)
+        bad_artifact = {
+            "artifact_type": "e1b_phase_b_escalation_authority",
+            "artifact_schema": "e1b.phase_b.escalation_authority.v1",
+            "authority_provenance": {
+                "writer_id": "fake.writer",
+                "writer_version": "1.0",
+                "authority_valid": True,
+                "payload_fingerprint": "bad",
+            },
+            "payload": {
+                "escalation_id": "esc-20260417-001",
+                "mitigation_validation_state": "author_provisional",
+                "governance_track_state": "pending_independent_validation",
+                "forced_owner": "framework_maintainer",
+                "forced_escalation_target": "tier1_reviewer_pool",
+                "forced_route_due_date": "2026-05-05",
+                "forced_route_status": "assigned",
+                "protected_claim_used": False,
+                "coverage_era": "CURRENT",
+                "coverage_caveat": None,
+                "contamination_status": "resolved",
+                "release_claims_resolved": False,
+                "release_blocked": False,
+                "release_block_reasons": [],
+                "escalation_closed": False,
+            },
+        }
+        (authority_dir / "esc-20260417-001.json").write_text(
+            json.dumps(bad_artifact, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+        result = assess_release_surface(tmp_path, version="v1.0.0-alpha")
+
+        assert result["ok"] is False
+        assert result["escalation_authority"]["available"] is True
+        assert result["escalation_authority"]["ok"] is False
+        assert result["escalation_authority"]["release_blocked"] is True
+        assert "untrusted_escalation_provenance" in result["escalation_authority"]["release_block_reasons"]
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
