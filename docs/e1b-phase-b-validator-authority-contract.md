@@ -252,6 +252,50 @@ This is a **trust root debt**, not a minor follow-up and not a closed item.
 Until runtime writes validator provenance with enforcement semantics, closure
 authority remains partially trust-based rather than fully auditable.
 
+## E2 Deferral Governance Boundary
+
+Deferral is allowed; silent suspension is not.
+Once constitutional evidence is sufficient to start legitimacy review, the
+system must not continue as if E2 were still purely observational.
+
+Minimum contract:
+1. `constitutional_evidence_trigger` must be explicit and replayable from evidence refs.
+2. `legitimacy_review_started` must be emitted after trigger reach (no indefinite limbo).
+3. If trigger is reached but review is not started, status is **process violation**.
+4. Process violation must map to hard consequences (not warnings):
+   - release readiness claim blocked
+   - OP-HC legitimacy/promotion claim blocked
+   - governance completion signoff blocked
+
+## Trigger Detection Authority (anti-veto)
+
+To prevent creator-veto-by-silence, trigger recognition requires an auditable
+detection path, not personal acknowledgment.
+
+Required detection record fields:
+- `declared_by`
+- `detection_inputs`
+- `decision_time`
+- `evidence_refs`
+
+If evidence shows trigger conditions met but no detection record exists, that is
+itself a governance process violation and must be treated fail-closed by
+consumers.
+
+## Practical Accessibility Boundary (anti-priesthood)
+
+`expensive != expert-only` is necessary but insufficient. A system can be
+formally open yet practically closed.
+
+Legitimacy claims must include a practical accessibility audit at least covering:
+- language clarity for non-creator reviewers
+- artifact readability for decision lineage
+- precedent replay cost without insider context
+- social confidence cost for raising challenges
+
+If the audit indicates technically open but practically closed participation,
+authority-distribution claims are invalid until corrected.
+
 ---
 
 > **Layer**: [OP] Operational Policy — subject to revision as independent reviewer
