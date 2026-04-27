@@ -211,3 +211,51 @@ def test_canonical_audit_log_rotation_trims_oldest_entries(tmp_path):
         assert old_id not in surviving_ids, (
             f"Old entry {old_id!r} should have been rotated out"
         )
+
+
+# ── Test 6: policy_load_error is persisted in policy_provenance ───────────────
+
+
+def test_canonical_audit_log_policy_load_error_persisted_in_provenance(tmp_path):
+    """
+    When policy_load_error is set (YAML parse failure), it must appear inside
+    policy_provenance of the JSONL entry so the parse failure is observable
+    in the E8a substrate without requiring a live session re-run.
+    """
+    error_msg = "yaml.scanner.ScannerError: mapping values are not allowed here"
+    audit = {"signals": [], "audit_note": "test"}
+    _append_canonical_audit_log(
+        project_root=tmp_path,
+        session_id="session-parse-err-dddddd",
+        artifact_state="ok",
+        canonical_path_audit=audit,
+        gate_blocked=False,
+        policy_source="builtin_default",
+        policy_path="governance/gate_policy.yaml",
+        fallback_used=True,
+        repo_policy_present=True,
+        policy_load_error=error_msg,
+    )
+
+    entries = _read_log(tmp_path)
+    assert len(entries) == 1
+    pp = entries[0]["policy_provenance"]
+    assert "policy_load_error" in pp, (
+        "policy_load_error must be present in policy_provenance when a YAML parse error occurred"
+    )
+    assert pp["policy_load_error"] == error_msg
+
+
+def test_canonical_audit_log_policy_load_error_absent_when_clean(tmp_path):
+    """
+    When policy_load_error is None (clean load), the key must NOT appear in
+    policy_provenance — entries must stay minimal when there is no error.
+    """
+    _clean_audit(tmp_path, session_id="session-clean-eeeeee")
+
+    entries = _read_log(tmp_path)
+    assert len(entries) == 1
+    pp = entries[0]["policy_provenance"]
+    assert "policy_load_error" not in pp, (
+        "policy_load_error must be absent from policy_provenance on a clean policy load"
+    )
