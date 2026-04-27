@@ -361,6 +361,20 @@ This initiative enforces promotion discipline and authority boundaries, not auto
         `authority provenance runtime enforced`
       - 目前明確列為 `trust root debt`：在 runtime 尚未強制寫入 validator provenance
         之前，authority model 仍是 partially trust-based，不得宣稱 fully auditable
+      **Authority Surface Coverage Gaps (2026-04-27)**:
+      - **Gap 1 [fixed — conditional fail-closed]**: `assess_authority_directory()` 在
+        authority dir missing 時原本一律回傳 ok=True；已修正為：
+        若 escalation log 存在且非空 → `escalation_expected_missing` → ok=False / release_blocked=True；
+        若無 log 或 log 為空 → `no_escalation_expected` → ok=True（不誤殺乾淨 repo）。
+      - **Gap 2 [open — design ready, not implemented]**: promotion gate (`phase3_promotion_gate.py`)
+        未消費 authority assessment；target 設計：`build_phase2_gate(samples, authority_assessment)` 在
+        `phase2_aggregation_consumer.py` 層聯結 misuse evidence 與 authority；promotion gate 只讀
+        aggregation consumer 產出的 canonical gate payload，不直接讀 authority dir。
+      - **Log Production Gap [known trust root debt — not fixed]**: `escalation_expected_missing`
+        的判斷依賴 `phase-b-escalation-log.jsonl` 存在且非空。若 log 未寫入或被刪除，系統靜默退回
+        `no_escalation_expected => ok=True`，等同 authority bypass。修補路徑：log write-path 需與
+        `e1b-phase-b-escalation-decisions.md` 交叉驗證，或設計 append-only enforcement；
+        此 gap 是 Gap 2 之前提條件，不先釘住則 promotion gate fail-closed 宣稱不成立。
   - [ ] **Phase 3（🔓 unblocked 2026-04-27）**: Trigger Design — 動態 threshold、trend_direction、cross-repo correlation；Phase 2 gate READY，可進入 Phase 3 設計；Phase 2.5 語意鎖仍有效（raw observation only，禁止 interpretive-class key）
 
 > 排序根據：E8a 先讓 signal 有歷史，E8b 才能讓歷史有語意，E1a/E1b 再決定是否有可靠證據基礎支持更強約束。
@@ -2049,3 +2063,6 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 | 2026-04-19 | Phase 3.16 family-level calibration summary observability | 新增 `reviewer_linter_calibration_summary.py`（human+JSON）輸出 family 樣本數、surface/tier 分布、mismatch 與 hotspots（sparse family / 高風險 subtle 缺口），定位為 advisory-only，不做 gate；CI 產出 artifact 供觀測 |
 | 2026-04-19 | Enumd observe-only probe checklist baseline | 新增 `docs/enumd-observe-only-probe-checklist.md`，明確分離「observe-only containment probe」與「integration-ready」：先驗欄位穩定、boundary metadata、一致 runtime isolation、語意誘導與 consumer 誤讀風險；禁止把 probe pass 解讀為可併入 decision path |
 | 2026-04-19 | Enumd first-batch observe-only probe runner | 新增 `governance_tools/enumd_observe_only_probe.py` 與對應測試；以 advisory-only 方式對第一批 Enumd 樣本輸出固定 per-sample 欄位與 batch 結論（`safe_for_observe_only` / `observe_only_with_inducement_risk` / `boundary_fail_do_not_progress`）；CI 僅上傳 probe artifact，不阻斷流程 |
+| 2026-04-27 | Gap 1 — authority directory conditional fail-closed | `assess_authority_directory()` 加入 escalation log 偵測：有 log 且非空 → `escalation_expected_missing` → ok=False / release_blocked=True；無 log 或空 log → `no_escalation_expected` → ok=True（不誤殺乾淨 repo）；propagate 至 release_surface_overview、reviewer_handoff 鏈；+9 net new passing tests |
+| 2026-04-27 | Log Production Gap — trust root debt 顯式記錄 | `escalation_expected_missing` 判斷依賴 `phase-b-escalation-log.jsonl`；log 若缺失或被刪則靜默退回 no_escalation_expected => ok=True（authority bypass）；修補路徑：log write-path 需與 `e1b-phase-b-escalation-decisions.md` 交叉驗證或設計 append-only enforcement；記錄於 PLAN.md Gap inventory 及 `docs/e1b-phase-b-validator-authority-contract.md` Trust Root Debt；不擋 Gap 2 但為其前提條件 |
+| 2026-04-27 | Gap 2 — promotion gate authority integration via aggregation consumer | `phase2_aggregation_consumer.build_phase2_gate(aggregation_result, authority_assessment)` 為 promotion path 的唯一 authority 聯結點；`promote_eligible` 已於此層納入 authority gate（fail-closed default）；`phase3_promotion_gate.evaluate_phase3_promotion_entry()` 擴展讀取 `gate_block_reasons` + `authority_ok` 供 audit；promotion gate 不直接讀 authority dir；17 新測試（`test_phase2_gate_authority.py`） |

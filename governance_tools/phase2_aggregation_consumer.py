@@ -202,3 +202,62 @@ def aggregate_phase2_state(
         "normalized_statuses": normalized,
         "promote_eligible": current_state == "closure_verified",
     }
+
+
+def build_phase2_gate(
+    aggregation_result: dict[str, Any],
+    authority_assessment: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Produce a canonical gate payload by joining Phase 2 aggregation result
+    with escalation authority assessment.
+
+    This is the ONLY place where misuse evidence eligibility and escalation
+    authority are combined.  The promotion gate MUST consume this output and
+    MUST NOT read authority_assessment directly.
+
+    authority_assessment: output of assess_authority_directory() — keys used:
+        ok, release_blocked, release_block_reasons, source.
+
+    Fail-closed defaults: missing keys treated as authority_ok=False,
+    release_blocked=True.  An empty or None dict denies promotion.
+    """
+    authority_ok = bool(authority_assessment.get("ok", False))
+    authority_release_blocked = bool(authority_assessment.get("release_blocked", True))
+
+    misuse_promote_eligible = bool(aggregation_result.get("promote_eligible", False))
+    gate_promote_eligible = (
+        misuse_promote_eligible and authority_ok and not authority_release_blocked
+    )
+
+    gate_block_reasons: list[str] = []
+    if not misuse_promote_eligible:
+        current_state = aggregation_result.get("current_state", "unknown")
+        gate_block_reasons.append(f"aggregation_not_promote_eligible:{current_state}")
+    if not authority_ok or authority_release_blocked:
+        for reason in authority_assessment.get("release_block_reasons") or []:
+            if reason not in gate_block_reasons:
+                gate_block_reasons.append(reason)
+        if not authority_ok and not any(
+            r.startswith("aggregation_not_promote_eligible") or "authority" in r
+            for r in gate_block_reasons
+        ):
+            gate_block_reasons.append("authority_assessment_not_ok")
+
+    return {
+        "aggregation_result": {
+            "current_state": aggregation_result.get("current_state"),
+            "promote_eligible": gate_promote_eligible,
+        },
+        "authority_assessment_summary": {
+            "ok": authority_ok,
+            "release_blocked": authority_release_blocked,
+            "source": authority_assessment.get("source"),
+            "release_block_reasons": list(
+                authority_assessment.get("release_block_reasons") or []
+            ),
+        },
+        "gate_promote_eligible": gate_promote_eligible,
+        "gate_block_reasons": gate_block_reasons,
+        "gate_version": "phase2_gate.v1",
+    }

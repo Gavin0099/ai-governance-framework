@@ -42,12 +42,25 @@ def evaluate_phase3_promotion_entry(payload: dict[str, Any]) -> dict[str, Any]:
 
     allowed = current_state == "closure_verified" and promote_eligible is True
 
+    # Surface gate_block_reasons and authority_ok when payload came from
+    # build_phase2_gate().  Audit fields only — allow/deny is still solely
+    # based on aggregation_result.promote_eligible (which already encodes
+    # authority when the payload was built via build_phase2_gate).
+    gate_block_reasons = list(payload.get("gate_block_reasons") or [])
+    authority_summary = payload.get("authority_assessment_summary")
+
+    decision_basis: dict[str, Any] = {
+        "current_state": current_state,
+        "promote_eligible": promote_eligible,
+    }
+    if gate_block_reasons:
+        decision_basis["gate_block_reasons"] = gate_block_reasons
+    if authority_summary is not None:
+        decision_basis["authority_ok"] = bool(authority_summary.get("ok"))
+
     return {
         "phase3_entry_allowed": allowed,
-        "decision_basis": {
-            "current_state": current_state,
-            "promote_eligible": promote_eligible,
-        },
+        "decision_basis": decision_basis,
         "policy_source": "phase3_promotion_gate.v1",
         "notes": (
             "Denied: requires current_state=closure_verified AND promote_eligible=true"
