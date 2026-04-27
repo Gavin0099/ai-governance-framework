@@ -252,6 +252,65 @@ This is a **trust root debt**, not a minor follow-up and not a closed item.
 Until runtime writes validator provenance with enforcement semantics, closure
 authority remains partially trust-based rather than fully auditable.
 
+### Authority-Required Detection Fail-Closed (v0.1)
+
+`assess_authority_directory()` now evaluates escalation activity from two
+independent sources:
+1. `phase-b-escalation-log.jsonl` (log signal)
+2. `phase-b-escalation-register.json` (register signal)
+
+If register reports active escalation IDs while log is absent/empty, status is
+`escalation_expected_missing` and the system fails closed (`ok=False`,
+`release_blocked=True`). This closes the previous single-log bypass path.
+
+Boundary notes (intentional in v0.1):
+1. `legacy_only` log integrity is accepted for compatibility and does not
+   auto-fail-closed. This is compatibility behavior, not full trust completion.
+2. If register is absent, current behavior still falls back to log-only
+   assessment (`ok=True` when no escalation expected). Register is not yet a
+   mandatory trust root for all repos.
+
+Remaining debt:
+- mandatory register enforcement with transition plan (opt-in -> default-on)
+- strict legacy rejection timeline after migration window
+
+## Trust Root Maturity Matrix (2026-04-27)
+
+| Capability | Status |
+| --- | --- |
+| authority writer monopoly | achieved |
+| authority artifact tamper detection | achieved |
+| release surface fail-closed | achieved |
+| promotion path provided-assessment authority gate | achieved |
+| log/register detection redundancy | achieved v0.1 |
+| mandatory register enforcement | not yet |
+| legacy log strict rejection | not yet |
+
+### Log Production Gap (historical pre-v0.1 context)
+
+`assess_authority_directory()` determines whether authority artifacts are
+**required** by checking `phase-b-escalation-log.jsonl`. If the log is absent
+or empty, the system returns `no_escalation_expected → ok=True`, treating it
+as a clean no-escalation state.
+
+**The gap**: the log is the sole trigger for `authority_required=True`. If the
+log is never written or is deleted, the system silently degrades to
+`no_escalation_expected → ok=True` even when active escalation cases exist.
+This is equivalent to an authority bypass through the production path.
+
+**Mitigation path** (not yet implemented):
+1. Cross-verify escalation log presence against `e1b-phase-b-escalation-decisions.md`
+   — if the decisions doc records active cases but no log exists, treat as
+   governance gap, not clean state.
+2. Or enforce append-only / write-once semantics on the log at the writer level,
+   preventing silent deletion.
+
+**Why this matters before Gap 2**: Gap 2 routes authority assessment through
+`phase2_aggregation_consumer.build_phase2_gate()`, making the promotion gate
+fail-closed when `authority_ok=False`. But if the log production gap allows
+`authority_ok=True` when it should be `False`, the fail-closed guarantee is
+conditional on log integrity — which is not yet enforced. Claiming "promotion
+path is fail-closed" without fixing this gap is a false completion claim.
 ## E2 Deferral Governance Boundary
 
 Deferral is allowed; silent suspension is not.
