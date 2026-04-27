@@ -17,6 +17,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from governance_tools.escalation_log_writer import assess_escalation_register
+
 
 WRITER_ID = "governance_tools.escalation_authority_writer"
 WRITER_VERSION = "1.0"
@@ -321,17 +323,27 @@ def assess_authority_artifact(path: Path) -> dict[str, Any]:
 def assess_authority_directory(project_root: Path) -> dict[str, Any]:
     authority_dir = default_authority_dir(project_root)
 
-    # Detect whether active escalation cases exist by checking the escalation log
-    # in the parent directory (sibling of the authority/ subdirectory).
-    # If the log exists with content, authority artifacts are *expected*;
-    # their absence is a governance gap, not a clean "no escalations" state.
     escalation_log = authority_dir.parent / "phase-b-escalation-log.jsonl"
-    escalation_active = escalation_log.is_file() and escalation_log.stat().st_size > 0
+    register_path = authority_dir.parent / "phase-b-escalation-register.json"
+
+    # Primary signal: escalation log existence with content.
+    escalation_active_from_log = escalation_log.is_file() and escalation_log.stat().st_size > 0
+
+    # Independent signal: companion register (survives log deletion).
+    # If the register says active cases exist but the log is absent or empty,
+    # we still treat escalation as active — the register is the cross-verification source.
+    register_result = assess_escalation_register(register_path)
+    escalation_active_from_register = (
+        register_result["available"]
+        and register_result["ok"]
+        and register_result["escalation_active"]
+    )
+    register_has_problem = register_result["available"] and not register_result["ok"]
+
+    escalation_active = escalation_active_from_log or escalation_active_from_register
 
     if not authority_dir.is_dir():
         if escalation_active:
-            # Escalation cases exist but no authority artifacts have been written.
-            # This is a governance gap: authority is *expected* but *missing*.
             return {
                 "available": False,
                 "ok": False,
@@ -342,7 +354,17 @@ def assess_authority_directory(project_root: Path) -> dict[str, Any]:
                 "release_block_reasons": ["escalation_active_but_no_authority_artifacts"],
                 "records": [],
             }
-        # No escalation log → no active cases → authority not required.
+        if register_has_problem:
+            return {
+                "available": False,
+                "ok": False,
+                "source": "register_integrity_failed",
+                "authority_dir": str(authority_dir),
+                "artifacts_read": 0,
+                "release_blocked": True,
+                "release_block_reasons": list(register_result.get("release_block_reasons") or []),
+                "records": [],
+            }
         return {
             "available": False,
             "ok": True,
@@ -364,9 +386,16 @@ def assess_authority_directory(project_root: Path) -> dict[str, Any]:
             if reason not in reasons:
                 reasons.append(reason)
 
+    # Propagate register integrity problems even when authority dir exists.
+    if register_has_problem:
+        blocked = True
+        for r in register_result.get("release_block_reasons") or []:
+            if r not in reasons:
+                reasons.append(r)
+
     return {
         "available": len(files) > 0,
-        "ok": all_ok,
+        "ok": all_ok and not register_has_problem,
         "source": "authority-writer-monopoly",
         "authority_dir": str(authority_dir),
         "artifacts_read": len(files),
