@@ -252,6 +252,32 @@ This is a **trust root debt**, not a minor follow-up and not a closed item.
 Until runtime writes validator provenance with enforcement semantics, closure
 authority remains partially trust-based rather than fully auditable.
 
+### Log Production Gap (known, not fixed)
+
+`assess_authority_directory()` determines whether authority artifacts are
+**required** by checking `phase-b-escalation-log.jsonl`. If the log is absent
+or empty, the system returns `no_escalation_expected → ok=True`, treating it
+as a clean no-escalation state.
+
+**The gap**: the log is the sole trigger for `authority_required=True`. If the
+log is never written or is deleted, the system silently degrades to
+`no_escalation_expected → ok=True` even when active escalation cases exist.
+This is equivalent to an authority bypass through the production path.
+
+**Mitigation path** (not yet implemented):
+1. Cross-verify escalation log presence against `e1b-phase-b-escalation-decisions.md`
+   — if the decisions doc records active cases but no log exists, treat as
+   governance gap, not clean state.
+2. Or enforce append-only / write-once semantics on the log at the writer level,
+   preventing silent deletion.
+
+**Why this matters before Gap 2**: Gap 2 routes authority assessment through
+`phase2_aggregation_consumer.build_phase2_gate()`, making the promotion gate
+fail-closed when `authority_ok=False`. But if the log production gap allows
+`authority_ok=True` when it should be `False`, the fail-closed guarantee is
+conditional on log integrity — which is not yet enforced. Claiming "promotion
+path is fail-closed" without fixing this gap is a false completion claim.
+
 ## E2 Deferral Governance Boundary
 
 Deferral is allowed; silent suspension is not.
