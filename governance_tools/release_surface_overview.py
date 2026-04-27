@@ -147,6 +147,12 @@ def assess_release_surface(
         publication_manifest=publication_manifest,
     )
     escalation_authority = assess_authority_directory(project_root)
+    lifecycle_effective = dict(escalation_authority.get("lifecycle_effective_by_escalation") or {})
+    escalation_authority["lifecycle_effective_by_escalation"] = lifecycle_effective
+    escalation_authority["precedence_applied"] = bool(
+        escalation_authority.get("precedence_applied")
+        or escalation_authority.get("source") == "authority-writer-monopoly"
+    )
 
     return {
         "ok": readiness["ok"] and package["ok"] and bundle["ok"] and publication["ok"] and escalation_authority["ok"],
@@ -254,7 +260,10 @@ def format_human_result(result: dict[str, Any]) -> str:
                 f"ok={escalation_authority['ok']}",
                 f"source={escalation_authority['source']}",
                 f"artifacts_read={escalation_authority['artifacts_read']}",
+                f"precedence_applied={escalation_authority.get('precedence_applied')}",
                 f"release_blocked={escalation_authority['release_blocked']}",
+                "lifecycle_effective_by_escalation="
+                + json.dumps(escalation_authority.get("lifecycle_effective_by_escalation") or {}, ensure_ascii=False, sort_keys=True),
             ]
         )
         reasons = escalation_authority.get("release_block_reasons") or []
@@ -307,7 +316,11 @@ def format_markdown_result(result: dict[str, Any]) -> str:
         f"| Release package | `{package['ok']}` | release_docs=`{package['existing_release_docs']}/{package['release_doc_count']}` status_docs=`{package['existing_status_docs']}/{package['status_doc_count']}` |",
         f"| Bundle manifest | `{'missing' if not bundle['available'] else bundle['ok']}` | source=`{bundle['source']}` manifest=`{bundle.get('manifest_file')}` |",
         f"| Publication manifest | `{'missing' if not publication['available'] else publication['ok']}` | source=`{publication['source']}` manifest=`{publication.get('manifest_file')}` |",
-        f"| Escalation authority | `{'missing' if not escalation_authority['available'] else escalation_authority['ok']}` | source=`{escalation_authority['source']}` artifacts=`{escalation_authority.get('artifacts_read')}` release_blocked=`{escalation_authority.get('release_blocked')}` |",
+        f"| Escalation authority | `{'missing' if not escalation_authority['available'] else escalation_authority['ok']}` | source=`{escalation_authority['source']}` artifacts=`{escalation_authority.get('artifacts_read')}` precedence_applied=`{escalation_authority.get('precedence_applied')}` release_blocked=`{escalation_authority.get('release_blocked')}` |",
+        "",
+        "### Escalation Lifecycle Effective State",
+        "",
+        f"- `lifecycle_effective_by_escalation={json.dumps(escalation_authority.get('lifecycle_effective_by_escalation') or {}, ensure_ascii=False, sort_keys=True)}`",
         "",
         "## Suggested Commands",
         "",
