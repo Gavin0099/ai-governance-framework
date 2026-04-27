@@ -1249,6 +1249,14 @@ Enumd / SpecAuthority：
    - 保留脫離指標的路徑（指標失效時，framework 仍有判斷能力）
    **禁止：用 E3 metric 達成來宣稱框架有效；metric 達成只能增加 confidence，不能替代 substantive evidence。**
 
+   **Measurement Authority Separation（E3 設計約束）**：
+   E3 的 metric 必須滿足以下分離原則，否則 Goodhart's Law 必然發生：
+   - **定義者 ≠ 唯一解釋者**：metric 由框架設計，但 success 判斷必須有 independent reviewer 參與
+   - **收集者 ≠ 裁決者**：收集 metric 的工具/流程不得同時輸出「框架成功」的結論
+   - **producer ≠ sole owner of metric success**：同一個人不得同時定義 metric、收集 metric、解釋 metric、宣稱 metric success
+   沒有 measurement authority separation，E3 proof 退化為：
+   「我設計的 metric 證明我成功」— 這跟沒有治理等價。
+
    **scanner 語意邊界（E1b Phase B 觀測輔助工具定位）**：
    `e1b_consumer_audit.scan_consumer_text()` 是 **lexical tripwire**，不是 semantic proof。
    它只能偵測已知 trigger 詞組的出現（E1–E4 的 forbidden lexical patterns）。
