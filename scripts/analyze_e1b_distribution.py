@@ -739,6 +739,21 @@ def compute_repo_stats(entries: list[dict]) -> dict[str, dict]:
             "lifecycle_capable": lifecycle_capable,
             "skip_type_entry_count": skip_type_entry_count,
             "skip_type_coverage_ratio": skip_type_coverage_ratio,
+            # coverage_era: per-repo temporal era label derived from skip_type_coverage_ratio.
+            # Downstream consumers MUST check this before citing lifecycle_class or
+            # stable_ok conclusions as "proven stable". Low coverage_era means the repo's
+            # history is mostly pre-schema and lifecycle trends are not reliably verifiable.
+            "coverage_era": (
+                "CURRENT"
+                if skip_type_coverage_ratio >= _SKIP_TYPE_COVERAGE_CURRENT_THRESHOLD
+                else "TRANSITION"
+                if skip_type_coverage_ratio >= _SKIP_TYPE_COVERAGE_TRANSITION_THRESHOLD
+                else "PRE-SKIP-TYPE-ERA"
+            ),
+            # pre_era_fraction: fraction of entries that predate skip_type schema.
+            # A high value (close to 1.0) means lifecycle_class is based almost entirely
+            # on pre-classification data. Any citation of "proven stable" requires this < 0.3.
+            "pre_era_fraction": round(1.0 - skip_type_coverage_ratio, 4),
             "post_skip_lifecycle_count": post_skip_lifecycle_count,
             "distinct_fingerprint_count": distinct_fingerprint_count,
             "fingerprint_diversity": fingerprint_diversity,

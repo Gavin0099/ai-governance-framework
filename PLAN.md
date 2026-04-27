@@ -352,6 +352,11 @@ This initiative enforces promotion discipline and authority boundaries, not auto
       **Participating repo guides (2026-04-27)**:
       - `docs/e1b-phase-b-repo-participation-guide.md` — 外部 repo 如何貢獻 Phase B 觀測實例（步驟 + 簡化記錄格式）
       - `docs/e1b-phase2-lifecycle-capable-setup.md` — 外部 repo 如何成為 lifecycle_capable 並進入 Phase 2 metric 母體
+      **Validator Authority Contract (2026-04-27)**:
+      - `docs/e1b-phase-b-validator-authority-contract.md` — 誰可以 sign off Phase B closure
+      - 釘住：`pending_human_validation` ≠ `pending_creator_validation`；作者自我驗證
+        必須走 Tier 2 independence protocol，不能當 sole authority；
+        沒有此 contract，Phase B closure 預設退化為 self-certification
   - [ ] **Phase 3（🔓 unblocked 2026-04-27）**: Trigger Design — 動態 threshold、trend_direction、cross-repo correlation；Phase 2 gate READY，可進入 Phase 3 設計；Phase 2.5 語意鎖仍有效（raw observation only，禁止 interpretive-class key）
 
 > 排序根據：E8a 先讓 signal 有歷史，E8b 才能讓歷史有語意，E1a/E1b 再決定是否有可靠證據基礎支持更強約束。
@@ -1217,6 +1222,12 @@ Enumd / SpecAuthority：
    - false promotion rate 可觀測並呈下降趨勢
    - stale activation 可被解釋（不是靜默消失）
    E2 的目標不是測試，而是 **prove governance survives reality**。
+   **E2 不是被動等待**：不能 fake evidence，但可以主動改善 observability：
+   - 降低 adoption friction → 更多 repo 可以成功採用（直接增加 E2 母體）
+   - 提升 reviewer clarity → 更低的 false stale / 更快的 gate decision
+   - 改善 closeout usability → 更少需要人工介入才能完成 session
+   - 減少 required human effort per session → 讓 E2 累積不依賴高頻人力投入
+   「只能等觀測」的說法是錯的。E2 的可驗證條件可以被框架設計主動影響。
 
    **E3: Value Proof（E2 之後的下一個問題）**：
    E3 回答的問題是：「這個框架讓決策變得更好了嗎？」
