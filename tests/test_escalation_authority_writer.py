@@ -81,6 +81,7 @@ def test_assess_fails_closed_for_untrusted_writer():
     assert assessed["authority_valid"] is False
     assert assessed["release_blocked"] is True
     assert "untrusted_escalation_provenance" in assessed["release_block_reasons"]
+    assert "untrusted_writer_identity" in assessed["release_block_reasons"]
 
 
 def test_assess_fails_closed_when_provenance_linkage_is_missing():
@@ -114,6 +115,8 @@ def test_assess_fails_closed_for_fingerprint_mismatch():
     assert assessed["ok"] is False
     assert assessed["fingerprint_valid"] is False
     assert assessed["release_blocked"] is True
+    assert "payload_fingerprint_mismatch" in assessed["release_block_reasons"]
+    assert "normalized_payload_hash_mismatch" in assessed["release_block_reasons"]
 
 
 def test_overdue_route_is_release_blocked_even_when_authority_valid():
@@ -148,3 +151,59 @@ def test_written_artifact_declares_expected_schema_and_writer_id():
     assert artifact["authority_provenance"]["provenance_linkage_version"] == "v1"
     assert "source_inputs_hash" in artifact["authority_provenance"]
     assert "normalized_payload_hash" in artifact["authority_provenance"]
+
+
+def test_tamper_replay_blocks_schema_valid_but_non_authority_writer_artifact():
+    project_root = _tmp_dir("tamper_schema_valid_untrusted_writer")
+    payload = _valid_payload()
+    artifact = build_authority_artifact(payload)
+    artifact["authority_provenance"]["writer_id"] = "manual.json.writer"
+    out_file = default_authority_artifact_path(project_root, payload["escalation_id"])
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    out_file.write_text(json.dumps(artifact, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    assessed = assess_authority_artifact(out_file)
+
+    assert assessed["release_blocked"] is True
+    assert "untrusted_escalation_provenance" in assessed["release_block_reasons"]
+    assert "untrusted_writer_identity" in assessed["release_block_reasons"]
+    assert assessed["trusted_writer"] is False
+
+
+def test_tamper_replay_blocks_forced_owner_and_status_mutation_of_copied_artifact():
+    project_root = _tmp_dir("tamper_forced_owner_status")
+    payload = _valid_payload()
+    artifact = build_authority_artifact(payload)
+    artifact["payload"]["forced_owner"] = "tampered_owner"
+    artifact["payload"]["forced_route_status"] = "completed"
+    out_file = default_authority_artifact_path(project_root, payload["escalation_id"])
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    out_file.write_text(json.dumps(artifact, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    assessed = assess_authority_artifact(out_file)
+
+    assert assessed["release_blocked"] is True
+    assert "untrusted_escalation_provenance" in assessed["release_block_reasons"]
+    assert "payload_fingerprint_mismatch" in assessed["release_block_reasons"]
+    assert "normalized_payload_hash_mismatch" in assessed["release_block_reasons"]
+    assert assessed["fingerprint_valid"] is False
+    assert assessed["normalized_hash_valid"] is False
+
+
+def test_tamper_replay_blocks_coverage_and_protected_claim_linkage_mutation():
+    project_root = _tmp_dir("tamper_coverage_linkage")
+    payload = _valid_payload()
+    artifact = build_authority_artifact(payload)
+    artifact["payload"]["coverage_era"] = "TRANSITION"
+    artifact["payload"]["coverage_caveat"] = None
+    out_file = default_authority_artifact_path(project_root, payload["escalation_id"])
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    out_file.write_text(json.dumps(artifact, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    assessed = assess_authority_artifact(out_file)
+
+    assert assessed["release_blocked"] is True
+    assert "untrusted_escalation_provenance" in assessed["release_block_reasons"]
+    assert "payload_prewrite_validation_failed" in assessed["release_block_reasons"]
+    assert "normalized_payload_hash_mismatch" in assessed["release_block_reasons"]
+    assert assessed["authority_valid"] is False
