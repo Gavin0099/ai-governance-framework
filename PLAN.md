@@ -1184,14 +1184,17 @@ Enumd / SpecAuthority：
      - trust boundary design：任何聲稱「歷史趨勢」的結論，必須先通過 era coverage check；
        check 失敗 → 結論必須降級為 `not_supported_under_current_coverage`
 
-   **Adoption Friction = Framework Defect（2026-04-27）**：
-   Bookstore-Scraper 7 errors（temp directory permission / environment isolation 問題）不是外部 repo 的設置錯誤。
-   如果框架的測試在標準 adoption 環境中無法乾淨執行，**friction 就是 framework defect**，不是使用者問題。
-   需要的不是「叫採用者自己解決」，而是：
+   **Unexplained Adoption Friction Defaults to Framework Defect（2026-04-27）**：
+   Bookstore-Scraper 7 errors（temp directory permission / environment isolation 問題）屬於「原因未解釋的 friction」。
+   **預設責任在框架側**，除非查明是 adopter 環境本身的特殊污染（已損壞的 OS temp、CI policy 干預、repo 髒狀態等）。
+   責任歸屬原則：
+   - **unexplained friction** → 框架預設有責任，需提供解法
+   - **explained friction（adopter-side root cause 可驗證）** → 框架記錄為 known adopter environment constraint，非 defect
+   需要的是：
    - hermetic test guidance：明確說明哪些測試需要隔離 temp path（不依賴 OS global temp）
    - temp path isolation defaults：`conftest.py` 或 `pytest.ini` 層級提供隔離預設值
    - adoption smoke test：框架提供一個可以在 fresh environment 驗證 adoption 完整性的最小指令集
-   **沒有這些，`adoption friction` 就是一個持續壓制外部參與的結構性障礙。**
+   **沒有 root cause 就歸責採用者，是 false accountability，不是治理。**
 
    **Submodule Local Fork Pressure（2026-04-27 記錄）**：
    Bookstore-Scraper 的 `.ai-governance-framework` submodule 更新被本地 tracked 檔案阻斷：
@@ -1225,6 +1228,15 @@ Enumd / SpecAuthority：
    - non-author reviewer 的 decision confidence 可量化且呈改善趨勢
    E3 是框架存在的根本理由驗證，不是 E2 的延伸。
    **禁止用 E2 evidence 聲稱 E3 已達成。**
+
+   **E3 Goodhart Guard（設計約束，釘住）**：
+   一旦 "improve decisions" 被量化為 KPI（review satisfaction / incident rate / decision latency 等），
+   Goodhart's Law 直接適用：**when a measure becomes a target, it ceases to be a good measure**。
+   E3 的信號必須：
+   - 服務 reviewer judgment，不取代 reviewer judgment
+   - 可驗偽（可以被反例推翻），不是用來自我確認
+   - 保留脫離指標的路徑（指標失效時，framework 仍有判斷能力）
+   **禁止：用 E3 metric 達成來宣稱框架有效；metric 達成只能增加 confidence，不能替代 substantive evidence。**
 
    **scanner 語意邊界（E1b Phase B 觀測輔助工具定位）**：
    `e1b_consumer_audit.scan_consumer_text()` 是 **lexical tripwire**，不是 semantic proof。
