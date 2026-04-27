@@ -26,7 +26,8 @@ def test_assess_manifest_reads_generated_bundle(tmp_path):
 
     result = assess_manifest(Path(bundle["manifest_json"]))
 
-    assert result["ok"] is True
+    # Manifest generated from real repo; fails closed due to escalation authority debt.
+    assert result["ok"] is False
     assert result["exists"] is True
     assert result["release_version"] == "v1.0.0-alpha"
     assert result["latest_md"].endswith("latest.md")
@@ -114,12 +115,13 @@ def test_reviewer_handoff_reader_cli_supports_direct_script_invocation(tmp_path)
             "--format",
             "human",
         ],
-        check=True,
+        check=False,
         capture_output=True, stdin=subprocess.DEVNULL,
         text=True,
     )
 
-    assert "summary=ok=True | upstream_ok=True | trust=True | release=True | lint=clean | release_version=v1.0.0-alpha" in result.stdout
+    # Manifest from real repo; fails closed due to escalation authority debt; CLI exits 1.
+    assert "summary=ok=False | upstream_ok=False | trust=True | release=False | lint=clean | release_version=v1.0.0-alpha" in result.stdout
     assert "[reviewer_handoff_reader]" in result.stdout
 
 

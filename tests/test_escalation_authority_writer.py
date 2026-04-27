@@ -164,11 +164,48 @@ def test_overdue_route_is_release_blocked_even_when_authority_valid():
     assert "forced_route_overdue" in assessed["release_block_reasons"]
 
 
-def test_assess_directory_reports_missing_as_available_false_not_failure():
-    project_root = _tmp_dir("missing_dir")
+def test_assess_directory_no_escalation_expected_when_no_log():
+    """No authority dir AND no escalation log → no_escalation_expected → ok=True."""
+    project_root = _tmp_dir("missing_dir_no_log")
     result = assess_authority_directory(project_root)
 
     assert result["available"] is False
+    assert result["ok"] is True
+    assert result["release_blocked"] is False
+    assert result["source"] == "no_escalation_expected"
+
+
+def test_assess_directory_escalation_expected_missing_fails_closed_when_log_active():
+    """Authority dir absent BUT escalation log present with content → fail-closed."""
+    project_root = _tmp_dir("missing_dir_with_log")
+    # Create the escalation log sibling (parent of authority/ dir)
+    from governance_tools.escalation_authority_writer import default_authority_dir
+    authority_dir = default_authority_dir(project_root)
+    authority_dir.parent.mkdir(parents=True, exist_ok=True)
+    escalation_log = authority_dir.parent / "phase-b-escalation-log.jsonl"
+    escalation_log.write_text('{"escalation_id": "esc-001"}\n', encoding="utf-8")
+    # authority_dir itself does NOT exist
+
+    result = assess_authority_directory(project_root)
+
+    assert result["available"] is False
+    assert result["ok"] is False
+    assert result["release_blocked"] is True
+    assert "escalation_active_but_no_authority_artifacts" in result["release_block_reasons"]
+    assert result["source"] == "escalation_expected_missing"
+
+
+def test_assess_directory_no_escalation_expected_when_log_empty():
+    """Escalation log exists but is empty (zero bytes) → treated as no active cases → ok=True."""
+    project_root = _tmp_dir("missing_dir_empty_log")
+    from governance_tools.escalation_authority_writer import default_authority_dir
+    authority_dir = default_authority_dir(project_root)
+    authority_dir.parent.mkdir(parents=True, exist_ok=True)
+    escalation_log = authority_dir.parent / "phase-b-escalation-log.jsonl"
+    escalation_log.write_text("", encoding="utf-8")
+
+    result = assess_authority_directory(project_root)
+
     assert result["ok"] is True
     assert result["release_blocked"] is False
 
