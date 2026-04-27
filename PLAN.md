@@ -1280,6 +1280,25 @@ Enumd / SpecAuthority：
    沒有 measurement authority separation，E3 proof 退化為：
    「我設計的 metric 證明我成功」— 這跟沒有治理等價。
 
+   **Framing Authority Separation（E3 設計約束，最隱性的一層）**：
+   Goodhart guard 的四層分離（定義/收集/解釋/裁決）之上，還有第零層：
+   **framing authority — 誰定義「success 長什麼樣子」**。
+   這一層比 metric 本身更危險，因為它決定了哪些問題可以被問、哪些問題被消除。
+   例如：選擇衡量 "reviewer satisfaction" 而非 "reviewer error rate" 是不同的 framing，
+   會讓 E3 產生完全不同的結論——即使 metric 本身定義正確。
+   要求：
+   - **framing 來源必須被記錄**：誰決定 E3 要衡量什麼，必須在記錄中可見
+   - **framing 決策不得由單一 stakeholder 獨立完成**：至少需要一個不同利益來源的 co-reviewer
+   - **framing 可以被挑戰**：「為什麼是衡量這個，而不是那個」是合法的 governance 問題
+
+   **Meta-Governance Core Principle（釘住）**：
+   **trust model changes must be expensive, explicit, and reversible**。
+   - expensive = proof burden 高（不是表單多；不是流程繁瑣）
+   - explicit = 改動被命名、記錄、可審計（不是隱性漂移）
+   - reversible = 有 rollback path（沒有 rollback path 的 rule 在實踐上等於 INV）
+   三個條件缺一不可。任何聲稱已滿足 meta-governance 要求但缺少其中一個的改動，
+   必須被標記為 incomplete governance change，不得作為 OP-HC 的合法修改。
+
    **scanner 語意邊界（E1b Phase B 觀測輔助工具定位）**：
    `e1b_consumer_audit.scan_consumer_text()` 是 **lexical tripwire**，不是 semantic proof。
    它只能偵測已知 trigger 詞組的出現（E1–E4 的 forbidden lexical patterns）。
