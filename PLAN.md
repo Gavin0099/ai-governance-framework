@@ -1276,21 +1276,21 @@ python scripts/analyze_e1b_distribution.py --auto-discover
 
 - [ ] 評估 BUG-003 後續是否需要從 byte-size 再擴到更高階的多維記憶壓力信號
 - [ ] 評估 starter-pack 升級路徑是否要補 lock/manifest，而不是只有 refresh
-- [ ] **gate_policy parse failure（observability integrity risk，不是一般 backlog）**：  
-  這不是單純解析錯一個 repo 的問題，而是：  
-  「設定錯 → 靜默回退 → 偽正常觀測」三步被包成同一個外觀。  
-  `skip_type=None`、`fallback_used=True` 雖然存在，但對觀測者而言外觀與「正常 repo」無法區分，  
-  直接破壞 fleet reality 的信任度。cli 個案是靠「分類異常」才倒推發現；  
-  下次不能靠偶然觀察。**每一個被靜默吸收的 parse error 都是一次未被記錄的 fleet 污染。**  
-  **最低可接受結果（三選一，不要求全做，但必須有一層可見）：**  
-  - `policy_provenance` 加 `policy_source=fallback_due_to_parse_error` + parse error message（provenance 層）
-  - session_end_hook output 加 `[ADVISORY] gate_policy: YAML parse failed, using builtin_defaults`（operator 層）
-  - E8a log 標記 `parse_error: true`（observability substrate 層）
+- [x] **gate_policy parse failure（observability integrity risk，不是一般 backlog）**：
+  這不是單純解析錯一個 repo 的問題，而是：
+  「設定錯 → 靜默回退 → 偽正常觀測」三步被包成同一個外觀。
+  `skip_type=None`、`fallback_used=True` 雖然存在，但對觀測者而言外觀與「正常 repo」無法區分，
+  直接破壞 fleet reality 的信任度。cli 個案是靠「分類異常」才倒推發現；
+  下次不能靠偶然觀察。**每一個被靜默吸收的 parse error 都是一次未被記錄的 fleet 污染。**
+  **最低可接受結果（三選一，不要求全做，但必須有一層可見）：**
+  - [x] `policy_provenance` 加 `policy_load_error` + parse error message（provenance 層）— 3 tests
+  - [x] session_end_hook output 加 `[ADVISORY] gate_policy: YAML parse failed, using builtin_defaults`（operator 層）— 2 tests
+  - [x] E8a log `policy_provenance.policy_load_error`（observability substrate 層）— 2 tests（2026-04-27）
 
-  **⚠️ 這三選一是最低保底，不是終態。**  
-  parse failure 的本質是 fleet observability integrity issue，不是操作提醒。  
-  advisory / provenance / log 只解決「不再靜默」的問題，但這類錯誤如果只停留在 advisory，  
-  仍然容易被忽略。長期走向是更強的可見性（阻斷或強制 operator ack），目前先以三選一保底，  
+  **⚠️ 三選一最低保底已全部實作，共 7 個測試覆蓋。**
+  parse failure 的本質是 fleet observability integrity issue，不是操作提醒。
+  advisory / provenance / log 只解決「不再靜默」的問題，但這類錯誤如果只停留在 advisory，
+  仍然容易被忽略。長期走向是更強的可見性（阻斷或強制 operator ack），目前先以三選一保底，
   但這條不能被視為「解決了」，只能視為「最小保底」。
 
 ---
