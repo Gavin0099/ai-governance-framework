@@ -1167,8 +1167,36 @@ Enumd / SpecAuthority：
    | ai-governance-framework | 10 | stable_ok | absent:1, ok:9 |
 
    **已知警告（非阻斷）**：
-   - `skip_type_coverage=0.1522`（MIGRATION BLOCKED）：舊 entry 不帶 skip_type，屬過渡期；不影響 v2 gate
    - `legacy degenerate_rate=1.0`：已標記 DEPRECATED，不計入 gate
+
+   **⚠️ Audit Continuity Debt（2026-04-27 重新分類，非 cosmetic warning）**：
+   - `skip_type_coverage=0.1522`（fleet-level）；Bookstore-Scraper 單 repo 為 0.0233（2.3%）
+   - 意義：**98% 歷史資料沒有語義分類**，無法回溯 adoption timeline
+   - 影響：lifecycle trend 分析被污染；adoption curve 歷史段不可信；retrospective 失真
+   - 對 stable_ok 的影響：**`stable_ok` 在 skip_type_coverage < 0.3 的 repo，應讀為「目前觀測下看起來正常」，不得解讀為「已證明穩定」**
+   - 分類：audit debt，不是 warning；任何引用歷史趨勢的結論必須附帶此缺口 caveat
+   - 解法：持續累積 post-schema session（帶 skip_type 的 entries）；無法回填歷史資料
+
+   **Submodule Local Fork Pressure（2026-04-27 記錄）**：
+   Bookstore-Scraper 的 `.ai-governance-framework` submodule 更新被本地 tracked 檔案阻斷：
+   `PLAN.md`、`session_end_hook.py`、`test_result_ingestor.py` 均有 repo-local 修改。
+   這不是 merge 問題，而是 local fork pressure：消費 repo 可能已對 framework 檔案進行 policy divergence。
+   此 divergence 若被放任，將是未來 drift 的根源。**列為 adoption health risk，非一般 conflict。**
+
+   **Phase 3 優先級調整（2026-04-27）**：
+   Phase 3（Trigger Design）技術上解封，但**不是現在的優先工作**。
+   優先工作是 **E2: Sustained Lifecycle Proof**（見下方）。
+   Phase 3 設計在 E2 有初步觀測結果前進行，等同在沒有 reality proof 的情況下設計 trigger——這是過度設計。
+
+   **E2: Sustained Lifecycle Proof（真正的下一個里程碑）**：
+   E2 回答的問題是：「這個框架能在創作者之外存活嗎？」
+   可驗證條件（非窮盡，至少需要其中若干）：
+   - 連續 N 天 lifecycle_active_ratio 維持穩定（不需要人工介入）
+   - 新 repo 可以自主完成 adoption（非框架作者手動引導）
+   - Reviewer 可以獨立通過（non-author human review pass）
+   - false promotion rate 可觀測並呈下降趨勢
+   - stale activation 可被解釋（不是靜默消失）
+   E2 的目標不是測試，而是 **prove governance survives reality**。
 
    **Phase 3 解封語意邊界（Phase 2.5 仍有效）**：
    Phase 2 READY 只表示「政策代理條件達成」，不等於「classifier semantically validated」。
