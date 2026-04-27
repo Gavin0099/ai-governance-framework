@@ -83,6 +83,23 @@ def test_assess_fails_closed_for_untrusted_writer():
     assert "untrusted_escalation_provenance" in assessed["release_block_reasons"]
 
 
+def test_assess_fails_closed_when_provenance_linkage_is_missing():
+    project_root = _tmp_dir("missing_linkage")
+    payload = _valid_payload()
+    artifact = build_authority_artifact(payload)
+    del artifact["authority_provenance"]["normalized_payload_hash"]
+    out_file = default_authority_artifact_path(project_root, payload["escalation_id"])
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    out_file.write_text(json.dumps(artifact, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    assessed = assess_authority_artifact(out_file)
+
+    assert assessed["ok"] is False
+    assert assessed["authority_valid"] is False
+    assert assessed["linkage_fields_ok"] is False
+    assert assessed["release_blocked"] is True
+
+
 def test_assess_fails_closed_for_fingerprint_mismatch():
     project_root = _tmp_dir("fingerprint_mismatch")
     payload = _valid_payload()
@@ -128,3 +145,6 @@ def test_written_artifact_declares_expected_schema_and_writer_id():
 
     assert artifact["artifact_schema"] == ARTIFACT_SCHEMA
     assert artifact["authority_provenance"]["writer_id"] == WRITER_ID
+    assert artifact["authority_provenance"]["provenance_linkage_version"] == "v1"
+    assert "source_inputs_hash" in artifact["authority_provenance"]
+    assert "normalized_payload_hash" in artifact["authority_provenance"]
