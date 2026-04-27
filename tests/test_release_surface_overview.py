@@ -26,14 +26,20 @@ def _local_tmp(name: str) -> Path:
     return path
 
 
-def test_release_surface_overview_passes_for_current_alpha():
+def test_release_surface_overview_fails_closed_for_current_alpha_with_escalation_debt():
+    """Real repo has active escalation log but no authority artifacts → fail-closed is correct."""
     result = assess_release_surface(Path(".").resolve(), version="v1.0.0-alpha")
 
-    assert result["ok"] is True
+    assert result["ok"] is False
     assert result["readiness"]["ok"] is True
     assert result["package"]["ok"] is True
     assert "escalation_authority" in result
-    assert result["escalation_authority"]["source"] in {"unavailable", "authority-writer-monopoly"}
+    assert result["escalation_authority"]["source"] in {
+        "no_escalation_expected",
+        "escalation_expected_missing",
+        "authority-writer-monopoly",
+    }
+    assert result["escalation_authority"]["release_blocked"] is True
     assert result["bundle_manifest"]["source"] in {"unavailable", "docs-release", "artifact-bundle"}
     assert result["publication_manifest"]["source"] in {"unavailable", "docs-release-root", "artifact-bundle"}
     assert any(item["name"] == "release_package_snapshot_docs" for item in result["commands"])
@@ -53,7 +59,7 @@ def test_release_surface_overview_can_read_explicit_bundle_and_publication():
             publication_manifest=Path(root_paths["generated_root_publication_manifest_json"]),
         )
 
-        assert result["ok"] is True
+        # overall ok is governed by escalation authority (real repo fails closed); not what this test validates
         assert result["bundle_manifest"]["available"] is True
         assert result["bundle_manifest"]["source"] == "explicit"
         assert result["bundle_manifest"]["version"] == "v1.0.0-alpha"
@@ -78,13 +84,14 @@ def test_release_surface_overview_human_and_markdown_outputs_are_summary_first()
         rendered_human = format_human_result(result)
         rendered_markdown = format_markdown_result(result)
 
-        assert rendered_human.startswith("summary=ok=True | version=v1.0.0-alpha")
+        # Real repo fails closed due to escalation authority debt; rendering test checks format, not ok value.
+        assert rendered_human.startswith("summary=ok=False | version=v1.0.0-alpha")
         assert "[release_surface_overview]" in rendered_human
         assert "[bundle_manifest]" in rendered_human
         assert "[publication_manifest]" in rendered_human
         assert "[escalation_authority]" in rendered_human
         assert rendered_markdown.startswith("# Release Surface Overview")
-        assert "- Summary: `summary=ok=True | version=v1.0.0-alpha" in rendered_markdown
+        assert "- Summary: `summary=ok=False | version=v1.0.0-alpha" in rendered_markdown
         assert "## Surface Status" in rendered_markdown
         assert "## Suggested Commands" in rendered_markdown
     finally:
@@ -111,12 +118,13 @@ def test_release_surface_overview_cli_supports_direct_script_invocation():
                 "--format",
                 "human",
             ],
-            check=True,
+            check=False,
             capture_output=True, stdin=subprocess.DEVNULL,
             text=True,
         )
 
-        assert "summary=ok=True | version=v1.0.0-alpha" in result.stdout
+        # CLI exits 1 (ok=False) because real repo has escalation debt with no authority artifacts.
+        assert "summary=ok=False | version=v1.0.0-alpha" in result.stdout
         assert "[release_surface_overview]" in result.stdout
         assert "[escalation_authority]" in result.stdout
     finally:

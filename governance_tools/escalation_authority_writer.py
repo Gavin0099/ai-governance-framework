@@ -320,11 +320,33 @@ def assess_authority_artifact(path: Path) -> dict[str, Any]:
 
 def assess_authority_directory(project_root: Path) -> dict[str, Any]:
     authority_dir = default_authority_dir(project_root)
+
+    # Detect whether active escalation cases exist by checking the escalation log
+    # in the parent directory (sibling of the authority/ subdirectory).
+    # If the log exists with content, authority artifacts are *expected*;
+    # their absence is a governance gap, not a clean "no escalations" state.
+    escalation_log = authority_dir.parent / "phase-b-escalation-log.jsonl"
+    escalation_active = escalation_log.is_file() and escalation_log.stat().st_size > 0
+
     if not authority_dir.is_dir():
+        if escalation_active:
+            # Escalation cases exist but no authority artifacts have been written.
+            # This is a governance gap: authority is *expected* but *missing*.
+            return {
+                "available": False,
+                "ok": False,
+                "source": "escalation_expected_missing",
+                "authority_dir": str(authority_dir),
+                "artifacts_read": 0,
+                "release_blocked": True,
+                "release_block_reasons": ["escalation_active_but_no_authority_artifacts"],
+                "records": [],
+            }
+        # No escalation log → no active cases → authority not required.
         return {
             "available": False,
             "ok": True,
-            "source": "unavailable",
+            "source": "no_escalation_expected",
             "authority_dir": str(authority_dir),
             "artifacts_read": 0,
             "release_blocked": False,
