@@ -175,11 +175,14 @@ is not complete.
 ## Consumer Requirements
 
 Consumers (release surface and promotion path) must:
-1. evaluate only lifecycle-active authority records as authoritative inputs
-2. ignore superseded/resolved_confirmed/archived records for blocking decisions
-   and treat `resolved_provisional` as non-unblocking audit state
-3. fail closed if multiple `active` records exist for one escalation ID
-4. fail closed if lifecycle metadata is missing on authority-required paths
+1. evaluate authority by lifecycle precedence, not by "latest-looking" records.
+2. apply precedence contract:
+   `invalidated > active > resolved_confirmed > resolved_provisional > superseded > archived`
+3. fail closed if effective lifecycle state is `invalidated` or `active`.
+4. fail closed when register-reported active escalation conflicts with an artifact
+   claiming `resolved_confirmed` for that same escalation ID.
+5. fail closed if multiple conflicting `active` records exist for one escalation
+   ID, or if lifecycle metadata is missing on authority-required paths.
 
 ---
 
@@ -200,5 +203,6 @@ Consumers (release surface and promotion path) must:
 Current repository state is:
 - Trust Root Established (Operational) — Phase B
 - Authority Lifecycle Contract Defined — Phase C design baseline
-- Lifecycle runtime enforcement — not yet implemented
+- Lifecycle runtime enforcement — partially implemented
+  (write-path + authority artifact read-side; broader consumer aggregation pending)
 

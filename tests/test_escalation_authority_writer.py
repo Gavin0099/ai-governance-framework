@@ -42,6 +42,22 @@ def _valid_payload() -> dict:
         "escalation_closed": False,
     }
 
+def _resolved_confirmed_payload(escalation_id: str = "esc-20260417-001") -> dict:
+    payload = _valid_payload()
+    payload["escalation_id"] = escalation_id
+    payload["authority_lifecycle_state"] = "resolved_confirmed"
+    payload["release_claims_resolved"] = True
+    payload["lifecycle_transition"] = {
+        "from_state": "resolved_provisional",
+        "actor": "reviewer_confirmed",
+        "auto": False,
+        "reviewer_confirmation": {
+            "reviewer_id": "reviewer-001",
+            "confirmed_at": "2026-04-27T09:00:00+00:00",
+        },
+    }
+    return payload
+
 
 def test_validate_prewrite_rejects_missing_forced_owner_on_author_provisional():
     payload = _valid_payload()
@@ -319,14 +335,8 @@ def test_resolved_confirmed_write_fails_closed_for_author_provisional_actor():
 
 def test_resolved_confirmed_write_requires_reviewer_confirmation():
     project_root = _tmp_dir("resolved_confirmed_missing_reviewer_confirmation")
-    payload = _valid_payload()
-    payload["authority_lifecycle_state"] = "resolved_confirmed"
-    payload["release_claims_resolved"] = True
-    payload["lifecycle_transition"] = {
-        "from_state": "resolved_provisional",
-        "actor": "reviewer_confirmed",
-        "auto": False,
-    }
+    payload = _resolved_confirmed_payload()
+    del payload["lifecycle_transition"]["reviewer_confirmation"]
 
     write_result = write_authority_artifact(project_root, payload)
 
@@ -339,14 +349,8 @@ def test_resolved_confirmed_write_requires_reviewer_confirmation():
 
 def test_assess_resolved_confirmed_fails_closed_without_reviewer_confirmation():
     project_root = _tmp_dir("assess_resolved_confirmed_missing_reviewer_confirmation")
-    payload = _valid_payload()
-    payload["authority_lifecycle_state"] = "resolved_confirmed"
-    payload["release_claims_resolved"] = True
-    payload["lifecycle_transition"] = {
-        "from_state": "resolved_provisional",
-        "actor": "reviewer_confirmed",
-        "auto": False,
-    }
+    payload = _resolved_confirmed_payload()
+    del payload["lifecycle_transition"]["reviewer_confirmation"]
     artifact = build_authority_artifact(payload)
     out_file = default_authority_artifact_path(project_root, payload["escalation_id"])
     out_file.parent.mkdir(parents=True, exist_ok=True)
@@ -362,18 +366,7 @@ def test_assess_resolved_confirmed_fails_closed_without_reviewer_confirmation():
 
 def test_assess_resolved_confirmed_fails_closed_for_untrusted_writer_identity():
     project_root = _tmp_dir("assess_resolved_confirmed_untrusted_writer")
-    payload = _valid_payload()
-    payload["authority_lifecycle_state"] = "resolved_confirmed"
-    payload["release_claims_resolved"] = True
-    payload["lifecycle_transition"] = {
-        "from_state": "resolved_provisional",
-        "actor": "reviewer_confirmed",
-        "auto": False,
-        "reviewer_confirmation": {
-            "reviewer_id": "reviewer-001",
-            "confirmed_at": "2026-04-27T09:00:00+00:00",
-        },
-    }
+    payload = _resolved_confirmed_payload()
     artifact = build_authority_artifact(payload)
     artifact["authority_provenance"]["writer_id"] = "manual.json.writer"
     out_file = default_authority_artifact_path(project_root, payload["escalation_id"])
@@ -443,3 +436,51 @@ def test_assess_directory_fails_closed_when_register_untrusted():
     assert result["release_blocked"] is True
     assert result["source"] == "register_integrity_failed"
     assert "register_writer_untrusted" in result["release_block_reasons"]
+
+
+def test_assess_directory_precedence_active_state_blocks_even_when_resolved_confirmed_exists():
+    project_root = _tmp_dir("dir_precedence_active_blocks")
+
+    resolved_payload = _resolved_confirmed_payload("esc-resolved")
+    write_result_resolved = write_authority_artifact(project_root, resolved_payload)
+    assert write_result_resolved["ok"] is True
+
+    active_payload = _valid_payload()
+    active_payload["escalation_id"] = "esc-active"
+    active_payload["mitigation_validation_state"] = "validated"
+    active_payload["governance_track_state"] = "closure_eligible"
+    active_payload["authority_lifecycle_state"] = "active"
+    active_payload["release_claims_resolved"] = False
+    write_result_active = write_authority_artifact(project_root, active_payload)
+    assert write_result_active["ok"] is True
+
+    result = assess_authority_directory(project_root)
+
+    assert result["ok"] is False
+    assert result["release_blocked"] is True
+    assert "authority_precedence_active_blocks_release" in result["release_block_reasons"]
+    assert result["lifecycle_effective_by_escalation"]["esc-active"] == "active"
+    assert result["lifecycle_effective_by_escalation"]["esc-resolved"] == "resolved_confirmed"
+
+
+def test_assess_directory_register_active_overrides_resolved_confirmed_for_same_escalation():
+    from governance_tools.escalation_log_writer import write_escalation_register
+
+    project_root = _tmp_dir("dir_precedence_register_active_override")
+
+    payload = _resolved_confirmed_payload("esc-001")
+    write_result = write_authority_artifact(project_root, payload)
+    assert write_result["ok"] is True
+
+    authority_dir = default_authority_dir(project_root)
+    register_path = authority_dir.parent / "phase-b-escalation-register.json"
+    write_escalation_register(register_path, ["esc-001"])
+
+    result = assess_authority_directory(project_root)
+
+    assert result["ok"] is False
+    assert result["release_blocked"] is True
+    assert (
+        "authority_precedence_active_register_overrides_resolved_confirmed:esc-001"
+        in result["release_block_reasons"]
+    )
