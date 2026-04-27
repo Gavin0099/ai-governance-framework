@@ -29,15 +29,19 @@ Canonical lifecycle states:
 1. `created`
 2. `active`
 3. `superseded`
-4. `resolved`
-5. `invalidated`
-6. `archived`
+4. `resolved_provisional`
+5. `resolved_confirmed`
+6. `invalidated`
+7. `archived`
 
 Definitions:
 - `created`: artifact emitted, not yet consumed by release/promotion surfaces.
 - `active`: current authority context for escalation/release decisions.
 - `superseded`: replaced by a newer authority artifact for same escalation.
-- `resolved`: escalation closure accepted under current authority policy.
+- `resolved_provisional`: closure declared by authority writer path but not yet
+  reviewer-confirmed; audit-visible but not release-unblocking.
+- `resolved_confirmed`: reviewer-confirmed closure eligible to stop release
+  blocking for this escalation.
 - `invalidated`: authority no longer legitimate under current policy context
   (coverage-era shift, stale forced routing, contradictory evidence, or trust breach).
 - `archived`: retained for audit only; no decision authority.
@@ -49,16 +53,20 @@ Definitions:
 Allowed transitions:
 - `created -> active`
 - `active -> superseded`
-- `active -> resolved`
+- `active -> resolved_provisional`
+- `resolved_provisional -> resolved_confirmed`
 - `active -> invalidated`
 - `superseded -> archived`
-- `resolved -> archived`
+- `resolved_provisional -> archived`
+- `resolved_confirmed -> archived`
 - `invalidated -> archived`
 
 Forbidden transitions:
 - any transition from `archived` back to authoritative states
-- `resolved -> active` without explicit reopen artifact
+- `resolved_provisional -> active` without explicit reopen artifact
+- `resolved_confirmed -> active` without explicit reopen artifact
 - `superseded -> active`
+- `active -> resolved_confirmed` direct transition (must pass provisional state)
 
 Reopen rule:
 - reopening requires a new artifact (new provenance), not status mutation of
@@ -74,13 +82,17 @@ Only these states participate in release blocking:
 
 Non-blocking (audit-only) states:
 - `superseded`
-- `resolved`
+- `resolved_provisional`
+- `resolved_confirmed`
 - `archived`
 
 Required semantics:
 - `active`: participates in normal authority validation and block reasons.
 - `invalidated`: must force release block with explicit reason set.
-- `resolved` / `superseded` / `archived`: must not independently block release.
+- `resolved_provisional` / `superseded` / `archived`: must not independently
+  block release and must not unblock release.
+- `resolved_confirmed`: may end authority blocking for that escalation if no
+  other active/invalidated authority records remain.
 
 This prevents:
 - once-blocked forever-blocked drift
@@ -120,9 +132,14 @@ Supersession is monotonic:
 
 ## Resolver / Archiver Semantics
 
-`resolved` means:
+`resolved_provisional` means:
+- closure is proposed, not final
+- audit-visible status only
+- release remains blocked until reviewer confirmation
+
+`resolved_confirmed` means:
 - authority obligations for this escalation are complete under current policy
-- release decisions no longer block on this escalation authority artifact
+- release may unblock for this escalation under consumer aggregation rules
 
 `archived` means:
 - preserved for forensic/audit replay only
@@ -130,11 +147,37 @@ Supersession is monotonic:
 
 ---
 
+## Transition Authority Contract (Phase C Slice 1 minimum)
+
+Transition authority is stricter than state shape.
+
+Minimum required rules:
+1. `resolved` must not directly unblock release.
+   Only `resolved_confirmed` is release-unblocking.
+2. `author_provisional` resolution is audit-only.
+   It can produce `resolved_provisional` but cannot produce
+   `resolved_confirmed`.
+3. Auto-resolution to `resolved_confirmed` is forbidden.
+   Reviewer-confirmed transition is required (`resolved_provisional ->
+   resolved_confirmed`).
+
+Operational mapping (current policy intent):
+- `active -> resolved_provisional`: authority writer path allowed
+- `resolved_provisional -> resolved_confirmed`: reviewer-confirmation required
+- `active -> resolved_confirmed`: forbidden direct transition
+- system automation may assist evidence collection, but not final confirmation
+
+Until these transition-authority checks are runtime-enforced, Phase C Slice 1
+is not complete.
+
+---
+
 ## Consumer Requirements
 
 Consumers (release surface and promotion path) must:
 1. evaluate only lifecycle-active authority records as authoritative inputs
-2. ignore superseded/resolved/archived records for blocking decisions
+2. ignore superseded/resolved_confirmed/archived records for blocking decisions
+   and treat `resolved_provisional` as non-unblocking audit state
 3. fail closed if multiple `active` records exist for one escalation ID
 4. fail closed if lifecycle metadata is missing on authority-required paths
 
