@@ -49,8 +49,20 @@
 - round3_validation_outcome: pass | fail | insufficient_validation | pending
 - composition_guardrail_required: yes | no
 - composition_guardrail_status: pending | implemented | verified | failed
-- mitigation_validation_state: pending_human_validation | validated | waived_by_policy
-- governance_track_state: pending_validation | closure_eligible | closed
+- mitigation_validation_state: pending_human_validation | pending_independent_validation | author_provisional | validated | waived_by_policy
+- validator_tier: tier1_independent | tier2_author_provisional | tier3_ai_assisted | not_applicable
+- validator_id:
+- validation_date:
+- validation_evidence_ref:
+- independence_constraints_met: yes | no | not_applicable
+- days_since_last_engagement:
+- provisional_expiry_date:
+- retrospective_tier1_required_by:
+- forced_owner:
+- forced_escalation_target:
+- forced_route_due_date:
+- forced_route_status: assigned | in_progress | overdue | completed | not_applicable
+- governance_track_state: pending_validation | pending_independent_validation | closure_eligible | closed | governance_incomplete
 - engineering_track_state: not_implemented | implemented
 - closure_threshold_profile: default | strict_no_minor_after_prior_significant
 - escalation_closed: yes | no
@@ -60,6 +72,13 @@
 - dual_state_note:
 - linked_runtime_log:
 ```
+
+Template note:
+- If `mitigation_validation_state=author_provisional`, routing fields
+  (`forced_owner`, `forced_escalation_target`, `forced_route_due_date`,
+  `forced_route_status`) are mandatory.
+- If protected claims are cited in closure rationale, `coverage_era` caveat
+  semantics from PLAN.md must be satisfied, or record remains non-signoffable.
 
 ## Records
 
@@ -106,6 +125,18 @@
 - composition_guardrail_required: `yes`
 - composition_guardrail_status: `implemented` (redesign spec + Round 3 AI adversarial check completed)
 - mitigation_validation_state: `pending_human_validation`
+- validator_tier: `not_applicable`
+- validator_id: n/a (no closure validator yet)
+- validation_date: n/a
+- validation_evidence_ref: n/a
+- independence_constraints_met: `not_applicable`
+- days_since_last_engagement: n/a
+- provisional_expiry_date: n/a
+- retrospective_tier1_required_by: n/a
+- forced_owner: n/a
+- forced_escalation_target: n/a
+- forced_route_due_date: n/a
+- forced_route_status: `not_applicable`
 - governance_track_state: `pending_validation`
 - engineering_track_state: `implemented`
 - closure_threshold_profile: `strict_no_minor_after_prior_significant`
