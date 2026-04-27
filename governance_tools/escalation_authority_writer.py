@@ -203,6 +203,18 @@ def validate_prewrite_payload(payload: dict[str, Any]) -> tuple[bool, list[str],
                 if not transition_result["ok"]:
                     errors.append("lifecycle_transition_guard_failed:" + ",".join(transition_result["errors"]))
 
+            if lifecycle_state == "resolved_confirmed":
+                reviewer_confirmation = transition.get("reviewer_confirmation")
+                if not isinstance(reviewer_confirmation, dict):
+                    errors.append("resolved_confirmed requires lifecycle_transition.reviewer_confirmation")
+                else:
+                    reviewer_id = reviewer_confirmation.get("reviewer_id")
+                    confirmed_at = reviewer_confirmation.get("confirmed_at")
+                    if not isinstance(reviewer_id, str) or not reviewer_id.strip():
+                        errors.append("lifecycle_transition.reviewer_confirmation.reviewer_id is required")
+                    if not isinstance(confirmed_at, str) or not confirmed_at.strip():
+                        errors.append("lifecycle_transition.reviewer_confirmation.confirmed_at is required")
+
     return len(errors) == 0, errors, normalized
 
 
