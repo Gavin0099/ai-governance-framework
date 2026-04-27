@@ -34,8 +34,22 @@
 - [x] Phase A : 建立治理工具核心與 baseline
 - [x] Phase B : 補齊 adoption / validator / freshness / memory 基礎能力
 - [x] Phase C : 建立 runtime governance、DBL 與 observation surfaces
-- [x] Phase D : 收斂 session workflow、external adoption 與文件入口
+- [ ] Phase D : 收斂 session workflow、external adoption 與文件入口（reopened: blocked_by_phase_c_surface_gap）
 - [>] Phase E : Failure decision boundary、exclusion governance、usage enforcement
+
+### State Reconciliation Notice (2026-04-27)
+
+Phase D closeout is downgraded from completed to reopened.
+
+Reason:
+- Phase C authority lifecycle and precedence-aware consumer/release integration
+  introduced post-closeout gaps.
+- Treating Phase D as completed while these gaps are unresolved creates a
+  false governance signal.
+
+Required posture:
+- Phase D remains reopened until Phase C runtime, promotion consumer, and
+  release reviewer surfaces are reconciled and machine-validated as consistent.
 
 ## Current Sprint
 
@@ -2070,3 +2084,4 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 | 2026-04-27 | E1B Phase C kickoff — authority lifecycle contract defined | 新增 `docs/e1b-phase-c-authority-lifecycle-contract.md`：定義 `created/active/superseded/resolved/invalidated/archived` state machine、blocking participation 邊界、invalidation trigger、supersession monotonic 規則與 consumer fail-closed 要求；明確區分「who may speak」(Phase B) 與「when speech expires」(Phase C) |
 | 2026-04-27 | E1B Phase C Slice 1 clarification — transition authority not yet complete | 補上 transition authority 最小契約：`active -> resolved_provisional`、`resolved_provisional -> resolved_confirmed`、`active -> resolved_confirmed` 禁止 direct path；`resolved_provisional` 明確為 audit-only、不得 release-unblock；`resolved_confirmed` 才可解除該 escalation 的 block。狀態聲明：Phase C baseline done，Slice 1 runtime enforcement 尚未完成 |
 | 2026-04-27 | E1B Phase C aggregation precedence contract (runtime baseline) | `assess_authority_directory()` 新增 lifecycle effective-state 聚合與 precedence fail-closed：`invalidated > active > resolved_confirmed > resolved_provisional > superseded > archived`；`active/invalidated` 強制 block，且 register 標記 active 時若同 escalation artifact 宣稱 `resolved_confirmed` 會被 precedence override fail-closed，避免 stale-but-valid resolved 造成 false release unblock。 |
+| 2026-04-27 | State drift correction — Phase D closeout invalidated | 將「Phase D completed」下修為 reopened（`blocked_by_phase_c_surface_gap`）。原因：Phase C authority lifecycle / precedence-aware consumer + release surfaces 仍有 integration gap。新增 state reconciliation 原則：若 Phase D completed 但 Phase C release surface precedence integration 未證明，視為 false governance signal。 |
