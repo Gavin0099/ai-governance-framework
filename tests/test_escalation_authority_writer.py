@@ -302,6 +302,10 @@ def test_resolved_confirmed_write_fails_closed_for_author_provisional_actor():
         "from_state": "resolved_provisional",
         "actor": "author_provisional",
         "auto": False,
+        "reviewer_confirmation": {
+            "reviewer_id": "reviewer-001",
+            "confirmed_at": "2026-04-27T08:00:00+00:00",
+        },
     }
 
     write_result = write_authority_artifact(project_root, payload)
@@ -311,6 +315,77 @@ def test_resolved_confirmed_write_fails_closed_for_author_provisional_actor():
         "lifecycle_transition_guard_failed" in err
         for err in (write_result.get("authority_errors") or [])
     )
+
+
+def test_resolved_confirmed_write_requires_reviewer_confirmation():
+    project_root = _tmp_dir("resolved_confirmed_missing_reviewer_confirmation")
+    payload = _valid_payload()
+    payload["authority_lifecycle_state"] = "resolved_confirmed"
+    payload["release_claims_resolved"] = True
+    payload["lifecycle_transition"] = {
+        "from_state": "resolved_provisional",
+        "actor": "reviewer_confirmed",
+        "auto": False,
+    }
+
+    write_result = write_authority_artifact(project_root, payload)
+
+    assert write_result["ok"] is False
+    assert any(
+        "resolved_confirmed requires lifecycle_transition.reviewer_confirmation" in err
+        for err in (write_result.get("authority_errors") or [])
+    )
+
+
+def test_assess_resolved_confirmed_fails_closed_without_reviewer_confirmation():
+    project_root = _tmp_dir("assess_resolved_confirmed_missing_reviewer_confirmation")
+    payload = _valid_payload()
+    payload["authority_lifecycle_state"] = "resolved_confirmed"
+    payload["release_claims_resolved"] = True
+    payload["lifecycle_transition"] = {
+        "from_state": "resolved_provisional",
+        "actor": "reviewer_confirmed",
+        "auto": False,
+    }
+    artifact = build_authority_artifact(payload)
+    out_file = default_authority_artifact_path(project_root, payload["escalation_id"])
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    out_file.write_text(json.dumps(artifact, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    assessed = assess_authority_artifact(out_file)
+
+    assert assessed["ok"] is False
+    assert assessed["release_blocked"] is True
+    assert "untrusted_escalation_provenance" in assessed["release_block_reasons"]
+    assert "payload_prewrite_validation_failed" in assessed["release_block_reasons"]
+
+
+def test_assess_resolved_confirmed_fails_closed_for_untrusted_writer_identity():
+    project_root = _tmp_dir("assess_resolved_confirmed_untrusted_writer")
+    payload = _valid_payload()
+    payload["authority_lifecycle_state"] = "resolved_confirmed"
+    payload["release_claims_resolved"] = True
+    payload["lifecycle_transition"] = {
+        "from_state": "resolved_provisional",
+        "actor": "reviewer_confirmed",
+        "auto": False,
+        "reviewer_confirmation": {
+            "reviewer_id": "reviewer-001",
+            "confirmed_at": "2026-04-27T09:00:00+00:00",
+        },
+    }
+    artifact = build_authority_artifact(payload)
+    artifact["authority_provenance"]["writer_id"] = "manual.json.writer"
+    out_file = default_authority_artifact_path(project_root, payload["escalation_id"])
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    out_file.write_text(json.dumps(artifact, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    assessed = assess_authority_artifact(out_file)
+
+    assert assessed["ok"] is False
+    assert assessed["release_blocked"] is True
+    assert "untrusted_escalation_provenance" in assessed["release_block_reasons"]
+    assert "untrusted_writer_identity" in assessed["release_block_reasons"]
 
 
 # ---------------------------------------------------------------------------
