@@ -286,6 +286,11 @@ Remaining debt:
 | mandatory register enforcement | not yet |
 | legacy log strict rejection | not yet |
 
+Phase boundary:
+- Phase B answers: who may speak with authority.
+- Phase C answers: when that authority stops being authoritative.
+- See `docs/e1b-phase-c-authority-lifecycle-contract.md`.
+
 ### Log Production Gap (historical pre-v0.1 context)
 
 `assess_authority_directory()` determines whether authority artifacts are
