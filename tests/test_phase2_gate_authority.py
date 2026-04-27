@@ -39,6 +39,7 @@ def _authority_ok() -> dict:
         "release_blocked": False,
         "source": "authority-writer-monopoly",
         "release_block_reasons": [],
+        "lifecycle_effective_by_escalation": {},
     }
 
 
@@ -48,6 +49,7 @@ def _authority_escalation_missing() -> dict:
         "release_blocked": True,
         "source": "escalation_expected_missing",
         "release_block_reasons": ["escalation_active_but_no_authority_artifacts"],
+        "lifecycle_effective_by_escalation": {},
     }
 
 
@@ -60,6 +62,7 @@ def _authority_untrusted() -> dict:
             "untrusted_escalation_provenance",
             "untrusted_writer_identity",
         ],
+        "lifecycle_effective_by_escalation": {},
     }
 
 
@@ -72,7 +75,9 @@ def test_gate_allows_when_aggregation_and_authority_both_ok():
 
     assert gate["gate_promote_eligible"] is True
     assert gate["aggregation_result"]["promote_eligible"] is True
-    assert gate["authority_assessment_summary"]["ok"] is True
+    assert gate["authority_summary"]["ok"] is True
+    assert gate["authority_summary"]["precedence_applied"] is True
+    assert gate["authority_summary"]["lifecycle_effective_by_escalation"] == {}
     assert gate["gate_block_reasons"] == []
     assert gate["gate_version"] == "phase2_gate.v1"
 
@@ -86,7 +91,7 @@ def test_gate_denies_when_authority_missing_escalation():
 
     assert gate["gate_promote_eligible"] is False
     assert gate["aggregation_result"]["promote_eligible"] is False
-    assert gate["authority_assessment_summary"]["ok"] is False
+    assert gate["authority_summary"]["ok"] is False
     assert "escalation_active_but_no_authority_artifacts" in gate["gate_block_reasons"]
 
 
@@ -121,8 +126,9 @@ def test_gate_denies_on_empty_authority_assessment():
     gate = build_phase2_gate(_closure_verified_aggregation(), {})
 
     assert gate["gate_promote_eligible"] is False
-    assert gate["authority_assessment_summary"]["ok"] is False
-    assert gate["authority_assessment_summary"]["release_blocked"] is True
+    assert gate["authority_summary"]["ok"] is False
+    assert gate["authority_summary"]["release_blocked"] is True
+    assert gate["authority_summary"]["precedence_applied"] is False
 
 
 def test_gate_denies_when_aggregation_not_eligible_even_if_authority_ok():
@@ -149,10 +155,12 @@ def test_gate_accumulates_block_reasons_from_both_sides():
 def test_gate_payload_carries_authority_assessment_summary():
     gate = build_phase2_gate(_closure_verified_aggregation(), _authority_ok())
 
-    summary = gate["authority_assessment_summary"]
+    summary = gate["authority_summary"]
     assert "ok" in summary
     assert "release_blocked" in summary
     assert "source" in summary
+    assert "lifecycle_effective_by_escalation" in summary
+    assert "precedence_applied" in summary
     assert "release_block_reasons" in summary
 
 
@@ -184,6 +192,67 @@ def test_promotion_gate_denies_via_gate_payload_when_authority_missing():
     assert result["phase3_entry_allowed"] is False
     assert result["decision_basis"]["authority_ok"] is False
     assert "escalation_active_but_no_authority_artifacts" in result["decision_basis"]["gate_block_reasons"]
+
+
+def test_precedence_aware_denies_when_active_and_resolved_confirmed_coexist():
+    authority = {
+        "ok": False,
+        "release_blocked": True,
+        "source": "authority-writer-monopoly",
+        "lifecycle_effective_by_escalation": {
+            "esc-active": "active",
+            "esc-resolved": "resolved_confirmed",
+        },
+        "release_block_reasons": ["authority_precedence_active_blocks_release"],
+    }
+    gate = build_phase2_gate(_closure_verified_aggregation(), authority)
+    result = evaluate_phase3_promotion_entry(gate)
+
+    assert gate["gate_promote_eligible"] is False
+    assert gate["authority_summary"]["precedence_applied"] is True
+    assert result["phase3_entry_allowed"] is False
+    assert "authority_precedence_active_blocks_release" in gate["gate_block_reasons"]
+
+
+def test_precedence_aware_denies_when_register_active_overrides_resolved_confirmed():
+    authority = {
+        "ok": False,
+        "release_blocked": True,
+        "source": "authority-writer-monopoly",
+        "lifecycle_effective_by_escalation": {
+            "esc-001": "resolved_confirmed",
+        },
+        "release_block_reasons": [
+            "authority_precedence_active_register_overrides_resolved_confirmed:esc-001"
+        ],
+    }
+    gate = build_phase2_gate(_closure_verified_aggregation(), authority)
+    result = evaluate_phase3_promotion_entry(gate)
+
+    assert gate["gate_promote_eligible"] is False
+    assert result["phase3_entry_allowed"] is False
+    assert (
+        "authority_precedence_active_register_overrides_resolved_confirmed:esc-001"
+        in gate["gate_block_reasons"]
+    )
+
+
+def test_precedence_aware_allows_only_resolved_confirmed_with_valid_confirmation():
+    authority = {
+        "ok": True,
+        "release_blocked": False,
+        "source": "authority-writer-monopoly",
+        "lifecycle_effective_by_escalation": {
+            "esc-777": "resolved_confirmed",
+        },
+        "release_block_reasons": [],
+    }
+    gate = build_phase2_gate(_closure_verified_aggregation(), authority)
+    result = evaluate_phase3_promotion_entry(gate)
+
+    assert gate["gate_promote_eligible"] is True
+    assert gate["authority_summary"]["precedence_applied"] is True
+    assert result["phase3_entry_allowed"] is True
 
 
 def test_promotion_gate_denies_via_gate_payload_when_aggregation_not_eligible():

@@ -47,7 +47,9 @@ def evaluate_phase3_promotion_entry(payload: dict[str, Any]) -> dict[str, Any]:
     # based on aggregation_result.promote_eligible (which already encodes
     # authority when the payload was built via build_phase2_gate).
     gate_block_reasons = list(payload.get("gate_block_reasons") or [])
-    authority_summary = payload.get("authority_assessment_summary")
+    authority_summary = payload.get("authority_summary")
+    if authority_summary is None:
+        authority_summary = payload.get("authority_assessment_summary")
 
     decision_basis: dict[str, Any] = {
         "current_state": current_state,

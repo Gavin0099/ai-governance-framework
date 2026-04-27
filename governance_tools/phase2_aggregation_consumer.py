@@ -244,19 +244,28 @@ def build_phase2_gate(
         ):
             gate_block_reasons.append("authority_assessment_not_ok")
 
+    authority_summary = {
+        "ok": authority_ok,
+        "release_blocked": authority_release_blocked,
+        "source": authority_assessment.get("source"),
+        "lifecycle_effective_by_escalation": dict(
+            authority_assessment.get("lifecycle_effective_by_escalation") or {}
+        ),
+        "precedence_applied": "lifecycle_effective_by_escalation" in authority_assessment,
+        "release_block_reasons": list(
+            authority_assessment.get("release_block_reasons") or []
+        ),
+    }
+
     return {
         "aggregation_result": {
             "current_state": aggregation_result.get("current_state"),
             "promote_eligible": gate_promote_eligible,
         },
-        "authority_assessment_summary": {
-            "ok": authority_ok,
-            "release_blocked": authority_release_blocked,
-            "source": authority_assessment.get("source"),
-            "release_block_reasons": list(
-                authority_assessment.get("release_block_reasons") or []
-            ),
-        },
+        # v2 canonical shape for precedence-aware consumers.
+        "authority_summary": authority_summary,
+        # Backward compatibility for existing consumers/tests.
+        "authority_assessment_summary": authority_summary,
         "gate_promote_eligible": gate_promote_eligible,
         "gate_block_reasons": gate_block_reasons,
         "gate_version": "phase2_gate.v1",
