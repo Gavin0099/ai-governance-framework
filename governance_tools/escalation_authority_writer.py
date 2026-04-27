@@ -107,6 +107,11 @@ def _append_release_block(payload: dict[str, Any], reason: str) -> None:
     payload["release_blocked"] = True
 
 
+def _append_unique_reason(reasons: list[str], reason: str) -> None:
+    if reason not in reasons:
+        reasons.append(reason)
+
+
 def validate_prewrite_payload(payload: dict[str, Any]) -> tuple[bool, list[str], dict[str, Any]]:
     errors: list[str] = []
     normalized = dict(payload)
@@ -258,8 +263,17 @@ def assess_authority_artifact(path: Path) -> dict[str, Any]:
     release_blocked = bool(payload.get("release_blocked")) or (not authority_valid)
     release_block_reasons = list(payload.get("release_block_reasons") or [])
     if not authority_valid:
-        if "untrusted_escalation_provenance" not in release_block_reasons:
-            release_block_reasons.append("untrusted_escalation_provenance")
+        _append_unique_reason(release_block_reasons, "untrusted_escalation_provenance")
+        if not trusted_writer:
+            _append_unique_reason(release_block_reasons, "untrusted_writer_identity")
+        if not linkage_fields_ok:
+            _append_unique_reason(release_block_reasons, "missing_or_invalid_provenance_linkage")
+        if not fingerprint_valid:
+            _append_unique_reason(release_block_reasons, "payload_fingerprint_mismatch")
+        if not normalized_hash_valid:
+            _append_unique_reason(release_block_reasons, "normalized_payload_hash_mismatch")
+        if not ok:
+            _append_unique_reason(release_block_reasons, "payload_prewrite_validation_failed")
 
     return {
         "ok": authority_valid,
