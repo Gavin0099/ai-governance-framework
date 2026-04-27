@@ -190,9 +190,35 @@ def build_authority_artifact(payload: dict[str, Any], *, written_at: str | None 
 
 
 def write_authority_artifact(project_root: Path, payload: dict[str, Any], *, out_file: Path | None = None) -> dict[str, Any]:
-    artifact = build_authority_artifact(payload)
     escalation_id = payload.get("escalation_id", "unknown-escalation")
-    target = out_file.resolve() if out_file else default_authority_artifact_path(project_root, escalation_id).resolve()
+    canonical_target = default_authority_artifact_path(project_root, escalation_id).resolve()
+    target = out_file.resolve() if out_file else canonical_target
+
+    if target != canonical_target:
+        return {
+            "ok": False,
+            "artifact_file": str(target),
+            "escalation_id": escalation_id,
+            "error": "authority_write_path_violation",
+            "release_blocked": True,
+            "release_block_reasons": ["authority_write_path_violation"],
+            "authority_errors": ["authority artifact writes must use canonical writer path"],
+        }
+
+    if target.is_file():
+        existing = assess_authority_artifact(target)
+        if not existing.get("authority_valid", False):
+            return {
+                "ok": False,
+                "artifact_file": str(target),
+                "escalation_id": escalation_id,
+                "error": "authority_write_existing_untrusted_artifact",
+                "release_blocked": True,
+                "release_block_reasons": ["existing_untrusted_authority_artifact"],
+                "authority_errors": ["existing authority artifact is untrusted and cannot be overwritten silently"],
+            }
+
+    artifact = build_authority_artifact(payload)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(artifact, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return {
