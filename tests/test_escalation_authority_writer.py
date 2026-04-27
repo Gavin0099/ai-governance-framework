@@ -11,6 +11,7 @@ from governance_tools.escalation_authority_writer import (
     assess_authority_directory,
     build_authority_artifact,
     default_authority_artifact_path,
+    default_authority_dir,
     validate_prewrite_payload,
     write_authority_artifact,
 )
@@ -164,11 +165,48 @@ def test_overdue_route_is_release_blocked_even_when_authority_valid():
     assert "forced_route_overdue" in assessed["release_block_reasons"]
 
 
-def test_assess_directory_reports_missing_as_available_false_not_failure():
-    project_root = _tmp_dir("missing_dir")
+def test_assess_directory_no_escalation_expected_when_no_log():
+    """No authority dir AND no escalation log → no_escalation_expected → ok=True."""
+    project_root = _tmp_dir("missing_dir_no_log")
     result = assess_authority_directory(project_root)
 
     assert result["available"] is False
+    assert result["ok"] is True
+    assert result["release_blocked"] is False
+    assert result["source"] == "no_escalation_expected"
+
+
+def test_assess_directory_escalation_expected_missing_fails_closed_when_log_active():
+    """Authority dir absent BUT escalation log present with content → fail-closed."""
+    project_root = _tmp_dir("missing_dir_with_log")
+    # Create the escalation log sibling (parent of authority/ dir)
+    from governance_tools.escalation_authority_writer import default_authority_dir
+    authority_dir = default_authority_dir(project_root)
+    authority_dir.parent.mkdir(parents=True, exist_ok=True)
+    escalation_log = authority_dir.parent / "phase-b-escalation-log.jsonl"
+    escalation_log.write_text('{"escalation_id": "esc-001"}\n', encoding="utf-8")
+    # authority_dir itself does NOT exist
+
+    result = assess_authority_directory(project_root)
+
+    assert result["available"] is False
+    assert result["ok"] is False
+    assert result["release_blocked"] is True
+    assert "escalation_active_but_no_authority_artifacts" in result["release_block_reasons"]
+    assert result["source"] == "escalation_expected_missing"
+
+
+def test_assess_directory_no_escalation_expected_when_log_empty():
+    """Escalation log exists but is empty (zero bytes) → treated as no active cases → ok=True."""
+    project_root = _tmp_dir("missing_dir_empty_log")
+    from governance_tools.escalation_authority_writer import default_authority_dir
+    authority_dir = default_authority_dir(project_root)
+    authority_dir.parent.mkdir(parents=True, exist_ok=True)
+    escalation_log = authority_dir.parent / "phase-b-escalation-log.jsonl"
+    escalation_log.write_text("", encoding="utf-8")
+
+    result = assess_authority_directory(project_root)
+
     assert result["ok"] is True
     assert result["release_blocked"] is False
 
@@ -238,3 +276,95 @@ def test_tamper_replay_blocks_coverage_and_protected_claim_linkage_mutation():
     assert "payload_prewrite_validation_failed" in assessed["release_block_reasons"]
     assert "normalized_payload_hash_mismatch" in assessed["release_block_reasons"]
     assert assessed["authority_valid"] is False
+
+
+def test_resolved_confirmed_write_requires_lifecycle_transition_guard():
+    project_root = _tmp_dir("resolved_confirmed_missing_transition")
+    payload = _valid_payload()
+    payload["authority_lifecycle_state"] = "resolved_confirmed"
+    payload["release_claims_resolved"] = True
+
+    write_result = write_authority_artifact(project_root, payload)
+
+    assert write_result["ok"] is False
+    assert any(
+        "lifecycle_transition is required for resolved_* lifecycle states" in err
+        for err in (write_result.get("authority_errors") or [])
+    )
+
+
+def test_resolved_confirmed_write_fails_closed_for_author_provisional_actor():
+    project_root = _tmp_dir("resolved_confirmed_author_provisional_forbidden")
+    payload = _valid_payload()
+    payload["authority_lifecycle_state"] = "resolved_confirmed"
+    payload["release_claims_resolved"] = True
+    payload["lifecycle_transition"] = {
+        "from_state": "resolved_provisional",
+        "actor": "author_provisional",
+        "auto": False,
+    }
+
+    write_result = write_authority_artifact(project_root, payload)
+
+    assert write_result["ok"] is False
+    assert any(
+        "lifecycle_transition_guard_failed" in err
+        for err in (write_result.get("authority_errors") or [])
+    )
+
+
+# ---------------------------------------------------------------------------
+# assess_authority_directory: companion register cross-verification
+# ---------------------------------------------------------------------------
+
+
+def test_assess_directory_fails_closed_when_register_active_and_no_log():
+    """Register says active IDs exist, no log → escalation_expected_missing → fail-closed."""
+    from governance_tools.escalation_log_writer import write_escalation_register
+
+    project_root = _tmp_dir("dir_register_active_no_log")
+    authority_dir = default_authority_dir(project_root)
+    authority_dir.parent.mkdir(parents=True, exist_ok=True)
+    register_path = authority_dir.parent / "phase-b-escalation-register.json"
+    write_escalation_register(register_path, ["esc-001"])
+    # No log file, no authority/ dir
+
+    result = assess_authority_directory(project_root)
+
+    assert result["ok"] is False
+    assert result["release_blocked"] is True
+    assert result["source"] == "escalation_expected_missing"
+    assert "escalation_active_but_no_authority_artifacts" in result["release_block_reasons"]
+
+
+def test_assess_directory_fails_closed_when_register_untrusted():
+    """Register exists but writer_id is untrusted → register_integrity_failed → fail-closed."""
+    from governance_tools.escalation_log_writer import REGISTER_SCHEMA, REGISTER_WRITER_VERSION
+
+    project_root = _tmp_dir("dir_register_untrusted")
+    authority_dir = default_authority_dir(project_root)
+    authority_dir.parent.mkdir(parents=True, exist_ok=True)
+    register_path = authority_dir.parent / "phase-b-escalation-register.json"
+    register_path.write_text(
+        json.dumps(
+            {
+                "register_schema": REGISTER_SCHEMA,
+                "writer_id": "evil.writer",
+                "writer_version": REGISTER_WRITER_VERSION,
+                "written_at": "2026-04-27T00:00:00+00:00",
+                "active_escalation_ids": [],
+                "active_case_count": 0,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = assess_authority_directory(project_root)
+
+    assert result["ok"] is False
+    assert result["release_blocked"] is True
+    assert result["source"] == "register_integrity_failed"
+    assert "register_writer_untrusted" in result["release_block_reasons"]

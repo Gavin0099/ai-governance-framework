@@ -17,6 +17,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from governance_tools.escalation_log_writer import assess_escalation_register
+from governance_tools.lifecycle_transition_writer import validate_lifecycle_transition
+
 
 WRITER_ID = "governance_tools.escalation_authority_writer"
 WRITER_VERSION = "1.0"
@@ -48,6 +51,15 @@ ALLOWED_COVERAGE_ERAS = {
     "TRANSITION",
     "PRE-SKIP-TYPE-ERA",
 }
+ALLOWED_AUTHORITY_LIFECYCLE_STATES = {
+    "created",
+    "active",
+    "superseded",
+    "resolved_provisional",
+    "resolved_confirmed",
+    "invalidated",
+    "archived",
+}
 
 
 def _utc_now() -> str:
@@ -78,6 +90,8 @@ def _canonical_for_fingerprint(payload: dict[str, Any]) -> dict[str, Any]:
         "release_claims_resolved",
         "release_blocked",
         "release_block_reasons",
+        "authority_lifecycle_state",
+        "lifecycle_transition",
     ]
     return {key: payload.get(key) for key in keys}
 
@@ -162,6 +176,32 @@ def validate_prewrite_payload(payload: dict[str, Any]) -> tuple[bool, list[str],
     escalation_closed = bool(normalized.get("escalation_closed", False))
     if escalation_closed and governance_track in {"pending_validation", "pending_independent_validation", "governance_incomplete"}:
         errors.append("escalation_closed=true is inconsistent with current governance_track_state")
+
+    lifecycle_state = normalized.get("authority_lifecycle_state")
+    if lifecycle_state is not None and lifecycle_state not in ALLOWED_AUTHORITY_LIFECYCLE_STATES:
+        errors.append("authority_lifecycle_state is invalid")
+
+    if lifecycle_state in {"resolved_provisional", "resolved_confirmed"}:
+        transition = normalized.get("lifecycle_transition")
+        if not isinstance(transition, dict):
+            errors.append("lifecycle_transition is required for resolved_* lifecycle states")
+        else:
+            from_state = transition.get("from_state")
+            actor = transition.get("actor")
+            auto = bool(transition.get("auto", False))
+            if not isinstance(from_state, str) or not from_state.strip():
+                errors.append("lifecycle_transition.from_state is required")
+            if not isinstance(actor, str) or not actor.strip():
+                errors.append("lifecycle_transition.actor is required")
+            if not errors:
+                transition_result = validate_lifecycle_transition(
+                    from_state=from_state,
+                    to_state=lifecycle_state,
+                    actor=actor,
+                    auto=auto,
+                )
+                if not transition_result["ok"]:
+                    errors.append("lifecycle_transition_guard_failed:" + ",".join(transition_result["errors"]))
 
     return len(errors) == 0, errors, normalized
 
@@ -320,11 +360,53 @@ def assess_authority_artifact(path: Path) -> dict[str, Any]:
 
 def assess_authority_directory(project_root: Path) -> dict[str, Any]:
     authority_dir = default_authority_dir(project_root)
+
+    escalation_log = authority_dir.parent / "phase-b-escalation-log.jsonl"
+    register_path = authority_dir.parent / "phase-b-escalation-register.json"
+
+    # Primary signal: escalation log existence with content.
+    escalation_active_from_log = escalation_log.is_file() and escalation_log.stat().st_size > 0
+
+    # Independent signal: companion register (survives log deletion).
+    # If the register says active cases exist but the log is absent or empty,
+    # we still treat escalation as active — the register is the cross-verification source.
+    register_result = assess_escalation_register(register_path)
+    escalation_active_from_register = (
+        register_result["available"]
+        and register_result["ok"]
+        and register_result["escalation_active"]
+    )
+    register_has_problem = register_result["available"] and not register_result["ok"]
+
+    escalation_active = escalation_active_from_log or escalation_active_from_register
+
     if not authority_dir.is_dir():
+        if escalation_active:
+            return {
+                "available": False,
+                "ok": False,
+                "source": "escalation_expected_missing",
+                "authority_dir": str(authority_dir),
+                "artifacts_read": 0,
+                "release_blocked": True,
+                "release_block_reasons": ["escalation_active_but_no_authority_artifacts"],
+                "records": [],
+            }
+        if register_has_problem:
+            return {
+                "available": False,
+                "ok": False,
+                "source": "register_integrity_failed",
+                "authority_dir": str(authority_dir),
+                "artifacts_read": 0,
+                "release_blocked": True,
+                "release_block_reasons": list(register_result.get("release_block_reasons") or []),
+                "records": [],
+            }
         return {
             "available": False,
             "ok": True,
-            "source": "unavailable",
+            "source": "no_escalation_expected",
             "authority_dir": str(authority_dir),
             "artifacts_read": 0,
             "release_blocked": False,
@@ -342,9 +424,16 @@ def assess_authority_directory(project_root: Path) -> dict[str, Any]:
             if reason not in reasons:
                 reasons.append(reason)
 
+    # Propagate register integrity problems even when authority dir exists.
+    if register_has_problem:
+        blocked = True
+        for r in register_result.get("release_block_reasons") or []:
+            if r not in reasons:
+                reasons.append(r)
+
     return {
         "available": len(files) > 0,
-        "ok": all_ok,
+        "ok": all_ok and not register_has_problem,
         "source": "authority-writer-monopoly",
         "authority_dir": str(authority_dir),
         "artifacts_read": len(files),
