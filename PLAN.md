@@ -1253,6 +1253,20 @@ Enumd / SpecAuthority：
    - 若 trigger 長期未達，必須輸出 `deferral_reason` + `deferral_risk`，不得只寫「持續觀察」
    - 若 trigger 已達但未啟動 review，視為 governance process violation（不是一般等待）
 
+   **Consequence Mapping（violation 不能只停在標籤）**：
+   process violation 若沒有後果，會退化成 advisory cosplay。最低 block 對映如下：
+   - `trigger reached + no legitimacy review` → release readiness claim **BLOCKED**
+   - `trigger reached + no legitimacy review` → OP-HC promotion authority claim **BLOCKED**
+   - `trigger reached + no legitimacy review` → governance report signoff（含 Phase B/E2 completion）**BLOCKED**
+   - `trigger reached + no legitimacy review` → `governance-ready` / `legitimized` wording **INVALID**
+
+   **Trigger Detection Authority（誰可宣告 trigger reached）**：
+   不能依賴單一 creator 主觀承認。至少要有可審計的 detection authority path：
+   - `trigger_detection_record` 必填：`declared_by`, `detection_inputs`, `decision_time`, `evidence_refs`
+   - `declared_by` 不得為單一不可替代 identity（避免 creator veto by silence）
+   - 若 evidence 已滿足但無 `trigger_detection_record`，視為 governance process violation
+   - consumer/release side 對「未宣告 trigger」不可採 optimistic assumption，必須 fail-closed
+
    **E2 Acceleration Whitelist**（合法的加速行動）：
    - 降低 adoption friction → 更多 repo 可以成功採用（直接增加 E2 母體）
    - 提升 reviewer clarity → 更低的 false stale / 更快的 gate decision
@@ -1358,6 +1372,15 @@ Enumd / SpecAuthority：
    - blame-by-default ownership pressure
    - expert-only gatekeeping（以資歷門檻替代證據門檻）
    這些屬於 fear-based compliance，會破壞 adoption；真正昂貴的是 evidence burden，不是 interpersonal punishment。
+
+   **Practical Accessibility Audit（防地下 priesthood）**：
+   access open ≠ participation equal。即使形式上 everyone can challenge，仍可能因隱性成本而實務封閉。
+   E2 期間最低要做可審計檢查（不是 UX 美化）：
+   - language clarity：非創作者是否能重放 claim/violation 判斷語意
+   - artifact readability：關鍵 artifact 是否可在合理時間內理解 decision lineage
+   - precedent replay cost：重放既有 case law 是否需要不成比例 insider context
+   - social confidence cost：提出 challenge 是否伴隨非證據性的社會性懲罰
+   若 audit 顯示 technically open 但 practically closed，視為 legitimacy risk，不得宣稱 authority distribution 已成立。
 
    **OP-HC Authority Status（誠實語意，2026-04-27）**：
    現狀不是 `OP-HC system designed and legitimized`，而是：
