@@ -1244,6 +1244,15 @@ Enumd / SpecAuthority：
    E2 的目標不是測試，而是 **prove governance survives reality**。
    **E2 不是被動等待**：不能 fake evidence，但可以主動改善 observability。
 
+   **E2 Constitutional Criteria（防 indefinite deferral）**：
+   E2 既是 adoption milestone，也是 authority legitimacy source；因此不得無限期維持
+   「再觀察看看」而不進入判定。
+   最低要求不是立刻下最終結論，而是先明確定義「何時 evidence 足以開始回答 legitimacy 問題」：
+   - `constitutional_evidence_trigger`（開始判定門檻）必須顯式記錄且可審計
+   - 進入 trigger 後必須輸出 `legitimacy_review_started`（不得回到無限觀察語態）
+   - 若 trigger 長期未達，必須輸出 `deferral_reason` + `deferral_risk`，不得只寫「持續觀察」
+   - 若 trigger 已達但未啟動 review，視為 governance process violation（不是一般等待）
+
    **E2 Acceleration Whitelist**（合法的加速行動）：
    - 降低 adoption friction → 更多 repo 可以成功採用（直接增加 E2 母體）
    - 提升 reviewer clarity → 更低的 false stale / 更快的 gate decision
@@ -1342,10 +1351,12 @@ Enumd / SpecAuthority：
 
    **Expensive Boundaries（避免治理誤讀）**：
    expensive ≠ slow；expensive 也 ≠ socially painful。
+   expensive 也 ≠ expert-only（proof burden 高，不等於 access barrier 高）。
    禁止把以下內容當作治理成本：
    - escalation humiliation
    - political penalty
    - blame-by-default ownership pressure
+   - expert-only gatekeeping（以資歷門檻替代證據門檻）
    這些屬於 fear-based compliance，會破壞 adoption；真正昂貴的是 evidence burden，不是 interpersonal punishment。
 
    **OP-HC Authority Status（誠實語意，2026-04-27）**：
