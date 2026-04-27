@@ -278,6 +278,41 @@ def test_tamper_replay_blocks_coverage_and_protected_claim_linkage_mutation():
     assert assessed["authority_valid"] is False
 
 
+def test_resolved_confirmed_write_requires_lifecycle_transition_guard():
+    project_root = _tmp_dir("resolved_confirmed_missing_transition")
+    payload = _valid_payload()
+    payload["authority_lifecycle_state"] = "resolved_confirmed"
+    payload["release_claims_resolved"] = True
+
+    write_result = write_authority_artifact(project_root, payload)
+
+    assert write_result["ok"] is False
+    assert any(
+        "lifecycle_transition is required for resolved_* lifecycle states" in err
+        for err in (write_result.get("authority_errors") or [])
+    )
+
+
+def test_resolved_confirmed_write_fails_closed_for_author_provisional_actor():
+    project_root = _tmp_dir("resolved_confirmed_author_provisional_forbidden")
+    payload = _valid_payload()
+    payload["authority_lifecycle_state"] = "resolved_confirmed"
+    payload["release_claims_resolved"] = True
+    payload["lifecycle_transition"] = {
+        "from_state": "resolved_provisional",
+        "actor": "author_provisional",
+        "auto": False,
+    }
+
+    write_result = write_authority_artifact(project_root, payload)
+
+    assert write_result["ok"] is False
+    assert any(
+        "lifecycle_transition_guard_failed" in err
+        for err in (write_result.get("authority_errors") or [])
+    )
+
+
 # ---------------------------------------------------------------------------
 # assess_authority_directory: companion register cross-verification
 # ---------------------------------------------------------------------------
