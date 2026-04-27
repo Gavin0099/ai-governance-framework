@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from governance_tools.escalation_log_writer import assess_escalation_register
+from governance_tools.lifecycle_transition_writer import validate_lifecycle_transition
 
 
 WRITER_ID = "governance_tools.escalation_authority_writer"
@@ -50,6 +51,15 @@ ALLOWED_COVERAGE_ERAS = {
     "TRANSITION",
     "PRE-SKIP-TYPE-ERA",
 }
+ALLOWED_AUTHORITY_LIFECYCLE_STATES = {
+    "created",
+    "active",
+    "superseded",
+    "resolved_provisional",
+    "resolved_confirmed",
+    "invalidated",
+    "archived",
+}
 
 
 def _utc_now() -> str:
@@ -80,6 +90,8 @@ def _canonical_for_fingerprint(payload: dict[str, Any]) -> dict[str, Any]:
         "release_claims_resolved",
         "release_blocked",
         "release_block_reasons",
+        "authority_lifecycle_state",
+        "lifecycle_transition",
     ]
     return {key: payload.get(key) for key in keys}
 
@@ -164,6 +176,32 @@ def validate_prewrite_payload(payload: dict[str, Any]) -> tuple[bool, list[str],
     escalation_closed = bool(normalized.get("escalation_closed", False))
     if escalation_closed and governance_track in {"pending_validation", "pending_independent_validation", "governance_incomplete"}:
         errors.append("escalation_closed=true is inconsistent with current governance_track_state")
+
+    lifecycle_state = normalized.get("authority_lifecycle_state")
+    if lifecycle_state is not None and lifecycle_state not in ALLOWED_AUTHORITY_LIFECYCLE_STATES:
+        errors.append("authority_lifecycle_state is invalid")
+
+    if lifecycle_state in {"resolved_provisional", "resolved_confirmed"}:
+        transition = normalized.get("lifecycle_transition")
+        if not isinstance(transition, dict):
+            errors.append("lifecycle_transition is required for resolved_* lifecycle states")
+        else:
+            from_state = transition.get("from_state")
+            actor = transition.get("actor")
+            auto = bool(transition.get("auto", False))
+            if not isinstance(from_state, str) or not from_state.strip():
+                errors.append("lifecycle_transition.from_state is required")
+            if not isinstance(actor, str) or not actor.strip():
+                errors.append("lifecycle_transition.actor is required")
+            if not errors:
+                transition_result = validate_lifecycle_transition(
+                    from_state=from_state,
+                    to_state=lifecycle_state,
+                    actor=actor,
+                    auto=auto,
+                )
+                if not transition_result["ok"]:
+                    errors.append("lifecycle_transition_guard_failed:" + ",".join(transition_result["errors"]))
 
     return len(errors) == 0, errors, normalized
 
