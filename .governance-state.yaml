@@ -4,7 +4,7 @@
 # NOT authority for gate verdict, classification validation, or escalation closure.
 # DO NOT edit manually; update PLAN.md or runtime inputs instead.
 #
-generated_at: "2026-04-20T03:57:42.873487+00:00"
+generated_at: "2026-04-27T11:04:57.142065+00:00"
 state_surface_contract:
   surface_role: derived_context_snapshot
   authority_scope: session_context_only
@@ -28,7 +28,7 @@ gate_status:
   PhaseA: passed
   PhaseB: passed
   PhaseC: passed
-  PhaseD: passed
+  PhaseD: pending
   PhaseE: in_progress
 active_sprint:
   -
@@ -44,7 +44,7 @@ active_sprint:
     name: 修正高可見度 docs / governance 文件的亂碼與英文主敘事殘留
     done: true
   -
-    name: 重建 root PLAN / state source of truth，讓 state_generator 與 freshness surface 回到可維護狀態
+    name: "重建 root PLAN/state surface 邊界（PLAN = source of truth；`.governance-state.yaml` = derived bootstrap snapshot），讓 state_generator 與 freshness surface 回到可維護狀態"
     done: true
   -
     name: "建立 starter-pack 自動升級路徑，讓 starter-pack 不只停在手動複製"
@@ -55,8 +55,8 @@ backlog_counts:
   P2: 0
 freshness:
   status: FRESH
-  last_updated: "2026-04-16"
-  days_since_update: 4
+  last_updated: "2026-04-24"
+  days_since_update: 3
   threshold_days: 7
 runtime_contract:
   task: PhaseE
