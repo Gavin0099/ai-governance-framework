@@ -122,8 +122,36 @@ Record format:
 - validator_tier: tier2_author_provisional
 - independence_constraints_met: yes
 - days_since_last_engagement: N
+- provisional_expiry_date: YYYY-MM-DD  (28 calendar days from validation_date)
 - retrospective_tier1_required_by: YYYY-MM-DD (within 3 observation cycles)
 ```
+
+**Tier 2 Aging and Escalation Rules (anti-creep):**
+
+Tier 2 is a safety valve, not a legitimate closure path. The following rules
+prevent it from becoming the de facto standard:
+
+1. **Expiration**: `author_provisional` expires after **28 calendar days**.
+   After expiration, closure reverts to `pending_human_validation` unless
+   Tier 1 confirmation has been received.
+
+2. **Visible debt**: Every open `author_provisional` closure must appear in
+   the escalation record header as an unresolved item. Consumers of the
+   escalation log must see provisional debt, not clean closure status.
+
+3. **No stacking**: A second `author_provisional` cannot extend the first.
+   Expiry of one provisional requires Tier 1 or explicit waiver (see below),
+   not a new provisional.
+
+4. **Release gate**: Any release artifact citing this escalation as "resolved"
+   must disclose `author_provisional` status. Citing provisional closure as
+   clean closure is a governance integrity violation.
+
+5. **Waiver path** (last resort): If Tier 1 remains unavailable after
+   provisional expiry, the framework maintainer may record an explicit policy
+   waiver with `waiver_reason` and `waiver_expiry`. Waived closures are
+   explicitly not equivalent to validated closures and must be disclosed as such.
+   Waivers must be reviewed at next governance checkpoint.
 
 ### Closure Blocked
 

@@ -1189,6 +1189,17 @@ Enumd / SpecAuthority：
      - trust boundary design：任何聲稱「歷史趨勢」的結論，必須先通過 era coverage check；
        check 失敗 → 結論必須降級為 `not_supported_under_current_coverage`
 
+   **Coverage Consumer Obligation Contract（2026-04-27）**：
+   `coverage_era` 和 `pre_era_fraction` 是 machine-readable trust signal，不是 informative decoration。
+   以下 claim 類型為 **protected claims**——使用這些 claim 時必須引用 `coverage_era`，否則 claim 無效：
+   - `stable trend claim`：聲稱 lifecycle 趨勢穩定（e.g., "consistently stable_ok"）
+   - `readiness progression claim`：聲稱 readiness 正在接近（e.g., "approaching gate"）
+   - `promotion confidence claim`：用歷史資料支持 promote 信心
+   - `lifecycle comparison claim`：跨時間段比較 lifecycle_class
+   **Fail-open rule**：protected claim 若未引用 `coverage_era`，或引用的 repo 之 `coverage_era ≠ CURRENT`，
+   結論必須附加 caveat：`"not_supported_under_current_coverage"`；不得以 stable_ok 直接支持該結論。
+   這是 contract，不是 advisory——沒有引用 coverage metadata 的 protected claim 是無效的 governance claim。
+
    **Unexplained Adoption Friction Defaults to Framework Defect（2026-04-27）**：
    Bookstore-Scraper 7 errors（temp directory permission / environment isolation 問題）屬於「原因未解釋的 friction」。
    **預設責任在框架側**，除非查明是 adopter 環境本身的特殊污染（已損壞的 OS temp、CI policy 干預、repo 髒狀態等）。
@@ -1222,12 +1233,24 @@ Enumd / SpecAuthority：
    - false promotion rate 可觀測並呈下降趨勢
    - stale activation 可被解釋（不是靜默消失）
    E2 的目標不是測試，而是 **prove governance survives reality**。
-   **E2 不是被動等待**：不能 fake evidence，但可以主動改善 observability：
+   **E2 不是被動等待**：不能 fake evidence，但可以主動改善 observability。
+
+   **E2 Acceleration Whitelist**（合法的加速行動）：
    - 降低 adoption friction → 更多 repo 可以成功採用（直接增加 E2 母體）
    - 提升 reviewer clarity → 更低的 false stale / 更快的 gate decision
    - 改善 closeout usability → 更少需要人工介入才能完成 session
    - 減少 required human effort per session → 讓 E2 累積不依賴高頻人力投入
-   「只能等觀測」的說法是錯的。E2 的可驗證條件可以被框架設計主動影響。
+   - 改善觀測工具的信號品質 → reviewer 更容易識別真實 lifecycle 狀態
+
+   **E2 Acceleration Contamination Blacklist**（禁止類別 — 這些是 contamination，不是 acceleration）：
+   - **Altering evaluation criteria**：修改「什麼算 stable_ok / transitioning_active」的定義讓 E2 更容易達成
+   - **Lowering evidence thresholds**：降低 gate 閾值（min_sessions、min_repos、lifecycle_active_ratio 等）讓 READY 更快到
+   - **Removing proof obligations**：刪除 Phase B 完成條件（coverage / zero decision_relevant / human check）讓 closure 更容易
+   - **Classification semantics drift**：修改 lifecycle_class 語意使更多 repo 自動升格（e.g., insufficient_evidence → transitioning_active）
+   - **Simplifying closure by weakening authority**：讓 Tier 2 成為常態；waiver 頻繁使用而未升級
+   - **Making reviewer experience easier at the cost of depth**：讓 reviewer 更快給 positive verdict，而不是更準確判斷
+   任何「讓 E2 累積加快」但實際上是「讓 evidence bar 降低」的改動，都是 contamination。
+   **E2 acceleration 必須讓 framework 面對更多現實，不是讓 framework 更容易說服自己已達成。**
 
    **E3: Value Proof（E2 之後的下一個問題）**：
    E3 回答的問題是：「這個框架讓決策變得更好了嗎？」
