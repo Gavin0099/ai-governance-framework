@@ -1176,6 +1176,22 @@ Enumd / SpecAuthority：
    - 對 stable_ok 的影響：**`stable_ok` 在 skip_type_coverage < 0.3 的 repo，應讀為「目前觀測下看起來正常」，不得解讀為「已證明穩定」**
    - 分類：audit debt，不是 warning；任何引用歷史趨勢的結論必須附帶此缺口 caveat
    - 解法：持續累積 post-schema session（帶 skip_type 的 entries）；無法回填歷史資料
+   - **制度化要求（audit debt 不會自己消失）**：
+     - debt 必須被追蹤，不能只被備註。需建立 migration annotation 機制：
+       每份使用歷史資料的分析輸出必須機器可讀地標注 `coverage_era` 與 `pre_era_fraction`
+     - backfill semantics：歷史 entry 不可回填 skip_type，但可標注 `era_marker: PRE-SKIP-TYPE-ERA`
+       供 downstream consumer 明確排除或分層處理
+     - trust boundary design：任何聲稱「歷史趨勢」的結論，必須先通過 era coverage check；
+       check 失敗 → 結論必須降級為 `not_supported_under_current_coverage`
+
+   **Adoption Friction = Framework Defect（2026-04-27）**：
+   Bookstore-Scraper 7 errors（temp directory permission / environment isolation 問題）不是外部 repo 的設置錯誤。
+   如果框架的測試在標準 adoption 環境中無法乾淨執行，**friction 就是 framework defect**，不是使用者問題。
+   需要的不是「叫採用者自己解決」，而是：
+   - hermetic test guidance：明確說明哪些測試需要隔離 temp path（不依賴 OS global temp）
+   - temp path isolation defaults：`conftest.py` 或 `pytest.ini` 層級提供隔離預設值
+   - adoption smoke test：框架提供一個可以在 fresh environment 驗證 adoption 完整性的最小指令集
+   **沒有這些，`adoption friction` 就是一個持續壓制外部參與的結構性障礙。**
 
    **Submodule Local Fork Pressure（2026-04-27 記錄）**：
    Bookstore-Scraper 的 `.ai-governance-framework` submodule 更新被本地 tracked 檔案阻斷：
@@ -1183,10 +1199,11 @@ Enumd / SpecAuthority：
    這不是 merge 問題，而是 local fork pressure：消費 repo 可能已對 framework 檔案進行 policy divergence。
    此 divergence 若被放任，將是未來 drift 的根源。**列為 adoption health risk，非一般 conflict。**
 
-   **Phase 3 優先級調整（2026-04-27）**：
-   Phase 3（Trigger Design）技術上解封，但**不是現在的優先工作**。
-   優先工作是 **E2: Sustained Lifecycle Proof**（見下方）。
-   Phase 3 設計在 E2 有初步觀測結果前進行，等同在沒有 reality proof 的情況下設計 trigger——這是過度設計。
+   **Phase 3 — 刻意禁止（deliberately prohibited，2026-04-27）**：
+   Phase 3（Trigger Design）技術上解封，但**現在做反而危險**。
+   在 E2 reality proof 到來之前設計精密的 trigger system，是 **sophistication theater**：
+   用精確的技術設計掩蓋「框架是否真的有效」這個尚未回答的根本問題。
+   正確態度：deliberately prohibited for now，等 E2 有初步可驗證結果後再啟動 Phase 3 設計。
 
    **E2: Sustained Lifecycle Proof（真正的下一個里程碑）**：
    E2 回答的問題是：「這個框架能在創作者之外存活嗎？」
@@ -1197,6 +1214,25 @@ Enumd / SpecAuthority：
    - false promotion rate 可觀測並呈下降趨勢
    - stale activation 可被解釋（不是靜默消失）
    E2 的目標不是測試，而是 **prove governance survives reality**。
+
+   **E3: Value Proof（E2 之後的下一個問題）**：
+   E3 回答的問題是：「這個框架讓決策變得更好了嗎？」
+   sustained usage ≠ valuable usage。E2 只證明框架存活，不證明框架有效。
+   E3 核心問題：**prove governance improves decisions outside the creator**。
+   可驗證信號（高門檻，需要對照基線）：
+   - reviewer error rate 在採用框架前後有可觀測差異
+   - 採用框架的 repo 在 gate decision 品質上優於未採用的
+   - non-author reviewer 的 decision confidence 可量化且呈改善趨勢
+   E3 是框架存在的根本理由驗證，不是 E2 的延伸。
+   **禁止用 E2 evidence 聲稱 E3 已達成。**
+
+   **scanner 語意邊界（E1b Phase B 觀測輔助工具定位）**：
+   `e1b_consumer_audit.scan_consumer_text()` 是 **lexical tripwire**，不是 semantic proof。
+   它只能偵測已知 trigger 詞組的出現（E1–E4 的 forbidden lexical patterns）。
+   `scanner=[]`（empty result）只能聲稱：**no detected overclaim**。
+   不能聲稱：**no overclaim exists**。
+   結構性誤導（structural misleading：合法欄位組合傳遞不合法語意）不在 scanner 偵測範圍內。
+   Phase B 觀測記錄中的 scanner result 必須附此邊界說明，不得被引用為「語意安全」證明。
 
    **Phase 3 解封語意邊界（Phase 2.5 仍有效）**：
    Phase 2 READY 只表示「政策代理條件達成」，不等於「classifier semantically validated」。
