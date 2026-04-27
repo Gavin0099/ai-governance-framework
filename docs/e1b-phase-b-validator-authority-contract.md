@@ -174,6 +174,19 @@ Routing consequence rules:
 
 This turns expiry from delayed ignoring into enforceable accountability.
 
+**Authority Writer Monopoly (trust-root requirement):**
+
+`authority` artifacts are valid only when produced by the canonical writer path:
+`governance_tools/escalation_authority_writer.py`.
+
+Implications:
+- schema-valid JSON is not sufficient for authority legitimacy
+- artifacts emitted by other tools/scripts are untrusted by default
+- release consumers must fail closed on untrusted provenance
+  (`release_blocked` with `untrusted_escalation_provenance`)
+
+This enforces: `only authority path may produce authority artifact`.
+
 **Coverage Claim Consequence Mapping (hard-stop surfaces):**
 
 Claim invalidation must map to concrete consequences. For protected claims

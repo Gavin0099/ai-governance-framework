@@ -89,6 +89,11 @@ def _fingerprint(payload: dict[str, Any]) -> str:
     return hashlib.sha256(seed.encode("utf-8")).hexdigest()
 
 
+def _hash_json(payload: dict[str, Any]) -> str:
+    wire = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return hashlib.sha256(wire.encode("utf-8")).hexdigest()
+
+
 def _validate_required_str(payload: dict[str, Any], key: str, errors: list[str]) -> None:
     value = payload.get(key)
     if not isinstance(value, str) or not value.strip():
@@ -158,6 +163,8 @@ def validate_prewrite_payload(payload: dict[str, Any]) -> tuple[bool, list[str],
 
 def build_authority_artifact(payload: dict[str, Any], *, written_at: str | None = None) -> dict[str, Any]:
     ok, errors, normalized = validate_prewrite_payload(payload)
+    normalized_payload_hash = _hash_json(_canonical_for_fingerprint(normalized))
+    source_inputs_hash = _hash_json(payload)
     artifact = {
         "artifact_type": "e1b_phase_b_escalation_authority",
         "artifact_schema": ARTIFACT_SCHEMA,
@@ -165,8 +172,11 @@ def build_authority_artifact(payload: dict[str, Any], *, written_at: str | None 
             "writer_id": WRITER_ID,
             "writer_version": WRITER_VERSION,
             "written_at": written_at or _utc_now(),
+            "provenance_linkage_version": "v1",
             "authority_valid": ok,
             "authority_errors": errors,
+            "source_inputs_hash": source_inputs_hash,
+            "normalized_payload_hash": normalized_payload_hash,
         },
         "payload": normalized,
     }
@@ -220,15 +230,31 @@ def assess_authority_artifact(path: Path) -> dict[str, Any]:
     ok, errors, normalized = validate_prewrite_payload(payload)
     expected_fingerprint = _fingerprint(normalized)
     actual_fingerprint = provenance.get("payload_fingerprint")
+    expected_normalized_hash = _hash_json(_canonical_for_fingerprint(normalized))
+    actual_normalized_hash = provenance.get("normalized_payload_hash")
+
+    linkage_fields_ok = all(
+        isinstance(provenance.get(field), str) and bool(str(provenance.get(field)).strip())
+        for field in ("written_at", "payload_fingerprint", "source_inputs_hash", "normalized_payload_hash")
+    )
 
     trusted_writer = (
         provenance.get("writer_id") == WRITER_ID
         and provenance.get("writer_version") == WRITER_VERSION
         and artifact.get("artifact_schema") == ARTIFACT_SCHEMA
+        and provenance.get("provenance_linkage_version") == "v1"
     )
     fingerprint_valid = isinstance(actual_fingerprint, str) and actual_fingerprint == expected_fingerprint
+    normalized_hash_valid = isinstance(actual_normalized_hash, str) and actual_normalized_hash == expected_normalized_hash
 
-    authority_valid = bool(ok and trusted_writer and fingerprint_valid and provenance.get("authority_valid") is True)
+    authority_valid = bool(
+        ok
+        and trusted_writer
+        and linkage_fields_ok
+        and fingerprint_valid
+        and normalized_hash_valid
+        and provenance.get("authority_valid") is True
+    )
     release_blocked = bool(payload.get("release_blocked")) or (not authority_valid)
     release_block_reasons = list(payload.get("release_block_reasons") or [])
     if not authority_valid:
@@ -242,7 +268,9 @@ def assess_authority_artifact(path: Path) -> dict[str, Any]:
         "manifest_file": str(path),
         "error": None if authority_valid else "authority_validation_failed",
         "trusted_writer": trusted_writer,
+        "linkage_fields_ok": linkage_fields_ok,
         "fingerprint_valid": fingerprint_valid,
+        "normalized_hash_valid": normalized_hash_valid,
         "validation_errors": errors,
         "escalation_id": payload.get("escalation_id"),
         "release_blocked": release_blocked,
