@@ -11,6 +11,7 @@ from governance_tools.escalation_authority_writer import (
     assess_authority_directory,
     build_authority_artifact,
     default_authority_artifact_path,
+    default_authority_dir,
     validate_prewrite_payload,
     write_authority_artifact,
 )
@@ -275,3 +276,60 @@ def test_tamper_replay_blocks_coverage_and_protected_claim_linkage_mutation():
     assert "payload_prewrite_validation_failed" in assessed["release_block_reasons"]
     assert "normalized_payload_hash_mismatch" in assessed["release_block_reasons"]
     assert assessed["authority_valid"] is False
+
+
+# ---------------------------------------------------------------------------
+# assess_authority_directory: companion register cross-verification
+# ---------------------------------------------------------------------------
+
+
+def test_assess_directory_fails_closed_when_register_active_and_no_log():
+    """Register says active IDs exist, no log → escalation_expected_missing → fail-closed."""
+    from governance_tools.escalation_log_writer import write_escalation_register
+
+    project_root = _tmp_dir("dir_register_active_no_log")
+    authority_dir = default_authority_dir(project_root)
+    authority_dir.parent.mkdir(parents=True, exist_ok=True)
+    register_path = authority_dir.parent / "phase-b-escalation-register.json"
+    write_escalation_register(register_path, ["esc-001"])
+    # No log file, no authority/ dir
+
+    result = assess_authority_directory(project_root)
+
+    assert result["ok"] is False
+    assert result["release_blocked"] is True
+    assert result["source"] == "escalation_expected_missing"
+    assert "escalation_active_but_no_authority_artifacts" in result["release_block_reasons"]
+
+
+def test_assess_directory_fails_closed_when_register_untrusted():
+    """Register exists but writer_id is untrusted → register_integrity_failed → fail-closed."""
+    from governance_tools.escalation_log_writer import REGISTER_SCHEMA, REGISTER_WRITER_VERSION
+
+    project_root = _tmp_dir("dir_register_untrusted")
+    authority_dir = default_authority_dir(project_root)
+    authority_dir.parent.mkdir(parents=True, exist_ok=True)
+    register_path = authority_dir.parent / "phase-b-escalation-register.json"
+    register_path.write_text(
+        json.dumps(
+            {
+                "register_schema": REGISTER_SCHEMA,
+                "writer_id": "evil.writer",
+                "writer_version": REGISTER_WRITER_VERSION,
+                "written_at": "2026-04-27T00:00:00+00:00",
+                "active_escalation_ids": [],
+                "active_case_count": 0,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = assess_authority_directory(project_root)
+
+    assert result["ok"] is False
+    assert result["release_blocked"] is True
+    assert result["source"] == "register_integrity_failed"
+    assert "register_writer_untrusted" in result["release_block_reasons"]
