@@ -60,6 +60,14 @@ ALLOWED_AUTHORITY_LIFECYCLE_STATES = {
     "invalidated",
     "archived",
 }
+LIFECYCLE_PRECEDENCE = {
+    "invalidated": 0,
+    "active": 1,
+    "resolved_confirmed": 2,
+    "resolved_provisional": 3,
+    "superseded": 4,
+    "archived": 5,
+}
 
 
 def _utc_now() -> str:
@@ -124,6 +132,15 @@ def _append_release_block(payload: dict[str, Any], reason: str) -> None:
 def _append_unique_reason(reasons: list[str], reason: str) -> None:
     if reason not in reasons:
         reasons.append(reason)
+
+def _pick_precedence_state(states: list[str]) -> str | None:
+    ranked = [
+        state for state in states
+        if state in LIFECYCLE_PRECEDENCE
+    ]
+    if not ranked:
+        return None
+    return sorted(ranked, key=lambda s: LIFECYCLE_PRECEDENCE[s])[0]
 
 
 def validate_prewrite_payload(payload: dict[str, Any]) -> tuple[bool, list[str], dict[str, Any]]:
@@ -214,6 +231,11 @@ def validate_prewrite_payload(payload: dict[str, Any]) -> tuple[bool, list[str],
                         errors.append("lifecycle_transition.reviewer_confirmation.reviewer_id is required")
                     if not isinstance(confirmed_at, str) or not confirmed_at.strip():
                         errors.append("lifecycle_transition.reviewer_confirmation.confirmed_at is required")
+
+    if lifecycle_state == "active":
+        _append_release_block(normalized, "authority_state_active")
+    if lifecycle_state == "invalidated":
+        _append_release_block(normalized, "authority_state_invalidated")
 
     return len(errors) == 0, errors, normalized
 
@@ -365,6 +387,8 @@ def assess_authority_artifact(path: Path) -> dict[str, Any]:
         "normalized_hash_valid": normalized_hash_valid,
         "validation_errors": errors,
         "escalation_id": payload.get("escalation_id"),
+        "authority_lifecycle_state": payload.get("authority_lifecycle_state"),
+        "written_at": provenance.get("written_at"),
         "release_blocked": release_blocked,
         "release_block_reasons": release_block_reasons,
     }
@@ -436,6 +460,38 @@ def assess_authority_directory(project_root: Path) -> dict[str, Any]:
             if reason not in reasons:
                 reasons.append(reason)
 
+    lifecycle_effective_by_escalation: dict[str, str] = {}
+    for item in records:
+        escalation_id = item.get("escalation_id")
+        lifecycle_state = item.get("authority_lifecycle_state")
+        if not isinstance(escalation_id, str) or not escalation_id.strip():
+            continue
+        if not isinstance(lifecycle_state, str) or lifecycle_state not in LIFECYCLE_PRECEDENCE:
+            continue
+        existing = lifecycle_effective_by_escalation.get(escalation_id)
+        lifecycle_effective_by_escalation[escalation_id] = _pick_precedence_state(
+            [existing, lifecycle_state] if existing else [lifecycle_state]
+        ) or lifecycle_state
+
+    precedence_violation = False
+    for escalation_id, lifecycle_state in lifecycle_effective_by_escalation.items():
+        if lifecycle_state == "invalidated":
+            blocked = True
+            precedence_violation = True
+            _append_unique_reason(reasons, "authority_precedence_invalidated_blocks_release")
+        elif lifecycle_state == "active":
+            blocked = True
+            precedence_violation = True
+            _append_unique_reason(reasons, "authority_precedence_active_blocks_release")
+
+    register_active_ids = set(register_result.get("active_escalation_ids") or [])
+    for escalation_id in register_active_ids:
+        effective_state = lifecycle_effective_by_escalation.get(escalation_id)
+        if effective_state == "resolved_confirmed":
+            blocked = True
+            precedence_violation = True
+            _append_unique_reason(reasons, f"authority_precedence_active_register_overrides_resolved_confirmed:{escalation_id}")
+
     # Propagate register integrity problems even when authority dir exists.
     if register_has_problem:
         blocked = True
@@ -445,12 +501,13 @@ def assess_authority_directory(project_root: Path) -> dict[str, Any]:
 
     return {
         "available": len(files) > 0,
-        "ok": all_ok and not register_has_problem,
+        "ok": all_ok and not register_has_problem and not precedence_violation,
         "source": "authority-writer-monopoly",
         "authority_dir": str(authority_dir),
         "artifacts_read": len(files),
         "release_blocked": blocked,
         "release_block_reasons": reasons,
+        "lifecycle_effective_by_escalation": lifecycle_effective_by_escalation,
         "records": records,
     }
 
