@@ -153,6 +153,44 @@ prevent it from becoming the de facto standard:
    explicitly not equivalent to validated closures and must be disclosed as such.
    Waivers must be reviewed at next governance checkpoint.
 
+**Forced Ownership Routing (required, not advisory):**
+
+Expiry alone is not governance. Every `author_provisional` record must carry a
+forced routing path so debt cannot silently age in place.
+
+Required fields in escalation record:
+- `forced_owner`: role accountable for driving Tier 1 closure
+- `forced_escalation_target`: next reviewer authority path (team/role)
+- `forced_route_due_date`: explicit date for ownership handoff completion
+- `forced_route_status`: `assigned | in_progress | overdue | completed`
+
+Routing consequence rules:
+1. On provisional expiry, `forced_route_status` must transition to at least
+   `assigned` on the same update that reverts state to `pending_human_validation`.
+2. If `forced_route_status=overdue`, any release artifact that cites this
+   escalation as resolved is invalid and must be blocked.
+3. If routing fields are absent, escalation state is treated as
+   `governance_incomplete` regardless of remediation implementation status.
+
+This turns expiry from delayed ignoring into enforceable accountability.
+
+**Coverage Claim Consequence Mapping (hard-stop surfaces):**
+
+Claim invalidation must map to concrete consequences. For protected claims
+(`stable trend`, `readiness progression`, `promotion confidence`,
+`lifecycle comparison`):
+
+- missing `coverage_era` reference => claim is invalid
+- `coverage_era != CURRENT` without explicit caveat
+  `not_supported_under_current_coverage` => claim is invalid
+
+Invalid protected claims must hard-stop at:
+1. promotion proposal artifacts
+2. release gate summaries citing readiness/resolution
+3. governance report signoff for Phase B/E2 completion
+
+Reviewer discretion cannot downgrade these hard-stops to warnings.
+
 ### Closure Blocked
 
 If neither Tier 1 nor Tier 2 with independence protocol is available,
@@ -190,6 +228,16 @@ Without explicit validator authority:
 
 This contract is the minimum necessary to prevent Phase B from being
 a creator-bottlenecked governance theater.
+
+## Trust Root Debt (explicitly open)
+
+Current status is:
+- validator authority semantics are defined
+- provenance enforcement at runtime is still missing
+
+This is a **trust root debt**, not a minor follow-up and not a closed item.
+Until runtime writes validator provenance with enforcement semantics, closure
+authority remains partially trust-based rather than fully auditable.
 
 ---
 
