@@ -10,3 +10,4 @@
 
 ## Workflow Preferences
 - User requires a strict loop: after each completed change, update the corresponding `memory/YYYY-MM-DD.md` entry and push.
+- User requires every completed change to be pushed to both `gitlab` and `origin` (GitHub), with author identity intentionally separated per remote.
