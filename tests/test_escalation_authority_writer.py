@@ -66,6 +66,37 @@ def test_write_and_assess_roundtrip_is_authority_valid():
     assert assessed["release_blocked"] is False
 
 
+def test_write_rejects_non_canonical_authority_output_path():
+    project_root = _tmp_dir("non_canonical_write_path")
+    payload = _valid_payload()
+    non_canonical = project_root / "manual" / "authority.json"
+
+    write_result = write_authority_artifact(project_root, payload, out_file=non_canonical)
+
+    assert write_result["ok"] is False
+    assert write_result["error"] == "authority_write_path_violation"
+    assert write_result["release_blocked"] is True
+    assert "authority_write_path_violation" in write_result["release_block_reasons"]
+    assert non_canonical.exists() is False
+
+
+def test_write_rejects_silent_overwrite_of_existing_untrusted_artifact():
+    project_root = _tmp_dir("reject_silent_overwrite_untrusted")
+    payload = _valid_payload()
+    out_file = default_authority_artifact_path(project_root, payload["escalation_id"])
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    out_file.write_text(
+        json.dumps({"artifact_type": "e1b_phase_b_escalation_authority", "payload": {}}, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    write_result = write_authority_artifact(project_root, payload)
+
+    assert write_result["ok"] is False
+    assert write_result["error"] == "authority_write_existing_untrusted_artifact"
+    assert "existing_untrusted_authority_artifact" in write_result["release_block_reasons"]
+
+
 def test_assess_fails_closed_for_untrusted_writer():
     project_root = _tmp_dir("untrusted_writer")
     payload = _valid_payload()
