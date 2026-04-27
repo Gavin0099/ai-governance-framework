@@ -15,6 +15,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from governance_tools.human_summary import build_summary_line
+from governance_tools.escalation_authority_writer import assess_authority_directory
 from governance_tools.release_package_publication_reader import (
     assess_publication_manifest,
     default_docs_release_publication_manifest_path,
@@ -145,15 +146,17 @@ def assess_release_surface(
         version=version,
         publication_manifest=publication_manifest,
     )
+    escalation_authority = assess_authority_directory(project_root)
 
     return {
-        "ok": readiness["ok"] and package["ok"] and bundle["ok"] and publication["ok"],
+        "ok": readiness["ok"] and package["ok"] and bundle["ok"] and publication["ok"] and escalation_authority["ok"],
         "project_root": str(project_root),
         "version": version,
         "readiness": readiness,
         "package": package,
         "bundle_manifest": bundle,
         "publication_manifest": publication,
+        "escalation_authority": escalation_authority,
         "commands": _commands(version),
     }
 
@@ -163,6 +166,7 @@ def format_human_result(result: dict[str, Any]) -> str:
     package = result["package"]
     bundle = result["bundle_manifest"]
     publication = result["publication_manifest"]
+    escalation_authority = result["escalation_authority"]
     summary_line = build_summary_line(
         f"ok={result['ok']}",
         f"version={result['version']}",
@@ -170,6 +174,7 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"package={package['ok']}",
         f"bundle={'missing' if not bundle['available'] else bundle['ok']}",
         f"publication={'missing' if not publication['available'] else publication['ok']}",
+        f"escalation_authority={'missing' if not escalation_authority['available'] else escalation_authority['ok']}",
     )
     lines = [
         summary_line,
@@ -182,6 +187,8 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"bundle_source={bundle['source']}",
         f"publication_available={publication['available']}",
         f"publication_source={publication['source']}",
+        f"escalation_authority_available={escalation_authority['available']}",
+        f"escalation_authority_source={escalation_authority['source']}",
     ]
     if bundle.get("manifest_file"):
         lines.append(f"bundle_manifest_file={bundle['manifest_file']}")
@@ -240,6 +247,28 @@ def format_human_result(result: dict[str, Any]) -> str:
             ]
         )
 
+    lines.append("[escalation_authority]")
+    if escalation_authority["available"]:
+        lines.extend(
+            [
+                f"ok={escalation_authority['ok']}",
+                f"source={escalation_authority['source']}",
+                f"artifacts_read={escalation_authority['artifacts_read']}",
+                f"release_blocked={escalation_authority['release_blocked']}",
+            ]
+        )
+        reasons = escalation_authority.get("release_block_reasons") or []
+        if reasons:
+            lines.append(f"release_block_reasons={','.join(reasons)}")
+    else:
+        lines.extend(
+            [
+                "available=False",
+                f"source={escalation_authority['source']}",
+                "suggested_command=python governance_tools/escalation_authority_writer.py --project-root . --mode assess --format human",
+            ]
+        )
+
     lines.append("[commands]")
     for item in result["commands"]:
         lines.append(f"{item['name']}={item['command']}")
@@ -252,6 +281,7 @@ def format_markdown_result(result: dict[str, Any]) -> str:
     package = result["package"]
     bundle = result["bundle_manifest"]
     publication = result["publication_manifest"]
+    escalation_authority = result["escalation_authority"]
     summary_line = build_summary_line(
         f"ok={result['ok']}",
         f"version={result['version']}",
@@ -259,6 +289,7 @@ def format_markdown_result(result: dict[str, Any]) -> str:
         f"package={package['ok']}",
         f"bundle={'missing' if not bundle['available'] else bundle['ok']}",
         f"publication={'missing' if not publication['available'] else publication['ok']}",
+        f"escalation_authority={'missing' if not escalation_authority['available'] else escalation_authority['ok']}",
     )
 
     lines = [
@@ -276,6 +307,7 @@ def format_markdown_result(result: dict[str, Any]) -> str:
         f"| Release package | `{package['ok']}` | release_docs=`{package['existing_release_docs']}/{package['release_doc_count']}` status_docs=`{package['existing_status_docs']}/{package['status_doc_count']}` |",
         f"| Bundle manifest | `{'missing' if not bundle['available'] else bundle['ok']}` | source=`{bundle['source']}` manifest=`{bundle.get('manifest_file')}` |",
         f"| Publication manifest | `{'missing' if not publication['available'] else publication['ok']}` | source=`{publication['source']}` manifest=`{publication.get('manifest_file')}` |",
+        f"| Escalation authority | `{'missing' if not escalation_authority['available'] else escalation_authority['ok']}` | source=`{escalation_authority['source']}` artifacts=`{escalation_authority.get('artifacts_read')}` release_blocked=`{escalation_authority.get('release_blocked')}` |",
         "",
         "## Suggested Commands",
         "",
