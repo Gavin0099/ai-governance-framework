@@ -16,6 +16,7 @@ from governance_tools.release_surface_overview import (
     format_human_result,
     format_markdown_result,
 )
+from governance_tools.escalation_authority_writer import write_authority_artifact
 
 
 def _local_tmp(name: str) -> Path:
@@ -175,5 +176,75 @@ def test_release_surface_overview_fails_closed_on_untrusted_escalation_authority
         assert result["escalation_authority"]["ok"] is False
         assert result["escalation_authority"]["release_blocked"] is True
         assert "untrusted_escalation_provenance" in result["escalation_authority"]["release_block_reasons"]
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_release_surface_overview_exposes_precedence_details_for_reviewer_surface():
+    tmp_path = _local_tmp("precedence_reviewer_visible")
+    try:
+        resolved_payload = {
+            "escalation_id": "esc-resolved",
+            "mitigation_validation_state": "validated",
+            "governance_track_state": "closure_eligible",
+            "forced_owner": "framework_maintainer",
+            "forced_escalation_target": "tier1_reviewer_pool",
+            "forced_route_due_date": "2026-05-05",
+            "forced_route_status": "completed",
+            "protected_claim_used": False,
+            "coverage_era": "CURRENT",
+            "coverage_caveat": None,
+            "contamination_status": "resolved",
+            "release_claims_resolved": True,
+            "escalation_closed": False,
+            "authority_lifecycle_state": "resolved_confirmed",
+            "lifecycle_transition": {
+                "from_state": "resolved_provisional",
+                "actor": "reviewer_confirmed",
+                "auto": False,
+                "reviewer_confirmation": {
+                    "reviewer_id": "reviewer-001",
+                    "confirmed_at": "2026-04-27T09:00:00+00:00",
+                },
+            },
+        }
+        active_payload = {
+            "escalation_id": "esc-active",
+            "mitigation_validation_state": "validated",
+            "governance_track_state": "closure_eligible",
+            "forced_owner": "framework_maintainer",
+            "forced_escalation_target": "tier1_reviewer_pool",
+            "forced_route_due_date": "2026-05-05",
+            "forced_route_status": "in_progress",
+            "protected_claim_used": False,
+            "coverage_era": "CURRENT",
+            "coverage_caveat": None,
+            "contamination_status": "resolved",
+            "release_claims_resolved": False,
+            "escalation_closed": False,
+            "authority_lifecycle_state": "active",
+        }
+        assert write_authority_artifact(tmp_path, resolved_payload)["ok"] is True
+        assert write_authority_artifact(tmp_path, active_payload)["ok"] is True
+
+        result = assess_release_surface(tmp_path, version="v1.0.0-alpha")
+        rendered_human = format_human_result(result)
+
+        assert result["ok"] is False
+        assert result["escalation_authority"]["ok"] is False
+        assert result["escalation_authority"]["precedence_applied"] is True
+        assert (
+            "authority_precedence_active_blocks_release"
+            in result["escalation_authority"]["release_block_reasons"]
+        )
+        assert result["escalation_authority"]["lifecycle_effective_by_escalation"] == {
+            "esc-active": "active",
+            "esc-resolved": "resolved_confirmed",
+        }
+        assert "precedence_applied=True" in rendered_human
+        assert (
+            'lifecycle_effective_by_escalation={"esc-active": "active", "esc-resolved": "resolved_confirmed"}'
+            in rendered_human
+        )
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
