@@ -294,7 +294,7 @@ This initiative enforces promotion discipline and authority boundaries, not auto
 - [x] E9a：structural absence opt-out — skip_test_result_check: false in gate_policy.yaml（default=false）；GatePolicy.skip_test_result_check bool field；_build_canonical_path_audit suppresses test_result_artifact_absent when skip=True（structural absence declared）；canonical_interpretation_missing still fires normally（artifact must be present to trigger it）；format_human_result shows [skipped] instead of [ADVISORY] when skip+absent；gate.blocked completely unaffected；E8a log still written with signals=[]；return dict carries skip_test_result_check key for display layer；5/5 tests
 - [ ] E1b：canonical usage enforcement（強制版） — 只有在 stable observability + 足夠歷史 evidence 後才考慮；E1b 存在的合理性必須由 E8a/E8b 資料面撐腰，不能只靠主張
   - [x] **Phase 1（完成 db5f20f）**: Passive Observation — `_build_e1b_observation()`，advisory_only=True；資料收集 layer，NEVER 影響 gate；見 G5
-  - [ ] **Phase 2（進行中，見 G6）**: Distribution Understanding
+  - [x] **Phase 2（✅ READY 2026-04-27，見 G6）**: Distribution Understanding
     - Phase 2 不是純等待，而是兩件事同時進行：
       - A. 等真實 session 在不同 repo 下累積 canonical audit log entries
       - B. 運行 `scripts/analyze_e1b_distribution.py` 觀察 pool 是否正在長成可用分布
@@ -352,7 +352,7 @@ This initiative enforces promotion discipline and authority boundaries, not auto
       **Participating repo guides (2026-04-27)**:
       - `docs/e1b-phase-b-repo-participation-guide.md` — 外部 repo 如何貢獻 Phase B 觀測實例（步驟 + 簡化記錄格式）
       - `docs/e1b-phase2-lifecycle-capable-setup.md` — 外部 repo 如何成為 lifecycle_capable 並進入 Phase 2 metric 母體
-  - [ ] **Phase 3（blocked）**: Trigger Design — 動態 threshold、trend_direction、cross-repo correlation；必須等 Phase 2 readiness gate 全過才能開工；不允許在沒有 evidence baseline 的情況下拍腦袋設 threshold
+  - [ ] **Phase 3（🔓 unblocked 2026-04-27）**: Trigger Design — 動態 threshold、trend_direction、cross-repo correlation；Phase 2 gate READY，可進入 Phase 3 設計；Phase 2.5 語意鎖仍有效（raw observation only，禁止 interpretive-class key）
 
 > 排序根據：E8a 先讓 signal 有歷史，E8b 才能讓歷史有語意，E1a/E1b 再決定是否有可靠證據基礎支持更強約束。
 > E1b 不等同於「系統已 enforce agent behavior」——agent 中途決策無法直接 observe，強制版頂多能驗到 artifact footprint 層，不能聲稱 runtime exclusivity。
@@ -1136,26 +1136,43 @@ Enumd / SpecAuthority：
    - Phase 2 gate `lifecycle_active_ratio ≥ 0.5`：✅ PASS（1.0，shadow v2 metric）
    - 剩餘 blocker 是 legacy v2-upgrade 問題，不是母體不足
 
-   **Phase 2 精確現況（2026-04-16，釘住不得混淆）：**
+   **Phase 2 精確現況（✅ READY 2026-04-27）：**
 
-   > **Phase 2 blocked by metric promotion decision, not by repository readiness.**
+   > **Phase 2 Gate READY — v2 metric promoted, all 5 conditions pass.**
 
-   fleet pool 已足夠（3 lifecycle_capable repos，99 sessions），但 `min_nondegenerate_ratio` 仍讀 legacy `is_degenerate`（distinct_states/n < 0.3），對所有 stable_ok repo 均回傳 false positive。v2 等效指標（`lifecycle_active_ratio=1.0`）已健康，但尚未升格成正式 gate check。
+   **v2 gate promote 決策記錄（2026-04-27）**：
 
-   不做 v2 gate promote 的理由（已釘住，不得繞過）：
+   前提條件全部滿足：
+   1. ✅ `mixed_active` 拆成 `insufficient_evidence` / `transitioning_active`（commit a4088a1）
+   2. ✅ 三 repo 觀測時間差：SpecAuthority 46 sessions（含 temporary_skip 時代 + Layer 2 後），Bookstore-Scraper 43 sessions，ai-governance-framework 10 sessions；非集中同一時段
+   3. ✅ promote decision（此條目即為記錄）：v2 metric（`non_stuck_absent_ratio_v2`）替代 legacy entropy，不引入樂觀偏誤——理由：stuck_absent 語意準確（dominant absent + 凍結 pattern），stable_ok repo 在 v2 下正確判為非 stuck，不存在假陽性；fleet 3 repos 全 non-stuck-absent，ratio=1.0
+   4. ✅ PLAN.md 政策切換記錄（此條目）
 
-   | 原因 | 說明 |
-   |---|---|
-   | gate semantics 升格，不是 bugfix | promote 改變的是 Phase 2 通過條件、fleet readiness 判準、reviewer 對 degenerate 的理解方式，是政策升格 |
-   | mixed_active 拆分未完成 | 升格前必做的語意清理仍 pending |
-   | 三 repo pool 樣本偏小 | 三個 stable_ok repo 是目前觀測；不排除是剛好乾淨的 pool，非充分證據 |
-   | PRE-ERA coverage 仍低 | 資料分布仍帶時代切換痕跡，此時升 gate 容易把「目前觀測上合理」誤當「正式可依賴」 |
+   **Phase 2 Gate 實測結果（2026-04-27，`--auto-discover`）**：
 
-   promote 的正式前提（全部滿足才做）：
-   1. `mixed_active` 拆成 `insufficient_evidence` / `transitioning_active`（語意清理）
-   2. 三 repo 觀測時間差夠長，非集中於同一時段
-   3. 明確 promote decision，說明不會在 stable_ok-heavy fleet 引入樂觀偏誤
-   4. PLAN.md 有對應的政策切換記錄條目（不得只改 code）
+   | 條件 | 閾值 | 實測值 | 判斷 |
+   |------|------|--------|------|
+   | total sessions | ≥ 20 | 99 | ✅ |
+   | distinct lifecycle_capable repos | ≥ 3 | 3 | ✅ |
+   | non_stuck_absent_ratio_v2 | ≥ 0.7 | 1.0 | ✅ |
+   | dominant repo fraction | ≤ 0.6 | 0.4646 (SpecAuthority) | ✅ |
+   | lifecycle_active_ratio | ≥ 0.5 | 1.0 | ✅ |
+
+   **lifecycle_capable repos 詳情**：
+
+   | Repo | sessions | lifecycle_class | states |
+   |------|---------|-----------------|--------|
+   | SpecAuthority | 46 | transitioning_active | absent:25 (temporary_skip era), ok:21 |
+   | Bookstore-Scraper | 43 | stable_ok | absent:1, ok:40, stale:2 |
+   | ai-governance-framework | 10 | stable_ok | absent:1, ok:9 |
+
+   **已知警告（非阻斷）**：
+   - `skip_type_coverage=0.1522`（MIGRATION BLOCKED）：舊 entry 不帶 skip_type，屬過渡期；不影響 v2 gate
+   - `legacy degenerate_rate=1.0`：已標記 DEPRECATED，不計入 gate
+
+   **Phase 3 解封語意邊界（Phase 2.5 仍有效）**：
+   Phase 2 READY 只表示「政策代理條件達成」，不等於「classifier semantically validated」。
+   Phase 3 進入 observation layer 設計時，Phase 2.5 的 9 條 interpretive-class 禁止規則全部仍有效。
 
    **Phase 2.5 — Metric Authority Resolution（2026-04-19）**
 
