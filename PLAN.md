@@ -1314,6 +1314,47 @@ Enumd / SpecAuthority：
    三個條件缺一不可。任何聲稱已滿足 meta-governance 要求但缺少其中一個的改動，
    必須被標記為 incomplete governance change，不得作為 OP-HC 的合法修改。
 
+   **OP-HC Admission Anti-Laundering（criteria + precedent，缺一不可）**：
+   僅有 criteria 仍可能被「criteria laundering」繞過：把主觀判斷包裝成看似合規的 criteria 命中。
+   因此 OP-HC admission 不只要寫「是否符合 criteria」，還必須有 replayable precedent discipline：
+   - 每次 admission 必須附至少一個 precedent 對照（過去被收/被拒案例）
+   - 必須記錄 similarity 與 distinction（相似點/差異點），避免「看起來像」式濫收
+   - 無 precedent 可對照時，狀態只能是 `novel_case_pending_review`，不得直接視為 routine admission
+   - precedent ledger 必須可回放（case id、判斷日期、判斷者、結果、理由）
+
+   **Rollback Trigger Asymmetry（反惰性設計）**：
+   promotion 與 rollback 不得要求對稱證據強度。
+   - promotion burden: 需要 strong positive evidence
+   - rollback burden: 只需 credible contradiction（不需要 equally strong reverse proof）
+   - 若 credible contradiction 出現，先進入 `rollback_candidate` / `authority_recheck_required`
+     再補證，不得先以「證據未完全對稱」拒絕 rollback
+   原則：rollback 必須比 promotion 更敏感，否則錯誤制度會被慣性永久化。
+
+   **Framing History Preservation（避免 inevitability illusion）**：
+   framing 治理不只保留「最後採用版本」，還必須保留「被拒 alternatives」。
+   每次 framing decision 至少記錄：
+   - adopted framing
+   - rejected alternatives
+   - rejection rationale
+   - decision date / decision owner / co-reviewer
+   沒有 alternatives history，半年後會產生 retrospective inevitability illusion，
+   讓人誤以為當前 framing 是唯一合理選擇。
+
+   **Expensive Boundaries（避免治理誤讀）**：
+   expensive ≠ slow；expensive 也 ≠ socially painful。
+   禁止把以下內容當作治理成本：
+   - escalation humiliation
+   - political penalty
+   - blame-by-default ownership pressure
+   這些屬於 fear-based compliance，會破壞 adoption；真正昂貴的是 evidence burden，不是 interpersonal punishment。
+
+   **OP-HC Authority Status（誠實語意，2026-04-27）**：
+   現狀不是 `OP-HC system designed and legitimized`，而是：
+   - `OP-HC structure valid`
+   - `authority legitimacy intentionally deferred to E2 evidence`
+   因此 E2 不只是 adoption milestone，而是 authority legitimacy source。
+   E2 failure 代表的不只是 adoption failure，也可能是 meta-governance authority model 無法閉環。
+
    **scanner 語意邊界（E1b Phase B 觀測輔助工具定位）**：
    `e1b_consumer_audit.scan_consumer_text()` 是 **lexical tripwire**，不是 semantic proof。
    它只能偵測已知 trigger 詞組的出現（E1–E4 的 forbidden lexical patterns）。
