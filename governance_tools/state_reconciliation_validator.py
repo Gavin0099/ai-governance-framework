@@ -13,6 +13,7 @@ from typing import Any
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from governance_tools.phase_d_closeout_writer import assess_phase_d_closeout
 from governance_tools.state_generator import parse_gate_status
 
 
@@ -62,6 +63,7 @@ def validate_state_reconciliation(
     phase2_gate_path: Path,
     phase3_gate_path: Path,
     authority_writer_path: Path,
+    closeout_path: Path,
 ) -> dict[str, Any]:
     plan_text = plan_path.read_text(encoding="utf-8")
     state_text = state_path.read_text(encoding="utf-8") if state_path.exists() else ""
@@ -95,6 +97,8 @@ def validate_state_reconciliation(
     phase_c_surface_gap_resolved = (
         release_surface_ready and promotion_path_ready and readside_threshold_ok
     )
+    closeout_result = assess_phase_d_closeout(closeout_path)
+    closeout_ok = closeout_result["ok"]
 
     violations: list[str] = []
     if plan_phase_d == "passed" and not phase_c_surface_gap_resolved:
@@ -105,6 +109,11 @@ def validate_state_reconciliation(
         violations.append(
             "state_marks_phase_d_completed_while_phase_c_release_surface_precedence_pending"
         )
+    # Closeout gate: completed without reviewer artifact → violation (regardless of phase_c).
+    if plan_phase_d == "passed" and not closeout_ok:
+        violations.append("phase_d_completed_without_reviewer_closeout_artifact")
+    if state_phase_d == "passed" and not closeout_ok:
+        violations.append("phase_d_completed_without_reviewer_closeout_artifact")
     if plan_phase_d in {"pending", "in_progress"} and phase_c_surface_gap_resolved:
         violations.append(
             "plan_phase_d_still_blocked_while_original_block_reason_resolved"
@@ -122,7 +131,9 @@ def validate_state_reconciliation(
             "state_phase_d_marked_resumable_but_block_reason_still_active"
         )
 
-    if phase_c_surface_gap_resolved:
+    if phase_c_surface_gap_resolved and closeout_ok:
+        recommended_phase_d_status = "completed"
+    elif phase_c_surface_gap_resolved:
         recommended_phase_d_status = "resumable"
     else:
         recommended_phase_d_status = "pending"
@@ -135,6 +146,9 @@ def validate_state_reconciliation(
         "promotion_path_precedence_ready": promotion_path_ready,
         "readside_threshold_sufficient": readside_threshold_ok,
         "phase_c_surface_gap_resolved": phase_c_surface_gap_resolved,
+        "closeout_available": closeout_result["available"],
+        "closeout_ok": closeout_ok,
+        "closeout_reviewer_id": closeout_result.get("reviewer_id"),
         "recommended_phase_d_status": recommended_phase_d_status,
         "violations": violations,
     }
@@ -150,6 +164,9 @@ def _format_human(result: dict[str, Any]) -> str:
         f"promotion_path_precedence_ready={result.get('promotion_path_precedence_ready')}",
         f"readside_threshold_sufficient={result.get('readside_threshold_sufficient')}",
         f"phase_c_surface_gap_resolved={result.get('phase_c_surface_gap_resolved')}",
+        f"closeout_available={result.get('closeout_available')}",
+        f"closeout_ok={result.get('closeout_ok')}",
+        f"closeout_reviewer_id={result.get('closeout_reviewer_id')}",
         f"recommended_phase_d_status={result.get('recommended_phase_d_status')}",
     ]
     violations = result.get("violations") or []
@@ -180,6 +197,10 @@ def main() -> int:
         "--authority-writer",
         default="governance_tools/escalation_authority_writer.py",
     )
+    parser.add_argument(
+        "--closeout",
+        default="artifacts/governance/phase-d-reviewer-closeout.json",
+    )
     parser.add_argument("--format", choices=("human", "json"), default="human")
     args = parser.parse_args()
 
@@ -190,6 +211,7 @@ def main() -> int:
         phase2_gate_path=Path(args.phase2_gate),
         phase3_gate_path=Path(args.phase3_gate),
         authority_writer_path=Path(args.authority_writer),
+        closeout_path=Path(args.closeout),
     )
     if args.format == "json":
         print(json.dumps(result, ensure_ascii=False, indent=2))
