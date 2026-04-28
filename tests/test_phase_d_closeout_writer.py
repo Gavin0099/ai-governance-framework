@@ -16,9 +16,15 @@ from governance_tools.phase_d_closeout_writer import (
     CLOSEOUT_SCHEMA,
     CLOSEOUT_WRITER_ID,
     CLOSEOUT_WRITER_VERSION,
+    EXCEPTION_OVERRIDE_SUPPORTED,
+    REQUIRED_CONDITIONS,
+    RUNTIME_UNVERIFIABLE_CONDITIONS,
     assess_phase_d_closeout,
     write_phase_d_closeout,
 )
+
+# Canonical full conditions list for tests that need ok=True.
+_FULL_CONDITIONS = sorted(REQUIRED_CONDITIONS)
 
 
 def _tmp_dir(name: str) -> Path:
@@ -67,7 +73,7 @@ def test_write_and_assess_roundtrip_ok():
     write_phase_d_closeout(
         path,
         reviewer_id="reviewer_x",
-        confirmed_conditions=["condition_a"],
+        confirmed_conditions=_FULL_CONDITIONS,
     )
     result = assess_phase_d_closeout(path)
 
@@ -75,8 +81,12 @@ def test_write_and_assess_roundtrip_ok():
     assert result["review_confirmed"] is True
     assert result["trusted_writer"] is True
     assert result["reviewer_id"] == "reviewer_x"
-    assert result["confirmed_conditions"] == ["condition_a"]
+    assert set(result["confirmed_conditions"]) == REQUIRED_CONDITIONS
     assert result["release_block_reasons"] == []
+    assert result["failures"] == []
+    assert result["missing_required_conditions"] == []
+    assert result["exception_override_supported"] is False
+    assert result["runtime_unverifiable_conditions"] == RUNTIME_UNVERIFIABLE_CONDITIONS
 
 
 def test_write_rejects_empty_reviewer_id():
@@ -392,3 +402,191 @@ def test_assess_verdict_absent_fails_closed():
 
     assert result["ok"] is False
     assert "phase_d_closeout_verdict_not_completed" in result["release_block_reasons"]
+
+
+# ---------------------------------------------------------------------------
+# F10/F11: minimum required condition coverage
+# ---------------------------------------------------------------------------
+
+
+def test_assess_missing_required_conditions_fails_closed():
+    """Conditions present but not covering REQUIRED_CONDITIONS → ok=False (F10/F11)."""
+    d = _tmp_dir("assess_missing_required_conditions")
+    path = d / "closeout.json"
+    write_phase_d_closeout(
+        path,
+        reviewer_id="reviewer_x",
+        confirmed_conditions=["phase_c_surface_gap_resolved"],  # only 1 of 5
+    )
+
+    result = assess_phase_d_closeout(path)
+
+    assert result["ok"] is False
+    assert len(result["missing_required_conditions"]) == 4
+    missing = result["missing_required_conditions"]
+    assert "fail_closed_semantics_accepted" in missing
+    assert "no_unresolved_blocking_conditions" in missing
+    assert "reviewer_independent_of_author" in missing
+    assert "validator_output_reviewed" in missing
+    # Each missing condition generates a failure code
+    codes = [f["failure_code"] for f in result["failures"]]
+    assert any("phase_d_closeout_required_condition_missing:fail_closed_semantics_accepted" == c for c in codes)
+
+
+def test_assess_all_required_conditions_present_ok():
+    """All 5 required conditions present → ok=True."""
+    d = _tmp_dir("assess_all_required_conditions")
+    path = d / "closeout.json"
+    write_phase_d_closeout(
+        path,
+        reviewer_id="human_reviewer_z",
+        confirmed_conditions=_FULL_CONDITIONS,
+        confirmed_at="2026-04-28T12:00:00+00:00",
+    )
+
+    result = assess_phase_d_closeout(path)
+
+    assert result["ok"] is True
+    assert result["missing_required_conditions"] == []
+    assert result["failures"] == []
+
+
+def test_assess_extra_conditions_beyond_required_ok():
+    """Extra conditions beyond the required 5 are allowed."""
+    d = _tmp_dir("assess_extra_conditions")
+    path = d / "closeout.json"
+    write_phase_d_closeout(
+        path,
+        reviewer_id="reviewer_y",
+        confirmed_conditions=_FULL_CONDITIONS + ["phase_d_closeout_scope_accepted", "custom_note"],
+        confirmed_at="2026-04-28T12:00:00+00:00",
+    )
+
+    result = assess_phase_d_closeout(path)
+
+    assert result["ok"] is True
+    assert result["missing_required_conditions"] == []
+
+
+# ---------------------------------------------------------------------------
+# Failure structure (FS-1 / FS-2)
+# ---------------------------------------------------------------------------
+
+
+def test_assess_absent_artifact_returns_structured_failure():
+    """Absent artifact returns failure with failure_class=blocked."""
+    d = _tmp_dir("absent_structured_failure")
+    path = d / "nonexistent.json"
+
+    result = assess_phase_d_closeout(path)
+
+    assert result["failures"] == [
+        {
+            "failure_code": "phase_d_closeout_artifact_absent",
+            "failure_class": "blocked",
+            "remediation": "procedural_fix",
+        }
+    ]
+
+
+def test_assess_failures_list_matches_release_block_reasons():
+    """failures list failure_codes match release_block_reasons entries."""
+    d = _tmp_dir("failures_match_reasons")
+    path = d / "closeout.json"
+    write_phase_d_closeout(
+        path,
+        reviewer_id="reviewer_x",
+        confirmed_conditions=["phase_c_surface_gap_resolved"],  # 4 missing
+    )
+
+    result = assess_phase_d_closeout(path)
+
+    failure_codes = {f["failure_code"] for f in result["failures"]}
+    assert failure_codes == set(result["release_block_reasons"])
+
+
+def test_assess_all_failures_have_required_fields():
+    """Every entry in failures has failure_code, failure_class, remediation."""
+    d = _tmp_dir("failure_fields")
+    path = d / "closeout.json"
+    write_phase_d_closeout(
+        path,
+        reviewer_id="reviewer_x",
+        confirmed_conditions=["only_one"],  # triggers missing conditions
+    )
+
+    result = assess_phase_d_closeout(path)
+
+    for entry in result["failures"]:
+        assert "failure_code" in entry
+        assert "failure_class" in entry
+        assert "remediation" in entry
+        assert entry["failure_class"] in {"blocked", "void", "presumptively_void"}
+
+
+# ---------------------------------------------------------------------------
+# Exception override (VRB-3 unsupported)
+# ---------------------------------------------------------------------------
+
+
+def test_assess_exception_override_always_false():
+    """exception_override_supported is always False in this runtime."""
+    d = _tmp_dir("exception_override_false_absent")
+    path = d / "nonexistent.json"
+
+    result = assess_phase_d_closeout(path)
+
+    assert result["exception_override_supported"] is EXCEPTION_OVERRIDE_SUPPORTED
+    assert result["exception_override_supported"] is False
+    assert "VRB-3" in result["exception_override_note"]
+
+
+def test_assess_exception_override_false_on_valid_artifact():
+    """exception_override_supported is False even when artifact is valid."""
+    d = _tmp_dir("exception_override_false_valid")
+    path = d / "closeout.json"
+    write_phase_d_closeout(
+        path,
+        reviewer_id="reviewer_z",
+        confirmed_conditions=_FULL_CONDITIONS,
+        confirmed_at="2026-04-28T12:00:00+00:00",
+    )
+
+    result = assess_phase_d_closeout(path)
+
+    assert result["exception_override_supported"] is False
+
+
+# ---------------------------------------------------------------------------
+# Runtime-unverifiable conditions (RI-2, RI-4)
+# ---------------------------------------------------------------------------
+
+
+def test_assess_runtime_unverifiable_conditions_always_present():
+    """runtime_unverifiable_conditions is always returned."""
+    d = _tmp_dir("runtime_unverifiable_present")
+    path = d / "nonexistent.json"
+
+    result = assess_phase_d_closeout(path)
+
+    assert result["runtime_unverifiable_conditions"] == RUNTIME_UNVERIFIABLE_CONDITIONS
+    codes = [c["failure_code"] for c in result["runtime_unverifiable_conditions"]]
+    assert "phase_d_closeout_proxy_review" in codes
+    assert "phase_d_closeout_wrong_scope" in codes
+
+
+def test_assess_runtime_unverifiable_entries_have_detectability():
+    """Each runtime-unverifiable entry declares detectability and attestation."""
+    d = _tmp_dir("runtime_unverifiable_fields")
+    path = d / "closeout.json"
+    write_phase_d_closeout(
+        path, reviewer_id="r", confirmed_conditions=_FULL_CONDITIONS,
+        confirmed_at="2026-04-28T12:00:00+00:00",
+    )
+
+    result = assess_phase_d_closeout(path)
+
+    for entry in result["runtime_unverifiable_conditions"]:
+        assert entry["detectability"] == "runtime-unverifiable"
+        assert entry["attestation"] == "reviewer-attested"
+        assert "audit_note" in entry
