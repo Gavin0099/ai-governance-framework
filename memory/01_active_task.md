@@ -11,8 +11,9 @@
 - **Phase D Closed**: Officially marked `passed` in PLAN.md; reviewer closeout artifact `artifacts/governance/phase-d-reviewer-closeout.json` signed by `Gavin0099`.
 - **E1-A Mutation Catalog Established**: `docs/e1-mutation-catalog.md` defines critical failure modes (Mutation vs Fixture) and exact violation codes.
 - **E1-B Phase 1 Protected**: `governance_tools/mutation_proof_runner.py` established; initial 3/3 negative fixtures (forged artifact, missing root, state mismatch) verified as PROTECTED.
+- **E1 Phase 2 Safety Contract Established**: `docs/e1-phase2-safety-contract.md` defines 6 mandatory safety constraints for real rule mutation.
 - **Enforcement Policy**: PLAN.md now mandates: "No mutation contract = No enforcement claim".
-- **Runtime Integrity**: `state_reconciliation_validator.py` and `escalation_authority_writer.py` are synchronized and support `--project-root` for isolated testing.
+- **Current Boundaries**: E1 complete: NO | Rule mutation proof: NOT STARTED | Dynamic mutation runner: NOT YET.
 
 ## Next Steps
 
