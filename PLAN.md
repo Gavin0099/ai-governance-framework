@@ -421,7 +421,6 @@ This initiative enforces promotion discipline and authority boundaries, not auto
         `authority provenance runtime enforced`
       - 目前明確列為 `trust root debt`：在 runtime 尚未強制寫入 validator provenance
         之前，authority model 仍是 partially trust-based，不得宣稱 fully auditable
-<<<<<<< HEAD
       **Authority Surface Coverage Gaps (2026-04-27)**:
       - **Gap 1 [fixed — conditional fail-closed]**: `assess_authority_directory()` 在
         authority dir missing 時原本一律回傳 ok=True；已修正為：
@@ -436,8 +435,6 @@ This initiative enforces promotion discipline and authority boundaries, not auto
         `no_escalation_expected => ok=True`，等同 authority bypass。修補路徑：log write-path 需與
         `e1b-phase-b-escalation-decisions.md` 交叉驗證，或設計 append-only enforcement；
         此 gap 是 Gap 2 之前提條件，不先釘住則 promotion gate fail-closed 宣稱不成立。
-=======
->>>>>>> c4cb45ef9e12b330d52799eb230a2edc863357cd
   - [ ] **Phase 3（🔓 unblocked 2026-04-27）**: Trigger Design — 動態 threshold、trend_direction、cross-repo correlation；Phase 2 gate READY，可進入 Phase 3 設計；Phase 2.5 語意鎖仍有效（raw observation only，禁止 interpretive-class key）
 
 > 排序根據：E8a 先讓 signal 有歷史，E8b 才能讓歷史有語意，E1a/E1b 再決定是否有可靠證據基礎支持更強約束。
