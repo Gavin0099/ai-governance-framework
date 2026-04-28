@@ -54,6 +54,12 @@ You wake up fresh each session. These files are your continuity:
 
 Capture what matters. Decisions, context, things to remember. Skip the secrets unless asked to keep them.
 
+### Cross-Agent Memory Channel (Authoritative In-Repo Path)
+- Shared memory for all agents in this workspace must live under this repo's `memory/` directory.
+- `memory/00_long_term.md` is the canonical long-term cross-agent memory file for main sessions.
+- External/private tool memory paths (for example `C:\Users\reiko\.claude\projects\...\memory\MEMORY.md`) are **not** cross-agent authority and must not be cited as repo governance state.
+- If important context exists only in an external/private memory file, copy a distilled version into `memory/YYYY-MM-DD.md` and/or `memory/00_long_term.md` before using it for repo decisions.
+
 ### ?? memory/00_long_term.md - Your Long-Term Memory
 - **ONLY load in main session** (direct chats with your human)
 - **DO NOT load in shared contexts** (Discord, group chats, sessions with other people)

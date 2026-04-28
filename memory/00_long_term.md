@@ -8,6 +8,7 @@
 ## Conventions
 - Long-term memory must live in `memory/00_long_term.md` (not repo-root `MEMORY.md`).
 - In main sessions, after every push, write a short daily memory entry with `what changed`, `commit`, `tests`, and `next step`.
+- External/private tool memory (for example `C:\Users\reiko\.claude\projects\...\memory\MEMORY.md`) is not cross-agent governance authority; canonical cross-agent memory must be copied into repo `memory/`.
 
 ## Workflow Preferences
 - User requires a strict loop: after each completed change, update the corresponding `memory/YYYY-MM-DD.md` entry and push.
