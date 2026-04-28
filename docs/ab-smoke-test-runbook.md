@@ -83,6 +83,10 @@ Required files:
 - `task-04.json`
 - `summary.json` (classification + conclusion strength + pass/fail breakdown)
 
+Artifact JSON fields must satisfy:
+
+- `docs/ab-smoke-artifact-schema.md`
+
 ## Conclusion Downgrade Rule
 
 `summary.json` must include:
