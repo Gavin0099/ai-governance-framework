@@ -376,6 +376,65 @@ the artifact must be treated as void.
 
 ---
 
+## Validator Role Boundary
+
+**Validators may observe, reject, and recommend.**
+**Validators may not authorize, certify, or close Phase D.**
+
+This boundary is permanent and not subject to configuration or escalation.
+No validator output, regardless of content, constitutes a Phase D completion
+authorization. Validators are detection and advisory instruments, not authority
+actors.
+
+### VRB-1: `recommended_phase_d_status = "completed"` is Advisory Only
+
+The output `recommended_phase_d_status = "completed"` from
+`validate_state_reconciliation()` signals that observed conditions are
+consistent with completion — it does not authorize completion.
+
+- A reviewer reading `recommended = "completed"` is receiving a readiness
+  signal, not a permission to mark Phase D done
+- The validator cannot know whether a valid authority event (A1) has occurred,
+  only whether the canonical artifact is present and schema-valid
+- A reviewer who acts on `recommended = "completed"` without producing an
+  independent closeout artifact has not satisfied the authority requirements
+  of this contract
+
+The validator recommends. The reviewer decides. These are distinct acts.
+
+### VRB-2: Validator Pass Cannot Substitute for Reviewer Closeout Artifact
+
+A passing validator result — `ok=True`, `closeout_ok=True`, all checks green —
+does not substitute for the canonical reviewer closeout artifact.
+
+- `assess_phase_d_closeout()` returning `ok=True` means the artifact is
+  present and schema-valid; it does not certify reviewer independence, decision
+  quality, or authority legitimacy
+- Even a fully passing validator state leaves Phase D in `resumable`, not
+  `completed`, until the authority event (A1) is satisfied
+- No combination of validator outputs, however favorable, constitutes closeout
+  authority
+
+### VRB-3: Validator Failure Blocks; It Does Not Decide Authority
+
+Validator failure blocks a completion claim. It does not itself make an
+authority decision:
+
+- `assess_phase_d_closeout()` returning `ok=False` is a block signal, not a
+  rejection of reviewer authority
+- A validator reporting `trusted_writer=False` or `review_confirmed=False` is
+  reporting a schema or integrity failure — the reviewer's judgment is not
+  being evaluated, only the artifact's structure
+- Validator failures must be resolved (e.g., artifact re-issued with correct
+  fields) before a completion claim can proceed; they do not terminate the
+  reviewer's ability to issue a new, correct closeout
+
+The distinction: validators detect compliance failures. Reviewers make
+authority decisions. A validator cannot replace a reviewer, and a reviewer
+cannot override a validator.
+
+---
+
 ## Pending Sections (Reserved — Non-Operative)
 
 **Pending sections are non-operative until explicitly completed and reviewed.**
@@ -384,5 +443,4 @@ guidance. An empty or partially written section confers no authority.
 
 Remaining sections pending constitutional review:
 
-- § Validator Role Boundary
 - § Failure Semantics (fail-closed)
