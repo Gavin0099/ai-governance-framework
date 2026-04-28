@@ -79,13 +79,16 @@ def parse_current_phase(text: str) -> dict:
 
 def parse_gate_status(text: str) -> dict:
     statuses = {}
-    for match in re.finditer(r"\[([xX>~ ])\]\s*(Phase\s+\w+)", text):
+    for match in re.finditer(r"\[([xX>~ ])\]\s*(Phase\s+\w+)(?:\s*:\s*(.*))?", text):
         marker = match.group(1)
         phase = match.group(2).replace(" ", "")
+        detail = (match.group(3) or "").strip().lower()
         if marker in {"x", "X"}:
             statuses[phase] = "passed"
         elif marker in {">", "~"}:
             statuses[phase] = "in_progress"
+        elif "resumable" in detail:
+            statuses[phase] = "resumable"
         else:
             statuses[phase] = "pending"
     return statuses

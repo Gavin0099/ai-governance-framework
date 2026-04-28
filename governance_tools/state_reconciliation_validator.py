@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""
-State reconciliation validator for governance phase status vs runtime capability.
-
-Primary guard:
-- If Phase D is marked completed/passed while Phase C release-surface precedence
-  integration is not present, fail closed.
-"""
+"""State reconciliation validator for governance phase status vs runtime capability."""
 
 from __future__ import annotations
 
@@ -34,12 +28,40 @@ def _release_surface_precedence_ready(release_surface_text: str) -> bool:
     )
     return all(marker in release_surface_text for marker in required_markers)
 
+def _promotion_path_precedence_ready(
+    phase2_text: str,
+    phase3_text: str,
+) -> bool:
+    phase2_markers = (
+        "authority_summary",
+        "lifecycle_effective_by_escalation",
+        "precedence_applied",
+    )
+    phase3_markers = (
+        'payload.get("authority_summary")',
+    )
+    return all(m in phase2_text for m in phase2_markers) and all(
+        m in phase3_text for m in phase3_markers
+    )
+
+
+def _readside_enforcement_threshold_sufficient(authority_writer_text: str) -> bool:
+    markers = (
+        "lifecycle_effective_by_escalation",
+        "authority_precedence_active_blocks_release",
+        "authority_precedence_active_register_overrides_resolved_confirmed",
+    )
+    return all(marker in authority_writer_text for marker in markers)
+
 
 def validate_state_reconciliation(
     *,
     plan_path: Path,
     state_path: Path,
     release_surface_path: Path,
+    phase2_gate_path: Path,
+    phase3_gate_path: Path,
+    authority_writer_path: Path,
 ) -> dict[str, Any]:
     plan_text = plan_path.read_text(encoding="utf-8")
     state_text = state_path.read_text(encoding="utf-8") if state_path.exists() else ""
@@ -48,27 +70,72 @@ def validate_state_reconciliation(
         if release_surface_path.exists()
         else ""
     )
+    phase2_text = (
+        phase2_gate_path.read_text(encoding="utf-8")
+        if phase2_gate_path.exists()
+        else ""
+    )
+    phase3_text = (
+        phase3_gate_path.read_text(encoding="utf-8")
+        if phase3_gate_path.exists()
+        else ""
+    )
+    authority_writer_text = (
+        authority_writer_path.read_text(encoding="utf-8")
+        if authority_writer_path.exists()
+        else ""
+    )
 
     plan_gate_status = parse_gate_status(plan_text)
     plan_phase_d = plan_gate_status.get("PhaseD")
     state_phase_d = _extract_phase_d_from_state_yaml(state_text)
     release_surface_ready = _release_surface_precedence_ready(release_surface_text)
+    promotion_path_ready = _promotion_path_precedence_ready(phase2_text, phase3_text)
+    readside_threshold_ok = _readside_enforcement_threshold_sufficient(authority_writer_text)
+    phase_c_surface_gap_resolved = (
+        release_surface_ready and promotion_path_ready and readside_threshold_ok
+    )
 
     violations: list[str] = []
-    if plan_phase_d == "passed" and not release_surface_ready:
+    if plan_phase_d == "passed" and not phase_c_surface_gap_resolved:
         violations.append(
             "plan_marks_phase_d_completed_while_phase_c_release_surface_precedence_pending"
         )
-    if state_phase_d == "passed" and not release_surface_ready:
+    if state_phase_d == "passed" and not phase_c_surface_gap_resolved:
         violations.append(
             "state_marks_phase_d_completed_while_phase_c_release_surface_precedence_pending"
         )
+    if plan_phase_d in {"pending", "in_progress"} and phase_c_surface_gap_resolved:
+        violations.append(
+            "plan_phase_d_still_blocked_while_original_block_reason_resolved"
+        )
+    if state_phase_d in {"pending", "in_progress"} and phase_c_surface_gap_resolved:
+        violations.append(
+            "state_phase_d_still_blocked_while_original_block_reason_resolved"
+        )
+    if plan_phase_d == "resumable" and not phase_c_surface_gap_resolved:
+        violations.append(
+            "plan_phase_d_marked_resumable_but_block_reason_still_active"
+        )
+    if state_phase_d == "resumable" and not phase_c_surface_gap_resolved:
+        violations.append(
+            "state_phase_d_marked_resumable_but_block_reason_still_active"
+        )
+
+    if phase_c_surface_gap_resolved:
+        recommended_phase_d_status = "resumable"
+    else:
+        recommended_phase_d_status = "pending"
 
     return {
         "ok": len(violations) == 0,
         "plan_phase_d_status": plan_phase_d,
         "state_phase_d_status": state_phase_d,
         "release_surface_precedence_ready": release_surface_ready,
+        "promotion_path_precedence_ready": promotion_path_ready,
+        "readside_threshold_sufficient": readside_threshold_ok,
+        "phase_c_surface_gap_resolved": phase_c_surface_gap_resolved,
+        "recommended_phase_d_status": recommended_phase_d_status,
         "violations": violations,
     }
 
@@ -80,6 +147,10 @@ def _format_human(result: dict[str, Any]) -> str:
         f"plan_phase_d_status={result.get('plan_phase_d_status')}",
         f"state_phase_d_status={result.get('state_phase_d_status')}",
         f"release_surface_precedence_ready={result.get('release_surface_precedence_ready')}",
+        f"promotion_path_precedence_ready={result.get('promotion_path_precedence_ready')}",
+        f"readside_threshold_sufficient={result.get('readside_threshold_sufficient')}",
+        f"phase_c_surface_gap_resolved={result.get('phase_c_surface_gap_resolved')}",
+        f"recommended_phase_d_status={result.get('recommended_phase_d_status')}",
     ]
     violations = result.get("violations") or []
     if violations:
@@ -97,6 +168,18 @@ def main() -> int:
         "--release-surface",
         default="governance_tools/release_surface_overview.py",
     )
+    parser.add_argument(
+        "--phase2-gate",
+        default="governance_tools/phase2_aggregation_consumer.py",
+    )
+    parser.add_argument(
+        "--phase3-gate",
+        default="governance_tools/phase3_promotion_gate.py",
+    )
+    parser.add_argument(
+        "--authority-writer",
+        default="governance_tools/escalation_authority_writer.py",
+    )
     parser.add_argument("--format", choices=("human", "json"), default="human")
     args = parser.parse_args()
 
@@ -104,6 +187,9 @@ def main() -> int:
         plan_path=Path(args.plan),
         state_path=Path(args.state),
         release_surface_path=Path(args.release_surface),
+        phase2_gate_path=Path(args.phase2_gate),
+        phase3_gate_path=Path(args.phase3_gate),
+        authority_writer_path=Path(args.authority_writer),
     )
     if args.format == "json":
         print(json.dumps(result, ensure_ascii=False, indent=2))

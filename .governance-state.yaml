@@ -4,7 +4,7 @@
 # NOT authority for gate verdict, classification validation, or escalation closure.
 # DO NOT edit manually; update PLAN.md or runtime inputs instead.
 #
-generated_at: "2026-04-27T11:04:57.142065+00:00"
+generated_at: "2026-04-28T02:55:16.972139+00:00"
 state_surface_contract:
   surface_role: derived_context_snapshot
   authority_scope: session_context_only
@@ -28,7 +28,7 @@ gate_status:
   PhaseA: passed
   PhaseB: passed
   PhaseC: passed
-  PhaseD: pending
+  PhaseD: resumable
   PhaseE: in_progress
 active_sprint:
   -
@@ -56,7 +56,7 @@ backlog_counts:
 freshness:
   status: FRESH
   last_updated: "2026-04-24"
-  days_since_update: 3
+  days_since_update: 4
   threshold_days: 7
 runtime_contract:
   task: PhaseE
