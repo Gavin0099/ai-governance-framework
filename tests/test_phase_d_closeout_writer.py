@@ -53,7 +53,9 @@ def test_write_creates_valid_artifact():
     assert on_disk["writer_id"] == CLOSEOUT_WRITER_ID
     assert on_disk["writer_version"] == CLOSEOUT_WRITER_VERSION
     assert on_disk["phase_completed"] == "D"
+    assert on_disk["verdict"] == "completed"
     assert on_disk["reviewer_id"] == "tier1_reviewer_a"
+    assert on_disk["confirmed_at"] == "2026-04-28T10:00:00+00:00"
     assert on_disk["confirmed_conditions"] == conditions
     assert on_disk["reviewer_confirmation"] == "explicit"
 
@@ -293,3 +295,100 @@ def test_assess_invalid_json_fails_closed():
 
     assert result["available"] is True
     assert result["ok"] is False
+
+
+def test_assess_missing_confirmed_at_fails_closed():
+    """confirmed_at absent → ok=False."""
+    d = _tmp_dir("assess_missing_confirmed_at")
+    path = d / "closeout.json"
+    artifact = {
+        "closeout_schema": CLOSEOUT_SCHEMA,
+        "writer_id": CLOSEOUT_WRITER_ID,
+        "writer_version": CLOSEOUT_WRITER_VERSION,
+        "written_at": "2026-04-28T00:00:00+00:00",
+        "phase_completed": "D",
+        "verdict": "completed",
+        "reviewer_id": "reviewer_x",
+        # confirmed_at deliberately absent
+        "confirmed_conditions": ["c"],
+        "reviewer_confirmation": "explicit",
+    }
+    path.write_text(json.dumps(artifact, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    result = assess_phase_d_closeout(path)
+
+    assert result["ok"] is False
+    assert "phase_d_closeout_confirmed_at_missing" in result["release_block_reasons"]
+
+
+def test_assess_empty_confirmed_at_fails_closed():
+    """confirmed_at empty string → ok=False."""
+    d = _tmp_dir("assess_empty_confirmed_at")
+    path = d / "closeout.json"
+    artifact = {
+        "closeout_schema": CLOSEOUT_SCHEMA,
+        "writer_id": CLOSEOUT_WRITER_ID,
+        "writer_version": CLOSEOUT_WRITER_VERSION,
+        "written_at": "2026-04-28T00:00:00+00:00",
+        "phase_completed": "D",
+        "verdict": "completed",
+        "reviewer_id": "reviewer_x",
+        "confirmed_at": "",
+        "confirmed_conditions": ["c"],
+        "reviewer_confirmation": "explicit",
+    }
+    path.write_text(json.dumps(artifact, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    result = assess_phase_d_closeout(path)
+
+    assert result["ok"] is False
+    assert "phase_d_closeout_confirmed_at_missing" in result["release_block_reasons"]
+
+
+def test_assess_verdict_not_completed_fails_closed():
+    """verdict present but not 'completed' → ok=False."""
+    d = _tmp_dir("assess_verdict_not_completed")
+    path = d / "closeout.json"
+    artifact = {
+        "closeout_schema": CLOSEOUT_SCHEMA,
+        "writer_id": CLOSEOUT_WRITER_ID,
+        "writer_version": CLOSEOUT_WRITER_VERSION,
+        "written_at": "2026-04-28T00:00:00+00:00",
+        "phase_completed": "D",
+        "verdict": "pending",
+        "reviewer_id": "reviewer_x",
+        "confirmed_at": "2026-04-28T10:00:00+00:00",
+        "confirmed_conditions": ["c"],
+        "reviewer_confirmation": "explicit",
+    }
+    path.write_text(json.dumps(artifact, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    result = assess_phase_d_closeout(path)
+
+    assert result["ok"] is False
+    assert "phase_d_closeout_verdict_not_completed" in result["release_block_reasons"]
+    assert result["verdict"] == "pending"
+
+
+def test_assess_verdict_absent_fails_closed():
+    """verdict field absent → ok=False."""
+    d = _tmp_dir("assess_verdict_absent")
+    path = d / "closeout.json"
+    artifact = {
+        "closeout_schema": CLOSEOUT_SCHEMA,
+        "writer_id": CLOSEOUT_WRITER_ID,
+        "writer_version": CLOSEOUT_WRITER_VERSION,
+        "written_at": "2026-04-28T00:00:00+00:00",
+        "phase_completed": "D",
+        # verdict deliberately absent
+        "reviewer_id": "reviewer_x",
+        "confirmed_at": "2026-04-28T10:00:00+00:00",
+        "confirmed_conditions": ["c"],
+        "reviewer_confirmation": "explicit",
+    }
+    path.write_text(json.dumps(artifact, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    result = assess_phase_d_closeout(path)
+
+    assert result["ok"] is False
+    assert "phase_d_closeout_verdict_not_completed" in result["release_block_reasons"]

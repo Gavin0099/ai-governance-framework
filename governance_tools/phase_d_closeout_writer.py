@@ -64,6 +64,7 @@ def write_phase_d_closeout(
         "writer_version": CLOSEOUT_WRITER_VERSION,
         "written_at": written_at or _utc_now(),
         "phase_completed": "D",
+        "verdict": "completed",
         "reviewer_id": reviewer_id.strip(),
         "confirmed_at": confirmed_at or _utc_now(),
         "confirmed_conditions": list(confirmed_conditions),
@@ -88,6 +89,8 @@ def assess_phase_d_closeout(path: Path) -> dict[str, Any]:
         "trusted_writer": bool,
         "reviewer_id": str | None,
         "confirmed_conditions": list[str],
+        "verdict": str | None,
+        "confirmed_at": str | None,
         "release_block_reasons": list[str],
       }
 
@@ -131,8 +134,17 @@ def assess_phase_d_closeout(path: Path) -> dict[str, Any]:
     reviewer_id_valid = isinstance(reviewer_id, str) and bool(reviewer_id.strip())
     confirmed_conditions = list(artifact.get("confirmed_conditions") or [])
     conditions_present = len(confirmed_conditions) > 0
+    confirmed_at = artifact.get("confirmed_at")
+    confirmed_at_valid = isinstance(confirmed_at, str) and bool(confirmed_at.strip())
+    verdict_valid = artifact.get("verdict") == "completed"
 
-    ok = trusted_writer and reviewer_id_valid and conditions_present
+    ok = (
+        trusted_writer
+        and reviewer_id_valid
+        and conditions_present
+        and confirmed_at_valid
+        and verdict_valid
+    )
     reasons: list[str] = []
     if not trusted_writer:
         reasons.append("phase_d_closeout_writer_untrusted")
@@ -140,6 +152,10 @@ def assess_phase_d_closeout(path: Path) -> dict[str, Any]:
         reasons.append("phase_d_closeout_reviewer_id_missing")
     if not conditions_present:
         reasons.append("phase_d_closeout_confirmed_conditions_empty")
+    if not confirmed_at_valid:
+        reasons.append("phase_d_closeout_confirmed_at_missing")
+    if not verdict_valid:
+        reasons.append("phase_d_closeout_verdict_not_completed")
 
     return {
         "available": True,
@@ -148,5 +164,7 @@ def assess_phase_d_closeout(path: Path) -> dict[str, Any]:
         "trusted_writer": trusted_writer,
         "reviewer_id": reviewer_id if reviewer_id_valid else None,
         "confirmed_conditions": confirmed_conditions,
+        "verdict": artifact.get("verdict"),
+        "confirmed_at": confirmed_at if confirmed_at_valid else None,
         "release_block_reasons": reasons,
     }
