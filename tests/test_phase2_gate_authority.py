@@ -159,9 +159,33 @@ def test_gate_payload_carries_authority_assessment_summary():
     assert "ok" in summary
     assert "release_blocked" in summary
     assert "source" in summary
+    assert "decision_source" in summary
+    assert "register_required_mode" in summary
+    assert "register_present" in summary
     assert "lifecycle_effective_by_escalation" in summary
     assert "precedence_applied" in summary
     assert "release_block_reasons" in summary
+
+
+def test_gate_payload_surfaces_strict_register_block_context():
+    authority = {
+        "ok": False,
+        "release_blocked": True,
+        "source": "authority-writer-monopoly",
+        "decision_source": "strict_register_enforcement",
+        "register_required_mode": True,
+        "register_present": False,
+        "release_block_reasons": ["mandatory_register_missing"],
+        "lifecycle_effective_by_escalation": {},
+    }
+    gate = build_phase2_gate(_closure_verified_aggregation(), authority)
+    summary = gate["authority_summary"]
+
+    assert gate["gate_promote_eligible"] is False
+    assert "mandatory_register_missing" in gate["gate_block_reasons"]
+    assert summary["decision_source"] == "strict_register_enforcement"
+    assert summary["register_required_mode"] is True
+    assert summary["register_present"] is False
 
 
 def test_gate_payload_aggregation_result_current_state_is_preserved():

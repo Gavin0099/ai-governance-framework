@@ -248,3 +248,58 @@ def test_release_surface_overview_exposes_precedence_details_for_reviewer_surfac
         )
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_release_surface_overview_strict_register_mode_off_vs_on():
+    tmp_path = _local_tmp("strict_register_mode_off_vs_on")
+    try:
+        payload = {
+            "escalation_id": "esc-strict-001",
+            "mitigation_validation_state": "validated",
+            "governance_track_state": "closure_eligible",
+            "forced_owner": "framework_maintainer",
+            "forced_escalation_target": "tier1_reviewer_pool",
+            "forced_route_due_date": "2026-05-05",
+            "forced_route_status": "completed",
+            "protected_claim_used": False,
+            "coverage_era": "CURRENT",
+            "coverage_caveat": None,
+            "contamination_status": "resolved",
+            "release_claims_resolved": True,
+            "escalation_closed": False,
+            "authority_lifecycle_state": "resolved_confirmed",
+            "lifecycle_transition": {
+                "from_state": "resolved_provisional",
+                "actor": "reviewer_confirmed",
+                "auto": False,
+                "reviewer_confirmation": {
+                    "reviewer_id": "reviewer-001",
+                    "confirmed_at": "2026-04-27T09:00:00+00:00",
+                },
+            },
+        }
+        assert write_authority_artifact(tmp_path, payload)["ok"] is True
+
+        # Strict OFF: should not fail only because register is absent.
+        result_off = assess_release_surface(
+            tmp_path,
+            version="v1.0.0-alpha",
+            authority_require_register=False,
+        )
+        assert result_off["escalation_authority"]["register_required_mode"] is False
+        assert result_off["escalation_authority"]["register_present"] is False
+        assert result_off["escalation_authority"]["ok"] is True
+
+        # Strict ON: same artifact should fail-closed on missing register.
+        result_on = assess_release_surface(
+            tmp_path,
+            version="v1.0.0-alpha",
+            authority_require_register=True,
+        )
+        rendered_on = format_human_result(result_on)
+        assert result_on["escalation_authority"]["ok"] is False
+        assert result_on["escalation_authority"]["decision_source"] == "strict_register_enforcement"
+        assert "mandatory_register_missing" in result_on["escalation_authority"]["release_block_reasons"]
+        assert "decision_source=strict_register_enforcement" in rendered_on
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)

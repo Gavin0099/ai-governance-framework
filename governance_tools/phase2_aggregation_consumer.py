@@ -248,6 +248,9 @@ def build_phase2_gate(
         "ok": authority_ok,
         "release_blocked": authority_release_blocked,
         "source": authority_assessment.get("source"),
+        "decision_source": authority_assessment.get("decision_source"),
+        "register_required_mode": bool(authority_assessment.get("register_required_mode", False)),
+        "register_present": bool(authority_assessment.get("register_present", False)),
         "lifecycle_effective_by_escalation": dict(
             authority_assessment.get("lifecycle_effective_by_escalation") or {}
         ),

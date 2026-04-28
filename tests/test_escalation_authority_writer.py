@@ -510,3 +510,36 @@ def test_assess_directory_require_register_passes_when_register_present_and_trus
     assert result["ok"] is True
     assert result["release_blocked"] is False
     assert result["source"] == "no_escalation_expected"
+
+
+def test_assess_directory_strict_transition_same_artifact_off_on_on_with_register():
+    from governance_tools.escalation_log_writer import write_escalation_register
+
+    project_root = _tmp_dir("dir_strict_transition_same_artifact")
+    payload = _resolved_confirmed_payload("esc-transition-001")
+    write_result = write_authority_artifact(project_root, payload)
+    assert write_result["ok"] is True
+
+    # strict off: register missing is tolerated (compatibility mode)
+    result_off = assess_authority_directory(project_root, require_register=False)
+    assert result_off["ok"] is True
+    assert result_off["register_required_mode"] is False
+    assert result_off["register_present"] is False
+
+    # strict on: same artifacts fail-closed due to missing register
+    result_on_missing = assess_authority_directory(project_root, require_register=True)
+    assert result_on_missing["ok"] is False
+    assert result_on_missing["release_blocked"] is True
+    assert result_on_missing["register_required_mode"] is True
+    assert result_on_missing["register_present"] is False
+    assert "mandatory_register_missing" in result_on_missing["release_block_reasons"]
+    assert result_on_missing["decision_source"] == "strict_register_enforcement"
+
+    # strict on + register present: pass
+    authority_dir = default_authority_dir(project_root)
+    register_path = authority_dir.parent / "phase-b-escalation-register.json"
+    write_escalation_register(register_path, [])
+    result_on_present = assess_authority_directory(project_root, require_register=True)
+    assert result_on_present["ok"] is True
+    assert result_on_present["register_required_mode"] is True
+    assert result_on_present["register_present"] is True
