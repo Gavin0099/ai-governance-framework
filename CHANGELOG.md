@@ -1,5 +1,34 @@
 # Changelog
 
+## v1.2.0 - 2026-04-28
+
+### Phase D Governance Baseline Freeze
+
+**Constitutional authority contract** — `governance/PHASE_D_CLOSE_AUTHORITY.md`:
+
+- Canonical authority source for Phase D close semantics; registered in `governance/AUTHORITY.md`
+- Precedence declaration: overrides README, PLAN.md, implementation presence, version tags, generated summaries, AI-produced assertions
+- Explicit Non-Claims (NC-1–5): prohibits AI self-certification, implementation-as-completion, validator-as-authority, documentation-as-authority, proxy signing
+- Required Authority Artifacts (A1–A7): authority event → canonical artifact → writer attribution (A3a/A3b split) → explicit acceptance → independence declaration → confirmed conditions → integrity constraints
+- Reviewer Independence Rules (RI-1–5): self-review void (no cure), proxy review void, org hierarchy ≠ independence, code review ≠ closeout scope, retroactive signing presumptively void
+- Validator Role Boundary (VRB-1–3): validators observe/reject/recommend; cannot authorize; "reviewer cannot silently override validator" + explicit exception path
+- Failure Semantics (FS-1–4): Blocked vs Void distinction; F1–F17 failure mode table with remediation paths; fail-closed default; proportionate remediation
+
+**Runtime structural enforcement** — `governance_tools/phase_d_closeout_writer.py`:
+
+- `REQUIRED_CONDITIONS`: 5-item frozenset for F10/F11 minimum coverage enforcement
+- `EXCEPTION_OVERRIDE_SUPPORTED = False`: VRB-3 exception path explicitly unsupported in this runtime
+- `assess_phase_d_closeout()` new output: `failures[]` (structured with `failure_code`/`failure_class`/`remediation`), `missing_required_conditions`, `exception_override_supported`, `exception_override_note`, `runtime_unverifiable_conditions`
+
+**Capability boundary**: runtime-aligned structural enforcement v0.1.
+Legitimacy failures (F12–F15) remain reviewer-attested / audit-invalidatable.
+Artifact immutability (F4) and exception artifact path (F16/F17) not yet implemented.
+This is not full runtime enforcement of the constitutional contract.
+
+18 new tests; state_reconciliation fixtures updated to require all 5 confirmed conditions.
+
+---
+
 ## v1.1.0 - 2026-03-22
 
 See [docs/releases/README.md](docs/releases/README.md), [docs/releases/v1.1.0.md](docs/releases/v1.1.0.md), [docs/releases/v1.1.0-github-release.md](docs/releases/v1.1.0-github-release.md), and [docs/releases/v1.1.0-publish-checklist.md](docs/releases/v1.1.0-publish-checklist.md).

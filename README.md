@@ -3,7 +3,7 @@
 > 這是一個面向 AI-assisted development 的 `machine-interpretable governance runtime`。  
 > 它聚焦於 task / session 層級的 `execution`、`evidence`、`decision`、`memory / state` 與 reviewer-facing governance surfaces。
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](CHANGELOG.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
 ## 目前定位
@@ -69,20 +69,42 @@
 - [docs/status/trust-signal-dashboard.md](docs/status/trust-signal-dashboard.md)
 - [docs/status/reviewer-handoff.md](docs/status/reviewer-handoff.md)
 
+## Phase D Governance Authority
+
+`v1.2.0` 增加了 Phase D close semantics 的 authority contract 與 runtime structural enforcement。
+
+**Constitutional authority contract**：[governance/PHASE_D_CLOSE_AUTHORITY.md](governance/PHASE_D_CLOSE_AUTHORITY.md)
+**Runtime implementation**：[governance_tools/phase_d_closeout_writer.py](governance_tools/phase_d_closeout_writer.py)
+
+### 已有 runtime 支援（F1–F11）
+
+- Artifact 存在性與 schema 驗證（fail-closed）
+- `reviewer_id` / `confirmed_at` / `confirmed_conditions` 欄位完整性
+- F10/F11：minimum confirmed_conditions coverage（5 個必要條件）
+- Machine-readable failure output（`failure_code` / `failure_class` / `remediation`）
+- VRB-3 exception override 明確標記為 `unsupported`（不是默默無效）
+
+### 尚未有 runtime 自動偵測（reviewer-attested / audit-invalidatable）
+
+- F12–F15：legitimacy failures（self-review / proxy review / wrong scope / retroactive signing）
+- F4：artifact immutability hash（post-issuance modification）
+- F16/F17：exception authority artifact path（合約定義了路徑，runtime 尚未實作）
+
+**準確描述**：PHASE_D_CLOSE_AUTHORITY has runtime-aligned structural enforcement v0.1.
+Legitimacy failures remain reviewer-attested and audit-invalidatable.
+This is not full runtime enforcement of the constitutional contract.
+
+---
+
 ## 版本狀態
 
-正式 release-facing 版本目前仍是：
-
-- [docs/releases/v1.1.0.md](docs/releases/v1.1.0.md)
-- [docs/releases/v1.0.0-alpha.md](docs/releases/v1.0.0-alpha.md)
 - [CHANGELOG.md](CHANGELOG.md)
 - [docs/releases/README.md](docs/releases/README.md)
+- [docs/releases/v1.1.0.md](docs/releases/v1.1.0.md)
+- [docs/releases/v1.0.0-alpha.md](docs/releases/v1.0.0-alpha.md)
 
-`main` 分支在這之後已有較多 hardening、runtime、adoption、advisory、closeout 與文件整理進展。  
-因此：
-
-- release docs 代表正式對外版本
-- `README.md`、`docs/status/`、`memory/` 代表主分支較新的現況
+`main` 分支在 v1.1.0 之後已有較多 hardening、runtime、adoption、advisory、closeout 與文件整理進展。
+v1.2.0 = Phase D governance baseline freeze + runtime structural enforcement v0.1。
 
 ## 快速驗證
 
