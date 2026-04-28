@@ -4,7 +4,7 @@
 # NOT authority for gate verdict, classification validation, or escalation closure.
 # DO NOT edit manually; update PLAN.md or runtime inputs instead.
 #
-generated_at: "2026-04-28T02:55:16.972139+00:00"
+generated_at: "2026-04-28T08:42:15.916888+00:00"
 state_surface_contract:
   surface_role: derived_context_snapshot
   authority_scope: session_context_only
@@ -22,14 +22,14 @@ project:
   owner: GavinWu
   freshness_policy: Sprint (7d)
 current_phase:
-  id: PhaseE
-  name: Failure decision boundary、exclusion governance、usage enforcement
+  id: null
+  name: null
 gate_status:
   PhaseA: passed
   PhaseB: passed
   PhaseC: passed
-  PhaseD: resumable
-  PhaseE: in_progress
+  PhaseD: passed
+  PhaseE: pending
 active_sprint:
   -
     name: 穩定 canonical closeout、closeout audit 與 session continuity 主線
@@ -59,7 +59,7 @@ freshness:
   days_since_update: 4
   threshold_days: 7
 runtime_contract:
-  task: PhaseE
+  task: unspecified
   rules:
     - common
   risk: medium
