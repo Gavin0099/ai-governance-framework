@@ -351,7 +351,7 @@ This initiative enforces promotion discipline and authority boundaries, not auto
 - [ ] E1-B: Safe Mutation Execution
   - [x] **Phase 1: Safe Fixture Probe**: ✅ initial proof established (see `artifacts/governance-proof-report.json`)
   - [ ] **Phase 2: Real Rule Mutation**: ❌ not started (PREREQUISITE: Compliance with **E1 Phase 2 Safety Contract**)
-- [ ] E2：建立 `validators/spec_ambiguity_validator.py`
+- [x] E2：建立 `validators/spec_ambiguity_validator.py`
 - [ ] E3：建立 `production_learning_contract` 閉環
   - [x] **Phase 1（完成 db5f20f）**: Passive Observation — `_build_e1b_observation()`，advisory_only=True；資料收集 layer，NEVER 影響 gate；見 G5
   - [x] **Phase 2（✅ READY 2026-04-27，見 G6）**: Distribution Understanding
