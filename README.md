@@ -4,6 +4,7 @@
 > 它聚焦於 task / session 層級的 `execution`、`evidence`、`decision`、`memory / state` 與 reviewer-facing governance surfaces。
 
 [![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](CHANGELOG.md)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
 ## 目前定位
