@@ -20,12 +20,16 @@
 
 ### SC-2: Allowlisted Mutation Patches
 - The runner can only apply mutations defined in the `docs/e1-mutation-catalog.md`.
-- Each mutation must be implemented as a dedicated `.patch` file or a specific line-deletion rule that is reviewable by humans.
 - Arbitrary code modification is strictly forbidden.
+
+### SC-2.1: Mutation Patch Authority
+- Each mutation must be implemented as a dedicated `.patch` file or a specific line-deletion rule.
+- All mutation patches **MUST** be human-reviewed and committed to the repository before they can be used by the runner.
+- The runner has NO authority to generate or "hallucinate" new mutation patches at runtime.
 
 ### SC-3: Mandatory Failure Contract
 - Every mutation must be paired with an **expected test command** and an **expected failure outcome**.
-- A "successful" mutation is one that results in a verifiable system failure (matching E1-C violation codes).
+- A **protected mutation** is one that causes the expected governance failure (matching E1-C violation codes), thereby proving the rule's active enforcement.
 
 ### SC-4: P0 Governance Regression
 - If a mutation **survives** (i.e., the system remains `ok=True` or the expected failure does not trigger), it is classified as a **P0 Governance Regression**.
@@ -37,7 +41,11 @@
 
 ### SC-6: Audit Trail
 - The runner must log the exact `git apply` command and the subsequent test command used for each proof.
-- Any failure to setup or cleanup the temporary worktree must hard-stop the runner.
+
+### SC-7: Cleanup Verification
+- The runner **MUST** verify the successful removal of the temporary worktree and its associated files.
+- Verification includes a post-cleanup check of `git worktree list` and a filesystem existence check for the temp path.
+- **Residual mutation environment = Hard Failure**: If cleanup cannot be verified, the runner must exit with a critical error and block further execution until manual intervention or a clean state is restored.
 
 ---
 
