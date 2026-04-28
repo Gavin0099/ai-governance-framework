@@ -48,12 +48,29 @@ AI 越強，軟體工程的基本功越重要。核心原則：**Validity before
 
 - **E1-B: Safe Mutation Execution**
   - [x] **Phase 1: Safe Fixture Probe**: ✅ initial proof established (see `artifacts/governance-proof-report.json`)
-  - [ ] **Phase 2: Real Rule Mutation**: ❌ not started (requires `docs/e1-phase2-safety-contract.md` compliance and `git worktree` infrastructure)
+  - [ ] **Phase 2: Real Rule Mutation**: ❌ not started (PREREQUISITE: Compliance with **E1 Phase 2 Safety Contract** below)
 
-#### Current E1 Boundaries
-- **E1 complete**: NO
-- **Rule mutation proof**: NOT STARTED
-- **Dynamic mutation runner**: NOT YET
+#### E1 Phase 2 — Real Rule Mutation Safety Contract
+
+> **Purpose**: Define the legal and security boundaries for the dynamic mutation runner to prevent it from becoming a destructive tool.
+> **Scope**: Applied specifically to E1-B Phase 2 (Real Rule Mutation).
+
+**Core Principles**:
+- **Isolation of Destruction**: Mutation is allowed only in temporary, isolated environments.
+- **Authority Boundary**: **The runner is a validator, not a writer. AI is a verifier, not an owner.** It has no authority to commit changes or modify project metadata (like `PLAN.md`).
+- **Controlled Entropy**: All mutations must be pre-defined and allowlisted. Random or uncontrolled mutation is prohibited.
+
+**Safety Constraints (SC)**:
+- **SC-1: Temporary Worktree Only**: All mutations MUST be executed within a temporary `git worktree`. The main working tree MUST NEVER be modified or accessed in write-mode.
+- **SC-2: Allowlisted Mutation Patches**: The runner can only apply mutations defined in `docs/e1-mutation-catalog.md`.
+- **SC-2.1: Mutation Patch Authority**: Each mutation must be implemented as a dedicated `.patch` file or a specific line-deletion rule. All patches MUST be human-reviewed and committed before use. The runner has NO authority to "hallucinate" patches.
+- **SC-3: Mandatory Failure Contract**: Every mutation must be paired with an expected failure outcome. A **protected mutation** is one that causes the expected governance failure (matching E1-C violation codes).
+- **SC-4: P0 Governance Regression**: If a mutation survives (system remains `ok=True`), it is classified as a P0 Governance Regression.
+- **SC-5: Zero-Commit Authority**: The runner MUST NOT have authority to `git commit`, `git push`, or modify `PLAN.md`.
+- **SC-6: Audit Trail**: The runner must log the exact `git apply` and test commands used.
+- **SC-7: Cleanup Verification**: Runner **MUST** verify worktree removal. Residual mutation environment = hard failure. Verification includes `git worktree list` re-check and temp path existence check. Cleanup failure = runner fail.
+
+---
 
 ### State Reconciliation Notice (2026-04-27)
 
@@ -330,7 +347,7 @@ This initiative enforces promotion discipline and authority boundaries, not auto
 - [x] E1-A：建立 `docs/e1-mutation-catalog.md` (✅ aligned with runtime codes)
 - [ ] E1-B: Safe Mutation Execution
   - [x] **Phase 1: Safe Fixture Probe**: ✅ initial proof established (see `artifacts/governance-proof-report.json`)
-  - [ ] **Phase 2: Real Rule Mutation**: ❌ not started (PREREQUISITE: `docs/e1-phase2-safety-contract.md`)
+  - [ ] **Phase 2: Real Rule Mutation**: ❌ not started (PREREQUISITE: Compliance with **E1 Phase 2 Safety Contract**)
 - [ ] E2：建立 `validators/spec_ambiguity_validator.py`
 - [ ] E3：建立 `production_learning_contract` 閉環
   - [x] **Phase 1（完成 db5f20f）**: Passive Observation — `_build_e1b_observation()`，advisory_only=True；資料收集 layer，NEVER 影響 gate；見 G5
