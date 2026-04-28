@@ -9,6 +9,7 @@ Purpose:
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 
@@ -39,6 +40,23 @@ _REQUIRED_CLOSEOUT_KEYS = (
     "closeout_artifact_generated",
     "validation_dataset_updated",
     "governance_complete",
+)
+
+CANONICAL_AUTHORITY_FILES = (
+    "GOVERNANCE_ENTRY.md",
+    "AGENTS.md",
+    "PLAN.md",
+    "governance/PHASE_D_CLOSE_AUTHORITY.md",
+)
+
+PRECEDENCE_ORDER = (
+    "constitutional_authority_documents",
+    "registered_authority_artifacts",
+    "runtime_governance_outputs",
+    "reviewer_visible_advisory_surfaces",
+    "readme_local_notes_examples",
+    "ai_generated_summaries",
+    "tests_passed_statements",
 )
 
 
@@ -95,4 +113,34 @@ def validate_governance_closeout_payload(payload: dict[str, Any]) -> dict[str, A
         "violations": violations,
         "missing_keys": missing,
         "type_errors": type_errors,
+    }
+
+
+def validate_authority_reference(
+    *,
+    project_root: Path,
+    claimed_authority_file: str,
+    claimed_overrides_from: str | None = None,
+) -> dict[str, Any]:
+    violations: list[str] = []
+    valid_authority_files = [str((project_root / rel).resolve()) for rel in CANONICAL_AUTHORITY_FILES]
+    claimed_resolved = str((project_root / claimed_authority_file).resolve())
+
+    if claimed_authority_file not in CANONICAL_AUTHORITY_FILES:
+        violations.append("non_canonical_authority_reference")
+    if not (project_root / claimed_authority_file).exists():
+        violations.append("authority_file_missing")
+    if claimed_overrides_from and claimed_overrides_from not in PRECEDENCE_ORDER:
+        violations.append("unknown_precedence_layer")
+    if claimed_overrides_from in {"ai_generated_summaries", "tests_passed_statements"}:
+        violations.append("invalid_low_precedence_override")
+
+    blocked = len(violations) > 0
+    return {
+        "ok": not blocked,
+        "blocked": blocked,
+        "violations": violations,
+        "canonical_authority_files": valid_authority_files,
+        "claimed_authority_file": claimed_resolved,
+        "precedence_order": list(PRECEDENCE_ORDER),
     }

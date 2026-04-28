@@ -2,6 +2,35 @@
 
 This file is the only valid starting point for governance adoption in this repository.
 
+## Canonical Authority Declaration (Executable)
+
+Canonical authority source for this repository:
+
+- Primary authority repo: `Gavin0099/ai-governance-framework`
+- Constitutional authority files:
+  - `GOVERNANCE_ENTRY.md`
+  - `AGENTS.md`
+  - `PLAN.md`
+  - `governance/PHASE_D_CLOSE_AUTHORITY.md`
+
+Hard rule:
+
+- No local file or derived output may override constitutional authority unless explicitly registered as a higher-authority constitutional artifact.
+
+## Precedence Declaration (Highest -> Lowest)
+
+1. Constitutional authority documents
+2. Registered authority artifacts
+3. Runtime governance outputs
+4. Reviewer-visible advisory surfaces
+5. README / local notes / examples
+6. AI-generated summaries
+7. "tests passed" statements
+
+Hard rule:
+
+- Lower-precedence signals must never override higher-precedence authority.
+
 Before any governance claim, identify all five items:
 
 1. Canonical authority source
@@ -48,3 +77,18 @@ Violation handling:
 Closeout requirement:
 
 Governance closeout must be machine-verifiable. Prose-only closeout is non-authoritative.
+
+Minimum closeout payload shape (example):
+
+```json
+{
+  "authority_source_verified": true,
+  "runtime_path_executed": true,
+  "pre_task_gate_observed": true,
+  "post_task_advisory_visible": true,
+  "reviewer_surface_present": true,
+  "closeout_artifact_generated": true,
+  "validation_dataset_updated": true,
+  "governance_complete": false
+}
+```
