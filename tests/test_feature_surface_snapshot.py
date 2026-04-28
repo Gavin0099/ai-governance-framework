@@ -38,6 +38,40 @@ def test_build_feature_surface_snapshot_collects_routes_and_migrations() -> None
     assert snapshot["migrations"] == ["008_goal_tracking"]
 
 
+def test_detects_routes_under_src_app_root() -> None:
+    root = _reset_fixture("src_app_layout")
+    _write(root / "src" / "app" / "dashboard" / "page.tsx", "export default function Dashboard() {}")
+    _write(root / "src" / "app" / "api" / "user" / "route.ts", "export async function GET() {}")
+
+    snapshot = build_feature_surface_snapshot(root)
+
+    assert snapshot["app_routes"] == ["/dashboard"]
+    assert snapshot["api_routes"] == ["/user"]
+
+
+def test_warns_when_both_app_roots_exist(capsys) -> None:
+    root = _reset_fixture("both_roots")
+    _write(root / "app" / "legacy" / "page.tsx", "...")
+    _write(root / "src" / "app" / "modern" / "page.tsx", "...")
+
+    build_feature_surface_snapshot(root)
+    captured = capsys.readouterr()
+
+    assert "warning: multiple app route roots detected" in captured.err
+
+
+def test_deduplicates_same_route_across_app_roots() -> None:
+    root = _reset_fixture("deduplicate_roots")
+    _write(root / "app" / "admin" / "page.tsx", "old admin")
+    _write(root / "src" / "app" / "admin" / "page.tsx", "new admin")
+
+    snapshot = build_feature_surface_snapshot(root)
+
+    # Normalized route is /admin for both
+    assert snapshot["app_routes"] == ["/admin"]
+    assert snapshot["app_route_count"] == 1
+
+
 def test_format_human_lists_surface_entries() -> None:
     root = _reset_fixture("human_output")
     _write(root / "app" / "report" / "page.tsx", "export default function Report() {}")

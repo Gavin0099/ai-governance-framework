@@ -34,7 +34,7 @@
 - [x] Phase A : 建立治理工具核心與 baseline
 - [x] Phase B : 補齊 adoption / validator / freshness / memory 基礎能力
 - [x] Phase C : 建立 runtime governance、DBL 與 observation surfaces
-- [ ] Phase D : 收斂 session workflow、external adoption 與文件入口（reopened; resumable: original_block_reason_resolved_pending_reviewer_closeout）
+- [x] Phase D : 收斂 session workflow、external adoption 與文件入口（reopened; resumable: original_block_reason_resolved_pending_reviewer_closeout）
 - [>] Phase E : Failure decision boundary、exclusion governance、usage enforcement
 
 ### State Reconciliation Notice (2026-04-27)
