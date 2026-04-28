@@ -1,0 +1,40 @@
+{
+  "_fixture_id": "legacy_old_format",
+  "_fixture_purpose": "Older Enumd report missing calibration_profile, using legacy field names. Adapter must degrade (not crash), and output must still be advisory-only.",
+  "producer": "enumd",
+  "artifact_type": "governance_report",
+  "schema_version": "1.0",
+  "observation_class": "external_analysis_artifact",
+  "observation_type": "synthesis_governance_report",
+  "run_type": "legacy_wave",
+  "run_id": "wave-1-legacy",
+  "domain": "usb_windows_firmware",
+  "semantic_scope": "enumd-specific",
+  "semantic_boundary": {
+    "represents_agent_behavior": false,
+    "derivation": "synthesis_pipeline"
+  },
+  "observed": {
+    "total_nodes": 10,
+    "total_claims": 500
+  },
+  "policy_applied": {
+    "policy_id": "legacy-policy-v0",
+    "outcomes": {
+      "suppressed": 1,
+      "flagged": 1,
+      "passed": 8
+    }
+  },
+  "advisories": [
+    {
+      "signal": "domain_misalignment_risk",
+      "severity": "warning",
+      "decision_distance": "advisory_only",
+      "source": "enumd",
+      "details": {
+        "node_slug": "old-format-node"
+      }
+    }
+  ]
+}

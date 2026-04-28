@@ -17,6 +17,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import sys
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from governance_tools.escalation_log_writer import assess_escalation_register
 from governance_tools.lifecycle_transition_writer import validate_lifecycle_transition
 

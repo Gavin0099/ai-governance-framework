@@ -1,0 +1,58 @@
+{
+  "_fixture_id": "valid_wave5",
+  "_fixture_purpose": "Normal well-formed Enumd report. Adapter must accept and produce ingest_status=accepted.",
+  "producer": "enumd",
+  "artifact_type": "governance_report",
+  "schema_version": "1.0",
+  "observation_class": "external_analysis_artifact",
+  "observation_type": "synthesis_governance_report",
+  "run_type": "production_wave",
+  "run_id": "wave-5",
+  "domain": "usb_windows_firmware",
+  "semantic_scope": "enumd-specific",
+  "instrumentation_version": "slice1-v1",
+  "semantic_boundary": {
+    "represents_agent_behavior": false,
+    "derivation": "synthesis_pipeline",
+    "_note": "represents_agent_behavior=false is a routing directive."
+  },
+  "calibration_profile": {
+    "name": "production_v1",
+    "overlap_thresholds": {
+      "low_overlap": 0.40,
+      "handoff": 0.30,
+      "any_node": 0.50
+    }
+  },
+  "observed": {
+    "total_nodes": 15,
+    "total_claims": 886,
+    "explicit_claims": 635,
+    "derived_claims": 251
+  },
+  "policy_applied": {
+    "policy_id": "tiered-enforcement-policy-v1",
+    "calibration_profile": "production_v1",
+    "outcomes": {
+      "suppressed": 3,
+      "flagged": 2,
+      "passed": 10
+    }
+  },
+  "advisories": [
+    {
+      "signal": "domain_misalignment_risk",
+      "severity": "warning",
+      "decision_distance": "advisory_only",
+      "source": "enumd",
+      "details": {
+        "node_slug": "xcode-architecture-settings",
+        "overlap_score": 0.21,
+        "threshold_applied": 0.40
+      }
+    }
+  ],
+  "raw_artifacts": {
+    "audit_json_path": "artifacts/wave-5/audit.json"
+  }
+}

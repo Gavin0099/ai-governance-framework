@@ -1,0 +1,50 @@
+{
+  "timestamp": "2026-04-28T06:06:05.222499+00:00",
+  "runner_version": "1.0",
+  "phase": "E1-B Phase 1: Safe Fixture Probe",
+  "results": [
+    {
+      "scenario": "forged_authority_artifact",
+      "description": "Verify fingerprint mismatch detection in authority artifacts.",
+      "status": "PROTECTED",
+      "expected_code": "payload_fingerprint_mismatch",
+      "actual_signals": [
+        "untrusted_escalation_provenance",
+        "payload_fingerprint_mismatch",
+        "normalized_payload_hash_mismatch",
+        "payload_prewrite_validation_failed"
+      ],
+      "exit_code": 1,
+      "match": true
+    },
+    {
+      "scenario": "escalation_active_but_no_authority_artifacts",
+      "description": "Verify fail-closed behavior when authority artifacts are missing during active escalation.",
+      "status": "PROTECTED",
+      "expected_code": "escalation_active_but_no_authority_artifacts",
+      "actual_signals": [
+        "escalation_active_but_no_authority_artifacts"
+      ],
+      "exit_code": 1,
+      "match": true
+    },
+    {
+      "scenario": "phase_d_completed_without_reviewer_closeout_artifact",
+      "description": "Verify state reconciliation fails when Phase D is marked passed without a closeout artifact.",
+      "status": "PROTECTED",
+      "expected_code": "phase_d_completed_without_reviewer_closeout_artifact",
+      "actual_signals": [
+        "plan_marks_phase_d_completed_while_phase_c_release_surface_precedence_pending",
+        "phase_d_completed_without_reviewer_closeout_artifact"
+      ],
+      "exit_code": 1,
+      "match": true
+    }
+  ],
+  "summary": {
+    "total": 3,
+    "protected": 3,
+    "vulnerable": 0,
+    "error": 0
+  }
+}

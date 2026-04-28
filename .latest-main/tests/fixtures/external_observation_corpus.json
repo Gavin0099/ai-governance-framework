@@ -1,0 +1,98 @@
+[
+  {
+    "name": "normal_observation",
+    "input": {
+      "source": {
+        "source_id": "ext-01",
+        "source_type": "external_analyzer",
+        "producer_version": "1.2.0"
+      },
+      "observation": {
+        "misuse_evidence_status": "observed",
+        "evidence_refs": [
+          "reports/r1.json"
+        ],
+        "confidence_level": "medium"
+      }
+    },
+    "expect_status": "accepted",
+    "expect_misuse_status": "observed"
+  },
+  {
+    "name": "missing_source_fields",
+    "input": {
+      "observation": {
+        "misuse_evidence_status": "not_observed_in_window",
+        "evidence_refs": [],
+        "confidence_level": "high"
+      }
+    },
+    "expect_status": "degraded",
+    "expect_misuse_status": "not_observed_in_window"
+  },
+  {
+    "name": "invalid_enum",
+    "input": {
+      "source": {
+        "source_id": "ext-02",
+        "source_type": "external_analyzer"
+      },
+      "observation": {
+        "misuse_evidence_status": "safe",
+        "confidence_level": "high"
+      }
+    },
+    "expect_status": "degraded",
+    "expect_misuse_status": "not_tested"
+  },
+  {
+    "name": "legacy_alias",
+    "input": {
+      "source": {
+        "source_id": "ext-03",
+        "source_type": "external_analyzer"
+      },
+      "observation": {
+        "misuse_evidence_status": "none_observed",
+        "confidence_level": "low"
+      }
+    },
+    "expect_status": "accepted",
+    "expect_misuse_status": "not_observed_in_window"
+  },
+  {
+    "name": "looks_safe_but_not_tested",
+    "input": {
+      "source": {
+        "source_id": "ext-04",
+        "source_type": "external_analyzer"
+      },
+      "observation": {
+        "misuse_evidence_status": "not_tested",
+        "confidence_level": "high"
+      }
+    },
+    "expect_status": "accepted",
+    "expect_misuse_status": "not_tested"
+  },
+  {
+    "name": "external_tries_verdict_field",
+    "input": {
+      "source": {
+        "source_id": "ext-05",
+        "source_type": "external_analyzer"
+      },
+      "observation": {
+        "misuse_evidence_status": "observed",
+        "evidence_refs": [
+          "reports/r2.json"
+        ],
+        "confidence_level": "high"
+      },
+      "verdict": "allow"
+    },
+    "expect_status": "degraded",
+    "expect_misuse_status": "observed"
+  }
+]
+

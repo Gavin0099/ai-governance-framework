@@ -1,0 +1,543 @@
+import json
+import shutil
+import sys
+from pathlib import Path
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from runtime_hooks.core.session_end import format_human_result, run_session_end
+
+
+@pytest.fixture
+def local_project_root():
+    path = Path("tests") / "_tmp_session_end"
+    if path.exists():
+        shutil.rmtree(path)
+    path.mkdir(parents=True)
+    try:
+        yield path
+    finally:
+        shutil.rmtree(path, ignore_errors=True)
+
+
+def _contract(**overrides):
+    contract = {
+        "task": "Runtime governance closeout",
+        "rules": ["common"],
+        "risk": "low",
+        "oversight": "auto",
+        "memory_mode": "candidate",
+    }
+    contract.update(overrides)
+    return contract
+
+
+def test_session_end_auto_promotes_low_risk_candidate(local_project_root):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-01",
+        runtime_contract=_contract(),
+        checks={"ok": True, "errors": []},
+        event_log=[{"event_type": "post_task"}],
+        response_text="runtime output",
+        summary="Low-risk session",
+    )
+
+    assert result["ok"] is True
+    assert result["decision"] == "AUTO_PROMOTE"
+    assert result["snapshot"] is not None
+    assert result["curated"] is not None
+    assert result["promotion"] is not None
+
+    summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
+    assert summary_payload["promoted"] is True
+    assert summary_payload["memory_closeout"]["promotion_considered"] is True
+    assert summary_payload["memory_closeout"]["decision"] == "AUTO_PROMOTE"
+    assert summary_payload["memory_closeout"]["snapshot_created"] is True
+    verdict_payload = json.loads(Path(result["verdict_artifact"]).read_text(encoding="utf-8"))
+    assert verdict_payload["artifact_type"] == "runtime-verdict"
+    assert verdict_payload["verdict"]["decision"] == "AUTO_PROMOTE"
+    assert verdict_payload["decision_context"]["surface_validity"] == "complete"
+    assert verdict_payload["decision_context"]["coverage_completeness"] == "complete"
+    assert verdict_payload["decision_context"]["memory_integrity"] == "partial"
+    trace_payload = json.loads(Path(result["trace_artifact"]).read_text(encoding="utf-8"))
+    assert trace_payload["artifact_type"] == "runtime-trace"
+    assert trace_payload["result"]["decision"] == "AUTO_PROMOTE"
+    assert trace_payload["decision_context"] == verdict_payload["decision_context"]
+    assert trace_payload["decision_path"][0] == {"index": 1, "step": "normalize runtime contract"}
+    assert trace_payload["result"]["policy"]["decision"] == "AUTO_PROMOTE"
+    assert trace_payload["result"]["policy"]["reason_count"] >= 1
+    assert trace_payload["result"]["policy"]["reasoning_fragments"][0]["kind"] == "promotion-policy-reason"
+    curated_payload = json.loads(Path(result["curated_artifact"]).read_text(encoding="utf-8"))
+    assert curated_payload["curation_status"] == "CURATED"
+
+
+def test_session_end_requires_review_for_high_risk(local_project_root):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-02",
+        runtime_contract=_contract(risk="high", oversight="review-required"),
+        checks={"ok": True, "errors": []},
+        response_text="runtime output",
+        summary="High-risk session",
+    )
+
+    assert result["ok"] is True
+    assert result["decision"] == "REVIEW_REQUIRED"
+    assert result["snapshot"] is not None
+    assert result["curated"] is not None
+    assert result["promotion"] is None
+    summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
+    assert summary_payload["memory_closeout"]["promotion_considered"] is True
+    assert summary_payload["memory_closeout"]["decision"] == "REVIEW_REQUIRED"
+
+
+def test_session_end_does_not_promote_stateless_session(local_project_root):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-03",
+        runtime_contract=_contract(memory_mode="stateless"),
+        checks={"ok": True, "errors": []},
+        response_text="runtime output",
+    )
+
+    assert result["ok"] is True
+    assert result["decision"] == "DO_NOT_PROMOTE"
+    assert result["snapshot"] is None
+    summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
+    assert summary_payload["memory_closeout"]["promotion_considered"] is False
+    assert summary_payload["memory_closeout"]["reason"] == "memory_mode=stateless disables durable memory closeout"
+
+
+def test_session_end_blocks_missing_contract_fields(local_project_root):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-04",
+        runtime_contract={"task": "Broken session", "rules": []},
+        checks={"ok": True, "errors": []},
+        response_text="runtime output",
+    )
+
+    assert result["ok"] is False
+    assert any("runtime_contract missing required fields" in error for error in result["errors"])
+
+
+def test_session_end_records_public_api_diff_in_summary_and_curated_artifact(local_project_root):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-05",
+        runtime_contract=_contract(rules=["common", "refactor"]),
+        checks={
+            "ok": True,
+            "errors": [],
+            "public_api_diff": {
+                "ok": True,
+                "removed": [],
+                "added": ["public int Ping() => 0;"],
+                "warnings": ["Public API surface added or changed."],
+                "errors": [],
+            },
+        },
+        response_text="runtime output",
+        summary="Refactor session with API additions",
+    )
+
+    assert result["ok"] is True
+    summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
+    assert summary_payload["public_api_diff_present"] is True
+    assert summary_payload["public_api_added_count"] == 1
+    assert summary_payload["memory_closeout"]["candidate_detected"] is True
+    assert "public_api_change" in summary_payload["memory_closeout"]["candidate_signals"]
+    assert summary_payload["decision_context"]["memory_integrity"] == "partial"
+    curated_payload = json.loads(Path(result["curated_artifact"]).read_text(encoding="utf-8"))
+    assert any(item["source"] == "public_api_diff.added" for item in curated_payload["items"])
+
+
+def test_session_end_curates_removed_public_api_as_followup(local_project_root):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-06",
+        runtime_contract=_contract(rules=["common", "refactor"]),
+        checks={
+            "ok": False,
+            "errors": ["public-api-diff: Public API surface removed or changed."],
+            "public_api_diff": {
+                "ok": False,
+                "removed": ["public int Run(int value) => value;"],
+                "added": [],
+                "warnings": [],
+                "errors": ["Public API surface removed or changed."],
+            },
+        },
+        response_text="runtime output",
+        summary="Refactor session with API removal",
+    )
+
+    curated_payload = json.loads(Path(result["curated_artifact"]).read_text(encoding="utf-8"))
+    assert any(
+        item["source"] == "public_api_diff.removed" and item["type"] == "followup"
+        for item in curated_payload["items"]
+    )
+
+
+def test_session_end_records_architecture_impact_preview(local_project_root):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-07",
+        runtime_contract=_contract(rules=["common", "refactor"]),
+        checks={"ok": True, "errors": []},
+        architecture_impact_preview={
+            "concerns": ["cross-layer-change-risk", "public-api-expansion-risk"],
+            "required_evidence": ["architecture-review", "public-api-review"],
+            "recommended_risk": "high",
+            "recommended_oversight": "human-approval",
+            "boundary_risk": "high",
+        },
+        response_text="runtime output",
+        summary="Proposal-time impact preview captured",
+    )
+
+    summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
+    assert summary_payload["architecture_impact_present"] is True
+    assert summary_payload["architecture_impact_concern_count"] == 2
+    assert summary_payload["architecture_impact_recommended_risk"] == "high"
+
+    candidate_payload = json.loads(Path(result["candidate_artifact"]).read_text(encoding="utf-8"))
+    assert candidate_payload["architecture_impact_preview"]["boundary_risk"] == "high"
+
+    curated_payload = json.loads(Path(result["curated_artifact"]).read_text(encoding="utf-8"))
+    assert any(item["source"] == "architecture_impact_preview.concerns" for item in curated_payload["items"])
+
+
+def test_session_end_records_proposal_summary_in_audit_chain(local_project_root):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-08",
+        runtime_contract=_contract(rules=["common", "refactor"]),
+        checks={"ok": True, "errors": []},
+        proposal_summary={
+            "requested_rules": ["common", "refactor"],
+            "recommended_risk": "high",
+            "recommended_oversight": "human-approval",
+            "required_evidence": ["architecture-review", "public-api-review"],
+            "expected_validators": ["architecture_drift_checker", "public_api_diff_checker"],
+            "concerns": ["cross-layer-change-risk"],
+        },
+        response_text="runtime output",
+        summary="Proposal summary captured in session audit",
+    )
+
+    summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
+    assert summary_payload["proposal_summary_present"] is True
+    assert summary_payload["proposal_summary_recommended_risk"] == "high"
+    assert summary_payload["proposal_summary_expected_validator_count"] == 2
+
+    candidate_payload = json.loads(Path(result["candidate_artifact"]).read_text(encoding="utf-8"))
+    assert candidate_payload["proposal_summary"]["recommended_oversight"] == "human-approval"
+
+    curated_payload = json.loads(Path(result["curated_artifact"]).read_text(encoding="utf-8"))
+    assert any(item["source"] == "proposal_summary.concerns" for item in curated_payload["items"])
+    assert any(item["source"] == "proposal_summary.required_evidence" for item in curated_payload["items"])
+
+
+def test_session_end_preserves_contract_context_in_summary_and_curated_artifact(local_project_root):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-09",
+        runtime_contract=_contract(rules=["common", "cpp", "kernel-driver"]),
+        checks={"ok": True, "errors": []},
+        contract_resolution={
+            "source": "discovery",
+            "path": "D:/Kernel-Driver-Contract/contract.yaml",
+        },
+        domain_contract={
+            "name": "kernel-driver-contract",
+            "raw": {
+                "domain": "kernel-driver",
+                "plugin_version": "1.0.0",
+            },
+        },
+        response_text="runtime output",
+        summary="Kernel-driver session with external contract",
+    )
+
+    summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
+    assert summary_payload["contract_resolution_present"] is True
+    assert summary_payload["contract_source"] == "discovery"
+    assert summary_payload["contract_name"] == "kernel-driver-contract"
+    assert summary_payload["contract_domain"] == "kernel-driver"
+    assert summary_payload["contract_plugin_version"] == "1.0.0"
+    assert summary_payload["contract_risk_tier"] == "high"
+
+    candidate_payload = json.loads(Path(result["candidate_artifact"]).read_text(encoding="utf-8"))
+    assert candidate_payload["contract_resolution"]["source"] == "discovery"
+    assert candidate_payload["domain_contract"]["name"] == "kernel-driver-contract"
+    verdict_payload = json.loads(Path(result["verdict_artifact"]).read_text(encoding="utf-8"))
+    assert verdict_payload["contract_identity"]["name"] == "kernel-driver-contract"
+    assert verdict_payload["contract_identity"]["domain"] == "kernel-driver"
+    assert verdict_payload["contract_identity"]["risk_tier"] == "high"
+    assert verdict_payload["decision_governance"]["decision_source"] == "single decision computation source"
+    assert verdict_payload["decision_governance"]["decision_owner"] == "runtime"
+    assert verdict_payload["decision_context"]["coverage_completeness"] == "complete"
+    trace_payload = json.loads(Path(result["trace_artifact"]).read_text(encoding="utf-8"))
+    assert trace_payload["contract_identity"]["plugin_version"] == "1.0.0"
+    assert trace_payload["decision_governance"]["decision_source"] == "single decision computation source"
+    assert trace_payload["decision_governance"]["decision_owner"] == "runtime"
+    assert trace_payload["decision_context"]["surface_validity"] == "complete"
+
+    curated_payload = json.loads(Path(result["curated_artifact"]).read_text(encoding="utf-8"))
+    assert any(item["source"] == "contract_resolution" for item in curated_payload["items"])
+
+
+def test_session_end_human_output_includes_contract_context(local_project_root):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-10",
+        runtime_contract=_contract(rules=["common", "cpp", "kernel-driver"]),
+        checks={"ok": True, "errors": []},
+        contract_resolution={
+            "source": "explicit",
+            "path": "D:/Kernel-Driver-Contract/contract.yaml",
+        },
+        domain_contract={
+            "name": "kernel-driver-contract",
+            "raw": {
+                "domain": "kernel-driver",
+                "plugin_version": "1.0.0",
+            },
+        },
+        response_text="runtime output",
+        summary="Kernel-driver session human output",
+    )
+
+    output = format_human_result(result)
+
+    assert "contract_source=explicit" in output
+    assert "contract_path=D:/Kernel-Driver-Contract/contract.yaml" in output
+    assert "contract_name=kernel-driver-contract" in output
+    assert "contract_domain=kernel-driver" in output
+    assert "contract_plugin_version=1.0.0" in output
+    assert "contract_risk_tier=high" in output
+    assert "surface_validity=complete" in output
+    assert "coverage_completeness=complete" in output
+    assert "memory_integrity=partial" in output
+    assert "memory_candidate_detected=False" in output
+    assert "memory_promotion_considered=True" in output
+    assert "memory_closeout_decision=REVIEW_REQUIRED" in output
+    assert "verdict_artifact=" in output
+    assert "trace_artifact=" in output
+
+
+
+def test_session_end_human_output_explains_memory_closeout_when_candidate_detected(local_project_root):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-10b",
+        runtime_contract=_contract(rules=["common", "refactor"]),
+        checks={
+            "ok": True,
+            "errors": [],
+            "public_api_diff": {
+                "ok": True,
+                "removed": [],
+                "added": ["public int Ping() => 0;"],
+                "warnings": [],
+                "errors": [],
+            },
+        },
+        response_text="runtime output",
+        summary="API change session",
+    )
+
+    output = format_human_result(result)
+
+    assert "memory_candidate_detected=True" in output
+    assert "memory_candidate_signals=public_api_change" in output
+    assert "memory_promotion_considered=True" in output
+    assert "memory_closeout_decision=REVIEW_REQUIRED" in output
+
+
+def test_session_end_fails_closed_on_forced_runtime_failure(local_project_root):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-11",
+        runtime_contract=_contract(),
+        checks={
+            "ok": True,
+            "errors": [],
+            "force_runtime_failure_stage": "artifact_emission",
+        },
+        response_text="runtime output",
+        summary="Forced runtime failure session",
+    )
+
+    assert result["ok"] is False
+    assert result["decision"] == "RUNTIME_FAILURE"
+    assert result["policy"]["decision"] == "STOP"
+    assert any("runtime_failure: forced runtime failure at stage: artifact_emission" in error for error in result["errors"])
+    assert Path(result["trace_artifact"]).exists()
+    trace_payload = json.loads(Path(result["trace_artifact"]).read_text(encoding="utf-8"))
+    assert trace_payload["artifact_type"] == "runtime-failure-trace"
+    assert trace_payload["runtime_failure"]["violation_type"] == "runtime_failure"
+    assert trace_payload["runtime_failure"]["verdict_impact"] == "stop"
+    assert trace_payload["runtime_failure"]["stage"] == "artifact_emission"
+    assert trace_payload["decision_governance"]["decision_source"] == "single decision computation source"
+    assert trace_payload["decision_governance"]["decision_owner"] == "runtime"
+    assert trace_payload["decision_context"]["surface_validity"] == "complete"
+    assert trace_payload["decision_governance"]["policy_source"] == "memory_pipeline.promotion_policy.classify_promotion_policy"
+    assert trace_payload["decision_context"]["memory_integrity"] == "partial"
+    assert trace_payload["decision_path"][0] == {"index": 1, "step": "normalize runtime contract"}
+    assert trace_payload["result"]["policy"]["decision"] == "STOP"
+    assert trace_payload["result"]["policy"]["reasoning_fragments"][0]["kind"] == "runtime-failure"
+
+
+
+def test_session_end_replay_preserves_verdict_for_same_input(local_project_root):
+    session_id = "2026-03-12-12"
+    runtime_contract = _contract(memory_mode="stateless", rules=["common", "refactor"])
+    checks = {
+        "ok": False,
+        "errors": ["public-api-diff: Public API surface removed or changed."],
+        "public_api_diff": {
+            "ok": False,
+            "removed": ["public int Run(int value) => value;"],
+            "added": [],
+            "compatibility_risk": "high",
+            "breaking_changes": ["public int Run(int value) => value;"],
+            "non_breaking_changes": [],
+            "warnings": [],
+            "errors": ["Public API surface removed or changed."],
+        },
+    }
+
+    result_a = run_session_end(
+        project_root=local_project_root,
+        session_id=session_id,
+        runtime_contract=runtime_contract,
+        checks=checks,
+        response_text="",
+        summary="Determinism replay session",
+    )
+    verdict_a = json.loads(Path(result_a["verdict_artifact"]).read_text(encoding="utf-8"))
+    trace_a = json.loads(Path(result_a["trace_artifact"]).read_text(encoding="utf-8"))
+
+    result_b = run_session_end(
+        project_root=local_project_root,
+        session_id=session_id,
+        runtime_contract=runtime_contract,
+        checks=checks,
+        response_text="",
+        summary="Determinism replay session",
+    )
+    verdict_b = json.loads(Path(result_b["verdict_artifact"]).read_text(encoding="utf-8"))
+    trace_b = json.loads(Path(result_b["trace_artifact"]).read_text(encoding="utf-8"))
+
+    assert result_a["decision"] == result_b["decision"]
+    assert result_a["policy"] == result_b["policy"]
+    assert result_a["errors"] == result_b["errors"]
+    assert verdict_a["policy_ref"]["governance_runtime_decision_model"] == "2.6"
+    assert trace_a["policy_ref"]["governance_runtime_decision_model"] == "2.6"
+    assert verdict_a["policy_ref"]["runtime_version"] == "v2.6-draft-runtime"
+    assert trace_a["policy_ref"]["runtime_version"] == "v2.6-draft-runtime"
+    assert verdict_a["verdict"] == verdict_b["verdict"]
+    assert verdict_a["decision_context"] == verdict_b["decision_context"]
+    assert verdict_a["contract_identity"] == verdict_b["contract_identity"]
+    assert verdict_a["evidence_summary"] == verdict_b["evidence_summary"]
+    assert trace_a["result"] == trace_b["result"]
+    assert trace_a["decision_path"] == trace_b["decision_path"]
+    assert trace_a["decision_path"][0] == {"index": 1, "step": "normalize runtime contract"}
+
+
+def test_verdict_no_governance_escalation_without_transition_tracking(local_project_root):
+    # Without initial_agent_class, classification_changed is None — no escalation.
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="governance-esc-01",
+        runtime_contract=_contract(),
+        checks={"ok": True, "errors": []},
+        response_text="output",
+    )
+
+    verdict_payload = json.loads(Path(result["verdict_artifact"]).read_text(encoding="utf-8"))
+    oe = verdict_payload["override_or_escalation"]
+    assert oe["governance_escalation_present"] is False
+    assert oe["governance_escalation_type"] is None
+    # escalation_present for auto low-risk should also be False (no escalation signals)
+    assert oe["escalation_present"] is False
+
+
+def test_verdict_governance_escalation_on_classification_downgrade(local_project_root):
+    # When initial_agent_class triggers a downgrade (context degraded), verdict escalates.
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="governance-esc-02",
+        runtime_contract=_contract(),
+        checks={
+            "ok": True,
+            "errors": [],
+            "warnings": ["context_degraded: token_budget exceeded"],
+        },
+        response_text="output",
+        initial_agent_class="instruction_capable",  # starts higher, degrades
+    )
+
+    verdict_payload = json.loads(Path(result["verdict_artifact"]).read_text(encoding="utf-8"))
+    dc = verdict_payload["decision_context"]
+    oe = verdict_payload["override_or_escalation"]
+
+    # Classification must have changed downward
+    assert dc["classification_changed"] is True
+    assert dc["reclassification_reason"] in ("context_degraded", "conservative_downgrade")
+    # Governance escalation must be present with downgrade type
+    assert oe["governance_escalation_present"] is True
+    assert oe["governance_escalation_type"] == "classification_downgrade"
+    assert oe["escalation_present"] is True
+    # A governance downgrade warning must appear
+    assert any("governance: classification_downgrade" in w for w in result["warnings"])
+
+
+def test_verdict_governance_escalation_on_anomaly_upgrade(local_project_root):
+    # An anomaly upgrade (proxy inconsistency) also triggers governance escalation.
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="governance-esc-03",
+        runtime_contract=_contract(),
+        checks={"ok": True, "errors": []},
+        response_text="output",
+        initial_agent_class="wrapper_only",  # starts lower → session_end sees higher
+    )
+
+    verdict_payload = json.loads(Path(result["verdict_artifact"]).read_text(encoding="utf-8"))
+    dc = verdict_payload["decision_context"]
+    oe = verdict_payload["override_or_escalation"]
+
+    # session_end should classify as instruction_capable (normal path), marking upgrade anomaly
+    assert dc["classification_changed"] is True
+    assert dc["reclassification_reason"] == "classification_anomaly_upgrade"
+    assert oe["governance_escalation_present"] is True
+    assert oe["governance_escalation_type"] == "classification_anomaly_upgrade"
+    assert oe["escalation_present"] is True
+    # An anomaly warning must appear
+    assert any("classification_anomaly" in w for w in result["warnings"])
+
+
+def test_verdict_no_governance_escalation_when_class_unchanged(local_project_root):
+    # When initial and effective class are the same, no escalation.
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="governance-esc-04",
+        runtime_contract=_contract(),
+        checks={"ok": True, "errors": []},
+        response_text="output",
+        initial_agent_class="instruction_capable",  # same as session_end result
+    )
+
+    verdict_payload = json.loads(Path(result["verdict_artifact"]).read_text(encoding="utf-8"))
+    dc = verdict_payload["decision_context"]
+    oe = verdict_payload["override_or_escalation"]
+
+    assert dc["classification_changed"] is False
+    assert oe["governance_escalation_present"] is False
+    assert oe["governance_escalation_type"] is None

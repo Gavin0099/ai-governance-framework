@@ -1,0 +1,58 @@
+{
+  "_fixture_id": "contradictory_runs",
+  "_fixture_purpose": "Report where calibration_profile changed between referenced runs, making suppression delta uninterpretable as behavioral signal. Adapter must still produce valid advisory envelope. The contradiction is in the metadata, not the report structure.",
+  "producer": "enumd",
+  "artifact_type": "governance_report",
+  "schema_version": "1.0",
+  "observation_class": "external_analysis_artifact",
+  "observation_type": "synthesis_governance_report",
+  "run_type": "production_wave",
+  "run_id": "wave-6-recalibrated",
+  "domain": "usb_windows_firmware",
+  "semantic_scope": "enumd-specific",
+  "instrumentation_version": "slice1-v1",
+  "semantic_boundary": {
+    "represents_agent_behavior": false,
+    "derivation": "synthesis_pipeline"
+  },
+  "calibration_profile": {
+    "name": "production_v2",
+    "overlap_thresholds": {
+      "low_overlap": 0.30,
+      "handoff": 0.20,
+      "any_node": 0.40
+    },
+    "notes": [
+      "Profile changed from production_v1 to production_v2 in this wave.",
+      "Suppression increase versus wave-5 is NOT attributable to behavioral change."
+    ]
+  },
+  "observed": {
+    "total_nodes": 15,
+    "total_claims": 920,
+    "explicit_claims": 650,
+    "derived_claims": 270
+  },
+  "policy_applied": {
+    "policy_id": "tiered-enforcement-policy-v1",
+    "calibration_profile": "production_v2",
+    "outcomes": {
+      "suppressed": 7,
+      "flagged": 3,
+      "passed": 5
+    }
+  },
+  "advisories": [
+    {
+      "signal": "calibration_profile_changed",
+      "severity": "warning",
+      "decision_distance": "advisory_only",
+      "source": "enumd",
+      "details": {
+        "previous_profile": "production_v1",
+        "current_profile": "production_v2",
+        "note": "Trend comparison across waves requires suppression_changed_because_of_behavior() check"
+      }
+    }
+  ]
+}

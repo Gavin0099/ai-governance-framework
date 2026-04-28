@@ -1,0 +1,147 @@
+##############################################################
+# AI Governance Framework — GitLab CI
+#
+# 兩個 job 與 GitHub Actions 的 governance.yml 邏輯完全相同，
+# 差別只在 YAML 語法（image vs runs-on、script vs run、
+# allow_failure vs continue-on-error、rules vs on）。
+##############################################################
+
+stages:
+  - governance
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+# ─────────────────────────────────────────────────────────────
+# Job 1: PLAN.md 新鮮度檢查
+# CRITICAL → pipeline 失敗 (exit 1)
+# STALE    → warning 訊息，不擋
+# FRESH    → 通過
+# ─────────────────────────────────────────────────────────────
+plan-freshness:
+  stage: governance
+  image: python:3.11-slim
+  cache:
+    paths:
+      - .cache/pip
+  script:
+    - |
+      # 用 $() 捕捉輸出，避免 pipe + heredoc stdin 衝突
+      OUTPUT=$(python governance_tools/plan_freshness.py --format json) || true
+      echo "$OUTPUT" | python3 -c "
+      import json, sys
+      r = json.load(sys.stdin)
+      status = r['status']
+      days   = r.get('days_since_update')
+      limit  = r.get('threshold_days', '?')
+      print(f'PLAN.md status: {status} ({days}d since last update, threshold: {limit}d)')
+      if status == 'CRITICAL' or status == 'ERROR':
+          print('ERROR: PLAN.md is CRITICAL stale — please update before pushing.')
+          sys.exit(1)
+      elif status == 'STALE':
+          print(f'WARNING: PLAN.md is STALE ({days}d). Consider updating soon.')
+      "
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# ─────────────────────────────────────────────────────────────
+# Job 2: Phase Gate 驗證
+# tests pass + PLAN.md fresh + tools executable + docs complete
+# 並額外驗證 strict example runtime readiness
+# ─────────────────────────────────────────────────────────────
+phase-gates:
+  stage: governance
+  image: python:3.11-slim
+  cache:
+    paths:
+      - .cache/pip
+  before_script:
+    - pip install -r requirements.txt
+  script:
+    - bash scripts/verify_phase_gates.sh
+    - python governance_tools/example_readiness.py --strict-runtime --format human
+    - python governance_tools/trust_signal_snapshot.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --strict-runtime --write-bundle artifacts/trust-signals --publish-status-dir artifacts/trust-signals/published --format human
+    - python governance_tools/release_package_snapshot.py --version v1.0.0-alpha --write-bundle artifacts/release-package/v1.0.0-alpha --format human
+    - python governance_tools/release_package_publication_reader.py --file artifacts/release-package/v1.0.0-alpha/PUBLICATION_MANIFEST.json --format human
+    - python governance_tools/release_surface_overview.py --version v1.0.0-alpha --bundle-manifest artifacts/release-package/v1.0.0-alpha/MANIFEST.json --publication-manifest artifacts/release-package/v1.0.0-alpha/PUBLICATION_MANIFEST.json --format human --output artifacts/release-surface/release_surface_overview.txt
+    - python governance_tools/release_surface_overview.py --version v1.0.0-alpha --bundle-manifest artifacts/release-package/v1.0.0-alpha/MANIFEST.json --publication-manifest artifacts/release-package/v1.0.0-alpha/PUBLICATION_MANIFEST.json --format json --output artifacts/release-surface/release_surface_overview.json
+    - python governance_tools/release_surface_overview.py --version v1.0.0-alpha --bundle-manifest artifacts/release-package/v1.0.0-alpha/MANIFEST.json --publication-manifest artifacts/release-package/v1.0.0-alpha/PUBLICATION_MANIFEST.json --format markdown --output artifacts/release-surface/release_surface_overview.md
+    - python governance_tools/reviewer_handoff_snapshot.py --project-root . --plan PLAN.md --release-version v1.0.0-alpha --contract examples/usb-hub-contract/contract.yaml --release-bundle-manifest artifacts/release-package/v1.0.0-alpha/MANIFEST.json --release-publication-manifest artifacts/release-package/v1.0.0-alpha/PUBLICATION_MANIFEST.json --write-bundle artifacts/reviewer-handoff/v1.0.0-alpha --publish-status-dir artifacts/reviewer-handoff/published --publication-root artifacts/reviewer-handoff --format human
+    - python governance_tools/reviewer_handoff_reader.py --release-version v1.0.0-alpha --file artifacts/reviewer-handoff/v1.0.0-alpha/MANIFEST.json --format human
+    - python governance_tools/reviewer_handoff_publication_reader.py --release-version v1.0.0-alpha --file artifacts/reviewer-handoff/PUBLICATION_MANIFEST.json --format human
+  artifacts:
+    when: always
+    paths:
+      - artifacts/trust-signals/
+      - artifacts/release-package/
+      - artifacts/release-surface/
+      - artifacts/reviewer-handoff/
+    expire_in: 7 days
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# ─────────────────────────────────────────────────────────────
+# Job 3: 記憶壓力監控（advisory — allow_failure: true）
+# EMERGENCY → pipeline 失敗（即使 allow_failure 也會標示 warning）
+# CRITICAL  → 警告訊息，不擋
+# WARNING   → 通知訊息，不擋
+# ─────────────────────────────────────────────────────────────
+memory-pressure:
+  stage: governance
+  image: python:3.11-slim
+  allow_failure: true    # advisory only
+  cache:
+    paths:
+      - .cache/pip
+  script:
+    - |
+      # memory/ 目錄不存在時直接跳過（新 repo 正常現象）
+      if [ ! -d "memory" ]; then
+        echo "memory/ not found — skipping pressure check"
+        exit 0
+      fi
+      OUTPUT=$(python governance_tools/memory_janitor.py \
+        --memory-root ./memory --check --format json) || true
+      echo "$OUTPUT" | python3 -c "
+      import json, sys
+      r = json.load(sys.stdin)
+      status = r['status']
+      lines  = r['line_count']
+      hard   = r.get('hard_limit', 200)
+      print(f'Memory status: {status} ({lines}/{hard} lines)')
+      if status == 'EMERGENCY':
+          print('ERROR: Memory EMERGENCY — run: python governance_tools/memory_janitor.py --execute')
+          sys.exit(1)
+      elif status == 'CRITICAL':
+          print(f'WARNING: Memory CRITICAL ({lines} lines). Run memory_janitor --execute soon.')
+      elif status == 'WARNING':
+          print(f'NOTICE: Memory WARNING ({lines} lines). Monitor and plan cleanup.')
+      "
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# ─────────────────────────────────────────────────────────────
+# Job 4: Runtime Governance Enforcement
+# shared smoke + targeted runtime regression suite
+# ─────────────────────────────────────────────────────────────
+runtime-enforcement:
+  stage: governance
+  image: python:3.11-slim
+  cache:
+    paths:
+      - .cache/pip
+  before_script:
+    - pip install -r requirements.txt
+  script:
+    - bash scripts/run-runtime-governance.sh --mode ci
+  artifacts:
+    when: always
+    paths:
+      - artifacts/runtime/smoke/
+    expire_in: 7 days
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'

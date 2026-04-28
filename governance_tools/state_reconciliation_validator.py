@@ -179,39 +179,34 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Validate governance state reconciliation for Phase D closeout drift."
     )
-    parser.add_argument("--plan", default="PLAN.md")
-    parser.add_argument("--state", default=".governance-state.yaml")
-    parser.add_argument(
-        "--release-surface",
-        default="governance_tools/release_surface_overview.py",
-    )
-    parser.add_argument(
-        "--phase2-gate",
-        default="governance_tools/phase2_aggregation_consumer.py",
-    )
-    parser.add_argument(
-        "--phase3-gate",
-        default="governance_tools/phase3_promotion_gate.py",
-    )
-    parser.add_argument(
-        "--authority-writer",
-        default="governance_tools/escalation_authority_writer.py",
-    )
-    parser.add_argument(
-        "--closeout",
-        default="artifacts/governance/phase-d-reviewer-closeout.json",
-    )
+    parser.add_argument("--project-root", default=".")
+    parser.add_argument("--plan")
+    parser.add_argument("--state")
+    parser.add_argument("--release-surface")
+    parser.add_argument("--phase2-gate")
+    parser.add_argument("--phase3-gate")
+    parser.add_argument("--authority-writer")
+    parser.add_argument("--closeout")
     parser.add_argument("--format", choices=("human", "json"), default="human")
     args = parser.parse_args()
 
+    root = Path(args.project_root).resolve()
+    plan_path = Path(args.plan) if args.plan else root / "PLAN.md"
+    state_path = Path(args.state) if args.state else root / ".governance-state.yaml"
+    release_surface_path = Path(args.release_surface) if args.release_surface else root / "governance_tools" / "release_surface_overview.py"
+    phase2_gate_path = Path(args.phase2_gate) if args.phase2_gate else root / "governance_tools" / "phase2_aggregation_consumer.py"
+    phase3_gate_path = Path(args.phase3_gate) if args.phase3_gate else root / "governance_tools" / "phase3_promotion_gate.py"
+    authority_writer_path = Path(args.authority_writer) if args.authority_writer else root / "governance_tools" / "escalation_authority_writer.py"
+    closeout_path = Path(args.closeout) if args.closeout else root / "artifacts" / "governance" / "phase-d-reviewer-closeout.json"
+
     result = validate_state_reconciliation(
-        plan_path=Path(args.plan),
-        state_path=Path(args.state),
-        release_surface_path=Path(args.release_surface),
-        phase2_gate_path=Path(args.phase2_gate),
-        phase3_gate_path=Path(args.phase3_gate),
-        authority_writer_path=Path(args.authority_writer),
-        closeout_path=Path(args.closeout),
+        plan_path=plan_path,
+        state_path=state_path,
+        release_surface_path=release_surface_path,
+        phase2_gate_path=phase2_gate_path,
+        phase3_gate_path=phase3_gate_path,
+        authority_writer_path=authority_writer_path,
+        closeout_path=closeout_path,
     )
     if args.format == "json":
         print(json.dumps(result, ensure_ascii=False, indent=2))

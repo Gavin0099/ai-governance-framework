@@ -1,0 +1,295 @@
+import sys
+import json
+import shutil
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from governance_tools.trust_signal_overview import (
+    assess_trust_signal_overview,
+    format_human_result,
+    format_markdown_result,
+    main,
+)
+
+
+FIXTURE_ROOT = Path("tests/_tmp_trust_signal_overview")
+
+
+def _reset_fixture(name: str) -> Path:
+    path = FIXTURE_ROOT / name
+    if path.exists():
+        shutil.rmtree(path)
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def _write_contract(repo_root: Path, contract_text: str, *, validator_names: list[str] | None = None) -> None:
+    repo_root.mkdir(parents=True, exist_ok=True)
+    (repo_root / "contract.yaml").write_text(contract_text, encoding="utf-8")
+    if validator_names:
+        validators_root = repo_root / "validators"
+        validators_root.mkdir(parents=True, exist_ok=True)
+        for name in validator_names:
+            (validators_root / name).write_text("# validator\n", encoding="utf-8")
+
+
+def _write_onboarding_report(repo_root: Path, *, ok: bool = True, post_task_ok: bool | None = True) -> None:
+    onboarding_dir = repo_root / "memory" / "governance_onboarding"
+    onboarding_dir.mkdir(parents=True, exist_ok=True)
+    (onboarding_dir / "latest.json").write_text(
+        json.dumps(
+            {
+                "ok": ok,
+                "generated_at": "2026-03-15T00:00:00+00:00",
+                "contract_path": str((repo_root / "contract.yaml").resolve()),
+                "readiness": {
+                    "ready": True,
+                    "errors": [],
+                    "project_facts": {
+                        "status": "drifted" if not ok else "available",
+                        "artifact_exists": not ok,
+                        "artifact_drift": not ok,
+                        "source_filename": "02_project_facts.md",
+                    },
+                },
+                "smoke": {
+                    "ok": ok,
+                    "post_task_ok": post_task_ok,
+                    "rules": ["common", "firmware"],
+                    "errors": [] if ok else ["No compliant post-task smoke fixture passed."],
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_trust_signal_overview_passes_on_repo_root():
+    project_root = Path(".").resolve()
+    contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
+
+    result = assess_trust_signal_overview(
+        project_root=project_root,
+        plan_path=project_root / "PLAN.md",
+        release_version="v1.0.0-alpha",
+        contract_file=contract_file,
+    )
+
+    assert result["ok"] is True
+    assert result["quickstart"]["ok"] is True
+    assert result["examples"]["ok"] is True
+    assert result["release"]["ok"] is True
+    assert result["auditor"]["ok"] is True
+
+
+def test_trust_signal_overview_can_include_external_contract_policies():
+    root = _reset_fixture("external_contract_policies")
+    project_root = Path(".").resolve()
+    contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
+    repo = root / "kernel-contract"
+    _write_contract(
+        repo,
+        "\n".join(
+            [
+                "name: kernel-driver-contract",
+                "domain: kernel-driver",
+                "validators:",
+                "  - validators/irql.py",
+                "hard_stop_rules:",
+                "  - KD-002",
+            ]
+        ),
+        validator_names=["irql.py"],
+    )
+    _write_onboarding_report(repo, ok=True, post_task_ok=True)
+
+    result = assess_trust_signal_overview(
+        project_root=project_root,
+        plan_path=project_root / "PLAN.md",
+        release_version="v1.0.0-alpha",
+        contract_file=contract_file,
+        external_contract_repos=[repo],
+    )
+
+    assert result["ok"] is True
+    assert result["external_contract_policy"]["ok"] is True
+    assert result["external_contract_policy"]["entries"][0]["enforcement_profile"] == "mixed"
+    assert result["auditor"]["external_onboarding"]["missing_reports"] == []
+
+
+def test_trust_signal_overview_surfaces_external_onboarding_top_issues():
+    root = _reset_fixture("external_top_issues")
+    project_root = Path(".").resolve()
+    contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
+    repo = root / "kernel-contract"
+    _write_contract(
+        repo,
+        "\n".join(
+            [
+                "name: kernel-driver-contract",
+                "domain: kernel-driver",
+                "validators:",
+                "  - validators/irql.py",
+                "hard_stop_rules:",
+                "  - KD-002",
+            ]
+        ),
+        validator_names=["irql.py"],
+    )
+    _write_onboarding_report(repo, ok=False, post_task_ok=False)
+
+    result = assess_trust_signal_overview(
+        project_root=project_root,
+        plan_path=project_root / "PLAN.md",
+        release_version="v1.0.0-alpha",
+        contract_file=contract_file,
+        external_contract_repos=[repo],
+    )
+    output = format_human_result(result)
+
+    assert result["ok"] is False
+    assert result["auditor"]["external_onboarding"]["top_issues"][0]["reasons"] == ["smoke", "post-task"]
+    assert "external_top_issue=" in output
+    assert "reasons=smoke,post-task" in output
+    assert "project_facts=status=drifted | artifact_exists=True | artifact_drift=True | source=02_project_facts.md" in output
+
+
+def test_trust_signal_overview_human_output_is_summary_first():
+    project_root = Path(".").resolve()
+    contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
+
+    result = assess_trust_signal_overview(
+        project_root=project_root,
+        plan_path=project_root / "PLAN.md",
+        release_version="v1.0.0-alpha",
+        contract_file=contract_file,
+    )
+    output = format_human_result(result)
+
+    assert "[trust_signal_overview]" in output
+    assert "summary=ok=True | quickstart=True | examples=True | release=True | auditor=True | contract=firmware/medium" in output
+    assert "release_version=v1.0.0-alpha" in output
+
+
+def test_trust_signal_overview_human_output_can_surface_external_contracts():
+    root = _reset_fixture("human_external_contracts")
+    project_root = Path(".").resolve()
+    contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
+    repo = root / "ic-contract"
+    _write_contract(
+        repo,
+        "\n".join(
+            [
+                "name: ic-verification-contract",
+                "domain: ic-verification",
+                "validators:",
+                "  - validators/signal_map.py",
+                "hard_stop_rules:",
+                "  - ICV-001",
+            ]
+        ),
+        validator_names=["signal_map.py"],
+    )
+    _write_onboarding_report(repo, ok=True, post_task_ok=True)
+
+    result = assess_trust_signal_overview(
+        project_root=project_root,
+        plan_path=project_root / "PLAN.md",
+        release_version="v1.0.0-alpha",
+        contract_file=contract_file,
+        external_contract_repos=[repo],
+    )
+    output = format_human_result(result)
+
+    assert "external_contracts=True" in output
+    assert "[external_contract_policies]" in output
+    assert "profile=mixed" in output
+    assert "hard_stop_rules=ICV-001" in output
+
+
+def test_trust_signal_overview_markdown_output_is_dashboard_like():
+    project_root = Path(".").resolve()
+    contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
+
+    result = assess_trust_signal_overview(
+        project_root=project_root,
+        plan_path=project_root / "PLAN.md",
+        release_version="v1.0.0-alpha",
+        contract_file=contract_file,
+    )
+    output = format_markdown_result(result)
+
+    assert "# Trust Signal Overview" in output
+    assert "| Signal | OK | Detail |" in output
+    assert "| Quickstart | `True` | contract=`firmware/medium` |" in output
+
+
+def test_trust_signal_overview_markdown_can_include_external_contracts():
+    root = _reset_fixture("markdown_external_contracts")
+    project_root = Path(".").resolve()
+    contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
+    repo = root / "firmware-contract"
+    _write_contract(
+        repo,
+        "\n".join(
+            [
+                "name: firmware-contract",
+                "domain: firmware",
+                "validators:",
+                "  - validators/isr.py",
+                "hard_stop_rules:",
+                "  - HUB-004",
+            ]
+        ),
+        validator_names=["isr.py"],
+    )
+    _write_onboarding_report(repo, ok=True, post_task_ok=True)
+
+    result = assess_trust_signal_overview(
+        project_root=project_root,
+        plan_path=project_root / "PLAN.md",
+        release_version="v1.0.0-alpha",
+        contract_file=contract_file,
+        external_contract_repos=[repo],
+    )
+    output = format_markdown_result(result)
+
+    assert "| External Contracts | `True` | repos=`1` mixed=`1/1 mixed` |" in output
+    assert "## External Contract Policies" in output
+    assert "`HUB-004`" in output
+
+
+def test_trust_signal_overview_can_write_output_file(monkeypatch):
+    root = _reset_fixture("write_output")
+    project_root = Path(".").resolve()
+    contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
+    output_path = root / "trust_signal_overview.txt"
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "trust_signal_overview.py",
+            "--project-root",
+            str(project_root),
+            "--plan",
+            str(project_root / "PLAN.md"),
+            "--release-version",
+            "v1.0.0-alpha",
+            "--contract",
+            str(contract_file),
+            "--format",
+            "human",
+            "--output",
+            str(output_path),
+        ],
+    )
+
+    exit_code = main()
+
+    assert exit_code == 0
+    assert output_path.is_file()
+    assert "[trust_signal_overview]" in output_path.read_text(encoding="utf-8")
