@@ -46,14 +46,14 @@ AI 越強，軟體工程的基本功越重要。核心原則：**Validity before
 **目標**：證明「若移除治理規則，系統確實會 fail」。
 **核心守則**：**No mutation contract = No enforcement claim** (沒有變異契約，不得宣稱具備治理強制力)。
 
-- **E1-A: Mutation Catalog (Rule Removal)**
-  - 定義規則層級的變異（如移除 gate、繞過 precedence 邏輯）。
-- **E1-B: Negative Fixture Catalog (Hostile Inputs)**
-  - 定義資料層級的惡意輸入（如 forged artifacts、stale state、missing dirs）。
-- **E1-C: Exact Failure Contract**
-  - 要求每筆 Mutation/Fixture 必須對應精確的 `expected_violation_code`。
-- **E1-D: Governance Closure Rule**
-  - 所有新增治理規則必須具備 Mutation Contract 始可標記為 Closed。
+- **E1-B: Safe Mutation Execution**
+  - [x] **Phase 1: Safe Fixture Probe**: ✅ initial proof established (see `artifacts/governance-proof-report.json`)
+  - [ ] **Phase 2: Real Rule Mutation**: ❌ not started (requires `docs/e1-phase2-safety-contract.md` compliance and `git worktree` infrastructure)
+
+#### Current E1 Boundaries
+- **E1 complete**: NO
+- **Rule mutation proof**: NOT STARTED
+- **Dynamic mutation runner**: NOT YET
 
 ### State Reconciliation Notice (2026-04-27)
 
@@ -330,7 +330,7 @@ This initiative enforces promotion discipline and authority boundaries, not auto
 - [x] E1-A：建立 `docs/e1-mutation-catalog.md` (✅ aligned with runtime codes)
 - [ ] E1-B: Safe Mutation Execution
   - [x] **Phase 1: Safe Fixture Probe**: ✅ initial proof established (see `artifacts/governance-proof-report.json`)
-  - [ ] **Phase 2: Real Rule Mutation**: ❌ not started (requires `git worktree` + `patch` infrastructure；必須證明『真實系統』對此變異產生錯誤或阻斷行為；嚴禁使用 `PYTHONPATH` mock 作為治理證明依據)
+  - [ ] **Phase 2: Real Rule Mutation**: ❌ not started (PREREQUISITE: `docs/e1-phase2-safety-contract.md`)
 - [ ] E2：建立 `validators/spec_ambiguity_validator.py`
 - [ ] E3：建立 `production_learning_contract` 閉環
   - [x] **Phase 1（完成 db5f20f）**: Passive Observation — `_build_e1b_observation()`，advisory_only=True；資料收集 layer，NEVER 影響 gate；見 G5
