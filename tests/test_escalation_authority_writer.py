@@ -484,3 +484,29 @@ def test_assess_directory_register_active_overrides_resolved_confirmed_for_same_
         "authority_precedence_active_register_overrides_resolved_confirmed:esc-001"
         in result["release_block_reasons"]
     )
+
+
+def test_assess_directory_require_register_fails_closed_when_register_missing():
+    project_root = _tmp_dir("dir_require_register_missing")
+    result = assess_authority_directory(project_root, require_register=True)
+
+    assert result["ok"] is False
+    assert result["release_blocked"] is True
+    assert result["source"] == "register_required_missing"
+    assert "mandatory_register_missing" in result["release_block_reasons"]
+
+
+def test_assess_directory_require_register_passes_when_register_present_and_trusted():
+    from governance_tools.escalation_log_writer import write_escalation_register
+
+    project_root = _tmp_dir("dir_require_register_present")
+    authority_dir = default_authority_dir(project_root)
+    authority_dir.parent.mkdir(parents=True, exist_ok=True)
+    register_path = authority_dir.parent / "phase-b-escalation-register.json"
+    write_escalation_register(register_path, [])
+
+    result = assess_authority_directory(project_root, require_register=True)
+
+    assert result["ok"] is True
+    assert result["release_blocked"] is False
+    assert result["source"] == "no_escalation_expected"

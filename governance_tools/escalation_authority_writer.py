@@ -398,7 +398,11 @@ def assess_authority_artifact(path: Path) -> dict[str, Any]:
     }
 
 
-def assess_authority_directory(project_root: Path) -> dict[str, Any]:
+def assess_authority_directory(
+    project_root: Path,
+    *,
+    require_register: bool = False,
+) -> dict[str, Any]:
     authority_dir = default_authority_dir(project_root)
 
     escalation_log = authority_dir.parent / "phase-b-escalation-log.jsonl"
@@ -417,10 +421,22 @@ def assess_authority_directory(project_root: Path) -> dict[str, Any]:
         and register_result["escalation_active"]
     )
     register_has_problem = register_result["available"] and not register_result["ok"]
+    register_missing_under_requirement = require_register and not register_result["available"]
 
     escalation_active = escalation_active_from_log or escalation_active_from_register
 
     if not authority_dir.is_dir():
+        if register_missing_under_requirement:
+            return {
+                "available": False,
+                "ok": False,
+                "source": "register_required_missing",
+                "authority_dir": str(authority_dir),
+                "artifacts_read": 0,
+                "release_blocked": True,
+                "release_block_reasons": ["mandatory_register_missing"],
+                "records": [],
+            }
         if escalation_active:
             return {
                 "available": False,
@@ -497,6 +513,9 @@ def assess_authority_directory(project_root: Path) -> dict[str, Any]:
             _append_unique_reason(reasons, f"authority_precedence_active_register_overrides_resolved_confirmed:{escalation_id}")
 
     # Propagate register integrity problems even when authority dir exists.
+    if register_missing_under_requirement:
+        blocked = True
+        _append_unique_reason(reasons, "mandatory_register_missing")
     if register_has_problem:
         blocked = True
         for r in register_result.get("release_block_reasons") or []:
@@ -505,7 +524,12 @@ def assess_authority_directory(project_root: Path) -> dict[str, Any]:
 
     return {
         "available": len(files) > 0,
-        "ok": all_ok and not register_has_problem and not precedence_violation,
+        "ok": (
+            all_ok
+            and not register_has_problem
+            and not precedence_violation
+            and not register_missing_under_requirement
+        ),
         "source": "authority-writer-monopoly",
         "authority_dir": str(authority_dir),
         "artifacts_read": len(files),
@@ -542,6 +566,7 @@ def main() -> int:
     parser.add_argument("--mode", choices=("assess", "write"), default="assess")
     parser.add_argument("--input")
     parser.add_argument("--out")
+    parser.add_argument("--require-register", action="store_true")
     parser.add_argument("--format", choices=("human", "json"), default="human")
     args = parser.parse_args()
 
@@ -556,7 +581,10 @@ def main() -> int:
             out_file=Path(args.out).resolve() if args.out else None,
         )
     else:
-        result = assess_authority_directory(project_root)
+        result = assess_authority_directory(
+            project_root,
+            require_register=bool(args.require_register),
+        )
 
     if args.format == "json":
         print(json.dumps(result, ensure_ascii=False, indent=2))
