@@ -28,35 +28,49 @@ def _normalize_route(path: Path, root: Path, suffix: str) -> str:
 
 
 def build_feature_surface_snapshot(project_root: Path) -> dict[str, object]:
-    app_root = project_root / "app"
+    candidate_app_roots = [
+        project_root / "app",
+        project_root / "src" / "app",
+    ]
+    app_roots = [path for path in candidate_app_roots if path.is_dir()]
+
+    if len(app_roots) > 1:
+        print("warning: multiple app route roots detected", file=sys.stderr)
+
     supabase_root = project_root / "supabase" / "migrations"
     db_root = project_root / "db" / "migrations"
 
-    page_files = []
-    route_files = []
-    if app_root.is_dir():
-        page_files = sorted(
+    page_files: list[tuple[Path, Path]] = []  # (file_path, root_path)
+    route_files: list[tuple[Path, Path]] = []  # (file_path, root_path)
+
+    for app_root in app_roots:
+        pages = sorted(
             [
                 path
                 for path in app_root.rglob("*")
                 if path.is_file() and path.stem == "page" and path.suffix in {".ts", ".tsx", ".js", ".jsx", ".mdx"}
             ]
         )
-        route_files = sorted(
-            [
-                path
-                for path in (app_root / "api").rglob("*")
-                if path.is_file() and path.stem == "route" and path.suffix in {".ts", ".tsx", ".js", ".jsx"}
-            ]
-        ) if (app_root / "api").is_dir() else []
+        page_files.extend([(path, app_root) for path in pages])
+
+        api_root = app_root / "api"
+        if api_root.is_dir():
+            routes = sorted(
+                [
+                    path
+                    for path in api_root.rglob("*")
+                    if path.is_file() and path.stem == "route" and path.suffix in {".ts", ".tsx", ".js", ".jsx"}
+                ]
+            )
+            route_files.extend([(path, api_root) for path in routes])
 
     migrations = []
     for root in (supabase_root, db_root):
         if root.is_dir():
             migrations.extend(sorted(root.glob("*.sql")))
 
-    app_routes = [_normalize_route(path, app_root, "/") for path in page_files]
-    api_routes = [_normalize_route(path, app_root / "api", "/") for path in route_files]
+    app_routes = sorted(list(set(_normalize_route(path, root, "/") for path, root in page_files)))
+    api_routes = sorted(list(set(_normalize_route(path, root, "/") for path, root in route_files)))
     migration_names = [path.stem for path in migrations]
 
     return {
