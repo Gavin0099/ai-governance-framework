@@ -429,9 +429,26 @@ authority decision:
   fields) before a completion claim can proceed; they do not terminate the
   reviewer's ability to issue a new, correct closeout
 
-The distinction: validators detect compliance failures. Reviewers make
-authority decisions. A validator cannot replace a reviewer, and a reviewer
-cannot override a validator.
+**A validator cannot replace a reviewer.**
+**A reviewer cannot silently override a validator.**
+
+Silent override — proceeding to mark Phase D completed while a validator
+reports failure, without a separate explicit authority artifact — is a
+governance violation.
+
+However, if a validator failure is caused by a known tooling defect, schema
+migration lag, or documented false positive, a reviewer may override via a
+separate explicit exception authority artifact. That artifact must:
+
+- Identify the specific validator failure being overridden
+- State the grounds for override (e.g., known defect, schema migration)
+- Be independently reviewable (not self-certified)
+- Be recorded in the governance audit trail
+
+This exception path preserves fail-closed semantics while preventing permanent
+governance lock-in from validator defects. Without an explicit exception
+artifact, block is default and reviewers have no unilateral authority to
+override.
 
 ---
 
