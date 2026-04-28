@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from validators.governance_hardening_guard import (
     detect_forbidden_inference,
+    validate_authority_reference,
     validate_governance_closeout_payload,
 )
 
@@ -60,3 +63,24 @@ def test_closeout_payload_rejects_governance_complete_without_prerequisites():
     result = validate_governance_closeout_payload(payload)
     assert result["ok"] is False
     assert "governance_complete_without_full_prerequisites" in result["violations"]
+
+
+def test_authority_reference_accepts_canonical_file():
+    result = validate_authority_reference(
+        project_root=Path(".").resolve(),
+        claimed_authority_file="GOVERNANCE_ENTRY.md",
+        claimed_overrides_from="runtime_governance_outputs",
+    )
+    assert result["ok"] is True
+    assert result["blocked"] is False
+
+
+def test_authority_reference_blocks_non_canonical_and_low_precedence_override():
+    result = validate_authority_reference(
+        project_root=Path(".").resolve(),
+        claimed_authority_file="README.md",
+        claimed_overrides_from="tests_passed_statements",
+    )
+    assert result["ok"] is False
+    assert "non_canonical_authority_reference" in result["violations"]
+    assert "invalid_low_precedence_override" in result["violations"]
