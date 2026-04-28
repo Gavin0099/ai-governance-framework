@@ -1,0 +1,73 @@
+{
+  "_fixture_id": "ambiguous_status",
+  "_fixture_purpose": "Outcomes where suppressed=0 but multiple warnings, and advisories with unknown severity. Must still produce not_tested status.",
+  "producer": "enumd",
+  "artifact_type": "governance_report",
+  "schema_version": "1.0",
+  "observation_class": "external_analysis_artifact",
+  "observation_type": "synthesis_governance_report",
+  "run_type": "incremental_wave",
+  "run_id": "wave-7-incremental",
+  "domain": "cross_domain",
+  "semantic_scope": "enumd-specific",
+  "instrumentation_version": "slice2-v1",
+  "semantic_boundary": {
+    "represents_agent_behavior": false,
+    "derivation": "synthesis_pipeline"
+  },
+  "calibration_profile": {
+    "name": "experimental_v2",
+    "overlap_thresholds": {
+      "low_overlap": 0.35,
+      "handoff": 0.25,
+      "any_node": 0.45
+    },
+    "notes": ["Experimental profile — thresholds not yet validated"]
+  },
+  "observed": {
+    "total_nodes": 8,
+    "total_claims": 200,
+    "explicit_claims": 80,
+    "derived_claims": 120
+  },
+  "policy_applied": {
+    "policy_id": "tiered-enforcement-policy-v2-draft",
+    "calibration_profile": "experimental_v2",
+    "outcomes": {
+      "suppressed": 0,
+      "flagged": 4,
+      "passed": 4
+    }
+  },
+  "advisories": [
+    {
+      "signal": "thin_synthesis",
+      "severity": "unknown",
+      "decision_distance": "advisory_only",
+      "source": "enumd",
+      "details": {
+        "node_slug": "cmake-cross-compile",
+        "verdict": "THIN_SYNTHESIS",
+        "evidence_count": 1
+      }
+    },
+    {
+      "signal": "domain_misalignment_risk",
+      "severity": "warning",
+      "decision_distance": "advisory_only",
+      "source": "enumd",
+      "details": {
+        "node_slug": "bazel-remote-cache",
+        "overlap_score": 0.28,
+        "threshold_applied": 0.35
+      }
+    },
+    {
+      "signal": "cross_domain_slug",
+      "severity": "info",
+      "decision_distance": "advisory_only",
+      "source": "enumd",
+      "details": {}
+    }
+  ]
+}

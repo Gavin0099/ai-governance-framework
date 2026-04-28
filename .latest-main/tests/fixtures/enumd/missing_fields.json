@@ -1,0 +1,26 @@
+{
+  "_fixture_id": "missing_fields",
+  "_fixture_purpose": "Report with absent run_id, calibration_profile, and advisories. Adapter must degrade gracefully, not crash.",
+  "producer": "enumd",
+  "artifact_type": "governance_report",
+  "schema_version": "1.0",
+  "observation_class": "external_analysis_artifact",
+  "observation_type": "synthesis_governance_report",
+  "run_type": "production_wave",
+  "semantic_boundary": {
+    "represents_agent_behavior": false,
+    "derivation": "synthesis_pipeline"
+  },
+  "observed": {
+    "total_nodes": 5,
+    "total_claims": 100
+  },
+  "policy_applied": {
+    "policy_id": "tiered-enforcement-policy-v1",
+    "outcomes": {
+      "suppressed": 0,
+      "flagged": 0,
+      "passed": 5
+    }
+  }
+}

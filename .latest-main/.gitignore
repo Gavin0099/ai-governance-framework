@@ -1,0 +1,102 @@
+# macOS
+.DS_Store
+._*
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+*.egg-info/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+*_backup.md
+cov_out.txt
+test_out.txt
+capture*.py
+
+# Personal / Private
+personal/
+private/
+.env
+.env.local
+
+# Build
+build/
+dist/
+*.egg
+
+# Test
+.pytest_cache/
+.pytest_tmp*/
+tests/_tmp_*/
+test_tmp_*/
+tmp*/
+tests/runtime-post-task-manual-*/
+tests/_tmp_governance_auditor/
+tests/_tmp_failure_test_validator/
+tests/_tmp_rule_pack_suggester/
+tests/_tmp_public_api_diff/
+tests/_tmp_doc_drift_checker/
+tests/_tmp_external_repo_onboarding_report/
+tests/_tmp_external_repo_readiness/
+tests/_tmp_feature_surface_snapshot/
+tests/_tmp_hook_install_validator/
+.coverage
+htmlcov/
+validation_tmp/
+validation_tmp2/
+validation_tmp3/
+
+# Runtime governance artifacts
+artifacts/runtime/
+artifacts/external-project-facts/
+artifacts/reviewer-handoff/
+memory/candidates/*.json
+.governance-audit/
+
+# Nested repo clone (accidental copy of workspace root)
+ai-governance-framework/
+
+# Claude / local workspace
+.claude/*
+!.claude/README.md
+!.claude/skills/
+!.claude/skills/**
+.claude/settings.local.json
+*.code-workspace
+
+# Payload audit raw log（含路徑資訊，不 commit）
+docs/payload-audit/audit_log.jsonl
+docs/payload-audit/*.jsonl
+
+# Documentation build
+docs/_build/
+
+# Local scratch / one-off checks
+scratch_quickstart_smoke/
+_integration_check.py

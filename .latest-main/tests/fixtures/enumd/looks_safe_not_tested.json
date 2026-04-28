@@ -1,0 +1,42 @@
+{
+  "_fixture_id": "looks_safe_not_tested",
+  "_fixture_purpose": "Report that appears 'all clear' — suppressed=0, flagged=0, no advisories. Must still produce misuse_evidence_status=not_tested, NOT not_observed_in_window or observed. Enumd all-pass is NOT equivalent to framework absence-of-risk.",
+  "producer": "enumd",
+  "artifact_type": "governance_report",
+  "schema_version": "1.0",
+  "observation_class": "external_analysis_artifact",
+  "observation_type": "synthesis_governance_report",
+  "run_type": "production_wave",
+  "run_id": "wave-9-all-pass",
+  "domain": "usb_windows_firmware",
+  "semantic_scope": "enumd-specific",
+  "instrumentation_version": "slice1-v2",
+  "semantic_boundary": {
+    "represents_agent_behavior": false,
+    "derivation": "synthesis_pipeline"
+  },
+  "calibration_profile": {
+    "name": "production_v1",
+    "overlap_thresholds": {
+      "low_overlap": 0.40,
+      "handoff": 0.30,
+      "any_node": 0.50
+    }
+  },
+  "observed": {
+    "total_nodes": 20,
+    "total_claims": 1200,
+    "explicit_claims": 900,
+    "derived_claims": 300
+  },
+  "policy_applied": {
+    "policy_id": "tiered-enforcement-policy-v1",
+    "calibration_profile": "production_v1",
+    "outcomes": {
+      "suppressed": 0,
+      "flagged": 0,
+      "passed": 20
+    }
+  },
+  "advisories": []
+}
