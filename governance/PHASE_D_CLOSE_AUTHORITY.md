@@ -86,6 +86,13 @@ An AI agent system — including the framework's own governance tools — may no
 Rationale: the gate is meaningless if the system that builds the gate can also
 pass it. AI constructs the validator; AI does not pass the validator.
 
+This prohibition applies to **authority acts**, not serialization assistance.
+A tool that serializes a human reviewer's decision into the canonical JSON
+format is permitted, provided: (1) the human reviewer is the source of the
+decision, (2) the human's identity is in `reviewer_id`, and (3) the tool does
+not assert, generate, or infer the reviewer's decision content. The invoker of
+`write_phase_d_closeout()` must be a human acting on their own judgment.
+
 ### NC-2: Implementation Completion is Not Completion Authority
 
 The following signals do not constitute Phase D completion, individually or
@@ -184,16 +191,28 @@ completion claim to be valid. Validation tools must fail-closed when absent.
 
 ### A3: Required Writer Attribution
 
-The artifact must contain attributable reviewer identity sufficient for
-independent audit:
+The artifact records two distinct identity claims that must not be conflated:
 
-- `reviewer_id` must be present and non-empty
-- The value must identify a specific human — not a role, team, or system
+**A3a — Serialization Tool Identity (`writer_id`)**
+
+`writer_id` identifies the tool that serialized the artifact into JSON. This
+field is for schema integrity verification (see A7), not for authority
+attribution. A governance tool (e.g., `governance_tools.phase_d_closeout_writer`)
+may occupy this field — this does not violate NC-1, because the tool is a
+serializer, not the authority actor. No authority semantics attach to `writer_id`.
+
+**A3b — Reviewer Authority Identity (`reviewer_id`)**
+
+`reviewer_id` is the sole field with authority semantics. Requirements:
+
+- Must be present and non-empty
+- Must identify a specific human — not a role, team, system, or AI identifier
 - Anonymous, collective, or inferred attribution is invalid
-- AI-system identifiers in `reviewer_id` are invalid regardless of content
+- The holder must be the human who accepted closeout responsibility at signing
 
-Auditability requirement: a third party must be able to determine, from the
-artifact alone, which human accepted closeout responsibility.
+Auditability requirement: a third party must be able to determine which human
+accepted closeout responsibility from `reviewer_id` alone, independent of
+`writer_id`.
 
 ### A4: Required Explicit Acceptance
 
@@ -262,12 +281,12 @@ requirements themselves.
 | Field | Required | Constraint | Maps to |
 |-------|----------|------------|---------|
 | `closeout_schema` | Yes | Fixed value | Integrity (A7) |
-| `writer_id` | Yes | Must match trusted writer ID | Integrity (A7) |
-| `writer_version` | Yes | Must match expected version | Integrity (A7) |
+| `writer_id` | Yes | Must match expected serializer ID | Serialization integrity (A3a, A7) — no authority semantics |
+| `writer_version` | Yes | Must match expected version | Serialization integrity (A7) |
 | `written_at` | Yes | Non-empty timestamp | Audit trail |
 | `phase_completed` | Yes | Must be `"D"` | Scope |
 | `verdict` | Yes | Must be `"completed"` | Explicit acceptance (A4) |
-| `reviewer_id` | Yes | Non-empty, human-identifiable | Attribution (A3) |
+| `reviewer_id` | Yes | Non-empty, human-identifiable; sole authority field | Authority attribution (A3b) |
 | `confirmed_at` | Yes | Non-empty timestamp | Explicit acceptance (A4) |
 | `confirmed_conditions` | Yes | Non-empty list | Decision basis (A6) + Independence (A5) |
 | `reviewer_confirmation` | Yes | Must be `"explicit"` | Explicit acceptance (A4) |
