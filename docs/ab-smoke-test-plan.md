@@ -19,6 +19,12 @@ Group A setup MUST follow:
 
 - `docs/ab-baseline-sanitization.md`
 
+Group A baseline classification MUST be reported in run artifacts:
+
+- `baseline_invalid`
+- `baseline_degraded`
+- `baseline_directional_only`
+
 ### Group B: Governed Path
 
 Original example repository with governance entrypoint, authority declaration, runtime hooks, reviewer evidence, and closeout rules enabled.
@@ -137,6 +143,14 @@ This test does not measure:
 - statistical win rate
 - production readiness
 - full security enforcement
+
+## Conclusion Strength Rule
+
+A/B conclusion strength depends on Group A baseline classification:
+
+- `baseline_invalid` -> no comparative conclusion allowed.
+- `baseline_degraded` -> comparative conclusion allowed with explicit downgrade note.
+- `baseline_directional_only` -> directional observation only; no proof-level claim.
 
 ## Recommended First Round
 

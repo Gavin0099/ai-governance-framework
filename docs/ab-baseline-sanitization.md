@@ -44,6 +44,22 @@ During Group A runs, the following are prohibited:
 - extra reviewer command injection that references governance authority
 - hidden authority hints in system/task prompt text
 
+## Group A: Semantic Neutralization
+
+The baseline should avoid implicit governance inference caused by repository semantics.
+
+Recommended neutralization:
+
+- avoid authority-specific naming patterns
+- avoid reviewer-verdict terminology in retained docs
+- avoid release-ready or governance-complete terminology
+- avoid preserved artifact folders whose names imply governance enforcement
+- avoid example names that directly encode governance assumptions where practical
+
+If semantic contamination cannot be fully removed, it must be explicitly recorded as:
+
+- `semantic_residual_present`
+
 ## Verification Checklist
 
 Before running Group A, record:
@@ -58,3 +74,19 @@ If any item is unresolved, mark A-group state as:
 - `baseline_invalid`
 
 and do not compare A/B results.
+
+## Baseline Quality Classification
+
+Use graded baseline quality instead of binary valid/invalid:
+
+- `baseline_invalid`
+Meaning: structural contamination remains (for example governance runtime path still callable).
+Effect: do not run comparative A/B conclusion.
+
+- `baseline_degraded`
+Meaning: structural sanitization is complete, but semantic contamination is non-trivial.
+Effect: comparative claims are allowed only with explicit confidence downgrade.
+
+- `baseline_directional_only`
+Meaning: semantic residuals remain and cannot be cleanly neutralized.
+Effect: results are directional observation only, not comparative proof.
