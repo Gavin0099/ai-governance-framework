@@ -452,12 +452,110 @@ override.
 
 ---
 
-## Pending Sections (Reserved — Non-Operative)
+## Failure Semantics (Fail-Closed)
 
-**Pending sections are non-operative until explicitly completed and reviewed.**
-They MUST NOT be used as validation basis, completion basis, or reviewer
-guidance. An empty or partially written section confers no authority.
+**Default state: `resumable`.** In the absence of a valid authority artifact at
+the canonical path, Phase D completion status is `resumable`. Block is the
+default, not an exception. No affirmative action is required to maintain it.
 
-Remaining sections pending constitutional review:
+Block is not permanent — each failure mode has a remediation path. The path is
+proportionate to the failure's nature: structural failures are re-issuance
+problems; authority failures require a new authority event; independence failures
+require a new reviewer.
 
-- § Failure Semantics (fail-closed)
+---
+
+### FS-1: Blocked vs. Void
+
+Two distinct failure effects apply to Phase D completion claims:
+
+**Blocked** — The claim cannot proceed. The failure is structural or procedural:
+artifact absent, schema invalid, required fields missing or incorrect. Remediation
+is corrective: produce or re-issue the artifact. The authority relationship is
+not impugned.
+
+**Void** — The authority act was invalid at the time it occurred. Remediating a
+void closeout requires a new authority event (A1), not a corrected artifact. A
+void determination cannot be cured by:
+
+- Adding a reviewer note or counter-signature to the existing artifact
+- Ratifying the artifact via second-party annotation
+- Producing documentation asserting the original act was valid
+
+A new, complete authority act satisfying A1–A7 is the sole remediation.
+
+---
+
+### FS-2: Failure Mode Table
+
+| # | Failure | Source | Effect | Remediation |
+|---|---------|--------|--------|-------------|
+| F1 | Canonical artifact absent | A2 | **Blocked** | Produce valid artifact via authority event (A1) |
+| F2 | Artifact at non-canonical path | A2 | **Blocked** | Re-issue at `artifacts/governance/phase-d-reviewer-closeout.json` |
+| F3 | Schema version mismatch | A7 | **Blocked** (integrity) | Re-issue with correct schema |
+| F4 | Artifact modified post-issuance | A7 | **Void** | New complete authority event; re-issue |
+| F5 | `reviewer_id` empty or missing | A3b | **Blocked** | Re-issue with human-identifiable `reviewer_id` |
+| F6 | `reviewer_id` identifies non-human entity | A3b | **Blocked** | Re-issue with valid human `reviewer_id` |
+| F7 | `reviewer_confirmation` ≠ `"explicit"` | A4 | **Blocked** | Re-issue with correct field value |
+| F8 | `confirmed_at` empty or missing | A4 | **Blocked** | Re-issue with valid timestamp |
+| F9 | `confirmed_conditions` empty | A6 | **Blocked** | Re-issue with substantive conditions |
+| F10 | Independence not declared in conditions | A5 | **Blocked** | Re-issue with explicit independence assertion |
+| F11 | Required condition coverage absent | A6 | **Blocked** | Re-issue with complete evidence basis |
+| F12 | Author is sole reviewer (self-review) | RI-1 | **Void** — no cure | New authority event; different, non-author reviewer |
+| F13 | Reviewer did not independently evaluate | RI-2 | **Void** | New authority event; independent evaluation required |
+| F14 | Reviewer accepted wrong scope (code review) | RI-4 | **Void** | New authority event; explicit closeout scope acceptance |
+| F15 | Artifact produced retroactively | RI-5 | **Presumptively void** | Auditable demonstration that A1 preceded completion claim |
+| F16 | Validator failure, no exception artifact | VRB-3 | **Blocked** | Fix artifact defect OR produce exception authority artifact |
+| F17 | Exception artifact missing required fields | VRB-3 | **Blocked** | Re-issue exception artifact with: specific failure, grounds, independent review |
+
+---
+
+### FS-3: Fail-Closed Default
+
+**Validation tools must fail-closed.** When the canonical artifact is absent,
+tools must not produce `ok=True` or any equivalent success signal. Absent
+artifact = block. This behavior is not configurable.
+
+The following do not lift the fail-closed default:
+
+- Implementation complete (all slices done, all tests passing)
+- Validator output `recommended_phase_d_status = "completed"`
+- PLAN.md phase marker `[x]` set
+- README or CHANGELOG describing Phase D as complete
+- Version tags, release notes, or commit messages asserting completion
+- Any combination of the above signals
+
+The default is lifted only by a valid canonical artifact satisfying A1–A7 at
+the canonical path.
+
+---
+
+### FS-4: Proportionate Remediation
+
+Remediation scope must be proportionate to the failure type.
+
+**F1–F11 (structural/procedural failures):** Artifact correctness problems.
+Remediation = re-issue the artifact. Re-issuance requires a new valid authority
+event — the reviewer must independently re-evaluate, not merely approve a
+corrected form. Partial field correction is not valid; re-issuance means a new
+complete artifact.
+
+**F12–F14 (authority legitimacy failures):** Require a new authority event with
+a reviewer who satisfies all independence requirements. The defective artifact is
+not amended; it is replaced.
+
+**F15 (retroactive signing):** The party asserting validity must produce auditable
+evidence that the authority event (A1) preceded the completion claim. Without such
+evidence, the artifact is void. An auditor is not required to demonstrate
+invalidity — the presumption is void absent affirmative demonstration.
+
+**F16–F17 (validator override):** Two remediation paths exist:
+
+1. Fix the artifact defect that caused validator failure (re-issuance, F1–F11 path)
+2. Produce an explicit exception authority artifact identifying: the specific
+   failure being overridden, the grounds (known defect, schema migration,
+   documented false positive), and signed by an independent reviewer
+
+The exception path does not bypass the authority event requirement. The exception
+artifact itself requires independent review and must be recorded in the governance
+audit trail.
