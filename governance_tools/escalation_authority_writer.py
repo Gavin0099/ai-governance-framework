@@ -422,6 +422,8 @@ def assess_authority_directory(
     )
     register_has_problem = register_result["available"] and not register_result["ok"]
     register_missing_under_requirement = require_register and not register_result["available"]
+    register_present = bool(register_result["available"])
+    decision_source = "strict_register_enforcement" if require_register else "compatibility_mode"
 
     escalation_active = escalation_active_from_log or escalation_active_from_register
 
@@ -431,6 +433,9 @@ def assess_authority_directory(
                 "available": False,
                 "ok": False,
                 "source": "register_required_missing",
+                "decision_source": decision_source,
+                "register_required_mode": require_register,
+                "register_present": register_present,
                 "authority_dir": str(authority_dir),
                 "artifacts_read": 0,
                 "release_blocked": True,
@@ -442,6 +447,9 @@ def assess_authority_directory(
                 "available": False,
                 "ok": False,
                 "source": "escalation_expected_missing",
+                "decision_source": decision_source,
+                "register_required_mode": require_register,
+                "register_present": register_present,
                 "authority_dir": str(authority_dir),
                 "artifacts_read": 0,
                 "release_blocked": True,
@@ -453,6 +461,9 @@ def assess_authority_directory(
                 "available": False,
                 "ok": False,
                 "source": "register_integrity_failed",
+                "decision_source": decision_source,
+                "register_required_mode": require_register,
+                "register_present": register_present,
                 "authority_dir": str(authority_dir),
                 "artifacts_read": 0,
                 "release_blocked": True,
@@ -463,6 +474,9 @@ def assess_authority_directory(
             "available": False,
             "ok": True,
             "source": "no_escalation_expected",
+            "decision_source": decision_source,
+            "register_required_mode": require_register,
+            "register_present": register_present,
             "authority_dir": str(authority_dir),
             "artifacts_read": 0,
             "release_blocked": False,
@@ -531,6 +545,9 @@ def assess_authority_directory(
             and not register_missing_under_requirement
         ),
         "source": "authority-writer-monopoly",
+        "decision_source": decision_source,
+        "register_required_mode": require_register,
+        "register_present": register_present,
         "authority_dir": str(authority_dir),
         "artifacts_read": len(files),
         "release_blocked": blocked,
