@@ -396,6 +396,12 @@ def test_parse_gate_status_all_states():
     assert result["Phase4"] == "pending"
 
 
+def test_parse_gate_status_resumable_annotation():
+    text = "[ ] Phase D : reopened (resumable: original_reopen_reason_resolved)\n"
+    result = state_generator.parse_gate_status(text)
+    assert result["PhaseD"] == "resumable"
+
+
 def test_parse_gate_status_empty():
     assert state_generator.parse_gate_status("") == {}
     assert state_generator.parse_gate_status("no phases here\n") == {}
