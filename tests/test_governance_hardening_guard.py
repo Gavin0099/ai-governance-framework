@@ -58,11 +58,27 @@ def test_closeout_payload_rejects_governance_complete_without_prerequisites():
         "reviewer_surface_present": True,
         "closeout_artifact_generated": True,
         "validation_dataset_updated": True,
-        "governance_complete": True,
+        "governance_status": "complete",
     }
     result = validate_governance_closeout_payload(payload)
     assert result["ok"] is False
-    assert "governance_complete_without_full_prerequisites" in result["violations"]
+    assert "governance_complete_status_without_full_prerequisites" in result["violations"]
+
+
+def test_closeout_payload_rejects_unknown_governance_status():
+    payload = {
+        "authority_source_verified": True,
+        "runtime_path_executed": True,
+        "pre_task_gate_observed": True,
+        "post_task_advisory_visible": True,
+        "reviewer_surface_present": True,
+        "closeout_artifact_generated": True,
+        "validation_dataset_updated": True,
+        "governance_status": "done",
+    }
+    result = validate_governance_closeout_payload(payload)
+    assert result["ok"] is False
+    assert "invalid_governance_status" in result["violations"]
 
 
 def test_authority_reference_accepts_canonical_file():
