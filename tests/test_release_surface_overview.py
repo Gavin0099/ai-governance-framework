@@ -17,6 +17,7 @@ from governance_tools.release_surface_overview import (
     format_markdown_result,
 )
 from governance_tools.escalation_authority_writer import write_authority_artifact
+from governance_tools.authority_rollout_policy import STRICT_POLICY_MODE
 
 
 def _local_tmp(name: str) -> Path:
@@ -301,5 +302,63 @@ def test_release_surface_overview_strict_register_mode_off_vs_on():
         assert result_on["escalation_authority"]["decision_source"] == "strict_register_enforcement"
         assert "mandatory_register_missing" in result_on["escalation_authority"]["release_block_reasons"]
         assert "decision_source=strict_register_enforcement" in rendered_on
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_release_surface_overview_explicit_override_beats_policy_file():
+    tmp_path = _local_tmp("strict_policy_file_override")
+    try:
+        payload = {
+            "escalation_id": "esc-policy-override-001",
+            "mitigation_validation_state": "validated",
+            "governance_track_state": "closure_eligible",
+            "forced_owner": "framework_maintainer",
+            "forced_escalation_target": "tier1_reviewer_pool",
+            "forced_route_due_date": "2026-05-05",
+            "forced_route_status": "completed",
+            "protected_claim_used": False,
+            "coverage_era": "CURRENT",
+            "coverage_caveat": None,
+            "contamination_status": "resolved",
+            "release_claims_resolved": True,
+            "escalation_closed": False,
+            "authority_lifecycle_state": "resolved_confirmed",
+            "lifecycle_transition": {
+                "from_state": "resolved_provisional",
+                "actor": "reviewer_confirmed",
+                "auto": False,
+                "reviewer_confirmation": {
+                    "reviewer_id": "reviewer-001",
+                    "confirmed_at": "2026-04-27T09:00:00+00:00",
+                },
+            },
+        }
+        assert write_authority_artifact(tmp_path, payload)["ok"] is True
+        policy_file = tmp_path / "artifacts" / "governance" / "authority-rollout-policy.json"
+        policy_file.parent.mkdir(parents=True, exist_ok=True)
+        policy_file.write_text(
+            json.dumps({"policy_mode": STRICT_POLICY_MODE}, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+        result_default = assess_release_surface(
+            tmp_path,
+            version="v1.0.0-alpha",
+            authority_policy_file=policy_file,
+        )
+        assert result_default["escalation_authority"]["ok"] is False
+        assert "mandatory_register_missing" in result_default["escalation_authority"]["release_block_reasons"]
+        assert result_default["authority_rollout_policy"]["policy_source"] == "policy_file"
+
+        result_explicit_override = assess_release_surface(
+            tmp_path,
+            version="v1.0.0-alpha",
+            authority_policy_file=policy_file,
+            authority_require_register=False,
+        )
+        assert result_explicit_override["escalation_authority"]["ok"] is True
+        assert result_explicit_override["authority_rollout_policy"]["policy_source"] == "explicit_override"
+        assert result_explicit_override["authority_rollout_policy"]["explicit_override"] is True
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)

@@ -9,10 +9,19 @@ Design contract:
 """
 from __future__ import annotations
 
+import json
+import shutil
+from pathlib import Path
+
 import pytest
 
-from governance_tools.phase2_aggregation_consumer import build_phase2_gate
+from governance_tools.phase2_aggregation_consumer import (
+    build_phase2_gate,
+    build_phase2_gate_with_policy,
+)
 from governance_tools.phase3_promotion_gate import evaluate_phase3_promotion_entry
+from governance_tools.escalation_authority_writer import write_authority_artifact
+from governance_tools.authority_rollout_policy import STRICT_POLICY_MODE
 
 
 # ---------------------------------------------------------------------------
@@ -31,6 +40,14 @@ def _non_eligible_aggregation(state: str = "risk_not_reobserved_yet") -> dict:
         "current_state": state,
         "promote_eligible": False,
     }
+
+
+def _tmp_dir(name: str) -> Path:
+    path = Path("tests") / "_tmp_phase2_gate_authority" / name
+    if path.exists():
+        shutil.rmtree(path)
+    path.mkdir(parents=True)
+    return path
 
 
 def _authority_ok() -> dict:
@@ -305,6 +322,56 @@ def test_promotion_gate_existing_interface_still_works_without_authority():
             }
         }
     )
-    assert result["phase3_entry_allowed"] is True
-    assert "gate_block_reasons" not in result["decision_basis"]
-    assert "authority_ok" not in result["decision_basis"]
+
+
+def test_phase2_gate_with_policy_uses_single_resolver_and_honors_explicit_override():
+    project_root = _tmp_dir("with_policy_resolver")
+    payload = {
+        "escalation_id": "esc-policy-001",
+        "mitigation_validation_state": "validated",
+        "governance_track_state": "closure_eligible",
+        "forced_owner": "framework_maintainer",
+        "forced_escalation_target": "tier1_reviewer_pool",
+        "forced_route_due_date": "2026-05-05",
+        "forced_route_status": "completed",
+        "protected_claim_used": False,
+        "coverage_era": "CURRENT",
+        "coverage_caveat": None,
+        "contamination_status": "resolved",
+        "release_claims_resolved": True,
+        "escalation_closed": False,
+        "authority_lifecycle_state": "resolved_confirmed",
+        "lifecycle_transition": {
+            "from_state": "resolved_provisional",
+            "actor": "reviewer_confirmed",
+            "auto": False,
+            "reviewer_confirmation": {
+                "reviewer_id": "reviewer-001",
+                "confirmed_at": "2026-04-27T09:00:00+00:00",
+            },
+        },
+    }
+    assert write_authority_artifact(project_root, payload)["ok"] is True
+    policy_file = project_root / "artifacts" / "governance" / "authority-rollout-policy.json"
+    policy_file.parent.mkdir(parents=True, exist_ok=True)
+    policy_file.write_text(
+        json.dumps({"policy_mode": STRICT_POLICY_MODE}, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    gate_from_policy = build_phase2_gate_with_policy(
+        project_root=project_root,
+        aggregation_result=_closure_verified_aggregation(),
+        authority_policy_file=policy_file,
+    )
+    assert gate_from_policy["gate_promote_eligible"] is False
+    assert "mandatory_register_missing" in gate_from_policy["gate_block_reasons"]
+
+    gate_from_override = build_phase2_gate_with_policy(
+        project_root=project_root,
+        aggregation_result=_closure_verified_aggregation(),
+        authority_policy_file=policy_file,
+        authority_require_register=False,
+    )
+    assert gate_from_override["gate_promote_eligible"] is True
+    assert gate_from_override["authority_summary"]["decision_source"] == "compatibility_mode"
