@@ -35,10 +35,20 @@ def _commands(
     release_version: str,
     contract_file: Path | None = None,
     *,
-    authority_require_register: bool = False,
+    authority_require_register: bool | None = None,
+    authority_policy_file: Path | None = None,
 ) -> list[dict[str, str]]:
     contract_arg = f" --contract {contract_file}" if contract_file else ""
-    authority_arg = " --authority-require-register" if authority_require_register else ""
+    authority_arg = ""
+    if authority_require_register is True:
+        authority_arg = " --authority-require-register"
+    elif authority_require_register is False:
+        authority_arg = " --no-authority-require-register"
+    policy_file_arg = (
+        f" --authority-policy-file {authority_policy_file}"
+        if authority_policy_file
+        else ""
+    )
     return [
         {
             "name": "trust_signal_overview",
@@ -49,7 +59,7 @@ def _commands(
             "name": "release_surface_overview",
             "command": (
                 "python governance_tools/release_surface_overview.py "
-                f"--version {release_version}{authority_arg} --format human"
+                f"--version {release_version}{authority_arg}{policy_file_arg} --format human"
             ),
         },
         {
@@ -212,7 +222,8 @@ def assess_reviewer_handoff(
     contract_file: Path | None = None,
     external_contract_repos: list[Path] | None = None,
     strict_runtime: bool = False,
-    authority_require_register: bool = False,
+    authority_require_register: bool | None = None,
+    authority_policy_file: Path | None = None,
     release_bundle_manifest: Path | None = None,
     release_publication_manifest: Path | None = None,
     fail_on_non_clean: bool = True,
@@ -235,11 +246,13 @@ def assess_reviewer_handoff(
         bundle_manifest=release_bundle_manifest,
         publication_manifest=release_publication_manifest,
         authority_require_register=authority_require_register,
+        authority_policy_file=authority_policy_file,
     )
     commands = _commands(
         release_version,
         contract_file,
         authority_require_register=authority_require_register,
+        authority_policy_file=authority_policy_file,
     )
     contract_path = str(contract_file.resolve()) if contract_file else None
     lint_surface = _build_lint_surface(
@@ -281,6 +294,7 @@ def assess_reviewer_handoff(
         "external_contract_repos": [str(path.resolve()) for path in (external_contract_repos or [])],
         "strict_runtime": strict_runtime,
         "authority_require_register": authority_require_register,
+        "authority_policy_file": str(authority_policy_file.resolve()) if authority_policy_file else None,
         "trust_signal": trust,
         "release_surface": release,
         "commands": commands,
@@ -439,7 +453,12 @@ def main() -> int:
     parser.add_argument("--contract")
     parser.add_argument("--external-contract-repo", action="append", default=[])
     parser.add_argument("--strict-runtime", action="store_true")
-    parser.add_argument("--authority-require-register", action="store_true")
+    parser.add_argument(
+        "--authority-require-register",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+    )
+    parser.add_argument("--authority-policy-file")
     parser.add_argument("--release-bundle-manifest")
     parser.add_argument("--release-publication-manifest")
     parser.add_argument(
@@ -483,7 +502,8 @@ def main() -> int:
         contract_file=Path(args.contract).resolve() if args.contract else None,
         external_contract_repos=[Path(item).resolve() for item in args.external_contract_repo],
         strict_runtime=args.strict_runtime,
-        authority_require_register=bool(args.authority_require_register),
+        authority_require_register=args.authority_require_register,
+        authority_policy_file=Path(args.authority_policy_file).resolve() if args.authority_policy_file else None,
         release_bundle_manifest=Path(args.release_bundle_manifest).resolve() if args.release_bundle_manifest else None,
         release_publication_manifest=Path(args.release_publication_manifest).resolve() if args.release_publication_manifest else None,
         fail_on_non_clean=bool(args.fail_on_non_clean),

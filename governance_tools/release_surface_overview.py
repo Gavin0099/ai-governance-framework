@@ -14,6 +14,7 @@ from typing import Any
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from governance_tools.authority_rollout_policy import resolve_authority_rollout_policy
 from governance_tools.human_summary import build_summary_line
 from governance_tools.escalation_authority_writer import assess_authority_directory
 from governance_tools.release_package_publication_reader import (
@@ -133,7 +134,8 @@ def assess_release_surface(
     version: str,
     bundle_manifest: Path | None = None,
     publication_manifest: Path | None = None,
-    authority_require_register: bool = False,
+    authority_require_register: bool | None = None,
+    authority_policy_file: Path | None = None,
 ) -> dict[str, Any]:
     readiness = assess_release_readiness(project_root, version=version)
     package = assess_release_package(project_root, version=version)
@@ -147,9 +149,14 @@ def assess_release_surface(
         version=version,
         publication_manifest=publication_manifest,
     )
+    authority_policy = resolve_authority_rollout_policy(
+        project_root=project_root,
+        require_register_override=authority_require_register,
+        policy_file=authority_policy_file,
+    )
     escalation_authority = assess_authority_directory(
         project_root,
-        require_register=authority_require_register,
+        require_register=authority_policy.require_register,
     )
     lifecycle_effective = dict(escalation_authority.get("lifecycle_effective_by_escalation") or {})
     escalation_authority["lifecycle_effective_by_escalation"] = lifecycle_effective
@@ -167,6 +174,12 @@ def assess_release_surface(
         "bundle_manifest": bundle,
         "publication_manifest": publication,
         "escalation_authority": escalation_authority,
+        "authority_rollout_policy": {
+            "require_register": authority_policy.require_register,
+            "policy_source": authority_policy.policy_source,
+            "policy_mode": authority_policy.policy_mode,
+            "explicit_override": authority_policy.explicit_override,
+        },
         "commands": _commands(version),
     }
 
@@ -177,6 +190,7 @@ def format_human_result(result: dict[str, Any]) -> str:
     bundle = result["bundle_manifest"]
     publication = result["publication_manifest"]
     escalation_authority = result["escalation_authority"]
+    authority_policy = result.get("authority_rollout_policy") or {}
     summary_line = build_summary_line(
         f"ok={result['ok']}",
         f"version={result['version']}",
@@ -199,6 +213,8 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"publication_source={publication['source']}",
         f"escalation_authority_available={escalation_authority['available']}",
         f"escalation_authority_source={escalation_authority['source']}",
+        f"authority_policy_mode={authority_policy.get('policy_mode')}",
+        f"authority_policy_source={authority_policy.get('policy_source')}",
     ]
     if bundle.get("manifest_file"):
         lines.append(f"bundle_manifest_file={bundle['manifest_file']}")
@@ -285,6 +301,16 @@ def format_human_result(result: dict[str, Any]) -> str:
             ]
         )
 
+    lines.append("[authority_rollout_policy]")
+    lines.extend(
+        [
+            f"require_register={authority_policy.get('require_register')}",
+            f"policy_mode={authority_policy.get('policy_mode')}",
+            f"policy_source={authority_policy.get('policy_source')}",
+            f"explicit_override={authority_policy.get('explicit_override')}",
+        ]
+    )
+
     lines.append("[commands]")
     for item in result["commands"]:
         lines.append(f"{item['name']}={item['command']}")
@@ -298,6 +324,7 @@ def format_markdown_result(result: dict[str, Any]) -> str:
     bundle = result["bundle_manifest"]
     publication = result["publication_manifest"]
     escalation_authority = result["escalation_authority"]
+    authority_policy = result.get("authority_rollout_policy") or {}
     summary_line = build_summary_line(
         f"ok={result['ok']}",
         f"version={result['version']}",
@@ -324,6 +351,7 @@ def format_markdown_result(result: dict[str, Any]) -> str:
         f"| Bundle manifest | `{'missing' if not bundle['available'] else bundle['ok']}` | source=`{bundle['source']}` manifest=`{bundle.get('manifest_file')}` |",
         f"| Publication manifest | `{'missing' if not publication['available'] else publication['ok']}` | source=`{publication['source']}` manifest=`{publication.get('manifest_file')}` |",
         f"| Escalation authority | `{'missing' if not escalation_authority['available'] else escalation_authority['ok']}` | source=`{escalation_authority['source']}` decision_source=`{escalation_authority.get('decision_source')}` register_required=`{escalation_authority.get('register_required_mode')}` register_present=`{escalation_authority.get('register_present')}` artifacts=`{escalation_authority.get('artifacts_read')}` precedence_applied=`{escalation_authority.get('precedence_applied')}` release_blocked=`{escalation_authority.get('release_blocked')}` |",
+        f"| Authority rollout policy | `{authority_policy.get('policy_mode')}` | source=`{authority_policy.get('policy_source')}` require_register=`{authority_policy.get('require_register')}` explicit_override=`{authority_policy.get('explicit_override')}` |",
         "",
         "### Escalation Lifecycle Effective State",
         "",
@@ -344,7 +372,12 @@ def main() -> int:
     parser.add_argument("--version", required=True)
     parser.add_argument("--bundle-manifest")
     parser.add_argument("--publication-manifest")
-    parser.add_argument("--authority-require-register", action="store_true")
+    parser.add_argument(
+        "--authority-require-register",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+    )
+    parser.add_argument("--authority-policy-file")
     parser.add_argument("--format", choices=("human", "json", "markdown"), default="human")
     parser.add_argument("--output")
     args = parser.parse_args()
@@ -354,7 +387,8 @@ def main() -> int:
         version=args.version,
         bundle_manifest=Path(args.bundle_manifest).resolve() if args.bundle_manifest else None,
         publication_manifest=Path(args.publication_manifest).resolve() if args.publication_manifest else None,
-        authority_require_register=bool(args.authority_require_register),
+        authority_require_register=args.authority_require_register,
+        authority_policy_file=Path(args.authority_policy_file).resolve() if args.authority_policy_file else None,
     )
     if args.format == "json":
         rendered = json.dumps(result, ensure_ascii=False, indent=2)
