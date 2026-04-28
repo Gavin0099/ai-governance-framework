@@ -39,7 +39,19 @@ _REQUIRED_CLOSEOUT_KEYS = (
     "reviewer_surface_present",
     "closeout_artifact_generated",
     "validation_dataset_updated",
-    "governance_complete",
+    "governance_status",
+)
+
+_ALLOWED_GOVERNANCE_STATUS = frozenset(
+    {
+        "complete",
+        "incomplete",
+        "blocked",
+        "void",
+        "manual_review_required",
+        "authority_unverified",
+        "runtime_unverifiable",
+    }
 )
 
 CANONICAL_AUTHORITY_FILES = (
@@ -91,7 +103,15 @@ def detect_forbidden_inference(
 
 def validate_governance_closeout_payload(payload: dict[str, Any]) -> dict[str, Any]:
     missing = [k for k in _REQUIRED_CLOSEOUT_KEYS if k not in payload]
-    type_errors = [k for k in _REQUIRED_CLOSEOUT_KEYS if k in payload and not isinstance(payload[k], bool)]
+    type_errors = [
+        k
+        for k in _REQUIRED_CLOSEOUT_KEYS
+        if k in payload
+        and (
+            (k != "governance_status" and not isinstance(payload[k], bool))
+            or (k == "governance_status" and not isinstance(payload[k], str))
+        )
+    ]
     violations: list[str] = []
 
     if missing:
@@ -99,12 +119,15 @@ def validate_governance_closeout_payload(payload: dict[str, Any]) -> dict[str, A
     if type_errors:
         violations.append("non_boolean_required_fields")
 
-    # Hard rule: governance_complete is only valid if all required evidence fields are true.
+    # Hard rule: governance_status=complete is only valid if all required evidence fields are true.
     if not missing and not type_errors:
-        prereq_keys = [k for k in _REQUIRED_CLOSEOUT_KEYS if k != "governance_complete"]
+        status = str(payload["governance_status"])
+        if status not in _ALLOWED_GOVERNANCE_STATUS:
+            violations.append("invalid_governance_status")
+        prereq_keys = [k for k in _REQUIRED_CLOSEOUT_KEYS if k != "governance_status"]
         all_prereqs_true = all(payload[k] is True for k in prereq_keys)
-        if payload["governance_complete"] and not all_prereqs_true:
-            violations.append("governance_complete_without_full_prerequisites")
+        if status == "complete" and not all_prereqs_true:
+            violations.append("governance_complete_status_without_full_prerequisites")
 
     blocked = len(violations) > 0
     return {

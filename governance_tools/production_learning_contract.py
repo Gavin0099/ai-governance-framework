@@ -118,7 +118,7 @@ def _load_closeout_payload(raw: str | None) -> dict[str, Any]:
             "reviewer_surface_present": False,
             "closeout_artifact_generated": False,
             "validation_dataset_updated": False,
-            "governance_complete": False,
+            "governance_status": "manual_review_required",
         }
     return json.loads(raw)
 

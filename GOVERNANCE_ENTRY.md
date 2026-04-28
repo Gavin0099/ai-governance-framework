@@ -89,6 +89,32 @@ Minimum closeout payload shape (example):
   "reviewer_surface_present": true,
   "closeout_artifact_generated": true,
   "validation_dataset_updated": true,
-  "governance_complete": false
+  "governance_status": "manual_review_required"
 }
 ```
+
+Allowed `governance_status` values:
+
+- `complete`
+- `incomplete`
+- `blocked`
+- `void`
+- `manual_review_required`
+- `authority_unverified`
+- `runtime_unverifiable`
+
+## Explicit Non-Claims
+
+This document does not claim:
+
+- passing tests proves governance validity
+- copied governance files imply adoption
+- runtime hooks existence implies enforcement
+- README governance sections imply authority alignment
+- AI-generated summaries are authoritative
+- machine-verifiable closeout alone proves reviewer approval
+
+## Agent Prohibition
+
+Agents are prohibited from self-declaring governance completion.
+Final governance completion may only be declared by reviewer decision or a registered authority artifact path.

@@ -8,7 +8,7 @@ from governance_tools.production_learning_contract import (
 )
 
 
-def _valid_closeout_payload() -> dict[str, bool]:
+def _valid_closeout_payload() -> dict[str, object]:
     return {
         "authority_source_verified": True,
         "runtime_path_executed": True,
@@ -17,7 +17,7 @@ def _valid_closeout_payload() -> dict[str, bool]:
         "reviewer_surface_present": True,
         "closeout_artifact_generated": True,
         "validation_dataset_updated": True,
-        "governance_complete": False,
+        "governance_status": "manual_review_required",
     }
 
 
