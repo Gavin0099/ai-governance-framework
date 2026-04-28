@@ -293,6 +293,89 @@ requirements themselves.
 
 ---
 
+## Reviewer Independence Rules
+
+This section defines authority invalidation conditions. Independence is not a
+quality standard — it is an authority prerequisite. A closeout produced without
+satisfying independence requirements is void, not merely weak.
+
+The subject of all rules below is the `reviewer_id` holder (A3b).
+
+### RI-1: Self-Review Invalidation
+
+If the implementation author and the reviewer are the same person, the closeout
+authority is **void**.
+
+- Author identity is determined by commit authorship, PLAN.md task ownership,
+  or any primary implementation responsibility
+- Organizational title does not override this rule
+- A contributor who authored any part of the Phase D implementation may not
+  serve as the sole closeout reviewer for that implementation
+
+There is no cure: a self-reviewed closeout cannot be remediated by adding a
+reviewer note. A new closeout with a different reviewer_id is required.
+
+### RI-2: Proxy Review Invalidation
+
+If the reviewer did not independently evaluate the completion conditions, the
+closeout authority is **void**, regardless of reviewer_id content.
+
+The following do not constitute independent evaluation:
+
+- Relying on an AI-generated summary as the primary evidence basis
+- Countersigning a closeout artifact prepared by another party (human or AI)
+- Delegating evaluation to a subordinate and signing the result without
+  personal review
+- Agreeing with a validator output without consulting primary sources
+
+Independent evaluation requires the reviewer to directly examine the relevant
+artifacts, outputs, and conditions — not summaries or proxies of them.
+
+### RI-3: Organizational Authority Does Not Substitute for Independence
+
+Organizational hierarchy is not a substitute for reviewer independence:
+
+- Manager approval of a subordinate's implementation is not independent review
+- Team lead sign-off on their own team's work is not independent review
+- "Approved by senior engineer" does not constitute independence if that
+  engineer participated in the implementation
+
+Independence is defined by the reviewer's relationship to the work, not their
+position relative to the author. A more senior person reviewing their own
+team's implementation is less independent, not more authoritative.
+
+### RI-4: Scope Mismatch Invalidation
+
+Code review approval is not closeout authority acceptance:
+
+- A reviewer who approved pull requests or implementation code has approved
+  implementation quality, not Phase D completion
+- Phase D closeout requires explicit acceptance of closeout responsibility —
+  a distinct act from code review
+- A reviewer must specifically confirm that they are accepting Phase D closeout
+  responsibility, not merely that they reviewed the code
+
+If a reviewer's `confirmed_conditions` do not include an explicit closeout
+responsibility acceptance, the authority scope is insufficient.
+
+### RI-5: Temporal Invalidation
+
+Retroactive signing is presumptively void:
+
+- A closeout artifact produced after Phase D was already marked `completed` in
+  PLAN.md, `.governance-state.yaml`, or equivalent state records is
+  presumptively invalid
+- The authority act must precede or be contemporaneous with the completion
+  claim, not follow from it
+- Post-hoc artifacts produced to justify a pre-existing completion claim do not
+  constitute valid authority events (see A1: decision must be contemporaneous)
+
+If a retroactive artifact is presented, an auditor must be able to demonstrate
+how the authority act preceded the completion claim. Absent such demonstration,
+the artifact must be treated as void.
+
+---
+
 ## Pending Sections (Reserved — Non-Operative)
 
 **Pending sections are non-operative until explicitly completed and reviewed.**
@@ -301,6 +384,5 @@ guidance. An empty or partially written section confers no authority.
 
 Remaining sections pending constitutional review:
 
-- § Reviewer Independence Rules
 - § Validator Role Boundary
 - § Failure Semantics (fail-closed)
