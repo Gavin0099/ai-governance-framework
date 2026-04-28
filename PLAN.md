@@ -1,4 +1,4 @@
-﻿# PLAN.md - AI Governance Framework
+# PLAN.md - AI Governance Framework
 
 > **最後更新**: 2026-04-24
 > **?敺??*: 2026-04-10
@@ -377,6 +377,7 @@ This initiative enforces promotion discipline and authority boundaries, not auto
         `authority provenance runtime enforced`
       - 目前明確列為 `trust root debt`：在 runtime 尚未強制寫入 validator provenance
         之前，authority model 仍是 partially trust-based，不得宣稱 fully auditable
+<<<<<<< HEAD
       **Authority Surface Coverage Gaps (2026-04-27)**:
       - **Gap 1 [fixed — conditional fail-closed]**: `assess_authority_directory()` 在
         authority dir missing 時原本一律回傳 ok=True；已修正為：
@@ -391,6 +392,8 @@ This initiative enforces promotion discipline and authority boundaries, not auto
         `no_escalation_expected => ok=True`，等同 authority bypass。修補路徑：log write-path 需與
         `e1b-phase-b-escalation-decisions.md` 交叉驗證，或設計 append-only enforcement；
         此 gap 是 Gap 2 之前提條件，不先釘住則 promotion gate fail-closed 宣稱不成立。
+=======
+>>>>>>> c4cb45ef9e12b330d52799eb230a2edc863357cd
   - [ ] **Phase 3（🔓 unblocked 2026-04-27）**: Trigger Design — 動態 threshold、trend_direction、cross-repo correlation；Phase 2 gate READY，可進入 Phase 3 設計；Phase 2.5 語意鎖仍有效（raw observation only，禁止 interpretive-class key）
 
 > 排序根據：E8a 先讓 signal 有歷史，E8b 才能讓歷史有語意，E1a/E1b 再決定是否有可靠證據基礎支持更強約束。
@@ -2087,4 +2090,7 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 | 2026-04-27 | E1B Phase C Slice 1 clarification — transition authority not yet complete | 補上 transition authority 最小契約：`active -> resolved_provisional`、`resolved_provisional -> resolved_confirmed`、`active -> resolved_confirmed` 禁止 direct path；`resolved_provisional` 明確為 audit-only、不得 release-unblock；`resolved_confirmed` 才可解除該 escalation 的 block。狀態聲明：Phase C baseline done，Slice 1 runtime enforcement 尚未完成 |
 | 2026-04-27 | E1B Phase C aggregation precedence contract (runtime baseline) | `assess_authority_directory()` 新增 lifecycle effective-state 聚合與 precedence fail-closed：`invalidated > active > resolved_confirmed > resolved_provisional > superseded > archived`；`active/invalidated` 強制 block，且 register 標記 active 時若同 escalation artifact 宣稱 `resolved_confirmed` 會被 precedence override fail-closed，避免 stale-but-valid resolved 造成 false release unblock。 |
 | 2026-04-27 | State drift correction — Phase D closeout invalidated | 將「Phase D completed」下修為 reopened（`blocked_by_phase_c_surface_gap`）。原因：Phase C authority lifecycle / precedence-aware consumer + release surfaces 仍有 integration gap。新增 state reconciliation 原則：若 Phase D completed 但 Phase C release surface precedence integration 未證明，視為 false governance signal。 |
+<<<<<<< HEAD
 | 2026-04-28 | Second state reconciliation — Phase D moved to resumable | 重新驗證 Phase C release surface precedence、promotion consumer precedence 與 read-side enforcement 門檻皆為 ready，原 reopen reason `blocked_by_phase_c_surface_gap` 已解除；Phase D 從 reopened/pending 調整為 resumable，保留 reviewer explicit closeout，不自動回 completed。 |
+=======
+>>>>>>> c4cb45ef9e12b330d52799eb230a2edc863357cd
