@@ -103,7 +103,13 @@ def test_passes_when_phase_d_completed_and_release_surface_precedence_ready():
     write_phase_d_closeout(
         closeout,
         reviewer_id="tier1_reviewer_a",
-        confirmed_conditions=["phase_c_surface_gap_resolved", "reviewer_independent_of_author"],
+        confirmed_conditions=[
+            "reviewer_independent_of_author",
+            "phase_c_surface_gap_resolved",
+            "validator_output_reviewed",
+            "fail_closed_semantics_accepted",
+            "no_unresolved_blocking_conditions",
+        ],
         confirmed_at="2026-04-28T10:00:00+00:00",
     )
 
@@ -273,7 +279,13 @@ def test_recommended_status_is_completed_when_phase_c_ready_and_closeout_present
     write_phase_d_closeout(
         closeout,
         reviewer_id="reviewer_b",
-        confirmed_conditions=["all_conditions_met"],
+        confirmed_conditions=[
+            "reviewer_independent_of_author",
+            "phase_c_surface_gap_resolved",
+            "validator_output_reviewed",
+            "fail_closed_semantics_accepted",
+            "no_unresolved_blocking_conditions",
+        ],
     )
 
     result = validate_state_reconciliation(
