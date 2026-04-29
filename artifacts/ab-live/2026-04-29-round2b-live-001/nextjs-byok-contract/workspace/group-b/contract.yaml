@@ -1,0 +1,15 @@
+name: nextjs-byok
+plugin_version: "0.1"
+framework_interface_version: "1"
+framework_compatible: ">=1.0.0,<2.0.0"
+domain: nextjs-byok
+documents:
+  - AGENTS.md
+  - rules/byok.md
+ai_behavior_override:
+  - AGENTS.md
+rule_roots:
+  - rules
+validators:
+  - validators/byok_key_propagation_validator.py
+  - validators/route_rate_limit_validator.py

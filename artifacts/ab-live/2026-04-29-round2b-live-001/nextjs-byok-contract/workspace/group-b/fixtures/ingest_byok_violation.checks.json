@@ -1,0 +1,20 @@
+{
+  "file_path": "src/app/api/ingest/route.ts",
+  "source_code": "import { NextRequest, NextResponse } from 'next/server';\nimport { getServerSession } from 'next-auth';\nimport { generateEmbedding } from '@/lib/embeddings';\nimport { db } from '@/lib/db';\n\nexport async function POST(req: NextRequest) {\n  const session = await getServerSession();\n  if (!session?.user) {\n    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });\n  }\n\n  const { text, entryId } = await req.json();\n\n  // BUG: generateEmbedding called without user key — charges app owner's quota\n  const embedding = await generateEmbedding(text);\n\n  await db.entry.update({\n    where: { id: entryId },\n    data: { embedding },\n  });\n\n  return NextResponse.json({ ok: true });\n}\n",
+  "api_route_roots": [
+    "src/app/api/"
+  ],
+  "changed_files": [
+    "src/app/api/ingest/route.ts"
+  ],
+  "test_names": [
+    "IngestRoute.POST_stores_embedding"
+  ],
+  "diagnostics": [
+    "tsc: 0 errors",
+    "jest: all tests passed"
+  ],
+  "summary": { "failed": 0 },
+  "warnings": [],
+  "errors": []
+}

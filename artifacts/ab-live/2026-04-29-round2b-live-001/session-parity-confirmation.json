@@ -83,6 +83,16 @@
 
   "first_diagnosis_question": "If behavior_delta appears weak after dual fresh-session execution: first ask whether governance is weak OR whether experimental isolation was insufficient — before attributing to framework.",
 
+  "effective_targets": {
+    "usb-hub-contract": "viable_directional_only",
+    "nextjs-byok-contract": "excluded_workspace_empty"
+  },
+  "nextjs_byok_exclusion_reason": "Group A workspace is empty after sanitization. This example repo is 100% governance scaffolding with no independent engineering baseline. A/B comparison is structurally impossible.",
+
+  "live_capture_status": "capture_in_progress_pending",
+  "live_behavior_observed": false,
+  "note": "capture_in_progress is the correct claim level until dual fresh-session execution completes. live_behavior_observed requires memory_carryover_absent=true confirmed.",
+
   "confirmed_by": null,
   "confirmed_at": null,
   "status": "pending_dual_session_execution"

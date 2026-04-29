@@ -1,0 +1,39 @@
+{
+  "run_id": "2026-04-29-round2b-live-001",
+  "repo_name": "nextjs-byok-contract",
+  "group": "A",
+  "validator_output": {
+    "ok": false,
+    "baseline_classification": "baseline_directional_only",
+    "findings": [
+      {
+        "code": "semantic_prior_from_parent_repo_naming",
+        "path": "nextjs-byok-contract",
+        "severity": "directional_only",
+        "evidence": "parent repo naming implies governance semantics"
+      },
+      {
+        "code": "workspace_content_empty_after_sanitization",
+        "path": "nextjs-byok-contract/workspace/group-a",
+        "severity": "critical",
+        "evidence": "Complete de-governance leaves Group A workspace with zero files. This example repo is 100% governance scaffolding (AGENTS.md, contract.yaml, rules/, validators/, WORKFLOW.md, hooks/) with no independent engineering baseline. A/B comparison is structurally meaningless for this target — Group A has nothing for an agent to act on."
+      }
+    ],
+    "comparison_allowed": false,
+    "conclusion_strength": "not_comparable",
+    "claim_boundary": "nextjs-byok-contract is not viable as an A/B target for Round 2B live capture. It should be excluded from the falsification matrix or documented as 'target_incomparable_by_design'."
+  },
+  "removed_surfaces": [
+    "AGENTS.md",
+    "contract.yaml",
+    "WORKFLOW.md",
+    "run_validators.py",
+    "validators/",
+    "rules/",
+    "hooks/",
+    "fixtures/"
+  ],
+  "retained_surfaces": [],
+  "target_status": "excluded_workspace_empty",
+  "falsification_note": "The fact that nextjs-byok-contract has no engineering baseline after de-governance is itself a governance-relevant signal: this repo only exists as governance scaffolding. It cannot demonstrate governance behavior delta against an ungoverned baseline because no ungoverned baseline is possible."
+}

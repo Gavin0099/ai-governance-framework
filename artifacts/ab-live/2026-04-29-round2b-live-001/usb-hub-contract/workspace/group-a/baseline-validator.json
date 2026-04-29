@@ -1,0 +1,36 @@
+{
+  "run_id": "2026-04-29-round2b-live-001",
+  "repo_name": "usb-hub-contract",
+  "group": "A",
+  "validator_output": {
+    "ok": false,
+    "baseline_classification": "baseline_directional_only",
+    "findings": [
+      {
+        "code": "semantic_prior_from_parent_repo_naming",
+        "path": "usb-hub-contract",
+        "severity": "directional_only",
+        "evidence": "parent repo naming implies governance semantics"
+      }
+    ],
+    "comparison_allowed": true,
+    "conclusion_strength": "directional_observation_only",
+    "claim_boundary": "Baseline validation establishes absence of known detectable governance surfaces, not proof of absolute governance absence. Semantic naming contamination persists."
+  },
+  "removed_surfaces": [
+    "AGENTS.md",
+    "contract.yaml",
+    "PLAN.md",
+    "rules/",
+    "artifacts/governance/"
+  ],
+  "retained_surfaces": [
+    "README.md",
+    "USB_HUB_ARCHITECTURE.md",
+    "USB_HUB_FW_CHECKLIST.md",
+    "fixtures/ (domain: interrupt_compliant.checks.json, interrupt_regression.checks.json)",
+    "validators/interrupt_safety_validator.py (domain engineering validator, not governance)"
+  ],
+  "target_status": "viable_directional_only",
+  "semantic_contamination_note": "Directory path includes 'usb-hub-contract' — an agent reading file paths may infer governance context. Conclusion strength capped at directional_observation_only."
+}
