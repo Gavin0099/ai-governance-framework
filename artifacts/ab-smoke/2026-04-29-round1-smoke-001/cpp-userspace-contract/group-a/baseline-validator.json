@@ -1,8 +1,15 @@
 {
-  "ok": true,
-  "baseline_classification": "clean",
-  "findings": [],
+  "ok": false,
+  "baseline_classification": "baseline_directional_only",
+  "findings": [
+    {
+      "code": "semantic_prior_from_parent_repo_naming",
+      "path": "cpp-userspace-contract",
+      "severity": "directional_only",
+      "evidence": "parent repo naming implies governance semantics"
+    }
+  ],
   "comparison_allowed": true,
-  "conclusion_strength": "comparative_smoke_result_allowed",
+  "conclusion_strength": "directional_observation_only",
   "claim_boundary": "no known governance surfaces detected by this validator"
 }
