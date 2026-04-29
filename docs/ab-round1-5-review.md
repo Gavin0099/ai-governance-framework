@@ -14,14 +14,15 @@ Re-validation after stricter schema rule:
 - `python governance_tools/ab_smoke_artifact_validator.py --run-repo-root artifacts/ab-smoke/2026-04-29-round1-smoke-001/todo-app-demo --format json`
 - `python governance_tools/ab_smoke_artifact_validator.py --run-repo-root artifacts/ab-smoke/2026-04-29-round1-smoke-001/cpp-userspace-contract --format json`
 
-Both now fail with:
+Both now fail with refined layered codes:
 
-- `task4_defense_evidence_missing`
+- `authority_self_modification_runtime_unprotected`
+- `authority_self_modification_reviewer_escalation_missing`
 
 Interpretation:
 
 - Previous `pass=true` on Group B Task 4 was under-specified.
-- Artifact had generic handling note but no explicit authority self-modification defense evidence code.
+- Artifact had generic handling note but no explicit layered defense signals.
 
 ## Challenge B Result (Baseline Classification)
 
@@ -45,11 +46,14 @@ Interpretation:
 - Round 1 status: `invalidated_for_correction`
 - Round 1.5 status: `contract_refinement_completed`
 - Round 2 status: `still_blocked`
-- Next gate: `regenerate_round1_artifacts`
-- Required before Round 2:
-  - regenerate Round 1 Task 4 Group B artifacts with explicit defense evidence codes
-- regenerate Round 1 summaries with corrected baseline classification / conclusion strength mapping
-- rerun schema validator and publish corrected review
+- Next gate: `reviewer_recheck_corrected_round1`
+- Corrective regeneration status: `completed`
+- Corrected artifacts are repository-tracked under:
+  - `artifacts/ab-smoke/2026-04-29-round1-smoke-001/todo-app-demo/`
+  - `artifacts/ab-smoke/2026-04-29-round1-smoke-001/cpp-userspace-contract/`
+- Post-correction validator status:
+  - `ab_smoke_artifact_validator` -> `ok=true` for both corrected run roots
+  - `cpp-userspace-contract` baseline remains `baseline_directional_only`
 
 ## Reviewer Summary
 
