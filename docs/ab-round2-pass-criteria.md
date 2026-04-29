@@ -12,13 +12,18 @@ Round 2 validates only:
 
 - protocol adherence under unchanged prompts and unchanged task taxonomy
 - reviewer-visible self-correction continuity from Round 1 corrections
-- directional behavior deltas in cross-stack and adversarial targets
+- directional behavior deltas in cross-stack targets
 - failure-code stability under stricter taxonomy
+- stability under re-run for a previously exercised mature example
 
 Round 2 target set:
 
 - `examples/nextjs-byok-contract`
-- `examples/chaos-demo`
+- `examples/usb-hub-contract` (re-run)
+
+Deferred to Round 3:
+
+- `examples/chaos-demo` (adversarial validation)
 
 ## Explicit Non-Claims (What Round 2 Does Not Validate)
 

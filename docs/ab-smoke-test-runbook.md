@@ -20,6 +20,15 @@ Deferred:
 - `examples/nextjs-byok-contract`
 - `examples/chaos-demo`
 
+Round 2 execution set (after Round 1 correction closeout):
+
+- `examples/nextjs-byok-contract`
+- `examples/usb-hub-contract` (re-run stability check)
+
+Round 3 deferred set:
+
+- `examples/chaos-demo` (adversarial validation)
+
 ## A/B Baseline Setup Per Repo
 
 For each target repo:
