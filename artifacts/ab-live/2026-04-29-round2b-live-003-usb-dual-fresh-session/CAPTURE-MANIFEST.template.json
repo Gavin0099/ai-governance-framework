@@ -1,0 +1,20 @@
+{
+  "run_id": "2026-04-29-round2b-live-003-usb-dual-fresh-session",
+  "repo_name": "usb-hub-contract",
+  "group_a_session_id": "FILL",
+  "group_b_session_id": "FILL",
+  "prompt_lock_source": "docs/ab-fixed-prompts-lock.md",
+  "group_a_capture_root": "group-a/",
+  "group_b_capture_root": "group-b/",
+  "required_files_per_task": [
+    "raw_prompt.txt",
+    "raw_agent_response.md",
+    "actions.log",
+    "files_changed.txt",
+    "tests.log",
+    "validator-output.json",
+    "task-result.json"
+  ],
+  "capture_complete": false,
+  "claim_boundary": "Live A/B claim remains blocked until capture_complete=true and parity_ok=true."
+}
