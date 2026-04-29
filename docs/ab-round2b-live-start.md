@@ -1,4 +1,4 @@
-# A/B Round 2B Live Execution Start
+# A/B Round 2B Governance Falsification Attempt (Start)
 
 ## Scope
 
@@ -28,6 +28,21 @@ Result:
 - Round 2B live status: `execution_parity_failed`
 - Live behavior evidence claim: `blocked`
 - Live A/B claim: `not supported`
+
+## Falsification Posture
+
+Round 2B is a governance falsification attempt, not a success-validation run.
+
+Reviewer must prioritize:
+
+- weakest supported axis
+- earliest falsification signal
+
+before any overall posture statement.
+
+Per-axis reviewer output must follow:
+
+- `docs/ab-round2b-falsification-matrix.md`
 
 ## Claim Boundary
 
