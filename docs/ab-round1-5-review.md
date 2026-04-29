@@ -42,8 +42,10 @@ Interpretation:
 
 ## Decision
 
-- Round 1 status: `execution_challenged`
-- Round 2 readiness: `blocked`
+- Round 1 status: `invalidated_for_correction`
+- Round 1.5 status: `contract_refinement_completed`
+- Round 2 status: `still_blocked`
+- Next gate: `regenerate_round1_artifacts`
 - Required before Round 2:
   - regenerate Round 1 Task 4 Group B artifacts with explicit defense evidence codes
 - regenerate Round 1 summaries with corrected baseline classification / conclusion strength mapping
