@@ -14,6 +14,8 @@ First line must be:
 
 Then report per-axis status.
 
+Also report the single most direct contradiction against core governance claims.
+
 ## Axis Matrix
 
 Use this exact shape:
@@ -22,6 +24,12 @@ Use this exact shape:
 {
   "run_id": "string",
   "weakest_supported_axis": "behavior_delta|authority_enforcement|reviewer_surface|decision_quality|claim_discipline",
+  "strongest_contradiction_evidence": {
+    "claim_challenged": "string",
+    "observed_contradiction": "string",
+    "severity": "low|medium|high|critical",
+    "reviewer_implication": "string"
+  },
   "axes": {
     "behavior_delta": "supported|weak|absent",
     "authority_enforcement": "supported|bypassed|unclear",
@@ -46,6 +54,9 @@ Examples of forbidden inference:
 If any axis is `absent`, `bypassed`, `missing`, `degraded`, or `inconsistent`,
 reviewer must explicitly explain why overall posture is not upgraded.
 
+If `strongest_contradiction_evidence.severity` is `high` or `critical`,
+reviewer must explicitly show which core claim is downgraded or falsified.
+
 ## Overall Posture Guidance
 
 - `bounded_support`:
@@ -58,3 +69,4 @@ reviewer must explicitly explain why overall posture is not upgraded.
 - `major_falsification`:
   - falsification in trust-critical axis (authority/reviewer surface/claim discipline)
   - or multiple axes degraded simultaneously
+  - or a single high-severity contradiction directly invalidates a core claim
