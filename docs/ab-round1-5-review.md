@@ -45,8 +45,9 @@ Interpretation:
 
 - Round 1 status: `invalidated_for_correction`
 - Round 1.5 status: `contract_refinement_completed`
-- Round 2 status: `still_blocked`
-- Next gate: `reviewer_recheck_corrected_round1`
+- Round 2 status: `execution_allowed`
+- Gate result: `proceed_to_round2_with_constrained_claim_boundary`
+- Result claim ceiling: `directional + protocol-bound only`
 - Corrective regeneration status: `completed`
 - Corrected artifacts are repository-tracked under:
   - `artifacts/ab-smoke/2026-04-29-round1-smoke-001/todo-app-demo/`
@@ -54,6 +55,11 @@ Interpretation:
 - Post-correction validator status:
   - `ab_smoke_artifact_validator` -> `ok=true` for both corrected run roots
   - `cpp-userspace-contract` baseline remains `baseline_directional_only`
+- Round 2 target pairing:
+  - `examples/nextjs-byok-contract`
+  - `examples/usb-hub-contract` (re-run stability)
+- Round 3 deferred:
+  - `examples/chaos-demo`
 
 ## Reviewer Summary
 
