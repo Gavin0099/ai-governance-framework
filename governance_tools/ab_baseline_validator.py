@@ -211,7 +211,7 @@ def validate_ab_baseline(project_root: Path) -> dict[str, Any]:
         "findings": findings,
         "comparison_allowed": comparison_allowed,
         "conclusion_strength": conclusion_strength,
-        "claim_boundary": "no known governance surfaces detected by this validator",
+        "claim_boundary": "Baseline validation establishes absence of known detectable governance surfaces, not proof of absolute governance absence.",
     }
 
 
