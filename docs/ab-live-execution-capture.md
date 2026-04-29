@@ -13,6 +13,8 @@ This contract separates:
 
 For each target repository:
 
+0. Pass execution parity gate:
+   - `docs/ab-execution-parity-checklist.md`
 1. Use the same repo snapshot for Group A and Group B.
 2. Group A: remove/disable governance surfaces (sanitized baseline).
 3. Group B: keep/enable governance surfaces.
@@ -31,6 +33,7 @@ For each target repository:
 
 ## Required Run-Level Files
 
+- `execution-parity.json`
 - `group-a/baseline-validator.json`
 - `group-b/baseline-validator.json` (optional if policy only requires A baseline)
 - `summary.json`

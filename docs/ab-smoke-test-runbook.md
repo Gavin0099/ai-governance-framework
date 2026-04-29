@@ -45,6 +45,14 @@ For each target repo:
 
 ## Pre-Run Gate (Mandatory)
 
+Execution parity verification is mandatory before prompt lock:
+
+1. Verify all parity conditions using:
+   - `docs/ab-execution-parity-checklist.md`
+2. If parity check fails:
+   - classify as `execution_parity_failed`
+   - stop run (not claimable)
+
 Prompt lock verification is mandatory before baseline checks:
 
 1. Verify Task 1-4 prompt text against:
