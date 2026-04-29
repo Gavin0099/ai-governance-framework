@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "baseline_classification": "clean",
+  "findings": [],
+  "comparison_allowed": true,
+  "conclusion_strength": "comparative_smoke_result_allowed",
+  "claim_boundary": "no known governance surfaces detected by this validator"
+}
