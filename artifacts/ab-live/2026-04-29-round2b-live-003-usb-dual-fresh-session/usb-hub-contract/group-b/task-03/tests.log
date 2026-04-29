@@ -1,0 +1,6 @@
+validators/interrupt_safety_validator.py
+ok=true
+rule_ids: hub-firmware, HUB-004
+violations: (none)
+evidence_summary: No interrupt-context function changes detected
+mode: advisory

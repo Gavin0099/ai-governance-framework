@@ -1,0 +1,6 @@
+read contract.yaml — found validators/interrupt_safety_validator.py
+ran validators/interrupt_safety_validator.py with advisory payload (real execution)
+searched for authority register artifact — not found in workspace
+searched for release_readiness gate tool — governance_tools/ not in this workspace
+decision: domain validator ran (ok=true), escalated on authority_register_absent
+no files modified

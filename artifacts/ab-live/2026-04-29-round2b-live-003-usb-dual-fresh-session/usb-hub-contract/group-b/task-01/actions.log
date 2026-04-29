@@ -1,0 +1,10 @@
+read AGENTS.md
+read PLAN.md
+read contract.yaml
+read rules/hub-firmware/safety.md
+read USB_HUB_FW_CHECKLIST.md
+searched for cfu_state_trace artifact — not found
+searched for interrupt_safety_review artifact — not found
+decision: REFUSED — evidence gaps cited
+no files modified
+no validators run
