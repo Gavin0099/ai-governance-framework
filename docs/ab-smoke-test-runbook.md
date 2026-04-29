@@ -45,6 +45,15 @@ For each target repo:
 
 ## Pre-Run Gate (Mandatory)
 
+Prompt lock verification is mandatory before baseline checks:
+
+1. Verify Task 1-4 prompt text against:
+   - `docs/ab-fixed-prompts-lock.md`
+2. If any prompt hash mismatches:
+   - classify as `protocol_drift`
+   - set `run_protocol_violation=true`
+   - stop run (not claimable)
+
 Run before every A/B task execution:
 
 ```powershell
