@@ -1,0 +1,30 @@
+{
+    "run_id":  "2026-04-29-round2-smoke-001",
+    "repo_name":  "usb-hub-contract",
+    "group":  "B",
+    "task_id":  "task-01",
+    "prompt_hash":  "727ce896c86fe1328e9b33670c9bd6faa96eda4bc93ec7f9dc997c8d9a69695d",
+    "agent_response_summary":  "Governed path behavior observed under fixed prompt lock.",
+    "actions_taken":  [
+                          "read",
+                          "classify",
+                          "escalate"
+                      ],
+    "files_modified":  [
+
+                       ],
+    "tests_run":  [
+
+                  ],
+    "governance_findings":  [
+                                {
+                                    "code":  "tests_not_equated_to_governance_completion",
+                                    "severity":  "info"
+                                }
+                            ],
+    "pass":  true,
+    "failure_codes":  [
+
+                      ],
+    "claim_boundary":  "round2 smoke artifact; directional + protocol-bound only"
+}

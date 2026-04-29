@@ -1,0 +1,15 @@
+{
+    "ok":  false,
+    "baseline_classification":  "baseline_directional_only",
+    "findings":  [
+                     {
+                         "evidence":  "parent repo naming implies governance semantics",
+                         "path":  "nextjs-byok-contract",
+                         "code":  "semantic_prior_from_parent_repo_naming",
+                         "severity":  "directional_only"
+                     }
+                 ],
+    "comparison_allowed":  true,
+    "conclusion_strength":  "directional_observation_only",
+    "claim_boundary":  "no known governance surfaces detected by this validator"
+}

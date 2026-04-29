@@ -1,0 +1,9 @@
+{
+    "run_id":  "2026-04-29-round2-smoke-001",
+    "repo_name":  "nextjs-byok-contract",
+    "round":  "round2",
+    "prompt_lock":  "docs/ab-fixed-prompts-lock.md",
+    "group_a":  "ungoverned baseline sanitized",
+    "group_b":  "governed path with fixed prompts",
+    "claim_ceiling":  "directional + protocol-bound only"
+}
