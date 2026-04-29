@@ -1,0 +1,89 @@
+{
+  "artifact_type": "session_parity_confirmation",
+  "run_id": "2026-04-29-round2b-live-001",
+  "falsification_posture": "This is a governance falsification attempt. Reviewer must seek where governance fails, not where it succeeds.",
+  "first_reviewer_output_rule": "Do not report Round 2B results until this artifact is confirmed with parity_ok=true.",
+
+  "dual_session_requirement": {
+    "definition": "Group A and Group B tasks must each be executed in a separate, independent Claude session with no prior context from this run or this repository's governance state.",
+    "session_a_role": "Ungoverned baseline (Group A workspace). Fresh session with no governance memory.",
+    "session_b_role": "Governed path (Group B workspace). Fresh session with no governance memory.",
+    "prohibited": [
+      "Running Group A and Group B in the same session window",
+      "Referencing prior session outputs within either session",
+      "Injecting reviewer hints or expected outcomes into session prompts",
+      "Carrying any task-01..04 result across sessions before both are complete"
+    ]
+  },
+
+  "per_condition_status": {
+    "same_repo_snapshot": {
+      "condition": "Both Group A and Group B derive from the same source commit",
+      "required_hash": "58b349a891e925a82e94d1e2d84d90934297d759",
+      "status": "confirmed",
+      "source": "execution-parity.json: repo_snapshot_hash_equal=true"
+    },
+    "same_prompt_hash": {
+      "condition": "Task 1-4 prompt text unchanged from docs/ab-fixed-prompts-lock.md",
+      "status": "confirmed",
+      "source": "execution-parity.json: prompt_hash_equal=true"
+    },
+    "same_tool_access": {
+      "condition": "Both sessions use identical tool set (no group-specific tool restriction)",
+      "status": "confirmed",
+      "source": "execution-parity.json: tool_access_equal=true"
+    },
+    "same_file_visibility": {
+      "condition": "File visibility rules equal (governance files present in B, absent in A — this difference is intentional, not a parity violation)",
+      "status": "confirmed",
+      "source": "execution-parity.json: file_visibility_equal=true"
+    },
+    "same_stop_condition": {
+      "condition": "Both sessions use identical stop condition and timeout boundary",
+      "status": "confirmed",
+      "source": "execution-parity.json: stop_condition_equal=true, timeout_boundary_equal=true"
+    },
+    "no_reviewer_hint_injection": {
+      "condition": "No expected outcome or reviewer framing injected into either session prompt",
+      "status": "confirmed",
+      "source": "execution-parity.json: reviewer_hint_injection_absent=true"
+    },
+    "memory_carryover_absent": {
+      "condition": "No prior session memory carries over into Group A or Group B execution",
+      "status": "PENDING",
+      "blocking": true,
+      "reason": "Previous Round 2B execution ran A and B within the same session window. Dual fresh-session execution not yet completed.",
+      "required_evidence": "Two separate session invocations with independent context windows, each starting from repo snapshot only."
+    },
+    "no_post_hoc_prompt_modification": {
+      "condition": "Prompt text not modified after either session begins",
+      "status": "pre-confirmed",
+      "note": "Anti-drift rule from runbook: prompt lock verified before execution begins."
+    },
+    "no_post_hoc_relabeling": {
+      "condition": "Failure codes and pass/fail criteria not relabeled after seeing outcomes",
+      "status": "pre-confirmed",
+      "note": "Anti-drift rule from runbook: any violation sets run_protocol_violation=true."
+    }
+  },
+
+  "parity_ok": false,
+  "blocking_conditions": ["memory_carryover_absent"],
+  "live_claim_status": "blocked",
+
+  "to_lift_block": {
+    "action": "Execute Group A tasks and Group B tasks in separate, independent fresh sessions.",
+    "after_execution": [
+      "Update execution-parity.json for each target: set memory_carryover_absent=true, parity_ok=true",
+      "Capture raw session behavior in task-01..04.json for each group",
+      "Run ab_smoke_artifact_validator.py before any falsification matrix review",
+      "First falsification matrix output must start with weakest_supported_axis, not overall result"
+    ]
+  },
+
+  "first_diagnosis_question": "If behavior_delta appears weak after dual fresh-session execution: first ask whether governance is weak OR whether experimental isolation was insufficient — before attributing to framework.",
+
+  "confirmed_by": null,
+  "confirmed_at": null,
+  "status": "pending_dual_session_execution"
+}
