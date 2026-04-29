@@ -1,0 +1,7 @@
+{
+  "ok": true,
+  "run_repo_root": "artifacts\\ab-smoke\\2026-04-29-round1-smoke-001\\cpp-userspace-contract",
+  "finding_count": 0,
+  "findings": [],
+  "claim_boundary": "schema validation confirms structural completeness only"
+}
