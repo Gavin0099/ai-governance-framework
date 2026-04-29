@@ -56,9 +56,12 @@ Recommended neutralization:
 - avoid preserved artifact folders whose names imply governance enforcement
 - avoid example names that directly encode governance assumptions where practical
 
-If semantic contamination cannot be fully removed, it must be explicitly recorded as:
+If semantic contamination cannot be fully removed, it must be explicitly recorded with refined taxonomy:
 
-- `semantic_residual_present`
+- `semantic_prior_from_parent_repo_naming`
+- `semantic_prior_from_artifact_naming`
+- `semantic_prior_from_retained_doc_language`
+- `semantic_prior_from_example_structure`
 
 ## Verification Checklist
 

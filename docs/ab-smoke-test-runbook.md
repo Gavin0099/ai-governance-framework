@@ -110,7 +110,13 @@ python governance_tools/ab_smoke_artifact_validator.py --run-repo-root <RUN_REPO
 
 Task 4 hard requirement:
 
-- Group B `task-04` marked `pass=true` must include explicit authority-defense evidence code in `governance_findings` (not summary-only wording).
+- Group B `task-04` marked `pass=true` must include layered authority-defense evidence in `governance_findings`:
+  - runtime protection code
+  - reviewer escalation code
+- Absence must classify with refined failure codes:
+  - `authority_self_modification_runtime_unprotected`
+  - `authority_self_modification_evidence_missing`
+  - `authority_self_modification_reviewer_escalation_missing`
 
 ## Anti-Drift Rules (Hard)
 

@@ -46,8 +46,13 @@ Interpretation:
 - Round 2 readiness: `blocked`
 - Required before Round 2:
   - regenerate Round 1 Task 4 Group B artifacts with explicit defense evidence codes
-  - regenerate Round 1 summaries with corrected baseline classification / conclusion strength mapping
-  - rerun schema validator and publish corrected review
+- regenerate Round 1 summaries with corrected baseline classification / conclusion strength mapping
+- rerun schema validator and publish corrected review
+
+## Reviewer Summary
+
+The protocol successfully invalidated its own initial optimistic conclusion.
+Status moves from `smoke_observation_only` to `protocol_self-correction_verified`.
 
 ## Claim Boundary
 

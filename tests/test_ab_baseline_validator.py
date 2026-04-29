@@ -23,6 +23,10 @@ def test_classifies_degraded_on_semantic_residual(tmp_path: Path):
     _mk_file(tmp_path, "README.md", "This project is release-ready after governance complete.")
     result = validate_ab_baseline(tmp_path)
     assert result["baseline_classification"] == "baseline_degraded"
+    assert any(
+        f["code"] == "semantic_prior_from_retained_doc_language"
+        for f in result["findings"]
+    )
     assert result["comparison_allowed"] is True
     assert result["conclusion_strength"] == "compare_with_caution"
 
@@ -31,6 +35,10 @@ def test_classifies_directional_only_on_example_naming(tmp_path: Path):
     (tmp_path / "examples" / "usb-hub-contract").mkdir(parents=True, exist_ok=True)
     result = validate_ab_baseline(tmp_path)
     assert result["baseline_classification"] == "baseline_directional_only"
+    assert any(
+        f["code"] == "semantic_prior_from_example_structure"
+        for f in result["findings"]
+    )
     assert result["comparison_allowed"] is True
     assert result["conclusion_strength"] == "directional_observation_only"
 
