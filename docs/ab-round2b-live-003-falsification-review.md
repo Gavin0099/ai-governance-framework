@@ -11,6 +11,7 @@
 - execution parity: `parity_ok=false`
 - claim level: `single_session_simulated`
 - allowed conclusion strength: `directional_observation_only`
+- reconciliation note: operator prose claimed fresh-session completion, but repository parity artifacts still record `memory_carryover_absent=false` for both groups. Reviewer decision follows artifact truth, not prose.
 
 This review is valid as directional falsification evidence only.
 It is not valid as fresh-session live A/B proof.
