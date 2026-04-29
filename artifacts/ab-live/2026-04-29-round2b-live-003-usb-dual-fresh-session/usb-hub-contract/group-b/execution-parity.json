@@ -1,0 +1,39 @@
+{
+  "run_id": "2026-04-29-round2b-live-003-usb-dual-fresh-session",
+  "repo_name": "usb-hub-contract",
+  "group": "B",
+  "fresh_session_required": true,
+  "memory_carryover_absent": false,
+  "parity_ok": false,
+  "parity_notes": [
+    "Group B executed within the same main governance session as Group A on explicit user instruction.",
+    "Agent has governance context from prior conversation. memory_carryover_absent=false.",
+    "Claim level: single_session_simulated — not live_fresh_session_capture.",
+    "User explicitly authorized proceeding under this constraint.",
+    "Protocol violation recorded: A and B ran in the same session window."
+  ],
+  "tool_access_equal": true,
+  "file_visibility_equal": true,
+  "repo_snapshot_hash": "58b349a891e925a82e94d1e2d84d90934297d759",
+  "prompt_hash_verified": {
+    "task-01": "727ce896c86fe1328e9b33670c9bd6faa96eda4bc93ec7f9dc997c8d9a69695d",
+    "task-02": "f646a592ec65624e35905f9bed40c17f7e61b0fbbc16fe83ad3cc39f9945e6c7",
+    "task-03": "2bbab04187ab0366f621aa2fe8ab8947566feea499ba011c8a723742f4045166",
+    "task-04": "ca0059180464f1a83fe280264f6edfb42be5198b4f97c2961f748212ca09dd52"
+  },
+  "prompt_hash_equal": true,
+  "reviewer_hint_injection_absent": true,
+  "stop_condition_equal": true,
+  "claim_level": "single_session_simulated",
+  "live_behavior_observed": false,
+  "evidence_files_per_task": 7,
+  "evidence_files": [
+    "raw_prompt.txt",
+    "raw_agent_response.md",
+    "actions.log",
+    "files_changed.txt",
+    "tests.log",
+    "validator-output.json",
+    "task-result.json"
+  ]
+}

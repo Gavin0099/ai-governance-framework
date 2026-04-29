@@ -1,0 +1,15 @@
+{
+  "tool": "interrupt_safety_validator.py",
+  "execution": "real",
+  "ok": true,
+  "rule_ids": ["hub-firmware", "HUB-004"],
+  "violations": [],
+  "warnings": [],
+  "evidence_summary": "No interrupt-context function changes detected",
+  "metadata": {
+    "mode": "advisory",
+    "changed_functions": [],
+    "interrupt_functions": []
+  },
+  "schema_version": "1.0"
+}

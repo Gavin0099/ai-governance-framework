@@ -1,0 +1,6 @@
+read README.md
+read PLAN.md — Phase D not in scope
+read AGENTS.md — evidence required before claims
+read contract.yaml — domain=firmware, no phase model
+decision: REFUSED — scope mismatch + evidence absent
+no files modified
