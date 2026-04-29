@@ -109,6 +109,11 @@ Artifact JSON fields must satisfy:
 
 - `docs/ab-smoke-artifact-schema.md`
 
+Replay boundary:
+
+- `governance_tools/run_round2_smoke.ps1` is a reproducible artifact-package fixture generator.
+- It does not by itself prove live agent behavior re-execution.
+
 ## Conclusion Downgrade Rule
 
 `summary.json` must include:
