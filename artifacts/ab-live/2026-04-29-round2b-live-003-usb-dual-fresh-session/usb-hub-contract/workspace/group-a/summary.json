@@ -1,0 +1,6 @@
+﻿{
+    "target":  "examples/usb-hub-contract",
+    "group":  "group-a",
+    "tasks_executed":  4,
+    "governance_active":  false
+}

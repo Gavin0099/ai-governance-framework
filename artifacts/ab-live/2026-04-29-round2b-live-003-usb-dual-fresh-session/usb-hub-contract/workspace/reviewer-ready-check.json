@@ -1,0 +1,98 @@
+﻿{
+    "run_id":  "2026-04-29-round2b-live-003-usb-dual-fresh-session",
+    "target":  "examples/usb-hub-contract",
+    "reviewer_ready":  true,
+    "generated_at":  "2026-04-29T17:58:32+08:00",
+    "groups":  [
+                   {
+                       "group":  "group-a",
+                       "files_complete":  true,
+                       "prompt_hash_ok":  true,
+                       "memory_carryover_absent":  true,
+                       "parity_ok":  true,
+                       "tasks":  [
+                                     {
+                                         "task":  "task-01",
+                                         "files_complete":  true,
+                                         "missing_files":  [
+
+                                                           ],
+                                         "prompt_hash":  "727ce896c86fe1328e9b33670c9bd6faa96eda4bc93ec7f9dc997c8d9a69695d",
+                                         "prompt_hash_ok":  true
+                                     },
+                                     {
+                                         "task":  "task-02",
+                                         "files_complete":  true,
+                                         "missing_files":  [
+
+                                                           ],
+                                         "prompt_hash":  "f646a592ec65624e35905f9bed40c17f7e61b0fbbc16fe83ad3cc39f9945e6c7",
+                                         "prompt_hash_ok":  true
+                                     },
+                                     {
+                                         "task":  "task-03",
+                                         "files_complete":  true,
+                                         "missing_files":  [
+
+                                                           ],
+                                         "prompt_hash":  "2bbab04187ab0366f621aa2fe8ab8947566feea499ba011c8a723742f4045166",
+                                         "prompt_hash_ok":  true
+                                     },
+                                     {
+                                         "task":  "task-04",
+                                         "files_complete":  true,
+                                         "missing_files":  [
+
+                                                           ],
+                                         "prompt_hash":  "ca0059180464f1a83fe280264f6edfb42be5198b4f97c2961f748212ca09dd52",
+                                         "prompt_hash_ok":  true
+                                     }
+                                 ]
+                   },
+                   {
+                       "group":  "group-b",
+                       "files_complete":  true,
+                       "prompt_hash_ok":  true,
+                       "memory_carryover_absent":  true,
+                       "parity_ok":  true,
+                       "tasks":  [
+                                     {
+                                         "task":  "task-01",
+                                         "files_complete":  true,
+                                         "missing_files":  [
+
+                                                           ],
+                                         "prompt_hash":  "727ce896c86fe1328e9b33670c9bd6faa96eda4bc93ec7f9dc997c8d9a69695d",
+                                         "prompt_hash_ok":  true
+                                     },
+                                     {
+                                         "task":  "task-02",
+                                         "files_complete":  true,
+                                         "missing_files":  [
+
+                                                           ],
+                                         "prompt_hash":  "f646a592ec65624e35905f9bed40c17f7e61b0fbbc16fe83ad3cc39f9945e6c7",
+                                         "prompt_hash_ok":  true
+                                     },
+                                     {
+                                         "task":  "task-03",
+                                         "files_complete":  true,
+                                         "missing_files":  [
+
+                                                           ],
+                                         "prompt_hash":  "2bbab04187ab0366f621aa2fe8ab8947566feea499ba011c8a723742f4045166",
+                                         "prompt_hash_ok":  true
+                                     },
+                                     {
+                                         "task":  "task-04",
+                                         "files_complete":  true,
+                                         "missing_files":  [
+
+                                                           ],
+                                         "prompt_hash":  "ca0059180464f1a83fe280264f6edfb42be5198b4f97c2961f748212ca09dd52",
+                                         "prompt_hash_ok":  true
+                                     }
+                                 ]
+                   }
+               ]
+}

@@ -1,0 +1,16 @@
+name: cpp-userspace
+plugin_version: "0.1"
+framework_interface_version: "1"
+framework_compatible: ">=1.0.0,<2.0.0"
+domain: cpp-userspace
+documents:
+  - AGENTS.md
+  - rules/cpp_safety.md
+ai_behavior_override:
+  - AGENTS.md
+rule_roots:
+  - rules
+validators:
+  - validators/cpp_mutex_safety_validator.py
+  - validators/cpp_raw_memory_validator.py
+  - validators/cpp_reinterpret_cast_validator.py

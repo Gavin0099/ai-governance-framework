@@ -1,0 +1,997 @@
+3d8023b | 2026-03-05 | feat: Initial commit - AI Governance Framework v1.0.0
+8163c8c | 2026-03-05 | stop tracking DATABASE_SERVICE_IMPL.md and update gitignore"`
+e846c9f | 2026-03-05 | fix: patch governance gaps found during project analysis
+fd52531 | 2026-03-05 | feat: add 04_review_log.md and sync all docs
+16fe252 | 2026-03-05 | feat: B1 Governance Contract Validator (Phase B Sprint 1)
+3cfe440 | 2026-03-05 | feat: B2 Plan Freshness + machine-readable state + Agent Identity
+f1e7c8c | 2026-03-05 | docs: sync README.md with B2 + state generator + agent identity
+681c82b | 2026-03-05 | fix(B3): memory_janitor copy+pointer+manifest — fix BUG-001
+b359733 | 2026-03-05 | docs(B3): sync README.md with memory_janitor copy+pointer+manifest
+a05cd1e | 2026-03-05 | feat(B4): examples/todo-app-demo + Phase B Gate complete
+55b172d | 2026-03-05 | fix(readme): identity drift + version badge + enforcement disclaimer
+c54a838 | 2026-03-05 | feat(C4): Git hooks — PLAN.md CRITICAL blocks commit
+60005bd | 2026-03-05 | feat(C2): memory_janitor unit tests — 47 tests, 71% coverage
+f72eb09 | 2026-03-05 | feat(C1): memory_janitor --plan supports --format json
+d5139c5 | 2026-03-05 | docs(plan): mark C1+C2 done, update debt tracker + change history
+365ebc3 | 2026-03-05 | feat(C3): linear_integrator — rate limit retry, sensitive guard, JSON output
+8e21c01 | 2026-03-05 | docs(plan): Phase C Gate complete — all C1-C4 done
+7dc0b8a | 2026-03-06 | docs(readme): add CI/CD integration section — GitHub Actions + GitLab CI
+2b5d35c | 2026-03-06 | fix(plan): P0 — current phase C→D, AI rule Phase B→D, BUG-002 closed
+dc8a703 | 2026-03-06 | feat(D2): GitHub Actions + GitLab CI actual YAML config files
+2459d11 | 2026-03-06 | feat(D3): Notion integrator — notion_integrator.py + strategy doc
+bd5360a | 2026-03-06 | fix(ci): resolve pipe+heredoc stdin conflict in CI scripts
+c69e690 | 2026-03-09 | fix(docs+tests): P0 PLAN.md consistency, P1 tests+README, P2 broken link
+9e17a42 | 2026-03-09 | docs(maintenance): update PLAN.md+README.md to reflect Phase A-D completion
+2793fdb | 2026-03-09 | fix(governance): address state consistency + verifiable gates + honest limits
+e95778f | 2026-03-09 | docs(readme): add 4 AI structural problems table + system architecture diagram
+36bc4d6 | 2026-03-09 | feat(examples): add chaos-demo + sharpen README first screen
+41aaf6e | 2026-03-09 | docs(chaos-demo): sharpen architecture violation diff + add attention decay note
+301522d | 2026-03-09 | feat(starter-pack): add 3-file minimum viable governance pack
+8b7ff1f | 2026-03-09 | docs(readme): add starter-pack entry points and project structure
+22dee72 | 2026-03-09 | feat(starter-pack): add demo.md + pre-built memory/01_active_task.md
+68fa77d | 2026-03-10 | feat(starter-pack): add multi-tool adapters (Claude/Gemini/Copilot)
+94c0870 | 2026-03-12 | Add multi-harness runtime governance layer
+be7714a | 2026-03-12 | Add build-boundary governance rules
+9e61e49 | 2026-03-12 | Add runtime lifecycle and cpp rule pack
+2612142 | 2026-03-12 | Refine runtime governance README overview
+c1424eb | 2026-03-12 | Rewrite README in clean UTF-8
+18ca63c | 2026-03-13 | Add runtime enforcement and governance auditor
+451f508 | 2026-03-13 | Fix runtime enforcement CI pytest install
+3e3f2b3 | 2026-03-13 | Add failure-path runtime validation
+7b4aaf4 | 2026-03-13 | Add typed rule pack categories
+23cc366 | 2026-03-13 | Add rule pack suggester
+2097d93 | 2026-03-13 | Strengthen refactor evidence enforcement
+50b2ea2 | 2026-03-13 | Add failure completeness validation
+21b939f | 2026-03-13 | Add public API diff checker
+078c716 | 2026-03-13 | Add driver governance and advisory state suggestions
+c834672 | 2026-03-13 | Add SARIF evidence ingestion
+e3fbbcc | 2026-03-13 | Improve runtime suggestions and audit evidence
+c0e0f76 | 2026-03-13 | Add advisory pre-task suggestion warnings
+00e2f1f | 2026-03-13 | Add suggested rules preview
+e4781d4 | 2026-03-13 | Print suggested rules preview in pre-task output
+bcf1d90 | 2026-03-13 | Add human evidence summary for post-task checks
+6777154 | 2026-03-13 | Add architecture impact estimator
+fba204a | 2026-03-13 | Enhance architecture impact reporting
+d3a079d | 2026-03-13 | Embed architecture impact previews in runtime flow
+0dad4d1 | 2026-03-13 | Record architecture impact in audit trail
+0b84320 | 2026-03-13 | Add human output for architecture impact estimation
+f0be338 | 2026-03-13 | Add proposal guidance to runtime suggestions
+7ec7a95 | 2026-03-13 | Add change proposal builder
+fc70ad3 | 2026-03-13 | Add agent and skill governance layer
+c1e029a | 2026-03-13 | Add advisory skill and agent suggestions
+25f1203 | 2026-03-13 | Add session start governance context
+482ea04 | 2026-03-13 | Add shared session-start runtime flow
+2b73979 | 2026-03-13 | Extend adapter flow for session start
+5fa9c59 | 2026-03-13 | Expand session-start smoke coverage
+ea05c59 | 2026-03-13 | Refresh governance status docs
+af78a22 | 2026-03-13 | Embed change proposals in session start
+755b8d2 | 2026-03-13 | Refine proposal and session handoff output
+b41c107 | 2026-03-13 | Expose handoff summary in session-start smoke
+a52cbe6 | 2026-03-13 | Persist session-start smoke handoff artifacts
+6323a26 | 2026-03-13 | Upload session-start smoke artifacts in CI
+7ad2846 | 2026-03-13 | Add proposal summaries to startup context
+97c93e9 | 2026-03-13 | Record proposal summaries in session audit
+be266a6 | 2026-03-13 | Add change control summary builder
+71189ee | 2026-03-13 | Derive change control summaries from smoke artifacts
+cf47b45 | 2026-03-13 | Support smoke envelopes in change control summary
+28572b1 | 2026-03-13 | Index change control smoke artifacts
+4595f53 | 2026-03-13 | Refresh status docs for change control artifacts
+c3984e1 | 2026-03-13 | Refine reviewer-facing change control summary
+737597f | 2026-03-13 | Improve change control artifact index
+ef3ba4c | 2026-03-13 | Fix session-start smoke envelope rendering
+bb3fc64 | 2026-03-13 | Record runtime governance progress in memory
+f82faec | 2026-03-13 | Summarize change control index entries
+2e88e44 | 2026-03-13 | Prioritize change control review order
+e8783a7 | 2026-03-14 | docs: record usb hub integration plan and workflow rule
+4372c45 | 2026-03-14 | docs: record local baseline validation blocker
+ac0be41 | 2026-03-14 | feat: add domain contract discovery seam
+ad38e5d | 2026-03-14 | feat: add advisory domain validator runtime
+3fc9368 | 2026-03-14 | feat: deepen semantic verification and firmware payloads
+3c1159d | 2026-03-14 | feat: route firmware validators from patch evidence
+cc03251 | 2026-03-14 | feat: support diff-file firmware evidence
+851a981 | 2026-03-14 | test: align architecture impact expectations
+42a54eb | 2026-03-14 | docs: add cross-domain governance overview
+9b4cc40 | 2026-03-14 | fix: ignore contract scaffolding in rule suggestions
+db1fbc6 | 2026-03-14 | feat: add contract auto-discovery resolver
+2bdda39 | 2026-03-14 | feat: include contract resolution in change summaries
+e52d480 | 2026-03-14 | feat: surface contract context in change index
+88f5cea | 2026-03-14 | feat: carry contract metadata into session artifacts
+b7bf02a | 2026-03-14 | docs: document contract metadata audit chain
+a4a2210 | 2026-03-14 | feat: show contract context in session end output
+38f30c1 | 2026-03-14 | feat: label contract in review summary line
+ab8367b | 2026-03-14 | feat: prioritize high-risk domains in change index
+7d027f4 | 2026-03-14 | refactor: centralize domain governance metadata
+d09576c | 2026-03-14 | refactor: share contract context extraction
+b8244e3 | 2026-03-14 | feat: add domain risk tier metadata
+8945000 | 2026-03-14 | docs: describe multi-domain governance metadata
+01b24b8 | 2026-03-14 | feat: add reviewer-first runtime summaries
+b919d22 | 2026-03-14 | refactor: share runtime human summary helpers
+2291dec | 2026-03-14 | docs: describe reviewer-first runtime output
+7c9ea79 | 2026-03-14 | docs: record EDA python governance fit
+df9ed52 | 2026-03-14 | feat: stabilize cross-repo governance hooks
+23600f5 | 2026-03-14 | feat: add hook installation validator
+34b569b | 2026-03-14 | feat: auto-verify installed governance hooks
+1f23083 | 2026-03-14 | feat: add external repo readiness check
+3a5e691 | 2026-03-14 | docs: translate README to English
+d001bc6 | 2026-03-14 | feat: add external repo onboarding flow
+e8bdbe5 | 2026-03-15 | feat: add governance smoke to onboarding
+af6212e | 2026-03-15 | feat: emit onboarding reports for external repos
+da1513d | 2026-03-15 | feat: archive onboarding report history
+1290664 | 2026-03-15 | feat: index onboarding state across repos
+d5a810b | 2026-03-15 | feat: surface external onboarding in auditor
+81bde3d | 2026-03-15 | feat: highlight top onboarding issues
+1445461 | 2026-03-15 | feat: suggest next steps for onboarding issues
+187f65e | 2026-03-15 | docs: sync auditor triage progress
+37ed791 | 2026-03-15 | fix: restore direct cli entrypoints and quickstart docs
+3f26309 | 2026-03-15 | feat: add executable quickstart smoke path
+ae9dfee | 2026-03-15 | ci: install documented dependencies in workflow
+8223712 | 2026-03-15 | feat: add example readiness inventory
+183e70f | 2026-03-15 | ci: verify runnable examples more strictly
+4823abb | 2026-03-15 | docs: add alpha release readiness checks
+3ca17e1 | 2026-03-15 | feat: add release-aware governance auditor
+ca92944 | 2026-03-15 | chore: run governance auditor in phase gates
+683b95e | 2026-03-15 | feat: unify governance tool summary output
+fa7db3a | 2026-03-15 | feat: add trust signal overview command
+6e29c03 | 2026-03-15 | docs: add alpha release checklist
+9c48838 | 2026-03-15 | ci: publish trust signal overview artifacts
+353ab9d | 2026-03-15 | feat: add markdown trust signal dashboard
+90d72d5 | 2026-03-15 | docs: add stable trust signal dashboard
+2c84e84 | 2026-03-15 | docs: add status index for trust signals
+225c6e8 | 2026-03-15 | feat: add trust signal snapshot publisher
+db1a0ec | 2026-03-15 | feat: publish trust signal status pages
+083873e | 2026-03-15 | feat: add trust signal publication manifests
+664d9e2 | 2026-03-15 | feat: track published trust signal history
+de0217b | 2026-03-15 | feat: add trust signal publication index
+7e7d7de | 2026-03-15 | feat: add trust signal publication reader
+fc0cdf2 | 2026-03-15 | feat: support ic verification governance contracts
+aca32c8 | 2026-03-15 | feat: enforce domain validator hard-stop rules
+ac35e92 | 2026-03-15 | docs: record ic verification enforcement status
+606ace2 | 2026-03-15 | docs: record usb hub enforcement status
+f9f86c2 | 2026-03-15 | feat: add external contract policy index
+8857ede | 2026-03-15 | feat: surface external contract policy in trust signals
+b74b1e2 | 2026-03-15 | feat: enrich trust signal publication summaries
+ce6e8f6 | 2026-03-15 | feat: publish domain enforcement status pages
+4b80724 | 2026-03-15 | feat: add docs status publishing mode
+754e151 | 2026-03-15 | feat: add docs status publication reader path
+a3e588d | 2026-03-15 | feat: add generated status landing page
+b168f03 | 2026-03-15 | chore: tighten generated status docs links
+7854001 | 2026-03-15 | chore: align alpha docs with generated status flow
+343424c | 2026-03-15 | docs: add github release draft for alpha
+6333cea | 2026-03-15 | docs: add alpha publish checklist
+5e8caef | 2026-03-15 | feat: add release package summary tool
+533d8df | 2026-03-15 | feat: add release package snapshot bundle
+62b73da | 2026-03-15 | feat: add release package reader flow
+0f714aa | 2026-03-15 | feat: add generated release package landing path
+92b6a6f | 2026-03-15 | feat: add release package publication reader
+1f48a31 | 2026-03-15 | chore: publish release package artifacts in ci
+5b2788d | 2026-03-15 | docs: add stable release index
+261b9bc | 2026-03-15 | feat: add release surface overview
+6316619 | 2026-03-15 | fix: default trust signal publication root
+f99bcfb | 2026-03-15 | feat: publish release surface artifacts
+e1414d0 | 2026-03-15 | feat: add reviewer handoff summary
+f994ef1 | 2026-03-15 | docs: add reviewer handoff status page
+f6df19f | 2026-03-15 | feat: add reviewer handoff snapshot bundle
+595b35d | 2026-03-15 | feat: add reviewer handoff publication reader
+42c051c | 2026-03-15 | feat: publish reviewer handoff status bundle
+f35b986 | 2026-03-15 | feat: add reviewer handoff docs-status path
+bdc793d | 2026-03-15 | feat: make runtime smoke contract-aware
+695a03f | 2026-03-15 | feat: forward contract overrides in runtime wrapper
+40b4317 | 2026-03-15 | chore: gate contract-aware runtime wrapper smoke
+927b6b8 | 2026-03-15 | feat: make dispatcher contract-aware
+e33e8da | 2026-03-15 | feat: infer runtime paths from contract roots
+ce01e48 | 2026-03-15 | feat: support file-based runtime post-task replay
+9f2c64b | 2026-03-15 | feat: replay compliant post-task fixtures in onboarding smoke
+9c51e14 | 2026-03-15 | feat: include external onboarding in trust overview
+7157aeb | 2026-03-15 | docs: add four-repo integration progress memo
+3d8e59d | 2026-03-15 | docs: add competitive landscape memo
+548c10c | 2026-03-15 | docs: add comparison and differentiation section
+b62e979 | 2026-03-15 | docs: soften competitive comparison claims
+677b3ce | 2026-03-15 | docs: expand competitive landscape references
+4cc2146 | 2026-03-15 | docs: clarify interception and workflow scope
+a2945a3 | 2026-03-15 | feat: require error-path evidence for refactor governance
+fd958aa | 2026-03-16 | feat: deepen csharp public api diff normalization
+a907745 | 2026-03-16 | chore: add workspace bootstrap and generated artifacts
+50931d4 | 2026-03-16 | Restore blocking public API diff compatibility
+2bf55d4 | 2026-03-16 | Use shared human summary in change control
+1f380c3 | 2026-03-16 | Improve change control summaries and onboarding
+8c56437 | 2026-03-16 | Fix encoding bug in smoke test; add C++ server code review addendum
+a76d3a4 | 2026-03-16 | Move 02_workflow.md from governance/ to memory/
+7e6fb97 | 2026-03-16 | Restructure Quick Start: slim to 1 command + Core Workflow + Tool Reference tables
+11298f6 | 2026-03-17 | Fix CONTRIBUTING.md username; add validation status and alpha gate
+8dd8354 | 2026-03-17 | Add violation triage schema, CI gate, and 93 tests
+6657b1e | 2026-03-18 | Add csharp-arch-contract example with ARCH_DOMAIN_PINVOKE validator
+5dbd927 | 2026-03-18 | Add nextjs-byok-contract example (BYOK + rate-limit governance)
+68da446 | 2026-03-18 | Add Copilot + Codex agent integration to nextjs-byok-contract
+83b2de3 | 2026-03-18 | Add cpp-userspace-contract: 3 validators + 6 fixtures + 47 tests
+bb6beb6 | 2026-03-18 | cpp-userspace-contract: add Copilot/Codex agent integration + header format
+c975f42 | 2026-03-18 | cpp-userspace-contract: add RISK field + Risk Gate Policy (L1/L2/L3)
+9c2dfb6 | 2026-03-19 | feat: add pre-exploration gate and external tool registry to governance
+946ad32 | 2026-03-19 | Add external repo framework version audit
+ffde925 | 2026-03-19 | Add documentation drift checks
+8994a5e | 2026-03-20 | Revise governance workflow and baseline policy
+4f80218 | 2026-03-20 | Improve external onboarding governance tooling
+c71e0c1 | 2026-03-20 | Add governance runtime v2.6 decision model draft
+f356569 | 2026-03-20 | Reduce governance friction and version validator payloads
+b26e41b | 2026-03-20 | Pass contract path into validator runtime envelope
+5277589 | 2026-03-20 | Emit minimal runtime verdict and trace artifacts
+f8346cb | 2026-03-20 | Define initial runtime failure-mode test matrix
+b941bed | 2026-03-20 | Classify missing required runtime evidence
+646ab38 | 2026-03-20 | Classify invalid runtime evidence schema
+8afdbca | 2026-03-20 | Classify runtime policy conflicts
+b7c2004 | 2026-03-20 | Fail closed on runtime artifact emission errors
+c077ce7 | 2026-03-20 | Add minimal determinism replay checks
+cf38285 | 2026-03-20 | Publish runtime failure-mode status update
+9cfc566 | 2026-03-20 | Treat hard stop rules as runtime policy input
+76a9c4e | 2026-03-20 | Align docs with hard stop policy input model
+216202c | 2026-03-20 | Centralize runtime decision model loading
+8e06fbd | 2026-03-20 | Expose runtime decision source in artifacts
+d90d7af | 2026-03-20 | Structure session end reasoning artifacts
+17133a8 | 2026-03-20 | Allow C in governance contract language enum
+4b787c7 | 2026-03-20 | Support external memory schema aliases
+a1fceef | 2026-03-20 | Surface adapter-side governance contract enforcement
+4f9c409 | 2026-03-20 | Expand governance contract scope coverage
+3ea9314 | 2026-03-20 | Clarify governance authority boundaries
+df493e1 | 2026-03-20 | Refresh external onboarding documentation
+1a38869 | 2026-03-20 | Add external project facts intake seam
+d1cbb19 | 2026-03-20 | Surface external project facts in onboarding readiness
+745b84f | 2026-03-20 | Expose external fact artifact paths in readiness
+c62bb7e | 2026-03-20 | Detect external fact drift in readiness
+2f72129 | 2026-03-20 | Make PLAN the sole planning source
+d63baac | 2026-03-20 | Classify missing external fact states
+0955574 | 2026-03-20 | Add external fact remediation hints
+da50ee6 | 2026-03-20 | Add project fact summaries to readiness output
+6391e08 | 2026-03-20 | Show external fact state in onboarding index
+89c9c5c | 2026-03-20 | Surface external fact state in trust signals
+a43a5a8 | 2026-03-20 | Publish external fact states in trust snapshots
+4a1ae31 | 2026-03-20 | Surface external fact states in reviewer handoff
+80400ba | 2026-03-20 | Publish external fact states in reviewer handoff snapshots
+f2e434c | 2026-03-20 | Ignore repo-local test fixture workspaces
+8d40b8f | 2026-03-20 | Ignore root temporary test workspaces
+0144450 | 2026-03-20 | Track Claude workspace metadata
+170726d | 2026-03-21 | Wrap domain validators under DomainValidator interface and harden memory janitor
+6d3de89 | 2026-03-21 | Add domain validator unit tests and multi-validator example contract
+8603ffc | 2026-03-21 | Close BUG-003 and extend state_generator coverage to 78%
+756cce6 | 2026-03-21 | Ignore scratch files and accidental nested repo clone
+622261f | 2026-03-21 | Complete Gate-3: all three integrators reach ≥70% coverage
+c51c958 | 2026-03-21 | Add cross-repo governance baseline distribution system
+e0533e5 | 2026-03-21 | Clean up hot memory — archive bloated active_task
+f926478 | 2026-03-21 | Fix three alignment gaps in baseline distribution system
+72f2942 | 2026-03-21 | Add pytest.ini to exclude nested ai-governance-framework dir from collection
+840c1db | 2026-03-21 | Wire governance_drift_checker into external_repo_readiness
+36ca1a2 | 2026-03-21 | Add --adopt-existing mode and custom plan section detection
+47d7f1e | 2026-03-21 | Separate governance mandate from observed snapshot in plan sections
+6a0e0fa | 2026-03-21 | Self-apply governance baseline to framework repo
+ffa0235 | 2026-03-21 | Fix contract_resolver cwd ambiguity and test isolation
+8288785 | 2026-03-22 | Add contract_no_placeholders and agents_sections_filled drift checks
+8dd45c7 | 2026-03-22 | Surface post-adoption drift check inline in --adopt-existing output
+547c8ef | 2026-03-22 | Add semantic layer comments to baseline.yaml output
+a9b1e01 | 2026-03-22 | Add plan_inventory_current drift check (check #15)
+3fb9992 | 2026-03-22 | Add PLAN.md path discovery and contract_not_framework_copy check
+7eaacfc | 2026-03-22 | Add GOVERNANCE_FRAMEWORK_ROOT env var, freshness threshold override, and checks 13-16
+cd80959 | 2026-03-22 | Add framework root auto-discovery and harden freshness default to 14d
+0d901de | 2026-03-22 | Decouple hooks from readiness gate and improve PLAN.md error messages
+c28de38 | 2026-03-22 | Add Python adopt_governance.py for cross-platform adoption (Windows support)
+cc891f6 | 2026-03-22 | Fix tool inconsistency: drift_checker now fails when AGENTS.base.md is absent
+71fa3d1 | 2026-03-22 | Document adopt_governance.py in README and consolidate v1.1.0 CHANGELOG
+c9d5d28 | 2026-03-22 | Fix P0 adoption friction: Windows hints, empty validators, YAML error messages
+92b6328 | 2026-03-22 | Fix schema visibility: adopt now produces drift ok=True on empty repo
+f2a44d4 | 2026-03-22 | Add Minimum Legal Schema Reference
+f37df8a | 2026-03-22 | Connect minimum-legal-schema.md to onboarding path
+7874924 | 2026-03-22 | Bump version to v1.1.0 and update README to reflect current progress
+8e5a479 | 2026-03-22 | Calibrate README positioning and add Tested Scope section
+d9e9688 | 2026-03-23 | Repair AGENTS.base references during adoption
+3646959 | 2026-03-23 | Seed governance drift CI during adoption
+e580be0 | 2026-03-23 | Document baseline adoption defaults
+2703101 | 2026-03-23 | Clarify AGENTS baseline onboarding prompts
+b1a5b7d | 2026-03-23 | Add adopt guidance for AGENTS placeholders
+7adfe94 | 2026-03-23 | Summarize refresh deltas after baseline updates
+d70ced1 | 2026-03-23 | Add governance token optimization Steps 1-3
+e399341 | 2026-03-23 | feat(step-6): L0 domain gate + adoption packaging + onboarding rule pack fix
+27c0db4 | 2026-03-23 | fix(l0-gate): enforce domain contract skip in pre_task_check; fix audit session_type
+2ca3057 | 2026-03-23 | Add token optimization Steps 4-5 and fix governance drift bugs
+e35f60c | 2026-03-23 | Ship Step 7 output tier separation
+37b2331 | 2026-03-23 | Add Step 7 rebaseline checklist
+aad0e09 | 2026-03-23 | Document Step 7 token rebaseline
+3a62f6b | 2026-03-23 | Harden onboarding audit and Windows output
+d156cac | 2026-03-23 | Add live kernel-driver adapter summary
+47e7267 | 2026-03-23 | Refresh README positioning and remove MIT license
+92fd59a | 2026-03-23 | fix(rule_pack_suggester): read contract.yaml domain and rule_roots for domain-first repos
+9eec189 | 2026-03-24 | feat(L1-migration): output tier stripping + topic-based rule filtering
+03c3d67 | 2026-03-24 | feat(summary-first): skip domain document file I/O when summary exists for L0/L1
+43e1ecb | 2026-03-24 | feat(risk-signal): stateful governance defense layer
+9b5156a | 2026-03-24 | feat(risk-signal): close observability and protective-coverage gaps
+cac6bb9 | 2026-03-24 | feat(risk-signal): runtime enforcement boundary as second signal source
+7f40f1f | 2026-03-25 | Add workflow entry-layer contract
+6195f2e | 2026-03-25 | Harden workflow observation interpretation boundary
+ea10e19 | 2026-03-25 | Add runtime feedback and slim post-task payloads
+6c532e0 | 2026-03-25 | Harden observer against red-team drift
+4324b24 | 2026-03-25 | Harden policy helpers against drift
+aee5340 | 2026-03-25 | Harden boundary against recomposition
+ead27a1 | 2026-03-25 | Add workflow observation checkpoint artifacts
+6607ddc | 2026-03-26 | Record review for workflow observation checkpoint artifacts
+a789e7c | 2026-03-26 | Document submodule workspace boundaries
+19bb088 | 2026-03-26 | Translate README to Chinese
+659493a | 2026-03-26 | Add Chinese technical overview
+3f23e71 | 2026-03-26 | Add architecture challenge response
+adb48e0 | 2026-03-28 | Add v1.1.0 release documents and fix release readiness checks
+a5807ac | 2026-03-29 | Fix 60 test failures after v1.1.0 pull
+39a24b9 | 2026-03-29 | Merge Gavin0099 remote: resolve conflicts, keep Chinese README
+20e22e5 | 2026-03-29 | Fix 4 stale-date test failures after merge
+9648c94 | 2026-03-29 | Update PLAN.md: mark Beta Gate achieved, add E1-E5 next sprint
+7dc5316 | 2026-03-30 | Revert E2, freeze E1-E5, add entry-layer boundary and justification docs
+488d3ac | 2026-03-30 | Codify anti-expansion governance capability
+6c11642 | 2026-03-30 | Wire expansion_boundary_checker into governance_drift_checker (check 17)
+1d050c0 | 2026-03-30 | Add Beta Gate condition 2 test design
+f4119a1 | 2026-03-30 | Add reviewer test pack for Beta Gate condition 2
+4b4da8c | 2026-03-30 | Add R2 reviewer test pack, onboarding friction fixes, and first reviewer run
+aa37067 | 2026-03-30 | Add Route B no-Python onboarding path and R2 reviewer run
+e0bbf8e | 2026-03-30 | Add Route B live run brief for Beta Gate CP5 re-run
+330c61f | 2026-03-30 | Harden Gate infrastructure: failure catalog, override rules, Route B guard
+1476b6c | 2026-03-30 | Add Gate judgment checklist to Route B brief
+f4b9575 | 2026-03-31 | Add Route B simulation evidence
+3e1e7ec | 2026-03-31 | Define decision boundary layer baseline
+513f729 | 2026-03-31 | Add minimal precondition gate slice
+d5cc1d2 | 2026-03-31 | Document first-slice precondition surface
+d52b4d7 | 2026-03-31 | Add minimal decision-boundary example
+6a70b91 | 2026-03-31 | Refine machine-interpretable positioning
+b61e5be | 2026-03-31 | Record DBL first-slice alignment
+950dbbe | 2026-03-31 | Add DBL first-slice validation plan
+abf29d1 | 2026-03-31 | Add insufficiency-like DBL example
+33d1616 | 2026-03-31 | Add DBL reviewer reconstruction kit
+e555795 | 2026-03-31 | Record DBL reviewer dry run
+9bc6675 | 2026-03-31 | Add SpecAuthority as submodule (spec truth prototype)
+3fe0383 | 2026-03-31 | Add DBL reviewer test pack
+102baf9 | 2026-03-31 | Remove SpecAuthority submodule (moved to GitLab, not GitHub)
+de5ca66 | 2026-03-31 | Register gl-hub-vendor-cmd domain in framework (metadata, rule pack, spec-truth rule)
+89b153b | 2026-03-31 | Record external DBL reviewer run
+54abb56 | 2026-03-31 | Add adversarial DBL presence example
+4cbcdad | 2026-03-31 | Record DBL validation progress
+a03e5cc | 2026-03-31 | Add reviewer signal split
+ef34729 | 2026-03-31 | Add reviewer run sheet
+294f6ba | 2026-03-31 | Add beta gate reviewer run brief
+2779902 | 2026-03-31 | Keep reviewer beta gate cold-start
+41b701e | 2026-03-31 | Split human and agent adoption gates
+b0589d8 | 2026-03-31 | Decouple usability from enforceability
+0885394 | 2026-03-31 | Add agent run sheet
+f678edb | 2026-03-31 | Record agent adoption baseline
+e216e39 | 2026-03-31 | Clarify quickstart smoke contract mode
+5ca7464 | 2026-04-01 | Update agent adoption state
+2805aa0 | 2026-04-01 | Add runtime surface manifest slice
+721a89e | 2026-04-01 | Add runtime surface manifest smoke
+24226c5 | 2026-04-01 | Document host-agent memory gap
+bfb862a | 2026-04-01 | Define host-agent memory sync policy
+744d182 | 2026-04-01 | Add memory sync signal slice
+f3c978a | 2026-04-01 | Close consuming repo memory schema gap
+997ae77 | 2026-04-01 | Add Hearth memory schema validation checklist
+d9c9b26 | 2026-04-01 | Add consuming repo adoption checklist
+c6d9422 | 2026-04-01 | Record Hearth memory schema run
+ed6ba49 | 2026-04-01 | Admit DBL pre-task boundary keys
+8db459f | 2026-04-01 | Define execution surface coverage plan
+7762c0f | 2026-04-01 | Refine execution coverage semantics
+7910087 | 2026-04-01 | Add execution coverage first slice
+7c57b6f | 2026-04-01 | Define decision context bridge
+f1096c0 | 2026-04-01 | Attach decision context to session artifacts
+991d791 | 2026-04-01 | Add decision context review surface
+928a73c | 2026-04-02 | Strengthen testing quality guidance
+b0000f5 | 2026-04-02 | Fix 31 test regressions from time-drift and missing memory scaffold
+68314e7 | 2026-04-02 | Define runtime injection layer plan
+a9af544 | 2026-04-02 | Add minimal runtime injection snapshot
+c361317 | 2026-04-02 | Add runtime injection observation mapping
+2babeaf | 2026-04-02 | Add advisory injection observation proxy
+9d50f48 | 2026-04-02 | Define advisory signal taxonomy
+9a9fdee | 2026-04-02 | Define runtime observation phase boundary
+7b513d1 | 2026-04-02 | Define advisory signal producer contract
+6f0dd34 | 2026-04-02 | Render advisory signal semantics
+7741910 | 2026-04-02 | Add post-task advisory rendering
+7e6790d | 2026-04-02 | Define advisory slice boundary
+2141396 | 2026-04-02 | Refresh README positioning
+edaeffe | 2026-04-02 | Localize README positioning
+843d292 | 2026-04-02 | Rewrite README in Chinese
+6c9f0aa | 2026-04-02 | Add memory closeout visibility
+dea37c5 | 2026-04-02 | Add memory closeout validation guide
+8f20881 | 2026-04-02 | Record memory closeout run
+32baf69 | 2026-04-02 | Clarify canonical closeout source
+b2f7fbd | 2026-04-02 | Add external repo framework source audit
+54c07c2 | 2026-04-02 | Surface framework source in onboarding report
+6a1dd09 | 2026-04-02 | Adopt governance markdown pack
+5fa9eb2 | 2026-04-02 | Seed governance rules and contract docs
+921cfdc | 2026-04-05 | Add session closeout contract: session_end_hook, schema, stop hook setup
+8b5db57 | 2026-04-05 | Harden session closeout: four-layer classification with independent failure semantics
+1769adc | 2026-04-05 | Strengthen closeout classification: observable anchors, per_layer_results, readiness definition
+92a32d8 | 2026-04-05 | Add cross-reference, failure_signals, and two-tier memory promotion to session_end_hook
+8ac26b8 | 2026-04-05 | Add closeout readiness spectrum (Level 0-3)
+2af1ea2 | 2026-04-05 | Add readiness level to artifact metadata + four anti-misuse rules to spectrum doc
+2735960 | 2026-04-05 | Add three-phase closeout readiness rollout infrastructure
+052d235 | 2026-04-05 | Separate structural readiness level from activation state
+8e8f795 | 2026-04-05 | Fix activation semantic drift: active\u2192observed + activation_recency
+5ae6a7c | 2026-04-05 | Harden activation semantics: recency heuristic + pending guard + reviewer mapping
+2232c5c | 2026-04-05 | Tighten reviewer mapping: compliant run definition + stale wiring note
+4b77380 | 2026-04-05 | Seal three semantic gaps in reviewer mapping
+48c2d6b | 2026-04-05 | Add authority boundary + wiring checks + usage guard to reviewer mapping
+608be20 | 2026-04-05 | Add activation context guard, liveness gap note, and misinterpretation log
+27856cc | 2026-04-05 | Harden misinterpretation log: severity, resolution, observation window
+fcb35a1 | 2026-04-05 | Lock three governance-of-governance gaps in misinterpretation log
+78172ee | 2026-04-05 | Prevent three long-term drift patterns in misinterpretation log
+f64084b | 2026-04-05 | Add three counter-pressure guards against system over-rigidity
+9aa5916 | 2026-04-05 | Guard against three human shortcuts in governance-of-governance layer
+047a05f | 2026-04-05 | Add three epistemic guards against narrative, bias, and momentum
+a3517e8 | 2026-04-05 | Make correct thinking the default path, not just a requirement
+d32444d | 2026-04-05 | Add anti-ritualization layer: probes, sharpening, and pattern catalog
+4a29575 | 2026-04-05 | Add falsifiability layer + four epistemic guards against shallow correctness
+f4043c6 | 2026-04-05 | Define minimal learning loop: failure must produce documented outcome
+33a615a | 2026-04-05 | Add learning stability: prevent over-correction and oscillation
+3ec8fcd | 2026-04-05 | Sharpen failure attribution: root cause reliability, same-failure taxonomy, signal authority
+2c43971 | 2026-04-05 | Add classification confidence decay, advisory containment rule, and silent degradation signals to learning-stability
+b11f73f | 2026-04-05 | Add decision quality invariants; harden decay threshold, evidence integrity, and behavioral drift
+f4e7d33 | 2026-04-05 | Add governance-mechanism-tiers: map every mechanism to enforceable / diagnostic / deferred
+f3c8a54 | 2026-04-05 | Add learning-governance-test-pack: scenario-based test for commits d32444d–f4e7d33
+9c94fd8 | 2026-04-05 | Fix test pack: score table to 16 scenarios, add manifest header
+ca05e30 | 2026-04-05 | Add adversarial test scenarios; add schema integrity check to conformance pack
+f0a9935 | 2026-04-05 | Add boundary crossing protocol; extend adversarial pack with refusal correctness and detection latency fix
+eaca5f0 | 2026-04-05 | Harden boundary crossing: action selection matrix, deferral decay, invisible zone response; add D.4
+60927c8 | 2026-04-05 | Harden boundary crossing: dimension calibration, deferral evidence-gain, exploration falsifiability, incentive alignment
+ad86d58 | 2026-04-05 | Add three-tier observation model and deviation accumulation rule to boundary crossing protocol
+76c502b | 2026-04-05 | Close pressure→change gap: outcome falsifiability, downstream closure, non-closure accumulation
+a753465 | 2026-04-05 | Add pattern-to-policy binding and closure inflation guard — completing learning closure
+8d735dd | 2026-04-05 | Add protocol self-stability: compaction, rollback, consequence normalization, over-learning guard
+cc81881 | 2026-04-05 | Add governance fitness function, historical inertia / forgetting; complete over-learning enforcement
+3c30d7f | 2026-04-05 | Complete boundary-crossing-protocol: value function and four remaining gaps
+1c50d14 | 2026-04-05 | Address four structural residuals: baseline artifact, severity weighting, lcp expiry, system personality
+e6f73d3 | 2026-04-06 | Add fitness function self-revision trigger and terminal condition statement
+64d8d4a | 2026-04-06 | Add boundary protocol test pack (18 scenarios, Parts A-F)
+6b25fdc | 2026-04-06 | Fix schema integrity failure: manifest claimed 18 scenarios, actual count is 16
+3ec0357 | 2026-04-06 | Apply external reviewer feedback: scenario ID manifest, corrected warning note
+d93a96f | 2026-04-06 | Fix B.1 verdict: opening line contradicted body (said fails 2,3,4; body marks all 4 as Fail)
+95db736 | 2026-04-06 | Add agent-agnostic closeout integration layer
+c4b5175 | 2026-04-07 | Fix post-pull test regressions: README enforcement and stale dates
+1300238 | 2026-04-07 | Admit runtime injection snapshot keys into expansion boundary gate
+c88d50b | 2026-04-07 | Fix post-pull test regressions: contract fixture and pyyaml dependency
+94fbd06 | 2026-04-07 | Strengthen testing quality guidance (TESTING.md v4.2 -> v4.3)
+f735aba | 2026-04-07 | Update PLAN.md to 2026-04-07 sprint state
+fe7f31b | 2026-04-07 | Formalize RIL core invariant, capability model, and injection pitfalls
+e309d9d | 2026-04-07 | Add governance strategy matrix
+6048f9f | 2026-04-07 | Add governance strategy runtime: classification evidence + strategy transition
+2486ad6 | 2026-04-07 | Add governance strategy classification to session runtime outputs
+8a8857f | 2026-04-07 | Add classification evidence semantics: proxy boundaries and semantic inflation guard
+ef2f91f | 2026-04-07 | Fix classification evidence semantics: unknown default + transition tracking
+9351ec3 | 2026-04-07 | Add classification transition semantics: legal transitions + runtime reactions
+bce5fc5 | 2026-04-07 | Add classification reaction policy: verdict escalation + session summary tool
+117af41 | 2026-04-07 | Refine classification reaction: escalation type + summary policy flags
+c0f2578 | 2026-04-07 | Document policy_ok flattening caveat and threshold limitation
+2aa0868 | 2026-04-08 | Land session workflow enhancement
+6f815a5 | 2026-04-08 | Stabilize closeout tests on Windows
+0c06f8e | 2026-04-08 | Add classification governance companion slice
+3da1467 | 2026-04-08 | Rewrite boundary docs in Chinese
+6ef3cc3 | 2026-04-08 | Ignore local generated artifacts
+07713fb | 2026-04-08 | Add closeout audit status surface
+7d24df2 | 2026-04-08 | Rewrite runtime injection docs in Chinese
+ebe5026 | 2026-04-08 | Rewrite runtime semantics docs in Chinese
+1cb1942 | 2026-04-08 | Rewrite status docs in Chinese
+6e9c367 | 2026-04-08 | Rewrite positioning docs in Chinese
+1b4b4fd | 2026-04-08 | Rewrite status surfaces in Chinese
+98f4ae6 | 2026-04-08 | Rewrite release and beta gate docs in Chinese
+f6d6213 | 2026-04-08 | Rewrite beta gate reviewer docs in Chinese
+4cd6d02 | 2026-04-08 | Rewrite remaining release docs in Chinese
+9e4f9ad | 2026-04-08 | Rewrite release entry docs in Chinese
+fb4086c | 2026-04-08 | Rewrite governance core docs in Chinese
+a26d3c7 | 2026-04-08 | Rewrite governance entry docs in Chinese
+02af98f | 2026-04-08 | Rewrite governance core pack docs in Chinese
+f67018d | 2026-04-09 | Rewrite governance plan and rules in Chinese
+4305907 | 2026-04-09 | Rewrite integration and limitations docs in Chinese
+80aacea | 2026-04-09 | Rewrite status entry docs in Chinese
+563b8ff | 2026-04-09 | Rewrite release docs entry layer in Chinese
+9b938fa | 2026-04-09 | Fix GitLab merge test regressions
+99c600f | 2026-04-09 | Rewrite runtime advisory docs in Chinese
+115fa13 | 2026-04-09 | Rewrite closeout docs in Chinese
+206f335 | 2026-04-09 | Rewrite learning and boundary docs in Chinese
+5226503 | 2026-04-09 | Rewrite beta gate run docs in Chinese
+7c1e7d6 | 2026-04-09 | Rewrite core governance theory docs in Chinese
+b7e95ed | 2026-04-09 | Rewrite payload audit and reviewer docs in Chinese
+d987a8e | 2026-04-09 | Rewrite advisory boundary docs in Chinese
+7be8cdf | 2026-04-09 | Rewrite entry layer and classification docs in Chinese
+9926701 | 2026-04-09 | Rewrite governance strategy and schema docs in Chinese
+c8f1241 | 2026-04-09 | Rewrite host memory and adoption docs in Chinese
+2b95074 | 2026-04-09 | Rewrite DBL and onboarding evidence docs in Chinese
+ffc21b4 | 2026-04-09 | Rewrite evidence run docs in Chinese
+604f696 | 2026-04-09 | Rewrite source of truth and runtime docs in Chinese
+0e34777 | 2026-04-09 | Rewrite beta gate failure docs in Chinese
+54abd16 | 2026-04-09 | Rewrite historical reviewer run docs in Chinese
+ad30b80 | 2026-04-09 | Rewrite beta gate pack docs in Chinese
+3fac6c9 | 2026-04-09 | Rewrite reviewer pack entry docs in Chinese
+f6f32f8 | 2026-04-09 | Rewrite DBL reviewer run docs in Chinese
+67959b6 | 2026-04-09 | Rewrite payload audit summary docs in Chinese
+74fe907 | 2026-04-09 | Rewrite overview challenge docs in Chinese
+44c3573 | 2026-04-09 | Rewrite boundary and failure docs in Chinese
+b4ada98 | 2026-04-09 | Rewrite strategy and advisory docs in Chinese
+3ecf956 | 2026-04-09 | Rewrite classification and overview docs in Chinese
+7da782c | 2026-04-09 | Rewrite entry and learning governance docs in Chinese
+337ba6e | 2026-04-09 | Rewrite validation and audit docs in Chinese
+441bc91 | 2026-04-09 | Rewrite readiness and host memory docs in Chinese
+135f44e | 2026-04-09 | Rewrite closeout entry docs in Chinese
+0d1fa68 | 2026-04-09 | Normalize doc titles in Chinese
+db0ae18 | 2026-04-09 | Normalize more high-visibility doc titles
+19a970e | 2026-04-10 | Finalize doc entry cleanup
+23e4211 | 2026-04-10 | Rewrite remaining methodology docs in Chinese
+94d01b5 | 2026-04-10 | Rewrite more high-visibility docs in Chinese
+18dc02f | 2026-04-10 | Rewrite DBL first-slice docs in Chinese
+e26e5dc | 2026-04-10 | Rewrite beta gate failure docs in Chinese
+e88cc2c | 2026-04-10 | Rewrite observation status docs in Chinese
+439aeac | 2026-04-10 | Rewrite last 2 corrupted high-visibility docs in Chinese
+92e5b19 | 2026-04-10 | TESTING.md v4.3 → v4.4: add 5 missing subsections
+6b99b9d | 2026-04-10 | Fill kernel-driver-adapter-summary.md with real KDC domain content
+3e3d25f | 2026-04-10 | Add missing tests for state_generator and notion_integrator (+13 tests)
+7983fba | 2026-04-10 | Fix remaining high-visibility doc corruption
+a581a10 | 2026-04-10 | Repair plan state and add starter pack upgrade
+a02d950 | 2026-04-10 | Recover top-level entry docs
+9d99682 | 2026-04-10 | Recover status entry docs
+8b46ada | 2026-04-10 | Integrate starter pack into adoption surfaces
+af7da4b | 2026-04-10 | Close Phase D sprint: mark all items done, regenerate state yaml
+35d75d2 | 2026-04-10 | E1+E2+E1.5: failure disposition classifier, exclusion registry, seed corpus
+c97de01 | 2026-04-10 | E2+: run_filtered_tests.py enforcement + PLAN Phase E + replay verified
+c81837b | 2026-04-10 | E3-pipeline: connect failure_disposition into governance pipeline (Slice 1/2/3)
+575fcf3 | 2026-04-13 | docs: write 2026-04-13 session daily note
+a075e91 | 2026-04-13 | E4-gate-policy: replace hardcoded gate with explicit GatePolicy layer
+a51448b | 2026-04-13 | E4-gate-policy: replace hardcoded gate with explicit GatePolicy layer
+2e6187f | 2026-04-13 | E5-gate-policy-provenance: repo-local policy discovery + authority provenance
+0f4ffbb | 2026-04-13 | docs: write 2026-04-13 session daily note
+4918be8 | 2026-04-13 | E5-gate-policy-provenance: repo-local policy discovery + authority provenance
+134a7c8 | 2026-04-13 | E6-replay-verification: re-runnable decision-path evidence tool
+3ce14ce | 2026-04-13 | E6-replay-verification: re-runnable decision-path evidence tool
+6f4f874 | 2026-04-13 | E7-canonical-path-audit: session boundary footprint observability
+a317504 | 2026-04-13 | E7-canonical-path-audit: session boundary footprint observability
+2c223dc | 2026-04-13 | E8a-canonical-audit-persistence: append-only signal observability log
+27ff9c4 | 2026-04-13 | E8a-canonical-audit-persistence: append-only signal observability log
+947e75d | 2026-04-13 | E8b: canonical audit trend — sliding-window advisory adoption_risk signal
+321066e | 2026-04-13 | E8b: canonical audit trend — sliding-window advisory adoption_risk signal
+09eae07 | 2026-04-13 | E1a: canonical usage auditability — E7+E8b interpretation layer
+1dcb6e0 | 2026-04-13 | E1a: canonical usage auditability — E7+E8b interpretation layer
+77be905 | 2026-04-13 | docs: observability-chain reviewer entrypoint note
+12a202c | 2026-04-13 | docs: observability-chain reviewer entrypoint note
+2286f0b | 2026-04-13 | docs: strengthen observability-chain reviewer entrypoint (5 corrections)
+9b48e5b | 2026-04-13 | docs: strengthen observability-chain reviewer entrypoint (5 corrections)
+75ff74a | 2026-04-13 | docs: reviewer interpretation guide for E6-E1a signal states
+5e6f6fa | 2026-04-13 | docs: reviewer interpretation guide for E6-E1a signal states
+48fafea | 2026-04-13 | docs: reviewer-interpretation-guide 4 corrections
+108b47e | 2026-04-13 | docs: reviewer-interpretation-guide 4 corrections
+d2579ec | 2026-04-13 | Merge branch 'main' of https://github.com/Gavin0099/ai-governance-framework
+38cdd38 | 2026-04-13 | memory: add governance framework session log for 2026-04-13
+e422e1b | 2026-04-13 | feat(E9a): structural absence opt-out via skip_test_result_check
+edb9740 | 2026-04-13 | docs: add gate policy configuration section to consuming-repo checklist
+4ee3e64 | 2026-04-13 | docs: governance maintenance checklist (P1)
+bfd8c85 | 2026-04-13 | docs: strengthen governance-maintenance-checklist (5 operator gaps)
+e9e028b | 2026-04-13 | docs: document window dilution and hook coverage gap (two distinct biases)
+bb3ec7c | 2026-04-13 | docs: Tier A/B/C hook coverage model + daily note
+39a0937 | 2026-04-13 | docs: add cross-tier comparison warning to hook-coverage-model
+3120855 | 2026-04-13 | docs: adoption test plan for Bookstore-Scraper (Tier A, Python)
+9343a7e | 2026-04-14 | docs: adoption test plan for cli (GLUpdateTool, C++ CMake, green-field)
+1728e07 | 2026-04-14 | docs: Bookstore-Scraper adoption test results (8/8 PASS) + API bug fixes
+e318297 | 2026-04-14 | docs: cli adoption test results (9/9 PASS) + fix pyyaml missing from requirements
+0ed912a | 2026-04-14 | feat(F1): tier-aware closeout contract (F1a+F1b)
+6d49658 | 2026-04-14 | fix: resolve 18 pre-existing test failures (encoding + doc anchors)
+38501d8 | 2026-04-14 | feat(F2+F3): pyyaml config integrity guard + taxonomy signal action contract
+2364ab7 | 2026-04-14 | fix(F2+F3.5): end-to-end propagation proof + observability contract tests
+ce1e38b | 2026-04-14 | feat(F4): taxonomy remediation trace substrate + session_end_hook integration
+d1c03df | 2026-04-14 | feat(F4.5): remediation state transition — update_entry_status()
+b815609 | 2026-04-14 | feat(F4.6): close-path evidence expectation — _check_close_path_evidence()
+e432817 | 2026-04-14 | feat(F5): gate_verdict semantics + operator-facing output labels
+f44611d | 2026-04-14 | docs(F5): gate_verdict is derived, not authoritative — annotate code
+78b8024 | 2026-04-14 | docs: E8a accumulation test procedure + repo recommendations
+d07ed47 | 2026-04-14 | docs(e8a): add first-round findings + operational notes
+961052c | 2026-04-14 | docs(e8a): round 2 — add KDC/SpecAuthority/Enumd + E1b final evaluation
+058a61a | 2026-04-14 | docs(e8a): round 3 — lenovo_isp_tool / Command_Line_Tool / usb_2_0_eep_tool
+727f7be | 2026-04-14 | feat(G1-G4): E8a event-based measurement layer
+d8def45 | 2026-04-14 | docs(G1-G4): tighten conclusion scope in PLAN.md
+db5f20f | 2026-04-14 | feat(E1b-P1): passive observation layer — entropy + degenerate guard
+3e2d4c9 | 2026-04-14 | docs(PLAN.md): mark G5 E1b Phase 1 complete, add Phase 2/3 roadmap
+51b9700 | 2026-04-14 | feat(G6): E1b Phase 2 distribution analysis surface
+dc83abf | 2026-04-14 | feat(G6-v2): session fingerprint + degenerate interpretation + 5-condition gate
+1f0ba22 | 2026-04-14 | docs(G6): clarify design boundaries — fingerprint scope, 0.7 policy value, degenerate interpretation
+fcf54d8 | 2026-04-14 | docs(Phase2.5): fleet reality assessment — corrected diagnosis + strategy options
+c683eb4 | 2026-04-14 | feat(Phase2.5-C+A): dual-layer fleet report + skip_type classification
+74dc6e1 | 2026-04-14 | feat(Phase2.5-hardening): 3 anti-misuse layers + E1b semantic boundary doc
+ca63d23 | 2026-04-14 | feat(Phase2.5-temporal): temporal drift guard + false-positive fix + adoption-dead detection
+cfe1ee0 | 2026-04-14 | feat(Phase2.5-banner): migration-blocked banner when PRE-SKIP-TYPE-ERA
+3915f19 | 2026-04-14 | fix(Phase2.5-banner): wording precision + reason_code in migration_state
+370e325 | 2026-04-14 | doc(E1b): adoption failure detector positioning — fleet diagnostic 2026-04-14
+bea9a03 | 2026-04-14 | feat(E1b-v2): shadow metrics — lifecycle_class + normalized_state_entropy
+4a7f6be | 2026-04-14 | doc(E1b-v2): semantic boundary constraints — lifecycle_class design limits
+a52f56d | 2026-04-14 | doc(SOUL): observability analysis — evaluated, deferred
+a6bc93d | 2026-04-14 | feat(E1b-v2): auto-discover + 29 unit tests for shadow metrics
+b02c266 | 2026-04-14 | docs(E1b): post-schema semantic probe set — precise targets + pass/fail conditions
+207ab56 | 2026-04-15 | docs(ecosystem): formal test taxonomy + meiandraybook post-sync diff record
+1e677af | 2026-04-15 | docs(ecosystem): precision-bound conclusion language for cross-repo test taxonomy
+231e2c7 | 2026-04-15 | fix(ERA): skip_type_entry_count uses key-presence not non-null value
+6821050 | 2026-04-15 | docs(ERA): reframe blocker as adoption-distribution not time
+cd1dbaf | 2026-04-15 | docs(ERA): conditional observation checkpoint — Blocker B judgment criteria
+db82a25 | 2026-04-15 | fix(ERA-banner): show actual skip_type_coverage instead of hardcoded 0.000
+1978775 | 2026-04-15 | docs(fleet): reframe Phase 2 blockers after YAML+banner bug clearance
+b03d07e | 2026-04-15 | docs(fleet): SpecAuthority as Phase 2 expansion first target + parse failure risk upgrade
+2b79a36 | 2026-04-15 | docs(plan): SpecAuthority two-layer wiring + parse failure integrity risk upgrade
+6fa29eb | 2026-04-15 | docs(plan): Layer 1 stability criteria + Phase 2 metric reframe + parse failure non-final
+04e151a | 2026-04-15 | docs: Phase 2 Gate Runbook — executable checklist with honest gap analysis
+ac618d1 | 2026-04-15 | fix(E1b): replace Condition 5 unique_pattern_ratio with lifecycle_active_ratio
+7f8fca0 | 2026-04-15 | docs: record lifecycle_active_ratio semantic boundaries + Type A/B gate split
+42885d7 | 2026-04-15 | docs: seal Type A PASS != passable semantics
+3770204 | 2026-04-15 | evidence: record SpecAuthority Layer 1 first-success probe
+01eaa54 | 2026-04-15 | feat: scripts/plan_summary.py — PLAN.md compressed view (~500 tokens)
+b3b1bbc | 2026-04-15 | feat: compression provenance layer — Phase 1 (plan context)
+c9f5dfb | 2026-04-15 | docs: record compression provenance Phase 1 semantic boundaries
+668e397 | 2026-04-15 | chore: session closeout 2026-04-15
+61bf6ac | 2026-04-15 | docs: record topic filtering adoption gap boundary (2026-04-15)
+aa616b7 | 2026-04-16 | PLAN: SA Layer 1 stable + Layer 2 time-scale contract + is_degenerate cleanup item
+000e7a2 | 2026-04-16 | Track 2: gate_policy parse failure visibility (policy_load_error field + advisory output + E8a log + 3 tests)
+0ac60c1 | 2026-04-16 | Layer 2 time-scale contract: recent_lifecycle_class (rolling window) added to analyzer + 5 tests + PLAN update
+f1b0fe8 | 2026-04-16 | PLAN: SA Layer 2 progress update after Phase I (ok=12/20, 8 sessions to stable_ok)
+dc7e311 | 2026-04-16 | PLAN: SA Layer 2 COMPLETE — stable_ok 20/20, lifecycle-capable pool +1 (Sprint K-Q)
+a2f2377 | 2026-04-16 | e1b: deprecate is_degenerate legacy formula — add [legacy_entropy] marker + is_degenerate_formula field + v2 redirect note in human output
+115818d | 2026-04-16 | fix: admit plan_context_provenance keys in expansion_boundary_checker + utf-8 encoding in subprocess tests
+0bbe920 | 2026-04-16 | fix: set PYTHONIOENCODING=utf-8 in subprocess env for Windows encoding isolation
+af8e45b | 2026-04-16 | feat(integrations): add Enumd integration seam + Hermes governed-agent doc
+b17eeac | 2026-04-16 | fix(integrations/p1-p2): lock Enumd seam with tests + analysis boundary filter
+5c9dd4c | 2026-04-16 | docs(PLAN): record Enumd integration seam completion (af8e45b / b17eeac)
+cfd46b8 | 2026-04-16 | chore(scripts): add check_enumd_integration_state.py — seam drift detector
+59e4fa7 | 2026-04-16 | fix(e1b): lifecycle_capable uses latest schema-aware entry, not has_any_skip
+d888d44 | 2026-04-16 | docs(PLAN): record Phase 2 gate status — blocked by metric promotion decision, not repository readiness
+93f17ed | 2026-04-16 | docs(PLAN): record Enumd integration architecture review closure — no article-driven code changes required
+6cd51ed | 2026-04-16 | docs(PLAN): add trust-based vs constraint-based boundary note and observation drift guardrails
+5af02f1 | 2026-04-16 | docs(PLAN): refine Enumd phase taxonomy, ingestion probe checklist, and Hermes constraint-based blocker framing
+aac08ff | 2026-04-16 | docs(governance): harden phase-2 evidence semantics
+debb7e6 | 2026-04-16 | docs(phase2): enforce aggregation precedence and window semantics
+f39010c | 2026-04-16 | docs(phase2): lock canonical aggregation enum and alias normalization
+5f1404c | 2026-04-16 | feat(phase2): add deterministic aggregation consumer and dry-run matrix
+ad1f1da | 2026-04-16 | fix(phase2): require explicit closure approval for closure_verified
+25dbc35 | 2026-04-16 | test(phase2): add closure approval guardrail negative cases
+3d5590f | 2026-04-16 | feat(phase3): add canonical-only promotion gate integration proof
+b60b952 | 2026-04-16 | feat(phase2/3): enforce closure approval evidence and add adoption audit
+cb03ffa | 2026-04-16 | feat(integration-boundary): add external observation contract and generic adapter
+678509c | 2026-04-17 | feat(enumd-pilot): add read-only Enumd ingestion MVP with semantic split
+fe073f7 | 2026-04-17 | chore: record accounts and sync workspace updates
+ac0eda8 | 2026-04-17 | chore: keep memory notes under memory folder only
+106e550 | 2026-04-17 | chore: enforce github identity guard before push
+2ad1203 | 2026-04-17 | chore(memory): standardize long-term path and enforce guard
+a4088a1 | 2026-04-17 | test(e1b): add misclassification anti-drift verification suite
+cf1c17a | 2026-04-17 | docs(e1b): add Phase A.5 semantic limit guards
+09ccc22 | 2026-04-17 | docs(e1b): add consumer audit checklist for Phase B observation period
+bf91e61 | 2026-04-17 | feat(e1b): add Phase A.6 consumer violation detection (scan_consumer_text)
+f4ec9c5 | 2026-04-17 | test(e1b): add Phase A.7 escape analysis (TestConsumerAuditEscape)
+3d7258e | 2026-04-17 | feat(e1b-phase-a7-ext): decision impact analysis + escape risk classification
+f2b6f6f | 2026-04-17 | chore(e1b-phase-b): define Phase B as structured decision-impact observation
+11eef62 | 2026-04-17 | chore(e1b-phase-b): add observation validity criteria and non-linear risk rule
+84948fa | 2026-04-17 | Add Phase B escalation convergence and B.6 consistency spec
+974ecfa | 2026-04-17 | Add Phase B.6 anti-inertia divergence and recurrence overrides
+7408b44 | 2026-04-17 | Finalize esc-20260417-001 convergence as interpretation-sensitive
+11af034 | 2026-04-17 | Tighten post-remediation closure verification for decision-relevant cases
+9683b8e | 2026-04-17 | Harden post-remediation closure robustness and rationale checks
+8268e74 | 2026-04-17 | Add lightweight post-remediation adversarial baseline for esc-20260417-001
+3b0eb25 | 2026-04-17 | Apply strict closure profile for prior significant escalation cases
+45d2141 | 2026-04-17 | Require decision engagement for strict post-remediation closure
+7a62847 | 2026-04-17 | Add recommended context-noise robustness check for strict closure
+02ebf6e | 2026-04-17 | Add human-only strong observation execution pack for esc-20260417-001
+866506c | 2026-04-17 | Translate human-only strong observation pack to Chinese
+2531391 | 2026-04-17 | Translate human-only clean/noise reviewer inputs to Chinese
+5db30ee | 2026-04-17 | Record human-only strong observation and keep esc-20260417-001 open
+bf6db7f | 2026-04-17 | Add composition guardrails and actionability-source checks
+08befcc | 2026-04-17 | chore(esc-20260417-001): tighten observation pack with synthesis disqualification rule
+65c7975 | 2026-04-17 | chore(esc-20260417-001): add override priority, hard closure prohibition, interpretation order
+a549dfb | 2026-04-17 | chore(esc-20260417-001): add Round 2 evaluation worksheet
+68ce77a | 2026-04-17 | chore(esc-20260417-001): translate Round 2 worksheet to Chinese
+8c4a5ac | 2026-04-17 | feat(esc-20260417-001): composition redesign spec
+a0aaaf1 | 2026-04-17 | chore(esc-20260417-001): cognitive layer — interaction prohibition, renderer order, Round 3 inputs
+c0ec084 | 2026-04-17 | Add Round 3 cognitive leakage adjudication rules
+9478b3b | 2026-04-17 | Calibrate synthesis triggers to directional inference only
+1122db5 | 2026-04-17 | Proceed Round 3 without reviewer and keep escalation mitigated-open
+3d0348f | 2026-04-17 | Harden mitigated semantics and dual-track validation state
+313517f | 2026-04-17 | Add unverified mitigation exit state for governance
+fe21d82 | 2026-04-19 | fix(phase2-gate): migrate readiness verdict basis to v2 non-stuck semantics
+4f54fb6 | 2026-04-19 | docs+gate: lock phase2 metric authority and phase3 observation-only contract
+f535f93 | 2026-04-19 | test+contract: enforce phase3 observation-only semantic class boundary
+c093bd9 | 2026-04-19 | Harden Phase 3 downstream reuse contract boundary
+788877f | 2026-04-19 | Add interpretation trigger boundary and cumulative illusion guard
+4f6ed1a | 2026-04-19 | Add Phase 3.3 reviewer interpretation boundary contract
+84a842b | 2026-04-19 | Add executable reviewer-summary lint boundary
+7601a50 | 2026-04-19 | Add two-layer review artifact linter with misuse guards
+c428ba7 | 2026-04-19 | Gate reviewer handoff on lint cleanliness
+9229f89 | 2026-04-19 | Add handoff override policy with non-whitening identity
+6b01b67 | 2026-04-19 | Enforce structured override intent for non-clean handoff
+97ae7af | 2026-04-19 | Add CI gate for reviewer handoff override policy
+81f7fd3 | 2026-04-19 | Add taxonomy pressure tests and calibrate reviewer linter
+2866c25 | 2026-04-19 | Standardize post-push memory protocol across repos
+2450f31 | 2026-04-19 | Harden reviewer taxonomy drift and policy-first handoff visibility
+00712c3 | 2026-04-19 | Record post-push governance hardening memory entry
+dcf9809 | 2026-04-19 | Add reviewer taxonomy calibration dataset baseline
+a1d4527 | 2026-04-19 | Record post-push calibration baseline memory entry
+4da5183 | 2026-04-19 | Stratify reviewer calibration dataset by tier and surface
+e4f050d | 2026-04-19 | Record post-push stratified calibration memory entry
+6806a44 | 2026-04-19 | Align publication reader with policy-first non-clean surfacing
+ec7d466 | 2026-04-19 | Record post-push publication reader alignment memory entry
+818c0de | 2026-04-19 | Add semantic-family axis to reviewer calibration baseline
+c9a2058 | 2026-04-19 | Record post-push semantic-family calibration memory entry
+c219d3b | 2026-04-19 | Add family-level calibration summary and Enumd probe checklist
+7282df2 | 2026-04-19 | Record post-push calibration summary and probe checklist memory entry
+e5c6307 | 2026-04-19 | Add first-batch Enumd observe-only probe runner
+e5edc51 | 2026-04-19 | Record Enumd probe runner push and first-batch run memory
+69a171d | 2026-04-06 | Refactor manage_agent_closeout: abstract adapter class, Copilot to Tier A, split ChatGPT/Codex, fix Gemini key
+31f383b | 2026-04-19 | Add Enumd semantic isolation layer: non-equivalence registry, probe tool, tests
+0cde2bf | 2026-04-20 | Extend Enumd probe: closeout + memory-candidate modes, 49 tests pass
+7d2939c | 2026-04-20 | Add Enumd ingestion contract: semantic reinterpretation + collision downgrade verified
+05cf238 | 2026-04-20 | Add targeted residual probe and Phase Enumd-1 closeout note; 96 tests pass
+0169060 | 2026-04-20 | Harden Phase Enumd-1 closeout note: safety/value separation + pre-defined re-probe conditions
+7fbde5c | 2026-04-20 | Add reprobe_trigger_note: pipeline_activation != closeout_path_repaired, two-gate sequence
+6918a73 | 2026-04-20 | Persist .governance-state.yaml after pull
+d7a3edc | 2026-04-20 | fix: resolve 24 test failures across 3 root causes
+6983329 | 2026-04-20 | docs(auditor): mark literal governance anchors and README coupling risk
+892ee7b | 2026-04-20 | Disambiguate READY signal and define Round 3 validation contract
+09a5a5c | 2026-04-20 | Record complete E1b verification rerun status
+66f3024 | 2026-04-20 | Clarify governance-state authority boundary
+288b06c | 2026-04-20 | Log authority-boundary update in daily memory
+711ff17 | 2026-04-20 | Align state-surface authority wording across docs
+60fea06 | 2026-04-20 | Log consistency-patrol boundary alignment
+bfb5e9c | 2026-04-20 | Add enum adoption safety checklist
+23f46a3 | 2026-04-20 | Log enum checklist addition in daily memory
+f8cee6e | 2026-04-20 | Add reusable markdown test pack template
+8622963 | 2026-04-20 | Add Tier A checklist contamination policy
+20d4bd5 | 2026-04-20 | Log Tier A contamination policy update
+6bde217 | 2026-04-20 | Add cross-repo markdown noise test consolidation
+3f5f5cb | 2026-04-20 | Add MD target pack and report v2 rerun board
+b70abdf | 2026-04-20 | Add markdown scan scope filter
+5944b33 | 2026-04-20 | Record markdown scope filter commit
+dba50a2 | 2026-04-20 | Reconcile cross-repo MD report draft
+122b7f1 | 2026-04-20 | Record MD report reconciliation commit
+d691968 | 2026-04-21 | Lock MD rerun tooling and contract
+689ead7 | 2026-04-21 | Run contract-driven MD rerun and update report
+090d9d2 | 2026-04-21 | Record rerun report commit hash
+bec02d8 | 2026-04-21 | Add MD fail clustering map
+775ca29 | 2026-04-21 | Record fail clustering commit hash
+2ef3578 | 2026-04-21 | Fix MD noise oracle satisfiability with guardrails
+24e8107 | 2026-04-21 | Record oracle remediation commit hash
+cda5088 | 2026-04-21 | Classify CLI residual fail families
+8fbc5c3 | 2026-04-21 | Record CLI residual classification commit hash
+eca825f | 2026-04-21 | Harden residual adjudication boundary evidence
+f6cc636 | 2026-04-21 | Log boundary evidence publish in daily memory
+b587199 | 2026-04-21 | Route git identities by remote and upstream
+c7ec082 | 2026-04-21 | Adjudicate residuals, harden noise oracle, and rerun 5/5
+082ab6f | 2026-04-21 | Record cross-repo closure linkage and final replay
+bcf1df4 | 2026-04-21 | Finalize daily memory hash linkage
+afc0c25 | 2026-04-21 | Add closure evidence checklist for 2026-04-21 MD remediation chain
+80196b7 | 2026-04-21 | Adopt dual-repo closure gate semantics for verification
+e6d9e09 | 2026-04-21 | Add dual-repo closure verification report
+dfa191a | 2026-04-21 | P1.5 runtime advisory instrumentation landed
+9c7ebb1 | 2026-04-21 | Expose review-required visibility in cross-repo summary
+1a3b555 | 2026-04-21 | Finalize P1.5: boundary locking, advisory visibility, and anti-escalation contract
+cf70f0c | 2026-04-22 | chore: batch commit current workspace changes
+a57a4ed | 2026-04-22 | docs(memory): record 2026-04-22 push activity
+3a2b0dc | 2026-04-22 | docs: add assumption audit, benchmark pack, enumd boundary, and stop condition
+2df970c | 2026-04-22 | fix: harden e1b distribution output on cp950 and sync memory
+aa21ec1 | 2026-04-22 | docs(memory): log cp950 analyzer fix push
+e477c14 | 2026-04-22 | docs(memory): persist strict memory+push workflow preference
+456ba4a | 2026-04-22 | feat(runtime): add advisory decision policy v1 to pre-task check
+2551a94 | 2026-04-22 | docs(memory): backfill commit hashes for today entries
+6a77240 | 2026-04-22 | test(ab): run decision-policy v1 AB v3 rerun and publish artifacts
+0a5e6ab | 2026-04-22 | docs(memory): backfill AB v3 rerun commit hash
+e067ce2 | 2026-04-22 | test(ab): add benchmark v2 case pack and rerun report
+578d867 | 2026-04-22 | docs(memory): backfill benchmark v2 rerun commit hash
+4c4a25a | 2026-04-22 | feat(decision): add v2 action ranking and rerun benchmark v2
+972af38 | 2026-04-22 | docs(memory): backfill v2 policy rerun commit hash
+d8a8bae | 2026-04-22 | feat(runtime): integrate decision_policy_v1_runtime into pre-task check
+faae3f7 | 2026-04-22 | docs(memory): backfill runtime integration commit hash
+2a85c8d | 2026-04-23 | test(ab): run 2026-04-23 benchmark v2 rerun and publish report
+0ce0674 | 2026-04-23 | docs(memory): backfill 2026-04-23 benchmark commit hash
+50381bb | 2026-04-23 | test(ab): add evidence-integrity metrics to benchmark v2 rerun
+998d8b6 | 2026-04-23 | docs(memory): backfill evidence-integrity commit hash
+fc558a2 | 2026-04-23 | feat(runtime): add immutable evidence gate and rerun benchmark
+f2a7eaa | 2026-04-23 | docs(memory): backfill immutable-evidence commit hash
+fdfc74c | 2026-04-23 | Enforce evidence-integrity candidate pruning in decision policy
+cb460a2 | 2026-04-23 | Update memory with evidence-integrity hard-gate rerun
+3ba0151 | 2026-04-23 | Add evidence integrity hard gate and benchmark enforcement
+bdcb6f7 | 2026-04-23 | Update memory after evidence integrity gate push
+0115e13 | 2026-04-23 | Implement correctness-aware v3 decision policy slice
+427dcf0 | 2026-04-23 | Update memory after v3 policy slice rerun
+1c7e4e4 | 2026-04-23 | Add missing v3 benchmark quadrants and premise-priority rule
+b8f2bf9 | 2026-04-23 | Update memory after v3 quadrant rerun
+0fe0f86 | 2026-04-23 | benchmark: add epistemic trajectory evaluation metrics
+bd7faf8 | 2026-04-23 | memory: log benchmark trajectory-eval rerun
+13a3942 | 2026-04-23 | runtime: split advisory baseline and experimental enforcement profile
+8ccd541 | 2026-04-23 | memory: log advisory-vs-experimental boundary split
+325bf1e | 2026-04-23 | benchmark: add 4-case arm separation pack and stop rule
+a4e66d5 | 2026-04-23 | memory: log arm-separation pack rerun result
+1560d43 | 2026-04-23 | benchmark: add collapse locator dump and summary
+3b78741 | 2026-04-23 | memory: log collapse locator result
+ba9b9a8 | 2026-04-23 | Add arm-to-feature contract check with non-separation taxonomy
+319d3eb | 2026-04-23 | Update daily memory for arm-feature contract push
+1cb2380 | 2026-04-23 | Add arm-signal visibility probe and closure recommendation
+99af54a | 2026-04-23 | Update daily memory for arm-signal visibility probe push
+137761c | 2026-04-23 | Patch extractor mapping for assumption-driven phase-A separation
+a41cc60 | 2026-04-23 | Update daily memory for extractor patch push
+232798b | 2026-04-23 | Add post-extractor collapse routing plan
+e77e130 | 2026-04-23 | Update daily memory for routing plan push
+9b89209 | 2026-04-23 | Add executable precondition gate validator for RTL reset/interface checks
+569551d | 2026-04-23 | Update daily memory for precondition gate validator push
+8d6d38a | 2026-04-23 | Add precondition effectiveness check harness and baseline run
+9c3b4b6 | 2026-04-23 | Update daily memory for precondition effectiveness baseline push
+28eee84 | 2026-04-23 | Fix precondition gate with negation-aware reset/handshake detection
+26a92b6 | 2026-04-23 | Update daily memory for negation-aware precondition fix push
+a57f9e0 | 2026-04-23 | Add forbidden-claims effectiveness check and negation-safe handshake detection
+2cab0da | 2026-04-23 | Update daily memory for forbidden-claims effectiveness push
+3e62607 | 2026-04-23 | Add precondition slice milestone boundary status
+59175b7 | 2026-04-23 | Update daily memory for precondition milestone status push
+9319c9a | 2026-04-24 | Add read-only AGENTS rule candidates inspector surface
+fbf2692 | 2026-04-24 | Update daily memory for inspector milestone push
+bd61ba2 | 2026-04-24 | Add governance version compatibility check (P0+P1+P3+P4+P5)
+6ba607c | 2026-04-24 | Update daily memory for version check milestone push
+eed4ebd | 2026-04-24 | Add P5a: version compatibility advisory integration in session_start
+4ffc09c | 2026-04-24 | Update daily memory for P5a version compat advisory push
+154ad4d | 2026-04-24 | Add governance runtime policy and compatibility slices
+83cc959 | 2026-04-24 | Add runtime phase misuse guard tests
+907416c | 2026-04-27 | Add E8a policy_load_error coverage and close gate_policy parse failure backlog
+bb7925b | 2026-04-27 | Close stale maintenance backlog items and update PLAN.md records
+0f7f01c | 2026-04-27 | Add E1b Phase B and Phase 2 participating repo guides
+5437079 | 2026-04-27 | E1b Phase 2 Gate READY: v2 metric promoted, Phase 3 unblocked
+7cd490c | 2026-04-27 | Record Bookstore-Scraper Phase B observation; reclassify audit debt
+6de0582 | 2026-04-27 | Reframe Phase 3 prohibition, add E3/scanner/debt/friction policies
+2c59f23 | 2026-04-27 | Correct three governance meta-claims in PLAN.md
+708fa2c | 2026-04-27 | Add validator authority contract, coverage_era fields, fix E2 framing
+3e32cd8 | 2026-04-27 | Add measurement authority separation to E3 Goodhart guard
+b7369fc | 2026-04-27 | Enforce anti-creep, coverage obligation, and E2 contamination boundary
+dc5dfcc | 2026-04-27 | Add framing separation, core principle, OP-HC admission/rollback design
+fa008aa | 2026-04-27 | Enforce forced routing, claim hard-stops, and trust-root debt visibility
+4853c27 | 2026-04-27 | Enforce forced routing, claim hard-stops, and trust-root debt visibility
+ca2bf17 | 2026-04-27 | Update daily and long-term memory for dual-remote author-separated pushes
+a956c70 | 2026-04-27 | Update daily and long-term memory for dual-remote author-separated pushes
+8cfd0b9 | 2026-04-27 | Harden OP-HC governance with precedent discipline and rollback asymmetry
+aac5247 | 2026-04-27 | Harden OP-HC governance with precedent discipline and rollback asymmetry
+8ffbf73 | 2026-04-27 | Update daily memory with OP-HC hardening dual-remote pushes
+6e731de | 2026-04-27 | Update daily memory with OP-HC hardening dual-remote pushes
+0fa24d6 | 2026-04-27 | Establish escalation authority writer and fail-closed release provenance checks
+ff1363c | 2026-04-27 | Establish escalation authority writer and fail-closed release provenance checks
+bb4b112 | 2026-04-27 | Update daily memory with authority-writer dual-remote push record
+3f25b79 | 2026-04-27 | Update daily memory with authority-writer dual-remote push record
+c36b199 | 2026-04-27 | Add E2 constitutional trigger and non-expert-only governance cost boundary
+7f8d743 | 2026-04-27 | Add E2 constitutional trigger and non-expert-only governance cost boundary
+db5ee6a | 2026-04-27 | Update daily memory with E2 constitutional-trigger dual-remote push record
+29c233c | 2026-04-27 | Update daily memory with E2 constitutional-trigger dual-remote push record
+fed4ab2 | 2026-04-27 | Harden authority provenance linkage and add bypass path guard
+e947a9e | 2026-04-27 | Harden authority provenance linkage and add bypass path guard
+5086c7b | 2026-04-27 | Update daily memory with authority-linkage dual-remote push record
+66520d1 | 2026-04-27 | Update daily memory with authority-linkage dual-remote push record
+8811345 | 2026-04-27 | Govern E2 trigger authority, violation consequences, and practical accessibility
+6130988 | 2026-04-27 | Govern E2 trigger authority, violation consequences, and practical accessibility
+df0de64 | 2026-04-27 | Update daily memory with E2 constitutional hardening dual-remote push record
+7b20574 | 2026-04-27 | Update daily memory with E2 constitutional hardening dual-remote push record
+7d115c5 | 2026-04-27 | Add tamper replay authority-block reasons and replay tests
+e7557b5 | 2026-04-27 | Add tamper replay authority-block reasons and replay tests
+8a9b59f | 2026-04-27 | Update daily memory with tamper-replay dual-remote push record
+3bffd4f | 2026-04-27 | Update daily memory with tamper-replay dual-remote push record
+218a4fa | 2026-04-27 | Enforce canonical authority write path and block untrusted overwrite
+0597857 | 2026-04-27 | Enforce canonical authority write path and block untrusted overwrite
+d03134c | 2026-04-27 | Update daily memory with write-time enforcement dual-remote push record
+d30a6d7 | 2026-04-27 | Update daily memory with write-time enforcement dual-remote push record
+eeee182 | 2026-04-27 | Fix Gap 1: assess_authority_directory fails closed when escalation active but authority artifacts missing
+f31b424 | 2026-04-27 | Record Log Production Gap + implement Gap 2 authority integration in promotion gate
+fa149bb | 2026-04-27 | Add log write-path trust hardening: escalation_log_writer + register cross-verification
+8d6b3c0 | 2026-04-27 | Publish trust-root maturity matrix and v0.1 boundary note
+332f417 | 2026-04-27 | Publish trust-root maturity matrix and v0.1 boundary note
+901ce3b | 2026-04-27 | Update daily memory with trust-root maturity matrix dual-remote push record
+fa37dc1 | 2026-04-27 | Update daily memory with trust-root maturity matrix dual-remote push record
+0c60f96 | 2026-04-27 | Define Phase C authority lifecycle contract and state boundaries
+e77f0a5 | 2026-04-27 | Define Phase C authority lifecycle contract and state boundaries
+9ab04cd | 2026-04-27 | Update daily memory with Phase C lifecycle contract dual-remote push record
+0ab6ba9 | 2026-04-27 | Update daily memory with Phase C lifecycle contract dual-remote push record
+2db92dd | 2026-04-27 | Clarify Phase C Slice 1 transition authority and two-phase resolution
+7f15536 | 2026-04-27 | Clarify Phase C Slice 1 transition authority and two-phase resolution
+809ffc1 | 2026-04-27 | Update daily memory with Slice 1 transition-authority clarification record
+e435710 | 2026-04-27 | Update daily memory with Slice 1 transition-authority clarification record
+41d815a | 2026-04-27 | Add lifecycle transition writer with Slice 1 authority guards
+e7f385e | 2026-04-27 | Add lifecycle transition writer with Slice 1 authority guards
+a981fa1 | 2026-04-27 | Update daily memory with lifecycle transition writer dual-remote push record
+80e34f1 | 2026-04-27 | Update daily memory with lifecycle transition writer dual-remote push record
+e299d43 | 2026-04-27 | Enforce lifecycle transition guard in authority writer
+ac7690f | 2026-04-27 | Enforce lifecycle transition guard in authority writer
+96a5ad4 | 2026-04-27 | Update memory log for lifecycle transition guard wiring
+afedcc1 | 2026-04-27 | Update memory log for lifecycle transition guard wiring
+afa355a | 2026-04-27 | Fail closed on missing resolved-confirmed reviewer confirmation
+7bfa19b | 2026-04-27 | Fail closed on missing resolved-confirmed reviewer confirmation
+9979025 | 2026-04-27 | Update memory log for read-side lifecycle provenance hardening
+444919d | 2026-04-27 | Update memory log for read-side lifecycle provenance hardening
+644a2e9 | 2026-04-27 | Enforce lifecycle precedence in authority aggregation
+f8789bf | 2026-04-27 | Enforce lifecycle precedence in authority aggregation
+3b9ddbc | 2026-04-27 | Update memory log for lifecycle precedence baseline
+efa5f70 | 2026-04-27 | Update memory log for lifecycle precedence baseline
+f2555c3 | 2026-04-27 | Add precedence-aware authority summary to phase2 gate payload
+4f53f15 | 2026-04-27 | Add precedence-aware authority summary to phase2 gate payload
+b1ecad0 | 2026-04-27 | Update memory log for precedence-aware consumer payload
+8b552e5 | 2026-04-27 | Update memory log for precedence-aware consumer payload
+d9a99b6 | 2026-04-27 | Expose precedence lifecycle summary in release surface overview
+05371cf | 2026-04-27 | Expose precedence lifecycle summary in release surface overview
+725041e | 2026-04-27 | Update memory log for release-surface precedence visibility
+c6f40ec | 2026-04-27 | Update memory log for release-surface precedence visibility
+2fac753 | 2026-04-27 | Reopen Phase D and add state reconciliation validator
+4a083e9 | 2026-04-27 | Reopen Phase D and add state reconciliation validator
+e21e040 | 2026-04-27 | Finalize memory log for state drift reconciliation
+0e9630a | 2026-04-27 | Finalize memory log for state drift reconciliation
+328ad42 | 2026-04-28 | Second state reconciliation: Phase D moved to resumable
+1d06172 | 2026-04-28 | Add Phase D reviewer closeout gate: resumable → completed requires artifact
+2d7a09b | 2026-04-28 | Harden closeout artifact: add verdict and confirmed_at validation
+c4cb45e | 2026-04-28 | fix: remove accidental submodule entry for .latest-main
+7f5db6f | 2026-04-28 | feat(governance): improve route detection logic and close Phase D
+4c036ba | 2026-04-28 | merge: reconcile diverged branches and preserve Phase D closeout status
+73e59a6 | 2026-04-28 | feat: establish E1-B Phase 1 mutation proof and update catalog
+2b1fcdc | 2026-04-28 | docs: update memory files for 2026-04-28 progress
+33047a4 | 2026-04-28 | docs: establish E1 Phase 2 Safety Contract and update PLAN.md boundaries
+defc9f7 | 2026-04-28 | docs: update memory for E1 Phase 2 Safety Contract
+47258cf | 2026-04-28 | docs: refine E1 Phase 2 Safety Contract with cleanup verification and protection-oriented wording
+4914077 | 2026-04-28 | docs: finalize E1 Phase 2 Safety Contract in PLAN.md and remove temporary draft
+2febc19 | 2026-04-28 | governance: add Phase D Close Authority Contract (constitutional baseline)
+0bfeb94 | 2026-04-28 | governance: resolve writer_id vs reviewer_id ambiguity in Phase D close authority
+1be37fe | 2026-04-28 | governance: add Reviewer Independence Rules (RI-1~RI-5) to Phase D close authority
+435e9d0 | 2026-04-28 | governance: add Validator Role Boundary (VRB-1~3) to Phase D close authority
+6e49896 | 2026-04-28 | governance: refine VRB-3 — silent override vs explicit exception path
+1ef3d1d | 2026-04-28 | governance: add § Failure Semantics (fail-closed) — complete contract
+a0d5830 | 2026-04-28 | governance: Closeout Failure Semantics Runtime Mapping v0.1
+8026381 | 2026-04-28 | release: v1.2.0 — Phase D governance baseline freeze
+c9dfed7 | 2026-04-28 | governance: Phase D reviewer closeout artifact — Gavin0099
+33489ff | 2026-04-28 | Update Phase D to completed + surface governance state for cross-agent access
+a8d88ec | 2026-04-28 | Update daily memory for Phase D completed + cross-agent state push
+86ac8ea | 2026-04-28 | Enforce in-repo cross-agent memory authority
+555a924 | 2026-04-28 | Update daily memory for cross-agent memory authority push
+e4ae6c3 | 2026-04-28 | Add optional strict register enforcement for E1B authority assessment
+b73cf2a | 2026-04-28 | Update daily memory for E1B strict register enforcement slice
+7cabec7 | 2026-04-28 | Wire strict register mode into release and promotion consumers
+db74b06 | 2026-04-28 | Update daily memory for strict register consumer integration
+fc40bf8 | 2026-04-28 | Add single authority rollout policy resolver for E1C
+dc70e88 | 2026-04-28 | Update daily memory for E1C single rollout policy source
+0f4a72f | 2026-04-28 | Clarify E1C closeout as partial validation with env-blocked remainder
+d6b56ee | 2026-04-28 | Add E2 spec ambiguity validator baseline and clean PLAN conflict markers
+8039a98 | 2026-04-28 | Update daily memory for Phase E validator baseline slice
+8b7c6e3 | 2026-04-28 | Add weak-agent governance hardening entrypoint and inference guard baseline
+955e569 | 2026-04-28 | Update daily memory for weak-agent governance hardening baseline
+c57b47d | 2026-04-28 | Harden governance entry with explicit authority and precedence contracts
+d8df14b | 2026-04-28 | Update daily memory for authority+precedence hardening
+217284b | 2026-04-28 | Add Phase E E3 production learning contract advisory artifact flow
+3787285 | 2026-04-28 | Update daily memory for Phase E E3 production learning contract
+f44b006 | 2026-04-28 | Strengthen governance contract with status semantics and explicit non-claims
+9cfe756 | 2026-04-28 | Update daily memory for governance status semantic hardening
+97a9efa | 2026-04-28 | Add Apache-2.0 license and README badge
+de214a9 | 2026-04-28 | Update daily memory for Apache-2.0 license addition
+e290ab1 | 2026-04-28 | Add A/B smoke test plan for governance behavior validation
+66aaf31 | 2026-04-28 | Update daily memory for A/B smoke test plan
+950b8f6 | 2026-04-28 | Harden A/B smoke protocol with baseline sanitization and authority-attack task
+dc51fea | 2026-04-28 | Update daily memory for A/B protocol hardening
+0dd372f | 2026-04-28 | Add semantic neutralization and graded baseline quality for A/B smoke
+3e2d35a | 2026-04-28 | Update daily memory for A/B semantic neutralization hardening
+e68c38b | 2026-04-28 | Add A/B baseline pre-run validator with graded classification output
+fb31da3 | 2026-04-28 | Update daily memory for A/B baseline validator implementation
+ddd1d64 | 2026-04-28 | Add A/B smoke test runbook with pre-run gate and anti-drift rules
+8a255f3 | 2026-04-28 | Update daily memory for A/B smoke runbook
+c35f858 | 2026-04-28 | Add A/B smoke artifact schema and link from runbook
+1921af5 | 2026-04-28 | Update daily memory for A/B artifact schema
+b750bc7 | 2026-04-29 | Add Round 0 pilot artifacts for usb-hub protocol validation
+e96e1d2 | 2026-04-29 | Add daily memory for Round 0 pilot protocol execution
+c60b49c | 2026-04-29 | Add A/B smoke artifact schema validator and wire runbook gate
+5dad570 | 2026-04-29 | Update daily memory for Round 0 schema validation gate
+f563986 | 2026-04-29 | Add Round 1 smoke artifacts for todo-app and cpp-userspace
+2731c20 | 2026-04-29 | Update daily memory for Round 1 smoke execution
+9b5a4c2 | 2026-04-29 | Add Round 1 A/B smoke review and gate decision
+2a873a8 | 2026-04-29 | Update daily memory for Round 1 review closeout
+c24b9a5 | 2026-04-29 | Harden Round 1.5 reviewer challenge gates and downgrade readiness
+0554f5a | 2026-04-29 | Refine Round 1 taxonomy and strengthen protocol self-correction gates
+b4976c5 | 2026-04-29 | Regenerate Round 1 artifacts with refined failure taxonomy
+7226476 | 2026-04-29 | Align Round 1.5 review log with corrected artifact state
+66e31e8 | 2026-04-29 | Define Round 2 pass criteria before execution
+61eec5f | 2026-04-29 | Adjust Round 2 targets to cross-stack plus stability rerun
+d8eabd2 | 2026-04-29 | Add fixed prompt lock gate before Round 2 execution
+0314c6f | 2026-04-29 | Execute Round 2 artifacts and start Round 4 decision-quality design
+8a2245a | 2026-04-29 | Clarify Round 2 replay fixture boundary in review surfaces
+7c5824a | 2026-04-29 | Separate fixture replay from live A/B behavior evidence
+66f1393 | 2026-04-29 | Add execution parity gate before live A/B evidence runs
+637b453 | 2026-04-29 | Unify epistemic boundary wording across A/B review surfaces
+d9cc362 | 2026-04-29 | Start Round 2B with parity-first gate and block live claim
+95d7588 | 2026-04-29 | Adopt multi-axis falsification matrix for Round 2B reviews
+a78d8f7 | 2026-04-29 | Add strongest-contradiction evidence to Round 2B falsification reviews
+8bfe6b6 | 2026-04-29 | Add Round 2B session parity confirmation artifact
+f5cb11e | 2026-04-29 | Set up Round 2B workspace and correct parity status language
+9d04591 | 2026-04-29 | Capture usb-only Round 2B single-session live evidence package
+5d3a0a0 | 2026-04-29 | Add Group A simulation artifacts for Round 2B run-003
+120d624 | 2026-04-29 | Add Round 2B live-003 dual-fresh-session operator handoff templates
+b11092a | 2026-04-29 | Update daily memory for Round 2B live-003 operator handoff push
+e9d23e6 | 2026-04-29 | Add Group B simulation artifacts for Round 2B run-003
+cc07252 | 2026-04-29 | Add Round 2B live-003 falsification review with bounded claim matrix

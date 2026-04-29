@@ -1,0 +1,7 @@
+{
+  "file_path": "src/FirmwareBuffer.cpp",
+  "source_code": "#include <memory>\n#include <vector>\n\nclass FirmwareBuffer {\npublic:\n    explicit FirmwareBuffer(size_t size)\n        : m_buffer(std::make_unique<uint8_t[]>(size))\n        , m_size(size)\n    {}\n\n    std::span<uint8_t> data() {\n        return { m_buffer.get(), m_size };\n    }\n\nprivate:\n    std::unique_ptr<uint8_t[]> m_buffer;\n    size_t m_size;\n};\n",
+  "changed_files": ["src/FirmwareBuffer.cpp"],
+  "diagnostics": {},
+  "summary": "Memory managed with std::make_unique — no raw new allocations."
+}

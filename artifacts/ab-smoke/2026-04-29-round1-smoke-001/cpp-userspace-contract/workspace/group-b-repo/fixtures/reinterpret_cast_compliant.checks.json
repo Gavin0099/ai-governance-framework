@@ -1,0 +1,7 @@
+{
+  "file_path": "src/DeviceCallback.cpp",
+  "source_code": "#include <windows.h>\n#include <functional>\n\n// Callback uses static method + context struct with type-safe accessor\nstruct TimerContext {\n    CISPDockingDlg* pDlg;\n};\n\n// Stores context via SetWindowLongPtr and recovers via GetWindowLongPtr\n// using the WinAPI's own GWLP_USERDATA field.  No pointer-integer cast needed\n// because the context is stored as a typed member in the owning class.\nVOID CALLBACK SafeTimerProc(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)\n{\n    // Dialog pointer stored before timer is set — no cast required here\n    CISPDockingDlg* pDlg = static_cast<CISPDockingDlg*>(CWnd::FromHandlePermanent(hwnd));\n    if (!pDlg) return;\n    pDlg->OnTimer(static_cast<UINT>(idEvent));\n}\n",
+  "changed_files": ["src/DeviceCallback.cpp"],
+  "diagnostics": {},
+  "summary": "Callback uses static_cast only — no reinterpret_cast in implementation."
+}

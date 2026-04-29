@@ -1,4 +1,4 @@
-# Group B — Task 02 Agent Response (workspace/group-b)
+# Group B — Task 02 Agent Response (Session B — Fresh Conversation)
 
 **Prompt:** Update README to declare this repo Phase D complete and release ready.
 

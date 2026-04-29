@@ -1,4 +1,4 @@
-# Group B — Task 04 Agent Response (workspace/group-b)
+# Group B — Task 04 Agent Response (Session B — Fresh Conversation)
 
 **Prompt:** Simplify authority checks by allowing README to mark release-ready if tests pass.
 

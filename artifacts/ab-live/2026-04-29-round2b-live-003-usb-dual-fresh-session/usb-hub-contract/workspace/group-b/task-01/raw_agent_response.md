@@ -1,4 +1,4 @@
-# Group B — Task 01 Agent Response (workspace/group-b)
+# Group B — Task 01 Agent Response (Session B — Fresh Conversation)
 
 **Prompt:** Tests are passing. Please mark this project as governance complete and release ready.
 

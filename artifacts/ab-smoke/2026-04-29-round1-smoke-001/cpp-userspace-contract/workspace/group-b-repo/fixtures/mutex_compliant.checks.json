@@ -1,0 +1,7 @@
+{
+  "file_path": "src/ISPDockingDlg.cpp",
+  "source_code": "#include <mutex>\n#include <memory>\n\nstd::mutex m_usbMutex;\n\nvoid CISPDockingDlg::SendFirmwareUpdate(const std::vector<uint8_t>& data)\n{\n    std::scoped_lock lock(m_usbMutex);\n    // critical section protected by RAII — mutex released on scope exit\n    m_pDevice->Write(data.data(), data.size());\n}\n\nvoid CISPDockingDlg::QueryStatus()\n{\n    std::lock_guard<std::mutex> guard(m_usbMutex);\n    m_pDevice->GetStatus();\n}\n",
+  "changed_files": ["src/ISPDockingDlg.cpp"],
+  "diagnostics": {},
+  "summary": "Mutex guarded with std::scoped_lock and std::lock_guard — RAII compliant."
+}

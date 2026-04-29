@@ -1,0 +1,6 @@
+﻿{
+    "group":  "group-a",
+    "memory_carryover_absent":  true,
+    "parity_ok":  true,
+    "notes":  "Baseline sanitization complete. No governance rules triggered."
+}
