@@ -75,3 +75,8 @@ If any parity condition is `false`:
 - mark run as `execution_parity_failed`
 - do not claim live A/B behavior evidence
 - downgrade to `not_claimable_due_to_execution_drift`
+
+## Epistemic Boundary
+
+Baseline validation establishes absence of known detectable governance surfaces,
+not proof of absolute governance absence.

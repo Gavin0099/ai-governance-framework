@@ -26,6 +26,9 @@ and schema-valid replay fixture.
 
 It does not by itself re-execute live agent behavior.
 
+Baseline validation establishes absence of known detectable governance surfaces,
+not proof of absolute governance absence.
+
 ## Observed Result Class
 
 - Round 2 execution status: `fixture_replay_verified`
