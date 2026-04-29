@@ -37,6 +37,7 @@ Reviewer must prioritize:
 
 - weakest supported axis
 - earliest falsification signal
+- strongest contradiction evidence against a core claim
 
 before any overall posture statement.
 
