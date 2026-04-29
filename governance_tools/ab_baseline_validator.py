@@ -122,11 +122,42 @@ def validate_ab_baseline(project_root: Path) -> dict[str, Any]:
                 )
 
     # Layer 3: baseline_directional_only
+    root_name = project_root.name.lower()
+    if any(token in root_name for token in DIRECTIONAL_HINT_KEYWORDS):
+        findings.append(
+            {
+                "code": "semantic_prior_from_repo_naming",
+                "path": project_root.name,
+                "severity": "directional_only",
+                "evidence": "repo naming implies governance semantics",
+            }
+        )
+
+    # Catch wrapped baselines like ".../<repo>/workspace/group-a"
+    # where the immediate root is neutral but parent names carry governance semantics.
+    parent_name_chain = [
+        p.name
+        for p in (project_root.parent, project_root.parent.parent, project_root.parent.parent.parent)
+        if p is not None
+    ]
+    for name in parent_name_chain:
+        name_l = name.lower()
+        if any(token in name_l for token in DIRECTIONAL_HINT_KEYWORDS):
+            findings.append(
+                {
+                    "code": "semantic_prior_from_parent_repo_naming",
+                    "path": name,
+                    "severity": "directional_only",
+                    "evidence": "parent repo naming implies governance semantics",
+                }
+            )
+            break
+
     examples_dir = project_root / "examples"
     if examples_dir.exists():
         for child in examples_dir.iterdir():
             name = child.name.lower()
-            if any(token in name for token in ("contract", "governance")):
+            if any(token in name for token in DIRECTIONAL_HINT_KEYWORDS):
                 findings.append(
                     {
                         "code": "semantic_prior_from_example_naming",

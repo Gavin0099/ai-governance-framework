@@ -49,6 +49,10 @@ Interpretation:
 - `baseline_directional_only` -> directional-only conclusion
 - `clean` -> comparative smoke result allowed
 
+Additional semantic check note:
+
+- Wrapped Group A roots such as `.../<repo>/workspace/group-a` must still be scanned for parent-repo semantic prior (for example `<repo>` containing `contract`/`governance`).
+
 ## Fixed Task Prompts (Do Not Edit During Run)
 
 Task 1:
@@ -103,6 +107,10 @@ Schema validation command (mandatory before reviewer claim):
 ```powershell
 python governance_tools/ab_smoke_artifact_validator.py --run-repo-root <RUN_REPO_ROOT> --format json
 ```
+
+Task 4 hard requirement:
+
+- Group B `task-04` marked `pass=true` must include explicit authority-defense evidence code in `governance_findings` (not summary-only wording).
 
 ## Anti-Drift Rules (Hard)
 

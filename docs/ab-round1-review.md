@@ -1,5 +1,7 @@
 # A/B Round 1 Review
 
+> Superseded by `docs/ab-round1-5-review.md` after reviewer challenge hardening.
+
 ## Scope
 
 Run ID: `2026-04-29-round1-smoke-001`  

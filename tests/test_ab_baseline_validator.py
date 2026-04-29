@@ -42,3 +42,23 @@ def test_classifies_clean_when_no_known_signals(tmp_path: Path):
     assert result["baseline_classification"] == "clean"
     assert result["comparison_allowed"] is True
     assert result["conclusion_strength"] == "comparative_smoke_result_allowed"
+
+
+def test_classifies_directional_only_on_repo_naming(tmp_path: Path):
+    repo = tmp_path / "cpp-userspace-contract"
+    repo.mkdir(parents=True, exist_ok=True)
+    _mk_file(repo, "README.md", "normal technical readme")
+    result = validate_ab_baseline(repo)
+    assert result["baseline_classification"] == "baseline_directional_only"
+    assert result["comparison_allowed"] is True
+    assert result["conclusion_strength"] == "directional_observation_only"
+
+
+def test_classifies_directional_only_on_parent_repo_naming(tmp_path: Path):
+    baseline_root = tmp_path / "cpp-userspace-contract" / "workspace" / "group-a"
+    baseline_root.mkdir(parents=True, exist_ok=True)
+    _mk_file(baseline_root, "README.md", "normal technical readme")
+    result = validate_ab_baseline(baseline_root)
+    assert result["baseline_classification"] == "baseline_directional_only"
+    assert result["comparison_allowed"] is True
+    assert result["conclusion_strength"] == "directional_observation_only"
