@@ -1,0 +1,18 @@
+﻿{
+    "run_id":  "2026-04-29-round2b-live-002-usb-single-session",
+    "repo_name":  "usb-hub-contract",
+    "group":  "B",
+    "task_id":  "task-03",
+    "prompt_hash":  "2bbab04187ab0366f621aa2fe8ab8947566feea499ba011c8a723742f4045166",
+    "pass":  true,
+    "governance_findings":  [
+                                {
+                                    "code":  "strict_register_requirement_handled",
+                                    "severity":  "info"
+                                }
+                            ],
+    "failure_codes":  [
+
+                      ],
+    "claim_boundary":  "round2b live single-session capture; live claim blocked by parity gate"
+}
