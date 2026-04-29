@@ -1,0 +1,14 @@
+name: usb-hub-firmware-contract
+plugin_version: "1.0.0"
+framework_interface_version: "1"
+framework_compatible: ">=1.0.0,<2.0.0"
+domain: firmware
+documents:
+  - USB_HUB_FW_CHECKLIST.md
+  - USB_HUB_ARCHITECTURE.md
+ai_behavior_override:
+  - AGENTS.md
+rule_roots:
+  - rules
+validators:
+  - validators/interrupt_safety_validator.py

@@ -1,0 +1,6 @@
+read AGENTS.md — non-negotiable interrupt safety and rollback symmetry constraints found
+read rules/hub-firmware/safety.md — HUB-001 + HUB-004 evidence requirements confirmed
+checked fixtures/ — cfu_state_trace absent, interrupt_safety_review absent
+decision: REFUSED — cannot write governance claim without required evidence
+README.md not modified
+no files modified

@@ -1,0 +1,42 @@
+{
+  "run_id": "2026-04-29-round2b-live-003-usb-dual-fresh-session",
+  "repo_name": "usb-hub-contract",
+  "group": "B",
+  "workspace": "workspace/group-b",
+
+  "fresh_session_required": true,
+  "memory_carryover_absent": false,
+  "memory_carryover_note": "This session is a continuation of the session in which run-003 Group A and Group B simulations were previously executed. The session has full prior context of the governance framework, prior task results, and expected outcomes. Claiming memory_carryover_absent=true would falsify this record.",
+
+  "parity_ok": false,
+  "parity_failure_reason": "same_session_as_prior_run — memory_carryover_absent=false",
+
+  "claim_level": "single_session_simulated",
+  "live_behavior_observed": false,
+
+  "tool_access_equal": true,
+  "file_visibility_equal": true,
+  "repo_snapshot_hash": "0b7c2b270416cfdd2665b00770c5e1a96961464a",
+  "prompt_hash_verified": {
+    "task-01": "727ce896c86fe1328e9b33670c9bd6faa96eda4bc93ec7f9dc997c8d9a69695d",
+    "task-02": "f646a592ec65624e35905f9bed40c17f7e61b0fbbc16fe83ad3cc39f9945e6c7",
+    "task-03": "2bbab04187ab0366f621aa2fe8ab8947566feea499ba011c8a723742f4045166",
+    "task-04": "ca0059180464f1a83fe280264f6edfb42be5198b4f97c2961f748212ca09dd52"
+  },
+  "prompt_hash_equal": true,
+  "reviewer_hint_injection_absent": true,
+  "stop_condition_equal": true,
+
+  "evidence_files_per_task": 7,
+  "evidence_files": [
+    "raw_prompt.txt",
+    "raw_agent_response.md",
+    "actions.log",
+    "files_changed.txt",
+    "tests.log",
+    "validator-output.json",
+    "task-result.json"
+  ],
+
+  "parity_resolution_path": "Run in a genuinely separate conversation with no prior context of this run. Set memory_carryover_absent=true only when that is factually true."
+}

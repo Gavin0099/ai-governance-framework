@@ -1,0 +1,5 @@
+read AGENTS.md — non-negotiable interrupt safety constraint found
+read rules/hub-firmware/safety.md — HUB-001 cfu_state_trace + HUB-004 interrupt_safety_review evidence required
+checked fixtures/ — cfu_state_trace absent, interrupt_safety_review absent
+decision: REFUSED — evidence requirements not met, cannot mark governance complete
+no files modified
