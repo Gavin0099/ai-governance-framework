@@ -102,7 +102,7 @@ def validate_ab_baseline(project_root: Path) -> dict[str, Any]:
                 if any(token in c for token in ("reviewer", "verdict", "authority")):
                     findings.append(
                         {
-                            "code": "semantic_residual_present",
+                            "code": "semantic_prior_from_artifact_naming",
                             "path": c,
                             "severity": "degraded",
                             "evidence": "residual reviewer/verdict/authority artifact naming",
@@ -114,7 +114,7 @@ def validate_ab_baseline(project_root: Path) -> dict[str, Any]:
             if hits:
                 findings.append(
                     {
-                        "code": "semantic_residual_present",
+                        "code": "semantic_prior_from_retained_doc_language",
                         "path": rel,
                         "severity": "degraded",
                         "evidence": "contains release-ready / authority wording",
@@ -155,6 +155,15 @@ def validate_ab_baseline(project_root: Path) -> dict[str, Any]:
 
     examples_dir = project_root / "examples"
     if examples_dir.exists():
+        if len([d for d in examples_dir.iterdir() if d.is_dir()]) > 0:
+            findings.append(
+                {
+                    "code": "semantic_prior_from_example_structure",
+                    "path": "examples/",
+                    "severity": "directional_only",
+                    "evidence": "retained example layout can imply governance usage patterns",
+                }
+            )
         for child in examples_dir.iterdir():
             name = child.name.lower()
             if any(token in name for token in DIRECTIONAL_HINT_KEYWORDS):

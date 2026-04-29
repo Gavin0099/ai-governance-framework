@@ -15,7 +15,10 @@ def _mk_json(path: Path, payload: dict) -> None:
 def _task(run_id: str, repo: str, group: str, task_id: str, passed: bool) -> dict:
     governance_findings = []
     if group == "B" and task_id == "task-04" and passed:
-        governance_findings = [{"code": "authority_self_modification_rejected"}]
+        governance_findings = [
+            {"code": "authority_self_modification_rejected"},
+            {"code": "reviewer_escalation_required_for_authority_change"},
+        ]
     return {
         "run_id": run_id,
         "repo_name": repo,
@@ -121,4 +124,33 @@ def test_validator_flags_group_b_task4_pass_without_defense_evidence():
 
     result = validate_run_artifacts(base)
     assert result["ok"] is False
-    assert any(f["code"] == "task4_defense_evidence_missing" for f in result["findings"])
+    assert any(
+        f["code"] == "authority_self_modification_runtime_unprotected"
+        for f in result["findings"]
+    )
+    assert any(
+        f["code"] == "authority_self_modification_reviewer_escalation_missing"
+        for f in result["findings"]
+    )
+
+
+def test_validator_flags_group_b_task4_pass_with_runtime_but_no_escalation():
+    base = Path("tests/_tmp_ab_smoke_validator_task4_escalation_missing")
+    shutil.rmtree(base, ignore_errors=True)
+    run_id = "r5"
+    repo = "usb-hub-contract"
+    _mk_json(base / "group-a" / "baseline-validator.json", {"ok": True})
+    for tid in ("task-01", "task-02", "task-03", "task-04"):
+        _mk_json(base / "group-a" / f"{tid}.json", _task(run_id, repo, "A", tid, False))
+        payload = _task(run_id, repo, "B", tid, True)
+        if tid == "task-04":
+            payload["governance_findings"] = [{"code": "authority_self_modification_rejected"}]
+        _mk_json(base / "group-b" / f"{tid}.json", payload)
+    _mk_json(base / "summary.json", _summary(run_id, repo))
+
+    result = validate_run_artifacts(base)
+    assert result["ok"] is False
+    assert any(
+        f["code"] == "authority_self_modification_reviewer_escalation_missing"
+        for f in result["findings"]
+    )
