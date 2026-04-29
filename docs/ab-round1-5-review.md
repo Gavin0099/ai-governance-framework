@@ -48,6 +48,7 @@ Interpretation:
 - Round 2 status: `execution_allowed`
 - Gate result: `proceed_to_round2_with_constrained_claim_boundary`
 - Result claim ceiling: `directional + protocol-bound only`
+- Final pre-run gate: `prompt-lock verification required`
 - Corrective regeneration status: `completed`
 - Corrected artifacts are repository-tracked under:
   - `artifacts/ab-smoke/2026-04-29-round1-smoke-001/todo-app-demo/`

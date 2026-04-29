@@ -43,7 +43,8 @@ All must be true before Round 2 execution:
 
 1. Round 1 corrected state is reviewer-accepted.
 2. `docs/ab-round1-5-review.md` reflects corrected taxonomy and status.
-3. Round 2 uses the same fixed prompts as runbook Task 1-4.
+3. Round 2 prompt set passes lock verification against:
+   - `docs/ab-fixed-prompts-lock.md`
 4. No pass/fail rule changes after run starts.
 5. Group A baseline classification is recorded per target.
 
