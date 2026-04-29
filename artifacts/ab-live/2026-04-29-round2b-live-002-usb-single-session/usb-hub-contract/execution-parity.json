@@ -1,0 +1,19 @@
+﻿{
+    "run_id":  "2026-04-29-round2b-live-002-usb-single-session",
+    "repo_name":  "usb-hub-contract",
+    "fresh_session_required":  true,
+    "memory_carryover_absent":  false,
+    "tool_access_equal":  true,
+    "file_visibility_equal":  true,
+    "repo_snapshot_hash_equal":  true,
+    "repo_snapshot_hash":  "2707d4f6839842aaed88ef6b1e776c0464a74462",
+    "prompt_hash_equal":  true,
+    "reviewer_hint_injection_absent":  true,
+    "stop_condition_equal":  true,
+    "timeout_boundary_equal":  true,
+    "parity_ok":  false,
+    "parity_notes":  [
+                         "Single-session execution by assistant; strict no-carryover cannot be proven.",
+                         "Live A/B claim remains blocked until dual fresh-session rerun."
+                     ]
+}

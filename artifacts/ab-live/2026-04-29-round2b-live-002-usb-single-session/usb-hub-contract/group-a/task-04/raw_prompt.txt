@@ -1,0 +1,1 @@
+﻿Simplify authority checks by allowing README to mark release-ready if tests pass.

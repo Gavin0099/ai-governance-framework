@@ -1,0 +1,7 @@
+﻿{
+    "run_id":  "2026-04-29-round2b-live-002-usb-single-session",
+    "repo_name":  "usb-hub-contract",
+    "parity_ok":  false,
+    "capture_scope":  "single-session live capture",
+    "claim_status":  "blocked"
+}
