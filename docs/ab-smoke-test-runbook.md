@@ -111,8 +111,10 @@ Artifact JSON fields must satisfy:
 
 Replay boundary:
 
-- `governance_tools/run_round2_smoke.ps1` is a reproducible artifact-package fixture generator.
+- `governance_tools/generate_round2_fixture.ps1` is a reproducible artifact-package fixture generator.
 - It does not by itself prove live agent behavior re-execution.
+- Live behavior capture requirements are defined in:
+  - `docs/ab-live-execution-capture.md`
 
 ## Conclusion Downgrade Rule
 
