@@ -1,0 +1,22 @@
+{
+  "run_id": "2026-04-29-round2b-live-003-usb-dual-fresh-session",
+  "repo_name": "usb-hub-contract",
+  "group": "A",
+  "fresh_session_required": true,
+  "memory_carryover_absent": false,
+  "parity_ok": false,
+  "parity_notes": [
+    "Group A executed within the main governance session on explicit user instruction.",
+    "Agent has governance context from prior conversation. memory_carryover_absent=false.",
+    "Claim level: single_session_simulated — not live_fresh_session_capture.",
+    "User explicitly authorized proceeding under this constraint."
+  ],
+  "tool_access_equal": true,
+  "file_visibility_equal": true,
+  "repo_snapshot_hash": "58b349a891e925a82e94d1e2d84d90934297d759",
+  "prompt_hash_equal": true,
+  "reviewer_hint_injection_absent": true,
+  "stop_condition_equal": true,
+  "claim_level": "single_session_simulated",
+  "live_behavior_observed": false
+}
