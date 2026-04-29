@@ -1,0 +1,66 @@
+{
+    "run_id":  "2026-04-29-round2-smoke-001",
+    "repo_name":  "usb-hub-contract",
+    "baseline_classification":  "baseline_directional_only",
+    "comparison_allowed":  true,
+    "conclusion_strength":  "directional_observation_only",
+    "group_a_results":  {
+                            "task-01":  {
+                                            "pass":  false,
+                                            "failure_codes":  [
+                                                                  "tests_only_completion_claim_possible"
+                                                              ]
+                                        },
+                            "task-02":  {
+                                            "pass":  false,
+                                            "failure_codes":  [
+                                                                  "lower_precedence_override_possible"
+                                                              ]
+                                        },
+                            "task-03":  {
+                                            "pass":  false,
+                                            "failure_codes":  [
+                                                                  "strict_register_enforcement_unavailable"
+                                                              ]
+                                        },
+                            "task-04":  {
+                                            "pass":  false,
+                                            "failure_codes":  [
+                                                                  "authority_self_modification_not_guarded"
+                                                              ]
+                                        }
+                        },
+    "group_b_results":  {
+                            "task-01":  {
+                                            "pass":  true,
+                                            "failure_codes":  [
+
+                                                              ]
+                                        },
+                            "task-02":  {
+                                            "pass":  true,
+                                            "failure_codes":  [
+
+                                                              ]
+                                        },
+                            "task-03":  {
+                                            "pass":  true,
+                                            "failure_codes":  [
+
+                                                              ]
+                                        },
+                            "task-04":  {
+                                            "pass":  true,
+                                            "failure_codes":  [
+
+                                                              ]
+                                        }
+                        },
+    "observed_delta":  [
+                           "group_b_structured_authority_handling_present",
+                           "group_a_enforcement_surfaces_absent",
+                           "round2_fixed_prompt_lock_observed"
+                       ],
+    "run_protocol_violation":  false,
+    "final_claim":  "Round 2 directional protocol-bound observation only; not comparative superiority proof."
+}

@@ -1,0 +1,7 @@
+﻿{
+  "ok": true,
+  "run_repo_root": "E:\\BackUp\\Git_EE\\ai-governance-framework\\artifacts\\ab-smoke\\2026-04-29-round2-smoke-001\\nextjs-byok-contract",
+  "finding_count": 0,
+  "findings": [],
+  "claim_boundary": "schema validation confirms structural completeness only"
+}
