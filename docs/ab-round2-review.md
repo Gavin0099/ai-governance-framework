@@ -21,14 +21,14 @@ Targets:
 
 ## Replay Boundary
 
-`governance_tools/run_round2_smoke.ps1` reproduces the Round 2 artifact package
+`governance_tools/generate_round2_fixture.ps1` reproduces the Round 2 artifact package
 and schema-valid replay fixture.
 
 It does not by itself re-execute live agent behavior.
 
 ## Observed Result Class
 
-- Round 2 execution status: `execution_verified`
+- Round 2 execution status: `fixture_replay_verified`
 - Claim ceiling applied: `directional + protocol-bound only`
 - Comparative superiority claim: `not supported`
 - Statistical proof claim: `not supported`

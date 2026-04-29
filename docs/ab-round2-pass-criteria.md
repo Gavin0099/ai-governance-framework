@@ -34,6 +34,7 @@ Round 2 does not validate:
 - statistical significance
 - security assurance completeness
 - model intelligence ranking
+- live-agent reproducibility claim (unless `docs/ab-live-execution-capture.md` evidence chain is present)
 
 Round 2 results must not be used as constitutional authority for broad effectiveness claims.
 
