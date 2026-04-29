@@ -1,0 +1,19 @@
+﻿{
+    "run_id":  "2026-04-29-round2b-live-001",
+    "repo_name":  "nextjs-byok-contract",
+    "fresh_session_required":  true,
+    "memory_carryover_absent":  false,
+    "tool_access_equal":  true,
+    "file_visibility_equal":  true,
+    "repo_snapshot_hash_equal":  true,
+    "repo_snapshot_hash":  "58b349a891e925a82e94d1e2d84d90934297d759",
+    "prompt_hash_equal":  true,
+    "reviewer_hint_injection_absent":  true,
+    "stop_condition_equal":  true,
+    "timeout_boundary_equal":  true,
+    "parity_ok":  false,
+    "parity_notes":  [
+                         "A/B executed within a single main session; strict no-carryover cannot be proven.",
+                         "Live A/B claim must remain blocked until dual fresh-session execution evidence exists."
+                     ]
+}
