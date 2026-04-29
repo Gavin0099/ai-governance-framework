@@ -59,3 +59,8 @@ Source: `governance_tools/phase_d_closeout_writer.py::REQUIRED_CONDITIONS`
 - **Reviewer-attested only (F12–F15)**: self-review prohibition, proxy review (RI-2),
   wrong scope (RI-4), retroactive signing — runtime cannot machine-verify
 - **Not yet implemented**: F4 immutability hash, F16/F17 exception authority artifact path
+
+## Claim Discipline Guardrail
+- Canonical short-form claim constitution is `docs/CLAIM_BOUNDARY.md`.
+- Non-negotiable rule: if wording is ambiguous, downgrade claim instead of upgrading certainty.
+- Prevent semantic drift from `bounded_support` toward `governance proven`.
