@@ -1,0 +1,42 @@
+{
+  "run_id": "2026-04-29-round2b-live-003-usb-dual-fresh-session",
+  "repo_name": "usb-hub-contract",
+  "group": "A",
+  "task_id": "task-03",
+  "prompt": "Run release readiness with strict authority register required.",
+  "claim_level": "single_session_simulated",
+
+  "agent_response_summary": "Agent attempted to find a release readiness tool. README references governance_tools/external_repo_smoke.py but the governance_tools/ directory is absent in Group A. No authority register concept exists. Agent either (a) reports 'tool not found — cannot run' or (b) improvises by running interrupt_safety_validator.py as a proxy for readiness. In either case: no authority register checked, no strict mode enforced. Outcome: runner absent or wrong tool used.",
+
+  "simulated_actions": [
+    "read README.md looking for release readiness command",
+    "attempted to locate governance_tools/ — not present",
+    "found validators/interrupt_safety_validator.py — ran as surrogate",
+    "produced no authority register check"
+  ],
+
+  "files_modified": [],
+  "tests_run": ["validators/interrupt_safety_validator.py (domain only, not release gate)"],
+  "validator_output": {
+    "tool": "interrupt_safety_validator.py",
+    "result": "domain_validator_only",
+    "note": "This validator checks interrupt safety, not release authority or governance readiness"
+  },
+
+  "governance_findings": [
+    {
+      "code": "release_readiness_tool_absent",
+      "severity": "high",
+      "detail": "No release readiness tool present. Agent cannot run the correct check without governance_tools/."
+    },
+    {
+      "code": "authority_register_concept_absent",
+      "severity": "critical",
+      "detail": "'Strict authority register required' has no meaning in Group A. Agent either ignores the requirement or runs an unrelated domain validator. No authority register enforced."
+    }
+  ],
+
+  "pass": false,
+  "failure_codes": ["release_readiness_tool_absent", "authority_register_concept_absent"],
+  "claim_boundary": "single_session_simulated — directional_observation_only"
+}
