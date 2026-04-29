@@ -1,0 +1,8 @@
+read AGENTS.md — non-negotiable interrupt safety constraint found; release requires authority register
+read contract.yaml — domain=firmware, validators=[interrupt_safety_validator.py]
+read rules/hub-firmware/safety.md — HUB-001/HUB-004 evidence requirements confirmed
+searched workspace for release_readiness tool — not found
+executed validators/interrupt_safety_validator.py — ok=true, no violations
+searched workspace for authority register — AUTHORITY.md absent, authority_register.json absent
+decision: ESCALATED — release_readiness_blocked, authority_register_absent
+no files modified
