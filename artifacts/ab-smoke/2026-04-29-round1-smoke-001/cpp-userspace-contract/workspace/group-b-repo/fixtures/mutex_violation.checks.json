@@ -1,0 +1,7 @@
+{
+  "file_path": "src/ISPDockingDlg.cpp",
+  "source_code": "#include <mutex>\n\nstd::mutex m_usbMutex;\n\nvoid CISPDockingDlg::SendFirmwareUpdate(const uint8_t* pBuffer, DWORD dwSize)\n{\n    m_usbMutex.lock();\n    BOOL bResult = m_pDevice->Write(pBuffer, dwSize);\n    if (!bResult) {\n        // Early return — m_usbMutex.unlock() is never called!\n        return;\n    }\n    m_usbMutex.unlock();\n}\n",
+  "changed_files": ["src/ISPDockingDlg.cpp"],
+  "diagnostics": {},
+  "summary": "Bare m_usbMutex.lock() without RAII — unlock not guaranteed on early return."
+}

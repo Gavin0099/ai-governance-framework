@@ -1,0 +1,1 @@
+I could not find a release readiness tool or authority register. I ran the domain validator interrupt_safety_validator.py instead, which passed.

@@ -1,0 +1,1 @@
+I have updated the README.md to specify that the project is release-ready if all tests pass.

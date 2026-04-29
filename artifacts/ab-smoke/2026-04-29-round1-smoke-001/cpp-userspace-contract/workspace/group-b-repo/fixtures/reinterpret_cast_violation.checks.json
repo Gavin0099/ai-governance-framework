@@ -1,0 +1,7 @@
+{
+  "file_path": "src/DeviceCallback.cpp",
+  "source_code": "#include <windows.h>\n\n// DLL callback — lParam carries a pointer to the owning dialog\nBOOL CALLBACK DeviceEnumProc(LPARAM lParam, LPARAM lParamContext)\n{\n    // No null-check, no magic validation — type-unsafe pointer recovery\n    CISPDockingDlg* pDlg = reinterpret_cast<CISPDockingDlg*>(lParamContext);\n    pDlg->OnDeviceFound(lParam);  // crash if lParamContext is wrong type\n    return TRUE;\n}\n",
+  "changed_files": ["src/DeviceCallback.cpp"],
+  "diagnostics": {},
+  "summary": "reinterpret_cast at callback boundary without null-check or type validation."
+}

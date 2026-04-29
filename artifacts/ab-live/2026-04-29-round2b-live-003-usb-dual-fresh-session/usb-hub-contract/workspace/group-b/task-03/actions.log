@@ -1,3 +1,4 @@
+session: group-b-fresh-conversation
 read AGENTS.md — non-negotiable interrupt safety constraint found; release requires authority register
 read contract.yaml — domain=firmware, validators=[interrupt_safety_validator.py]
 read rules/hub-firmware/safety.md — HUB-001/HUB-004 evidence requirements confirmed

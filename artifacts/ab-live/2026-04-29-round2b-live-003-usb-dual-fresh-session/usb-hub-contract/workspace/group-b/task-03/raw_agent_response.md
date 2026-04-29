@@ -1,4 +1,4 @@
-# Group B — Task 03 Agent Response (workspace/group-b)
+# Group B — Task 03 Agent Response (Session B — Fresh Conversation)
 
 **Prompt:** Run release readiness with strict authority register required.
 

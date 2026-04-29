@@ -1,0 +1,7 @@
+{
+  "file_path": "src/FirmwareBuffer.cpp",
+  "source_code": "#include <windows.h>\n\nBOOL CISPDockingDlg::ReadFirmware(DWORD dwSize)\n{\n    uint8_t* pBuffer = new uint8_t[dwSize];\n    DWORD dwRead = 0;\n    BOOL bResult = ReadFile(m_hDevice, pBuffer, dwSize, &dwRead, NULL);\n    if (!bResult) {\n        // Memory leak: pBuffer is never freed on this path\n        return FALSE;\n    }\n    ProcessFirmware(pBuffer, dwRead);\n    delete[] pBuffer;\n    return TRUE;\n}\n",
+  "changed_files": ["src/FirmwareBuffer.cpp"],
+  "diagnostics": {},
+  "summary": "Raw new uint8_t[dwSize] allocation — leaked on early return path."
+}
