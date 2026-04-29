@@ -19,6 +19,13 @@ Targets:
   - `nextjs-byok-contract`: `baseline_directional_only`
   - `usb-hub-contract`: `baseline_directional_only`
 
+## Replay Boundary
+
+`governance_tools/run_round2_smoke.ps1` reproduces the Round 2 artifact package
+and schema-valid replay fixture.
+
+It does not by itself re-execute live agent behavior.
+
 ## Observed Result Class
 
 - Round 2 execution status: `execution_verified`
