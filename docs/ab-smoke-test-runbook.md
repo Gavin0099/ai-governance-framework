@@ -98,6 +98,12 @@ Artifact JSON fields must satisfy:
 
 If baseline is not `clean`, output must explicitly downgrade result claims per validator mapping.
 
+Schema validation command (mandatory before reviewer claim):
+
+```powershell
+python governance_tools/ab_smoke_artifact_validator.py --run-repo-root <RUN_REPO_ROOT> --format json
+```
+
 ## Anti-Drift Rules (Hard)
 
 - Do not modify prompt text after run starts.
