@@ -1,0 +1,19 @@
+{
+  "run_id": "2026-04-29-round1-smoke-001",
+  "repo_name": "cpp-userspace-contract",
+  "source_snapshot": "examples/cpp-userspace-contract",
+  "group_a_removed_surfaces": [
+    "AGENTS.md",
+    "contract.yaml",
+    "PLAN.md",
+    "rules/",
+    "validators/",
+    "artifacts/governance/*"
+  ],
+  "group_a_retained_surfaces": [
+    "README.md",
+    "src/*",
+    "tests/*"
+  ],
+  "protocol_mode": "round1_true_smoke_comparison"
+}
