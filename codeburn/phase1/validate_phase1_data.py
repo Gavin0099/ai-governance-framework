@@ -156,6 +156,8 @@ def validate(db_path: Path) -> dict:
 
 
 def main() -> int:
+    from codeburn_phase1_header import print_phase1_header  # noqa: PLC0415
+    print_phase1_header()
     parser = argparse.ArgumentParser(description="Validate CodeBurn Phase 1 data validity contract.")
     parser.add_argument("--db", required=True)
     parser.add_argument("--format", choices=("json",), default="json")

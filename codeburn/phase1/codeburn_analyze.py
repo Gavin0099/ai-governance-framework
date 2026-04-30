@@ -141,6 +141,9 @@ def build_analysis(db_path: Path, session_id: str | None = "latest") -> dict:
 
     analysis = {
         "ok": True,
+        "phase": "phase1",
+        "status": "closed",
+        "decision_usage_allowed": False,
         "session_id": resolved,
         "task": str(session["task"]),
         "data_quality": str(session["data_quality"]),
@@ -237,6 +240,8 @@ def print_analysis_text(analysis: dict) -> None:
 
 
 def main() -> int:
+    from codeburn_phase1_header import print_phase1_header  # noqa: PLC0415
+    print_phase1_header()
     parser = argparse.ArgumentParser(description="CodeBurn Phase 1 post-job analysis.")
     parser.add_argument("--db", default="codeburn/phase1/examples/phase1_demo.db")
     parser.add_argument("--session", default="latest")
