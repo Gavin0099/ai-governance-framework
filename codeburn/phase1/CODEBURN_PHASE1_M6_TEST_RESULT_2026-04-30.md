@@ -34,6 +34,7 @@ Observed:
 - `session-end` prints `CodeBurn Post-Job Analysis` block by default.
 - `session-end --no-analyze` suppresses analysis block.
 - Output remains observational only; no waste/enforcement claims.
+- Analysis includes explicit boundary footer and signal traceability (`derived_from_steps`).
 
 ## Test File Added
 - `tests/test_codeburn_phase1_analyze.py`
