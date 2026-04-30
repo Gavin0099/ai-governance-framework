@@ -28,6 +28,7 @@ from governance_tools.release_package_reader import (
 )
 from governance_tools.release_package_summary import assess_release_package
 from governance_tools.release_readiness import assess_release_readiness
+from governance_tools.structural_promotion_gate import evaluate_gate as evaluate_structural_promotion_gate
 
 
 def default_artifact_publication_manifest_path(project_root: Path, *, version: str) -> Path:
@@ -125,6 +126,10 @@ def _commands(version: str) -> list[dict[str, str]]:
             "name": "release_package_publication_reader_docs",
             "command": "python governance_tools/release_package_publication_reader.py --project-root . --docs-release-root --format human",
         },
+        {
+            "name": "structural_promotion_gate",
+            "command": "python governance_tools/structural_promotion_gate.py --memory-root memory --project-root .",
+        },
     ]
 
 
@@ -158,6 +163,11 @@ def assess_release_surface(
         project_root,
         require_register=authority_policy.require_register,
     )
+    structural_promotion = evaluate_structural_promotion_gate(
+        project_root / "memory",
+        project_root,
+        project_root / "governance" / "STRUCTURAL_PROMOTION_COVERAGE_CLOSEOUT_2026-04-30.md",
+    )
     lifecycle_effective = dict(escalation_authority.get("lifecycle_effective_by_escalation") or {})
     escalation_authority["lifecycle_effective_by_escalation"] = lifecycle_effective
     escalation_authority["precedence_applied"] = bool(
@@ -166,7 +176,12 @@ def assess_release_surface(
     )
 
     return {
-        "ok": readiness["ok"] and package["ok"] and bundle["ok"] and publication["ok"] and escalation_authority["ok"],
+        "ok": readiness["ok"]
+        and package["ok"]
+        and bundle["ok"]
+        and publication["ok"]
+        and escalation_authority["ok"]
+        and bool(structural_promotion.get("promotion_allowed")),
         "project_root": str(project_root),
         "version": version,
         "readiness": readiness,
@@ -180,6 +195,7 @@ def assess_release_surface(
             "policy_mode": authority_policy.policy_mode,
             "explicit_override": authority_policy.explicit_override,
         },
+        "structural_promotion": structural_promotion,
         "commands": _commands(version),
     }
 
@@ -190,6 +206,7 @@ def format_human_result(result: dict[str, Any]) -> str:
     bundle = result["bundle_manifest"]
     publication = result["publication_manifest"]
     escalation_authority = result["escalation_authority"]
+    structural_promotion = result.get("structural_promotion") or {}
     authority_policy = result.get("authority_rollout_policy") or {}
     summary_line = build_summary_line(
         f"ok={result['ok']}",
@@ -199,6 +216,7 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"bundle={'missing' if not bundle['available'] else bundle['ok']}",
         f"publication={'missing' if not publication['available'] else publication['ok']}",
         f"escalation_authority={'missing' if not escalation_authority['available'] else escalation_authority['ok']}",
+        f"structural_promotion={structural_promotion.get('promotion_allowed')}",
     )
     lines = [
         summary_line,
@@ -215,6 +233,7 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"escalation_authority_source={escalation_authority['source']}",
         f"authority_policy_mode={authority_policy.get('policy_mode')}",
         f"authority_policy_source={authority_policy.get('policy_source')}",
+        f"structural_promotion_allowed={structural_promotion.get('promotion_allowed')}",
     ]
     if bundle.get("manifest_file"):
         lines.append(f"bundle_manifest_file={bundle['manifest_file']}")
@@ -310,6 +329,17 @@ def format_human_result(result: dict[str, Any]) -> str:
             f"explicit_override={authority_policy.get('explicit_override')}",
         ]
     )
+    lines.append("[structural_promotion_gate]")
+    lines.extend(
+        [
+            f"ok={structural_promotion.get('ok')}",
+            f"promotion_allowed={structural_promotion.get('promotion_allowed')}",
+            f"failure_class={structural_promotion.get('failure_class')}",
+            f"claim_boundary={structural_promotion.get('claim_boundary')}",
+            f"test_execution_degraded_reason={structural_promotion.get('test_execution_degraded_reason')}",
+            f"blocked_reasons={','.join(structural_promotion.get('blocked_reasons') or [])}",
+        ]
+    )
 
     lines.append("[commands]")
     for item in result["commands"]:
@@ -324,6 +354,7 @@ def format_markdown_result(result: dict[str, Any]) -> str:
     bundle = result["bundle_manifest"]
     publication = result["publication_manifest"]
     escalation_authority = result["escalation_authority"]
+    structural_promotion = result.get("structural_promotion") or {}
     authority_policy = result.get("authority_rollout_policy") or {}
     summary_line = build_summary_line(
         f"ok={result['ok']}",
@@ -333,6 +364,7 @@ def format_markdown_result(result: dict[str, Any]) -> str:
         f"bundle={'missing' if not bundle['available'] else bundle['ok']}",
         f"publication={'missing' if not publication['available'] else publication['ok']}",
         f"escalation_authority={'missing' if not escalation_authority['available'] else escalation_authority['ok']}",
+        f"structural_promotion={structural_promotion.get('promotion_allowed')}",
     )
 
     lines = [
@@ -351,6 +383,7 @@ def format_markdown_result(result: dict[str, Any]) -> str:
         f"| Bundle manifest | `{'missing' if not bundle['available'] else bundle['ok']}` | source=`{bundle['source']}` manifest=`{bundle.get('manifest_file')}` |",
         f"| Publication manifest | `{'missing' if not publication['available'] else publication['ok']}` | source=`{publication['source']}` manifest=`{publication.get('manifest_file')}` |",
         f"| Escalation authority | `{'missing' if not escalation_authority['available'] else escalation_authority['ok']}` | source=`{escalation_authority['source']}` decision_source=`{escalation_authority.get('decision_source')}` register_required=`{escalation_authority.get('register_required_mode')}` register_present=`{escalation_authority.get('register_present')}` artifacts=`{escalation_authority.get('artifacts_read')}` precedence_applied=`{escalation_authority.get('precedence_applied')}` release_blocked=`{escalation_authority.get('release_blocked')}` |",
+        f"| Structural promotion gate | `{structural_promotion.get('promotion_allowed')}` | failure_class=`{structural_promotion.get('failure_class')}` claim_boundary=`{structural_promotion.get('claim_boundary')}` blocked=`{','.join(structural_promotion.get('blocked_reasons') or [])}` |",
         f"| Authority rollout policy | `{authority_policy.get('policy_mode')}` | source=`{authority_policy.get('policy_source')}` require_register=`{authority_policy.get('require_register')}` explicit_override=`{authority_policy.get('explicit_override')}` |",
         "",
         "### Escalation Lifecycle Effective State",

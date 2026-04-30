@@ -362,3 +362,78 @@ def test_release_surface_overview_explicit_override_beats_policy_file():
         assert result_explicit_override["authority_rollout_policy"]["explicit_override"] is True
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_release_surface_overview_includes_structural_promotion_gate(monkeypatch):
+    monkeypatch.setattr(
+        "governance_tools.release_surface_overview.assess_release_readiness",
+        lambda *_args, **_kwargs: {"ok": True, "checks": [], "warnings": [], "errors": []},
+    )
+    monkeypatch.setattr(
+        "governance_tools.release_surface_overview.assess_release_package",
+        lambda *_args, **_kwargs: {
+            "ok": True,
+            "existing_release_docs": 1,
+            "release_doc_count": 1,
+            "existing_status_docs": 1,
+            "status_doc_count": 1,
+        },
+    )
+    monkeypatch.setattr(
+        "governance_tools.release_surface_overview._assess_bundle_manifest",
+        lambda **_kwargs: {
+            "ok": True,
+            "available": True,
+            "source": "explicit",
+            "manifest_file": "x",
+        },
+    )
+    monkeypatch.setattr(
+        "governance_tools.release_surface_overview._assess_publication_manifest",
+        lambda **_kwargs: {
+            "ok": True,
+            "available": True,
+            "source": "explicit",
+            "manifest_file": "y",
+        },
+    )
+    monkeypatch.setattr(
+        "governance_tools.release_surface_overview.resolve_authority_rollout_policy",
+        lambda **_kwargs: type(
+            "Policy",
+            (),
+            {
+                "require_register": False,
+                "policy_source": "explicit_override",
+                "policy_mode": "non_strict",
+                "explicit_override": True,
+            },
+        )(),
+    )
+    monkeypatch.setattr(
+        "governance_tools.release_surface_overview.assess_authority_directory",
+        lambda *_args, **_kwargs: {
+            "ok": True,
+            "available": True,
+            "source": "authority-writer-monopoly",
+            "lifecycle_effective_by_escalation": {},
+            "release_blocked": False,
+            "artifacts_read": 0,
+        },
+    )
+    monkeypatch.setattr(
+        "governance_tools.release_surface_overview.evaluate_structural_promotion_gate",
+        lambda *_args, **_kwargs: {
+            "ok": False,
+            "promotion_allowed": False,
+            "failure_class": "runtime_unverifiable",
+            "blocked_reasons": ["claim_boundary_not_runtime_verified"],
+            "claim_boundary": "implementation_landed_not_runtime_verified",
+            "test_execution_degraded_reason": "pytest_basetemp_permission_error",
+        },
+    )
+
+    result = assess_release_surface(Path(".").resolve(), version="v1.0.0-alpha")
+    assert result["ok"] is False
+    assert result["structural_promotion"]["promotion_allowed"] is False
+    assert "claim_boundary_not_runtime_verified" in result["structural_promotion"]["blocked_reasons"]
