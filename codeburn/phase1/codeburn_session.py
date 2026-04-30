@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import sqlite3
 import subprocess
@@ -232,13 +233,18 @@ def session_end(args: argparse.Namespace) -> int:
     row = conn.execute("SELECT data_quality FROM sessions WHERE session_id=?", (open_sess.session_id,)).fetchone()
     data_quality = str(row["data_quality"]) if row and row["data_quality"] else DATA_QUALITY_COMPLETE
     _close_session(conn, open_sess.session_id, "manual", data_quality)
-    print(
-        json.dumps(
-            {"ok": True, "session_id": open_sess.session_id, "ended_at": _now_utc_iso(), "data_quality": data_quality},
-            ensure_ascii=False,
-            indent=2,
-        )
-    )
+    result = {"ok": True, "session_id": open_sess.session_id, "ended_at": _now_utc_iso(), "data_quality": data_quality}
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    if args.analyze:
+        analyze_path = Path(__file__).resolve().with_name("codeburn_analyze.py")
+        spec = importlib.util.spec_from_file_location("codeburn_phase1_analyze", analyze_path)
+        if spec and spec.loader:
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            analysis = module.build_analysis(db_path, open_sess.session_id)
+            if analysis.get("ok"):
+                print("")
+                module.print_analysis_text(analysis)
     return 0
 
 
@@ -273,7 +279,9 @@ def main() -> int:
         default="auto_close_previous",
     )
 
-    sub.add_parser("session-end")
+    p_end = sub.add_parser("session-end")
+    p_end.add_argument("--analyze", dest="analyze", action="store_true", default=True)
+    p_end.add_argument("--no-analyze", dest="analyze", action="store_false")
     sub.add_parser("session-status")
 
     args = parser.parse_args()
