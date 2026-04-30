@@ -75,6 +75,14 @@ def test_session_end_auto_promotes_low_risk_candidate(local_project_root):
     assert trace_payload["result"]["policy"]["reasoning_fragments"][0]["kind"] == "promotion-policy-reason"
     curated_payload = json.loads(Path(result["curated_artifact"]).read_text(encoding="utf-8"))
     assert curated_payload["curation_status"] == "CURATED"
+    assert result["claim_enforcement_check_artifact"] is not None
+    claim_check_path = Path(result["claim_enforcement_check_artifact"])
+    assert claim_check_path.exists()
+    claim_check = json.loads(claim_check_path.read_text(encoding="utf-8"))
+    assert claim_check["claim_source"] == "session_end_canonical_closeout"
+    assert claim_check["enforcement_action"] in {"allow", "downgrade", "block"}
+    assert isinstance(claim_check["reviewer_override_required"], bool)
+    assert isinstance(claim_check["reviewer_response"], dict)
 
 
 def test_session_end_appends_daily_memory_entry_with_required_fields(local_project_root):
