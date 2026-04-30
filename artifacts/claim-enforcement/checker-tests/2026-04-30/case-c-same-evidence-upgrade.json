@@ -1,0 +1,8 @@
+﻿{
+  "final_claim": "bounded_support",
+  "claim_level": "bounded_support",
+  "semantic_drift_risk": false,
+  "posture": "partial_falsification",
+  "previous_posture": "bounded_support",
+  "same_evidence_as_previous": true
+}
