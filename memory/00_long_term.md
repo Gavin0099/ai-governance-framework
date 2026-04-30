@@ -11,9 +11,10 @@
 
 ## Conventions
 <!-- memory_type: structural_long_term -->
-<!-- promotion_status: candidate -->
-<!-- proposed_by: ai / 2026-04-30 -->
-<!-- human_review_needed: confirm these conventions are still operative -->
+<!-- promotion_status: authoritative -->
+<!-- promoted_by: Gavin / 2026-04-30 -->
+<!-- promoted_at: 2026-04-30 -->
+<!-- source_anchor: AGENTS.md -->
 - Long-term memory must live in `memory/00_long_term.md` (not repo-root `MEMORY.md`).
 - In main sessions, after every push, write a short daily memory entry with `what changed`, `commit`, `tests`, and `next step`.
 - External/private tool memory (for example `C:\Users\reiko\.claude\projects\...\memory\MEMORY.md`) is not cross-agent governance authority; canonical cross-agent memory must be copied into repo `memory/`.
