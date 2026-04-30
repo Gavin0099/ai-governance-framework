@@ -26,9 +26,21 @@ def _session_metrics(conn: sqlite3.Connection, session_id: str) -> dict:
             (session_id,),
         ).fetchone()[0]
     )
+    provider_steps_with_tokens = int(
+        conn.execute(
+            "SELECT COUNT(*) FROM steps WHERE session_id=? AND token_source='provider' AND total_tokens IS NOT NULL",
+            (session_id,),
+        ).fetchone()[0]
+    )
+    token_observability_level = "none"
+    if provider_steps_with_tokens > 0:
+        token_observability_level = "step_level"
+    elif token_provider_steps > 0:
+        token_observability_level = "coarse"
     return {
         "step_count": step_count,
         "token_comparability": token_provider_steps > 0,
+        "token_observability_level": token_observability_level,
     }
 
 
@@ -47,6 +59,7 @@ def build_report(db_path: Path, session_id: str | None) -> dict:
         "task": str(row["task"]),
         "data_quality": str(row["data_quality"]),
         "token_comparability": metrics["token_comparability"],
+        "token_observability_level": metrics["token_observability_level"],
         "step_count": metrics["step_count"],
         "file_activity": "git-visible only",
         "file_reads": "unsupported",
@@ -61,6 +74,7 @@ def _print_text(report: dict) -> None:
     print(f"Task: {report['task']}")
     print(f"Data quality: {report['data_quality']}")
     print(f"Token comparability: {_bool_text(bool(report['token_comparability']))}")
+    print(f"Token observability level: {report['token_observability_level']}")
     print("File activity: git-visible only")
     print("File reads: unsupported")
     print(f"Step count: {report['step_count']}")

@@ -36,6 +36,29 @@ def _step_order(conn: sqlite3.Connection, session_id: str) -> list[sqlite3.Row]:
     ).fetchall()
 
 
+def _token_observability_level(conn: sqlite3.Connection, session_id: str) -> str:
+    rows = conn.execute(
+        """
+        SELECT token_source, total_tokens
+        FROM steps
+        WHERE session_id=?
+        """,
+        (session_id,),
+    ).fetchall()
+    if not rows:
+        return "none"
+
+    has_provider_source = any(str(r["token_source"] or "").strip() == "provider" for r in rows)
+    has_step_level_tokens = any(
+        str(r["token_source"] or "").strip() == "provider" and r["total_tokens"] is not None for r in rows
+    )
+    if has_step_level_tokens:
+        return "step_level"
+    if has_provider_source:
+        return "coarse"
+    return "none"
+
+
 def _derive_signal_steps(conn: sqlite3.Connection, session_id: str, signal: str, signal_step_id: str) -> list[str]:
     ordered = _step_order(conn, session_id)
     ids = [str(r["step_id"]) for r in ordered]
@@ -139,6 +162,7 @@ def build_analysis(db_path: Path, session_id: str | None = "latest") -> dict:
             }
         )
 
+    token_observability_level = _token_observability_level(conn, resolved)
     analysis = {
         "ok": True,
         "phase": "phase1",
@@ -148,6 +172,7 @@ def build_analysis(db_path: Path, session_id: str | None = "latest") -> dict:
         "task": str(session["task"]),
         "data_quality": str(session["data_quality"]),
         "token_comparability": False,
+        "token_observability_level": token_observability_level,
         "analysis_safe_for_decision": False,
         "step_count": step_count,
         "total_duration_ms": total_duration_ms,
@@ -165,7 +190,7 @@ def build_analysis(db_path: Path, session_id: str | None = "latest") -> dict:
         "changed_files": changed_files,
         "signals": signals,
         "observability_limits": {
-            "token_usage": "unknown",
+            "token_usage": token_observability_level,
             "file_reads": "unsupported",
             "file_activity": "git-visible only",
         },
@@ -190,6 +215,7 @@ def print_analysis_text(analysis: dict) -> None:
     print(f"  Task: {analysis['task']}")
     print(f"  Data quality: {analysis['data_quality']}")
     print(f"  Token comparability: {'true' if analysis['token_comparability'] else 'false'}")
+    print(f"  Token observability level: {analysis['token_observability_level']}")
     print("")
     print("Execution:")
     print(f"  Steps: {analysis['step_count']}")
@@ -229,7 +255,7 @@ def print_analysis_text(analysis: dict) -> None:
         print("  none")
     print("")
     print("Observability limits:")
-    print("  - Token usage: unknown")
+    print(f"  - Token usage: {analysis['token_observability_level']}")
     print("  - File reads: unsupported")
     print("  - File activity: git-visible only")
     print("")
