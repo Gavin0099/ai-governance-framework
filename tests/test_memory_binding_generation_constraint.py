@@ -22,7 +22,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from governance_tools.memory_authority_guard import (
     _entry_is_bound,
+    _parse_promotion_status,
     check_daily_memory,
+    check_structural_memory,
     run_guard,
 )
 from runtime_hooks.core.session_end import _resolve_memory_binding
@@ -254,3 +256,154 @@ def test_check_daily_memory_flags_pending_in_either_format(tmp_memory_root):
     assert len(violations) == 2
     reasons = {v["reason"] for v in violations}
     assert "commit_hash_pending_no_session_id" in reasons
+
+
+# ── structural promotion marker detection ────────────────────────────────────
+
+def _make_long_term(sections: list[tuple[str, str]], tmp_path: Path) -> Path:
+    """
+    Build a 00_long_term.md in tmp_path with given sections.
+    sections = [(heading, body_markdown), ...]
+    """
+    lines = ["# Long-Term Memory\n"]
+    for heading, body in sections:
+        lines.append(f"## {heading}\n{body}\n")
+    p = tmp_path / "00_long_term.md"
+    p.write_text("\n".join(lines), encoding="utf-8")
+    return p
+
+
+def test_parse_promotion_status_candidate():
+    text = "<!-- promotion_status: candidate -->"
+    assert _parse_promotion_status(text) == "candidate"
+
+
+def test_parse_promotion_status_authoritative():
+    text = "<!-- promotion_status: authoritative -->\n<!-- promoted_by: Gavin / 2026-04-30 -->"
+    assert _parse_promotion_status(text) == "authoritative"
+
+
+def test_parse_promotion_status_stale():
+    text = "<!-- promotion_status: stale -->"
+    assert _parse_promotion_status(text) == "stale"
+
+
+def test_parse_promotion_status_none_when_missing():
+    text = "Some section text without any markers"
+    assert _parse_promotion_status(text) == "none"
+
+
+def test_structural_candidate_section_is_info_not_warning(tmp_path):
+    """candidate sections emit info-severity, not warning."""
+    _make_long_term([
+        ("My Section",
+         "<!-- memory_type: structural_long_term -->\n"
+         "<!-- promotion_status: candidate -->\n"
+         "<!-- proposed_by: ai / 2026-04-30 -->\n"
+         "Some content here.\n"),
+    ], tmp_path)
+    violations, coverage = check_structural_memory(tmp_path)
+    assert coverage["total_sections"] == 1
+    assert coverage["promoted_sections"] == 0
+    assert len(violations) == 1
+    assert violations[0]["severity"] == "info"
+    assert violations[0]["reason"] == "not_yet_authoritative"
+    assert violations[0]["promotion_status"] == "candidate"
+
+
+def test_structural_no_marker_is_warning(tmp_path):
+    """Sections without any promotion marker emit warning-severity."""
+    _make_long_term([
+        ("My Section", "Some content without markers.\n"),
+    ], tmp_path)
+    violations, coverage = check_structural_memory(tmp_path)
+    assert len(violations) == 1
+    assert violations[0]["severity"] == "warning"
+    assert violations[0]["reason"] == "missing_marker"
+    assert violations[0]["promotion_status"] == "none"
+
+
+def test_structural_authoritative_with_promoted_by_is_clear(tmp_path):
+    """authoritative + promoted_by = no violation, counts in coverage rate."""
+    _make_long_term([
+        ("My Section",
+         "<!-- memory_type: structural_long_term -->\n"
+         "<!-- promotion_status: authoritative -->\n"
+         "<!-- promoted_by: Gavin / 2026-04-30 -->\n"
+         "<!-- source_anchor: commit:abc1234 -->\n"
+         "Confirmed content.\n"),
+    ], tmp_path)
+    violations, coverage = check_structural_memory(tmp_path)
+    assert coverage["total_sections"] == 1
+    assert coverage["promoted_sections"] == 1
+    assert len(violations) == 0
+
+
+def test_structural_authoritative_without_promoted_by_is_warning(tmp_path):
+    """authoritative without promoted_by = violation (missing_promoted_by)."""
+    _make_long_term([
+        ("My Section",
+         "<!-- promotion_status: authoritative -->\n"
+         "Content without promoted_by marker.\n"),
+    ], tmp_path)
+    violations, coverage = check_structural_memory(tmp_path)
+    assert coverage["promoted_sections"] == 0
+    assert len(violations) == 1
+    assert violations[0]["severity"] == "warning"
+    assert violations[0]["reason"] == "missing_promoted_by"
+
+
+def test_structural_stale_section_is_warning(tmp_path):
+    """stale sections emit warning-severity."""
+    _make_long_term([
+        ("Old Section",
+         "<!-- promotion_status: stale -->\n"
+         "<!-- stale_reason: superseded by v2 -->\n"
+         "Old content.\n"),
+    ], tmp_path)
+    violations, coverage = check_structural_memory(tmp_path)
+    assert violations[0]["severity"] == "warning"
+    assert violations[0]["reason"] == "stale_section"
+
+
+def test_structural_coverage_rate_mixed(tmp_path):
+    """Mixed sections: authoritative counts, candidate does not."""
+    _make_long_term([
+        ("Auth Section",
+         "<!-- promotion_status: authoritative -->\n"
+         "<!-- promoted_by: Gavin / 2026-04-30 -->\n"
+         "Confirmed.\n"),
+        ("Candidate Section",
+         "<!-- promotion_status: candidate -->\n"
+         "Proposed.\n"),
+        ("Unmarked Section", "No markers.\n"),
+    ], tmp_path)
+    violations, coverage = check_structural_memory(tmp_path)
+    assert coverage["total_sections"] == 3
+    assert coverage["promoted_sections"] == 1
+    assert coverage["promoted_sections"] / coverage["total_sections"] == pytest.approx(1/3, rel=1e-3)
+    # candidate (info) + unmarked (warning) = 2 violations
+    assert len(violations) == 2
+    severities = {v["severity"] for v in violations}
+    assert "info" in severities    # candidate
+    assert "warning" in severities  # missing_marker
+
+
+def test_structural_authority_coverage_rate_in_run_guard(tmp_path):
+    """run_guard authority_coverage_rate.structural reflects promoted sections."""
+    memory_root = tmp_path / "memory"
+    memory_root.mkdir()
+    _make_long_term([
+        ("Auth Section",
+         "<!-- promotion_status: authoritative -->\n"
+         "<!-- promoted_by: Gavin / 2026-04-30 -->\n"
+         "Confirmed.\n"),
+        ("Candidate Section",
+         "<!-- promotion_status: candidate -->\n"
+         "Proposed.\n"),
+    ], memory_root)
+    result = run_guard(memory_root, tmp_path, skip_git=True)
+    st = result["authority_coverage_rate"]["structural"]
+    assert st["total_sections"] == 2
+    assert st["promoted_sections"] == 1
+    assert st["rate"] == pytest.approx(0.5, rel=1e-3)
