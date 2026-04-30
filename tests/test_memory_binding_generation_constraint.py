@@ -110,9 +110,13 @@ def test_entry_is_bound_auto_generated_format():
     """Auto-generated entry uses 'commit:' (not 'commit hash:') — must be detected."""
     # Real hash in auto-generated format
     block = (
-        "- what_changed: session_end auto-closeout recorded for `task` "
+        "- memory_type: session-derived\n"
+        "  record_format_version: 1.0\n"
+        "  writer: governance_tools.memory_record\n"
+        "  what_changed: session_end auto-closeout recorded for `task` "
         "(session=session-20260430T120000-xyz, decision=AUTO_PROMOTE).\n"
         "  commit: dc69408\n"
+        "  commit_hash: dc69408\n"
         "  session_id: session-20260430T120000-xyz\n"
         "  memory_binding: bound\n"
         "  test_evidence: ok\n"
@@ -229,8 +233,12 @@ def test_check_daily_memory_detects_underscore_format(tmp_memory_root):
     """'- what_changed:' (auto-generated format with underscore) should be detected."""
     (tmp_memory_root / "2026-04-30.md").write_text(
         "# 2026-04-30\n\n"
-        "- what_changed: session_end auto-closeout\n"
+        "- memory_type: session-derived\n"
+        "  record_format_version: 1.0\n"
+        "  writer: governance_tools.memory_record\n"
+        "  what_changed: session_end auto-closeout\n"
         "  commit: dc69408\n"
+        "  commit_hash: dc69408\n"
         "  session_id: session-20260430T120000-abc\n"
         "  memory_binding: bound\n",
         encoding="utf-8",
@@ -245,7 +253,11 @@ def test_check_daily_memory_flags_pending_in_either_format(tmp_memory_root):
     """Both 'commit hash: pending' and 'commit: pending' should be flagged."""
     content = (
         "- what changed: entry A\n  commit hash: pending\n\n"
-        "- what_changed: entry B\n  commit: pending\n"
+        "- memory_type: session-derived\n"
+        "  record_format_version: 1.0\n"
+        "  writer: governance_tools.memory_record\n"
+        "  what_changed: entry B\n"
+        "  commit: pending\n"
     )
     (tmp_memory_root / "2026-04-30.md").write_text(
         f"# 2026-04-30\n\n{content}", encoding="utf-8"
@@ -256,6 +268,25 @@ def test_check_daily_memory_flags_pending_in_either_format(tmp_memory_root):
     assert len(violations) == 2
     reasons = {v["reason"] for v in violations}
     assert "commit_hash_pending_no_session_id" in reasons
+
+
+def test_check_daily_memory_flags_non_canonical_writer_for_session_derived(tmp_memory_root):
+    (tmp_memory_root / "2026-04-30.md").write_text(
+        "# 2026-04-30\n\n"
+        "- memory_type: session-derived\n"
+        "  record_format_version: 1.0\n"
+        "  writer: manual.editor\n"
+        "  what_changed: tampered write path\n"
+        "  commit: abc1234\n"
+        "  commit_hash: abc1234\n"
+        "  session_id: session-1\n"
+        "  memory_binding: bound\n",
+        encoding="utf-8",
+    )
+    violations, coverage = check_daily_memory(tmp_memory_root)
+    assert coverage["total_entries"] == 1
+    assert coverage["bound_entries"] == 1
+    assert any(v["code"] == "non_canonical_writer" for v in violations)
 
 
 # ── structural promotion marker detection ────────────────────────────────────

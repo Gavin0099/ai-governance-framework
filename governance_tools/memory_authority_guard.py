@@ -38,7 +38,7 @@ if __package__ in (None, ""):
 
 # Match both human-written ("commit hash:") and auto-generated ("commit:") entry formats.
 # A real hash is 5-40 hex chars.
-_ENTRY_SPLIT = re.compile(r'(?m)^(?=- what[_ ]changed:)')
+_ENTRY_SPLIT = re.compile(r'(?m)^(?=- (?:memory_type|what[_ ]changed):)')
 _COMMIT_RESOLVED = re.compile(
     r'commit(?:\s+hash)?:\s*`?([a-f0-9]{5,40})`?', re.IGNORECASE
 )
@@ -49,12 +49,16 @@ _COMMIT_UNCOMMITTED = re.compile(
     r'commit(?:\s+hash)?:\s*UNCOMMITTED', re.IGNORECASE
 )
 _SESSION_ID = re.compile(r'session[_\s]id:\s*(\S+)', re.IGNORECASE)
+_MEMORY_TYPE = re.compile(r'memory_type:\s*(\S+)', re.IGNORECASE)
+_WRITER = re.compile(r'writer:\s*(\S+)', re.IGNORECASE)
+_RECORD_FORMAT_VERSION = re.compile(r'record_format_version:\s*(\S+)', re.IGNORECASE)
 _PROMOTED_BY = re.compile(r'promoted_by:', re.IGNORECASE)
 _PROMOTION_STATUS = re.compile(r'<!--\s*promotion_status:\s*(\w+)', re.IGNORECASE)
 _SECTION_H2 = re.compile(r'^## ', re.MULTILINE)
 _PRIVATE_MEMORY_PATH = re.compile(
     r'[Cc]:\\[Uu]sers\\[^\\]+\\.claude\\projects', re.IGNORECASE
 )
+_CANONICAL_MEMORY_WRITER = "governance_tools.memory_record"
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -135,8 +139,11 @@ def check_daily_memory(
         entries = _ENTRY_SPLIT.split(text)
         for block in entries:
             stripped = block.strip()
-            if not (stripped.startswith('- what changed:')
-                    or stripped.startswith('- what_changed:')):
+            if not (
+                stripped.startswith('- what changed:')
+                or stripped.startswith('- what_changed:')
+                or stripped.startswith('- memory_type:')
+            ):
                 continue
             total_entries += 1
             bound, reason = _entry_is_bound(block)
@@ -150,6 +157,21 @@ def check_daily_memory(
                     'entry': _snippet(block),
                     'reason': reason,
                 })
+
+            memory_type_match = _MEMORY_TYPE.search(block)
+            memory_type = (memory_type_match.group(1).strip().lower() if memory_type_match else "")
+            writer_match = _WRITER.search(block)
+            writer = (writer_match.group(1).strip() if writer_match else "")
+            has_format_version = bool(_RECORD_FORMAT_VERSION.search(block))
+            if memory_type in {"session-derived", "session_derived"}:
+                if writer != _CANONICAL_MEMORY_WRITER or not has_format_version:
+                    violations.append({
+                        'code': 'non_canonical_writer',
+                        'severity': 'warning',
+                        'file': str(fpath.name),
+                        'entry': _snippet(block),
+                        'reason': 'session_derived_entry_not_written_by_memory_record',
+                    })
 
     coverage = {'total_entries': total_entries, 'bound_entries': bound_entries}
     return violations, coverage
