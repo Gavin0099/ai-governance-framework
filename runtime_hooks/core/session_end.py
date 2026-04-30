@@ -25,6 +25,7 @@ from governance_tools.decision_model_loader import build_runtime_policy_ref, fin
 from governance_tools.domain_governance_metadata import domain_risk_tier
 from governance_tools.execution_surface_coverage import build_execution_surface_coverage
 from governance_tools.claim_enforcement_checker import evaluate as evaluate_claim_enforcement
+from governance_tools.memory_record import append_session_derived_entry, build_session_derived_record
 from governance_tools.runtime_phase_policy import aggregate_phase_classifications, build_phase_classification
 from governance_tools.runtime_surface_manifest import build_runtime_surface_manifest
 from runtime_hooks.core._canonical_closeout import (
@@ -170,10 +171,6 @@ def _build_session_end_phase_classification(
     return build_phase_classification(action_ids=action_ids, hook="session_end")
 
 
-def _current_local_date() -> str:
-    return datetime.now().astimezone().date().isoformat()
-
-
 def _resolve_head_commit(project_root: Path) -> str:
     try:
         result = subprocess.run(
@@ -239,26 +236,26 @@ def _build_daily_memory_record(
     summary_text = summary.strip() or "Session closeout recorded without an explicit summary."
     commit = _resolve_head_commit(project_root)
     memory_binding = _resolve_memory_binding(commit, session_id)
-    return {
-        "what_changed": (
+    return build_session_derived_record(
+        what_changed=(
             f"session_end auto-closeout recorded for `{task}` "
             f"(session={session_id}, decision={decision}, snapshot_created={snapshot_created}, promoted={promoted}). "
             f"Summary: {summary_text}"
         ),
-        "commit": commit,
-        "session_id": session_id,
-        "memory_binding": memory_binding,
-        "test_evidence": (
+        commit=commit,
+        session_id=session_id,
+        memory_binding=memory_binding,
+        test_evidence=(
             f"`session_end` => canonical_closeout_status={canonical_closeout.get('closeout_status', 'unknown')}, "
             f"snapshot_created={snapshot_created}, promoted={promoted}, open_risk_count={len(open_risks)}"
         ),
-        "next_step": _default_next_step(
+        next_step=_default_next_step(
             decision=decision,
             promoted=promoted,
             open_risks=open_risks,
             canonical_closeout=canonical_closeout,
         ),
-    }
+    )
 
 
 def _append_daily_memory_entry(
@@ -272,12 +269,6 @@ def _append_daily_memory_entry(
     snapshot_created: bool,
     canonical_closeout: dict[str, Any],
 ) -> Path:
-    memory_root = project_root / "memory"
-    memory_root.mkdir(parents=True, exist_ok=True)
-    daily_path = memory_root / f"{_current_local_date()}.md"
-    if not daily_path.exists():
-        daily_path.write_text(f"# {_current_local_date()}\n\n", encoding="utf-8")
-
     record = _build_daily_memory_record(
         project_root=project_root,
         session_id=session_id,
@@ -288,19 +279,7 @@ def _append_daily_memory_entry(
         snapshot_created=snapshot_created,
         canonical_closeout=canonical_closeout,
     )
-    entry = (
-        f"- what_changed: {record['what_changed']}\n"
-        f"  commit: {record['commit']}\n"
-        f"  session_id: {record['session_id']}\n"
-        f"  memory_binding: {record['memory_binding']}\n"
-        f"  test_evidence: {record['test_evidence']}\n"
-        f"  next_step: {record['next_step']}\n"
-    )
-    with daily_path.open("a", encoding="utf-8") as fh:
-        if daily_path.stat().st_size > 0:
-            fh.write("\n")
-        fh.write(entry)
-    return daily_path
+    return append_session_derived_entry(project_root=project_root, record=record)
 
 
 def _force_runtime_failure_if_requested(checks: dict[str, Any], stage: str) -> None:

@@ -102,8 +102,12 @@ def test_session_end_appends_daily_memory_entry_with_required_fields(local_proje
     daily_memory_path = Path(result["daily_memory_path"])
     daily_text = daily_memory_path.read_text(encoding="utf-8")
 
-    assert "- what_changed:" in daily_text
+    assert "- memory_type: session-derived" in daily_text
+    assert "record_format_version:" in daily_text
+    assert "writer: governance_tools.memory_record" in daily_text
+    assert "what_changed:" in daily_text
     assert "commit:" in daily_text
+    assert "commit_hash:" in daily_text
     assert "session_id:" in daily_text
     assert "memory_binding:" in daily_text
     assert "test_evidence:" in daily_text
@@ -112,6 +116,8 @@ def test_session_end_appends_daily_memory_entry_with_required_fields(local_proje
     assert "Summary: Daily memory append test" in daily_text
     summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
     assert summary_payload["daily_memory_record"]["what_changed"]
+    assert summary_payload["daily_memory_record"]["memory_type"] == "session-derived"
+    assert summary_payload["daily_memory_record"]["writer"] == "governance_tools.memory_record"
     assert summary_payload["daily_memory_record"]["session_id"] == "2026-03-12-01-memory"
     assert summary_payload["daily_memory_record"]["memory_binding"] in {
         "bound", "bound_session_id", "unbound"
