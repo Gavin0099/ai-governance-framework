@@ -92,7 +92,7 @@ def _evaluate_claim_binding(project_root: Path) -> dict[str, Any]:
     }
 
 
-def build_closeout_audit(project_root: Path) -> dict[str, Any]:
+def build_closeout_audit(project_root: Path, require_claim_binding: bool = False) -> dict[str, Any]:
     """
     Scan ``artifacts/runtime/closeouts/`` under *project_root* and return
     aggregate closeout health statistics across all recorded sessions.
@@ -188,6 +188,12 @@ def build_closeout_audit(project_root: Path) -> dict[str, Any]:
 
     claim_binding = _evaluate_claim_binding(project_root)
 
+    claim_binding_required_violation = (
+        require_claim_binding and not claim_binding["closeout_claim_binding_valid"]
+    )
+    if claim_binding_required_violation:
+        policy_ok = False
+
     return {
         "ok": True,
         "policy_ok": policy_ok,
@@ -211,6 +217,8 @@ def build_closeout_audit(project_root: Path) -> dict[str, Any]:
         "future_gate_required": claim_binding["future_gate_required"],
         "invalid_reasons": claim_binding["invalid_reasons"],
         "claim_enforcement_check_count": claim_binding["claim_enforcement_check_count"],
+        "require_claim_binding": require_claim_binding,
+        "claim_binding_required_violation": claim_binding_required_violation,
     }
 
 
@@ -246,6 +254,8 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"claim_enforcement_check_count={result.get('claim_enforcement_check_count')}",
         f"closeout_claim_binding_valid={result.get('closeout_claim_binding_valid')}",
         f"future_gate_required={result.get('future_gate_required')}",
+        f"require_claim_binding={result.get('require_claim_binding', False)}",
+        f"claim_binding_required_violation={result.get('claim_binding_required_violation', False)}",
     ]
 
     # Policy flags: show even when all False for reviewer confirmation
@@ -279,7 +289,10 @@ def format_human_result(result: dict[str, Any]) -> str:
 
     invalid_reasons = result.get("invalid_reasons") or []
     if invalid_reasons:
-        lines.append("claim binding: future hard gate violation")
+        if result.get("require_claim_binding"):
+            lines.append("claim binding: hard gate violation")
+        else:
+            lines.append("claim binding: future hard gate violation")
         for reason in invalid_reasons:
             lines.append(f"claim_binding_invalid_reason={reason}")
 
@@ -305,6 +318,8 @@ def build_status_markdown(result: dict[str, Any]) -> str:
         f"- claim_enforcement_check_count: `{result.get('claim_enforcement_check_count')}`",
         f"- closeout_claim_binding_valid: `{result.get('closeout_claim_binding_valid')}`",
         f"- future_gate_required: `{result.get('future_gate_required')}`",
+        f"- require_claim_binding: `{result.get('require_claim_binding', False)}`",
+        f"- claim_binding_required_violation: `{result.get('claim_binding_required_violation', False)}`",
         "",
         "## Policy Flags",
         "",
@@ -352,7 +367,8 @@ def build_status_markdown(result: dict[str, Any]) -> str:
             "",
             "## Claim Binding (Future Hard Gate)",
             "",
-            "- claim binding: `future hard gate violation`",
+            "- claim binding: "
+            + ("`hard gate violation`" if result.get("require_claim_binding") else "`future hard gate violation`"),
         ])
         for reason in invalid_reasons:
             lines.append(f"- `{reason}`")
@@ -380,10 +396,15 @@ def main() -> int:
     parser.add_argument("--project-root", default=".")
     parser.add_argument("--format", choices=("human", "json"), default="human")
     parser.add_argument("--write", action="store_true", help="Write status outputs under docs/status/")
+    parser.add_argument(
+        "--require-claim-binding",
+        action="store_true",
+        help="Enable hard gate: claim-binding violations mark closeout audit as policy_not_ok.",
+    )
     args = parser.parse_args()
 
     project_root = Path(args.project_root).resolve()
-    result = build_closeout_audit(project_root)
+    result = build_closeout_audit(project_root, require_claim_binding=args.require_claim_binding)
     result["generated_at"] = datetime.now(timezone.utc).isoformat()
 
     if args.write:
