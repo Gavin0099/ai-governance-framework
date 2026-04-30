@@ -50,6 +50,7 @@ _COMMIT_UNCOMMITTED = re.compile(
 )
 _SESSION_ID = re.compile(r'session[_\s]id:\s*(\S+)', re.IGNORECASE)
 _PROMOTED_BY = re.compile(r'promoted_by:', re.IGNORECASE)
+_PROMOTION_STATUS = re.compile(r'<!--\s*promotion_status:\s*(\w+)', re.IGNORECASE)
 _SECTION_H2 = re.compile(r'^## ', re.MULTILINE)
 _PRIVATE_MEMORY_PATH = re.compile(
     r'[Cc]:\\[Uu]sers\\[^\\]+\\.claude\\projects', re.IGNORECASE
@@ -154,13 +155,32 @@ def check_daily_memory(
     return violations, coverage
 
 
+def _parse_promotion_status(section_text: str) -> str:
+    """
+    Extract promotion_status from HTML comment markers.
+    Returns one of: authoritative / candidate / stale / rejected / none
+    See: governance/STRUCTURAL_PROMOTION_CONTRACT.md
+    """
+    m = _PROMOTION_STATUS.search(section_text)
+    if not m:
+        return 'none'
+    return m.group(1).lower().strip()
+
+
 def check_structural_memory(
     memory_root: Path,
 ) -> tuple[list[dict[str, Any]], dict[str, int]]:
     """
     Check 2: structural_memory_auto_write
-    Scan 00_long_term.md for ## sections without a promoted_by marker.
-    Reports aggregate debt count; Phase 1 = info severity.
+    Scan 00_long_term.md for ## sections; classify by promotion_status marker.
+
+    Violation severity per state (STRUCTURAL_PROMOTION_CONTRACT.md):
+      none         → warning (missing_marker — section not yet reviewed)
+      candidate    → info   (not_yet_authoritative — AI-proposed, awaiting human)
+      stale        → warning (stale_section — needs update before use)
+      rejected     → info   (rejected_section — do not cite)
+      authoritative without promoted_by → warning (missing_promoted_by)
+      authoritative with promoted_by    → CLEAR (counts toward coverage rate)
 
     Returns (violations, coverage_stats).
     coverage_stats: {"total_sections": N, "promoted_sections": M}
@@ -190,20 +210,60 @@ def check_structural_memory(
         # Skip preamble (content before first ## heading)
         first_line = section.split('\n')[0].strip()
         if first_line.startswith('#'):
-            # This is a preamble fragment (e.g., "# Title" before first ##)
             continue
         total_sections += 1
         heading_line = '## ' + first_line
-        has_promoted = bool(_PROMOTED_BY.search(section))
-        if has_promoted:
+        promotion_status = _parse_promotion_status(section)
+        has_promoted_by = bool(_PROMOTED_BY.search(section))
+
+        if promotion_status == 'authoritative' and has_promoted_by:
             promoted_sections += 1
-        else:
+            # CLEAR — no violation
+        elif promotion_status == 'authoritative' and not has_promoted_by:
+            violations.append({
+                'code': 'structural_memory_auto_write',
+                'severity': 'warning',
+                'file': '00_long_term.md',
+                'section': heading_line[:80],
+                'promotion_status': promotion_status,
+                'reason': 'missing_promoted_by',
+            })
+        elif promotion_status == 'candidate':
             violations.append({
                 'code': 'structural_memory_auto_write',
                 'severity': 'info',
                 'file': '00_long_term.md',
                 'section': heading_line[:80],
-                'reason': 'missing_promoted_by',
+                'promotion_status': promotion_status,
+                'reason': 'not_yet_authoritative',
+            })
+        elif promotion_status == 'stale':
+            violations.append({
+                'code': 'structural_memory_auto_write',
+                'severity': 'warning',
+                'file': '00_long_term.md',
+                'section': heading_line[:80],
+                'promotion_status': promotion_status,
+                'reason': 'stale_section',
+            })
+        elif promotion_status == 'rejected':
+            violations.append({
+                'code': 'structural_memory_auto_write',
+                'severity': 'info',
+                'file': '00_long_term.md',
+                'section': heading_line[:80],
+                'promotion_status': promotion_status,
+                'reason': 'rejected_section',
+            })
+        else:
+            # promotion_status == 'none' — no marker at all
+            violations.append({
+                'code': 'structural_memory_auto_write',
+                'severity': 'warning',
+                'file': '00_long_term.md',
+                'section': heading_line[:80],
+                'promotion_status': 'none',
+                'reason': 'missing_marker',
             })
 
     coverage = {
@@ -327,7 +387,7 @@ def run_guard(
 
     return {
         'guard': 'memory_authority_guard',
-        'version': '1.1.0',
+        'version': '1.2.0',
         'contract': 'governance/MEMORY_AUTHORITY_CONTRACT.md',
         'phase': 'phase1',
         'mode': 'warning',
