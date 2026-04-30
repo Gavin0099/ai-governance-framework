@@ -159,9 +159,32 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Validate CodeBurn Phase 1 data validity contract.")
     parser.add_argument("--db", required=True)
     parser.add_argument("--format", choices=("json",), default="json")
+    parser.add_argument(
+        "--include-analysis",
+        action="store_true",
+        help="Also run analysis contract enforcement (M7) for the given session.",
+    )
+    parser.add_argument(
+        "--session",
+        default="latest",
+        help="Session ID or 'latest' for --include-analysis (default: latest)",
+    )
     args = parser.parse_args()
 
-    result = validate(Path(args.db).resolve())
+    db = Path(args.db).resolve()
+    result = validate(db)
+
+    if args.include_analysis:
+        from codeburn_validate_analysis import validate_analysis  # noqa: PLC0415
+
+        analysis_result = validate_analysis(db, args.session)
+        result["analysis_contract"] = analysis_result
+        if not analysis_result["ok"]:
+            result["ok"] = False
+            for v in analysis_result["violations"]:
+                result["findings"].append(f"analysis_contract_violation:{v}")
+            result["finding_count"] = len(result["findings"])
+
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result["ok"] else 1
 
