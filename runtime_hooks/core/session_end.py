@@ -602,6 +602,7 @@ def _build_verdict_artifact(
     contract_resolution: dict[str, Any],
     domain_contract: dict[str, Any],
     decision_context: dict[str, str],
+    runtime_completeness: dict[str, bool],
 ) -> dict[str, Any]:
     override_present = bool(checks.get("override_trace") or checks.get("reviewer_override"))
     escalation_present = decision == "REVIEW_REQUIRED" or contract.get("oversight") != "auto"
@@ -654,6 +655,7 @@ def _build_verdict_artifact(
             "governance_escalation_present": governance_escalation_present,
             "governance_escalation_type": governance_escalation_type,
         },
+        "runtime_completeness": runtime_completeness,
     }
 
 
@@ -735,6 +737,7 @@ def _build_trace_artifact(
     contract_resolution: dict[str, Any],
     domain_contract: dict[str, Any],
     decision_context: dict[str, str],
+    runtime_completeness: dict[str, bool],
 ) -> dict[str, Any]:
     return {
         "schema_version": "1.0",
@@ -770,6 +773,7 @@ def _build_trace_artifact(
             "override_present": bool(checks.get("override_trace") or checks.get("reviewer_override")),
             "escalation_present": decision == "REVIEW_REQUIRED" or contract.get("oversight") != "auto",
         },
+        "runtime_completeness": runtime_completeness,
     }
 
 
@@ -1017,6 +1021,26 @@ def run_session_end(
             "error_count": len(errors),
             "decision_context": decision_context,
         }
+        _write_json(candidate_path, candidate_payload)
+        curated_result = curate_candidate_artifact(candidate_path, output_path=curated_path)
+        _write_json(summary_path, summary_payload)
+        _write_json(runtime_phase_summary_path, runtime_phase_summary)
+        closeout_path = write_canonical_closeout(canonical_closeout, project_root)
+        _append_session_index(canonical_closeout, project_root)
+        claim_enforcement_check_path = _emit_claim_enforcement_check(
+            project_root=project_root,
+            session_id=session_id,
+            canonical_closeout=canonical_closeout,
+            summary=summary,
+        )
+        runtime_completeness = {
+            "session_end_invoked": True,
+            "canonical_closeout_written": closeout_path is not None and closeout_path.exists(),
+            "claim_binding_written": (
+                claim_enforcement_check_path is not None
+                and claim_enforcement_check_path.exists()
+            ),
+        }
         verdict_payload = _build_verdict_artifact(
             session_id=session_id,
             now=now,
@@ -1028,6 +1052,7 @@ def run_session_end(
             contract_resolution=contract_resolution,
             domain_contract=domain_contract,
             decision_context=decision_context,
+            runtime_completeness=runtime_completeness,
         )
         trace_payload = _build_trace_artifact(
             session_id=session_id,
@@ -1041,22 +1066,10 @@ def run_session_end(
             contract_resolution=contract_resolution,
             domain_contract=domain_contract,
             decision_context=decision_context,
+            runtime_completeness=runtime_completeness,
         )
-
-        _write_json(candidate_path, candidate_payload)
-        curated_result = curate_candidate_artifact(candidate_path, output_path=curated_path)
-        _write_json(summary_path, summary_payload)
         _write_json(verdict_path, verdict_payload)
         _write_json(trace_path, trace_payload)
-        _write_json(runtime_phase_summary_path, runtime_phase_summary)
-        closeout_path = write_canonical_closeout(canonical_closeout, project_root)
-        _append_session_index(canonical_closeout, project_root)
-        claim_enforcement_check_path = _emit_claim_enforcement_check(
-            project_root=project_root,
-            session_id=session_id,
-            canonical_closeout=canonical_closeout,
-            summary=summary,
-        )
         if contract["memory_mode"] != "stateless":
             daily_memory_path = _append_daily_memory_entry(
                 project_root=project_root,
@@ -1108,6 +1121,11 @@ def run_session_end(
         "claim_enforcement_check_artifact": str(claim_enforcement_check_path) if claim_enforcement_check_path else None,
         "canonical_closeout": canonical_closeout,
         "decision_context": decision_context,
+        "runtime_completeness": runtime_completeness if 'runtime_completeness' in locals() else {
+            "session_end_invoked": True,
+            "canonical_closeout_written": False,
+            "claim_binding_written": False,
+        },
         "warnings": warnings,
         "errors": errors,
     }
