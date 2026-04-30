@@ -1,20 +1,37 @@
 # Long-Term Memory
 
 ## Identity And Account Mapping
+<!-- memory_type: structural_long_term -->
+<!-- promotion_status: candidate -->
+<!-- proposed_by: ai / 2026-04-30 -->
+<!-- human_review_needed: confirm account names and email are still current -->
 - GitHub upload account: `Gavin0099`
 - GitLab upload account: `GavinWu`
 - git config user.email for GitLab pushes: `Gavin.Wu@genesyslogic.com.tw`
 
 ## Conventions
+<!-- memory_type: structural_long_term -->
+<!-- promotion_status: candidate -->
+<!-- proposed_by: ai / 2026-04-30 -->
+<!-- human_review_needed: confirm these conventions are still operative -->
 - Long-term memory must live in `memory/00_long_term.md` (not repo-root `MEMORY.md`).
 - In main sessions, after every push, write a short daily memory entry with `what changed`, `commit`, `tests`, and `next step`.
 - External/private tool memory (for example `C:\Users\reiko\.claude\projects\...\memory\MEMORY.md`) is not cross-agent governance authority; canonical cross-agent memory must be copied into repo `memory/`.
 
 ## Workflow Preferences
+<!-- memory_type: structural_long_term -->
+<!-- promotion_status: candidate -->
+<!-- proposed_by: ai / 2026-04-30 -->
+<!-- human_review_needed: confirm strict loop and dual-push policy still apply -->
 - User requires a strict loop: after each completed change, update the corresponding `memory/YYYY-MM-DD.md` entry and push.
 - User requires every completed change to be pushed to both `gitlab` and `origin` (GitHub), with author identity intentionally separated per remote.
 
 ## Governance State (cross-agent readable facts)
+<!-- memory_type: structural_long_term -->
+<!-- promotion_status: candidate -->
+<!-- proposed_by: ai / 2026-04-30 -->
+<!-- source_anchor: artifact:artifacts/governance/phase-d-reviewer-closeout.json -->
+<!-- human_review_needed: verify phase table, version number, and runtime boundary are current -->
 
 > This section is the authoritative in-repo governance state for agents that cannot
 > access Claude Code's private project memory (C:\Users\reiko\.claude\projects\...\memory\MEMORY.md).
@@ -61,6 +78,11 @@ Source: `governance_tools/phase_d_closeout_writer.py::REQUIRED_CONDITIONS`
 - **Not yet implemented**: F4 immutability hash, F16/F17 exception authority artifact path
 
 ## CodeBurn Phase 1 Status (2026-04-30)
+<!-- memory_type: structural_long_term -->
+<!-- promotion_status: candidate -->
+<!-- proposed_by: ai / 2026-04-30 -->
+<!-- source_anchor: commit:1398417 -->
+<!-- human_review_needed: confirm CodeBurn phase summary is accurate before citing as authority -->
 
 > Cross-agent readable. See `codeburn/README.md` for full navigation.
 
@@ -84,6 +106,10 @@ Source: `governance_tools/phase_d_closeout_writer.py::REQUIRED_CONDITIONS`
 ---
 
 ## Claim Discipline Guardrail
+<!-- memory_type: structural_long_term -->
+<!-- promotion_status: candidate -->
+<!-- proposed_by: ai / 2026-04-30 -->
+<!-- human_review_needed: confirm claim discipline rules are still operative -->
 - Canonical short-form claim constitution is `docs/CLAIM_BOUNDARY.md`.
 - Non-negotiable rule: if wording is ambiguous, downgrade claim instead of upgrading certainty.
 - Prevent semantic drift from `bounded_support` toward `governance proven`.
