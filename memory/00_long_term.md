@@ -60,6 +60,29 @@ Source: `governance_tools/phase_d_closeout_writer.py::REQUIRED_CONDITIONS`
   wrong scope (RI-4), retroactive signing — runtime cannot machine-verify
 - **Not yet implemented**: F4 immutability hash, F16/F17 exception authority artifact path
 
+## CodeBurn Phase 1 Status (2026-04-30)
+
+> Cross-agent readable. See `codeburn/README.md` for full navigation.
+
+- **Phase 1: CLOSED** — 9 milestones (M1–M9) all passed runtime smoke
+- Entry page: `codeburn/phase1/CODEBURN_PHASE1_STATUS.md`
+- Governance contract: `codeburn/phase1/CODEBURN_PHASE1_ANALYSIS_CONTRACT.md` (v1.0.0)
+- Phase 2 limits: `codeburn/phase1/CODEBURN_PHASE2_ENTRY_CONSTRAINTS.md`
+
+**Permanent invariants (must not change without CODEBURN_DECISION_AUTHORITY_CONTRACT.md):**
+- `analysis_safe_for_decision: false` — all JSON output
+- `decision_usage_allowed: false` — all JSON output
+
+**Phase 2 entry criteria (P1–P4 all required):**
+- P1: 7 pytest test files pass in clean environment
+- P2: forbidden phrase scanner excludes user metadata fields
+- P3: all extensions follow §7 amendment process
+- P4: `validate_phase1_data.py --include-analysis` is CI gate
+
+**Known limitation L1:** phrase scanner includes user task name → false positive if task contains forbidden word.
+
+---
+
 ## Claim Discipline Guardrail
 - Canonical short-form claim constitution is `docs/CLAIM_BOUNDARY.md`.
 - Non-negotiable rule: if wording is ambiguous, downgrade claim instead of upgrading certainty.
