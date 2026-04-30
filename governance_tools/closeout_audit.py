@@ -53,6 +53,9 @@ def _evaluate_claim_binding(project_root: Path) -> dict[str, Any]:
     checks_root = project_root / "artifacts" / "claim-enforcement"
     check_files = sorted(checks_root.rglob("claim-enforcement-check.json")) if checks_root.exists() else []
     reasons: list[str] = []
+    drift_count = 0
+    override_count = 0
+    invalid_override_count = 0
 
     if not check_files:
         reasons.append("missing_claim_enforcement_check")
@@ -66,7 +69,10 @@ def _evaluate_claim_binding(project_root: Path) -> dict[str, Any]:
 
         enforcement_action = str(payload.get("enforcement_action", "")).strip()
         reviewer_override_required = bool(payload.get("reviewer_override_required", False))
+        semantic_drift_risk = bool(payload.get("semantic_drift_risk", False))
         reviewer_response = payload.get("reviewer_response")
+        if semantic_drift_risk:
+            drift_count += 1
 
         if enforcement_action and enforcement_action != "allow":
             decision = None
@@ -74,6 +80,8 @@ def _evaluate_claim_binding(project_root: Path) -> dict[str, Any]:
                 decision = reviewer_response.get("decision")
             if not isinstance(decision, str) or not decision.strip():
                 reasons.append("missing_reviewer_response")
+            elif decision.strip() == "override":
+                override_count += 1
 
         if reviewer_override_required:
             override_reason = None
@@ -81,14 +89,27 @@ def _evaluate_claim_binding(project_root: Path) -> dict[str, Any]:
                 override_reason = reviewer_response.get("override_reason")
             if not isinstance(override_reason, str) or not override_reason.strip():
                 reasons.append("missing_override_reason")
+                invalid_override_count += 1
+            else:
+                lowered = override_reason.lower()
+                if "evidence_ref:" not in lowered and "risk_ack:" not in lowered:
+                    reasons.append("weak_override_reason")
+                    invalid_override_count += 1
 
     unique_reasons = sorted(set(reasons))
     valid = len(unique_reasons) == 0
+    check_count = len(check_files)
+    drift_rate = round(drift_count / check_count, 3) if check_count > 0 else None
+    override_rate = round(override_count / check_count, 3) if check_count > 0 else None
+    invalid_override_rate = round(invalid_override_count / check_count, 3) if check_count > 0 else None
     return {
         "closeout_claim_binding_valid": valid,
         "future_gate_required": not valid,
         "invalid_reasons": unique_reasons,
-        "claim_enforcement_check_count": len(check_files),
+        "claim_enforcement_check_count": check_count,
+        "drift_rate": drift_rate,
+        "override_rate": override_rate,
+        "invalid_override_rate": invalid_override_rate,
     }
 
 
@@ -217,6 +238,9 @@ def build_closeout_audit(project_root: Path, require_claim_binding: bool = False
         "future_gate_required": claim_binding["future_gate_required"],
         "invalid_reasons": claim_binding["invalid_reasons"],
         "claim_enforcement_check_count": claim_binding["claim_enforcement_check_count"],
+        "drift_rate": claim_binding["drift_rate"],
+        "override_rate": claim_binding["override_rate"],
+        "invalid_override_rate": claim_binding["invalid_override_rate"],
         "require_claim_binding": require_claim_binding,
         "claim_binding_required_violation": claim_binding_required_violation,
     }
@@ -252,6 +276,9 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"recent_7d_valid_rate={recent_rate}",
         f"has_open_risks_count={result['has_open_risks_count']}",
         f"claim_enforcement_check_count={result.get('claim_enforcement_check_count')}",
+        f"drift_rate={result.get('drift_rate')}",
+        f"override_rate={result.get('override_rate')}",
+        f"invalid_override_rate={result.get('invalid_override_rate')}",
         f"closeout_claim_binding_valid={result.get('closeout_claim_binding_valid')}",
         f"future_gate_required={result.get('future_gate_required')}",
         f"require_claim_binding={result.get('require_claim_binding', False)}",
@@ -316,6 +343,9 @@ def build_status_markdown(result: dict[str, Any]) -> str:
         f"- recent_7d_valid_rate: `{result['recent_7d_valid_rate']}`",
         f"- has_open_risks_count: `{result['has_open_risks_count']}`",
         f"- claim_enforcement_check_count: `{result.get('claim_enforcement_check_count')}`",
+        f"- drift_rate: `{result.get('drift_rate')}`",
+        f"- override_rate: `{result.get('override_rate')}`",
+        f"- invalid_override_rate: `{result.get('invalid_override_rate')}`",
         f"- closeout_claim_binding_valid: `{result.get('closeout_claim_binding_valid')}`",
         f"- future_gate_required: `{result.get('future_gate_required')}`",
         f"- require_claim_binding: `{result.get('require_claim_binding', False)}`",

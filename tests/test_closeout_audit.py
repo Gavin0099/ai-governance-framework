@@ -284,6 +284,76 @@ class TestClaimBindingFutureGateFields:
         assert result["future_gate_required"] is True
         assert "missing_override_reason" in result["invalid_reasons"]
 
+    def test_weak_override_reason_is_invalid(self):
+        repo = _reset_fixture("claim_binding_weak_override_reason")
+        _write_closeout(repo, "s1", "valid")
+        d = repo / "artifacts" / "claim-enforcement" / "case1"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "claim-enforcement-check.json").write_text(
+            json.dumps(
+                {
+                    "semantic_drift_risk": True,
+                    "enforcement_action": "downgrade",
+                    "reviewer_override_required": True,
+                    "reviewer_response": {
+                        "decision": "override",
+                        "override_reason": "looks fine",
+                    },
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        result = build_closeout_audit(repo)
+        assert result["closeout_claim_binding_valid"] is False
+        assert "weak_override_reason" in result["invalid_reasons"]
+
+    def test_claim_binding_rates_are_emitted(self):
+        repo = _reset_fixture("claim_binding_rates")
+        _write_closeout(repo, "s1", "valid")
+        d1 = repo / "artifacts" / "claim-enforcement" / "c1"
+        d1.mkdir(parents=True, exist_ok=True)
+        (d1 / "claim-enforcement-check.json").write_text(
+            json.dumps(
+                {
+                    "semantic_drift_risk": True,
+                    "enforcement_action": "downgrade",
+                    "reviewer_override_required": True,
+                    "reviewer_response": {
+                        "decision": "override",
+                        "override_reason": "evidence_ref: artifacts/x.json",
+                    },
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        d2 = repo / "artifacts" / "claim-enforcement" / "c2"
+        d2.mkdir(parents=True, exist_ok=True)
+        (d2 / "claim-enforcement-check.json").write_text(
+            json.dumps(
+                {
+                    "semantic_drift_risk": False,
+                    "enforcement_action": "allow",
+                    "reviewer_override_required": False,
+                    "reviewer_response": {
+                        "decision": "accept",
+                        "override_reason": None,
+                    },
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        result = build_closeout_audit(repo)
+        assert result["claim_enforcement_check_count"] == 2
+        assert result["drift_rate"] == 0.5
+        assert result["override_rate"] == 0.5
+        assert result["invalid_override_rate"] == 0.0
+
     def test_advisory_mode_does_not_force_policy_not_ok(self):
         repo = _reset_fixture("claim_binding_advisory_mode")
         _write_closeout(repo, "s1", "valid")
