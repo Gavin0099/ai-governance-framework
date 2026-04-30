@@ -97,6 +97,12 @@ if those conditions are not yet met.
 Within the constraints above, Phase 2 may:
 
 - Add token observability (with new observability contract)
+  - first slice must be observability-level only:
+    - `token_observability_level: none | coarse | step_level`
+  - this slice must not introduce waste/efficiency/correctness judgment
+  - this slice must preserve:
+    - `"analysis_safe_for_decision": false`
+    - `"decision_usage_allowed": false`
 - Add cross-session comparison (with explicit comparability conditions)
 - Add new signal types (must document in §3.3 or Phase 2 signal extension)
 - Add new analysis output fields (must not conflict with Phase 1 non-claims)
