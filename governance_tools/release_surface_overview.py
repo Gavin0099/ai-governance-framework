@@ -195,6 +195,10 @@ def assess_release_surface(
             "policy_mode": authority_policy.policy_mode,
             "explicit_override": authority_policy.explicit_override,
         },
+        "structural_promotion_allowed": bool(structural_promotion.get("promotion_allowed", False)),
+        "structural_failure_class": str(structural_promotion.get("failure_class", "")),
+        "structural_blocked_reasons": list(structural_promotion.get("blocked_reasons") or []),
+        "structural_authority_rate": structural_promotion.get("structural_authority_rate"),
         "structural_promotion": structural_promotion,
         "commands": _commands(version),
     }
