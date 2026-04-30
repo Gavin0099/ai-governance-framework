@@ -284,6 +284,24 @@ class TestClaimBindingFutureGateFields:
         assert result["future_gate_required"] is True
         assert "missing_override_reason" in result["invalid_reasons"]
 
+    def test_advisory_mode_does_not_force_policy_not_ok(self):
+        repo = _reset_fixture("claim_binding_advisory_mode")
+        _write_closeout(repo, "s1", "valid")
+        result = build_closeout_audit(repo, require_claim_binding=False)
+        assert result["closeout_claim_binding_valid"] is False
+        assert result["future_gate_required"] is True
+        assert result["claim_binding_required_violation"] is False
+        assert result["policy_ok"] is True
+
+    def test_require_mode_enforces_policy_not_ok(self):
+        repo = _reset_fixture("claim_binding_require_mode")
+        _write_closeout(repo, "s1", "valid")
+        result = build_closeout_audit(repo, require_claim_binding=True)
+        assert result["closeout_claim_binding_valid"] is False
+        assert result["future_gate_required"] is True
+        assert result["claim_binding_required_violation"] is True
+        assert result["policy_ok"] is False
+
 
 class TestFormatHumanResult:
     def test_contains_section_headers(self):
