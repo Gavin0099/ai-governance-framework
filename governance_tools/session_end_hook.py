@@ -41,6 +41,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from runtime_hooks.core.session_end import run_session_end
+from runtime_hooks.core._canonical_closeout import write_candidate
 from governance_tools.gate_policy import (
     load_policy,
     classify_artifact,
@@ -569,6 +570,23 @@ def _determine_memory_tier(
         # content is meaningful even if evidence cross-ref failed or was unchecked
         return MEMORY_TIER_WORKING
     return MEMORY_TIER_NONE
+
+
+def _split_csv_field(value: str) -> list[str]:
+    raw = (value or "").strip()
+    if not raw or raw.upper() in {"NONE", "NO_UPDATE"}:
+        return []
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _build_closeout_candidate_from_fields(fields: dict[str, str]) -> dict[str, Any]:
+    return {
+        "task_intent": fields.get("TASK_INTENT", "").strip(),
+        "work_summary": fields.get("WORK_COMPLETED", "").strip(),
+        "tools_used": _extract_tool_names(fields.get("CHECKS_RUN", "")),
+        "artifacts_referenced": _split_csv_field(fields.get("FILES_TOUCHED", "")),
+        "open_risks": _split_csv_field(fields.get("OPEN_RISKS", "")),
+    }
 
 
 # ── Classification aggregate ──────────────────────────────────────────────────
@@ -1345,6 +1363,15 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         if memory_tier in {MEMORY_TIER_VERIFIED, MEMORY_TIER_WORKING}
         else ""
     )
+
+    if clf["presence"] == PRESENT and clf["schema_validity"] == SCHEMA_VALID:
+        # Bridge session-closeout input into canonical closeout pipeline so
+        # session_end can build non-missing canonical artifacts for this session.
+        write_candidate(
+            session_id=session_id,
+            project_root=project_root,
+            candidate=_build_closeout_candidate_from_fields(fields),
+        )
 
     result = run_session_end(
         project_root=project_root,
