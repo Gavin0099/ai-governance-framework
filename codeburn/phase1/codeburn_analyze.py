@@ -20,7 +20,7 @@ def _resolve_session_id(conn: sqlite3.Connection, session_id: str | None) -> str
     if session_id and session_id != "latest":
         row = conn.execute("SELECT session_id FROM sessions WHERE session_id=?", (session_id,)).fetchone()
         return str(row[0]) if row else None
-    row = conn.execute("SELECT session_id FROM sessions ORDER BY created_at DESC LIMIT 1").fetchone()
+    row = conn.execute("SELECT session_id FROM sessions ORDER BY created_at DESC, session_id DESC LIMIT 1").fetchone()
     return str(row[0]) if row else None
 
 
@@ -122,7 +122,7 @@ def build_analysis(db_path: Path, session_id: str | None = "latest") -> dict:
         SELECT signal, confidence, source, step_id
         FROM signals
         WHERE session_id=?
-        ORDER BY id ASC
+        ORDER BY id ASC, step_id ASC
         """,
         (resolved,),
     ).fetchall()
