@@ -56,6 +56,8 @@ def _evaluate_claim_binding(project_root: Path) -> dict[str, Any]:
     drift_count = 0
     override_count = 0
     invalid_override_count = 0
+    downgrade_count = 0
+    blocked_count = 0
 
     if not check_files:
         reasons.append("missing_claim_enforcement_check")
@@ -73,6 +75,10 @@ def _evaluate_claim_binding(project_root: Path) -> dict[str, Any]:
         reviewer_response = payload.get("reviewer_response")
         if semantic_drift_risk:
             drift_count += 1
+        if enforcement_action == "downgrade":
+            downgrade_count += 1
+        elif enforcement_action == "block":
+            blocked_count += 1
 
         if enforcement_action and enforcement_action != "allow":
             decision = None
@@ -100,6 +106,8 @@ def _evaluate_claim_binding(project_root: Path) -> dict[str, Any]:
     valid = len(unique_reasons) == 0
     check_count = len(check_files)
     drift_rate = round(drift_count / check_count, 3) if check_count > 0 else None
+    downgrade_rate = round(downgrade_count / check_count, 3) if check_count > 0 else None
+    blocked_rate = round(blocked_count / check_count, 3) if check_count > 0 else None
     override_rate = round(override_count / check_count, 3) if check_count > 0 else None
     invalid_override_rate = round(invalid_override_count / check_count, 3) if check_count > 0 else None
     return {
@@ -108,6 +116,8 @@ def _evaluate_claim_binding(project_root: Path) -> dict[str, Any]:
         "invalid_reasons": unique_reasons,
         "claim_enforcement_check_count": check_count,
         "drift_rate": drift_rate,
+        "downgrade_rate": downgrade_rate,
+        "blocked_rate": blocked_rate,
         "override_rate": override_rate,
         "invalid_override_rate": invalid_override_rate,
     }
@@ -239,6 +249,8 @@ def build_closeout_audit(project_root: Path, require_claim_binding: bool = False
         "invalid_reasons": claim_binding["invalid_reasons"],
         "claim_enforcement_check_count": claim_binding["claim_enforcement_check_count"],
         "drift_rate": claim_binding["drift_rate"],
+        "downgrade_rate": claim_binding["downgrade_rate"],
+        "blocked_rate": claim_binding["blocked_rate"],
         "override_rate": claim_binding["override_rate"],
         "invalid_override_rate": claim_binding["invalid_override_rate"],
         "require_claim_binding": require_claim_binding,
@@ -277,6 +289,8 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"has_open_risks_count={result['has_open_risks_count']}",
         f"claim_enforcement_check_count={result.get('claim_enforcement_check_count')}",
         f"drift_rate={result.get('drift_rate')}",
+        f"downgrade_rate={result.get('downgrade_rate')}",
+        f"blocked_rate={result.get('blocked_rate')}",
         f"override_rate={result.get('override_rate')}",
         f"invalid_override_rate={result.get('invalid_override_rate')}",
         f"closeout_claim_binding_valid={result.get('closeout_claim_binding_valid')}",
@@ -344,6 +358,8 @@ def build_status_markdown(result: dict[str, Any]) -> str:
         f"- has_open_risks_count: `{result['has_open_risks_count']}`",
         f"- claim_enforcement_check_count: `{result.get('claim_enforcement_check_count')}`",
         f"- drift_rate: `{result.get('drift_rate')}`",
+        f"- downgrade_rate: `{result.get('downgrade_rate')}`",
+        f"- blocked_rate: `{result.get('blocked_rate')}`",
         f"- override_rate: `{result.get('override_rate')}`",
         f"- invalid_override_rate: `{result.get('invalid_override_rate')}`",
         f"- closeout_claim_binding_valid: `{result.get('closeout_claim_binding_valid')}`",

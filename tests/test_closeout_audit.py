@@ -348,10 +348,30 @@ class TestClaimBindingFutureGateFields:
             ),
             encoding="utf-8",
         )
+        d3 = repo / "artifacts" / "claim-enforcement" / "c3"
+        d3.mkdir(parents=True, exist_ok=True)
+        (d3 / "claim-enforcement-check.json").write_text(
+            json.dumps(
+                {
+                    "semantic_drift_risk": True,
+                    "enforcement_action": "block",
+                    "reviewer_override_required": False,
+                    "reviewer_response": {
+                        "decision": "blocked",
+                        "override_reason": None,
+                    },
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
         result = build_closeout_audit(repo)
-        assert result["claim_enforcement_check_count"] == 2
-        assert result["drift_rate"] == 0.5
-        assert result["override_rate"] == 0.5
+        assert result["claim_enforcement_check_count"] == 3
+        assert result["drift_rate"] == 0.667
+        assert result["downgrade_rate"] == 0.333
+        assert result["blocked_rate"] == 0.333
+        assert result["override_rate"] == 0.333
         assert result["invalid_override_rate"] == 0.0
 
     def test_advisory_mode_does_not_force_policy_not_ok(self):
