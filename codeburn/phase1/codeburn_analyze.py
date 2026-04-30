@@ -24,6 +24,48 @@ def _resolve_session_id(conn: sqlite3.Connection, session_id: str | None) -> str
     return str(row[0]) if row else None
 
 
+def _step_order(conn: sqlite3.Connection, session_id: str) -> list[sqlite3.Row]:
+    return conn.execute(
+        """
+        SELECT step_id, step_kind, command, retry_of, exit_code
+        FROM steps
+        WHERE session_id=?
+        ORDER BY started_at ASC, step_id ASC
+        """,
+        (session_id,),
+    ).fetchall()
+
+
+def _derive_signal_steps(conn: sqlite3.Connection, session_id: str, signal: str, signal_step_id: str) -> list[str]:
+    ordered = _step_order(conn, session_id)
+    ids = [str(r["step_id"]) for r in ordered]
+    if signal_step_id not in ids:
+        return [signal_step_id]
+    idx = ids.index(signal_step_id)
+    if idx < 2:
+        return [signal_step_id]
+
+    window = ordered[idx - 2 : idx + 1]
+    if signal == "retry_pattern_detected":
+        def _is_retry(r: sqlite3.Row) -> bool:
+            return str(r["step_kind"]) == "retry" or (r["retry_of"] is not None and str(r["retry_of"]).strip() != "")
+
+        if all(_is_retry(r) for r in window):
+            return [str(r["step_id"]) for r in window]
+        return [signal_step_id]
+
+    if signal == "retry_pattern_inferred":
+        kinds = {str(r["step_kind"]) for r in window}
+        commands = {str(r["command"] or "").strip() for r in window}
+        nonzero_exit = all(r["exit_code"] is not None and int(r["exit_code"]) != 0 for r in window)
+        no_retry_marker = all(str(r["step_kind"]) != "retry" and not (r["retry_of"] and str(r["retry_of"]).strip()) for r in window)
+        if len(kinds) == 1 and list(kinds)[0] in {"execution", "test"} and len(commands) == 1 and nonzero_exit and no_retry_marker:
+            return [str(r["step_id"]) for r in window]
+        return [signal_step_id]
+
+    return [signal_step_id]
+
+
 def build_analysis(db_path: Path, session_id: str | None = "latest") -> dict:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
@@ -77,17 +119,25 @@ def build_analysis(db_path: Path, session_id: str | None = "latest") -> dict:
 
     signals_rows = conn.execute(
         """
-        SELECT signal, confidence, source
+        SELECT signal, confidence, source, step_id
         FROM signals
         WHERE session_id=?
         ORDER BY id ASC
         """,
         (resolved,),
     ).fetchall()
-    signals = [
-        {"signal": str(r["signal"]), "confidence": str(r["confidence"]), "source": str(r["source"])}
-        for r in signals_rows
-    ]
+    signals = []
+    for r in signals_rows:
+        signal_name = str(r["signal"])
+        signal_step = str(r["step_id"]) if r["step_id"] is not None else ""
+        signals.append(
+            {
+                "signal": signal_name,
+                "confidence": str(r["confidence"]),
+                "source": str(r["source"]),
+                "derived_from_steps": _derive_signal_steps(conn, resolved, signal_name, signal_step) if signal_step else [],
+            }
+        )
 
     analysis = {
         "ok": True,
@@ -115,6 +165,15 @@ def build_analysis(db_path: Path, session_id: str | None = "latest") -> dict:
             "file_reads": "unsupported",
             "file_activity": "git-visible only",
         },
+        "analysis_boundary": {
+            "analysis_type": "observation",
+            "interpretation_level": "low",
+            "claims": False,
+            "notes": [
+                "This summary reports observed execution patterns only.",
+                "No efficiency or correctness judgment is made.",
+            ],
+        },
     }
     return analysis
 
@@ -135,7 +194,8 @@ def print_analysis_text(analysis: dict) -> None:
         print("  Slowest step:")
         print(
             f"    {slowest['step_kind']} | {slowest['command']} | "
-            f"{_format_duration_ms(slowest['duration_ms'])} | exit_code={slowest['exit_code']}"
+            f"{_format_duration_ms(slowest['duration_ms'])} | exit_code={slowest['exit_code']} "
+            "(by duration, not normalized)"
         )
     else:
         print("  Slowest step: none")
@@ -158,6 +218,8 @@ def print_analysis_text(analysis: dict) -> None:
             print(f"  [ADVISORY] {item['signal']}")
             print(f"  confidence: {item['confidence']}")
             print(f"  source: {item['source']}")
+            if item["derived_from_steps"]:
+                print(f"  derived_from_steps: {item['derived_from_steps']}")
     else:
         print("  none")
     print("")
@@ -165,6 +227,11 @@ def print_analysis_text(analysis: dict) -> None:
     print("  - Token usage: unknown")
     print("  - File reads: unsupported")
     print("  - File activity: git-visible only")
+    print("")
+    print("Analysis boundary:")
+    print("  - Observations only")
+    print("  - No efficiency judgment")
+    print("  - No correctness judgment")
 
 
 def main() -> int:
