@@ -88,3 +88,26 @@ def test_retry_signal_supports_retry_of_sequence(tmp_path: Path) -> None:
     row = conn.execute("SELECT COUNT(*) FROM signals").fetchone()
     conn.close()
     assert row[0] == 1
+
+
+def test_retry_fallback_inferred_for_implicit_execution_retries(tmp_path: Path) -> None:
+    db_path = tmp_path / "phase1.db"
+    schema_path = Path("codeburn/phase1/schema.sql").resolve()
+    _seed_db(db_path, schema_path)
+    conn = sqlite3.connect(db_path)
+    _insert_step(conn, "st1", "execution", None, "2026-04-30T00:00:01+00:00")
+    _insert_step(conn, "st2", "execution", None, "2026-04-30T00:00:02+00:00")
+    _insert_step(conn, "st3", "execution", None, "2026-04-30T00:00:03+00:00")
+    conn.execute("UPDATE steps SET command='pytest -q', exit_code=1 WHERE step_id IN ('st1','st2','st3')")
+    conn.commit()
+    codeburn_run._maybe_emit_retry_fallback_signal(conn, "s1", "st3")
+    row = conn.execute(
+        "SELECT signal, advisory_only, can_block, confidence, source FROM signals WHERE step_id='st3'"
+    ).fetchone()
+    conn.close()
+    assert row is not None
+    assert row[0] == "retry_pattern_inferred"
+    assert row[1] == 1
+    assert row[2] == 0
+    assert row[3] == "low"
+    assert row[4] == "phase1_fallback"
