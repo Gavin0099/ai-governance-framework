@@ -107,9 +107,10 @@ Source: `governance_tools/phase_d_closeout_writer.py::REQUIRED_CONDITIONS`
 
 ## Claim Discipline Guardrail
 <!-- memory_type: structural_long_term -->
-<!-- promotion_status: candidate -->
-<!-- proposed_by: ai / 2026-04-30 -->
-<!-- human_review_needed: confirm claim discipline rules are still operative -->
+<!-- promotion_status: authoritative -->
+<!-- promoted_by: Gavin / 2026-04-30 -->
+<!-- promoted_at: 2026-04-30 -->
+<!-- source_anchor: docs/CLAIM_BOUNDARY.md -->
 - Canonical short-form claim constitution is `docs/CLAIM_BOUNDARY.md`.
 - Non-negotiable rule: if wording is ambiguous, downgrade claim instead of upgrading certainty.
 - Prevent semantic drift from `bounded_support` toward `governance proven`.
