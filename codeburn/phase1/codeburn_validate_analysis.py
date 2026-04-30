@@ -35,7 +35,7 @@ _TRACED_SIGNALS = frozenset({"retry_pattern_detected", "retry_pattern_inferred"}
 
 
 def _check_boundary_structure(analysis: dict, violations: list[str]) -> None:
-    """(A) Verify analysis_boundary and observability_limits are correctly declared."""
+    """(A) Verify analysis_boundary, observability_limits, and misinterpretation guard."""
     boundary = analysis.get("analysis_boundary")
     if not isinstance(boundary, dict):
         violations.append("boundary_structure_missing")
@@ -57,6 +57,10 @@ def _check_boundary_structure(analysis: dict, violations: list[str]) -> None:
         violations.append("observability_file_reads_not_unsupported")
     if obs.get("file_activity") != "git-visible only":
         violations.append("observability_file_activity_not_git_visible_only")
+
+    # M8: misinterpretation guard — must be present and explicitly False
+    if analysis.get("analysis_safe_for_decision") is not False:
+        violations.append("missing_analysis_safe_for_decision_false")
 
 
 def _check_forbidden_phrases(analysis: dict, violations: list[str]) -> None:

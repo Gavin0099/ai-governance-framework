@@ -145,6 +145,7 @@ def build_analysis(db_path: Path, session_id: str | None = "latest") -> dict:
         "task": str(session["task"]),
         "data_quality": str(session["data_quality"]),
         "token_comparability": False,
+        "analysis_safe_for_decision": False,
         "step_count": step_count,
         "total_duration_ms": total_duration_ms,
         "step_breakdown": breakdown,
@@ -180,6 +181,7 @@ def build_analysis(db_path: Path, session_id: str | None = "latest") -> dict:
 
 def print_analysis_text(analysis: dict) -> None:
     print("CodeBurn Post-Job Analysis")
+    print("Interpretation notice: This analysis is observational. It is not a basis for optimization or correctness decisions.")
     print("")
     print("Session:")
     print(f"  Task: {analysis['task']}")
@@ -212,7 +214,7 @@ def print_analysis_text(analysis: dict) -> None:
     else:
         print("  0 file(s) changed")
     print("")
-    print("Signals:")
+    print("Signals (diagnostic hints, not decision signals):")
     if analysis["signals"]:
         for item in analysis["signals"]:
             print(f"  [ADVISORY] {item['signal']}")

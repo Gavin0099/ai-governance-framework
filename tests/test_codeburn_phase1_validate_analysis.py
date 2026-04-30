@@ -220,3 +220,90 @@ class TestFullCleanSession:
         assert "violations" in result
         assert "checks" in result
         assert set(result["checks"].keys()) == {"boundary_structure", "forbidden_phrases", "traceability"}
+
+
+# ---------------------------------------------------------------------------
+# (M8) Misinterpretation guard
+# ---------------------------------------------------------------------------
+
+
+class TestMisinterpretationGuard:
+    def test_analysis_safe_for_decision_is_false_in_json(self, tmp_path: Path) -> None:
+        """build_analysis() must include analysis_safe_for_decision=False."""
+        from codeburn.phase1.codeburn_analyze import build_analysis
+
+        db, conn = _make_db(tmp_path)
+        _insert_session(conn)
+        _insert_steps(conn)
+        conn.commit()
+        conn.close()
+
+        result = build_analysis(db, "s1")
+        assert result.get("analysis_safe_for_decision") is False
+
+    def test_interpretation_notice_in_text_output(self, tmp_path: Path) -> None:
+        """Rendered text must start with interpretation notice."""
+        import contextlib
+        import io
+        from codeburn.phase1.codeburn_analyze import build_analysis, print_analysis_text
+
+        db, conn = _make_db(tmp_path)
+        _insert_session(conn)
+        _insert_steps(conn)
+        conn.commit()
+        conn.close()
+
+        analysis = build_analysis(db, "s1")
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            print_analysis_text(analysis)
+        rendered = buf.getvalue()
+        assert "Interpretation notice:" in rendered
+        assert "not a basis for optimization or correctness decisions" in rendered
+
+    def test_signals_header_identifies_as_diagnostic_hints(self, tmp_path: Path) -> None:
+        """Signal section header must label signals as diagnostic hints."""
+        import contextlib
+        import io
+        from codeburn.phase1.codeburn_analyze import build_analysis, print_analysis_text
+
+        db, conn = _make_db(tmp_path)
+        _insert_session(conn)
+        _insert_steps(conn)
+        _insert_retry_signal(conn)
+        conn.commit()
+        conn.close()
+
+        analysis = build_analysis(db, "s1")
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            print_analysis_text(analysis)
+        rendered = buf.getvalue()
+        assert "diagnostic hints, not decision signals" in rendered
+
+    def test_enforcement_catches_missing_guard_field(self, tmp_path: Path) -> None:
+        """validate_analysis catches analysis_safe_for_decision missing or True."""
+        from unittest.mock import patch
+        from codeburn.phase1 import codeburn_analyze
+
+        db, conn = _make_db(tmp_path)
+        _insert_session(conn)
+        _insert_steps(conn)
+        conn.commit()
+        conn.close()
+
+        # Patch build_analysis to return output without the guard field
+        original = codeburn_analyze.build_analysis
+
+        def _patched(db_path, session_id="latest"):
+            result = original(db_path, session_id)
+            result.pop("analysis_safe_for_decision", None)
+            return result
+
+        with patch.object(codeburn_analyze, "build_analysis", _patched):
+            from codeburn.phase1.codeburn_validate_analysis import validate_analysis as va
+            result = va(db, "s1")
+
+        assert result["ok"] is False
+        assert "missing_analysis_safe_for_decision_false" in result["violations"]
+        assert result["checks"]["boundary_structure"] == "fail"
