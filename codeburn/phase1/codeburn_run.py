@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import shlex
 import sqlite3
 import subprocess
 import uuid
@@ -51,6 +50,71 @@ def _git_changed_files(repo: Path) -> list[str]:
 
 def _mark_session_partial(conn: sqlite3.Connection, session_id: str) -> None:
     conn.execute("UPDATE sessions SET data_quality='partial' WHERE session_id=?", (session_id,))
+    conn.commit()
+
+
+def _is_retry_step(step_kind: str | None, retry_of: str | None) -> bool:
+    return step_kind == "retry" or (retry_of is not None and str(retry_of).strip() != "")
+
+
+def _maybe_emit_retry_signal(conn: sqlite3.Connection, session_id: str, current_step_id: str) -> None:
+    row = conn.execute(
+        "SELECT step_kind, retry_of, started_at FROM steps WHERE step_id=?",
+        (current_step_id,),
+    ).fetchone()
+    if not row:
+        return
+    current_kind, current_retry_of, current_started_at = row
+    if not _is_retry_step(current_kind, current_retry_of):
+        return
+
+    rows = conn.execute(
+        """
+        SELECT step_id, step_kind, retry_of
+        FROM steps
+        WHERE session_id=?
+          AND (started_at < ? OR (started_at = ? AND step_id <= ?))
+        ORDER BY started_at DESC, step_id DESC
+        LIMIT 20
+        """,
+        (session_id, current_started_at, current_started_at, current_step_id),
+    ).fetchall()
+
+    streak_ids: list[str] = []
+    for step_id, step_kind, retry_of in rows:
+        if _is_retry_step(step_kind, retry_of):
+            streak_ids.append(str(step_id))
+            continue
+        break
+
+    if len(streak_ids) != 3:
+        return
+
+    placeholders = ",".join("?" for _ in streak_ids)
+    changed_count = conn.execute(
+        f"SELECT COUNT(*) FROM changed_files WHERE step_id IN ({placeholders})",
+        tuple(streak_ids),
+    ).fetchone()[0]
+    confidence = "low" if int(changed_count) > 0 else "medium"
+
+    conn.execute(
+        """
+        INSERT INTO signals(
+          session_id, step_id, signal, type, advisory_only, can_block, confidence, source, created_at
+        ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            session_id,
+            current_step_id,
+            "retry_pattern_detected",
+            "cost_risk",
+            1,
+            0,
+            confidence,
+            "phase1_heuristic",
+            _now_iso(),
+        ),
+    )
     conn.commit()
 
 
@@ -148,6 +212,8 @@ def run_step(args: argparse.Namespace) -> int:
     # Hard rule: failed to start -> session data_quality must be partial.
     if not launched:
         _mark_session_partial(conn, session_id)
+
+    _maybe_emit_retry_signal(conn, session_id, step_id)
 
     conn.commit()
 

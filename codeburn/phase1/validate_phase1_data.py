@@ -112,6 +112,23 @@ def validate(db_path: Path) -> dict:
         if bad_adv:
             findings.append(f"phase1_signal_advisory_violation:{bad_adv}")
 
+        bad_retry_contract = _count(
+            conn,
+            """
+            SELECT COUNT(*) FROM signals
+            WHERE signal='retry_pattern_detected'
+              AND (
+                type <> 'cost_risk'
+                OR source <> 'phase1_heuristic'
+                OR confidence NOT IN ('low', 'medium')
+                OR advisory_only <> 1
+                OR can_block <> 0
+              )
+            """,
+        )
+        if bad_retry_contract:
+            findings.append(f"phase1_retry_signal_contract_violation:{bad_retry_contract}")
+
     ok = len(findings) == 0
     return {
         "ok": ok,
