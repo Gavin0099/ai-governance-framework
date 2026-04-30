@@ -47,11 +47,13 @@ def build_report(db_path: Path, session_id: str | None) -> dict:
         "step_count": metrics["step_count"],
         "file_activity": "git-visible only",
         "file_reads": "unsupported",
+        "analysis_safe_for_decision": False,
     }
 
 
 def _print_text(report: dict) -> None:
     print("CodeBurn Report")
+    print("Interpretation notice: This analysis is observational. It is not a basis for optimization or correctness decisions.")
     print(f"Session: {report['session_id']}")
     print(f"Task: {report['task']}")
     print(f"Data quality: {report['data_quality']}")
