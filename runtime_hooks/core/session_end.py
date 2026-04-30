@@ -209,6 +209,21 @@ def _default_next_step(
     )
 
 
+def _resolve_memory_binding(commit: str, session_id: str) -> str:
+    """
+    Determine memory binding state per Memory Authority Contract v1.0.0.
+
+    bound            — real commit hash available
+    bound_session_id — no commit hash, but session_id provides fallback anchor
+    unbound          — neither commit hash nor session_id (violation: must not be promoted)
+    """
+    if commit and commit != "UNCOMMITTED":
+        return "bound"
+    if session_id and session_id.strip():
+        return "bound_session_id"
+    return "unbound"
+
+
 def _build_daily_memory_record(
     *,
     project_root: Path,
@@ -222,13 +237,17 @@ def _build_daily_memory_record(
 ) -> dict[str, str]:
     open_risks = [str(item).strip() for item in canonical_closeout.get("open_risks", []) if str(item).strip()]
     summary_text = summary.strip() or "Session closeout recorded without an explicit summary."
+    commit = _resolve_head_commit(project_root)
+    memory_binding = _resolve_memory_binding(commit, session_id)
     return {
         "what_changed": (
             f"session_end auto-closeout recorded for `{task}` "
             f"(session={session_id}, decision={decision}, snapshot_created={snapshot_created}, promoted={promoted}). "
             f"Summary: {summary_text}"
         ),
-        "commit": _resolve_head_commit(project_root),
+        "commit": commit,
+        "session_id": session_id,
+        "memory_binding": memory_binding,
         "test_evidence": (
             f"`session_end` => canonical_closeout_status={canonical_closeout.get('closeout_status', 'unknown')}, "
             f"snapshot_created={snapshot_created}, promoted={promoted}, open_risk_count={len(open_risks)}"
@@ -272,6 +291,8 @@ def _append_daily_memory_entry(
     entry = (
         f"- what_changed: {record['what_changed']}\n"
         f"  commit: {record['commit']}\n"
+        f"  session_id: {record['session_id']}\n"
+        f"  memory_binding: {record['memory_binding']}\n"
         f"  test_evidence: {record['test_evidence']}\n"
         f"  next_step: {record['next_step']}\n"
     )

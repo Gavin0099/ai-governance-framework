@@ -6,15 +6,15 @@ Checks that memory entries are properly bound to traceable sources.
 
 Two memory types:
   - session-derived (daily files: memory/YYYY-MM-DD.md)
-      Binding requirement: commit_hash (resolved, not "pending") OR session_id
+      Binding requirement: commit_hash (resolved, not "pending"/"UNCOMMITTED") OR session_id
   - structural long-term (memory/00_long_term.md)
       Binding requirement: promoted_by marker in each ## section
 
 Checks:
-  1. unbound_memory         — daily entry lacks commit_hash + session_id
+  1. unbound_memory              — daily entry lacks commit_hash + session_id
   2. structural_memory_auto_write — 00_long_term.md section lacks promoted_by
-  3. private_memory_cited   — closeout artifact cites .claude private memory path
-  4. missing_canonical_memory — commits in git log but no daily memory file
+  3. private_memory_cited        — closeout artifact cites .claude private memory path
+  4. missing_canonical_memory   — commits in git log but no daily memory file
 
 Phase 1: warnings only. Exit code always 0. JSON to stdout.
 
@@ -36,9 +36,18 @@ if __package__ in (None, ""):
 
 # ── regex patterns ────────────────────────────────────────────────────────────
 
-_ENTRY_SPLIT = re.compile(r'(?m)^(?=- what changed:)')
-_COMMIT_RESOLVED = re.compile(r'commit hash:\s*`?([a-f0-9]{5,40})`?', re.IGNORECASE)
-_COMMIT_PENDING = re.compile(r'commit hash:\s*pending', re.IGNORECASE)
+# Match both human-written ("commit hash:") and auto-generated ("commit:") entry formats.
+# A real hash is 5-40 hex chars.
+_ENTRY_SPLIT = re.compile(r'(?m)^(?=- what[_ ]changed:)')
+_COMMIT_RESOLVED = re.compile(
+    r'commit(?:\s+hash)?:\s*`?([a-f0-9]{5,40})`?', re.IGNORECASE
+)
+_COMMIT_PENDING = re.compile(
+    r'commit(?:\s+hash)?:\s*pending', re.IGNORECASE
+)
+_COMMIT_UNCOMMITTED = re.compile(
+    r'commit(?:\s+hash)?:\s*UNCOMMITTED', re.IGNORECASE
+)
 _SESSION_ID = re.compile(r'session[_\s]id:\s*(\S+)', re.IGNORECASE)
 _PROMOTED_BY = re.compile(r'promoted_by:', re.IGNORECASE)
 _SECTION_H2 = re.compile(r'^## ', re.MULTILINE)
@@ -58,19 +67,31 @@ def _is_daily_file(path: Path) -> bool:
 def _entry_is_bound(block: str) -> tuple[bool, str]:
     """
     Returns (is_bound, reason).
-    Bound = has a real commit hash OR a session_id.
-    """
-    has_pending = bool(_COMMIT_PENDING.search(block))
-    has_real = bool(_COMMIT_RESOLVED.search(block))
-    has_session = bool(_SESSION_ID.search(block))
 
-    # A real hash AND no pending marker = resolved
-    resolved_commit = has_real and not has_pending
-    if resolved_commit or has_session:
+    Binding rules (Memory Authority Contract v1.0.0):
+      - Real commit hash (not "pending"/"UNCOMMITTED")  → bound
+      - session_id field present                        → bound (valid fallback)
+      - commit hash: pending, no session_id             → unbound (VIOLATION)
+      - commit: UNCOMMITTED, no session_id              → unbound (VIOLATION)
+      - no hash field, no session_id                    → unbound (VIOLATION)
+    """
+    has_real_hash = bool(_COMMIT_RESOLVED.search(block))
+    has_session_id = bool(_SESSION_ID.search(block))
+    has_pending = bool(_COMMIT_PENDING.search(block))
+    has_uncommitted = bool(_COMMIT_UNCOMMITTED.search(block))
+
+    # Real hash takes precedence
+    if has_real_hash:
         return True, "ok"
+    # session_id is a valid fallback binding regardless of commit state
+    if has_session_id:
+        return True, "ok"
+    # Distinguish why there's no binding
     if has_pending:
         return False, "commit_hash_pending_no_session_id"
-    return False, "no_commit_hash_no_session_id"
+    if has_uncommitted:
+        return False, "commit_uncommitted_no_session_id"
+    return False, "no_anchor"
 
 
 def _snippet(block: str, length: int = 80) -> str:
@@ -80,12 +101,20 @@ def _snippet(block: str, length: int = 80) -> str:
 
 # ── check functions ───────────────────────────────────────────────────────────
 
-def check_daily_memory(memory_root: Path) -> list[dict[str, Any]]:
+def check_daily_memory(
+    memory_root: Path,
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
     """
     Check 1: unbound_memory
     Scan all daily memory files; report entries lacking commit_hash + session_id.
+
+    Returns (violations, coverage_stats).
+    coverage_stats: {"total_entries": N, "bound_entries": M}
     """
     violations: list[dict[str, Any]] = []
+    total_entries = 0
+    bound_entries = 0
+
     daily_files = sorted(
         p for p in memory_root.glob('*.md') if _is_daily_file(p)
     )
@@ -104,10 +133,15 @@ def check_daily_memory(memory_root: Path) -> list[dict[str, Any]]:
 
         entries = _ENTRY_SPLIT.split(text)
         for block in entries:
-            if not block.strip().startswith('- what changed:'):
+            stripped = block.strip()
+            if not (stripped.startswith('- what changed:')
+                    or stripped.startswith('- what_changed:')):
                 continue
+            total_entries += 1
             bound, reason = _entry_is_bound(block)
-            if not bound:
+            if bound:
+                bound_entries += 1
+            else:
                 violations.append({
                     'code': 'unbound_memory',
                     'severity': 'warning',
@@ -115,35 +149,55 @@ def check_daily_memory(memory_root: Path) -> list[dict[str, Any]]:
                     'entry': _snippet(block),
                     'reason': reason,
                 })
-    return violations
+
+    coverage = {'total_entries': total_entries, 'bound_entries': bound_entries}
+    return violations, coverage
 
 
-def check_structural_memory(memory_root: Path) -> list[dict[str, Any]]:
+def check_structural_memory(
+    memory_root: Path,
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
     """
     Check 2: structural_memory_auto_write
     Scan 00_long_term.md for ## sections without a promoted_by marker.
     Reports aggregate debt count; Phase 1 = info severity.
+
+    Returns (violations, coverage_stats).
+    coverage_stats: {"total_sections": N, "promoted_sections": M}
     """
     long_term = memory_root / '00_long_term.md'
     if not long_term.exists():
-        return []
+        return [], {'total_sections': 0, 'promoted_sections': 0}
 
     try:
         text = long_term.read_text(encoding='utf-8')
     except Exception as exc:
-        return [{'code': 'structural_memory_auto_write', 'severity': 'info',
-                 'file': '00_long_term.md', 'section': None,
-                 'reason': f'read_error: {exc}'}]
+        return (
+            [{'code': 'structural_memory_auto_write', 'severity': 'info',
+              'file': '00_long_term.md', 'section': None,
+              'reason': f'read_error: {exc}'}],
+            {'total_sections': 0, 'promoted_sections': 0},
+        )
 
-    # Split on ## headings, keep heading with its body
     raw_sections = _SECTION_H2.split(text)
     violations: list[dict[str, Any]] = []
+    total_sections = 0
+    promoted_sections = 0
+
     for section in raw_sections:
         if not section.strip():
             continue
-        heading_line = '## ' + section.split('\n')[0].strip()
+        # Skip preamble (content before first ## heading)
+        first_line = section.split('\n')[0].strip()
+        if first_line.startswith('#'):
+            # This is a preamble fragment (e.g., "# Title" before first ##)
+            continue
+        total_sections += 1
+        heading_line = '## ' + first_line
         has_promoted = bool(_PROMOTED_BY.search(section))
-        if not has_promoted:
+        if has_promoted:
+            promoted_sections += 1
+        else:
             violations.append({
                 'code': 'structural_memory_auto_write',
                 'severity': 'info',
@@ -151,7 +205,12 @@ def check_structural_memory(memory_root: Path) -> list[dict[str, Any]]:
                 'section': heading_line[:80],
                 'reason': 'missing_promoted_by',
             })
-    return violations
+
+    coverage = {
+        'total_sections': total_sections,
+        'promoted_sections': promoted_sections,
+    }
+    return violations, coverage
 
 
 def check_private_memory_cited(project_root: Path) -> list[dict[str, Any]]:
@@ -213,6 +272,12 @@ def check_missing_canonical_memory(
     return violations
 
 
+def _safe_rate(numerator: int, denominator: int) -> float | None:
+    if denominator == 0:
+        return None
+    return round(numerator / denominator, 4)
+
+
 # ── aggregate ─────────────────────────────────────────────────────────────────
 
 def run_guard(
@@ -226,8 +291,13 @@ def run_guard(
     Phase 1: always warning mode; all violations are non-blocking.
     """
     violations: list[dict[str, Any]] = []
-    violations.extend(check_daily_memory(memory_root))
-    violations.extend(check_structural_memory(memory_root))
+
+    daily_violations, daily_coverage = check_daily_memory(memory_root)
+    violations.extend(daily_violations)
+
+    structural_violations, structural_coverage = check_structural_memory(memory_root)
+    violations.extend(structural_violations)
+
     violations.extend(check_private_memory_cited(project_root))
     if not skip_git:
         violations.extend(check_missing_canonical_memory(memory_root, project_root))
@@ -236,15 +306,35 @@ def run_guard(
     for v in violations:
         counts[v['code']] = counts.get(v['code'], 0) + 1
 
+    # Authority Coverage Rate — key metric: what fraction of memory is actually bound?
+    session_total = daily_coverage['total_entries']
+    session_bound = daily_coverage['bound_entries']
+    struct_total = structural_coverage['total_sections']
+    struct_promoted = structural_coverage['promoted_sections']
+
+    authority_coverage_rate = {
+        'session_derived': {
+            'total_entries': session_total,
+            'bound_entries': session_bound,
+            'rate': _safe_rate(session_bound, session_total),
+        },
+        'structural': {
+            'total_sections': struct_total,
+            'promoted_sections': struct_promoted,
+            'rate': _safe_rate(struct_promoted, struct_total),
+        },
+    }
+
     return {
         'guard': 'memory_authority_guard',
-        'version': '1.0.0',
+        'version': '1.1.0',
         'contract': 'governance/MEMORY_AUTHORITY_CONTRACT.md',
         'phase': 'phase1',
         'mode': 'warning',
         'ok': True,  # Phase 1: always ok (non-blocking)
         'violation_count': len(violations),
         'violation_counts_by_code': counts,
+        'authority_coverage_rate': authority_coverage_rate,
         'violations': violations,
     }
 
@@ -254,10 +344,22 @@ def run_guard(
 def _human_summary(result: dict[str, Any]) -> str:
     n = result['violation_count']
     counts = result['violation_counts_by_code']
+    acr = result.get('authority_coverage_rate', {})
+    sd = acr.get('session_derived', {})
+    st = acr.get('structural', {})
+    sd_rate = sd.get('rate')
+    st_rate = st.get('rate')
+    coverage_str = (
+        f"session_authority_rate={sd_rate if sd_rate is not None else 'n/a'} "
+        f"structural_authority_rate={st_rate if st_rate is not None else 'n/a'}"
+    )
     if n == 0:
-        return 'memory authority: ok (no violations)'
+        return f'memory authority: ok (no violations) | {coverage_str}'
     parts = [f"{k}={v}" for k, v in sorted(counts.items())]
-    return f'memory authority: {n} warning(s) [{", ".join(parts)}] (phase1=non-blocking)'
+    return (
+        f'memory authority: {n} warning(s) [{", ".join(parts)}] (phase1=non-blocking) '
+        f'| {coverage_str}'
+    )
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -307,7 +409,7 @@ def main(argv: list[str] | None = None) -> None:
                 sev = v.get('severity', 'warning')
                 detail = v.get('entry') or v.get('section') or v.get('date') or v.get('file', '')
                 reason = v.get('reason', '')
-                print(f'  [{sev}] {code}: {detail!r} — {reason}')
+                print(f'  [{sev}] {code}: {detail!r} -- {reason}')
 
     # Phase 1: always exit 0 (warning mode)
     sys.exit(0)

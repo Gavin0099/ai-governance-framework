@@ -56,6 +56,10 @@ def test_session_end_auto_promotes_low_risk_candidate(local_project_root):
     summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
     assert summary_payload["promoted"] is True
     assert summary_payload["daily_memory_record"]["commit"]
+    assert summary_payload["daily_memory_record"]["session_id"] == "2026-03-12-01"
+    assert summary_payload["daily_memory_record"]["memory_binding"] in {
+        "bound", "bound_session_id"
+    }
     assert summary_payload["memory_closeout"]["promotion_considered"] is True
     assert summary_payload["memory_closeout"]["decision"] == "AUTO_PROMOTE"
     assert summary_payload["memory_closeout"]["snapshot_created"] is True
@@ -100,12 +104,18 @@ def test_session_end_appends_daily_memory_entry_with_required_fields(local_proje
 
     assert "- what_changed:" in daily_text
     assert "commit:" in daily_text
+    assert "session_id:" in daily_text
+    assert "memory_binding:" in daily_text
     assert "test_evidence:" in daily_text
     assert "next_step:" in daily_text
     assert "session=2026-03-12-01-memory" in daily_text
     assert "Summary: Daily memory append test" in daily_text
     summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
     assert summary_payload["daily_memory_record"]["what_changed"]
+    assert summary_payload["daily_memory_record"]["session_id"] == "2026-03-12-01-memory"
+    assert summary_payload["daily_memory_record"]["memory_binding"] in {
+        "bound", "bound_session_id", "unbound"
+    }
     assert summary_payload["daily_memory_record"]["test_evidence"]
     assert summary_payload["daily_memory_record"]["next_step"]
 
