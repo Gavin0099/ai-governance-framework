@@ -59,8 +59,15 @@ def _check_boundary_structure(analysis: dict, violations: list[str]) -> None:
         violations.append("observability_file_activity_not_git_visible_only")
 
     # M8: misinterpretation guard — must be present and explicitly False
-    if analysis.get("analysis_safe_for_decision") is not False:
+    safe_flag = analysis.get("analysis_safe_for_decision")
+    if safe_flag is True:
+        violations.append("phase1_invariant_violation:analysis_safe_for_decision_true")
+    elif safe_flag is not False:
         violations.append("missing_analysis_safe_for_decision_false")
+
+    # M9: system-level decision guard — must be present and explicitly False
+    if analysis.get("decision_usage_allowed") is not False:
+        violations.append("missing_decision_usage_allowed_false")
 
 
 def _check_forbidden_phrases(analysis: dict, violations: list[str]) -> None:
@@ -146,6 +153,8 @@ def validate_analysis(db_path: Path, session_id: str = "latest") -> dict:
 
 
 def main() -> int:
+    from codeburn_phase1_header import print_phase1_header  # noqa: PLC0415
+    print_phase1_header()
     parser = argparse.ArgumentParser(
         description="CodeBurn Phase 1 analysis contract enforcement (M7)."
     )

@@ -262,6 +262,8 @@ def session_status(args: argparse.Namespace) -> int:
 
 
 def main() -> int:
+    from codeburn_phase1_header import print_phase1_header  # noqa: PLC0415
+    print_phase1_header()
     parser = argparse.ArgumentParser(description="CodeBurn Phase 1 session CLI.")
     parser.add_argument("--db", default="codeburn/phase1/examples/phase1_demo.db")
     parser.add_argument("--schema", default="codeburn/phase1/schema.sql")
