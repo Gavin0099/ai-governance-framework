@@ -229,6 +229,62 @@ class TestTrustBoundary:
         assert build_closeout_audit(repo)["session_count"] == 0
 
 
+class TestClaimBindingFutureGateFields:
+    def test_missing_claim_enforcement_check_sets_future_gate_required(self):
+        repo = _reset_fixture("claim_binding_missing_check")
+        _write_closeout(repo, "s1", "valid")
+        result = build_closeout_audit(repo)
+        assert result["closeout_claim_binding_valid"] is False
+        assert result["future_gate_required"] is True
+        assert "missing_claim_enforcement_check" in result["invalid_reasons"]
+
+    def test_missing_reviewer_response_when_action_not_allow(self):
+        repo = _reset_fixture("claim_binding_missing_reviewer_response")
+        _write_closeout(repo, "s1", "valid")
+        d = repo / "artifacts" / "claim-enforcement" / "case1"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "claim-enforcement-check.json").write_text(
+            json.dumps(
+                {
+                    "enforcement_action": "downgrade",
+                    "reviewer_override_required": False,
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        result = build_closeout_audit(repo)
+        assert result["closeout_claim_binding_valid"] is False
+        assert result["future_gate_required"] is True
+        assert "missing_reviewer_response" in result["invalid_reasons"]
+
+    def test_missing_override_reason_when_override_required(self):
+        repo = _reset_fixture("claim_binding_missing_override_reason")
+        _write_closeout(repo, "s1", "valid")
+        d = repo / "artifacts" / "claim-enforcement" / "case1"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "claim-enforcement-check.json").write_text(
+            json.dumps(
+                {
+                    "enforcement_action": "downgrade",
+                    "reviewer_override_required": True,
+                    "reviewer_response": {
+                        "decision": "override",
+                        "override_reason": "",
+                    },
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        result = build_closeout_audit(repo)
+        assert result["closeout_claim_binding_valid"] is False
+        assert result["future_gate_required"] is True
+        assert "missing_override_reason" in result["invalid_reasons"]
+
+
 class TestFormatHumanResult:
     def test_contains_section_headers(self):
         repo = _reset_fixture("format_headers")

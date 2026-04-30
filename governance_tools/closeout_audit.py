@@ -42,6 +42,56 @@ _GENERATED_JSON = Path("docs/status/generated/closeout-audit.json")
 _GENERATED_MD = Path("docs/status/closeout-audit.md")
 
 
+def _evaluate_claim_binding(project_root: Path) -> dict[str, Any]:
+    """
+    Advisory-stage claim-binding check (future hard gate fields).
+
+    Current behavior:
+    - Emits validity + reasons in audit output.
+    - Does NOT block promotion or flip policy_ok.
+    """
+    checks_root = project_root / "artifacts" / "claim-enforcement"
+    check_files = sorted(checks_root.rglob("claim-enforcement-check.json")) if checks_root.exists() else []
+    reasons: list[str] = []
+
+    if not check_files:
+        reasons.append("missing_claim_enforcement_check")
+
+    for path in check_files:
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            reasons.append("unreadable_claim_enforcement_check")
+            continue
+
+        enforcement_action = str(payload.get("enforcement_action", "")).strip()
+        reviewer_override_required = bool(payload.get("reviewer_override_required", False))
+        reviewer_response = payload.get("reviewer_response")
+
+        if enforcement_action and enforcement_action != "allow":
+            decision = None
+            if isinstance(reviewer_response, dict):
+                decision = reviewer_response.get("decision")
+            if not isinstance(decision, str) or not decision.strip():
+                reasons.append("missing_reviewer_response")
+
+        if reviewer_override_required:
+            override_reason = None
+            if isinstance(reviewer_response, dict):
+                override_reason = reviewer_response.get("override_reason")
+            if not isinstance(override_reason, str) or not override_reason.strip():
+                reasons.append("missing_override_reason")
+
+    unique_reasons = sorted(set(reasons))
+    valid = len(unique_reasons) == 0
+    return {
+        "closeout_claim_binding_valid": valid,
+        "future_gate_required": not valid,
+        "invalid_reasons": unique_reasons,
+        "claim_enforcement_check_count": len(check_files),
+    }
+
+
 def build_closeout_audit(project_root: Path) -> dict[str, Any]:
     """
     Scan ``artifacts/runtime/closeouts/`` under *project_root* and return
@@ -136,6 +186,8 @@ def build_closeout_audit(project_root: Path) -> dict[str, Any]:
     }
     policy_ok = not any(policy_flags.values())
 
+    claim_binding = _evaluate_claim_binding(project_root)
+
     return {
         "ok": True,
         "policy_ok": policy_ok,
@@ -155,6 +207,10 @@ def build_closeout_audit(project_root: Path) -> dict[str, Any]:
         "unknown_statuses": unknown_statuses,
         "policy_flags": policy_flags,
         "unreadable_files": unreadable,
+        "closeout_claim_binding_valid": claim_binding["closeout_claim_binding_valid"],
+        "future_gate_required": claim_binding["future_gate_required"],
+        "invalid_reasons": claim_binding["invalid_reasons"],
+        "claim_enforcement_check_count": claim_binding["claim_enforcement_check_count"],
     }
 
 
@@ -187,6 +243,9 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"recent_7d_session_count={result['recent_7d_session_count']}",
         f"recent_7d_valid_rate={recent_rate}",
         f"has_open_risks_count={result['has_open_risks_count']}",
+        f"claim_enforcement_check_count={result.get('claim_enforcement_check_count')}",
+        f"closeout_claim_binding_valid={result.get('closeout_claim_binding_valid')}",
+        f"future_gate_required={result.get('future_gate_required')}",
     ]
 
     # Policy flags: show even when all False for reviewer confirmation
@@ -218,6 +277,12 @@ def format_human_result(result: dict[str, Any]) -> str:
         for path in result["unreadable_files"]:
             lines.append(f"unreadable={path}")
 
+    invalid_reasons = result.get("invalid_reasons") or []
+    if invalid_reasons:
+        lines.append("claim binding: future hard gate violation")
+        for reason in invalid_reasons:
+            lines.append(f"claim_binding_invalid_reason={reason}")
+
     return "\n".join(lines)
 
 
@@ -237,6 +302,9 @@ def build_status_markdown(result: dict[str, Any]) -> str:
         f"- recent_7d_session_count: `{result['recent_7d_session_count']}`",
         f"- recent_7d_valid_rate: `{result['recent_7d_valid_rate']}`",
         f"- has_open_risks_count: `{result['has_open_risks_count']}`",
+        f"- claim_enforcement_check_count: `{result.get('claim_enforcement_check_count')}`",
+        f"- closeout_claim_binding_valid: `{result.get('closeout_claim_binding_valid')}`",
+        f"- future_gate_required: `{result.get('future_gate_required')}`",
         "",
         "## Policy Flags",
         "",
@@ -277,6 +345,17 @@ def build_status_markdown(result: dict[str, Any]) -> str:
         ])
         for path in unreadable_files:
             lines.append(f"- `{path}`")
+
+    invalid_reasons = result.get("invalid_reasons") or []
+    if invalid_reasons:
+        lines.extend([
+            "",
+            "## Claim Binding (Future Hard Gate)",
+            "",
+            "- claim binding: `future hard gate violation`",
+        ])
+        for reason in invalid_reasons:
+            lines.append(f"- `{reason}`")
 
     return "\n".join(lines) + "\n"
 
