@@ -22,7 +22,9 @@ Bind checker output to reviewer decision so semantic-drift signals cannot be sil
 ## Decision Coupling Rules
 - Reviewer must provide `reviewer_response.action_taken`.
 - If `enforcement_action` is `downgrade` or `block`, reviewer response is mandatory.
-- If reviewer chooses `override`, `override_reason` must be non-empty.
+- If reviewer chooses `override`, `override_reason` must be non-empty and contain at least one of:
+  - `evidence_ref:`
+  - `risk_ack:`
 
 ## Local-Only Guard
 - If `publication_scope=local_only`, then `claim_level` must not exceed `bounded`.
@@ -32,7 +34,8 @@ Bind checker output to reviewer decision so semantic-drift signals cannot be sil
 A closeout is invalid if:
 - schema fields are missing,
 - reviewer response is missing,
-- override exists without reason.
+- override exists without reason,
+- override reason is weak (no `evidence_ref:` and no `risk_ack:` marker).
 
 ## Rationale
 The objective is not only drift detection.
