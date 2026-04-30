@@ -437,3 +437,6 @@ def test_release_surface_overview_includes_structural_promotion_gate(monkeypatch
     assert result["ok"] is False
     assert result["structural_promotion"]["promotion_allowed"] is False
     assert "claim_boundary_not_runtime_verified" in result["structural_promotion"]["blocked_reasons"]
+    assert result["structural_promotion_allowed"] is False
+    assert result["structural_failure_class"] == "runtime_unverifiable"
+    assert result["structural_blocked_reasons"] == ["claim_boundary_not_runtime_verified"]
