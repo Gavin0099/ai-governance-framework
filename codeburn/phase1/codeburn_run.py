@@ -118,6 +118,81 @@ def _maybe_emit_retry_signal(conn: sqlite3.Connection, session_id: str, current_
     conn.commit()
 
 
+def _maybe_emit_retry_fallback_signal(conn: sqlite3.Connection, session_id: str, current_step_id: str) -> None:
+    row = conn.execute(
+        "SELECT step_kind, retry_of, command, exit_code, started_at FROM steps WHERE step_id=?",
+        (current_step_id,),
+    ).fetchone()
+    if not row:
+        return
+    current_kind, current_retry_of, current_command, current_exit_code, current_started_at = row
+    if current_kind not in ("execution", "test"):
+        return
+    if _is_retry_step(current_kind, current_retry_of):
+        return
+    if current_exit_code is None or int(current_exit_code) == 0:
+        return
+
+    rows = conn.execute(
+        """
+        SELECT step_id, step_kind, retry_of, command, exit_code
+        FROM steps
+        WHERE session_id=?
+          AND (started_at < ? OR (started_at = ? AND step_id <= ?))
+        ORDER BY started_at DESC, step_id DESC
+        LIMIT 20
+        """,
+        (session_id, current_started_at, current_started_at, current_step_id),
+    ).fetchall()
+
+    streak_ids: list[str] = []
+    baseline_kind = str(current_kind)
+    baseline_command = str(current_command or "").strip()
+    for step_id, step_kind, retry_of, command, exit_code in rows:
+        if step_kind != baseline_kind:
+            break
+        if _is_retry_step(step_kind, retry_of):
+            break
+        if str(command or "").strip() != baseline_command:
+            break
+        if exit_code is None or int(exit_code) == 0:
+            break
+        changed_cnt = conn.execute("SELECT COUNT(*) FROM changed_files WHERE step_id=?", (step_id,)).fetchone()[0]
+        if int(changed_cnt) > 0:
+            break
+        streak_ids.append(str(step_id))
+
+    if len(streak_ids) != 3:
+        return
+
+    existing = conn.execute(
+        "SELECT COUNT(*) FROM signals WHERE session_id=? AND step_id=? AND signal='retry_pattern_inferred'",
+        (session_id, current_step_id),
+    ).fetchone()[0]
+    if int(existing) > 0:
+        return
+
+    conn.execute(
+        """
+        INSERT INTO signals(
+          session_id, step_id, signal, type, advisory_only, can_block, confidence, source, created_at
+        ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            session_id,
+            current_step_id,
+            "retry_pattern_inferred",
+            "cost_risk",
+            1,
+            0,
+            "low",
+            "phase1_fallback",
+            _now_iso(),
+        ),
+    )
+    conn.commit()
+
+
 def run_step(args: argparse.Namespace) -> int:
     db_path = Path(args.db).resolve()
     schema = Path(args.schema).resolve()
@@ -214,6 +289,7 @@ def run_step(args: argparse.Namespace) -> int:
         _mark_session_partial(conn, session_id)
 
     _maybe_emit_retry_signal(conn, session_id, step_id)
+    _maybe_emit_retry_fallback_signal(conn, session_id, step_id)
 
     conn.commit()
 
