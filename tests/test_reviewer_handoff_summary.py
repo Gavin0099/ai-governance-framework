@@ -490,3 +490,46 @@ def test_cli_allow_non_clean_requires_reason_code():
     )
     assert result.returncode != 0
     assert "--allow-non-clean requires --allow-non-clean-reason-code" in result.stderr
+
+
+def test_reviewer_handoff_exposes_structural_promotion_fields(monkeypatch):
+    monkeypatch.setattr(
+        "governance_tools.reviewer_handoff_summary.assess_trust_signal_overview",
+        lambda **_: {
+            "ok": True,
+            "quickstart": {"ok": True},
+            "examples": {"ok": True},
+            "release": {"ok": True},
+            "auditor": {"ok": True, "external_onboarding": {"top_issues": []}},
+        },
+    )
+    monkeypatch.setattr(
+        "governance_tools.reviewer_handoff_summary.assess_release_surface",
+        lambda *_args, **_kwargs: {
+            "ok": False,
+            "readiness": {"ok": True},
+            "package": {"ok": True},
+            "bundle_manifest": {"available": True, "source": "explicit", "ok": True},
+            "publication_manifest": {"available": True, "source": "explicit", "ok": True},
+            "structural_promotion": {
+                "promotion_allowed": False,
+                "failure_class": "runtime_unverifiable",
+                "blocked_reasons": ["test_execution_degraded"],
+                "structural_authority_rate": 0.0,
+            },
+        },
+    )
+    monkeypatch.setattr(
+        "governance_tools.reviewer_handoff_summary._commands",
+        lambda *_args, **_kwargs: [],
+    )
+
+    result = assess_reviewer_handoff(
+        project_root=Path(".").resolve(),
+        plan_path=Path("PLAN.md"),
+        release_version="v1.0.0-alpha",
+    )
+    assert result["structural_promotion_allowed"] is False
+    assert result["structural_failure_class"] == "runtime_unverifiable"
+    assert result["structural_blocked_reasons"] == ["test_execution_degraded"]
+    assert result["structural_authority_rate"] == 0.0

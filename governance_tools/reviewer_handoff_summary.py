@@ -282,6 +282,7 @@ def assess_reviewer_handoff(
     )
     lint_gate_pass = lint_clean or lint_policy["override_active"] or not fail_on_non_clean
     effective_ok = bool(upstream_ok and lint_gate_pass and lint_policy["allow_request_valid"])
+    structural = (release.get("structural_promotion") or {})
 
     return {
         "ok": effective_ok,
@@ -295,6 +296,10 @@ def assess_reviewer_handoff(
         "strict_runtime": strict_runtime,
         "authority_require_register": authority_require_register,
         "authority_policy_file": str(authority_policy_file.resolve()) if authority_policy_file else None,
+        "structural_promotion_allowed": bool(structural.get("promotion_allowed", False)),
+        "structural_failure_class": str(structural.get("failure_class", "")),
+        "structural_blocked_reasons": list(structural.get("blocked_reasons") or []),
+        "structural_authority_rate": structural.get("structural_authority_rate"),
         "trust_signal": trust,
         "release_surface": release,
         "commands": commands,
@@ -327,6 +332,10 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"contract_path={result.get('contract_path')}",
         f"strict_runtime={result['strict_runtime']}",
         f"external_contract_repo_count={len(result['external_contract_repos'])}",
+        f"structural_promotion_allowed={result.get('structural_promotion_allowed')}",
+        f"structural_failure_class={result.get('structural_failure_class')}",
+        f"structural_blocked_reasons={','.join(result.get('structural_blocked_reasons') or [])}",
+        f"structural_authority_rate={result.get('structural_authority_rate')}",
         "[trust_signal]",
         f"ok={trust['ok']}",
         f"quickstart_ok={trust['quickstart']['ok']}",
@@ -414,6 +423,10 @@ def format_markdown_result(result: dict[str, Any]) -> str:
         f"- Plan path: `{result['plan_path']}`",
         f"- Release version: `{result['release_version']}`",
         f"- Contract path: `{result.get('contract_path')}`",
+        f"- Structural promotion allowed: `{result.get('structural_promotion_allowed')}`",
+        f"- Structural failure class: `{result.get('structural_failure_class')}`",
+        f"- Structural blocked reasons: `{','.join(result.get('structural_blocked_reasons') or [])}`",
+        f"- Structural authority rate: `{result.get('structural_authority_rate')}`",
         "",
         "## Handoff Status",
         "",
