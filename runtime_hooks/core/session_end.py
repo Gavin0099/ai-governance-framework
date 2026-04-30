@@ -24,6 +24,7 @@ from memory_pipeline.session_snapshot import create_session_snapshot
 from governance_tools.decision_model_loader import build_runtime_policy_ref, final_verdict_owner, runtime_decision_source, violation_verdict_impact
 from governance_tools.domain_governance_metadata import domain_risk_tier
 from governance_tools.execution_surface_coverage import build_execution_surface_coverage
+from governance_tools.claim_enforcement_checker import evaluate as evaluate_claim_enforcement
 from governance_tools.runtime_phase_policy import aggregate_phase_classifications, build_phase_classification
 from governance_tools.runtime_surface_manifest import build_runtime_surface_manifest
 from runtime_hooks.core._canonical_closeout import (
@@ -74,6 +75,64 @@ def _append_session_index(canonical: dict[str, Any], project_root: Path) -> None
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _build_claim_binding_input(
+    *,
+    canonical_closeout: dict[str, Any],
+    summary: str,
+) -> dict[str, Any]:
+    """
+    Build a minimal runtime claim-binding input payload.
+
+    This is the session-end integration bridge that guarantees claim-enforcement
+    artifacts are emitted at runtime, so adoption can be measured.
+    """
+    closeout_status = str(canonical_closeout.get("closeout_status", "missing"))
+    return {
+        "preconditions": True,
+        "scenario_result": closeout_status,
+        "observed": {"closeout_status": closeout_status},
+        "final_claim": summary or f"session closeout status: {closeout_status}",
+        "claim_level": "bounded",
+        "same_evidence_as_previous": False,
+        "posture": "none",
+        "previous_posture": "none",
+        "publication_scope": "local_only",
+    }
+
+
+def _emit_claim_enforcement_check(
+    *,
+    project_root: Path,
+    session_id: str,
+    canonical_closeout: dict[str, Any],
+    summary: str,
+) -> Path:
+    claim_input = _build_claim_binding_input(
+        canonical_closeout=canonical_closeout,
+        summary=summary,
+    )
+    checker_out = evaluate_claim_enforcement(claim_input)
+    payload = {
+        "claim_source": "session_end_canonical_closeout",
+        "evidence_refs": [f"runtime_closeout:{session_id}"],
+        **checker_out,
+        "reviewer_response": {
+            "decision": "accept" if checker_out.get("enforcement_action") == "allow" else None,
+            "override_reason": None,
+        },
+    }
+    output_path = (
+        project_root
+        / "artifacts"
+        / "claim-enforcement"
+        / session_id
+        / "claim-enforcement-check.json"
+    )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    _write_json(output_path, payload)
+    return output_path
 
 
 def _build_post_task_phase_classification_from_checks(checks: dict[str, Any]) -> dict[str, Any]:
@@ -895,6 +954,7 @@ def run_session_end(
         }
     )
     closeout_path: Path | None = None
+    claim_enforcement_check_path: Path | None = None
 
     try:
         _force_runtime_failure_if_requested(checks, "artifact_emission")
@@ -991,6 +1051,12 @@ def run_session_end(
         _write_json(runtime_phase_summary_path, runtime_phase_summary)
         closeout_path = write_canonical_closeout(canonical_closeout, project_root)
         _append_session_index(canonical_closeout, project_root)
+        claim_enforcement_check_path = _emit_claim_enforcement_check(
+            project_root=project_root,
+            session_id=session_id,
+            canonical_closeout=canonical_closeout,
+            summary=summary,
+        )
         if contract["memory_mode"] != "stateless":
             daily_memory_path = _append_daily_memory_entry(
                 project_root=project_root,
@@ -1039,6 +1105,7 @@ def run_session_end(
         "phase_classification": session_end_phase_classification,
         "daily_memory_path": str(daily_memory_path) if daily_memory_path else None,
         "canonical_closeout_artifact": str(closeout_path) if closeout_path else None,
+        "claim_enforcement_check_artifact": str(claim_enforcement_check_path) if claim_enforcement_check_path else None,
         "canonical_closeout": canonical_closeout,
         "decision_context": decision_context,
         "warnings": warnings,
