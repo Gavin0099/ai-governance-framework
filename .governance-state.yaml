@@ -177,3 +177,9 @@ active_rules:
           content: "# Common Rule Pack\n\n- 在實作前先遵守當前 `PLAN` scope。\n- 只要 architecture 或 safety red line 不清楚，就立刻 escalate。\n- 優先做最小、可回滾、且足以滿足任務的變更。"
   missing:
   valid: true
+payload_audit:
+  last_audit_id: "d4923746e2cd"
+  last_audit_time: "2026-04-19T16:54:00.441882+00:00"
+  last_task_level: "L1"
+  last_grand_total_tokens: 0
+  token_method: "estimate"

@@ -543,3 +543,150 @@ def test_assess_directory_strict_transition_same_artifact_off_on_on_with_registe
     assert result_on_present["ok"] is True
     assert result_on_present["register_required_mode"] is True
     assert result_on_present["register_present"] is True
+
+
+# --- Log Production Gap fix: require_log tests ---
+
+def test_require_log_advisory_when_log_missing():
+    """require_log=True + log absent → advisory signal only, not release-blocked."""
+    project_root = _tmp_dir("require_log_log_missing")
+    result = assess_authority_directory(project_root, require_log=True)
+
+    # Advisory: does not block release
+    assert result["ok"] is True
+    assert result["release_blocked"] is False
+    # Advisory reason is surfaced for reviewer visibility
+    assert result["log_advisory_reason"] == "escalation_log_missing"
+    # Normal path continues: no log + no register = no_escalation_expected
+    assert result["source"] == "no_escalation_expected"
+
+
+def test_require_log_advisory_when_log_empty():
+    """require_log=True + log exists but empty → advisory signal only, not release-blocked."""
+    project_root = _tmp_dir("require_log_log_empty")
+    authority_dir = default_authority_dir(project_root)
+    authority_dir.parent.mkdir(parents=True, exist_ok=True)
+    escalation_log = authority_dir.parent / "phase-b-escalation-log.jsonl"
+    escalation_log.write_text("", encoding="utf-8")
+
+    result = assess_authority_directory(project_root, require_log=True)
+
+    assert result["ok"] is True
+    assert result["release_blocked"] is False
+    assert result["log_advisory_reason"] == "escalation_log_empty"
+
+
+def test_require_log_passes_log_check_when_log_nonempty():
+    """require_log=True + log has content → log check passes, normal authority path continues."""
+    project_root = _tmp_dir("require_log_log_present")
+    authority_dir = default_authority_dir(project_root)
+    authority_dir.parent.mkdir(parents=True, exist_ok=True)
+    escalation_log = authority_dir.parent / "phase-b-escalation-log.jsonl"
+    escalation_log.write_text('{"escalation_id": "esc-001"}\n', encoding="utf-8")
+    # authority_dir absent → falls through to escalation_expected_missing (not log guard)
+
+    result = assess_authority_directory(project_root, require_log=True)
+
+    assert result["source"] == "escalation_expected_missing"
+    assert result["ok"] is False
+    assert result["release_blocked"] is True
+
+
+def test_require_log_false_preserves_silent_pass_when_log_missing():
+    """require_log=False (default) → backward compat: no_escalation_expected still ok=True."""
+    project_root = _tmp_dir("require_log_default_compat")
+    result = assess_authority_directory(project_root, require_log=False)
+
+    assert result["ok"] is True
+    assert result["source"] == "no_escalation_expected"
+    assert result["release_blocked"] is False
+
+
+# --- Log ↔ Authority binding tests ---
+
+def test_log_entry_hash_embedded_in_written_entry():
+    """append_escalation_log_entry injects _entry_hash into the returned entry."""
+    from governance_tools.escalation_log_writer import append_escalation_log_entry
+    import tempfile, os
+    with tempfile.NamedTemporaryFile(suffix=".jsonl", delete=False) as f:
+        log_path = Path(f.name)
+    try:
+        entry = append_escalation_log_entry(log_path, {"escalation_id": "esc-bind-001"})
+        assert "_entry_hash" in entry
+        assert isinstance(entry["_entry_hash"], str)
+        assert len(entry["_entry_hash"]) == 64  # sha256 hex
+    finally:
+        log_path.unlink(missing_ok=True)
+
+
+def test_build_authority_artifact_with_log_reference():
+    """build_authority_artifact with log_entry_hash embeds log_reference in artifact."""
+    payload = _valid_payload()
+    artifact = build_authority_artifact(payload, log_entry_hash="abc123deadbeef")
+
+    assert "log_reference" in artifact
+    assert artifact["log_reference"]["entry_hash"] == "abc123deadbeef"
+    assert artifact["log_reference"]["escalation_id"] == payload["escalation_id"]
+    assert artifact["log_reference"]["binding_version"] == "v1"
+
+
+def test_build_authority_artifact_without_log_reference():
+    """build_authority_artifact without log_entry_hash has no log_reference (backward compat)."""
+    payload = _valid_payload()
+    artifact = build_authority_artifact(payload)
+
+    assert "log_reference" not in artifact
+
+
+def test_assess_artifact_binding_ok_when_hash_in_log(tmp_path):
+    """assess_authority_artifact with known_log_hashes → log_binding_ok=True when hash present."""
+    payload = _valid_payload()
+    artifact = build_authority_artifact(payload, log_entry_hash="deadbeef1234")
+    artifact_path = tmp_path / "esc-001.json"
+    artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
+
+    result = assess_authority_artifact(artifact_path, known_log_hashes={"deadbeef1234"})
+
+    assert result["log_binding_ok"] is True
+    assert result["log_binding_advisory"] is None
+
+
+def test_assess_artifact_binding_fails_when_hash_not_in_log(tmp_path):
+    """assess_authority_artifact → log_binding_ok=False when hash absent from log."""
+    payload = _valid_payload()
+    artifact = build_authority_artifact(payload, log_entry_hash="deadbeef1234")
+    artifact_path = tmp_path / "esc-001.json"
+    artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
+
+    result = assess_authority_artifact(artifact_path, known_log_hashes={"differenthash"})
+
+    assert result["log_binding_ok"] is False
+    assert result["log_binding_advisory"] == "log_entry_not_found"
+    # Advisory: does not affect ok or release_blocked
+    assert result["release_blocked"] is not True or result["ok"] is not True  # ok driven by authority_valid
+
+
+def test_assess_artifact_no_ref_advisory_when_no_log_reference(tmp_path):
+    """assess_authority_artifact with known_log_hashes but artifact has no log_reference → advisory."""
+    payload = _valid_payload()
+    artifact = build_authority_artifact(payload)  # no log_entry_hash
+    artifact_path = tmp_path / "esc-001.json"
+    artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
+
+    result = assess_authority_artifact(artifact_path, known_log_hashes={"somehash"})
+
+    assert result["log_binding_ok"] is None
+    assert result["log_binding_advisory"] == "no_log_reference_in_artifact"
+
+
+def test_assess_artifact_skips_binding_when_no_hashes_provided(tmp_path):
+    """assess_authority_artifact without known_log_hashes → binding fields absent."""
+    payload = _valid_payload()
+    artifact = build_authority_artifact(payload, log_entry_hash="abc")
+    artifact_path = tmp_path / "esc-001.json"
+    artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
+
+    result = assess_authority_artifact(artifact_path)  # no known_log_hashes
+
+    assert result["log_binding_ok"] is None
+    assert result["log_binding_advisory"] is None

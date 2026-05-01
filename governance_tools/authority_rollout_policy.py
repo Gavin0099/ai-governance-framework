@@ -23,6 +23,7 @@ STRICT_POLICY_MODE = "strict_register_required"
 @dataclass(frozen=True)
 class AuthorityRolloutPolicy:
     require_register: bool
+    require_log: bool
     policy_source: str
     policy_mode: str
     explicit_override: bool
@@ -55,10 +56,22 @@ def _resolve_config_mode(policy_file: Path) -> tuple[str, str]:
     return mode, "policy_file"
 
 
+def _read_require_log(policy_file: Path) -> bool:
+    if not policy_file.is_file():
+        return False
+    try:
+        payload = json.loads(policy_file.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    value = payload.get("require_log")
+    return bool(value) if isinstance(value, bool) else False
+
+
 def resolve_authority_rollout_policy(
     *,
     project_root: Path,
     require_register_override: bool | None = None,
+    require_log_override: bool | None = None,
     policy_file: Path | None = None,
 ) -> AuthorityRolloutPolicy:
     """
@@ -69,21 +82,29 @@ def resolve_authority_rollout_policy(
     2) policy config file
     3) default compatibility (lowest)
     """
+    resolved_policy_file = policy_file or default_policy_file(project_root)
+    explicit_override = False
+
     if require_register_override is not None:
         mode = STRICT_POLICY_MODE if require_register_override else DEFAULT_POLICY_MODE
-        return AuthorityRolloutPolicy(
-            require_register=bool(require_register_override),
-            policy_source="explicit_override",
-            policy_mode=mode,
-            explicit_override=True,
-        )
+        require_register = bool(require_register_override)
+        policy_source = "explicit_override"
+        explicit_override = True
+    else:
+        mode, policy_source = _resolve_config_mode(resolved_policy_file)
+        require_register = _mode_to_require_register(mode)
 
-    resolved_policy_file = policy_file or default_policy_file(project_root)
-    mode, source = _resolve_config_mode(resolved_policy_file)
+    if require_log_override is not None:
+        require_log = bool(require_log_override)
+        explicit_override = True
+    else:
+        require_log = _read_require_log(resolved_policy_file)
+
     return AuthorityRolloutPolicy(
-        require_register=_mode_to_require_register(mode),
-        policy_source=source,
+        require_register=require_register,
+        require_log=require_log,
+        policy_source=policy_source,
         policy_mode=mode,
-        explicit_override=False,
+        explicit_override=explicit_override,
     )
 
