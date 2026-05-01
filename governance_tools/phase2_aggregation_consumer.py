@@ -262,6 +262,9 @@ def build_phase2_gate(
         "release_block_reasons": list(
             authority_assessment.get("release_block_reasons") or []
         ),
+        # trust_root_evidence_level: advisory only, never affects gate_promote_eligible.
+        # Enables promotion gate to surface evidence chain completeness without gating on it.
+        "trust_root_evidence_level": authority_assessment.get("trust_root_evidence_level"),
     }
 
     return {
@@ -300,5 +303,6 @@ def build_phase2_gate_with_policy(
     authority_assessment = assess_authority_directory(
         project_root,
         require_register=policy.require_register,
+        require_log=policy.require_log,
     )
     return build_phase2_gate(aggregation_result, authority_assessment)

@@ -140,6 +140,7 @@ def assess_release_surface(
     bundle_manifest: Path | None = None,
     publication_manifest: Path | None = None,
     authority_require_register: bool | None = None,
+    authority_require_log: bool | None = None,
     authority_policy_file: Path | None = None,
 ) -> dict[str, Any]:
     readiness = assess_release_readiness(project_root, version=version)
@@ -157,11 +158,13 @@ def assess_release_surface(
     authority_policy = resolve_authority_rollout_policy(
         project_root=project_root,
         require_register_override=authority_require_register,
+        require_log_override=authority_require_log,
         policy_file=authority_policy_file,
     )
     escalation_authority = assess_authority_directory(
         project_root,
         require_register=authority_policy.require_register,
+        require_log=authority_policy.require_log,
     )
     structural_promotion = evaluate_structural_promotion_gate(
         project_root / "memory",
@@ -191,6 +194,7 @@ def assess_release_surface(
         "escalation_authority": escalation_authority,
         "authority_rollout_policy": {
             "require_register": authority_policy.require_register,
+            "require_log": authority_policy.require_log,
             "policy_source": authority_policy.policy_source,
             "policy_mode": authority_policy.policy_mode,
             "explicit_override": authority_policy.explicit_override,
@@ -328,6 +332,7 @@ def format_human_result(result: dict[str, Any]) -> str:
     lines.extend(
         [
             f"require_register={authority_policy.get('require_register')}",
+            f"require_log={authority_policy.get('require_log')}",
             f"policy_mode={authority_policy.get('policy_mode')}",
             f"policy_source={authority_policy.get('policy_source')}",
             f"explicit_override={authority_policy.get('explicit_override')}",
@@ -386,9 +391,9 @@ def format_markdown_result(result: dict[str, Any]) -> str:
         f"| Release package | `{package['ok']}` | release_docs=`{package['existing_release_docs']}/{package['release_doc_count']}` status_docs=`{package['existing_status_docs']}/{package['status_doc_count']}` |",
         f"| Bundle manifest | `{'missing' if not bundle['available'] else bundle['ok']}` | source=`{bundle['source']}` manifest=`{bundle.get('manifest_file')}` |",
         f"| Publication manifest | `{'missing' if not publication['available'] else publication['ok']}` | source=`{publication['source']}` manifest=`{publication.get('manifest_file')}` |",
-        f"| Escalation authority | `{'missing' if not escalation_authority['available'] else escalation_authority['ok']}` | source=`{escalation_authority['source']}` decision_source=`{escalation_authority.get('decision_source')}` register_required=`{escalation_authority.get('register_required_mode')}` register_present=`{escalation_authority.get('register_present')}` artifacts=`{escalation_authority.get('artifacts_read')}` precedence_applied=`{escalation_authority.get('precedence_applied')}` release_blocked=`{escalation_authority.get('release_blocked')}` |",
+        f"| Escalation authority | `{'missing' if not escalation_authority['available'] else escalation_authority['ok']}` | source=`{escalation_authority['source']}` decision_source=`{escalation_authority.get('decision_source')}` register_required=`{escalation_authority.get('register_required_mode')}` register_present=`{escalation_authority.get('register_present')}` artifacts=`{escalation_authority.get('artifacts_read')}` precedence_applied=`{escalation_authority.get('precedence_applied')}` release_blocked=`{escalation_authority.get('release_blocked')}` trust_root_evidence_level=`{escalation_authority.get('trust_root_evidence_level')}` |",
         f"| Structural promotion gate | `{structural_promotion.get('promotion_allowed')}` | failure_class=`{structural_promotion.get('failure_class')}` claim_boundary=`{structural_promotion.get('claim_boundary')}` blocked=`{','.join(structural_promotion.get('blocked_reasons') or [])}` |",
-        f"| Authority rollout policy | `{authority_policy.get('policy_mode')}` | source=`{authority_policy.get('policy_source')}` require_register=`{authority_policy.get('require_register')}` explicit_override=`{authority_policy.get('explicit_override')}` |",
+        f"| Authority rollout policy | `{authority_policy.get('policy_mode')}` | source=`{authority_policy.get('policy_source')}` require_register=`{authority_policy.get('require_register')}` require_log=`{authority_policy.get('require_log')}` explicit_override=`{authority_policy.get('explicit_override')}` |",
         "",
         "### Escalation Lifecycle Effective State",
         "",

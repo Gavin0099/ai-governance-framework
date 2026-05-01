@@ -59,6 +59,11 @@ def evaluate_phase3_promotion_entry(payload: dict[str, Any]) -> dict[str, Any]:
         decision_basis["gate_block_reasons"] = gate_block_reasons
     if authority_summary is not None:
         decision_basis["authority_ok"] = bool(authority_summary.get("ok"))
+        # trust_root_evidence_level: advisory signal only.
+        # Visible to reviewer; does NOT affect phase3_entry_allowed.
+        trust_level = authority_summary.get("trust_root_evidence_level")
+        if trust_level is not None:
+            decision_basis["trust_root_evidence_level"] = trust_level
 
     return {
         "phase3_entry_allowed": allowed,
