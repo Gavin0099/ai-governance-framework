@@ -60,6 +60,11 @@ _PRIVATE_MEMORY_PATH = re.compile(
 )
 _CANONICAL_MEMORY_WRITER = "governance_tools.memory_record"
 
+# Daily files dated on or after this date are required to use canonical writer format.
+# Before this date, old-format entries (- what changed:) are grandfathered.
+# Set to the day after canonical writer was committed (2026-04-30 commit 6d77f2d).
+_CANONICAL_WRITER_REQUIRED_FROM = "2026-05-01"
+
 # ── helpers ───────────────────────────────────────────────────────────────────
 
 _DATE_FILENAME = re.compile(r'^\d{4}-\d{2}-\d{2}\.md$')
@@ -163,7 +168,9 @@ def check_daily_memory(
             writer_match = _WRITER.search(block)
             writer = (writer_match.group(1).strip() if writer_match else "")
             has_format_version = bool(_RECORD_FORMAT_VERSION.search(block))
+
             if memory_type in {"session-derived", "session_derived"}:
+                # Explicit canonical format: verify writer and version.
                 if writer != _CANONICAL_MEMORY_WRITER or not has_format_version:
                     violations.append({
                         'code': 'non_canonical_writer',
@@ -172,6 +179,18 @@ def check_daily_memory(
                         'entry': _snippet(block),
                         'reason': 'session_derived_entry_not_written_by_memory_record',
                     })
+            elif not memory_type and fpath.name >= _CANONICAL_WRITER_REQUIRED_FROM:
+                # Old-format entry (- what changed:) in a file after the canonical writer
+                # cutoff date. These bypass the canonical writer and evade non_canonical_writer
+                # detection because they lack the memory_type header.
+                # Grandfathered for files before _CANONICAL_WRITER_REQUIRED_FROM.
+                violations.append({
+                    'code': 'non_canonical_writer',
+                    'severity': 'warning',
+                    'file': str(fpath.name),
+                    'entry': _snippet(block),
+                    'reason': 'old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()',
+                })
 
     coverage = {'total_entries': total_entries, 'bound_entries': bound_entries}
     return violations, coverage
