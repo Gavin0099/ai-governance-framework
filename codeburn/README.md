@@ -79,3 +79,15 @@ All four must be satisfied before Phase 2 work begins:
 Phase 2 may NOT change guard fields or add decision/recommendation output
 without first creating a decision-authority contract.
 See `phase1/CODEBURN_PHASE2_ENTRY_CONSTRAINTS.md` for full constraints.
+
+---
+
+## Phase 3 — Deliberately Prohibited (as of 2026-04-27)
+
+Phase 3 (Trigger Design: dynamic threshold, trend_direction, cross-repo correlation) is
+technically unblocked but **deliberately prohibited for now**.
+
+Reason: E2 must produce initial verifiable results before Phase 3 trigger design begins.
+Phase 2.5 semantic locks remain fully in effect (observation-only, no interpretive-class keys).
+
+Phase 3 entry requires explicit Phase 2 → Phase 3 gate passage and reviewer sign-off.
