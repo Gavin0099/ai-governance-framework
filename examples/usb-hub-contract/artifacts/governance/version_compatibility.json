@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "checked_at": "2026-04-28T08:02:22.531491Z",
+  "checked_at": "2026-05-03T07:56:51.966324Z",
   "repo_manifest_found": false,
   "framework_version": "0.4.0",
   "verdict": "unsupported",
@@ -8,5 +8,5 @@
   "enabled_runtime_features": [],
   "disabled_runtime_features": [],
   "missing_migrations": [],
-  "error": "version_manifest_load_error:not_found:E:\\BackUp\\Git_EE\\ai-governance-framework\\examples\\usb-hub-contract\\.governance\\version_manifest.yaml"
+  "error": "version_manifest_load_error:not_found:D:\\ai-governance-framework\\examples\\usb-hub-contract\\.governance\\version_manifest.yaml"
 }
