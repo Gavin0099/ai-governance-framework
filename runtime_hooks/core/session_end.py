@@ -981,6 +981,18 @@ def run_session_end(
             "errors": errors,
             "phase_classification": session_end_phase_classification,
         }
+        if contract["memory_mode"] != "stateless":
+            daily_memory_path = _append_daily_memory_entry(
+                project_root=project_root,
+                session_id=session_id,
+                task=contract["task"],
+                decision=decision,
+                summary=summary,
+                promoted=promotion_result is not None,
+                snapshot_created=snapshot_result is not None,
+                canonical_closeout=canonical_closeout,
+            )
+
         summary_payload = {
             "session_id": session_id,
             "closed_at": now,
@@ -1070,17 +1082,6 @@ def run_session_end(
         )
         _write_json(verdict_path, verdict_payload)
         _write_json(trace_path, trace_payload)
-        if contract["memory_mode"] != "stateless":
-            daily_memory_path = _append_daily_memory_entry(
-                project_root=project_root,
-                session_id=session_id,
-                task=contract["task"],
-                decision=decision,
-                summary=summary,
-                promoted=promotion_result is not None,
-                snapshot_created=snapshot_result is not None,
-                canonical_closeout=canonical_closeout,
-            )
     except Exception as exc:
         closeout_path = None
         failure_message = str(exc)
