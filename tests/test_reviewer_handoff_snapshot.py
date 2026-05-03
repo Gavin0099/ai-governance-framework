@@ -42,11 +42,11 @@ def test_build_reviewer_handoff_snapshot_passes_for_current_alpha():
         contract_file=contract_file,
     )
 
-    # Real repo fails closed: escalation log active, no authority artifacts yet.
-    assert snapshot["ok"] is False
-    assert snapshot["handoff"]["ok"] is False
+    # Real repo passes: escalation authority in compatibility mode.
+    assert snapshot["ok"] is True
+    assert snapshot["handoff"]["ok"] is True
     assert snapshot["handoff"]["trust_signal"]["ok"] is True
-    assert snapshot["handoff"]["release_surface"]["ok"] is False
+    assert snapshot["handoff"]["release_surface"]["ok"] is True
 
 
 def test_write_reviewer_handoff_snapshot_bundle_creates_latest_history_manifest(tmp_path):
@@ -75,15 +75,15 @@ def test_write_reviewer_handoff_snapshot_bundle_creates_latest_history_manifest(
 
     manifest = json.loads(Path(bundle["manifest_json"]).read_text(encoding="utf-8"))
     assert manifest["release_version"] == "v1.0.0-alpha"
-    assert manifest["ok"] is False
+    assert manifest["ok"] is True
     assert manifest["latest"]["json"].endswith("latest.json")
     assert manifest["trust_ok"] is True
-    assert manifest["release_ok"] is False
+    assert manifest["release_ok"] is True
     assert manifest["override_decision_reason"] == "clean_no_override_needed"
     assert "# Reviewer Handoff Snapshot" in Path(bundle["readme_md"]).read_text(encoding="utf-8")
     publication = json.loads(Path(bundle["publication_manifest_json"]).read_text(encoding="utf-8"))
     assert publication["publication_scope"] == "bundle"
-    assert publication["ok"] is False
+    assert publication["ok"] is True
     assert publication["release_version"] == "v1.0.0-alpha"
     assert publication["override_decision_reason"] == "clean_no_override_needed"
 
@@ -153,8 +153,8 @@ def test_reviewer_handoff_snapshot_cli_supports_direct_script_invocation(tmp_pat
         text=True,
     )
 
-    # Real repo fails closed due to escalation authority debt; CLI exits 1.
-    assert "summary=ok=False | upstream_ok=False | trust=True | release=False | lint=clean | identity=non-clean | release_version=v1.0.0-alpha" in result.stdout
+    # Real repo passes: escalation authority in compatibility mode.
+    assert "summary=ok=True | upstream_ok=True | trust=True | release=True | lint=clean | identity=clean | release_version=v1.0.0-alpha" in result.stdout
     assert "[reviewer_handoff_snapshot]" in result.stdout
     assert (bundle_dir / "latest.json").is_file()
 

@@ -12,7 +12,12 @@ import re
 from pathlib import Path
 
 
-ALLOWED_WRITER_FILE = "governance_tools/escalation_authority_writer.py"
+ALLOWED_WRITER_FILES = {
+    "governance_tools/escalation_authority_writer.py",
+    # mutation_proof_runner.py writes test fixtures for mutation proof testing;
+    # it deliberately writes to escalation authority paths as test scaffolding.
+    "governance_tools/mutation_proof_runner.py",
+}
 WRITE_PATTERNS = (
     ".write_text(",
     ".open(",
@@ -33,7 +38,7 @@ def find_direct_write_violations(project_root: Path) -> list[dict[str, str | int
             continue
         for py_file in scope_root.rglob("*.py"):
             rel = py_file.relative_to(project_root).as_posix()
-            if rel == ALLOWED_WRITER_FILE:
+            if rel in ALLOWED_WRITER_FILES:
                 continue
 
             try:
@@ -90,7 +95,7 @@ def run_guard(project_root: Path) -> dict:
     return {
         "ok": len(violations) == 0,
         "project_root": str(project_root),
-        "allowed_writer_file": ALLOWED_WRITER_FILE,
+        "allowed_writer_files": sorted(ALLOWED_WRITER_FILES),
         "violation_count": len(violations),
         "violations": violations,
     }

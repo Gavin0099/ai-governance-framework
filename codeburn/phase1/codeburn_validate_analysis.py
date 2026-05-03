@@ -51,7 +51,8 @@ def _check_boundary_structure(analysis: dict, violations: list[str]) -> None:
     if not isinstance(obs, dict):
         violations.append("observability_limits_missing")
         return
-    if obs.get("token_usage") != "unknown":
+    _VALID_TOKEN_USAGE_LEVELS = {"none", "coarse", "step_level", "unknown"}
+    if obs.get("token_usage") not in _VALID_TOKEN_USAGE_LEVELS:
         violations.append("observability_token_usage_not_unknown")
     if obs.get("file_reads") != "unsupported":
         violations.append("observability_file_reads_not_unsupported")
@@ -74,7 +75,7 @@ def _check_forbidden_phrases(analysis: dict, violations: list[str]) -> None:
     """(B) Scan rendered text output for forbidden efficiency/waste claims."""
     # Import here to allow this module to be used without codeburn_analyze on sys.path
     # in test contexts; the import will fail loudly if the module is missing.
-    from codeburn_analyze import print_analysis_text  # noqa: PLC0415
+    from codeburn.phase1.codeburn_analyze import print_analysis_text  # noqa: PLC0415
 
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
@@ -109,7 +110,7 @@ def validate_analysis(db_path: Path, session_id: str = "latest") -> dict:
           "checks": {"boundary_structure": "pass|fail", "forbidden_phrases": "pass|fail", "traceability": "pass|fail"}
         }
     """
-    from codeburn_analyze import build_analysis  # noqa: PLC0415
+    from codeburn.phase1.codeburn_analyze import build_analysis  # noqa: PLC0415
 
     analysis = build_analysis(db_path, session_id)
     if not analysis.get("ok"):

@@ -187,6 +187,14 @@ def test_dispatcher_cli_can_apply_contract_override():
 def test_dispatcher_cli_can_infer_project_root_and_plan_from_contract(tmp_path):
     contract_file = tmp_path / "contract.yaml"
     plan_path = tmp_path / "PLAN.md"
+    governance_dir = tmp_path / ".governance"
+    governance_dir.mkdir(parents=True, exist_ok=True)
+    (governance_dir / "version_manifest.yaml").write_text(
+        'schema_version: "1.0"\nlast_updated: "2026-05-03"\ngovernance_version: "0.4.0"\n'
+        'contract_schema_version: "1.2.0"\nruntime_entrypoint_version: "1.1.0"\n'
+        'hook_wiring_version: "1.0.0"\nartifact_layout_version: "1.0.0"\nmemory_layout_version: "1.0.0"\n',
+        encoding="utf-8",
+    )
     contract_file.write_text("name: local-contract\n", encoding="utf-8")
     plan_path.write_text(
         f"> **最後更新**: {_date.today().isoformat()}\n"

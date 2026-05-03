@@ -68,7 +68,7 @@ def _repo(root: Path, adopted_release: str | None, compatibility: str = ">=1.0.0
 
 def test_build_report_counts_version_states() -> None:
     root = _reset_fixture("state_counts")
-    current_repo = _repo(root / "current", "v1.1.0")
+    current_repo = _repo(root / "current", "1.2.0")
     outdated_repo = _repo(root / "outdated", "v0.9.0")
     unknown_repo = _repo(root / "unknown", None)
 
@@ -82,7 +82,7 @@ def test_build_report_counts_version_states() -> None:
 
 def test_format_human_lists_repo_rows() -> None:
     root = _reset_fixture("human_rows")
-    current_repo = _repo(root / "current", "v1.1.0")
+    current_repo = _repo(root / "current", "1.2.0")
     report = build_report([current_repo])
 
     rendered = format_human(report)
