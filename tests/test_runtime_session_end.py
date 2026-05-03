@@ -55,6 +55,7 @@ def test_session_end_auto_promotes_low_risk_candidate(local_project_root):
 
     summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
     assert summary_payload["promoted"] is True
+    assert summary_payload["daily_memory_path"] == result["daily_memory_path"]
     assert summary_payload["daily_memory_record"]["commit"]
     assert summary_payload["daily_memory_record"]["session_id"] == "2026-03-12-01"
     assert summary_payload["daily_memory_record"]["memory_binding"] in {
@@ -115,6 +116,7 @@ def test_session_end_appends_daily_memory_entry_with_required_fields(local_proje
     assert "session=2026-03-12-01-memory" in daily_text
     assert "Summary: Daily memory append test" in daily_text
     summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
+    assert summary_payload["daily_memory_path"] == result["daily_memory_path"]
     assert summary_payload["daily_memory_record"]["what_changed"]
     assert summary_payload["daily_memory_record"]["memory_type"] == "session-derived"
     assert summary_payload["daily_memory_record"]["writer"] == "governance_tools.memory_record"
@@ -137,6 +139,8 @@ def test_session_end_stateless_session_does_not_write_daily_memory(local_project
     )
 
     assert result["daily_memory_path"] is None
+    summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
+    assert summary_payload["daily_memory_path"] is None
 
 
 def test_session_end_requires_review_for_high_risk(local_project_root):
