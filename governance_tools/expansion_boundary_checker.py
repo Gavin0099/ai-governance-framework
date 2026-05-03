@@ -77,6 +77,21 @@ KNOWN_SESSION_START_KEYS = {
     "fidelity",
     "origin",
     "summary_kind",
+    # version compatibility + controlled_refusal admitted 154ad4d / governance-runtime-policy
+    # _run_version_compatibility_advisory() and _build_controlled_refusal_result() return these.
+    # advisory_only/mode/reason/status/verdict govern session blocking; others are informational.
+    "advisory_only",
+    "disabled_runtime_features",
+    "enabled_runtime_features",
+    "error",
+    "legacy_capability_policy",
+    "missing_migrations",
+    "mode",
+    "reason",
+    "repo_manifest_found",
+    "status",
+    "verdict",
+    "version_compatibility",
 }
 
 # pre_task_check spreads **active_rules_result so many keys are not literal in
@@ -98,6 +113,24 @@ KNOWN_PRE_TASK_KEYS = {
     "observations",
     "signals_checked",
     "snapshot",
+    # context signal / evidence quality helpers admitted 154ad4d / governance-runtime-policy
+    # _evaluate_context_signals() and _evaluate_evidence_quality() helper return dicts;
+    # AST scans all return-dict literals, not only the top-level run_pre_task_check().
+    "action_decision",
+    "alternative_root_causes",
+    "destructive_change",
+    "direct_evidence_frozen",
+    "evidence",
+    "external_side_effect",
+    "has_no_evidence_marker",
+    "has_strong_marker",
+    "partial_context",
+    "reframed_task",
+    "shared_interface",
+    "source",
+    "stated_premise",
+    "user_asserts_root_cause",
+    "valid_request",
 }
 
 KNOWN_POST_TASK_KEYS = {
@@ -125,6 +158,11 @@ KNOWN_POST_TASK_KEYS = {
     "rules",
     "snapshot",
     "warnings",
+    # assumption check + phase classification admitted 154ad4d / governance-runtime-policy
+    # post_task_check.py return dict now includes these keys.
+    "assumption_advisories",
+    "assumption_check",
+    "phase_classification",
 }
 
 KNOWN_KEYS_BY_HOOK = {

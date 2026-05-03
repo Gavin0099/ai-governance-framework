@@ -47,6 +47,14 @@ def test_run_adapter_event_pre_task(local_runtime_root, monkeypatch):
 
 
 def test_run_adapter_event_session_start(local_runtime_root):
+    governance_dir = local_runtime_root / ".governance"
+    governance_dir.mkdir(parents=True, exist_ok=True)
+    (governance_dir / "version_manifest.yaml").write_text(
+        'schema_version: "1.0"\nlast_updated: "2026-05-03"\ngovernance_version: "0.4.0"\n'
+        'contract_schema_version: "1.2.0"\nruntime_entrypoint_version: "1.1.0"\n'
+        'hook_wiring_version: "1.0.0"\nartifact_layout_version: "1.0.0"\nmemory_layout_version: "1.0.0"\n',
+        encoding="utf-8",
+    )
     plan = local_runtime_root / "PLAN.md"
     plan.write_text(
         "> **Owner**: Tester\n"

@@ -86,7 +86,7 @@ def test_assess_external_repo_returns_ready_for_complete_repo() -> None:
 
     _make_framework(framework_root)
     _make_target_repo(target_root, framework_root)
-    _write_lock(target_root, "v1.1.0")
+    _write_lock(target_root, "1.2.0")
 
     result = assess_external_repo(target_root)
 
@@ -162,7 +162,7 @@ def test_assess_external_repo_surfaces_noncanonical_framework_source() -> None:
 
     _make_framework(framework_root)
     _make_target_repo(target_root, framework_root)
-    _write_lock(target_root, "v1.1.0")
+    _write_lock(target_root, "1.2.0")
     payload = json.loads((target_root / "governance" / "framework.lock.json").read_text(encoding="utf-8"))
     payload["framework_repo"] = "https://github.com/GavinWu672/ai-governance-framework"
     _write(target_root / "governance" / "framework.lock.json", json.dumps(payload, indent=2))
@@ -443,7 +443,7 @@ def test_assess_external_repo_surfaces_agents_calibration_maturity() -> None:
 
     _make_framework(framework_root)
     _make_target_repo(target_root, framework_root)
-    _write_lock(target_root, "v1.1.0")
+    _write_lock(target_root, "1.2.0")
     _write(
         target_root / "AGENTS.md",
         "\n".join(

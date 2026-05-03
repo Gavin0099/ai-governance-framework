@@ -27,11 +27,11 @@ def test_reviewer_handoff_summary_passes_for_current_alpha():
         contract_file=contract_file,
     )
 
-    # Real repo fails closed: escalation log active, no authority artifacts yet.
-    assert result["ok"] is False
+    # Real repo passes: escalation authority in compatibility mode, no escalation register required.
+    assert result["ok"] is True
     assert result["trust_signal"]["ok"] is True
-    assert result["release_surface"]["ok"] is False
-    assert result["release_surface"]["escalation_authority"]["release_blocked"] is True
+    assert result["release_surface"]["ok"] is True
+    assert result["release_surface"]["escalation_authority"]["release_blocked"] is False
     assert any(item["name"] == "release_surface_overview" for item in result["commands"])
 
 
@@ -75,8 +75,8 @@ def test_reviewer_handoff_summary_human_and_markdown_outputs_are_summary_first()
     rendered_human = format_human_result(result)
     rendered_markdown = format_markdown_result(result)
 
-    # Real repo fails closed due to escalation authority debt.
-    assert rendered_human.startswith("summary=ok=False | upstream_ok=False | trust=True | release=False | lint=clean | identity=non-clean | release_version=v1.0.0-alpha")
+    # Real repo passes: escalation authority in compatibility mode.
+    assert rendered_human.startswith("summary=ok=True | upstream_ok=True | trust=True | release=True | lint=clean | identity=clean | release_version=v1.0.0-alpha")
     assert "[reviewer_handoff_summary]" in rendered_human
     assert "[trust_signal]" in rendered_human
     assert "[release_surface]" in rendered_human
@@ -200,8 +200,8 @@ def test_reviewer_handoff_summary_cli_supports_direct_script_invocation(tmp_path
         text=True,
     )
 
-    # Real repo fails closed due to escalation authority debt; CLI exits 1.
-    assert "summary=ok=False | upstream_ok=False | trust=True | release=False | lint=clean | identity=non-clean | release_version=v1.0.0-alpha" in result.stdout
+    # Real repo passes: escalation authority in compatibility mode.
+    assert "summary=ok=True | upstream_ok=True | trust=True | release=True | lint=clean | identity=clean | release_version=v1.0.0-alpha" in result.stdout
     assert "[reviewer_handoff_summary]" in result.stdout
 
 

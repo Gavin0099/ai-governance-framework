@@ -27,6 +27,15 @@ def test_quickstart_smoke_runs_without_contract_on_temp_repo():
         "[>] Phase A : Quickstart validation\n",
         encoding="utf-8",
     )
+    gov_dir = tmp_path / ".governance"
+    gov_dir.mkdir(exist_ok=True)
+    (gov_dir / "version_manifest.yaml").write_text(
+        'schema_version: "1.0"\ngovernance_version: "0.4.0"\n'
+        'contract_schema_version: "1.2.0"\nruntime_entrypoint_version: "1.1.0"\n'
+        'hook_wiring_version: "1.0.0"\nartifact_layout_version: "1.0.0"\n'
+        'memory_layout_version: "1.0.0"\n',
+        encoding="utf-8",
+    )
 
     result = run_quickstart_smoke(
         project_root=tmp_path,

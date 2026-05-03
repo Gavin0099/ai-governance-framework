@@ -78,6 +78,15 @@ def test_smoke_test_session_start_can_infer_project_root_and_plan_from_contract(
         "[>] Phase A : Validate runtime smoke overrides\n",
         encoding="utf-8",
     )
+    gov_dir = tmp_path / ".governance"
+    gov_dir.mkdir()
+    (gov_dir / "version_manifest.yaml").write_text(
+        'schema_version: "1.0"\ngovernance_version: "0.4.0"\n'
+        'contract_schema_version: "1.2.0"\nruntime_entrypoint_version: "1.1.0"\n'
+        'hook_wiring_version: "1.0.0"\nartifact_layout_version: "1.0.0"\n'
+        'memory_layout_version: "1.0.0"\n',
+        encoding="utf-8",
+    )
 
     envelope = run_shared_smoke("session_start", contract_file=contract_file)
 

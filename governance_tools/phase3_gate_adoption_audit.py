@@ -40,6 +40,9 @@ _ALLOW_PARALLEL_DECISION_SCAN = {
     "governance_tools/external_observation_adapter.py",
     "governance_tools/enumd_observe_only_probe.py",
     "scripts/phase2_aggregation_dry_run.py",
+    # phase2_aggregation_consumer uses current_state/promote_eligible as Phase 2
+    # aggregation output keys — not as Phase 3 promotion decision logic.
+    "governance_tools/phase2_aggregation_consumer.py",
 }
 
 
