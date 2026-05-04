@@ -136,6 +136,13 @@ def run_summary(db_path: Path, start_day: date, end_day: date) -> dict[str, Any]
         day_pass = True
         observability_boundary_disclosed = True
         retry_advisory_only = True
+        daily_evidence_status = "sufficient" if len(sessions) > 0 else "insufficient"
+        daily_sample_status = "adequate" if len(sessions) > 0 else "low_sample_window"
+
+        if len(sessions) == 0:
+            # No data for this day is NOT_READY (insufficient evidence), not FAIL.
+            day_pass = False
+            day_failed_checks.append("insufficient_evidence")
 
         for sid in sessions:
             analysis = build_analysis(db_path, sid)
@@ -155,9 +162,11 @@ def run_summary(db_path: Path, start_day: date, end_day: date) -> dict[str, Any]
         metrics = _extra_day_metrics(db_path, day)
         daily = {
             "day": day.isoformat(),
-            "status": "PASS" if day_pass else "FAIL",
+            "status": "PASS" if day_pass else "NOT_READY",
             "failed_checks": sorted(set(day_failed_checks)),
             "session_count": len(sessions),
+            "evidence_status": daily_evidence_status,
+            "sample_status": daily_sample_status,
             "observability_boundary_disclosed": observability_boundary_disclosed,
             "retry_signal_advisory_only": retry_advisory_only,
             **metrics,
@@ -166,6 +175,16 @@ def run_summary(db_path: Path, start_day: date, end_day: date) -> dict[str, Any]
 
     activation = _activation_coverage_for_window(per_day)
     all_daily_validation_pass = all(d["status"] == "PASS" for d in per_day)
+    any_daily_contract_hard_fail = any(
+        any(check != "insufficient_evidence" for check in d["failed_checks"])
+        for d in per_day
+    )
+    if all_daily_validation_pass:
+        daily_contract_status = "PASS"
+    elif any_daily_contract_hard_fail:
+        daily_contract_status = "FAIL"
+    else:
+        daily_contract_status = "NOT_READY"
     observability_boundary_disclosed_all_days = all(d["observability_boundary_disclosed"] for d in per_day)
     retry_signal_advisory_only_all_days = all(d["retry_signal_advisory_only"] for d in per_day)
     activation_coverage_met = all(activation.values())
@@ -187,7 +206,7 @@ def run_summary(db_path: Path, start_day: date, end_day: date) -> dict[str, Any]
         "evidence_status": evidence_status,
         "sample_status": sample_status,
         "daily_contract_validation": {
-            "status": "PASS" if all_daily_validation_pass else "FAIL",
+            "status": daily_contract_status,
             "all_daily_validation_pass": all_daily_validation_pass,
             "observability_boundary_disclosed_all_days": observability_boundary_disclosed_all_days,
             "retry_signal_advisory_only_all_days": retry_signal_advisory_only_all_days,
@@ -240,7 +259,7 @@ def main() -> int:
     daily_ok = result["daily_contract_validation"]["all_daily_validation_pass"] is True
     activation_ok = result["phase1_activation_coverage"]["activation_coverage_met"] is True
     reasons: list[str] = []
-    if not daily_ok:
+    if result["daily_contract_validation"]["status"] == "FAIL":
         reasons.append("daily_contract_validation_failed")
     if not activation_ok:
         reasons.append("activation_coverage_not_met")
