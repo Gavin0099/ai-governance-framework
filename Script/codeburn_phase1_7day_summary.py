@@ -12,6 +12,18 @@ from codeburn.phase1.codeburn_analyze import build_analysis
 from codeburn.phase1.codeburn_report import build_report
 
 
+def _check_required_tables(db_path: Path) -> tuple[bool, list[str]]:
+    required = {"sessions", "steps", "signals", "recovery_events"}
+    conn = sqlite3.connect(db_path)
+    try:
+        rows = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+    finally:
+        conn.close()
+    existing = {str(r[0]) for r in rows}
+    missing = sorted(required - existing)
+    return len(missing) == 0, missing
+
+
 def _iter_days(start_day: date, end_day: date) -> list[date]:
     days: list[date] = []
     cur = start_day
@@ -193,6 +205,12 @@ def run_summary(db_path: Path, start_day: date, end_day: date) -> dict[str, Any]
     evidence_status = "sufficient" if total_sessions > 0 else "insufficient"
     sample_status = "adequate" if total_sessions >= 5 else "low_sample_window"
     phase1_exit = "PASS" if all_daily_validation_pass and activation_coverage_met else "NOT_READY"
+    semantic_mapping = {
+        "with_sample_contract_ok": "PASS",
+        "no_sample": "NOT_READY",
+        "runtime_degraded_or_unavailable": "NOT_READY",
+        "contract_failure": "FAIL",
+    }
     return {
         "ok": True,
         "report_schema_version": "v2.0.0",
@@ -205,6 +223,7 @@ def run_summary(db_path: Path, start_day: date, end_day: date) -> dict[str, Any]
         },
         "evidence_status": evidence_status,
         "sample_status": sample_status,
+        "semantic_mapping": semantic_mapping,
         "daily_contract_validation": {
             "status": daily_contract_status,
             "all_daily_validation_pass": all_daily_validation_pass,
@@ -239,8 +258,30 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    db_path = Path(args.db).resolve()
+    schema_ok, missing_tables = _check_required_tables(db_path)
+    if not schema_ok:
+        result = {
+            "ok": False,
+            "report_schema_version": "v2.0.0",
+            "phase1_exit_semantics_version": "v1.0.0",
+            "generated_at": datetime.now().astimezone().isoformat(),
+            "db_path": str(db_path),
+            "PHASE1_EXIT": "FAIL",
+            "phase1_exit": {
+                "status": "FAIL",
+                "reasons": ["schema_missing_required_tables"],
+            },
+            "phase1_exit_reasons": ["schema_missing_required_tables"],
+            "missing_tables": missing_tables,
+            "daily_contract_validation": {"status": "FAIL", "all_daily_validation_pass": False},
+            "phase1_activation_coverage": {"status": "NOT_MET", "activation_coverage_met": False},
+        }
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 1
+
     result = run_summary(
-        Path(args.db).resolve(),
+        db_path,
         date.fromisoformat(args.start_day),
         date.fromisoformat(args.end_day),
     )
@@ -272,9 +313,15 @@ def main() -> int:
 
     if runtime_status == "verified" and daily_ok and activation_ok:
         result["PHASE1_EXIT"] = "PASS"
+    elif result["daily_contract_validation"]["status"] == "FAIL":
+        result["PHASE1_EXIT"] = "FAIL"
     else:
         result["PHASE1_EXIT"] = "NOT_READY"
     result["phase1_exit_reasons"] = reasons
+    result["phase1_exit"] = {
+        "status": result["PHASE1_EXIT"],
+        "reasons": reasons,
+    }
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
