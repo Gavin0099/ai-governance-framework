@@ -215,6 +215,7 @@ def run_summary(db_path: Path, start_day: date, end_day: date) -> dict[str, Any]
         "ok": True,
         "report_schema_version": "v2.0.0",
         "phase1_exit_semantics_version": "v1.0.0",
+        "day_bucket_mode": "utc_created_at_date",
         "generated_at": datetime.now().astimezone().isoformat(),
         "window": {
             "start_day": start_day.isoformat(),
