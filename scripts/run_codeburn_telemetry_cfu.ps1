@@ -21,6 +21,17 @@ function Show-Counts {
   Write-Host "[$Label] $counts"
 }
 
+function Get-OpenSessionId {
+  $sid = python -c "import sqlite3; c=sqlite3.connect(r'$DbPath'); r=c.execute(\"select session_id from sessions where ended_at is null or ended_at='' order by created_at desc limit 1\").fetchone(); print(r[0] if r else '')"
+  return $sid.Trim()
+}
+
+function Get-LatestStepIdForSession {
+  param([string]$SessionId)
+  $stepId = python -c "import sqlite3; c=sqlite3.connect(r'$DbPath'); r=c.execute(\"select step_id from steps where session_id=? order by started_at desc, step_id desc limit 1\", (r'$SessionId',)).fetchone(); print(r[0] if r else '')"
+  return $stepId.Trim()
+}
+
 Write-Host "== Init schema =="
 python -c "import sqlite3, pathlib; db=pathlib.Path(r'$DbPath'); sql=pathlib.Path(r'$SchemaPath').read_text(encoding='utf-8'); conn=sqlite3.connect(db); conn.executescript(sql); conn.commit(); conn.close()"
 Show-Counts "after-schema-init"
@@ -38,9 +49,19 @@ Show-Counts "after-baseline-end"
 Write-Host "== Stressed flow =="
 python $SessionCli --db $DbPath --schema $SchemaPath session-start --task "CFU stressed flow"
 Show-Counts "after-stressed-start"
+
+$stressedSessionId = Get-OpenSessionId
+if (-not $stressedSessionId) { throw "no open stressed session found after session-start" }
+
 python $RunCli --db $DbPath --schema $SchemaPath --step-kind test -- powershell -NoProfile -Command "exit 1"
-python $RunCli --db $DbPath --schema $SchemaPath --step-kind retry --retry-of latest -- powershell -NoProfile -Command "exit 1"
-python $RunCli --db $DbPath --schema $SchemaPath --step-kind retry --retry-of latest -- powershell -NoProfile -Command "Write-Output retry-recovered"
+$firstStepId = Get-LatestStepIdForSession -SessionId $stressedSessionId
+if (-not $firstStepId) { throw "no first stressed step_id found for retry chain" }
+
+python $RunCli --db $DbPath --schema $SchemaPath --step-kind retry --retry-of $firstStepId -- powershell -NoProfile -Command "exit 1"
+$secondStepId = Get-LatestStepIdForSession -SessionId $stressedSessionId
+if (-not $secondStepId) { throw "no second stressed step_id found for retry chain" }
+
+python $RunCli --db $DbPath --schema $SchemaPath --step-kind retry --retry-of $secondStepId -- powershell -NoProfile -Command "Write-Output retry-recovered"
 Show-Counts "after-stressed-steps"
 python $SessionCli --db $DbPath --schema $SchemaPath session-end
 Show-Counts "after-stressed-end"
