@@ -170,15 +170,22 @@ def run_summary(db_path: Path, start_day: date, end_day: date) -> dict[str, Any]
     retry_signal_advisory_only_all_days = all(d["retry_signal_advisory_only"] for d in per_day)
     activation_coverage_met = all(activation.values())
 
+    total_sessions = sum(d["session_count"] for d in per_day)
+    evidence_status = "sufficient" if total_sessions > 0 else "insufficient"
+    sample_status = "adequate" if total_sessions >= 5 else "low_sample_window"
     phase1_exit = "PASS" if all_daily_validation_pass and activation_coverage_met else "NOT_READY"
     return {
         "ok": True,
+        "report_schema_version": "v2.0.0",
+        "phase1_exit_semantics_version": "v1.0.0",
         "generated_at": datetime.now().astimezone().isoformat(),
         "window": {
             "start_day": start_day.isoformat(),
             "end_day": end_day.isoformat(),
             "day_count": len(per_day),
         },
+        "evidence_status": evidence_status,
+        "sample_status": sample_status,
         "daily_contract_validation": {
             "status": "PASS" if all_daily_validation_pass else "FAIL",
             "all_daily_validation_pass": all_daily_validation_pass,
@@ -239,6 +246,10 @@ def main() -> int:
         reasons.append("activation_coverage_not_met")
     if runtime_status != "verified":
         reasons.append("runtime_validation_not_verified")
+    if result.get("evidence_status") == "insufficient":
+        reasons.append("insufficient_evidence")
+    if result.get("sample_status") == "low_sample_window":
+        reasons.append("low_sample_window")
 
     if runtime_status == "verified" and daily_ok and activation_ok:
         result["PHASE1_EXIT"] = "PASS"
