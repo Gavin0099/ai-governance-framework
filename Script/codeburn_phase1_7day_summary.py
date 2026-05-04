@@ -201,6 +201,16 @@ def main() -> int:
     parser.add_argument("--start-day", required=True)
     parser.add_argument("--end-day", required=True)
     parser.add_argument("--format", choices=["json"], default="json")
+    parser.add_argument(
+        "--runtime-validation-status",
+        choices=["verified", "degraded", "unavailable"],
+        default="degraded",
+    )
+    parser.add_argument(
+        "--runtime-validation-blocker",
+        default="permission_denied_tmp_cache",
+        help="Required when runtime-validation-status is degraded/unavailable.",
+    )
     args = parser.parse_args()
 
     result = run_summary(
@@ -208,6 +218,29 @@ def main() -> int:
         date.fromisoformat(args.start_day),
         date.fromisoformat(args.end_day),
     )
+    runtime_status = args.runtime_validation_status
+    runtime_blocker = args.runtime_validation_blocker.strip()
+    if runtime_status == "verified":
+        runtime_blocker = ""
+    result["runtime_validation_status"] = runtime_status
+    result["runtime_validation_blocker"] = runtime_blocker
+
+    daily_ok = result["daily_contract_validation"]["all_daily_validation_pass"] is True
+    activation_ok = result["phase1_activation_coverage"]["activation_coverage_met"] is True
+    reasons: list[str] = []
+    if not daily_ok:
+        reasons.append("daily_contract_validation_failed")
+    if not activation_ok:
+        reasons.append("activation_coverage_not_met")
+    if runtime_status != "verified":
+        reasons.append("runtime_validation_not_verified")
+
+    if runtime_status == "verified" and daily_ok and activation_ok:
+        result["PHASE1_EXIT"] = "PASS"
+    else:
+        result["PHASE1_EXIT"] = "NOT_READY"
+    result["phase1_exit_reasons"] = reasons
+
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
