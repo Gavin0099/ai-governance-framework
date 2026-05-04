@@ -173,6 +173,7 @@ def build_analysis(db_path: Path, session_id: str | None = "latest") -> dict:
         "data_quality": str(session["data_quality"]),
         "token_comparability": False,
         "token_observability_level": token_observability_level,
+        "observability_boundary_disclosed": True,
         "analysis_safe_for_decision": False,
         "step_count": step_count,
         "total_duration_ms": total_duration_ms,
@@ -189,6 +190,12 @@ def build_analysis(db_path: Path, session_id: str | None = "latest") -> dict:
         ),
         "changed_files": changed_files,
         "signals": signals,
+        "file_activity": {
+            "git_visible_only": True,
+            "file_reads": 0,
+            "file_writes": 0,
+            "file_reads_visible": False,
+        },
         "observability_limits": {
             "token_usage": token_observability_level,
             "file_reads": "unsupported",

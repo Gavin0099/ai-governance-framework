@@ -60,8 +60,14 @@ def build_report(db_path: Path, session_id: str | None) -> dict:
         "data_quality": str(row["data_quality"]),
         "token_comparability": metrics["token_comparability"],
         "token_observability_level": metrics["token_observability_level"],
+        "observability_boundary_disclosed": True,
         "step_count": metrics["step_count"],
-        "file_activity": "git-visible only",
+        "file_activity": {
+            "git_visible_only": True,
+            "file_reads": 0,
+            "file_writes": 0,
+            "file_reads_visible": False,
+        },
         "file_reads": "unsupported",
         "analysis_safe_for_decision": False,
     }

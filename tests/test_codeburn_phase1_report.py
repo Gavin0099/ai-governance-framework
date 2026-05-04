@@ -65,7 +65,9 @@ def test_report_fixed_fields(tmp_path: Path) -> None:
     assert report["data_quality"] == "partial"
     assert report["token_comparability"] is False
     assert report["token_observability_level"] == "none"
-    assert report["file_activity"] == "git-visible only"
+    assert report["file_activity"]["git_visible_only"] is True
+    assert report["file_activity"]["file_reads_visible"] is False
+    assert report["observability_boundary_disclosed"] is True
     assert report["file_reads"] == "unsupported"
 
 
