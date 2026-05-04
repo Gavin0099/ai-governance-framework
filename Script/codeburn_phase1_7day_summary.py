@@ -208,8 +208,8 @@ def main() -> int:
     )
     parser.add_argument(
         "--runtime-validation-blocker",
-        default="permission_denied_tmp_cache",
-        help="Required when runtime-validation-status is degraded/unavailable.",
+        default="",
+        help="Required when runtime-validation-status is degraded/unavailable; must be explicit.",
     )
     args = parser.parse_args()
 
@@ -220,8 +220,13 @@ def main() -> int:
     )
     runtime_status = args.runtime_validation_status
     runtime_blocker = args.runtime_validation_blocker.strip()
-    if runtime_status == "verified":
-        runtime_blocker = ""
+    if runtime_status == "verified" and runtime_blocker:
+        raise SystemExit("invalid args: --runtime-validation-blocker must be empty when status=verified")
+    if runtime_status in {"degraded", "unavailable"} and not runtime_blocker:
+        raise SystemExit(
+            "invalid args: --runtime-validation-blocker is required when "
+            "--runtime-validation-status is degraded or unavailable"
+        )
     result["runtime_validation_status"] = runtime_status
     result["runtime_validation_blocker"] = runtime_blocker
 
