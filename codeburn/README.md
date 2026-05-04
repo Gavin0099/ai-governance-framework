@@ -91,3 +91,7 @@ Reason: E2 must produce initial verifiable results before Phase 3 trigger design
 Phase 2.5 semantic locks remain fully in effect (observation-only, no interpretive-class keys).
 
 Phase 3 entry requires explicit Phase 2 → Phase 3 gate passage and reviewer sign-off.
+
+This prohibition is currently enforced at documentation level only.
+Runtime enforcement is not yet implemented.
+

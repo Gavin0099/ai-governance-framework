@@ -67,6 +67,8 @@ def evaluate_phase3_promotion_entry(payload: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "phase3_entry_allowed": allowed,
+        "phase3_runtime_enforcement": "not_enabled",
+        "warnings": ["phase3_not_enabled"],
         "decision_basis": decision_basis,
         "policy_source": "phase3_promotion_gate.v1",
         "notes": (

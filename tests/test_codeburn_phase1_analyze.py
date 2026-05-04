@@ -50,6 +50,9 @@ def test_build_analysis_basics(tmp_path: Path) -> None:
     assert result["analysis_boundary"]["interpretation_level"] == "low"
     assert result["analysis_boundary"]["claims"] is False
     assert result["token_observability_level"] == "none"
+    assert result["observability_boundary_disclosed"] is True
+    assert result["file_activity"]["git_visible_only"] is True
+    assert result["file_activity"]["file_reads_visible"] is False
 
 
 def test_token_observability_level_step_level(tmp_path: Path) -> None:
