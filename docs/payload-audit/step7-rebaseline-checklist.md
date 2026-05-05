@@ -22,6 +22,20 @@
 - 確認 payload audit 所需 Python/runtime 路徑可執行
 - 確認這次 run 的目標是重建 baseline，而不是混入其他優化實驗
 
+## Report Provenance Guardrail
+
+若本 repo 在 report surface 暴露 token provenance 欄位，例如 `token_source_summary` 或 `provenance_warning`：
+
+- 這些欄位只可作為 human reviewer context
+- 不可被任何 automated decision、analysis、ranking 或 gate logic 讀取
+- 不可把 report surface 當成 analyze surface 的暫時替代品
+
+建議在實際 runbook 或 session doc 直接放下面這段提醒：
+
+> Token provenance fields are for human review only.
+> `token_source_summary` and `provenance_warning` describe data quality context.
+> Do not use them for automated decisions, gate logic, or policy enforcement.
+
 ## 命令範例
 
 ### L0
@@ -92,6 +106,7 @@ python runtime_hooks/core/session_start.py ^
 2. `domain_contract` 與 rendered output 的相對佔比是否改變
 3. 是否需要把 `Step 3b` 的 full memory refactor 納入後續檢查
 4. `Onboarding` 是否仍屬於 `summary-first` 之外的 deferred optimization
+5. 若 report 出現 provenance disclosure，reviewer 是否把它當 context 使用，而不是當作 machine-usable trust signal
 
 ## 建議記錄格式
 

@@ -914,3 +914,94 @@ def test_post_task_check_replay_is_deterministic_for_same_policy_and_evidence():
     assert result_a["warnings"] == result_b["warnings"]
     assert result_a["evidence_violations"] == result_b["evidence_violations"]
     assert result_a["policy_violations"] == result_b["policy_violations"]
+
+
+def test_post_task_check_emits_candidate_violation_for_report_provenance_machine_consumption():
+    result = run_post_task_check(
+        _contract(),
+        risk="medium",
+        oversight="review-required",
+        checks={
+            "test_names": [
+                "tests/test_report.py::test_failure_path_signal",
+                "tests/test_report.py::test_cleanup_release",
+            ],
+            "report_provenance_consumption": [
+                {
+                    "consumer_path": "gate",
+                    "consumer_name": "policy_ranker",
+                    "fields": ["provenance_warning"],
+                }
+            ],
+        },
+    )
+
+    assert result["ok"] is True
+    assert result["provenance_boundary_audit"] == {
+        "status": "candidate_violation",
+        "advisory_only": True,
+        "observed_surface": "post_task_check",
+        "suspected_consumer": "policy_ranker",
+        "protected_field": "provenance_warning",
+        "protected_namespace": "report",
+        "basis": "report provenance consumption observation",
+        "violation_type": "non_decisional_signal_used_in_decision",
+        "usage_note": "Candidate violation: machine-facing logic consumed a protected non-authoritative report field. Advisory only; must not modify gate behavior.",
+    }
+    output = format_human_result(result)
+    assert "provenance_boundary_audit=candidate_violation field=provenance_warning consumer=policy_ranker advisory_only=True" in output
+
+
+def test_post_task_check_does_not_modify_gate_blocked_when_provenance_audit_present():
+    checks = {
+        "gate_policy": {"blocked": True, "source": "existing-gate"},
+        "test_names": [
+            "tests/test_report.py::test_failure_path_signal",
+            "tests/test_report.py::test_cleanup_release",
+        ],
+        "report_provenance_consumption": [
+            {
+                "consumer_path": "gate",
+                "consumer_name": "default_ranker",
+                "fields": ["token_source_summary"],
+            }
+        ],
+    }
+
+    result = run_post_task_check(
+        _contract(),
+        risk="medium",
+        oversight="review-required",
+        checks=checks,
+    )
+
+    assert result["provenance_boundary_audit"]["status"] == "candidate_violation"
+    assert result["checks"]["gate_policy"]["blocked"] is True
+    assert checks["gate_policy"]["blocked"] is True
+
+
+def test_post_task_check_emits_candidate_violation_for_token_count_machine_consumption():
+    result = run_post_task_check(
+        _contract(),
+        risk="medium",
+        oversight="review-required",
+        checks={
+            "test_names": [
+                "tests/test_report.py::test_failure_path_signal",
+                "tests/test_report.py::test_cleanup_release",
+            ],
+            "report_provenance_consumption": [
+                {
+                    "consumer_path": "decision",
+                    "consumer_name": "cost_ranker",
+                    "fields": ["token_count.total_tokens"],
+                }
+            ],
+        },
+    )
+
+    assert result["ok"] is True
+    assert result["provenance_boundary_audit"]["status"] == "candidate_violation"
+    assert result["provenance_boundary_audit"]["violation_type"] == "non_decisional_signal_used_in_decision"
+    assert result["provenance_boundary_audit"]["protected_field"] == "token_count.total_tokens"
+    assert result["provenance_boundary_audit"]["suspected_consumer"] == "cost_ranker"

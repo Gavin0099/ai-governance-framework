@@ -59,6 +59,38 @@ ADVISORY_SIGNAL_METADATA = {
     }
 }
 
+PROTECTED_REPORT_PROVENANCE_FIELDS = {
+    "token_source_summary",
+    "provenance_warning",
+}
+
+PROTECTED_NON_AUTHORITATIVE_FIELDS = {
+    "token_count",
+    "token_observability_level",
+    "token_source_summary",
+    "provenance_warning",
+    "decision_safety",
+}
+
+MACHINE_FACING_PATHS = {
+    "analysis",
+    "decision",
+    "gate",
+    "machine",
+    "ranking",
+    "scoring",
+}
+
+
+def _is_protected_non_authoritative_field(field_name: str) -> bool:
+    normalized = str(field_name or "").strip()
+    if not normalized:
+        return False
+    for protected in PROTECTED_NON_AUTHORITATIVE_FIELDS:
+        if normalized == protected or normalized.startswith(f"{protected}."):
+            return True
+    return False
+
 
 def _build_post_task_phase_classification(
     *,
@@ -359,6 +391,55 @@ def _classify_missing_required_evidence(
     return violations
 
 
+def _build_provenance_boundary_audit(checks: dict | None) -> dict:
+    audit = {
+        "status": "no_observation",
+        "advisory_only": True,
+        "observed_surface": "post_task_check",
+        "suspected_consumer": None,
+        "protected_field": None,
+        "protected_namespace": "report",
+        "basis": "report provenance consumption observation",
+        "usage_note": "No machine-facing consumption of protected report provenance fields was observed.",
+    }
+    if not checks:
+        return audit
+
+    observations = checks.get("report_provenance_consumption") or []
+    if not isinstance(observations, list):
+        return audit
+
+    for item in observations:
+        if not isinstance(item, dict):
+            continue
+        consumer_path = str(item.get("consumer_path", "")).strip().lower()
+        if consumer_path not in MACHINE_FACING_PATHS:
+            continue
+
+        fields = item.get("fields") or []
+        if isinstance(fields, str):
+            fields = [fields]
+        protected = [str(field).strip() for field in fields if _is_protected_non_authoritative_field(str(field).strip())]
+        if not protected:
+            continue
+
+        audit.update(
+            {
+                "status": "candidate_violation",
+                "suspected_consumer": str(item.get("consumer_name", "")).strip() or None,
+                "protected_field": protected[0],
+                "violation_type": "non_decisional_signal_used_in_decision",
+                "usage_note": (
+                    "Candidate violation: machine-facing logic consumed a protected non-authoritative report field. "
+                    "Advisory only; must not modify gate behavior."
+                ),
+            }
+        )
+        return audit
+
+    return audit
+
+
 def _slim_domain_contract(dc: dict | None) -> dict | None:
     """Return domain_contract with document content elided for the return payload.
 
@@ -546,6 +627,7 @@ def run_post_task_check(
             hard_stop_rules=domain_hard_stop_rules,
         )
     )
+    provenance_boundary_audit = _build_provenance_boundary_audit(effective_checks)
     for violation in evidence_violations:
         errors.append(f"runtime-evidence: {violation['message']}")
     for violation in policy_violations:
@@ -588,6 +670,7 @@ def run_post_task_check(
         "driver_evidence": driver_evidence,
         "evidence_violations": evidence_violations,
         "policy_violations": policy_violations,
+        "provenance_boundary_audit": provenance_boundary_audit,
         "phase_classification": _build_post_task_phase_classification(
             evidence_violations=evidence_violations,
             assumption_advisories=assumption_advisories,
@@ -684,6 +767,15 @@ def format_human_result(result: dict) -> str:
                 lines.append(advisory_line)
     if result.get("policy_violations"):
         lines.append(f"policy_violation_count={len(result['policy_violations'])}")
+    provenance_boundary_audit = result.get("provenance_boundary_audit") or {}
+    if provenance_boundary_audit.get("status") == "candidate_violation":
+        lines.append(
+            "provenance_boundary_audit="
+            f"{provenance_boundary_audit['status']} "
+            f"field={provenance_boundary_audit.get('protected_field')} "
+            f"consumer={provenance_boundary_audit.get('suspected_consumer') or 'unknown'} "
+            f"advisory_only={provenance_boundary_audit.get('advisory_only')}"
+        )
     if result.get("domain_validator_results"):
         lines.append(f"domain_validator_count={len(result['domain_validator_results'])}")
     if result.get("domain_hard_stop_rules"):

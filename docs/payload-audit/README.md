@@ -63,6 +63,9 @@ $env:GOVERNANCE_PAYLOAD_AUDIT="0"    # Windows PowerShell
 | `onboarding-baseline.md` | onboarding / adoption shaped run 的基線 |
 | `step7-rebaseline-checklist.md` | Step 7 rebaseline 操作檢查表 |
 | `step1-step7-token-summary.md` | Step 1 到 Step 7 的 token 變化摘要 |
+| `CODEBURN_PHASE2_REPORT_TOKEN_PROVENANCE_SLICE_SPEC_2026-05-05.md` | CodeBurn report provenance disclosure 的邊界規格 |
+| `codeburn-token-provenance-controlled-exposure-guide-2026-05-05.md` | CodeBurn provenance disclosure 的 controlled exposure 操作指南 |
+| `provenance-boundary-enforcement-slice-spec-2026-05-05.md` | report provenance 被 machine surface 偷讀時的 observability / violation detection 規格 |
 | `README.md` | 本目錄導覽 |
 
 ## 觀察重點
@@ -71,9 +74,11 @@ $env:GOVERNANCE_PAYLOAD_AUDIT="0"    # Windows PowerShell
 - top token contributors 是否穩定
 - domain contract 變化是否帶來合理的 payload 漲幅
 - memory / governance payload 是否出現不必要膨脹
+- 若引入 provenance disclosure，確認它只停在 human-facing reviewer context，不被反向用成 machine decision input
 
 ## 使用原則
 
 - `audit_log.jsonl` 屬於原始審計資料，通常應列入 `.gitignore`
 - baseline `.md` 屬於可提交的摘要基線，可放回 repo
 - rebaseline 應以「更新既有 baseline」為原則，而不是每次都額外產生新基線
+- report-level provenance disclosure 若被採用，必須遵守 reverse constraint：`token_source_summary` 與 `provenance_warning` 只能給人看，不能進入任何自動 decision、analysis 或 gate 邏輯
