@@ -13,6 +13,38 @@ def _bool_text(flag: bool) -> str:
     return "true" if flag else "false"
 
 
+def _token_source_summary(token_rows: list[sqlite3.Row], observability_level: str) -> str:
+    sources = {
+        str(row["token_source"]).strip()
+        for row in token_rows
+        if str(row["token_source"] or "").strip() in {"provider", "estimated", "unknown"}
+    }
+
+    if "provider" in sources and "estimated" in sources:
+        return "mixed(provider, estimated)"
+    if observability_level == "step_level" and "provider" in sources and "unknown" in sources:
+        return "mixed(provider, unknown)"
+    if sources == {"provider"}:
+        return "provider"
+    if sources == {"estimated"}:
+        return "estimated"
+    if sources == {"unknown"} or not sources:
+        return "unknown"
+    if "provider" in sources:
+        return "mixed(provider, unknown)"
+    if "estimated" in sources and "unknown" in sources:
+        return "mixed(estimated, unknown)"
+    return "unknown"
+
+
+def _provenance_warning(token_source_summary: str) -> str:
+    if token_source_summary.startswith("mixed("):
+        return "mixed_sources"
+    if token_source_summary == "unknown":
+        return "provenance_unverified"
+    return "none"
+
+
 def _resolve_session(conn: sqlite3.Connection, session_id: str | None) -> sqlite3.Row | None:
     conn.row_factory = sqlite3.Row
     if session_id:
@@ -32,10 +64,14 @@ def _session_metrics(conn: sqlite3.Connection, session_id: str) -> dict:
         "SELECT token_source, total_tokens FROM steps WHERE session_id=?",
         (session_id,),
     ).fetchall()
+    observability_level = token_observability_level(token_rows)
+    token_source_summary = _token_source_summary(token_rows, observability_level)
     return {
         "step_count": step_count,
         "token_comparability": token_provider_steps > 0,
-        "token_observability_level": token_observability_level(token_rows),
+        "token_observability_level": observability_level,
+        "token_source_summary": token_source_summary,
+        "provenance_warning": _provenance_warning(token_source_summary),
     }
 
 
@@ -55,6 +91,8 @@ def build_report(db_path: Path, session_id: str | None) -> dict:
         "data_quality": str(row["data_quality"]),
         "token_comparability": metrics["token_comparability"],
         "token_observability_level": metrics["token_observability_level"],
+        "token_source_summary": metrics["token_source_summary"],
+        "provenance_warning": metrics["provenance_warning"],
         "observability_boundary_disclosed": True,
         "step_count": metrics["step_count"],
         "file_activity": {
@@ -76,6 +114,9 @@ def _print_text(report: dict) -> None:
     print(f"Data quality: {report['data_quality']}")
     print(f"Token comparability: {_bool_text(bool(report['token_comparability']))}")
     print(f"Token observability level: {report['token_observability_level']}")
+    print(f"Token source summary: {report['token_source_summary']}")
+    if report["provenance_warning"] != "none":
+        print(f"Provenance warning: {report['provenance_warning']}")
     print("File activity: git-visible only")
     print("File reads: unsupported")
     print(f"Step count: {report['step_count']}")
