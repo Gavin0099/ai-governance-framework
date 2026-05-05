@@ -2,11 +2,24 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import sqlite3
 from pathlib import Path
 
-from codeburn.phase1.token_observability import token_observability_level
+
+def _load_phase1_bootstrap_module():
+    module_path = Path(__file__).resolve().with_name("_phase1_cli_bootstrap.py")
+    spec = importlib.util.spec_from_file_location("_phase1_cli_bootstrap", module_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"unable to load phase1 bootstrap: {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_BOOTSTRAP = _load_phase1_bootstrap_module()
+token_observability_level = _BOOTSTRAP.load_token_observability_level()
 
 
 def _format_duration_ms(ms: int | None) -> str:
@@ -270,7 +283,7 @@ def print_analysis_text(analysis: dict) -> None:
 
 
 def main() -> int:
-    from codeburn_phase1_header import print_phase1_header  # noqa: PLC0415
+    print_phase1_header = _BOOTSTRAP.load_print_phase1_header()
     print_phase1_header()
     parser = argparse.ArgumentParser(description="CodeBurn Phase 1 post-job analysis.")
     parser.add_argument("--db", default="codeburn/phase1/examples/phase1_demo.db")

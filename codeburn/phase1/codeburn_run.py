@@ -2,11 +2,25 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import sqlite3
 import subprocess
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+
+
+def _load_phase1_bootstrap_module():
+    module_path = Path(__file__).resolve().with_name("_phase1_cli_bootstrap.py")
+    spec = importlib.util.spec_from_file_location("_phase1_cli_bootstrap", module_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"unable to load phase1 bootstrap: {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_BOOTSTRAP = _load_phase1_bootstrap_module()
 
 
 def _now_iso() -> str:
@@ -316,7 +330,7 @@ def run_step(args: argparse.Namespace) -> int:
 
 
 def main() -> int:
-    from codeburn_phase1_header import print_phase1_header  # noqa: PLC0415
+    print_phase1_header = _BOOTSTRAP.load_print_phase1_header()
     print_phase1_header()
     parser = argparse.ArgumentParser(description="CodeBurn Phase1 run wrapper.")
     parser.add_argument("--db", default="codeburn/phase1/examples/phase1_demo.db")

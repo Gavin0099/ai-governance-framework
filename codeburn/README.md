@@ -10,12 +10,61 @@
 | Purpose | File |
 |---|---|
 | Start here | `phase1/CODEBURN_PHASE1_STATUS.md` |
+| Create smoke fixture | `python phase1/create_distribution_smoke_fixture.py --db <db>` |
 | Run analysis | `python phase1/codeburn_analyze.py --db <db>` |
-| Run report | `python phase1/codeburn_report.py --db <db>` |
+| Run report | `powershell -ExecutionPolicy Bypass -File phase1/run_report.ps1 -DatabasePath <db>` |
 | Full gate | `python phase1/validate_phase1_data.py --db <db> --include-analysis` |
 | Contract | `phase1/CODEBURN_PHASE1_ANALYSIS_CONTRACT.md` (v1.0.0) |
 | Phase 2 limits | `phase1/CODEBURN_PHASE2_ENTRY_CONSTRAINTS.md` |
 | Final closeout | `phase1/CODEBURN_PHASE1_FINAL_CLOSEOUT_2026-04-30.md` |
+
+---
+
+## Distribution Smoke v0.1
+
+Goal: a user does not need to understand `PYTHONPATH`, package layout, or helper imports.
+If they follow the documented commands, they should get the same Phase 1 report whether they run from repo root or from outside the repo.
+
+### Minimal Flow
+
+From repo root:
+
+```powershell
+python codeburn/phase1/create_distribution_smoke_fixture.py --db codeburn/phase1/examples/distribution_smoke.db
+python codeburn/phase1/codeburn_analyze.py --db codeburn/phase1/examples/distribution_smoke.db --session distribution-smoke-session --format json
+powershell -ExecutionPolicy Bypass -File codeburn/phase1/run_report.ps1 -DatabasePath codeburn/phase1/examples/distribution_smoke.db -SessionId distribution-smoke-session -Format json
+```
+
+From outside repo:
+
+```powershell
+python E:\BackUp\Git_EE\ai-governance-framework\codeburn\phase1\create_distribution_smoke_fixture.py --db E:\BackUp\Git_EE\ai-governance-framework\codeburn\phase1\examples\distribution_smoke.db
+python E:\BackUp\Git_EE\ai-governance-framework\codeburn\phase1\codeburn_analyze.py --db E:\BackUp\Git_EE\ai-governance-framework\codeburn\phase1\examples\distribution_smoke.db --session distribution-smoke-session --format json
+powershell -ExecutionPolicy Bypass -File E:\BackUp\Git_EE\ai-governance-framework\codeburn\phase1\run_report.ps1 -DatabasePath E:\BackUp\Git_EE\ai-governance-framework\codeburn\phase1\examples\distribution_smoke.db -SessionId distribution-smoke-session -Format json
+```
+
+### Smoke Assertions
+
+Expected report fields:
+
+```json
+"token_observability_level": "step_level"
+"token_source_summary": "mixed(provider, estimated)"
+"decision_usage_allowed": false
+"analysis_safe_for_decision": false
+```
+
+Forbidden output in smoke runs:
+
+```text
+WRONG_MODULE
+WRONG_HEADER
+```
+
+`run_report.ps1` intentionally clears `PYTHONPATH` for the child process before invoking `codeburn_report.py`.
+This keeps the distribution surface stable even if the caller environment is polluted.
+This distribution smoke contract validates the main repo CodeBurn Phase 1 surface only.
+Embedded copy synchronization is intentionally out of scope for this slice.
 
 ---
 

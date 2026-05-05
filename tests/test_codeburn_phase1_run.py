@@ -238,13 +238,13 @@ def test_codeburn_run_estimated_tokens_flow_to_analysis_and_report(tmp_path: Pat
     conn.close()
 
     assert analysis["ok"] is True
-    assert analysis["token_observability_level"] == "coarse"
+    assert analysis["token_observability_level"] == "step_level"
     assert analysis["analysis_safe_for_decision"] is False
     assert analysis["decision_usage_allowed"] is False
     assert analysis["token_comparability"] is False
 
     assert report["ok"] is True
-    assert report["token_observability_level"] == "coarse"
+    assert report["token_observability_level"] == "step_level"
     assert report["analysis_safe_for_decision"] is False
     assert report["decision_usage_allowed"] is False
     assert report["token_comparability"] is False
