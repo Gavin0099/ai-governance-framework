@@ -3,9 +3,67 @@ from __future__ import annotations
 import sqlite3
 import subprocess
 import sys
+import os
 from pathlib import Path
 
 from codeburn.phase1.codeburn_report import _print_text, build_report
+
+
+def _create_report_db(db_path: Path) -> None:
+  conn = sqlite3.connect(db_path)
+  schema = Path("codeburn/phase1/schema.sql").read_text(encoding="utf-8")
+  conn.executescript(schema)
+  conn.execute(
+    """
+    INSERT INTO sessions(
+      session_id, task, repo_path, git_branch, created_at, ended_at, ended_by, data_quality,
+      provider_summary, comparability_token, comparability_duration, comparability_change
+    ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """,
+    (
+      "s1",
+      "report test",
+      ".",
+      "main",
+      "2026-04-30T00:00:00+00:00",
+      None,
+      "manual",
+      "complete",
+      None,
+      0,
+      1,
+      1,
+    ),
+  )
+  conn.execute(
+    """
+    INSERT INTO steps(
+      step_id, session_id, step_kind, command, provider, started_at, ended_at, duration_ms, exit_code,
+      stdout_bytes, stderr_bytes, token_source, prompt_tokens, completion_tokens, total_tokens, git_status_before, git_status_after
+    ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """,
+    (
+      "st1",
+      "s1",
+      "execution",
+      "echo hi",
+      "local",
+      "2026-04-30T00:00:00+00:00",
+      "2026-04-30T00:00:01+00:00",
+      1000,
+      0,
+      2,
+      0,
+      "provider",
+      70,
+      29,
+      99,
+      "",
+      "",
+    ),
+  )
+  conn.commit()
+  conn.close()
 
 
 def test_report_fixed_fields(tmp_path: Path) -> None:
@@ -266,6 +324,78 @@ def test_report_provider_total_only_is_coarse_not_step_level(tmp_path: Path) -> 
         "completion_tokens": None,
         "total_tokens": 200,
     }
+
+
+def test_report_cli_absolute_path_succeeds_outside_repo_without_pythonpath(tmp_path: Path) -> None:
+    db_path = tmp_path / "phase1.db"
+    _create_report_db(db_path)
+    script_path = Path("codeburn/phase1/codeburn_report.py").resolve()
+
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(script_path),
+            "--db",
+            str(db_path),
+            "--format",
+            "json",
+        ],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+        env=env,
+    )
+
+    assert proc.returncode == 0
+    assert '"token_observability_level": "step_level"' in proc.stdout
+    assert '"token_source_summary": "provider"' in proc.stdout
+
+
+def test_report_cli_ignores_shadowed_pythonpath_modules(tmp_path: Path) -> None:
+    db_path = tmp_path / "phase1.db"
+    _create_report_db(db_path)
+    script_path = Path("codeburn/phase1/codeburn_report.py").resolve()
+
+    shadow_root = tmp_path / "shadow"
+    (shadow_root / "codeburn" / "phase1").mkdir(parents=True)
+    (shadow_root / "codeburn" / "__init__.py").write_text("", encoding="utf-8")
+    (shadow_root / "codeburn" / "phase1" / "__init__.py").write_text("", encoding="utf-8")
+    (shadow_root / "codeburn" / "phase1" / "token_observability.py").write_text(
+        "def token_observability_level(rows):\n    return 'WRONG_MODULE'\n",
+        encoding="utf-8",
+    )
+    (shadow_root / "codeburn_phase1_header.py").write_text(
+        "def print_phase1_header():\n    print('WRONG_HEADER')\n",
+        encoding="utf-8",
+    )
+
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(shadow_root)
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(script_path),
+            "--db",
+            str(db_path),
+            "--format",
+            "text",
+        ],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+        env=env,
+    )
+
+    assert proc.returncode == 0
+    assert "WRONG_HEADER" not in proc.stdout
+    assert "WRONG_MODULE" not in proc.stdout
+    assert "Token observability level: step_level" in proc.stdout
 
 
 def test_report_cli_runs_from_repo_root_without_pythonpath_override(tmp_path: Path) -> None:
