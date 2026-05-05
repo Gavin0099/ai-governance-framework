@@ -81,6 +81,14 @@ MACHINE_FACING_PATHS = {
     "scoring",
 }
 
+PROMOTION_REQUIRED_FIELDS = (
+    "reviewer_confirmed",
+    "authority_ref",
+    "evidence_ref",
+    "promoted_at",
+    "promotion_reason",
+)
+
 
 def _is_protected_non_authoritative_field(field_name: str) -> bool:
     normalized = str(field_name or "").strip()
@@ -440,6 +448,77 @@ def _build_provenance_boundary_audit(checks: dict | None) -> dict:
     return audit
 
 
+def _build_candidate_violation_promotion_contract(
+    provenance_boundary_audit: dict,
+    checks: dict | None,
+) -> dict:
+    contract = {
+        "contract_version": "v0.1",
+        "notice": "This contract does not authorize automated escalation.",
+        "candidate_violation_status": str(provenance_boundary_audit.get("status", "no_observation")),
+        "advisory_only": True,
+        "auto_block_allowed": False,
+        "auto_promotion_allowed": False,
+        "promotion_decision": "not_applicable",
+        "promotion_eligible": False,
+        "promoted_policy_violation": None,
+        "missing_requirements": [],
+    }
+
+    if contract["candidate_violation_status"] != "candidate_violation":
+        return contract
+
+    contract["promotion_decision"] = "pending_authority_path"
+    payload = {}
+    if checks and isinstance(checks.get("candidate_violation_promotion"), dict):
+        payload = checks.get("candidate_violation_promotion") or {}
+
+    reviewer_confirmed = bool(payload.get("reviewer_confirmed"))
+    authority_ref = str(payload.get("authority_ref", "") or "").strip()
+    evidence_ref = str(payload.get("evidence_ref", "") or "").strip()
+    promoted_at = str(payload.get("promoted_at", "") or "").strip()
+    promotion_reason = str(payload.get("promotion_reason", "") or "").strip()
+    confidence = payload.get("detector_confidence")
+
+    missing = []
+    if not reviewer_confirmed:
+        missing.append("reviewer_confirmed")
+    if not authority_ref:
+        missing.append("authority_ref")
+    if not evidence_ref:
+        missing.append("evidence_ref")
+    if not promoted_at:
+        missing.append("promoted_at")
+    if not promotion_reason:
+        missing.append("promotion_reason")
+
+    contract["missing_requirements"] = missing
+    contract["promotion_inputs"] = {
+        "reviewer_confirmed": reviewer_confirmed,
+        "authority_ref": authority_ref or None,
+        "evidence_ref": evidence_ref or None,
+        "promoted_at": promoted_at or None,
+        "promotion_reason": promotion_reason or None,
+        "detector_confidence": confidence,
+    }
+    contract["promotion_eligible"] = len(missing) == 0
+
+    if contract["promotion_eligible"]:
+        contract["promotion_decision"] = "promoted_by_authority_path"
+        contract["promoted_policy_violation"] = {
+            "violation_type": "non_decisional_signal_used_in_decision",
+            "detected_by": "candidate-violation promotion contract",
+            "authority_ref": authority_ref,
+            "evidence_ref": evidence_ref,
+            "promoted_at": promoted_at,
+            "promotion_reason": promotion_reason,
+        }
+    else:
+        contract["promotion_decision"] = "cannot_promote_missing_requirements"
+
+    return contract
+
+
 def _slim_domain_contract(dc: dict | None) -> dict | None:
     """Return domain_contract with document content elided for the return payload.
 
@@ -628,6 +707,10 @@ def run_post_task_check(
         )
     )
     provenance_boundary_audit = _build_provenance_boundary_audit(effective_checks)
+    candidate_violation_promotion = _build_candidate_violation_promotion_contract(
+        provenance_boundary_audit,
+        effective_checks,
+    )
     for violation in evidence_violations:
         errors.append(f"runtime-evidence: {violation['message']}")
     for violation in policy_violations:
@@ -671,6 +754,7 @@ def run_post_task_check(
         "evidence_violations": evidence_violations,
         "policy_violations": policy_violations,
         "provenance_boundary_audit": provenance_boundary_audit,
+        "candidate_violation_promotion": candidate_violation_promotion,
         "phase_classification": _build_post_task_phase_classification(
             evidence_violations=evidence_violations,
             assumption_advisories=assumption_advisories,
@@ -775,6 +859,14 @@ def format_human_result(result: dict) -> str:
             f"field={provenance_boundary_audit.get('protected_field')} "
             f"consumer={provenance_boundary_audit.get('suspected_consumer') or 'unknown'} "
             f"advisory_only={provenance_boundary_audit.get('advisory_only')}"
+        )
+    promotion = result.get("candidate_violation_promotion") or {}
+    if promotion:
+        lines.append(
+            "candidate_violation_promotion="
+            f"{promotion.get('promotion_decision')} "
+            f"eligible={promotion.get('promotion_eligible')} "
+            f"auto_block_allowed={promotion.get('auto_block_allowed')}"
         )
     if result.get("domain_validator_results"):
         lines.append(f"domain_validator_count={len(result['domain_validator_results'])}")
