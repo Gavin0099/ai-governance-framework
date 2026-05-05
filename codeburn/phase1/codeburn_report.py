@@ -40,7 +40,7 @@ def _token_source_summary(token_rows: list[sqlite3.Row], observability_level: st
 def _provenance_warning(token_source_summary: str) -> str:
     if token_source_summary.startswith("mixed("):
         return "mixed_sources"
-    if token_source_summary == "unknown":
+    if token_source_summary in {"estimated", "unknown"}:
         return "provenance_unverified"
     return "none"
 
@@ -61,14 +61,22 @@ def _session_metrics(conn: sqlite3.Connection, session_id: str) -> dict:
         ).fetchone()[0]
     )
     token_rows = conn.execute(
-        "SELECT token_source, total_tokens FROM steps WHERE session_id=?",
+        "SELECT token_source, prompt_tokens, completion_tokens, total_tokens FROM steps WHERE session_id=?",
         (session_id,),
     ).fetchall()
     observability_level = token_observability_level(token_rows)
     token_source_summary = _token_source_summary(token_rows, observability_level)
+    prompt_values = [row["prompt_tokens"] for row in token_rows if row["prompt_tokens"] is not None]
+    completion_values = [row["completion_tokens"] for row in token_rows if row["completion_tokens"] is not None]
+    total_values = [row["total_tokens"] for row in token_rows if row["total_tokens"] is not None]
     return {
         "step_count": step_count,
         "token_comparability": token_provider_steps > 0,
+        "token_count": {
+            "prompt_tokens": int(sum(prompt_values)) if prompt_values else None,
+            "completion_tokens": int(sum(completion_values)) if completion_values else None,
+            "total_tokens": int(sum(total_values)) if total_values else None,
+        },
         "token_observability_level": observability_level,
         "token_source_summary": token_source_summary,
         "provenance_warning": _provenance_warning(token_source_summary),
@@ -90,9 +98,11 @@ def build_report(db_path: Path, session_id: str | None) -> dict:
         "task": str(row["task"]),
         "data_quality": str(row["data_quality"]),
         "token_comparability": metrics["token_comparability"],
+        "token_count": metrics["token_count"],
         "token_observability_level": metrics["token_observability_level"],
         "token_source_summary": metrics["token_source_summary"],
         "provenance_warning": metrics["provenance_warning"],
+        "non_authoritative_notice": "Token fields are observational only and MUST NOT be used for automated decision, gating, or quality inference.",
         "observability_boundary_disclosed": True,
         "step_count": metrics["step_count"],
         "file_activity": {
@@ -103,6 +113,8 @@ def build_report(db_path: Path, session_id: str | None) -> dict:
         },
         "file_reads": "unsupported",
         "analysis_safe_for_decision": False,
+        "governance_decision_usage_allowed": False,
+        "operational_guard_usage_allowed": False,
     }
 
 
@@ -115,8 +127,15 @@ def _print_text(report: dict) -> None:
     print(f"Token comparability: {_bool_text(bool(report['token_comparability']))}")
     print(f"Token observability level: {report['token_observability_level']}")
     print(f"Token source summary: {report['token_source_summary']}")
+    print(
+        "Token count: "
+        f"prompt={report['token_count']['prompt_tokens']}, "
+        f"completion={report['token_count']['completion_tokens']}, "
+        f"total={report['token_count']['total_tokens']}"
+    )
     if report["provenance_warning"] != "none":
         print(f"Provenance warning: {report['provenance_warning']}")
+    print(report["non_authoritative_notice"])
     print("File activity: git-visible only")
     print("File reads: unsupported")
     print(f"Step count: {report['step_count']}")
