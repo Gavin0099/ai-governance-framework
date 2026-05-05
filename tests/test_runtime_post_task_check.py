@@ -1005,3 +1005,98 @@ def test_post_task_check_emits_candidate_violation_for_token_count_machine_consu
     assert result["provenance_boundary_audit"]["violation_type"] == "non_decisional_signal_used_in_decision"
     assert result["provenance_boundary_audit"]["protected_field"] == "token_count.total_tokens"
     assert result["provenance_boundary_audit"]["suspected_consumer"] == "cost_ranker"
+
+
+def test_candidate_violation_alone_stays_advisory_only():
+    result = run_post_task_check(
+        _contract(),
+        risk="medium",
+        oversight="review-required",
+        checks={
+            "report_provenance_consumption": [
+                {"consumer_path": "gate", "consumer_name": "ranker", "fields": ["token_observability_level"]}
+            ]
+        },
+    )
+
+    promo = result["candidate_violation_promotion"]
+    assert promo["advisory_only"] is True
+    assert promo["auto_promotion_allowed"] is False
+    assert promo["auto_block_allowed"] is False
+    assert promo["promotion_eligible"] is False
+    assert promo["promoted_policy_violation"] is None
+    assert result["policy_violations"] == []
+
+
+def test_candidate_violation_high_confidence_still_advisory_only():
+    result = run_post_task_check(
+        _contract(),
+        risk="medium",
+        oversight="review-required",
+        checks={
+            "report_provenance_consumption": [
+                {"consumer_path": "decision", "consumer_name": "ranker", "fields": ["token_count.total_tokens"]}
+            ],
+            "candidate_violation_promotion": {
+                "detector_confidence": "high",
+            },
+        },
+    )
+
+    promo = result["candidate_violation_promotion"]
+    assert promo["promotion_eligible"] is False
+    assert "reviewer_confirmed" in promo["missing_requirements"]
+    assert promo["promoted_policy_violation"] is None
+    assert result["policy_violations"] == []
+
+
+def test_candidate_violation_missing_authority_ref_cannot_promote():
+    result = run_post_task_check(
+        _contract(),
+        risk="medium",
+        oversight="review-required",
+        checks={
+            "report_provenance_consumption": [
+                {"consumer_path": "decision", "consumer_name": "ranker", "fields": ["token_source_summary"]}
+            ],
+            "candidate_violation_promotion": {
+                "reviewer_confirmed": True,
+                "evidence_ref": "evidence://abc",
+                "promoted_at": "2026-05-05T12:00:00+08:00",
+                "promotion_reason": "manual reviewer confirmation",
+            },
+        },
+    )
+
+    promo = result["candidate_violation_promotion"]
+    assert promo["promotion_eligible"] is False
+    assert "authority_ref" in promo["missing_requirements"]
+    assert promo["promoted_policy_violation"] is None
+    assert result["policy_violations"] == []
+
+
+def test_candidate_violation_promotes_only_with_authority_path():
+    result = run_post_task_check(
+        _contract(),
+        risk="medium",
+        oversight="review-required",
+        checks={
+            "report_provenance_consumption": [
+                {"consumer_path": "gate", "consumer_name": "ranker", "fields": ["provenance_warning"]}
+            ],
+            "candidate_violation_promotion": {
+                "reviewer_confirmed": True,
+                "authority_ref": "authority://review/123",
+                "evidence_ref": "evidence://run/456",
+                "promoted_at": "2026-05-05T13:00:00+08:00",
+                "promotion_reason": "reviewer validated misuse evidence",
+            },
+        },
+    )
+
+    promo = result["candidate_violation_promotion"]
+    assert promo["promotion_eligible"] is True
+    assert promo["promotion_decision"] == "promoted_by_authority_path"
+    assert promo["promoted_policy_violation"]["violation_type"] == "non_decisional_signal_used_in_decision"
+    # Promotion contract does not auto-inject policy violations into gate decisions.
+    assert result["policy_violations"] == []
