@@ -1100,3 +1100,55 @@ def test_candidate_violation_promotes_only_with_authority_path():
     assert promo["promoted_policy_violation"]["violation_type"] == "non_decisional_signal_used_in_decision"
     # Promotion contract does not auto-inject policy violations into gate decisions.
     assert result["policy_violations"] == []
+
+
+def test_candidate_violation_consumption_contract_defaults_to_no_violation():
+    result = run_post_task_check(
+        _contract(),
+        risk="medium",
+        oversight="review-required",
+    )
+    consumption = result["candidate_violation_consumption"]
+    assert consumption["contract_version"] == "v0.1"
+    assert consumption["consumption_violation"] is False
+    assert consumption["enforcement_readiness"] is False
+    assert "Presence of promoted_policy_violation does not imply enforcement readiness." in consumption["enforcement_readiness_note"]
+
+
+def test_candidate_violation_consumption_detects_gating_misuse():
+    result = run_post_task_check(
+        _contract(),
+        risk="medium",
+        oversight="review-required",
+        checks={
+            "candidate_violation_consumption": {
+                "use_type": "gating",
+                "field": "promotion_eligible",
+                "consumer": "release_gate_router",
+            }
+        },
+    )
+    consumption = result["candidate_violation_consumption"]
+    assert consumption["consumption_violation"] is True
+    assert consumption["violation_type"] == "used_in_gating"
+    assert consumption["field"] == "promotion_eligible"
+    assert consumption["consumer"] == "release_gate_router"
+
+
+def test_candidate_violation_consumption_detects_review_routing_misuse():
+    result = run_post_task_check(
+        _contract(),
+        risk="medium",
+        oversight="review-required",
+        checks={
+            "candidate_violation_consumption": {
+                "use_type": "automatic_review_routing",
+                "field": "promoted_policy_violation",
+                "consumer": "review_queue_router",
+            }
+        },
+    )
+    consumption = result["candidate_violation_consumption"]
+    assert consumption["consumption_violation"] is True
+    assert consumption["violation_type"] == "used_in_automatic_review_routing"
+    assert consumption["field"] == "promoted_policy_violation"
