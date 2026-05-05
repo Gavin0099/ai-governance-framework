@@ -81,6 +81,17 @@ MACHINE_FACING_PATHS = {
     "scoring",
 }
 
+FORBIDDEN_CONSUMPTION_USES = {
+    "gating",
+    "hard_gating",
+    "soft_gating",
+    "ranking",
+    "scoring",
+    "prioritization",
+    "automatic_review_routing",
+    "review_routing",
+}
+
 PROMOTION_REQUIRED_FIELDS = (
     "reviewer_confirmed",
     "authority_ref",
@@ -519,6 +530,44 @@ def _build_candidate_violation_promotion_contract(
     return contract
 
 
+def _build_candidate_violation_consumption_contract(
+    *,
+    promotion_contract: dict,
+    checks: dict | None,
+) -> dict:
+    contract = {
+        "contract_version": "v0.1",
+        "notice": "This contract does not authorize automated escalation.",
+        "allowed_uses": ["human_review", "diagnostics", "investigation"],
+        "forbidden_uses": sorted(FORBIDDEN_CONSUMPTION_USES),
+        "enforcement_readiness": False,
+        "enforcement_readiness_note": (
+            "Presence of promoted_policy_violation does not imply enforcement readiness."
+        ),
+        "consumption_violation": False,
+        "violation_type": None,
+        "field": None,
+        "consumer": None,
+    }
+
+    usage = {}
+    if checks and isinstance(checks.get("candidate_violation_consumption"), dict):
+        usage = checks.get("candidate_violation_consumption") or {}
+    use_type = str(usage.get("use_type", "") or "").strip().lower()
+    field = str(usage.get("field", "") or "").strip() or None
+    consumer = str(usage.get("consumer", "") or "").strip() or None
+
+    contract["observed_use_type"] = use_type or None
+    contract["field"] = field
+    contract["consumer"] = consumer
+
+    if use_type in FORBIDDEN_CONSUMPTION_USES:
+        contract["consumption_violation"] = True
+        contract["violation_type"] = f"used_in_{use_type}"
+
+    return contract
+
+
 def _slim_domain_contract(dc: dict | None) -> dict | None:
     """Return domain_contract with document content elided for the return payload.
 
@@ -711,6 +760,10 @@ def run_post_task_check(
         provenance_boundary_audit,
         effective_checks,
     )
+    candidate_violation_consumption = _build_candidate_violation_consumption_contract(
+        promotion_contract=candidate_violation_promotion,
+        checks=effective_checks,
+    )
     for violation in evidence_violations:
         errors.append(f"runtime-evidence: {violation['message']}")
     for violation in policy_violations:
@@ -755,6 +808,7 @@ def run_post_task_check(
         "policy_violations": policy_violations,
         "provenance_boundary_audit": provenance_boundary_audit,
         "candidate_violation_promotion": candidate_violation_promotion,
+        "candidate_violation_consumption": candidate_violation_consumption,
         "phase_classification": _build_post_task_phase_classification(
             evidence_violations=evidence_violations,
             assumption_advisories=assumption_advisories,
@@ -867,6 +921,14 @@ def format_human_result(result: dict) -> str:
             f"{promotion.get('promotion_decision')} "
             f"eligible={promotion.get('promotion_eligible')} "
             f"auto_block_allowed={promotion.get('auto_block_allowed')}"
+        )
+    consumption = result.get("candidate_violation_consumption") or {}
+    if consumption:
+        lines.append(
+            "candidate_violation_consumption="
+            f"violation={consumption.get('consumption_violation')} "
+            f"type={consumption.get('violation_type') or 'none'} "
+            f"use={consumption.get('observed_use_type') or 'none'}"
         )
     if result.get("domain_validator_results"):
         lines.append(f"domain_validator_count={len(result['domain_validator_results'])}")
