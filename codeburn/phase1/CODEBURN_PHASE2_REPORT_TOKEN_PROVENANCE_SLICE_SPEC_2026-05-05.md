@@ -132,3 +132,31 @@ Explicit defer:
 - `step_level -> must be high trust`
 
 Therefore the first runtime slice should reduce reviewer misinterpretation before it expands machine-readable telemetry semantics elsewhere.
+
+## Status: IMPLEMENTED — Scope Lock
+
+Implemented: 2026-05-05 (commit 7aa5761)
+
+This slice is closed. The scope lock that must survive any future resumption:
+
+> **Report provenance disclosure is human-facing only.**
+> It is not a new decision input.
+
+This means:
+
+- `token_source_summary` and `provenance_warning` in report output are for reviewer interpretation only
+- they must not be consumed by gate logic, decision authority checks, or automated policy enforcement
+- adding these fields to `analyze` output would require a separate explicitly-scoped slice with its own evidence plan
+- the current report surface increase in truthfulness does NOT change `decision_usage_allowed`, `analysis_safe_for_decision`, or any gate threshold
+
+If a future slice needs to extend provenance disclosure to `codeburn_analyze.py`, it must open a new spec, not amend this one.
+
+### Reverse Constraint
+
+Report-level provenance fields (`token_source_summary`, `provenance_warning`) MUST NOT be consumed by any automated decision, analysis, or gating logic.
+
+They are strictly human-facing disclosure artifacts.
+
+Any machine-level use of provenance signals requires a separate contract and a dedicated machine surface (e.g., a future `analyze` provenance slice). Using report fields as a substitute for that surface — even transiently — is a boundary violation regardless of test pass status.
+
+Rationale: the forward constraints above prevent this slice from expanding toward decision authority. The reverse constraint prevents other code from reading this slice's output as if it were decision authority. Both directions must be closed for the boundary to hold.
