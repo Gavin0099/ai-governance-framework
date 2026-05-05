@@ -1,4 +1,4 @@
-﻿# PLAN.md - AI Governance Framework
+# PLAN.md - AI Governance Framework
 
 > **最後更新**: 2026-04-24
 > **?敺??*: 2026-04-10
