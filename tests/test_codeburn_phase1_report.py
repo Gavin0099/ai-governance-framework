@@ -65,11 +65,17 @@ def test_report_fixed_fields(tmp_path: Path) -> None:
     assert report["data_quality"] == "partial"
     assert report["token_comparability"] is False
     assert report["token_observability_level"] == "none"
+    assert report["token_source_summary"] == "unknown"
+    assert report["provenance_warning"] == "provenance_unverified"
     assert report["token_count"] == {
         "prompt_tokens": None,
         "completion_tokens": None,
         "total_tokens": None,
     }
+    assert (
+        report["non_authoritative_notice"]
+        == "Token fields are observational only and MUST NOT be used for automated decision, gating, or quality inference."
+    )
     assert report["file_activity"]["git_visible_only"] is True
     assert report["file_activity"]["file_reads_visible"] is False
     assert report["observability_boundary_disclosed"] is True
@@ -220,6 +226,7 @@ def test_report_text_omits_mixed_warning_for_provider_only_step_level(tmp_path: 
 
     assert "Token source summary: provider" in captured.out
     assert "Provenance warning:" not in captured.out
+    assert "Token fields are observational only and MUST NOT be used for automated decision, gating, or quality inference." in captured.out
 
 
 def test_report_provider_total_only_is_coarse_not_step_level(tmp_path: Path) -> None:

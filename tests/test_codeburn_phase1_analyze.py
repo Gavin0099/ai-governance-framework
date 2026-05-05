@@ -70,9 +70,9 @@ def test_token_observability_level_coarse_for_provider_total_only(tmp_path: Path
         """
         INSERT INTO steps(
           step_id, session_id, step_kind, command, provider, started_at, ended_at, duration_ms, exit_code,
-          stdout_bytes, stderr_bytes, token_source, total_tokens, git_status_before, git_status_after
+          stdout_bytes, stderr_bytes, token_source, prompt_tokens, completion_tokens, total_tokens, git_status_before, git_status_after
         ) VALUES
-        ('st1', 's1', 'execution', 'echo ok', 'local', '2026-04-30T00:00:01+00:00', '2026-04-30T00:00:01+00:00', 1000, 0, 0, 0, 'provider', 123, '', '')
+        ('st1', 's1', 'execution', 'echo ok', 'local', '2026-04-30T00:00:01+00:00', '2026-04-30T00:00:01+00:00', 1000, 0, 0, 0, 'provider', 90, 33, 123, '', '')
         """
     )
     conn.commit()
@@ -80,7 +80,7 @@ def test_token_observability_level_coarse_for_provider_total_only(tmp_path: Path
 
     result = build_analysis(db_path, "s1")
     assert result["ok"] is True
-    assert result["token_observability_level"] == "coarse"
+    assert result["token_observability_level"] == "step_level"
 
 
 def test_token_observability_level_coarse_for_estimated_tokens(tmp_path: Path) -> None:

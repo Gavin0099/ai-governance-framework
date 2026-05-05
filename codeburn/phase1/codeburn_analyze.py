@@ -41,7 +41,7 @@ def _step_order(conn: sqlite3.Connection, session_id: str) -> list[sqlite3.Row]:
 def _token_observability_level(conn: sqlite3.Connection, session_id: str) -> str:
     rows = conn.execute(
         """
-        SELECT token_source, total_tokens
+        SELECT token_source, prompt_tokens, completion_tokens, total_tokens
         FROM steps
         WHERE session_id=?
         """,
