@@ -82,6 +82,9 @@ def test_report_fixed_fields(tmp_path: Path) -> None:
     assert report["file_reads"] == "unsupported"
     assert report["governance_decision_usage_allowed"] is False
     assert report["operational_guard_usage_allowed"] is False
+    assert report["decision_safety"] == "NON_DECISIONAL"
+    assert "token_count" in report["non_authoritative_fields"]
+    assert "token_observability_level" in report["non_authoritative_fields"]
 
 
 def test_report_token_observability_step_level(tmp_path: Path) -> None:
@@ -194,6 +197,7 @@ def test_report_mixed_step_level_discloses_mixed_sources(tmp_path: Path) -> None
     assert report["decision_usage_allowed"] is False
     assert report["governance_decision_usage_allowed"] is False
     assert report["operational_guard_usage_allowed"] is False
+    assert report["decision_safety"] == "NON_DECISIONAL"
 
 
 def test_report_text_omits_mixed_warning_for_provider_only_step_level(tmp_path: Path, capsys) -> None:

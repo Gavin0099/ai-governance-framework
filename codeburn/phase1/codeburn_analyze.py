@@ -161,6 +161,7 @@ def build_analysis(db_path: Path, session_id: str | None = "latest") -> dict:
         "phase": "phase1",
         "status": "closed",
         "decision_usage_allowed": False,
+        "decision_safety": "NON_DECISIONAL",
         "session_id": resolved,
         "task": str(session["task"]),
         "data_quality": str(session["data_quality"]),
@@ -203,6 +204,9 @@ def build_analysis(db_path: Path, session_id: str | None = "latest") -> dict:
                 "No efficiency or correctness judgment is made.",
             ],
         },
+        "non_authoritative_fields": [
+            "token_observability_level",
+        ],
     }
     return analysis
 
