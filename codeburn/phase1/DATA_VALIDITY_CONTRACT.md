@@ -76,6 +76,16 @@ Rule:
 ## Token Observability Guard
 Token observability and token comparability are not the same contract.
 
+NOTE: `TOKEN_TELEMETRY_CONTRACT_V0_1.md` defines provenance disclosure requirements
+(for example `token_source_summary` and `provenance_warning`) that are NOT currently
+enforced in the Phase 1/2 runtime or current report surfaces.
+
+Current Phase 1/2 runtime MUST NOT be assumed to provide provenance-complete token
+observability, even when `token_observability_level` is reported as `step_level`.
+
+Consumers MUST treat all current token observability as provenance-incomplete unless
+explicit provenance disclosure is present.
+
 Rule:
 - `token_observability_level = step_level` only when provider-backed token totals are present
 - `token_observability_level = coarse` when token totals are estimated, or when provider provenance exists without step-level totals
@@ -83,6 +93,13 @@ Rule:
 - `token_observability_level = coarse` does not authorize decision use and does not imply `comparability_token = 1`
 
 `comparability_duration` and `comparability_change` are tracked separately.
+
+## Transitional Rule
+Until `provenance_warning` is implemented in runtime and report surfaces, any
+`token_observability_level = step_level` MUST be treated as provenance-unverified and
+MUST NOT be interpreted as provider-only.
+
+Absence of `provenance_warning` MUST NOT be interpreted as absence of mixed sources.
 
 ## Retry Signal Noise Control
 If retry rule triggers (`>= 3` consecutive retry steps):
