@@ -100,3 +100,7 @@ docs/_build/
 # Local scratch / one-off checks
 scratch_quickstart_smoke/
 _integration_check.py
+
+# Local CodeBurn artifacts (not versioned unless explicitly promoted)
+codeburn/phase1/examples/m5_repo/
+codeburn_phase1.db
