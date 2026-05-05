@@ -1152,3 +1152,29 @@ def test_candidate_violation_consumption_detects_review_routing_misuse():
     assert consumption["consumption_violation"] is True
     assert consumption["violation_type"] == "used_in_automatic_review_routing"
     assert consumption["field"] == "promoted_policy_violation"
+
+
+def test_consumption_pattern_visibility_aggregates_without_enforcement():
+    result = run_post_task_check(
+        _contract(),
+        risk="medium",
+        oversight="review-required",
+        checks={
+            "candidate_violation_consumption_events": [
+                {"use_type": "gating", "field": "promotion_eligible", "consumer": "release_gate_router"},
+                {"use_type": "ranking", "field": "token_observability_level", "consumer": "cost_ranker"},
+                {"use_type": "ranking", "field": "token_observability_level", "consumer": "cost_ranker"},
+            ]
+        },
+    )
+
+    visibility = result["consumption_pattern_visibility"]
+    assert visibility["contract_version"] == "v0.1"
+    assert visibility["total_violations"] == 3
+    assert visibility["by_type"]["used_in_gating"] == 1
+    assert visibility["by_type"]["used_in_ranking"] == 2
+    assert visibility["by_field"]["token_observability_level"] == 2
+    assert visibility["by_consumer"]["cost_ranker"] == 2
+    assert visibility["high_frequency_misuse_triggers_enforcement"] is False
+    assert visibility["visibility_only"] is True
+    assert result["policy_violations"] == []
