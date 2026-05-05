@@ -6,6 +6,8 @@ import json
 import sqlite3
 from pathlib import Path
 
+from codeburn.phase1.token_observability import token_observability_level
+
 
 def _bool_text(flag: bool) -> str:
     return "true" if flag else "false"
@@ -26,21 +28,14 @@ def _session_metrics(conn: sqlite3.Connection, session_id: str) -> dict:
             (session_id,),
         ).fetchone()[0]
     )
-    provider_steps_with_tokens = int(
-        conn.execute(
-            "SELECT COUNT(*) FROM steps WHERE session_id=? AND token_source='provider' AND total_tokens IS NOT NULL",
-            (session_id,),
-        ).fetchone()[0]
-    )
-    token_observability_level = "none"
-    if provider_steps_with_tokens > 0:
-        token_observability_level = "step_level"
-    elif token_provider_steps > 0:
-        token_observability_level = "coarse"
+    token_rows = conn.execute(
+        "SELECT token_source, total_tokens FROM steps WHERE session_id=?",
+        (session_id,),
+    ).fetchall()
     return {
         "step_count": step_count,
         "token_comparability": token_provider_steps > 0,
-        "token_observability_level": token_observability_level,
+        "token_observability_level": token_observability_level(token_rows),
     }
 
 

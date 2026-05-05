@@ -6,6 +6,8 @@ from argparse import Namespace
 from pathlib import Path
 
 from codeburn.phase1 import codeburn_run
+from codeburn.phase1.codeburn_analyze import build_analysis
+from codeburn.phase1.codeburn_report import build_report
 from codeburn.phase1.validate_phase1_data import validate
 
 
@@ -122,3 +124,130 @@ def test_codeburn_run_start_failure_contract_marks_partial(tmp_path: Path, monke
 
     result = validate(db_path)
     assert result["ok"] is True
+
+
+def test_codeburn_run_token_fields_stored(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git_repo(repo)
+
+    db_path = tmp_path / "phase1.db"
+    schema_path = Path("codeburn/phase1/schema.sql").resolve()
+    _create_session(db_path, schema_path, repo)
+
+    args = Namespace(
+        db=str(db_path),
+        schema=str(schema_path),
+        repo=str(repo),
+        step_kind="planning",
+        provider="local",
+        token_source="estimated",
+        prompt_tokens=512,
+        completion_tokens=128,
+        total_tokens=640,
+        retry_of=None,
+        command=["python", "-c", "print('ok')"],
+    )
+
+    rc = codeburn_run.run_step(args)
+    assert rc == 0
+
+    conn = sqlite3.connect(db_path)
+    row = conn.execute(
+        "SELECT prompt_tokens, completion_tokens, total_tokens, token_source FROM steps"
+    ).fetchone()
+    conn.close()
+    assert row is not None
+    assert row[0] == 512
+    assert row[1] == 128
+    assert row[2] == 640
+    assert row[3] == "estimated"
+
+
+def test_codeburn_run_token_fields_default_null(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git_repo(repo)
+
+    db_path = tmp_path / "phase1.db"
+    schema_path = Path("codeburn/phase1/schema.sql").resolve()
+    _create_session(db_path, schema_path, repo)
+
+    args = Namespace(
+        db=str(db_path),
+        schema=str(schema_path),
+        repo=str(repo),
+        step_kind="execution",
+        provider="local",
+        token_source="unknown",
+        prompt_tokens=None,
+        completion_tokens=None,
+        total_tokens=None,
+        retry_of=None,
+        command=["python", "-c", "print('ok')"],
+    )
+
+    rc = codeburn_run.run_step(args)
+    assert rc == 0
+
+    conn = sqlite3.connect(db_path)
+    row = conn.execute(
+        "SELECT prompt_tokens, completion_tokens, total_tokens FROM steps"
+    ).fetchone()
+    conn.close()
+    assert row is not None
+    assert row[0] is None
+    assert row[1] is None
+    assert row[2] is None
+
+
+def test_codeburn_run_estimated_tokens_flow_to_analysis_and_report(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git_repo(repo)
+
+    db_path = tmp_path / "phase1.db"
+    schema_path = Path("codeburn/phase1/schema.sql").resolve()
+    session_id = _create_session(db_path, schema_path, repo)
+
+    args = Namespace(
+        db=str(db_path),
+        schema=str(schema_path),
+        repo=str(repo),
+        step_kind="planning",
+        provider="local",
+        token_source="estimated",
+        prompt_tokens=512,
+        completion_tokens=128,
+        total_tokens=640,
+        retry_of=None,
+        command=["python", "-c", "print('ok')"],
+    )
+
+    rc = codeburn_run.run_step(args)
+    assert rc == 0
+
+    analysis = build_analysis(db_path, session_id)
+    report = build_report(db_path, session_id)
+
+    conn = sqlite3.connect(db_path)
+    comparability_token = conn.execute(
+        "SELECT comparability_token FROM sessions WHERE session_id=?",
+        (session_id,),
+    ).fetchone()
+    conn.close()
+
+    assert analysis["ok"] is True
+    assert analysis["token_observability_level"] == "coarse"
+    assert analysis["analysis_safe_for_decision"] is False
+    assert analysis["decision_usage_allowed"] is False
+    assert analysis["token_comparability"] is False
+
+    assert report["ok"] is True
+    assert report["token_observability_level"] == "coarse"
+    assert report["analysis_safe_for_decision"] is False
+    assert report["decision_usage_allowed"] is False
+    assert report["token_comparability"] is False
+
+    assert comparability_token is not None
+    assert comparability_token[0] == 0

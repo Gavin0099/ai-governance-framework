@@ -6,6 +6,8 @@ import json
 import sqlite3
 from pathlib import Path
 
+from codeburn.phase1.token_observability import token_observability_level
+
 
 def _format_duration_ms(ms: int | None) -> str:
     if ms is None or ms < 0:
@@ -47,16 +49,7 @@ def _token_observability_level(conn: sqlite3.Connection, session_id: str) -> str
     ).fetchall()
     if not rows:
         return "none"
-
-    has_provider_source = any(str(r["token_source"] or "").strip() == "provider" for r in rows)
-    has_step_level_tokens = any(
-        str(r["token_source"] or "").strip() == "provider" and r["total_tokens"] is not None for r in rows
-    )
-    if has_step_level_tokens:
-        return "step_level"
-    if has_provider_source:
-        return "coarse"
-    return "none"
+    return token_observability_level(rows)
 
 
 def _derive_signal_steps(conn: sqlite3.Connection, session_id: str, signal: str, signal_step_id: str) -> list[str]:
