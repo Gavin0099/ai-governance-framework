@@ -568,6 +568,46 @@ def _build_candidate_violation_consumption_contract(
     return contract
 
 
+def _build_consumption_pattern_visibility(checks: dict | None) -> dict:
+    by_type: dict[str, int] = {}
+    by_field: dict[str, int] = {}
+    by_consumer: dict[str, int] = {}
+    total = 0
+
+    records = []
+    if checks and isinstance(checks.get("candidate_violation_consumption_events"), list):
+        records = checks.get("candidate_violation_consumption_events") or []
+    elif checks and isinstance(checks.get("candidate_violation_consumption"), dict):
+        records = [checks.get("candidate_violation_consumption") or {}]
+
+    for item in records:
+        if not isinstance(item, dict):
+            continue
+        use_type = str(item.get("use_type", "") or "").strip().lower()
+        field = str(item.get("field", "") or "").strip() or "unknown"
+        consumer = str(item.get("consumer", "") or "").strip() or "unknown"
+
+        if use_type not in FORBIDDEN_CONSUMPTION_USES:
+            continue
+
+        total += 1
+        key = f"used_in_{use_type}"
+        by_type[key] = by_type.get(key, 0) + 1
+        by_field[field] = by_field.get(field, 0) + 1
+        by_consumer[consumer] = by_consumer.get(consumer, 0) + 1
+
+    return {
+        "contract_version": "v0.1",
+        "total_violations": total,
+        "by_type": by_type,
+        "by_field": by_field,
+        "by_consumer": by_consumer,
+        "high_frequency_misuse_triggers_enforcement": False,
+        "visibility_only": True,
+        "notice": "High frequency misuse does NOT trigger enforcement. Visibility increase only; no blocking, routing, scoring, or automated action.",
+    }
+
+
 def _slim_domain_contract(dc: dict | None) -> dict | None:
     """Return domain_contract with document content elided for the return payload.
 
@@ -764,6 +804,7 @@ def run_post_task_check(
         promotion_contract=candidate_violation_promotion,
         checks=effective_checks,
     )
+    consumption_pattern_visibility = _build_consumption_pattern_visibility(effective_checks)
     for violation in evidence_violations:
         errors.append(f"runtime-evidence: {violation['message']}")
     for violation in policy_violations:
@@ -809,6 +850,7 @@ def run_post_task_check(
         "provenance_boundary_audit": provenance_boundary_audit,
         "candidate_violation_promotion": candidate_violation_promotion,
         "candidate_violation_consumption": candidate_violation_consumption,
+        "consumption_pattern_visibility": consumption_pattern_visibility,
         "phase_classification": _build_post_task_phase_classification(
             evidence_violations=evidence_violations,
             assumption_advisories=assumption_advisories,
@@ -929,6 +971,14 @@ def format_human_result(result: dict) -> str:
             f"violation={consumption.get('consumption_violation')} "
             f"type={consumption.get('violation_type') or 'none'} "
             f"use={consumption.get('observed_use_type') or 'none'}"
+        )
+    visibility = result.get("consumption_pattern_visibility") or {}
+    if visibility:
+        lines.append(
+            "consumption_pattern_visibility="
+            f"total={visibility.get('total_violations', 0)} "
+            f"visibility_only={visibility.get('visibility_only')} "
+            f"enforcement={visibility.get('high_frequency_misuse_triggers_enforcement')}"
         )
     if result.get("domain_validator_results"):
         lines.append(f"domain_validator_count={len(result['domain_validator_results'])}")
