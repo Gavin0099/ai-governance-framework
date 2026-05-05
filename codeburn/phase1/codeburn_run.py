@@ -256,7 +256,7 @@ def run_step(args: argparse.Namespace) -> int:
           stdout_bytes, stderr_bytes,
           prompt_tokens, completion_tokens, total_tokens, token_source,
           retry_of, git_status_before, git_status_after
-        ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, ?, ?, ?)
+        ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             step_id,
@@ -270,6 +270,9 @@ def run_step(args: argparse.Namespace) -> int:
             exit_code,
             stdout_bytes,
             stderr_bytes,
+            getattr(args, "prompt_tokens", None),
+            getattr(args, "completion_tokens", None),
+            getattr(args, "total_tokens", None),
             args.token_source,
             args.retry_of,
             git_before,
@@ -322,6 +325,9 @@ def main() -> int:
     parser.add_argument("--step-kind", required=True, choices=["planning", "execution", "test", "retry", "reflection", "other"])
     parser.add_argument("--provider", default="local")
     parser.add_argument("--token-source", default="unknown", choices=["provider", "estimated", "unknown"])
+    parser.add_argument("--prompt-tokens", type=int, default=None)
+    parser.add_argument("--completion-tokens", type=int, default=None)
+    parser.add_argument("--total-tokens", type=int, default=None)
     parser.add_argument("--retry-of", default=None)
     parser.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args()

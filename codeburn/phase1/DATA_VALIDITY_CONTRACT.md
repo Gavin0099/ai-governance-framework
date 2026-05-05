@@ -73,6 +73,15 @@ Rule:
 - if `token_source != provider` -> `comparability_token = 0`
 - only `token_source = provider` may set `comparability_token = 1`
 
+## Token Observability Guard
+Token observability and token comparability are not the same contract.
+
+Rule:
+- `token_observability_level = step_level` only when provider-backed token totals are present
+- `token_observability_level = coarse` when token totals are estimated, or when provider provenance exists without step-level totals
+- `token_observability_level = none` when no token quantity is present
+- `token_observability_level = coarse` does not authorize decision use and does not imply `comparability_token = 1`
+
 `comparability_duration` and `comparability_change` are tracked separately.
 
 ## Retry Signal Noise Control
