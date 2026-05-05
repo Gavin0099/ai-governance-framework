@@ -94,6 +94,7 @@ def build_report(db_path: Path, session_id: str | None) -> dict:
         "phase": "phase1",
         "status": "closed",
         "decision_usage_allowed": False,
+        "decision_safety": "NON_DECISIONAL",
         "session_id": str(row["session_id"]),
         "task": str(row["task"]),
         "data_quality": str(row["data_quality"]),
@@ -115,6 +116,12 @@ def build_report(db_path: Path, session_id: str | None) -> dict:
         "analysis_safe_for_decision": False,
         "governance_decision_usage_allowed": False,
         "operational_guard_usage_allowed": False,
+        "non_authoritative_fields": [
+            "token_count",
+            "token_observability_level",
+            "token_source_summary",
+            "provenance_warning",
+        ],
     }
 
 

@@ -49,6 +49,8 @@ def test_build_analysis_basics(tmp_path: Path) -> None:
     assert result["analysis_boundary"]["analysis_type"] == "observation"
     assert result["analysis_boundary"]["interpretation_level"] == "low"
     assert result["analysis_boundary"]["claims"] is False
+    assert result["decision_safety"] == "NON_DECISIONAL"
+    assert result["non_authoritative_fields"] == ["token_observability_level"]
     assert result["token_observability_level"] == "none"
     assert result["observability_boundary_disclosed"] is True
     assert result["file_activity"]["git_visible_only"] is True
