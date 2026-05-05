@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import sqlite3
+import subprocess
+import sys
 from pathlib import Path
 
 from codeburn.phase1.codeburn_report import _print_text, build_report
@@ -264,3 +266,47 @@ def test_report_provider_total_only_is_coarse_not_step_level(tmp_path: Path) -> 
         "completion_tokens": None,
         "total_tokens": 200,
     }
+
+
+def test_report_cli_runs_from_repo_root_without_pythonpath_override(tmp_path: Path) -> None:
+    db_path = tmp_path / "phase1.db"
+    conn = sqlite3.connect(db_path)
+    schema = Path("codeburn/phase1/schema.sql").read_text(encoding="utf-8")
+    conn.executescript(schema)
+    conn.execute(
+        """
+        INSERT INTO sessions(
+          session_id, task, repo_path, git_branch, created_at, data_quality
+        ) VALUES('s1', 'report test', '.', 'main', '2026-04-30T00:00:00+00:00', 'complete')
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO steps(
+          step_id, session_id, step_kind, command, provider, started_at, ended_at, duration_ms, exit_code,
+          stdout_bytes, stderr_bytes, token_source, git_status_before, git_status_after
+        ) VALUES('st1', 's1', 'planning', 'echo hi', 'local', '2026-04-30T00:00:00+00:00',
+                 '2026-04-30T00:00:01+00:00', 1000, 0, 2, 0, 'unknown', '', '')
+        """
+    )
+    conn.commit()
+    conn.close()
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "codeburn/phase1/codeburn_report.py",
+            "--db",
+            str(db_path),
+            "--session-id",
+            "s1",
+            "--format",
+            "json",
+        ],
+        cwd=Path.cwd(),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert '"ok": true' in proc.stdout

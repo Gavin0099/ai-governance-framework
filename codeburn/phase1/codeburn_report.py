@@ -4,9 +4,14 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
+import sys
 from pathlib import Path
 
-from codeburn.phase1.token_observability import token_observability_level
+try:
+    from codeburn.phase1.token_observability import token_observability_level
+except ModuleNotFoundError:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from token_observability import token_observability_level
 
 
 def _bool_text(flag: bool) -> str:
@@ -149,7 +154,11 @@ def _print_text(report: dict) -> None:
 
 
 def main() -> int:
-    from codeburn_phase1_header import print_phase1_header  # noqa: PLC0415
+    try:
+        from codeburn.phase1.codeburn_phase1_header import print_phase1_header  # noqa: PLC0415
+    except ModuleNotFoundError:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from codeburn_phase1_header import print_phase1_header  # noqa: PLC0415
     print_phase1_header()
     parser = argparse.ArgumentParser(description="CodeBurn Phase 1 report.")
     parser.add_argument("--db", default="codeburn/phase1/examples/phase1_demo.db")
