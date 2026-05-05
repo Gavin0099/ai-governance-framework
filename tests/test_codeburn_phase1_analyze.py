@@ -55,7 +55,7 @@ def test_build_analysis_basics(tmp_path: Path) -> None:
     assert result["file_activity"]["file_reads_visible"] is False
 
 
-def test_token_observability_level_step_level(tmp_path: Path) -> None:
+def test_token_observability_level_coarse_for_provider_total_only(tmp_path: Path) -> None:
     db_path = tmp_path / "phase1.db"
     conn = sqlite3.connect(db_path)
     schema = Path("codeburn/phase1/schema.sql").read_text(encoding="utf-8")
@@ -80,7 +80,7 @@ def test_token_observability_level_step_level(tmp_path: Path) -> None:
 
     result = build_analysis(db_path, "s1")
     assert result["ok"] is True
-    assert result["token_observability_level"] == "step_level"
+    assert result["token_observability_level"] == "coarse"
 
 
 def test_token_observability_level_coarse_for_estimated_tokens(tmp_path: Path) -> None:
