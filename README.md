@@ -27,6 +27,30 @@
 
 ## ⚙️ 核心流程（完整治理流程）
 
+```mermaid
+flowchart TD
+    A[Agent 執行任務] --> B[session_start]
+    B --> C[pre_task_check]
+    C --> D[任務步驟執行 / codeburn_run]
+    D --> E[post_task_check]
+    E --> F[session_end]
+    F --> G[Analyze / Report 輸出]
+    G --> H[Reviewer 判讀]
+
+    H --> I{可否直接做自動決策?}
+    I -->|No| J[decision_usage_allowed=false]
+    I -->|No| K[analysis_safe_for_decision=false]
+```
+
+```mermaid
+flowchart LR
+    T1[token_count] --> T3[token_trust]
+    T2[token_observability_level] --> T3
+    T3 --> T4[provenance_warning]
+    T4 --> T5[Reviewer Context Only]
+    T5 --> T6[NOT for gating / scoring / ranking]
+```
+
 ## 📦 你會得到什麼輸出？
 
 ```json
@@ -62,7 +86,15 @@
 
 ## 🧩 架構分層
 
-不支援圖表。
+```mermaid
+flowchart TB
+    L1[Signal Definition] --> L2[Classification Binding]
+    L2 --> L3[Consumption Constraint]
+    L3 --> L4[Transformation Governance]
+    L4 --> L5[Misuse Detection]
+    L5 --> L6[Pattern Visibility]
+    L6 --> L7[Decision Path Lineage Visibility]
+```
 
 ## 🧪 最小使用流程
 
