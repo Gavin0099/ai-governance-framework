@@ -1,5 +1,27 @@
 # Token Cross-Repo Summary (2026-05-05)
 
+## Baseline
+```yaml
+baseline:
+  commit: 27a196c
+  execution_mode: controlled
+  token_source_expected: unknown | estimated | mixed(provider, estimated)
+```
+
+## Interpretation Guard
+This summary is for:
+- distribution consistency verification only
+
+This summary is NOT:
+- evidence of token correctness
+- evidence of production readiness
+- usable for decision-making, ranking, or scoring
+
+All results are:
+- controlled slice validation
+- non-authoritative token observability
+- non-regression-complete evidence
+
 ## Scope
 This summary consolidates cross-repo evidence for token observability/distribution slice only.
 It does not claim full regression coverage, full system correctness, or authority integration readiness.
@@ -37,3 +59,9 @@ It must not be interpreted as full regression completion or production-readiness
 - Status counts: `pass=7`, `degraded=0`, `blocked=0`.
 - Declaration: distribution/token slice coverage is complete for this scope.
 - Explicit non-claim: this closeout does not declare full regression completion.
+
+## Citation Requirement
+Any external reference to this summary MUST include:
+- `distribution slice validation`
+- `non-authoritative token observability`
+- `not for decision usage`
