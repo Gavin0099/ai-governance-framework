@@ -77,8 +77,15 @@ python governance_tools/governance_drift_checker.py --repo . --framework-root .
 {
   "ok": false,
   "verdict": "blocked",
-  "failure_code": "missing_required_evidence",
-  "remediation": "attach required evidence artifacts before closeout"
+  "failure_code": "contract_violation",
+  "violations": [
+    {
+      "rule": "no_direct_db_access_from_handler",
+      "location": "src/handlers/user.py:42",
+      "detail": "AI agent attempted to call db.execute() directly; project contract requires repository layer"
+    }
+  ],
+  "remediation": "refactor to use UserRepository.find_by_id() per governance/RULE_REGISTRY.md"
 }
 ```
 
@@ -91,6 +98,9 @@ python governance_tools/governance_drift_checker.py --repo . --framework-root .
   "decision_usage_allowed": false
 }
 ```
+
+延伸示範（Before/After）：  
+- [docs/demo/before-after.md](docs/demo/before-after.md)
 
 ---
 
@@ -115,9 +125,14 @@ python governance_tools/adopt_governance.py --target /path/to/your/repo
 ```
 
 執行後通常會：
-- 建立治理相關目錄與基線檔案（例如治理規則、檢查流程入口）
-- 產生 adoption 所需的最小配置
-- 保留你原本的業務程式碼，不直接改動核心業務邏輯
+- 建立 `governance/`（例如 `AGENT.md`, `SYSTEM_PROMPT.md`, `RULE_REGISTRY.md`）
+- 建立 `runtime_hooks/`（session start/pre/post/end 生命週期檢查）
+- 建立 `.governance-state.yaml`（治理狀態追蹤）
+- 建立 `AGENTS.md` 與 `PLAN.md`（AI 工作入口與任務規劃）
+
+不會直接修改：
+- 你的 `src/` 或核心業務邏輯目錄
+- 你的專案依賴檔（除非你選擇 full adopt 路徑）
 
 下一步請看：
 - [docs/consuming-repo-adoption-checklist.md](docs/consuming-repo-adoption-checklist.md)
@@ -166,28 +181,10 @@ python governance_tools/adopt_governance.py --target /path/to/your/repo
 
 ---
 
-## 8) 目前迭代狀態（Token Controlled Slice）
+## 8) 目前迭代狀態
 
-此段為「目前治理迭代狀態」，不是功能入口。
-
-Status: closed for current controlled slice
-
-已建立：
-- cross-repo distribution slice evidence
-- interpretation guard
-- citation requirement
-- documented misuse scenarios
-
-重開條件：
-- 新 repo 納入
-- token contract 變更
-- citation/misuse wording 變更
-- sentinel run 偵測到 drift
-
-參考：
-- [docs/payload-audit/token-cross-repo-summary-2026-05-05.md](docs/payload-audit/token-cross-repo-summary-2026-05-05.md)
-- [docs/payload-audit/token-cross-repo-index-2026-05-06.md](docs/payload-audit/token-cross-repo-index-2026-05-06.md)
-- [docs/payload-audit/token-observability-misuse-scenarios-v0.1.md](docs/payload-audit/token-observability-misuse-scenarios-v0.1.md)
+目前迭代狀態（含 Token controlled slice closeout）已移至：
+- [docs/status/current-iteration.md](docs/status/current-iteration.md)
 
 ---
 
