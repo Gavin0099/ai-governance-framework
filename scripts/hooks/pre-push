@@ -31,6 +31,7 @@ fi
 
 TOOL="$FRAMEWORK_ROOT/governance_tools/contract_validator.py"
 DAILY_MEMORY_GUARD="$FRAMEWORK_ROOT/governance_tools/daily_memory_guard.py"
+VERSION_BUMP_GUARD="$FRAMEWORK_ROOT/governance_tools/version_bump_guard.py"
 SNAPSHOT_DIR="$TARGET_REPO_ROOT/memory/governance_snapshots"
 RUNTIME_SCRIPT="$FRAMEWORK_ROOT/scripts/run-runtime-governance.sh"
 
@@ -82,6 +83,17 @@ if [ -f "$DAILY_MEMORY_GUARD" ] && [ "${#PYTHON_CMD[@]}" -gt 0 ]; then
     if [ -n "$DAILY_MEMORY_WARNING" ]; then
         echo "$DAILY_MEMORY_WARNING"
     fi
+fi
+
+if [ -f "$VERSION_BUMP_GUARD" ] && [ "${#PYTHON_CMD[@]}" -gt 0 ]; then
+    echo "[governance] version bump recommendation (advisory)"
+    (
+        cd "$TARGET_REPO_ROOT"
+        "${PYTHON_CMD[@]}" "$VERSION_BUMP_GUARD" --base-ref origin/main --head-ref HEAD --format human
+    ) || (
+        cd "$TARGET_REPO_ROOT"
+        "${PYTHON_CMD[@]}" "$VERSION_BUMP_GUARD" --base-ref HEAD~1 --head-ref HEAD --format human
+    ) || true
 fi
 
 exit 0
