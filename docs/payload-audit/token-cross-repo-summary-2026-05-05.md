@@ -16,10 +16,10 @@ It does not claim full regression coverage, full system correctness, or authorit
 | Enumd | distribution-slice | pass | `token_source_summary=unknown`, `token_observability_level=none`, `provenance_warning=provenance_unverified`, `decision_usage_allowed=false`, `analysis_safe_for_decision=false` |
 | CFU | distribution-slice | pass | `token_source_summary=mixed(provider, estimated)`, `token_observability_level=step_level`, `provenance_warning=mixed_sources`, `decision_usage_allowed=false`, `analysis_safe_for_decision=false` |
 | meiandraybook | distribution-slice | pass | `token_source_summary=estimated`, `token_observability_level=step_level`, `provenance_warning=provenance_unverified`, `decision_usage_allowed=false`, `analysis_safe_for_decision=false` |
-| hp-firmware-stresstest-tool | commit-level | pending deeper run | 2026-05-05 commit present: `09eaad3` |
-| cli | commit-level | pending deeper run | 2026-05-05 commit present: `5456ca9`; working tree still active |
-| Bookstore-Scraper | commit-level | pending deeper run | 2026-05-05 commits present: `3a3be00`, `464992c`, `56d1b82`, `6e673dc` |
-| AITradeExecutor | commit-level | pending deeper run | 2026-05-05 commit present: `aaa8cfc` |
+| hp-firmware-stresstest-tool | distribution-slice | pass | 2026-05-06 controlled session; `token_source_summary=estimated`, `token_observability_level=step_level`, `provenance_warning=provenance_unverified`, boundary flags false |
+| cli | distribution-slice | pass | 2026-05-06 controlled session; `token_source_summary=estimated`, `token_observability_level=step_level`, `provenance_warning=provenance_unverified`, boundary flags false |
+| Bookstore-Scraper | distribution-slice | pass | 2026-05-06 controlled session; `token_source_summary=estimated`, `token_observability_level=step_level`, `provenance_warning=provenance_unverified`, boundary flags false |
+| AITradeExecutor | distribution-slice | pass | 2026-05-06 controlled session; `token_source_summary=estimated`, `token_observability_level=step_level`, `provenance_warning=provenance_unverified`, boundary flags false |
 
 ## Boundary Checks (Validated Runs)
 Across validated distribution-slice runs in this summary:
