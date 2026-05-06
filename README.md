@@ -94,33 +94,33 @@ flowchart TD
   classDef decision fill:#FFFDE7,stroke:#FBC02D,stroke-width:2px,color:#000;
   classDef note fill:#FAFAFA,stroke:#9E9E9E,stroke-width:1px,stroke-dasharray:5 5,color:#000;
 
-  Start((\"開始<br/>Start\"))
+  Start(("開始<br/>Start"))
 
-  Start --> S1[\"1. 會話初始化<br/>Session Start<br/>session_start.py\"]
-  S1 --> S1A[\"產生狀態快照<br/>Derived State Snapshot\"]
-  S1 --> S1B[\"版本相容性檢查<br/>Version Compatibility\"]
-  S1 --> S1C[\"權限表載入與過濾<br/>Authority Table Loading\"]
-  S1 --> S1D[\"規則包與契約載入<br/>Rule Pack / Contract Loading\"]
-  S1 --> S1E[\"任務等級偵測<br/>Task Level Detection\"]
-  S1 --> S1F[\"讀取前次收斂脈絡<br/>Closeout Context\"]
-  S1A --> S1G[\"建立會話治理上下文<br/>Session Governance Context\"]
+  Start --> S1["1. 會話初始化<br/>Session Start<br/>session_start.py"]
+  S1 --> S1A["產生狀態快照<br/>Derived State Snapshot"]
+  S1 --> S1B["版本相容性檢查<br/>Version Compatibility"]
+  S1 --> S1C["權限表載入與過濾<br/>Authority Table Loading"]
+  S1 --> S1D["規則包與契約載入<br/>Rule Pack / Contract Loading"]
+  S1 --> S1E["任務等級偵測<br/>Task Level Detection"]
+  S1 --> S1F["讀取前次收斂脈絡<br/>Closeout Context"]
+  S1A --> S1G["建立會話治理上下文<br/>Session Governance Context"]
   S1B --> S1G
   S1C --> S1G
   S1D --> S1G
   S1E --> S1G
   S1F --> S1G
 
-  S1G --> P0[\"2. 前置治理檢查<br/>Pre Task Check<br/>pre_task_check.py\"]
-  P0 --> P1[\"計畫新鮮度檢查<br/>Plan Freshness\"]
-  P0 --> P2[\"架構影響預覽<br/>Architecture Impact\"]
-  P0 --> P3[\"執行期契約解析<br/>Runtime Contract Resolve\"]
-  P0 --> P4[\"規則分類<br/>Rule Classification\"]
-  P0 --> P5[\"假設與邊界檢查<br/>Assumption / Boundary Check\"]
-  P0 --> P6[\"證據完整性閘門<br/>Evidence Integrity Gate\"]
-  P0 --> P7[\"前提條件閘門<br/>Precondition Gate\"]
-  P0 --> P8[\"執行期注入觀察<br/>Runtime Injection Observation\"]
+  S1G --> P0["2. 前置治理檢查<br/>Pre Task Check<br/>pre_task_check.py"]
+  P0 --> P1["計畫新鮮度檢查<br/>Plan Freshness"]
+  P0 --> P2["架構影響預覽<br/>Architecture Impact"]
+  P0 --> P3["執行期契約解析<br/>Runtime Contract Resolve"]
+  P0 --> P4["規則分類<br/>Rule Classification"]
+  P0 --> P5["假設與邊界檢查<br/>Assumption / Boundary Check"]
+  P0 --> P6["證據完整性閘門<br/>Evidence Integrity Gate"]
+  P0 --> P7["前提條件閘門<br/>Precondition Gate"]
+  P0 --> P8["執行期注入觀察<br/>Runtime Injection Observation"]
 
-  P1 --> D1{\"前置決策<br/>Pre-task Decision\"}
+  P1 --> D1{"前置決策<br/>Pre-task Decision"}
   P2 --> D1
   P3 --> D1
   P4 --> D1
@@ -129,23 +129,23 @@ flowchart TD
   P7 --> D1
   P8 --> D1
 
-  D1 --> A0[\"3. Agent 執行邊界<br/>Agent Execution Boundary\"]
-  D1 --> RV[\"停止或升級審查<br/>Stop / Escalate\"]
+  D1 --> A0["3. Agent 執行邊界<br/>Agent Execution Boundary"]
+  D1 --> RV["停止或升級審查<br/>Stop / Escalate"]
 
-  A0 --> A1[\"AI Agent 執行任務<br/>Execute Task\"]
-  A1 --> A2[\"輸出結果<br/>Code / Docs / Artifacts / Claims\"]
+  A0 --> A1["AI Agent 執行任務<br/>Execute Task"]
+  A1 --> A2["輸出結果<br/>Code / Docs / Artifacts / Claims"]
 
-  A2 --> Q0[\"4. 後置治理檢查<br/>Post Task Check<br/>post_task_check.py\"]
-  Q0 --> Q1[\"治理契約驗證<br/>Governance Contract Validator\"]
-  Q0 --> Q2[\"修改意圖與假設檢查<br/>Intent / Assumption Check\"]
-  Q0 --> Q3[\"公開 API 差異檢查<br/>Public API Diff\"]
-  Q0 --> Q4[\"領域驗證器<br/>Domain Validators\"]
-  Q0 --> Q5[\"驅動與執行證據<br/>Driver / Runtime Evidence\"]
-  Q0 --> Q6[\"失敗完整性檢查<br/>Failure Completeness\"]
-  Q0 --> Q7[\"政策衝突檢查<br/>Policy Conflict Check\"]
-  Q0 --> Q8[\"必要證據分類<br/>Required Evidence Classification\"]
+  A2 --> Q0["4. 後置治理檢查<br/>Post Task Check<br/>post_task_check.py"]
+  Q0 --> Q1["治理契約驗證<br/>Governance Contract Validator"]
+  Q0 --> Q2["修改意圖與假設檢查<br/>Intent / Assumption Check"]
+  Q0 --> Q3["公開 API 差異檢查<br/>Public API Diff"]
+  Q0 --> Q4["領域驗證器<br/>Domain Validators"]
+  Q0 --> Q5["驅動與執行證據<br/>Driver / Runtime Evidence"]
+  Q0 --> Q6["失敗完整性檢查<br/>Failure Completeness"]
+  Q0 --> Q7["政策衝突檢查<br/>Policy Conflict Check"]
+  Q0 --> Q8["必要證據分類<br/>Required Evidence Classification"]
 
-  Q1 --> D2{\"後置決策<br/>Post-task Decision\"}
+  Q1 --> D2{"後置決策<br/>Post-task Decision"}
   Q2 --> D2
   Q3 --> D2
   Q4 --> D2
@@ -154,20 +154,20 @@ flowchart TD
   Q7 --> D2
   Q8 --> D2
 
-  D2 --> RV2{\"執行期裁定<br/>Runtime Verdict\"}
+  D2 --> RV2{"執行期裁定<br/>Runtime Verdict"}
   RV --> RV2
 
-  RV2 --> E0[\"5. 會話收斂與 Artifact 產生<br/>Session End<br/>session_end.py\"]
-  E0 --> E1[\"候選收斂紀錄<br/>Candidate Closeout\"]
-  E0 --> E2[\"標準化收斂紀錄<br/>Canonical Closeout\"]
-  E0 --> E3[\"裁定 Artifact<br/>Verdict Artifact\"]
-  E0 --> E4[\"追蹤 Artifact<br/>Trace Artifact\"]
-  E0 --> E5[\"執行階段摘要<br/>Runtime Phase Summary\"]
-  E0 --> E6[\"會話索引<br/>Session Index NDJSON\"]
-  E0 --> E7[\"每日記憶與提升訊號<br/>Daily Memory / Promotion Signals\"]
-  E0 --> E8[\"重新產生治理狀態檔<br/>Regenerate .governance-state.yaml\"]
+  RV2 --> E0["5. 會話收斂與 Artifact 產生<br/>Session End<br/>session_end.py"]
+  E0 --> E1["候選收斂紀錄<br/>Candidate Closeout"]
+  E0 --> E2["標準化收斂紀錄<br/>Canonical Closeout"]
+  E0 --> E3["裁定 Artifact<br/>Verdict Artifact"]
+  E0 --> E4["追蹤 Artifact<br/>Trace Artifact"]
+  E0 --> E5["執行階段摘要<br/>Runtime Phase Summary"]
+  E0 --> E6["會話索引<br/>Session Index NDJSON"]
+  E0 --> E7["每日記憶與提升訊號<br/>Daily Memory / Promotion Signals"]
+  E0 --> E8["重新產生治理狀態檔<br/>Regenerate .governance-state.yaml"]
 
-  E1 --> B0[\"可審查資料包<br/>Artifact Bundle\"]
+  E1 --> B0["可審查資料包<br/>Artifact Bundle"]
   E2 --> B0
   E3 --> B0
   E4 --> B0
@@ -176,16 +176,16 @@ flowchart TD
   E7 --> B0
   E8 --> B0
 
-  E8 --> N1[\".governance-state.yaml<br/>衍生上下文快照<br/>Derived Context Snapshot<br/>非權威來源 / Not Authority\"]
+  E8 --> N1[".governance-state.yaml<br/>衍生上下文快照<br/>Derived Context Snapshot<br/>非權威來源 / Not Authority"]
 
-  B0 --> R0[\"6. 審查與發布面<br/>Reviewer / Publication\"]
-  R0 --> R1[\"審查者交接<br/>Reviewer Handoff\"]
-  R0 --> R2[\"發布面總覽<br/>Release Surface Overview<br/>release_surface_overview.py\"]
-  R2 --> R3[\"發布就緒狀態<br/>Release Readiness\"]
-  R2 --> R4[\"資料包清單<br/>Bundle Manifest\"]
-  R2 --> R5[\"發布清單<br/>Publication Manifest\"]
-  R2 --> R6[\"升級權限表面<br/>Escalation Authority Surface\"]
-  R2 --> R7[\"信任與審查訊號<br/>Trust / Review Signals\"]
+  B0 --> R0["6. 審查與發布面<br/>Reviewer / Publication"]
+  R0 --> R1["審查者交接<br/>Reviewer Handoff"]
+  R0 --> R2["發布面總覽<br/>Release Surface Overview<br/>release_surface_overview.py"]
+  R2 --> R3["發布就緒狀態<br/>Release Readiness"]
+  R2 --> R4["資料包清單<br/>Bundle Manifest"]
+  R2 --> R5["發布清單<br/>Publication Manifest"]
+  R2 --> R6["升級權限表面<br/>Escalation Authority Surface"]
+  R2 --> R7["信任與審查訊號<br/>Trust / Review Signals"]
 
   class Start,S1,S1A,S1B,S1C,S1D,S1E,S1F,S1G start;
   class P0,P1,P2,P3,P4,P5,P6,P7,P8 pre;
@@ -298,3 +298,4 @@ Cross-repo token slice：
 - 測試替代品
 - correctness proof
 - orchestration system
+
