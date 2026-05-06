@@ -11,6 +11,23 @@ Provide a repeatable process for first-time AI governance import into a consumin
 - In scope: governance scaffold import, runtime/governance validation, report artifact.
 - Out of scope: domain business logic changes (for example firmware/driver/protocol code).
 
+## Execution Context (Mandatory)
+
+Unless otherwise stated:
+
+- `adopt_governance.py` commands are executed from `ai-governance-framework` repo root.
+- validation commands are executed from consuming repo root after adoption.
+
+If command context is ambiguous, stop and print current working directory before continuing.
+
+## Minimum Viable Governance Baseline (MVGB)
+
+First import is not considered complete unless all of the following are present and meaningful:
+
+- `AGENTS.md` is repo-specific and not generic placeholder-only content.
+- `.governance/version_manifest.yaml` exists and is syntactically valid.
+- `governance/framework.lock.json` exists and records framework source/release/commit.
+
 ## Procedure
 
 1. Clone and prepare
@@ -36,6 +53,7 @@ python governance_tools/adopt_governance.py --target <repo>
   - `governance/framework.lock.json`
   - `governance/gate_policy.yaml`
 - ensure `AGENTS.md` is not left as generic placeholder-only content
+- treat these as MVGB requirements, not optional improvements
 
 5. Validate runtime/governance path
 - run:
@@ -77,6 +95,8 @@ python governance_tools/run_first_import_validation.py --repo-root .
 - quickstart smoke passes
 - session_start and pre_task_check pass without controlled refusal
 - governance version check is compatible
+- evidence report exists and includes exact command outputs or explicit artifact paths
+- imported framework commit is explicitly recorded in the report
 
 ## Known Non-Blocking Warnings
 
@@ -88,3 +108,4 @@ python governance_tools/run_first_import_validation.py --repo-root .
 - `version_compatibility_unsupported`
 - controlled refusal from `session_start` due to missing version manifest
 - missing framework lock causing framework version state to be unknown/outdated
+- `AGENTS.md` remains generic placeholder-only after adoption
