@@ -247,7 +247,43 @@ def session_end(args: argparse.Namespace) -> int:
     data_quality = str(row["data_quality"]) if row and row["data_quality"] else DATA_QUALITY_COMPLETE
     _close_session(conn, open_sess.session_id, "manual", data_quality)
     result = {"ok": True, "session_id": open_sess.session_id, "ended_at": _now_utc_iso(), "data_quality": data_quality}
+
+    # Always attach token observability summary on session close so operators can
+    # see token state every time without needing a separate report command.
+    report_path = Path(__file__).resolve().with_name("codeburn_report.py")
+    report_spec = importlib.util.spec_from_file_location("codeburn_phase1_report", report_path)
+    if report_spec and report_spec.loader:
+        report_module = importlib.util.module_from_spec(report_spec)
+        report_spec.loader.exec_module(report_module)
+        report = report_module.build_report(db_path, open_sess.session_id)
+        if report.get("ok"):
+            token_count = report.get("token_count", {})
+            token_summary = {
+                "prompt_tokens": token_count.get("prompt_tokens"),
+                "completion_tokens": token_count.get("completion_tokens"),
+                "total_tokens": token_count.get("total_tokens"),
+                "token_source_summary": report.get("token_source_summary", "unknown"),
+                "token_observability_level": report.get("token_observability_level", "none"),
+                "provenance_warning": report.get("provenance_warning", "provenance_unverified"),
+                "decision_usage_allowed": report.get("decision_usage_allowed", False),
+                "analysis_safe_for_decision": report.get("analysis_safe_for_decision", False),
+            }
+            result["token_summary"] = token_summary
+            result["token_non_authoritative_notice"] = (
+                "Token fields are observational only and MUST NOT be used for automated decision, gating, or quality inference."
+            )
+
     print(json.dumps(result, ensure_ascii=False, indent=2))
+    if "token_summary" in result:
+        t = result["token_summary"]
+        print(
+            "Token summary: "
+            f"prompt={t['prompt_tokens']}, completion={t['completion_tokens']}, total={t['total_tokens']}, "
+            f"source={t['token_source_summary']}, observability={t['token_observability_level']}, "
+            f"decision_usage_allowed={str(t['decision_usage_allowed']).lower()}"
+        )
+        print(result["token_non_authoritative_notice"])
+
     if args.analyze:
         analyze_path = Path(__file__).resolve().with_name("codeburn_analyze.py")
         spec = importlib.util.spec_from_file_location("codeburn_phase1_analyze", analyze_path)
