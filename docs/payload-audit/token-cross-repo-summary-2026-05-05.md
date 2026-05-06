@@ -5,21 +5,21 @@ This summary consolidates cross-repo evidence for token observability/distributi
 It does not claim full regression coverage, full system correctness, or authority integration readiness.
 
 ## Classification
-- `distribution-slice pass`: token surface validated with boundary flags preserved.
-- `commit-level only`: repo has same-day commit/status evidence, but no dedicated token slice run recorded in this summary.
-- `pending deeper run`: not yet executed as a dedicated token cross-repo session in this summary set.
+- `pass`: token surface validated with boundary flags preserved.
+- `degraded`: token fields present but provenance/trust behavior unexpected.
+- `blocked`: no valid output or runtime execution failed.
 
 ## Repo Matrix
 
-| Repo | Evidence Level | Status | Key Evidence |
-|---|---|---|---|
-| Enumd | distribution-slice | pass | `token_source_summary=unknown`, `token_observability_level=none`, `provenance_warning=provenance_unverified`, `decision_usage_allowed=false`, `analysis_safe_for_decision=false` |
-| CFU | distribution-slice | pass | `token_source_summary=mixed(provider, estimated)`, `token_observability_level=step_level`, `provenance_warning=mixed_sources`, `decision_usage_allowed=false`, `analysis_safe_for_decision=false` |
-| meiandraybook | distribution-slice | pass | `token_source_summary=estimated`, `token_observability_level=step_level`, `provenance_warning=provenance_unverified`, `decision_usage_allowed=false`, `analysis_safe_for_decision=false` |
-| hp-firmware-stresstest-tool | distribution-slice | pass | 2026-05-06 controlled session; `token_source_summary=estimated`, `token_observability_level=step_level`, `provenance_warning=provenance_unverified`, boundary flags false |
-| cli | distribution-slice | pass | 2026-05-06 controlled session; `token_source_summary=estimated`, `token_observability_level=step_level`, `provenance_warning=provenance_unverified`, boundary flags false |
-| Bookstore-Scraper | distribution-slice | pass | 2026-05-06 controlled session; `token_source_summary=estimated`, `token_observability_level=step_level`, `provenance_warning=provenance_unverified`, boundary flags false |
-| AITradeExecutor | distribution-slice | pass | 2026-05-06 controlled session; `token_source_summary=estimated`, `token_observability_level=step_level`, `provenance_warning=provenance_unverified`, boundary flags false |
+| Repo | Status | Key Evidence |
+|---|---|---|
+| Enumd | pass | `token_source_summary=unknown`, `token_observability_level=none`, `provenance_warning=provenance_unverified`, boundary flags false |
+| CFU | pass | `token_source_summary=mixed(provider, estimated)`, `token_observability_level=step_level`, `provenance_warning=mixed_sources`, boundary flags false |
+| meiandraybook | pass | `token_source_summary=estimated`, `token_observability_level=step_level`, `provenance_warning=provenance_unverified`, boundary flags false |
+| hp-firmware-stresstest-tool | pass | 2026-05-06 controlled session; `token_source_summary=estimated`, `token_observability_level=step_level`, `provenance_warning=provenance_unverified`, boundary flags false |
+| cli | pass | 2026-05-06 controlled session; `token_source_summary=estimated`, `token_observability_level=step_level`, `provenance_warning=provenance_unverified`, boundary flags false |
+| Bookstore-Scraper | pass | 2026-05-06 controlled session; `token_source_summary=estimated`, `token_observability_level=step_level`, `provenance_warning=provenance_unverified`, boundary flags false |
+| AITradeExecutor | pass | 2026-05-06 controlled session; `token_source_summary=estimated`, `token_observability_level=step_level`, `provenance_warning=provenance_unverified`, boundary flags false |
 
 ## Boundary Checks (Validated Runs)
 Across validated distribution-slice runs in this summary:
@@ -31,3 +31,9 @@ Across validated distribution-slice runs in this summary:
 Current evidence supports proceeding with next-step cross-repo token observability work.
 This support is scope-bounded to distribution/token slice validation and commit-level traceability.
 It must not be interpreted as full regression completion or production-readiness validation.
+
+## Distribution Slice Closeout
+- Matrix coverage: 7/7 repos completed in this summary set.
+- Status counts: `pass=7`, `degraded=0`, `blocked=0`.
+- Declaration: distribution/token slice coverage is complete for this scope.
+- Explicit non-claim: this closeout does not declare full regression completion.
