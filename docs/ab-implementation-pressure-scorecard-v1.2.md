@@ -14,6 +14,18 @@ It evaluates whether governance changes engineering outcomes under implementatio
 The evaluation framework itself must remain cheaper than the engineering task being evaluated.
 Evaluation overhead should scale sublinearly relative to remediation scope.
 
+## Governance Denoising Calibration (Pre-Observation)
+
+Before large-scale longitudinal collection, run one denoising calibration slice:
+- keep `v1.2` semantics unchanged;
+- reduce repetitive governance narration in runtime transcript;
+- preserve the same engineering outputs and evidence boundaries.
+
+Goal:
+- internalize evidence-layer reasoning as default behavior,
+- avoid "reading governance aloud" in every step,
+- prevent runtime overhead from dominating collected data quality.
+
 ## Fixed Task
 
 Target: `FW_Validation_Package_0504_1`
@@ -128,6 +140,38 @@ Interpretation:
 - Observability metric only.
 - Do not use as a hard gate.
 - High ratio may be acceptable for high-risk tasks (release/security/signing/rollback authority transitions).
+
+## Runtime vs Artifact Governance Cost (Separated Capture)
+
+These are observability-only metrics and must not be used as hard gates.
+
+### `artifact_governance_ratio`
+
+Definition:
+- `artifact_governance_ratio = governance_meta_lines_in_diff / total_added_lines_in_diff`
+
+Capture source:
+- repository diff for target files only.
+
+### `runtime_governance_ratio`
+
+Definition:
+- `runtime_governance_ratio = governance_meta_lines_in_transcript / total_assistant_lines_in_transcript`
+
+Capture source:
+- raw run transcript/log only.
+
+### Automation Pipeline Contract
+
+Compute ratios in separate jobs to avoid metric coupling artifacts:
+1. `job_artifact_ratio`
+   - input: target-scoped git diff
+   - output: `artifact_governance_ratio`, `governance_meta_lines_in_diff`, `total_added_lines_in_diff`
+2. `job_runtime_ratio`
+   - input: raw transcript
+   - output: `runtime_governance_ratio`, `governance_meta_lines_in_transcript`, `total_assistant_lines_in_transcript`
+
+Both outputs are attached to the same run record.
 
 ## Reviewer Rubric v0.1
 
