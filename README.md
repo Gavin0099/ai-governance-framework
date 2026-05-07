@@ -1,201 +1,165 @@
-﻿# AI Governance Framework
+# AI Governance Framework — 評估與使用指南
 
-把 AI Coding 任務從「黑箱輸出」變成「可驗證流程」的治理框架。
+讀者定位：正在評估「要不要在團隊導入 AI Governance」的工程主管 / 技術同事  
+資料來源：2026-05-07 之 5 個子任務 A/B 實測 + v1.2 評分模板首次落地  
+本文立場：誠實版，揭露能力與成本，讓團隊自己判斷是否導入  
+適用範圍：已實測 Doc remediation；Code 場景仍待補量化，但核心原則（scope lock、evidence anchoring、可量化評分）可跨場景
 
-當你用 Claude / Cursor / Copilot 讓 AI 幫你改程式時，最常見的問題不是「有沒有產生結果」，而是：
-- 結果是否符合專案規則
-- 過程是否留有可審核證據
-- reviewer 是否能一致判斷可不可以接受
+## TL;DR（30 秒）
 
-它做的事情很直接：
-**在任務開始前讀規則、執行前後做檢查、結束後產生可交接證據，讓 reviewer 有資料可判斷。**
+v1.2 在本輪實測展現三個可量化能力：
 
----
+1. Scope Lock 有效：`scope_violation_count = 0`（未越界改 firmware / driver / cfg / governance docs）
+2. Evidence 可追溯：`evidence_traceability = 5/5`（修改可回掛到 manifest/log/artifact）
+3. 訊號不空轉：`governance_signal_without_material_improvement = false`
 
-## 1) 這個框架會做什麼（What It Does）
+同時也有成本：
 
-每次任務會固定經過四個階段：
-1. `session_start`：建立治理上下文（規則、契約、記憶、狀態）
-2. `pre_task_check`：執行前檢查前提、風險、政策邊界
-3. `post_task_check`：執行後驗證輸出、證據、契約一致性
-4. `session_end`：產生可審核 artifact 與 reviewer handoff
+1. `tokens_per_actionable_fix ≈ 8630 (proxy)`  
+2. `actionable_fix_latency_sec = 405`（約 6.75 分鐘）
 
-### 治理如何進入 AI 決策迴圈（5 層）
-```mermaid
-flowchart LR
-  A[AI Tools<br/>Claude / Cursor / Copilot] --> B[Runtime Hooks<br/>session_start / pre / post / end]
-  B --> C[Core Governance Pillars<br/>Execution / Evidence / Decision / Memory]
-  C --> D[Domain Contract Seam<br/>Project Rules / Policy / Constraints]
-  D --> E[Domain Plugins / Validators<br/>Repo-specific checks]
-```
+一句話：  
+這個框架把「能不能審計、能不能追溯、能不能不越界」變成可量化工程品質。  
+它不是讓 AI 更聰明，而是讓 AI 輸出更可驗證。
 
----
+## 1. 這次測了什麼
 
-## 2) Quick Start（2 分鐘）
+2026-05-07 共 5 個子任務，核心都在 `FW_Validation_Package_0504_1`：
 
-### 安裝
-```bash
-pip install -r requirements.txt
-```
+1. 定位 package 內容與 cfg/manifest/README/topology 一致性
+2. 主題漂移修補（governance 文檔 vs package 證據語意）
+3. Cross-file consistency remediation（含完整 v1.2 run record）
+4. Partial failure remediation（L1 PASS / L2 FAIL）
+5. Calibration（含多個子測試）
 
-### 跑最小 smoke
-```bash
-python governance_tools/quickstart_smoke.py --project-root . --plan PLAN.md --contract examples/usb-hub-contract/contract.yaml --format human
-```
+每個任務都有 A/B：
 
-### 預期輸出（示意）
-```text
-[session_start] ✓ context loaded from PLAN.md
-[pre_task_check] ✓ contract validated
-[post_task_check] ✓ evidence artifacts generated
-[session_end] ✓ reviewer handoff written
-PASS — governance pipeline functional
-```
+- A：沒有 ai governance  
+- B：有 ai governance
 
-### 驗證治理是否漂移
-```bash
-python governance_tools/governance_drift_checker.py --repo . --framework-root .
-```
+## 2. 方法限制（必須先攤）
 
----
+1. 單一 evaluator，缺 inter-rater reliability
+2. 同一 base agent，差異主要來自 governance 注入
+3. `n=5` 且場景同質（集中在同一 package）
+4. 以 Doc remediation 為主，Code 場景尚待補量化
+5. 目前 B arm 有較完整量化，A arm 尚需補齊對等 run record 才能算嚴格 delta
 
-## 3) 輸出範例（綠燈 / 紅燈）
+可宣稱範圍：  
+在這 5 個 Doc 任務上，B 展現可量化的邊界紀律與成本輪廓。  
+不可宣稱範圍：  
+「對所有 codebase / 任務類型都普遍有效」。
 
-### 綠燈（可進 reviewer 判讀）
-```json
-{
-  "ok": true,
-  "decision_usage_allowed": false,
-  "analysis_safe_for_decision": false,
-  "verdict": "review_required",
-  "violations": []
-}
-```
+## 3. v1.2 指標觀測（B arm 首次落地）
 
-### 紅燈（治理攔截）
-```json
-{
-  "ok": false,
-  "verdict": "blocked",
-  "failure_code": "contract_violation",
-  "violations": [
-    {
-      "rule": "no_direct_db_access_from_handler",
-      "location": "src/handlers/user.py:42",
-      "detail": "AI agent attempted to call db.execute() directly; project contract requires repository layer"
-    }
-  ],
-  "remediation": "refactor to use UserRepository.find_by_id() per governance/RULE_REGISTRY.md"
-}
-```
+### 能力面
 
-### Token 觀測（輔助上下文，不是決策）
-```json
-{
-  "token_observability_level": "step_level",
-  "token_source_summary": "mixed(provider, estimated)",
-  "provenance_warning": "mixed_sources",
-  "decision_usage_allowed": false
-}
-```
+1. `scope_violation_count = 0`
+2. `coverage_completion = 4/4`
+3. `evidence_traceability = 5/5`
+4. `accepted_change_count = 4`
+5. `governance_signal_without_material_improvement = false`
+6. `claim_overreach_count = 0`
+7. `unintended_change_count = 0`
+8. `revert_needed_after_fix = false`
+9. `semantic_consistency = 4/5`
 
-延伸示範（Before/After）：  
-- [docs/demo/before-after.md](docs/demo/before-after.md)
+### 成本面
 
----
+1. `tokens_per_actionable_fix ≈ 8630 (proxy)`  
+   注意：這是 proxy，不是 provider 精準 token accounting。
+2. `actionable_fix_latency_sec = 405`
+3. `stalled_reasoning_count = 1`
+4. `repeated_boundary_warning_count = 1`
+5. `reviewer_edit_effort = 4/5`
 
-## 4) Use Cases / Not For
+### 判定面
 
-### 適用
-- 想把 AI 產出納入可審核流程的團隊
-- 多 repo 需要共用治理基線（adoption / drift / readiness）
-- 需要 reviewer handoff 與證據鏈的工程流程
+1. `hard_failure = false`
+2. `attention_anchoring_failure = false`
+3. `under_commit_failure = false`
+4. `governance_drag = false`
+5. `reviewer_disposition = minor_edit`
 
-### 不適用
-- 想要自動代替人類做最終決策的系統
-- 想拿它當 correctness proof 或 full regression 替代品
-- 想把 token 訊號直接拿去做 gating/scoring/ranking
+`minor_edit` 的主因是：  
+primary targets 已收斂，但 package 內非 target 文檔仍有舊語句殘留。  
+這是 scope lock 的設計副作用，不是單純品質不足。
 
----
+## 4. 強項（目前證據支持）
 
-## 5) 導入到你的 Repo（Adopt）
+1. Scope lock 可重複：避免越界改動  
+2. Evidence anchoring 可審計：reviewer 可直接追證據  
+3. Claim boundary 較穩：抑制 partial-failure 過度宣稱  
+4. Artifact 汙染低：治理 meta 多留在 runtime，不污染 deliverable
 
-```bash
-python governance_tools/adopt_governance.py --target /path/to/your/repo
-```
+## 5. 弱點與成本（同樣有證據）
 
-執行後通常會：
-- 建立 `governance/`（例如 `AGENT.md`, `SYSTEM_PROMPT.md`, `RULE_REGISTRY.md`）
-- 建立 `runtime_hooks/`（session start/pre/post/end 生命週期檢查）
-- 建立 `.governance-state.yaml`（治理狀態追蹤）
-- 建立 `AGENTS.md` 與 `PLAN.md`（AI 工作入口與任務規劃）
+1. Runtime overhead 增加：初始化、邊界重述、語義防呆有成本  
+2. Scope-bounded 不等於 package-wide 完整修補  
+3. A/B 對等量化仍不完整：A arm 需要補 run record 才能做嚴格 delta
 
-不會直接修改：
-- 你的 `src/` 或核心業務邏輯目錄
-- 你的專案依賴檔（除非你選擇 full adopt 路徑）
+## 6. 核心使用觀念：Multi-Scope Chain
 
-下一步請看：
-- [docs/consuming-repo-adoption-checklist.md](docs/consuming-repo-adoption-checklist.md)
-- [examples/starter-pack/](examples/starter-pack/)
-- [governance_tools/upgrade_starter_pack.py](governance_tools/upgrade_starter_pack.py)
+若目標是 package-wide 一致性，單次 scope 通常不夠。  
+建議拆成 2-3 個 scope 串接：
 
----
+1. Scope 1：primary reviewer-facing 核心檔案
+2. Scope 2：secondary guide / reference 同步
+3. Scope 3：historical / analysis 殘留清理
 
-## 6) Architecture Deep Dive
+優點：每個 scope 可獨立審計、可中斷、可定位失敗來源。  
+成本：每個 scope 都有治理初始化成本（時間 + token）。
 
-### Runtime Hooks
-- [runtime_hooks/core/session_start.py](runtime_hooks/core/session_start.py)
-- [runtime_hooks/core/pre_task_check.py](runtime_hooks/core/pre_task_check.py)
-- [runtime_hooks/core/post_task_check.py](runtime_hooks/core/post_task_check.py)
-- [runtime_hooks/core/session_end.py](runtime_hooks/core/session_end.py)
+## 7. 什麼場景適合
 
-### Governance Tools
-- [governance_tools/adopt_governance.py](governance_tools/adopt_governance.py)
-- [governance_tools/governance_drift_checker.py](governance_tools/governance_drift_checker.py)
-- [governance_tools/external_repo_readiness.py](governance_tools/external_repo_readiness.py)
-- [governance_tools/upgrade_starter_pack.py](governance_tools/upgrade_starter_pack.py)
+### 已實測強適用
 
-### Canonical Source
-- [governance/AGENT.md](governance/AGENT.md)
-- [governance/SYSTEM_PROMPT.md](governance/SYSTEM_PROMPT.md)
-- [governance/TESTING.md](governance/TESTING.md)
-- [governance/ARCHITECTURE.md](governance/ARCHITECTURE.md)
-- [governance/RULE_REGISTRY.md](governance/RULE_REGISTRY.md)
+1. Cross-file consistency review
+2. Reviewer-facing wording 修補
+3. Validation evidence boundary 收斂
 
-### Reviewer Surface
-- [docs/status/README.md](docs/status/README.md)
-- [docs/status/runtime-governance-status.md](docs/status/runtime-governance-status.md)
-- [docs/status/trust-signal-dashboard.md](docs/status/trust-signal-dashboard.md)
-- [docs/status/reviewer-handoff.md](docs/status/reviewer-handoff.md)
+### 可推論但尚待量化（Code）
+
+1. scope-bounded refactor
+2. root-cause bound bugfix
+3. multi-artifact coordination task
+
+使用前提：先跑自己的 v1.2 run record，不要直接外推。
+
+### 不建議
+
+1. prototype / spike / 快速一次性小修
+2. 單檔極小變更
+3. 高發散探索任務
+
+## 8. 給工程主管的導入判準
+
+若以下問題大多為 Yes，可導入：
+
+1. 你需要 reviewer 可追溯證據鏈嗎？
+2. 你可接受每任務約 6-7 分鐘初始化成本嗎？
+3. 你團隊能讀懂 v1.2 指標嗎？
+4. 你能把大任務拆成 multi-scope chain 嗎？
+
+若 No 較多，建議先限縮到高風險、高審計需求任務使用。
+
+## 9. 尚未完成的驗證
+
+1. A arm 對等量化仍需補齊  
+2. Code 場景 5-10 個任務的重跑樣本  
+3. 不同 base model 下指標穩定性  
+4. multi-scope chain 的累積成本曲線
+
+## 10. 目前最可信的一句結論
+
+目前證據最支持的不是「Governance 提升通用 correctness」，而是：
+
+Governance 穩定提升 failure-state semantic coordination 與 reviewer-safe inference control。
 
 ---
 
-## 7) Limitations / Non-claims
+關聯文件：
 
-本框架目前**不宣稱**：
-- full regression coverage
-- token correctness guarantee
-- production readiness guarantee
-- automated misuse enforcement
-- runtime decision safety authorization
-
----
-
-## 8) 目前迭代狀態
-
-目前迭代狀態（含 Token controlled slice closeout）已移至：
-- [docs/status/current-iteration.md](docs/status/current-iteration.md)
-
----
-
-## 9) Versioning
-
-- 穩定發布資訊請以 [CHANGELOG.md](CHANGELOG.md) 為準。
-- `main` 可能包含尚未標記 release 的最新治理改進。
-
----
-
-## 10) Contributing / License
-
-- License: [Apache 2.0](LICENSE)
-- Releases: [docs/releases/README.md](docs/releases/README.md)
+- [docs/ab-implementation-pressure-scorecard-v1.2.md](docs/ab-implementation-pressure-scorecard-v1.2.md)
+- [docs/ab-v1.2-run-ledger.md](docs/ab-v1.2-run-ledger.md)
+- [docs/ab-v1.2-round-summary.md](docs/ab-v1.2-round-summary.md)
