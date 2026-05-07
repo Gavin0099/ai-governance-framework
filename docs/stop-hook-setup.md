@@ -3,6 +3,9 @@
 這份文件說明如何把 Claude Code 的 stop / session 結束事件接到 `session_end_hook`。
 目的不是把 closeout 變成 agent 自述，而是讓 session closeout 經過 runtime 驗證，留下可審計的 artifact。
 
+In GitHub Copilot Tier B, memory closeout is not triggered automatically.
+Use `scripts/run_closeout.ps1` after task completion to produce canonical closeout and memory update evidence.
+
 ---
 
 ## 1. 在使用者層安裝 hook
