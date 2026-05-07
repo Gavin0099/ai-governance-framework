@@ -1323,6 +1323,7 @@ def _build_canonical_usage_audit(
 
 def run_session_end_hook(project_root: Path) -> dict[str, Any]:
     closeout_path = project_root / CLOSEOUT_FILE
+    closeout_trigger_mode = "manual"
     clf = classify_closeout(closeout_path, project_root)
 
     closeout_status = clf["closeout_status"]
@@ -1508,11 +1509,34 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
     # operators (especially Tier B) can interpret the result at a glance.
     gate_verdict = _compute_gate_verdict(base_ok, gate.blocked, gate_warnings, gate_errors)
 
+    memory_closeout = result.get("memory_closeout") or {}
+    memory_closeout_decision = str(memory_closeout.get("decision", "")).strip().lower()
+    memory_update_attempted = closeout_status != STATUS_MISSING
+    memory_update_result = "updated" if result["promotion"] is not None else "skipped"
+    if memory_update_result == "updated":
+        memory_update_skipped_reason = None
+    elif not memory_update_attempted:
+        memory_update_skipped_reason = "missing_session_closeout_artifact"
+    elif memory_closeout_decision in {"no_candidate", "skipped"}:
+        memory_update_skipped_reason = "memory_closeout_no_candidate"
+    elif memory_closeout_decision in {"blocked"}:
+        memory_update_skipped_reason = "memory_closeout_blocked"
+    elif memory_closeout_decision:
+        memory_update_skipped_reason = f"memory_closeout_{memory_closeout_decision}"
+    elif result["promotion"] is None:
+        memory_update_skipped_reason = "promotion_not_performed"
+    else:
+        memory_update_skipped_reason = None
+
     return {
         "ok": base_ok,
         "session_id": session_id,
+        "closeout_trigger_mode": closeout_trigger_mode,
         "closeout_status": closeout_status,
         "memory_tier": memory_tier,
+        "memory_update_attempted": memory_update_attempted,
+        "memory_update_result": memory_update_result,
+        "memory_update_skipped_reason": memory_update_skipped_reason,
         "hook_coverage_tier": closeout_eval["hook_coverage_tier"],
         "closeout_evaluation": closeout_eval,
         "repo_readiness_level": readiness["level"],
@@ -1664,14 +1688,19 @@ def format_human_result(result: dict[str, Any]) -> str:
 
     lines += [
         f"session_id={result['session_id']}",
+        f"closeout_trigger_mode={result.get('closeout_trigger_mode', 'manual')}",
         f"closeout_status={result['closeout_status']}",
         f"memory_tier={result['memory_tier']}",
+        f"memory_update_attempted={result.get('memory_update_attempted')}",
+        f"memory_update_result={result.get('memory_update_result')}",
         f"repo_readiness_level={result['repo_readiness_level']}"
         + (f" (limited by: {result['repo_readiness_limiting_factor']})" if result['repo_readiness_limiting_factor'] else "")
         + f"  activation={result.get('repo_closeout_activation_state', 'unknown')}"
         + (f"/{result['repo_activation_recency']}" if result.get('repo_activation_recency') else "")
         + (f" (gap: {result['repo_activation_gap']})" if result.get('repo_activation_gap') else ""),
     ]
+    if result.get("memory_update_skipped_reason"):
+        lines.append(f"memory_update_skipped_reason={result['memory_update_skipped_reason']}")
 
     # Tier-aware closeout evaluation — displayed early so Tier B/C repos see
     # their advisory status before the per-layer detail.
