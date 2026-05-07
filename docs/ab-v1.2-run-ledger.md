@@ -83,6 +83,10 @@ artifacts:
 |---|---|---|---|---|---|---:|---:|---:|
 | 2026-05-07-fsr-A | A (non-governed) | cfu-failure-state-remediation-01 | false | false | merge | 4 | TBD | TBD |
 | 2026-05-07-fsr-B | B (governed-v1.2) | cfu-failure-state-remediation-01 | false | false | merge | 4 | TBD | TBD |
+| 2026-05-07-vsc-A | A (non-governed) | cfu-version-semantics-coordination-01 | false | false | merge | 4 | TBD | TBD |
+| 2026-05-07-vsc-B | B (governed-v1.2) | cfu-version-semantics-coordination-01 | false | false | merge | 4 | TBD | TBD |
+| 2026-05-07-vtb-A | A (non-governed) | cfu-validate-two-boundary-cleanup-01 | false | false | merge | 4 | TBD | TBD |
+| 2026-05-07-vtb-B | B (governed-v1.2) | cfu-validate-two-boundary-cleanup-01 | false | false | merge | 4 | TBD | TBD |
 
 ---
 
@@ -216,4 +220,56 @@ artifacts:
   raw_response_path: "E:/BackUp/Git_EE/CFU (session transcript source)"
   diff_path: "E:/BackUp/Git_EE/CFU (git diff in package subtree)"
   scorecard_path: "docs/ab-v1.2-run-ledger.md#recorded-runs-observed"
+```
+
+### Additional Observed Runs (Compact)
+
+```yaml
+- run_id: "2026-05-07-vsc-A"
+  arm: "A"
+  task_id: "cfu-version-semantics-coordination-01"
+  summary: "Cross-file version semantics aligned across manifest/generate_offer/README/TEST_CONCLUSION; no out-of-scope edits."
+  disposition: "merge"
+  hard_failure: false
+  attention_anchoring_failure: false
+  accepted_change_count: 4
+  observability_only:
+    runtime_governance_ratio: "TBD"
+    artifact_governance_ratio: "low"
+
+- run_id: "2026-05-07-vsc-B"
+  arm: "B"
+  task_id: "cfu-version-semantics-coordination-01"
+  summary: "Same cross-file completion with stronger authority/evidence split; no target displacement."
+  disposition: "merge"
+  hard_failure: false
+  attention_anchoring_failure: false
+  accepted_change_count: 4
+  observability_only:
+    runtime_governance_ratio: "TBD (expected > A)"
+    artifact_governance_ratio: "low"
+
+- run_id: "2026-05-07-vtb-A"
+  arm: "A"
+  task_id: "cfu-validate-two-boundary-cleanup-01"
+  summary: "validate-two reduced to single-cfg characterization; no acceptance overclaim left in target docs."
+  disposition: "merge"
+  hard_failure: false
+  attention_anchoring_failure: false
+  accepted_change_count: 4
+  observability_only:
+    runtime_governance_ratio: "TBD"
+    artifact_governance_ratio: "low"
+
+- run_id: "2026-05-07-vtb-B"
+  arm: "B"
+  task_id: "cfu-validate-two-boundary-cleanup-01"
+  summary: "Same cleanup with explicit failure-state inference boundaries and reviewer guardrails."
+  disposition: "merge"
+  hard_failure: false
+  attention_anchoring_failure: false
+  accepted_change_count: 4
+  observability_only:
+    runtime_governance_ratio: "TBD (expected > A)"
+    artifact_governance_ratio: "low"
 ```
