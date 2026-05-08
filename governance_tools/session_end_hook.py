@@ -53,6 +53,7 @@ from governance_tools.gate_policy import (
     POLICY_SOURCE_BUILTIN_DEFAULT,
 )
 from governance_tools.taxonomy_expansion_log import append_pending_entry
+from governance_tools.memory_significance import write_candidate_and_advisory
 
 
 CLOSEOUT_FILE = "artifacts/session-closeout.txt"
@@ -1528,6 +1529,23 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
     else:
         memory_update_skipped_reason = None
 
+    memory_significance_artifacts: dict[str, str] | None = None
+    try:
+        # v0.2 rollout: candidate + significance classifier + advisory report.
+        # Advisory only; never changes gate outcome.
+        commit_hash = _resolve_head_commit(project_root)
+        memory_significance_artifacts = write_candidate_and_advisory(
+            repo_root=project_root,
+            session_id=session_id,
+            commit_hash=commit_hash,
+            task_intent=fields.get("TASK_INTENT", ""),
+            checks=checks,
+        )
+    except Exception as exc:  # noqa: BLE001
+        gate_warnings.append(
+            f"[memory_significance] advisory generation failed: {exc}"
+        )
+
     return {
         "ok": base_ok,
         "session_id": session_id,
@@ -1537,6 +1555,7 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         "memory_update_attempted": memory_update_attempted,
         "memory_update_result": memory_update_result,
         "memory_update_skipped_reason": memory_update_skipped_reason,
+        "memory_significance": memory_significance_artifacts,
         "hook_coverage_tier": closeout_eval["hook_coverage_tier"],
         "closeout_evaluation": closeout_eval,
         "repo_readiness_level": readiness["level"],
