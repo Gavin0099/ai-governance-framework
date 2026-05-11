@@ -1,6 +1,6 @@
 # PLAN.md - AI Governance Framework
 
-> **最後更新**: 2026-04-24
+> **最後更新**: 2026-05-11
 > **?敺??*: 2026-04-10
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
@@ -96,10 +96,18 @@ Required posture:
 - [x] 穩定 canonical closeout、closeout audit 與 session continuity 主線
 - [x] 補齊 consuming repo adoption 缺口，包括 governance markdown pack、rules pack 與 framework source audit
 - [x] 補上 memory closeout visibility，讓 no-write reason 可觀測
-- [x] 修正高可見度 docs / governance 文件的亂碼與英文主敘事殘留
+- [x] 修正高可見度 docs / governance 文件的亂碼與英文主敘事殘導
 - [x] 重建 root PLAN/state surface 邊界（PLAN = source of truth；`.governance-state.yaml` = derived bootstrap snapshot），讓 state_generator 與 freshness surface 回到可維護狀態
 - [x] 建立 starter-pack 自動升級路徑，讓 starter-pack 不只停在手動複製
-- [>] 建立 `AGENTS.md` candidate rule promotion 與 agent compatibility 主線，避免把 scaffold / generic fill 誤讀成 repo-specific governance completion
+- [x] 建立 `AGENTS.md` candidate rule promotion 與 agent compatibility 主線
+- [x] 建立 cross-agent comparative analysis baseline（Claude / Copilot / ChatGPT）
+- [x] 加入 governance expansion heuristic（Section 11, governance/AGENT.md）— advisory only，backlog admission gate
+- [x] 記錄 governance self-audit backlog（P0/P1/P2 + R1–R5 research hypotheses）
+- [x] 建立 P1 observation phase test plan（Gate C / FGCR，observation-only）
+- [x] 建立 Gate C measurement plan v0.1（reviewer minutes、reopen/revert、stability）
+- [x] 正式化 Enumd integration execution model decision（static-governance-and-artifact-ingest）
+- [>] P1 observation windows 執行中（preconditions 需驗證；目標：每 lane 2 valid windows）
+- [>] Gate C Phase 1 資料收集（manual timestamp capture，this window）
 
 ## AGENTS Candidate Rule Promotion Framework
 
