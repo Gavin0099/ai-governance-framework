@@ -23,6 +23,8 @@ from governance_tools.gate_c_decision_set_builder import (
     _lane,
     build_decision_set,
 )
+from governance_tools.fgcr_report import _read_ndjson as _read_fgcr_events
+from governance_tools.fgcr_report import build_fgcr_report
 
 
 @dataclass
@@ -32,6 +34,7 @@ class DualReportResult:
     decision_report_path: str
     decision_manifest_path: str
     decision_review_log_path: str
+    fgcr_summary_path: str
 
 
 def _count_by_lane(rows: list[dict[str, Any]], window_id: str) -> dict[str, int]:
@@ -58,7 +61,26 @@ def _canonical_markdown(
     decision_rework_count: dict[str, int],
     decision_stability_count: dict[str, int],
     filtered_reason_counts: dict[str, int],
+    fgcr_summary: dict[str, Any],
+    fgcr_events_path: Path,
+    fgcr_summary_path: Path,
 ) -> str:
+    fgcr_window = fgcr_summary["by_window"]
+    fgcr_lines = [
+        "## FGCR v0.1 Summary",
+        "",
+        f"- fgcr_events_path: {fgcr_events_path}",
+        f"- fgcr_summary_path: {fgcr_summary_path}",
+        "- detector_role: false-confidence detector (not quality uplift proof)",
+        f"- status: {fgcr_window['status']}",
+        f"- confidence_marked_events: {fgcr_window['confidence_marked_events']}",
+        f"- false_confidence_events: {fgcr_window['false_confidence_events']}",
+        f"- by_failure_type: {fgcr_window['by_failure_type']}",
+    ]
+    if fgcr_window["status"] != "insufficient_sample":
+        fgcr_lines.append(f"- fgcr: {fgcr_window['fgcr']}")
+    fgcr_block = "\n".join(fgcr_lines)
+
     return (
         f"# Gate C Canonical Report {window_id}\n\n"
         f"- review_log_path: {review_log_path}\n"
@@ -74,7 +96,8 @@ def _canonical_markdown(
         f"  - rework: {decision_rework_count}\n"
         f"  - stability: {decision_stability_count}\n\n"
         f"## Filtered Reasons\n\n"
-        f"- filtered_reason_counts: {filtered_reason_counts}\n"
+        f"- filtered_reason_counts: {filtered_reason_counts}\n\n"
+        f"{fgcr_block}\n"
     )
 
 
@@ -86,6 +109,7 @@ def generate_dual_report(
     rework_log: Path | None = None,
     stability_log: Path | None = None,
     output_dir: Path | None = None,
+    fgcr_events: Path | None = None,
 ) -> DualReportResult:
     project_root = project_root.resolve()
     review_log_path = (review_log or (project_root / "docs" / "status" / "gate-c-review-log.ndjson")).resolve()
@@ -93,6 +117,7 @@ def generate_dual_report(
     stability_log_path = (stability_log or (project_root / "docs" / "status" / "gate-c-stability-log.ndjson")).resolve()
     output_dir = (output_dir or (project_root / "docs" / "status" / "decision-set")).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    fgcr_events_path = (fgcr_events or (project_root / "docs" / "status" / "fgcr-events.ndjson")).resolve()
 
     # Build decision artifacts first.
     decision = build_decision_set(
@@ -114,6 +139,10 @@ def generate_dual_report(
 
     safe_window = window_id.replace("/", "-")
     canonical_report_path = output_dir / f"{safe_window}-canonical-report.md"
+    fgcr_summary_path = output_dir / f"{safe_window}-fgcr-summary.json"
+    fgcr_events_rows = _read_fgcr_events(fgcr_events_path)
+    fgcr_summary = build_fgcr_report(fgcr_events_rows, window_id)
+    fgcr_summary_path.write_text(json.dumps(fgcr_summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     canonical_report_path.write_text(
         _canonical_markdown(
             window_id=window_id,
@@ -127,6 +156,9 @@ def generate_dual_report(
             decision_rework_count=decision.decision_rework_count,
             decision_stability_count=decision.decision_stability_count,
             filtered_reason_counts=decision.filtered_reason_counts,
+            fgcr_summary=fgcr_summary,
+            fgcr_events_path=fgcr_events_path,
+            fgcr_summary_path=fgcr_summary_path,
         ),
         encoding="utf-8",
     )
@@ -137,6 +169,7 @@ def generate_dual_report(
         decision_report_path=decision.output_report_path,
         decision_manifest_path=decision.output_manifest_path,
         decision_review_log_path=decision.output_review_log_path,
+        fgcr_summary_path=str(fgcr_summary_path),
     )
 
 
@@ -148,6 +181,7 @@ def main() -> int:
     parser.add_argument("--rework-log")
     parser.add_argument("--stability-log")
     parser.add_argument("--output-dir")
+    parser.add_argument("--fgcr-events")
     parser.add_argument("--format", choices=["human", "json"], default="human")
     args = parser.parse_args()
 
@@ -158,6 +192,7 @@ def main() -> int:
         rework_log=Path(args.rework_log) if args.rework_log else None,
         stability_log=Path(args.stability_log) if args.stability_log else None,
         output_dir=Path(args.output_dir) if args.output_dir else None,
+        fgcr_events=Path(args.fgcr_events) if args.fgcr_events else None,
     )
 
     if args.format == "json":
