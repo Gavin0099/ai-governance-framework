@@ -172,3 +172,5 @@ AI-agent runtime sessions).  They must not be aggregated into
 `integrations/enumd/mapping.md`.*  
 *For the canonical sample artifact, see
 `integrations/enumd/schema.sample.json`.*
+*For runtime portability boundary and execution-mode scope, see
+`integrations/enumd/execution-model-decision.md`.*
