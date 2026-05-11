@@ -43,6 +43,10 @@ A study window is valid only when all are true:
 4. Gate A data consistency pass
 5. Gate C decision contract declared
 
+Additional determinism requirement:
+
+- Same canonical evidence + same builder/policy version MUST produce identical decision-set rows and filtered reasons.
+
 ## 5) Required Metrics (v0.1)
 
 ### 5.1 Outcome metrics
@@ -57,6 +61,16 @@ A study window is valid only when all are true:
 - `governance_narration_to_engineering_delta_ratio`
 - `reviewer_traversal_depth`
 - `dead_governance_surface_rate`
+
+### 5.4 FGCR taxonomy (v0.1)
+
+FGCR events must be tagged into one category:
+
+- `hidden_omission` (coverage failure)
+- `invalid_projection` (semantic inflation/corruption)
+- `stale_evidence_dependency` (temporal integrity failure)
+- `contradictory_runtime_state` (consistency failure)
+- `unauthorized_inference` (authority failure)
 
 ### 5.3 Metric definitions
 
@@ -145,6 +159,16 @@ Per window produce:
 2. `*-decision-set-report.md` (decision-valid rows)
 3. `*-confound-note.md`
 4. `*-role-classification.md`
+5. `*-decision-derivation-manifest.json`
+
+Manifest minimum fields:
+
+- `window_id`
+- `canonical_count`
+- `decision_count`
+- `filtered_reason_counts`
+- `decision_builder_version`
+- `projection_policy_version`
 
 ## 11) Review Cadence
 

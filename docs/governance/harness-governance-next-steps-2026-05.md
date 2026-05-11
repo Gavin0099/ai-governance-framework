@@ -114,6 +114,20 @@
 - 檢查 coverage 是否有 omission 且未揭露
 - 全部先 advisory，不直接 block
 
+## 4.1 Decision Derivation Manifest（新增）
+
+每次 decision-set 計算必須輸出可重跑 manifest，至少包含：
+
+- `window_id`
+- `decision_builder_version`
+- `projection_policy_version`
+- `canonical_count`
+- `decision_count`
+- `filtered_reason_counts`
+- `source_artifact_hashes`（或等價可追溯欄位）
+
+目的：確保同一份 canonical evidence 在不同 reviewer/不同時間可得到相同 decision-set。
+
 ## 5. Token 成本策略（避免治理疲勞）
 
 原則：先減敘事重複，再減治理能力。
@@ -136,6 +150,16 @@
 3. 成本可接受（token/time 不失控）
 
 若只滿足第 1 點，不可宣稱「工程品質已被證明提升」。
+
+## 6.1 治理語義新增硬規則（新增）
+
+所有新增 governance semantics 必須綁定下列三者之一，否則不准新增：
+
+1. observable failure（可指向具體失敗樣本）
+2. runtime enforcement（有可執行的 runtime 機制）
+3. explicit non-enforcement disclosure（明確標註僅 advisory）
+
+此規則用於抑制 `governance semantic inflation`。
 
 ## 7. 下一步（可立即執行）
 
