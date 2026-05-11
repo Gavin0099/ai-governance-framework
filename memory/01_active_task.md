@@ -21,3 +21,6 @@
 - **E2: Spec Ambiguity Validator**: Research heuristic/semantic signals for detecting ambiguous terms in PLAN.md and requirements.
 - **E3: Production → Spec Loop**: Define the learning contract for promoting production incidents into executable prevention (property tests/specs).
 - **Maintenance**: Keep `governance-proof-report.json` updated after any governance tool change.
+- [x] Promoted memory: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- [x] Promoted memory: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- [x] Promoted memory: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
