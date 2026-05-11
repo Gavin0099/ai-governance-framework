@@ -1,0 +1,53 @@
+{
+  "window_id": "gate-c-window-2026-05-11",
+  "decision_contract_version": "gate-c-decision-set-v0.1",
+  "decision_builder_version": "gate-c-decision-set-builder-v0.1",
+  "projection_policy_version": "gate-c-projection-policy-v0.1",
+  "generated_at_utc": "2026-05-11T09:16:56.523181+00:00",
+  "project_root": "E:\\BackUp\\Git_EE\\ai-governance-framework",
+  "canonical_count": {
+    "review": {
+      "copilot": 0,
+      "claude": 0,
+      "chatgpt": 0
+    },
+    "rework": {
+      "copilot": 0,
+      "claude": 0,
+      "chatgpt": 0
+    },
+    "stability": {
+      "copilot": 0,
+      "claude": 0,
+      "chatgpt": 0
+    }
+  },
+  "decision_count": {
+    "review": {
+      "copilot": 0,
+      "claude": 0,
+      "chatgpt": 0
+    },
+    "rework": {
+      "copilot": 0,
+      "claude": 0,
+      "chatgpt": 0
+    },
+    "stability": {
+      "copilot": 0,
+      "claude": 0,
+      "chatgpt": 0
+    }
+  },
+  "filtered_reason_counts": {},
+  "inputs": {
+    "review_log": "E:\\BackUp\\Git_EE\\ai-governance-framework\\docs\\status\\gate-c-review-log.ndjson",
+    "rework_log": "E:\\BackUp\\Git_EE\\ai-governance-framework\\docs\\status\\gate-c-rework-log.ndjson",
+    "stability_log": "E:\\BackUp\\Git_EE\\ai-governance-framework\\docs\\status\\gate-c-stability-log.ndjson"
+  },
+  "outputs": {
+    "decision_review_log": "E:\\BackUp\\Git_EE\\ai-governance-framework\\docs\\status\\decision-set\\gate-c-window-2026-05-11-review-log.valid.ndjson",
+    "decision_report": "E:\\BackUp\\Git_EE\\ai-governance-framework\\docs\\status\\decision-set\\gate-c-window-2026-05-11-decision-set-report.md",
+    "derivation_manifest": "E:\\BackUp\\Git_EE\\ai-governance-framework\\docs\\status\\decision-set\\gate-c-window-2026-05-11-decision-derivation-manifest.json"
+  }
+}
