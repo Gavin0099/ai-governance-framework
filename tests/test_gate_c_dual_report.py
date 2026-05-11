@@ -22,6 +22,7 @@ def test_dual_report_preserves_canonical_and_exposes_required_counts(tmp_path: P
     review_log = status / "gate-c-review-log.ndjson"
     rework_log = status / "gate-c-rework-log.ndjson"
     stability_log = status / "gate-c-stability-log.ndjson"
+    fgcr_events = status / "fgcr-events.ndjson"
 
     review_rows = [
         {
@@ -65,9 +66,38 @@ def test_dual_report_preserves_canonical_and_exposes_required_counts(tmp_path: P
     _write_ndjson(review_log, review_rows)
     _write_ndjson(rework_log, rework_rows)
     _write_ndjson(stability_log, stability_rows)
+    _write_ndjson(
+        fgcr_events,
+        [
+            {
+                "event_id": "fg-1",
+                "window_id": "gate-c-window-2026-05-11",
+                "lane": "copilot",
+                "confidence_mark": "PASS",
+                "later_failure_type": "hidden_omission",
+                "discovery_scope": "same_window",
+                "artifact_anchor": "a1",
+                "evidence_layer": "hypothesis",
+            },
+            {
+                "event_id": "fg-2",
+                "window_id": "gate-c-window-2026-05-11",
+                "lane": "copilot",
+                "confidence_mark": "READY",
+                "later_failure_type": "invalid_projection",
+                "discovery_scope": "same_window",
+                "artifact_anchor": "a2",
+                "evidence_layer": "run_observed",
+            },
+        ],
+    )
 
     before_hash = _sha256(review_log)
-    result = generate_dual_report(project_root=project_root, window_id="gate-c-window-2026-05-11")
+    result = generate_dual_report(
+        project_root=project_root,
+        window_id="gate-c-window-2026-05-11",
+        fgcr_events=fgcr_events,
+    )
     after_hash = _sha256(review_log)
 
     # canonical surface unchanged
@@ -90,3 +120,13 @@ def test_dual_report_preserves_canonical_and_exposes_required_counts(tmp_path: P
     assert "canonical_count" in canonical_report_text
     assert "decision_count" in canonical_report_text
     assert "filtered_reason_counts" in canonical_report_text
+    assert "FGCR v0.1 Summary" in canonical_report_text
+    assert "false-confidence detector (not quality uplift proof)" in canonical_report_text
+    assert "confidence_marked_events: 2" in canonical_report_text
+    assert "false_confidence_events: 1" in canonical_report_text
+    # insufficient sample: no percentage surfaced
+    assert "fgcr:" not in canonical_report_text
+
+    fgcr_summary = json.loads(Path(result.fgcr_summary_path).read_text(encoding="utf-8"))
+    assert fgcr_summary["by_window"]["status"] == "insufficient_sample"
+    assert fgcr_summary["by_window"]["false_confidence_events"] == 1
