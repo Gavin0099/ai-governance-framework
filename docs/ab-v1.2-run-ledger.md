@@ -44,8 +44,8 @@ metrics:
   claim_overreach_count: 0
   stalled_reasoning_count: 0
   repeated_boundary_warning_count: 0
-  actionable_fix_latency_sec: 0
-  tokens_per_reviewer_accepted_fix: 0
+  actionable_fix_latency_sec: "0"
+  tokens_per_reviewer_accepted_fix: "0"
   modification_density: 0
   governance_signal_without_material_improvement: false
 
@@ -81,12 +81,12 @@ artifacts:
 
 | run_id | arm | task_id | hard_failure | anchoring_fail | disposition | accepted_change_count | tokens_per_accepted_fix | runtime_gov_ratio |
 |---|---|---|---|---|---|---:|---:|---:|
-| 2026-05-07-fsr-A | A (non-governed) | cfu-failure-state-remediation-01 | false | false | merge | 4 | TBD | TBD |
-| 2026-05-07-fsr-B | B (governed-v1.2) | cfu-failure-state-remediation-01 | false | false | merge | 4 | TBD | TBD |
-| 2026-05-07-vsc-A | A (non-governed) | cfu-version-semantics-coordination-01 | false | false | merge | 4 | TBD | TBD |
-| 2026-05-07-vsc-B | B (governed-v1.2) | cfu-version-semantics-coordination-01 | false | false | merge | 4 | TBD | TBD |
-| 2026-05-07-vtb-A | A (non-governed) | cfu-validate-two-boundary-cleanup-01 | false | false | merge | 4 | TBD | TBD |
-| 2026-05-07-vtb-B | B (governed-v1.2) | cfu-validate-two-boundary-cleanup-01 | false | false | merge | 4 | TBD | TBD |
+| 2026-05-07-fsr-A | A (non-governed) | cfu-failure-state-remediation-01 | false | false | merge | 4 | insufficient_data | TBD |
+| 2026-05-07-fsr-B | B (governed-v1.2) | cfu-failure-state-remediation-01 | false | false | merge | 4 | insufficient_data | TBD |
+| 2026-05-07-vsc-A | A (non-governed) | cfu-version-semantics-coordination-01 | false | false | merge | 4 | insufficient_data | TBD |
+| 2026-05-07-vsc-B | B (governed-v1.2) | cfu-version-semantics-coordination-01 | false | false | merge | 4 | insufficient_data | TBD |
+| 2026-05-07-vtb-A | A (non-governed) | cfu-validate-two-boundary-cleanup-01 | false | false | merge | 4 | insufficient_data | TBD |
+| 2026-05-07-vtb-B | B (governed-v1.2) | cfu-validate-two-boundary-cleanup-01 | false | false | merge | 4 | insufficient_data | TBD |
 
 ---
 
@@ -130,8 +130,8 @@ metrics:
   claim_overreach_count: "TBD (observed lower than prior rounds)"
   stalled_reasoning_count: "TBD"
   repeated_boundary_warning_count: "TBD"
-  actionable_fix_latency_sec: "TBD"
-  tokens_per_reviewer_accepted_fix: "TBD"
+  actionable_fix_latency_sec: "insufficient_data"
+  tokens_per_reviewer_accepted_fix: "insufficient_data"
   modification_density: 1.0
   governance_signal_without_material_improvement: false
 
@@ -195,8 +195,8 @@ metrics:
   claim_overreach_count: "TBD (observed very low)"
   stalled_reasoning_count: "TBD"
   repeated_boundary_warning_count: "TBD"
-  actionable_fix_latency_sec: "TBD"
-  tokens_per_reviewer_accepted_fix: "TBD"
+  actionable_fix_latency_sec: "insufficient_data"
+  tokens_per_reviewer_accepted_fix: "insufficient_data"
   modification_density: 1.0
   governance_signal_without_material_improvement: false
 

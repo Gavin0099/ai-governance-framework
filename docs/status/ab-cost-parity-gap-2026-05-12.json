@@ -1,0 +1,144 @@
+{
+  "task_count": 3,
+  "total_missing_items": 8,
+  "tasks": [
+    {
+      "task_id": "cfu-failure-state-remediation-01",
+      "run_count": 2,
+      "quick_log_row_count": 2,
+      "missing_items": 0,
+      "runs": [
+        {
+          "run_id": "2026-05-07-fsr-A",
+          "arm": "A",
+          "accepted_change_count": "4",
+          "actionable_fix_latency_sec": "insufficient_data",
+          "tokens_per_reviewer_accepted_fix": "insufficient_data",
+          "missing": {
+            "accepted_change_count": false,
+            "actionable_fix_latency_sec": false,
+            "tokens_per_reviewer_accepted_fix": false
+          }
+        },
+        {
+          "run_id": "2026-05-07-fsr-B",
+          "arm": "B",
+          "accepted_change_count": "4",
+          "actionable_fix_latency_sec": "insufficient_data",
+          "tokens_per_reviewer_accepted_fix": "insufficient_data",
+          "missing": {
+            "accepted_change_count": false,
+            "actionable_fix_latency_sec": false,
+            "tokens_per_reviewer_accepted_fix": false
+          }
+        }
+      ],
+      "quick_log_rows": [
+        {
+          "run_id": "2026-05-07-fsr-A",
+          "arm": "A (non-governed)",
+          "tokens_per_accepted_fix": "insufficient_data",
+          "tokens_missing": false
+        },
+        {
+          "run_id": "2026-05-07-fsr-B",
+          "arm": "B (governed-v1.2)",
+          "tokens_per_accepted_fix": "insufficient_data",
+          "tokens_missing": false
+        }
+      ]
+    },
+    {
+      "task_id": "cfu-validate-two-boundary-cleanup-01",
+      "run_count": 2,
+      "quick_log_row_count": 2,
+      "missing_items": 4,
+      "runs": [
+        {
+          "run_id": "2026-05-07-vtb-A",
+          "arm": "A",
+          "accepted_change_count": "4",
+          "actionable_fix_latency_sec": null,
+          "tokens_per_reviewer_accepted_fix": null,
+          "missing": {
+            "accepted_change_count": false,
+            "actionable_fix_latency_sec": true,
+            "tokens_per_reviewer_accepted_fix": true
+          }
+        },
+        {
+          "run_id": "2026-05-07-vtb-B",
+          "arm": "B",
+          "accepted_change_count": "4",
+          "actionable_fix_latency_sec": null,
+          "tokens_per_reviewer_accepted_fix": null,
+          "missing": {
+            "accepted_change_count": false,
+            "actionable_fix_latency_sec": true,
+            "tokens_per_reviewer_accepted_fix": true
+          }
+        }
+      ],
+      "quick_log_rows": [
+        {
+          "run_id": "2026-05-07-vtb-A",
+          "arm": "A (non-governed)",
+          "tokens_per_accepted_fix": "insufficient_data",
+          "tokens_missing": false
+        },
+        {
+          "run_id": "2026-05-07-vtb-B",
+          "arm": "B (governed-v1.2)",
+          "tokens_per_accepted_fix": "insufficient_data",
+          "tokens_missing": false
+        }
+      ]
+    },
+    {
+      "task_id": "cfu-version-semantics-coordination-01",
+      "run_count": 2,
+      "quick_log_row_count": 2,
+      "missing_items": 4,
+      "runs": [
+        {
+          "run_id": "2026-05-07-vsc-A",
+          "arm": "A",
+          "accepted_change_count": "4",
+          "actionable_fix_latency_sec": null,
+          "tokens_per_reviewer_accepted_fix": null,
+          "missing": {
+            "accepted_change_count": false,
+            "actionable_fix_latency_sec": true,
+            "tokens_per_reviewer_accepted_fix": true
+          }
+        },
+        {
+          "run_id": "2026-05-07-vsc-B",
+          "arm": "B",
+          "accepted_change_count": "4",
+          "actionable_fix_latency_sec": null,
+          "tokens_per_reviewer_accepted_fix": null,
+          "missing": {
+            "accepted_change_count": false,
+            "actionable_fix_latency_sec": true,
+            "tokens_per_reviewer_accepted_fix": true
+          }
+        }
+      ],
+      "quick_log_rows": [
+        {
+          "run_id": "2026-05-07-vsc-A",
+          "arm": "A (non-governed)",
+          "tokens_per_accepted_fix": "insufficient_data",
+          "tokens_missing": false
+        },
+        {
+          "run_id": "2026-05-07-vsc-B",
+          "arm": "B (governed-v1.2)",
+          "tokens_per_accepted_fix": "insufficient_data",
+          "tokens_missing": false
+        }
+      ]
+    }
+  ]
+}
