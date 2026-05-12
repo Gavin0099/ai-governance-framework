@@ -1,7 +1,7 @@
 {
   "ledger_path": "docs/ab-v1.2-run-ledger.md",
   "backfill_path": "docs/status/ab-cost-backfill-data-2026-05-12.yaml",
-  "run_count": 4,
+  "run_count": 0,
   "replacements": 0,
   "write_applied": false
 }

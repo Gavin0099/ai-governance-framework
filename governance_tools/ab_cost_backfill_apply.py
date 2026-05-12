@@ -14,11 +14,26 @@ def parse_backfill_yaml(path: Path) -> dict[str, dict[str, str]]:
         run_id = match.group(2).strip()
         block = match.group(3)
         latency_match = re.search(r"actionable_fix_latency_sec:\s*(.+)", block)
+        latency_value_match = re.search(r"actionable_fix_latency_sec:\s*.*?\n\s*value:\s*(.+)", block, flags=re.S)
         tokens_match = re.search(r"tokens_per_reviewer_accepted_fix:\s*(.+)", block)
-        if not latency_match or not tokens_match:
+        tokens_value_match = re.search(r"tokens_per_reviewer_accepted_fix:\s*.*?\n\s*value:\s*(.+)", block, flags=re.S)
+        if not (latency_match or latency_value_match) or not (tokens_match or tokens_value_match):
             continue
-        latency = latency_match.group(1).strip().strip('"')
-        tokens = tokens_match.group(1).strip().strip('"')
+        if latency_value_match:
+            latency = latency_value_match.group(1).strip().strip('"')
+        else:
+            latency = latency_match.group(1).strip().strip('"')
+        if tokens_value_match:
+            tokens = tokens_value_match.group(1).strip().strip('"')
+        else:
+            tokens = tokens_match.group(1).strip().strip('"')
+        if latency.lower() == "null":
+            latency = "insufficient_data"
+        if tokens.lower() == "null":
+            tokens = "insufficient_data"
+        # Pending-field mode: only apply when both fields are explicit numeric scalars.
+        if not latency.isdigit() or not tokens.isdigit():
+            continue
         result[run_id] = {
             "actionable_fix_latency_sec": latency,
             "tokens_per_reviewer_accepted_fix": tokens,

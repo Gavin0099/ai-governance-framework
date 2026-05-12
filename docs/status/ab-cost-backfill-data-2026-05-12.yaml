@@ -1,43 +1,87 @@
 - run_id: "2026-05-07-vsc-A"
-  actionable_fix_latency_sec: "insufficient_data"
-  tokens_per_reviewer_accepted_fix: "insufficient_data"
+  actionable_fix_latency_sec:
+    status: "insufficient_data"
+    value: null
+  tokens_per_reviewer_accepted_fix:
+    status: "insufficient_data"
+    value: null
+  source_transcript:
+    path: ""
+    run_start_anchor: ""
+    first_accepted_fix_anchor: ""
+    token_telemetry_anchor: ""
   evidence_anchor:
-    prompt_or_log_path: "E:/BackUp/Git_EE/CFU_non_ai_governance (session transcript source path referenced by ledger)"
-    anchor_excerpt: "No per-run latency/token scalar found for run_id 2026-05-07-vsc-A in repo-local artifacts."
-  captured_by: "agent"
-  capture_method: "reconstructed_with_note"
-  confidence: "low"
-  note: "Requires raw transcript timing + token telemetry extraction from external session logs."
+    prompt_or_log_path: ""
+    anchor_excerpt: ""
+  extraction:
+    method: ""
+    extracted_by: ""
+    extracted_at_utc: ""
+    confidence: ""
+  reviewer_note: ""
 
 - run_id: "2026-05-07-vsc-B"
-  actionable_fix_latency_sec: "insufficient_data"
-  tokens_per_reviewer_accepted_fix: "insufficient_data"
+  actionable_fix_latency_sec:
+    status: "insufficient_data"
+    value: null
+  tokens_per_reviewer_accepted_fix:
+    status: "insufficient_data"
+    value: null
+  source_transcript:
+    path: ""
+    run_start_anchor: ""
+    first_accepted_fix_anchor: ""
+    token_telemetry_anchor: ""
   evidence_anchor:
-    prompt_or_log_path: "E:/BackUp/Git_EE/CFU (session transcript source path referenced by ledger)"
-    anchor_excerpt: "No per-run latency/token scalar found for run_id 2026-05-07-vsc-B in repo-local artifacts."
-  captured_by: "agent"
-  capture_method: "reconstructed_with_note"
-  confidence: "low"
-  note: "Requires raw transcript timing + token telemetry extraction from external session logs."
+    prompt_or_log_path: ""
+    anchor_excerpt: ""
+  extraction:
+    method: ""
+    extracted_by: ""
+    extracted_at_utc: ""
+    confidence: ""
+  reviewer_note: ""
 
 - run_id: "2026-05-07-vtb-A"
-  actionable_fix_latency_sec: "insufficient_data"
-  tokens_per_reviewer_accepted_fix: "insufficient_data"
+  actionable_fix_latency_sec:
+    status: "insufficient_data"
+    value: null
+  tokens_per_reviewer_accepted_fix:
+    status: "insufficient_data"
+    value: null
+  source_transcript:
+    path: ""
+    run_start_anchor: ""
+    first_accepted_fix_anchor: ""
+    token_telemetry_anchor: ""
   evidence_anchor:
-    prompt_or_log_path: "E:/BackUp/Git_EE/CFU_non_ai_governance (session transcript source path referenced by ledger)"
-    anchor_excerpt: "No per-run latency/token scalar found for run_id 2026-05-07-vtb-A in repo-local artifacts."
-  captured_by: "agent"
-  capture_method: "reconstructed_with_note"
-  confidence: "low"
-  note: "Requires raw transcript timing + token telemetry extraction from external session logs."
+    prompt_or_log_path: ""
+    anchor_excerpt: ""
+  extraction:
+    method: ""
+    extracted_by: ""
+    extracted_at_utc: ""
+    confidence: ""
+  reviewer_note: ""
 
 - run_id: "2026-05-07-vtb-B"
-  actionable_fix_latency_sec: "insufficient_data"
-  tokens_per_reviewer_accepted_fix: "insufficient_data"
+  actionable_fix_latency_sec:
+    status: "insufficient_data"
+    value: null
+  tokens_per_reviewer_accepted_fix:
+    status: "insufficient_data"
+    value: null
+  source_transcript:
+    path: ""
+    run_start_anchor: ""
+    first_accepted_fix_anchor: ""
+    token_telemetry_anchor: ""
   evidence_anchor:
-    prompt_or_log_path: "E:/BackUp/Git_EE/CFU (session transcript source path referenced by ledger)"
-    anchor_excerpt: "No per-run latency/token scalar found for run_id 2026-05-07-vtb-B in repo-local artifacts."
-  captured_by: "agent"
-  capture_method: "reconstructed_with_note"
-  confidence: "low"
-  note: "Requires raw transcript timing + token telemetry extraction from external session logs."
+    prompt_or_log_path: ""
+    anchor_excerpt: ""
+  extraction:
+    method: ""
+    extracted_by: ""
+    extracted_at_utc: ""
+    confidence: ""
+  reviewer_note: ""
