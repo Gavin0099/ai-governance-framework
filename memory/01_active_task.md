@@ -11,15 +11,26 @@
 - **Phase D Closed**: Officially marked `passed` in PLAN.md; reviewer closeout artifact `artifacts/governance/phase-d-reviewer-closeout.json` signed by `Gavin0099`.
 - **E1-A Mutation Catalog Established**: `docs/e1-mutation-catalog.md` defines critical failure modes (Mutation vs Fixture) and exact violation codes.
 - **E1-B Phase 1 Protected**: `governance_tools/mutation_proof_runner.py` established; initial 3/3 negative fixtures (forged artifact, missing root, state mismatch) verified as PROTECTED.
-- **E1 Phase 2 Safety Contract Established**: `docs/e1-phase2-safety-contract.md` defines 6 mandatory safety constraints for real rule mutation.
+- **E1-B Phase 2 CLOSED (topology discovery)**: `governance_tools/mutation_proof_runner_phase2.py` implemented using `git worktree` isolation. All 4 catalog mutation scenarios executed (2026-05-12). Result: 4/4 VULNERABLE — enforcement topology mapped, gaps documented.
+  - Key finding: most enforcement surfaces are single-point. Precedence Bypass has incidental partial redundancy (`authority_state_active` survives mutation), but **partial redundancy ≠ protected**.
+  - Claim boundary: Phase 2 = topology discovery, NOT protection proof.
 - **Enforcement Policy**: PLAN.md now mandates: "No mutation contract = No enforcement claim".
-- **Current Boundaries**: E1 complete: NO | Rule mutation proof: NOT STARTED | Dynamic mutation runner: NOT YET.
 
-## Next Steps
+## Pause Condition (Active)
 
-- **E1-B Phase 2: Real Rule Mutation**: Design and implement the `git worktree` + `patch` infrastructure to test code-level bypasses without using mocks.
-- **E2: Spec Ambiguity Validator**: Research heuristic/semantic signals for detecting ambiguous terms in PLAN.md and requirements.
-- **E3: Production → Spec Loop**: Define the learning contract for promoting production incidents into executable prevention (property tests/specs).
+Phase E is in **pause** — do NOT proceed to E2 or add new governance surfaces until at least one of the following is observable:
+
+1. A specific ambiguous term in PLAN.md/requirements causing reviewer confusion (triggers E2)
+2. A production incident that would have been prevented by a spec (triggers E3)
+3. A replay drift event showing inconsistency that current mutation tests cannot explain
+
+**Rationale**: topology discovery must not automatically become governance inflation. Engineering cost of premature validator > benefit of theoretical coverage.
+
+## Next Steps (blocked until pause condition met)
+
+- **E2: Spec Ambiguity Validator** — blocked; no observable ambiguity trigger yet
+- **E3: Production → Spec Loop** — blocked; no production incident evidence yet
+- **AB Cost Backfill** — frozen as `tooling_ready / evidence_pending`; unblock only with real scalar telemetry for 4 runs (vsc-A/B, vtb-A/B)
 - **Maintenance**: Keep `governance-proof-report.json` updated after any governance tool change.
 - [x] Promoted memory: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
 - [x] Promoted memory: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
