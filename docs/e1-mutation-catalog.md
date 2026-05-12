@@ -8,12 +8,15 @@
 ## 1. Governance Mutation Catalog (Rule Removal/Bypass)
 這些變異測試治理 **邏輯 (Logic)** 是否能被輕易拔除。
 
-| Mutation / Scenario | Type | Expected Surface | Expected Violation Code | Protected Boundary |
-| :--- | :--- | :--- | :--- | :--- |
-| **Closeout Bypass** | Rule Mutation | `state_reconciliation_validator` | `phase_d_completed_without_reviewer_closeout_artifact` | `assess_phase_d_closeout` |
-| **Precedence Bypass** | Rule Mutation | `release_surface_overview` | `authority_precedence_active_blocks_release` | `LIFECYCLE_PRECEDENCE` logic |
-| **Confirmation Bypass** | Rule Mutation | `escalation_authority_writer` | `resolved_confirmed_requires_reviewer_confirmation` | `validate_prewrite_payload` |
-| **Snapshot Multi-Root** | Rule Mutation | `feature_surface_snapshot` | `warning: multiple app route roots detected` | `candidate_app_roots` scan |
+| Mutation / Scenario | Type | Expected Surface | Expected Violation Code | Protected Boundary | Phase 2 Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Closeout Bypass** | Rule Mutation | `state_reconciliation_validator` | `phase_d_completed_without_reviewer_closeout_artifact` | `assess_phase_d_closeout` | VULNERABLE (2026-05-12) |
+| **Precedence Bypass** | Rule Mutation | `escalation_authority_writer` | `authority_precedence_active_blocks_release` | `lifecycle_effective_by_escalation` loop | not yet run |
+| **Confirmation Bypass** | Rule Mutation | `lifecycle_transition_writer` ¹ | `resolved_confirmed_requires_reviewer_confirmation` | line 80–81 check | VULNERABLE (2026-05-12) |
+| **Snapshot Multi-Root** | Rule Mutation | `feature_surface_snapshot` | `warning: multiple app route roots detected` | `candidate_app_roots` scan | VULNERABLE (2026-05-12) |
+
+> ¹ Catalog originally listed `escalation_authority_writer`; corrected to `lifecycle_transition_writer`
+> where the violation code is actually emitted (verified 2026-05-12).
 
 ---
 
@@ -44,3 +47,38 @@
 - **Regression Monitoring**：
   - 定期執行 Proof Runner 驗證此 Catalog。
   - 任何 Mutation 存活 (Survive) 或 Failure Code 不匹配，視為 P0 治理回歸。
+
+---
+
+## 5. Phase 2 Execution Record (Real Rule Mutation — 2026-05-12)
+
+Runner: `governance_tools/mutation_proof_runner_phase2.py`
+Report: `artifacts/governance/mutation-proof-phase2-report-2026-05-12.json`
+Tool: `git worktree` isolation — production code was NOT modified.
+
+### Interpretation
+
+All 3 Phase 2 scenarios returned **VULNERABLE** — meaning the targeted mutation survived.
+This is **expected and correct**:
+
+- Phase 1 (Safe Fixture Probe) proved: hostile DATA cannot fool the governance tools.
+- Phase 2 (Real Rule Mutation) maps: which checks have NO cross-detection fallback
+  if an attacker modifies the tool source code.
+
+VULNERABLE in Phase 2 ≠ enforcement broken.
+It means each of these checks is a single point of enforcement
+with no redundant cross-check currently in place.
+
+### Gap Summary (2026-05-12)
+
+| Scenario | Gap |
+| :--- | :--- |
+| Closeout Bypass | No cross-tool redundancy for closeout check; removing it from source bypasses the gate |
+| Confirmation Bypass | lifecycle_transition_writer is the sole enforcement point for reviewer confirmation |
+| Snapshot Multi-Root | stderr warning has no structured output or secondary catch |
+
+### Next Steps
+
+1. Accept gaps as documented — no expansion without cross-check evidence.
+2. Precedence Bypass scenario not yet run (requires more complex fixture setup).
+3. Add cross-check redundancy only when observable hostile replay evidence exists (per AGENT.md §11).
