@@ -168,6 +168,81 @@ def _test_multiroot_bypass(worktree: Path, fixture_dir: Path) -> dict[str, Any]:
     }
 
 
+def _setup_active_escalation_artifact(fixture_dir: Path) -> None:
+    """
+    Place a minimal authority artifact with authority_lifecycle_state='active' in the
+    standard authority_dir.  The artifact intentionally has a wrong fingerprint so it
+    fails the trust check — but assess_authority_artifact still reads the raw payload
+    field authority_lifecycle_state (line 451), which is all we need to trigger the
+    lifecycle_effective_by_escalation precedence loop.
+    """
+    authority_dir = (
+        fixture_dir
+        / "artifacts"
+        / "runtime"
+        / "e1b-phase-b-escalation"
+        / "authority"
+    )
+    authority_dir.mkdir(parents=True, exist_ok=True)
+    artifact = {
+        "artifact_type": "e1b_phase_b_escalation_authority",
+        "artifact_schema": "e1b.phase_b.escalation_authority.v1",
+        "authority_provenance": {
+            "writer_id": "governance_tools.escalation_authority_writer",
+            "writer_version": "1.0",
+            "written_at": "2026-05-12T00:00:00+00:00",
+            "provenance_linkage_version": "v1",
+            "authority_valid": True,
+            "source_inputs_hash": "mutation-test-only",
+            "normalized_payload_hash": "WRONG_HASH_FOR_MUTATION_TEST",
+            "payload_fingerprint": "WRONG_FINGERPRINT_FOR_MUTATION_TEST",
+        },
+        "payload": {
+            "escalation_id": "test-active-precedence-esc",
+            "authority_lifecycle_state": "active",
+            "mitigation_validation_state": "validated",
+            "governance_track_state": "closed",
+            "release_blocked": False,
+            "release_block_reasons": [],
+        },
+    }
+    (authority_dir / "test-active-precedence-esc.json").write_text(
+        json.dumps(artifact), encoding="utf-8"
+    )
+
+
+def _test_precedence_bypass(worktree: Path, fixture_dir: Path) -> dict[str, Any]:
+    """
+    Run mutated escalation_authority_writer (assess mode) against a fixture that
+    contains an authority artifact with lifecycle_state='active'.
+    The unmodified code appends authority_precedence_active_blocks_release.
+    After the mutation that block is gone → VULNERABLE.
+    """
+    _setup_active_escalation_artifact(fixture_dir)
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(worktree / "governance_tools" / "escalation_authority_writer.py"),
+            "--project-root", str(fixture_dir),
+            "--mode", "assess",
+            "--format", "json",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    try:
+        output = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return {"parse_error": result.stdout[:300], "stderr": result.stderr}
+    return {
+        "release_block_reasons": output.get("release_block_reasons", []),
+        "lifecycle_effective_by_escalation": output.get("lifecycle_effective_by_escalation", {}),
+        "ok": output.get("ok"),
+        "release_blocked": output.get("release_blocked"),
+        "exit_code": result.returncode,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Scenario registry
 # ---------------------------------------------------------------------------
@@ -233,6 +308,27 @@ SCENARIOS: list[MutationScenario2] = [
         violation_field="stderr",
         test_fn=_test_multiroot_bypass,
         catalog_ref="e1-mutation-catalog.md §1 Snapshot Multi-Root",
+    ),
+    MutationScenario2(
+        id="precedence_bypass",
+        description=(
+            "Remove active-lifecycle precedence block from escalation_authority_writer. "
+            "An authority artifact with lifecycle_state='active' no longer blocks release."
+        ),
+        mutation=CodeMutation(
+            target_file="governance_tools/escalation_authority_writer.py",
+            old_str=(
+                "        elif lifecycle_state == \"active\":\n"
+                "            blocked = True\n"
+                "            precedence_violation = True\n"
+                "            _append_unique_reason(reasons, \"authority_precedence_active_blocks_release\")"
+            ),
+            new_str="        # [MUTATION E1-B-P2-04: active precedence block removed]",
+        ),
+        expected_violation="authority_precedence_active_blocks_release",
+        violation_field="release_block_reasons",
+        test_fn=_test_precedence_bypass,
+        catalog_ref="e1-mutation-catalog.md §1 Precedence Bypass",
     ),
 ]
 

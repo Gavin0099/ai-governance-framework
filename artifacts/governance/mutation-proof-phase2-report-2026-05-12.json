@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-12T06:57:54.558508+00:00",
+  "timestamp": "2026-05-12T07:43:54.880480+00:00",
   "runner_version": "1.0",
   "phase": "E1-B Phase 2: Real Rule Mutation",
   "project_root": "E:\\BackUp\\Git_EE\\ai-governance-framework",
@@ -47,11 +47,34 @@
         "stdout_len": 137,
         "exit_code": 0
       }
+    },
+    {
+      "scenario": "precedence_bypass",
+      "description": "Remove active-lifecycle precedence block from escalation_authority_writer. An authority artifact with lifecycle_state='active' no longer blocks release.",
+      "catalog_ref": "e1-mutation-catalog.md §1 Precedence Bypass",
+      "status": "VULNERABLE",
+      "mutation_survived": true,
+      "expected_violation": "authority_precedence_active_blocks_release",
+      "violation_field": "release_block_reasons",
+      "raw_result": {
+        "release_block_reasons": [
+          "authority_state_active",
+          "untrusted_escalation_provenance",
+          "payload_fingerprint_mismatch",
+          "normalized_payload_hash_mismatch"
+        ],
+        "lifecycle_effective_by_escalation": {
+          "test-active-precedence-esc": "active"
+        },
+        "ok": false,
+        "release_blocked": true,
+        "exit_code": 1
+      }
     }
   ],
   "summary": {
-    "total": 3,
-    "vulnerable": 3,
+    "total": 4,
+    "vulnerable": 4,
     "protected": 0,
     "error": 0
   },

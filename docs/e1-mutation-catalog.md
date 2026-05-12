@@ -11,12 +11,18 @@
 | Mutation / Scenario | Type | Expected Surface | Expected Violation Code | Protected Boundary | Phase 2 Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Closeout Bypass** | Rule Mutation | `state_reconciliation_validator` | `phase_d_completed_without_reviewer_closeout_artifact` | `assess_phase_d_closeout` | VULNERABLE (2026-05-12) |
-| **Precedence Bypass** | Rule Mutation | `escalation_authority_writer` | `authority_precedence_active_blocks_release` | `lifecycle_effective_by_escalation` loop | not yet run |
+| **Precedence Bypass** | Rule Mutation | `escalation_authority_writer` | `authority_precedence_active_blocks_release` | `lifecycle_effective_by_escalation` loop | VULNERABLE (2026-05-12) — partial redundancy noted ² |
 | **Confirmation Bypass** | Rule Mutation | `lifecycle_transition_writer` ¹ | `resolved_confirmed_requires_reviewer_confirmation` | line 80–81 check | VULNERABLE (2026-05-12) |
 | **Snapshot Multi-Root** | Rule Mutation | `feature_surface_snapshot` | `warning: multiple app route roots detected` | `candidate_app_roots` scan | VULNERABLE (2026-05-12) |
 
 > ¹ Catalog originally listed `escalation_authority_writer`; corrected to `lifecycle_transition_writer`
 > where the violation code is actually emitted (verified 2026-05-12).
+>
+> ² Precedence Bypass has **partial redundancy**: after removing the precedence loop check,
+> `authority_state_active` from `validate_prewrite_payload` (line 239) remains as a secondary signal.
+> Full bypass requires TWO mutations: (1) remove lines 590–593 in `escalation_authority_writer.py`,
+> AND (2) remove line 239–240 in `validate_prewrite_payload`. Single-mutation survivability = VULNERABLE;
+> two-mutation full-bypass is significantly harder.
 
 ---
 
@@ -69,16 +75,17 @@ VULNERABLE in Phase 2 ≠ enforcement broken.
 It means each of these checks is a single point of enforcement
 with no redundant cross-check currently in place.
 
-### Gap Summary (2026-05-12)
+### Gap Summary (2026-05-12) — all 4 scenarios complete
 
-| Scenario | Gap |
-| :--- | :--- |
-| Closeout Bypass | No cross-tool redundancy for closeout check; removing it from source bypasses the gate |
-| Confirmation Bypass | lifecycle_transition_writer is the sole enforcement point for reviewer confirmation |
-| Snapshot Multi-Root | stderr warning has no structured output or secondary catch |
+| Scenario | Status | Gap / Note |
+| :--- | :--- | :--- |
+| Closeout Bypass | VULNERABLE | No cross-tool redundancy; removing check fully bypasses closeout gate |
+| Confirmation Bypass | VULNERABLE | `lifecycle_transition_writer` is sole enforcement; no cross-catch |
+| Snapshot Multi-Root | VULNERABLE | stderr warning has no structured output or secondary catch |
+| Precedence Bypass | VULNERABLE (partial redundancy) | `authority_state_active` from `validate_prewrite_payload` survives as secondary signal; full bypass needs 2 mutations |
 
 ### Next Steps
 
 1. Accept gaps as documented — no expansion without cross-check evidence.
-2. Precedence Bypass scenario not yet run (requires more complex fixture setup).
+2. Precedence Bypass has incidental partial redundancy (`authority_state_active`) — note-worthy but insufficient for PROTECTED claim without test coverage.
 3. Add cross-check redundancy only when observable hostile replay evidence exists (per AGENT.md §11).
