@@ -1,0 +1,59 @@
+{
+  "timestamp": "2026-05-12T06:57:54.558508+00:00",
+  "runner_version": "1.0",
+  "phase": "E1-B Phase 2: Real Rule Mutation",
+  "project_root": "E:\\BackUp\\Git_EE\\ai-governance-framework",
+  "results": [
+    {
+      "scenario": "closeout_bypass",
+      "description": "Remove closeout gate from state_reconciliation_validator. Phase D can be marked passed without a reviewer closeout artifact.",
+      "catalog_ref": "e1-mutation-catalog.md §1 Closeout Bypass",
+      "status": "VULNERABLE",
+      "mutation_survived": true,
+      "expected_violation": "phase_d_completed_without_reviewer_closeout_artifact",
+      "violation_field": "violations",
+      "raw_result": {
+        "violations": [
+          "plan_marks_phase_d_completed_while_phase_c_release_surface_precedence_pending"
+        ],
+        "ok": false,
+        "exit_code": 1
+      }
+    },
+    {
+      "scenario": "confirmation_bypass",
+      "description": "Remove reviewer-confirmation requirement from lifecycle_transition_writer. Any actor can confirm resolution to resolved_confirmed.",
+      "catalog_ref": "e1-mutation-catalog.md §1 Confirmation Bypass",
+      "status": "VULNERABLE",
+      "mutation_survived": true,
+      "expected_violation": "resolved_confirmed_requires_reviewer_confirmation",
+      "violation_field": "errors",
+      "raw_result": {
+        "errors": [],
+        "ok": true,
+        "exit_code": 0
+      }
+    },
+    {
+      "scenario": "snapshot_multiroot_bypass",
+      "description": "Suppress multi-root warning in feature_surface_snapshot. Ambiguous app route root goes silently undetected.",
+      "catalog_ref": "e1-mutation-catalog.md §1 Snapshot Multi-Root",
+      "status": "VULNERABLE",
+      "mutation_survived": true,
+      "expected_violation": "warning: multiple app route roots detected",
+      "violation_field": "stderr",
+      "raw_result": {
+        "stderr": "",
+        "stdout_len": 137,
+        "exit_code": 0
+      }
+    }
+  ],
+  "summary": {
+    "total": 3,
+    "vulnerable": 3,
+    "protected": 0,
+    "error": 0
+  },
+  "interpretation": "VULNERABLE = mutation survived; governance gap documented. PROTECTED = cross-check prevented bypass. Phase 2 audits code-level bypass surface; it does not replace Phase 1 data-level protection evidence."
+}
