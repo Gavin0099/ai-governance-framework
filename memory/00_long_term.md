@@ -115,3 +115,31 @@ Source: `governance_tools/phase_d_closeout_writer.py::REQUIRED_CONDITIONS`
 - Canonical short-form claim constitution is `docs/CLAIM_BOUNDARY.md`.
 - Non-negotiable rule: if wording is ambiguous, downgrade claim instead of upgrading certainty.
 - Prevent semantic drift from `bounded_support` toward `governance proven`.
+
+---
+
+## Gate C Observation Governance Rules (2026-05-12)
+<!-- memory_type: structural_long_term -->
+<!-- promotion_status: candidate -->
+<!-- proposed_by: ai / 2026-05-12 -->
+<!-- source_anchor: enumd/docs/status/gate-c-cross-window-trend-2026-05-12.md -->
+<!-- human_review_needed: confirm these rules should be promoted to authoritative -->
+
+- Date governance rule:
+  - `window_id` must match execution date (UTC).
+  - If same-day reuse is required, use `-rN` suffix (for example `...-r2`) instead of future-date labels.
+- Evidence source classification must be explicit in Gate C logs:
+  - `live-only`: live_row_ratio == 1.00
+  - `live-covered`: 0.70 <= live_row_ratio < 1.00
+  - `observational-only (non-live)`: live_row_ratio < 0.70
+- Legacy rows missing `agent_source` are treated as `proxy` for backward compatibility.
+- Guardrail for using `cross-agent validated (execution governance scope)`:
+  - allowed only when all are true:
+    - cross_lane_decision == pass
+    - live_row_ratio == 1.00
+    - consecutive live-only pass windows >= N
+  - current operational N baseline: 2 (observed continuity reached and extended to N=3 in r4/r5/r6 sequence).
+- Outcome-layer interpretation boundary:
+  - track only `avg_review_minutes`, `reopen_revert_rate`, `stability_degraded_rate` across windows
+  - keep conclusion observational-only
+  - do not claim quality/reasoning uplift from these trend signals alone
