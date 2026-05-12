@@ -258,6 +258,66 @@ Allowed:
 
 - one canonical rule set
 - multiple derived delivery surfaces
+
+---
+
+## Commercialization Path (Draft v0.1)
+
+### Positioning
+
+This repo should not be marketed as "AI safety in general".
+Primary commercial position:
+
+- **AI execution assurance / auditability infrastructure**
+- First product slice: **AI Agent PR Governance**
+
+Core value proposition must remain measurable:
+
+- lower review risk
+- lower rollback/reopen risk
+- lower audit preparation cost
+- higher traceability and reviewer-legible execution history
+
+### 0-3 Month Plan (Single Capability Productization)
+
+- build minimal PR governance flow:
+  - patch provenance
+  - claim/evidence binding
+  - runtime validation coverage signal
+  - reviewer-auditable merge gate
+- target form factor: CLI + GitHub-first integration
+- keep scope narrow (no platform-level abstraction in this phase)
+
+### 3-6 Month Plan (ROI Proof)
+
+- run with 2-3 design partners (regulated-ish engineering preferred)
+- track only 3 business-facing metrics:
+  - reviewer time trend
+  - reopen/revert trend
+  - audit-prep effort trend
+- produce before/after operational evidence packets (observation-only boundary preserved)
+
+### 6-12 Month Plan (Policy Layer Expansion)
+
+- add policy controls only after ROI signals are stable:
+  - who can auto-merge
+  - advisory-only vs enforceable action boundaries
+  - escalation policy by risk tier
+- then expand integrations (GitLab / Jira / Slack / CI surfaces)
+
+### What Not To Do (Anti-Inflation Guardrail)
+
+- do not expand governance taxonomy without runtime-enforced use
+- do not market philosophical governance claims without measurable reduction evidence
+- do not open multiple verticals before one narrow wedge is repeatably deployable
+
+### Commercial Success Gate (Minimum)
+
+The commercialization track should be considered viable only when:
+
+1. PR governance flow is repeatably deployable
+2. at least one design partner reports measurable reviewer/audit efficiency gain
+3. evidence surfaces remain reviewer-auditable without semantic overclaim
 - runtime or adapter-specific rendering differences
 
 Disallowed:
