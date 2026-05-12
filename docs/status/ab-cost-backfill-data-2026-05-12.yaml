@@ -1,0 +1,44 @@
+- run_id: "2026-05-07-vsc-A"
+  actionable_fix_latency_sec: null
+  tokens_per_reviewer_accepted_fix: null
+  evidence_anchor:
+    prompt_or_log_path: ""
+    anchor_excerpt: ""
+  captured_by: ""
+  capture_method: ""
+  confidence: ""
+  note: ""
+
+- run_id: "2026-05-07-vsc-B"
+  actionable_fix_latency_sec: null
+  tokens_per_reviewer_accepted_fix: null
+  evidence_anchor:
+    prompt_or_log_path: ""
+    anchor_excerpt: ""
+  captured_by: ""
+  capture_method: ""
+  confidence: ""
+  note: ""
+
+- run_id: "2026-05-07-vtb-A"
+  actionable_fix_latency_sec: null
+  tokens_per_reviewer_accepted_fix: null
+  evidence_anchor:
+    prompt_or_log_path: ""
+    anchor_excerpt: ""
+  captured_by: ""
+  capture_method: ""
+  confidence: ""
+  note: ""
+
+- run_id: "2026-05-07-vtb-B"
+  actionable_fix_latency_sec: null
+  tokens_per_reviewer_accepted_fix: null
+  evidence_anchor:
+    prompt_or_log_path: ""
+    anchor_excerpt: ""
+  captured_by: ""
+  capture_method: ""
+  confidence: ""
+  note: ""
+
