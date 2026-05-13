@@ -163,3 +163,21 @@ Governance 穩定提升 failure-state semantic coordination 與 reviewer-safe in
 - [docs/ab-implementation-pressure-scorecard-v1.2.md](docs/ab-implementation-pressure-scorecard-v1.2.md)
 - [docs/ab-v1.2-run-ledger.md](docs/ab-v1.2-run-ledger.md)
 - [docs/ab-v1.2-round-summary.md](docs/ab-v1.2-round-summary.md)
+
+## Claim-Level Boundary (Normative)
+
+This framework currently supports:
+
+- bounded failure containment
+- reviewer-checkable observability surfaces
+
+This framework does **not** currently claim:
+
+- engineering quality uplift proof
+- reasoning uplift proof
+- deterministic cognitive control
+- machine-authoritative compliance verdict
+
+For detailed rationale and epistemic limits, see:
+
+- `docs/LIMITATIONS.md`
