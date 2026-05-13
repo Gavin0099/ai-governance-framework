@@ -204,3 +204,77 @@ advisory signal 的主要角色仍是 reviewer-facing semantic aid，不是 poli
 ## 6. 一句話總結
 
 > `ai-governance-framework` 目前是一個 bounded、precision-first、reviewer-compatible 的 governance runtime；它已經超過 prompt discipline，但刻意還不是 full execution harness 或 machine-authoritative policy platform。
+
+---
+
+## 8. Metadata And Verification Anchors
+
+- as_of: 2026-05-13
+- interpretation_rule:
+  - behavior claims must be tied to runtime-observable artifacts
+  - docs-only wording must not be upgraded to runtime capability claims
+
+### Capability Anchor Examples (non-exhaustive)
+
+- Runtime surfaces:
+  - `governance_tools/session_end_hook.py`
+  - `scripts/run_closeout.ps1`
+  - `artifacts/session-index.ndjson`
+- Closeout / review / status surfaces:
+  - `docs/status/closeout-audit.md`
+  - `docs/status/runtime-surface-manifest.md`
+  - `docs/status/reviewer-handoff.md`
+- Observation / decision-set surfaces:
+  - `docs/status/decision-set/`
+  - `docs/status/post-run-observability-capture-v0.1.md`
+
+If a statement cannot be linked to a concrete source in repo/runtime artifacts, classify it as hypothesis and mark it as non-authoritative.
+
+## 9. Design Choice vs Not Implemented
+
+To reduce interpretation drift, separate explicit design choices from missing implementation.
+
+### Design Choice (intentional boundary)
+
+- Advisory remains reviewer-visible and non-verdict-bearing
+- Precision-first taxonomy over completeness-first recall
+- Bounded runtime scope instead of full orchestration platform scope
+
+### Not Implemented (current gap)
+
+- Full workflow interception coverage across all task paths
+- Universal host-agent memory adapter/API
+- Generic semantic policy engine across all repos/agents/domains
+- Deterministic auto-write of durable memory for every session
+
+Do not treat "not implemented" as "forbidden forever", and do not treat "design choice" as "roadmap debt".
+
+## 10. Evidence Hierarchy (Authority Order)
+
+When artifacts disagree, use this order:
+
+1. runtime artifacts (session/verdict/closeout traces)
+2. machine-generated status outputs tied to runtime inputs
+3. reviewer-authored summaries and interpretation notes
+4. planning docs / narrative docs
+
+Implication:
+
+- A status summary cannot override runtime facts.
+- A narrative statement in docs cannot elevate authority above runtime evidence.
+
+## 11. Claim Level Contract
+
+Allowed claim level now:
+
+- failure containment (bounded)
+- observability improvement (reviewer-checkable)
+
+Not allowed claim level now:
+
+- quality uplift proven
+- reasoning uplift proven
+- deterministic cognitive control
+- machine-authoritative compliance verdict
+
+Any status/report/README wording must stay within allowed claim level unless new long-window evidence and runtime support are explicitly provided.
