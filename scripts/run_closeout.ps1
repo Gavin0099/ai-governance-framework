@@ -12,6 +12,13 @@ if ($LASTEXITCODE -ne 0) {
   exit 1
 }
 
+# Fail-closed PLAN freshness guard.
+python -m governance_tools.plan_freshness --file PLAN.md --format human
+if ($LASTEXITCODE -ne 0) {
+  Write-Host "[closeout] blocked: PLAN freshness check failed"
+  exit 1
+}
+
 python -m governance_tools.session_end_hook --project-root .
 if ($LASTEXITCODE -ne 0) {
   Write-Host "[closeout] failed: session_end_hook returned non-zero"

@@ -87,7 +87,9 @@ fi
 echo
 echo "Deployment complete."
 echo "Next:"
-echo "  1) Update $TARGET/PLAN.md"
-echo "  2) Run memory check:"
+echo "  1) Update $TARGET/PLAN.md (keep phase/milestone status synchronized)"
+echo "  2) After each phase close, update PLAN.md + memory files before commit/push"
+echo "  3) Run memory check:"
 echo "     python $TARGET/governance_tools/memory_janitor.py --check"
-
+echo "  4) Run PLAN freshness check:"
+echo "     python $TARGET/governance_tools/plan_freshness.py --file $TARGET/PLAN.md"

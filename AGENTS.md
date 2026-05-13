@@ -83,11 +83,20 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 - If the push introduced a durable workflow preference, also update `memory/00_long_term.md`
 - This protocol is portable: apply the same pattern in other repos with a local `memory/` directory
 
+### PLAN Sync Protocol (Cross-Repo)
+- `PLAN.md` is mandatory governance state, not optional project notes.
+- After each phase completion or milestone transition:
+  1. update `PLAN.md` phase status / next milestone
+  2. update memory files
+  3. commit and push
+- `PLAN.md` drift is treated as governance drift.
+
 ### Definition Of Done (Fail-Closed)
 - A change is **not done** until all three are completed:
   1. today's memory file updated (`memory/YYYY-MM-DD.md`)
-  2. commit created
-  3. push completed (`origin`, and `gitlab` when required)
+  2. `PLAN.md` synchronized when phase/milestone state changed
+  3. commit created
+  4. push completed (`origin`, and `gitlab` when required)
 - Use `scripts/closeout.ps1` to enforce this flow.
 - If any step fails, closeout fails (`exit 1`) and the task is not considered complete.
 
