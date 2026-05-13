@@ -39,9 +39,30 @@ powershell -ExecutionPolicy Bypass -File scripts/run_with_contract_gate.ps1 `
   -SkipRunCommand
 ```
 
+## Auto Trigger Path (Recommended)
+
+Use `scripts/run_with_observability_capture.ps1` with `-ResponseFile`.
+When `-ResponseFile` is provided, contract gate is executed automatically
+after run command and before final exit.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/run_with_observability_capture.ps1 `
+  -RunCommand "<your-agent-run-command>" `
+  -AgentLane "<single-lane|copilot|claude|chatgpt>" `
+  -Provider "<chatgpt|claude|copilot>" `
+  -TokenSource "<unknown|estimated|provider>" `
+  -ProvenanceComplete $false `
+  -Comparable $false `
+  -ResponseFile "<path-to-agent-response.txt>"
+```
+
+Fail-closed behavior:
+
+- If run command fails -> wrapper exits non-zero.
+- If contract is missing/non-compliant -> wrapper exits non-zero.
+
 ## Boundary
 
 - This enforces contract presence/compliance.
 - It does not auto-generate model responses.
 - Any lane not routed through this script (or adapter `post_task`) is still ungated.
-
