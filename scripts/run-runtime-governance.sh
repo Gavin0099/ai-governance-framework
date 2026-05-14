@@ -100,7 +100,7 @@ record_feedback() {
     local pytest_status="$2"
     local framework_root="${PROJECT_ROOT_OVERRIDE:-.}"
 
-    "${PYTHON_CMD[@]}" governance_tools/runtime_enforcement_feedback.py \
+    "${PYTHON_CMD[@]}" -m governance_tools.runtime_enforcement_feedback \
         record \
         --framework-root "$framework_root" \
         --mode "$MODE" \
