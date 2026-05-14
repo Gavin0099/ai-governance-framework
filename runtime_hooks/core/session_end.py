@@ -28,6 +28,11 @@ from governance_tools.claim_enforcement_checker import evaluate as evaluate_clai
 from governance_tools.memory_record import append_session_derived_entry, build_session_derived_record
 from governance_tools.runtime_phase_policy import aggregate_phase_classifications, build_phase_classification
 from governance_tools.runtime_surface_manifest import build_runtime_surface_manifest
+from governance_tools.runtime_reliability_observation import (
+    RECOVERY_LOG,
+    SIDE_EFFECT_JOURNAL,
+    safe_append_observation_event,
+)
 from runtime_hooks.core._canonical_closeout import (
     build_canonical_closeout,
     pick_latest_candidate,
@@ -1101,7 +1106,7 @@ def run_session_end(
         )
         _write_json(trace_path, failure_trace_payload)
 
-    return {
+    result = {
         "ok": len(errors) == 0,
         "session_id": session_id,
         "decision": decision,
@@ -1130,6 +1135,34 @@ def run_session_end(
         "warnings": warnings,
         "errors": errors,
     }
+    safe_append_observation_event(
+        project_root,
+        RECOVERY_LOG,
+        "session_end_recovery_observation",
+        {
+            "source": "runtime_hooks.core.session_end",
+            "session_id": session_id,
+            "decision": result["decision"],
+            "ok": result["ok"],
+            "error_count": len(errors),
+            "warning_count": len(warnings),
+            "runtime_failure_observed": any(str(e).startswith("runtime_failure:") for e in errors),
+        },
+    )
+    safe_append_observation_event(
+        project_root,
+        SIDE_EFFECT_JOURNAL,
+        "session_end_side_effect_observation",
+        {
+            "source": "runtime_hooks.core.session_end",
+            "session_id": session_id,
+            "memory_mode": contract["memory_mode"],
+            "snapshot_created": snapshot_result is not None,
+            "promotion_created": promotion_result is not None,
+            "canonical_closeout_written": bool(result.get("canonical_closeout_artifact")),
+        },
+    )
+    return result
 
 
 def format_human_result(result: dict[str, Any]) -> str:
