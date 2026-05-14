@@ -88,6 +88,10 @@ def _write_closeout_receipt(
     entrypoint: str,
     exit_code: int,
     closeout_artifact_path: str | None,
+    memory_eligibility_evaluated: bool,
+    memory_write_required: bool,
+    memory_write_performed: bool,
+    memory_eligibility_reason: str,
 ) -> Path:
     artifact_dir = project_root / "artifacts" / "runtime" / "closeout-receipts"
     artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -103,6 +107,10 @@ def _write_closeout_receipt(
         "exit_code": exit_code,
         "closeout_artifact_path": str(closeout_path_obj) if closeout_path_obj else "",
         "checksum_of_cleaned_path": _checksum_of_path(closeout_path_obj),
+        "memory_eligibility_evaluated": memory_eligibility_evaluated,
+        "memory_write_required": memory_write_required,
+        "memory_write_performed": memory_write_performed,
+        "memory_eligibility_reason": memory_eligibility_reason,
     }
     receipt_path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return receipt_path
@@ -118,6 +126,29 @@ def run(project_root: Path) -> dict[str, Any]:
     verdict and trace artifact emission.
     """
     return run_session_end_hook(project_root=project_root)
+
+
+def _evaluate_memory_eligibility(result: dict[str, Any]) -> tuple[bool, bool, str]:
+    memory_closeout = result.get("memory_closeout") or {}
+    memory_update_skipped_reason = str(result.get("memory_update_skipped_reason", "")).strip().lower()
+    gate_verdict = str(result.get("gate_verdict", "")).strip().upper()
+    candidate_signals = memory_closeout.get("candidate_signals") or []
+    required_reasons: list[str] = []
+
+    if candidate_signals:
+        required_reasons.append("memory_candidate_signals_detected")
+
+    # governance / enforcement behavior changed into non-steady state.
+    if gate_verdict in {"BLOCKED", "NON-GATE-FAILURE"}:
+        required_reasons.append("governance_or_enforcement_behavior_changed")
+
+    # unresolved next-step state.
+    if memory_update_skipped_reason in {"memory_closeout_blocked", "promotion_not_performed"}:
+        required_reasons.append("unresolved_next_step_state")
+
+    required = bool(required_reasons)
+    reason = ",".join(required_reasons) if required_reasons else "no_eligibility_trigger"
+    return True, required, reason
 
 
 def main() -> int:
@@ -157,7 +188,9 @@ def main() -> int:
 
     try:
         result = run(project_root)
-        closeout_artifact_path = result.get("canonical_closeout_artifact")
+        closeout_artifact_path = result.get("canonical_closeout_artifact") or result.get("closeout_file")
+        eligibility_evaluated, memory_write_required, memory_eligibility_reason = _evaluate_memory_eligibility(result)
+        memory_write_performed = str(result.get("memory_update_result", "")).strip().lower() == "updated"
         evidence_path = _append_trigger_evidence(
             project_root,
             agent_id=args.agent_id,
@@ -173,6 +206,10 @@ def main() -> int:
             entrypoint="governance_tools.session_closeout_entry",
             exit_code=0,
             closeout_artifact_path=closeout_artifact_path if isinstance(closeout_artifact_path, str) else None,
+            memory_eligibility_evaluated=eligibility_evaluated,
+            memory_write_required=memory_write_required,
+            memory_write_performed=memory_write_performed,
+            memory_eligibility_reason=memory_eligibility_reason,
         )
         result["trigger_evidence_artifact"] = str(evidence_path)
         result["closeout_receipt_artifact"] = str(receipt_path)
@@ -184,6 +221,10 @@ def main() -> int:
             entrypoint="governance_tools.session_closeout_entry",
             exit_code=1,
             closeout_artifact_path=None,
+            memory_eligibility_evaluated=False,
+            memory_write_required=False,
+            memory_write_performed=False,
+            memory_eligibility_reason="closeout_pipeline_runtime_error",
         )
         _write_closeout_receipt(
             project_root,
