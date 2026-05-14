@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
-# pre-push hook — AI Governance Framework
-#
-# push 前執行 contract_validator 檢查（若有待驗證的 AI 回覆快照）。
-#
-# 目前為「軟性」：僅輸出警告，不擋 push。
-# 若需硬性擋截，將最後的 exit 0 改為 exit 1。
-#
-# 安裝方式：
-#   bash scripts/install-hooks.sh
+# pre-push hook - AI Governance Framework
+# Enforces runtime governance checks and fail-closed daily memory discipline.
 
 set -euo pipefail
 
@@ -24,7 +17,7 @@ fi
 
 PYTHON_LIB="$FRAMEWORK_ROOT/scripts/lib/python.sh"
 if [ ! -f "$PYTHON_LIB" ]; then
-    echo "⚠️  [governance] 找不到 framework Python helper: $PYTHON_LIB"
+    echo "[governance] warning: missing framework Python helper: $PYTHON_LIB"
     exit 0
 fi
 . "$PYTHON_LIB"
@@ -35,35 +28,73 @@ VERSION_BUMP_GUARD="$FRAMEWORK_ROOT/governance_tools/version_bump_guard.py"
 SNAPSHOT_DIR="$TARGET_REPO_ROOT/memory/governance_snapshots"
 RUNTIME_SCRIPT="$FRAMEWORK_ROOT/scripts/run-runtime-governance.sh"
 
-if [ ! -f "$TOOL" ]; then
-    exit 0
-fi
+TODAY_UTC="$(date -u +%F)"
+TODAY_MEMORY_PATH="memory/${TODAY_UTC}.md"
+ZERO_OID="0000000000000000000000000000000000000000"
 
-if [ ! -d "$SNAPSHOT_DIR" ]; then
-    exit 0
-fi
+# pre-push stdin format:
+# <local ref> <local sha1> <remote ref> <remote sha1>
+PUSH_UPDATES="$(cat || true)"
 
 if ! set_python_cmd; then
-    echo "⚠️  [governance] 找不到 Python，略過合規快照驗證"
+    echo "[governance] warning: Python not available; some advisory checks are skipped"
 fi
 
+# Snapshot validation remains advisory-only.
 FAIL_COUNT=0
-for snapshot in "$SNAPSHOT_DIR"/*.txt; do
-    [ -f "$snapshot" ] || continue
-    [ "${#PYTHON_CMD[@]}" -gt 0 ] || break
-    RESULT=$("${PYTHON_CMD[@]}" "$TOOL" --file "$snapshot" --format json 2>/dev/null) || true
-    STATUS=$(echo "$RESULT" | "${PYTHON_CMD[@]}" -c "import sys,json; d=json.load(sys.stdin); print(d.get('valid',True))" 2>/dev/null || echo "true")
-    if [ "$STATUS" = "False" ]; then
-        echo "⚠️  [governance] 合規快照不通過: $(basename "$snapshot")"
-        FAIL_COUNT=$((FAIL_COUNT + 1))
-    fi
-done
+if [ -f "$TOOL" ] && [ -d "$SNAPSHOT_DIR" ] && [ "${#PYTHON_CMD[@]}" -gt 0 ]; then
+    for snapshot in "$SNAPSHOT_DIR"/*.txt; do
+        [ -f "$snapshot" ] || continue
+        RESULT=$("${PYTHON_CMD[@]}" "$TOOL" --file "$snapshot" --format json 2>/dev/null) || true
+        STATUS=$(echo "$RESULT" | "${PYTHON_CMD[@]}" -c "import sys,json; d=json.load(sys.stdin); print(d.get('valid', True))" 2>/dev/null || echo "true")
+        if [ "$STATUS" = "False" ]; then
+            echo "[governance] warning: invalid AI contract snapshot: $(basename "$snapshot")"
+            FAIL_COUNT=$((FAIL_COUNT + 1))
+        fi
+    done
+fi
 
 if [ "$FAIL_COUNT" -gt 0 ]; then
     echo ""
-    echo "⚠️  [governance] ${FAIL_COUNT} 個 AI 回覆快照驗證不通過"
-    echo "   如需強制 push: git push --no-verify"
+    echo "[governance] warning: ${FAIL_COUNT} invalid AI contract snapshot(s) found"
+    echo "  bypass once: git push --no-verify"
     echo ""
+fi
+
+# Fail-closed daily memory gate.
+if [ ! -f "$TARGET_REPO_ROOT/$TODAY_MEMORY_PATH" ]; then
+    echo ""
+    echo "[governance] blocked: missing required memory file $TODAY_MEMORY_PATH (UTC date)"
+    echo "  update memory first, then push again"
+    echo ""
+    exit 1
+fi
+
+MEMORY_UPDATED_IN_PUSH=0
+if [ -n "$PUSH_UPDATES" ]; then
+    while IFS=' ' read -r local_ref local_sha remote_ref remote_sha; do
+        [ -n "${local_sha:-}" ] || continue
+        [ "$local_sha" = "$ZERO_OID" ] && continue
+
+        if [ "${remote_sha:-$ZERO_OID}" = "$ZERO_OID" ]; then
+            range="$local_sha"
+        else
+            range="${remote_sha}..${local_sha}"
+        fi
+
+        if git -C "$TARGET_REPO_ROOT" diff-tree --no-commit-id --name-only -r $range -- | grep -Fxq "$TODAY_MEMORY_PATH"; then
+            MEMORY_UPDATED_IN_PUSH=1
+            break
+        fi
+    done <<< "$PUSH_UPDATES"
+fi
+
+if [ "$MEMORY_UPDATED_IN_PUSH" -ne 1 ]; then
+    echo ""
+    echo "[governance] blocked: push does not include $TODAY_MEMORY_PATH in outgoing commits"
+    echo "  add a post-push memory entry first, then commit and push"
+    echo ""
+    exit 1
 fi
 
 if [ -f "$RUNTIME_SCRIPT" ]; then

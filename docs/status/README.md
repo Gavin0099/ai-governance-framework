@@ -2,7 +2,11 @@
 
 更新日期：2026-04-10
 
-這個目錄收的是 repo 的 reviewer-facing 狀態頁。它們的目的不是取代 generated artifact，而是把 runtime、closeout、trust signal、coverage、handoff 等 surface 整理成 reviewer 可讀的入口。
+這個目錄收的是 repo 的 reviewer-facing 狀態頁。它們的目的不是取代 generated artifact，而是把 runtime reliability layer、closeout、trust signal、coverage、handoff 等 surface 整理成 reviewer 可讀的入口。
+
+名詞說明：
+- 對外主敘事使用 `runtime reliability layer`
+- `governance` 保留為既有文件/工具相容名詞
 
 ## 主要入口
 
@@ -10,9 +14,13 @@
   - reviewer-facing handoff / summary surface
   - 用來看 reviewer 在接手時需要的最小治理上下文
 
-- [Runtime Governance Status](runtime-governance-status.md)
+- [Runtime Reliability Layer Status](runtime-governance-status.md)
   - 說明 repo 目前的 bounded runtime reality
   - 用來避免把 repo 誤讀成 full platform
+
+- [AI Runtime Systems Positioning](ai-runtime-systems-positioning-2026-05-14.md)
+  - 系統理論定位聲明（bounded nondeterminism / deterministic execution envelope）
+  - 用來統一對外敘事邊界與非目標
 
 - [Closeout Audit](closeout-audit.md)
   - session workflow / canonical closeout 的 observation surface
@@ -48,11 +56,12 @@ repo-local generated state 位於 `docs/status/generated/`，包括：
 
 ## 建議閱讀順序
 
-1. [Runtime Governance Status](runtime-governance-status.md)
-2. [Closeout Audit](closeout-audit.md)
-3. [Reviewer Handoff](reviewer-handoff.md)
-4. [Domain Enforcement Matrix](domain-enforcement-matrix.md)
-5. [Runtime Surface Manifest](runtime-surface-manifest.md)
-6. [Execution Surface Coverage](execution-surface-coverage.md)
-7. [Trust Signal Dashboard](trust-signal-dashboard.md)
-8. [Next Steps](next-steps.md)
+1. [Runtime Reliability Layer Status](runtime-governance-status.md)
+2. [AI Runtime Systems Positioning](ai-runtime-systems-positioning-2026-05-14.md)
+3. [Closeout Audit](closeout-audit.md)
+4. [Reviewer Handoff](reviewer-handoff.md)
+5. [Domain Enforcement Matrix](domain-enforcement-matrix.md)
+6. [Runtime Surface Manifest](runtime-surface-manifest.md)
+7. [Execution Surface Coverage](execution-surface-coverage.md)
+8. [Trust Signal Dashboard](trust-signal-dashboard.md)
+9. [Next Steps](next-steps.md)

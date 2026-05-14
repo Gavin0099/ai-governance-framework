@@ -7,6 +7,8 @@ param(
   [Parameter(Mandatory = $true)]
   [string[]]$Paths,
 
+  [string]$Branch,
+
   [switch]$PushGitlab
 )
 
@@ -24,6 +26,13 @@ function Run-Git($args) {
 
 $today = Get-Date -Format "yyyy-MM-dd"
 $memoryPath = "memory/$today.md"
+
+if (-not $Branch) {
+  $Branch = (git rev-parse --abbrev-ref HEAD).Trim()
+  if ($LASTEXITCODE -ne 0 -or -not $Branch) {
+    Fail "failed to detect current branch"
+  }
+}
 
 if (!(Test-Path $memoryPath)) {
   Fail "missing required daily memory file: $memoryPath"
@@ -52,12 +61,11 @@ if (-not ($staged.Trim())) {
 }
 
 Run-Git @("commit", "-m", $CommitMessage)
-Run-Git @("push", "origin", "main")
+Run-Git @("push", "origin", $Branch)
 
 if ($PushGitlab) {
-  Run-Git @("push", "gitlab", "main")
+  Run-Git @("push", "gitlab", $Branch)
 }
 
 Write-Host "[closeout] success: commit + push completed"
 exit 0
-

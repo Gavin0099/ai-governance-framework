@@ -1,4 +1,4 @@
-﻿# Runtime Governance 狀態
+﻿# Runtime Reliability Layer ???Governance-Compatible? 狀態
 
 更新日期：2026-04-10
 
@@ -6,8 +6,8 @@
 
 這個 repo 目前不適合只用 `AI governance framework` 這種泛稱理解。比較準確的說法是：
 
-- 它是一個 **machine-interpretable governance runtime**
-- 它處理的是 `execution`、`evidence`、`decision`、`memory / state` 與 reviewer-facing governance surfaces
+- 它是一個 **machine-interpretable runtime reliability layer**
+- 它處理的是 `execution`、`evidence`、`decision`、`memory / state` 與 reviewer-facing governance-compatible surfaces
 - 它已經超過 prompt discipline，但仍是 bounded runtime，不是 full execution platform
 
 本 repo 明確 **不主張**：
@@ -157,3 +157,5 @@
 一句話：
 
 > 這個 repo 目前是一個 reviewer-friendly、evidence-aware、bounded 的 governance runtime，而不是 full execution platform。
+
+

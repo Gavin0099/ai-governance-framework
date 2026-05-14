@@ -8,7 +8,7 @@
 #
 # 安裝的 hooks：
 #   pre-commit  — PLAN.md freshness 檢查（CRITICAL 擋 commit）
-#   pre-push    — AI 回覆合規快照驗證（目前為警告模式）
+#   pre-push    — push 前檢查（含每日 memory fail-closed gate）
 #
 # 解除安裝：
 #   rm .git/hooks/pre-commit .git/hooks/pre-push
