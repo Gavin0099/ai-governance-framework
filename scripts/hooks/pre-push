@@ -82,7 +82,7 @@ if [ -n "$PUSH_UPDATES" ]; then
             range="${remote_sha}..${local_sha}"
         fi
 
-        if git -C "$TARGET_REPO_ROOT" diff-tree --no-commit-id --name-only -r $range -- | grep -Fxq "$TODAY_MEMORY_PATH"; then
+        if git -C "$TARGET_REPO_ROOT" diff --name-only "$range" -- | grep -Fxq "$TODAY_MEMORY_PATH"; then
             MEMORY_UPDATED_IN_PUSH=1
             break
         fi
