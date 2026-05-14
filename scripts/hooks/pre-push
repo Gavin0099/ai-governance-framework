@@ -25,6 +25,7 @@ fi
 TOOL="$FRAMEWORK_ROOT/governance_tools/contract_validator.py"
 DAILY_MEMORY_GUARD="$FRAMEWORK_ROOT/governance_tools/daily_memory_guard.py"
 VERSION_BUMP_GUARD="$FRAMEWORK_ROOT/governance_tools/version_bump_guard.py"
+MEMORY_FRESHNESS_GUARD="$FRAMEWORK_ROOT/governance_tools/memory_freshness_guard.py"
 SNAPSHOT_DIR="$TARGET_REPO_ROOT/memory/governance_snapshots"
 RUNTIME_SCRIPT="$FRAMEWORK_ROOT/scripts/run-runtime-governance.sh"
 
@@ -95,6 +96,19 @@ if [ "$MEMORY_UPDATED_IN_PUSH" -ne 1 ]; then
     echo "  add a post-push memory entry first, then commit and push"
     echo ""
     exit 1
+fi
+
+# Fail-closed structured memory freshness gate.
+if [ -f "$MEMORY_FRESHNESS_GUARD" ] && [ "${#PYTHON_CMD[@]}" -gt 0 ]; then
+    MEMORY_FRESHNESS_MAX_DAYS="${AI_GOVERNANCE_MEMORY_MAX_AGE_DAYS:-30}"
+    if ! MEMORY_FRESHNESS_OUTPUT=$("${PYTHON_CMD[@]}" "$MEMORY_FRESHNESS_GUARD" --project-root "$TARGET_REPO_ROOT" --max-age-days "$MEMORY_FRESHNESS_MAX_DAYS" --format human 2>&1); then
+        echo ""
+        echo "$MEMORY_FRESHNESS_OUTPUT"
+        echo "[governance] blocked: structured memory freshness check failed"
+        echo "  update memory/01_active_task.md and memory/03_knowledge_base.md (or aliases) and push again"
+        echo ""
+        exit 1
+    fi
 fi
 
 if [ -f "$RUNTIME_SCRIPT" ]; then
