@@ -12,7 +12,11 @@
     "entrypoint",
     "exit_code",
     "closeout_artifact_path",
-    "checksum_of_cleaned_path"
+    "checksum_of_cleaned_path",
+    "memory_eligibility_evaluated",
+    "memory_write_required",
+    "memory_write_performed",
+    "memory_eligibility_reason"
   ],
   "properties": {
     "schema_version": {
@@ -49,6 +53,18 @@
       "type": "string"
     },
     "checksum_of_cleaned_path": {
+      "type": "string"
+    },
+    "memory_eligibility_evaluated": {
+      "type": "boolean"
+    },
+    "memory_write_required": {
+      "type": "boolean"
+    },
+    "memory_write_performed": {
+      "type": "boolean"
+    },
+    "memory_eligibility_reason": {
       "type": "string"
     }
   }

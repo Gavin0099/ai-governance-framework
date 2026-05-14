@@ -114,6 +114,9 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 - Receipt requirement:
   - Every closeout execution must emit a CloseoutReceipt artifact under `artifacts/runtime/closeout-receipts/`.
   - Missing receipt means `NON_COMPLIANT` closeout evidence for that run.
+  - Every closeout must evaluate memory eligibility.
+  - Memory write is required only when eligibility triggers (repo state change, governance/enforcement/evidence-surface change, or unresolved next-step state).
+  - If `memory_write_required=true` and no canonical/bound memory write is performed, the run is `NON_COMPLIANT`.
 - Governance intent: one closeout pipeline, multiple adapters, same rule surface.
 
 ## Safety

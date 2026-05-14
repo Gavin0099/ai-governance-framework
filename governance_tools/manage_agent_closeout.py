@@ -835,6 +835,9 @@ def _run_synthetic_smoke(project_root: Path, framework_root: Path, agent_id: str
     receipt_path_latest: str | None = None
     receipt_exit_code_ok = False
     receipt_artifact_exists = False
+    memory_eligibility_evaluated = False
+    memory_write_required = False
+    memory_write_performed = False
     evidence_recorded = False
     if evidence_path.exists():
         lines = [line for line in evidence_path.read_text(encoding="utf-8").splitlines() if line.strip()]
@@ -858,6 +861,9 @@ def _run_synthetic_smoke(project_root: Path, framework_root: Path, agent_id: str
                 receipt_exit_code_ok = data.get("exit_code") == 0
                 artifact_path = str(data.get("closeout_artifact_path") or "").strip()
                 receipt_artifact_exists = bool(artifact_path) and Path(artifact_path).exists()
+                memory_eligibility_evaluated = bool(data.get("memory_eligibility_evaluated"))
+                memory_write_required = bool(data.get("memory_write_required"))
+                memory_write_performed = bool(data.get("memory_write_performed"))
                 break
 
     compliant = (
@@ -866,6 +872,8 @@ def _run_synthetic_smoke(project_root: Path, framework_root: Path, agent_id: str
         and receipt_recorded
         and receipt_exit_code_ok
         and receipt_artifact_exists
+        and memory_eligibility_evaluated
+        and (not memory_write_required or memory_write_performed)
     )
     return {
         "agent": agent_id,
@@ -877,6 +885,9 @@ def _run_synthetic_smoke(project_root: Path, framework_root: Path, agent_id: str
         "receipt_recorded": receipt_recorded,
         "receipt_exit_code_ok": receipt_exit_code_ok,
         "receipt_artifact_exists": receipt_artifact_exists,
+        "memory_eligibility_evaluated": memory_eligibility_evaluated,
+        "memory_write_required": memory_write_required,
+        "memory_write_performed": memory_write_performed,
         "receipt_path": receipt_path_latest,
         "closeout_artifact_path": payload.get("canonical_closeout_artifact"),
     }
@@ -939,6 +950,9 @@ def _fmt_op_human(result: dict[str, Any], operation: str) -> str:
         lines.append(f"receipt_recorded={result.get('receipt_recorded')}")
         lines.append(f"receipt_exit_code_ok={result.get('receipt_exit_code_ok')}")
         lines.append(f"receipt_artifact_exists={result.get('receipt_artifact_exists')}")
+        lines.append(f"memory_eligibility_evaluated={result.get('memory_eligibility_evaluated')}")
+        lines.append(f"memory_write_required={result.get('memory_write_required')}")
+        lines.append(f"memory_write_performed={result.get('memory_write_performed')}")
         lines.append(f"compliance_status={result.get('compliance_status')}")
         if result.get("evidence_path"):
             lines.append(f"evidence_path={result['evidence_path']}")
