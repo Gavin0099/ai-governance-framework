@@ -101,6 +101,18 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 - Use `scripts/closeout.ps1` to enforce this flow.
 - If any step fails, closeout fails (`exit 1`) and the task is not considered complete.
 
+### Cross-Agent Closeout Rule (All AI Agents)
+- The closeout rule is **agent-agnostic** and applies to all AI agents used in this repo, not just one tool.
+- Canonical closeout entrypoint: `python -m governance_tools.session_closeout_entry --project-root .`
+- Canonical integration manager: `python -m governance_tools.manage_agent_closeout`
+- Required baseline for repo setup:
+  1. `python -m governance_tools.manage_agent_closeout --project-root . install --agent all`
+  2. `python -m governance_tools.manage_agent_closeout --project-root . verify --agent all`
+- Interpretation:
+  - Tier A agents (native lifecycle hooks) must trigger closeout automatically.
+  - Tier B/C agents (no confirmed native session-end hook) must run the same closeout entrypoint via wrapper/manual fallback.
+- Governance intent: one closeout pipeline, multiple adapters, same rule surface.
+
 ## Safety
 
 - Don't exfiltrate private data. Ever.
