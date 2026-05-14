@@ -94,9 +94,10 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 ### Definition Of Done (Fail-Closed)
 - A change is **not done** until all three are completed:
   1. today's memory file updated (`memory/YYYY-MM-DD.md`)
-  2. `PLAN.md` synchronized when phase/milestone state changed
-  3. commit created
-  4. push completed (`origin`, and `gitlab` when required)
+  2. structured memory freshness maintained (`memory/01_active_task.md` and `memory/03_knowledge_base.md` or configured aliases)
+  3. `PLAN.md` synchronized when phase/milestone state changed
+  4. commit created
+  5. push completed (`origin`, and `gitlab` when required)
 - Use `scripts/closeout.ps1` to enforce this flow.
 - If any step fails, closeout fails (`exit 1`) and the task is not considered complete.
 
