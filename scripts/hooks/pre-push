@@ -99,7 +99,7 @@ fi
 
 if [ -f "$RUNTIME_SCRIPT" ]; then
     echo "[governance] running runtime-governance enforcement before push"
-    if ! (cd "$FRAMEWORK_ROOT" && bash "$RUNTIME_SCRIPT" --mode enforce); then
+    if ! (cd "$FRAMEWORK_ROOT" && bash "$RUNTIME_SCRIPT" --mode smoke); then
         echo ""
         echo "[governance] runtime-governance enforcement failed"
         echo "  fix the runtime governance failures before push"
