@@ -111,6 +111,9 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 - Interpretation:
   - Tier A agents (native lifecycle hooks) must trigger closeout automatically.
   - Tier B/C agents (no confirmed native session-end hook) must run the same closeout entrypoint via wrapper/manual fallback.
+- Receipt requirement:
+  - Every closeout execution must emit a CloseoutReceipt artifact under `artifacts/runtime/closeout-receipts/`.
+  - Missing receipt means `NON_COMPLIANT` closeout evidence for that run.
 - Governance intent: one closeout pipeline, multiple adapters, same rule surface.
 
 ## Safety

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-governance-framework/schemas/closeout_receipt.schema.json",
+  "title": "CloseoutReceipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "timestamp",
+    "agent_id",
+    "trigger_mode",
+    "entrypoint",
+    "exit_code",
+    "closeout_artifact_path",
+    "checksum_of_cleaned_path"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "agent_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trigger_mode": {
+      "type": "string",
+      "enum": [
+        "native_hook",
+        "manual_fallback",
+        "wrapper",
+        "synthetic_smoke",
+        "unknown"
+      ]
+    },
+    "entrypoint": {
+      "type": "string",
+      "minLength": 1
+    },
+    "exit_code": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "closeout_artifact_path": {
+      "type": "string"
+    },
+    "checksum_of_cleaned_path": {
+      "type": "string"
+    }
+  }
+}
