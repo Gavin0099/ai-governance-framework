@@ -26,6 +26,10 @@ from governance_tools.public_api_diff_checker import check_public_api_diff
 from governance_tools.refactor_evidence_validator import validate_refactor_evidence
 from governance_tools.rule_pack_loader import available_rule_packs, describe_rule_selection, parse_rule_list
 from governance_tools.runtime_phase_policy import build_phase_classification
+from governance_tools.runtime_reliability_observation import (
+    INCIDENT_LOG,
+    safe_append_observation_event,
+)
 from memory_pipeline.session_snapshot import create_session_snapshot
 from runtime_hooks.core.human_summary import build_summary_line, format_contract_summary_label
 
@@ -685,6 +689,7 @@ def run_post_task_check(
     project_root: Path | None = None,
     evidence_paths: list[Path] | None = None,
 ) -> dict:
+    observed_project_root = (project_root.resolve() if project_root else Path.cwd().resolve())
     contract_resolution = resolve_contract(
         contract_file,
         project_root=project_root,
@@ -823,7 +828,7 @@ def run_post_task_check(
                 oversight=oversight,
             )
 
-    return {
+    result = {
         "ok": validation.contract_found and validation.compliant and len(errors) == 0,
         "contract_found": validation.contract_found,
         "compliant": validation.compliant,
@@ -862,6 +867,22 @@ def run_post_task_check(
         "errors": errors,
         "warnings": warnings,
     }
+    safe_append_observation_event(
+        observed_project_root,
+        INCIDENT_LOG,
+        "post_task_incident_observation",
+        {
+            "source": "runtime_hooks.core.post_task_check",
+            "ok": result["ok"],
+            "error_count": len(errors),
+            "warning_count": len(warnings),
+            "risk": risk,
+            "oversight": oversight,
+            "policy_violation_count": len(result.get("policy_violations") or []),
+            "evidence_violation_count": len(result.get("evidence_violations") or []),
+        },
+    )
+    return result
 
 
 def _render_advisory_violation_line(violation: dict) -> str | None:
