@@ -104,6 +104,8 @@ Tasks:
 Deliverables:
 - `docs/status/control-plane-mvp-spec-2026-05-14.md`
 - `docs/status/side-effect-boundary-model-2026-05-14.md`
+- `docs/status/deterministic-execution-envelope-spec-2026-05-14.md`
+- `docs/status/recovery-engineering-roadmap-2026-05-14.md`
 - runtime hook updates + tests (paths decided during implementation)
 
 Exit Gate:
@@ -201,9 +203,19 @@ Deliverable:
 
 See:
 - `docs/status/ai-runtime-systems-positioning-2026-05-14.md`
+- `docs/status/deterministic-execution-envelope-spec-2026-05-14.md`
+- `docs/status/recovery-engineering-roadmap-2026-05-14.md`
+- `docs/status/failure-lifecycle-state-machine-2026-05-14.md`
+- `docs/status/recovery-capability-matrix-2026-05-14.md`
+- `docs/status/deterministic-boundary-contract-2026-05-14.md`
+- `docs/status/side-effect-journal-schema-2026-05-14.md`
 
-## Immediate Next 3 Actions
+## Sequencing Update (before R1 metric fill)
 
-1. Create R1 inventory, baseline, and failure classification matrix docs.
-2. Define threshold values for cost throttle, degrade switch, and freeze trigger.
-3. Open implementation branch for R2 control plane + side-effect boundary model.
+1. finalize semantics contracts:
+   - failure lifecycle state machine
+   - recovery capability matrix
+   - deterministic boundary contract
+   - side-effect journal schema
+2. wire runtime incident/recovery logging to these schemas.
+3. only then populate baseline metrics (to avoid taxonomy drift contamination).

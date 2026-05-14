@@ -22,6 +22,10 @@
   - 系統理論定位聲明（bounded nondeterminism / deterministic execution envelope）
   - 用來統一對外敘事邊界與非目標
 
+- [Runtime Reliability Evidence Layer v0.1](runtime-reliability-evidence-layer-v0.1-2026-05-14.md)
+  - observation-only runtime evidence substrate（明確禁止 gate 消費）
+  - 用來定義 incident/recovery/side-effect/determinism 四類日志的語義邊界
+
 - [Closeout Audit](closeout-audit.md)
   - session workflow / canonical closeout 的 observation surface
   - 用來看 closeout valid rate、warning/none 比例與 audit flags
@@ -58,10 +62,11 @@ repo-local generated state 位於 `docs/status/generated/`，包括：
 
 1. [Runtime Reliability Layer Status](runtime-governance-status.md)
 2. [AI Runtime Systems Positioning](ai-runtime-systems-positioning-2026-05-14.md)
-3. [Closeout Audit](closeout-audit.md)
-4. [Reviewer Handoff](reviewer-handoff.md)
-5. [Domain Enforcement Matrix](domain-enforcement-matrix.md)
-6. [Runtime Surface Manifest](runtime-surface-manifest.md)
-7. [Execution Surface Coverage](execution-surface-coverage.md)
-8. [Trust Signal Dashboard](trust-signal-dashboard.md)
-9. [Next Steps](next-steps.md)
+3. [Runtime Reliability Evidence Layer v0.1](runtime-reliability-evidence-layer-v0.1-2026-05-14.md)
+4. [Closeout Audit](closeout-audit.md)
+5. [Reviewer Handoff](reviewer-handoff.md)
+6. [Domain Enforcement Matrix](domain-enforcement-matrix.md)
+7. [Runtime Surface Manifest](runtime-surface-manifest.md)
+8. [Execution Surface Coverage](execution-surface-coverage.md)
+9. [Trust Signal Dashboard](trust-signal-dashboard.md)
+10. [Next Steps](next-steps.md)
