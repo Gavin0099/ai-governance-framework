@@ -49,3 +49,51 @@ def test_status_json_contains_machine_readable_fields(tmp_path: Path) -> None:
     ).issubset(chatgpt.keys())
     assert chatgpt["enforcement_level"] == "MANUAL_FALLBACK"
     assert chatgpt["compliance_status"] == "PENDING_MANUAL_ACTION"
+
+
+def test_synthetic_smoke_compliance_matrix_logic(tmp_path: Path) -> None:
+    # local mirror of expected compliance rule used by smoke output
+    def compliant(
+        *,
+        process_exit_code: int,
+        evidence_recorded: bool,
+        receipt_recorded: bool,
+        receipt_exit_code_ok: bool,
+        receipt_artifact_exists: bool,
+    ) -> bool:
+        return (
+            process_exit_code == 0
+            and evidence_recorded
+            and receipt_recorded
+            and receipt_exit_code_ok
+            and receipt_artifact_exists
+        )
+
+    assert compliant(
+        process_exit_code=0,
+        evidence_recorded=False,
+        receipt_recorded=True,
+        receipt_exit_code_ok=True,
+        receipt_artifact_exists=True,
+    ) is False
+    assert compliant(
+        process_exit_code=0,
+        evidence_recorded=True,
+        receipt_recorded=True,
+        receipt_exit_code_ok=True,
+        receipt_artifact_exists=True,
+    ) is True
+    assert compliant(
+        process_exit_code=0,
+        evidence_recorded=True,
+        receipt_recorded=True,
+        receipt_exit_code_ok=False,
+        receipt_artifact_exists=True,
+    ) is False
+    assert compliant(
+        process_exit_code=0,
+        evidence_recorded=True,
+        receipt_recorded=True,
+        receipt_exit_code_ok=True,
+        receipt_artifact_exists=False,
+    ) is False
