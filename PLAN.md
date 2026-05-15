@@ -2227,3 +2227,20 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
   - current: `threshold_dependent_persists`
 - Governance interpretation:
   - strict-regime mechanism-stable recovery is not supported by current evidence.
+
+## 2026-05-15 Cross-Repo Runtime Authority Update (gl_electron_tool r44-r45.4)
+
+- Experimental repo `gl_electron_tool` progressed from r44 to r45.4 under strict AB governance loop.
+- Key progression:
+  - r44a: Probe Authority Contract introduced tri-state authority (`PASSED/FAILED/UNKNOWN`) and operation split (`firmware_update_start` hard gate, `firmware_read_info` advisory).
+  - r45.1: UNKNOWN bucket envelope validated; block buckets enforced with zero override bypass.
+  - r45.2: ticket-bucket effective regions discovered (`freshness_unknown=balanced-rw3-pr1`, `transient_probe_unknown=lenient-rw3-pr0`) under deadlock_down + false_negative_not_up criteria.
+  - r45.3: holdout seeds retained envelope decision (`policy_envelope_v1_retained`).
+  - r45.4: policy artifact integrity boundary added (policy metadata + sha256 hash verification + runtime trusted-policy consumption guard).
+- Runtime authority boundary now requires all for UNKNOWN ticket path:
+  - bucket rule pass
+  - stable scenario preset match
+  - retained policy decision
+  - trusted policy hash
+- Cross-repo claim boundary remains unchanged:
+  - "Current AI governance effect is observable but condition-dependent."
