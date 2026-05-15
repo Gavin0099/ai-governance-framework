@@ -52,7 +52,56 @@
       "method": "pairwise metric correlation after ≥6 harness runs",
       "output": "signal_classification per metric: decision_relevant | observational_only | historically_useful | high_cost_low_info",
       "result": null,
-      "notes": "cannot start until ≥6 harness runs with non-null metrics exist"
+      "notes": "cannot start until ≥6 harness runs with non-null metrics exist",
+      "runnable_when": "metric_interpretability_preconditions_met == true",
+      "metric_interpretability_preconditions": {
+        "met": false,
+        "artifact": "governance/METRIC_INTERPRETABILITY_CONTRACT.md",
+        "rationale": "usefulness ranking ≠ interpretability legitimacy. A metric can be structurally valid and numerically stable but semantically inadmissible. Ranking before interpretability is established produces fabricated utility ordering.",
+        "chain": [
+          "metric exists",
+          "metric interpretable",
+          "metric valid-for-ranking",
+          "metric rankable"
+        ],
+        "preconditions": [
+          {
+            "id": "MIP-01",
+            "name": "explainable",
+            "metric": "claim_discipline_drift",
+            "criterion": "a domain expert unfamiliar with the harness can articulate what a non-zero value means in governance terms",
+            "blocks_if_absent": "semantic fabrication — number exists but meaning is constructed post-hoc"
+          },
+          {
+            "id": "MIP-02",
+            "name": "attributable",
+            "metric": "unsupported_count",
+            "criterion": "a non-zero value can be traced to a specific reviewer action or claim, not harness artifact",
+            "blocks_if_absent": "causal fabrication — signal is real but cause is wrong"
+          },
+          {
+            "id": "MIP-03",
+            "name": "reproducible",
+            "metric": "replay_deterministic",
+            "criterion": "same seed + same reviewer + same scenario produces the same value across independent runs",
+            "blocks_if_absent": "stochastic illusion — metric appears informative but is noise"
+          },
+          {
+            "id": "MIP-04",
+            "name": "traceable",
+            "metric": "reviewer_override_frequency",
+            "criterion": "each override event has a logged source (reviewer identity + decision point), not just a count",
+            "blocks_if_absent": "provenance collapse — count exists but cannot be audited"
+          },
+          {
+            "id": "MIP-05",
+            "name": "understandable",
+            "metric": "intervention_entropy",
+            "criterion": "the entropy calculation is documented with its base distribution; a low value and a high value each have an articulated interpretation",
+            "blocks_if_absent": "observer hallucination — value is computed correctly but reader assigns arbitrary meaning"
+          }
+        ]
+      }
     },
     {
       "task_id": "r49x-5",
