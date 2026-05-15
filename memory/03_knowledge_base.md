@@ -199,3 +199,34 @@
 - Oversight: auto
 - Summary: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
 
+## SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Captured: 2026-05-14T10:44:30.541701+00:00
+- Approved by: governance-auto
+- Risk: low
+- Oversight: auto
+- Summary: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+
+## SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Captured: 2026-05-14T10:52:59.028960+00:00
+- Approved by: governance-auto
+- Risk: low
+- Oversight: auto
+- Summary: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+
+## SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Captured: 2026-05-14T10:53:39.875082+00:00
+- Approved by: governance-auto
+- Risk: low
+- Oversight: auto
+- Summary: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+
+
+## R35 Threshold-Dependency Evidence (2026-05-15)
+
+- A fixed-condition rerun with three planned seeds (`350101`, `350102`, `350103`) produced `3/3` failures.
+- Locked parameters: `direction_tolerance=-1.5`, `exploration_floor=0`, `max_latency_delta=10`.
+- Interpretable conclusion boundary:
+  - `route_status=threshold_dependent_confirmed` is valid.
+  - This evidence must not be interpreted as strict mechanism-stable uplift.
+- Practical implication:
+  - Future upgrade claims require strict-regime evidence that is robust without threshold relaxation.

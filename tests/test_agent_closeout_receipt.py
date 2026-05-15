@@ -142,6 +142,39 @@ def test_synthetic_smoke_compliance_matrix_logic(tmp_path: Path) -> None:
         memory_write_required=True,
         memory_write_performed=False,
     ) is False
+    # memory gate strictness: required + not performed => NON_COMPLIANT
+    assert compliant(
+        process_exit_code=0,
+        evidence_recorded=True,
+        receipt_recorded=True,
+        receipt_exit_code_ok=True,
+        receipt_artifact_exists=True,
+        memory_eligibility_evaluated=True,
+        memory_write_required=True,
+        memory_write_performed=False,
+    ) is False
+    # non-zero process exit must fail even if receipt exists
+    assert compliant(
+        process_exit_code=1,
+        evidence_recorded=True,
+        receipt_recorded=True,
+        receipt_exit_code_ok=True,
+        receipt_artifact_exists=True,
+        memory_eligibility_evaluated=True,
+        memory_write_required=False,
+        memory_write_performed=False,
+    ) is False
+    # runtime-error receipt semantics: receipt present with exit_code!=0 must fail
+    assert compliant(
+        process_exit_code=0,
+        evidence_recorded=True,
+        receipt_recorded=True,
+        receipt_exit_code_ok=False,
+        receipt_artifact_exists=True,
+        memory_eligibility_evaluated=True,
+        memory_write_required=False,
+        memory_write_performed=False,
+    ) is False
     assert compliant(
         process_exit_code=0,
         evidence_recorded=True,

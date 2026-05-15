@@ -997,3 +997,21 @@
 - Risk: low
 - Oversight: auto
 
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260514T104430Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260514T105259Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260514T105339Z.json
+- Risk: low
+- Oversight: auto
+
