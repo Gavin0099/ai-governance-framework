@@ -2212,3 +2212,18 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 - Evidence status: completed_seeds=3/3, pass=0, fail=3
 - Route status: threshold_dependent_confirmed
 - Governance conclusion: threshold dependent under boundary condition; not a strict mechanism-stable uplift.
+
+## 2026-05-15 R36 Strict Recovery Closure
+
+- Harness injection support added and verified for:
+  - `--review-window-size` (`small|medium|large`)
+  - `--fallback-route-policy` (string)
+- Injection traceability added into output `injected_controls` and `causal_threat_probe`.
+- R36 strict recovery rerun status:
+  - sr-arm-1..sr-arm-4 all completed (`completed_seeds=3`, `unsupported_count=0`)
+  - pass_count is `0` for every arm
+- Decision transition:
+  - previous: `inconclusive` (due to unsupported arms)
+  - current: `threshold_dependent_persists`
+- Governance interpretation:
+  - strict-regime mechanism-stable recovery is not supported by current evidence.

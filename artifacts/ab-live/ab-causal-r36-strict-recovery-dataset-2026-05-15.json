@@ -1,0 +1,58 @@
+{
+  "dataset_id": "ab-causal-r36-strict-recovery-2026-05-15",
+  "as_of": "2026-05-15",
+  "purpose": "Test strict-regime recovery via single-variable changes without threshold relaxation",
+  "strict_baseline": {
+    "direction_tolerance": -1.5,
+    "exploration_floor": 0,
+    "max_latency_delta": 10,
+    "seeds": [350101, 350102, 350103],
+    "max_retry": 3
+  },
+  "arms": [
+    {
+      "arm_id": "sr-arm-1",
+      "changed_variable": "exploration_floor",
+      "value": 1,
+      "hypothesis": "more exploration can reduce brittle fail pattern"
+    },
+    {
+      "arm_id": "sr-arm-2",
+      "changed_variable": "max_latency_delta",
+      "value": 12,
+      "hypothesis": "slightly looser latency bound may avoid policy-induced collapse"
+    },
+    {
+      "arm_id": "sr-arm-3",
+      "changed_variable": "review_window_size",
+      "value": "medium",
+      "hypothesis": "stabilize decision signal without changing tolerance"
+    },
+    {
+      "arm_id": "sr-arm-4",
+      "changed_variable": "fallback_route_policy",
+      "value": "strict_recover_v1",
+      "hypothesis": "route fallback sequencing may recover strict pass"
+    }
+  ],
+  "records": [
+    {"case_id":"r36-sr-001","arm_id":"sr-arm-1","seed":350101},
+    {"case_id":"r36-sr-002","arm_id":"sr-arm-1","seed":350102},
+    {"case_id":"r36-sr-003","arm_id":"sr-arm-1","seed":350103},
+    {"case_id":"r36-sr-004","arm_id":"sr-arm-2","seed":350101},
+    {"case_id":"r36-sr-005","arm_id":"sr-arm-2","seed":350102},
+    {"case_id":"r36-sr-006","arm_id":"sr-arm-2","seed":350103},
+    {"case_id":"r36-sr-007","arm_id":"sr-arm-3","seed":350101},
+    {"case_id":"r36-sr-008","arm_id":"sr-arm-3","seed":350102},
+    {"case_id":"r36-sr-009","arm_id":"sr-arm-3","seed":350103},
+    {"case_id":"r36-sr-010","arm_id":"sr-arm-4","seed":350101},
+    {"case_id":"r36-sr-011","arm_id":"sr-arm-4","seed":350102},
+    {"case_id":"r36-sr-012","arm_id":"sr-arm-4","seed":350103}
+  ],
+  "decision_boundary": {
+    "mechanism_stable_candidate": "exists_arm where pass_count==3 and no_guardrail_breach=true",
+    "threshold_dependent_persists": "all_arms pass_count<3",
+    "inconclusive": "otherwise"
+  },
+  "resume_checkpoint": "ab-causal-r36-strict-recovery-checkpoint-2026-05-15.json"
+}
