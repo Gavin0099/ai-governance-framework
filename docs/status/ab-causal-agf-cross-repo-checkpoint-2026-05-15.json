@@ -1,0 +1,35 @@
+{
+  "as_of": "2026-05-15",
+  "repo_id": "ai-governance-framework",
+  "window_id": "ab-causal-cross-repo-agf-2026-05-15",
+  "arms": {
+    "cr-agf-arm-1": {
+      "pass_count": 3,
+      "unsupported_count": 0
+    },
+    "cr-agf-arm-2": {
+      "pass_count": 3,
+      "unsupported_count": 0
+    }
+  },
+  "decision": "mechanism_stable_candidate",
+  "direction_tolerance": -1.5,
+  "metric": "governance_violation_rate (external_observation_contract enforcement)",
+  "arm2_differentiation": {
+    "variable": "confidence_strict_mode",
+    "arm1_value": true,
+    "arm2_value": false,
+    "arm1_b_rates": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "arm2_b_rates": [
+      8.0,
+      6.0,
+      10.0
+    ],
+    "detectable": true,
+    "note": "arm-2 disables V4 confidence-overreach enforcement; V4 violations remain in governed output → B_rate differs from arm-1"
+  }
+}
