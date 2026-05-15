@@ -2244,3 +2244,28 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
   - trusted policy hash
 - Cross-repo claim boundary remains unchanged:
   - "Current AI governance effect is observable but condition-dependent."
+
+## 2026-05-15 Bridged Timeline Sync (r37-r43, gl_electron_tool)
+
+- r37 strict-only mechanism arms executed (4 arms x 3 seeds):
+  - `unsupported_count=0` across all arms, `pass_count=0` across all arms.
+  - Decision: `threshold_dependent_persists`.
+- r38 failure-mode clustering + one-cause-one-fix:
+  - 12/12 fail cases mapped into two clusters:
+    - `c1_review_window_ineffective`
+    - `c2_fallback_policy_ineffective`
+  - strict execution (2 arms x 3 seeds) remained `pass_count=0`, `unsupported_count=0`.
+  - Decision: `threshold_dependent_persists`.
+- r39 last bounded arm (non window/fallback family):
+  - single new arm (`style_marker_presence_post=low`) ran 3 seeds.
+  - `pass=0`, `unsupported=0`, decision `threshold_dependent_persists`, case formally closed.
+- r40/r42 next-phase runs:
+  - r40 decision: `threshold_dependent_persists`
+  - r42 decision: `threshold_dependent_persists`
+  - r42 primary_effect_driver: `none`
+- r43 topology-routed run after probe artifact expansion:
+  - native probe smoke produced JSON+NDJSON contract artifacts with required fields.
+  - 3 arms x 3 seeds completed with `unsupported_count=0`, `pass_count=0`.
+  - decision: `threshold_dependent_persists`.
+- Interpretation continuity:
+  - r37-r43 bridge confirms no missing middle-phase upgrade; chain is consistent with later runtime-authority work (r44-r45.4).
