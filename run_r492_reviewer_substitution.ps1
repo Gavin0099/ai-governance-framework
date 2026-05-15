@@ -1,4 +1,4 @@
-# R49.2 Reviewer Substitution Experiment Runner
+﻿# R49.2 Reviewer Substitution Experiment Runner
 # Mode: observation-only — no rules added, no gates triggered
 # As-of: 2026-05-15
 
@@ -16,7 +16,7 @@ param(
     #   Default: governance_harness.py (R48 cross-repo harness — CLI mismatch → NT-01)
     #   Smoke:   scripts/r492_harness_adapter.py (adapter smoke — contract shape only)
     # Boundary: swapping this does NOT change the decision lock or observation-only contract.
-    [string]$HarnessScript = "governance_harness.py",
+    [string]$HarnessScript = "scripts/r492_governance_harness.py",
     # HarnessExtraArgs: additional args passed verbatim to $HarnessScript after the standard args.
     #   Example: "--case nt05" to test NT-05 path via adapter smoke.
     [string[]]$HarnessExtraArgs = @()
@@ -27,15 +27,63 @@ $ErrorActionPreference = "Stop"
 
 # ── guard: observation-only ───────────────────────────────────────────────────
 $DECISION_LOCK = "reviewer_substitution_observation_only"
+$TRACKER_PATH = "docs/status/ab-causal-r49x-consolidation-tracker-2026-05-15.json"
+
+function Test-R492Preflight {
+    Write-Host "[R49.2][preflight] validating boundary guards..."
+    $errors = @()
+
+    if (-not (Test-Path $TRACKER_PATH)) {
+        $errors += "consolidation tracker missing: $TRACKER_PATH"
+    } else {
+        try {
+            $tracker = Get-Content $TRACKER_PATH -Raw -Encoding UTF8 | ConvertFrom-Json
+            if (-not $tracker.guard.no_new_ontology_layers) {
+                $errors += "guard.no_new_ontology_layers is not active"
+            }
+        } catch {
+            $errors += "cannot parse consolidation tracker: $($_.Exception.Message)"
+        }
+    }
+
+    $memoryRecord = "governance_tools/memory_record.py"
+    if (-not (Test-Path $memoryRecord)) {
+        $errors += "memory_record.py missing"
+    } else {
+        $mr = Get-Content $memoryRecord -Raw -Encoding UTF8
+        if ($mr -notmatch "_has_equivalent_session_derived_entry") {
+            $errors += "memory dedupe function not detected in memory_record.py"
+        }
+    }
+
+    $sessionEnd = "runtime_hooks/core/session_end.py"
+    if (-not (Test-Path $sessionEnd)) {
+        $errors += "session_end.py missing"
+    } else {
+        $se = Get-Content $sessionEnd -Raw -Encoding UTF8
+        if ($se -notmatch "FAIL_CLOSED_CLOSEOUT_") {
+            $errors += "fail-closed closeout memory label not detected in session_end.py"
+        }
+    }
+
+    if ($errors.Count -gt 0) {
+        Write-Error "[R49.2][preflight] failed: $($errors -join '; ')"
+        exit 1
+    }
+    Write-Host "[R49.2][preflight] pass"
+}
 
 Write-Host "[R49.2] Mode: observation-only ($Mode) | Decision locked to: $DECISION_LOCK"
 Write-Host "[R49.2] No rules will be added. No gates will be triggered."
-if ($HarnessScript -ne "governance_harness.py") {
+if ($HarnessScript -eq "scripts/r492_harness_adapter.py") {
     Write-Host "[R49.2] ADAPTER SMOKE: HarnessScript=$HarnessScript — contract shape only, not evidence collection"
+} elseif ($HarnessScript -ne "governance_harness.py") {
+    Write-Host "[R49.2] HARNESS OVERRIDE: HarnessScript=$HarnessScript (interpretation A — deterministic reviewer profile substitution)"
 }
 if ($HarnessExtraArgs.Count -gt 0) {
     Write-Host "[R49.2] HarnessExtraArgs: $($HarnessExtraArgs -join ' ')"
 }
+Test-R492Preflight
 
 # ── load dataset ─────────────────────────────────────────────────────────────
 if (-not (Test-Path $DatasetPath)) {
@@ -87,6 +135,8 @@ function Invoke-StubRun {
         evaluator_confidence_provenance  = $null
         null_type                        = "NT-06"
         null_status                      = "not_measured"
+        event_log_absent                 = $null   # not applicable: no harness ran
+        event_log_absent_null_type       = $null
     }
 }
 
@@ -121,6 +171,8 @@ function Invoke-HarnessRun {
                 evaluator_confidence_provenance  = $null
                 null_type                        = "NT-01"
                 null_status                      = "not_measured"
+                event_log_absent                 = $null   # NT-01: harness never ran
+                event_log_absent_null_type       = $null
             }
         }
         $parsed = $raw | ConvertFrom-Json
@@ -146,6 +198,9 @@ function Invoke-HarnessRun {
             evaluator_confidence_provenance  = $confidenceProvenance
             null_type                        = $null    # harness ran — no run-level null
             null_status                      = $null    # individual metric nulls classified separately
+            # MIP-04: event log provenance — must be checked before using reviewer_override_frequency
+            event_log_absent                 = if ($parsed.PSObject.Properties["event_log_absent"]) { $parsed.event_log_absent } else { $null }
+            event_log_absent_null_type       = if ($parsed.PSObject.Properties["event_log_absent_null_type"]) { $parsed.event_log_absent_null_type } else { $null }
         }
     } catch {
         $stubMetrics = (Invoke-StubRun).metrics
@@ -159,6 +214,8 @@ function Invoke-HarnessRun {
             evaluator_confidence_provenance  = $null
             null_type                        = "NT-01"
             null_status                      = "not_measured"
+            event_log_absent                 = $null   # NT-01: exception, harness never ran
+            event_log_absent_null_type       = $null
         }
     }
 }
@@ -193,7 +250,8 @@ function Get-SubstitutionInterpretation {
     }
 
     if ($Metrics.claim_discipline_drift -gt 0 -or $Metrics.unsupported_count -gt 0) {
-        return "tacit_dependency_detected"
+        # MIP-02 boundary: drift is observation, not admissible causal finding.
+        return "substitution_drift_observed"
     }
     if ($Metrics.replay_deterministic -eq $false) {
         return "runtime_consistency_broken"
@@ -205,6 +263,29 @@ function Get-SubstitutionInterpretation {
         return "silo_risk_flagged"
     }
     return "stable_candidate"
+}
+
+function Get-AdmissibilityTier {
+    param([string]$Interpretation)
+    switch ($Interpretation) {
+        "substitution_drift_observed" { return "admissible_observation" }
+        "runtime_consistency_broken" { return "admissible_observation" }
+        "substitutable_higher_cost" { return "admissible_observation" }
+        "silo_risk_flagged" { return "admissible_observation" }
+        "stable_candidate" { return "admissible_observation" }
+        "not_measured" { return "null_typed_observation" }
+        "premature" { return "null_typed_observation" }
+        "not_applicable" { return "null_typed_observation" }
+        "undecidable" { return "null_typed_observation" }
+        "unattributable" { return "null_typed_observation" }
+        "untrusted_evaluator" { return "null_typed_observation" }
+        default { return "unknown_observation" }
+    }
+}
+
+function Get-CausalFindingLevel {
+    param([string]$Interpretation)
+    return "observation_only"
 }
 
 # ── main run loop ─────────────────────────────────────────────────────────────
@@ -241,6 +322,8 @@ foreach ($scenario in $dataset.scenarios) {
                         evaluator_confidence_provenance  = $null
                         null_type                        = "NT-06"
                         null_status                      = "premature"
+                        event_log_absent                 = $null   # dryrun: harness not called
+                        event_log_absent_null_type       = $null
                     }
                 }
                 "stub" {
@@ -260,7 +343,7 @@ foreach ($scenario in $dataset.scenarios) {
             # F4 fix: exclusion list uses typed null_status vocabulary, not ambiguous "pending".
             $NULL_STATUSES = @("not_measured", "premature", "not_applicable", "undecidable", "unattributable", "untrusted_evaluator")
             if ($interp -notin $NULL_STATUSES) { $completed++ }
-            if ($interp -in @("tacit_dependency_detected", "runtime_consistency_broken")) { $driftDetected = $true }
+            if ($interp -in @("substitution_drift_observed", "runtime_consistency_broken")) { $driftDetected = $true }
             if ($interp -eq "silo_risk_flagged") { $siloFlagged = $true }
             if ($interp -in @("stable_candidate", "substitutable_higher_cost")) { $substitutionCandidates++ }
 
@@ -279,11 +362,17 @@ foreach ($scenario in $dataset.scenarios) {
                 null_type                        = $run.null_type
                 null_status                      = $run.null_status
                 interpretation                   = $interp
+                admissibility_tier              = Get-AdmissibilityTier -Interpretation $interp
+                causal_finding_level            = Get-CausalFindingLevel -Interpretation $interp
                 non_gating                       = $true
                 observation_only                 = $true
+                # MIP-04 provenance — present only for harness runs; null for stub/dryrun
+                event_log_absent                 = $run.event_log_absent
+                event_log_absent_null_type       = $run.event_log_absent_null_type
             }
 
-            Write-Host "[R49.2]   result: $interp  null_type: $($run.null_type)  source: $($run.measurement_source)  confidence: $($run.evaluator_confidence)"
+            $mip04Note = if ($run.event_log_absent -eq $true) { " event_log_absent:true(NT-06)" } else { "" }
+            Write-Host "[R49.2]   result: $interp  null_type: $($run.null_type)  source: $($run.measurement_source)  confidence: $($run.evaluator_confidence)$mip04Note"
         }
     }
 }
@@ -308,6 +397,27 @@ $checkpoint = @{
         no_rule_added       = $true
         no_gate_added       = $true
         decision_locked_to  = $DECISION_LOCK
+        preflight = @{
+            memory_dedupe_active = $true
+            closeout_fail_closed_memory_label_active = $true
+            no_new_ontology_layers = $true
+        }
+    }
+    interpretation_boundary = @{
+        rule = "measurement_to_classification_must_not_skip_attribution_validation"
+        admissible_observation = "substitution_drift_observed"
+        disallowed_premature_finding = "tacit_dependency_detected"
+        finding_ladder = @(
+            "substitution_drift_observed",
+            "tacit_dependency_plausible",
+            "tacit_dependency_supported",
+            "tacit_dependency_established"
+        )
+        requires = @{
+            tacit_dependency_plausible = @("R49.x-1")
+            tacit_dependency_supported = @("R49.x-1", "R49.x-3", "replay_consistency", "attribution_sufficiency")
+            tacit_dependency_established = @("future-level claim boundary")
+        }
     }
 }
 
@@ -334,3 +444,4 @@ Write-Host "  Boundary: R49.2 evaluates reviewer substitutability as an observat
 Write-Host "  fragility signal. It does not prove reviewer independence or governance scalability."
 Write-Host ""
 Write-Host "[R49.2] Done."
+

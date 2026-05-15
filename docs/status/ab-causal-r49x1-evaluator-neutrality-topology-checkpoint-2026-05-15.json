@@ -1,0 +1,66 @@
+﻿{
+    "checkpoint_id":  "ab-causal-r49x1-evaluator-neutrality-topology-checkpoint-2026-05-15",
+    "as_of":  "2026-05-15",
+    "source_checkpoint":  "docs/status/ab-causal-r492-reviewer-substitution-checkpoint-2026-05-15.json",
+    "mode":  "observation_only",
+    "decision":  "neutrality_topology_collected",
+    "causal_finding_level":  "observation_only",
+    "preflight_guard_pass":  true,
+    "summary":  {
+                    "neutrality_assessable":  true,
+                    "topology_class":  "mixed",
+                    "total_runs":  18
+                },
+    "distributions":  {
+                          "measurement_source":  {
+                                                     "harness":  18
+                                                 },
+                          "interpretation":  {
+                                                 "substitution_drift_observed":  18
+                                             },
+                          "null_type":  {
+                                            "null":  18
+                                        }
+                      },
+    "neutrality_failure_topology":  {
+                                        "dominant_failure":  "mixed",
+                                        "scenario_owner_cells":  {
+                                                                     "SCN-PRODUCT::audit":  {
+                                                                                                "run_count":  3,
+                                                                                                "not_measured":  0,
+                                                                                                "harness_error_fallback":  0
+                                                                                            },
+                                                                     "SCN-AUDIT::product":  {
+                                                                                                "run_count":  3,
+                                                                                                "not_measured":  0,
+                                                                                                "harness_error_fallback":  0
+                                                                                            },
+                                                                     "SCN-PRODUCT::runtime":  {
+                                                                                                  "run_count":  3,
+                                                                                                  "not_measured":  0,
+                                                                                                  "harness_error_fallback":  0
+                                                                                              },
+                                                                     "SCN-RUNTIME::product":  {
+                                                                                                  "run_count":  3,
+                                                                                                  "not_measured":  0,
+                                                                                                  "harness_error_fallback":  0
+                                                                                              },
+                                                                     "SCN-AUDIT::runtime":  {
+                                                                                                "run_count":  3,
+                                                                                                "not_measured":  0,
+                                                                                                "harness_error_fallback":  0
+                                                                                            },
+                                                                     "SCN-RUNTIME::audit":  {
+                                                                                                "run_count":  3,
+                                                                                                "not_measured":  0,
+                                                                                                "harness_error_fallback":  0
+                                                                                            }
+                                                                 },
+                                        "dominant_null_type":  "mixed",
+                                        "note":  "Topology output is observational and non-gating."
+                                    },
+    "interpretation_boundary":  {
+                                    "disallowed":  "tacit dependency causal escalation from measurement collapse",
+                                    "allowed":  "substitution_drift_observed as observation"
+                                }
+}

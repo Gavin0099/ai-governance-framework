@@ -241,10 +241,23 @@ def _build_daily_memory_record(
     summary_text = summary.strip() or "Session closeout recorded without an explicit summary."
     commit = _resolve_head_commit(project_root)
     memory_binding = _resolve_memory_binding(commit, session_id)
+    closeout_status = str(canonical_closeout.get("closeout_status", "")).strip().lower()
+    closeout_fail_closed = closeout_status in {
+        "missing",
+        "schema_invalid",
+        "content_insufficient",
+        "inconsistent",
+    }
+    displayed_decision = (
+        f"FAIL_CLOSED_CLOSEOUT_{closeout_status.upper()}"
+        if closeout_fail_closed and closeout_status
+        else decision
+    )
+    displayed_promoted = False if closeout_fail_closed else promoted
     return build_session_derived_record(
         what_changed=(
             f"session_end auto-closeout recorded for `{task}` "
-            f"(session={session_id}, decision={decision}, snapshot_created={snapshot_created}, promoted={promoted}). "
+            f"(session={session_id}, decision={displayed_decision}, snapshot_created={snapshot_created}, promoted={displayed_promoted}). "
             f"Summary: {summary_text}"
         ),
         commit=commit,
@@ -252,7 +265,7 @@ def _build_daily_memory_record(
         memory_binding=memory_binding,
         test_evidence=(
             f"`session_end` => canonical_closeout_status={canonical_closeout.get('closeout_status', 'unknown')}, "
-            f"snapshot_created={snapshot_created}, promoted={promoted}, open_risk_count={len(open_risks)}"
+            f"snapshot_created={snapshot_created}, promoted={displayed_promoted}, open_risk_count={len(open_risks)}"
         ),
         next_step=_default_next_step(
             decision=decision,

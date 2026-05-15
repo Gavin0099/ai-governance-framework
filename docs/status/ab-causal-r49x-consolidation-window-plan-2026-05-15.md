@@ -153,6 +153,24 @@ R50 must not be:
 - A response to a specific observed drift before its cause is understood
 - An addition of new governance rules before evaluator neutrality is confirmed
 
+## Freeze Rule (Hard Boundary)
+
+R49.x consolidation window allows **ontology implementation only**, and blocks ontology expansion.
+
+### Ontology Expansion (Disallowed in R49.x)
+- adding new NT / MIP / SA classes
+- changing semantics of existing NT / MIP / SA classes
+- introducing new interpretation classes that elevate observation into causal finding
+
+### Ontology Implementation (Allowed in R49.x)
+- coding existing NT / MIP / SA semantics into runners/checkpoints
+- fail-closed record hardening
+- dedupe and contract-smoke hardening
+- interpretation-boundary enforcement that downgrades premature causal labels to MIP-02-compliant observations
+
+### Consolidation Guard
+- `R49.x consolidation window only allows ontology implementation, not ontology expansion.`
+
 ## Artifacts
 
 - R49.2 status: `ab-causal-r492-reviewer-substitution-status-2026-05-15.md`

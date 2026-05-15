@@ -82,3 +82,26 @@ def test_build_memory_record_suggestion_returns_cli_command() -> None:
     assert "--what-changed" in cmd
     assert "--commit abc1234" in cmd
     assert "--session-id session-1" in cmd
+
+
+def test_append_session_derived_entry_deduplicates_equivalent_content(tmp_path: Path) -> None:
+    record_a = build_session_derived_record(
+        what_changed="changed (session=session-a)",
+        commit="abc1234",
+        session_id="session-a",
+        memory_binding="bound",
+        test_evidence="same evidence",
+        next_step="same next step",
+    )
+    record_b = build_session_derived_record(
+        what_changed="changed (session=session-b)",
+        commit="abc1234",
+        session_id="session-b",
+        memory_binding="bound",
+        test_evidence="same evidence",
+        next_step="same next step",
+    )
+    output = append_session_derived_entry(project_root=tmp_path, record=record_a)
+    append_session_derived_entry(project_root=tmp_path, record=record_b)
+    text = output.read_text(encoding="utf-8")
+    assert text.count("- memory_type: session-derived") == 1
