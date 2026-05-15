@@ -161,12 +161,29 @@
     "artifact_count_exceeds_attention_budget": null,
     "signal_count_exceeds_decision_relevant_count": null,
     "implicit_unknown_to_fail_or_pass_found": null,
-    "three_artifact_reviewability_fails": null
+    "three_artifact_reviewability_fails": null,
+    "taxonomy_compression_debt": "noted",
+    "taxonomy_compression_debt_type": "governance_scalability_debt",
+    "taxonomy_compression_debt_note": "ontology too complex for runtime flat view; compression layer deferred until ontology stable enough to compress without flattening critical boundaries"
   },
+  "r50_constraint_notes": {
+    "stable_candidate_definition": "absence of detected ontology violations — NOT evidence of true substitutability",
+    "accumulation_laundering_guard": "accumulation cannot override admissibility uncertainty: 100 admissibility-weak runs < 1 admissibility-strong run; evidence volume must not be mistaken for evidence strength",
+    "accumulation_laundering_examples": [
+      "3 seeds all pass → sample space too small",
+      "hotspot overlap 70% → topology may be too narrow",
+      "evaluator neutral → neutrality definition not yet stable",
+      "replay deterministic → deterministic ≠ semantically correct"
+    ],
+    "positive_epistemic_semantics": "deferred to R50; confidence accumulation protocol preferred over positive stability proof; direction: how much bounded non-failure evidence has accumulated under explicit assumptions"
+  },
+  "ontology_phase": "stabilized",
+  "ontology_phase_note": "ontology expansion complete for this consolidation window: NULL_ONTOLOGY + METRIC_INTERPRETABILITY_CONTRACT + EPISTEMIC_BASE_ASSUMPTIONS. Next phase requires runtime evidence, not more ontology.",
   "guard": {
     "no_new_scenarios": true,
     "no_new_governance_rules": true,
     "no_scope_expansion": true,
+    "no_new_ontology_layers": true,
     "r50_blocked_until_criteria_met": true
   }
 }
