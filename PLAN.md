@@ -2269,3 +2269,26 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
   - decision: `threshold_dependent_persists`.
 - Interpretation continuity:
   - r37-r43 bridge confirms no missing middle-phase upgrade; chain is consistent with later runtime-authority work (r44-r45.4).
+
+## 2026-05-15 v1 Freeze Package (r45.4b + r46 + r47)
+
+- Freeze package artifacts:
+  - `docs/status/ab-causal-v1-freeze-package-2026-05-15.md`
+  - `docs/status/ab-causal-v1-freeze-package-2026-05-15.json`
+- Canonical state:
+  - r45.4b: authority boundary closure
+  - r46: topology-tagged transferability
+  - r47: holdout reproducibility
+  - v1: runtime stability observation phase
+- Frozen runtime contract boundary:
+  - fixed-rule constraint
+  - no new override authority
+  - no reason-code mutation
+  - topology metadata non-authoritative
+  - fail-closed invariant
+- Frozen claim boundary:
+  - allowed: "Governance effect is now observable under defined conditions, with verified negative-path reproducibility and topology-tagged transfer evidence."
+  - disallowed: universal/generalized robustness claims
+- Observation-only contract:
+  - allowed: new seeds, new topology tags, limited drift scenarios
+  - disallowed: new rules, override path expansion, reason-code semantics changes, deny-path logic changes

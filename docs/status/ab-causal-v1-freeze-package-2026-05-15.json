@@ -1,0 +1,71 @@
+{
+  "package_id": "ab-causal-v1-freeze-package-2026-05-15",
+  "as_of": "2026-05-15",
+  "phase_state": {
+    "r45.4b": "authority_boundary_closure",
+    "r46": "topology_tagged_transferability",
+    "r47": "holdout_reproducibility",
+    "v1_freeze": "runtime_stability_observation_phase"
+  },
+  "canonical_evidence": {
+    "execution_repo": "gl_electron_tool",
+    "files": [
+      "ab-causal-r454b-policy-negative-smoke-status-2026-05-15.md",
+      "ab-causal-r46-cross-repo-topology-tagged-transfer-smoke-status-2026-05-15.md",
+      "ab-causal-r46-cross-repo-topology-tagged-transfer-smoke-checkpoint-2026-05-15.json",
+      "ab-causal-r47-holdout-transfer-validation-status-2026-05-15.md",
+      "ab-causal-r47-holdout-transfer-validation-checkpoint-2026-05-15.json"
+    ]
+  },
+  "frozen_runtime_contract": {
+    "fixed_rule_constraint": true,
+    "no_new_override_authority": true,
+    "no_reason_code_mutation": true,
+    "topology_metadata_non_authoritative": true,
+    "fail_closed_invariant": true
+  },
+  "deny_path_matrix": [
+    {
+      "case": "tamper_without_hash_update",
+      "expected_reason_code": "POLICY_ARTIFACT_UNTRUSTED"
+    },
+    {
+      "case": "retained_decision_mismatch_with_correct_hash",
+      "expected_reason_code": "POLICY_ARTIFACT_UNTRUSTED"
+    },
+    {
+      "case": "scenario_id_mismatch",
+      "expected_reason_code": "PRECHECK_OVERRIDE_PRESET_MISMATCH"
+    },
+    {
+      "case": "block_bucket_override_attempt",
+      "expected_reason_code": "PRECHECK_OVERRIDE_POLICY_BLOCKED"
+    }
+  ],
+  "claim_boundary": {
+    "allowed": "Governance effect is now observable under defined conditions, with verified negative-path reproducibility and topology-tagged transfer evidence.",
+    "disallowed": [
+      "governance is universally effective",
+      "generalized robustness confirmed for all task topologies"
+    ]
+  },
+  "observation_only_period_contract": {
+    "allowed_changes": [
+      "new_seed",
+      "new_topology_tag",
+      "limited_new_scenario_for_drift_probe"
+    ],
+    "disallowed_changes": [
+      "new_rule",
+      "new_override_path",
+      "reason_code_semantics_change",
+      "deny_path_logic_change"
+    ]
+  },
+  "v1_exit_criteria": [
+    "drift_window_completed_without_contract_violation",
+    "deny_path_reason_code_matrix_stable",
+    "fail_closed_behavior_stable_under_holdout_replay",
+    "rule_change_requests_routed_to_v2_lineage"
+  ]
+}
