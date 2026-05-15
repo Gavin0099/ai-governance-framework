@@ -177,6 +177,9 @@ This framework does **not** currently claim:
 - reasoning uplift proof
 - deterministic cognitive control
 - machine-authoritative compliance verdict
+- universal semantic correctness verification
+- automatic truth judgement over ambiguous reasoning
+- long-horizon semantic drift elimination without reviewer oversight
 
 For detailed rationale and epistemic limits, see:
 

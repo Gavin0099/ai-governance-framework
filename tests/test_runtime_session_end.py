@@ -8,6 +8,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from runtime_hooks.core.session_end import format_human_result, run_session_end
+from runtime_hooks.core._canonical_closeout import write_candidate
 
 
 @pytest.fixture
@@ -517,6 +518,36 @@ def test_session_end_replay_preserves_verdict_for_same_input(local_project_root)
     assert trace_a["result"] == trace_b["result"]
     assert trace_a["decision_path"] == trace_b["decision_path"]
     assert trace_a["decision_path"][0] == {"index": 1, "step": "normalize runtime contract"}
+
+
+def test_session_end_daily_memory_fail_closed_label_for_inconsistent_closeout(local_project_root):
+    session_id = "2026-03-12-inconsistent"
+    write_candidate(
+        session_id,
+        local_project_root,
+        {
+            "task_intent": "inconsistent closeout candidate",
+            "work_summary": "Touched src/missing.py",
+            "tools_used": [],
+            "artifacts_referenced": ["src/missing.py"],
+            "open_risks": [],
+        },
+    )
+
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id=session_id,
+        runtime_contract=_contract(),
+        checks={"ok": True, "errors": []},
+        response_text="runtime output",
+        summary="inconsistent closeout status",
+    )
+
+    summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
+    record = summary_payload["daily_memory_record"]
+    assert "decision=FAIL_CLOSED_CLOSEOUT_INCONSISTENT" in record["what_changed"]
+    assert "promoted=False" in record["what_changed"]
+    assert "promoted=False" in record["test_evidence"]
 
 
 def test_verdict_no_governance_escalation_without_transition_tracking(local_project_root):

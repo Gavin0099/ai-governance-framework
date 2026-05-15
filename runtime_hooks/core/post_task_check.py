@@ -30,6 +30,7 @@ from governance_tools.runtime_reliability_observation import (
     INCIDENT_LOG,
     safe_append_observation_event,
 )
+from governance_tools.semantic_observation import observe_semantic_failures
 from memory_pipeline.session_snapshot import create_session_snapshot
 from runtime_hooks.core.human_summary import build_summary_line, format_contract_summary_label
 
@@ -810,6 +811,7 @@ def run_post_task_check(
         checks=effective_checks,
     )
     consumption_pattern_visibility = _build_consumption_pattern_visibility(effective_checks)
+    semantic_observation = observe_semantic_failures(effective_checks)
     for violation in evidence_violations:
         errors.append(f"runtime-evidence: {violation['message']}")
     for violation in policy_violations:
@@ -856,6 +858,7 @@ def run_post_task_check(
         "candidate_violation_promotion": candidate_violation_promotion,
         "candidate_violation_consumption": candidate_violation_consumption,
         "consumption_pattern_visibility": consumption_pattern_visibility,
+        "semantic_observation": semantic_observation,
         "phase_classification": _build_post_task_phase_classification(
             evidence_violations=evidence_violations,
             assumption_advisories=assumption_advisories,
@@ -880,6 +883,7 @@ def run_post_task_check(
             "oversight": oversight,
             "policy_violation_count": len(result.get("policy_violations") or []),
             "evidence_violation_count": len(result.get("evidence_violations") or []),
+            "semantic_observation_count": len((semantic_observation or {}).get("observations") or []),
         },
     )
     return result
@@ -1001,6 +1005,17 @@ def format_human_result(result: dict) -> str:
             f"visibility_only={visibility.get('visibility_only')} "
             f"enforcement={visibility.get('high_frequency_misuse_triggers_enforcement')}"
         )
+    semantic_observation = result.get("semantic_observation") or {}
+    if semantic_observation.get("observations"):
+        lines.append(f"semantic_observation_count={len(semantic_observation['observations'])}")
+        for hotspot in semantic_observation.get("hotspots", []):
+            lines.append(
+                "semantic_hotspot="
+                f"{hotspot.get('hotspot_id')} "
+                f"{hotspot.get('failure_class')} "
+                f"risk={hotspot.get('risk_rank')} "
+                f"invariant={hotspot.get('invariant_id') or 'none'}"
+            )
     if result.get("domain_validator_results"):
         lines.append(f"domain_validator_count={len(result['domain_validator_results'])}")
     if result.get("domain_hard_stop_rules"):

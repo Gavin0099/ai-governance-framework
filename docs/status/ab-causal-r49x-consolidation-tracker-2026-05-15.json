@@ -1,197 +1,226 @@
-{
-  "tracker_id": "ab-causal-r49x-consolidation-tracker-2026-05-15",
-  "as_of": "2026-05-15",
-  "window": "r49x_consolidation",
-  "decision": "r49x_consolidation_window_open",
-  "r50_blocked": true,
-  "epistemic_stopping_layer": {
-    "artifact": "governance/EPISTEMIC_BASE_ASSUMPTIONS.md",
-    "status": "instantiated",
-    "assumptions": ["SA-01", "SA-02", "SA-03", "SA-04"],
-    "purpose": "anti-regress boundary — stops admissibility recursion at governance floor",
-    "note": "This layer does not require further validation. It is the stopping condition for consolidation window admissibility regress."
-  },
-  "r50_entry_criteria": {
-    "null_ontology_instantiated": true,
-    "null_semantics_audit_passed": true,
-    "metric_usefulness_ranking_completed": false,
-    "epistemic_compression_test_passed": false,
-    "at_least_one_genuine_signal_found": false,
-    "evaluator_confidence_unknown_rate_below_100pct": false
-  },
-  "tasks": [
-    {
-      "task_id": "r49x-1",
-      "name": "evaluator_neutrality_smoke",
-      "status": "pending",
-      "blocking_r50": false,
-      "method": "baseline vs substituted metric distribution comparison",
-      "pass_criterion": "evaluator_confidence distribution consistent across original and substituted owners",
-      "result": null,
-      "notes": null
-    },
-    {
-      "task_id": "r49x-2",
-      "name": "substitution_replay_stability",
-      "status": "pending",
-      "blocking_r50": false,
-      "method": "re-run completed harness runs, compare replay_deterministic across baseline and substituted",
-      "pass_criterion": "replay consistency rate within baseline ± 5%",
-      "result": null,
-      "notes": null
-    },
-    {
-      "task_id": "r49x-3",
-      "name": "hotspot_transferability",
-      "status": "pending",
-      "blocking_r50": false,
-      "method": "compare hotspot_id sets between original and substituted reviewer runs",
-      "pass_criterion": "hotspot_id overlap ≥ 70% across substitution pairs",
-      "result": null,
-      "notes": null
-    },
-    {
-      "task_id": "r49x-4",
-      "name": "metric_usefulness_ranking",
-      "status": "pending",
-      "blocking_r50": false,
-      "requires_harness_runs": 6,
-      "method": "pairwise metric correlation after ≥6 harness runs",
-      "output": "signal_classification per metric: decision_relevant | observational_only | historically_useful | high_cost_low_info",
-      "result": null,
-      "notes": "cannot start until ≥6 harness runs with non-null metrics exist",
-      "runnable_when": "metric_interpretability_preconditions_met == true",
-      "metric_interpretability_preconditions": {
-        "met": false,
-        "artifact": "governance/METRIC_INTERPRETABILITY_CONTRACT.md",
-        "reviewer_profile_schema": "docs/status/ab-causal-r492-reviewer-profile-schema-2026-05-15.md",
-        "mip_status": {
-          "MIP-01": "satisfied — admissibility definitions written for all 5 metrics in METRIC_INTERPRETABILITY_CONTRACT.md v0.2",
-          "MIP-02": "pending — causal attribution requires R49.x-1 (evaluator neutrality) result",
-          "MIP-03": "pending — cross-seed reproducibility requires actual harness runs (deterministic by design, must be verified)",
-          "MIP-04": "partial — per-claim event log required; initial runs may tag event_log_absent: true",
-          "MIP-05": "satisfied — base distributions documented in reviewer_profile_schema for home scenarios; cross-profile distributions are NT-06"
-        },
-        "rationale": "usefulness ranking ≠ interpretability legitimacy. A metric can be structurally valid and numerically stable but semantically inadmissible. Ranking before interpretability is established produces fabricated utility ordering.",
-        "chain": [
-          "metric exists",
-          "metric interpretable",
-          "metric valid-for-ranking",
-          "metric rankable"
-        ],
-        "preconditions": [
-          {
-            "id": "MIP-01",
-            "name": "explainable",
-            "metric": "claim_discipline_drift",
-            "criterion": "a domain expert unfamiliar with the harness can articulate what a non-zero value means in governance terms",
-            "blocks_if_absent": "semantic fabrication — number exists but meaning is constructed post-hoc"
-          },
-          {
-            "id": "MIP-02",
-            "name": "attributable",
-            "metric": "unsupported_count",
-            "criterion": "a non-zero value can be traced to a specific reviewer action or claim, not harness artifact",
-            "blocks_if_absent": "causal fabrication — signal is real but cause is wrong"
-          },
-          {
-            "id": "MIP-03",
-            "name": "reproducible",
-            "metric": "replay_deterministic",
-            "criterion": "same seed + same reviewer + same scenario produces the same value across independent runs",
-            "blocks_if_absent": "stochastic illusion — metric appears informative but is noise"
-          },
-          {
-            "id": "MIP-04",
-            "name": "traceable",
-            "metric": "reviewer_override_frequency",
-            "criterion": "each override event has a logged source (reviewer identity + decision point), not just a count",
-            "blocks_if_absent": "provenance collapse — count exists but cannot be audited"
-          },
-          {
-            "id": "MIP-05",
-            "name": "understandable",
-            "metric": "intervention_entropy",
-            "criterion": "the entropy calculation is documented with its base distribution; a low value and a high value each have an articulated interpretation",
-            "blocks_if_absent": "observer hallucination — value is computed correctly but reader assigns arbitrary meaning"
-          }
-        ]
-      }
-    },
-    {
-      "task_id": "r49x-5",
-      "name": "null_semantics_audit",
-      "status": "complete",
-      "blocking_r50": true,
-      "depends_on": "r49x-6",
-      "method": "inspect all checkpoint consumers for implicit null conversions, classified by NT-01..NT-06",
-      "pass_criterion": "zero implicit null conversions, or each documented with explicit null_type and rationale",
-      "anti_patterns": [
-        "null → 0 (metric averaging — collapses NT-01/NT-02/NT-06 into false zero)",
-        "unknown → high (evaluator_confidence default — NT-05 recursive null ignored)",
-        "null drop in aggregation denominators (NT-03/NT-04 silently excluded)",
-        "treating NT-03 semantic null as pass or fail without reviewer disposition"
-      ],
-      "result": "pass",
-      "findings": [
-        {"id": "F1", "fixed": true, "description": "drift_result 'pending' conflated NT-01/NT-06 — changed to typed 'not_measured'"},
-        {"id": "F2", "fixed": true, "description": "all runs missing null_type/null_status — added NT-06/not_measured to checkpoint and PS1"},
-        {"id": "F3", "fixed": true, "description": "Get-SubstitutionInterpretation only received $Metrics — refactored to receive $Run and return null_status"},
-        {"id": "F4", "fixed": true, "description": "completion counter excluded 'pending'/'dry_run' — updated to full 6-term null_status vocabulary"},
-        {"id": "F5", "fixed": true, "description": "harness default 'medium' confidence unmarked — added evaluator_confidence_provenance field; default tagged as 'harness_default_NT-05'"},
-        {"id": "F6", "fixed": true, "description": "dryrun drift_result 'dry_run' mixed into metrics — changed to 'premature', null_status separated"}
-      ],
-      "notes": "6 findings resolved; dryrun verified: result=premature, null_type=NT-06 correctly propagated"
-    },
-    {
-      "task_id": "r49x-6",
-      "name": "null_ontology_instantiation",
-      "status": "complete",
-      "blocking_r50": true,
-      "method": "author governance/NULL_ONTOLOGY.md defining NT-01..NT-06 with signals, treatment, fail-closed rules, sparse-verification connection",
-      "pass_criterion": "all 6 null types defined with distinguishing signals and anti-patterns; cross-type comparison table present; sparse-verification connection documented",
-      "result": "pass",
-      "artifact": "governance/NULL_ONTOLOGY.md",
-      "notes": "prerequisite for r49x-5 — defines what the audit must check; also informs r49x-4 metric ranking (NT-02 structural nulls are topology boundaries, not coverage failures)"
-    }
-  ],
-  "epistemic_compression_test": {
-    "status": "pending",
-    "criterion": "reviewer unfamiliar with framework reconstructs governance state from ≤3 artifacts in ≤15 minutes",
-    "candidate_artifacts": [
-      "ab-causal-r492-reviewer-substitution-status-2026-05-15.md",
-      "ab-causal-r492-reviewer-substitution-checkpoint-2026-05-15.json",
-      "ab-causal-r49x-consolidation-window-plan-2026-05-15.md"
-    ],
-    "result": null
-  },
-  "inflation_risk_signals": {
-    "artifact_count_exceeds_attention_budget": null,
-    "signal_count_exceeds_decision_relevant_count": null,
-    "implicit_unknown_to_fail_or_pass_found": null,
-    "three_artifact_reviewability_fails": null,
-    "taxonomy_compression_debt": "noted",
-    "taxonomy_compression_debt_type": "governance_scalability_debt",
-    "taxonomy_compression_debt_note": "ontology too complex for runtime flat view; compression layer deferred until ontology stable enough to compress without flattening critical boundaries"
-  },
-  "r50_constraint_notes": {
-    "stable_candidate_definition": "absence of detected ontology violations — NOT evidence of true substitutability",
-    "accumulation_laundering_guard": "accumulation cannot override admissibility uncertainty: 100 admissibility-weak runs < 1 admissibility-strong run; evidence volume must not be mistaken for evidence strength",
-    "accumulation_laundering_examples": [
-      "3 seeds all pass → sample space too small",
-      "hotspot overlap 70% → topology may be too narrow",
-      "evaluator neutral → neutrality definition not yet stable",
-      "replay deterministic → deterministic ≠ semantically correct"
-    ],
-    "positive_epistemic_semantics": "deferred to R50; confidence accumulation protocol preferred over positive stability proof; direction: how much bounded non-failure evidence has accumulated under explicit assumptions"
-  },
-  "ontology_phase": "stabilized",
-  "ontology_phase_note": "ontology expansion complete for this consolidation window: NULL_ONTOLOGY + METRIC_INTERPRETABILITY_CONTRACT + EPISTEMIC_BASE_ASSUMPTIONS. Next phase requires runtime evidence, not more ontology.",
-  "guard": {
-    "no_new_scenarios": true,
-    "no_new_governance_rules": true,
-    "no_scope_expansion": true,
-    "no_new_ontology_layers": true,
-    "r50_blocked_until_criteria_met": true
-  }
+﻿{
+    "tracker_id":  "ab-causal-r49x-consolidation-tracker-2026-05-15",
+    "as_of":  "2026-05-15",
+    "window":  "r49x_consolidation",
+    "decision":  "r49x_consolidation_window_open",
+    "r50_blocked":  true,
+    "epistemic_stopping_layer":  {
+                                     "artifact":  "governance/EPISTEMIC_BASE_ASSUMPTIONS.md",
+                                     "status":  "instantiated",
+                                     "assumptions":  [
+                                                         "SA-01",
+                                                         "SA-02",
+                                                         "SA-03",
+                                                         "SA-04"
+                                                     ],
+                                     "purpose":  "anti-regress boundary — stops admissibility recursion at governance floor",
+                                     "note":  "This layer does not require further validation. It is the stopping condition for consolidation window admissibility regress."
+                                 },
+    "r50_entry_criteria":  {
+                               "null_ontology_instantiated":  true,
+                               "null_semantics_audit_passed":  true,
+                               "metric_usefulness_ranking_completed":  false,
+                               "epistemic_compression_test_passed":  false,
+                               "at_least_one_genuine_signal_found":  false,
+                               "evaluator_confidence_unknown_rate_below_100pct":  false
+                           },
+    "tasks":  [
+                  {
+                      "task_id":  "r49x-1",
+                      "name":  "evaluator_neutrality_smoke",
+                      "status":  "complete",
+                      "blocking_r50":  false,
+                      "method":  "baseline vs substituted metric distribution comparison",
+                      "pass_criterion":  "evaluator_confidence distribution consistent across original and substituted owners",
+                      "result":  "neutrality_topology_collected",
+                      "notes":  "Topology collected under observation-only; neutrality not assessable in global NT-01 collapse."
+                  },
+                  {
+                      "task_id":  "r49x-2",
+                      "name":  "substitution_replay_stability",
+                      "status":  "pending",
+                      "blocking_r50":  false,
+                      "method":  "re-run completed harness runs, compare replay_deterministic across baseline and substituted",
+                      "pass_criterion":  "replay consistency rate within baseline ± 5%",
+                      "result":  null,
+                      "notes":  null
+                  },
+                  {
+                      "task_id":  "r49x-3",
+                      "name":  "hotspot_transferability",
+                      "status":  "complete",
+                      "blocking_r50":  false,
+                      "method":  "compare hotspot_id sets between original and substituted reviewer runs",
+                      "pass_criterion":  "hotspot_id overlap ≥ 70% across substitution pairs",
+                      "result":  "hotspot_transferability_topology_collected",
+                      "notes":  "Topology collected under observation-only; no causal escalation permitted."
+                  },
+                  {
+                      "task_id":  "r49x-4",
+                      "name":  "metric_usefulness_ranking",
+                      "status":  "pending",
+                      "blocking_r50":  false,
+                      "requires_harness_runs":  6,
+                      "method":  "pairwise metric correlation after ≥6 harness runs",
+                      "output":  "signal_classification per metric: decision_relevant | observational_only | historically_useful | high_cost_low_info",
+                      "result":  null,
+                      "notes":  "cannot start until ≥6 harness runs with non-null metrics exist",
+                      "runnable_when":  "metric_interpretability_preconditions_met == true",
+                      "metric_interpretability_preconditions":  {
+                                                                    "met":  false,
+                                                                    "artifact":  "governance/METRIC_INTERPRETABILITY_CONTRACT.md",
+                                                                    "reviewer_profile_schema":  "docs/status/ab-causal-r492-reviewer-profile-schema-2026-05-15.md",
+                                                                    "mip_status":  {
+                                                                                       "MIP-01":  "satisfied — admissibility definitions written for all 5 metrics in METRIC_INTERPRETABILITY_CONTRACT.md v0.2",
+                                                                                       "MIP-02":  "pending — causal attribution requires R49.x-1 (evaluator neutrality) result",
+                                                                                       "MIP-03":  "pending — cross-seed reproducibility requires actual harness runs (deterministic by design, must be verified)",
+                                                                                       "MIP-04":  "partial — per-claim event log required; initial runs may tag event_log_absent: true",
+                                                                                       "MIP-05":  "satisfied — base distributions documented in reviewer_profile_schema for home scenarios; cross-profile distributions are NT-06"
+                                                                                   },
+                                                                    "rationale":  "usefulness ranking ≠ interpretability legitimacy. A metric can be structurally valid and numerically stable but semantically inadmissible. Ranking before interpretability is established produces fabricated utility ordering.",
+                                                                    "chain":  [
+                                                                                  "metric exists",
+                                                                                  "metric interpretable",
+                                                                                  "metric valid-for-ranking",
+                                                                                  "metric rankable"
+                                                                              ],
+                                                                    "preconditions":  [
+                                                                                          {
+                                                                                              "id":  "MIP-01",
+                                                                                              "name":  "explainable",
+                                                                                              "metric":  "claim_discipline_drift",
+                                                                                              "criterion":  "a domain expert unfamiliar with the harness can articulate what a non-zero value means in governance terms",
+                                                                                              "blocks_if_absent":  "semantic fabrication — number exists but meaning is constructed post-hoc"
+                                                                                          },
+                                                                                          {
+                                                                                              "id":  "MIP-02",
+                                                                                              "name":  "attributable",
+                                                                                              "metric":  "unsupported_count",
+                                                                                              "criterion":  "a non-zero value can be traced to a specific reviewer action or claim, not harness artifact",
+                                                                                              "blocks_if_absent":  "causal fabrication — signal is real but cause is wrong"
+                                                                                          },
+                                                                                          {
+                                                                                              "id":  "MIP-03",
+                                                                                              "name":  "reproducible",
+                                                                                              "metric":  "replay_deterministic",
+                                                                                              "criterion":  "same seed + same reviewer + same scenario produces the same value across independent runs",
+                                                                                              "blocks_if_absent":  "stochastic illusion — metric appears informative but is noise"
+                                                                                          },
+                                                                                          {
+                                                                                              "id":  "MIP-04",
+                                                                                              "name":  "traceable",
+                                                                                              "metric":  "reviewer_override_frequency",
+                                                                                              "criterion":  "each override event has a logged source (reviewer identity + decision point), not just a count",
+                                                                                              "blocks_if_absent":  "provenance collapse — count exists but cannot be audited"
+                                                                                          },
+                                                                                          {
+                                                                                              "id":  "MIP-05",
+                                                                                              "name":  "understandable",
+                                                                                              "metric":  "intervention_entropy",
+                                                                                              "criterion":  "the entropy calculation is documented with its base distribution; a low value and a high value each have an articulated interpretation",
+                                                                                              "blocks_if_absent":  "observer hallucination — value is computed correctly but reader assigns arbitrary meaning"
+                                                                                          }
+                                                                                      ]
+                                                                }
+                  },
+                  {
+                      "task_id":  "r49x-5",
+                      "name":  "null_semantics_audit",
+                      "status":  "complete",
+                      "blocking_r50":  true,
+                      "depends_on":  "r49x-6",
+                      "method":  "inspect all checkpoint consumers for implicit null conversions, classified by NT-01..NT-06",
+                      "pass_criterion":  "zero implicit null conversions, or each documented with explicit null_type and rationale",
+                      "anti_patterns":  [
+                                            "null → 0 (metric averaging — collapses NT-01/NT-02/NT-06 into false zero)",
+                                            "unknown → high (evaluator_confidence default — NT-05 recursive null ignored)",
+                                            "null drop in aggregation denominators (NT-03/NT-04 silently excluded)",
+                                            "treating NT-03 semantic null as pass or fail without reviewer disposition"
+                                        ],
+                      "result":  "pass",
+                      "findings":  [
+                                       {
+                                           "id":  "F1",
+                                           "fixed":  true,
+                                           "description":  "drift_result \u0027pending\u0027 conflated NT-01/NT-06 — changed to typed \u0027not_measured\u0027"
+                                       },
+                                       {
+                                           "id":  "F2",
+                                           "fixed":  true,
+                                           "description":  "all runs missing null_type/null_status — added NT-06/not_measured to checkpoint and PS1"
+                                       },
+                                       {
+                                           "id":  "F3",
+                                           "fixed":  true,
+                                           "description":  "Get-SubstitutionInterpretation only received $Metrics — refactored to receive $Run and return null_status"
+                                       },
+                                       {
+                                           "id":  "F4",
+                                           "fixed":  true,
+                                           "description":  "completion counter excluded \u0027pending\u0027/\u0027dry_run\u0027 — updated to full 6-term null_status vocabulary"
+                                       },
+                                       {
+                                           "id":  "F5",
+                                           "fixed":  true,
+                                           "description":  "harness default \u0027medium\u0027 confidence unmarked — added evaluator_confidence_provenance field; default tagged as \u0027harness_default_NT-05\u0027"
+                                       },
+                                       {
+                                           "id":  "F6",
+                                           "fixed":  true,
+                                           "description":  "dryrun drift_result \u0027dry_run\u0027 mixed into metrics — changed to \u0027premature\u0027, null_status separated"
+                                       }
+                                   ],
+                      "notes":  "6 findings resolved; dryrun verified: result=premature, null_type=NT-06 correctly propagated"
+                  },
+                  {
+                      "task_id":  "r49x-6",
+                      "name":  "null_ontology_instantiation",
+                      "status":  "complete",
+                      "blocking_r50":  true,
+                      "method":  "author governance/NULL_ONTOLOGY.md defining NT-01..NT-06 with signals, treatment, fail-closed rules, sparse-verification connection",
+                      "pass_criterion":  "all 6 null types defined with distinguishing signals and anti-patterns; cross-type comparison table present; sparse-verification connection documented",
+                      "result":  "pass",
+                      "artifact":  "governance/NULL_ONTOLOGY.md",
+                      "notes":  "prerequisite for r49x-5 — defines what the audit must check; also informs r49x-4 metric ranking (NT-02 structural nulls are topology boundaries, not coverage failures)"
+                  }
+              ],
+    "epistemic_compression_test":  {
+                                       "status":  "pending",
+                                       "criterion":  "reviewer unfamiliar with framework reconstructs governance state from ≤3 artifacts in ≤15 minutes",
+                                       "candidate_artifacts":  [
+                                                                   "ab-causal-r492-reviewer-substitution-status-2026-05-15.md",
+                                                                   "ab-causal-r492-reviewer-substitution-checkpoint-2026-05-15.json",
+                                                                   "ab-causal-r49x-consolidation-window-plan-2026-05-15.md"
+                                                               ],
+                                       "result":  null
+                                   },
+    "inflation_risk_signals":  {
+                                   "artifact_count_exceeds_attention_budget":  null,
+                                   "signal_count_exceeds_decision_relevant_count":  null,
+                                   "implicit_unknown_to_fail_or_pass_found":  null,
+                                   "three_artifact_reviewability_fails":  null,
+                                   "taxonomy_compression_debt":  "noted",
+                                   "taxonomy_compression_debt_type":  "governance_scalability_debt",
+                                   "taxonomy_compression_debt_note":  "ontology too complex for runtime flat view; compression layer deferred until ontology stable enough to compress without flattening critical boundaries"
+                               },
+    "r50_constraint_notes":  {
+                                 "stable_candidate_definition":  "absence of detected ontology violations — NOT evidence of true substitutability",
+                                 "accumulation_laundering_guard":  "accumulation cannot override admissibility uncertainty: 100 admissibility-weak runs \u003c 1 admissibility-strong run; evidence volume must not be mistaken for evidence strength",
+                                 "accumulation_laundering_examples":  [
+                                                                          "3 seeds all pass → sample space too small",
+                                                                          "hotspot overlap 70% → topology may be too narrow",
+                                                                          "evaluator neutral → neutrality definition not yet stable",
+                                                                          "replay deterministic → deterministic ≠ semantically correct"
+                                                                      ],
+                                 "positive_epistemic_semantics":  "deferred to R50; confidence accumulation protocol preferred over positive stability proof; direction: how much bounded non-failure evidence has accumulated under explicit assumptions"
+                             },
+    "ontology_phase":  "stabilized",
+    "ontology_phase_note":  "ontology expansion complete for this consolidation window: NULL_ONTOLOGY + METRIC_INTERPRETABILITY_CONTRACT + EPISTEMIC_BASE_ASSUMPTIONS. Next phase requires runtime evidence, not more ontology.",
+    "guard":  {
+                  "no_new_scenarios":  true,
+                  "no_new_governance_rules":  true,
+                  "no_scope_expansion":  true,
+                  "no_new_ontology_layers":  true,
+                  "r50_blocked_until_criteria_met":  true
+              }
 }

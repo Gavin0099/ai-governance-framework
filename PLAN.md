@@ -2292,3 +2292,43 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 - Observation-only contract:
   - allowed: new seeds, new topology tags, limited drift scenarios
   - disallowed: new rules, override path expansion, reason-code semantics changes, deny-path logic changes
+
+## 2026-05-15 Mainline Risk R1.1 (IPC Opaque Session ID Inventory Baseline)
+
+- Scope locked:
+  - replace UI-facing pointer-like/handle-like IPC exposure with opaque session identity where appropriate
+- Non-goals locked:
+  - no lifecycle rule change
+  - no new callback terminal state
+  - no governance gate change
+  - no loader-path change
+- Required deliverable sections defined:
+  - IPC surface inventory
+  - migration classification (A/B/C)
+  - authority lifetime table
+  - patch order
+  - required tests
+  - freeze boundary constraints
+- Migration class contract:
+  - A: direct `opaque_session_id` replacement
+  - B: compatibility shim (`opaque_session_id` + legacy adapter)
+  - C: cross-module coordination slice (high risk)
+- Test obligations locked:
+  - stale session rejection
+  - revoked session cannot complete
+  - legacy handle cannot regain authority
+  - replay determinism
+  - close-before-complete terminal closure
+  - unplug/cancel priority resolution
+
+## 2026-05-15 R49.x-1 Evaluator Neutrality Topology
+
+- Status: completed (observation-only)
+- Decision: neutrality_not_assessable_observation_only
+- causal_finding_level: observation_only
+- Evidence: 18/18 runs -> measurement_source=harness_error_fallback, null_type=NT-01, interpretation=not_measured
+- Boundary: substitution_drift_observed distribution collection is not tacit dependency evidence.
+- Artifacts:
+  - docs/status/ab-causal-r49x1-evaluator-neutrality-topology-status-2026-05-15.md
+  - docs/status/ab-causal-r49x1-evaluator-neutrality-topology-checkpoint-2026-05-15.json
+  - docs/status/ab-causal-r49x-consolidation-tracker-2026-05-15.json

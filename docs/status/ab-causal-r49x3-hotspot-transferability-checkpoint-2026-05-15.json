@@ -1,0 +1,76 @@
+﻿{
+    "checkpoint_id":  "ab-causal-r49x3-hotspot-transferability-checkpoint-2026-05-15",
+    "as_of":  "2026-05-15",
+    "source_checkpoint":  "docs/status/ab-causal-r492-reviewer-substitution-checkpoint-2026-05-15.json",
+    "mode":  "observation_only",
+    "decision":  "hotspot_transferability_topology_collected",
+    "causal_finding_level":  "observation_only",
+    "summary":  {
+                    "hotspot_overlap_rate":  0.6667,
+                    "total_cells":  6,
+                    "transferability_assessable":  true,
+                    "total_runs":  18,
+                    "hotspot_unique_count":  3
+                },
+    "hotspots":  {
+                     "cells":  [
+                                   {
+                                       "scenario_id":  "SCN-PRODUCT",
+                                       "substituted_owner":  "audit",
+                                       "run_count":  3,
+                                       "hotspot_id":  "hs_evidence_lineage_strictness",
+                                       "drift_observed_count":  3,
+                                       "event_log_absent_count":  3
+                                   },
+                                   {
+                                       "scenario_id":  "SCN-AUDIT",
+                                       "substituted_owner":  "product",
+                                       "run_count":  3,
+                                       "hotspot_id":  "hs_scope_boundary_pressure",
+                                       "drift_observed_count":  3,
+                                       "event_log_absent_count":  3
+                                   },
+                                   {
+                                       "scenario_id":  "SCN-PRODUCT",
+                                       "substituted_owner":  "runtime",
+                                       "run_count":  3,
+                                       "hotspot_id":  "hs_authority_boundary_pressure",
+                                       "drift_observed_count":  3,
+                                       "event_log_absent_count":  3
+                                   },
+                                   {
+                                       "scenario_id":  "SCN-RUNTIME",
+                                       "substituted_owner":  "product",
+                                       "run_count":  3,
+                                       "hotspot_id":  "hs_scope_boundary_pressure",
+                                       "drift_observed_count":  3,
+                                       "event_log_absent_count":  3
+                                   },
+                                   {
+                                       "scenario_id":  "SCN-AUDIT",
+                                       "substituted_owner":  "runtime",
+                                       "run_count":  3,
+                                       "hotspot_id":  "hs_authority_boundary_pressure",
+                                       "drift_observed_count":  3,
+                                       "event_log_absent_count":  3
+                                   },
+                                   {
+                                       "scenario_id":  "SCN-RUNTIME",
+                                       "substituted_owner":  "audit",
+                                       "run_count":  3,
+                                       "hotspot_id":  "hs_evidence_lineage_strictness",
+                                       "drift_observed_count":  3,
+                                       "event_log_absent_count":  3
+                                   }
+                               ],
+                     "unique_hotspots":  [
+                                             "hs_authority_boundary_pressure",
+                                             "hs_evidence_lineage_strictness",
+                                             "hs_scope_boundary_pressure"
+                                         ]
+                 },
+    "interpretation_boundary":  {
+                                    "disallowed":  "reviewer dependency causal escalation from hotspot overlap",
+                                    "allowed":  "hotspot topology observation only"
+                                }
+}
