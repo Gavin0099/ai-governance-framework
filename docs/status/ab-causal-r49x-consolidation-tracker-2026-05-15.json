@@ -4,6 +4,13 @@
   "window": "r49x_consolidation",
   "decision": "r49x_consolidation_window_open",
   "r50_blocked": true,
+  "epistemic_stopping_layer": {
+    "artifact": "governance/EPISTEMIC_BASE_ASSUMPTIONS.md",
+    "status": "instantiated",
+    "assumptions": ["SA-01", "SA-02", "SA-03", "SA-04"],
+    "purpose": "anti-regress boundary — stops admissibility recursion at governance floor",
+    "note": "This layer does not require further validation. It is the stopping condition for consolidation window admissibility regress."
+  },
   "r50_entry_criteria": {
     "null_ontology_instantiated": true,
     "null_semantics_audit_passed": true,
