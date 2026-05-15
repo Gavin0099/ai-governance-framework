@@ -1,0 +1,76 @@
+{
+  "artifact_id": "ab-causal-governance-effect-topology-2026-05-15",
+  "as_of": "2026-05-15",
+  "global_claim_boundary": "Current AI governance effect is observable but condition-dependent.",
+  "topology_dimensions": [
+    "determinism_level",
+    "schema_contract_strength",
+    "observability_coverage",
+    "control_surface_leverage",
+    "external_env_dependency"
+  ],
+  "repo_mapping": [
+    {
+      "repo_id": "gl-electron-tool",
+      "repo_type": "tooling",
+      "decision": "threshold_dependent_persists",
+      "arm2_detectable": null,
+      "topology_profile": {
+        "determinism_level": "low_to_medium",
+        "schema_contract_strength": "medium",
+        "observability_coverage": "medium_to_low",
+        "control_surface_leverage": "low",
+        "external_env_dependency": "high"
+      },
+      "leverage_class": "weak_to_medium"
+    },
+    {
+      "repo_id": "financial-pdf-reader",
+      "repo_type": "product",
+      "decision": "mechanism_stable_candidate",
+      "arm2_detectable": false,
+      "topology_profile": {
+        "determinism_level": "medium_to_high",
+        "schema_contract_strength": "high",
+        "observability_coverage": "high",
+        "control_surface_leverage": "medium",
+        "external_env_dependency": "medium"
+      },
+      "leverage_class": "medium_to_strong"
+    },
+    {
+      "repo_id": "ai-governance-framework",
+      "repo_type": "governance-meta",
+      "decision": "mechanism_stable_candidate",
+      "arm2_detectable": true,
+      "topology_profile": {
+        "determinism_level": "high",
+        "schema_contract_strength": "high",
+        "observability_coverage": "high",
+        "control_surface_leverage": "high",
+        "external_env_dependency": "low_to_medium"
+      },
+      "leverage_class": "strong"
+    }
+  ],
+  "interpretation_rules": [
+    "single-repo mechanism_stable_candidate does not imply universal robustness",
+    "threshold_dependent_persists is topology evidence, not discardable outlier noise",
+    "heterogeneity must be preserved as first-class evidence in claim synthesis"
+  ],
+  "routing_policy": {
+    "strong_leverage": [
+      "prioritize evidence-contract enforcement",
+      "track policy-toggle detectability as control-surface health"
+    ],
+    "weak_leverage": [
+      "prioritize runtime-state observability and decomposition",
+      "avoid governance-layer inflation before leverage diagnostics"
+    ]
+  },
+  "upgrade_disallowed_without": [
+    "matched real-task strict gate pass across heterogeneous topology classes",
+    "unsupported_count equals zero across required arms"
+  ]
+}
+
