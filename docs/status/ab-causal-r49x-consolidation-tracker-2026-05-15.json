@@ -64,6 +64,14 @@
       "metric_interpretability_preconditions": {
         "met": false,
         "artifact": "governance/METRIC_INTERPRETABILITY_CONTRACT.md",
+        "reviewer_profile_schema": "docs/status/ab-causal-r492-reviewer-profile-schema-2026-05-15.md",
+        "mip_status": {
+          "MIP-01": "satisfied — admissibility definitions written for all 5 metrics in METRIC_INTERPRETABILITY_CONTRACT.md v0.2",
+          "MIP-02": "pending — causal attribution requires R49.x-1 (evaluator neutrality) result",
+          "MIP-03": "pending — cross-seed reproducibility requires actual harness runs (deterministic by design, must be verified)",
+          "MIP-04": "partial — per-claim event log required; initial runs may tag event_log_absent: true",
+          "MIP-05": "satisfied — base distributions documented in reviewer_profile_schema for home scenarios; cross-profile distributions are NT-06"
+        },
         "rationale": "usefulness ranking ≠ interpretability legitimacy. A metric can be structurally valid and numerically stable but semantically inadmissible. Ranking before interpretability is established produces fabricated utility ordering.",
         "chain": [
           "metric exists",

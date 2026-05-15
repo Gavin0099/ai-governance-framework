@@ -211,8 +211,101 @@ Violation of this sequencing produces **fabricated utility ordering**.
 
 ---
 
+## Metric Admissibility Definitions (R49.2)
+
+These definitions satisfy the pre-agreed interpretation requirement for MIP-01 and MIP-05.
+They must exist before any harness run so that metric output cannot be interpreted post-hoc.
+
+### Format
+
+Each definition carries seven fields:
+
+| Field | Purpose |
+|---|---|
+| `measured_object` | What the metric actually counts or computes |
+| `valid_input` | What constitutes a legitimate input to this metric |
+| `invalid_input` | What inputs must not be used (null type or structural reason) |
+| `null_behavior` | What typed null to emit when input is invalid |
+| `interpretation_boundary` | The defined range and what boundary values mean |
+| `forbidden_interpretation` | Explicit prohibitions — what this metric must never be used to claim |
+| `admissibility_status` | Current MIP satisfaction state |
+
+---
+
+### claim_discipline_drift
+
+- **measured_object:** delta in governance violation detection rate between original_owner profile and substituted_owner profile, evaluated on the same scenario and seed
+- **valid_input:** non-null violation counts from both profiles on the same (scenario, seed) pair
+- **invalid_input:** NT-01 fallback run; NT-06 stub run; single-profile evaluation (no baseline exists for comparison)
+- **null_behavior:** NT-02 if scenario contains no evaluable claims; NT-06 if substitution pair has not yet been evaluated on this (scenario, seed)
+- **interpretation_boundary:** [0.0, 1.0] where 0.0 = identical detection rate across profiles; higher values indicate detection rate divergence. Direction alone is not interpretable without profile comparison.
+- **forbidden_interpretation:**
+  - `drift = 0.0` → `stable_candidate` — zero drift means profiles agree OR both failed to detect; cannot distinguish without NT-03 check
+  - `drift > 0` → `tacit_dependency_detected` — divergence may be profile-specific topology, not reviewer dependency; requires R49.x-1 (evaluator neutrality) before causal attribution
+- **admissibility_status:** MIP-01 pre-agreed interpretation satisfied by this definition. MIP-02 (attributable) pending R49.x-1.
+
+---
+
+### unsupported_count
+
+- **measured_object:** count of claims evaluated as lacking required evidence reference under the active reviewer profile's criteria
+- **valid_input:** scenario with at least one claim evaluable under the reviewer profile; reviewer profile with defined evidence criteria for this scenario type
+- **invalid_input:** NT-01 run; scenario with no evaluable claims (NT-02); reviewer profile with no evidence criteria defined for this scenario type (NT-02 structural mismatch)
+- **null_behavior:** NT-02 if reviewer profile has no evidence criteria for this scenario type; NT-06 if reviewer profile definition is pending
+- **interpretation_boundary:** non-negative integer; comparison is meaningful only within the same profile type and same scenario; cross-profile comparison without baseline is NT-04 (causal null)
+- **forbidden_interpretation:**
+  - `count increase after substitution` → `reviewer_fragility_detected` — may be profile-specific topology effect, not tacit dependency; requires R49.x-1 before attribution
+  - `count = 0` → `evidence_discipline_confirmed` — may mean evaluator failed to detect (NT-03), not that discipline is genuine
+- **admissibility_status:** MIP-01 pre-agreed interpretation satisfied by this definition. MIP-02 pending R49.x-1.
+
+---
+
+### replay_deterministic
+
+- **measured_object:** boolean — does the same (seed, reviewer_profile, scenario) tuple produce an identical violation set across independent runs?
+- **valid_input:** ≥2 runs with identical (seed, reviewer_profile, scenario) tuple; runs must be independent (not cached)
+- **invalid_input:** single run (NT-06 — determinism cannot be established from one run); runs with different seeds compared as if same (invalid comparison)
+- **null_behavior:** NT-06 until at least a second independent run exists for the same tuple
+- **interpretation_boundary:** boolean (true/false); no gradation — a run is either deterministic or it is not; partial determinism must be expressed as `replay_deterministic: false` with a note
+- **forbidden_interpretation:**
+  - `replay_deterministic: true` → `governance_is_stable` — determinism checks output consistency, not semantic correctness; a deterministic evaluator can be consistently wrong
+  - `replay_deterministic: false` in substituted run → `substitution_fragility` — baseline (original_owner replay) must be checked first; if baseline is also non-deterministic, this is harness instability, not substitution effect (R49.x-2 disambiguation required)
+- **admissibility_status:** MIP-01 and MIP-05 pre-agreed interpretations satisfied. MIP-03 (reproducible) requires cross-seed consistency demonstration from actual runs.
+
+---
+
+### reviewer_override_frequency
+
+- **measured_object:** fraction of evaluated claims where the substituted profile reaches a different disposition than the original profile
+- **valid_input:** both profiles evaluated the same claim set; per-claim disposition is available in event log (not aggregate count only)
+- **invalid_input:** aggregate counts only without per-claim provenance (MIP-04 violation — provenance collapse); single-profile evaluation
+- **null_behavior:** NT-02 if scenario has no prior disposition to compare against; NT-06 if per-claim event log is absent; tag `event_log_absent: true` when no log exists — this prevents the count from being used in causal claims
+- **interpretation_boundary:** [0.0, 1.0]; high value means profiles diverge frequently in disposition; low value means profiles agree — but agreement may reflect identical blind spots, not genuine consensus
+- **forbidden_interpretation:**
+  - `high override_frequency` → `reviewer_weakness` — may be scenario topology (product scenario has more ambiguous claims by design); requires cross-scenario comparison before reviewer attribution
+  - `low override_frequency` → `substitution_safe` — profiles may agree because both fail to detect; NT-03 risk
+- **admissibility_status:** MIP-01 pre-agreed interpretation satisfied. MIP-04 (traceable): per-claim event log required; initial runs must tag `event_log_absent: true` if log unavailable.
+
+---
+
+### intervention_entropy
+
+- **measured_object:** Shannon entropy of the intervention point distribution across evaluated claims in a scenario; base distribution must be documented
+- **valid_input:** ≥2 distinct intervention points; documented base distribution (uniform, scenario-specific, or empirical); this documentation must pre-exist the run
+- **invalid_input:** zero interventions (NT-02 — entropy is undefined when the set is empty; must NOT be imputed as 0.0); undefined base distribution (MIP-05 violation — observer hallucination risk)
+- **null_behavior:** NT-02 if scenario has zero interventions; excluded from entropy comparison — do NOT impute 0.0 as "maximum silo risk"
+- **interpretation_boundary:** [0.0, log₂(N)] where N = number of possible intervention points; interpretation requires documented base distribution; a value cannot be classified as "low" or "high" without the baseline; the baseline must be written in the reviewer profile schema before any run
+- **forbidden_interpretation:**
+  - `low entropy` → `silo_risk_flagged` without ruling out NT-02 (topology constraint with few intervention points by design)
+  - `entropy convergence after substitution` → `knowledge_silo_confirmed` — may be metric instability in product scenarios (R49.x-2 prerequisite for this attribution)
+  - comparing entropy across scenarios without controlling for number of possible intervention points
+- **admissibility_status:** MIP-01 and MIP-05 pre-agreed interpretations satisfied by this definition and by reviewer profile schema (which must document base distributions). MIP-03 pending cross-seed demonstration.
+
+---
+
 ## Version History
 
 | Version | Change |
 |---|---|
 | v0.1 | Initial contract: MIP-01..05, admissibility decision rule, relationship to NULL_ONTOLOGY |
+| v0.2 | Added metric admissibility definitions for all 5 R49.2 metrics; MIP-01 and MIP-05 preconditions satisfied for claim_discipline_drift, replay_deterministic, intervention_entropy |
