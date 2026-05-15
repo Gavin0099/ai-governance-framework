@@ -9,9 +9,17 @@ param(
     [string]$OutputDir      = "docs/status",
     # dryrun  — skip all measurement, write nothing
     # stub    — use stub metrics (null/pending), write checkpoint (default)
-    # harness — call governance_harness.py, write checkpoint
+    # harness — call $HarnessScript, write checkpoint
     [ValidateSet("dryrun", "stub", "harness")]
-    [string]$Mode = "stub"
+    [string]$Mode = "stub",
+    # HarnessScript: which Python script to invoke in harness mode.
+    #   Default: governance_harness.py (R48 cross-repo harness — CLI mismatch → NT-01)
+    #   Smoke:   scripts/r492_harness_adapter.py (adapter smoke — contract shape only)
+    # Boundary: swapping this does NOT change the decision lock or observation-only contract.
+    [string]$HarnessScript = "governance_harness.py",
+    # HarnessExtraArgs: additional args passed verbatim to $HarnessScript after the standard args.
+    #   Example: "--case nt05" to test NT-05 path via adapter smoke.
+    [string[]]$HarnessExtraArgs = @()
 )
 
 Set-StrictMode -Version Latest
@@ -22,6 +30,12 @@ $DECISION_LOCK = "reviewer_substitution_observation_only"
 
 Write-Host "[R49.2] Mode: observation-only ($Mode) | Decision locked to: $DECISION_LOCK"
 Write-Host "[R49.2] No rules will be added. No gates will be triggered."
+if ($HarnessScript -ne "governance_harness.py") {
+    Write-Host "[R49.2] ADAPTER SMOKE: HarnessScript=$HarnessScript — contract shape only, not evidence collection"
+}
+if ($HarnessExtraArgs.Count -gt 0) {
+    Write-Host "[R49.2] HarnessExtraArgs: $($HarnessExtraArgs -join ' ')"
+}
 
 # ── load dataset ─────────────────────────────────────────────────────────────
 if (-not (Test-Path $DatasetPath)) {
@@ -84,12 +98,12 @@ function Invoke-HarnessRun {
     )
     # Calls: python governance_harness.py --scenario <id> --seed <seed> --reviewer <owner> --observe-only
     $harnessArgs = @(
-        "governance_harness.py",
+        $Script:HarnessScript,
         "--scenario", $ScenarioId,
         "--seed", $Seed,
         "--reviewer", $SubstitutedOwner,
         "--observe-only"
-    )
+    ) + $Script:HarnessExtraArgs
     try {
         $raw = & python @harnessArgs 2>&1
         $exitCode = $LASTEXITCODE
