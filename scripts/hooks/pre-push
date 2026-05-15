@@ -91,6 +91,13 @@ if [ -n "$PUSH_UPDATES" ]; then
             break
         fi
 
+        # Minimal fallback: check files touched by the local tip commit itself.
+        if git -C "$TARGET_REPO_ROOT" diff-tree --no-commit-id --name-only -r "$local_sha" \
+            | grep -Fxq "$TODAY_MEMORY_PATH"; then
+            MEMORY_UPDATED_IN_PUSH=1
+            break
+        fi
+
         # Fallback for missing remote commit object in local clone:
         # inspect files touched by commits that are not yet in any remote.
         if git -C "$TARGET_REPO_ROOT" rev-list "$local_sha" --not --remotes 2>/dev/null \
