@@ -77,13 +77,25 @@ if [ -n "$PUSH_UPDATES" ]; then
         [ -n "${local_sha:-}" ] || continue
         [ "$local_sha" = "$ZERO_OID" ] && continue
 
+        RANGE_OK=0
         if [ "${remote_sha:-$ZERO_OID}" = "$ZERO_OID" ]; then
             range="$local_sha"
-        else
+            RANGE_OK=1
+        elif git -C "$TARGET_REPO_ROOT" cat-file -e "${remote_sha}^{commit}" 2>/dev/null; then
             range="${remote_sha}..${local_sha}"
+            RANGE_OK=1
         fi
 
-        if git -C "$TARGET_REPO_ROOT" diff --name-only "$range" -- | grep -Fxq "$TODAY_MEMORY_PATH"; then
+        if [ "$RANGE_OK" -eq 1 ] && git -C "$TARGET_REPO_ROOT" diff --name-only "$range" -- | grep -Fxq "$TODAY_MEMORY_PATH"; then
+            MEMORY_UPDATED_IN_PUSH=1
+            break
+        fi
+
+        # Fallback for missing remote commit object in local clone:
+        # inspect files touched by commits that are not yet in any remote.
+        if git -C "$TARGET_REPO_ROOT" rev-list "$local_sha" --not --remotes 2>/dev/null \
+            | xargs -r git -C "$TARGET_REPO_ROOT" diff-tree --no-commit-id --name-only -r \
+            | grep -Fxq "$TODAY_MEMORY_PATH"; then
             MEMORY_UPDATED_IN_PUSH=1
             break
         fi
