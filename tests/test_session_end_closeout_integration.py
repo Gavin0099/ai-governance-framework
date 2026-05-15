@@ -131,7 +131,13 @@ class TestSessionIndex:
         write_candidate("s-002", repo, _VALID_CANDIDATE)
         _run(repo, session_id="s-002")
         lines = [json.loads(l) for l in (repo / "artifacts" / "session-index.ndjson").read_text(encoding="utf-8").splitlines() if l.strip()]
-        assert next(e for e in lines if e["session_id"] == "s-002")["closeout_status"] == "valid"
+        entry = next(e for e in lines if e["session_id"] == "s-002")
+        assert entry["closeout_status"] == "valid"
+        assert entry["task_intent"] is not None
+        assert entry["task_intent"].strip()
+
+        # Valid closeouts should never leak null task intent into the index.
+        assert entry["task_intent"] == _VALID_CANDIDATE["task_intent"]
 
     def test_multiple_sessions_append_multiple_lines(self):
         repo = _reset_fixture("index_append_multiple")
