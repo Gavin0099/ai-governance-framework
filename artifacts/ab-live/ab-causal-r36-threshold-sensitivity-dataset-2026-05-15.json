@@ -1,0 +1,42 @@
+{
+  "dataset_id": "ab-causal-r36-threshold-sensitivity-2026-05-15",
+  "as_of": "2026-05-15",
+  "purpose": "Map failure-rate sensitivity around direction_tolerance boundary under fixed constraints",
+  "fixed_conditions": {
+    "exploration_floor": 0,
+    "max_latency_delta": 10
+  },
+  "sweep_param": "direction_tolerance",
+  "sweep_values": [-1.8, -1.6, -1.5, -1.4, -1.2],
+  "seed_policy": {
+    "mode": "fixed_per_tolerance",
+    "seeds_per_point": [350101, 350102, 350103],
+    "max_retry": 3,
+    "resume_checkpoint": "ab-causal-r36-threshold-sensitivity-checkpoint-2026-05-15.json"
+  },
+  "records": [
+    {"case_id":"r36-ts-001","direction_tolerance":-1.8,"seed":350101,"exploration_floor":0,"max_latency_delta":10,"max_retry":3},
+    {"case_id":"r36-ts-002","direction_tolerance":-1.8,"seed":350102,"exploration_floor":0,"max_latency_delta":10,"max_retry":3},
+    {"case_id":"r36-ts-003","direction_tolerance":-1.8,"seed":350103,"exploration_floor":0,"max_latency_delta":10,"max_retry":3},
+    {"case_id":"r36-ts-004","direction_tolerance":-1.6,"seed":350101,"exploration_floor":0,"max_latency_delta":10,"max_retry":3},
+    {"case_id":"r36-ts-005","direction_tolerance":-1.6,"seed":350102,"exploration_floor":0,"max_latency_delta":10,"max_retry":3},
+    {"case_id":"r36-ts-006","direction_tolerance":-1.6,"seed":350103,"exploration_floor":0,"max_latency_delta":10,"max_retry":3},
+    {"case_id":"r36-ts-007","direction_tolerance":-1.5,"seed":350101,"exploration_floor":0,"max_latency_delta":10,"max_retry":3},
+    {"case_id":"r36-ts-008","direction_tolerance":-1.5,"seed":350102,"exploration_floor":0,"max_latency_delta":10,"max_retry":3},
+    {"case_id":"r36-ts-009","direction_tolerance":-1.5,"seed":350103,"exploration_floor":0,"max_latency_delta":10,"max_retry":3},
+    {"case_id":"r36-ts-010","direction_tolerance":-1.4,"seed":350101,"exploration_floor":0,"max_latency_delta":10,"max_retry":3},
+    {"case_id":"r36-ts-011","direction_tolerance":-1.4,"seed":350102,"exploration_floor":0,"max_latency_delta":10,"max_retry":3},
+    {"case_id":"r36-ts-012","direction_tolerance":-1.4,"seed":350103,"exploration_floor":0,"max_latency_delta":10,"max_retry":3},
+    {"case_id":"r36-ts-013","direction_tolerance":-1.2,"seed":350101,"exploration_floor":0,"max_latency_delta":10,"max_retry":3},
+    {"case_id":"r36-ts-014","direction_tolerance":-1.2,"seed":350102,"exploration_floor":0,"max_latency_delta":10,"max_retry":3},
+    {"case_id":"r36-ts-015","direction_tolerance":-1.2,"seed":350103,"exploration_floor":0,"max_latency_delta":10,"max_retry":3}
+  ],
+  "aggregation": {
+    "group_by": ["direction_tolerance"],
+    "metrics": ["completed_seeds", "pass_count", "fail_count", "fail_rate"],
+    "route_status_rule": {
+      "threshold_dependent_confirmed": "exists_t where fail_rate(t)=1.0 and exists_t2 where fail_rate(t2)<1.0",
+      "strict_stable_candidate": "all_t fail_rate(t)=0.0"
+    }
+  }
+}
