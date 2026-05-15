@@ -2201,3 +2201,14 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 | 2026-04-27 | State drift correction — Phase D closeout invalidated | 將「Phase D completed」下修為 reopened（`blocked_by_phase_c_surface_gap`）。原因：Phase C authority lifecycle / precedence-aware consumer + release surfaces 仍有 integration gap。新增 state reconciliation 原則：若 Phase D completed 但 Phase C release surface precedence integration 未證明，視為 false governance signal。 |
 | 2026-04-28 | Second state reconciliation — Phase D moved to resumable | 重新驗證 Phase C release surface precedence、promotion consumer precedence 與 read-side enforcement 門檻皆為 ready，原 reopen reason `blocked_by_phase_c_surface_gap` 已解除；Phase D 從 reopened/pending 調整為 resumable，保留 reviewer explicit closeout，不自動回 completed。 |
 | 2026-04-28 | Phase D completed — reviewer closeout artifact signed | Reviewer Gavin0099 簽署 `artifacts/governance/phase-d-reviewer-closeout.json`（confirmed_at: 2026-04-28T11:59:44Z）。assess_phase_d_closeout() → ok=True, failures=[], missing_required_conditions=[]。同步：PLAN.md Phase D 標記為 completed；.governance-state.yaml 重新生成；memory/00_long_term.md 更新跨 agent 可讀的治理狀態。 |
+
+## 2026-05-15 R35 Boundary Stability Sync
+
+- Fixed-condition execution synchronized from validated run:
+  - direction_tolerance: -1.5 (fixed)
+  - exploration_floor: 0 (fixed)
+  - max_latency_delta: 10 (fixed)
+  - seeds: 350101, 350102, 350103
+- Evidence status: completed_seeds=3/3, pass=0, fail=3
+- Route status: threshold_dependent_confirmed
+- Governance conclusion: threshold dependent under boundary condition; not a strict mechanism-stable uplift.
