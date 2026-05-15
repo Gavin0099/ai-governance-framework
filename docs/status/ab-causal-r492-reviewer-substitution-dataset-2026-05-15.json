@@ -1,0 +1,101 @@
+{
+  "experiment_id": "ab-causal-r492-reviewer-substitution",
+  "as_of": "2026-05-15",
+  "phase": "observation_only",
+  "parent_experiment": "ab-causal-r48-cross-repo-2026-05-15",
+  "scope_constraint": {
+    "scenarios_fixed": true,
+    "seeds_fixed": true,
+    "no_new_rule": true,
+    "no_new_gate": true,
+    "mode": "observation_only"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "SCN-RUNTIME",
+      "description": "Runtime authority boundary check under governance hook",
+      "original_owner": "runtime",
+      "seeds": [350101, 350102, 350103]
+    },
+    {
+      "scenario_id": "SCN-AUDIT",
+      "description": "Audit review of claim discipline and unsupported count",
+      "original_owner": "audit",
+      "seeds": [350101, 350102, 350103]
+    },
+    {
+      "scenario_id": "SCN-PRODUCT",
+      "description": "Product review of intervention and override surface",
+      "original_owner": "product",
+      "seeds": [350101, 350102, 350103]
+    }
+  ],
+  "substitution_matrix": [
+    {"from": "runtime", "to": "audit"},
+    {"from": "runtime", "to": "product"},
+    {"from": "audit",   "to": "runtime"},
+    {"from": "audit",   "to": "product"},
+    {"from": "product", "to": "runtime"},
+    {"from": "product", "to": "audit"}
+  ],
+  "tracked_metrics": [
+    "claim_discipline_drift",
+    "unsupported_count",
+    "replay_deterministic",
+    "reviewer_override_frequency",
+    "intervention_entropy"
+  ],
+  "interpretation_table": [
+    {
+      "result": "substitution 後指標穩定",
+      "interpretation": "reviewer knowledge 可轉移候選"
+    },
+    {
+      "result": "override frequency 上升但 claim 不漂移",
+      "interpretation": "可替代但成本較高"
+    },
+    {
+      "result": "claim drift / unsupported > 0",
+      "interpretation": "存在 reviewer tacit dependency"
+    },
+    {
+      "result": "replay 不 deterministic",
+      "interpretation": "substitution 破壞 runtime consistency"
+    },
+    {
+      "result": "entropy 過度集中",
+      "interpretation": "governance knowledge silo 風險"
+    }
+  ],
+  "evaluator_confidence_schema": {
+    "field": "evaluator_confidence",
+    "values": ["high", "medium", "low", "unknown"],
+    "semantics": {
+      "high":    "harness ran cleanly, metric surface well-covered, no ambiguity in measurement path",
+      "medium":  "harness ran but partial coverage or one metric with low observability",
+      "low":     "harness ran but significant observability gap — results directional only",
+      "unknown": "stub or dryrun mode; no actual measurement performed"
+    },
+    "non_gating": true,
+    "purpose": "epistemic provenance for the evaluator itself — evaluator neutrality signal, not a governance gate",
+    "anti_patterns": [
+      "do NOT map unknown -> fail",
+      "do NOT map unknown -> pass",
+      "do NOT conflate low evaluator_confidence with governance fragility"
+    ],
+    "risk_if_absent": "evaluator adaptation leakage — harness bias misread as reviewer substitution signal"
+  },
+  "run_count_invariant": {
+    "formula": "3 scenarios × 2 substitute_directions × 3 seeds",
+    "expected_run_count": 18,
+    "note": "substitution pairs are scenario-scoped (from == scenario.original_owner); not a cross-product of all 6 pairs × all 3 scenarios (which would yield 54)"
+  },
+  "claim_boundary": {
+    "allowed": "R49.2 evaluates reviewer substitutability as an observation-only fragility signal.",
+    "disallowed": [
+      "reviewer independence confirmed",
+      "governance scalability proven",
+      "reviewer_substitution_passed"
+    ]
+  }
+}
