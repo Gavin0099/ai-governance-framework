@@ -21,7 +21,7 @@
   "properties": {
     "schema_version": {
       "type": "string",
-      "const": "1.0"
+      "enum": ["1.0", "1.1"]
     },
     "timestamp": {
       "type": "string",
@@ -66,6 +66,62 @@
     },
     "memory_eligibility_reason": {
       "type": "string"
+    },
+
+    "output_mode_requested": {
+      "type": "string",
+      "description": "The mode requested by the agent before enforcement."
+    },
+    "output_mode_effective": {
+      "type": "string",
+      "description": "The mode actually permitted after ceiling enforcement (actual_mode from enforcer)."
+    },
+    "output_mode_decision": {
+      "type": "string",
+      "enum": ["allow", "degrade", "block"],
+      "description": "enforcement_action from enforce_output_mode."
+    },
+    "output_mode_ceiling": {
+      "type": "string",
+      "description": "Maximum admissible mode computed by enforce_output_mode from the record."
+    },
+    "consequence_tier": {
+      "type": "integer",
+      "enum": [0, 1, 2],
+      "description": "Consequence Materiality Tier from the downgrade record (0=cosmetic, 1=procedural, 2=structural)."
+    },
+    "consequence_materiality_reason": {
+      "type": "string",
+      "description": "Human-readable reason for the consequence tier classification."
+    },
+    "enforcement_source": {
+      "type": "string",
+      "const": "output_mode_enforcer",
+      "description": "Identifies which module produced the output_mode decision. Locked to prevent receipt-local ceiling recomputation."
+    },
+    "fallback_weakens_enforcement": {
+      "type": "boolean",
+      "const": false,
+      "description": "Always false. Manual fallback uses the same enforcer and semantics as native hook path."
+    },
+    "manual_fallback_reason": {
+      "type": "string",
+      "description": "Reason native hook was unavailable (e.g. non_native_hook_agent, hook_install_failed)."
     }
+  },
+
+  "if": {
+    "properties": { "trigger_mode": { "const": "manual_fallback" } }
+  },
+  "then": {
+    "required": [
+      "output_mode_requested",
+      "output_mode_effective",
+      "output_mode_decision",
+      "output_mode_ceiling",
+      "enforcement_source",
+      "fallback_weakens_enforcement",
+      "manual_fallback_reason"
+    ]
   }
 }
