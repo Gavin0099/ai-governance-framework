@@ -106,23 +106,86 @@ Semantic osmosis is the process by which implicit trust accumulates through
 repeated exposure to stable signals — without any explicit code path, design
 decision, or policy change.
 
-It is the most dangerous form of authority creep because it is invisible.
+It is the most dangerous form of authority creep because it is invisible and
+does not require any deliberate decision. It operates through language.
 
-Indicators of semantic osmosis in progress:
+### 3A — Osmosis Indicators
 
-| Indicator | What it sounds like |
-|---|---|
-| Familiarity-based trust | "We've seen this a lot, so it's probably fine" |
-| Stability-as-reliability | "It's been consistent, so we can rely on it" |
-| Historical-as-predictive | "It's always been this way, so it will continue" |
-| Volume-as-validation | "We have 18 runs of data, that should be enough" |
-| Persistence-as-warrant | "It's shown up in every checkpoint" |
+| Indicator | What it sounds like | What it silently implies |
+|---|---|---|
+| Familiarity-based trust | "We've seen this a lot, so it's probably fine" | repeatability → perceived reliability |
+| Stability-as-reliability | "It's been consistent, so we can rely on it" | consistency → warranted reliance |
+| Historical-as-predictive | "It's always been this way, so it will continue" | past behavior → future authority |
+| Volume-as-validation | "We have 18 runs of data, that should be enough" | count → sufficiency threshold |
+| Persistence-as-warrant | "It's shown up in every checkpoint" | recurrence → implicit endorsement |
 
 **None of the above statements constitute a governance warrant.**
 
-The osmosis guard requires that R50.5 (reviewer reconstruction) explicitly tests
-for this: a reviewer who fails to distinguish "stable" from "trusted" has
-triggered the osmosis failure mode, and R50.5 must record this as a failure.
+The escalation chain these phrases silently construct:
+
+```
+repeatability
+→ familiarity
+→ perceived reliability
+→ implicit warrant
+```
+
+Each step is a cognitive shortcut, not an epistemic inference.
+None of the steps have a contract behind them.
+
+### 3B — Rhetorical Trust Escalators
+
+A rhetorical trust escalator is a sentence or phrase that, without making an
+explicit governance claim, causes a reviewer to implicitly elevate the authority
+of a signal. They are prohibited in governance artifacts.
+
+**Prohibited patterns:**
+
+| Pattern | Prohibited because |
+|---|---|
+| "This is consistent with previous runs" | implies predictive reliability |
+| "We've verified this multiple times" | implies accumulated warrant |
+| "The data supports this" | implies decision-relevant support |
+| "This has been stable" | implies trustworthiness |
+| "Historically, this has been..." | implies predictive authority |
+| "Given the evidence we've collected..." | implies causal attribution |
+| "Based on N runs..." | implies volume-induced authority |
+
+When writing R50 artifacts, these phrases must be replaced with semantically
+bounded language:
+
+| Replace with | Because it means |
+|---|---|
+| "In N runs under fixed conditions, M showed X" | count under conditions, no inference |
+| "This run produced value V" | single-instance observation |
+| "The pipeline produced consistent output" | pipeline property, not signal property |
+
+### 3C — Negative Authorization Reconstruction
+
+Knowing that something is prohibited is insufficient if the causal basis for the
+prohibition is forgotten. When the causal basis disappears, a restriction gets
+reclassified as "just conservative" rather than "epistemically necessary."
+
+This distinction matters because:
+- "just conservative" = can be relaxed when stakes seem low
+- "epistemically necessary" = cannot be relaxed without the missing contract
+
+Each prohibition in this framework has a causal basis that must remain
+reconstructable:
+
+| Prohibition | Causal basis | What's missing |
+|---|---|---|
+| `claim_discipline_drift` cannot enter `decision_relevant` | MIP-02 requires causal attribution; R49.x-1 (evaluator neutrality) not yet completed | Attribution contract + R49.x-1 |
+| `reviewer_override_frequency` cannot be used | MIP-04 requires per-claim event log; no event log infrastructure exists | Event log layer |
+| `replay_deterministic` cannot be reused as confidence basis | Harness determinism is a pipeline property; it carries no information about governed system behavior | Bounded reliability model |
+| Persistence does not imply trustworthiness | No bounded reliability model; no reviewer calibration; no semantic invariance proof | All three contracts |
+| Volume does not promote evidence layers | Layer promotion requires attribution contract + human sign-off; neither exists | Promotion protocol |
+
+The osmosis guard requires that R50.5 tests **causal epistemic recovery**: not just
+"what is prohibited" but "why the prohibition still holds today."
+
+A reviewer who can state the restriction but not its causal basis has partially
+failed the osmosis guard. The restriction will not survive the next context switch.
 
 ---
 

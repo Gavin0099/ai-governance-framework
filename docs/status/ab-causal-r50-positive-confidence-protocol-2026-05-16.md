@@ -107,35 +107,51 @@ failure, not governance success.
 
 ---
 
-### R50.5 — Reviewer Reconstruction (Primary Axis)
+### R50.5 — Anti-Overinterpretation Recoverability (Primary Axis)
 
-**Goal:** Verify that a reviewer unfamiliar with R50 can reconstruct — from ≤3 artifacts
-in ≤15 minutes — not just what was observed, but what the observations do NOT authorize.
+**What this tests:** Not "can a reviewer recover evidence?" but
+"can a reviewer recover epistemic boundary?" — specifically, whether they can
+reconstruct what observations do NOT authorize, including the causal basis for
+why those prohibitions still hold.
 
-This tests the operationalizability of the containment claim. A governance system
-that cannot be reconstructed under pressure is not operationalizable, regardless of
-how many signals it has collected.
+This is **governance epistemic survivability**: a governance system that cannot
+have its epistemic boundaries reconstructed under pressure is not operationalizable,
+regardless of how much evidence it has collected. Evidence without boundary
+recoverability is observability theater.
 
 This is analogous to:
-- flight recorder auditability: can the causal chain be recovered after the fact?
-- aviation incident governance: can a non-specialist reconstruct the decision context?
-- safety-case reviewability: can an independent reviewer validate the evidence boundary?
+- flight recorder auditability: recovery of causal chain, not just event log
+- aviation incident governance: boundary reconstruction by a non-specialist under time pressure
+- intelligence reliability compartmentalization: why a signal cannot cross a trust boundary
 
 **3-artifact set:**
-1. `governance/CONFIDENCE_SEMANTICS_FREEZE.md` — what accumulation means and does NOT mean
+1. `governance/CONFIDENCE_SEMANTICS_FREEZE.md` — the semantic freeze and causal bases for prohibitions
 2. `ab-causal-r50-positive-confidence-protocol-2026-05-16.md` (this document)
 3. `ab-causal-r49x-epistemic-compression-test-2026-05-16.md` — baseline compression evidence
 
-**Pass criterion — the reviewer must correctly answer all four:**
-1. What is the structural observation R50 makes?
-2. Why does `persistence ≠ trustworthiness`? (State the three missing contracts.)
-3. What does a positive signal count NOT authorize?
-4. What would need to be true for a signal to enter the `decision_relevant` layer?
+**5-dimension test — the reviewer must correctly address all five:**
 
-**Osmosis failure criterion:** Reviewer concludes — in any form — that accumulated
-positive signals imply governance effectiveness, trustworthiness, reliability, or
-authority elevation. This is a R50.5 failure even if the answer to the four
-questions above is technically correct, if the conclusion drawn contradicts them.
+| Dimension | Question | What it tests |
+|---|---|---|
+| Evidence recovery | "What was structurally observed in R50?" | Can the reviewer state observations without inflating them? |
+| Boundary recovery | "What cannot be authorized by these observations?" | Can the reviewer state the prohibition without needing to look it up? |
+| Causal epistemic recovery | "Why does each prohibition still hold today?" | Does the reviewer know the missing contracts, not just the restriction? |
+| Rhetoric contamination detection | "Which of these sentences are rhetorical trust escalators?" (give examples) | Can the reviewer identify osmosis-in-progress without the label? |
+| Anti-overinterpretation discipline | "What does `replay_deterministic = true` NOT mean for governance?" | Can the reviewer apply the invariant to a specific case? |
+
+**Osmosis failure criterion — any of the following is a R50.5 failure:**
+- Reviewer concludes accumulated positive signals imply governance effectiveness
+- Reviewer cannot state the causal basis for a prohibition (only states the restriction)
+- Reviewer accepts a rhetorical trust escalator as a valid evidence statement
+- Reviewer treats `replay_deterministic = true` as a governance signal
+- Reviewer concludes R50 completion authorizes a claim upgrade
+
+**Why causal epistemic recovery is distinct from boundary recovery:**
+A reviewer who can state "persistence ≠ trustworthiness" but cannot state
+*why* (bounded reliability model absent; reviewer calibration absent; semantic
+invariance proof absent) will not maintain the restriction under pressure.
+The restriction will be reclassified as "just conservative" when stakes seem low.
+Causal basis is what prevents a restriction from decaying into a preference.
 
 **Ordering:** Execute last, after R50.1–4 artifacts exist as the surface being tested.
 
