@@ -4,44 +4,81 @@
     "as_of": "2026-05-16",
     "status": "open",
     "r49x_preconditions_inherited": true,
-    "admissible_claim": "Positive confidence accumulation is structurally possible under fixed admissibility boundaries.",
-    "confidence_ceiling": "moderate",
-    "confidence_level_current": "low",
+    "freeze_contract": "governance/CONFIDENCE_SEMANTICS_FREEZE.md",
+    "goal": "verify that confidence accumulation can exist without polluting the authority layer — NOT to accumulate enough confidence to upgrade claims",
+    "admissible_claim": "Positive confidence accumulation is structurally possible under fixed admissibility boundaries without polluting the authority layer.",
+    "confidence_semantics": {
+        "accumulation_mode": "observational_only",
+        "authority_upgrade_allowed": false,
+        "decision_weight_allowed": false,
+        "ranking_allowed": false,
+        "threshold_promotion_allowed": false,
+        "score_derivation_allowed": false,
+        "implicit_trust_transfer_allowed": false
+    },
+    "hard_invariant": "persistence != trustworthiness",
     "guard": {
         "no_new_r492_scenarios": true,
         "no_admissibility_relaxation": true,
         "no_evaluator_profile_change": true,
         "no_historically_useful_upgrade": true,
         "no_replay_deterministic_as_governance_signal": true,
-        "no_new_governance_rules": true
+        "no_new_governance_rules": true,
+        "no_score_derivation": true,
+        "no_threshold_promotion": true
     },
+    "axis_priority": "r50-5 is primary; passing r50-1 through r50-4 with failing r50-5 means the framework is opaque, not auditable",
     "tasks": [
         {
-            "task_id": "r50-1",
-            "name": "confidence_ledger",
+            "task_id": "r50-5",
+            "priority": "primary",
+            "name": "reviewer_reconstruction",
             "status": "pending",
-            "pass_criterion": ">=12 positive signal entries from existing 18 runs without decision-layer judgment",
+            "goal": "confirm reviewer can reconstruct semantic boundary of accumulation — what it IS and IS NOT — not just that signal counts are high",
+            "artifact_set": [
+                "governance/CONFIDENCE_SEMANTICS_FREEZE.md",
+                "docs/status/ab-causal-r50-positive-confidence-protocol-2026-05-16.md",
+                "docs/status/ab-causal-r49x-epistemic-compression-test-2026-05-16.md"
+            ],
+            "pass_criterion": "reviewer answers in <=15 min: (1) what is the structural observation, (2) why persistence != trustworthiness, (3) what three things are absent for trust transfer, (4) what does positive signal count NOT authorize",
+            "failure_criterion": "reviewer concludes accumulated positive signals imply governance effectiveness, trustworthiness, or authority elevation",
+            "ordering_note": "execute last, after r50-1 through r50-4 artifacts exist",
+            "artifact_expected": "ab-causal-r50-reviewer-reconstruction-2026-05-16.md"
+        },
+        {
+            "task_id": "r50-1",
+            "priority": "secondary",
+            "name": "observational_signal_record",
+            "status": "pending",
+            "goal": "census of which 18 runs produced positive signals — a count, not a score",
             "positive_signal_definition": {
                 "measurement_source": "harness",
                 "claim_discipline_drift_gt_0": true,
                 "drift_result": "measured",
                 "null_type": null
             },
-            "confidence_contribution": "low_to_moderate",
-            "artifact_expected": "ab-causal-r50-confidence-ledger-2026-05-16.json"
+            "what_record_is": "per-run boolean (signal_present: true/false); count may be reported as count only",
+            "what_record_is_not": "confidence score, reliability estimate, threshold test, promotion criterion",
+            "freeze_check": "artifact must not contain: confidence_score, confidence_level, sufficient_signals, threshold_met, or any language implying count authorizes state transition",
+            "artifact_expected": "ab-causal-r50-observational-signal-record-2026-05-16.json"
         },
         {
             "task_id": "r50-2",
+            "priority": "secondary",
             "name": "signal_persistence",
             "status": "pending",
             "method": "rerun 6 representative runs (2 per scenario), compare claim_discipline_drift to checkpoint",
             "tolerance": "exact_match",
             "pass_criterion": "6/6 reruns bit-identical",
-            "boundary": "stability verification only; pass does NOT upgrade claim_discipline_drift to decision_relevant",
+            "what_passing_means": "the signal is stable; same input produces same output",
+            "what_passing_does_not_mean": "the signal is trustworthy; governance is effective; signal can be relied upon",
+            "required_invariant_in_artifact": "persistence != trustworthiness (per governance/CONFIDENCE_SEMANTICS_FREEZE.md)",
+            "hidden_loop_guard": "R50.1 (observational record) + R50.2 (persistence) must NOT be interpreted as 'stable positive signal -> trustworthy'; artifact must explicitly state combining them does not produce a trust claim",
             "artifact_expected": "ab-causal-r50-signal-persistence-2026-05-16.json"
         },
         {
             "task_id": "r50-3",
+            "priority": "secondary",
             "name": "non_upgrade_discipline",
             "status": "pending",
             "method": "static audit of all checkpoint consumers for implicit historically_useful -> decision_relevant paths",
@@ -51,12 +88,13 @@
         },
         {
             "task_id": "r50-4",
+            "priority": "secondary",
             "name": "negative_control",
             "status": "pending",
             "checks": [
                 {
                     "blocker": "MIP-02",
-                    "criterion": "no artifact uses claim_discipline_drift to make causal attribution claim without R49.x-1"
+                    "criterion": "no artifact claims causal attribution from claim_discipline_drift without R49.x-1 attribution validation"
                 },
                 {
                     "blocker": "MIP-04",
@@ -65,26 +103,14 @@
             ],
             "pass_criterion": "zero MIP-02 violations, zero MIP-04 bypass attempts",
             "artifact_expected": "ab-causal-r50-negative-control-2026-05-16.md"
-        },
-        {
-            "task_id": "r50-5",
-            "name": "reviewer_reconstruction",
-            "status": "pending",
-            "artifact_set": [
-                "docs/status/ab-causal-r50-positive-confidence-protocol-2026-05-16.md",
-                "ab-causal-r50-confidence-ledger-2026-05-16.json",
-                "docs/status/ab-causal-r49x-epistemic-compression-test-2026-05-16.md"
-            ],
-            "pass_criterion": "reviewer reconstructs confidence judgment (what is claimed, what is not, what blocks decision-level) in <=15 min from <=3 artifacts",
-            "artifact_expected": "ab-causal-r50-reviewer-reconstruction-2026-05-16.md"
         }
     ],
     "exit_criteria": {
-        "r50_1_confidence_ledger": false,
-        "r50_2_signal_persistence": false,
-        "r50_3_non_upgrade_discipline": false,
-        "r50_4_negative_control": false,
-        "r50_5_reviewer_reconstruction": false
+        "r50_5_reviewer_reconstruction": false,
+        "r50_1_signal_record_complete": false,
+        "r50_2_persistence_verified": false,
+        "r50_3_no_upgrade_paths": false,
+        "r50_4_blockers_confirmed": false
     },
-    "final_claim_if_all_pass": "Positive confidence accumulation is structurally possible under fixed admissibility boundaries. Confidence level: moderate. No decision-layer claim is made."
+    "final_claim_if_all_pass": "Positive confidence accumulation is structurally possible under fixed admissibility boundaries without polluting the authority layer. Confidence level: observational. No decision-layer claim is made. Persistence does not imply trustworthiness."
 }
