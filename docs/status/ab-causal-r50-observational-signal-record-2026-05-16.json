@@ -1,0 +1,237 @@
+{
+    "artifact_id": "ab-causal-r50-observational-signal-record-2026-05-16",
+    "task_id": "r50-1",
+    "name": "observational_signal_record",
+    "as_of": "2026-05-16",
+    "status": "complete",
+    "source_checkpoint": "docs/status/ab-causal-r492-reviewer-substitution-checkpoint-2026-05-15.json",
+    "freeze_contract": "governance/CONFIDENCE_SEMANTICS_FREEZE.md",
+    "signal_definition": {
+        "measurement_source": "harness",
+        "condition": "claim_discipline_drift > 0 AND drift_result = measured AND null_type = null",
+        "signal_present_if": "all four conditions satisfied"
+    },
+    "record_semantics": "per-run boolean signal_present; count reported as count only; no score; no ratio; no percentage; no confidence level derived; count does not authorize any state transition",
+    "freeze_check": {
+        "contains_confidence_score": false,
+        "contains_confidence_level": false,
+        "contains_sufficient_signals": false,
+        "contains_threshold_met": false,
+        "contains_state_transition_language": false,
+        "freeze_check_pass": true
+    },
+    "signal_count": 18,
+    "total_runs": 18,
+    "what_count_means": "In 18 runs under fixed conditions, 18 showed claim_discipline_drift > 0. This is a structural observation. 18 is a count. It has no authority weight. It does not indicate trustworthiness. It does not license any inference about future behavior.",
+    "what_count_does_not_mean": [
+        "governance is effective",
+        "signals are trustworthy",
+        "threshold met for any claim upgrade",
+        "sufficient evidence for decision input",
+        "reliability demonstrated",
+        "confidence level warranted"
+    ],
+    "layer_classification": "observational_only",
+    "consumption_rule": "record and surface in reports only; no decision input; no authority weight; no causal attribution without MIP-02",
+    "per_run": [
+        {
+            "run_id": "r492-runtime-to-audit-s350101",
+            "scenario_id": "SCN-RUNTIME",
+            "seed": 350101,
+            "substituted_reviewer": "audit",
+            "claim_discipline_drift": 0.25,
+            "drift_result": "measured",
+            "null_type": null,
+            "measurement_source": "harness",
+            "signal_present": true
+        },
+        {
+            "run_id": "r492-runtime-to-audit-s350102",
+            "scenario_id": "SCN-RUNTIME",
+            "seed": 350102,
+            "substituted_reviewer": "audit",
+            "claim_discipline_drift": 0.1667,
+            "drift_result": "measured",
+            "null_type": null,
+            "measurement_source": "harness",
+            "signal_present": true
+        },
+        {
+            "run_id": "r492-runtime-to-audit-s350103",
+            "scenario_id": "SCN-RUNTIME",
+            "seed": 350103,
+            "substituted_reviewer": "audit",
+            "claim_discipline_drift": 0.1,
+            "drift_result": "measured",
+            "null_type": null,
+            "measurement_source": "harness",
+            "signal_present": true
+        },
+        {
+            "run_id": "r492-runtime-to-product-s350101",
+            "scenario_id": "SCN-RUNTIME",
+            "seed": 350101,
+            "substituted_reviewer": "product",
+            "claim_discipline_drift": 0.5,
+            "drift_result": "measured",
+            "null_type": null,
+            "measurement_source": "harness",
+            "signal_present": true
+        },
+        {
+            "run_id": "r492-runtime-to-product-s350102",
+            "scenario_id": "SCN-RUNTIME",
+            "seed": 350102,
+            "substituted_reviewer": "product",
+            "claim_discipline_drift": 0.1667,
+            "drift_result": "measured",
+            "null_type": null,
+            "measurement_source": "harness",
+            "signal_present": true
+        },
+        {
+            "run_id": "r492-runtime-to-product-s350103",
+            "scenario_id": "SCN-RUNTIME",
+            "seed": 350103,
+            "substituted_reviewer": "product",
+            "claim_discipline_drift": 0.2,
+            "drift_result": "measured",
+            "null_type": null,
+            "measurement_source": "harness",
+            "signal_present": true
+        },
+        {
+            "run_id": "r492-audit-to-runtime-s350101",
+            "scenario_id": "SCN-AUDIT",
+            "seed": 350101,
+            "substituted_reviewer": "runtime",
+            "claim_discipline_drift": 0.25,
+            "drift_result": "measured",
+            "null_type": null,
+            "measurement_source": "harness",
+            "signal_present": true
+        },
+        {
+            "run_id": "r492-audit-to-runtime-s350102",
+            "scenario_id": "SCN-AUDIT",
+            "seed": 350102,
+            "substituted_reviewer": "runtime",
+            "claim_discipline_drift": 0.3333,
+            "drift_result": "measured",
+            "null_type": null,
+            "measurement_source": "harness",
+            "signal_present": true
+        },
+        {
+            "run_id": "r492-audit-to-runtime-s350103",
+            "scenario_id": "SCN-AUDIT",
+            "seed": 350103,
+            "substituted_reviewer": "runtime",
+            "claim_discipline_drift": 0.3,
+            "drift_result": "measured",
+            "null_type": null,
+            "measurement_source": "harness",
+            "signal_present": true
+        },
+        {
+            "run_id": "r492-audit-to-product-s350101",
+            "scenario_id": "SCN-AUDIT",
+            "seed": 350101,
+            "substituted_reviewer": "product",
+            "claim_discipline_drift": 0.375,
+            "drift_result": "measured",
+            "null_type": null,
+            "measurement_source": "harness",
+            "signal_present": true
+        },
+        {
+            "run_id": "r492-audit-to-product-s350102",
+            "scenario_id": "SCN-AUDIT",
+            "seed": 350102,
+            "substituted_reviewer": "product",
+            "claim_discipline_drift": 0.3333,
+            "drift_result": "measured",
+            "null_type": null,
+            "measurement_source": "harness",
+            "signal_present": true
+        },
+        {
+            "run_id": "r492-audit-to-product-s350103",
+            "scenario_id": "SCN-AUDIT",
+            "seed": 350103,
+            "substituted_reviewer": "product",
+            "claim_discipline_drift": 0.3,
+            "drift_result": "measured",
+            "null_type": null,
+            "measurement_source": "harness",
+            "signal_present": true
+        },
+        {
+            "run_id": "r492-product-to-runtime-s350101",
+            "scenario_id": "SCN-PRODUCT",
+            "seed": 350101,
+            "substituted_reviewer": "runtime",
+            "claim_discipline_drift": 0.25,
+            "drift_result": "measured",
+            "null_type": null,
+            "measurement_source": "harness",
+            "signal_present": true
+        },
+        {
+            "run_id": "r492-product-to-runtime-s350102",
+            "scenario_id": "SCN-PRODUCT",
+            "seed": 350102,
+            "substituted_reviewer": "runtime",
+            "claim_discipline_drift": 0.2857,
+            "drift_result": "measured",
+            "null_type": null,
+            "measurement_source": "harness",
+            "signal_present": true
+        },
+        {
+            "run_id": "r492-product-to-runtime-s350103",
+            "scenario_id": "SCN-PRODUCT",
+            "seed": 350103,
+            "substituted_reviewer": "runtime",
+            "claim_discipline_drift": 0.4,
+            "drift_result": "measured",
+            "null_type": null,
+            "measurement_source": "harness",
+            "signal_present": true
+        },
+        {
+            "run_id": "r492-product-to-audit-s350101",
+            "scenario_id": "SCN-PRODUCT",
+            "seed": 350101,
+            "substituted_reviewer": "audit",
+            "claim_discipline_drift": 0.125,
+            "drift_result": "measured",
+            "null_type": null,
+            "measurement_source": "harness",
+            "signal_present": true
+        },
+        {
+            "run_id": "r492-product-to-audit-s350102",
+            "scenario_id": "SCN-PRODUCT",
+            "seed": 350102,
+            "substituted_reviewer": "audit",
+            "claim_discipline_drift": 0.2857,
+            "drift_result": "measured",
+            "null_type": null,
+            "measurement_source": "harness",
+            "signal_present": true
+        },
+        {
+            "run_id": "r492-product-to-audit-s350103",
+            "scenario_id": "SCN-PRODUCT",
+            "seed": 350103,
+            "substituted_reviewer": "audit",
+            "claim_discipline_drift": 0.3,
+            "drift_result": "measured",
+            "null_type": null,
+            "measurement_source": "harness",
+            "signal_present": true
+        }
+    ],
+    "admission_notes": "This record is an observational census under fixed conditions. It is not a reliability estimate. It is not a trust basis. It is not a promotion criterion. The 18 positive signals remain observational_only. Volume does not move evidence up the epistemic stack."
+}
