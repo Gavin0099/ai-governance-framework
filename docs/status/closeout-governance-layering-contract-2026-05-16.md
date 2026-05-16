@@ -187,6 +187,35 @@ Boundary:
 - This section is not a universal reasoning-retention policy.
 - Scope is limited to survivorship-bias control for governance admissibility.
 
+## Negative Evidence Consumption Guard
+
+Core rule:
+
+`negative evidence retained != negative evidence consumed`.
+
+Retention alone may support transparency claims, but cannot support adequacy/maturity claims.
+
+### Consumption Admissibility States
+
+| State | Maximum admissible claim |
+|---|---|
+| retained but unconsumed | transparency observed |
+| retained + downgrade applied | bounded integrity discipline observed |
+| retained + downgrade bypassed | governance adequacy prohibited |
+| missing consumption lineage | claim ceiling capped |
+
+Consumption consequence rule:
+- If negative evidence does not produce an operational downgrade consequence, claim ceiling must not increase.
+- No downstream adequacy/effectiveness claim is admissible when downgrade lineage is missing or bypassed.
+
+Anti-tokenization rule:
+- Visible adversity must not be laundered into trustworthiness.
+- `failure/degraded/incomplete artifacts present` is not maturity evidence by itself.
+
+Symbolic downgrade warning:
+- `downgrade_applied=true` is insufficient without effect visibility.
+- Recorded downgrade must show at least one concrete effect surface (for example: claim prohibition, coverage capping, reviewer-path block, or assertion-level downgrade).
+
 ## Next Step
 
 Use this contract as claim-boundary input for:
