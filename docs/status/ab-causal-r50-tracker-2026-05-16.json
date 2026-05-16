@@ -1,12 +1,13 @@
 {
     "tracker_id": "ab-causal-r50-tracker-2026-05-16",
-    "experiment": "R50_positive_confidence_accumulation_protocol",
+    "experiment": "R50_confidence_containment_protocol",
     "as_of": "2026-05-16",
     "status": "open",
     "r49x_preconditions_inherited": true,
     "freeze_contract": "governance/CONFIDENCE_SEMANTICS_FREEZE.md",
-    "goal": "verify that confidence accumulation can exist without polluting the authority layer — NOT to accumulate enough confidence to upgrade claims",
-    "admissible_claim": "Positive confidence accumulation is structurally possible under fixed admissibility boundaries without polluting the authority layer.",
+    "freeze_contract_version": "v2",
+    "goal": "verify that positive evidence can exist in the record without leaking into the authority layer",
+    "admissible_claim": "Positive evidence exists in the record. The authority layer shows no contamination. Containment is structurally verified under fixed epistemic conditions.",
     "confidence_semantics": {
         "accumulation_mode": "observational_only",
         "authority_upgrade_allowed": false,
@@ -14,9 +15,33 @@
         "ranking_allowed": false,
         "threshold_promotion_allowed": false,
         "score_derivation_allowed": false,
-        "implicit_trust_transfer_allowed": false
+        "implicit_trust_transfer_allowed": false,
+        "reviewer_trust_transfer_allowed": false,
+        "persistent_signal_interpretation": "non-authoritative",
+        "historically_useful_semantics": "non-predictive",
+        "replay_stability_semantics": "pipeline_determinism_only",
+        "confidence_reuse_scope": "review_context_only"
     },
     "hard_invariant": "persistence != trustworthiness",
+    "osmosis_guard": "semantic osmosis (implicit trust emergence through repeated exposure to stable signals) is a recognized failure mode; R50.5 is the primary test for its presence",
+    "epistemic_layer_separation": {
+        "observational_only": {
+            "examples": ["claim_discipline_drift", "unsupported_count", "intervention_entropy"],
+            "consumption_rule": "record and surface in reports only",
+            "prohibited": "decision input, authority weight, causal attribution without MIP-02"
+        },
+        "historically_useful": {
+            "examples": ["replay_deterministic"],
+            "consumption_rule": "archive and lineage reference only",
+            "prohibited": "inference, prediction, promotion, reuse as confidence basis"
+        },
+        "decision_relevant": {
+            "examples": [],
+            "consumption_rule": "decision input after full attribution chain",
+            "note": "currently empty in R50; no metrics qualify"
+        },
+        "cross_layer_rule": "accumulation within a layer does not constitute movement between layers; 18 observational_only runs remain observational_only"
+    },
     "guard": {
         "no_new_r492_scenarios": true,
         "no_admissibility_relaxation": true,
@@ -25,24 +50,31 @@
         "no_replay_deterministic_as_governance_signal": true,
         "no_new_governance_rules": true,
         "no_score_derivation": true,
-        "no_threshold_promotion": true
+        "no_threshold_promotion": true,
+        "no_reviewer_trust_transfer": true,
+        "no_osmosis_undetected": true
     },
-    "axis_priority": "r50-5 is primary; passing r50-1 through r50-4 with failing r50-5 means the framework is opaque, not auditable",
+    "axis_priority": "r50-5 is primary; r50-1 through r50-4 produce the evidence surface that r50-5 tests; passing r50-1 through r50-4 with failing r50-5 is operationalizability failure",
     "tasks": [
         {
             "task_id": "r50-5",
             "priority": "primary",
             "name": "reviewer_reconstruction",
             "status": "pending",
-            "goal": "confirm reviewer can reconstruct semantic boundary of accumulation — what it IS and IS NOT — not just that signal counts are high",
+            "goal": "verify governance state recoverability — can a reviewer reconstruct what the evidence IS and IS NOT, not just that signals exist",
+            "ordering": "execute last, after r50-1 through r50-4 artifacts exist as the surface being tested",
             "artifact_set": [
                 "governance/CONFIDENCE_SEMANTICS_FREEZE.md",
                 "docs/status/ab-causal-r50-positive-confidence-protocol-2026-05-16.md",
                 "docs/status/ab-causal-r49x-epistemic-compression-test-2026-05-16.md"
             ],
-            "pass_criterion": "reviewer answers in <=15 min: (1) what is the structural observation, (2) why persistence != trustworthiness, (3) what three things are absent for trust transfer, (4) what does positive signal count NOT authorize",
-            "failure_criterion": "reviewer concludes accumulated positive signals imply governance effectiveness, trustworthiness, or authority elevation",
-            "ordering_note": "execute last, after r50-1 through r50-4 artifacts exist",
+            "pass_criterion": [
+                "reviewer correctly states the structural observation R50 makes",
+                "reviewer correctly states why persistence != trustworthiness (names 3 missing contracts)",
+                "reviewer correctly states what positive signal count does NOT authorize",
+                "reviewer correctly states what would be required to enter the decision_relevant layer"
+            ],
+            "osmosis_failure_criterion": "reviewer concludes — in any form — that accumulated positive signals imply governance effectiveness, trustworthiness, reliability, or authority elevation; this is a failure even if the four questions above are answered correctly",
             "artifact_expected": "ab-causal-r50-reviewer-reconstruction-2026-05-16.md"
         },
         {
@@ -50,15 +82,14 @@
             "priority": "secondary",
             "name": "observational_signal_record",
             "status": "pending",
-            "goal": "census of which 18 runs produced positive signals — a count, not a score",
+            "goal": "census of which 18 runs produced a positive signal; a count, not a score",
             "positive_signal_definition": {
                 "measurement_source": "harness",
                 "claim_discipline_drift_gt_0": true,
                 "drift_result": "measured",
                 "null_type": null
             },
-            "what_record_is": "per-run boolean (signal_present: true/false); count may be reported as count only",
-            "what_record_is_not": "confidence score, reliability estimate, threshold test, promotion criterion",
+            "record_format": "per-run boolean signal_present; count reported as count only; no ratio; no percentage; no confidence level derived",
             "freeze_check": "artifact must not contain: confidence_score, confidence_level, sufficient_signals, threshold_met, or any language implying count authorizes state transition",
             "artifact_expected": "ab-causal-r50-observational-signal-record-2026-05-16.json"
         },
@@ -67,13 +98,13 @@
             "priority": "secondary",
             "name": "signal_persistence",
             "status": "pending",
+            "goal": "confirm claim_discipline_drift is stable across replay; tests pipeline determinism, not signal trustworthiness",
             "method": "rerun 6 representative runs (2 per scenario), compare claim_discipline_drift to checkpoint",
             "tolerance": "exact_match",
-            "pass_criterion": "6/6 reruns bit-identical",
-            "what_passing_means": "the signal is stable; same input produces same output",
-            "what_passing_does_not_mean": "the signal is trustworthy; governance is effective; signal can be relied upon",
+            "what_passing_means": "same input produces same output; pipeline is deterministic",
+            "what_passing_does_not_mean": ["signal is trustworthy", "signal can be relied upon", "governance is effective"],
             "required_invariant_in_artifact": "persistence != trustworthiness (per governance/CONFIDENCE_SEMANTICS_FREEZE.md)",
-            "hidden_loop_guard": "R50.1 (observational record) + R50.2 (persistence) must NOT be interpreted as 'stable positive signal -> trustworthy'; artifact must explicitly state combining them does not produce a trust claim",
+            "hidden_loop_guard": "artifact must explicitly state: R50.1 + R50.2 combined do not produce a trust claim; a stable positive signal is still observational_only; stability does not promote it",
             "artifact_expected": "ab-causal-r50-signal-persistence-2026-05-16.json"
         },
         {
@@ -81,8 +112,8 @@
             "priority": "secondary",
             "name": "non_upgrade_discipline",
             "status": "pending",
-            "method": "static audit of all checkpoint consumers for implicit historically_useful -> decision_relevant paths",
-            "target_metric": "replay_deterministic",
+            "goal": "confirm replay_deterministic has not been re-admitted as decision_relevant in any downstream artifact",
+            "method": "static audit of all checkpoint consumers and status docs",
             "pass_criterion": "zero implicit upgrade paths found",
             "artifact_expected": "ab-causal-r50-non-upgrade-audit-2026-05-16.md"
         },
@@ -112,5 +143,5 @@
         "r50_3_no_upgrade_paths": false,
         "r50_4_blockers_confirmed": false
     },
-    "final_claim_if_all_pass": "Positive confidence accumulation is structurally possible under fixed admissibility boundaries without polluting the authority layer. Confidence level: observational. No decision-layer claim is made. Persistence does not imply trustworthiness."
+    "final_claim_if_all_pass": "Positive evidence exists in the record. The authority layer shows no contamination. Containment is structurally verified under fixed epistemic conditions. Confidence level: observational. No decision-layer claim is made. Persistence does not imply trustworthiness."
 }

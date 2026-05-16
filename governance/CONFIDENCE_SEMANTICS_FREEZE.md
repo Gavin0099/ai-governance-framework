@@ -1,6 +1,6 @@
 # Confidence Semantics Freeze Contract
 
-As-of: 2026-05-16
+As-of: 2026-05-16 (v2 — adds reviewer-facing semantic containment and osmosis guard)
 Scope: R50 and all downstream phases until explicitly superseded by human reviewer sign-off
 Authority: Gavin0099 (decision); Codex (formalization)
 
@@ -8,27 +8,32 @@ Authority: Gavin0099 (decision); Codex (formalization)
 
 ## Purpose
 
-This contract exists because R50 enters a regime where positive signals are being
-accumulated. Without explicit semantic constraints, this accumulation naturally
-evolves into a scoring / threshold / promotion mechanism — even without any
-deliberate design decision to do so.
+This contract exists because positive evidence is structurally more dangerous than
+negative evidence.
 
-The creep pattern is:
+Negative governance is intuitive:
+- block, reject, fail-closed, require review
 
-```
-positive_signals accumulate
-→ count is tracked
-→ threshold emerges ("≥12 is enough")
-→ score is derived (positive_runs / total_runs)
-→ score threshold gates reviewer trust
-→ MIP-02 / MIP-04 blockers are bypassed via accumulated score
-```
+Positive governance is dangerous because human cognition naturally converts:
+- stable → trustworthy
+- repeatable → reliable
+- persistent → predictive
+- historically useful → decision-relevant
 
-This contract blocks that path at the semantic level.
+This shortcut is not a bug in reviewers. It is a feature of how cognitive systems
+allocate attention. The contract does not try to change reviewer cognition. It
+makes the semantic boundary explicit enough to be reconstructed under pressure.
+
+**The goal of R50 is not accumulation. It is containment.**
+
+Containment means: positive evidence exists in the record, but does not leak
+into the authority layer — even through implicit trust emergence.
 
 ---
 
-## Frozen Semantics
+## Layer I — Explicit Code Path Freeze
+
+Blocks deliberate design decisions that would promote evidence into authority:
 
 ```json
 {
@@ -42,52 +47,135 @@ This contract blocks that path at the semantic level.
 }
 ```
 
-### Definitions
-
-**`authority_upgrade_allowed: false`**
-No accumulated positive signal count may increase the authority weight of any
-metric, reviewer profile, or governance claim. Accumulation is a count,
-not an authority.
-
-**`decision_weight_allowed: false`**
-No positive signal count may be used as input to a governance decision gate,
-confidence gate, or claim promotion gate. The count is observable; it has no
-decision weight.
-
-**`ranking_allowed: false`**
-No metric or reviewer profile may be ranked higher based on accumulated positive
-signal count. Ranking requires a different attribution contract (MIP-02) that
-is not yet satisfied.
-
-**`threshold_promotion_allowed: false`**
-No threshold (e.g., "≥12 positive signals") may trigger a state transition in
-admissibility, authority, or claim level. A threshold is only valid as a
-stopping condition for observation, not as a promotion criterion.
-
-**`score_derivation_allowed: false`**
-No confidence score may be derived from the ratio of positive signals to total
-runs (e.g., `positive_runs / total_runs`). Such a score would imply a
-calibrated reliability model that does not exist.
-
-**`implicit_trust_transfer_allowed: false`**
-Persistence does not equal trustworthiness. A signal that is stable across
-replay is a stable signal — not a trusted signal. Trust transfer requires:
-- A bounded reliability model (absent)
-- Reviewer calibration evidence (absent)
-- Semantic invariance proof (absent)
+This layer blocks: explicit scoring, explicit thresholds, explicit promotion,
+explicit ranking. It does NOT block semantic osmosis.
 
 ---
 
-## The Invariant
+## Layer II — Reviewer-Facing Semantic Containment
+
+Blocks the implicit cognitive path from observation to authority:
+
+```json
+{
+  "reviewer_trust_transfer_allowed": false,
+  "persistent_signal_interpretation": "non-authoritative",
+  "historically_useful_semantics": "non-predictive",
+  "replay_stability_semantics": "pipeline_determinism_only",
+  "confidence_reuse_scope": "review_context_only"
+}
+```
+
+### Definitions
+
+**`reviewer_trust_transfer_allowed: false`**
+A reviewer who has observed many positive signals across sessions must not
+carry accumulated trust into a new review. Each review context resets.
+Accumulated familiarity with positive signals does not constitute calibration.
+
+**`persistent_signal_interpretation: non-authoritative`**
+A signal that appears repeatedly across runs is persistent. Persistence is a
+stability property of the measurement pipeline — not an authority property of
+the signal's content. "This value appears consistently" does not mean "this
+value can be relied upon for decisions."
+
+**`historically_useful_semantics: non-predictive`**
+A metric classified `historically_useful` (e.g., `replay_deterministic`) is
+retained for lineage only. It does not predict future behavior. It does not
+justify increased confidence in any governance claim. The classification is
+terminal: `historically_useful` cannot be re-promoted without a new
+attribution contract.
+
+**`replay_stability_semantics: pipeline_determinism_only`**
+Replay stability means: given the same input, the same pipeline produces the
+same output. This is a property of the pipeline, not of the governed system.
+`replay_deterministic = true` is evidence that the harness is deterministic.
+It is not evidence that governance is effective.
+
+**`confidence_reuse_scope: review_context_only`**
+Confidence observations from one review session may not be carried forward as
+evidence in a subsequent session without explicit re-verification. A reviewer
+cannot say "this was stable last time, so I trust it now." Each session must
+establish its own basis.
+
+---
+
+## Layer III — Semantic Osmosis Guard
+
+Semantic osmosis is the process by which implicit trust accumulates through
+repeated exposure to stable signals — without any explicit code path, design
+decision, or policy change.
+
+It is the most dangerous form of authority creep because it is invisible.
+
+Indicators of semantic osmosis in progress:
+
+| Indicator | What it sounds like |
+|---|---|
+| Familiarity-based trust | "We've seen this a lot, so it's probably fine" |
+| Stability-as-reliability | "It's been consistent, so we can rely on it" |
+| Historical-as-predictive | "It's always been this way, so it will continue" |
+| Volume-as-validation | "We have 18 runs of data, that should be enough" |
+| Persistence-as-warrant | "It's shown up in every checkpoint" |
+
+**None of the above statements constitute a governance warrant.**
+
+The osmosis guard requires that R50.5 (reviewer reconstruction) explicitly tests
+for this: a reviewer who fails to distinguish "stable" from "trusted" has
+triggered the osmosis failure mode, and R50.5 must record this as a failure.
+
+---
+
+## Epistemic Layer Separation
+
+This framework operates with three evidence layers. Each layer has explicit
+consumption rules.
+
+| Layer | Classification | What it permits | What it prohibits |
+|---|---|---|---|
+| `observational_only` | Observable signal | Record; surface in reports | Decision input; authority weight; causal attribution without MIP-02 |
+| `historically_useful` | Retained signal | Archive; lineage reference | Inference; prediction; promotion; reuse as confidence basis |
+| `decision_relevant` | Gated signal | Decision input after full attribution chain | Currently empty in R50 — no metrics qualify |
+
+**Cross-layer rule:** A signal cannot move from a lower to a higher layer without:
+1. A new attribution contract (e.g., completing R49.x-1 for MIP-02)
+2. Human reviewer sign-off
+3. Explicit re-classification record
+
+Accumulation within a layer does not constitute movement between layers.
+18 `observational_only` runs remain `observational_only`. They do not become
+`historically_useful` or `decision_relevant` through volume alone.
+
+---
+
+## The Central Invariant
 
 ```
 persistence ≠ trustworthiness
 ```
 
-This invariant is not a warning. It is a hard boundary.
+This is not a reminder. It is a semantic boundary.
 
-Any artifact, report, or decision that treats a persistent signal as a trusted
-signal — without the three elements above — is a semantic violation of this contract.
+The full chain that is prohibited:
+
+```
+signal is persistent
+→ signal is stable
+→ signal is reliable
+→ signal is trustworthy
+→ signal can carry decision weight
+```
+
+Each arrow in this chain requires a contract that does not currently exist:
+
+| Step | Missing contract |
+|---|---|
+| persistent → reliable | bounded reliability model (absent) |
+| reliable → trustworthy | reviewer calibration evidence (absent) |
+| trustworthy → decision weight | semantic invariance proof (absent) |
+
+Without these contracts, the chain cannot be traversed. The invariant blocks
+traversal at the first step.
 
 ---
 
@@ -97,32 +185,28 @@ Accumulation in R50 is allowed to mean exactly one thing:
 
 > "We have observed N runs. In M of those runs, signal S was non-zero.
 >  This is a structural observation under fixed conditions.
->  It is not a claim about trustworthiness, reliability, or governance effectiveness."
-
-No more. No less.
-
----
-
-## R50.5 Primacy Rule
-
-R50.5 (Reviewer Reconstruction) is the primary verification axis for this freeze.
-
-If a reviewer, reading ≤3 artifacts, concludes that accumulated positive signals
-imply trust, decision authority, or governance effectiveness — R50.5 **fails**.
-
-The purpose of R50.5 is not to confirm that signal counts are recallable.
-The purpose of R50.5 is to confirm that the **semantic boundary of accumulation**
-is recallable: a reviewer must be able to state what accumulation does NOT mean,
-not only what it does mean.
+>  M and N are counts. They have no authority weight.
+>  They do not indicate trustworthiness.
+>  They do not license any inference about future behavior."
 
 ---
 
-## Exit Condition
+## The Containment Test
 
-This contract remains in force until:
-1. A bounded reliability model is authored, human-reviewed, and signed
-2. Reviewer calibration evidence is collected across ≥2 independent reviewers
-3. A semantic invariance proof connects persistence to a defined trust model
+At any point during R50, the following question should be answerable from ≤3 artifacts:
 
-None of these conditions are in scope for R50. This contract does not expire
-within R50.
+> "What has been observed, and what does it NOT authorize?"
+
+If a reviewer cannot answer the second half — they have entered semantic osmosis territory.
+R50.5 is the formal test of this.
+
+---
+
+## Exit Condition for This Contract
+
+This contract remains in force until all three of the following exist:
+1. A bounded reliability model (authored, human-reviewed, signed)
+2. Reviewer calibration evidence (≥2 independent reviewers, documented)
+3. A semantic invariance proof (connects persistence to a defined trust model)
+
+None of these are in scope for R50. This contract does not expire within R50.
