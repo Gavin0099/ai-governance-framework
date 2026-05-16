@@ -1,0 +1,68 @@
+{
+    "task_id": "r49x-4",
+    "as_of": "2026-05-16",
+    "checkpoint": "docs\\status\\ab-causal-r492-reviewer-substitution-checkpoint-2026-05-15.json",
+    "runs_analyzed": 18,
+    "metrics": [
+        {
+            "metric": "claim_discipline_drift",
+            "signal_class": "observational_only",
+            "null_count": 0,
+            "non_null_count": 18,
+            "null_rate_pct": 0.0,
+            "rationale": "non_null=18/18; non_zero=18/18; variance=0.0094; shows substitution drift exists but causal attribution blocked by MIP-02 (requires R49.x-1); upgrade to decision_relevant only after attribution validation"
+        },
+        {
+            "metric": "unsupported_count",
+            "signal_class": "observational_only",
+            "null_count": 0,
+            "non_null_count": 18,
+            "null_rate_pct": 0.0,
+            "rationale": "non_null=18/18; variance=0.3117; values 0\u20132; counts unsupported claims per profile but small-count regime has high relative noise; useful for trend observation, not for single-run decisions"
+        },
+        {
+            "metric": "replay_deterministic",
+            "signal_class": "historically_useful",
+            "null_count": 0,
+            "non_null_count": 18,
+            "null_rate_pct": 0.0,
+            "rationale": "non_null=18/18; unique_values={True}; always True by harness design (pure deterministic Python, no LLM calls); zero substitution sensitivity \u2014 confirms harness stability not substitution fragility; remove from live metric surface, retain in lineage"
+        },
+        {
+            "metric": "reviewer_override_frequency",
+            "signal_class": "high_cost_low_info",
+            "null_count": 18,
+            "non_null_count": 0,
+            "null_rate_pct": 100.0,
+            "rationale": "null_rate=100% (all 18 runs); null_type=NT-06 (event log absent MIP-04); requires per-claim event log infrastructure not yet built; cost: new logging layer; current info: zero; candidate for removal pending MIP-04 resolution"
+        },
+        {
+            "metric": "intervention_entropy",
+            "signal_class": "observational_only",
+            "null_count": 10,
+            "non_null_count": 8,
+            "null_rate_pct": 55.6,
+            "rationale": "non_null=8/18; null_rate=56%; null_type=NT-02 (structural: only 1 violation type detected \u2192 entropy undefined); when computable, values cluster near 1.0 (high entropy) suggesting broad violation spread; structurally informative but NT-02 boundary limits ranking utility"
+        }
+    ],
+    "summary": {
+        "decision_relevant": [],
+        "observational_only": [
+            "claim_discipline_drift",
+            "unsupported_count",
+            "intervention_entropy"
+        ],
+        "historically_useful": [
+            "replay_deterministic"
+        ],
+        "high_cost_low_info": [
+            "reviewer_override_frequency"
+        ]
+    },
+    "recommendations": [
+        "Live surface: claim_discipline_drift + unsupported_count + intervention_entropy",
+        "Archive: replay_deterministic (structurally guaranteed; not a substitution signal)",
+        "Defer/remove: reviewer_override_frequency (MIP-04 infrastructure gap; null_rate=100%)",
+        "Upgrade path: claim_discipline_drift \u2192 decision_relevant after R49.x-1 attribution validation"
+    ]
+}
