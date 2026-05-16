@@ -94,8 +94,15 @@
                         "missing_contract": "bounded reliability model",
                         "failure_mode": "pipeline-governance conflation: harness reproducibility consumed as evidence that governance is reliable; authority accrues to measurement tool, not governed system"
                     },
-                    "pass_requirement": "reviewer must trace at least one prohibition all the way to its failure mode; knowing restriction + causal basis without failure mode is insufficient",
-                    "critical_note": "a reviewer who states 'MIP-02 is missing' but cannot state what breaks if bypassed will treat MIP-02 as a ritual phrase at the next context switch"
+                    "three_decay_levels": {
+                        "first_order": "restriction → 'just conservative' (blocked by: causal basis)",
+                        "second_order": "'missing contract' → ritual phrase (blocked by: failure mode)",
+                        "third_order": "failure mode label → ritual label (blocked by: own-words bypass scenario)"
+                    },
+                    "pass_requirement": "reviewer must trace at least one prohibition all the way to a bypass scenario described in own words — not a label recall",
+                    "acceptable_example": "If we write 18 observational_only runs as 'supports decision relevance', we are consuming count as a promotion protocol, letting evidence without attribution contract and human sign-off enter the decision layer.",
+                    "unacceptable_example": "That would cause volume-laundering. (label recall — third-order decay already present)",
+                    "critical_note": "label recall (volume-laundering, pipeline-governance conflation) is not path comprehension; reviewer must construct the failure path, not retrieve a name"
                 },
                 {
                     "dimension": "rhetoric_contamination_detection",
