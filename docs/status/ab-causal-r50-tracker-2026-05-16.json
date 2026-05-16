@@ -59,22 +59,56 @@
         {
             "task_id": "r50-5",
             "priority": "primary",
-            "name": "reviewer_reconstruction",
+            "name": "anti_overinterpretation_recoverability",
             "status": "pending",
-            "goal": "verify governance state recoverability — can a reviewer reconstruct what the evidence IS and IS NOT, not just that signals exist",
+            "goal": "governance epistemic survivability — can a reviewer reconstruct not just what was observed but the epistemic boundary: what observations do NOT authorize and why each prohibition still holds",
+            "what_this_tests": "epistemic boundary recovery, not evidence recovery; causal basis reconstruction, not restriction recall",
             "ordering": "execute last, after r50-1 through r50-4 artifacts exist as the surface being tested",
             "artifact_set": [
                 "governance/CONFIDENCE_SEMANTICS_FREEZE.md",
                 "docs/status/ab-causal-r50-positive-confidence-protocol-2026-05-16.md",
                 "docs/status/ab-causal-r49x-epistemic-compression-test-2026-05-16.md"
             ],
-            "pass_criterion": [
-                "reviewer correctly states the structural observation R50 makes",
-                "reviewer correctly states why persistence != trustworthiness (names 3 missing contracts)",
-                "reviewer correctly states what positive signal count does NOT authorize",
-                "reviewer correctly states what would be required to enter the decision_relevant layer"
+            "five_dimension_test": [
+                {
+                    "dimension": "evidence_recovery",
+                    "question": "What was structurally observed in R50?",
+                    "tests": "can reviewer state observations without inflating them?"
+                },
+                {
+                    "dimension": "boundary_recovery",
+                    "question": "What cannot be authorized by these observations?",
+                    "tests": "can reviewer state the prohibition without needing to look it up?"
+                },
+                {
+                    "dimension": "causal_epistemic_recovery",
+                    "question": "Why does each prohibition still hold today?",
+                    "tests": "does reviewer know the missing contracts, not just the restriction?",
+                    "critical_note": "a reviewer who states the restriction but not its causal basis has partially failed; the restriction will not survive the next context switch"
+                },
+                {
+                    "dimension": "rhetoric_contamination_detection",
+                    "question": "Which of these sentences are rhetorical trust escalators? (give examples)",
+                    "tests": "can reviewer identify osmosis-in-progress without the label?",
+                    "example_sentences": [
+                        "We've seen this a lot, so it's probably fine",
+                        "It's been consistent, so we can rely on it",
+                        "We have 18 runs of data, that should be enough"
+                    ]
+                },
+                {
+                    "dimension": "anti_overinterpretation_discipline",
+                    "question": "What does replay_deterministic=true NOT mean for governance?",
+                    "tests": "can reviewer apply the invariant to a specific case without the abstract framing?"
+                }
             ],
-            "osmosis_failure_criterion": "reviewer concludes — in any form — that accumulated positive signals imply governance effectiveness, trustworthiness, reliability, or authority elevation; this is a failure even if the four questions above are answered correctly",
+            "osmosis_failure_criterion": [
+                "reviewer concludes accumulated positive signals imply governance effectiveness",
+                "reviewer cannot state the causal basis for a prohibition (only states the restriction)",
+                "reviewer accepts a rhetorical trust escalator as a valid evidence statement",
+                "reviewer treats replay_deterministic=true as a governance signal",
+                "reviewer concludes R50 completion authorizes a claim upgrade"
+            ],
             "artifact_expected": "ab-causal-r50-reviewer-reconstruction-2026-05-16.md"
         },
         {
