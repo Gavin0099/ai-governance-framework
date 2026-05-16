@@ -1,0 +1,90 @@
+{
+    "tracker_id": "ab-causal-r50-tracker-2026-05-16",
+    "experiment": "R50_positive_confidence_accumulation_protocol",
+    "as_of": "2026-05-16",
+    "status": "open",
+    "r49x_preconditions_inherited": true,
+    "admissible_claim": "Positive confidence accumulation is structurally possible under fixed admissibility boundaries.",
+    "confidence_ceiling": "moderate",
+    "confidence_level_current": "low",
+    "guard": {
+        "no_new_r492_scenarios": true,
+        "no_admissibility_relaxation": true,
+        "no_evaluator_profile_change": true,
+        "no_historically_useful_upgrade": true,
+        "no_replay_deterministic_as_governance_signal": true,
+        "no_new_governance_rules": true
+    },
+    "tasks": [
+        {
+            "task_id": "r50-1",
+            "name": "confidence_ledger",
+            "status": "pending",
+            "pass_criterion": ">=12 positive signal entries from existing 18 runs without decision-layer judgment",
+            "positive_signal_definition": {
+                "measurement_source": "harness",
+                "claim_discipline_drift_gt_0": true,
+                "drift_result": "measured",
+                "null_type": null
+            },
+            "confidence_contribution": "low_to_moderate",
+            "artifact_expected": "ab-causal-r50-confidence-ledger-2026-05-16.json"
+        },
+        {
+            "task_id": "r50-2",
+            "name": "signal_persistence",
+            "status": "pending",
+            "method": "rerun 6 representative runs (2 per scenario), compare claim_discipline_drift to checkpoint",
+            "tolerance": "exact_match",
+            "pass_criterion": "6/6 reruns bit-identical",
+            "boundary": "stability verification only; pass does NOT upgrade claim_discipline_drift to decision_relevant",
+            "artifact_expected": "ab-causal-r50-signal-persistence-2026-05-16.json"
+        },
+        {
+            "task_id": "r50-3",
+            "name": "non_upgrade_discipline",
+            "status": "pending",
+            "method": "static audit of all checkpoint consumers for implicit historically_useful -> decision_relevant paths",
+            "target_metric": "replay_deterministic",
+            "pass_criterion": "zero implicit upgrade paths found",
+            "artifact_expected": "ab-causal-r50-non-upgrade-audit-2026-05-16.md"
+        },
+        {
+            "task_id": "r50-4",
+            "name": "negative_control",
+            "status": "pending",
+            "checks": [
+                {
+                    "blocker": "MIP-02",
+                    "criterion": "no artifact uses claim_discipline_drift to make causal attribution claim without R49.x-1"
+                },
+                {
+                    "blocker": "MIP-04",
+                    "criterion": "reviewer_override_frequency remains null; no proxy or default substituted"
+                }
+            ],
+            "pass_criterion": "zero MIP-02 violations, zero MIP-04 bypass attempts",
+            "artifact_expected": "ab-causal-r50-negative-control-2026-05-16.md"
+        },
+        {
+            "task_id": "r50-5",
+            "name": "reviewer_reconstruction",
+            "status": "pending",
+            "artifact_set": [
+                "docs/status/ab-causal-r50-positive-confidence-protocol-2026-05-16.md",
+                "ab-causal-r50-confidence-ledger-2026-05-16.json",
+                "docs/status/ab-causal-r49x-epistemic-compression-test-2026-05-16.md"
+            ],
+            "pass_criterion": "reviewer reconstructs confidence judgment (what is claimed, what is not, what blocks decision-level) in <=15 min from <=3 artifacts",
+            "artifact_expected": "ab-causal-r50-reviewer-reconstruction-2026-05-16.md"
+        }
+    ],
+    "exit_criteria": {
+        "r50_1_confidence_ledger": false,
+        "r50_2_signal_persistence": false,
+        "r50_3_non_upgrade_discipline": false,
+        "r50_4_negative_control": false,
+        "r50_5_reviewer_reconstruction": false
+    },
+    "final_claim_if_all_pass": "Positive confidence accumulation is structurally possible under fixed admissibility boundaries. Confidence level: moderate. No decision-layer claim is made."
+}
