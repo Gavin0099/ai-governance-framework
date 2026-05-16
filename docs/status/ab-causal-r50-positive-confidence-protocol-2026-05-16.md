@@ -1,172 +1,203 @@
-# AB Causal R50 — Positive Confidence Accumulation Protocol (2026-05-16)
+# AB Causal R50 — Confidence Containment Protocol (2026-05-16)
 
-As-of: 2026-05-16 (revised after authority-creep review)
+As-of: 2026-05-16 (v3 — renamed from Accumulation to Containment; osmosis guard added)
 Status: open
 Opened-by: Gavin0099 (decision) + Codex (formalization)
 Precondition: R49.x consolidation window complete; all 6 r50 entry criteria satisfied.
-Freeze contract: `governance/CONFIDENCE_SEMANTICS_FREEZE.md` (in force for all R50 work)
+Freeze contract: `governance/CONFIDENCE_SEMANTICS_FREEZE.md` (v2, in force)
 
 ---
 
 ## 1. What R50 Actually Is
 
-R50 is not a confidence accumulation exercise.
-R50 is a verification that confidence accumulation can exist without polluting the authority layer.
+R50 verifies a specific structural property:
 
-These are different propositions:
+> **Can positive evidence exist in the record without leaking into the authority layer?**
 
-| ❌ Wrong framing | ✅ Correct framing |
+This is not an accumulation exercise. The name change from "Accumulation Protocol"
+to "Containment Protocol" is not cosmetic — it changes what success means.
+
+| Old framing (wrong) | New framing (correct) |
 |---|---|
-| "Accumulate enough confidence to upgrade claims" | "Verify accumulation does not corrupt authority semantics" |
-| "≥N positive signals = confidence level elevated" | "N signals observed; count has no decision weight" |
-| "Stable signal = trustworthy signal" | "Stable signal = stable signal; trust requires a different contract" |
-| "Persistence confirms reliability" | "Persistence ≠ trustworthiness (hard invariant)" |
+| "Accumulate enough positive signals" | "Verify signals are contained, not absorbed" |
+| "Build confidence toward a claim upgrade" | "Confirm authority layer remains uncontaminated" |
+| "More signals = higher confidence" | "Signal count has no authority weight, regardless of volume" |
+| "Stable signal = reliable signal" | "Stable signal = stable measurement; reliability requires a different contract" |
 
 The admissible claim at R50 end:
 
-> **"Positive confidence accumulation is structurally possible under fixed admissibility
->  boundaries without polluting the authority layer."**
+> **"Positive evidence exists in the record. The authority layer shows no contamination
+>  from this evidence. Containment is structurally verified."**
 
 This is not a claim that governance is effective.
-This is not a claim that accumulated signals are trustworthy.
-It is a claim about structural separation.
+This is not a claim that the signals are trustworthy.
+It is a claim about structural separation between the evidence layer and the authority layer.
 
 ---
 
-## 2. Warning: Authority Creep Front Night
+## 2. The Problem This Addresses
 
-R50 enters the zone immediately preceding authority creep.
-The typical pattern:
+Most governance frameworks handle negative evidence well:
+- block
+- reject
+- fail-closed
+- require review
+
+Positive evidence governance is harder because human cognition shortcircuits it:
 
 ```
-1. positive signals observed (R49.x — already done)
-2. positive signals accumulated (R50.1 — the risk point)
-3. accumulation count tracked with threshold → "≥12 = sufficient"
-4. threshold becomes implicit scoring: positive_runs / total_runs
-5. score used as confidence gate → MIP-02 / MIP-04 bypassed
-6. admissibility discipline collapses
+stable → trustworthy
+repeatable → reliable
+persistent → predictive
+historically useful → decision-relevant
 ```
 
-Step 3 was present in the initial R50 draft ("≥12 即達標"). It has been removed.
+This shortcut operates even without any explicit design decision. It is
+**semantic osmosis**: the implicit accumulation of trust through repeated
+exposure to stable signals.
 
-The freeze contract (`governance/CONFIDENCE_SEMANTICS_FREEZE.md`) blocks steps 3–6.
-This document does not re-introduce any threshold language.
+Code-level freezes (`authority_upgrade_allowed: false`) block explicit promotion.
+They do not block osmosis. The osmosis guard in `CONFIDENCE_SEMANTICS_FREEZE.md`
+operates at the reviewer-facing semantic layer.
+
+R50.5 (the primary axis) tests whether the osmosis guard is functional: can a
+reviewer, reading ≤3 artifacts, accurately state what the evidence does NOT authorize?
 
 ---
 
 ## 3. What R50 Cannot Do
 
-| Prohibited action | Reason |
+| Prohibited | Reason |
 |---|---|
-| Use signal count as a confidence score | `score_derivation_allowed: false` |
+| Use signal count as confidence score | `score_derivation_allowed: false` |
 | Assign decision weight to positive signal count | `decision_weight_allowed: false` |
-| Treat persistence as trustworthiness | Hard invariant: persistence ≠ trustworthiness |
-| Upgrade `historically_useful` → `decision_relevant` | No attribution validation (MIP-02 absent) |
+| Treat persistence as trustworthiness | Hard invariant: `persistence ≠ trustworthiness` |
+| Upgrade `historically_useful` → `decision_relevant` | No attribution contract; no sign-off |
 | Promote any metric via accumulated threshold | `threshold_promotion_allowed: false` |
-| Add new R49.2 scenarios | Scope expansion — R49.2 is closed |
+| Carry trust across review sessions | `reviewer_trust_transfer_allowed: false` |
+| Interpret `replay_deterministic=true` as governance signal | `replay_stability_semantics: pipeline_determinism_only` |
+| Add new R49.2 scenarios | Scope expansion — R49.2 closed |
 | Add new governance rules | v1 freeze |
 
 ---
 
-## 4. Test Axes
+## 4. Epistemic Layer Separation
 
-**Axis priority: R50.5 is primary.** It tests whether the semantic boundary of
-accumulation is recallable by a reviewer — not merely whether signal counts are high.
-A passing R50.1–4 with failing R50.5 means the framework is opaque, not auditable.
+Evidence in this framework operates in three layers. Movement between layers
+requires an explicit attribution contract plus human sign-off. Volume alone
+does not promote evidence.
+
+| Layer | Examples | Consumption rule |
+|---|---|---|
+| `observational_only` | `claim_discipline_drift`, `unsupported_count`, `intervention_entropy` | Record; surface in reports; no decision input |
+| `historically_useful` | `replay_deterministic` | Archive; lineage only; no inference; no prediction |
+| `decision_relevant` | (currently empty in R50) | Decision input after full attribution chain |
+
+**Critical rule:** 18 `observational_only` signals remain `observational_only`.
+Volume does not move evidence up the stack.
+
+---
+
+## 5. Test Axes
+
+**R50.5 is the primary axis.** The other four axes produce the evidence surface
+that R50.5 tests. A framework where R50.1–4 pass but R50.5 fails is opaque — the
+evidence exists but cannot be reconstructed under pressure. That is operationalizability
+failure, not governance success.
 
 ---
 
 ### R50.5 — Reviewer Reconstruction (Primary Axis)
 
-**Goal:** Confirm a reviewer unfamiliar with R50 can reconstruct:
-- What accumulation is (count of observations under fixed conditions)
-- What accumulation is NOT (a confidence score, a trust transfer, a promotion trigger)
-- What would need to be true for accumulation to carry decision weight (trust model, calibration, semantic invariance proof)
+**Goal:** Verify that a reviewer unfamiliar with R50 can reconstruct — from ≤3 artifacts
+in ≤15 minutes — not just what was observed, but what the observations do NOT authorize.
 
-This is the operationalizability test. A governance framework that cannot be
-reconstructed under pressure is not operationalizable — regardless of how many
-signals it has collected.
+This tests the operationalizability of the containment claim. A governance system
+that cannot be reconstructed under pressure is not operationalizable, regardless of
+how many signals it has collected.
+
+This is analogous to:
+- flight recorder auditability: can the causal chain be recovered after the fact?
+- aviation incident governance: can a non-specialist reconstruct the decision context?
+- safety-case reviewability: can an independent reviewer validate the evidence boundary?
 
 **3-artifact set:**
 1. `governance/CONFIDENCE_SEMANTICS_FREEZE.md` — what accumulation means and does NOT mean
-2. `ab-causal-r50-positive-confidence-protocol-2026-05-16.md` (this doc) — R50 scope and design
+2. `ab-causal-r50-positive-confidence-protocol-2026-05-16.md` (this document)
 3. `ab-causal-r49x-epistemic-compression-test-2026-05-16.md` — baseline compression evidence
 
-**Pass criterion:** Reviewer can answer in ≤15 minutes from ≤3 artifacts:
+**Pass criterion — the reviewer must correctly answer all four:**
 1. What is the structural observation R50 makes?
-2. Why does persistence NOT equal trustworthiness?
-3. What three things are absent that would be needed for trust transfer?
-4. What does a positive signal count NOT authorize?
+2. Why does `persistence ≠ trustworthiness`? (State the three missing contracts.)
+3. What does a positive signal count NOT authorize?
+4. What would need to be true for a signal to enter the `decision_relevant` layer?
 
-**Failure criterion:** Reviewer concludes that accumulated positive signals imply
-governance effectiveness, trustworthiness, or authority elevation.
+**Osmosis failure criterion:** Reviewer concludes — in any form — that accumulated
+positive signals imply governance effectiveness, trustworthiness, reliability, or
+authority elevation. This is a R50.5 failure even if the answer to the four
+questions above is technically correct, if the conclusion drawn contradicts them.
+
+**Ordering:** Execute last, after R50.1–4 artifacts exist as the surface being tested.
 
 ---
 
 ### R50.1 — Observational Signal Record
 
-**Goal:** Record which of the 18 existing harness runs produced a positive signal.
-This is a census, not a score.
+**Goal:** Census of which runs produced a positive signal. A count, not a score.
 
-**Positive signal definition:**
-- `measurement_source = harness`
-- `claim_discipline_drift > 0`
-- `drift_result = measured`
-- `null_type = null`
+**Positive signal:** `measurement_source=harness`, `claim_discipline_drift > 0`,
+`drift_result=measured`, `null_type=null`.
 
-**What this is:** A structural observation — N runs were observed; M had non-zero drift.
+**Record format:** Per-run boolean (`signal_present: true/false`).
+Count is reported as a count. No ratio. No percentage. No confidence level derived.
 
-**What this is NOT:**
-- A confidence score
-- A threshold test
-- A promotion criterion
+**Freeze check:** Artifact must not contain: `confidence_score`, `confidence_level`,
+`sufficient_signals`, `threshold_met`, or any language that implies the count
+authorizes a state transition.
 
-**Record format:** Per-run boolean (`signal_present: true/false`) with no aggregation
-into a score or ratio. The count may be reported as a count, not as a percentage or
-proportion that implies reliability.
+**What the record is:** An observational census under fixed conditions.
 
-**Freeze check:** The artifact must not contain: `confidence_score`, `confidence_level`,
-`sufficient_signals`, `threshold_met`, or any language implying the count authorizes
-a state transition.
+**What the record is not:** A reliability estimate, a trust basis, a promotion criterion.
 
 ---
 
 ### R50.2 — Signal Persistence Verification
 
-**Goal:** Confirm claim_discipline_drift is stable across replay.
+**Goal:** Confirm `claim_discipline_drift` is stable across replay. This tests
+pipeline determinism, not signal trustworthiness.
 
-**Method:** Rerun 6 representative runs (2 per scenario); compare output to checkpoint.
+**Method:** 6 representative reruns (2 per scenario); compare to checkpoint.
 Tolerance: exact match (harness is deterministic).
 
-**What a passing result means:**
-> "The signal is stable. The same input produces the same output."
+**What passing means:** Same input → same output. Pipeline is deterministic.
 
-**What a passing result does NOT mean:**
-> ~~"The signal is trustworthy."~~
-> ~~"The signal can be relied upon."~~
-> ~~"Governance is effective."~~
+**What passing does NOT mean:**
+- ~~The signal is trustworthy~~
+- ~~The signal can be relied upon~~
+- ~~Governance is effective~~
+- ~~The signal warrants increased confidence~~
 
-**Invariant that must appear in the artifact:**
+**Required invariant in artifact:**
 ```
 persistence ≠ trustworthiness
 (per governance/CONFIDENCE_SEMANTICS_FREEZE.md)
 ```
 
 **R50.1 + R50.2 hidden promotion loop guard:**
-R50.1 (observational record) + R50.2 (persistence) together must NOT be interpreted
-as "stable positive signal → trustworthy". The artifact for R50.2 must explicitly
-state that combining R50.1 and R50.2 does not produce a trust claim.
+The artifact must explicitly state: "R50.1 (signal census) + R50.2 (persistence)
+combined do not produce a trust claim. A stable positive signal is still
+`observational_only`. Stability does not promote it."
 
 ---
 
 ### R50.3 — Non-Upgrade Discipline
 
-**Goal:** Confirm `replay_deterministic` (classified `historically_useful`) has not
-been re-admitted as `decision_relevant` in any downstream artifact.
+**Goal:** Confirm no downstream artifact has implicitly re-admitted `replay_deterministic`
+(classified `historically_useful`) as `decision_relevant`.
 
-**Method:** Static audit of all checkpoint consumers.
+**Method:** Static audit of all checkpoint consumers and status docs.
 
-**Pass criterion:** Zero implicit upgrade paths found.
+**Pass criterion:** Zero implicit upgrade paths.
 
 ---
 
@@ -174,59 +205,42 @@ been re-admitted as `decision_relevant` in any downstream artifact.
 
 **Goal:** Confirm MIP-02 and MIP-04 blockers remain effective.
 
-**MIP-02:** No artifact claims causal attribution from `claim_discipline_drift` without
-R49.x-1 attribution validation.
-
-**MIP-04:** `reviewer_override_frequency` remains null. No proxy or default substituted.
+| Blocker | Check |
+|---|---|
+| MIP-02 | No artifact claims causal attribution from `claim_discipline_drift` without R49.x-1 |
+| MIP-04 | `reviewer_override_frequency` remains null; no proxy or default substituted |
 
 **Pass criterion:** Zero violations of either blocker.
 
 ---
 
-## 5. Confidence Semantics
-
-All R50 artifacts must conform to the frozen semantics in
-`governance/CONFIDENCE_SEMANTICS_FREEZE.md`.
-
-Accumulation in R50 is allowed to mean exactly one thing:
-
-> "We have observed N runs. In M of those runs, signal S was non-zero.
->  This is a structural observation under fixed conditions.
->  It is not a claim about trustworthiness, reliability, or governance effectiveness."
-
----
-
 ## 6. Exit Criteria
 
-R50 closes when ALL of the following are true:
-
-| Criterion | What it verifies |
+| Criterion | What it actually verifies |
 |---|---|
-| R50.5 pass | Reviewer reconstructs semantic boundary of accumulation, not just signal counts |
-| R50.1 record complete | Census of positive signals exists; no score derived |
-| R50.2 persistence verified | Signals stable across replay; persistence ≠ trustworthiness stated |
-| R50.3 no upgrade paths | replay_deterministic not re-promoted |
-| R50.4 blockers confirmed | MIP-02 and MIP-04 still effective |
-
-**Ordering:** R50.5 should be executed last, after the other artifacts exist, so the
-reviewer reconstruction test reflects the actual state of the R50 evidence surface.
+| R50.5 pass | The semantic boundary of accumulation is reconstructable — not just that signals exist |
+| R50.1 complete | Signal census exists; no score derived; freeze check passes |
+| R50.2 pass | Pipeline determinism confirmed; persistence ≠ trustworthiness stated and guarded |
+| R50.3 pass | `replay_deterministic` not re-promoted anywhere |
+| R50.4 pass | MIP-02 and MIP-04 blockers still effective |
 
 **Final claim (if all pass):**
 
-> Positive confidence accumulation is structurally possible under fixed admissibility
-> boundaries without polluting the authority layer. Confidence level: observational.
-> No decision-layer claim is made. Persistence does not imply trustworthiness.
+> Positive evidence exists in the record. The authority layer shows no contamination.
+> Containment is structurally verified under fixed epistemic conditions.
+> Confidence level: observational. No decision-layer claim is made.
+> Persistence does not imply trustworthiness.
 
 ---
 
 ## 7. Artifacts Expected
 
-| Artifact | Produced by |
-|---|---|
-| `governance/CONFIDENCE_SEMANTICS_FREEZE.md` | This session ✅ |
-| `ab-causal-r50-tracker-2026-05-16.json` | This session (to be updated) |
-| `ab-causal-r50-observational-signal-record-2026-05-16.json` | R50.1 execution |
-| `ab-causal-r50-signal-persistence-2026-05-16.json` | R50.2 execution |
-| `ab-causal-r50-non-upgrade-audit-2026-05-16.md` | R50.3 execution |
-| `ab-causal-r50-negative-control-2026-05-16.md` | R50.4 execution |
-| `ab-causal-r50-reviewer-reconstruction-2026-05-16.md` | R50.5 execution |
+| Artifact | Produced by | Status |
+|---|---|---|
+| `governance/CONFIDENCE_SEMANTICS_FREEZE.md` (v2) | This session | ✅ |
+| `ab-causal-r50-tracker-2026-05-16.json` | This session | ✅ (to be updated) |
+| `ab-causal-r50-observational-signal-record-2026-05-16.json` | R50.1 | pending |
+| `ab-causal-r50-signal-persistence-2026-05-16.json` | R50.2 | pending |
+| `ab-causal-r50-non-upgrade-audit-2026-05-16.md` | R50.3 | pending |
+| `ab-causal-r50-negative-control-2026-05-16.md` | R50.4 | pending |
+| `ab-causal-r50-reviewer-reconstruction-2026-05-16.md` | R50.5 | pending (execute last) |
