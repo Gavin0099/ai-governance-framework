@@ -141,7 +141,7 @@ This is analogous to:
 
 **On causal-chain recovery (dimension 3):**
 
-There are two levels of decay that must both be blocked:
+There are three levels of decay that must all be blocked:
 
 *First-order decay:* restriction → "just conservative"
 Blocked by: knowing the causal basis (why the restriction exists).
@@ -149,18 +149,34 @@ Blocked by: knowing the causal basis (why the restriction exists).
 *Second-order decay:* "missing contract" → ritual phrase
 Blocked by: knowing the failure mode (what specifically breaks if bypassed).
 
-A reviewer who knows "MIP-02 is missing" but not "what failure appears if MIP-02 is
-bypassed" will eventually treat `MIP-02` as an abstract label — a ritual phrase
-without teeth. The causal chain must be recoverable all the way to the failure mode:
+*Third-order decay:* failure mode label → ritual label
+Blocked by: being able to construct the bypass scenario in own words — not recall the label.
+
+A reviewer who can say "volume-laundering" without being able to describe how it
+unfolds is at third-order decay risk. The label has been absorbed without the path.
+
+The causal chain must be recoverable through all four levels:
 
 ```
-restriction → causal basis → missing contract → why it matters → failure mode
+restriction → causal basis → missing contract → failure mode → bypass scenario (own words)
 ```
 
-For this axis, the reviewer must trace at least one prohibition to its failure mode.
-Example: "If `replay_deterministic` is consumed as a confidence basis, what breaks?"
-Answer: "Pipeline-governance conflation — harness reproducibility is treated as evidence
-that governance is reliable, but it is only a property of the measurement tool."
+**Mandatory sub-requirement:** For at least one prohibition, the reviewer must
+describe a bypass scenario in their own words — not recall the failure-mode label.
+
+Acceptable example:
+> "If we write 18 observational_only runs as 'supports decision relevance', we are
+>  consuming count as a promotion protocol, letting evidence without attribution
+>  contract and human sign-off enter the decision layer."
+
+This demonstrates path comprehension. The reviewer constructed the failure path,
+not retrieved a label.
+
+Unacceptable example:
+> "That would cause volume-laundering."
+
+This demonstrates label recall. The reviewer retrieved a name, not a path.
+Third-order decay has already occurred.
 
 **Osmosis failure criterion — any of the following is a R50.5 failure:**
 - Reviewer concludes accumulated positive signals imply governance effectiveness

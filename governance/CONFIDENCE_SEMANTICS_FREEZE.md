@@ -194,7 +194,23 @@ causal basis ("MIP-02 missing")
 → bypassed without noticing
 ```
 
-**3C preserves the complete causal chain: restriction → causal basis → why it matters → failure mode if bypassed.**
+**3C preserves the complete causal chain:**
+
+```
+restriction → causal basis → missing contract → failure mode → bypass scenario (own words)
+```
+
+Three decay levels are explicitly guarded:
+
+| Decay level | What decays | What blocks it |
+|---|---|---|
+| First-order | restriction → "just conservative" | knowing the causal basis |
+| Second-order | "missing contract" → ritual phrase | knowing the failure mode |
+| Third-order | failure mode label → ritual label | constructing bypass scenario in own words |
+
+Third-order decay is the most invisible: a reviewer who says "volume-laundering"
+without being able to describe how it unfolds has absorbed the label without the path.
+Label recall is not path comprehension.
 
 Each prohibition carries four fields. A reviewer who cannot reconstruct all four
 for at least one prohibition has not completed causal epistemic recovery.
