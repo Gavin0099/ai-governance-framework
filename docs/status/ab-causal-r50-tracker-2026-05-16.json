@@ -2,7 +2,7 @@
     "tracker_id": "ab-causal-r50-tracker-2026-05-16",
     "experiment": "R50_confidence_containment_protocol",
     "as_of": "2026-05-16",
-    "status": "open",
+    "status": "complete",
     "r49x_preconditions_inherited": true,
     "freeze_contract": "governance/CONFIDENCE_SEMANTICS_FREEZE.md",
     "freeze_contract_version": "v2",
@@ -60,7 +60,7 @@
             "task_id": "r50-5",
             "priority": "primary",
             "name": "anti_overinterpretation_recoverability",
-            "status": "pending",
+            "status": "complete",
             "goal": "governance epistemic survivability — can a reviewer reconstruct not just what was observed but the epistemic boundary: what observations do NOT authorize and why each prohibition still holds",
             "what_this_tests": "epistemic boundary recovery, not evidence recovery; causal basis reconstruction, not restriction recall",
             "ordering": "execute last, after r50-1 through r50-4 artifacts exist as the surface being tested",
@@ -137,7 +137,7 @@
             "task_id": "r50-1",
             "priority": "secondary",
             "name": "observational_signal_record",
-            "status": "pending",
+            "status": "complete",
             "goal": "census of which 18 runs produced a positive signal; a count, not a score",
             "positive_signal_definition": {
                 "measurement_source": "harness",
@@ -153,7 +153,7 @@
             "task_id": "r50-2",
             "priority": "secondary",
             "name": "signal_persistence",
-            "status": "pending",
+            "status": "complete",
             "goal": "confirm claim_discipline_drift is stable across replay; tests pipeline determinism, not signal trustworthiness",
             "method": "rerun 6 representative runs (2 per scenario), compare claim_discipline_drift to checkpoint",
             "tolerance": "exact_match",
@@ -167,7 +167,7 @@
             "task_id": "r50-3",
             "priority": "secondary",
             "name": "non_upgrade_discipline",
-            "status": "pending",
+            "status": "complete",
             "goal": "confirm replay_deterministic has not been re-admitted as decision_relevant in any downstream artifact",
             "method": "static audit of all checkpoint consumers and status docs",
             "pass_criterion": "zero implicit upgrade paths found",
@@ -177,7 +177,7 @@
             "task_id": "r50-4",
             "priority": "secondary",
             "name": "negative_control",
-            "status": "pending",
+            "status": "complete",
             "checks": [
                 {
                     "blocker": "MIP-02",
@@ -193,11 +193,11 @@
         }
     ],
     "exit_criteria": {
-        "r50_5_reviewer_reconstruction": false,
-        "r50_1_signal_record_complete": false,
-        "r50_2_persistence_verified": false,
-        "r50_3_no_upgrade_paths": false,
-        "r50_4_blockers_confirmed": false
+        "r50_5_reviewer_reconstruction": true,
+        "r50_1_signal_record_complete": true,
+        "r50_2_persistence_verified": true,
+        "r50_3_no_upgrade_paths": true,
+        "r50_4_blockers_confirmed": true
     },
     "final_claim_if_all_pass": "Positive evidence exists in the record. The authority layer shows no contamination. Containment is structurally verified under fixed epistemic conditions. Confidence level: observational. No decision-layer claim is made. Persistence does not imply trustworthiness."
 }

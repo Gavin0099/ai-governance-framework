@@ -1,0 +1,83 @@
+{
+    "artifact_id": "ab-causal-r50-signal-persistence-2026-05-16",
+    "task_id": "r50-2",
+    "name": "signal_persistence_verification",
+    "as_of": "2026-05-16",
+    "status": "complete",
+    "result": "pass",
+    "source_checkpoint": "docs/status/ab-causal-r492-reviewer-substitution-checkpoint-2026-05-15.json",
+    "freeze_contract": "governance/CONFIDENCE_SEMANTICS_FREEZE.md",
+    "method": "6 representative replays (2 per scenario); compare claim_discipline_drift to checkpoint value; tolerance: exact match",
+    "tolerance": "exact_match",
+    "what_passing_means": "Same input produces same output. Pipeline is deterministic. This is a property of the pipeline, not of the governed system.",
+    "what_passing_does_not_mean": [
+        "signal is trustworthy",
+        "signal can be relied upon",
+        "governance is effective",
+        "signal warrants increased confidence",
+        "persistence implies authority"
+    ],
+    "required_invariant": "persistence != trustworthiness (per governance/CONFIDENCE_SEMANTICS_FREEZE.md)",
+    "hidden_loop_guard": "R50.1 (signal census) + R50.2 (persistence) combined do not produce a trust claim. A stable positive signal is still observational_only. Stability does not promote it.",
+    "layer_classification_note": "replay_deterministic remains historically_useful after this verification. This result does not alter that classification. Harness determinism is a pipeline property; it carries no information about governed-system behavior.",
+    "replays": [
+        {
+            "run_id": "r492-runtime-to-audit-s350101",
+            "scenario_id": "SCN-RUNTIME",
+            "seed": 350101,
+            "substituted_reviewer": "audit",
+            "checkpoint_claim_discipline_drift": 0.25,
+            "replay_claim_discipline_drift": 0.25,
+            "exact_match": true
+        },
+        {
+            "run_id": "r492-runtime-to-product-s350102",
+            "scenario_id": "SCN-RUNTIME",
+            "seed": 350102,
+            "substituted_reviewer": "product",
+            "checkpoint_claim_discipline_drift": 0.1667,
+            "replay_claim_discipline_drift": 0.1667,
+            "exact_match": true
+        },
+        {
+            "run_id": "r492-audit-to-runtime-s350101",
+            "scenario_id": "SCN-AUDIT",
+            "seed": 350101,
+            "substituted_reviewer": "runtime",
+            "checkpoint_claim_discipline_drift": 0.25,
+            "replay_claim_discipline_drift": 0.25,
+            "exact_match": true
+        },
+        {
+            "run_id": "r492-audit-to-product-s350102",
+            "scenario_id": "SCN-AUDIT",
+            "seed": 350102,
+            "substituted_reviewer": "product",
+            "checkpoint_claim_discipline_drift": 0.3333,
+            "replay_claim_discipline_drift": 0.3333,
+            "exact_match": true
+        },
+        {
+            "run_id": "r492-product-to-runtime-s350101",
+            "scenario_id": "SCN-PRODUCT",
+            "seed": 350101,
+            "substituted_reviewer": "runtime",
+            "checkpoint_claim_discipline_drift": 0.25,
+            "replay_claim_discipline_drift": 0.25,
+            "exact_match": true
+        },
+        {
+            "run_id": "r492-product-to-audit-s350102",
+            "scenario_id": "SCN-PRODUCT",
+            "seed": 350102,
+            "substituted_reviewer": "audit",
+            "checkpoint_claim_discipline_drift": 0.2857,
+            "replay_claim_discipline_drift": 0.2857,
+            "exact_match": true
+        }
+    ],
+    "exact_match_count": 6,
+    "total_replays": 6,
+    "combined_r50_1_r50_2_interpretation": "R50.1 shows 18 runs with signal_present=true. R50.2 shows 6/6 replays match checkpoint exactly. These two results together confirm: (a) signal was observed, (b) pipeline is deterministic. They do not together constitute a trust claim. A stable, repeatedly observed signal is still observational_only.",
+    "causal_basis_why_stability_is_not_trustworthiness": "Harness determinism is a pipeline property: given the same seed and scenario, the same deterministic Python computation produces the same output. This says nothing about whether the governed system (reviewer behavior under substitution) would behave reliably under real conditions. The pipeline reproduces its own computation; it does not validate the semantic content of what it computes."
+}
