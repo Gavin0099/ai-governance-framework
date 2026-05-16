@@ -34,6 +34,7 @@ _SCHEMA_VERSION = "1.1"
 _TRIGGER_MODE = "manual_fallback"
 _ENFORCEMENT_SOURCE = "output_mode_enforcer"
 _FALLBACK_WEAKENS_ENFORCEMENT = False
+_DEFAULT_TRACE_PATH = os.path.join("artifacts", "audit", "session-output-mode-trace.ndjson")
 
 
 def write_manual_receipt(
@@ -52,6 +53,7 @@ def write_manual_receipt(
     manual_fallback_reason: str,
     consequence_tier: int | None = None,
     consequence_materiality_reason: str | None = None,
+    session_output_mode_trace_path: str | None = None,
     exit_code: int = 0,
 ) -> dict[str, Any]:
     """
@@ -108,7 +110,64 @@ def write_manual_receipt(
     with open(output_path, "w", encoding="utf-8") as fh:
         json.dump(receipt, fh, indent=2)
 
+    _append_session_output_mode_trace(
+        receipt=receipt,
+        record=record,
+        receipt_path=output_path,
+        trace_path=session_output_mode_trace_path or _DEFAULT_TRACE_PATH,
+    )
+
     return receipt
+
+
+def _append_session_output_mode_trace(
+    *,
+    receipt: dict[str, Any],
+    record: dict[str, Any],
+    receipt_path: str,
+    trace_path: str,
+) -> None:
+    """
+    Append a session-level output-mode trace event.
+
+    This is a pure trace surface; it does not re-run compliance or alter
+    enforcement decisions from the receipt.
+    """
+    session_id = str(record.get("session_id") or "unknown")
+    record_id = str(record.get("record_id") or receipt.get("checksum_of_cleaned_path") or "unknown")
+    entry = {
+        "session_id": session_id,
+        "agent_type": _infer_agent_type(record=record, agent_id=receipt.get("agent_id", "")),
+        "trigger_mode": receipt.get("trigger_mode"),
+        "record_id": record_id,
+        "output_mode_requested": receipt.get("output_mode_requested"),
+        "output_mode_effective": receipt.get("output_mode_effective"),
+        "output_mode_decision": receipt.get("output_mode_decision"),
+        "output_mode_ceiling": receipt.get("output_mode_ceiling"),
+        "consequence_tier": receipt.get("consequence_tier"),
+        "receipt_path": receipt_path,
+        "enforcement_source": receipt.get("enforcement_source"),
+    }
+    os.makedirs(os.path.dirname(os.path.abspath(trace_path)), exist_ok=True)
+    with open(trace_path, "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(entry, ensure_ascii=True) + "\n")
+
+
+def _infer_agent_type(*, record: dict[str, Any], agent_id: str) -> str:
+    """
+    Normalize agent type to constrained values for session trace records.
+    """
+    candidate = str(record.get("agent_type") or "").strip().lower()
+    if candidate in {"copilot", "gemini", "native", "unknown"}:
+        return candidate
+    lowered_id = str(agent_id or "").lower()
+    if "copilot" in lowered_id:
+        return "copilot"
+    if "gemini" in lowered_id:
+        return "gemini"
+    if "native" in lowered_id:
+        return "native"
+    return "unknown"
 
 
 def is_compliant_for_non_native_agent(receipt: dict[str, Any]) -> tuple[bool, str]:
