@@ -134,24 +134,41 @@ This is analogous to:
 | Dimension | Question | What it tests |
 |---|---|---|
 | Evidence recovery | "What was structurally observed in R50?" | Can the reviewer state observations without inflating them? |
-| Boundary recovery | "What cannot be authorized by these observations?" | Can the reviewer state the prohibition without needing to look it up? |
-| Causal epistemic recovery | "Why does each prohibition still hold today?" | Does the reviewer know the missing contracts, not just the restriction? |
+| Boundary recovery | "What cannot be authorized by these observations?" | Can the reviewer state the prohibition without looking it up? |
+| Causal-chain recovery | "Why does each prohibition still hold? What breaks if bypassed?" | Does reviewer know missing contract AND the failure mode it prevents? |
 | Rhetoric contamination detection | "Which of these sentences are rhetorical trust escalators?" (give examples) | Can the reviewer identify osmosis-in-progress without the label? |
-| Anti-overinterpretation discipline | "What does `replay_deterministic = true` NOT mean for governance?" | Can the reviewer apply the invariant to a specific case? |
+| Anti-overinterpretation discipline | "What does `replay_deterministic = true` NOT mean for governance?" | Can the reviewer apply the invariant to a specific case without the abstract framing? |
+
+**On causal-chain recovery (dimension 3):**
+
+There are two levels of decay that must both be blocked:
+
+*First-order decay:* restriction → "just conservative"
+Blocked by: knowing the causal basis (why the restriction exists).
+
+*Second-order decay:* "missing contract" → ritual phrase
+Blocked by: knowing the failure mode (what specifically breaks if bypassed).
+
+A reviewer who knows "MIP-02 is missing" but not "what failure appears if MIP-02 is
+bypassed" will eventually treat `MIP-02` as an abstract label — a ritual phrase
+without teeth. The causal chain must be recoverable all the way to the failure mode:
+
+```
+restriction → causal basis → missing contract → why it matters → failure mode
+```
+
+For this axis, the reviewer must trace at least one prohibition to its failure mode.
+Example: "If `replay_deterministic` is consumed as a confidence basis, what breaks?"
+Answer: "Pipeline-governance conflation — harness reproducibility is treated as evidence
+that governance is reliable, but it is only a property of the measurement tool."
 
 **Osmosis failure criterion — any of the following is a R50.5 failure:**
 - Reviewer concludes accumulated positive signals imply governance effectiveness
-- Reviewer cannot state the causal basis for a prohibition (only states the restriction)
+- Reviewer can state restriction but not its causal basis (first-order decay risk)
+- Reviewer can state causal basis but not the failure mode (second-order decay risk)
 - Reviewer accepts a rhetorical trust escalator as a valid evidence statement
 - Reviewer treats `replay_deterministic = true` as a governance signal
 - Reviewer concludes R50 completion authorizes a claim upgrade
-
-**Why causal epistemic recovery is distinct from boundary recovery:**
-A reviewer who can state "persistence ≠ trustworthiness" but cannot state
-*why* (bounded reliability model absent; reviewer calibration absent; semantic
-invariance proof absent) will not maintain the restriction under pressure.
-The restriction will be reclassified as "just conservative" when stakes seem low.
-Causal basis is what prevents a restriction from decaying into a preference.
 
 **Ordering:** Execute last, after R50.1–4 artifacts exist as the surface being tested.
 
