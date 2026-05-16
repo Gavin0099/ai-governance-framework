@@ -321,3 +321,74 @@ def test_returned_dict_matches_file_content(tmp_path):
     with open(path, encoding="utf-8") as fh:
         on_disk = json.load(fh)
     assert returned == on_disk
+
+
+def _read_ndjson(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    with path.open(encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if line:
+                rows.append(json.loads(line))
+    return rows
+
+
+def test_degrade_receipt_appends_session_audit_trace(tmp_path):
+    trace_path = tmp_path / "artifacts" / "audit" / "session-output-mode-trace.ndjson"
+    record = {
+        "session_id": "session-abc",
+        "record_id": "rec-001",
+        "agent_type": "copilot",
+        "admissibility_state": {"existence": False},  # forces degrade for requested closeout_recorded
+    }
+    kwargs = _base_kwargs(tmp_path, mode="closeout_recorded")
+    kwargs["record"] = record
+    kwargs["session_output_mode_trace_path"] = str(trace_path)
+    receipt = write_manual_receipt(**kwargs)
+
+    assert trace_path.exists()
+    rows = _read_ndjson(trace_path)
+    assert len(rows) == 1
+    assert rows[0]["session_id"] == "session-abc"
+    assert rows[0]["output_mode_decision"] == "degrade"
+    assert rows[0]["receipt_path"] == kwargs["output_path"]
+    assert rows[0]["enforcement_source"] == "output_mode_enforcer"
+    assert rows[0]["output_mode_decision"] == receipt["output_mode_decision"]
+
+
+def test_session_trace_preserves_consequence_tier(tmp_path):
+    trace_path = tmp_path / "artifacts" / "audit" / "session-output-mode-trace.ndjson"
+    record = {
+        "session_id": "session-tier",
+        "record_id": "rec-tier",
+        "agent_type": "gemini",
+        "admissibility_state": {"existence": False},
+    }
+    kwargs = _base_kwargs(tmp_path, mode="closeout_recorded")
+    kwargs["record"] = record
+    kwargs["consequence_tier"] = 1
+    kwargs["session_output_mode_trace_path"] = str(trace_path)
+    write_manual_receipt(**kwargs)
+
+    rows = _read_ndjson(trace_path)
+    assert rows[-1]["consequence_tier"] == 1
+
+
+def test_trace_decision_matches_receipt_decision(tmp_path):
+    trace_path = tmp_path / "artifacts" / "audit" / "session-output-mode-trace.ndjson"
+    record = {
+        "session_id": "session-match",
+        "record_id": "rec-match",
+        "agent_type": "unknown",
+        "admissibility_state": {"existence": True},
+        "causal_chain": {"present": True, "cross_layer": True},
+    }
+    kwargs = _base_kwargs(tmp_path, mode="procedural_compliance_observed")
+    kwargs["record"] = record
+    kwargs["session_output_mode_trace_path"] = str(trace_path)
+    receipt = write_manual_receipt(**kwargs)
+
+    rows = _read_ndjson(trace_path)
+    assert rows[-1]["output_mode_decision"] == receipt["output_mode_decision"]
+    assert rows[-1]["output_mode_requested"] == receipt["output_mode_requested"]
+    assert rows[-1]["output_mode_effective"] == receipt["output_mode_effective"]
