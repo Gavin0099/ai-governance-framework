@@ -146,6 +146,47 @@ Prohibition:
 Promotion requirement:
 - Any claim above `procedural compliance observed` requires explicit cross-layer causal-chain evidence with traceable reconstruction, not summary-level inference.
 
+## Governance Survivorship Bias Guard
+
+Core rule:
+
+`surviving evidence != complete evidence`.
+
+Archival cleanliness must not be interpreted as governance stability without negative-evidence visibility.
+
+Hard rule:
+
+`clean history != complete history`.
+
+### Negative Evidence Admissibility
+
+| Evidence state | Claim impact |
+|---|---|
+| failed closeout retained | integrity ceiling unchanged |
+| failed closeout missing | integrity ceiling degraded |
+| reconstruction abandoned but lineage-visible | survivorship bias bounded |
+| reconstruction disappearance unexplained | historical integrity unestablished |
+
+Interpretation:
+- Missing failure evidence is itself governance-relevant evidence.
+- Unexplained disappearance of degraded/incomplete states is an admissibility downgrade event.
+
+### Lineage Visibility Scope (v1)
+
+Retention-hardening applies to governance-relevant incompleteness only.
+
+| Incompleteness type | Lineage-visible requirement |
+|---|---|
+| failed closeout | yes |
+| degraded admissibility | yes |
+| incomplete eligibility evaluation | yes |
+| abandoned semantic draft | usually no |
+| exploratory brainstorming | no |
+
+Boundary:
+- This section is not a universal reasoning-retention policy.
+- Scope is limited to survivorship-bias control for governance admissibility.
+
 ## Next Step
 
 Use this contract as claim-boundary input for:
