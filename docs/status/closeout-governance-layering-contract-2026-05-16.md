@@ -216,6 +216,70 @@ Symbolic downgrade warning:
 - `downgrade_applied=true` is insufficient without effect visibility.
 - Recorded downgrade must show at least one concrete effect surface (for example: claim prohibition, coverage capping, reviewer-path block, or assertion-level downgrade).
 
+## Consequence Materiality Guard
+
+Core rule:
+
+`any consequence != material constraint`.
+
+The Symbolic Downgrade Warning (above) requires "at least one concrete effect surface."
+This section classifies what counts as a concrete effect surface — because not all
+effects are materially constraining, and low-value consequences must not be used
+to lift the claim ceiling cap.
+
+### Materiality Tiers
+
+| Tier | Label | Definition | Claim ceiling effect |
+|---|---|---|---|
+| 0 | Cosmetic | field value change only (e.g., `downgrade_applied: true`, status note); no downstream constraint exists | none — ceiling unchanged |
+| 1 | Procedural | claim ceiling explicitly named and bounded in at least one artifact; no enforcement surface beyond the record | ceiling capped but cannot advance; `bounded integrity discipline observed` maximum |
+| 2 | Structural | claim prohibition active AND at least one dependent claim, gate, or review path demonstrably constrained by the downgrade — must be traceable | ceiling advancement admissible (if remaining conditions met) |
+
+Tier 0 is the Symbolic Downgrade Warning case — already prohibited from producing
+ceiling change. This section defines Tier 1 as the minimum for `consumed`,
+and Tier 2 as the minimum for ceiling advancement.
+
+### Consequence Materiality Chain
+
+The complete required chain for admissible ceiling change:
+
+```
+downgrade recorded (any tier)
+→ downgrade consumed (Tier 1 minimum: claim ceiling bounded in artifact)
+→ downgrade materially constraining (Tier 2 minimum: dependent path visibly constrained)
+→ ceiling advancement admissible (if all other layer conditions met)
+```
+
+No step may be skipped. Tier 0 consequence cannot substitute for Tier 1.
+Tier 1 consequence cannot substitute for Tier 2.
+
+### Low-Value Consequence Laundering (Prohibited)
+
+The following patterns constitute low-value consequence laundering:
+
+| Pattern | Why prohibited |
+|---|---|
+| `downgrade_applied: true` without named claim ceiling | Tier 0 only; consumed state not established |
+| Named claim ceiling without constrained dependent path | Tier 1 only; ceiling advancement inadmissible |
+| Constrained path visible but bypassed without record | Tier 2 attempted but bypassed; governance adequacy prohibited |
+| Multiple Tier 1 consequences accumulated | repetition count does not promote Tier 1 to Tier 2 |
+
+Repetition rule:
+`N × Tier-1 consequence != Tier-2 consequence`.
+
+Volume of procedural consequences does not substitute for structural constraint evidence.
+
+### Materiality Floor Enforcement
+
+For the `retained + downgrade applied` state in the Consumption Admissibility Table:
+
+- If consequence is Tier 0: state must be reclassified as `retained but unconsumed`
+- If consequence is Tier 1: `bounded integrity discipline observed` is admissible; no advancement
+- If consequence is Tier 2: ceiling advancement admissible; requires traceability to the constrained path
+
+This replaces the informal "concrete effect surface" requirement in the Symbolic Downgrade
+Warning with a classifiable and verifiable threshold.
+
 ## Next Step
 
 Use this contract as claim-boundary input for:
