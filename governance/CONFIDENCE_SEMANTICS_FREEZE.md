@@ -170,22 +170,61 @@ This distinction matters because:
 - "just conservative" = can be relaxed when stakes seem low
 - "epistemically necessary" = cannot be relaxed without the missing contract
 
-Each prohibition in this framework has a causal basis that must remain
-reconstructable:
+But preserving the causal basis is also insufficient if the failure mode is unknown.
+A reviewer who knows "MIP-02 is missing" but not "what breaks if MIP-02 is bypassed"
+will eventually treat `MIP-02` as an abstract ritual phrase — a label without teeth.
 
-| Prohibition | Causal basis | What's missing |
-|---|---|---|
-| `claim_discipline_drift` cannot enter `decision_relevant` | MIP-02 requires causal attribution; R49.x-1 (evaluator neutrality) not yet completed | Attribution contract + R49.x-1 |
-| `reviewer_override_frequency` cannot be used | MIP-04 requires per-claim event log; no event log infrastructure exists | Event log layer |
-| `replay_deterministic` cannot be reused as confidence basis | Harness determinism is a pipeline property; it carries no information about governed system behavior | Bounded reliability model |
-| Persistence does not imply trustworthiness | No bounded reliability model; no reviewer calibration; no semantic invariance proof | All three contracts |
-| Volume does not promote evidence layers | Layer promotion requires attribution contract + human sign-off; neither exists | Promotion protocol |
+This is **second-order epistemic decay**:
 
-The osmosis guard requires that R50.5 tests **causal epistemic recovery**: not just
-"what is prohibited" but "why the prohibition still holds today."
+```
+restriction (hard boundary)
+→ remembered caution
+→ organizational habit
+→ optional preference
+→ eventually ignored
+```
 
-A reviewer who can state the restriction but not its causal basis has partially
-failed the osmosis guard. The restriction will not survive the next context switch.
+The same decay applies to causal bases:
+
+```
+causal basis ("MIP-02 missing")
+→ remembered label
+→ ritual phrase
+→ abstract formality
+→ bypassed without noticing
+```
+
+**3C preserves the complete causal chain: restriction → causal basis → why it matters → failure mode if bypassed.**
+
+Each prohibition carries four fields. A reviewer who cannot reconstruct all four
+for at least one prohibition has not completed causal epistemic recovery.
+
+| Prohibition | Causal basis | What's missing | Failure mode if bypassed |
+|---|---|---|---|
+| `claim_discipline_drift` cannot enter `decision_relevant` | MIP-02 requires causal attribution; R49.x-1 (evaluator neutrality) not yet completed | Attribution contract + R49.x-1 completion | Fabricated causality: drift observed → drift attributed to reviewer tacit knowledge, but attribution is harness artifact; decisions made on invented causal model |
+| `reviewer_override_frequency` cannot be used | MIP-04 requires per-claim event log; no event log infrastructure exists | Event log layer | Proxy collapse: silence conflated with zero overrides; null rate misread as compliance signal; governance appears clean when it is unobserved |
+| `replay_deterministic` cannot be reused as confidence basis | Harness determinism is a pipeline property; carries no information about governed system behavior | Bounded reliability model | Pipeline-governance conflation: harness reproducibility consumed as evidence that governance is reliable; authority accrues to a property of the measurement tool, not the governed system |
+| Persistence does not imply trustworthiness | No bounded reliability model; no reviewer calibration evidence; no semantic invariance proof | All three contracts | Osmosis-induced authority: stable signal consumed as warrant through reviewer familiarity; authority emerges without any contract, invisible to audit |
+| Volume does not promote evidence layers | Layer promotion requires attribution contract + human sign-off; neither exists | Promotion protocol | Volume-laundering: accumulated weak evidence consumed as strong evidence; 18 observational_only runs treated as equivalent to 1 decision_relevant run |
+
+**Causal-chain recoverability requirement:**
+
+R50.5 must test whether a reviewer can reconstruct the complete chain — not just
+the restriction, not just the causal basis, but the failure mode that makes the
+restriction epistemically necessary rather than merely cautious.
+
+Without failure-mode recoverability, "missing contract" becomes a ritual phrase.
+With it, the restriction has teeth: the reviewer knows what breaks if they bypass it.
+
+The osmosis guard requires that R50.5 tests **causal-chain recoverability**:
+- what is prohibited
+- why (causal basis)
+- what contract is missing and why that contract matters
+- what specific failure appears if the bypass occurs
+
+A reviewer who can state the restriction but not the failure mode will not maintain
+the restriction under pressure. The restriction will decay from
+"epistemically necessary" to "just conservative" at the next context switch.
 
 ---
 
