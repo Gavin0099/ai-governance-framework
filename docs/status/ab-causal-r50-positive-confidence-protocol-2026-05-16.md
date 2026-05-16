@@ -182,9 +182,30 @@ Third-order decay has already occurred.
 - Reviewer concludes accumulated positive signals imply governance effectiveness
 - Reviewer can state restriction but not its causal basis (first-order decay risk)
 - Reviewer can state causal basis but not the failure mode (second-order decay risk)
+- Reviewer can state failure mode but only as label recall, not own-words bypass scenario (third-order decay risk)
 - Reviewer accepts a rhetorical trust escalator as a valid evidence statement
 - Reviewer treats `replay_deterministic = true` as a governance signal
 - Reviewer concludes R50 completion authorizes a claim upgrade
+
+**Known limitation of R50.5:**
+
+R50.5 tests paraphrasability — whether a reviewer can reconstruct known failure
+paths in their own words. This blocks first through third-order decay.
+
+R50.5 does **not** test transfer — whether a reviewer can apply the epistemic
+principles to an unseen or modified scenario. This would block fourth-order decay:
+
+*Fourth-order decay:* own-words bypass scenario → narrative mimicry
+A reviewer who has heard standard bypass scenarios enough times can produce
+convincing paraphrase-level output without retaining causal understanding.
+Paraphrasability is evidence that understanding existed at encoding time.
+Transfer is evidence that understanding still exists now.
+
+**Forward pointer:** The fourth-order guard requires adversarial reconstruction —
+presenting a reviewer with a novel scenario and asking them to apply principles
+without access to standard examples. This is out of scope for R50 and is
+acknowledged as the next anti-ritualization layer. It requires explicit design of
+unseen test scenarios before it can be operated.
 
 **Ordering:** Execute last, after R50.1–4 artifacts exist as the surface being tested.
 

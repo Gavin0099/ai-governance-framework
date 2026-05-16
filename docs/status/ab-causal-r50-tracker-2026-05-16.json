@@ -124,11 +124,13 @@
                 "reviewer concludes accumulated positive signals imply governance effectiveness",
                 "reviewer can state restriction but not its causal basis (first-order decay risk)",
                 "reviewer can state causal basis but not the failure mode if bypassed (second-order decay risk)",
+                "reviewer can state failure mode but only as label recall, not own-words bypass scenario (third-order decay risk)",
                 "reviewer accepts a rhetorical trust escalator as a valid evidence statement",
                 "reviewer treats replay_deterministic=true as a governance signal",
                 "reviewer concludes R50 completion authorizes a claim upgrade"
             ],
-            "second_order_decay_guard": "causal basis itself can decay into ritual phrase; failure-mode recoverability is what gives 'missing contract' its teeth",
+            "known_limitation": "R50.5 tests paraphrasability (first through third-order protection); does NOT test transfer (fourth-order). Fourth-order decay: own-words bypass scenario → narrative mimicry through repeated exposure to standard examples. Requires adversarial reconstruction — novel scenario testing — which is out of scope for R50.",
+            "forward_pointer": "Fourth-order guard requires adversarial reconstruction: present reviewer with unseen/modified scenario; ask them to apply epistemic principles without standard example access. This is the next anti-ritualization layer after R50.",
             "artifact_expected": "ab-causal-r50-reviewer-reconstruction-2026-05-16.md"
         },
         {

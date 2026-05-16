@@ -200,17 +200,65 @@ causal basis ("MIP-02 missing")
 restriction → causal basis → missing contract → failure mode → bypass scenario (own words)
 ```
 
-Three decay levels are explicitly guarded:
+Four decay levels are defined. Three are guarded within this contract; one is
+acknowledged as a known future risk:
 
-| Decay level | What decays | What blocks it |
+| Decay level | What decays | What blocks it | In scope |
+|---|---|---|---|
+| First-order | restriction → "just conservative" | knowing the causal basis | ✅ R50 |
+| Second-order | "missing contract" → ritual phrase | knowing the failure mode | ✅ R50 |
+| Third-order | failure mode label → ritual label | constructing bypass scenario in own words | ✅ R50 |
+| **Fourth-order** | **own-words bypass scenario → narrative mimicry** | **adversarial reconstruction: applying principle to unseen scenario** | ⚠️ future phase |
+
+**Fourth-order decay — Narrative Mimicry:**
+
+A reviewer can learn to describe bypass scenarios convincingly without retaining
+causal understanding. This occurs when a standard bypass story is repeated enough
+times to become a high-quality script. The reviewer produces paraphrase-level output
+that passes the third-order test, but cannot transfer the principle to a novel case.
+
+The distinction:
+
+| Capability | What it demonstrates | Sufficient for |
 |---|---|---|
-| First-order | restriction → "just conservative" | knowing the causal basis |
-| Second-order | "missing contract" → ritual phrase | knowing the failure mode |
-| Third-order | failure mode label → ritual label | constructing bypass scenario in own words |
+| Label recall | Symbol retrieval | None — first/second/third-order risk |
+| Paraphrasability (own words) | Narrative encoding | Third-order protection |
+| **Transfer (unseen scenario)** | **Causal simulation** | **Fourth-order protection** |
 
-Third-order decay is the most invisible: a reviewer who says "volume-laundering"
-without being able to describe how it unfolds has absorbed the label without the path.
-Label recall is not path comprehension.
+Paraphrasability is evidence that understanding existed at encoding time.
+Transfer is evidence that understanding still exists now.
+
+**Hollow compliance pattern:**
+The most dangerous governance state is one where:
+- rules are present
+- documents are complete
+- labels are used correctly
+- dashboards are populated
+- reviewers can describe failure scenarios fluently
+
+...but nobody can simulate how the failure unfolds in a case they haven't seen before.
+
+This is **governance as anti-ritualization failure**: the system looks mature but
+nobody can reconstruct the causal mechanism from first principles.
+
+**The fourth-order guard (out of scope for R50):**
+
+Adversarial reconstruction: present a reviewer with a modified or unseen scenario
+and ask them to apply the epistemic principles without access to standard examples.
+
+Examples:
+- "A new metric is proposed. What would need to be true before it could enter the
+  `decision_relevant` layer? Walk me through what contracts are needed and what
+  breaks if they're skipped."
+- "Here is a sentence we haven't labeled before: [novel sentence]. Is this a
+  rhetorical trust escalator? Why or why not?"
+
+A reviewer who can answer these is demonstrating causal simulation, not narrative recall.
+
+**R50.5 scope limitation:** R50.5 tests paraphrasability (third-order protection).
+It does not test transfer (fourth-order protection). This is a known design boundary,
+not a gap that R50 intends to close. Fourth-order protection requires a future
+verification phase with adversarial scenario design.
 
 Each prohibition carries four fields. A reviewer who cannot reconstruct all four
 for at least one prohibition has not completed causal epistemic recovery.
