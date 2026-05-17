@@ -93,6 +93,7 @@ def _base_kwargs(tmp_path: Path, mode="governance_adequate") -> dict[str, Any]:
         memory_write_performed=False,
         memory_eligibility_reason="session below threshold",
         manual_fallback_reason="non_native_hook_agent",
+        session_output_mode_trace_path=str(tmp_path / "audit" / "session-output-mode-trace.ndjson"),
     )
 
 

@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.1",
+  "timestamp": "2026-05-17T06:09:33.234179+00:00",
+  "agent_id": "copilot-session-2026-05-17",
+  "trigger_mode": "manual_fallback",
+  "entrypoint": "manual_closeout.py",
+  "exit_code": 0,
+  "closeout_artifact_path": "artifacts/closeout/closeout-2026-05-17.json",
+  "checksum_of_cleaned_path": "sha256-placeholder-first-trace",
+  "memory_eligibility_evaluated": true,
+  "memory_write_required": false,
+  "memory_write_performed": false,
+  "memory_eligibility_reason": "session below promotion threshold",
+  "output_mode_requested": "governance_adequate",
+  "output_mode_effective": "procedural_compliance_observed",
+  "output_mode_decision": "degrade",
+  "output_mode_ceiling": "procedural_compliance_observed",
+  "enforcement_source": "output_mode_enforcer",
+  "fallback_weakens_enforcement": false,
+  "manual_fallback_reason": "copilot_does_not_support_native_hooks",
+  "consequence_tier": 1,
+  "consequence_materiality_reason": "semantics layer not satisfied; ceiling capped at procedural_compliance_observed"
+}
