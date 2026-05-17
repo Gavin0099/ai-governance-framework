@@ -55,12 +55,17 @@ def _full_state(
     }
 
 
-def _with_downgrade(base: dict, applied=True, tier=1, traceable=False) -> dict:
+def _with_downgrade(
+    base: dict,
+    applied=True,
+    tier=1,
+    path_type: str = "informational",
+) -> dict:
     record = dict(base)
     record["downgrade"] = {
         "applied": applied,
         "consequence_tier": tier,
-        "constrained_path_traceable": traceable,
+        "dependent_path_type": path_type,
     }
     return record
 
@@ -225,35 +230,59 @@ def test_tier1_causal_cross_layer_ceiling_adequate():
     assert result["enforcement_action"] == "allow"
 
 
-# ── 12. Tier 2 without traceable path → treated as Tier 1 ────────────────────
+# ── 12. Tier 2 with informational path → reclassified as Tier 1 ──────────────
 
-def test_tier2_not_traceable_treated_as_tier1():
+def test_tier2_informational_treated_as_tier1_with_causal():
+    # informational = git diff visible, no downstream constraint
+    # Tier 2 → Tier 1 effective → Tier 1 + causal + cross_layer → governance_adequate
     record = _with_causal(
-        _with_downgrade(_full_state(), tier=2, traceable=False),
+        _with_downgrade(_full_state(), tier=2, path_type="informational"),
         cross_layer=True,
     )
-    # Even with cross_layer, Tier 2 not traceable → Tier 1 path → governance_adequate
-    # Wait: Tier 1 + causal + cross_layer IS governance_adequate (test 11 above).
-    # But consequence_tier is downgraded to 1 first, then causal chain determines.
-    # So: Tier2-not-traceable → Tier1 effective → causal+cross_layer → governance_adequate
     result = enforce_output_mode(record, "governance_adequate")
     assert result["ceiling"] == "governance_adequate"
     assert result["allowed"] is True
 
 
-def test_tier2_not_traceable_no_causal_treated_as_tier1():
-    record = _with_downgrade(_full_state(), tier=2, traceable=False)
-    # No causal chain; Tier 2 → Tier 1 effective → ceiling = bounded_integrity_discipline
+def test_tier2_informational_no_causal_treated_as_tier1():
+    # No causal chain; Tier 2 informational → Tier 1 effective → bounded_integrity_discipline
+    record = _with_downgrade(_full_state(), tier=2, path_type="informational")
     result = enforce_output_mode(record, "causal_inference")
     assert result["ceiling"] == "bounded_integrity_discipline"
     assert result["allowed"] is False
 
 
-# ── 13. Tier 2 traceable + causal + cross_layer → governance_adequate ─────────
+def test_tier2_missing_path_type_defaults_to_informational():
+    # Missing dependent_path_type → treated as informational (conservative)
+    record = dict(_full_state())
+    record["downgrade"] = {"applied": True, "consequence_tier": 2}
+    result = enforce_output_mode(record, "causal_inference")
+    assert result["ceiling"] == "bounded_integrity_discipline"
+    assert result["allowed"] is False
 
-def test_tier2_traceable_causal_cross_layer_ceiling_adequate():
+
+def test_tier2_informational_reason_names_path_type():
+    record = _with_downgrade(_full_state(), tier=2, path_type="informational")
+    result = enforce_output_mode(record, "causal_inference")
+    assert "informational" in result["reason"]
+    assert "procedural" in result["reason"] or "blocking" in result["reason"]
+
+
+# ── 13. Tier 2 procedural/blocking + causal + cross_layer → governance_adequate ─
+
+def test_tier2_procedural_causal_cross_layer_ceiling_adequate():
     record = _with_causal(
-        _with_downgrade(_full_state(), tier=2, traceable=True),
+        _with_downgrade(_full_state(), tier=2, path_type="procedural"),
+        cross_layer=True,
+    )
+    result = enforce_output_mode(record, "governance_adequate")
+    assert result["ceiling"] == "governance_adequate"
+    assert result["allowed"] is True
+
+
+def test_tier2_blocking_causal_cross_layer_ceiling_adequate():
+    record = _with_causal(
+        _with_downgrade(_full_state(), tier=2, path_type="blocking"),
         cross_layer=True,
     )
     result = enforce_output_mode(record, "governance_adequate")
@@ -364,12 +393,12 @@ def test_invalid_tier_none_coerced_to_0():
 
 
 def test_tier_out_of_range_clamped():
-    # tier=99 → clamped to 2; with no causal chain → bounded_integrity_discipline
+    # tier=99 → clamped to 2; procedural path; no causal chain → bounded_integrity_discipline
     record = _full_state()
     record["downgrade"] = {
         "applied": True,
         "consequence_tier": 99,
-        "constrained_path_traceable": True,
+        "dependent_path_type": "procedural",
     }
     result = enforce_output_mode(record, "causal_inference")
     assert result["ceiling"] == "bounded_integrity_discipline"

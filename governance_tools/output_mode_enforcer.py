@@ -34,13 +34,30 @@ the most conservative interpretation):
     "downgrade": {
       "applied": bool,                 # a downgrade was recorded
       "consequence_tier": int,         # 0, 1, or 2 (Consequence Materiality Guard)
-      "constrained_path_traceable": bool,  # required for Tier 2 to be structural
+      "dependent_path_type": str,      # Dependent Path Taxonomy (see below)
     },
     "causal_chain": {
       "present": bool,                 # causal chain evidence exists
       "cross_layer": bool,             # chain spans multiple layers (for governance_adequate)
     },
   }
+
+Dependent Path Taxonomy (v0.1):
+  Controls whether a Tier-2 downgrade constitutes structural governance.
+
+  "informational"  — downstream can see the downgrade but is not required to act
+                     differently. Visibility alone. Tier 2 treated as Tier 1.
+  "procedural"     — downstream must take an additional step before proceeding.
+                     Execution path is materially altered. Tier 2 honored.
+  "blocking"       — the downstream path is unavailable until the downgrade is
+                     explicitly resolved or accepted. Tier 2 honored.
+
+  Missing or unrecognized dependent_path_type defaults to "informational"
+  (conservative). "git diff visible" is informational — it does not make the
+  constraint structural.
+
+  Contract rule: N × Tier-1 != Tier-2. Tier 2 requires a dependent_path_type
+  of "procedural" or "blocking". Without it, Tier 2 is reclassified as Tier 1.
 """
 
 from __future__ import annotations
@@ -64,6 +81,10 @@ _MODE_RANK: dict[str, int] = {m: i for i, m in enumerate(_MODE_ORDER)}
 
 # Modes that are never admissible regardless of record state.
 _PROHIBITED_MODES: frozenset[str] = frozenset({"governance_effective"})
+
+# Dependent path types that constitute a structural constraint (Tier 2 admissible).
+# "informational" is excluded: visibility != dependency.
+_TIER2_ADMISSIBLE_PATH_TYPES: frozenset[str] = frozenset({"procedural", "blocking"})
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -175,10 +196,14 @@ def _compute_ceiling(record: dict[str, Any]) -> str:
             # Cap returns to procedural — same as no-downgrade base.
             return "procedural_compliance_observed"
         # Tier 1+: downgrade is consumed; advance to bounded_integrity_discipline
-        # at minimum.  Tier 2 additionally requires constrained_path_traceable.
-        if consequence_tier >= 2 and not downgrade.get("constrained_path_traceable"):
-            # Tier 2 attempted but path is not traceable → treat as Tier 1.
-            consequence_tier = 1
+        # at minimum.  Tier 2 additionally requires a structural dependent path.
+        # Dependent Path Taxonomy: only "procedural" or "blocking" qualify.
+        # "informational" (visibility only) does not constitute constraint.
+        if consequence_tier >= 2:
+            path_type = str(downgrade.get("dependent_path_type") or "informational").lower()
+            if path_type not in _TIER2_ADMISSIBLE_PATH_TYPES:
+                # Not structural → treat as Tier 1.
+                consequence_tier = 1
 
     # ── Causal chain evidence ─────────────────────────────────────────────────
     causal_present = bool(causal.get("present"))
@@ -259,6 +284,15 @@ def _degradation_reason(
             "Tier 0 does not constitute consumption (contract: reclassify as unconsumed); "
             f"ceiling remains {ceiling!r}"
         )
+
+    if downgrade_applied and consequence_tier >= 2:
+        path_type = str(downgrade.get("dependent_path_type") or "informational").lower()
+        if path_type not in _TIER2_ADMISSIBLE_PATH_TYPES:
+            return (
+                f"Tier 2 downgrade requires dependent_path_type 'procedural' or 'blocking'; "
+                f"got {path_type!r} (informational = visibility only, not structural constraint); "
+                f"Tier 2 reclassified as Tier 1; ceiling is {ceiling!r}"
+            )
 
     causal_present = bool(causal.get("present"))
     cross_layer = bool(causal.get("cross_layer"))
