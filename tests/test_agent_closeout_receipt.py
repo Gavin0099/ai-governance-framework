@@ -6,6 +6,7 @@ from pathlib import Path
 from governance_tools.manage_agent_closeout import _manual_closeout_cmd, op_status
 from governance_tools.session_closeout_entry import (
     CLOSEOUT_RECEIPT_SCHEMA_VERSION,
+    _latest_receipt_checksum,
     _write_closeout_receipt,
 )
 
@@ -41,6 +42,76 @@ def test_closeout_receipt_contains_required_fields_and_checksum(tmp_path: Path) 
     assert payload["memory_write_required"] is True
     assert payload["memory_write_performed"] is False
     assert payload["memory_eligibility_reason"] == "repo_state_or_session_closeout_present"
+
+
+def test_latest_receipt_checksum_returns_empty_when_no_receipts(tmp_path: Path) -> None:
+    assert _latest_receipt_checksum(tmp_path) == ""
+
+
+def test_latest_receipt_checksum_returns_most_recent_checksum(tmp_path: Path) -> None:
+    artifact = tmp_path / "artifacts" / "session-closeout.txt"
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    artifact.write_text("TASK_INTENT: test\n", encoding="utf-8")
+
+    # Write two receipts — second one should be returned.
+    _write_closeout_receipt(
+        tmp_path,
+        agent_id="test",
+        trigger_mode="manual_fallback",
+        entrypoint="governance_tools.session_closeout_entry",
+        exit_code=0,
+        closeout_artifact_path=str(artifact),
+        memory_eligibility_evaluated=True,
+        memory_write_required=False,
+        memory_write_performed=False,
+        memory_eligibility_reason="no_eligibility_trigger",
+    )
+    import time; time.sleep(0.01)  # ensure distinct filenames
+    receipt2 = _write_closeout_receipt(
+        tmp_path,
+        agent_id="test",
+        trigger_mode="manual_fallback",
+        entrypoint="governance_tools.session_closeout_entry",
+        exit_code=0,
+        closeout_artifact_path=str(artifact),
+        memory_eligibility_evaluated=True,
+        memory_write_required=False,
+        memory_write_performed=False,
+        memory_eligibility_reason="no_eligibility_trigger",
+    )
+    expected = json.loads(receipt2.read_text(encoding="utf-8"))["checksum_of_cleaned_path"]
+    assert _latest_receipt_checksum(tmp_path) == expected
+    assert len(expected) == 64  # SHA256 hex
+
+
+def test_latest_receipt_checksum_detects_content_change(tmp_path: Path) -> None:
+    artifact = tmp_path / "artifacts" / "session-closeout.txt"
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    artifact.write_text("TASK_INTENT: session A\n", encoding="utf-8")
+
+    _write_closeout_receipt(
+        tmp_path,
+        agent_id="test",
+        trigger_mode="manual_fallback",
+        entrypoint="governance_tools.session_closeout_entry",
+        exit_code=0,
+        closeout_artifact_path=str(artifact),
+        memory_eligibility_evaluated=True,
+        memory_write_required=False,
+        memory_write_performed=False,
+        memory_eligibility_reason="no_eligibility_trigger",
+    )
+    previous_checksum = _latest_receipt_checksum(tmp_path)
+
+    # Simulate agent updating the closeout file for a new session.
+    artifact.write_text("TASK_INTENT: session B\n", encoding="utf-8")
+
+    import hashlib
+    h = hashlib.sha256()
+    h.update(artifact.read_bytes())
+    new_checksum = h.hexdigest()
+
+    assert new_checksum != previous_checksum, "New content must produce a different checksum"
 
 
 def test_manual_closeout_command_includes_agent_and_trigger_mode(tmp_path: Path) -> None:

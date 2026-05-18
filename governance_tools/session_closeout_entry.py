@@ -80,6 +80,27 @@ def _checksum_of_path(path: Path | None) -> str:
     return h.hexdigest()
 
 
+def _latest_receipt_checksum(project_root: Path) -> str:
+    """Return checksum_of_cleaned_path from the most recent closeout receipt, or '' if none.
+
+    Receipts are named closeout_receipt_<timestamp>.json and sort lexicographically by time.
+    We walk in reverse to find the most recent non-empty checksum.
+    """
+    receipt_dir = project_root / "artifacts" / "runtime" / "closeout-receipts"
+    if not receipt_dir.is_dir():
+        return ""
+    receipts = sorted(receipt_dir.glob("closeout_receipt_*.json"))
+    for receipt_path in reversed(receipts):
+        try:
+            data = json.loads(receipt_path.read_text(encoding="utf-8"))
+            cs = str(data.get("checksum_of_cleaned_path", ""))
+            if cs:
+                return cs
+        except Exception:
+            continue
+    return ""
+
+
 def _write_closeout_receipt(
     project_root: Path,
     *,
@@ -191,6 +212,34 @@ def main() -> int:
         closeout_artifact_path = result.get("canonical_closeout_artifact") or result.get("closeout_file")
         eligibility_evaluated, memory_write_required, memory_eligibility_reason = _evaluate_memory_eligibility(result)
         memory_write_performed = str(result.get("memory_update_result", "")).strip().lower() == "updated"
+
+        # ── Stale-duplicate guard ─────────────────────────────────────────────
+        # If the closeout file content is byte-for-byte identical to the most
+        # recent previous session (same SHA256), the agent wrote nothing new.
+        # Suppress memory promotion and record the reason so the receipt is
+        # auditable. The pipeline still ran; exit code is still 0.
+        if closeout_artifact_path:
+            current_checksum = _checksum_of_path(
+                Path(closeout_artifact_path).resolve()
+            )
+            previous_checksum = _latest_receipt_checksum(project_root)
+            if current_checksum and current_checksum == previous_checksum:
+                memory_write_required = False
+                stale_tag = "stale_duplicate_detected"
+                if memory_eligibility_reason and memory_eligibility_reason != "no_eligibility_trigger":
+                    memory_eligibility_reason = f"{stale_tag},{memory_eligibility_reason}"
+                else:
+                    memory_eligibility_reason = stale_tag
+                print(
+                    "[session_closeout_entry] WARNING: artifacts/session-closeout.txt content "
+                    "is unchanged from the previous session (SHA256 match). "
+                    "Memory promotion suppressed. "
+                    "Update artifacts/session-closeout.txt before ending the session "
+                    "(see AGENTS.md — MANDATORY CLOSEOUT OBLIGATION).",
+                    file=sys.stderr,
+                )
+        # ─────────────────────────────────────────────────────────────────────
+
         evidence_path = _append_trigger_evidence(
             project_root,
             agent_id=args.agent_id,
