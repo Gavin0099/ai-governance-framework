@@ -1,6 +1,6 @@
 # PLAN.md - AI Governance Framework
 
-> **最後更新**: 2026-05-11
+> **最後更新**: 2026-05-18
 > **?敺??*: 2026-04-10
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
@@ -93,21 +93,29 @@ Required posture:
 
 ## Current Sprint
 
+**Sprint 狀態（2026-05-18）：Phase E PAUSE / Cross-agent temporal governance 開口識別**
+
+完成項目（此輪）：
+- [x] R49.x consolidation window（6 tasks）— NULL_ONTOLOGY、Metric Interpretability Contract、Epistemic Base Assumptions、R49.2 Governance Harness v0.1
+- [x] R50 Confidence Containment Protocol（R50.1–R50.5）— 18/18 訊號存在，authority layer 無污染，containment 結構驗證完成
+- [x] Closeout Governance Layering Contract（survivorship-bias guard + negative evidence consumption guard）
+- [x] MOB Verifier v0.1 — Memory Obligation Binding 驗證工具（Hearth repo），基礎缺口偵測
+- [x] MOB Verifier v0.2 — temporal applicability gate（convention_start=2026-04-01；pre-convention 日期分類為 pre_convention 不計 gap）；regression scan 通過
+- [x] MOB batch scan（5 個歷史日期）— 主要假陽性類別識別（convention_start 邊界問題），MOB-05 為真實系統性 gap
+
+等待觀察（Phase E Pause 條件）：
+- [>] Phase E PAUSE 仍有效：E2/E3 均 blocked，等待 observable trigger
+- [>] MOB Verifier：gap_confirmed workflow 明確 defer；per-MOB convention_start 明確 defer
+
+已完成（Phase D 以前的舊 sprint，保留供追蹤）：
 - [x] 穩定 canonical closeout、closeout audit 與 session continuity 主線
 - [x] 補齊 consuming repo adoption 缺口，包括 governance markdown pack、rules pack 與 framework source audit
 - [x] 補上 memory closeout visibility，讓 no-write reason 可觀測
-- [x] 修正高可見度 docs / governance 文件的亂碼與英文主敘事殘導
-- [x] 重建 root PLAN/state surface 邊界（PLAN = source of truth；`.governance-state.yaml` = derived bootstrap snapshot），讓 state_generator 與 freshness surface 回到可維護狀態
-- [x] 建立 starter-pack 自動升級路徑，讓 starter-pack 不只停在手動複製
+- [x] 重建 root PLAN/state surface 邊界（PLAN = source of truth；`.governance-state.yaml` = derived bootstrap snapshot）
+- [x] 建立 starter-pack 自動升級路徑
 - [x] 建立 `AGENTS.md` candidate rule promotion 與 agent compatibility 主線
 - [x] 建立 cross-agent comparative analysis baseline（Claude / Copilot / ChatGPT）
-- [x] 加入 governance expansion heuristic（Section 11, governance/AGENT.md）— advisory only，backlog admission gate
 - [x] 記錄 governance self-audit backlog（P0/P1/P2 + R1–R5 research hypotheses）
-- [x] 建立 P1 observation phase test plan（Gate C / FGCR，observation-only）
-- [x] 建立 Gate C measurement plan v0.1（reviewer minutes、reopen/revert、stability）
-- [x] 正式化 Enumd integration execution model decision（static-governance-and-artifact-ingest）
-- [>] P1 observation windows 執行中（preconditions 需驗證；目標：每 lane 2 valid windows）
-- [>] Gate C Phase 1 資料收集（manual timestamp capture，this window）
 
 ## AGENTS Candidate Rule Promotion Framework
 
@@ -396,7 +404,10 @@ Not claiming:
 
 This initiative enforces promotion discipline and authority boundaries, not autonomous governance.
 
-## Phase E Sprint（Current）
+## Phase E Sprint（PAUSE — 2026-05-18）
+
+> **PAUSE 條件仍有效**。E2/E3 均 blocked，等待 observable trigger（見 memory/01_active_task.md）。
+> 不得在無 trigger 的情況下推進 E2 或 E3，以避免 governance inflation。
 
 - [x] E1：建立 failure_disposition.py（FailureKind + ActionPolicy + confidence）
 - [x] E1.5：seed corpus 10 筆 ground truth，作為 taxonomy calibration baseline
@@ -2332,3 +2343,54 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
   - docs/status/ab-causal-r49x1-evaluator-neutrality-topology-status-2026-05-15.md
   - docs/status/ab-causal-r49x1-evaluator-neutrality-topology-checkpoint-2026-05-15.json
   - docs/status/ab-causal-r49x-consolidation-tracker-2026-05-15.json
+
+## 2026-05-15 R49.2 Governance Harness v0.1
+
+- Interpretation A 確立：deterministic governance reviewer profiles（非 LLM reviewer）
+- Reviewer profiles：runtime_reviewer_profile / audit_reviewer_profile / product_reviewer_profile
+- 5 R49.2 metrics 計算（claim_discipline_drift / unsupported_count / replay_deterministic / reviewer_override_frequency / intervention_entropy）
+- MIP-04 標記：event_log_absent=true（NT-06），per-claim event log 尚未實作
+- SA-04：harness 自報 evaluator_confidence=medium，provenance=harness_self_reported
+- 18/18 harness runs 返回 tacit_dependency_detected（drift > 0）— MIP-02 forbidden_interpretation 示例，不得直接解讀為因果依賴
+- 全 18 runs event_log_absent=true(NT-06)，reviewer_override_frequency 不得用於因果推論
+- Artifacts：scripts/r492_governance_harness.py、docs/status/ab-causal-r492-reviewer-substitution-status-2026-05-15.md
+
+## 2026-05-16 R50 Confidence Containment Protocol（完成）
+
+- R50.1：18/18 訊號存在（signal_present=true）；未計算分數（containment 目標，非累積目標）
+- R50.2：6/6 replay exact-match；persistence ≠ trustworthiness 明確聲明與防護
+- R50.3：zero implicit upgrade paths for replay_deterministic（維持 historically_useful 分類）
+- R50.4：zero MIP-02/MIP-04 violations；pre-fix historical artifact 標記為 pre-fix 僅供參考
+- R50.5：5 維度 epistemic boundary reconstruction；Prohibition A（osmosis-induced authority）與 Prohibition B（volume-laundering）均有 own-words bypass scenario
+- 最終 admitted claim：「Positive evidence exists in the record. The authority layer shows no contamination. Containment is structurally verified under fixed epistemic conditions.」
+- Freeze contract：governance/CONFIDENCE_SEMANTICS_FREEZE.md（v2）
+- Artifacts：docs/status/ab-causal-r50-positive-confidence-protocol-2026-05-16.md、docs/status/ab-causal-r50-tracker-2026-05-16.json
+
+## 2026-05-16 Closeout Governance Layering Contract
+
+- Survivorship-bias admissibility guard：surviving_evidence ≠ complete_evidence；clean_history ≠ complete_history
+- Negative Evidence Consumption Guard：retained_unconsumed ≠ governance_adequacy；需要 operational downgrade consequence 才構成 bounded_integrity_discipline_observed
+- Anti-transparency-tokenization：保留負面證據本身不能作為可信度依據
+- Artifacts：docs/status/closeout-governance-layering-contract-2026-05-16.md
+
+## 2026-05-17 Cross-Agent Temporal Governance 架構識別
+
+- 架構轉移：session_end → obligation → state_transition → obligation（event-sourced governance）
+- agent hook = optional producer，不是 authority source
+- verification 必須 git-diff-based，不能 session-based
+- trigger artifact ≠ obligation artifact（必須分離以避免 self-referential loop）
+- 8 MOBs for Hearth 因果地圖：5 syntactically inferrable（low FP risk），MOB-04 高 FP risk（semantic ambiguity）
+
+## 2026-05-18 MOB Verifier v0.1 + v0.2（Memory Obligation Binding）
+
+- v0.1：基礎 gap 偵測，convention_start 邊界缺失
+- v0.2：temporal applicability gate（convention_start=2026-04-01）
+  - 2026-04-01 之前日期 → pre_convention（僅 informational，不計 gap）
+  - Regression scan：pre-convention 假陽性隔離、MOB-05 真實 gap 保留、Gap Consumption Boundary 穩定
+- Batch scan（5 個歷史日期）：
+  - 主要假陽性類別：retroactive application（convention_start 前缺門）
+  - 真實系統性 gap：MOB-05（submodule bump 無 memory/02_project_facts.md 更新）
+- Governance claim ceiling：bounded_reconstruction with temporal applicability filtering
+- 明確禁止：temporal_integrity_verified
+- 明確 defer：gap_confirmed workflow、per-MOB convention_start、reconstruction_ambiguous edge cases、batch scan dashboard（會侵蝕 Gap Consumption Boundary）
+- Artifacts：Hearth repo（verifier 工具）；docs/mob-batch-scan-analysis-2026-05-18.md（Hearth）
