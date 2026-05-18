@@ -31,6 +31,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 import uuid
 from datetime import datetime, timezone
@@ -365,6 +366,16 @@ def detect_readiness_level(project_root: Path, framework_root: Path) -> dict[str
     """
     checks: dict[str, Any] = {}
 
+    # ── Structural warnings (advisory, never level-blocking) ─────────────────
+    closeout_gitignored = _closeout_file_is_gitignored(project_root)
+    structural_warnings: list[str] = []
+    if closeout_gitignored:
+        structural_warnings.append(
+            "closeout_file_gitignored: artifacts/session-closeout.txt is git-ignored; "
+            "stale closeout content is invisible in git history and CI — "
+            "remove it from .gitignore or add a gitignore negation rule"
+        )
+
     # ── Level 0: hook can run + artifacts writable ────────────────────────────
     artifacts_dir = project_root / "artifacts"
     l0 = {
@@ -381,6 +392,8 @@ def detect_readiness_level(project_root: Path, framework_root: Path) -> dict[str
             "closeout_activation_state": "unknown",
             "activation_recency": None,
             "activation_gap": "structural_prerequisites_missing",
+            "closeout_file_gitignore_risk": closeout_gitignored,
+            "structural_warnings": structural_warnings,
         }
 
     # ── Level 1: schema doc + AGENTS.base.md closeout obligation ─────────────
@@ -406,6 +419,8 @@ def detect_readiness_level(project_root: Path, framework_root: Path) -> dict[str
             "closeout_activation_state": "unknown",
             "activation_recency": None,
             "activation_gap": "structural_prerequisites_missing",
+            "closeout_file_gitignore_risk": closeout_gitignored,
+            "structural_warnings": structural_warnings,
         }
 
     # ── Level 2: content governance aligned ──────────────────────────────────
@@ -425,6 +440,8 @@ def detect_readiness_level(project_root: Path, framework_root: Path) -> dict[str
                 "(re-run to patch anchor guidance)"
             ),
             **activation,
+            "closeout_file_gitignore_risk": closeout_gitignored,
+            "structural_warnings": structural_warnings,
         }
 
     # ── Level 3: cross-reference capability ──────────────────────────────────
@@ -445,6 +462,8 @@ def detect_readiness_level(project_root: Path, framework_root: Path) -> dict[str
         "limiting_factor": None,
         "suggested_next_step": None,
         **activation,
+        "closeout_file_gitignore_risk": closeout_gitignored,
+        "structural_warnings": structural_warnings,
     }
 
 
@@ -544,6 +563,28 @@ def _agents_base_has_anchor_guidance(project_root: Path) -> bool:
 
 def _first_false(d: dict[str, Any]) -> str:
     return next((k for k, v in d.items() if not v), "unknown")
+
+
+def _closeout_file_is_gitignored(
+    project_root: Path,
+    closeout_file: str = "artifacts/session-closeout.txt",
+) -> bool:
+    """Return True if the closeout file is git-ignored in the repo.
+
+    Uses `git check-ignore -q` which exits 0 when the path is ignored,
+    1 when it is tracked or not ignored, 128 when not a git repo.
+    Returns False on any error so the check never blocks the hook.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "check-ignore", "-q", closeout_file],
+            capture_output=True,
+            cwd=project_root,
+            timeout=5,
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
 
 
 # ── Memory promotion tier ─────────────────────────────────────────────────────
