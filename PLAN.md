@@ -2394,3 +2394,19 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 - 明確禁止：temporal_integrity_verified
 - 明確 defer：gap_confirmed workflow、per-MOB convention_start、reconstruction_ambiguous edge cases、batch scan dashboard（會侵蝕 Gap Consumption Boundary）
 - Artifacts：Hearth repo（verifier 工具）；docs/mob-batch-scan-analysis-2026-05-18.md（Hearth）
+
+## 2026-05-18 MOB Verifier v0.3 Spec（gap_confirmed workflow）
+
+- 決策：v0.3 目標為補治理閉環，不是精度優化
+- 三層架構凍結：
+  - Layer 1 = verifier observation（ndjson）
+  - Layer 2 = human annotation（YAML）
+  - Layer 3 = consequence eligibility（derived consumer）
+- human review 機制：`artifacts/review/mob-gap-disposition.yaml`（人工補 disposition，verifier 不讀也不寫）
+- mob_verifier.py v0.3 唯一變更：gap_observed record 加入 `observed_gap_id` 穩定識別欄位
+- 新增 consumer：`gap_disposition_reader.py`（Layer 3）
+- 核心守則：`gap_observed` 不得直接觸發 governance consequence；只有 `disposition=confirmed + consequence_eligible=true` 才進入 governance_consequence_eligible
+- 明確禁止的失敗模式：FM-01（self-authorization loop）、FM-03（consequence_eligible=true + disposition≠confirmed）
+- v0.3 不包含：per-MOB convention_start、reconstruction_ambiguous edge cases、MOB-03/04/07 自動化、batch scan dashboard
+- Spec artifact：docs/status/mob-verifier-v03-gap-confirmed-spec-2026-05-18.md（ai-governance-framework）
+- Implementation：Hearth governance repo（路徑依機器而異）
