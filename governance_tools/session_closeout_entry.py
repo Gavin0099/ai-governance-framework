@@ -172,6 +172,27 @@ def _evaluate_memory_eligibility(result: dict[str, Any]) -> tuple[bool, bool, st
     return True, required, reason
 
 
+def _apply_stale_duplicate_guard(
+    *,
+    project_root: Path,
+    closeout_artifact_path: str | None,
+    memory_write_required: bool,
+    memory_eligibility_reason: str,
+) -> tuple[bool, str, bool]:
+    if not closeout_artifact_path:
+        return memory_write_required, memory_eligibility_reason, False
+    current_checksum = _checksum_of_path(Path(closeout_artifact_path).resolve())
+    previous_checksum = _latest_receipt_checksum(project_root)
+    if not current_checksum or current_checksum != previous_checksum:
+        return memory_write_required, memory_eligibility_reason, False
+    stale_tag = "stale_duplicate_detected"
+    if memory_eligibility_reason and memory_eligibility_reason != "no_eligibility_trigger":
+        memory_eligibility_reason = f"{stale_tag},{memory_eligibility_reason}"
+    else:
+        memory_eligibility_reason = stale_tag
+    return False, memory_eligibility_reason, True
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
@@ -214,32 +235,26 @@ def main() -> int:
         memory_write_performed = str(result.get("memory_update_result", "")).strip().lower() == "updated"
 
         # ── Stale-duplicate guard ─────────────────────────────────────────────
-        # If the closeout file content is byte-for-byte identical to the most
-        # recent previous session (same SHA256), the agent wrote nothing new.
-        # Suppress memory promotion and record the reason so the receipt is
-        # auditable. The pipeline still ran; exit code is still 0.
-        if closeout_artifact_path:
-            current_checksum = _checksum_of_path(
-                Path(closeout_artifact_path).resolve()
+        # Stale-duplicate guard: suppress memory promotion when closeout content is unchanged.
+        (
+            memory_write_required,
+            memory_eligibility_reason,
+            stale_detected,
+        ) = _apply_stale_duplicate_guard(
+            project_root=project_root,
+            closeout_artifact_path=closeout_artifact_path if isinstance(closeout_artifact_path, str) else None,
+            memory_write_required=memory_write_required,
+            memory_eligibility_reason=memory_eligibility_reason,
+        )
+        if stale_detected:
+            print(
+                "[session_closeout_entry] WARNING: artifacts/session-closeout.txt content "
+                "is unchanged from the previous session (SHA256 match). "
+                "Memory promotion suppressed. "
+                "Update artifacts/session-closeout.txt before ending the session "
+                "(see AGENTS.md: MANDATORY CLOSEOUT OBLIGATION).",
+                file=sys.stderr,
             )
-            previous_checksum = _latest_receipt_checksum(project_root)
-            if current_checksum and current_checksum == previous_checksum:
-                memory_write_required = False
-                stale_tag = "stale_duplicate_detected"
-                if memory_eligibility_reason and memory_eligibility_reason != "no_eligibility_trigger":
-                    memory_eligibility_reason = f"{stale_tag},{memory_eligibility_reason}"
-                else:
-                    memory_eligibility_reason = stale_tag
-                print(
-                    "[session_closeout_entry] WARNING: artifacts/session-closeout.txt content "
-                    "is unchanged from the previous session (SHA256 match). "
-                    "Memory promotion suppressed. "
-                    "Update artifacts/session-closeout.txt before ending the session "
-                    "(see AGENTS.md — MANDATORY CLOSEOUT OBLIGATION).",
-                    file=sys.stderr,
-                )
-        # ─────────────────────────────────────────────────────────────────────
-
         evidence_path = _append_trigger_evidence(
             project_root,
             agent_id=args.agent_id,
@@ -270,10 +285,6 @@ def main() -> int:
             entrypoint="governance_tools.session_closeout_entry",
             exit_code=1,
             closeout_artifact_path=None,
-            memory_eligibility_evaluated=False,
-            memory_write_required=False,
-            memory_write_performed=False,
-            memory_eligibility_reason="closeout_pipeline_runtime_error",
         )
         _write_closeout_receipt(
             project_root,
@@ -282,6 +293,10 @@ def main() -> int:
             entrypoint="governance_tools.session_closeout_entry",
             exit_code=1,
             closeout_artifact_path=None,
+            memory_eligibility_evaluated=False,
+            memory_write_required=False,
+            memory_write_performed=False,
+            memory_eligibility_reason="closeout_pipeline_runtime_error",
         )
         if args.format == "json":
             print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False))

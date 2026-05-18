@@ -6,6 +6,7 @@ from pathlib import Path
 from governance_tools.manage_agent_closeout import _manual_closeout_cmd, op_status
 from governance_tools.session_closeout_entry import (
     CLOSEOUT_RECEIPT_SCHEMA_VERSION,
+    _apply_stale_duplicate_guard,
     _latest_receipt_checksum,
     _write_closeout_receipt,
 )
@@ -112,6 +113,80 @@ def test_latest_receipt_checksum_detects_content_change(tmp_path: Path) -> None:
     new_checksum = h.hexdigest()
 
     assert new_checksum != previous_checksum, "New content must produce a different checksum"
+
+
+def test_stale_duplicate_guard_suppresses_memory_write_required(tmp_path: Path) -> None:
+    artifact = tmp_path / "artifacts" / "session-closeout.txt"
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    artifact.write_text("TASK_INTENT: same\n", encoding="utf-8")
+
+    _write_closeout_receipt(
+        tmp_path,
+        agent_id="test",
+        trigger_mode="manual_fallback",
+        entrypoint="governance_tools.session_closeout_entry",
+        exit_code=0,
+        closeout_artifact_path=str(artifact),
+        memory_eligibility_evaluated=True,
+        memory_write_required=True,
+        memory_write_performed=False,
+        memory_eligibility_reason="memory_candidate_signals_detected",
+    )
+
+    required, reason, stale = _apply_stale_duplicate_guard(
+        project_root=tmp_path,
+        closeout_artifact_path=str(artifact),
+        memory_write_required=True,
+        memory_eligibility_reason="memory_candidate_signals_detected",
+    )
+    assert stale is True
+    assert required is False
+    assert "stale_duplicate_detected" in reason
+
+
+def test_stale_duplicate_guard_keeps_required_when_content_changed(tmp_path: Path) -> None:
+    artifact = tmp_path / "artifacts" / "session-closeout.txt"
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    artifact.write_text("TASK_INTENT: before\n", encoding="utf-8")
+    _write_closeout_receipt(
+        tmp_path,
+        agent_id="test",
+        trigger_mode="manual_fallback",
+        entrypoint="governance_tools.session_closeout_entry",
+        exit_code=0,
+        closeout_artifact_path=str(artifact),
+        memory_eligibility_evaluated=True,
+        memory_write_required=True,
+        memory_write_performed=False,
+        memory_eligibility_reason="memory_candidate_signals_detected",
+    )
+    artifact.write_text("TASK_INTENT: after\n", encoding="utf-8")
+
+    required, reason, stale = _apply_stale_duplicate_guard(
+        project_root=tmp_path,
+        closeout_artifact_path=str(artifact),
+        memory_write_required=True,
+        memory_eligibility_reason="memory_candidate_signals_detected",
+    )
+    assert stale is False
+    assert required is True
+    assert reason == "memory_candidate_signals_detected"
+
+
+def test_stale_duplicate_guard_keeps_required_without_previous_receipt(tmp_path: Path) -> None:
+    artifact = tmp_path / "artifacts" / "session-closeout.txt"
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    artifact.write_text("TASK_INTENT: first\n", encoding="utf-8")
+
+    required, reason, stale = _apply_stale_duplicate_guard(
+        project_root=tmp_path,
+        closeout_artifact_path=str(artifact),
+        memory_write_required=True,
+        memory_eligibility_reason="memory_candidate_signals_detected",
+    )
+    assert stale is False
+    assert required is True
+    assert reason == "memory_candidate_signals_detected"
 
 
 def test_manual_closeout_command_includes_agent_and_trigger_mode(tmp_path: Path) -> None:

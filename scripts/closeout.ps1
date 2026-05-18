@@ -38,6 +38,26 @@ if (!(Test-Path $memoryPath)) {
   Fail "missing required daily memory file: $memoryPath"
 }
 
+$closeoutPath = "artifacts/session-closeout.txt"
+if (!(Test-Path $closeoutPath)) {
+  Fail "missing required closeout file: $closeoutPath"
+}
+
+$receiptDir = "artifacts/runtime/closeout-receipts"
+if (Test-Path $receiptDir) {
+  $latestReceipt = Get-ChildItem $receiptDir -Filter "closeout_receipt_*.json" -File |
+    Sort-Object Name -Descending |
+    Select-Object -First 1
+  if ($latestReceipt) {
+    $receipt = Get-Content -Raw $latestReceipt.FullName | ConvertFrom-Json
+    $previousChecksum = [string]$receipt.checksum_of_cleaned_path
+    $currentChecksum = (Get-FileHash -Algorithm SHA256 $closeoutPath).Hash.ToLowerInvariant()
+    if ($previousChecksum -and ($currentChecksum -eq $previousChecksum.ToLowerInvariant())) {
+      Fail "stale closeout detected: $closeoutPath is unchanged from latest receipt ($($latestReceipt.Name)); update closeout content before commit/push"
+    }
+  }
+}
+
 # Stage declared work scope plus today's memory file.
 $stageList = @($Paths + $memoryPath)
 foreach ($p in $stageList) {
