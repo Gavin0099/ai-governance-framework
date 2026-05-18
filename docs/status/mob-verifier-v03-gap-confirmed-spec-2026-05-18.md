@@ -1,9 +1,13 @@
 # MOB Verifier v0.3 — gap_confirmed Workflow Spec
 
 Date: 2026-05-18
-Status: spec-frozen (pre-implementation)
+Status: spec-frozen (implementation-ready)
 Author: GavinWu
 Scope: Hearth governance repo — `scripts/mob_verifier.py` + new YAML annotation layer
+
+**Revision (same day):** Added anti-write-back constraint (Section 6.1), revised
+implementation order to test-first (Section 10), conservative first annotation
+guidance (Section 10, Step 3).
 
 ---
 
@@ -144,6 +148,24 @@ No other changes. The verifier does NOT:
 
 ## 6. gap_disposition_reader.py (new — Layer 3)
 
+### 6.1 Anti-Write-Back Constraint (hard rule)
+
+`gap_status.json` (Layer 3 output) is **read-only derived status**.
+
+It MUST NOT:
+- Write back to `gap_observed.ndjson` (Layer 1)
+- Modify or annotate any Layer 1 record
+- Inject fields into Layer 2 YAML
+- Act as a trigger source for any downstream write
+
+Rationale: if Layer 3 could modify Layer 1, the observation record would become
+mutable after-the-fact. Governance lineage collapses — the "original observation"
+is no longer recoverable.
+
+Implementation enforcement: `gap_disposition_reader.py` opens ndjson files in
+read-only mode. Any `write`, `open(…, 'w')`, or file mutation in the reader is a
+build-time violation caught by test FM-05 (see Section 8).
+
 New consumer tool. Reads observation ndjson + YAML, derives consequence eligibility.
 
 ```
@@ -212,6 +234,12 @@ If no YAML entry exists for an `observed_gap_id`:
 **Risk:** Verifier changes ID generation logic → YAML references become stale.
 **Guard:** ID format is locked in v0.3 schema. Any format change requires schema_version bump + YAML migration.
 
+### FM-05: Layer 3 write-back to Layer 1
+**Risk:** gap_disposition_reader.py writes derived status back into gap_observed.ndjson,
+making observation records mutable and erasing the original lineage.
+**Guard:** Test verifies reader opens all input files read-only. Any file write operation
+in reader = test failure. gap_status.json is the only permitted output artifact.
+
 ---
 
 ## 9. What v0.3 Does NOT Include
@@ -226,11 +254,49 @@ If no YAML entry exists for an `observed_gap_id`:
 
 ## 10. Implementation Plan
 
-1. **mob_verifier.py v0.3**: Add `observed_gap_id` field to gap_observed records
-2. **YAML schema**: Create `artifacts/review/mob-gap-disposition.yaml` with schema_version header
-3. **gap_disposition_reader.py**: New consumer; validates YAML + ndjson; derives consequence eligibility
-4. **Regression test**: Run v0.3 against 2026-05-07 and 2026-05-04; verify same gap_observed counts as v0.2; verify `observed_gap_id` stable across runs
-5. **First YAML annotation**: Manually annotate MOB-05 gaps from 2026-05-07 as first confirmed entries
+**Order rationale:** Failure conditions are locked before happy path.
+Layer 3 tests must exist before Layer 1 and Layer 2 are modified — prevents
+accidental happy-path-only implementation.
+
+### Step 1 — YAML schema + reader tests (Layer 3 failure conditions first)
+
+Create `gap_disposition_reader.py` with tests covering:
+- FM-01: reader has no YAML write path (verified by code inspection test)
+- FM-02: `disposition=confirmed` with empty rationale → treated as `needs_more_evidence`
+- FM-03: `consequence_eligible=true` with `disposition≠confirmed` → validation error
+- FM-05: reader opens ndjson read-only; no write operations permitted (anti-write-back)
+- Unmatched `observed_gap_id` (gap in ndjson, no YAML entry) → `disposition_pending=true`, `consequence_eligible=false`
+
+No actual ndjson or YAML files required for these tests — use fixtures.
+
+### Step 2 — mob_verifier.py: add observed_gap_id
+
+Add `observed_gap_id` field to every `gap_observed` record.
+Format: `{repo_id}::{date}::{mob_id}::{trigger_path}` (locked).
+
+Regression: run against 2026-05-07 and 2026-05-04.
+Verify: same gap_observed counts as v0.2; `observed_gap_id` stable across two runs
+of same input (determinism check).
+
+### Step 3 — First YAML annotation (conservative)
+
+Write the first entry for MOB-05 gaps from 2026-05-07.
+
+**Conservative constraint:** First annotation MUST be either:
+- `disposition: needs_more_evidence` + `consequence_eligible: false`, OR
+- `disposition: confirmed` + `consequence_eligible: false`
+
+Do NOT set `consequence_eligible: true` in the first annotation.
+
+Rationale: verify the review mechanism exists and the reader handles it correctly,
+before opening any consequence eligibility path. v0.3 proves the annotation
+workflow works; consequence authorization is a separate gate.
+
+### Step 4 — Produce gap_status.json (Layer 3 output)
+
+Run `gap_disposition_reader.py` against v0.3 ndjson + first YAML annotation.
+Verify output contains correct `disposition_pending` for unannotated gaps and
+correct derived status for annotated gaps.
 
 **Implementation location:** Hearth governance repo (path to be confirmed per machine).
 This spec lives in ai-governance-framework as the cross-repo design authority.
@@ -242,3 +308,4 @@ This spec lives in ai-governance-framework as the cross-repo design authority.
 | Version | Date | Change |
 |---|---|---|
 | v0.3-spec | 2026-05-18 | Initial spec: gap_confirmed workflow, YAML annotation, three-layer architecture |
+| v0.3-spec-r2 | 2026-05-18 | Add anti-write-back constraint (FM-05, Section 6.1); revise implementation order to test-first (Step 1 = reader failure tests); add conservative first-annotation constraint (consequence_eligible=false initially) |
