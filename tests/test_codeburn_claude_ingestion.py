@@ -53,27 +53,34 @@ def _make_db(tmp_path: Path) -> tuple[Path, sqlite3.Connection]:
     conn.executescript(schema_path.read_text(encoding="utf-8"))
     # Apply P3.1 schema extension (step_ingestion_provenance + quarantined_records)
     # If the tables don't exist yet, create them here for test isolation.
+    # Tables are defined in schema.sql (P3.1). The IF NOT EXISTS below are
+    # safety nets for isolated test runs on older schema versions — they are
+    # no-ops when schema.sql has already been applied above.
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS step_ingestion_provenance (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             step_id TEXT NOT NULL,
-            provenance_class TEXT NOT NULL CHECK (provenance_class IN ('A','B','C','D','E')),
-            real_time_observed INTEGER NOT NULL DEFAULT 0 CHECK (real_time_observed IN (0,1)),
-            reconstruction_gap_declared INTEGER NOT NULL DEFAULT 1 CHECK (reconstruction_gap_declared IN (0,1)),
+            provider TEXT NOT NULL,
+            epistemic_class TEXT NOT NULL CHECK (epistemic_class IN ('Class A','Class B','Class C','Class D','Class E')),
+            acquisition_mode TEXT NOT NULL,
             source_artifact_path TEXT NOT NULL,
-            source_artifact_line INTEGER NOT NULL,
-            source_record_id TEXT,
-            source_record_timestamp TEXT,
-            ingested_at TEXT NOT NULL,
+            source_record_line INTEGER NOT NULL CHECK (source_record_line >= 1),
+            source_record_offset INTEGER,
+            real_time_observed INTEGER NOT NULL DEFAULT 0 CHECK (real_time_observed = 0),
+            analysis_safe_for_decision INTEGER NOT NULL DEFAULT 0 CHECK (analysis_safe_for_decision = 0),
+            provider_truthfulness_assumed INTEGER NOT NULL DEFAULT 0 CHECK (provider_truthfulness_assumed = 0),
+            created_at TEXT NOT NULL,
             FOREIGN KEY(step_id) REFERENCES steps(step_id)
         );
         CREATE TABLE IF NOT EXISTS quarantined_records (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            provider TEXT NOT NULL,
             source_artifact_path TEXT NOT NULL,
-            source_artifact_line INTEGER NOT NULL,
-            raw_content TEXT,
-            failure_reason TEXT NOT NULL,
-            quarantined_at TEXT NOT NULL
+            source_record_line INTEGER NOT NULL CHECK (source_record_line >= 1),
+            source_record_offset INTEGER,
+            reason TEXT NOT NULL,
+            raw_record TEXT,
+            created_at TEXT NOT NULL
         );
     """)
     conn.commit()
@@ -175,14 +182,14 @@ class TestNP1ValidRecordClassCEvidence:
         )
 
         rows = conn.execute(
-            "SELECT provenance_class, real_time_observed, reconstruction_gap_declared "
+            "SELECT epistemic_class, real_time_observed, analysis_safe_for_decision "
             "FROM step_ingestion_provenance"
         ).fetchall()
         assert len(rows) == 1, "expected one provenance row"
-        provenance_class, real_time_observed, reconstruction_gap_declared = rows[0]
-        assert provenance_class == "C", f"expected Class C, got {provenance_class!r}"
+        epistemic_class, real_time_observed, analysis_safe_for_decision = rows[0]
+        assert epistemic_class == "Class C", f"expected Class C, got {epistemic_class!r}"
         assert real_time_observed == 0, "real_time_observed must be 0 for Class C"
-        assert reconstruction_gap_declared == 1, "reconstruction_gap_declared must be 1"
+        assert analysis_safe_for_decision == 0, "analysis_safe_for_decision must be 0"
 
     def test_ingestion_does_not_write_provider_token_source(self, tmp_path):
         ingestor = _get_ingestor()
@@ -220,12 +227,12 @@ class TestNP1ValidRecordClassCEvidence:
         )
 
         rows = conn.execute(
-            "SELECT source_artifact_path, source_artifact_line FROM step_ingestion_provenance"
+            "SELECT source_artifact_path, source_record_line FROM step_ingestion_provenance"
         ).fetchall()
         assert rows, "expected provenance rows with source artifact path"
         for path, line in rows:
             assert path, "source_artifact_path must not be empty"
-            assert line is not None and line >= 1, "source_artifact_line must be >= 1"
+            assert line is not None and line >= 1, "source_record_line must be >= 1"
 
 
 # ---------------------------------------------------------------------------
@@ -286,11 +293,11 @@ class TestNP2MissingUsageTypedNull:
         )
 
         rows = conn.execute(
-            "SELECT provenance_class FROM step_ingestion_provenance"
+            "SELECT epistemic_class FROM step_ingestion_provenance"
         ).fetchall()
         assert rows, "provenance row must be written even when usage is absent"
         for (cls,) in rows:
-            assert cls == "C", f"provenance_class must be C, got {cls!r}"
+            assert cls == "Class C", f"epistemic_class must be 'Class C', got {cls!r}"
 
 
 # ---------------------------------------------------------------------------
@@ -323,7 +330,7 @@ class TestNP3MalformedJsonQuarantined:
         )
 
         quarantine_rows = conn.execute(
-            "SELECT source_artifact_path, source_artifact_line, failure_reason "
+            "SELECT source_artifact_path, source_record_line, reason "
             "FROM quarantined_records"
         ).fetchall()
         assert len(quarantine_rows) >= 1, (
