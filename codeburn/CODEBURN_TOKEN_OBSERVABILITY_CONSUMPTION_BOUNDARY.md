@@ -189,6 +189,60 @@ These are complementary, not redundant:
 
 ---
 
+## Known Limitation and True Function
+
+**What this document cannot detect:**
+
+Pre-linguistic workflow adaptation — when token observability data becomes an
+organizational attention attractor without explicit language. When review queues
+silently shift, managerial instincts quietly form, and operational habits stabilize
+without anyone saying "high token density" or "attention-worthy session," this
+document cannot detect it. Linguistic surveillance depends on language. The deepest
+form of semantic drift eventually operates below the language threshold.
+
+At that stage: schema validation sees nothing, forbidden phrase detection sees
+nothing, drift vocabulary surveillance sees nothing. The only visible signal is
+that the workflow feels "natural" — which is precisely how governance drift looks
+from the inside when it has completed.
+
+**What this document provides instead:**
+
+A reference frame for retroactive recognition, not real-time prevention.
+
+If pre-linguistic drift has occurred, this document enables a future reviewer to
+say: "This describes exactly what happened. The inferential transition that produced
+this outcome was named non-neutral in 2026-05-20, before it became invisible."
+
+**The actual governance function:**
+
+This document does not claim to stabilize the social meaning of token observability
+data. Social meaning is not permanently stable — it shifts with organizational
+incentives, scale changes, management turnover, cost pressure, and incident response.
+
+The function served is narrower and more durable:
+
+> **Preserve the contestability of meaning.**
+
+As long as this document exists as a living constraint, the interpretation "token
+observability naturally implies optimization authority" cannot become uncontested
+organizational common sense without an explicit act of revision. Someone can always
+point to this document and say: "This was contested. It is still being contested."
+
+**The failure condition for this document:**
+
+Not: the boundary is explicitly violated.
+
+But: the document begins to be treated as a historical artifact — interesting
+background, but no longer an active constraint. When that happens, the boundary
+has ended without any schema change, without any forbidden phrase appearing, and
+without anyone deciding to abandon it.
+
+This is why the Amendment Process below requires explicit authorization steps.
+Not to prevent revision, but to ensure revision is **intentional** — that it does
+not happen through gradual normalization of the document's irrelevance.
+
+---
+
 ## Amendment Process
 
 This document may be amended only if:
