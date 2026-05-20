@@ -74,3 +74,36 @@ CREATE TABLE IF NOT EXISTS recovery_events (
   operator TEXT,
   created_at TEXT NOT NULL
 );
+
+-- P3.1: L1.5 acquisition provenance — Class C (observer-reconstructed) records only.
+-- Hard constraints: real_time_observed=0, analysis_safe_for_decision=0,
+-- provider_truthfulness_assumed=0.  No row may assert runtime or decision authority.
+CREATE TABLE IF NOT EXISTS step_ingestion_provenance (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  step_id TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  epistemic_class TEXT NOT NULL CHECK (epistemic_class IN ('Class A', 'Class B', 'Class C', 'Class D', 'Class E')),
+  acquisition_mode TEXT NOT NULL,
+  source_artifact_path TEXT NOT NULL,
+  source_record_line INTEGER NOT NULL CHECK (source_record_line >= 1),
+  source_record_offset INTEGER,
+  real_time_observed INTEGER NOT NULL DEFAULT 0 CHECK (real_time_observed = 0),
+  analysis_safe_for_decision INTEGER NOT NULL DEFAULT 0 CHECK (analysis_safe_for_decision = 0),
+  provider_truthfulness_assumed INTEGER NOT NULL DEFAULT 0 CHECK (provider_truthfulness_assumed = 0),
+  created_at TEXT NOT NULL,
+  FOREIGN KEY(step_id) REFERENCES steps(step_id)
+);
+
+-- P3.1: Quarantine table for records that cannot be ingested.
+-- Malformed or structurally inadmissible records are persisted here rather than
+-- silently dropped, preserving auditability of ingestion completeness.
+CREATE TABLE IF NOT EXISTS quarantined_records (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  provider TEXT NOT NULL,
+  source_artifact_path TEXT NOT NULL,
+  source_record_line INTEGER NOT NULL CHECK (source_record_line >= 1),
+  source_record_offset INTEGER,
+  reason TEXT NOT NULL,
+  raw_record TEXT,
+  created_at TEXT NOT NULL
+);
