@@ -2418,3 +2418,18 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 - Contract verification: `tests/test_codeburn_codex_negative.py` now passes fully (13/13).
 - Current boundary posture: admission/epistemic invariants preserved (IAF-1..4, IAF-8).
 - Next milestone: P5.4 smoke command + replay/provenance alignment checks.
+
+## 2026-05-21 CodeBurn P5 Final Closeout Freeze
+
+- Final closeout document added: `codeburn/CODEBURN_P5_FINAL_CLOSEOUT_2026-05-21.md`.
+- Frozen state:
+  - P5 Codex ingestion implemented
+  - P5 smoke/replay stable
+  - closeout recognition valid + consistent
+  - memory_significance warning fixed
+  - stale test-result advisory remediated
+- Governance boundary unchanged:
+  - Claude + Codex remain Class C
+  - cross-provider comparison/aggregation remains prohibited
+  - replay stability is not provider-truthfulness evidence
+- P5 interpretation: evidence-observability slice closed; no authority promotion.
