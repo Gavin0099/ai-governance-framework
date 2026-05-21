@@ -242,6 +242,62 @@ CodeBurn 의 현재 경계들은 capability gap 이 아니다.
 
 ---
 
+## 핵심 공리: Anti-Collapse Axiom
+
+이것은 FSP-1..FSP-5 의 개별 금지 규칙이 아니다.
+
+이것은 이 문서 전체의 **meta-boundary invariant** 다.
+
+### 공리 선언
+
+> **Stable reconstruction does not collapse observation distance.**
+
+### 이 공리가 보호하는 것
+
+이 공리는 다음의 추론 사슬을 원천 차단한다:
+
+```
+replay determinism stable
+->/ observation distance collapsed
+
+provenance identity consistent
+->/ runtime reality verified
+
+cross-run reconstruction consistent
+->/ provider computation confirmed
+
+"모든 것이 안정적이다"
+->/ "실제와 동일하다"
+```
+
+### 이 공리가 필요한 이유
+
+technical stability 는 epistemic upgrade 의 근거가 아니다.
+
+재구성이 안정적이라는 것은:
+- 재구성 방법이 일관적임을 의미한다
+- runtime 에서 실제로 일어난 일과 재구성이 일치함을 의미하지 않는다
+
+관찰 거리는 재구성의 품질로 제거되지 않는다.
+관찰 거리는 관찰 구조(epistemic position) 로 결정되며,
+이것은 CodeBurn 이 log artifact 를 읽는 시점에 이미 확정된다.
+
+```
+reconstruction stability  = 재구성 방법이 일관적
+observation distance      = CodeBurn 과 runtime 사이의 구조적 간격
+reconstruction stability  ->/ observation distance collapse
+```
+
+### 이 공리와 FSP 의 관계
+
+FSP-1..FSP-5 는 구체적인 금지 추론의 목록이다.
+이 공리는 그 목록을 생성하는 근거다.
+
+FSP 들이 열거하는 것: "이것도 안 되고, 저것도 안 되고"
+이 공리가 말하는 것: "왜 안 되는가 -- reconstruction stability 와 observation distance 는 독립적이다"
+
+---
+
 *이 freeze 는 시스템이 유용해 보이기 시작하는 순간을 위한 것이다.*
 *유용성이 인식될 때 가장 먼저 침식되는 것은 경계다.*
 *이 문서는 그 침식을 사전에 차단한다.*

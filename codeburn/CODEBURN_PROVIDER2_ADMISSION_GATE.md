@@ -102,6 +102,74 @@ P5 는 사전에 Codex 전용 artifact contract 를 필요로 한다.
 
 ---
 
+### 조건 AG-6: Adversarial Re-Interpretation Requirement
+
+이 조건은 다른 조건들과 다르다.
+
+AG-1..AG-5 는 "확인했음" 을 요구한다.
+AG-6 은 **"실제로 문제를 찾으려고 시도했음"** 을 요구한다.
+
+absence of detected issues != presence of adversarial search
+
+이 조건은 gate 가 ceremonial authorization 으로 퇴화하는 것을 막기 위해 존재한다.
+
+#### Copy-Forward Reasoning 금지
+
+다음은 AG-6 의 충족 근거로 인정되지 않는다:
+
+- [ ] (이 항목이 채워져 있으면 AG-6 는 통과되지 않음)
+  - 이전 provider 입장 시 작성된 review 를 인용하는 것
+  - "지난번에 검토했으므로 이번에도 괜찮다" 는 추론
+  - 이전 sign-off 를 현재 sign-off 의 근거로 사용하는 것
+
+```
+FORBIDDEN: "Prior Provider2 admission conclusions are sufficient
+           evidence for current semantic admissibility."
+```
+
+이유: semantic novelty 는 precedent 로 평가할 수 없다.
+새로운 provider admission 은 새로운 semantic surface 를 도입한다.
+이전 review 는 이전 surface 에 대한 review 이며, 현재 surface 에 유효하지 않다.
+
+#### 필수 산출물 (Required Adversarial Outputs)
+
+AG-6 이 충족되려면 다음 세 항목이 실제로 작성되어야 한다.
+이 항목들은 "발견되지 않았음" 을 포함해서 명시적으로 기록해야 한다.
+
+**Output 1: Hidden Comparability Assumptions**
+
+- [ ] 이 provider 도입이 암묵적으로 가정하는 비교 가능성이 있는가?
+  - 발견된 항목: [기록 필요]
+  - "없음" 도 명시적으로 기록되어야 함
+
+**Output 2: Authority Expansion Vectors**
+
+- [ ] 이 provider 도입이 CodeBurn 의 authority 를 확장할 수 있는 경로가 있는가?
+  (acquisition coverage growth ->/ governance authority growth 를 유발하는 경로)
+  - 발견된 항목: [기록 필요]
+  - "없음" 도 명시적으로 기록되어야 함
+
+**Output 3: Semantic Implications Differing from Prior Admissions**
+
+- [ ] 이 provider admission 이 이전 provider admission 과 다른
+  semantic implications 를 가지는 부분이 있는가?
+  - 발견된 항목: [기록 필요]
+  - "없음" 도 명시적으로 기록되어야 함
+
+#### AG-6 의 목적
+
+이 세 Output 이 모두 비어 있다면:
+
+adversarial review 가 수행되었다 (X)
+adversarial review 가 시도되었다 (O)
+
+두 outcome 모두 acceptable 하다.
+중요한 것은 시도의 흔적 (artifact of attempted semantic attack) 이 남아있는 것이다.
+
+흔적이 없는 review 는 review 가 아니라 declaration 이다.
+
+---
+
 ## 금지된 Narrative (Prohibited Narratives)
 
 P5 도입 전후를 막론하고 다음 narrative 는 CodeBurn 내에서 영구 금지된다.
@@ -254,14 +322,22 @@ P5 시작을 위해 다음을 명시적으로 기록해야 한다:
 
 ```
 P5 Admission: GRANTED
-Gate conditions: AG-1, AG-2, AG-3, AG-4, AG-5 -- all confirmed
+Gate conditions: AG-1, AG-2, AG-3, AG-4, AG-5, AG-6 -- all confirmed
 Prohibited narratives: acknowledged
 Schema similarity disclaimer: acknowledged
 Codex artifact contract: [contract document path]
+Anti-collapse axiom: acknowledged
+Copy-forward reasoning: not used
+AG-6 Output 1 (hidden comparability assumptions): [findings or NONE FOUND]
+AG-6 Output 2 (authority expansion vectors): [findings or NONE FOUND]
+AG-6 Output 3 (semantic diff from prior admissions): [findings or NONE FOUND]
 Date: [ISO date]
 ```
 
 이 기록이 없으면 P5 는 시작할 수 없다.
+
+AG-6 의 세 Output 이 "NONE FOUND" 인 경우도 허용된다.
+그러나 Output 자체가 누락된 경우는 AG-6 미충족으로 간주된다.
 
 ---
 
