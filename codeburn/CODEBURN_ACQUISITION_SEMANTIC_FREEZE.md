@@ -214,6 +214,7 @@ CodeBurn 의 현재 경계들은 capability gap 이 아니다.
 | cross-provider aggregation forbidden | comparability policy | CODEBURN_CROSS_PROVIDER_COMPARABILITY_BOUNDARY.md P1 |
 | reconstruction distance preserved | 설계 원칙 | CODEBURN_ACQUISITION_AUTHORITY_MODEL.md |
 | duplicate rows != semantic consumption | replay policy | CODEBURN_CLAUDE_REPLAY_PROVENANCE_CONTRACT.md |
+| temporal stability ->/ epistemic promotion | Temporal Non-Promotion Rule | CODEBURN_ACQUISITION_SEMANTIC_FREEZE.md (TNP) |
 
 이 목록의 어떤 항목도 "임시로 이렇게 한다" 가 아니다.
 모두 "이것이 올바른 접근이기 때문에 이렇게 한다" 다.
@@ -295,6 +296,86 @@ FSP-1..FSP-5 는 구체적인 금지 추론의 목록이다.
 
 FSP 들이 열거하는 것: "이것도 안 되고, 저것도 안 되고"
 이 공리가 말하는 것: "왜 안 되는가 -- reconstruction stability 와 observation distance 는 독립적이다"
+
+---
+
+## 시간 비승격 규칙 (Temporal Non-Promotion Rule)
+
+이것은 Anti-Collapse Axiom 의 **시간 축 동반 규칙** 이다.
+
+### Anti-Collapse Axiom 과의 차이
+
+Anti-Collapse Axiom 이 차단하는 것:
+> "이 순간 안정적이다 → 관찰 거리가 사라진다"
+
+Temporal Non-Promotion Rule 이 차단하는 것:
+> "**오랫동안** 안정적이었다 → 권위가 높아진다 → 더 많은 것이 허용된다"
+
+전자는 **현재의 안정성**을 epistemic upgrade 의 근거로 사용하는 것을 금지한다.
+후자는 **시간의 누적**을 epistemic upgrade 의 근거로 사용하는 것을 금지한다.
+
+두 규칙은 별개의 drift 경로를 차단한다.
+
+### 규칙 선언
+
+```
+Replay stability, persistence, or historical consistency
+MUST NOT upgrade:
+  - provider equivalence,
+  - field equivalence, or
+  - aggregation admissibility.
+```
+
+시간 차원은 독립적인 승격 경로가 아니다.
+
+### 이 규칙이 차단하는 drift 사슬
+
+다음 추론 사슬은 이 규칙에 의해 금지된다:
+
+```
+Codex replay 결과가 6개월 동안 일관적이었다
+→ historical calibration 이 충분히 이루어졌다
+→ Codex 데이터의 가중치를 높여야 한다
+→ Claude 와 partial normalize 하는 것이 합리적이다
+```
+
+각 단계는 그 자체로 그럴 듯하게 들린다.
+단계가 쌓일수록 최초 금지가 보이지 않게 된다.
+이것이 시간 차원 drift 의 특성이다.
+
+### 두 개의 명시적 금지 예시
+
+```
+FORBIDDEN: replay-consistent ->/ measurement-equivalent
+FORBIDDEN: historically-stable ->/ cross-provider-normalizable
+```
+
+**첫 번째**: replay 결과가 일치한다는 것은 재구성 방법이 일관적임을 의미한다.
+측정 방식이 동일하다는 것을 의미하지 않는다.
+
+**두 번째**: 데이터가 역사적으로 안정적이었다는 것은 재구성이 반복 가능함을 의미한다.
+다른 provider 와 normalization 할 수 있다는 것을 의미하지 않는다.
+
+### 금지되는 이유
+
+시간은 epistemic position 을 바꾸지 않는다.
+
+CodeBurn 의 observation distance 는 log artifact 를 읽는 구조에서 발생한다.
+이 구조는 observation 횟수나 기간이 늘어난다고 변화하지 않는다.
+
+```
+100번의 consistent replay = 재구성 방법이 안정적
+100번의 consistent replay != epistemic distance 감소
+100번의 consistent replay != calibration authority 증가
+```
+
+### 이 규칙과 FSP 및 Anti-Collapse Axiom 의 관계
+
+FSP-1 은 단일 시점의 안정성 →/ correctness 를 차단한다.
+Anti-Collapse Axiom 은 안정성 →/ 거리 소멸을 차단한다.
+Temporal Non-Promotion Rule 은 **시간 누적** →/ **권위 증가** →/ **추가 허가** 를 차단한다.
+
+셋은 동일한 보호 대상(관찰 거리) 을 서로 다른 drift 경로에서 보호한다.
 
 ---
 
