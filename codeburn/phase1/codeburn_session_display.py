@@ -285,6 +285,40 @@ def _resets_in(resets_at: Optional[str]) -> str:
         return ""
 
 
+def _get_warn_threshold(provider: str) -> Optional[int]:
+    """
+    Read soft-warning token threshold from environment.
+
+    Env vars:
+      CODEBURN_CLAUDE_5H_WARN_TOKENS  — warn when 5h rolling Claude input tokens exceed this
+      CODEBURN_CODEX_5H_WARN_TOKENS   — warn when 5h rolling Codex input tokens exceed this
+
+    These are user-calibrated values (not provider-reported limits).
+    Calibrate once: note reconstructed 5h tokens when Claude.ai shows a known %.
+    Example: 5h = 120,000 tokens when Claude.ai showed 60% → limit ≈ 200,000.
+    Set CODEBURN_CLAUDE_5H_WARN_TOKENS=100000 to warn at ~50%.
+    """
+    key = {
+        "claude": "CODEBURN_CLAUDE_5H_WARN_TOKENS",
+        "codex":  "CODEBURN_CODEX_5H_WARN_TOKENS",
+    }.get(provider)
+    if key is None:
+        return None
+    val = os.environ.get(key, "").strip()
+    if not val:
+        return None
+    try:
+        n = int(val)
+        return n if n > 0 else None
+    except ValueError:
+        return None
+
+
+def _warn_threshold_pct(tokens: int, threshold: int) -> float:
+    """Return how far past the warning threshold we are (0.0 = at threshold)."""
+    return max(0.0, (tokens - threshold) / threshold * 100)
+
+
 def display(
     session_id: str,
     summary: dict,
@@ -320,6 +354,7 @@ def display(
         print(f"|{line:<{W}}|")
 
     # Rolling windows from DB
+    pt5 = ct5 = pt7d = ct7d = 0
     if conn is not None:
         print(f"+{sep}+")
         print(f"|  Rolling windows (Class C | all sessions){' ' * (W - 42)}|")
@@ -331,6 +366,23 @@ def display(
         print(f"|{line7d:<{W}}|")
 
     print(f"+{sep}+")
+
+    # Soft warning: check 5h input tokens against user-calibrated threshold
+    warn_threshold = _get_warn_threshold(provider)
+    if conn is not None and warn_threshold is not None and pt5 >= warn_threshold:
+        over_pct = _warn_threshold_pct(pt5, warn_threshold)
+        print(f"|{'!' * W}|")
+        warn1 = f"  !! 5h INPUT TOKENS ABOVE SOFT LIMIT: {_fmt(pt5)} >= {_fmt(warn_threshold)}"
+        warn2 = f"  !! ({over_pct:.0f}% over threshold) -- check Claude.ai for actual %"
+        warn3 = f"  !! Consider pausing or starting a new context window."
+        print(f"|{warn1:<{W}}|")
+        print(f"|{warn2:<{W}}|")
+        print(f"|{warn3:<{W}}|")
+        print(f"|{'!' * W}|")
+    elif conn is not None and warn_threshold is None and provider == "claude":
+        hint = f"  Tip: set CODEBURN_CLAUDE_5H_WARN_TOKENS=<n> for early 5h warning"
+        print(f"|{hint:<{W}}|")
+
     print()
 
 
