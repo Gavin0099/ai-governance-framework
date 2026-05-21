@@ -581,6 +581,22 @@ def _first_false(d: dict[str, Any]) -> str:
     return next((k for k, v in d.items() if not v), "unknown")
 
 
+def _resolve_head_commit(project_root: Path) -> str:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except Exception:
+        return "UNCOMMITTED"
+
+    commit = result.stdout.strip()
+    return commit or "UNCOMMITTED"
+
+
 def _closeout_file_is_gitignored(
     project_root: Path,
     closeout_file: str = "artifacts/session-closeout.txt",
