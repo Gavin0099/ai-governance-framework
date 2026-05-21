@@ -149,6 +149,8 @@ It MUST say something like:
   interpretation.
 - Interpretation requires an explicit phase transition and cannot emerge from
   repeated observation exposure.
+- Observed cross-provider correlation or convergence MUST NOT imply semantic
+  equivalence, measurement equivalence, or aggregation admissibility.
 
 **Reviewer interpretation boundary (2026-04-19)**:
 - Human-authored reviewer summaries are non-authoritative by default.

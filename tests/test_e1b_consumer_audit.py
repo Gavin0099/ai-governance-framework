@@ -17,7 +17,7 @@ They verify that scan_consumer_text() CAN DETECT violations.
 or CI check.  These tests do NOT verify that violations are blocked at
 runtime — the scanner is a detection tool, not an enforcer.
 
-Three injection scenarios (釘住 — 2026-04-17):
+Four injection scenarios (釘住 — 2026-04-17):
   Scenario 1  Misleading Summary Injection
               transitioning_active + improvement narrative + promotion language
               → must detect P1 (improvement) and P4 (promotion)
@@ -29,6 +29,10 @@ Three injection scenarios (釘住 — 2026-04-17):
   Scenario 3  Temporal Misinterpretation
               temporal observation duration → reliability claim
               → must detect P3 (temporal)
+
+    Scenario 4  Cross-provider Convergence Misuse
+                            cross-provider correlation/convergence → semantic/aggregation equivalence claim
+                            → must detect P5 (convergence authority inflation)
 
 Negative tests verify that clean / correctly-bounded text is NOT flagged.
 
@@ -227,6 +231,49 @@ class TestTemporalMisinterpretation:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# Scenario 4 — Cross-provider Convergence Misuse
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestCrossProviderConvergenceMisuse:
+    """
+    Simulate a narrative that uses cross-provider convergence/correlation to
+    justify semantic or aggregation equivalence.
+
+    Cross-provider trend similarity is observational only. It must not imply
+    semantic equivalence, measurement equivalence, or aggregation admissibility.
+    """
+
+    _VIOLATING_NARRATIVE = (
+        "Claude and Codex show convergent long-term trends, so semantic "
+        "equivalence is established and aggregation is admissible."
+    )
+
+    def test_detects_cross_provider_equivalence_claim(self):
+        """P5: convergence/correlation used as semantic or aggregation equivalence."""
+        pids = violation_pattern_ids(self._VIOLATING_NARRATIVE)
+        assert "P5" in pids, (
+            "Expected P5 violation: cross-provider convergence implied semantic "
+            "equivalence / aggregation admissibility. "
+            f"Got pattern IDs: {pids}"
+        )
+
+    def test_clean_cross_provider_observation_not_flagged(self):
+        """
+        Observing cross-provider correlation is allowed when explicitly bounded
+        as non-equivalence and non-aggregation evidence.
+        """
+        clean = (
+            "Observed cross-provider correlation between Claude and Codex over "
+            "multiple sessions. This does not imply semantic equivalence, "
+            "measurement equivalence, or aggregation admissibility."
+        )
+        pids = violation_pattern_ids(clean)
+        assert "P5" not in pids, (
+            f"False positive: bounded cross-provider observation flagged as P5. Got: {pids}"
+        )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # Cross-scenario: clean summaries produce no violations
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -395,7 +442,7 @@ class TestConsumerAuditEscape:
         Decision impact risk: HIGH.
         "Adoption has landed" is a completion claim that could end Phase B
         prematurely.  If written into a MEMORY file or session note it may be
-        read as a gate-advance justification without triggering any P1–P4 check.
+        read as a gate-advance justification without triggering any P1–P5 check.
         Phase B monitor: flag any "adoption has landed" / "governance-mature"
         phrasing in Phase B session notes or MEMORY updates.
         """

@@ -7,7 +7,7 @@
 > **Companion doc**: [docs/e1b-classification-semantic-limits.md](e1b-classification-semantic-limits.md)
 >
 > **Scanner**: `governance_tools/e1b_consumer_audit.py` — `scan_consumer_text(text)`
-> implements the 4 forbidden patterns as regex detection.
+> implements the 5 forbidden patterns as regex detection.
 > Tests: `tests/test_e1b_consumer_audit.py` (13 passing, 3 injection scenarios).
 >
 > **Status**: 定義完成 + scanner 實作完成 — 2026-04-17.
@@ -25,7 +25,7 @@
 
 ---
 
-## Checklist — 4 forbidden patterns
+## Checklist — 5 forbidden patterns
 
 For each consumer / summary, verify NONE of the following patterns appear:
 
@@ -85,11 +85,26 @@ classification is now [more/less/N% certain]" is a violation.
 
 ---
 
+### ❌ Pattern 5: Cross-provider convergence/correlation → semantic/aggregation equivalence
+
+| Forbidden | Permitted replacement |
+|-----------|----------------------|
+| "Claude/Codex trends converge, so semantics are equivalent" | "cross-provider trend similarity is observational only" |
+| "high provider correlation means measurement-equivalent" | "correlation does not establish measurement equivalence" |
+| "long-term alignment means we can aggregate safely" | "aggregation admissibility requires explicit phase contract" |
+| "cross-provider consistency validates shared policy weighting" | "consistency can inform review context, not authority merge" |
+
+**Check**: Any sentence that uses cross-provider correlation or convergence
+as evidence that semantic equivalence, measurement equivalence, or aggregation
+admissibility is now established is a violation.
+
+---
+
 ## How to use this checklist
 
 **For code review**:
 Before merging any script that reads `lifecycle_class`, `recent_lifecycle_class`,
-or gate verdict: run each of the 4 checks on the human-readable output strings.
+or gate verdict: run each of the 5 checks on the human-readable output strings.
 
 **For doc review**:
 Before publishing any phase note, MEMORY update, or session summary: paste the
