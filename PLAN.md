@@ -2410,3 +2410,11 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 - v0.3 不包含：per-MOB convention_start、reconstruction_ambiguous edge cases、MOB-03/04/07 自動化、batch scan dashboard
 - Spec artifact：docs/status/mob-verifier-v03-gap-confirmed-spec-2026-05-18.md（ai-governance-framework）
 - Implementation：Hearth governance repo（路徑依機器而異）
+
+## 2026-05-21 CodeBurn P5 Progress Update
+
+- P5.2 schema review: no schema extension required; existing phase1 schema tables remain sufficient for Codex ingestion (`steps`, `step_ingestion_provenance`, `quarantined_records`).
+- P5.3 parser implementation: completed in `codeburn/phase2/codex_log_ingestor.py`.
+- Contract verification: `tests/test_codeburn_codex_negative.py` now passes fully (13/13).
+- Current boundary posture: admission/epistemic invariants preserved (IAF-1..4, IAF-8).
+- Next milestone: P5.4 smoke command + replay/provenance alignment checks.

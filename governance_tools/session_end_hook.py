@@ -88,6 +88,9 @@ _TOOL_ANCHORS = frozenset({
     "post_task_check", "session_start", "external_repo_readiness",
     "external_project_facts_intake", "npm", "cargo", "go", "make",
     "mypy", "ruff", "pylint", "flake8", "black",
+    # P5 Codex closeout evidence anchors
+    "codeburn_codex_smoke", "codex_replay",
+    "test_codeburn_codex_smoke.py", "test_codeburn_codex_replay.py",
 })
 
 # Maps tool names to directories/patterns that indicate the tool was run
@@ -99,6 +102,19 @@ _TOOL_ARTIFACT_SIGNALS: dict[str, list[str]] = {
     "adopt_governance": [".governance/baseline.yaml"],
     "pre_task_check": ["artifacts/runtime/traces"],
     "post_task_check": ["artifacts/runtime/traces"],
+    # P5 Codex evidence checklist anchors (operability + replay/provenance).
+    # Presence checks are observability signals only, not execution proof.
+    "codeburn_codex_smoke": [
+        "codeburn/phase2/codeburn_codex_smoke.py",
+        "codeburn/phase2/examples/codex_smoke_fixture.jsonl",
+        "tests/test_codeburn_codex_smoke.py",
+    ],
+    "codex_replay": [
+        "tests/test_codeburn_codex_replay.py",
+        "codeburn/phase2/examples/codex_smoke_fixture.jsonl",
+    ],
+    "test_codeburn_codex_smoke.py": ["tests/test_codeburn_codex_smoke.py"],
+    "test_codeburn_codex_replay.py": ["tests/test_codeburn_codex_replay.py"],
 }
 
 # ── Layer result constants ────────────────────────────────────────────────────

@@ -24,15 +24,37 @@
 每個欄位都應具備可解析、可缺省、可降級的特性。  
 若某欄位不存在，應明確寫成 `NONE` 或 `NO_UPDATE`，而不是留給 parser 猜測。
 
-## 最小欄位
+## 最小欄位（runtime required）
 
-建議至少包含：
-- `task`
-- `summary`
-- `files_changed`
-- `tests_run`
-- `followups`
-- `memory_candidate`
+`governance_tools/session_end_hook.py` 目前要求以下 7 欄（缺任一欄位會是 schema_invalid）：
+- `TASK_INTENT`
+- `WORK_COMPLETED`
+- `FILES_TOUCHED`
+- `CHECKS_RUN`
+- `OPEN_RISKS`
+- `NOT_DONE`
+- `RECOMMENDED_MEMORY_UPDATE`
+
+### P5 Codex 固定 evidence checklist（closeout 建議寫法）
+
+當 session 涉及 CodeBurn P5（Codex ingestion/smoke/replay）時，`CHECKS_RUN` 建議固定包含以下證據入口（可直接複製）：
+
+`python -m codeburn.phase2.codeburn_codex_smoke --json`
+
+`python -m pytest tests/test_codeburn_codex_smoke.py -q -p no:cacheprovider --basetemp .tmp_pytest_codex_smoke`
+
+`python -m pytest tests/test_codeburn_codex_replay.py -q -p no:cacheprovider --basetemp .tmp_pytest_codex_replay`
+
+`FILES_TOUCHED` 建議至少包含：
+- `codeburn/phase2/codeburn_codex_smoke.py`
+- `tests/test_codeburn_codex_smoke.py`
+- `tests/test_codeburn_codex_replay.py`
+
+語意邊界（必須保留）：
+- P5.4 smoke 只驗證 ingestion pipeline operability，不驗證 token 正確性
+- 不開放 cross-provider comparison
+- replay stable != provider truthful
+- duplicate ingest allowed != duplicate semantic consumption allowed
 
 ## 邊界
 
