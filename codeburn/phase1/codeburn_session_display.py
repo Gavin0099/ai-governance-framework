@@ -285,6 +285,26 @@ def _resets_in(resets_at: Optional[str]) -> str:
         return ""
 
 
+def _read_session_pct() -> Optional[dict]:
+    """
+    Read Claude session % from notification hook sidecar file.
+    Written by codeburn_notification_hook.py when Claude Code fires a rate-limit notification.
+    Returns dict with {session_pct, resets_in, recorded_at} or None if not available.
+    """
+    sidecar = Path.home() / ".codeburn" / "session_rate_pct.json"
+    try:
+        if not sidecar.exists():
+            return None
+        data = json.loads(sidecar.read_text(encoding="utf-8"))
+        # Only use if recorded in the last 6 hours (stale beyond that)
+        recorded = datetime.fromisoformat(data.get("recorded_at", ""))
+        if (datetime.now(timezone.utc) - recorded).total_seconds() > 6 * 3600:
+            return None
+        return data
+    except Exception:
+        return None
+
+
 def _get_warn_threshold(provider: str) -> Optional[int]:
     """
     Read soft-warning token threshold from environment.
@@ -352,6 +372,20 @@ def display(
         print(f"+{sep}+")
         line = f"  5h window  {bar}{reset_str}"
         print(f"|{line:<{W}}|")
+
+    # Claude: 5h % from notification hook sidecar (provider-reported, not reconstructed)
+    if provider == "claude":
+        pct_data = _read_session_pct()
+        if pct_data:
+            pct = pct_data.get("session_pct", 0)
+            resets = pct_data.get("resets_in", "")
+            reset_str = f"  resets in {resets}" if resets else ""
+            bar = _bar(pct)
+            print(f"+{sep}+")
+            line = f"  5h session {bar}{reset_str}"
+            print(f"|{line:<{W}}|")
+            src = f"  (provider-reported via notification hook)"
+            print(f"|{src:<{W}}|")
 
     # Rolling windows from DB
     pt5 = ct5 = pt7d = ct7d = 0
