@@ -300,6 +300,18 @@ def _upsert_row(
     result: CopilotIngestResult,
 ) -> bool:
     """Insert or update a billing event row. Returns True if newly inserted."""
+    def _get_existing_is_preview(row) -> int:
+        if row is None:
+            return -1
+        if isinstance(row, sqlite3.Row):
+            return int(row["is_preview"])
+        # Fallback for default tuple rows: SELECT id, is_preview
+        return int(row[1])
+
+    def _get_existing_id(row) -> int:
+        if isinstance(row, sqlite3.Row):
+            return int(row["id"])
+        return int(row[0])
 
     existing = conn.execute(
         """
@@ -310,10 +322,10 @@ def _upsert_row(
     ).fetchone()
 
     if existing:
-        if mark_final and existing["is_preview"] == 1:
+        if mark_final and _get_existing_is_preview(existing) == 1:
             conn.execute(
                 "UPDATE copilot_billing_events SET is_preview = 0 WHERE id = ?",
-                (existing["id"],),
+                (_get_existing_id(existing),),
             )
             result.mark_final_updated += 1
             _write_annotation(

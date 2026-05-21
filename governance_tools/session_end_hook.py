@@ -91,6 +91,9 @@ _TOOL_ANCHORS = frozenset({
     # P5 Codex closeout evidence anchors
     "codeburn_codex_smoke", "codex_replay",
     "test_codeburn_codex_smoke.py", "test_codeburn_codex_replay.py",
+    # Copilot Class D closeout evidence anchors
+    "codeburn_copilot_smoke",
+    "test_codeburn_copilot_ingestion.py", "test_codeburn_copilot_smoke.py",
 })
 
 # Maps tool names to directories/patterns that indicate the tool was run
@@ -115,6 +118,15 @@ _TOOL_ARTIFACT_SIGNALS: dict[str, list[str]] = {
     ],
     "test_codeburn_codex_smoke.py": ["tests/test_codeburn_codex_smoke.py"],
     "test_codeburn_codex_replay.py": ["tests/test_codeburn_codex_replay.py"],
+    # Copilot Class D evidence checklist anchors (billing evidence ingestion only).
+    "codeburn_copilot_smoke": [
+        "codeburn/phase2/codeburn_copilot_smoke.py",
+        "codeburn/phase2/examples/copilot_smoke_fixture.csv",
+        "tests/test_codeburn_copilot_smoke.py",
+        "tests/test_codeburn_copilot_ingestion.py",
+    ],
+    "test_codeburn_copilot_ingestion.py": ["tests/test_codeburn_copilot_ingestion.py"],
+    "test_codeburn_copilot_smoke.py": ["tests/test_codeburn_copilot_smoke.py"],
 }
 
 # ── Layer result constants ────────────────────────────────────────────────────

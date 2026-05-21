@@ -56,6 +56,34 @@
 - replay stable != provider truthful
 - duplicate ingest allowed != duplicate semantic consumption allowed
 
+### Copilot Class D 固定 evidence checklist（closeout 建議寫法）
+
+當 session 涉及 Copilot AI Credits ingestion（Class D）時，`CHECKS_RUN` 建議固定包含以下證據入口（可直接複製）：
+
+`python -m pytest tests/test_codeburn_copilot_ingestion.py tests/test_codeburn_copilot_smoke.py -q -p no:cacheprovider --basetemp .tmp_pytest_copilot`
+
+`python codeburn/phase2/codeburn_copilot_smoke.py --csv codeburn/phase2/examples/copilot_smoke_fixture.csv --json`
+
+`python codeburn/phase2/codeburn_copilot_smoke.py --csv codeburn/phase2/examples/copilot_smoke_fixture.csv --mark-final --json`
+
+`FILES_TOUCHED` 建議至少包含：
+- `codeburn/phase2/codeburn_copilot_smoke.py`
+- `tests/test_codeburn_copilot_ingestion.py`
+- `tests/test_codeburn_copilot_smoke.py`
+
+closeout 目標語句（必須保留）：
+- `Copilot AI Credits billing evidence ingestion supported`
+
+避免語句（禁止）：
+- `Copilot cost analysis supported`
+
+語意邊界（必須保留）：
+- Class D = billing-reported evidence
+- AI Credits != raw token truth
+- billing evidence != session provenance
+- preview/projection != final billing
+- final billing evidence != decision-safe cost audit
+
 ## 邊界
 
 這份 schema 目前只做：

@@ -1,13 +1,13 @@
-TASK_INTENT: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+TASK_INTENT: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
 
-WORK_COMPLETED: SA Layer 1 Checkpoint 1/2/3 passed (session-20260415T070356-a10167, passed=498, artifact_state=ok); scripts/plan_summary.py 13850->460 tokens; tests/test_plan_context_provenance.py 8/8 new tests; runtime_hooks/core/session_start.py + governance_tools/session_end_hook.py provenance chain; PLAN.md Type A gate semantics + SA Layer 1 log + compression provenance section
+WORK_COMPLETED: Copilot AI Credits billing evidence ingestion supported; added tests/test_codeburn_copilot_ingestion.py and tests/test_codeburn_copilot_smoke.py; added codeburn/phase2/codeburn_copilot_smoke.py with fixed output fields; updated governance_tools/session_end_hook.py and docs/session-closeout-schema.md to anchor Copilot closeout evidence checklist and boundary language.
 
-FILES_TOUCHED: scripts/plan_summary.py, tests/test_plan_context_provenance.py, runtime_hooks/core/session_start.py, governance_tools/session_end_hook.py, PLAN.md, PHASE2_GATE_RUNBOOK.md
+FILES_TOUCHED: codeburn/phase2/copilot_billing_ingestor.py, codeburn/phase2/codeburn_copilot_smoke.py, codeburn/phase2/examples/copilot_smoke_fixture.csv, tests/test_codeburn_copilot_ingestion.py, tests/test_codeburn_copilot_smoke.py, governance_tools/session_end_hook.py, docs/session-closeout-schema.md
 
-CHECKS_RUN: pytest tests/test_plan_context_provenance.py 8/8 passed; pytest tests/test_canonical_audit_log.py 51/51 passed; pytest tests/ filtered 1789 passed 8 failed pre-existing; session_end_hook.py SpecAuthority artifact_state=ok Checkpoint 2+3 verified
+CHECKS_RUN: python -m pytest tests/test_codeburn_copilot_ingestion.py tests/test_codeburn_copilot_smoke.py -q -p no:cacheprovider --basetemp .tmp_pytest_copilot (9 passed); python codeburn/phase2/codeburn_copilot_smoke.py --csv codeburn/phase2/examples/copilot_smoke_fixture.csv --json; python codeburn/phase2/codeburn_copilot_smoke.py --csv codeburn/phase2/examples/copilot_smoke_fixture.csv --mark-final --json; python -m governance_tools.session_closeout_entry --project-root . --format json (closeout_status=valid, gate_verdict=OK)
 
-OPEN_RISKS: SA Layer 1 not stable (1 execution only, needs 2nd different day); 8 pre-existing agf test failures need taxonomy classification (test_format_json_ok, test_nextjs_byok_contract, test_dispatcher_cli); SA artifact ok=false from failure_test_validation naming — not pipeline break; no_sidecar = assumed_full not proven_full
+OPEN_RISKS: Class D = billing-reported evidence; AI Credits != raw token truth; billing evidence != session provenance; preview/projection != final billing; final billing evidence != decision-safe cost audit.
 
-NOT_DONE: SA Layer 1 second execution (different day); SA Layer 2 skip removal (blocked on stability); Phase 2 gate Type A distinct_repos>=3; Phase 2 gate Type B ~15 days; topic filtering adoption gap; compression provenance Phase 2 rule_fidelity; RTK integration deferred; Hermes PoC deferred
+NOT_DONE: Scoped commit for Copilot ingestion tests/smoke/closeout checklist slice; optional add closeout candidate text template for Copilot to reduce wording drift.
 
-RECOMMENDED_MEMORY_UPDATE: Record SA Layer 1 entry #2 in PLAN.md execution log after tomorrow's run; classify 8 pre-existing agf failures in taxonomy to unblock session_end_hook gate
+RECOMMENDED_MEMORY_UPDATE: Append this Copilot Class D closeout slice with command evidence and semantic boundaries to memory/2026-05-21.md after scoped commit.
