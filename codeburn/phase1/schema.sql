@@ -94,6 +94,65 @@ CREATE TABLE IF NOT EXISTS step_ingestion_provenance (
   FOREIGN KEY(step_id) REFERENCES steps(step_id)
 );
 
+-- ============================================================
+-- Class D: Copilot AI Credits (billing-reported evidence)
+-- Admission gate: CODEBURN_COPILOT_AI_CREDITS_ADMISSION_GATE.md
+-- MUST NOT be joined with steps or step_ingestion_provenance.
+-- MUST NOT be aggregated together with Class C evidence.
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS copilot_billing_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+  -- Billing aggregate identity (natural key: report_date + user_login + model + source_artifact_path)
+  report_date TEXT NOT NULL,           -- YYYY-MM-DD (billing day, not session day)
+  user_login  TEXT NOT NULL,           -- GitHub username
+  model       TEXT NOT NULL,           -- model name as reported by GitHub CSV
+
+  -- Billing credit quantity.
+  -- NOT a token count. Back-calculation to tokens is FORBIDDEN (CP-1, IAF-4).
+  -- No pricing rate may be applied to this value.
+  -- Cross-model comparison of aic_quantity is FORBIDDEN (CP-2).
+  -- model column MUST appear in any query that reads aic_quantity.
+  aic_quantity REAL NOT NULL,
+
+  -- aic_gross_amount is EXCLUDED. Cost ingestion is FORBIDDEN (C-1 + IAF-4).
+
+  -- Structural annotation: code completions never appear in this surface.
+  -- Enforced by CHECK -- cannot be set to 0.
+  completions_excluded INTEGER NOT NULL DEFAULT 1 CHECK (completions_excluded = 1),
+
+  -- Preview vs. final billing (AG-Copilot-3).
+  -- Default 1 (conservative). Use --mark-final to set 0 after GitHub confirms.
+  is_preview INTEGER NOT NULL DEFAULT 1 CHECK (is_preview IN (0, 1)),
+
+  -- Class D provenance (embedded, not in step_ingestion_provenance).
+  epistemic_class     TEXT NOT NULL DEFAULT 'Class D' CHECK (epistemic_class = 'Class D'),
+  acquisition_mode    TEXT NOT NULL DEFAULT 'billing_report_daily_aggregate'
+                           CHECK (acquisition_mode = 'billing_report_daily_aggregate'),
+  source_artifact_path TEXT NOT NULL,  -- path to the CSV file
+  source_record_line   INTEGER NOT NULL CHECK (source_record_line >= 1),
+  -- source_record_offset is NULL: CSV rows have no byte-level identity (AG-Copilot-2)
+
+  -- Epistemic flags (all permanently 0 for Class D).
+  real_time_observed          INTEGER NOT NULL DEFAULT 0 CHECK (real_time_observed = 0),
+  analysis_safe_for_decision  INTEGER NOT NULL DEFAULT 0 CHECK (analysis_safe_for_decision = 0),
+  provider_truthfulness_assumed INTEGER NOT NULL DEFAULT 0 CHECK (provider_truthfulness_assumed = 0),
+
+  created_at TEXT NOT NULL,
+
+  UNIQUE (report_date, user_login, model, source_artifact_path)
+);
+
+-- Metadata per CSV file ingested (surface annotations, correction events).
+CREATE TABLE IF NOT EXISTS copilot_surface_annotations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  source_artifact_path TEXT NOT NULL,
+  annotation_key   TEXT NOT NULL,   -- e.g. 'completions_surface_present', 'correction_event'
+  annotation_value TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
 -- P3.1: Quarantine table for records that cannot be ingested.
 -- Malformed or structurally inadmissible records are persisted here rather than
 -- silently dropped, preserving auditability of ingestion completeness.
