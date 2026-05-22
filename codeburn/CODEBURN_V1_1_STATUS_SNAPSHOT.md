@@ -31,7 +31,9 @@ Certain words — `quota`, `actual token usage`, `billing-grade`, `cross-provide
 do not describe operations. They carry unauthorized implicit ontologies: centralized
 accounting, provider-coupled observability, precision the evidence class cannot
 support. The Forbidden Phrases section (Section 3) is not a style guide.
-It is an **ontology containment boundary**.
+It is an **ontology containment boundary** — it prevents **semantic preauthorization**:
+the stabilization of expectations that makes future capability expansion appear
+inevitable and legitimate before any capability has been built.
 
 **Semantic authority drifts before runtime authority does.**
 
