@@ -417,34 +417,47 @@ def md_to_html(md: str) -> tuple[str, str, list[tuple[str, str]]]:
 # HTML page template
 # ---------------------------------------------------------------------------
 
-def render_page(md_path: Path) -> str:
+def render_page(md_path: Path, lang: str = 'en') -> str:
     md_text = md_path.read_text(encoding='utf-8')
     body, title, headings = md_to_html(md_text)
 
     if not title:
         title = md_path.stem.replace('_', ' ').replace('CODEBURN ', '')
 
+    zh = (lang == 'zh')
+
     # Navigation
     nav_html = ''
     if len(headings) > 2:
         links = ''.join(f'<a href="#{slug}">{text}</a>' for slug, text in headings)
-        nav_html = f'<div class="doc-nav"><h4>Contents</h4>{links}</div>'
+        nav_label = '目錄' if zh else 'Contents'
+        nav_html = f'<div class="doc-nav"><h4>{nav_label}</h4>{links}</div>'
 
     # Doc header strip
     source_name = md_path.name
     generated = datetime.now().strftime('%Y-%m-%d %H:%M')
-    header_html = f'''<div class="doc-header">
+    if zh:
+        header_html = f'''<div class="doc-header">
+  <div class="title">{html_lib.escape(title)}</div>
+  <div class="meta">來源：{source_name} &nbsp;·&nbsp; 生成時間：{generated} &nbsp;·&nbsp; CodeBurn v1.1</div>
+</div>'''
+        footer_html = f'''<div class="doc-footer">
+  來源：<code>{source_name}</code> — HTML 為展示層，.md 原始檔案為權威來源。
+  <br>CodeBurn v1.1 治理架構基線。
+</div>'''
+    else:
+        header_html = f'''<div class="doc-header">
   <div class="title">{html_lib.escape(title)}</div>
   <div class="meta">Source: {source_name} &nbsp;·&nbsp; Generated: {generated} &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>'''
-
-    footer_html = f'''<div class="doc-footer">
+        footer_html = f'''<div class="doc-footer">
   Source: <code>{source_name}</code> — HTML is the presentation layer. The .md source is authoritative.
   <br>CodeBurn v1.1 governed architecture baseline.
 </div>'''
 
+    html_lang = 'zh-Hant' if zh else 'en'
     return f'''<!DOCTYPE html>
-<html lang="en">
+<html lang="{html_lang}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -473,8 +486,11 @@ def main() -> int:
             print(f.name)
         return 0
 
-    if args:
-        targets = [Path(a) for a in args if not a.startswith('--')]
+    lang = 'zh' if '--zh' in args else 'en'
+    positional = [a for a in args if not a.startswith('--')]
+
+    if positional:
+        targets = [Path(a) for a in positional]
     else:
         targets = sorted(CODEBURN_DIR.glob(MD_GLOB))
 
@@ -489,7 +505,7 @@ def main() -> int:
             print(f'  NOT FOUND: {md_path}', file=sys.stderr)
             continue
         try:
-            html = render_page(md_path)
+            html = render_page(md_path, lang=lang)
             out_path = HTML_OUT_DIR / (md_path.stem + '.html')
             out_path.write_text(html, encoding='utf-8')
             print(f'  {md_path.name}  →  {out_path.relative_to(CODEBURN_DIR.parent)}')

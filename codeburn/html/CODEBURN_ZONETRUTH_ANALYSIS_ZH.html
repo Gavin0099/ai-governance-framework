@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZoneTruth 外部 Repo 治理分析</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #1a1a2e;
+  background: #f8f9fa;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+h1 { font-size: 1.9rem; color: #0d1b2a; border-bottom: 3px solid #0066cc; padding-bottom: .5rem; margin: 2rem 0 1rem; }
+h2 { font-size: 1.4rem; color: #0d1b2a; border-left: 4px solid #0066cc; padding-left: .75rem; margin: 2.5rem 0 .75rem; }
+h3 { font-size: 1.15rem; color: #1a3a5c; margin: 1.5rem 0 .5rem; }
+h4 { font-size: 1rem; color: #1a3a5c; margin: 1rem 0 .4rem; }
+p  { margin: .6rem 0; }
+ul, ol { margin: .6rem 0 .6rem 1.5rem; }
+li { margin: .25rem 0; }
+a  { color: #0066cc; }
+code {
+  background: #e8edf2;
+  border-radius: 3px;
+  padding: .1em .35em;
+  font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+  font-size: .88em;
+  color: #b5290a;
+}
+pre {
+  background: #1e2836;
+  color: #d4e5f7;
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+  font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+  font-size: .87em;
+  line-height: 1.6;
+}
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+blockquote {
+  border-left: 4px solid #aac4e0;
+  background: #eef4fb;
+  padding: .75rem 1rem;
+  margin: 1rem 0;
+  border-radius: 0 6px 6px 0;
+  color: #2c4a6e;
+  font-style: italic;
+}
+hr { border: none; border-top: 2px solid #dde4ec; margin: 2rem 0; }
+
+/* Tables */
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .93em; }
+th { background: #0d1b2a; color: #fff; padding: .5rem .75rem; text-align: left; }
+td { padding: .45rem .75rem; border-bottom: 1px solid #d8e2ec; }
+tr:nth-child(even) td { background: #f0f5fa; }
+
+/* Epistemic class badges */
+.class-c  { display:inline-block; background:#e6a817; color:#fff; font-size:.78em; font-weight:700; padding:.15em .55em; border-radius:12px; vertical-align:middle; }
+.class-d  { display:inline-block; background:#c0392b; color:#fff; font-size:.78em; font-weight:700; padding:.15em .55em; border-radius:12px; vertical-align:middle; }
+.class-frozen { display:inline-block; background:#1565c0; color:#fff; font-size:.78em; font-weight:700; padding:.15em .55em; border-radius:12px; vertical-align:middle; }
+
+/* Warning boxes (FCP, FORBIDDEN) */
+.box-warn {
+  background: #fdf0ed;
+  border: 1.5px solid #c0392b;
+  border-left: 5px solid #c0392b;
+  border-radius: 6px;
+  padding: .85rem 1rem;
+  margin: 1rem 0;
+  color: #7b1a10;
+}
+.box-warn::before { content: "⛔ "; font-size: 1.1em; }
+
+/* Frozen / invariant boxes */
+.box-frozen {
+  background: #eef4fb;
+  border: 1.5px solid #1565c0;
+  border-left: 5px solid #1565c0;
+  border-radius: 6px;
+  padding: .85rem 1rem;
+  margin: 1rem 0;
+  color: #0d2d5e;
+}
+.box-frozen::before { content: "🔒 "; font-size: 1.1em; }
+
+/* Advisory / note boxes */
+.box-advisory {
+  background: #fffbea;
+  border: 1.5px solid #e6a817;
+  border-left: 5px solid #e6a817;
+  border-radius: 6px;
+  padding: .85rem 1rem;
+  margin: 1rem 0;
+  color: #5a3a00;
+}
+.box-advisory::before { content: "⚠️ "; font-size: 1.1em; }
+
+/* Status pills */
+.status-complete { display:inline-block; background:#1b7340; color:#fff; font-size:.78em; padding:.1em .5em; border-radius:10px; }
+.status-active   { display:inline-block; background:#1565c0; color:#fff; font-size:.78em; padding:.1em .5em; border-radius:10px; }
+.status-frozen   { display:inline-block; background:#5a1e8a; color:#fff; font-size:.78em; padding:.1em .5em; border-radius:10px; }
+
+/* Nav */
+.doc-nav { background:#fff; border:1px solid #d8e2ec; border-radius:8px; padding:1rem 1.25rem; margin-bottom:2rem; }
+.doc-nav h4 { color:#555; font-size:.85em; text-transform:uppercase; letter-spacing:.05em; margin-bottom:.5rem; }
+.doc-nav a  { display:block; color:#0066cc; text-decoration:none; padding:.15rem 0; font-size:.92em; }
+.doc-nav a:hover { text-decoration:underline; }
+
+/* Header strip */
+.doc-header {
+  background: #0d1b2a;
+  color: #fff;
+  padding: 1.5rem 1.75rem;
+  border-radius: 10px;
+  margin-bottom: 2rem;
+}
+.doc-header .title { font-size: 1.5rem; font-weight: 700; margin-bottom: .4rem; }
+.doc-header .meta  { font-size: .85em; color: #8ab4d0; }
+
+/* Footer */
+.doc-footer { margin-top:3rem; padding-top:1rem; border-top:1px solid #d8e2ec; color:#888; font-size:.82em; }
+</style>
+</head>
+<body>
+<div class="doc-header">
+  <div class="title">ZoneTruth 外部 Repo 治理分析</div>
+  <div class="meta">來源：CODEBURN_ZONETRUTH_ANALYSIS_ZH.md &nbsp;·&nbsp; 生成時間：2026-05-22 17:44 &nbsp;·&nbsp; CodeBurn v1.1</div>
+</div>
+<div class="doc-nav"><h4>目錄</h4><a href="#zonetruth-repo">ZoneTruth 外部 Repo 治理分析</a><a href="#1-repo">1. Repo 基本識別</a><a href="#2">2. 治理就緒度檢查清單</a><a href="#3-readme-v1-2">3. README 聲明分析（v1.2）</a><a href="#3a">3a. 有界聲明 — 正確陳述</a><a href="#3b-v1-2">3b. 指標（v1.2 測試結果）</a><a href="#3c">3c. 方法論限制 — 已正確揭露</a><a href="#4-contract-yaml">4. contract.yaml 缺口分析</a><a href="#5-agents-md">5. AGENTS.md 層級評估</a><a href="#6-swift-12-4">6. Swift 元件（12.4%）— 未解決</a><a href="#7">7. 證據等級上限</a><a href="#8">8. 導入就緒度</a><a href="#9">9. 總結</a></div>
+<h1 id="zonetruth-repo">ZoneTruth 外部 Repo 治理分析</h1>
+<blockquote>
+<p>來源：https://github.com/Gavin0099/ZoneTruth</p>
+<p>分析日期：2026-05-22</p>
+<p>分析工具：ai-governance-framework（CodeBurn v1.1）</p>
+<p>分析等級：<span class="class-c">Class C</span> — 單次 session 觀察，非第三方驗證審計</p>
+</blockquote>
+<hr>
+<h2 id="1-repo">1. Repo 基本識別</h2>
+<table>
+<tr><th>欄位</th><th>內容</th></tr>
+<tr><td>Repo</td><td>Gavin0099/ZoneTruth</td></tr>
+<tr><td>領域</td><td><code>ai-governance</code>（依 contract.yaml）</td></tr>
+<tr><td>主要語言</td><td>Python 68.5%</td></tr>
+<tr><td>異常元件</td><td>Swift 12.4% — 用途未確認</td></tr>
+<tr><td>聲稱版本</td><td>v1.2</td></tr>
+<tr><td>contract.yaml</td><td>存在</td></tr>
+<tr><td>AGENTS.md</td><td>存在</td></tr>
+</table>
+
+<hr>
+<h2 id="2">2. 治理就緒度檢查清單</h2>
+<table>
+<tr><th>表面</th><th>狀態</th><th>備註</th></tr>
+<tr><td><code>contract.yaml</code></td><td>存在</td><td>結構最小但有效</td></tr>
+<tr><td><code>rule_roots</code> 已定義</td><td>是 — <code>governance/rules</code></td><td>內容未驗證</td></tr>
+<tr><td><code>validators</code> 已定義</td><td>封鎖 — 空值</td><td>無領域驗證器登記</td></tr>
+<tr><td><code>AGENTS.md</code></td><td>存在</td><td>雙層層級（工作區 / Repo）</td></tr>
+<tr><td>證據等級標注</td><td>缺失</td><td>v1.2 指標未標注等級</td></tr>
+<tr><td>禁用詞彙審查</td><td>通過</td><td>README 未發現 FCP 違規</td></tr>
+<tr><td>Checklist 文件</td><td>存在於 docs/</td><td>未與 contract validators 掛鉤</td></tr>
+</table>
+
+<hr>
+<h2 id="3-readme-v1-2">3. README 聲明分析（v1.2）</h2>
+<h3 id="3a">3a. 有界聲明 — 正確陳述</h3>
+<p>README 明確列出框架<strong>不</strong>聲稱的內容：</p>
+<ul>
+<li>工程品質提升證明 — 未聲稱</li>
+<li>推理能力提升證明 — 未聲稱</li>
+<li>確定性認知控制 — 未聲稱</li>
+<li>機器權威合規判定 — 未聲稱</li>
+<li>通用語意正確性驗證 — 未聲稱</li>
+<li>對模糊推理的自動真相判斷 — 未聲稱</li>
+<li>無審查者監督的長期語意漂移 — 未聲稱</li>
+</ul>
+<p class="box-advisory">ADVISORY：此 NOT-claims 清單是 README 中最強的治理信號。其存在降低了語言層面的權威膨脹風險。</p>
+<h3 id="3b-v1-2">3b. 指標（v1.2 測試結果）</h3>
+<table>
+<tr><th>指標</th><th>數值</th><th>等級</th><th>備註</th></tr>
+<tr><td><code>scope<em>violation</em>count</code>（範圍違規次數）</td><td>0</td><td>未標注</td><td>單一評估者，n=5</td></tr>
+<tr><td><code>evidence_traceability</code>（證據可追溯性）</td><td>5/5</td><td>未標注</td><td>內部評分</td></tr>
+<tr><td><code>claim<em>overreach</em>count</code>（主張逾越次數）</td><td>0</td><td>未標注</td><td>單一評估者</td></tr>
+<tr><td><code>semantic_consistency</code>（語意一致性）</td><td>4/5</td><td>未標注</td><td>內部評分</td></tr>
+<tr><td><code>tokens<em>per</em>actionable_fix</code>（每次修復 token 數）</td><td>約 8,630</td><td>標注「代理指標」</td><td>正確有界</td></tr>
+<tr><td><code>actionable<em>fix</em>latency_sec</code>（每次修復延遲秒數）</td><td>405</td><td>未標注</td><td>未說明不確定性</td></tr>
+</table>
+
+<p class="box-advisory">ADVISORY：這些指標由單一評估者對 n=5 同質測試案例進行內部測量。應視為觀察性指標，而非經驗證的治理基準。證據等級：<span class="class-c">Class C</span>（單次 session 觀察，單方記錄）。</p>
+<h3 id="3c">3c. 方法論限制 — 已正確揭露</h3>
+<p>README 明確說明：</p>
+<ul>
+<li>單一評估者（無評分者間可靠性）</li>
+<li>同質測試集（n=5，單一套件重點）</li>
+<li>文件修正為主；程式碼場景待量化</li>
+<li>A/B 組指標不對稱（B 組較完整）</li>
+</ul>
+<p class="box-advisory">ADVISORY：這些揭露已正確有界。「無法聲稱在所有程式碼庫 / 任務類型上的通用有效性」是正確框架。此降低了語意預授權風險。</p>
+<hr>
+<h2 id="4-contract-yaml">4. contract.yaml 缺口分析</h2>
+<p>目前狀態：</p>
+<pre><code class="language-yaml">name: ai-governance-framework-contract
+plugin_version: &quot;1.0.0&quot;
+domain: ai-governance
+rule_roots:
+  - governance/rules
+validators:
+  # 空值</code></pre>
+<p><strong style="color:#c0392b">BLOCKED</strong> surface：validators 欄位為空。治理框架可透過 contract.yaml 發現此 repo，但無法執行任何領域專屬驗證。目前模式：僅顧問性（無執行強制）。</p>
+<p>若要從顧問模式升級為執行模式，至少需在 <code>validators</code> 欄位登記一個可呼叫的驗證器，指向 <code>governance/rules</code> 中的實作。</p>
+<hr>
+<h2 id="5-agents-md">5. AGENTS.md 層級評估</h2>
+<p>觀察到雙層架構：</p>
+<ul>
+<li>第一層 — 工作區層級：個人隱私、外部通訊閘道、記憶體存取限制</li>
+<li>第二層 — Repo 層級：「在 repo 工作時，repo 治理優先於工作區指示」</li>
+</ul>
+<p>此層級設計正確。Repo 層級治理在 repo 任務中優先於工作區指示，是正確的優先順序規則。</p>
+<p class="box-advisory">ADVISORY：AGENTS.md 中提及的「代理無關收尾規則（agent-agnostic closeout rule）含收據文件與記憶體資格評估」，呼應主治理框架的 session_end 模式。這是框架相容性的正向信號。</p>
+<hr>
+<h2 id="6-swift-12-4">6. Swift 元件（12.4%）— 未解決</h2>
+<p class="box-advisory">ADVISORY：Swift 佔程式碼庫 12.4% 對於治理框架而言屬異常。常見解釋：</p>
+<ul>
+<li>macOS/iOS 展示工具（治理報告的圖形介面）</li>
+<li>平台特定掛鉤或通知器</li>
+<li>前期專案遺留程式碼</li>
+</ul>
+<p>此表面不在已確認的治理 rule_roots 範圍內。在 Swift 元件的用途被確認，且明確納入或排除於治理範圍之前，此為未驗證邊界。</p>
+<hr>
+<h2 id="7">7. 證據等級上限</h2>
+<p>根據現有證據，ZoneTruth v1.2 結果最大允許主張如下：</p>
+<table>
+<tr><th>主張類型</th><th>允許狀態</th><th>限制條件</th></tr>
+<tr><td>「在 5 個文件任務中展現邊界紀律」</td><td>允許</td><td>在聲明範圍內</td></tr>
+<tr><td>「零範圍違規」</td><td>允許（需附 n=5 限定）</td><td>必須帶樣本數</td></tr>
+<tr><td>「通用有效治理」</td><td><strong style="color:#c0392b">FORBIDDEN</strong></td><td>無跨程式碼庫證據</td></tr>
+<tr><td>「經驗證的審計追蹤」</td><td><strong style="color:#c0392b">FORBIDDEN</strong></td><td>validators 空、單一評估者</td></tr>
+<tr><td>「生產就緒的執行強制」</td><td><strong style="color:#c0392b">FORBIDDEN</strong></td><td>validators 空</td></tr>
+</table>
+
+<p class="box-frozen"><span class="status-frozen">FROZEN</span> INVARIANT：證據等級上限由最弱環節決定——單一評估者 + n=5 + validators 空 = <span class="class-c">Class C</span> 觀察性，非執行強制等級。</p>
+<hr>
+<h2 id="8">8. 導入就緒度</h2>
+<table>
+<tr><th>閘道</th><th>狀態</th></tr>
+<tr><td>contract.yaml 存在</td><td>通過</td></tr>
+<tr><td>domain 已定義</td><td>通過</td></tr>
+<tr><td>rule_roots 已定義</td><td>通過 — 內容未驗證</td></tr>
+<tr><td>validators 已登記</td><td>失敗 — 空值</td></tr>
+<tr><td>證據等級已標注</td><td>失敗 — 缺失</td></tr>
+<tr><td>Swift 元件已界定範圍</td><td>失敗 — 未確認</td></tr>
+</table>
+
+<p><strong>判定</strong>：部分就緒。導入在結構上可行（contract.yaml 可被發現），但在未登記 validators 的情況下，執行閘道無法啟動。</p>
+<p><strong>執行強制導入前的最低行動項目</strong>：</p>
+<ol>
+<li>在 contract.yaml 中登記至少一個 validator</li>
+<li>為 v1.2 指標標注證據等級（建議 <span class="class-c">Class C</span>）</li>
+<li>確認 Swift 元件範圍（納入範圍或明確排除）</li>
+</ol>
+<hr>
+<h2 id="9">9. 總結</h2>
+<p>ZoneTruth 在語言層面展現良好的語意姿態（NOT-claims 清單、誠實揭露、代理指標標注）。結構性缺口在於執行基礎設施：validators 為空且指標未標注等級。此 repo 可被治理框架發現，但未受執行強制保護。</p>
+<p>本分析為 <span class="class-c">Class C</span> — 對公開 repo 內容的單次 session 單一分析師觀察。不得作為經驗證的審計或認證使用。</p>
+<div class="doc-footer">
+  來源：<code>CODEBURN_ZONETRUTH_ANALYSIS_ZH.md</code> — HTML 為展示層，.md 原始檔案為權威來源。
+  <br>CodeBurn v1.1 治理架構基線。
+</div>
+</body>
+</html>
