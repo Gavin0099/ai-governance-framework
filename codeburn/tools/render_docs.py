@@ -6,9 +6,11 @@ Converts codeburn/*.md governance documents to styled, readable HTML.
 Source .md files remain authoritative; HTML is the presentation layer.
 
 Usage:
-  python codeburn/tools/render_docs.py              # render all codeburn/*.md
+  python codeburn/tools/render_docs.py              # render all codeburn/*.md (Chinese UI default)
   python codeburn/tools/render_docs.py FILE.md      # render one file
   python codeburn/tools/render_docs.py --list       # list what would be rendered
+  python codeburn/tools/render_docs.py --en         # render with English UI
+  python codeburn/tools/render_docs.py --zh         # render with Chinese UI (default)
 
 Output: codeburn/html/<FILENAME>.html
 
@@ -486,7 +488,7 @@ def main() -> int:
             print(f.name)
         return 0
 
-    lang = 'zh' if '--zh' in args else 'en'
+    lang = 'en' if '--en' in args else 'zh'
     positional = [a for a in args if not a.startswith('--')]
 
     if positional:
