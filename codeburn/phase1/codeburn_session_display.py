@@ -318,20 +318,26 @@ def _read_session_pct() -> Optional[dict]:
 
 
 def _get_warn_threshold(provider: str) -> Optional[int]:
-    """Read soft-warning threshold candidate from environment.
+    """
+    Read advisory warning threshold from environment.
 
     Env vars:
-      CODEBURN_CLAUDE_5H_WARN_TOKENS
-      CODEBURN_CODEX_5H_WARN_TOKENS
+      CODEBURN_CLAUDE_5H_ADVISORY_WARN_THRESHOLD
+      CODEBURN_CODEX_5H_ADVISORY_WARN_THRESHOLD
 
-    IMPORTANT:
-      This value is treated as threshold_candidate_unverified.
-      It is an observability hint, not an authoritative provider limit.
-      Do not use for decision authority unless denominator is verified.
+    Epistemic status of this value:
+      - Derived from ONE observed calibration point (cache-inclusive tokens at X% session)
+      - cache_read_input_tokens accounting regime NOT verified against Anthropic quota semantics
+      - billing / rate-limiting / subscription accounting may differ for the same token category
+      - "same field name" (cache_read_input_tokens) ≠ "same accounting unit" across regimes
+      - This is an observed saturation heuristic, NOT a verified provider quota boundary
+
+    Permitted use: advisory warning / usage anomaly observation
+    Forbidden use: "X% of Anthropic limit" claims, decision authority
     """
     key = {
-        "claude": "CODEBURN_CLAUDE_5H_WARN_TOKENS",
-        "codex":  "CODEBURN_CODEX_5H_WARN_TOKENS",
+        "claude": "CODEBURN_CLAUDE_5H_ADVISORY_WARN_THRESHOLD",
+        "codex":  "CODEBURN_CODEX_5H_ADVISORY_WARN_THRESHOLD",
     }.get(provider)
     if key is None:
         return None
@@ -421,26 +427,21 @@ def display(
 
     print(f"+{sep}+")
 
-    # Soft warning: check 5h input tokens against threshold_candidate_unverified
-    threshold_candidate_unverified = _get_warn_threshold(provider)
-    if conn is not None and threshold_candidate_unverified is not None and pt5 >= threshold_candidate_unverified:
-        over_pct = _warn_threshold_pct(pt5, threshold_candidate_unverified)
+    # Advisory warning: cache-inclusive 5h tokens vs. observed saturation heuristic
+    # NOT a verified provider quota boundary. See _get_warn_threshold() docstring.
+    advisory_threshold = _get_warn_threshold(provider)
+    if conn is not None and advisory_threshold is not None and pt5 >= advisory_threshold:
+        over_pct = _warn_threshold_pct(pt5, advisory_threshold)
         print(f"|{'!' * W}|")
-        warn1 = (
-            f"  !! threshold_candidate_unverified crossed: "
-            f"{_fmt(pt5)} >= {_fmt(threshold_candidate_unverified)}"
-        )
-        warn2 = f"  !! ({over_pct:.0f}% over candidate) -- verify denominator before use"
-        warn3 = f"  !! Observability-only signal, not authoritative provider limit."
+        warn1 = f"  !! ADVISORY: cache-inclusive 5h tokens {_fmt(pt5)} >= {_fmt(advisory_threshold)}"
+        warn2 = f"  !! Observed saturation heuristic -- NOT verified Anthropic quota boundary"
+        warn3 = f"  !! cache_read accounting regime not confirmed. Check claude.ai for actual %."
         print(f"|{warn1:<{W}}|")
         print(f"|{warn2:<{W}}|")
         print(f"|{warn3:<{W}}|")
         print(f"|{'!' * W}|")
-    elif conn is not None and threshold_candidate_unverified is None and provider == "claude":
-        hint = (
-            f"  Tip: set CODEBURN_CLAUDE_5H_WARN_TOKENS=<n> as "
-            f"threshold_candidate_unverified"
-        )
+    elif conn is not None and advisory_threshold is None and provider == "claude":
+        hint = "  Tip: CODEBURN_CLAUDE_5H_ADVISORY_WARN_THRESHOLD=<n> (observed heuristic)"
         print(f"|{hint:<{W}}|")
 
     print()

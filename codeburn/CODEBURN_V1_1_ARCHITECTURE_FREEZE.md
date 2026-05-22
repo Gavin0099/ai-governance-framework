@@ -283,7 +283,46 @@ This process does not currently exist. It cannot be triggered by implementation 
 
 ---
 
-## 10. Freeze Confirmation
+## 10. Rate Limit Observation Posture (Unverified Boundary)
+
+CodeBurn's session display includes an advisory warning based on `rate_limit_tokens`
+(input + cache_creation + cache_read) compared against a user-set threshold.
+
+**This boundary is NOT verified.** The following is explicitly unresolved:
+
+### Unresolved: cache_read accounting regime
+
+One calibration observation was made:
+> At 95% session usage (Claude.ai), cache-inclusive 5h tokens ≈ 18.4M
+
+This is a single observation, not a verified Anthropic quota boundary.
+
+The following accounting regimes may differ for `cache_read_input_tokens`:
+- **Claude.ai session limit**: tracks some measure of window consumption
+- **Anthropic API rate limit** (`anthropic-ratelimit-tokens-*` headers): per-minute API quota
+- **Claude Code subscription accounting**: how Pro subscription counts session usage
+- **Billing**: cache reads charged at discounted rate vs. full rate for new tokens
+
+`cache_read_input_tokens` appears in the JSONL. Its semantic meaning within Anthropic's
+quota accounting system has not been confirmed against any official documentation.
+
+**This is NST-1 applied to internal accounting systems:**
+> `cache_read_input_tokens` (JSONL field)
+> ≠ confirmed quota unit in Anthropic's session limit accounting
+
+### Permitted posture
+
+The threshold variable is named `CODEBURN_CLAUDE_5H_ADVISORY_WARN_THRESHOLD` (not `WARN_TOKENS`)
+to signal its epistemic status. The display explicitly says:
+- `"Observed saturation heuristic — NOT verified Anthropic quota boundary"`
+- `"cache_read accounting regime not confirmed"`
+
+This posture permits: advisory warning, usage anomaly observation.
+This posture forbids: "X% of Anthropic limit" claims, decision authority.
+
+---
+
+## 11. Freeze Confirmation
 
 This snapshot confirms the governed architecture baseline as of CodeBurn v1.1 (2026-05-22).
 
