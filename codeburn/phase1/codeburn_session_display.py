@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-CodeBurn Stop Hook — Session Token Display (P6)
+CodeBurn Stop Hook ??Session Token Display (P6)
 
 Triggered by Claude Code Stop hook after each session.
 Displays per-session token reconstruction + rolling 5h/7d windows.
 
 Epistemic contract (V-1, P6 Scope Constraints):
   - All displayed values are Class C: observer-reconstructed, not provider-measured
-  - analysis_safe_for_decision = 0 — display is for observability only
+  - analysis_safe_for_decision = 0 ??display is for observability only
   - Codex rate_limits.used_percent: read from JSONL, not stored in DB
-  - Claude 5h/7d: rolling window from DB (token counts, not % — limit unknown)
+  - Claude 5h/7d: rolling window from DB (token counts, not % ??limit unknown)
   - Fail-silent by design (hook always exits 0)
 
 Usage:
@@ -17,7 +17,7 @@ Usage:
   Or manually: python codeburn/phase1/codeburn_session_display.py --transcript PATH
 
 DB path (persistent, for rolling windows):
-  Env CODEBURN_DB  → override path
+  Env CODEBURN_DB  ??override path
   Default: ~/.codeburn/codeburn.db
 """
 from __future__ import annotations
@@ -77,6 +77,8 @@ def _parse_claude_jsonl(path: Path) -> dict:
     """Parse Claude Code session JSONL. Returns session summary."""
     prompt_total = 0
     completion_total = 0
+    cache_create_total = 0
+    cache_read_total = 0
     turns = 0
     first_ts = None
     last_ts = None
@@ -98,9 +100,13 @@ def _parse_claude_jsonl(path: Path) -> dict:
                 usage = rec.get("message", {}).get("usage") or {}
                 inp = usage.get("input_tokens")
                 out = usage.get("output_tokens")
+                cc  = usage.get("cache_creation_input_tokens", 0)
+                cr  = usage.get("cache_read_input_tokens", 0)
                 if inp is not None or out is not None:
                     prompt_total += inp or 0
                     completion_total += out or 0
+                    cache_create_total += cc or 0
+                    cache_read_total += cr or 0
                     turns += 1
     except Exception:
         pass
@@ -110,6 +116,12 @@ def _parse_claude_jsonl(path: Path) -> dict:
         "turns": turns,
         "prompt_tokens": prompt_total,
         "completion_tokens": completion_total,
+        "cache_create_tokens": cache_create_total,
+        "cache_read_tokens": cache_read_total,
+        # rate_limit_tokens = input + cache_create + cache_read
+        # For rate limit estimation ONLY ??not for billing (IAF-4).
+        # Claude Code uses aggressive prompt caching; cache reads dominate actual consumption.
+        "rate_limit_tokens": prompt_total + cache_create_total + cache_read_total,
         "first_ts": first_ts,
         "last_ts": last_ts,
         "rate_used_pct": None,
@@ -265,7 +277,7 @@ def _bar(pct: float, width: int = 20) -> str:
     """ASCII progress bar for percentage."""
     filled = int(round(pct / 100 * width))
     filled = max(0, min(width, filled))
-    bar = "█" * filled + "░" * (width - filled)
+    bar = "#" * filled + "-" * (width - filled)
     return f"[{bar}] {pct:.0f}%"
 
 
@@ -277,7 +289,7 @@ def _resets_in(resets_at: Optional[str]) -> str:
         now = datetime.now(timezone.utc)
         delta = reset_dt - now
         if delta.total_seconds() <= 0:
-            return " (resetting…)"
+            return " (resetting...)"
         h, rem = divmod(int(delta.total_seconds()), 3600)
         m = rem // 60
         return f" (resets in {h}h {m:02d}m)"
@@ -306,17 +318,16 @@ def _read_session_pct() -> Optional[dict]:
 
 
 def _get_warn_threshold(provider: str) -> Optional[int]:
-    """
-    Read soft-warning token threshold from environment.
+    """Read soft-warning threshold candidate from environment.
 
     Env vars:
-      CODEBURN_CLAUDE_5H_WARN_TOKENS  — warn when 5h rolling Claude input tokens exceed this
-      CODEBURN_CODEX_5H_WARN_TOKENS   — warn when 5h rolling Codex input tokens exceed this
+      CODEBURN_CLAUDE_5H_WARN_TOKENS
+      CODEBURN_CODEX_5H_WARN_TOKENS
 
-    These are user-calibrated values (not provider-reported limits).
-    Calibrate once: note reconstructed 5h tokens when Claude.ai shows a known %.
-    Example: 5h = 120,000 tokens when Claude.ai showed 60% → limit ≈ 200,000.
-    Set CODEBURN_CLAUDE_5H_WARN_TOKENS=100000 to warn at ~50%.
+    IMPORTANT:
+      This value is treated as threshold_candidate_unverified.
+      It is an observability hint, not an authoritative provider limit.
+      Do not use for decision authority unless denominator is verified.
     """
     key = {
         "claude": "CODEBURN_CLAUDE_5H_WARN_TOKENS",
@@ -348,7 +359,10 @@ def display(
     turns = summary["turns"]
     pt = summary["prompt_tokens"]
     ct = summary["completion_tokens"]
-    rate_pct = summary["rate_used_pct"]
+    cache_create = summary.get("cache_create_tokens", 0)
+    cache_read = summary.get("cache_read_tokens", 0)
+    rate_limit_tokens = summary.get("rate_limit_tokens")
+    provider_reported_percent = summary["rate_used_pct"]
     rate_resets = summary["rate_resets_at"]
 
     W = 64
@@ -364,13 +378,19 @@ def display(
     print(f"|  turns    : {turns:<51}|")
     print(f"|  input    : {_fmt(pt):>10}  tokens (reconstructed){' ' * (W - 46)}|")
     print(f"|  output   : {_fmt(ct):>10}  tokens (reconstructed){' ' * (W - 46)}|")
+    if provider == "claude":
+        print(f"|  cache+   : {_fmt(cache_create):>10}  creation cache tokens{' ' * (W - 47)}|")
+        print(f"|  cache=   : {_fmt(cache_read):>10}  read cache tokens{' ' * (W - 47)}|")
+        if rate_limit_tokens is not None:
+            line = f"  observed_rate_limit_tokens: {_fmt(rate_limit_tokens)} (reconstructed)"
+            print(f"|{line:<{W}}|")
 
     # Codex: 5h rate limit from JSONL
-    if provider == "codex" and rate_pct is not None:
+    if provider == "codex" and provider_reported_percent is not None:
         reset_str = _resets_in(rate_resets)
-        bar = _bar(rate_pct)
+        bar = _bar(provider_reported_percent)
         print(f"+{sep}+")
-        line = f"  5h window  {bar}{reset_str}"
+        line = f"  provider_reported_percent  {bar}{reset_str}"
         print(f"|{line:<{W}}|")
 
     # Claude: 5h % from notification hook sidecar (provider-reported, not reconstructed)
@@ -382,7 +402,7 @@ def display(
             reset_str = f"  resets in {resets}" if resets else ""
             bar = _bar(pct)
             print(f"+{sep}+")
-            line = f"  5h session {bar}{reset_str}"
+            line = f"  provider_reported_percent  {bar}{reset_str}"
             print(f"|{line:<{W}}|")
             src = f"  (provider-reported via notification hook)"
             print(f"|{src:<{W}}|")
@@ -401,23 +421,153 @@ def display(
 
     print(f"+{sep}+")
 
-    # Soft warning: check 5h input tokens against user-calibrated threshold
-    warn_threshold = _get_warn_threshold(provider)
-    if conn is not None and warn_threshold is not None and pt5 >= warn_threshold:
-        over_pct = _warn_threshold_pct(pt5, warn_threshold)
+    # Soft warning: check 5h input tokens against threshold_candidate_unverified
+    threshold_candidate_unverified = _get_warn_threshold(provider)
+    if conn is not None and threshold_candidate_unverified is not None and pt5 >= threshold_candidate_unverified:
+        over_pct = _warn_threshold_pct(pt5, threshold_candidate_unverified)
         print(f"|{'!' * W}|")
-        warn1 = f"  !! 5h INPUT TOKENS ABOVE SOFT LIMIT: {_fmt(pt5)} >= {_fmt(warn_threshold)}"
-        warn2 = f"  !! ({over_pct:.0f}% over threshold) -- check Claude.ai for actual %"
-        warn3 = f"  !! Consider pausing or starting a new context window."
+        warn1 = (
+            f"  !! threshold_candidate_unverified crossed: "
+            f"{_fmt(pt5)} >= {_fmt(threshold_candidate_unverified)}"
+        )
+        warn2 = f"  !! ({over_pct:.0f}% over candidate) -- verify denominator before use"
+        warn3 = f"  !! Observability-only signal, not authoritative provider limit."
         print(f"|{warn1:<{W}}|")
         print(f"|{warn2:<{W}}|")
         print(f"|{warn3:<{W}}|")
         print(f"|{'!' * W}|")
-    elif conn is not None and warn_threshold is None and provider == "claude":
-        hint = f"  Tip: set CODEBURN_CLAUDE_5H_WARN_TOKENS=<n> for early 5h warning"
+    elif conn is not None and threshold_candidate_unverified is None and provider == "claude":
+        hint = (
+            f"  Tip: set CODEBURN_CLAUDE_5H_WARN_TOKENS=<n> as "
+            f"threshold_candidate_unverified"
+        )
         print(f"|{hint:<{W}}|")
 
     print()
+
+
+def _display_no_data(reason: str, session_id: Optional[str] = None) -> None:
+    """Always show a compact status panel when tokens are unavailable."""
+    W = 64
+    sep = "-" * W
+    sid = (session_id or "unknown")[:8]
+    print()
+    print(f"+{sep}+")
+    print(f"|  CodeBurn | Session Token Summary | Class C{' ' * (W - 45)}|")
+    print(f"|  status   : no token display{' ' * (W - 30)}|")
+    print(f"+{sep}+")
+    print(f"|  session  : {sid}...{' ' * (W - 22)}|")
+    print(f"|  reason   : {reason:<51}|")
+    print(f"+{sep}+")
+    print()
+
+
+def _extract_transcript_and_session(hook_data: dict) -> tuple[Optional[Path], Optional[str]]:
+    """Best-effort extraction across stop-hook payload variants."""
+    path_keys = (
+        "transcript_path",
+        "transcript",
+        "log_path",
+        "session_log_path",
+        "conversation_path",
+    )
+    sid_keys = ("session_id", "sessionId", "id")
+
+    def _find_path(d: dict) -> Optional[str]:
+        for k in path_keys:
+            v = d.get(k)
+            if isinstance(v, str) and v.strip():
+                return v.strip()
+        return None
+
+    def _find_sid(d: dict) -> Optional[str]:
+        for k in sid_keys:
+            v = d.get(k)
+            if isinstance(v, str) and v.strip():
+                return v.strip()
+        return None
+
+    tp = _find_path(hook_data)
+    sid = _find_sid(hook_data)
+    if tp:
+        p = Path(tp)
+        return p, sid or p.stem
+
+    for nested_key in ("payload", "data", "context", "event"):
+        nested = hook_data.get(nested_key)
+        if not isinstance(nested, dict):
+            continue
+        tp = _find_path(nested)
+        sid_nested = _find_sid(nested)
+        if tp:
+            p = Path(tp)
+            return p, sid_nested or sid or p.stem
+        if sid is None and sid_nested:
+            sid = sid_nested
+
+    return None, sid
+
+
+def _debug_hook_payload(hook_data: dict) -> None:
+    """Print a compact debug view of stop-hook stdin payload keys."""
+    top_keys = sorted(hook_data.keys())
+    print("[codeburn_session_display] hook payload debug")
+    print(f"  top_level_keys: {top_keys}")
+    for nested_key in ("payload", "data", "context", "event"):
+        nested = hook_data.get(nested_key)
+        if isinstance(nested, dict):
+            print(f"  {nested_key}_keys: {sorted(nested.keys())}")
+    tp, sid = _extract_transcript_and_session(hook_data)
+    print(f"  detected_transcript: {str(tp) if tp else None}")
+    print(f"  detected_session_id: {sid}")
+
+
+def _discover_latest_transcript(session_id_hint: Optional[str] = None) -> tuple[Optional[Path], Optional[str]]:
+    """Fallback discovery when hook payload does not provide transcript_path."""
+    roots = [
+        Path.home() / ".codex" / "sessions",
+        Path.home() / ".claude" / "projects",
+    ]
+
+    # 1) If we have a session-id hint, try exact stem match first.
+    if session_id_hint:
+        for root in roots:
+            if not root.exists():
+                continue
+            try:
+                for p in root.rglob("*.jsonl"):
+                    if p.stem == session_id_hint:
+                        return p, session_id_hint
+            except Exception:
+                continue
+
+    # 2) Otherwise pick the most recently modified plausible transcript.
+    newest_path: Optional[Path] = None
+    newest_mtime: float = -1.0
+    for root in roots:
+        if not root.exists():
+            continue
+        try:
+            for p in root.rglob("*.jsonl"):
+                name = p.name.lower()
+                # Exclude known non-session JSONL artifacts
+                if name == "session_index.jsonl":
+                    continue
+                if "observed-usage" in str(p).lower():
+                    continue
+                try:
+                    mtime = p.stat().st_mtime
+                except Exception:
+                    continue
+                if mtime > newest_mtime:
+                    newest_mtime = mtime
+                    newest_path = p
+        except Exception:
+            continue
+
+    if newest_path is None:
+        return None, session_id_hint
+    return newest_path, (session_id_hint or newest_path.stem)
 
 
 # ---------------------------------------------------------------------------
@@ -432,6 +582,16 @@ def main() -> int:
     parser.add_argument("--transcript", help="Path to session JSONL (overrides stdin)")
     parser.add_argument("--session-id", help="Session ID (overrides detection)")
     parser.add_argument("--no-db", action="store_true", help="Skip persistent DB (display only)")
+    parser.add_argument(
+        "--verbose-reason",
+        action="store_true",
+        help="Keep status panel even when transcript/tokens are unavailable",
+    )
+    parser.add_argument(
+        "--debug-hook-json",
+        action="store_true",
+        help="Print hook stdin payload keys and detected transcript/session fields",
+    )
     args = parser.parse_args()
 
     # 1. Get transcript path
@@ -446,15 +606,21 @@ def main() -> int:
         try:
             if not sys.stdin.isatty():
                 hook_data = json.load(sys.stdin)
-                tp = hook_data.get("transcript_path")
-                if tp:
-                    transcript_path = Path(tp)
-                session_id = hook_data.get("session_id") or (transcript_path.stem if transcript_path else None)
+                if args.debug_hook_json and isinstance(hook_data, dict):
+                    _debug_hook_payload(hook_data)
+                transcript_path, extracted_sid = _extract_transcript_and_session(hook_data)
+                session_id = args.session_id or extracted_sid
         except Exception:
             pass
 
     if transcript_path is None or not transcript_path.exists():
-        return 0  # fail-silent: no transcript available
+        discovered_path, discovered_sid = _discover_latest_transcript(session_id)
+        if discovered_path is not None and discovered_path.exists():
+            transcript_path = discovered_path
+            session_id = session_id or discovered_sid
+        else:
+            _display_no_data("no_transcript_path_or_missing_file", session_id)
+            return 0
 
     if session_id is None:
         session_id = transcript_path.stem
@@ -467,7 +633,8 @@ def main() -> int:
         summary = _parse_claude_jsonl(transcript_path)
 
     if summary["turns"] == 0:
-        return 0  # no token records — nothing to display
+        _display_no_data("no_token_records_in_transcript", session_id)
+        return 0
 
     # 3. Persistent DB for rolling windows
     conn = None
@@ -496,3 +663,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+

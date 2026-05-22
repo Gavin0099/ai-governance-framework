@@ -30,9 +30,13 @@ CREATE TABLE IF NOT EXISTS steps (
   exit_code INTEGER,
   stdout_bytes INTEGER,
   stderr_bytes INTEGER,
-  prompt_tokens INTEGER,
+  prompt_tokens INTEGER,       -- input_tokens only (non-cached). IAF-4 compliant.
   completion_tokens INTEGER,
-  total_tokens INTEGER,
+  total_tokens INTEGER,        -- always NULL by policy
+  -- Rate-limit-relevant token count: input + cache_creation + cache_read.
+  -- For rate limit estimation ONLY. NOT for billing or cost computation (IAF-4).
+  -- Claude Code uses aggressive prompt caching; cache tokens dominate actual rate limit consumption.
+  rate_limit_tokens INTEGER,
   token_source TEXT CHECK (token_source IN ('provider', 'estimated', 'unknown')),
   retry_of TEXT,
   git_status_before TEXT,
