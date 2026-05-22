@@ -41,13 +41,35 @@ telemetry, provider-coupled observability, billing-grade precision, enforcement
 legitimacy. Even when the code has none of these.
 
 This is why the Forbidden Phrases section (Section 3) is not a style guide.
-It is the boundary of the permissible inference space. A word that appears in
-that section does not merely sound wrong — it activates an implicit ontology that
-is incompatible with what CodeBurn v1.1 actually is.
+It is an **ontology containment boundary**. A word that appears in that section
+does not merely sound wrong — it transports an unauthorized implicit ontology.
+`quota` implies centralized accounting and allocation legitimacy.
+`actual token usage` implies provider-coupled observability.
+`billing-grade` implies precision the evidence class cannot support.
+The problem is not the word. It is what the word silently carries.
 
-Semantic authority drifts before runtime authority does. By the time an architecture
-boundary is violated in code, the same boundary has usually already been violated in
-a dozen documents, issues, and conversations.
+**Semantic authority drifts before runtime authority does.**
+This asymmetry is the core reason Section 0 exists before Section 1.
+
+Runtime drift requires: code change → review → merge → deployment → artifact.
+Each step is visible, testable, reversible.
+
+Semantic drift requires only: a reviewer's default assumption, an issue's wording,
+a dashboard label, a repeated conversational shorthand. No review gate catches it.
+It accumulates across documents and conversations until the organizational expectation
+has already moved — and then the pressure reverses: architecture is asked to match
+what language has already implied.
+
+This failure mode has a name: **expectation-induced capability drift**.
+The system has not changed. The organizational model of what the system *should be*
+has changed. And that model was built from language, not from code.
+
+Section 0 is the epistemic bootstrapping layer. It initializes the reader's
+allowed inference space before any capability surface is presented. If Section 0
+is read last, or skipped, the capability sections will be read through a mental
+model that Section 0 would have corrected — and boundedness will be silently
+reinterpreted as temporary caution, conservative wording, or incomplete
+implementation.
 
 ### Three reading errors this section is here to prevent
 
