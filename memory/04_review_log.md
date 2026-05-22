@@ -1807,3 +1807,15 @@
 - Risk: low
 - Oversight: auto
 
+## Promotion: CodeBurn v1.1 baseline complete + Daily Memory Gate v0.1 stabilization (2026-05-22)
+- Approved by: governance-auto
+- Candidate: D:\ai-governance-framework\memory\candidates\session_20260522T153135Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: CodeBurn v1.1 baseline complete + Daily Memory Gate v0.1 stabilization (2026-05-22)
+- Approved by: governance-auto
+- Candidate: D:\ai-governance-framework\memory\candidates\session_20260522T153452Z.json
+- Risk: low
+- Oversight: auto
+

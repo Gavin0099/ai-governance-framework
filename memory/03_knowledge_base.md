@@ -152,3 +152,10 @@
 - Oversight: auto
 - Summary: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
 
+## CodeBurn v1.1 baseline complete + Daily Memory Gate v0.1 stabilization (2026-05-22)
+- Captured: 2026-05-22T15:31:35.170530+00:00
+- Approved by: governance-auto
+- Risk: low
+- Oversight: auto
+- Summary: CodeBurn v1.1 baseline complete + Daily Memory Gate v0.1 stabilization (2026-05-22)
+

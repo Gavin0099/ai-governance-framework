@@ -47,3 +47,4 @@ Phase E is in **pause** — do NOT proceed to E2 or add new governance surfaces 
 - Leading signals: "按 v1.1" without §reference; AT threshold cited without AT-2 qualifier; "per freeze" without specific FCP/§
 - Propagation telemetry starts with citation observation, not instrumentation.
 - [x] Promoted memory: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- [x] Promoted memory: CodeBurn v1.1 baseline complete + Daily Memory Gate v0.1 stabilization (2026-05-22)

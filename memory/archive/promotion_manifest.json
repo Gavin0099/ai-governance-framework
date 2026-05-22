@@ -863,6 +863,18 @@
       "candidate_file": "E:\\BackUp\\Git_EE\\ai-governance-framework\\memory\\candidates\\session_20260522T095802Z.json",
       "approved_by": "governance-auto",
       "title": "Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints."
+    },
+    {
+      "promoted_at": "2026-05-22T15:31:35.186200+00:00",
+      "candidate_file": "D:\\ai-governance-framework\\memory\\candidates\\session_20260522T153135Z.json",
+      "approved_by": "governance-auto",
+      "title": "CodeBurn v1.1 baseline complete + Daily Memory Gate v0.1 stabilization (2026-05-22)"
+    },
+    {
+      "promoted_at": "2026-05-22T15:34:52.719880+00:00",
+      "candidate_file": "D:\\ai-governance-framework\\memory\\candidates\\session_20260522T153452Z.json",
+      "approved_by": "governance-auto",
+      "title": "CodeBurn v1.1 baseline complete + Daily Memory Gate v0.1 stabilization (2026-05-22)"
     }
   ]
 }

@@ -1,13 +1,13 @@
-TASK_INTENT: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+TASK_INTENT: CodeBurn v1.1 baseline complete + Daily Memory Gate v0.1 stabilization (2026-05-22)
 
-WORK_COMPLETED: Copilot AI Credits billing evidence ingestion supported; added tests/test_codeburn_copilot_ingestion.py and tests/test_codeburn_copilot_smoke.py; added codeburn/phase2/codeburn_copilot_smoke.py with fixed output fields; updated governance_tools/session_end_hook.py and docs/session-closeout-schema.md to anchor Copilot closeout evidence checklist and boundary language.
+WORK_COMPLETED: CodeBurn v1.1 Architecture Freeze documented (P0-P7 + STATUS_SNAPSHOT + ARCHITECTURE_FREEZE committed). Daily Memory Gate v0.1 extracted into governance_tools/daily_memory_gate.py with structural traceability validation (branch/commit/changed-files/test-evidence/open-risks/next_step fields, placeholder blocking, branch-name matching, outgoing-commit reference check); 7 tests passing in tests/test_daily_memory_gate.py. scripts/closeout.ps1 updated to delegate to daily_memory_gate.py. codeburn/tools/render_docs.py code-block readability fixed. memory_pipeline/memory_promoter.py idempotency check added. JSONL field audit completed — non-expansion decision documented. ZoneTruth analysis + Chinese UI default added.
 
-FILES_TOUCHED: codeburn/phase2/copilot_billing_ingestor.py, codeburn/phase2/codeburn_copilot_smoke.py, codeburn/phase2/examples/copilot_smoke_fixture.csv, tests/test_codeburn_copilot_ingestion.py, tests/test_codeburn_copilot_smoke.py, governance_tools/session_end_hook.py, docs/session-closeout-schema.md
+FILES_TOUCHED: governance_tools/daily_memory_gate.py, tests/test_daily_memory_gate.py, scripts/closeout.ps1, codeburn/tools/render_docs.py, memory_pipeline/memory_promoter.py, codeburn/html/CODEBURN_V1_1_STATUS_SNAPSHOT.html, codeburn/html/CODEBURN_P7_ADVISORY_THRESHOLD_GOVERNANCE.html, memory/2026-05-22.md
 
-CHECKS_RUN: python -m pytest tests/test_codeburn_copilot_ingestion.py tests/test_codeburn_copilot_smoke.py -q -p no:cacheprovider --basetemp .tmp_pytest_copilot (9 passed); python codeburn/phase2/codeburn_copilot_smoke.py --csv codeburn/phase2/examples/copilot_smoke_fixture.csv --json; python codeburn/phase2/codeburn_copilot_smoke.py --csv codeburn/phase2/examples/copilot_smoke_fixture.csv --mark-final --json; python -m governance_tools.session_closeout_entry --project-root . --format json (closeout_status=valid, gate_verdict=OK)
+CHECKS_RUN: python -m pytest tests/test_daily_memory_gate.py -q => 7 passed; python -m pytest tests/test_memory_pipeline.py -q => passed; session_closeout_entry --format json => ok=true gate_verdict=OK+ADVISORIES
 
-OPEN_RISKS: Class D = billing-reported evidence; AI Credits != raw token truth; billing evidence != session provenance; preview/projection != final billing; final billing evidence != decision-safe cost audit.
+OPEN_RISKS: E1-B Phase 2 showed 4/4 VULNERABLE topology — partial redundancy on Precedence Bypass is incidental, not protected. Phase E PAUSE still active; E2/E3 blocked pending observable trigger. Class D Copilot billing evidence boundary documented in CODEBURN governance docs.
 
-NOT_DONE: Scoped commit for Copilot ingestion tests/smoke/closeout checklist slice; optional add closeout candidate text template for Copilot to reduce wording drift.
+NOT_DONE: E1-B Phase 3 enforcement hardening not started — requires observable trigger per active_task.md pause conditions.
 
-RECOMMENDED_MEMORY_UPDATE: Append this Copilot Class D closeout slice with command evidence and semantic boundaries to memory/2026-05-21.md after scoped commit.
+RECOMMENDED_MEMORY_UPDATE: Today session-derived entries already written to memory/2026-05-22.md via auto-closeout. No additional promotion needed.
