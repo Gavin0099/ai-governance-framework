@@ -18,58 +18,32 @@
 
 **This document constrains inference. It does not transmit capability.**
 
-A conventional status document describes what a system can do.
-This document defines which interpretations of CodeBurn v1.1 are not permitted.
+This is an interpretation admission gate — it decides which interpretations of
+CodeBurn v1.1 are permitted to enter before any capability description is read.
 
-That distinction matters because governance erosion does not usually begin at the
-operation layer. It begins at the language layer:
+Governance erosion begins at the language layer:
 
 ```
-vocabulary shift
-  → implicit ontology
-  → reviewer expectation
-  → contributor assumption
-  → PR and issue wording
-  → dashboard language
-  → architecture drift
+vocabulary shift → implicit ontology → reviewer expectation → architecture drift
 ```
 
-Certain words — `quota`, `actual token usage`, `global ceiling`, `usage tracking`,
-`cross-provider`, `billing-grade` — do not just describe operations.
-They project a latent capability: the system *should already have* authoritative
-telemetry, provider-coupled observability, billing-grade precision, enforcement
-legitimacy. Even when the code has none of these.
-
-This is why the Forbidden Phrases section (Section 3) is not a style guide.
-It is an **ontology containment boundary**. A word that appears in that section
-does not merely sound wrong — it transports an unauthorized implicit ontology.
-`quota` implies centralized accounting and allocation legitimacy.
-`actual token usage` implies provider-coupled observability.
-`billing-grade` implies precision the evidence class cannot support.
-The problem is not the word. It is what the word silently carries.
+Certain words — `quota`, `actual token usage`, `billing-grade`, `cross-provider` —
+do not describe operations. They carry unauthorized implicit ontologies: centralized
+accounting, provider-coupled observability, precision the evidence class cannot
+support. The Forbidden Phrases section (Section 3) is not a style guide.
+It is an **ontology containment boundary**.
 
 **Semantic authority drifts before runtime authority does.**
-This asymmetry is the core reason Section 0 exists before Section 1.
 
-Runtime drift requires: code change → review → merge → deployment → artifact.
-Each step is visible, testable, reversible.
+Runtime drift: code → review → merge → deploy. Each step is visible and catchable.
+Semantic drift: a reviewer's default, an issue's wording, a dashboard label.
+No review gate catches it. The failure mode is **expectation-induced capability
+drift** — language builds an organizational model of what the system should be,
+then pressure reverses and architecture is asked to match it.
 
-Semantic drift requires only: a reviewer's default assumption, an issue's wording,
-a dashboard label, a repeated conversational shorthand. No review gate catches it.
-It accumulates across documents and conversations until the organizational expectation
-has already moved — and then the pressure reverses: architecture is asked to match
-what language has already implied.
-
-This failure mode has a name: **expectation-induced capability drift**.
-The system has not changed. The organizational model of what the system *should be*
-has changed. And that model was built from language, not from code.
-
-Section 0 is the epistemic bootstrapping layer. It initializes the reader's
-allowed inference space before any capability surface is presented. If Section 0
-is read last, or skipped, the capability sections will be read through a mental
-model that Section 0 would have corrected — and boundedness will be silently
-reinterpreted as temporary caution, conservative wording, or incomplete
-implementation.
+This section must be read before the capability sections, not after.
+If read last, boundedness will already have been reinterpreted as temporary caution
+or incomplete implementation — which is exactly what this section exists to prevent.
 
 ### Three reading errors this section is here to prevent
 
