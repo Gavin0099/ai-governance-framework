@@ -131,7 +131,7 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <body>
 <div class="doc-header">
   <div class="title">CodeBurn P7 — Advisory Threshold Governance</div>
-  <div class="meta">Source: CODEBURN_P7_ADVISORY_THRESHOLD_GOVERNANCE.md &nbsp;·&nbsp; Generated: 2026-05-22 09:59 &nbsp;·&nbsp; CodeBurn v1.1</div>
+  <div class="meta">Source: CODEBURN_P7_ADVISORY_THRESHOLD_GOVERNANCE.md &nbsp;·&nbsp; Generated: 2026-05-22 15:28 &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>
 <div class="doc-nav"><h4>Contents</h4><a href="#codeburn-p7-advisory-threshold-governance">CodeBurn P7 — Advisory Threshold Governance</a><a href="#0-purpose-and-scope">0. Purpose and Scope</a><a href="#1-definition-advisory-threshold-vs-verified-boundary">1. Definition — Advisory Threshold vs. Verified Boundary</a><a href="#what-source-authority-means-for-a-verified-boundary">What "source authority" means for a verified boundary</a><a href="#the-nst-1-generalization-applies-here">The NST-1 generalization applies here</a><a href="#2-rule-at-1-naming-convention">2. Rule AT-1 — Naming Convention</a><a href="#format-requirement">Format requirement</a><a href="#prohibited-tokens-in-advisory-threshold-identifiers">Prohibited tokens in advisory threshold identifiers</a><a href="#examples">Examples</a><a href="#motivating-case">Motivating case</a><a href="#scope">Scope</a><a href="#3-rule-at-2-origin-provenance-record">3. Rule AT-2 — Origin Provenance Record</a><a href="#required-provenance-fields">Required provenance fields</a><a href="#what-the-record-must-not-contain">What the record must NOT contain</a><a href="#edge-case-new-observation-after-initial-registration">Edge case — new observation after initial registration</a><a href="#edge-case-codex-advisory-threshold">Edge case — Codex advisory threshold</a><a href="#4-rule-at-3-invalidity-conditions">4. Rule AT-3 — Invalidity Conditions</a><a href="#at-3-1-provider-changes-the-accounting-regime">AT-3.1 Provider changes the accounting regime</a><a href="#at-3-2-official-documentation-contradicts-the-advisory-value">AT-3.2 Official documentation contradicts the advisory value</a><a href="#at-3-3-accounting-regime-confirmed-to-differ-from-observation-context">AT-3.3 Accounting regime confirmed to differ from observation context</a><a href="#at-3-4-jsonl-field-confirmed-to-not-count-toward-the-relevant-limit">AT-3.4 JSONL field confirmed to not count toward the relevant limit</a><a href="#at-3-5-source-observation-retracted">AT-3.5 Source observation retracted</a><a href="#what-does-not-invalidate-the-threshold">What does NOT invalidate the threshold</a><a href="#partial-invalidation">Partial invalidation</a><a href="#5-rule-at-4-upgrade-prohibition">5. Rule AT-4 — Upgrade Prohibition</a><a href="#the-specific-drift-pattern-at-4-closes">The specific drift pattern AT-4 closes</a><a href="#explicitly-prohibited-upgrade-paths">Explicitly prohibited upgrade paths</a><a href="#the-only-valid-upgrade-path">The only valid upgrade path</a><a href="#6-rule-at-5-closeout-prohibition">6. Rule AT-5 — Closeout Prohibition</a><a href="#wording-that-is-permitted-in-closeout-documents">Wording that IS permitted in closeout documents</a><a href="#wording-that-is-not-permitted-in-closeout-documents">Wording that is NOT permitted in closeout documents</a><a href="#implicit-claims">Implicit claims</a><a href="#automated-enforcement-future">Automated enforcement (future)</a><a href="#7-current-advisory-threshold-registry">7. Current Advisory Threshold Registry</a><a href="#8-relationship-to-architecture-freeze">8. Relationship to Architecture Freeze</a><a href="#8-1-this-document-does-not-modify-the-freeze">8.1 This document does not modify the freeze</a><a href="#8-2-p7-operationalizes-10-without-claiming-to-resolve-it">8.2 P7 operationalizes §10 without claiming to resolve it</a><a href="#8-3-the-only-path-that-modifies-10-is-the-at-4-upgrade-path">8.3 The only path that modifies §10 is the AT-4 upgrade path</a><a href="#rule-to-freeze-mapping">Rule-to-freeze mapping</a><a href="#note-on-advisory-only-field-in-schema">Note on advisory_only field in schema</a><a href="#9-amendment-process">9. Amendment Process</a><a href="#registry-only-updates-no-p7-version-bump-required">Registry-only updates (no P7 version bump required)</a><a href="#full-p7-amendment-required">Full P7 amendment required</a><a href="#amendment-process">Amendment process</a></div>
 <h1 id="codeburn-p7-advisory-threshold-governance">CodeBurn P7 — Advisory Threshold Governance</h1>
@@ -308,10 +308,10 @@ registered_date: &lt;YYYY-MM-DD&gt;</code></pre>
 <p>silent update to the <code>value</code> field.</p>
 <h3 id="edge-case-codex-advisory-threshold">Edge case — Codex advisory threshold</h3>
 <p class="box-advisory"><code>CODEBURN<em>CODEX</em>5H<em>ADVISORY</em>WARN<em>THRESHOLD</code> is referenced in <code>codeburn</em>session_display.py</code>.</p>
-<p>Its registry entry (Section 7) has <code>status: reserved<em>not</em>operational</code> and</p>
-<p><code>observation_count: 0</code>. This means: the identifier is governed by AT-1 (compliant name),</p>
-<p>but no value may be operationally set until AT-2 is satisfied. A user may set a</p>
-<p class="box-advisory">personal heuristic value; no governed closeout may reference it.</p>
+<p>Its registry entry (Section 7) has <code>status: intentionally<em>inactive</em>no<em>observation</em>authority</code></p>
+<p>and <code>observation_count: 0</code>. This means: the identifier is governed by AT-1 (compliant name),</p>
+<p>but it is intentionally unconnected — no observation exists, no value may be used in governed</p>
+<p class="box-advisory">closeout. A user may set a personal heuristic value; no governed closeout may reference it.</p>
 <hr>
 <h2 id="4-rule-at-3-invalidity-conditions">4. Rule AT-3 — Invalidity Conditions</h2>
 <p class="box-advisory"><strong>The following conditions automatically invalidate an advisory threshold.</strong></p>
@@ -533,7 +533,7 @@ entries:
 
 
   - identifier: CODEBURN_CODEX_5H_ADVISORY_WARN_THRESHOLD
-    status: reserved_not_operational
+    status: intentionally_inactive_no_observation_authority
     epistemic_class: advisory_threshold_candidate
 
     value: null

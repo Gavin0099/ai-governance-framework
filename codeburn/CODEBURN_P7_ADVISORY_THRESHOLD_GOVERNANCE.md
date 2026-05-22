@@ -196,10 +196,10 @@ silent update to the `value` field.
 ### Edge case — Codex advisory threshold
 
 `CODEBURN_CODEX_5H_ADVISORY_WARN_THRESHOLD` is referenced in `codeburn_session_display.py`.
-Its registry entry (Section 7) has `status: reserved_not_operational` and
-`observation_count: 0`. This means: the identifier is governed by AT-1 (compliant name),
-but no value may be operationally set until AT-2 is satisfied. A user may set a
-personal heuristic value; no governed closeout may reference it.
+Its registry entry (Section 7) has `status: intentionally_inactive_no_observation_authority`
+and `observation_count: 0`. This means: the identifier is governed by AT-1 (compliant name),
+but it is intentionally unconnected — no observation exists, no value may be used in governed
+closeout. A user may set a personal heuristic value; no governed closeout may reference it.
 
 ---
 
@@ -457,7 +457,7 @@ entries:
 
 
   - identifier: CODEBURN_CODEX_5H_ADVISORY_WARN_THRESHOLD
-    status: reserved_not_operational
+    status: intentionally_inactive_no_observation_authority
     epistemic_class: advisory_threshold_candidate
 
     value: null

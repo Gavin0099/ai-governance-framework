@@ -241,7 +241,7 @@ output: closeout documents, session displays, dashboards, analysis reports.
 | Identifier | Status | Value | AT-2 | Accounting regime |
 |---|---|---|---|---|
 | `CODEBURN_CLAUDE_5H_ADVISORY_WARN_THRESHOLD` | active | 9,705,984 tokens | Complete | Unconfirmed — see AT-2 record |
-| `CODEBURN_CODEX_5H_ADVISORY_WARN_THRESHOLD` | reserved | null | NOT MET | No observation |
+| `CODEBURN_CODEX_5H_ADVISORY_WARN_THRESHOLD` | intentionally_inactive | null | NOT MET | No observation — cannot become operational without AT-2 |
 
 Full provenance: `CODEBURN_P7_ADVISORY_THRESHOLD_GOVERNANCE.md` §7.
 
