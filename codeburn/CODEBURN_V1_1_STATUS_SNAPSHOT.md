@@ -12,6 +12,39 @@
 
 ---
 
+## 0. Reading Posture
+
+**This document defines the operationally admissible interpretation surface for
+CodeBurn v1.1.**
+
+Three reading errors this section is here to prevent:
+
+**"Absence from CAN means future roadmap."**
+It does not. Absence from the CAN sections means the action has no governed path
+in v1.1. Some absent actions are permanently out of scope. Others may become
+in-scope through a formal admission process. Neither is implied by the absence alone.
+
+**"Presence in BLOCKED means engineering incompleteness."**
+It does not. The BLOCKED surfaces section distinguishes between engineering choices
+and structural constraints. Most blocked surfaces in v1.1 are blocked because the
+underlying data is not available, the accounting regime is unverifiable, or the
+semantic gap cannot be closed without provider-side changes. These are not backlogs.
+They are boundary conditions.
+
+**"Governance documents I haven't read don't apply to me."**
+They do. Partial reading produces selective interpretation. The governing documents
+index (Section 6) exists so that any constraint referenced in this snapshot can be
+traced to its authoritative source. If a constraint seems wrong, the response is to
+read the governing document — not to treat the constraint as optional.
+
+> **Boundedness is part of the architecture.**
+> CodeBurn v1.1 is intentionally scoped. The boundaries exist because the evidence
+> classes have real epistemic limits, not because the system is unfinished.
+> A system that claims to do more than its evidence supports is not a better system —
+> it is a less honest one.
+
+---
+
 ## System Identity
 
 **CodeBurn v1.1 is a bounded multi-surface AI usage evidence system.**
