@@ -1735,3 +1735,75 @@
 - Risk: low
 - Oversight: auto
 
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T092719Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T092909Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T093204Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T093347Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T093436Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T093824Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T094106Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T094218Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T094547Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T094838Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T095426Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T095802Z.json
+- Risk: low
+- Oversight: auto
+

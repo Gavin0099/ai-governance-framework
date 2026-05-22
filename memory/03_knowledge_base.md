@@ -145,3 +145,10 @@
   - This evidence must not be interpreted as strict mechanism-stable uplift.
 - Practical implication:
   - Future upgrade claims require strict-regime evidence that is robust without threshold relaxation.
+## Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Captured: 2026-05-22T09:27:19.505835+00:00
+- Approved by: governance-auto
+- Risk: low
+- Oversight: auto
+- Summary: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+

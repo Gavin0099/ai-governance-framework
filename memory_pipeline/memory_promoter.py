@@ -48,11 +48,15 @@ def promote_candidate(
         f"- Summary: {payload['summary']}\n\n"
     )
 
-    with knowledge_base.open("a", encoding="utf-8") as fh:
-        fh.write(entry)
+    kb_text = knowledge_base.read_text(encoding="utf-8") if knowledge_base.exists() else ""
+    if f"## {heading}" not in kb_text:
+        with knowledge_base.open("a", encoding="utf-8") as fh:
+            fh.write(entry)
 
-    with active_task.open("a", encoding="utf-8") as fh:
-        fh.write(f"- [x] Promoted memory: {heading}\n")
+    at_text = active_task.read_text(encoding="utf-8") if active_task.exists() else ""
+    if f"- [x] Promoted memory: {heading}" not in at_text:
+        with active_task.open("a", encoding="utf-8") as fh:
+            fh.write(f"- [x] Promoted memory: {heading}\n")
 
     with review_log.open("a", encoding="utf-8") as fh:
         fh.write(
