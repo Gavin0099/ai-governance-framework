@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZoneTruth External Repo Governance Analysis</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #1a1a2e;
+  background: #f8f9fa;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+h1 { font-size: 1.9rem; color: #0d1b2a; border-bottom: 3px solid #0066cc; padding-bottom: .5rem; margin: 2rem 0 1rem; }
+h2 { font-size: 1.4rem; color: #0d1b2a; border-left: 4px solid #0066cc; padding-left: .75rem; margin: 2.5rem 0 .75rem; }
+h3 { font-size: 1.15rem; color: #1a3a5c; margin: 1.5rem 0 .5rem; }
+h4 { font-size: 1rem; color: #1a3a5c; margin: 1rem 0 .4rem; }
+p  { margin: .6rem 0; }
+ul, ol { margin: .6rem 0 .6rem 1.5rem; }
+li { margin: .25rem 0; }
+a  { color: #0066cc; }
+code {
+  background: #e8edf2;
+  border-radius: 3px;
+  padding: .1em .35em;
+  font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+  font-size: .88em;
+  color: #b5290a;
+}
+pre {
+  background: #1e2836;
+  color: #d4e5f7;
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+  font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+  font-size: .87em;
+  line-height: 1.6;
+}
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+blockquote {
+  border-left: 4px solid #aac4e0;
+  background: #eef4fb;
+  padding: .75rem 1rem;
+  margin: 1rem 0;
+  border-radius: 0 6px 6px 0;
+  color: #2c4a6e;
+  font-style: italic;
+}
+hr { border: none; border-top: 2px solid #dde4ec; margin: 2rem 0; }
+
+/* Tables */
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .93em; }
+th { background: #0d1b2a; color: #fff; padding: .5rem .75rem; text-align: left; }
+td { padding: .45rem .75rem; border-bottom: 1px solid #d8e2ec; }
+tr:nth-child(even) td { background: #f0f5fa; }
+
+/* Epistemic class badges */
+.class-c  { display:inline-block; background:#e6a817; color:#fff; font-size:.78em; font-weight:700; padding:.15em .55em; border-radius:12px; vertical-align:middle; }
+.class-d  { display:inline-block; background:#c0392b; color:#fff; font-size:.78em; font-weight:700; padding:.15em .55em; border-radius:12px; vertical-align:middle; }
+.class-frozen { display:inline-block; background:#1565c0; color:#fff; font-size:.78em; font-weight:700; padding:.15em .55em; border-radius:12px; vertical-align:middle; }
+
+/* Warning boxes (FCP, FORBIDDEN) */
+.box-warn {
+  background: #fdf0ed;
+  border: 1.5px solid #c0392b;
+  border-left: 5px solid #c0392b;
+  border-radius: 6px;
+  padding: .85rem 1rem;
+  margin: 1rem 0;
+  color: #7b1a10;
+}
+.box-warn::before { content: "⛔ "; font-size: 1.1em; }
+
+/* Frozen / invariant boxes */
+.box-frozen {
+  background: #eef4fb;
+  border: 1.5px solid #1565c0;
+  border-left: 5px solid #1565c0;
+  border-radius: 6px;
+  padding: .85rem 1rem;
+  margin: 1rem 0;
+  color: #0d2d5e;
+}
+.box-frozen::before { content: "🔒 "; font-size: 1.1em; }
+
+/* Advisory / note boxes */
+.box-advisory {
+  background: #fffbea;
+  border: 1.5px solid #e6a817;
+  border-left: 5px solid #e6a817;
+  border-radius: 6px;
+  padding: .85rem 1rem;
+  margin: 1rem 0;
+  color: #5a3a00;
+}
+.box-advisory::before { content: "⚠️ "; font-size: 1.1em; }
+
+/* Status pills */
+.status-complete { display:inline-block; background:#1b7340; color:#fff; font-size:.78em; padding:.1em .5em; border-radius:10px; }
+.status-active   { display:inline-block; background:#1565c0; color:#fff; font-size:.78em; padding:.1em .5em; border-radius:10px; }
+.status-frozen   { display:inline-block; background:#5a1e8a; color:#fff; font-size:.78em; padding:.1em .5em; border-radius:10px; }
+
+/* Nav */
+.doc-nav { background:#fff; border:1px solid #d8e2ec; border-radius:8px; padding:1rem 1.25rem; margin-bottom:2rem; }
+.doc-nav h4 { color:#555; font-size:.85em; text-transform:uppercase; letter-spacing:.05em; margin-bottom:.5rem; }
+.doc-nav a  { display:block; color:#0066cc; text-decoration:none; padding:.15rem 0; font-size:.92em; }
+.doc-nav a:hover { text-decoration:underline; }
+
+/* Header strip */
+.doc-header {
+  background: #0d1b2a;
+  color: #fff;
+  padding: 1.5rem 1.75rem;
+  border-radius: 10px;
+  margin-bottom: 2rem;
+}
+.doc-header .title { font-size: 1.5rem; font-weight: 700; margin-bottom: .4rem; }
+.doc-header .meta  { font-size: .85em; color: #8ab4d0; }
+
+/* Footer */
+.doc-footer { margin-top:3rem; padding-top:1rem; border-top:1px solid #d8e2ec; color:#888; font-size:.82em; }
+</style>
+</head>
+<body>
+<div class="doc-header">
+  <div class="title">ZoneTruth External Repo Governance Analysis</div>
+  <div class="meta">Source: CODEBURN_ZONETRUTH_ANALYSIS.md &nbsp;·&nbsp; Generated: 2026-05-22 17:37 &nbsp;·&nbsp; CodeBurn v1.1</div>
+</div>
+<div class="doc-nav"><h4>Contents</h4><a href="#zonetruth-external-repo-governance-analysis">ZoneTruth External Repo Governance Analysis</a><a href="#1-repository-identity">1. Repository Identity</a><a href="#2-governance-readiness-checklist">2. Governance Readiness Checklist</a><a href="#3-readme-claims-analysis-v1-2">3. README Claims Analysis (v1.2)</a><a href="#3a-bounded-claims-correctly-stated">3a. Bounded Claims — Correctly Stated</a><a href="#3b-metrics-v1-2-test-results">3b. Metrics (v1.2 Test Results)</a><a href="#3c-methodology-limitations-correctly-disclosed">3c. Methodology Limitations — Correctly Disclosed</a><a href="#4-contract-yaml-gap-analysis">4. contract.yaml Gap Analysis</a><a href="#5-agents-md-hierarchy-assessment">5. AGENTS.md Hierarchy Assessment</a><a href="#6-swift-component-12-4-unresolved">6. Swift Component (12.4%) — Unresolved</a><a href="#7-evidence-class-ceiling">7. Evidence Class Ceiling</a><a href="#8-onboarding-readiness">8. Onboarding Readiness</a><a href="#9-summary">9. Summary</a></div>
+<h1 id="zonetruth-external-repo-governance-analysis">ZoneTruth External Repo Governance Analysis</h1>
+<blockquote>
+<p>Source: https://github.com/Gavin0099/ZoneTruth</p>
+<p>Analysis date: 2026-05-22</p>
+<p>Analyst: ai-governance-framework (CodeBurn v1.1)</p>
+<p>Analysis class: <span class="class-c">Class C</span> — single-session observation, not verified third-party audit</p>
+</blockquote>
+<hr>
+<h2 id="1-repository-identity">1. Repository Identity</h2>
+<table>
+<tr><th>Field</th><th>Value</th></tr>
+<tr><td>Repo</td><td>Gavin0099/ZoneTruth</td></tr>
+<tr><td>Domain</td><td><code>ai-governance</code> (per contract.yaml)</td></tr>
+<tr><td>Primary language</td><td>Python 68.5%</td></tr>
+<tr><td>Anomalous component</td><td>Swift 12.4% — purpose unconfirmed</td></tr>
+<tr><td>Framework version stated</td><td>v1.2</td></tr>
+<tr><td>contract.yaml present</td><td>Yes</td></tr>
+<tr><td>AGENTS.md present</td><td>Yes</td></tr>
+</table>
+
+<hr>
+<h2 id="2-governance-readiness-checklist">2. Governance Readiness Checklist</h2>
+<table>
+<tr><th>Surface</th><th>Status</th><th>Notes</th></tr>
+<tr><td><code>contract.yaml</code></td><td>present</td><td>Minimal but valid schema</td></tr>
+<tr><td><code>rule_roots</code> defined</td><td>yes — <code>governance/rules</code></td><td>Not verified to contain rules</td></tr>
+<tr><td><code>validators</code> defined</td><td><strong style="color:#c0392b">BLOCKED</strong> — empty</td><td>No domain validators registered</td></tr>
+<tr><td><code>AGENTS.md</code></td><td>present</td><td>Two-layer hierarchy (workspace / repo)</td></tr>
+<tr><td>Evidence class labeling</td><td>absent</td><td>v1.2 metrics not class-annotated</td></tr>
+<tr><td>Forbidden phrase audit</td><td>pass</td><td>No FCP violations observed in README</td></tr>
+<tr><td>Checklist artifacts</td><td>present in docs/</td><td>Not wired to contract validators</td></tr>
+</table>
+
+<hr>
+<h2 id="3-readme-claims-analysis-v1-2">3. README Claims Analysis (v1.2)</h2>
+<h3 id="3a-bounded-claims-correctly-stated">3a. Bounded Claims — Correctly Stated</h3>
+<p>The README explicitly lists what the framework does NOT claim:</p>
+<ul>
+<li>Engineering quality uplift proof — NOT claimed</li>
+<li>Reasoning uplift proof — NOT claimed</li>
+<li>Deterministic cognitive control — NOT claimed</li>
+<li>Machine-authoritative compliance verdicts — NOT claimed</li>
+<li>Universal semantic correctness verification — NOT claimed</li>
+<li>Automatic truth judgment over ambiguous reasoning — NOT claimed</li>
+<li>Long-horizon semantic drift without reviewer oversight — NOT claimed</li>
+</ul>
+<p class="box-advisory">ADVISORY: This NOT-claim list is the strongest governance signal in the README. Its presence reduces authority inflation risk at the language layer.</p>
+<h3 id="3b-metrics-v1-2-test-results">3b. Metrics (v1.2 Test Results)</h3>
+<table>
+<tr><th>Metric</th><th>Value</th><th>Class</th><th>Note</th></tr>
+<tr><td><code>scope<em>violation</em>count</code></td><td>0</td><td>unlabeled</td><td>Single evaluator, n=5</td></tr>
+<tr><td><code>evidence_traceability</code></td><td>5/5</td><td>unlabeled</td><td>Internal scoring</td></tr>
+<tr><td><code>claim<em>overreach</em>count</code></td><td>0</td><td>unlabeled</td><td>Single evaluator</td></tr>
+<tr><td><code>semantic_consistency</code></td><td>4/5</td><td>unlabeled</td><td>Internal scoring</td></tr>
+<tr><td><code>tokens<em>per</em>actionable_fix</code></td><td>~8,630</td><td>labeled &quot;proxy measure only&quot;</td><td>Correctly bounded</td></tr>
+<tr><td><code>actionable<em>fix</em>latency_sec</code></td><td>405</td><td>unlabeled</td><td>No uncertainty stated</td></tr>
+</table>
+
+<p class="box-advisory">ADVISORY: These metrics are internally measured by a single evaluator with n=5 homogeneous test cases. They should be treated as observational indicators only, not verified governance benchmarks. Evidence class: <span class="class-c">Class C</span> (session-observed, single-party).</p>
+<h3 id="3c-methodology-limitations-correctly-disclosed">3c. Methodology Limitations — Correctly Disclosed</h3>
+<p>The README states:</p>
+<ul>
+<li>Single evaluator (no inter-rater reliability)</li>
+<li>Homogeneous test set (n=5, single package focus)</li>
+<li>Doc remediation emphasis; code scenarios awaiting quantification</li>
+<li>A/B arm metrics asymmetrical (B arm more complete)</li>
+</ul>
+<p class="box-advisory">ADVISORY: These disclosures are correctly bounded. &quot;Cannot claim universal effectiveness across all codebases/task types&quot; is the right framing. This reduces semantic preauthorization risk.</p>
+<hr>
+<h2 id="4-contract-yaml-gap-analysis">4. contract.yaml Gap Analysis</h2>
+<p>Current state:</p>
+<pre><code class="language-yaml">name: ai-governance-framework-contract
+plugin_version: &quot;1.0.0&quot;
+domain: ai-governance
+rule_roots:
+  - governance/rules
+validators:
+  # empty</code></pre>
+<p class="box-advisory"><strong style="color:#c0392b">BLOCKED</strong> surface: validators section is empty. The governance framework can discover this repo via contract.yaml, but no domain-specific validation can execute. Current mode: advisory-only (no enforcement).</p>
+<p class="box-advisory">To move from advisory-only to enforcement mode, at minimum one validator must be registered in the <code>validators</code> section pointing to a callable validator in <code>governance/rules</code>.</p>
+<hr>
+<h2 id="5-agents-md-hierarchy-assessment">5. AGENTS.md Hierarchy Assessment</h2>
+<p>Two-layer architecture observed:</p>
+<ul>
+<li>Layer 1 — Workspace level: personal privacy, external communication gate, memory access restrictions</li>
+<li>Layer 2 — Repo level: &quot;repo governance prevails for repo work&quot; when conflicts arise</li>
+</ul>
+<p>This hierarchy is correctly ordered. Repo-level governance taking precedence over workspace instructions for repo tasks is the right precedence rule.</p>
+<p class="box-advisory">ADVISORY: The &quot;agent-agnostic closeout rule with receipt artifacts and memory eligibility evaluation&quot; mentioned in AGENTS.md mirrors the main governance framework&#x27;s session_end pattern. This is a positive signal for framework compatibility.</p>
+<hr>
+<h2 id="6-swift-component-12-4-unresolved">6. Swift Component (12.4%) — Unresolved</h2>
+<p class="box-advisory">ADVISORY: Swift at 12.4% of codebase is anomalous for a governance framework. Common interpretations:</p>
+<ul>
+<li>macOS/iOS presentation tool (GUI for governance reports)</li>
+<li>Platform-specific hook or notifier</li>
+<li>Legacy code from prior project context</li>
+</ul>
+<p class="box-advisory">This surface is outside the confirmed governance rule_roots. Until the Swift component&#x27;s purpose is confirmed and either included in or explicitly excluded from governance scope, it represents an unverified boundary.</p>
+<hr>
+<h2 id="7-evidence-class-ceiling">7. Evidence Class Ceiling</h2>
+<p>Based on available evidence, the maximum permissible claim for ZoneTruth v1.2 results is:</p>
+<table>
+<tr><th>Claim type</th><th>Maximum permitted</th><th>Blocking condition</th></tr>
+<tr><td>&quot;Boundary discipline demonstrated in 5 doc tasks&quot;</td><td>PERMITTED</td><td>Within stated scope</td></tr>
+<tr><td>&quot;Zero scope violations&quot;</td><td>PERMITTED with n=5 qualifier</td><td>Must carry sample size</td></tr>
+<tr><td>&quot;Universally effective governance&quot;</td><td><strong style="color:#c0392b">FORBIDDEN</strong></td><td>No cross-codebase evidence</td></tr>
+<tr><td>&quot;Verified audit trail&quot;</td><td><strong style="color:#c0392b">FORBIDDEN</strong></td><td>validators empty, single evaluator</td></tr>
+<tr><td>&quot;Production-ready enforcement&quot;</td><td><strong style="color:#c0392b">FORBIDDEN</strong></td><td>validators empty</td></tr>
+</table>
+
+<p class="box-frozen"><span class="status-frozen">FROZEN</span> INVARIANT: evidence class ceiling is determined by weakest link — single evaluator + n=5 + empty validators = <span class="class-c">Class C</span> observational, not enforcement-grade.</p>
+<hr>
+<h2 id="8-onboarding-readiness">8. Onboarding Readiness</h2>
+<table>
+<tr><th>Gate</th><th>Status</th></tr>
+<tr><td>contract.yaml present</td><td>PASS</td></tr>
+<tr><td>domain defined</td><td>PASS</td></tr>
+<tr><td>rule_roots defined</td><td>PASS — unverified content</td></tr>
+<tr><td>validators registered</td><td>FAIL — empty</td></tr>
+<tr><td>evidence class labeled</td><td>FAIL — absent</td></tr>
+<tr><td>Swift component scoped</td><td>FAIL — unconfirmed</td></tr>
+</table>
+
+<p><strong>Verdict</strong>: Partially ready. Onboarding is structurally possible (contract.yaml discoverable), but enforcement gates cannot activate without validators.</p>
+<p><strong>Minimum actions before enforcement onboarding</strong>:</p>
+<ol>
+<li>Register at least one validator in contract.yaml</li>
+<li>Label v1.2 metrics with evidence class (<span class="class-c">Class C</span> recommended)</li>
+<li>Confirm Swift component scope (in-scope or explicitly excluded)</li>
+</ol>
+<hr>
+<h2 id="9-summary">9. Summary</h2>
+<p>ZoneTruth demonstrates good semantic posture at the language layer (NOT-claims, honest disclosure, proxy labeling). The structural gap is enforcement infrastructure: validators are empty and metrics are unlabeled. The repo is governance-discoverable but not governance-enforced.</p>
+<p>This analysis is <span class="class-c">Class C</span> — single-session, single-analyst observation of public repo content. It cannot serve as a verified audit or certification.</p>
+<div class="doc-footer">
+  Source: <code>CODEBURN_ZONETRUTH_ANALYSIS.md</code> — HTML is the presentation layer. The .md source is authoritative.
+  <br>CodeBurn v1.1 governed architecture baseline.
+</div>
+</body>
+</html>
