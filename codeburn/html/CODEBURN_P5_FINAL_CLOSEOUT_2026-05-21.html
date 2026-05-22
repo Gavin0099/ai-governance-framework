@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +43,25 @@ pre {
   font-size: .87em;
   line-height: 1.6;
 }
-pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre code {
+  display: block;
+  white-space: pre;
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: inherit;
+}
+/* Guard against accidental nested <code> inside fenced blocks. */
+pre code code,
+pre code span,
+pre code strong,
+pre code em {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
 blockquote {
   border-left: 4px solid #aac4e0;
   background: #eef4fb;
@@ -131,9 +149,9 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <body>
 <div class="doc-header">
   <div class="title">CodeBurn P5 Final Closeout (2026-05-21)</div>
-  <div class="meta">Source: CODEBURN_P5_FINAL_CLOSEOUT_2026-05-21.md &nbsp;·&nbsp; Generated: 2026-05-22 09:45 &nbsp;·&nbsp; CodeBurn v1.1</div>
+  <div class="meta">來源：CODEBURN_P5_FINAL_CLOSEOUT_2026-05-21.md &nbsp;·&nbsp; 生成時間：2026-05-22 18:29 &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>
-<div class="doc-nav"><h4>Contents</h4><a href="#codeburn-p5-final-closeout-2026-05-21">CodeBurn P5 Final Closeout (2026-05-21)</a><a href="#1-final-state-freeze">1. Final State Freeze</a><a href="#2-supported-acquisition-surface">2. Supported Acquisition Surface</a><a href="#claude-codex-ingestion-are-both-supported">Claude + Codex ingestion are both supported</a><a href="#epistemic-position-remains-unchanged">Epistemic position remains unchanged</a><a href="#3-non-negotiable-boundaries-preserved">3. Non-Negotiable Boundaries (Preserved)</a><a href="#4-evidence-stability-snapshot">4. Evidence Stability Snapshot</a><a href="#smoke-replay">Smoke / Replay</a><a href="#closeout-surface">Closeout Surface</a><a href="#5-interpretation-guardrails-explicit">5. Interpretation Guardrails (Explicit)</a><a href="#6-p5-exit-criteria-check">6. P5 Exit Criteria Check</a></div>
+<div class="doc-nav"><h4>目錄</h4><a href="#codeburn-p5-final-closeout-2026-05-21">CodeBurn P5 Final Closeout (2026-05-21)</a><a href="#1-final-state-freeze">1. Final State Freeze</a><a href="#2-supported-acquisition-surface">2. Supported Acquisition Surface</a><a href="#claude-codex-ingestion-are-both-supported">Claude + Codex ingestion are both supported</a><a href="#epistemic-position-remains-unchanged">Epistemic position remains unchanged</a><a href="#3-non-negotiable-boundaries-preserved">3. Non-Negotiable Boundaries (Preserved)</a><a href="#4-evidence-stability-snapshot">4. Evidence Stability Snapshot</a><a href="#smoke-replay">Smoke / Replay</a><a href="#closeout-surface">Closeout Surface</a><a href="#5-interpretation-guardrails-explicit">5. Interpretation Guardrails (Explicit)</a><a href="#6-p5-exit-criteria-check">6. P5 Exit Criteria Check</a></div>
 <h1 id="codeburn-p5-final-closeout-2026-05-21">CodeBurn P5 Final Closeout (2026-05-21)</h1>
 <blockquote>
 <p>Status: <strong>CLOSED (P5)</strong></p>
@@ -215,8 +233,8 @@ tr:nth-child(even) td { background: #f0f5fa; }
 </ul>
 <p>P5 is closed as an evidence-observability slice, not as a decision-authority expansion.</p>
 <div class="doc-footer">
-  Source: <code>CODEBURN_P5_FINAL_CLOSEOUT_2026-05-21.md</code> — HTML is the presentation layer. The .md source is authoritative.
-  <br>CodeBurn v1.1 governed architecture baseline.
+  來源：<code>CODEBURN_P5_FINAL_CLOSEOUT_2026-05-21.md</code> — HTML 為展示層，.md 原始檔案為權威來源。
+  <br>CodeBurn v1.1 治理架構基線。
 </div>
 </body>
 </html>

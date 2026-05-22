@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +43,25 @@ pre {
   font-size: .87em;
   line-height: 1.6;
 }
-pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre code {
+  display: block;
+  white-space: pre;
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: inherit;
+}
+/* Guard against accidental nested <code> inside fenced blocks. */
+pre code code,
+pre code span,
+pre code strong,
+pre code em {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
 blockquote {
   border-left: 4px solid #aac4e0;
   background: #eef4fb;
@@ -131,9 +149,9 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <body>
 <div class="doc-header">
   <div class="title">CodeBurn — Authority Ceiling Contract</div>
-  <div class="meta">Source: CODEBURN_AUTHORITY_CEILING_CONTRACT.md &nbsp;·&nbsp; Generated: 2026-05-22 09:45 &nbsp;·&nbsp; CodeBurn v1.1</div>
+  <div class="meta">來源：CODEBURN_AUTHORITY_CEILING_CONTRACT.md &nbsp;·&nbsp; 生成時間：2026-05-22 18:29 &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>
-<div class="doc-nav"><h4>Contents</h4><a href="#codeburn-authority-ceiling-contract">CodeBurn — Authority Ceiling Contract</a><a href="#why-this-is-the-most-critical-p0-document">Why This Is the Most Critical P0 Document</a><a href="#the-authority-escalation-path">The Authority Escalation Path</a><a href="#the-core-principle">The Core Principle</a><a href="#what-acquisition-completeness-does-grant">What Acquisition Completeness DOES Grant</a><a href="#permanent-authority-ceilings">Permanent Authority Ceilings</a><a href="#ac1-runtime-authority">AC1 — Runtime Authority</a><a href="#ac2-governance-authority">AC2 — Governance Authority</a><a href="#ac3-evaluative-authority">AC3 — Evaluative Authority</a><a href="#ac4-decision-safety-certification">AC4 — Decision Safety Certification</a><a href="#ac5-provider-truthfulness-certification">AC5 — Provider Truthfulness Certification</a><a href="#the-trustworthiness-inference-why-it-must-be-explicitly-blocked">The Trustworthiness Inference — Why It Must Be Explicitly Blocked</a><a href="#authority-drift-detection-signals">Authority Drift Detection Signals</a><a href="#relationship-to-other-boundary-documents">Relationship to Other Boundary Documents</a><a href="#what-elevating-the-authority-ceiling-requires">What Elevating the Authority Ceiling Requires</a><a href="#current-authority-state-2026-05-20">Current Authority State (2026-05-20)</a></div>
+<div class="doc-nav"><h4>目錄</h4><a href="#codeburn-authority-ceiling-contract">CodeBurn — Authority Ceiling Contract</a><a href="#why-this-is-the-most-critical-p0-document">Why This Is the Most Critical P0 Document</a><a href="#the-authority-escalation-path">The Authority Escalation Path</a><a href="#the-core-principle">The Core Principle</a><a href="#what-acquisition-completeness-does-grant">What Acquisition Completeness DOES Grant</a><a href="#permanent-authority-ceilings">Permanent Authority Ceilings</a><a href="#ac1-runtime-authority">AC1 — Runtime Authority</a><a href="#ac2-governance-authority">AC2 — Governance Authority</a><a href="#ac3-evaluative-authority">AC3 — Evaluative Authority</a><a href="#ac4-decision-safety-certification">AC4 — Decision Safety Certification</a><a href="#ac5-provider-truthfulness-certification">AC5 — Provider Truthfulness Certification</a><a href="#the-trustworthiness-inference-why-it-must-be-explicitly-blocked">The Trustworthiness Inference — Why It Must Be Explicitly Blocked</a><a href="#authority-drift-detection-signals">Authority Drift Detection Signals</a><a href="#relationship-to-other-boundary-documents">Relationship to Other Boundary Documents</a><a href="#what-elevating-the-authority-ceiling-requires">What Elevating the Authority Ceiling Requires</a><a href="#current-authority-state-2026-05-20">Current Authority State (2026-05-20)</a></div>
 <h1 id="codeburn-authority-ceiling-contract">CodeBurn — Authority Ceiling Contract</h1>
 <blockquote>
 <p>Written: 2026-05-20</p>
@@ -407,8 +425,8 @@ Authority ceiling:            advisory signals, human-facing reports</code></pre
 <p><em>Authority is a governance grant, not a data property.</em></p>
 <p><em>This ceiling survives every acquisition milestone.</em></p>
 <div class="doc-footer">
-  Source: <code>CODEBURN_AUTHORITY_CEILING_CONTRACT.md</code> — HTML is the presentation layer. The .md source is authoritative.
-  <br>CodeBurn v1.1 governed architecture baseline.
+  來源：<code>CODEBURN_AUTHORITY_CEILING_CONTRACT.md</code> — HTML 為展示層，.md 原始檔案為權威來源。
+  <br>CodeBurn v1.1 治理架構基線。
 </div>
 </body>
 </html>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +43,25 @@ pre {
   font-size: .87em;
   line-height: 1.6;
 }
-pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre code {
+  display: block;
+  white-space: pre;
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: inherit;
+}
+/* Guard against accidental nested <code> inside fenced blocks. */
+pre code code,
+pre code span,
+pre code strong,
+pre code em {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
 blockquote {
   border-left: 4px solid #aac4e0;
   background: #eef4fb;
@@ -131,9 +149,9 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <body>
 <div class="doc-header">
   <div class="title">CodeBurn — Copilot AI Credits Admission Gate</div>
-  <div class="meta">Source: CODEBURN_COPILOT_AI_CREDITS_ADMISSION_GATE.md &nbsp;·&nbsp; Generated: 2026-05-22 09:45 &nbsp;·&nbsp; CodeBurn v1.1</div>
+  <div class="meta">來源：CODEBURN_COPILOT_AI_CREDITS_ADMISSION_GATE.md &nbsp;·&nbsp; 生成時間：2026-05-22 18:29 &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>
-<div class="doc-nav"><h4>Contents</h4><a href="#codeburn-copilot-ai-credits-admission-gate">CodeBurn — Copilot AI Credits Admission Gate</a><a href="#ag-copilot-1-structural-absence-of-code-completions">AG-Copilot-1: Structural Absence of Code Completions</a><a href="#ag-copilot-2-provenance-identity-under-daily-aggregate-granularity">AG-Copilot-2: Provenance Identity Under Daily-Aggregate Granularity</a><a href="#ag-copilot-3-preview-vs-actual-billing-ambiguity">AG-Copilot-3: Preview vs. Actual Billing Ambiguity</a><a href="#ag-copilot-4-preventing-back-calculation-from-aic-quantity-to-tokens-cp-1">AG-Copilot-4: Preventing Back-Calculation from aic_quantity to Tokens (CP-1)</a><a href="#ag-copilot-5-preventing-cross-model-credit-comparison-cp-2">AG-Copilot-5: Preventing Cross-Model Credit Comparison (CP-2)</a><a href="#ag-copilot-6-adversarial-re-interpretation-attempts">AG-Copilot-6: Adversarial Re-Interpretation Attempts</a><a href="#attempt-a6-1-normalize-credits-to-tokens-using-public-pricing">Attempt A6-1: "Normalize credits to tokens using public pricing"</a><a href="#attempt-a6-2-aic-quantity-is-just-a-unit-change-from-tokens">Attempt A6-2: "aic_quantity is just a unit change from tokens"</a><a href="#attempt-a6-3-code-completions-are-negligible-omit-the-annotation">Attempt A6-3: "Code completions are negligible — omit the annotation"</a><a href="#attempt-a6-4-store-aic-quantity-as-total-tokens-for-unified-querying">Attempt A6-4: "Store aic_quantity as total_tokens for unified querying"</a><a href="#attempt-a6-5-preview-data-is-close-enough-skip-the-is-preview-flag">Attempt A6-5: "Preview data is close enough — skip the is_preview flag"</a><a href="#attempt-a6-6-cross-provider-comparison-is-fine-if-we-label-it-approximate">Attempt A6-6: "Cross-provider comparison is fine if we label it 'approximate'"</a><a href="#admission-gate-decision">Admission Gate Decision</a><a href="#document-status">Document Status</a></div>
+<div class="doc-nav"><h4>目錄</h4><a href="#codeburn-copilot-ai-credits-admission-gate">CodeBurn — Copilot AI Credits Admission Gate</a><a href="#ag-copilot-1-structural-absence-of-code-completions">AG-Copilot-1: Structural Absence of Code Completions</a><a href="#ag-copilot-2-provenance-identity-under-daily-aggregate-granularity">AG-Copilot-2: Provenance Identity Under Daily-Aggregate Granularity</a><a href="#ag-copilot-3-preview-vs-actual-billing-ambiguity">AG-Copilot-3: Preview vs. Actual Billing Ambiguity</a><a href="#ag-copilot-4-preventing-back-calculation-from-aic-quantity-to-tokens-cp-1">AG-Copilot-4: Preventing Back-Calculation from aic_quantity to Tokens (CP-1)</a><a href="#ag-copilot-5-preventing-cross-model-credit-comparison-cp-2">AG-Copilot-5: Preventing Cross-Model Credit Comparison (CP-2)</a><a href="#ag-copilot-6-adversarial-re-interpretation-attempts">AG-Copilot-6: Adversarial Re-Interpretation Attempts</a><a href="#attempt-a6-1-normalize-credits-to-tokens-using-public-pricing">Attempt A6-1: "Normalize credits to tokens using public pricing"</a><a href="#attempt-a6-2-aic-quantity-is-just-a-unit-change-from-tokens">Attempt A6-2: "aic_quantity is just a unit change from tokens"</a><a href="#attempt-a6-3-code-completions-are-negligible-omit-the-annotation">Attempt A6-3: "Code completions are negligible — omit the annotation"</a><a href="#attempt-a6-4-store-aic-quantity-as-total-tokens-for-unified-querying">Attempt A6-4: "Store aic_quantity as total_tokens for unified querying"</a><a href="#attempt-a6-5-preview-data-is-close-enough-skip-the-is-preview-flag">Attempt A6-5: "Preview data is close enough — skip the is_preview flag"</a><a href="#attempt-a6-6-cross-provider-comparison-is-fine-if-we-label-it-approximate">Attempt A6-6: "Cross-provider comparison is fine if we label it 'approximate'"</a><a href="#admission-gate-decision">Admission Gate Decision</a><a href="#document-status">Document Status</a></div>
 <h1 id="codeburn-copilot-ai-credits-admission-gate">CodeBurn — Copilot AI Credits Admission Gate</h1>
 <blockquote>
 <p>Status: <strong>ADMISSION GATE OPEN — <span class="class-d">Class D</span>, billing<em>report</em>daily_aggregate</strong></p>
@@ -344,8 +362,8 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <li><span class="class-d">Class D</span> definition: See <code>CODEBURN<em>CLASS</em>D<em>EPISTEMIC</em>CLASSIFICATION.md</code></li>
 </ul>
 <div class="doc-footer">
-  Source: <code>CODEBURN_COPILOT_AI_CREDITS_ADMISSION_GATE.md</code> — HTML is the presentation layer. The .md source is authoritative.
-  <br>CodeBurn v1.1 governed architecture baseline.
+  來源：<code>CODEBURN_COPILOT_AI_CREDITS_ADMISSION_GATE.md</code> — HTML 為展示層，.md 原始檔案為權威來源。
+  <br>CodeBurn v1.1 治理架構基線。
 </div>
 </body>
 </html>

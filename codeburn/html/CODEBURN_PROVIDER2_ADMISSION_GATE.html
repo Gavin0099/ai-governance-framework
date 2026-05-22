@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +43,25 @@ pre {
   font-size: .87em;
   line-height: 1.6;
 }
-pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre code {
+  display: block;
+  white-space: pre;
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: inherit;
+}
+/* Guard against accidental nested <code> inside fenced blocks. */
+pre code code,
+pre code span,
+pre code strong,
+pre code em {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
 blockquote {
   border-left: 4px solid #aac4e0;
   background: #eef4fb;
@@ -131,9 +149,9 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <body>
 <div class="doc-header">
   <div class="title">CodeBurn -- Provider 2 Admission Gate</div>
-  <div class="meta">Source: CODEBURN_PROVIDER2_ADMISSION_GATE.md &nbsp;·&nbsp; Generated: 2026-05-22 09:45 &nbsp;·&nbsp; CodeBurn v1.1</div>
+  <div class="meta">來源：CODEBURN_PROVIDER2_ADMISSION_GATE.md &nbsp;·&nbsp; 生成時間：2026-05-22 18:29 &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>
-<div class="doc-nav"><h4>Contents</h4><a href="#codeburn-provider-2-admission-gate">CodeBurn -- Provider 2 Admission Gate</a><a href="#">이 문서의 역할</a><a href="#p5-provider-2-entry-conditions">P5 입장 조건 (Provider 2 Entry Conditions)</a><a href="#ag-1-comparability-boundary-reaffirmation">조건 AG-1: Comparability Boundary Reaffirmation</a><a href="#ag-2-acquisition-non-equivalence-acknowledgement">조건 AG-2: Acquisition Non-Equivalence Acknowledgement</a><a href="#ag-3-schema-similarity-disclaimer">조건 AG-3: Schema Similarity Disclaimer</a><a href="#ag-4-semantic-freeze-acknowledgement">조건 AG-4: Semantic Freeze Acknowledgement</a><a href="#ag-5-codex-specific-artifact-contract-required">조건 AG-5: Codex-Specific Artifact Contract Required</a><a href="#ag-6-adversarial-re-interpretation-requirement">조건 AG-6: Adversarial Re-Interpretation Requirement</a><a href="#narrative-prohibited-narratives">금지된 Narrative (Prohibited Narratives)</a><a href="#">비용 비교 금지</a><a href="#">완전성 비교 금지</a><a href="#">진실성 비교 금지</a><a href="#">집계 비교 금지</a><a href="#schema-similarity-provenance-equivalence">Schema Similarity != Provenance Equivalence</a><a href="#">예측되는 상황</a><a href="#">예측되는 (잘못된) 추론</a><a href="#">금지된 추론 (명시)</a><a href="#">이유</a><a href="#provider-class-c">다중 Provider 환경에서의 Class C 의미 보존</a><a href="#gate-sign-off">Gate Sign-off</a></div>
+<div class="doc-nav"><h4>目錄</h4><a href="#codeburn-provider-2-admission-gate">CodeBurn -- Provider 2 Admission Gate</a><a href="#">이 문서의 역할</a><a href="#p5-provider-2-entry-conditions">P5 입장 조건 (Provider 2 Entry Conditions)</a><a href="#ag-1-comparability-boundary-reaffirmation">조건 AG-1: Comparability Boundary Reaffirmation</a><a href="#ag-2-acquisition-non-equivalence-acknowledgement">조건 AG-2: Acquisition Non-Equivalence Acknowledgement</a><a href="#ag-3-schema-similarity-disclaimer">조건 AG-3: Schema Similarity Disclaimer</a><a href="#ag-4-semantic-freeze-acknowledgement">조건 AG-4: Semantic Freeze Acknowledgement</a><a href="#ag-5-codex-specific-artifact-contract-required">조건 AG-5: Codex-Specific Artifact Contract Required</a><a href="#ag-6-adversarial-re-interpretation-requirement">조건 AG-6: Adversarial Re-Interpretation Requirement</a><a href="#narrative-prohibited-narratives">금지된 Narrative (Prohibited Narratives)</a><a href="#">비용 비교 금지</a><a href="#">완전성 비교 금지</a><a href="#">진실성 비교 금지</a><a href="#">집계 비교 금지</a><a href="#schema-similarity-provenance-equivalence">Schema Similarity != Provenance Equivalence</a><a href="#">예측되는 상황</a><a href="#">예측되는 (잘못된) 추론</a><a href="#">금지된 추론 (명시)</a><a href="#">이유</a><a href="#provider-class-c">다중 Provider 환경에서의 Class C 의미 보존</a><a href="#gate-sign-off">Gate Sign-off</a></div>
 <h1 id="codeburn-provider-2-admission-gate">CodeBurn -- Provider 2 Admission Gate</h1>
 <blockquote>
 <p>Written: 2026-05-21</p>
@@ -393,8 +411,8 @@ Date: [ISO date]</code></pre>
 <p><em>이 gate 는 P5 가 올바른 semantic basis 위에서 시작되도록 하기 위한 것이다.</em></p>
 <p><em>gate 를 통과한 P5 는 더 강하다. gate 를 우회한 P5 는 더 위험하다.</em></p>
 <div class="doc-footer">
-  Source: <code>CODEBURN_PROVIDER2_ADMISSION_GATE.md</code> — HTML is the presentation layer. The .md source is authoritative.
-  <br>CodeBurn v1.1 governed architecture baseline.
+  來源：<code>CODEBURN_PROVIDER2_ADMISSION_GATE.md</code> — HTML 為展示層，.md 原始檔案為權威來源。
+  <br>CodeBurn v1.1 治理架構基線。
 </div>
 </body>
 </html>

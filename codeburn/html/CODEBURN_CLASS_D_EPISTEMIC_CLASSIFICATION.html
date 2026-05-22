@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +43,25 @@ pre {
   font-size: .87em;
   line-height: 1.6;
 }
-pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre code {
+  display: block;
+  white-space: pre;
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: inherit;
+}
+/* Guard against accidental nested <code> inside fenced blocks. */
+pre code code,
+pre code span,
+pre code strong,
+pre code em {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
 blockquote {
   border-left: 4px solid #aac4e0;
   background: #eef4fb;
@@ -131,9 +149,9 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <body>
 <div class="doc-header">
   <div class="title">CodeBurn — Class D Epistemic Classification</div>
-  <div class="meta">Source: CODEBURN_CLASS_D_EPISTEMIC_CLASSIFICATION.md &nbsp;·&nbsp; Generated: 2026-05-22 09:45 &nbsp;·&nbsp; CodeBurn v1.1</div>
+  <div class="meta">來源：CODEBURN_CLASS_D_EPISTEMIC_CLASSIFICATION.md &nbsp;·&nbsp; 生成時間：2026-05-22 18:29 &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>
-<div class="doc-nav"><h4>Contents</h4><a href="#codeburn-class-d-epistemic-classification">CodeBurn — Class D Epistemic Classification</a><a href="#definition">Definition</a><a href="#class-comparison">Class Comparison</a><a href="#what-class-d-does-not-mean">What Class D Does NOT Mean</a><a href="#schema-binding">Schema Binding</a><a href="#future-class-d-surfaces">Future Class D Surfaces</a></div>
+<div class="doc-nav"><h4>目錄</h4><a href="#codeburn-class-d-epistemic-classification">CodeBurn — Class D Epistemic Classification</a><a href="#definition">Definition</a><a href="#class-comparison">Class Comparison</a><a href="#what-class-d-does-not-mean">What Class D Does NOT Mean</a><a href="#schema-binding">Schema Binding</a><a href="#future-class-d-surfaces">Future Class D Surfaces</a></div>
 <h1 id="codeburn-class-d-epistemic-classification">CodeBurn — <span class="class-d">Class D</span> Epistemic Classification</h1>
 <blockquote>
 <p>Status: <strong><span class="status-active">ACTIVE</span> — effective from Copilot AI Credits admission</strong></p>
@@ -202,8 +220,8 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <li>Separate table (never <code>copilot<em>billing</em>events</code> cross-pollinated with other surfaces)</li>
 </ol>
 <div class="doc-footer">
-  Source: <code>CODEBURN_CLASS_D_EPISTEMIC_CLASSIFICATION.md</code> — HTML is the presentation layer. The .md source is authoritative.
-  <br>CodeBurn v1.1 governed architecture baseline.
+  來源：<code>CODEBURN_CLASS_D_EPISTEMIC_CLASSIFICATION.md</code> — HTML 為展示層，.md 原始檔案為權威來源。
+  <br>CodeBurn v1.1 治理架構基線。
 </div>
 </body>
 </html>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +43,25 @@ pre {
   font-size: .87em;
   line-height: 1.6;
 }
-pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre code {
+  display: block;
+  white-space: pre;
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: inherit;
+}
+/* Guard against accidental nested <code> inside fenced blocks. */
+pre code code,
+pre code span,
+pre code strong,
+pre code em {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
 blockquote {
   border-left: 4px solid #aac4e0;
   background: #eef4fb;
@@ -131,9 +149,9 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <body>
 <div class="doc-header">
   <div class="title">CodeBurn — Token Observability Consumption Boundary</div>
-  <div class="meta">Source: CODEBURN_TOKEN_OBSERVABILITY_CONSUMPTION_BOUNDARY.md &nbsp;·&nbsp; Generated: 2026-05-22 09:45 &nbsp;·&nbsp; CodeBurn v1.1</div>
+  <div class="meta">來源：CODEBURN_TOKEN_OBSERVABILITY_CONSUMPTION_BOUNDARY.md &nbsp;·&nbsp; 生成時間：2026-05-22 18:29 &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>
-<div class="doc-nav"><h4>Contents</h4><a href="#codeburn-token-observability-consumption-boundary">CodeBurn — Token Observability Consumption Boundary</a><a href="#why-this-document-exists-now">Why This Document Exists Now</a><a href="#the-core-epistemic-constraint">The Core Epistemic Constraint</a><a href="#permitted-uses-of-token-observability-data">Permitted Uses of Token Observability Data</a><a href="#prohibited-uses-regardless-of-acquisition-completeness">Prohibited Uses (regardless of acquisition completeness)</a><a href="#drift-signal-vocabulary">Drift Signal Vocabulary</a><a href="#the-specific-risk-indirect-escalation">The Specific Risk: Indirect Escalation</a><a href="#what-verified-acquisition-does-not-change">What Verified Acquisition Does NOT Change</a><a href="#relationship-to-phase-1-analysis-contract">Relationship to Phase 1 Analysis Contract</a><a href="#known-limitation-and-true-function">Known Limitation and True Function</a><a href="#amendment-process">Amendment Process</a></div>
+<div class="doc-nav"><h4>目錄</h4><a href="#codeburn-token-observability-consumption-boundary">CodeBurn — Token Observability Consumption Boundary</a><a href="#why-this-document-exists-now">Why This Document Exists Now</a><a href="#the-core-epistemic-constraint">The Core Epistemic Constraint</a><a href="#permitted-uses-of-token-observability-data">Permitted Uses of Token Observability Data</a><a href="#prohibited-uses-regardless-of-acquisition-completeness">Prohibited Uses (regardless of acquisition completeness)</a><a href="#drift-signal-vocabulary">Drift Signal Vocabulary</a><a href="#the-specific-risk-indirect-escalation">The Specific Risk: Indirect Escalation</a><a href="#what-verified-acquisition-does-not-change">What Verified Acquisition Does NOT Change</a><a href="#relationship-to-phase-1-analysis-contract">Relationship to Phase 1 Analysis Contract</a><a href="#known-limitation-and-true-function">Known Limitation and True Function</a><a href="#amendment-process">Amendment Process</a></div>
 <h1 id="codeburn-token-observability-consumption-boundary">CodeBurn — Token Observability Consumption Boundary</h1>
 <blockquote>
 <p>Written: 2026-05-20</p>
@@ -340,8 +358,8 @@ Step 6: Token count is now a de facto review decision signal (boundary crossed)<
 <p><em>If organizational pressure to revise it intensifies as data becomes trustworthy,</em></p>
 <p><em>that pressure is evidence that the boundary is working correctly.</em></p>
 <div class="doc-footer">
-  Source: <code>CODEBURN_TOKEN_OBSERVABILITY_CONSUMPTION_BOUNDARY.md</code> — HTML is the presentation layer. The .md source is authoritative.
-  <br>CodeBurn v1.1 governed architecture baseline.
+  來源：<code>CODEBURN_TOKEN_OBSERVABILITY_CONSUMPTION_BOUNDARY.md</code> — HTML 為展示層，.md 原始檔案為權威來源。
+  <br>CodeBurn v1.1 治理架構基線。
 </div>
 </body>
 </html>

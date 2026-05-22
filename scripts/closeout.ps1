@@ -24,6 +24,20 @@ function Run-Git($args) {
   }
 }
 
+function Assert-StagedDailyMemoryStructured($memoryPath, $branchName) {
+  $cmd = @(
+    "-m", "governance_tools.daily_memory_gate",
+    "--project-root", ".",
+    "--memory-path", $memoryPath,
+    "--branch", $branchName,
+    "--format", "human"
+  )
+  python @cmd
+  if ($LASTEXITCODE -ne 0) {
+    Fail "daily memory structural gate failed (see DAILY_MEMORY_* error above)"
+  }
+}
+
 $today = Get-Date -Format "yyyy-MM-dd"
 $memoryPath = "memory/$today.md"
 
@@ -79,6 +93,8 @@ if (-not ($staged -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_
 if (-not ($staged.Trim())) {
   Fail "no staged changes; closeout aborted"
 }
+
+Assert-StagedDailyMemoryStructured $memoryPath $Branch
 
 Run-Git @("commit", "-m", $CommitMessage)
 Run-Git @("push", "origin", $Branch)

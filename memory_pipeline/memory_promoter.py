@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -49,7 +50,8 @@ def promote_candidate(
     )
 
     kb_text = knowledge_base.read_text(encoding="utf-8") if knowledge_base.exists() else ""
-    if f"## {heading}" not in kb_text:
+    heading_pattern = re.compile(rf"^## {re.escape(heading)}$", re.MULTILINE)
+    if not heading_pattern.search(kb_text):
         with knowledge_base.open("a", encoding="utf-8") as fh:
             fh.write(entry)
 

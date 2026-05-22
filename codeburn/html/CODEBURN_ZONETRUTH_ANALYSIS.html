@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +43,25 @@ pre {
   font-size: .87em;
   line-height: 1.6;
 }
-pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre code {
+  display: block;
+  white-space: pre;
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: inherit;
+}
+/* Guard against accidental nested <code> inside fenced blocks. */
+pre code code,
+pre code span,
+pre code strong,
+pre code em {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
 blockquote {
   border-left: 4px solid #aac4e0;
   background: #eef4fb;
@@ -131,9 +149,9 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <body>
 <div class="doc-header">
   <div class="title">ZoneTruth External Repo Governance Analysis</div>
-  <div class="meta">Source: CODEBURN_ZONETRUTH_ANALYSIS.md &nbsp;·&nbsp; Generated: 2026-05-22 17:37 &nbsp;·&nbsp; CodeBurn v1.1</div>
+  <div class="meta">來源：CODEBURN_ZONETRUTH_ANALYSIS.md &nbsp;·&nbsp; 生成時間：2026-05-22 18:29 &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>
-<div class="doc-nav"><h4>Contents</h4><a href="#zonetruth-external-repo-governance-analysis">ZoneTruth External Repo Governance Analysis</a><a href="#1-repository-identity">1. Repository Identity</a><a href="#2-governance-readiness-checklist">2. Governance Readiness Checklist</a><a href="#3-readme-claims-analysis-v1-2">3. README Claims Analysis (v1.2)</a><a href="#3a-bounded-claims-correctly-stated">3a. Bounded Claims — Correctly Stated</a><a href="#3b-metrics-v1-2-test-results">3b. Metrics (v1.2 Test Results)</a><a href="#3c-methodology-limitations-correctly-disclosed">3c. Methodology Limitations — Correctly Disclosed</a><a href="#4-contract-yaml-gap-analysis">4. contract.yaml Gap Analysis</a><a href="#5-agents-md-hierarchy-assessment">5. AGENTS.md Hierarchy Assessment</a><a href="#6-swift-component-12-4-unresolved">6. Swift Component (12.4%) — Unresolved</a><a href="#7-evidence-class-ceiling">7. Evidence Class Ceiling</a><a href="#8-onboarding-readiness">8. Onboarding Readiness</a><a href="#9-summary">9. Summary</a></div>
+<div class="doc-nav"><h4>目錄</h4><a href="#zonetruth-external-repo-governance-analysis">ZoneTruth External Repo Governance Analysis</a><a href="#1-repository-identity">1. Repository Identity</a><a href="#2-governance-readiness-checklist">2. Governance Readiness Checklist</a><a href="#3-readme-claims-analysis-v1-2">3. README Claims Analysis (v1.2)</a><a href="#3a-bounded-claims-correctly-stated">3a. Bounded Claims — Correctly Stated</a><a href="#3b-metrics-v1-2-test-results">3b. Metrics (v1.2 Test Results)</a><a href="#3c-methodology-limitations-correctly-disclosed">3c. Methodology Limitations — Correctly Disclosed</a><a href="#4-contract-yaml-gap-analysis">4. contract.yaml Gap Analysis</a><a href="#5-agents-md-hierarchy-assessment">5. AGENTS.md Hierarchy Assessment</a><a href="#6-swift-component-12-4-unresolved">6. Swift Component (12.4%) — Unresolved</a><a href="#7-evidence-class-ceiling">7. Evidence Class Ceiling</a><a href="#8-onboarding-readiness">8. Onboarding Readiness</a><a href="#9-summary">9. Summary</a></div>
 <h1 id="zonetruth-external-repo-governance-analysis">ZoneTruth External Repo Governance Analysis</h1>
 <blockquote>
 <p>Source: https://github.com/Gavin0099/ZoneTruth</p>
@@ -269,8 +287,8 @@ validators:
 <p>ZoneTruth demonstrates good semantic posture at the language layer (NOT-claims, honest disclosure, proxy labeling). The structural gap is enforcement infrastructure: validators are empty and metrics are unlabeled. The repo is governance-discoverable but not governance-enforced.</p>
 <p>This analysis is <span class="class-c">Class C</span> — single-session, single-analyst observation of public repo content. It cannot serve as a verified audit or certification.</p>
 <div class="doc-footer">
-  Source: <code>CODEBURN_ZONETRUTH_ANALYSIS.md</code> — HTML is the presentation layer. The .md source is authoritative.
-  <br>CodeBurn v1.1 governed architecture baseline.
+  來源：<code>CODEBURN_ZONETRUTH_ANALYSIS.md</code> — HTML 為展示層，.md 原始檔案為權威來源。
+  <br>CodeBurn v1.1 治理架構基線。
 </div>
 </body>
 </html>

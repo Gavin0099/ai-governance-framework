@@ -43,7 +43,25 @@ pre {
   font-size: .87em;
   line-height: 1.6;
 }
-pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre code {
+  display: block;
+  white-space: pre;
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: inherit;
+}
+/* Guard against accidental nested <code> inside fenced blocks. */
+pre code code,
+pre code span,
+pre code strong,
+pre code em {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
 blockquote {
   border-left: 4px solid #aac4e0;
   background: #eef4fb;
@@ -131,7 +149,7 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <body>
 <div class="doc-header">
   <div class="title">ZoneTruth 外部 Repo 治理分析</div>
-  <div class="meta">來源：CODEBURN_ZONETRUTH_ANALYSIS_ZH.md &nbsp;·&nbsp; 生成時間：2026-05-22 17:44 &nbsp;·&nbsp; CodeBurn v1.1</div>
+  <div class="meta">來源：CODEBURN_ZONETRUTH_ANALYSIS_ZH.md &nbsp;·&nbsp; 生成時間：2026-05-22 18:29 &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>
 <div class="doc-nav"><h4>目錄</h4><a href="#zonetruth-repo">ZoneTruth 外部 Repo 治理分析</a><a href="#1-repo">1. Repo 基本識別</a><a href="#2">2. 治理就緒度檢查清單</a><a href="#3-readme-v1-2">3. README 聲明分析（v1.2）</a><a href="#3a">3a. 有界聲明 — 正確陳述</a><a href="#3b-v1-2">3b. 指標（v1.2 測試結果）</a><a href="#3c">3c. 方法論限制 — 已正確揭露</a><a href="#4-contract-yaml">4. contract.yaml 缺口分析</a><a href="#5-agents-md">5. AGENTS.md 層級評估</a><a href="#6-swift-12-4">6. Swift 元件（12.4%）— 未解決</a><a href="#7">7. 證據等級上限</a><a href="#8">8. 導入就緒度</a><a href="#9">9. 總結</a></div>
 <h1 id="zonetruth-repo">ZoneTruth 外部 Repo 治理分析</h1>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +43,25 @@ pre {
   font-size: .87em;
   line-height: 1.6;
 }
-pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre code {
+  display: block;
+  white-space: pre;
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: inherit;
+}
+/* Guard against accidental nested <code> inside fenced blocks. */
+pre code code,
+pre code span,
+pre code strong,
+pre code em {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
 blockquote {
   border-left: 4px solid #aac4e0;
   background: #eef4fb;
@@ -131,9 +149,9 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <body>
 <div class="doc-header">
   <div class="title">CodeBurn -- Claude Log Replay / Provenance Verification Contract</div>
-  <div class="meta">Source: CODEBURN_CLAUDE_REPLAY_PROVENANCE_CONTRACT.md &nbsp;·&nbsp; Generated: 2026-05-22 09:45 &nbsp;·&nbsp; CodeBurn v1.1</div>
+  <div class="meta">來源：CODEBURN_CLAUDE_REPLAY_PROVENANCE_CONTRACT.md &nbsp;·&nbsp; 生成時間：2026-05-22 18:29 &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>
-<div class="doc-nav"><h4>Contents</h4><a href="#codeburn-claude-log-replay-provenance-verification-contract">CodeBurn -- Claude Log Replay / Provenance Verification Contract</a><a href="#idempotency-vs-provenance-identity">핵심 구분: Idempotency vs Provenance Identity</a><a href="#non-idempotency">명시적 Non-Idempotency 계약</a><a href="#provenance-identity">결정론적 Provenance Identity</a><a href="#replay">세 가지 Replay 불변량</a><a href="#r1-source-record-line">R1 -- source_record_line 안정성</a><a href="#r2-source-record-offset">R2 -- source_record_offset 안정성</a><a href="#r3-quarantine-provenance">R3 -- quarantine provenance 안정성</a><a href="#">세 가지 경계 선언</a><a href="#1-replay-stable-runtime-observed">경계 1: replay stable != runtime observed</a><a href="#2-duplicate-allowed-duplicate-semantically-consumed">경계 2: duplicate allowed != duplicate semantically consumed</a><a href="#3-provenance-identity-stable-token-truth-verified">경계 3: provenance identity stable != token truth verified</a><a href="#provenance-identity">Provenance Identity 중복 감지 규칙</a><a href="#">이 계약이 승인하는 구현</a><a href="#">이 계약이 승인하지 않는 것</a></div>
+<div class="doc-nav"><h4>目錄</h4><a href="#codeburn-claude-log-replay-provenance-verification-contract">CodeBurn -- Claude Log Replay / Provenance Verification Contract</a><a href="#idempotency-vs-provenance-identity">핵심 구분: Idempotency vs Provenance Identity</a><a href="#non-idempotency">명시적 Non-Idempotency 계약</a><a href="#provenance-identity">결정론적 Provenance Identity</a><a href="#replay">세 가지 Replay 불변량</a><a href="#r1-source-record-line">R1 -- source_record_line 안정성</a><a href="#r2-source-record-offset">R2 -- source_record_offset 안정성</a><a href="#r3-quarantine-provenance">R3 -- quarantine provenance 안정성</a><a href="#">세 가지 경계 선언</a><a href="#1-replay-stable-runtime-observed">경계 1: replay stable != runtime observed</a><a href="#2-duplicate-allowed-duplicate-semantically-consumed">경계 2: duplicate allowed != duplicate semantically consumed</a><a href="#3-provenance-identity-stable-token-truth-verified">경계 3: provenance identity stable != token truth verified</a><a href="#provenance-identity">Provenance Identity 중복 감지 규칙</a><a href="#">이 계약이 승인하는 구현</a><a href="#">이 계약이 승인하지 않는 것</a></div>
 <h1 id="codeburn-claude-log-replay-provenance-verification-contract">CodeBurn -- Claude Log Replay / Provenance Verification Contract</h1>
 <blockquote>
 <p>Written: 2026-05-20</p>
@@ -291,8 +309,8 @@ HAVING COUNT(*) &gt; 1;</code></pre>
 <p><em>반복 가능한 재구성은 여전히 재구성이다.</em></p>
 <p><em><span class="class-c">Class C</span> 는 재현 가능성이 아니라 관찰 거리에 의해 결정된다.</em></p>
 <div class="doc-footer">
-  Source: <code>CODEBURN_CLAUDE_REPLAY_PROVENANCE_CONTRACT.md</code> — HTML is the presentation layer. The .md source is authoritative.
-  <br>CodeBurn v1.1 governed architecture baseline.
+  來源：<code>CODEBURN_CLAUDE_REPLAY_PROVENANCE_CONTRACT.md</code> — HTML 為展示層，.md 原始檔案為權威來源。
+  <br>CodeBurn v1.1 治理架構基線。
 </div>
 </body>
 </html>

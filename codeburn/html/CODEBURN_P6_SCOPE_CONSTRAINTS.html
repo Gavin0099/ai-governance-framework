@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +43,25 @@ pre {
   font-size: .87em;
   line-height: 1.6;
 }
-pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre code {
+  display: block;
+  white-space: pre;
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: inherit;
+}
+/* Guard against accidental nested <code> inside fenced blocks. */
+pre code code,
+pre code span,
+pre code strong,
+pre code em {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
 blockquote {
   border-left: 4px solid #aac4e0;
   background: #eef4fb;
@@ -131,9 +149,9 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <body>
 <div class="doc-header">
   <div class="title">CodeBurn P6 Scope Constraints</div>
-  <div class="meta">Source: CODEBURN_P6_SCOPE_CONSTRAINTS.md &nbsp;·&nbsp; Generated: 2026-05-22 09:45 &nbsp;·&nbsp; CodeBurn v1.1</div>
+  <div class="meta">來源：CODEBURN_P6_SCOPE_CONSTRAINTS.md &nbsp;·&nbsp; 生成時間：2026-05-22 18:29 &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>
-<div class="doc-nav"><h4>Contents</h4><a href="#codeburn-p6-scope-constraints">CodeBurn P6 Scope Constraints</a><a href="#context-why-this-document-exists">Context: Why This Document Exists</a><a href="#constraint-question-1-aggregate-analytics">Constraint Question 1: Aggregate Analytics</a><a href="#constraint-question-2-same-provider-trend-analysis">Constraint Question 2: Same-Provider Trend Analysis</a><a href="#constraint-question-3-cost-estimation">Constraint Question 3: Cost Estimation</a><a href="#constraint-question-4-replay-derived-metrics">Constraint Question 4: Replay-Derived Metrics</a><a href="#constraint-question-5-provider-specific-optimization">Constraint Question 5: Provider-Specific Optimization</a><a href="#constraint-question-6-visualizations-that-cause-authority-inflation">Constraint Question 6: Visualizations That Cause Authority Inflation</a><a href="#summary-the-six-constraints">Summary: The Six Constraints</a><a href="#what-p6-is-permitted-to-build">What P6 Is Permitted To Build</a><a href="#what-p6-is-not-permitted-to-build">What P6 Is NOT Permitted To Build</a><a href="#p6-opening-condition">P6 Opening Condition</a></div>
+<div class="doc-nav"><h4>目錄</h4><a href="#codeburn-p6-scope-constraints">CodeBurn P6 Scope Constraints</a><a href="#context-why-this-document-exists">Context: Why This Document Exists</a><a href="#constraint-question-1-aggregate-analytics">Constraint Question 1: Aggregate Analytics</a><a href="#constraint-question-2-same-provider-trend-analysis">Constraint Question 2: Same-Provider Trend Analysis</a><a href="#constraint-question-3-cost-estimation">Constraint Question 3: Cost Estimation</a><a href="#constraint-question-4-replay-derived-metrics">Constraint Question 4: Replay-Derived Metrics</a><a href="#constraint-question-5-provider-specific-optimization">Constraint Question 5: Provider-Specific Optimization</a><a href="#constraint-question-6-visualizations-that-cause-authority-inflation">Constraint Question 6: Visualizations That Cause Authority Inflation</a><a href="#summary-the-six-constraints">Summary: The Six Constraints</a><a href="#what-p6-is-permitted-to-build">What P6 Is Permitted To Build</a><a href="#what-p6-is-not-permitted-to-build">What P6 Is NOT Permitted To Build</a><a href="#p6-opening-condition">P6 Opening Condition</a></div>
 <h1 id="codeburn-p6-scope-constraints">CodeBurn P6 Scope Constraints</h1>
 <blockquote>
 <p>Status: <strong>PRE-ADMISSION CONSTRAINT DOCUMENT</strong></p>
@@ -353,8 +371,8 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <p>not to upgrade that evidence to a higher epistemic class through the back door</p>
 <p>of visualization and analytics.</p>
 <div class="doc-footer">
-  Source: <code>CODEBURN_P6_SCOPE_CONSTRAINTS.md</code> — HTML is the presentation layer. The .md source is authoritative.
-  <br>CodeBurn v1.1 governed architecture baseline.
+  來源：<code>CODEBURN_P6_SCOPE_CONSTRAINTS.md</code> — HTML 為展示層，.md 原始檔案為權威來源。
+  <br>CodeBurn v1.1 治理架構基線。
 </div>
 </body>
 </html>

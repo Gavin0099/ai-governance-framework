@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +43,25 @@ pre {
   font-size: .87em;
   line-height: 1.6;
 }
-pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre code {
+  display: block;
+  white-space: pre;
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: inherit;
+}
+/* Guard against accidental nested <code> inside fenced blocks. */
+pre code code,
+pre code span,
+pre code strong,
+pre code em {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
 blockquote {
   border-left: 4px solid #aac4e0;
   background: #eef4fb;
@@ -131,9 +149,9 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <body>
 <div class="doc-header">
   <div class="title">CodeBurn -- Acquisition Semantic Freeze</div>
-  <div class="meta">Source: CODEBURN_ACQUISITION_SEMANTIC_FREEZE.md &nbsp;·&nbsp; Generated: 2026-05-22 09:45 &nbsp;·&nbsp; CodeBurn v1.1</div>
+  <div class="meta">來源：CODEBURN_ACQUISITION_SEMANTIC_FREEZE.md &nbsp;·&nbsp; 生成時間：2026-05-22 18:29 &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>
-<div class="doc-nav"><h4>Contents</h4><a href="#codeburn-acquisition-semantic-freeze">CodeBurn -- Acquisition Semantic Freeze</a><a href="#">이 문서의 역할</a><a href="#forbidden-semantic-promotions">금지된 의미론적 승격 (Forbidden Semantic Promotions)</a><a href="#fsp-1-replay-stability-provider-correctness">FSP-1: Replay Stability ->/ Provider Correctness</a><a href="#fsp-2-cross-run-consistency-runtime-completeness">FSP-2: Cross-Run Consistency ->/ Runtime Completeness</a><a href="#fsp-3-multiple-class-c-sources-comparability-admissibility">FSP-3: Multiple Class C Sources ->/ Comparability Admissibility</a><a href="#fsp-4-provider-reported-usage-provider-actual-computation">FSP-4: Provider-Reported Usage ->/ Provider-Actual Computation</a><a href="#fsp-5-acquisition-coverage-growth-governance-authority-growth">FSP-5: Acquisition Coverage Growth ->/ Governance Authority Growth</a><a href="#reconstruction-distance-preservation">재구성 거리 보존 (Reconstruction Distance Preservation)</a><a href="#">의도적 설계 거리 선언</a><a href="#">핵심 선언</a><a href="#">이 선언이 명시적으로 차단하는 주장</a><a href="#">관련 계약</a><a href="#ingestion-duplicate-ingestion-semantics-freeze">중복 Ingestion 의미론 동결 (Duplicate Ingestion Semantics Freeze)</a><a href="#">핵심 구분 (동결)</a><a href="#">소비자 의무</a><a href="#governance-constraint">의도된 Governance Constraint 목록</a><a href="#what-this-system-cannot-do">이 시스템이 현재 할 수 없는 것 (What This System Cannot Do)</a><a href="#anti-collapse-axiom">핵심 공리: Anti-Collapse Axiom</a><a href="#">공리 선언</a><a href="#">이 공리가 보호하는 것</a><a href="#">이 공리가 필요한 이유</a><a href="#fsp">이 공리와 FSP 의 관계</a><a href="#temporal-non-promotion-rule">시간 비승격 규칙 (Temporal Non-Promotion Rule)</a><a href="#anti-collapse-axiom">Anti-Collapse Axiom 과의 차이</a><a href="#">규칙 선언</a><a href="#drift">이 규칙이 차단하는 drift 사슬</a><a href="#">두 개의 명시적 금지 예시</a><a href="#">금지되는 이유</a><a href="#fsp-anti-collapse-axiom">이 규칙과 FSP 및 Anti-Collapse Axiom 의 관계</a></div>
+<div class="doc-nav"><h4>目錄</h4><a href="#codeburn-acquisition-semantic-freeze">CodeBurn -- Acquisition Semantic Freeze</a><a href="#">이 문서의 역할</a><a href="#forbidden-semantic-promotions">금지된 의미론적 승격 (Forbidden Semantic Promotions)</a><a href="#fsp-1-replay-stability-provider-correctness">FSP-1: Replay Stability ->/ Provider Correctness</a><a href="#fsp-2-cross-run-consistency-runtime-completeness">FSP-2: Cross-Run Consistency ->/ Runtime Completeness</a><a href="#fsp-3-multiple-class-c-sources-comparability-admissibility">FSP-3: Multiple Class C Sources ->/ Comparability Admissibility</a><a href="#fsp-4-provider-reported-usage-provider-actual-computation">FSP-4: Provider-Reported Usage ->/ Provider-Actual Computation</a><a href="#fsp-5-acquisition-coverage-growth-governance-authority-growth">FSP-5: Acquisition Coverage Growth ->/ Governance Authority Growth</a><a href="#reconstruction-distance-preservation">재구성 거리 보존 (Reconstruction Distance Preservation)</a><a href="#">의도적 설계 거리 선언</a><a href="#">핵심 선언</a><a href="#">이 선언이 명시적으로 차단하는 주장</a><a href="#">관련 계약</a><a href="#ingestion-duplicate-ingestion-semantics-freeze">중복 Ingestion 의미론 동결 (Duplicate Ingestion Semantics Freeze)</a><a href="#">핵심 구분 (동결)</a><a href="#">소비자 의무</a><a href="#governance-constraint">의도된 Governance Constraint 목록</a><a href="#what-this-system-cannot-do">이 시스템이 현재 할 수 없는 것 (What This System Cannot Do)</a><a href="#anti-collapse-axiom">핵심 공리: Anti-Collapse Axiom</a><a href="#">공리 선언</a><a href="#">이 공리가 보호하는 것</a><a href="#">이 공리가 필요한 이유</a><a href="#fsp">이 공리와 FSP 의 관계</a><a href="#temporal-non-promotion-rule">시간 비승격 규칙 (Temporal Non-Promotion Rule)</a><a href="#anti-collapse-axiom">Anti-Collapse Axiom 과의 차이</a><a href="#">규칙 선언</a><a href="#drift">이 규칙이 차단하는 drift 사슬</a><a href="#">두 개의 명시적 금지 예시</a><a href="#">금지되는 이유</a><a href="#fsp-anti-collapse-axiom">이 규칙과 FSP 및 Anti-Collapse Axiom 의 관계</a></div>
 <h1 id="codeburn-acquisition-semantic-freeze">CodeBurn -- Acquisition Semantic Freeze</h1>
 <blockquote>
 <p>Written: 2026-05-21</p>
@@ -391,8 +409,8 @@ FORBIDDEN: historically-stable -&gt;/ cross-provider-normalizable</code></pre>
 <p><em>유용성이 인식될 때 가장 먼저 침식되는 것은 경계다.</em></p>
 <p><em>이 문서는 그 침식을 사전에 차단한다.</em></p>
 <div class="doc-footer">
-  Source: <code>CODEBURN_ACQUISITION_SEMANTIC_FREEZE.md</code> — HTML is the presentation layer. The .md source is authoritative.
-  <br>CodeBurn v1.1 governed architecture baseline.
+  來源：<code>CODEBURN_ACQUISITION_SEMANTIC_FREEZE.md</code> — HTML 為展示層，.md 原始檔案為權威來源。
+  <br>CodeBurn v1.1 治理架構基線。
 </div>
 </body>
 </html>

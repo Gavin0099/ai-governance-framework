@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +43,25 @@ pre {
   font-size: .87em;
   line-height: 1.6;
 }
-pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre code {
+  display: block;
+  white-space: pre;
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: inherit;
+}
+/* Guard against accidental nested <code> inside fenced blocks. */
+pre code code,
+pre code span,
+pre code strong,
+pre code em {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
 blockquote {
   border-left: 4px solid #aac4e0;
   background: #eef4fb;
@@ -131,9 +149,9 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <body>
 <div class="doc-header">
   <div class="title">CodeBurn -- Codex Log Ingestor Spec (P5.0)</div>
-  <div class="meta">Source: CODEBURN_CODEX_INGESTOR_SPEC.md &nbsp;·&nbsp; Generated: 2026-05-22 09:45 &nbsp;·&nbsp; CodeBurn v1.1</div>
+  <div class="meta">來源：CODEBURN_CODEX_INGESTOR_SPEC.md &nbsp;·&nbsp; 生成時間：2026-05-22 18:29 &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>
-<div class="doc-nav"><h4>Contents</h4><a href="#codeburn-codex-log-ingestor-spec-p5-0">CodeBurn -- Codex Log Ingestor Spec (P5.0)</a><a href="#purpose">Purpose</a><a href="#non-goals-explicit">Non-Goals (Explicit)</a><a href="#admissible-record-selection">Admissible Record Selection</a><a href="#admissible-field-extraction">Admissible Field Extraction</a><a href="#iaf-enforcement-inadmissible-field-categories">IAF Enforcement (Inadmissible Field Categories)</a><a href="#iaf-1-total-token-usage-all-sub-fields">IAF-1: total_token_usage.* (ALL sub-fields)</a><a href="#iaf-2-reasoning-output-tokens-from-both-last-and-total">IAF-2: reasoning_output_tokens (from both last_ and total_)</a><a href="#iaf-3-total-tokens-from-both-last-and-total">IAF-3: total_tokens (from both last_ and total_)</a><a href="#iaf-4-cached-input-tokens-from-both-last-and-total">IAF-4: cached_input_tokens (from both last_ and total_)</a><a href="#iaf-5-model-context-window">IAF-5: model_context_window</a><a href="#iaf-6-rate-limits-all-sub-fields">IAF-6: rate_limits.* (ALL sub-fields)</a><a href="#iaf-7-session-meta-operational-fields">IAF-7: session_meta operational fields</a><a href="#iaf-8-sqlite-surface">IAF-8: SQLite surface</a><a href="#session-identity">Session Identity</a><a href="#malformed-record-handling">Malformed Record Handling</a><a href="#empty-session-handling">Empty session handling</a><a href="#schema">Schema</a><a href="#epistemic-invariants-hard-coded-not-configurable">Epistemic Invariants (Hard-coded, Not Configurable)</a><a href="#provenance-identity">Provenance Identity</a><a href="#what-this-ingestor-cannot-do">What This Ingestor Cannot Do</a><a href="#implementation-tranche-order">Implementation Tranche Order</a></div>
+<div class="doc-nav"><h4>目錄</h4><a href="#codeburn-codex-log-ingestor-spec-p5-0">CodeBurn -- Codex Log Ingestor Spec (P5.0)</a><a href="#purpose">Purpose</a><a href="#non-goals-explicit">Non-Goals (Explicit)</a><a href="#admissible-record-selection">Admissible Record Selection</a><a href="#admissible-field-extraction">Admissible Field Extraction</a><a href="#iaf-enforcement-inadmissible-field-categories">IAF Enforcement (Inadmissible Field Categories)</a><a href="#iaf-1-total-token-usage-all-sub-fields">IAF-1: total_token_usage.* (ALL sub-fields)</a><a href="#iaf-2-reasoning-output-tokens-from-both-last-and-total">IAF-2: reasoning_output_tokens (from both last_ and total_)</a><a href="#iaf-3-total-tokens-from-both-last-and-total">IAF-3: total_tokens (from both last_ and total_)</a><a href="#iaf-4-cached-input-tokens-from-both-last-and-total">IAF-4: cached_input_tokens (from both last_ and total_)</a><a href="#iaf-5-model-context-window">IAF-5: model_context_window</a><a href="#iaf-6-rate-limits-all-sub-fields">IAF-6: rate_limits.* (ALL sub-fields)</a><a href="#iaf-7-session-meta-operational-fields">IAF-7: session_meta operational fields</a><a href="#iaf-8-sqlite-surface">IAF-8: SQLite surface</a><a href="#session-identity">Session Identity</a><a href="#malformed-record-handling">Malformed Record Handling</a><a href="#empty-session-handling">Empty session handling</a><a href="#schema">Schema</a><a href="#epistemic-invariants-hard-coded-not-configurable">Epistemic Invariants (Hard-coded, Not Configurable)</a><a href="#provenance-identity">Provenance Identity</a><a href="#what-this-ingestor-cannot-do">What This Ingestor Cannot Do</a><a href="#implementation-tranche-order">Implementation Tranche Order</a></div>
 <h1 id="codeburn-codex-log-ingestor-spec-p5-0">CodeBurn -- Codex Log Ingestor Spec (P5.0)</h1>
 <blockquote>
 <p>Written: 2026-05-21</p>
@@ -349,8 +367,8 @@ P5.5: replay/provenance verification</code></pre>
 <p><em>This spec exists to ensure Codex enters the system without eroding P0--P4 boundaries.</em></p>
 <p><em>The ordering (spec → tests → implementation) is the boundary enforcement mechanism.</em></p>
 <div class="doc-footer">
-  Source: <code>CODEBURN_CODEX_INGESTOR_SPEC.md</code> — HTML is the presentation layer. The .md source is authoritative.
-  <br>CodeBurn v1.1 governed architecture baseline.
+  來源：<code>CODEBURN_CODEX_INGESTOR_SPEC.md</code> — HTML 為展示層，.md 原始檔案為權威來源。
+  <br>CodeBurn v1.1 治理架構基線。
 </div>
 </body>
 </html>

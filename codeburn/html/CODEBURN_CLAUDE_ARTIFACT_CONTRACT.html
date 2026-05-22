@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +43,25 @@ pre {
   font-size: .87em;
   line-height: 1.6;
 }
-pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre code {
+  display: block;
+  white-space: pre;
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: inherit;
+}
+/* Guard against accidental nested <code> inside fenced blocks. */
+pre code code,
+pre code span,
+pre code strong,
+pre code em {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
 blockquote {
   border-left: 4px solid #aac4e0;
   background: #eef4fb;
@@ -131,9 +149,9 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <body>
 <div class="doc-header">
   <div class="title">CodeBurn — Claude Artifact Ingestion Contract</div>
-  <div class="meta">Source: CODEBURN_CLAUDE_ARTIFACT_CONTRACT.md &nbsp;·&nbsp; Generated: 2026-05-22 09:45 &nbsp;·&nbsp; CodeBurn v1.1</div>
+  <div class="meta">來源：CODEBURN_CLAUDE_ARTIFACT_CONTRACT.md &nbsp;·&nbsp; 生成時間：2026-05-22 18:29 &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>
-<div class="doc-nav"><h4>Contents</h4><a href="#codeburn-claude-artifact-ingestion-contract">CodeBurn — Claude Artifact Ingestion Contract</a><a href="#what-this-document-authorizes">What This Document Authorizes</a><a href="#the-artifact-claude-code-jsonl-session-files">The Artifact: Claude Code `.jsonl` Session Files</a><a href="#observed-record-types">Observed Record Types</a><a href="#the-token-evidence-structure-assistant-records">The Token Evidence Structure (assistant records)</a><a href="#admissible-fields">Admissible Fields</a><a href="#inadmissible-fields-must-not-influence-any-codeburn-claim">Inadmissible Fields (must not influence any CodeBurn claim)</a><a href="#token-count-interpretation-the-cache-problem">Token Count Interpretation: The Cache Problem</a><a href="#the-epistemic-class-class-c-observer-reconstructed">The Epistemic Class: Class C (Observer-Reconstructed)</a><a href="#invariants-what-implementation-must-preserve">Invariants: What Implementation Must Preserve</a><a href="#i1-class-c-assignment-is-unconditional">I1 — Class C Assignment Is Unconditional</a><a href="#i2-missing-token-fields-zero-usage">I2 — Missing Token Fields ≠ Zero Usage</a><a href="#i3-malformed-records-are-quarantined-not-dropped">I3 — Malformed Records Are Quarantined, Not Dropped</a><a href="#i4-source-artifact-path-and-line-number-are-required">I4 — Source Artifact Path and Line Number Are Required</a><a href="#i5-no-authority-upgrade-through-ingestion">I5 — No Authority Upgrade Through Ingestion</a><a href="#i6-reconstruction-gap-must-be-declared">I6 — Reconstruction Gap Must Be Declared</a><a href="#schema-extension-authorization">Schema Extension Authorization</a><a href="#new-table-step-ingestion-provenance">New Table: `step_ingestion_provenance`</a><a href="#new-table-quarantined-records">New Table: `quarantined_records`</a><a href="#new-fields-in-steps-table">New Fields in `steps` Table</a><a href="#negative-path-specifications">Negative-Path Specifications</a><a href="#np1-valid-record-class-c-evidence-written">NP1 — Valid Record → Class C Evidence Written</a><a href="#np2-missing-usage-typed-null-written">NP2 — Missing Usage → Typed Null Written</a><a href="#np3-malformed-json-quarantine-record-written">NP3 — Malformed JSON → Quarantine Record Written</a><a href="#np4-inadmissible-fields-not-stored">NP4 — Inadmissible Fields → Not Stored</a><a href="#np5-cache-tokens-individual-fields-no-total-computed">NP5 — Cache Tokens → Individual Fields, No Total Computed</a><a href="#what-this-contract-does-not-authorize">What This Contract Does NOT Authorize</a></div>
+<div class="doc-nav"><h4>目錄</h4><a href="#codeburn-claude-artifact-ingestion-contract">CodeBurn — Claude Artifact Ingestion Contract</a><a href="#what-this-document-authorizes">What This Document Authorizes</a><a href="#the-artifact-claude-code-jsonl-session-files">The Artifact: Claude Code `.jsonl` Session Files</a><a href="#observed-record-types">Observed Record Types</a><a href="#the-token-evidence-structure-assistant-records">The Token Evidence Structure (assistant records)</a><a href="#admissible-fields">Admissible Fields</a><a href="#inadmissible-fields-must-not-influence-any-codeburn-claim">Inadmissible Fields (must not influence any CodeBurn claim)</a><a href="#token-count-interpretation-the-cache-problem">Token Count Interpretation: The Cache Problem</a><a href="#the-epistemic-class-class-c-observer-reconstructed">The Epistemic Class: Class C (Observer-Reconstructed)</a><a href="#invariants-what-implementation-must-preserve">Invariants: What Implementation Must Preserve</a><a href="#i1-class-c-assignment-is-unconditional">I1 — Class C Assignment Is Unconditional</a><a href="#i2-missing-token-fields-zero-usage">I2 — Missing Token Fields ≠ Zero Usage</a><a href="#i3-malformed-records-are-quarantined-not-dropped">I3 — Malformed Records Are Quarantined, Not Dropped</a><a href="#i4-source-artifact-path-and-line-number-are-required">I4 — Source Artifact Path and Line Number Are Required</a><a href="#i5-no-authority-upgrade-through-ingestion">I5 — No Authority Upgrade Through Ingestion</a><a href="#i6-reconstruction-gap-must-be-declared">I6 — Reconstruction Gap Must Be Declared</a><a href="#schema-extension-authorization">Schema Extension Authorization</a><a href="#new-table-step-ingestion-provenance">New Table: `step_ingestion_provenance`</a><a href="#new-table-quarantined-records">New Table: `quarantined_records`</a><a href="#new-fields-in-steps-table">New Fields in `steps` Table</a><a href="#negative-path-specifications">Negative-Path Specifications</a><a href="#np1-valid-record-class-c-evidence-written">NP1 — Valid Record → Class C Evidence Written</a><a href="#np2-missing-usage-typed-null-written">NP2 — Missing Usage → Typed Null Written</a><a href="#np3-malformed-json-quarantine-record-written">NP3 — Malformed JSON → Quarantine Record Written</a><a href="#np4-inadmissible-fields-not-stored">NP4 — Inadmissible Fields → Not Stored</a><a href="#np5-cache-tokens-individual-fields-no-total-computed">NP5 — Cache Tokens → Individual Fields, No Total Computed</a><a href="#what-this-contract-does-not-authorize">What This Contract Does NOT Authorize</a></div>
 <h1 id="codeburn-claude-artifact-ingestion-contract">CodeBurn — Claude Artifact Ingestion Contract</h1>
 <blockquote>
 <p>Written: 2026-05-20</p>
@@ -369,8 +387,8 @@ analysis_safe_for_decision = True  ← permanently false per Authority Ceiling C
 <p><em>It does not observe. It reconstructs.</em></p>
 <p><em>The reconstruction is always partial. The partiality must be acknowledged in every record.</em></p>
 <div class="doc-footer">
-  Source: <code>CODEBURN_CLAUDE_ARTIFACT_CONTRACT.md</code> — HTML is the presentation layer. The .md source is authoritative.
-  <br>CodeBurn v1.1 governed architecture baseline.
+  來源：<code>CODEBURN_CLAUDE_ARTIFACT_CONTRACT.md</code> — HTML 為展示層，.md 原始檔案為權威來源。
+  <br>CodeBurn v1.1 治理架構基線。
 </div>
 </body>
 </html>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +43,25 @@ pre {
   font-size: .87em;
   line-height: 1.6;
 }
-pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre code {
+  display: block;
+  white-space: pre;
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: inherit;
+}
+/* Guard against accidental nested <code> inside fenced blocks. */
+pre code code,
+pre code span,
+pre code strong,
+pre code em {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
 blockquote {
   border-left: 4px solid #aac4e0;
   background: #eef4fb;
@@ -131,9 +149,9 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <body>
 <div class="doc-header">
   <div class="title">CodeBurn — GitHub Copilot AI Credits Surface Research</div>
-  <div class="meta">Source: CODEBURN_GITHUB_COPILOT_AI_CREDITS_SURFACE_RESEARCH.md &nbsp;·&nbsp; Generated: 2026-05-22 09:45 &nbsp;·&nbsp; CodeBurn v1.1</div>
+  <div class="meta">來源：CODEBURN_GITHUB_COPILOT_AI_CREDITS_SURFACE_RESEARCH.md &nbsp;·&nbsp; 生成時間：2026-05-22 18:29 &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>
-<div class="doc-nav"><h4>Contents</h4><a href="#codeburn-github-copilot-ai-credits-surface-research">CodeBurn — GitHub Copilot AI Credits Surface Research</a><a href="#1-surface-description">1. Surface Description</a><a href="#2-what-this-surface-actually-is">2. What This Surface Actually Is</a><a href="#3-critical-acquisition-gaps">3. Critical Acquisition Gaps</a><a href="#gap-1-code-completions-are-absent">Gap 1: Code Completions Are Absent</a><a href="#gap-2-no-session-level-granularity">Gap 2: No Session-Level Granularity</a><a href="#gap-3-preview-actual-billing">Gap 3: Preview ≠ Actual Billing</a><a href="#gap-4-organization-credit-pooling">Gap 4: Organization Credit Pooling</a><a href="#4-three-non-negotiable-boundaries">4. Three Non-Negotiable Boundaries</a><a href="#boundary-cp-1-ai-credits-raw-token-truth">Boundary CP-1: AI Credits ≠ Raw Token Truth</a><a href="#boundary-cp-2-ai-credits-provider-efficiency-signal">Boundary CP-2: AI Credits ≠ Provider Efficiency Signal</a><a href="#boundary-cp-3-billing-report-session-provenance">Boundary CP-3: Billing Report ≠ Session Provenance</a><a href="#5-proposed-epistemic-classification">5. Proposed Epistemic Classification</a><a href="#6-what-a-future-admission-gate-would-need-to-answer">6. What a Future Admission Gate Would Need to Answer</a><a href="#7-what-is-not-permitted-under-p6-constraints">7. What Is Not Permitted Under P6 Constraints</a><a href="#8-what-is-permitted-under-p6-observability-only">8. What Is Permitted Under P6 (Observability Only)</a><a href="#9-recommendation">9. Recommendation</a><a href="#document-status">Document Status</a></div>
+<div class="doc-nav"><h4>目錄</h4><a href="#codeburn-github-copilot-ai-credits-surface-research">CodeBurn — GitHub Copilot AI Credits Surface Research</a><a href="#1-surface-description">1. Surface Description</a><a href="#2-what-this-surface-actually-is">2. What This Surface Actually Is</a><a href="#3-critical-acquisition-gaps">3. Critical Acquisition Gaps</a><a href="#gap-1-code-completions-are-absent">Gap 1: Code Completions Are Absent</a><a href="#gap-2-no-session-level-granularity">Gap 2: No Session-Level Granularity</a><a href="#gap-3-preview-actual-billing">Gap 3: Preview ≠ Actual Billing</a><a href="#gap-4-organization-credit-pooling">Gap 4: Organization Credit Pooling</a><a href="#4-three-non-negotiable-boundaries">4. Three Non-Negotiable Boundaries</a><a href="#boundary-cp-1-ai-credits-raw-token-truth">Boundary CP-1: AI Credits ≠ Raw Token Truth</a><a href="#boundary-cp-2-ai-credits-provider-efficiency-signal">Boundary CP-2: AI Credits ≠ Provider Efficiency Signal</a><a href="#boundary-cp-3-billing-report-session-provenance">Boundary CP-3: Billing Report ≠ Session Provenance</a><a href="#5-proposed-epistemic-classification">5. Proposed Epistemic Classification</a><a href="#6-what-a-future-admission-gate-would-need-to-answer">6. What a Future Admission Gate Would Need to Answer</a><a href="#7-what-is-not-permitted-under-p6-constraints">7. What Is Not Permitted Under P6 Constraints</a><a href="#8-what-is-permitted-under-p6-observability-only">8. What Is Permitted Under P6 (Observability Only)</a><a href="#9-recommendation">9. Recommendation</a><a href="#document-status">Document Status</a></div>
 <h1 id="codeburn-github-copilot-ai-credits-surface-research">CodeBurn — GitHub Copilot AI Credits Surface Research</h1>
 <blockquote>
 <p>Status: <strong>P6 ADMISSION RESEARCH — NOT YET ADMITTED</strong></p>
@@ -330,8 +348,8 @@ tr:nth-child(even) td { background: #f0f5fa; }
 </ul>
 <p>All six AG-Copilot questions must be answered in an adversarial review document.</p>
 <div class="doc-footer">
-  Source: <code>CODEBURN_GITHUB_COPILOT_AI_CREDITS_SURFACE_RESEARCH.md</code> — HTML is the presentation layer. The .md source is authoritative.
-  <br>CodeBurn v1.1 governed architecture baseline.
+  來源：<code>CODEBURN_GITHUB_COPILOT_AI_CREDITS_SURFACE_RESEARCH.md</code> — HTML 為展示層，.md 原始檔案為權威來源。
+  <br>CodeBurn v1.1 治理架構基線。
 </div>
 </body>
 </html>

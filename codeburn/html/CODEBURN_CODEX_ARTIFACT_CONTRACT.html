@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +43,25 @@ pre {
   font-size: .87em;
   line-height: 1.6;
 }
-pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre code {
+  display: block;
+  white-space: pre;
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: inherit;
+}
+/* Guard against accidental nested <code> inside fenced blocks. */
+pre code code,
+pre code span,
+pre code strong,
+pre code em {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
 blockquote {
   border-left: 4px solid #aac4e0;
   background: #eef4fb;
@@ -131,9 +149,9 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <body>
 <div class="doc-header">
   <div class="title">CodeBurn -- Codex CLI Artifact Contract</div>
-  <div class="meta">Source: CODEBURN_CODEX_ARTIFACT_CONTRACT.md &nbsp;·&nbsp; Generated: 2026-05-22 09:45 &nbsp;·&nbsp; CodeBurn v1.1</div>
+  <div class="meta">來源：CODEBURN_CODEX_ARTIFACT_CONTRACT.md &nbsp;·&nbsp; 生成時間：2026-05-22 18:29 &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>
-<div class="doc-nav"><h4>Contents</h4><a href="#codeburn-codex-cli-artifact-contract">CodeBurn -- Codex CLI Artifact Contract</a><a href="#">이 문서의 역할</a><a href="#">레코드 타입 분류</a><a href="#claude-code">Claude Code 와의 구조적 차이</a><a href="#admissible-fields">Admissible Fields</a><a href="#">레코드 선택 조건</a><a href="#admissible-field">Admissible Field 목록</a><a href="#reasoning-separation-output-tokens">Reasoning Separation 이후 output_tokens 의 의미</a><a href="#inadmissible-fields">Inadmissible Fields</a><a href="#iaf-1-total-token-usage">IAF-1: total_token_usage (세션 누적 금지)</a><a href="#iaf-2-reasoning-output-tokens-reasoning-separation">IAF-2: reasoning_output_tokens (Reasoning Separation)</a><a href="#iaf-3-total-tokens">IAF-3: total_tokens (집계 계산 금지)</a><a href="#iaf-4-cached-input-tokens">IAF-4: cached_input_tokens (청구 계산 금지)</a><a href="#iaf-5-model-context-window">IAF-5: model_context_window (운영 메타데이터)</a><a href="#iaf-6-rate-limits">IAF-6: rate_limits (운영 메타데이터)</a><a href="#iaf-7-session-meta">IAF-7: session_meta 운영 필드</a><a href="#iaf-8-sqlite-acquisition-surface-dual-acquisition-surface-rule">IAF-8: SQLite acquisition surface (Dual Acquisition Surface Rule)</a><a href="#non-transferable-semantics">Non-Transferable Semantics (금지된 의미론적 이전)</a><a href="#nst-1-claude-output-tokens-codex-output-tokens">NST-1: Claude output_tokens !≡ Codex output_tokens</a><a href="#nst-2-claude-cache-tokens-codex-cached-input-tokens">NST-2: Claude cache tokens !≡ Codex cached_input_tokens</a><a href="#nst-3-codex-total-token-usage-claude-turn-token-semantics">NST-3: Codex total_token_usage !≡ Claude turn token semantics</a><a href="#nst-4-codex-reasoning-output-tokens-claude-output-overhead">NST-4: Codex reasoning_output_tokens !≡ Claude output overhead</a><a href="#nst-5-codex-output-tokens-no-reasoning-claude-output-tokens">NST-5: Codex `output_tokens` (no reasoning) !≡ Claude `output_tokens`</a><a href="#reasoning-separation-principle">Reasoning Separation Principle</a><a href="#">선언</a><a href="#">이 원칙이 차단하는 것</a><a href="#">이 원칙이 발생하는 이유</a><a href="#dual-acquisition-surface-rule">Dual Acquisition Surface Rule</a><a href="#">선언</a><a href="#">금지된 추론</a><a href="#">이유</a><a href="#codeburn">CodeBurn 의 선택</a><a href="#epistemic-invariants">Epistemic Invariants</a><a href="#i1-epistemic-class-class-c">I1: Epistemic Class = Class C (독립적으로 결정됨)</a><a href="#i2-real-time-observed-0">I2: real_time_observed = 0 (항상)</a><a href="#i3-analysis-safe-for-decision-0">I3: analysis_safe_for_decision = 0 (항상)</a><a href="#i4-provider-truthfulness-assumed-0">I4: provider_truthfulness_assumed = 0 (항상)</a><a href="#i5-token-null-0">I5: token 부재 = NULL (0 아님)</a><a href="#i6-last-token-usage-null-0">I6: last_token_usage 부재 = NULL (0 아님)</a><a href="#schema-extension-authorization">Schema Extension Authorization</a><a href="#contract">이 Contract 가 남긴 열린 질문</a></div>
+<div class="doc-nav"><h4>目錄</h4><a href="#codeburn-codex-cli-artifact-contract">CodeBurn -- Codex CLI Artifact Contract</a><a href="#">이 문서의 역할</a><a href="#">레코드 타입 분류</a><a href="#claude-code">Claude Code 와의 구조적 차이</a><a href="#admissible-fields">Admissible Fields</a><a href="#">레코드 선택 조건</a><a href="#admissible-field">Admissible Field 목록</a><a href="#reasoning-separation-output-tokens">Reasoning Separation 이후 output_tokens 의 의미</a><a href="#inadmissible-fields">Inadmissible Fields</a><a href="#iaf-1-total-token-usage">IAF-1: total_token_usage (세션 누적 금지)</a><a href="#iaf-2-reasoning-output-tokens-reasoning-separation">IAF-2: reasoning_output_tokens (Reasoning Separation)</a><a href="#iaf-3-total-tokens">IAF-3: total_tokens (집계 계산 금지)</a><a href="#iaf-4-cached-input-tokens">IAF-4: cached_input_tokens (청구 계산 금지)</a><a href="#iaf-5-model-context-window">IAF-5: model_context_window (운영 메타데이터)</a><a href="#iaf-6-rate-limits">IAF-6: rate_limits (운영 메타데이터)</a><a href="#iaf-7-session-meta">IAF-7: session_meta 운영 필드</a><a href="#iaf-8-sqlite-acquisition-surface-dual-acquisition-surface-rule">IAF-8: SQLite acquisition surface (Dual Acquisition Surface Rule)</a><a href="#non-transferable-semantics">Non-Transferable Semantics (금지된 의미론적 이전)</a><a href="#nst-1-claude-output-tokens-codex-output-tokens">NST-1: Claude output_tokens !≡ Codex output_tokens</a><a href="#nst-2-claude-cache-tokens-codex-cached-input-tokens">NST-2: Claude cache tokens !≡ Codex cached_input_tokens</a><a href="#nst-3-codex-total-token-usage-claude-turn-token-semantics">NST-3: Codex total_token_usage !≡ Claude turn token semantics</a><a href="#nst-4-codex-reasoning-output-tokens-claude-output-overhead">NST-4: Codex reasoning_output_tokens !≡ Claude output overhead</a><a href="#nst-5-codex-output-tokens-no-reasoning-claude-output-tokens">NST-5: Codex `output_tokens` (no reasoning) !≡ Claude `output_tokens`</a><a href="#reasoning-separation-principle">Reasoning Separation Principle</a><a href="#">선언</a><a href="#">이 원칙이 차단하는 것</a><a href="#">이 원칙이 발생하는 이유</a><a href="#dual-acquisition-surface-rule">Dual Acquisition Surface Rule</a><a href="#">선언</a><a href="#">금지된 추론</a><a href="#">이유</a><a href="#codeburn">CodeBurn 의 선택</a><a href="#epistemic-invariants">Epistemic Invariants</a><a href="#i1-epistemic-class-class-c">I1: Epistemic Class = Class C (독립적으로 결정됨)</a><a href="#i2-real-time-observed-0">I2: real_time_observed = 0 (항상)</a><a href="#i3-analysis-safe-for-decision-0">I3: analysis_safe_for_decision = 0 (항상)</a><a href="#i4-provider-truthfulness-assumed-0">I4: provider_truthfulness_assumed = 0 (항상)</a><a href="#i5-token-null-0">I5: token 부재 = NULL (0 아님)</a><a href="#i6-last-token-usage-null-0">I6: last_token_usage 부재 = NULL (0 아님)</a><a href="#schema-extension-authorization">Schema Extension Authorization</a><a href="#contract">이 Contract 가 남긴 열린 질문</a></div>
 <h1 id="codeburn-codex-cli-artifact-contract">CodeBurn -- Codex CLI Artifact Contract</h1>
 <blockquote>
 <p>Written: 2026-05-21</p>
@@ -414,8 +432,8 @@ surface A data + surface B data
 <p><em>이 contract 는 Codex ingestion 이 발생할 때 지켜야 할 semantic boundary 를 선언한다.</em></p>
 <p><em>boundary 가 없는 ingestion 은 evidence 가 아니라 noise 다.</em></p>
 <div class="doc-footer">
-  Source: <code>CODEBURN_CODEX_ARTIFACT_CONTRACT.md</code> — HTML is the presentation layer. The .md source is authoritative.
-  <br>CodeBurn v1.1 governed architecture baseline.
+  來源：<code>CODEBURN_CODEX_ARTIFACT_CONTRACT.md</code> — HTML 為展示層，.md 原始檔案為權威來源。
+  <br>CodeBurn v1.1 治理架構基線。
 </div>
 </body>
 </html>

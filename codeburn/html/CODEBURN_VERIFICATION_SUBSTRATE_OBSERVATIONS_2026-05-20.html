@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +43,25 @@ pre {
   font-size: .87em;
   line-height: 1.6;
 }
-pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre code {
+  display: block;
+  white-space: pre;
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: inherit;
+}
+/* Guard against accidental nested <code> inside fenced blocks. */
+pre code code,
+pre code span,
+pre code strong,
+pre code em {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
 blockquote {
   border-left: 4px solid #aac4e0;
   background: #eef4fb;
@@ -131,9 +149,9 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <body>
 <div class="doc-header">
   <div class="title">CodeBurn — Verification Substrate Observations — 2026-05-20</div>
-  <div class="meta">Source: CODEBURN_VERIFICATION_SUBSTRATE_OBSERVATIONS_2026-05-20.md &nbsp;·&nbsp; Generated: 2026-05-22 09:45 &nbsp;·&nbsp; CodeBurn v1.1</div>
+  <div class="meta">來源：CODEBURN_VERIFICATION_SUBSTRATE_OBSERVATIONS_2026-05-20.md &nbsp;·&nbsp; 生成時間：2026-05-22 18:29 &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>
-<div class="doc-nav"><h4>Contents</h4><a href="#codeburn-verification-substrate-observations-2026-05-20">CodeBurn — Verification Substrate Observations — 2026-05-20</a><a href="#purpose">Purpose</a><a href="#1-verification-laundering-the-named-pattern">1. Verification laundering — the named pattern</a><a href="#2-verification-substrate-fragility-governance-substrate-concern">2. Verification substrate fragility — governance substrate concern</a><a href="#3-asymmetrical-evolution-the-architectural-freeze-constraint">3. Asymmetrical evolution — the architectural freeze constraint</a><a href="#4-operational-dependency-creep-the-most-dangerous-drift-path">4. Operational dependency creep — the most dangerous drift path</a><a href="#5-verification-substrate-recovery-what-is-needed">5. Verification substrate recovery — what is needed</a><a href="#document-status">Document status</a></div>
+<div class="doc-nav"><h4>目錄</h4><a href="#codeburn-verification-substrate-observations-2026-05-20">CodeBurn — Verification Substrate Observations — 2026-05-20</a><a href="#purpose">Purpose</a><a href="#1-verification-laundering-the-named-pattern">1. Verification laundering — the named pattern</a><a href="#2-verification-substrate-fragility-governance-substrate-concern">2. Verification substrate fragility — governance substrate concern</a><a href="#3-asymmetrical-evolution-the-architectural-freeze-constraint">3. Asymmetrical evolution — the architectural freeze constraint</a><a href="#4-operational-dependency-creep-the-most-dangerous-drift-path">4. Operational dependency creep — the most dangerous drift path</a><a href="#5-verification-substrate-recovery-what-is-needed">5. Verification substrate recovery — what is needed</a><a href="#document-status">Document status</a></div>
 <h1 id="codeburn-verification-substrate-observations-2026-05-20">CodeBurn — Verification Substrate Observations — 2026-05-20</h1>
 <p>Status: observation record — not a constraint, not a policy document</p>
 <p>Scope: governance substrate failure mode analysis; exemplified by Phase 2 state</p>
@@ -305,8 +323,8 @@ Step 5 (risk): &quot;implementation_landed&quot; ≈ &quot;verified&quot; in dow
 <p>or capability-authority conflation is identified in actual Codeburn usage or</p>
 <p>integration, that instance becomes the evidence base for targeted constraint addition.</p>
 <div class="doc-footer">
-  Source: <code>CODEBURN_VERIFICATION_SUBSTRATE_OBSERVATIONS_2026-05-20.md</code> — HTML is the presentation layer. The .md source is authoritative.
-  <br>CodeBurn v1.1 governed architecture baseline.
+  來源：<code>CODEBURN_VERIFICATION_SUBSTRATE_OBSERVATIONS_2026-05-20.md</code> — HTML 為展示層，.md 原始檔案為權威來源。
+  <br>CodeBurn v1.1 治理架構基線。
 </div>
 </body>
 </html>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +43,25 @@ pre {
   font-size: .87em;
   line-height: 1.6;
 }
-pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre code {
+  display: block;
+  white-space: pre;
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: inherit;
+}
+/* Guard against accidental nested <code> inside fenced blocks. */
+pre code code,
+pre code span,
+pre code strong,
+pre code em {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
 blockquote {
   border-left: 4px solid #aac4e0;
   background: #eef4fb;
@@ -131,9 +149,9 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <body>
 <div class="doc-header">
   <div class="title">CodeBurn -- Codex CLI Artifact Surface Research</div>
-  <div class="meta">Source: CODEBURN_CODEX_ARTIFACT_SURFACE_RESEARCH.md &nbsp;·&nbsp; Generated: 2026-05-22 09:45 &nbsp;·&nbsp; CodeBurn v1.1</div>
+  <div class="meta">來源：CODEBURN_CODEX_ARTIFACT_SURFACE_RESEARCH.md &nbsp;·&nbsp; 生成時間：2026-05-22 18:29 &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>
-<div class="doc-nav"><h4>Contents</h4><a href="#codeburn-codex-cli-artifact-surface-research">CodeBurn -- Codex CLI Artifact Surface Research</a><a href="#research-scope-declaration">연구 한계 선언 (Research Scope Declaration)</a><a href="#">아티팩트 저장 위치 및 구조</a><a href="#">기본 저장 경로</a><a href="#session-index-jsonl">세션 인덱스 형식 (session_index.jsonl)</a><a href="#">세션 로그 파일 형식</a><a href="#">레코드 타입 분류</a><a href="#token">Token 데이터 구조 (핵심 발견)</a><a href="#token">Token 데이터의 위치</a><a href="#token-usage">두 개의 Token Usage 객체</a><a href="#codex-reasoning-output-tokens">Codex 전용 필드: reasoning_output_tokens</a><a href="#sqlite">SQLite 표면 (보조 데이터)</a><a href="#state-5-sqlite-threads">state_5.sqlite -- threads 테이블</a><a href="#logs-2-sqlite">logs_2.sqlite</a><a href="#admissible-inadmissible">admissible/inadmissible 필드 예비 분류</a><a href="#admissible">Admissible 후보 (제한적)</a><a href="#inadmissible">Inadmissible 후보</a><a href="#claude-schema-projection-bias">Claude Schema Projection Bias 위험</a><a href="#1-vs">위험 1: 동일 필드명, 다른 의미 (누적 vs 단위)</a><a href="#2-cached-input-tokens">위험 2: cached_input_tokens 필드명 차이</a><a href="#3-reasoning-output-tokens">위험 3: reasoning_output_tokens 의 비대칭</a><a href="#4-total-tokens">위험 4: total_tokens 의 가용성 차이</a><a href="#5-acquisition-surface">위험 5: 두 개의 acquisition surface 존재</a><a href="#malformed-record">Malformed Record 가능성</a><a href="#">이 연구가 답하지 않은 것</a><a href="#">연구 결론</a></div>
+<div class="doc-nav"><h4>目錄</h4><a href="#codeburn-codex-cli-artifact-surface-research">CodeBurn -- Codex CLI Artifact Surface Research</a><a href="#research-scope-declaration">연구 한계 선언 (Research Scope Declaration)</a><a href="#">아티팩트 저장 위치 및 구조</a><a href="#">기본 저장 경로</a><a href="#session-index-jsonl">세션 인덱스 형식 (session_index.jsonl)</a><a href="#">세션 로그 파일 형식</a><a href="#">레코드 타입 분류</a><a href="#token">Token 데이터 구조 (핵심 발견)</a><a href="#token">Token 데이터의 위치</a><a href="#token-usage">두 개의 Token Usage 객체</a><a href="#codex-reasoning-output-tokens">Codex 전용 필드: reasoning_output_tokens</a><a href="#sqlite">SQLite 표면 (보조 데이터)</a><a href="#state-5-sqlite-threads">state_5.sqlite -- threads 테이블</a><a href="#logs-2-sqlite">logs_2.sqlite</a><a href="#admissible-inadmissible">admissible/inadmissible 필드 예비 분류</a><a href="#admissible">Admissible 후보 (제한적)</a><a href="#inadmissible">Inadmissible 후보</a><a href="#claude-schema-projection-bias">Claude Schema Projection Bias 위험</a><a href="#1-vs">위험 1: 동일 필드명, 다른 의미 (누적 vs 단위)</a><a href="#2-cached-input-tokens">위험 2: cached_input_tokens 필드명 차이</a><a href="#3-reasoning-output-tokens">위험 3: reasoning_output_tokens 의 비대칭</a><a href="#4-total-tokens">위험 4: total_tokens 의 가용성 차이</a><a href="#5-acquisition-surface">위험 5: 두 개의 acquisition surface 존재</a><a href="#malformed-record">Malformed Record 가능성</a><a href="#">이 연구가 답하지 않은 것</a><a href="#">연구 결론</a></div>
 <h1 id="codeburn-codex-cli-artifact-surface-research">CodeBurn -- Codex CLI Artifact Surface Research</h1>
 <blockquote>
 <p>Written: 2026-05-21</p>
@@ -357,8 +375,8 @@ research does not authorize ingestion</code></pre>
 <p><em>이 연구는 Codex acquisition 을 승인하지 않는다.</em></p>
 <p><em>승인은 P5-admission.1 ~ P5-admission.3 을 완료한 후에만 가능하다.</em></p>
 <div class="doc-footer">
-  Source: <code>CODEBURN_CODEX_ARTIFACT_SURFACE_RESEARCH.md</code> — HTML is the presentation layer. The .md source is authoritative.
-  <br>CodeBurn v1.1 governed architecture baseline.
+  來源：<code>CODEBURN_CODEX_ARTIFACT_SURFACE_RESEARCH.md</code> — HTML 為展示層，.md 原始檔案為權威來源。
+  <br>CodeBurn v1.1 治理架構基線。
 </div>
 </body>
 </html>

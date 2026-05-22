@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +43,25 @@ pre {
   font-size: .87em;
   line-height: 1.6;
 }
-pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre code {
+  display: block;
+  white-space: pre;
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: inherit;
+}
+/* Guard against accidental nested <code> inside fenced blocks. */
+pre code code,
+pre code span,
+pre code strong,
+pre code em {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
 blockquote {
   border-left: 4px solid #aac4e0;
   background: #eef4fb;
@@ -131,9 +149,9 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <body>
 <div class="doc-header">
   <div class="title">CodeBurn -- Provider 2 (Codex) Adversarial Review</div>
-  <div class="meta">Source: CODEBURN_PROVIDER2_ADVERSARIAL_REVIEW_CODEX.md &nbsp;·&nbsp; Generated: 2026-05-22 09:45 &nbsp;·&nbsp; CodeBurn v1.1</div>
+  <div class="meta">來源：CODEBURN_PROVIDER2_ADVERSARIAL_REVIEW_CODEX.md &nbsp;·&nbsp; 生成時間：2026-05-22 18:29 &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>
-<div class="doc-nav"><h4>Contents</h4><a href="#codeburn-provider-2-codex-adversarial-review">CodeBurn -- Provider 2 (Codex) Adversarial Review</a><a href="#">이 문서의 역할</a><a href="#">방법론</a><a href="#ar-1-schema-projection-attacks">AR-1: Schema Projection Attacks</a><a href="#ar-1a-field-name-gravity-attack">AR-1a: Field Name Gravity Attack</a><a href="#ar-1b-first-turn-cumulative-camouflage-attack">AR-1b: First-Turn Cumulative Camouflage Attack</a><a href="#ar-1c-cache-token-semantic-proxy-attack">AR-1c: Cache Token Semantic Proxy Attack</a><a href="#ar-1d-class-c-convergence-attack">AR-1d: Class C Convergence Attack</a><a href="#ar-1e-token-source-convergence-attack">AR-1e: Token Source Convergence Attack</a><a href="#ar-2-completeness-superiority-attacks">AR-2: Completeness Superiority Attacks</a><a href="#ar-2a-sqlite-persistence-superiority-attack">AR-2a: SQLite Persistence Superiority Attack</a><a href="#ar-2b-session-index-verification-attack">AR-2b: Session Index Verification Attack</a><a href="#ar-2c-cross-surface-consistency-verification-attack">AR-2c: Cross-Surface Consistency Verification Attack</a><a href="#ar-2d-jsonl-line-count-authority-attack">AR-2d: JSONL Line Count Authority Attack</a><a href="#ar-3-reasoning-assimilation-attacks">AR-3: Reasoning Assimilation Attacks</a><a href="#ar-3a-just-add-it-up-attack">AR-3a: "Just Add It Up" Attack</a><a href="#ar-3b-reasoning-as-cache-overhead-attack">AR-3b: Reasoning as Cache Overhead Attack</a><a href="#ar-3c-zero-reasoning-turn-comparability-attack">AR-3c: "Zero Reasoning Turn" Comparability Attack</a><a href="#ar-3d-provider-efficiency-inference-attack">AR-3d: Provider Efficiency Inference Attack</a><a href="#ar-3e-reasoning-stability-anti-collapse-attack">AR-3e: Reasoning Stability Anti-Collapse Attack</a><a href="#ar-4-replay-stability-inflation-attacks">AR-4: Replay Stability Inflation Attacks</a><a href="#ar-4a-stable-telemetry-attack">AR-4a: "Stable Telemetry" Attack</a><a href="#ar-4b-cross-run-verification-attack">AR-4b: Cross-Run Verification Attack</a><a href="#ar-4c-provenance-identity-truth-attack">AR-4c: Provenance Identity Truth Attack</a><a href="#ar-4d-dual-provider-stability-convergence-attack">AR-4d: Dual Provider Stability Convergence Attack</a><a href="#ar-4e-growing-confidence-accumulation-attack">AR-4e: "Growing Confidence" Accumulation Attack</a><a href="#ag-6-required-outputs">AG-6 Required Outputs</a><a href="#output-1-hidden-comparability-assumptions">Output 1: Hidden Comparability Assumptions</a><a href="#output-2-authority-expansion-vectors">Output 2: Authority Expansion Vectors</a><a href="#output-3-semantic-implications-differing-from-prior-admissions-claude">Output 3: Semantic Implications Differing from Prior Admissions (Claude)</a><a href="#open-items">차단되지 않는 것 (Open Items)</a><a href="#">리뷰 결론</a></div>
+<div class="doc-nav"><h4>目錄</h4><a href="#codeburn-provider-2-codex-adversarial-review">CodeBurn -- Provider 2 (Codex) Adversarial Review</a><a href="#">이 문서의 역할</a><a href="#">방법론</a><a href="#ar-1-schema-projection-attacks">AR-1: Schema Projection Attacks</a><a href="#ar-1a-field-name-gravity-attack">AR-1a: Field Name Gravity Attack</a><a href="#ar-1b-first-turn-cumulative-camouflage-attack">AR-1b: First-Turn Cumulative Camouflage Attack</a><a href="#ar-1c-cache-token-semantic-proxy-attack">AR-1c: Cache Token Semantic Proxy Attack</a><a href="#ar-1d-class-c-convergence-attack">AR-1d: Class C Convergence Attack</a><a href="#ar-1e-token-source-convergence-attack">AR-1e: Token Source Convergence Attack</a><a href="#ar-2-completeness-superiority-attacks">AR-2: Completeness Superiority Attacks</a><a href="#ar-2a-sqlite-persistence-superiority-attack">AR-2a: SQLite Persistence Superiority Attack</a><a href="#ar-2b-session-index-verification-attack">AR-2b: Session Index Verification Attack</a><a href="#ar-2c-cross-surface-consistency-verification-attack">AR-2c: Cross-Surface Consistency Verification Attack</a><a href="#ar-2d-jsonl-line-count-authority-attack">AR-2d: JSONL Line Count Authority Attack</a><a href="#ar-3-reasoning-assimilation-attacks">AR-3: Reasoning Assimilation Attacks</a><a href="#ar-3a-just-add-it-up-attack">AR-3a: "Just Add It Up" Attack</a><a href="#ar-3b-reasoning-as-cache-overhead-attack">AR-3b: Reasoning as Cache Overhead Attack</a><a href="#ar-3c-zero-reasoning-turn-comparability-attack">AR-3c: "Zero Reasoning Turn" Comparability Attack</a><a href="#ar-3d-provider-efficiency-inference-attack">AR-3d: Provider Efficiency Inference Attack</a><a href="#ar-3e-reasoning-stability-anti-collapse-attack">AR-3e: Reasoning Stability Anti-Collapse Attack</a><a href="#ar-4-replay-stability-inflation-attacks">AR-4: Replay Stability Inflation Attacks</a><a href="#ar-4a-stable-telemetry-attack">AR-4a: "Stable Telemetry" Attack</a><a href="#ar-4b-cross-run-verification-attack">AR-4b: Cross-Run Verification Attack</a><a href="#ar-4c-provenance-identity-truth-attack">AR-4c: Provenance Identity Truth Attack</a><a href="#ar-4d-dual-provider-stability-convergence-attack">AR-4d: Dual Provider Stability Convergence Attack</a><a href="#ar-4e-growing-confidence-accumulation-attack">AR-4e: "Growing Confidence" Accumulation Attack</a><a href="#ag-6-required-outputs">AG-6 Required Outputs</a><a href="#output-1-hidden-comparability-assumptions">Output 1: Hidden Comparability Assumptions</a><a href="#output-2-authority-expansion-vectors">Output 2: Authority Expansion Vectors</a><a href="#output-3-semantic-implications-differing-from-prior-admissions-claude">Output 3: Semantic Implications Differing from Prior Admissions (Claude)</a><a href="#open-items">차단되지 않는 것 (Open Items)</a><a href="#">리뷰 결론</a></div>
 <h1 id="codeburn-provider-2-codex-adversarial-review">CodeBurn -- Provider 2 (Codex) Adversarial Review</h1>
 <blockquote>
 <p>Written: 2026-05-21</p>
@@ -539,8 +557,8 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <p><em>이 두 가지는 다르다.</em></p>
 <p><em>그리고 두 번째 방식만이 진짜 adversarial review 다.</em></p>
 <div class="doc-footer">
-  Source: <code>CODEBURN_PROVIDER2_ADVERSARIAL_REVIEW_CODEX.md</code> — HTML is the presentation layer. The .md source is authoritative.
-  <br>CodeBurn v1.1 governed architecture baseline.
+  來源：<code>CODEBURN_PROVIDER2_ADVERSARIAL_REVIEW_CODEX.md</code> — HTML 為展示層，.md 原始檔案為權威來源。
+  <br>CodeBurn v1.1 治理架構基線。
 </div>
 </body>
 </html>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +43,25 @@ pre {
   font-size: .87em;
   line-height: 1.6;
 }
-pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre code {
+  display: block;
+  white-space: pre;
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: inherit;
+}
+/* Guard against accidental nested <code> inside fenced blocks. */
+pre code code,
+pre code span,
+pre code strong,
+pre code em {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
 blockquote {
   border-left: 4px solid #aac4e0;
   background: #eef4fb;
@@ -131,9 +149,9 @@ tr:nth-child(even) td { background: #f0f5fa; }
 <body>
 <div class="doc-header">
   <div class="title">CodeBurn v1.1 — Architecture Freeze Snapshot</div>
-  <div class="meta">Source: CODEBURN_V1_1_ARCHITECTURE_FREEZE.md &nbsp;·&nbsp; Generated: 2026-05-22 09:45 &nbsp;·&nbsp; CodeBurn v1.1</div>
+  <div class="meta">來源：CODEBURN_V1_1_ARCHITECTURE_FREEZE.md &nbsp;·&nbsp; 生成時間：2026-05-22 18:29 &nbsp;·&nbsp; CodeBurn v1.1</div>
 </div>
-<div class="doc-nav"><h4>Contents</h4><a href="#codeburn-v1-1-architecture-freeze-snapshot">CodeBurn v1.1 — Architecture Freeze Snapshot</a><a href="#1-what-was-built">1. What Was Built</a><a href="#2-supported-evidence-classes">2. Supported Evidence Classes</a><a href="#class-c-observer-reconstructed-session-evidence">Class C — Observer-Reconstructed Session Evidence</a><a href="#class-d-billing-reported-evidence">Class D — Billing-Reported Evidence</a><a href="#3-provider-evidence-class-mapping">3. Provider → Evidence Class Mapping</a><a href="#4-non-transferable-semantics-frozen">4. Non-Transferable Semantics (Frozen)</a><a href="#nst-1-token-fields-are-not-cross-provider-comparable">NST-1: Token Fields Are Not Cross-Provider Comparable</a><a href="#nst-2-ai-credits-are-not-token-counts">NST-2: AI Credits Are Not Token Counts</a><a href="#nst-3-rate-limit-tokens-are-not-billing-tokens">NST-3: Rate-Limit Tokens Are Not Billing Tokens</a><a href="#5-admission-gate-requirements-for-any-new-provider">5. Admission Gate Requirements (for any new provider)</a><a href="#6-frozen-invariants">6. Frozen Invariants</a><a href="#anti-collapse-axiom">Anti-Collapse Axiom</a><a href="#field-semantic-permanence-fsp-3">Field Semantic Permanence (FSP-3)</a><a href="#temporal-non-promotion-rule-tnp">Temporal Non-Promotion Rule (TNP)</a><a href="#iaf-4-billing-computation-forbidden">IAF-4: Billing Computation Forbidden</a><a href="#7-closeout-obligations">7. Closeout Obligations</a><a href="#8-forbidden-convergence-paths">8. Forbidden Convergence Paths</a><a href="#fcp-1-the-normalization-slide">FCP-1: The Normalization Slide</a><a href="#fcp-2-the-cost-efficiency-ranking">FCP-2: The Cost Efficiency Ranking</a><a href="#fcp-3-the-historical-calibration-drift">FCP-3: The Historical Calibration Drift</a><a href="#fcp-4-the-dashboard-authority-inflation">FCP-4: The Dashboard Authority Inflation</a><a href="#fcp-5-the-billing-to-token-inversion">FCP-5: The Billing-to-Token Inversion</a><a href="#9-what-the-system-is-not-and-will-not-become-without-formal-upgrade">9. What the System Is Not (and Will Not Become Without Formal Upgrade)</a><a href="#10-rate-limit-observation-posture-unverified-boundary">10. Rate Limit Observation Posture (Unverified Boundary)</a><a href="#unresolved-cache-read-accounting-regime">Unresolved: cache_read accounting regime</a><a href="#permitted-posture">Permitted posture</a><a href="#11-freeze-confirmation">11. Freeze Confirmation</a></div>
+<div class="doc-nav"><h4>目錄</h4><a href="#codeburn-v1-1-architecture-freeze-snapshot">CodeBurn v1.1 — Architecture Freeze Snapshot</a><a href="#1-what-was-built">1. What Was Built</a><a href="#2-supported-evidence-classes">2. Supported Evidence Classes</a><a href="#class-c-observer-reconstructed-session-evidence">Class C — Observer-Reconstructed Session Evidence</a><a href="#class-d-billing-reported-evidence">Class D — Billing-Reported Evidence</a><a href="#3-provider-evidence-class-mapping">3. Provider → Evidence Class Mapping</a><a href="#4-non-transferable-semantics-frozen">4. Non-Transferable Semantics (Frozen)</a><a href="#nst-1-token-fields-are-not-cross-provider-comparable">NST-1: Token Fields Are Not Cross-Provider Comparable</a><a href="#nst-2-ai-credits-are-not-token-counts">NST-2: AI Credits Are Not Token Counts</a><a href="#nst-3-rate-limit-tokens-are-not-billing-tokens">NST-3: Rate-Limit Tokens Are Not Billing Tokens</a><a href="#5-admission-gate-requirements-for-any-new-provider">5. Admission Gate Requirements (for any new provider)</a><a href="#6-frozen-invariants">6. Frozen Invariants</a><a href="#anti-collapse-axiom">Anti-Collapse Axiom</a><a href="#field-semantic-permanence-fsp-3">Field Semantic Permanence (FSP-3)</a><a href="#temporal-non-promotion-rule-tnp">Temporal Non-Promotion Rule (TNP)</a><a href="#iaf-4-billing-computation-forbidden">IAF-4: Billing Computation Forbidden</a><a href="#7-closeout-obligations">7. Closeout Obligations</a><a href="#8-forbidden-convergence-paths">8. Forbidden Convergence Paths</a><a href="#fcp-1-the-normalization-slide">FCP-1: The Normalization Slide</a><a href="#fcp-2-the-cost-efficiency-ranking">FCP-2: The Cost Efficiency Ranking</a><a href="#fcp-3-the-historical-calibration-drift">FCP-3: The Historical Calibration Drift</a><a href="#fcp-4-the-dashboard-authority-inflation">FCP-4: The Dashboard Authority Inflation</a><a href="#fcp-5-the-billing-to-token-inversion">FCP-5: The Billing-to-Token Inversion</a><a href="#9-what-the-system-is-not-and-will-not-become-without-formal-upgrade">9. What the System Is Not (and Will Not Become Without Formal Upgrade)</a><a href="#10-rate-limit-observation-posture-unverified-boundary">10. Rate Limit Observation Posture (Unverified Boundary)</a><a href="#unresolved-cache-read-accounting-regime">Unresolved: cache_read accounting regime</a><a href="#permitted-posture">Permitted posture</a><a href="#11-freeze-confirmation">11. Freeze Confirmation</a></div>
 <h1 id="codeburn-v1-1-architecture-freeze-snapshot">CodeBurn v1.1 — Architecture Freeze Snapshot</h1>
 <blockquote>
 <p>Status: <strong><span class="status-frozen">FROZEN</span> BASELINE</strong></p>
@@ -432,8 +450,8 @@ tr:nth-child(even) td { background: #f0f5fa; }
 </table>
 
 <div class="doc-footer">
-  Source: <code>CODEBURN_V1_1_ARCHITECTURE_FREEZE.md</code> — HTML is the presentation layer. The .md source is authoritative.
-  <br>CodeBurn v1.1 governed architecture baseline.
+  來源：<code>CODEBURN_V1_1_ARCHITECTURE_FREEZE.md</code> — HTML 為展示層，.md 原始檔案為權威來源。
+  <br>CodeBurn v1.1 治理架構基線。
 </div>
 </body>
 </html>

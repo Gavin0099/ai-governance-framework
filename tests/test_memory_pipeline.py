@@ -109,3 +109,38 @@ def test_promote_candidate_reuses_external_domain_memory_aliases(local_memory_ro
     assert Path(result["review_log"]).name == "04_validation_log.md"
     assert "Kernel driver promotion" in Path(result["knowledge_base"]).read_text(encoding="utf-8")
     assert "Approved by: reviewer-02" in Path(result["review_log"]).read_text(encoding="utf-8")
+
+
+def test_promote_candidate_heading_match_is_exact_line(local_memory_root):
+    knowledge_base = local_memory_root / "03_knowledge_base.md"
+    knowledge_base.write_text(
+        "# Knowledge Base\n\n"
+        "## Runtime governance promotion: v2\n"
+        "- Existing entry\n\n",
+        encoding="utf-8",
+    )
+
+    snapshot = create_session_snapshot(
+        memory_root=local_memory_root,
+        task="Runtime governance",
+        summary="Exact heading match required",
+        source_text="example output",
+        risk="medium",
+        oversight="review-required",
+    )
+    promote_candidate(
+        memory_root=local_memory_root,
+        candidate_file=Path(snapshot["snapshot_path"]),
+        approved_by="reviewer-03",
+        title="Runtime governance promotion",
+    )
+    promote_candidate(
+        memory_root=local_memory_root,
+        candidate_file=Path(snapshot["snapshot_path"]),
+        approved_by="reviewer-03",
+        title="Runtime governance promotion",
+    )
+
+    kb_text = knowledge_base.read_text(encoding="utf-8")
+    assert kb_text.count("## Runtime governance promotion\n") == 1
+    assert kb_text.count("## Runtime governance promotion: v2\n") == 1
