@@ -14,10 +14,42 @@
 
 ## 0. Reading Posture
 
-**This document defines the operationally admissible interpretation surface for
-CodeBurn v1.1.**
+### What this document is
 
-Three reading errors this section is here to prevent:
+**This document constrains inference. It does not transmit capability.**
+
+A conventional status document describes what a system can do.
+This document defines which interpretations of CodeBurn v1.1 are not permitted.
+
+That distinction matters because governance erosion does not usually begin at the
+operation layer. It begins at the language layer:
+
+```
+vocabulary shift
+  → implicit ontology
+  → reviewer expectation
+  → contributor assumption
+  → PR and issue wording
+  → dashboard language
+  → architecture drift
+```
+
+Certain words — `quota`, `actual token usage`, `global ceiling`, `usage tracking`,
+`cross-provider`, `billing-grade` — do not just describe operations.
+They project a latent capability: the system *should already have* authoritative
+telemetry, provider-coupled observability, billing-grade precision, enforcement
+legitimacy. Even when the code has none of these.
+
+This is why the Forbidden Phrases section (Section 3) is not a style guide.
+It is the boundary of the permissible inference space. A word that appears in
+that section does not merely sound wrong — it activates an implicit ontology that
+is incompatible with what CodeBurn v1.1 actually is.
+
+Semantic authority drifts before runtime authority does. By the time an architecture
+boundary is violated in code, the same boundary has usually already been violated in
+a dozen documents, issues, and conversations.
+
+### Three reading errors this section is here to prevent
 
 **"Absence from CAN means future roadmap."**
 It does not. Absence from the CAN sections means the action has no governed path
