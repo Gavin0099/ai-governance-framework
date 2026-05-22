@@ -1195,3 +1195,543 @@
 - Risk: low
 - Oversight: auto
 
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260520T061354Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260520T062023Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260520T062910Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260520T063516Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260520T064813Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260520T070119Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260520T071144Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T014415Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T014756Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T015601Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T020053Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T021134Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T021646Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T030307Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T031043Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T032835Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T032905Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T033230Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T034944Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T053539Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T083331Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T083536Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T083936Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T084646Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T085517Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T085612Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T090232Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T090833Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T091805Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T091856Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T092552Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T092717Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T093457Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T093753Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T093836Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T094321Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T094453Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T095103Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: SA Layer 1 all 3 checkpoints verified; scripts/plan_summary.py built (96.7% PLAN.md compression); compression provenance Phase 1 via session_start.py + session_end_hook.py + plan_summary.py; semantic boundaries釘住; RTK and Hermes analyzed (deferred)
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T101504Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: session
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T101520Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260521T101527Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T012654Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T013320Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T013421Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T013812Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T014119Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T014912Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T020900Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T021747Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T025449Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T062332Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T062738Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T063225Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T064355Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T064733Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T065645Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T070441Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T070842Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T071142Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T071325Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T071420Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T071529Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T071943Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T073300Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T074919Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T075042Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T075237Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T075352Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T075643Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T075746Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T075905Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T082306Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T082433Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T082939Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T083219Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T083619Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T083822Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T084148Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T085144Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T085349Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T085854Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T085949Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T090122Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T090327Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T090438Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T091045Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T091356Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T091629Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T091836Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
+- Approved by: governance-auto
+- Candidate: E:\BackUp\Git_EE\ai-governance-framework\memory\candidates\session_20260522T092304Z.json
+- Risk: low
+- Oversight: auto
+
