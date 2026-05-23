@@ -266,10 +266,33 @@ def check_version_compatibility(
 
 
 def write_compatibility_artifact(result: VersionCompatibilityResult, artifact_path: Path) -> None:
-    """Write the compatibility result to a JSON artifact file."""
+    """Write compatibility JSON, skipping no-op rewrites.
+
+    `checked_at` is operational metadata and can change every run even when the
+    compatibility verdict/content stays the same. To avoid perpetual dirty
+    worktrees in parent repos, we do not rewrite the artifact when the only
+    difference is `checked_at`.
+    """
+    new_payload = result.to_dict()
+    comparable_new = dict(new_payload)
+    comparable_new.pop("checked_at", None)
+
+    if artifact_path.is_file():
+        try:
+            existing_payload = json.loads(artifact_path.read_text(encoding="utf-8"))
+            if isinstance(existing_payload, dict):
+                comparable_existing = dict(existing_payload)
+                comparable_existing.pop("checked_at", None)
+                if comparable_existing == comparable_new:
+                    return
+        except Exception:
+            # If existing artifact is unreadable/corrupt, overwrite with a
+            # fresh canonical payload.
+            pass
+
     artifact_path.parent.mkdir(parents=True, exist_ok=True)
     artifact_path.write_text(
-        json.dumps(result.to_dict(), indent=2),
+        json.dumps(new_payload, indent=2),
         encoding="utf-8",
     )
 

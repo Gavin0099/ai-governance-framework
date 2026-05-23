@@ -314,6 +314,30 @@ def test_write_compatibility_artifact(tmp_path: Path) -> None:
     assert loaded["schema_version"] == "1.0"
 
 
+def test_write_compatibility_artifact_skips_checked_at_only_rewrite(tmp_path: Path) -> None:
+    req_path, manifest_path = _make_paths(tmp_path)
+    artifact_path = tmp_path / "out" / "version_compatibility.json"
+
+    first = check_version_compatibility(
+        required_versions_path=req_path,
+        version_manifest_path=manifest_path,
+        checked_at="2026-04-24T00:00:00Z",
+    )
+    write_compatibility_artifact(first, artifact_path)
+    first_bytes = artifact_path.read_bytes()
+
+    second = check_version_compatibility(
+        required_versions_path=req_path,
+        version_manifest_path=manifest_path,
+        checked_at="2026-04-24T00:00:01Z",
+    )
+    write_compatibility_artifact(second, artifact_path)
+    second_bytes = artifact_path.read_bytes()
+
+    # Artifact should stay byte-identical when only checked_at changed.
+    assert first_bytes == second_bytes
+
+
 # ---------------------------------------------------------------------------
 # format_summary smoke
 # ---------------------------------------------------------------------------
