@@ -673,7 +673,20 @@ def check_governance_drift(
 
     try:
         from governance_tools.expansion_boundary_checker import run_checks as _run_expansion_checks
-        _expansion_violations = _run_expansion_checks(framework_root)
+        _expansion_result = _run_expansion_checks(framework_root)
+        _expansion_violations = (
+            _expansion_result.violations
+            if hasattr(_expansion_result, "violations")
+            else list(_expansion_result)
+        )
+        _expansion_warnings = (
+            _expansion_result.warnings
+            if hasattr(_expansion_result, "warnings")
+            else []
+        )
+        for _w in _expansion_warnings:
+            warnings.append(f"expansion_boundary: {_w}")
+
         if _expansion_violations:
             for _v in _expansion_violations:
                 _fail(

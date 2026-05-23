@@ -46,6 +46,29 @@ def test_run_adapter_event_pre_task(local_runtime_root, monkeypatch):
     assert envelope["result"]["ok"] is True
 
 
+def test_run_adapter_event_pre_task_strips_placeholder_task(local_runtime_root, monkeypatch):
+    captured: dict = {}
+
+    import runtime_hooks.adapters.shared_adapter_runner as runner
+
+    def _fake_pre_task_check(**kwargs):
+        captured.update(kwargs)
+        return {"ok": True, "warnings": [], "errors": [], "runtime_contract": {"rules": ["common"]}}
+
+    monkeypatch.setattr(runner, "run_pre_task_check", _fake_pre_task_check)
+
+    payload = {
+        "cwd": str(local_runtime_root),
+        "prompt": "Refactor Avalonia boundary",
+        "active_rules": "common",
+    }
+    envelope = run_adapter_event(normalize_claude, "pre_task", payload)
+    assert envelope["result"]["ok"] is True
+    assert captured.get("task_text") == ""
+    assert envelope["normalized_event"]["task_provenance"]["status"] == "placeholder_suppressed"
+    assert envelope["normalized_event"]["task_provenance"]["source_key"] == "prompt"
+
+
 def test_run_adapter_event_session_start(local_runtime_root):
     governance_dir = local_runtime_root / ".governance"
     governance_dir.mkdir(parents=True, exist_ok=True)

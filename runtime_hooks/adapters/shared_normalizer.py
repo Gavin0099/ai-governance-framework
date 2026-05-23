@@ -18,6 +18,13 @@ def _first_value(payload: dict, *keys, default=None):
     return default
 
 
+def _first_value_with_key(payload: dict, *keys, default=None) -> tuple[object, str | None]:
+    for key in keys:
+        if key in payload and payload[key] not in (None, ""):
+            return payload[key], key
+    return default, None
+
+
 def _normalize_rules(value) -> list[str]:
     if value is None:
         return []
@@ -29,7 +36,7 @@ def _normalize_rules(value) -> list[str]:
 
 
 def normalize_payload(payload: dict, harness: str, event_type: str) -> dict:
-    task = _first_value(payload, "task", "prompt", "request", "goal", "title")
+    task, task_key = _first_value_with_key(payload, "task", "prompt", "request", "goal", "title")
     response_file = _first_value(
         payload,
         "response_file",
@@ -66,6 +73,7 @@ def normalize_payload(payload: dict, harness: str, event_type: str) -> dict:
             "harness": harness,
             "session_id": _first_value(payload, "session_id", "conversation_id", "run_id"),
             "native_event_type": _first_value(payload, "hook_event_name", "event", "event_name", default=event_type),
+            "task_source_key": task_key or "none",
         },
     }
     contract = _first_value(payload, "contract", "contract_file")

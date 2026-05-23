@@ -19,6 +19,20 @@ from runtime_hooks.core.pre_task_check import run_pre_task_check
 from runtime_hooks.core.session_start import build_session_start_context
 from governance_tools.contract_validator import validate_contract
 
+_PLACEHOLDER_TASKS = {
+    "Refactor Avalonia boundary".lower(),
+}
+
+
+def _normalize_task_text(task: object) -> tuple[str, str]:
+    text = str(task or "").strip()
+    if not text:
+        return "", "missing"
+    # Guard against adapter/example placeholder leakage into runtime contract.
+    if text.lower() in _PLACEHOLDER_TASKS:
+        return "", "placeholder_suppressed"
+    return text, "accepted"
+
 
 def _load_payload(file_path: str | None) -> dict:
     if file_path:
@@ -45,6 +59,12 @@ def run_adapter_event(
     payload: dict,
 ) -> dict:
     normalized = normalize_event(payload, event_type=event_type)
+    task_text, task_status = _normalize_task_text(normalized.get("task"))
+    normalized.setdefault("metadata", {})
+    normalized["task_provenance"] = {
+        "status": task_status,
+        "source_key": normalized.get("metadata", {}).get("task_source_key", "none"),
+    }
 
     if event_type == "session_start":
         result = build_session_start_context(
@@ -54,7 +74,7 @@ def run_adapter_event(
             risk=normalized["risk"],
             oversight=normalized["oversight"],
             memory_mode=normalized["memory_mode"],
-            task_text=normalized.get("task") or "",
+            task_text=task_text,
             impact_before_files=[Path(path) for path in normalized.get("impact_before_files", [])],
             impact_after_files=[Path(path) for path in normalized.get("impact_after_files", [])],
             contract_file=Path(normalized["contract"]).resolve() if normalized.get("contract") else None,
@@ -66,6 +86,7 @@ def run_adapter_event(
             risk=normalized["risk"],
             oversight=normalized["oversight"],
             memory_mode=normalized["memory_mode"],
+            task_text=task_text,
             contract_file=Path(normalized["contract"]).resolve() if normalized.get("contract") else None,
         )
     else:
@@ -103,7 +124,7 @@ def run_adapter_event(
             oversight=normalized["oversight"],
             memory_mode=normalized["memory_mode"],
             memory_root=Path(normalized["project_root"]) / "memory" if normalized.get("create_snapshot") else None,
-            snapshot_task=normalized.get("task"),
+            snapshot_task=task_text,
             snapshot_summary=normalized.get("snapshot_summary"),
             create_snapshot=normalized.get("create_snapshot", False),
             checks=checks,

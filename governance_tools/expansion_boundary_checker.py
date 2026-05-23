@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import ast
 import sys
+from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 from typing import NamedTuple
@@ -210,6 +211,28 @@ class Violation(NamedTuple):
     detail: str
 
 
+@dataclass
+class ExpansionBoundaryResult:
+    ok: bool
+    violations: list[Violation] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    checked_files: list[str] = field(default_factory=list)
+
+    def __iter__(self):
+        # Backward compatibility: existing callers iterating over run_checks()
+        # still receive Violation entries.
+        return iter(self.violations)
+
+    def __len__(self) -> int:
+        # Backward compatibility for len(run_checks()) in older callers.
+        return len(self.violations)
+
+    def __bool__(self) -> bool:
+        # Preserve old truthiness contract:
+        # True means "there are violations".
+        return bool(self.violations)
+
+
 def _find_project_root() -> Path:
     here = Path(__file__).resolve().parent
     root = here.parent
@@ -321,37 +344,61 @@ def check_transitional_key_staleness(max_days: int = 90) -> list[Violation]:
     return violations
 
 
-def run_checks(project_root: Path | None = None) -> list[Violation]:
+def run_checks(project_root: Path | None = None) -> ExpansionBoundaryResult:
     if project_root is None:
         project_root = _find_project_root()
 
     all_violations: list[Violation] = []
+    warnings: list[str] = []
+    checked_files: list[str] = []
 
     for rel_path in CORE_HOOKS:
         full_path = project_root / rel_path
         if not full_path.exists():
+            warnings.append(f"core hook file not found: {full_path}")
             continue
-        source = full_path.read_text(encoding="utf-8")
+        checked_files.append(str(full_path))
+        try:
+            source = full_path.read_text(encoding="utf-8")
+        except OSError as exc:
+            warnings.append(f"failed to read {full_path}: {exc}")
+            continue
         all_violations.extend(_check_boundary_violating_imports(full_path, source))
         all_violations.extend(_check_new_return_keys(full_path, source))
 
     all_violations.extend(check_transitional_key_staleness())
 
-    return all_violations
+    return ExpansionBoundaryResult(
+        ok=(len(all_violations) == 0),
+        violations=all_violations,
+        warnings=warnings,
+        checked_files=checked_files,
+    )
 
 
 def main() -> int:
     project_root = _find_project_root()
-    violations = run_checks(project_root)
+    result = run_checks(project_root)
+    violations = result.violations
 
     if not violations:
         print("expansion_boundary_checker: no violations found")
+        if result.warnings:
+            print(f"expansion_boundary_checker: {len(result.warnings)} warning(s)")
+            for item in result.warnings:
+                print(f"  - {item}")
         return 0
 
     print(f"expansion_boundary_checker: {len(violations)} violation(s) found\n")
     for v in violations:
         print(f"  [{v.kind}] {v.file}")
         print(f"    {v.detail}")
+    print()
+
+    if result.warnings:
+        print(f"warnings ({len(result.warnings)}):")
+        for item in result.warnings:
+            print(f"  - {item}")
         print()
 
     print("These may indicate that a runtime expansion bypassed the Expansion Admission Gate.")

@@ -23,6 +23,7 @@ from governance_tools.governance_drift_checker import (
     format_human,
     format_json,
 )
+from governance_tools.expansion_boundary_checker import ExpansionBoundaryResult
 
 FRAMEWORK_ROOT = Path(__file__).parent.parent
 
@@ -546,6 +547,29 @@ def test_all_18_checks_present_in_ok_repo(clean_repo):
     }
     assert set(result.checks.keys()) == expected_checks
     assert len(result.checks) == 18
+
+
+def test_expansion_boundary_warnings_are_surface_in_drift_output(clean_repo, monkeypatch):
+    def _fake_run_checks(_project_root):
+        return ExpansionBoundaryResult(
+            ok=True,
+            violations=[],
+            warnings=["core hook file not found: /tmp/missing.py"],
+            checked_files=[],
+        )
+
+    monkeypatch.setattr(
+        "governance_tools.expansion_boundary_checker.run_checks",
+        _fake_run_checks,
+    )
+
+    result = check_governance_drift(clean_repo, framework_root=FRAMEWORK_ROOT, skip_hash=True)
+
+    assert result.checks.get("expansion_boundary") is True
+    assert any(
+        "expansion_boundary: core hook file not found" in item
+        for item in result.warnings
+    )
 
 
 # ── Custom plan_required_sections (--adopt-existing use case) ─────────────────
