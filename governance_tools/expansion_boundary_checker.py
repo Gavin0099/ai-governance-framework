@@ -173,10 +173,20 @@ _CORE_POST_TASK_KEYS: frozenset[str] = frozenset({
 })
 
 # assumption check + phase classification — admitted 154ad4d / governance-runtime-policy
+# consumption pattern visibility v0.1 — admitted 288521a / 2026-05-05
 _TRANSITIONAL_POST_TASK_KEYS: dict[str, dict] = {
-    "assumption_advisories": {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "assumption_check":      {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
-    "phase_classification":  {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
+    "assumption_advisories":                    {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
+    "assumption_check":                         {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
+    "phase_classification":                     {"status": "transitional", "expected": "core", "admitted_date": "2026-05-03", "source_commit": "154ad4d"},
+    # consumption pattern visibility (helper return dict keys)
+    "by_consumer":                              {"status": "transitional", "expected": "core", "admitted_date": "2026-05-05", "source_commit": "288521a"},
+    "by_field":                                 {"status": "transitional", "expected": "core", "admitted_date": "2026-05-05", "source_commit": "288521a"},
+    "by_type":                                  {"status": "transitional", "expected": "core", "admitted_date": "2026-05-05", "source_commit": "288521a"},
+    "contract_version":                         {"status": "transitional", "expected": "core", "admitted_date": "2026-05-05", "source_commit": "288521a"},
+    "high_frequency_misuse_triggers_enforcement": {"status": "transitional", "expected": "core", "admitted_date": "2026-05-05", "source_commit": "288521a"},
+    "notice":                                   {"status": "transitional", "expected": "core", "admitted_date": "2026-05-05", "source_commit": "288521a"},
+    "total_violations":                         {"status": "transitional", "expected": "core", "admitted_date": "2026-05-05", "source_commit": "288521a"},
+    "visibility_only":                          {"status": "transitional", "expected": "core", "admitted_date": "2026-05-05", "source_commit": "288521a"},
 }
 
 KNOWN_POST_TASK_KEYS = _CORE_POST_TASK_KEYS | frozenset(_TRANSITIONAL_POST_TASK_KEYS)
