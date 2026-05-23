@@ -17,6 +17,7 @@
 - **Enforcement Policy**: PLAN.md now mandates: "No mutation contract = No enforcement claim".
 - **CodeBurn v1.1 Baseline COMPLETE (2026-05-22)**: P0-P7 + STATUS_SNAPSHOT all committed. Architecture freeze stable. No P8 in scope.
   - See: `CODEBURN_V1_1_ARCHITECTURE_FREEZE.md`, `CODEBURN_V1_1_STATUS_SNAPSHOT.md`, `CODEBURN_P7_ADVISORY_THRESHOLD_GOVERNANCE.md`
+- **Runtime Enforcement Attachment v0.1 COMPLETE (2026-05-23)**: `test_enforcement_promotion_gate.py` is the sole risk-sensitive-friction foothold — blocks `--warn-only` removal without observed interception. Does not govern external execution. All other session commits classified observation-only or housekeeping.
 
 ## Pause Condition (Active)
 
