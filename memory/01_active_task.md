@@ -49,3 +49,4 @@ Phase E is in **pause** — do NOT proceed to E2 or add new governance surfaces 
 - Propagation telemetry starts with citation observation, not instrumentation.
 - [x] Promoted memory: Closeout for Copilot Class D ingestion evidence slice with strict semantic boundaries and fixed smoke/test evidence entrypoints.
 - [x] Promoted memory: CodeBurn v1.1 baseline complete + Daily Memory Gate v0.1 stabilization (2026-05-22)
+- [x] Promoted memory: Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)

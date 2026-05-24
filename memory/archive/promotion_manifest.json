@@ -875,6 +875,66 @@
       "candidate_file": "D:\\ai-governance-framework\\memory\\candidates\\session_20260522T153452Z.json",
       "approved_by": "governance-auto",
       "title": "CodeBurn v1.1 baseline complete + Daily Memory Gate v0.1 stabilization (2026-05-22)"
+    },
+    {
+      "promoted_at": "2026-05-24T03:45:42.456861+00:00",
+      "candidate_file": "D:\\ai-governance-framework\\memory\\candidates\\session_20260524T034542Z.json",
+      "approved_by": "governance-auto",
+      "title": "Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)"
+    },
+    {
+      "promoted_at": "2026-05-24T03:53:11.592299+00:00",
+      "candidate_file": "D:\\ai-governance-framework\\memory\\candidates\\session_20260524T035311Z.json",
+      "approved_by": "governance-auto",
+      "title": "Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)"
+    },
+    {
+      "promoted_at": "2026-05-24T04:13:36.408994+00:00",
+      "candidate_file": "D:\\ai-governance-framework\\memory\\candidates\\session_20260524T041336Z.json",
+      "approved_by": "governance-auto",
+      "title": "Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)"
+    },
+    {
+      "promoted_at": "2026-05-24T04:16:56.429773+00:00",
+      "candidate_file": "D:\\ai-governance-framework\\memory\\candidates\\session_20260524T041656Z.json",
+      "approved_by": "governance-auto",
+      "title": "Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)"
+    },
+    {
+      "promoted_at": "2026-05-24T04:19:22.144923+00:00",
+      "candidate_file": "D:\\ai-governance-framework\\memory\\candidates\\session_20260524T041922Z.json",
+      "approved_by": "governance-auto",
+      "title": "Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)"
+    },
+    {
+      "promoted_at": "2026-05-24T04:21:01.410160+00:00",
+      "candidate_file": "D:\\ai-governance-framework\\memory\\candidates\\session_20260524T042101Z.json",
+      "approved_by": "governance-auto",
+      "title": "Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)"
+    },
+    {
+      "promoted_at": "2026-05-24T04:25:23.869240+00:00",
+      "candidate_file": "D:\\ai-governance-framework\\memory\\candidates\\session_20260524T042523Z.json",
+      "approved_by": "governance-auto",
+      "title": "Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)"
+    },
+    {
+      "promoted_at": "2026-05-24T04:43:31.219439+00:00",
+      "candidate_file": "D:\\ai-governance-framework\\memory\\candidates\\session_20260524T044331Z.json",
+      "approved_by": "governance-auto",
+      "title": "Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)"
+    },
+    {
+      "promoted_at": "2026-05-24T04:52:23.980146+00:00",
+      "candidate_file": "D:\\ai-governance-framework\\memory\\candidates\\session_20260524T045223Z.json",
+      "approved_by": "governance-auto",
+      "title": "Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)"
+    },
+    {
+      "promoted_at": "2026-05-24T04:52:50.948365+00:00",
+      "candidate_file": "D:\\ai-governance-framework\\memory\\candidates\\session_20260524T045250Z.json",
+      "approved_by": "governance-auto",
+      "title": "Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)"
     }
   ]
 }

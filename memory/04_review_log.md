@@ -1819,3 +1819,63 @@
 - Risk: low
 - Oversight: auto
 
+## Promotion: Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)
+- Approved by: governance-auto
+- Candidate: D:\ai-governance-framework\memory\candidates\session_20260524T034542Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)
+- Approved by: governance-auto
+- Candidate: D:\ai-governance-framework\memory\candidates\session_20260524T035311Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)
+- Approved by: governance-auto
+- Candidate: D:\ai-governance-framework\memory\candidates\session_20260524T041336Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)
+- Approved by: governance-auto
+- Candidate: D:\ai-governance-framework\memory\candidates\session_20260524T041656Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)
+- Approved by: governance-auto
+- Candidate: D:\ai-governance-framework\memory\candidates\session_20260524T041922Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)
+- Approved by: governance-auto
+- Candidate: D:\ai-governance-framework\memory\candidates\session_20260524T042101Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)
+- Approved by: governance-auto
+- Candidate: D:\ai-governance-framework\memory\candidates\session_20260524T042523Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)
+- Approved by: governance-auto
+- Candidate: D:\ai-governance-framework\memory\candidates\session_20260524T044331Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)
+- Approved by: governance-auto
+- Candidate: D:\ai-governance-framework\memory\candidates\session_20260524T045223Z.json
+- Risk: low
+- Oversight: auto
+
+## Promotion: Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)
+- Approved by: governance-auto
+- Candidate: D:\ai-governance-framework\memory\candidates\session_20260524T045250Z.json
+- Risk: low
+- Oversight: auto
+

@@ -159,3 +159,10 @@
 - Oversight: auto
 - Summary: CodeBurn v1.1 baseline complete + Daily Memory Gate v0.1 stabilization (2026-05-22)
 
+## Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)
+- Captured: 2026-05-24T03:45:42.429082+00:00
+- Approved by: governance-auto
+- Risk: low
+- Oversight: auto
+- Summary: Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)
+
