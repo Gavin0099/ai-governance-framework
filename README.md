@@ -203,3 +203,9 @@ For detailed rationale and epistemic limits, see:
 - `promotion_gate` receipt digest is computed from gate-relevant inputs only, and `signal_profile` keys are sorted before digesting to avoid non-semantic drift from output formatting/order changes.
 - Canonicalization details and versioning/bump rules: `docs/promotion-gate-canonicalization-contract-v0.1.md`
 - Failure topology baseline (`artifacts/test-baseline/failure-topology-v0.1.json`) is diagnostic-only; it does not make pre-existing failures acceptable and does not weaken regression requirements. Use `scripts/compare_failure_topology.py` to classify runs as stable / new_regression / recovery.
+
+## Release Reference
+
+Current release: **v1.0.0-alpha** — [docs/releases/v1.0.0-alpha.md](docs/releases/v1.0.0-alpha.md)
+
+Runtime enforcement entry point: `scripts/run-runtime-governance.sh`
