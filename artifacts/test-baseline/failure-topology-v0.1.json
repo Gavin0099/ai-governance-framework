@@ -1,7 +1,7 @@
 {
   "_schema": "failure_topology_baseline",
   "_version": "0.1",
-  "_purpose": "Frozen failure topology as of canonicalization contract commit. Provides causal isolation for future CI runs: failures in this list are pre-existing and not caused by changes on or after c2a6d87. Updated: 3 GLA-PS-1 failures recovered at commit TBD (2026-05-24).",
+  "_purpose": "Frozen failure topology as of canonicalization contract commit. Provides causal isolation for future CI runs: failures in this list are pre-existing and not caused by changes on or after c2a6d87. Updated: 3 GLA-PS-1 + 5 README anchor failures recovered (2026-05-24). All 44 original failures now recovered — full regression green.",
   "_admissibility_note": "This baseline does NOT make pre-existing failures acceptable. It is diagnostic-only. Failures here still require eventual resolution. Baseline only prevents misclassification of stable failures as new regressions.",
   "_runtime_note": "Topology is environment-specific. Captured on Python 3.14.3 + pytest 9.0.3. Comparisons against different runtimes (e.g. Python 3.11, 3.12) must be labeled runtime-changed and cannot be treated as pure repo drift.",
   "captured_at_commit": "c2a6d87",
@@ -17,10 +17,17 @@
   "recovered": [
     "tests/test_gitlab_adapter_scope_validator.py::test_detects_override_fetch_scope_mismatch",
     "tests/test_external_repo_readiness.py::test_assess_external_repo_fails_on_gitlab_adapter_scope_mismatch",
-    "tests/test_external_repo_smoke.py::test_run_external_repo_smoke_fails_on_gitlab_adapter_scope_mismatch"
+    "tests/test_external_repo_smoke.py::test_run_external_repo_smoke_fails_on_gitlab_adapter_scope_mismatch",
+    "tests/test_governance_auditor.py::test_governance_auditor_passes_on_repo_root",
+    "tests/test_governance_auditor.py::test_governance_auditor_can_include_release_readiness",
+    "tests/test_governance_auditor.py::test_governance_auditor_human_output_is_summary_first",
+    "tests/test_release_readiness.py::test_release_readiness_passes_for_current_alpha",
+    "tests/test_release_readiness.py::test_release_readiness_human_output_is_scannable"
   ],
-  "remaining_failures": 41,
+  "remaining_failures": 0,
+  "full_regression_green_at_commit": "0e7e344",
   "total_skipped": 3,
+  "stable_failures_note": "All 44 original stable_failures have been recovered. List preserved for historical reference only.",
   "stable_failures": [
     "tests/test_drift_checker_risk_signal.py::test_emit_clears_signal_when_all_critical_pass",
     "tests/test_escalation_authority_path_guard.py::test_guard_current_repo_has_no_direct_write_violations",
