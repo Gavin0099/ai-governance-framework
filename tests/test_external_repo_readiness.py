@@ -467,6 +467,40 @@ def test_assess_external_repo_surfaces_agents_calibration_maturity() -> None:
     assert result.agents_calibration["reason"] == "repo_local_paths_commands_or_boundaries_detected"
 
 
+def test_assess_external_repo_fails_on_gitlab_adapter_scope_mismatch() -> None:
+    root = _reset_fixture("gitlab_adapter_scope_mismatch")
+    framework_root = root / "framework"
+    target_root = root / "target"
+
+    _make_framework(framework_root)
+    _make_target_repo(target_root, framework_root)
+    _write_lock(target_root, "1.2.0")
+    _write(
+        target_root / "lib" / "adapters" / "gitlab-wiki-adapter.ts",
+        "\n".join(
+            [
+                "export class GitLabWikiAdapter {",
+                "  async listPages(opts = {}) {",
+                "    const projectId = opts.projectId?.toString() ?? this.projectId;",
+                "    return [];",
+                "  }",
+                "  async _fetchPage(slug: string) {",
+                "    const url = `${this.baseUrl}/api/v4/projects/${encodeURIComponent(this.projectId)}/wikis/${encodeURIComponent(slug)}`;",
+                "    return url;",
+                "  }",
+                "}",
+            ]
+        )
+        + "\n",
+    )
+
+    result = assess_external_repo(target_root)
+
+    assert result.checks["gitlab_adapter_scope_consistent"] is False
+    assert result.ready is False
+    assert any("gitlab-adapter-scope:" in item for item in result.errors)
+
+
 def test_format_human_surfaces_agents_calibration_section() -> None:
     root = _reset_fixture("agents_calibration_human_output")
     target_root = root / "target"

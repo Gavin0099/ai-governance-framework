@@ -240,3 +240,52 @@ def test_format_human_uses_shared_summary_shape(smoke_root: Path) -> None:
     assert "[external_repo_smoke]" in output
     assert "summary=ok=True | rules=common,firmware | pre_task_ok=True | session_start_ok=True | post_task_ok=None" in output
     assert f"contract_path={(smoke_root / 'contract.yaml').resolve()}" in output
+
+
+def test_run_external_repo_smoke_fails_on_gitlab_adapter_scope_mismatch(smoke_root: Path) -> None:
+    _write_version_manifest(smoke_root)
+    _write(
+        smoke_root / "PLAN.md",
+        f"> **最後更新**: {_date.today().isoformat()}\n> **Owner**: tester\n> **Freshness**: Sprint (7d)\n",
+    )
+    _write(smoke_root / "AGENTS.md", "# Agents\n")
+    _write(smoke_root / "CHECKLIST.md", "# Checklist\n")
+    _write(smoke_root / "rules" / "firmware" / "safety.md", "# Firmware safety\n")
+    _write(
+        smoke_root / "contract.yaml",
+        "\n".join(
+            [
+                "name: sample-contract",
+                "domain: firmware",
+                "documents:",
+                "  - CHECKLIST.md",
+                "ai_behavior_override:",
+                "  - AGENTS.md",
+                "rule_roots:",
+                "  - rules",
+            ]
+        ),
+    )
+    _write(
+        smoke_root / "lib" / "adapters" / "gitlab-wiki-adapter.ts",
+        "\n".join(
+            [
+                "export class GitLabWikiAdapter {",
+                "  async listPages(opts = {}) {",
+                "    const projectId = opts.projectId?.toString() ?? this.projectId;",
+                "    return [];",
+                "  }",
+                "  async _fetchPage(slug: string) {",
+                "    const url = `${this.baseUrl}/api/v4/projects/${encodeURIComponent(this.projectId)}/wikis/${encodeURIComponent(slug)}`;",
+                "    return url;",
+                "  }",
+                "}",
+            ]
+        )
+        + "\n",
+    )
+
+    result = run_external_repo_smoke(smoke_root)
+
+    assert result.ok is False
+    assert any("gitlab-adapter-scope:" in item for item in result.errors)

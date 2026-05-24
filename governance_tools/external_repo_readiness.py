@@ -20,6 +20,7 @@ from governance_tools.domain_contract_loader import load_domain_contract
 from governance_tools.external_project_facts_intake import build_external_project_facts_intake, default_output_path
 from governance_tools.adopt_governance import _discover_plan_path
 from governance_tools.framework_versioning import assess_framework_version_status
+from governance_tools.gitlab_adapter_scope_validator import validate_adapter_file
 from governance_tools.governance_drift_checker import check_governance_drift
 from governance_tools.hook_install_validator import validate_hook_install
 from governance_tools.plan_freshness import check_freshness
@@ -156,6 +157,15 @@ def assess_external_repo(
         checks["contract_files_complete"] = False
         warnings.append("contract: contract.yaml not resolved")
 
+    gitlab_adapter_path = repo_root / "lib" / "adapters" / "gitlab-wiki-adapter.ts"
+    if gitlab_adapter_path.exists():
+        scope_check = validate_adapter_file(gitlab_adapter_path)
+        checks["gitlab_adapter_scope_consistent"] = scope_check.valid
+        warnings.extend(f"gitlab-adapter-scope: {item}" for item in scope_check.warnings)
+        errors.extend(f"gitlab-adapter-scope: {item}" for item in scope_check.errors)
+    else:
+        checks["gitlab_adapter_scope_consistent"] = True
+
     project_facts: dict[str, object] | None = None
     try:
         facts_payload = build_external_project_facts_intake(repo_root)
@@ -281,6 +291,7 @@ def assess_external_repo(
         and checks["plan_fresh_enough"]
         and checks["contract_resolved"]
         and checks["contract_files_complete"]
+        and checks["gitlab_adapter_scope_consistent"]
         and checks["framework_release_compatible"]
         # hooks_ready intentionally excluded: hooks are a deployment convenience,
         # not a governance gate. A repo with clean governance but no hooks installed

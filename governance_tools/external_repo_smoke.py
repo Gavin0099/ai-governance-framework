@@ -17,6 +17,7 @@ if __package__ in (None, ""):
 
 from governance_tools.contract_resolver import resolve_contract
 from governance_tools.domain_contract_loader import load_domain_contract
+from governance_tools.gitlab_adapter_scope_validator import validate_adapter_file
 from governance_tools.human_summary import build_summary_line
 from governance_tools.rule_pack_loader import available_rule_packs, parse_rule_list
 from runtime_hooks.core.post_task_check import run_post_task_check
@@ -131,6 +132,12 @@ def run_external_repo_smoke(
             errors.append(f"Contract rule root does not exist: {path}")
         if rule_roots and not missing_rule_roots and rules == ["common"]:
             errors.append("Contract rule roots resolved, but no external rule packs were discovered.")
+
+    gitlab_adapter_path = repo_root / "lib" / "adapters" / "gitlab-wiki-adapter.ts"
+    if gitlab_adapter_path.exists():
+        scope_check = validate_adapter_file(gitlab_adapter_path)
+        warnings.extend(f"gitlab-adapter-scope: {item}" for item in scope_check.warnings)
+        errors.extend(f"gitlab-adapter-scope: {item}" for item in scope_check.errors)
 
     session_start_ok = False
     pre_task_ok = False
