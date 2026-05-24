@@ -1,13 +1,33 @@
-TASK_INTENT: CodeBurn v1.1 baseline complete + Daily Memory Gate v0.1 stabilization (2026-05-22)
+TASK_INTENT: Promotion Gate Canonicalization Contract v0.1 + Failure Topology Freeze (2026-05-24)
 
-WORK_COMPLETED: CodeBurn v1.1 Architecture Freeze documented (P0-P7 + STATUS_SNAPSHOT + ARCHITECTURE_FREEZE committed). Daily Memory Gate v0.1 extracted into governance_tools/daily_memory_gate.py with structural traceability validation (branch/commit/changed-files/test-evidence/open-risks/next_step fields, placeholder blocking, branch-name matching, outgoing-commit reference check); 7 tests passing in tests/test_daily_memory_gate.py. scripts/closeout.ps1 updated to delegate to daily_memory_gate.py. codeburn/tools/render_docs.py code-block readability fixed. memory_pipeline/memory_promoter.py idempotency check added. JSONL field audit completed — non-expansion decision documented. ZoneTruth analysis + Chinese UI default added.
+WORK_COMPLETED:
+1. Promotion gate canonicalization contract v0.1 (commit c2a6d87)
+   - Extracted _build_canonical_gate_input as stable named function with explicit normalization: _normalize_gate_bool, _normalize_gate_text
+   - Added _GATE_INPUT_FIELDS allowlist — unknown fields excluded from digest by contract
+   - Added docs/promotion-gate-canonicalization-contract-v0.1.md: wire format, normalization rules, ordering invariant, bump policy
+   - Added tests/fixtures/promotion_gate_digest_v0_1.json: 4 frozen sha256 digests (empty, enforcement/routing, advisory-only, placeholder_suppressed)
+   - Added tests/test_promotion_gate_digest_regression.py: 9 tests covering digest stability, field presence, unknown-field exclusion, bool/string normalization, ordering invariance, None→empty normalization
+   - Upgraded self-consistent hashing → historically frozen digest identity
+   - Added validation runtime scripts (run_validation_smoke.ps1, setup_validation_env.ps1) + README note
+   - Deleted governance_tools/fleet_attachment_audit.py (anti-pattern file, confirmed never committed)
 
-FILES_TOUCHED: governance_tools/daily_memory_gate.py, tests/test_daily_memory_gate.py, scripts/closeout.ps1, codeburn/tools/render_docs.py, memory_pipeline/memory_promoter.py, codeburn/html/CODEBURN_V1_1_STATUS_SNAPSHOT.html, codeburn/html/CODEBURN_P7_ADVISORY_THRESHOLD_GOVERNANCE.html, memory/2026-05-22.md
+2. Failure topology baseline v0.1 (commit 33e7aac)
+   - artifacts/test-baseline/failure-topology-v0.1.json: 44 pre-existing failures frozen at commit c2a6d87, Python 3.14.3 / pytest 9.0.3
+   - scripts/compare_failure_topology.py: classifies any pytest run into stable_failures / new_regressions / recoveries / unparsed
+   - Validated compare logic with simulated regression + recovery (correct classification)
+   - Diagnostic only — no CI gate, pre-existing failures not legitimized
+   - README note: baseline does not weaken regression requirements
 
-CHECKS_RUN: python -m pytest tests/test_daily_memory_gate.py -q => 7 passed; python -m pytest tests/test_memory_pipeline.py -q => passed; session_closeout_entry --format json => ok=true gate_verdict=OK+ADVISORIES
+FILES_TOUCHED: governance_tools/change_control_summary.py, docs/promotion-gate-canonicalization-contract-v0.1.md, tests/fixtures/promotion_gate_digest_v0_1.json, tests/test_promotion_gate_digest_regression.py, scripts/run_validation_smoke.ps1, scripts/setup_validation_env.ps1, tests/test_change_control_summary.py, README.md, artifacts/test-baseline/failure-topology-v0.1.json, scripts/compare_failure_topology.py
 
-OPEN_RISKS: E1-B Phase 2 showed 4/4 VULNERABLE topology — partial redundancy on Precedence Bypass is incidental, not protected. Phase E PAUSE still active; E2/E3 blocked pending observable trigger. Class D Copilot billing evidence boundary documented in CODEBURN governance docs.
+CHECKS_RUN: python -m pytest tests/test_promotion_gate_digest_regression.py -v => 9/9 passed; python scripts/compare_failure_topology.py --baseline-info => 44 stable_failures confirmed; compare smoke (simulated regression+recovery) => classification correct
 
-NOT_DONE: E1-B Phase 3 enforcement hardening not started — requires observable trigger per active_task.md pause conditions.
+CAUSAL_ISOLATION: 44 pre-existing failures confirmed stash-stable — same failures exist without this session's changes. No touched file overlap with failing tests. Failures pre-date c2a6d87.
 
-RECOMMENDED_MEMORY_UPDATE: Today session-derived entries already written to memory/2026-05-22.md via auto-closeout. No additional promotion needed.
+OPEN_RISKS: full regression has 44 pre-existing failures (Python 3.14.3 / pytest 9.0.3, environment-specific topology). Enforcement promotion still blocked — no observed high/medium materiality interception. governance_effective not demonstrated. Company repo attachment deferred to 2026-05-26.
+
+NOT_DONE: P1 — external_repo_readiness.py / external_repo_smoke.py / gitlab_adapter_scope_validator.py unstaged (another scope). Company repo governance attachment (Monday 2026-05-26). Python 3.11/3.12 validation run for runtime-specific baseline.
+
+COMMIT_SUMMARY:
+  c2a6d87 — governance: freeze promotion gate canonicalization contract v0.1
+  33e7aac — governance: freeze failure topology baseline v0.1
