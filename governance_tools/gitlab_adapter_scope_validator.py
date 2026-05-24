@@ -38,8 +38,9 @@ def _contains_hardwired_fetch_scope(text: str) -> bool:
 def _contains_project_aware_fetch_scope(text: str) -> bool:
     # Accept either a dynamic projectId variable or explicit opts/project map plumbing.
     dynamic_markers = [
-        "projectId)}/wikis/${encodeURIComponent(slug)}",
-        "projectId)}/wikis/${encodeURIComponent(pageId)}",
+        # encodeURIComponent(projectId)} matches local variable only — NOT this.projectId
+        "encodeURIComponent(projectId)}/wikis/${encodeURIComponent(slug)}",
+        "encodeURIComponent(projectId)}/wikis/${encodeURIComponent(pageId)}",
         "slugToProject",
         "pageIdToProject",
     ]
