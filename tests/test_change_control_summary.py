@@ -254,6 +254,129 @@ def test_change_control_summary_promotion_gate_receipt_digest_changes_on_relevan
     )
 
 
+def test_promotion_gate_digest_is_order_invariant_for_signal_profile_keys():
+    from governance_tools.change_control_summary import _evaluate_promotion_gate
+
+    runtime = {
+        "promoted_reported": True,
+        "public_api_diff_reported": True,
+    }
+    task_provenance = {"status": "accepted", "source_key": "prompt"}
+
+    profile_a = {
+        "runtime.decision": {
+            "signal_class": "enforcement",
+            "decision_effect": "routing",
+            "promotion_allowed": True,
+        },
+        "runtime.public_api_diff_present": {
+            "signal_class": "admissibility",
+            "decision_effect": "approval_required",
+            "promotion_allowed": True,
+        },
+        "task": {
+            "signal_class": "descriptive",
+            "decision_effect": "none",
+            "promotion_allowed": False,
+        },
+    }
+    profile_b = {
+        "task": {
+            "signal_class": "descriptive",
+            "decision_effect": "none",
+            "promotion_allowed": False,
+        },
+        "runtime.public_api_diff_present": {
+            "signal_class": "admissibility",
+            "decision_effect": "approval_required",
+            "promotion_allowed": True,
+        },
+        "runtime.decision": {
+            "signal_class": "enforcement",
+            "decision_effect": "routing",
+            "promotion_allowed": True,
+        },
+    }
+
+    gate_a = _evaluate_promotion_gate(
+        signal_profile=profile_a,
+        task_provenance=task_provenance,
+        runtime=runtime,
+        requested_promoted=True,
+    )
+    gate_b = _evaluate_promotion_gate(
+        signal_profile=profile_b,
+        task_provenance=task_provenance,
+        runtime=runtime,
+        requested_promoted=True,
+    )
+    assert gate_a["gate_inputs_digest"] == gate_b["gate_inputs_digest"]
+
+
+def test_promotion_gate_digest_missing_and_null_status_are_equivalent():
+    from governance_tools.change_control_summary import _evaluate_promotion_gate
+
+    runtime = {"promoted_reported": True, "public_api_diff_reported": True}
+    profile = {
+        "runtime.decision": {"signal_class": "enforcement", "decision_effect": "routing"},
+    }
+    gate_missing = _evaluate_promotion_gate(
+        signal_profile=profile,
+        task_provenance={},
+        runtime=runtime,
+        requested_promoted=True,
+    )
+    gate_null = _evaluate_promotion_gate(
+        signal_profile=profile,
+        task_provenance={"status": None},
+        runtime=runtime,
+        requested_promoted=True,
+    )
+    assert gate_missing["gate_inputs_digest"] == gate_null["gate_inputs_digest"]
+
+
+def test_promotion_gate_digest_normalizes_bool_int_string_forms():
+    from governance_tools.change_control_summary import _evaluate_promotion_gate
+
+    profile = {
+        "runtime.decision": {"signal_class": "enforcement", "decision_effect": "routing"},
+    }
+    gate_bool = _evaluate_promotion_gate(
+        signal_profile=profile,
+        task_provenance={"status": "accepted"},
+        runtime={"promoted_reported": True, "public_api_diff_reported": False},
+        requested_promoted=True,
+    )
+    gate_string = _evaluate_promotion_gate(
+        signal_profile=profile,
+        task_provenance={"status": "accepted"},
+        runtime={"promoted_reported": "true", "public_api_diff_reported": "0"},
+        requested_promoted="1",
+    )
+    assert gate_bool["gate_inputs_digest"] == gate_string["gate_inputs_digest"]
+
+
+def test_promotion_gate_digest_ignores_unknown_runtime_fields():
+    from governance_tools.change_control_summary import _evaluate_promotion_gate
+
+    profile = {
+        "runtime.decision": {"signal_class": "enforcement", "decision_effect": "routing"},
+    }
+    gate_a = _evaluate_promotion_gate(
+        signal_profile=profile,
+        task_provenance={"status": "accepted"},
+        runtime={"promoted_reported": True, "public_api_diff_reported": True, "extra_hint": "foo"},
+        requested_promoted=True,
+    )
+    gate_b = _evaluate_promotion_gate(
+        signal_profile=profile,
+        task_provenance={"status": "accepted"},
+        runtime={"promoted_reported": True, "public_api_diff_reported": True, "extra_hint": "bar"},
+        requested_promoted=True,
+    )
+    assert gate_a["gate_inputs_digest"] == gate_b["gate_inputs_digest"]
+
+
 def test_change_control_summary_accepts_smoke_envelope_shape():
     result = build_change_control_summary(
         session_start={

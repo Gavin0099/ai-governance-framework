@@ -22,6 +22,14 @@ _PLACEHOLDER_TASKS = {
     "Refactor Avalonia boundary".lower(),
 }
 _PROMOTION_GATE_CONTRACT_VERSION = "0.1"
+_GATE_INPUT_FIELDS = [
+    "task_provenance.status",
+    "requested_promoted",
+    "runtime.promoted_reported",
+    "runtime.public_api_diff_reported",
+    "signal_profile[*].signal_class",
+    "signal_profile[*].decision_effect",
+]
 
 
 def _load_json(path: Path | None) -> dict[str, Any]:
@@ -159,27 +167,12 @@ def _evaluate_promotion_gate(
     if reasons:
         effective_promoted = False
 
-    gate_input = {
-        "task_provenance_status": (task_provenance.get("status") or "").strip(),
-        "requested_promoted": bool(requested_promoted),
-        "runtime_promoted_reported": bool(runtime.get("promoted_reported")),
-        "runtime_public_api_diff_reported": bool(runtime.get("public_api_diff_reported")),
-        "signal_profile": {
-            key: {
-                "signal_class": (meta.get("signal_class") or "").strip(),
-                "decision_effect": (meta.get("decision_effect") or "").strip(),
-            }
-            for key, meta in sorted(signal_profile.items())
-        },
-    }
-    gate_input_fields = [
-        "task_provenance.status",
-        "requested_promoted",
-        "runtime.promoted_reported",
-        "runtime.public_api_diff_reported",
-        "signal_profile[*].signal_class",
-        "signal_profile[*].decision_effect",
-    ]
+    gate_input = _build_canonical_gate_input(
+        signal_profile=signal_profile,
+        task_provenance=task_provenance,
+        runtime=runtime,
+        requested_promoted=requested_promoted,
+    )
     gate_inputs_digest = hashlib.sha256(
         json.dumps(gate_input, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
@@ -191,8 +184,52 @@ def _evaluate_promotion_gate(
         "allowed": len(reasons) == 0,
         "reasons": reasons,
         "blocking_reasons": reasons,
-        "gate_input_fields": gate_input_fields,
+        "gate_input_fields": list(_GATE_INPUT_FIELDS),
         "gate_inputs_digest": gate_inputs_digest,
+    }
+
+
+def _normalize_gate_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off", ""}:
+            return False
+    return bool(value)
+
+
+def _normalize_gate_text(value: Any) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def _build_canonical_gate_input(
+    *,
+    signal_profile: dict[str, dict[str, Any]],
+    task_provenance: dict[str, Any],
+    runtime: dict[str, Any],
+    requested_promoted: Any,
+) -> dict[str, Any]:
+    # Unknown fields are intentionally excluded from digest input.
+    canonical_profile = {
+        key: {
+            "signal_class": _normalize_gate_text((meta or {}).get("signal_class")),
+            "decision_effect": _normalize_gate_text((meta or {}).get("decision_effect")),
+        }
+        for key, meta in sorted(signal_profile.items())
+    }
+    return {
+        "task_provenance_status": _normalize_gate_text(task_provenance.get("status")),
+        "requested_promoted": _normalize_gate_bool(requested_promoted),
+        "runtime_promoted_reported": _normalize_gate_bool(runtime.get("promoted_reported")),
+        "runtime_public_api_diff_reported": _normalize_gate_bool(runtime.get("public_api_diff_reported")),
+        "signal_profile": canonical_profile,
     }
 
 

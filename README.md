@@ -184,3 +184,21 @@ This framework does **not** currently claim:
 For detailed rationale and epistemic limits, see:
 
 - `docs/LIMITATIONS.md`
+
+## Validation Runtime Note
+
+- Current observed environment `Python 3.14.3 + pytest 9.0.3` is **not** the formal validation runtime for this repo.
+- Formal validation evidence should be produced on `Python 3.11` or `Python 3.12` using:
+  - `scripts/setup_validation_env.ps1`
+  - `scripts/run_validation_smoke.ps1`
+- Validation cache dir policy:
+  - prefer `C:/tmp/ai-governance-framework-pytest-cache`
+  - fallback to repo-local `.pytest_cache_runtime/` when `C:/tmp` is not writable
+- `change_control_summary` direct-script smoke (`python governance_tools/change_control_summary.py --help`) is acceptable as functional evidence for script entrypoint behavior.
+- Full regression remains `full-regression-pending` unless rerun successfully on the formal validation runtime.
+- `run_validation_smoke.ps1` emits one of:
+  - `smoke-passed`
+  - `smoke-failed`
+  - `validation-environment-limited`
+- `promotion_gate` receipt digest is computed from gate-relevant inputs only, and `signal_profile` keys are sorted before digesting to avoid non-semantic drift from output formatting/order changes.
+- Canonicalization details and versioning/bump rules: `docs/promotion-gate-canonicalization-contract-v0.1.md`

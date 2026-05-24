@@ -1,0 +1,101 @@
+{
+  "_schema": "promotion_gate_digest_regression_fixture",
+  "_contract_version": "0.1",
+  "_purpose": "Freeze canonical gate-input digests at v0.1. Any change to _build_canonical_gate_input (normalization, field ordering, json.dumps separators, bool coercion, sort_keys) will change these digests and must be a deliberate version bump.",
+  "_hash_algorithm": "sha256",
+  "_wire_format": "json.dumps(gate_input, ensure_ascii=False, sort_keys=True, separators=(',', ':'))",
+  "cases": [
+    {
+      "name": "empty_signal_profile",
+      "description": "No signals, no provenance status, not promoted — baseline zero state",
+      "inputs": {
+        "signal_profile": {},
+        "task_provenance": {},
+        "runtime": {},
+        "requested_promoted": false
+      },
+      "canonical_gate_input": {
+        "task_provenance_status": "",
+        "requested_promoted": false,
+        "runtime_promoted_reported": false,
+        "runtime_public_api_diff_reported": false,
+        "signal_profile": {}
+      },
+      "digest": "07a763782e2f1bc5a7fc42df8aa857827be8b3112366a069cc7ea10d85dd66e3"
+    },
+    {
+      "name": "enforcement_routing_requested_promoted",
+      "description": "Single enforcement/routing signal, requested_promoted=true — minimum passing case",
+      "inputs": {
+        "signal_profile": {
+          "proposal.recommended_risk": {
+            "signal_class": "enforcement",
+            "decision_effect": "routing"
+          }
+        },
+        "task_provenance": {},
+        "runtime": {"promoted_reported": true},
+        "requested_promoted": true
+      },
+      "canonical_gate_input": {
+        "task_provenance_status": "",
+        "requested_promoted": true,
+        "runtime_promoted_reported": true,
+        "runtime_public_api_diff_reported": false,
+        "signal_profile": {
+          "proposal.recommended_risk": {
+            "signal_class": "enforcement",
+            "decision_effect": "routing"
+          }
+        }
+      },
+      "digest": "a7afa3bae293fcf268501c33bef1e76fdb46a0391900fbea2352c20ba59aca79"
+    },
+    {
+      "name": "advisory_only_requested_promoted",
+      "description": "Advisory-only signal, requested_promoted=true — blocked by advisory_only rule",
+      "inputs": {
+        "signal_profile": {
+          "proposal.recommended_risk": {
+            "signal_class": "advisory",
+            "decision_effect": "routing"
+          }
+        },
+        "task_provenance": {},
+        "runtime": {"promoted_reported": true},
+        "requested_promoted": true
+      },
+      "canonical_gate_input": {
+        "task_provenance_status": "",
+        "requested_promoted": true,
+        "runtime_promoted_reported": true,
+        "runtime_public_api_diff_reported": false,
+        "signal_profile": {
+          "proposal.recommended_risk": {
+            "signal_class": "advisory",
+            "decision_effect": "routing"
+          }
+        }
+      },
+      "digest": "2ce5371d9c15f0890afa16a2431661ac0ce06c7b44e9d53db65b128a08b61f34"
+    },
+    {
+      "name": "placeholder_suppressed",
+      "description": "placeholder_suppressed status blocks promotion regardless of signals",
+      "inputs": {
+        "signal_profile": {},
+        "task_provenance": {"status": "placeholder_suppressed"},
+        "runtime": {"promoted_reported": true},
+        "requested_promoted": true
+      },
+      "canonical_gate_input": {
+        "task_provenance_status": "placeholder_suppressed",
+        "requested_promoted": true,
+        "runtime_promoted_reported": true,
+        "runtime_public_api_diff_reported": false,
+        "signal_profile": {}
+      },
+      "digest": "4272f271c1e1d7d26f67cb302c21e09ca6e117ba8ea6132cd05a088741d26a20"
+    }
+  ]
+}
