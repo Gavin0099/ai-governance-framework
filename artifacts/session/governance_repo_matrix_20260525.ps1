@@ -661,7 +661,8 @@ function Get-RepoNativeHookEvidence {
 		try {
 			$line = (Get-Content -Path $canonicalAudit -Encoding UTF8 | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Last 1)
 			$payload = Parse-JsonLine -Line $line
-			if ($payload) {
+			if ($payload -and -not [bool]$payload.gate_blocked) {
+				# fail-closed: gate_blocked=True entries are rejected — blocked session cannot serve as evidence
 				$evidenceList += (Build-Evidence -Type 'canonical_audit_log' -ArtifactPath $canonicalAudit -Payload $payload)
 			}
 		} catch {
