@@ -1,0 +1,2 @@
+{"date":"2026-05-25","snapshot":"governance_repo_matrix_snapshot_20260525_153610","required_verified":1,"required_total":10,"ratio":0.1,"note":"P0 pilot complete; scope classification first run"}
+{"date":"2026-05-25","snapshot":"governance_repo_matrix_snapshot_20260525_155001","required_verified":1,"required_total":10,"ratio":0.1,"note":"batch expected_dirty.json for 8 required repos; ratio unchanged — confirms dirty was not true bottleneck; agents=scaffold is dominant blocker (8/9 required)"}

@@ -45,6 +45,12 @@ tiers:
         reason: primary company end-user tool, production path
       - path: E:\BackUp\Git_EE\ai-governance-framework
         reason: governance framework itself; framework integrity is required
+        note: |
+          Known tension: this repo is the rule-maker evaluated by its own rules.
+          If it cannot sustain verified status (e.g. framework dev is permanently
+          dirty), the correct resolution is NOT to lower the standard — it is to
+          treat the dirty state as permanent-expected and document it explicitly.
+          Do NOT reclassify to recommended/exempt to escape the metric.
       - path: E:\BackUp\Git_EE\Kernel-Driver-Contract
         reason: kernel/driver security boundary, highest risk tier
 
