@@ -7,6 +7,25 @@ $requiredVersions = Join-Path $framework 'governance\runtime\required_versions.y
 $dirtyGateMode = if ($env:GOV_MATRIX_DIRTY_MODE) { $env:GOV_MATRIX_DIRTY_MODE } else { 'strict' }
 $governanceScopePath = Join-Path $framework 'governance\fleet\governance_scope.yaml'
 
+function Get-EvidenceTier {
+	param([string]$Repo)
+	$policyPath = Join-Path $Repo 'governance\gate_policy.yaml'
+	if (-not (Test-Path $policyPath)) { return 'unknown' }
+	try {
+		$content = Get-Content -Path $policyPath -Raw -Encoding UTF8
+		$m = [regex]::Match($content, '^evidence_tier:\s*(\S+)', [System.Text.RegularExpressions.RegexOptions]::Multiline)
+		if ($m.Success) { return $m.Groups[1].Value.Trim() }
+		# Fall back to inferring from fail_mode + skip_type
+		$failMode = [regex]::Match($content, '^fail_mode:\s*(\S+)', [System.Text.RegularExpressions.RegexOptions]::Multiline)
+		$skipType = [regex]::Match($content, '^skip_type:\s*(\S+)', [System.Text.RegularExpressions.RegexOptions]::Multiline)
+		if ($failMode.Success -and $failMode.Groups[1].Value.Trim() -eq 'audit') {
+			if ($skipType.Success -and $skipType.Groups[1].Value.Trim() -eq 'structural') { return 'hw_or_build' }
+			return 'audit_mode'
+		}
+		return 'ci_strict'
+	} catch { return 'unknown' }
+}
+
 function Get-GovernanceScope {
 	param([string]$ScopePath)
 	$scope = @{}
@@ -950,11 +969,12 @@ $md += '- repo-native candidate ratio uses hooks/framework-lock/agents signals o
 $md += '- repo-native verified ratio is fail-closed: candidate plus repo-local evidence linked to repo HEAD and within current matrix window, with dirty state explained.'
 $md += ''
 $md += '## Per-Repo Classification'
-$md += '| repo | tier | class | hooks | fw | agents | dirty_ok | evidence | head_ok | ts_ok | blockers -> action |'
-$md += '|---|---|---|---|---|---|---|---|---|---|---|'
+$md += '| repo | tier | ev_tier | class | hooks | fw | agents | dirty_ok | evidence | head_ok | ts_ok | blockers -> action |'
+$md += '|---|---|---|---|---|---|---|---|---|---|---|---|'
 foreach ($d in $allRepoNative.details) {
 	$name = [System.IO.Path]::GetFileName([string]$d.repo)
 	$tierCol = if ($governanceScope.ContainsKey([string]$d.repo)) { $governanceScope[[string]$d.repo] } else { 'unknown' }
+	$evTierCol = Get-EvidenceTier -Repo ([string]$d.repo)
 	$cl = [string]$d.classification
 	$hooks = if ([bool]$d.hooks_ready) { 'Y' } else { 'N' }
 	$fw = if ([bool]$d.framework_version_known) { 'Y' } else { 'N' }
@@ -972,7 +992,7 @@ foreach ($d in $allRepoNative.details) {
 	if ([bool]$d.repo_native_hook_evidence_exists -and -not [bool]$d.repo_native_hook_head_match) { $blockers += 'head_commit_match=false -> run closeout' }
 	if ([bool]$d.repo_native_hook_evidence_exists -and -not [bool]$d.repo_native_hook_timestamp_in_window) { $blockers += 'timestamp_stale -> run closeout' }
 	$blockerStr = if ($blockers.Count -eq 0) { 'none' } else { ($blockers -join '; ') }
-	$md += "| $name | $tierCol | $cl | $hooks | $fw | $ag | $dok | $ev | $hok | $tok | $blockerStr |"
+	$md += "| $name | $tierCol | $evTierCol | $cl | $hooks | $fw | $ag | $dok | $ev | $hok | $tok | $blockerStr |"
 }
 Set-Content -Path $snapshotMdPath -Value ($md -join "`r`n") -Encoding UTF8
 
