@@ -47,7 +47,15 @@ def _contains_project_aware_fetch_scope(text: str) -> bool:
     return any(marker in text for marker in dynamic_markers)
 
 
-def validate_adapter_file(path: Path) -> ValidationResult:
+def _contains_unknown_slug_default_fallback(text: str) -> bool:
+    fallback_markers = [
+        "?? this.projectId",
+        "|| this.projectId",
+    ]
+    return any(marker in text for marker in fallback_markers)
+
+
+def validate_adapter_file(path: Path, *, allow_default_project_fallback: bool = False) -> ValidationResult:
     if not path.is_file():
         return ValidationResult(
             valid=False,
@@ -64,10 +72,16 @@ def validate_adapter_file(path: Path) -> ValidationResult:
     supports_override = _contains_project_override_support(text)
     hardwired_scope = _contains_hardwired_fetch_scope(text)
     project_aware_fetch = _contains_project_aware_fetch_scope(text)
+    unsafe_default_fallback = _contains_unknown_slug_default_fallback(text)
 
     if supports_override and hardwired_scope and not project_aware_fetch:
         errors.append(
             "listPages supports opts.projectId but content fetch scope appears fixed to this.projectId"
+        )
+
+    if supports_override and unsafe_default_fallback and not allow_default_project_fallback:
+        errors.append(
+            "unknown slug fallback to default project detected; require explicit scoped fallback instead"
         )
 
     if not supports_override:
@@ -112,13 +126,21 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help="Path to GitLab wiki adapter TypeScript file.",
     )
+    parser.add_argument(
+        "--allow-default-project-fallback",
+        action="store_true",
+        help="Allow unknown slug fallback to constructor default project scope.",
+    )
     return parser
 
 
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
-    result = validate_adapter_file(Path(args.adapter_file))
+    result = validate_adapter_file(
+        Path(args.adapter_file),
+        allow_default_project_fallback=args.allow_default_project_fallback,
+    )
     print(format_human(result))
     return 0 if result.valid else 1
 
