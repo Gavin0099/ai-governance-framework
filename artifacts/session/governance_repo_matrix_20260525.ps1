@@ -5,6 +5,32 @@ $framework = 'E:\BackUp\Git_EE\ai-governance-framework'
 $py = Join-Path $framework '.venv\Scripts\python.exe'
 $requiredVersions = Join-Path $framework 'governance\runtime\required_versions.yaml'
 $dirtyGateMode = if ($env:GOV_MATRIX_DIRTY_MODE) { $env:GOV_MATRIX_DIRTY_MODE } else { 'strict' }
+$governanceScopePath = Join-Path $framework 'governance\fleet\governance_scope.yaml'
+
+function Get-GovernanceScope {
+	param([string]$ScopePath)
+	$scope = @{}
+	if (-not (Test-Path $ScopePath)) { return $scope }
+	try {
+		$content = Get-Content -Path $ScopePath -Raw -Encoding UTF8
+		# Parse tier blocks: required / recommended / exempt
+		foreach ($tier in @('required', 'recommended', 'exempt')) {
+			$tierBlock = [regex]::Match($content, "(?s)${tier}:\s*\n.*?meaning:.*?\n\s*repos:(.*?)(?=\n  \w+:|$)", [System.Text.RegularExpressions.RegexOptions]::Singleline)
+			if ($tierBlock.Success) {
+				$pathMatches = [regex]::Matches($tierBlock.Groups[1].Value, '- path:\s*(.+)')
+				foreach ($m in $pathMatches) {
+					$p = $m.Groups[1].Value.Trim()
+					$scope[$p] = $tier
+				}
+			}
+		}
+	} catch {
+		# fail-open: unknown scope if YAML unreadable
+	}
+	return $scope
+}
+
+$governanceScope = Get-GovernanceScope -ScopePath $governanceScopePath
 
 $companyRepos = @(
 	'E:\BackUp\Git_EE\hp-firmware-stresstest-tool',
@@ -816,6 +842,12 @@ $companyRepoNative = Get-RepoNativeStats -Rows $companyRerun -InventoryMap $repo
 $privateRepoNative = Get-RepoNativeStats -Rows $privateBaseline -InventoryMap $repoInventoryMap -MatrixWindowStartUtc $matrixWindowStartUtc
 $allRepoNative = Get-RepoNativeStats -Rows @($companyRerun + $privateBaseline) -InventoryMap $repoInventoryMap -MatrixWindowStartUtc $matrixWindowStartUtc
 
+# Scope-normalized metrics (required tier only)
+$requiredDetails = @($allRepoNative.details | Where-Object { $governanceScope[[string]$_.repo] -eq 'required' })
+$requiredTotal = $requiredDetails.Count
+$requiredVerified = @($requiredDetails | Where-Object { [string]$_.classification -eq 'repo_native_verified' }).Count
+$requiredVerifiedRatio = if ($requiredTotal -gt 0) { [math]::Round($requiredVerified / $requiredTotal, 4) } else { 0 }
+
 $snapshot = [ordered]@{
 	matrix_version = 'v1'
 	generated_at = (Get-Date).ToString('s')
@@ -877,6 +909,11 @@ $snapshot = [ordered]@{
 			company = $companyRepoNative.verified_ratio
 			private = $privateRepoNative.verified_ratio
 		}
+		scope_normalized_verified_ratio = [ordered]@{
+			required_verified = $requiredVerified
+			required_total = $requiredTotal
+			ratio = $requiredVerifiedRatio
+		}
 		repo_native_governance_breakdown = [ordered]@{
 			overall = $allRepoNative
 			company = $companyRepoNative
@@ -903,6 +940,7 @@ $md += "- repo-native governance candidate ratio (company): $($companyRepoNative
 $md += "- repo-native governance verified ratio (company): $($companyRepoNative.repo_native_verified_count)/$($companyRepoNative.total) ($($companyRepoNative.verified_ratio))"
 $md += "- repo-native governance candidate ratio (private): $($privateRepoNative.repo_native_candidate_count)/$($privateRepoNative.total) ($($privateRepoNative.candidate_ratio))"
 $md += "- repo-native governance verified ratio (private): $($privateRepoNative.repo_native_verified_count)/$($privateRepoNative.total) ($($privateRepoNative.verified_ratio))"
+$md += "- scope-normalized verified ratio (required only): $requiredVerified/$requiredTotal ($requiredVerifiedRatio)"
 $md += ""
 $md += '## Notes'
 $md += '- Negative-path and drift tests run with temporary mutation and restoration.'
@@ -911,10 +949,11 @@ $md += '- repo-native candidate ratio uses hooks/framework-lock/agents signals o
 $md += '- repo-native verified ratio is fail-closed: candidate plus repo-local evidence linked to repo HEAD and within current matrix window, with dirty state explained.'
 $md += ''
 $md += '## Per-Repo Classification'
-$md += '| repo | class | hooks | fw | agents | dirty_ok | evidence | head_ok | ts_ok | blockers -> action |'
-$md += '|---|---|---|---|---|---|---|---|---|---|'
+$md += '| repo | tier | class | hooks | fw | agents | dirty_ok | evidence | head_ok | ts_ok | blockers -> action |'
+$md += '|---|---|---|---|---|---|---|---|---|---|---|'
 foreach ($d in $allRepoNative.details) {
 	$name = [System.IO.Path]::GetFileName([string]$d.repo)
+	$tierCol = if ($governanceScope.ContainsKey([string]$d.repo)) { $governanceScope[[string]$d.repo] } else { 'unknown' }
 	$cl = [string]$d.classification
 	$hooks = if ([bool]$d.hooks_ready) { 'Y' } else { 'N' }
 	$fw = if ([bool]$d.framework_version_known) { 'Y' } else { 'N' }
@@ -932,7 +971,7 @@ foreach ($d in $allRepoNative.details) {
 	if ([bool]$d.repo_native_hook_evidence_exists -and -not [bool]$d.repo_native_hook_head_match) { $blockers += 'head_commit_match=false -> run closeout' }
 	if ([bool]$d.repo_native_hook_evidence_exists -and -not [bool]$d.repo_native_hook_timestamp_in_window) { $blockers += 'timestamp_stale -> run closeout' }
 	$blockerStr = if ($blockers.Count -eq 0) { 'none' } else { ($blockers -join '; ') }
-	$md += "| $name | $cl | $hooks | $fw | $ag | $dok | $ev | $hok | $tok | $blockerStr |"
+	$md += "| $name | $tierCol | $cl | $hooks | $fw | $ag | $dok | $ev | $hok | $tok | $blockerStr |"
 }
 Set-Content -Path $snapshotMdPath -Value ($md -join "`r`n") -Encoding UTF8
 
