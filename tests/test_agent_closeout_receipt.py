@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 from governance_tools.manage_agent_closeout import _manual_closeout_cmd, op_status
@@ -36,6 +37,8 @@ def test_closeout_receipt_contains_required_fields_and_checksum(tmp_path: Path) 
     assert payload["trigger_mode"] == "manual_fallback"
     assert payload["entrypoint"] == "governance_tools.session_closeout_entry"
     assert payload["exit_code"] == 0
+    assert "linked_head_commit" in payload
+    assert isinstance(payload["linked_head_commit"], str)
     assert payload["closeout_artifact_path"].endswith("sample.json")
     assert isinstance(payload["checksum_of_cleaned_path"], str)
     assert len(payload["checksum_of_cleaned_path"]) == 64
@@ -43,6 +46,99 @@ def test_closeout_receipt_contains_required_fields_and_checksum(tmp_path: Path) 
     assert payload["memory_write_required"] is True
     assert payload["memory_write_performed"] is False
     assert payload["memory_eligibility_reason"] == "repo_state_or_session_closeout_present"
+
+
+def test_closeout_receipt_includes_linked_head_commit_when_repo_has_head(tmp_path: Path) -> None:
+    subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True, text=True)
+    subprocess.run(["git", "config", "user.name", "test"], cwd=tmp_path, check=True, capture_output=True, text=True)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=tmp_path, check=True, capture_output=True, text=True)
+    (tmp_path / "seed.txt").write_text("seed\n", encoding="utf-8")
+    subprocess.run(["git", "add", "seed.txt"], cwd=tmp_path, check=True, capture_output=True, text=True)
+    subprocess.run(["git", "commit", "-m", "seed"], cwd=tmp_path, check=True, capture_output=True, text=True)
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+    artifact = tmp_path / "artifacts" / "session-closeout.txt"
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    artifact.write_text("TASK_INTENT: test\n", encoding="utf-8")
+
+    receipt_path = _write_closeout_receipt(
+        tmp_path,
+        agent_id="chatgpt-web",
+        trigger_mode="manual_fallback",
+        entrypoint="governance_tools.session_closeout_entry",
+        exit_code=0,
+        closeout_artifact_path=str(artifact),
+        memory_eligibility_evaluated=True,
+        memory_write_required=False,
+        memory_write_performed=False,
+        memory_eligibility_reason="no_eligibility_trigger",
+    )
+    payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert payload["linked_head_commit"] == head
+
+
+def test_matrix_negative_receipt_without_linked_head_commit_not_verified() -> None:
+    def matrix_verified(*, candidate: bool, dirty_explainable: bool, evidence_exists: bool, linked_head_commit: str, repo_head: str, timestamp_in_window: bool) -> bool:
+        head_match = bool(linked_head_commit) and bool(repo_head) and linked_head_commit == repo_head
+        return candidate and dirty_explainable and evidence_exists and head_match and timestamp_in_window
+
+    assert matrix_verified(
+        candidate=True,
+        dirty_explainable=True,
+        evidence_exists=True,
+        linked_head_commit="",
+        repo_head="abc123",
+        timestamp_in_window=True,
+    ) is False
+    assert matrix_verified(
+        candidate=True,
+        dirty_explainable=True,
+        evidence_exists=True,
+        linked_head_commit="abc123",
+        repo_head="abc123",
+        timestamp_in_window=True,
+    ) is True
+
+
+def test_matrix_positive_repo_with_hooks_valid_root_and_fresh_closeout_is_verified() -> None:
+    def matrix_verified(
+        *,
+        hooks_ready: bool,
+        framework_root_valid: bool,
+        candidate: bool,
+        dirty_explainable: bool,
+        evidence_exists: bool,
+        linked_head_commit: str,
+        repo_head: str,
+        timestamp_in_window: bool,
+    ) -> bool:
+        head_match = bool(linked_head_commit) and bool(repo_head) and linked_head_commit == repo_head
+        return (
+            hooks_ready
+            and framework_root_valid
+            and candidate
+            and dirty_explainable
+            and evidence_exists
+            and head_match
+            and timestamp_in_window
+        )
+
+    assert matrix_verified(
+        hooks_ready=True,
+        framework_root_valid=True,
+        candidate=True,
+        dirty_explainable=True,
+        evidence_exists=True,
+        linked_head_commit="abc123",
+        repo_head="abc123",
+        timestamp_in_window=True,
+    ) is True
 
 
 def test_latest_receipt_checksum_returns_empty_when_no_receipts(tmp_path: Path) -> None:

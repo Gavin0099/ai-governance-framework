@@ -108,6 +108,34 @@ def test_validate_hook_install_accepts_git_bash_framework_root_config() -> None:
     assert result.checks["framework_root_exists"] is True
 
 
+def test_validate_hook_install_rejects_framework_root_with_bom_prefix() -> None:
+    root = _reset_fixture("framework_root_bom_prefix")
+    repo_root = root / "target"
+    hook_dir = repo_root / ".git" / "hooks"
+    framework_root = root / "framework"
+
+    _write(hook_dir / "pre-commit", "# AI Governance Framework\n")
+    _write(hook_dir / "pre-push", "# AI Governance Framework\n")
+    hook_dir.mkdir(parents=True, exist_ok=True)
+    # Deliberately write BOM-prefixed path to simulate hidden-char corruption.
+    (hook_dir / "ai-governance-framework-root").write_text(
+        "\ufeff" + str(framework_root.resolve()),
+        encoding="utf-8",
+    )
+
+    _write(framework_root / "scripts/lib/python.sh", "")
+    _write(framework_root / "scripts/run-runtime-governance.sh", "")
+    _write(framework_root / "governance_tools/plan_freshness.py", "")
+    _write(framework_root / "governance_tools/contract_validator.py", "")
+
+    result = validate_hook_install(repo_root)
+
+    assert result.valid is False
+    assert result.checks["framework_root_config_present"] is True
+    assert result.checks["framework_root_exists"] is False
+    assert any("framework root does not exist" in err for err in result.errors)
+
+
 def test_validate_hook_install_accepts_self_hosted_framework_repo() -> None:
     root = _reset_fixture("self_hosted_repo")
     repo_root = root / "framework"

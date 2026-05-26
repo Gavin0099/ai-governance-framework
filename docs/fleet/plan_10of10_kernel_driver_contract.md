@@ -2,10 +2,27 @@
 
 ## Status
 
-- current: 9/10 required verified
+- current: 9/10 required verified → **10/10 in progress (2026-05-26)**
 - target: 10/10 required verified
 - blocker repo: Kernel-Driver-Contract
 - remaining blockers (from matrix): `fw_unknown`, `agents=scaffold`
+
+## Decision Gate Result (2026-05-26)
+
+```
+10/10 Decision Gate Result:
+- checker_alternate_path_supported: false
+  - call chain: PS1 → external_repo_readiness.py:253 → assess_agents_calibration_maturity()
+  - agents_calibration_maturity.py:138 hardcodes repo_root / "AGENTS.md"; no contract.yaml lookup
+- worth adding framework capability (Option A): defer — one repo case; blast radius covers all 20 repos
+- selected option: B
+- reason: Option A blast radius too high for single-repo case; Option C wraps tool limitation as domain
+  exception (exception list inflation risk); Option B with machine-readable boundary markers gives
+  clean semantic separation and preserves Option A migration path via script extraction
+- pollution risk accepted: yes, with explicit boundary markers:
+    <!-- governance:section_start=fleet_overlay --> / <!-- governance:section_end=fleet_overlay -->
+- domain contract owner confirmed Option B acceptable: yes (2026-05-26)
+```
 
 ## Why This Is Not a Standard Onboarding
 
