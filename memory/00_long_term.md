@@ -148,3 +148,51 @@ Source: `governance_tools/phase_d_closeout_writer.py::REQUIRED_CONDITIONS`
   - track only `avg_review_minutes`, `reopen_revert_rate`, `stability_degraded_rate` across windows
   - keep conclusion observational-only
   - do not claim quality/reasoning uplift from these trend signals alone
+
+---
+
+## Fleet Onboarding Design Patterns (observed 2026-05-25 to 2026-05-26)
+<!-- memory_type: structural_long_term -->
+<!-- promotion_status: candidate -->
+<!-- proposed_by: Gavin / 2026-05-26 -->
+<!-- source_anchor: governance/fleet/scope_normalized_trend.jsonl; docs/fleet/ -->
+<!-- human_review_needed: no — recorded by human directly -->
+
+Observed during 0/10 → 9/10 fleet onboarding. Use as lens when making v2 decisions.
+
+### Pattern 1: Analysis output speed exceeds implementation absorption speed
+
+Multiple complete architectural proposals were produced during the onboarding
+(six-layer change plan, four-state evidence model, hardware evidence tier, v2
+contract). Most were rejected or deferred. Final progress (3/10 → 9/10) was
+achieved primarily through repetitive mechanical fixes (hooks + lock + closeout
++ dirty_explained), not architectural innovation.
+
+Design implication: framework evolution should start from minimum viable change,
+not from complete architecture. "Draft full architecture then reduce" is the
+observed pattern; it is not the efficient pattern.
+
+### Pattern 2: Tracking mechanisms are the first thing dropped under acceleration
+
+trend.jsonl stopped at 3/10 exactly when onboarding pace accelerated. Checkpoint
+docs only started at 6/10. The governance framework enforced fail-closed rules
+for consuming repos but had no enforcement — not even advisory — for its own
+tracking process.
+
+Design implication: any tracking step that is manual and not on the critical path
+will be skipped when velocity increases. This is the same failure mode as
+`--no-verify` bypassing hooks. PS1 automation for trend.jsonl auto-append is
+the fix; broader lesson: governance designed for others must be tested against
+your own actual behavior under pressure.
+
+### Pattern 3: Highest-value discoveries came from collisions, not planning
+
+- gate_blocked evidence consumed: found when running CFU (unplanned)
+- agents=scaffold as dominant blocker: visible only after dirty fix changed nothing
+- Kernel-Driver-Contract domain authority conflict: surfaced at repo 10, not at design time
+- dirty-path dependency: noticed at 5/10, not anticipated
+
+The framework's value is its ability to force confrontation with unanticipated
+boundary conditions during execution, not the completeness of its pre-planned
+rules. v2 direction: strengthen the framework's ability to surface surprises
+rather than add more pre-emptive rules.
