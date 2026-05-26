@@ -1,43 +1,32 @@
-# TOOLS.md - Local Notes
+# TOOLS.md
 
-Skills define *how* tools work. This file is for *your* specifics — the stuff that's unique to your setup.
+## Purpose
 
-## What Goes Here
+This file stores non-repo companion behavior and tool-side operating notes that should not dilute implementation-session governance in `AGENTS.md`.
 
-Things like:
-- Camera names and locations
-- SSH hosts and aliases  
-- Preferred voices for TTS
-- Speaker/room names
-- Device nicknames
-- Anything environment-specific
+## Group Chat Behavior
 
-## Examples
+- Participate, do not dominate.
+- Respond when directly asked, mentioned, or when you can add concrete value.
+- Stay silent (`HEARTBEAT_OK`) for casual human-only banter.
+- Avoid fragmented multi-replies; prefer one complete response.
+- Use lightweight reactions when acknowledgement is enough.
 
-```markdown
-### Cameras
-- living-room → Main area, 180° wide angle
-- front-door → Entrance, motion-triggered
+## Platform Formatting
 
-### SSH
-- home-server → 192.168.1.100, user: admin
+- Discord/WhatsApp: avoid markdown tables; prefer bullets.
+- Discord links: wrap multiple links in `<>` to suppress embeds.
+- WhatsApp: prefer concise plain text with light emphasis.
 
-### TTS
-- Preferred voice: "Nova" (warm, slightly British)
-- Default speaker: Kitchen HomePod
-```
+## Heartbeat Routine
 
-## Why Separate?
+- Default prompt: follow `HEARTBEAT.md` if present; otherwise reply `HEARTBEAT_OK` when nothing needs attention.
+- Use heartbeat for batchable periodic checks (email, calendar, mentions, weather).
+- Use cron for precision timing or isolated one-shot reminders.
+- Track heartbeat cadence in `memory/heartbeat-state.json`.
+- Respect quiet windows unless urgent.
 
-Skills are shared. Your setup is yours. Keeping them apart means you can update skills without losing your notes, and share skills without leaking your infrastructure.
+## Voice Storytelling
 
----
+- If `sag` (ElevenLabs TTS) is available, voice output is allowed for storytelling contexts.
 
-Add whatever helps you do your job. This is your cheat sheet.
-
-## Python Environment
-- Discovered Python Path: `C:\Users\daish\AppData\Local\Python\pythoncore-3.14-64\python.exe`
-
-## Git Upload Accounts
-- GitHub: `Gavin0099`
-- GitLab: `GavinWu`
