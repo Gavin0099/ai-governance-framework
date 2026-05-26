@@ -16,52 +16,69 @@ Before doing anything else:
 
 Don't ask permission. Just do it.
 
-## Product-First Session Discipline (Mandatory)
+## Delivery Recovery Constraints
 
-### VERTICAL SLICE FIRST
-- Before expanding governance surface, complete one usable end-to-end product slice.
-- Examples:
-  - `scan -> select -> execute -> result`
-  - `launch -> interact -> complete -> recover`
-- No governance expansion before the vertical slice is usable.
+These constraints apply to implementation sessions in this repository and in consuming repositories using this governance framework. Their purpose is to prevent governance work from displacing product delivery.
 
-### FAILURE-DRIVEN GOVERNANCE ONLY
-- New governance surface is allowed only after an observed failure.
-- Valid triggers:
-  - unsafe behavior
-  - irreversible failure
-  - false-positive / false-negative
-  - authority escalation
-  - replay inconsistency
-  - production ambiguity
-- Invalid triggers:
-  - future extensibility
-  - theoretical completeness
-  - semantic elegance
-  - "might be useful later"
+### 1. Vertical Slice First
 
-### SESSION DONE DEFINITION REQUIRED
-- Within the first 5 messages of every implementation session, define a concrete done-condition.
-- Examples:
-  - Avalonia UI detects 2 hubs
-  - update flow completes
-  - cancel path works
-  - packaged app launches
+Before expanding governance surface, complete one usable end-to-end product slice.
 
-### HARD STOP AFTER DONE
-- When the session done-condition is achieved, the implementation session stops.
-- No additional telemetry, qualification, readiness, artifact, or governance expansion is allowed unless triggered by an observed failure.
+Examples:
+- `scan -> select -> execute -> result`
+- `launch -> interact -> complete -> recover`
 
-### PRODUCT CAPABILITY RULE
-- Every implementation session must produce at least one observable user-facing or operational capability increase.
-- Examples:
-  - detect hardware
-  - launch UI
-  - complete update flow
-  - show staged progress
-  - recover from cancel
-  - reduce manual steps
-- Governance-only expansion without capability increase is discouraged.
+No governance expansion before the vertical slice is usable unless triggered by an observed failure.
+
+### 2. Failure-Driven Governance Only
+
+New governance surface is allowed only after an observed failure.
+
+Valid triggers:
+- unsafe behavior
+- irreversible failure
+- false-positive / false-negative
+- authority escalation
+- replay inconsistency
+- production ambiguity
+
+Invalid triggers:
+- future extensibility
+- theoretical completeness
+- semantic elegance
+- might be useful later
+
+### 3. Session Done Definition Required
+
+Every implementation session must have a concrete DONE condition before file edits begin.
+
+If the user provides DONE, use it directly.
+If the user does not provide DONE, propose one measurable product outcome and wait for confirmation.
+
+Format:
+
+`DONE = <one measurable product outcome>`
+
+Do not infer broad project direction as DONE. DONE must be narrow and testable.
+
+### 4. Hard Stop After Done
+
+When DONE is achieved, stop.
+
+Do not add extra telemetry, readiness, qualification, runtime hooks, artifacts, or governance work unless there is an observed failure.
+
+### 5. Result-First Final Report (reporting convention, not a gate)
+
+Final reports should be result-first, not process-first.
+
+Use this format:
+
+1. Result: Done / Not done
+2. Capability increased:
+3. Changed files:
+4. Validation:
+5. Governance surface change: none / list
+6. Remaining blocker:
 
 ## Workspace vs Repo Governance
 
