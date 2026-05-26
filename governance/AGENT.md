@@ -274,3 +274,10 @@ Decision rule:
 Scope control rule:
 - One governance concept change per stream.
 - Do not bundle evidence semantics changes with unrelated policy expansion in the same commit stream.
+
+## 13. Operational Semantics Binding Rule (Mandatory)
+
+When using `hooks_ready`, `repo_native_verified`, `clean_admissibility`,
+`expected_dirty_ttl`, or `self_hosting_gap_closed`, use the definitions in
+`governance/fleet/operational_semantics_v1.md`. Do not imply broader authority
+than the verifier can prove.
