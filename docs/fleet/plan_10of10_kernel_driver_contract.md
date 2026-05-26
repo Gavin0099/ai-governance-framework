@@ -107,19 +107,35 @@ Adding an alternate path that accepts any AGENTS-like file as calibration eviden
 3. If in scope: implement as a separate framework commit with the rules above
 4. Only then: onboard Kernel-Driver-Contract using the new path
 
+## Prohibited Approaches
+
+Do not do any of these three things:
+
+| Prohibited action | Why |
+|---|---|
+| Modify `Kernel-Driver-Contract/AGENTS.md` to insert governance:key sections | Contaminates domain authority |
+| Change checker to auto-fallback to `governance/fleet.AGENTS.md` without declaration | Creates source ambiguity |
+| Declare Kernel-Driver-Contract temporarily exempt to hit 10/10 | Makes 10/10 a KPI metric, not governance convergence |
+
 ## Decision Gate
 
 The first checkpoint of the 10/10 session is producing this gate result. No file edits before it is complete.
 
 ```
 10/10 Decision Gate Result:
-- checker alternate path supported? yes / no
-- if yes: what is the source declaration rule?
-- if no: worth adding framework capability? yes / no / defer
+- checker_alternate_path_supported: true / false
+- if true: declared_source_file: (must come from contract.yaml)
+- if true: actual_checker_source_file: (must match declared)
+- if true: matrix_reported_agents_source: true / false
+- if true: domain_authority_file_untouched: true / false
+- if true: source_ambiguity_detected: true / false
+- if false: worth adding framework capability? yes / no / defer
 - selected option: A / B / C / defer
 - reason:
 - pollution risk accepted? yes / no
 ```
+
+Source ambiguity check: both `AGENTS.md` and `governance/fleet.AGENTS.md` exist, `contract.yaml` references one, checker must read exactly the declared source, matrix must report which source was used. If any mismatch: gate fails.
 
 Answering these questions:
 
@@ -128,6 +144,19 @@ Answering these questions:
 3. Is Option C an acceptable permanent exception with explicit justification, or deferred debt that invalidates the 10/10 claim?
 
 **Do not start file edits until one option is selected and the gate result is recorded.**
+
+## Execution Order (Option A path only)
+
+If Option A is selected after the gate:
+
+- Step 0: Do not touch Kernel-Driver-Contract files
+- Step 1: Inspect `governance_tools/` — confirm whether checker supports alternate AGENTS source
+- Step 2: If not supported → stop onboarding; write framework capability plan; do not pursue 10/10 this session
+- Step 3: If supported → confirm source declaration must come from `contract.yaml` (not auto-discovery)
+- Step 4: Confirm matrix outputs `agents_source` field in per-repo row
+- Step 5: Create `governance/fleet.AGENTS.md` in Kernel-Driver-Contract (separate commit from any framework change)
+- Step 6: Rerun readiness + matrix
+- Step 7: 10/10 checkpoint must record `verification_type = domain-contract-separated-calibration`
 
 ## Out of Scope for This Plan
 
