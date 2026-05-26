@@ -81,15 +81,53 @@ contract.yaml                   # explicitly references both files and their pur
 
 **Risk**: weakens the verified definition for domain contract repos. Must be an explicit scope exception with a named justification, not a silent skip. This makes 10/10 a formal acknowledgment of non-convergence, not verified convergence.
 
+## Framework Capability Separation
+
+If Option A requires the agents_calibration checker to support an alternate lookup path, that change is a **framework capability change**, not a Kernel-Driver-Contract onboarding change.
+
+These two must not be mixed in the same commit:
+
+| Change type | Scope | Commit rule |
+|---|---|---|
+| Framework capability: alternate agents path support | ai-governance-framework | Separate commit; must have explicit rules (see below) |
+| Repo onboarding: governance/fleet.AGENTS.md + contract.yaml | Kernel-Driver-Contract | Separate commit; only after capability is confirmed |
+
+If the checker is extended to support alternate paths, the extension must enforce:
+- Source must be declared by `contract.yaml` (not auto-discovered)
+- `AGENTS.md` domain authority cannot be overwritten or superseded
+- Alternate file provides fleet calibration only — domain rules live in `AGENTS.md`
+- Matrix report must show `agents_source = governance/fleet.AGENTS.md` (not opaque)
+
+Adding an alternate path that accepts any AGENTS-like file as calibration evidence is a new semantic vulnerability. The extension must be fail-closed on source declaration.
+
+**Correct sequence for Option A:**
+
+1. Confirm whether checker currently supports alternate path
+2. If not: evaluate whether adding the capability is in scope for this session
+3. If in scope: implement as a separate framework commit with the rules above
+4. Only then: onboard Kernel-Driver-Contract using the new path
+
 ## Decision Gate
 
-Answer these before selecting an option:
+The first checkpoint of the 10/10 session is producing this gate result. No file edits before it is complete.
 
-1. Does the agents_calibration checker need to change to support Option A's alternate path, and is that change in scope for the 10/10 session?
-2. Does the domain contract owner (kernel-driver domain) agree that `AGENTS.md` can carry a governance calibration overlay (Option B), or is it off-limits?
-3. Is Option C an acceptable permanent exception, or deferred debt that would invalidate the 10/10 claim?
+```
+10/10 Decision Gate Result:
+- checker alternate path supported? yes / no
+- if yes: what is the source declaration rule?
+- if no: worth adding framework capability? yes / no / defer
+- selected option: A / B / C / defer
+- reason:
+- pollution risk accepted? yes / no
+```
 
-**Do not start file edits until one option is selected and its risk is explicitly accepted.**
+Answering these questions:
+
+1. Does the agents_calibration checker currently support alternate lookup paths? (Inspect `governance_tools/` before assuming.)
+2. Does the domain contract owner agree that `AGENTS.md` can carry a governance overlay (Option B), or is it off-limits?
+3. Is Option C an acceptable permanent exception with explicit justification, or deferred debt that invalidates the 10/10 claim?
+
+**Do not start file edits until one option is selected and the gate result is recorded.**
 
 ## Out of Scope for This Plan
 
