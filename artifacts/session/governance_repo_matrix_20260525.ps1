@@ -867,6 +867,13 @@ $requiredDetails = @($allRepoNative.details | Where-Object { $governanceScope[[s
 $requiredTotal = $requiredDetails.Count
 $requiredVerified = @($requiredDetails | Where-Object { [string]$_.classification -eq 'repo_native_verified' }).Count
 $requiredVerifiedRatio = if ($requiredTotal -gt 0) { [math]::Round($requiredVerified / $requiredTotal, 4) } else { 0 }
+$requiredVerifiedDetails = @($requiredDetails | Where-Object { [string]$_.classification -eq 'repo_native_verified' })
+$requiredVerifiedDirtyTrue = @($requiredVerifiedDetails | Where-Object { [bool]$_.is_dirty }).Count
+$requiredVerifiedDirtyFalse = @($requiredVerifiedDetails | Where-Object { -not [bool]$_.is_dirty }).Count
+$requiredVerifiedExpectedDirtyTtlValid = @(
+	$requiredVerifiedDetails |
+	Where-Object { [bool]$_.is_dirty -and [bool]$_.dirty_explainable }
+).Count
 
 $snapshot = [ordered]@{
 	matrix_version = 'v1'
@@ -934,6 +941,12 @@ $snapshot = [ordered]@{
 			required_total = $requiredTotal
 			ratio = $requiredVerifiedRatio
 		}
+		verified_dirty_dependency = [ordered]@{
+			required_verified_total = $requiredVerified
+			dirty_true_verified = $requiredVerifiedDirtyTrue
+			dirty_false_verified = $requiredVerifiedDirtyFalse
+			expected_dirty_ttl_valid = $requiredVerifiedExpectedDirtyTtlValid
+		}
 		repo_native_governance_breakdown = [ordered]@{
 			overall = $allRepoNative
 			company = $companyRepoNative
@@ -961,6 +974,7 @@ $md += "- repo-native governance verified ratio (company): $($companyRepoNative.
 $md += "- repo-native governance candidate ratio (private): $($privateRepoNative.repo_native_candidate_count)/$($privateRepoNative.total) ($($privateRepoNative.candidate_ratio))"
 $md += "- repo-native governance verified ratio (private): $($privateRepoNative.repo_native_verified_count)/$($privateRepoNative.total) ($($privateRepoNative.verified_ratio))"
 $md += "- scope-normalized verified ratio (required only): $requiredVerified/$requiredTotal ($requiredVerifiedRatio)"
+$md += "- verified dirty dependency (required verified only): total=$requiredVerified, dirty_true=$requiredVerifiedDirtyTrue, dirty_false=$requiredVerifiedDirtyFalse, expected_dirty_ttl_valid=$requiredVerifiedExpectedDirtyTtlValid"
 $md += ""
 $md += '## Notes'
 $md += '- Negative-path and drift tests run with temporary mutation and restoration.'
@@ -995,6 +1009,21 @@ foreach ($d in $allRepoNative.details) {
 	$md += "| $name | $tierCol | $evTierCol | $cl | $hooks | $fw | $ag | $dok | $ev | $hok | $tok | $blockerStr |"
 }
 Set-Content -Path $snapshotMdPath -Value ($md -join "`r`n") -Encoding UTF8
+
+# Auto-append one entry to scope_normalized_trend.jsonl
+$trendPath = Join-Path $framework 'governance\fleet\scope_normalized_trend.jsonl'
+$trendSnapshotName = [System.IO.Path]::GetFileNameWithoutExtension($snapshotMdPath)
+$trendEntry = [ordered]@{
+	date               = (Get-Date).ToString('yyyy-MM-dd')
+	snapshot           = $trendSnapshotName
+	required_verified  = $requiredVerified
+	required_total     = $requiredTotal
+	ratio              = $requiredVerifiedRatio
+	dirty_true_count   = $requiredVerifiedDirtyTrue
+	note               = 'auto'
+}
+$trendLine = ($trendEntry | ConvertTo-Json -Compress -Depth 5)
+Add-Content -Path $trendPath -Value $trendLine -Encoding UTF8
 
 Write-Output "SNAPSHOT_JSON=$snapshotJsonPath"
 Write-Output "SNAPSHOT_MD=$snapshotMdPath"
