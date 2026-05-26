@@ -133,3 +133,13 @@ decision_rule:
     - "no path matches never_auto_clean"
     - "no requires_manual_review condition present"
   otherwise: "reject_clean_pilot_and_preserve_working_state"
+
+governance_self_hosting_gap:
+  repo: E:\BackUp\Git_EE\ai-governance-framework
+  category: hook_installation
+  effect:
+    commit_performed_with_no_verify: true
+    note: pre-commit hook missing during policy commit (0118ad0)
+  mitigation:
+    - install or repair local pre-commit hook wiring
+    - rerun hook verification before next governance-policy commit
