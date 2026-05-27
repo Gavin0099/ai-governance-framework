@@ -73,3 +73,36 @@ def test_reason_code_verifier_rejects_free_text_reason(tmp_path: Path) -> None:
     result = verify_gate_consumed_reason_fields(registry, gate_policy, audit_log)
     assert not result.ok
     assert any("non-registered code" in item for item in result.violations)
+
+
+def test_reason_code_verifier_rejects_free_text_in_realistic_gate_policy_shape(
+    tmp_path: Path,
+) -> None:
+    registry = tmp_path / "reason-code-registry.md"
+    gate_policy = tmp_path / "gate_policy.yaml"
+    audit_log = tmp_path / "canonical-audit-log.jsonl"
+
+    _write_registry(registry)
+    gate_policy.write_text(
+        "\n".join(
+            [
+                'version: "1"',
+                "fail_mode: strict",
+                "blocking_actions:",
+                "  - production_fix_required",
+                "unknown_treatment:",
+                "  mode: this mode is human prose and must fail",  # intentionally invalid
+                "  threshold: 3",
+                "artifact_stale_seconds: 86400",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    audit_log.write_text(
+        json.dumps({"signals": ["test_result_artifact_absent"]}, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+    result = verify_gate_consumed_reason_fields(registry, gate_policy, audit_log)
+    assert not result.ok
+    assert any("unknown_treatment.mode" in item for item in result.violations)
