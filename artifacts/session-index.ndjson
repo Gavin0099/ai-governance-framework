@@ -161,3 +161,6 @@
 {"session_id": "session-20260524T045250-d298e0", "closed_at": "2026-05-24T04:52:50.949521+00:00", "closeout_status": "inconsistent", "task_intent": "Runtime Enforcement Attachment v0.1 + External Fleet Governance CI (2026-05-23)", "has_open_risks": true}
 {"session_id": "session-20260524T045622-6ee127", "closed_at": "2026-05-24T04:56:23.049635+00:00", "closeout_status": "missing", "task_intent": null, "has_open_risks": false}
 {"session_id": "session-20260524T052721-a03fc1", "closed_at": "2026-05-24T05:27:21.681461+00:00", "closeout_status": "missing", "task_intent": null, "has_open_risks": false}
+{"session_id": "session-20260526T103809-9050ac", "closed_at": "2026-05-26T10:38:09.679030+00:00", "closeout_status": "missing", "task_intent": null, "has_open_risks": false}
+{"session_id": "session-20260527T071434-e61336", "closed_at": "2026-05-27T07:14:34.161651+00:00", "closeout_status": "missing", "task_intent": null, "has_open_risks": false}
+{"session_id": "session-20260527T072522-52a322", "closed_at": "2026-05-27T07:25:22.104523+00:00", "closeout_status": "missing", "task_intent": null, "has_open_risks": false}

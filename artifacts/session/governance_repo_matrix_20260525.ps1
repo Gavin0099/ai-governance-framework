@@ -238,21 +238,21 @@ function Get-RemediationCatalog {
 			verification_source = ''
 		}
 		evidence = [pscustomobject]@{
-			remediation_type = 'unknown'
+			remediation_type = 'unknown_mapping'
 			command = ''
 			action = 'No verified command inventory found.'
 			human_required = $false
 			verification_source = ''
 		}
 		head_ok = [pscustomobject]@{
-			remediation_type = 'unknown'
+			remediation_type = 'unknown_mapping'
 			command = ''
 			action = 'No verified command inventory found.'
 			human_required = $false
 			verification_source = ''
 		}
 		ts_ok = [pscustomobject]@{
-			remediation_type = 'unknown'
+			remediation_type = 'unknown_mapping'
 			command = ''
 			action = 'No verified command inventory found.'
 			human_required = $false
@@ -1242,7 +1242,7 @@ foreach ($d in $allRepoNative.details) {
 		warning = $driftWarning
 	}
 
-	# Build blocker remediation suggestions from observed signals only.
+	# Build remediation suggestions from observed blockers and baseline surface gaps.
 	$blockers = @()
 	if (-not [bool]$d.hooks_ready) { $blockers += 'hooks' }
 	if (-not [bool]$d.framework_version_known) { $blockers += 'fw' }
@@ -1251,9 +1251,16 @@ foreach ($d in $allRepoNative.details) {
 	if (-not [bool]$d.repo_native_hook_evidence_exists) { $blockers += 'evidence' }
 	if ([bool]$d.repo_native_hook_evidence_exists -and -not [bool]$d.repo_native_hook_head_match) { $blockers += 'head_ok' }
 	if ([bool]$d.repo_native_hook_evidence_exists -and -not [bool]$d.repo_native_hook_timestamp_in_window) { $blockers += 'ts_ok' }
+	$surfaceRemediationKeys = @()
+	foreach ($surface in @($missingRequired + $adoptedObservedMissing) | Select-Object -Unique) {
+		if ($governanceBaseline.required_surfaces.ContainsKey($surface)) {
+			$key = [string]$governanceBaseline.required_surfaces[$surface].remediation_key
+			if (-not [string]::IsNullOrWhiteSpace($key)) { $surfaceRemediationKeys += $key }
+		}
+	}
 
 	$suggestions = @()
-	foreach ($b in $blockers | Select-Object -Unique) {
+	foreach ($b in @($blockers + $surfaceRemediationKeys) | Select-Object -Unique) {
 		$r = Get-BlockerRemediation -RemediationKey $b -Catalog $remediationCatalog
 		$suggestions += [pscustomobject]@{
 			blocker = $b
@@ -1434,7 +1441,14 @@ foreach ($b in $perRepoBaselineDrift) {
 	$md += "- drift_status: $($b.drift_status)"
 	$md += "- repo_baseline: $($b.repo_baseline)"
 	$md += "- framework_baseline: $($b.framework_baseline)"
-	if ($b.warning) { $md += "- warning: $($b.warning)" }
+	if ($b.warning) {
+		$md += "- warning: $($b.warning)"
+		if ($b.drift_status -eq 'drift_ahead') {
+			$md += 'Action:'
+			$md += '- Review whether governance/fleet/governance_baseline.yaml needs to be updated.'
+			$md += '- Do not downgrade repo lock automatically.'
+		}
+	}
 	$ad = if ($b.adopted_surfaces.Count -gt 0) { ($b.adopted_surfaces -join ', ') } else { '(none)' }
 	$mr = if ($b.missing_required_surfaces.Count -gt 0) { ($b.missing_required_surfaces -join ', ') } else { '(none)' }
 	$am = if ($b.adopted_but_observed_missing_surfaces.Count -gt 0) { ($b.adopted_but_observed_missing_surfaces -join ', ') } else { '(none)' }
@@ -1454,7 +1468,7 @@ foreach ($r in $perRepoRemediation) {
 		$cmd = if ([string]::IsNullOrWhiteSpace([string]$s.command)) { '(none)' } else { [string]$s.command }
 		$act = if ([string]::IsNullOrWhiteSpace([string]$s.action)) { '(none)' } else { [string]$s.action }
 		$vrf = if ([string]::IsNullOrWhiteSpace([string]$s.verification_source)) { '(none)' } else { [string]$s.verification_source }
-		$hr = if ($s.remediation_type -eq 'human_required') { 'true' } else { 'false' }
+		$hr = if ([bool]$s.human_required) { 'true' } else { 'false' }
 		$md += "| $($s.blocker) | $($s.remediation_type) | $cmd | $act | $hr | $vrf |"
 	}
 }
