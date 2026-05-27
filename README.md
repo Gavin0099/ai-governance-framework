@@ -209,3 +209,18 @@ For detailed rationale and epistemic limits, see:
 Current release: **v1.0.0-alpha** — [docs/releases/v1.0.0-alpha.md](docs/releases/v1.0.0-alpha.md)
 
 Runtime enforcement entry point: `scripts/run-runtime-governance.sh`
+
+## External Repo Onboarding SOP
+
+For adopting this framework in other repositories, use the standardized SOP:
+
+- `governance/fleet/external_repo_onboarding_sop.md`
+
+It defines:
+- submodule integration
+- onboarding gap scan
+- human contract decisions (domain/risk)
+- memory skeleton initialization
+- hook install + real push-trigger verification
+- runtime smoke validation
+- reviewer handoff output
