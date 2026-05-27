@@ -1418,6 +1418,8 @@ $md += '## Adoption Task Packets'
 foreach ($b in $perRepoBaselineDrift) {
 	$repo = [string]$b.repo
 	$repoName = [System.IO.Path]::GetFileName($repo)
+	$detail = $allRepoNative.details | Where-Object { [string]$_.repo -eq $repo } | Select-Object -First 1
+	$observedNow = if ($detail) { Get-ObservedSurfaceStatus -Detail $detail } else { @{} }
 	$rem = $perRepoRemediation | Where-Object { [string]$_.repo -eq $repo } | Select-Object -First 1
 	$hasBlockers = ($rem -and $rem.suggestions -and $rem.suggestions.Count -gt 0)
 	$hasMissingSurface = ($b.missing_required_surfaces -and $b.missing_required_surfaces.Count -gt 0)
@@ -1479,13 +1481,10 @@ foreach ($b in $perRepoBaselineDrift) {
 	$md += '#### Before/After Signal Table (required output)'
 	$md += '| Signal | Before | After | Status |'
 	$md += '|---|---|---|---|'
-	$md += '| hooks_config | current_snapshot | rerun_required | pending |'
-	$md += '| framework_lock | current_snapshot | rerun_required | pending |'
-	$md += '| agents_calibration | current_snapshot | rerun_required | pending |'
-	$md += '| expected_dirty | current_snapshot | rerun_required | pending |'
-	$md += '| closeout_evidence | current_snapshot | rerun_required | pending |'
-	$md += '| head_commit_match | current_snapshot | rerun_required | pending |'
-	$md += '| timestamp_freshness | current_snapshot | rerun_required | pending |'
+	foreach ($sig in @('hooks_config','framework_lock','agents_calibration','expected_dirty','closeout_evidence','head_commit_match','timestamp_freshness')) {
+		$before = if ($observedNow.ContainsKey($sig) -and [bool]$observedNow[$sig]) { 'Y' } else { 'N' }
+		$md += "| $sig | $before | rerun_required | pending |"
+	}
 	$md += ''
 	$md += '#### Non-Claims'
 	$md += '- do not claim permanent verified status'
