@@ -109,6 +109,16 @@ if [ -n "$PUSH_UPDATES" ]; then
     done <<< "$PUSH_UPDATES"
 fi
 
+# Some environments invoke pre-push without forwarding update lines to stdin.
+# Fail closed only after checking commits that are local-only versus all remotes.
+if [ "$MEMORY_UPDATED_IN_PUSH" -ne 1 ]; then
+    if git -C "$TARGET_REPO_ROOT" rev-list HEAD --not --remotes 2>/dev/null \
+        | xargs -r git -C "$TARGET_REPO_ROOT" diff-tree --no-commit-id --name-only -r \
+        | grep -Fxq "$TODAY_MEMORY_PATH"; then
+        MEMORY_UPDATED_IN_PUSH=1
+    fi
+fi
+
 if [ "$MEMORY_UPDATED_IN_PUSH" -ne 1 ]; then
     echo ""
     echo "[governance] blocked: push does not include $TODAY_MEMORY_PATH in outgoing commits"
