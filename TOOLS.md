@@ -25,8 +25,11 @@ This file stores non-repo companion behavior and tool-side operating notes that 
 - Use cron for precision timing or isolated one-shot reminders.
 - Track heartbeat cadence in `memory/heartbeat-state.json`.
 - Respect quiet windows unless urgent.
+- Fleet governance freshness check is observe-only:
+  - run `python -m governance_tools.required_freshness_probe --project-root . --format human`
+  - report status bands (`ok`, `warning`, `critical`, `expired`)
+  - do not auto-run closeout or auto-remediate from heartbeat
 
 ## Voice Storytelling
 
 - If `sag` (ElevenLabs TTS) is available, voice output is allowed for storytelling contexts.
-
