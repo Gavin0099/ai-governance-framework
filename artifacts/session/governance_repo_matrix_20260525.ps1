@@ -480,7 +480,15 @@ function Invoke-NegativeContractMissing {
 	}
 
 	$bak = "$contract.__tmpbak"
-	Move-Item -Path $contract -Destination $bak -Force
+	try {
+		Move-Item -Path $contract -Destination $bak -Force -ErrorAction Stop
+	} catch {
+		return [pscustomobject]@{
+			repo = $Repo
+			executed = $false
+			reason = 'contract_backup_permission_denied'
+		}
+	}
 	try {
 		$smoke = Invoke-PythonJson -CommandArgs @(
 			(Join-Path $framework 'governance_tools\external_repo_smoke.py'),
@@ -498,7 +506,11 @@ function Invoke-NegativeContractMissing {
 			raw = $smoke.raw
 		}
 	} finally {
-		Move-Item -Path $bak -Destination $contract -Force
+		try {
+			Move-Item -Path $bak -Destination $contract -Force -ErrorAction Stop
+		} catch {
+			Write-Warning "Failed to restore contract backup for ${Repo}: $($_.Exception.Message)"
+		}
 	}
 }
 
@@ -516,7 +528,15 @@ function Invoke-NegativeManifestMissing {
 	}
 
 	$bak = "$manifest.__tmpbak"
-	Move-Item -Path $manifest -Destination $bak -Force
+	try {
+		Move-Item -Path $manifest -Destination $bak -Force -ErrorAction Stop
+	} catch {
+		return [pscustomobject]@{
+			repo = $Repo
+			executed = $false
+			reason = 'manifest_backup_permission_denied'
+		}
+	}
 	try {
 		$smoke = Invoke-PythonJson -CommandArgs @(
 			(Join-Path $framework 'governance_tools\external_repo_smoke.py'),
@@ -534,7 +554,11 @@ function Invoke-NegativeManifestMissing {
 			pass = ($smoke.exit -ne 0 -and $hasUnsupported)
 		}
 	} finally {
-		Move-Item -Path $bak -Destination $manifest -Force
+		try {
+			Move-Item -Path $bak -Destination $manifest -Force -ErrorAction Stop
+		} catch {
+			Write-Warning "Failed to restore manifest backup for ${Repo}: $($_.Exception.Message)"
+		}
 	}
 }
 
@@ -548,7 +572,11 @@ function Invoke-PlanStaleDrift {
 
 	$original = Get-Content -Path $plan -Raw -Encoding UTF8
 	try {
-		Set-PlanHeader -PlanPath $plan -LastUpdated '2020-01-01' -Owner 'DriftProbe' -Freshness 'Sprint (7d)'
+		try {
+			Set-PlanHeader -PlanPath $plan -LastUpdated '2020-01-01' -Owner 'DriftProbe' -Freshness 'Sprint (7d)'
+		} catch {
+			return [pscustomobject]@{ repo = $Repo; executed = $false; reason = 'plan_probe_permission_denied' }
+		}
 		$fresh = Invoke-PythonJson -CommandArgs @(
 			(Join-Path $framework 'governance_tools\plan_freshness.py'),
 			'--file', $plan,
@@ -563,7 +591,7 @@ function Invoke-PlanStaleDrift {
 			pass = ($fresh.exit -ne 0)
 		}
 	} finally {
-		Set-Content -Path $plan -Value $original -Encoding UTF8
+		try { Set-Content -Path $plan -Value $original -Encoding UTF8 -ErrorAction Stop } catch { }
 	}
 }
 
@@ -584,7 +612,11 @@ function Invoke-ManifestVersionDrift {
 	try {
 		$mut = [regex]::Replace($orig, '(?m)^runtime_entrypoint_version\s*:\s*("?[0-9][^\r\n"]*"?)\s*$', 'runtime_entrypoint_version: "0.0.0"')
 		$mut = [regex]::Replace($mut, '(?m)^contract_schema_version\s*:\s*("?[0-9][^\r\n"]*"?)\s*$', 'contract_schema_version: "0.0.0"')
-		Set-Content -Path $manifest -Value $mut -Encoding UTF8
+		try {
+			Set-Content -Path $manifest -Value $mut -Encoding UTF8 -ErrorAction Stop
+		} catch {
+			return [pscustomobject]@{ repo = $Repo; executed = $false; reason = 'manifest_probe_permission_denied' }
+		}
 
 		$ver = Invoke-PythonJson -CommandArgs @(
 			(Join-Path $framework 'governance_tools\governance_version_check.py'),
@@ -601,7 +633,7 @@ function Invoke-ManifestVersionDrift {
 			pass = ($ver.exit -ne 0)
 		}
 	} finally {
-		Set-Content -Path $manifest -Value $orig -Encoding UTF8
+		try { Set-Content -Path $manifest -Value $orig -Encoding UTF8 -ErrorAction Stop } catch { }
 	}
 }
 
@@ -616,7 +648,11 @@ function Invoke-ContractSchemaDrift {
 	$orig = Get-Content -Path $contract -Raw -Encoding UTF8
 	try {
 		$mut = "  malformed-indented-line`n" + $orig
-		Set-Content -Path $contract -Value $mut -Encoding UTF8
+		try {
+			Set-Content -Path $contract -Value $mut -Encoding UTF8 -ErrorAction Stop
+		} catch {
+			return [pscustomobject]@{ repo = $Repo; executed = $false; reason = 'contract_probe_permission_denied' }
+		}
 		$smoke = Invoke-PythonJson -CommandArgs @(
 			(Join-Path $framework 'governance_tools\external_repo_smoke.py'),
 			'--repo', $Repo,
@@ -630,7 +666,7 @@ function Invoke-ContractSchemaDrift {
 			pass = ($smoke.exit -ne 0)
 		}
 	} finally {
-		Set-Content -Path $contract -Value $orig -Encoding UTF8
+		try { Set-Content -Path $contract -Value $orig -Encoding UTF8 -ErrorAction Stop } catch { }
 	}
 }
 
@@ -643,7 +679,15 @@ function Invoke-DirtyStateProbe {
 	}
 
 	$probe = Join-Path $Repo '.tmp_dirty_probe.txt'
-	Set-Content -Path $probe -Value 'dirty-state-probe' -Encoding UTF8
+	try {
+		Set-Content -Path $probe -Value 'dirty-state-probe' -Encoding UTF8 -ErrorAction Stop
+	} catch {
+		return [pscustomobject]@{
+			repo = $Repo
+			executed = $false
+			reason = 'dirty_probe_permission_denied'
+		}
+	}
 	try {
 		$result = Get-ReadinessAndSmoke -Repo $Repo
 		$smokePass = ($result.smoke_exit -eq 0)
@@ -659,7 +703,9 @@ function Invoke-DirtyStateProbe {
 			pass = $pass
 		}
 	} finally {
-		if (Test-Path $probe) { Remove-Item -Path $probe -Force }
+		if (Test-Path $probe) {
+			try { Remove-Item -Path $probe -Force -ErrorAction Stop } catch { }
+		}
 	}
 }
 
