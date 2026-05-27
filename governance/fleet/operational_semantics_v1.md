@@ -85,6 +85,20 @@ Must not imply:
 - no remaining governance debt
 - external repo onboarding maturity
 
+### closeout_maintenance_mode
+
+Definition:
+- `closeout_maintenance_mode=event-driven+stale-warning` means closeout evidence is primarily refreshed by real workflow events (commit/push/session-end), with stale-state warning surfaced by matrix/runtime checks.
+- It is not a daily unconditional auto-stamp policy.
+
+Must prove:
+- hooks or wrappers can trigger closeout on real workflow boundaries
+- stale evidence is observable as warning/blocker in reporting surfaces
+
+Must not imply:
+- cron-only refresh is acceptable replacement for workflow evidence
+- freshness can be maintained without real session boundaries
+
 ## Interpretation Guardrails
 
 - If verifier output is partial, semantic claims must remain partial.

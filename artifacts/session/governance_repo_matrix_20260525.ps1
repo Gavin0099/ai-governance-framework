@@ -6,6 +6,8 @@ $py = Join-Path $framework '.venv\Scripts\python.exe'
 $requiredVersions = Join-Path $framework 'governance\runtime\required_versions.yaml'
 $dirtyGateMode = if ($env:GOV_MATRIX_DIRTY_MODE) { $env:GOV_MATRIX_DIRTY_MODE } else { 'strict' }
 $governanceScopePath = Join-Path $framework 'governance\fleet\governance_scope.yaml'
+$evidenceWindowDays = if ($env:GOV_MATRIX_EVIDENCE_WINDOW_DAYS) { [int]$env:GOV_MATRIX_EVIDENCE_WINDOW_DAYS } else { 7 }
+if ($evidenceWindowDays -lt 1) { $evidenceWindowDays = 1 }
 
 function Get-EvidenceTier {
 	param([string]$Repo)
@@ -85,7 +87,7 @@ if (-not (Test-Path $snapshotDir)) {
 $timestamp = (Get-Date).ToString('yyyyMMdd_HHmmss')
 $snapshotJsonPath = Join-Path $snapshotDir ("governance_repo_matrix_snapshot_{0}.json" -f $timestamp)
 $snapshotMdPath = Join-Path $snapshotDir ("governance_repo_matrix_snapshot_{0}.md" -f $timestamp)
-$matrixWindowStartUtc = (Get-Date).ToUniversalTime().Date  # start of today UTC; allows same-day closeout evidence
+$matrixWindowStartUtc = (Get-Date).ToUniversalTime().AddDays(-$evidenceWindowDays)  # rolling freshness window (UTC)
 
 function Invoke-PythonJson {
 	param(
@@ -868,6 +870,19 @@ $requiredTotal = $requiredDetails.Count
 $requiredVerified = @($requiredDetails | Where-Object { [string]$_.classification -eq 'repo_native_verified' }).Count
 $requiredVerifiedRatio = if ($requiredTotal -gt 0) { [math]::Round($requiredVerified / $requiredTotal, 4) } else { 0 }
 $requiredVerifiedDetails = @($requiredDetails | Where-Object { [string]$_.classification -eq 'repo_native_verified' })
+$requiredCandidateOrAbove = @(
+	$requiredDetails |
+	Where-Object { [string]$_.classification -eq 'repo_native_candidate' -or [string]$_.classification -eq 'repo_native_verified' }
+).Count
+$requiredFreshnessBlocked = @(
+	$requiredDetails |
+	Where-Object {
+		([string]$_.classification -eq 'repo_native_candidate') -and
+		[bool]$_.repo_native_hook_evidence_exists -and
+		[bool]$_.repo_native_hook_head_match -and
+		(-not [bool]$_.repo_native_hook_timestamp_in_window)
+	}
+).Count
 $requiredVerifiedDirtyTrue = @($requiredVerifiedDetails | Where-Object { [bool]$_.is_dirty }).Count
 $requiredVerifiedDirtyFalse = @($requiredVerifiedDetails | Where-Object { -not [bool]$_.is_dirty }).Count
 $requiredVerifiedExpectedDirtyTtlValid = @(
@@ -879,6 +894,7 @@ $snapshot = [ordered]@{
 	matrix_version = 'v1'
 	generated_at = (Get-Date).ToString('s')
 	matrix_window_start_utc = $matrixWindowStartUtc.ToString('o')
+	evidence_window_days = $evidenceWindowDays
 	framework_repo = $framework
 	repo_inventory = $inventory
 	baseline = [ordered]@{
@@ -941,6 +957,12 @@ $snapshot = [ordered]@{
 			required_total = $requiredTotal
 			ratio = $requiredVerifiedRatio
 		}
+		structural_readiness = [ordered]@{
+			required_candidate_or_above = $requiredCandidateOrAbove
+			required_total = $requiredTotal
+			ratio = if ($requiredTotal -gt 0) { [math]::Round($requiredCandidateOrAbove / $requiredTotal, 4) } else { 0 }
+			freshness_blocked_count = $requiredFreshnessBlocked
+		}
 		verified_dirty_dependency = [ordered]@{
 			required_verified_total = $requiredVerified
 			dirty_true_verified = $requiredVerifiedDirtyTrue
@@ -974,6 +996,9 @@ $md += "- repo-native governance verified ratio (company): $($companyRepoNative.
 $md += "- repo-native governance candidate ratio (private): $($privateRepoNative.repo_native_candidate_count)/$($privateRepoNative.total) ($($privateRepoNative.candidate_ratio))"
 $md += "- repo-native governance verified ratio (private): $($privateRepoNative.repo_native_verified_count)/$($privateRepoNative.total) ($($privateRepoNative.verified_ratio))"
 $md += "- scope-normalized verified ratio (required only): $requiredVerified/$requiredTotal ($requiredVerifiedRatio)"
+$md += "- structural readiness (required candidate_or_above): $requiredCandidateOrAbove/$requiredTotal ($(if ($requiredTotal -gt 0) { [math]::Round($requiredCandidateOrAbove / $requiredTotal, 4) } else { 0 }))"
+$md += "- freshness blocked count (required): $requiredFreshnessBlocked"
+$md += "- evidence freshness window (days): $evidenceWindowDays"
 $md += "- verified dirty dependency (required verified only): total=$requiredVerified, dirty_true=$requiredVerifiedDirtyTrue, dirty_false=$requiredVerifiedDirtyFalse, expected_dirty_ttl_valid=$requiredVerifiedExpectedDirtyTtlValid"
 $md += ""
 $md += '## Notes'
@@ -1017,8 +1042,12 @@ $trendEntry = [ordered]@{
 	date               = (Get-Date).ToString('yyyy-MM-dd')
 	snapshot           = $trendSnapshotName
 	required_verified  = $requiredVerified
+	candidate_or_above = $requiredCandidateOrAbove
+	freshness_blocked_count = $requiredFreshnessBlocked
 	required_total     = $requiredTotal
 	ratio              = $requiredVerifiedRatio
+	evidence_window_days = $evidenceWindowDays
+	closeout_maintenance_mode = 'event-driven+stale-warning'
 	dirty_true_count   = $requiredVerifiedDirtyTrue
 	note               = 'auto'
 }
