@@ -224,3 +224,37 @@ It defines:
 - hook install + real push-trigger verification
 - runtime smoke validation
 - reviewer handoff output
+
+## Fleet Governance Status (Current)
+
+This section is the operational status entrypoint for external readers.
+
+### Implemented
+
+- Scope-normalized required verification tracking
+- Structural readiness vs verified separation
+- Configurable evidence freshness window (`GOV_MATRIX_EVIDENCE_WINDOW_DAYS`, default 7)
+- Dirty explainability reporting for verified required repos
+- External repo onboarding SOP and reviewer handoff template
+- Hook validation and repo-native closeout evidence ingestion
+
+### Partial / In Progress
+
+- Required fleet is not yet stably `10/10 verified` under rolling freshness constraints
+- Clean reproducibility remains lower than dirty-explained reproducibility
+- Framework self-hosting close condition tracking is reduced but not fully formalized
+
+### Not Implemented / Planned
+
+- Fully automated fleet-wide stale-evidence remediation with policy-safe semantics
+- Stable clean-verified baseline across required repos
+- Hardware-aware evidence model expansion (without weakening current evidence contract)
+
+### Reading Guidance
+
+- Do not interpret `verified ratio` alone.
+- Always read together:
+  - `required verified ratio`
+  - `required candidate_or_above`
+  - `freshness_blocked_count`
+- This avoids false conclusions when structure is stable but freshness has expired.
