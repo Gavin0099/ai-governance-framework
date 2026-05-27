@@ -6,6 +6,7 @@ $py = Join-Path $framework '.venv\Scripts\python.exe'
 $requiredVersions = Join-Path $framework 'governance\runtime\required_versions.yaml'
 $dirtyGateMode = if ($env:GOV_MATRIX_DIRTY_MODE) { $env:GOV_MATRIX_DIRTY_MODE } else { 'strict' }
 $governanceScopePath = Join-Path $framework 'governance\fleet\governance_scope.yaml'
+$governanceBaselinePath = Join-Path $framework 'governance\fleet\governance_baseline.yaml'
 $evidenceWindowDays = if ($env:GOV_MATRIX_EVIDENCE_WINDOW_DAYS) { [int]$env:GOV_MATRIX_EVIDENCE_WINDOW_DAYS } else { 7 }
 if ($evidenceWindowDays -lt 1) { $evidenceWindowDays = 1 }
 
@@ -52,6 +53,240 @@ function Get-GovernanceScope {
 }
 
 $governanceScope = Get-GovernanceScope -ScopePath $governanceScopePath
+function Get-GovernanceBaseline {
+	param([string]$BaselinePath)
+	$fallback = [pscustomobject]@{
+		baseline_version = ''
+		required_surfaces = @{}
+	}
+	if (-not (Test-Path $BaselinePath)) { return $fallback }
+
+	# Prefer native YAML parser if available.
+	if (Get-Command ConvertFrom-Yaml -ErrorAction SilentlyContinue) {
+		try {
+			$raw = Get-Content -Path $BaselinePath -Raw -Encoding UTF8
+			$doc = $raw | ConvertFrom-Yaml
+			$required = @{}
+			if ($doc.required_surfaces) {
+				foreach ($k in $doc.required_surfaces.Keys) {
+					$v = $doc.required_surfaces[$k]
+					$required[$k] = [pscustomobject]@{
+						remediation_key = [string]$v.remediation_key
+						hard_required = [bool]$v.hard_required
+					}
+				}
+			}
+			return [pscustomobject]@{
+				baseline_version = [string]$doc.baseline_version
+				required_surfaces = $required
+			}
+		} catch {
+			return $fallback
+		}
+	}
+
+	# Fallback parser (minimal): baseline_version only.
+	try {
+		$text = Get-Content -Path $BaselinePath -Raw -Encoding UTF8
+		$m = [regex]::Match($text, '(?m)^baseline_version:\s*"?([^"\r\n]+)"?')
+		$version = if ($m.Success) { [string]$m.Groups[1].Value.Trim() } else { '' }
+		$required = @{}
+		$lines = $text -split "`r?`n"
+		$inRequired = $false
+		$currentKey = ''
+		foreach ($line in $lines) {
+			if ($line -match '^\s*required_surfaces:\s*$') {
+				$inRequired = $true
+				$currentKey = ''
+				continue
+			}
+			if (-not $inRequired) { continue }
+			if ($line -match '^\S') { break } # next root-level key
+			if ($line -match '^\s{2}([A-Za-z0-9_]+):\s*$') {
+				$currentKey = [string]$matches[1]
+				$required[$currentKey] = [pscustomobject]@{
+					remediation_key = ''
+					hard_required = $false
+				}
+				continue
+			}
+			if ([string]::IsNullOrWhiteSpace($currentKey)) { continue }
+			if ($line -match '^\s{4}remediation_key:\s*"?([^"\r\n]+)"?\s*$') {
+				$tmp = $required[$currentKey]
+				$required[$currentKey] = [pscustomobject]@{
+					remediation_key = [string]$matches[1].Trim()
+					hard_required = [bool]$tmp.hard_required
+				}
+				continue
+			}
+			if ($line -match '^\s{4}hard_required:\s*(true|false)\s*$') {
+				$tmp = $required[$currentKey]
+				$required[$currentKey] = [pscustomobject]@{
+					remediation_key = [string]$tmp.remediation_key
+					hard_required = ([string]$matches[1] -eq 'true')
+				}
+			}
+		}
+		return [pscustomobject]@{
+			baseline_version = $version
+			required_surfaces = $required
+		}
+	} catch {
+		return $fallback
+	}
+}
+
+function Get-LockSurfaceInfo {
+	param([string]$Repo)
+	$path = Join-Path $Repo 'governance\framework.lock.json'
+	if (-not (Test-Path $path)) {
+		return [pscustomobject]@{
+			lock_path = $path
+			lock_exists = $false
+			lock_valid = $false
+			repo_baseline_version = ''
+			adopted_surfaces = @()
+		}
+	}
+	try {
+		$obj = Get-Content -Path $path -Raw -Encoding UTF8 | ConvertFrom-Json
+		$surfaces = @()
+		if ($obj.adopted_surfaces) {
+			$surfaces = @($obj.adopted_surfaces | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+		}
+		return [pscustomobject]@{
+			lock_path = $path
+			lock_exists = $true
+			lock_valid = $true
+			repo_baseline_version = [string]$obj.framework_baseline_version
+			adopted_surfaces = $surfaces
+		}
+	} catch {
+		return [pscustomobject]@{
+			lock_path = $path
+			lock_exists = $true
+			lock_valid = $false
+			repo_baseline_version = ''
+			adopted_surfaces = @()
+		}
+	}
+}
+
+function Compare-BaselineVersion {
+	param(
+		[string]$RepoVersion,
+		[string]$FrameworkVersion
+	)
+	if ([string]::IsNullOrWhiteSpace($RepoVersion) -or [string]::IsNullOrWhiteSpace($FrameworkVersion)) { return 'unknown' }
+	try {
+		$r = [datetime]::Parse($RepoVersion)
+		$f = [datetime]::Parse($FrameworkVersion)
+		if ($r -lt $f) { return 'drift_behind' }
+		if ($r -gt $f) { return 'drift_ahead' }
+		return 'current'
+	} catch {
+		if ($RepoVersion -eq $FrameworkVersion) { return 'current' }
+		return 'unknown'
+	}
+}
+
+function Get-ObservedSurfaceStatus {
+	param($Detail)
+	return @{
+		hooks_config = [bool]$Detail.hooks_ready
+		framework_lock = [bool]$Detail.framework_version_known
+		agents_calibration = [bool]$Detail.agents_repo_specific
+		expected_dirty = [bool]$Detail.dirty_explainable
+		closeout_evidence = [bool]$Detail.repo_native_hook_evidence_exists
+		head_commit_match = [bool]$Detail.repo_native_hook_head_match
+		timestamp_freshness = [bool]$Detail.repo_native_hook_timestamp_in_window
+	}
+}
+
+function Get-RemediationCatalog {
+	param([string]$FrameworkRoot)
+	$manage = Join-Path $FrameworkRoot 'governance_tools\manage_agent_closeout.py'
+	$closeout = Join-Path $FrameworkRoot 'governance_tools\session_closeout_entry.py'
+
+	$catalog = @{
+		hooks = [pscustomobject]@{
+			remediation_type = 'manual_action'
+			command = ''
+			action = 'Install/verify hooks using the repo''s existing validated onboarding workflow.'
+			human_required = $false
+			verification_source = ''
+		}
+		fw = [pscustomobject]@{
+			remediation_type = 'manual_action'
+			command = ''
+			action = 'Update repo governance/framework.lock.json through existing adoption/update path (do not blind-copy).'
+			human_required = $true
+			verification_source = ''
+		}
+		agents = [pscustomobject]@{
+			remediation_type = 'human_required'
+			command = ''
+			action = 'Update repo-specific AGENTS.md after human review.'
+			human_required = $true
+			verification_source = ''
+		}
+		dirty_ok = [pscustomobject]@{
+			remediation_type = 'human_required'
+			command = ''
+			action = 'Review dirty state and expected_dirty TTL before declaring explainable dirty.'
+			human_required = $true
+			verification_source = ''
+		}
+		evidence = [pscustomobject]@{
+			remediation_type = 'unknown'
+			command = ''
+			action = 'No verified command inventory found.'
+			human_required = $false
+			verification_source = ''
+		}
+		head_ok = [pscustomobject]@{
+			remediation_type = 'unknown'
+			command = ''
+			action = 'No verified command inventory found.'
+			human_required = $false
+			verification_source = ''
+		}
+		ts_ok = [pscustomobject]@{
+			remediation_type = 'unknown'
+			command = ''
+			action = 'No verified command inventory found.'
+			human_required = $false
+			verification_source = ''
+		}
+	}
+
+	if (Test-Path $manage) {
+		$catalog.hooks = [pscustomobject]@{
+			remediation_type = 'verified_command'
+			command = 'python -m governance_tools.manage_agent_closeout --project-root "<repo>" install --agent all; python -m governance_tools.manage_agent_closeout --project-root "<repo>" verify --agent all'
+			action = ''
+			human_required = $false
+			verification_source = $manage
+		}
+	}
+	if (Test-Path $closeout) {
+		$entry = [pscustomobject]@{
+			remediation_type = 'verified_command'
+			command = 'python -m governance_tools.session_closeout_entry --project-root "<repo>"'
+			action = ''
+			human_required = $false
+			verification_source = $closeout
+		}
+		$catalog.evidence = $entry
+		$catalog.head_ok = $entry
+		$catalog.ts_ok = $entry
+	}
+
+	return $catalog
+}
+
+$governanceBaseline = Get-GovernanceBaseline -BaselinePath $governanceBaselinePath
+$remediationCatalog = Get-RemediationCatalog -FrameworkRoot $framework
 
 $companyRepos = @(
 	'E:\BackUp\Git_EE\hp-firmware-stresstest-tool',
@@ -890,6 +1125,92 @@ $requiredVerifiedExpectedDirtyTtlValid = @(
 	Where-Object { [bool]$_.is_dirty -and [bool]$_.dirty_explainable }
 ).Count
 
+function Get-BlockerRemediation {
+	param(
+		[string]$RemediationKey,
+		$Catalog
+	)
+	if (-not $Catalog.ContainsKey($RemediationKey)) {
+		return [pscustomobject]@{
+			remediation_type = 'unknown_mapping'
+			command = ''
+			action = "No mapping for remediation key '$RemediationKey'"
+			verification_source = ''
+		}
+	}
+	return $Catalog[$RemediationKey]
+}
+
+$requiredSurfaceKeys = @($governanceBaseline.required_surfaces.Keys)
+$perRepoBaselineDrift = @()
+$perRepoRemediation = @()
+foreach ($d in $allRepoNative.details) {
+	$lock = Get-LockSurfaceInfo -Repo ([string]$d.repo)
+	$driftStatus = 'unknown'
+	if ($lock.lock_valid) {
+		$driftStatus = Compare-BaselineVersion -RepoVersion ([string]$lock.repo_baseline_version) -FrameworkVersion ([string]$governanceBaseline.baseline_version)
+	}
+
+	$observed = Get-ObservedSurfaceStatus -Detail $d
+	$adopted = @($lock.adopted_surfaces)
+	$missingRequired = @()
+	$adoptedObservedMissing = @()
+	foreach ($surface in $requiredSurfaceKeys) {
+		if ($adopted -notcontains $surface) {
+			$missingRequired += $surface
+		} elseif ($observed.ContainsKey($surface) -and -not [bool]$observed[$surface]) {
+			$adoptedObservedMissing += $surface
+		}
+	}
+
+	$driftWarning = ''
+	if ($driftStatus -eq 'drift_ahead') {
+		$driftWarning = 'repo baseline newer than framework baseline; review governance_baseline.yaml update necessity'
+	}
+
+	$perRepoBaselineDrift += [pscustomobject]@{
+		repo = $d.repo
+		drift_status = $driftStatus
+		repo_baseline = [string]$lock.repo_baseline_version
+		framework_baseline = [string]$governanceBaseline.baseline_version
+		lock_exists = [bool]$lock.lock_exists
+		lock_valid = [bool]$lock.lock_valid
+		adopted_surfaces = $adopted
+		missing_required_surfaces = $missingRequired
+		adopted_but_observed_missing_surfaces = $adoptedObservedMissing
+		warning = $driftWarning
+	}
+
+	# Build blocker remediation suggestions from observed signals only.
+	$blockers = @()
+	if (-not [bool]$d.hooks_ready) { $blockers += 'hooks' }
+	if (-not [bool]$d.framework_version_known) { $blockers += 'fw' }
+	if (-not [bool]$d.agents_repo_specific) { $blockers += 'agents' }
+	if (-not [bool]$d.dirty_explainable) { $blockers += 'dirty_ok' }
+	if (-not [bool]$d.repo_native_hook_evidence_exists) { $blockers += 'evidence' }
+	if ([bool]$d.repo_native_hook_evidence_exists -and -not [bool]$d.repo_native_hook_head_match) { $blockers += 'head_ok' }
+	if ([bool]$d.repo_native_hook_evidence_exists -and -not [bool]$d.repo_native_hook_timestamp_in_window) { $blockers += 'ts_ok' }
+
+	$suggestions = @()
+	foreach ($b in $blockers | Select-Object -Unique) {
+		$r = Get-BlockerRemediation -RemediationKey $b -Catalog $remediationCatalog
+		$suggestions += [pscustomobject]@{
+			blocker = $b
+			remediation_type = $r.remediation_type
+			command = $r.command
+			action = $r.action
+			human_required = [bool]$r.human_required
+			verification_source = $r.verification_source
+		}
+	}
+
+	$perRepoRemediation += [pscustomobject]@{
+		repo = $d.repo
+		classification = $d.classification
+		suggestions = $suggestions
+	}
+}
+
 $snapshot = [ordered]@{
 	matrix_version = 'v1'
 	generated_at = (Get-Date).ToString('s')
@@ -974,6 +1295,12 @@ $snapshot = [ordered]@{
 			company = $companyRepoNative
 			private = $privateRepoNative
 		}
+		baseline_drift = [ordered]@{
+			framework_baseline_version = $governanceBaseline.baseline_version
+			required_surfaces = $governanceBaseline.required_surfaces
+			per_repo = $perRepoBaselineDrift
+		}
+		remediation_suggestions = $perRepoRemediation
 	}
 }
 
@@ -1023,15 +1350,133 @@ foreach ($d in $allRepoNative.details) {
 	$hok = if ([bool]$d.repo_native_hook_head_match) { 'Y' } else { 'N' }
 	$tok = if ([bool]$d.repo_native_hook_timestamp_in_window) { 'Y' } else { 'N' }
 	$blockers = @()
-	if (-not [bool]$d.hooks_ready) { $blockers += 'hooks_ready=false -> install hooks' }
-	if (-not [bool]$d.framework_version_known) { $blockers += 'fw_unknown -> add framework.lock.json' }
-	if (-not [bool]$d.agents_repo_specific) { $blockers += 'agents=scaffold -> write repo-specific AGENTS.md' }
-	if (-not [bool]$d.dirty_explainable) { $blockers += 'dirty_unexplained -> add expected_dirty.json' }
-	if (-not [bool]$d.repo_native_hook_evidence_exists) { $blockers += 'no_evidence -> run closeout' }
-	if ([bool]$d.repo_native_hook_evidence_exists -and -not [bool]$d.repo_native_hook_head_match) { $blockers += 'head_commit_match=false -> run closeout' }
-	if ([bool]$d.repo_native_hook_evidence_exists -and -not [bool]$d.repo_native_hook_timestamp_in_window) { $blockers += 'timestamp_stale -> run closeout' }
+	$repoSuggest = $perRepoRemediation | Where-Object { [string]$_.repo -eq [string]$d.repo } | Select-Object -First 1
+	if ($repoSuggest -and $repoSuggest.suggestions) {
+		foreach ($s in $repoSuggest.suggestions) {
+			if ($s.remediation_type -eq 'verified_command' -and -not [string]::IsNullOrWhiteSpace([string]$s.command)) {
+				$blockers += ("{0} -> {1}" -f [string]$s.blocker, [string]$s.command)
+			} elseif (-not [string]::IsNullOrWhiteSpace([string]$s.action)) {
+				$blockers += ("{0} -> {1}" -f [string]$s.blocker, [string]$s.action)
+			} else {
+				$blockers += ("{0} -> unknown_mapping" -f [string]$s.blocker)
+			}
+		}
+	}
 	$blockerStr = if ($blockers.Count -eq 0) { 'none' } else { ($blockers -join '; ') }
 	$md += "| $name | $tierCol | $evTierCol | $cl | $hooks | $fw | $ag | $dok | $ev | $hok | $tok | $blockerStr |"
+}
+$md += ''
+$md += '## Baseline Drift'
+foreach ($b in $perRepoBaselineDrift) {
+	$repoName = [System.IO.Path]::GetFileName([string]$b.repo)
+	$md += "### $repoName"
+	$md += "- drift_status: $($b.drift_status)"
+	$md += "- repo_baseline: $($b.repo_baseline)"
+	$md += "- framework_baseline: $($b.framework_baseline)"
+	if ($b.warning) { $md += "- warning: $($b.warning)" }
+	$ad = if ($b.adopted_surfaces.Count -gt 0) { ($b.adopted_surfaces -join ', ') } else { '(none)' }
+	$mr = if ($b.missing_required_surfaces.Count -gt 0) { ($b.missing_required_surfaces -join ', ') } else { '(none)' }
+	$am = if ($b.adopted_but_observed_missing_surfaces.Count -gt 0) { ($b.adopted_but_observed_missing_surfaces -join ', ') } else { '(none)' }
+	$md += "- adopted_surfaces: $ad"
+	$md += "- missing_required_surfaces: $mr"
+	$md += "- adopted_but_observed_missing_surfaces: $am"
+}
+$md += ''
+$md += '## Remediation Suggestions'
+foreach ($r in $perRepoRemediation) {
+	if (-not $r.suggestions -or $r.suggestions.Count -eq 0) { continue }
+	$repoName = [System.IO.Path]::GetFileName([string]$r.repo)
+	$md += "### $repoName"
+	$md += '| blocker | remediation_type | command | action | human_required | verification_source |'
+	$md += '|---|---|---|---|---|---|'
+	foreach ($s in $r.suggestions) {
+		$cmd = if ([string]::IsNullOrWhiteSpace([string]$s.command)) { '(none)' } else { [string]$s.command }
+		$act = if ([string]::IsNullOrWhiteSpace([string]$s.action)) { '(none)' } else { [string]$s.action }
+		$vrf = if ([string]::IsNullOrWhiteSpace([string]$s.verification_source)) { '(none)' } else { [string]$s.verification_source }
+		$hr = if ($s.remediation_type -eq 'human_required') { 'true' } else { 'false' }
+		$md += "| $($s.blocker) | $($s.remediation_type) | $cmd | $act | $hr | $vrf |"
+	}
+}
+
+$md += ''
+$md += '## Adoption Task Packets'
+foreach ($b in $perRepoBaselineDrift) {
+	$repo = [string]$b.repo
+	$repoName = [System.IO.Path]::GetFileName($repo)
+	$rem = $perRepoRemediation | Where-Object { [string]$_.repo -eq $repo } | Select-Object -First 1
+	$hasBlockers = ($rem -and $rem.suggestions -and $rem.suggestions.Count -gt 0)
+	$hasMissingSurface = ($b.missing_required_surfaces -and $b.missing_required_surfaces.Count -gt 0)
+	$hasObservedMissing = ($b.adopted_but_observed_missing_surfaces -and $b.adopted_but_observed_missing_surfaces.Count -gt 0)
+	$hasDrift = ($b.drift_status -eq 'drift_behind' -or $b.drift_status -eq 'drift_ahead' -or $b.drift_status -eq 'unknown')
+	if (-not ($hasBlockers -or $hasMissingSurface -or $hasObservedMissing -or $hasDrift)) { continue }
+
+	$triggerReason = if (($hasBlockers -or $hasMissingSurface -or $hasObservedMissing) -and $hasDrift) { 'both' } elseif ($hasBlockers -or $hasMissingSurface -or $hasObservedMissing) { 'blockers' } else { 'baseline_drift' }
+	$blockerList = if ($hasBlockers) { (@($rem.suggestions | ForEach-Object { [string]$_.blocker } | Select-Object -Unique) -join ', ') } else { '(none)' }
+	$missingList = if ($hasMissingSurface) { ($b.missing_required_surfaces -join ', ') } else { '(none)' }
+	$obsMissingList = if ($hasObservedMissing) { ($b.adopted_but_observed_missing_surfaces -join ', ') } else { '(none)' }
+
+	$md += "### Adoption Task Packet: $repoName"
+	$md += ''
+	$md += '#### Target Repo'
+	$md += "- Repo: $repoName"
+	$md += "- Path: $repo"
+	$md += ''
+	$md += '#### Goal'
+	$md += 'Bring this repo''s AI Governance surfaces back in sync with the current framework baseline and matrix findings.'
+	$md += ''
+	$md += '#### Current Findings'
+	$md += "- trigger_reason: $triggerReason"
+	$md += "- drift_status: $($b.drift_status)"
+	$md += "- blockers: $blockerList"
+	$md += "- missing_required_surfaces: $missingList"
+	$md += "- adopted_but_observed_missing: $obsMissingList"
+	$md += ''
+	$md += '#### Allowed Changes'
+	$md += '- repo-specific AGENTS.md fleet overlay section'
+	$md += '- governance/framework.lock.json'
+	$md += '- governance metadata required by the current baseline'
+	$md += '- evidence / closeout artifacts generated by verified commands'
+	$md += ''
+	$md += '#### Forbidden Changes'
+	$md += '- domain contract content above fleet overlay boundary'
+	$md += '- framework global rules or rule precedence'
+	$md += '- application source code unrelated to governance adoption'
+	$md += '- enforcement behavior unless explicitly requested and verified'
+	$md += ''
+	$md += 'Fleet overlay boundary rule:'
+	$md += '- You may modify content below: `<!-- governance:section_start=fleet_overlay -->`'
+	$md += '- You must not modify domain contract content above that boundary.'
+	$md += ''
+	$md += '#### Required Actions'
+	$md += '1. Fix only listed blockers/missing surfaces/observed-missing surfaces.'
+	$md += '2. Use only `verified_command` items from remediation suggestions as copy-paste commands.'
+	$md += '3. For `human_required` items, document required review and stop short of speculative automation.'
+	$md += '4. Update `adopted_surfaces` only when the surface is actually installed/verified.'
+	$md += '5. Do not change forbidden files/sections.'
+	$md += ''
+	$md += '#### Done Definition'
+	$md += '- targeted blockers resolved or explicitly marked human-required'
+	$md += '- missing required surfaces resolved or explicitly human-required'
+	$md += '- no previously passing signal has regressed to failing'
+	$md += '- framework.lock.json adopted_surfaces matches installed surfaces'
+	$md += '- forbidden files/sections unchanged'
+	$md += ''
+	$md += '#### Before/After Signal Table (required output)'
+	$md += '| Signal | Before | After | Status |'
+	$md += '|---|---|---|---|'
+	$md += '| hooks_config | current_snapshot | rerun_required | pending |'
+	$md += '| framework_lock | current_snapshot | rerun_required | pending |'
+	$md += '| agents_calibration | current_snapshot | rerun_required | pending |'
+	$md += '| expected_dirty | current_snapshot | rerun_required | pending |'
+	$md += '| closeout_evidence | current_snapshot | rerun_required | pending |'
+	$md += '| head_commit_match | current_snapshot | rerun_required | pending |'
+	$md += '| timestamp_freshness | current_snapshot | rerun_required | pending |'
+	$md += ''
+	$md += '#### Non-Claims'
+	$md += '- do not claim permanent verified status'
+	$md += '- do not claim all future runs will pass'
+	$md += '- do not claim semantic correctness proof'
+	$md += '- do not claim authority boundary changes'
 }
 Set-Content -Path $snapshotMdPath -Value ($md -join "`r`n") -Encoding UTF8
 
