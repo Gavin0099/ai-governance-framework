@@ -71,6 +71,7 @@ run_smoke() {
     "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --event-type session_start "${smoke_overrides[@]}" --output artifacts/runtime/smoke/shared_session_start.txt --json-output artifacts/runtime/smoke/shared_session_start.json
     "${PYTHON_CMD[@]}" governance_tools/change_control_summary.py --session-start-file artifacts/runtime/smoke/shared_session_start.json --output artifacts/runtime/smoke/shared_change_control_summary.txt
     "${PYTHON_CMD[@]}" governance_tools/change_control_index.py --artifacts-dir artifacts/runtime/smoke --output artifacts/runtime/smoke/INDEX.txt
+    "${PYTHON_CMD[@]}" -m governance_tools.reason_code_verifier
 }
 
 run_pytest_suite() {
