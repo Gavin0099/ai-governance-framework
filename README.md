@@ -327,3 +327,9 @@ Before submitting changes to governance contracts or decision boundaries, review
 ## License
 
 See repository license file.
+
+## Governance Artifact Discipline Index
+
+- [`docs/governance/reason-code-registry.md`](docs/governance/reason-code-registry.md)
+- [`docs/governance/GOVERNANCE_ARTIFACT_FORMAT_RULE.md`](docs/governance/GOVERNANCE_ARTIFACT_FORMAT_RULE.md)
+- [`docs/governance/minimal-retrieval-navigability-verification-2026-05-27.md`](docs/governance/minimal-retrieval-navigability-verification-2026-05-27.md)
