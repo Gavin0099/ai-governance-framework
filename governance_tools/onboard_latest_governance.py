@@ -112,7 +112,8 @@ def _signal_evidence_head_ts(repo_path: Path, window_days: int) -> tuple[bool, b
     if not linked_head:
         return False, False, False
 
-    code, stdout, _ = _run_powershell_command("git rev-parse HEAD", repo_path)
+    safe_repo = str(repo_path).replace("'", "''")
+    code, stdout, _ = _run_powershell_command(f"git -c safe.directory='{safe_repo}' rev-parse HEAD", repo_path)
     if code != 0:
         return evidence_ok, False, False
     current_head = stdout.strip()
