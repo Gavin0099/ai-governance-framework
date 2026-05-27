@@ -697,6 +697,20 @@ function Get-RepoSetResults {
 	return $results
 }
 
+function Get-UniqueRepoRows {
+	param($Rows)
+	$seen = @{}
+	$results = @()
+	foreach ($row in $Rows) {
+		if (-not $row -or -not $row.repo) { continue }
+		$key = [string]$row.repo
+		if ($seen.ContainsKey($key)) { continue }
+		$seen[$key] = $true
+		$results += $row
+	}
+	return $results
+}
+
 $allRepos = @($companyRepos + $privateRepos | Select-Object -Unique)
 
 # Phase 1: inventory + baseline
@@ -1097,7 +1111,8 @@ $driftFailCount = @($planDrift, $manifestDrift, $contractDrift | Where-Object { 
 $repoInventoryMap = Get-RepoInventoryMap -InventoryRows $inventory
 $companyRepoNative = Get-RepoNativeStats -Rows $companyRerun -InventoryMap $repoInventoryMap -MatrixWindowStartUtc $matrixWindowStartUtc
 $privateRepoNative = Get-RepoNativeStats -Rows $privateBaseline -InventoryMap $repoInventoryMap -MatrixWindowStartUtc $matrixWindowStartUtc
-$allRepoNative = Get-RepoNativeStats -Rows @($companyRerun + $privateBaseline) -InventoryMap $repoInventoryMap -MatrixWindowStartUtc $matrixWindowStartUtc
+$allRowsUnique = Get-UniqueRepoRows -Rows @($companyRerun + $privateBaseline)
+$allRepoNative = Get-RepoNativeStats -Rows $allRowsUnique -InventoryMap $repoInventoryMap -MatrixWindowStartUtc $matrixWindowStartUtc
 
 # Scope-normalized metrics (required tier only)
 $requiredDetails = @($allRepoNative.details | Where-Object { $governanceScope[[string]$_.repo] -eq 'required' })
