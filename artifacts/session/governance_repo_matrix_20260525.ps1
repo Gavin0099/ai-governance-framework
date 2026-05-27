@@ -372,14 +372,17 @@ function Get-GitState {
 		}
 	}
 
-	Push-Location $Repo
+	$gitBase = @('-c', "safe.directory=$Repo", '-C', $Repo)
+	$oldEa = $ErrorActionPreference
+	$ErrorActionPreference = 'Continue'
 	try {
-		$branch = (cmd /c "git rev-parse --abbrev-ref HEAD 2>nul")
-		$head = (cmd /c "git rev-parse HEAD 2>nul")
-		$upstream = (cmd /c "git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>nul")
-		$dirty = ((cmd /c "git status --porcelain 2>nul" | Measure-Object -Line).Lines -gt 0)
+		$branch = (& git @gitBase rev-parse --abbrev-ref HEAD 2>$null)
+		$head = (& git @gitBase rev-parse HEAD 2>$null)
+		$upstream = (& git @gitBase rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>$null)
+		$dirtyLines = (& git @gitBase status --porcelain 2>$null)
+		$dirty = (@($dirtyLines).Count -gt 0)
 	} finally {
-		Pop-Location
+		$ErrorActionPreference = $oldEa
 	}
 
 	$contractPath = Join-Path $Repo 'contract.yaml'
