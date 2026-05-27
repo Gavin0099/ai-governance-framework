@@ -9,11 +9,19 @@ param(
     [switch]$WriteReport
 )
 
+$resolvedProjectRoot = (Resolve-Path -LiteralPath $ProjectRoot).Path
+$previousPythonPath = $env:PYTHONPATH
+if ([string]::IsNullOrWhiteSpace($previousPythonPath)) {
+    $env:PYTHONPATH = $resolvedProjectRoot
+} else {
+    $env:PYTHONPATH = "$resolvedProjectRoot;$previousPythonPath"
+}
+
 $args = @(
     "-m", "governance_tools.onboard_latest_governance",
     "--repo", $Repo,
     "--mode", $Mode,
-    "--project-root", $ProjectRoot,
+    "--project-root", $resolvedProjectRoot,
     "--format", "human"
 )
 
@@ -30,4 +38,6 @@ if ($WriteReport) {
 }
 
 python @args
-exit $LASTEXITCODE
+$exitCode = $LASTEXITCODE
+$env:PYTHONPATH = $previousPythonPath
+exit $exitCode
