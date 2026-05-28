@@ -6,6 +6,11 @@ overridden_by: ~
 default_load: always
 ---
 
+<!-- governance:memory_authority -->
+memory_root: memory/
+external_memory_allowed: false
+operational_records_must_stay_under_memory_root: true
+
 # AGENT.md
 **AI Agent 行為契約 - v4.3**
 

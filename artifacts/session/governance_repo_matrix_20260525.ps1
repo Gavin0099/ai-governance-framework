@@ -1573,6 +1573,7 @@ foreach ($b in $perRepoBaselineDrift) {
 	$md += '- framework global rules or rule precedence'
 	$md += '- application source code unrelated to governance adoption'
 	$md += '- enforcement behavior unless explicitly requested and verified'
+	$md += '- operational records must not be written outside declared memory_root (default: memory/)'
 	$md += ''
 	$md += 'Fleet overlay boundary rule:'
 	$md += '- You may modify content below: `<!-- governance:section_start=fleet_overlay -->`'

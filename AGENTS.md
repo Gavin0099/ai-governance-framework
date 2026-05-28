@@ -1,5 +1,10 @@
 ﻿# AGENTS.md - Your Workspace
 
+<!-- governance:memory_authority -->
+memory_root: memory/
+external_memory_allowed: false
+operational_records_must_stay_under_memory_root: true
+
 This folder is home. Treat it that way.
 
 ## First Run
