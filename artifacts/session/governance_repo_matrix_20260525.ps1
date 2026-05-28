@@ -518,6 +518,41 @@ function Invoke-NegativeContractMissing {
 	}
 }
 
+function Get-LatestOnboardingDetectorErrors {
+	param(
+		[string]$Repo,
+		[string]$SessionDir
+	)
+	$repoName = [System.IO.Path]::GetFileName($Repo)
+	$pattern = "onboard_latest_governance_{0}_*.json" -f $repoName
+	$files = Get-ChildItem -Path $SessionDir -Filter $pattern -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending
+	if (-not $files -or $files.Count -eq 0) {
+		return [pscustomobject]@{
+			repo = $Repo
+			report_found = $false
+			detector_errors = 0
+		}
+	}
+	try {
+		$obj = Get-Content -Path $files[0].FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+		$de = 0
+		if ($obj.acceptance_after -and $obj.acceptance_after.detector_errors -ne $null) {
+			$de = [int]$obj.acceptance_after.detector_errors
+		}
+		return [pscustomobject]@{
+			repo = $Repo
+			report_found = $true
+			detector_errors = $de
+		}
+	} catch {
+		return [pscustomobject]@{
+			repo = $Repo
+			report_found = $false
+			detector_errors = 0
+		}
+	}
+}
+
 function Invoke-NegativeManifestMissing {
 	param([string]$Repo)
 
@@ -1190,6 +1225,15 @@ $requiredVerifiedExpectedDirtyTtlValid = @(
 	Where-Object { [bool]$_.is_dirty -and [bool]$_.dirty_explainable }
 ).Count
 
+$detectorErrorRows = @()
+foreach ($repoPath in $inventory.repo) {
+	$detectorErrorRows += Get-LatestOnboardingDetectorErrors -Repo ([string]$repoPath) -SessionDir $snapshotDir
+}
+$detectorErrorsTotal = @($detectorErrorRows | Measure-Object -Property detector_errors -Sum).Sum
+if ($null -eq $detectorErrorsTotal) { $detectorErrorsTotal = 0 }
+$detectorReportsFound = @($detectorErrorRows | Where-Object { [bool]$_.report_found }).Count
+$detectorReportsMissing = @($detectorErrorRows | Where-Object { -not [bool]$_.report_found }).Count
+
 function Get-BlockerRemediation {
 	param(
 		[string]$RemediationKey,
@@ -1362,6 +1406,11 @@ $snapshot = [ordered]@{
 			dirty_false_verified = $requiredVerifiedDirtyFalse
 			expected_dirty_ttl_valid = $requiredVerifiedExpectedDirtyTtlValid
 		}
+		detector_errors_total = [ordered]@{
+			total = $detectorErrorsTotal
+			reports_found = $detectorReportsFound
+			reports_missing = $detectorReportsMissing
+		}
 		repo_native_governance_breakdown = [ordered]@{
 			overall = $allRepoNative
 			company = $companyRepoNative
@@ -1399,6 +1448,7 @@ $md += "- structural readiness (required candidate_or_above): $requiredCandidate
 $md += "- freshness blocked count (required): $requiredFreshnessBlocked"
 $md += "- evidence freshness window (days): $evidenceWindowDays"
 $md += "- verified dirty dependency (required verified only): total=$requiredVerified, dirty_true=$requiredVerifiedDirtyTrue, dirty_false=$requiredVerifiedDirtyFalse, expected_dirty_ttl_valid=$requiredVerifiedExpectedDirtyTtlValid"
+$md += "- detector_errors_total: total=$detectorErrorsTotal, reports_found=$detectorReportsFound, reports_missing=$detectorReportsMissing"
 $md += ""
 $md += '## Notes'
 $md += '- Negative-path and drift tests run with temporary mutation and restoration.'

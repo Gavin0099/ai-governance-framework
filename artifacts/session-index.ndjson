@@ -166,3 +166,5 @@
 {"session_id": "session-20260527T072522-52a322", "closed_at": "2026-05-27T07:25:22.104523+00:00", "closeout_status": "missing", "task_intent": null, "has_open_risks": false}
 {"session_id": "session-20260527T080234-dade6b", "closed_at": "2026-05-27T08:02:34.250945+00:00", "closeout_status": "missing", "task_intent": null, "has_open_risks": false}
 {"session_id": "session-20260528T021452-03fa65", "closed_at": "2026-05-28T02:14:52.623771+00:00", "closeout_status": "missing", "task_intent": null, "has_open_risks": false}
+{"session_id": "session-20260528T061151-ff2b96", "closed_at": "2026-05-28T06:11:52.067902+00:00", "closeout_status": "missing", "task_intent": null, "has_open_risks": false}
+{"session_id": "session-20260528T061225-bc20c3", "closed_at": "2026-05-28T06:12:25.171244+00:00", "closeout_status": "missing", "task_intent": null, "has_open_risks": false}
