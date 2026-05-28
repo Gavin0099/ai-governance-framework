@@ -253,6 +253,12 @@ Full onboarding:
 python governance_tools/adopt_governance.py --target /path/to/your/repo
 ```
 
+One-line latest governance apply prompt:
+
+```text
+Please run latest AI governance apply for <REPO_PATH> (install hooks, execute closeout, rerun apply) until repo_native_verified=True, then return hooks/fw/agents/evidence/head_ok/ts_ok.
+```
+
 Minimal starter pack: see [`examples/starter-pack/`](examples/starter-pack/) and [`governance/fleet/external_repo_onboarding_sop.md`](governance/fleet/external_repo_onboarding_sop.md).
 
 ## Capability Status

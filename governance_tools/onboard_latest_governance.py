@@ -11,9 +11,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -56,6 +56,15 @@ def _select_repo_row(snapshot: dict[str, Any], repo_path: Path) -> dict[str, Any
     raise ValueError(f"Target repo not found in remediation_suggestions: {repo_path}")
 
 
+def _repo_present_in_snapshot(snapshot: dict[str, Any], repo_path: Path) -> bool:
+    rows = snapshot.get("operational_maturity", {}).get("remediation_suggestions", [])
+    for row in rows:
+        repo = row.get("repo", "")
+        if isinstance(repo, str) and _repo_matches(repo, repo_path):
+            return True
+    return False
+
+
 def _replace_repo_placeholder(text: str, repo_path: Path) -> str:
     return text.replace("<repo>", str(repo_path))
 
@@ -78,17 +87,48 @@ def _bool_cmd(repo_path: Path, command: str) -> bool:
     return code == 0
 
 
-def _signal_hooks(repo_path: Path) -> bool:
-    cmd = f'python -m governance_tools.manage_agent_closeout --project-root "{repo_path}" verify --agent all'
-    return _bool_cmd(repo_path, cmd)
+def _signal(status: str, *, reason: str = "", remediation: str = "") -> dict[str, Any]:
+    return {
+        "status": status,
+        "reason": reason,
+        "repo_failure": status == "N",
+        "detector_failure": status == "DETECTOR_ERROR",
+        "remediation": remediation,
+    }
 
 
-def _signal_fw(repo_path: Path) -> bool:
-    return (repo_path / "governance" / "framework.lock.json").exists()
+def _signal_hooks(repo_path: Path) -> tuple[bool, dict[str, Any]]:
+    tool_path = (Path(__file__).resolve().parent / "manage_agent_closeout.py").as_posix()
+    cmd = f'python "{tool_path}" --project-root "{repo_path}" verify --agent all'
+    code, stdout, stderr = _run_powershell_command(cmd, repo_path)
+    if code == 0:
+        return True, _signal("Y", reason="hooks_verified")
+    text = f"{stdout}\n{stderr}".lower()
+    if "permission denied" in text or "access is denied" in text:
+        return False, _signal(
+            "DETECTOR_ERROR",
+            reason="hooks_verify_permission_denied",
+            remediation='re-run with permissions to read/write hook config paths, then verify again',
+        )
+    return False, _signal("N", reason="hooks_not_ready")
 
 
-def _signal_agents(repo_path: Path) -> bool:
-    return (repo_path / "AGENTS.md").exists()
+def _signal_fw(repo_path: Path) -> tuple[bool, dict[str, Any]]:
+    exists = (repo_path / "governance" / "framework.lock.json").exists()
+    if exists:
+        return True, _signal("Y", reason="framework_lock_present")
+    return False, _signal(
+        "N",
+        reason="framework_lock_missing",
+        remediation="update governance/framework.lock.json through existing adoption/update path",
+    )
+
+
+def _signal_agents(repo_path: Path) -> tuple[bool, dict[str, Any]]:
+    exists = (repo_path / "AGENTS.md").exists()
+    if exists:
+        return True, _signal("Y", reason="agents_present")
+    return False, _signal("N", reason="agents_missing", remediation="add repo-specific AGENTS.md")
 
 
 def _load_latest_closeout_receipt(repo_path: Path) -> dict[str, Any] | None:
@@ -102,42 +142,80 @@ def _load_latest_closeout_receipt(repo_path: Path) -> dict[str, Any] | None:
     return _load_json(latest)
 
 
-def _signal_evidence_head_ts(repo_path: Path, window_days: int) -> tuple[bool, bool, bool]:
+def _signal_evidence_head_ts(repo_path: Path, window_days: int) -> tuple[bool, bool, bool, dict[str, dict[str, Any]]]:
     receipt = _load_latest_closeout_receipt(repo_path)
+    details: dict[str, dict[str, Any]] = {}
     if not receipt:
-        return False, False, False
+        details["evidence"] = _signal("N", reason="closeout_receipt_missing", remediation="run session_closeout_entry")
+        details["head_ok"] = _signal("UNKNOWN", reason="receipt_missing")
+        details["ts_ok"] = _signal("UNKNOWN", reason="receipt_missing")
+        return False, False, False, details
 
     evidence_ok = True
+    details["evidence"] = _signal("Y", reason="closeout_receipt_present")
     linked_head = str(receipt.get("linked_head_commit", "")).strip()
     if not linked_head:
-        return False, False, False
+        details["evidence"] = _signal("N", reason="linked_head_missing", remediation="re-run session_closeout_entry")
+        details["head_ok"] = _signal("UNKNOWN", reason="linked_head_missing")
+        details["ts_ok"] = _signal("UNKNOWN", reason="linked_head_missing")
+        return False, False, False, details
 
     safe_repo = str(repo_path).replace("'", "''")
-    code, stdout, _ = _run_powershell_command(f"git -c safe.directory='{safe_repo}' rev-parse HEAD", repo_path)
+    code, stdout, stderr = _run_powershell_command(f"git -c safe.directory='{safe_repo}' rev-parse HEAD", repo_path)
     if code != 0:
-        return evidence_ok, False, False
+        err_text = f"{stdout}\n{stderr}".lower()
+        if "dubious ownership" in err_text or "safe.directory" in err_text:
+            details["head_ok"] = _signal(
+                "DETECTOR_ERROR",
+                reason="git_dubious_ownership",
+                remediation="run git with -c safe.directory=<repo> or configure safe.directory",
+            )
+        else:
+            reason = re.sub(r"\s+", " ", err_text).strip()[:180] or "git_rev_parse_failed"
+            details["head_ok"] = _signal("DETECTOR_ERROR", reason=reason, remediation="fix git HEAD detector access")
+        details["ts_ok"] = _signal("UNKNOWN", reason="head_detector_error")
+        return evidence_ok, False, False, details
     current_head = stdout.strip()
     head_ok = current_head == linked_head
+    if head_ok:
+        details["head_ok"] = _signal("Y", reason="head_matches_receipt")
+    else:
+        details["head_ok"] = _signal("N", reason="head_mismatch", remediation="re-run session_closeout_entry at current HEAD")
 
     ts_text = str(receipt.get("timestamp", "")).strip()
     if not ts_text:
-        return evidence_ok, head_ok, False
+        details["ts_ok"] = _signal("N", reason="timestamp_missing", remediation="re-run session_closeout_entry")
+        return evidence_ok, head_ok, False, details
 
     try:
         dt = datetime.fromisoformat(ts_text.replace("Z", "+00:00"))
     except ValueError:
-        return evidence_ok, head_ok, False
+        details["ts_ok"] = _signal("DETECTOR_ERROR", reason="timestamp_parse_error", remediation="fix receipt timestamp format")
+        return evidence_ok, head_ok, False, details
     age_days = (datetime.now(timezone.utc) - dt.astimezone(timezone.utc)).total_seconds() / 86400.0
     ts_ok = age_days <= float(window_days)
-    return evidence_ok, head_ok, ts_ok
+    if ts_ok:
+        details["ts_ok"] = _signal("Y", reason="timestamp_in_window")
+    else:
+        details["ts_ok"] = _signal("N", reason="timestamp_stale", remediation="refresh closeout receipt")
+    return evidence_ok, head_ok, ts_ok, details
 
 
 def _compute_acceptance(repo_path: Path, window_days: int) -> dict[str, Any]:
-    hooks = _signal_hooks(repo_path)
-    fw = _signal_fw(repo_path)
-    agents = _signal_agents(repo_path)
-    evidence, head_ok, ts_ok = _signal_evidence_head_ts(repo_path, window_days)
+    hooks, hooks_detail = _signal_hooks(repo_path)
+    fw, fw_detail = _signal_fw(repo_path)
+    agents, agents_detail = _signal_agents(repo_path)
+    evidence, head_ok, ts_ok, eht_details = _signal_evidence_head_ts(repo_path, window_days)
     verified = hooks and fw and agents and evidence and head_ok and ts_ok
+    details = {
+        "hooks": hooks_detail,
+        "fw": fw_detail,
+        "agents": agents_detail,
+        "evidence": eht_details.get("evidence", _signal("UNKNOWN", reason="not_evaluated")),
+        "head_ok": eht_details.get("head_ok", _signal("UNKNOWN", reason="not_evaluated")),
+        "ts_ok": eht_details.get("ts_ok", _signal("UNKNOWN", reason="not_evaluated")),
+    }
+    detector_errors = sum(1 for x in details.values() if x.get("status") == "DETECTOR_ERROR")
     return {
         "hooks": hooks,
         "fw": fw,
@@ -145,6 +223,8 @@ def _compute_acceptance(repo_path: Path, window_days: int) -> dict[str, Any]:
         "evidence": evidence,
         "head_ok": head_ok,
         "ts_ok": ts_ok,
+        "signal_details": details,
+        "detector_errors": detector_errors,
         "repo_native_verified": verified,
     }
 
@@ -163,6 +243,18 @@ def _render_summary(payload: dict[str, Any]) -> str:
     ]
     for key in ("hooks", "fw", "agents", "evidence", "head_ok", "ts_ok", "repo_native_verified"):
         lines.append(f"{key}={payload['acceptance_after'][key]}")
+    lines.append(f"detector_errors={payload['acceptance_after'].get('detector_errors', 0)}")
+    lines.append("")
+    lines.append("[signal_details]")
+    for key in ("hooks", "fw", "agents", "evidence", "head_ok", "ts_ok"):
+        d = payload["acceptance_after"].get("signal_details", {}).get(key, {})
+        lines.append(
+            f"{key}: status={d.get('status', 'UNKNOWN')} reason={d.get('reason', '')} "
+            f"repo_failure={d.get('repo_failure', False)} detector_failure={d.get('detector_failure', False)}"
+        )
+        remediation = d.get("remediation", "")
+        if remediation:
+            lines.append(f"  remediation: {remediation}")
     lines.append("")
     lines.append("[actions]")
     for item in payload["actions"]:
@@ -184,12 +276,42 @@ def run(argv: list[str]) -> int:
     parser.add_argument("--refresh-snapshot-command", help="Optional command to refresh matrix snapshot after apply.")
     parser.add_argument("--format", choices=["human", "json"], default="human")
     parser.add_argument("--write-report", action="store_true", help="Write result JSON under artifacts/session.")
+    parser.add_argument(
+        "--require-in-snapshot",
+        action="store_true",
+        default=True,
+        help="Fail fast when target repo is not present in remediation_suggestions (default: true).",
+    )
     args = parser.parse_args(argv)
 
     project_root = Path(args.project_root).resolve()
     repo_path = Path(args.repo).resolve()
     snapshot_path = Path(args.snapshot).resolve() if args.snapshot else _find_latest_snapshot(project_root)
     snapshot = _load_json(snapshot_path)
+    if args.require_in_snapshot and not _repo_present_in_snapshot(snapshot, repo_path):
+        err = {
+            "ok": False,
+            "error": "repo_not_in_snapshot",
+            "repo": str(repo_path),
+            "snapshot": str(snapshot_path),
+            "message": "Target repo not found in remediation_suggestions.",
+            "next_steps": [
+                "Add repo to fleet scope/inventory used by matrix generator.",
+                "Regenerate matrix snapshot.",
+                "Re-run onboarding with --snapshot <new_snapshot.json>.",
+            ],
+        }
+        if args.format == "json":
+            print(json.dumps(err, ensure_ascii=False, indent=2))
+        else:
+            print("[onboard_latest_governance]")
+            print("ok=False")
+            print("error=repo_not_in_snapshot")
+            print(f"repo={repo_path}")
+            print(f"snapshot={snapshot_path}")
+            print("message=Target repo not found in remediation_suggestions.")
+            print("next_steps=add_repo_to_matrix_inventory -> regenerate_snapshot -> rerun_onboarding")
+        return 2
     row = _select_repo_row(snapshot, repo_path)
     window_days = int(snapshot.get("evidence_window_days", 7))
 

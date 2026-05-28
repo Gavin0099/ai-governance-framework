@@ -309,6 +309,7 @@ $privateRepos = @(
 	'E:\BackUp\Git_EE\Kernel-Driver-Contract',
 	'E:\BackUp\Git_EE\Mirra',
 	'E:\BackUp\Git_EE\SpecAuthority',
+	'E:\BackUp\Git_EE\usb-logic-trace-correlator',
 	'E:\BackUp\Git_EE\verilog-domain-contract',
 	'E:\BackUp\Git_EE\writing-contract',
 	'E:\BackUp\Git_EE\ZoneTruth'
