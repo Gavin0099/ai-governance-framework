@@ -97,6 +97,32 @@ L0 fast-track 路徑：
 
 這類工作必須完整套用 `ARCHITECTURE.md` 與 `TESTING.md`，不得在沒有 human approval 的情況下取捷徑。
 
+### 2.5 Post-Review Remediation Permission
+
+Review finding 產出後，依 finding 的改動性質決定是否可以立即修：
+
+**Mechanical remediation — 可以在 review 後直接修，不需額外確認：**
+- typo / copy / label
+- missing config path
+- missing test case
+- stale PLAN checkbox
+- evidence refresh
+- small consistency fix
+- 任何不改變 authority、gate、contract、或 domain behavior 的修正
+
+以上等同 L0 或 content-only L1。套用 2.2 節的 fast-track path。
+
+**Structural remediation — 必須先停下來，取得明確 user 確認或獨立 plan：**
+- new authority source 或 gate behavior 改動
+- contract / schema change
+- domain risk boundary change
+- native update behavior change
+- cross-agent lifecycle change
+
+以上屬於 L1 behavior change 或 L2。不得在 review session 中自行滑入。
+
+**分類不確定時：** 向 structural 靠攏，先確認再修。不要在模糊時用「看起來像 mechanical」做為自行執行的依據。
+
 ---
 
 ## 3. Execution Pipeline
