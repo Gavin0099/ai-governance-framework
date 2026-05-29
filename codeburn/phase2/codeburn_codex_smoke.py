@@ -18,6 +18,7 @@ import sqlite3
 import sys
 import tempfile
 import uuid
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -113,6 +114,18 @@ def _boundary_invariants_hold(conn: sqlite3.Connection, session_id: str) -> bool
     return first_completion == 80 and second_prompt == 1200 and all_total_null
 
 
+def _all_total_tokens_null(conn: sqlite3.Connection, session_id: str) -> bool:
+    row = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM steps
+        WHERE session_id = ? AND provider = 'codex' AND total_tokens IS NOT NULL
+        """,
+        (session_id,),
+    ).fetchone()
+    return (int(row[0]) if row else 0) == 0
+
+
 def _sqlite_surface_rejected(db_path: Path, conn: sqlite3.Connection) -> bool:
     from codeburn.phase2.codex_log_ingestor import ingest_codex_session
 
@@ -123,6 +136,45 @@ def _sqlite_surface_rejected(db_path: Path, conn: sqlite3.Connection) -> bool:
     except Exception:
         return False
     return False
+
+
+@dataclass(frozen=True)
+class FixtureExpectation:
+    min_processed: int = 0
+    min_quarantined: int = 0
+    min_skipped: int = 0
+    exact_processed: int | None = None
+
+
+def _fixture_expectation(artifact_path: Path) -> FixtureExpectation:
+    name = artifact_path.name
+    expectations = {
+        "codex_smoke_fixture.jsonl": FixtureExpectation(exact_processed=2),
+        "codex_gap_empty_session.jsonl": FixtureExpectation(min_skipped=1, exact_processed=0),
+        "codex_gap_corrupted_jsonl.jsonl": FixtureExpectation(min_processed=1, min_quarantined=1),
+        "codex_gap_missing_rate_limits.jsonl": FixtureExpectation(min_processed=1),
+        "codex_gap_malformed_rate_limits.jsonl": FixtureExpectation(min_processed=1),
+        "codex_gap_missing_token_stats.jsonl": FixtureExpectation(min_processed=1),
+        "codex_gap_multi_session_mix.jsonl": FixtureExpectation(min_processed=2, min_skipped=2),
+        "codex_gap_old_new_mixture.jsonl": FixtureExpectation(min_processed=2),
+    }
+    return expectations.get(name, FixtureExpectation(min_processed=1))
+
+
+def _assert_fixture(summary: dict, artifact_path: Path) -> bool:
+    expect = _fixture_expectation(artifact_path)
+    processed = int(summary.get("processed_records", 0))
+    skipped = int(summary.get("skipped_records", 0))
+    quarantined = int(summary.get("quarantined_records", 0))
+    if expect.exact_processed is not None and processed != expect.exact_processed:
+        return False
+    if processed < expect.min_processed:
+        return False
+    if skipped < expect.min_skipped:
+        return False
+    if quarantined < expect.min_quarantined:
+        return False
+    return True
 
 
 def run_smoke(artifact_path: Path, db_path: Path, session_id: str) -> tuple[int, dict]:
@@ -149,14 +201,32 @@ def run_smoke(artifact_path: Path, db_path: Path, session_id: str) -> tuple[int,
         "quarantined_records": ingest_result.records_quarantined,
         "provenance_rows_written": _count_provenance_rows_for_session(conn, session_id),
         "incomplete_token_records": _count_incomplete_token_records(conn, session_id),
+        "admitted_with_warning_records": _count_incomplete_token_records(conn, session_id),
         "sqlite_surface_rejected": _sqlite_surface_rejected(db_path, conn),
         "authority_flags_all_false": _authority_flags_all_false(conn, session_id),
+        "all_total_tokens_null": _all_total_tokens_null(conn, session_id),
     }
 
-    invariants_ok = _boundary_invariants_hold(conn, session_id)
+    baseline_invariants_ok = _boundary_invariants_hold(conn, session_id)
+    fixture_assertions_ok = _assert_fixture(summary, artifact_path)
+    provenance_ok = summary["provenance_rows_written"] == summary["processed_records"]
+    common_invariants_ok = (
+        summary["authority_flags_all_false"]
+        and summary["sqlite_surface_rejected"]
+        and summary["all_total_tokens_null"]
+        and provenance_ok
+        and fixture_assertions_ok
+    )
+    is_baseline_fixture = artifact_path.name == "codex_smoke_fixture.jsonl"
+    invariants_ok = common_invariants_ok and (
+        baseline_invariants_ok if is_baseline_fixture else True
+    )
+    summary["fixture_assertions_ok"] = fixture_assertions_ok
+    summary["baseline_invariants_checked"] = is_baseline_fixture
+    summary["baseline_invariants_ok"] = baseline_invariants_ok if is_baseline_fixture else None
     conn.close()
 
-    if not summary["authority_flags_all_false"] or not invariants_ok:
+    if not invariants_ok:
         return 2, summary
     return 0, summary
 
@@ -168,8 +238,13 @@ def _print_summary(summary: dict) -> None:
         "quarantined_records",
         "provenance_rows_written",
         "incomplete_token_records",
+        "admitted_with_warning_records",
         "sqlite_surface_rejected",
         "authority_flags_all_false",
+        "all_total_tokens_null",
+        "fixture_assertions_ok",
+        "baseline_invariants_checked",
+        "baseline_invariants_ok",
     ]
     for key in ordered_keys:
         value = summary.get(key)

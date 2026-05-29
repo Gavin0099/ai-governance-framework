@@ -43,8 +43,13 @@ def test_p54_smoke_runs_and_returns_fixed_output_keys(tmp_db):
         "quarantined_records",
         "provenance_rows_written",
         "incomplete_token_records",
+        "admitted_with_warning_records",
         "sqlite_surface_rejected",
         "authority_flags_all_false",
+        "all_total_tokens_null",
+        "fixture_assertions_ok",
+        "baseline_invariants_checked",
+        "baseline_invariants_ok",
     }
 
 

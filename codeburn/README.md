@@ -131,6 +131,47 @@ See `phase1/CODEBURN_PHASE2_ENTRY_CONSTRAINTS.md` for full constraints.
 
 ---
 
+## L0 Manual Usage Ingest (analysis-only)
+
+Manual-reported usage can be recorded via:
+
+```powershell
+python codeburn/phase2/codeburn_manual_usage_ingest.py --db artifacts/codeburn_l0_manual_smoke.db --session-id manual-l0-smoke-20260528 --task l0-manual-usage-smoke --repo-path E:/BackUp/Git_EE/ai-governance-framework --agent codex --model gpt-5 --provider openai --prompt-tokens 1200 --completion-tokens 340 --source-note "manual report" --json
+```
+
+Or from a JSON fixture:
+
+```powershell
+python codeburn/phase2/codeburn_manual_usage_ingest.py --db artifacts/codeburn_l0_manual_smoke.db --input-json codeburn/phase2/examples/manual_usage_fixture.json --json
+```
+
+Batch JSON array is also supported:
+
+```powershell
+python codeburn/phase2/codeburn_manual_usage_ingest.py --db artifacts/codeburn_l0_manual_batch.db --input-json codeburn/phase2/examples/manual_usage_batch_valid.json --json
+```
+
+Validation rules:
+- required fields must be non-empty (`session_id/task/agent/model/provider`)
+- `prompt_tokens` and `completion_tokens` must be integers `>= 0`
+- fail-whole-batch: if any record is invalid, no records are written and command exits non-zero
+
+Phase 1 report now exposes:
+- `manual_reported_usage_count`
+- `manual_reported_usage_present`
+
+Per-run token rows can be shown with:
+
+```powershell
+python codeburn/phase1/codeburn_report.py --db artifacts/codeburn_l0_manual_batch.db --session-id manual-batch-valid-1 --format json --show-runs --run-limit 20
+```
+
+Boundary remains unchanged:
+- `analysis_safe_for_decision=false`
+- `decision_usage_allowed=false`
+
+---
+
 ## Phase 3 — Deliberately Prohibited (as of 2026-04-27)
 
 Phase 3 (Trigger Design: dynamic threshold, trend_direction, cross-repo correlation) is

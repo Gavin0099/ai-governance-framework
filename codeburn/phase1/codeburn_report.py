@@ -82,6 +82,18 @@ def _session_metrics(conn: sqlite3.Connection, session_id: str) -> dict:
     prompt_values = [row["prompt_tokens"] for row in token_rows if row["prompt_tokens"] is not None]
     completion_values = [row["completion_tokens"] for row in token_rows if row["completion_tokens"] is not None]
     total_values = [row["total_tokens"] for row in token_rows if row["total_tokens"] is not None]
+    manual_count = int(
+        conn.execute(
+            """
+            SELECT COUNT(*)
+            FROM step_ingestion_provenance p
+            INNER JOIN steps s ON s.step_id = p.step_id
+            WHERE s.session_id = ?
+              AND p.acquisition_mode = 'manual_reported_usage'
+            """,
+            (session_id,),
+        ).fetchone()[0]
+    )
     return {
         "step_count": step_count,
         "token_comparability": token_provider_steps > 0,
@@ -93,15 +105,47 @@ def _session_metrics(conn: sqlite3.Connection, session_id: str) -> dict:
         "token_observability_level": observability_level,
         "token_source_summary": token_source_summary,
         "provenance_warning": _provenance_warning(token_source_summary),
+        "manual_reported_usage_count": manual_count,
+        "manual_reported_usage_present": manual_count > 0,
     }
 
 
-def build_report(db_path: Path, session_id: str | None) -> dict:
+def _run_token_rows(conn: sqlite3.Connection, session_id: str, limit: int = 100) -> list[dict]:
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute(
+        """
+        SELECT step_id, provider, started_at, command, prompt_tokens, completion_tokens, total_tokens, token_source
+        FROM steps
+        WHERE session_id=?
+        ORDER BY started_at ASC, rowid ASC
+        LIMIT ?
+        """,
+        (session_id, limit),
+    ).fetchall()
+    result = []
+    for row in rows:
+        result.append(
+            {
+                "step_id": str(row["step_id"]),
+                "provider": str(row["provider"]) if row["provider"] is not None else None,
+                "started_at": str(row["started_at"]),
+                "command": str(row["command"]),
+                "prompt_tokens": row["prompt_tokens"],
+                "completion_tokens": row["completion_tokens"],
+                "total_tokens": row["total_tokens"],
+                "token_source": str(row["token_source"]) if row["token_source"] is not None else None,
+            }
+        )
+    return result
+
+
+def build_report(db_path: Path, session_id: str | None, include_runs: bool = False, run_limit: int = 100) -> dict:
     conn = sqlite3.connect(db_path)
     row = _resolve_session(conn, session_id)
     if not row:
         return {"ok": False, "error": "session_not_found"}
     metrics = _session_metrics(conn, str(row["session_id"]))
+    run_rows = _run_token_rows(conn, str(row["session_id"]), limit=run_limit) if include_runs else []
     return {
         "ok": True,
         "phase": "phase1",
@@ -116,9 +160,12 @@ def build_report(db_path: Path, session_id: str | None) -> dict:
         "token_observability_level": metrics["token_observability_level"],
         "token_source_summary": metrics["token_source_summary"],
         "provenance_warning": metrics["provenance_warning"],
+        "manual_reported_usage_count": metrics["manual_reported_usage_count"],
+        "manual_reported_usage_present": metrics["manual_reported_usage_present"],
         "non_authoritative_notice": "Token fields are observational only and MUST NOT be used for automated decision, gating, or quality inference.",
         "observability_boundary_disclosed": True,
         "step_count": metrics["step_count"],
+        "runs": run_rows if include_runs else [],
         "file_activity": {
             "git_visible_only": True,
             "file_reads": 0,
@@ -134,6 +181,8 @@ def build_report(db_path: Path, session_id: str | None) -> dict:
             "token_observability_level",
             "token_source_summary",
             "provenance_warning",
+            "manual_reported_usage_count",
+            "manual_reported_usage_present",
         ],
     }
 
@@ -159,6 +208,16 @@ def _print_text(report: dict) -> None:
     print("File activity: git-visible only")
     print("File reads: unsupported")
     print(f"Step count: {report['step_count']}")
+    if report.get("runs"):
+        print("Runs:")
+        for run in report["runs"]:
+            p = run["prompt_tokens"]
+            c = run["completion_tokens"]
+            t = run["total_tokens"]
+            print(
+                f"  {run['started_at']}  provider={run['provider']}  "
+                f"p={p} c={c} t={t}  source={run['token_source']}"
+            )
 
 
 def main() -> int:
@@ -168,9 +227,16 @@ def main() -> int:
     parser.add_argument("--db", default="codeburn/phase1/examples/phase1_demo.db")
     parser.add_argument("--session-id", default=None)
     parser.add_argument("--format", choices=["text", "json"], default="text")
+    parser.add_argument("--show-runs", action="store_true")
+    parser.add_argument("--run-limit", type=int, default=100)
     args = parser.parse_args()
 
-    report = build_report(Path(args.db).resolve(), args.session_id)
+    report = build_report(
+        Path(args.db).resolve(),
+        args.session_id,
+        include_runs=args.show_runs,
+        run_limit=args.run_limit,
+    )
     if not report.get("ok"):
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 1
