@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -38,7 +39,7 @@ if __package__ in (None, ""):
 from governance_tools.session_end_hook import run_session_end_hook, format_human_result
 
 ALLOWED_TRIGGER_MODES = {"native_hook", "manual_fallback", "wrapper", "synthetic_smoke", "unknown"}
-CLOSEOUT_RECEIPT_SCHEMA_VERSION = "1.0"
+CLOSEOUT_RECEIPT_SCHEMA_VERSION = "1.1"
 
 
 def _utc_now_iso() -> str:
@@ -117,6 +118,40 @@ def _resolve_head_commit(project_root: Path) -> str:
     return ""
 
 
+def _verify_memory_write_claim(
+    project_root: Path,
+    memory_write_performed: bool,
+    session_id: str,
+) -> tuple[bool, str]:
+    """Verify whether the memory_write_performed self-report is backed by evidence.
+
+    Returns (verified: bool, reason: str).
+
+    Phase 1 — observation only.  Does NOT block closeout regardless of result.
+    """
+    if not memory_write_performed:
+        return True, "no_memory_write_claim"
+
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    daily_path = project_root / "memory" / f"{today}.md"
+
+    if not daily_path.exists():
+        return False, "daily_memory_missing"
+
+    content = daily_path.read_text(encoding="utf-8", errors="replace")
+
+    # Anchor 1: session_id present in the daily memory file.
+    if session_id and session_id in content:
+        return True, "session_id_found_in_daily_memory"
+
+    # Anchor 2: a concrete commit hash (7+ hex chars, not the placeholder "pending").
+    commit_matches = re.findall(r"commit hash:\s*([0-9a-f]{7,})", content, re.IGNORECASE)
+    if commit_matches:
+        return True, "commit_hash_found_in_daily_memory"
+
+    return False, "daily_memory_exists_but_no_session_or_commit_anchor"
+
+
 def _write_closeout_receipt(
     project_root: Path,
     *,
@@ -130,6 +165,14 @@ def _write_closeout_receipt(
     memory_write_performed: bool,
     memory_eligibility_reason: str,
     session_id: str = "",
+    # E1: memory write claim verification
+    memory_write_claim_verified: bool = False,
+    memory_write_claim_verification_reason: str = "",
+    # E2: memory authority guard surface
+    memory_authority_guard_ran: bool = False,
+    memory_authority_scope: str = "",
+    memory_authority_warning_codes: "list[str] | None" = None,
+    memory_unbound_count: int = 0,
 ) -> Path:
     artifact_dir = project_root / "artifacts" / "runtime" / "closeout-receipts"
     artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -152,6 +195,12 @@ def _write_closeout_receipt(
         "memory_write_required": memory_write_required,
         "memory_write_performed": memory_write_performed,
         "memory_eligibility_reason": memory_eligibility_reason,
+        "memory_write_claim_verified": memory_write_claim_verified,
+        "memory_write_claim_verification_reason": memory_write_claim_verification_reason,
+        "memory_authority_guard_ran": memory_authority_guard_ran,
+        "memory_authority_scope": memory_authority_scope,
+        "memory_authority_warning_codes": memory_authority_warning_codes if memory_authority_warning_codes is not None else [],
+        "memory_unbound_count": memory_unbound_count,
     }
     receipt_path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return receipt_path
@@ -329,6 +378,15 @@ def main() -> int:
                 "(see AGENTS.md: MANDATORY CLOSEOUT OBLIGATION).",
                 file=sys.stderr,
             )
+        # E1: verify memory write claim against daily memory file.
+        _sid = str(result.get("session_id", ""))
+        _claim_verified, _claim_reason = _verify_memory_write_claim(
+            project_root, memory_write_performed, _sid
+        )
+
+        # E2: extract memory authority guard surface from hook result.
+        _ma = result.get("memory_authority") or {}
+
         evidence_path = _append_trigger_evidence(
             project_root,
             agent_id=args.agent_id,
@@ -348,7 +406,13 @@ def main() -> int:
             memory_write_required=memory_write_required,
             memory_write_performed=memory_write_performed,
             memory_eligibility_reason=memory_eligibility_reason,
-            session_id=str(result.get("session_id", "")),
+            session_id=_sid,
+            memory_write_claim_verified=_claim_verified,
+            memory_write_claim_verification_reason=_claim_reason,
+            memory_authority_guard_ran=bool(_ma.get("memory_authority_guard_ran", False)),
+            memory_authority_scope=str(_ma.get("memory_authority_scope", "")),
+            memory_authority_warning_codes=_ma.get("memory_authority_warning_codes") or [],
+            memory_unbound_count=int(_ma.get("memory_unbound_count", 0)),
         )
         result["trigger_evidence_artifact"] = str(evidence_path)
         result["closeout_receipt_artifact"] = str(receipt_path)
@@ -372,6 +436,12 @@ def main() -> int:
             memory_write_required=False,
             memory_write_performed=False,
             memory_eligibility_reason="closeout_pipeline_runtime_error",
+            memory_write_claim_verified=False,
+            memory_write_claim_verification_reason="pipeline_error",
+            memory_authority_guard_ran=False,
+            memory_authority_scope="",
+            memory_authority_warning_codes=[],
+            memory_unbound_count=0,
         )
         if args.format == "json":
             print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False))
