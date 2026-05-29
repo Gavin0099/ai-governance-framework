@@ -56,6 +56,7 @@ from governance_tools.gate_policy import (
 from governance_tools.taxonomy_expansion_log import append_pending_entry
 from governance_tools.memory_significance import write_candidate_and_advisory
 from governance_tools.codeburn_token_summary import compute_codeburn_token_summary
+from governance_tools.memory_authority_guard import run_guard as _run_memory_guard
 
 
 CLOSEOUT_FILE = "artifacts/session-closeout.txt"
@@ -1542,6 +1543,50 @@ def _build_canonical_usage_audit(
 
 # ── Main hook logic ───────────────────────────────────────────────────────────
 
+def _collect_memory_authority_surface(project_root: Path) -> dict[str, Any]:
+    """
+    Run memory authority guard and return a compact observation surface.
+
+    Scope: repo-wide (Phase 1 — observation persistence only).
+    Non-blocking: any failure is caught and recorded as memory_authority_error.
+    skip_git=True: avoids subprocess overhead at session_end time.
+    """
+    try:
+        memory_root = project_root / "memory"
+        if not memory_root.exists():
+            return {
+                "memory_authority_guard_ran": False,
+                "memory_authority_scope": "repo",
+                "memory_authority_warning_codes": [],
+                "memory_unbound_count": 0,
+                "memory_authority_coverage": None,
+                "memory_authority_error": "memory_root_missing",
+            }
+        guard = _run_memory_guard(memory_root, project_root, skip_git=True)
+        counts: dict[str, int] = guard.get("violation_counts_by_code") or {}
+        sd = (guard.get("authority_coverage_rate") or {}).get("session_derived") or {}
+        return {
+            "memory_authority_guard_ran": True,
+            "memory_authority_scope": "repo",
+            "memory_authority_warning_codes": sorted(counts.keys()),
+            "memory_unbound_count": counts.get("unbound_memory", 0),
+            "memory_authority_coverage": {
+                "session_entries_total": sd.get("total_entries", 0),
+                "session_entries_bound": sd.get("bound_entries", 0),
+                "session_authority_rate": sd.get("rate"),
+            },
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "memory_authority_guard_ran": False,
+            "memory_authority_scope": "repo",
+            "memory_authority_warning_codes": [],
+            "memory_unbound_count": 0,
+            "memory_authority_coverage": None,
+            "memory_authority_error": str(exc),
+        }
+
+
 def run_session_end_hook(project_root: Path, *, transcript_path: Path | None = None, hook_session_id: str | None = None) -> dict[str, Any]:
     closeout_path = project_root / CLOSEOUT_FILE
     closeout_trigger_mode = "manual"
@@ -1777,6 +1822,11 @@ def run_session_end_hook(project_root: Path, *, transcript_path: Path | None = N
     # attempting auto-detection from ~/.claude/projects/.
     _ingest_transcript_for_closeout(project_root, session_id, transcript_path)
 
+    # Memory authority observation surface — Phase 1 (non-blocking, repo-scoped).
+    # Converts console-only warning output into a persistent artifact field so
+    # downstream tooling (matrix, closeout summary) can consume and aggregate it.
+    memory_authority = _collect_memory_authority_surface(project_root)
+
     return {
         "ok": base_ok,
         "session_id": session_id,
@@ -1787,6 +1837,7 @@ def run_session_end_hook(project_root: Path, *, transcript_path: Path | None = N
         "memory_update_result": memory_update_result,
         "memory_update_skipped_reason": memory_update_skipped_reason,
         "memory_significance": memory_significance_artifacts,
+        "memory_authority": memory_authority,
         "hook_coverage_tier": closeout_eval["hook_coverage_tier"],
         "closeout_evaluation": closeout_eval,
         "repo_readiness_level": readiness["level"],
