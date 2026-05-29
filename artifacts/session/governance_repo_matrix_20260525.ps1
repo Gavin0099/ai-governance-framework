@@ -1272,9 +1272,19 @@ foreach ($d in $allRepoNative.details) {
 		}
 	}
 
+	# If version matches but lock overcommits observed surfaces, signal the lock-reality gap.
+	# "current" means version AND surfaces are genuinely in sync; "surface_gap" means version matches
+	# but one or more surfaces the lock claims as adopted are not observed during this matrix run.
+	if ($driftStatus -eq 'current' -and $adoptedObservedMissing.Count -gt 0) {
+		$driftStatus = 'surface_gap'
+	}
+
 	$driftWarning = ''
 	if ($driftStatus -eq 'drift_ahead') {
 		$driftWarning = 'repo baseline newer than framework baseline; review governance_baseline.yaml update necessity'
+	}
+	if ($driftStatus -eq 'surface_gap') {
+		$driftWarning = 'lock claims surfaces as adopted but they are not observed; update adopted_surfaces to match reality or install the missing surfaces'
 	}
 
 	$perRepoBaselineDrift += [pscustomobject]@{
@@ -1501,6 +1511,12 @@ foreach ($b in $perRepoBaselineDrift) {
 			$md += 'Action:'
 			$md += '- Review whether governance/fleet/governance_baseline.yaml needs to be updated.'
 			$md += '- Do not downgrade repo lock automatically.'
+		}
+		if ($b.drift_status -eq 'surface_gap') {
+			$md += 'Action:'
+			$md += '- Either install the missing surfaces so they are observed (use remediation suggestions),'
+			$md += '  or remove them from adopted_surfaces in governance/framework.lock.json if they were declared prematurely.'
+			$md += '- Do not leave drift_status as surface_gap without an action plan.'
 		}
 	}
 	$ad = if ($b.adopted_surfaces.Count -gt 0) { ($b.adopted_surfaces -join ', ') } else { '(none)' }
