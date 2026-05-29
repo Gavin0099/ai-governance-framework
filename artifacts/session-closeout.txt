@@ -1,33 +1,33 @@
-TASK_INTENT: Promotion Gate Canonicalization Contract v0.1 + Failure Topology Freeze (2026-05-24)
+TASK_INTENT: CP-8 — Copilot billing receipt contract versioning + snapshot protection (contract_version=0.2)
 
 WORK_COMPLETED:
-1. Promotion gate canonicalization contract v0.1 (commit c2a6d87)
-   - Extracted _build_canonical_gate_input as stable named function with explicit normalization: _normalize_gate_bool, _normalize_gate_text
-   - Added _GATE_INPUT_FIELDS allowlist — unknown fields excluded from digest by contract
-   - Added docs/promotion-gate-canonicalization-contract-v0.1.md: wire format, normalization rules, ordering invariant, bump policy
-   - Added tests/fixtures/promotion_gate_digest_v0_1.json: 4 frozen sha256 digests (empty, enforcement/routing, advisory-only, placeholder_suppressed)
-   - Added tests/test_promotion_gate_digest_regression.py: 9 tests covering digest stability, field presence, unknown-field exclusion, bool/string normalization, ordering invariance, None→empty normalization
-   - Upgraded self-consistent hashing → historically frozen digest identity
-   - Added validation runtime scripts (run_validation_smoke.ps1, setup_validation_env.ps1) + README note
-   - Deleted governance_tools/fleet_attachment_audit.py (anti-pattern file, confirmed never committed)
+1. Receipt contract versioned as contract_version=0.2 (codeburn/phase2/copilot_billing_contract_receipt.py)
+   - CONTRACT_VERSION = "0.2" constant added as stable exportable identifier
+   - Invariant code vocabulary stabilised as 6 named constants:
+     INV_AGGREGATE_RENDERED_WITHOUT_AUTHORITY, INV_GROUPED_BY_MODEL_TOTAL_FORBIDDEN,
+     INV_GROUPED_BY_MODEL_SUPPRESSION_REASON_REQUIRED, INV_CONSUMER_GUARD_NOT_PASSED,
+     INV_CONTRACT_INVALID_RENDERED_AGGREGATE, CONTRACT_INVALID (state code)
+   - contract_version field emitted in every receipt payload
+   - safe_for_audit semantics fixed to contract: true only when no invariant violations and all layers OK
 
-2. Failure topology baseline v0.1 (commit 33e7aac)
-   - artifacts/test-baseline/failure-topology-v0.1.json: 44 pre-existing failures frozen at commit c2a6d87, Python 3.14.3 / pytest 9.0.3
-   - scripts/compare_failure_topology.py: classifies any pytest run into stable_failures / new_regressions / recoveries / unparsed
-   - Validated compare logic with simulated regression + recovery (correct classification)
-   - Diagnostic only — no CI gate, pre-existing failures not legitimized
-   - README note: baseline does not weaken regression requirements
+2. CP-1~CP-8 contract test suite (tests/test_codeburn_copilot_contract_receipt.py)
+   - Covers: ingest input status separation, report aggregate guard, report contract stabilisation,
+     summary consumer contract-bound, consumer bypass import guard, machine-readable receipt surface,
+     receipt cross-layer invariant guard, receipt contract_version + invariant code vocabulary
 
-FILES_TOUCHED: governance_tools/change_control_summary.py, docs/promotion-gate-canonicalization-contract-v0.1.md, tests/fixtures/promotion_gate_digest_v0_1.json, tests/test_promotion_gate_digest_regression.py, scripts/run_validation_smoke.ps1, scripts/setup_validation_env.ps1, tests/test_change_control_summary.py, README.md, artifacts/test-baseline/failure-topology-v0.1.json, scripts/compare_failure_topology.py
+3. Golden snapshot protection (tests/test_codeburn_copilot_contract_receipt_snapshot.py)
+   - Snapshot locks receipt shape, invariant_codes vocabulary, and safe_for_audit semantics
+   - Prevents downstream consumers from silently consuming a drifted receipt shape
 
-CHECKS_RUN: python -m pytest tests/test_promotion_gate_digest_regression.py -v => 9/9 passed; python scripts/compare_failure_topology.py --baseline-info => 44 stable_failures confirmed; compare smoke (simulated regression+recovery) => classification correct
+FILES_TOUCHED: codeburn/phase2/copilot_billing_contract_receipt.py, tests/test_codeburn_copilot_contract_receipt.py, tests/test_codeburn_copilot_contract_receipt_snapshot.py
 
-CAUSAL_ISOLATION: 44 pre-existing failures confirmed stash-stable — same failures exist without this session's changes. No touched file overlap with failing tests. Failures pre-date c2a6d87.
+CHECKS_RUN: python -m pytest tests/test_codeburn_copilot_contract_receipt.py tests/test_codeburn_copilot_contract_receipt_snapshot.py -v => 37/37 passed
 
-OPEN_RISKS: full regression has 44 pre-existing failures (Python 3.14.3 / pytest 9.0.3, environment-specific topology). Enforcement promotion still blocked — no observed high/medium materiality interception. governance_effective not demonstrated. Company repo attachment deferred to 2026-05-26.
+CAUSAL_ISOLATION: safe_for_audit is an internal contract-consistency signal, not a source-data truth guarantee. CP-8 locks receipt shape and invariant vocabulary; it does not assert Copilot billing source data correctness, session-level attribution, or Codex calibration.
 
-NOT_DONE: P1 — external_repo_readiness.py / external_repo_smoke.py / gitlab_adapter_scope_validator.py unstaged (another scope). Company repo governance attachment (Monday 2026-05-26). Python 3.11/3.12 validation run for runtime-specific baseline.
+OPEN_RISKS: downstream closeout/summary consumer may still bypass receipt unless explicitly tested (CP-9 scope). /wrap-up candidate flow has a session_id lifecycle gap — candidates written by /wrap-up cannot be picked up by session_end (separate architectural fix required, not CP-8 scope). CP-8 files are untracked at closeout time — commit pending.
+
+NOT_DONE: CP-9 receipt-only closeout consumer smoke (next). Session_id lifecycle binding for /wrap-up candidate flow (separate architectural fix). Copilot vs Codex cross-calibration (explicitly out of scope for CP-1~CP-8).
 
 COMMIT_SUMMARY:
-  c2a6d87 — governance: freeze promotion gate canonicalization contract v0.1
-  33e7aac — governance: freeze failure topology baseline v0.1
+  (pending) — codeburn: CP-8 receipt contract_version=0.2 + invariant code vocabulary + snapshot protection
