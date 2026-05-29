@@ -12,12 +12,12 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import sqlite3
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from governance_tools.codeburn_token_summary import compute_codeburn_token_summary
 
 
 def _utc_now_compact() -> str:
@@ -326,65 +326,6 @@ def _append_repo_memory_summary(repo_path: Path, line: str, dedupe_key: str) -> 
     return memory_file
 
 
-def _find_latest_codeburn_db(repo_path: Path) -> Path | None:
-    patterns = [
-        "codeburn/phase1/examples/*.db",
-        "artifacts/codeburn*.db",
-        "artifacts/*codeburn*.db",
-    ]
-    candidates: list[Path] = []
-    for pat in patterns:
-        candidates.extend(repo_path.glob(pat))
-    if not candidates:
-        return None
-    return max(candidates, key=lambda p: p.stat().st_mtime)
-
-
-def _safe_int(value: Any) -> int | None:
-    if value is None:
-        return None
-    try:
-        return int(value)
-    except Exception:
-        return None
-
-
-def _compute_token_summary(repo_path: Path) -> str:
-    db_path = _find_latest_codeburn_db(repo_path)
-    if db_path is None:
-        return "NA"
-    try:
-        conn = sqlite3.connect(str(db_path))
-        row = conn.execute(
-            "SELECT session_id FROM sessions ORDER BY created_at DESC LIMIT 1"
-        ).fetchone()
-        if row is None:
-            conn.close()
-            return "NA"
-        session_id = str(row[0])
-        sum_row = conn.execute(
-            """
-            SELECT
-              SUM(CASE WHEN prompt_tokens IS NOT NULL THEN prompt_tokens ELSE 0 END),
-              SUM(CASE WHEN completion_tokens IS NOT NULL THEN completion_tokens ELSE 0 END)
-            FROM steps
-            WHERE session_id = ?
-            """,
-            (session_id,),
-        ).fetchone()
-        conn.close()
-        if not sum_row:
-            return "NA"
-        prompt = _safe_int(sum_row[0])
-        completion = _safe_int(sum_row[1])
-        if prompt is None and completion is None:
-            return "NA"
-        prompt_text = str(prompt if prompt is not None else 0)
-        completion_text = str(completion if completion is not None else 0)
-        return f"p{prompt_text}/c{completion_text}"
-    except Exception:
-        return "NA"
-
 
 def run(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Apply latest matrix remediation suggestions for one repo.")
@@ -499,7 +440,7 @@ def run(argv: list[str]) -> int:
         "stopped_for_human_required": stopped_for_human,
         "actions": actions,
         "acceptance_after": acceptance_after,
-        "token_summary": _compute_token_summary(repo_path),
+        "token_summary": compute_codeburn_token_summary(repo_path),
     }
 
     if args.write_report:

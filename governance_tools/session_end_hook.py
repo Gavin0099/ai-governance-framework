@@ -55,6 +55,7 @@ from governance_tools.gate_policy import (
 )
 from governance_tools.taxonomy_expansion_log import append_pending_entry
 from governance_tools.memory_significance import write_candidate_and_advisory
+from governance_tools.codeburn_token_summary import compute_codeburn_token_summary
 
 
 CLOSEOUT_FILE = "artifacts/session-closeout.txt"
@@ -1702,6 +1703,9 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         # It is a human-readable abstraction, not an authoritative gate signal.
         # Source of truth for automation: ok + gate_policy.blocked.
         "gate_verdict": gate_verdict,
+        "codeburn_token_summary": compute_codeburn_token_summary(
+            project_root, preferred_session_id=session_id
+        ),
         "warnings": gate_warnings,
         "errors": gate_errors,
     }
@@ -1810,6 +1814,7 @@ def format_human_result(result: dict[str, Any]) -> str:
 
     lines += [
         f"session_id={result['session_id']}",
+        f"codeburn_token_summary={result.get('codeburn_token_summary', 'NA')}",
         f"closeout_trigger_mode={result.get('closeout_trigger_mode', 'manual')}",
         f"closeout_status={result['closeout_status']}",
         f"memory_tier={result['memory_tier']}",
