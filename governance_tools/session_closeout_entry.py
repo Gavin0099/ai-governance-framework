@@ -157,7 +157,35 @@ def _write_closeout_receipt(
     return receipt_path
 
 
-def run(project_root: Path) -> dict[str, Any]:
+def _extract_transcript_path_from_stop_payload(payload: dict[str, Any]) -> "Path | None":
+    """Extract transcript_path from a Stop hook stdin payload.
+
+    Tries common key names at top level and one level of nesting.
+    Returns None if no usable path is found.
+    """
+    _PATH_KEYS = ("transcript_path", "transcript", "log_path", "session_log_path", "conversation_path")
+    _NEST_KEYS = ("payload", "data", "context", "event")
+
+    def _try_keys(d: dict) -> "Path | None":
+        for k in _PATH_KEYS:
+            v = d.get(k)
+            if isinstance(v, str) and v.strip():
+                return Path(v.strip())
+        return None
+
+    found = _try_keys(payload)
+    if found is not None:
+        return found
+    for nk in _NEST_KEYS:
+        nested = payload.get(nk)
+        if isinstance(nested, dict):
+            found = _try_keys(nested)
+            if found is not None:
+                return found
+    return None
+
+
+def run(project_root: Path, transcript_path: "Path | None" = None) -> dict[str, Any]:
     """
     Execute the closeout pipeline for the given project root.
 
@@ -165,8 +193,13 @@ def run(project_root: Path) -> dict[str, Any]:
     It delegates entirely to session_end_hook.run_session_end_hook, which
     handles: closeout file classification, memory snapshot, promotion policy,
     verdict and trace artifact emission.
+
+    transcript_path: optional path to the session JSONL transcript (from Stop hook
+    stdin payload).  When provided, tokens are ingested into the repo-local
+    codeburn DB before compute_codeburn_token_summary runs, enabling
+    scope=current_session in the token summary.
     """
-    return run_session_end_hook(project_root=project_root)
+    return run_session_end_hook(project_root=project_root, transcript_path=transcript_path)
 
 
 def _evaluate_memory_eligibility(result: dict[str, Any]) -> tuple[bool, bool, str]:
@@ -244,12 +277,26 @@ def main() -> int:
         choices=sorted(ALLOWED_TRIGGER_MODES),
         help="Trigger mode for evidence logging (default: unknown)",
     )
+    # Read Stop hook stdin BEFORE argparse consumes anything.
+    # Claude Code Stop hook pipes a JSON payload with transcript_path + session_id.
+    # We extract transcript_path here so the ingest bridge can use it.
+    _transcript_path: Path | None = None
+    try:
+        if not sys.stdin.isatty():
+            _raw_stdin = sys.stdin.read()
+            if _raw_stdin.strip():
+                _stop_payload = json.loads(_raw_stdin)
+                if isinstance(_stop_payload, dict):
+                    _transcript_path = _extract_transcript_path_from_stop_payload(_stop_payload)
+    except Exception:
+        pass  # fail-silent — closeout must not fail if stdin is malformed
+
     args = parser.parse_args()
 
     project_root = Path(args.project_root).resolve()
 
     try:
-        result = run(project_root)
+        result = run(project_root, transcript_path=_transcript_path)
         closeout_artifact_path = result.get("canonical_closeout_artifact") or result.get("closeout_file")
         eligibility_evaluated, memory_write_required, memory_eligibility_reason = _evaluate_memory_eligibility(result)
         memory_write_performed = str(result.get("memory_update_result", "")).strip().lower() == "updated"

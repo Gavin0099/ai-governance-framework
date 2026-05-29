@@ -1320,6 +1320,93 @@ def _generate_session_id() -> str:
     return f"session-{ts}-{uuid.uuid4().hex[:6]}"
 
 
+def _detect_transcript_provider(transcript_path: Path) -> str:
+    """Detect whether a JSONL transcript is from Claude or Codex."""
+    try:
+        with transcript_path.open("r", encoding="utf-8", errors="replace") as fh:
+            for raw_line in fh:
+                try:
+                    rec = json.loads(raw_line)
+                except Exception:
+                    continue
+                if rec.get("type") == "event_msg":
+                    return "codex"
+                if rec.get("type") == "assistant":
+                    return "claude"
+    except Exception:
+        pass
+    return "claude"
+
+
+def _ingest_transcript_for_closeout(
+    project_root: Path,
+    session_id: str,
+    transcript_path: Path,
+) -> None:
+    """Pre-closeout ingest bridge.
+
+    Gap 2 fix: writes to repo-local artifacts/codeburn_closeout_ingest.db
+               (matches find_latest_codeburn_db pattern; not ~/.codeburn/).
+    Gap 1 fix: uses closeout session_id (not transcript stem or provider UUID).
+
+    Must be called BEFORE compute_codeburn_token_summary so the token summary
+    query can resolve preferred_session_id → scope=current_session.
+
+    Fail-silent: never raises; missing transcript or import errors are swallowed.
+    """
+    if not transcript_path.exists():
+        return
+    try:
+        import sqlite3 as _sl3
+        from codeburn.phase1.claude_log_ingestor import _ensure_schema
+    except ImportError:
+        return
+
+    provider = _detect_transcript_provider(transcript_path)
+    db_path = project_root / "artifacts" / "codeburn_closeout_ingest.db"
+    (project_root / "artifacts").mkdir(parents=True, exist_ok=True)
+
+    # Ensure schema and sessions row (FK: steps.session_id → sessions.session_id).
+    try:
+        conn = _sl3.connect(str(db_path))
+        _ensure_schema(conn)
+        if not conn.execute(
+            "SELECT 1 FROM sessions WHERE session_id = ?", (session_id,)
+        ).fetchone():
+            conn.execute(
+                "INSERT INTO sessions(session_id, task, created_at, data_quality)"
+                " VALUES(?, ?, ?, ?)",
+                (
+                    session_id,
+                    "closeout_transcript_ingest",
+                    datetime.now(timezone.utc).isoformat(),
+                    "partial",
+                ),
+            )
+            conn.commit()
+        conn.close()
+    except Exception:
+        return
+
+    # Ingest with closeout session_id into repo-local DB.
+    try:
+        if provider == "codex":
+            import sqlite3 as _sl3b
+            from codeburn.phase2.codex_log_ingestor import ingest_codex_session
+            conn2 = _sl3b.connect(str(db_path))
+            ingest_codex_session(str(transcript_path), session_id, conn2)
+            conn2.close()
+        else:
+            from codeburn.phase1.claude_log_ingestor import ingest as _claude_ingest
+            _claude_ingest(
+                artifact_path=transcript_path,
+                session_id=session_id,
+                db_path=db_path,
+            )
+    except Exception:
+        pass
+
+
 def _build_canonical_usage_audit(
     canonical_path_audit: dict,
     canonical_audit_trend: dict,
@@ -1426,7 +1513,7 @@ def _build_canonical_usage_audit(
 
 # ── Main hook logic ───────────────────────────────────────────────────────────
 
-def run_session_end_hook(project_root: Path) -> dict[str, Any]:
+def run_session_end_hook(project_root: Path, *, transcript_path: Path | None = None) -> dict[str, Any]:
     closeout_path = project_root / CLOSEOUT_FILE
     closeout_trigger_mode = "manual"
     clf = classify_closeout(closeout_path, project_root)
@@ -1649,6 +1736,12 @@ def run_session_end_hook(project_root: Path) -> dict[str, Any]:
         gate_warnings.append(
             f"[memory_significance] advisory generation failed: {exc}"
         )
+
+    # Pre-closeout transcript ingest bridge (Gap 1 + Gap 2).
+    # Must run before compute_codeburn_token_summary so the query resolves
+    # preferred_session_id → scope=current_session.
+    if transcript_path is not None:
+        _ingest_transcript_for_closeout(project_root, session_id, transcript_path)
 
     return {
         "ok": base_ok,
