@@ -21,6 +21,15 @@ Before doing anything else:
 
 Don't ask permission. Just do it.
 
+## Review Tasks
+
+When asked to **review, assess, audit, or recommend next changes** for this repository,
+first read `governance/REVIEW_CRITERIA.md` before producing findings.
+
+`REVIEW_CRITERIA.md` defines which additional governance documents are required
+(e.g. `TESTING.md`, `ARCHITECTURE.md`, `memory/03_knowledge_base.md`) and under what conditions.
+Do not produce review findings before reading it.
+
 ## Delivery Recovery Constraints
 
 These constraints apply to implementation sessions in this repository and in consuming repositories using this governance framework. Their purpose is to prevent governance work from displacing product delivery.
