@@ -1341,7 +1341,7 @@ def _detect_transcript_provider(transcript_path: Path) -> str:
 def _ingest_transcript_for_closeout(
     project_root: Path,
     session_id: str,
-    transcript_path: Path,
+    transcript_path: "Path | None",
 ) -> None:
     """Pre-closeout ingest bridge.
 
@@ -1349,20 +1349,40 @@ def _ingest_transcript_for_closeout(
                (matches find_latest_codeburn_db pattern; not ~/.codeburn/).
     Gap 1 fix: uses closeout session_id (not transcript stem or provider UUID).
 
+    Auto-detection: if transcript_path is None or does not exist, attempts to
+    discover the current session JSONL from ~/.claude/projects/ using the
+    phase2 claude_code_jsonl_ingestor.  This enables scope=current_session
+    even when the stop hook payload does not include transcript_path.
+
     Must be called BEFORE compute_codeburn_token_summary so the token summary
     query can resolve preferred_session_id → scope=current_session.
 
     Fail-silent: never raises; missing transcript or import errors are swallowed.
     """
-    if not transcript_path.exists():
+    # Resolve effective transcript path: explicit first, then auto-detect.
+    effective_path: "Path | None" = None
+    auto_detected = False
+    if transcript_path is not None and transcript_path.exists():
+        effective_path = transcript_path
+    else:
+        try:
+            from codeburn.phase2.claude_code_jsonl_ingestor import find_claude_session_jsonl
+            discovered = find_claude_session_jsonl()
+            if discovered is not None and discovered.exists():
+                effective_path = discovered
+                auto_detected = True
+        except Exception:
+            pass
+
+    if effective_path is None:
         return
+
     try:
         import sqlite3 as _sl3
         from codeburn.phase1.claude_log_ingestor import _ensure_schema
     except ImportError:
         return
 
-    provider = _detect_transcript_provider(transcript_path)
     db_path = project_root / "artifacts" / "codeburn_closeout_ingest.db"
     (project_root / "artifacts").mkdir(parents=True, exist_ok=True)
 
@@ -1390,19 +1410,28 @@ def _ingest_transcript_for_closeout(
 
     # Ingest with closeout session_id into repo-local DB.
     try:
-        if provider == "codex":
-            import sqlite3 as _sl3b
-            from codeburn.phase2.codex_log_ingestor import ingest_codex_session
-            conn2 = _sl3b.connect(str(db_path))
-            ingest_codex_session(str(transcript_path), session_id, conn2)
-            conn2.close()
+        if auto_detected:
+            # Auto-detected path: use phase2 claude_code_jsonl_ingestor directly.
+            import sqlite3 as _sl3c
+            from codeburn.phase2.claude_code_jsonl_ingestor import ingest_claude_code_session
+            conn3 = _sl3c.connect(str(db_path))
+            ingest_claude_code_session(str(effective_path), session_id, conn3)
+            conn3.close()
         else:
-            from codeburn.phase1.claude_log_ingestor import ingest as _claude_ingest
-            _claude_ingest(
-                artifact_path=transcript_path,
-                session_id=session_id,
-                db_path=db_path,
-            )
+            provider = _detect_transcript_provider(effective_path)
+            if provider == "codex":
+                import sqlite3 as _sl3b
+                from codeburn.phase2.codex_log_ingestor import ingest_codex_session
+                conn2 = _sl3b.connect(str(db_path))
+                ingest_codex_session(str(effective_path), session_id, conn2)
+                conn2.close()
+            else:
+                from codeburn.phase1.claude_log_ingestor import ingest as _claude_ingest
+                _claude_ingest(
+                    artifact_path=effective_path,
+                    session_id=session_id,
+                    db_path=db_path,
+                )
     except Exception:
         pass
 
@@ -1737,11 +1766,12 @@ def run_session_end_hook(project_root: Path, *, transcript_path: Path | None = N
             f"[memory_significance] advisory generation failed: {exc}"
         )
 
-    # Pre-closeout transcript ingest bridge (Gap 1 + Gap 2).
+    # Pre-closeout transcript ingest bridge (Gap 1 + Gap 2 + auto-detection).
     # Must run before compute_codeburn_token_summary so the query resolves
     # preferred_session_id → scope=current_session.
-    if transcript_path is not None:
-        _ingest_transcript_for_closeout(project_root, session_id, transcript_path)
+    # Bridge is now always called; it handles None/missing transcript_path by
+    # attempting auto-detection from ~/.claude/projects/.
+    _ingest_transcript_for_closeout(project_root, session_id, transcript_path)
 
     return {
         "ok": base_ok,
