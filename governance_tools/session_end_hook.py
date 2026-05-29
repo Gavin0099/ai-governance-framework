@@ -1580,7 +1580,7 @@ def _collect_memory_authority_surface(project_root: Path) -> dict[str, Any]:
         return {
             "memory_authority_guard_ran": False,
             "memory_authority_scope": "repo",
-            "memory_authority_warning_codes": [],
+            "memory_authority_warning_codes": ["MEMORY_AUTHORITY_GUARD_ERROR"],
             "memory_unbound_count": 0,
             "memory_authority_coverage": None,
             "memory_authority_error": str(exc),

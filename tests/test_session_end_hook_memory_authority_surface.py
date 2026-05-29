@@ -96,6 +96,20 @@ class TestGuardFailureIsolation:
         assert "memory_authority_error" in ma
         assert "boom" in ma["memory_authority_error"]
 
+    def test_guard_failure_warning_codes_contains_guard_error(self):
+        """Exception path must emit MEMORY_AUTHORITY_GUARD_ERROR — not empty list.
+
+        Empty list is indistinguishable from a clean run with no warnings.
+        Downstream consumers that only read warning_codes must be able to tell
+        the difference between 'guard ran cleanly, zero violations' vs
+        'guard threw an exception'.
+        """
+        repo = _reset("guard_fail_codes")
+        with patch("governance_tools.session_end_hook._run_memory_guard", side_effect=RuntimeError("boom")):
+            result = _run(repo)
+        ma = result["memory_authority"]
+        assert "MEMORY_AUTHORITY_GUARD_ERROR" in ma["memory_authority_warning_codes"]
+
     def test_guard_failure_does_not_affect_ok(self):
         repo = _reset("guard_fail_ok")
         with patch("governance_tools.session_end_hook._run_memory_guard", side_effect=RuntimeError("fail")):
@@ -157,3 +171,94 @@ class TestMissingMemoryDir:
         assert ma["memory_authority_guard_ran"] is False
         assert ma.get("memory_authority_error") == "memory_root_missing"
         assert ma["memory_unbound_count"] == 0
+
+
+# ── Snapshot stability: field names locked ────────────────────────────────────
+
+_EXPECTED_TOP_LEVEL_KEYS = frozenset({
+    "memory_authority_guard_ran",
+    "memory_authority_scope",
+    "memory_authority_warning_codes",
+    "memory_unbound_count",
+    "memory_authority_coverage",
+})
+
+_EXPECTED_COVERAGE_KEYS = frozenset({
+    "session_entries_total",
+    "session_entries_bound",
+    "session_authority_rate",
+})
+
+
+class TestSnapshotStability:
+    """Field names in the memory_authority surface are part of the downstream
+    contract.  Any rename would silently break matrix consumers.  These tests
+    lock the surface shape so renames are caught immediately.
+    """
+
+    def test_top_level_field_names_stable_on_clean_run(self):
+        repo = _reset("snap_clean")
+        ma = _run(repo)["memory_authority"]
+        # All expected keys must be present (error key absent on clean path)
+        assert _EXPECTED_TOP_LEVEL_KEYS <= set(ma.keys())
+
+    def test_top_level_field_names_stable_on_exception_path(self):
+        repo = _reset("snap_exc")
+        with patch("governance_tools.session_end_hook._run_memory_guard", side_effect=RuntimeError("x")):
+            ma = _run(repo)["memory_authority"]
+        assert _EXPECTED_TOP_LEVEL_KEYS <= set(ma.keys())
+        assert "memory_authority_error" in ma  # error key present on exception path
+
+    def test_coverage_field_names_stable(self):
+        repo = _reset("snap_cov")
+        (repo / "memory" / "2026-05-01.md").write_text(
+            "# 2026-05-01\n\n"
+            "- what changed: snap coverage test\n"
+            "- commit hash: aabbcc1\n",
+            encoding="utf-8",
+        )
+        ma = _run(repo)["memory_authority"]
+        cov = ma["memory_authority_coverage"]
+        assert cov is not None
+        assert _EXPECTED_COVERAGE_KEYS <= set(cov.keys())
+
+    def test_missing_dir_field_names_stable(self):
+        repo = _reset("snap_missing")
+        (repo / "memory").rmdir()
+        ma = _run(repo)["memory_authority"]
+        assert _EXPECTED_TOP_LEVEL_KEYS <= set(ma.keys())
+
+
+# ── Clean vs guard-error distinguishability ───────────────────────────────────
+
+class TestCleanVsGuardErrorDistinguishable:
+    """warning_codes must distinguish clean (no violations) from guard-error
+    (guard threw exception).  Before the fix, both paths returned [].
+    """
+
+    def test_clean_run_warning_codes_is_empty(self):
+        """Clean run with all-bound entries: no warning codes at all."""
+        repo = _reset("dist_clean")
+        (repo / "memory" / "2026-05-01.md").write_text(
+            "# 2026-05-01\n\n"
+            "- what changed: clean entry\n"
+            "- commit hash: abc1234\n",
+            encoding="utf-8",
+        )
+        ma = _run(repo)["memory_authority"]
+        assert ma["memory_authority_guard_ran"] is True
+        assert "MEMORY_AUTHORITY_GUARD_ERROR" not in ma["memory_authority_warning_codes"]
+
+    def test_guard_error_warning_codes_non_empty(self):
+        """Guard exception path: warning_codes must not be empty."""
+        repo = _reset("dist_error")
+        with patch("governance_tools.session_end_hook._run_memory_guard", side_effect=RuntimeError("crash")):
+            ma = _run(repo)["memory_authority"]
+        assert ma["memory_authority_warning_codes"] != []
+
+    def test_guard_error_coverage_is_none(self):
+        """Guard exception path: coverage must be None, not stale numeric data."""
+        repo = _reset("dist_cov_none")
+        with patch("governance_tools.session_end_hook._run_memory_guard", side_effect=RuntimeError("crash")):
+            ma = _run(repo)["memory_authority"]
+        assert ma["memory_authority_coverage"] is None
