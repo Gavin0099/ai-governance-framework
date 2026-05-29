@@ -42,7 +42,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from runtime_hooks.core.session_end import run_session_end
-from runtime_hooks.core._canonical_closeout import write_candidate
+from runtime_hooks.core._canonical_closeout import write_candidate, read_current_session_id
 from governance_tools.gate_policy import (
     load_policy,
     classify_artifact,
@@ -1542,7 +1542,7 @@ def _build_canonical_usage_audit(
 
 # ── Main hook logic ───────────────────────────────────────────────────────────
 
-def run_session_end_hook(project_root: Path, *, transcript_path: Path | None = None) -> dict[str, Any]:
+def run_session_end_hook(project_root: Path, *, transcript_path: Path | None = None, hook_session_id: str | None = None) -> dict[str, Any]:
     closeout_path = project_root / CLOSEOUT_FILE
     closeout_trigger_mode = "manual"
     clf = classify_closeout(closeout_path, project_root)
@@ -1551,7 +1551,11 @@ def run_session_end_hook(project_root: Path, *, transcript_path: Path | None = N
     memory_tier = clf["memory_tier"]
     fields = clf["fields"]
 
-    session_id = _generate_session_id()
+    session_id = (
+        read_current_session_id(project_root)
+        or hook_session_id
+        or _generate_session_id()
+    )
     runtime_contract = _build_runtime_contract(fields, memory_tier)
 
     # Detect readiness level as metadata — NEVER used as decision input.

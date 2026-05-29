@@ -185,7 +185,7 @@ def _extract_transcript_path_from_stop_payload(payload: dict[str, Any]) -> "Path
     return None
 
 
-def run(project_root: Path, transcript_path: "Path | None" = None) -> dict[str, Any]:
+def run(project_root: Path, transcript_path: "Path | None" = None, hook_session_id: "str | None" = None) -> dict[str, Any]:
     """
     Execute the closeout pipeline for the given project root.
 
@@ -198,8 +198,11 @@ def run(project_root: Path, transcript_path: "Path | None" = None) -> dict[str, 
     stdin payload).  When provided, tokens are ingested into the repo-local
     codeburn DB before compute_codeburn_token_summary runs, enabling
     scope=current_session in the token summary.
+
+    hook_session_id: optional session_id from the Stop hook stdin payload.
+    Used as a secondary stable ID source if .current-session-id is not present.
     """
-    return run_session_end_hook(project_root=project_root, transcript_path=transcript_path)
+    return run_session_end_hook(project_root=project_root, transcript_path=transcript_path, hook_session_id=hook_session_id)
 
 
 def _evaluate_memory_eligibility(result: dict[str, Any]) -> tuple[bool, bool, str]:
@@ -281,6 +284,7 @@ def main() -> int:
     # Claude Code Stop hook pipes a JSON payload with transcript_path + session_id.
     # We extract transcript_path here so the ingest bridge can use it.
     _transcript_path: Path | None = None
+    _hook_session_id: str | None = None
     try:
         if not sys.stdin.isatty():
             _raw_stdin = sys.stdin.read()
@@ -288,6 +292,9 @@ def main() -> int:
                 _stop_payload = json.loads(_raw_stdin)
                 if isinstance(_stop_payload, dict):
                     _transcript_path = _extract_transcript_path_from_stop_payload(_stop_payload)
+                    _raw_sid = _stop_payload.get("session_id")
+                    if isinstance(_raw_sid, str) and _raw_sid.strip():
+                        _hook_session_id = _raw_sid.strip()
     except Exception:
         pass  # fail-silent — closeout must not fail if stdin is malformed
 
@@ -296,7 +303,7 @@ def main() -> int:
     project_root = Path(args.project_root).resolve()
 
     try:
-        result = run(project_root, transcript_path=_transcript_path)
+        result = run(project_root, transcript_path=_transcript_path, hook_session_id=_hook_session_id)
         closeout_artifact_path = result.get("canonical_closeout_artifact") or result.get("closeout_file")
         eligibility_evaluated, memory_write_required, memory_eligibility_reason = _evaluate_memory_eligibility(result)
         memory_write_performed = str(result.get("memory_update_result", "")).strip().lower() == "updated"

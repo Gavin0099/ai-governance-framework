@@ -20,6 +20,7 @@ Same inputs → same canonical output. Enables replay, audit re-run, dry-run tes
 from __future__ import annotations
 
 import json
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -49,6 +50,10 @@ _CANDIDATE_REQUIRED_FIELDS: dict[str, type] = {
     "artifacts_referenced": list,
     "open_risks": list,
 }
+
+# Session ID lifecycle — written by /wrap-up, consumed by session_end
+_CURRENT_SESSION_ID_FILE = ".current-session-id"
+_CURRENT_SESSION_ID_STALENESS_SECONDS = 12 * 3600  # 12 hours
 
 
 # ---------------------------------------------------------------------------
@@ -134,6 +139,63 @@ def write_canonical_closeout(canonical: dict[str, Any], project_root: Path) -> P
     path = closeouts_dir / f"{canonical['session_id']}.json"
     path.write_text(json.dumps(canonical, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return path
+
+
+def _generate_session_id() -> str:
+    """Generate a new session ID: session-{YYYYmmddTHHMMSS}-{hex6}."""
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    return f"session-{ts}-{uuid.uuid4().hex[:6]}"
+
+
+def write_current_session_id(session_id: str, project_root: Path) -> Path:
+    """
+    Persist session_id for the in-progress session.
+    Written by /wrap-up before session end. Overwrites any prior file.
+    Returns the path written.
+    """
+    path = project_root / _CURRENT_SESSION_ID_FILE
+    payload = {
+        "session_id": session_id,
+        "written_at": datetime.now(timezone.utc).isoformat(),
+    }
+    path.write_text(json.dumps(payload, ensure_ascii=False) + "\n", encoding="utf-8")
+    return path
+
+
+def read_current_session_id(
+    project_root: Path,
+    *,
+    max_age_seconds: int = _CURRENT_SESSION_ID_STALENESS_SECONDS,
+) -> str | None:
+    """
+    Read the stable session_id written by /wrap-up.
+
+    Returns None if:
+    - file does not exist (legacy path — wrap-up was not run)
+    - file is malformed JSON or missing required fields
+    - written_at is missing or unparseable (cannot assess staleness → reject)
+    - file age exceeds max_age_seconds (stale from a prior session)
+
+    Callers must call _generate_session_id() when this returns None.
+    """
+    path = project_root / _CURRENT_SESSION_ID_FILE
+    if not path.is_file():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        session_id = str(data.get("session_id") or "").strip()
+        if not session_id:
+            return None
+        written_at_str = str(data.get("written_at") or "").strip()
+        if not written_at_str:
+            return None
+        written_at = datetime.fromisoformat(written_at_str)
+        age_seconds = (datetime.now(timezone.utc) - written_at).total_seconds()
+        if age_seconds > max_age_seconds:
+            return None
+        return session_id
+    except Exception:
+        return None
 
 
 def candidate_timestamp() -> str:
