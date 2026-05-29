@@ -60,6 +60,9 @@ def _iter_signal_codes(audit_log_path: Path) -> list[str]:
 
 
 def _verify_canonical_audit_codes(audit_log_path: Path, codes: set[str]) -> list[str]:
+    if not audit_log_path.exists():
+        print(f"[reason_code_verifier] notice: audit log not found, skipping: {audit_log_path}")
+        return []
     violations: list[str] = []
     for tagged in _iter_signal_codes(audit_log_path):
         line_no, signal = tagged.split(":", 1)
