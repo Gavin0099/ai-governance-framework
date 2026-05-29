@@ -29,10 +29,12 @@ def test_closeout_receipt_contains_required_fields_and_checksum(tmp_path: Path) 
         memory_write_required=True,
         memory_write_performed=False,
         memory_eligibility_reason="repo_state_or_session_closeout_present",
+        session_id="session-20260528T000000-abc123",
     )
 
     payload = json.loads(receipt_path.read_text(encoding="utf-8"))
     assert payload["schema_version"] == CLOSEOUT_RECEIPT_SCHEMA_VERSION
+    assert payload["session_id"] == "session-20260528T000000-abc123"
     assert payload["agent_id"] == "chatgpt-web"
     assert payload["trigger_mode"] == "manual_fallback"
     assert payload["entrypoint"] == "governance_tools.session_closeout_entry"
@@ -427,3 +429,74 @@ def test_synthetic_smoke_compliance_matrix_logic(tmp_path: Path) -> None:
         memory_write_required=True,
         memory_write_performed=True,
     ) is True
+
+
+def test_receipt_persists_session_id_as_given(tmp_path: Path) -> None:
+    """Receipt session_id field must equal the session_id passed to _write_closeout_receipt."""
+    receipt_path = _write_closeout_receipt(
+        tmp_path,
+        agent_id="test",
+        trigger_mode="manual_fallback",
+        entrypoint="governance_tools.session_closeout_entry",
+        exit_code=0,
+        closeout_artifact_path=None,
+        memory_eligibility_evaluated=True,
+        memory_write_required=False,
+        memory_write_performed=False,
+        memory_eligibility_reason="no_eligibility_trigger",
+        session_id="session-20260528T120000-deadbe",
+    )
+    payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert payload["session_id"] == "session-20260528T120000-deadbe"
+
+
+def test_receipt_session_id_defaults_to_empty_string_when_omitted(tmp_path: Path) -> None:
+    """Backward-compatible: omitting session_id yields '' in the receipt, not a missing key."""
+    receipt_path = _write_closeout_receipt(
+        tmp_path,
+        agent_id="test",
+        trigger_mode="manual_fallback",
+        entrypoint="governance_tools.session_closeout_entry",
+        exit_code=0,
+        closeout_artifact_path=None,
+        memory_eligibility_evaluated=True,
+        memory_write_required=False,
+        memory_write_performed=False,
+        memory_eligibility_reason="no_eligibility_trigger",
+    )
+    payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert "session_id" in payload
+    assert payload["session_id"] == ""
+
+
+def test_human_output_and_receipt_session_id_match(tmp_path: Path) -> None:
+    """Human output session_id line and receipt session_id field must be identical."""
+    from governance_tools.session_end_hook import format_human_result, run_session_end_hook
+
+    result = run_session_end_hook(tmp_path)
+    session_id = result["session_id"]
+    assert session_id, "run_session_end_hook must produce a non-empty session_id"
+
+    receipt_path = _write_closeout_receipt(
+        tmp_path,
+        agent_id="test",
+        trigger_mode="native_hook",
+        entrypoint="governance_tools.session_closeout_entry",
+        exit_code=0,
+        closeout_artifact_path=None,
+        memory_eligibility_evaluated=True,
+        memory_write_required=False,
+        memory_write_performed=False,
+        memory_eligibility_reason="no_eligibility_trigger",
+        session_id=session_id,
+    )
+
+    payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+    human_output = format_human_result(result)
+
+    # human output must contain the session_id line
+    assert f"session_id={session_id}" in human_output
+    # receipt must persist the same value
+    assert payload["session_id"] == session_id
+    # explicit equality proof: both ends of the authority chain carry the same id
+    assert payload["session_id"] == result["session_id"]

@@ -129,6 +129,7 @@ def _write_closeout_receipt(
     memory_write_required: bool,
     memory_write_performed: bool,
     memory_eligibility_reason: str,
+    session_id: str = "",
 ) -> Path:
     artifact_dir = project_root / "artifacts" / "runtime" / "closeout-receipts"
     artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -139,6 +140,7 @@ def _write_closeout_receipt(
     receipt = {
         "schema_version": CLOSEOUT_RECEIPT_SCHEMA_VERSION,
         "timestamp": _utc_now_iso(),
+        "session_id": session_id,
         "agent_id": agent_id,
         "trigger_mode": trigger_mode if trigger_mode in ALLOWED_TRIGGER_MODES else "unknown",
         "entrypoint": entrypoint,
@@ -292,6 +294,7 @@ def main() -> int:
             memory_write_required=memory_write_required,
             memory_write_performed=memory_write_performed,
             memory_eligibility_reason=memory_eligibility_reason,
+            session_id=str(result.get("session_id", "")),
         )
         result["trigger_evidence_artifact"] = str(evidence_path)
         result["closeout_receipt_artifact"] = str(receipt_path)
