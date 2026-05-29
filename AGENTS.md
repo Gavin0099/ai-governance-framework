@@ -94,6 +94,23 @@ Use this format:
 5. Governance surface change: none / list
 6. Remaining blocker:
 
+### 6. Commit Checkpoint (reporting convention, not a gate)
+
+After each implementation commit, report the following before continuing.
+This is an automatic checkpoint — not a mandatory pause.
+
+```
+Commit: <hash + one-line summary>
+Tests: <pass / fail count, or "not run">
+Previously passing signal regression: <none | list what regressed>
+Dirty state: <clean | explained — list unrelated dirty files if any>
+Claim ceiling: <what was claimed; confirm it stays within DONE scope>
+Next recommended step: <one concrete action>
+```
+
+If all signals are clear, continue without waiting.
+If any signal is unclear or regressed, surface it before proceeding.
+
 ## Repo-Specific Risk Levels
 <!-- governance:key=risk_levels -->
 
