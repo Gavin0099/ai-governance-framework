@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sqlite3
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -21,6 +22,10 @@ from typing import Any
 
 def _utc_now_compact() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def _today_local_date_str() -> str:
+    return datetime.now().strftime("%Y-%m-%d")
 
 
 def _normalize(path_text: str) -> str:
@@ -267,6 +272,120 @@ def _render_summary(payload: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _build_one_line_summary(payload: dict[str, Any]) -> str:
+    acc = payload.get("acceptance_after", {})
+    actions = payload.get("actions", [])
+    executed = sum(1 for a in actions if a.get("status") == "executed")
+    failed = sum(1 for a in actions if a.get("status") == "failed")
+    stopped = sum(1 for a in actions if a.get("status") == "stopped_human_required")
+    actions_text = f"{executed}/{failed}/{stopped}"
+    verified_text = "Y" if acc.get("repo_native_verified") else "N"
+    repo_name = Path(str(payload.get("repo", ""))).name
+    report_name = Path(str(payload.get("report_path", ""))).name if payload.get("report_path") else "NA"
+    token_text = str(payload.get("token_summary", "NA"))
+    ts = datetime.now().strftime("%H:%M:%S")
+    return (
+        f"{ts} | run={payload.get('mode')} | repo={repo_name} | verified={verified_text} | "
+        f"detector_errors={acc.get('detector_errors', 0)} | actions={actions_text} | "
+        f"token={token_text} | report={report_name}"
+    )
+
+
+def _build_summary_dedupe_key(payload: dict[str, Any]) -> str:
+    acc = payload.get("acceptance_after", {})
+    actions = payload.get("actions", [])
+    executed = sum(1 for a in actions if a.get("status") == "executed")
+    failed = sum(1 for a in actions if a.get("status") == "failed")
+    stopped = sum(1 for a in actions if a.get("status") == "stopped_human_required")
+    actions_text = f"{executed}/{failed}/{stopped}"
+    verified_text = "Y" if acc.get("repo_native_verified") else "N"
+    repo_name = Path(str(payload.get("repo", ""))).name
+    token_text = str(payload.get("token_summary", "NA"))
+    return (
+        f"run={payload.get('mode')}|repo={repo_name}|verified={verified_text}|"
+        f"detector_errors={acc.get('detector_errors', 0)}|actions={actions_text}|token={token_text}"
+    )
+
+
+def _append_repo_memory_summary(repo_path: Path, line: str, dedupe_key: str) -> Path:
+    memory_dir = repo_path / "memory"
+    memory_dir.mkdir(parents=True, exist_ok=True)
+    memory_file = memory_dir / f"{_today_local_date_str()}.md"
+    marker = f"dedupe_key={dedupe_key}"
+    if memory_file.exists():
+        existing = memory_file.read_text(encoding="utf-8").splitlines()
+        last_non_empty = ""
+        for raw in reversed(existing):
+            if raw.strip():
+                last_non_empty = raw.strip()
+                break
+        if marker in last_non_empty:
+            return memory_file
+    with memory_file.open("a", encoding="utf-8") as fh:
+        fh.write(f"- {line} | {marker}\n")
+    return memory_file
+
+
+def _find_latest_codeburn_db(repo_path: Path) -> Path | None:
+    patterns = [
+        "codeburn/phase1/examples/*.db",
+        "artifacts/codeburn*.db",
+        "artifacts/*codeburn*.db",
+    ]
+    candidates: list[Path] = []
+    for pat in patterns:
+        candidates.extend(repo_path.glob(pat))
+    if not candidates:
+        return None
+    return max(candidates, key=lambda p: p.stat().st_mtime)
+
+
+def _safe_int(value: Any) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except Exception:
+        return None
+
+
+def _compute_token_summary(repo_path: Path) -> str:
+    db_path = _find_latest_codeburn_db(repo_path)
+    if db_path is None:
+        return "NA"
+    try:
+        conn = sqlite3.connect(str(db_path))
+        row = conn.execute(
+            "SELECT session_id FROM sessions ORDER BY created_at DESC LIMIT 1"
+        ).fetchone()
+        if row is None:
+            conn.close()
+            return "NA"
+        session_id = str(row[0])
+        sum_row = conn.execute(
+            """
+            SELECT
+              SUM(CASE WHEN prompt_tokens IS NOT NULL THEN prompt_tokens ELSE 0 END),
+              SUM(CASE WHEN completion_tokens IS NOT NULL THEN completion_tokens ELSE 0 END)
+            FROM steps
+            WHERE session_id = ?
+            """,
+            (session_id,),
+        ).fetchone()
+        conn.close()
+        if not sum_row:
+            return "NA"
+        prompt = _safe_int(sum_row[0])
+        completion = _safe_int(sum_row[1])
+        if prompt is None and completion is None:
+            return "NA"
+        prompt_text = str(prompt if prompt is not None else 0)
+        completion_text = str(completion if completion is not None else 0)
+        return f"p{prompt_text}/c{completion_text}"
+    except Exception:
+        return "NA"
+
+
 def run(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Apply latest matrix remediation suggestions for one repo.")
     parser.add_argument("--repo", required=True, help="Target repository path.")
@@ -275,6 +394,7 @@ def run(argv: list[str]) -> int:
     parser.add_argument("--project-root", default=".", help="Framework project root.")
     parser.add_argument("--refresh-snapshot-command", help="Optional command to refresh matrix snapshot after apply.")
     parser.add_argument("--format", choices=["human", "json"], default="human")
+    parser.add_argument("--brief", action="store_true", help="Human output prints only one-line run summary.")
     parser.add_argument("--write-report", action="store_true", help="Write result JSON under artifacts/session.")
     parser.add_argument(
         "--require-in-snapshot",
@@ -304,13 +424,16 @@ def run(argv: list[str]) -> int:
         if args.format == "json":
             print(json.dumps(err, ensure_ascii=False, indent=2))
         else:
-            print("[onboard_latest_governance]")
-            print("ok=False")
-            print("error=repo_not_in_snapshot")
-            print(f"repo={repo_path}")
-            print(f"snapshot={snapshot_path}")
-            print("message=Target repo not found in remediation_suggestions.")
-            print("next_steps=add_repo_to_matrix_inventory -> regenerate_snapshot -> rerun_onboarding")
+            if args.brief:
+                print(f"run={args.mode} | repo={repo_path.name} | error=repo_not_in_snapshot")
+            else:
+                print("[onboard_latest_governance]")
+                print("ok=False")
+                print("error=repo_not_in_snapshot")
+                print(f"repo={repo_path}")
+                print(f"snapshot={snapshot_path}")
+                print("message=Target repo not found in remediation_suggestions.")
+                print("next_steps=add_repo_to_matrix_inventory -> regenerate_snapshot -> rerun_onboarding")
         return 2
     row = _select_repo_row(snapshot, repo_path)
     window_days = int(snapshot.get("evidence_window_days", 7))
@@ -376,6 +499,7 @@ def run(argv: list[str]) -> int:
         "stopped_for_human_required": stopped_for_human,
         "actions": actions,
         "acceptance_after": acceptance_after,
+        "token_summary": _compute_token_summary(repo_path),
     }
 
     if args.write_report:
@@ -385,12 +509,33 @@ def run(argv: list[str]) -> int:
         out.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
         payload["report_path"] = str(out)
 
+    one_line_summary = _build_one_line_summary(payload)
+    payload["one_line_summary"] = one_line_summary
+    dedupe_key = _build_summary_dedupe_key(payload)
+    payload["summary_dedupe_key"] = dedupe_key
+
+    memory_path: str | None = None
+    if args.mode == "apply":
+        try:
+            written = _append_repo_memory_summary(repo_path, one_line_summary, dedupe_key)
+            memory_path = str(written)
+        except Exception as exc:
+            payload["memory_write_error"] = str(exc)
+    if memory_path:
+        payload["memory_summary_path"] = memory_path
+
     if args.format == "json":
         print(json.dumps(payload, ensure_ascii=False, indent=2))
     else:
-        print(_render_summary(payload))
-        if payload.get("report_path"):
-            print(f"\nreport_path={payload['report_path']}")
+        if args.brief:
+            print(one_line_summary)
+        else:
+            print(_render_summary(payload))
+            print(f"\nrun_summary={one_line_summary}")
+            if memory_path:
+                print(f"memory_summary_path={memory_path}")
+            if payload.get("report_path"):
+                print(f"\nreport_path={payload['report_path']}")
     return 0
 
 

@@ -6,6 +6,7 @@ param(
     [string]$ProjectRoot = ".",
     [string]$Snapshot = "",
     [string]$RefreshSnapshotCommand = "",
+    [switch]$Brief,
     [switch]$WriteReport
 )
 
@@ -35,6 +36,9 @@ if ($RefreshSnapshotCommand -ne "") {
 
 if ($WriteReport) {
     $args += "--write-report"
+}
+if ($Brief) {
+    $args += "--brief"
 }
 
 python @args

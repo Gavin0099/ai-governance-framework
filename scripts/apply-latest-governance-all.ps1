@@ -2,7 +2,8 @@ param(
     [ValidateSet("required", "recommended", "all")]
     [string]$Tier = "required",
     [string]$ProjectRoot = ".",
-    [string]$Snapshot = ""
+    [string]$Snapshot = "",
+    [switch]$Brief
 )
 
 $ErrorActionPreference = "Stop"
@@ -49,6 +50,10 @@ if (-not (Test-Path $onboardScript)) {
 
 $rows = @()
 foreach ($repo in $targets) {
+    $repoName = Split-Path -Leaf $repo
+    $reportPattern = "onboard_latest_governance_${repoName}_*.json"
+    $beforeReports = @(Get-ChildItem -Path (Join-Path $resolvedRoot "artifacts/session") -Filter $reportPattern -ErrorAction SilentlyContinue)
+
     $args = @(
         "-NoProfile",
         "-ExecutionPolicy", "Bypass",
@@ -58,6 +63,9 @@ foreach ($repo in $targets) {
         "-ProjectRoot", $resolvedRoot,
         "-WriteReport"
     )
+    if ($Brief) {
+        $args += "-Brief"
+    }
     if (-not [string]::IsNullOrWhiteSpace($Snapshot)) {
         $args += @("-Snapshot", $Snapshot)
     }
@@ -65,6 +73,23 @@ foreach ($repo in $targets) {
     $out = & powershell @args 2>&1
     $txt = ($out | Out-String)
     $report = ([regex]::Match($txt, "report_path=(.+)")).Groups[1].Value.Trim()
+    if ([string]::IsNullOrWhiteSpace($report)) {
+        $afterReports = @(Get-ChildItem -Path (Join-Path $resolvedRoot "artifacts/session") -Filter $reportPattern -ErrorAction SilentlyContinue)
+        if ($afterReports.Count -gt 0) {
+            if ($beforeReports.Count -eq 0) {
+                $report = ($afterReports | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
+            } else {
+                $beforeSet = @{}
+                foreach ($b in $beforeReports) { $beforeSet[$b.FullName] = $true }
+                $newOnes = @($afterReports | Where-Object { -not $beforeSet.ContainsKey($_.FullName) })
+                if ($newOnes.Count -gt 0) {
+                    $report = ($newOnes | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
+                } else {
+                    $report = ($afterReports | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
+                }
+            }
+        }
+    }
 
     $row = [ordered]@{
         repo = $repo
