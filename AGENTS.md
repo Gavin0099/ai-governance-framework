@@ -68,6 +68,8 @@ Every implementation session must have a concrete DONE condition before file edi
 
 If the user provides DONE, use it directly.
 If the user does not provide DONE, propose one measurable product outcome and wait for confirmation.
+If the user gives an explicit bounded execution directive (for example: "proceed", "continue", "do not add features, only converge"), treat that as execution authorization within the stated boundary and do not ask for redundant confirmation.
+Ask again only when scope expands, enforcement semantics change, schema/runtime behavior changes, or irreversible/destructive risk is introduced.
 
 Format:
 
@@ -208,9 +210,28 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 - When you make a mistake ??document it so future-you doesn't repeat it
 - **Text > Brain** ??
 
+### Canonical Memory Writer Rule (MANDATORY)
+
+**Any entry claiming `memory_type: session-derived` MUST be written via `governance_tools.memory_record`, not by direct markdown append.**
+
+- Canonical path (required for session-derived entries):
+  ```
+  python governance_tools/memory_record.py \
+    --what-changed "..." \
+    --commit <git-sha> \
+    --session-id <claude-session-id> \
+    --test-evidence "..." \
+    --next-step "..." \
+    --project-root .
+  ```
+- Manual / AI direct markdown append is allowed, but **MUST NOT include `memory_type: session-derived`**. Use plain `- what_changed:` format instead.
+- `session_id` = the Claude Code session UUID (visible in receipt artifacts under `artifacts/runtime/closeout-receipts/`).
+- Violation: `non_canonical_writer` warning in `memory_authority_guard`. 76 historical violations exist pre-2026-05-30; do not backfill. Prevent new ones going forward.
+
 ### Post-Push Memory Protocol (Cross-Repo)
 - After every push in a main session, append one short entry to `memory/YYYY-MM-DD.md`
 - Keep the entry compact and structured: `what changed`, `commit hash`, `test evidence`, `next step`
+- Use plain `- what_changed:` format (not `memory_type: session-derived`) unless writing via `memory_record` CLI.
 - If the push introduced a durable workflow preference, also update `memory/00_long_term.md`
 - This protocol is portable: apply the same pattern in other repos with a local `memory/` directory
 
