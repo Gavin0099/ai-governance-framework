@@ -64,6 +64,10 @@ _CANONICAL_MEMORY_WRITER = "governance_tools.memory_record"
 # Before this date, old-format entries (- what changed:) are grandfathered.
 # Set to the day after canonical writer was committed (2026-04-30 commit 6d77f2d).
 _CANONICAL_WRITER_REQUIRED_FROM = "2026-05-01"
+# Violation category policy (as classified 2026-06-01):
+#   Cat1 (pre-2026-05-13, 32 entries): early Codex writer path — grandfathered, no action
+#   Cat2+3 (2026-05-18 to 05-30, 46 entries): old-format established pattern — historical debt, no backfill
+#   Cat4 (>= 2026-06-01): active violations — AGENTS.md prohibits direct write; use canonical CLI
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 

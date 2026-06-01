@@ -244,14 +244,14 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
     --next-step "..." \
     --project-root .
   ```
-- Manual / AI direct markdown append is allowed, but **MUST NOT include `memory_type: session-derived`**. Use plain `- what_changed:` format instead.
+- **All new memory entries MUST use the canonical writer CLI.** Direct markdown append (`- what changed:` or `- what_changed:` format) is PROHIBITED for new entries. The guard flags direct-format entries in files dated >= 2026-05-01 as `old_format_entry_after_canonical_writer_cutoff`.
 - `session_id` = the Claude Code session UUID (visible in receipt artifacts under `artifacts/runtime/closeout-receipts/`).
 - Violation: `non_canonical_writer` warning in `memory_authority_guard`. 76 historical violations exist pre-2026-05-30; do not backfill. Prevent new ones going forward.
 
 ### Post-Push Memory Protocol (Cross-Repo)
 - After every push in a main session, append one short entry to `memory/YYYY-MM-DD.md`
 - Keep the entry compact and structured: `what changed`, `commit hash`, `test evidence`, `next step`
-- Use plain `- what_changed:` format (not `memory_type: session-derived`) unless writing via `memory_record` CLI.
+- Use the canonical writer CLI for all new entries. **Never write `- what changed:` or `- what_changed:` format directly** — this generates `non_canonical_writer` violations in the guard.
 - If the push introduced a durable workflow preference, also update `memory/00_long_term.md`
 - This protocol is portable: apply the same pattern in other repos with a local `memory/` directory
 

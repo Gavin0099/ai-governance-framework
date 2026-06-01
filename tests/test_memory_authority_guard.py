@@ -49,6 +49,14 @@ OLD_FORMAT_ENTRY = """\
   commit: abc1234def5
 """
 
+# Claude Code's actual direct-write format (space, not underscore)
+CLAUDE_CODE_DIRECT_ENTRY = """\
+- what changed: added some feature
+- commit hash: abc1234def5
+- test evidence: manual
+- next step: none
+"""
+
 
 def _write_daily(memory_root: Path, filename: str, content: str) -> None:
     (memory_root / filename).write_text(content, encoding="utf-8")
@@ -126,4 +134,35 @@ class TestPreCutoffGrandfathered:
         ncw = [v for v in violations if v["code"] == "non_canonical_writer"]
         assert len(ncw) >= 1, (
             "old-format entries in post-cutoff files must trigger non_canonical_writer"
+        )
+
+
+# ── E. Claude Code direct-write format (regression) ──────────────────────────
+
+class TestClaudeCodeDirectWriteFlagged:
+    """Regression: Claude Code's '- what changed:' (space) direct-write format
+    must be flagged as non_canonical_writer in post-cutoff files."""
+
+    def test_claude_code_direct_write_is_flagged(self, tmp_path):
+        mem = tmp_path / "memory"
+        mem.mkdir()
+        _write_daily(mem, POST_CUTOFF, CLAUDE_CODE_DIRECT_ENTRY)
+        violations, _ = check_daily_memory(mem)
+        ncw = [v for v in violations if v["code"] == "non_canonical_writer"]
+        assert len(ncw) >= 1, (
+            "Claude Code direct '- what changed:' format must trigger non_canonical_writer"
+        )
+        assert any(
+            "old_format_entry_after_canonical_writer_cutoff" in v["reason"]
+            for v in ncw
+        )
+
+    def test_claude_code_direct_write_pre_cutoff_is_grandfathered(self, tmp_path):
+        mem = tmp_path / "memory"
+        mem.mkdir()
+        _write_daily(mem, PRE_CUTOFF, CLAUDE_CODE_DIRECT_ENTRY)
+        violations, _ = check_daily_memory(mem)
+        ncw = [v for v in violations if v["code"] == "non_canonical_writer"]
+        assert ncw == [], (
+            "pre-cutoff direct-write entries are grandfathered and must not be flagged"
         )
