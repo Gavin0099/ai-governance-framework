@@ -75,6 +75,30 @@ def test_reason_code_verifier_rejects_free_text_reason(tmp_path: Path) -> None:
     assert any("non-registered code" in item for item in result.violations)
 
 
+def test_reason_code_verifier_passes_when_audit_log_missing(tmp_path: Path) -> None:
+    registry = tmp_path / "reason-code-registry.md"
+    gate_policy = tmp_path / "gate_policy.yaml"
+    audit_log = tmp_path / "nonexistent-canonical-audit-log.jsonl"
+
+    _write_registry(registry)
+    gate_policy.write_text(
+        "\n".join(
+            [
+                "blocking_actions:",
+                "  - production_fix_required",
+                "unknown_treatment:",
+                "  mode: block_if_count_exceeds",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    # audit_log intentionally not created
+
+    result = verify_gate_consumed_reason_fields(registry, gate_policy, audit_log)
+    assert result.ok
+    assert result.violations == []
+
+
 def test_reason_code_verifier_rejects_free_text_in_realistic_gate_policy_shape(
     tmp_path: Path,
 ) -> None:
