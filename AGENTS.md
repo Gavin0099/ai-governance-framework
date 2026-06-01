@@ -83,7 +83,27 @@ When DONE is achieved, stop.
 
 Do not add extra telemetry, readiness, qualification, runtime hooks, artifacts, or governance work unless there is an observed failure.
 
-### 5. Result-First Final Report (reporting convention, not a gate)
+Do not automatically continue into: full regression, broad smoke validation, closeout execution, status/rollup updates, unrelated cleanup, commit, push, or inspection of unrelated dirty/untracked files.
+
+If additional work appears useful, report it as next options only.
+
+### 5. Scope-Matched Validation
+
+Validation must match the changed scope. Run targeted validation first.
+
+Do not upgrade to full regression, broad smoke, or closeout unless the DONE definition explicitly requires it or the user explicitly requests it.
+
+Examples: markdown-only changes do not require runtime tests; a single helper change runs its directly related test file; full regression is a release gate, not a default task gate.
+
+### 6. Dirty Tree Allowlist
+
+When the working tree is dirty, produce a concise `git status` summary only.
+
+Do not inspect, read, explain, stage, or modify unrelated dirty or untracked files.
+
+Stage only the explicit allowlist provided by the user or required by the DONE scope.
+
+### 7. Result-First Final Report (reporting convention, not a gate)
 
 Final reports should be result-first, not process-first.
 
@@ -96,7 +116,7 @@ Use this format:
 5. Governance surface change: none / list
 6. Remaining blocker:
 
-### 6. Commit Checkpoint (reporting convention, not a gate)
+### 8. Commit Checkpoint (reporting convention, not a gate)
 
 After each implementation commit, report the following before continuing.
 This is an automatic checkpoint — not a mandatory pause.
