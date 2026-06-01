@@ -1,11 +1,14 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from governance_tools.release_readiness import assess_release_readiness, format_human_result
 
 
+@pytest.mark.integration
 def test_release_readiness_passes_for_current_alpha():
     result = assess_release_readiness(Path(".").resolve(), version="v1.0.0-alpha")
 
@@ -57,6 +60,7 @@ def test_release_readiness_passes_for_current_alpha():
     assert any(item["name"] == "readme_release_link" and item["ok"] for item in result["checks"])
 
 
+@pytest.mark.integration
 def test_release_readiness_human_output_is_scannable():
     result = assess_release_readiness(Path(".").resolve(), version="v1.0.0-alpha")
     output = format_human_result(result)
@@ -66,3 +70,36 @@ def test_release_readiness_human_output_is_scannable():
     assert "version=v1.0.0-alpha" in output
     assert "check[reviewer_handoff_doc]=True" in output
     assert "check[release_note]=True" in output
+
+
+# ── Fixture-based unit tests (no live repo dependency) ────────────────────────
+
+
+def test_release_readiness_missing_badge_produces_check_failure(tmp_path):
+    """Regression: README without version badge must produce readme_version_badge=False."""
+    (tmp_path / "README.md").write_text(
+        "# My Project\n\nThis is a prototype.\n",
+        encoding="utf-8",
+    )
+    result = assess_release_readiness(tmp_path, version="v1.0.0-alpha")
+    badge_check = next((c for c in result["checks"] if c["name"] == "readme_version_badge"), None)
+    link_check = next((c for c in result["checks"] if c["name"] == "readme_release_link"), None)
+    assert badge_check is not None and badge_check["ok"] is False
+    assert link_check is not None and link_check["ok"] is False
+
+
+def test_release_readiness_readme_with_badge_passes_badge_checks(tmp_path):
+    """Unit: README containing version string and release link passes those specific checks."""
+    (tmp_path / "README.md").write_text(
+        "# My Project 1.0.0-alpha\n\n"
+        "See [release notes](docs/releases/v1.0.0-alpha.md).\n\n"
+        "This is a prototype.\n",
+        encoding="utf-8",
+    )
+    result = assess_release_readiness(tmp_path, version="v1.0.0-alpha")
+    badge_check = next(c for c in result["checks"] if c["name"] == "readme_version_badge")
+    link_check = next(c for c in result["checks"] if c["name"] == "readme_release_link")
+    assert badge_check["ok"] is True
+    assert link_check["ok"] is True
+    # Overall ok is False (missing docs/ files) — which is expected and correct
+    assert result["ok"] is False

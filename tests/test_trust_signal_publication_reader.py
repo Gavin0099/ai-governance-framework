@@ -1,6 +1,8 @@
 import json
 import subprocess
 import sys
+
+import pytest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -19,6 +21,7 @@ from governance_tools.trust_signal_snapshot import (
 )
 
 
+@pytest.mark.integration
 def test_assess_publication_manifest_reads_generated_bundle(tmp_path):
     project_root = Path(".").resolve()
     contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"

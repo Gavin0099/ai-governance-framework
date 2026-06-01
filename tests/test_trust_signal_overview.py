@@ -1,4 +1,6 @@
 import sys
+
+import pytest
 import json
 import shutil
 from pathlib import Path
@@ -67,6 +69,7 @@ def _write_onboarding_report(repo_root: Path, *, ok: bool = True, post_task_ok: 
     )
 
 
+@pytest.mark.integration
 def test_trust_signal_overview_passes_on_repo_root():
     project_root = Path(".").resolve()
     contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
@@ -85,6 +88,7 @@ def test_trust_signal_overview_passes_on_repo_root():
     assert result["auditor"]["ok"] is True
 
 
+@pytest.mark.integration
 def test_trust_signal_overview_can_include_external_contract_policies():
     root = _reset_fixture("external_contract_policies")
     project_root = Path(".").resolve()
@@ -157,6 +161,7 @@ def test_trust_signal_overview_surfaces_external_onboarding_top_issues():
     assert "project_facts=status=drifted | artifact_exists=True | artifact_drift=True | source=02_project_facts.md" in output
 
 
+@pytest.mark.integration
 def test_trust_signal_overview_human_output_is_summary_first():
     project_root = Path(".").resolve()
     contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
@@ -262,6 +267,7 @@ def test_trust_signal_overview_markdown_can_include_external_contracts():
     assert "`HUB-004`" in output
 
 
+@pytest.mark.integration
 def test_trust_signal_overview_can_write_output_file(monkeypatch):
     root = _reset_fixture("write_output")
     project_root = Path(".").resolve()

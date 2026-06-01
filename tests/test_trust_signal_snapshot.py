@@ -1,5 +1,7 @@
 import json
 import sys
+
+import pytest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -51,6 +53,7 @@ def _write_onboarding_report(repo_root: Path, *, ok: bool = True, post_task_ok: 
     )
 
 
+@pytest.mark.integration
 def test_build_trust_signal_snapshot_passes_on_repo_root():
     project_root = Path(".").resolve()
     contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
@@ -99,6 +102,7 @@ def test_build_trust_signal_snapshot_can_include_external_contract_repos(tmp_pat
     assert snapshot["overview"]["external_contract_policy"]["ok"] is True
 
 
+@pytest.mark.integration
 def test_write_snapshot_bundle_creates_latest_history_and_index(tmp_path):
     project_root = Path(".").resolve()
     contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
@@ -330,6 +334,7 @@ def test_format_published_index_handles_empty_history(tmp_path):
     assert "- Reports: `0`" in rendered
 
 
+@pytest.mark.integration
 def test_write_publication_manifest_links_bundle_and_published(tmp_path):
     project_root = Path(".").resolve()
     contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
