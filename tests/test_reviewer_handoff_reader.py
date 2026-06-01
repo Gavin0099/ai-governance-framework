@@ -1,3 +1,4 @@
+import pytest
 import json
 import subprocess
 import sys
@@ -13,6 +14,7 @@ from governance_tools.reviewer_handoff_reader import (
 from governance_tools.reviewer_handoff_snapshot import build_reviewer_handoff_snapshot, write_snapshot_bundle
 
 
+@pytest.mark.integration
 def test_assess_manifest_reads_generated_bundle(tmp_path):
     project_root = Path(".").resolve()
     contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
@@ -93,6 +95,7 @@ def test_default_manifest_path_points_to_artifacts_reviewer_handoff():
     assert resolved == project_root / "artifacts" / "reviewer-handoff" / "v1.0.0-alpha" / "MANIFEST.json"
 
 
+@pytest.mark.integration
 def test_reviewer_handoff_reader_cli_supports_direct_script_invocation(tmp_path):
     project_root = Path(".").resolve()
     contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"

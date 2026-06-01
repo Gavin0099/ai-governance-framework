@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import pytest
 import shutil
 from pathlib import Path
 
@@ -57,6 +58,7 @@ def test_governance_auditor_passes_on_repo_root():
     assert "doc_drift" in result
 
 
+@pytest.mark.integration
 def test_governance_auditor_can_include_release_readiness():
     result = audit_governance(Path(".").resolve(), release_version="v1.0.0-alpha")
 
@@ -65,6 +67,7 @@ def test_governance_auditor_can_include_release_readiness():
     assert any(check["name"] == "release:readiness" and check["ok"] for check in result["checks"])
 
 
+@pytest.mark.integration
 def test_governance_auditor_human_output_is_summary_first():
     result = audit_governance(Path(".").resolve(), release_version="v1.0.0-alpha")
     output = format_human_result(result)

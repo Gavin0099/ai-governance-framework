@@ -1,3 +1,4 @@
+import pytest
 import json
 import subprocess
 import sys
@@ -31,6 +32,7 @@ def _reset_fixture(name: str) -> Path:
     return root
 
 
+@pytest.mark.integration
 def test_build_reviewer_handoff_snapshot_passes_for_current_alpha():
     project_root = Path(".").resolve()
     contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
@@ -49,6 +51,7 @@ def test_build_reviewer_handoff_snapshot_passes_for_current_alpha():
     assert snapshot["handoff"]["release_surface"]["ok"] is True
 
 
+@pytest.mark.integration
 def test_write_reviewer_handoff_snapshot_bundle_creates_latest_history_manifest(tmp_path):
     project_root = Path(".").resolve()
     contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
@@ -126,6 +129,7 @@ def test_resolve_publication_paths_can_default_to_docs_status_generated(tmp_path
     assert publication_root == expected_root
 
 
+@pytest.mark.integration
 def test_reviewer_handoff_snapshot_cli_supports_direct_script_invocation(tmp_path):
     bundle_dir = tmp_path / "reviewer-handoff"
     project_root = Path(".").resolve()

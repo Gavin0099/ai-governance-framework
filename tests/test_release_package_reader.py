@@ -1,3 +1,4 @@
+import pytest
 import json
 import subprocess
 import sys
@@ -23,6 +24,7 @@ def _local_tmp(name: str) -> Path:
     return path
 
 
+@pytest.mark.integration
 def test_assess_manifest_reads_generated_bundle():
     tmp_path = _local_tmp("generated_bundle")
     snapshot = build_release_package_snapshot(project_root=Path(".").resolve(), version="v1.0.0-alpha")
@@ -103,6 +105,7 @@ def test_default_docs_release_manifest_path_points_to_generated_release_path():
     assert resolved == project_root / "docs" / "releases" / "generated" / "v1.0.0-alpha" / "MANIFEST.json"
 
 
+@pytest.mark.integration
 def test_release_package_reader_cli_supports_direct_script_invocation():
     tmp_path = _local_tmp("cli")
     snapshot = build_release_package_snapshot(project_root=Path(".").resolve(), version="v1.0.0-alpha")

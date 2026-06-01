@@ -1,6 +1,6 @@
-> **最後更新**: 2026-05-03
+> **最後更新**: 2026-06-01
 > **Owner**: framework-example
-> **Freshness**: Sprint (7d)
+> **Freshness**: Stable (90d)
 
 # Active Task
 
