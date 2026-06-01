@@ -58,12 +58,50 @@ def test_smoke_test_session_start_human_output_surfaces_handoff_summary():
     assert "required_evidence=architecture-review,public-api-review" in output
 
 
-def test_smoke_test_session_start_can_use_explicit_contract():
+def _make_version_manifest(tmp_path: Path) -> None:
+    """Write a minimal .governance/version_manifest.yaml to satisfy version_compatibility check."""
+    gov_dir = tmp_path / ".governance"
+    gov_dir.mkdir(exist_ok=True)
+    (gov_dir / "version_manifest.yaml").write_text(
+        'schema_version: "1.0"\ngovernance_version: "0.4.0"\n'
+        'contract_schema_version: "1.2.0"\nruntime_entrypoint_version: "1.1.0"\n'
+        'hook_wiring_version: "1.0.0"\nartifact_layout_version: "1.0.0"\n'
+        'memory_layout_version: "1.0.0"\n',
+        encoding="utf-8",
+    )
+
+
+def test_smoke_test_session_start_can_use_explicit_contract(tmp_path):
     contract_file = Path("examples/usb-hub-contract/contract.yaml").resolve()
-    envelope = run_shared_smoke("session_start", contract_file=contract_file)
+    (tmp_path / "PLAN.md").write_text(
+        f"> **最後更新**: {_date.today().isoformat()}\n"
+        "> **Owner**: firmware-team\n"
+        "> **Freshness**: Sprint (7d)\n"
+        "\n"
+        "[>] Phase 1 : USB Hub firmware verification\n",
+        encoding="utf-8",
+    )
+    _make_version_manifest(tmp_path)
+    envelope = run_shared_smoke("session_start", contract_file=contract_file, project_root=tmp_path)
     assert envelope["result"]["ok"] is True
     assert envelope["result"]["contract_resolution"]["source"] == "explicit"
     assert envelope["result"]["domain_contract"]["name"] == "usb-hub-firmware-contract"
+
+
+def test_smoke_test_session_start_stale_plan_causes_ok_false(tmp_path):
+    """Regression: stale PLAN.md (beyond freshness window) must still produce ok=False."""
+    contract_file = Path("examples/usb-hub-contract/contract.yaml").resolve()
+    (tmp_path / "PLAN.md").write_text(
+        "> **最後更新**: 2020-01-01\n"
+        "> **Owner**: firmware-team\n"
+        "> **Freshness**: Sprint (7d)\n"
+        "\n"
+        "[>] Phase 1 : USB Hub firmware verification\n",
+        encoding="utf-8",
+    )
+    _make_version_manifest(tmp_path)
+    envelope = run_shared_smoke("session_start", contract_file=contract_file, project_root=tmp_path)
+    assert envelope["result"]["ok"] is False
 
 
 def test_smoke_test_session_start_can_infer_project_root_and_plan_from_contract(tmp_path):
@@ -103,9 +141,17 @@ def test_smoke_test_adapter_session_start_human_output_uses_normalized_event_typ
     assert "suggested_agent=python-agent" in output
 
 
-def test_smoke_test_pre_task_can_use_explicit_contract_and_surface_it_in_output():
+def test_smoke_test_pre_task_can_use_explicit_contract_and_surface_it_in_output(tmp_path):
     contract_file = Path("examples/usb-hub-contract/contract.yaml").resolve()
-    envelope = run_smoke("claude_code", "pre_task", contract_file=contract_file)
+    (tmp_path / "PLAN.md").write_text(
+        f"> **最後更新**: {_date.today().isoformat()}\n"
+        "> **Owner**: firmware-team\n"
+        "> **Freshness**: Sprint (7d)\n"
+        "\n"
+        "[>] Phase 1 : USB Hub firmware verification\n",
+        encoding="utf-8",
+    )
+    envelope = run_smoke("claude_code", "pre_task", contract_file=contract_file, project_root=tmp_path)
     output = format_human_envelope(envelope, harness="claude_code")
     assert envelope["result"]["ok"] is True
     assert envelope["result"]["contract_resolution"]["source"] == "explicit"
