@@ -18,6 +18,7 @@ fi
 
 CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 TEMP="push_github_tmp_$$"
+STASHED=0
 RESTORED=0
 
 cleanup() {
@@ -26,6 +27,9 @@ cleanup() {
     git branch -D "$TEMP" >/dev/null 2>&1 || true
     git config user.name "GavinWu"
     git config user.email "Gavin.Wu@genesyslogic.com.tw"
+    if [ "$STASHED" -eq 1 ]; then
+      git stash pop >/dev/null 2>&1 || true
+    fi
     echo "[push-github] cleaned up after error — local $CURRENT_BRANCH unchanged (GavinWu)"
   fi
 }
@@ -38,9 +42,11 @@ if [ "$CURRENT_BRANCH" != "main" ]; then
   exit 1
 fi
 
+# Auto-stash dirty files (tracked only)
 if ! git diff --quiet || ! git diff --cached --quiet; then
-  echo "error: uncommitted changes — commit or stash first"
-  exit 1
+  echo "[push-github] stashing local changes..."
+  git stash push --quiet
+  STASHED=1
 fi
 
 # ── Fetch & find divergence point ───────────────────────────────────────────
@@ -85,6 +91,10 @@ git checkout "$CURRENT_BRANCH" >/dev/null 2>&1
 git branch -D "$TEMP" >/dev/null 2>&1
 git config user.name "GavinWu"
 git config user.email "Gavin.Wu@genesyslogic.com.tw"
+if [ "$STASHED" -eq 1 ]; then
+  echo "[push-github] restoring stashed changes..."
+  git stash pop --quiet
+fi
 
 echo "[push-github] done."
 echo "  GitHub: Gavin0099 (origin/main updated)"
