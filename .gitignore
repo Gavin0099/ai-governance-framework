@@ -104,3 +104,8 @@ _integration_check.py
 # Local CodeBurn artifacts (not versioned unless explicitly promoted)
 codeburn/phase1/examples/m5_repo/
 codeburn_phase1.db
+
+# Cross-repo observation satellites (local only, not versioned)
+gl_electron_tool/
+.tmp_no_codeburn_repo/
+.tmp_no_codeburn_repo2/
