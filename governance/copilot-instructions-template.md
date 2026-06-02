@@ -39,13 +39,18 @@ Do not read, explain, stage, or modify unrelated dirty or untracked files.
 
 When reporting task completion, use this exact format. Fixed vocabulary only — no free-form narrative in these fields.
 
+Vocabulary definitions:
+- `NOT PRESENT` = the mechanism, artifact, or enforcement does not exist
+- `NOT CLAIMED` = the capability or conclusion is not being asserted this session
+- `PASS` = must always include `— <command or source>` (never bare)
+
 ```
 Validation:
-- structural:    PASS | FAIL | NOT RUN
-- build:         PASS | FAIL | NOT RUN
-- semantic:      NOT CLAIMED | PASS (human review only)
-- behavioral:    NOT PRESENT | verified
-- ext evidence:  NOT PRESENT | [source]
+- structural:    PASS — <command> | FAIL — <command> | NOT RUN
+- build:         PASS — <command> | FAIL — <command> | NOT RUN
+- semantic:      NOT CLAIMED | PASS — human review: [reviewer/date]
+- behavioral:    NOT PRESENT | verified — [how]
+- ext evidence:  NOT PRESENT | [source and scope]
 
 Risk:
 - scope drift:        none | [description]
@@ -59,3 +64,60 @@ Cannot claim this session:
 ```
 
 Do NOT omit `Cannot claim`. It is required in every completion report.
+
+**Examples:**
+
+Schema-only change (markdown, no runtime):
+```
+Validation:
+- structural:    PASS — grep section_refs *.md
+- build:         NOT RUN — markdown-only change
+- semantic:      NOT CLAIMED
+- behavioral:    NOT PRESENT
+- ext evidence:  NOT PRESENT
+Risk:
+- scope drift:        none
+- claim inflation:    none
+- evidence maturity:  structural layer only; no semantic verification
+Incidental cleanup:   none
+Cannot claim this session:
+- semantic correctness of section references
+- PDF-level content verification
+```
+
+Pilot attachment change (build pass, no semantic verification):
+```
+Validation:
+- structural:    PASS — validate_wiki_frontmatter
+- build:         PASS — npm.cmd run build (exit 0)
+- semantic:      NOT CLAIMED
+- behavioral:    NOT PRESENT
+- ext evidence:  NOT PRESENT
+Risk:
+- scope drift:        none — pilot limited to 4 existing entries
+- claim inflation:    none — claim_level unchanged (inferred)
+- evidence maturity:  build-verified only; high-risk coverage below original plan
+Incidental cleanup:   none
+Cannot claim this session:
+- bit-level semantic verification of attached spec sections
+- high-risk boundary condition coverage (PORT_OVER_CURRENT not in pilot)
+- verified status upgrade
+```
+
+Failed / partial validation:
+```
+Validation:
+- structural:    PASS — validate_wiki_frontmatter
+- build:         FAIL — npm.cmd run build (exit 1, see error above)
+- semantic:      NOT CLAIMED
+- behavioral:    NOT PRESENT
+- ext evidence:  NOT PRESENT
+Risk:
+- scope drift:        none
+- claim inflation:    none — task not complete
+- evidence maturity:  build failure; no completion evidence
+Incidental cleanup:   none
+Cannot claim this session:
+- task complete
+- any validation above build layer
+```

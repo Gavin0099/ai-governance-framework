@@ -107,17 +107,22 @@ Stage only the explicit allowlist provided by the user or required by the DONE s
 
 Final reports should be result-first, not process-first.
 
+Vocabulary:
+- `NOT PRESENT` = the mechanism, artifact, or enforcement does not exist
+- `NOT CLAIMED` = the capability or conclusion is not being asserted this session
+- `PASS` = must always include `— <command or source>`; bare `PASS` is not valid
+
 Use this format:
 
 1. Result: Done / Not done
 2. Capability increased:
 3. Changed files:
 4. Validation:
-   - structural:    PASS | FAIL | NOT RUN
-   - build:         PASS | FAIL | NOT RUN
-   - semantic:      NOT CLAIMED | PASS (human review only)
-   - behavioral:    NOT PRESENT | verified
-   - ext evidence:  NOT PRESENT | [source]
+   - structural:    PASS — <command> | FAIL — <command> | NOT RUN
+   - build:         PASS — <command> | FAIL — <command> | NOT RUN
+   - semantic:      NOT CLAIMED | PASS — human review: [reviewer/date]
+   - behavioral:    NOT PRESENT | verified — [how]
+   - ext evidence:  NOT PRESENT | [source and scope]
 5. Risk:
    - scope drift:        none | [description]
    - claim inflation:    none | [description]
@@ -127,6 +132,78 @@ Use this format:
 8. Remaining blocker:
 9. Cannot claim this session:
    - [list what was NOT validated, NOT verified, NOT proven — required, never omit]
+
+Golden examples:
+
+**Schema-only change (markdown, no runtime):**
+```
+1. Result: Done
+2. Capability increased: section_refs schema extended
+3. Changed files: wiki/port-status.md
+4. Validation:
+   - structural:    PASS — grep section_refs wiki/port-status.md
+   - build:         NOT RUN — markdown-only change
+   - semantic:      NOT CLAIMED
+   - behavioral:    NOT PRESENT
+   - ext evidence:  NOT PRESENT
+5. Risk:
+   - scope drift:        none
+   - claim inflation:    none
+   - evidence maturity:  structural layer only; no semantic verification
+6. Incidental cleanup:   none
+7. Governance surface change: none
+8. Remaining blocker:     none
+9. Cannot claim this session:
+   - semantic correctness of section references
+   - PDF-level content verification
+```
+
+**Pilot attachment change (build pass, no semantic verification):**
+```
+1. Result: Done
+2. Capability increased: 4 port entries have section_refs attached
+3. Changed files: wiki/port-status.md, wiki/zh/port-status.md
+4. Validation:
+   - structural:    PASS — validate_wiki_frontmatter (exit 0)
+   - build:         PASS — npm run build (exit 0)
+   - semantic:      NOT CLAIMED
+   - behavioral:    NOT PRESENT
+   - ext evidence:  NOT PRESENT
+5. Risk:
+   - scope drift:        none — pilot limited to 4 existing entries
+   - claim inflation:    none — claim_level unchanged (inferred)
+   - evidence maturity:  build-verified only; high-risk coverage below original plan
+6. Incidental cleanup:   none
+7. Governance surface change: none
+8. Remaining blocker:     PORT_OVER_CURRENT not in pilot — high-risk coverage gap
+9. Cannot claim this session:
+   - bit-level semantic verification of attached spec sections
+   - high-risk boundary condition coverage (PORT_OVER_CURRENT not in pilot)
+   - verified status upgrade
+```
+
+**Failed / partial validation:**
+```
+1. Result: Not done — build failed
+2. Capability increased: none
+3. Changed files: wiki/port-status.md (uncommitted)
+4. Validation:
+   - structural:    PASS — validate_wiki_frontmatter (exit 0)
+   - build:         FAIL — npm run build (exit 1, error above)
+   - semantic:      NOT CLAIMED
+   - behavioral:    NOT PRESENT
+   - ext evidence:  NOT PRESENT
+5. Risk:
+   - scope drift:        none
+   - claim inflation:    none — task not complete
+   - evidence maturity:  build failure; no completion evidence
+6. Incidental cleanup:   none
+7. Governance surface change: none
+8. Remaining blocker:     build error must be resolved before commit
+9. Cannot claim this session:
+   - task complete
+   - any validation above build layer
+```
 
 ### 8. Commit Checkpoint (reporting convention, not a gate)
 
