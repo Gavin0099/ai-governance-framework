@@ -93,24 +93,28 @@ Required posture:
 
 ## Current Sprint
 
-**Sprint 狀態（2026-06-02）：Canonical Memory Writer Enforcement + Agent Report Format Standardization**
+**Sprint 狀態（2026-06-02）：Canonical Memory Writer Enforcement + Fleet Plan Profile + Agent Report Format Standardization**
 
 完成項目（此輪，2026-06-02）：
 - [x] Canonical Memory Writer Enforcement Phase 1 — session_id handoff verified end-to-end (1ce4bb7); AGENTS.md + guard policy annotation + regression tests aligned
 - [x] Rule 4 Structured Report Format — AGENTS.md Rule 7 extended; copilot-instructions-template.md Rule 4 added; fixed vocabulary (PASS|FAIL|NOT RUN|NOT CLAIMED|NOT PRESENT); Cannot claim required field; 3 golden examples (3f8f91c, 0f2e3ba)
 - [x] Copilot instructions deployed to gl_electron_tool; validator confirms copilot_instructions_governed=True
 - [x] CodeBurn Copilot Real CSV Qualification Checkpoint — blocked_by: requires_github_org_billing_admin; receipt skeleton committed (0a9dbd6)
-- [x] Phase 3 post-enforcement observation sample #1 collected (33b666b)
+- [x] Phase 3 post-enforcement observation sample #1 collected (33b666b); sample #2 collected (5f64264)
+- [x] Canonical Memory Writer Enforcement Phase 2 — classified 86 non_canonical_writer records into 6 buckets; all dispositions: acknowledge_no_action (c1d616e)
+- [x] Fleet Plan Profile Contract — governance/fleet/plan_profile_contract.yaml added; plan_profile assigned to all 20 fleet repos; 2 overrides: Bookstore-Scraper (minimal), SpecAuthority (governed) (91f312c)
+- [x] usb-if-hub-spec-reference registered in fleet governance scope — recommended tier, plan_profile: governed (680b7b3)
+- [x] Phase 8A Codex governance quality analysis saved — artifacts/session/codex_phase8a_governance_quality_analysis_20260602.md; 3 adjustments: baseline gap, Phase 7B risk upgrade, Tier 3/5 system (e10b3d9)
 
 等待觀察：
-- [>] Phase 3 post-enforcement observation — active; watch next memory entry for non_canonical_writer violations
+- [>] Phase 3 post-enforcement observation — active; 2 canonical samples collected; watch for non_canonical_writer count trend
 - [>] Rule 4 effect observation — next gl_electron_tool Copilot Workspace session
 - [>] Rule 1 DONE-definition gap — identified, deferred pending Rule 4 observation data
 - [>] Phase E PAUSE 仍有效：E2/E3 均 blocked，等待 observable trigger
 - [>] MOB Verifier：gap_confirmed workflow 明確 defer；per-MOB convention_start 明確 defer
 
 下一個可執行項目：
-- [ ] Phase 2 — classify 76 non_canonical_writer records → artifacts/memory_non_canonical_writer_classification.json
+- [ ] usb-if-hub-spec-reference Rule 4 deployment — deploy copilot-instructions.md via install-hooks.sh (non-urgent; do when next using that repo)
 
 完成項目（舊 sprint，保留供追蹤）：
 - [x] R49.x consolidation window（6 tasks）— NULL_ONTOLOGY、Metric Interpretability Contract、Epistemic Base Assumptions、R49.2 Governance Harness v0.1
