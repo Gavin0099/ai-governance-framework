@@ -53,6 +53,7 @@ dist/
 # Test
 .pytest_cache/
 .pytest_tmp*/
+.tmp_pytest_*/
 tests/_tmp_*/
 test_tmp_*/
 tmp*/
@@ -74,6 +75,8 @@ validation_tmp3/
 
 # Runtime governance artifacts
 artifacts/runtime/
+artifacts/session/
+artifacts/*.db
 artifacts/external-project-facts/
 artifacts/reviewer-handoff/
 memory/candidates/*.json
@@ -88,6 +91,7 @@ ai-governance-framework/
 !.claude/skills/
 !.claude/skills/**
 .claude/settings.local.json
+.codex/hooks.json
 *.code-workspace
 
 # Payload audit raw log（含路徑資訊，不 commit）

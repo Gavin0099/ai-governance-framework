@@ -1,0 +1,3 @@
+display_name: Create PR
+short_description: Turn a finished change into a reviewer-ready pull request summary
+default_prompt: Build a reviewer-ready PR summary for this repository. Explain purpose, changed scope, untouched scope, risk, evidence, and the best reviewer entrypoint using existing reviewer-facing surfaces when helpful.
