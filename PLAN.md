@@ -118,17 +118,19 @@ Required posture:
 - [>] MOB Verifier：gap_confirmed workflow 明確 defer；per-MOB convention_start 明確 defer
 
 - [x] CE-1C.1: compact receipt writer — build_receipt/append_receipt/write_receipt_for_session + validate_receipt_fields; 16 tests pass; append-only NDJSON; CE-1B minimum 9 fields; no audit consumers, .gitignore, or raw session-* touched (4d49f86)
+- [x] CE-1C.2: dual-write — session_end appends compact receipt alongside raw packet; try/except-protected; 7 new tests + 44 existing session_end tests unchanged; raw-packet audit consumers not touched (7553b03)
 
-不能宣告（CE-1C.1）：
-- compact receipt is generated during normal runtime closeout
-- compact receipt is consumed by runtime_completeness_audit.py or closeout_audit.py
+不能宣告（CE-1C.1/2）：
+- compact receipt 已成為 runtime audit 的 source of truth
+- runtime_completeness_audit.py 或 closeout_audit.py 已改讀 compact receipt
+- claim-enforcement-receipts.ndjson 已可取代 raw claim-enforcement-check.json
 - raw session-* artifacts can be ignored
 - historical raw session evidence has been migrated
 - CE-1C migration is complete
 
 下一個可執行項目：
-- [ ] CE-1C.2: dual-write — runtime/session closeout appends compact receipt when raw packet is produced; existing raw-packet audit consumers remain unchanged; DONE = "runtime closeout appends compact receipt alongside raw packet; runtime_completeness_audit.py and closeout_audit.py behavior unchanged"
-- [ ] CE-1C.3: raw session-*/UUID tracking policy (deferred; UUID pattern is design risk — see CE-1B policy)
+- [ ] CE-1C.3: compact receipt read-side validator — parse claim-enforcement-receipts.ndjson; validate each row has CE-1B required fields; report source_packet_dir present/missing; check raw_packet_policy/repo_evidence_status/evidence_scope against allowlist; detect: raw packet exists + receipt missing / receipt exists + raw packet missing / receipt malformed; DONE = "compact receipt surface is parseable and schema-valid; coverage gaps are detectable"
+- [ ] CE-1C.4: raw session-*/UUID tracking/ignore policy (deferred until CE-1C.3 validator proves receipt surface coverage; UUID pattern is design risk)
 
 完成項目（舊 sprint，保留供追蹤）：
 - [x] R49.x consolidation window（6 tasks）— NULL_ONTOLOGY、Metric Interpretability Contract、Epistemic Base Assumptions、R49.2 Governance Harness v0.1
