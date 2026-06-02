@@ -117,9 +117,17 @@ Required posture:
 - [>] Phase E PAUSE 仍有效：E2/E3 均 blocked，等待 observable trigger
 - [>] MOB Verifier：gap_confirmed workflow 明確 defer；per-MOB convention_start 明確 defer
 
+- [x] CE-1C.1: compact receipt writer — build_receipt/append_receipt/write_receipt_for_session + validate_receipt_fields; 16 tests pass; append-only NDJSON; CE-1B minimum 9 fields; no audit consumers, .gitignore, or raw session-* touched (4d49f86)
+
+不能宣告（CE-1C.1）：
+- compact receipt is generated during normal runtime closeout
+- compact receipt is consumed by runtime_completeness_audit.py or closeout_audit.py
+- raw session-* artifacts can be ignored
+- historical raw session evidence has been migrated
+- CE-1C migration is complete
+
 下一個可執行項目：
-- [ ] CE-1C.1: compact receipt writer only — append-only NDJSON writer for artifacts/claim-enforcement/claim-enforcement-receipts.ndjson; CE-1B minimum fields; tests; do NOT touch audit consumers, .gitignore, or raw session-* packets
-- [ ] CE-1C.2: runtime consumer distinction (deferred until CE-1C.1 done)
+- [ ] CE-1C.2: dual-write — runtime/session closeout appends compact receipt when raw packet is produced; existing raw-packet audit consumers remain unchanged; DONE = "runtime closeout appends compact receipt alongside raw packet; runtime_completeness_audit.py and closeout_audit.py behavior unchanged"
 - [ ] CE-1C.3: raw session-*/UUID tracking policy (deferred; UUID pattern is design risk — see CE-1B policy)
 
 完成項目（舊 sprint，保留供追蹤）：
