@@ -1,11 +1,12 @@
 # Claim Enforcement Evidence Policy
 
-Status: provisional boundary note
+Status: policy selected for evidence model; migration pending
 
 ## Purpose
 
-This note records the current evidence boundary for
-`artifacts/claim-enforcement/` without changing tracking behavior.
+This note records the current evidence boundary and selected evidence model for
+`artifacts/claim-enforcement/` without changing runtime audit semantics in this
+step.
 
 It exists to stop agents from guessing whether session-scoped
 claim-enforcement artifacts are disposable runtime noise or formal
@@ -60,39 +61,135 @@ Observed state:
 - many historical session-scoped claim-enforcement packets are tracked
 - newer session-scoped claim-enforcement packets may remain untracked
 
-This means the repository currently does not have a finalized version-control
-policy for all session-scoped claim-enforcement evidence.
+This means the repository historically mixed stable baseline evidence and raw
+session-scoped evidence inside the same artifact root.
 
-## Interim Rule
+## Selected Model
 
-Until policy is finalized:
+This repository adopts the compact canonical receipt model.
 
-- new session-scoped claim-enforcement packets must not be automatically
-  committed
-- new session-scoped claim-enforcement packets must not be automatically
-  ignored
+Under this model:
+
+- raw session-scoped claim-enforcement packets remain session-local runtime
+  evidence
+- compact tracked receipt or summary artifacts become the repo-level
+  governance evidence surface
+- checker-test baseline evidence remains tracked
+
+This policy selects the target model, but does not complete migration in this
+step.
+
+## Current Rule
+
+Until compact receipt surfaces are defined and migration rules are finalized:
+
+- new raw session-scoped claim-enforcement packets must not be automatically
+  committed as repo evidence
+- new raw session-scoped claim-enforcement packets must not be automatically
+  ignored by policy changes made as cleanup side effects
 - agents must not delete claim-enforcement session evidence as if it were
   ordinary runtime trash
+- checker-test baseline evidence remains tracked
+
+## Evidence Categories Under The Selected Model
+
+### Tracked governance evidence
+
+- `artifacts/claim-enforcement/checker-tests/*`
+- future compact canonical receipt or summary artifacts for claim-enforcement
+
+### Session-local runtime evidence
+
+- `artifacts/claim-enforcement/session-*/claim-enforcement-check.json`
+- `artifacts/claim-enforcement/<session-id>/claim-enforcement-check.json`
+
+Raw packets may still be consumed by runtime audits, but they are not the
+intended long-term tracked evidence surface under the selected model.
+
+## Compact Receipt Surface (Defined, Not Yet Implemented)
+
+The compact tracked evidence surface for this model is:
+
+- `artifacts/claim-enforcement/claim-enforcement-receipts.ndjson`
+
+This file is intended to be append-only NDJSON.
+
+Purpose:
+
+- preserve repo-level machine-readable evidence that claim-enforcement existed
+  for a session
+- avoid treating raw `session-*` packet directories as the primary tracked
+  evidence surface
+- provide a future tracked summary layer that is smaller and more reviewable
+  than raw session packet history
+
+### Receipt Row Shape (v0.1)
+
+Each line should represent one session-scoped compact receipt with these
+minimum fields:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `schema_version` | string | initial value: `0.1` |
+| `artifact_type` | string | fixed value: `claim-enforcement-receipt` |
+| `session_id` | string | timestamp-shaped or UUID-shaped session identifier |
+| `recorded_at` | ISO-8601 UTC string | when the compact receipt row was written |
+| `claim_enforcement_check_present` | bool | whether the raw session packet existed when observed |
+| `source_packet_dir` | string | expected raw packet directory path for that session |
+| `raw_packet_policy` | string | initial value: `session_local` |
+| `repo_evidence_status` | string | initial value: `compact_receipt` |
+| `evidence_scope` | string | fixed value: `session_scoped` |
+
+Optional future fields may be added only with explicit schema-version
+governance.
+
+### Example Row
+
+```json
+{
+  "schema_version": "0.1",
+  "artifact_type": "claim-enforcement-receipt",
+  "session_id": "585cfd62-322d-4bde-8f87-786a096ea010",
+  "recorded_at": "2026-06-02T12:00:00Z",
+  "claim_enforcement_check_present": true,
+  "source_packet_dir": "artifacts/claim-enforcement/585cfd62-322d-4bde-8f87-786a096ea010",
+  "raw_packet_policy": "session_local",
+  "repo_evidence_status": "compact_receipt",
+  "evidence_scope": "session_scoped"
+}
+```
+
+### Authority Boundary
+
+Under the selected model:
+
+- raw session packets remain the runtime-facing session evidence artifacts
+- compact receipts become the intended tracked repo-facing evidence surface
+- compact receipts do not automatically replace runtime consumers in this step
+- compact receipts must not be treated as proof that historical raw-packet
+  tracking has already been normalized
 
 Any change to claim-enforcement evidence tracking must be an explicit policy
 decision, not a side effect of dirty-tree cleanup.
 
-## Future Policy Decision Required
+## Migration Still Required
 
-Future governance work must choose one of these models:
+Future governance work must still define:
 
-1. archival evidence model
-2. promoted-only evidence model
-3. external archive plus tracked summary/index model
-
-This note does not decide between them.
+1. the writer or generation path for compact receipts
+2. the tracking rule for that compact surface
+3. the ignore rule for raw session packets, if adopted
+4. how historical tracked raw session packets are handled
+5. how runtime audits distinguish raw runtime evidence from tracked governance
+   evidence
 
 ## Non-Decisions
 
 This note does not declare:
 
-- that all session evidence must be committed
-- that all session evidence must be ignored
-- that current historical tracking is correct
+- that all raw session evidence must be committed
+- that all raw session evidence is already ignored
+- that current historical tracking is correct or normalized
 - that `session-index.ndjson` should remain tracked
 - that any migration should happen now
+- that compact receipt shape is already defined
