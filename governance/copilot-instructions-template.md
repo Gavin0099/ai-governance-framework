@@ -44,6 +44,9 @@ Vocabulary definitions:
 - `NOT CLAIMED` = the capability or conclusion is not being asserted this session
 - `PASS` = must always include `— <command or source>` (never bare)
 
+**Language rule:** Content language must match the session language. Sub-field labels (`structural`, `build`, `semantic`, `behavioral`, `ext evidence`, `scope drift`, `claim inflation`, `evidence maturity`) and fixed vocabulary tokens (`PASS`, `FAIL`, `NOT RUN`, `NOT CLAIMED`, `NOT PRESENT`) remain in English regardless of session language. Section headers may be translated.
+
+English format:
 ```
 Validation:
 - structural:    PASS — <command> | FAIL — <command> | NOT RUN
@@ -63,7 +66,27 @@ Cannot claim this session:
 - [list what was NOT validated, NOT verified, NOT proven]
 ```
 
-Do NOT omit `Cannot claim`. It is required in every completion report.
+Chinese format (when session language is Chinese):
+```
+驗證：
+- structural:    PASS — <指令> | FAIL — <指令> | NOT RUN
+- build:         PASS — <指令> | FAIL — <指令> | NOT RUN
+- semantic:      NOT CLAIMED | PASS — 人工審查：[審查者/日期]
+- behavioral:    NOT PRESENT | 已驗證 — [如何]
+- ext evidence:  NOT PRESENT | [來源與範圍]
+
+風險：
+- scope drift:        none | [說明]
+- claim inflation:    none | [說明]
+- evidence maturity:  [一行說明]
+
+附帶清理：   none | file=[路徑] reason=[原因] semantic_change=no
+
+本次無法宣告：
+- [列出未驗證、未確認、未證明的項目]
+```
+
+Do NOT omit `Cannot claim` / `本次無法宣告`. It is required in every completion report.
 
 **Examples:**
 
