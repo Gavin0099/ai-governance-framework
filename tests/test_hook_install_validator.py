@@ -155,6 +155,85 @@ def test_validate_hook_install_accepts_self_hosted_framework_repo() -> None:
     assert result.checks["framework_root_config_present"] is False
 
 
+def test_copilot_instructions_missing_is_warning_not_error() -> None:
+    """Missing .github/copilot-instructions.md is a warning, not a blocking error."""
+    root = _reset_fixture("copilot_instructions_missing")
+    repo_root = root / "target"
+    hook_dir = repo_root / ".git" / "hooks"
+    framework_root = root / "framework"
+
+    _write(hook_dir / "pre-commit", "# AI Governance Framework\n")
+    _write(hook_dir / "pre-push", "# AI Governance Framework\n")
+    _write(hook_dir / "ai-governance-framework-root", str(framework_root))
+    _write(framework_root / "scripts/lib/python.sh", "")
+    _write(framework_root / "scripts/run-runtime-governance.sh", "")
+    _write(framework_root / "governance_tools/plan_freshness.py", "")
+    _write(framework_root / "governance_tools/contract_validator.py", "")
+    # NOTE: no .github/copilot-instructions.md
+
+    result = validate_hook_install(repo_root)
+
+    assert result.valid is True  # still valid — copilot check is warning only
+    assert result.checks["copilot_instructions_present"] is False
+    assert result.checks["copilot_instructions_governed"] is False
+    assert any("copilot-instructions.md not found" in w for w in result.warnings)
+
+
+def test_copilot_instructions_governed_version_passes() -> None:
+    """Governed copilot-instructions.md (deployed by framework) passes check."""
+    root = _reset_fixture("copilot_instructions_governed")
+    repo_root = root / "target"
+    hook_dir = repo_root / ".git" / "hooks"
+    framework_root = root / "framework"
+
+    _write(hook_dir / "pre-commit", "# AI Governance Framework\n")
+    _write(hook_dir / "pre-push", "# AI Governance Framework\n")
+    _write(hook_dir / "ai-governance-framework-root", str(framework_root))
+    _write(framework_root / "scripts/lib/python.sh", "")
+    _write(framework_root / "scripts/run-runtime-governance.sh", "")
+    _write(framework_root / "governance_tools/plan_freshness.py", "")
+    _write(framework_root / "governance_tools/contract_validator.py", "")
+    _write(
+        repo_root / ".github" / "copilot-instructions.md",
+        "# Copilot Workspace Instructions\n"
+        "<!-- AI Governance Framework: copilot-instructions v1.0 -->\n",
+    )
+
+    result = validate_hook_install(repo_root)
+
+    assert result.valid is True
+    assert result.checks["copilot_instructions_present"] is True
+    assert result.checks["copilot_instructions_governed"] is True
+    assert not any("copilot-instructions" in w for w in result.warnings)
+
+
+def test_copilot_instructions_non_governed_version_warns() -> None:
+    """Non-governed copilot-instructions.md (not from framework) triggers warning."""
+    root = _reset_fixture("copilot_instructions_non_governed")
+    repo_root = root / "target"
+    hook_dir = repo_root / ".git" / "hooks"
+    framework_root = root / "framework"
+
+    _write(hook_dir / "pre-commit", "# AI Governance Framework\n")
+    _write(hook_dir / "pre-push", "# AI Governance Framework\n")
+    _write(hook_dir / "ai-governance-framework-root", str(framework_root))
+    _write(framework_root / "scripts/lib/python.sh", "")
+    _write(framework_root / "scripts/run-runtime-governance.sh", "")
+    _write(framework_root / "governance_tools/plan_freshness.py", "")
+    _write(framework_root / "governance_tools/contract_validator.py", "")
+    _write(
+        repo_root / ".github" / "copilot-instructions.md",
+        "# Custom Copilot Instructions (not from governance framework)\n",
+    )
+
+    result = validate_hook_install(repo_root)
+
+    assert result.valid is True  # still valid
+    assert result.checks["copilot_instructions_present"] is True
+    assert result.checks["copilot_instructions_governed"] is False
+    assert any("not deployed by AI Governance Framework" in w for w in result.warnings)
+
+
 def test_format_human_includes_framework_root_and_errors() -> None:
     root = _reset_fixture("human_output")
     repo_root = root / "target"
