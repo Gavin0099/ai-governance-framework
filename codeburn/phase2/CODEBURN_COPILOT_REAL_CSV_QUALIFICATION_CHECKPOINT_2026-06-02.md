@@ -10,6 +10,22 @@ Authority boundary unchanged:
 - decision_usage_allowed=false
 - Decision authority: none
 
+## Blocking Condition (2026-06-02)
+
+**blocked_by: requires_github_org_billing_admin**
+
+The qualification pass described in this checkpoint requires exporting a
+GitHub Copilot billing CSV from a GitHub Organization. This requires
+Org-level billing admin access.
+
+Current environment:
+- Copilot access: individual (non-admin role)
+- GitHub Org billing export: NOT available
+- Qualification pass: BLOCKED — no input source
+
+This checkpoint is kept for reference. It is NOT a currently-executable next step.
+If Org billing admin access becomes available in the future, return to this checkpoint.
+
 ---
 
 ## Current Readiness Assessment
