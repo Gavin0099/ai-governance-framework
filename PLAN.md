@@ -118,7 +118,9 @@ Required posture:
 - [>] MOB Verifier：gap_confirmed workflow 明確 defer；per-MOB convention_start 明確 defer
 
 下一個可執行項目：
-- [ ] CE-1C: Claim-enforcement compact receipt migration — define writer path, .gitignore rule for raw session-*, and how runtime audits distinguish raw vs tracked evidence (CE-1B migration items 1–5)
+- [ ] CE-1C.1: compact receipt writer only — append-only NDJSON writer for artifacts/claim-enforcement/claim-enforcement-receipts.ndjson; CE-1B minimum fields; tests; do NOT touch audit consumers, .gitignore, or raw session-* packets
+- [ ] CE-1C.2: runtime consumer distinction (deferred until CE-1C.1 done)
+- [ ] CE-1C.3: raw session-*/UUID tracking policy (deferred; UUID pattern is design risk — see CE-1B policy)
 
 完成項目（舊 sprint，保留供追蹤）：
 - [x] R49.x consolidation window（6 tasks）— NULL_ONTOLOGY、Metric Interpretability Contract、Epistemic Base Assumptions、R49.2 Governance Harness v0.1
