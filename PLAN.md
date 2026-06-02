@@ -1,6 +1,6 @@
 # PLAN.md - AI Governance Framework
 
-> **最後更新**: 2026-05-18
+> **最後更新**: 2026-06-02
 > **?敺??*: 2026-04-10
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
@@ -93,19 +93,30 @@ Required posture:
 
 ## Current Sprint
 
-**Sprint 狀態（2026-05-18）：Phase E PAUSE / Cross-agent temporal governance 開口識別**
+**Sprint 狀態（2026-06-02）：Canonical Memory Writer Enforcement + Agent Report Format Standardization**
 
-完成項目（此輪）：
+完成項目（此輪，2026-06-02）：
+- [x] Canonical Memory Writer Enforcement Phase 1 — session_id handoff verified end-to-end (1ce4bb7); AGENTS.md + guard policy annotation + regression tests aligned
+- [x] Rule 4 Structured Report Format — AGENTS.md Rule 7 extended; copilot-instructions-template.md Rule 4 added; fixed vocabulary (PASS|FAIL|NOT RUN|NOT CLAIMED|NOT PRESENT); Cannot claim required field; 3 golden examples (3f8f91c, 0f2e3ba)
+- [x] Copilot instructions deployed to gl_electron_tool; validator confirms copilot_instructions_governed=True
+- [x] CodeBurn Copilot Real CSV Qualification Checkpoint — blocked_by: requires_github_org_billing_admin; receipt skeleton committed (0a9dbd6)
+- [x] Phase 3 post-enforcement observation sample #1 collected (33b666b)
+
+等待觀察：
+- [>] Phase 3 post-enforcement observation — active; watch next memory entry for non_canonical_writer violations
+- [>] Rule 4 effect observation — next gl_electron_tool Copilot Workspace session
+- [>] Rule 1 DONE-definition gap — identified, deferred pending Rule 4 observation data
+- [>] Phase E PAUSE 仍有效：E2/E3 均 blocked，等待 observable trigger
+- [>] MOB Verifier：gap_confirmed workflow 明確 defer；per-MOB convention_start 明確 defer
+
+下一個可執行項目：
+- [ ] Phase 2 — classify 76 non_canonical_writer records → artifacts/memory_non_canonical_writer_classification.json
+
+完成項目（舊 sprint，保留供追蹤）：
 - [x] R49.x consolidation window（6 tasks）— NULL_ONTOLOGY、Metric Interpretability Contract、Epistemic Base Assumptions、R49.2 Governance Harness v0.1
 - [x] R50 Confidence Containment Protocol（R50.1–R50.5）— 18/18 訊號存在，authority layer 無污染，containment 結構驗證完成
 - [x] Closeout Governance Layering Contract（survivorship-bias guard + negative evidence consumption guard）
-- [x] MOB Verifier v0.1 — Memory Obligation Binding 驗證工具（Hearth repo），基礎缺口偵測
-- [x] MOB Verifier v0.2 — temporal applicability gate（convention_start=2026-04-01；pre-convention 日期分類為 pre_convention 不計 gap）；regression scan 通過
-- [x] MOB batch scan（5 個歷史日期）— 主要假陽性類別識別（convention_start 邊界問題），MOB-05 為真實系統性 gap
-
-等待觀察（Phase E Pause 條件）：
-- [>] Phase E PAUSE 仍有效：E2/E3 均 blocked，等待 observable trigger
-- [>] MOB Verifier：gap_confirmed workflow 明確 defer；per-MOB convention_start 明確 defer
+- [x] MOB Verifier v0.1/v0.2 — Memory Obligation Binding 驗證工具；temporal applicability gate；MOB batch scan
 
 已完成（Phase D 以前的舊 sprint，保留供追蹤）：
 - [x] 穩定 canonical closeout、closeout audit 與 session continuity 主線
