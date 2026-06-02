@@ -105,16 +105,20 @@ Required posture:
 - [x] Fleet Plan Profile Contract — governance/fleet/plan_profile_contract.yaml added; plan_profile assigned to all 20 fleet repos; 2 overrides: Bookstore-Scraper (minimal), SpecAuthority (governed) (91f312c)
 - [x] usb-if-hub-spec-reference registered in fleet governance scope — recommended tier, plan_profile: governed (680b7b3)
 - [x] Phase 8A Codex governance quality analysis saved — artifacts/session/codex_phase8a_governance_quality_analysis_20260602.md; 3 adjustments: baseline gap, Phase 7B risk upgrade, Tier 3/5 system (e10b3d9)
+- [x] Rule 4 language unification — Chinese session format + language rule added to AGENTS.md and copilot-instructions-template.md; deployed to usb-if-hub-spec-reference (7d20d09)
+- [x] usb-if-hub-spec-reference Rule 4 deployment — copilot-instructions.md deployed via install-hooks.sh; copilot_instructions_governed=True (7d20d09)
+- [x] CE-1B: Claim-enforcement compact receipt boundary defined — governance/CLAIM_ENFORCEMENT_EVIDENCE_POLICY.md; selected model: compact NDJSON receipt; migration pending (762d7af)
+- [x] .gitignore hygiene + .agents/skills/ tracking — extend pytest-tmp pattern, ignore artifacts/session/ + *.db + .codex/hooks.json; track Codex skill definitions analogous to .claude/skills/ (fa56821)
 
 等待觀察：
 - [>] Phase 3 post-enforcement observation — active; 2 canonical samples collected; watch for non_canonical_writer count trend
-- [>] Rule 4 effect observation — next gl_electron_tool Copilot Workspace session
+- [>] Rule 4 effect observation — next gl_electron_tool Copilot Workspace session (Chinese format now deployed)
 - [>] Rule 1 DONE-definition gap — identified, deferred pending Rule 4 observation data
 - [>] Phase E PAUSE 仍有效：E2/E3 均 blocked，等待 observable trigger
 - [>] MOB Verifier：gap_confirmed workflow 明確 defer；per-MOB convention_start 明確 defer
 
 下一個可執行項目：
-- [ ] usb-if-hub-spec-reference Rule 4 deployment — deploy copilot-instructions.md via install-hooks.sh (non-urgent; do when next using that repo)
+- [ ] CE-1C: Claim-enforcement compact receipt migration — define writer path, .gitignore rule for raw session-*, and how runtime audits distinguish raw vs tracked evidence (CE-1B migration items 1–5)
 
 完成項目（舊 sprint，保留供追蹤）：
 - [x] R49.x consolidation window（6 tasks）— NULL_ONTOLOGY、Metric Interpretability Contract、Epistemic Base Assumptions、R49.2 Governance Harness v0.1
