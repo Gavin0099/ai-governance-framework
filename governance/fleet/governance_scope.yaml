@@ -97,6 +97,10 @@ tiers:
       - path: E:\BackUp\Git_EE\ZoneTruth
         reason: external governance repo; governance-supporting
         plan_profile: standard
+      - path: E:\BackUp\Git_EE\usb-if-hub-spec-reference
+        reason: USB IF hub specification reference; domain contract repo with spec authority surface
+        plan_profile: governed
+        plan_profile_override_reason: spec/review authority surface requires claim ceiling
       - path: E:\BackUp\Git_EE\Bookstore-Scraper
         reason: personal utility; no production/security authority
         plan_profile: minimal
