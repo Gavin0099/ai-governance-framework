@@ -78,6 +78,10 @@ artifacts/runtime/
 artifacts/session/
 artifacts/*.db
 artifacts/external-project-facts/
+# CE-1C.4: timestamp-shaped raw claim-enforcement session packets are runtime-facing,
+# not repo-facing tracked evidence. UUID-shaped dirs excluded (design risk — see CE-1D).
+# checker-tests/ and claim-enforcement-receipts.ndjson are NOT covered by this pattern.
+artifacts/claim-enforcement/session-*/
 artifacts/reviewer-handoff/
 memory/candidates/*.json
 .governance-audit/

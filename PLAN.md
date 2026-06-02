@@ -128,9 +128,18 @@ Required posture:
 - historical raw session evidence has been migrated
 - CE-1C migration is complete
 
+- [x] CE-1C.3: compact receipt read-side validator — parse_receipts/analyse_row/detect_unreceipted_packets/validate_receipts; 21 tests; detects malformed rows, policy deviations, unreceipted packets; CE-1C.2 silent-downgrade gap now detectable (0817c04)
+
+不能宣告（CE-1C.1/2/3）：
+- compact receipt 已成為 audit source of truth
+- runtime_completeness_audit.py / closeout_audit.py 已改讀 compact receipt
+- claim-enforcement-receipts.ndjson 已被正式納入 tracked evidence
+- raw session-* artifacts can be ignored
+- CE-1C migration is complete
+
 下一個可執行項目：
-- [ ] CE-1C.3: compact receipt read-side validator — parse claim-enforcement-receipts.ndjson; validate each row has CE-1B required fields; report source_packet_dir present/missing; check raw_packet_policy/repo_evidence_status/evidence_scope against allowlist; detect: raw packet exists + receipt missing / receipt exists + raw packet missing / receipt malformed; DONE = "compact receipt surface is parseable and schema-valid; coverage gaps are detectable"
-- [ ] CE-1C.4: raw session-*/UUID tracking/ignore policy (deferred until CE-1C.3 validator proves receipt surface coverage; UUID pattern is design risk)
+- [ ] CE-1C.4: raw packet tracking boundary — (1) update CLAIM_ENFORCEMENT_EVIDENCE_POLICY.md: compact receipt = repo-facing tracked surface; raw session packet = runtime-facing source; new raw packets not auto-committed; claim-enforcement-receipts.ndjson tracked only on manual promotion; (2) .gitignore: add artifacts/claim-enforcement/session-*/ only (timestamp-shaped); do NOT add artifacts/claim-enforcement/*/ (would hit checker-tests/); DONE = "tracking boundary is policy-documented and timestamp-shaped session dirs are gitignored"
+- [ ] CE-1D: UUID session dir output path redesign — move raw packet output from artifacts/claim-enforcement/<uuid>/ to artifacts/runtime/claim-enforcement/<uuid>/; allows clean .gitignore for all runtime packets (deferred; requires session_end change + consumer audit)
 
 完成項目（舊 sprint，保留供追蹤）：
 - [x] R49.x consolidation window（6 tasks）— NULL_ONTOLOGY、Metric Interpretability Contract、Epistemic Base Assumptions、R49.2 Governance Harness v0.1

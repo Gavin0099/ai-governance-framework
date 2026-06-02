@@ -172,16 +172,69 @@ Under the selected model:
 Any change to claim-enforcement evidence tracking must be an explicit policy
 decision, not a side effect of dirty-tree cleanup.
 
+## CE-1C Implementation Status
+
+The following have been implemented (CE-1C.1 through CE-1C.3):
+
+- `governance_tools/claim_enforcement_receipt_writer.py` — append-only
+  NDJSON writer with CE-1B minimum fields (CE-1C.1)
+- `runtime_hooks/core/session_end.py` — dual-write: compact receipt
+  appended alongside raw packet on every session closeout; wrapped in
+  try/except so write failure cannot break raw packet emission (CE-1C.2)
+- `governance_tools/claim_enforcement_receipt_validator.py` — read-side
+  validator detecting malformed rows, policy deviations, and coverage
+  gaps (unreceipted raw packets) (CE-1C.3)
+
+## Tracking Boundary (CE-1C.4)
+
+### Evidence surface roles
+
+| Surface | Role | Tracking rule |
+|---------|------|---------------|
+| `artifacts/claim-enforcement/<session_id>/claim-enforcement-check.json` | runtime-facing session evidence | not auto-committed; may remain untracked |
+| `artifacts/claim-enforcement/claim-enforcement-receipts.ndjson` | repo-facing compact evidence index | tracked only on manual promotion/review, not on every runtime run |
+| `artifacts/claim-enforcement/checker-tests/*` | stable test baseline | tracked |
+
+### Rationale for manual-only promotion of receipts.ndjson
+
+Auto-committing every dual-write append would make
+`claim-enforcement-receipts.ndjson` equivalent to another runtime log.
+Its value as a repo-facing evidence surface depends on being committed
+deliberately — when a governance review or session promotion warrants it.
+
+### .gitignore rule for timestamp-shaped session directories
+
+Timestamp-shaped session directories (`session-*/`) are safe to ignore
+because they follow a predictable naming pattern that does not overlap
+with stable evidence directories (`checker-tests/`) or the receipts file.
+
+Pattern added: `artifacts/claim-enforcement/session-*/`
+
+UUID-shaped session directories are NOT covered by this pattern due to
+design risk: a wildcard broad enough to match UUIDs would also match
+other future artifact directories. UUID output path redesign is deferred
+to CE-1D.
+
+### Explicit non-decisions (CE-1C.4)
+
+This boundary definition does not declare:
+
+- that all existing UUID-shaped raw session directories should be ignored
+- that `claim-enforcement-receipts.ndjson` is already in its final form
+- that runtime_completeness_audit.py or closeout_audit.py consume the
+  compact receipt
+- that historical raw session evidence has been migrated
+
 ## Migration Still Required
 
-Future governance work must still define:
+Future governance work must still address:
 
-1. the writer or generation path for compact receipts
-2. the tracking rule for that compact surface
-3. the ignore rule for raw session packets, if adopted
-4. how historical tracked raw session packets are handled
-5. how runtime audits distinguish raw runtime evidence from tracked governance
-   evidence
+1. ~~writer/generation path~~ — **done (CE-1C.1)**
+2. tracking rule for compact surface — **partially addressed (CE-1C.4)**
+3. ignore rule for raw session packets — **partially addressed: timestamp-shaped (CE-1C.4); UUID-shaped deferred (CE-1D)**
+4. how historical tracked raw session packets are handled — not yet decided
+5. how runtime audits distinguish raw runtime evidence from tracked
+   governance evidence — not yet decided
 
 ## Non-Decisions
 
@@ -191,5 +244,5 @@ This note does not declare:
 - that all raw session evidence is already ignored
 - that current historical tracking is correct or normalized
 - that `session-index.ndjson` should remain tracked
-- that any migration should happen now
-- that compact receipt shape is already defined
+- that compact receipt auto-write equals auto-commit
+- that compact receipt shape is final
