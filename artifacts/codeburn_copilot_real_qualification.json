@@ -1,0 +1,57 @@
+{
+  "_schema": "codeburn_copilot_qualification_receipt_v1",
+  "_instructions": "Populate this file after running copilot_billing_ingestor.py against a real GitHub Copilot billing CSV. Do not populate with fixture data. Remove _instructions before committing final receipt.",
+
+  "source": "github_copilot_billing_export",
+  "input_type": "real_csv",
+  "csv_filename": null,
+  "ingestion_date": null,
+  "db_path": "artifacts/codeburn_copilot_real.db",
+
+  "decision_authority": "none",
+  "analysis_only": true,
+  "operational_readiness_claimed": false,
+
+  "column_qualification": {
+    "observed_columns": [],
+    "required_columns_present": null,
+    "forbidden_columns_seen": [],
+    "aic_gross_amount_ingested": false,
+    "column_name_match_expected": null,
+    "column_notes": null
+  },
+
+  "row_summary": {
+    "total_rows_processed": null,
+    "accepted_rows": null,
+    "quarantined_rows": null,
+    "skipped_duplicates": null,
+    "quarantine_reasons_observed": []
+  },
+
+  "constraint_verification": {
+    "completions_excluded_all_rows": null,
+    "cross_model_aic_sum_blocked": true,
+    "cp1_no_pricing_rate_applied": true,
+    "cp2_no_cross_model_aggregation": true,
+    "cp3_billing_report_daily_aggregate_only": true
+  },
+
+  "models_seen": [],
+
+  "claim_ceiling": null,
+  "_claim_ceiling_values": [
+    "unverified (not yet qualified)",
+    "real_csv_format_qualified_analysis_only"
+  ],
+
+  "qualification_questions": {
+    "q1_columns_match_ingestor_assumptions": null,
+    "q2_accepted_row_count": null,
+    "q3_quarantined_row_count": null,
+    "q4_quarantine_reasons_within_expected_categories": null,
+    "q5_decision_authority_still_none": true
+  },
+
+  "notes": null
+}
