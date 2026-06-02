@@ -113,8 +113,20 @@ Use this format:
 2. Capability increased:
 3. Changed files:
 4. Validation:
-5. Governance surface change: none / list
-6. Remaining blocker:
+   - structural:    PASS | FAIL | NOT RUN
+   - build:         PASS | FAIL | NOT RUN
+   - semantic:      NOT CLAIMED | PASS (human review only)
+   - behavioral:    NOT PRESENT | verified
+   - ext evidence:  NOT PRESENT | [source]
+5. Risk:
+   - scope drift:        none | [description]
+   - claim inflation:    none | [description]
+   - evidence maturity:  [one line]
+6. Incidental cleanup:   none | file=[path] reason=[why] semantic_change=no
+7. Governance surface change: none / list
+8. Remaining blocker:
+9. Cannot claim this session:
+   - [list what was NOT validated, NOT verified, NOT proven — required, never omit]
 
 ### 8. Commit Checkpoint (reporting convention, not a gate)
 

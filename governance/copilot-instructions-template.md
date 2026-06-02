@@ -34,3 +34,28 @@ When the working tree is dirty, produce a concise `git status` summary only.
 
 Stage only files explicitly listed by the user or required by the DONE scope.
 Do not read, explain, stage, or modify unrelated dirty or untracked files.
+
+### Rule 4: Structured Report Format
+
+When reporting task completion, use this exact format. Fixed vocabulary only — no free-form narrative in these fields.
+
+```
+Validation:
+- structural:    PASS | FAIL | NOT RUN
+- build:         PASS | FAIL | NOT RUN
+- semantic:      NOT CLAIMED | PASS (human review only)
+- behavioral:    NOT PRESENT | verified
+- ext evidence:  NOT PRESENT | [source]
+
+Risk:
+- scope drift:        none | [description]
+- claim inflation:    none | [description]
+- evidence maturity:  [one line]
+
+Incidental cleanup:   none | file=[path] reason=[why] semantic_change=no
+
+Cannot claim this session:
+- [list what was NOT validated, NOT verified, NOT proven]
+```
+
+Do NOT omit `Cannot claim`. It is required in every completion report.
