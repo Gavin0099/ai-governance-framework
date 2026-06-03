@@ -97,6 +97,13 @@ def build_runtime_completeness_audit(
 
     closeout_missing: list[str] = []
     claim_missing: list[str] = []
+    # CE-1D.3: evidence classification — where does the raw packet live?
+    # runtime_only: gitignored path only; compact receipt is the repo-facing evidence.
+    # legacy_only:  legacy tracked path only (historical sessions).
+    # both_paths:   present at both (unusual; indicates a migration overlap).
+    claim_runtime_only: list[str] = []
+    claim_legacy_only: list[str] = []
+    claim_both_paths: list[str] = []
     historical_closeout_missing: list[str] = []
     historical_claim_missing: list[str] = []
     new_window_closeout_missing: list[str] = []
@@ -105,15 +112,20 @@ def build_runtime_completeness_audit(
     for item in scope_sessions:
         session_id = item["session_id"]
         closeout_path = closeouts_dir / f"{session_id}.json"
-        claim_found = (
-            (claim_root_new / session_id / "claim-enforcement-check.json").exists()
-            or (claim_root_legacy / session_id / "claim-enforcement-check.json").exists()
-        )
+        # CE-1D.3: classify by evidence location rather than binary found/not-found.
+        runtime_found = (claim_root_new / session_id / "claim-enforcement-check.json").exists()
+        legacy_found = (claim_root_legacy / session_id / "claim-enforcement-check.json").exists()
 
         if not closeout_path.exists():
             closeout_missing.append(session_id)
-        if not claim_found:
+        if not (runtime_found or legacy_found):
             claim_missing.append(session_id)
+        elif runtime_found and not legacy_found:
+            claim_runtime_only.append(session_id)
+        elif legacy_found and not runtime_found:
+            claim_legacy_only.append(session_id)
+        else:
+            claim_both_paths.append(session_id)
 
     if baseline_before:
         for item in historical:
@@ -150,6 +162,13 @@ def build_runtime_completeness_audit(
         "verdict_session_count_total": len(loaded_sessions),
         "closeout_missing_for_invoked_session": closeout_missing,
         "claim_binding_missing_for_invoked_session": claim_missing,
+        # CE-1D.3: evidence classification breakdown
+        # runtime_only: raw packet at gitignored path; compact receipt is repo-facing evidence.
+        # legacy_only:  raw packet at legacy tracked path (historical data).
+        # both_paths:   raw packet at both paths (migration overlap; rare).
+        "claim_binding_runtime_only": claim_runtime_only,
+        "claim_binding_legacy_only": claim_legacy_only,
+        "claim_binding_both_paths": claim_both_paths,
         "unreadable_verdicts": unreadable_verdicts,
         "silent_drop_count": len(silent_drop_sessions),
         "silent_drop_sessions": silent_drop_sessions,
@@ -174,6 +193,19 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"historical_silent_drop_count={result.get('historical_silent_drop_count')}",
         f"new_window_silent_drop_count={result.get('new_window_silent_drop_count')}",
     ]
+    # CE-1D.3: evidence classification summary
+    lines.append(
+        f"claim_binding_runtime_only_count={len(result.get('claim_binding_runtime_only', []))}"
+        "  # gitignored path; compact receipt is repo-facing evidence"
+    )
+    lines.append(
+        f"claim_binding_legacy_only_count={len(result.get('claim_binding_legacy_only', []))}"
+        "  # legacy tracked path (historical data)"
+    )
+    lines.append(
+        f"claim_binding_both_paths_count={len(result.get('claim_binding_both_paths', []))}"
+        "  # both paths (migration overlap)"
+    )
     for sid in result.get("closeout_missing_for_invoked_session", []):
         lines.append(f"closeout_missing_session={sid}")
     for sid in result.get("claim_binding_missing_for_invoked_session", []):

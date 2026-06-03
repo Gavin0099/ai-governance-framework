@@ -151,10 +151,7 @@ CE-1C 目前狀態：timestamp-shaped session output 已收斂；UUID-shaped 和
 - compact receipt 已成為 audit source of truth
 - old raw packet path (artifacts/claim-enforcement/<session_id>/) 已被移除
 - audit 報告已清楚區分 repo-facing/local-runtime/historical-tracked 三種 evidence 狀態
-- CE-1D is fully complete (CE-1D.3 needed)
-
-下一個可執行項目：
-- [ ] CE-1D.3: audit evidence classification — audit report 清楚標示 local runtime raw evidence vs repo-facing receipt evidence vs historical tracked raw evidence；缺 local raw packet 的原因說明（local runtime or repo evidence missing？）；audit consumer source-of-truth policy clarification
+- [x] CE-1D.3: audit evidence classification — runtime_completeness_audit 新增 claim_binding_runtime_only / claim_binding_legacy_only / claim_binding_both_paths 三分類欄位；closeout_audit._evaluate_claim_binding 新增 claim_enforcement_runtime_count / claim_enforcement_legacy_count；format_human_result 輸出三分類摘要行；13 新測試全過；62 既有相關測試無 regression
 
 完成項目（舊 sprint，保留供追蹤）：
 - [x] R49.x consolidation window（6 tasks）— NULL_ONTOLOGY、Metric Interpretability Contract、Epistemic Base Assumptions、R49.2 Governance Harness v0.1
