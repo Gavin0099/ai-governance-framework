@@ -10,6 +10,7 @@ This directory contains three different kinds of examples:
 | [decision-boundary/minimal-preconditions](decision-boundary/minimal-preconditions/) | Minimal contract sample | First-slice DBL precondition example with deterministic verdict changes | Python stdlib |
 | [decision-boundary/insufficiency-like-preconditions](decision-boundary/insufficiency-like-preconditions/) | Minimal boundary sample | Shows that the current first slice does not attempt to distinguish weak or irrelevant evidence | Python stdlib |
 | [decision-boundary/adversarial-formal-presence](decision-boundary/adversarial-formal-presence/) | Limitation-demonstrating sample | Shows that formal presence can still satisfy the current first slice under semantically weak evidence | Python stdlib |
+| [runtime-profiles](runtime-profiles/) | Profile example | Reviewer-facing agent runtime surface profile; no runtime enforcement | No executable app |
 | [starter-pack](starter-pack/) | Scaffold | Copy-ready governance starter files for a new repo, with an opt-in upgrade path | No executable app |
 
 ## Recommended Path
@@ -22,8 +23,9 @@ This directory contains three different kinds of examples:
 6. Open `decision-boundary/minimal-preconditions/` if you want the smallest executable DBL precondition example
 7. Open `decision-boundary/insufficiency-like-preconditions/` if you want the smallest example of a current first-slice limitation
 8. Open `decision-boundary/adversarial-formal-presence/` if you want the smallest formal-presence adversarial example
-9. Open `chaos-demo/` if you want a short architecture-governance narrative
-10. Open `starter-pack/` if you need the minimum governance scaffold and `upgrade_starter_pack` refresh path
+9. Open `runtime-profiles/` if you want a reviewer-facing agent runtime surface profile example
+10. Open `chaos-demo/` if you want a short architecture-governance narrative
+11. Open `starter-pack/` if you need the minimum governance scaffold and `upgrade_starter_pack` refresh path
 
 ## Important DBL framing
 

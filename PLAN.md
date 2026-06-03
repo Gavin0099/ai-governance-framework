@@ -2490,3 +2490,18 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
   - cross-provider comparison/aggregation remains prohibited
   - replay stability is not provider-truthfulness evidence
 - P5 interpretation: evidence-observability slice closed; no authority promotion.
+
+## 2026-06-03 Agent Runtime Governance Profile Plan
+
+- Status: completed as documentation/profile slice.
+- Scope: Hermes-derived trust-boundary taxonomy, reviewer-facing agent runtime
+  profile schema draft, and governed coding agent runtime profile example.
+- Claim ceiling: reviewer-facing static structural description only.
+- Not claimed: Hermes integration, runtime enforcement, runtime hook routing,
+  authority correctness validation, evidence truthfulness validation, semantic
+  correctness validation, OS sandbox implementation, RBAC, or separation of
+  duty implementation.
+- Artifacts:
+  - `docs/governance/trust-boundary-taxonomy.md`
+  - `docs/governance/agent-runtime-profile.md`
+  - `examples/runtime-profiles/governed-coding-agent.yaml`

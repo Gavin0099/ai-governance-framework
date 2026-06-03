@@ -1,0 +1,107 @@
+profile_id: governed-coding-agent
+profile_version: 0.1
+profile_authority: reviewer_draft
+source_specimens:
+  - name: hermes-agent
+    url: https://github.com/nousresearch/hermes-agent
+claim_ceiling:
+  - reviewer-facing runtime surface profile only
+  - static structural description only
+  - no runtime enforcement claim
+not_claimed:
+  - Hermes integration
+  - runtime hook enforcement
+  - OS sandbox implementation
+  - authority correctness validation
+  - evidence truthfulness validation
+  - semantic correctness validation
+surfaces:
+  - id: memory
+    type: persistent_instruction_surface
+    boundary_class: in_process_heuristic
+    max_side_effect: future_instruction_influence
+    controls:
+      - canonical writer policy
+      - memory authority contract
+    control_claim_ceiling: structural provenance only; not trusted policy truth
+  - id: context_files
+    type: persistent_instruction_surface
+    boundary_class: in_process_heuristic
+    max_side_effect: future_instruction_influence
+    controls:
+      - repo-local instruction review
+    control_claim_ceiling: local instruction surface only; not containment
+  - id: skills
+    type: persistent_instruction_and_execution_surface
+    boundary_class: in_process_heuristic
+    max_side_effect: procedure_reuse_and_possible_tool_execution
+    controls:
+      - human review before promotion
+      - source path visibility
+    control_claim_ceiling: procedural packaging only; agent-created skills are not promoted rules
+  - id: plugins_and_toolsets
+    type: execution_surface
+    boundary_class: load_bearing_boundary_required
+    max_side_effect: external_api_or_filesystem_side_effect
+    controls:
+      - tool availability limits
+      - approval UX
+    control_claim_ceiling: side-effect channel inventory only; approval UX is not containment
+  - id: terminal
+    type: execution_surface
+    boundary_class: load_bearing_boundary_required
+    max_side_effect: filesystem_process_and_network_side_effect
+    controls:
+      - workspace sandbox
+      - command approval policy
+    control_claim_ceiling: containment claim requires OS-level enforcement evidence
+  - id: messaging_gateways
+    type: execution_surface
+    boundary_class: load_bearing_boundary_required
+    max_side_effect: external_communication
+    controls:
+      - explicit user confirmation before send
+    control_claim_ceiling: authority review aid only; not autonomous communication safety
+  - id: schedulers
+    type: execution_surface
+    boundary_class: load_bearing_boundary_required
+    max_side_effect: delayed_or_repeated_execution
+    controls:
+      - schedule registration
+      - task authority disclosure
+    control_claim_ceiling: scheduled surface disclosure only; not self-authorization
+  - id: subagents
+    type: delegated_execution_surface
+    boundary_class: load_bearing_boundary_required
+    max_side_effect: delegated_tool_execution
+    controls:
+      - delegated scope description
+    control_claim_ceiling: delegation is not isolation unless backed by OS boundary
+  - id: checkpoints_and_rollback
+    type: reviewer_aid
+    boundary_class: in_process_heuristic
+    max_side_effect: recovery_and_reconstruction
+    controls:
+      - checkpoint metadata
+      - rollback description
+    control_claim_ceiling: recovery aid only; rollback does not prove safety
+response_envelope_implications:
+  required_fields:
+    - mode_source
+    - task_authority
+    - claim_ceiling
+    - not_claimed
+    - evidence_refs
+  high_risk_terms_require_downgrade:
+    - runtime enforced
+    - sandboxed
+    - contained
+    - authority confirmed
+    - evidence validated
+    - behaviorally safe
+    - semantically verified
+evidence_refs:
+  - artifact: docs/governance/trust-boundary-taxonomy.md
+    result: PASS
+  - artifact: docs/governance/agent-runtime-profile.md
+    result: PASS
