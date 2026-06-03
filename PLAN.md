@@ -2505,3 +2505,19 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
   - `docs/governance/trust-boundary-taxonomy.md`
   - `docs/governance/agent-runtime-profile.md`
   - `examples/runtime-profiles/governed-coding-agent.yaml`
+
+## 2026-06-03 Runtime Profile Static Validator MVP
+
+- Status: completed as structural validator slice.
+- Scope: `governance_tools/runtime_profile_validator.py` checks runtime profile
+  YAML structure, required profile fields, minimum surface fields,
+  non-placeholder evidence refs, and downgrade language for high-risk runtime
+  wording.
+- Tests: `tests/test_runtime_profile_validator.py` covers valid profile,
+  missing top-level field, missing surface field, placeholder evidence,
+  missing evidence result, high-risk wording without downgrade, example profile,
+  CLI file mode, and CLI directory mode.
+- Claim ceiling: static structural validation only.
+- Not claimed: runtime enforcement, Hermes integration, authority correctness,
+  evidence truthfulness, evidence relevance, semantic correctness, OS sandbox
+  correctness, hook integration, or pre-push/pre-commit gating.

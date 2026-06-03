@@ -148,18 +148,46 @@ Disallowed without separate proof:
 - sandboxed
 - contained
 
+## Static Validator
+
+`governance_tools/runtime_profile_validator.py` provides a structural-only
+validator for runtime profile YAML files.
+
+It checks:
+- required top-level profile fields
+- minimum surface entry fields
+- non-placeholder `claim_ceiling` and `not_claimed`
+- `evidence_refs` shape: `command` or `artifact` plus `result`
+- high-risk runtime wording has downgrade language in `not_claimed` or
+  `control_claim_ceiling`
+
+It does not check:
+- runtime enforcement
+- authority correctness
+- evidence truthfulness
+- evidence relevance
+- semantic correctness
+- OS sandbox correctness
+- Hermes compatibility
+
 ## Relationship To Response Envelope Validation
 
 The response envelope validator can check that fields and non-placeholder
-evidence references exist. It does not know whether a runtime profile is true.
+evidence references exist. The runtime profile validator can check that a
+profile YAML has the minimum reviewer-facing structure. Neither validator knows
+whether a runtime profile is true.
 
 Safe claim:
 - response envelope structure can require runtime profile claim ceilings to be
   disclosed.
+- runtime profile validation can reject missing profile fields and obvious
+  placeholder evidence.
 
 Unsafe claim:
 - response envelope validation proves runtime surface safety or authority
   correctness.
+- runtime profile validation proves runtime surface safety, containment, or
+  authority correctness.
 
 ## Non-Goals
 
@@ -168,7 +196,6 @@ This profile draft does not add:
 - runtime event detection
 - runtime mode routing
 - pre-commit or pre-push enforcement
-- automatic profile validation
 - evidence relevance checking
 - semantic evidence validation
 - authority correctness engine
