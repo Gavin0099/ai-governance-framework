@@ -112,6 +112,7 @@ Required posture:
 - [x] Response Envelope Contract v0.1 — event-driven mode rule documented; `task_authority` and `evidence_refs` added as reporting fields; no runtime gate or evidence admissibility change
 - [x] Response Envelope Validator MVP — static structural validator added for `mode_source` / `task_authority` / `claim_ceiling` / `not_claimed` / `evidence_refs`; rejects placeholder-only evidence refs and unsupported high-risk authority wording; no semantic or runtime enforcement claim
 - [x] Response Envelope Fixture Corpus — representative markdown-like fixtures added; validator CLI pass/fail behavior covered for valid and invalid examples; no hook/runtime integration
+- [x] Response Envelope Evidence Shape Check — validator now requires each non-placeholder `evidence_refs` item to include `command` or `artifact` plus `result`; fixture coverage includes missing-result failure; no evidence relevance/truthfulness claim
 
 等待觀察：
 - [>] Phase 3 post-enforcement observation — active; 2 canonical samples collected; watch for non_canonical_writer count trend

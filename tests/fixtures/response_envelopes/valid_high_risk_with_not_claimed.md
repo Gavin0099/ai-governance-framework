@@ -10,5 +10,6 @@ not_claimed:
 status: NOT CLAIMED
 evidence_refs:
   - command: python -m pytest tests/test_response_envelope_validator.py
+    result: PASS
 risk:
   - high-risk wording is present only as an explicit non-claim

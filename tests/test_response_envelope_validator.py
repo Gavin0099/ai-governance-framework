@@ -21,6 +21,7 @@ not_claimed:
   - semantic correctness
 evidence_refs:
   - command: python -m pytest tests/test_response_envelope_validator.py
+    result: PASS
 """
 
     result = validate_response_envelope_text(text)
@@ -40,6 +41,7 @@ not_claimed:
   - semantic correctness
 evidence_refs:
   - command: pytest
+    result: PASS
 """
 
     result = validate_response_envelope_text(text)
@@ -135,6 +137,7 @@ not_claimed:
   - semantic correctness
 evidence_refs:
   - command: python -m pytest tests/test_response_envelope_validator.py
+    result: PASS
 """
 
     result = validate_response_envelope_text(text)
@@ -143,12 +146,36 @@ evidence_refs:
     assert "high_risk_authority_wording_without_support" not in result["findings"]
 
 
+def test_fails_when_evidence_ref_missing_result() -> None:
+    text = """
+mode: VALIDATION
+mode_source: validation_command
+task_authority: user_request
+claim_ceiling:
+  - structural validation only
+not_claimed:
+  - semantic correctness
+evidence_refs:
+  - command: python -m pytest tests/test_response_envelope_validator.py
+"""
+
+    result = validate_response_envelope_text(text)
+
+    assert result["ok"] is False
+    assert result["signals"]["invalid_evidence_shape_count"] == 1
+    assert any(
+        finding.startswith("invalid_evidence_ref_shape:")
+        for finding in result["findings"]
+    )
+
+
 def test_validates_representative_fixture_corpus() -> None:
     expectations = {
         "valid_minimal.md": True,
         "invalid_missing_mode_source.md": False,
         "invalid_placeholder_evidence.md": False,
         "invalid_high_risk_without_downgrade.md": False,
+        "invalid_missing_evidence_result.md": False,
         "valid_high_risk_with_not_claimed.md": True,
     }
 

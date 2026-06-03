@@ -13,6 +13,7 @@ not_claimed:
   - runtime enforcement
 evidence_refs:
   - command: python -m pytest tests/test_response_envelope_validator.py
+    result: PASS
 risk:
   - evidence relevance is not validated
 next_action: none
