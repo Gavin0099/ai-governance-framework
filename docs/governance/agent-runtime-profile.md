@@ -161,6 +161,14 @@ It checks:
 - high-risk runtime wording has downgrade language in `not_claimed` or
   `control_claim_ceiling`
 
+Fixture corpus:
+- `tests/fixtures/runtime_profiles/valid_minimal.yaml`
+- `tests/fixtures/runtime_profiles/valid_multi_surface.yaml`
+- `tests/fixtures/runtime_profiles/valid_high_risk_with_downgrade.yaml`
+- invalid fixtures covering missing profile authority, missing surface field,
+  placeholder evidence, missing evidence result, and high-risk runtime wording
+  without downgrade
+
 It does not check:
 - runtime enforcement
 - authority correctness
@@ -169,6 +177,7 @@ It does not check:
 - semantic correctness
 - OS sandbox correctness
 - Hermes compatibility
+- schema completeness
 
 ## Relationship To Response Envelope Validation
 

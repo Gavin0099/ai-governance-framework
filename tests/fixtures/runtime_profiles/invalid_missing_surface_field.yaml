@@ -1,0 +1,17 @@
+profile_id: invalid-missing-surface-field
+profile_version: 0.1
+profile_authority: reviewer_draft
+claim_ceiling:
+  - reviewer-facing profile only
+not_claimed:
+  - runtime enforcement
+surfaces:
+  - id: terminal
+    type: execution_surface
+    boundary_class: load_bearing_boundary_required
+    controls:
+      - workspace sandbox
+    control_claim_ceiling: structural only
+evidence_refs:
+  - artifact: docs/governance/agent-runtime-profile.md
+    result: PASS

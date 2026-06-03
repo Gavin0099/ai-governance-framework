@@ -2521,3 +2521,23 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 - Not claimed: runtime enforcement, Hermes integration, authority correctness,
   evidence truthfulness, evidence relevance, semantic correctness, OS sandbox
   correctness, hook integration, or pre-push/pre-commit gating.
+
+## 2026-06-03 Phase RP-1 Runtime Profile Fixture Corpus
+
+- Status: completed as fixture corpus slice.
+- Scope: representative valid/invalid runtime profile YAML fixtures under
+  `tests/fixtures/runtime_profiles/`; regression coverage validates expected
+  pass/fail behavior and CLI directory-mode summary.
+- Corpus coverage:
+  - valid minimal profile
+  - valid multi-surface profile
+  - valid high-risk wording with explicit downgrade
+  - invalid missing profile authority
+  - invalid missing surface field
+  - invalid placeholder evidence
+  - invalid missing evidence result
+  - invalid high-risk runtime wording without downgrade
+- Claim ceiling: fixture-backed static validator behavior only.
+- Not claimed: schema completeness, runtime enforcement, Hermes integration,
+  hook/pre-push integration, authority correctness, evidence truthfulness,
+  evidence relevance, semantic correctness, or OS sandbox correctness.

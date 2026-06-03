@@ -1,0 +1,18 @@
+profile_id: invalid-high-risk-without-downgrade
+profile_version: 0.1
+profile_authority: reviewer_draft
+claim_ceiling:
+  - runtime enforced
+not_claimed:
+  - evidence truthfulness validation
+surfaces:
+  - id: terminal
+    type: execution_surface
+    boundary_class: load_bearing_boundary_required
+    max_side_effect: filesystem_process_side_effect
+    controls:
+      - workspace sandbox
+    control_claim_ceiling: operator control
+evidence_refs:
+  - artifact: docs/governance/agent-runtime-profile.md
+    result: PASS

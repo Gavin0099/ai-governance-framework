@@ -11,6 +11,7 @@ from governance_tools.runtime_profile_validator import (
 
 
 EXAMPLE_PROFILE = Path("examples/runtime-profiles/governed-coding-agent.yaml")
+FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "runtime_profiles"
 
 
 VALID_PROFILE = """
@@ -123,6 +124,23 @@ def test_example_profile_passes() -> None:
     assert result["total_files"] == 1
 
 
+def test_validates_representative_fixture_corpus() -> None:
+    expectations = {
+        "valid_minimal.yaml": True,
+        "valid_multi_surface.yaml": True,
+        "invalid_missing_profile_authority.yaml": False,
+        "invalid_missing_surface_field.yaml": False,
+        "invalid_placeholder_evidence.yaml": False,
+        "invalid_missing_evidence_result.yaml": False,
+        "invalid_high_risk_without_downgrade.yaml": False,
+        "valid_high_risk_with_downgrade.yaml": True,
+    }
+
+    for name, expected_ok in expectations.items():
+        result = validate_runtime_profile_paths([FIXTURE_ROOT / name])
+        assert result["ok"] is expected_ok, name
+
+
 def test_cli_passes_example_profile() -> None:
     completed = subprocess.run(
         [
@@ -160,3 +178,33 @@ def test_cli_directory_mode_scans_yaml() -> None:
 
     assert completed.returncode == 0
     assert '"total_files": 1' in completed.stdout
+
+
+def test_batch_validation_summarizes_fixture_directory() -> None:
+    result = validate_runtime_profile_paths([FIXTURE_ROOT])
+
+    assert result["ok"] is False
+    assert result["total_files"] == 8
+    assert result["valid_files"] == 3
+    assert result["invalid_files"] == 5
+    assert result["path_errors"] == []
+
+
+def test_cli_fails_for_fixture_directory_with_invalid_examples() -> None:
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "governance_tools.runtime_profile_validator",
+            str(FIXTURE_ROOT),
+            "--format",
+            "json",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 1
+    assert '"total_files": 8' in completed.stdout
+    assert '"invalid_files": 5' in completed.stdout
