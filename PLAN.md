@@ -130,16 +130,20 @@ Required posture:
 
 - [x] CE-1C.3: compact receipt read-side validator — parse_receipts/analyse_row/detect_unreceipted_packets/validate_receipts; 21 tests; detects malformed rows, policy deviations, unreceipted packets; CE-1C.2 silent-downgrade gap now detectable (0817c04)
 
-不能宣告（CE-1C.1/2/3）：
+- [x] CE-1C.4: raw packet tracking boundary — .gitignore: artifacts/claim-enforcement/session-*/ (timestamp-shaped only; checker-tests/ and receipts.ndjson not affected); policy: compact receipt = manual-promotion repo-facing evidence; raw session packet = runtime-facing; UUID dirs and historical tracked raw evidence not resolved (81a0f3d)
+
+不能宣告（CE-1C.1/2/3/4）：
 - compact receipt 已成為 audit source of truth
 - runtime_completeness_audit.py / closeout_audit.py 已改讀 compact receipt
-- claim-enforcement-receipts.ndjson 已被正式納入 tracked evidence
-- raw session-* artifacts can be ignored
+- claim-enforcement-receipts.ndjson 已被正式 tracked/committed
+- raw claim-enforcement evidence 已完全退出 repo-facing surface
+- UUID-shaped session dirs 已被 ignore
 - CE-1C migration is complete
 
+CE-1C 目前狀態：timestamp-shaped session output 已收斂；UUID-shaped 和歷史 tracked raw evidence 仍未解。
+
 下一個可執行項目：
-- [ ] CE-1C.4: raw packet tracking boundary — (1) update CLAIM_ENFORCEMENT_EVIDENCE_POLICY.md: compact receipt = repo-facing tracked surface; raw session packet = runtime-facing source; new raw packets not auto-committed; claim-enforcement-receipts.ndjson tracked only on manual promotion; (2) .gitignore: add artifacts/claim-enforcement/session-*/ only (timestamp-shaped); do NOT add artifacts/claim-enforcement/*/ (would hit checker-tests/); DONE = "tracking boundary is policy-documented and timestamp-shaped session dirs are gitignored"
-- [ ] CE-1D: UUID session dir output path redesign — move raw packet output from artifacts/claim-enforcement/<uuid>/ to artifacts/runtime/claim-enforcement/<uuid>/; allows clean .gitignore for all runtime packets (deferred; requires session_end change + consumer audit)
+- [ ] CE-1D: UUID session dir output path redesign — move raw packet output from artifacts/claim-enforcement/<uuid>/ to artifacts/session/claim-enforcement/<uuid>/ (already gitignored) or artifacts/runtime/claim-enforcement/<uuid>/; any raw session packet, regardless of timestamp vs UUID shape, must not pollute repo-facing evidence root by default; requires session_end.py output path change + consumer audit
 
 完成項目（舊 sprint，保留供追蹤）：
 - [x] R49.x consolidation window（6 tasks）— NULL_ONTOLOGY、Metric Interpretability Contract、Epistemic Base Assumptions、R49.2 Governance Harness v0.1
