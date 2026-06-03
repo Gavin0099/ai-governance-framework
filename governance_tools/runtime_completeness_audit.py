@@ -48,7 +48,11 @@ def build_runtime_completeness_audit(
 ) -> dict[str, Any]:
     verdicts_dir = project_root / "artifacts" / "runtime" / "verdicts"
     closeouts_dir = project_root / "artifacts" / "runtime" / "closeouts"
-    claim_root = project_root / "artifacts" / "claim-enforcement"
+    # CE-1D.2: new raw packets write to artifacts/session/claim-enforcement/ (gitignored).
+    # Historical packets remain at artifacts/claim-enforcement/ (legacy path).
+    # Dual-read: check new path first, fall back to legacy path.
+    claim_root_new = project_root / "artifacts" / "session" / "claim-enforcement"
+    claim_root_legacy = project_root / "artifacts" / "claim-enforcement"
 
     verdict_files = sorted(verdicts_dir.glob("*.json")) if verdicts_dir.exists() else []
     loaded_sessions: list[dict[str, Any]] = []
@@ -101,11 +105,14 @@ def build_runtime_completeness_audit(
     for item in scope_sessions:
         session_id = item["session_id"]
         closeout_path = closeouts_dir / f"{session_id}.json"
-        claim_path = claim_root / session_id / "claim-enforcement-check.json"
+        claim_found = (
+            (claim_root_new / session_id / "claim-enforcement-check.json").exists()
+            or (claim_root_legacy / session_id / "claim-enforcement-check.json").exists()
+        )
 
         if not closeout_path.exists():
             closeout_missing.append(session_id)
-        if not claim_path.exists():
+        if not claim_found:
             claim_missing.append(session_id)
 
     if baseline_before:
@@ -113,13 +120,19 @@ def build_runtime_completeness_audit(
             session_id = item["session_id"]
             if not (closeouts_dir / f"{session_id}.json").exists():
                 historical_closeout_missing.append(session_id)
-            if not (claim_root / session_id / "claim-enforcement-check.json").exists():
+            if not (
+                (claim_root_new / session_id / "claim-enforcement-check.json").exists()
+                or (claim_root_legacy / session_id / "claim-enforcement-check.json").exists()
+            ):
                 historical_claim_missing.append(session_id)
         for item in new_window:
             session_id = item["session_id"]
             if not (closeouts_dir / f"{session_id}.json").exists():
                 new_window_closeout_missing.append(session_id)
-            if not (claim_root / session_id / "claim-enforcement-check.json").exists():
+            if not (
+                (claim_root_new / session_id / "claim-enforcement-check.json").exists()
+                or (claim_root_legacy / session_id / "claim-enforcement-check.json").exists()
+            ):
                 new_window_claim_missing.append(session_id)
 
     silent_drop_sessions = sorted(set(closeout_missing) | set(claim_missing))

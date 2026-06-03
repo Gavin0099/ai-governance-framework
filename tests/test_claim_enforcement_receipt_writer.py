@@ -176,7 +176,8 @@ def test_write_receipt_for_session_packet_absent():
 def test_write_receipt_for_session_packet_present():
     with tempfile.TemporaryDirectory() as tmpdir:
         repo = _make_fake_repo(Path(tmpdir))
-        packet_dir = repo / "artifacts" / "claim-enforcement" / "session-xyz"
+        # CE-1D.2: raw packet now lives at the runtime-ignored path.
+        packet_dir = repo / "artifacts" / "session" / "claim-enforcement" / "session-xyz"
         packet_dir.mkdir(parents=True)
         (packet_dir / "claim-enforcement-check.json").write_text("{}", encoding="utf-8")
 

@@ -50,8 +50,16 @@ def _evaluate_claim_binding(project_root: Path) -> dict[str, Any]:
     - Emits validity + reasons in audit output.
     - Does NOT block promotion or flip policy_ok.
     """
-    checks_root = project_root / "artifacts" / "claim-enforcement"
-    check_files = sorted(checks_root.rglob("claim-enforcement-check.json")) if checks_root.exists() else []
+    # CE-1D.2: scan both raw packet roots.
+    # New sessions write to artifacts/session/claim-enforcement/ (gitignored runtime path).
+    # Historical sessions may still have packets at artifacts/claim-enforcement/ (legacy path).
+    new_root = project_root / "artifacts" / "session" / "claim-enforcement"
+    legacy_root = project_root / "artifacts" / "claim-enforcement"
+    check_files_set: set[Path] = set()
+    for root in (new_root, legacy_root):
+        if root.exists():
+            check_files_set.update(root.rglob("claim-enforcement-check.json"))
+    check_files = sorted(check_files_set)
     reasons: list[str] = []
     drift_count = 0
     override_count = 0

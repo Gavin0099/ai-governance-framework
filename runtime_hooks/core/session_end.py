@@ -130,9 +130,12 @@ def _emit_claim_enforcement_check(
             "override_reason": None,
         },
     }
+    # CE-1D.2: write raw packet to runtime-ignored path (artifacts/session/claim-enforcement/)
+    # so new packets never pollute the repo-facing artifacts/claim-enforcement/ root.
     output_path = (
         project_root
         / "artifacts"
+        / "session"
         / "claim-enforcement"
         / session_id
         / "claim-enforcement-check.json"

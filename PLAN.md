@@ -142,8 +142,19 @@ Required posture:
 
 CE-1C 目前狀態：timestamp-shaped session output 已收斂；UUID-shaped 和歷史 tracked raw evidence 仍未解。
 
+- [x] CE-1D.1: raw claim-enforcement packet path assumption audit — read-only; confirmed single writer (session_end.py); consumer dual-read requirement; proposed new canonical runtime path: artifacts/session/claim-enforcement/ (CE-1D.1 audit only, no file changes)
+
+- [x] CE-1D.2: raw claim-enforcement packet output path relocation — session_end.py now writes raw packet to artifacts/session/claim-enforcement/<session_id>/ (gitignored runtime path); write_receipt_for_session source_packet_dir updated to new path; runtime_completeness_audit.py dual-read (new path first, legacy fallback); closeout_audit.py scans both roots; claim_enforcement_receipt_validator.py detect_unreceipted_packets accepts raw_packet_roots param (receipt root and raw packet roots separated); 13 new tests (test_ce1d2_path_relocation.py); 106 existing tests pass
+
+不能宣告（CE-1D.2）：
+- 歷史 UUID raw packet 已搬移
+- compact receipt 已成為 audit source of truth
+- old raw packet path (artifacts/claim-enforcement/<session_id>/) 已被移除
+- audit 報告已清楚區分 repo-facing/local-runtime/historical-tracked 三種 evidence 狀態
+- CE-1D is fully complete (CE-1D.3 needed)
+
 下一個可執行項目：
-- [ ] CE-1D: UUID session dir output path redesign — move raw packet output from artifacts/claim-enforcement/<uuid>/ to artifacts/session/claim-enforcement/<uuid>/ (already gitignored) or artifacts/runtime/claim-enforcement/<uuid>/; any raw session packet, regardless of timestamp vs UUID shape, must not pollute repo-facing evidence root by default; requires session_end.py output path change + consumer audit
+- [ ] CE-1D.3: audit evidence classification — audit report 清楚標示 local runtime raw evidence vs repo-facing receipt evidence vs historical tracked raw evidence；缺 local raw packet 的原因說明（local runtime or repo evidence missing？）；audit consumer source-of-truth policy clarification
 
 完成項目（舊 sprint，保留供追蹤）：
 - [x] R49.x consolidation window（6 tasks）— NULL_ONTOLOGY、Metric Interpretability Contract、Epistemic Base Assumptions、R49.2 Governance Harness v0.1

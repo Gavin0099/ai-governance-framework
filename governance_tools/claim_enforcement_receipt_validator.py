@@ -113,26 +113,45 @@ def parse_receipts(receipts_path: Path) -> tuple[list[dict], list[dict]]:
 # ---------------------------------------------------------------------------
 
 
-def detect_unreceipted_packets(ce_root: Path, receipted_session_ids: set) -> list[str]:
+def detect_unreceipted_packets(
+    ce_root: Path,
+    receipted_session_ids: set,
+    raw_packet_roots: "list[Path] | None" = None,
+) -> list[str]:
     """
     Return session IDs where a raw claim-enforcement-check.json exists
     but no compact receipt has been recorded.
 
-    Only scans directories that contain claim-enforcement-check.json.
-    Does not scan checker-tests/ or the receipts file itself.
-    """
-    unreceipted: list[str] = []
-    if not ce_root.exists():
-        return unreceipted
+    ce_root is the repo evidence root (artifacts/claim-enforcement/).
+    raw_packet_roots is the ordered list of directories to scan for raw session
+    packets. If None, falls back to scanning ce_root only (legacy behaviour).
 
-    for child in ce_root.iterdir():
-        if not child.is_dir():
+    CE-1D.2: callers should pass raw_packet_roots=[new_runtime_root, ce_root]
+    to cover both the gitignored runtime path and the legacy repo-facing path.
+
+    Only scans directories that contain claim-enforcement-check.json.
+    Does not scan checker-tests/.
+    """
+    if raw_packet_roots is None:
+        raw_packet_roots = [ce_root]
+
+    unreceipted: list[str] = []
+    seen: set[str] = set()
+
+    for root in raw_packet_roots:
+        if not root.exists():
             continue
-        if child.name == "checker-tests":
-            continue
-        check_file = child / "claim-enforcement-check.json"
-        if check_file.exists() and child.name not in receipted_session_ids:
-            unreceipted.append(child.name)
+        for child in root.iterdir():
+            if not child.is_dir():
+                continue
+            if child.name == "checker-tests":
+                continue
+            if child.name in seen:
+                continue
+            seen.add(child.name)
+            check_file = child / "claim-enforcement-check.json"
+            if check_file.exists() and child.name not in receipted_session_ids:
+                unreceipted.append(child.name)
 
     return sorted(unreceipted)
 
@@ -145,9 +164,15 @@ def detect_unreceipted_packets(ce_root: Path, receipted_session_ids: set) -> lis
 def validate_receipts(
     receipts_path: Path,
     ce_root: Path,
+    raw_packet_roots: "list[Path] | None" = None,
 ) -> dict:
     """
     Run full validation and return a structured report dict.
+
+    ce_root is the repo evidence root (artifacts/claim-enforcement/).
+    raw_packet_roots controls which directories are scanned for unreceipted raw
+    packets. Defaults to [ce_root] for backward compatibility (legacy behaviour).
+    CE-1D.2 callers should pass raw_packet_roots=[new_runtime_root, ce_root].
 
     Keys:
       receipts_path       — str path checked
@@ -167,7 +192,7 @@ def validate_receipts(
     valid_count = len(row_analyses) - len(invalid_rows)
 
     receipted_ids = {a["session_id"] for a in row_analyses}
-    unreceipted = detect_unreceipted_packets(ce_root, receipted_ids)
+    unreceipted = detect_unreceipted_packets(ce_root, receipted_ids, raw_packet_roots)
 
     return {
         "receipts_path": str(receipts_path),

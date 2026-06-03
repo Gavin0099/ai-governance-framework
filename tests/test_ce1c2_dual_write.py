@@ -95,10 +95,12 @@ def test_compact_receipt_is_valid_ndjson(tmp_project):
 
 
 def test_raw_claim_enforcement_packet_still_written(tmp_project):
+    # CE-1D.2: raw packet is now written to the runtime-ignored path.
     _run(tmp_project)
     raw_packet = (
         tmp_project
         / "artifacts"
+        / "session"
         / "claim-enforcement"
         / "ce1c2-test-session"
         / "claim-enforcement-check.json"
@@ -107,10 +109,12 @@ def test_raw_claim_enforcement_packet_still_written(tmp_project):
 
 
 def test_raw_packet_is_valid_json(tmp_project):
+    # CE-1D.2: raw packet is now written to the runtime-ignored path.
     _run(tmp_project)
     raw_packet = (
         tmp_project
         / "artifacts"
+        / "session"
         / "claim-enforcement"
         / "ce1c2-test-session"
         / "claim-enforcement-check.json"

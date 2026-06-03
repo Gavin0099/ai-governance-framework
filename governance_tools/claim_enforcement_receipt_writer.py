@@ -20,6 +20,10 @@ from pathlib import Path
 
 
 RECEIPT_FILE_RELATIVE = "artifacts/claim-enforcement/claim-enforcement-receipts.ndjson"
+# CE-1D.2: canonical runtime path for new raw claim-enforcement packets.
+# This path is under artifacts/session/ which is gitignored, so new raw packets
+# never pollute the repo-facing artifacts/claim-enforcement/ root.
+RAW_PACKET_RUNTIME_ROOT_RELATIVE = "artifacts/session/claim-enforcement"
 SCHEMA_VERSION = "0.1"
 ARTIFACT_TYPE = "claim-enforcement-receipt"
 RAW_PACKET_POLICY_DEFAULT = "session_local"
@@ -91,12 +95,11 @@ def write_receipt_for_session(
 
     receipts_path = repo_root / RECEIPT_FILE_RELATIVE
 
-    # Determine source_packet_dir and whether the raw packet exists.
-    # Packet dir may be timestamp-shaped (session-YYYYMMDDTHHMMSS-XXXXXX)
-    # or UUID-shaped (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).
-    ce_root = repo_root / "artifacts" / "claim-enforcement"
-    source_packet_dir = str(ce_root / session_id)
-    check_file = ce_root / session_id / "claim-enforcement-check.json"
+    # CE-1D.2: source_packet_dir points to the runtime-ignored path so the compact
+    # receipt reflects where new raw packets are written (artifacts/session/claim-enforcement/).
+    raw_runtime_root = repo_root / RAW_PACKET_RUNTIME_ROOT_RELATIVE
+    source_packet_dir = str(raw_runtime_root / session_id)
+    check_file = raw_runtime_root / session_id / "claim-enforcement-check.json"
     present = check_file.exists()
 
     receipt = build_receipt(
@@ -158,9 +161,9 @@ def main() -> None:
             print(f"[claim_enforcement_receipt_writer] error: {exc}", file=sys.stderr)
             sys.exit(1)
 
-    ce_root = repo_root / "artifacts" / "claim-enforcement"
-    source_packet_dir = str(ce_root / args.session_id)
-    check_file = ce_root / args.session_id / "claim-enforcement-check.json"
+    raw_runtime_root = repo_root / RAW_PACKET_RUNTIME_ROOT_RELATIVE
+    source_packet_dir = str(raw_runtime_root / args.session_id)
+    check_file = raw_runtime_root / args.session_id / "claim-enforcement-check.json"
     present = check_file.exists()
 
     receipt = build_receipt(
