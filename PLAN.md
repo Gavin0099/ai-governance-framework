@@ -2557,3 +2557,22 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
   correctness, runtime enforcement, evidence truthfulness, evidence relevance,
   authority correctness, OS sandbox correctness, Hermes integration, advisory
   integration, hook integration, or pre-push/pre-commit gating.
+
+## 2026-06-03 Canonical Memory Writer Active-Window Sentinel
+
+- Status: completed as opt-in active-window enforcement slice.
+- Scope: `governance_tools/memory_authority_guard.py` keeps default Phase 1
+  warning behavior, but adds `--fail-on-active-non-canonical-writer` with
+  `--active-from` to fail only when `non_canonical_writer` violations appear in
+  the active window (default: 2026-06-02 and later).
+- Historical boundary: the existing 86 historical `non_canonical_writer`
+  records remain classified as historical debt / acknowledge-no-action; this
+  slice does not migrate, rewrite, reclassify, or backfill them.
+- Tests: `tests/test_memory_authority_guard.py` covers historical-only pass,
+  active-window detection, CLI nonzero exit for active violation, and CLI pass
+  for historical-only violation.
+- Claim ceiling: opt-in active-window sentinel for new non-canonical writer
+  violations only.
+- Not claimed: default hard gate, historical debt cleanup, memory semantic
+  correctness, full memory authority enforcement, closeout correctness,
+  pre-push integration, or repo-wide blocking policy change.
