@@ -109,6 +109,9 @@ Required posture:
 - [x] usb-if-hub-spec-reference Rule 4 deployment — copilot-instructions.md deployed via install-hooks.sh; copilot_instructions_governed=True (7d20d09)
 - [x] CE-1B: Claim-enforcement compact receipt boundary defined — governance/CLAIM_ENFORCEMENT_EVIDENCE_POLICY.md; selected model: compact NDJSON receipt; migration pending (762d7af)
 - [x] .gitignore hygiene + .agents/skills/ tracking — extend pytest-tmp pattern, ignore artifacts/session/ + *.db + .codex/hooks.json; track Codex skill definitions analogous to .claude/skills/ (fa56821)
+- [x] Response Envelope Contract v0.1 — event-driven mode rule documented; `task_authority` and `evidence_refs` added as reporting fields; no runtime gate or evidence admissibility change
+- [x] Response Envelope Validator MVP — static structural validator added for `mode_source` / `task_authority` / `claim_ceiling` / `not_claimed` / `evidence_refs`; rejects placeholder-only evidence refs and unsupported high-risk authority wording; no semantic or runtime enforcement claim
+- [x] Response Envelope Fixture Corpus — representative markdown-like fixtures added; validator CLI pass/fail behavior covered for valid and invalid examples; no hook/runtime integration
 
 等待觀察：
 - [>] Phase 3 post-enforcement observation — active; 2 canonical samples collected; watch for non_canonical_writer count trend

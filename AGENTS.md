@@ -107,6 +107,14 @@ Stage only the explicit allowlist provided by the user or required by the DONE s
 
 Final reports should be result-first, not process-first.
 
+Event-driven response envelope:
+- When using a `mode` field, follow `governance/RESPONSE_ENVELOPE_CONTRACT.md`.
+- `mode` must be event-derived, not agent-selected.
+- `mode_source`, `task_authority`, `scope`, `done`, `not_claimed`, `evidence_refs`, and `risk` must remain separate fields.
+- `task_authority` distinguishes authorized work from autonomous expansion.
+- `evidence_refs` records commands, artifacts, or reviewer sources supporting the DONE claim; it does not upgrade semantic authority.
+- Do not replace claim ceiling or risk disclosure with confidence scores, effort estimates, or broad impact analysis.
+
 Vocabulary:
 - `NOT PRESENT` = the mechanism, artifact, or enforcement does not exist
 - `NOT CLAIMED` = the capability or conclusion is not being asserted this session
