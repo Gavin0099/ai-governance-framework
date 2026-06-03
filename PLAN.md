@@ -2541,3 +2541,19 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 - Not claimed: schema completeness, runtime enforcement, Hermes integration,
   hook/pre-push integration, authority correctness, evidence truthfulness,
   evidence relevance, semantic correctness, or OS sandbox correctness.
+
+## 2026-06-03 Phase RP-2 Runtime Profile Schema Contract
+
+- Status: completed as contract documentation slice.
+- Scope: `docs/governance/runtime-profile-validator-contract.md` documents the
+  current implemented structural rule contract for
+  `governance_tools/runtime_profile_validator.py`, including accepted file
+  shape, required top-level fields, claim-boundary rules, surface-entry rules,
+  evidence-ref rules, high-risk wording downgrade rules, error codes, and
+  fixture mapping.
+- Claim ceiling: machine-readable-ish validator contract documentation for
+  current implemented rules only.
+- Not claimed: complete schema, formal JSON Schema compatibility, semantic
+  correctness, runtime enforcement, evidence truthfulness, evidence relevance,
+  authority correctness, OS sandbox correctness, Hermes integration, advisory
+  integration, hook integration, or pre-push/pre-commit gating.

@@ -4,6 +4,7 @@ Status: profile schema draft and reviewer guide.
 
 Derived from:
 - `docs/governance/trust-boundary-taxonomy.md`
+- `docs/governance/runtime-profile-validator-contract.md`
 - `governance/RESPONSE_ENVELOPE_CONTRACT.md`
 - Hermes Agent as a representative runtime specimen:
   https://github.com/nousresearch/hermes-agent
@@ -152,6 +153,9 @@ Disallowed without separate proof:
 
 `governance_tools/runtime_profile_validator.py` provides a structural-only
 validator for runtime profile YAML files.
+
+The current implemented rule contract is documented in
+`docs/governance/runtime-profile-validator-contract.md`.
 
 It checks:
 - required top-level profile fields
