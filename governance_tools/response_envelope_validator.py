@@ -274,39 +274,84 @@ def validate_response_envelope_file(path: Path) -> dict[str, Any]:
     return validate_response_envelope_text(path.read_text(encoding="utf-8"))
 
 
+def _iter_input_paths(paths: list[Path]) -> tuple[list[Path], list[dict[str, str]]]:
+    files: list[Path] = []
+    path_errors: list[dict[str, str]] = []
+
+    for path in paths:
+        if not path.exists():
+            path_errors.append({"path": str(path), "error": "path_not_found"})
+            continue
+        if path.is_dir():
+            files.extend(sorted(path.rglob("*.md")))
+            continue
+        files.append(path)
+
+    seen: set[Path] = set()
+    deduped: list[Path] = []
+    for path in files:
+        resolved = path.resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        deduped.append(path)
+
+    return deduped, path_errors
+
+
+def validate_response_envelope_paths(paths: list[Path]) -> dict[str, Any]:
+    files, path_errors = _iter_input_paths(paths)
+    results: list[dict[str, Any]] = []
+
+    for path in files:
+        report = validate_response_envelope_file(path)
+        results.append({"path": str(path), **report})
+
+    valid_count = sum(1 for item in results if item["ok"])
+    invalid_count = len(results) - valid_count
+
+    return {
+        "ok": not path_errors and invalid_count == 0,
+        "total_files": len(results),
+        "valid_files": valid_count,
+        "invalid_files": invalid_count,
+        "path_errors": path_errors,
+        "results": results,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Validate a response envelope reporting contract fragment."
     )
-    parser.add_argument("path", help="Path to the response envelope text file")
+    parser.add_argument(
+        "paths",
+        nargs="+",
+        help="Response envelope file(s) or directorie(s). Directories scan *.md files.",
+    )
     parser.add_argument("--format", choices=["human", "json"], default="human")
     args = parser.parse_args()
 
-    report = validate_response_envelope_file(Path(args.path))
+    report = validate_response_envelope_paths([Path(path) for path in args.paths])
 
     if args.format == "json":
         print(json.dumps(report, indent=2, ensure_ascii=False))
     else:
         print("[response_envelope_validator]")
-        print(f"  ok:                     {report['ok']}")
-        print(
-            f"  required fields:        {len(report['signals']['required_fields_present'])}/{len(REQUIRED_FIELDS)}"
-        )
-        print(f"  evidence entries:       {report['signals']['evidence_entry_count']}")
-        print(
-            f"  placeholder evidence:   {report['signals']['placeholder_evidence_entry_count']}"
-        )
-        print(
-            f"  invalid evidence shape: {report['signals']['invalid_evidence_shape_count']}"
-        )
-        print(
-            f"  high-risk wording hits: {len(report['signals']['high_risk_hits'])}"
-        )
-        if report["errors"]:
-            print("  errors:")
-            for item in report["errors"]:
-                detail = item.get("value") or item.get("field") or ""
-                print(f"    - {item['code']}: {detail}".rstrip(": "))
+        print(f"  ok:            {report['ok']}")
+        print(f"  total files:   {report['total_files']}")
+        print(f"  valid files:   {report['valid_files']}")
+        print(f"  invalid files: {report['invalid_files']}")
+        if report["path_errors"]:
+            print("  path errors:")
+            for item in report["path_errors"]:
+                print(f"    - {item['path']}: {item['error']}")
+        for item in report["results"]:
+            status = "ok" if item["ok"] else "invalid"
+            print(f"  - {item['path']}: {status}")
+            for error in item["errors"]:
+                detail = error.get("value") or error.get("field") or ""
+                print(f"      {error['code']}: {detail}".rstrip(": "))
 
     if not report["ok"]:
         sys.exit(1)

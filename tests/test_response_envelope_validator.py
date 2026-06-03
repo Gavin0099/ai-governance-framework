@@ -4,7 +4,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-from governance_tools.response_envelope_validator import validate_response_envelope_text
+from governance_tools.response_envelope_validator import (
+    validate_response_envelope_paths,
+    validate_response_envelope_text,
+)
 
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "response_envelopes"
@@ -201,6 +204,7 @@ def test_cli_passes_for_valid_fixture() -> None:
 
     assert completed.returncode == 0
     assert '"ok": true' in completed.stdout
+    assert '"total_files": 1' in completed.stdout
 
 
 def test_cli_fails_for_invalid_fixture() -> None:
@@ -220,3 +224,53 @@ def test_cli_fails_for_invalid_fixture() -> None:
 
     assert completed.returncode == 1
     assert "evidence_refs_placeholder_only" in completed.stdout
+
+
+def test_batch_validation_summarizes_fixture_directory() -> None:
+    result = validate_response_envelope_paths([FIXTURE_ROOT])
+
+    assert result["ok"] is False
+    assert result["total_files"] == 6
+    assert result["valid_files"] == 2
+    assert result["invalid_files"] == 4
+    assert result["path_errors"] == []
+
+
+def test_cli_passes_for_multiple_valid_files() -> None:
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "governance_tools.response_envelope_validator",
+            str(FIXTURE_ROOT / "valid_minimal.md"),
+            str(FIXTURE_ROOT / "valid_high_risk_with_not_claimed.md"),
+            "--format",
+            "json",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0
+    assert '"ok": true' in completed.stdout
+    assert '"total_files": 2' in completed.stdout
+
+
+def test_cli_fails_for_fixture_directory_with_invalid_examples() -> None:
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "governance_tools.response_envelope_validator",
+            str(FIXTURE_ROOT),
+            "--format",
+            "json",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 1
+    assert '"invalid_files": 4' in completed.stdout

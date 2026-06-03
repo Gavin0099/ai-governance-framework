@@ -113,6 +113,7 @@ Required posture:
 - [x] Response Envelope Validator MVP — static structural validator added for `mode_source` / `task_authority` / `claim_ceiling` / `not_claimed` / `evidence_refs`; rejects placeholder-only evidence refs and unsupported high-risk authority wording; no semantic or runtime enforcement claim
 - [x] Response Envelope Fixture Corpus — representative markdown-like fixtures added; validator CLI pass/fail behavior covered for valid and invalid examples; no hook/runtime integration
 - [x] Response Envelope Evidence Shape Check — validator now requires each non-placeholder `evidence_refs` item to include `command` or `artifact` plus `result`; fixture coverage includes missing-result failure; no evidence relevance/truthfulness claim
+- [x] Response Envelope Batch Validation — CLI accepts explicit files/directories and emits aggregate JSON/human summaries; directory mode scans markdown fixtures only; no hook/runtime/pre-push integration
 
 等待觀察：
 - [>] Phase 3 post-enforcement observation — active; 2 canonical samples collected; watch for non_canonical_writer count trend
