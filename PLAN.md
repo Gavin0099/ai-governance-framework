@@ -163,6 +163,7 @@ CE-1C 目前狀態：timestamp-shaped session output 已收斂；UUID-shaped 和
 - historical UUID raw packets 已搬移或清理
 - compact receipt validator 已成為 blocking gate
 - evidence relevance/truthfulness validation
+- [x] CE-1D historical unreceipted packet inventory — read-only inventory recorded 203 validator-reported unreceipted raw packet directories: 0 under artifacts/session/claim-enforcement, 203 under legacy artifacts/claim-enforcement, with 201 from 2026-05, 1 from 2026-06-01, and 1 UUID-shaped current dirty packet. No cleanup, migration, receipt backfill, or blocking gate change.
 - repo-facing legacy artifact cleanup
 - runtime enforcement or hook policy change
 
