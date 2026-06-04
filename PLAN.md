@@ -2582,3 +2582,4 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 - [x] Phase F-1: read-only fleet submodule model verification helper added (`scripts/sync_governance_submodules.ps1`); local overlay example added; no update/enforcement behavior.
 - [x] Phase F-2: advisory usage documented for running submodule model inventory before broad cross-repo governance update prompts; no external repo update, matrix integration, hook, or enforcement claim.
 - [x] Phase F-3: read-only required-tier inventory artifact recorded from the example overlay; result shows 0 submodule_based, 3 git_check_failed, and 7 missing_local_path; no external repo update or migration claim.
+- [x] Phase F-4: ignored local overlay completeness trial recorded; required-tier missing_local_path reduced to 0, with 10 git_check_failed rows remaining; no Git permission repair, external repo update, or migration claim.
