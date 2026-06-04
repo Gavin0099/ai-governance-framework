@@ -2639,3 +2639,7 @@ Claim ceiling:
 - CLAIMED: pending-state correction in PLAN.
 - NOT CLAIMED: new governance capability, threshold readiness, migration,
   cleanup, hook enforcement, semantic validation, or runtime containment.
+
+## 2026-06-04 CE-1D Advisory Classification
+
+- [x] CE-1D unreceipted packet advisory classification completed for 203 validator-reported raw packet directories. Bucket A: 201 historical 2026-05 legacy session packets, proposed retain/defer unless reviewer requests archival policy. Bucket B: 1 legacy singleton `session-20260601T044502-d10b08`, proposed separate single-packet review. Bucket C: 1 UUID-shaped current dirty packet `a5938e4e-07d0-4d4f-ac04-426ec4a5564a`, proposed dirty-work audit only with explicit scope. No movement, deletion, receipt backfill, validator change, or cleanup performed.
