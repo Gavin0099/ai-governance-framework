@@ -432,6 +432,20 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 - If the push introduced a durable workflow preference, also update `memory/00_long_term.md`
 - This protocol is portable: apply the same pattern in other repos with a local `memory/` directory
 
+#### Memory State Trace Consistency
+
+Memory entries must not mix completed and pending state.
+
+`next_step` must describe the next unfinished action, not repeat an action already recorded as completed in the same memory entry.
+
+If a `commit` or `commit_hash` is recorded, commit state for that scope must be treated as completed unless the entry explicitly marks the commit as failed, local-only, or not pushed.
+
+If push status is unknown, write `verify remote push state` instead of `commit and push`.
+
+If push is confirmed, `next_step` must name the next unfinished slice rather than repeat commit or push for the completed scope.
+
+When correcting ambiguous historical memory state, prefer adding a new canonical corrective memory entry over rewriting historical entries.
+
 ### PLAN Sync Protocol (Cross-Repo)
 - `PLAN.md` is mandatory governance state, not optional project notes.
 - After each phase completion or milestone transition:
