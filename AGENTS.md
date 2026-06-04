@@ -71,6 +71,29 @@ If the user does not provide DONE, propose one measurable product outcome and wa
 If the user gives an explicit bounded execution directive (for example: "proceed", "continue", "do not add features, only converge"), treat that as execution authorization within the stated boundary and do not ask for redundant confirmation.
 Ask again only when scope expands, enforcement semantics change, schema/runtime behavior changes, or irreversible/destructive risk is introduced.
 
+#### Ambiguous Continuation Is Audit-First
+
+Ambiguous continuation commands are not bounded execution directives by themselves.
+
+Examples include:
+
+- continue
+- proceed
+- keep going
+- 繼續
+- 往下做
+- 再做下一步
+
+If no next-slice boundary was already approved, the agent must default to audit-first behavior:
+
+- inspect the current state;
+- identify the last committed / validated scope;
+- propose the next narrow slice;
+- list the intended scope, allowed files, non-goals, validation, commit/push intent, and non-claims;
+- do not edit files until the user confirms the proposed slice.
+
+If a next-slice boundary was already explicitly approved, the agent may execute that bounded slice without repeating the proposal.
+
 Format:
 
 `DONE = <one measurable product outcome>`
@@ -102,6 +125,40 @@ When the working tree is dirty, produce a concise `git status` summary only.
 Do not inspect, read, explain, stage, or modify unrelated dirty or untracked files.
 
 Stage only the explicit allowlist provided by the user or required by the DONE scope.
+
+#### Dirty Work Must Not Be Reported as Overall DONE
+
+If local workspace changes remain after the claimed work, the agent must not report the overall task as DONE.
+
+The agent may only claim DONE for the committed and validated scope.
+
+Required wording pattern:
+
+```text
+Committed scope: DONE
+Workspace state: NOT CLEAN
+Overall task: NOT DONE until dirty work is audited or explicitly excluded
+```
+
+This applies when any of the following remain after the claimed work:
+
+- unstaged changes;
+- staged but uncommitted changes;
+- untracked files;
+- generated local diff without commit checkpoint;
+- failed or unavailable commit / push tooling;
+- auto-review changes that were not committed.
+
+When dirty work exists, the agent must:
+
+- run `git status --short`;
+- identify whether dirty files are in the claimed scope, unrelated, or unknown;
+- inspect only files in the claimed scope or user-approved allowlist;
+- summarize scoped diff only when inspection is allowed;
+- run scoped validation only for in-scope changes;
+- provide commit-preflight review only if commit is requested.
+
+The agent must not read, stage, summarize, or validate unrelated dirty files unless the user explicitly approves that scope.
 
 ### 7. Result-First Final Report (reporting convention, not a gate)
 
