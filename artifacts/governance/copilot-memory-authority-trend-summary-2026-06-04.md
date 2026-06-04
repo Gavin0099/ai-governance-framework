@@ -76,6 +76,18 @@ Interpretation boundary:
 The observation set is now large enough to discuss an advisory threshold or
 warning policy shape. It is not enough to justify a blocking policy.
 
+Raw verification addendum:
+
+- `artifacts/governance/copilot-memory-authority-raw-verification-2026-06-04.md`
+  verifies 9 gl_electron_tool samples against observation log, raw guard JSON,
+  canonical memory entries, and local commit history.
+- The same artifact verifies the CFU pre-memory no-memory-activity sample and
+  records a caveat for two CFU pasted `clean_canonical` rows: post-memory
+  canonical evidence exists, but the raw observation rows themselves were
+  captured before canonical memory entries.
+- This improves evidence maturity for selected samples, but does not make #17
+  blocking-ready.
+
 What the data supports:
 
 - Copilot has repeatedly reported use of `governance_tools.memory_record` for
@@ -147,7 +159,7 @@ NOT CLAIMED:
 - Copilot compliance;
 - blocking threshold readiness;
 - runtime or hook enforcement correctness;
-- raw guard JSON verification;
+- repo-wide raw guard JSON verification;
 - remote commit verification;
 - CFU fork or push workflow correctness;
 - memory semantic correctness;
