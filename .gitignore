@@ -117,3 +117,6 @@ codeburn_phase1.db
 gl_electron_tool/
 .tmp_no_codeburn_repo/
 .tmp_no_codeburn_repo2/
+
+# Fleet local path overlay
+governance/fleet/governance_scope.local.yaml
