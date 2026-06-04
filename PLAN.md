@@ -157,6 +157,14 @@ CE-1C 目前狀態：timestamp-shaped session output 已收斂；UUID-shaped 和
 - old raw packet path (artifacts/claim-enforcement/<session_id>/) 已被移除
 - audit 報告已清楚區分 repo-facing/local-runtime/historical-tracked 三種 evidence 狀態
 - [x] CE-1D.3: audit evidence classification — runtime_completeness_audit 新增 claim_binding_runtime_only / claim_binding_legacy_only / claim_binding_both_paths 三分類欄位；closeout_audit._evaluate_claim_binding 新增 claim_enforcement_runtime_count / claim_enforcement_legacy_count；format_human_result 輸出三分類摘要行；13 新測試全過；62 既有相關測試無 regression
+- [x] CE-1D.4: receipt validator CLI dual-root scan — claim_enforcement_receipt_validator CLI now scans artifacts/session/claim-enforcement/ before legacy artifacts/claim-enforcement/; validate_receipts reports raw_packet_roots; library default remains legacy-only for compatibility; 3 focused tests added; no hook/gate/enforcement change
+
+不能宣告（CE-1D.4）：
+- historical UUID raw packets 已搬移或清理
+- compact receipt validator 已成為 blocking gate
+- evidence relevance/truthfulness validation
+- repo-facing legacy artifact cleanup
+- runtime enforcement or hook policy change
 
 完成項目（舊 sprint，保留供追蹤）：
 - [x] R49.x consolidation window（6 tasks）— NULL_ONTOLOGY、Metric Interpretability Contract、Epistemic Base Assumptions、R49.2 Governance Harness v0.1

@@ -20,6 +20,7 @@ from governance_tools.claim_enforcement_receipt_validator import (
     ALLOWED_REPO_EVIDENCE_STATUS,
     _RECEIPTS_RELATIVE,
     analyse_row,
+    default_raw_packet_roots,
     detect_unreceipted_packets,
     parse_receipts,
     validate_receipts,
@@ -271,3 +272,50 @@ def test_validate_receipts_reports_invalid_row(tmp_path):
     report = validate_receipts(receipts, ce_root)
     assert len(report["invalid_rows"]) == 1
     assert report["overall_valid"] is False
+
+
+def test_default_raw_packet_roots_scans_runtime_before_legacy(tmp_path):
+    roots = default_raw_packet_roots(tmp_path)
+    assert roots == [
+        tmp_path / "artifacts" / "session" / "claim-enforcement",
+        tmp_path / "artifacts" / "claim-enforcement",
+    ]
+
+
+def test_validate_receipts_with_cli_default_roots_detects_runtime_gap(tmp_path):
+    ce_root = tmp_path / "artifacts" / "claim-enforcement"
+    receipts = tmp_path / _RECEIPTS_RELATIVE
+    row = _good_receipt("s1")
+    _write_receipts(receipts, [row])
+
+    runtime_root = tmp_path / "artifacts" / "session" / "claim-enforcement"
+    (runtime_root / "session-runtime-orphan").mkdir(parents=True)
+    (runtime_root / "session-runtime-orphan" / "claim-enforcement-check.json").write_text(
+        "{}", encoding="utf-8"
+    )
+
+    report = validate_receipts(
+        receipts,
+        ce_root,
+        raw_packet_roots=default_raw_packet_roots(tmp_path),
+    )
+    assert "session-runtime-orphan" in report["unreceipted_packets"]
+    assert report["raw_packet_roots"] == [str(p) for p in default_raw_packet_roots(tmp_path)]
+    assert report["overall_valid"] is False
+
+
+def test_validate_receipts_library_default_remains_legacy_only(tmp_path):
+    ce_root = tmp_path / "artifacts" / "claim-enforcement"
+    receipts = tmp_path / _RECEIPTS_RELATIVE
+    row = _good_receipt("s1")
+    _write_receipts(receipts, [row])
+
+    runtime_root = tmp_path / "artifacts" / "session" / "claim-enforcement"
+    (runtime_root / "session-runtime-orphan").mkdir(parents=True)
+    (runtime_root / "session-runtime-orphan" / "claim-enforcement-check.json").write_text(
+        "{}", encoding="utf-8"
+    )
+
+    report = validate_receipts(receipts, ce_root)
+    assert "session-runtime-orphan" not in report["unreceipted_packets"]
+    assert report["raw_packet_roots"] == [str(ce_root)]

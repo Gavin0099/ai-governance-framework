@@ -25,6 +25,8 @@ from governance_tools.claim_enforcement_receipt_writer import (
 )
 
 _RECEIPTS_RELATIVE = "artifacts/claim-enforcement/claim-enforcement-receipts.ndjson"
+_RUNTIME_RAW_ROOT_RELATIVE = "artifacts/session/claim-enforcement"
+_LEGACY_RAW_ROOT_RELATIVE = "artifacts/claim-enforcement"
 
 ALLOWED_RAW_PACKET_POLICY = {"session_local"}
 ALLOWED_REPO_EVIDENCE_STATUS = {"compact_receipt"}
@@ -196,6 +198,7 @@ def validate_receipts(
 
     return {
         "receipts_path": str(receipts_path),
+        "raw_packet_roots": [str(p) for p in raw_packet_roots] if raw_packet_roots else [str(ce_root)],
         "file_present": file_present,
         "parse_errors": parse_errors,
         "total_rows": len(rows),
@@ -228,9 +231,25 @@ def _find_repo_root(start: Path) -> Path:
     raise RuntimeError(f"Could not locate repository root from {start}")
 
 
+def default_raw_packet_roots(repo_root: Path) -> list[Path]:
+    """
+    Return the CE-1D dual-read raw packet roots for command-line validation.
+
+    The CLI should mirror the current runtime evidence split:
+    - artifacts/session/claim-enforcement/ for new gitignored runtime packets
+    - artifacts/claim-enforcement/ for legacy historical packets and compact receipts
+
+    Library callers that omit raw_packet_roots retain legacy ce_root-only behavior.
+    """
+    return [
+        repo_root / _RUNTIME_RAW_ROOT_RELATIVE,
+        repo_root / _LEGACY_RAW_ROOT_RELATIVE,
+    ]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Validate compact claim-enforcement receipts (CE-1C.3)."
+        description="Validate compact claim-enforcement receipts (CE-1D dual-root aware)."
     )
     parser.add_argument("--repo-root", default=None)
     parser.add_argument(
@@ -248,14 +267,16 @@ def main() -> None:
     repo_root = Path(args.repo_root) if args.repo_root else _find_repo_root(Path(__file__))
     receipts_path = repo_root / _RECEIPTS_RELATIVE
     ce_root = repo_root / "artifacts" / "claim-enforcement"
+    raw_packet_roots = default_raw_packet_roots(repo_root)
 
-    report = validate_receipts(receipts_path, ce_root)
+    report = validate_receipts(receipts_path, ce_root, raw_packet_roots=raw_packet_roots)
 
     if args.format == "json":
         print(json.dumps(report, indent=2, ensure_ascii=False))
     else:
         print(f"[claim_enforcement_receipt_validator]")
         print(f"  receipts file:    {'present' if report['file_present'] else 'MISSING'}")
+        print(f"  raw roots:        {len(report['raw_packet_roots'])}")
         print(f"  total rows:       {report['total_rows']}")
         print(f"  valid rows:       {report['valid_rows']}")
         print(f"  parse errors:     {len(report['parse_errors'])}")
