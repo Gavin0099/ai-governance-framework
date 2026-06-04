@@ -2623,6 +2623,7 @@ slices.
 | 20 RP-3a Runtime Profile Reviewer Entrypoint | closed at 9fe4877 | do not repeat reviewer-entrypoint work |
 | 21 CE-1D Historical Unreceipted Packet Inventory | closed as inventory-only at 7c824fa | migration, cleanup, receipt backfill, and blocking gate remain NOT CLAIMED |
 | 22 fleet submodule sync utility | F-1 through F-6 closed; remaining work is separate | safe.directory repair, external repo update, or JSON output mode require a new scoped slice |
+| 23 CFU / gl_electron_tool governance update readiness | read-only inventory completed | both are submodule-based and behind current framework HEAD; both require dirty-state audit before any submodule pointer update |
 
 Recommended next-order after this correction:
 
@@ -2650,3 +2651,7 @@ Claim ceiling:
 ## 2026-06-04 Persistent User Preference Precedence
 
 - [x] AGENTS.md documentation clarification added for durable user preference vs repo-local instruction conflicts. Agents must surface conflicts instead of silently overriding non-conflicting user preferences; repo governance may override only for safety, destructive-operation prevention, validation/evidence/claim-boundary requirements, commit/push discipline, or repo-specific correctness boundaries. No validator, hook, runtime enforcement, Copilot-specific detector, or instruction precedence engine added.
+
+## 2026-06-04 External Repo Governance Update Readiness
+
+- [x] Read-only update-readiness inventory completed for `CFU` and `gl_electron_tool`. Both repos are `submodule_based`, both point to older ai-governance-framework commits (`CFU`=`ccbb85a`, `gl_electron_tool`=`70a54b3`) while current framework HEAD is `7f816a4`, and both should use submodule pointer update after a separate dirty-state audit. No external repo modification, scaffold apply, manual sync, commit, push, validation, or submodule update performed.
