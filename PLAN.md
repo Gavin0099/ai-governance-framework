@@ -2600,3 +2600,42 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 - [x] Three pasted Copilot memory-authority observation responses analyzed; two classified as medium-confidence clean_canonical candidates and one as low-confidence unknown; #17 remains observe-only and not threshold-ready.
 - [x] Phase #17-B: Copilot memory-authority trend summary recorded; aggregate now has 11 usable clean_canonical samples, 1 no_memory_activity sample, 1 unknown, 0 active violations, and status remains advisory-threshold-discussion-ready while blocking remains NOT CLAIMED.
 - [x] Phase #17-C: raw observation artifact verification recorded for selected external samples. gl_electron_tool has 9 structurally raw-verified clean_canonical samples with active_non_canonical_writer.count=0; CFU has 1 verified no_memory_activity pre-memory sample and 2 partially verified post-memory canonical-evidence samples requiring pre/post-memory caveat. #17 remains observe-only and not blocking-ready.
+
+## 2026-06-04 Pending Status Correction
+
+Scope: status correction only. No validator, hook, schema, threshold, cleanup,
+migration, or runtime behavior change.
+
+Reason: recent analysis threads referenced stale pending states after RP-3a,
+#17 raw verification, and CE-1D inventory had already closed their current
+slices.
+
+| item | corrected status | next action boundary |
+| --- | --- | --- |
+| 1 Fleet v1 required verified | passive maintenance | keep current required-tier posture; do not force new fleet gate from this correction |
+| 4 Kernel-Driver-Contract agents authority | waiting for second domain-authority repo evidence | inventory only if needed; do not design a single-repo authority contract |
+| 5 CodeBurn Codex smoke harness split | waiting for schedule | candidate work item, not current mainline |
+| 6 CodeBurn Copilot gap calibration | waiting for #5 or later evidence | do not claim billing or calibration truth |
+| 8 Memory authority pattern GI-001 | waiting for second occurrence | observe; do not promote to pattern yet |
+| 9 v2 contract direction | waiting for trend data | do not design v2 from isolated cases |
+| 17 Memory Authority blocking threshold | observe-only; #17-C raw verification completed | advisory threshold discussion possible, but blocking threshold NOT CLAIMED |
+| 19 historical non_canonical_writer classification | closed as 86-record classification at c1d616e | do not reclassify or backfill unless a new scoped correction is approved |
+| 20 RP-3a Runtime Profile Reviewer Entrypoint | closed at 9fe4877 | do not repeat reviewer-entrypoint work |
+| 21 CE-1D Historical Unreceipted Packet Inventory | closed as inventory-only at 7c824fa | migration, cleanup, receipt backfill, and blocking gate remain NOT CLAIMED |
+| 22 fleet submodule sync utility | F-1 through F-6 closed; remaining work is separate | safe.directory repair, external repo update, or JSON output mode require a new scoped slice |
+
+Recommended next-order after this correction:
+
+1. CE-1D advisory classification proposal for the 203 unreceipted packet
+   directories, if cleanup/migration planning is needed.
+2. More #17 raw-verified active-window samples before any blocking-threshold
+   proposal; current raw-verified sample set is useful but still small.
+3. Defer repo role resolver, governance skills registry, runtime enforcement,
+   semantic verifier, Hermes integration, OS sandbox/RBAC/SoD work until an
+   observed repeated failure justifies expansion.
+
+Claim ceiling:
+
+- CLAIMED: pending-state correction in PLAN.
+- NOT CLAIMED: new governance capability, threshold readiness, migration,
+  cleanup, hook enforcement, semantic validation, or runtime containment.
