@@ -277,6 +277,29 @@ Not everything described here is fully operational. This table tracks what's ver
 | Memory promotion strictness | **Partial** | Structure exists; not all memory paths have rejection evidence |
 | CodeBurn (usage observation) | **Optional** | Observation layer; not a gate input |
 
+## Agent Runtime Governance Profile
+
+This framework includes reviewer-facing, structural artifacts for analyzing agent runtime governance surfaces.
+
+Start with:
+
+- [`docs/governance/trust-boundary-taxonomy.md`](docs/governance/trust-boundary-taxonomy.md)
+- [`docs/governance/agent-runtime-profile.md`](docs/governance/agent-runtime-profile.md)
+- [`docs/governance/runtime-profile-validator-contract.md`](docs/governance/runtime-profile-validator-contract.md)
+- [`examples/runtime-profiles/governed-coding-agent.yaml`](examples/runtime-profiles/governed-coding-agent.yaml)
+
+These artifacts classify runtime surfaces such as memory, context files, skills, plugins, tool execution, gateways, schedulers, subagents, and rollback/checkpoint mechanisms.
+
+Claim ceiling:
+
+- Structural / reviewer-facing only.
+- Not runtime enforcement.
+- Not Hermes integration.
+- Not semantic evidence validation.
+- Not OS sandbox, RBAC, SoD, or containment.
+- Not an authority correctness engine.
+- Not complete AI governance automation.
+
 ## What This Framework Does Not Claim
 
 These boundaries are normative, not disclaimers:
