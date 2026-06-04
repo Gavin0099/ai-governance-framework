@@ -25,6 +25,8 @@ class CommandResult:
 class UpdateResult:
     ok: bool
     mode: str
+    update_mode: str
+    fast_forward: bool | None
     repo: str
     submodule_path: str
     before_head: str
@@ -133,6 +135,7 @@ def update_governance_submodule(
     dry_run: bool = True,
     stage: bool = False,
     commit: bool = False,
+    allow_detached_target_checkout: bool = False,
     commit_message: str = "chore(governance): update ai governance submodule",
 ) -> UpdateResult:
     repo = repo.resolve()
@@ -165,9 +168,19 @@ def update_governance_submodule(
             target_head = _resolve_head(submodule_repo, target_ref)
 
         if dry_run:
+            fast_forward = (
+                _run_git(
+                    submodule_repo,
+                    ["merge-base", "--is-ancestor", before_head, target_head],
+                    check=False,
+                ).returncode
+                == 0
+            )
             return UpdateResult(
                 ok=True,
                 mode="dry_run",
+                update_mode="dry_run",
+                fast_forward=fast_forward,
                 repo=str(repo),
                 submodule_path=submodule_path,
                 before_head=before_head,
@@ -180,7 +193,27 @@ def update_governance_submodule(
                 errors=[],
             )
 
-        _run_git(submodule_repo, ["merge", "--ff-only", target_ref])
+        merge_result = _run_git(
+            submodule_repo,
+            ["merge", "--ff-only", target_ref],
+            check=False,
+        )
+        if merge_result.returncode == 0:
+            update_mode = "fast_forward"
+            fast_forward = True
+        elif allow_detached_target_checkout:
+            _run_git(submodule_repo, ["checkout", target_head])
+            update_mode = "detached_target_checkout"
+            fast_forward = False
+        else:
+            detail = (
+                merge_result.stderr
+                or merge_result.stdout
+                or f"exit {merge_result.returncode}"
+            )
+            raise SubmoduleUpdateError(
+                f"{' '.join(merge_result.command)} failed: {detail}"
+            )
         after_head = _resolve_head(submodule_repo, "HEAD")
 
         if after_head != target_head:
@@ -208,6 +241,8 @@ def update_governance_submodule(
         return UpdateResult(
             ok=True,
             mode="apply",
+            update_mode=update_mode,
+            fast_forward=fast_forward,
             repo=str(repo),
             submodule_path=submodule_path,
             before_head=before_head,
@@ -231,6 +266,8 @@ def update_governance_submodule(
         return UpdateResult(
             ok=False,
             mode="dry_run" if dry_run else "apply",
+            update_mode="failed",
+            fast_forward=None,
             repo=str(repo),
             submodule_path=submodule_path,
             before_head=before,
@@ -248,6 +285,8 @@ def format_human(result: UpdateResult) -> str:
     lines = [
         f"ok={result.ok}",
         f"mode={result.mode}",
+        f"update_mode={result.update_mode}",
+        f"fast_forward={result.fast_forward if result.fast_forward is not None else '-'}",
         f"repo={result.repo}",
         f"submodule_path={result.submodule_path}",
         f"before_head={result.before_head}",
@@ -277,6 +316,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--stage", action="store_true")
     parser.add_argument("--commit", action="store_true")
     parser.add_argument(
+        "--allow-detached-target-checkout",
+        action="store_true",
+        help=(
+            "Allow non-fast-forward updates by checking out the fetched target "
+            "commit in the nested submodule. Default is ff-only refusal."
+        ),
+    )
+    parser.add_argument(
         "--commit-message",
         default="chore(governance): update ai governance submodule",
     )
@@ -292,6 +339,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         dry_run=not args.apply,
         stage=args.stage,
         commit=args.commit,
+        allow_detached_target_checkout=args.allow_detached_target_checkout,
         commit_message=args.commit_message,
     )
 

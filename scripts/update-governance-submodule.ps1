@@ -9,6 +9,7 @@ param(
     [switch]$Apply,
     [switch]$Stage,
     [switch]$Commit,
+    [switch]$AllowDetachedTargetCheckout,
     [string]$CommitMessage = "chore(governance): update ai governance submodule",
     [ValidateSet("human", "json")]
     [string]$Format = "human"
@@ -45,6 +46,9 @@ try {
     if ($Commit) {
         $args += "--commit"
         $args += @("--commit-message", $CommitMessage)
+    }
+    if ($AllowDetachedTargetCheckout) {
+        $args += "--allow-detached-target-checkout"
     }
 
     python @args

@@ -2595,6 +2595,7 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 - [x] Phase F-5: Git read-check blockers diagnosed read-only; 5 global_ignore_permission warnings appear non-fatal but currently trip strict helper output parsing, while 5 dubious_ownership rows remain real Git inspection blockers; no Git config repair or external repo update.
 - [x] Phase F-6: helper robustness fix completed for non-fatal Git warnings; required-tier inventory now advances 5 rows past worktree detection (3 not_submodule_based, 2 missing_governance_path) while 5 dubious_ownership rows remain blocked; no safe.directory repair or external repo update.
 - [x] Phase F-7: deterministic governance submodule updater MVP added (`governance_tools.external_governance_submodule_updater` + `scripts/update-governance-submodule.ps1`); supports dry-run, fetch, fast-forward, path-limited staging, optional commit, and focused fixture tests. No fleet batch update, auto-push, scaffold apply, dirty cleanup, or Copilot-specific integration claim.
+- [x] Phase F-7a: opt-in non-fast-forward detached target checkout mode added for divergent submodule pins; fast-forward remains the default, non-ff updates still fail unless explicitly allowed, and fixture tests cover refusal vs explicit checkout. No external repo update, fleet batch behavior, or default enforcement change claimed.
 
 ## 2026-06-04 Copilot Memory Authority Observation Analysis
 
