@@ -2589,3 +2589,4 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 ## 2026-06-04 Copilot Memory Authority Observation Analysis
 
 - [x] Three pasted Copilot memory-authority observation responses analyzed; two classified as medium-confidence clean_canonical candidates and one as low-confidence unknown; #17 remains observe-only and not threshold-ready.
+- [x] Phase #17-B: Copilot memory-authority trend summary recorded; aggregate now has 9 usable clean_canonical samples, 1 unknown, 0 active violations, and status raised to advisory-threshold-discussion-ready while blocking remains NOT CLAIMED.
