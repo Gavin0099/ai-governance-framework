@@ -361,6 +361,37 @@ If this file and `governance/AGENT.md` appear to overlap:
 - use `governance/AGENT.md` for repo engineering governance
 - if editor/adapter/workspace instructions conflict with repo-local governance on execution rigor, risk gates, or task classification, `governance/` wins for repo work and the mismatch should be corrected instead of silently improvised
 
+### Persistent User Preference Precedence
+
+Repo-local instructions may define task execution, validation, memory, and
+governance behavior for this repository. They must not silently override durable
+user preferences or tool-level permanent instructions when those preferences do
+not conflict with repo safety or correctness.
+
+If a repo instruction conflicts with a durable user preference, the agent must
+surface the conflict and state which instruction is being followed and why.
+
+Repo governance may override a durable user preference only for:
+- safety;
+- destructive operation prevention;
+- validation, evidence, or claim-boundary requirements;
+- commit / push discipline;
+- repository-specific correctness boundaries.
+
+Repo governance must not override a durable user preference for:
+- language preference;
+- communication style;
+- response verbosity;
+- non-conflicting workflow preferences;
+- personal naming or formatting preferences.
+
+When uncertain, report:
+
+```text
+Instruction conflict detected: <repo instruction> vs <persistent user preference>.
+Following <source> because <reason>.
+```
+
 ## Nested Repo / Submodule Rule
 
 When this repository is opened inside another repository as a nested checkout or
