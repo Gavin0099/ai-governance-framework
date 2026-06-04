@@ -2584,6 +2584,7 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 - [x] Phase F-3: read-only required-tier inventory artifact recorded from the example overlay; result shows 0 submodule_based, 3 git_check_failed, and 7 missing_local_path; no external repo update or migration claim.
 - [x] Phase F-4: ignored local overlay completeness trial recorded; required-tier missing_local_path reduced to 0, with 10 git_check_failed rows remaining; no Git permission repair, external repo update, or migration claim.
 - [x] Phase F-5: Git read-check blockers diagnosed read-only; 5 global_ignore_permission warnings appear non-fatal but currently trip strict helper output parsing, while 5 dubious_ownership rows remain real Git inspection blockers; no Git config repair or external repo update.
+- [x] Phase F-6: helper robustness fix completed for non-fatal Git warnings; required-tier inventory now advances 5 rows past worktree detection (3 not_submodule_based, 2 missing_governance_path) while 5 dubious_ownership rows remain blocked; no safe.directory repair or external repo update.
 
 ## 2026-06-04 Copilot Memory Authority Observation Analysis
 

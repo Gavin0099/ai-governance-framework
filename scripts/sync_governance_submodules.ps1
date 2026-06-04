@@ -94,11 +94,40 @@ function Invoke-GitReadOnly {
         [string[]]$Arguments
     )
 
-    $output = & git -C $RepoPath @Arguments 2>&1
-    return [pscustomobject]@{
-        ExitCode = $LASTEXITCODE
-        Output = ($output | Out-String).Trim()
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        $output = & git -C $RepoPath @Arguments 2>&1
+        return [pscustomobject]@{
+            ExitCode = $LASTEXITCODE
+            Output = ($output | Out-String).Trim()
+        }
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
     }
+}
+
+function Test-GitInsideWorkTree {
+    param([string]$Output)
+
+    foreach ($line in ($Output -split "`r?`n")) {
+        if ($line.Trim() -eq "true") {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Get-GitReadWarning {
+    param([string]$Output)
+
+    $warnings = @()
+    foreach ($line in ($Output -split "`r?`n")) {
+        if ($line.Trim() -ne "true") {
+            $warnings += $line
+        }
+    }
+    return ($warnings | Out-String).Trim()
 }
 
 function Test-RepoModel {
@@ -133,7 +162,8 @@ function Test-RepoModel {
 
     try {
         $inside = Invoke-GitReadOnly -RepoPath $localPath -Arguments @("rev-parse", "--is-inside-work-tree")
-        if ($inside.ExitCode -ne 0) {
+        $insideWorkTree = Test-GitInsideWorkTree $inside.Output
+        if ($inside.ExitCode -ne 0 -and -not $insideWorkTree) {
             $model = "git_check_failed"
             if ($inside.Output -match "not a git repository") {
                 $model = "not_git_repo"
@@ -148,7 +178,7 @@ function Test-RepoModel {
             }
         }
 
-        if ($inside.Output -ne "true") {
+        if (-not $insideWorkTree) {
             return [pscustomobject]@{
                 Repo = $Repo.Name
                 Tier = $Repo.Tier
@@ -159,6 +189,7 @@ function Test-RepoModel {
             }
         }
 
+        $readWarning = Get-GitReadWarning $inside.Output
         $dirtyResult = Invoke-GitReadOnly -RepoPath $localPath -Arguments @("status", "--porcelain")
         $dirty = "unknown"
         if ($dirtyResult.ExitCode -eq 0) {
@@ -173,7 +204,7 @@ function Test-RepoModel {
                 Model = "submodule_based"
                 Dirty = $dirty
                 Path = $localPath
-                Note = $submoduleResult.Output
+                Note = (($submoduleResult.Output, $readWarning) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join " | "
             }
         }
 
@@ -185,7 +216,7 @@ function Test-RepoModel {
                 Model = "missing_governance_path"
                 Dirty = $dirty
                 Path = $localPath
-                Note = "path missing: $SubmodulePath"
+                Note = (("path missing: $SubmodulePath", $readWarning) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join " | "
             }
         }
 
@@ -195,7 +226,7 @@ function Test-RepoModel {
             Model = "not_submodule_based"
             Dirty = $dirty
             Path = $localPath
-            Note = "governance path exists but is not a registered submodule"
+            Note = (("governance path exists but is not a registered submodule", $readWarning) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join " | "
         }
     } catch {
         return [pscustomobject]@{
