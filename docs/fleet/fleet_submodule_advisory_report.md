@@ -13,6 +13,13 @@ handoffs by answering one narrow question first:
 Which fleet repositories are already submodule-based, and which are not?
 ```
 
+For the Phase F-7 updater contract that applies after a repo is confirmed
+`submodule_based`, see:
+
+```text
+docs/fleet/f7-governance-submodule-updater.md
+```
+
 ## Command
 
 Create a local overlay from the example:
