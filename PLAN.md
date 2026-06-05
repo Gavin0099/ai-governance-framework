@@ -1,6 +1,6 @@
 # PLAN.md - AI Governance Framework
 
-> **最後更新**: 2026-05-18
+> **最後更新**: 2026-06-02
 > **?敺??*: 2026-04-10
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
@@ -93,19 +93,85 @@ Required posture:
 
 ## Current Sprint
 
-**Sprint 狀態（2026-05-18）：Phase E PAUSE / Cross-agent temporal governance 開口識別**
+**Sprint 狀態（2026-06-02）：Canonical Memory Writer Enforcement + Fleet Plan Profile + Agent Report Format Standardization**
 
-完成項目（此輪）：
+完成項目（此輪，2026-06-02）：
+- [x] Canonical Memory Writer Enforcement Phase 1 — session_id handoff verified end-to-end (1ce4bb7); AGENTS.md + guard policy annotation + regression tests aligned
+- [x] Rule 4 Structured Report Format — AGENTS.md Rule 7 extended; copilot-instructions-template.md Rule 4 added; fixed vocabulary (PASS|FAIL|NOT RUN|NOT CLAIMED|NOT PRESENT); Cannot claim required field; 3 golden examples (3f8f91c, 0f2e3ba)
+- [x] Copilot instructions deployed to gl_electron_tool; validator confirms copilot_instructions_governed=True
+- [x] CodeBurn Copilot Real CSV Qualification Checkpoint — blocked_by: requires_github_org_billing_admin; receipt skeleton committed (0a9dbd6)
+- [x] Phase 3 post-enforcement observation sample #1 collected (33b666b); sample #2 collected (5f64264)
+- [x] Canonical Memory Writer Enforcement Phase 2 — classified 86 non_canonical_writer records into 6 buckets; all dispositions: acknowledge_no_action (c1d616e)
+- [x] Fleet Plan Profile Contract — governance/fleet/plan_profile_contract.yaml added; plan_profile assigned to all 20 fleet repos; 2 overrides: Bookstore-Scraper (minimal), SpecAuthority (governed) (91f312c)
+- [x] usb-if-hub-spec-reference registered in fleet governance scope — recommended tier, plan_profile: governed (680b7b3)
+- [x] Phase 8A Codex governance quality analysis saved — artifacts/session/codex_phase8a_governance_quality_analysis_20260602.md; 3 adjustments: baseline gap, Phase 7B risk upgrade, Tier 3/5 system (e10b3d9)
+- [x] Rule 4 language unification — Chinese session format + language rule added to AGENTS.md and copilot-instructions-template.md; deployed to usb-if-hub-spec-reference (7d20d09)
+- [x] usb-if-hub-spec-reference Rule 4 deployment — copilot-instructions.md deployed via install-hooks.sh; copilot_instructions_governed=True (7d20d09)
+- [x] CE-1B: Claim-enforcement compact receipt boundary defined — governance/CLAIM_ENFORCEMENT_EVIDENCE_POLICY.md; selected model: compact NDJSON receipt; migration pending (762d7af)
+- [x] .gitignore hygiene + .agents/skills/ tracking — extend pytest-tmp pattern, ignore artifacts/session/ + *.db + .codex/hooks.json; track Codex skill definitions analogous to .claude/skills/ (fa56821)
+- [x] Response Envelope Contract v0.1 — event-driven mode rule documented; `task_authority` and `evidence_refs` added as reporting fields; no runtime gate or evidence admissibility change
+- [x] Response Envelope Validator MVP — static structural validator added for `mode_source` / `task_authority` / `claim_ceiling` / `not_claimed` / `evidence_refs`; rejects placeholder-only evidence refs and unsupported high-risk authority wording; no semantic or runtime enforcement claim
+- [x] Response Envelope Fixture Corpus — representative markdown-like fixtures added; validator CLI pass/fail behavior covered for valid and invalid examples; no hook/runtime integration
+- [x] Response Envelope Evidence Shape Check — validator now requires each non-placeholder `evidence_refs` item to include `command` or `artifact` plus `result`; fixture coverage includes missing-result failure; no evidence relevance/truthfulness claim
+- [x] Response Envelope Batch Validation — CLI accepts explicit files/directories and emits aggregate JSON/human summaries; directory mode scans markdown fixtures only; no hook/runtime/pre-push integration
+
+等待觀察：
+- [>] Phase 3 post-enforcement observation — active; 2 canonical samples collected; watch for non_canonical_writer count trend
+- [>] Rule 4 effect observation — next gl_electron_tool Copilot Workspace session (Chinese format now deployed)
+- [>] Rule 1 DONE-definition gap — identified, deferred pending Rule 4 observation data
+- [>] Phase E PAUSE 仍有效：E2/E3 均 blocked，等待 observable trigger
+- [>] MOB Verifier：gap_confirmed workflow 明確 defer；per-MOB convention_start 明確 defer
+
+- [x] CE-1C.1: compact receipt writer — build_receipt/append_receipt/write_receipt_for_session + validate_receipt_fields; 16 tests pass; append-only NDJSON; CE-1B minimum 9 fields; no audit consumers, .gitignore, or raw session-* touched (4d49f86)
+- [x] CE-1C.2: dual-write — session_end appends compact receipt alongside raw packet; try/except-protected; 7 new tests + 44 existing session_end tests unchanged; raw-packet audit consumers not touched (7553b03)
+
+不能宣告（CE-1C.1/2）：
+- compact receipt 已成為 runtime audit 的 source of truth
+- runtime_completeness_audit.py 或 closeout_audit.py 已改讀 compact receipt
+- claim-enforcement-receipts.ndjson 已可取代 raw claim-enforcement-check.json
+- raw session-* artifacts can be ignored
+- historical raw session evidence has been migrated
+- CE-1C migration is complete
+
+- [x] CE-1C.3: compact receipt read-side validator — parse_receipts/analyse_row/detect_unreceipted_packets/validate_receipts; 21 tests; detects malformed rows, policy deviations, unreceipted packets; CE-1C.2 silent-downgrade gap now detectable (0817c04)
+
+- [x] CE-1C.4: raw packet tracking boundary — .gitignore: artifacts/claim-enforcement/session-*/ (timestamp-shaped only; checker-tests/ and receipts.ndjson not affected); policy: compact receipt = manual-promotion repo-facing evidence; raw session packet = runtime-facing; UUID dirs and historical tracked raw evidence not resolved (81a0f3d)
+
+不能宣告（CE-1C.1/2/3/4）：
+- compact receipt 已成為 audit source of truth
+- runtime_completeness_audit.py / closeout_audit.py 已改讀 compact receipt
+- claim-enforcement-receipts.ndjson 已被正式 tracked/committed
+- raw claim-enforcement evidence 已完全退出 repo-facing surface
+- UUID-shaped session dirs 已被 ignore
+- CE-1C migration is complete
+
+CE-1C 目前狀態：timestamp-shaped session output 已收斂；UUID-shaped 和歷史 tracked raw evidence 仍未解。
+
+- [x] CE-1D.1: raw claim-enforcement packet path assumption audit — read-only; confirmed single writer (session_end.py); consumer dual-read requirement; proposed new canonical runtime path: artifacts/session/claim-enforcement/ (CE-1D.1 audit only, no file changes)
+
+- [x] CE-1D.2: raw claim-enforcement packet output path relocation — session_end.py now writes raw packet to artifacts/session/claim-enforcement/<session_id>/ (gitignored runtime path); write_receipt_for_session source_packet_dir updated to new path; runtime_completeness_audit.py dual-read (new path first, legacy fallback); closeout_audit.py scans both roots; claim_enforcement_receipt_validator.py detect_unreceipted_packets accepts raw_packet_roots param (receipt root and raw packet roots separated); 13 new tests (test_ce1d2_path_relocation.py); 106 existing tests pass
+
+不能宣告（CE-1D.2）：
+- 歷史 UUID raw packet 已搬移
+- compact receipt 已成為 audit source of truth
+- old raw packet path (artifacts/claim-enforcement/<session_id>/) 已被移除
+- audit 報告已清楚區分 repo-facing/local-runtime/historical-tracked 三種 evidence 狀態
+- [x] CE-1D.3: audit evidence classification — runtime_completeness_audit 新增 claim_binding_runtime_only / claim_binding_legacy_only / claim_binding_both_paths 三分類欄位；closeout_audit._evaluate_claim_binding 新增 claim_enforcement_runtime_count / claim_enforcement_legacy_count；format_human_result 輸出三分類摘要行；13 新測試全過；62 既有相關測試無 regression
+- [x] CE-1D.4: receipt validator CLI dual-root scan — claim_enforcement_receipt_validator CLI now scans artifacts/session/claim-enforcement/ before legacy artifacts/claim-enforcement/; validate_receipts reports raw_packet_roots; library default remains legacy-only for compatibility; 3 focused tests added; no hook/gate/enforcement change
+
+不能宣告（CE-1D.4）：
+- historical UUID raw packets 已搬移或清理
+- compact receipt validator 已成為 blocking gate
+- evidence relevance/truthfulness validation
+- [x] CE-1D historical unreceipted packet inventory — read-only inventory recorded 203 validator-reported unreceipted raw packet directories: 0 under artifacts/session/claim-enforcement, 203 under legacy artifacts/claim-enforcement, with 201 from 2026-05, 1 from 2026-06-01, and 1 UUID-shaped current dirty packet. No cleanup, migration, receipt backfill, or blocking gate change.
+- repo-facing legacy artifact cleanup
+- runtime enforcement or hook policy change
+
+完成項目（舊 sprint，保留供追蹤）：
 - [x] R49.x consolidation window（6 tasks）— NULL_ONTOLOGY、Metric Interpretability Contract、Epistemic Base Assumptions、R49.2 Governance Harness v0.1
 - [x] R50 Confidence Containment Protocol（R50.1–R50.5）— 18/18 訊號存在，authority layer 無污染，containment 結構驗證完成
 - [x] Closeout Governance Layering Contract（survivorship-bias guard + negative evidence consumption guard）
-- [x] MOB Verifier v0.1 — Memory Obligation Binding 驗證工具（Hearth repo），基礎缺口偵測
-- [x] MOB Verifier v0.2 — temporal applicability gate（convention_start=2026-04-01；pre-convention 日期分類為 pre_convention 不計 gap）；regression scan 通過
-- [x] MOB batch scan（5 個歷史日期）— 主要假陽性類別識別（convention_start 邊界問題），MOB-05 為真實系統性 gap
-
-等待觀察（Phase E Pause 條件）：
-- [>] Phase E PAUSE 仍有效：E2/E3 均 blocked，等待 observable trigger
-- [>] MOB Verifier：gap_confirmed workflow 明確 defer；per-MOB convention_start 明確 defer
+- [x] MOB Verifier v0.1/v0.2 — Memory Obligation Binding 驗證工具；temporal applicability gate；MOB batch scan
 
 已完成（Phase D 以前的舊 sprint，保留供追蹤）：
 - [x] 穩定 canonical closeout、closeout audit 與 session continuity 主線
@@ -2433,3 +2499,179 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
   - cross-provider comparison/aggregation remains prohibited
   - replay stability is not provider-truthfulness evidence
 - P5 interpretation: evidence-observability slice closed; no authority promotion.
+
+## 2026-06-03 Agent Runtime Governance Profile Plan
+
+- Status: completed as documentation/profile slice.
+- Scope: Hermes-derived trust-boundary taxonomy, reviewer-facing agent runtime
+  profile schema draft, and governed coding agent runtime profile example.
+- Claim ceiling: reviewer-facing static structural description only.
+- Not claimed: Hermes integration, runtime enforcement, runtime hook routing,
+  authority correctness validation, evidence truthfulness validation, semantic
+  correctness validation, OS sandbox implementation, RBAC, or separation of
+  duty implementation.
+- Artifacts:
+  - `docs/governance/trust-boundary-taxonomy.md`
+  - `docs/governance/agent-runtime-profile.md`
+  - `examples/runtime-profiles/governed-coding-agent.yaml`
+
+## 2026-06-03 Runtime Profile Static Validator MVP
+
+- Status: completed as structural validator slice.
+- Scope: `governance_tools/runtime_profile_validator.py` checks runtime profile
+  YAML structure, required profile fields, minimum surface fields,
+  non-placeholder evidence refs, and downgrade language for high-risk runtime
+  wording.
+- Tests: `tests/test_runtime_profile_validator.py` covers valid profile,
+  missing top-level field, missing surface field, placeholder evidence,
+  missing evidence result, high-risk wording without downgrade, example profile,
+  CLI file mode, and CLI directory mode.
+- Claim ceiling: static structural validation only.
+- Not claimed: runtime enforcement, Hermes integration, authority correctness,
+  evidence truthfulness, evidence relevance, semantic correctness, OS sandbox
+  correctness, hook integration, or pre-push/pre-commit gating.
+
+## 2026-06-03 Phase RP-1 Runtime Profile Fixture Corpus
+
+- Status: completed as fixture corpus slice.
+- Scope: representative valid/invalid runtime profile YAML fixtures under
+  `tests/fixtures/runtime_profiles/`; regression coverage validates expected
+  pass/fail behavior and CLI directory-mode summary.
+- Corpus coverage:
+  - valid minimal profile
+  - valid multi-surface profile
+  - valid high-risk wording with explicit downgrade
+  - invalid missing profile authority
+  - invalid missing surface field
+  - invalid placeholder evidence
+  - invalid missing evidence result
+  - invalid high-risk runtime wording without downgrade
+- Claim ceiling: fixture-backed static validator behavior only.
+- Not claimed: schema completeness, runtime enforcement, Hermes integration,
+  hook/pre-push integration, authority correctness, evidence truthfulness,
+  evidence relevance, semantic correctness, or OS sandbox correctness.
+
+## 2026-06-03 Phase RP-2 Runtime Profile Schema Contract
+
+- Status: completed as contract documentation slice.
+- Scope: `docs/governance/runtime-profile-validator-contract.md` documents the
+  current implemented structural rule contract for
+  `governance_tools/runtime_profile_validator.py`, including accepted file
+  shape, required top-level fields, claim-boundary rules, surface-entry rules,
+  evidence-ref rules, high-risk wording downgrade rules, error codes, and
+  fixture mapping.
+- Claim ceiling: machine-readable-ish validator contract documentation for
+  current implemented rules only.
+- Not claimed: complete schema, formal JSON Schema compatibility, semantic
+  correctness, runtime enforcement, evidence truthfulness, evidence relevance,
+  authority correctness, OS sandbox correctness, Hermes integration, advisory
+  integration, hook integration, or pre-push/pre-commit gating.
+
+## 2026-06-03 Canonical Memory Writer Active-Window Sentinel
+
+- Status: completed as opt-in active-window enforcement slice.
+- Scope: `governance_tools/memory_authority_guard.py` keeps default Phase 1
+  warning behavior, but adds `--fail-on-active-non-canonical-writer` with
+  `--active-from` to fail only when `non_canonical_writer` violations appear in
+  the active window (default: 2026-06-02 and later).
+- Historical boundary: the existing 86 historical `non_canonical_writer`
+  records remain classified as historical debt / acknowledge-no-action; this
+  slice does not migrate, rewrite, reclassify, or backfill them.
+- Tests: `tests/test_memory_authority_guard.py` covers historical-only pass,
+  active-window detection, CLI nonzero exit for active violation, and CLI pass
+  for historical-only violation.
+- Claim ceiling: opt-in active-window sentinel for new non-canonical writer
+  violations only.
+- Not claimed: default hard gate, historical debt cleanup, memory semantic
+  correctness, full memory authority enforcement, closeout correctness,
+  pre-push integration, or repo-wide blocking policy change.
+
+## 2026-06-04 Fleet Submodule Advisory
+
+- [x] Phase F-1: read-only fleet submodule model verification helper added (`scripts/sync_governance_submodules.ps1`); local overlay example added; no update/enforcement behavior.
+- [x] Phase F-2: advisory usage documented for running submodule model inventory before broad cross-repo governance update prompts; no external repo update, matrix integration, hook, or enforcement claim.
+- [x] Phase F-3: read-only required-tier inventory artifact recorded from the example overlay; result shows 0 submodule_based, 3 git_check_failed, and 7 missing_local_path; no external repo update or migration claim.
+- [x] Phase F-4: ignored local overlay completeness trial recorded; required-tier missing_local_path reduced to 0, with 10 git_check_failed rows remaining; no Git permission repair, external repo update, or migration claim.
+- [x] Phase F-5: Git read-check blockers diagnosed read-only; 5 global_ignore_permission warnings appear non-fatal but currently trip strict helper output parsing, while 5 dubious_ownership rows remain real Git inspection blockers; no Git config repair or external repo update.
+- [x] Phase F-6: helper robustness fix completed for non-fatal Git warnings; required-tier inventory now advances 5 rows past worktree detection (3 not_submodule_based, 2 missing_governance_path) while 5 dubious_ownership rows remain blocked; no safe.directory repair or external repo update.
+- [x] Phase F-7: deterministic governance submodule updater MVP added (`governance_tools.external_governance_submodule_updater` + `scripts/update-governance-submodule.ps1`); supports dry-run, fetch, fast-forward, path-limited staging, optional commit, and focused fixture tests. No fleet batch update, auto-push, scaffold apply, dirty cleanup, or Copilot-specific integration claim.
+- [x] Phase F-7a: opt-in non-fast-forward detached target checkout mode added for divergent submodule pins; fast-forward remains the default, non-ff updates still fail unless explicitly allowed, and fixture tests cover refusal vs explicit checkout. No external repo update, fleet batch behavior, or default enforcement change claimed.
+- [x] Phase F-7b: Windows subprocess output decoding hardening added for the F-7 updater after Bookstore-Scraper exposed a post-commit `cp950` decode crash; `_run_git` now requests UTF-8 replacement decoding and handles empty streams. No external repo mutation or new updater mode claimed.
+- [x] Phase F-7c: framework-first F-7 usage contract documented in `docs/fleet/f7-governance-submodule-updater.md`, covering supported repo types, dry-run/apply commands, non-fast-forward opt-in, post-run checks, push boundary, troubleshooting, and claim ceiling. No external repo update or updater behavior change claimed.
+- [x] Phase F-7d: already-current/no-op behavior made explicit with fixture coverage; when the submodule already points at the target, apply mode returns `update_mode=already_current` without staging or committing. No external repo update, push behavior, or fleet batch behavior claimed.
+- [x] Phase F-7e: README/key-doc entrypoint added for the F-7 updater contract and the usage contract now documents `already_current` no-op semantics. No updater behavior change, external repo update, or fleet batch behavior claimed.
+
+## 2026-06-05 CodeBurn Codex / Claude Token Ingestion Audit
+
+- [x] Audit-only review completed for current Codex and Claude Code token ingestion surfaces. Codex admits log-visible `last_token_usage.input_tokens` / `output_tokens` as `prompt_tokens` / `completion_tokens`; Claude Code admits `message.usage.input_tokens` / `output_tokens` as `prompt_tokens` / `completion_tokens`; both intentionally keep `total_tokens` absent/NULL, preserve Class C observation-only provenance, and do not claim billing truth, efficiency inference, or cross-provider comparability. Current searched surfaces did not show Codex/Claude cross-provider token aggregation. No ingestion behavior, schema, validator, hook, summary/reporting behavior, or comparability rule changed.
+- [x] Same-provider `visible_io_token_sum` summary contract defined for future Codex-only or Claude-Code-only observation summaries. The contract requires Class C / observation-only / non-billing / non-decision / non-comparable companion semantics, keeps `total_tokens` forbidden, requires NULL-not-zero missing-field handling, forbids cache/reasoning/billing folding, and blocks cross-provider aggregation. No summary implementation, schema change, CLI/report change, validator, hook, billing truth, efficiency inference, or cross-provider comparison added.
+- [x] Same-provider `visible_io_token_sum` contract tests added. Tests check required guardrail wording, same-provider-only scope, forbidden total/cost/normalized naming, cache/reasoning/billing non-folding terms, and confirm no schema or CodeBurn phase1/phase2 Python implementation currently contains `visible_io_token_sum`. No summary implementation, schema change, report/CLI change, aggregation, billing truth, efficiency inference, or cross-provider comparison added.
+- [x] Same-provider `visible_io_token_sum` helper implemented behind focused tests. The helper reads only one requested provider (`codex` or `claude-code`), optionally filters by session_id, returns Class C observation-only companion metadata, leaves missing prompt/completion fields as NULL-derived no-sum, rejects unsupported provider scopes, and does not expose CLI/report output or change schema. No billing truth, efficiency inference, cache/reasoning/billing folding, or cross-provider aggregation added.
+- [x] Same-provider `visible_io_token_sum` future exposure contract tests added. Tests require any future payload to carry observation-only companion semantics, preserve NULL-not-zero missing-field behavior, remain JSON-serializable, omit `total_tokens`, and keep current CLI/report surfaces unexposed. No CLI/report implementation, schema change, billing truth, efficiency inference, or cross-provider comparison added.
+- [x] Same-provider `visible_io_token_sum` scoped report exposure added behind explicit `--visible-io-provider codex|claude-code`. `codeburn_report.py` now emits `visible_io_token_summary` only when requested, preserving Class C observation-only metadata, NULL-not-zero behavior, no schema change, no default report output change, no billing truth, no efficiency inference, and no cross-provider aggregation.
+- [x] Codex session display opt-in `visible_io_token_sum` added behind `CODEBURN_SHOW_VISIBLE_IO_SUM=1`. `codeburn_session_display.py` keeps default output unchanged, displays Codex-only Class C observation-only visible I/O sum when enabled, preserves NULL-not-zero missing-field behavior, and still does not claim billing truth, efficiency inference, schema change, or cross-provider comparison.
+- [x] Codex session display manual real-transcript visibility trial completed. With `CODEBURN_SHOW_VISIBLE_IO_SUM=1`, `codeburn_session_display.py --transcript <codex-jsonl> --no-db` displayed `visible_io_token_sum` on a real Codex transcript with 1246 token_count lines. This verifies manual display visibility only; Codex UI stop-hook rendering and environment inheritance remain NOT CLAIMED.
+- [x] Codex session display `visible_io_token_sum` wording localized to Chinese-friendly labels for the opt-in block (`回合數`, `輸入`, `輸出`, `可見 I/O token 加總`, `不是帳單真值`). Calculation, schema, default output, billing truth boundary, efficiency boundary, and cross-provider prohibition remain unchanged.
+
+## 2026-06-04 Copilot Memory Authority Observation Analysis
+
+- [x] Three pasted Copilot memory-authority observation responses analyzed; two classified as medium-confidence clean_canonical candidates and one as low-confidence unknown; #17 remains observe-only and not threshold-ready.
+- [x] Phase #17-B: Copilot memory-authority trend summary recorded; aggregate now has 11 usable clean_canonical samples, 1 no_memory_activity sample, 1 unknown, 0 active violations, and status remains advisory-threshold-discussion-ready while blocking remains NOT CLAIMED.
+- [x] Phase #17-C: raw observation artifact verification recorded for selected external samples. gl_electron_tool has 9 structurally raw-verified clean_canonical samples with active_non_canonical_writer.count=0; CFU has 1 verified no_memory_activity pre-memory sample and 2 partially verified post-memory canonical-evidence samples requiring pre/post-memory caveat. #17 remains observe-only and not blocking-ready.
+
+## 2026-06-04 Pending Status Correction
+
+Scope: status correction only. No validator, hook, schema, threshold, cleanup,
+migration, or runtime behavior change.
+
+Reason: recent analysis threads referenced stale pending states after RP-3a,
+#17 raw verification, and CE-1D inventory had already closed their current
+slices.
+
+| item | corrected status | next action boundary |
+| --- | --- | --- |
+| 1 Fleet v1 required verified | passive maintenance | keep current required-tier posture; do not force new fleet gate from this correction |
+| 4 Kernel-Driver-Contract agents authority | waiting for second domain-authority repo evidence | inventory only if needed; do not design a single-repo authority contract |
+| 5 CodeBurn Codex smoke harness split | waiting for schedule | candidate work item, not current mainline |
+| 6 CodeBurn Copilot gap calibration | waiting for #5 or later evidence | do not claim billing or calibration truth |
+| 8 Memory authority pattern GI-001 | waiting for second occurrence | observe; do not promote to pattern yet |
+| 9 v2 contract direction | waiting for trend data | do not design v2 from isolated cases |
+| 17 Memory Authority blocking threshold | observe-only; #17-C raw verification completed | advisory threshold discussion possible, but blocking threshold NOT CLAIMED |
+| 19 historical non_canonical_writer classification | closed as 86-record classification at c1d616e | do not reclassify or backfill unless a new scoped correction is approved |
+| 20 RP-3a Runtime Profile Reviewer Entrypoint | closed at 9fe4877 | do not repeat reviewer-entrypoint work |
+| 21 CE-1D Historical Unreceipted Packet Inventory | closed as inventory-only at 7c824fa | migration, cleanup, receipt backfill, and blocking gate remain NOT CLAIMED |
+| 22 fleet submodule sync utility | F-1 through F-6 closed; remaining work is separate | safe.directory repair, external repo update, or JSON output mode require a new scoped slice |
+| 23 CFU / gl_electron_tool governance update readiness | read-only inventory completed | both are submodule-based and behind current framework HEAD; both require dirty-state audit before any submodule pointer update |
+
+Recommended next-order after this correction:
+
+1. CE-1D advisory classification proposal for the 203 unreceipted packet
+   directories, if cleanup/migration planning is needed.
+2. More #17 raw-verified active-window samples before any blocking-threshold
+   proposal; current raw-verified sample set is useful but still small.
+3. Defer repo role resolver, governance skills registry, runtime enforcement,
+   semantic verifier, Hermes integration, OS sandbox/RBAC/SoD work until an
+   observed repeated failure justifies expansion.
+
+Claim ceiling:
+
+- CLAIMED: pending-state correction in PLAN.
+- NOT CLAIMED: new governance capability, threshold readiness, migration,
+  cleanup, hook enforcement, semantic validation, or runtime containment.
+
+## 2026-06-04 CE-1D Advisory Classification
+
+- [x] CE-1D unreceipted packet advisory classification completed for 203 validator-reported raw packet directories. Bucket A: 201 historical 2026-05 legacy session packets, proposed retain/defer unless reviewer requests archival policy. Bucket B: 1 legacy singleton `session-20260601T044502-d10b08`, proposed separate single-packet review. Bucket C: 1 UUID-shaped current dirty packet `a5938e4e-07d0-4d4f-ac04-426ec4a5564a`, proposed dirty-work audit only with explicit scope. No movement, deletion, receipt backfill, validator change, or cleanup performed.
+- [x] CE-1D Bucket B single-packet review completed for `session-20260601T044502-d10b08`; recommended disposition is `defer_as_local_runtime_only_orphan` because the raw packet is `publication_scope=local_only`, runtime summary is `DO_NOT_PROMOTE` / `memory_mode=stateless`, closeout status is `missing`, no compact receipt exists, and no memory/session-index anchor was found. No movement, deletion, receipt backfill, validator change, or cleanup performed.
+- [x] CE-1D Bucket C dirty packet audit completed for `a5938e4e-07d0-4d4f-ac04-426ec4a5564a`; recommended disposition is `defer_as_current_local_runtime_orphan_dirty_packet` because the raw packet is `publication_scope=local_only`, runtime summary is `DO_NOT_PROMOTE` / `memory_mode=stateless`, closeout status is `missing`, no compact receipt exists, no memory/session-index anchor was found, and the packet remains untracked dirty workspace state. No staging, movement, deletion, receipt backfill, validator change, or cleanup performed.
+- [x] CE-1D Bucket A advisory disposition policy completed for the 201 historical 2026-05 legacy session packets; recommended default disposition is `retain_in_place_as_historical_legacy_raw_packets`, with future archival, migration, deletion, or compact receipt backfill allowed only through a separate reviewer-approved scoped slice with false-repair guardrails. No packet movement, deletion, staging, receipt backfill, cleanup, or validator behavior change performed.
+
+## 2026-06-04 Persistent User Preference Precedence
+
+- [x] AGENTS.md documentation clarification added for durable user preference vs repo-local instruction conflicts. Agents must surface conflicts instead of silently overriding non-conflicting user preferences; repo governance may override only for safety, destructive-operation prevention, validation/evidence/claim-boundary requirements, commit/push discipline, or repo-specific correctness boundaries. No validator, hook, runtime enforcement, Copilot-specific detector, or instruction precedence engine added.
+
+## 2026-06-04 External Repo Governance Update Readiness
+
+- [x] Read-only update-readiness inventory completed for `CFU` and `gl_electron_tool`. Both repos are `submodule_based`, both point to older ai-governance-framework commits (`CFU`=`ccbb85a`, `gl_electron_tool`=`70a54b3`) while current framework HEAD is `7f816a4`, and both should use submodule pointer update after a separate dirty-state audit. No external repo modification, scaffold apply, manual sync, commit, push, validation, or submodule update performed.
+- [x] `gl_electron_tool` dirty-state audit completed for a scoped ai-governance submodule pointer update. Outer repo has 202 dirty entries (37 modified, 10 deleted, 155 untracked), but `ai-governance-framework` submodule path, `.gitmodules`, and nested framework checkout are currently clean; future update appears isolatable via path-limited staging of only `ai-governance-framework`. No external repo modification, staging, commit, push, validation, or submodule update performed.
+- [x] Non-submodule governance update classification completed for repos that failed the default F-7 path. `Bookstore-Scraper` is not scaffold/manual-sync; it is a non-default submodule candidate using `.ai-governance-framework` and F-7 dry-run passes with `-SubmodulePath .ai-governance-framework`. `cli` and `financial-pdf-reader` are `manual_sync_required` because their scaffold/nested-framework states are dirty or partial. `Enumd` is submodule-based but blocked by pre-existing staged files. No external repo modification, scaffold update, submodule conversion, commit, push, or cleanup performed.

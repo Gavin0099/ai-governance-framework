@@ -25,6 +25,7 @@ from governance_tools.decision_model_loader import build_runtime_policy_ref, fin
 from governance_tools.domain_governance_metadata import domain_risk_tier
 from governance_tools.execution_surface_coverage import build_execution_surface_coverage
 from governance_tools.claim_enforcement_checker import evaluate as evaluate_claim_enforcement
+from governance_tools.claim_enforcement_receipt_writer import write_receipt_for_session as _write_compact_receipt
 from governance_tools.memory_record import append_session_derived_entry, build_session_derived_record
 from governance_tools.runtime_phase_policy import aggregate_phase_classifications, build_phase_classification
 from governance_tools.runtime_surface_manifest import build_runtime_surface_manifest
@@ -129,15 +130,24 @@ def _emit_claim_enforcement_check(
             "override_reason": None,
         },
     }
+    # CE-1D.2: write raw packet to runtime-ignored path (artifacts/session/claim-enforcement/)
+    # so new packets never pollute the repo-facing artifacts/claim-enforcement/ root.
     output_path = (
         project_root
         / "artifacts"
+        / "session"
         / "claim-enforcement"
         / session_id
         / "claim-enforcement-check.json"
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     _write_json(output_path, payload)
+    # CE-1C.2 dual-write: append compact receipt alongside raw packet.
+    # Raw packet and existing audit consumers are unchanged.
+    try:
+        _write_compact_receipt(session_id, repo_root=project_root)
+    except Exception:  # noqa: BLE001
+        pass  # receipt write failure must not break raw packet emission
     return output_path
 
 

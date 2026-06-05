@@ -1,3 +1,4 @@
+import pytest
 import subprocess
 import sys
 from pathlib import Path
@@ -11,6 +12,7 @@ from governance_tools.release_package_summary import (
 )
 
 
+@pytest.mark.integration
 def test_release_package_summary_passes_for_current_alpha():
     result = assess_release_package(Path(".").resolve(), version="v1.0.0-alpha")
 
@@ -26,6 +28,7 @@ def test_release_package_summary_passes_for_current_alpha():
     assert any(item["name"] == "phase_gates" for item in result["commands"])
 
 
+@pytest.mark.integration
 def test_release_package_summary_human_output_is_summary_first():
     result = assess_release_package(Path(".").resolve(), version="v1.0.0-alpha")
 
@@ -40,6 +43,7 @@ def test_release_package_summary_human_output_is_summary_first():
     assert "release_readiness=python governance_tools/release_readiness.py --version v1.0.0-alpha --format human" in rendered
 
 
+@pytest.mark.integration
 def test_release_package_summary_markdown_output_is_scannable():
     result = assess_release_package(Path(".").resolve(), version="v1.0.0-alpha")
 
@@ -53,6 +57,7 @@ def test_release_package_summary_markdown_output_is_scannable():
     assert "`python governance_tools/trust_signal_publication_reader.py --project-root . --docs-status --format human`" in rendered
 
 
+@pytest.mark.integration
 def test_release_package_summary_cli_supports_direct_script_invocation():
     result = subprocess.run(
         [

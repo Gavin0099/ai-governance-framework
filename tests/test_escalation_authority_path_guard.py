@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import pytest
 from pathlib import Path
 
 from governance_tools.escalation_authority_path_guard import find_direct_write_violations, run_guard
@@ -14,6 +15,7 @@ def _tmp_dir(name: str) -> Path:
     return path
 
 
+@pytest.mark.integration
 def test_guard_current_repo_has_no_direct_write_violations():
     result = run_guard(Path(".").resolve())
     assert result["ok"] is True

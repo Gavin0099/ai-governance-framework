@@ -113,6 +113,39 @@ else
     echo "  ✅ 寫入 framework root 設定"
 fi
 
+# ── 部署 Copilot instructions ──────────────────────────────────────────────
+COPILOT_TEMPLATE="$FRAMEWORK_ROOT/governance/copilot-instructions-template.md"
+COPILOT_DST="$TARGET_REPO/.github/copilot-instructions.md"
+COPILOT_MARKER="AI Governance Framework: copilot-instructions"
+
+deploy_copilot_instructions() {
+    if [ ! -f "$COPILOT_TEMPLATE" ]; then
+        echo "⚠️  跳過 copilot-instructions（template 不存在: $COPILOT_TEMPLATE）"
+        return
+    fi
+
+    # 建立 .github/ 目錄（若不存在）
+    local github_dir
+    github_dir="$(dirname "$COPILOT_DST")"
+    if [ "$DRY_RUN" = true ]; then
+        echo "  [dry-run] 部署 .github/copilot-instructions.md → $COPILOT_DST"
+    else
+        mkdir -p "$github_dir"
+        # 若已存在且不是 governance framework 版本，備份
+        if [ -f "$COPILOT_DST" ] && ! grep -q "$COPILOT_MARKER" "$COPILOT_DST" 2>/dev/null; then
+            local backup="${COPILOT_DST}.bak.$(date +%Y%m%d_%H%M%S)"
+            cp "$COPILOT_DST" "$backup"
+            echo "  💾 備份現有 copilot-instructions → $(basename "$backup")"
+        fi
+        cp "$COPILOT_TEMPLATE" "$COPILOT_DST"
+        echo "  ✅ 部署 .github/copilot-instructions.md"
+        echo "  ℹ️  請執行: git add .github/copilot-instructions.md && git commit -m 'chore: add AI Governance Copilot instructions'"
+    fi
+    INSTALLED=$((INSTALLED + 1))
+}
+
+deploy_copilot_instructions
+
 echo ""
 if [ "$DRY_RUN" = true ]; then
     echo "[dry-run] 完成（未實際修改）"

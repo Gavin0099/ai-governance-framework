@@ -22,6 +22,23 @@ _BOOTSTRAP = _load_phase1_bootstrap_module()
 token_observability_level = _BOOTSTRAP.load_token_observability_level()
 
 
+def _load_visible_io_summary_builder():
+    module_path = (
+        Path(__file__).resolve().parent.parent
+        / "phase2"
+        / "visible_io_token_sum_summary.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "visible_io_token_sum_summary",
+        module_path,
+    )
+    if spec is None or spec.loader is None:
+        raise ImportError(f"unable to load visible I/O summary helper: {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.build_same_provider_visible_io_token_sum_summary
+
+
 def _bool_text(flag: bool) -> str:
     return "true" if flag else "false"
 
@@ -139,14 +156,29 @@ def _run_token_rows(conn: sqlite3.Connection, session_id: str, limit: int = 100)
     return result
 
 
-def build_report(db_path: Path, session_id: str | None, include_runs: bool = False, run_limit: int = 100) -> dict:
+def build_report(
+    db_path: Path,
+    session_id: str | None,
+    include_runs: bool = False,
+    run_limit: int = 100,
+    visible_io_provider: str | None = None,
+) -> dict:
     conn = sqlite3.connect(db_path)
     row = _resolve_session(conn, session_id)
     if not row:
         return {"ok": False, "error": "session_not_found"}
     metrics = _session_metrics(conn, str(row["session_id"]))
     run_rows = _run_token_rows(conn, str(row["session_id"]), limit=run_limit) if include_runs else []
-    return {
+    visible_io_summary = None
+    if visible_io_provider is not None:
+        build_visible_io_summary = _load_visible_io_summary_builder()
+        visible_io_summary = build_visible_io_summary(
+            conn,
+            provider=visible_io_provider,
+            session_id=str(row["session_id"]),
+        )
+
+    report = {
         "ok": True,
         "phase": "phase1",
         "status": "closed",
@@ -185,6 +217,10 @@ def build_report(db_path: Path, session_id: str | None, include_runs: bool = Fal
             "manual_reported_usage_present",
         ],
     }
+    if visible_io_summary is not None:
+        report["visible_io_token_summary"] = visible_io_summary
+        report["non_authoritative_fields"].append("visible_io_token_summary")
+    return report
 
 
 def _print_text(report: dict) -> None:
@@ -204,6 +240,19 @@ def _print_text(report: dict) -> None:
     )
     if report["provenance_warning"] != "none":
         print(f"Provenance warning: {report['provenance_warning']}")
+    visible_io_summary = report.get("visible_io_token_summary")
+    if visible_io_summary is not None:
+        print("Visible I/O token sum:")
+        print(f"  provider={visible_io_summary['provider']}")
+        print(f"  value={visible_io_summary['visible_io_token_sum']}")
+        print(f"  evidence_class={visible_io_summary['evidence_class']}")
+        print(
+            "  authority="
+            f"{visible_io_summary['visible_io_token_sum_authority']} "
+            "(not billing truth, not cross-provider comparable)"
+        )
+        if visible_io_summary["missing_field_reason"] is not None:
+            print(f"  missing_field_reason={visible_io_summary['missing_field_reason']}")
     print(report["non_authoritative_notice"])
     print("File activity: git-visible only")
     print("File reads: unsupported")
@@ -229,6 +278,15 @@ def main() -> int:
     parser.add_argument("--format", choices=["text", "json"], default="text")
     parser.add_argument("--show-runs", action="store_true")
     parser.add_argument("--run-limit", type=int, default=100)
+    parser.add_argument(
+        "--visible-io-provider",
+        choices=["codex", "claude-code"],
+        default=None,
+        help=(
+            "Opt-in same-provider visible I/O token sum disclosure. "
+            "Observation-only; not billing truth or cross-provider comparable."
+        ),
+    )
     args = parser.parse_args()
 
     report = build_report(
@@ -236,6 +294,7 @@ def main() -> int:
         args.session_id,
         include_runs=args.show_runs,
         run_limit=args.run_limit,
+        visible_io_provider=args.visible_io_provider,
     )
     if not report.get("ok"):
         print(json.dumps(report, ensure_ascii=False, indent=2))

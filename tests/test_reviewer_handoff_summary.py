@@ -1,3 +1,4 @@
+import pytest
 import subprocess
 import sys
 from pathlib import Path
@@ -16,6 +17,7 @@ from governance_tools.reviewer_handoff_summary import (
 )
 
 
+@pytest.mark.integration
 def test_reviewer_handoff_summary_passes_for_current_alpha():
     project_root = Path(".").resolve()
     contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
@@ -62,6 +64,7 @@ def test_reviewer_handoff_summary_can_read_release_bundle_and_publication(tmp_pa
     assert result["release_surface"]["publication_manifest"]["source"] == "explicit"
 
 
+@pytest.mark.integration
 def test_reviewer_handoff_summary_human_and_markdown_outputs_are_summary_first():
     project_root = Path(".").resolve()
     contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"
@@ -165,6 +168,7 @@ def test_reviewer_handoff_summary_surfaces_external_fact_states():
     assert "/tmp/kernel-driver-contract: status=drifted | artifact_exists=True | artifact_drift=True | source=02_project_facts.md" in rendered_markdown
 
 
+@pytest.mark.integration
 def test_reviewer_handoff_summary_cli_supports_direct_script_invocation(tmp_path):
     project_root = Path(".").resolve()
     contract_file = project_root / "examples" / "usb-hub-contract" / "contract.yaml"

@@ -172,6 +172,58 @@ Boundary remains unchanged:
 
 ---
 
+## Phase 2 Codex / Claude Token Observation Boundary
+
+Current Codex and Claude Code ingestion is Class C, post-hoc, log-visible
+observation only.
+
+Reviewer entrypoints:
+
+- `phase2/CODEBURN_CODEX_CLAUDE_TOKEN_INGESTION_AUDIT_2026-06-05.md`
+- `phase2/CODEBURN_SAME_PROVIDER_VISIBLE_IO_TOKEN_SUM_CONTRACT_2026-06-05.md`
+
+Safe future summary name:
+
+```text
+visible_io_token_sum
+```
+
+Do not call this `total_tokens`. It is not billing truth, not efficiency
+evidence, and not cross-provider comparable.
+
+Opt-in same-provider report exposure:
+
+```powershell
+python codeburn/phase1/codeburn_report.py --db <db> --session-id <session> --format json --visible-io-provider codex
+python codeburn/phase1/codeburn_report.py --db <db> --session-id <session> --format json --visible-io-provider claude-code
+```
+
+The output appears under `visible_io_token_summary` only when requested. It is
+Class C observation-only metadata, not default report output and not a
+cross-provider comparison surface.
+
+Opt-in Codex session display exposure:
+
+```powershell
+$env:CODEBURN_SHOW_VISIBLE_IO_SUM = "1"
+python codeburn/phase1/codeburn_session_display.py --transcript <codex-session.jsonl>
+```
+
+The display line is Codex-only, Class C observation-only, and preserves
+NULL-not-zero behavior when prompt or completion tokens are missing.
+
+Expected visible line shape:
+
+```text
+回合數: <n>
+輸入: <n> tokens (重建值)
+輸出: <n> tokens (重建值)
+可見 I/O token 加總: <n> | Class C 觀測值
+不是帳單真值 | 不是效率指標 | 不可跨 provider 比較
+```
+
+---
+
 ## Phase 3 — Deliberately Prohibited (as of 2026-04-27)
 
 Phase 3 (Trigger Design: dynamic threshold, trend_direction, cross-repo correlation) is

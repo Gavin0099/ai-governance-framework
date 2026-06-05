@@ -1,0 +1,60 @@
+date,seq,credits,model,repo,task_class,context_signal,session_continuation,changed_files,artifact_count,build_or_test,commit_or_push,compacted,outcome,notes,is_formal_test_run
+2026-06-01,1,41.8,GPT-5.3-Codex,ai-governance-framework,closeout_or_checkpoint,governance_closeout_memory,unknown,unknown,unknown,no,no,no,done,closeout and memory authority context,no
+2026-06-01,2,10.0,GPT-5.3-Codex,ai-governance-framework,docs_governance,AGENTS_done_boundary,continuation,AGENTS.md,0,no,no,no,done,token-aware DONE boundary discussion,no
+2026-06-01,3,23.4,GPT-5.3-Codex,ai-governance-framework,docs_governance,AGENTS_edit_build_context,continuation,AGENTS.md,0,mentioned,no,no,done,AGENTS.md edit with build context mentioned,no
+2026-06-01,4,22.0,GPT-5.3-Codex,ai-governance-framework,commit_push,AGENTS_commit_checkpoint,continuation,AGENTS.md,0,no,commit,no,done,path-limited AGENTS.md commit,no
+2026-06-01,5,152.8,GPT-5.3-Codex,gl_electron_tool,driver_diagnostic,cross_layer_driver_preflight_analysis,new_or_unknown,unknown,unknown,no,no,no,analysis_done,Electron Avalonia driver preflight cross-layer analysis,no
+2026-06-01,6,24.1,GPT-5.3-Codex,gl_electron_tool,docs_governance,preflight_contract_planning,continuation,docs_and_service_context,1,no,commit_mentioned,no,planned,Slice 1 contract and reason-code planning,no
+2026-06-01,7,108.8,GPT-5.3-Codex,gl_electron_tool,implementation_multi_layer,service_tests_contract,continuation,firmwareUpdateService.js;firmwareUpdateService.test.js;contract_docs,2,npm_test,no,yes,done,Slice 1 Electron gate implementation with tests and evidence,yes
+2026-06-01,8,60.8,GPT-5.3-Codex,gl_electron_tool,qualification_readiness,production_default_review,continuation,service_and_tests,unknown,no,no,no,review_done,production default and probe/driver behavior review,no
+2026-06-01,9,98.5,GPT-5.3-Codex,gl_electron_tool,implementation_multi_layer,service_build_governance,continuation,multi_file,unknown,build_mentioned,no,no,done,additional Slice implementation and build/governance context,yes
+2026-06-01,10,1.9,GPT-5.3-Codex,gl_electron_tool,closeout_or_checkpoint,small_commit_checkpoint,continuation,governance_fixture,unknown,no,commit,no,done,very small checkpoint,no
+2026-06-01,11,156.3,GPT-5.3-Codex,gl_electron_tool,qualification_readiness,compacted_broader_qualification,continuation,multi_file_governance,unknown,build_mentioned,commit,yes,done,compacted conversation with broader qualification and memory context,unknown
+2026-06-01,12,64.4,GPT-5.3-Codex,gl_electron_tool,implementation_multi_layer,test_build_closeout_push,continuation,multi_file,unknown,npm_test_and_build,commit_push,no,done,implementation with tests build closeout and push context,yes
+2026-06-01,13,73.4,GPT-5.3-Codex,gl_electron_tool,artifact_generation,preflight_decision_artifacts,continuation,json_contracts,2,no,commit_push,no,done,decision artifacts and preflight contract linkage,no
+2026-06-01,14,37.3,GPT-5.3-Codex,gl_electron_tool,qualification_readiness,driver_gate_review,continuation,multi_file,unknown,build_mentioned,commit_push,no,done,driver gate status and scoped commit review,unknown
+2026-06-01,15,112.0,GPT-5.3-Codex,gl_electron_tool,state_reconstruction,compacted_slice2_context,continuation,Avalonia_driver_context,unknown,build_mentioned,no,yes,analysis_done,compacted conversation reconstructing Slice 2 context,unknown
+2026-06-01,16,24.1,GPT-5.3-Codex,gl_electron_tool,artifact_generation,runtime_contract_artifact,continuation,json_contract,1,no,commit_mentioned,no,done,BQF or runtime contract artifact generation,no
+2026-06-01,17,56.6,GPT-5.3-Codex,gl_electron_tool,artifact_generation,readiness_runtime_artifacts,continuation,json_docs,2,no,commit,no,done,readiness/runtime artifact generation,no
+2026-06-01,18,52.8,GPT-5.3-Codex,gl_electron_tool,commit_push,artifact_commit_push,continuation,json_docs,2,no,commit_push,no,done,artifact commit and push context,no
+2026-06-01,19,39.3,GPT-5.3-Codex,gl_electron_tool,implementation_single_slice,edited_build_governance,continuation,unknown,unknown,build_mentioned,commit_push,no,done,scoped edit with build and governance context,unknown
+2026-06-01,20,6.6,GPT-5.3-Codex,gl_electron_tool,closeout_or_checkpoint,small_status_update,continuation,json,unknown,no,commit_push,no,done,small checkpoint,no
+2026-06-01,21,28.5,GPT-5.3-Codex,gl_electron_tool,qualification_readiness,BQF_fixture_contract,continuation,json_fixture,1,no,commit_push,no,done,BQF fixture contract state,no
+2026-06-01,22,38.2,GPT-5.3-Codex,gl_electron_tool,artifact_generation,BQF_decision_contracts,continuation,json_md_fixture,2,no,commit_push,no,done,broader qualification decision contracts,no
+2026-06-01,23,25.9,GPT-5.3-Codex,gl_electron_tool,artifact_generation,BQF002_contracts,continuation,json_md_fixture,2,no,commit_push,no,done,BQF-002 fixture requirement contract,no
+2026-06-01,24,25.6,GPT-5.3-Codex,gl_electron_tool,artifact_generation,readiness_gate_contract,continuation,json_md,2,no,commit_push,no,done,broader qualification rerun readiness gate,no
+2026-06-01,25,30.7,GPT-5.3-Codex,gl_electron_tool,artifact_generation,readiness_blocker_acceptance,continuation,json_md,2,no,commit_push,no,done,readiness blocker acceptance artifact,no
+2026-06-01,26,29.0,GPT-5.3-Codex,gl_electron_tool,commit_push,quarantine_push_unblocked,continuation,json,1,no,commit_push,no,done,quarantine accepted and push unblocked,no
+2026-06-01,27,37.8,GPT-5.3-Codex,gl_electron_tool,artifact_generation,freeze_summary_push_deferral,continuation,json_md,2,no,commit_push,no,done,freeze summary and push deferral record,no
+2026-06-01,28,5.1,GPT-5.3-Codex,gl_electron_tool,closeout_or_checkpoint,freeze_summary_status,continuation,json_md,2,no,no,no,done,short status checkpoint,no
+2026-06-01,29,15.8,GPT-5.3-Codex,gl_electron_tool,build_test_loop,packaged_build_status,continuation,dist_artifacts,unknown,build_mentioned,push_mentioned,no,done,packaged build status and driver context,yes
+2026-06-01,30,20.9,GPT-5.3-Codex,gl_electron_tool,build_test_loop,Avalonia_publish,continuation,publish_outputs,unknown,build_publish,no,no,done,Avalonia publish output summary,yes
+2026-06-01,31,31.6,GPT-5.3-Codex,gl_electron_tool,state_reconstruction,compacted_live_binary_context,continuation,unknown,unknown,no,no,yes,analysis_done,compacted live-binary smoke context reconstruction,unknown
+2026-06-01,32,47.8,GPT-5.3-Codex,gl_electron_tool,driver_diagnostic,live_binary_raw2_diagnostic,continuation,diagnostic_logs,1,script_run,no,no,done,live binary raw=2 diagnostic evidence,no
+2026-06-02,1,51.5,GPT-5.3-Codex,gl_electron_tool,driver_diagnostic,live_binary_raw2_slice,continuation,diagnostic_json,1,script_or_probe,no,no,done,raw=2 diagnostic slice with driver and runtime context,no
+2026-06-02,2,18.9,GPT-5.3-Codex,gl_electron_tool,driver_diagnostic,raw2_profile_followup,continuation,unknown,unknown,no,no,no,analysis_done,raw=2 profile follow-up,no
+2026-06-02,3,32.8,GPT-5.3-Codex,gl_electron_tool,artifact_generation,raw2_json_failure_classification,continuation,json,1,no,no,no,done,raw=2 JSON failure classification,no
+2026-06-02,4,34.4,GPT-5.3-Codex,gl_electron_tool,driver_diagnostic,raw2_runtime_profile,continuation,json_profile,1,no,no,no,done,raw=2 runtime/profile diagnostic context,no
+2026-06-02,5,100.8,GPT-5.3-Codex,gl_electron_tool,implementation_multi_layer,Avalonia_Electron_driver_build,continuation,multi_file,unknown,build_mentioned,no,no,done,cross-layer implementation/build context,yes
+2026-06-02,6,45.4,GPT-5.3-Codex,gl_electron_tool,implementation_single_slice,Avalonia_driver_preflight_build,continuation,unknown,unknown,build_mentioned,no,no,done,Avalonia driver preflight edit/build context,yes
+2026-06-02,7,51.5,GPT-5.3-Codex,gl_electron_tool,build_test_loop,driver_preflight_build_raw2,continuation,unknown,unknown,build_mentioned,no,no,done,build/test loop with raw=2 driver context,yes
+2026-06-02,8,52.7,GPT-5.3-Codex,gl_electron_tool,build_test_loop,Avalonia_driver_build,continuation,unknown,unknown,build_mentioned,no,no,done,Avalonia driver build loop,yes
+2026-06-02,9,32.0,GPT-5.3-Codex,gl_electron_tool,build_test_loop,Avalonia_driver_build,continuation,unknown,unknown,build_mentioned,no,no,done,Avalonia driver build status,yes
+2026-06-02,10,58.1,GPT-5.3-Codex,gl_electron_tool,build_test_loop,Avalonia_driver_build,continuation,unknown,unknown,build_mentioned,no,no,done,Avalonia driver build/test loop,yes
+2026-06-03,1,47.0,GPT-5.3-Codex,gl_electron_tool,state_reconstruction,driver_preflight_memory_runtime,new_or_unknown,unknown,unknown,no,no,no,analysis_done,driver preflight memory/runtime context,no
+2026-06-03,2,15.6,GPT-5.3-Codex,gl_electron_tool,driver_diagnostic,Electron_driver_json_failure,continuation,json,1,no,no,no,analysis_done,Electron driver failure JSON context,no
+2026-06-03,3,147.7,GPT-5.3-Codex,gl_electron_tool,state_reconstruction,compacted_build_driver_governance,continuation,unknown,unknown,build_mentioned,no,yes,analysis_done,compacted conversation with build driver governance context,unknown
+2026-06-03,4,22.5,GPT-5.3-Codex,gl_electron_tool,driver_diagnostic,Avalonia_status,continuation,unknown,unknown,no,no,no,analysis_done,Avalonia status analysis,no
+2026-06-03,5,15.6,GPT-5.3-Codex,gl_electron_tool,build_test_loop,Avalonia_driver_build,continuation,unknown,unknown,build_mentioned,no,no,done,Avalonia driver build status,yes
+2026-06-03,6,15.9,GPT-5.3-Codex,gl_electron_tool,build_test_loop,Avalonia_driver_build,continuation,unknown,unknown,build_mentioned,no,no,done,Avalonia driver build status,yes
+2026-06-03,7,42.1,GPT-5.3-Codex,gl_electron_tool,driver_diagnostic,Avalonia_driver_failure,continuation,unknown,unknown,no,no,no,analysis_done,Avalonia driver failure analysis,no
+2026-06-03,8,63.0,GPT-5.3-Codex,gl_electron_tool,build_test_loop,Avalonia_driver_preflight_build,continuation,unknown,unknown,build_mentioned,no,no,done,Avalonia driver preflight build loop,yes
+2026-06-03,9,60.4,GPT-5.3-Codex,gl_electron_tool,build_test_loop,Avalonia_driver_preflight_build,continuation,unknown,unknown,build_mentioned,no,no,done,Avalonia driver preflight build loop,yes
+2026-06-03,10,42.5,GPT-5.3-Codex,gl_electron_tool,implementation_single_slice,edited_Avalonia_Electron_driver_build,continuation,unknown,unknown,build_mentioned,no,no,done,edited cross-layer build context,yes
+2026-06-03,11,30.6,GPT-5.3-Codex,gl_electron_tool,build_test_loop,raw2_driver_build,continuation,unknown,unknown,build_mentioned,no,no,done,raw=2 driver build context,yes
+2026-06-03,12,26.6,GPT-5.3-Codex,gl_electron_tool,build_test_loop,Avalonia_driver_build,continuation,unknown,unknown,build_mentioned,no,no,done,Avalonia driver build context,yes
+2026-06-03,13,32.5,GPT-5.3-Codex,gl_electron_tool,build_test_loop,Avalonia_Electron_driver_preflight_build,continuation,unknown,unknown,build_mentioned,no,no,done,Avalonia Electron driver build context,yes
+2026-06-03,14,28.1,GPT-5.3-Codex,gl_electron_tool,build_test_loop,Avalonia_driver_build,continuation,unknown,unknown,build_mentioned,no,no,done,Avalonia driver build context,yes
+2026-06-03,15,19.0,GPT-5.3-Codex,gl_electron_tool,build_test_loop,Avalonia_runtime_failure,continuation,unknown,unknown,build_mentioned,no,no,done,Avalonia runtime/build failure context,yes
+2026-06-03,16,23.0,GPT-5.3-Codex,gl_electron_tool,build_test_loop,Avalonia_driver_preflight_build,continuation,unknown,unknown,build_mentioned,no,no,done,Avalonia driver preflight build context,yes
+2026-06-03,17,54.8,GPT-5.3-Codex,gl_electron_tool,build_test_loop,Avalonia_preflight_build,continuation,unknown,unknown,build_mentioned,no,no,done,Avalonia preflight build context,yes

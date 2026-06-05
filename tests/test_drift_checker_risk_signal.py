@@ -57,7 +57,7 @@ def _make_minimal_governed_repo(root: Path, *, name: str = "test-repo") -> None:
     _write(root / "AGENTS.md", "# Agents\n\nSome real content here.\n")
     _write(
         root / "PLAN.md",
-        "> **最後更新**: 2026-03-24\n> **Owner**: test\n> **Freshness**: Monthly (30d)\n",
+        "> **最後更新**: 2026-06-01\n> **Owner**: test\n> **Freshness**: Stable (365d)\n",
     )
 
 

@@ -1,0 +1,31 @@
+profile_id: valid-multi-surface-agent
+profile_version: 0.1
+profile_authority: reviewer_draft
+claim_ceiling:
+  - static structural description only
+  - reviewer-facing profile only
+not_claimed:
+  - runtime enforcement
+  - Hermes integration
+  - evidence truthfulness validation
+  - semantic correctness validation
+surfaces:
+  - id: memory
+    type: persistent_instruction_surface
+    boundary_class: in_process_heuristic
+    max_side_effect: future_instruction_influence
+    controls:
+      - canonical writer policy
+    control_claim_ceiling: structural provenance only; not trusted policy truth
+  - id: plugins
+    type: execution_surface
+    boundary_class: load_bearing_boundary_required
+    max_side_effect: external_api_side_effect
+    controls:
+      - approval UX
+    control_claim_ceiling: approval UX is heuristic unless backed by OS isolation
+evidence_refs:
+  - artifact: docs/governance/trust-boundary-taxonomy.md
+    result: PASS
+  - artifact: docs/governance/agent-runtime-profile.md
+    result: PASS

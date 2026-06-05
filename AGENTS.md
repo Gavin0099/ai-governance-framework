@@ -71,6 +71,29 @@ If the user does not provide DONE, propose one measurable product outcome and wa
 If the user gives an explicit bounded execution directive (for example: "proceed", "continue", "do not add features, only converge"), treat that as execution authorization within the stated boundary and do not ask for redundant confirmation.
 Ask again only when scope expands, enforcement semantics change, schema/runtime behavior changes, or irreversible/destructive risk is introduced.
 
+#### Ambiguous Continuation Is Audit-First
+
+Ambiguous continuation commands are not bounded execution directives by themselves.
+
+Examples include:
+
+- continue
+- proceed
+- keep going
+- 繼續
+- 往下做
+- 再做下一步
+
+If no next-slice boundary was already approved, the agent must default to audit-first behavior:
+
+- inspect the current state;
+- identify the last committed / validated scope;
+- propose the next narrow slice;
+- list the intended scope, allowed files, non-goals, validation, commit/push intent, and non-claims;
+- do not edit files until the user confirms the proposed slice.
+
+If a next-slice boundary was already explicitly approved, the agent may execute that bounded slice without repeating the proposal.
+
 Format:
 
 `DONE = <one measurable product outcome>`
@@ -83,20 +106,194 @@ When DONE is achieved, stop.
 
 Do not add extra telemetry, readiness, qualification, runtime hooks, artifacts, or governance work unless there is an observed failure.
 
-### 5. Result-First Final Report (reporting convention, not a gate)
+Do not automatically continue into: full regression, broad smoke validation, closeout execution, status/rollup updates, unrelated cleanup, commit, push, or inspection of unrelated dirty/untracked files.
+
+If additional work appears useful, report it as next options only.
+
+### 5. Scope-Matched Validation
+
+Validation must match the changed scope. Run targeted validation first.
+
+Do not upgrade to full regression, broad smoke, or closeout unless the DONE definition explicitly requires it or the user explicitly requests it.
+
+Examples: markdown-only changes do not require runtime tests; a single helper change runs its directly related test file; full regression is a release gate, not a default task gate.
+
+### 6. Dirty Tree Allowlist
+
+When the working tree is dirty, produce a concise `git status` summary only.
+
+Do not inspect, read, explain, stage, or modify unrelated dirty or untracked files.
+
+Stage only the explicit allowlist provided by the user or required by the DONE scope.
+
+#### Dirty Work Must Not Be Reported as Overall DONE
+
+If local workspace changes remain after the claimed work, the agent must not report the overall task as DONE.
+
+The agent may only claim DONE for the committed and validated scope.
+
+Required wording pattern:
+
+```text
+Committed scope: DONE
+Workspace state: NOT CLEAN
+Overall task: NOT DONE until dirty work is audited or explicitly excluded
+```
+
+This applies when any of the following remain after the claimed work:
+
+- unstaged changes;
+- staged but uncommitted changes;
+- untracked files;
+- generated local diff without commit checkpoint;
+- failed or unavailable commit / push tooling;
+- auto-review changes that were not committed.
+
+When dirty work exists, the agent must:
+
+- run `git status --short`;
+- identify whether dirty files are in the claimed scope, unrelated, or unknown;
+- inspect only files in the claimed scope or user-approved allowlist;
+- summarize scoped diff only when inspection is allowed;
+- run scoped validation only for in-scope changes;
+- provide commit-preflight review only if commit is requested.
+
+The agent must not read, stage, summarize, or validate unrelated dirty files unless the user explicitly approves that scope.
+
+### 7. Result-First Final Report (reporting convention, not a gate)
 
 Final reports should be result-first, not process-first.
 
-Use this format:
+Event-driven response envelope:
+- When using a `mode` field, follow `governance/RESPONSE_ENVELOPE_CONTRACT.md`.
+- `mode` must be event-derived, not agent-selected.
+- `mode_source`, `task_authority`, `scope`, `done`, `not_claimed`, `evidence_refs`, and `risk` must remain separate fields.
+- `task_authority` distinguishes authorized work from autonomous expansion.
+- `evidence_refs` records commands, artifacts, or reviewer sources supporting the DONE claim; it does not upgrade semantic authority.
+- Do not replace claim ceiling or risk disclosure with confidence scores, effort estimates, or broad impact analysis.
+
+Vocabulary:
+- `NOT PRESENT` = the mechanism, artifact, or enforcement does not exist
+- `NOT CLAIMED` = the capability or conclusion is not being asserted this session
+- `PASS` = must always include `— <command or source>`; bare `PASS` is not valid
+
+**Language rule:** Content language must match the session language. Sub-field labels (`structural`, `build`, `semantic`, `behavioral`, `ext evidence`, `scope drift`, `claim inflation`, `evidence maturity`) and fixed vocabulary tokens (`PASS`, `FAIL`, `NOT RUN`, `NOT CLAIMED`, `NOT PRESENT`) remain in English. Section headers (Result / Validation / Risk / Cannot claim) may be translated.
+
+Use this format (English session):
 
 1. Result: Done / Not done
 2. Capability increased:
 3. Changed files:
 4. Validation:
-5. Governance surface change: none / list
-6. Remaining blocker:
+   - structural:    PASS — <command> | FAIL — <command> | NOT RUN
+   - build:         PASS — <command> | FAIL — <command> | NOT RUN
+   - semantic:      NOT CLAIMED | PASS — human review: [reviewer/date]
+   - behavioral:    NOT PRESENT | verified — [how]
+   - ext evidence:  NOT PRESENT | [source and scope]
+5. Risk:
+   - scope drift:        none | [description]
+   - claim inflation:    none | [description]
+   - evidence maturity:  [one line]
+6. Incidental cleanup:   none | file=[path] reason=[why] semantic_change=no
+7. Governance surface change: none / list
+8. Remaining blocker:
+9. Cannot claim this session:
+   - [list what was NOT validated, NOT verified, NOT proven — required, never omit]
 
-### 6. Commit Checkpoint (reporting convention, not a gate)
+Chinese session format:
+
+1. 結果：完成 / 未完成
+2. 能力提升：
+3. 變更檔案：
+4. 驗證：
+   - structural:    PASS — <指令> | FAIL — <指令> | NOT RUN
+   - build:         PASS — <指令> | FAIL — <指令> | NOT RUN
+   - semantic:      NOT CLAIMED | PASS — 人工審查：[審查者/日期]
+   - behavioral:    NOT PRESENT | 已驗證 — [如何]
+   - ext evidence:  NOT PRESENT | [來源與範圍]
+5. 風險：
+   - scope drift:        none | [說明]
+   - claim inflation:    none | [說明]
+   - evidence maturity:  [一行說明]
+6. 附帶清理：   none | file=[路徑] reason=[原因] semantic_change=no
+7. Governance surface 變更：none / 列舉
+8. 剩餘阻擋：
+9. 本次無法宣告：
+   - [列出未驗證、未確認、未證明的項目 — 必填，不得省略]
+
+Golden examples:
+
+**Schema-only change (markdown, no runtime):**
+```
+1. Result: Done
+2. Capability increased: section_refs schema extended
+3. Changed files: wiki/port-status.md
+4. Validation:
+   - structural:    PASS — grep section_refs wiki/port-status.md
+   - build:         NOT RUN — markdown-only change
+   - semantic:      NOT CLAIMED
+   - behavioral:    NOT PRESENT
+   - ext evidence:  NOT PRESENT
+5. Risk:
+   - scope drift:        none
+   - claim inflation:    none
+   - evidence maturity:  structural layer only; no semantic verification
+6. Incidental cleanup:   none
+7. Governance surface change: none
+8. Remaining blocker:     none
+9. Cannot claim this session:
+   - semantic correctness of section references
+   - PDF-level content verification
+```
+
+**Pilot attachment change (build pass, no semantic verification):**
+```
+1. Result: Done
+2. Capability increased: 4 port entries have section_refs attached
+3. Changed files: wiki/port-status.md, wiki/zh/port-status.md
+4. Validation:
+   - structural:    PASS — validate_wiki_frontmatter (exit 0)
+   - build:         PASS — npm run build (exit 0)
+   - semantic:      NOT CLAIMED
+   - behavioral:    NOT PRESENT
+   - ext evidence:  NOT PRESENT
+5. Risk:
+   - scope drift:        none — pilot limited to 4 existing entries
+   - claim inflation:    none — claim_level unchanged (inferred)
+   - evidence maturity:  build-verified only; high-risk coverage below original plan
+6. Incidental cleanup:   none
+7. Governance surface change: none
+8. Remaining blocker:     PORT_OVER_CURRENT not in pilot — high-risk coverage gap
+9. Cannot claim this session:
+   - bit-level semantic verification of attached spec sections
+   - high-risk boundary condition coverage (PORT_OVER_CURRENT not in pilot)
+   - verified status upgrade
+```
+
+**Failed / partial validation:**
+```
+1. Result: Not done — build failed
+2. Capability increased: none
+3. Changed files: wiki/port-status.md (uncommitted)
+4. Validation:
+   - structural:    PASS — validate_wiki_frontmatter (exit 0)
+   - build:         FAIL — npm run build (exit 1, error above)
+   - semantic:      NOT CLAIMED
+   - behavioral:    NOT PRESENT
+   - ext evidence:  NOT PRESENT
+5. Risk:
+   - scope drift:        none
+   - claim inflation:    none — task not complete
+   - evidence maturity:  build failure; no completion evidence
+6. Incidental cleanup:   none
+7. Governance surface change: none
+8. Remaining blocker:     build error must be resolved before commit
+9. Cannot claim this session:
+   - task complete
+   - any validation above build layer
+```
+
+### 8. Commit Checkpoint (reporting convention, not a gate)
 
 After each implementation commit, report the following before continuing.
 This is an automatic checkpoint — not a mandatory pause.
@@ -164,6 +361,37 @@ If this file and `governance/AGENT.md` appear to overlap:
 - use `governance/AGENT.md` for repo engineering governance
 - if editor/adapter/workspace instructions conflict with repo-local governance on execution rigor, risk gates, or task classification, `governance/` wins for repo work and the mismatch should be corrected instead of silently improvised
 
+### Persistent User Preference Precedence
+
+Repo-local instructions may define task execution, validation, memory, and
+governance behavior for this repository. They must not silently override durable
+user preferences or tool-level permanent instructions when those preferences do
+not conflict with repo safety or correctness.
+
+If a repo instruction conflicts with a durable user preference, the agent must
+surface the conflict and state which instruction is being followed and why.
+
+Repo governance may override a durable user preference only for:
+- safety;
+- destructive operation prevention;
+- validation, evidence, or claim-boundary requirements;
+- commit / push discipline;
+- repository-specific correctness boundaries.
+
+Repo governance must not override a durable user preference for:
+- language preference;
+- communication style;
+- response verbosity;
+- non-conflicting workflow preferences;
+- personal naming or formatting preferences.
+
+When uncertain, report:
+
+```text
+Instruction conflict detected: <repo instruction> vs <persistent user preference>.
+Following <source> because <reason>.
+```
+
 ## Nested Repo / Submodule Rule
 
 When this repository is opened inside another repository as a nested checkout or
@@ -224,16 +452,38 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
     --next-step "..." \
     --project-root .
   ```
-- Manual / AI direct markdown append is allowed, but **MUST NOT include `memory_type: session-derived`**. Use plain `- what_changed:` format instead.
+- **All new memory entries MUST use the canonical writer CLI.** Direct markdown append (`- what changed:` or `- what_changed:` format) is PROHIBITED for new entries. The guard flags direct-format entries in files dated >= 2026-05-01 as `old_format_entry_after_canonical_writer_cutoff`.
 - `session_id` = the Claude Code session UUID (visible in receipt artifacts under `artifacts/runtime/closeout-receipts/`).
 - Violation: `non_canonical_writer` warning in `memory_authority_guard`. 76 historical violations exist pre-2026-05-30; do not backfill. Prevent new ones going forward.
 
 ### Post-Push Memory Protocol (Cross-Repo)
 - After every push in a main session, append one short entry to `memory/YYYY-MM-DD.md`
 - Keep the entry compact and structured: `what changed`, `commit hash`, `test evidence`, `next step`
-- Use plain `- what_changed:` format (not `memory_type: session-derived`) unless writing via `memory_record` CLI.
+- Use the canonical writer CLI for all new entries. **Never write `- what changed:` or `- what_changed:` format directly** — this generates `non_canonical_writer` violations in the guard.
 - If the push introduced a durable workflow preference, also update `memory/00_long_term.md`
 - This protocol is portable: apply the same pattern in other repos with a local `memory/` directory
+
+#### Memory State Trace Consistency
+
+Memory entries must not mix completed and pending state.
+
+`next_step` must describe the next unfinished action, not repeat an action already recorded as completed in the same memory entry.
+
+If a `commit` or `commit_hash` is recorded, commit state for that scope must be treated as completed unless the entry explicitly marks the commit as failed, local-only, or not pushed.
+
+If push status is unknown, write `verify remote push state` instead of `commit and push`.
+
+If push is confirmed, `next_step` must name the next unfinished slice rather than repeat commit or push for the completed scope.
+
+When correcting ambiguous historical memory state, prefer adding a new canonical corrective memory entry over rewriting historical entries.
+
+#### Memory State Interpretation Rule
+
+Memory entries are state evidence of prior work, not authorization for current action.
+
+A retrieved `memory.next_step` is a candidate continuation signal only. It does not grant permission to modify files, commit, push, close issues, upgrade claims, or bypass current workspace checks.
+
+Current user instruction, current workspace state, dirty-tree status, and applicable governance rules always supersede memory content. Before acting on any memory-derived next step, the agent must revalidate the current repo state and authority boundary.
 
 ### PLAN Sync Protocol (Cross-Repo)
 - `PLAN.md` is mandatory governance state, not optional project notes.

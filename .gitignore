@@ -53,6 +53,7 @@ dist/
 # Test
 .pytest_cache/
 .pytest_tmp*/
+.tmp_pytest_*/
 tests/_tmp_*/
 test_tmp_*/
 tmp*/
@@ -74,7 +75,13 @@ validation_tmp3/
 
 # Runtime governance artifacts
 artifacts/runtime/
+artifacts/session/
+artifacts/*.db
 artifacts/external-project-facts/
+# CE-1C.4: timestamp-shaped raw claim-enforcement session packets are runtime-facing,
+# not repo-facing tracked evidence. UUID-shaped dirs excluded (design risk — see CE-1D).
+# checker-tests/ and claim-enforcement-receipts.ndjson are NOT covered by this pattern.
+artifacts/claim-enforcement/session-*/
 artifacts/reviewer-handoff/
 memory/candidates/*.json
 .governance-audit/
@@ -88,6 +95,7 @@ ai-governance-framework/
 !.claude/skills/
 !.claude/skills/**
 .claude/settings.local.json
+.codex/hooks.json
 *.code-workspace
 
 # Payload audit raw log（含路徑資訊，不 commit）
@@ -104,3 +112,11 @@ _integration_check.py
 # Local CodeBurn artifacts (not versioned unless explicitly promoted)
 codeburn/phase1/examples/m5_repo/
 codeburn_phase1.db
+
+# Cross-repo observation satellites (local only, not versioned)
+gl_electron_tool/
+.tmp_no_codeburn_repo/
+.tmp_no_codeburn_repo2/
+
+# Fleet local path overlay
+governance/fleet/governance_scope.local.yaml

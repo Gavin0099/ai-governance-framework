@@ -1,0 +1,3 @@
+display_name: Tech Spec
+short_description: Convert a request into a repository-compatible technical specification
+default_prompt: Turn this request into a reviewable technical specification for this repository. Make scope, non-goals, boundaries, risk points, evidence plan, and implementation tranche recommendations explicit, and reuse existing governance tooling when helpful.

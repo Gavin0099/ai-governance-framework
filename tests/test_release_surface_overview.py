@@ -1,3 +1,4 @@
+import pytest
 import json
 import subprocess
 import sys
@@ -28,6 +29,7 @@ def _local_tmp(name: str) -> Path:
     return path
 
 
+@pytest.mark.integration
 def test_release_surface_overview_for_current_alpha_no_escalation_active():
     """Real repo has no active escalation log → no_escalation_expected, ok=True is correct."""
     result = assess_release_surface(Path(".").resolve(), version="v1.0.0-alpha")

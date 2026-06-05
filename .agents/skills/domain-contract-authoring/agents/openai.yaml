@@ -1,0 +1,3 @@
+display_name: Domain Contract Authoring
+short_description: Scaffold and refine external domain contract repos
+default_prompt: Create or update an external domain contract repo for this AI Governance Framework, keeping the first version narrow, runnable, and easy to validate.

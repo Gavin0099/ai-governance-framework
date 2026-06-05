@@ -181,6 +181,102 @@ def test_report_token_observability_step_level(tmp_path: Path) -> None:
     assert report["provenance_warning"] == "none"
 
 
+def test_report_visible_io_summary_is_opt_in_same_provider(tmp_path: Path) -> None:
+    db_path = tmp_path / "phase1.db"
+    conn = sqlite3.connect(db_path)
+    schema = Path("codeburn/phase1/schema.sql").read_text(encoding="utf-8")
+    conn.executescript(schema)
+    conn.execute(
+        """
+        INSERT INTO sessions(
+          session_id, task, repo_path, git_branch, created_at, data_quality
+        ) VALUES('s1', 'report test', '.', 'main', '2026-04-30T00:00:00+00:00', 'complete')
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO steps(
+          step_id, session_id, step_kind, command, provider, started_at, token_source,
+          prompt_tokens, completion_tokens, total_tokens
+        ) VALUES('st1', 's1', 'execution', 'codex turn', 'codex',
+                 '2026-04-30T00:00:00+00:00', 'provider', 70, 29, NULL)
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO steps(
+          step_id, session_id, step_kind, command, provider, started_at, token_source,
+          prompt_tokens, completion_tokens, total_tokens
+        ) VALUES('st2', 's1', 'execution', 'claude turn', 'claude-code',
+                 '2026-04-30T00:00:01+00:00', 'provider', 999, 999, NULL)
+        """
+    )
+    conn.commit()
+    conn.close()
+
+    default_report = build_report(db_path, "s1")
+    report = build_report(db_path, "s1", visible_io_provider="codex")
+
+    assert "visible_io_token_summary" not in default_report
+    assert report["visible_io_token_summary"] == {
+        "provider": "codex",
+        "session_id": "s1",
+        "summary_scope": "same_provider_session_log_observation",
+        "evidence_class": "Class C",
+        "acquisition_mode": "session_log_ingestion",
+        "visible_io_token_sum": 99,
+        "visible_io_token_sum_authority": "observation_only",
+        "prompt_tokens_observed": 70,
+        "completion_tokens_observed": 29,
+        "row_count": 1,
+        "complete_row_count": 1,
+        "missing_prompt_token_rows": 0,
+        "missing_completion_token_rows": 0,
+        "missing_field_policy": "null_not_zero",
+        "missing_field_reason": None,
+        "billing_truth": False,
+        "decision_usage_allowed": False,
+        "analysis_safe_for_decision": False,
+        "cross_provider_comparable": False,
+        "efficiency_inference_allowed": False,
+    }
+    assert "visible_io_token_summary" in report["non_authoritative_fields"]
+    assert "total_tokens" not in report["visible_io_token_summary"]
+
+
+def test_report_visible_io_summary_preserves_missing_as_null(tmp_path: Path) -> None:
+    db_path = tmp_path / "phase1.db"
+    conn = sqlite3.connect(db_path)
+    schema = Path("codeburn/phase1/schema.sql").read_text(encoding="utf-8")
+    conn.executescript(schema)
+    conn.execute(
+        """
+        INSERT INTO sessions(session_id, task, created_at, data_quality)
+        VALUES('s1', 'report test', '2026-04-30T00:00:00+00:00', 'partial')
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO steps(
+          step_id, session_id, step_kind, command, provider, started_at, token_source,
+          prompt_tokens, completion_tokens, total_tokens
+        ) VALUES('st1', 's1', 'execution', 'claude turn', 'claude-code',
+                 '2026-04-30T00:00:00+00:00', 'provider', NULL, 29, NULL)
+        """
+    )
+    conn.commit()
+    conn.close()
+
+    report = build_report(db_path, "s1", visible_io_provider="claude-code")
+    summary = report["visible_io_token_summary"]
+
+    assert summary["visible_io_token_sum"] is None
+    assert summary["prompt_tokens_observed"] is None
+    assert summary["completion_tokens_observed"] is None
+    assert summary["missing_field_policy"] == "null_not_zero"
+    assert summary["missing_field_reason"] == "prompt_tokens_missing"
+
+
 def test_report_token_observability_coarse_for_estimated_tokens(tmp_path: Path) -> None:
     db_path = tmp_path / "phase1.db"
     conn = sqlite3.connect(db_path)
@@ -353,6 +449,62 @@ def test_report_cli_absolute_path_succeeds_outside_repo_without_pythonpath(tmp_p
     assert proc.returncode == 0
     assert '"token_observability_level": "step_level"' in proc.stdout
     assert '"token_source_summary": "provider"' in proc.stdout
+
+
+def test_report_cli_visible_io_provider_exposes_guarded_summary(tmp_path: Path) -> None:
+    db_path = tmp_path / "phase1.db"
+    conn = sqlite3.connect(db_path)
+    schema = Path("codeburn/phase1/schema.sql").read_text(encoding="utf-8")
+    conn.executescript(schema)
+    conn.execute(
+        """
+        INSERT INTO sessions(session_id, task, created_at, data_quality)
+        VALUES('s1', 'report test', '2026-04-30T00:00:00+00:00', 'complete')
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO steps(
+          step_id, session_id, step_kind, command, provider, started_at, token_source,
+          prompt_tokens, completion_tokens, total_tokens
+        ) VALUES('st1', 's1', 'execution', 'codex turn', 'codex',
+                 '2026-04-30T00:00:00+00:00', 'provider', 70, 29, NULL)
+        """
+    )
+    conn.commit()
+    conn.close()
+    script_path = Path("codeburn/phase1/codeburn_report.py").resolve()
+
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(script_path),
+            "--db",
+            str(db_path),
+            "--session-id",
+            "s1",
+            "--format",
+            "json",
+            "--visible-io-provider",
+            "codex",
+        ],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+        env=env,
+    )
+
+    assert proc.returncode == 0
+    assert '"visible_io_token_summary": {' in proc.stdout
+    assert '"visible_io_token_sum": 99' in proc.stdout
+    assert '"visible_io_token_sum_authority": "observation_only"' in proc.stdout
+    assert '"billing_truth": false' in proc.stdout
+    assert '"cross_provider_comparable": false' in proc.stdout
+    assert '"efficiency_inference_allowed": false' in proc.stdout
 
 
 def test_report_cli_ignores_shadowed_pythonpath_modules(tmp_path: Path) -> None:

@@ -79,7 +79,7 @@ def validate_adapter_file(path: Path, *, allow_default_project_fallback: bool = 
             "listPages supports opts.projectId but content fetch scope appears fixed to this.projectId"
         )
 
-    if supports_override and unsafe_default_fallback and not allow_default_project_fallback:
+    if supports_override and unsafe_default_fallback and not project_aware_fetch and not allow_default_project_fallback:
         errors.append(
             "unknown slug fallback to default project detected; require explicit scoped fallback instead"
         )

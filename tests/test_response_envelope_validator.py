@@ -1,0 +1,276 @@
+from __future__ import annotations
+
+import subprocess
+import sys
+from pathlib import Path
+
+from governance_tools.response_envelope_validator import (
+    validate_response_envelope_paths,
+    validate_response_envelope_text,
+)
+
+
+FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "response_envelopes"
+
+
+def test_passes_minimal_valid_response_envelope() -> None:
+    text = """
+mode: VALIDATION
+mode_source: validation_command
+task_authority: user_request
+claim_ceiling:
+  - structural validation only
+not_claimed:
+  - semantic correctness
+evidence_refs:
+  - command: python -m pytest tests/test_response_envelope_validator.py
+    result: PASS
+"""
+
+    result = validate_response_envelope_text(text)
+
+    assert result["ok"] is True
+    assert result["signals"]["has_valid_evidence_ref"] is True
+    assert result["signals"]["placeholder_evidence_entry_count"] == 0
+
+
+def test_fails_when_required_field_missing() -> None:
+    text = """
+mode: VALIDATION
+mode_source: validation_command
+claim_ceiling:
+  - structural validation only
+not_claimed:
+  - semantic correctness
+evidence_refs:
+  - command: pytest
+    result: PASS
+"""
+
+    result = validate_response_envelope_text(text)
+
+    assert result["ok"] is False
+    assert "missing_required_field:task_authority" in result["findings"]
+
+
+def test_fails_when_evidence_refs_empty() -> None:
+    text = """
+mode: VALIDATION
+mode_source: validation_command
+task_authority: user_request
+claim_ceiling:
+  - structural validation only
+not_claimed:
+  - semantic correctness
+evidence_refs:
+"""
+
+    result = validate_response_envelope_text(text)
+
+    assert result["ok"] is False
+    assert "evidence_refs_empty" in result["findings"]
+
+
+def test_fails_when_evidence_refs_contains_placeholder_only() -> None:
+    text = """
+mode: VALIDATION
+mode_source: validation_command
+task_authority: user_request
+claim_ceiling:
+  - structural validation only
+not_claimed:
+  - semantic correctness
+evidence_refs:
+  - see above
+"""
+
+    result = validate_response_envelope_text(text)
+
+    assert result["ok"] is False
+    assert "evidence_refs_placeholder_only" in result["findings"]
+    assert "placeholder_evidence_ref:see above" in result["findings"]
+
+
+def test_fails_on_high_risk_wording_without_support() -> None:
+    text = """
+mode: VALIDATION
+mode_source: validation_command
+task_authority: user_request
+claim_ceiling:
+  - runtime enforced
+not_claimed:
+evidence_refs:
+"""
+
+    result = validate_response_envelope_text(text)
+
+    assert result["ok"] is False
+    assert "high_risk_authority_wording_without_support" in result["findings"]
+
+
+def test_allows_high_risk_wording_when_downgraded() -> None:
+    text = """
+mode: VALIDATION
+mode_source: validation_command
+task_authority: user_request
+claim_ceiling:
+  - runtime enforced wording discussed only
+not_claimed:
+  - runtime enforcement
+summary: NOT CLAIMED
+evidence_refs:
+  - none
+"""
+
+    result = validate_response_envelope_text(text)
+
+    assert result["ok"] is False
+    assert "high_risk_authority_wording_without_support" not in result["findings"]
+    assert "evidence_refs_placeholder_only" in result["findings"]
+
+
+def test_allows_high_risk_wording_when_supported_by_valid_evidence() -> None:
+    text = """
+mode: VALIDATION
+mode_source: validation_command
+task_authority: user_request
+claim_ceiling:
+  - validated structurally
+not_claimed:
+  - semantic correctness
+evidence_refs:
+  - command: python -m pytest tests/test_response_envelope_validator.py
+    result: PASS
+"""
+
+    result = validate_response_envelope_text(text)
+
+    assert result["ok"] is True
+    assert "high_risk_authority_wording_without_support" not in result["findings"]
+
+
+def test_fails_when_evidence_ref_missing_result() -> None:
+    text = """
+mode: VALIDATION
+mode_source: validation_command
+task_authority: user_request
+claim_ceiling:
+  - structural validation only
+not_claimed:
+  - semantic correctness
+evidence_refs:
+  - command: python -m pytest tests/test_response_envelope_validator.py
+"""
+
+    result = validate_response_envelope_text(text)
+
+    assert result["ok"] is False
+    assert result["signals"]["invalid_evidence_shape_count"] == 1
+    assert any(
+        finding.startswith("invalid_evidence_ref_shape:")
+        for finding in result["findings"]
+    )
+
+
+def test_validates_representative_fixture_corpus() -> None:
+    expectations = {
+        "valid_minimal.md": True,
+        "invalid_missing_mode_source.md": False,
+        "invalid_placeholder_evidence.md": False,
+        "invalid_high_risk_without_downgrade.md": False,
+        "invalid_missing_evidence_result.md": False,
+        "valid_high_risk_with_not_claimed.md": True,
+    }
+
+    for name, expected_ok in expectations.items():
+        result = validate_response_envelope_text((FIXTURE_ROOT / name).read_text(encoding="utf-8"))
+        assert result["ok"] is expected_ok, name
+
+
+def test_cli_passes_for_valid_fixture() -> None:
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "governance_tools.response_envelope_validator",
+            str(FIXTURE_ROOT / "valid_minimal.md"),
+            "--format",
+            "json",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0
+    assert '"ok": true' in completed.stdout
+    assert '"total_files": 1' in completed.stdout
+
+
+def test_cli_fails_for_invalid_fixture() -> None:
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "governance_tools.response_envelope_validator",
+            str(FIXTURE_ROOT / "invalid_placeholder_evidence.md"),
+            "--format",
+            "json",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 1
+    assert "evidence_refs_placeholder_only" in completed.stdout
+
+
+def test_batch_validation_summarizes_fixture_directory() -> None:
+    result = validate_response_envelope_paths([FIXTURE_ROOT])
+
+    assert result["ok"] is False
+    assert result["total_files"] == 6
+    assert result["valid_files"] == 2
+    assert result["invalid_files"] == 4
+    assert result["path_errors"] == []
+
+
+def test_cli_passes_for_multiple_valid_files() -> None:
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "governance_tools.response_envelope_validator",
+            str(FIXTURE_ROOT / "valid_minimal.md"),
+            str(FIXTURE_ROOT / "valid_high_risk_with_not_claimed.md"),
+            "--format",
+            "json",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0
+    assert '"ok": true' in completed.stdout
+    assert '"total_files": 2' in completed.stdout
+
+
+def test_cli_fails_for_fixture_directory_with_invalid_examples() -> None:
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "governance_tools.response_envelope_validator",
+            str(FIXTURE_ROOT),
+            "--format",
+            "json",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 1
+    assert '"invalid_files": 4' in completed.stdout

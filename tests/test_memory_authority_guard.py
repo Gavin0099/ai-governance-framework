@@ -10,13 +10,17 @@ Test cases:
   D. pre-cutoff old-format entry     → grandfathered (no non_canonical_writer)
 """
 
+import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from governance_tools.memory_authority_guard import check_daily_memory
+from governance_tools.memory_authority_guard import (
+    check_daily_memory,
+    filter_active_non_canonical_writer_violations,
+)
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -47,6 +51,14 @@ MANUAL_HUMAN_NOTE_ENTRY = """\
 OLD_FORMAT_ENTRY = """\
 - what_changed: completed some task
   commit: abc1234def5
+"""
+
+# Claude Code's actual direct-write format (space, not underscore)
+CLAUDE_CODE_DIRECT_ENTRY = """\
+- what changed: added some feature
+- commit hash: abc1234def5
+- test evidence: manual
+- next step: none
 """
 
 
@@ -127,3 +139,119 @@ class TestPreCutoffGrandfathered:
         assert len(ncw) >= 1, (
             "old-format entries in post-cutoff files must trigger non_canonical_writer"
         )
+
+
+# ── E. Claude Code direct-write format (regression) ──────────────────────────
+
+class TestClaudeCodeDirectWriteFlagged:
+    """Regression: Claude Code's '- what changed:' (space) direct-write format
+    must be flagged as non_canonical_writer in post-cutoff files."""
+
+    def test_claude_code_direct_write_is_flagged(self, tmp_path):
+        mem = tmp_path / "memory"
+        mem.mkdir()
+        _write_daily(mem, POST_CUTOFF, CLAUDE_CODE_DIRECT_ENTRY)
+        violations, _ = check_daily_memory(mem)
+        ncw = [v for v in violations if v["code"] == "non_canonical_writer"]
+        assert len(ncw) >= 1, (
+            "Claude Code direct '- what changed:' format must trigger non_canonical_writer"
+        )
+        assert any(
+            "old_format_entry_after_canonical_writer_cutoff" in v["reason"]
+            for v in ncw
+        )
+
+    def test_claude_code_direct_write_pre_cutoff_is_grandfathered(self, tmp_path):
+        mem = tmp_path / "memory"
+        mem.mkdir()
+        _write_daily(mem, PRE_CUTOFF, CLAUDE_CODE_DIRECT_ENTRY)
+        violations, _ = check_daily_memory(mem)
+        ncw = [v for v in violations if v["code"] == "non_canonical_writer"]
+        assert ncw == [], (
+            "pre-cutoff direct-write entries are grandfathered and must not be flagged"
+        )
+
+
+class TestActiveNonCanonicalWriterSentinel:
+    def test_filter_ignores_historical_non_canonical_writer(self, tmp_path):
+        mem = tmp_path / "memory"
+        mem.mkdir()
+        _write_daily(mem, "2026-06-01.md", CLAUDE_CODE_DIRECT_ENTRY)
+        violations, _ = check_daily_memory(mem)
+
+        active = filter_active_non_canonical_writer_violations(
+            violations,
+            active_from="2026-06-02",
+        )
+
+        assert active == []
+
+    def test_filter_flags_active_non_canonical_writer(self, tmp_path):
+        mem = tmp_path / "memory"
+        mem.mkdir()
+        _write_daily(mem, "2026-06-02.md", CLAUDE_CODE_DIRECT_ENTRY)
+        violations, _ = check_daily_memory(mem)
+
+        active = filter_active_non_canonical_writer_violations(
+            violations,
+            active_from="2026-06-02",
+        )
+
+        assert len(active) == 1
+        assert active[0]["file"] == "2026-06-02.md"
+
+    def test_cli_fail_flag_exits_nonzero_for_active_violation(self, tmp_path):
+        mem = tmp_path / "memory"
+        mem.mkdir()
+        _write_daily(mem, "2026-06-03.md", CLAUDE_CODE_DIRECT_ENTRY)
+
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "governance_tools/memory_authority_guard.py",
+                "--memory-root",
+                str(mem),
+                "--project-root",
+                str(tmp_path),
+                "--skip-git",
+                "--fail-on-active-non-canonical-writer",
+                "--active-from",
+                "2026-06-02",
+                "--format",
+                "json",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        assert completed.returncode == 2
+        assert '"count": 1' in completed.stdout
+
+    def test_cli_fail_flag_allows_historical_only_violation(self, tmp_path):
+        mem = tmp_path / "memory"
+        mem.mkdir()
+        _write_daily(mem, "2026-06-01.md", CLAUDE_CODE_DIRECT_ENTRY)
+
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "governance_tools/memory_authority_guard.py",
+                "--memory-root",
+                str(mem),
+                "--project-root",
+                str(tmp_path),
+                "--skip-git",
+                "--fail-on-active-non-canonical-writer",
+                "--active-from",
+                "2026-06-02",
+                "--format",
+                "json",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        assert completed.returncode == 0
+        assert '"count": 0' in completed.stdout

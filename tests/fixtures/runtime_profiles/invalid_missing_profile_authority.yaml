@@ -1,0 +1,17 @@
+profile_id: invalid-missing-authority
+profile_version: 0.1
+claim_ceiling:
+  - reviewer-facing profile only
+not_claimed:
+  - runtime enforcement
+surfaces:
+  - id: terminal
+    type: execution_surface
+    boundary_class: load_bearing_boundary_required
+    max_side_effect: filesystem_process_side_effect
+    controls:
+      - workspace sandbox
+    control_claim_ceiling: structural only
+evidence_refs:
+  - artifact: docs/governance/agent-runtime-profile.md
+    result: PASS

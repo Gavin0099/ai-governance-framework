@@ -1,0 +1,112 @@
+# Plan Profile Contract
+# ──────────────────────────────────────────────────────────────────────────────
+# Purpose:
+#   Define a lightweight PLAN profile contract so repositories with different
+#   complexity levels do not need to use the same PLAN format.
+#
+# This file records the intended PLAN structure level for each profile.
+# It does NOT add validation, CI enforcement, reporting, or adoption workflow.
+#
+# Claim ceiling: plan_profile_contract_recorded_only
+#
+# Last updated: 2026-06-02
+# ──────────────────────────────────────────────────────────────────────────────
+
+profiles:
+
+  minimal:
+    description: >
+      Use for low-risk repositories, small tools, demos, or repositories that
+      are not used as authority sources by other projects.
+    expected_header_fields:
+      - Last Updated
+      - Freshness
+      - Plan Profile
+      - Next
+    expected_body:
+      - current status
+      - next step
+    not_required:
+      - claim ceiling
+      - per-phase DONE definition
+      - non-goals
+      - allowed claim
+      - cannot-claim boundary
+
+  standard:
+    description: >
+      Use for normal application, CLI, automation, or tooling repositories
+      where AI agents may make changes and scope drift should be controlled.
+    expected_header_fields:
+      - Last Updated
+      - Freshness
+      - Plan Profile
+      - Next
+    expected_body:
+      - current execution pointer
+      - completed work
+      - next slice
+      - do-not-start boundary
+    recommended_not_required:
+      - DONE definition
+      - allowed files
+      - verification command
+      - claim boundary
+
+  governed:
+    description: >
+      Use for high-risk or authority-bearing repositories, including firmware,
+      driver, device-control, USB/specification reference, security-sensitive,
+      or cross-repo governance repositories.
+    expected_header_fields:
+      - Last Updated
+      - Freshness
+      - Plan Profile
+      - Next
+      - Claim Ceiling
+    expected_body:
+      - current execution pointer
+      - completed milestones
+      - next slice
+      - DONE definition
+      - non-goals
+      - allowed claim
+      - cannot-claim boundary
+      - deferred items
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Default mapping from governance tier to plan profile
+# ──────────────────────────────────────────────────────────────────────────────
+
+tier_to_default_plan_profile:
+  required: governed
+  recommended: standard
+  exempt: minimal
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Override rule
+# ──────────────────────────────────────────────────────────────────────────────
+#
+# A repository may explicitly set a different plan_profile from its tier default
+# when its planning complexity or authority surface requires it.
+#
+# Examples:
+#   - A recommended repository that serves as a specification reference
+#     may use governed.
+#   - A recommended repository that is a personal utility with no authority
+#     surface may use minimal.
+#   - A required repository with very small scope remains governed by default
+#     unless explicitly justified.
+#   - An exempt repository should usually remain minimal.
+#
+# Override must be recorded in governance_scope.yaml with a reason.
+# ──────────────────────────────────────────────────────────────────────────────
+
+cannot_claim:
+  - PLAN validation exists
+  - PLAN compliance is enforced
+  - all repository PLAN files comply with their profile
+  - plan_freshness.py supports profile-aware checks
+  - fleet PLAN reporting exists
+  - repository governance maturity has increased
+  - any consuming repo has been remediated

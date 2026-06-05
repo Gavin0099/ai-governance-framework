@@ -1,3 +1,4 @@
+import pytest
 import json
 import subprocess
 import sys
@@ -23,6 +24,7 @@ def _local_tmp(name: str) -> Path:
     return path
 
 
+@pytest.mark.integration
 def test_build_release_package_snapshot_passes_for_current_alpha():
     snapshot = build_release_package_snapshot(project_root=Path(".").resolve(), version="v1.0.0-alpha")
 
@@ -32,6 +34,7 @@ def test_build_release_package_snapshot_passes_for_current_alpha():
     assert snapshot["package"]["status_doc_count"] == 5
 
 
+@pytest.mark.integration
 def test_write_release_package_snapshot_bundle_creates_latest_history_manifest():
     tmp_path = _local_tmp("bundle")
     snapshot = build_release_package_snapshot(project_root=Path(".").resolve(), version="v1.0.0-alpha")
@@ -85,6 +88,7 @@ def test_resolve_bundle_dir_can_default_to_docs_release_generated():
         shutil.rmtree(tmp_path, ignore_errors=True)
 
 
+@pytest.mark.integration
 def test_release_package_snapshot_cli_supports_direct_script_invocation():
     tmp_path = _local_tmp("cli")
     bundle_dir = tmp_path / "release-bundle"

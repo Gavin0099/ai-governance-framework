@@ -1,0 +1,11 @@
+{
+  "session_id": "manual-l0-smoke-20260528",
+  "task": "l0-manual-usage-smoke",
+  "repo_path": "E:/BackUp/Git_EE/ai-governance-framework",
+  "agent": "codex",
+  "model": "gpt-5",
+  "provider": "openai",
+  "prompt_tokens": 1200,
+  "completion_tokens": 340,
+  "source_note": "hooks install + closeout run manual reported usage"
+}

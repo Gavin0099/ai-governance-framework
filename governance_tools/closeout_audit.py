@@ -50,8 +50,24 @@ def _evaluate_claim_binding(project_root: Path) -> dict[str, Any]:
     - Emits validity + reasons in audit output.
     - Does NOT block promotion or flip policy_ok.
     """
-    checks_root = project_root / "artifacts" / "claim-enforcement"
-    check_files = sorted(checks_root.rglob("claim-enforcement-check.json")) if checks_root.exists() else []
+    # CE-1D.2: scan both raw packet roots.
+    # New sessions write to artifacts/session/claim-enforcement/ (gitignored runtime path).
+    # Historical sessions may still have packets at artifacts/claim-enforcement/ (legacy path).
+    # CE-1D.3: track counts per root for evidence classification.
+    new_root = project_root / "artifacts" / "session" / "claim-enforcement"
+    legacy_root = project_root / "artifacts" / "claim-enforcement"
+    check_files_set: set[Path] = set()
+    runtime_count = 0
+    legacy_count = 0
+    if new_root.exists():
+        runtime_files = list(new_root.rglob("claim-enforcement-check.json"))
+        check_files_set.update(runtime_files)
+        runtime_count = len(runtime_files)
+    if legacy_root.exists():
+        legacy_files = list(legacy_root.rglob("claim-enforcement-check.json"))
+        check_files_set.update(legacy_files)
+        legacy_count = len(legacy_files)
+    check_files = sorted(check_files_set)
     reasons: list[str] = []
     drift_count = 0
     override_count = 0
@@ -115,6 +131,9 @@ def _evaluate_claim_binding(project_root: Path) -> dict[str, Any]:
         "future_gate_required": not valid,
         "invalid_reasons": unique_reasons,
         "claim_enforcement_check_count": check_count,
+        # CE-1D.3: evidence classification — runtime vs legacy source breakdown
+        "claim_enforcement_runtime_count": runtime_count,
+        "claim_enforcement_legacy_count": legacy_count,
         "drift_rate": drift_rate,
         "downgrade_rate": downgrade_rate,
         "blocked_rate": blocked_rate,
@@ -248,6 +267,8 @@ def build_closeout_audit(project_root: Path, require_claim_binding: bool = False
         "future_gate_required": claim_binding["future_gate_required"],
         "invalid_reasons": claim_binding["invalid_reasons"],
         "claim_enforcement_check_count": claim_binding["claim_enforcement_check_count"],
+        "claim_enforcement_runtime_count": claim_binding["claim_enforcement_runtime_count"],
+        "claim_enforcement_legacy_count": claim_binding["claim_enforcement_legacy_count"],
         "drift_rate": claim_binding["drift_rate"],
         "downgrade_rate": claim_binding["downgrade_rate"],
         "blocked_rate": claim_binding["blocked_rate"],
@@ -288,6 +309,8 @@ def format_human_result(result: dict[str, Any]) -> str:
         f"recent_7d_valid_rate={recent_rate}",
         f"has_open_risks_count={result['has_open_risks_count']}",
         f"claim_enforcement_check_count={result.get('claim_enforcement_check_count')}",
+        f"claim_enforcement_runtime_count={result.get('claim_enforcement_runtime_count')}",
+        f"claim_enforcement_legacy_count={result.get('claim_enforcement_legacy_count')}",
         f"drift_rate={result.get('drift_rate')}",
         f"downgrade_rate={result.get('downgrade_rate')}",
         f"blocked_rate={result.get('blocked_rate')}",
@@ -357,6 +380,8 @@ def build_status_markdown(result: dict[str, Any]) -> str:
         f"- recent_7d_valid_rate: `{result['recent_7d_valid_rate']}`",
         f"- has_open_risks_count: `{result['has_open_risks_count']}`",
         f"- claim_enforcement_check_count: `{result.get('claim_enforcement_check_count')}`",
+        f"- claim_enforcement_runtime_count: `{result.get('claim_enforcement_runtime_count')}`",
+        f"- claim_enforcement_legacy_count: `{result.get('claim_enforcement_legacy_count')}`",
         f"- drift_rate: `{result.get('drift_rate')}`",
         f"- downgrade_rate: `{result.get('downgrade_rate')}`",
         f"- blocked_rate: `{result.get('blocked_rate')}`",

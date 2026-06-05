@@ -1,3 +1,4 @@
+import pytest
 import json
 import subprocess
 import sys
@@ -17,6 +18,7 @@ from governance_tools.release_package_snapshot import (
 )
 
 
+@pytest.mark.integration
 def test_assess_publication_manifest_reads_bundle_publication_manifest(tmp_path):
     snapshot = build_release_package_snapshot(project_root=Path(".").resolve(), version="v1.0.0-alpha")
     bundle = write_snapshot_bundle(snapshot, tmp_path / "release-package")
@@ -73,6 +75,7 @@ def test_default_docs_release_publication_manifest_path_points_to_generated_root
     assert resolved == project_root / "docs" / "releases" / "generated" / "PUBLICATION_MANIFEST.json"
 
 
+@pytest.mark.integration
 def test_release_package_publication_reader_cli_supports_docs_release_root(tmp_path):
     snapshot = build_release_package_snapshot(project_root=Path(".").resolve(), version="v1.0.0-alpha")
     project_root = tmp_path / "repo"
