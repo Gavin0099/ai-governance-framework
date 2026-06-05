@@ -1,8 +1,8 @@
 # CodeBurn Same-Provider Visible I/O Token Sum Contract
 
 > Date: 2026-06-05
-> Status: contract-only
-> Scope: future Codex and Claude Code same-provider token observation summaries
+> Status: implemented as opt-in `codeburn_report.py` exposure
+> Scope: Codex and Claude Code same-provider token observation summaries
 
 ## Purpose
 
@@ -17,19 +17,20 @@ comparison through naming or aggregation pressure.
 
 CLAIMED:
 
-- A same-provider summary contract is defined for future CodeBurn Codex and
+- A same-provider summary contract is defined for CodeBurn Codex and
   Claude Code summaries.
 - The safe derived field name is `visible_io_token_sum`, not `total_tokens`.
 - Summary semantics are constrained to Class C, observation-only, non-billing,
   same-provider context.
 - Cross-provider aggregation and comparison remain prohibited.
+- `codeburn_report.py` may expose this summary only through explicit
+  `--visible-io-provider codex|claude-code` opt-in.
 
 NOT CLAIMED:
 
-- Summary implementation.
 - Schema change.
-- Report change.
-- CLI change.
+- Default report output change.
+- Automatic summary output.
 - Validator or hook enforcement.
 - Billing truth.
 - Provider-authoritative token truth.
@@ -61,7 +62,7 @@ explicit missing-field reason. Missing token fields must not be treated as `0`.
 
 ## Required Companion Fields
 
-Any future same-provider summary that includes `visible_io_token_sum` must also
+Any same-provider summary that includes `visible_io_token_sum` must also
 include equivalent companion metadata:
 
 ```text
@@ -177,9 +178,9 @@ Total provider token cost: 1500.
 
 These statements violate the CodeBurn consumption and comparability boundaries.
 
-## Implementation Gate
+## Implementation / Exposure Gate
 
-Before any implementation of this summary contract, add tests proving:
+Before any new exposure or consumer of this summary contract, add tests proving:
 
 - `visible_io_token_sum` is computed only for same-provider rows.
 - missing prompt/completion fields keep the sum `NULL` / absent.
@@ -188,5 +189,12 @@ Before any implementation of this summary contract, add tests proving:
 - no cross-provider rollup query is introduced.
 - output includes the required companion semantics.
 
-Until those tests exist, this contract is documentation-only.
+Current permitted exposure:
 
+```powershell
+python codeburn/phase1/codeburn_report.py --db <db> --session-id <session> --format json --visible-io-provider codex
+python codeburn/phase1/codeburn_report.py --db <db> --session-id <session> --format json --visible-io-provider claude-code
+```
+
+Default report output remains unchanged unless `--visible-io-provider` is
+explicitly provided.

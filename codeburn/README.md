@@ -191,6 +191,17 @@ visible_io_token_sum
 Do not call this `total_tokens`. It is not billing truth, not efficiency
 evidence, and not cross-provider comparable.
 
+Opt-in same-provider report exposure:
+
+```powershell
+python codeburn/phase1/codeburn_report.py --db <db> --session-id <session> --format json --visible-io-provider codex
+python codeburn/phase1/codeburn_report.py --db <db> --session-id <session> --format json --visible-io-provider claude-code
+```
+
+The output appears under `visible_io_token_summary` only when requested. It is
+Class C observation-only metadata, not default report output and not a
+cross-provider comparison surface.
+
 ---
 
 ## Phase 3 — Deliberately Prohibited (as of 2026-04-27)
