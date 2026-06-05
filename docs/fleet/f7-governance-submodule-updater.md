@@ -95,6 +95,15 @@ Expected apply properties:
 - `commit_hash` is populated when commit succeeds;
 - the consuming repo has no staged files after commit.
 
+If the nested submodule already points at `target_head`, apply mode is a no-op:
+
+- `ok=true`;
+- `update_mode=already_current`;
+- `staged_files=[]`;
+- `committed=false`;
+- `commit_hash=null`;
+- no consuming repo commit is created.
+
 ## Non-Fast-Forward Updates
 
 Fast-forward is the default. If the nested submodule cannot fast-forward, F-7
