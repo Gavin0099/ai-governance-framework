@@ -26,7 +26,8 @@ CLAIMED:
 - `codeburn_report.py` may expose this summary only through explicit
   `--visible-io-provider codex|claude-code` opt-in.
 - `codeburn_session_display.py` may expose the Codex visible I/O sum only when
-  `CODEBURN_SHOW_VISIBLE_IO_SUM=1`.
+  `CODEBURN_SHOW_VISIBLE_IO_SUM=1`; this display uses Chinese-friendly labels
+  for user readability while preserving the same claim ceiling.
 
 NOT CLAIMED:
 
@@ -204,3 +205,13 @@ python codeburn/phase1/codeburn_session_display.py --transcript <codex-session.j
 Default report output remains unchanged unless `--visible-io-provider` is
 explicitly provided. Default session display output remains unchanged unless
 `CODEBURN_SHOW_VISIBLE_IO_SUM=1` is set.
+
+Codex session display wording:
+
+```text
+回合數: <n>
+輸入: <n> tokens (重建值)
+輸出: <n> tokens (重建值)
+可見 I/O token 加總: <n> | Class C 觀測值
+不是帳單真值 | 不是效率指標 | 不可跨 provider 比較
+```

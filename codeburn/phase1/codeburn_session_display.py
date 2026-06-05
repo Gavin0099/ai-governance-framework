@@ -430,9 +430,16 @@ def display(
         visible_sum = summary.get("visible_io_token_sum")
         missing_reason = summary.get("visible_io_missing_field_reason")
         value_text = _fmt(visible_sum) if visible_sum is not None else "NULL"
-        line = f"  visible_io_token_sum: {value_text} | Class C observation-only"
+        print(f"+{sep}+")
+        line = f"  回合數: {turns}"
         print(f"|{line:<{W}}|")
-        line = "  not billing truth | not efficiency | not cross-provider comparable"
+        line = f"  輸入: {_fmt(pt)} tokens (重建值)"
+        print(f"|{line:<{W}}|")
+        line = f"  輸出: {_fmt(ct)} tokens (重建值)"
+        print(f"|{line:<{W}}|")
+        line = f"  可見 I/O token 加總: {value_text} | Class C 觀測值"
+        print(f"|{line:<{W}}|")
+        line = "  不是帳單真值 | 不是效率指標 | 不可跨 provider 比較"
         print(f"|{line:<{W}}|")
         if missing_reason is not None:
             line = f"  missing_field_policy=null_not_zero reason={missing_reason}"

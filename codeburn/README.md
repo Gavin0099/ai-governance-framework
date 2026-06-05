@@ -212,6 +212,16 @@ python codeburn/phase1/codeburn_session_display.py --transcript <codex-session.j
 The display line is Codex-only, Class C observation-only, and preserves
 NULL-not-zero behavior when prompt or completion tokens are missing.
 
+Expected visible line shape:
+
+```text
+回合數: <n>
+輸入: <n> tokens (重建值)
+輸出: <n> tokens (重建值)
+可見 I/O token 加總: <n> | Class C 觀測值
+不是帳單真值 | 不是效率指標 | 不可跨 provider 比較
+```
+
 ---
 
 ## Phase 3 — Deliberately Prohibited (as of 2026-04-27)
