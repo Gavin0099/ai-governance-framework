@@ -54,6 +54,8 @@ def _run_git(
     completed = subprocess.run(
         command,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=env,
@@ -62,8 +64,8 @@ def _run_git(
     result = CommandResult(
         command=command,
         returncode=completed.returncode,
-        stdout=completed.stdout.strip(),
-        stderr=completed.stderr.strip(),
+        stdout=(completed.stdout or "").strip(),
+        stderr=(completed.stderr or "").strip(),
     )
     if check and result.returncode != 0:
         detail = result.stderr or result.stdout or f"exit {result.returncode}"

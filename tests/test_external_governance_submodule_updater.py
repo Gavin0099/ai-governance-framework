@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 
 from governance_tools.external_governance_submodule_updater import (
     _git_env,
+    _run_git,
     update_governance_submodule,
 )
 
@@ -37,6 +39,30 @@ def _init_repo(repo: Path) -> None:
     _git(repo, "init", "-b", "main")
     _git(repo, "config", "user.email", "test@example.invalid")
     _git(repo, "config", "user.name", "Test User")
+
+
+def test_run_git_uses_utf8_replacement_decode_and_handles_none_streams(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        captured["kwargs"] = kwargs
+        return SimpleNamespace(returncode=0, stdout=None, stderr=None)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    result = _run_git(tmp_path, ["commit", "-m", "message"])
+
+    kwargs = captured["kwargs"]
+    assert kwargs["text"] is True
+    assert kwargs["encoding"] == "utf-8"
+    assert kwargs["errors"] == "replace"
+    assert result.stdout == ""
+    assert result.stderr == ""
+    assert result.returncode == 0
 
 
 def _make_fixture(tmp_path: Path) -> tuple[Path, Path, str, str]:
