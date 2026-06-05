@@ -2601,6 +2601,10 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 - [x] Phase F-7d: already-current/no-op behavior made explicit with fixture coverage; when the submodule already points at the target, apply mode returns `update_mode=already_current` without staging or committing. No external repo update, push behavior, or fleet batch behavior claimed.
 - [x] Phase F-7e: README/key-doc entrypoint added for the F-7 updater contract and the usage contract now documents `already_current` no-op semantics. No updater behavior change, external repo update, or fleet batch behavior claimed.
 
+## 2026-06-05 CodeBurn Codex / Claude Token Ingestion Audit
+
+- [x] Audit-only review completed for current Codex and Claude Code token ingestion surfaces. Codex admits log-visible `last_token_usage.input_tokens` / `output_tokens` as `prompt_tokens` / `completion_tokens`; Claude Code admits `message.usage.input_tokens` / `output_tokens` as `prompt_tokens` / `completion_tokens`; both intentionally keep `total_tokens` absent/NULL, preserve Class C observation-only provenance, and do not claim billing truth, efficiency inference, or cross-provider comparability. Current searched surfaces did not show Codex/Claude cross-provider token aggregation. No ingestion behavior, schema, validator, hook, summary/reporting behavior, or comparability rule changed.
+
 ## 2026-06-04 Copilot Memory Authority Observation Analysis
 
 - [x] Three pasted Copilot memory-authority observation responses analyzed; two classified as medium-confidence clean_canonical candidates and one as low-confidence unknown; #17 remains observe-only and not threshold-ready.
