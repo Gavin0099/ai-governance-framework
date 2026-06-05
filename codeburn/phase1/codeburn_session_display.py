@@ -431,6 +431,8 @@ def display(
         missing_reason = summary.get("visible_io_missing_field_reason")
         value_text = _fmt(visible_sum) if visible_sum is not None else "NULL"
         print(f"+{sep}+")
+        line = "  範圍: 單一 transcript/session，不是全部 run 總和"
+        print(f"|{line:<{W}}|")
         line = f"  回合數: {turns}"
         print(f"|{line:<{W}}|")
         line = f"  輸入: {_fmt(pt)} tokens (重建值)"

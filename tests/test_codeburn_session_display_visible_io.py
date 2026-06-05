@@ -23,7 +23,11 @@ def _write_codex_jsonl(path: Path, *, input_tokens, output_tokens) -> None:
     path.write_text(json.dumps(record) + "\n", encoding="utf-8")
 
 
-def test_codex_session_display_hides_visible_io_sum_by_default(tmp_path, capsys, monkeypatch):
+def test_codex_session_display_hides_visible_io_sum_by_default(
+    tmp_path,
+    capsys,
+    monkeypatch,
+):
     transcript = tmp_path / "codex.jsonl"
     _write_codex_jsonl(transcript, input_tokens=120, output_tokens=30)
     monkeypatch.delenv("CODEBURN_SHOW_VISIBLE_IO_SUM", raising=False)
@@ -33,7 +37,8 @@ def test_codex_session_display_hides_visible_io_sum_by_default(tmp_path, capsys,
 
     captured = capsys.readouterr()
     assert summary["visible_io_token_sum"] == 150
-    assert "visible_io_token_sum" not in captured.out
+    assert "可見 I/O token 加總" not in captured.out
+    assert "單一 transcript/session" not in captured.out
 
 
 def test_codex_session_display_shows_visible_io_sum_when_env_enabled(
@@ -49,6 +54,7 @@ def test_codex_session_display_shows_visible_io_sum_when_env_enabled(
     display("codex-session", summary, conn=None)
 
     captured = capsys.readouterr()
+    assert "範圍: 單一 transcript/session，不是全部 run 總和" in captured.out
     assert "回合數: 1" in captured.out
     assert "輸入: 120 tokens (重建值)" in captured.out
     assert "輸出: 30 tokens (重建值)" in captured.out
@@ -71,5 +77,6 @@ def test_codex_session_display_visible_io_sum_keeps_missing_field_null(
     captured = capsys.readouterr()
     assert summary["visible_io_token_sum"] is None
     assert summary["visible_io_missing_field_reason"] == "completion_tokens_missing"
+    assert "範圍: 單一 transcript/session，不是全部 run 總和" in captured.out
     assert "可見 I/O token 加總: NULL | Class C 觀測值" in captured.out
     assert "missing_field_policy=null_not_zero reason=completion_tokens_missing" in captured.out
