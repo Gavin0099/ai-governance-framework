@@ -52,6 +52,7 @@ dist/
 
 # Test
 .pytest_cache/
+.pytest_cache_runtime/
 .pytest_tmp*/
 .tmp_pytest_*/
 tests/_tmp_*/
@@ -83,6 +84,7 @@ artifacts/external-project-facts/
 # checker-tests/ and claim-enforcement-receipts.ndjson are NOT covered by this pattern.
 artifacts/claim-enforcement/session-*/
 artifacts/reviewer-handoff/
+artifacts/session-summary.txt
 memory/candidates/*.json
 .governance-audit/
 

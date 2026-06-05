@@ -93,9 +93,23 @@ Required posture:
 
 ## Current Sprint
 
-**Sprint 狀態（2026-06-02）：Canonical Memory Writer Enforcement + Fleet Plan Profile + Agent Report Format Standardization**
+**Sprint 狀態（2026-06-06）：Fleet Submodule Updater Applied + CodeBurn Observability + #17 Advisory Threshold**
 
-完成項目（此輪，2026-06-02）：
+完成項目（此輪，2026-06-06）：
+- [x] CE-1C complete (compact receipt writer/dual-write/validator/boundary) — 4 sub-items (4d49f86..81a0f3d)
+- [x] CE-1D complete (path relocation/evidence classification/CLI dual-root/historical inventory + Bucket A/B/C advisory) — 4 sub-items + inventory (bb9aa33..dd127bd)
+- [x] Runtime Profile RP-1~RP-3a complete (validator, fixture corpus, contract doc, README entrypoint) — (d9f12dc..9fe4877)
+- [x] Response Envelope Validator + Batch — static validator, fixture corpus, evidence shape, batch CLI (06eebff..9238dea)
+- [x] Fleet Submodule Updater F-1~F-7 complete — read-only inventory, advisory docs, F-6 robustness fix, F-7 MVP with already-current/detached-checkout/UTF-8 hardening + contract doc (5a712ef..4926b6d)
+- [x] F-7 applied to Bookstore-Scraper — .ai-governance-framework updated da1d4f3→1b101ef (fast_forward); committed c134958b; push pending
+- [x] F-7 applied to Enumd — ai-governance-framework updated 0bee651b→1b101ef (detached_target_checkout); committed bc6614cc; push pending
+- [x] CodeBurn visible_io_token_sum contract + helper + report exposure + session display + ZH labels + real transcript trial (6f97bf6..47b1b04)
+- [x] CodeBurn Codex stop-hook configured — .codex/hooks.json (gitignored); CODEBURN_SHOW_VISIBLE_IO_SUM=1 as persistent Windows user env var; smoke PASS
+- [x] #17 Copilot memory authority advisory threshold proposal — warning trigger defined, 9 required fields, 4 escalation conditions (all unmet); blocking not enabled (c6f3175)
+- [x] Memory authority guard active-window sentinel + new test classes (TestClaudeCodeDirectWriteFlagged, TestActiveNonCanonicalWriterSentinel, filter_active_non_canonical_writer_violations) — merged from remote (e302d49)
+- [x] AGENTS.md: Ambiguous Continuation Is Audit-First rule added; Memory State Interpretation Rule; persistent user preference precedence — merged from remote + local commits
+
+完成項目（舊 sprint 2026-06-02）：
 - [x] Canonical Memory Writer Enforcement Phase 1 — session_id handoff verified end-to-end (1ce4bb7); AGENTS.md + guard policy annotation + regression tests aligned
 - [x] Rule 4 Structured Report Format — AGENTS.md Rule 7 extended; copilot-instructions-template.md Rule 4 added; fixed vocabulary (PASS|FAIL|NOT RUN|NOT CLAIMED|NOT PRESENT); Cannot claim required field; 3 golden examples (3f8f91c, 0f2e3ba)
 - [x] Copilot instructions deployed to gl_electron_tool; validator confirms copilot_instructions_governed=True
@@ -116,7 +130,10 @@ Required posture:
 - [x] Response Envelope Batch Validation — CLI accepts explicit files/directories and emits aggregate JSON/human summaries; directory mode scans markdown fixtures only; no hook/runtime/pre-push integration
 
 等待觀察：
-- [>] Phase 3 post-enforcement observation — active; 2 canonical samples collected; watch for non_canonical_writer count trend
+- [>] Phase 3 post-enforcement observation — active; 11 clean_canonical collected (9 raw-verified gl_electron_tool); #17 advisory threshold proposal drafted; blocking not ready
+- [>] Codex stop-hook real session verification — .codex/hooks.json + CODEBURN_SHOW_VISIBLE_IO_SUM=1 configured; pending first real Codex session to confirm hook fires
+- [>] F-7 Bookstore-Scraper push — committed c134958b locally; push to origin pending explicit user authorization
+- [>] F-7 Enumd push — committed bc6614cc locally; push to origin pending explicit user authorization; gitlab-wiki-adapter.ts code changes unrelated, remain unstaged
 - [>] Rule 4 effect observation — next gl_electron_tool Copilot Workspace session (Chinese format now deployed)
 - [>] Rule 1 DONE-definition gap — identified, deferred pending Rule 4 observation data
 - [>] Phase E PAUSE 仍有效：E2/E3 均 blocked，等待 observable trigger
