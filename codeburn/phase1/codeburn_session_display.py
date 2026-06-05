@@ -134,6 +134,8 @@ def _parse_codex_jsonl(path: Path) -> dict:
     prompt_total = 0
     completion_total = 0
     turns = 0
+    missing_prompt = 0
+    missing_completion = 0
     first_ts = None
     last_ts = None
     rate_used_pct = None
@@ -161,8 +163,14 @@ def _parse_codex_jsonl(path: Path) -> dict:
                 inp = last_usage.get("input_tokens")
                 out = last_usage.get("output_tokens")
                 if inp is not None or out is not None:
-                    prompt_total += inp or 0
-                    completion_total += out or 0
+                    if inp is None:
+                        missing_prompt += 1
+                    else:
+                        prompt_total += inp
+                    if out is None:
+                        missing_completion += 1
+                    else:
+                        completion_total += out
                     turns += 1
                 # rate_limits: read for display, not stored in DB (not an IAF field)
                 rl = payload.get("rate_limits", {})
@@ -177,6 +185,16 @@ def _parse_codex_jsonl(path: Path) -> dict:
         "turns": turns,
         "prompt_tokens": prompt_total,
         "completion_tokens": completion_total,
+        "visible_io_token_sum": (
+            prompt_total + completion_total
+            if turns > 0 and missing_prompt == 0 and missing_completion == 0
+            else None
+        ),
+        "visible_io_missing_field_reason": _visible_io_missing_field_reason(
+            missing_prompt,
+            missing_completion,
+            turns,
+        ),
         "first_ts": first_ts,
         "last_ts": last_ts,
         "rate_used_pct": rate_used_pct,
@@ -356,6 +374,30 @@ def _warn_threshold_pct(tokens: int, threshold: int) -> float:
     return max(0.0, (tokens - threshold) / threshold * 100)
 
 
+def _visible_io_missing_field_reason(
+    missing_prompt: int,
+    missing_completion: int,
+    turns: int,
+) -> Optional[str]:
+    if turns == 0:
+        return "no_rows"
+    reasons = []
+    if missing_prompt:
+        reasons.append("prompt_tokens_missing")
+    if missing_completion:
+        reasons.append("completion_tokens_missing")
+    return "+".join(reasons) if reasons else None
+
+
+def _show_visible_io_sum_enabled() -> bool:
+    return os.environ.get("CODEBURN_SHOW_VISIBLE_IO_SUM", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 def display(
     session_id: str,
     summary: dict,
@@ -384,6 +426,17 @@ def display(
     print(f"|  turns    : {turns:<51}|")
     print(f"|  input    : {_fmt(pt):>10}  tokens (reconstructed){' ' * (W - 46)}|")
     print(f"|  output   : {_fmt(ct):>10}  tokens (reconstructed){' ' * (W - 46)}|")
+    if provider == "codex" and _show_visible_io_sum_enabled():
+        visible_sum = summary.get("visible_io_token_sum")
+        missing_reason = summary.get("visible_io_missing_field_reason")
+        value_text = _fmt(visible_sum) if visible_sum is not None else "NULL"
+        line = f"  visible_io_token_sum: {value_text} | Class C observation-only"
+        print(f"|{line:<{W}}|")
+        line = "  not billing truth | not efficiency | not cross-provider comparable"
+        print(f"|{line:<{W}}|")
+        if missing_reason is not None:
+            line = f"  missing_field_policy=null_not_zero reason={missing_reason}"
+            print(f"|{line:<{W}}|")
     if provider == "claude":
         print(f"|  cache+   : {_fmt(cache_create):>10}  creation cache tokens{' ' * (W - 47)}|")
         print(f"|  cache=   : {_fmt(cache_read):>10}  read cache tokens{' ' * (W - 47)}|")

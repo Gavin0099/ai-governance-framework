@@ -90,7 +90,6 @@ def test_visible_io_contract_is_not_schema_or_report_implementation():
     assert "visible_io_token_sum" not in _read(SCHEMA)
 
     report_or_cli_files = [
-        ROOT / "codeburn" / "phase1" / "codeburn_session_display.py",
         ROOT / "codeburn" / "phase1" / "codeburn_run.py",
         ROOT / "codeburn" / "phase2" / "codeburn_codex_smoke.py",
         ROOT / "codeburn" / "phase2" / "codeburn_copilot_smoke.py",

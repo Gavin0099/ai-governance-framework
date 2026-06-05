@@ -25,12 +25,15 @@ CLAIMED:
 - Cross-provider aggregation and comparison remain prohibited.
 - `codeburn_report.py` may expose this summary only through explicit
   `--visible-io-provider codex|claude-code` opt-in.
+- `codeburn_session_display.py` may expose the Codex visible I/O sum only when
+  `CODEBURN_SHOW_VISIBLE_IO_SUM=1`.
 
 NOT CLAIMED:
 
 - Schema change.
 - Default report output change.
 - Automatic summary output.
+- Default session display output change.
 - Validator or hook enforcement.
 - Billing truth.
 - Provider-authoritative token truth.
@@ -194,7 +197,10 @@ Current permitted exposure:
 ```powershell
 python codeburn/phase1/codeburn_report.py --db <db> --session-id <session> --format json --visible-io-provider codex
 python codeburn/phase1/codeburn_report.py --db <db> --session-id <session> --format json --visible-io-provider claude-code
+$env:CODEBURN_SHOW_VISIBLE_IO_SUM = "1"
+python codeburn/phase1/codeburn_session_display.py --transcript <codex-session.jsonl>
 ```
 
 Default report output remains unchanged unless `--visible-io-provider` is
-explicitly provided.
+explicitly provided. Default session display output remains unchanged unless
+`CODEBURN_SHOW_VISIBLE_IO_SUM=1` is set.

@@ -104,7 +104,6 @@ def test_future_exposure_payload_preserves_null_not_zero_missing_field_boundary(
 
 def test_exposure_contract_only_allows_codeburn_report_surface():
     report_or_cli_files = [
-        ROOT / "codeburn" / "phase1" / "codeburn_session_display.py",
         ROOT / "codeburn" / "phase1" / "codeburn_run.py",
         ROOT / "codeburn" / "phase2" / "codeburn_codex_smoke.py",
         ROOT / "codeburn" / "phase2" / "codeburn_copilot_smoke.py",

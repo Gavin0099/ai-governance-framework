@@ -202,6 +202,16 @@ The output appears under `visible_io_token_summary` only when requested. It is
 Class C observation-only metadata, not default report output and not a
 cross-provider comparison surface.
 
+Opt-in Codex session display exposure:
+
+```powershell
+$env:CODEBURN_SHOW_VISIBLE_IO_SUM = "1"
+python codeburn/phase1/codeburn_session_display.py --transcript <codex-session.jsonl>
+```
+
+The display line is Codex-only, Class C observation-only, and preserves
+NULL-not-zero behavior when prompt or completion tokens are missing.
+
 ---
 
 ## Phase 3 — Deliberately Prohibited (as of 2026-04-27)
