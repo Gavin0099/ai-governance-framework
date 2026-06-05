@@ -2604,6 +2604,7 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 ## 2026-06-05 CodeBurn Codex / Claude Token Ingestion Audit
 
 - [x] Audit-only review completed for current Codex and Claude Code token ingestion surfaces. Codex admits log-visible `last_token_usage.input_tokens` / `output_tokens` as `prompt_tokens` / `completion_tokens`; Claude Code admits `message.usage.input_tokens` / `output_tokens` as `prompt_tokens` / `completion_tokens`; both intentionally keep `total_tokens` absent/NULL, preserve Class C observation-only provenance, and do not claim billing truth, efficiency inference, or cross-provider comparability. Current searched surfaces did not show Codex/Claude cross-provider token aggregation. No ingestion behavior, schema, validator, hook, summary/reporting behavior, or comparability rule changed.
+- [x] Same-provider `visible_io_token_sum` summary contract defined for future Codex-only or Claude-Code-only observation summaries. The contract requires Class C / observation-only / non-billing / non-decision / non-comparable companion semantics, keeps `total_tokens` forbidden, requires NULL-not-zero missing-field handling, forbids cache/reasoning/billing folding, and blocks cross-provider aggregation. No summary implementation, schema change, CLI/report change, validator, hook, billing truth, efficiency inference, or cross-provider comparison added.
 
 ## 2026-06-04 Copilot Memory Authority Observation Analysis
 

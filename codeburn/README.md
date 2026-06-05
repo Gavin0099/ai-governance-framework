@@ -172,6 +172,27 @@ Boundary remains unchanged:
 
 ---
 
+## Phase 2 Codex / Claude Token Observation Boundary
+
+Current Codex and Claude Code ingestion is Class C, post-hoc, log-visible
+observation only.
+
+Reviewer entrypoints:
+
+- `phase2/CODEBURN_CODEX_CLAUDE_TOKEN_INGESTION_AUDIT_2026-06-05.md`
+- `phase2/CODEBURN_SAME_PROVIDER_VISIBLE_IO_TOKEN_SUM_CONTRACT_2026-06-05.md`
+
+Safe future summary name:
+
+```text
+visible_io_token_sum
+```
+
+Do not call this `total_tokens`. It is not billing truth, not efficiency
+evidence, and not cross-provider comparable.
+
+---
+
 ## Phase 3 — Deliberately Prohibited (as of 2026-04-27)
 
 Phase 3 (Trigger Design: dynamic threshold, trend_direction, cross-repo correlation) is
