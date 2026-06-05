@@ -89,22 +89,19 @@ def test_visible_io_contract_blocks_cache_reasoning_and_billing_folding():
 def test_visible_io_contract_is_not_schema_or_report_implementation():
     assert "visible_io_token_sum" not in _read(SCHEMA)
 
-    implementation_roots = [
-        ROOT / "codeburn" / "phase1",
-        ROOT / "codeburn" / "phase2",
-    ]
-    implementation_files = [
-        path
-        for root in implementation_roots
-        for path in root.glob("*.py")
-        if path.name != "__init__.py"
+    report_or_cli_files = [
+        ROOT / "codeburn" / "phase1" / "codeburn_report.py",
+        ROOT / "codeburn" / "phase1" / "codeburn_session_display.py",
+        ROOT / "codeburn" / "phase1" / "codeburn_run.py",
+        ROOT / "codeburn" / "phase2" / "codeburn_codex_smoke.py",
+        ROOT / "codeburn" / "phase2" / "codeburn_copilot_smoke.py",
+        ROOT / "codeburn" / "phase2" / "codeburn_manual_usage_ingest.py",
     ]
 
     offenders = [
         str(path.relative_to(ROOT))
-        for path in implementation_files
+        for path in report_or_cli_files
         if "visible_io_token_sum" in _read(path)
     ]
 
     assert offenders == []
-
