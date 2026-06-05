@@ -169,6 +169,24 @@ def update_governance_submodule(
         else:
             target_head = _resolve_head(submodule_repo, target_ref)
 
+        if not dry_run and before_head == target_head:
+            return UpdateResult(
+                ok=True,
+                mode="apply",
+                update_mode="already_current",
+                fast_forward=True,
+                repo=str(repo),
+                submodule_path=submodule_path,
+                before_head=before_head,
+                target_head=target_head,
+                after_head=before_head,
+                staged_files=[],
+                committed=False,
+                commit_hash=None,
+                message="submodule already at target; no files modified",
+                errors=[],
+            )
+
         if dry_run:
             fast_forward = (
                 _run_git(

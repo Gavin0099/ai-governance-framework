@@ -91,6 +91,29 @@ def _make_fixture(tmp_path: Path) -> tuple[Path, Path, str, str]:
     return consumer, framework, old_head, new_head
 
 
+def _make_already_current_fixture(tmp_path: Path) -> tuple[Path, Path, str]:
+    framework = tmp_path / "framework"
+    consumer = tmp_path / "consumer"
+
+    _init_repo(framework)
+    (framework / "README.md").write_text("v1\n", encoding="utf-8")
+    target_head = _commit_all(framework, "framework v1")
+
+    _init_repo(consumer)
+    _git(
+        consumer,
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        str(framework),
+        "ai-governance-framework",
+    )
+    _commit_all(consumer, "pin current framework")
+
+    return consumer, framework, target_head
+
+
 def _make_divergent_fixture(tmp_path: Path) -> tuple[Path, Path, str, str]:
     framework = tmp_path / "framework"
     consumer = tmp_path / "consumer"
@@ -161,6 +184,35 @@ def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
     assert result.after_head == new_head
     assert result.staged_files == ["ai-governance-framework"]
     assert _git(consumer, "diff", "--cached", "--name-only") == "ai-governance-framework"
+    assert "?? unrelated.txt" in _git(consumer, "status", "--short")
+
+
+def test_apply_commit_noops_when_submodule_already_points_at_target(
+    tmp_path: Path,
+) -> None:
+    consumer, _framework, target_head = _make_already_current_fixture(tmp_path)
+    before_consumer_head = _git(consumer, "rev-parse", "HEAD")
+    (consumer / "unrelated.txt").write_text("dirty\n", encoding="utf-8")
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=True,
+        commit=True,
+    )
+
+    assert result.ok is True
+    assert result.update_mode == "already_current"
+    assert result.fast_forward is True
+    assert result.before_head == target_head
+    assert result.target_head == target_head
+    assert result.after_head == target_head
+    assert result.staged_files == []
+    assert result.committed is False
+    assert result.commit_hash is None
+    assert _git(consumer, "rev-parse", "HEAD") == before_consumer_head
+    assert _git(consumer, "diff", "--cached", "--name-only") == ""
     assert "?? unrelated.txt" in _git(consumer, "status", "--short")
 
 

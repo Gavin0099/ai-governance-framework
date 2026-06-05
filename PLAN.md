@@ -2598,6 +2598,7 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 - [x] Phase F-7a: opt-in non-fast-forward detached target checkout mode added for divergent submodule pins; fast-forward remains the default, non-ff updates still fail unless explicitly allowed, and fixture tests cover refusal vs explicit checkout. No external repo update, fleet batch behavior, or default enforcement change claimed.
 - [x] Phase F-7b: Windows subprocess output decoding hardening added for the F-7 updater after Bookstore-Scraper exposed a post-commit `cp950` decode crash; `_run_git` now requests UTF-8 replacement decoding and handles empty streams. No external repo mutation or new updater mode claimed.
 - [x] Phase F-7c: framework-first F-7 usage contract documented in `docs/fleet/f7-governance-submodule-updater.md`, covering supported repo types, dry-run/apply commands, non-fast-forward opt-in, post-run checks, push boundary, troubleshooting, and claim ceiling. No external repo update or updater behavior change claimed.
+- [x] Phase F-7d: already-current/no-op behavior made explicit with fixture coverage; when the submodule already points at the target, apply mode returns `update_mode=already_current` without staging or committing. No external repo update, push behavior, or fleet batch behavior claimed.
 
 ## 2026-06-04 Copilot Memory Authority Observation Analysis
 
