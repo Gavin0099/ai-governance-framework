@@ -367,6 +367,20 @@ class MutationProofRunnerPhase2:
         values = raw_result.get(violation_field, [])
         return expected_violation not in values
 
+    def _verify_cleanup(self, worktree_path: Path, branch_name: str) -> tuple[bool, str]:
+        """SC-7: verify worktree path is gone and branch is removed. Returns (ok, detail)."""
+        if worktree_path.exists():
+            return False, f"worktree path still exists: {worktree_path}"
+        wt_list = subprocess.run(
+            ["git", "worktree", "list", "--porcelain"],
+            cwd=str(self.project_root),
+            capture_output=True,
+            text=True,
+        )
+        if str(worktree_path) in wt_list.stdout:
+            return False, f"worktree still registered in git worktree list: {worktree_path}"
+        return True, ""
+
     def run_scenario(self, scenario: MutationScenario2) -> dict[str, Any]:
         worktree_path = self.project_root / f".tmp_mut_{scenario.id}"
         branch_name = f"mutation-test-{scenario.id}"
@@ -393,17 +407,22 @@ class MutationProofRunnerPhase2:
                 "scenario": scenario.id,
                 "status": "ERROR",
                 "error": f"git worktree add failed: {wt_create.stderr.strip()}",
+                "cleanup_verified": False,
             }
+
+        # _result is mutated by the finally block to add SC-7 cleanup verification.
+        _result: dict[str, Any] = {}
 
         try:
             # Apply mutation
             mut_ok, mut_err = self._apply_mutation(worktree_path, scenario.mutation)
             if not mut_ok:
-                return {
+                _result = {
                     "scenario": scenario.id,
                     "status": "ERROR",
                     "error": f"mutation apply failed: {mut_err}",
                 }
+                return _result
 
             # Run test in temp fixture dir
             with tempfile.TemporaryDirectory() as fixture_dir:
@@ -414,7 +433,7 @@ class MutationProofRunnerPhase2:
                 raw_result, scenario.expected_violation, scenario.violation_field
             )
 
-            return {
+            _result = {
                 "scenario": scenario.id,
                 "description": scenario.description,
                 "catalog_ref": scenario.catalog_ref,
@@ -424,16 +443,18 @@ class MutationProofRunnerPhase2:
                 "violation_field": scenario.violation_field,
                 "raw_result": raw_result,
             }
+            return _result
 
         except Exception as exc:
-            return {
+            _result = {
                 "scenario": scenario.id,
                 "status": "ERROR",
                 "error": str(exc),
             }
+            return _result
 
         finally:
-            # Always clean up worktree and branch
+            # Always clean up worktree and branch (SC-7)
             subprocess.run(
                 ["git", "worktree", "remove", "--force", str(worktree_path)],
                 cwd=str(self.project_root),
@@ -444,6 +465,12 @@ class MutationProofRunnerPhase2:
                 cwd=str(self.project_root),
                 capture_output=True,
             )
+            # SC-7: verify cleanup — residual mutation environment = hard failure
+            cleanup_ok, cleanup_detail = self._verify_cleanup(worktree_path, branch_name)
+            _result["cleanup_verified"] = cleanup_ok
+            if not cleanup_ok:
+                _result["status"] = "CLEANUP_FAILED"
+                _result["cleanup_error"] = cleanup_detail
 
     def run_all(self) -> list[dict[str, Any]]:
         return [self.run_scenario(s) for s in SCENARIOS]
@@ -483,7 +510,7 @@ def main() -> int:
 
     report = {
         "timestamp": _utc_now(),
-        "runner_version": "1.0",
+        "runner_version": "1.1",
         "phase": "E1-B Phase 2: Real Rule Mutation",
         "project_root": str(project_root),
         "results": results,
@@ -492,6 +519,7 @@ def main() -> int:
             "vulnerable": sum(1 for r in results if r.get("status") == "VULNERABLE"),
             "protected": sum(1 for r in results if r.get("status") == "PROTECTED"),
             "error": sum(1 for r in results if r.get("status") == "ERROR"),
+            "cleanup_failed": sum(1 for r in results if r.get("status") == "CLEANUP_FAILED"),
         },
         "interpretation": (
             "VULNERABLE = mutation survived; governance gap documented. "
@@ -507,8 +535,9 @@ def main() -> int:
     else:
         print(json.dumps(report, indent=2, ensure_ascii=False))
 
-    # Exit 1 if any scenario is VULNERABLE or ERROR (signals governance gaps exist)
-    if report["summary"]["vulnerable"] > 0 or report["summary"]["error"] > 0:
+    # Exit 1 if any scenario is VULNERABLE, ERROR, or CLEANUP_FAILED (SC-7: residual env = hard failure)
+    summary = report["summary"]
+    if summary["vulnerable"] > 0 or summary["error"] > 0 or summary["cleanup_failed"] > 0:
         return 1
     return 0
 

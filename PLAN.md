@@ -48,7 +48,7 @@ AI 越強，軟體工程的基本功越重要。核心原則：**Validity before
 
 - **E1-B: Safe Mutation Execution**
   - [x] **Phase 1: Safe Fixture Probe**: ✅ initial proof established (see `artifacts/governance-proof-report.json`)
-  - [ ] **Phase 2: Real Rule Mutation**: ❌ not started (PREREQUISITE: Compliance with **E1 Phase 2 Safety Contract** below)
+  - [x] **Phase 2: Real Rule Mutation**: ✅ complete (2026-05-12 run; 2026-06-06 SC-7 cleanup verification added) — all 4 scenarios VULNERABLE (expected: no cross-check redundancy; documented gaps); SC-1~7 reviewed 2026-06-06; report `artifacts/governance/mutation-proof-phase2-report-2026-06-06.json`
 
 #### E1 Phase 2 — Real Rule Mutation Safety Contract
 
@@ -93,7 +93,7 @@ Required posture:
 
 ## Current Sprint
 
-**Sprint 狀態（2026-06-06）：Fleet Submodule Updater Applied + CodeBurn Observability + #17 Advisory Threshold**
+**Sprint 狀態（2026-06-06）：Fleet Submodule Updater Applied + CodeBurn Observability + #17 Advisory Writer + E1 Phase 2 SC-7 Fix**
 
 完成項目（此輪，2026-06-06）：
 - [x] CE-1C complete (compact receipt writer/dual-write/validator/boundary) — 4 sub-items (4d49f86..81a0f3d)
@@ -106,6 +106,12 @@ Required posture:
 - [x] CodeBurn visible_io_token_sum contract + helper + report exposure + session display + ZH labels + real transcript trial (6f97bf6..47b1b04)
 - [x] CodeBurn Codex stop-hook configured — .codex/hooks.json (gitignored); CODEBURN_SHOW_VISIBLE_IO_SUM=1 as persistent Windows user env var; smoke PASS
 - [x] #17 Copilot memory authority advisory threshold proposal — warning trigger defined, 9 required fields, 4 escalation conditions (all unmet); blocking not enabled (c6f3175)
+- [x] #17 advisory artifact writer — `copilot_memory_authority_advisory_writer.py`; CLI tool; blocking_gate_enabled=False invariant; 9/9 tests pass (80c8760)
+- [x] F-7 untracked-files dirty check fix — `--untracked-files=no` in `_require_clean_nested`; test renamed + new allow-untracked test; 8/8 pass (52f1bfc)
+- [x] version_bump_guard non-main branch fix — CalledProcessError caught cleanly; pre-push hook uses `git symbolic-ref` to detect remote default branch (52f1bfc)
+- [x] F-7 applied to Hearth + pushed — c4c913f2→7c57f3a (fast_forward); governance smoke PASS all harnesses; version_bump_guard ran cleanly (9f5687c)
+- [x] Enumd gitlab-wiki-adapter pushed — multi-project page scope resolution feature (03b1cf3 master)
+- [x] E1 Phase 2 SC-7 cleanup verification added — `_verify_cleanup` method added to runner; `cleanup_verified=True` on all 4 scenarios; CLEANUP_FAILED status surfaces as runner fail; runner_version=1.1; report saved 2026-06-06 (pending commit)
 - [x] Memory authority guard active-window sentinel + new test classes (TestClaudeCodeDirectWriteFlagged, TestActiveNonCanonicalWriterSentinel, filter_active_non_canonical_writer_violations) — merged from remote (e302d49)
 - [x] AGENTS.md: Ambiguous Continuation Is Audit-First rule added; Memory State Interpretation Rule; persistent user preference precedence — merged from remote + local commits
 
@@ -132,8 +138,7 @@ Required posture:
 等待觀察：
 - [>] Phase 3 post-enforcement observation — active; 11 clean_canonical collected (9 raw-verified gl_electron_tool); #17 advisory threshold proposal drafted; blocking not ready
 - [>] Codex stop-hook real session verification — .codex/hooks.json + CODEBURN_SHOW_VISIBLE_IO_SUM=1 configured; pending first real Codex session to confirm hook fires
-- [>] F-7 Bookstore-Scraper push — committed c134958b locally; push to origin pending explicit user authorization
-- [>] F-7 Enumd push — committed bc6614cc locally; push to origin pending explicit user authorization; gitlab-wiki-adapter.ts code changes unrelated, remain unstaged
+- [>] Enumd second F-7 pass — submodule still on 1b101ef; needs update to 8a64637 to get version_bump_guard fix in deployed hook
 - [>] Rule 4 effect observation — next gl_electron_tool Copilot Workspace session (Chinese format now deployed)
 - [>] Rule 1 DONE-definition gap — identified, deferred pending Rule 4 observation data
 - [>] Phase E PAUSE 仍有效：E2/E3 均 blocked，等待 observable trigger
