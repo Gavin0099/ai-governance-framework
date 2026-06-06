@@ -38,11 +38,17 @@ level of a repo's E8b trend.
 | Agent | Tier | Trigger surface | Notes |
 |-------|------|-----------------|-------|
 | Claude Code | **A** | `.claude/settings.json` Stop hook | Runs automatically at session end; no operator action required after setup |
+| Codex (OpenAI) | **A (unverified)** | `.codex/hooks.json` Stop hook | Mechanism configured (machine-local, gitignored); coverage unverified — pending first real session confirmation |
 | GitHub Copilot | **B** | VS Code task (`.vscode/tasks.json`) | Must be run manually by the operator; no native session-end event |
 | Gemini CLI | **B** | CLI wrapper or manual command | No native hook surface; requires wrapper integration |
 | ChatGPT | **C** | Manual only | No local hook surface available |
 
 Source: `governance_tools/manage_agent_closeout.py` AGENT_MANIFEST.
+
+> **Codex note**: Tier A classification is based on the existence of a `.codex/hooks.json` Stop hook
+> mechanism (configured 2026-06-06, machine-local, not committed to repo).  Coverage is not yet
+> confirmed.  Once a real Codex session fires the hook successfully, this entry should be updated to
+> `A (verified)` and the verification date recorded.
 
 ---
 
