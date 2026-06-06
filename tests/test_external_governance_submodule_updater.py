@@ -216,10 +216,11 @@ def test_apply_commit_noops_when_submodule_already_points_at_target(
     assert "?? unrelated.txt" in _git(consumer, "status", "--short")
 
 
-def test_refuses_when_nested_submodule_is_dirty(tmp_path: Path) -> None:
+def test_refuses_when_nested_submodule_has_tracked_changes(tmp_path: Path) -> None:
     consumer, _framework, _old_head, _new_head = _make_fixture(tmp_path)
     nested = consumer / "ai-governance-framework"
-    (nested / "dirty.txt").write_text("dirty\n", encoding="utf-8")
+    # Modify a tracked file — this should block the update.
+    (nested / "README.md").write_text("local modification\n", encoding="utf-8")
 
     result = update_governance_submodule(
         repo=consumer,
@@ -230,8 +231,26 @@ def test_refuses_when_nested_submodule_is_dirty(tmp_path: Path) -> None:
 
     assert result.ok is False
     assert result.update_mode == "failed"
-    assert "nested submodule checkout is dirty" in result.errors[0]
+    assert "nested submodule checkout has tracked-file changes" in result.errors[0]
     assert _git(consumer, "diff", "--cached", "--name-only") == ""
+
+
+def test_allows_untracked_files_in_nested_submodule(tmp_path: Path) -> None:
+    consumer, _framework, _old_head, new_head = _make_fixture(tmp_path)
+    nested = consumer / "ai-governance-framework"
+    # Untracked files (e.g. runtime artifacts, DB files) must not block update.
+    (nested / "runtime.db").write_text("untracked\n", encoding="utf-8")
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=True,
+        commit=True,
+    )
+
+    assert result.ok is True
+    assert result.after_head == new_head
 
 
 def test_non_fast_forward_update_refuses_without_explicit_checkout(

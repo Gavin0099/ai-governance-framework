@@ -172,9 +172,12 @@ fi
 
 if [ -f "$VERSION_BUMP_GUARD" ] && [ "${#PYTHON_CMD[@]}" -gt 0 ]; then
     echo "[governance] version bump recommendation (advisory)"
+    # Detect remote default branch via symbolic ref; fall back to origin/main.
+    _VBG_BASE="$(git -C "$TARGET_REPO_ROOT" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|^refs/remotes/||')"
+    [ -z "$_VBG_BASE" ] && _VBG_BASE="origin/main"
     (
         cd "$TARGET_REPO_ROOT"
-        "${PYTHON_CMD[@]}" "$VERSION_BUMP_GUARD" --base-ref origin/main --head-ref HEAD --format human
+        "${PYTHON_CMD[@]}" "$VERSION_BUMP_GUARD" --base-ref "$_VBG_BASE" --head-ref HEAD --format human
     ) || (
         cd "$TARGET_REPO_ROOT"
         "${PYTHON_CMD[@]}" "$VERSION_BUMP_GUARD" --base-ref HEAD~1 --head-ref HEAD --format human

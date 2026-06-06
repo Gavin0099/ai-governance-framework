@@ -139,7 +139,10 @@ def main() -> int:
     if args.paths:
         files = sorted(dict.fromkeys(path for path in args.paths if path.strip()))
     else:
-        files = _git_changed_files(args.base_ref, args.head_ref)
+        try:
+            files = _git_changed_files(args.base_ref, args.head_ref)
+        except subprocess.CalledProcessError:
+            return 1
     decision = evaluate_paths(files)
     if args.format == "json":
         print(format_json(decision))

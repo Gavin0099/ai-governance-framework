@@ -91,10 +91,13 @@ def _git_env() -> dict[str, str]:
 
 
 def _require_clean_nested(submodule_repo: Path) -> None:
-    status = _run_git(submodule_repo, ["status", "--short"]).stdout
+    # Only block on tracked-file changes; untracked files in the submodule
+    # checkout (e.g. runtime artifacts, DB files) should not prevent a pointer
+    # update since they won't be staged or committed by the updater.
+    status = _run_git(submodule_repo, ["status", "--short", "--untracked-files=no"]).stdout
     if status:
         raise SubmoduleUpdateError(
-            f"nested submodule checkout is dirty: {submodule_repo}"
+            f"nested submodule checkout has tracked-file changes: {submodule_repo}"
         )
 
 
