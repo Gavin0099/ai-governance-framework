@@ -1,11 +1,38 @@
-# F-7 Governance Submodule Updater Contract
+# Governed Submodule Update — AI Governance Update to Latest
+
+Legacy tracking code: F-7
+
+## User-Facing Name
+
+The user-facing name for this workflow is:
+
+```text
+Update AI Governance to latest
+```
+
+In Chinese usage, this corresponds to:
+
+```text
+把 AI Governance 更新到最新
+```
+
+This user request maps to the governed submodule update workflow, formerly
+tracked as F-7.
+
+"F-7" is retained only as a legacy/internal tracking code for historical
+references, PLAN entries, and governance traceability.
+
+This workflow optimizes repeatability, reviewability, and scoped governance
+updates. It does not guarantee lower token usage than a manual `git pull` for a
+single run.
 
 ## Purpose
 
-F-7 provides a deterministic updater for external repositories that already
-consume `ai-governance-framework` as a registered Git submodule.
+The governed submodule update workflow provides a deterministic updater for
+external repositories that already consume `ai-governance-framework` as a
+registered Git submodule.
 
-The intended use is to avoid token-heavy manual handoffs such as:
+The intended use is to avoid ambiguous manual handoffs such as:
 
 ```text
 pull latest ai-governance and apply it to this repo
@@ -15,7 +42,7 @@ Instead, the agent should run a narrow, auditable submodule pointer update.
 
 ## Supported Repositories
 
-F-7 is only for repositories where all of the following are true:
+This workflow is only for repositories where all of the following are true:
 
 - the consuming repo is a Git worktree;
 - the governance framework path is a registered and initialized submodule;
@@ -37,7 +64,7 @@ For repos using a non-default path, pass `-SubmodulePath`, for example:
 
 ## Unsupported Repositories
 
-Do not use F-7 for:
+Do not use this workflow for:
 
 - repos without a registered governance submodule;
 - partial scaffold/import copies;
@@ -106,8 +133,8 @@ If the nested submodule already points at `target_head`, apply mode is a no-op:
 
 ## Non-Fast-Forward Updates
 
-Fast-forward is the default. If the nested submodule cannot fast-forward, F-7
-fails unless detached target checkout is explicitly allowed.
+Fast-forward is the default. If the nested submodule cannot fast-forward, this
+workflow fails unless detached target checkout is explicitly allowed.
 
 Use this only when the reviewer accepts replacing the nested submodule worktree
 HEAD with the fetched target commit:
@@ -153,7 +180,7 @@ Required result:
 
 ## Push Boundary
 
-F-7 does not push by default.
+This workflow does not push by default.
 
 Push only when the user explicitly approves a separate push slice:
 
@@ -166,8 +193,9 @@ staging, editing, committing, or cleaning unrelated dirty files.
 
 `submodule not registered or not initialized`
 
-: The repo is not an F-7 submodule consumer for the requested path. Classify it
-  as scaffold/import/manual-sync work instead of forcing F-7.
+: The repo is not a governed submodule update consumer for the requested path.
+  Classify it as scaffold/import/manual-sync work instead of forcing the
+  workflow.
 
 `consuming repo has pre-existing staged files`
 
@@ -184,9 +212,9 @@ staging, editing, committing, or cleaning unrelated dirty files.
 
 Windows output decoding errors
 
-: F-7 requests UTF-8 replacement decoding for Git subprocess output. If decoding
-  still fails, classify the run as tool-output failure and audit post-state
-  before retrying.
+: The updater requests UTF-8 replacement decoding for Git subprocess output. If
+  decoding still fails, classify the run as tool-output failure and audit
+  post-state before retrying.
 
 ## Claim Ceiling
 

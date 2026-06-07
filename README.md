@@ -334,7 +334,7 @@ examples/               # Starter pack, sample contracts
 |---|---|
 | [`governance/fleet/operational_semantics_v1.md`](governance/fleet/operational_semantics_v1.md) | Fleet governance definitions and decision boundaries |
 | [`governance/fleet/external_repo_onboarding_sop.md`](governance/fleet/external_repo_onboarding_sop.md) | Step-by-step onboarding for external repos |
-| [`docs/fleet/f7-governance-submodule-updater.md`](docs/fleet/f7-governance-submodule-updater.md) | Deterministic updater contract for external repos that consume this framework as a Git submodule |
+| [`docs/fleet/f7-governance-submodule-updater.md`](docs/fleet/f7-governance-submodule-updater.md) | "Update AI Governance to latest" user-facing entrypoint and governed submodule update contract for external repos |
 | [`docs/ai-governance-framework-explainer.md`](docs/ai-governance-framework-explainer.md) | Long-form framework explainer (14 sections) |
 | [`governance/fleet/governance_scope.yaml`](governance/fleet/governance_scope.yaml) | Repo tier classification (required / recommended / exempt) |
 | [`PLAN.md`](PLAN.md) | Project roadmap |
