@@ -99,6 +99,26 @@ update mode: already_current | fast_forward | detached_target_checkout | NOT CLA
 parent repo commit: <hash | NOT NEEDED | NOT CREATED>
 ```
 
+The updater JSON also includes `full_update_stage_report`:
+
+```text
+framework_pointer: updated | already_current | blocked | not_present | not_verified
+repo_local_instruction: updated | already_current | blocked | missing | not_verified
+memory_writer_coverage: verified | updated | blocked | missing | not_applicable | not_verified
+hook_validator_enforcement: verified | updated | blocked | missing | not_applicable | not_verified
+existing_memory_normalization: completed | needed | blocked | not_applicable | not_verified
+final_status: full_update_completed | already_current | partially_updated | blocked | not_submodule_consumer | not_verified
+```
+
+Current automation boundary:
+
+- Stage 1 updates the framework submodule pointer.
+- Stage 2 refreshes repo-local `AGENTS.base.md` and the AI Governance update
+  section in `AGENTS.md`.
+- Stages 3-5 are coverage/status checks only. They do not install hooks, change
+  validators, normalize memory, or change artifact schema.
+- `full_update_completed` is not valid unless every required stage is satisfied.
+
 ## Common Misinterpretations
 
 The user-facing request does not mean checking whether local governance
@@ -239,7 +259,11 @@ Expected apply properties:
 
 - `ok=true`;
 - `mode=apply`;
-- `staged_files` contains only the submodule path before commit;
+- `full_update_stage_report` is present;
+- Stage 2 refreshes `AGENTS.base.md` and the AI Governance update section in
+  `AGENTS.md`;
+- `staged_files` contains only F-7 full update scope files before commit:
+  the submodule path, `AGENTS.base.md`, and/or `AGENTS.md`;
 - `committed=true` when `-Commit` is used;
 - `commit_hash` is populated when commit succeeds;
 - the consuming repo has no staged files after commit.
@@ -252,6 +276,12 @@ If the nested submodule already points at `target_head`, apply mode is a no-op:
 - `committed=false`;
 - `commit_hash=null`;
 - no consuming repo commit is created.
+
+If Stage 2 instruction refresh is needed while the submodule is already current,
+the submodule pointer remains unchanged, but `AGENTS.base.md` and/or `AGENTS.md`
+may be staged/committed when `-Stage` or `-Commit` is requested. In that case,
+the run is no longer a repository no-op; the stage report records
+`framework_pointer=already_current` and `repo_local_instruction=updated`.
 
 ## Non-Fast-Forward Updates
 
@@ -295,7 +325,8 @@ git -C E:\BackUp\Git_EE\example-repo status --branch --short
 
 Required result:
 
-- commit-only diff contains only the submodule path;
+- commit-only diff contains only F-7 full update scope files: the submodule path,
+  `AGENTS.base.md`, and/or `AGENTS.md`;
 - staged files are empty after commit;
 - nested HEAD equals the updater `target_head`;
 - unrelated dirty files, if present, remain unstaged and unclaimed.
@@ -345,6 +376,10 @@ CLAIMED:
 - deterministic submodule pointer update for registered submodule consumers;
 - dry-run before apply;
 - path-limited staging and commit;
+- Stage 2 repo-local instruction refresh for `AGENTS.base.md` and the AI
+  Governance update section in `AGENTS.md`;
+- Stage 3-5 coverage/status reporting without hook, validator, memory, or schema
+  mutation;
 - opt-in detached checkout for non-fast-forward targets;
 - Windows subprocess output decode hardening;
 - focused fixture tests for supported updater behavior.
@@ -357,6 +392,9 @@ NOT CLAIMED:
 - conversion of non-submodule repos into submodule consumers;
 - dirty workspace cleanup;
 - nested submodule repair;
+- hook installation or validator modification;
+- memory normalization;
+- artifact schema modification;
 - product/runtime correctness in consuming repos;
 - semantic correctness of the target framework commit;
 - Copilot-specific integration;
