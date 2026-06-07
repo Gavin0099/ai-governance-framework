@@ -2,6 +2,51 @@
 
 Legacy tracking code: F-7
 
+## F-7 Full Update Contract
+
+F-7 is the AI Governance Full Update workflow. The governed submodule update
+documented here is Stage 1 of F-7, not the whole workflow.
+
+When the user asks to update or adopt the latest AI Governance through F-7, a
+submodule pointer update alone is insufficient and must be reported as
+`partially_updated`, not completed.
+
+Required F-7 stages:
+
+1. framework pointer update
+2. repo-local instruction refresh
+3. memory writer coverage check
+4. hook / validator coverage check
+5. existing memory normalization status check
+6. final adoption status report
+
+Layered status fields:
+
+```text
+framework_pointer: updated | already_current | blocked | not_present | not_verified
+repo_local_instruction: updated | already_current | blocked | missing | not_verified
+memory_writer_coverage: verified | updated | blocked | missing | not_applicable | not_verified
+hook_validator_enforcement: verified | updated | blocked | missing | not_applicable | not_verified
+existing_memory_normalization: completed | needed | blocked | not_applicable | not_verified
+final_status: full_update_completed | already_current | partially_updated | blocked | not_submodule_consumer | not_verified
+```
+
+`full_update_completed` may be used only when every required stage is
+`updated`, `already_current`, `verified`, `completed`, or `not_applicable`.
+If any required surface is `missing`, `needed`, `blocked`, or `not_verified`,
+the final status must not be `full_update_completed`.
+
+This semantic update defines the required F-7 contract. It does not by itself
+implement updater automation for all stages.
+
+NOT CLAIMED unless separately implemented and validated:
+
+- updater automation performs all F-7 stages;
+- hooks changed;
+- validators changed;
+- artifact schema changed;
+- existing memory was normalized.
+
 ## User-Facing Name
 
 The user-facing name for this workflow is:
@@ -16,8 +61,8 @@ In Chinese usage, this corresponds to:
 把 AI Governance 更新到最新
 ```
 
-This user request maps to the governed submodule update workflow, formerly
-tracked as F-7.
+This user request maps to F-7. The governed submodule update workflow is Stage 1
+of F-7.
 
 "F-7" is retained only as a legacy/internal tracking code for historical
 references, PLAN entries, and governance traceability.

@@ -112,6 +112,7 @@ Required posture:
 - [x] F-7 applied to Hearth + pushed — c4c913f2→7c57f3a (fast_forward); governance smoke PASS all harnesses; version_bump_guard ran cleanly (9f5687c)
 - [x] Enumd gitlab-wiki-adapter pushed — multi-project page scope resolution feature (03b1cf3 master)
 - [x] E1 Phase 2 SC-7 cleanup verification added — `_verify_cleanup` method added to runner; `cleanup_verified=True` on all 4 scenarios; CLEANUP_FAILED status surfaces as runner fail; runner_version=1.1; report saved 2026-06-06 (pending commit)
+- [x] F-7 Full Update Semantics documented — F-7 is now defined as AI Governance Full Update; governed submodule update is Stage 1 only; pointer-only success must be reported as partially_updated, not completed; no updater/hook/schema/validator automation change claimed
 - [x] Memory authority guard active-window sentinel + new test classes (TestClaudeCodeDirectWriteFlagged, TestActiveNonCanonicalWriterSentinel, filter_active_non_canonical_writer_violations) — merged from remote (e302d49)
 - [x] AGENTS.md: Ambiguous Continuation Is Audit-First rule added; Memory State Interpretation Rule; persistent user preference precedence — merged from remote + local commits
 
