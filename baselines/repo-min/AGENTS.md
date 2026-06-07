@@ -83,6 +83,60 @@ update mode: NOT CLAIMED
 parent repo commit: NOT CREATED
 ```
 
+### AI Governance Check Vs Update Intent
+
+Classify the user's wording before acting:
+
+`check` intent examples:
+- "檢查 AI Governance 是否最新"
+- "確認 AI Governance 有沒有更新"
+- "verify AI Governance version"
+- "check whether AI Governance is up to date"
+
+Action: verify-only. Do not update the submodule pointer.
+
+`update` intent examples:
+- "幫我更新最新版 AI Governance"
+- "把 AI Governance 更新到最新"
+- "更新 AI Governance 到最新版"
+- "Update AI Governance to latest"
+
+Action: perform the governed update flow for a submodule consumer: detect the
+governance submodule path, run dry-run, then apply the scoped submodule pointer
+update if dry-run is safe and no blocker exists.
+
+For `update` intent, do not stop after direct HEAD comparison when nested
+governance HEAD differs from target framework HEAD. A direct HEAD comparison may
+establish `update_available`, but it is not a completed update.
+
+If the repository is a submodule consumer and no blocker exists, the agent must
+continue from `update_available` to the governed update step.
+
+The agent must not ask "要不要我幫你更新？" after the user has already used
+update wording. Ask only when the user intent is ambiguous or when a blocker
+requires user decision.
+
+AI Governance update status must use one of these fixed values only:
+
+- `already_current`: nested governance HEAD already matches the target framework HEAD.
+- `update_available`: nested governance HEAD differs from the target framework HEAD, but update has not yet been applied.
+- `updated`: governed update flow completed and nested governance HEAD now matches the target framework HEAD.
+- `blocked`: update could not proceed due to dirty worktree, staged changes, dirty nested submodule, dry-run failure, missing path, or other explicit blocker.
+- `not_submodule_consumer`: repository does not consume AI Governance through a submodule.
+- `not_verified`: the agent could not safely determine current or target governance state.
+
+For update intent, `update_available` is an intermediate state, not a final
+successful outcome. Final response must be one of:
+`already_current | updated | blocked | not_submodule_consumer | not_verified`.
+
+Updating the governance submodule pointer does not automatically authorize a
+parent repository commit or push unless the user explicitly requested commit/push
+or the active workflow already defines commit/push as part of the governed
+update task.
+
+If no parent repo commit is created, report:
+`parent repo commit: NOT CREATED`.
+
 ## Repo-Specific Risk Levels
 <!-- governance:key=risk_levels -->
 
