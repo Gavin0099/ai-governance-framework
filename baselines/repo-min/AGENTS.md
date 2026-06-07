@@ -38,6 +38,7 @@ The agent must not claim AI Governance is already current based only on:
 - `AGENTS.md` unchanged
 - `AGENTS.base.md` unchanged
 - parent repository `HEAD == origin/main`
+- `git pull --ff-only` reporting already up to date
 - clean parent repository working tree
 
 A valid `already_current` conclusion for a submodule consumer must include:
@@ -45,6 +46,42 @@ A valid `already_current` conclusion for a submodule consumer must include:
 - nested governance HEAD
 - target upstream framework HEAD
 - dry-run update result
+
+Required response shape:
+
+```text
+AI Governance update check: <already_current | update_available | updated | not_submodule_consumer | not_verified>
+governance submodule path: <path | NOT FOUND | NOT CHECKED>
+nested governance HEAD: <sha | NOT CHECKED>
+target framework HEAD: <sha | NOT CHECKED>
+dry-run: PASS | FAIL | NOT RUN
+update mode: already_current | fast_forward | detached_target_checkout | NOT CLAIMED
+parent repo commit: <hash | NOT NEEDED | NOT CREATED>
+```
+
+If the session only updates `AGENTS.md` or other local instruction files, report
+that as an instruction-file update and mark the AI Governance Framework update
+as `not_verified`. Do not collapse instruction-file sync into framework update
+status.
+
+Invalid conclusion:
+
+```text
+AGENTS.md was updated and the parent repo is up to date, so AI Governance is current.
+```
+
+Valid partial conclusion:
+
+```text
+AGENTS.md was updated, but the AI Governance Framework submodule was not checked.
+AI Governance update check: not_verified
+governance submodule path: NOT CHECKED
+nested governance HEAD: NOT CHECKED
+target framework HEAD: NOT CHECKED
+dry-run: NOT RUN
+update mode: NOT CLAIMED
+parent repo commit: NOT CREATED
+```
 
 ## Repo-Specific Risk Levels
 <!-- governance:key=risk_levels -->

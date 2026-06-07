@@ -42,16 +42,16 @@ For submodule consumers, the required comparison is:
 A valid `already_current` result must be based on the nested governance HEAD
 matching the target framework HEAD.
 
-The expected report shape is:
+The required report shape is:
 
 ```text
-AI Governance update check: already_current
-governance submodule path: <path>
-nested governance HEAD: <sha>
-target framework HEAD: <sha>
-update mode: already_current
-dry-run: PASS
-parent repo commit: NOT NEEDED
+AI Governance update check: <already_current | update_available | updated | not_submodule_consumer | not_verified>
+governance submodule path: <path | NOT FOUND | NOT CHECKED>
+nested governance HEAD: <sha | NOT CHECKED>
+target framework HEAD: <sha | NOT CHECKED>
+dry-run: PASS | FAIL | NOT RUN
+update mode: already_current | fast_forward | detached_target_checkout | NOT CLAIMED
+parent repo commit: <hash | NOT NEEDED | NOT CREATED>
 ```
 
 ## Common Misinterpretations
@@ -64,7 +64,44 @@ Do not claim the governance framework is already current based only on:
 - `AGENTS.md` unchanged;
 - `AGENTS.base.md` unchanged;
 - parent repository `HEAD == origin/main`;
+- `git pull --ff-only` reporting already up to date;
 - clean parent repository working tree.
+
+Also do not collapse instruction-file sync into framework update status. If the
+session updates `AGENTS.md` or another local instruction file without checking
+the governance submodule, report that as an instruction-file update and mark the
+framework update as `not_verified`.
+
+Invalid conclusion:
+
+```text
+AGENTS.md was updated and the parent repo is up to date, so AI Governance is current.
+```
+
+Valid partial conclusion:
+
+```text
+AGENTS.md was updated, but the AI Governance Framework submodule was not checked.
+AI Governance update check: not_verified
+governance submodule path: NOT CHECKED
+nested governance HEAD: NOT CHECKED
+target framework HEAD: NOT CHECKED
+dry-run: NOT RUN
+update mode: NOT CLAIMED
+parent repo commit: NOT CREATED
+```
+
+Valid `already_current` conclusion:
+
+```text
+AI Governance update check: already_current
+governance submodule path: ai-governance-framework
+nested governance HEAD: <sha>
+target framework HEAD: <same-sha>
+dry-run: PASS
+update mode: already_current
+parent repo commit: NOT NEEDED
+```
 
 ## Purpose
 
