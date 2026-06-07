@@ -407,6 +407,34 @@ submodule pointer updates as parent-repo decisions. Do not silently assume that
 advancing the framework checkout also updates the parent repo's intended pinned
 version.
 
+### AI Governance Update Intent Rule
+
+When the user asks to "Update AI Governance to latest" or 「把 AI Governance
+更新到最新」, do not interpret this as checking whether `AGENTS.md`,
+`AGENTS.base.md`, or local governance instruction files are clean.
+
+First determine whether the repository consumes AI Governance through a
+submodule path such as:
+- `ai-governance-framework`
+- `.ai-governance-framework`
+
+If a governance submodule exists, the request maps to the governed submodule
+update workflow. The agent must compare the nested governance HEAD with the
+approved target upstream HEAD, preferably through the governed submodule updater
+dry-run path.
+
+The agent must not claim AI Governance is already current based only on:
+- `AGENTS.md` unchanged
+- `AGENTS.base.md` unchanged
+- parent repository `HEAD == origin/main`
+- clean parent repository working tree
+
+A valid `already_current` conclusion for a submodule consumer must include:
+- governance submodule path
+- nested governance HEAD
+- target upstream framework HEAD
+- dry-run update result
+
 ## Memory
 
 You wake up fresh each session. These files are your continuity:

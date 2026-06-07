@@ -26,6 +26,46 @@ This workflow optimizes repeatability, reviewability, and scoped governance
 updates. It does not guarantee lower token usage than a manual `git pull` for a
 single run.
 
+## Intent Resolution
+
+The user-facing request "Update AI Governance to latest" / 「把 AI Governance
+更新到最新」 maps to this governed submodule update workflow for repositories
+that consume the framework as a Git submodule.
+
+For submodule consumers, the required comparison is:
+
+- governance submodule path;
+- nested governance HEAD;
+- target upstream framework HEAD;
+- dry-run update result.
+
+A valid `already_current` result must be based on the nested governance HEAD
+matching the target framework HEAD.
+
+The expected report shape is:
+
+```text
+AI Governance update check: already_current
+governance submodule path: <path>
+nested governance HEAD: <sha>
+target framework HEAD: <sha>
+update mode: already_current
+dry-run: PASS
+parent repo commit: NOT NEEDED
+```
+
+## Common Misinterpretations
+
+The user-facing request does not mean checking whether local governance
+instruction files are unchanged.
+
+Do not claim the governance framework is already current based only on:
+
+- `AGENTS.md` unchanged;
+- `AGENTS.base.md` unchanged;
+- parent repository `HEAD == origin/main`;
+- clean parent repository working tree.
+
 ## Purpose
 
 The governed submodule update workflow provides a deterministic updater for
