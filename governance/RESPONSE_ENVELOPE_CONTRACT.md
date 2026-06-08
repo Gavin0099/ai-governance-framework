@@ -163,3 +163,134 @@ The envelope must preserve the same claim discipline as Rule 7:
 - `NOT CLAIMED` means the capability or conclusion is not asserted.
 - `NOT PRESENT` means the mechanism, artifact, or enforcement does not exist.
 - `PASS` must reference a command or source.
+
+## Result-First Final Report Format
+
+Final reports should be result-first, not process-first.
+
+Content language must match the session language. Sub-field labels
+(`structural`, `build`, `semantic`, `behavioral`, `ext evidence`, `scope drift`,
+`claim inflation`, `evidence maturity`) and fixed vocabulary tokens (`PASS`,
+`FAIL`, `NOT RUN`, `NOT CLAIMED`, `NOT PRESENT`) remain in English. Section
+headers may be translated.
+
+English session format:
+
+```text
+1. Result: Done / Not done
+2. Capability increased:
+3. Changed files:
+4. Validation:
+   - structural:    PASS — <command> | FAIL — <command> | NOT RUN
+   - build:         PASS — <command> | FAIL — <command> | NOT RUN
+   - semantic:      NOT CLAIMED | PASS — human review: [reviewer/date]
+   - behavioral:    NOT PRESENT | verified — [how]
+   - ext evidence:  NOT PRESENT | [source and scope]
+5. Risk:
+   - scope drift:        none | [description]
+   - claim inflation:    none | [description]
+   - evidence maturity:  [one line]
+6. Incidental cleanup:   none | file=[path] reason=[why] semantic_change=no
+7. Governance surface change: none / list
+8. Remaining blocker:
+9. Cannot claim this session:
+   - [list what was NOT validated, NOT verified, NOT proven — required, never omit]
+```
+
+Chinese session format:
+
+```text
+1. 結果：完成 / 未完成
+2. 能力提升：
+3. 變更檔案：
+4. 驗證：
+   - structural:    PASS — <指令> | FAIL — <指令> | NOT RUN
+   - build:         PASS — <指令> | FAIL — <指令> | NOT RUN
+   - semantic:      NOT CLAIMED | PASS — 人工審查：[審查者/日期]
+   - behavioral:    NOT PRESENT | 已驗證 — [如何]
+   - ext evidence:  NOT PRESENT | [來源與範圍]
+5. 風險：
+   - scope drift:        none | [說明]
+   - claim inflation:    none | [說明]
+   - evidence maturity:  [一行說明]
+6. 附帶清理：   none | file=[路徑] reason=[原因] semantic_change=no
+7. Governance surface 變更：none / 列舉
+8. 剩餘阻擋：
+9. 本次無法宣告：
+   - [列出未驗證、未確認、未證明的項目 — 必填，不得省略]
+```
+
+## Golden Examples
+
+Schema-only change:
+
+```text
+1. Result: Done
+2. Capability increased: section_refs schema extended
+3. Changed files: wiki/port-status.md
+4. Validation:
+   - structural:    PASS — grep section_refs wiki/port-status.md
+   - build:         NOT RUN — markdown-only change
+   - semantic:      NOT CLAIMED
+   - behavioral:    NOT PRESENT
+   - ext evidence:  NOT PRESENT
+5. Risk:
+   - scope drift:        none
+   - claim inflation:    none
+   - evidence maturity:  structural layer only; no semantic verification
+6. Incidental cleanup:   none
+7. Governance surface change: none
+8. Remaining blocker:     none
+9. Cannot claim this session:
+   - semantic correctness of section references
+   - PDF-level content verification
+```
+
+Pilot attachment change:
+
+```text
+1. Result: Done
+2. Capability increased: 4 port entries have section_refs attached
+3. Changed files: wiki/port-status.md, wiki/zh/port-status.md
+4. Validation:
+   - structural:    PASS — validate_wiki_frontmatter (exit 0)
+   - build:         PASS — npm run build (exit 0)
+   - semantic:      NOT CLAIMED
+   - behavioral:    NOT PRESENT
+   - ext evidence:  NOT PRESENT
+5. Risk:
+   - scope drift:        none — pilot limited to 4 existing entries
+   - claim inflation:    none — claim_level unchanged (inferred)
+   - evidence maturity:  build-verified only; high-risk coverage below original plan
+6. Incidental cleanup:   none
+7. Governance surface change: none
+8. Remaining blocker:     PORT_OVER_CURRENT not in pilot — high-risk coverage gap
+9. Cannot claim this session:
+   - bit-level semantic verification of attached spec sections
+   - high-risk boundary condition coverage (PORT_OVER_CURRENT not in pilot)
+   - verified status upgrade
+```
+
+Failed or partial validation:
+
+```text
+1. Result: Not done — build failed
+2. Capability increased: none
+3. Changed files: wiki/port-status.md (uncommitted)
+4. Validation:
+   - structural:    PASS — validate_wiki_frontmatter (exit 0)
+   - build:         FAIL — npm run build (exit 1, error above)
+   - semantic:      NOT CLAIMED
+   - behavioral:    NOT PRESENT
+   - ext evidence:  NOT PRESENT
+5. Risk:
+   - scope drift:        none
+   - claim inflation:    none — task not complete
+   - evidence maturity:  build failure; no completion evidence
+6. Incidental cleanup:   none
+7. Governance surface change: none
+8. Remaining blocker:     build error must be resolved before commit
+9. Cannot claim this session:
+   - task complete
+   - any validation above build layer
+```
