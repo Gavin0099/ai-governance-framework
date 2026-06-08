@@ -101,8 +101,8 @@ Required posture:
 - [x] Runtime Profile RP-1~RP-3a complete (validator, fixture corpus, contract doc, README entrypoint) — (d9f12dc..9fe4877)
 - [x] Response Envelope Validator + Batch — static validator, fixture corpus, evidence shape, batch CLI (06eebff..9238dea)
 - [x] Fleet Submodule Updater F-1~F-7 complete — read-only inventory, advisory docs, F-6 robustness fix, F-7 MVP with already-current/detached-checkout/UTF-8 hardening + contract doc (5a712ef..4926b6d)
-- [x] F-7 applied to Bookstore-Scraper — .ai-governance-framework updated da1d4f3→1b101ef (fast_forward); committed c134958b; push pending
-- [x] F-7 applied to Enumd — ai-governance-framework updated 0bee651b→1b101ef (detached_target_checkout); committed bc6614cc; push pending
+- [x] F-7 applied to Bookstore-Scraper — .ai-governance-framework updated da1d4f3→1b101ef (fast_forward); committed c134958b and later pushed (memory record 2026-06-06 external-push-complete)
+- [x] F-7 applied to Enumd — ai-governance-framework updated 0bee651b→1b101ef (detached_target_checkout); committed bc6614cc and later pushed (memory record 2026-06-06 external-push-complete)
 - [x] CodeBurn visible_io_token_sum contract + helper + report exposure + session display + ZH labels + real transcript trial (6f97bf6..47b1b04)
 - [x] CodeBurn Codex stop-hook configured — .codex/hooks.json (gitignored); CODEBURN_SHOW_VISIBLE_IO_SUM=1 as persistent Windows user env var; smoke PASS
 - [x] #17 Copilot memory authority advisory threshold proposal — warning trigger defined, 9 required fields, 4 escalation conditions (all unmet); blocking not enabled (c6f3175)
@@ -111,7 +111,7 @@ Required posture:
 - [x] version_bump_guard non-main branch fix — CalledProcessError caught cleanly; pre-push hook uses `git symbolic-ref` to detect remote default branch (52f1bfc)
 - [x] F-7 applied to Hearth + pushed — c4c913f2→7c57f3a (fast_forward); governance smoke PASS all harnesses; version_bump_guard ran cleanly (9f5687c)
 - [x] Enumd gitlab-wiki-adapter pushed — multi-project page scope resolution feature (03b1cf3 master)
-- [x] E1 Phase 2 SC-7 cleanup verification added — `_verify_cleanup` method added to runner; `cleanup_verified=True` on all 4 scenarios; CLEANUP_FAILED status surfaces as runner fail; runner_version=1.1; report saved 2026-06-06 (pending commit)
+- [x] E1 Phase 2 SC-7 cleanup verification added — `_verify_cleanup` method added to runner; `cleanup_verified=True` on all 4 scenarios; CLEANUP_FAILED status surfaces as runner fail; runner_version=1.1; committed in 33b0e9b with 2026-06-06 report
 - [x] F-7 Full Update Semantics documented — F-7 is now defined as AI Governance Full Update; governed submodule update is Stage 1 only; pointer-only success must be reported as partially_updated, not completed; no updater/hook/schema/validator automation change claimed
 - [x] F-7 Stage Report + Stage 2 automation slice — updater now emits `full_update_stage_report`, refreshes `AGENTS.base.md` and the AI Governance update section in `AGENTS.md` on apply, and reports Stage 3–5 coverage without hook/validator/memory/schema mutation
 - [x] Memory authority guard active-window sentinel + new test classes (TestClaudeCodeDirectWriteFlagged, TestActiveNonCanonicalWriterSentinel, filter_active_non_canonical_writer_violations) — merged from remote (e302d49)
@@ -139,8 +139,8 @@ Required posture:
 
 等待觀察：
 - [>] Phase 3 post-enforcement observation — active; 11 clean_canonical collected (9 raw-verified gl_electron_tool); #17 advisory threshold proposal drafted; blocking not ready
-- [>] Codex stop-hook real session verification — .codex/hooks.json + CODEBURN_SHOW_VISIBLE_IO_SUM=1 configured; pending first real Codex session to confirm hook fires
-- [>] Enumd second F-7 pass — submodule still on 1b101ef; needs update to 8a64637 to get version_bump_guard fix in deployed hook
+- [>] Codex stop-hook visible_io observation — .codex/hooks.json + CODEBURN_SHOW_VISIBLE_IO_SUM=1 configured; visible token block observed in session output; continue monitoring real stop-hook inheritance across sessions
+- [>] Enumd second F-7 pass — prior target 8a64637 is stale after framework advanced to 5e97ba7; rerun readiness/update inventory before applying another submodule pointer update
 - [>] Rule 4 effect observation — next gl_electron_tool Copilot Workspace session (Chinese format now deployed)
 - [>] Rule 1 DONE-definition gap — identified, deferred pending Rule 4 observation data
 - [>] Phase E PAUSE 仍有效：E2/E3 均 blocked，等待 observable trigger
