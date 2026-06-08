@@ -2627,6 +2627,7 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 - [x] Phase F-7c: framework-first F-7 usage contract documented in `docs/fleet/f7-governance-submodule-updater.md`, covering supported repo types, dry-run/apply commands, non-fast-forward opt-in, post-run checks, push boundary, troubleshooting, and claim ceiling. No external repo update or updater behavior change claimed.
 - [x] Phase F-7d: already-current/no-op behavior made explicit with fixture coverage; when the submodule already points at the target, apply mode returns `update_mode=already_current` without staging or committing. No external repo update, push behavior, or fleet batch behavior claimed.
 - [x] Phase F-7e: README/key-doc entrypoint added for the F-7 updater contract and the usage contract now documents `already_current` no-op semantics. No updater behavior change, external repo update, or fleet batch behavior claimed.
+- [x] Phase F-7f: uninitialized submodule checkout guard added after Hearth exposed misleading dry-run evidence; updater now requires the submodule path's git top-level to match the submodule path before resolving HEAD, and regression coverage verifies fail-closed behavior with no parent-repo HEAD leakage. No update semantics, push behavior, or fleet batch behavior change claimed.
 
 ## 2026-06-05 CodeBurn Codex / Claude Token Ingestion Audit
 

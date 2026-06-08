@@ -191,6 +191,26 @@ def test_dry_run_does_not_change_submodule_or_stage_files(tmp_path: Path) -> Non
     assert _git(consumer, "diff", "--cached", "--name-only") == ""
 
 
+def test_dry_run_refuses_uninitialized_submodule_checkout(tmp_path: Path) -> None:
+    consumer, _framework, _old_head, _new_head = _make_fixture(tmp_path)
+    _git(consumer, "submodule", "deinit", "-f", "--", "ai-governance-framework")
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=True,
+    )
+
+    assert result.ok is False
+    assert result.update_mode == "failed"
+    assert result.before_head == ""
+    assert result.after_head == ""
+    assert result.target_head == ""
+    assert result.full_update_stage_report["final_status"] == "blocked"
+    assert "submodule path is not an initialized git checkout" in result.errors[0]
+    assert _git(consumer, "diff", "--cached", "--name-only") == ""
+
+
 def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
     consumer, _framework, old_head, new_head = _make_fixture(tmp_path)
     (consumer / "unrelated.txt").write_text("dirty\n", encoding="utf-8")

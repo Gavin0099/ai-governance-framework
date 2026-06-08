@@ -122,6 +122,23 @@ def _require_registered_submodule(repo: Path, submodule_path: str) -> None:
         )
 
 
+def _is_initialized_git_checkout(repo: Path) -> bool:
+    result = _run_git(repo, ["rev-parse", "--show-toplevel"], check=False)
+    if result.returncode != 0 or not result.stdout:
+        return False
+    try:
+        return Path(result.stdout).resolve() == repo.resolve()
+    except OSError:
+        return False
+
+
+def _require_initialized_git_checkout(submodule_repo: Path) -> None:
+    if not _is_initialized_git_checkout(submodule_repo):
+        raise SubmoduleUpdateError(
+            f"submodule path is not an initialized git checkout: {submodule_repo}"
+        )
+
+
 def _resolve_head(repo: Path, ref: str) -> str:
     return _run_git(repo, ["rev-parse", ref]).stdout
 
@@ -298,6 +315,7 @@ def update_governance_submodule(
     try:
         _run_git(repo, ["rev-parse", "--is-inside-work-tree"])
         _require_registered_submodule(repo, submodule_path)
+        _require_initialized_git_checkout(submodule_repo)
         _require_no_initial_staged_files(repo)
         _require_clean_nested(submodule_repo)
 
@@ -474,8 +492,9 @@ def update_governance_submodule(
         before = ""
         after = ""
         try:
-            before = _resolve_head(submodule_repo, "HEAD")
-            after = before
+            if _is_initialized_git_checkout(submodule_repo):
+                before = _resolve_head(submodule_repo, "HEAD")
+                after = before
         except Exception:
             pass
         return UpdateResult(
