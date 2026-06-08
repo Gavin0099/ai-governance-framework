@@ -2643,6 +2643,12 @@ Claim ceiling:
 - CLAIMED: #17 advisory threshold proposal candidate from 2 positive canonical writer samples.
 - NOT CLAIMED: blocking threshold readiness, enforcement effectiveness, historical violation cleanup, guard behavior change, hook integration, or semantic validation of memory content.
 
+## 2026-06-08 HOOK-OBS-1 Hook Output Token-Risk Analysis
+
+- [x] HOOK-OBS-1 completed as advisory analysis only. Artifact `artifacts/governance/hook-output-token-risk-analysis-2026-06-08.md` inventories session_start / pre_task / post_task / session_end output sources, identifies high-token / low-value output patterns, proposes an advisory hook output summary shape, defines a CodeBurn before/after measurement protocol, and explicitly defers Minimal protocol bundle / MRS work.
+- CLAIMED: hook/pre-task output token-risk analysis and measurement protocol.
+- NOT CLAIMED: token reduction, MRS classifier, Minimal Rule Selection operational, hook output behavior change, validator/schema/runtime behavior change, router audit, high-risk path checker, CodeBurn billing truth, or future HOOK-OBS/HOOK-OPT phase chain.
+
 ## 2026-06-05 CodeBurn Codex / Claude Token Ingestion Audit
 
 - [x] Audit-only review completed for current Codex and Claude Code token ingestion surfaces. Codex admits log-visible `last_token_usage.input_tokens` / `output_tokens` as `prompt_tokens` / `completion_tokens`; Claude Code admits `message.usage.input_tokens` / `output_tokens` as `prompt_tokens` / `completion_tokens`; both intentionally keep `total_tokens` absent/NULL, preserve Class C observation-only provenance, and do not claim billing truth, efficiency inference, or cross-provider comparability. Current searched surfaces did not show Codex/Claude cross-provider token aggregation. No ingestion behavior, schema, validator, hook, summary/reporting behavior, or comparability rule changed.
