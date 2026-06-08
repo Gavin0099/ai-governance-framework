@@ -2629,6 +2629,18 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 - [x] Phase F-7e: README/key-doc entrypoint added for the F-7 updater contract and the usage contract now documents `already_current` no-op semantics. No updater behavior change, external repo update, or fleet batch behavior claimed.
 - [x] Phase F-7f: uninitialized submodule checkout guard added after Hearth exposed misleading dry-run evidence; updater now requires the submodule path's git top-level to match the submodule path before resolving HEAD, and regression coverage verifies fail-closed behavior with no parent-repo HEAD leakage. No update semantics, push behavior, or fleet batch behavior change claimed.
 
+## 2026-06-08 #17 Advisory Threshold Proposal Candidate
+
+- [x] #17 cross-repo canonical-writer-success samples observed. `usb-if-hub-spec-reference` recorded commit `093496b` and `verilog-domain-contract` recorded commit `9a9b867`; both used `governance_tools.memory_record` and preserved `active_non_canonical_writer.count = 0`.
+- [x] Advisory threshold proposal candidate state recorded. Current evidence supports `old-format-suppressed` plus positive canonical writer repeatability across 2 repos, but does not enable blocking or change guard behavior.
+- [>] Proposed advisory readiness criteria: active window only; historical violations excluded; positive canonical-writer-success samples >= 2; repo diversity >= 2 repos or 2 consecutive active sessions in one repo; active_non_canonical_writer.count == 0; active missing-daily-memory == 0 or explicitly classified as no memory write expected; workspace clean after commit/push.
+- [>] Next #17 step: dry-run threshold simulation across active-window samples before any hook, blocking, or `--fail-on-active-non-canonical-writer` integration.
+
+Claim ceiling:
+
+- CLAIMED: #17 advisory threshold proposal candidate from 2 positive canonical writer samples.
+- NOT CLAIMED: blocking threshold readiness, enforcement effectiveness, historical violation cleanup, guard behavior change, hook integration, or semantic validation of memory content.
+
 ## 2026-06-05 CodeBurn Codex / Claude Token Ingestion Audit
 
 - [x] Audit-only review completed for current Codex and Claude Code token ingestion surfaces. Codex admits log-visible `last_token_usage.input_tokens` / `output_tokens` as `prompt_tokens` / `completion_tokens`; Claude Code admits `message.usage.input_tokens` / `output_tokens` as `prompt_tokens` / `completion_tokens`; both intentionally keep `total_tokens` absent/NULL, preserve Class C observation-only provenance, and do not claim billing truth, efficiency inference, or cross-provider comparability. Current searched surfaces did not show Codex/Claude cross-provider token aggregation. No ingestion behavior, schema, validator, hook, summary/reporting behavior, or comparability rule changed.
@@ -2664,7 +2676,7 @@ slices.
 | 6 CodeBurn Copilot gap calibration | waiting for #5 or later evidence | do not claim billing or calibration truth |
 | 8 Memory authority pattern GI-001 | waiting for second occurrence | observe; do not promote to pattern yet |
 | 9 v2 contract direction | waiting for trend data | do not design v2 from isolated cases |
-| 17 Memory Authority blocking threshold | observe-only; #17-C raw verification completed | advisory threshold discussion possible, but blocking threshold NOT CLAIMED |
+| 17 Memory Authority blocking threshold | advisory threshold proposal candidate; 2 canonical-writer-success samples across 2 repos | run dry-run threshold simulation before any blocking threshold; blocking threshold NOT CLAIMED |
 | 19 historical non_canonical_writer classification | closed as 86-record classification at c1d616e | do not reclassify or backfill unless a new scoped correction is approved |
 | 20 RP-3a Runtime Profile Reviewer Entrypoint | closed at 9fe4877 | do not repeat reviewer-entrypoint work |
 | 21 CE-1D Historical Unreceipted Packet Inventory | closed as inventory-only at 7c824fa | migration, cleanup, receipt backfill, and blocking gate remain NOT CLAIMED |
@@ -2675,8 +2687,9 @@ Recommended next-order after this correction:
 
 1. CE-1D advisory classification proposal for the 203 unreceipted packet
    directories, if cleanup/migration planning is needed.
-2. More #17 raw-verified active-window samples before any blocking-threshold
-   proposal; current raw-verified sample set is useful but still small.
+2. #17 dry-run threshold simulation across current active-window samples before
+   any blocking-threshold integration; current evidence supports an advisory
+   proposal candidate only.
 3. Defer repo role resolver, governance skills registry, runtime enforcement,
    semantic verifier, Hermes integration, OS sandbox/RBAC/SoD work until an
    observed repeated failure justifies expansion.
