@@ -2634,7 +2634,8 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 - [x] #17 cross-repo canonical-writer-success samples observed. `usb-if-hub-spec-reference` recorded commit `093496b` and `verilog-domain-contract` recorded commit `9a9b867`; both used `governance_tools.memory_record` and preserved `active_non_canonical_writer.count = 0`.
 - [x] Advisory threshold proposal candidate state recorded. Current evidence supports `old-format-suppressed` plus positive canonical writer repeatability across 2 repos, but does not enable blocking or change guard behavior.
 - [>] Proposed advisory readiness criteria: active window only; historical violations excluded; positive canonical-writer-success samples >= 2; repo diversity >= 2 repos or 2 consecutive active sessions in one repo; active_non_canonical_writer.count == 0; active missing-daily-memory == 0 or explicitly classified as no memory write expected; workspace clean after commit/push.
-- [>] Next #17 step: dry-run threshold simulation across active-window samples before any hook, blocking, or `--fail-on-active-non-canonical-writer` integration.
+- [x] Dry-run threshold simulation completed across current active-window samples; candidate advisory warning count is 0, candidate blocking events are 0, and blocking threshold remains not ready. Artifact: `artifacts/governance/memory-authority-threshold-dry-run-simulation-2026-06-08.md`.
+- [>] Next #17 step: keep observe-only; collect additional raw-verified active-window samples or a raw-verified active violation before any hook, blocking, or `--fail-on-active-non-canonical-writer` integration.
 
 Claim ceiling:
 
