@@ -108,6 +108,22 @@ KNOWN_SESSION_START_KEYS = _CORE_SESSION_START_KEYS | frozenset(_TRANSITIONAL_SE
 # pre_task_check spreads **active_rules_result so many keys are not literal in
 # the return dict. Only the three literal keys are detectable by AST heuristic.
 _CORE_PRE_TASK_KEYS: frozenset[str] = frozenset({
+    "ok",
+    "architecture_impact_preview",
+    "contract_resolution",
+    "domain_contract",
+    "errors",
+    "freshness",
+    "plan_path",
+    "project_root",
+    "resolved_contract_file",
+    "rule_pack_suggestions",
+    "rule_packs",
+    "runtime_contract",
+    "suggested_agent",
+    "suggested_rules_preview",
+    "suggested_skills",
+    "warnings",
     "active_rules",
     "content_stripped",
     "content_tier",
