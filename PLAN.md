@@ -2648,6 +2648,7 @@ Claim ceiling:
 - [x] HOOK-OBS-1 completed as advisory analysis only. Artifact `artifacts/governance/hook-output-token-risk-analysis-2026-06-08.md` inventories session_start / pre_task / post_task / session_end output sources, identifies high-token / low-value output patterns, proposes an advisory hook output summary shape, defines a CodeBurn before/after measurement protocol, and explicitly defers Minimal protocol bundle / MRS work.
 - CLAIMED: hook/pre-task output token-risk analysis and measurement protocol.
 - NOT CLAIMED: token reduction, MRS classifier, Minimal Rule Selection operational, hook output behavior change, validator/schema/runtime behavior change, router audit, high-risk path checker, CodeBurn billing truth, or future HOOK-OBS/HOOK-OPT phase chain.
+- [x] Post-hook/session-end responsibility map recorded in `artifacts/governance/post-hook-responsibility-map-2026-06-08.md`. Current large files and extraction candidates are documented, but refactor is explicitly deferred; no code movement, hook behavior change, validator/schema/runtime change, CodeBurn ingestion change, token reduction claim, MRS, router audit, or high-risk checker added.
 
 ## 2026-06-05 CodeBurn Codex / Claude Token Ingestion Audit
 
