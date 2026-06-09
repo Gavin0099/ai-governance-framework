@@ -2651,6 +2651,7 @@ Claim ceiling:
 - CLAIMED: hook/pre-task output token-risk analysis and measurement protocol.
 - NOT CLAIMED: token reduction, MRS classifier, Minimal Rule Selection operational, hook output behavior change, validator/schema/runtime behavior change, router audit, high-risk path checker, CodeBurn billing truth, or future HOOK-OBS/HOOK-OPT phase chain.
 - [x] Post-hook/session-end responsibility map recorded in `artifacts/governance/post-hook-responsibility-map-2026-06-08.md`. Current large files and extraction candidates are documented, but refactor is explicitly deferred; no code movement, hook behavior change, validator/schema/runtime change, CodeBurn ingestion change, token reduction claim, MRS, router audit, or high-risk checker added.
+- [x] Runtime noise baseline recorded in `artifacts/governance/runtime-noise-baseline-2026-06-09.md`. The baseline classifies recurring hook output noise, runtime dirty artifacts, tracked vs local-only boundaries, and future compression trigger criteria. No hook, validator, schema, threshold, enforcement, CodeBurn ingestion, or #17 behavior changed.
 
 ## 2026-06-05 CodeBurn Codex / Claude Token Ingestion Audit
 
