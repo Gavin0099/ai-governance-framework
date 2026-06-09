@@ -84,6 +84,25 @@ Future scoped work may choose one of these implementation paths:
 
 No implementation option is selected by this policy artifact.
 
+## Warning-Only Detector
+
+The first implementation slice adds:
+
+```powershell
+python -m governance_tools.dirty_runtime_ledger_detector --project-root . --format human
+```
+
+Default behavior is warning-only:
+
+- dirty ledgers are reported;
+- exit code remains `0`;
+- no files are modified;
+- no hook behavior changes;
+- no staging, restore, migration, or routing occurs.
+
+`--fail-on-dirty` exists only as an explicit diagnostic mode. It is not wired
+into pre-commit, pre-push, runtime hooks, or validators by this policy.
+
 ## Claim Ceiling
 
 CLAIMED:
@@ -92,6 +111,7 @@ CLAIMED:
 - Both ledgers are manual-promotion-only for ordinary runtime side effects.
 - A clean-workspace claim is invalid while these ledgers remain dirty and
   unhandled.
+- A warning-only detector exists for identifying dirty manual-promotion ledgers.
 
 NOT CLAIMED:
 
@@ -100,6 +120,7 @@ NOT CLAIMED:
 - validator behavior changed;
 - schema changed;
 - pre-commit or pre-push enforcement added;
+- detector wired into hooks;
 - tracked ledger migration completed;
 - historical CE-1D cleanup completed;
 - token usage reduced;
