@@ -1,7 +1,56 @@
 # PLAN.md - AI Governance Framework
 
+## Reviewer-Readable Snapshot
+
+This snapshot is a readability repair only. It summarizes the current planning
+surface without changing phase status, priorities, DONE definitions, pending
+state, or governance behavior.
+
+Metadata:
+
+- Last updated: 2026-06-02
+- Created: 2026-04-10
+- Owner: GavinWu
+- Freshness: Sprint (7d)
+- Risk tier: L2
+- Planning window: 2026-03 ~ 2026-06
+
+Purpose:
+
+- portable AI governance contracts and reviewer-facing evidence;
+- runtime observation and closeout surfaces;
+- memory / state authority and traceability;
+- external repo adoption, readiness, version, and source audit;
+- governance docs and static validators.
+
+Non-goals:
+
+- not a full execution harness;
+- not a machine-authoritative semantic advisory system;
+- not a generic multi-agent orchestration platform.
+
+Phase overview:
+
+- [x] Phase A: Core governance tooling and baseline.
+- [x] Phase B: Adoption, validator, freshness, and memory foundations.
+- [x] Phase C: Runtime governance, DBL, and observation surfaces.
+- [x] Phase D: Session workflow, external adoption, and reviewer entrypoints (completed: reviewer closeout artifact signed by Gavin0099 on 2026-04-28).
+- [ ] Phase E: Failure decision boundary, exclusion governance, and usage enforcement.
+
+Current near-term objectives:
+
+1. Improve reviewer surface readability.
+2. Inventory artifact write paths before changing runtime dirty-state routing.
+3. Clarify F-7 support levels without expanding automated apply beyond deterministic submodule consumers.
+4. Keep #17 observe-only until readiness and blocking boundaries are separately justified.
+
+Claim boundary:
+
+- CLAIMED: reviewer-readable summary added for PLAN.md.
+- NOT CLAIMED: roadmap change, pending-status change, hook/validator/schema change, artifact-routing change, F-7 policy change, #17 readiness change, or enforcement change.
+
 > **最後更新**: 2026-06-02
-> **?敺??*: 2026-04-10
+> **Created**: 2026-04-10
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Risk Tier**: L2
