@@ -10,6 +10,7 @@ Test cases:
   D. pre-cutoff old-format entry     → grandfathered (no non_canonical_writer)
 """
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -255,3 +256,41 @@ class TestActiveNonCanonicalWriterSentinel:
 
         assert completed.returncode == 0
         assert '"count": 0' in completed.stdout
+
+    def test_fixture_reports_active_non_canonical_writer_without_blocking(self):
+        fixture_memory = (
+            Path(__file__).parent
+            / "fixtures"
+            / "memory_authority"
+            / "active_non_canonical_writer"
+            / "memory"
+        )
+
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "governance_tools/memory_authority_guard.py",
+                "--memory-root",
+                str(fixture_memory),
+                "--project-root",
+                str(fixture_memory.parent),
+                "--skip-git",
+                "--active-from",
+                "2026-06-08",
+                "--format",
+                "json",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        assert completed.returncode == 0
+        payload = json.loads(completed.stdout)
+        active = payload["active_non_canonical_writer"]
+        assert payload["mode"] == "warning"
+        assert payload["ok"] is True
+        assert active["mode"] == "report_only"
+        assert active["count"] == 1
+        assert active["violations"][0]["file"] == "2026-06-09.md"
+        assert active["violations"][0]["code"] == "non_canonical_writer"

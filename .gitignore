@@ -55,6 +55,7 @@ dist/
 .pytest_cache_runtime/
 .pytest_tmp*/
 .tmp_pytest_*/
+.tmp-pytest/
 tests/_tmp_*/
 test_tmp_*/
 tmp*/

@@ -2637,12 +2637,13 @@ Bookstore-Scraper 的 regression-like failure（`test_excel_writer_strips_illega
 - [x] Advisory threshold proposal candidate state recorded. Current evidence supports `old-format-suppressed` plus positive canonical writer repeatability across 2 repos, but does not enable blocking or change guard behavior.
 - [>] Proposed advisory readiness criteria: active window only; historical violations excluded; positive canonical-writer-success samples >= 2; repo diversity >= 2 repos or 2 consecutive active sessions in one repo; active_non_canonical_writer.count == 0; active missing-daily-memory == 0 or explicitly classified as no memory write expected; workspace clean after commit/push.
 - [x] Dry-run threshold simulation completed across current active-window samples; candidate advisory warning count is 0, candidate blocking events are 0, and blocking threshold remains not ready. Artifact: `artifacts/governance/memory-authority-threshold-dry-run-simulation-2026-06-08.md`.
-- [>] Next #17 step: keep observe-only; collect additional raw-verified active-window samples or a raw-verified active violation before any hook, blocking, or `--fail-on-active-non-canonical-writer` integration.
+- [x] Controlled negative-path fixture added for active-window non-canonical writer detection. Fixture `tests/fixtures/memory_authority/active_non_canonical_writer/memory/2026-06-09.md` verifies the guard reports `active_non_canonical_writer.count = 1` in report-only warning mode. Artifact: `artifacts/governance/memory-authority-active-violation-fixture-2026-06-09.md`.
+- [>] Next #17 step: keep observe-only; collect a real raw-verified active violation sample or enough additional full-field observations to evaluate false-positive / false-negative bounds before any hook, blocking, or `--fail-on-active-non-canonical-writer` integration.
 
 Claim ceiling:
 
-- CLAIMED: #17 advisory threshold proposal candidate from 2 positive canonical writer samples.
-- NOT CLAIMED: blocking threshold readiness, enforcement effectiveness, historical violation cleanup, guard behavior change, hook integration, or semantic validation of memory content.
+- CLAIMED: #17 advisory threshold proposal candidate from positive canonical writer samples plus controlled negative-path fixture coverage.
+- NOT CLAIMED: blocking threshold readiness, enforcement effectiveness, production active violation, historical violation cleanup, guard behavior change, hook integration, or semantic validation of memory content.
 
 ## 2026-06-08 HOOK-OBS-1 Hook Output Token-Risk Analysis
 
