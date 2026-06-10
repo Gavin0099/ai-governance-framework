@@ -2,15 +2,13 @@
 
 ## Canonical Planning Surface
 
-Metadata:
-
-- Last updated: 2026-06-10
-- Created: 2026-04-10
-- Owner: GavinWu
-- Freshness: Sprint (7d)
-- Risk tier: L2
-- Planning window: 2026-03 through 2026-06
-- Encoding status: UTF-8 reviewer-readable canonical replacement
+> **最後更新**: 2026-06-10
+> **Owner**: GavinWu
+> **Freshness**: Sprint (7d)
+> **Created**: 2026-04-10
+> **Risk tier**: L2
+> **Planning window**: 2026-03 through 2026-06
+> **Encoding status**: UTF-8 reviewer-readable canonical replacement
 
 Purpose:
 
