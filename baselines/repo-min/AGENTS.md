@@ -182,6 +182,14 @@ NOT CLAIMED unless separately implemented and validated:
 - artifact schema changed
 - existing memory was normalized
 
+## AI Governance Memory Workflow Router
+<!-- governance:key=memory_workflow -->
+
+- Before claiming completion for any change touching `memory/**`, run `python -m governance_tools.memory_workflow --check --repo .`.
+- For memory completion claims, run `python -m governance_tools.memory_workflow --check --repo . --run-guard` and report blockers before claiming DONE.
+- Use the canonical memory writer for session-derived memory; do not edit memory records as ordinary markdown.
+- Canonical writer signal: `governance_tools.memory_record` / `memory_record.py`.
+
 ## Repo-Specific Risk Levels
 <!-- governance:key=risk_levels -->
 

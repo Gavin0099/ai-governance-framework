@@ -122,9 +122,12 @@ MEM-DISPATCH:
 F-7:
 
 - CLAIMED: framework-side role-aware orchestrator skeleton and external contract
-  apply-path scaffold.
+  apply-path scaffold; submodule consumer apply path refreshes repo-local
+  instructions, memory workflow router coverage, and managed hook advisory
+  coverage.
 - NOT CLAIMED: fleet rollout, all repo roles verified, all external repos
-  upgraded, or external readiness completion.
+  upgraded, external readiness completion, validators changed, artifact schema
+  changed, or existing memory normalized.
 
 Memory authority:
 

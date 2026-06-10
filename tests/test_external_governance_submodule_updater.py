@@ -58,6 +58,19 @@ def _write_framework_baseline(framework: Path) -> None:
         "N/A\n",
         encoding="utf-8",
     )
+    hook_dir = framework / "scripts" / "hooks"
+    hook_dir.mkdir(parents=True, exist_ok=True)
+    (hook_dir / "pre-commit").write_text(
+        "#!/usr/bin/env bash\n"
+        "# pre-commit hook — AI Governance Framework\n"
+        'MEMORY_WORKFLOW_TOOL="$FRAMEWORK_ROOT/governance_tools/memory_workflow.py"\n'
+        '"$MEMORY_WORKFLOW_TOOL" --repo "$TARGET_REPO_ROOT" --check --format json || true\n',
+        encoding="utf-8",
+    )
+    (hook_dir / "pre-push").write_text(
+        "#!/usr/bin/env bash\n# pre-push hook - AI Governance Framework\n",
+        encoding="utf-8",
+    )
 
 
 def test_run_git_uses_utf8_replacement_decode_and_handles_none_streams(
@@ -230,9 +243,9 @@ def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
     assert result.after_head == new_head
     assert result.full_update_stage_report["framework_pointer"] == "updated"
     assert result.full_update_stage_report["repo_local_instruction"] == "updated"
-    assert result.full_update_stage_report["memory_writer_coverage"] == "missing"
-    assert result.full_update_stage_report["hook_validator_enforcement"] == "missing"
-    assert result.full_update_stage_report["final_status"] == "partially_updated"
+    assert result.full_update_stage_report["memory_writer_coverage"] == "verified"
+    assert result.full_update_stage_report["hook_validator_enforcement"] == "updated"
+    assert result.full_update_stage_report["final_status"] == "full_update_completed"
     assert result.staged_files == [
         "AGENTS.base.md",
         "AGENTS.md",
@@ -246,7 +259,38 @@ def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
     assert "F-7 Full Update Semantics" in (consumer / "AGENTS.md").read_text(
         encoding="utf-8"
     )
+    assert "governance:key=memory_workflow" in (consumer / "AGENTS.md").read_text(
+        encoding="utf-8"
+    )
+    assert "MEMORY_WORKFLOW_TOOL" in (
+        consumer / ".git" / "hooks" / "pre-commit"
+    ).read_text(encoding="utf-8")
     assert "?? unrelated.txt" in _git(consumer, "status", "--short")
+
+
+def test_apply_does_not_complete_when_hook_advisory_source_missing(tmp_path: Path) -> None:
+    consumer, framework, _old_head, _new_head = _make_fixture(tmp_path)
+    (framework / "scripts" / "hooks" / "pre-commit").unlink()
+    missing_hook_head = _commit_all(framework, "framework without memory hook")
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=True,
+    )
+
+    assert result.ok is True
+    assert result.target_head == missing_hook_head
+    assert result.full_update_stage_report["memory_writer_coverage"] == "verified"
+    assert result.full_update_stage_report["hook_validator_enforcement"] == "missing"
+    assert result.full_update_stage_report["final_status"] == "partially_updated"
+    assert (
+        "missing source hook"
+        in result.full_update_stage_report["details"]["hook_validator_enforcement"][
+            "errors"
+        ][0]
+    )
 
 
 def test_apply_commit_noops_when_submodule_already_points_at_target(
@@ -272,7 +316,9 @@ def test_apply_commit_noops_when_submodule_already_points_at_target(
     assert result.after_head == target_head
     assert result.full_update_stage_report["framework_pointer"] == "already_current"
     assert result.full_update_stage_report["repo_local_instruction"] == "updated"
-    assert result.full_update_stage_report["final_status"] == "partially_updated"
+    assert result.full_update_stage_report["memory_writer_coverage"] == "verified"
+    assert result.full_update_stage_report["hook_validator_enforcement"] == "updated"
+    assert result.full_update_stage_report["final_status"] == "full_update_completed"
     assert result.staged_files == ["AGENTS.base.md", "AGENTS.md"]
     assert result.committed is True
     assert result.commit_hash is not None
@@ -362,6 +408,8 @@ def test_non_fast_forward_update_checkout_runs_only_when_explicitly_allowed(
     assert result.fast_forward is False
     assert result.full_update_stage_report["framework_pointer"] == "updated"
     assert result.full_update_stage_report["repo_local_instruction"] == "updated"
+    assert result.full_update_stage_report["memory_writer_coverage"] == "verified"
+    assert result.full_update_stage_report["hook_validator_enforcement"] == "updated"
     assert result.staged_files == [
         "AGENTS.base.md",
         "AGENTS.md",
