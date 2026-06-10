@@ -1,4 +1,4 @@
-# PLAN.md - AI Governance Framework
+﻿# PLAN.md - AI Governance Framework
 
 ## Reviewer-Readable Snapshot
 
@@ -48,6 +48,53 @@ Claim boundary:
 
 - CLAIMED: reviewer-readable summary added for PLAN.md.
 - NOT CLAIMED: roadmap change, pending-status change, hook/validator/schema change, artifact-routing change, F-7 policy change, #17 readiness change, or enforcement change.
+## 2026-06-10 MEM-DISPATCH + F-7 Framework-Side Convergence
+
+Status: implementation complete; rollout and historical cleanup pending.
+
+Completed scope:
+
+- [x] MEM-DISPATCH framework-side implementation completed.
+- [x] `governance_tools.memory_workflow` added as deterministic dispatcher for memory tasks.
+- [x] `memory/**` diffs classify as `governed_memory_task`.
+- [x] `--run-guard` integrates memory authority guard summary into the dispatcher result.
+- [x] `--fail-on-blocker` provides opt-in selective blocking for current completion blockers.
+- [x] `session_end_hook` exposes advisory `memory_workflow` surface.
+- [x] `session_closeout_entry` persists `memory_workflow` fields in closeout receipt schema `1.2`.
+- [x] Managed `pre-commit` hook surfaces memory workflow as advisory only.
+- [x] `MEMORY_PROTOCOL.md` documents dispatcher, guard, selective blocking, hook advisory, and receipt evidence semantics.
+- [x] F-7 framework-side role-aware orchestrator skeleton added.
+- [x] F-7 submodule pointer update is demoted to a backend stage, not full-update completion.
+- [x] External contract repo apply path scaffolded for framework lock, hooks, Copilot instructions, and AGENTS keyed-section calibration.
+- [x] Windows-safe governance hook installer added with no-BOM framework-root config handling.
+
+Self-hosted evidence target for this milestone:
+
+- Use canonical memory writer for this milestone record.
+- Run `memory_workflow --check --repo . --run-guard --fail-on-blocker`.
+- Require `active_non_canonical_writer = 0`.
+- Commit scoped implementation, PLAN update, and canonical memory evidence.
+- Expected closeout receipt version after this milestone: `1.2`.
+
+Pending plan items / not claimed:
+
+- [ ] Fleet enforcement completed.
+- [ ] External repos all governed.
+- [ ] Historical memory debt resolved.
+- [ ] Fleet rollout of `memory_workflow` through F-7 external apply path.
+- [ ] Verify hook installer carries managed hook advisory into consuming repos.
+- [ ] Verify consuming repo `AGENTS.md` routers call `memory_workflow` before memory completion claims.
+- [ ] Verify external repo closeout receipts persist schema `1.2` memory workflow fields.
+- [ ] Decide whether any CI or hook path should opt into `--fail-on-blocker`; default remains advisory.
+- [ ] PLAN.md encoding repair for historical mojibake reviewer-surface defect.
+- [ ] GitHub external presentation refresh: description, topics, README badge, and release alignment.
+- [ ] Historical `missing_canonical_memory` / `unbound_memory` debt disposition remains warning-only.
+- [ ] F-7 fleet rollout remains separate from this framework-side implementation commit.
+
+Claim ceiling:
+
+- CLAIMED: framework-side MEM-DISPATCH implementation, F-7 role-aware skeleton, Windows-safe hook installer, scoped tests, and plan state update.
+- NOT CLAIMED: fleet-wide enforcement, external repo adoption, historical memory cleanup, CI blocking rollout, full regression, release publication, or GitHub presentation refresh.
 
 > **最後更新**: 2026-06-02
 > **Created**: 2026-04-10

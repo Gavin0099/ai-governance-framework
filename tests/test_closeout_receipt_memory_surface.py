@@ -1,4 +1,4 @@
-"""
+﻿"""
 Closeout receipt memory surface tests (E1 + E2).
 
 E1: memory_write_claim_verified + memory_write_claim_verification_reason
@@ -16,9 +16,9 @@ DONE criteria:
   3. _verify_memory_write_claim: performed=True, session_id in file  → True, session_id_found
   4. _verify_memory_write_claim: performed=True, commit hash in file  → True, commit_hash_found
   5. _verify_memory_write_claim: performed=True, file exists but no anchor  → False, no_anchor
-  6. Receipt contains all 6 new fields with correct defaults
-  7. Receipt contains all 6 new fields with non-default values
-  8. Schema version is "1.1"
+  6. Receipt contains all memory surface fields with correct defaults
+  7. Receipt contains all memory surface fields with non-default values
+  8. Schema version is "1.2"
   9. Field name stability snapshot
 
 Non-goals:
@@ -121,7 +121,7 @@ class TestVerifyMemoryWriteClaim:
 # ── E2: receipt new fields ────────────────────────────────────────────────────
 
 class TestReceiptNewFieldsDefaults:
-    """Criterion 6: new fields present with correct defaults when not supplied."""
+    """Criterion 6: memory surface fields present with correct defaults when not supplied."""
 
     def test_new_fields_present_with_defaults(self, tmp_path: Path) -> None:
         receipt_path = _write_closeout_receipt(
@@ -146,7 +146,7 @@ class TestReceiptNewFieldsDefaults:
 
 
 class TestReceiptNewFieldsWithValues:
-    """Criterion 7: new fields carry through non-default values."""
+    """Criterion 7: memory surface fields carry through non-default values."""
 
     def test_new_fields_carry_through_values(self, tmp_path: Path) -> None:
         receipt_path = _write_closeout_receipt(
@@ -179,12 +179,12 @@ class TestReceiptNewFieldsWithValues:
 # ── Schema version ────────────────────────────────────────────────────────────
 
 class TestSchemaVersion:
-    """Criterion 8: schema version is 1.1 after this change."""
+    """Criterion 8: schema version is 1.2 after this change."""
 
-    def test_schema_version_is_1_1(self) -> None:
-        assert CLOSEOUT_RECEIPT_SCHEMA_VERSION == "1.1"
+    def test_schema_version_is_1_2(self) -> None:
+        assert CLOSEOUT_RECEIPT_SCHEMA_VERSION == "1.2"
 
-    def test_receipt_schema_version_field_is_1_1(self, tmp_path: Path) -> None:
+    def test_receipt_schema_version_field_is_1_2(self, tmp_path: Path) -> None:
         receipt_path = _write_closeout_receipt(
             tmp_path,
             agent_id="test",
@@ -198,7 +198,7 @@ class TestSchemaVersion:
             memory_eligibility_reason="no_eligibility_trigger",
         )
         payload = json.loads(receipt_path.read_text(encoding="utf-8"))
-        assert payload["schema_version"] == "1.1"
+        assert payload["schema_version"] == "1.2"
 
 
 # ── Snapshot stability ────────────────────────────────────────────────────────
@@ -216,7 +216,7 @@ _EXPECTED_NEW_FIELDS = frozenset({
 class TestSnapshotStability:
     """Criterion 9: all 6 new field names locked — renames are caught immediately."""
 
-    def test_all_six_new_fields_present(self, tmp_path: Path) -> None:
+    def test_all_new_fields_present(self, tmp_path: Path) -> None:
         receipt_path = _write_closeout_receipt(
             tmp_path,
             agent_id="test",

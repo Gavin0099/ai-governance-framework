@@ -34,6 +34,7 @@ import re
 import subprocess
 import sys
 import uuid
+from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -57,6 +58,7 @@ from governance_tools.taxonomy_expansion_log import append_pending_entry
 from governance_tools.memory_significance import write_candidate_and_advisory
 from governance_tools.codeburn_token_summary import compute_codeburn_token_summary
 from governance_tools.memory_authority_guard import run_guard as _run_memory_guard
+from governance_tools.memory_workflow import assess_memory_workflow
 
 
 CLOSEOUT_FILE = "artifacts/session-closeout.txt"
@@ -1587,6 +1589,49 @@ def _collect_memory_authority_surface(project_root: Path) -> dict[str, Any]:
         }
 
 
+def _collect_memory_workflow_surface(project_root: Path) -> dict[str, Any]:
+    """
+    Run the MEM-DISPATCH advisory surface for session_end reporting.
+
+    This is report-only. It never changes ok/gate/blocking behavior.
+    """
+    try:
+        dispatch = assess_memory_workflow(project_root, run_guard_check=True)
+        payload = asdict(dispatch)
+        guard_summary = payload.get("guard_summary") or {}
+        return {
+            "memory_workflow_dispatch_ran": True,
+            "memory_workflow_status": payload.get("status"),
+            "memory_task_classification": payload.get("task_classification"),
+            "memory_files_in_diff": payload.get("memory_files_in_diff") or [],
+            "canonical_writer_required": bool(payload.get("canonical_writer_required")),
+            "memory_authority_guard_ran": bool(payload.get("guard_ran")),
+            "memory_completion_claim_allowed": bool(payload.get("completion_claim_allowed")),
+            "memory_workflow_warning_codes": payload.get("warnings") or [],
+            "memory_workflow_blocker_codes": payload.get("blockers") or [],
+            "memory_workflow_guard_summary": {
+                "non_canonical_writer": int(guard_summary.get("non_canonical_writer") or 0),
+                "active_non_canonical_writer": int(guard_summary.get("active_non_canonical_writer") or 0),
+                "missing_canonical_memory": int(guard_summary.get("missing_canonical_memory") or 0),
+                "unbound_memory": int(guard_summary.get("unbound_memory") or 0),
+            },
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "memory_workflow_dispatch_ran": False,
+            "memory_workflow_status": "MEMORY_WORKFLOW_DISPATCH_ERROR",
+            "memory_task_classification": "unknown",
+            "memory_files_in_diff": [],
+            "canonical_writer_required": False,
+            "memory_authority_guard_ran": False,
+            "memory_completion_claim_allowed": False,
+            "memory_workflow_warning_codes": ["MEMORY_WORKFLOW_DISPATCH_ERROR"],
+            "memory_workflow_blocker_codes": [],
+            "memory_workflow_guard_summary": {},
+            "memory_workflow_error": str(exc),
+        }
+
+
 def run_session_end_hook(project_root: Path, *, transcript_path: Path | None = None, hook_session_id: str | None = None) -> dict[str, Any]:
     closeout_path = project_root / CLOSEOUT_FILE
     closeout_trigger_mode = "manual"
@@ -1826,6 +1871,7 @@ def run_session_end_hook(project_root: Path, *, transcript_path: Path | None = N
     # Converts console-only warning output into a persistent artifact field so
     # downstream tooling (matrix, closeout summary) can consume and aggregate it.
     memory_authority = _collect_memory_authority_surface(project_root)
+    memory_workflow = _collect_memory_workflow_surface(project_root)
 
     return {
         "ok": base_ok,
@@ -1838,6 +1884,7 @@ def run_session_end_hook(project_root: Path, *, transcript_path: Path | None = N
         "memory_update_skipped_reason": memory_update_skipped_reason,
         "memory_significance": memory_significance_artifacts,
         "memory_authority": memory_authority,
+        "memory_workflow": memory_workflow,
         "hook_coverage_tier": closeout_eval["hook_coverage_tier"],
         "closeout_evaluation": closeout_eval,
         "repo_readiness_level": readiness["level"],

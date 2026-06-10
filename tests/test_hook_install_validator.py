@@ -108,7 +108,7 @@ def test_validate_hook_install_accepts_git_bash_framework_root_config() -> None:
     assert result.checks["framework_root_exists"] is True
 
 
-def test_validate_hook_install_rejects_framework_root_with_bom_prefix() -> None:
+def test_validate_hook_install_accepts_framework_root_with_bom_prefix() -> None:
     root = _reset_fixture("framework_root_bom_prefix")
     repo_root = root / "target"
     hook_dir = repo_root / ".git" / "hooks"
@@ -130,10 +130,9 @@ def test_validate_hook_install_rejects_framework_root_with_bom_prefix() -> None:
 
     result = validate_hook_install(repo_root)
 
-    assert result.valid is False
+    assert result.valid is True
     assert result.checks["framework_root_config_present"] is True
-    assert result.checks["framework_root_exists"] is False
-    assert any("framework root does not exist" in err for err in result.errors)
+    assert result.checks["framework_root_exists"] is True
 
 
 def test_validate_hook_install_accepts_self_hosted_framework_repo() -> None:

@@ -27,6 +27,9 @@ Before acting, load the detailed protocol only when its trigger applies:
 
 1. Memory write / post-push memory / memory correction:
    read `governance/MEMORY_PROTOCOL.md`.
+   Run `python -m governance_tools.memory_workflow --check` before claiming
+   completion for any task that edits, backfills, analyzes, or reports repo
+   memory.
    New session-derived memory must use `governance_tools.memory_record`.
    Direct markdown append is prohibited.
 

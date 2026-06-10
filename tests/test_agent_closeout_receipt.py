@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import io
 import json
 import subprocess
+import sys
 from pathlib import Path
+from unittest.mock import patch
 
 from governance_tools.manage_agent_closeout import _manual_closeout_cmd, op_status
 from governance_tools.session_closeout_entry import (
     CLOSEOUT_RECEIPT_SCHEMA_VERSION,
     _apply_stale_duplicate_guard,
     _latest_receipt_checksum,
+    main,
     _write_closeout_receipt,
 )
 
@@ -48,6 +52,67 @@ def test_closeout_receipt_contains_required_fields_and_checksum(tmp_path: Path) 
     assert payload["memory_write_required"] is True
     assert payload["memory_write_performed"] is False
     assert payload["memory_eligibility_reason"] == "repo_state_or_session_closeout_present"
+
+
+def test_main_forwards_memory_workflow_surface_to_receipt(tmp_path: Path) -> None:
+    artifact = tmp_path / "artifacts" / "runtime" / "closeouts" / "sample.json"
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    artifact.write_text('{"ok": true}\n', encoding="utf-8")
+
+    hook_result = {
+        "canonical_closeout_artifact": str(artifact),
+        "memory_closeout": {"candidate_signals": []},
+        "memory_update_skipped_reason": "",
+        "gate_verdict": "PASS",
+        "memory_update_result": "",
+        "session_id": "session-20260610T000000-mwtest",
+        "memory_authority": {},
+        "memory_workflow": {
+            "memory_workflow_dispatch_ran": True,
+            "memory_workflow_status": "memory_workflow_required",
+            "memory_task_classification": "governed_memory_task",
+            "memory_completion_claim_allowed": False,
+            "memory_workflow_warning_codes": ["missing_canonical_memory"],
+            "memory_workflow_blocker_codes": ["active_non_canonical_writer"],
+            "memory_workflow_guard_summary": {
+                "active_non_canonical_writer": 1,
+                "missing_canonical_memory": 1,
+            },
+        },
+    }
+
+    with patch("governance_tools.session_closeout_entry.run", return_value=hook_result):
+        with patch.object(
+            sys,
+            "argv",
+            [
+                "session_closeout_entry.py",
+                "--project-root",
+                str(tmp_path),
+                "--format",
+                "json",
+                "--agent-id",
+                "test-agent",
+                "--trigger-mode",
+                "manual_fallback",
+            ],
+        ):
+            with patch.object(sys, "stdin", io.StringIO("")):
+                assert main() == 0
+
+    receipts = sorted((tmp_path / "artifacts" / "runtime" / "closeout-receipts").glob("closeout_receipt_*.json"))
+    assert len(receipts) == 1
+    payload = json.loads(receipts[0].read_text(encoding="utf-8"))
+    assert payload["memory_workflow_dispatch_ran"] is True
+    assert payload["memory_workflow_status"] == "memory_workflow_required"
+    assert payload["memory_task_classification"] == "governed_memory_task"
+    assert payload["memory_completion_claim_allowed"] is False
+    assert payload["memory_workflow_warning_codes"] == ["missing_canonical_memory"]
+    assert payload["memory_workflow_blocker_codes"] == ["active_non_canonical_writer"]
+    assert payload["memory_workflow_guard_summary"] == {
+        "active_non_canonical_writer": 1,
+        "missing_canonical_memory": 1,
+    }
 
 
 def test_closeout_receipt_includes_linked_head_commit_when_repo_has_head(tmp_path: Path) -> None:

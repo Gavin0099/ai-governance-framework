@@ -1,0 +1,128 @@
+from __future__ import annotations
+
+import json
+import subprocess
+from datetime import date as _date
+from pathlib import Path
+
+from governance_tools.f7_full_update import classify_repo, run_f7_full_update
+
+
+def _git(repo: Path, *args: str) -> str:
+    completed = subprocess.run(
+        ["git", "-C", str(repo), *args],
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if completed.returncode != 0:
+        raise AssertionError(completed.stderr or completed.stdout)
+    return completed.stdout.strip()
+
+
+def _write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def _init_repo(repo: Path) -> None:
+    repo.mkdir(parents=True, exist_ok=True)
+    _git(repo, "init", "-b", "main")
+    _git(repo, "config", "user.email", "test@example.invalid")
+    _git(repo, "config", "user.name", "Test User")
+
+
+def _make_framework(root: Path) -> None:
+    _write(root / "README.md", "[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)]\n")
+    _write(root / "scripts" / "hooks" / "pre-commit", "#!/usr/bin/env bash\n# AI Governance Framework\n")
+    _write(root / "scripts" / "hooks" / "pre-push", "#!/usr/bin/env bash\n# AI Governance Framework\n")
+    _write(root / "scripts/lib/python.sh", "")
+    _write(root / "scripts/run-runtime-governance.sh", "")
+    _write(root / "governance_tools/plan_freshness.py", "")
+    _write(root / "governance_tools/contract_validator.py", "")
+    _write(
+        root / "governance/copilot-instructions-template.md",
+        "# Copilot Workspace Instructions\n<!-- AI Governance Framework: copilot-instructions v1.0 -->\n",
+    )
+    _write(
+        root / "governance/framework.lock.json",
+        json.dumps(
+            {
+                "framework_repo": "https://github.com/Gavin0099/ai-governance-framework.git",
+                "adopted_release": "1.2.0",
+                "adopted_commit": "abcdef123456",
+                "framework_interface_version": "1",
+                "framework_compatible": ">=1.0.0,<2.0.0",
+            },
+            indent=2,
+        ),
+    )
+
+
+def _make_external_contract_repo(repo: Path) -> None:
+    _init_repo(repo)
+    _write(
+        repo / "PLAN.md",
+        f"> **最後更新**: {_date.today().isoformat()}\n> **Owner**: test\n> **Freshness**: Sprint (7d)\n",
+    )
+    _write(repo / "AGENTS.md", "# Contract Agent Rules\n\n- Read contract.yaml first.\n- Preserve this domain rule.\n")
+    _write(repo / "CHECKLIST.md", "# Checklist\n")
+    _write(repo / "memory" / "02_project_facts.md", "# Project Facts\n\n- target_os: windows\n- language: markdown\n- runtime: none\n- test_command: python -m pytest\n")
+    _write(repo / "rules/domain/safety.md", "# Rule\n")
+    _write(repo / "validators/checker.py", "print('ok')\n")
+    _write(
+        repo / "contract.yaml",
+        "name: sample-contract\n"
+        "domain: rtl\n"
+        "plugin_version: \"1.0.0\"\n"
+        "framework_interface_version: \"1\"\n"
+        "framework_compatible: \">=1.0.0,<2.0.0\"\n"
+        "documents:\n  - CHECKLIST.md\n"
+        "ai_behavior_override:\n  - AGENTS.md\n"
+        "rule_roots:\n  - rules\n"
+        "validators:\n  - validators/checker.py\n",
+    )
+
+
+def test_classify_repo_detects_external_contract_repo(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _make_external_contract_repo(repo)
+
+    assert classify_repo(repo) == "external_contract_repo"
+
+
+def test_ready_true_but_f7_partially_updated_when_hooks_and_lock_missing(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=False)
+
+    assert result.repo_role == "external_contract_repo"
+    assert result.details["readiness_ready"] is True
+    assert result.f7_final_status == "partially_updated"
+    assert result.details["strict_external_f7_completed"] is False
+
+
+def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+
+    assert result.ok is True
+    assert result.f7_final_status == "completed"
+    assert (repo / "governance" / "framework.lock.json").exists()
+    assert (repo / ".git" / "hooks" / "pre-commit").exists()
+    assert (repo / ".git" / "hooks" / "pre-push").exists()
+    assert (repo / ".github" / "copilot-instructions.md").exists()
+    assert not (repo / ".git" / "hooks" / "ai-governance-framework-root").read_bytes().startswith(b"\xef\xbb\xbf")
+    agents_text = (repo / "AGENTS.md").read_text(encoding="utf-8")
+    assert "Preserve this domain rule." in agents_text
+    assert "governance:key=f7_update_boundary" in agents_text

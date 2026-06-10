@@ -39,7 +39,7 @@ if __package__ in (None, ""):
 from governance_tools.session_end_hook import run_session_end_hook, format_human_result
 
 ALLOWED_TRIGGER_MODES = {"native_hook", "manual_fallback", "wrapper", "synthetic_smoke", "unknown"}
-CLOSEOUT_RECEIPT_SCHEMA_VERSION = "1.1"
+CLOSEOUT_RECEIPT_SCHEMA_VERSION = "1.2"
 
 
 def _utc_now_iso() -> str:
@@ -173,6 +173,14 @@ def _write_closeout_receipt(
     memory_authority_scope: str = "",
     memory_authority_warning_codes: "list[str] | None" = None,
     memory_unbound_count: int = 0,
+    # E3: memory workflow dispatch surface
+    memory_workflow_dispatch_ran: bool = False,
+    memory_workflow_status: str = "",
+    memory_task_classification: str = "",
+    memory_completion_claim_allowed: bool = False,
+    memory_workflow_warning_codes: "list[str] | None" = None,
+    memory_workflow_blocker_codes: "list[str] | None" = None,
+    memory_workflow_guard_summary: "dict[str, Any] | None" = None,
 ) -> Path:
     artifact_dir = project_root / "artifacts" / "runtime" / "closeout-receipts"
     artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -201,6 +209,13 @@ def _write_closeout_receipt(
         "memory_authority_scope": memory_authority_scope,
         "memory_authority_warning_codes": memory_authority_warning_codes if memory_authority_warning_codes is not None else [],
         "memory_unbound_count": memory_unbound_count,
+        "memory_workflow_dispatch_ran": memory_workflow_dispatch_ran,
+        "memory_workflow_status": memory_workflow_status,
+        "memory_task_classification": memory_task_classification,
+        "memory_completion_claim_allowed": memory_completion_claim_allowed,
+        "memory_workflow_warning_codes": memory_workflow_warning_codes if memory_workflow_warning_codes is not None else [],
+        "memory_workflow_blocker_codes": memory_workflow_blocker_codes if memory_workflow_blocker_codes is not None else [],
+        "memory_workflow_guard_summary": memory_workflow_guard_summary if memory_workflow_guard_summary is not None else {},
     }
     receipt_path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return receipt_path
@@ -386,6 +401,8 @@ def main() -> int:
 
         # E2: extract memory authority guard surface from hook result.
         _ma = result.get("memory_authority") or {}
+        # E3: extract memory workflow dispatch surface from hook result.
+        _mw = result.get("memory_workflow") or {}
 
         evidence_path = _append_trigger_evidence(
             project_root,
@@ -413,6 +430,13 @@ def main() -> int:
             memory_authority_scope=str(_ma.get("memory_authority_scope", "")),
             memory_authority_warning_codes=_ma.get("memory_authority_warning_codes") or [],
             memory_unbound_count=int(_ma.get("memory_unbound_count", 0)),
+            memory_workflow_dispatch_ran=bool(_mw.get("memory_workflow_dispatch_ran", False)),
+            memory_workflow_status=str(_mw.get("memory_workflow_status", "")),
+            memory_task_classification=str(_mw.get("memory_task_classification", "")),
+            memory_completion_claim_allowed=bool(_mw.get("memory_completion_claim_allowed", False)),
+            memory_workflow_warning_codes=_mw.get("memory_workflow_warning_codes") or [],
+            memory_workflow_blocker_codes=_mw.get("memory_workflow_blocker_codes") or [],
+            memory_workflow_guard_summary=_mw.get("memory_workflow_guard_summary") or {},
         )
         result["trigger_evidence_artifact"] = str(evidence_path)
         result["closeout_receipt_artifact"] = str(receipt_path)
@@ -442,6 +466,13 @@ def main() -> int:
             memory_authority_scope="",
             memory_authority_warning_codes=[],
             memory_unbound_count=0,
+            memory_workflow_dispatch_ran=False,
+            memory_workflow_status="",
+            memory_task_classification="",
+            memory_completion_claim_allowed=False,
+            memory_workflow_warning_codes=[],
+            memory_workflow_blocker_codes=[],
+            memory_workflow_guard_summary={},
         )
         if args.format == "json":
             print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False))

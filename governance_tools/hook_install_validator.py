@@ -44,7 +44,7 @@ def _contains_framework_marker(path: Path) -> bool:
 
 def _normalize_framework_root(raw_value: str) -> Path:
     """Accept Windows-native paths and Git Bash/MSYS paths like /e/work/repo."""
-    candidate = raw_value.strip()
+    candidate = raw_value.strip().lstrip("\ufeff")
     msys_match = re.match(r"^/([a-zA-Z])/(.*)$", candidate)
     if msys_match:
         drive = msys_match.group(1).upper()
