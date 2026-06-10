@@ -145,9 +145,9 @@ CodeBurn / token observation:
 P0 - reviewer surface / trust repair:
 
 - [x] Repair `PLAN.md` encoding / mojibake reviewer-surface defect.
-- [ ] Run scoped diff check for `PLAN.md` repair.
-- [ ] Commit `PLAN.md` repair separately from runtime ledgers.
-- [ ] Record canonical memory evidence for the `PLAN.md` repair commit.
+- [x] Run scoped diff check for `PLAN.md` repair.
+- [x] Commit `PLAN.md` repair separately from runtime ledgers.
+- [x] Record canonical memory evidence for the `PLAN.md` repair commit.
 
 P1 - F-7 external rollout:
 
