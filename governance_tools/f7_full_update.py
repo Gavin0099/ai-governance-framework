@@ -15,6 +15,7 @@ import json
 import subprocess
 import sys
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -95,7 +96,15 @@ def _copy_framework_lock(repo_root: Path, framework_root: Path) -> tuple[str, li
     target = repo_root / "governance" / "framework.lock.json"
     if not source.is_file():
         return BLOCKED, [], [f"missing framework lock template: {source}"]
-    payload = source.read_text(encoding="utf-8-sig")
+    try:
+        payload_obj = json.loads(source.read_text(encoding="utf-8-sig"))
+    except json.JSONDecodeError as exc:
+        return BLOCKED, [], [f"invalid framework lock template JSON: {source}: {exc}"]
+    current_head = _framework_head_commit(framework_root)
+    if current_head:
+        payload_obj["adopted_commit"] = current_head
+        payload_obj["updated_at"] = datetime.now(timezone.utc).isoformat()
+    payload = json.dumps(payload_obj, ensure_ascii=False, indent=2) + "\n"
     if target.exists() and target.read_text(encoding="utf-8-sig") == payload:
         return ALREADY_CURRENT, [], []
     target.parent.mkdir(parents=True, exist_ok=True)

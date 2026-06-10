@@ -65,7 +65,7 @@ def _make_framework(root: Path) -> None:
             {
                 "framework_repo": "https://github.com/Gavin0099/ai-governance-framework.git",
                 "adopted_release": "1.2.0",
-                "adopted_commit": head,
+                "adopted_commit": "stale-template-commit",
                 "framework_interface_version": "1",
                 "framework_compatible": ">=1.0.0,<2.0.0",
             },
@@ -157,6 +157,9 @@ def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) 
     assert result.ok is True
     assert result.f7_final_status == "completed"
     assert (repo / "governance" / "framework.lock.json").exists()
+    lock = json.loads((repo / "governance" / "framework.lock.json").read_text(encoding="utf-8"))
+    assert lock["adopted_commit"] == _git(framework, "rev-parse", "HEAD")
+    assert lock["adopted_commit"] != "stale-template-commit"
     assert (repo / ".git" / "hooks" / "pre-commit").exists()
     assert (repo / ".git" / "hooks" / "pre-push").exists()
     assert (repo / ".github" / "copilot-instructions.md").exists()
