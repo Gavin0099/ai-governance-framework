@@ -153,6 +153,11 @@ fi
 
 if [ -f "$RUNTIME_SCRIPT" ]; then
     echo "[governance] running runtime-governance enforcement before push"
+    echo "[governance] runtime-governance smoke context: framework_self_smoke_advisory"
+    echo "[governance]   framework_root=$FRAMEWORK_ROOT"
+    echo "[governance]   target_repo_root=$TARGET_REPO_ROOT"
+    echo "[governance]   smoke_project_root=$FRAMEWORK_ROOT"
+    echo "[governance]   checked_plan_path=$FRAMEWORK_ROOT/PLAN.md"
     if ! (cd "$FRAMEWORK_ROOT" && bash "$RUNTIME_SCRIPT" --mode smoke); then
         echo ""
         echo "[governance] runtime-governance enforcement failed"
