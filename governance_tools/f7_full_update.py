@@ -110,24 +110,67 @@ def _ensure_agents_keyed_sections(repo_root: Path) -> tuple[str, list[str], list
 
     before = agents_path.read_text(encoding="utf-8")
     maturity = assess_agents_calibration_maturity(repo_root)
-    if maturity.status not in {"scaffold_only", "generic_filled"}:
+    inserts: list[str] = []
+    if "governance:key=f7_update_boundary" not in before:
+        inserts.append(
+            "<!-- governance:key=f7_update_boundary -->\n"
+            "- F-7 updates must preserve existing repo-specific AGENTS.md rules.\n"
+            "- Validate F-7 state with `python -X utf8 -m governance_tools.f7_full_update --repo . --format json` from the framework environment.\n"
+            "- Required external contract surfaces: contract.yaml, governance/framework.lock.json, .git/hooks/pre-commit, .git/hooks/pre-push, .github/copilot-instructions.md.\n"
+        )
+    if "governance:key=memory_workflow" not in before and "memory_workflow" not in before:
+        inserts.append(
+            "<!-- governance:key=memory_workflow -->\n"
+            "- Before claiming completion for any change touching `memory/**`, run `python -m governance_tools.memory_workflow --check --repo .`.\n"
+            "- For memory completion claims, run `python -m governance_tools.memory_workflow --check --repo . --run-guard` and report blockers before claiming DONE.\n"
+            "- Use the canonical memory writer for session-derived memory; do not edit memory records as ordinary markdown.\n"
+        )
+
+    if not inserts:
         return "verified", [], []
 
-    insert = (
-        "\n\n"
-        "<!-- governance:key=f7_update_boundary -->\n"
-        "- F-7 updates must preserve existing repo-specific AGENTS.md rules.\n"
-        "- Validate F-7 state with `python -X utf8 -m governance_tools.f7_full_update --repo . --format json` from the framework environment.\n"
-        "- Required external contract surfaces: contract.yaml, governance/framework.lock.json, .git/hooks/pre-commit, .git/hooks/pre-push, .github/copilot-instructions.md.\n"
-    )
-    after = before.rstrip() + insert + "\n"
+    after = before.rstrip() + "\n\n" + "\n\n".join(inserts) + "\n"
     if after == before:
         return ALREADY_CURRENT, [], []
     agents_path.write_text(after, encoding="utf-8")
-    return "updated", [str(agents_path)], []
+    if maturity.status in {"scaffold_only", "generic_filled"}:
+        return "updated", [str(agents_path)], []
+    return "updated_preserved_repo_rules", [str(agents_path)], []
 
 
-def _external_f7_completed(readiness: Any) -> bool:
+def _framework_head_commit(framework_root: Path) -> str:
+    code, stdout, _stderr = _git(framework_root, ["rev-parse", "HEAD"])
+    return stdout.strip() if code == 0 else ""
+
+
+def _adopted_commit(readiness: Any) -> str:
+    version = readiness.framework_version or {}
+    return str(version.get("adopted_commit", "")).strip()
+
+
+def _framework_lock_commit_current(readiness: Any, framework_root: Path) -> bool:
+    current = _framework_head_commit(framework_root)
+    adopted = _adopted_commit(readiness)
+    return bool(current) and bool(adopted) and current == adopted
+
+
+def _agents_memory_workflow_router_present(repo_root: Path) -> bool:
+    agents_path = repo_root / "AGENTS.md"
+    if not agents_path.is_file():
+        return False
+    text = agents_path.read_text(encoding="utf-8", errors="replace")
+    return "memory_workflow" in text and "memory/**" in text
+
+
+def _pre_commit_memory_workflow_advisory_present(repo_root: Path) -> bool:
+    hook_path = repo_root / ".git" / "hooks" / "pre-commit"
+    if not hook_path.is_file():
+        return False
+    text = hook_path.read_text(encoding="utf-8", errors="replace")
+    return "memory_workflow" in text and "MEMORY_WORKFLOW_TOOL" in text
+
+
+def _external_f7_completed(readiness: Any, repo_root: Path, framework_root: Path) -> bool:
     checks = readiness.checks
     agents = readiness.agents_calibration or {}
     hooks = readiness.hooks or {}
@@ -140,14 +183,17 @@ def _external_f7_completed(readiness: Any) -> bool:
             checks.get("framework_source_canonical") is True,
             hook_checks.get("copilot_instructions_governed") is True,
             agents.get("status") not in {"scaffold_only", "generic_filled", None},
+            _framework_lock_commit_current(readiness, framework_root),
+            _agents_memory_workflow_router_present(repo_root),
+            _pre_commit_memory_workflow_advisory_present(repo_root),
         ]
     )
 
 
-def _status_from_external_readiness(readiness: Any) -> str:
+def _status_from_external_readiness(readiness: Any, repo_root: Path, framework_root: Path) -> str:
     if readiness.errors:
         return BLOCKED
-    return COMPLETED if _external_f7_completed(readiness) else PARTIALLY_UPDATED
+    return COMPLETED if _external_f7_completed(readiness, repo_root, framework_root) else PARTIALLY_UPDATED
 
 
 def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply: bool) -> F7Result:
@@ -161,7 +207,10 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
         "hook_validator_enforcement": "verified" if before.checks.get("hooks_ready") else "missing",
         "existing_memory_normalization": NOT_VERIFIED,
         "framework_lock": "verified" if before.checks.get("framework_version_known") else "missing",
+        "framework_lock_commit": "verified" if _framework_lock_commit_current(before, framework_root) else NOT_VERIFIED,
         "agents_calibration": (before.agents_calibration or {}).get("status", NOT_VERIFIED),
+        "memory_workflow_router": "verified" if _agents_memory_workflow_router_present(repo_root) else NOT_VERIFIED,
+        "memory_workflow_hook_advisory": "verified" if _pre_commit_memory_workflow_advisory_present(repo_root) else NOT_VERIFIED,
     }
 
     if apply:
@@ -181,7 +230,10 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
         errors.extend(agents_errors)
 
     after = assess_external_repo(repo_root, framework_root=framework_root)
-    final_status = _status_from_external_readiness(after)
+    stages["framework_lock_commit"] = "verified" if _framework_lock_commit_current(after, framework_root) else NOT_VERIFIED
+    stages["memory_workflow_router"] = "verified" if _agents_memory_workflow_router_present(repo_root) else NOT_VERIFIED
+    stages["memory_workflow_hook_advisory"] = "verified" if _pre_commit_memory_workflow_advisory_present(repo_root) else NOT_VERIFIED
+    final_status = _status_from_external_readiness(after, repo_root, framework_root)
     if errors:
         final_status = BLOCKED
 
@@ -197,11 +249,14 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
         warnings=after.warnings,
         details={
             "readiness_ready": after.ready,
-            "strict_external_f7_completed": _external_f7_completed(after),
+            "strict_external_f7_completed": _external_f7_completed(after, repo_root, framework_root),
             "checks": after.checks,
             "agents_calibration": after.agents_calibration,
             "hooks": after.hooks,
             "framework_version": after.framework_version,
+            "framework_head_commit": _framework_head_commit(framework_root),
+            "memory_workflow_router_present": _agents_memory_workflow_router_present(repo_root),
+            "memory_workflow_hook_advisory_present": _pre_commit_memory_workflow_advisory_present(repo_root),
         },
     )
 

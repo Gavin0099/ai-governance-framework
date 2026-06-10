@@ -36,24 +36,36 @@ def _init_repo(repo: Path) -> None:
 
 
 def _make_framework(root: Path) -> None:
+    _init_repo(root)
     _write(root / "README.md", "[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)]\n")
-    _write(root / "scripts" / "hooks" / "pre-commit", "#!/usr/bin/env bash\n# AI Governance Framework\n")
+    _write(
+        root / "scripts" / "hooks" / "pre-commit",
+        "#!/usr/bin/env bash\n"
+        "# AI Governance Framework\n"
+        'MEMORY_WORKFLOW_TOOL="$FRAMEWORK_ROOT/governance_tools/memory_workflow.py"\n'
+        '"$MEMORY_WORKFLOW_TOOL" --repo "$TARGET_REPO_ROOT" --check --format json || true\n',
+    )
     _write(root / "scripts" / "hooks" / "pre-push", "#!/usr/bin/env bash\n# AI Governance Framework\n")
     _write(root / "scripts/lib/python.sh", "")
     _write(root / "scripts/run-runtime-governance.sh", "")
     _write(root / "governance_tools/plan_freshness.py", "")
     _write(root / "governance_tools/contract_validator.py", "")
+    _write(root / "governance_tools/memory_workflow.py", "")
     _write(
         root / "governance/copilot-instructions-template.md",
         "# Copilot Workspace Instructions\n<!-- AI Governance Framework: copilot-instructions v1.0 -->\n",
     )
+    _write(root / "governance/framework.lock.json", "{}\n")
+    _git(root, "add", ".")
+    _git(root, "commit", "-m", "seed framework")
+    head = _git(root, "rev-parse", "HEAD")
     _write(
         root / "governance/framework.lock.json",
         json.dumps(
             {
                 "framework_repo": "https://github.com/Gavin0099/ai-governance-framework.git",
                 "adopted_release": "1.2.0",
-                "adopted_commit": "abcdef123456",
+                "adopted_commit": head,
                 "framework_interface_version": "1",
                 "framework_compatible": ">=1.0.0,<2.0.0",
             },
@@ -106,6 +118,32 @@ def test_ready_true_but_f7_partially_updated_when_hooks_and_lock_missing(tmp_pat
     assert result.details["readiness_ready"] is True
     assert result.f7_final_status == "partially_updated"
     assert result.details["strict_external_f7_completed"] is False
+    assert result.stages["memory_workflow_router"] == "not_verified"
+    assert result.stages["memory_workflow_hook_advisory"] == "not_verified"
+    assert result.stages["framework_lock_commit"] == "not_verified"
+
+
+def test_external_contract_cannot_complete_without_memory_workflow_rollout(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+    _write(repo / "governance" / "framework.lock.json", (framework / "governance" / "framework.lock.json").read_text(encoding="utf-8"))
+    _write(repo / ".git" / "hooks" / "pre-commit", "#!/usr/bin/env bash\n# AI Governance Framework\n")
+    _write(repo / ".git" / "hooks" / "pre-push", "#!/usr/bin/env bash\n# AI Governance Framework\n")
+    _write(repo / ".git" / "hooks" / "ai-governance-framework-root", str(framework))
+    _write(
+        repo / ".github" / "copilot-instructions.md",
+        "# Copilot Workspace Instructions\n<!-- AI Governance Framework: copilot-instructions v1.0 -->\n",
+    )
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=False)
+
+    assert result.details["readiness_ready"] is True
+    assert result.details["memory_workflow_router_present"] is False
+    assert result.details["memory_workflow_hook_advisory_present"] is False
+    assert result.f7_final_status == "partially_updated"
+    assert result.details["strict_external_f7_completed"] is False
 
 
 def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) -> None:
@@ -126,3 +164,10 @@ def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) 
     agents_text = (repo / "AGENTS.md").read_text(encoding="utf-8")
     assert "Preserve this domain rule." in agents_text
     assert "governance:key=f7_update_boundary" in agents_text
+    assert "governance:key=memory_workflow" in agents_text
+    assert "memory/**" in agents_text
+    hook_text = (repo / ".git" / "hooks" / "pre-commit").read_text(encoding="utf-8")
+    assert "MEMORY_WORKFLOW_TOOL" in hook_text
+    assert result.stages["framework_lock_commit"] == "verified"
+    assert result.stages["memory_workflow_router"] == "verified"
+    assert result.stages["memory_workflow_hook_advisory"] == "verified"
