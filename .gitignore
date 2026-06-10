@@ -53,6 +53,9 @@ dist/
 # Test
 .pytest_cache/
 .pytest_cache_runtime/
+.tmp_pytest/
+pytest-cache-files-*/
+tests/pytest-cache-files-*/
 .pytest_tmp*/
 .tmp_pytest_*/
 .tmp-pytest/
