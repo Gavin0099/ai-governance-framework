@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 from governance_tools.hook_install_validator import validate_hook_install
@@ -24,6 +25,20 @@ def _make_framework(root: Path) -> None:
         root / "governance/copilot-instructions-template.md",
         "# Copilot Workspace Instructions\n<!-- AI Governance Framework: copilot-instructions v1.0 -->\n",
     )
+
+
+def _run(args: list[str], cwd: Path) -> str:
+    completed = subprocess.run(
+        args,
+        cwd=cwd,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+    return (completed.stdout or "").strip()
 
 
 def test_install_governance_hooks_writes_windows_safe_config_without_bom(tmp_path: Path) -> None:
@@ -82,6 +97,29 @@ def test_install_governance_hooks_hooks_only_does_not_touch_copilot(tmp_path: Pa
     assert not (repo / ".github" / "copilot-instructions.md").exists()
     assert all(".github" not in changed for changed in result.changed_files)
     assert all(".github" not in installed for installed in result.installed_files)
+
+
+def test_install_governance_hooks_uses_common_hook_dir_for_linked_worktree(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    linked = tmp_path / "linked"
+    framework = tmp_path / "framework"
+    repo.mkdir()
+    _run(["git", "init"], cwd=repo)
+    _run(["git", "config", "user.email", "test@example.com"], cwd=repo)
+    _run(["git", "config", "user.name", "Test User"], cwd=repo)
+    _write(repo / "README.md", "root\n")
+    _run(["git", "add", "README.md"], cwd=repo)
+    _run(["git", "commit", "-m", "init"], cwd=repo)
+    _run(["git", "worktree", "add", "--detach", str(linked), "HEAD"], cwd=repo)
+    _make_framework(framework)
+
+    result = install_governance_hooks(linked, framework, include_copilot=False)
+
+    assert result.ok is True
+    assert (repo / ".git" / "hooks" / "pre-commit").is_file()
+    assert (repo / ".git" / "hooks" / "pre-push").is_file()
+    assert (repo / ".git" / "hooks" / "ai-governance-framework-root").is_file()
+    assert not (linked / ".git" / "hooks").exists()
 
 
 def test_managed_hooks_resolve_target_root_from_invocation_worktree_first() -> None:

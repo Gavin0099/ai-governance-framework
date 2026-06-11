@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import subprocess
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -72,6 +73,38 @@ def _backup_unmanaged(path: Path, marker: str, backups: list[str]) -> None:
     backups.append(str(backup))
 
 
+def _resolve_hook_dir(repo_root: Path) -> Path:
+    dot_git = repo_root / ".git"
+    if dot_git.is_dir():
+        return dot_git / "hooks"
+    if not dot_git.is_file():
+        return dot_git / "hooks"
+    completed = subprocess.run(
+        [
+            "git",
+            "-c",
+            f"safe.directory={repo_root.as_posix()}",
+            "-C",
+            str(repo_root),
+            "rev-parse",
+            "--git-common-dir",
+        ],
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    common_dir = (completed.stdout or "").strip()
+    if completed.returncode == 0 and common_dir:
+        common_path = Path(common_dir)
+        if not common_path.is_absolute():
+            common_path = repo_root / common_path
+        return common_path.resolve() / "hooks"
+    return dot_git / "hooks"
+
+
 def install_governance_hooks(
     repo_root: Path,
     framework_root: Path,
@@ -80,7 +113,7 @@ def install_governance_hooks(
 ) -> HookInstallApplyResult:
     repo_root = repo_root.resolve()
     framework_root = framework_root.resolve()
-    hook_dir = repo_root / ".git" / "hooks"
+    hook_dir = _resolve_hook_dir(repo_root)
     source_hook_dir = framework_root / "scripts" / "hooks"
     errors: list[str] = []
     installed: list[str] = []
