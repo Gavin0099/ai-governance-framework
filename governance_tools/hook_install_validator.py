@@ -62,7 +62,15 @@ def _resolve_hook_dir(repo_root: Path) -> Path:
         return dot_git / "hooks"
 
     completed = subprocess.run(
-        ["git", "-C", str(repo_root), "rev-parse", "--git-common-dir"],
+        [
+            "git",
+            "-c",
+            f"safe.directory={repo_root.as_posix()}",
+            "-C",
+            str(repo_root),
+            "rev-parse",
+            "--git-common-dir",
+        ],
         text=True,
         encoding="utf-8",
         errors="replace",
