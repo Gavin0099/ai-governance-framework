@@ -5,6 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from governance_tools.external_governance_submodule_updater import (
+    _check_existing_memory_normalization,
     _git_env,
     _run_git,
     update_governance_submodule,
@@ -246,6 +247,49 @@ def test_dry_run_refuses_uninitialized_submodule_checkout(tmp_path: Path) -> Non
     assert result.full_update_stage_report["final_status"] == "blocked"
     assert "submodule path is not an initialized git checkout" in result.errors[0]
     assert _git(consumer, "diff", "--cached", "--name-only") == ""
+
+
+def test_existing_memory_normalization_uses_active_guard_result(tmp_path: Path, monkeypatch) -> None:
+    repo = tmp_path / "repo"
+    (repo / "memory").mkdir(parents=True)
+    (repo / "memory" / "2026-06-11.md").write_text("historical memory\n", encoding="utf-8")
+
+    def fake_run(*args, **kwargs):
+        return SimpleNamespace(
+            returncode=0,
+            stdout=(
+                '{"ok": true, "active_non_canonical_writer": '
+                '{"count": 0, "violations": []}}'
+            ),
+            stderr="",
+        )
+
+    monkeypatch.setattr(
+        "governance_tools.external_governance_submodule_updater.subprocess.run",
+        fake_run,
+    )
+
+    assert _check_existing_memory_normalization(repo) == "verified"
+
+
+def test_existing_memory_normalization_flags_active_guard_violations(tmp_path: Path, monkeypatch) -> None:
+    repo = tmp_path / "repo"
+    (repo / "memory").mkdir(parents=True)
+    (repo / "memory" / "2026-06-11.md").write_text("active violation\n", encoding="utf-8")
+
+    def fake_run(*args, **kwargs):
+        return SimpleNamespace(
+            returncode=0,
+            stdout='{"ok": true, "active_non_canonical_writer": {"count": 1}}',
+            stderr="",
+        )
+
+    monkeypatch.setattr(
+        "governance_tools.external_governance_submodule_updater.subprocess.run",
+        fake_run,
+    )
+
+    assert _check_existing_memory_normalization(repo) == "needed"
 
 
 def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:

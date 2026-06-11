@@ -5,6 +5,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Sequence
@@ -383,9 +384,41 @@ def _check_existing_memory_normalization(repo: Path) -> str:
     memory_dir = repo / "memory"
     if not memory_dir.exists():
         return "not_applicable"
-    if any(memory_dir.glob("*.md")):
+    if not any(memory_dir.glob("*.md")):
+        return "not_applicable"
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "governance_tools.memory_authority_guard",
+            "--project-root",
+            str(repo),
+            "--format",
+            "json",
+        ],
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if completed.returncode != 0:
         return "not_verified"
-    return "not_applicable"
+    try:
+        payload = json.loads(completed.stdout or "{}")
+    except json.JSONDecodeError:
+        return "not_verified"
+    active = payload.get("active_non_canonical_writer")
+    if isinstance(active, dict):
+        active_count = active.get("count")
+        if isinstance(active_count, int) and active_count > 0:
+            return "needed"
+        if isinstance(active_count, int) and active_count == 0 and payload.get("ok") is True:
+            return "verified"
+    if payload.get("ok") is True:
+        return "verified"
+    return "not_verified"
 
 
 def _final_full_update_status(report: dict[str, Any]) -> str:
