@@ -52,7 +52,7 @@
 | `memory/04_review_log.md` | agent-runtime | canonical | false | ~ | incremental |
 | `memory/reviewer_handoff_*` | agent-on-demand | derived | false | 03_knowledge_base.md | on-demand |
 | `memory/framework_artifact_*` | agent-on-demand | derived | false | ~ | on-demand |
-| `memory/external_repo_aliases` | agent-on-demand | reference | false | ~ | on-demand |
+| `external repo aliases` | agent-on-demand | reference | false | ~ | on-demand |
 
 ---
 
