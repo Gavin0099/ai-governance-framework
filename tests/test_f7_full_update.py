@@ -174,3 +174,40 @@ def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) 
     assert result.stages["framework_lock_commit"] == "verified"
     assert result.stages["memory_workflow_router"] == "verified"
     assert result.stages["memory_workflow_hook_advisory"] == "verified"
+
+
+def test_external_contract_linked_worktree_uses_common_hooks_for_memory_workflow_advisory(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    linked = tmp_path / "linked"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+    _write(repo / "governance" / "framework.lock.json", (framework / "governance" / "framework.lock.json").read_text(encoding="utf-8"))
+    _write(
+        repo / "AGENTS.md",
+        (repo / "AGENTS.md").read_text(encoding="utf-8")
+        + "\n<!-- governance:key=memory_workflow -->\n"
+        + "- Before claiming completion for any change touching `memory/**`, run `python -m governance_tools.memory_workflow --check --repo .`.\n",
+    )
+    _write(
+        repo / ".github" / "copilot-instructions.md",
+        "# Copilot Workspace Instructions\n<!-- AI Governance Framework: copilot-instructions v1.0 -->\n",
+    )
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-m", "seed external contract")
+    _git(repo, "worktree", "add", "--detach", str(linked), "HEAD")
+    _write(
+        repo / ".git" / "hooks" / "pre-commit",
+        "#!/usr/bin/env bash\n"
+        "# AI Governance Framework\n"
+        'MEMORY_WORKFLOW_TOOL="$FRAMEWORK_ROOT/governance_tools/memory_workflow.py"\n'
+        '"$MEMORY_WORKFLOW_TOOL" --repo "$TARGET_REPO_ROOT" --check --format json || true\n',
+    )
+    _write(repo / ".git" / "hooks" / "pre-push", "#!/usr/bin/env bash\n# AI Governance Framework\n")
+    _write(repo / ".git" / "hooks" / "ai-governance-framework-root", str(framework))
+
+    result = run_f7_full_update(repo_root=linked, framework_root=framework, apply=False)
+
+    assert result.repo_role == "external_contract_repo"
+    assert result.stages["memory_workflow_hook_advisory"] == "verified"
+    assert result.details["memory_workflow_hook_advisory_present"] is True

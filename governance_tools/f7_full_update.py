@@ -171,8 +171,23 @@ def _agents_memory_workflow_router_present(repo_root: Path) -> bool:
     return "memory_workflow" in text and "memory/**" in text
 
 
+def _resolve_hook_dir(repo_root: Path) -> Path:
+    dot_git = repo_root / ".git"
+    if dot_git.is_dir():
+        return dot_git / "hooks"
+    if dot_git.is_file():
+        code, stdout, _stderr = _git(repo_root, ["rev-parse", "--git-common-dir"])
+        common_dir = stdout.strip()
+        if code == 0 and common_dir:
+            common_path = Path(common_dir)
+            if not common_path.is_absolute():
+                common_path = repo_root / common_path
+            return common_path.resolve() / "hooks"
+    return dot_git / "hooks"
+
+
 def _pre_commit_memory_workflow_advisory_present(repo_root: Path) -> bool:
-    hook_path = repo_root / ".git" / "hooks" / "pre-commit"
+    hook_path = _resolve_hook_dir(repo_root) / "pre-commit"
     if not hook_path.is_file():
         return False
     text = hook_path.read_text(encoding="utf-8", errors="replace")

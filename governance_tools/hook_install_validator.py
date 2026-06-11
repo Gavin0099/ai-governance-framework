@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -53,9 +54,34 @@ def _normalize_framework_root(raw_value: str) -> Path:
     return Path(candidate).expanduser()
 
 
+def _resolve_hook_dir(repo_root: Path) -> Path:
+    dot_git = repo_root / ".git"
+    if dot_git.is_dir():
+        return dot_git / "hooks"
+    if not dot_git.is_file():
+        return dot_git / "hooks"
+
+    completed = subprocess.run(
+        ["git", "-C", str(repo_root), "rev-parse", "--git-common-dir"],
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    common_dir = (completed.stdout or "").strip()
+    if completed.returncode == 0 and common_dir:
+        common_path = Path(common_dir)
+        if not common_path.is_absolute():
+            common_path = repo_root / common_path
+        return common_path.resolve() / "hooks"
+    return repo_root / ".git" / "hooks"
+
+
 def validate_hook_install(repo_root: Path, framework_root: Path | None = None) -> HookInstallResult:
     repo_root = repo_root.resolve()
-    hook_dir = repo_root / ".git" / "hooks"
+    hook_dir = _resolve_hook_dir(repo_root)
     checks: dict[str, bool] = {}
     errors: list[str] = []
     warnings: list[str] = []

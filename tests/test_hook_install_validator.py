@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import subprocess
 from pathlib import Path
 
 from governance_tools.hook_install_validator import format_human, validate_hook_install
@@ -20,6 +21,10 @@ def _reset_fixture(name: str) -> Path:
 def _write(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
+
+
+def _run(command: list[str], cwd: Path | None = None) -> None:
+    subprocess.run(command, cwd=cwd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 def test_validate_hook_install_accepts_framework_backed_external_repo() -> None:
@@ -231,6 +236,39 @@ def test_copilot_instructions_non_governed_version_warns() -> None:
     assert result.checks["copilot_instructions_present"] is True
     assert result.checks["copilot_instructions_governed"] is False
     assert any("not deployed by AI Governance Framework" in w for w in result.warnings)
+
+
+def test_validate_hook_install_resolves_common_hooks_for_linked_worktree(tmp_path: Path) -> None:
+    root = tmp_path / "linked_worktree_hooks"
+    repo_root = root / "repo"
+    linked_worktree = root / "linked"
+    framework_root = root / "framework"
+
+    repo_root.mkdir(parents=True)
+    _run(["git", "init"], cwd=repo_root)
+    _run(["git", "config", "user.email", "test@example.com"], cwd=repo_root)
+    _run(["git", "config", "user.name", "Test User"], cwd=repo_root)
+    _write(repo_root / "README.md", "root\n")
+    _run(["git", "add", "README.md"], cwd=repo_root)
+    _run(["git", "commit", "-m", "init"], cwd=repo_root)
+    _run(["git", "worktree", "add", "--detach", str(linked_worktree), "HEAD"], cwd=repo_root)
+
+    hook_dir = repo_root / ".git" / "hooks"
+    _write(hook_dir / "pre-commit", "# AI Governance Framework\n")
+    _write(hook_dir / "pre-push", "# AI Governance Framework\n")
+    _write(hook_dir / "ai-governance-framework-root", str(framework_root))
+    _write(framework_root / "scripts/lib/python.sh", "")
+    _write(framework_root / "scripts/run-runtime-governance.sh", "")
+    _write(framework_root / "governance_tools/plan_freshness.py", "")
+    _write(framework_root / "governance_tools/contract_validator.py", "")
+
+    result = validate_hook_install(linked_worktree)
+
+    assert result.valid is True
+    assert result.hook_dir == str((repo_root / ".git" / "hooks").resolve())
+    assert result.checks["git_hooks_dir_present"] is True
+    assert result.checks["pre_commit_installed"] is True
+    assert result.checks["pre_push_installed"] is True
 
 
 def test_format_human_includes_framework_root_and_errors() -> None:
