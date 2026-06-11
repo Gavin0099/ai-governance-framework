@@ -796,6 +796,23 @@ def format_json(result: BaselineDriftResult) -> str:
     return json.dumps(d, ensure_ascii=False, indent=2)
 
 
+def _console_safe_text(text: str, encoding: str | None = None) -> str:
+    """Return text that can be written to a legacy Windows console.
+
+    Human output may include repo-authored section headings from PLAN.md. On
+    zh-TW Windows consoles, cp950 cannot encode emoji and some punctuation. The
+    drift checker should still report the result instead of crashing before the
+    user can see remediation guidance.
+    """
+    target = encoding or getattr(sys.stdout, "encoding", None) or "utf-8"
+    return text.encode(target, errors="replace").decode(target, errors="replace")
+
+
+def _print_console_safe(text: str) -> None:
+    sys.stdout.write(_console_safe_text(text))
+    sys.stdout.write("\n")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Check whether a repo's governance files have drifted from the recorded baseline."
@@ -822,9 +839,9 @@ def main() -> int:
         skip_hash=args.skip_hash,
     )
     if args.format == "json":
-        print(format_json(result))
+        _print_console_safe(format_json(result))
     else:
-        print(format_human(result))
+        _print_console_safe(format_human(result))
     # Exit codes: 0=ok, 1=warning, 2=critical
     if result.severity == "critical":
         return 2
