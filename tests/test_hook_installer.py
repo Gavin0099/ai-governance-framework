@@ -63,3 +63,20 @@ def test_install_governance_hooks_backs_up_unmanaged_hook(tmp_path: Path) -> Non
 
     assert result.ok is True
     assert any(Path(item).name.startswith("pre-push.bak.") for item in result.backups)
+
+
+def test_install_governance_hooks_hooks_only_does_not_touch_copilot(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    (repo / ".git" / "hooks").mkdir(parents=True)
+    _make_framework(framework)
+
+    result = install_governance_hooks(repo, framework, include_copilot=False)
+
+    assert result.ok is True
+    assert (repo / ".git" / "hooks" / "pre-commit").exists()
+    assert (repo / ".git" / "hooks" / "pre-push").exists()
+    assert (repo / ".git" / "hooks" / "ai-governance-framework-root").exists()
+    assert not (repo / ".github" / "copilot-instructions.md").exists()
+    assert all(".github" not in changed for changed in result.changed_files)
+    assert all(".github" not in installed for installed in result.installed_files)

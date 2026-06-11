@@ -72,7 +72,12 @@ def _backup_unmanaged(path: Path, marker: str, backups: list[str]) -> None:
     backups.append(str(backup))
 
 
-def install_governance_hooks(repo_root: Path, framework_root: Path) -> HookInstallApplyResult:
+def install_governance_hooks(
+    repo_root: Path,
+    framework_root: Path,
+    *,
+    include_copilot: bool = True,
+) -> HookInstallApplyResult:
     repo_root = repo_root.resolve()
     framework_root = framework_root.resolve()
     hook_dir = repo_root / ".git" / "hooks"
@@ -113,15 +118,16 @@ def install_governance_hooks(repo_root: Path, framework_root: Path) -> HookInsta
         changed.append(str(config))
     installed.append(str(config))
 
-    copilot_source = framework_root / "governance" / "copilot-instructions-template.md"
-    copilot_target = repo_root / ".github" / "copilot-instructions.md"
-    if copilot_source.is_file():
-        _backup_unmanaged(copilot_target, COPILOT_MARKER, backups)
-        if _write_bytes_if_changed(copilot_target, copilot_source.read_bytes()):
-            changed.append(str(copilot_target))
-        installed.append(str(copilot_target))
-    else:
-        errors.append(f"missing copilot instructions template: {copilot_source}")
+    if include_copilot:
+        copilot_source = framework_root / "governance" / "copilot-instructions-template.md"
+        copilot_target = repo_root / ".github" / "copilot-instructions.md"
+        if copilot_source.is_file():
+            _backup_unmanaged(copilot_target, COPILOT_MARKER, backups)
+            if _write_bytes_if_changed(copilot_target, copilot_source.read_bytes()):
+                changed.append(str(copilot_target))
+            installed.append(str(copilot_target))
+        else:
+            errors.append(f"missing copilot instructions template: {copilot_source}")
 
     return HookInstallApplyResult(
         ok=not errors,
@@ -138,10 +144,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Install AI Governance hooks without requiring bash.")
     parser.add_argument("--repo", required=True, type=Path)
     parser.add_argument("--framework-root", required=True, type=Path)
+    parser.add_argument(
+        "--hooks-only",
+        action="store_true",
+        help="Install only .git/hooks managed files and framework-root config; do not touch tracked Copilot instructions.",
+    )
     parser.add_argument("--format", choices=("human", "json"), default="human")
     args = parser.parse_args(argv)
 
-    result = install_governance_hooks(args.repo, args.framework_root)
+    result = install_governance_hooks(
+        args.repo,
+        args.framework_root,
+        include_copilot=not args.hooks_only,
+    )
     if args.format == "json":
         print(json.dumps(asdict(result), ensure_ascii=False, indent=2))
     else:
