@@ -12,6 +12,8 @@
 
 這個 framework 不是讓 AI 更聰明，而是讓 AI 的邊界、證據、宣稱可以被**審核（auditable）且可強制執行（enforceable）**。
 
+
+This is an audit framework, not a security boundary: it makes boundary violations visible, reviewable, and attributable; it does not prevent deliberate bypass by itself.
 ---
 
 ## 運作方式（How It Works）
@@ -96,7 +98,7 @@ python governance_tools/adopt_governance.py --target /path/to/your/repo
 | Capability | Status | Notes |
 |---|---|---|
 | Evidence anchoring（artifact-backed，不依賴 AI summary） | **Operational** | fleet rollout 期間已驗證 gate_blocked admissibility fix |
-| Fail-closed decision gate | **Operational** | 測試覆蓋：無 closeout commit 會從 verified 立即掉回 unverified |
+| Fail-closed decision gate | **Operational** | Gate mechanism operational; enforcement topology remains single-point in E1-B Phase 2, and mutation protection is not claimed |
 | Fleet matrix + scope-normalized ratio | **Operational** | required 10 repos 可 verified；structural readiness 與 freshness 分離追蹤 |
 | Evidence tier（hardware-aware） | **Operational** | snapshot 可見 tier_2 / tier_3 / ci_strict |
 | Claim vs. evidence separation | **Partial** | 原則已落地，但不同 claim 類型自動化覆蓋仍不一 |
@@ -177,6 +179,8 @@ Your AI agents modify code, generate summaries, and claim tasks are complete. Bu
 - **Memory pollution** — one successful session becomes permanent knowledge
 
 This framework doesn't make AI smarter. It makes AI's boundaries, evidence, and claims **auditable and enforceable**.
+
+This is an audit framework, not a security boundary: it makes boundary violations visible, reviewable, and attributable; it does not prevent deliberate bypass by itself.
 
 ---
 
@@ -268,7 +272,7 @@ Not everything described here is fully operational. This table tracks what's ver
 | Capability | Status | Notes |
 |---|---|---|
 | Evidence anchoring (artifact-backed, not AI summary) | **Operational** | gate_blocked admissibility fix verified in fleet rollout |
-| Fail-closed decision gate | **Operational** | Tested: commit without closeout → immediate verified → unverified drop |
+| Fail-closed decision gate | **Operational** | Gate mechanism operational; enforcement topology remains single-point in E1-B Phase 2, and mutation protection is not claimed |
 | Fleet matrix + scope-normalized ratio | **Operational** | 10 required repos verified; structural readiness tracked separately from freshness |
 | Evidence tier (hardware-aware) | **Operational** | tier_2 / tier_3 / ci_strict visible per repo in snapshot |
 | Claim vs. evidence separation | **Partial** | Principle enforced; per-claim-type automation coverage varies |
