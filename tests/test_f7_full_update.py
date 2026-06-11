@@ -106,6 +106,31 @@ def test_classify_repo_detects_external_contract_repo(tmp_path: Path) -> None:
     assert classify_repo(repo) == "external_contract_repo"
 
 
+def test_classify_repo_prefers_gitmodules_submodule_when_status_helper_fails(tmp_path: Path, monkeypatch) -> None:
+    repo = tmp_path / "repo"
+    _make_external_contract_repo(repo)
+    _write(
+        repo / ".gitmodules",
+        '[submodule "ai-governance-framework"]\n'
+        "\tpath = ai-governance-framework\n"
+        "\turl = https://github.com/Gavin0099/ai-governance-framework.git\n",
+    )
+    (repo / "ai-governance-framework").mkdir()
+
+    import governance_tools.f7_full_update as f7
+
+    original_git = f7._git
+
+    def fake_git(repo_root: Path, args):
+        if list(args)[:2] == ["submodule", "status"]:
+            return 1, "", "git-submodule helper failed"
+        return original_git(repo_root, args)
+
+    monkeypatch.setattr(f7, "_git", fake_git)
+
+    assert classify_repo(repo) == "submodule_consumer"
+
+
 def test_ready_true_but_f7_partially_updated_when_hooks_and_lock_missing(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     framework = tmp_path / "framework"

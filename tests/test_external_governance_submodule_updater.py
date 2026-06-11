@@ -204,6 +204,30 @@ def test_dry_run_does_not_change_submodule_or_stage_files(tmp_path: Path) -> Non
     assert _git(consumer, "diff", "--cached", "--name-only") == ""
 
 
+def test_dry_run_uses_local_target_ref_before_remote_lookup(tmp_path: Path) -> None:
+    consumer, _framework, old_head, new_head = _make_fixture(tmp_path)
+    submodule = consumer / "ai-governance-framework"
+    _git(submodule, "update-ref", "refs/remotes/origin/main", new_head)
+    _git(submodule, "remote", "set-url", "origin", "https://example.invalid/nope.git")
+
+    result = update_governance_submodule(
+        repo=consumer,
+        target_ref="origin/main",
+        fetch_remote="origin",
+        fetch_ref="main",
+        dry_run=True,
+    )
+
+    assert result.ok is True
+    assert result.mode == "dry_run"
+    assert result.update_mode == "dry_run"
+    assert result.before_head == old_head
+    assert result.target_head == new_head
+    assert result.after_head == old_head
+    assert _git(submodule, "rev-parse", "HEAD") == old_head
+    assert _git(consumer, "diff", "--cached", "--name-only") == ""
+
+
 def test_dry_run_refuses_uninitialized_submodule_checkout(tmp_path: Path) -> None:
     consumer, _framework, _old_head, _new_head = _make_fixture(tmp_path)
     _git(consumer, "submodule", "deinit", "-f", "--", "ai-governance-framework")

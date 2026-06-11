@@ -51,8 +51,9 @@ class F7Result:
 
 
 def _git(repo: Path, args: Sequence[str]) -> tuple[int, str, str]:
+    repo = repo.resolve()
     completed = subprocess.run(
-        ["git", "-C", str(repo), *args],
+        ["git", "-c", f"safe.directory={repo.as_posix()}", "-C", str(repo), *args],
         text=True,
         encoding="utf-8",
         errors="replace",
@@ -70,7 +71,32 @@ def _is_git_repo(repo: Path) -> bool:
 
 def _has_registered_submodule(repo: Path, submodule_path: str) -> bool:
     result = _git(repo, ["submodule", "status", "--", submodule_path])
-    return result[0] == 0 and bool(result[1])
+    if result[0] == 0 and bool(result[1]):
+        return True
+
+    gitmodules = repo / ".gitmodules"
+    if not gitmodules.is_file():
+        return False
+    try:
+        text = gitmodules.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    path_pattern = f"path = {submodule_path}"
+    quoted_path_pattern = f'path = "{submodule_path}"'
+    if path_pattern in text or quoted_path_pattern in text:
+        return (repo / submodule_path).exists()
+
+    config_result = _git(
+        repo,
+        ["config", "--file", ".gitmodules", "--get-regexp", r"^submodule\..*\.path$"],
+    )
+    if config_result[0] != 0:
+        return False
+    for line in config_result[1].splitlines():
+        parts = line.split(maxsplit=1)
+        if len(parts) == 2 and parts[1].strip() == submodule_path:
+            return (repo / submodule_path).exists()
+    return False
 
 
 def _has_staged_changes(repo: Path) -> bool:

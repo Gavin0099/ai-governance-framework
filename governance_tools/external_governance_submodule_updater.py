@@ -51,7 +51,7 @@ def _run_git(
     check: bool = True,
 ) -> CommandResult:
     command = ["git", "-C", str(repo), *args]
-    env = _git_env()
+    env = _git_env(repo)
     completed = subprocess.run(
         command,
         text=True,
@@ -74,7 +74,7 @@ def _run_git(
     return result
 
 
-def _git_env() -> dict[str, str]:
+def _git_env(repo: Path | None = None) -> dict[str, str]:
     env = os.environ.copy()
     git_path = shutil.which("git")
     if not git_path:
@@ -88,7 +88,23 @@ def _git_env() -> dict[str, str]:
     existing = [str(path) for path in candidates if path.exists()]
     if existing:
         env["PATH"] = os.pathsep.join([*existing, env.get("PATH", "")])
+    if repo is not None:
+        _add_safe_directory(env, repo)
     return env
+
+
+def _add_safe_directory(env: dict[str, str], repo: Path) -> None:
+    try:
+        safe_path = str(repo.resolve()).replace("\\", "/")
+    except OSError:
+        safe_path = str(repo).replace("\\", "/")
+    try:
+        count = int(env.get("GIT_CONFIG_COUNT", "0"))
+    except ValueError:
+        count = 0
+    env[f"GIT_CONFIG_KEY_{count}"] = "safe.directory"
+    env[f"GIT_CONFIG_VALUE_{count}"] = safe_path
+    env["GIT_CONFIG_COUNT"] = str(count + 1)
 
 
 def _require_clean_nested(submodule_repo: Path) -> None:
@@ -289,9 +305,31 @@ def _check_memory_writer_coverage(repo: Path) -> str:
     return "missing"
 
 
+def _check_repo_local_instruction_coverage(repo: Path) -> str:
+    if not (repo / "AGENTS.base.md").is_file() or not (repo / "AGENTS.md").is_file():
+        return "missing"
+    if _check_memory_writer_coverage(repo) == "verified":
+        return "verified"
+    return "missing"
+
+
+def _git_common_dir(repo: Path) -> Path:
+    result = _run_git(repo, ["rev-parse", "--git-common-dir"], check=False)
+    if result.returncode != 0 or not result.stdout:
+        return repo / ".git"
+    common = Path(result.stdout)
+    if not common.is_absolute():
+        common = repo / common
+    return common.resolve()
+
+
+def _git_hook_dir(repo: Path) -> Path:
+    return _git_common_dir(repo) / "hooks"
+
+
 def _ensure_hook_advisory(repo: Path, submodule_repo: Path) -> dict[str, Any]:
     source_hook_dir = submodule_repo / "scripts" / "hooks"
-    hook_dir = repo / ".git" / "hooks"
+    hook_dir = _git_hook_dir(repo)
     changed: list[str] = []
     errors: list[str] = []
 
@@ -331,7 +369,7 @@ def _ensure_hook_advisory(repo: Path, submodule_repo: Path) -> dict[str, Any]:
 
 
 def _check_hook_validator_enforcement(repo: Path) -> str:
-    hook_candidates = [repo / ".git" / "hooks" / "pre-commit", repo / ".githooks" / "pre-commit"]
+    hook_candidates = [_git_hook_dir(repo) / "pre-commit", repo / ".githooks" / "pre-commit"]
     for candidate in hook_candidates:
         if not candidate.exists() or candidate.stat().st_size == 0:
             continue
@@ -421,15 +459,19 @@ def update_governance_submodule(
 
         if fetch_ref:
             if dry_run:
-                fetch_result = _run_git(
-                    submodule_repo,
-                    ["ls-remote", fetch_remote, fetch_ref],
-                )
-                if not fetch_result.stdout:
-                    raise SubmoduleUpdateError(
-                        f"target ref not found: {fetch_remote}/{fetch_ref}"
+                local_ref = _run_git(submodule_repo, ["rev-parse", target_ref], check=False)
+                if local_ref.returncode == 0 and local_ref.stdout:
+                    target_head = local_ref.stdout
+                else:
+                    fetch_result = _run_git(
+                        submodule_repo,
+                        ["ls-remote", fetch_remote, fetch_ref],
                     )
-                target_head = fetch_result.stdout.split()[0]
+                    if not fetch_result.stdout:
+                        raise SubmoduleUpdateError(
+                            f"target ref not found: {fetch_remote}/{fetch_ref}"
+                        )
+                    target_head = fetch_result.stdout.split()[0]
             else:
                 _run_git(submodule_repo, ["fetch", fetch_remote, fetch_ref])
                 target_head = _resolve_head(submodule_repo, "FETCH_HEAD")
@@ -512,6 +554,10 @@ def update_governance_submodule(
                     framework_pointer=(
                         "already_current" if before_head == target_head else "not_verified"
                     ),
+                    repo_local_instruction=_check_repo_local_instruction_coverage(repo),
+                    memory_writer_coverage=_check_memory_writer_coverage(repo),
+                    hook_validator_enforcement=_check_hook_validator_enforcement(repo),
+                    existing_memory_normalization=_check_existing_memory_normalization(repo),
                     details={"dry_run": True},
                 ),
             )
