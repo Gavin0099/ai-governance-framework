@@ -5,6 +5,8 @@ from pathlib import Path
 from governance_tools.hook_install_validator import validate_hook_install
 from governance_tools.hook_installer import install_governance_hooks
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 
 def _write(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -80,3 +82,9 @@ def test_install_governance_hooks_hooks_only_does_not_touch_copilot(tmp_path: Pa
     assert not (repo / ".github" / "copilot-instructions.md").exists()
     assert all(".github" not in changed for changed in result.changed_files)
     assert all(".github" not in installed for installed in result.installed_files)
+
+
+def test_managed_hooks_resolve_target_root_from_invocation_worktree_first() -> None:
+    for hook_name in ("pre-commit", "pre-push"):
+        text = (REPO_ROOT / "scripts" / "hooks" / hook_name).read_text(encoding="utf-8")
+        assert 'TARGET_REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || git -C "$HOOK_DIR" rev-parse --show-toplevel 2>/dev/null || pwd)"' in text

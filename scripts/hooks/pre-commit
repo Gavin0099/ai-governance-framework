@@ -13,7 +13,7 @@
 set -euo pipefail
 
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TARGET_REPO_ROOT="$(git -C "$HOOK_DIR" rev-parse --show-toplevel 2>/dev/null || pwd)"
+TARGET_REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || git -C "$HOOK_DIR" rev-parse --show-toplevel 2>/dev/null || pwd)"
 FRAMEWORK_ROOT="${AI_GOVERNANCE_FRAMEWORK_ROOT:-}"
 HOOK_CONFIG="$HOOK_DIR/ai-governance-framework-root"
 if [ -z "$FRAMEWORK_ROOT" ] && [ -f "$HOOK_CONFIG" ]; then
