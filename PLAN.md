@@ -1,4 +1,4 @@
-﻿# PLAN.md - AI Governance Framework
+# PLAN.md - AI Governance Framework
 
 ## Canonical Planning Surface
 
@@ -112,6 +112,16 @@ Latest scoped evidence:
 
 ## Active Claim Boundaries
 
+Mutation enforcement:
+
+- CLAIMED: canonical mandate that mutation enforcement claims require an
+  explicit mutation contract.
+- Rule: No mutation contract = No enforcement claim.
+- A tool, workflow, hook, or validator may not claim mutation enforcement
+  unless its mutation contract is explicitly documented, scoped, and testable.
+- NOT CLAIMED: mutation enforcement is implemented for every mutation surface,
+  mutation contracts are complete, or mutation catalog presence is enforcement
+  by itself.
 MEM-DISPATCH:
 
 - CLAIMED: framework-side implementation, tests, docs, hook advisory, session-end
@@ -171,6 +181,14 @@ P1 - selective enforcement decision:
   rate is acceptable.
 - [ ] Do not upgrade historical `missing_canonical_memory` or `unbound_memory`
   warnings into blockers without separate approval.
+P1 - structured memory freshness:
+
+- [ ] Define freshness / rollover policy for structured canonical memory files
+  such as `memory/01_active_task.md`.
+- [ ] Define whether `PLAN.md` to structured-memory consistency should become
+  a validator-backed self-check.
+- [ ] Do not claim structured memory sync is solved by daily memory writer
+  completion alone.
 
 P2 - external presentation:
 

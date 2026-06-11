@@ -32,6 +32,7 @@
 | `governance/SYSTEM_PROMPT.md` | agent-runtime | canonical | false | ~ | always |
 | `governance/AGENT.md` | agent-runtime | canonical | false | ~ | always |
 | `governance/PLAN.md` | agent-runtime | canonical | false | ~ | always |
+| `governance/MEMORY_PROTOCOL.md` | agent-runtime | canonical | false | AGENT.md | on-demand |
 | `governance/ARCHITECTURE.md` | agent-on-demand | reference | false | SYSTEM_PROMPT.md | on-demand |
 | `governance/TESTING.md` | agent-on-demand | reference | false | AGENT.md | on-demand |
 | `governance/NATIVE-INTEROP.md` | agent-on-demand | reference | false | AGENT.md | on-demand |
@@ -43,6 +44,8 @@
 | `.github/agents/*.agent.md` | agent-on-demand | derived | false | AGENT.md | on-demand |
 | `domain contract (full)` | agent-on-demand | canonical | false | ~ | on-demand |
 | `domain adapter summary` | agent-runtime | derived | false | domain contract | always |
+| `docs/e1-mutation-catalog.md` | agent-on-demand | reference | false | PLAN.md | on-demand |
+| `governance_tools.memory_workflow` | agent-runtime | derived | false | MEMORY_PROTOCOL.md | on-demand |
 | `memory/01_active_task.md` | agent-runtime | canonical | false | ~ | incremental |
 | `memory/02_workflow.md` | agent-runtime | canonical | false | ~ | incremental |
 | `memory/03_knowledge_base.md` | agent-runtime | canonical | false | ~ | incremental |
@@ -89,6 +92,16 @@ canonical > reference > derived
 
 ---
 
+
+## Registered Governance Surface Notes
+
+| surface | authority role | scope | limitation |
+|---------|----------------|-------|------------|
+| `governance/MEMORY_PROTOCOL.md` | canonical memory write protocol | governed memory write path, canonical writer usage, memory workflow dispatch, and memory completion claim boundaries | does not itself guarantee structured memory freshness |
+| `docs/e1-mutation-catalog.md` | mutation contract catalog / mutation surface inventory | documents mutation-capable surfaces and their allowed claim level | catalog presence is not enforcement by itself |
+| `governance_tools.memory_workflow` | implementation surface for governed memory workflow | dispatch, write-path assessment, guard summary, and receipt status reporting | implementation behavior must not exceed documented contract |
+
+---
 ## Loading Condition Summary
 
 | task_level | always | on-demand | incremental | never |
