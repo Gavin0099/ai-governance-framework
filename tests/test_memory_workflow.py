@@ -83,6 +83,25 @@ def test_submodule_consumer_path_supported(tmp_path: Path) -> None:
     assert result.authority_guard_path == "ai-governance-framework/governance_tools/memory_authority_guard.py"
 
 
+def test_external_hook_framework_root_path_supported(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    repo.mkdir()
+    subprocess.run(["git", "-C", str(repo), "init", "-b", "main"], check=True, stdout=subprocess.PIPE)
+    _make_framework_surface(framework)
+    _write(repo / ".git" / "hooks" / "ai-governance-framework-root", str(framework))
+
+    result = assess_memory_workflow(repo, changed_files=["memory/2026-06-09.md"])
+
+    assert result.memory_protocol_path is not None
+    assert result.memory_protocol_path.endswith("framework/governance/MEMORY_PROTOCOL.md")
+    assert result.canonical_writer_path is not None
+    assert result.canonical_writer_path.endswith("framework/governance_tools/memory_record.py")
+    assert result.authority_guard_path is not None
+    assert result.authority_guard_path.endswith("framework/governance_tools/memory_authority_guard.py")
+    assert "canonical writer not found" not in result.warnings
+
+
 def test_possible_memory_task_is_advisory_without_memory_diff(tmp_path: Path) -> None:
     _make_framework_surface(tmp_path)
 

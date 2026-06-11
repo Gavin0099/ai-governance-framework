@@ -248,6 +248,104 @@ def _uncommitted_governance_surfaces(repo_root: Path) -> list[str]:
     return [line.strip() for line in stdout.splitlines() if line.strip()]
 
 
+F7_GOVERNANCE_ALLOWLIST = (
+    ".github/copilot-instructions.md",
+    ".github/hooks/session-end.json",
+    ".github/workflows/governance-drift.yml",
+    ".governance-payload-config.yaml",
+    ".governance/baseline.yaml",
+    ".governance/expected_dirty.json",
+    ".governance/version_manifest.yaml",
+    "AGENTS.base.md",
+    "AGENTS.md",
+    "contract.yaml",
+    "governance/",
+    "memory/01_active_task.md",
+    "memory/02_tech_stack.md",
+    "memory/03_knowledge_base.md",
+    "memory/04_review_log.md",
+)
+
+
+def _status_entries(repo_root: Path) -> list[tuple[str, str]]:
+    code, stdout, _stderr = _git(repo_root, ["status", "--porcelain=v1"])
+    if code != 0 or not stdout:
+        return []
+    entries: list[tuple[str, str]] = []
+    for raw in stdout.splitlines():
+        if not raw.strip():
+            continue
+        status = raw[:2]
+        path = raw[3:] if len(raw) > 3 else ""
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1]
+        entries.append((status, path.replace("\\", "/")))
+    return entries
+
+
+def _path_matches_allowlist(path: str) -> bool:
+    normalized = path.replace("\\", "/")
+    for allowed in F7_GOVERNANCE_ALLOWLIST:
+        if allowed.endswith("/"):
+            if normalized.startswith(allowed):
+                return True
+        elif normalized == allowed:
+            return True
+    return False
+
+
+def _classify_non_allowlisted_dirty(path: str) -> str:
+    normalized = path.replace("\\", "/")
+    if normalized in {"CMakeLists.txt"} or normalized.startswith(("Source/", "SubModule/", "cmake/", "CMakePresets")):
+        return "product_build_or_submodule"
+    if normalized.startswith(("artifacts/", "winbuild/", ".claude/", ".gemini/", ".tmp", "_pytest_tmp")):
+        return "generated_or_local_runtime"
+    if normalized.startswith("memory/"):
+        return "memory_review_required"
+    return "outside_f7_allowlist"
+
+
+def _f7_remediation_plan(repo_root: Path) -> dict[str, Any]:
+    entries = _status_entries(repo_root)
+    allowlisted_dirty: list[str] = []
+    excluded: dict[str, list[str]] = {
+        "product_build_or_submodule": [],
+        "generated_or_local_runtime": [],
+        "memory_review_required": [],
+        "outside_f7_allowlist": [],
+    }
+    for status, path in entries:
+        rendered = f"{status} {path}".strip()
+        if _path_matches_allowlist(path):
+            allowlisted_dirty.append(rendered)
+        else:
+            excluded[_classify_non_allowlisted_dirty(path)].append(rendered)
+
+    excluded_non_empty = {key: value for key, value in excluded.items() if value}
+    strategy = "direct_apply_possible"
+    if excluded_non_empty:
+        strategy = "clean_worktree_recommended"
+    elif allowlisted_dirty:
+        strategy = "review_existing_governance_diff_before_apply"
+
+    return {
+        "mode": "read_only_plan",
+        "strategy": strategy,
+        "governance_allowlist": list(F7_GOVERNANCE_ALLOWLIST),
+        "allowlisted_dirty": sorted(allowlisted_dirty),
+        "excluded_dirty_scopes": {key: sorted(value) for key, value in excluded_non_empty.items()},
+        "non_goals": [
+            "do not commit product/build/submodule changes as F-7 adoption",
+            "do not delete generated artifacts during F-7 apply",
+            "do not claim full_update_completed until repo-role-specific required stages verify",
+        ],
+        "claim_ceiling": (
+            "This plan classifies safe F-7 governance surfaces only; it does not update, "
+            "commit, push, or prove fleet adoption."
+        ),
+    }
+
+
 def _agents_memory_workflow_router_present(repo_root: Path) -> bool:
     agents_path = repo_root / "AGENTS.md"
     if not agents_path.is_file():
@@ -347,6 +445,7 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
         final_status = BLOCKED
     diagnostics = _framework_version_diagnostics(after, framework_root)
     governance_surface_status = _uncommitted_governance_surfaces(repo_root)
+    remediation_plan = _f7_remediation_plan(repo_root)
     warnings = list(after.warnings)
     if diagnostics["adopted_release_current"] and not diagnostics["adopted_commit_current"]:
         warnings.append(
@@ -356,6 +455,10 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
     if governance_surface_status:
         warnings.append(
             "f7-diagnostic: uncommitted governance surfaces are present; treat as rollout scope until reviewed/committed"
+        )
+    if remediation_plan["excluded_dirty_scopes"]:
+        warnings.append(
+            "f7-diagnostic: non-governance dirty scopes are present; use a clean worktree before F-7 apply/remediation"
         )
 
     return F7Result(
@@ -378,6 +481,7 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
             "framework_version_diagnostics": diagnostics,
             "agents_baseline_diagnostics": _agents_baseline_diagnostics(repo_root),
             "uncommitted_governance_surfaces": governance_surface_status,
+            "remediation_plan": remediation_plan,
             "framework_head_commit": _framework_head_commit(framework_root),
             "memory_workflow_router_present": _agents_memory_workflow_router_present(repo_root),
             "memory_workflow_hook_advisory_present": _pre_commit_memory_workflow_advisory_present(repo_root),

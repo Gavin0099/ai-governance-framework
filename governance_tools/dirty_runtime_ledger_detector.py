@@ -16,6 +16,7 @@ from pathlib import Path
 
 
 MANUAL_PROMOTION_LEDGERS = (
+    ".governance-state.yaml",
     "artifacts/claim-enforcement/claim-enforcement-receipts.ndjson",
     "artifacts/session-index.ndjson",
 )

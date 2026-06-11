@@ -120,6 +120,37 @@ def _git_changed_files(repo_root: Path) -> list[str]:
     return sorted(changed)
 
 
+def _resolve_hook_dir(repo_root: Path) -> Path:
+    dot_git = repo_root / ".git"
+    if dot_git.is_dir():
+        return dot_git / "hooks"
+    if dot_git.is_file():
+        code, stdout, _stderr = _run_git(repo_root, ["rev-parse", "--git-common-dir"])
+        common_dir = stdout.strip()
+        if code == 0 and common_dir:
+            common_path = Path(common_dir)
+            if not common_path.is_absolute():
+                common_path = repo_root / common_path
+            return common_path.resolve() / "hooks"
+    return dot_git / "hooks"
+
+
+def _framework_root_from_hook_config(repo_root: Path) -> Path | None:
+    root_file = _resolve_hook_dir(repo_root) / "ai-governance-framework-root"
+    if not root_file.is_file():
+        return None
+    try:
+        raw = root_file.read_text(encoding="utf-8-sig", errors="replace").strip()
+    except OSError:
+        return None
+    if not raw:
+        return None
+    candidate = Path(raw)
+    if not candidate.is_absolute():
+        candidate = (repo_root / candidate).resolve()
+    return candidate.resolve()
+
+
 def _is_memory_file(path_text: str) -> bool:
     normalized = _normalize_changed_file(path_text)
     return normalized == "memory" or normalized.startswith("memory/")
@@ -133,11 +164,17 @@ def _has_memory_keyword(task_text: str | None) -> bool:
 
 
 def _find_framework_surface(repo_root: Path) -> tuple[str | None, str | None, str | None]:
-    candidates = (
-        repo_root,
-        repo_root / "ai-governance-framework",
-        repo_root / ".ai-governance-framework",
-    )
+    hook_root = _framework_root_from_hook_config(repo_root)
+    candidates = [
+        item
+        for item in (
+            hook_root,
+            repo_root,
+            repo_root / "ai-governance-framework",
+            repo_root / ".ai-governance-framework",
+        )
+        if item is not None
+    ]
     for root in candidates:
         protocol = root / "governance" / "MEMORY_PROTOCOL.md"
         writer = root / "governance_tools" / "memory_record.py"

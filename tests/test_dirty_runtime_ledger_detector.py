@@ -21,12 +21,14 @@ def test_parse_porcelain_status_ignores_unrelated_files() -> None:
 def test_parse_porcelain_status_detects_unstaged_manual_promotion_ledgers() -> None:
     rows = detector.parse_porcelain_status(
         [
+            " M .governance-state.yaml",
             " M artifacts/claim-enforcement/claim-enforcement-receipts.ndjson",
             " M artifacts/session-index.ndjson",
         ]
     )
 
     assert [row.path for row in rows] == [
+        ".governance-state.yaml",
         "artifacts/claim-enforcement/claim-enforcement-receipts.ndjson",
         "artifacts/session-index.ndjson",
     ]

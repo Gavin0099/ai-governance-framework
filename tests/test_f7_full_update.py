@@ -183,6 +183,26 @@ def test_external_contract_cannot_complete_without_memory_workflow_rollout(tmp_p
     assert any("release-current is not F-7 completion" in warning for warning in result.warnings)
 
 
+def test_external_contract_remediation_plan_excludes_product_and_generated_dirty(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+    _write(repo / "Source" / "product.cpp", "dirty product\n")
+    _write(repo / "artifacts" / "runtime" / "receipt.json", "{}\n")
+    _write(repo / "governance" / "framework.lock.json", "{}\n")
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=False)
+    plan = result.details["remediation_plan"]
+
+    assert plan["mode"] == "read_only_plan"
+    assert plan["strategy"] == "clean_worktree_recommended"
+    assert any(item.startswith("?? Source/") for item in plan["excluded_dirty_scopes"]["product_build_or_submodule"])
+    assert any(item.startswith("?? artifacts/") for item in plan["excluded_dirty_scopes"]["generated_or_local_runtime"])
+    assert any(item.startswith("?? governance/") for item in plan["allowlisted_dirty"])
+    assert any("clean worktree" in warning for warning in result.warnings)
+
+
 def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     framework = tmp_path / "framework"
