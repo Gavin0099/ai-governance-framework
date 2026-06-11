@@ -27,3 +27,12 @@ def test_pre_commit_memory_workflow_is_not_selective_blocking() -> None:
     assert invocation_lines
     assert all("--fail-on-blocker" not in line for line in invocation_lines)
     assert "pre-commit advisory only; commit is not blocked" in advisory_block
+
+
+def test_pre_commit_exposes_protected_baseline_refresh_advisory() -> None:
+    text = HOOK.read_text(encoding="utf-8")
+
+    assert "protected baseline refresh advisory" in text
+    assert "overridable\\." in text
+    assert "adopt_governance.py --target . --refresh" in text
+    assert "pre-commit advisory only; commit is not blocked by this check" in text

@@ -58,6 +58,39 @@ fi
 
 # ── 跳過條件 ──────────────────────────────────────────────────────────────
 # 沒有 PLAN.md → 跳過（可能是新專案或 examples/ 子目錄）
+# Advisory-only protected baseline refresh reminder.
+# If a protected file recorded in .governance/baseline.yaml is staged without
+# the refreshed baseline, the protected-file hash check will later drift. This
+# reminder is advisory only; it does not block the commit.
+BASELINE_FILE="$TARGET_REPO_ROOT/.governance/baseline.yaml"
+if [ -f "$BASELINE_FILE" ]; then
+    STAGED_FILES="$(git -C "$TARGET_REPO_ROOT" diff --cached --name-only 2>/dev/null || true)"
+    if [ -n "$STAGED_FILES" ]; then
+        BASELINE_STAGED=false
+        if echo "$STAGED_FILES" | grep -qx ".governance/baseline.yaml"; then
+            BASELINE_STAGED=true
+        fi
+
+        PROTECTED_STAGED=""
+        while IFS= read -r protected_file; do
+            if [ -n "$protected_file" ] && echo "$STAGED_FILES" | grep -qx "$protected_file"; then
+                PROTECTED_STAGED="${PROTECTED_STAGED}${protected_file}
+"
+            fi
+        done <<EOF
+$(sed -n 's/^overridable\.\(.*\): protected[[:space:]]*$/\1/p' "$BASELINE_FILE")
+EOF
+
+        if [ -n "$PROTECTED_STAGED" ] && [ "$BASELINE_STAGED" != "true" ]; then
+            echo ""
+            echo "[governance] protected baseline refresh advisory: protected file changes detected"
+            echo "$PROTECTED_STAGED" | sed 's/^/  protected: /'
+            echo "  run: python governance_tools/adopt_governance.py --target . --refresh"
+            echo "  note: pre-commit advisory only; commit is not blocked by this check"
+            echo ""
+        fi
+    fi
+fi
 if [ ! -f "$PLAN_FILE" ]; then
     exit 0
 fi
