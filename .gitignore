@@ -62,6 +62,8 @@ tests/pytest-cache-files-*/
 tests/_tmp_*/
 test_tmp_*/
 tmp*/
+codeburn/phase1/examples/pytest_tmp*/
+_pytest_tmp_probe/
 tests/runtime-post-task-manual-*/
 tests/_tmp_governance_auditor/
 tests/_tmp_failure_test_validator/
