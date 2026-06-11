@@ -54,8 +54,37 @@
 
 - implementer_status: not_started | pending | done | partial | blocked | not_applicable
 - reviewer_status: not_started | pending | accept | changes_requested | blocked | not_applicable
-- next_required_action:
+- next_required_action: implement | send_to_reviewer | poll_reviewer | produce_decision | request_human_commit_approval | request_human_push_approval | close | blocked_by_tool_access | none
 - blocker:
+
+## auto_advance_policy
+
+- read_only_gates_allowed: true
+- mutation_gates_allowed_without_human_approval: false
+- implementation_received_requires: send_to_reviewer
+- review_in_progress_requires: poll_reviewer
+- reviewer_accept_requires: produce_decision
+- blocked_tool_access_status: BLOCKED_BY_TOOL_ACCESS
+
+## poll_policy
+
+- strategy: exponential_backoff
+- first_poll_after_seconds: 30
+- backoff_seconds:
+  - 30
+  - 60
+  - 120
+- max_polls_per_read_only_gate: 3
+- max_polls_per_orchestrator_turn: 1
+- busy_polling_allowed: false
+- stop_after_max_polls: true
+
+## poll_state
+
+- poll_count: 0
+- last_poll_at:
+- next_poll_after:
+- next_poll_reason:
 
 ## authorization
 
@@ -73,6 +102,8 @@
 - participants
 - packet_paths
 - pending_state
+- poll_policy
+- poll_state
 - authorization
 - claim_ceiling
 - not_claimed

@@ -62,6 +62,35 @@ Escalate to `full_loop` when any of the following apply:
 6. Produce a decision packet.
 7. Stop at `candidate_for_commit` unless human approval authorizes commit preparation.
 
+## Pending gate check
+
+Before any user-visible status response, the orchestrator must check the current run state when one exists.
+
+Read-only gates may be advanced without additional human approval:
+
+- If `current_stage` is `implementation_received`, send the patch evidence to reviewer before responding.
+- If `current_stage` is `review_in_progress`, poll reviewer only when the bounded polling policy allows it.
+- If reviewer returns `ACCEPT`, produce a decision packet before responding.
+
+Read-only gate auto-advance does not authorize busy polling.
+
+- After sending a reviewer handoff, do not repeatedly poll in the same turn.
+- Poll reviewer at most once per orchestrator turn unless explicitly authorized.
+- Use bounded backoff polling: first poll after 30 seconds, then 60 seconds, then 120 seconds.
+- Stop after 3 polls for the same read-only gate and record `reviewer_pending`.
+- If no verdict is available, record `next_required_action = poll_reviewer` and `next_poll_after`, then stop.
+
+Mutation gates must not be advanced without explicit human approval:
+
+- Do not commit automatically.
+- Do not push automatically.
+- Do not run destructive commands automatically.
+- Do not publish externally automatically.
+
+The orchestrator must not respond with "next step is review" when it has enough authority and evidence to initiate the read-only reviewer handoff.
+
+If tool access prevents a read-only handoff or poll, report `BLOCKED_BY_TOOL_ACCESS` and include the missing tool or inaccessible thread.
+
 ## Required output format
 
 The orchestrator must output:
