@@ -43,9 +43,11 @@
 | `.github/agents/*.agent.md` | agent-on-demand | derived | false | AGENT.md | on-demand |
 | `domain contract (full)` | agent-on-demand | canonical | false | ~ | on-demand |
 | `domain adapter summary` | agent-runtime | derived | false | domain contract | always |
-| `memory/02_project_facts.md` | agent-runtime | canonical | false | ~ | incremental |
-| `memory/03_decisions.md` | agent-runtime | canonical | false | ~ | incremental |
-| `memory/reviewer_handoff_*` | agent-on-demand | derived | false | 03_decisions.md | on-demand |
+| `memory/01_active_task.md` | agent-runtime | canonical | false | ~ | incremental |
+| `memory/02_workflow.md` | agent-runtime | canonical | false | ~ | incremental |
+| `memory/03_knowledge_base.md` | agent-runtime | canonical | false | ~ | incremental |
+| `memory/04_review_log.md` | agent-runtime | canonical | false | ~ | incremental |
+| `memory/reviewer_handoff_*` | agent-on-demand | derived | false | 03_knowledge_base.md | on-demand |
 | `memory/framework_artifact_*` | agent-on-demand | derived | false | ~ | on-demand |
 | `memory/external_repo_aliases` | agent-on-demand | reference | false | ~ | on-demand |
 
@@ -77,9 +79,10 @@ canonical > reference > derived
 
 | memory source | authority | promotion policy |
 |---------------|-----------|-----------------|
-| `02_project_facts.md` | canonical | 可直接 promote |
-| `03_decisions.md` | canonical | 可直接 promote |
-| `04_patterns.md` | reference | 視情況 promote |
+| `01_active_task.md` | canonical | 可直接 promote |
+| `02_workflow.md` | canonical | 可直接 promote |
+| `03_knowledge_base.md` | canonical | 可直接 promote |
+| `04_review_log.md` | canonical | 可直接 promote |
 | reviewer handoff summary | derived | cache only，不得 promote 成 truth |
 | framework artifact cache | derived | cache only，不得 promote 成 truth |
 | external repo aliases | reference | 可視情況 promote，但仍需對照 canonical |
