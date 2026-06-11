@@ -153,6 +153,12 @@ def test_external_contract_cannot_complete_without_memory_workflow_rollout(tmp_p
     framework = tmp_path / "framework"
     _make_framework(framework)
     _make_external_contract_repo(repo)
+    _write(
+        repo / "AGENTS.md",
+        "<!-- governance-baseline: overridable -->\n"
+        "<!-- baseline_version: 1.0.0 -->\n"
+        + (repo / "AGENTS.md").read_text(encoding="utf-8"),
+    )
     _write(repo / "governance" / "framework.lock.json", (framework / "governance" / "framework.lock.json").read_text(encoding="utf-8"))
     _write(repo / ".git" / "hooks" / "pre-commit", "#!/usr/bin/env bash\n# AI Governance Framework\n")
     _write(repo / ".git" / "hooks" / "pre-push", "#!/usr/bin/env bash\n# AI Governance Framework\n")
@@ -169,6 +175,12 @@ def test_external_contract_cannot_complete_without_memory_workflow_rollout(tmp_p
     assert result.details["memory_workflow_hook_advisory_present"] is False
     assert result.f7_final_status == "partially_updated"
     assert result.details["strict_external_f7_completed"] is False
+    assert result.details["framework_version_diagnostics"]["adopted_release_current"] is True
+    assert result.details["framework_version_diagnostics"]["adopted_commit_current"] is False
+    assert "F-7 completion also requires adopted_commit_current" in result.details["framework_version_diagnostics"]["note"]
+    assert result.details["agents_baseline_diagnostics"]["baseline_version"] == "1.0.0"
+    assert result.details["agents_baseline_diagnostics"]["baseline_version_is_framework_release"] is False
+    assert any("release-current is not F-7 completion" in warning for warning in result.warnings)
 
 
 def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) -> None:

@@ -189,6 +189,65 @@ def _framework_lock_commit_current(readiness: Any, framework_root: Path) -> bool
     return bool(current) and bool(adopted) and current == adopted
 
 
+def _framework_version_diagnostics(readiness: Any, framework_root: Path) -> dict[str, Any]:
+    version = readiness.framework_version or {}
+    current_head = _framework_head_commit(framework_root)
+    adopted_commit = str(version.get("adopted_commit", "")).strip()
+    return {
+        "adopted_release": version.get("adopted_release"),
+        "adopted_release_current": readiness.checks.get("framework_version_current") is True,
+        "adopted_commit": adopted_commit or None,
+        "framework_head_commit": current_head or None,
+        "adopted_commit_current": bool(current_head) and bool(adopted_commit) and current_head == adopted_commit,
+        "note": "adopted_release_current only means the release is compatible/current; F-7 completion also requires adopted_commit_current.",
+    }
+
+
+def _agents_baseline_diagnostics(repo_root: Path) -> dict[str, Any]:
+    agents_path = repo_root / "AGENTS.md"
+    if not agents_path.is_file():
+        return {
+            "baseline_version": None,
+            "baseline_version_is_framework_release": False,
+            "note": "AGENTS.md is missing; no baseline marker was inspected.",
+        }
+    text = agents_path.read_text(encoding="utf-8", errors="replace")
+    baseline_version: str | None = None
+    for line in text.splitlines():
+        stripped = line.strip()
+        if "baseline_version:" in stripped:
+            baseline_version = stripped.split("baseline_version:", 1)[1].strip()
+            baseline_version = baseline_version.strip("-").strip()
+            if baseline_version.endswith("-->"):
+                baseline_version = baseline_version[:-3].strip()
+            break
+    return {
+        "baseline_version": baseline_version,
+        "baseline_version_is_framework_release": False,
+        "note": "AGENTS baseline_version describes the AGENTS baseline surface, not the adopted AI Governance Framework release.",
+    }
+
+
+def _uncommitted_governance_surfaces(repo_root: Path) -> list[str]:
+    status_args = [
+        "status",
+        "--short",
+        "--",
+        "AGENTS.md",
+        "AGENTS.base.md",
+        "contract.yaml",
+        "governance",
+        ".github",
+        ".governance",
+        ".governance-payload-config.yaml",
+        "memory",
+    ]
+    code, stdout, _stderr = _git(repo_root, status_args)
+    if code != 0 or not stdout:
+        return []
+    return [line.strip() for line in stdout.splitlines() if line.strip()]
+
+
 def _agents_memory_workflow_router_present(repo_root: Path) -> bool:
     agents_path = repo_root / "AGENTS.md"
     if not agents_path.is_file():
@@ -286,6 +345,18 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
     final_status = _status_from_external_readiness(after, repo_root, framework_root)
     if errors:
         final_status = BLOCKED
+    diagnostics = _framework_version_diagnostics(after, framework_root)
+    governance_surface_status = _uncommitted_governance_surfaces(repo_root)
+    warnings = list(after.warnings)
+    if diagnostics["adopted_release_current"] and not diagnostics["adopted_commit_current"]:
+        warnings.append(
+            "f7-diagnostic: adopted_release is current but adopted_commit does not match framework HEAD; "
+            "release-current is not F-7 completion"
+        )
+    if governance_surface_status:
+        warnings.append(
+            "f7-diagnostic: uncommitted governance surfaces are present; treat as rollout scope until reviewed/committed"
+        )
 
     return F7Result(
         ok=final_status in {COMPLETED, ALREADY_CURRENT, PARTIALLY_UPDATED},
@@ -296,7 +367,7 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
         stages=stages,
         changed_files=sorted(set(changed)),
         errors=errors,
-        warnings=after.warnings,
+        warnings=warnings,
         details={
             "readiness_ready": after.ready,
             "strict_external_f7_completed": _external_f7_completed(after, repo_root, framework_root),
@@ -304,6 +375,9 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
             "agents_calibration": after.agents_calibration,
             "hooks": after.hooks,
             "framework_version": after.framework_version,
+            "framework_version_diagnostics": diagnostics,
+            "agents_baseline_diagnostics": _agents_baseline_diagnostics(repo_root),
+            "uncommitted_governance_surfaces": governance_surface_status,
             "framework_head_commit": _framework_head_commit(framework_root),
             "memory_workflow_router_present": _agents_memory_workflow_router_present(repo_root),
             "memory_workflow_hook_advisory_present": _pre_commit_memory_workflow_advisory_present(repo_root),
