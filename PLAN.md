@@ -221,6 +221,18 @@ Adoption model (P2-C, 2026-06-12):
   solved), any new tooling, fleet rollout, F-7 generality, or that
   classification of a class equals evidence of a consumer in it.
 
+Publish surfaces (P2-E, 2026-06-13):
+
+- CLAIMED: per-surface publish decision checkpoint canonicalized —
+  description and topics allowed only after exact-text ratification
+  under a mechanism-only ceiling; badge deferred until the first gated
+  release; release publish remains gated; prohibited wording classes
+  recorded; publish text may never claim above the README capability
+  table.
+- NOT CLAIMED: any publish surface edited, any release published, any
+  badge added, promotion readiness, or that P2 core documentation
+  completion equals public-promotion ready.
+
 Reviewer polling:
 
 - CLAIMED: reviewer polling is manual / resume-triggered only; bounded
@@ -521,9 +533,12 @@ P2 - adoption model:
 
 P2 - external presentation:
 
-- [ ] Refresh GitHub repository description.
-- [ ] Add relevant topics.
-- [ ] Align README badge with current release state.
+- [ ] Refresh GitHub repository description. (Gated by P2-E: allowed only
+  after exact-string ratification; mechanism-only ceiling.)
+- [ ] Add relevant topics. (Gated by P2-E: allowed only after exact-list
+  ratification; descriptive taxonomy nouns only.)
+- [ ] Align README badge with current release state. (P2-E decision:
+  DEFERRED until the first gated release exists; no badge before that.)
 - [x] Align README capability table with current reality: mutation topology
   caveat on the fail-closed gate row, audit-framework-not-security-boundary
   positioning sentence, and MEM-DISPATCH capability row. (P2-A 2026-06-12:
@@ -554,7 +569,47 @@ P2 - external presentation:
     hostname replaced with `<framework-remote-url>` placeholder; claim
     ceiling section added — onboarding evidence only, no fleet or
     currentness claims.)
-- [ ] Publish a release only after release notes and claim ceiling are accurate.
+- [ ] Publish a release only after release notes and claim ceiling are
+  accurate. (P2-E adds: release notes must use the Claim class taxonomy
+  and link `docs/REVIEWER_ENTRYPOINT.md`.)
+
+P2-E - publish-surface decision checkpoint (decided 2026-06-13; no
+publish surface edited in this slice):
+
+Governing rule: publish surfaces (GitHub description, topics, badges,
+release notes) are claim amplifiers — they are read as first-impression
+self-claims with no Claim class column attached. No publish-surface text
+may claim above the README capability table; on conflict, the table and
+the Active Claim Boundaries win.
+
+Prohibited wording classes on any publish surface: "solved", "fully
+automated", "production-ready", "secure" / "security boundary",
+"fleet-ready" / "fleet rollout complete", "supports all repos",
+"automatic adoption" / "automatic updates", and any wording that
+contradicts the audit-framework-not-security-boundary positioning or
+the copy-based audit-only classification.
+
+Per-surface decisions:
+
+- [x] GitHub description: ALLOWED, gated on exact-string ratification.
+  Ceiling: mechanism description only (contract-bound execution,
+  artifact-backed verification, fail-closed decisions); no outcome
+  claims. The exact string is the deliverable of its own slice and must
+  be recorded in PLAN before applying.
+- [x] GitHub topics: ALLOWED, gated on exact-list ratification. Ceiling:
+  descriptive taxonomy nouns only; no maturity-, guarantee-, or
+  scale-implying topics.
+- [x] README badge: DEFERRED. A badge must reflect a real, gated release
+  state; no release currently passes release-notes gating, so any badge
+  now is decoration or inflation. Revisit at the first gated release.
+- [x] Release publish: remains GATED by the existing canonical rule
+  (accurate release notes and claim ceiling first), plus the Claim class
+  taxonomy / reviewer-entrypoint linkage requirement above.
+
+Activation rule: each ALLOWED surface still requires its own slice whose
+deliverable is the exact text or list, checked against this ceiling and
+user-ratified before the edit is applied. "P2 core documentation
+calibration complete" does not equal "public promotion ready".
 
 P2 - historical debt / evidence disposition:
 
