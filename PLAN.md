@@ -189,6 +189,17 @@ Structured PLAN Reconciliation Declaration (advisory implemented, 2026-06-12):
   retroactive declaration coverage for historical records, or that a
   deferred declaration equals reconciliation.
 
+Scope taxonomy (P1-I, 2026-06-12):
+
+- CLAIMED: four scope sets defined by evidence duty with membership
+  criteria; meiandraybook classified (f7_consumer + submodule_consumer,
+  not fleet); hardcoded fleet enumeration explicitly accepted with a
+  named re-evaluation trigger; manifest-driven generator deferred,
+  failure-driven.
+- NOT CLAIMED: fleet coverage complete, all consumers monitored,
+  copy-based consumer update path solved, scope manifest implemented,
+  or repo-class freshness SLA defined.
+
 Fleet freshness (P1-H, 2026-06-12):
 
 - CLAIMED: event-driven freshness policy adopted; refresh via the
@@ -398,14 +409,54 @@ deferred; Option B weekly scheduler rejected for now).
 - [x] Repo-class freshness SLA (Option C) deferred until the scope
   taxonomy slice defines which repos belong to which policy.
 
-P1-I - scope taxonomy (queued; next implementation-class slice):
+P1-I - scope taxonomy for governance repo sets (decided 2026-06-12):
 
-- [ ] Define `fleet_scope`, `f7_consumer_scope`,
-  `external_contract_repo_scope`, `submodule_consumer_scope` and their
-  intended intersections.
-- [ ] Only after taxonomy exists: revisit repo-class freshness SLA
-  (P1-H Option C), meiandraybook fleet membership, and the
-  `hardcoded-in-tool` repo set in the matrix generator.
+Each scope is defined by what a member repo's evidence must prove, not by
+where the repo happens to live:
+
+- `fleet_scope`: repos whose governance state feeds the freshness matrix.
+  Membership criteria: locally checked out where the registered generator
+  runs; governance surfaces adopted or onboarding-tracked; cited by
+  release / rollout / external claims. Evidence duty: freshness-window
+  matrix (event-driven per P1-H).
+- `submodule_consumer_scope`: any repo consuming the framework through a
+  git submodule. Evidence duty: framework.lock / submodule pointer
+  currentness only.
+- `f7_consumer_scope`: subset of submodule_consumer_scope receiving
+  managed F-7 full updates (AGENTS keyed sections, managed hooks, memory
+  workflow router). Evidence duty: per-update F-7 apply / verification
+  evidence, event-driven.
+- `external_contract_repo_scope`: repos providing domain contracts that
+  the framework consumes. Evidence duty: contract validation evidence,
+  event-driven.
+
+Set relations: f7_consumer is a subset of submodule_consumer; fleet may
+intersect any other set (observed today: Kernel-Driver-Contract,
+verilog-domain-contract, and writing-contract are simultaneously fleet
+members and contract repos). Membership in one set does not inherit the
+evidence duties of another.
+
+Decisions:
+
+- [x] meiandraybook classified: f7_consumer_scope and
+  submodule_consumer_scope; NOT fleet_scope — and the taxonomy does not
+  require it there, because its claims are update-evidence-based
+  (pointer currentness + F-7 verification), not freshness-matrix-based.
+  No automatic fleet addition performed.
+- [x] hardcoded-in-tool repo set: ACCEPTED for now as the operational
+  enumeration of fleet_scope (single operator environment; set stable
+  since 2026-05-25; self-declared in snapshot metadata). Re-evaluation
+  trigger: the first taxonomy-driven membership change request, or a
+  second operator environment.
+- [x] Scope manifest decision recorded: a manifest extending
+  `governance/fleet/governance_scope.yaml` (which today classifies tiers
+  but does not enumerate members) is the correct long-term single
+  source; migrating the generator to manifest-driven enumeration is
+  DEFERRED until the first real membership change requires it
+  (failure-driven; no tool change in this slice).
+- [x] Repo-class freshness SLA (P1-H Option C) remains deferred until
+  this taxonomy survives at least one real membership decision.
+- [x] No repo-set mutation performed; generator untouched.
 - [ ] P1-F: upgrading to a current-diff blocker changes what counts as a
   legal completion claim and is therefore an [OP-HC] decision requiring
   FP data, a rollback path, and its own mutation contract. Not authorized
