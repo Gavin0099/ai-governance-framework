@@ -189,6 +189,15 @@ Structured PLAN Reconciliation Declaration (advisory implemented, 2026-06-12):
   retroactive declaration coverage for historical records, or that a
   deferred declaration equals reconciliation.
 
+Fleet freshness (P1-H, 2026-06-12):
+
+- CLAIMED: event-driven freshness policy adopted; refresh via the
+  registered generator required before rollout / release / external
+  claims citing fleet state; `required_verified` ratio defined as
+  freshness-window evidence.
+- NOT CLAIMED: fleet health restored, continuous monitoring, weekly
+  cadence, repo-class SLA, or that idle-period decay is a defect.
+
 Reviewer polling:
 
 - CLAIMED: reviewer polling is manual / resume-triggered only; bounded
@@ -365,6 +374,38 @@ P1-G - registered reproducible fleet matrix generator (completed
   through a registered, attributable tool. NOT CLAIMED: fleet evidence
   fresh, refresh cadence solved, monitored repo set correct, fleet
   health restored, or meiandraybook in scope.
+
+P1-H - fleet freshness cadence decision (decided 2026-06-12):
+
+Decision: event-driven (Option A adopted now; Option C repo-class SLA
+deferred; Option B weekly scheduler rejected for now).
+
+- [x] Observed freshness behavior recorded: required_verified 9/10
+  (2026-05-29) -> 1/10 (2026-06-12 refresh after 14 idle days) -> 2/10
+  (after same-day framework pushes). Decay and recovery both track real
+  activity; the 7d window operated as designed — this was evidence
+  decay, not regression.
+- [x] Semantics defined: `required_verified` ratio is freshness-window
+  evidence (a time-window observation), NOT a permanent health score.
+  A low ratio after an idle period is expected decay.
+- [x] Policy adopted: fleet freshness is event-driven. A fleet matrix
+  refresh via the registered generator is REQUIRED before rollout,
+  release, or any external presentation claim that cites fleet state.
+- [x] Weekly scheduler explicitly rejected for now: ritual-refresh risk,
+  background-execution claim burden, and missed-run semantics cost —
+  the same boundary class as manual/resume-triggered reviewer polling.
+- [x] No new automation or background execution claim introduced.
+- [x] Repo-class freshness SLA (Option C) deferred until the scope
+  taxonomy slice defines which repos belong to which policy.
+
+P1-I - scope taxonomy (queued; next implementation-class slice):
+
+- [ ] Define `fleet_scope`, `f7_consumer_scope`,
+  `external_contract_repo_scope`, `submodule_consumer_scope` and their
+  intended intersections.
+- [ ] Only after taxonomy exists: revisit repo-class freshness SLA
+  (P1-H Option C), meiandraybook fleet membership, and the
+  `hardcoded-in-tool` repo set in the matrix generator.
 - [ ] P1-F: upgrading to a current-diff blocker changes what counts as a
   legal completion claim and is therefore an [OP-HC] decision requiring
   FP data, a rollback path, and its own mutation contract. Not authorized
@@ -416,6 +457,9 @@ P2 - external presentation:
 - [ ] Align README capability table with current reality: mutation topology
   caveat on the fail-closed gate row, audit-framework-not-security-boundary
   positioning sentence, and MEM-DISPATCH capability row.
+- [ ] State in README that the fleet freshness ratio is time-window
+  evidence under an event-driven refresh policy, not a permanent health
+  score (prevents idle-period decay being read as regression).
 - [ ] Prepare English reviewer-facing docs (README, starter-pack,
   onboarding SOP).
 - [ ] Publish a release only after release notes and claim ceiling are accurate.
