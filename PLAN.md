@@ -2,7 +2,7 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-06-10
+> **最後更新**: 2026-06-12
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
@@ -110,6 +110,19 @@ Latest scoped evidence:
 - `python -X utf8 -m pytest tests/test_memory_workflow.py tests/test_session_end_hook_memory_workflow_surface.py tests/test_closeout_receipt_memory_surface.py tests/test_agent_closeout_receipt.py tests/test_pre_commit_memory_workflow_advisory.py tests/test_f7_full_update.py tests/test_hook_installer.py tests/test_hook_install_validator.py tests/test_external_governance_submodule_updater.py --basetemp .tmp-pytest/memory-workflow-commit -o cache_dir=.tmp-pytest/cache` -> 68 passed.
 - `python -X utf8 -m governance_tools.memory_workflow --check --repo . --run-guard --fail-on-blocker --format json` -> `active_non_canonical_writer=0`, `blockers=[]`, `completion_claim_allowed=true`.
 
+Completed 2026-06-12 (reviewed per-slice, pushed to gitlab/main and
+origin/main, all heads = `9f7fa1e`):
+
+- [x] P1-A selective CI blocker: CI-only current-diff
+  `active_non_canonical_writer` blocker with `memory/**` workflow triggers
+  and anti-bypass tests (`5deb8bb`).
+- [x] Pre-commit memory advisory reporting clarity: guard-not-run vs
+  completion-denied disambiguation (`5642134`).
+- [x] Runtime ledger no-write mode: `AI_GOVERNANCE_NO_LEDGER_WRITE` /
+  `--no-ledger-write`; smoke path no longer writes tracked ledgers; skipped
+  writes observable as `skipped_no_write_mode` (`9f7fa1e`).
+- [x] Cross-remote sync: local HEAD = gitlab/main = origin/main verified.
+
 ## Active Claim Boundaries
 
 Mutation enforcement:
@@ -146,6 +159,33 @@ Memory authority:
 - NOT CLAIMED: historical debt cleanup, blocking threshold readiness, semantic
   correctness of memory content, or global enforcement closure.
 
+Selective CI enforcement (P1-A, 2026-06-12):
+
+- CLAIMED: CI-only current-diff `active_non_canonical_writer` blocker
+  implemented (`5deb8bb`); hooks remain advisory; historical memory debt
+  remains warning-only; reviewed and pushed to both remotes.
+- NOT CLAIMED: full memory workflow enforcement, full mutation protection,
+  blocker class expansion, or fleet CI rollout.
+
+Runtime ledger no-write mode (2026-06-12):
+
+- CLAIMED: runtime smoke path supports no-write mode for tracked ledgers;
+  skipped writes are observable as `skipped_no_write_mode`; explicit
+  `session_end` default ledger writes preserved.
+- NOT CLAIMED: runtime ledger side-effect root redesign, workspace clean
+  guarantee, tracked ledgers untracked/ignored/deleted, or elimination of
+  all hook / pre-push side effects.
+
+Reviewer polling:
+
+- CLAIMED: reviewer polling is manual / resume-triggered only; bounded
+  polling exists only as a behavior constraint in `.agent` role templates.
+- NOT CLAIMED: automatic reviewer polling, daemon behavior, or automated
+  reviewer handoff.
+- Observed confusion (2026-06-12): thread append can create contradictory
+  pending/final review states; reviewer protocols must use explicit FINAL
+  verdict blocks or read-only extraction.
+
 CodeBurn / token observation:
 
 - CLAIMED: Class C observation-only surfaces and same-provider visible I/O token
@@ -162,7 +202,20 @@ P0 - reviewer surface / trust repair:
 - [x] Commit `PLAN.md` repair separately from runtime ledgers.
 - [x] Record canonical memory evidence for the `PLAN.md` repair commit.
 
-P1 - F-7 external rollout:
+P1-B - canonical status reconciliation after 2026-06-12 push:
+
+- [x] `PLAN.md` reflects pushed reality (P1-A, advisory clarity, no-write
+  mode, cross-remote sync recorded with claim boundaries).
+- [x] P1-A selective enforcement status no longer stale in pending work.
+- [x] Runtime ledger no-write mode claim boundary recorded.
+- [x] Reviewer polling recorded as explicitly manual / resume-triggered.
+- [x] Inventory refresh passes or reports exact drift: refresh trued-up
+  stale overridable hashes (`PLAN.md`, `contract.yaml`, `AGENTS.md`);
+  drift checker `severity=ok`, no warnings, no errors.
+- [x] No F-7 rollout performed in this slice.
+
+P1-C - F-7 external rollout (next slice: scoped verification for
+`meiandraybook` only; one slice one evidence; do not claim rollout complete):
 
 - [ ] Use F-7 external apply path to distribute `memory_workflow` to a consuming
   repo.
@@ -174,13 +227,14 @@ P1 - F-7 external rollout:
 - [ ] Keep submodule pointer update reported as stage success only, not F-7
   completion.
 
-P1 - selective enforcement decision:
+P1 - selective enforcement decision (closed 2026-06-12 by P1-A, `5deb8bb`):
 
-- [ ] Decide whether any CI or hook path should opt into `--fail-on-blocker`.
-- [ ] Preserve default advisory mode unless current-diff blocker false-positive
-  rate is acceptable.
-- [ ] Do not upgrade historical `missing_canonical_memory` or `unbound_memory`
-  warnings into blockers without separate approval.
+- [x] Decide whether any CI or hook path should opt into `--fail-on-blocker`:
+  CI workflow path only, current-diff scope.
+- [x] Preserve default advisory mode unless current-diff blocker false-positive
+  rate is acceptable: hooks remain advisory.
+- [x] Do not upgrade historical `missing_canonical_memory` or `unbound_memory`
+  warnings into blockers without separate approval: preserved, warning-only.
 P1 - structured memory freshness:
 
 - [ ] Define freshness / rollover policy for structured canonical memory files

@@ -10,6 +10,23 @@
 
 ## Current Status
 
+- **P1-A selective CI blocker shipped (2026-06-12, `5deb8bb`)**: CI-only
+  current-diff `active_non_canonical_writer` blocker with `memory/**` workflow
+  triggers; hooks remain advisory; historical debt remains warning-only.
+  Closes PLAN "P1 - selective enforcement decision".
+- **Runtime ledger no-write mode shipped (2026-06-12, `9f7fa1e`)**: smoke path
+  sets `AI_GOVERNANCE_NO_LEDGER_WRITE=1`; tracked ledger writes skipped and
+  observable; explicit `session_end` default writes preserved. Root
+  side-effect redesign NOT claimed.
+- **Cross-remote sync verified (2026-06-12)**: local HEAD = gitlab/main =
+  origin/main = `9f7fa1e`.
+- **Reviewer polling boundary recorded (2026-06-12)**: polling is manual /
+  resume-triggered only; no automatic polling or reviewer handoff automation
+  is claimed. Observed thread-append pending/final confusion documented in
+  PLAN claim boundaries.
+- **P1-B canonical status reconciliation (2026-06-12)**: PLAN pending work,
+  claim boundaries, and this file synced to pushed reality; next slice is
+  P1-C scoped F-7 verification for `meiandraybook` only.
 - **Self-check visible blockers repaired (2026-06-11)**: framework drift
   checker reports `severity=ok`, `warnings=[]`, and `errors=[]` after baseline,
   PLAN inventory, memory schema, AUTHORITY ghost-ref, cp950 output, pytest temp
