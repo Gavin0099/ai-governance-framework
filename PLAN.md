@@ -519,7 +519,13 @@ P2 - external presentation:
   2026-06-12: freshness-semantics paragraph added to both Fleet sections
   per P1-H semantics; idle-period decay stated as designed behavior.)
 - [ ] Prepare English reviewer-facing docs (README, starter-pack,
-  onboarding SOP).
+  onboarding SOP). Split (P2-B 2026-06-12):
+  - [x] Reviewer entry doc `docs/REVIEWER_ENTRYPOINT.md` created: claims /
+    non-claims / evidence required for done / advisory-vs-enforcement
+    reading rules; linked from README Key Documents (ZH+EN). Bounded by
+    PLAN Active Claim Boundaries with explicit PLAN-wins precedence.
+  - [ ] Starter-pack English review pass.
+  - [ ] Onboarding SOP English review pass.
 - [ ] Publish a release only after release notes and claim ceiling are accurate.
 
 P2 - historical debt / evidence disposition:

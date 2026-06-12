@@ -150,6 +150,7 @@ examples/               # Starter pack, sample contracts
 
 | 文件 | 用途 |
 |---|---|
+| [`docs/REVIEWER_ENTRYPOINT.md`](docs/REVIEWER_ENTRYPOINT.md) | Reviewer 最短入口（英文）：claims / non-claims / done 證據要求 / advisory vs enforcement 讀法 |
 | [`governance/fleet/operational_semantics_v1.md`](governance/fleet/operational_semantics_v1.md) | Fleet 治理定義與決策邊界 |
 | [`governance/fleet/external_repo_onboarding_sop.md`](governance/fleet/external_repo_onboarding_sop.md) | 外部 repo 導入 SOP |
 | [`docs/ai-governance-framework-explainer.md`](docs/ai-governance-framework-explainer.md) | 長文說明（14 sections） |
@@ -357,6 +358,7 @@ examples/               # Starter pack, sample contracts
 
 | Document | Purpose |
 |---|---|
+| [`docs/REVIEWER_ENTRYPOINT.md`](docs/REVIEWER_ENTRYPOINT.md) | Shortest reviewer entry: claims / non-claims / evidence required for "done" / how to read advisory vs enforcement |
 | [`governance/fleet/operational_semantics_v1.md`](governance/fleet/operational_semantics_v1.md) | Fleet governance definitions and decision boundaries |
 | [`governance/fleet/external_repo_onboarding_sop.md`](governance/fleet/external_repo_onboarding_sop.md) | Step-by-step onboarding for external repos |
 | [`docs/fleet/f7-governance-submodule-updater.md`](docs/fleet/f7-governance-submodule-updater.md) | "Update AI Governance to latest" user-facing entrypoint and governed submodule update contract for external repos; not reducible to checking whether local files such as `AGENTS.md` are unchanged |
