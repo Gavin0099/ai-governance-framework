@@ -13,6 +13,7 @@ on:
       - 'examples/**'
       - 'requirements.txt'
       - 'PLAN.md'
+      - 'memory/**'
       - 'triage/**'
   pull_request:
     branches: [main]
@@ -26,6 +27,7 @@ on:
       - 'examples/**'
       - 'requirements.txt'
       - 'PLAN.md'
+      - 'memory/**'
       - 'triage/**'
   workflow_dispatch:
 
@@ -34,6 +36,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  memory-workflow-selective:
+    name: Memory Workflow Selective Blocker
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Block current-diff non-canonical memory writer
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_REF="${{ github.event.pull_request.base.sha }}"
+            HEAD_REF="${{ github.event.pull_request.head.sha }}"
+          elif [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            BASE_REF="${{ github.event.before }}"
+            HEAD_REF="${{ github.sha }}"
+          else
+            BASE_REF="HEAD~1"
+            HEAD_REF="HEAD"
+          fi
+          python -m governance_tools.ci_memory_workflow_check \
+            --project-root . \
+            --base-ref "$BASE_REF" \
+            --head-ref "$HEAD_REF" \
+            --format human
+
   plan-freshness:
     name: PLAN.md Freshness
     runs-on: ubuntu-latest
