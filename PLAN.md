@@ -611,6 +611,33 @@ deliverable is the exact text or list, checked against this ceiling and
 user-ratified before the edit is applied. "P2 core documentation
 calibration complete" does not equal "public promotion ready".
 
+P2-F - GitHub description candidate strings (proposed 2026-06-13,
+PENDING RATIFICATION; no GitHub metadata edited in this slice):
+
+- C1: "AI-agent governance framework for claim calibration, evidence
+  discipline, and reviewer-facing adoption boundaries."
+  Ceiling check: no prohibited wording; "framework" matches the repo
+  name itself, so it adds no claim beyond the name.
+- C2: "Documentation-first controls for AI-agent claim calibration,
+  evidence discipline, and adoption boundaries."
+  Ceiling check: no prohibited wording, but flagged for
+  under-claiming: the capability table contains real Enforced rows
+  (fail-closed gate, selective CI blocker, runtime hooks are code, not
+  docs). "Documentation-first" invites readers to expect zero runtime
+  enforcement, creating a deflationary mismatch with the table.
+  Calibration means accurate, not minimal.
+- C3 (recommended): "Audit framework for AI-assisted engineering:
+  contract-bound execution, artifact-backed verification, fail-closed
+  decisions - not a security boundary."
+  Ceiling check: zero-increment claim - the mechanism triple is the
+  README first line verbatim and the trailing clause is the canonical
+  positioning sentence; it claims exactly what the README already
+  claims, nothing more.
+
+Ratification rule: exactly one candidate (possibly amended) must be
+ratified by the user; the ratified string is then recorded here as
+final before any GitHub metadata edit slice may run.
+
 P2 - historical debt / evidence disposition:
 
 - [ ] Maintain historical `missing_canonical_memory` / `unbound_memory` debt as
