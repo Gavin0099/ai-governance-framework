@@ -493,10 +493,21 @@ Decisions:
   legal completion claim and is therefore an [OP-HC] decision requiring
   FP data, a rollback path, and its own mutation contract. Not authorized
   by this item.
-- [ ] Add a non-blocking deferred-debt report (deferred count by reason,
+- [x] Add a non-blocking deferred-debt report (deferred count by reason,
   oldest deferred age, PLAN-touched records without `updated` status) to
   prevent acknowledged-drift from becoming a landfill.
-  (Implementation remains open; the checkpoint below fixes its scope.)
+  (Implemented 2026-06-13 exactly per the checkpoint below:
+  `governance_tools/deferred_debt_report.py`, read-only, deterministic
+  given `--as-of`, json/human stdout, optional `--output`; the four
+  checkpoint observables only; pre_field guard verified by a dedicated
+  test; historical non-UTF-8 daily files (2026-04-10, 2026-05-04)
+  surfaced as `files_with_decode_errors` via lossy decode — observed,
+  not repaired. 12 focused tests passed; adjacent memory_record /
+  memory_workflow 23 tests passed. First real-repo run as-of
+  2026-06-13: updated=18, deferred=0, not_declared=14 (oldest
+  2026-06-12, matching the P1-E first data point), pre_field=249,
+  malformed=0. No CI wiring, no thresholds, no gate semantics, no
+  historical record rewritten.)
 
 Deferred-debt report implementation checkpoint (decided 2026-06-13;
 no code written in this slice):
