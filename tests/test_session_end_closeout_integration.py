@@ -166,3 +166,15 @@ class TestSessionIndex:
         _run(repo, session_id="safe-session")
         lines = [json.loads(l) for l in (repo / "artifacts" / "session-index.ndjson").read_text(encoding="utf-8").splitlines() if l.strip()]
         assert next(e for e in lines if e["session_id"] == "safe-session")["has_open_risks"] is False
+
+    def test_no_ledger_write_mode_skips_session_index(self):
+        repo = _reset_fixture("index_no_ledger_write")
+        result = run_session_end(
+            project_root=repo,
+            session_id="idx-no-ledger",
+            runtime_contract=_BASE_CONTRACT,
+            ledger_write_allowed=False,
+        )
+
+        assert result["ledger_write_status"]["session_index"] == "skipped_no_write_mode"
+        assert not (repo / "artifacts" / "session-index.ndjson").exists()

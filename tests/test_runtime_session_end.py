@@ -89,6 +89,48 @@ def test_session_end_auto_promotes_low_risk_candidate(local_project_root):
     assert claim_check["enforcement_action"] in {"allow", "downgrade", "block"}
     assert isinstance(claim_check["reviewer_override_required"], bool)
     assert isinstance(claim_check["reviewer_response"], dict)
+    assert result["ledger_write_status"]["ledger_write_allowed"] is True
+    assert result["ledger_write_status"]["session_index"] == "written"
+    assert result["ledger_write_status"]["claim_enforcement_receipt"] == "written"
+    assert (local_project_root / "artifacts" / "session-index.ndjson").exists()
+    assert (
+        local_project_root
+        / "artifacts"
+        / "claim-enforcement"
+        / "claim-enforcement-receipts.ndjson"
+    ).exists()
+
+
+def test_session_end_no_ledger_write_mode_skips_tracked_ledgers(local_project_root):
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-no-ledger",
+        runtime_contract=_contract(),
+        checks={"ok": True, "errors": []},
+        event_log=[{"event_type": "post_task"}],
+        response_text="runtime output",
+        summary="No ledger write validation",
+        ledger_write_allowed=False,
+    )
+
+    assert result["ok"] is True
+    assert result["claim_enforcement_check_artifact"] is not None
+    assert Path(result["claim_enforcement_check_artifact"]).exists()
+    assert result["ledger_write_status"] == {
+        "ledger_write_allowed": False,
+        "session_index": "skipped_no_write_mode",
+        "claim_enforcement_receipt": "skipped_no_write_mode",
+    }
+    assert result["runtime_completeness"]["ledger_write_allowed"] is False
+    assert result["runtime_completeness"]["session_index_write_status"] == "skipped_no_write_mode"
+    assert result["runtime_completeness"]["claim_receipt_write_status"] == "skipped_no_write_mode"
+    assert not (local_project_root / "artifacts" / "session-index.ndjson").exists()
+    assert not (
+        local_project_root
+        / "artifacts"
+        / "claim-enforcement"
+        / "claim-enforcement-receipts.ndjson"
+    ).exists()
 
 
 def test_session_end_appends_daily_memory_entry_with_required_fields(local_project_root):

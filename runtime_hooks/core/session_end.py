@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -56,7 +57,11 @@ def _ensure_runtime_artifact_dirs(project_root: Path) -> tuple[Path, Path, Path,
     return candidates_dir, curated_dir, summaries_dir, verdicts_dir, traces_dir
 
 
-def _append_session_index(canonical: dict[str, Any], project_root: Path) -> None:
+def _ledger_write_disabled_from_env() -> bool:
+    return os.environ.get("AI_GOVERNANCE_NO_LEDGER_WRITE", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _append_session_index(canonical: dict[str, Any], project_root: Path, *, ledger_write_allowed: bool = True) -> str:
     """
     Append a summary line to artifacts/session-index.ndjson (Slice 4).
 
@@ -64,6 +69,8 @@ def _append_session_index(canonical: dict[str, Any], project_root: Path) -> None
     This file is NOT the source of truth — canonical closeout artifacts are.
     It exists for fast scanning without reading individual closeout files.
     """
+    if not ledger_write_allowed:
+        return "skipped_no_write_mode"
     try:
         index_path = project_root / "artifacts" / "session-index.ndjson"
         index_path.parent.mkdir(parents=True, exist_ok=True)
@@ -76,8 +83,9 @@ def _append_session_index(canonical: dict[str, Any], project_root: Path) -> None
         }
         with index_path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        return "written"
     except Exception:
-        pass  # non-fatal: index is a cache, not the authority
+        return "write_failed"  # non-fatal: index is a cache, not the authority
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -115,7 +123,8 @@ def _emit_claim_enforcement_check(
     session_id: str,
     canonical_closeout: dict[str, Any],
     summary: str,
-) -> Path:
+    ledger_write_allowed: bool = True,
+) -> tuple[Path, str]:
     claim_input = _build_claim_binding_input(
         canonical_closeout=canonical_closeout,
         summary=summary,
@@ -144,11 +153,14 @@ def _emit_claim_enforcement_check(
     _write_json(output_path, payload)
     # CE-1C.2 dual-write: append compact receipt alongside raw packet.
     # Raw packet and existing audit consumers are unchanged.
-    try:
-        _write_compact_receipt(session_id, repo_root=project_root)
-    except Exception:  # noqa: BLE001
-        pass  # receipt write failure must not break raw packet emission
-    return output_path
+    receipt_write_status = "skipped_no_write_mode"
+    if ledger_write_allowed:
+        try:
+            _write_compact_receipt(session_id, repo_root=project_root)
+            receipt_write_status = "written"
+        except Exception:  # noqa: BLE001
+            receipt_write_status = "write_failed"  # receipt write failure must not break raw packet emission
+    return output_path, receipt_write_status
 
 
 def _build_post_task_phase_classification_from_checks(checks: dict[str, Any]) -> dict[str, Any]:
@@ -820,7 +832,10 @@ def run_session_end(
     approved_by_auto: str = "governance-auto",
     initial_agent_class: str | None = None,
     session_start_phase_classification: dict[str, Any] | None = None,
+    ledger_write_allowed: bool | None = None,
 ) -> dict[str, Any]:
+    if ledger_write_allowed is None:
+        ledger_write_allowed = not _ledger_write_disabled_from_env()
     contract = _normalize_runtime_contract(runtime_contract)
     checks = checks or {}
     architecture_impact_preview = architecture_impact_preview or {}
@@ -987,6 +1002,8 @@ def run_session_end(
     )
     closeout_path: Path | None = None
     claim_enforcement_check_path: Path | None = None
+    session_index_write_status = "not_attempted"
+    claim_receipt_write_status = "not_attempted"
 
     try:
         _force_runtime_failure_if_requested(checks, "artifact_emission")
@@ -1066,12 +1083,17 @@ def run_session_end(
         _write_json(summary_path, summary_payload)
         _write_json(runtime_phase_summary_path, runtime_phase_summary)
         closeout_path = write_canonical_closeout(canonical_closeout, project_root)
-        _append_session_index(canonical_closeout, project_root)
-        claim_enforcement_check_path = _emit_claim_enforcement_check(
+        session_index_write_status = _append_session_index(
+            canonical_closeout,
+            project_root,
+            ledger_write_allowed=ledger_write_allowed,
+        )
+        claim_enforcement_check_path, claim_receipt_write_status = _emit_claim_enforcement_check(
             project_root=project_root,
             session_id=session_id,
             canonical_closeout=canonical_closeout,
             summary=summary,
+            ledger_write_allowed=ledger_write_allowed,
         )
         runtime_completeness = {
             "session_end_invoked": True,
@@ -1080,6 +1102,9 @@ def run_session_end(
                 claim_enforcement_check_path is not None
                 and claim_enforcement_check_path.exists()
             ),
+            "ledger_write_allowed": ledger_write_allowed,
+            "session_index_write_status": session_index_write_status,
+            "claim_receipt_write_status": claim_receipt_write_status,
         }
         verdict_payload = _build_verdict_artifact(
             session_id=session_id,
@@ -1148,6 +1173,11 @@ def run_session_end(
         "daily_memory_path": str(daily_memory_path) if daily_memory_path else None,
         "canonical_closeout_artifact": str(closeout_path) if closeout_path else None,
         "claim_enforcement_check_artifact": str(claim_enforcement_check_path) if claim_enforcement_check_path else None,
+        "ledger_write_status": {
+            "ledger_write_allowed": ledger_write_allowed,
+            "session_index": session_index_write_status,
+            "claim_enforcement_receipt": claim_receipt_write_status,
+        },
         "canonical_closeout": canonical_closeout,
         "decision_context": decision_context,
         "runtime_completeness": runtime_completeness if 'runtime_completeness' in locals() else {
@@ -1202,6 +1232,11 @@ def format_human_result(result: dict[str, Any]) -> str:
     ]
     if result.get("daily_memory_path"):
         lines.append(f"daily_memory_path={result['daily_memory_path']}")
+    ledger_write_status = result.get("ledger_write_status") or {}
+    if ledger_write_status:
+        lines.append(f"ledger_write_allowed={ledger_write_status.get('ledger_write_allowed')}")
+        lines.append(f"session_index_write_status={ledger_write_status.get('session_index')}")
+        lines.append(f"claim_receipt_write_status={ledger_write_status.get('claim_enforcement_receipt')}")
     summary_payload = json.loads(Path(result["summary_artifact"]).read_text(encoding="utf-8"))
     if summary_payload.get("contract_resolution_present"):
         lines.append(f"contract_source={summary_payload.get('contract_source')}")
@@ -1264,6 +1299,11 @@ def main() -> None:
     parser.add_argument("--summary", default="")
     parser.add_argument("--approved-by-auto", default="governance-auto")
     parser.add_argument("--format", choices=["human", "json"], default="human")
+    parser.add_argument(
+        "--no-ledger-write",
+        action="store_true",
+        help="Skip tracked runtime ledger appends and report skipped_no_write_mode statuses.",
+    )
     args = parser.parse_args()
 
     runtime_contract = json.loads(Path(args.runtime_contract_file).read_text(encoding="utf-8"))
@@ -1302,6 +1342,7 @@ def main() -> None:
         approved_by_auto=args.approved_by_auto,
         initial_agent_class=initial_agent_class,
         session_start_phase_classification=(session_start_payload.get("pre_task_check") or {}).get("phase_classification"),
+        ledger_write_allowed=not args.no_ledger_write,
     )
 
     if args.format == "json":

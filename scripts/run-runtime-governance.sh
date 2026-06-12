@@ -58,6 +58,8 @@ run_smoke() {
         smoke_overrides+=(--plan-path "$PLAN_PATH_OVERRIDE")
     fi
 
+    export AI_GOVERNANCE_NO_LEDGER_WRITE=1
+
     "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --harness claude_code --event-type session_start "${smoke_overrides[@]}" --output artifacts/runtime/smoke/claude_session_start.txt --json-output artifacts/runtime/smoke/claude_session_start.json
     "${PYTHON_CMD[@]}" governance_tools/change_control_summary.py --session-start-file artifacts/runtime/smoke/claude_session_start.json --output artifacts/runtime/smoke/claude_change_control_summary.txt
     "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --harness claude_code --event-type pre_task "${smoke_overrides[@]}"
