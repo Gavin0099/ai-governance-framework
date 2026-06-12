@@ -222,6 +222,17 @@ P1-B - canonical status reconciliation after 2026-06-12 push:
   drift checker `severity=ok`, no warnings, no errors.
 - [x] No F-7 rollout performed in this slice.
 
+P1-C0 - canonicalize silent-drift findings before F-7 verification
+(completed 2026-06-12; no implementation, no F-7 run, no debt claimed
+resolved):
+
+- [x] P1-C gains fleet snapshot refresh as verification evidence.
+- [x] P1-C gains memory_layout alias verification note.
+- [x] E2 retrospective adoption evidence collection entered canonical
+  tracker as P1 evidence-class item.
+- [x] README capability table caveats entered canonical tracker (P2).
+- [x] English reviewer-facing docs entered canonical tracker (P2).
+
 P1-C - F-7 external rollout verification with manual PLAN reconciliation
 fixture (scoped to `meiandraybook` only; one slice one evidence; do not
 claim rollout complete):
@@ -246,6 +257,12 @@ claim rollout complete):
   separate fields, not merged into one completion claim.
 - [ ] Do not add any blocking validator in this slice; this closeout is the
   design fixture for P1-D.
+- [ ] Refresh fleet matrix snapshot as part of F-7 verification evidence
+  (current snapshot 2026-05-29 exceeds its own 7d evidence window).
+- [ ] Verify memory file naming against `memory_layout` aliases during F-7
+  application (known divergence seed: `F7_GOVERNANCE_ALLOWLIST` hardcodes
+  `02_tech_stack.md` while `memory_layout.py` accepts three aliases).
+  Verify and record only; do not claim alias divergence resolved.
 
 P1-D - Structured PLAN Reconciliation Declaration (design agreed 2026-06-12;
 do not start before the P1-C fixture exists):
@@ -292,11 +309,27 @@ P1 - structured memory freshness:
 - [ ] Do not claim structured memory sync is solved by daily memory writer
   completion alone.
 
+P1 - adoption evidence collection (E2-relevant; evidence class, not
+presentation class):
+
+- [ ] Collect retrospective E2 adoption evidence from the two engineer
+  onboardings: onboarding artifacts from their environments, friction log
+  (time to green smoke, walls hit, remediation source), and author
+  intervention count declaration.
+- [ ] Record evidence grade explicitly as retrospective / self-reported.
+- [ ] Do not claim sustained lifecycle, E2 closure, or low framework
+  friction from this evidence alone.
+
 P2 - external presentation:
 
 - [ ] Refresh GitHub repository description.
 - [ ] Add relevant topics.
 - [ ] Align README badge with current release state.
+- [ ] Align README capability table with current reality: mutation topology
+  caveat on the fail-closed gate row, audit-framework-not-security-boundary
+  positioning sentence, and MEM-DISPATCH capability row.
+- [ ] Prepare English reviewer-facing docs (README, starter-pack,
+  onboarding SOP).
 - [ ] Publish a release only after release notes and claim ceiling are accurate.
 
 P2 - historical debt / evidence disposition:
