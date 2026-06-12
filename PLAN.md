@@ -237,8 +237,22 @@ P1-C - F-7 external rollout verification with manual PLAN reconciliation
 fixture (scoped to `meiandraybook` only; one slice one evidence; do not
 claim rollout complete):
 
-- [ ] Use F-7 external apply path to distribute `memory_workflow` to a consuming
-  repo.
+Re-scope note (2026-06-12, ratified): P1-C may accept prior
+clean-remediation-worktree F-7 apply evidence when the primary consumer
+worktree is stale/dirty and re-running apply would create duplicate or
+misleading verification evidence. In that case, P1-C scope becomes
+post-apply evidence verification, not re-application. Acceptable evidence
+sources: meiandraybook origin/main, the 2026-06-11 memory records
+(`678c4c9` / `3ddff9d`), framework-side fleet snapshot, and read-only
+checks against current remote state. Not acceptable: pull/merge/apply on
+the stale primary dirty worktree, bundling stale-worktree cleanup into
+P1-C, or re-running the completed apply to manufacture new evidence.
+
+- [x] Use F-7 external apply path to distribute `memory_workflow` to a
+  consuming repo: satisfied by the prior clean-remediation-worktree apply
+  (2026-06-11, recorded at meiandraybook origin/main `678c4c9`/`3ddff9d`,
+  `f7_final_status=full_update_completed`). Accepted per the re-scope
+  note; NOT executed in this slice.
 - [ ] Verify hook installer carries managed pre-commit memory workflow advisory.
 - [ ] Verify consuming repo `AGENTS.md` routes memory tasks to dispatcher before
   memory completion claims.
@@ -266,7 +280,9 @@ P1-C claim ceiling (locked 2026-06-12 before execution):
   expectation observed; manual reconciliation fixture produced.
 - CANNOT CLAIM: F-7 works for all consumers; fleet rollout complete;
   copy-based consumers solved; rollback procedure implemented; blocking
-  validator added; automatic PLAN reconciliation solved.
+  validator added; automatic PLAN reconciliation solved; primary
+  meiandraybook worktree updated; stale dirty worktree resolved; the F-7
+  apply was originally executed in this slice.
 - Hard limit: on unexpected dirty state, destructive update behavior, or
   ambiguous repo role, stop at diagnosis and report; do not push through
   remaining checklist items. A verification slice must not silently become
