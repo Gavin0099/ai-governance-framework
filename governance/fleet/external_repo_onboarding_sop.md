@@ -1,7 +1,12 @@
 # External Repo Onboarding SOP
 
-Status: v1
+Status: v1.1
 Scope: onboard a consuming repository into `ai-governance-framework` with minimal ambiguity.
+
+This SOP covers the **submodule consumer** path only (see
+[`docs/ADOPTION_MODEL.md`](../../docs/ADOPTION_MODEL.md)). It does not
+apply to external contract repos or copy-based consumers — those classes
+have different evidence duties and automation ceilings.
 
 ## Goals
 
@@ -9,12 +14,29 @@ Scope: onboard a consuming repository into `ai-governance-framework` with minima
 - Keep governance adoption fail-closed without forcing schema expansion.
 - Separate human decisions (domain/risk) from automation steps.
 
+## Step 0: Classify the Consumer Role
+
+Before any onboarding step, classify the target repo against
+[`docs/ADOPTION_MODEL.md`](../../docs/ADOPTION_MODEL.md) using read-only
+diagnosis.
+
+Rules:
+- If the repo already contains copied framework files, it is a copy-based
+  consumer: stop, run the provenance audit first; do not layer a submodule
+  on top of an unaudited copy.
+- If classification is ambiguous, stop at diagnosis and report. A
+  classification step must not silently become a remediation step.
+
+Acceptance:
+- Target classified as a (prospective) submodule consumer; otherwise this
+  SOP does not apply.
+
 ## Step 1: Add Framework as Submodule
 
-In target repo root:
+In target repo root (use your organization's framework remote URL):
 
 ```bash
-git submodule add https://gli-gitlab-ee.genesyslogic.com.tw/CRD/SW/ai-governance-framework/ai-governance-framework ai-governance-framework
+git submodule add <framework-remote-url> ai-governance-framework
 git submodule update --init --recursive
 ```
 
@@ -98,6 +120,20 @@ Handoff report must include:
 
 Acceptance:
 - Reviewer can decide go/no-go without re-running discovery.
+
+## Claim Ceiling After Completing This SOP
+
+Completing all steps supports exactly this claim:
+
+> This repository is an onboarded submodule consumer with onboarding
+> evidence at the recorded commit.
+
+It does **not** support:
+
+- fleet rollout or consumer-generality claims (one repo, one evidence);
+- per-update currentness claims going forward (those require the managed
+  F-7 update path with per-update verification evidence);
+- "governance complete" — onboarding is entry, not closure.
 
 ## Non-Goals
 

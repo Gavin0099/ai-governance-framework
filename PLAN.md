@@ -543,8 +543,17 @@ P2 - external presentation:
     non-claims / evidence required for done / advisory-vs-enforcement
     reading rules; linked from README Key Documents (ZH+EN). Bounded by
     PLAN Active Claim Boundaries with explicit PLAN-wins precedence.
-  - [ ] Starter-pack English review pass.
-  - [ ] Onboarding SOP English review pass.
+  - [x] Starter-pack English review pass. (P2-D 2026-06-12: full English
+    mirror section added to `examples/starter-pack/README.md`; adoption
+    model alignment note added in both languages — copying starter-pack
+    files does not make a repo a governed consumer; upgrade path is
+    submodule adoption.)
+  - [x] Onboarding SOP English review pass. (P2-D 2026-06-12: SOP scoped
+    to the submodule-consumer path; Step 0 classification gate added per
+    `docs/ADOPTION_MODEL.md` with copy-based stop rule; internal GitLab
+    hostname replaced with `<framework-remote-url>` placeholder; claim
+    ceiling section added — onboarding evidence only, no fleet or
+    currentness claims.)
 - [ ] Publish a release only after release notes and claim ceiling are accurate.
 
 P2 - historical debt / evidence disposition:
