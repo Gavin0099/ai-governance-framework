@@ -263,6 +263,18 @@ claim rollout complete):
   application (known divergence seed: `F7_GOVERNANCE_ALLOWLIST` hardcodes
   `02_tech_stack.md` while `memory_layout.py` accepts three aliases).
   Verify and record only; do not claim alias divergence resolved.
+- [ ] Observe and record rollback path expectation during the F-7 update
+  (what reverting to the previous framework commit would require if smoke
+  fails after update). Observation only; no rollback implementation
+  claimed in this slice.
+
+P1 - update rollback documentation (P1-C follow-up; do not start before
+the P1-C rollback observation exists):
+
+- [ ] Document rollback procedure for a failed F-7 update / failed smoke
+  after governance update. Updating governance is itself a trust-surface
+  change and must be reversible per the core principle (expensive,
+  explicit, reversible).
 
 P1-D - Structured PLAN Reconciliation Declaration (design agreed 2026-06-12;
 do not start before the P1-C fixture exists):
@@ -319,6 +331,13 @@ presentation class):
 - [ ] Record evidence grade explicitly as retrospective / self-reported.
 - [ ] Do not claim sustained lifecycle, E2 closure, or low framework
   friction from this evidence alone.
+
+P2 - adoption model:
+
+- [ ] Classify whether copy-based consumers are supported, audit-only, or
+  unsupported for automated update. Current claim ceiling: not solved.
+  Classification first; do not design support tooling before P1-C
+  consumer evidence exists.
 
 P2 - external presentation:
 
