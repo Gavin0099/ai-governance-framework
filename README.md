@@ -13,7 +13,8 @@
 這個 framework 不是讓 AI 更聰明，而是讓 AI 的邊界、證據、宣稱可以被**審核（auditable）且可強制執行（enforceable）**。
 
 
-This is an audit framework, not a security boundary: it makes boundary violations visible, reviewable, and attributable; it does not prevent deliberate bypass by itself.
+本框架是 audit framework，不是 security boundary：它讓越界行為可見、可審、可歸因；它本身不阻止蓄意繞過。
+
 ---
 
 ## 運作方式（How It Works）
@@ -60,6 +61,8 @@ Fleet 層回答的問題與單次任務不同：
 目前 fleet 狀態請看 `artifacts/session/` 最新 matrix snapshot。  
 趨勢紀錄在 `governance/fleet/scope_normalized_trend.jsonl`。
 
+**Freshness 語義（重要）**：`required_verified` ratio 是「時間窗內的證據存在性」（freshness-window evidence），不是 repo 整體健康分數。Fleet refresh 採 event-driven 政策（rollout / release / 對外引用 fleet 狀態前必須重新產生 snapshot），不是持續監控。閒置期間 ratio 自然衰減（例如 9/10 → 1/10）是設計行為，不是 regression，也不是 repo 品質下降的證據。
+
 ## 快速開始（Quick Start）
 
 ### 驗證本 repo
@@ -93,19 +96,27 @@ python governance_tools/adopt_governance.py --target /path/to/your/repo
 
 ## 能力狀態（Capability Status）
 
-不是所有能力都已完整 operational，下表標示目前狀態：
+不是所有能力都已完整 operational。每個 capability 標示兩個軸：**Status**（成熟度）與 **Claim class**（這個能力實際能主張到什麼層級）。
 
-| Capability | Status | Notes |
-|---|---|---|
-| Evidence anchoring（artifact-backed，不依賴 AI summary） | **Operational** | fleet rollout 期間已驗證 gate_blocked admissibility fix |
-| Fail-closed decision gate | **Operational** | Gate mechanism operational; enforcement topology remains single-point in E1-B Phase 2, and mutation protection is not claimed |
-| Fleet matrix + scope-normalized ratio | **Operational** | required 10 repos 可 verified；structural readiness 與 freshness 分離追蹤 |
-| Evidence tier（hardware-aware） | **Operational** | snapshot 可見 tier_2 / tier_3 / ci_strict |
-| Claim vs. evidence separation | **Partial** | 原則已落地，但不同 claim 類型自動化覆蓋仍不一 |
-| Minimal rule selection | **Partial** | rule registry 已有；task-type 驅動的自動載入尚未完整 |
-| Decision gate intermediate states | **Designed** | PASS_WITH_DOWNGRADED_CLAIMS、NEEDS_REVIEW 為語義概念；程式路徑覆蓋待補 |
-| Memory promotion strictness | **Partial** | 結構已存在；不是所有 memory path 都有 rejection 證據 |
-| CodeBurn（usage observation） | **Optional** | 觀測層，不是 gate 輸入 |
+Claim class 定義：
+
+- **Enforced**：有阻擋行為（gate / CI blocker），且阻擋範圍如 Notes 所述——不多不少
+- **Advisory**：會回報、會警告，但不阻擋；不可作為 enforcement 證據
+- **Observation**：只產生 evidence / 可見性，不是 gate 輸入，不構成判斷
+- **Cannot claim**：已設計或部分存在，但目前不可對外主張
+
+| Capability | Status | Claim class | Notes |
+|---|---|---|---|
+| Evidence anchoring（artifact-backed，不依賴 AI summary） | **Operational** | Enforced | fleet rollout 期間已驗證 gate_blocked admissibility fix |
+| Fail-closed decision gate | **Operational** | Enforced | enforcement topology 仍是 E1-B Phase 2 的 single-point；mutation protection 不在主張範圍 |
+| Memory workflow（MEM-DISPATCH） | **Partial** | Advisory + selective Enforced | hooks 為 advisory-only；CI 僅阻擋 current-diff `active_non_canonical_writer`，歷史 memory debt 維持 warning-only |
+| Fleet matrix + scope-normalized ratio | **Operational** | Observation | ratio 是 freshness-window 證據（event-driven refresh），非永久健康分數；structural readiness 分離追蹤 |
+| Evidence tier（hardware-aware） | **Operational** | Observation | snapshot 可見 tier_2 / tier_3 / ci_strict |
+| Claim vs. evidence separation | **Partial** | Advisory | 原則已落地，但不同 claim 類型自動化覆蓋仍不一 |
+| Minimal rule selection | **Partial** | Advisory | rule registry 已有；task-type 驅動的自動載入尚未完整 |
+| Decision gate intermediate states | **Designed** | Cannot claim | PASS_WITH_DOWNGRADED_CLAIMS、NEEDS_REVIEW 為語義概念；程式路徑覆蓋待補 |
+| Memory promotion strictness | **Partial** | Advisory | 結構已存在；不是所有 memory path 都有 rejection 證據 |
+| CodeBurn（usage observation） | **Optional** | Observation | 觀測層，不是 gate 輸入 |
 
 ## 本框架不主張（What This Framework Does Not Claim）
 
@@ -151,7 +162,7 @@ examples/               # Starter pack, sample contracts
 | Entry Point | 用途 |
 |---|---|
 | `scripts/run-runtime-governance.sh` | hooks 與 CI 共用的 enforcement entrypoint |
-| `artifacts/session/governance_repo_matrix_20260525.ps1` | Fleet matrix 掃描器（PowerShell） |
+| `scripts/governance_repo_matrix.ps1` | Fleet matrix 掃描器（PowerShell，registered tool，輸出含 reproducibility metadata） |
 | `governance_tools/session_end_hook.py` | Closeout receipt 產生器 |
 
 ## 貢獻（Contributing）
@@ -228,6 +239,8 @@ Fleet governance answers different questions than single-run governance:
 Current fleet status is in `artifacts/session/` (latest matrix snapshot).  
 Trend history is in `governance/fleet/scope_normalized_trend.jsonl`.
 
+**Freshness semantics (important)**: the `required_verified` ratio is *evidence presence within a freshness window*, not a permanent repo health score. Fleet refresh is event-driven (a snapshot must be regenerated before rollout, release, or any external claim citing fleet state) — it is not continuous monitoring. Ratio decay during idle periods (e.g. 9/10 → 1/10) is designed behavior, not a regression, and not evidence of repo quality degradation.
+
 ## Quick Start
 
 ### Verify this repo
@@ -267,19 +280,27 @@ Minimal starter pack: see [`examples/starter-pack/`](examples/starter-pack/) and
 
 ## Capability Status
 
-Not everything described here is fully operational. This table tracks what's verified vs. what's still maturing:
+Not everything described here is fully operational. Each capability carries two axes: **Status** (maturity) and **Claim class** (what level of claim the capability actually supports).
 
-| Capability | Status | Notes |
-|---|---|---|
-| Evidence anchoring (artifact-backed, not AI summary) | **Operational** | gate_blocked admissibility fix verified in fleet rollout |
-| Fail-closed decision gate | **Operational** | Gate mechanism operational; enforcement topology remains single-point in E1-B Phase 2, and mutation protection is not claimed |
-| Fleet matrix + scope-normalized ratio | **Operational** | 10 required repos verified; structural readiness tracked separately from freshness |
-| Evidence tier (hardware-aware) | **Operational** | tier_2 / tier_3 / ci_strict visible per repo in snapshot |
-| Claim vs. evidence separation | **Partial** | Principle enforced; per-claim-type automation coverage varies |
-| Minimal rule selection | **Partial** | Rule registry exists; task-type-driven loading not yet fully automated |
-| Decision gate intermediate states | **Designed** | PASS_WITH_DOWNGRADED_CLAIMS, NEEDS_REVIEW are decision concepts; code path coverage TBD |
-| Memory promotion strictness | **Partial** | Structure exists; not all memory paths have rejection evidence |
-| CodeBurn (usage observation) | **Optional** | Observation layer; not a gate input |
+Claim class definitions:
+
+- **Enforced**: has blocking behavior (gate / CI blocker), and blocks exactly the scope stated in Notes — no more, no less
+- **Advisory**: reports and warns but does not block; must not be cited as enforcement evidence
+- **Observation**: produces evidence / visibility only; not a gate input, not a judgment
+- **Cannot claim**: designed or partially present, but not currently claimable externally
+
+| Capability | Status | Claim class | Notes |
+|---|---|---|---|
+| Evidence anchoring (artifact-backed, not AI summary) | **Operational** | Enforced | gate_blocked admissibility fix verified in fleet rollout |
+| Fail-closed decision gate | **Operational** | Enforced | enforcement topology remains single-point in E1-B Phase 2; mutation protection is not claimed |
+| Memory workflow (MEM-DISPATCH) | **Partial** | Advisory + selective Enforced | hooks are advisory-only; CI blocks only current-diff `active_non_canonical_writer`; historical memory debt stays warning-only |
+| Fleet matrix + scope-normalized ratio | **Operational** | Observation | ratio is freshness-window evidence (event-driven refresh), not a permanent health score; structural readiness tracked separately |
+| Evidence tier (hardware-aware) | **Operational** | Observation | tier_2 / tier_3 / ci_strict visible per repo in snapshot |
+| Claim vs. evidence separation | **Partial** | Advisory | Principle in place; per-claim-type automation coverage varies |
+| Minimal rule selection | **Partial** | Advisory | Rule registry exists; task-type-driven loading not yet fully automated |
+| Decision gate intermediate states | **Designed** | Cannot claim | PASS_WITH_DOWNGRADED_CLAIMS, NEEDS_REVIEW are decision concepts; code path coverage TBD |
+| Memory promotion strictness | **Partial** | Advisory | Structure exists; not all memory paths have rejection evidence |
+| CodeBurn (usage observation) | **Optional** | Observation | Observation layer; not a gate input |
 
 ## Agent Runtime Governance Profile
 
@@ -349,7 +370,7 @@ examples/               # Starter pack, sample contracts
 | Entry Point | Use |
 |---|---|
 | `scripts/run-runtime-governance.sh` | Shared enforcement entrypoint for hooks and CI |
-| `artifacts/session/governance_repo_matrix_20260525.ps1` | Fleet matrix scanner (PowerShell) |
+| `scripts/governance_repo_matrix.ps1` | Fleet matrix scanner (PowerShell, registered tool; output carries reproducibility metadata) |
 | `governance_tools/session_end_hook.py` | Closeout receipt generator |
 
 ## Contributing

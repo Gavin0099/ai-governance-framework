@@ -505,12 +505,19 @@ P2 - external presentation:
 - [ ] Refresh GitHub repository description.
 - [ ] Add relevant topics.
 - [ ] Align README badge with current release state.
-- [ ] Align README capability table with current reality: mutation topology
+- [x] Align README capability table with current reality: mutation topology
   caveat on the fail-closed gate row, audit-framework-not-security-boundary
-  positioning sentence, and MEM-DISPATCH capability row.
-- [ ] State in README that the fleet freshness ratio is time-window
+  positioning sentence, and MEM-DISPATCH capability row. (P2-A 2026-06-12:
+  table gained a Claim class axis — Enforced / Advisory / Observation /
+  Cannot claim — with definitions; MEM-DISPATCH row added as Advisory +
+  selective Enforced scoped to current-diff `active_non_canonical_writer`;
+  stale "10 required repos verified" wording removed; positioning sentence
+  now present in both ZH and EN sections.)
+- [x] State in README that the fleet freshness ratio is time-window
   evidence under an event-driven refresh policy, not a permanent health
-  score (prevents idle-period decay being read as regression).
+  score (prevents idle-period decay being read as regression). (P2-A
+  2026-06-12: freshness-semantics paragraph added to both Fleet sections
+  per P1-H semantics; idle-period decay stated as designed behavior.)
 - [ ] Prepare English reviewer-facing docs (README, starter-pack,
   onboarding SOP).
 - [ ] Publish a release only after release notes and claim ceiling are accurate.
