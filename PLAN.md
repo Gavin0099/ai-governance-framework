@@ -533,8 +533,13 @@ P2 - adoption model:
 
 P2 - external presentation:
 
-- [ ] Refresh GitHub repository description. (Gated by P2-E: allowed only
-  after exact-string ratification; mechanism-only ceiling.)
+- [x] Refresh GitHub repository description. (P2-G closed 2026-06-13:
+  ratified C3 string applied manually by the user in the GitHub web UI —
+  no authorized agent-side metadata write path existed and none was
+  created; agent verification via unauthenticated GET
+  /repos/Gavin0099/ai-governance-framework returned exact_match=True
+  against the PLAN-recorded string, em dash intact, repo
+  updated_at=2026-06-12T16:44:24Z. Agent metadata mutation: none.)
 - [ ] Add relevant topics. (Gated by P2-E: allowed only after exact-list
   ratification; descriptive taxonomy nouns only.)
 - [ ] Align README badge with current release state. (P2-E decision:
