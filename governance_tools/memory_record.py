@@ -12,6 +12,63 @@ WRITER_ID = "governance_tools.memory_record"
 RECORD_FORMAT_VERSION = "1.0"
 MEMORY_TYPE_SESSION_DERIVED = "session-derived"
 
+# Structured PLAN Reconciliation Declaration (P1-D).
+# The gate target is silent drift, not deferred drift: a record may defer
+# PLAN reconciliation with a named reason, but may not stay silent about it.
+# Missing declarations are accepted with an advisory (never blocked here);
+# malformed declarations are rejected as input errors.
+PLAN_RECONCILIATION_UPDATED = "updated"
+PLAN_RECONCILIATION_NOT_APPLICABLE = "not_applicable"
+PLAN_RECONCILIATION_NOT_DECLARED = "not_declared"
+PLAN_RECONCILIATION_DEFERRED_PREFIX = "deferred:"
+
+# Extend via PR only; reasons must stay reviewable categories, not prose.
+DEFERRED_REASON_TAXONOMY = frozenset({
+    "requires-human-plan-review",
+    "awaiting-reviewer-verdict",
+    "scope-split-next-slice",
+    "canonical-update-not-authorized",
+    "dirty-workspace-prevents-safe-edit",
+})
+
+VACUOUS_DEFERRED_REASONS = frozenset({"later", "todo", "pending", "soon", "tbd"})
+
+
+def validate_plan_reconciliation(value: str | None) -> tuple[str, str | None]:
+    """
+    Normalize and validate a plan_reconciliation declaration.
+
+    Returns (normalized_value, error). error is None when the value is
+    acceptable. An omitted/empty value normalizes to "not_declared" and is
+    acceptable (advisory-level, caller may warn); malformed values return
+    an error message and must not be written.
+    """
+    if value is None or not value.strip():
+        return PLAN_RECONCILIATION_NOT_DECLARED, None
+    candidate = value.strip()
+    if candidate in (PLAN_RECONCILIATION_UPDATED, PLAN_RECONCILIATION_NOT_APPLICABLE):
+        return candidate, None
+    if candidate.startswith(PLAN_RECONCILIATION_DEFERRED_PREFIX):
+        reason = candidate[len(PLAN_RECONCILIATION_DEFERRED_PREFIX):].strip()
+        if not reason:
+            return candidate, "deferred reason must be non-empty"
+        if reason.lower() in VACUOUS_DEFERRED_REASONS:
+            return candidate, (
+                f"deferred reason '{reason}' is vacuous; use a taxonomy reason: "
+                + ", ".join(sorted(DEFERRED_REASON_TAXONOMY))
+            )
+        if reason not in DEFERRED_REASON_TAXONOMY:
+            return candidate, (
+                f"deferred reason '{reason}' is not in the reason taxonomy: "
+                + ", ".join(sorted(DEFERRED_REASON_TAXONOMY))
+                + " (extend the taxonomy via PR if a new category is genuinely needed)"
+            )
+        return f"{PLAN_RECONCILIATION_DEFERRED_PREFIX}{reason}", None
+    return candidate, (
+        "plan_reconciliation must be 'updated', 'not_applicable', or "
+        "'deferred:<taxonomy-reason>'"
+    )
+
 
 def _current_local_date() -> str:
     return datetime.now().astimezone().date().isoformat()
@@ -25,6 +82,7 @@ def build_session_derived_record(
     memory_binding: str,
     test_evidence: str,
     next_step: str,
+    plan_reconciliation: str = PLAN_RECONCILIATION_NOT_DECLARED,
 ) -> dict[str, str]:
     return {
         "memory_type": MEMORY_TYPE_SESSION_DERIVED,
@@ -37,6 +95,7 @@ def build_session_derived_record(
         "memory_binding": memory_binding,
         "test_evidence": test_evidence,
         "next_step": next_step,
+        "plan_reconciliation": plan_reconciliation,
     }
 
 
@@ -52,6 +111,7 @@ def render_session_derived_entry(record: dict[str, str]) -> str:
         f"  memory_binding: {record['memory_binding']}\n"
         f"  test_evidence: {record['test_evidence']}\n"
         f"  next_step: {record['next_step']}\n"
+        f"  plan_reconciliation: {record.get('plan_reconciliation', PLAN_RECONCILIATION_NOT_DECLARED)}\n"
     )
 
 
@@ -137,7 +197,27 @@ def main() -> int:
     parser.add_argument("--session-id", default=None, help="Session ID (timestamp-based if omitted)")
     parser.add_argument("--test-evidence", default="", help="Test run evidence")
     parser.add_argument("--project-root", default=".", help="Repository root (default: .)")
+    parser.add_argument(
+        "--plan-reconciliation",
+        default=None,
+        help=(
+            "PLAN reconciliation declaration: updated | not_applicable | "
+            "deferred:<taxonomy-reason>. Omitting records not_declared with "
+            "an advisory (never blocks)."
+        ),
+    )
     args = parser.parse_args()
+
+    plan_reconciliation, plan_error = validate_plan_reconciliation(args.plan_reconciliation)
+    if plan_error is not None:
+        print(f"[memory_record] error: {plan_error}")
+        return 2
+    if plan_reconciliation == PLAN_RECONCILIATION_NOT_DECLARED:
+        print(
+            "[memory_record] advisory: plan_reconciliation not declared "
+            "(updated | not_applicable | deferred:<taxonomy-reason>); "
+            "recorded as not_declared"
+        )
 
     project_root = Path(args.project_root).resolve()
     commit = args.commit or _auto_detect_commit(project_root)
@@ -151,6 +231,7 @@ def main() -> int:
         memory_binding=memory_binding,
         test_evidence=args.test_evidence,
         next_step=args.next_step,
+        plan_reconciliation=plan_reconciliation,
     )
     path = append_session_derived_entry(project_root=project_root, record=record)
     print(f"[memory_record] Written: {path}")

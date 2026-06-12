@@ -176,13 +176,18 @@ Runtime ledger no-write mode (2026-06-12):
   guarantee, tracked ledgers untracked/ignored/deleted, or elimination of
   all hook / pre-push side effects.
 
-Structured PLAN Reconciliation Declaration (design only, 2026-06-12):
+Structured PLAN Reconciliation Declaration (advisory implemented, 2026-06-12):
 
-- CLAIMED: design agreed and recorded as P1-C fixture + P1-D items; the gate
-  target is silent drift, not deferred drift; the atomic completion condition
-  is declaring ledger state, not auto-syncing PLAN.
-- NOT CLAIMED: implemented, enforced, blocking, or that a deferred
-  declaration equals reconciliation.
+- CLAIMED: writer-level `--plan-reconciliation` field with taxonomy
+  validation implemented in `governance_tools.memory_record`; missing
+  declarations recorded as `not_declared` with advisory; malformed
+  declarations rejected at write time; pre-push advisory reports
+  undeclared records; the gate target is silent drift, not deferred
+  drift.
+- NOT CLAIMED: blocking enforcement (P1-F, separate OP-HC decision),
+  deferred-debt report, P1-E FP/FN window completed, PLAN auto-sync,
+  retroactive declaration coverage for historical records, or that a
+  deferred declaration equals reconciliation.
 
 Reviewer polling:
 
@@ -322,17 +327,20 @@ do not start before the P1-C fixture exists):
   been reconciled with PLAN, and if not, why not. The gate target is silent
   drift, not deferred drift. This is NOT PLAN auto-sync and must not induce
   agents to edit canonical PLAN to legalize their own completion claims.
-- [ ] Add required `--plan-reconciliation` field to
-  `governance_tools.memory_record`:
-  `updated` | `not_applicable` | `deferred:<reason>`.
-- [ ] Deferred reasons must come from a reason taxonomy (e.g.
-  `requires-human-plan-review`, `awaiting-reviewer-verdict`,
+- [x] Add `--plan-reconciliation` field to `governance_tools.memory_record`
+  (2026-06-12): `updated` | `not_applicable` | `deferred:<reason>`;
+  omission is recorded as `not_declared` with a writer advisory (never
+  blocks); malformed values are rejected as input errors (exit 2).
+- [x] Deferred reasons validated against the reason taxonomy
+  (`requires-human-plan-review`, `awaiting-reviewer-verdict`,
   `scope-split-next-slice`, `canonical-update-not-authorized`,
-  `dirty-workspace-prevents-safe-edit`); reject empty or vacuous reasons
-  (`later` / `todo` / `pending` / `soon` / `TBD`).
-- [ ] Pre-push advisory only (reuse the current-date memory gate seam):
-  report completion-class records missing a reconciliation declaration;
-  do not block.
+  `dirty-workspace-prevents-safe-edit`); empty or vacuous reasons
+  (`later` / `todo` / `pending` / `soon` / `TBD`) rejected. Taxonomy
+  extension is PR-only.
+- [x] Pre-push advisory implemented on the current-date memory gate seam:
+  reports session-derived records in today's memory file lacking a
+  declaration; advisory only, never blocks. 11 focused tests added
+  (validation, render, CLI rejection, CLI advisory).
 - [ ] P1-E: collect 2-4 weeks of false-positive / false-negative samples
   before any blocking decision.
 - [ ] P1-F: upgrading to a current-diff blocker changes what counts as a

@@ -138,6 +138,22 @@ if [ "$MEMORY_UPDATED_IN_PUSH" -ne 1 ]; then
     exit 1
 fi
 
+# Advisory: plan_reconciliation declaration coverage (P1-D, advisory only).
+# Reports session-derived records in today's memory file that lack a
+# plan_reconciliation declaration. Never blocks; collects FP/FN evidence
+# for the P1-E window before any blocking decision (P1-F, separate OP-HC).
+if [ -f "$TARGET_REPO_ROOT/$TODAY_MEMORY_PATH" ]; then
+    PR_TOTAL="$(grep -c '^- memory_type:' "$TARGET_REPO_ROOT/$TODAY_MEMORY_PATH" 2>/dev/null || true)"
+    PR_DECLARED="$(grep -c '^  plan_reconciliation:' "$TARGET_REPO_ROOT/$TODAY_MEMORY_PATH" 2>/dev/null || true)"
+    PR_TOTAL="${PR_TOTAL:-0}"
+    PR_DECLARED="${PR_DECLARED:-0}"
+    if [ "$PR_TOTAL" -gt "$PR_DECLARED" ]; then
+        PR_MISSING=$((PR_TOTAL - PR_DECLARED))
+        echo "[governance] advisory: ${PR_MISSING} of ${PR_TOTAL} session-derived record(s) in $TODAY_MEMORY_PATH lack a plan_reconciliation declaration"
+        echo "  declare with: --plan-reconciliation {updated|not_applicable|deferred:<taxonomy-reason>} (advisory only, not blocking)"
+    fi
+fi
+
 # Fail-closed structured memory freshness gate.
 if [ -f "$MEMORY_FRESHNESS_GUARD" ] && [ "${#PYTHON_CMD[@]}" -gt 0 ]; then
     MEMORY_FRESHNESS_MAX_DAYS="${AI_GOVERNANCE_MEMORY_MAX_AGE_DAYS:-30}"

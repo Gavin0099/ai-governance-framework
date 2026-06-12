@@ -105,3 +105,106 @@ def test_append_session_derived_entry_deduplicates_equivalent_content(tmp_path: 
     append_session_derived_entry(project_root=tmp_path, record=record_b)
     text = output.read_text(encoding="utf-8")
     assert text.count("- memory_type: session-derived") == 1
+
+
+def test_validate_plan_reconciliation_accepts_canonical_values() -> None:
+    from governance_tools.memory_record import validate_plan_reconciliation
+
+    assert validate_plan_reconciliation("updated") == ("updated", None)
+    assert validate_plan_reconciliation("not_applicable") == ("not_applicable", None)
+    value, error = validate_plan_reconciliation("deferred:requires-human-plan-review")
+    assert value == "deferred:requires-human-plan-review"
+    assert error is None
+
+
+def test_validate_plan_reconciliation_missing_is_not_declared_advisory() -> None:
+    from governance_tools.memory_record import validate_plan_reconciliation
+
+    assert validate_plan_reconciliation(None) == ("not_declared", None)
+    assert validate_plan_reconciliation("   ") == ("not_declared", None)
+
+
+def test_validate_plan_reconciliation_rejects_vacuous_and_unknown_reasons() -> None:
+    from governance_tools.memory_record import validate_plan_reconciliation
+
+    for vacuous in ("deferred:later", "deferred:TODO", "deferred:pending"):
+        _, error = validate_plan_reconciliation(vacuous)
+        assert error is not None and "vacuous" in error
+
+    _, error = validate_plan_reconciliation("deferred:")
+    assert error is not None and "non-empty" in error
+
+    _, error = validate_plan_reconciliation("deferred:some-novel-reason")
+    assert error is not None and "taxonomy" in error
+
+    _, error = validate_plan_reconciliation("done")
+    assert error is not None
+
+
+def test_record_and_render_include_plan_reconciliation() -> None:
+    from governance_tools.memory_record import (
+        build_session_derived_record,
+        render_session_derived_entry,
+    )
+
+    record = build_session_derived_record(
+        what_changed="changed",
+        commit="abc1234",
+        session_id="session-1",
+        memory_binding="bound",
+        test_evidence="ok",
+        next_step="next",
+        plan_reconciliation="updated",
+    )
+    assert record["plan_reconciliation"] == "updated"
+    assert "  plan_reconciliation: updated\n" in render_session_derived_entry(record)
+
+    default_record = build_session_derived_record(
+        what_changed="changed",
+        commit="abc1234",
+        session_id="session-2",
+        memory_binding="bound",
+        test_evidence="ok",
+        next_step="next",
+    )
+    assert "  plan_reconciliation: not_declared\n" in render_session_derived_entry(default_record)
+
+
+def test_cli_rejects_malformed_plan_reconciliation(tmp_path: Path) -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "governance_tools/memory_record.py",
+            "--what-changed", "cli test change",
+            "--next-step", "verify rejection",
+            "--commit", "abc1234",
+            "--session-id", "test-session-reject",
+            "--plan-reconciliation", "deferred:later",
+            "--project-root", str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 2
+    assert "vacuous" in result.stdout
+    assert not (tmp_path / "memory").exists()
+
+
+def test_cli_missing_plan_reconciliation_is_advisory_not_blocking(tmp_path: Path) -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "governance_tools/memory_record.py",
+            "--what-changed", "cli test change",
+            "--next-step", "verify advisory",
+            "--commit", "abc1234",
+            "--session-id", "test-session-advisory",
+            "--project-root", str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0
+    assert "advisory: plan_reconciliation not declared" in result.stdout
+    written = list((tmp_path / "memory").glob("*.md"))
+    assert written and "plan_reconciliation: not_declared" in written[0].read_text(encoding="utf-8")
