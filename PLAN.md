@@ -342,7 +342,29 @@ do not start before the P1-C fixture exists):
   declaration; advisory only, never blocks. 11 focused tests added
   (validation, render, CLI rejection, CLI advisory).
 - [ ] P1-E: collect 2-4 weeks of false-positive / false-negative samples
-  before any blocking decision.
+  before any blocking decision (window started 2026-06-12; first data
+  point: 14 of 15 same-day records pre-date the field).
+
+P1-G - registered reproducible fleet matrix generator (completed
+2026-06-12):
+
+- [x] Generator promoted from session artifact to
+  `scripts/governance_repo_matrix.ps1`; framework root parameterized
+  (`AI_GOVERNANCE_FRAMEWORK_ROOT` override, script-relative default);
+  output path policy documented in the tool header.
+- [x] Reproducibility metadata emitted: `matrix_generated_at` (UTC),
+  `generation_tool`, `generation_tool_commit`, `source_repo_set`
+  (definition=hardcoded-in-tool, company/private repo lists, scope file
+  used for classification), `evidence_window_days`.
+- [x] `governance_tools/fleet_matrix_snapshot_validator.py` validates
+  snapshot metadata; 6 focused tests including legacy-shape rejection
+  and generator static checks.
+- [x] Reproduction verified: registered tool regenerated the fleet matrix
+  output type (snapshot `20260612_180253`) and passes the validator.
+- Claim boundary — CLAIMED: fleet matrix generation is reproducible
+  through a registered, attributable tool. NOT CLAIMED: fleet evidence
+  fresh, refresh cadence solved, monitored repo set correct, fleet
+  health restored, or meiandraybook in scope.
 - [ ] P1-F: upgrading to a current-diff blocker changes what counts as a
   legal completion claim and is therefore an [OP-HC] decision requiring
   FP data, a rollback path, and its own mutation contract. Not authorized
