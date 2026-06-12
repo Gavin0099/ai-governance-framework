@@ -44,11 +44,18 @@ if [ -f "$MEMORY_WORKFLOW_TOOL" ]; then
         if [ -n "$MEMORY_WORKFLOW_RESULT" ]; then
             MEMORY_WORKFLOW_STATUS=$(echo "$MEMORY_WORKFLOW_RESULT" | "${PYTHON_CMD[@]}" -c "import sys,json; d=json.load(sys.stdin); print(d.get('status',''))" 2>/dev/null || true)
             MEMORY_WORKFLOW_ALLOWED=$(echo "$MEMORY_WORKFLOW_RESULT" | "${PYTHON_CMD[@]}" -c "import sys,json; d=json.load(sys.stdin); print(d.get('completion_claim_allowed', True))" 2>/dev/null || true)
+            MEMORY_WORKFLOW_GUARD_RAN=$(echo "$MEMORY_WORKFLOW_RESULT" | "${PYTHON_CMD[@]}" -c "import sys,json; d=json.load(sys.stdin); print(d.get('guard_ran', False))" 2>/dev/null || true)
             if [ "$MEMORY_WORKFLOW_STATUS" = "memory_workflow_required" ]; then
                 echo ""
                 echo "[governance] memory workflow advisory: memory/** changes detected"
                 echo "  run: python -m governance_tools.memory_workflow --check --repo . --run-guard"
-                echo "  completion_claim_allowed=$MEMORY_WORKFLOW_ALLOWED"
+                if [ "$MEMORY_WORKFLOW_GUARD_RAN" = "True" ] || [ "$MEMORY_WORKFLOW_GUARD_RAN" = "true" ]; then
+                    echo "  completion_claim_allowed=$MEMORY_WORKFLOW_ALLOWED"
+                else
+                    echo "  guard_status=not_run_in_pre_commit_advisory"
+                    echo "  completion_claim_allowed=not_evaluated_without_guard"
+                    echo "  note: run the command above before claiming memory completion"
+                fi
                 echo "  note: pre-commit advisory only; commit is not blocked by this check"
                 echo ""
             fi
