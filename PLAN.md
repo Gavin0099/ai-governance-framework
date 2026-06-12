@@ -524,11 +524,17 @@ P1 - structured memory freshness:
   decision with its own mutation contract. Not a validator today.)
 - [ ] Do not claim structured memory sync is solved by daily memory writer
   completion alone. (Standing constraint; restated in policy v1 §5.)
-- [ ] Follow-up (gated on policy v1 being canonical, which it now is):
+- [x] Follow-up (gated on policy v1 being canonical, which it now is):
   apply the policy to refresh the currently-stale
   `memory/01_active_task.md` in a dedicated bookkeeping slice per policy
   §3-§5. Policy definition and policy application must not share a
-  slice.
+  slice. (Applied 2026-06-13: pre-repair comparison ran per §4 — PLAN
+  at HEAD `ce6de50` vs closure record 2026-06-13, no disagreement, stop
+  rule not triggered; file rewritten from PLAN + closure record only,
+  with refresh provenance header; claim recorded as point-in-time
+  consistency with PLAN as of `ce6de50` only. Not claimed: freshness
+  solved, sync automated, future staleness prevented, writer compliance
+  enforced.)
 
 P1 - adoption evidence collection (E2-relevant; evidence class, not
 presentation class):
