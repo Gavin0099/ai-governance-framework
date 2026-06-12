@@ -257,6 +257,20 @@ claim rollout complete):
   separate fields, not merged into one completion claim.
 - [ ] Do not add any blocking validator in this slice; this closeout is the
   design fixture for P1-D.
+
+P1-C claim ceiling (locked 2026-06-12 before execution):
+
+- CAN CLAIM: meiandraybook used as first external F-7 verification target;
+  selected F-7 update surfaces verified or explicitly failed; fleet snapshot
+  refreshed as evidence; memory_layout alias behavior observed; rollback
+  expectation observed; manual reconciliation fixture produced.
+- CANNOT CLAIM: F-7 works for all consumers; fleet rollout complete;
+  copy-based consumers solved; rollback procedure implemented; blocking
+  validator added; automatic PLAN reconciliation solved.
+- Hard limit: on unexpected dirty state, destructive update behavior, or
+  ambiguous repo role, stop at diagnosis and report; do not push through
+  remaining checklist items. A verification slice must not silently become
+  a remediation slice.
 - [ ] Refresh fleet matrix snapshot as part of F-7 verification evidence
   (current snapshot 2026-05-29 exceeds its own 7d evidence window).
 - [ ] Verify memory file naming against `memory_layout` aliases during F-7
