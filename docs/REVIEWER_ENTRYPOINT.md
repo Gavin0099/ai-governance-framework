@@ -45,8 +45,10 @@ These are normative boundaries, not disclaimers:
   has been verified; that is single-target evidence, not generality.
 - No automated PLAN reconciliation. The `plan_reconciliation` field is a
   per-record declaration, advisory-checked; it is not auto-sync.
-- No copy-based consumer update support (classification pending; current
-  ceiling: not solved).
+- No copy-based consumer update automation. Copy-based consumers are
+  classified **audit-only**: classification and audit wording are
+  supported, automatic full-update execution is not (see
+  [`ADOPTION_MODEL.md`](ADOPTION_MODEL.md); ceiling: not solved).
 - Test pass is not production safety; matrix-visible is not verified;
   observation records are not enforcement authority; a closeout receipt is
   not "governance complete".

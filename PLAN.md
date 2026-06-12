@@ -209,6 +209,18 @@ Fleet freshness (P1-H, 2026-06-12):
 - NOT CLAIMED: fleet health restored, continuous monitoring, weekly
   cadence, repo-class SLA, or that idle-period decay is a defect.
 
+Adoption model (P2-C, 2026-06-12):
+
+- CLAIMED: consumer role taxonomy canonicalized in
+  `docs/ADOPTION_MODEL.md` (submodule consumer, F-7 consumer, external
+  contract repo, copy-based audit-only, unsupported/unknown), each with
+  required evidence, allowed claims, prohibited claims, and upgrade
+  path; copy-based consumers classified audit-only (classification and
+  audit wording supported); classification-precedes-tooling rule.
+- NOT CLAIMED: copy-based update automation (unsupported; ceiling: not
+  solved), any new tooling, fleet rollout, F-7 generality, or that
+  classification of a class equals evidence of a consumer in it.
+
 Reviewer polling:
 
 - CLAIMED: reviewer polling is manual / resume-triggered only; bounded
@@ -495,10 +507,17 @@ presentation class):
 
 P2 - adoption model:
 
-- [ ] Classify whether copy-based consumers are supported, audit-only, or
+- [x] Classify whether copy-based consumers are supported, audit-only, or
   unsupported for automated update. Current claim ceiling: not solved.
   Classification first; do not design support tooling before P1-C
-  consumer evidence exists.
+  consumer evidence exists. (P2-C 2026-06-12: classified **audit-only**
+  for classification/audit wording; automated update **unsupported**
+  (zero copy-based consumer evidence). Canonical taxonomy in
+  `docs/ADOPTION_MODEL.md`: five consumer classes each with required
+  evidence, allowed claims, prohibited claims, upgrade path; sole
+  upgrade path to managed updates is migration to submodule consumer;
+  classification-precedes-tooling rule stated; aligned to P1-I scope
+  sets with PLAN-wins precedence. No tooling designed or changed.)
 
 P2 - external presentation:
 

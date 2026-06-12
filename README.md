@@ -94,6 +94,8 @@ python governance_tools/adopt_governance.py --target /path/to/your/repo
 
 最小起步包：見 [`examples/starter-pack/`](examples/starter-pack/) 與 [`governance/fleet/external_repo_onboarding_sop.md`](governance/fleet/external_repo_onboarding_sop.md)。
 
+**導入前先分類**：consumer role 決定 automation ceiling 與 evidence duty——分類先於工具。見 [`docs/ADOPTION_MODEL.md`](docs/ADOPTION_MODEL.md)（submodule / F-7 / contract repo / copy-based audit-only / unsupported）。copy-based consumer 目前僅支援 classification 與 audit 用語，**不支援**自動 full update。
+
 ## 能力狀態（Capability Status）
 
 不是所有能力都已完整 operational。每個 capability 標示兩個軸：**Status**（成熟度）與 **Claim class**（這個能力實際能主張到什麼層級）。
@@ -278,6 +280,8 @@ Please run latest AI governance apply for <REPO_PATH> (install hooks, execute cl
 ```
 
 Minimal starter pack: see [`examples/starter-pack/`](examples/starter-pack/) and [`governance/fleet/external_repo_onboarding_sop.md`](governance/fleet/external_repo_onboarding_sop.md).
+
+**Classify before adopting**: a consumer's role determines its automation ceiling and evidence duty — classification precedes tooling. See [`docs/ADOPTION_MODEL.md`](docs/ADOPTION_MODEL.md) (submodule / F-7 / contract repo / copy-based audit-only / unsupported). Copy-based consumers are currently supported for classification and audit wording only — automatic full update is **unsupported**.
 
 ## Capability Status
 
