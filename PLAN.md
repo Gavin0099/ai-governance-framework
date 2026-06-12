@@ -253,24 +253,26 @@ P1-C, or re-running the completed apply to manufacture new evidence.
   (2026-06-11, recorded at meiandraybook origin/main `678c4c9`/`3ddff9d`,
   `f7_final_status=full_update_completed`). Accepted per the re-scope
   note; NOT executed in this slice.
-- [ ] Verify hook installer carries managed pre-commit memory workflow advisory.
-- [ ] Verify consuming repo `AGENTS.md` routes memory tasks to dispatcher before
-  memory completion claims.
+- [x] Verify hook installer carries managed pre-commit memory workflow advisory:
+  satisfied by accepted apply evidence (`memory_workflow_hook_advisory=verified`,
+  `hook_validator_enforcement=verified` in `3ddff9d` record).
+- [x] Verify consuming repo `AGENTS.md` routes memory tasks to dispatcher before
+  memory completion claims: verified read-only against origin/main
+  (`governance:key=memory_workflow` keyed section, AGENTS.md:583).
 - [ ] Verify external repo closeout receipts persist schema `1.2` memory workflow
-  fields.
-- [ ] Keep submodule pointer update reported as stage success only, not F-7
-  completion.
-- [ ] Closeout: manually fill the seven-field reconciliation checklist
-  (PLAN item touched / PLAN status updated / claim boundary updated /
-  memory derived from PLAN not ahead of it / reviewer verdict / push
-  status / remaining non-claims).
-- [ ] Memory record explicitly declares `plan_reconciliation` status
-  (`updated` | `not_applicable` | `deferred:<reason>`); if PLAN is not
-  updated, a specific deferred reason is mandatory.
-- [ ] Record reviewer verdict, push status, and not-claimed boundary as
-  separate fields, not merged into one completion claim.
-- [ ] Do not add any blocking validator in this slice; this closeout is the
-  design fixture for P1-D.
+  fields: NOT YET OBSERVABLE — last consumer closeout (2026-05-31) predates the
+  F-7 update; requires the first post-update session on the consumer. Explicitly
+  pending, not failed.
+- [x] Keep submodule pointer update reported as stage success only, not F-7
+  completion: accepted evidence shows `full_update_completed` came from full
+  surface verification, not pointer-only.
+- [x] Closeout: seven-field reconciliation checklist filled manually in the
+  2026-06-12 closeout memory record (the P1-D design fixture).
+- [x] Memory record explicitly declares `plan_reconciliation: updated`
+  (PLAN re-scoped and reconciled before the record was written).
+- [x] Reviewer verdict, push status, and not-claimed boundary recorded as
+  separate fields in the closeout record.
+- [x] No blocking validator added in this slice.
 
 P1-C claim ceiling (locked 2026-06-12 before execution):
 
@@ -287,16 +289,23 @@ P1-C claim ceiling (locked 2026-06-12 before execution):
   ambiguous repo role, stop at diagnosis and report; do not push through
   remaining checklist items. A verification slice must not silently become
   a remediation slice.
-- [ ] Refresh fleet matrix snapshot as part of F-7 verification evidence
-  (current snapshot 2026-05-29 exceeds its own 7d evidence window).
-- [ ] Verify memory file naming against `memory_layout` aliases during F-7
-  application (known divergence seed: `F7_GOVERNANCE_ALLOWLIST` hardcodes
-  `02_tech_stack.md` while `memory_layout.py` accepts three aliases).
-  Verify and record only; do not claim alias divergence resolved.
-- [ ] Observe and record rollback path expectation during the F-7 update
-  (what reverting to the previous framework commit would require if smoke
-  fails after update). Observation only; no rollback implementation
-  claimed in this slice.
+- [x] Refresh fleet matrix snapshot as part of F-7 verification evidence:
+  `governance_repo_matrix_snapshot_20260612_173313` generated. Findings:
+  required_verified dropped 9/10 -> 1/10 (ratio 0.9 -> 0.1) from two weeks
+  of evidence decay under the 7d window; freshness_blocked_count=6;
+  meiandraybook is NOT in fleet scope (snapshot does not cover the P1-C
+  target); the generator exists only as a session artifact
+  (`artifacts/session/governance_repo_matrix_20260525.ps1`), not a
+  registered tool.
+- [x] Verify memory file naming against `memory_layout` aliases during F-7
+  application: meiandraybook uses `memory/02_tech_stack.md`, compatible with
+  both `F7_GOVERNANCE_ALLOWLIST` and `memory_layout` aliases. Divergence
+  seed remains latent for consumers using `02_workflow.md`; NOT claimed
+  resolved.
+- [x] Observe and record rollback path expectation: submodule pointer chain
+  on origin/main is `da1d4f3 -> 0eafe10 -> 554607f -> b14c15b`; rollback =
+  checkout previous known-good pointer (`554607f`) inside the submodule and
+  commit on a clean worktree. Observation only; no procedure implemented.
 
 P1 - update rollback documentation (P1-C follow-up; do not start before
 the P1-C rollback observation exists):
