@@ -11,16 +11,16 @@
 # ── PROVENANCE ────────────────────────────────────────────────────────────────
 schema_version: "1"
 baseline_version: 1.0.0
-source_commit: 9f7fa1e3a6b6ac7f90010f7048a23e44ae3ebb52
+source_commit: 952759e4903c34978870c6af24f44520cb6bdd8c
 framework_root: E:\BackUp\Git_EE\ai-governance-framework
-initialized_at: 2026-06-12T08:46:15Z
+initialized_at: 2026-06-12T08:55:00Z
 initialized_by: governance_tools/adopt_governance.py
 
 # ── INTEGRITY ─────────────────────────────────────────────────────────────────
 # sha256.<file>: hash recorded at init/refresh time; "protected" files are hash-verified
 # overridable.<file>: protected = must not change | overridable = repo may extend freely
 sha256.AGENTS.base.md: 838a89cece87a4b14146fad13ca9ef6b66299595067c40a883a0b9c6b18f56df
-sha256.PLAN.md: 1db6e45962d5513538c0af776aa409df9afcd5b3e7a075da4b4e1f36f04d9963
+sha256.PLAN.md: b8ffeac02a451a36da31a42d750c7b106c198fe48188998ddf7f8e6081650e72
 sha256.contract.yaml: 6fd79cddc8852ecb7992004808bfb7916675d8bb285ed043c0623078b341a168
 sha256.AGENTS.md: 68fdabf4a72f5105e5c13b90ed025b27fb889cfb536d58471157fcf38fdd0d00
 overridable.AGENTS.base.md: protected

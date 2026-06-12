@@ -176,6 +176,14 @@ Runtime ledger no-write mode (2026-06-12):
   guarantee, tracked ledgers untracked/ignored/deleted, or elimination of
   all hook / pre-push side effects.
 
+Structured PLAN Reconciliation Declaration (design only, 2026-06-12):
+
+- CLAIMED: design agreed and recorded as P1-C fixture + P1-D items; the gate
+  target is silent drift, not deferred drift; the atomic completion condition
+  is declaring ledger state, not auto-syncing PLAN.
+- NOT CLAIMED: implemented, enforced, blocking, or that a deferred
+  declaration equals reconciliation.
+
 Reviewer polling:
 
 - CLAIMED: reviewer polling is manual / resume-triggered only; bounded
@@ -214,8 +222,9 @@ P1-B - canonical status reconciliation after 2026-06-12 push:
   drift checker `severity=ok`, no warnings, no errors.
 - [x] No F-7 rollout performed in this slice.
 
-P1-C - F-7 external rollout (next slice: scoped verification for
-`meiandraybook` only; one slice one evidence; do not claim rollout complete):
+P1-C - F-7 external rollout verification with manual PLAN reconciliation
+fixture (scoped to `meiandraybook` only; one slice one evidence; do not
+claim rollout complete):
 
 - [ ] Use F-7 external apply path to distribute `memory_workflow` to a consuming
   repo.
@@ -226,6 +235,45 @@ P1-C - F-7 external rollout (next slice: scoped verification for
   fields.
 - [ ] Keep submodule pointer update reported as stage success only, not F-7
   completion.
+- [ ] Closeout: manually fill the seven-field reconciliation checklist
+  (PLAN item touched / PLAN status updated / claim boundary updated /
+  memory derived from PLAN not ahead of it / reviewer verdict / push
+  status / remaining non-claims).
+- [ ] Memory record explicitly declares `plan_reconciliation` status
+  (`updated` | `not_applicable` | `deferred:<reason>`); if PLAN is not
+  updated, a specific deferred reason is mandatory.
+- [ ] Record reviewer verdict, push status, and not-claimed boundary as
+  separate fields, not merged into one completion claim.
+- [ ] Do not add any blocking validator in this slice; this closeout is the
+  design fixture for P1-D.
+
+P1-D - Structured PLAN Reconciliation Declaration (design agreed 2026-06-12;
+do not start before the P1-C fixture exists):
+
+- Goal: every completion-oriented memory record must declare whether it has
+  been reconciled with PLAN, and if not, why not. The gate target is silent
+  drift, not deferred drift. This is NOT PLAN auto-sync and must not induce
+  agents to edit canonical PLAN to legalize their own completion claims.
+- [ ] Add required `--plan-reconciliation` field to
+  `governance_tools.memory_record`:
+  `updated` | `not_applicable` | `deferred:<reason>`.
+- [ ] Deferred reasons must come from a reason taxonomy (e.g.
+  `requires-human-plan-review`, `awaiting-reviewer-verdict`,
+  `scope-split-next-slice`, `canonical-update-not-authorized`,
+  `dirty-workspace-prevents-safe-edit`); reject empty or vacuous reasons
+  (`later` / `todo` / `pending` / `soon` / `TBD`).
+- [ ] Pre-push advisory only (reuse the current-date memory gate seam):
+  report completion-class records missing a reconciliation declaration;
+  do not block.
+- [ ] P1-E: collect 2-4 weeks of false-positive / false-negative samples
+  before any blocking decision.
+- [ ] P1-F: upgrading to a current-diff blocker changes what counts as a
+  legal completion claim and is therefore an [OP-HC] decision requiring
+  FP data, a rollback path, and its own mutation contract. Not authorized
+  by this item.
+- [ ] Add a non-blocking deferred-debt report (deferred count by reason,
+  oldest deferred age, PLAN-touched records without `updated` status) to
+  prevent acknowledged-drift from becoming a landfill.
 
 P1 - selective enforcement decision (closed 2026-06-12 by P1-A, `5deb8bb`):
 
