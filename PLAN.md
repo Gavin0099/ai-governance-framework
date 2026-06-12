@@ -359,10 +359,18 @@ P1-C claim ceiling (locked 2026-06-12 before execution):
 P1 - update rollback documentation (P1-C follow-up; do not start before
 the P1-C rollback observation exists):
 
-- [ ] Document rollback procedure for a failed F-7 update / failed smoke
+- [x] Document rollback procedure for a failed F-7 update / failed smoke
   after governance update. Updating governance is itself a trust-surface
   change and must be reversible per the core principle (expensive,
-  explicit, reversible).
+  explicit, reversible). (Closed 2026-06-13:
+  `docs/fleet/governance-update-rollback.md` — what can / must not be
+  auto-rolled-back, pre-rollback evidence capture, execution order with
+  clean-worktree stop-at-diagnosis gate, post-rollback verification
+  (behind-latest is the correct post-rollback state), and claim ceiling
+  after rollback. Grade caveat recorded in the doc: derived from the
+  P1-C read-only observation, never execution-tested; the first real
+  rollback is its own evidence-producing slice. No rollback executed,
+  no updater/F-7/hook/validator change, no consumer repo touched.)
 
 P1-D - Structured PLAN Reconciliation Declaration (design agreed 2026-06-12;
 do not start before the P1-C fixture exists):
@@ -574,6 +582,12 @@ P2 - external presentation:
     hostname replaced with `<framework-remote-url>` placeholder; claim
     ceiling section added — onboarding evidence only, no fleet or
     currentness claims.)
+  - [ ] README English review pass. (Residual scope identified
+    2026-06-13: the parent item names README, but no sub-item evidences
+    a dedicated English pass of the README itself — P2-A calibrated
+    claim content in both languages, which is not a full English review
+    pass. Parent stays open on exactly this residual; do not infer
+    parent-done from the other three sub-items.)
 - [ ] Publish a release only after release notes and claim ceiling are
   accurate. (P2-E adds: release notes must use the Claim class taxonomy
   and link `docs/REVIEWER_ENTRYPOINT.md`.)
