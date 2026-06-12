@@ -496,6 +496,45 @@ Decisions:
 - [ ] Add a non-blocking deferred-debt report (deferred count by reason,
   oldest deferred age, PLAN-touched records without `updated` status) to
   prevent acknowledged-drift from becoming a landfill.
+  (Implementation remains open; the checkpoint below fixes its scope.)
+
+Deferred-debt report implementation checkpoint (decided 2026-06-13;
+no code written in this slice):
+
+- Report scope (exactly four observables, all machine-decidable from
+  record fields):
+  1. count of session-derived records by `plan_reconciliation` value
+     (`updated` / `not_applicable` / `deferred:<reason>` /
+     `not_declared`);
+  2. deferred breakdown by taxonomy reason;
+  3. oldest age per deferred reason (days since record's file date);
+  4. `not_declared` count and oldest age (the silent class the gate
+     targets).
+- Explicitly OUT of report scope: semantic detection of "PLAN-touched
+  records without `updated`". Whether a record's work touched PLAN is
+  not machine-decidable from record fields; `not_declared` and
+  `deferred` are the observable proxies. The original PLAN wording is
+  narrowed to these proxies; semantic detection would require content
+  analysis and is not claimed.
+- Input source: canonical daily memory files `memory/YYYY-MM-DD.md`
+  only, parsed with the same record format the memory workflow uses.
+  Records pre-dating the field (before 2026-06-12) are bucketed as
+  `pre_field` and are NOT debt — they are expected history, consistent
+  with the P1-E first data point (14 of 15 same-day records pre-dated
+  the field).
+- Output format: read-only tool, `--format json|human` to stdout,
+  optional `--output <path>`; deterministic given the same inputs; no
+  ledger append, no artifact mutation by default (no-write discipline).
+- Claim ceiling: observation-class only. A deferred declaration with a
+  taxonomy reason is a legal honest state, not a failure; a
+  `not_declared` is advisory-era data, not a violation; the report has
+  no thresholds, no pass/fail, and is not a gate input. It may later be
+  cited as evidence by the P1-F decision but cannot close P1-E or
+  authorize blocking by itself.
+- Implementation slice (when opened): `governance_tools/`
+  read-only tool plus focused tests; non-goals pre-declared — no
+  validator change, no CI wiring, no blocking semantics, no thresholds,
+  no auto-cleanup, no rewriting or reclassifying historical records.
 
 P1 - selective enforcement decision (closed 2026-06-12 by P1-A, `5deb8bb`):
 
