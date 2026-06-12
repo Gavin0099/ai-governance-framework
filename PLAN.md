@@ -507,12 +507,28 @@ P1 - selective enforcement decision (closed 2026-06-12 by P1-A, `5deb8bb`):
   warnings into blockers without separate approval: preserved, warning-only.
 P1 - structured memory freshness:
 
-- [ ] Define freshness / rollover policy for structured canonical memory files
-  such as `memory/01_active_task.md`.
-- [ ] Define whether `PLAN.md` to structured-memory consistency should become
-  a validator-backed self-check.
+- [x] Define freshness / rollover policy for structured canonical memory files
+  such as `memory/01_active_task.md`. (Policy v1 canonicalized 2026-06-13:
+  `docs/structured-memory-freshness-policy.md` — staleness defined as
+  event-driven contradiction against PLAN at HEAD, not age; rollover is
+  event-driven with no SLA and no scheduled refresh; repair only in a
+  dedicated bookkeeping slice derived from PLAN plus the latest closure
+  record, never from session narrative; mandatory pre-repair comparison
+  surfaces with stop-at-diagnosis on PLAN/closure disagreement;
+  post-repair claim ceiling is point-in-time consistency only.
+  Policy-only slice: no writer, hook, validator, or automation change.)
+- [x] Define whether `PLAN.md` to structured-memory consistency should become
+  a validator-backed self-check. (Decided 2026-06-13 in policy v1 §6:
+  manual event-driven comparison now; advisory tooling deferred
+  failure-driven; blocking enforcement remains a separate OP-HC-class
+  decision with its own mutation contract. Not a validator today.)
 - [ ] Do not claim structured memory sync is solved by daily memory writer
-  completion alone.
+  completion alone. (Standing constraint; restated in policy v1 §5.)
+- [ ] Follow-up (gated on policy v1 being canonical, which it now is):
+  apply the policy to refresh the currently-stale
+  `memory/01_active_task.md` in a dedicated bookkeeping slice per policy
+  §3-§5. Policy definition and policy application must not share a
+  slice.
 
 P1 - adoption evidence collection (E2-relevant; evidence class, not
 presentation class):
