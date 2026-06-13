@@ -11,9 +11,9 @@
 # ── PROVENANCE ────────────────────────────────────────────────────────────────
 schema_version: "1"
 baseline_version: 1.0.0
-source_commit: ebe9d1d24903a857c68fd18a7056b89c86317f28
+source_commit: 7728c99fb2f4d13b328e909eb56aabe1dd4474e7
 framework_root: D:\ai-governance-framework
-initialized_at: 2026-06-13T11:59:02Z
+initialized_at: 2026-06-13T12:13:20Z
 initialized_by: governance_tools/adopt_governance.py
 
 # ── INTEGRITY ─────────────────────────────────────────────────────────────────
