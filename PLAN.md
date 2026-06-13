@@ -309,9 +309,19 @@ P1-C, or re-running the completed apply to manufacture new evidence.
   memory completion claims: verified read-only against origin/main
   (`governance:key=memory_workflow` keyed section, AGENTS.md:583).
 - [ ] Verify external repo closeout receipts persist schema `1.2` memory workflow
-  fields: NOT YET OBSERVABLE — last consumer closeout (2026-05-31) predates the
-  F-7 update; requires the first post-update session on the consumer. Explicitly
-  pending, not failed.
+  fields: PENDING PRODUCTION VALIDATION — code path verified 2026-06-13:
+  `schema_1_2_code_ready=true` (submodule `0eafe10`,
+  `CLOSEOUT_RECEIPT_SCHEMA_VERSION="1.2"`, all `memory_workflow_*` fields
+  present); `stop_hook_path_verified=true` (`.claude/settings.json` Stop hook
+  points to submodule `session_closeout_entry.py`);
+  `latest_existing_receipt_schema=1.1` (receipt `20260531T160517Z`);
+  `post_f7_natural_receipt_exists=false`; `production_schema_1_2_validation=pending`;
+  `next_required_action=observe first natural meiandraybook session closeout`.
+  Manual invocation (Option A) explicitly deferred: a hand-triggered receipt
+  cannot prove Stop hook production path or natural session context, and would
+  create evidence that looks like F-7 natural-session validation but cannot
+  support that claim — do not create it unless labeled `manual_invocation_only /
+  not_natural_session / not_production_closeout_evidence`.
 - [x] Keep submodule pointer update reported as stage success only, not F-7
   completion: accepted evidence shows `full_update_completed` came from full
   surface verification, not pointer-only.
