@@ -2,7 +2,7 @@
 
 > Refreshed 2026-06-13 per `docs/structured-memory-freshness-policy.md`
 > (dedicated bookkeeping slice; source surfaces: PLAN.md at HEAD
-> `ce6de50` + session closure record 2026-06-13 in `memory/2026-06-13.md`).
+> `33f7694` + session closure records 2026-06-13 in `memory/2026-06-13.md`).
 > Claim: point-in-time consistency with PLAN as of that commit only.
 
 ## Current Focus
@@ -16,6 +16,10 @@
 - Standing handoff rule (session closure 2026-06-13): do not open GitHub
   topics, badge, or release publish opportunistically; all remaining
   public surfaces require explicit user ratification.
+- Canonical claim ceiling (ratified 2026-06-13): this repo makes AI
+  governance claims reviewable via contract, artifact, receipt, gate, and
+  reviewer entrypoint — it does not provide full automatic runtime
+  guarantee; several surfaces remain advisory or selective enforcement.
 
 ## Current Status
 
@@ -29,14 +33,27 @@
   and human-applied, API-verified exact_match=True (P2-G). Agent
   metadata mutation: none; this environment has no GitHub metadata
   write path.
-- **Rollback procedure documented (2026-06-13, `1673f18`)**:
-  `docs/fleet/governance-update-rollback.md`; observation-derived,
-  never execution-tested; first real rollback is its own
-  evidence-producing slice.
-- **Structured memory freshness policy v1 (2026-06-13, `ce6de50`)**:
-  staleness = event-driven contradiction vs PLAN at HEAD, not age;
-  repair only in dedicated bookkeeping slices from PLAN + latest
-  closure record; this file's refresh is the first application.
+- **2026-06-13 second arc CLOSED (`1673f18`..`2756661`)**: rollback
+  procedure doc `docs/fleet/governance-update-rollback.md`
+  (observation-derived, never execution-tested), structured memory
+  freshness policy v1 `docs/structured-memory-freshness-policy.md`
+  (staleness = event-driven contradiction vs PLAN at HEAD, not age),
+  first freshness repair of this file (bookkeeping slice at `9acb179`),
+  deferred-debt report checkpoint (`ace5a62`, decision-only), deferred-debt
+  report implemented (`2756661`, read-only tool + 12 tests; first run:
+  281 records, not_declared=14, deferred=0, pre_field=249).
+- **2026-06-13 third arc CLOSED (`1924de0`..`33f7694`)**: README English
+  review pass — one claim-neutral readability edit, all claim ceilings
+  verified intact (`1924de0`); README bilingual content parity — four
+  English-only sections mirrored to Chinese half (one-line apply prompt,
+  f7 key-documents row, Agent Runtime Governance Profile with all seven
+  claim-ceiling clauses, Governance Artifact Discipline Index) plus
+  Chinese intro claim calibration (removed 'enforceable') and trust model
+  paragraph addition (`2493af9`, `6301918`). Mixed-commit (`a402122`)
+  identified and remediated in-session; split into two clean boundary
+  commits. Verdict: ACCEPT_WITH_CAVEATS for committed HEAD; workspace
+  clean for review/commit purposes after excluding declared runtime
+  ledgers.
 - **Earlier 2026-06-12 arc remains closed**: P1-A selective CI blocker
   (current-diff `active_non_canonical_writer` only; hooks advisory),
   P1-D `plan_reconciliation` field, P1-G registered fleet matrix
@@ -54,23 +71,24 @@ drift). Topology discovery must not become governance inflation.
 - **P1-E advisory FP/FN window**: passive; started 2026-06-12, matures
   ~2026-06-26 at the earliest. Only then does P1-F (blocking upgrade,
   OP-HC decision with its own mutation contract) become discussable.
-- **Deferred-debt report**: non-blocking report by deferral reason;
-  touches code — separate decision before opening.
 - **Receipts schema 1.2 verification**: awaits a natural meiandraybook
   post-update session; explicitly pending, not failed. Do not
   manufacture a session for it.
 - **P2-H GitHub topics**: closed-by-default; requires explicit user
   opening plus an independent ceiling check (topics are context-free
-  claim surfaces).
+  claim surfaces that cannot carry qualifying clauses).
 - **README badge / release publish**: badge deferred until the first
   gated release; release gated on Claim-class release notes linking the
   reviewer entrypoint.
-- **README English review pass**: residual scope on the P2 English-docs
-  parent item; parent stays open on exactly this.
 - **E2 retrospective adoption evidence**: needs self-reported data from
   the two engineer onboardings (human input, evidence-class).
 - **AB Cost Backfill**: frozen as `tooling_ready / evidence_pending`;
   unblock only with real scalar telemetry for 4 runs.
+- **version_compatibility artifact promotion policy**: identified as
+  governance debt (artifact is `artifacts/governance/version_compatibility.json`,
+  classified manual-promotion, unsupported→compatible verdict flip);
+  not yet sliced; requires independent governance decision — do not mix
+  with docs commits.
 
 ## Historical Context Retained
 
