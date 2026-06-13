@@ -94,6 +94,12 @@ python governance_tools/execution_surface_coverage_smoke.py --format human
 python governance_tools/adopt_governance.py --target /path/to/your/repo
 ```
 
+最新治理套用提示語（一行）：
+
+```text
+Please run latest AI governance apply for <REPO_PATH> (install hooks, execute closeout, rerun apply) until repo_native_verified=True, then return hooks/fw/agents/evidence/head_ok/ts_ok.
+```
+
 最小起步包：見 [`examples/starter-pack/`](examples/starter-pack/) 與 [`governance/fleet/external_repo_onboarding_sop.md`](governance/fleet/external_repo_onboarding_sop.md)。
 
 **導入前先分類**：consumer role 決定 automation ceiling 與 evidence duty——分類先於工具。見 [`docs/ADOPTION_MODEL.md`](docs/ADOPTION_MODEL.md)（submodule / F-7 / contract repo / copy-based audit-only / unsupported）。copy-based consumer 目前僅支援 classification 與 audit 用語，**不支援**自動 full update。
@@ -121,6 +127,29 @@ Claim class 定義：
 | Decision gate intermediate states | **Designed** | Cannot claim | PASS_WITH_DOWNGRADED_CLAIMS、NEEDS_REVIEW 為語義概念；程式路徑覆蓋待補 |
 | Memory promotion strictness | **Partial** | Advisory | 結構已存在；不是所有 memory path 都有 rejection 證據 |
 | CodeBurn（usage observation） | **Optional** | Observation | 觀測層，不是 gate 輸入 |
+
+## Agent Runtime 治理概況（Agent Runtime Governance Profile）
+
+本框架包含面向 reviewer 的結構性 artifact，用於分析 agent runtime 治理表面。
+
+從以下入口開始：
+
+- [`docs/governance/trust-boundary-taxonomy.md`](docs/governance/trust-boundary-taxonomy.md)
+- [`docs/governance/agent-runtime-profile.md`](docs/governance/agent-runtime-profile.md)
+- [`docs/governance/runtime-profile-validator-contract.md`](docs/governance/runtime-profile-validator-contract.md)
+- [`examples/runtime-profiles/governed-coding-agent.yaml`](examples/runtime-profiles/governed-coding-agent.yaml)
+
+這些 artifact 對 runtime 表面進行分類，包含：memory、context files、skills、plugins、工具執行、gateways、schedulers、subagents，以及 rollback / checkpoint 機制。
+
+Claim ceiling：
+
+- 僅限結構性 / 面向 reviewer 用途。
+- 不是 runtime enforcement。
+- 不是 Hermes 整合。
+- 不是語義證據驗證。
+- 不是 OS sandbox、RBAC、SoD 或 containment。
+- 不是授權正確性引擎。
+- 不是完整 AI 治理自動化。
 
 ## 本框架不主張（What This Framework Does Not Claim）
 
@@ -157,6 +186,7 @@ examples/               # Starter pack, sample contracts
 | [`docs/REVIEWER_ENTRYPOINT.md`](docs/REVIEWER_ENTRYPOINT.md) | Reviewer 最短入口（英文）：claims / non-claims / done 證據要求 / advisory vs enforcement 讀法 |
 | [`governance/fleet/operational_semantics_v1.md`](governance/fleet/operational_semantics_v1.md) | Fleet 治理定義與決策邊界 |
 | [`governance/fleet/external_repo_onboarding_sop.md`](governance/fleet/external_repo_onboarding_sop.md) | 外部 repo 導入 SOP |
+| [`docs/fleet/f7-governance-submodule-updater.md`](docs/fleet/f7-governance-submodule-updater.md) | 外部 repo「將 AI 治理更新至最新版本」的使用者入口與受治理 submodule 更新契約；不可簡化為僅檢查本地檔案（如 `AGENTS.md`）是否未變動 |
 | [`docs/ai-governance-framework-explainer.md`](docs/ai-governance-framework-explainer.md) | 長文說明（14 sections） |
 | [`governance/fleet/governance_scope.yaml`](governance/fleet/governance_scope.yaml) | Repo tier 分類（required / recommended / exempt） |
 | [`PLAN.md`](PLAN.md) | Project roadmap |
@@ -179,6 +209,12 @@ examples/               # Starter pack, sample contracts
 ## 授權（License）
 
 請見 repository license 檔案。
+
+## 治理 Artifact 紀律索引（Governance Artifact Discipline Index）
+
+- [`docs/governance/reason-code-registry.md`](docs/governance/reason-code-registry.md)
+- [`docs/governance/GOVERNANCE_ARTIFACT_FORMAT_RULE.md`](docs/governance/GOVERNANCE_ARTIFACT_FORMAT_RULE.md)
+- [`docs/governance/minimal-retrieval-navigability-verification-2026-05-27.md`](docs/governance/minimal-retrieval-navigability-verification-2026-05-27.md)
 
 ---
 
