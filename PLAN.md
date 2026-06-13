@@ -637,8 +637,16 @@ P2 - external presentation:
   score (prevents idle-period decay being read as regression). (P2-A
   2026-06-12: freshness-semantics paragraph added to both Fleet sections
   per P1-H semantics; idle-period decay stated as designed behavior.)
-- [ ] Prepare English reviewer-facing docs (README, starter-pack,
-  onboarding SOP). Split (P2-B 2026-06-12):
+- [x] Prepare English reviewer-facing docs (README, starter-pack,
+  onboarding SOP). Split (P2-B 2026-06-12). (Parent closed 2026-06-13
+  once all four sub-items carry evidence. Closure scope: this closes the
+  README English review pass only — English readability + claim-class
+  consistency. NOT claimed: bilingual content parity. The English README
+  half contains sections newer/more complete than the Chinese half
+  (Agent Runtime Governance Profile, Governance Artifact Discipline Index,
+  f7 Key-Documents row, one-line apply prompt); that asymmetry is a
+  bilingual-content gap, not an English-readability failure, and any
+  parity repair is a separate slice.)
   - [x] Reviewer entry doc `docs/REVIEWER_ENTRYPOINT.md` created: claims /
     non-claims / evidence required for done / advisory-vs-enforcement
     reading rules; linked from README Key Documents (ZH+EN). Bounded by
@@ -654,12 +662,18 @@ P2 - external presentation:
     hostname replaced with `<framework-remote-url>` placeholder; claim
     ceiling section added — onboarding evidence only, no fleet or
     currentness claims.)
-  - [ ] README English review pass. (Residual scope identified
-    2026-06-13: the parent item names README, but no sub-item evidences
-    a dedicated English pass of the README itself — P2-A calibrated
-    claim content in both languages, which is not a full English review
-    pass. Parent stays open on exactly this residual; do not infer
-    parent-done from the other three sub-items.)
+  - [x] README English review pass. (Done 2026-06-13. Dedicated English
+    readability + claim-class consistency pass over the README English
+    half: ten-row capability table reviewed — Status / Claim class
+    identical across both language halves, no claim drift; all claim
+    ceilings intact (audit-not-security-boundary, single-point E1-B
+    Phase 2 / mutation protection not claimed, copy-based unsupported,
+    Agent Runtime Profile not-X clauses, freshness not-a-health-score).
+    One claim-neutral readability edit applied: "claim tasks are
+    complete" -> "claim that tasks are complete" (README.md). NOT
+    claimed: all English docs reviewed, bilingual parity completed,
+    README perfect, content symmetry achieved. Residual originally
+    identified 2026-06-13 is now evidenced by this slice.)
 - [ ] Publish a release only after release notes and claim ceiling are
   accurate. (P2-E adds: release notes must use the Claim class taxonomy
   and link `docs/REVIEWER_ENTRYPOINT.md`.)

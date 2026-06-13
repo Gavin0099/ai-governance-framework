@@ -184,7 +184,7 @@ examples/               # Starter pack, sample contracts
 
 > Contract-bound execution, artifact-backed verification, and fail-closed decisions for AI-assisted engineering.
 
-Your AI agents modify code, generate summaries, and claim tasks are complete. But in real repositories:
+Your AI agents modify code, generate summaries, and claim that tasks are complete. But in real repositories:
 
 - **Scope overreach** — the agent edits files outside the request
 - **Claim inflation** — "tests passed" gets reported as "system is safe"
