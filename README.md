@@ -10,10 +10,12 @@
 - **觀測不等於治理（Observation ≠ enforcement）**：有 log 就被誤當成 gate pass
 - **記憶污染（Memory pollution）**：一次成功 session 被錯誤升級為長期知識
 
-這個 framework 不是讓 AI 更聰明，而是讓 AI 的邊界、證據、宣稱可以被**審核（auditable）且可強制執行（enforceable）**。
+這個 framework 不是讓 AI 更聰明，而是讓 AI 的邊界、證據、宣稱可以被審核，並在明確定義的 enforcement points 上被 fail-closed 檢查。
 
 
 本框架是 audit framework，不是 security boundary：它讓越界行為可見、可審、可歸因；它本身不阻止蓄意繞過。
+
+信任模型：本框架假設 AI agent / 執行流程不是對抗者。它能在明確定義的 gate 上 fail closed 並揭露 provenance，但不能作為安全邊界來防止同時能偽造 artifact 並繞過 gate path 的 agent 或流程。
 
 ---
 
