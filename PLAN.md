@@ -674,6 +674,19 @@ P2 - external presentation:
     claimed: all English docs reviewed, bilingual parity completed,
     README perfect, content symmetry achieved. Residual originally
     identified 2026-06-13 is now evidenced by this slice.)
+  - [x] README bilingual content parity. (Done 2026-06-13. Commits
+    2493af9 + 6301918. Four English-only sections mirrored to Chinese
+    half: one-line apply prompt, f7 key-documents row, Agent Runtime
+    Governance Profile with all seven claim-ceiling clauses, Governance
+    Artifact Discipline Index. Commit 2493af9 additionally calibrated
+    Chinese intro claim text (removed 'enforceable' / 'auditable'
+    overloading) and added trust model paragraph missing from Chinese
+    half. Mixed-commit (a402122) identified during remediation; split
+    into two clean boundary commits. Verdict: ACCEPT_WITH_CAVEATS.
+    Workspace: clean for review/commit purposes after excluding two
+    declared runtime ledger side effects. NOT claimed: full bilingual
+    symmetry, complete content parity, or any runtime guarantee
+    expansion.)
 - [ ] Publish a release only after release notes and claim ceiling are
   accurate. (P2-E adds: release notes must use the Claim class taxonomy
   and link `docs/REVIEWER_ENTRYPOINT.md`.)
