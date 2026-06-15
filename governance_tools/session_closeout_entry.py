@@ -37,6 +37,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from governance_tools.session_end_hook import run_session_end_hook, format_human_result
+from runtime_hooks.core.session_end import resolve_ledger_write_allowed_from_no_write_flag
 
 ALLOWED_TRIGGER_MODES = {"native_hook", "manual_fallback", "wrapper", "synthetic_smoke", "unknown"}
 CLOSEOUT_RECEIPT_SCHEMA_VERSION = "1.2"
@@ -386,7 +387,7 @@ def main() -> int:
             project_root,
             transcript_path=_transcript_path,
             hook_session_id=_hook_session_id,
-            ledger_write_allowed=not args.no_ledger_write,
+            ledger_write_allowed=resolve_ledger_write_allowed_from_no_write_flag(args.no_ledger_write),
         )
         closeout_artifact_path = result.get("canonical_closeout_artifact") or result.get("closeout_file")
         eligibility_evaluated, memory_write_required, memory_eligibility_reason = _evaluate_memory_eligibility(result)

@@ -7,7 +7,11 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from runtime_hooks.core.session_end import format_human_result, run_session_end
+from runtime_hooks.core.session_end import (
+    format_human_result,
+    resolve_ledger_write_allowed_from_no_write_flag,
+    run_session_end,
+)
 from runtime_hooks.core._canonical_closeout import write_candidate
 
 
@@ -131,6 +135,43 @@ def test_session_end_no_ledger_write_mode_skips_tracked_ledgers(local_project_ro
         / "claim-enforcement"
         / "claim-enforcement-receipts.ndjson"
     ).exists()
+
+
+def test_session_end_cli_absent_no_ledger_flag_defers_to_env(local_project_root, monkeypatch):
+    monkeypatch.setenv("AI_GOVERNANCE_NO_LEDGER_WRITE", "1")
+
+    result = run_session_end(
+        project_root=local_project_root,
+        session_id="2026-03-12-env-no-ledger",
+        runtime_contract=_contract(),
+        checks={"ok": True, "errors": []},
+        event_log=[{"event_type": "post_task"}],
+        response_text="runtime output",
+        summary="Env no ledger write validation",
+        ledger_write_allowed=resolve_ledger_write_allowed_from_no_write_flag(False),
+    )
+
+    assert result["ok"] is True
+    assert result["ledger_write_status"] == {
+        "ledger_write_allowed": False,
+        "session_index": "skipped_no_write_mode",
+        "claim_enforcement_receipt": "skipped_no_write_mode",
+    }
+    assert not (local_project_root / "artifacts" / "session-index.ndjson").exists()
+    assert not (
+        local_project_root
+        / "artifacts"
+        / "claim-enforcement"
+        / "claim-enforcement-receipts.ndjson"
+    ).exists()
+
+
+def test_session_end_cli_no_ledger_flag_forces_no_write_mode():
+    assert resolve_ledger_write_allowed_from_no_write_flag(True) is False
+
+
+def test_session_end_cli_absent_no_ledger_flag_returns_env_fallback_sentinel():
+    assert resolve_ledger_write_allowed_from_no_write_flag(False) is None
 
 
 def test_session_end_appends_daily_memory_entry_with_required_fields(local_project_root):

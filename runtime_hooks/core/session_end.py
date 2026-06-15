@@ -61,6 +61,15 @@ def _ledger_write_disabled_from_env() -> bool:
     return os.environ.get("AI_GOVERNANCE_NO_LEDGER_WRITE", "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def resolve_ledger_write_allowed_from_no_write_flag(no_ledger_write: bool) -> bool | None:
+    """Resolve CLI --no-ledger-write into the runtime tri-state.
+
+    True flag -> force no-write mode.
+    Missing flag -> defer to AI_GOVERNANCE_NO_LEDGER_WRITE in run_session_end().
+    """
+    return False if no_ledger_write else None
+
+
 def _append_session_index(canonical: dict[str, Any], project_root: Path, *, ledger_write_allowed: bool = True) -> str:
     """
     Append a summary line to artifacts/session-index.ndjson (Slice 4).
@@ -1342,7 +1351,7 @@ def main() -> None:
         approved_by_auto=args.approved_by_auto,
         initial_agent_class=initial_agent_class,
         session_start_phase_classification=(session_start_payload.get("pre_task_check") or {}).get("phase_classification"),
-        ledger_write_allowed=not args.no_ledger_write,
+        ledger_write_allowed=resolve_ledger_write_allowed_from_no_write_flag(args.no_ledger_write),
     )
 
     if args.format == "json":
