@@ -86,3 +86,21 @@ def test_session_end_hook_accepts_closeout_metadata_lines_when_closeout_present(
     result = run_session_end_hook(repo)
     assert result["closeout_status"] == "valid"
     assert result["per_layer_results"]["missing_fields"] == []
+
+
+def test_session_end_hook_no_ledger_write_skips_tracked_ledgers() -> None:
+    repo = _reset_fixture("bridge_no_ledger_write")
+
+    result = run_session_end_hook(
+        repo,
+        hook_session_id="bridge-no-ledger",
+        ledger_write_allowed=False,
+    )
+
+    assert result["ledger_write_status"] == {
+        "ledger_write_allowed": False,
+        "session_index": "skipped_no_write_mode",
+        "claim_enforcement_receipt": "skipped_no_write_mode",
+    }
+    assert not (repo / "artifacts" / "session-index.ndjson").exists()
+    assert not (repo / "artifacts" / "claim-enforcement" / "claim-enforcement-receipts.ndjson").exists()

@@ -1632,7 +1632,13 @@ def _collect_memory_workflow_surface(project_root: Path) -> dict[str, Any]:
         }
 
 
-def run_session_end_hook(project_root: Path, *, transcript_path: Path | None = None, hook_session_id: str | None = None) -> dict[str, Any]:
+def run_session_end_hook(
+    project_root: Path,
+    *,
+    transcript_path: Path | None = None,
+    hook_session_id: str | None = None,
+    ledger_write_allowed: bool | None = None,
+) -> dict[str, Any]:
     closeout_path = project_root / CLOSEOUT_FILE
     closeout_trigger_mode = "manual"
     clf = classify_closeout(closeout_path, project_root)
@@ -1696,6 +1702,7 @@ def run_session_end_hook(project_root: Path, *, transcript_path: Path | None = N
         checks=checks,
         response_text=effective_response,
         summary=fields.get("TASK_INTENT", ""),
+        ledger_write_allowed=ledger_write_allowed,
     )
 
     # Gate evaluation — policy-driven, not hardcoded.
@@ -1917,6 +1924,7 @@ def run_session_end_hook(project_root: Path, *, transcript_path: Path | None = N
         "snapshot_created": result["snapshot"] is not None,
         "promoted": result["promotion"] is not None,
         "memory_closeout": result["memory_closeout"],
+        "ledger_write_status": result.get("ledger_write_status", {}),
         "verdict_artifact": result["verdict_artifact"],
         "trace_artifact": result["trace_artifact"],
         "canonical_path_audit": canonical_path_audit,
