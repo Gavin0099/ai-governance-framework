@@ -241,8 +241,8 @@ This is an audit framework, not a security boundary: it makes boundary violation
 Each AI task runs through a governance lifecycle:
 
 ```text
-Pre Hook          →  Load authority source + generate task contract
-Agent Execution   →  Operate within contract boundaries
+Pre Hook          -> Load authority source + shape task-contract expectations
+Agent Execution   -> Operate within declared/advisory boundaries
 Post Hook         →  Independent artifact inspection + claim ceiling
 Decision Gate     →  PASS / FAIL / BLOCKED (fail-closed default)
 Closeout Receipt  →  Auditable record with explicit non-claims
@@ -253,10 +253,17 @@ The key mechanisms:
 
 | Mechanism | What It Does |
 |---|---|
-| **Task Contract** | Defines allowed scope, forbidden scope, required evidence, and done definition before execution starts |
+| **Task Contract** | Shapes allowed/forbidden scope, required evidence, and done criteria across hooks, gates, and claim ceilings; required evidence is the most operational part today |
 | **Claim Ceiling** | Limits what conclusions the evidence can support — test pass ≠ system safety |
 | **Fail-Closed Gate** | Unknown scope → blocked. Missing evidence → not admitted. Unclear authority → denied |
 | **Non-Claims** | Every closeout receipt explicitly states what the result does *not* prove |
+
+Task contract caveat: the framework does not currently emit one complete
+task-contract artifact with hard path-level allowed/forbidden enforcement.
+Required evidence checks are closest to operational enforcement. Done definition
+is composed from gate results, memory workflow, and claim ceiling. Allowed and
+forbidden scope remain advisory/reviewer-guarded unless a repo-specific gate
+implements a stronger check.
 
 ## Fleet Governance
 
@@ -340,7 +347,7 @@ Claim class definitions:
 | Fleet matrix + scope-normalized ratio | **Operational** | Observation | ratio is freshness-window evidence (event-driven refresh), not a permanent health score; structural readiness tracked separately |
 | Evidence tier (hardware-aware) | **Operational** | Observation | tier_2 / tier_3 / ci_strict visible per repo in snapshot |
 | Claim vs. evidence separation | **Partial** | Advisory | Principle in place; per-claim-type automation coverage varies |
-| Minimal rule selection | **Partial** | Advisory | Rule registry exists; task-type-driven loading not yet fully automated |
+| Minimal rule selection | **Partial** | Advisory | Rule registry and heuristics exist; task-type-driven loading is not proof that agent context is hard-constrained to minimal rules |
 | Decision gate intermediate states | **Designed** | Cannot claim | PASS_WITH_DOWNGRADED_CLAIMS, NEEDS_REVIEW are decision concepts; code path coverage TBD |
 | Memory promotion strictness | **Partial** | Advisory | Structure exists; not all memory paths have rejection evidence |
 | CodeBurn (usage observation) | **Optional** | Observation | Observation layer; not a gate input |

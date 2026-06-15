@@ -25,6 +25,9 @@ Use explicit capability states:
 
 Never write designed intent as already-operational capability.
 
+Minimal rule selection remains `Partial` / `Advisory` unless a specific runtime
+surface proves task-type loading and context reduction for the current task.
+
 ## 2. Three Layers (Do Not Collapse)
 
 1. Single-run governance lifecycle  
@@ -44,6 +47,11 @@ Rules:
 4. independent artifact inspection
 5. decision gate
 6. closeout receipt
+
+Task contract caveat: this is not a single guaranteed YAML artifact today.
+Required evidence is closest to operational enforcement. Done definition is
+composed from gate and claim-ceiling outputs. Allowed and forbidden scope remain
+advisory/reviewer-guarded unless a specific gate implements stronger checking.
 7. memory eligibility check
 
 Principle:
