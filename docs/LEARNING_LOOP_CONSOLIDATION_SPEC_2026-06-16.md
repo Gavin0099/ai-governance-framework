@@ -46,7 +46,7 @@ A reviewer finding deterministically produces, or is checkably linked to, three
 existing-format artifacts:
 
 1. a **taxonomy classification** — recommended as Layer 1 (SF-code) under the
-   layered taxonomy model in OQ-1 (**OPEN, not ratified**);
+   layered taxonomy model in OQ-1 (**ratified 2026-06-17**);
    `failure_disposition.FAILURE_KINDS` is Layer 3 (result disposition), not the
    primary finding axis;
 2. a **replayable eval case** (graduating `failure_mode_test_matrix.v0.1.json`),
@@ -93,7 +93,7 @@ auto-blocks (blocking would be a separate OP-HC decision, out of scope here).
 
 ## Boundary and API considerations
 
-- **Eval schema (recommended, pending OQ-1 ratification)**: extend the v0.1
+- **Eval schema (OQ-1 ratified — layered model)**: extend the v0.1
   matrix but **split the single `category` into the three layers** so different
   questions live in different fields rather than one flattened enum:
   ```json
@@ -131,7 +131,7 @@ auto-blocks (blocking would be a separate OP-HC decision, out of scope here).
   (semantic / scenario-type / result-disposition) into one `category` enum.
   Mitigation: keep them as separate fields; pin `semantic_failure` to SF-codes
   and `result_disposition` to `FAILURE_KINDS`, and never use the result axis as
-  the primary finding classification. (Recommendation pending OQ-1 ratification.)
+  the primary finding classification. (OQ-1 ratified — layered model.)
 - **Loop creeping into enforcement** — any auto-block silently violates the
   Phase E pause. Mitigation: the loop is observational; blocking is an explicit
   separate OP-HC decision with its own mutation contract.
@@ -145,7 +145,7 @@ auto-blocks (blocking would be a separate OP-HC decision, out of scope here).
   `SEMANTIC_FAILURE_TAXONOMY.md` SF-codes (read-only, no new tool).
   `scenario_type` is a separate replay-shape field; `result_disposition`
   (`FAILURE_KINDS`) is NOT a seed field — it is filled only after a run, never
-  as the primary classification. (Pending OQ-1 ratification.)
+  as the primary classification. (OQ-1 ratified — layered model.)
 - **Replay**: a future eval runner would follow the existing pattern of
   `scripts/run_e8a_fixture.py` / `scripts/replay_verification.py` — referenced,
   not built in this spec.
@@ -158,12 +158,10 @@ auto-blocks (blocking would be a separate OP-HC decision, out of scope here).
 
 ## Open design questions (must be answered before any tranche)
 
-- **OQ-1 (taxonomy reconciliation) — OPEN; recommendation upgraded, NOT
-  ratified.** The repo holds three category spaces that answer three *different*
-  questions; the earlier "just use SF-codes" framing was too flat (a flat merge
-  would crush three abstraction layers into one enum). Recommended resolution
-  (**pending explicit owner ratification**) is a **layered taxonomy framework,
-  not a flat merge**:
+- **OQ-1 (taxonomy reconciliation) — RESOLVED: owner-ratified 2026-06-17.** The
+  repo holds three category spaces that answer three *different* questions; a
+  flat merge would crush three abstraction layers into one enum. The ratified
+  resolution is a **layered taxonomy framework, not a flat merge**:
   - **Layer 1 — Semantic failure (primary).** `SEMANTIC_FAILURE_TAXONOMY.md`
     SF-codes answer "what is this failure, semantically?" A reviewer finding is
     classified here first (e.g. SF-05 Evidence Mismatch). This is the primary
@@ -182,10 +180,23 @@ auto-blocks (blocking would be a separate OP-HC decision, out of scope here).
   - Cross-walk among the three layers is **referential and read-only**; it does
     not collapse them into one enum and does not create a fourth taxonomy or a
     second source of truth.
-  - **Status: OPEN.** Until the owner explicitly ratifies this layered model, no
-    schema validation may pin drift findings to `FAILURE_KINDS`, and SF-codes
-    are the *recommended* (not ratified) Layer-1 home. This OQ is itself an
-    instance of the framework's own authority-fragmentation problem.
+  - **Status: RESOLVED (owner-ratified 2026-06-17).** Ratification text: SF-code
+    is the primary taxonomy for reviewer findings; eval scenario type is a
+    separate replay-shape axis for eval cases; `FAILURE_KINDS` remains
+    `result_disposition` only, for post-run test/eval interpretation;
+    cross-walks are read-only references only — no flat merge, no fourth
+    taxonomy, no direct substitution across layers.
+  - **Claim ceiling (critical — do not overclaim).** Ratifying OQ-1 removes
+    ONLY the taxonomy gate. It does **not** unpause learning-loop
+    implementation. OQ-2 already fixes the loop to advisory-only, and Gate 3
+    (un-pause / repeated drift-class trigger) is still unmet. **Permitted now**:
+    taxonomy-alignment prep only — spec status, schema field definitions,
+    read-only cross-walk rules, and advisory-only validator tests that prevent
+    `FAILURE_KINDS` being used as the primary finding taxonomy. **Not
+    permitted**: CI blocker, completion gate, re-run gate, or any claim that
+    learning-loop implementation has started. Correct claim: "OQ-1 ratified;
+    taxonomy blocker removed; implementation remains limited to advisory / spec
+    / schema preparation until un-pause criteria are met."
 - **OQ-2 (advisory terminus vs re-run gate) — RESOLVED: owner-ratified
   advisory-only (2026-06-16).** The loop terminates at "structured record →
   taxonomy / memory / eval / claim-boundary linkage → future warning/reminder
