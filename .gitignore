@@ -91,6 +91,7 @@ artifacts/external-project-facts/
 artifacts/claim-enforcement/session-*/
 artifacts/reviewer-handoff/
 artifacts/session-summary.txt
+artifacts/governance/version_compatibility.json
 memory/candidates/*.json
 .governance-audit/
 
