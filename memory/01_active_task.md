@@ -1,15 +1,16 @@
 # Active Task
 
 > Refreshed 2026-06-17 per `docs/structured-memory-freshness-policy.md`
-> (dedicated bookkeeping slice; source surfaces: PLAN.md at HEAD
-> `6195440` + `memory/2026-06-16.md` + `memory/2026-06-17.md`).
-> Claim: point-in-time consistency with PLAN as of that commit only.
+> (dedicated bookkeeping slice; source surfaces: git state at HEAD
+> `824d8e0`, PLAN.md active planning surface, `memory/2026-06-16.md`,
+> and `memory/2026-06-17.md`).
+> Claim: point-in-time active-task consistency with current repo state only.
 
 ## Current Focus
 
 - **No active autonomous implementation slice.** Current workspace is synced to
-  `origin/main` at `6195440`, but remains NOT CLEAN because two runtime ledger
-  side effects are dirty.
+  `origin/main` at `824d8e0` and is clean after the runtime ledger side effects
+  were audited and restored to HEAD.
 - Standing principle: **Validity before Expansion** - do not claim
   enforcement, freshness, adoption, learning-loop rollout, or version
   compatibility beyond the documented, validated surface.
@@ -27,16 +28,17 @@
 
 ## Current Status
 
-- **Pull state current (2026-06-17)**: local `main` fast-forwarded to
-  `origin/main` at `6195440` (`docs(plan): clarify generated snapshot and EOL
-  residual boundaries`). Pull brought in the 2026-06-16/2026-06-17 memory,
-  learning-loop advisory prep, generated snapshot ignore, and PLAN boundary
-  repair commits.
-- **Dirty workspace boundary**: two known runtime ledgers remain dirty and are
-  excluded from this bookkeeping surface unless explicitly audited:
+- **Pull + bookkeeping state current (2026-06-17)**: local `main` is synced to
+  `origin/main` at `824d8e0` (`docs(memory): refresh active task after pull`).
+  The prior pull brought in the 2026-06-16/2026-06-17 memory, learning-loop
+  advisory prep, generated snapshot ignore, and PLAN boundary repair commits;
+  the follow-up bookkeeping commit refreshed active memory after that pull.
+- **Runtime ledger boundary resolved for current workspace**: the two known
+  runtime ledger side effects were audited as historical append-only local
+  side effects and restored to HEAD:
   `artifacts/claim-enforcement/claim-enforcement-receipts.ndjson` and
-  `artifacts/session-index.ndjson`. Do not claim workspace clean while they
-  remain dirty.
+  `artifacts/session-index.ndjson`. Current workspace is clean. This does not
+  solve the long-term tracked-ledger side-effect policy.
 - **Generated compatibility snapshot boundary closed (`ed0f927`, `471ebf5`,
   `6195440`)**: `artifacts/governance/version_compatibility.json` is generated
   and ignored, not the canonical source of version truth. Reviewer-facing
@@ -87,11 +89,12 @@ Learning-loop implementation remains Gate-3-blocked. OQ-1/OQ-2 resolution and
 taxonomy-alignment prep do not authorize rollout, enforcement, automatic
 banking, replay generation, or completion-gate behavior.
 
-## Next Steps (from PLAN at HEAD `6195440`)
+## Next Steps (from current PLAN / memory state)
 
-- **Dirty runtime ledger decision**: either explicitly exclude the two dirty
-  runtime ledgers from the current work, or open a separate audit/promotion
-  slice. Do not stage them with docs, memory, F-7, or learning-loop commits.
+- **Runtime ledger policy**: current workspace is clean after restoring local
+  ledger side effects. Long-term tracked-ledger policy remains unsolved; do not
+  claim ignored/untracked ledger behavior or no-write coverage beyond the
+  already documented runtime smoke no-write mode.
 - **P1-E advisory FP/FN window**: passive; started 2026-06-12, matures
   ~2026-06-26 at the earliest. Only then does P1-F (blocking upgrade,
   OP-HC decision with its own mutation contract) become discussable.
