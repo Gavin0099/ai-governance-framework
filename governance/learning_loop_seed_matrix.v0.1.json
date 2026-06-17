@@ -1,0 +1,41 @@
+{
+  "version": "0.1",
+  "title": "Learning Loop Seed Matrix",
+  "status": "draft_taxonomy_alignment_prep",
+  "purpose": "Represent real reviewer findings as layered learning-loop seeds without opening Gate 3.",
+  "gate_status": {
+    "oq1_taxonomy_reconciliation": "resolved_layered",
+    "oq2_loop_terminus": "resolved_advisory_only",
+    "gate_3": "not_open"
+  },
+  "claim_ceiling": [
+    "taxonomy shape is representable",
+    "static advisory checks can detect layer misuse",
+    "no banking, replay, CI blocker, completion gate, or enforcement claim is made"
+  ],
+  "seeds": [
+    {
+      "id": "LLS-001",
+      "title": "Runtime ledger no-write env shadow regression",
+      "semantic_failure": "SF-05",
+      "scenario_type": "deterministic_repo_behavior",
+      "result_disposition": null,
+      "source_refs": [
+        "commit:3221da6",
+        "commit:5e38638",
+        "review-thread:019ecaf0-2982-7a40-aba5-4a65e69acfc8"
+      ],
+      "expected_signal": "CLI absent flag must defer to AI_GOVERNANCE_NO_LEDGER_WRITE env fallback instead of forcing ledger_write_allowed=True.",
+      "artifacts_under_test": [
+        "governance_tools/session_end.py",
+        "governance_tools/session_closeout_entry.py",
+        "tests/test_runtime_session_end.py"
+      ],
+      "non_claims": [
+        "does not prove all session-end paths are regression-protected",
+        "does not open Gate 3",
+        "does not add an eval runner"
+      ]
+    }
+  ]
+}
