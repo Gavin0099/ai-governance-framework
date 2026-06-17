@@ -21,7 +21,7 @@
   "properties": {
     "schema_version": {
       "type": "string",
-      "enum": ["1.0", "1.1"]
+      "enum": ["1.0", "1.1", "1.2"]
     },
     "timestamp": {
       "type": "string",
@@ -30,6 +30,9 @@
     "agent_id": {
       "type": "string",
       "minLength": 1
+    },
+    "session_id": {
+      "type": "string"
     },
     "trigger_mode": {
       "type": "string",
@@ -48,6 +51,9 @@
     "exit_code": {
       "type": "integer",
       "minimum": 0
+    },
+    "linked_head_commit": {
+      "type": "string"
     },
     "closeout_artifact_path": {
       "type": "string"
@@ -107,6 +113,64 @@
     "manual_fallback_reason": {
       "type": "string",
       "description": "Reason native hook was unavailable (e.g. non_native_hook_agent, hook_install_failed)."
+    },
+
+    "memory_write_claim_verified": {
+      "type": "boolean",
+      "description": "Whether a memory_write_performed self-report was backed by daily memory evidence."
+    },
+    "memory_write_claim_verification_reason": {
+      "type": "string",
+      "description": "Reason emitted by memory write claim verification."
+    },
+    "memory_authority_guard_ran": {
+      "type": "boolean",
+      "description": "Whether the memory authority guard ran during closeout."
+    },
+    "memory_authority_scope": {
+      "type": "string",
+      "description": "Scope reported by the memory authority guard."
+    },
+    "memory_authority_warning_codes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Warning codes reported by the memory authority guard."
+    },
+    "memory_unbound_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Count of unbound memory entries reported by the memory authority guard."
+    },
+    "memory_workflow_dispatch_ran": {
+      "type": "boolean",
+      "description": "Whether the memory workflow dispatcher ran during closeout."
+    },
+    "memory_workflow_status": {
+      "type": "string",
+      "description": "Status reported by the memory workflow dispatcher."
+    },
+    "memory_task_classification": {
+      "type": "string",
+      "description": "Task classification reported by the memory workflow dispatcher."
+    },
+    "memory_completion_claim_allowed": {
+      "type": "boolean",
+      "description": "Whether the memory workflow dispatcher allowed a memory completion claim."
+    },
+    "memory_workflow_warning_codes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Warning codes reported by the memory workflow dispatcher."
+    },
+    "memory_workflow_blocker_codes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Blocker codes reported by the memory workflow dispatcher."
+    },
+    "memory_workflow_guard_summary": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Guard summary forwarded through the memory workflow dispatcher."
     }
   },
 

@@ -43,6 +43,7 @@ from governance_tools.session_closeout_entry import (
 )
 
 _FIXTURE_ROOT = Path(__file__).parent / "_tmp_receipt_memory_surface"
+_REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _reset(name: str) -> Path:
@@ -199,6 +200,50 @@ class TestSchemaVersion:
         )
         payload = json.loads(receipt_path.read_text(encoding="utf-8"))
         assert payload["schema_version"] == "1.2"
+
+    def test_closeout_receipt_schema_accepts_emitted_1_2_memory_workflow_surface(self, tmp_path: Path) -> None:
+        schema = json.loads((_REPO_ROOT / "schemas" / "closeout_receipt.schema.json").read_text(encoding="utf-8"))
+        properties = schema["properties"]
+
+        receipt_path = _write_closeout_receipt(
+            tmp_path,
+            agent_id="test",
+            trigger_mode="manual_fallback",
+            entrypoint="governance_tools.session_closeout_entry",
+            exit_code=0,
+            closeout_artifact_path=None,
+            memory_eligibility_evaluated=True,
+            memory_write_required=True,
+            memory_write_performed=False,
+            memory_eligibility_reason="memory_candidate_signals_detected",
+            memory_workflow_dispatch_ran=True,
+            memory_workflow_status="memory_workflow_required",
+            memory_task_classification="governed_memory_task",
+            memory_completion_claim_allowed=False,
+            memory_workflow_warning_codes=["missing_canonical_memory"],
+            memory_workflow_blocker_codes=["active_non_canonical_writer"],
+            memory_workflow_guard_summary={
+                "active_non_canonical_writer": 1,
+                "missing_canonical_memory": 1,
+            },
+        )
+        payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+
+        assert payload["schema_version"] == "1.2"
+        assert "1.2" in properties["schema_version"]["enum"]
+        assert set(payload) <= set(properties)
+        for key in schema["required"]:
+            assert key in payload
+        for key in (
+            "memory_workflow_dispatch_ran",
+            "memory_workflow_status",
+            "memory_task_classification",
+            "memory_completion_claim_allowed",
+            "memory_workflow_warning_codes",
+            "memory_workflow_blocker_codes",
+            "memory_workflow_guard_summary",
+        ):
+            assert key in properties
 
 
 # ── Snapshot stability ────────────────────────────────────────────────────────
