@@ -79,6 +79,35 @@ def test_advisory_warns_on_legacy_flat_category_field():
     assert "legacy category field is not allowed" in result.warnings[0]
 
 
+def test_advisory_warns_when_seeds_field_is_missing():
+    result = validate_payload({}, semantic_failure_ids={"SF-05"})
+
+    assert result.ok is True
+    assert result.checked_seeds == 0
+    assert result.warning_count == 1
+    assert result.warnings == ["matrix.seeds must be a list"]
+
+
+def test_advisory_warns_when_seeds_field_is_not_a_list():
+    result = validate_payload({"seeds": {"id": "not-a-list"}}, semantic_failure_ids={"SF-05"})
+
+    assert result.ok is True
+    assert result.checked_seeds == 0
+    assert result.warning_count == 1
+    assert result.warnings == ["matrix.seeds must be a list"]
+
+
+def test_advisory_warns_when_seed_entry_is_not_an_object():
+    payload = {"seeds": ["not-an-object"]}
+
+    result = validate_payload(payload, semantic_failure_ids={"SF-05"})
+
+    assert result.ok is True
+    assert result.checked_seeds == 1
+    assert result.warning_count == 1
+    assert result.warnings == ["seeds[0] must be an object"]
+
+
 def test_cli_missing_matrix_is_warning_only(capsys, tmp_path):
     missing = tmp_path / "missing.json"
 
