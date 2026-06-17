@@ -234,6 +234,75 @@ authority surfaces.
   not run for free and decays without sustained capture. Compounding is earned,
   not a free flywheel.
 
+## Gate boundaries: taxonomy-alignment prep vs Gate-3 rollout
+
+OQ-1 and OQ-2 are resolved; **Gate 3 (un-pause) is NOT open.** This section
+fixes what may be built now vs what must wait, so the boundary is not
+self-expanded by an agent.
+
+**Allowed now — taxonomy-alignment prep** (make the ratified layered model
+representable + statically checkable; no loop, no gate, no completion effect):
+
+- update schema field names: `semantic_failure` / `scenario_type` /
+  `result_disposition`;
+- update eval fixtures / seed format to express the layered taxonomy;
+- add static validators that check schema *shape*;
+- add advisory-only validators that check: reviewer findings use
+  `semantic_failure` / SF-code as primary; `result_disposition` is not
+  prefilled before an eval runs; `scenario_type` does not alias a semantic
+  failure name; `FAILURE_KINDS` appears only as `result_disposition`;
+- add tests proving these validators emit **warning/advisory/report only** —
+  they do NOT block CI or completion;
+- update docs, examples, sample JSON, read-only cross-walk references.
+
+**Not allowed until Gate 3 un-pause — implementation rollout** (changes
+governance *consequences*):
+
+- automatic banking of reviewer findings into a learning-loop bank;
+- automatic eval-case generation into a regression suite;
+- wiring any learning-loop validator into a CI blocker;
+- feeding learning-loop results into `completion_claim_allowed`;
+- turning advisory warnings into fail/blockers;
+- adding blocking behavior to `memory_workflow` / `governance_drift_checker` /
+  pre-commit / pre-push;
+- claiming repeated drift-class is regression-protected;
+- claiming the learning loop is unpaused / implemented / enforced.
+
+> **One line:** prep may validate taxonomy *shape*; rollout changes governance
+> *consequences*.
+
+The "advisory validator that prevents `FAILURE_KINDS` as primary" is allowed
+prep **only if**: advisory-only; its test merely proves detection; not wired to
+CI/completion; claims neither enforcement nor unpause. It may claim "detects
+taxonomy layer misuse" — **not** "prevents taxonomy drift", and certainly not
+"learning-loop gate is active".
+
+## Gate 3 opening criteria
+
+Gate 3 opens ONLY when **all** of the following hold — it does **not** open just
+because OQ-1 and OQ-2 are resolved:
+
+1. **Repeated drift-class trigger** — at least two comparable reviewer findings
+   (or owner-confirmed examples) map to the same `semantic_failure` class or a
+   clearly related SF-code cluster. A single finding may be banked as a seed but
+   must not open Gate 3.
+2. **Advisory signal proof** — advisory checks / prototype validators show the
+   class can be detected without unacceptable false positives and without
+   collapsing `semantic_failure` / `scenario_type` / `result_disposition`.
+3. **Stable minimal schema** — the seed schema can represent `semantic_failure`,
+   `scenario_type`, `result_disposition`, `expected_signal`,
+   `artifacts_under_test` without using `FAILURE_KINDS` as the finding taxonomy.
+4. **Bounded rollout scope** — the first rollout is explicitly limited to
+   advisory-only; no CI blockers, completion gates, re-run gates, or automatic
+   enforcement. Split: **Gate 3A** = implementation allowed, advisory-only;
+   **Gate 3B** = enforcement consideration, ratified separately.
+5. **Explicit owner unpause** — the owner explicitly records that Gate 3 is
+   satisfied and authorizes the next rollout slice, in spec / PLAN / memory.
+   Agents may NOT infer Gate 3 from OQ-1/OQ-2 being resolved.
+
+**Current status:** OQ-1 done, OQ-2 done, **Gate 3 NOT opened.** Permitted next:
+taxonomy-alignment prep only.
+
 ## Implementation tranche recommendation
 
 **Smallest meaningful first tranche (still pause-gated; needs trigger/un-pause):**
