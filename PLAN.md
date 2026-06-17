@@ -808,11 +808,34 @@ Known unrelated dirty runtime ledgers at the time of this PLAN repair:
 - `artifacts/claim-enforcement/claim-enforcement-receipts.ndjson`
 - `artifacts/session-index.ndjson`
 
+Generated compatibility snapshot boundary:
+
+- `artifacts/governance/version_compatibility.json` is a generated
+  compatibility snapshot, not the canonical source of version truth.
+- Source of truth: rerun `governance_tools.governance_version_check` /
+  session-start version compatibility logic when reviewer-facing evidence is
+  needed.
+- The generated snapshot is ignored so runtime smoke / session-start
+  regeneration does not create tracked dirty state.
+- Ignoring the snapshot does not remove the need to verify version
+  compatibility when a task claims version compatibility evidence.
+
+Known local EOL/status residual:
+
+- `tests/test_governance_drift_checker.py` may appear modified on this Windows
+  workspace because of local Git EOL/status behavior.
+- Latest evidence: working hash equals the HEAD blob
+  (`4de281e3acecad47b4e23c16cbb58187e78e0bb2`); `git diff --raw` reports no
+  content diff; `git ls-files --eol` reports `i/lf w/lf`.
+- Treat this as a local hygiene residual, not a source diff, unless new evidence
+  shows a real content change.
+
 Policy:
 
 - Do not stage these files with documentation, memory workflow, or F-7 commits.
 - Treat them as runtime side effects unless explicitly audited for promotion.
 - Overall workspace remains NOT CLEAN while these files are dirty.
+- Do not claim workspace clean while the EOL/status residual remains visible.
 
 ## Historical Milestone Index
 
