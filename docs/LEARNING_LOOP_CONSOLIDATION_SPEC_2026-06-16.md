@@ -45,11 +45,10 @@ The gap is **wiring existing parts into a loop, not building parts.**
 A reviewer finding deterministically produces, or is checkably linked to, three
 existing-format artifacts:
 
-1. a **taxonomy classification** — but see Open Design Question OQ-1: the repo
-   has **three unreconciled category spaces**, and the claim/state-drift class
-   these seeds belong to maps most naturally to `SEMANTIC_FAILURE_TAXONOMY.md`
-   (SF-01..SF-07), **not** to `failure_disposition.FAILURE_KINDS` (which is the
-   test-result disposition axis);
+1. a **taxonomy classification** — recommended as Layer 1 (SF-code) under the
+   layered taxonomy model in OQ-1 (**OPEN, not ratified**);
+   `failure_disposition.FAILURE_KINDS` is Layer 3 (result disposition), not the
+   primary finding axis;
 2. a **replayable eval case** (graduating `failure_mode_test_matrix.v0.1.json`),
 3. a **claim-boundary delta** (referencing the de-facto claim ledger).
 
@@ -85,7 +84,7 @@ auto-blocks (blocking would be a separate OP-HC decision, out of scope here).
 | Existing surface | Role in the loop | Design action |
 |------------------|------------------|---------------|
 | `governance/SEMANTIC_FAILURE_TAXONOMY.md` (SF-01..SF-07) | semantic failure modes — closest fit for the claim/state-drift class | **reuse** as the classification home for drift findings (see OQ-1) |
-| `governance_tools/failure_disposition.py` | **test-result** disposition (`FAILURE_KINDS`: external_exclusion / integration_drift / platform_mock / stale_assertion / unknown) | **do NOT use** for drift findings — different axis; mislabeling here would itself be authority drift |
+| `governance_tools/failure_disposition.py` | **Layer 3 — result disposition** (`FAILURE_KINDS`: external_exclusion / integration_drift / platform_mock / stale_assertion / unknown) | **reuse only as the post-run result axis**; never the primary finding taxonomy (that is Layer 1 / SF-codes). Using it as the primary axis would itself be authority drift |
 | `governance/failure_mode_test_matrix.v0.1.json` | draft machine-readable eval scenarios (`id`/`category`/`description`/`artifacts_under_test`) | **graduate** — the eval schema extends this, same shape |
 | `governance/taxonomy_expansion_log.ndjson` | expansion signal (unknown_count vs threshold), currently dormant | **reactivate as signal source**, not new log |
 | `governance/REVIEW_CRITERIA.md` §7 | reviewer ingestion → memory prose | **extend the tail** — prose hop gains a structured-asset hop |
@@ -94,14 +93,26 @@ auto-blocks (blocking would be a separate OP-HC decision, out of scope here).
 
 ## Boundary and API considerations
 
-- **Eval schema MUST extend** the v0.1 matrix fields (`id`, `category`,
-  `description`, `artifacts_under_test`, `scenarios[]`). `category` MUST resolve
-  to a *named, existing* taxonomy value — but **which** taxonomy is OQ-1 below.
-  The v0.1 matrix today uses a runtime-failure-mode set
-  (`missing_required_evidence`, `invalid_evidence_schema`, `policy_conflict`,
-  `runtime_failure`, `determinism_replay`) that is itself a *third* space,
-  distinct from both SF-codes and `FAILURE_KINDS`. No new category space may be
-  invented by this loop.
+- **Eval schema (recommended, pending OQ-1 ratification)**: extend the v0.1
+  matrix but **split the single `category` into the three layers** so different
+  questions live in different fields rather than one flattened enum:
+  ```json
+  {
+    "id": "LL-ENV-SHADOW-001",
+    "semantic_failure": "SF-05",
+    "scenario_type": "deterministic_repo_behavior",
+    "description": "CLI default shadowed None into the env sentinel...",
+    "artifacts_under_test": ["governance_tools/...", "scripts/hooks/..."],
+    "expected_signal": "warning",
+    "result_disposition": null
+  }
+  ```
+  `semantic_failure` = what the failure is (Layer 1 / SF-code).
+  `scenario_type` = how to check it (Layer 2 / replay shape).
+  `result_disposition` = filled **only after a run** (Layer 3 / `FAILURE_KINDS`);
+  if no run yet it stays `null` and is never the seed's primary classification.
+  No new category space is invented; the v0.1 `category` field is superseded by
+  these named layers, not by a fourth taxonomy.
 - **Taxonomy expansion stays reviewer-gated** — the loop may *propose* a new
   `FailureKind` but cannot self-add one (preserves the existing trust rule).
 - **Claim ledger consolidation is by reference**: an index that points at the
@@ -116,9 +127,11 @@ auto-blocks (blocking would be a separate OP-HC decision, out of scope here).
 - **Eval landfill** — low-value cases accumulate; mitigate by admitting only
   cases traceable to a *real* reviewer finding (no fabricated scenarios), mirroring
   the deferred-debt-report discipline from P1-D.
-- **Second-taxonomy drift** — if `category` ever diverges from `FAILURE_KINDS`,
-  two taxonomies disagree. Mitigation: schema validation pins `category` to the
-  frozenset.
+- **Layer-collapse drift** — the risk is conflating the three layers
+  (semantic / scenario-type / result-disposition) into one `category` enum.
+  Mitigation: keep them as separate fields; pin `semantic_failure` to SF-codes
+  and `result_disposition` to `FAILURE_KINDS`, and never use the result axis as
+  the primary finding classification. (Recommendation pending OQ-1 ratification.)
 - **Loop creeping into enforcement** — any auto-block silently violates the
   Phase E pause. Mitigation: the loop is observational; blocking is an explicit
   separate OP-HC decision with its own mutation contract.
@@ -128,8 +141,11 @@ auto-blocks (blocking would be a separate OP-HC decision, out of scope here).
 
 ## Evidence plan (tied to repo tools)
 
-- **Classification**: validate seed `category` values against
-  `failure_disposition.FAILURE_KINDS` (read-only check, no new tool).
+- **Classification**: validate a seed's `semantic_failure` against
+  `SEMANTIC_FAILURE_TAXONOMY.md` SF-codes (read-only, no new tool).
+  `scenario_type` is a separate replay-shape field; `result_disposition`
+  (`FAILURE_KINDS`) is NOT a seed field — it is filled only after a run, never
+  as the primary classification. (Pending OQ-1 ratification.)
 - **Replay**: a future eval runner would follow the existing pattern of
   `scripts/run_e8a_fixture.py` / `scripts/replay_verification.py` — referenced,
   not built in this spec.
@@ -142,19 +158,70 @@ auto-blocks (blocking would be a separate OP-HC decision, out of scope here).
 
 ## Open design questions (must be answered before any tranche)
 
-- **OQ-1 (taxonomy reconciliation) — surfaced while drafting this spec.** The
-  repo holds **three unreconciled category spaces**: (a) `FAILURE_KINDS`
-  (test-result disposition), (b) the v0.1 matrix runtime-failure-mode set, (c)
-  `SF-01..SF-07` (semantic). A claim/state-drift finding has no single obvious
-  home. The loop cannot "just add a taxonomy entry" until this is decided. This
-  is a *design decision*, not a wiring detail, and it is itself an instance of
-  the framework's own authority-fragmentation problem. **Recommendation**: adopt
-  SF-codes as the home for the drift class and record the cross-walk to the
-  other two spaces by reference — but this needs explicit ratification, not a
-  default.
-- **OQ-2**: does the ingestion loop terminate at "linked artifacts exist"
-  (advisory) or does it ever assert a re-run gate? This spec assumes the former;
-  the latter is a separate OP-HC decision.
+- **OQ-1 (taxonomy reconciliation) — OPEN; recommendation upgraded, NOT
+  ratified.** The repo holds three category spaces that answer three *different*
+  questions; the earlier "just use SF-codes" framing was too flat (a flat merge
+  would crush three abstraction layers into one enum). Recommended resolution
+  (**pending explicit owner ratification**) is a **layered taxonomy framework,
+  not a flat merge**:
+  - **Layer 1 — Semantic failure (primary).** `SEMANTIC_FAILURE_TAXONOMY.md`
+    SF-codes answer "what is this failure, semantically?" A reviewer finding is
+    classified here first (e.g. SF-05 Evidence Mismatch). This is the primary
+    taxonomy for the learning loop.
+  - **Layer 2 — Eval scenario type (replay shape).** Answers "if this finding
+    becomes an eval, what *kind* of check is it?" — e.g.
+    `deterministic_repo_behavior`, `artifact_consistency_check`,
+    `operator_reality_misread`, `hook_installation_state_check`. Separate field
+    about *how to test*, not *what the failure is*; does not replace or compete
+    with the SF-code.
+  - **Layer 3 — Result disposition.** `failure_disposition.FAILURE_KINDS`
+    (`integration_drift`, `stale_assertion`, `platform_mock`,
+    `external_exclusion`, `unknown`) answers "after an eval runs and fails, how
+    is that result handled?" A test-result axis only; must NOT be the primary
+    taxonomy for reviewer findings.
+  - Cross-walk among the three layers is **referential and read-only**; it does
+    not collapse them into one enum and does not create a fourth taxonomy or a
+    second source of truth.
+  - **Status: OPEN.** Until the owner explicitly ratifies this layered model, no
+    schema validation may pin drift findings to `FAILURE_KINDS`, and SF-codes
+    are the *recommended* (not ratified) Layer-1 home. This OQ is itself an
+    instance of the framework's own authority-fragmentation problem.
+- **OQ-2 (advisory terminus vs re-run gate) — RESOLVED: owner-ratified
+  advisory-only (2026-06-16).** The loop terminates at "structured record →
+  taxonomy / memory / eval / claim-boundary linkage → future warning/reminder
+  signal in later reviews." It does **not** introduce a re-run gate, CI
+  blocking, completion blocker, or any build/closeout auto-fail. Owner
+  rationale: taxonomy spaces are not yet reconciled and the eval schema is still
+  draft/graduation; a premature gate would turn immature classification and
+  draft artifacts into real authority, risking new claim/authority drift. Any
+  future enforcement is a separate OP-HC decision with its own mutation
+  contract, out of scope here.
+
+## Design notes (non-enforcement; folded from review 2026-06-16)
+
+These refine the design without adding enforcement, runtime, validator, CI, or
+authority surfaces.
+
+- **Two eval classes (becomes Layer-2 `scenario_type`).** Findings split into
+  (a) deterministic repo-behavior failures (env-shadow regression,
+  workflow-trigger bypass, source-vs-installed hook) which fixture cleanly, and
+  (b) operator-reality-misread failures (stale-summary claim,
+  viewer-artifact-vs-file corruption, analyze-vs-apply overrun) which are about
+  agent/reviewer discipline and may NOT be expressible as a deterministic
+  fixture. They share Layer 1 (SF-code) but differ at Layer 2 (`scenario_type`);
+  class (b) may need a process/discipline check, not a fixture. Banking is not
+  monotonically good — admit only high-signal reproducible cases (see Eval
+  landfill).
+- **Claim-boundary linkage must derive from PLAN.** The loop's claim-boundary
+  hop indexes/points at PLAN's authoritative claim boundaries; it must not
+  become a second source of truth. Open authority consideration, same family as
+  OQ-1; not ratified here.
+- **Banking is earned, not automatic.** The loop makes *re-running* a banked
+  eval automatic, but the *creation* of each eval (choosing the assertion,
+  writing the fixture, binding the claim) stays a deliberate per-finding capture
+  act. It reduces re-detection cost for *known* failure classes only; it does
+  not run for free and decays without sustained capture. Compounding is earned,
+  not a free flywheel.
 
 ## Implementation tranche recommendation
 
