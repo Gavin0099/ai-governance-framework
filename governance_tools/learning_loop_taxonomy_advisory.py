@@ -17,6 +17,7 @@ import argparse
 import json
 import re
 from dataclasses import asdict, dataclass
+from json import JSONDecodeError
 from pathlib import Path
 from typing import Any
 
@@ -43,7 +44,7 @@ class AdvisoryResult:
 
 
 def load_semantic_failure_ids(path: Path) -> set[str]:
-    text = path.read_text(encoding="utf-8")
+    text = path.read_text(encoding="utf-8-sig")
     return set(re.findall(r"^### (SF-\d{2})\b", text, flags=re.MULTILINE))
 
 
@@ -103,10 +104,57 @@ def validate_payload(payload: dict[str, Any], *, semantic_failure_ids: set[str])
     )
 
 
+def _load_json_advisory(path: Path) -> tuple[dict[str, Any] | None, list[str]]:
+    try:
+        return json.loads(path.read_text(encoding="utf-8-sig")), []
+    except FileNotFoundError:
+        return None, [f"matrix file not found: {path}"]
+    except JSONDecodeError as exc:
+        return None, [f"matrix JSON is invalid: {path}: {exc.msg} at line {exc.lineno} column {exc.colno}"]
+    except UnicodeDecodeError as exc:
+        return None, [f"matrix file is not valid UTF-8: {path}: {exc}"]
+
+
+def _load_semantic_ids_advisory(path: Path) -> tuple[set[str], list[str]]:
+    try:
+        return load_semantic_failure_ids(path), []
+    except FileNotFoundError:
+        return set(), [f"semantic taxonomy file not found: {path}"]
+    except UnicodeDecodeError as exc:
+        return set(), [f"semantic taxonomy file is not valid UTF-8: {path}: {exc}"]
+
+
 def validate_file(matrix_path: Path, *, semantic_taxonomy_path: Path = DEFAULT_SEMANTIC_TAXONOMY) -> AdvisoryResult:
-    payload = json.loads(matrix_path.read_text(encoding="utf-8"))
-    semantic_failure_ids = load_semantic_failure_ids(semantic_taxonomy_path)
-    return validate_payload(payload, semantic_failure_ids=semantic_failure_ids)
+    payload, matrix_warnings = _load_json_advisory(matrix_path)
+    semantic_failure_ids, taxonomy_warnings = _load_semantic_ids_advisory(semantic_taxonomy_path)
+    warnings = matrix_warnings + taxonomy_warnings
+    if payload is None:
+        return AdvisoryResult(
+            ok=True,
+            warning_count=len(warnings),
+            warnings=warnings,
+            checked_seeds=0,
+        )
+
+    result = validate_payload(payload, semantic_failure_ids=semantic_failure_ids)
+    if warnings:
+        result.warnings[:0] = warnings
+        result.warning_count = len(result.warnings)
+    return result
+
+
+def _emit_result(result: AdvisoryResult, *, output_format: str) -> None:
+    if output_format == "json":
+        print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
+        return
+
+    print("[learning_loop_taxonomy_advisory]")
+    print(f"ok={result.ok}")
+    print(f"checked_seeds={result.checked_seeds}")
+    print(f"warning_count={result.warning_count}")
+    for warning in result.warnings:
+        print(f"warning: {warning}")
+    print(f"claim_ceiling={result.claim_ceiling}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -117,16 +165,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     result = validate_file(args.matrix, semantic_taxonomy_path=args.semantic_taxonomy)
-    if args.format == "json":
-        print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
-    else:
-        print("[learning_loop_taxonomy_advisory]")
-        print(f"ok={result.ok}")
-        print(f"checked_seeds={result.checked_seeds}")
-        print(f"warning_count={result.warning_count}")
-        for warning in result.warnings:
-            print(f"warning: {warning}")
-        print(f"claim_ceiling={result.claim_ceiling}")
+    _emit_result(result, output_format=args.format)
     return 0
 
 
