@@ -123,6 +123,33 @@ origin/main, all heads = `9f7fa1e`):
   writes observable as `skipped_no_write_mode` (`9f7fa1e`).
 - [x] Cross-remote sync: local HEAD = gitlab/main = origin/main verified.
 
+Completed 2026-06-17 -> 2026-06-18 (reviewed per-slice, pushed; latest
+head = `7942572`):
+
+- [x] OQ-2 resolved: learning-loop terminus is advisory-only (record ->
+  taxonomy/memory/eval/claim-boundary linkage -> warning signal); no re-run
+  gate / CI / completion blocker.
+- [x] OQ-1 ratified: layered taxonomy framework -- `semantic_failure`
+  (SF-code) is the primary reviewer-finding taxonomy; `scenario_type` is a
+  separate replay-shape axis; `FAILURE_KINDS` is `result_disposition` only;
+  cross-walks read-only, no flat merge, no fourth taxonomy.
+- [x] Gate 3 opening criteria + schema-prep boundary defined in
+  `docs/LEARNING_LOOP_CONSOLIDATION_SPEC_2026-06-16.md`. Gate 3 is NOT opened
+  (5 conditions unmet; binding = repeated drift trigger + owner unpause).
+- [x] Taxonomy-alignment prep advisory implemented (`483b920`) and hardened
+  for missing/malformed/BOM input (`7472cb2`): advisory-only, exit 0 unless
+  `--strict`.
+- [x] Option B ledger untrack implemented (`ffd9609`): the two runtime ledgers
+  are ignored + `git rm --cached`, local files kept; readers verified to
+  tolerate absence.
+- [x] Runtime ledger milestone export, manifest-only (`bf798d4`): BOM-safe,
+  advisory by default, `--strict` / `--include-raw` opt-in; export bundles
+  are committable.
+
+Claim ceiling for the above: learning-loop implementation remains paused and
+advisory-only; OQ-1/OQ-2 resolved does NOT open Gate 3; no banking, replay
+runner, CI/completion gate, or enforcement exists.
+
 ## Active Claim Boundaries
 
 Mutation enforcement:
@@ -843,11 +870,12 @@ Policy:
   artifacts.
 - Durable reviewer-facing evidence must come from explicit audit / reviewer
   milestone export, not accidental runtime append commits.
-- Implementation is pending a separate slice; this decision does not yet change
-  `.gitignore`, tracking state, runtime behavior, hook behavior, validator
-  behavior, or evidence export tooling.
-- NOT CLAIMED: runtime ledger policy implementation, historical evidence
-  migration, receipt export tooling, workspace clean, or Gate 3 opening.
+- Implemented 2026-06-18: ledgers untracked + ignored (`ffd9609`, local files
+  kept); manifest-only milestone export tool added (`bf798d4`). No runtime
+  writer / hook / validator / closeout change.
+- NOT CLAIMED: raw-snapshot export refinement, reviewer-handoff export
+  integration (separate slices), historical evidence migration, workspace
+  clean, or Gate 3 opening.
 
 ## Historical Milestone Index
 
