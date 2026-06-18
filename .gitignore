@@ -92,6 +92,12 @@ artifacts/claim-enforcement/session-*/
 artifacts/reviewer-handoff/
 artifacts/session-summary.txt
 artifacts/governance/version_compatibility.json
+# Option B (2026-06-17, owner-ratified): these two runtime ledgers are ignored as
+# runtime artifacts; durable audit evidence lives in committed memory/ + a
+# milestone export path (designed separately). Supersedes the CE-1C.4 note above
+# that kept claim-enforcement-receipts.ndjson tracked.
+artifacts/claim-enforcement/claim-enforcement-receipts.ndjson
+artifacts/session-index.ndjson
 memory/candidates/*.json
 .governance-audit/
 
