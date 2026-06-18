@@ -104,6 +104,10 @@ memory/candidates/*.json
 # Nested repo clone (accidental copy of workspace root)
 ai-governance-framework/
 
+# Obsidian: read-only reviewer/navigation layer only (derived view, NOT
+# authority, NOT a memory writer). Local vault config is never committed.
+.obsidian/
+
 # Claude / local workspace
 .claude/*
 !.claude/README.md
