@@ -15,17 +15,30 @@ It follows the write-path inventory recorded in
 Ordinary hook, smoke, query, and session-end runs must not automatically promote
 tracked runtime ledger changes into repo-facing evidence.
 
+2026-06-18 update:
+
+The owner ratified Option B for the two recurring runtime ledgers:
+
+- default state: ignored runtime artifacts;
+- durable reviewer evidence: explicit audit / reviewer milestone export;
+- implementation status: pending separate slice.
+
+This update changes the selected policy direction only. It does not change
+runtime behavior, hook behavior, `.gitignore`, tracking state, validator
+behavior, or evidence export implementation in this artifact.
+
 The selected policy is:
 
-- `artifacts/claim-enforcement/claim-enforcement-receipts.ndjson` remains a
-  compact repo-facing evidence ledger, but staged commits to it require explicit
-  manual promotion or an approved evidence-capture slice.
-- `artifacts/session-index.ndjson` is treated as a tracked runtime summary
-  ledger with the same manual-promotion boundary until a separate routing
-  decision changes it.
+- `artifacts/claim-enforcement/claim-enforcement-receipts.ndjson` is selected
+  to become an ignored runtime artifact by default. Reviewer-facing durable
+  evidence must be produced by explicit audit / reviewer milestone export, not
+  by accidental runtime append commits.
+- `artifacts/session-index.ndjson` is selected to become an ignored runtime
+  artifact by default. Reviewer-facing session summaries must be exported
+  deliberately when needed.
 - Ordinary runtime runs that dirty either ledger should be reported as runtime
   side effects, then restored, staged, or explicitly included in scope before
-  claiming a clean workspace.
+  claiming a clean workspace until the implementation slice changes tracking.
 - `artifacts/runtime/**` remains the ignored local-runtime destination for
   ordinary hook, smoke, verdict, trace, and closeout side effects.
 - `artifacts/session/**` remains the ignored local-runtime destination for new
@@ -35,8 +48,8 @@ The selected policy is:
 
 | Ledger | Current status | Selected handling | Why |
 | --- | --- | --- | --- |
-| `artifacts/claim-enforcement/claim-enforcement-receipts.ndjson` | tracked compact evidence index | manual-promotion-only | Auto-staging every append would turn the compact receipt into a runtime log and inflate evidence claims. |
-| `artifacts/session-index.ndjson` | tracked session summary ledger | manual-promotion-only until replaced by a separate routing decision | Session-end can append to it during ordinary runs, so it should not be silently mixed into unrelated commits. |
+| `artifacts/claim-enforcement/claim-enforcement-receipts.ndjson` | tracked compact evidence index until implementation | ignore-by-default selected; explicit milestone export for durable review evidence | Auto-staging every append would turn the compact receipt into a runtime log and inflate evidence claims. |
+| `artifacts/session-index.ndjson` | tracked session summary ledger until implementation | ignore-by-default selected; explicit milestone export for durable review evidence | Session-end can append to it during ordinary runs, so it should not be silently mixed into unrelated commits. |
 
 ## Required Reporting When These Ledgers Are Dirty
 
@@ -73,16 +86,22 @@ This policy does not:
 
 ## Future Implementation Options
 
-Future scoped work may choose one of these implementation paths:
+The selected future implementation path is Option B:
 
-1. Keep both tracked ledgers and add explicit pre-commit guidance that refuses
-   accidental staging outside evidence-capture scope.
-2. Move ordinary runtime appends to ignored local paths and generate compact
-   reviewer-facing snapshots only when evidence capture is requested.
-3. Keep current write paths but add a warning-only dirty-ledger detector for
-   commit preflight.
+- move ordinary runtime ledger tracking to ignored local runtime state;
+- keep readers tolerant of absence;
+- define an explicit audit / reviewer milestone export path before claiming
+  durable reviewer evidence from these ledgers.
 
-No implementation option is selected by this policy artifact.
+Rejected alternatives:
+
+1. Keep both tracked ledgers with manual promotion as the long-term default.
+   Rejected because it preserves recurring dirty-state friction and scope
+   pollution risk for ordinary commits.
+2. Treat the ledgers as always-commit evidence. Rejected because it turns
+   runtime appends into accidental evidence claims.
+3. Delete or ignore without an export story. Rejected because it would weaken
+   reviewer-facing evidence durability.
 
 ## Warning-Only Detector
 
@@ -107,15 +126,18 @@ into pre-commit, pre-push, runtime hooks, or validators by this policy.
 
 CLAIMED:
 
-- Runtime dirty-state policy selected for the two ambiguous tracked ledgers.
-- Both ledgers are manual-promotion-only for ordinary runtime side effects.
+- Runtime dirty-state policy direction selected for the two ambiguous tracked
+  ledgers: ignored-by-default runtime artifacts plus explicit milestone export.
 - A clean-workspace claim is invalid while these ledgers remain dirty and
-  unhandled.
+  unhandled before implementation.
 - A warning-only detector exists for identifying dirty manual-promotion ledgers.
 
 NOT CLAIMED:
 
 - artifact routing changed;
+- ledger tracking changed;
+- `.gitignore` implementation completed;
+- milestone export implemented;
 - hook behavior changed;
 - validator behavior changed;
 - schema changed;

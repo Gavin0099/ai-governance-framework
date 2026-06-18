@@ -837,6 +837,18 @@ Policy:
 - Overall workspace remains NOT CLEAN while these files are dirty.
 - Do not claim workspace clean while the EOL/status residual remains visible.
 
+2026-06-18 owner-ratified ledger policy direction:
+
+- Option B selected: these two ledgers should become ignored-by-default runtime
+  artifacts.
+- Durable reviewer-facing evidence must come from explicit audit / reviewer
+  milestone export, not accidental runtime append commits.
+- Implementation is pending a separate slice; this decision does not yet change
+  `.gitignore`, tracking state, runtime behavior, hook behavior, validator
+  behavior, or evidence export tooling.
+- NOT CLAIMED: runtime ledger policy implementation, historical evidence
+  migration, receipt export tooling, workspace clean, or Gate 3 opening.
+
 ## Historical Milestone Index
 
 This index preserves reviewer orientation without reintroducing corrupted inline

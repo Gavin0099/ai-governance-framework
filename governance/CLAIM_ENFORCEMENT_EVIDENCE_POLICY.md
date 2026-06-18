@@ -81,6 +81,17 @@ step.
 
 ## Current Rule
 
+2026-06-18 owner-ratified update:
+
+- `artifacts/claim-enforcement/claim-enforcement-receipts.ndjson` is selected
+  to become ignored by default as an ordinary runtime artifact.
+- Durable reviewer-facing claim-enforcement evidence must be produced by an
+  explicit audit / reviewer milestone export, not by accidental runtime
+  appends.
+- Implementation is pending a separate slice. This policy update does not
+  change `.gitignore`, tracking state, runtime behavior, hook behavior, or
+  validator behavior.
+
 Until compact receipt surfaces are defined and migration rules are finalized:
 
 - new raw session-scoped claim-enforcement packets must not be automatically
