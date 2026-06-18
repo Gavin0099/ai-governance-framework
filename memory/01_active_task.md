@@ -1,16 +1,16 @@
 # Active Task
 
 > Refreshed 2026-06-17 per `docs/structured-memory-freshness-policy.md`
+> Refreshed 2026-06-18 per `docs/structured-memory-freshness-policy.md`
 > (dedicated bookkeeping slice; source surfaces: git state at HEAD
-> `824d8e0`, PLAN.md active planning surface, `memory/2026-06-16.md`,
-> and `memory/2026-06-17.md`).
+> `f21350e`, PLAN.md active planning surface, `memory/2026-06-17.md`,
+> and `memory/2026-06-18.md`).
 > Claim: point-in-time active-task consistency with current repo state only.
 
 ## Current Focus
 
 - **No active autonomous implementation slice.** Current workspace is synced to
-  `origin/main` at `824d8e0` and is clean after the runtime ledger side effects
-  were audited and restored to HEAD.
+  `origin/main` at `f21350e` and is clean after the 2026-06-18 pull.
 - Standing principle: **Validity before Expansion** - do not claim
   enforcement, freshness, adoption, learning-loop rollout, or version
   compatibility beyond the documented, validated surface.
@@ -28,31 +28,45 @@
 
 ## Current Status
 
-- **Pull + bookkeeping state current (2026-06-17)**: local `main` is synced to
-  `origin/main` at `824d8e0` (`docs(memory): refresh active task after pull`).
-  The prior pull brought in the 2026-06-16/2026-06-17 memory, learning-loop
-  advisory prep, generated snapshot ignore, and PLAN boundary repair commits;
-  the follow-up bookkeeping commit refreshed active memory after that pull.
-- **Runtime ledger boundary resolved for current workspace**: the two known
-  runtime ledger side effects were audited as historical append-only local
-  side effects and restored to HEAD:
+- **Pull + bookkeeping state current (2026-06-18)**: local `main` is synced to
+  `origin/main` at `f21350e` (`docs(memory): record gitlab push retry
+  evidence`). The pull brought in runtime ledger Option B implementation,
+  runtime ledger milestone export, Obsidian reviewer guide, PLAN
+  reconciliation, and related canonical memory records.
+- **Runtime ledger Option B implemented and pushed**: the two former tracked
+  runtime ledgers are now ignored-by-default runtime artifacts and removed from
+  git tracking while local files may remain on disk:
   `artifacts/claim-enforcement/claim-enforcement-receipts.ndjson` and
-  `artifacts/session-index.ndjson`. Current workspace is clean. This does not
-  solve the long-term tracked-ledger side-effect policy.
+  `artifacts/session-index.ndjson`. `git ls-files` confirms both ledgers are no
+  longer tracked. Claim boundary: ignored/untracked ledger side effects are
+  solved for these two ledgers, but raw-snapshot export refinement and
+  reviewer-handoff integration remain separate follow-ups.
+- **Runtime ledger milestone export implemented (`bf798d4`)**:
+  `governance_tools/runtime_ledger_export.py` and
+  `tests/test_runtime_ledger_export.py` provide manifest-only export by
+  default; `--strict` and `--include-raw` are opt-in. Claim boundary:
+  export tooling exists, but reviewer-handoff integration and raw-snapshot
+  refinement are not claimed.
+- **Obsidian reviewer guide added (`13bb0de`)**:
+  `docs/obsidian-reviewer-guide.md` documents Obsidian as a read-only derived
+  navigation layer. It is not a memory writer, authority source, or protocol
+  change.
+- **PLAN reconciliation completed (`688ebc6`)**: six deferred PLAN sync items
+  from the 2026-06-17 -> 2026-06-18 arc were reconciled. Gate 3 remains not
+  opened.
 - **Generated compatibility snapshot boundary closed (`ed0f927`, `471ebf5`,
   `6195440`)**: `artifacts/governance/version_compatibility.json` is generated
-  and ignored, not the canonical source of version truth. Reviewer-facing
-  version evidence must come from rerunning
-  `governance_tools.governance_version_check` or session-start compatibility
-  logic. Ignoring the snapshot does not waive evidence requirements when a task
-  claims version compatibility.
+  and ignored, not the canonical source of version truth. `git ls-files`
+  confirms it is not tracked after the latest pull. Reviewer-facing version
+  evidence must come from rerunning `governance_tools.governance_version_check`
+  or session-start compatibility logic.
 - **Known local EOL/status residual recorded in PLAN (`6195440`)**:
   `tests/test_governance_drift_checker.py` may appear modified on this Windows
   workspace because of local Git EOL/status behavior; latest PLAN evidence says
   working hash equals HEAD and no content diff exists. Treat as local hygiene
   residual unless new evidence shows a real content change.
-- **2026-06-17 learning-loop design/prep arc is committed and pushed through
-  `6195440`**: OQ-1 ratified as layered taxonomy
+- **2026-06-17 learning-loop design/prep arc is committed, pushed, and PLAN
+  reconciled through `f21350e`**: OQ-1 ratified as layered taxonomy
   (SF-code primary reviewer taxonomy, eval `scenario_type`, FAILURE_KINDS as
   post-run `result_disposition` only); OQ-2 resolved advisory-only; Gate 3
   opening criteria recorded but not met; advisory taxonomy checker and seed
@@ -89,12 +103,12 @@ Learning-loop implementation remains Gate-3-blocked. OQ-1/OQ-2 resolution and
 taxonomy-alignment prep do not authorize rollout, enforcement, automatic
 banking, replay generation, or completion-gate behavior.
 
-## Next Steps (from current PLAN / memory state)
+## Next Steps (from current PLAN / memory state at `f21350e`)
 
-- **Runtime ledger policy**: current workspace is clean after restoring local
-  ledger side effects. Long-term tracked-ledger policy remains unsolved; do not
-  claim ignored/untracked ledger behavior or no-write coverage beyond the
-  already documented runtime smoke no-write mode.
+- **Runtime ledger export follow-ups**: raw-snapshot export refinement and
+  reviewer-handoff integration remain separate, explicit slices. Do not claim
+  historical evidence migration or reviewer workflow integration from the
+  manifest-only exporter alone.
 - **P1-E advisory FP/FN window**: passive; started 2026-06-12, matures
   ~2026-06-26 at the earliest. Only then does P1-F (blocking upgrade,
   OP-HC decision with its own mutation contract) become discussable.
@@ -103,8 +117,9 @@ banking, replay generation, or completion-gate behavior.
   boundary. Enforcement, CI, banking, replay generation, and completion gates
   remain out of scope until all Gate 3 criteria are satisfied.
 - **Receipts schema 1.2 verification**: awaits a natural meiandraybook
-  post-update session; explicitly pending, not failed. Do not manufacture a
-  session for it.
+  post-update session; explicitly pending, not failed. Framework-side schema
+  acceptance for emitted 1.2 receipts has been fixed, but production validation
+  still requires a natural receipt. Do not manufacture a session for it.
 - **P2-H GitHub topics**: closed-by-default; requires explicit user opening plus
   an independent ceiling check because topics are context-free claim surfaces.
 - **README badge / release publish**: badge deferred until the first gated
