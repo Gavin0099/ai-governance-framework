@@ -1,0 +1,116 @@
+{
+  "schema_version": "0.1",
+  "baseline_id": "checkpoint-memory-baseline-2026-06-19",
+  "created_at": "2026-06-19T09:47:16Z",
+  "source_command": ".\\.venv\\Scripts\\python.exe -m governance_tools.checkpoint_memory_audit --project-root . --last 5 --format json",
+  "source_head": "9fad7ec",
+  "source_window": "--last 5",
+  "claim_class": "advisory",
+  "blocking": false,
+  "baseline_purpose": "Freeze current checkpoint-memory audit findings so later reviews can distinguish known baseline debt / expected noise from new drift.",
+  "baseline_interpretation_source": "docs/governance/commit-memory-binding-contract.md",
+  "not_enforcement": true,
+  "summary": {
+    "total": 44,
+    "by_code": {
+      "commit_without_memory": 3,
+      "stale_no_commit_memory": 3,
+      "unreceipted_validation": 38,
+      "rollup_memory_divergence": 0,
+      "consumer_uninstalled": 0
+    },
+    "by_disposition": {
+      "expected_noise": 3,
+      "baseline_debt": 41,
+      "current_blocker": 0
+    }
+  },
+  "dispositions": [
+    {
+      "code": "commit_without_memory",
+      "disposition": "expected_noise",
+      "reason": "Memory commits do not require downstream memory records; see commit-memory-binding-contract.md section 4.",
+      "subjects": [
+        "9fad7ec99cb1",
+        "69baf56f6a90",
+        "78135b7b9bf2"
+      ]
+    },
+    {
+      "code": "stale_no_commit_memory",
+      "disposition": "baseline_debt",
+      "reason": "Original WORKTREE entries remain visible because the repo uses corrective records rather than rewriting historical memory.",
+      "subjects": [
+        "2026-06-19.md:4",
+        "2026-06-19.md:16",
+        "2026-06-19.md:28"
+      ],
+      "corrective_bindings": [
+        {
+          "subject": "2026-06-19.md:4",
+          "landed_commit": "ea08820"
+        },
+        {
+          "subject": "2026-06-19.md:16",
+          "landed_commit": "a2ccce7"
+        },
+        {
+          "subject": "2026-06-19.md:28",
+          "landed_commit": "a2ccce7"
+        }
+      ]
+    },
+    {
+      "code": "unreceipted_validation",
+      "disposition": "baseline_debt",
+      "reason": "Existing unreceipted validation findings are frozen as historical advisory debt; this baseline does not validate, rewrite, or clear them.",
+      "subjects": [
+        "2026-06-03.md:70",
+        "2026-06-03.md:81",
+        "2026-06-03.md:92",
+        "2026-06-03.md:103",
+        "2026-06-03.md:114",
+        "2026-06-04.md:48",
+        "2026-06-04.md:59",
+        "2026-06-04.md:81",
+        "2026-06-04.md:92",
+        "2026-06-04.md:103",
+        "2026-06-04.md:125",
+        "2026-06-04.md:169",
+        "2026-06-04.md:257",
+        "2026-06-04.md:268",
+        "2026-06-04.md:279",
+        "2026-06-04.md:301",
+        "2026-06-05.md:4",
+        "2026-06-05.md:15",
+        "2026-06-05.md:26",
+        "2026-06-05.md:103",
+        "2026-06-05.md:114",
+        "2026-06-05.md:136",
+        "2026-06-06.md:4",
+        "2026-06-06.md:26",
+        "2026-06-06.md:48",
+        "2026-06-06.md:59",
+        "2026-06-07.md:15",
+        "2026-06-08.md:81",
+        "2026-06-09.md:26",
+        "2026-06-09.md:81",
+        "2026-06-10.md:48",
+        "2026-06-11.md:4",
+        "2026-06-11.md:15",
+        "2026-06-11.md:125",
+        "2026-06-11.md:191",
+        "2026-06-19.md:16",
+        "2026-06-19.md:40",
+        "2026-06-19.md:52"
+      ]
+    }
+  ],
+  "non_claims": [
+    "Does not change checkpoint_memory_audit behavior.",
+    "Does not define a hook, CI gate, blocker, or enforcement rule.",
+    "Does not clear or rewrite historical memory.",
+    "Does not prove any unreceipted validation evidence is sufficient.",
+    "Does not establish false-positive rate stability."
+  ]
+}
