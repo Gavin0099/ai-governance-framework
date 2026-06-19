@@ -3,7 +3,7 @@
 Status: advisory-only spec
 Date: 2026-06-19
 Authority: user-approved spec slice
-Implementation status: not implemented
+Implementation status: implemented as advisory CLI/reporting tool
 
 ## Purpose
 
@@ -11,9 +11,9 @@ Define an advisory audit that reports divergence between commits, checkpoint
 surfaces, validation evidence, consumer hook state, and canonical memory
 records.
 
-This spec records the shape of the audit before implementation. It does not
-create a tool, hook, CI gate, blocker, or policy contract for which commits must
-have memory records.
+This spec records the shape of the audit and its first advisory implementation.
+It does not create a hook, CI gate, blocker, or policy contract for which
+commits must have memory records.
 
 ## Trigger Evidence
 
@@ -39,7 +39,7 @@ All inputs are read-only.
 | Memory records | `memory/YYYY-MM-DD.md` parsed for `commit`, `commit_hash`, `session_id`, `test_evidence`, `next_step`, and `plan_reconciliation` | Memory-to-commit and evidence-shape comparison |
 | Checkpoint rollup surfaces | Candidate future inputs: runtime closeout receipts, session index exports, checkpoint rollup docs, or explicitly supplied artifact paths | Rollup-to-memory comparison |
 | Validation evidence | Memory-declared PASS commands and any referenced receipt/log/artifact path | Evidence-shape comparison |
-| Consumer install state | Target repo `.git/hooks/`, `.githooks/`, hook root marker, and memory workflow router text when explicitly supplied | Consumer coverage comparison |
+| Consumer install state | Target repo `.git/hooks/`, `.githooks/`, active `pre-commit` / `pre-push`, and memory workflow router text when explicitly supplied | Consumer coverage comparison |
 
 ## Mismatch Taxonomy
 
@@ -55,6 +55,11 @@ These findings are divergence signals, not violations.
 
 The taxonomy intentionally does not define which commits must have memory. That
 belongs to a later contract slice.
+
+First-version note: the advisory tool limits `stale_no_commit_memory` to
+placeholder records in memory files whose `YYYY-MM-DD` filename matches a
+selected commit date. This keeps recent-window audits from reporting the entire
+historical placeholder backlog. It is a heuristic signal, not a violation rule.
 
 ## Output Schema
 
