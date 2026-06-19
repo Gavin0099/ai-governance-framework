@@ -1,0 +1,99 @@
+{
+  "schema_version": "0.1",
+  "observation_id": "checkpoint-memory-fp-stability-observation-2026-06-19",
+  "created_at": "2026-06-19T11:18:53Z",
+  "source_command": ".\\.venv\\Scripts\\python.exe -m governance_tools.checkpoint_memory_baseline_compare --project-root . --baseline artifacts/governance/checkpoint-memory-baseline-2026-06-19.json --format json",
+  "source_head": "d955a92",
+  "baseline_id": "checkpoint-memory-baseline-2026-06-19",
+  "claim_class": "advisory",
+  "blocking": false,
+  "workspace_exclusion": {
+    "excluded_untracked": [
+      "docs/ai-governance-overview.pptx"
+    ],
+    "reason": "Explicitly excluded by user; not inspected or modified."
+  },
+  "source_delta": {
+    "baseline_total": 44,
+    "current_total": 48,
+    "new_total": 6,
+    "new_by_code": {
+      "commit_without_memory": 2,
+      "stale_no_commit_memory": 2,
+      "unreceipted_validation": 2,
+      "rollup_memory_divergence": 0,
+      "consumer_uninstalled": 0
+    }
+  },
+  "classification_summary": {
+    "expected_workflow_noise": 2,
+    "workflow_residue": 4,
+    "true_new_drift": 0,
+    "taxonomy_changed": false,
+    "new_finding_codes": []
+  },
+  "findings": [
+    {
+      "code": "commit_without_memory",
+      "subject": "d955a920c3ec",
+      "compare_disposition": "expected_noise",
+      "observation_classification": "expected_workflow_noise",
+      "reason": "Memory-only post-push record commit; commit-memory-binding-contract.md says docs(memory) commits must not require downstream memory.",
+      "true_new_drift": false
+    },
+    {
+      "code": "commit_without_memory",
+      "subject": "7ffd0da3dab2",
+      "compare_disposition": "expected_noise",
+      "observation_classification": "expected_workflow_noise",
+      "reason": "Memory-only post-push record commit; expected infinite-regress noise under commit-memory-binding-contract.md section 4.",
+      "true_new_drift": false
+    },
+    {
+      "code": "stale_no_commit_memory",
+      "subject": "2026-06-19.md:100",
+      "compare_disposition": "new_drift",
+      "observation_classification": "workflow_residue",
+      "reason": "Original WORKTREE entry for the baseline snapshot remains visible because memory is not rewritten; later bound post-push record exists for commit 34d9653.",
+      "resolved_by": "34d9653",
+      "true_new_drift": false
+    },
+    {
+      "code": "stale_no_commit_memory",
+      "subject": "2026-06-19.md:124",
+      "compare_disposition": "new_drift",
+      "observation_classification": "workflow_residue",
+      "reason": "Original WORKTREE entry for the baseline comparison implementation remains visible because memory is not rewritten; later bound post-push record exists for commit 979cffe.",
+      "resolved_by": "979cffe",
+      "true_new_drift": false
+    },
+    {
+      "code": "unreceipted_validation",
+      "subject": "2026-06-19.md:112",
+      "compare_disposition": "new_drift",
+      "observation_classification": "workflow_residue",
+      "reason": "Post-push memory record contains command PASS text but no artifact/receipt path; this is a known receipt-shape signal in the current memory writer pattern, not enforcement evidence.",
+      "true_new_drift": false
+    },
+    {
+      "code": "unreceipted_validation",
+      "subject": "2026-06-19.md:136",
+      "compare_disposition": "new_drift",
+      "observation_classification": "workflow_residue",
+      "reason": "Post-push memory record contains command PASS text but no artifact/receipt path; this should inform future receipt-path definition, not a blocker.",
+      "true_new_drift": false
+    }
+  ],
+  "taxonomy_observation": {
+    "changed": false,
+    "reason": "No new finding codes appeared; all current delta findings map to existing commit_without_memory, stale_no_commit_memory, and unreceipted_validation classes."
+  },
+  "non_claims": [
+    "Does not change checkpoint_memory_audit behavior.",
+    "Does not change the frozen baseline.",
+    "Does not rewrite memory.",
+    "Does not define hook, CI, blocker, or enforcement behavior.",
+    "Does not prove long-run false-positive rate.",
+    "Does not inspect or classify docs/ai-governance-overview.pptx."
+  ]
+}
