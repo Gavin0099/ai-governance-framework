@@ -52,6 +52,33 @@ def _lookup(_repo: Path, commit: str) -> str:
     return subjects.get(commit, "")
 
 
+def _write_memory_entry(
+    repo: Path,
+    *,
+    commit_hash: str,
+    memory_binding: str,
+    what_changed: str,
+) -> None:
+    memory = repo / "memory" / "2026-06-19.md"
+    memory.parent.mkdir(parents=True, exist_ok=True)
+    existing = memory.read_text(encoding="utf-8") if memory.exists() else "# 2026-06-19\n\n"
+    memory.write_text(
+        existing
+        + "- memory_type: session-derived\n"
+        + "  record_format_version: 1.0\n"
+        + "  writer: governance_tools.memory_record\n"
+        + f"  what_changed: {what_changed}\n"
+        + f"  commit: {commit_hash}\n"
+        + f"  commit_hash: {commit_hash}\n"
+        + "  session_id: test-session\n"
+        + f"  memory_binding: {memory_binding}\n"
+        + "  test_evidence: PASS: command only\n"
+        + "  next_step: none\n"
+        + "  plan_reconciliation: not_applicable\n\n",
+        encoding="utf-8",
+    )
+
+
 def test_no_new_drift_preserves_baseline_disposition(tmp_path: Path) -> None:
     findings = [
         {
@@ -99,3 +126,47 @@ def test_new_claim_bearing_drift_is_reported_without_blocking(tmp_path: Path) ->
     assert payload["delta"]["new_total"] == 1
     assert payload["new_findings"][0]["disposition"] == "new_drift"
     assert "new_total=1" in format_human(payload)
+
+
+def test_worktree_record_with_later_bound_commit_is_workflow_residue(tmp_path: Path) -> None:
+    _write_memory_entry(
+        tmp_path,
+        commit_hash="WORKTREE",
+        memory_binding="unbound",
+        what_changed="Implemented advisory observation packet.",
+    )
+    _write_memory_entry(
+        tmp_path,
+        commit_hash="abc1234",
+        memory_binding="bound",
+        what_changed="Post-push record: pushed advisory observation packet.",
+    )
+
+    payload = compare_payloads(
+        baseline=_baseline([]),
+        current=_current([{"code": "stale_no_commit_memory", "subject": "2026-06-19.md:3"}]),
+        repo=tmp_path,
+        commit_subject_lookup=_lookup,
+    )
+
+    assert payload["new_findings"][0]["disposition"] == "workflow_residue"
+    assert payload["delta"]["by_disposition"]["workflow_residue"] == 1
+
+
+def test_post_push_command_only_pass_is_receipt_shape_residue(tmp_path: Path) -> None:
+    _write_memory_entry(
+        tmp_path,
+        commit_hash="abc1234",
+        memory_binding="bound",
+        what_changed="Post-push record: pushed advisory observation packet.",
+    )
+
+    payload = compare_payloads(
+        baseline=_baseline([]),
+        current=_current([{"code": "unreceipted_validation", "subject": "2026-06-19.md:3"}]),
+        repo=tmp_path,
+        commit_subject_lookup=_lookup,
+    )
+
+    assert payload["new_findings"][0]["disposition"] == "receipt_shape_residue"
+    assert payload["delta"]["by_disposition"]["receipt_shape_residue"] == 1
