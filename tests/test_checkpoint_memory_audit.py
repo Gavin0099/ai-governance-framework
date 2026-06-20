@@ -36,11 +36,16 @@ def _head(repo: Path) -> str:
     return _git(repo, "rev-parse", "HEAD")
 
 
+def _head_date(repo: Path) -> str:
+    return _git(repo, "log", "-1", "--format=%cs")
+
+
 def _write_memory(repo: Path, *, commit_hash: str, test_evidence: str = "") -> None:
-    memory = repo / "memory" / "2026-06-19.md"
+    memory_date = _head_date(repo)
+    memory = repo / "memory" / f"{memory_date}.md"
     memory.parent.mkdir(parents=True, exist_ok=True)
     memory.write_text(
-        "# 2026-06-19\n\n"
+        f"# {memory_date}\n\n"
         "- memory_type: session-derived\n"
         "  record_format_version: 1.0\n"
         "  writer: governance_tools.memory_record\n"
