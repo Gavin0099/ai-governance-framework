@@ -16,6 +16,7 @@ from governance_tools.adopt_governance import (
     _discover_plan_path,
     _read_baseline_state,
 )
+from memory_pipeline.memory_layout import MEMORY_FILE_ALIASES
 
 FRAMEWORK_ROOT = Path(__file__).parent.parent.resolve()
 BASELINE_SOURCE = FRAMEWORK_ROOT / "baselines" / "repo-min"
@@ -205,10 +206,16 @@ def test_adopt_creates_minimal_memory_scaffold():
 
     adopt_existing(repo, FRAMEWORK_ROOT, dry_run=False)
 
-    assert (repo / "memory" / "01_active_task.md").exists()
-    assert (repo / "memory" / "02_tech_stack.md").exists()
-    assert (repo / "memory" / "03_knowledge_base.md").exists()
-    assert (repo / "memory" / "04_review_log.md").exists()
+    # Alias-aware: assert each logical memory slot is satisfied by ANY accepted
+    # alias, mirroring the drift checker's memory_schema_complete contract. This
+    # avoids re-rotting when a slot's canonical filename changes (e.g. tech_stack:
+    # 02_tech_stack.md -> 02_workflow.md).
+    memory_dir = repo / "memory"
+    for logical_name, aliases in MEMORY_FILE_ALIASES.items():
+        assert any((memory_dir / name).exists() for name in aliases), (
+            f"adopt scaffold missing logical memory slot {logical_name!r}; "
+            f"expected one of {list(aliases)}"
+        )
 
 
 def test_adopt_copies_governance_markdown_pack():
