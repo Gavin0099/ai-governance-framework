@@ -1,4 +1,4 @@
-# Memory Authority Baseline-Banking Spec v0.1
+# Memory Authority Baseline-Banking Spec v0.2
 
 Status: reviewer-facing design spec. Advisory / read-layer only — no enforcement.
 
@@ -7,6 +7,10 @@ Derived from:
 - `artifacts/governance/checkpoint-memory-baseline-2026-06-19.json` (baseline format precedent)
 - `governance_tools/checkpoint_memory_baseline_compare.py` (compare-model precedent)
 - `docs/governance/checkpoint-memory-audit-spec.md` (sibling spec house style)
+
+> **v0.2 change**: per-record identity was proven non-viable against real guard
+> output (48% of records collide on the available fields — see §2). The model is
+> now **count-bucket banking** (per-key counts, not per-record ids).
 
 This spec defines a **baseline-banking read layer above** `memory_authority_guard`.
 Its purpose is to turn the guard's standing "322 total warnings" into
@@ -21,11 +25,12 @@ or memory content.
 - It is **advisory / not_enforcement**: `blocking=false`, never a gate input.
 - It does **not** delete, edit, or "clean up" historical debt in `memory/`.
 
-## 1. Frozen baseline snapshot format (mirrors checkpoint-memory baseline)
+## 1. Frozen baseline snapshot format (count-bucket)
 
 ```jsonc
 {
-  "schema_version": "0.1",
+  "schema_version": "0.2",
+  "model": "count_bucket",  // per-key counts, NOT per-record ids (see §2)
   "baseline_id": "memory-authority-baseline-YYYY-MM-DD",
   "created_at": "<iso>",
   "source_command": "python -m governance_tools.memory_authority_guard --format json",
@@ -39,56 +44,78 @@ or memory content.
   "summary": {
     "total": 322,
     "by_code": { "unbound_memory": 229, "non_canonical_writer": 86, "structural_memory_auto_write": 6, "missing_canonical_memory": 1 },
-    "by_disposition": { "baseline_debt": "<count>", "structural_candidate": "<count>" }  // illustrative shape; counts filled by cut2
+    "by_disposition": { "baseline_debt": "<count>", "structural_candidate": "<count>" }  // illustrative; counts filled by cut2
   },
-  "dispositions": [
-    { "code": "unbound_memory", "disposition": "baseline_debt", "reason": "...",
-      "subjects": [ { "identity_key": "<hash>", "display": "memory/2026-04-10.md#entry-2" } ] }
+  "buckets": [
+    { "identity_key": "<hash>", "code": "unbound_memory", "disposition": "baseline_debt",
+      "count": 14, "reason": "no_anchor",
+      "display": "2026-05-05.md · entry='- memory_type: session-derived' · no_anchor" }
   ]
 }
 ```
 
-## 2. Identity key (stable across edits)
+The baseline stores, per `identity_key`, the **count** of matching violations at
+snapshot time. It does not store per-record ids.
 
-Guard violations do **not** share a uniform `subject` field — they carry
-`file` / `entry` / `section` / `date` / `reason`. A naive `(code, subject)` key
-collapses multiple entries in one file and re-flips on edits. Therefore:
+## 2. Identity key = count-bucket key (per-record identity is not viable)
+
+Per-record identity was tested against real guard output and **fails**:
 
 ```
-identity_key = hash(normalized(code, file, entry | section | date | reason))
+322 violations  →  189 unique (code,file,entry,section,date,reason) tuples
+23 keys collide, covering 156 records (~48%)
+worst: 22 non_canonical_writer in 2026-05-05.md share ONE key
 ```
 
-- `normalized(...)` lowercases/strips and selects the available locating fields
-  for that violation class (e.g. `unbound_memory` → file + entry; `read_error`
-  → file + reason).
-- A human-readable `subject` / `display` string is carried **only for display**,
-  never used as the matching key.
-- Open: the exact per-class field selection is pinned in cut2 against the real
-  guard output (see §6).
+Cause: the guard's `entry` field is only the entry **header line** (e.g.
+`- memory_type: session-derived`), which repeats for every entry of that type in
+a daily file. A stable per-record id is impossible without the guard emitting a
+richer locator (line number / full-entry hash) — and that is a guard change,
+**out of scope**.
+
+**Resolution — bank counts per bucket key:**
+
+```
+identity_key = hash(normalized(<per-class fields>))
+baseline:   identity_key -> count
+```
+
+Pinned per-class fields (from real guard JSON; resolves former §6 open #1):
+
+| code | identity fields | notes |
+|---|---|---|
+| `unbound_memory` | code, file, entry, reason | `entry` may be null; `reason` carries the `read_error:` subtype |
+| `non_canonical_writer` | code, file, entry, reason | `entry` = header line (drives the collisions above) |
+| `structural_memory_auto_write` | code, file, section, reason | `section` heading = stable |
+| `missing_canonical_memory` | code, date, reason | `date` = stable natural key |
+
+- `normalized(...)` lowercases/strips and selects the present fields for that class.
+- `display` is human-readable only, never used for matching.
+- **Tradeoff (record):** count-banking reports "N added in this bucket" but
+  **cannot name the exact individual entry**. Acceptable for an advisory
+  warning-fatigue layer; per-entry pinpointing would require a guard change.
 
 ## 3. Disposition rules — baselineable vs always-fresh
 
 The dividing line is **"is this an active enforcement/blocker signal?"** If yes,
 it is unconditionally always-fresh (never suppressed, even if it existed at
-snapshot time). If it is an observation/warning, it is baselineable: existing
-instances become `baseline_debt`; instances appearing after the baseline are
-reported as new drift.
+snapshot time). Otherwise it is baselineable: the snapshot count is debt; counts
+above the snapshot are new drift.
 
 | class | kind | in baseline? |
 |---|---|---|
-| historical `unbound_memory` | baselineable | existing → `baseline_debt`; new → drift |
-| historical `non_canonical_writer` | baselineable | existing → `baseline_debt`; new → drift |
-| `structural_memory_auto_write` | baselineable | existing → `structural_candidate`; new → drift |
-| `missing_canonical_memory` | baselineable | existing → `baseline_debt`; new → drift |
-| **`read_error` / malformed** | baselineable | **existing → `baseline_debt`; new → drift** |
+| `unbound_memory` | baselineable | snapshot count → `baseline_debt`; excess → drift |
+| `non_canonical_writer` | baselineable | snapshot count → `baseline_debt`; excess → drift |
+| `structural_memory_auto_write` | baselineable | snapshot count → `structural_candidate`; excess → drift |
+| `missing_canonical_memory` | baselineable | snapshot count → `baseline_debt`; excess → drift |
+| `read_error` (**`unbound_memory` reason subtype**, not a code) | baselineable | snapshot count → `baseline_debt`; excess → drift |
 | **`active_non_canonical_writer`** | **always-fresh** | **never — full count, even if pre-existing** |
-| current-diff active non-canonical writer | always-fresh | never |
 | any future blocker-class signal | always-fresh | never |
 
-> Correction vs draft: `read_error` is **not** unconditionally always-fresh. Only
-> active enforcement classes are. A `read_error` already present at snapshot time
-> is legitimate baseline debt; only a `read_error` that appears *after* the
-> baseline is new drift.
+> `read_error` is identified by `code=unbound_memory` **plus a `reason` starting
+> with `read_error:`** — there is no top-level `read_error` code. Because `reason`
+> is part of the bucket key, read_error entries bucket separately and follow the
+> same baselineable (snapshot=debt / excess=drift) rule automatically.
 
 ## 4. Hard invariants (prevent banking an active signal)
 
@@ -97,18 +124,23 @@ SI-1  always-fresh classes are computed OUTSIDE baseline subtraction — they ne
       pass through suppression, so a blocker can never be hidden by a baseline.
 SI-2  writing a baseline is REFUSED if active_non_canonical_writer > 0 at snapshot
       time (cannot freeze an active blocker into historical debt).
-SI-3  the baseline absorbs only subjects that (a) exist at snapshot time and
-      (b) belong to a baselineable class; any new subject is new-since-baseline.
+SI-3  per baselineable key, only the snapshot count is debt; any count above the
+      snapshot count is new-since-baseline.
 ```
 
-## 5. Report shape (answers all five questions)
+SI-1 holds **by construction**: `active_non_canonical_writer` is a separate
+top-level guard field (`{count, violations, mode: report_only}`), structurally
+outside the `violations` list the baseline operates on.
+
+## 5. Report shape (count-delta; answers all five questions)
 
 ```
 total_historical_debt   = baseline.summary.total
 current_total           = rerun guard total
-suppressed_by_baseline  = current ∩ baseline, disposition ∈ baselineable
-new_since_baseline      = baselineable-class subjects in current not in baseline
-active_fresh_findings   = always-fresh classes, full count (never suppressed; SI-1)
+suppressed_by_baseline  = Σ min(current_count[key], baseline_count[key])   over baselineable keys
+new_since_baseline      = Σ max(0, current_count[key] - baseline_count[key]) over baselineable keys
+active_fresh_findings   = always-fresh classes (top-level active_non_canonical_writer
+                          + future blockers), full count (never suppressed; SI-1)
 ```
 
 Human one-liner (so reviewers read "new + active", not "322"):
@@ -119,15 +151,13 @@ Human one-liner (so reviewers read "new + active", not "322"):
 
 ## 6. Open questions for cut2 (NOT resolved here)
 
-1. **Per-class identity field selection**: pin `normalized(...)` field sets per
-   violation class against real guard JSON so historical debt matches stably and
-   file edits do not spuriously flip entries to "new".
-2. **Debt-shrink detection**: if `current_total < suppressed_by_baseline` (debt
-   was resolved), the report should flag "baseline can be re-frozen smaller" so
-   the baseline does not stay permanently oversized.
-3. **Interpretation-source doc**: whether to add
+1. **Debt-shrink hint**: the `max(0, …)` formula already tolerates shrinkage
+   (resolved debt → `new=0`, `suppressed=current`). The report should additionally
+   *flag* when `current_total < baseline.total` so the baseline can be re-frozen
+   smaller rather than staying permanently oversized.
+2. **Interpretation-source doc**: whether to add
    `docs/governance/memory-debt-disposition.md` (mirroring
-   `commit-memory-binding-contract.md`) to carry disposition reasons.
+   `commit-memory-binding-contract.md`) to carry per-bucket disposition reasons.
 
 ## Claim ceiling
 
@@ -142,5 +172,5 @@ claim_ceiling:
 not_claimed:
   - that warning debt is reduced (only re-framed as new-vs-baseline)
   - that active_non_canonical_writer can ever be baseline-suppressed (SI-1/SI-2 forbid it)
-  - that the per-class identity-key field selection is finalized (cut2)
+  - that individual new entries can be pinpointed (count-banking reports per-bucket added count only)
 ```
