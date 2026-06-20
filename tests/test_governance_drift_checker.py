@@ -90,9 +90,13 @@ def _write_baseline_yaml(
     plan_hash: str,
     contract_hash: str,
     baseline_version: str = "1.0.0",
-    initialized_at: str = "2026-03-21T10:00:00Z",
+    initialized_at: str | None = None,
     source_commit: str = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
 ) -> Path:
+    # Date-hermetic default: anchor to today so the 90d baseline_yaml_freshness
+    # window never rots. Stale-baseline tests pass an explicit initialized_at.
+    if initialized_at is None:
+        initialized_at = f"{_date.today().isoformat()}T10:00:00Z"
     text = (
         f"schema_version: \"1\"\n"
         f"baseline_version: {baseline_version}\n"
