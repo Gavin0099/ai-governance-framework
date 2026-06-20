@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import subprocess
 import sys
 from collections import OrderedDict
 from datetime import datetime, timezone
@@ -192,7 +193,11 @@ def compare(guard_result: dict, baseline: dict, *, active_from: str | None = Non
         "suppressed_by_baseline": suppressed,
         "new_since_baseline": new,
         "active_fresh_findings": len(active),
-        "baseline_shrink_hint": current_total < baseline_total,
+        # Based on baselineable debt only: if the snapshot's debt is no longer
+        # fully present (suppressed < baseline_total), the baseline over-counts and
+        # can be re-frozen smaller. Using current_total here would be masked by
+        # active/new findings inflating the total.
+        "baseline_shrink_hint": suppressed < baseline_total,
         "new_buckets": sorted(new_detail, key=lambda d: -d["new"]),
     }
 
@@ -221,6 +226,18 @@ def _load_guard(project_root: Path, memory_root: Path, skip_git: bool) -> dict:
     return run_guard(memory_root, project_root, skip_git=skip_git)
 
 
+def _git_head(project_root: Path) -> str:
+    """Best-effort short commit id for baseline provenance; "" if unavailable."""
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(project_root), "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, check=True,
+        )
+        return out.stdout.strip()
+    except Exception:
+        return ""
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Advisory count-bucket baseline for the memory authority guard."
@@ -230,6 +247,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--baseline", type=Path, default=None, help="Baseline JSON to compare against.")
     parser.add_argument("--write-baseline", type=Path, default=None, help="Freeze current debt to this path (SI-2).")
     parser.add_argument("--active-from", default=None)
+    parser.add_argument("--source-head", default=None,
+                        help="Commit id for baseline provenance (default: git rev-parse --short HEAD).")
     parser.add_argument("--skip-git", action="store_true")
     parser.add_argument("--format", choices=("human", "json"), default="human")
     args = parser.parse_args(argv)
@@ -238,8 +257,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     guard_result = _load_guard(args.project_root, memory_root, args.skip_git)
 
     if args.write_baseline is not None:
+        source_head = args.source_head if args.source_head is not None else _git_head(args.project_root)
         try:
-            baseline = build_baseline(guard_result, active_from=args.active_from)
+            baseline = build_baseline(guard_result, active_from=args.active_from, source_head=source_head)
         except ValueError as exc:
             print(f"[memory-authority-baseline] {exc}", file=sys.stderr)
             return 1

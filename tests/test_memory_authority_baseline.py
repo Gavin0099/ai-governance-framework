@@ -96,6 +96,24 @@ def test_active_never_suppressed_si1() -> None:
     assert payload["new_since_baseline"] == 0
 
 
+def test_shrink_hint_not_masked_by_active_or_new() -> None:
+    # Reviewer scenario: baselineable debt shrank (5 -> 2) but active findings
+    # inflate current_total. The hint must still fire (based on suppressed debt,
+    # not total guard warnings).
+    baseline = build_baseline(_gr([_unbound() for _ in range(5)]), active_from=FUTURE)
+    current = _gr([_unbound() for _ in range(2)] + [_ncw("2026-05-05.md") for _ in range(10)])
+    payload = compare(current, baseline, active_from=PAST)  # the 10 ncw are active
+    assert payload["active_fresh_findings"] == 10
+    assert payload["new_since_baseline"] == 0
+    assert payload["current_total"] > payload["total_historical_debt"]  # would mask old logic
+    assert payload["baseline_shrink_hint"] is True
+
+
+def test_build_baseline_records_source_head() -> None:
+    baseline = build_baseline(_gr([_unbound()]), active_from=FUTURE, source_head="abc1234")
+    assert baseline["source_head"] == "abc1234"
+
+
 def test_format_human_oneliner() -> None:
     payload = compare(_gr([_unbound()]), build_baseline(_gr([_unbound()]), active_from=FUTURE), active_from=FUTURE)
     out = format_human(payload)
