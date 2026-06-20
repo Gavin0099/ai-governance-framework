@@ -100,6 +100,12 @@ artifacts/claim-enforcement/claim-enforcement-receipts.ndjson
 artifacts/session-index.ndjson
 memory/candidates/*.json
 .governance-audit/
+# .governance-state.yaml is a regenerated, machine-specific bootstrap snapshot
+# (self-labeled "derived context snapshot (session bootstrap only); NOT authority;
+# DO NOT edit manually; update PLAN.md"). Regenerable via state_generator.py and
+# readers tolerate its absence, so it is untracked to stop perpetual
+# timestamp/project_root churn.
+.governance-state.yaml
 
 # Nested repo clone (accidental copy of workspace root)
 ai-governance-framework/
