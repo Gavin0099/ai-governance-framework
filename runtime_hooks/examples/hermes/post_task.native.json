@@ -1,0 +1,14 @@
+{
+  "_note": "Accepted-input contract for the Hermes adapter. NOT a verified Hermes native payload; field names use the shared adapter aliases (see runtime_hooks/adapters/shared_normalizer.py). post_task requires response_file per event_schema.json; output_file is mapped to it by shared_normalizer.",
+  "workspace": ".",
+  "task": "Validate Hermes task output",
+  "rules": ["common", "python"],
+  "risk": "medium",
+  "oversight": "review-required",
+  "memory_mode": "candidate",
+  "output_file": "runtime_hooks/examples/shared/ai_response.txt",
+  "emit_snapshot": true,
+  "summary": "Candidate memory from Hermes output",
+  "event_name": "post_task",
+  "run_id": "hermes-run-01"
+}

@@ -1,0 +1,14 @@
+{
+  "_note": "Accepted-input contract for the Hermes adapter. NOT a verified Hermes native payload; field names use the shared adapter aliases (see runtime_hooks/adapters/shared_normalizer.py).",
+  "workspace": ".",
+  "plan": "PLAN.md",
+  "request": "Example governed task entering via Hermes",
+  "rule_packs": ["common"],
+  "risk": "medium",
+  "oversight": "review-required",
+  "memory_mode": "candidate",
+  "impact_before": ["runtime_hooks/examples/shared/before.cs"],
+  "impact_after": ["runtime_hooks/examples/shared/after.cs"],
+  "event_name": "session_start",
+  "run_id": "hermes-session-start-01"
+}

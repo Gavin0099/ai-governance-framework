@@ -1,0 +1,11 @@
+{
+  "_note": "Accepted-input contract for the Hermes adapter. NOT a verified Hermes native payload; field names use the shared adapter aliases (see runtime_hooks/adapters/shared_normalizer.py).",
+  "workspace": ".",
+  "request": "Implement a governed change via Hermes",
+  "rule_packs": ["common", "python"],
+  "risk": "high",
+  "oversight": "review-required",
+  "memory_mode": "candidate",
+  "event_name": "pre_task",
+  "run_id": "hermes-run-01"
+}
