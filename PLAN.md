@@ -2,7 +2,7 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-06-12
+> **最後更新**: 2026-06-21
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
@@ -150,6 +150,25 @@ Claim ceiling for the above: learning-loop implementation remains paused and
 advisory-only; OQ-1/OQ-2 resolved does NOT open Gate 3; no banking, replay
 runner, CI/completion gate, or enforcement exists.
 
+Completed 2026-06-21 (reviewed per-slice, pushed to origin/main):
+
+- [x] Hermes adapter line reached mock-backend smoke coverage:
+  adapter scaffold, accepted-input interface doc, deterministic stub runner,
+  standard smoke registration, input-driven mock backend fixture, fail-closed
+  parse / allowlist behavior, and fixture disclaimer were committed with
+  focused tests.
+- [x] CI enforcement claim ceiling documented in
+  `docs/governance/ci-enforcement-claim-ceiling.md`: push checks are
+  post-facto detection/accountability; PR coverage is stronger; prevention
+  claims require verified required checks / branch protection outside the
+  workflow file.
+
+Claim ceiling for 2026-06-21 updates: Hermes remains mock-backend /
+accepted-input smoke only; no real Hermes model, hosted/local backend,
+general code-writing runtime, model reliability, or non-bypassable governance
+wrapping is claimed. CI claim-ceiling work is documentation-only; it does not
+change workflow behavior, hooks, branch protection, or enforcement level.
+
 ## Active Claim Boundaries
 
 Mutation enforcement:
@@ -185,6 +204,27 @@ Memory authority:
   and opt-in blocker path.
 - NOT CLAIMED: historical debt cleanup, blocking threshold readiness, semantic
   correctness of memory content, or global enforcement closure.
+
+Hermes executor-adapter line (2026-06-21):
+
+- CLAIMED: Hermes accepted-input adapter surface, interface documentation,
+  deterministic stub runner, standard smoke registration, and input-driven
+  mock-backend fixture path with focused tests for fail-closed parse /
+  allowlist behavior and response-file contract.
+- NOT CLAIMED: verified external Hermes runtime payload, true Hermes model
+  integration, hosted/local backend reliability, model-generated tool-call
+  reliability, general-purpose code-writing runtime completion, or
+  non-bypassable governance wrapping.
+
+CI enforcement claim ceiling (2026-06-21):
+
+- CLAIMED: documentation of the current in-repo GitHub Actions boundary:
+  push-triggered checks are post-facto detection/accountability; four heavier
+  jobs are PR-only; branch protection / required-check settings are outside
+  the workflow file and were not verified here.
+- NOT CLAIMED: prevention-grade enforcement, verified GitHub branch protection,
+  required status checks enabled, local hooks installed everywhere, adapters as
+  runtime sandboxes, or CI proof of framework correctness.
 
 Selective CI enforcement (P1-A, 2026-06-12):
 
