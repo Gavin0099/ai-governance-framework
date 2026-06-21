@@ -1,3 +1,4 @@
+# fixture: deterministic model output for smoke; NOT verified Hermes model output
 <tool_call>
 {
   "name": "write_governed_response",
