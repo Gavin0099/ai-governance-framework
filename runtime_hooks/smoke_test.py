@@ -16,6 +16,7 @@ if __package__ in (None, ""):
 from runtime_hooks.adapters.claude_code.normalize_event import normalize_event as normalize_claude
 from runtime_hooks.adapters.codex.normalize_event import normalize_event as normalize_codex
 from runtime_hooks.adapters.gemini.normalize_event import normalize_event as normalize_gemini
+from runtime_hooks.adapters.hermes.normalize_event import normalize_event as normalize_hermes
 from runtime_hooks.adapters.shared_adapter_runner import run_adapter_event
 from runtime_hooks.dispatcher import dispatch_event
 from runtime_hooks.runtime_path_overrides import apply_runtime_path_overrides
@@ -25,6 +26,7 @@ NORMALIZERS = {
     "claude_code": normalize_claude,
     "codex": normalize_codex,
     "gemini": normalize_gemini,
+    "hermes": normalize_hermes,
 }
 
 
@@ -38,6 +40,12 @@ DEFAULT_EXAMPLES = {
     ("gemini", "session_start"): Path("runtime_hooks/examples/gemini/session_start.native.json"),
     ("gemini", "pre_task"): Path("runtime_hooks/examples/gemini/pre_task.native.json"),
     ("gemini", "post_task"): Path("runtime_hooks/examples/gemini/post_task.native.json"),
+    # hermes registered for dict symmetry / discoverability; the CLI still routes
+    # session_start through run_shared_smoke (shared dispatch), so the (hermes,
+    # session_start) entry is for the programmatic run_smoke path only.
+    ("hermes", "session_start"): Path("runtime_hooks/examples/hermes/session_start.native.json"),
+    ("hermes", "pre_task"): Path("runtime_hooks/examples/hermes/pre_task.native.json"),
+    ("hermes", "post_task"): Path("runtime_hooks/examples/hermes/post_task.native.json"),
 }
 
 DEFAULT_SHARED_EXAMPLES = {
