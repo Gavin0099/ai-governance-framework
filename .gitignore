@@ -130,6 +130,9 @@ docs/payload-audit/*.jsonl
 # Documentation build
 docs/_build/
 
+# Local presentation deliverables (kept out of source/evidence commits)
+docs/*.pptx
+
 # Local scratch / one-off checks
 scratch_quickstart_smoke/
 _integration_check.py
