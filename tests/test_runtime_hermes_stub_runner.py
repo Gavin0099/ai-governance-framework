@@ -13,6 +13,9 @@ from runtime_hooks.examples.hermes.stub_runner import (
     run_stub_task,
 )
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+HERMES_EXAMPLES = REPO_ROOT / "runtime_hooks" / "examples" / "hermes"
+
 
 def _write_minimal_project(root: Path) -> None:
     (root / "PLAN.md").write_text(
@@ -42,6 +45,8 @@ def test_hermes_stub_runner_produces_response_file_and_passes_adapter_pipeline(t
 
     result = run_stub_task(project_root=tmp_path, output_dir=tmp_path / "out", task="stub smoke")
 
+    assert result["ok"] is True
+    assert result["blocked"] is None
     response_file = Path(result["tool_result"]["response_file"])
     assert response_file.exists()
     assert "[Governance Contract]" in response_file.read_text(encoding="utf-8")
@@ -50,8 +55,48 @@ def test_hermes_stub_runner_produces_response_file_and_passes_adapter_pipeline(t
     assert result["post_task"]["normalized_event"]["metadata"]["harness"] == "hermes"
     assert result["post_task"]["normalized_event"]["response_file"] == str(response_file)
     assert result["post_task"]["result"]["adapter_contract"]["compliant"] is True
-    assert result["claim_class"] == "accepted-input-stub-smoke"
+    assert result["claim_class"] == "accepted-input-mock-backend-smoke"
     assert "verified external Hermes runtime integration" in result["not_claimed"]
+
+
+def test_hermes_mock_backend_accepts_model_output_fixture(tmp_path: Path) -> None:
+    _write_minimal_project(tmp_path)
+    model_output = (HERMES_EXAMPLES / "model_output.tool_call.txt").read_text(encoding="utf-8")
+
+    result = run_stub_task(project_root=tmp_path, output_dir=tmp_path / "out", model_output=model_output)
+
+    response_file = Path(result["tool_result"]["response_file"])
+    assert result["ok"] is True
+    assert result["tool_result"]["executed"] is True
+    assert response_file.exists()
+    assert result["post_task"]["result"]["ok"] is True
+
+
+def test_hermes_mock_backend_malformed_model_output_fails_closed(tmp_path: Path) -> None:
+    _write_minimal_project(tmp_path)
+
+    result = run_stub_task(project_root=tmp_path, output_dir=tmp_path / "out", model_output="not a tool call")
+
+    response_file = Path(result["tool_result"]["response_file"])
+    assert result["ok"] is False
+    assert result["blocked"].startswith("tool_call_parse_or_allowlist_error")
+    assert result["tool_result"]["executed"] is False
+    assert result["post_task"] is None
+    assert not response_file.exists()
+
+
+def test_hermes_mock_backend_unlisted_tool_fails_closed(tmp_path: Path) -> None:
+    _write_minimal_project(tmp_path)
+    model_output = '<tool_call>{"name":"edit_file","arguments":{}}</tool_call>'
+
+    result = run_stub_task(project_root=tmp_path, output_dir=tmp_path / "out", model_output=model_output)
+
+    response_file = Path(result["tool_result"]["response_file"])
+    assert result["ok"] is False
+    assert "unsupported stub tool" in result["blocked"]
+    assert result["tool_result"]["executed"] is False
+    assert result["post_task"] is None
+    assert not response_file.exists()
 
 
 def test_hermes_post_task_without_response_file_is_rejected(tmp_path: Path) -> None:

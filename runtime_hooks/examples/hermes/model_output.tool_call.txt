@@ -1,0 +1,8 @@
+<tool_call>
+{
+  "name": "write_governed_response",
+  "arguments": {
+    "summary": "Fixture model output requested the safe governed response writer."
+  }
+}
+</tool_call>
