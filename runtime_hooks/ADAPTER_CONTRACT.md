@@ -28,6 +28,7 @@ They must not:
 - `claude_code/`
 - `codex/`
 - `gemini/`
+- `hermes/`
 
 ## Minimum adapter surface
 

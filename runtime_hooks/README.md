@@ -20,6 +20,9 @@ Adapters:
 - `adapters/gemini/pre_task.py`
 - `adapters/gemini/post_task.py`
 - `adapters/gemini/normalize_event.py`
+- `adapters/hermes/pre_task.py`
+- `adapters/hermes/post_task.py`
+- `adapters/hermes/normalize_event.py`
 
 Design rule:
 
@@ -150,6 +153,7 @@ Examples:
 - `examples/claude_code/*.native.json`
 - `examples/codex/*.native.json`
 - `examples/gemini/*.native.json`
+- `examples/hermes/*.native.json` (accepted-input contract; not a verified Hermes native payload)
 - `examples/shared/*.shared.json`
 - `examples/shared/session_start.shared.json`
 

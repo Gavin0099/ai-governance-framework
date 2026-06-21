@@ -11,6 +11,9 @@ ADAPTERS = [
     Path("runtime_hooks/adapters/gemini/pre_task.py"),
     Path("runtime_hooks/adapters/gemini/post_task.py"),
     Path("runtime_hooks/adapters/gemini/normalize_event.py"),
+    Path("runtime_hooks/adapters/hermes/pre_task.py"),
+    Path("runtime_hooks/adapters/hermes/post_task.py"),
+    Path("runtime_hooks/adapters/hermes/normalize_event.py"),
 ]
 
 
