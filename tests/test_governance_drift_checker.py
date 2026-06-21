@@ -16,9 +16,11 @@ from governance_tools.governance_drift_checker import (
     BaselineDriftResult,
     BASELINE_YAML_RELPATH,
     BASELINE_SOURCE_RELPATH,
+    DEFAULT_BASELINE_FRESHNESS_DAYS,
     _sha256_file,
     _current_baseline_version,
     _read_baseline_yaml,
+    build_parser,
     check_governance_drift,
     format_human,
     format_json,
@@ -395,6 +397,15 @@ def test_stale_baseline_yaml_is_warning(tmp_path):
         freshness_threshold_days=30,
     )
     assert result.checks.get("baseline_yaml_freshness") is False
+
+
+def test_baseline_freshness_default_is_single_sourced_in_parser() -> None:
+    parser = build_parser()
+    args = parser.parse_args([])
+    help_text = parser.format_help()
+
+    assert args.freshness_threshold == DEFAULT_BASELINE_FRESHNESS_DAYS
+    assert f"default: {DEFAULT_BASELINE_FRESHNESS_DAYS}" in help_text
 
 
 # ── Result fields ─────────────────────────────────────────────────────────────

@@ -80,6 +80,7 @@ _FRAMEWORK_DRIFT_TO_COMPONENT: dict[str, str] = {
 BASELINE_YAML_RELPATH = ".governance/baseline.yaml"
 BASELINE_SOURCE_RELPATH = "baselines/repo-min"
 FRAMEWORK_DEFAULT_FRESHNESS_DAYS = 14
+DEFAULT_BASELINE_FRESHNESS_DAYS = 90
 
 
 def _adopt_hint(repo_root: Path, extra: str = "") -> str:
@@ -231,7 +232,7 @@ def _current_baseline_version(framework_root: Path) -> str | None:
 def check_governance_drift(
     repo_root: Path,
     framework_root: Path | None = None,
-    freshness_threshold_days: int = 90,
+    freshness_threshold_days: int = DEFAULT_BASELINE_FRESHNESS_DAYS,
     skip_hash: bool = False,
     emit_risk_signal: bool = False,
 ) -> BaselineDriftResult:
@@ -823,8 +824,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--freshness-threshold",
         type=int,
-        default=90,
-        help="Days before baseline.yaml is considered stale (default: 90)",
+        default=DEFAULT_BASELINE_FRESHNESS_DAYS,
+        help=f"Days before baseline.yaml is considered stale (default: {DEFAULT_BASELINE_FRESHNESS_DAYS})",
     )
     parser.add_argument("--skip-hash", action="store_true", help="Skip SHA256 comparison")
     return parser
