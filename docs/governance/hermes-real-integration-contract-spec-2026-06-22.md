@@ -544,6 +544,58 @@ Tranche 1A non-claims:
 Tranche 1B remains a separate future decision. It must not be inferred from
 Tranche 1A success.
 
+### Other-repo adoption posture
+
+Status:
+
+```text
+pre-adoption guidance
+advisory narrative
+not registered authority
+not an observed adoption report
+```
+
+No external repository has yet been verified as adopting the combined AI
+Governance + Hermes stack. This section is guidance for future consuming repos,
+not evidence that the combined stack is already adopted or operational.
+
+Layered statements:
+
+- Fact: real Hermes integration remains accepted-input / fixture-backed at this
+  point. Tranche 1A proves the existing Hermes `post_task` adapter can consume a
+  cron-output-shaped fixture as `response_file`; it does not prove live Hermes
+  cron execution.
+- Fact: Tranche 1A cron provenance fields are fixture-resident
+  reviewer-facing fields. They are not propagated, parsed, or
+  machine-attested by the adapter pipeline in this tranche.
+- [INV]-derived: Hermes self-report, cron output, middleware traces, and
+  runtime memory are observations or candidate evidence. They do not override
+  repo-local canonical governance evidence.
+- [INV]-derived: if Hermes-reported status conflicts with repo governance
+  state, canonical governance state wins. This follows the existing
+  `canonical > candidate` and `observation != validation` invariants; this
+  section does not create a new authority rule.
+- [OP]: unexplained friction when adopting the combined stack should be treated
+  as a framework-side defect candidate. This derives from the existing
+  "Unexplained Adoption Friction Defaults to Framework Defect" operating
+  posture and remains revisable with better adoption evidence.
+- [OP]: hermetic adoption smoke, temp-path isolation, version pinning, and clear
+  fixture-vs-live labels are framework-side obligations for future combined
+  adoption. They are not delivered capabilities in this tranche.
+
+Claim boundary for consuming repos:
+
+- Supported: a consuming repo may treat AI Governance + Hermes as a future
+  observe/advisory workflow pattern, starting with cron artifact attestation.
+- Not supported: a consuming repo may not claim that Hermes execution is
+  governed, non-bypassable, or enforcement-protected merely because the
+  framework contains Hermes fixtures.
+- Not supported: a consuming repo may not treat Hermes runtime memory as
+  framework canonical memory unless it is converted through an approved
+  canonical writer.
+- Not supported: a consuming repo may not treat fixture-resident provenance as
+  machine-attested pipeline provenance.
+
 Claim ceiling:
 
 ```text
