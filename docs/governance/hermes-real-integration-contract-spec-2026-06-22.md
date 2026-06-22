@@ -541,6 +541,126 @@ Tranche 1A non-claims:
 - no claim that cron job delivery succeeded unless delivery status is present;
 - no claim that cron output is semantically correct.
 
+### Live cron artifact governance metadata strategy
+
+Status:
+
+```text
+design-only
+no implementation
+no adapter behavior change
+no Hermes runtime change
+```
+
+Problem:
+
+```text
+The existing Hermes post_task adapter can consume a live Hermes cron markdown
+artifact as response_file, but the raw live artifact is not governance-contract
+compliant because it does not contain a [Governance Contract] block. The
+Tranche 1A fixture passed that check because the fixture included a synthetic
+governance block that real Hermes no_agent cron output does not emit.
+```
+
+Design goal:
+
+```text
+Define how future AI Governance metadata should be bound to live Hermes cron
+artifacts without pretending that raw Hermes output is already framework-
+governed or machine-attested.
+```
+
+Options:
+
+| Option | Description | Benefit | Primary risk | Decision posture |
+|---|---|---|---|---|
+| Native output mutation | Require Hermes cron output itself to include `[Governance Contract]` metadata | Single file is easy for existing `post_task` checks | Couples Hermes native output format to this framework and makes raw Hermes output look governed | Not preferred |
+| Sidecar metadata | Write a separate governance metadata file next to the Hermes artifact | Keeps Hermes native output untouched and separates observation from governance attestation | Sidecar can drift from artifact unless strongly bound | Candidate |
+| Wrapper artifact | Generate a new governance wrapper file that embeds or references the raw Hermes artifact | Existing `response_file` contract can remain mostly unchanged | Wrapper can be mistaken for Hermes-native output unless labeled clearly | Candidate |
+| Predicate-native-artifact-class support | Teach `_post_task_contract_required` or equivalent logic to recognize a bound native cron artifact class and require sidecar/wrapper evidence instead of inline `[Governance Contract]` | Avoids forcing inline contract blocks into native artifacts | Changes contract predicate semantics and must be reviewed as governance behavior, not mere docs | Candidate, later implementation only; [OP-HC]-class if implemented because it changes contract-compliance proof threshold semantics and requires rollback path review |
+
+Required binding fields for any sidecar or wrapper:
+
+- `source_artifact_path`;
+- `source_artifact_sha256`;
+- `source_artifact_size_bytes`;
+- `source_artifact_line_count`;
+- `hermes_job_id`;
+- `hermes_job_name` when available;
+- `hermes_run_timestamp`;
+- `hermes_output_timestamp`;
+- `audited_external_head`;
+- `capture_boundary`, for example `native_file_artifact`;
+- `source_type`, for example `cron_output_file`;
+- `governance_metadata_created_at`;
+- `governance_metadata_created_by`;
+- `claim_ceiling`.
+
+Binding rule [OP]:
+
+```text
+Path alone is not evidence binding. A sidecar or wrapper is valid only if it
+binds at least path + sha256 + job_id + timestamp for the exact source artifact
+being reviewed.
+```
+
+Authority semantics [INV]-derived:
+
+```text
+Raw Hermes cron output remains a Hermes observation.
+AI Governance sidecar or wrapper metadata is framework-side attestation about
+that observation.
+Neither form makes Hermes output framework canonical memory or enforcement
+evidence unless a later explicitly approved governance path says so.
+```
+
+This follows the existing ordering and does not create a new authority rule:
+
+```text
+canonical > candidate
+observation != validation
+attestation != enforcement
+```
+
+Freshness and tamper risks:
+
+- if the raw artifact changes after metadata generation, the sidecar/wrapper
+  must be considered stale unless the hash still matches;
+- if the raw artifact is deleted but sidecar/wrapper remains, the evidence is
+  incomplete;
+- if a sidecar references only a path, it can accidentally bind to a different
+  artifact after rerun or cleanup;
+- if wrapper text embeds copied output but omits the source hash, reviewers
+  cannot distinguish copied content from the original live artifact;
+- timestamp mismatches between Hermes output and governance metadata must be
+  surfaced as review warnings, not silently normalized.
+
+Recommended next design direction [OP]:
+
+```text
+Prefer a sidecar or wrapper with strong hash/path/job_id/timestamp binding.
+Do not mutate raw Hermes cron output as the first implementation.
+Do not change contract predicate semantics until a separate reviewed slice
+defines the native-artifact class and its required evidence.
+```
+
+Fixture annotation follow-up [OP]:
+
+```text
+The Tranche 1A fixture must be annotated as carrying a synthetic
+[Governance Contract] block. It is useful as an adapter/contract fixture, but
+it is not live-output-representative for governance compliance because live
+Hermes no_agent cron output does not emit that block.
+```
+
+Claim ceiling:
+
+```text
+This strategy defines metadata options. It does not implement sidecar
+generation, wrapper generation, native-artifact predicate support, provenance
+machine-attestation, runtime governance, or enforcement.
+```
+
 Tranche 1B remains a separate future decision. It must not be inferred from
 Tranche 1A success.
 
