@@ -535,6 +535,9 @@ Tranche 1A non-claims:
 - no stream capture;
 - no runtime enforcement;
 - no tool-execution non-bypassability;
+- cron provenance fields are fixture-resident reviewer-facing fields only;
+  they are not propagated, parsed, or machine-attested by the Hermes adapter in
+  this tranche;
 - no claim that cron job delivery succeeded unless delivery status is present;
 - no claim that cron output is semantically correct.
 

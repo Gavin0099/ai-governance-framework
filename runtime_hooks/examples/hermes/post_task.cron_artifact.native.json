@@ -1,0 +1,24 @@
+{
+  "_note": "Accepted-input fixture for Hermes Tranche 1A cron-artifact attestation. This is grounded in the audited Hermes cron output file path shape at HEAD 5bf23ff, but it is NOT live Hermes execution output and does NOT cover interactive stdout or ACP final_response paths.",
+  "repo_root": ".",
+  "goal": "Validate Hermes cron artifact attestation mapping",
+  "active_rules": ["common", "python"],
+  "risk_level": "medium",
+  "oversight_mode": "review-required",
+  "memory": "candidate",
+  "output_file": "runtime_hooks/examples/hermes/cron_output.5bf23ff.md",
+  "snapshot": true,
+  "summary": "Tranche 1A cron artifact attestation fixture",
+  "event": "post_task",
+  "session_id": "hermes-session-5bf23ff-cron-01",
+  "hermes_cron_artifact": {
+    "audited_external_head": "5bf23ff251ed54961f5560d2d2f95474dcc09386",
+    "source_type": "cron_output_file",
+    "capture_boundary": "native_file_artifact",
+    "cron_job_id": "hermes-cron-job-01",
+    "cron_job_name": "governance-attestation-smoke",
+    "cron_output_path": "~/.hermes/cron/output/hermes-cron-job-01/2026-06-22T00-00-00Z.md",
+    "run_timestamp_utc": "2026-06-22T00:00:00Z",
+    "claim_ceiling": "cron_artifact_attestation_only"
+  }
+}

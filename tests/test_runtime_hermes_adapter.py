@@ -46,3 +46,16 @@ def test_hermes_native_aliases_map_to_canonical_fields() -> None:
     assert normalized["task"]
     assert normalized["rules"] == ["common", "python"]
     assert normalized["metadata"]["session_id"] == "hermes-run-01"
+
+
+def test_hermes_cron_artifact_fixture_maps_to_response_file() -> None:
+    normalized = normalize_event(_native("post_task.cron_artifact"), "post_task")
+    assert normalized["project_root"] == "."
+    assert normalized["task"] == "Validate Hermes cron artifact attestation mapping"
+    assert normalized["rules"] == ["common", "python"]
+    assert normalized["risk"] == "medium"
+    assert normalized["oversight"] == "review-required"
+    assert normalized["memory_mode"] == "candidate"
+    assert normalized["response_file"] == "runtime_hooks/examples/hermes/cron_output.5bf23ff.md"
+    assert normalized["metadata"]["session_id"] == "hermes-session-5bf23ff-cron-01"
+    assert normalized["metadata"]["native_event_type"] == "post_task"

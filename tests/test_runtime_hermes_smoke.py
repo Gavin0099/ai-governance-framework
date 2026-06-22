@@ -11,6 +11,10 @@ from runtime_hooks.examples.hermes.stub_runner import (
 from runtime_hooks.smoke_test import DEFAULT_EXAMPLES, NORMALIZERS, run_smoke
 
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+HERMES_EXAMPLES = REPO_ROOT / "runtime_hooks" / "examples" / "hermes"
+
+
 def _write_minimal_project(root: Path) -> None:
     (root / "PLAN.md").write_text(
         f"> **最後更新**: {_date.today().isoformat()}\n"
@@ -47,3 +51,17 @@ def test_hermes_post_task_smoke_ok(tmp_path: Path) -> None:
     assert envelope["result"]["ok"] is True
     assert envelope["normalized_event"]["response_file"] == str(response_file)
     assert envelope["result"]["adapter_contract"]["compliant"] is True
+
+
+def test_hermes_cron_artifact_post_task_smoke_ok(tmp_path: Path) -> None:
+    _write_minimal_project(tmp_path)
+    response_source = HERMES_EXAMPLES / "cron_output.5bf23ff.md"
+    response_file = tmp_path / "hermes-cron-output.md"
+    response_file.write_text(response_source.read_text(encoding="utf-8"), encoding="utf-8")
+
+    envelope = run_smoke("hermes", "post_task", project_root=tmp_path, response_file=response_file)
+
+    assert envelope["result"]["ok"] is True
+    assert envelope["normalized_event"]["response_file"] == str(response_file)
+    assert envelope["result"]["adapter_contract"]["compliant"] is True
+    assert "source_type = cron_output_file" in response_file.read_text(encoding="utf-8")
