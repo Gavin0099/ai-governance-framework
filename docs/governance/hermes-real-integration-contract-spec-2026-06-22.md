@@ -486,6 +486,61 @@ Choose Tranche 1A cron-artifact attestation or Tranche 1B stream/ACP capture
 adapter before adding new fixtures.
 ```
 
+### Tranche 1 route decision
+
+Decision date: 2026-06-22
+
+Decision:
+
+```text
+Proceed with Tranche 1A first: cron-artifact attestation.
+Defer Tranche 1B: stream / ACP capture adapter.
+```
+
+Decision matrix:
+
+| Route | Evidence surface | Coverage | Implementation cost | Claim risk | Decision |
+|---|---|---|---|---|---|
+| Tranche 1A: cron-artifact attestation | Native Hermes cron markdown output under cron output storage | Cron / scheduled work only | Low | Low | Proceed first |
+| Tranche 1B: stream / ACP capture adapter | Captured stdout or ACP `final_response` protocol content written to framework `response_file` | Interactive / ACP paths | Medium / high | Medium / high | Defer |
+
+Rationale:
+
+- Tranche 1A uses the only naturally materialized file artifact observed in
+  Tranche 0.5.
+- Tranche 1A does not require wrapping Hermes stdout, ACP protocol handling, or
+  tool dispatch.
+- Tranche 1A preserves the current observation / attestation claim ceiling.
+- Tranche 1B would require a new capture component and has higher risk of being
+  misread as runtime governance or enforcement.
+
+Tranche 1A allowed scope:
+
+- add a cron-output-shaped fixture grounded in the audited Hermes cron artifact
+  path shape;
+- test that the existing Hermes `post_task` adapter can consume that fixture as
+  a framework-compatible response artifact;
+- record provenance fields needed for reviewer attestation:
+  - `session_id` if available;
+  - cron job id;
+  - cron job name if available;
+  - output markdown path;
+  - run timestamp;
+  - audited Hermes commit;
+  - source type `cron_output_file`.
+
+Tranche 1A non-claims:
+
+- no interactive / ACP coverage;
+- no stream capture;
+- no runtime enforcement;
+- no tool-execution non-bypassability;
+- no claim that cron job delivery succeeded unless delivery status is present;
+- no claim that cron output is semantically correct.
+
+Tranche 1B remains a separate future decision. It must not be inferred from
+Tranche 1A success.
+
 Claim ceiling:
 
 ```text
