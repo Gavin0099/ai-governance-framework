@@ -73,12 +73,16 @@ def deploy(config_path: Path, hermes_home: Path, venv_path: Path) -> tuple[dict[
 
     scripts_dir = (hermes_home / "scripts").resolve()
     deployed_script = (scripts_dir / filename).resolve()
+    deployed_config = (scripts_dir / config_path.name).resolve()
     expected_parent = hermes_home.resolve()
     if expected_parent not in deployed_script.parents:
         raise ValueError("resolved deploy target escaped HERMES_HOME")
+    if expected_parent not in deployed_config.parents:
+        raise ValueError("resolved config deploy target escaped HERMES_HOME")
 
     scripts_dir.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(repo_script, deployed_script)
+    shutil.copyfile(config_path, deployed_config)
 
     preflight_report, errors = run_preflight(config_path=config_path, hermes_home=hermes_home, venv_path=venv_path)
     report = {
@@ -87,6 +91,7 @@ def deploy(config_path: Path, hermes_home: Path, venv_path: Path) -> tuple[dict[
         "pre_copy_repo_script_sha256": repo_sha,
         "script_pin": pin,
         "deployed_script": str(deployed_script),
+        "deployed_config": str(deployed_config),
         "write_scope": str(scripts_dir),
         "preflight": preflight_report,
         "errors": errors,

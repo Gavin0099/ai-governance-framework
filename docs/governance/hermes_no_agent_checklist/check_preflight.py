@@ -87,9 +87,12 @@ def run_preflight(config_path: Path, hermes_home: Path, venv_path: Path) -> tupl
 
     repo_script = (PACKAGE_DIR / script_filename).resolve()
     deployed_script = (hermes_home / "scripts" / script_filename).resolve()
+    deployed_config = (hermes_home / "scripts" / config_path.name).resolve()
 
     repo_script_sha = None
     deployed_script_sha = None
+    repo_config_sha = None
+    deployed_config_sha = None
     if not repo_script.exists():
         errors.append(f"repo script missing: {repo_script}")
     else:
@@ -103,6 +106,18 @@ def run_preflight(config_path: Path, hermes_home: Path, venv_path: Path) -> tupl
         deployed_script_sha = _sha256(deployed_script)
         if deployed_script_sha != script_pin:
             errors.append("deployed script sha256 does not match config pin")
+
+    if not config_path.exists():
+        errors.append(f"repo config missing: {config_path}")
+    else:
+        repo_config_sha = _sha256(config_path)
+
+    if not deployed_config.exists():
+        errors.append(f"deployed config missing: {deployed_config}")
+    else:
+        deployed_config_sha = _sha256(deployed_config)
+        if repo_config_sha is not None and deployed_config_sha != repo_config_sha:
+            errors.append("deployed config sha256 does not match repo config")
 
     if not hermes_home.exists():
         errors.append(f"HERMES_HOME path does not exist: {hermes_home}")
@@ -124,8 +139,12 @@ def run_preflight(config_path: Path, hermes_home: Path, venv_path: Path) -> tupl
         "script_pin": script_pin,
         "repo_script": str(repo_script),
         "repo_script_sha256": repo_script_sha,
+        "repo_config": str(config_path),
+        "repo_config_sha256": repo_config_sha,
         "deployed_script": str(deployed_script),
         "deployed_script_sha256": deployed_script_sha,
+        "deployed_config": str(deployed_config),
+        "deployed_config_sha256": deployed_config_sha,
         "hermes_home": str(hermes_home),
         "venv_path": str(venv_path),
         "venv_python": str(python_exe),
