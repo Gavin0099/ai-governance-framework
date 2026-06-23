@@ -11,6 +11,13 @@ RISK = medium
 OVERSIGHT = review-required
 MEMORY_MODE = candidate
 
+[Fixture Annotation]
+This fixture intentionally contains a synthetic [Governance Contract] block so
+the existing Hermes post_task adapter contract path can be exercised. Live
+Hermes no_agent cron output observed at HEAD 5bf23ff did not emit this block.
+Therefore this fixture is adapter-contract evidence, not live-output evidence
+that raw Hermes cron artifacts are governance-contract compliant.
+
 [Hermes Cron Artifact]
 audited_external_head = 5bf23ff251ed54961f5560d2d2f95474dcc09386
 source_type = cron_output_file

@@ -1,5 +1,5 @@
 {
-  "_note": "Accepted-input fixture for Hermes Tranche 1A cron-artifact attestation. This is grounded in the audited Hermes cron output file path shape at HEAD 5bf23ff, but it is NOT live Hermes execution output and does NOT cover interactive stdout or ACP final_response paths.",
+  "_note": "Accepted-input fixture for Hermes Tranche 1A cron-artifact attestation. This is grounded in the audited Hermes cron output file path shape at HEAD 5bf23ff, but it is NOT live Hermes execution output and does NOT cover interactive stdout or ACP final_response paths. The referenced markdown fixture intentionally contains a synthetic [Governance Contract] block; live Hermes no_agent cron output observed at HEAD 5bf23ff did not emit that block, so this fixture is not live-output-representative for governance compliance.",
   "repo_root": ".",
   "goal": "Validate Hermes cron artifact attestation mapping",
   "active_rules": ["common", "python"],
