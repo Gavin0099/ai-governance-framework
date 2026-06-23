@@ -117,6 +117,44 @@ multi-repo adoption consideration, reviewer agreement). The hook-wiring
 containment (B) is ordinary **[OP]** and is the short-term step toward the
 fail-closed end state.
 
+## Incident analysis & containment (2026-06-23) — refined scope [OP]
+
+Investigation refined the scope after the decision above:
+
+- **Proximate cause of *this* incident is hook wiring, not a missing root.** The
+  Stop (session-end) hook was wired as
+  `session_closeout_entry.py --project-root .` — a **cwd-relative root passed
+  explicitly**. When the hook fired while the shell cwd was the checklist
+  sub-directory, `.` resolved there and the artifacts tree landed there. So the
+  literal "fail-closed on *missing* root" does not catch this case (the root was
+  not missing — it was an explicit `.`).
+
+- **Short-term containment (applied):** the Stop-hook wiring was changed to an
+  **absolute explicit framework root**
+  (`--project-root E:/BackUp/Git_EE/ai-governance-framework`). This satisfies the
+  core verification (a session closeout fired from the checklist sub-directory no
+  longer writes to cwd).
+
+- ⚠️ **The containment is NOT version-controlled.** `.claude/settings.json` is
+  gitignored (`.gitignore:131 .claude/*`), so the wiring fix is **local to this
+  machine only** — not reproducible across clones, not auditable in the repo.
+  This is itself an argument that the durable fix must be the **tool-level
+  contract (A)**, since the wiring containment cannot be shipped.
+
+- **Do NOT naïvely ban `--project-root .`.** `default="."` and explicit `.` are a
+  long-standing call pattern across the whole hook system
+  (`session_start.py:686`, `session_end.py:1299`, `pre_task_check.py:1013`,
+  `stub_runner.py:212`; `post_task_check.py:1053` has no default). With cwd =
+  repo root, `--project-root .` is a *valid* existing invocation. A literal
+  argument-value ban (`reject ".")` would break those entrypoints — that is a
+  framework-contract change, not a bug fix, and the blast radius is too large.
+
+- **Convergence direction for A (next cut):** the canonical-write path should
+  validate the **resolved** root against a **framework marker / expected repo
+  identity** (not a literal check of whether the argument string is `"."`). That
+  makes the contract testable and incrementally migratable as a shared helper,
+  without forbidding the legitimate repo-root-cwd usage.
+
 ## Hygiene defense already applied (NOT the fix)
 
 `.gitignore` gained any-depth patterns (`**/artifacts/runtime/`,
