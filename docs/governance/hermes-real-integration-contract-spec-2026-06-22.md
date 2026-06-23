@@ -736,6 +736,254 @@ Build a Hermes plugin that records middleware/tool observations and writes a
 response artifact. It must be disabled by default and must not claim
 non-bypassability.
 
+### Recurring no_agent multi-repo checklist workflow
+
+Status:
+
+```text
+design-only
+no implementation
+no cron job installed
+no runtime/enforcement change
+```
+
+Problem:
+
+```text
+Codex has successfully triggered Hermes cron --no-agent one-shot jobs to
+produce useful local artifacts, including a multi-repo status checklist.
+However, the current flow is manual and ad hoc. Reusing it safely requires a
+bounded recurring workflow: fixed repo inputs, read-only command boundaries,
+artifact retention, and an explicit non-authority claim ceiling.
+```
+
+Target outcome:
+
+```text
+Define a recurring Hermes no_agent checklist pattern that can periodically
+produce workspace-health observations without using LLM/provider credentials,
+without entering the Hermes agent loop, and without implying AI Governance
+enforcement.
+```
+
+Config shape [OP]:
+
+```yaml
+checklist_name: multi-repo-status
+mode: hermes-cron-no-agent
+runtime:
+  venv: C:/tmp/hermes-cron-venv
+  hermes_home: C:/tmp/hermes-cron-use
+script:
+  path: C:/tmp/hermes-cron-use/scripts/multi_repo_status.py
+  sha256: <reviewed script sha256>
+  review_required_on_change: true
+repos:
+  - name: ai-governance-framework
+    path: E:/BackUp/Git_EE/ai-governance-framework
+    upstream: gitlab/main
+  - name: hermes-agent
+    path: E:/BackUp/Git_EE/hermes-agent
+    upstream: origin/main
+schedule:
+  type: interval
+  value: daily
+  executor: open_decision
+artifact:
+  format: markdown
+  retention:
+    actor: open_decision
+    max_days: 14
+    max_files: 50
+claim_ceiling: observation_only_not_authority
+```
+
+The repo list must be explicit. The checklist must not discover repositories by
+recursively scanning drives or parent directories.
+
+Read-only command allowlist [OP]:
+
+Allowed commands:
+
+```text
+git branch --show-current
+git rev-parse --short HEAD
+git rev-parse --abbrev-ref --symbolic-full-name @{u}
+git status --short --branch
+git rev-list --left-right --count HEAD...<upstream>
+```
+
+Forbidden commands:
+
+```text
+git fetch
+git pull
+git push
+git add
+git commit
+git clean
+git reset
+git checkout
+git switch
+git stash
+filesystem write/delete outside the Hermes output artifact
+network calls
+provider or credential access
+```
+
+Script safety rule [OP]:
+
+```text
+no_agent removes LLM/agent-loop risk, but it does not make a script inherently
+safe. Safety is per-script. A recurring checklist script is acceptable only if
+its operations stay inside the read-only allowlist.
+```
+
+Script drift control [OP]:
+
+```text
+The allowlist is not self-enforcing in the current design. The reviewed script
+hash is therefore part of the operating boundary. Any change to the checklist
+script, repo list, runtime venv, HERMES_HOME, or schedule configuration must
+trigger review before the next scheduled run. This is a review-time control,
+not a runtime sandbox or enforcement claim.
+```
+
+Execution boundary:
+
+```text
+Hermes cron --no-agent may execute the checklist script on a schedule.
+The script may read explicit repo paths and write only its stdout-derived
+Hermes cron output artifact.
+It must not write to inspected working trees or tracked repository content.
+Git may still update local .git metadata such as index/stat cache, fsmonitor
+state, lock files, or maintenance bookkeeping as part of read-only commands;
+this must not be described as a filesystem-clean or zero-write guarantee.
+```
+
+Inherited git environment risk [OP]:
+
+```text
+Running git with cwd=<repo> inherits that repository's local git configuration,
+hooks configuration, fsmonitor settings, aliases, and platform-specific helper
+behavior. The checklist design therefore treats read-only git commands as a
+low-risk observation surface, not a zero-execution surface. A future
+implementation should prefer explicit git subcommands, bounded timeouts, and a
+reviewed environment over broad shell execution.
+```
+
+Artifact shape:
+
+```markdown
+# Multi-Repo Status Checklist
+
+generated_at: <timestamp>
+mode: hermes_cron_no_agent
+script: multi_repo_status.py
+claim_ceiling: observation_only_not_authority
+
+## <repo name>
+path=<repo path>
+branch=<branch>
+head=<short sha>
+ahead_behind=<ahead/behind/upstream or unavailable>
+status:
+<git status --short --branch output>
+```
+
+Artifact retention [OP]:
+
+```text
+Keep the latest N files and/or the latest N days under the configured
+HERMES_HOME cron output path. Retention is cleanup of generated observations,
+not source control history. A retention action must never delete repository
+files or canonical memory.
+```
+
+Retention actor boundary [OP]:
+
+```text
+Retention is a delete-capable action and is not automatically part of the
+checklist script. A future implementation must explicitly choose a retention
+actor: either a separate bounded cleanup task or an explicit checklist-owned
+cleanup phase. In both cases the delete scope is limited to generated Hermes
+output artifacts for this checklist under the configured HERMES_HOME output
+root. Retention must not delete inspected repos, source files, .git metadata,
+canonical memory, or reviewer evidence outside the configured artifact root.
+```
+
+Recommended default:
+
+```text
+max_days=14
+max_files=50
+```
+
+Scheduling model open decision [OP]:
+
+```text
+This design does not yet choose the recurring executor. Two viable models remain
+open:
+
+1. Long-running Hermes scheduler process using the configured isolated venv and
+   HERMES_HOME.
+2. OS-level scheduler, such as Windows Task Scheduler, invoking the isolated
+   venv to run `hermes_cli.main cron tick` on an interval.
+
+Both models require separate review before implementation. The first introduces
+a standing process and lifecycle/logging questions. The second introduces an
+OS-level scheduled task and credential/profile boundary questions. Success of a
+one-shot no_agent checklist artifact must not be read as approval to install
+either recurring model.
+```
+
+Failure modes and handling:
+
+| Failure | Expected artifact behavior | Claim boundary |
+|---|---|---|
+| Repo path missing | Record `exists=false` for that repo | Do not infer repo deletion or project failure |
+| Repo is not a git repo | Record `git_status=not_a_git_repo` | Do not attempt initialization or repair |
+| Upstream missing | Record `ahead_behind=unavailable` | Do not fetch or create upstream |
+| Git command timeout | Record command timeout for that repo | Do not retry with broader commands |
+| Dirty repo | Record dirty status verbatim | Do not stage, restore, normalize, or explain unrelated files |
+| Artifact write failure | Surface checklist failure | Do not treat missing artifact as clean workspace evidence |
+
+Authority semantics [INV]-derived:
+
+```text
+The checklist artifact is an observation candidate. Live git state remains the
+authority for current repo status. AI Governance canonical memory remains under
+the repo memory protocol. Observation != validation, and artifact != authority.
+```
+
+Evidence plan for a future implementation:
+
+1. Create a fixed repo-list config in an explicitly scoped location.
+2. Create a checklist script whose commands match the allowlist exactly.
+3. Run one isolated no_agent one-shot execution before enabling recurrence.
+4. Independently verify at least one artifact against live git.
+5. If recurrence is enabled, verify that only Hermes output artifacts are
+   created and inspected repos remain unmodified.
+
+Non-goals:
+
+- no full Hermes agent / LLM execution;
+- no provider credentials;
+- no interactive or ACP capture;
+- no AI Governance enforcement;
+- no sidecar or wrapper machine-attestation;
+- no repo mutation;
+- no auto-repair of dirty repos;
+- no automatic push, pull, fetch, commit, or cleanup.
+
+Claim ceiling:
+
+```text
+A recurring no_agent checklist can produce scheduled workspace-health
+observations. It does not govern the repos, does not prove current state after
+the artifact timestamp, and does not replace live git verification.
+```
+
 ### Tranche 3: Enforcement decision
 
 Out of scope for this spec.
