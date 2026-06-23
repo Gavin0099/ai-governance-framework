@@ -98,6 +98,19 @@ artifacts/governance/version_compatibility.json
 # that kept claim-enforcement-receipts.ndjson tracked.
 artifacts/claim-enforcement/claim-enforcement-receipts.ndjson
 artifacts/session-index.ndjson
+# Hygiene defense (2026-06-23): governance runtime writers default --project-root
+# to cwd (manage_agent_closeout.py:979 / session_end_hook.py:2245 /
+# session_closeout_entry.py:338), so a closeout fired from a sub-directory drops
+# an artifacts/ tree there. The patterns above are root-anchored and miss nested
+# copies. These any-depth patterns stop a stray nested artifacts/ being committed.
+# THIS IS A HYGIENE DEFENSE ONLY, NOT THE ROOT-CAUSE FIX. See
+# docs/governance/artifact-write-boundary-2026-06-23.md.
+**/artifacts/runtime/
+**/artifacts/session/
+**/artifacts/claim-enforcement/
+**/artifacts/governance/
+**/artifacts/*.db
+**/artifacts/session-index.ndjson
 memory/candidates/*.json
 .governance-audit/
 # .governance-state.yaml is a regenerated, machine-specific bootstrap snapshot
