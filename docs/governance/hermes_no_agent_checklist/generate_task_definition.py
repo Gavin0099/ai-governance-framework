@@ -24,6 +24,7 @@ from check_preflight import DEFAULT_CONFIG, run_preflight
 
 
 TASK_XML_NS = "http://schemas.microsoft.com/windows/2004/02/mit/task"
+PACKAGE_DIR = Path(__file__).resolve().parent
 
 
 def _as_path(value: str) -> Path:
@@ -43,6 +44,31 @@ def _cron_tick_command(python_exe: Path, hermes_home: Path) -> str:
         f"$env:HERMES_HOME={_ps_single_quote(str(hermes_home))}; "
         f"& {_ps_single_quote(str(python_exe))} -m hermes_cli.main cron tick"
     )
+
+
+def _preflight_command(config_path: Path, hermes_home: Path, venv_path: Path) -> str:
+    checker = PACKAGE_DIR / "check_preflight.py"
+    python_exe = venv_path / "Scripts" / "python.exe"
+    return subprocess.list2cmdline(
+        [
+            str(python_exe),
+            str(checker),
+            "--config",
+            str(config_path),
+            "--hermes-home",
+            str(hermes_home),
+            "--venv",
+            str(venv_path),
+        ]
+    )
+
+
+def _task_query_command(task_name: str) -> str:
+    return subprocess.list2cmdline(["schtasks", "/Query", "/TN", task_name])
+
+
+def _task_delete_command(task_name: str) -> str:
+    return subprocess.list2cmdline(["schtasks", "/Delete", "/TN", task_name, "/F"])
 
 
 def _windows_time(value: str) -> str:
@@ -126,6 +152,9 @@ def generate_definition(
     schtasks_command = subprocess.list2cmdline(
         ["schtasks", "/Create", "/TN", task_name, "/SC", "DAILY", "/ST", start_at[:5], "/TR", task_run_command]
     )
+    preflight_command = _preflight_command(config_path=config_path, hermes_home=hermes_home, venv_path=venv_path)
+    query_command = _task_query_command(task_name=task_name)
+    rollback_command = _task_delete_command(task_name=task_name)
 
     return {
         "ok": True,
@@ -137,6 +166,18 @@ def generate_definition(
         "venv_python": str(python_exe),
         "powershell_command": powershell_command,
         "schtasks_create_preview": schtasks_command,
+        "install_plan_preview": {
+            "1_preflight_required": preflight_command,
+            "2_create_task": schtasks_command,
+            "3_verify_task_registered": query_command,
+            "rollback_delete_task": rollback_command,
+            "safety_notes": [
+                "Run preflight immediately before create.",
+                "Do not create the task if preflight fails.",
+                "Rollback removes only the named scheduled task.",
+                "This generator does not execute any install, verify, rollback, or cron tick command.",
+            ],
+        },
         "task_xml_preview": xml_definition,
         "preflight": preflight_report,
         "claim_ceiling_not_supported": [
