@@ -1,0 +1,21 @@
+{
+  "checklist_name": "multi-repo-status",
+  "mode": "hermes-cron-no-agent",
+  "claim_ceiling": "observation_only_not_authority",
+  "script": {
+    "filename": "multi_repo_status.py",
+    "sha256": "4fded7a42241edef90a85a435a245d69ec7c8e1b882cf2d211df50254eb7a7b8"
+  },
+  "repos": [
+    {
+      "name": "ai-governance-framework",
+      "path": "E:/BackUp/Git_EE/ai-governance-framework",
+      "upstream": "gitlab/main"
+    },
+    {
+      "name": "hermes-agent",
+      "path": "E:/BackUp/Git_EE/hermes-agent",
+      "upstream": "origin/main"
+    }
+  ]
+}
