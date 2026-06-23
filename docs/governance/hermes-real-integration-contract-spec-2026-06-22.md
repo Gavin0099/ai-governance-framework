@@ -788,11 +788,11 @@ repos:
 schedule:
   type: interval
   value: daily
-  executor: open_decision
+  executor: os_task_scheduler_tick
 artifact:
   format: markdown
   retention:
-    actor: open_decision
+    actor: separate_bounded_cleanup_task
     max_days: 14
     max_files: 50
 claim_ceiling: observation_only_not_authority
@@ -903,13 +903,12 @@ files or canonical memory.
 Retention actor boundary [OP]:
 
 ```text
-Retention is a delete-capable action and is not automatically part of the
-checklist script. A future implementation must explicitly choose a retention
-actor: either a separate bounded cleanup task or an explicit checklist-owned
-cleanup phase. In both cases the delete scope is limited to generated Hermes
-output artifacts for this checklist under the configured HERMES_HOME output
-root. Retention must not delete inspected repos, source files, .git metadata,
-canonical memory, or reviewer evidence outside the configured artifact root.
+Retention is a delete-capable action and is deliberately not part of the
+checklist script. The selected actor is a separate bounded cleanup task. Its
+delete scope is limited to generated Hermes output artifacts for this checklist
+under the configured HERMES_HOME output root. Retention must not delete
+inspected repos, source files, .git metadata, canonical memory, or reviewer
+evidence outside the configured artifact root.
 ```
 
 Recommended default:
@@ -919,22 +918,20 @@ max_days=14
 max_files=50
 ```
 
-Scheduling model open decision [OP]:
+Scheduling model decision [OP]:
 
 ```text
-This design does not yet choose the recurring executor. Two viable models remain
-open:
+The selected recurring executor is an OS-level scheduler, such as Windows Task
+Scheduler, invoking the isolated venv to run `hermes_cli.main cron tick` on an
+interval with the configured HERMES_HOME.
 
-1. Long-running Hermes scheduler process using the configured isolated venv and
-   HERMES_HOME.
-2. OS-level scheduler, such as Windows Task Scheduler, invoking the isolated
-   venv to run `hermes_cli.main cron tick` on an interval.
+The long-running Hermes scheduler process model is explicitly deferred because
+it introduces a standing process, lifecycle management, logging, and profile
+questions that are unnecessary for the current no_agent checklist use case.
 
-Both models require separate review before implementation. The first introduces
-a standing process and lifecycle/logging questions. The second introduces an
-OS-level scheduled task and credential/profile boundary questions. Success of a
-one-shot no_agent checklist artifact must not be read as approval to install
-either recurring model.
+The selected OS-level tick model still requires separate implementation review
+before installation. Success of a one-shot no_agent checklist artifact must not
+be read as approval to create a scheduled task, service, or startup entry.
 ```
 
 Failure modes and handling:
@@ -962,8 +959,11 @@ Evidence plan for a future implementation:
 2. Create a checklist script whose commands match the allowlist exactly.
 3. Run one isolated no_agent one-shot execution before enabling recurrence.
 4. Independently verify at least one artifact against live git.
-5. If recurrence is enabled, verify that only Hermes output artifacts are
-   created and inspected repos remain unmodified.
+5. Review the OS-level scheduled-task definition before enabling recurrence.
+6. Review the separate bounded cleanup task before enabling retention.
+7. If recurrence is enabled, verify that only Hermes output artifacts are
+   created and inspected repos remain free of working-tree/tracked-content
+   mutation.
 
 Non-goals:
 
@@ -974,7 +974,8 @@ Non-goals:
 - no sidecar or wrapper machine-attestation;
 - no repo mutation;
 - no auto-repair of dirty repos;
-- no automatic push, pull, fetch, commit, or cleanup.
+- no automatic push, pull, fetch, commit, or cleanup by the checklist script;
+- no long-running Hermes scheduler process.
 
 Claim ceiling:
 
