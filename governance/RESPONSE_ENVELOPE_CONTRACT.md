@@ -1,4 +1,7 @@
-# Response Envelope Contract v0.1
+# Response Envelope Contract v0.2
+
+> v0.2 (2026-06-24): added the Evidence Term Glossing plain-language
+> requirement (advisory; not validated by `response_envelope_validator.py`).
 
 ## Purpose
 
@@ -141,6 +144,37 @@ Risk entries should disclose:
 Do not replace `risk` with confidence scores, effort estimates, or broad impact
 analysis.
 
+## Evidence Term Glossing (Plain-Language Requirement)
+
+When a report surfaces machine or governance field tokens — for example
+`active_non_canonical_writer=0`, `completion_claim_allowed=True`,
+`plan_reconciliation: deferred:<reason>`, guard counts, or any
+identifier-shaped audit field — each surfaced token must be paired with a
+one-line plain-language meaning in the session language.
+
+Rules:
+- Do not strip evidence for readability. The raw field is the reviewer's
+  independent-recheck basis; removing it is a regression. The requirement is to
+  ADD a plain-language gloss next to the field, not to replace the field with
+  prose.
+- Lead with a plain-language conclusion (done / not done, which canonical path,
+  guard passed?, commit / push state), THEN list the evidence fields with their
+  glosses. The audit ledger and the human handoff are two layers, not one.
+- Separate this-session counts from pre-existing or historical counts. When a
+  count predates the current change (for example a historical
+  `non_canonical_writer` total), say so explicitly so it is not misread as
+  caused this session.
+- Fixed-vocabulary tokens (`PASS`, `FAIL`, `NOT RUN`, `NOT CLAIMED`,
+  `NOT PRESENT`) and field identifiers remain as written; the gloss is added in
+  the session language, consistent with the Result-First Final Report Format
+  rule.
+
+Authority boundary: this is an advisory reviewer-facing convention. The
+structural `response_envelope_validator.py` does not check glossing, and no gate
+blocks a report that omits it. A report from an agent that does not load this
+contract will not follow it. This requirement reduces reviewer decoding burden;
+it is not mechanically enforced.
+
 ## Non-Goals
 
 This contract intentionally does not add:
@@ -150,6 +184,7 @@ This contract intentionally does not add:
 - new runtime gates
 - automatic semantic verification
 - automatic mode inference beyond the listed event mappings
+- automatic plain-language gloss validation or enforcement
 
 ## Relationship To Existing Rule 7 Reports
 

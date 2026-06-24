@@ -36,6 +36,7 @@
 | `governance/ARCHITECTURE.md` | agent-on-demand | reference | false | SYSTEM_PROMPT.md | on-demand |
 | `governance/TESTING.md` | agent-on-demand | reference | false | AGENT.md | on-demand |
 | `governance/NATIVE-INTEROP.md` | agent-on-demand | reference | false | AGENT.md | on-demand |
+| `governance/RESPONSE_ENVELOPE_CONTRACT.md` | agent-runtime | reference | false | AGENT.md | on-demand |
 | `governance/HUMAN-OVERSIGHT.md` | human-only | reference | false | ~ | never |
 | `governance/REVIEW_CRITERIA.md` | human-only | reference | false | ~ | never |
 | `governance/PHASE_D_CLOSE_AUTHORITY.md` | human-only | canonical | false | ~ | never |

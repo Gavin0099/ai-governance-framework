@@ -99,6 +99,11 @@ Completed in latest committed scope:
 - [x] Windows-safe governance hook installer added with no-BOM framework-root
   config handling.
 - [x] Self-hosted canonical memory evidence recorded for MEM-DISPATCH milestone.
+- [x] Response Envelope Contract v0.2: added Evidence Term Glossing
+  (plain-language requirement) as an advisory reviewer-facing convention;
+  registered the contract in `governance/AUTHORITY.md` and routed glossing in
+  `AGENTS.md` router #2. Advisory only; `response_envelope_validator.py`
+  unchanged; no gate, no enforcement claim.
 
 Latest milestone commits:
 

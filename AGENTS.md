@@ -36,6 +36,8 @@ Before acting, load the detailed protocol only when its trigger applies:
 2. Final report / closeout:
    read `governance/RESPONSE_ENVELOPE_CONTRACT.md`.
    Use result-first reporting and do not omit Cannot claim / not_claimed.
+   When surfacing machine / guard field tokens, pair each with a one-line
+   plain-language meaning; keep the field, add the gloss.
 
 3. Review / assess / audit / recommend next changes:
    read `governance/REVIEW_CRITERIA.md`.
