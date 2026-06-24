@@ -1,7 +1,9 @@
-# Response Envelope Contract v0.2
+# Response Envelope Contract v0.3
 
 > v0.2 (2026-06-24): added the Evidence Term Glossing plain-language
 > requirement (advisory; not validated by `response_envelope_validator.py`).
+> v0.3 (2026-06-24): added the Next-Step Judgment required closing section
+> (advisory; decision-readability for completion-class reports).
 
 ## Purpose
 
@@ -174,6 +176,31 @@ structural `response_envelope_validator.py` does not check glossing, and no gate
 blocks a report that omits it. A report from an agent that does not load this
 contract will not follow it. This requirement reduces reviewer decoding burden;
 it is not mechanically enforced.
+
+## Next-Step Judgment (Required Closing Section)
+
+A completion report exists so a human can decide the next step, not as an
+archive. Reports for completion-class tasks (governance checks, code changes,
+validation, memory / provenance, commit / push, handoff / reviewer summary)
+must close with a Next-Step Judgment containing:
+
+- `status`: done / partially done / not done
+- `basis to trust`: which tests, commits, or artifacts support the status
+- `recommended action`: exactly one of — can merge / needs review / needs more
+  validation / do not touch yet — with a one-line reason
+- `cannot claim`: which conclusions still cannot be asserted
+
+This section answers the three questions a reader needs in order to act: Is it
+done? Why should I believe it? How do I decide what to do next? It complements
+`claim_ceiling` and `not_claimed` (which bound what is asserted) by stating the
+recommended decision, not just the evidence.
+
+The purpose is decision readability, not formality. Do not replace the plain
+recommended action with a wall of fields; the reader must be able to tell the
+next move at a glance.
+
+Authority boundary: advisory, same as the rest of this contract. No gate
+enforces the presence or shape of a Next-Step Judgment.
 
 ## Non-Goals
 

@@ -103,7 +103,9 @@ Completed in latest committed scope:
   (plain-language requirement) as an advisory reviewer-facing convention;
   registered the contract in `governance/AUTHORITY.md` and routed glossing in
   `AGENTS.md` router #2. Advisory only; `response_envelope_validator.py`
-  unchanged; no gate, no enforcement claim.
+  unchanged; no gate, no enforcement claim. v0.3 adds the Next-Step Judgment
+  required closing section (status / basis / recommended action / cannot-claim)
+  for decision-readability; still advisory, validator still unchanged.
 
 Latest milestone commits:
 
