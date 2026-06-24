@@ -1,5 +1,12 @@
 # Knowledge Base
 
+## Current-State Refresh Note (2026-06-24)
+
+- Current planning authority is `PLAN.md`, not historical direction notes in this knowledge base.
+- Sections below preserve reusable knowledge and historical reasoning; when a section names a "planned next step" from an earlier date, treat it as historical unless it is still present in `PLAN.md`.
+- As of this refresh, the active repo-local work has moved beyond the older USB-Hub integration direction into Hermes no_agent checklist, scheduler dry-run, artifact write-boundary containment, and structured memory freshness work.
+- Claim ceiling: this refresh repairs current-guidance drift only. It does not rewrite historical knowledge, resolve all structured-memory debt, or change runtime/governance behavior.
+
 ## Memory And Account Guardrails (2026-04-17)
 
 - Long-term memory path is standardized to `memory/00_long_term.md`.
@@ -74,11 +81,12 @@
   - mixed enforcement
   - trust/release/reviewer publication surfaces
 
-## Planned Integration Direction
+## Historical Planned Integration Direction (superseded as current guidance on 2026-06-24)
 
-- A planned next step is to integrate the framework with `USB-Hub-Firmware-Architecture-Contract` as an external domain extension, not by merging repos.
+- Historical note: a prior planned next step was to integrate the framework with `USB-Hub-Firmware-Architecture-Contract` as an external domain extension, not by merging repos.
 - The intended seam is `contract.yaml` discovery, with the framework responsible for lifecycle/runtime governance and the firmware repo responsible for domain facts, rule packs, and validators.
-- The next proof point after USB-Hub should be a second domain slice so the abstraction can be validated beyond firmware alone.
+- The historical next proof point after USB-Hub was a second domain slice so the abstraction could be validated beyond firmware alone.
+- Supersession note: this section is retained as domain-extension knowledge, but it is no longer the current next-step authority. Use `PLAN.md` for current ordered work.
 
 ## EDA / IC Python Governance Fit
 
