@@ -593,6 +593,76 @@ def _write_session_defaults(target_repo_root: Path, repo_type: str) -> None:
     state_file.write_text(content + block, encoding="utf-8")
 
 
+# ── Consumer .gitignore hygiene ───────────────────────────────────────────────
+# Why this exists: a consuming repo that tracks regenerated runtime artifacts
+# and Python bytecode ends up permanently dirty after every governance run.
+# That noise buries real changes and can make agent status reports misleading
+# (observed: a consumer left ~400+ untracked artifact files + tracked .pyc even
+# though its submodule pointer updated correctly). This ships the framework's
+# settled artifact/pyc ignore decisions to consumers. Memory and committed
+# evidence are intentionally NOT ignored here.
+_GITIGNORE_HYGIENE_START = (
+    "# >>> ai-governance hygiene (managed by adopt_governance.py; "
+    "do not edit inside markers) >>>"
+)
+_GITIGNORE_HYGIENE_END = "# <<< ai-governance hygiene (managed) <<<"
+_GITIGNORE_HYGIENE_BODY = """\
+# Runtime governance artifacts and Python bytecode are regenerated every
+# session. Tracking them leaves the working tree permanently dirty and buries
+# real changes. Committed memory/ and evidence files are intentionally kept.
+__pycache__/
+*.py[cod]
+artifacts/runtime/
+artifacts/session/
+artifacts/session-index.ndjson
+artifacts/governance/version_compatibility.json
+artifacts/*.db
+# any-depth copies (runtime writers can spill a nested artifacts/ tree)
+**/artifacts/runtime/
+**/artifacts/session/
+**/artifacts/session-index.ndjson
+**/artifacts/governance/version_compatibility.json
+**/artifacts/*.db"""
+
+
+def _gitignore_hygiene_block() -> str:
+    return (
+        f"{_GITIGNORE_HYGIENE_START}\n"
+        f"{_GITIGNORE_HYGIENE_BODY}\n"
+        f"{_GITIGNORE_HYGIENE_END}\n"
+    )
+
+
+def _ensure_gitignore_hygiene(repo_root: Path, dry_run: bool) -> None:
+    """Idempotently ensure the managed artifact/pyc ignore block in the consumer
+    .gitignore.
+
+    Non-destructive: it never edits or reorders existing lines, and does nothing
+    if the managed block is already present. It only creates the file or appends
+    the managed block.
+    """
+    gitignore = repo_root / ".gitignore"
+    existing = gitignore.read_text(encoding="utf-8") if gitignore.exists() else ""
+
+    if _GITIGNORE_HYGIENE_START in existing:
+        print("  .gitignore — managed hygiene block already present (kept as-is)")
+        return
+
+    block = _gitignore_hygiene_block()
+    if dry_run:
+        verb = "create" if not gitignore.exists() else "append managed hygiene block to"
+        print(f"  [dry-run] .gitignore — would {verb}")
+        return
+
+    if existing == "":
+        gitignore.write_text(block, encoding="utf-8")
+        print("  .gitignore — created with managed hygiene block")
+    else:
+        separator = "" if existing.endswith("\n") else "\n"
+        gitignore.write_text(existing + separator + "\n" + block, encoding="utf-8")
+        print("  .gitignore — appended managed hygiene block")
+
+
 def adopt_existing(
     repo_root: Path,
     framework_root: Path,
@@ -713,6 +783,9 @@ def adopt_existing(
     print()
     _ensure_governance_rules_pack(repo_root, framework_root, dry_run=dry_run)
 
+    print()
+    _ensure_gitignore_hygiene(repo_root, dry_run=dry_run)
+
     if dry_run:
         print()
         print("Dry-run complete. No files were written.")
@@ -829,7 +902,10 @@ def refresh_baseline(
     Equivalent to: bash scripts/init-governance.sh --target <repo> --refresh-baseline
 
     Preserves plan_required_sections from the existing baseline (governance mandate).
-    Does NOT copy or overwrite any template files.
+    Does NOT copy or overwrite any governance template files (AGENTS/PLAN/contract).
+    It DOES ensure the managed .gitignore hygiene block (append-only,
+    non-destructive) so already-adopted repos pick up artifact/pyc ignores on
+    the documented "re-run when files change" path.
     """
     repo_root = repo_root.resolve()
     framework_root = framework_root.resolve()
@@ -860,6 +936,8 @@ def refresh_baseline(
         inventory = _detect_plan_sections(plan_path.read_text(encoding="utf-8"))
         if inventory:
             print(f"  plan_section_inventory: {len(inventory)} heading(s) in {plan_rel}")
+
+    _ensure_gitignore_hygiene(repo_root, dry_run=dry_run)
 
     if dry_run:
         print()

@@ -106,6 +106,13 @@ Completed in latest committed scope:
   unchanged; no gate, no enforcement claim. v0.3 adds the Next-Step Judgment
   required closing section (status / basis / recommended action / cannot-claim)
   for decision-readability; still advisory, validator still unchanged.
+- [x] Consumer .gitignore hygiene: `adopt_governance.py` now ships a managed,
+  idempotent, non-destructive artifact/pyc ignore block to consuming repos on
+  adopt and `--refresh`, so a consumer no longer goes permanently dirty from
+  regenerated runtime artifacts / tracked `.pyc` (root-caused from
+  gl_electron_tool F-7 evidence). Memory is intentionally not ignored. Covers
+  the adopt/refresh path only; already-adopted repos must re-run refresh + a
+  one-time `git rm --cached`; not wired into the F-7 submodule-updater layers.
 
 Latest milestone commits:
 
