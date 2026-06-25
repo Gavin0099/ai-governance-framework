@@ -1,3 +1,11 @@
+---
+audience: agent-runtime
+authority: canonical
+can_override: false
+overridden_by: AGENT.md
+default_load: on-demand
+---
+
 # Memory Protocol
 
 Status: extracted from AGENTS.md

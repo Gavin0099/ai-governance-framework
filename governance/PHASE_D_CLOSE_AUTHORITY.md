@@ -1,3 +1,11 @@
+---
+audience: human-only
+authority: canonical
+can_override: false
+overridden_by: ~
+default_load: never
+---
+
 # Phase D Close Authority Contract
 
 > document-status: canonical

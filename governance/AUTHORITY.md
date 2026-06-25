@@ -38,6 +38,7 @@
 |----------|----------|-----------|--------------|---------------|--------------|
 | `governance/SYSTEM_PROMPT.md` | agent-runtime | canonical | false | ~ | always |
 | `governance/AGENT.md` | agent-runtime | canonical | false | ~ | always |
+| `governance/RULE_REGISTRY.md` | agent-runtime | canonical | false | ~ | always |
 | `governance/PLAN.md` | agent-on-demand | reference | false | ../PLAN.md | on-demand |
 | `governance/MEMORY_PROTOCOL.md` | agent-runtime | canonical | false | AGENT.md | on-demand |
 | `governance/ARCHITECTURE.md` | agent-on-demand | reference | false | SYSTEM_PROMPT.md | on-demand |

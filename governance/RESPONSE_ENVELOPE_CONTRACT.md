@@ -1,3 +1,11 @@
+---
+audience: agent-runtime
+authority: reference
+can_override: false
+overridden_by: AGENT.md
+default_load: on-demand
+---
+
 # Response Envelope Contract v0.3
 
 > v0.2 (2026-06-24): added the Evidence Term Glossing plain-language
