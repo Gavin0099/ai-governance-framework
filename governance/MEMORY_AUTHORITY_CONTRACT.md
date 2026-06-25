@@ -1,9 +1,10 @@
 # Memory Authority Contract
 
-> Version: 1.0.0
+> Version: 1.1.0
 > Written: 2026-04-30
-> Status: ACTIVE — Phase 1 (warning mode, non-blocking)
-> Authority: Memory Authority Enforcement Plan v0.3 (session 2026-04-30)
+> Amended: 2026-06-25
+> Status: ACTIVE - warning mode with active-window completion blocker candidate
+> Authority: Memory Authority Enforcement Plan v0.3 (session 2026-04-30), amended by v1.1.0 canonical-writer alignment
 
 ---
 
@@ -16,67 +17,174 @@ A memory entry that lacks a traceable anchor can be contradicted without audit
 trail, silently drift from reality, or be cited in governance decisions without
 verifiable origin.
 
+This contract also defines the current canonical writer boundary for new
+session-derived memory. A memory entry may be visible under `memory/` and still
+be non-canonical, unbound, stale, or only observation-grade evidence.
+
 ---
 
-## 1. Two Memory Types
+## 0. Amendment Record
+
+### 0.1 v1.1.0 - Canonical Writer And Workflow Alignment
+
+**Name of change**: canonical writer, memory binding, and workflow dispatcher
+alignment.
+
+**Rationale**: Version 1.0.0 described early memory authority semantics using
+old daily bullet entries such as `- what changed:` plus `commit hash` and
+`session_id` anchors. Current repository practice uses
+`governance_tools.memory_record` canonical records and
+`governance_tools.memory_workflow` guard summaries. The contract must describe
+current admissibility and claim-boundary semantics so future agents do not treat
+old-format memory entries as acceptable new records.
+
+**Evidence**:
+
+- `governance/MEMORY_PROTOCOL.md` requires all new session-derived memory to use
+  `governance_tools.memory_record` and prohibits direct markdown append in
+  `- what changed:` or `- what_changed:` format.
+- `governance_tools/memory_record.py` emits `record_format_version`, `writer`,
+  `commit`, `commit_hash`, `session_id`, `memory_binding`, `test_evidence`,
+  `next_step`, and `plan_reconciliation`.
+- `governance_tools/memory_record.py` sets `memory_binding: bound` only when the
+  supplied commit string matches a hash-like regex; other values are written as
+  `memory_binding: unbound`.
+- `governance_tools/memory_authority_guard.py` detects `non_canonical_writer`,
+  old-format entries after the canonical-writer cutoff, and active-window
+  non-canonical writer violations.
+- `governance_tools/memory_workflow.py` summarizes memory guard status and
+  reports `completion_claim_allowed` for governed memory tasks.
+- `PLAN.md` already records canonical writer, active-window guard summary,
+  dispatcher routing, and opt-in blocker path as current memory authority
+  surfaces, while explicitly not claiming historical debt cleanup or global
+  enforcement closure.
+
+**Updated violation semantics table**: see Section 4.
+
+**Non-claims for this amendment**:
+
+- no memory writer schema change;
+- no memory guard behavior change;
+- no memory workflow behavior change;
+- no hook, CI, pre-push, closeout, or enforcement behavior change;
+- no historical memory debt cleanup;
+- no backfill of old memory records;
+- no semantic correctness guarantee for memory content.
+
+---
+
+## 1. Memory Types
 
 ### 1.1 Session-Derived Memory
 
-**Definition**: Daily files — `memory/YYYY-MM-DD.md` — recording what changed
-in a specific session.
+**Definition**: Daily files, `memory/YYYY-MM-DD.md`, recording what changed,
+what was observed, or what was decided in a specific session.
 
-**Binding requirement**: Each entry (bullet block starting with `- what changed:`)
-MUST contain at least one of:
-- `commit hash: <resolved-hash>` — a real 5–40 hex character git hash,
-  NOT the string `pending`
-- `session_id: <id>` — an explicit session identifier
+**Canonical writer requirement**: New session-derived memory MUST be written by
+`governance_tools.memory_record`.
 
-**Why**: Session-derived memory claims specific changes happened. Without a
-commit hash or session ID, the claim cannot be independently verified. An
-unresolved `commit hash: pending` means the memory record diverged from reality
-at write time and was never closed.
+Canonical session-derived records include:
 
-**Violation code**: `unbound_memory`
-**Scope**: every bullet entry in every daily memory file
+```yaml
+- memory_type: session-derived
+  record_format_version: 1.0
+  writer: governance_tools.memory_record
+  what_changed: <summary>
+  commit: <source commit, observation sentinel, or other explicit binding value>
+  commit_hash: <same value as commit in current writer output>
+  session_id: <session id>
+  memory_binding: <bound | unbound>
+  test_evidence: <evidence summary>
+  next_step: <next unfinished action and claim ceiling>
+  plan_reconciliation: <updated | not_applicable | deferred:<reason> | not_declared>
+```
+
+Direct markdown append in old bullet formats such as `- what changed:` or
+`- what_changed:` is not canonical for new session-derived memory.
+
+**Binding requirement**: Each new session-derived entry SHOULD contain both:
+
+- a `commit` / `commit_hash` value supplied to the canonical writer; and
+- a `session_id`.
+
+For source-code or documentation changes, `commit` / `commit_hash` SHOULD refer
+to the source commit being recorded.
+
+For runtime observations without a source commit, the record MAY use an explicit
+observation sentinel such as `runtime-observation-no-source-commit`. Such records
+are intentionally `memory_binding: unbound` and must state the observation-only
+claim ceiling.
+
+**Why**: Session-derived memory claims that changes, observations, or decisions
+happened. The canonical writer supplies a consistent evidence envelope. Binding
+fields make the claim auditable, but they do not make the claim true by
+themselves.
+
+**Important non-claims**:
+
+- `writer: governance_tools.memory_record` proves canonical writer format, not
+  semantic correctness.
+- `memory_binding: bound` means the current writer classified the `commit` value
+  as hash-like. It does not prove the commit exists on a remote, was reviewed,
+  was pushed, or that the memory statement is true.
+- `memory_binding: unbound` is not automatically invalid. Runtime observations
+  and other non-source records may be valid observation evidence when explicitly
+  labeled and claim-bounded.
 
 ### 1.2 Structural Long-Term Memory
 
-**Definition**: `memory/00_long_term.md` — persistent facts, conventions, and
-governance state that span sessions.
+**Definition**: `memory/00_long_term.md` contains persistent facts, conventions,
+and governance state that span sessions.
 
-**Binding requirement**: Each `##`-level section SHOULD carry a
-`promoted_by:` marker indicating who (human reviewer or promotion artifact)
-authorized the entry.
+**Binding requirement**: Each `##`-level section SHOULD carry a `promoted_by:`
+marker indicating who (human reviewer or promotion artifact) authorized the
+entry.
 
 Acceptable forms:
-```
+
+```html
 <!-- promoted_by: Gavin0099 / 2026-04-28 -->
 <!-- promoted_by: phase_d_closeout / artifacts/governance/phase-d-reviewer-closeout.json -->
 ```
 
 **Why**: Structural memory is cited as authority across sessions and by multiple
-agents. Entries written without promotion authority are `structural_memory_auto_write` —
-AI-inserted facts treated as governance authority without human review.
+agents. Entries written without promotion authority are
+`structural_memory_auto_write`: AI-inserted facts treated as governance authority
+without human review.
 
 **Violation code**: `structural_memory_auto_write`
-**Scope**: ##-level sections in `memory/00_long_term.md`
-**Phase 1 mode**: reported as debt count, not per-section blocking
+**Scope**: `##`-level sections in `memory/00_long_term.md`
+**Current mode**: reported as debt count, not per-section blocking.
 
 ---
 
-## 2. Presence vs. Binding
+## 2. Presence, Canonical Format, And Binding
 
-> Presence in `repo/memory/` = necessary for cross-agent visibility.
-> Binding = traceable to a commit, session, or human reviewer.
-> Presence alone does NOT grant authority.
+> Presence in `repo/memory/` = cross-agent visibility.
+> Canonical writer format = consistent session-derived evidence envelope.
+> Binding = traceability signal supplied by commit/session fields.
+> Truth = still requires evidence, review, and current-state verification.
 
-A file in `repo/memory/` that lacks binding markers is **unanchored memory**.
-It may be accurate, but it cannot be cited in a governance decision or used
-to override a human-authored artifact without manual verification.
+Presence alone does NOT grant authority.
 
-Private tool memory (e.g. `C:\Users\..\.claude\projects\..\memory\MEMORY.md`)
-is **not cross-agent canonical** under any conditions. Closeouts or governance
-artifacts that cite the private tool memory path as authoritative are invalid.
+Canonical writer format alone does NOT prove semantic correctness.
+
+A source-bound record does NOT prove the commit was pushed, reviewed, or accepted
+unless the record or adjacent evidence explicitly says so and that evidence is
+verified.
+
+A runtime-observation record without a source commit may still be valid
+observation evidence when it is explicit about:
+
+- what runtime state was observed;
+- where the artifact or state lives;
+- what was not changed;
+- what cannot be claimed from the observation.
+
+Private tool memory, for example
+`C:\Users\..\.claude\projects\..\memory\MEMORY.md`, is **not cross-agent
+canonical** under any conditions. Closeouts or governance artifacts that cite the
+private tool memory path as authoritative are invalid.
 
 **Violation code**: `private_memory_cited`
 
@@ -84,40 +192,60 @@ artifacts that cite the private tool memory path as authoritative are invalid.
 
 ## 3. Missing Canonical Memory
 
-If session-level work is performed (commits exist, artifacts written) but no
-corresponding daily memory file exists for that date, the session record is
-incomplete.
+If session-level work is performed, such as commits created or durable artifacts
+written, but no corresponding daily memory file exists for that date, the session
+record is incomplete.
 
 **Violation code**: `missing_canonical_memory`
 **Detection**: guard checks whether a daily memory file exists for dates where
-git log shows recent commits. Heuristic — false positives possible on no-commit
-sessions.
+git log shows recent commits.
+**Mode**: warning evidence; heuristic false positives are possible on no-commit
+sessions or unusual workflows.
 
 ---
 
-## 4. Violation Semantics (Phase 1)
+## 4. Violation Semantics
 
-| Code | Severity | Blocks | Meaning |
-|------|----------|--------|---------|
-| `unbound_memory` | warning | no | Daily entry lacks commit_hash + session_id |
-| `structural_memory_auto_write` | info | no | 00_long_term.md section lacks promoted_by |
-| `private_memory_cited` | warning | no | Closeout cites private .claude memory path |
-| `missing_canonical_memory` | warning | no | Commits exist but no daily memory file |
+| Code | Severity | Blocks by default | Meaning |
+|------|----------|-------------------|---------|
+| `unbound_memory` | warning | no | Daily entry lacks sufficient binding anchors or records an intentionally unbound observation |
+| `structural_memory_auto_write` | info | no | `memory/00_long_term.md` section lacks `promoted_by` |
+| `private_memory_cited` | warning | no | Closeout or governance artifact cites private `.claude` memory path |
+| `missing_canonical_memory` | warning | no | Commits exist but no daily memory file exists for the date |
+| `non_canonical_writer` | warning | no | Session-derived entry was not written in canonical writer format |
+| `old_format_entry_after_canonical_writer_cutoff` | warning | no | Old-format daily memory entry appears after the canonical-writer cutoff and should be rewritten through the canonical writer |
+| `active_non_canonical_writer` | blocker candidate | opt-in / workflow-dependent | Current-window non-canonical writer violation detected by the active-window filter |
 
-**Phase 1 = warning + structured JSON output. Does NOT block any operation.**
+Current semantics:
 
-Phase 2 upgrade path: switch `unbound_memory` to blocking gate on promotion
-decisions (memory_janitor, session_end promotion step).
+- Historical `unbound_memory` remains warning evidence unless a separate cleanup
+  or enforcement slice changes that policy.
+- Historical `non_canonical_writer` remains warning evidence unless a separate
+  cleanup or enforcement slice changes that policy.
+- `active_non_canonical_writer` is a current completion blocker candidate for
+  memory completion claims when surfaced by `memory_workflow` or explicitly
+  checked with active-window options.
+- `memory_workflow --check --repo . --run-guard` reports whether the guard ran,
+  summarizes warnings/blockers, and exposes `completion_claim_allowed`.
+- `completion_claim_allowed=True` means the scoped memory workflow check found no
+  current blocker candidate for the completion claim. It is not proof that the
+  memory content is semantically correct.
+
+This contract preserves warning-mode historical debt. It does not clean,
+backfill, or upgrade historical records.
 
 ---
 
 ## 5. Amendment
 
-To change this contract: create a new version (1.1.0, 2.0.0) with:
-- Name of what changed
-- Rationale
-- Evidence (why the change is needed)
-- Updated violation semantics table
+To change this contract: create a new version (for example `1.1.0`, `1.2.0`, or
+`2.0.0`) with:
+
+- name of what changed;
+- rationale;
+- evidence explaining why the change is needed;
+- updated violation semantics table;
+- explicit non-claims.
 
 Silent modification = authority contract violation.
 
@@ -125,7 +253,58 @@ Silent modification = authority contract violation.
 
 ## 6. Tool Reference
 
-- Guard implementation: `governance_tools/memory_authority_guard.py`
-- Invocation: `python governance_tools/memory_authority_guard.py --memory-root memory/`
-- Output: structured JSON to stdout; human summary to stderr
-- Phase 1 exit codes: always 0 (warning mode)
+Canonical writer:
+
+```powershell
+python -m governance_tools.memory_record `
+  --project-root . `
+  --commit <commit-or-observation-sentinel> `
+  --session-id <session-id> `
+  --plan-reconciliation <updated|not_applicable|deferred:reason> `
+  --what-changed "..." `
+  --test-evidence "..." `
+  --next-step "..."
+```
+
+Memory workflow dispatcher:
+
+```powershell
+python -m governance_tools.memory_workflow --check --repo . --run-guard
+```
+
+Selective blocker mode:
+
+```powershell
+python -m governance_tools.memory_workflow --check --repo . --run-guard --fail-on-blocker
+```
+
+Memory authority guard:
+
+```powershell
+python -m governance_tools.memory_authority_guard --memory-root memory --project-root .
+```
+
+Current behavior summary:
+
+- normal guard/reporting paths are warning/report-only unless an opt-in blocker
+  mode is explicitly used;
+- managed pre-commit may surface memory workflow advisory text, but that advisory
+  alone does not prove completion denial;
+- receipt presence proves workflow status was observed, not that memory
+  completion was semantically correct.
+
+---
+
+## 7. Non-Claims
+
+This contract does not claim:
+
+- historical memory debt is cleaned;
+- all old memory records are canonical;
+- all bound records are true;
+- all unbound records are invalid;
+- all runtime observations are source-bound;
+- memory workflow enforcement is globally blocking;
+- memory entries prove semantic correctness;
+- memory entries prove remote push, human acceptance, or review unless that
+  evidence is separately recorded and verified.
