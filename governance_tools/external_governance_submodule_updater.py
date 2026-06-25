@@ -421,6 +421,48 @@ def _check_existing_memory_normalization(repo: Path) -> str:
     return "not_verified"
 
 
+def _check_gitignore_hygiene(repo: Path) -> str:
+    """Read-only: is the managed artifact/pyc ignore block present (dry-run)."""
+    from governance_tools.adopt_governance import _GITIGNORE_HYGIENE_START
+
+    gitignore = repo / ".gitignore"
+    if gitignore.exists() and _GITIGNORE_HYGIENE_START in _read_text(gitignore):
+        return "verified"
+    return "missing"
+
+
+def _ensure_gitignore_hygiene(repo: Path) -> dict[str, Any]:
+    """Ensure the managed artifact/pyc ignore block in the consumer .gitignore.
+
+    Reuses the canonical block from adopt_governance (single source of truth, so
+    the adopt/refresh path and this updater path never drift). Non-destructive
+    and append-only: never edits or reorders existing lines, and does nothing if
+    the block is already present. Returns the updater's layer shape.
+    """
+    from governance_tools.adopt_governance import (
+        _GITIGNORE_HYGIENE_START,
+        _gitignore_hygiene_block,
+    )
+
+    gitignore = repo / ".gitignore"
+    existing = _read_text(gitignore) if gitignore.exists() else ""
+    if _GITIGNORE_HYGIENE_START in existing:
+        return {"status": "verified", "changed_files": [], "errors": []}
+
+    block = _gitignore_hygiene_block()
+    if existing == "":
+        new_text = block
+    else:
+        separator = "" if existing.endswith("\n") else "\n"
+        new_text = existing + separator + "\n" + block
+    changed = _write_text_if_changed(gitignore, new_text)
+    return {
+        "status": "updated" if changed else "verified",
+        "changed_files": [".gitignore"] if changed else [],
+        "errors": [],
+    }
+
+
 def _final_full_update_status(report: dict[str, Any]) -> str:
     framework = report["framework_pointer"]
     repo_local = report["repo_local_instruction"]
@@ -450,6 +492,7 @@ def _build_full_update_stage_report(
     memory_writer_coverage: str = "not_verified",
     hook_validator_enforcement: str = "not_verified",
     existing_memory_normalization: str = "not_verified",
+    gitignore_hygiene: str = "not_verified",
     details: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     report: dict[str, Any] = {
@@ -458,6 +501,9 @@ def _build_full_update_stage_report(
         "memory_writer_coverage": memory_writer_coverage,
         "hook_validator_enforcement": hook_validator_enforcement,
         "existing_memory_normalization": existing_memory_normalization,
+        # Advisory hygiene: reported for visibility but intentionally NOT folded
+        # into final_status, which keeps its established 5-layer semantics.
+        "gitignore_hygiene": gitignore_hygiene,
         "details": details or {},
     }
     report["final_status"] = _final_full_update_status(report)
@@ -514,20 +560,27 @@ def update_governance_submodule(
         if not dry_run and before_head == target_head:
             instruction_report = _refresh_repo_local_instructions(repo, submodule_repo)
             hook_report = _ensure_hook_advisory(repo, submodule_repo)
+            gitignore_report = _ensure_gitignore_hygiene(repo)
             full_update_stage_report = _build_full_update_stage_report(
                 framework_pointer="already_current",
                 repo_local_instruction=instruction_report["status"],
                 memory_writer_coverage=_check_memory_writer_coverage(repo),
                 hook_validator_enforcement=hook_report["status"],
                 existing_memory_normalization=_check_existing_memory_normalization(repo),
+                gitignore_hygiene=gitignore_report["status"],
                 details={
                     "repo_local_instruction": instruction_report,
                     "hook_validator_enforcement": hook_report,
+                    "gitignore_hygiene": gitignore_report,
                 },
             )
             if stage or commit:
                 allowed = {submodule_path, "AGENTS.base.md", "AGENTS.md"}
-                _run_git(repo, ["add", "--", "AGENTS.base.md", "AGENTS.md"])
+                add_args = ["AGENTS.base.md", "AGENTS.md"]
+                if gitignore_report["changed_files"]:
+                    allowed.add(".gitignore")
+                    add_args.append(".gitignore")
+                _run_git(repo, ["add", "--", *add_args])
                 staged = _staged_files(repo)
                 if not set(staged) <= allowed:
                     raise SubmoduleUpdateError(
@@ -591,6 +644,7 @@ def update_governance_submodule(
                     memory_writer_coverage=_check_memory_writer_coverage(repo),
                     hook_validator_enforcement=_check_hook_validator_enforcement(repo),
                     existing_memory_normalization=_check_existing_memory_normalization(repo),
+                    gitignore_hygiene=_check_gitignore_hygiene(repo),
                     details={"dry_run": True},
                 ),
             )
@@ -625,21 +679,28 @@ def update_governance_submodule(
 
         instruction_report = _refresh_repo_local_instructions(repo, submodule_repo)
         hook_report = _ensure_hook_advisory(repo, submodule_repo)
+        gitignore_report = _ensure_gitignore_hygiene(repo)
         full_update_stage_report = _build_full_update_stage_report(
             framework_pointer="updated",
             repo_local_instruction=instruction_report["status"],
             memory_writer_coverage=_check_memory_writer_coverage(repo),
             hook_validator_enforcement=hook_report["status"],
             existing_memory_normalization=_check_existing_memory_normalization(repo),
+            gitignore_hygiene=gitignore_report["status"],
             details={
                 "repo_local_instruction": instruction_report,
                 "hook_validator_enforcement": hook_report,
+                "gitignore_hygiene": gitignore_report,
             },
         )
 
         if stage or commit:
             allowed = {submodule_path, "AGENTS.base.md", "AGENTS.md"}
-            _run_git(repo, ["add", "--", submodule_path, "AGENTS.base.md", "AGENTS.md"])
+            add_args = [submodule_path, "AGENTS.base.md", "AGENTS.md"]
+            if gitignore_report["changed_files"]:
+                allowed.add(".gitignore")
+                add_args.append(".gitignore")
+            _run_git(repo, ["add", "--", *add_args])
             staged = _staged_files(repo)
             if not set(staged) <= allowed:
                 raise SubmoduleUpdateError(

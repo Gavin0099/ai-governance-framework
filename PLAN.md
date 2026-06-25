@@ -112,7 +112,15 @@ Completed in latest committed scope:
   regenerated runtime artifacts / tracked `.pyc` (root-caused from
   gl_electron_tool F-7 evidence). Memory is intentionally not ignored. Covers
   the adopt/refresh path only; already-adopted repos must re-run refresh + a
-  one-time `git rm --cached`; not wired into the F-7 submodule-updater layers.
+  one-time `git rm --cached`.
+- [x] F-7 updater hygiene: `external_governance_submodule_updater.py` now also
+  ensures the same managed `.gitignore` block on the managed-updater path
+  (dry-run reports a `gitignore_hygiene` field; apply writes + stages
+  `.gitignore`), reusing the canonical block from `adopt_governance` (single
+  source, no drift). Reported as an advisory field, intentionally NOT folded
+  into `final_status` (the 5-layer contract is unchanged). Both adopt/refresh
+  and the F-7 updater now carry hygiene; already-dirty repos still need a
+  one-time `git rm --cached`.
 
 Latest milestone commits:
 

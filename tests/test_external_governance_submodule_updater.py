@@ -315,11 +315,13 @@ def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
     assert result.full_update_stage_report["hook_validator_enforcement"] == "updated"
     assert result.full_update_stage_report["final_status"] == "full_update_completed"
     assert result.staged_files == [
+        ".gitignore",
         "AGENTS.base.md",
         "AGENTS.md",
         "ai-governance-framework",
     ]
     assert _git(consumer, "diff", "--cached", "--name-only").splitlines() == [
+        ".gitignore",
         "AGENTS.base.md",
         "AGENTS.md",
         "ai-governance-framework",
@@ -387,7 +389,7 @@ def test_apply_commit_noops_when_submodule_already_points_at_target(
     assert result.full_update_stage_report["memory_writer_coverage"] == "verified"
     assert result.full_update_stage_report["hook_validator_enforcement"] == "updated"
     assert result.full_update_stage_report["final_status"] == "full_update_completed"
-    assert result.staged_files == ["AGENTS.base.md", "AGENTS.md"]
+    assert result.staged_files == [".gitignore", "AGENTS.base.md", "AGENTS.md"]
     assert result.committed is True
     assert result.commit_hash is not None
     assert _git(consumer, "rev-parse", "HEAD") != before_consumer_head
@@ -479,12 +481,14 @@ def test_non_fast_forward_update_checkout_runs_only_when_explicitly_allowed(
     assert result.full_update_stage_report["memory_writer_coverage"] == "verified"
     assert result.full_update_stage_report["hook_validator_enforcement"] == "updated"
     assert result.staged_files == [
+        ".gitignore",
         "AGENTS.base.md",
         "AGENTS.md",
         "ai-governance-framework",
     ]
     assert _git(consumer / "ai-governance-framework", "rev-parse", "HEAD") == target_head
     assert _git(consumer, "diff", "--cached", "--name-only").splitlines() == [
+        ".gitignore",
         "AGENTS.base.md",
         "AGENTS.md",
         "ai-governance-framework",
