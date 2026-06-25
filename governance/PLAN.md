@@ -1,10 +1,14 @@
 ---
-audience: agent-runtime
-authority: canonical
+audience: agent-on-demand
+authority: reference
 can_override: false
-overridden_by: ~
-default_load: always
+overridden_by: ../PLAN.md
+default_load: on-demand
 ---
+
+> Authority note (2026-06-25): this file is a governance planning protocol /
+> meta-template. The repo-root `PLAN.md` is the current planning authority.
+> This file must not be loaded as session-start always-tier current plan state.
 
 # PLAN.md 模板與治理說明
 

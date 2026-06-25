@@ -149,13 +149,22 @@ class TestLoadAuthorityTable:
         assert "REVIEW_CRITERIA.md" in human_only_names
 
     def test_real_canonical_files_present(self):
-        """SYSTEM_PROMPT.md, AGENT.md, PLAN.md must be canonical."""
+        """SYSTEM_PROMPT.md and AGENT.md must remain canonical runtime core."""
         gov_dir = Path(__file__).resolve().parents[1] / "governance"
         table = load_authority_table(gov_dir)
         canonical_names = {e["filename"] for e in table if e["authority"] == "canonical"}
         assert "SYSTEM_PROMPT.md" in canonical_names
         assert "AGENT.md" in canonical_names
-        assert "PLAN.md" in canonical_names
+
+    def test_real_plan_protocol_is_on_demand_reference(self):
+        """governance/PLAN.md is a planning protocol, not current plan state."""
+        gov_dir = Path(__file__).resolve().parents[1] / "governance"
+        table = load_authority_table(gov_dir)
+        plan_entry = next(e for e in table if e["filename"] == "PLAN.md")
+        assert plan_entry["audience"] == "agent-on-demand"
+        assert plan_entry["authority"] == "reference"
+        assert plan_entry["default_load"] == "on-demand"
+        assert plan_entry["overridden_by"] == "../PLAN.md"
 
 
 # ---------------------------------------------------------------------------
@@ -221,14 +230,26 @@ class TestFilterForSession:
         filenames = [Path(f).name for f in result_l1]
         assert "ARCHITECTURE.md" in filenames
 
-    def test_real_canonical_always_present_in_l0(self):
-        """Integration: canonical always files must appear in L0."""
+    def test_real_runtime_core_always_present_in_l0(self):
+        """Integration: runtime core always files must appear in L0."""
         gov_dir = Path(__file__).resolve().parents[1] / "governance"
         table = load_authority_table(gov_dir)
         result = filter_for_session(table, include_on_demand=False)
         filenames = [Path(f).name for f in result]
-        for must_have in ("SYSTEM_PROMPT.md", "AGENT.md", "PLAN.md"):
+        for must_have in ("SYSTEM_PROMPT.md", "AGENT.md"):
             assert must_have in filenames, f"{must_have} missing from L0 payload"
+        assert "PLAN.md" not in filenames
+
+    def test_real_plan_protocol_included_for_l1_not_l0(self):
+        """governance/PLAN.md is removed from always tier but available on demand."""
+        gov_dir = Path(__file__).resolve().parents[1] / "governance"
+        table = load_authority_table(gov_dir)
+        result_l0 = filter_for_session(table, include_on_demand=False)
+        result_l1 = filter_for_session(table, include_on_demand=True)
+        names_l0 = [Path(f).name for f in result_l0]
+        names_l1 = [Path(f).name for f in result_l1]
+        assert "PLAN.md" not in names_l0
+        assert "PLAN.md" in names_l1
 
 
 # ---------------------------------------------------------------------------

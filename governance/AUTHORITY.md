@@ -2,7 +2,14 @@
 
 > machine-readable: true
 > version: 1.0.0
-> updated: 2026-03-23
+> updated: 2026-06-25
+
+
+> Authority-loader note: `runtime_hooks/core/session_start.py` derives the live
+> authority filter from each `governance/*.md` file's frontmatter through
+> `governance_tools.authority_loader`. This table is the human-facing registry
+> and must mirror that frontmatter; table-only edits do not change live
+> `allowed_governance_files` behavior.
 
 ## Authority Levels
 
@@ -31,7 +38,7 @@
 |----------|----------|-----------|--------------|---------------|--------------|
 | `governance/SYSTEM_PROMPT.md` | agent-runtime | canonical | false | ~ | always |
 | `governance/AGENT.md` | agent-runtime | canonical | false | ~ | always |
-| `governance/PLAN.md` | agent-runtime | canonical | false | ~ | always |
+| `governance/PLAN.md` | agent-on-demand | reference | false | ../PLAN.md | on-demand |
 | `governance/MEMORY_PROTOCOL.md` | agent-runtime | canonical | false | AGENT.md | on-demand |
 | `governance/ARCHITECTURE.md` | agent-on-demand | reference | false | SYSTEM_PROMPT.md | on-demand |
 | `governance/TESTING.md` | agent-on-demand | reference | false | AGENT.md | on-demand |
