@@ -132,6 +132,87 @@ If no parent repo commit is created, report:
 parent repo commit: NOT CREATED
 ```
 
+## Consuming Repo Reporting Corrections
+
+When reporting AI Governance updates in a consuming repository, keep receipt
+integrity, dirty-tree state, build evidence, and memory disposition separate.
+
+### Verified Status Claim Ceiling
+
+Note: `not_verified` in the fixed update status list and
+`repo_native_verified` in onboarding/readiness output are different axes. The
+former is an update-check status; the latter is a receipt/evidence-chain
+integrity signal.
+
+`repo_native_verified`, `head_ok`, and `ts_ok` may be reported only as
+receipt/evidence-chain integrity signals.
+
+They must not be reported as proof of:
+- governance enforcement;
+- framework correctness;
+- complete governance adoption;
+- semantic correctness;
+- runtime behavior correctness.
+
+Valid wording:
+
+```text
+repo_native_verified means the closeout receipt/evidence-chain head and
+timestamp alignment passed for this update check.
+It does not prove governance enforcement or framework correctness.
+```
+
+Invalid wording:
+
+```text
+The repo is now governed / enforcement is active / framework correctness is verified.
+```
+
+### Dirty Tree Reporting Separation
+
+If the consuming repository has pre-existing dirty work, the final report must
+separate:
+- governance apply scope;
+- pre-existing user work;
+- generated local artifacts or memory files;
+- validation run on the combined dirty state.
+
+Do not flatten these into a single "updated and validated" statement.
+
+Required wording pattern when dirty work remains:
+
+```text
+Governance apply scope: <files changed by the update>
+Pre-existing dirty user work: <paths or summary>
+Validation scope: ran on combined dirty working tree
+Overall task: NOT DONE until dirty work is audited or explicitly excluded
+```
+
+### Build And Smoke Evidence Boundary
+
+Build or CLI smoke checks run after an AI Governance update in a dirty consuming
+repo may be reported only as compatibility evidence for the current combined
+dirty state.
+
+They must not be reported as proof that:
+- the governance update is correct;
+- the governance framework is correct;
+- governance enforcement is active;
+- unrelated user feature work is complete.
+
+### Generated Memory Disposition
+
+Generated memory files in consuming repositories must have an explicit
+disposition before the update is reported as cleanly completed.
+
+Allowed dispositions:
+- verify the file was produced by the canonical writer and commit it;
+- rewrite the record through `governance_tools.memory_record` and commit it;
+- explicitly mark it as unresolved dirty work.
+
+Do not leave an untracked generated memory file as a side note while reporting
+the update as complete.
+
 ## Non-Claims
 
 This file does not change:
