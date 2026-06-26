@@ -257,6 +257,60 @@ Do not continue into the next slice automatically after push. Recommend one
 next action, then wait for a new `DONE` unless the next slice was already
 explicitly approved.
 
+## Sub-Agent Review Receipt Workflow
+
+Use this workflow when the main thread wants skeptical read-only review without
+handing over action authority.
+
+Boundary:
+
+```text
+Main owns action.
+Sub-agent owns skepticism.
+Receipt returns evidence.
+Main spot-checks key evidence.
+Push, commit, memory writes, and authority changes still require main-thread
+decision plus user authorization where applicable.
+```
+
+Mechanism:
+
+- spawn the review sub-agent with `multi_agent_v1.spawn_agent`;
+- wait for its receipt with `multi_agent_v1.wait_agent`;
+- continue or correct the same sub-agent with `multi_agent_v1.send_input`;
+- close the sub-agent with `multi_agent_v1.close_agent` when done;
+- use sidebar thread tools only when a user-visible separate thread is desired,
+  not as the default receipt-callback mechanism.
+
+Use this prompt shape for a read-only sub-agent:
+
+```text
+Read-only sub-agent task. Do not modify files, stage, commit, or push.
+
+Task: review <artifact/diff/commit pair/state>.
+Return ONLY this receipt:
+
+REVIEW_RECEIPT
+verdict: APPROVED | CHANGES_REQUESTED | ESCALATED
+blocking_findings:
+warnings:
+suggestions:
+evidence_checked:
+claim_ceiling:
+cannot_claim:
+push_gate: allowed | not_allowed | not_applicable
+next_recommended_action:
+```
+
+`evidence_checked` must contain actual commands with results, file/line
+references, or artifact paths. It must not be a bare `checked=yes` or a list of
+intentions. The main thread re-checks load-bearing evidence before any sensitive
+action.
+
+Treat a sub-agent `APPROVED` verdict as evidence to inspect, not as authority.
+The main thread decides whether to fix, commit, write memory, request push
+authorization, or stop.
+
 ## Failure Paths Or Risk Points
 
 - If this file is treated as authority, it becomes a new governance surface
@@ -269,6 +323,10 @@ explicitly approved.
   review has verified memory binding and claim ceiling.
 - If diagnosis turns into repair, dirty parent repos and submodule pins can be
   changed before ownership is clear.
+- If a sub-agent receipt is treated as authority, the workflow only moves
+  overclaim risk from the main thread to the sub-agent.
+- If `evidence_checked` lacks concrete commands or file references, the main
+  thread has nothing meaningful to spot-check.
 
 ## Evidence Plan
 
