@@ -25,6 +25,8 @@ What adopt-existing does:
 What adopt-existing does NOT do:
     - Set plan_required_sections (no mandate imposed on existing repos)
     - Overwrite files that already exist
+    - Make the target repo runtime self-contained
+    - Copy governance_tools, runtime_hooks, or runtime injection snapshot
     - Install git hooks (optional; use scripts/install-hooks.sh on Linux/Mac)
 
 What --refresh does:
@@ -56,6 +58,80 @@ from governance_tools.framework_versioning import (
     repo_root_from_tooling,
 )
 from memory_pipeline.memory_layout import MEMORY_FILE_ALIASES
+
+
+# ── Adoption class wording ────────────────────────────────────────────────────
+
+_COPY_ADOPTION_BOUNDARY_LINES = (
+    "Adoption class: copy-based audit surface",
+    "Runtime capability: not self-contained",
+    "",
+    "Copied / refreshed:",
+    "- AGENTS / PLAN / contract / baseline / drift-checkable audit surface",
+    "",
+    "Not included by this copy-based adopt path:",
+    "- governance_tools",
+    "- runtime_hooks",
+    "- runtime injection snapshot",
+    "",
+    "This repo is not runtime self-contained from copy-based adoption alone.",
+    "For repositories you own and modify, especially cross-platform or low-level code",
+    "repos, use the documented submodule/full adoption path before claiming governed",
+    "runtime.",
+    "Current submodule/full adoption is a manual documented path, not this command's",
+    "behavior. See docs/INTEGRATION_GUIDE.md sections 4-5.",
+    "Claim boundary: drift PASS for copy-based adoption means audit-surface readiness,",
+    "not runtime self-contained governance.",
+)
+
+_ADOPTION_HELP_EPILOG = """\
+Adoption class guidance:
+  Copy-based adoption is for audit-only classification and review wording.
+  It does not make a repo runtime self-contained.
+
+  For repositories you own and modify, especially cross-platform or low-level
+  code repos, use the documented submodule/full adoption path before claiming
+  governed runtime. Current submodule/full adoption is manual; see
+  docs/INTEGRATION_GUIDE.md sections 4-5.
+"""
+
+
+def _framework_root_is_repo_owned(repo_root: Path, framework_root: Path) -> bool:
+    try:
+        framework_root.resolve().relative_to(repo_root.resolve())
+        return True
+    except ValueError:
+        return False
+
+
+def _repo_relative_path(repo_root: Path, path: Path) -> str:
+    try:
+        return path.resolve().relative_to(repo_root.resolve()).as_posix()
+    except ValueError:
+        return str(path.resolve())
+
+
+def _print_copy_adoption_boundary() -> None:
+    for line in _COPY_ADOPTION_BOUNDARY_LINES:
+        print(line)
+
+
+def _print_repo_owned_framework_boundary(repo_root: Path, framework_root: Path) -> None:
+    print("Adoption class: repo-owned framework path")
+    print("Runtime capability: repo-owned framework path detected")
+    print(f"Framework root: {_repo_relative_path(repo_root, framework_root)}")
+    print()
+    print("This adopt run is using framework files from inside the target repo.")
+    print("Claim boundary: this does not prove hooks are installed, the pin is fresh,")
+    print("runtime smoke passed, full installer ran, or the full framework test suite")
+    print("passes.")
+
+
+def _print_adoption_boundary(repo_root: Path, framework_root: Path) -> None:
+    if _framework_root_is_repo_owned(repo_root, framework_root):
+        _print_repo_owned_framework_boundary(repo_root, framework_root)
+    else:
+        _print_copy_adoption_boundary()
 
 
 # ── Plan path discovery ────────────────────────────────────────────────────────
@@ -788,6 +864,8 @@ def adopt_existing(
 
     if dry_run:
         print()
+        _print_adoption_boundary(repo_root, framework_root)
+        print()
         print("Dry-run complete. No files were written.")
         return 0
 
@@ -835,6 +913,8 @@ def adopt_existing(
         repo_type = _detect_repo_type(repo_root)
         print(f"  [dry-run] Would write .governance-payload-config.yaml (repo_type={repo_type})")
 
+    print()
+    _print_adoption_boundary(repo_root, framework_root)
     print()
     print("Adoption complete. Next steps:")
     print("  1. Fix any FAIL/warning items shown above")
@@ -1019,8 +1099,13 @@ def _check_env() -> int:
             ok = False
 
     if ok:
-        print("\nEnvironment ready. Next step:")
-        print("  python governance_tools/adopt_governance.py --target /path/to/your/repo")
+        print("\nEnvironment ready. Choose adoption path:")
+        print("  Audit-only classification:")
+        print("    python governance_tools/adopt_governance.py --target /path/to/your/repo")
+        print("  Owned/code-changing/runtime-governed repo:")
+        print("    use the documented submodule/full adoption path")
+        print("    (docs/INTEGRATION_GUIDE.md sections 4-5), then run adopt with")
+        print("    --framework-root pointing at the repo-owned framework checkout.")
     else:
         print("\nFix the above before running adopt.")
 
@@ -1029,7 +1114,9 @@ def _check_env() -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Adopt or refresh AI Governance Framework baseline (cross-platform)."
+        description="Adopt or refresh AI Governance Framework baseline (cross-platform).",
+        epilog=_ADOPTION_HELP_EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--target", help="Path to the target repository")
     parser.add_argument("--framework-root", help="Path to framework installation (auto-detected if omitted)")

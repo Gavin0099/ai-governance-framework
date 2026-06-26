@@ -13,6 +13,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from governance_tools.adopt_governance import (
     adopt_existing,
     refresh_baseline,
+    main,
+    _check_env,
     _discover_plan_path,
     _read_baseline_state,
 )
@@ -71,6 +73,12 @@ def _write_contract(repo: Path) -> Path:
     p = repo / "contract.yaml"
     p.write_text(text, encoding="utf-8")
     return p
+
+
+def _make_repo_owned_framework(repo: Path) -> Path:
+    framework = repo / "additional" / "ai-governance-framework"
+    shutil.copytree(FRAMEWORK_ROOT / "baselines", framework / "baselines")
+    return framework
 
 
 # ── _discover_plan_path ───────────────────────────────────────────────────────
@@ -349,6 +357,106 @@ def test_adopt_surfaces_repo_specific_agents_prompts_in_next_steps(capsys):
     assert "must_test_paths" in output
     assert "escalation_triggers" in output
     assert "forbidden_behaviors" in output
+
+
+def test_adopt_prints_copy_adoption_boundary(capsys):
+    """Adopt output should not let thin/copy adoption look runtime-complete."""
+    repo = _make_git_repo(_reset_fixture("copy_adoption_boundary") / "repo")
+    _write_plan(repo)
+    _write_contract(repo)
+
+    adopt_existing(repo, FRAMEWORK_ROOT, dry_run=False)
+    output = capsys.readouterr().out
+
+    assert "Adoption class: copy-based audit surface" in output
+    assert "Runtime capability: not self-contained" in output
+    assert "Not included by this copy-based adopt path:" in output
+    assert "- governance_tools" in output
+    assert "- runtime_hooks" in output
+    assert "- runtime injection snapshot" in output
+    assert "docs/INTEGRATION_GUIDE.md sections 4-5" in output
+    assert "not runtime self-contained governance" in output
+
+
+def test_adopt_dry_run_prints_copy_adoption_boundary_without_writes(capsys):
+    """Dry-run should expose the same adoption-class boundary without mutating files."""
+    repo = _make_git_repo(_reset_fixture("copy_adoption_boundary_dry_run") / "repo")
+    _write_plan(repo)
+    _write_contract(repo)
+    files_before = set(repo.rglob("*"))
+
+    adopt_existing(repo, FRAMEWORK_ROOT, dry_run=True)
+    output = capsys.readouterr().out
+
+    files_after = set(repo.rglob("*"))
+    new_files = {f for f in (files_after - files_before) if ".git" not in str(f)}
+    assert not new_files, f"dry-run wrote files: {new_files}"
+    assert "Adoption class: copy-based audit surface" in output
+    assert "Runtime capability: not self-contained" in output
+    assert "Dry-run complete. No files were written." in output
+
+
+def test_adopt_with_repo_owned_framework_does_not_print_copy_boundary(capsys):
+    """Submodule-style framework roots should not be mislabeled copy-based."""
+    repo = _make_git_repo(_reset_fixture("repo_owned_framework_boundary") / "repo")
+    _write_plan(repo)
+    _write_contract(repo)
+    framework = _make_repo_owned_framework(repo)
+
+    adopt_existing(repo, framework, dry_run=False)
+    output = capsys.readouterr().out
+
+    assert "Adoption class: repo-owned framework path" in output
+    assert "Runtime capability: repo-owned framework path detected" in output
+    assert "Framework root: additional/ai-governance-framework" in output
+    assert "this does not prove hooks are installed" in output
+    assert "Adoption class: copy-based audit surface" not in output
+    assert "Runtime capability: not self-contained" not in output
+
+
+def test_adopt_dry_run_with_repo_owned_framework_does_not_print_copy_boundary(capsys):
+    """Dry-run should use the same repo-owned framework boundary."""
+    repo = _make_git_repo(_reset_fixture("repo_owned_framework_boundary_dry_run") / "repo")
+    _write_plan(repo)
+    _write_contract(repo)
+    framework = _make_repo_owned_framework(repo)
+
+    adopt_existing(repo, framework, dry_run=True)
+    output = capsys.readouterr().out
+
+    assert "Adoption class: repo-owned framework path" in output
+    assert "Framework root: additional/ai-governance-framework" in output
+    assert "Adoption class: copy-based audit surface" not in output
+    assert "Runtime capability: not self-contained" not in output
+    assert "Dry-run complete. No files were written." in output
+
+
+def test_adopt_help_routes_by_use_case(monkeypatch, capsys):
+    """--help should steer owned/code-changing repos toward the manual submodule path."""
+    monkeypatch.setattr(sys, "argv", ["adopt_governance.py", "--help"])
+
+    with pytest.raises(SystemExit) as exc:
+        main()
+
+    output = capsys.readouterr().out
+    assert exc.value.code == 0
+    assert "Adoption class guidance:" in output
+    assert "Copy-based adoption is for audit-only classification" in output
+    assert "It does not make a repo runtime self-contained" in output
+    assert "Current submodule/full adoption is manual" in output
+    assert "docs/INTEGRATION_GUIDE.md sections 4-5" in output
+
+
+def test_check_env_routes_by_use_case(capsys):
+    """--check-env should make the path choice visible before adoption."""
+    rc = _check_env()
+    output = capsys.readouterr().out
+
+    assert rc == 0
+    assert "Environment ready. Choose adoption path:" in output
+    assert "Audit-only classification:" in output
+    assert "Owned/code-changing/runtime-governed repo:" in output
+    assert "docs/INTEGRATION_GUIDE.md sections 4-5" in output
 
 
 def test_adopt_keeps_existing_agents_md(tmp_path):
