@@ -445,6 +445,7 @@ def test_adopt_help_routes_by_use_case(monkeypatch, capsys):
     assert "It does not make a repo runtime self-contained" in output
     assert "Current submodule/full adoption is manual" in output
     assert "docs/INTEGRATION_GUIDE.md sections 4-5" in output
+    assert "python -m governance_tools.adoption_doctor --repo /path/to/your/repo" in output
 
 
 def test_check_env_routes_by_use_case(capsys):
@@ -457,6 +458,8 @@ def test_check_env_routes_by_use_case(capsys):
     assert "Audit-only classification:" in output
     assert "Owned/code-changing/runtime-governed repo:" in output
     assert "docs/INTEGRATION_GUIDE.md sections 4-5" in output
+    assert "Report-only diagnosis:" in output
+    assert "python -m governance_tools.adoption_doctor --repo /path/to/your/repo" in output
 
 
 def test_adopt_keeps_existing_agents_md(tmp_path):

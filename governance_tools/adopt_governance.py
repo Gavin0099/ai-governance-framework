@@ -93,6 +93,9 @@ Adoption class guidance:
   code repos, use the documented submodule/full adoption path before claiming
   governed runtime. Current submodule/full adoption is manual; see
   docs/INTEGRATION_GUIDE.md sections 4-5.
+
+  To inspect an existing repo without changing it:
+    python -m governance_tools.adoption_doctor --repo /path/to/your/repo
 """
 
 
@@ -1106,6 +1109,8 @@ def _check_env() -> int:
         print("    use the documented submodule/full adoption path")
         print("    (docs/INTEGRATION_GUIDE.md sections 4-5), then run adopt with")
         print("    --framework-root pointing at the repo-owned framework checkout.")
+        print("  Report-only diagnosis:")
+        print("    python -m governance_tools.adoption_doctor --repo /path/to/your/repo")
     else:
         print("\nFix the above before running adopt.")
 
