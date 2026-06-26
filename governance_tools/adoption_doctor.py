@@ -67,6 +67,7 @@ class AdoptionDoctorReport:
     framework_submodule: ClassifiedValue
     submodule_pin: PinStatus
     external_framework_dependency: ClassifiedValue
+    hook_config_framework_root: ClassifiedValue
     findings: list[Finding] = field(default_factory=list)
     claim_boundary: str = (
         "This report does not install, update, delete, fetch, stage, rewrite, "
@@ -298,6 +299,27 @@ def _classify_external_dependency(repo_root: Path, framework_root: Path | None) 
     return ClassifiedValue("not_observed", confidence="medium", reasons=["no external framework root dependency was observed"])
 
 
+def _classify_hook_config_framework_root(repo_root: Path) -> ClassifiedValue:
+    hook_root = _read_hook_framework_root(repo_root)
+    if hook_root is None:
+        return ClassifiedValue(
+            "absent",
+            confidence="high",
+            reasons=["hook framework-root config is absent"],
+        )
+    if _is_relative_to(hook_root, repo_root):
+        return ClassifiedValue(
+            "inside_repo",
+            confidence="high",
+            reasons=[f"hook framework-root config points inside repo: {_repo_relative(repo_root, hook_root)}"],
+        )
+    return ClassifiedValue(
+        "external",
+        confidence="high",
+        reasons=[f"hook framework-root config points outside repo: {_resolve(hook_root)}"],
+    )
+
+
 def _run_git(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["git", *args],
@@ -441,6 +463,18 @@ def _findings(report: AdoptionDoctorReport) -> list[Finding]:
                 "Framework root resolves outside the target repo; self-contained runtime claims are not supported.",
             )
         )
+    if (
+        report.hook_config_framework_root.value == "external"
+        and report.adoption_class.value in {"repo_owned_framework_path", "submodule_consumer"}
+    ):
+        findings.append(
+            Finding(
+                "warning",
+                "external_hook_framework_root",
+                "Runtime hooks execute from an external framework checkout, not the repo-owned framework path; "
+                "static self_contained=yes does not prove runtime self-contained hook execution.",
+            )
+        )
     if report.root_level_leftover_runtime_hooks.value == "present":
         findings.append(
             Finding(
@@ -508,6 +542,7 @@ def inspect_adoption(repo_root: Path, framework_root: Path | None = None) -> Ado
         framework_submodule=submodule,
         submodule_pin=_classify_pin(repo_root, submodule),
         external_framework_dependency=_classify_external_dependency(repo_root, selected_framework_root),
+        hook_config_framework_root=_classify_hook_config_framework_root(repo_root),
     )
     report.findings = _findings(report)
     return report
@@ -564,6 +599,10 @@ def format_human(report: AdoptionDoctorReport) -> str:
         "[external_framework_dependency]",
         f"state             = {report.external_framework_dependency.value}",
         *_format_reasons(report.external_framework_dependency.reasons),
+        "",
+        "[hook_config_framework_root]",
+        f"state             = {report.hook_config_framework_root.value}",
+        *_format_reasons(report.hook_config_framework_root.reasons),
     ]
     if report.findings:
         lines.extend(["", f"findings: {len(report.findings)}"])

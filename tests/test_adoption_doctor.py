@@ -127,6 +127,26 @@ def test_submodule_consumer_with_initialized_framework_checkout(tmp_path: Path) 
     assert report.runtime_capable.value == "not_checked"
 
 
+def test_external_hook_config_is_reported_with_repo_owned_submodule(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "external_hook")
+    relpath = "additional/ai-governance-framework"
+    _write_gitmodules(repo, relpath)
+    _make_git_framework(repo / relpath)
+    external_framework = _make_framework_root(tmp_path / "external-framework")
+    _write(repo / ".git" / "hooks" / "ai-governance-framework-root", str(external_framework.resolve()))
+
+    report = inspect_adoption(repo)
+    rendered = format_human(report)
+    payload = json.loads(adoption_doctor.format_json(report))
+
+    assert report.adoption_class.value == "submodule_consumer"
+    assert report.self_contained.value == "yes"
+    assert report.hook_config_framework_root.value == "external"
+    assert payload["hook_config_framework_root"]["value"] == "external"
+    assert "[hook_config_framework_root]" in rendered
+    assert any(f.code == "external_hook_framework_root" for f in report.findings)
+
+
 def test_partial_or_uninitialized_submodule_is_reported_without_self_contained_claim(tmp_path: Path) -> None:
     repo = _make_repo(tmp_path / "partial")
     relpath = "additional/ai-governance-framework"
