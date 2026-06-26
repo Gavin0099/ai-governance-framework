@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+### Adoption diagnostics and UX disposition - 2026-06-26
+
+- Added `governance_tools/adoption_doctor.py` as a report-only local
+  diagnostic for adoption class, static self-contained prerequisites,
+  local-tracking submodule pin state, root-level runtime hook leftovers, and
+  hook framework-root wiring. Findings remain informational or warning-level
+  and do not change exit status for ordinary findings.
+- Updated adoption UX wording in `governance_tools/adopt_governance.py` so
+  copy-based adoption is described as audit-surface readiness, not runtime
+  self-contained governance. Repo-owned framework paths are reported without
+  claiming hooks, pin freshness, runtime smoke, full installer execution, or
+  full test-suite success.
+- Added a hook-root mismatch diagnostic after Bookstore-Scraper dogfooding:
+  `hook_config_framework_root=external` is now surfaced when a repo-owned
+  framework path or initialized framework submodule exists but installed hooks
+  point to an external framework checkout.
+- Release-note boundary: this entry records unreleased tooling changes only.
+  It does not bump the framework version, publish a release, add a full or
+  submodule installer, perform fetch/update/repair actions, wire the doctor
+  into hooks/CI/pre-push/gates/enforcement, or claim runtime self-contained
+  governance for consuming repos.
+
 ## v1.2.0 - 2026-04-28
 
 ### Phase D Governance Baseline Freeze
