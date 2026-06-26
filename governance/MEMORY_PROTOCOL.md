@@ -50,8 +50,18 @@ explicitly asks to keep them.
 ## Write It Down
 
 - Memory does not survive as "mental notes"; durable context must be written.
-- When the user says to remember something, update `memory/YYYY-MM-DD.md` or the
-  relevant repo memory file.
+- In a governed repository, an ambiguous request to "record this in memory" or
+  "remember this" defaults to the repository's canonical memory workflow when
+  the content concerns that repository's task state, decisions, evidence,
+  closeout, or durable governance knowledge.
+- If the content is a personal preference, reminder, cross-repo habit, or
+  private-cache pointer, classify that route explicitly before writing. Do not
+  treat private/tool memory as governance authority.
+- When repository memory is the correct route, update `memory/YYYY-MM-DD.md` or
+  the relevant repo memory file through the canonical writer.
+- Canonical recording establishes valid provenance and placement for the
+  declared claim class. It does not establish truth, human review, acceptance,
+  commit, push, or normative authority by itself.
 - When a durable lesson is learned, update the appropriate governance doc,
   tool doc, or skill.
 - When a mistake is found, document it so future sessions do not repeat it.

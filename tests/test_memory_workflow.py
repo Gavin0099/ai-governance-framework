@@ -117,6 +117,51 @@ def test_possible_memory_task_is_advisory_without_memory_diff(tmp_path: Path) ->
     assert result.canonical_writer_required is False
 
 
+def test_personal_preference_memory_phrase_is_currently_keyword_advisory(tmp_path: Path) -> None:
+    _make_framework_surface(tmp_path)
+
+    result = assess_memory_workflow(
+        tmp_path,
+        changed_files=[],
+        task_text="remember my editor theme preference is blue",
+    )
+
+    assert result.status == "possible_memory_task"
+    assert result.task_classification == "possible_memory_task"
+    assert result.completion_claim_allowed is True
+    assert result.canonical_writer_required is False
+
+
+def test_reminder_phrase_without_memory_keyword_is_currently_not_memory(tmp_path: Path) -> None:
+    _make_framework_surface(tmp_path)
+
+    result = assess_memory_workflow(
+        tmp_path,
+        changed_files=[],
+        task_text="remind me to buy milk next week",
+    )
+
+    assert result.status == "no_memory_workflow_required"
+    assert result.task_classification == "not_memory_task"
+    assert result.completion_claim_allowed is True
+    assert result.canonical_writer_required is False
+
+
+def test_cross_repo_habit_memory_phrase_is_currently_keyword_advisory(tmp_path: Path) -> None:
+    _make_framework_surface(tmp_path)
+
+    result = assess_memory_workflow(
+        tmp_path,
+        changed_files=[],
+        task_text="remember across repos that I prefer npm.cmd on Windows",
+    )
+
+    assert result.status == "possible_memory_task"
+    assert result.task_classification == "possible_memory_task"
+    assert result.completion_claim_allowed is True
+    assert result.canonical_writer_required is False
+
+
 def test_run_guard_reports_summary_and_allows_clean_memory_completion(tmp_path: Path) -> None:
     _make_framework_surface(tmp_path)
     _write_canonical_memory(tmp_path)
