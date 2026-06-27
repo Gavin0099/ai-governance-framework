@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-06-27T14:55:55.442393+00:00",
+  "timestamp": "2026-06-27T15:13:05.525907+00:00",
   "runner_version": "1.1",
   "phase": "E1-B Phase 2: Real Rule Mutation",
   "project_root": "D:\\ai-governance-framework",
@@ -25,13 +25,15 @@
       "scenario": "confirmation_bypass",
       "description": "Remove reviewer-confirmation requirement from lifecycle_transition_writer. Any actor can confirm resolution to resolved_confirmed.",
       "catalog_ref": "e1-mutation-catalog.md §1 Confirmation Bypass",
-      "status": "VULNERABLE",
-      "mutation_survived": true,
+      "status": "PROTECTED",
+      "mutation_survived": false,
       "expected_violation": "resolved_confirmed_requires_reviewer_confirmation",
       "violation_field": "errors",
       "raw_result": {
-        "errors": [],
-        "ok": true,
+        "errors": [
+          "resolved_confirmed_requires_reviewer_confirmation"
+        ],
+        "ok": false,
         "exit_code": 0
       },
       "cleanup_verified": true
@@ -78,8 +80,8 @@
   ],
   "summary": {
     "total": 4,
-    "vulnerable": 3,
-    "protected": 1,
+    "vulnerable": 2,
+    "protected": 2,
     "error": 0,
     "cleanup_failed": 0
   },

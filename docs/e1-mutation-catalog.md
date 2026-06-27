@@ -12,7 +12,7 @@
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Closeout Bypass** | Rule Mutation | `state_reconciliation_validator` | `phase_d_completed_without_reviewer_closeout_artifact` | `assess_phase_d_closeout` + secondary invariant | PROTECTED (2026-06-27) ³ |
 | **Precedence Bypass** | Rule Mutation | `escalation_authority_writer` | `authority_precedence_active_blocks_release` | `lifecycle_effective_by_escalation` loop | VULNERABLE (2026-06-27) — partial redundancy noted ² |
-| **Confirmation Bypass** | Rule Mutation | `lifecycle_transition_writer` ¹ | `resolved_confirmed_requires_reviewer_confirmation` | line 80–81 check | VULNERABLE (2026-06-27) |
+| **Confirmation Bypass** | Rule Mutation | `lifecycle_transition_writer` ¹ | `resolved_confirmed_requires_reviewer_confirmation` | line 80–81 check + secondary invariant | PROTECTED (2026-06-27) |
 | **Snapshot Multi-Root** | Rule Mutation | `feature_surface_snapshot` | `warning: multiple app route roots detected` | `candidate_app_roots` scan | VULNERABLE (2026-06-27) |
 
 > ¹ Catalog originally listed `escalation_authority_writer`; corrected to `lifecycle_transition_writer`
@@ -108,12 +108,15 @@ Tool: `git worktree` isolation — production code was NOT modified.
 
 ### Current Interpretation
 
-The 2026-06-27 rerun returned **1 PROTECTED / 3 VULNERABLE**.
+The 2026-06-27 rerun returned **2 PROTECTED / 2 VULNERABLE**.
 
 - `closeout_bypass` is now **PROTECTED**: after the primary closeout gate is removed,
   the secondary invariant still emits the exact violation code
   `phase_d_completed_without_reviewer_closeout_artifact`.
-- `confirmation_bypass`, `snapshot_multiroot_bypass`, and `precedence_bypass`
+- `confirmation_bypass` is now **PROTECTED**: after the primary
+  reviewer-confirmation check is removed, the secondary invariant still emits
+  the exact error code `resolved_confirmed_requires_reviewer_confirmation`.
+- `snapshot_multiroot_bypass` and `precedence_bypass`
   remain **VULNERABLE** under the current runner evidence.
 
 This refresh updates current evidence status only.
@@ -125,6 +128,6 @@ or that the remaining VULNERABLE scenarios are resolved.
 | Scenario | Status | Evidence / Note |
 | :--- | :--- | :--- |
 | Closeout Bypass | PROTECTED | Expected violation `phase_d_completed_without_reviewer_closeout_artifact` observed after mutation; `mutation_survived=false`; cleanup verified |
-| Confirmation Bypass | VULNERABLE | Expected violation `resolved_confirmed_requires_reviewer_confirmation` absent; `mutation_survived=true`; cleanup verified |
+| Confirmation Bypass | PROTECTED | Expected error `resolved_confirmed_requires_reviewer_confirmation` observed after mutation; `mutation_survived=false`; cleanup verified |
 | Snapshot Multi-Root | VULNERABLE | Expected stderr warning absent; `mutation_survived=true`; cleanup verified |
 | Precedence Bypass | VULNERABLE (partial redundancy) | Expected reason `authority_precedence_active_blocks_release` absent; secondary signals remain but do not satisfy this mutation contract; cleanup verified |
