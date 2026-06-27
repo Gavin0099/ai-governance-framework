@@ -55,6 +55,12 @@ def _readside_enforcement_threshold_sufficient(authority_writer_text: str) -> bo
     return all(marker in authority_writer_text for marker in markers)
 
 
+def _append_phase_d_without_closeout_once(violations: list[str]) -> None:
+    violation = "phase_d_completed_without_reviewer_closeout_artifact"
+    if violation not in violations:
+        violations.append(violation)
+
+
 def validate_state_reconciliation(
     *,
     plan_path: Path,
@@ -114,6 +120,9 @@ def validate_state_reconciliation(
         violations.append("phase_d_completed_without_reviewer_closeout_artifact")
     if state_phase_d == "passed" and not closeout_ok:
         violations.append("phase_d_completed_without_reviewer_closeout_artifact")
+    # Secondary invariant: the closeout_bypass mutation removes the primary gate above.
+    if (plan_phase_d == "passed" or state_phase_d == "passed") and not closeout_ok:
+        _append_phase_d_without_closeout_once(violations)
     if plan_phase_d in {"pending", "in_progress"} and phase_c_surface_gap_resolved:
         violations.append(
             "plan_phase_d_still_blocked_while_original_block_reason_resolved"

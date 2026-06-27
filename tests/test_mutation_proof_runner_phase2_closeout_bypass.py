@@ -37,6 +37,24 @@ def test_closeout_bypass_mutation_anchor_matches_current_validator_source():
     assert EXPECTED_VIOLATION in scenario.mutation.old_str
 
 
+def test_closeout_bypass_secondary_detection_sits_outside_mutation_anchor():
+    scenario = _closeout_bypass_scenario()
+    validator_source = Path("governance_tools/state_reconciliation_validator.py").read_text(
+        encoding="utf-8"
+    )
+    secondary_call = "_append_phase_d_without_closeout_once(violations)"
+    mutated_source = validator_source.replace(
+        scenario.mutation.old_str,
+        scenario.mutation.new_str,
+        1,
+    )
+
+    assert secondary_call in validator_source
+    assert secondary_call not in scenario.mutation.old_str
+    assert scenario.mutation.old_str not in mutated_source
+    assert secondary_call in mutated_source
+
+
 def test_closeout_bypass_fixture_triggers_exact_unmutated_violation(tmp_path):
     raw_result = _test_closeout_bypass(Path.cwd(), tmp_path)
 
