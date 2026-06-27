@@ -69,9 +69,29 @@ class MutationScenario2:
 # ---------------------------------------------------------------------------
 
 def _setup_plan_passed_no_closeout(fixture_dir: Path) -> None:
-    """Minimal PLAN.md with phase_d=passed but no closeout artifact present."""
+    """Minimal Phase C-ready fixture with phase_d=passed and no closeout artifact."""
     (fixture_dir / "PLAN.md").write_text(
         "# PLAN.md\n- [x] Phase D : Closeout\n",
+        encoding="utf-8",
+    )
+    tools_dir = fixture_dir / "governance_tools"
+    tools_dir.mkdir(parents=True, exist_ok=True)
+    (tools_dir / "release_surface_overview.py").write_text(
+        "precedence_applied = True\nlifecycle_effective_by_escalation = {}\n",
+        encoding="utf-8",
+    )
+    (tools_dir / "phase2_aggregation_consumer.py").write_text(
+        'authority_summary = {"precedence_applied": True, "lifecycle_effective_by_escalation": {}}\n',
+        encoding="utf-8",
+    )
+    (tools_dir / "phase3_promotion_gate.py").write_text(
+        'authority = payload.get("authority_summary")\n',
+        encoding="utf-8",
+    )
+    (tools_dir / "escalation_authority_writer.py").write_text(
+        "lifecycle_effective_by_escalation = {}\n"
+        "reason_a = 'authority_precedence_active_blocks_release'\n"
+        "reason_b = 'authority_precedence_active_register_overrides_resolved_confirmed'\n",
         encoding="utf-8",
     )
     # Ensure closeout artifact is absent
