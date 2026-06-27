@@ -338,6 +338,48 @@ Treat a sub-agent `APPROVED` verdict as evidence to inspect, not as authority.
 The main thread decides whether to fix, commit, write memory, request push
 authorization, or stop.
 
+## Cross-Repo Write Boundary
+
+Use this boundary when a task runs in a workspace that exposes more than one
+repository or writable root.
+
+Rule:
+
+```text
+Writable root is capability, not authorization.
+Active repo owns the write scope.
+All other repos are read-only unless explicitly authorized by path.
+```
+
+Implementation slices must name `active_repo` before file edits begin. If the
+user says `continue`, `keep going`, Chinese continuation equivalents, or
+similar continuation wording, that authority applies only inside the already
+approved active repo and scope.
+It does not authorize writing to another repo, even if that repo is visible,
+related to the subject matter, or writable by the tool.
+
+Portable patches, design notes, and implementation packages default to staying
+in the source repo that produced them. Applying a portable patch to a target
+repo is a separate cross-repo write and requires explicit user wording naming
+the target path.
+
+Before any cross-repo write, stop and ask unless the user already gave an
+explicit path-level instruction such as:
+
+```text
+Apply this patch to D:\ai-governance-framework.
+Modify D:\Enumd-private-vault only.
+Do not touch any other repo.
+```
+
+If an unintended cross-repo write is discovered:
+
+- stop immediately;
+- report the active repo, touched repo, and touched paths;
+- do not inspect, stage, commit, delete, or repair the out-of-scope files
+  unless the user explicitly authorizes that cleanup scope;
+- resume only inside the user-approved repo boundary.
+
 ## Failure Paths Or Risk Points
 
 - If this file is treated as authority, it becomes a new governance surface
@@ -354,6 +396,8 @@ authorization, or stop.
   overclaim risk from the main thread to the sub-agent.
 - If `evidence_checked` lacks concrete commands or file references, the main
   thread has nothing meaningful to spot-check.
+- If writable roots are treated as user intent, an agent can silently turn a
+  source-repo design package into an unauthorized target-repo write.
 
 ## Evidence Plan
 
