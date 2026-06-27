@@ -1,131 +1,118 @@
-# Cache-Aware Agent Harness Design Note
+# 快取感知代理框架設計備忘
 
-Status: PENDING
-Date: 2026-06-27
-Scope: governance design note only
-Sources:
+狀態（Status）：`PENDING`
+日期（Date）：2026-06-27
+範圍（Scope）：僅限治理設計備忘
+
+## 來源
+
 - Anthropic, "Lessons from building Claude Code: prompt caching is everything"
   https://claude.com/blog/lessons-from-building-claude-code-prompt-caching-is-everything
 - Anthropic pricing documentation
   https://docs.anthropic.com/en/docs/about-claude/pricing
 
-## Purpose
+## 目的
 
-This note captures a pending governance interpretation of Anthropic's Claude
-Code prompt-caching architecture. It is not an adopted runtime rule, not a
-permission model change, and not evidence that this repository's harness already
-implements cache-aware execution.
+本文件記錄一個待採用的治理解讀：長任務代理框架應該把提示快取
+（prompt caching）視為架構問題，而不只是成本最佳化技巧。
 
-This note is based on Anthropic Claude prompt-caching semantics. Other model
-providers may expose different cache behavior, cache lifetimes, cache keys, or
-pricing models. Cross-provider adoption requires separate validation.
+這不是已採用的執行環境規則，不是權限模型變更，也不是本儲存庫已實作
+快取感知執行的證據。
 
-The main lesson is that long-running coding agents should be designed around
-cache hit rate, not merely around shorter prompts. Prompt caching is prefix
-based: stable content at the beginning of the request can be reused, while small
-changes near the front can invalidate a large cached prefix.
+本文根據 Anthropic Claude 的提示快取語意撰寫。其他模型供應商可能有不同
+的快取行為、快取期限、快取鍵或計價模型。跨供應商採用前，必須另行驗證。
 
-As of this note, Anthropic pricing treats cache reads as lower-cost input than
-ordinary input, while cache writes are priced above ordinary input depending on
-cache duration. That supports treating cache stability as an efficiency concern,
-not as a safety or correctness authority.
+核心觀察是：長時間運作的程式代理（coding agent）應圍繞快取命中率（cache hit rate）
+設計，而不只是把提示縮短。提示快取是前綴比對（prefix match）：請求前段
+的穩定內容可以重用；前段的小改動可能讓後方原本可重用的快取失效。
 
-## Core Observation
+依本文來源，Anthropic 計價文件把快取讀取視為低於一般輸入的成本，而快取
+寫入則可能高於一般輸入，依快取期限而定。這支持把快取穩定性視為效率需求，
+而不是安全或正確性權威。
 
-For long-task agents, prompt caching is a harness architecture concern.
+## 核心觀察
 
-The stable prefix should contain durable, deterministic material:
+對長任務代理而言，提示快取是框架架構問題。
 
-- system instructions;
-- fixed tool definitions or stable tool stubs;
-- stable repository authority files, identified by path, content hash, and base
-  ref;
-- governance protocol summaries that do not change during the task.
+穩定前綴（stable prefix）應放入耐久且可重現的內容：
 
-Dynamic or high-churn material should appear later:
+- 系統指令；
+- 固定工具定義或穩定工具占位定義（stub）；
+- 穩定的儲存庫權威文件，並標明路徑、內容雜湊與基準參照（base ref）；
+- 任務期間不變的治理協議摘要。
 
-- current user request;
-- current branch, HEAD, and base commit;
-- authority-file hash changes;
-- dirty tree status or summarized dirty-tree receipt;
-- command outputs;
-- reviewer receipts;
-- closeout candidates;
-- memory updates;
-- current evidence and claim ceiling.
+高變動內容應放在動態尾端（dynamic tail）：
 
-The design goal is not simply "fewer tokens." A better goal is:
+- 目前使用者請求；
+- 目前分支、`HEAD` 與基準提交（base commit）；
+- 權威文件雜湊變化；
+- 工作樹變更狀態（dirty tree）或工作樹變更摘要（dirty-tree receipt）；
+- 命令輸出；
+- 審查回執；
+- 收尾候選紀錄（closeout candidate）；
+- 記憶更新；
+- 目前證據與宣稱上限。
 
-```text
-large stable prefix + dynamic tail + auditable state transitions
-```
+設計目標不是單純「token 越少越好」。比較好的目標是：大型穩定前綴，加上
+動態尾端，以及可稽核的狀態轉移。
 
-## Governance Translation
+## 治理翻譯
 
-The article maps cleanly onto this repository's agent workflow:
+這篇文章可以對應到本儲存庫的代理工作流：
 
-| Agent concern | Cache-aware design pressure | Governance boundary |
+| 代理關注點 | 快取感知設計壓力 | 治理邊界 |
 | --- | --- | --- |
-| Mode changes | Avoid changing tool schemas mid-session | Mode must be represented by protocol state and runtime gates |
-| Review work | Use sub-agents for bounded skeptical review | Sub-agent returns receipt; main thread owns action |
-| Tool overload | Use deferred tool loading or stable stubs | Tool discovery must not become hidden authority escalation |
-| Compaction | Preserve the same prefix when summarizing | Summary must retain authority, evidence, dirty state, and claim ceiling |
-| Memory | Treat memory writes as dynamic artifacts | Memory must still use canonical writer and protocol checks |
-| Push / mutation | Do not encode permission only in prompt text | Runtime permission gate remains separate from cache stability |
+| 模式切換 | 避免工作階段中途改變工具結構描述 | 模式應以協議狀態與執行環境閘門表示 |
+| 審查工作 | 用子代理做有界懷疑式審查 | 子代理回傳審查回執；主執行緒擁有行動權 |
+| 工具過載 | 使用延後載入工具或穩定工具占位定義 | 工具探索不得變成隱性權限升級 |
+| 壓縮摘要 | 摘要時保留相同前綴 | 摘要必須保留權威、證據、工作樹變更狀態與宣稱上限 |
+| 記憶 | 把記憶寫入視為動態治理產物 | 記憶仍必須使用標準寫入器與協議檢查 |
+| 推送 / 變異 | 不只用提示文字表示權限 | 執行環境權限閘門必須獨立於快取穩定性 |
 
-## Proposed Local Principle
+## 本地候選原則
 
-```text
-Cache stability is an efficiency requirement.
-Runtime permission is a safety requirement.
-Do not trade one for the other.
-```
+快取穩定性是效率需求。
+執行環境權限是安全需求。
+不得用其中一項交換另一項。
 
-This means the system may keep tool schemas stable for cache reasons, but write,
-push, destructive action, memory mutation, and authority changes must still be
-controlled by explicit runtime gates, repo rules, and user authorization where
-applicable.
+這表示系統可以為了快取穩定性保持工具結構描述穩定，但寫入、推送、破壞性
+動作、記憶變更與權威變更，仍必須由明確的執行環境閘門、儲存庫規則與使用者
+授權控制。
 
-## Safety Invariant
+## 安全不變式
 
-Cache stability must never preserve stale authority or bypass runtime safety.
-The harness should intentionally invalidate or bypass cache when repository
-authority, permission policy, tool schema, model identity, branch or base commit,
-or user authorization state changes.
+快取穩定性不得保留過期權威，也不得繞過執行環境安全。
 
-A cache miss caused by correctness, freshness, or safety is expected behavior,
-not an operational failure.
+當儲存庫權威、權限政策、工具結構描述、模型身分、分支或基準提交、
+使用者授權狀態改變時，框架應有意讓快取失效或繞過快取。
 
-Stable tool visibility is not operational authorization. A tool may remain
-visible for cache stability while still being unavailable at runtime due to
-mode, repo policy, user authorization, dirty-tree constraints, or side-effect
-class.
+因正確性、新鮮度或安全需求造成的快取未命中，是預期行為，不是操作事故。
 
-## Candidate Implications If Adopted
+穩定工具可見性不是操作授權。工具可以為了快取穩定性保持可見，同時因模式、
+儲存庫政策、使用者授權、工作樹變更約束（dirty-tree）或副作用類別（side-effect class）而在執行環境中
+不可用。
 
-### 1. Sub-agent review should be preferred for non-trivial work
+## 若採用後的候選影響
 
-If this note is adopted, bounded sub-agent review should become the preferred
-review mechanism for non-trivial, claim-sensitive, mutation-adjacent, or
-governance-sensitive work, subject to tool availability and runtime permission
-gates.
+### 1. 非平凡工作應偏好子代理審查
 
-If the harness provides a bounded sub-agent API, the main thread should use the
-canonical spawn, wait, input, and close lifecycle defined by the operator
-playbook. For the current harness candidate, this may correspond to
-`multi_agent_v1.*` where available.
+若本文被採用，有界子代理審查應成為非平凡、宣稱敏感、變異相鄰或治理敏感
+工作的偏好審查機制；前提是工具可用，且執行環境權限閘門允許。
 
-The main thread should:
+若框架提供有界子代理 API，主執行緒應使用操作手冊（operator playbook）
+定義的標準生命週期：`spawn`、`wait`、`input` 與 `close`。就目前候選框架而言，這可能對應
+`multi_agent_v1.*`。
 
-- send a bounded read-only task;
-- wait for a structured `REVIEW_RECEIPT`;
-- spot-check load-bearing evidence;
-- decide whether to fix, commit, request push authorization, or stop.
+主執行緒應該：
 
-The sub-agent should not own commit, push, memory write, or final claim
-authority.
+- 送出有界唯讀任務；
+- 等待結構化 `REVIEW_RECEIPT`；
+- 抽查負載證據；
+- 決定是否修正、提交、請求推送授權或停止。
 
-Candidate minimum receipt shape:
+子代理不得擁有提交、推送、記憶寫入或最終宣稱權。
+
+候選最小審查回執格式：
 
 ```text
 REVIEW_RECEIPT v1
@@ -141,129 +128,127 @@ risk:
 recommendation:
 ```
 
-The reviewer must not return only "looks good." It must produce an auditable
-receipt that names the evidence checked and the claims it does not support.
+審查者不得只回「looks good」。審查回執必須可稽核，並列出已檢查證據與
+不支持的宣稱。
 
-### 2. Sidebar threads are not the default review path
+### 2. 側邊欄對話執行緒不是預設審查路徑
 
-Visible sidebar Codex threads are useful when the user explicitly wants a
-separate user-visible thread. They should not be silently substituted for
-sub-agent tools.
+可見的 Codex 側邊欄對話執行緒（thread）適合使用者明確要求另一個可見
+對話執行緒時使用。
+它們不應被靜默替代為子代理工具。
 
-If sub-agent tools are unavailable, the main thread should report that
-limitation before using any fallback.
+如果子代理工具不可用，主執行緒應先回報限制，再使用任何替代方案。
 
-### 3. Modes should be stable protocol state, not tool-list churn
+### 3. 模式應是穩定協議狀態，不是工具清單震盪
 
-Review mode, implementation mode, diagnosis mode, and push-gate mode should not
-require changing the tool schema whenever possible. The safer design is:
+審查模式、實作模式、診斷模式與推送閘門模式，應盡量避免每次都改變工具
+結構描述。比較安全的設計是：
 
-- stable tool definitions or deferred tool stubs;
-- explicit mode markers in the dynamic tail;
-- runtime permission checks for writes, pushes, and destructive actions.
+- 穩定工具定義或延後載入工具占位定義；
+- 動態尾端中的明確模式標記；
+- 寫入、推送與破壞性動作的執行環境權限檢查。
 
-### 4. Compaction must preserve governance semantics
+### 4. 壓縮摘要必須保留治理語意
 
-A cache-safe compaction is not merely shorter text. It must carry forward:
+快取安全的壓縮摘要不只是更短。它必須帶著下列資訊往前走：
 
-- current user intent;
-- base branch, HEAD commit, and last verified commit;
-- committed and uncommitted scope;
-- dirty tree exclusions;
-- files intentionally excluded from scope;
-- evidence checked;
-- tests or commands run, with pass, fail, or unknown status;
-- tests or checks explicitly not run;
-- review receipt status;
-- open risks and unresolved reviewer findings;
-- claim ceiling;
-- cannot-claim list;
-- pending authorization boundaries;
-- next allowed action;
-- next forbidden action.
+- 目前使用者意圖；
+- 基準分支（base branch）、`HEAD` 提交與最後已驗證提交；
+- 已提交與未提交範圍；
+- 工作樹變更排除項；
+- 有意排除在範圍外的檔案；
+- 已檢查證據；
+- 已執行的測試或命令，以及通過、失敗或未知狀態；
+- 明確未執行的測試或檢查；
+- 審查回執狀態；
+- 未解風險與未解審查發現；
+- 宣稱上限；
+- 不可宣稱清單（cannot-claim）；
+- 待授權邊界；
+- 下一個允許動作；
+- 下一個禁止動作。
 
-Dropping these fields can make the next session cheaper while making its claims
-less reliable.
+丟失這些欄位，可能讓下一個工作階段更便宜，卻讓宣稱更不可靠。
 
-### 5. Tool search is an architecture feature
+### 5. 工具搜尋是架構功能
 
-Deferred tool loading is not just convenience. It can reduce context churn and
-protect the stable prefix from large or changing schemas.
+延後載入工具不只是方便。它可以降低上下文震盪，避免大量或常變動的工具結構
+描述污染穩定前綴。
 
-However, tool discovery must remain auditable. Loading a tool must not be
-treated as authorization to use it for mutation, cross-repo writes, push, or
-external side effects.
+但是工具探索仍必須可稽核。載入工具不得被視為取得變更、跨儲存庫寫入、推送
+或外部副作用的授權。
 
-Candidate audit record for deferred tool discovery:
+延後載入工具的候選稽核紀錄：
 
-- tool name;
-- tool version or schema hash;
-- reason for loading;
-- requesting thread or agent;
-- side-effect class;
-- permission gate consulted;
-- whether user authorization was required;
-- whether mutation was attempted or blocked.
+- 工具名稱；
+- 工具版本或結構描述雜湊；
+- 載入原因；
+- 請求的對話執行緒或代理；
+- 副作用類別（side-effect class）；
+- 已諮詢的權限閘門；
+- 是否需要使用者授權；
+- 是否嘗試或阻擋變更。
 
-## Glossary
+## 詞彙表
 
-- Claim ceiling: the strongest claim this session can support from its evidence.
-- Runtime gate: a harness or repository check that controls whether a side
-  effect is allowed.
-- Authority files: repo-local instructions and governance files whose content
-  determines execution rules.
-- Dirty-tree receipt: a summarized record of modified, staged, and untracked
-  files, including explicit exclusions from scope.
-- Canonical writer: the approved tool or path for writing structured governance
-  memory or records.
+- 宣稱上限：目前證據能支持的最強宣稱。
+- 執行環境閘門：控制副作用是否允許的框架或儲存庫檢查。
+- 權威文件：決定執行規則的儲存庫本地指令與治理文件。
+- 工作樹變更摘要（dirty-tree receipt）：已修改、已暫存與未追蹤檔案的摘要紀錄，也包含明確排除範圍。
+- 標準寫入器：用於寫入結構化治理記憶或紀錄的核准工具或路徑。
 
-## Non-Goals
+## 非目標
 
-This note does not:
+本文不做以下事情：
 
-- change runtime permissions;
-- add or remove tools;
-- alter memory protocol;
-- authorize push automation;
-- authorize reviewer sub-agents to mutate files;
-- prove that current sessions achieve good cache hit rates;
-- define an incident threshold for cache misses;
-- prefer cache stability over correctness, freshness, or safety;
-- require preserving stale authority files for cache hit rate;
-- make Anthropic-specific cache behavior a cross-provider assumption;
-- define tool visibility as permission to execute a tool;
-- make sub-agent review mandatory for trivial or low-risk work.
+- 不改變執行環境權限；
+- 不新增或移除工具；
+- 不修改記憶協議；
+- 不授權自動推送；
+- 不授權審查子代理修改檔案；
+- 不證明目前工作階段已有良好快取命中率；
+- 不定義快取未命中的事故門檻；
+- 不把快取穩定性放在正確性、新鮮度或安全性之上；
+- 不要求為了快取命中率保留過期權威文件；
+- 不把 Anthropic 特定快取行為當成跨供應商假設；
+- 不把工具可見性定義成工具執行授權；
+- 不要求平凡或低風險工作一定使用子代理審查。
 
-## Open Questions
+## 開放問題
 
-Before adopting this as a formal governance rule, decide:
+正式採用為治理規則前，需要決定：
 
-- Which prompt layers are considered stable prefix in this harness?
-- Which fields must always remain in compaction summaries?
-- Should cache hit rate become a monitored operational signal?
-- What is the minimum acceptable receipt shape for sub-agent review?
-- Which tool schemas should be stable stubs versus deferred full definitions?
-- Where should runtime permission gates live so they are independent of prompt
-  obedience?
-- Which changes must intentionally invalidate the stable prefix?
-- How are authority-file versions, hashes, and base refs represented?
-- Which dynamic-tail messages are harness-authored versus model-authored?
-- How are mode markers protected from user spoofing?
-- What audit record is required when a deferred tool schema is loaded?
-- Which tasks require sub-agent review, and which are exempt as trivial?
+- 此框架中哪些提示層屬於穩定前綴？
+- 哪些欄位必須永遠保留在壓縮摘要中？
+- 快取命中率是否應成為受監控的操作訊號？
+- 子代理審查的最小審查回執格式是什麼？
+- 哪些工具結構描述應是穩定工具占位定義，哪些應延後載入？
+- 執行環境權限閘門應放在哪裡，才能獨立於模型服從？
+- 哪些變更必須有意讓穩定前綴失效？
+- 權威文件版本、雜湊與基準參照要如何表示？
+- 哪些動態尾端訊息由框架產生，哪些由模型產生？
+- 模式標記如何避免被使用者偽造？
+- 延後載入工具結構描述時需要什麼稽核紀錄？
+- 哪些任務需要子代理審查，哪些平凡任務可以豁免？
 
-## Pending Disposition
+## 用語規範套用狀態
 
-Recommended next step:
+本文件已套用 `docs/governance/ai-governance-document-language-style-guide-2026-06-27.md`
+的中文主讀格式：
 
-```text
-Keep this note as PENDING, revise through review, then decide whether to promote
-a smaller operator-playbook rule and a separate harness-design spec.
-```
+- 人類敘事以中文為主。
+- 檔名、工具名稱、結構化欄位、回執欄位與來源標題保留原文。
+- 英文概念第一次出現時以中文主稱並列英文。
+- 後文優先使用中文主稱，例如「提示快取」、「快取命中率」、「穩定前綴」、
+  「動態尾端」、「執行環境閘門」。
+- 本文件仍維持 `PENDING`，不升格為執行環境或權限規則。
 
-Promotion requires removing adopted-rule ambiguity, preserving the safety
-invalidation invariant, defining a minimum receipt shape, and separating
-provider-specific cache assumptions from local policy.
+## 待處置建議
 
-Until that review and promotion decision happens, this document is pending
-analysis only.
+建議保持本文為 `PENDING`，先經過審查，再決定是否拆成較小的操作手冊
+規則與獨立框架設計規格。
+
+升格前必須移除「已採用規則」的歧義，保留安全失效不變式，定義最小審查
+回執格式，並把供應商特定快取假設與本地政策分開。
+
+在完成審查與升格決策前，本文只是待分析文件。
