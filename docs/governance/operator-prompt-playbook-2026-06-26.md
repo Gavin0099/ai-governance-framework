@@ -273,22 +273,30 @@ Push, commit, memory writes, and authority changes still require main-thread
 decision plus user authorization where applicable.
 ```
 
-Mechanism:
+Default mechanism:
 
+- use sub-agent tools for ordinary review work by default;
 - spawn the review sub-agent with `multi_agent_v1.spawn_agent`;
 - wait for its receipt with `multi_agent_v1.wait_agent`;
 - continue or correct the same sub-agent with `multi_agent_v1.send_input`;
 - close the sub-agent with `multi_agent_v1.close_agent` when done;
-- use sidebar thread tools only when a user-visible separate thread is desired,
-  not as the default receipt-callback mechanism.
+- do not open sidebar Codex threads as the default review mechanism;
+- use sidebar thread tools only when the user explicitly asks for a
+  user-visible separate thread, or when sub-agent tools are unavailable and the
+  user approves that fallback.
+
+If sub-agent tools are unavailable in the current session, the main thread must
+report that limitation before using any fallback. It must not silently replace
+sub-agent review with a visible thread, ordinary ChatGPT thread, or manual
+copy/paste workflow.
 
 Decision rule:
 
 - Do not open an ordinary separate ChatGPT conversation and ask the user to
   copy the result back. That loses context, invites copy errors, and breaks the
   claim chain.
-- Prefer a right-side Codex sub-thread / sub-agent when the user wants visible
-  parallel review. The main thread sends the bounded task, reads or awaits the
+- Prefer sub-agent tools when the user asks for review, audit, or skeptical
+  parallel review. The main thread sends the bounded task, waits for the
   receipt, integrates the result, and decides the next step.
 - Treat polling as tool-level waiting/reading by the main thread, not as manual
   user polling. The user should not have to shuttle reviewer text back into the
