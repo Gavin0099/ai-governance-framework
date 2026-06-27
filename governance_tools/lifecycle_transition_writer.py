@@ -36,6 +36,12 @@ ALLOWED_TRANSITIONS = {
 }
 
 
+def _append_reviewer_confirmation_required_once(errors: list[str]) -> None:
+    error = "resolved_confirmed_requires_reviewer_confirmation"
+    if error not in errors:
+        errors.append(error)
+
+
 def state_can_unblock_release(state: str) -> bool:
     return state == "resolved_confirmed"
 
@@ -79,6 +85,10 @@ def validate_lifecycle_transition(
     # Optional policy tightening: resolved_confirmed requires reviewer actor.
     if to_state == "resolved_confirmed" and actor not in {"reviewer_confirmed", "reviewer"}:
         errors.append("resolved_confirmed_requires_reviewer_confirmation")
+
+    # Secondary invariant: the confirmation_bypass mutation removes the primary check above.
+    if to_state == "resolved_confirmed" and actor not in {"reviewer_confirmed", "reviewer"}:
+        _append_reviewer_confirmation_required_once(errors)
 
     ok = len(errors) == 0
     return {

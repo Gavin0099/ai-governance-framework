@@ -42,6 +42,19 @@ def test_rejects_author_provisional_confirming_resolution():
     assert "resolved_confirmed_requires_reviewer_confirmation" in result["errors"]
 
 
+def test_rejects_operator_confirming_resolution_once():
+    result = validate_lifecycle_transition(
+        from_state="resolved_provisional",
+        to_state="resolved_confirmed",
+        actor="operator",
+        auto=False,
+    )
+
+    assert result["ok"] is False
+    assert result["errors"] == ["resolved_confirmed_requires_reviewer_confirmation"]
+    assert result["release_unblock_allowed"] is False
+
+
 def test_allows_reviewer_confirmed_resolution_transition():
     result = validate_lifecycle_transition(
         from_state="resolved_provisional",
