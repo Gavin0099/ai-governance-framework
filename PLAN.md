@@ -501,6 +501,25 @@ do not start before the P1-C fixture exists):
 - [ ] P1-E: collect 2-4 weeks of false-positive / false-negative samples
   before any blocking decision (window started 2026-06-12; first data
   point: 14 of 15 same-day records pre-date the field).
+  Checkpoint 2026-06-27: two-week observation evidence recorded in
+  `docs/governance/p1e-plan-reconciliation-two-week-sample-2026-06-27.md`.
+  Report output after the 2026-06-27 canonical memory record exists:
+  updated=34, not_applicable=110,
+  deferred=7, not_declared=24, pre_field=249, malformed=0; all deferred
+  records use `scope-split-next-slice`, oldest deferred sample is 10d old
+  (2026-06-17), oldest not_declared sample is 15d old (2026-06-12), and
+  no deferred/not_declared records appeared after 2026-06-24 in the checked
+  June daily files. Focused validation passed
+  (`tests/test_deferred_debt_report.py`: 12 passed), and an independent
+  read-only reviewer thread approved the conclusion as Low risk.
+  Snapshot boundary: these counts are an observation of this worktree /
+  commit-state memory tree; future canonical memory records are expected to
+  change the live report totals without invalidating this checkpoint.
+  Claim ceiling: observation-class evidence only; this checkpoint may inform
+  reviewer judgment about whether to open a separate P1-F OP-HC /
+  mutation-contract slice, but it does not authorize a blocker, prove memory
+  semantic correctness, complete the full 2-4 week window, or add any hook /
+  CI / pre-push / gate / enforcement behavior.
 
 P1-G - registered reproducible fleet matrix generator (completed
 2026-06-12):

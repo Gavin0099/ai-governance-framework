@@ -282,6 +282,33 @@ Mechanism:
 - use sidebar thread tools only when a user-visible separate thread is desired,
   not as the default receipt-callback mechanism.
 
+Decision rule:
+
+- Do not open an ordinary separate ChatGPT conversation and ask the user to
+  copy the result back. That loses context, invites copy errors, and breaks the
+  claim chain.
+- Prefer a right-side Codex sub-thread / sub-agent when the user wants visible
+  parallel review. The main thread sends the bounded task, reads or awaits the
+  receipt, integrates the result, and decides the next step.
+- Treat polling as tool-level waiting/reading by the main thread, not as manual
+  user polling. The user should not have to shuttle reviewer text back into the
+  main thread during normal operation.
+- The sub-thread may run checks and return `REVIEW_RECEIPT`, but it must not
+  own final action authority. It can say `APPROVED_FOR_PUSH_GATE`; the main
+  thread still waits for explicit user authorization before push.
+
+When the user explicitly asks for a separate Codex thread:
+
+- main thread creates the bounded reviewer thread;
+- reviewer thread returns `REVIEW_RECEIPT` only;
+- main thread reads the reviewer result with `codex_app.read_thread`;
+- main thread sends follow-up fixes back with `codex_app.send_message_to_thread`
+  when a second review pass is needed;
+- user copy/paste of the reviewer result is a fallback only, not the normal
+  workflow;
+- main thread must not commit, push, write memory, or upgrade claims until it
+  has pulled the receipt itself and made the final gate decision.
+
 Use this prompt shape for a read-only sub-agent:
 
 ```text
