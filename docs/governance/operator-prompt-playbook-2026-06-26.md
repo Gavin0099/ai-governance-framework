@@ -290,6 +290,18 @@ report that limitation before using any fallback. It must not silently replace
 sub-agent review with a visible thread, ordinary ChatGPT thread, or manual
 copy/paste workflow.
 
+Model selection:
+
+- inherit the main thread model by default;
+- use `gpt-5.3-codex-spark` only for simple, low-risk, read-only review where
+  the task is bounded, the expected output is a structured receipt, and no
+  authority, runtime, memory, push, cross-repo, or claim-sensitive decision is
+  being delegated;
+- use the inherited main model or a stronger explicit model for governance
+  authority changes, runtime permission questions, mutation-adjacent work,
+  push-gate assessment, semantic correctness claims, or disputed review
+  findings.
+
 Decision rule:
 
 - Do not open an ordinary separate ChatGPT conversation and ask the user to
