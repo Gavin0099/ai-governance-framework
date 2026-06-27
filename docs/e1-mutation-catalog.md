@@ -10,7 +10,7 @@
 
 | Mutation / Scenario | Type | Expected Surface | Expected Violation Code | Protected Boundary | Phase 2 Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Closeout Bypass** | Rule Mutation | `state_reconciliation_validator` | `phase_d_completed_without_reviewer_closeout_artifact` | `assess_phase_d_closeout` | VULNERABLE (2026-05-12) |
+| **Closeout Bypass** | Rule Mutation | `state_reconciliation_validator` | `phase_d_completed_without_reviewer_closeout_artifact` | `assess_phase_d_closeout` | VULNERABLE (2026-05-12) ³ |
 | **Precedence Bypass** | Rule Mutation | `escalation_authority_writer` | `authority_precedence_active_blocks_release` | `lifecycle_effective_by_escalation` loop | VULNERABLE (2026-05-12) — partial redundancy noted ² |
 | **Confirmation Bypass** | Rule Mutation | `lifecycle_transition_writer` ¹ | `resolved_confirmed_requires_reviewer_confirmation` | line 80–81 check | VULNERABLE (2026-05-12) |
 | **Snapshot Multi-Root** | Rule Mutation | `feature_surface_snapshot` | `warning: multiple app route roots detected` | `candidate_app_roots` scan | VULNERABLE (2026-05-12) |
@@ -23,6 +23,14 @@
 > Full bypass requires TWO mutations: (1) remove lines 590–593 in `escalation_authority_writer.py`,
 > AND (2) remove line 239–240 in `validate_prewrite_payload`. Single-mutation survivability = VULNERABLE;
 > two-mutation full-bypass is significantly harder.
+>
+> ³ Closeout Bypass canonical contract is `closeout_bypass` in
+> `governance_tools/mutation_proof_runner_phase2.py`: mutate the closeout gate in
+> `state_reconciliation_validator.py`, run a Phase D passed / missing reviewer
+> closeout fixture, and require exact violation code
+> `phase_d_completed_without_reviewer_closeout_artifact`. Wrapper-only checks of
+> current canonical closeout behavior are regression helpers, not mutation proof.
+> See `docs/governance/reviewer-closeout-gate-mutation-contract-2026-06-27.md`.
 
 ---
 
@@ -64,7 +72,7 @@ Tool: `git worktree` isolation — production code was NOT modified.
 
 ### Interpretation
 
-All 3 Phase 2 scenarios returned **VULNERABLE** — meaning the targeted mutation survived.
+All 4 Phase 2 scenarios returned **VULNERABLE** — meaning the targeted mutation survived.
 This is **expected and correct**:
 
 - Phase 1 (Safe Fixture Probe) proved: hostile DATA cannot fool the governance tools.
