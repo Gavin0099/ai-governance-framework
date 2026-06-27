@@ -10,10 +10,10 @@
 
 | Mutation / Scenario | Type | Expected Surface | Expected Violation Code | Protected Boundary | Phase 2 Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Closeout Bypass** | Rule Mutation | `state_reconciliation_validator` | `phase_d_completed_without_reviewer_closeout_artifact` | `assess_phase_d_closeout` | VULNERABLE (2026-05-12) ³ |
-| **Precedence Bypass** | Rule Mutation | `escalation_authority_writer` | `authority_precedence_active_blocks_release` | `lifecycle_effective_by_escalation` loop | VULNERABLE (2026-05-12) — partial redundancy noted ² |
-| **Confirmation Bypass** | Rule Mutation | `lifecycle_transition_writer` ¹ | `resolved_confirmed_requires_reviewer_confirmation` | line 80–81 check | VULNERABLE (2026-05-12) |
-| **Snapshot Multi-Root** | Rule Mutation | `feature_surface_snapshot` | `warning: multiple app route roots detected` | `candidate_app_roots` scan | VULNERABLE (2026-05-12) |
+| **Closeout Bypass** | Rule Mutation | `state_reconciliation_validator` | `phase_d_completed_without_reviewer_closeout_artifact` | `assess_phase_d_closeout` + secondary invariant | PROTECTED (2026-06-27) ³ |
+| **Precedence Bypass** | Rule Mutation | `escalation_authority_writer` | `authority_precedence_active_blocks_release` | `lifecycle_effective_by_escalation` loop | VULNERABLE (2026-06-27) — partial redundancy noted ² |
+| **Confirmation Bypass** | Rule Mutation | `lifecycle_transition_writer` ¹ | `resolved_confirmed_requires_reviewer_confirmation` | line 80–81 check | VULNERABLE (2026-06-27) |
+| **Snapshot Multi-Root** | Rule Mutation | `feature_surface_snapshot` | `warning: multiple app route roots detected` | `candidate_app_roots` scan | VULNERABLE (2026-06-27) |
 
 > ¹ Catalog originally listed `escalation_authority_writer`; corrected to `lifecycle_transition_writer`
 > where the violation code is actually emitted (verified 2026-05-12).
@@ -97,3 +97,34 @@ with no redundant cross-check currently in place.
 1. Accept gaps as documented — no expansion without cross-check evidence.
 2. Precedence Bypass has incidental partial redundancy (`authority_state_active`) — note-worthy but insufficient for PROTECTED claim without test coverage.
 3. Add cross-check redundancy only when observable hostile replay evidence exists (per AGENT.md §11).
+
+---
+
+## 6. Phase 2 Current Evidence Refresh (Real Rule Mutation — 2026-06-27)
+
+Runner: `governance_tools/mutation_proof_runner_phase2.py`
+Report: `artifacts/governance/mutation-proof-phase2-report-2026-06-27.json`
+Tool: `git worktree` isolation — production code was NOT modified.
+
+### Current Interpretation
+
+The 2026-06-27 rerun returned **1 PROTECTED / 3 VULNERABLE**.
+
+- `closeout_bypass` is now **PROTECTED**: after the primary closeout gate is removed,
+  the secondary invariant still emits the exact violation code
+  `phase_d_completed_without_reviewer_closeout_artifact`.
+- `confirmation_bypass`, `snapshot_multiroot_bypass`, and `precedence_bypass`
+  remain **VULNERABLE** under the current runner evidence.
+
+This refresh updates current evidence status only.
+It does not claim full mutation enforcement, complete E1 protection, release readiness,
+or that the remaining VULNERABLE scenarios are resolved.
+
+### Current Gap Summary (2026-06-27)
+
+| Scenario | Status | Evidence / Note |
+| :--- | :--- | :--- |
+| Closeout Bypass | PROTECTED | Expected violation `phase_d_completed_without_reviewer_closeout_artifact` observed after mutation; `mutation_survived=false`; cleanup verified |
+| Confirmation Bypass | VULNERABLE | Expected violation `resolved_confirmed_requires_reviewer_confirmation` absent; `mutation_survived=true`; cleanup verified |
+| Snapshot Multi-Root | VULNERABLE | Expected stderr warning absent; `mutation_survived=true`; cleanup verified |
+| Precedence Bypass | VULNERABLE (partial redundancy) | Expected reason `authority_precedence_active_blocks_release` absent; secondary signals remain but do not satisfy this mutation contract; cleanup verified |

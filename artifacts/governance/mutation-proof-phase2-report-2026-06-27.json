@@ -1,0 +1,87 @@
+{
+  "timestamp": "2026-06-27T14:55:55.442393+00:00",
+  "runner_version": "1.1",
+  "phase": "E1-B Phase 2: Real Rule Mutation",
+  "project_root": "D:\\ai-governance-framework",
+  "results": [
+    {
+      "scenario": "closeout_bypass",
+      "description": "Remove closeout gate from state_reconciliation_validator. Phase D can be marked passed without a reviewer closeout artifact.",
+      "catalog_ref": "e1-mutation-catalog.md §1 Closeout Bypass",
+      "status": "PROTECTED",
+      "mutation_survived": false,
+      "expected_violation": "phase_d_completed_without_reviewer_closeout_artifact",
+      "violation_field": "violations",
+      "raw_result": {
+        "violations": [
+          "phase_d_completed_without_reviewer_closeout_artifact"
+        ],
+        "ok": false,
+        "exit_code": 1
+      },
+      "cleanup_verified": true
+    },
+    {
+      "scenario": "confirmation_bypass",
+      "description": "Remove reviewer-confirmation requirement from lifecycle_transition_writer. Any actor can confirm resolution to resolved_confirmed.",
+      "catalog_ref": "e1-mutation-catalog.md §1 Confirmation Bypass",
+      "status": "VULNERABLE",
+      "mutation_survived": true,
+      "expected_violation": "resolved_confirmed_requires_reviewer_confirmation",
+      "violation_field": "errors",
+      "raw_result": {
+        "errors": [],
+        "ok": true,
+        "exit_code": 0
+      },
+      "cleanup_verified": true
+    },
+    {
+      "scenario": "snapshot_multiroot_bypass",
+      "description": "Suppress multi-root warning in feature_surface_snapshot. Ambiguous app route root goes silently undetected.",
+      "catalog_ref": "e1-mutation-catalog.md §1 Snapshot Multi-Root",
+      "status": "VULNERABLE",
+      "mutation_survived": true,
+      "expected_violation": "warning: multiple app route roots detected",
+      "violation_field": "stderr",
+      "raw_result": {
+        "stderr": "",
+        "stdout_len": 137,
+        "exit_code": 0
+      },
+      "cleanup_verified": true
+    },
+    {
+      "scenario": "precedence_bypass",
+      "description": "Remove active-lifecycle precedence block from escalation_authority_writer. An authority artifact with lifecycle_state='active' no longer blocks release.",
+      "catalog_ref": "e1-mutation-catalog.md §1 Precedence Bypass",
+      "status": "VULNERABLE",
+      "mutation_survived": true,
+      "expected_violation": "authority_precedence_active_blocks_release",
+      "violation_field": "release_block_reasons",
+      "raw_result": {
+        "release_block_reasons": [
+          "authority_state_active",
+          "untrusted_escalation_provenance",
+          "payload_fingerprint_mismatch",
+          "normalized_payload_hash_mismatch"
+        ],
+        "lifecycle_effective_by_escalation": {
+          "test-active-precedence-esc": "active"
+        },
+        "ok": false,
+        "release_blocked": true,
+        "exit_code": 1
+      },
+      "cleanup_verified": true
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "vulnerable": 3,
+    "protected": 1,
+    "error": 0,
+    "cleanup_failed": 0
+  },
+  "interpretation": "VULNERABLE = mutation survived; governance gap documented. PROTECTED = cross-check prevented bypass. Phase 2 audits code-level bypass surface; it does not replace Phase 1 data-level protection evidence."
+}
