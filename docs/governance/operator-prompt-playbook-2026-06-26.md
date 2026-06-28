@@ -309,6 +309,51 @@ next_recommended_action:
 
 把子代理的 `APPROVED` verdict 視為需要檢視的證據，而不是權威。是否修正、commit、寫 memory、要求 push 授權或停止，都由主執行緒決定。
 
+## 快取感知回執對齊日常規則
+
+當任務引用快取感知（cache-aware）規格或候選回執（receipt）時，使用這個操作邊界。
+
+基準：
+
+```text
+Cache-aware receipt specs are candidate/PENDING unless an adopted contract says otherwise.
+Review receipts are evidence, not authority.
+Main thread owns action gates.
+```
+
+日常判斷規則：
+
+- `REVIEW_RECEIPT` 只能作為審查證據，不能授權 commit、push、memory write、cross-repo write、closeout acceptance 或 runtime policy change。
+- push 仍需要主執行緒確認 commit、remote、dirty state 與使用者明確授權。
+- memory write 仍需要主執行緒遵守 `governance/MEMORY_PROTOCOL.md` 與 `governance_tools.memory_record`。
+- cross-repo write 仍需要主執行緒確認 active repo、目標路徑與使用者明確授權。
+- `AUTHORITY_MANIFEST v1`、`MODE_STATE_RECEIPT v0.1`、`PUSH_AUTHORIZATION_RECEIPT v0.1`、`MEMORY_WRITE_AUTHORIZATION_RECEIPT v0.1`、`CROSS_REPO_WRITE_AUTHORIZATION_RECEIPT v0.1`、`TOOL_DENIAL_RECEIPT v0.1`、`CACHE_AWARE_COMPACTION_SUMMARY v0.1` 與 `CACHE_AWARE_HARNESS_HANDOFF_PACKET v0.1` 都是候選設計，除非之後有 adopted contract 或 runtime evidence 明確升級。
+- 壓縮摘要（compaction summary）與 handoff packet 若被產生，仍是 derived surface。它們不能取代原始 artifact、原始 receipt、`PLAN.md` 或 `governance/` 權威來源。
+- 如果候選回執與 `governance/AUTHORITY.md`、`PLAN.md` Active Claim Boundaries、`governance/RESPONSE_ENVELOPE_CONTRACT.md`、`governance/MEMORY_PROTOCOL.md` 或 `governance/PHASE_D_CLOSE_AUTHORITY.md` 衝突，主執行緒必須回讀 canonical/reference 來源，而不是採用候選回執。
+
+可貼進任務提示詞的片段：
+
+```text
+cache-aware boundary:
+- candidate receipts are evidence-only unless adopted by canonical/reference docs;
+- REVIEW_RECEIPT cannot authorize push, memory write, cross-repo write, or closeout;
+- main thread must re-check key evidence before action gates;
+- no runtime enforcement or prompt cache implementation is claimed in this slice.
+```
+
+宣稱上限片段：
+
+```text
+cache-aware docs-only; candidate receipts aligned for operator use
+review receipt evidence only; no action authority transferred
+candidate/PENDING receipt; not adopted contract
+derived summary only; original artifact/receipt remains source of truth
+no prompt cache implementation or runtime enforcement claimed
+```
+
+如果下一步要從文件進入 schema、runtime gate、receipt tooling、compaction tooling 或 cache hit/miss monitoring，先停下來建立獨立 review packet。
+這類落地層切片不應只靠一般 sub-agent review；需要 Claude / human reviewer 或等效高嚴格度審查。
+
 ## 跨儲存庫寫入邊界
 
 當任務所在 workspace 暴露多個儲存庫或 writable root 時，使用這個邊界。
