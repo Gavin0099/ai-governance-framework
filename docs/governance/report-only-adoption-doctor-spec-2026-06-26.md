@@ -1,140 +1,97 @@
-# Report-Only Adoption Doctor Spec - 2026-06-26
+# 唯讀採用診斷器（Report-Only Adoption Doctor）規格 - 2026-06-26
 
-Status: proposed
-Scope: Tranche 2 design only
-Risk: Medium when implemented, because the likely implementation touches
-`governance_tools/`
+狀態（Status）：`proposed`
+範圍（Scope）：第二切片（Tranche 2）純設計
+風險（Risk）：實作時為中等，因為可能會碰到 `governance_tools/`
 
-## Problem
+## 問題
 
-Tranche 1 made adoption class visible at the point of use: copy-based adoption
-now states that it installs an audit surface and does not make the target repo
-runtime self-contained.
+第一切片（Tranche 1）已經讓採用類型（adoption class）在使用點可見：copy-based adoption 現在會說明它安裝的是審計表面（audit surface），並不代表目標儲存庫已具備執行環境自足治理（runtime self-contained governance）。
 
-That wording prevents the first wrong claim, but it does not help a reviewer or
-implementer diagnose the current state of a consuming repo after the user starts
-moving from copy-based adoption toward a submodule/full path. The observed
-failure class needs a report-only diagnostic that answers "what adoption class
-is this repo currently in?" without installing, deleting, fetching, staging, or
-blocking anything.
+這個措辭能避免第一個錯誤宣稱，但當使用者開始從 copy-based adoption 移向 submodule/full path 時，它無法幫審查者或實作者診斷下游複用儲存庫（consuming repo）的目前狀態。已觀察到的失敗類型需要一個唯讀診斷（report-only diagnostic），回答「這個儲存庫目前屬於哪種 adoption class？」同時不安裝、不刪除、不 `fetch`、不 `stage`，也不阻擋任何事。
 
-## Current Repository Truth
+## 目前儲存庫事實
 
-- `PLAN.md` keeps copy-based consumers classified as audit-only, with
-  automated update still not solved (`PLAN.md:307`).
-- The full/submodule adoption UX proposal defines Tranche 2 as a report-only
-  adoption doctor (`docs/governance/full-submodule-adoption-ux-proposal-2026-06-26.md:216`).
-- That proposal asks the doctor to report adoption class, self-contained state,
-  runtime-capable state, leftover root-level `runtime_hooks`, framework
-  submodule path, stale pin status, and external framework dependency
-  (`docs/governance/full-submodule-adoption-ux-proposal-2026-06-26.md:218`).
-- The same proposal says stale pins are evidence, not automatic blockers
-  (`docs/governance/full-submodule-adoption-ux-proposal-2026-06-26.md:307`).
-- Tranche 1 is implemented in `adopt_governance.py`: copy-based output says
-  `Runtime capability: not self-contained`, and help/check-env now route
-  owned/runtime-governed repos toward the manual submodule/full path
-  (`governance_tools/adopt_governance.py:67`, `governance_tools/adopt_governance.py:90`).
-- `external_repo_readiness.py` already aggregates hook, drift, contract,
-  project-facts, and framework-version checks, but it returns failure when the
-  repo is not readiness-ready (`governance_tools/external_repo_readiness.py:511`).
-  That pass/fail posture is too strong for this doctor.
-- `hook_install_validator.py` can validate framework-root config and required
-  framework files (`governance_tools/hook_install_validator.py:18`,
-  `governance_tools/hook_install_validator.py:90`), but it also has validator
-  semantics and nonzero failure exits (`governance_tools/hook_install_validator.py:265`).
-- `framework_versioning.py` can read `governance/framework.lock.json` and assess
-  release state (`governance_tools/framework_versioning.py:208`). It does not
-  by itself prove submodule pin freshness against a remote.
-- `docs/INTEGRATION_GUIDE.md` contains the current manual submodule sections
-  that Tranche 1 points users toward, but it is currently mojibake-heavy. This
-  spec does not repair that guide.
+- `PLAN.md` 將 copy-based consumers 維持分類為 audit-only，且 automated update 尚未解決（`PLAN.md:307`）。
+- full/submodule adoption UX proposal 將第二切片定義為唯讀採用診斷器（`docs/governance/full-submodule-adoption-ux-proposal-2026-06-26.md:216`）。
+- 該提案要求採用診斷器回報 adoption class、self-contained state、runtime-capable state、root-level leftover `runtime_hooks`、framework submodule path、stale pin status 與 external framework dependency（`docs/governance/full-submodule-adoption-ux-proposal-2026-06-26.md:218`）。
+- 同一份提案說明 stale pins 是證據，不是自動 blocker（`docs/governance/full-submodule-adoption-ux-proposal-2026-06-26.md:307`）。
+- 第一切片已在 `adopt_governance.py` 實作：copy-based output 會說 `Runtime capability: not self-contained`，且 help/check-env 現在會把 owned/runtime-governed repos 導向手動 submodule/full path（`governance_tools/adopt_governance.py:67`、`governance_tools/adopt_governance.py:90`）。
+- `external_repo_readiness.py` 已聚合 hook、drift、contract、project-facts 與 framework-version checks，但當儲存庫尚未 readiness-ready 時會回傳失敗（`governance_tools/external_repo_readiness.py:511`）。這種 pass/fail 姿態對採用診斷器來說太強。
+- `hook_install_validator.py` 可以驗證 framework-root config 與必要 framework files（`governance_tools/hook_install_validator.py:18`、`governance_tools/hook_install_validator.py:90`），但它也有 validator semantics 與非零失敗 exit（`governance_tools/hook_install_validator.py:265`）。
+- `framework_versioning.py` 可以讀取 `governance/framework.lock.json` 並評估 release state（`governance_tools/framework_versioning.py:208`）。它本身不能證明 submodule pin 相對於遠端是新鮮的。
+- `docs/INTEGRATION_GUIDE.md` 包含第一切片指向使用者的現行手動 submodule 章節，但目前有大量 mojibake。這份規格不修復該指南。
 
-## Target Outcome
+## 目標結果
 
-Create a reviewable design for a future report-only command that can inspect a
-target repo and describe its adoption posture without changing it.
+為未來唯讀命令（report-only command）建立一份可審查設計。該命令可以檢查目標儲存庫（target repo），描述它的採用姿態，且不改變它。
 
-The future command should be able to say, with explicit reasons:
+未來命令應能用明確理由說明：
 
-- whether the repo looks copy-based, repo-owned-framework-path, submodule
-  consumer, or unknown;
-- whether static self-contained prerequisites are present, absent, or unknown;
-- whether runtime capability was not checked, unknown, or explicitly checked by
-  a separate no-write smoke path;
-- whether root-level leftover `runtime_hooks` exists outside the framework
-  checkout;
-- whether a framework submodule path exists and is initialized;
-- whether a local remote-tracking comparison suggests the submodule pin is
-  current versus local tracking, behind local tracking, ahead/diverged versus
-  local tracking, unknown, or intentionally not checked;
-- whether the observed framework dependency points outside the target repo.
+- 目標儲存庫看起來是 copy-based、repo-owned-framework-path、submodule consumer，或 unknown；
+- 靜態 self-contained prerequisites 是 present、absent 或 unknown；
+- runtime capability 是 not checked、unknown，或已由獨立 no-write smoke path 明確檢查；
+- framework checkout 外是否存在 root-level leftover `runtime_hooks`；
+- framework submodule path 是否存在並已初始化；
+- local remote-tracking comparison 是否顯示 submodule pin 是 current versus local tracking、behind local tracking、ahead/diverged versus local tracking、unknown，或 intentional not checked；
+- 觀察到的 framework dependency 是否指向目標儲存庫外部。
 
-## Scope
+## 範圍
 
-This spec authorizes a later implementation slice to add one report-only
-diagnostic command, preferably as a new module such as:
+這份規格授權之後的實作切片新增一個唯讀診斷命令，偏好形式如下：
 
 ```text
 python -m governance_tools.adoption_doctor --repo <repo> \
   [--framework-root <path>] [--format human|json]
 ```
 
-The smallest useful implementation tranche should:
+最小可用實作切片應該：
 
-- read only local filesystem and local git metadata by default;
-- avoid network fetches by default;
-- emit JSON and human formats;
-- return exit code 0 when diagnostic findings exist;
-- reserve nonzero exit codes for CLI misuse, unreadable paths, or internal
-  exceptions;
-- produce structured findings with severity `info`, `warning`, or `unknown`,
-  but no blocking severity in Tranche 2;
-- reuse existing helpers where their semantics fit, without importing their
-  pass/fail exit behavior into the doctor;
-- include focused tests for each diagnosis bucket.
+- 預設只讀 local filesystem 與 local git metadata；
+- 預設避免 network fetches；
+- 輸出 JSON 與 human formats；
+- 當存在診斷發現（diagnostic findings）時仍回傳結束碼（exit code）0；
+- 只把非零結束碼保留給 CLI misuse、unreadable paths 或 internal exceptions；
+- 產出結構化發現（structured findings），severity 可為 `info`、`warning` 或 `unknown`，但第二切片不使用 blocking severity；
+- 在語意吻合時重用既有 helpers，但不把它們的 pass/fail exit behavior 帶入採用診斷器；
+- 為每個診斷桶（diagnosis bucket）加 focused tests。
 
-## Non-Goals
+## 非目標
 
-Tranche 2 must not:
+第二切片不得：
 
-- install a framework submodule;
-- update a submodule pin;
-- fetch from remotes by default;
-- delete root-level `runtime_hooks`;
-- rewrite `.gitmodules`, `.git/config`, hooks, baseline files, `PLAN.md`, or
-  memory files;
-- call `adopt_governance.py` as a mutating operation;
-- change drift-check, readiness, hook, pre-push, CI, runtime, or enforcement
-  behavior;
-- turn any finding into a gate, blocker, or failed readiness verdict;
-- claim that self-contained status means full framework test success;
-- claim that a repo-owned framework path proves hooks are installed, pin is
-  fresh, runtime smoke passed, or the full installer ran.
+- 安裝 framework submodule；
+- 更新 submodule pin；
+- 預設從 remotes `fetch`；
+- 刪除 root-level `runtime_hooks`；
+- 重寫 `.gitmodules`、`.git/config`、hooks、baseline files、`PLAN.md` 或 memory files；
+- 以 mutating operation 呼叫 `adopt_governance.py`；
+- 改變 drift-check、readiness、hook、pre-push、CI、runtime 或 enforcement behavior；
+- 把任何 finding 變成 gate、blocker 或 failed readiness verdict；
+- 宣稱 self-contained status 代表 full framework test success；
+- 宣稱 repo-owned framework path 證明 hooks 已安裝、pin 是 fresh、runtime smoke 已通過，或 full installer 已執行。
 
-## Affected Surfaces
+## 受影響表面
 
-Current slice:
+目前切片：
 
-- `docs/governance/report-only-adoption-doctor-spec-2026-06-26.md` only.
+- 僅 `docs/governance/report-only-adoption-doctor-spec-2026-06-26.md`。
 
-Likely future implementation slice:
+可能的未來實作切片：
 
-- `governance_tools/adoption_doctor.py` or equivalent new report-only checker.
-- `tests/test_adoption_doctor.py`.
+- `governance_tools/adoption_doctor.py` 或等價的新 report-only checker。
+- `tests/test_adoption_doctor.py`。
 
-Possible but deferred surfaces:
+可能但延後的表面：
 
-- A short pointer from `adopt_governance.py --help` or `--check-env` to the
-  doctor after the doctor exists.
-- Documentation updates to `docs/INTEGRATION_GUIDE.md` after a separate
-  readability repair.
+- 採用診斷器存在後，在 `adopt_governance.py --help` 或 `--check-env` 加一個短指標。
+- 另開可讀性修復切片後，更新 `docs/INTEGRATION_GUIDE.md`。
 
-## Boundary And API Considerations
+## 邊界與 API 考量
 
-### Command Boundary
+### 命令邊界
 
-The doctor should be a read-only diagnostic, not a readiness validator. Its
-top-level result should use language like:
+採用診斷器應該是唯讀診斷器，不是 readiness validator。它的 top-level result 應使用類似語言：
 
 ```json
 {
@@ -159,81 +116,67 @@ top-level result should use language like:
 }
 ```
 
-### Adoption Class Rules
+### 採用類型規則
 
-Suggested first-pass classification:
+建議第一版分類：
 
-- `submodule_consumer`: `.gitmodules` declares a framework path, the path exists
-  inside the repo, and the path looks like a framework checkout.
-- `repo_owned_framework_path`: `--framework-root`, hook config, or common
-  framework-path discovery resolves inside the repo and looks like a framework
-  checkout, but submodule proof is missing or unknown.
-- `copy_based`: governance audit surface exists, but no repo-owned framework
-  checkout is found and any observed framework root points outside the repo.
-- `unknown`: evidence is contradictory or insufficient.
+- `submodule_consumer`：`.gitmodules` 宣告 framework path，該 path 存在於 repo 內，且該 path 看起來像 framework checkout。
+- `repo_owned_framework_path`：`--framework-root`、hook config 或 common framework-path discovery 解析到 repo 內，且看起來像 framework checkout，但缺少或未知 submodule proof。
+- `copy_based`：governance audit surface 存在，但找不到 repo-owned framework checkout，且任何觀察到的 framework root 都指向 repo 外。
+- `unknown`：證據互相矛盾或不足。
 
-The doctor should surface the evidence behind the classification rather than
-hide it behind a single verdict.
+採用診斷器應揭露分類背後的證據，而不是把它藏在單一 verdict 後面。
 
-### Self-Contained Rules
+### Self-Contained 規則
 
-Static `self_contained=yes` should require repo-owned framework files sufficient
-to resolve core framework runtime surfaces, at minimum:
+靜態 `self_contained=yes` 應要求 repo-owned framework files 足以解析核心 framework runtime surfaces，至少包含：
 
-- `governance_tools/`;
-- `runtime_hooks/`;
-- `governance/runtime_injection_snapshot.v0.yaml`;
-- framework root path resolves inside the target repo.
+- `governance_tools/`；
+- `runtime_hooks/`；
+- `governance/runtime_injection_snapshot.v0.yaml`；
+- framework root path 解析在 target repo 內。
 
-Static `self_contained=yes` must not imply:
+靜態 `self_contained=yes` 不得暗示：
 
-- hooks installed;
-- submodule pin fresh;
-- runtime smoke passed;
-- all framework tests pass;
-- runtime governance is enforced.
+- hooks 已安裝；
+- submodule pin 是 fresh；
+- runtime smoke 已通過；
+- 全部 framework tests 已通過；
+- runtime governance 已被強制執行。
 
-### Runtime-Capable Rules
+### Runtime-Capable 規則
 
-Tranche 2 should keep `runtime_capable=not_checked` unless it implements a
-dedicated no-write smoke probe. Static file presence is not enough to claim
-runtime-capable execution.
+第二切片應維持 `runtime_capable=not_checked`，除非它實作專用的 no-write smoke probe。靜態檔案存在不足以宣稱 runtime-capable execution。
 
-If a later tranche adds a no-write smoke probe, it must keep these concepts
-separate:
+如果後續切片新增 no-write smoke probe，必須保持以下概念分離：
 
-- self-contained static path resolution;
-- runtime-capable selected entrypoint execution;
-- full framework test suite success.
+- self-contained static path resolution；
+- runtime-capable selected entrypoint execution；
+- full framework test suite success。
 
-### Stale Pin Rules
+### Stale Pin 規則
 
-Pin freshness should be local and report-only in the first implementation.
+第一版實作中的 pin freshness 應維持 local 且 report-only。
 
-Allowed first implementation:
+允許的第一版實作：
 
-- compare the submodule HEAD with an already-present local remote-tracking ref;
-- report `current_vs_local_tracking`, `behind_local_tracking`,
-  `ahead_or_diverged_vs_local_tracking`, `unknown`, or `not_applicable`;
-- include `remote_tracking_freshness` or `last_fetch` when local git metadata can
-  support it; otherwise report `unknown`;
-- do not fetch;
-- do not fail the command when behind.
+- 比較 submodule HEAD 與已存在的 local remote-tracking ref；
+- 回報 `current_vs_local_tracking`、`behind_local_tracking`、`ahead_or_diverged_vs_local_tracking`、`unknown` 或 `not_applicable`；
+- 當 local git metadata 支援時，包含 `remote_tracking_freshness` 或 `last_fetch`；否則回報 `unknown`；
+- 不 fetch；
+- 當 behind 時不讓命令失敗。
 
-`current_vs_local_tracking` must not be rendered as simply `current`. Without a
-fetch, the local remote-tracking ref can itself be stale, so this finding only
-means the consumer pin matches the local view of the remote. It does not prove
-the pin matches the true current remote head.
+`current_vs_local_tracking` 不得渲染成單純的 `current`。沒有 fetch 時，local remote-tracking ref 本身可能已過期，所以這個 finding 只表示 consumer pin 符合本地對遠端的視圖。它不證明 pin 符合真正的 current remote head。
 
-Not allowed in Tranche 2:
+第二切片不允許：
 
-- fetch remote state;
-- update the pin;
-- decide that behind remote is automatically invalid.
+- fetch remote state；
+- 更新 pin；
+- 判定 behind remote 自動無效。
 
-### Output Semantics
+### 輸出語意
 
-Human output should lead with the adoption class and claim ceiling:
+Human output 應以 adoption class 與 claim ceiling 開頭：
 
 ```text
 Adoption Doctor
@@ -247,70 +190,61 @@ Claim boundary: this report does not install, update, delete, fetch, stage,
 or enforce anything.
 ```
 
-JSON output should be deterministic and use stable field names so reviewers can
-diff fixture outputs.
+JSON output 應 deterministic，且使用 stable field names，讓 reviewer 能 diff fixture outputs。
 
-## Claim Ceiling
+## 宣稱上限
 
-This spec may claim:
+這份規格可以宣稱：
 
-- a proposed report-only diagnostic boundary;
-- proposed classification fields and reasons;
-- proposed static self-contained prerequisites;
-- proposed local-only stale-pin comparison semantics;
-- proposed tests and evidence for a later implementation.
+- proposed report-only diagnostic boundary；
+- proposed classification fields and reasons；
+- proposed static self-contained prerequisites；
+- proposed local-only stale-pin comparison semantics；
+- proposed tests and evidence for a later implementation。
 
-This spec must not claim:
+這份規格不得宣稱：
 
-- the doctor exists;
-- any consuming repo has been diagnosed;
-- full/submodule installation is implemented;
-- runtime governance is now self-contained in any repo;
-- runtime capability has been verified;
-- stale pins are blockers;
-- hooks, CI, pre-push, or enforcement behavior changed.
+- 採用診斷器已存在；
+- 任何下游複用儲存庫已被診斷；
+- full/submodule installation 已實作；
+- runtime governance 現在已在任何 repo 中 self-contained；
+- runtime capability 已驗證；
+- stale pins 是 blockers；
+- hooks、CI、pre-push 或 enforcement behavior 已改變。
 
-## Failure Paths Or Risk Points
+## 失敗路徑與風險點
 
-- A repo-owned framework path can be present without being a submodule. The
-  doctor must not label that as `submodule_consumer` without `.gitmodules` or
-  gitlink evidence.
-- A submodule path can exist but be uninitialized or partial. That should report
-  initialized-state evidence, not silently become `self_contained=yes`.
-- A stale pin can be intentional. It should be a warning/finding, not a failure.
-- Root-level `runtime_hooks` may be intentional in this framework repo but
-  suspicious in a consuming repo. The doctor needs repo-context-aware wording.
-- An explicit `--framework-root` outside the repo is useful for audit-only
-  classification, but it is evidence against self-contained runtime claims.
-- `external_repo_readiness.py` and `hook_install_validator.py` already have
-  failure exits. Reusing their internals must not import their gate semantics.
-- `docs/INTEGRATION_GUIDE.md` is the current manual path reference but has
-  mojibake. The doctor should not depend on prose readability in that file.
+- repo-owned framework path 可以存在但不是 submodule。沒有 `.gitmodules` 或 gitlink evidence 時，採用診斷器不得標示為 `submodule_consumer`。
+- submodule path 可以存在但未初始化或只有部分內容。這應回報 initialized-state evidence，而不是默默變成 `self_contained=yes`。
+- stale pin 可能是有意選擇。它應該是 warning/finding，不是 failure。
+- root-level `runtime_hooks` 在 framework repo 中可能是刻意存在，但在下游複用儲存庫中可疑。採用診斷器需要 repo-context-aware wording。
+- 指向 repo 外部的明確 `--framework-root` 對 audit-only classification 有用，但它是反對 self-contained runtime claims 的證據。
+- `external_repo_readiness.py` 與 `hook_install_validator.py` 已有 failure exits。重用它們的 internals 時不得引入它們的 gate semantics。
+- `docs/INTEGRATION_GUIDE.md` 是目前 manual path reference，但有 mojibake。採用診斷器不應依賴該檔案的 prose readability。
 
-## Evidence Plan
+## 證據計畫
 
-For this spec slice:
+對這個 spec 切片：
 
 - `git diff --check -- docs/governance/report-only-adoption-doctor-spec-2026-06-26.md`
-- portable ASCII check for this new spec file.
+- 對這份 spec file 做 UTF-8 可讀性、常見 mojibake 與尾端空白檢查。
 
-For the later implementation slice:
+對後續實作切片：
 
-- focused tests for copy-based repo with external framework root;
-- focused tests for repo-owned framework path without submodule proof;
-- focused tests for submodule consumer with initialized framework checkout;
-- focused tests for uninitialized or partial submodule checkout;
-- focused tests for root-level leftover `runtime_hooks`;
-- focused tests for external framework path dependency;
-- focused tests for stale pin using local-only remote-tracking fixtures;
-- focused tests that `current_vs_local_tracking` is not rendered as unqualified
-  `current`;
-- focused tests for no-fetch behavior by default;
-- focused tests that findings exit 0;
-- JSON parse test for stable schema;
-- human output test for claim boundary wording.
+- copy-based repo with external framework root 的 focused tests；
+- repo-owned framework path without submodule proof 的 focused tests；
+- submodule consumer with initialized framework checkout 的 focused tests；
+- uninitialized or partial submodule checkout 的 focused tests；
+- root-level leftover `runtime_hooks` 的 focused tests；
+- external framework path dependency 的 focused tests；
+- stale pin using local-only remote-tracking fixtures 的 focused tests；
+- `current_vs_local_tracking` 不會被渲染成未限定 `current` 的 focused tests；
+- no-fetch behavior by default 的 focused tests；
+- findings exit 0 的 focused tests；
+- stable schema 的 JSON parse test；
+- claim boundary wording 的 human output test。
 
-Recommended commands for the later implementation:
+後續實作建議命令：
 
 ```text
 pytest tests/test_adoption_doctor.py -p no:cacheprovider
@@ -318,24 +252,19 @@ python -m governance_tools.adoption_doctor --repo <fixture> --format json
 python -m governance_tools.adoption_doctor --repo <fixture> --format human
 ```
 
-## Implementation Tranche Recommendation
+## 實作切片建議
 
-Next implementation tranche:
+下一個實作切片：
 
-1. Add `governance_tools/adoption_doctor.py` with local filesystem and local
-   git metadata inspection only.
-2. Implement JSON and human output.
-3. Keep exit code 0 for diagnostic findings.
-4. Add focused tests for the six core fixture classes:
-   copy-based, repo-owned framework path, submodule initialized, submodule
-   partial/uninitialized, root-level leftover runtime hooks, stale local
-   remote-tracking pin.
-5. Do not wire the doctor into adopt, pre-push, CI, readiness, or runtime
-   enforcement in the same slice.
+1. 新增 `governance_tools/adoption_doctor.py`，只做 local filesystem 與 local git metadata inspection。
+2. 實作 JSON 與 human output。
+3. 對診斷發現維持 exit code 0。
+4. 為六個核心 fixture classes 加 focused tests：copy-based、repo-owned framework path、submodule initialized、submodule partial/uninitialized、root-level leftover runtime hooks、stale local remote-tracking pin。
+5. 同一切片不要把採用診斷器接到 adopt、pre-push、CI、readiness 或 runtime enforcement。
 
-Deferred options, not commitments:
+延後選項，不是承諾：
 
-- add a no-write runtime smoke probe and then allow `runtime_capable=yes/no`;
-- add a help pointer from `adopt_governance.py`;
-- add remediation hints for manual submodule/full installation;
-- repair `docs/INTEGRATION_GUIDE.md` readability.
+- 新增 no-write runtime smoke probe，之後才允許 `runtime_capable=yes/no`；
+- 在 `adopt_governance.py` 加 help pointer；
+- 加入手動 submodule/full installation 的 remediation hints；
+- 修復 `docs/INTEGRATION_GUIDE.md` 可讀性。

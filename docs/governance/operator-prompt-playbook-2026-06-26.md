@@ -1,118 +1,101 @@
-# Operator Prompt Playbook - 2026-06-26
+# 操作者提示詞手冊（Operator Prompt Playbook）- 2026-06-26
 
-Status: proposal/design-only
-Scope: user/operator quick-reference
-Runtime behavior change: no
-Tooling behavior change: no
-Governance authority change: no
-Enforcement change: no
+狀態（Status）：`proposal/design-only`
+範圍（Scope）：使用者與操作者快速參考
+執行環境行為（runtime behavior）變更：否
+工具行為（tooling behavior）變更：否
+治理權威（governance authority）變更：否
+強制執行（enforcement）變更：否
 
-## Problem
+## 問題
 
-The most reliable recent workflow in this repository has not been a larger
-governance surface. It has been a smaller operator habit:
+這個儲存庫近期最可靠的工作方式，不是擴大治理表面，而是縮小並固定操作者習慣：
 
-1. name the task mode;
-2. define one measurable `DONE`;
-3. keep scope and non-goals explicit;
-4. validate only the changed surface;
-5. review separately;
-6. push only after explicit authorization.
+1. 先命名任務模式（task mode）；
+2. 定義一個可衡量的 `DONE`；
+3. 明確列出範圍（scope）與非目標（non-goals）；
+4. 只驗證已變更的表面；
+5. 分開做審查（review）；
+6. 只有在明確授權後才推送（push）。
 
-When those fields are missing, ambiguous continuation phrases such as
-`continue`, `proceed`, `keep going`, `go next`, or equivalent short
-continuation commands can cause the agent to infer the next slice too broadly.
-This playbook records prompt snippets that keep the operator and agent aligned
-before work starts.
+當這些欄位缺失時，像 `continue`、`proceed`、`keep going`、`go next` 或等價的簡短續行指令，可能讓代理（agent）把下一個切片推論得太寬。這份手冊記錄可重複使用的提示詞片段，讓操作者與代理在工作開始前先對齊。
 
-This is not a new governance rule. It is a lightweight way to trigger the rules
-that already exist.
+這不是新的治理規則。它只是用較輕量的方式，把既有規則帶進當下的執行脈絡。
 
-## Current Repository Truth
+## 目前儲存庫事實
 
-Observed repository rules and surfaces relevant to this playbook:
+與本手冊相關的已觀察規則與表面如下：
 
-- `AGENTS.md` requires ambiguous continuation to be audit-first unless a narrow
-  next-slice boundary was already approved.
-- `AGENTS.md` requires a concrete `DONE = <one measurable product outcome>`
-  before implementation edits begin unless the user has already provided one.
-- `governance/REVIEW_CRITERIA.md` defines review as skeptical verification with
-  evidence-bound findings.
-- `governance/RESPONSE_ENVELOPE_CONTRACT.md` keeps result, claim ceiling,
-  non-claims, evidence, risk, and next action separate in final reports.
-- `governance/MEMORY_PROTOCOL.md` requires canonical writer use for
-  session-derived repository memory.
-- Recent adoption work showed that documentation-only reminders are weak when
-  they are not in the active execution path. Therefore this playbook is most
-  useful as text pasted into the prompt, not as an authority layer.
+- `AGENTS.md` 要求：除非已有狹窄的下一切片邊界，模糊續行指令必須先進入審計優先（audit-first）行為。
+- `AGENTS.md` 要求：除非使用者已提供，實作編輯前必須有具體的 `DONE = <one measurable product outcome>`。
+- `governance/REVIEW_CRITERIA.md` 將審查定義為帶有懷疑態度、以證據支撐發現的驗證。
+- `governance/RESPONSE_ENVELOPE_CONTRACT.md` 要求最終回報中，結果、宣稱上限（claim ceiling）、非宣稱（non-claims）、證據、風險與下一步必須分開。
+- `governance/MEMORY_PROTOCOL.md` 要求 session-derived repository memory 使用 canonical writer。
+- 近期採用工作顯示：只放在文件裡的提醒，如果沒有進入實際執行路徑，很容易失效。因此這份手冊最有用的形式，是作為可貼進提示詞的文字，而不是新的權威層。
 
-## Target Outcome
+## 目標結果
 
-Provide short, reusable prompt templates for this repository's common task
-modes:
+為這個儲存庫常見任務模式提供短而可重用的提示詞模板：
 
-- implementation;
-- read-only review;
-- diagnosis only;
-- proposal/design-only;
-- push/verify.
+- 實作（implementation）；
+- 唯讀審查（read-only review）；
+- 只診斷（diagnosis only）；
+- 提案或純設計（proposal/design-only）；
+- 推送與驗證（push/verify）。
 
-The target outcome is less scope ambiguity, not more enforcement.
+目標是降低範圍模糊，而不是增加強制執行。
 
-## Scope
+## 範圍
 
-This playbook covers:
+本手冊涵蓋：
 
-- task-mode labels;
-- a reusable task header;
-- per-mode prompt snippets;
-- repository startup checklist prompts;
-- claim-ceiling snippets;
-- sequencing reminders for review, memory, commit, and push.
+- 任務模式標籤；
+- 可重用的任務標頭；
+- 各模式的提示詞片段；
+- 儲存庫啟動檢查提示；
+- 宣稱上限片段；
+- 審查、記憶、提交與推送的排序提醒。
 
-## Non-Goals
+## 非目標
 
-This playbook does not:
+本手冊不會：
 
-- change `AGENTS.md`;
-- change governance routers;
-- change memory protocol;
-- change runtime hooks;
-- change tooling behavior;
-- add CI, pre-push, gate, or enforcement behavior;
-- require agents to read this file automatically;
-- make any prompt template authoritative by itself;
-- prove that future agents will follow the snippets.
+- 修改 `AGENTS.md`；
+- 修改治理路由器；
+- 修改記憶協議（memory protocol）；
+- 修改執行環境 hook（runtime hooks）；
+- 修改工具行為；
+- 新增 CI、pre-push、gate 或強制執行行為；
+- 要求代理自動讀取這份文件；
+- 讓任何提示詞模板本身變成權威；
+- 證明未來代理一定會遵守這些片段。
 
-## Affected Surfaces
+## 受影響表面
 
-Directly affected by this proposal:
+這個提案直接影響：
 
 - `docs/governance/operator-prompt-playbook-2026-06-26.md`
 
-Not affected:
+不受影響：
 
 - `AGENTS.md`
-- `governance/*.md` routers
+- `governance/*.md` 路由器
 - `governance_tools/**`
 - `runtime_hooks/**`
-- schemas
+- 結構描述（schemas）
 - hooks
 - CI
-- memory writer behavior
+- 記憶寫入器行為
 
-## Boundary And API Considerations
+## 邊界與 API 考量
 
-This file is an operator aid. It should not be imported by runtime code,
-referenced as a canonical governance router, or treated as an enforcement
-contract.
+這份文件是操作者輔助資料。它不應被執行環境程式碼匯入，不應被引用為 canonical governance router，也不應被視為強制執行契約。
 
-If a future slice wants this content to influence execution, that must be a
-separate design and review. This document only records prompt-side usage.
+如果未來某個切片要讓這份內容影響執行，那必須是另一個獨立設計與審查。本文件只記錄提示詞側的使用方式。
 
-## Standard Task Header
+## 標準任務標頭
 
-Use this header when starting a non-trivial task:
+開始非平凡任務時，使用這個標頭：
 
 ```text
 DONE = <one measurable outcome>
@@ -124,7 +107,7 @@ claim ceiling = <what this can safely prove>
 commit/push intent = <no commit | commit after review | push only after explicit authorization>
 ```
 
-For implementation tasks, echo the approved slice before editing:
+對實作任務，在編輯前先覆述已核准切片：
 
 ```text
 Executing approved slice:
@@ -133,11 +116,11 @@ scope = <copied scope>
 non-goals = <copied non-goals>
 ```
 
-## Mode Templates
+## 模式模板
 
-### Implementation
+### 實作
 
-Use when the agent should edit files.
+代理需要編輯檔案時使用。
 
 ```text
 DONE = <specific change>; mode = implementation.
@@ -148,10 +131,9 @@ validation = <focused tests/checks>.
 commit intent = do not commit until review | commit source/test after approval.
 ```
 
-### Read-Only Review
+### 唯讀審查
 
-Use when the agent must verify an artifact, diff, commit, or repo state without
-changing files.
+代理必須驗證 artifact、diff、commit 或儲存庫狀態，且不得改檔時使用。
 
 ```text
 DONE = review <artifact/commit pair/diff>; mode = read-only review.
@@ -162,9 +144,9 @@ Return findings first, then verdict, risk, evidence, cannot-claim, and next-step
 judgment.
 ```
 
-### Diagnosis Only
+### 只診斷
 
-Use when the agent should inspect state and identify causes, but not repair.
+代理應檢查狀態並找出原因，但不得修復時使用。
 
 ```text
 DONE = diagnose <repo/system/state>; mode = diagnosis only.
@@ -175,22 +157,22 @@ validation = commands or artifacts that support the diagnosis.
 claim ceiling = findings and recommended next slice only.
 ```
 
-### Proposal / Design-Only
+### 提案或純設計
 
-Use when the agent should write or review a proposal without implementing it.
+代理應撰寫或審查提案，但不得實作時使用。
 
 ```text
 DONE = write a design-only proposal for <problem>; mode = proposal/design-only.
 scope = one docs file.
 non-goals = no code behavior change, no tooling/runtime/hook/CI/enforcement
 change, no implementation commitment.
-validation = scope check, ASCII/trailing-whitespace check, and review.
+validation = scope check, UTF-8/mojibake/trailing-whitespace check, and review.
 claim ceiling = proposed scope and evidence plan only.
 ```
 
-### Push / Verify
+### 推送與驗證
 
-Use only after a commit pair has been reviewed and approved.
+只在 commit pair 已經審查且核准後使用。
 
 ```text
 DONE = push <commit(s)> to origin/main and gitlab/main, then verify both
@@ -201,10 +183,9 @@ non-goals = no new edits, no commit, no repair.
 validation = HEAD, origin/main, and gitlab/main all equal <expected head>.
 ```
 
-## Repository Startup Checklist Prompts
+## 儲存庫啟動檢查提示
 
-For governance refresh, pull, or adoption questions, start with diagnosis before
-repair:
+治理刷新、拉取或採用問題，應先診斷再修復：
 
 ```text
 mode = diagnosis only.
@@ -219,16 +200,16 @@ Check repo state before recommending repair:
 Do not repair, commit, or push until the next slice is explicit.
 ```
 
-This avoids conflating:
+這可避免混淆：
 
-- governance refresh success with parent pull completion;
-- framework lock currentness with readiness cleanliness;
-- static self-contained evidence with runtime hook execution;
-- memory bound status with truth, review, commit, or push.
+- 治理刷新成功與 parent pull 完成；
+- framework lock 目前性與 readiness 乾淨度；
+- 靜態 self-contained 證據與 runtime hook 執行；
+- memory bound 狀態與 truth、review、commit 或 push 證明。
 
-## Claim-Ceiling Snippets
+## 宣稱上限片段
 
-Use the shortest accurate non-claim phrase.
+使用最短且準確的非宣稱句。
 
 ```text
 proposal-only; no behavior changed
@@ -244,25 +225,22 @@ LTSSM/link-training only; non-LTSSM remains advisory
 no verified uplift; claim ceiling unchanged
 ```
 
-## Sequencing Pattern
+## 排序模式
 
-Preferred sequence for governance-sensitive work:
+治理敏感工作偏好的順序：
 
 ```text
 small slice -> focused validation -> read-only review thread -> commit pair
 -> review commit pair -> explicit push/verify -> stop
 ```
 
-Do not continue into the next slice automatically after push. Recommend one
-next action, then wait for a new `DONE` unless the next slice was already
-explicitly approved.
+推送後不要自動進入下一個切片。建議一個下一步，然後等待新的 `DONE`，除非下一個切片已經被明確核准。
 
-## Sub-Agent Review Receipt Workflow
+## 子代理審查回執工作流
 
-Use this workflow when the main thread wants skeptical read-only review without
-handing over action authority.
+主執行緒需要懷疑式唯讀審查，但不交出行動權威時，使用這個子代理（sub-agent）工作流。
 
-Boundary:
+邊界：
 
 ```text
 Main owns action.
@@ -273,63 +251,41 @@ Push, commit, memory writes, and authority changes still require main-thread
 decision plus user authorization where applicable.
 ```
 
-Default mechanism:
+預設機制：
 
-- use sub-agent tools for ordinary review work by default;
-- spawn the review sub-agent with `multi_agent_v1.spawn_agent`;
-- wait for its receipt with `multi_agent_v1.wait_agent`;
-- continue or correct the same sub-agent with `multi_agent_v1.send_input`;
-- close the sub-agent with `multi_agent_v1.close_agent` when done;
-- do not open sidebar Codex threads as the default review mechanism;
-- use sidebar thread tools only when the user explicitly asks for a
-  user-visible separate thread, or when sub-agent tools are unavailable and the
-  user approves that fallback.
+- 一般審查工作預設使用子代理工具（sub-agent tools）；
+- 用 `multi_agent_v1.spawn_agent` 建立審查子代理；
+- 用 `multi_agent_v1.wait_agent` 等待回執；
+- 需要修正或追加說明時，用 `multi_agent_v1.send_input` 回到同一個子代理；
+- 完成後用 `multi_agent_v1.close_agent` 關閉子代理；
+- 不把側欄 Codex thread 當作預設審查機制；
+- 只有當使用者明確要求 user-visible separate thread，或 sub-agent tools 不可用且使用者核准 fallback 時，才使用側欄 thread tools。
 
-If sub-agent tools are unavailable in the current session, the main thread must
-report that limitation before using any fallback. It must not silently replace
-sub-agent review with a visible thread, ordinary ChatGPT thread, or manual
-copy/paste workflow.
+如果目前 session 沒有子代理工具，主執行緒必須先回報這個限制，再使用任何 fallback。不得偷偷用可見 thread、一般 ChatGPT thread 或人工 copy/paste 工作流取代子代理審查。
 
-Model selection:
+模型選擇：
 
-- inherit the main thread model by default;
-- use `gpt-5.3-codex-spark` only for simple, low-risk, read-only review where
-  the task is bounded, the expected output is a structured receipt, and no
-  authority, runtime, memory, push, cross-repo, or claim-sensitive decision is
-  being delegated;
-- use the inherited main model or a stronger explicit model for governance
-  authority changes, runtime permission questions, mutation-adjacent work,
-  push-gate assessment, semantic correctness claims, or disputed review
-  findings.
+- 預設繼承主執行緒模型；
+- 只有在簡單、低風險、唯讀審查，且任務邊界明確、預期輸出是結構化回執，並且沒有委派權威、runtime、memory、push、cross-repo 或 claim-sensitive 決策時，才使用 `gpt-5.3-codex-spark`；
+- 對治理權威變更、runtime 權限問題、mutation-adjacent 工作、push-gate 評估、語意正確性宣稱或有爭議的審查發現，使用繼承的主模型或明確更強的模型。
 
-Decision rule:
+決策規則：
 
-- Do not open an ordinary separate ChatGPT conversation and ask the user to
-  copy the result back. That loses context, invites copy errors, and breaks the
-  claim chain.
-- Prefer sub-agent tools when the user asks for review, audit, or skeptical
-  parallel review. The main thread sends the bounded task, waits for the
-  receipt, integrates the result, and decides the next step.
-- Treat polling as tool-level waiting/reading by the main thread, not as manual
-  user polling. The user should not have to shuttle reviewer text back into the
-  main thread during normal operation.
-- The sub-thread may run checks and return `REVIEW_RECEIPT`, but it must not
-  own final action authority. It can say `APPROVED_FOR_PUSH_GATE`; the main
-  thread still waits for explicit user authorization before push.
+- 不要另開一般 ChatGPT 對話，再要求使用者把結果 copy 回主執行緒。這會遺失脈絡、增加複製錯誤，並中斷宣稱鏈。
+- 當使用者要求 review、audit 或懷疑式平行審查時，偏好 sub-agent tools。主執行緒送出有邊界的任務，等待回執，整合結果，並決定下一步。
+- polling 應理解為主執行緒在工具層等待或讀取結果，不是讓使用者手動輪詢。正常流程中，使用者不應需要把審查文字搬回主執行緒。
+- sub-thread 可以執行檢查並回傳 `REVIEW_RECEIPT`，但不得擁有最終行動權威。它可以說 `APPROVED_FOR_PUSH_GATE`；真正 push 前，主執行緒仍需等待使用者明確授權。
 
-When the user explicitly asks for a separate Codex thread:
+當使用者明確要求獨立 Codex thread 時：
 
-- main thread creates the bounded reviewer thread;
-- reviewer thread returns `REVIEW_RECEIPT` only;
-- main thread reads the reviewer result with `codex_app.read_thread`;
-- main thread sends follow-up fixes back with `codex_app.send_message_to_thread`
-  when a second review pass is needed;
-- user copy/paste of the reviewer result is a fallback only, not the normal
-  workflow;
-- main thread must not commit, push, write memory, or upgrade claims until it
-  has pulled the receipt itself and made the final gate decision.
+- 主執行緒建立有邊界的審查 thread；
+- 審查 thread 只回傳 `REVIEW_RECEIPT`；
+- 主執行緒用 `codex_app.read_thread` 讀取審查結果；
+- 需要第二輪審查時，主執行緒用 `codex_app.send_message_to_thread` 把後續修正送回去；
+- 使用者 copy/paste 審查結果只作為 fallback，不是正常工作流；
+- 主執行緒在自行拉回 receipt 並做最後 gate 決策前，不得 commit、push、寫 memory 或升級宣稱。
 
-Use this prompt shape for a read-only sub-agent:
+唯讀子代理可使用這個提示詞形狀：
 
 ```text
 Read-only sub-agent task. Do not modify files, stage, commit, or push.
@@ -349,21 +305,15 @@ push_gate: allowed | not_allowed | not_applicable
 next_recommended_action:
 ```
 
-`evidence_checked` must contain actual commands with results, file/line
-references, or artifact paths. It must not be a bare `checked=yes` or a list of
-intentions. The main thread re-checks load-bearing evidence before any sensitive
-action.
+`evidence_checked` 必須包含實際命令與結果、檔案行號引用或 artifact 路徑。不得只是 `checked=yes` 或意圖清單。主執行緒在任何敏感行動前，必須重新抽查關鍵證據。
 
-Treat a sub-agent `APPROVED` verdict as evidence to inspect, not as authority.
-The main thread decides whether to fix, commit, write memory, request push
-authorization, or stop.
+把子代理的 `APPROVED` verdict 視為需要檢視的證據，而不是權威。是否修正、commit、寫 memory、要求 push 授權或停止，都由主執行緒決定。
 
-## Cross-Repo Write Boundary
+## 跨儲存庫寫入邊界
 
-Use this boundary when a task runs in a workspace that exposes more than one
-repository or writable root.
+當任務所在 workspace 暴露多個儲存庫或 writable root 時，使用這個邊界。
 
-Rule:
+規則：
 
 ```text
 Writable root is capability, not authorization.
@@ -371,20 +321,12 @@ Active repo owns the write scope.
 All other repos are read-only unless explicitly authorized by path.
 ```
 
-Implementation slices must name `active_repo` before file edits begin. If the
-user says `continue`, `keep going`, Chinese continuation equivalents, or
-similar continuation wording, that authority applies only inside the already
-approved active repo and scope.
-It does not authorize writing to another repo, even if that repo is visible,
-related to the subject matter, or writable by the tool.
+實作切片在開始編輯前必須命名 `active_repo`。如果使用者說 `continue`、`keep going`、中文續行詞或類似續行文字，該授權只適用於已核准的作用中儲存庫與範圍內。
+它不授權寫入其他儲存庫，即使該儲存庫可見、與主題相關，或工具具有寫入能力。
 
-Portable patches, design notes, and implementation packages default to staying
-in the source repo that produced them. Applying a portable patch to a target
-repo is a separate cross-repo write and requires explicit user wording naming
-the target path.
+可攜補丁、設計筆記與實作包預設留在產生它們的來源儲存庫。把可攜補丁套用到目標儲存庫，是另一個跨儲存庫寫入，必須由使用者明確命名目標路徑。
 
-Before any cross-repo write, stop and ask unless the user already gave an
-explicit path-level instruction such as:
+任何跨儲存庫寫入前都必須停下並詢問，除非使用者已給出明確的路徑層級指令，例如：
 
 ```text
 Apply this patch to D:\ai-governance-framework.
@@ -392,49 +334,37 @@ Modify D:\Enumd-private-vault only.
 Do not touch any other repo.
 ```
 
-If an unintended cross-repo write is discovered:
+如果發現非預期跨儲存庫寫入：
 
-- stop immediately;
-- report the active repo, touched repo, and touched paths;
-- do not inspect, stage, commit, delete, or repair the out-of-scope files
-  unless the user explicitly authorizes that cleanup scope;
-- resume only inside the user-approved repo boundary.
+- 立刻停止；
+- 回報作用中儲存庫、被碰到的儲存庫與路徑；
+- 除非使用者明確授權清理範圍，不得檢查、stage、commit、刪除或修復超出範圍的檔案；
+- 只在使用者核准的儲存庫邊界內恢復工作。
 
-## Failure Paths Or Risk Points
+## 失敗路徑與風險點
 
-- If this file is treated as authority, it becomes a new governance surface
-  without a real enforcement path.
-- If snippets are copied without concrete `scope` and `non-goals`, they become
-  decorative text rather than useful task boundaries.
-- If `proposal/design-only` is mixed with implementation, review cannot tell
-  whether behavior changed.
-- If push is bundled with implementation, remote delivery can happen before
-  review has verified memory binding and claim ceiling.
-- If diagnosis turns into repair, dirty parent repos and submodule pins can be
-  changed before ownership is clear.
-- If a sub-agent receipt is treated as authority, the workflow only moves
-  overclaim risk from the main thread to the sub-agent.
-- If `evidence_checked` lacks concrete commands or file references, the main
-  thread has nothing meaningful to spot-check.
-- If writable roots are treated as user intent, an agent can silently turn a
-  source-repo design package into an unauthorized target-repo write.
+- 如果這份文件被視為權威，它會在沒有真實強制執行路徑的情況下變成新的治理表面。
+- 如果片段被複製時沒有具體的 `scope` 和 `non-goals`，它們會變成裝飾性文字，而不是有用的任務邊界。
+- 如果 `proposal/design-only` 與實作混在一起，審查無法判定行為是否改變。
+- 如果 push 與實作綁在同一包，遠端交付可能早於 memory binding 與 claim ceiling 的審查。
+- 如果診斷滑向修復，dirty parent repo 與 submodule pin 可能在所有權釐清前被改掉。
+- 如果子代理回執被視為權威，工作流只是把 overclaim 風險從主執行緒移到子代理。
+- 如果 `evidence_checked` 沒有具體命令或檔案引用，主執行緒就沒有可抽查的關鍵證據。
+- 如果 writable roots 被當成使用者意圖，代理可能把來源儲存庫的設計包，悄悄變成未授權的目標儲存庫寫入。
 
-## Evidence Plan
+## 證據計畫
 
-For this docs-only playbook:
+對這份 docs-only 手冊：
 
-- confirm only this file is added;
-- confirm ASCII-only content;
-- confirm no trailing whitespace;
-- confirm no changes to `AGENTS.md`, governance routers, tooling, hooks, CI, or
-  memory protocol.
+- 確認只有這份文件被新增或修改；
+- 確認內容可正常讀取且沒有尾端空白；
+- 確認沒有修改 `AGENTS.md`、治理路由器、工具、hooks、CI 或 memory protocol。
 
-## Implementation Tranche Recommendation
+## 實作切片建議
 
-This file is the full intended tranche.
+這份文件就是完整預期切片。
 
-Next possible action after review is commit plus canonical memory, but only if
-the reviewer accepts the claim ceiling:
+審查者接受下列宣稱上限後，下一個可能行動才是 commit 加 canonical memory：
 
 ```text
 operator quick-reference only; no governance authority or enforcement change
