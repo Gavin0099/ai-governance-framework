@@ -102,39 +102,71 @@ Completed in latest committed scope:
   derive from or extend `.governance/baseline.yaml`, summarize
   `governance_drift_checker.py` semantics, and do not create a parallel
   authority map.
+- [x] Read-only `AUTHORITY_MANIFEST v1` candidate generator implemented with
+  focused tests. It derives authority file membership from `.governance`
+  `baseline.yaml`, summarizes `governance_drift_checker.py`, and emits
+  base/head authority-change invalidation signals.
+- [x] Read-only AUTHORITY_MANIFEST preflight consumer simulation implemented
+  with focused tests. It emits reviewer-facing `reuse_candidate`,
+  `reload_required`, `cache_unsafe`, and `not_checked` decisions without
+  provider cache integration or enforcement.
+- [x] CHANGELOG Unreleased entries record both AUTHORITY_MANIFEST candidate
+  generator and preflight consumer surfaces without version bump, release
+  publish, prompt-cache behavior, runtime hooks, CI/pre-push/gates, or
+  enforcement claims.
+- [x] Hermes no_agent local observer claim ledger updated to
+  `observed_five_scheduled_runs` for job `025890509ebf`, based on five
+  scheduled artifacts from 2026-06-25 through 2026-06-29 while preserving
+  non-claims for reliability, SLA, provider-free runtime, governance authority,
+  enforcement, and future scheduled success.
 
 Current next candidate:
 
-- [ ] If authorized, implement a read-only AUTHORITY_MANIFEST candidate
-  generator with focused tests. The generator must derive from existing
-  baseline/drift truth, keep `governance_drift_checker.py` as the named minimum
-  consumer, and remain deterministic/repo-local.
+- [ ] Decide whether to collect real harness consumer evidence for the
+  AUTHORITY_MANIFEST preflight path or to keep the cache-aware tooling in
+  Unreleased candidate state.
+- [ ] Do not start v1.3.0 release-prep until release-surface consistency and
+  consumer-side proof are explicitly scoped.
 
 Claim ceiling for this sprint:
 
-- CLAIMED: cache-aware planning and implementation readiness are documented;
-  the first proposed implementation tranche is bounded to a read-only
-  AUTHORITY_MANIFEST candidate generator plus authority-change invalidation
-  signal.
+- CLAIMED: cache-aware planning and the first repo-feasible implementation
+  tranche are documented and implemented as read-only candidate tooling:
+  AUTHORITY_MANIFEST generation, authority-change invalidation, and preflight
+  consumer simulation.
 - NOT CLAIMED: prompt cache implementation, cache hit/miss monitoring,
   compaction control, mode/auth/tool-denial receipt tooling, runtime hook/CI
   wiring, enforcement, canonical authority promotion, external harness
-  adoption, or cross-repo writes.
+  adoption, v1.3.0 release readiness, or cross-repo writes.
 
 Latest milestone commits:
 
 - `470b95a docs(governance): add cache-aware runtime adoption packet`
 - `2974840 docs(governance): specify authority manifest implementation tranche`
 - `36dc391 docs(memory): record authority manifest tech spec push`
+- `454391c feat(governance): add authority manifest candidate generator`
+- `88f1bdf feat(governance): add authority manifest preflight consumer`
+- `0d5f1bd docs(changelog): record authority manifest generator`
+- `8e9754b docs(changelog): record authority manifest preflight consumer`
+- `58f8a30 docs(hermes): update no-agent recurrence ledger`
 
 Latest scoped evidence:
 
 - `python -B -m governance_tools.governance_drift_checker --repo . --format json`
   reports `ok=true`, `severity=ok`, `plan_inventory_current=true`, and a
   `plan_freshness` warning only before this refresh.
+- `python -B -m pytest tests/test_authority_manifest.py -p no:cacheprovider`
+  passed focused generator coverage before commit.
+- `python -B -m pytest tests/test_authority_manifest_preflight.py
+  --basetemp .tmp_pytest_authority_manifest_preflight_review -p no:cacheprovider`
+  passed 6/6 before commit.
+- Hermes read-only observation inspected `jobs.json`, five output artifacts,
+  and `agent.log` under `C:\tmp\hermes-noagent-checklist-deploy-20260623`,
+  supporting `observed_five_scheduled_runs` but not reliability.
 - 2026-06-28/29 canonical memory records bind the cache-aware receipt alignment,
-  operator rules, runtime adoption packet, baseline analysis, and authority
-  manifest tech-spec push.
+  operator rules, runtime adoption packet, baseline analysis, authority
+  manifest implementation, preflight consumer simulation, changelog
+  dispositions, and Hermes observed-five ledger update.
 
 Historical sprint context - 2026-06-10:
 
@@ -261,21 +293,21 @@ change workflow behavior, hooks, branch protection, or enforcement level.
 
 ## Active Claim Boundaries
 
-Cache-aware / AUTHORITY_MANIFEST planning line (2026-06-28 -> 2026-06-29):
+Cache-aware / AUTHORITY_MANIFEST line (2026-06-28 -> 2026-06-29):
 
 - CLAIMED: cache-aware governance surfaces have been classified into
-  HARNESS-only, REPO-feasible, and ENFORCEMENT-limited boundaries; the first
-  proposed repo-feasible implementation tranche is a read-only
-  `AUTHORITY_MANIFEST` candidate generator plus authority-change invalidation
-  signal.
-- CLAIMED: the planned generator must reuse or extend existing
-  `.governance/baseline.yaml` and `governance_drift_checker.py` semantics
-  instead of creating a competing authority map.
-- NOT CLAIMED: `AUTHORITY_MANIFEST v1` is implemented, prompt cache is
-  implemented, cache hit/miss is monitored, compaction is controlled by this
-  repo, candidate receipts are authoritative, CI/runtime/pre-push/gate
-  enforcement is wired, or external harnesses have adopted the cache-aware
-  specs.
+  HARNESS-only, REPO-feasible, and ENFORCEMENT-limited boundaries.
+- CLAIMED: the first repo-feasible implementation tranche exists as read-only
+  candidate tooling: `AUTHORITY_MANIFEST v1` generator, base/head
+  authority-change invalidation signal, and AUTHORITY_MANIFEST preflight
+  consumer simulation.
+- CLAIMED: generator semantics derive from existing `.governance/baseline.yaml`
+  and `governance_drift_checker.py` surfaces instead of creating a competing
+  authority map.
+- NOT CLAIMED: prompt cache is implemented, cache hit/miss is monitored,
+  compaction is controlled by this repo, candidate receipts are authoritative,
+  CI/runtime/pre-push/gate enforcement is wired, external harnesses have
+  adopted the cache-aware specs, or v1.3.0 release-prep is justified.
 
 Mutation enforcement:
 
@@ -317,10 +349,15 @@ Hermes executor-adapter line (2026-06-21):
   deterministic stub runner, standard smoke registration, and input-driven
   mock-backend fixture path with focused tests for fail-closed parse /
   allowlist behavior and response-file contract.
-- NOT CLAIMED: verified external Hermes runtime payload, true Hermes model
-  integration, hosted/local backend reliability, model-generated tool-call
-  reliability, general-purpose code-writing runtime completion, or
-  non-bypassable governance wrapping.
+- CLAIMED: the separate Hermes no_agent local observer line has
+  `observed_five_scheduled_runs` for job `025890509ebf`, with five scheduled
+  output artifacts from 2026-06-25 through 2026-06-29 and observation-only
+  claim ceiling.
+- NOT CLAIMED: verified external Hermes governance compliance, true Hermes
+  model integration, hosted/local backend reliability, model-generated
+  tool-call reliability, general-purpose code-writing runtime completion,
+  provider-free runtime, future scheduled success, or non-bypassable governance
+  wrapping.
 
 CI enforcement claim ceiling (2026-06-21):
 
@@ -432,15 +469,21 @@ P0 - cache-aware authority manifest implementation readiness:
 - [x] Record that `AUTHORITY_MANIFEST v1` must reuse or extend the existing
   `.governance/baseline.yaml` plus `governance_drift_checker.py` path.
 - [x] Write the docs-only implementation tech spec for the first tranche.
-- [ ] Before implementation, confirm high-rigor review boundary for a read-only
+- [x] Before implementation, confirm high-rigor review boundary for a read-only
   authority manifest generator plus focused tests.
-- [ ] If authorized, implement the generator as a separate tooling slice.
+- [x] Implement the generator as a separate read-only tooling slice.
+- [x] Implement the AUTHORITY_MANIFEST preflight consumer simulation as a
+  separate read-only tooling slice.
+- [x] Record CHANGELOG Unreleased dispositions for the generator and preflight
+  consumer simulation.
+- [ ] If authorized, collect real harness consumer evidence for the preflight
+  path or document that the tooling remains Unreleased candidate-only.
 
 Non-goals for this pending work:
 
 - Do not implement prompt cache, runtime hooks, CI/pre-push/gate enforcement,
-  baseline rewrites, memory behavior, receipt tooling, or cross-repo writes as
-  part of the first tranche.
+  baseline rewrites, memory behavior, release publishing, or cross-repo writes
+  as part of the first tranche.
 
 P0 - reviewer surface / trust repair:
 
