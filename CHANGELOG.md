@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### AUTHORITY_MANIFEST candidate generator - 2026-06-29
+
+- Added `governance_tools/authority_manifest.py` as a read-only
+  `AUTHORITY_MANIFEST v1` candidate generator. It derives authority file
+  membership from `.governance/baseline.yaml` `sha256.*` keys, summarizes
+  `governance_drift_checker` status, compares base/head git blobs for
+  authority-change invalidation signals, and labels hash sources so reviewers
+  can distinguish baseline, working-tree, and git-blob hashes.
+- Added focused coverage in `tests/test_authority_manifest.py` for baseline
+  hash/provenance derivation, unchanged and changed base/head invalidation
+  cases, dynamic `generated_at` exclusion from the stable manifest hash, JSON
+  serialization, and CLI JSON output.
+- Release-note boundary: this entry records unreleased candidate tooling only.
+  It does not bump the framework version, publish a release, implement prompt
+  cache behavior, monitor cache hit/miss, wire runtime hooks/CI/pre-push/gates
+  or enforcement, rewrite `.governance/baseline.yaml`, change memory behavior,
+  or authorize cross-repo writes.
+
 ### Adoption diagnostics and UX disposition - 2026-06-26
 
 - Added `governance_tools/adoption_doctor.py` as a report-only local
