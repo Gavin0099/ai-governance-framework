@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### AUTHORITY_MANIFEST preflight consumer simulation - 2026-06-29
+
+- Added `governance_tools/authority_manifest_preflight.py` as a read-only
+  preflight consumer simulation for `AUTHORITY_MANIFEST v1`. The tool reads a
+  candidate manifest and emits reviewer-facing decisions
+  `reuse_candidate`, `reload_required`, `cache_unsafe`, and `not_checked`
+  without performing prompt-cache reuse, discard, provider integration, or
+  runtime enforcement.
+- Added focused coverage in `tests/test_authority_manifest_preflight.py` for
+  unreadable manifest handling, wrong-schema rejection, missing required-field
+  fallback, authority-change reload signaling, unchanged-manifest reuse
+  candidate signaling, and CLI no-write JSON output.
+- Release-note boundary: this entry records unreleased candidate tooling only.
+  It does not bump the framework version, publish a release, implement prompt
+  cache behavior, observe provider cache hit/miss, wire runtime hooks/CI/
+  pre-push/gates or enforcement, rewrite `.governance/baseline.yaml`, change
+  memory behavior, or authorize cross-repo writes.
+
 ### AUTHORITY_MANIFEST candidate generator - 2026-06-29
 
 - Added `governance_tools/authority_manifest.py` as a read-only
