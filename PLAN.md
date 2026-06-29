@@ -2,7 +2,7 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-06-21
+> **最後更新**: 2026-06-29
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
@@ -69,6 +69,74 @@ Phase E posture:
 - No broad enforcement upgrade without observed failure and scoped evidence.
 
 ## Current Sprint - 2026-06-10
+
+Current refresh - 2026-06-29:
+
+Theme:
+
+- Convert cache-aware governance design into a small repo-feasible
+  implementation tranche without claiming prompt-cache runtime control.
+- Keep candidate receipts, sub-agent review receipts, and cache-aware artifacts
+  evidence-only until an adopted contract or implemented tool gives them
+  stronger authority.
+- Reuse existing authority surfaces before adding new ones: `.governance`
+  `baseline.yaml` and `governance_tools/governance_drift_checker.py` are the
+  current baseline/drift path for authority-file inventory and hashes.
+
+Completed in latest committed scope:
+
+- [x] Cache-aware docs phase collected the harness/repo/enforcement boundary:
+  prompt cache, compaction control, deferred tool loading, and mode-as-tool-call
+  remain HARNESS-only; repo-feasible work is limited to reviewer-facing
+  detection/accountability artifacts.
+- [x] Cache-aware receipt alignment clarified that `REVIEW_RECEIPT`,
+  mode/auth, tool-denial, and compaction receipts remain candidate/PENDING
+  evidence unless a later adopted contract changes their authority.
+- [x] Operator prompt playbook now records daily rules that keep sub-agent
+  receipts evidence-only and keep push, memory write, and cross-repo write under
+  main-thread gates plus explicit authorization.
+- [x] Runtime adoption review packet closed the cache-aware docs phase and
+  identified the first feasible implementation tranche:
+  `AUTHORITY_MANIFEST` generator plus authority-change invalidation signal.
+- [x] AUTHORITY_MANIFEST implementation tech spec narrowed the tranche:
+  derive from or extend `.governance/baseline.yaml`, summarize
+  `governance_drift_checker.py` semantics, and do not create a parallel
+  authority map.
+
+Current next candidate:
+
+- [ ] If authorized, implement a read-only AUTHORITY_MANIFEST candidate
+  generator with focused tests. The generator must derive from existing
+  baseline/drift truth, keep `governance_drift_checker.py` as the named minimum
+  consumer, and remain deterministic/repo-local.
+
+Claim ceiling for this sprint:
+
+- CLAIMED: cache-aware planning and implementation readiness are documented;
+  the first proposed implementation tranche is bounded to a read-only
+  AUTHORITY_MANIFEST candidate generator plus authority-change invalidation
+  signal.
+- NOT CLAIMED: prompt cache implementation, cache hit/miss monitoring,
+  compaction control, mode/auth/tool-denial receipt tooling, runtime hook/CI
+  wiring, enforcement, canonical authority promotion, external harness
+  adoption, or cross-repo writes.
+
+Latest milestone commits:
+
+- `470b95a docs(governance): add cache-aware runtime adoption packet`
+- `2974840 docs(governance): specify authority manifest implementation tranche`
+- `36dc391 docs(memory): record authority manifest tech spec push`
+
+Latest scoped evidence:
+
+- `python -B -m governance_tools.governance_drift_checker --repo . --format json`
+  reports `ok=true`, `severity=ok`, `plan_inventory_current=true`, and a
+  `plan_freshness` warning only before this refresh.
+- 2026-06-28/29 canonical memory records bind the cache-aware receipt alignment,
+  operator rules, runtime adoption packet, baseline analysis, and authority
+  manifest tech-spec push.
+
+Historical sprint context - 2026-06-10:
 
 Theme:
 
@@ -192,6 +260,22 @@ wrapping is claimed. CI claim-ceiling work is documentation-only; it does not
 change workflow behavior, hooks, branch protection, or enforcement level.
 
 ## Active Claim Boundaries
+
+Cache-aware / AUTHORITY_MANIFEST planning line (2026-06-28 -> 2026-06-29):
+
+- CLAIMED: cache-aware governance surfaces have been classified into
+  HARNESS-only, REPO-feasible, and ENFORCEMENT-limited boundaries; the first
+  proposed repo-feasible implementation tranche is a read-only
+  `AUTHORITY_MANIFEST` candidate generator plus authority-change invalidation
+  signal.
+- CLAIMED: the planned generator must reuse or extend existing
+  `.governance/baseline.yaml` and `governance_drift_checker.py` semantics
+  instead of creating a competing authority map.
+- NOT CLAIMED: `AUTHORITY_MANIFEST v1` is implemented, prompt cache is
+  implemented, cache hit/miss is monitored, compaction is controlled by this
+  repo, candidate receipts are authoritative, CI/runtime/pre-push/gate
+  enforcement is wired, or external harnesses have adopted the cache-aware
+  specs.
 
 Mutation enforcement:
 
@@ -340,6 +424,23 @@ CodeBurn / token observation:
   or decision-safe cost analysis.
 
 ## Pending Work - Ordered
+
+P0 - cache-aware authority manifest implementation readiness:
+
+- [x] Close cache-aware docs phase with implementation readiness packet and
+  claim ceilings.
+- [x] Record that `AUTHORITY_MANIFEST v1` must reuse or extend the existing
+  `.governance/baseline.yaml` plus `governance_drift_checker.py` path.
+- [x] Write the docs-only implementation tech spec for the first tranche.
+- [ ] Before implementation, confirm high-rigor review boundary for a read-only
+  authority manifest generator plus focused tests.
+- [ ] If authorized, implement the generator as a separate tooling slice.
+
+Non-goals for this pending work:
+
+- Do not implement prompt cache, runtime hooks, CI/pre-push/gate enforcement,
+  baseline rewrites, memory behavior, receipt tooling, or cross-repo writes as
+  part of the first tranche.
 
 P0 - reviewer surface / trust repair:
 
