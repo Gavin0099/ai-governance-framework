@@ -48,6 +48,11 @@ Repository planning and design truth read for this ledger:
   no_agent checklist artifact observation.
 - 2026-06-26 read-only observation records the second successful unattended
   scheduled no_agent checklist artifact for the same job id.
+- 2026-06-29 read-only observation records three additional scheduled
+  no_agent checklist artifacts for 2026-06-27, 2026-06-28, and 2026-06-29.
+  The same job id reported `repeat.completed=5`, `last_status=ok`,
+  `last_run_at=2026-06-29T09:00:06+08:00`, and
+  `next_run_at=2026-06-30T09:00:00+08:00`.
 
 Observed local runtime anchors from the 2026-06-25 read-only observation:
 
@@ -97,6 +102,35 @@ Observed local runtime anchors from the 2026-06-26 read-only observation:
   contains `mode=hermes_cron_no_agent` and
   `claim_ceiling=observation_only_not_authority`.
 
+Observed local runtime anchors from the 2026-06-29 read-only observation:
+
+- HERMES_HOME:
+  `C:\tmp\hermes-noagent-checklist-deploy-20260623`.
+- Hermes job id:
+  `025890509ebf`.
+- Hermes job last status:
+  `ok`.
+- Hermes job repeat count:
+  `completed=5`.
+- Hermes job last run:
+  `2026-06-29T09:00:06+08:00`.
+- Hermes job next run:
+  `2026-06-30T09:00:00+08:00`.
+- Artifacts:
+  `C:\tmp\hermes-noagent-checklist-deploy-20260623\cron\output\025890509ebf\2026-06-27_09-00-05.md`;
+  `C:\tmp\hermes-noagent-checklist-deploy-20260623\cron\output\025890509ebf\2026-06-28_09-00-05.md`;
+  `C:\tmp\hermes-noagent-checklist-deploy-20260623\cron\output\025890509ebf\2026-06-29_09-00-06.md`.
+- Artifact shape:
+  each inspected artifact contains `mode=hermes_cron_no_agent` and
+  `claim_ceiling=observation_only_not_authority`.
+- Agent log:
+  2026-06-27, 2026-06-28, and 2026-06-29 each recorded one due job and an
+  output-saved line for job id `025890509ebf`.
+- Windows Scheduled Task state:
+  not fully re-verified in this observation because task enumeration was
+  denied and exact task-name lookup did not return a task. Hermes `jobs.json`,
+  output artifacts, and `agent.log` are the evidence for this update.
+
 ## Target outcome
 
 Provide a reviewer-readable claim ledger for Hermes no_agent local observer
@@ -111,6 +145,7 @@ In scope:
   - `verified`;
   - `observed_once`;
   - `observed_twice`;
+  - `observed_five_scheduled_runs`;
   - `not_verified`;
   - `deferred`;
 - list evidence anchors for each supported claim;
@@ -135,10 +170,10 @@ Out of scope:
 | Hermes cron no_agent package integrity | verified | Reviewed package and deployed script/config can be preflight-checked before scheduled runs. | `multi_repo_status.config.json`; `check_preflight.py`; deployed script/config hash checks recorded in prior memory. | Preflight proves registered job semantics, job execution, or governance compliance. |
 | Persistent Hermes no_agent job registration | verified | Local HERMES_HOME contains one scheduled checklist job with `no_agent=true`, `script=multi_repo_status.py`, `deliver=local`, and cron schedule `0 9 * * *`. | `memory/2026-06-24.md`; `jobs.json` runtime observation; job id `025890509ebf`. | General job schema lifecycle, edit/delete/migration stability, or all Hermes cron configurations. |
 | Windows scheduled task path | verified | A Windows Scheduled Task exists locally and invokes preflight followed by `hermes_cli.main cron tick`. | Task name `AI Governance Hermes NoAgent Checklist`; observed LastRun/NextRun; installer source in `install_checklist_task.ps1`. | OS-state portability, fleet deployment, or that tracking installer source itself installed the task. |
-| Scheduled daily artifact production | observed_twice | Two unattended scheduled runs produced no_agent checklist artifacts on 2026-06-25 and 2026-06-26. | Task LastRunTime `2026-06-25 09:00:01 +08`; Task LastRunTime `2026-06-26 09:00:01 +08`; `jobs.json` `last_status=ok`; `repeat.completed=2`; artifact paths `...\025890509ebf\2026-06-25_09-00-05.md` and `...\025890509ebf\2026-06-26_09-00-05.md`; agent log output-saved lines. | Recurrence reliability, ongoing daily production beyond the two observed runs, or that future scheduled runs will succeed. |
-| Recurrence observed twice | observed_twice | The same persistent job id produced expected scheduled artifacts on two separate calendar days. | Job id `025890509ebf`; 2026-06-25 and 2026-06-26 artifacts; `jobs.json` `repeat.completed=2`; next run advanced to `2026-06-27T09:00:00+08:00`. | Reliability, SLA, stability, or future-run guarantee. |
-| Hermes as local observer | observed_twice | Hermes can act as a low-risk local scheduled observation runner for a reviewed no_agent script across two observed scheduled runs. | The 2026-06-25 and 2026-06-26 scheduled artifacts and reviewed checklist package. | Hermes is a general agent runtime, sandbox, or authority layer. |
-| Artifact as evidence | verified for shape, observed_twice for scheduled production | Artifact shape is useful observation evidence at each timestamp. | Markdown artifacts with `mode=hermes_cron_no_agent` and `claim_ceiling=observation_only_not_authority`. | Artifact is standing authority, live git truth, semantic correctness, or governance compliance. |
+| Scheduled daily artifact production | observed_five_scheduled_runs | Five unattended scheduled runs produced no_agent checklist artifacts on 2026-06-25 through 2026-06-29. | Task LastRunTime evidence for 2026-06-25 and 2026-06-26; `jobs.json` `last_status=ok`, `repeat.completed=5`, `last_run_at=2026-06-29T09:00:06+08:00`, `next_run_at=2026-06-30T09:00:00+08:00`; artifact paths `...\025890509ebf\2026-06-25_09-00-05.md`, `...\2026-06-26_09-00-05.md`, `...\2026-06-27_09-00-05.md`, `...\2026-06-28_09-00-05.md`, and `...\2026-06-29_09-00-06.md`; agent log output-saved lines. | Recurrence reliability, ongoing production beyond the five observed runs, or that future scheduled runs will succeed. |
+| Recurrence observed across five scheduled days | observed_five_scheduled_runs | The same persistent job id produced expected scheduled artifacts on five separate calendar days. | Job id `025890509ebf`; 2026-06-25 through 2026-06-29 artifacts; `jobs.json` `repeat.completed=5`; next run advanced to `2026-06-30T09:00:00+08:00`. | Reliability, SLA, stability, or future-run guarantee. |
+| Hermes as local observer | observed_five_scheduled_runs | Hermes can act as a low-risk local scheduled observation runner for a reviewed no_agent script across five observed scheduled runs. | The 2026-06-25 through 2026-06-29 scheduled artifacts and reviewed checklist package. | Hermes is a general agent runtime, sandbox, or authority layer. |
+| Artifact as evidence | verified for shape, observed_five_scheduled_runs for scheduled production | Artifact shape is useful observation evidence at each timestamp. | Markdown artifacts with `mode=hermes_cron_no_agent` and `claim_ceiling=observation_only_not_authority`. | Artifact is standing authority, live git truth, semantic correctness, or governance compliance. |
 | Full Hermes agent / LLM path | deferred | No claim. | None in this line. | Full agent startup, LLM execution, autonomous tool use, credential safety, or provider behavior. |
 | Provider-free runtime | not_verified | No claim. | Logs show provider plugins are loaded by the runtime, while the job itself is no_agent. | Runtime cannot call providers. `no_agent` is per-job, not provider-free runtime. |
 | Interactive / ACP path | deferred | No claim. | Prior spec records these as stream/protocol shaped and deferred. | Interactive/ACP capture, response_file artifact generation, or governance coverage. |
@@ -156,11 +191,16 @@ Use these tiers consistently:
 - `observed_once`: one runtime event occurred and produced expected evidence.
 - `observed_twice`: two separate scheduled runtime events occurred and
   produced expected evidence.
+- `observed_five_scheduled_runs`: five separate scheduled runtime events
+  occurred and produced expected evidence.
 - `not_verified`: a claim is plausible or desired but has not been evidenced.
 - `deferred`: the surface is intentionally out of current scope.
 
 `observed_twice` is not reliability. It is only stronger recurrence evidence
 than `observed_once`.
+`observed_five_scheduled_runs` is also not reliability. It is stronger
+recurrence evidence than `observed_twice`, but it does not establish SLA,
+stability, or future-run guarantees.
 
 ### Authority semantics
 
@@ -189,15 +229,16 @@ Can claim now:
 
 - local HERMES_HOME has one persistent reviewed no_agent daily checklist job;
 - local Windows Scheduled Task has invoked the preflight-gated tick path;
-- two scheduled no_agent daily artifacts were observed on 2026-06-25 and
-  2026-06-26;
-- recurrence is observed twice for this local job id and artifact path;
+- five scheduled no_agent daily artifacts were observed on 2026-06-25 through
+  2026-06-29;
+- recurrence is observed across five scheduled days for this local job id and
+  artifact path;
 - the artifacts are useful as timestamped observation evidence only.
 
 Cannot claim now:
 
 - recurrence reliability;
-- scheduled production beyond the two observed runs;
+- scheduled production beyond the five observed runs;
 - provider-free runtime;
 - full agent readiness;
 - LLM/provider safety;
@@ -248,8 +289,9 @@ For the next read-only recurrence observation:
 Recommended next tranche:
 
 ```text
-keep the claim at observed_twice unless a later scheduled run, retention design,
-or governance metadata wrapper is explicitly selected as a new bounded slice.
+keep the claim at observed_five_scheduled_runs unless a later scheduled run,
+retention design, or governance metadata wrapper is explicitly selected as a
+new bounded slice.
 ```
 
 Deferred tranches:
