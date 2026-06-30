@@ -2,7 +2,7 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-06-29
+> **最後更新**: 2026-06-30
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
@@ -70,7 +70,7 @@ Phase E posture:
 
 ## Current Sprint - 2026-06-10
 
-Current refresh - 2026-06-29:
+Current refresh - 2026-06-30:
 
 Theme:
 
@@ -115,8 +115,8 @@ Completed in latest committed scope:
   publish, prompt-cache behavior, runtime hooks, CI/pre-push/gates, or
   enforcement claims.
 - [x] Hermes no_agent local observer claim ledger updated to
-  `observed_five_scheduled_runs` for job `025890509ebf`, based on five
-  scheduled artifacts from 2026-06-25 through 2026-06-29 while preserving
+  `observed_six_scheduled_runs` for job `025890509ebf`, based on six
+  scheduled artifacts from 2026-06-25 through 2026-06-30 while preserving
   non-claims for reliability, SLA, provider-free runtime, governance authority,
   enforcement, and future scheduled success.
 
@@ -149,6 +149,8 @@ Latest milestone commits:
 - `0d5f1bd docs(changelog): record authority manifest generator`
 - `8e9754b docs(changelog): record authority manifest preflight consumer`
 - `58f8a30 docs(hermes): update no-agent recurrence ledger`
+- `8090517 docs(hermes): record sixth no-agent observation`
+- `6e6d059 docs(memory): record Hermes observed-six ledger update`
 
 Latest scoped evidence:
 
@@ -160,13 +162,13 @@ Latest scoped evidence:
 - `python -B -m pytest tests/test_authority_manifest_preflight.py
   --basetemp .tmp_pytest_authority_manifest_preflight_review -p no:cacheprovider`
   passed 6/6 before commit.
-- Hermes read-only observation inspected `jobs.json`, five output artifacts,
+- Hermes read-only observation inspected `jobs.json`, six output artifacts,
   and `agent.log` under `C:\tmp\hermes-noagent-checklist-deploy-20260623`,
-  supporting `observed_five_scheduled_runs` but not reliability.
-- 2026-06-28/29 canonical memory records bind the cache-aware receipt alignment,
+  supporting `observed_six_scheduled_runs` but not reliability.
+- 2026-06-28/29/30 canonical memory records bind the cache-aware receipt alignment,
   operator rules, runtime adoption packet, baseline analysis, authority
   manifest implementation, preflight consumer simulation, changelog
-  dispositions, and Hermes observed-five ledger update.
+  dispositions, and Hermes observed-six ledger update.
 
 Historical sprint context - 2026-06-10:
 
@@ -350,8 +352,8 @@ Hermes executor-adapter line (2026-06-21):
   mock-backend fixture path with focused tests for fail-closed parse /
   allowlist behavior and response-file contract.
 - CLAIMED: the separate Hermes no_agent local observer line has
-  `observed_five_scheduled_runs` for job `025890509ebf`, with five scheduled
-  output artifacts from 2026-06-25 through 2026-06-29 and observation-only
+  `observed_six_scheduled_runs` for job `025890509ebf`, with six scheduled
+  output artifacts from 2026-06-25 through 2026-06-30 and observation-only
   claim ceiling.
 - NOT CLAIMED: verified external Hermes governance compliance, true Hermes
   model integration, hosted/local backend reliability, model-generated
