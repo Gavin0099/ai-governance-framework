@@ -236,10 +236,37 @@ Minimum artifact fields:
 The artifact must be written to a reviewable temp or artifacts path chosen for
 the run. It must not be silently written into canonical framework memory.
 
-### 5. Adapter payload boundary
+### 5. Raw capture versus governance response artifact
 
-If the future run produces a response artifact, the framework Hermes adapter
-payload may use:
+The future run has two separate artifact classes:
+
+1. raw Hermes capture artifact
+   - captures what Hermes emitted through stdout, ACP final-response protocol
+     content, transcript/session storage, or another reviewed capture surface;
+   - proves only that output was captured at the stated boundary;
+   - is not automatically a framework `post_task` `response_file`.
+2. governance wrapper or sidecar response artifact
+   - references or embeds the raw capture artifact;
+   - preserves the raw artifact provenance, including path, hash when
+     available, capture boundary, provider/model identifiers, and redaction
+     status;
+   - contains the framework-required `[Governance Contract]` block if it will
+     be passed directly as `response_file` / `output_file` to the existing
+     Hermes `post_task` adapter.
+
+The existing shared adapter runner treats any non-empty `response_file` for a
+non-trivial `post_task` as contract-bearing evidence. A raw Hermes capture that
+contains only model output and metadata will not satisfy that path unless it is
+wrapped or paired with a separately reviewed governance response artifact.
+
+This plan does not implement the wrapper, sidecar, or any native-artifact
+predicate. It only defines the evidence boundary that a later explicitly
+authorized run must respect.
+
+### 6. Adapter payload boundary
+
+If the future run produces a governance response artifact that satisfies the
+boundary above, the framework Hermes adapter payload may use:
 
 ```json
 {
@@ -263,8 +290,8 @@ If the future run succeeds, the maximum claim is:
 
 ```text
 A real Hermes model/provider invocation emitted a captured final response
-artifact under a no-write evidence plan, and the artifact was shaped into the
-framework Hermes accepted-input post_task contract.
+artifact under a no-write evidence plan, and a governance response artifact was
+shaped into the framework Hermes accepted-input post_task contract.
 ```
 
 It still must not claim:
@@ -303,12 +330,20 @@ It still must not claim:
    - Control: artifact must identify `final_response_source` and capture
      boundary; partial output must be labeled partial.
 
-5. Middleware overclaim
+5. Raw artifact submitted as `post_task` evidence
+   - Risk: a raw Hermes capture artifact is passed directly as `response_file`
+     even though it lacks the framework `[Governance Contract]` block required
+     by the current adapter path for non-trivial post-task evidence.
+   - Control: raw capture and governance response artifacts must be separated;
+     direct `post_task` submission requires a wrapper or sidecar-reviewed
+     response artifact with the required governance contract block.
+
+6. Middleware overclaim
    - Risk: a cooperative hook is described as enforcement.
    - Control: all evidence packets must preserve the existing non-bypassability
      non-claim.
 
-6. Memory authority confusion
+7. Memory authority confusion
    - Risk: Hermes internal memory or session transcript is treated as framework
      canonical memory.
    - Control: Hermes memory/transcript is runtime evidence only; canonical
@@ -353,10 +388,15 @@ Before a future run:
 After a future run:
 
 1. Inspect the captured artifact.
-2. Shape an accepted-input Hermes `post_task` payload with `output_file`.
-3. Run the existing Hermes adapter/post-task check only if the artifact path is
+2. Create or identify the governance response artifact that references or wraps
+   the raw capture and contains the required `[Governance Contract]` block if it
+   will be submitted to the existing `post_task` adapter.
+3. Shape an accepted-input Hermes `post_task` payload with `output_file`
+   pointing at that governance response artifact, not at an unwrapped raw
+   capture.
+4. Run the existing Hermes adapter/post-task check only if the artifact path is
    present and contains no secrets.
-4. Report evidence and non-claims separately.
+5. Report evidence and non-claims separately.
 
 ## Implementation Tranche Recommendation
 
