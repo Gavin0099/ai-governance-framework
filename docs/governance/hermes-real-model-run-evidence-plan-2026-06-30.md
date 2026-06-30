@@ -69,6 +69,26 @@ dirty state: untracked artifacts/ only
 The static diagnosis did not run Hermes CLI, did not read credential values,
 did not run a provider/model call, and did not modify either repository.
 
+Follow-up static diagnosis on 2026-06-30 reviewed `hermes-acp` as a candidate
+entrypoint and found a blocking precondition for any real provider evidence
+run:
+
+- `hermes-acp` is a plausible final-response capture candidate because ACP
+  prompt handling records `result.final_response` and can emit it as an ACP
+  message update.
+- `hermes-acp` is not yet a reviewed no-tool/no-MCP execution path.
+- ACP startup loads environment/config surfaces and performs MCP tool discovery
+  before running the server.
+- ACP session construction hard-codes `enabled_toolsets=["hermes-acp"]` and
+  adds enabled MCP servers from config.
+- The Hermes tool configuration CLI can disable toolsets, but it is
+  config-mutating and the current platform registry does not expose an `acp`
+  platform entry for a no-write ACP tool policy.
+
+Therefore real Hermes provider evidence remains blocked until a reviewed
+no-tool/no-MCP execution constraint exists. This blocker is Hermes-side; it
+cannot be resolved by framework packet wording alone.
+
 ## Target Outcome
 
 Define the minimum evidence contract for a future no-write real Hermes
@@ -187,6 +207,9 @@ Forbidden evidence:
 ### 3. Tool execution boundary
 
 The first real model/provider run should be tool-disabled or tool-constrained.
+As of the 2026-06-30 `hermes-acp` static diagnosis, no reviewed no-tool/no-MCP
+execution constraint has been found for ACP. A real provider run must not be
+used as governance evidence until this constraint exists and has been reviewed.
 
 Preferred first run:
 
@@ -200,6 +223,11 @@ If Hermes cannot run with tools disabled, the run must use an allowlist of
 non-mutating tools and record the allowlist. A run with write-capable tools,
 terminal tools, browser automation, delegation, memory writes, or MCP dispatch
 is out of scope for the first evidence packet.
+
+A prompt instruction such as "do not use tools" is not an execution constraint.
+The required constraint must be represented in Hermes runtime configuration,
+entrypoint arguments, protocol session setup, or another reviewed mechanism that
+prevents tool and MCP dispatch for the run.
 
 No claim may say tool governance is non-bypassable unless a separate
 chokepoint audit proves every relevant provider/model tool path flows through a
@@ -370,7 +398,8 @@ Before a future run:
    - credential source type.
 
 4. Define tool policy:
-   - `tools_disabled` preferred;
+   - `tools_disabled` preferred but currently blocked for ACP until a reviewed
+     no-tool/no-MCP execution constraint exists;
    - otherwise `read_only_allowlist` with exact tool names;
    - write-capable tools are excluded from the first run.
 
@@ -403,10 +432,11 @@ After a future run:
 Recommended next tranche:
 
 ```text
-DONE = perform a no-write preflight packet for one explicitly selected Hermes
-provider/model run; static-first; no model execution until the operator
-explicitly approves provider credential use and run command.
+DONE = define and review a no-tool/no-MCP Hermes execution constraint for the
+selected real-run entrypoint; no provider execution until the constraint exists.
 ```
 
-Do not implement a Hermes plugin, runtime hook, CI gate, or enforcement path
-before one real no-write model/provider evidence packet exists and is reviewed.
+Do not run a real provider/model evidence attempt before the no-tool/no-MCP
+execution constraint exists and is reviewed. Do not implement a Hermes plugin,
+runtime hook, CI gate, or enforcement path before one real no-write
+model/provider evidence packet exists and is reviewed.
