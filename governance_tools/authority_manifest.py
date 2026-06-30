@@ -45,6 +45,7 @@ class AuthorityFile:
     changed_between_refs: bool | None
     overridable: str
     loaded_as: str
+    cache_surface: str
     invalidates_cache_on_change: bool
 
 
@@ -107,6 +108,12 @@ def _loaded_as(overridable: str) -> str:
     return "overridable_authority"
 
 
+def _cache_surface(relpath: str) -> str:
+    if relpath == "PLAN.md":
+        return "content_planning"
+    return "cache_stable_authority"
+
+
 def _stable_manifest_hash(payload: dict[str, Any]) -> str:
     stable_payload = {
         key: value
@@ -130,24 +137,35 @@ def build_authority_manifest(
         raise ValueError(f"missing or unreadable {BASELINE_YAML_RELPATH}")
 
     authority_files: list[AuthorityFile] = []
-    changed_paths: list[str] = []
+    observed_changed_paths: list[str] = []
+    cache_invalidating_changed_paths: list[str] = []
     missing_at_base: list[str] = []
     missing_at_head: list[str] = []
+    cache_invalidating_missing_at_base: list[str] = []
+    cache_invalidating_missing_at_head: list[str] = []
 
     for relpath in _authority_paths_from_baseline(baseline):
         baseline_hash = str(baseline.get(f"sha256.{relpath}", ""))
         current_hash = _sha256_file(repo_root / relpath)
         base_hash = _git_blob_hash(repo_root, base_ref, relpath)
         head_hash = _git_blob_hash(repo_root, head_ref, relpath)
+        cache_surface = _cache_surface(relpath)
+        invalidates_cache_on_change = cache_surface == "cache_stable_authority"
         changed_between_refs = None
         if base_hash is None:
             missing_at_base.append(relpath)
+            if invalidates_cache_on_change:
+                cache_invalidating_missing_at_base.append(relpath)
         if head_hash is None:
             missing_at_head.append(relpath)
+            if invalidates_cache_on_change:
+                cache_invalidating_missing_at_head.append(relpath)
         if base_hash is not None and head_hash is not None:
             changed_between_refs = base_hash != head_hash
             if changed_between_refs:
-                changed_paths.append(relpath)
+                observed_changed_paths.append(relpath)
+                if invalidates_cache_on_change:
+                    cache_invalidating_changed_paths.append(relpath)
 
         overridable = str(baseline.get(f"overridable.{relpath}", "unknown"))
         authority_files.append(
@@ -164,7 +182,8 @@ def build_authority_manifest(
                 changed_between_refs=changed_between_refs,
                 overridable=overridable,
                 loaded_as=_loaded_as(overridable),
-                invalidates_cache_on_change=True,
+                cache_surface=cache_surface,
+                invalidates_cache_on_change=invalidates_cache_on_change,
             )
         )
 
@@ -197,10 +216,26 @@ def build_authority_manifest(
         "authority_files": [asdict(item) for item in authority_files],
         "checks": {"governance_drift_checker": drift_summary},
         "invalidation": {
-            "authority_changed_between_refs": bool(changed_paths or missing_at_base or missing_at_head),
-            "changed_paths": changed_paths,
+            "authority_changed_between_refs": bool(
+                cache_invalidating_changed_paths
+                or cache_invalidating_missing_at_base
+                or cache_invalidating_missing_at_head
+            ),
+            "cache_invalidating_authority_changed": bool(
+                cache_invalidating_changed_paths
+                or cache_invalidating_missing_at_base
+                or cache_invalidating_missing_at_head
+            ),
+            "changed_paths": cache_invalidating_changed_paths,
+            "cache_invalidating_changed_paths": cache_invalidating_changed_paths,
+            "non_invalidating_changed_paths": [
+                path for path in observed_changed_paths if path not in cache_invalidating_changed_paths
+            ],
+            "observed_changed_paths": observed_changed_paths,
             "missing_at_base": missing_at_base,
             "missing_at_head": missing_at_head,
+            "cache_invalidating_missing_at_base": cache_invalidating_missing_at_base,
+            "cache_invalidating_missing_at_head": cache_invalidating_missing_at_head,
             "signal": "authority_change_invalidation_signal",
             "effect": "detection_accountability_only",
         },
@@ -258,6 +293,7 @@ def format_human(manifest: AuthorityManifest) -> str:
         f"baseline_source={manifest.baseline_source['path']}",
         f"authority_changed_between_refs={manifest.invalidation['authority_changed_between_refs']}",
         f"changed_paths={', '.join(manifest.invalidation['changed_paths']) or '<none>'}",
+        f"non_invalidating_changed_paths={', '.join(manifest.invalidation['non_invalidating_changed_paths']) or '<none>'}",
         f"governance_drift_checker.severity={manifest.checks['governance_drift_checker']['severity']}",
         f"repo_enforces_prompt_cache={manifest.repo_enforces_prompt_cache}",
         f"claim_ceiling={manifest.claim_ceiling}",
@@ -273,6 +309,8 @@ def format_human(manifest: AuthorityManifest) -> str:
             f"- {item.path}: baseline={item.baseline_hash} "
             f"base={item.base_hash or '<missing>'} head={item.head_hash or '<missing>'} "
             f"{marker} loaded_as={item.loaded_as} "
+            f"cache_surface={item.cache_surface} "
+            f"invalidates_cache_on_change={item.invalidates_cache_on_change} "
             f"hash_sources=baseline_yaml/working_tree/git_blob"
         )
     lines.append("")

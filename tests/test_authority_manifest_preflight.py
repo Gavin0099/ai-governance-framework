@@ -131,7 +131,10 @@ def test_wrong_manifest_schema_is_cache_unsafe(tmp_path: Path) -> None:
         "base_ref": "a",
         "head_ref": "b",
         "checks": {"governance_drift_checker": {"severity": "ok"}},
-        "invalidation": {"authority_changed_between_refs": False},
+        "invalidation": {
+            "authority_changed_between_refs": False,
+            "cache_invalidating_authority_changed": False,
+        },
         "repo_enforces_prompt_cache": False,
     }
 
@@ -161,7 +164,7 @@ def test_missing_required_field_is_not_checked(tmp_path: Path) -> None:
     assert "missing_required_fields" in receipt.decision_reason
 
 
-def test_changed_authority_requires_reload(tmp_path: Path) -> None:
+def test_plan_churn_still_allows_reuse_candidate(tmp_path: Path) -> None:
     _write_minimal_repo(tmp_path)
     base = _run(tmp_path, "rev-parse", "HEAD").stdout.strip()
     (tmp_path / "PLAN.md").write_text(
@@ -179,9 +182,32 @@ def test_changed_authority_requires_reload(tmp_path: Path) -> None:
 
     receipt = build_generated_receipt(tmp_path, base_ref=base, head_ref=head, framework_root=FRAMEWORK_ROOT)
 
+    assert receipt.decision == "reuse_candidate"
+    assert receipt.required_action == "none"
+    assert receipt.authority_changed_between_refs is False
+    assert receipt.cache_invalidating_authority_changed is False
+
+
+def test_changed_cache_stable_authority_requires_reload(tmp_path: Path) -> None:
+    _write_minimal_repo(tmp_path)
+    base = _run(tmp_path, "rev-parse", "HEAD").stdout.strip()
+    (tmp_path / "AGENTS.md").write_text(
+        "# AGENTS.md\n\n"
+        "<!-- governance:key=risk_levels -->\n"
+        "- High\n\n"
+        "<!-- governance:key=must_test_paths -->\n"
+        "- tests\n",
+        encoding="utf-8",
+    )
+    head = _commit(tmp_path, "change agents")
+
+    receipt = build_generated_receipt(tmp_path, base_ref=base, head_ref=head, framework_root=FRAMEWORK_ROOT)
+
     assert receipt.decision == "reload_required"
     assert receipt.required_action == "reload_authority_files"
     assert receipt.authority_changed_between_refs is True
+    assert receipt.cache_invalidating_authority_changed is True
+    assert receipt.decision_reason == "cache_invalidating_authority_changed"
 
 
 def test_unchanged_manifest_is_reuse_candidate(tmp_path: Path) -> None:

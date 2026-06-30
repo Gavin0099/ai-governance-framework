@@ -51,6 +51,7 @@ class PreflightReceipt:
     manifest_status: str
     manifest_hash: str
     authority_changed_between_refs: bool | None
+    cache_invalidating_authority_changed: bool | None
     governance_drift_severity: str
     repo_enforces_prompt_cache: bool | None
     decision: str
@@ -80,6 +81,7 @@ def _base_receipt(
     manifest_status: str,
     manifest_hash: str,
     authority_changed_between_refs: bool | None,
+    cache_invalidating_authority_changed: bool | None,
     governance_drift_severity: str,
     repo_enforces_prompt_cache: bool | None,
     decision: str,
@@ -97,6 +99,7 @@ def _base_receipt(
         manifest_status=manifest_status,
         manifest_hash=manifest_hash,
         authority_changed_between_refs=authority_changed_between_refs,
+        cache_invalidating_authority_changed=cache_invalidating_authority_changed,
         governance_drift_severity=governance_drift_severity,
         repo_enforces_prompt_cache=repo_enforces_prompt_cache,
         decision=decision,
@@ -115,7 +118,9 @@ def assess_manifest_payload(payload: dict[str, Any]) -> PreflightReceipt:
     repo = str(payload.get("repo") or "<unknown>")
     base_ref = str(payload.get("base_ref") or "<unknown>")
     head_ref = str(payload.get("head_ref") or "<unknown>")
-    authority_changed = _lookup(payload, "invalidation", "authority_changed_between_refs")
+    legacy_authority_changed = _lookup(payload, "invalidation", "authority_changed_between_refs")
+    cache_authority_changed = _lookup(payload, "invalidation", "cache_invalidating_authority_changed")
+    authority_changed = cache_authority_changed if isinstance(cache_authority_changed, bool) else legacy_authority_changed
     drift_severity = str(_lookup(payload, "checks", "governance_drift_checker", "severity") or "")
     repo_enforces = payload.get("repo_enforces_prompt_cache")
 
@@ -134,6 +139,7 @@ def assess_manifest_payload(payload: dict[str, Any]) -> PreflightReceipt:
             manifest_status=manifest_status or "<missing>",
             manifest_hash=manifest_hash or "<missing>",
             authority_changed_between_refs=None if not isinstance(authority_changed, bool) else authority_changed,
+            cache_invalidating_authority_changed=None if not isinstance(cache_authority_changed, bool) else cache_authority_changed,
             governance_drift_severity=drift_severity or "<missing>",
             repo_enforces_prompt_cache=(repo_enforces if isinstance(repo_enforces, bool) else None),
             decision="cache_unsafe",
@@ -148,7 +154,7 @@ def assess_manifest_payload(payload: dict[str, Any]) -> PreflightReceipt:
     if not manifest_hash:
         missing_fields.append("manifest_hash")
     if not isinstance(authority_changed, bool):
-        missing_fields.append("invalidation.authority_changed_between_refs")
+        missing_fields.append("invalidation.cache_invalidating_authority_changed")
     if not drift_severity:
         missing_fields.append("checks.governance_drift_checker.severity")
     if not isinstance(repo_enforces, bool):
@@ -163,6 +169,7 @@ def assess_manifest_payload(payload: dict[str, Any]) -> PreflightReceipt:
             manifest_status=manifest_status or "<missing>",
             manifest_hash=manifest_hash or "<missing>",
             authority_changed_between_refs=None if not isinstance(authority_changed, bool) else authority_changed,
+            cache_invalidating_authority_changed=None if not isinstance(cache_authority_changed, bool) else cache_authority_changed,
             governance_drift_severity=drift_severity or "<missing>",
             repo_enforces_prompt_cache=(repo_enforces if isinstance(repo_enforces, bool) else None),
             decision="not_checked",
@@ -180,6 +187,7 @@ def assess_manifest_payload(payload: dict[str, Any]) -> PreflightReceipt:
             manifest_status=manifest_status,
             manifest_hash=manifest_hash,
             authority_changed_between_refs=authority_changed,
+            cache_invalidating_authority_changed=None if not isinstance(cache_authority_changed, bool) else cache_authority_changed,
             governance_drift_severity=drift_severity,
             repo_enforces_prompt_cache=repo_enforces,
             decision="cache_unsafe",
@@ -197,6 +205,7 @@ def assess_manifest_payload(payload: dict[str, Any]) -> PreflightReceipt:
             manifest_status=manifest_status,
             manifest_hash=manifest_hash,
             authority_changed_between_refs=authority_changed,
+            cache_invalidating_authority_changed=None if not isinstance(cache_authority_changed, bool) else cache_authority_changed,
             governance_drift_severity=drift_severity,
             repo_enforces_prompt_cache=repo_enforces,
             decision="cache_unsafe",
@@ -214,10 +223,11 @@ def assess_manifest_payload(payload: dict[str, Any]) -> PreflightReceipt:
             manifest_status=manifest_status,
             manifest_hash=manifest_hash,
             authority_changed_between_refs=authority_changed,
+            cache_invalidating_authority_changed=None if not isinstance(cache_authority_changed, bool) else cache_authority_changed,
             governance_drift_severity=drift_severity,
             repo_enforces_prompt_cache=repo_enforces,
             decision="reload_required",
-            decision_reason="authority_changed_between_refs",
+            decision_reason="cache_invalidating_authority_changed",
             required_action="reload_authority_files",
             evidence_refs=evidence_refs,
         )
@@ -231,6 +241,7 @@ def assess_manifest_payload(payload: dict[str, Any]) -> PreflightReceipt:
             manifest_status=manifest_status,
             manifest_hash=manifest_hash,
             authority_changed_between_refs=authority_changed,
+            cache_invalidating_authority_changed=None if not isinstance(cache_authority_changed, bool) else cache_authority_changed,
             governance_drift_severity=drift_severity,
             repo_enforces_prompt_cache=repo_enforces,
             decision="reuse_candidate",
@@ -247,6 +258,7 @@ def assess_manifest_payload(payload: dict[str, Any]) -> PreflightReceipt:
         manifest_status=manifest_status,
         manifest_hash=manifest_hash,
         authority_changed_between_refs=authority_changed,
+        cache_invalidating_authority_changed=None if not isinstance(cache_authority_changed, bool) else cache_authority_changed,
         governance_drift_severity=drift_severity,
         repo_enforces_prompt_cache=repo_enforces,
         decision="not_checked",
@@ -267,6 +279,7 @@ def assess_manifest_path(path: Path, *, project_root: Path | None = None) -> Pre
             manifest_status="<missing>",
             manifest_hash="<missing>",
             authority_changed_between_refs=None,
+            cache_invalidating_authority_changed=None,
             governance_drift_severity="<missing>",
             repo_enforces_prompt_cache=None,
             decision="cache_unsafe",
@@ -285,6 +298,7 @@ def assess_manifest_path(path: Path, *, project_root: Path | None = None) -> Pre
             manifest_status="<unreadable>",
             manifest_hash="<unreadable>",
             authority_changed_between_refs=None,
+            cache_invalidating_authority_changed=None,
             governance_drift_severity="<unreadable>",
             repo_enforces_prompt_cache=None,
             decision="cache_unsafe",
@@ -320,6 +334,7 @@ def build_generated_receipt(
             manifest_status="<generation_failed>",
             manifest_hash="<generation_failed>",
             authority_changed_between_refs=None,
+            cache_invalidating_authority_changed=None,
             governance_drift_severity="<generation_failed>",
             repo_enforces_prompt_cache=None,
             decision="cache_unsafe",
@@ -352,6 +367,7 @@ def format_human(receipt: PreflightReceipt) -> str:
         f"manifest_status={receipt.manifest_status}",
         f"manifest_hash={receipt.manifest_hash}",
         f"authority_changed_between_refs={receipt.authority_changed_between_refs}",
+        f"cache_invalidating_authority_changed={receipt.cache_invalidating_authority_changed}",
         f"governance_drift_severity={receipt.governance_drift_severity}",
         f"repo_enforces_prompt_cache={receipt.repo_enforces_prompt_cache}",
         f"decision={receipt.decision}",

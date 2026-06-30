@@ -131,6 +131,10 @@ def test_manifest_derives_authority_files_and_hashes_from_baseline(tmp_path):
         assert by_path[path]["base_hash_source"] == f"git_blob:{head}:{path}"
         assert by_path[path]["head_hash"] == expected_hash
         assert by_path[path]["head_hash_source"] == f"git_blob:{head}:{path}"
+    assert by_path["PLAN.md"]["cache_surface"] == "content_planning"
+    assert by_path["PLAN.md"]["invalidates_cache_on_change"] is False
+    assert by_path["AGENTS.md"]["cache_surface"] == "cache_stable_authority"
+    assert by_path["AGENTS.md"]["invalidates_cache_on_change"] is True
     assert data["baseline_source"]["authority_paths_source"] == "sha256.* keys from .governance/baseline.yaml"
     assert data["baseline_source"]["source_commit"] == "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
     assert data["baseline_source"]["baseline_version"] == "1.0.0"
@@ -155,7 +159,7 @@ def test_invalidation_signal_is_false_when_refs_match(tmp_path):
     assert manifest.invalidation["changed_paths"] == []
 
 
-def test_invalidation_signal_detects_authority_file_change_between_refs(tmp_path):
+def test_plan_churn_is_observed_but_does_not_invalidate_cache(tmp_path):
     _write_minimal_repo(tmp_path)
     base = _run(tmp_path, "rev-parse", "HEAD").stdout.strip()
     (tmp_path / "PLAN.md").write_text(
@@ -177,11 +181,49 @@ def test_invalidation_signal_detects_authority_file_change_between_refs(tmp_path
         framework_root=FRAMEWORK_ROOT,
     )
 
-    assert manifest.invalidation["authority_changed_between_refs"] is True
-    assert manifest.invalidation["changed_paths"] == ["PLAN.md"]
+    assert manifest.invalidation["authority_changed_between_refs"] is False
+    assert manifest.invalidation["cache_invalidating_authority_changed"] is False
+    assert manifest.invalidation["changed_paths"] == []
+    assert manifest.invalidation["cache_invalidating_changed_paths"] == []
+    assert manifest.invalidation["non_invalidating_changed_paths"] == ["PLAN.md"]
+    assert manifest.invalidation["observed_changed_paths"] == ["PLAN.md"]
     plan_entry = next(item for item in manifest.authority_files if item.path == "PLAN.md")
     assert plan_entry.changed_between_refs is True
     assert plan_entry.base_hash != plan_entry.head_hash
+    assert plan_entry.cache_surface == "content_planning"
+    assert plan_entry.invalidates_cache_on_change is False
+
+
+def test_invalidation_signal_detects_cache_stable_authority_file_change_between_refs(tmp_path):
+    _write_minimal_repo(tmp_path)
+    base = _run(tmp_path, "rev-parse", "HEAD").stdout.strip()
+    (tmp_path / "AGENTS.md").write_text(
+        "# AGENTS.md\n\n"
+        "<!-- governance:key=risk_levels -->\n"
+        "- High\n\n"
+        "<!-- governance:key=must_test_paths -->\n"
+        "- tests\n",
+        encoding="utf-8",
+    )
+    head = _commit(tmp_path, "change agents")
+
+    manifest = build_authority_manifest(
+        tmp_path,
+        base_ref=base,
+        head_ref=head,
+        framework_root=FRAMEWORK_ROOT,
+    )
+
+    assert manifest.invalidation["authority_changed_between_refs"] is True
+    assert manifest.invalidation["cache_invalidating_authority_changed"] is True
+    assert manifest.invalidation["changed_paths"] == ["AGENTS.md"]
+    assert manifest.invalidation["cache_invalidating_changed_paths"] == ["AGENTS.md"]
+    assert manifest.invalidation["non_invalidating_changed_paths"] == []
+    assert manifest.invalidation["observed_changed_paths"] == ["AGENTS.md"]
+    agents_entry = next(item for item in manifest.authority_files if item.path == "AGENTS.md")
+    assert agents_entry.changed_between_refs is True
+    assert agents_entry.cache_surface == "cache_stable_authority"
+    assert agents_entry.invalidates_cache_on_change is True
 
 
 def test_manifest_hash_excludes_generated_at_dynamic_tail(tmp_path, monkeypatch):
