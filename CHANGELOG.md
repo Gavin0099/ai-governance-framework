@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### AUTHORITY_MANIFEST cache-invalidation refinement - 2026-06-30
+
+- Refined `governance_tools/authority_manifest.py` and
+  `governance_tools/authority_manifest_preflight.py` so routine `PLAN.md`
+  planning/content churn remains observable but no longer forces
+  `reload_required` for cache-preflight decisions. `PLAN.md` is now surfaced as
+  `content_planning` / non-invalidating, while cache-stable authority files
+  such as `AGENTS.md`, `AGENTS.base.md`, and `contract.yaml` still invalidate
+  candidate reuse when changed.
+- Added focused coverage in `tests/test_authority_manifest.py` and
+  `tests/test_authority_manifest_preflight.py` for PLAN-only churn staying
+  `reuse_candidate` and stable-authority changes still producing
+  `reload_required`.
+- Release-note boundary: this entry records unreleased candidate tooling
+  refinement only. It does not bump the framework version, publish a release,
+  implement prompt-cache behavior, observe provider cache hit/miss, prove real
+  harness adoption, wire runtime hooks/CI/pre-push/gates or enforcement,
+  rewrite `.governance/baseline.yaml`, change memory behavior, or authorize
+  cross-repo writes.
+
 ### AUTHORITY_MANIFEST preflight consumer simulation - 2026-06-29
 
 - Added `governance_tools/authority_manifest_preflight.py` as a read-only
