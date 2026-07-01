@@ -78,6 +78,10 @@ def _write_contract(repo: Path) -> Path:
 def _make_repo_owned_framework(repo: Path) -> Path:
     framework = repo / "additional" / "ai-governance-framework"
     shutil.copytree(FRAMEWORK_ROOT / "baselines", framework / "baselines")
+    (framework / "governance_tools").mkdir(parents=True)
+    (framework / "runtime_hooks").mkdir(parents=True)
+    (framework / "governance").mkdir(parents=True)
+    (framework / "governance" / "runtime_injection_snapshot.v0.yaml").write_text("version: 0\n", encoding="utf-8")
     return framework
 
 
@@ -376,6 +380,10 @@ def test_adopt_prints_copy_adoption_boundary(capsys):
     assert "- runtime injection snapshot" in output
     assert "docs/INTEGRATION_GUIDE.md sections 4-5" in output
     assert "not runtime self-contained governance" in output
+    assert "[governance_maturity_summary]" in output
+    assert "framework_topology       = copy_based" in output
+    assert "runtime_capable          = not_checked" in output
+    assert "memory_workflow_surface  = not_checked" in output
 
 
 def test_adopt_dry_run_prints_copy_adoption_boundary_without_writes(capsys):
@@ -393,6 +401,8 @@ def test_adopt_dry_run_prints_copy_adoption_boundary_without_writes(capsys):
     assert not new_files, f"dry-run wrote files: {new_files}"
     assert "Adoption class: copy-based audit surface" in output
     assert "Runtime capability: not self-contained" in output
+    assert "[governance_maturity_summary]" in output
+    assert "framework_topology       = copy_based" in output
     assert "Dry-run complete. No files were written." in output
 
 
@@ -410,6 +420,9 @@ def test_adopt_with_repo_owned_framework_does_not_print_copy_boundary(capsys):
     assert "Runtime capability: repo-owned framework path detected" in output
     assert "Framework root: additional/ai-governance-framework" in output
     assert "this does not prove hooks are installed" in output
+    assert "[governance_maturity_summary]" in output
+    assert "framework_topology       = repo_owned_framework_path" in output
+    assert "runtime_capable          = not_checked" in output
     assert "Adoption class: copy-based audit surface" not in output
     assert "Runtime capability: not self-contained" not in output
 
@@ -426,8 +439,32 @@ def test_adopt_dry_run_with_repo_owned_framework_does_not_print_copy_boundary(ca
 
     assert "Adoption class: repo-owned framework path" in output
     assert "Framework root: additional/ai-governance-framework" in output
+    assert "[governance_maturity_summary]" in output
+    assert "framework_topology       = repo_owned_framework_path" in output
     assert "Adoption class: copy-based audit surface" not in output
     assert "Runtime capability: not self-contained" not in output
+    assert "Dry-run complete. No files were written." in output
+
+
+def test_adopt_maturity_summary_failure_is_report_only(monkeypatch, capsys):
+    """Maturity summary failures should not change adopt outcome."""
+    repo = _make_git_repo(_reset_fixture("maturity_summary_failure") / "repo")
+    _write_plan(repo)
+    _write_contract(repo)
+
+    import governance_tools.adopt_governance as adopt
+
+    def boom(*_args, **_kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(adopt, "build_governance_maturity_summary", boom)
+
+    rc = adopt_existing(repo, FRAMEWORK_ROOT, dry_run=True)
+    output = capsys.readouterr().out
+
+    assert rc == 0
+    assert "status                   = not_available" in output
+    assert "RuntimeError: boom" in output
     assert "Dry-run complete. No files were written." in output
 
 

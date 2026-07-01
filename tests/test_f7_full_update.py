@@ -5,7 +5,8 @@ import subprocess
 from datetime import date as _date
 from pathlib import Path
 
-from governance_tools.f7_full_update import classify_repo, run_f7_full_update
+from governance_tools.external_governance_submodule_updater import UpdateResult
+from governance_tools.f7_full_update import classify_repo, format_human, run_f7_full_update
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -181,6 +182,83 @@ def test_external_contract_cannot_complete_without_memory_workflow_rollout(tmp_p
     assert result.details["agents_baseline_diagnostics"]["baseline_version"] == "1.0.0"
     assert result.details["agents_baseline_diagnostics"]["baseline_version_is_framework_release"] is False
     assert any("release-current is not F-7 completion" in warning for warning in result.warnings)
+    assert "governance_maturity_summary" in result.stages
+    summary = result.stages["governance_maturity_summary"]
+    assert summary["report_only"] is True
+    assert summary["runtime_capable"]["value"] == "not_checked"
+    rendered = format_human(result)
+    assert "[governance_maturity_summary]" in rendered
+    assert "runtime_capable=not_checked" in rendered
+
+
+def test_f7_submodule_backend_surfaces_governance_maturity_summary(monkeypatch, tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _init_repo(repo)
+    _write(
+        repo / ".gitmodules",
+        '[submodule "ai-governance-framework"]\n'
+        "\tpath = ai-governance-framework\n"
+        "\turl = https://github.com/Gavin0099/ai-governance-framework.git\n",
+    )
+    _write(repo / "ai-governance-framework" / "README.md", "partial framework checkout\n")
+
+    import governance_tools.f7_full_update as f7
+
+    def fake_update(**_kwargs):
+        return UpdateResult(
+            ok=True,
+            mode="dry_run",
+            update_mode="dry_run",
+            fast_forward=True,
+            repo=str(repo),
+            submodule_path="ai-governance-framework",
+            before_head="a" * 40,
+            target_head="a" * 40,
+            after_head="a" * 40,
+            staged_files=[],
+            committed=False,
+            commit_hash=None,
+            message="dry run complete",
+            errors=[],
+            full_update_stage_report={"final_status": "already_current", "framework_pointer": "already_current"},
+        )
+
+    monkeypatch.setattr(f7, "update_governance_submodule", fake_update)
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=False)
+
+    assert result.repo_role == "submodule_consumer"
+    assert result.f7_final_status == "already_current"
+    assert "governance_maturity_summary" in result.stages
+    assert result.stages["governance_maturity_summary"]["report_only"] is True
+    assert result.stages["governance_maturity_summary"]["runtime_capable"]["value"] == "not_checked"
+    assert "[governance_maturity_summary]" in format_human(result)
+
+
+def test_f7_maturity_summary_failure_is_report_only(monkeypatch, tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+
+    import governance_tools.f7_full_update as f7
+
+    def boom(*_args, **_kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(f7, "build_governance_maturity_summary", boom)
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=False)
+    rendered = format_human(result)
+
+    assert result.ok is True
+    assert result.f7_final_status == "partially_updated"
+    assert result.stages["governance_maturity_summary"]["status"] == "not_available"
+    assert "RuntimeError: boom" in result.stages["governance_maturity_summary"]["reason"]
+    assert "status=not_available" in rendered
+    assert "RuntimeError: boom" in rendered
 
 
 def test_external_contract_remediation_plan_excludes_product_and_generated_dirty(tmp_path: Path) -> None:

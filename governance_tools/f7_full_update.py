@@ -25,6 +25,10 @@ if __package__ in (None, ""):
 from governance_tools.agents_calibration_maturity import assess_agents_calibration_maturity
 from governance_tools.external_governance_submodule_updater import update_governance_submodule
 from governance_tools.external_repo_readiness import assess_external_repo
+from governance_tools.governance_maturity_summary import (
+    build_governance_maturity_summary,
+    summary_to_dict as governance_maturity_summary_to_dict,
+)
 from governance_tools.hook_installer import install_governance_hooks
 
 
@@ -43,7 +47,7 @@ class F7Result:
     repo_root: str
     repo_role: str
     f7_final_status: str
-    stages: dict[str, str] = field(default_factory=dict)
+    stages: dict[str, Any] = field(default_factory=dict)
     changed_files: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
@@ -102,6 +106,54 @@ def _has_registered_submodule(repo: Path, submodule_path: str) -> bool:
 def _has_staged_changes(repo: Path) -> bool:
     code, stdout, _stderr = _git(repo, ["diff", "--cached", "--name-only"])
     return code != 0 or bool(stdout)
+
+
+def _governance_maturity_stage(repo_root: Path, framework_root: Path | None) -> dict[str, object]:
+    try:
+        summary = build_governance_maturity_summary(repo_root, framework_root=framework_root)
+    except Exception as exc:
+        return {
+            "report_only": True,
+            "status": "not_available",
+            "reason": f"{type(exc).__name__}: {exc}",
+            "claim_boundary": "summary unavailable; no maturity claim is supported",
+        }
+    return governance_maturity_summary_to_dict(summary)
+
+
+def _format_governance_maturity_stage(payload: object) -> list[str]:
+    if not isinstance(payload, dict):
+        return [f"governance_maturity_summary={payload}"]
+    if payload.get("status") == "not_available":
+        return [
+            "[governance_maturity_summary]",
+            "report_only=true",
+            "status=not_available",
+            f"reason={payload.get('reason')}",
+            f"claim_boundary={payload.get('claim_boundary')}",
+        ]
+    compact = {
+        "report_only": payload.get("report_only"),
+        "framework_topology": (payload.get("framework_topology") or {}).get("value"),
+        "static_self_contained": (payload.get("static_self_contained") or {}).get("value"),
+        "runtime_capable": (payload.get("runtime_capable") or {}).get("value"),
+        "hook_config_framework_root": (payload.get("hook_config_framework_root") or {}).get("value"),
+        "framework_pin_freshness": (payload.get("framework_pin_freshness") or {}).get("value"),
+        "agents_calibration": (payload.get("agents_calibration") or {}).get("value"),
+        "repo_specific_rules": (payload.get("repo_specific_rules_present") or {}).get("value"),
+        "domain_contract_present": (payload.get("domain_contract_present") or {}).get("value"),
+        "validator_surface": (payload.get("validator_surface_present") or {}).get("value"),
+        "memory_workflow_surface": (payload.get("memory_workflow_surface") or {}).get("value"),
+        "claim_ceiling": (payload.get("claim_ceiling") or {}).get("value"),
+        "missing_surfaces": payload.get("missing_surfaces"),
+        "signal_conflicts": len(payload.get("signal_conflicts") or []),
+    }
+    lines = ["[governance_maturity_summary]"]
+    lines.extend(f"{key}={value}" for key, value in compact.items())
+    cannot_claim = payload.get("cannot_claim") or []
+    if cannot_claim:
+        lines.append("cannot_claim=" + "; ".join(str(item) for item in cannot_claim))
+    return lines
 
 
 def classify_repo(repo_root: Path, submodule_path: str = "ai-governance-framework") -> str:
@@ -440,6 +492,7 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
     stages["framework_lock_commit"] = "verified" if _framework_lock_commit_current(after, framework_root) else NOT_VERIFIED
     stages["memory_workflow_router"] = "verified" if _agents_memory_workflow_router_present(repo_root) else NOT_VERIFIED
     stages["memory_workflow_hook_advisory"] = "verified" if _pre_commit_memory_workflow_advisory_present(repo_root) else NOT_VERIFIED
+    stages["governance_maturity_summary"] = _governance_maturity_stage(repo_root, framework_root)
     final_status = _status_from_external_readiness(after, repo_root, framework_root)
     if errors:
         final_status = BLOCKED
@@ -526,13 +579,15 @@ def run_f7_full_update(
             stage=False,
             commit=False,
         )
+        stages = dict(result.full_update_stage_report)
+        stages["governance_maturity_summary"] = _governance_maturity_stage(repo_root, repo_root / submodule_path)
         return F7Result(
             ok=result.ok,
             mode=result.mode,
             repo_root=str(repo_root),
             repo_role=role,
             f7_final_status=result.full_update_stage_report.get("final_status", NOT_VERIFIED),
-            stages=result.full_update_stage_report,
+            stages=stages,
             changed_files=result.staged_files,
             errors=result.errors,
             details={"submodule_backend": asdict(result)},
@@ -545,7 +600,10 @@ def run_f7_full_update(
         repo_root=str(repo_root),
         repo_role=role,
         f7_final_status=NOT_APPLICABLE if role == "not_governed" else NOT_VERIFIED,
-        stages={"framework_pointer": NOT_APPLICABLE},
+        stages={
+            "framework_pointer": NOT_APPLICABLE,
+            "governance_maturity_summary": _governance_maturity_stage(repo_root, framework_root),
+        },
         errors=[f"no F-7 apply backend for repo role: {role}"],
     )
 
@@ -562,7 +620,10 @@ def format_human(result: F7Result) -> str:
     if result.stages:
         lines.append("[stages]")
         for key in sorted(result.stages):
-            lines.append(f"{key}={result.stages[key]}")
+            if key == "governance_maturity_summary":
+                lines.extend(_format_governance_maturity_stage(result.stages[key]))
+            else:
+                lines.append(f"{key}={result.stages[key]}")
     if result.changed_files:
         lines.append("[changed_files]")
         lines.extend(result.changed_files)

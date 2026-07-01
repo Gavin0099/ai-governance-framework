@@ -57,6 +57,10 @@ from governance_tools.framework_versioning import (
     discover_framework_root,
     repo_root_from_tooling,
 )
+from governance_tools.governance_maturity_summary import (
+    build_governance_maturity_summary,
+    format_human as format_governance_maturity_summary,
+)
 from memory_pipeline.memory_layout import MEMORY_FILE_ALIASES
 
 
@@ -135,6 +139,19 @@ def _print_adoption_boundary(repo_root: Path, framework_root: Path) -> None:
         _print_repo_owned_framework_boundary(repo_root, framework_root)
     else:
         _print_copy_adoption_boundary()
+
+
+def _print_governance_maturity_summary(repo_root: Path, framework_root: Path) -> None:
+    try:
+        summary = build_governance_maturity_summary(repo_root, framework_root=framework_root)
+    except Exception as exc:  # report-only diagnostic must not change adoption outcome
+        print("[governance_maturity_summary]")
+        print("report_only              = true")
+        print("status                   = not_available")
+        print(f"reason                   = {type(exc).__name__}: {exc}")
+        print("claim_boundary           = summary unavailable; no maturity claim is supported")
+        return
+    print(format_governance_maturity_summary(summary))
 
 
 # ── Plan path discovery ────────────────────────────────────────────────────────
@@ -869,6 +886,8 @@ def adopt_existing(
         print()
         _print_adoption_boundary(repo_root, framework_root)
         print()
+        _print_governance_maturity_summary(repo_root, framework_root)
+        print()
         print("Dry-run complete. No files were written.")
         return 0
 
@@ -918,6 +937,8 @@ def adopt_existing(
 
     print()
     _print_adoption_boundary(repo_root, framework_root)
+    print()
+    _print_governance_maturity_summary(repo_root, framework_root)
     print()
     print("Adoption complete. Next steps:")
     print("  1. Fix any FAIL/warning items shown above")
