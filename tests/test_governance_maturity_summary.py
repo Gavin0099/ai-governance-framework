@@ -123,15 +123,15 @@ def test_copy_based_summary_is_report_only_and_does_not_claim_runtime_governance
     assert "user_facing_status       = minimal" in rendered
     assert "Basic governance guidance is present" in rendered
     assert "[human_readable_adoption_summary]" in rendered
-    assert "Overall adoption status: minimal" in rendered
-    assert "AI Governance feature adoption table:" in rendered
-    assert "| Feature | Status | Meaning |" in rendered
+    assert "整體導入狀態：minimal" in rendered
+    assert "AI Governance 功能導入狀態：" in rendered
+    assert "| 功能 | 狀態 | 這個功能是做什麼 |" in rendered
     assert "AI Governance framework checkout: not full-framework-owned" in rendered
-    assert "| Framework checkout | not_installed |" in rendered
-    assert "| Repo governance instructions | not_installed |" in rendered
-    assert "| Runtime-capable governance | not_verified |" in rendered
-    assert "Runtime execution support is present only when explicitly reported as available." in rendered
-    assert "Validator surface: missing" in rendered
+    assert "| 框架本體（Framework checkout） | 未導入 |" in rendered
+    assert "| 本 repo 規則（Repo governance instructions） | 未導入 |" in rendered
+    assert "| runtime 治理能力（Runtime-capable governance） | 未驗證 |" in rendered
+    assert "只有明確回報已可用時才算導入" in rendered
+    assert "Validator surface: 未導入" in rendered
 
 
 def test_framework_pin_freshness_surfaces_stale_local_tracking_without_fetch(tmp_path: Path) -> None:
@@ -149,7 +149,7 @@ def test_framework_pin_freshness_surfaces_stale_local_tracking_without_fetch(tmp
     assert "framework pin freshness" in summary.cannot_claim
     assert "framework_pin_freshness  = behind_local_tracking" in rendered
     assert "Framework version freshness: behind_local_tracking" in rendered
-    assert "| Framework version freshness | not_installed |" in rendered
+    assert "| 版本新鮮度（Framework version freshness） | 未導入 |" in rendered
 
 
 def test_repo_owned_framework_pin_freshness_surfaces_stale_local_tracking(tmp_path: Path) -> None:
@@ -199,9 +199,9 @@ def test_repo_specific_rules_domain_contract_and_validator_surface_are_derived(t
     assert "repo_specific_agents_rules" not in summary.missing_surfaces
     assert "Some governance surfaces are present" in " ".join(summary.user_facing_status.reasons)
     rendered = format_human(summary)
-    assert "| Domain contract | available |" in rendered
-    assert "| Validator surface | available |" in rendered
-    assert "| Memory workflow | not_verified |" in rendered
+    assert "| 領域合約（Domain contract） | 已可用 |" in rendered
+    assert "| 自動驗證層（Validator surface） | 已可用 |" in rendered
+    assert "| 記憶工作流（Memory workflow） | 未驗證 |" in rendered
 
 
 def test_external_hook_root_is_reported_as_signal_conflict_not_blocker(tmp_path: Path) -> None:
@@ -253,10 +253,10 @@ def test_full_candidate_status_is_visible_but_not_runtime_claim(tmp_path: Path) 
     )
     assert "runtime self-contained governance" in summary.cannot_claim
     assert "user_facing_status       = full_candidate" in rendered
-    assert "| Framework checkout | available |" in rendered
-    assert "| Repo governance instructions | available |" in rendered
-    assert "| Git hooks | available |" in rendered
-    assert "AI Governance appears fully present at the visible static-surface level" in rendered
+    assert "| 框架本體（Framework checkout） | 已可用 |" in rendered
+    assert "| 本 repo 規則（Repo governance instructions） | 已可用 |" in rendered
+    assert "| 本機 commit/push 檢查（Git hooks） | 已可用 |" in rendered
+    assert "AI Governance 在可見的靜態表面上看起來已齊備" in rendered
 
 
 def test_unknown_adoption_without_repo_rules_is_user_facing_not_governed(tmp_path: Path) -> None:
@@ -275,4 +275,4 @@ def test_unknown_adoption_without_repo_rules_is_user_facing_not_governed(tmp_pat
         summary.user_facing_status.reasons
     )
     assert "user_facing_status       = not_governed" in rendered
-    assert "This repo does not appear governed by AI Governance yet." in rendered
+    assert "這個 repo 目前看起來尚未由 AI Governance 管理。" in rendered

@@ -240,7 +240,8 @@ def test_f7_submodule_backend_surfaces_governance_maturity_summary(monkeypatch, 
     rendered = format_human(result)
     assert "[governance_maturity_summary]" in rendered
     assert "[human_readable_adoption_summary]" in rendered
-    assert "Overall adoption status:" in rendered
+    assert "整體導入狀態：" in rendered
+    assert "AI Governance 功能導入狀態：" in rendered
 
 
 def test_f7_submodule_backend_surfaces_target_freshness_downgrade(

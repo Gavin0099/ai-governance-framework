@@ -284,18 +284,18 @@ def _derive_cannot_claim(adoption_report: AdoptionDoctorReport, agents_report: A
 
 
 def _present_absent(value: object) -> str:
-    return "present" if value is True else "missing"
+    return "已可用" if value is True else "未導入"
 
 
 def _plain_status_meaning(status: object) -> str:
     meanings = {
-        "not_governed": "no repo-specific AI Governance surfaces were detected",
-        "minimal": "basic guidance exists, but this is not a full framework integration",
-        "partial": "some AI Governance surfaces are installed, but at least one required surface is still missing",
-        "full_candidate": "visible static surfaces are present; runtime enforcement is still not proven",
-        "unknown": "signals are incomplete or ambiguous and need manual review",
+        "not_governed": "沒有偵測到 repo 專屬的 AI Governance 導入表面",
+        "minimal": "已有基本治理指引，但還不是完整 framework 導入",
+        "partial": "已有部分 AI Governance 功能，但仍缺少至少一個必要表面",
+        "full_candidate": "可見的靜態表面已齊備，但 runtime enforcement 仍未被證明",
+        "unknown": "訊號不完整或彼此不明確，需要人工判讀",
     }
-    return meanings.get(str(status), "manual review is required")
+    return meanings.get(str(status), "需要人工判讀")
 
 
 def _surface_line(label: str, status: str, explanation: str) -> str:
@@ -304,13 +304,13 @@ def _surface_line(label: str, status: str, explanation: str) -> str:
 
 def _capability_status(value: str | bool, *, present_values: set[str] | None = None) -> str:
     if isinstance(value, bool):
-        return "available" if value else "not_installed"
+        return "已可用" if value else "未導入"
     if value == "not_checked":
-        return "not_verified"
+        return "未驗證"
     if value in {"unknown", "not_applicable"}:
-        return str(value)
+        return "未知" if value == "unknown" else "不適用"
     if present_values is not None:
-        return "available" if value in present_values else "not_installed"
+        return "已可用" if value in present_values else "未導入"
     return str(value)
 
 
@@ -335,13 +335,13 @@ def _derive_human_readable_adoption_summary(
 ) -> list[str]:
     lines = [
         "[human_readable_adoption_summary]",
-        "Purpose: this section explains, in operator-facing language, which AI Governance capabilities appear installed.",
+        "用途：這段用人類可讀的方式說明 AI Governance 更新後，目前哪些功能已導入、哪些尚未導入或尚未驗證。",
         (
-            f"Overall adoption status: {user_facing_status.value} - "
+            f"整體導入狀態：{user_facing_status.value} - "
             f"{_plain_status_meaning(user_facing_status.value)}."
         ),
-        "AI Governance feature adoption table:",
-        "| Feature | Status | Meaning |",
+        "AI Governance 功能導入狀態：",
+        "| 功能 | 狀態 | 這個功能是做什麼 |",
         "| --- | --- | --- |",
     ]
 
@@ -352,162 +352,161 @@ def _derive_human_readable_adoption_summary(
     lines.extend(
         [
             _capability_row(
-                "Framework checkout",
-                "available" if framework_status == "present" else "not_installed",
-                f"AI Governance framework files are available through {framework_topology.value}.",
+                "框架本體（Framework checkout）",
+                "已可用" if framework_status == "present" else "未導入",
+                f"提供 AI Governance 工具與規則來源；目前偵測到的導入型態是 {framework_topology.value}。",
             ),
             _capability_row(
-                "Framework version freshness",
+                "版本新鮮度（Framework version freshness）",
                 _capability_status(
                     framework_pin_freshness.value,
                     present_values={"current_vs_local_tracking"},
                 ),
                 (
-                    "Shows whether the local framework checkout matches the locally known "
-                    "tracking ref; fresh-remote proof is reported separately by the updater."
+                    "檢查本地 framework 是否追上本地已知 tracking ref；真正遠端最新證據由 updater 另外回報。"
                 ),
             ),
             _capability_row(
-                "Repo governance instructions",
+                "本 repo 規則（Repo governance instructions）",
                 _capability_status(repo_specific_rules_present.value),
-                "AGENTS.md has repo-specific rules for agents to follow.",
+                "讓 agent 進入這個 repo 時知道本 repo 的風險、測試與操作規則。",
             ),
             _capability_row(
-                "Static framework files",
+                "靜態治理檔案（Static framework files）",
                 _capability_status(
                     static_self_contained.value,
                     present_values={"yes"},
                 ),
-                "Visible governance files are self-contained enough for static guidance.",
+                "提供不跑 runtime 也能讀到的治理文件、規則與導入狀態。",
             ),
             _capability_row(
-                "Runtime-capable governance",
+                "runtime 治理能力（Runtime-capable governance）",
                 _capability_status(
                     runtime_capable.value,
                     present_values={"yes"},
                 ),
-                "Runtime execution support is present only when explicitly reported as available.",
+                "代表 repo 是否具備可執行的 runtime governance；只有明確回報已可用時才算導入。",
             ),
             _capability_row(
-                "Git hooks",
+                "本機 commit/push 檢查（Git hooks）",
                 _capability_status(
                     hook_config_framework_root.value,
                     present_values={"inside_repo"},
                 ),
-                "Local pre-commit/pre-push hooks point at an in-repo framework root.",
+                "在本機 commit 或 push 前提示/檢查治理狀態；這不等於所有機器都已強制執行。",
             ),
             _capability_row(
-                "Domain contract",
+                "領域合約（Domain contract）",
                 _capability_status(domain_contract_present.value),
-                "contract.yaml declares repo-specific governance requirements.",
+                "用 contract.yaml 宣告這個 repo 自己的治理需求與驗證入口。",
             ),
             _capability_row(
-                "Validator surface",
+                "自動驗證層（Validator surface）",
                 _capability_status(validator_surface_present.value),
-                "Repo-specific automated checks are declared by the contract.",
+                "列出 repo 專屬 validator，讓更新後能知道是否接上自動檢查。",
             ),
             _capability_row(
-                "Memory workflow",
+                "記憶工作流（Memory workflow）",
                 _capability_status(
                     memory_workflow_surface.value,
                     present_values={"verified", "present", "available"},
                 ),
-                "Memory workflow visibility is available only when explicitly reported.",
+                "顯示 memory 寫入/檢查流程是否有被觀測；不代表記憶內容已完整同步。",
             ),
         ]
     )
 
-    lines.append("Surface details:")
+    lines.append("技術細項：")
     lines.append(
         _surface_line(
             "AI Governance framework checkout",
             framework_status,
-            f"detected topology is {framework_topology.value}",
+            f"偵測到的導入型態是 {framework_topology.value}",
         )
     )
     lines.append(
         _surface_line(
             "Framework version freshness",
             str(framework_pin_freshness.value),
-            "compares the local framework checkout with the locally known tracking ref; it is not proof of the true remote head",
+            "比較本地 framework 與本地已知 tracking ref；這不是遠端最新 head 的證明",
         )
     )
     lines.append(
         _surface_line(
             "Repo governance instructions",
             _present_absent(repo_specific_rules_present.value),
-            "AGENTS.md contains repo-specific governance rules for agents to follow",
+            "AGENTS.md 包含 agent 應遵守的 repo 專屬治理規則",
         )
     )
     lines.append(
         _surface_line(
             "Static framework files",
             str(static_self_contained.value),
-            "checks whether the visible framework files are self-contained in this repo layout",
+            "檢查可見 framework 檔案是否足以提供靜態治理指引",
         )
     )
     lines.append(
         _surface_line(
             "Runtime-capable governance",
             str(runtime_capable.value),
-            "runtime execution is not proven by this summary",
+            "這份 summary 不證明 runtime execution 已可用",
         )
     )
     lines.append(
         _surface_line(
             "Git hook framework root",
             str(hook_config_framework_root.value),
-            "shows where local pre-commit/pre-push hooks point; hooks are local machine state, not proof of enforcement everywhere",
+            "顯示本機 pre-commit/pre-push hooks 指向哪裡；hook 是本機狀態，不代表所有環境都強制執行",
         )
     )
     lines.append(
         _surface_line(
             "Domain contract",
             _present_absent(domain_contract_present.value),
-            "contract.yaml declares the repo-specific governance contract",
+            "contract.yaml 宣告 repo 專屬治理合約",
         )
     )
     lines.append(
         _surface_line(
             "Validator surface",
             _present_absent(validator_surface_present.value),
-            "validators are the repo-specific automated checks declared by the contract",
+            "validator 是 contract 宣告的 repo 專屬自動檢查",
         )
     )
     lines.append(
         _surface_line(
             "Memory workflow surface",
             str(memory_workflow_surface.value),
-            "memory completeness is not inferred by this summary",
+            "這份 summary 不推論 memory 是否完整同步",
         )
     )
 
     if missing_surfaces:
-        lines.append("Still missing or not fully proven:")
-        lines.extend(f"- {surface}: needs follow-up before claiming full adoption" for surface in missing_surfaces)
+        lines.append("尚未導入或尚未被證明：")
+        lines.extend(f"- {surface}: 需要後續處理，不能因此宣稱 full adoption" for surface in missing_surfaces)
     else:
-        lines.append("Still missing or not fully proven: none detected by this report-only summary.")
+        lines.append("尚未導入或尚未被證明：這份 report-only summary 沒有偵測到缺口。")
 
-    lines.append("Plain-language conclusion:")
+    lines.append("白話結論：")
     if user_facing_status.value == "full_candidate":
         lines.append(
-            "- AI Governance appears fully present at the visible static-surface level, but runtime enforcement is still not proven."
+            "- AI Governance 在可見的靜態表面上看起來已齊備，但 runtime enforcement 仍未被證明。"
         )
     elif user_facing_status.value == "partial":
         lines.append(
-            "- AI Governance is partially adopted: core surfaces are present, but this repo is not ready to claim full adoption."
+            "- AI Governance 是部分導入：核心表面已存在，但這個 repo 還不能宣稱完整導入。"
         )
     elif user_facing_status.value == "minimal":
         lines.append(
-            "- AI Governance guidance is present, but the repo has not adopted the full framework surface."
+            "- AI Governance 指引已存在，但這個 repo 尚未導入完整 framework 表面。"
         )
     elif user_facing_status.value == "not_governed":
-        lines.append("- This repo does not appear governed by AI Governance yet.")
+        lines.append("- 這個 repo 目前看起來尚未由 AI Governance 管理。")
     else:
-        lines.append("- Adoption status is unclear; manual review is required.")
+        lines.append("- 導入狀態不明確，需要人工判讀。")
 
     if cannot_claim:
-        lines.append("Do not claim from this summary:")
+        lines.append("不能從這份 summary 宣稱：")
         lines.extend(f"- {item}" for item in cannot_claim)
     return lines
 
