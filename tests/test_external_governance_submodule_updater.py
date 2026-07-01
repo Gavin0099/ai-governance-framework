@@ -8,6 +8,7 @@ from governance_tools.external_governance_submodule_updater import (
     _check_existing_memory_normalization,
     _git_env,
     _run_git,
+    format_human,
     update_governance_submodule,
 )
 
@@ -284,10 +285,51 @@ def test_dry_run_reports_local_tracking_fallback_when_remote_unavailable(tmp_pat
     assert result.before_head == old_head
     assert result.target_head == new_head
     assert result.target_source == "local_tracking_ref_fallback"
+    assert result.full_update_stage_report["framework_pointer"] == "not_verified"
+    assert result.full_update_stage_report["target_fresh_upstream_verified"] is False
     assert result.full_update_stage_report["details"]["target_resolution"]["target_source"] == (
         "local_tracking_ref_fallback"
     )
+    assert (
+        result.full_update_stage_report["details"]["target_resolution"][
+            "target_fresh_upstream_verified"
+        ]
+        is False
+    )
     assert _git(submodule, "rev-parse", "HEAD") == old_head
+    assert _git(consumer, "diff", "--cached", "--name-only") == ""
+
+
+def test_dry_run_local_tracking_fallback_cannot_claim_already_current(
+    tmp_path: Path,
+) -> None:
+    consumer, _framework, target_head = _make_already_current_fixture(tmp_path)
+    submodule = consumer / "ai-governance-framework"
+    _git(submodule, "remote", "set-url", "origin", "https://example.invalid/nope.git")
+
+    result = update_governance_submodule(
+        repo=consumer,
+        target_ref="origin/main",
+        fetch_remote="origin",
+        fetch_ref="main",
+        dry_run=True,
+    )
+
+    assert result.ok is True
+    assert result.before_head == target_head
+    assert result.target_head == target_head
+    assert result.target_source == "local_tracking_ref_fallback"
+    assert result.full_update_stage_report["framework_pointer"] == "not_verified"
+    assert result.full_update_stage_report["final_status"] == "not_verified"
+    assert result.full_update_stage_report["target_fresh_upstream_verified"] is False
+    assert "already_current/updated must not be claimed" in (
+        result.full_update_stage_report["target_claim_boundary"]
+    )
+    rendered = format_human(result)
+    assert "target_source=local_tracking_ref_fallback" in rendered
+    assert "target_fresh_upstream_verified=False" in rendered
+    assert "already_current/updated must not be claimed" in rendered
+    assert _git(submodule, "rev-parse", "HEAD") == target_head
     assert _git(consumer, "diff", "--cached", "--name-only") == ""
 
 

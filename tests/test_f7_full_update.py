@@ -243,6 +243,67 @@ def test_f7_submodule_backend_surfaces_governance_maturity_summary(monkeypatch, 
     assert "Overall adoption status:" in rendered
 
 
+def test_f7_submodule_backend_surfaces_target_freshness_downgrade(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _init_repo(repo)
+    _write(
+        repo / ".gitmodules",
+        '[submodule "ai-governance-framework"]\n'
+        "\tpath = ai-governance-framework\n"
+        "\turl = https://github.com/Gavin0099/ai-governance-framework.git\n",
+    )
+    _write(repo / "ai-governance-framework" / "README.md", "partial framework checkout\n")
+
+    import governance_tools.f7_full_update as f7
+
+    def fake_update(**_kwargs):
+        return UpdateResult(
+            ok=True,
+            mode="dry_run",
+            update_mode="dry_run",
+            fast_forward=True,
+            repo=str(repo),
+            submodule_path="ai-governance-framework",
+            before_head="a" * 40,
+            target_head="a" * 40,
+            after_head="a" * 40,
+            staged_files=[],
+            committed=False,
+            commit_hash=None,
+            message="dry run complete",
+            errors=[],
+            full_update_stage_report={
+                "framework_pointer": "not_verified",
+                "target_source": "local_tracking_ref_fallback",
+                "target_fresh_upstream_verified": False,
+                "target_claim_boundary": (
+                    "target resolved from local tracking fallback; upstream freshness "
+                    "was not verified, so already_current/updated must not be claimed"
+                ),
+                "final_status": "not_verified",
+            },
+        )
+
+    monkeypatch.setattr(f7, "update_governance_submodule", fake_update)
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=False)
+    rendered = format_human(result)
+
+    assert result.repo_role == "submodule_consumer"
+    assert result.f7_final_status == "not_verified"
+    assert result.stages["framework_pointer"] == "not_verified"
+    assert result.stages["target_source"] == "local_tracking_ref_fallback"
+    assert result.stages["target_fresh_upstream_verified"] is False
+    assert "target_source=local_tracking_ref_fallback" in rendered
+    assert "target_fresh_upstream_verified=False" in rendered
+    assert "already_current/updated must not be claimed" in rendered
+
+
 def test_f7_maturity_summary_failure_is_report_only(monkeypatch, tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     framework = tmp_path / "framework"

@@ -13,6 +13,39 @@ from typing import Any, Sequence
 
 DEFAULT_SUBMODULE_PATH = "ai-governance-framework"
 KNOWN_SUBMODULE_PATHS = (DEFAULT_SUBMODULE_PATH, ".ai-governance-framework")
+FRESH_TARGET_SOURCES = {"fresh_remote_ls_remote", "fresh_remote_fetch_head"}
+
+
+def _fresh_upstream_verified(target_source: str) -> bool:
+    return target_source in FRESH_TARGET_SOURCES
+
+
+def _target_claim_boundary(target_source: str) -> str:
+    if _fresh_upstream_verified(target_source):
+        return "fresh upstream target verified; already_current/updated claims are allowed"
+    if target_source == "local_tracking_ref_fallback":
+        return (
+            "target resolved from local tracking fallback; upstream freshness was not "
+            "verified, so already_current/updated must not be claimed"
+        )
+    if target_source == "explicit_target_ref":
+        return (
+            "target resolved from explicit ref without upstream fetch; latest-framework "
+            "freshness was not verified"
+        )
+    return "target freshness was not verified"
+
+
+def _framework_pointer_status(
+    *,
+    candidate_status: str,
+    target_source: str,
+) -> str:
+    if candidate_status in {"already_current", "updated"} and not _fresh_upstream_verified(
+        target_source
+    ):
+        return "not_verified"
+    return candidate_status
 
 
 @dataclass
@@ -569,6 +602,7 @@ def _final_full_update_status(report: dict[str, Any]) -> str:
 def _build_full_update_stage_report(
     *,
     framework_pointer: str,
+    target_source: str = "not_reported",
     repo_local_instruction: str = "not_verified",
     memory_writer_coverage: str = "not_verified",
     hook_validator_enforcement: str = "not_verified",
@@ -585,6 +619,9 @@ def _build_full_update_stage_report(
         # Advisory hygiene: reported for visibility but intentionally NOT folded
         # into final_status, which keeps its established 5-layer semantics.
         "gitignore_hygiene": gitignore_hygiene,
+        "target_source": target_source,
+        "target_fresh_upstream_verified": _fresh_upstream_verified(target_source),
+        "target_claim_boundary": _target_claim_boundary(target_source),
         "details": details or {},
     }
     report["final_status"] = _final_full_update_status(report)
@@ -632,6 +669,8 @@ def update_governance_submodule(
             "fetch_remote": fetch_remote,
             "fetch_ref": fetch_ref,
             "target_source": target_source,
+            "target_fresh_upstream_verified": _fresh_upstream_verified(target_source),
+            "target_claim_boundary": _target_claim_boundary(target_source),
             "target_head": target_head,
         }
 
@@ -640,7 +679,11 @@ def update_governance_submodule(
             hook_report = _ensure_hook_advisory(repo, submodule_repo)
             gitignore_report = _ensure_gitignore_hygiene(repo)
             full_update_stage_report = _build_full_update_stage_report(
-                framework_pointer="already_current",
+                framework_pointer=_framework_pointer_status(
+                    candidate_status="already_current",
+                    target_source=target_source,
+                ),
+                target_source=target_source,
                 repo_local_instruction=instruction_report["status"],
                 memory_writer_coverage=_check_memory_writer_coverage(repo),
                 hook_validator_enforcement=hook_report["status"],
@@ -714,9 +757,13 @@ def update_governance_submodule(
                 message="dry run complete; no files modified",
                 errors=[],
                 full_update_stage_report=_build_full_update_stage_report(
-                    framework_pointer=(
-                        "already_current" if before_head == target_head else "not_verified"
+                    framework_pointer=_framework_pointer_status(
+                        candidate_status=(
+                            "already_current" if before_head == target_head else "not_verified"
+                        ),
+                        target_source=target_source,
                     ),
+                    target_source=target_source,
                     repo_local_instruction=_check_repo_local_instruction_coverage(repo),
                     memory_writer_coverage=_check_memory_writer_coverage(repo),
                     hook_validator_enforcement=_check_hook_validator_enforcement(repo),
@@ -759,7 +806,11 @@ def update_governance_submodule(
         hook_report = _ensure_hook_advisory(repo, submodule_repo)
         gitignore_report = _ensure_gitignore_hygiene(repo)
         full_update_stage_report = _build_full_update_stage_report(
-            framework_pointer="updated",
+            framework_pointer=_framework_pointer_status(
+                candidate_status="updated",
+                target_source=target_source,
+            ),
+            target_source=target_source,
             repo_local_instruction=instruction_report["status"],
             memory_writer_coverage=_check_memory_writer_coverage(repo),
             hook_validator_enforcement=hook_report["status"],
@@ -844,6 +895,7 @@ def update_governance_submodule(
                     if errors and "submodule not registered" in errors[0]
                     else "blocked"
                 ),
+                target_source=target_source,
                 details={"errors": errors, "target_resolution": target_resolution},
             ),
             target_source=target_source,
@@ -872,6 +924,15 @@ def format_human(result: UpdateResult) -> str:
         f"- memory_writer_coverage={result.full_update_stage_report.get('memory_writer_coverage')}",
         f"- hook_validator_enforcement={result.full_update_stage_report.get('hook_validator_enforcement')}",
         f"- existing_memory_normalization={result.full_update_stage_report.get('existing_memory_normalization')}",
+        f"- target_source={result.full_update_stage_report.get('target_source')}",
+        (
+            "- target_fresh_upstream_verified="
+            f"{result.full_update_stage_report.get('target_fresh_upstream_verified')}"
+        ),
+        (
+            "- target_claim_boundary="
+            f"{result.full_update_stage_report.get('target_claim_boundary')}"
+        ),
         f"- final_status={result.full_update_stage_report.get('final_status')}",
     ]
     if result.errors:
