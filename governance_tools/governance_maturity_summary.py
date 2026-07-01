@@ -42,6 +42,7 @@ class GovernanceMaturitySummary:
     report_version: str
     repo_root: str
     report_only: bool
+    user_facing_status: SummaryValue
     framework_topology: SummaryValue
     static_self_contained: SummaryValue
     runtime_capable: SummaryValue
@@ -186,6 +187,82 @@ def _derive_claim_ceiling(
     return _summary_value("partial_governance_surface", "governance_maturity_summary.derived")
 
 
+def _derive_user_facing_status(
+    adoption_report: AdoptionDoctorReport,
+    repo_specific_rules_present: bool,
+    domain_contract_present: SummaryValue,
+    validator_surface_present: SummaryValue,
+    missing_surfaces: list[str],
+    signal_conflicts: list[SignalConflict],
+) -> SummaryValue:
+    topology = adoption_report.adoption_class.value
+    reasons: list[str] = []
+
+    if topology == "unknown":
+        validator_absent = validator_surface_present.value in {False, "not_checked"}
+        if (
+            not repo_specific_rules_present
+            and domain_contract_present.value is False
+            and validator_absent
+        ):
+            return _summary_value(
+                "not_governed",
+                "governance_maturity_summary.derived",
+                ["No repo-specific governance surfaces were detected."],
+            )
+        return _summary_value(
+            "unknown",
+            "governance_maturity_summary.derived",
+            ["Governance signals are incomplete or ambiguous; manual review is required."],
+        )
+
+    if topology == "copy_based":
+        return _summary_value(
+            "minimal",
+            "governance_maturity_summary.derived",
+            [
+                "Basic governance guidance is present, but the repo does not own a runtime-capable framework checkout.",
+                "This is useful for agent guidance, not full governance adoption.",
+            ],
+        )
+
+    if signal_conflicts:
+        reasons.append("Some governance signals conflict and require manual review.")
+
+    if missing_surfaces:
+        reasons.append("Missing surfaces: " + ", ".join(missing_surfaces))
+
+    pin_state = adoption_report.submodule_pin.value
+    static_complete = adoption_report.self_contained.value == "yes"
+    pin_acceptable = pin_state == "current_vs_local_tracking"
+    hooks_inside_repo = adoption_report.hook_config_framework_root.value == "inside_repo"
+    domain_ready = domain_contract_present.value is True
+    validator_ready = validator_surface_present.value is True
+
+    if (
+        topology in {"repo_owned_framework_path", "submodule_consumer"}
+        and static_complete
+        and pin_acceptable
+        and hooks_inside_repo
+        and repo_specific_rules_present
+        and domain_ready
+        and validator_ready
+        and not signal_conflicts
+    ):
+        return _summary_value(
+            "full_candidate",
+            "governance_maturity_summary.derived",
+            [
+                "Visible static governance surfaces are present.",
+                "This is still only a candidate; runtime enforcement and semantic correctness are not proven.",
+            ],
+        )
+
+    if not reasons:
+        reasons.append("Some governance surfaces are present, but the visible evidence is not enough for full_candidate.")
+    return _summary_value("partial", "governance_maturity_summary.derived", reasons)
+
+
 def _derive_cannot_claim(adoption_report: AdoptionDoctorReport, agents_report: AgentsCalibrationMaturity) -> list[str]:
     cannot = {
         "full governance adoption",
@@ -229,11 +306,26 @@ def build_governance_maturity_summary(
     agents_report = assess_agents_calibration_maturity(repo)
     domain_contract_present, validator_surface_present = _load_contract_surface(repo)
     repo_specific_present = _repo_specific_rules_present(agents_report.status)
+    missing_surfaces = _derive_missing_surfaces(
+        adoption_report,
+        agents_report,
+        domain_contract_present,
+        validator_surface_present,
+    )
+    signal_conflicts = _derive_conflicts(adoption_report)
 
     return GovernanceMaturitySummary(
         report_version=REPORT_VERSION,
         repo_root=str(repo),
         report_only=True,
+        user_facing_status=_derive_user_facing_status(
+            adoption_report,
+            repo_specific_present,
+            domain_contract_present,
+            validator_surface_present,
+            missing_surfaces,
+            signal_conflicts,
+        ),
         framework_topology=_summary_value(
             adoption_report.adoption_class.value,
             "adoption_doctor.adoption_class",
@@ -276,13 +368,8 @@ def build_governance_maturity_summary(
             "governance_maturity_summary.memory_workflow_surface",
             ["memory consolidation completeness is not inferred by this summary"],
         ),
-        missing_surfaces=_derive_missing_surfaces(
-            adoption_report,
-            agents_report,
-            domain_contract_present,
-            validator_surface_present,
-        ),
-        signal_conflicts=_derive_conflicts(adoption_report),
+        missing_surfaces=missing_surfaces,
+        signal_conflicts=signal_conflicts,
         claim_ceiling=_derive_claim_ceiling(adoption_report, repo_specific_present),
         cannot_claim=_derive_cannot_claim(adoption_report, agents_report),
     )
@@ -296,6 +383,8 @@ def format_human(summary: GovernanceMaturitySummary) -> str:
     lines = [
         "[governance_maturity_summary]",
         f"report_only              = {str(summary.report_only).lower()}",
+        f"user_facing_status       = {summary.user_facing_status.value}",
+        "user_facing_meaning      = " + " ".join(summary.user_facing_status.reasons),
         f"framework_topology       = {summary.framework_topology.value}",
         f"static_self_contained    = {summary.static_self_contained.value}",
         f"runtime_capable          = {summary.runtime_capable.value}",

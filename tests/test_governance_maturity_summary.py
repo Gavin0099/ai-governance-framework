@@ -111,13 +111,17 @@ def test_copy_based_summary_is_report_only_and_does_not_claim_runtime_governance
     rendered = format_human(summary)
 
     assert summary.report_only is True
+    assert summary.user_facing_status.value == "minimal"
     assert summary.framework_topology.value == "copy_based"
     assert summary.framework_pin_freshness.value == "not_applicable"
     assert summary.claim_ceiling.value == "governance_assisted"
     assert "runtime_self_contained_governance" in summary.missing_surfaces
     assert "runtime self-contained governance" in summary.cannot_claim
     assert payload["report_only"] is True
+    assert payload["user_facing_status"]["value"] == "minimal"
     assert "claim_boundary" in rendered
+    assert "user_facing_status       = minimal" in rendered
+    assert "Basic governance guidance is present" in rendered
 
 
 def test_framework_pin_freshness_surfaces_stale_local_tracking_without_fetch(tmp_path: Path) -> None:
@@ -155,6 +159,7 @@ def test_repo_specific_rules_domain_contract_and_validator_surface_are_derived(t
 
     summary = build_governance_maturity_summary(repo, framework_root=framework)
 
+    assert summary.user_facing_status.value == "partial"
     assert summary.framework_topology.value == "repo_owned_framework_path"
     assert summary.repo_specific_rules_present.value is True
     assert summary.agents_calibration.value == "repo_specific_minimal"
@@ -162,6 +167,7 @@ def test_repo_specific_rules_domain_contract_and_validator_surface_are_derived(t
     assert summary.validator_surface_present.value is True
     assert summary.memory_workflow_surface.value == "not_checked"
     assert "repo_specific_agents_rules" not in summary.missing_surfaces
+    assert "Some governance surfaces are present" in " ".join(summary.user_facing_status.reasons)
 
 
 def test_external_hook_root_is_reported_as_signal_conflict_not_blocker(tmp_path: Path) -> None:
@@ -174,9 +180,60 @@ def test_external_hook_root_is_reported_as_signal_conflict_not_blocker(tmp_path:
 
     summary = build_governance_maturity_summary(repo)
 
+    assert summary.user_facing_status.value == "partial"
     assert summary.framework_topology.value == "submodule_consumer"
     assert summary.hook_config_framework_root.value == "external"
     assert "repo_owned_hook_execution" in summary.missing_surfaces
     assert summary.signal_conflicts
     assert summary.signal_conflicts[0].field == "hooks"
     assert summary.signal_conflicts[0].action == "manual_review_required"
+    assert "Some governance signals conflict" in " ".join(summary.user_facing_status.reasons)
+
+
+def test_full_candidate_status_is_visible_but_not_runtime_claim(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "full_candidate")
+    relpath = "additional/ai-governance-framework"
+    framework = _make_git_framework_with_remote(repo / relpath, tmp_path / "framework-current.git", behind=False)
+    _write_gitmodules(repo, relpath)
+    _write_repo_specific_agents(repo)
+    _write(repo / ".git" / "hooks" / "ai-governance-framework-root", str(framework.resolve()))
+    _write(repo / "validators" / "check_contract.py", "print('ok')\n")
+    _write(
+        repo / "contract.yaml",
+        "\n".join(
+            [
+                "name: full-candidate-test",
+                "validators:",
+                "  - validators/check_contract.py",
+            ]
+        )
+        + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+    rendered = format_human(summary)
+
+    assert summary.user_facing_status.value == "full_candidate"
+    assert "runtime enforcement and semantic correctness are not proven" in " ".join(
+        summary.user_facing_status.reasons
+    )
+    assert "runtime self-contained governance" in summary.cannot_claim
+    assert "user_facing_status       = full_candidate" in rendered
+
+
+def test_unknown_adoption_without_repo_rules_is_user_facing_not_governed(tmp_path: Path) -> None:
+    repo = tmp_path / "not_governed" / "repo"
+    repo.mkdir(parents=True)
+    _run_git(["init"], repo)
+    _run_git(["config", "user.email", "test@example.com"], repo)
+    _run_git(["config", "user.name", "Test User"], repo)
+
+    summary = build_governance_maturity_summary(repo)
+    rendered = format_human(summary)
+
+    assert summary.framework_topology.value == "unknown"
+    assert summary.user_facing_status.value == "not_governed"
+    assert "No repo-specific governance surfaces were detected" in " ".join(
+        summary.user_facing_status.reasons
+    )
+    assert "user_facing_status       = not_governed" in rendered
