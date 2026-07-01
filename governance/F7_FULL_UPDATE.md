@@ -23,7 +23,7 @@ A submodule pointer update alone is insufficient and must be reported as
 3. memory writer coverage check
 4. hook / validator coverage check
 5. existing memory normalization status check
-6. final adoption status report
+6. final adoption status report backed by `governance_maturity_summary`
 
 ## Layered Status Fields
 
@@ -33,6 +33,7 @@ repo_local_instruction: updated | already_current | blocked | missing | not_veri
 memory_writer_coverage: verified | updated | blocked | missing | not_applicable | not_verified
 hook_validator_enforcement: verified | updated | blocked | missing | not_applicable | not_verified
 existing_memory_normalization: completed | needed | blocked | not_applicable | not_verified
+governance_maturity_summary: present | not_available | not_run
 final_status: full_update_completed | already_current | partially_updated | blocked | not_submodule_consumer | not_verified
 ```
 
@@ -41,6 +42,21 @@ final_status: full_update_completed | already_current | partially_updated | bloc
 
 If any required surface is `missing`, `needed`, `blocked`, or `not_verified`,
 the final status must not be `full_update_completed`.
+
+The final adoption status report must be operator-facing, not only a raw
+submodule or build summary. It must surface the report-only
+`governance_maturity_summary` fields, including user-facing adoption status,
+framework topology, static self-contained status, runtime capable status, hook
+framework root, framework pin freshness, repo-specific rules, domain contract,
+validator surface, memory workflow surface, and cannot-claim / claim-boundary
+summary.
+
+`adoption_doctor: findings 0`, `governance_version_check: compatible`, a clean
+build, or a framework pointer update is not a substitute for the final adoption
+status report. If `governance_maturity_summary` cannot be produced, F-7 must
+report `governance_maturity_summary: not_available` or
+`governance_maturity_summary: not_run` with the reason and must not claim that
+the operator was shown complete adoption status.
 
 ## Implemented Automation
 
@@ -51,6 +67,8 @@ surfaces:
 - refreshes / appends AI Governance update rules in `AGENTS.md`
 - ensures an `AGENTS.md` `governance:key=memory_workflow` router section
 - installs managed hook advisory files from the governance submodule checkout
+- surfaces `governance_maturity_summary` as a report-only adoption visibility
+  stage for consuming-repo operators
 - reports `full_update_completed` only when memory workflow coverage, hook
   advisory coverage, and normalization status are all eligible
 

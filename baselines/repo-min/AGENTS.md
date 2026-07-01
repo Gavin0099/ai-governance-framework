@@ -57,6 +57,18 @@ target framework HEAD: <sha | NOT CHECKED>
 dry-run: PASS | FAIL | NOT RUN
 update mode: already_current | fast_forward | detached_target_checkout | NOT CLAIMED
 parent repo commit: <hash | NOT NEEDED | NOT CREATED>
+governance maturity summary: RUN | NOT RUN | NOT AVAILABLE
+user-facing adoption status: <minimal | partial | full_candidate | not_governed | unknown | NOT REPORTED>
+framework topology: <copy_based | repo_owned_framework_path | submodule_consumer | unknown | NOT REPORTED>
+static self-contained: yes | no | unknown | NOT REPORTED
+runtime capable: not_checked | <other explicit value | NOT REPORTED>
+hook framework root: inside_repo | external | absent | unknown | NOT REPORTED
+framework pin freshness: <current_vs_local_tracking | behind_local_tracking | ahead_or_diverged_vs_local_tracking | unknown | not_applicable | NOT REPORTED>
+repo-specific rules: true | false | NOT REPORTED
+domain contract: true | false | NOT REPORTED
+validator surface: true | false | not_checked | NOT REPORTED
+memory workflow surface: <value from summary | NOT REPORTED>
+adoption cannot claim: <short cannot-claim list from the summary | NOT REPORTED>
 ```
 
 If the session only updates `AGENTS.md` or other local instruction files, report
@@ -81,6 +93,8 @@ target framework HEAD: NOT CHECKED
 dry-run: NOT RUN
 update mode: NOT CLAIMED
 parent repo commit: NOT CREATED
+governance maturity summary: NOT RUN
+user-facing adoption status: NOT REPORTED
 ```
 
 ### AI Governance Check Vs Update Intent
@@ -137,6 +151,23 @@ update task.
 If no parent repo commit is created, report:
 `parent repo commit: NOT CREATED`.
 
+When `governance_maturity_summary` is available, the final update report must
+surface the user-facing adoption status summary. Do not collapse this into
+`adoption_doctor: findings 0`, `governance_version_check: compatible`, a clean
+build, or a submodule pointer update. Those signals do not tell the operator
+which governance surfaces are present.
+
+If the update path used a direct submodule fast-forward plus lock-file update
+instead of F-7 or `adopt_governance.py`, run or relay
+`governance_maturity_summary` before final reporting. If it cannot be run,
+state:
+
+```text
+governance maturity summary: NOT RUN
+reason: <why it was not run>
+claim boundary: update commit/build evidence only; adoption completeness was not reported
+```
+
 ### F-7 Full Update Semantics
 
 F-7 is the AI Governance Full Update workflow. The governed submodule update is
@@ -154,7 +185,7 @@ Required stages:
 3. memory writer coverage check
 4. hook / validator coverage check
 5. existing memory normalization status check
-6. final adoption status report
+6. final adoption status report backed by `governance_maturity_summary`
 
 Layered status fields:
 
@@ -164,6 +195,7 @@ repo_local_instruction: updated | already_current | blocked | missing | not_veri
 memory_writer_coverage: verified | updated | blocked | missing | not_applicable | not_verified
 hook_validator_enforcement: verified | updated | blocked | missing | not_applicable | not_verified
 existing_memory_normalization: completed | needed | blocked | not_applicable | not_verified
+governance_maturity_summary: present | not_available | not_run
 final_status: full_update_completed | already_current | partially_updated | blocked | not_submodule_consumer | not_verified
 ```
 
@@ -171,6 +203,19 @@ final_status: full_update_completed | already_current | partially_updated | bloc
 `updated`, `already_current`, `verified`, `completed`, or `not_applicable`.
 If any required surface is `missing`, `needed`, `blocked`, or `not_verified`,
 the final status must not be `full_update_completed`.
+
+The final adoption status report must be operator-facing. It must surface the
+report-only `governance_maturity_summary` fields, including user-facing
+adoption status, framework topology, static self-contained status, runtime
+capable status, hook framework root, framework pin freshness, repo-specific
+rules, domain contract, validator surface, memory workflow surface, and
+cannot-claim / claim-boundary summary.
+
+`adoption_doctor: findings 0`, `governance_version_check: compatible`, a clean
+build, or a framework pointer update is not a substitute for the final adoption
+status report. If `governance_maturity_summary` cannot be produced, report
+`governance_maturity_summary: not_available` or
+`governance_maturity_summary: not_run` with the reason.
 
 This semantic update defines the required F-7 contract. It does not by itself
 implement updater automation for all stages.

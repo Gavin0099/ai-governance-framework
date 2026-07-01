@@ -18,7 +18,7 @@ Required F-7 stages:
 3. memory writer coverage check
 4. hook / validator coverage check
 5. existing memory normalization status check
-6. final adoption status report
+6. final adoption status report backed by `governance_maturity_summary`
 
 Layered status fields:
 
@@ -28,6 +28,7 @@ repo_local_instruction: updated | already_current | blocked | missing | not_veri
 memory_writer_coverage: verified | updated | blocked | missing | not_applicable | not_verified
 hook_validator_enforcement: verified | updated | blocked | missing | not_applicable | not_verified
 existing_memory_normalization: completed | needed | blocked | not_applicable | not_verified
+governance_maturity_summary: present | not_available | not_run
 final_status: full_update_completed | already_current | partially_updated | blocked | not_submodule_consumer | not_verified
 ```
 
@@ -35,6 +36,19 @@ final_status: full_update_completed | already_current | partially_updated | bloc
 `updated`, `already_current`, `verified`, `completed`, or `not_applicable`.
 If any required surface is `missing`, `needed`, `blocked`, or `not_verified`,
 the final status must not be `full_update_completed`.
+
+The final adoption status report must be operator-facing. It must surface the
+report-only `governance_maturity_summary` fields, including user-facing
+adoption status, framework topology, static self-contained status, runtime
+capable status, hook framework root, framework pin freshness, repo-specific
+rules, domain contract, validator surface, memory workflow surface, and
+cannot-claim / claim-boundary summary.
+
+`adoption_doctor: findings 0`, `governance_version_check: compatible`, a clean
+build, or a framework pointer update is not a substitute for the final adoption
+status report. If `governance_maturity_summary` cannot be produced, report
+`governance_maturity_summary: not_available` or
+`governance_maturity_summary: not_run` with the reason.
 
 This semantic update defines the required F-7 contract. It does not by itself
 implement updater automation for all stages.
@@ -97,6 +111,8 @@ target framework HEAD: <sha | NOT CHECKED>
 dry-run: PASS | FAIL | NOT RUN
 update mode: already_current | fast_forward | detached_target_checkout | NOT CLAIMED
 parent repo commit: <hash | NOT NEEDED | NOT CREATED>
+governance maturity summary: RUN | NOT RUN | NOT AVAILABLE
+user-facing adoption status: <minimal | partial | full_candidate | not_governed | unknown | NOT REPORTED>
 ```
 
 The updater JSON also includes `full_update_stage_report`:
@@ -107,6 +123,7 @@ repo_local_instruction: updated | already_current | blocked | missing | not_veri
 memory_writer_coverage: verified | updated | blocked | missing | not_applicable | not_verified
 hook_validator_enforcement: verified | updated | blocked | missing | not_applicable | not_verified
 existing_memory_normalization: completed | needed | blocked | not_applicable | not_verified
+governance_maturity_summary: present | not_available | not_run
 final_status: full_update_completed | already_current | partially_updated | blocked | not_submodule_consumer | not_verified
 ```
 
@@ -117,6 +134,8 @@ Current automation boundary:
   section in `AGENTS.md`.
 - Stages 3-5 are coverage/status checks only. They do not install hooks, change
   validators, normalize memory, or change artifact schema.
+- Stage 6 surfaces `governance_maturity_summary` as report-only adoption
+  visibility for the operator.
 - `full_update_completed` is not valid unless every required stage is satisfied.
 
 ## Common Misinterpretations
@@ -154,6 +173,8 @@ target framework HEAD: NOT CHECKED
 dry-run: NOT RUN
 update mode: NOT CLAIMED
 parent repo commit: NOT CREATED
+governance maturity summary: NOT RUN
+user-facing adoption status: NOT REPORTED
 ```
 
 Valid `already_current` conclusion:
@@ -166,6 +187,8 @@ target framework HEAD: <same-sha>
 dry-run: PASS
 update mode: already_current
 parent repo commit: NOT NEEDED
+governance maturity summary: RUN
+user-facing adoption status: <reported status>
 ```
 
 ## Purpose

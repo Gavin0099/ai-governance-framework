@@ -50,6 +50,18 @@ target framework HEAD: <sha | NOT CHECKED>
 dry-run: PASS | FAIL | NOT RUN
 update mode: already_current | fast_forward | detached_target_checkout | NOT CLAIMED
 parent repo commit: <hash | NOT NEEDED | NOT CREATED>
+governance maturity summary: RUN | NOT RUN | NOT AVAILABLE
+user-facing adoption status: <minimal | partial | full_candidate | not_governed | unknown | NOT REPORTED>
+framework topology: <copy_based | repo_owned_framework_path | submodule_consumer | unknown | NOT REPORTED>
+static self-contained: yes | no | unknown | NOT REPORTED
+runtime capable: not_checked | <other explicit value | NOT REPORTED>
+hook framework root: inside_repo | external | absent | unknown | NOT REPORTED
+framework pin freshness: <current_vs_local_tracking | behind_local_tracking | ahead_or_diverged_vs_local_tracking | unknown | not_applicable | NOT REPORTED>
+repo-specific rules: true | false | NOT REPORTED
+domain contract: true | false | NOT REPORTED
+validator surface: true | false | not_checked | NOT REPORTED
+memory workflow surface: <value from summary | NOT REPORTED>
+adoption cannot claim: <short cannot-claim list from the summary | NOT REPORTED>
 ```
 
 If the session only updates instruction files, report that as an
@@ -73,6 +85,8 @@ target framework HEAD: NOT CHECKED
 dry-run: NOT RUN
 update mode: NOT CLAIMED
 parent repo commit: NOT CREATED
+governance maturity summary: NOT RUN
+user-facing adoption status: NOT REPORTED
 ```
 
 ## Check Vs Update Intent
@@ -136,6 +150,62 @@ parent repo commit: NOT CREATED
 
 When reporting AI Governance updates in a consuming repository, keep receipt
 integrity, dirty-tree state, build evidence, and memory disposition separate.
+
+### Required Adoption Status Summary
+
+An AI Governance update report must surface the user-facing adoption status
+summary when the framework checkout contains `governance_maturity_summary`.
+
+Do not collapse this into:
+- `adoption_doctor: findings 0`;
+- `governance_version_check: compatible`;
+- `framework.lock.json updated`;
+- `dotnet build passed`;
+- `submodule updated from <old> to <new>`.
+
+Those signals may be useful evidence, but they do not tell the operator which
+governance surfaces are present.
+
+Valid update reports must include the `governance_maturity_summary` fields, or
+explicitly state why the summary was not run / not available. At minimum, report:
+- user-facing adoption status and one-line meaning;
+- framework topology;
+- static self-contained status;
+- runtime capable status;
+- hook framework root;
+- framework pin freshness;
+- repo-specific rules;
+- domain contract;
+- validator surface;
+- memory workflow surface;
+- cannot-claim / claim-boundary summary.
+
+If the update path used a direct submodule fast-forward plus lock-file update
+instead of F-7 or `adopt_governance.py`, run or relay the available
+`governance_maturity_summary` before final reporting. If it cannot be run,
+state:
+
+```text
+governance maturity summary: NOT RUN
+reason: <why it was not run>
+claim boundary: update commit/build evidence only; adoption completeness was not reported
+```
+
+Valid wording:
+
+```text
+AI Governance was updated, and the adoption status summary is partial:
+framework_topology=submodule_consumer, runtime_capable=not_checked,
+repo_specific_rules=false. This is report-only and does not prove runtime
+enforcement or complete governance adoption.
+```
+
+Invalid wording:
+
+```text
+AI Governance was updated and adoption_doctor findings=0, so governance is
+fully installed.
+```
 
 ### Verified Status Claim Ceiling
 
