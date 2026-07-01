@@ -237,6 +237,12 @@ def test_dry_run_does_not_change_submodule_or_stage_files(tmp_path: Path) -> Non
     assert result.target_head == new_head
     assert result.after_head == old_head
     assert result.full_update_stage_report["final_status"] == "not_verified"
+    assert result.full_update_stage_report["governance_maturity_summary"]["report_only"] is True
+    rendered = format_human(result)
+    assert "full_update_stage_report:" in rendered
+    assert "[human_readable_adoption_summary]" in rendered
+    assert "AI Governance 功能導入狀態：" in rendered
+    assert "| 功能 | 狀態 | 這個功能是做什麼 |" in rendered
     assert _git(consumer / "ai-governance-framework", "rev-parse", "HEAD") == old_head
     assert _git(consumer, "diff", "--cached", "--name-only") == ""
 
@@ -465,6 +471,12 @@ def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
     assert result.full_update_stage_report["memory_writer_coverage"] == "verified"
     assert result.full_update_stage_report["hook_validator_enforcement"] == "updated"
     assert result.full_update_stage_report["final_status"] == "full_update_completed"
+    assert result.full_update_stage_report["governance_maturity_summary"]["report_only"] is True
+    rendered = format_human(result)
+    assert "full_update_stage_report:" in rendered
+    assert "[human_readable_adoption_summary]" in rendered
+    assert "AI Governance 功能導入狀態：" in rendered
+    assert "| 功能 | 狀態 | 這個功能是做什麼 |" in rendered
     assert result.staged_files == [
         ".gitignore",
         "AGENTS.base.md",
@@ -540,6 +552,12 @@ def test_apply_commit_noops_when_submodule_already_points_at_target(
     assert result.full_update_stage_report["memory_writer_coverage"] == "verified"
     assert result.full_update_stage_report["hook_validator_enforcement"] == "updated"
     assert result.full_update_stage_report["final_status"] == "full_update_completed"
+    assert result.full_update_stage_report["governance_maturity_summary"]["report_only"] is True
+    rendered = format_human(result)
+    assert "full_update_stage_report:" in rendered
+    assert "[human_readable_adoption_summary]" in rendered
+    assert "AI Governance 功能導入狀態：" in rendered
+    assert "| 功能 | 狀態 | 這個功能是做什麼 |" in rendered
     assert result.staged_files == [".gitignore", "AGENTS.base.md", "AGENTS.md"]
     assert result.committed is True
     assert result.commit_hash is not None

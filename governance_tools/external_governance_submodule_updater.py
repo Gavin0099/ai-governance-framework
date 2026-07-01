@@ -10,6 +10,11 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Sequence
 
+from governance_tools.governance_maturity_summary import (
+    build_governance_maturity_summary,
+    summary_to_dict as governance_maturity_summary_to_dict,
+)
+
 
 DEFAULT_SUBMODULE_PATH = "ai-governance-framework"
 KNOWN_SUBMODULE_PATHS = (DEFAULT_SUBMODULE_PATH, ".ai-governance-framework")
@@ -608,6 +613,7 @@ def _build_full_update_stage_report(
     hook_validator_enforcement: str = "not_verified",
     existing_memory_normalization: str = "not_verified",
     gitignore_hygiene: str = "not_verified",
+    governance_maturity_summary: dict[str, Any] | None = None,
     details: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     report: dict[str, Any] = {
@@ -622,10 +628,69 @@ def _build_full_update_stage_report(
         "target_source": target_source,
         "target_fresh_upstream_verified": _fresh_upstream_verified(target_source),
         "target_claim_boundary": _target_claim_boundary(target_source),
+        "governance_maturity_summary": governance_maturity_summary
+        or {
+            "report_only": True,
+            "status": "not_run",
+            "reason": "governance maturity summary was not attached by this update path",
+            "claim_boundary": "summary unavailable; no maturity claim is supported",
+        },
         "details": details or {},
     }
     report["final_status"] = _final_full_update_status(report)
     return report
+
+
+def _governance_maturity_stage(repo: Path, framework_root: Path | None) -> dict[str, Any]:
+    try:
+        summary = build_governance_maturity_summary(repo, framework_root=framework_root)
+    except Exception as exc:
+        return {
+            "report_only": True,
+            "status": "not_available",
+            "reason": f"{type(exc).__name__}: {exc}",
+            "claim_boundary": "summary unavailable; no maturity claim is supported",
+        }
+    return governance_maturity_summary_to_dict(summary)
+
+
+def _format_governance_maturity_stage(payload: object) -> list[str]:
+    if not isinstance(payload, dict):
+        return [f"governance_maturity_summary={payload}"]
+    if payload.get("status") in {"not_available", "not_run"}:
+        return [
+            "[governance_maturity_summary]",
+            "report_only=true",
+            f"status={payload.get('status')}",
+            f"reason={payload.get('reason')}",
+            f"claim_boundary={payload.get('claim_boundary')}",
+        ]
+
+    compact = {
+        "report_only": payload.get("report_only"),
+        "framework_topology": (payload.get("framework_topology") or {}).get("value"),
+        "static_self_contained": (payload.get("static_self_contained") or {}).get("value"),
+        "runtime_capable": (payload.get("runtime_capable") or {}).get("value"),
+        "hook_config_framework_root": (payload.get("hook_config_framework_root") or {}).get("value"),
+        "framework_pin_freshness": (payload.get("framework_pin_freshness") or {}).get("value"),
+        "agents_calibration": (payload.get("agents_calibration") or {}).get("value"),
+        "repo_specific_rules": (payload.get("repo_specific_rules_present") or {}).get("value"),
+        "domain_contract_present": (payload.get("domain_contract_present") or {}).get("value"),
+        "validator_surface": (payload.get("validator_surface_present") or {}).get("value"),
+        "memory_workflow_surface": (payload.get("memory_workflow_surface") or {}).get("value"),
+        "claim_ceiling": (payload.get("claim_ceiling") or {}).get("value"),
+        "missing_surfaces": payload.get("missing_surfaces"),
+        "signal_conflicts": len(payload.get("signal_conflicts") or []),
+    }
+    lines = ["[governance_maturity_summary]"]
+    lines.extend(f"{key}={value}" for key, value in compact.items())
+    human_summary = payload.get("human_readable_adoption_summary") or []
+    if human_summary:
+        lines.extend(str(item) for item in human_summary)
+    cannot_claim = payload.get("cannot_claim") or []
+    if cannot_claim:
+        lines.append("cannot_claim=" + "; ".join(str(item) for item in cannot_claim))
+    return lines
 
 
 def update_governance_submodule(
@@ -689,6 +754,7 @@ def update_governance_submodule(
                 hook_validator_enforcement=hook_report["status"],
                 existing_memory_normalization=_check_existing_memory_normalization(repo),
                 gitignore_hygiene=gitignore_report["status"],
+                governance_maturity_summary=_governance_maturity_stage(repo, submodule_repo),
                 details={
                     "repo_local_instruction": instruction_report,
                     "hook_validator_enforcement": hook_report,
@@ -769,6 +835,7 @@ def update_governance_submodule(
                     hook_validator_enforcement=_check_hook_validator_enforcement(repo),
                     existing_memory_normalization=_check_existing_memory_normalization(repo),
                     gitignore_hygiene=_check_gitignore_hygiene(repo),
+                    governance_maturity_summary=_governance_maturity_stage(repo, submodule_repo),
                     details={"dry_run": True, "target_resolution": target_resolution},
                 ),
                 target_source=target_source,
@@ -816,6 +883,7 @@ def update_governance_submodule(
             hook_validator_enforcement=hook_report["status"],
             existing_memory_normalization=_check_existing_memory_normalization(repo),
             gitignore_hygiene=gitignore_report["status"],
+            governance_maturity_summary=_governance_maturity_stage(repo, submodule_repo),
             details={
                 "repo_local_instruction": instruction_report,
                 "hook_validator_enforcement": hook_report,
@@ -896,6 +964,7 @@ def update_governance_submodule(
                     else "blocked"
                 ),
                 target_source=target_source,
+                governance_maturity_summary=_governance_maturity_stage(repo, submodule_repo),
                 details={"errors": errors, "target_resolution": target_resolution},
             ),
             target_source=target_source,
@@ -935,6 +1004,11 @@ def format_human(result: UpdateResult) -> str:
         ),
         f"- final_status={result.full_update_stage_report.get('final_status')}",
     ]
+    lines.extend(
+        _format_governance_maturity_stage(
+            result.full_update_stage_report.get("governance_maturity_summary")
+        )
+    )
     if result.errors:
         lines.append("errors:")
         lines.extend(f"- {error}" for error in result.errors)
