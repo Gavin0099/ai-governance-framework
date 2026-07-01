@@ -140,6 +140,24 @@ def test_framework_pin_freshness_surfaces_stale_local_tracking_without_fetch(tmp
     assert "framework_pin_freshness  = behind_local_tracking" in rendered
 
 
+def test_repo_owned_framework_pin_freshness_surfaces_stale_local_tracking(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "repo_owned_stale")
+    framework = _make_git_framework_with_remote(
+        repo / "additional" / "ai-governance-framework",
+        tmp_path / "repo-owned-framework.git",
+        behind=True,
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+    rendered = format_human(summary)
+
+    assert summary.framework_topology.value == "repo_owned_framework_path"
+    assert summary.framework_pin_freshness.value == "behind_local_tracking"
+    assert "framework_pin_freshness" in summary.missing_surfaces
+    assert "framework pin freshness" in summary.cannot_claim
+    assert "framework_pin_freshness  = behind_local_tracking" in rendered
+
+
 def test_repo_specific_rules_domain_contract_and_validator_surface_are_derived(tmp_path: Path) -> None:
     repo = _make_repo(tmp_path / "domain")
     framework = _make_framework_root(repo / "additional" / "ai-governance-framework")

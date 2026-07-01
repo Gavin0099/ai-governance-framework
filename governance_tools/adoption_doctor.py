@@ -350,6 +350,13 @@ def _git_dir(cwd: Path) -> Path | None:
     return _resolve(git_dir)
 
 
+def _is_git_worktree_root(cwd: Path) -> bool:
+    top_level = _git_stdout(["rev-parse", "--show-toplevel"], cwd)
+    if not top_level:
+        return False
+    return _resolve(Path(top_level)) == _resolve(cwd)
+
+
 def _last_fetch(cwd: Path) -> tuple[str, str | None]:
     git_dir = _git_dir(cwd)
     if git_dir is None:
@@ -370,27 +377,33 @@ def _is_ancestor(cwd: Path, left: str, right: str) -> bool | None:
     return None
 
 
-def _classify_pin(repo_root: Path, framework_submodule: ClassifiedValue) -> PinStatus:
-    submodule_path = _first_submodule_path(repo_root)
-    if not submodule_path:
-        return PinStatus("not_applicable", checked=True, reasons=["no .gitmodules framework path"])
-    submodule_root = repo_root / submodule_path
-    if framework_submodule.value != "initialized":
-        return PinStatus("unknown", checked=True, reasons=["framework submodule is not initialized"])
+def _pin_subject(repo_root: Path, framework_root: Path) -> str:
+    if _is_relative_to(framework_root, repo_root):
+        return f"framework root {_repo_relative(repo_root, framework_root)}"
+    return f"framework root {_resolve(framework_root)}"
 
-    head = _git_stdout(["rev-parse", "HEAD"], submodule_root)
+
+def _classify_git_root_pin(framework_root: Path, subject: str) -> PinStatus:
+    if not _is_git_worktree_root(framework_root):
+        return PinStatus(
+            "not_applicable",
+            checked=True,
+            reasons=[f"{subject} is not a git repo; no local tracking comparison is available"],
+        )
+
+    head = _git_stdout(["rev-parse", "HEAD"], framework_root)
     if not head:
-        return PinStatus("unknown", checked=True, reasons=["unable to read submodule HEAD"])
+        return PinStatus("unknown", checked=True, reasons=[f"unable to read {subject} HEAD"])
 
-    upstream = _git_stdout(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], submodule_root)
+    upstream = _git_stdout(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], framework_root)
     if not upstream:
         for candidate in ("origin/main", "origin/HEAD"):
-            resolved = _git_stdout(["rev-parse", "--verify", candidate], submodule_root)
+            resolved = _git_stdout(["rev-parse", "--verify", candidate], framework_root)
             if resolved:
                 upstream = candidate
                 break
     if not upstream:
-        freshness, last_fetch = _last_fetch(submodule_root)
+        freshness, last_fetch = _last_fetch(framework_root)
         return PinStatus(
             "unknown",
             checked=True,
@@ -399,8 +412,8 @@ def _classify_pin(repo_root: Path, framework_submodule: ClassifiedValue) -> PinS
             reasons=["no local remote-tracking ref is available; no fetch was attempted"],
         )
 
-    tracking = _git_stdout(["rev-parse", "--verify", upstream], submodule_root)
-    freshness, last_fetch = _last_fetch(submodule_root)
+    tracking = _git_stdout(["rev-parse", "--verify", upstream], framework_root)
+    freshness, last_fetch = _last_fetch(framework_root)
     if not tracking:
         return PinStatus(
             "unknown",
@@ -419,22 +432,22 @@ def _classify_pin(repo_root: Path, framework_submodule: ClassifiedValue) -> PinS
             remote_tracking_freshness=freshness,
             last_fetch=last_fetch,
             reasons=[
-                "submodule HEAD matches the local remote-tracking ref",
+                f"{subject} HEAD matches the local remote-tracking ref",
                 "this does not prove the pin matches the true current remote head",
             ],
         )
 
-    head_behind = _is_ancestor(submodule_root, head, tracking)
-    tracking_behind = _is_ancestor(submodule_root, tracking, head)
+    head_behind = _is_ancestor(framework_root, head, tracking)
+    tracking_behind = _is_ancestor(framework_root, tracking, head)
     if head_behind is True:
         value = "behind_local_tracking"
-        reason = "submodule HEAD is behind the local remote-tracking ref"
+        reason = f"{subject} HEAD is behind the local remote-tracking ref"
     elif tracking_behind is True:
         value = "ahead_or_diverged_vs_local_tracking"
-        reason = "submodule HEAD is ahead of the local remote-tracking ref"
+        reason = f"{subject} HEAD is ahead of the local remote-tracking ref"
     else:
         value = "ahead_or_diverged_vs_local_tracking"
-        reason = "submodule HEAD has diverged from the local remote-tracking ref"
+        reason = f"{subject} HEAD has diverged from the local remote-tracking ref"
     return PinStatus(
         value,
         checked=True,
@@ -443,6 +456,31 @@ def _classify_pin(repo_root: Path, framework_submodule: ClassifiedValue) -> PinS
         last_fetch=last_fetch,
         reasons=[reason, "no fetch was attempted"],
     )
+
+
+def _classify_pin(
+    repo_root: Path,
+    framework_submodule: ClassifiedValue,
+    selected_framework_root: Path | None,
+) -> PinStatus:
+    hook_root = _read_hook_framework_root(repo_root)
+    if hook_root is not None and _looks_like_framework_root(hook_root) and _is_git_worktree_root(hook_root):
+        return _classify_git_root_pin(hook_root, _pin_subject(repo_root, hook_root))
+
+    submodule_path = _first_submodule_path(repo_root)
+    if submodule_path:
+        submodule_root = repo_root / submodule_path
+        if framework_submodule.value != "initialized":
+            return PinStatus("unknown", checked=True, reasons=["framework submodule is not initialized"])
+        return _classify_git_root_pin(submodule_root, _pin_subject(repo_root, submodule_root))
+
+    if selected_framework_root is not None and _looks_like_framework_root(selected_framework_root):
+        return _classify_git_root_pin(
+            selected_framework_root,
+            _pin_subject(repo_root, selected_framework_root),
+        )
+
+    return PinStatus("not_applicable", checked=True, reasons=["no local framework git root was available"])
 
 
 def _findings(report: AdoptionDoctorReport) -> list[Finding]:
@@ -496,7 +534,7 @@ def _findings(report: AdoptionDoctorReport) -> list[Finding]:
             Finding(
                 "warning",
                 "pin_behind_local_tracking",
-                "Submodule pin is behind the local remote-tracking ref; this is evidence, not a blocker.",
+                "Framework pin is behind the local remote-tracking ref; this is evidence, not a blocker.",
             )
         )
     if report.submodule_pin.value == "unknown":
@@ -504,7 +542,7 @@ def _findings(report: AdoptionDoctorReport) -> list[Finding]:
             Finding(
                 "unknown",
                 "pin_status_unknown",
-                "Submodule pin status could not be determined from local metadata.",
+                "Framework pin status could not be determined from local metadata.",
             )
         )
     return findings
@@ -540,7 +578,7 @@ def inspect_adoption(repo_root: Path, framework_root: Path | None = None) -> Ado
         runtime_capable=runtime_capable,
         root_level_leftover_runtime_hooks=_classify_root_runtime_hooks(repo_root, selected_framework_root),
         framework_submodule=submodule,
-        submodule_pin=_classify_pin(repo_root, submodule),
+        submodule_pin=_classify_pin(repo_root, submodule, selected_framework_root),
         external_framework_dependency=_classify_external_dependency(repo_root, selected_framework_root),
         hook_config_framework_root=_classify_hook_config_framework_root(repo_root),
     )

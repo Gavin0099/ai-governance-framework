@@ -189,6 +189,45 @@ def test_stale_pin_uses_local_tracking_and_remains_report_only(tmp_path: Path) -
     assert all(f.severity != "blocking" for f in report.findings)
 
 
+def test_repo_owned_git_framework_root_reports_stale_local_tracking(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "repo_owned_stale")
+    framework = _make_git_framework_with_remote(
+        repo / "additional" / "ai-governance-framework",
+        tmp_path / "repo-owned-framework.git",
+        behind=True,
+    )[0]
+
+    report = inspect_adoption(repo, framework_root=framework)
+    rendered = format_human(report)
+
+    assert report.adoption_class.value == "repo_owned_framework_path"
+    assert report.framework_submodule.value == "not_applicable"
+    assert report.submodule_pin.value == "behind_local_tracking"
+    assert report.submodule_pin.remote_tracking_ref == "origin/main"
+    assert "framework root additional/ai-governance-framework HEAD is behind" in rendered
+    assert any(f.code == "pin_behind_local_tracking" for f in report.findings)
+
+
+def test_external_hook_git_framework_root_reports_stale_local_tracking(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "external_hook_stale")
+    external_framework = _make_git_framework_with_remote(
+        tmp_path / "external-framework",
+        tmp_path / "external-framework.git",
+        behind=True,
+    )[0]
+    _write(repo / ".git" / "hooks" / "ai-governance-framework-root", str(external_framework.resolve()))
+
+    report = inspect_adoption(repo)
+    rendered = format_human(report)
+
+    assert report.adoption_class.value == "copy_based"
+    assert report.hook_config_framework_root.value == "external"
+    assert report.submodule_pin.value == "behind_local_tracking"
+    assert report.submodule_pin.remote_tracking_ref == "origin/main"
+    assert str(external_framework.resolve()) in rendered
+    assert any(f.code == "pin_behind_local_tracking" for f in report.findings)
+
+
 def test_current_pin_is_not_rendered_as_unqualified_current(tmp_path: Path) -> None:
     repo = _make_repo(tmp_path / "current")
     relpath = "additional/ai-governance-framework"
@@ -222,6 +261,29 @@ def test_doctor_does_not_fetch_by_default(monkeypatch: pytest.MonkeyPatch, tmp_p
     monkeypatch.setattr(adoption_doctor.subprocess, "run", spy_run)
 
     report = inspect_adoption(repo)
+
+    assert report.submodule_pin.value == "behind_local_tracking"
+    assert not any("fetch" in command for command in commands)
+
+
+def test_doctor_does_not_fetch_for_repo_owned_framework_root(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "no_fetch_repo_owned")
+    framework = _make_git_framework_with_remote(
+        repo / "additional" / "ai-governance-framework",
+        tmp_path / "no-fetch-repo-owned-framework.git",
+        behind=True,
+    )[0]
+    real_run = adoption_doctor.subprocess.run
+    commands: list[list[str]] = []
+
+    def spy_run(command: list[str], *args: object, **kwargs: object):
+        commands.append(command)
+        assert "fetch" not in command
+        return real_run(command, *args, **kwargs)
+
+    monkeypatch.setattr(adoption_doctor.subprocess, "run", spy_run)
+
+    report = inspect_adoption(repo, framework_root=framework)
 
     assert report.submodule_pin.value == "behind_local_tracking"
     assert not any("fetch" in command for command in commands)
