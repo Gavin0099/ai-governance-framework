@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Governance maturity summary adoption/update output - 2026-07-01
+
+- Wired the derived, report-only `governance_maturity_summary` into
+  `governance_tools/adopt_governance.py` and
+  `governance_tools/f7_full_update.py` so consuming repos can see adoption
+  topology, static self-contained prerequisites, hook framework-root wiring,
+  local-tracking pin freshness, repo-specific rule calibration, domain
+  contract/validator surfaces, and explicit non-claims during AI Governance
+  adoption or F-7 update flows.
+- Added focused coverage in `tests/test_adopt_governance.py` and
+  `tests/test_f7_full_update.py` for copy-based, repo-owned, submodule, and
+  external-contract report surfaces, including `not_available` fail-safe
+  behavior when the summary builder raises.
+- Release-note boundary: this entry records unreleased report-only adoption
+  visibility only. It does not bump the framework version, publish a release,
+  prove complete adoption in any consuming repo, install or repair hooks,
+  update submodule pins, validate runtime self-contained governance, or wire
+  CI/pre-push/gates/enforcement behavior.
+
 ### AUTHORITY_MANIFEST cache-invalidation refinement - 2026-06-30
 
 - Refined `governance_tools/authority_manifest.py` and
