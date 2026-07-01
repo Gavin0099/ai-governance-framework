@@ -12,6 +12,7 @@ from typing import Any, Sequence
 
 
 DEFAULT_SUBMODULE_PATH = "ai-governance-framework"
+KNOWN_SUBMODULE_PATHS = (DEFAULT_SUBMODULE_PATH, ".ai-governance-framework")
 
 
 @dataclass
@@ -39,6 +40,7 @@ class UpdateResult:
     message: str
     errors: list[str]
     full_update_stage_report: dict[str, Any]
+    target_source: str = "not_reported"
 
 
 class SubmoduleUpdateError(RuntimeError):
@@ -127,6 +129,15 @@ def _require_no_initial_staged_files(repo: Path) -> None:
         )
 
 
+def _has_registered_submodule(repo: Path, submodule_path: str) -> bool:
+    result = _run_git(
+        repo,
+        ["submodule", "status", "--", submodule_path],
+        check=False,
+    )
+    return result.returncode == 0 and bool(result.stdout.strip())
+
+
 def _require_registered_submodule(repo: Path, submodule_path: str) -> None:
     result = _run_git(
         repo,
@@ -137,6 +148,24 @@ def _require_registered_submodule(repo: Path, submodule_path: str) -> None:
         raise SubmoduleUpdateError(
             f"submodule not registered or not initialized: {submodule_path}"
         )
+
+
+def _resolve_submodule_path(repo: Path, requested_path: str) -> str:
+    if _has_registered_submodule(repo, requested_path):
+        return requested_path
+
+    # The CLI default is also the common legacy path. If it is absent, try the
+    # two supported governance submodule spellings before failing.
+    if requested_path == DEFAULT_SUBMODULE_PATH:
+        for candidate in KNOWN_SUBMODULE_PATHS:
+            if candidate == requested_path:
+                continue
+            if _has_registered_submodule(repo, candidate):
+                return candidate
+
+    raise SubmoduleUpdateError(
+        f"submodule not registered or not initialized: {requested_path}"
+    )
 
 
 def _is_initialized_git_checkout(repo: Path) -> bool:
@@ -158,6 +187,58 @@ def _require_initialized_git_checkout(submodule_repo: Path) -> None:
 
 def _resolve_head(repo: Path, ref: str) -> str:
     return _run_git(repo, ["rev-parse", ref]).stdout
+
+
+def _resolve_target_head(
+    submodule_repo: Path,
+    *,
+    target_ref: str,
+    fetch_remote: str,
+    fetch_ref: str,
+    dry_run: bool,
+) -> tuple[str, str]:
+    if not fetch_ref:
+        return _resolve_head(submodule_repo, target_ref), "explicit_target_ref"
+
+    if dry_run:
+        fetch_result = _run_git(
+            submodule_repo,
+            ["ls-remote", fetch_remote, fetch_ref],
+            check=False,
+        )
+        if fetch_result.returncode == 0 and fetch_result.stdout:
+            return fetch_result.stdout.split()[0], "fresh_remote_ls_remote"
+
+        local_ref = _run_git(submodule_repo, ["rev-parse", target_ref], check=False)
+        if local_ref.returncode == 0 and local_ref.stdout:
+            return local_ref.stdout, "local_tracking_ref_fallback"
+
+        detail = fetch_result.stderr or fetch_result.stdout or f"exit {fetch_result.returncode}"
+        raise SubmoduleUpdateError(
+            f"target ref not found via fresh remote or local tracking: "
+            f"{fetch_remote}/{fetch_ref}, {target_ref}: {detail}"
+        )
+
+    _run_git(submodule_repo, ["fetch", fetch_remote, fetch_ref])
+    return _resolve_head(submodule_repo, "FETCH_HEAD"), "fresh_remote_fetch_head"
+
+
+def _dry_run_fast_forward_status(submodule_repo: Path, before_head: str, target_head: str) -> bool | None:
+    target_object = _run_git(
+        submodule_repo,
+        ["cat-file", "-e", f"{target_head}^{{commit}}"],
+        check=False,
+    )
+    if target_object.returncode != 0:
+        return None
+    return (
+        _run_git(
+            submodule_repo,
+            ["merge-base", "--is-ancestor", before_head, target_head],
+            check=False,
+        ).returncode
+        == 0
+    )
 
 
 def _staged_files(repo: Path) -> list[str]:
@@ -526,36 +607,33 @@ def update_governance_submodule(
     repo = repo.resolve()
     submodule_repo = (repo / submodule_path).resolve()
     errors: list[str] = []
+    target_head = ""
+    target_source = "not_resolved"
+    target_resolution: dict[str, Any] = {}
 
     try:
         _run_git(repo, ["rev-parse", "--is-inside-work-tree"])
-        _require_registered_submodule(repo, submodule_path)
+        submodule_path = _resolve_submodule_path(repo, submodule_path)
+        submodule_repo = (repo / submodule_path).resolve()
         _require_initialized_git_checkout(submodule_repo)
         _require_no_initial_staged_files(repo)
         _require_clean_nested(submodule_repo)
 
         before_head = _resolve_head(submodule_repo, "HEAD")
-
-        if fetch_ref:
-            if dry_run:
-                local_ref = _run_git(submodule_repo, ["rev-parse", target_ref], check=False)
-                if local_ref.returncode == 0 and local_ref.stdout:
-                    target_head = local_ref.stdout
-                else:
-                    fetch_result = _run_git(
-                        submodule_repo,
-                        ["ls-remote", fetch_remote, fetch_ref],
-                    )
-                    if not fetch_result.stdout:
-                        raise SubmoduleUpdateError(
-                            f"target ref not found: {fetch_remote}/{fetch_ref}"
-                        )
-                    target_head = fetch_result.stdout.split()[0]
-            else:
-                _run_git(submodule_repo, ["fetch", fetch_remote, fetch_ref])
-                target_head = _resolve_head(submodule_repo, "FETCH_HEAD")
-        else:
-            target_head = _resolve_head(submodule_repo, target_ref)
+        target_head, target_source = _resolve_target_head(
+            submodule_repo,
+            target_ref=target_ref,
+            fetch_remote=fetch_remote,
+            fetch_ref=fetch_ref,
+            dry_run=dry_run,
+        )
+        target_resolution = {
+            "target_ref": target_ref,
+            "fetch_remote": fetch_remote,
+            "fetch_ref": fetch_ref,
+            "target_source": target_source,
+            "target_head": target_head,
+        }
 
         if not dry_run and before_head == target_head:
             instruction_report = _refresh_repo_local_instructions(repo, submodule_repo)
@@ -572,6 +650,7 @@ def update_governance_submodule(
                     "repo_local_instruction": instruction_report,
                     "hook_validator_enforcement": hook_report,
                     "gitignore_hygiene": gitignore_report,
+                    "target_resolution": target_resolution,
                 },
             )
             if stage or commit:
@@ -610,16 +689,14 @@ def update_governance_submodule(
                 message="submodule already at target; no files modified",
                 errors=[],
                 full_update_stage_report=full_update_stage_report,
+                target_source=target_source,
             )
 
         if dry_run:
-            fast_forward = (
-                _run_git(
-                    submodule_repo,
-                    ["merge-base", "--is-ancestor", before_head, target_head],
-                    check=False,
-                ).returncode
-                == 0
+            fast_forward = _dry_run_fast_forward_status(
+                submodule_repo,
+                before_head,
+                target_head,
             )
             return UpdateResult(
                 ok=True,
@@ -645,13 +722,14 @@ def update_governance_submodule(
                     hook_validator_enforcement=_check_hook_validator_enforcement(repo),
                     existing_memory_normalization=_check_existing_memory_normalization(repo),
                     gitignore_hygiene=_check_gitignore_hygiene(repo),
-                    details={"dry_run": True},
+                    details={"dry_run": True, "target_resolution": target_resolution},
                 ),
+                target_source=target_source,
             )
 
         merge_result = _run_git(
             submodule_repo,
-            ["merge", "--ff-only", target_ref],
+            ["merge", "--ff-only", target_head],
             check=False,
         )
         if merge_result.returncode == 0:
@@ -691,6 +769,7 @@ def update_governance_submodule(
                 "repo_local_instruction": instruction_report,
                 "hook_validator_enforcement": hook_report,
                 "gitignore_hygiene": gitignore_report,
+                "target_resolution": target_resolution,
             },
         )
 
@@ -732,6 +811,7 @@ def update_governance_submodule(
             message="submodule pointer update complete",
             errors=[],
             full_update_stage_report=full_update_stage_report,
+            target_source=target_source,
         )
     except SubmoduleUpdateError as exc:
         errors.append(str(exc))
@@ -748,15 +828,15 @@ def update_governance_submodule(
             mode="dry_run" if dry_run else "apply",
             update_mode="failed",
             fast_forward=None,
-            repo=str(repo),
-            submodule_path=submodule_path,
-            before_head=before,
-            target_head="",
-            after_head=after,
-            staged_files=[],
-            committed=False,
-            commit_hash=None,
-            message="submodule pointer update failed",
+                repo=str(repo),
+                submodule_path=submodule_path,
+                before_head=before,
+                target_head=target_head,
+                after_head=after,
+                staged_files=[],
+                committed=False,
+                commit_hash=None,
+                message="submodule pointer update failed",
             errors=errors,
             full_update_stage_report=_build_full_update_stage_report(
                 framework_pointer=(
@@ -764,8 +844,9 @@ def update_governance_submodule(
                     if errors and "submodule not registered" in errors[0]
                     else "blocked"
                 ),
-                details={"errors": errors},
+                details={"errors": errors, "target_resolution": target_resolution},
             ),
+            target_source=target_source,
         )
 
 
@@ -779,6 +860,7 @@ def format_human(result: UpdateResult) -> str:
         f"submodule_path={result.submodule_path}",
         f"before_head={result.before_head}",
         f"target_head={result.target_head}",
+        f"target_source={result.target_source}",
         f"after_head={result.after_head}",
         f"staged_files={','.join(result.staged_files) if result.staged_files else '-'}",
         f"committed={result.committed}",

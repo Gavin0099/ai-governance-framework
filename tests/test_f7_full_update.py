@@ -187,7 +187,10 @@ def test_external_contract_cannot_complete_without_memory_workflow_rollout(tmp_p
     assert summary["report_only"] is True
     assert summary["runtime_capable"]["value"] == "not_checked"
     rendered = format_human(result)
+    assert "[human_readable_update_summary]" in rendered
+    assert "F-7 full update workflow means the complete AI Governance update flow" in rendered
     assert "[governance_maturity_summary]" in rendered
+    assert "[human_readable_adoption_summary]" in rendered
     assert "runtime_capable=not_checked" in rendered
 
 
@@ -234,7 +237,10 @@ def test_f7_submodule_backend_surfaces_governance_maturity_summary(monkeypatch, 
     assert "governance_maturity_summary" in result.stages
     assert result.stages["governance_maturity_summary"]["report_only"] is True
     assert result.stages["governance_maturity_summary"]["runtime_capable"]["value"] == "not_checked"
-    assert "[governance_maturity_summary]" in format_human(result)
+    rendered = format_human(result)
+    assert "[governance_maturity_summary]" in rendered
+    assert "[human_readable_adoption_summary]" in rendered
+    assert "Overall adoption status:" in rendered
 
 
 def test_f7_maturity_summary_failure_is_report_only(monkeypatch, tmp_path: Path) -> None:

@@ -98,7 +98,11 @@ def test_run_git_uses_utf8_replacement_decode_and_handles_none_streams(
     assert result.returncode == 0
 
 
-def _make_fixture(tmp_path: Path) -> tuple[Path, Path, str, str]:
+def _make_fixture(
+    tmp_path: Path,
+    *,
+    submodule_path: str = "ai-governance-framework",
+) -> tuple[Path, Path, str, str]:
     framework = tmp_path / "framework"
     consumer = tmp_path / "consumer"
 
@@ -118,9 +122,9 @@ def _make_fixture(tmp_path: Path) -> tuple[Path, Path, str, str]:
         "submodule",
         "add",
         str(framework),
-        "ai-governance-framework",
+        submodule_path,
     )
-    _git(consumer / "ai-governance-framework", "checkout", old_head)
+    _git(consumer / submodule_path, "checkout", old_head)
     _commit_all(consumer, "pin old framework")
 
     return consumer, framework, old_head, new_head
@@ -148,6 +152,36 @@ def _make_already_current_fixture(tmp_path: Path) -> tuple[Path, Path, str]:
     _commit_all(consumer, "pin current framework")
 
     return consumer, framework, target_head
+
+
+def _make_remote_ahead_without_local_object_fixture(
+    tmp_path: Path,
+) -> tuple[Path, Path, str, str]:
+    framework = tmp_path / "framework"
+    consumer = tmp_path / "consumer"
+
+    _init_repo(framework)
+    (framework / "README.md").write_text("v1\n", encoding="utf-8")
+    _write_framework_baseline(framework)
+    old_head = _commit_all(framework, "framework v1")
+
+    _init_repo(consumer)
+    _git(
+        consumer,
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        str(framework),
+        "ai-governance-framework",
+    )
+    _commit_all(consumer, "pin current framework")
+
+    (framework / "README.md").write_text("v2\n", encoding="utf-8")
+    _write_framework_baseline(framework)
+    new_head = _commit_all(framework, "framework v2")
+
+    return consumer, framework, old_head, new_head
 
 
 def _make_divergent_fixture(tmp_path: Path) -> tuple[Path, Path, str, str]:
@@ -197,6 +231,7 @@ def test_dry_run_does_not_change_submodule_or_stage_files(tmp_path: Path) -> Non
     assert result.mode == "dry_run"
     assert result.update_mode == "dry_run"
     assert result.fast_forward is True
+    assert result.target_source == "fresh_remote_ls_remote"
     assert result.before_head == old_head
     assert result.target_head == new_head
     assert result.after_head == old_head
@@ -205,7 +240,31 @@ def test_dry_run_does_not_change_submodule_or_stage_files(tmp_path: Path) -> Non
     assert _git(consumer, "diff", "--cached", "--name-only") == ""
 
 
-def test_dry_run_uses_local_target_ref_before_remote_lookup(tmp_path: Path) -> None:
+def test_dry_run_uses_fresh_remote_before_stale_local_tracking(tmp_path: Path) -> None:
+    consumer, _framework, old_head, new_head = _make_fixture(tmp_path)
+    submodule = consumer / "ai-governance-framework"
+    _git(submodule, "update-ref", "refs/remotes/origin/main", old_head)
+
+    result = update_governance_submodule(
+        repo=consumer,
+        target_ref="origin/main",
+        fetch_remote="origin",
+        fetch_ref="main",
+        dry_run=True,
+    )
+
+    assert result.ok is True
+    assert result.mode == "dry_run"
+    assert result.update_mode == "dry_run"
+    assert result.before_head == old_head
+    assert result.target_head == new_head
+    assert result.target_source == "fresh_remote_ls_remote"
+    assert result.after_head == old_head
+    assert _git(submodule, "rev-parse", "HEAD") == old_head
+    assert _git(consumer, "diff", "--cached", "--name-only") == ""
+
+
+def test_dry_run_reports_local_tracking_fallback_when_remote_unavailable(tmp_path: Path) -> None:
     consumer, _framework, old_head, new_head = _make_fixture(tmp_path)
     submodule = consumer / "ai-governance-framework"
     _git(submodule, "update-ref", "refs/remotes/origin/main", new_head)
@@ -224,9 +283,57 @@ def test_dry_run_uses_local_target_ref_before_remote_lookup(tmp_path: Path) -> N
     assert result.update_mode == "dry_run"
     assert result.before_head == old_head
     assert result.target_head == new_head
-    assert result.after_head == old_head
+    assert result.target_source == "local_tracking_ref_fallback"
+    assert result.full_update_stage_report["details"]["target_resolution"]["target_source"] == (
+        "local_tracking_ref_fallback"
+    )
     assert _git(submodule, "rev-parse", "HEAD") == old_head
     assert _git(consumer, "diff", "--cached", "--name-only") == ""
+
+
+def test_dry_run_reports_unknown_fast_forward_when_fresh_target_not_local(
+    tmp_path: Path,
+) -> None:
+    consumer, _framework, old_head, new_head = _make_remote_ahead_without_local_object_fixture(
+        tmp_path
+    )
+
+    result = update_governance_submodule(
+        repo=consumer,
+        target_ref="origin/main",
+        fetch_remote="origin",
+        fetch_ref="main",
+        dry_run=True,
+    )
+
+    assert result.ok is True
+    assert result.mode == "dry_run"
+    assert result.update_mode == "dry_run"
+    assert result.before_head == old_head
+    assert result.target_head == new_head
+    assert result.target_source == "fresh_remote_ls_remote"
+    assert result.fast_forward is None
+    assert _git(consumer / "ai-governance-framework", "rev-parse", "HEAD") == old_head
+    assert _git(consumer, "diff", "--cached", "--name-only") == ""
+
+
+def test_default_path_autodetects_dot_prefixed_governance_submodule(tmp_path: Path) -> None:
+    consumer, _framework, old_head, new_head = _make_fixture(
+        tmp_path,
+        submodule_path=".ai-governance-framework",
+    )
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=True,
+    )
+
+    assert result.ok is True
+    assert result.submodule_path == ".ai-governance-framework"
+    assert result.before_head == old_head
+    assert result.target_head == new_head
+    assert _git(consumer / ".ai-governance-framework", "rev-parse", "HEAD") == old_head
 
 
 def test_dry_run_refuses_uninitialized_submodule_checkout(tmp_path: Path) -> None:
@@ -295,6 +402,7 @@ def test_existing_memory_normalization_flags_active_guard_violations(tmp_path: P
 def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
     consumer, _framework, old_head, new_head = _make_fixture(tmp_path)
     (consumer / "unrelated.txt").write_text("dirty\n", encoding="utf-8")
+    _git(consumer / "ai-governance-framework", "update-ref", "refs/remotes/origin/main", old_head)
 
     result = update_governance_submodule(
         repo=consumer,
@@ -306,6 +414,7 @@ def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
     assert result.ok is True
     assert result.update_mode == "fast_forward"
     assert result.fast_forward is True
+    assert result.target_source == "fresh_remote_fetch_head"
     assert result.before_head == old_head
     assert result.target_head == new_head
     assert result.after_head == new_head
@@ -439,7 +548,7 @@ def test_allows_untracked_files_in_nested_submodule(tmp_path: Path) -> None:
 def test_non_fast_forward_update_refuses_without_explicit_checkout(
     tmp_path: Path,
 ) -> None:
-    consumer, _framework, side_head, _target_head = _make_divergent_fixture(tmp_path)
+    consumer, _framework, side_head, target_head = _make_divergent_fixture(tmp_path)
 
     result = update_governance_submodule(
         repo=consumer,
@@ -451,6 +560,11 @@ def test_non_fast_forward_update_refuses_without_explicit_checkout(
     assert result.ok is False
     assert result.update_mode == "failed"
     assert result.fast_forward is None
+    assert result.target_head == target_head
+    assert result.target_source == "fresh_remote_fetch_head"
+    assert result.full_update_stage_report["details"]["target_resolution"]["target_source"] == (
+        "fresh_remote_fetch_head"
+    )
     assert result.full_update_stage_report["final_status"] == "blocked"
     assert "merge --ff-only" in result.errors[0]
     assert _git(consumer / "ai-governance-framework", "rev-parse", "HEAD") == side_head

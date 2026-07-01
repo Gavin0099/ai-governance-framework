@@ -150,6 +150,9 @@ def _format_governance_maturity_stage(payload: object) -> list[str]:
     }
     lines = ["[governance_maturity_summary]"]
     lines.extend(f"{key}={value}" for key, value in compact.items())
+    human_summary = payload.get("human_readable_adoption_summary") or []
+    if human_summary:
+        lines.extend(str(item) for item in human_summary)
     cannot_claim = payload.get("cannot_claim") or []
     if cannot_claim:
         lines.append("cannot_claim=" + "; ".join(str(item) for item in cannot_claim))
@@ -616,6 +619,22 @@ def format_human(result: F7Result) -> str:
         f"repo_role={result.repo_role}",
         f"f7_final_status={result.f7_final_status}",
         f"repo_root={result.repo_root}",
+        "[human_readable_update_summary]",
+        (
+            "F-7 full update workflow means the complete AI Governance update flow: "
+            "update the framework pointer, refresh repo-local governance instructions, "
+            "check memory-writer coverage, check local hook/validator coverage, check "
+            "existing memory normalization status, and show the adoption status summary."
+        ),
+        f"Current result: {result.f7_final_status}.",
+        (
+            "Changed files reported by this run: "
+            + (", ".join(result.changed_files) if result.changed_files else "none")
+        ),
+        (
+            "Important boundary: this report explains visible update/adoption surfaces; "
+            "it does not prove runtime enforcement or full governance correctness."
+        ),
     ]
     if result.stages:
         lines.append("[stages]")
