@@ -124,8 +124,13 @@ def test_copy_based_summary_is_report_only_and_does_not_claim_runtime_governance
     assert "Basic governance guidance is present" in rendered
     assert "[human_readable_adoption_summary]" in rendered
     assert "Overall adoption status: minimal" in rendered
-    assert "What this update/status check confirms:" in rendered
+    assert "AI Governance feature adoption table:" in rendered
+    assert "| Feature | Status | Meaning |" in rendered
     assert "AI Governance framework checkout: not full-framework-owned" in rendered
+    assert "| Framework checkout | not_installed |" in rendered
+    assert "| Repo governance instructions | not_installed |" in rendered
+    assert "| Runtime-capable governance | not_verified |" in rendered
+    assert "Runtime execution support is present only when explicitly reported as available." in rendered
     assert "Validator surface: missing" in rendered
 
 
@@ -144,6 +149,7 @@ def test_framework_pin_freshness_surfaces_stale_local_tracking_without_fetch(tmp
     assert "framework pin freshness" in summary.cannot_claim
     assert "framework_pin_freshness  = behind_local_tracking" in rendered
     assert "Framework version freshness: behind_local_tracking" in rendered
+    assert "| Framework version freshness | not_installed |" in rendered
 
 
 def test_repo_owned_framework_pin_freshness_surfaces_stale_local_tracking(tmp_path: Path) -> None:
@@ -192,6 +198,10 @@ def test_repo_specific_rules_domain_contract_and_validator_surface_are_derived(t
     assert summary.memory_workflow_surface.value == "not_checked"
     assert "repo_specific_agents_rules" not in summary.missing_surfaces
     assert "Some governance surfaces are present" in " ".join(summary.user_facing_status.reasons)
+    rendered = format_human(summary)
+    assert "| Domain contract | available |" in rendered
+    assert "| Validator surface | available |" in rendered
+    assert "| Memory workflow | not_verified |" in rendered
 
 
 def test_external_hook_root_is_reported_as_signal_conflict_not_blocker(tmp_path: Path) -> None:
@@ -243,6 +253,9 @@ def test_full_candidate_status_is_visible_but_not_runtime_claim(tmp_path: Path) 
     )
     assert "runtime self-contained governance" in summary.cannot_claim
     assert "user_facing_status       = full_candidate" in rendered
+    assert "| Framework checkout | available |" in rendered
+    assert "| Repo governance instructions | available |" in rendered
+    assert "| Git hooks | available |" in rendered
     assert "AI Governance appears fully present at the visible static-surface level" in rendered
 
 

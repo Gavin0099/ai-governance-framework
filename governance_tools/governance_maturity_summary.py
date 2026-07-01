@@ -302,6 +302,22 @@ def _surface_line(label: str, status: str, explanation: str) -> str:
     return f"- {label}: {status} - {explanation}"
 
 
+def _capability_status(value: str | bool, *, present_values: set[str] | None = None) -> str:
+    if isinstance(value, bool):
+        return "available" if value else "not_installed"
+    if value == "not_checked":
+        return "not_verified"
+    if value in {"unknown", "not_applicable"}:
+        return str(value)
+    if present_values is not None:
+        return "available" if value in present_values else "not_installed"
+    return str(value)
+
+
+def _capability_row(name: str, status: str, explanation: str) -> str:
+    return f"| {name} | {status} | {explanation} |"
+
+
 def _derive_human_readable_adoption_summary(
     *,
     user_facing_status: SummaryValue,
@@ -324,13 +340,84 @@ def _derive_human_readable_adoption_summary(
             f"Overall adoption status: {user_facing_status.value} - "
             f"{_plain_status_meaning(user_facing_status.value)}."
         ),
-        "What this update/status check confirms:",
+        "AI Governance feature adoption table:",
+        "| Feature | Status | Meaning |",
+        "| --- | --- | --- |",
     ]
 
     framework_status = "present" if framework_topology.value in {
         "repo_owned_framework_path",
         "submodule_consumer",
     } else "not full-framework-owned"
+    lines.extend(
+        [
+            _capability_row(
+                "Framework checkout",
+                "available" if framework_status == "present" else "not_installed",
+                f"AI Governance framework files are available through {framework_topology.value}.",
+            ),
+            _capability_row(
+                "Framework version freshness",
+                _capability_status(
+                    framework_pin_freshness.value,
+                    present_values={"current_vs_local_tracking"},
+                ),
+                (
+                    "Shows whether the local framework checkout matches the locally known "
+                    "tracking ref; fresh-remote proof is reported separately by the updater."
+                ),
+            ),
+            _capability_row(
+                "Repo governance instructions",
+                _capability_status(repo_specific_rules_present.value),
+                "AGENTS.md has repo-specific rules for agents to follow.",
+            ),
+            _capability_row(
+                "Static framework files",
+                _capability_status(
+                    static_self_contained.value,
+                    present_values={"yes"},
+                ),
+                "Visible governance files are self-contained enough for static guidance.",
+            ),
+            _capability_row(
+                "Runtime-capable governance",
+                _capability_status(
+                    runtime_capable.value,
+                    present_values={"yes"},
+                ),
+                "Runtime execution support is present only when explicitly reported as available.",
+            ),
+            _capability_row(
+                "Git hooks",
+                _capability_status(
+                    hook_config_framework_root.value,
+                    present_values={"inside_repo"},
+                ),
+                "Local pre-commit/pre-push hooks point at an in-repo framework root.",
+            ),
+            _capability_row(
+                "Domain contract",
+                _capability_status(domain_contract_present.value),
+                "contract.yaml declares repo-specific governance requirements.",
+            ),
+            _capability_row(
+                "Validator surface",
+                _capability_status(validator_surface_present.value),
+                "Repo-specific automated checks are declared by the contract.",
+            ),
+            _capability_row(
+                "Memory workflow",
+                _capability_status(
+                    memory_workflow_surface.value,
+                    present_values={"verified", "present", "available"},
+                ),
+                "Memory workflow visibility is available only when explicitly reported.",
+            ),
+        ]
+    )
+
+    lines.append("Surface details:")
     lines.append(
         _surface_line(
             "AI Governance framework checkout",
