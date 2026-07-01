@@ -96,6 +96,9 @@ governance_maturity_summary:
   hook_config_framework_root:
     value: inside_repo | external | absent
     source: adoption_doctor.hook_config_framework_root
+  framework_pin_freshness:
+    value: not_applicable | current_vs_local_tracking | behind_local_tracking | ahead_or_diverged_vs_local_tracking | unknown
+    source: adoption_doctor.submodule_pin
   agents_calibration:
     value: scaffold_only | generic_filled | repo_specific_minimal | reviewer_verified
     source: agents_calibration_maturity.status
@@ -126,6 +129,7 @@ governance_maturity_summary:
 | `static_self_contained` | `adoption_doctor.self_contained` | Static file presence only; not runtime smoke. |
 | `runtime_capable` | `adoption_doctor.runtime_capable` | Must remain explicit as `not_checked` until a no-write smoke probe exists. |
 | `hook_config_framework_root` | `adoption_doctor.hook_config_framework_root` | Surfaces inside/external/absent hook root. |
+| `framework_pin_freshness` | `adoption_doctor.submodule_pin` | Local tracking comparison only; `current_vs_local_tracking` must not be shortened to `current`. |
 | `agents_calibration` | `agents_calibration_maturity.status` | Measures whether `AGENTS.md` contains repo-specific rules. |
 | `repo_specific_rules_present` | derived from `agents_calibration` | True only for `repo_specific_minimal` or `reviewer_verified`. |
 | `domain_contract_present` | `domain_contract_loader.resolve_domain_contract` | Contract found and resolvable, not domain correctness. |
@@ -183,6 +187,7 @@ cannot_claim:
 - runtime self-contained governance
 - hooks enforce this repo's workflow
 - repo-specific rules are present
+- framework pin freshness applies
 - domain correctness is validated
 - memory fully reflects all commits
 ```
@@ -194,6 +199,7 @@ claim_ceiling: static_self_contained_not_runtime_verified
 cannot_claim:
 - hooks are installed
 - framework pin is fresh
+- framework pin matches the true remote head
 - runtime smoke passed
 - full test suite passed
 - domain validators passed
