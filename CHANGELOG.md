@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Framework pin freshness diagnostics - 2026-07-01
+
+- Refined `governance_tools/adoption_doctor.py` so framework pin freshness is
+  no longer limited to `.gitmodules` submodule paths. When a repo-owned
+  framework checkout or hook-config external framework root is itself a git
+  worktree root, the doctor now reports the same no-fetch local-tracking pin
+  status used for submodule consumers.
+- Propagated the expanded signal through `governance_maturity_summary` so
+  consuming repos can see stale local-tracking framework checkout evidence in
+  `framework_pin_freshness` during adoption/update diagnostics.
+- Release-note boundary: this entry records unreleased report-only diagnostic
+  coverage only. It does not bump the framework version, publish a release,
+  fetch or update any framework checkout, prove true remote latest, implement
+  self-update behavior, repair consuming repos, or wire hook/CI/pre-push/gate/
+  enforcement behavior.
+
 ### Governance maturity summary adoption/update output - 2026-07-01
 
 - Wired the derived, report-only `governance_maturity_summary` into
