@@ -126,8 +126,13 @@ Current next candidate:
   candidate-only state until a named real harness consumer and evidence
   contract are separately scoped:
   `docs/governance/authority-manifest-preflight-evidence-decision-2026-07-02.md`.
-- [ ] Do not start v1.3.0 release-prep until release-surface consistency and
-  consumer-side proof are explicitly scoped.
+- [x] Decision note defines the evidence boundary for v1.3.0 release-prep:
+  release-surface consistency and consumer-side proof are required before any
+  release-prep slice can start:
+  `docs/governance/v1.3.0-release-prep-evidence-boundary-2026-07-02.md`.
+- [ ] Do not start v1.3.0 release-prep until the scoped release-surface
+  consistency packet and named consumer-side proof packet are collected and
+  reviewed.
 
 Claim ceiling for this sprint:
 
