@@ -29,6 +29,7 @@ memory_writer_coverage: verified | updated | blocked | missing | not_applicable 
 hook_validator_enforcement: verified | updated | blocked | missing | not_applicable | not_verified
 existing_memory_normalization: completed | needed | blocked | not_applicable | not_verified
 governance_maturity_summary: present | not_available | not_run
+human_readable_adoption_summary: reported | not_reported
 final_status: full_update_completed | already_current | partially_updated | blocked | not_submodule_consumer | not_verified
 ```
 
@@ -43,6 +44,17 @@ adoption status, framework topology, static self-contained status, runtime
 capable status, hook framework root, framework pin freshness, repo-specific
 rules, domain contract, validator surface, memory workflow surface, and
 cannot-claim / claim-boundary summary.
+
+When `human_readable_adoption_summary` is present, the final F-7 report must
+relay the Chinese feature/status/explanation table for the operator. The report
+must include `[human_readable_adoption_summary]` and the table header:
+
+```text
+| 功能 | 狀態 | 這個功能是做什麼 |
+```
+
+Do not report only machine-readable fields such as `user_facing_status`,
+`framework_topology`, or `runtime_capable` while omitting this table.
 
 `adoption_doctor: findings 0`, `governance_version_check: compatible`, a clean
 build, or a framework pointer update is not a substitute for the final adoption
@@ -113,6 +125,7 @@ update mode: already_current | fast_forward | detached_target_checkout | NOT CLA
 parent repo commit: <hash | NOT NEEDED | NOT CREATED>
 governance maturity summary: RUN | NOT RUN | NOT AVAILABLE
 user-facing adoption status: <minimal | partial | full_candidate | not_governed | unknown | NOT REPORTED>
+human_readable_adoption_summary: REPORTED | NOT REPORTED
 ```
 
 The updater JSON also includes `full_update_stage_report`:
@@ -124,6 +137,7 @@ memory_writer_coverage: verified | updated | blocked | missing | not_applicable 
 hook_validator_enforcement: verified | updated | blocked | missing | not_applicable | not_verified
 existing_memory_normalization: completed | needed | blocked | not_applicable | not_verified
 governance_maturity_summary: present | not_available | not_run
+human_readable_adoption_summary: reported | not_reported
 final_status: full_update_completed | already_current | partially_updated | blocked | not_submodule_consumer | not_verified
 ```
 
@@ -175,6 +189,7 @@ update mode: NOT CLAIMED
 parent repo commit: NOT CREATED
 governance maturity summary: NOT RUN
 user-facing adoption status: NOT REPORTED
+human_readable_adoption_summary: NOT REPORTED
 ```
 
 Valid `already_current` conclusion:
@@ -189,6 +204,7 @@ update mode: already_current
 parent repo commit: NOT NEEDED
 governance maturity summary: RUN
 user-facing adoption status: <reported status>
+human_readable_adoption_summary: REPORTED
 ```
 
 ## Purpose

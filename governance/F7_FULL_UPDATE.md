@@ -34,6 +34,7 @@ memory_writer_coverage: verified | updated | blocked | missing | not_applicable 
 hook_validator_enforcement: verified | updated | blocked | missing | not_applicable | not_verified
 existing_memory_normalization: completed | needed | blocked | not_applicable | not_verified
 governance_maturity_summary: present | not_available | not_run
+human_readable_adoption_summary: reported | not_reported
 final_status: full_update_completed | already_current | partially_updated | blocked | not_submodule_consumer | not_verified
 ```
 
@@ -51,12 +52,31 @@ framework root, framework pin freshness, repo-specific rules, domain contract,
 validator surface, memory workflow surface, and cannot-claim / claim-boundary
 summary.
 
+When `human_readable_adoption_summary` is present, the final F-7 report must
+relay that section as a readable Chinese table, not only as machine-readable
+status fields. The report must include the marker
+`[human_readable_adoption_summary]` and the table header:
+
+```text
+| 功能 | 狀態 | 這個功能是做什麼 |
+```
+
+It is valid to preserve the table verbatim from the tool output or to restate it
+faithfully in the final report. It is not valid to report only
+`user_facing_status`, `framework_topology`, or other machine field names while
+omitting the Chinese feature/status/explanation table.
+
 `adoption_doctor: findings 0`, `governance_version_check: compatible`, a clean
 build, or a framework pointer update is not a substitute for the final adoption
 status report. If `governance_maturity_summary` cannot be produced, F-7 must
 report `governance_maturity_summary: not_available` or
 `governance_maturity_summary: not_run` with the reason and must not claim that
 the operator was shown complete adoption status.
+
+If the machine-readable summary is available but the Chinese table cannot be
+relayed, F-7 must report `human_readable_adoption_summary: not_reported` with
+the reason and must not claim that the operator was shown the complete
+human-readable feature adoption table.
 
 ## Implemented Automation
 

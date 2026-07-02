@@ -62,6 +62,7 @@ domain contract: true | false | NOT REPORTED
 validator surface: true | false | not_checked | NOT REPORTED
 memory workflow surface: <value from summary | NOT REPORTED>
 adoption cannot claim: <short cannot-claim list from the summary | NOT REPORTED>
+human_readable_adoption_summary: REPORTED | NOT REPORTED
 ```
 
 If the session only updates instruction files, report that as an
@@ -87,6 +88,7 @@ update mode: NOT CLAIMED
 parent repo commit: NOT CREATED
 governance maturity summary: NOT RUN
 user-facing adoption status: NOT REPORTED
+human_readable_adoption_summary: NOT REPORTED
 ```
 
 ## Check Vs Update Intent
@@ -179,6 +181,27 @@ explicitly state why the summary was not run / not available. At minimum, report
 - validator surface;
 - memory workflow surface;
 - cannot-claim / claim-boundary summary.
+
+When `human_readable_adoption_summary` is present, the final operator-facing
+report must relay that section as a readable Chinese table, not only as
+machine-readable fields. The report must include the marker
+`[human_readable_adoption_summary]` and the table header:
+
+```text
+| 功能 | 狀態 | 這個功能是做什麼 |
+```
+
+It is valid to preserve the table verbatim from the tool output or to restate it
+faithfully in the final report. It is not valid to report only
+`user_facing_status`, `framework_topology`, or other machine field names while
+omitting the Chinese feature/status/explanation table. If the table cannot be
+produced or relayed, state:
+
+```text
+human_readable_adoption_summary: NOT REPORTED
+reason: <why the Chinese table was not relayed>
+claim boundary: machine-readable adoption fields only; operator-facing feature table was not reported
+```
 
 If the update path used a direct submodule fast-forward plus lock-file update
 instead of F-7 or `adopt_governance.py`, run or relay the available
