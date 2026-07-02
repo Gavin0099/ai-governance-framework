@@ -263,8 +263,10 @@ def _is_legacy_f7_json_validation_line(line: str) -> bool:
     stripped = line.strip()
     return (
         stripped.startswith("- ")
+        and stripped.startswith("- Validate F-7 state with ")
         and "f7_full_update" in stripped
         and "--format json" in stripped
+        and "from the framework environment" in stripped
     )
 
 

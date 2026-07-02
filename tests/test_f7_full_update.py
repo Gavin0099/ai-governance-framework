@@ -415,11 +415,11 @@ def test_external_contract_apply_refreshes_existing_f7_update_boundary_block(tmp
     assert "--format human" in agents_text
     assert "[human_readable_adoption_summary]" in agents_text
     assert "user-facing adoption status" in agents_text
-    assert "f7_full_update.py --repo E:\\BackUp\\Git_EE\\Enumd-private-vault --format json" not in agents_text
+    assert "f7_full_update.py --repo E:\\BackUp\\Git_EE\\Enumd-private-vault --format json" in agents_text
     assert "--format json` from the framework environment" not in agents_text
 
 
-def test_external_contract_apply_removes_legacy_f7_json_guidance_outside_boundary(tmp_path: Path) -> None:
+def test_external_contract_apply_preserves_repo_specific_f7_json_guidance_outside_boundary(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     framework = tmp_path / "framework"
     _make_framework(framework)
@@ -430,6 +430,7 @@ def test_external_contract_apply_removes_legacy_f7_json_guidance_outside_boundar
         "- Preserve this domain rule.\n\n"
         "## Memory Workflow Router\n"
         "- Validate F-7 state with `python -X utf8 -m governance_tools.f7_full_update --repo . --format json` before reporting update status.\n"
+        "- Validate F-7 state with `python -X utf8 -m governance_tools.f7_full_update --repo . --format json` from the framework environment.\n"
         "- Keep memory workflow json checks for `memory/**` with `python -m governance_tools.memory_workflow --check --repo . --format json`.\n"
         "\n"
         "## Repo-Specific Notes\n"
@@ -443,7 +444,8 @@ def test_external_contract_apply_removes_legacy_f7_json_guidance_outside_boundar
     assert result.f7_final_status == "completed"
     assert "--format human" in agents_text
     assert "[human_readable_adoption_summary]" in agents_text
-    assert "f7_full_update --repo . --format json" not in agents_text
+    assert "f7_full_update --repo . --format json` before reporting update status" in agents_text
+    assert "--format json` from the framework environment" not in agents_text
     assert "memory_workflow --check --repo . --format json" in agents_text
     assert "## Memory Workflow Router" in agents_text
     assert "## Repo-Specific Notes" in agents_text
