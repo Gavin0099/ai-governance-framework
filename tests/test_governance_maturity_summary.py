@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import subprocess
 from pathlib import Path
 
@@ -102,6 +103,18 @@ def _write_repo_specific_agents(repo: Path) -> None:
     )
 
 
+def _write_framework_lock(repo: Path, adopted_commit: str) -> None:
+    _write(
+        repo / "governance" / "framework.lock.json",
+        json.dumps({"adopted_commit": adopted_commit}, indent=2) + "\n",
+    )
+
+
+def _commit_path(repo: Path, relpath: str, message: str) -> None:
+    _run_git(["add", relpath], repo)
+    _run_git(["commit", "-m", message], repo)
+
+
 def test_copy_based_summary_is_report_only_and_does_not_claim_runtime_governance(tmp_path: Path) -> None:
     repo = _make_repo(tmp_path / "copy")
     external_framework = _make_framework_root(tmp_path / "external-framework")
@@ -150,6 +163,55 @@ def test_framework_pin_freshness_surfaces_stale_local_tracking_without_fetch(tmp
     assert "framework_pin_freshness  = behind_local_tracking" in rendered
     assert "Framework version freshness: behind_local_tracking" in rendered
     assert "| 版本新鮮度（Framework version freshness） | 未導入 |" in rendered
+
+
+def test_lock_consistency_reports_clean_lock_matching_checkout(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "lock_consistent")
+    framework = _make_git_framework(repo / "ai-governance-framework")
+    framework_head = _run_git(["rev-parse", "HEAD"], framework)
+    _write_framework_lock(repo, framework_head)
+    _commit_path(repo, "governance/framework.lock.json", "record framework lock")
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+    rendered = format_human(summary)
+    payload = summary_to_dict(summary)
+
+    assert summary.lock_consistency.value == "consistent"
+    assert "lock_file_dirty=false" in summary.lock_consistency.reasons
+    assert "framework_lock_consistency" not in summary.missing_surfaces
+    assert "framework lock matches the checked-out framework commit" not in summary.cannot_claim
+    assert payload["lock_consistency"]["value"] == "consistent"
+    assert "lock_consistency         = consistent" in rendered
+    assert "Lock vs checkout consistency" in rendered
+
+
+def test_lock_consistency_reports_dirty_three_layer_drift(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "lock_dirty")
+    framework = _make_git_framework(repo / "ai-governance-framework")
+    first_head = _run_git(["rev-parse", "HEAD"], framework)
+    _write(framework / "SECOND.txt", "second\n")
+    _run_git(["add", "SECOND.txt"], framework)
+    _run_git(["commit", "-m", "framework B"], framework)
+    framework_head = _run_git(["rev-parse", "HEAD"], framework)
+
+    _write_framework_lock(repo, first_head)
+    _commit_path(repo, "governance/framework.lock.json", "record old framework lock")
+    dirty_lock_commit = "f" * 40
+    _write_framework_lock(repo, dirty_lock_commit)
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+    rendered = format_human(summary)
+
+    assert first_head != framework_head
+    assert summary.lock_consistency.value == "inconsistent"
+    assert "lock_file_dirty=true" in summary.lock_consistency.reasons
+    assert f"lock_adopted_commit={dirty_lock_commit}" in summary.lock_consistency.reasons
+    assert f"framework_head={framework_head}" in summary.lock_consistency.reasons
+    assert "working-tree lock commit was not found in the local framework checkout" in summary.lock_consistency.reasons
+    assert "framework_lock_consistency" in summary.missing_surfaces
+    assert "framework lock matches the checked-out framework commit" in summary.cannot_claim
+    assert "lock_consistency         = inconsistent" in rendered
+    assert "Lock vs checkout consistency" in rendered
 
 
 def test_repo_owned_framework_pin_freshness_surfaces_stale_local_tracking(tmp_path: Path) -> None:

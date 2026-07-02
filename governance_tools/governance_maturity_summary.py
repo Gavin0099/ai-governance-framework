@@ -9,6 +9,8 @@ rewrite, gate, or enforce anything.
 
 from __future__ import annotations
 
+import json
+import subprocess
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
@@ -48,6 +50,7 @@ class GovernanceMaturitySummary:
     runtime_capable: SummaryValue
     hook_config_framework_root: SummaryValue
     framework_pin_freshness: SummaryValue
+    lock_consistency: SummaryValue
     agents_calibration: SummaryValue
     repo_specific_rules_present: SummaryValue
     domain_contract_present: SummaryValue
@@ -130,11 +133,146 @@ def _load_contract_surface(repo_root: Path) -> tuple[SummaryValue, SummaryValue]
     )
 
 
+def _git_stdout(repo_root: Path, args: list[str]) -> str | None:
+    completed = subprocess.run(
+        ["git", "-C", str(repo_root), *args],
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if completed.returncode != 0:
+        return None
+    return completed.stdout.strip()
+
+
+def _git_success(repo_root: Path, args: list[str]) -> bool:
+    completed = subprocess.run(
+        ["git", "-C", str(repo_root), *args],
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    return completed.returncode == 0
+
+
+def _lock_file_dirty(repo_root: Path, lock_path: Path) -> bool | None:
+    try:
+        rel = lock_path.relative_to(repo_root)
+    except ValueError:
+        rel = lock_path
+    status = _git_stdout(repo_root, ["status", "--porcelain", "--", str(rel)])
+    if status is None:
+        return None
+    return bool(status.strip())
+
+
+def _load_lock_adopted_commit(lock_path: Path) -> tuple[str | None, str | None]:
+    if not lock_path.is_file():
+        return None, "governance/framework.lock.json not found"
+    try:
+        payload = json.loads(lock_path.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return None, f"framework lock unreadable: {type(exc).__name__}: {exc}"
+    adopted = str(payload.get("adopted_commit", "")).strip()
+    if not adopted:
+        return None, "framework lock adopted_commit missing"
+    return adopted, None
+
+
+def _resolve_lock_framework_root(repo_root: Path, framework_root: Path | None) -> Path | None:
+    if framework_root is not None:
+        return framework_root
+    for rel in (
+        "additional/ai-governance-framework",
+        ".ai-governance-framework",
+        "ai-governance-framework",
+    ):
+        candidate = repo_root / rel
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def _derive_lock_consistency(repo_root: Path, framework_root: Path | None) -> SummaryValue:
+    lock_path = repo_root / "governance" / "framework.lock.json"
+    resolved_framework = _resolve_lock_framework_root(repo_root, framework_root)
+    if not lock_path.exists():
+        return _summary_value(
+            "not_applicable",
+            "governance_maturity_summary.lock_consistency",
+            ["governance/framework.lock.json not found"],
+        )
+    if resolved_framework is None:
+        return _summary_value(
+            "unknown",
+            "governance_maturity_summary.lock_consistency",
+            ["framework checkout root could not be resolved"],
+        )
+
+    adopted_commit, lock_error = _load_lock_adopted_commit(lock_path)
+    dirty = _lock_file_dirty(repo_root, lock_path)
+    dirty_reason = "lock_file_dirty=unknown" if dirty is None else f"lock_file_dirty={str(dirty).lower()}"
+    if adopted_commit is None:
+        return _summary_value(
+            "unknown",
+            "governance_maturity_summary.lock_consistency",
+            [dirty_reason, lock_error or "framework lock adopted_commit unavailable"],
+        )
+
+    framework_head = _git_stdout(resolved_framework, ["rev-parse", "HEAD"])
+    if not framework_head:
+        return _summary_value(
+            "unknown",
+            "governance_maturity_summary.lock_consistency",
+            [dirty_reason, "framework checkout HEAD could not be read"],
+        )
+
+    reasons = [
+        dirty_reason,
+        f"lock_adopted_commit={adopted_commit}",
+        f"framework_head={framework_head}",
+        "no fetch was performed; this is a local lock-vs-checkout comparison",
+    ]
+
+    if dirty:
+        if adopted_commit == framework_head:
+            reasons.append("working-tree lock matches checkout HEAD but is not committed")
+        elif not _git_success(resolved_framework, ["cat-file", "-e", f"{adopted_commit}^{{commit}}"]):
+            reasons.append("working-tree lock commit was not found in the local framework checkout")
+        return _summary_value("inconsistent", "governance_maturity_summary.lock_consistency", reasons)
+
+    if adopted_commit == framework_head:
+        return _summary_value("consistent", "governance_maturity_summary.lock_consistency", reasons)
+
+    if not _git_success(resolved_framework, ["cat-file", "-e", f"{adopted_commit}^{{commit}}"]):
+        reasons.append("lock adopted_commit was not found in the local framework checkout")
+        return _summary_value(
+            "lock_commit_not_found_locally",
+            "governance_maturity_summary.lock_consistency",
+            reasons,
+        )
+
+    if _git_success(resolved_framework, ["merge-base", "--is-ancestor", adopted_commit, framework_head]):
+        reasons.append("direction=lock_behind_checkout")
+    elif _git_success(resolved_framework, ["merge-base", "--is-ancestor", framework_head, adopted_commit]):
+        reasons.append("direction=lock_ahead_of_checkout")
+    else:
+        reasons.append("direction=mismatch")
+    return _summary_value("inconsistent", "governance_maturity_summary.lock_consistency", reasons)
+
+
 def _derive_missing_surfaces(
     adoption_report: AdoptionDoctorReport,
     agents_report: AgentsCalibrationMaturity,
     domain_contract_present: SummaryValue,
     validator_surface_present: SummaryValue,
+    lock_consistency: SummaryValue,
 ) -> list[str]:
     missing: list[str] = []
     if adoption_report.adoption_class.value == "copy_based":
@@ -143,6 +281,8 @@ def _derive_missing_surfaces(
         missing.append("static_self_contained_framework")
     if adoption_report.submodule_pin.value in {"behind_local_tracking", "unknown"}:
         missing.append("framework_pin_freshness")
+    if lock_consistency.value not in {"consistent", "not_applicable"}:
+        missing.append("framework_lock_consistency")
     if not _repo_specific_rules_present(agents_report.status):
         missing.append("repo_specific_agents_rules")
     if domain_contract_present.value is False:
@@ -248,6 +388,7 @@ def _derive_user_facing_status(
         and repo_specific_rules_present
         and domain_ready
         and validator_ready
+        and not missing_surfaces
         and not signal_conflicts
     ):
         return _summary_value(
@@ -264,7 +405,11 @@ def _derive_user_facing_status(
     return _summary_value("partial", "governance_maturity_summary.derived", reasons)
 
 
-def _derive_cannot_claim(adoption_report: AdoptionDoctorReport, agents_report: AgentsCalibrationMaturity) -> list[str]:
+def _derive_cannot_claim(
+    adoption_report: AdoptionDoctorReport,
+    agents_report: AgentsCalibrationMaturity,
+    lock_consistency: SummaryValue,
+) -> list[str]:
     cannot = {
         "full governance adoption",
         "runtime self-contained governance",
@@ -278,6 +423,8 @@ def _derive_cannot_claim(adoption_report: AdoptionDoctorReport, agents_report: A
         cannot.add("framework pin freshness")
     else:
         cannot.add("framework pin matches the true remote head")
+    if lock_consistency.value not in {"consistent", "not_applicable"}:
+        cannot.add("framework lock matches the checked-out framework commit")
     if not _repo_specific_rules_present(agents_report.status):
         cannot.add("repo-specific rules are present")
     return sorted(cannot)
@@ -326,6 +473,7 @@ def _derive_human_readable_adoption_summary(
     runtime_capable: SummaryValue,
     hook_config_framework_root: SummaryValue,
     framework_pin_freshness: SummaryValue,
+    lock_consistency: SummaryValue,
     repo_specific_rules_present: SummaryValue,
     domain_contract_present: SummaryValue,
     validator_surface_present: SummaryValue,
@@ -344,6 +492,20 @@ def _derive_human_readable_adoption_summary(
         "| 功能 | 狀態 | 這個功能是做什麼 |",
         "| --- | --- | --- |",
     ]
+
+    lines.append(
+        _capability_row(
+            "Lock vs checkout consistency",
+            _capability_status(
+                lock_consistency.value,
+                present_values={"consistent", "not_applicable"},
+            ),
+            (
+                "Compares governance/framework.lock.json adopted_commit with the local framework checkout HEAD; "
+                "no fetch or true-remote currentness is claimed."
+            ),
+        )
+    )
 
     framework_status = "present" if framework_topology.value in {
         "repo_owned_framework_path",
@@ -535,15 +697,17 @@ def build_governance_maturity_summary(
     agents_report = assess_agents_calibration_maturity(repo)
     domain_contract_present, validator_surface_present = _load_contract_surface(repo)
     repo_specific_present = _repo_specific_rules_present(agents_report.status)
+    lock_consistency = _derive_lock_consistency(repo, framework)
     missing_surfaces = _derive_missing_surfaces(
         adoption_report,
         agents_report,
         domain_contract_present,
         validator_surface_present,
+        lock_consistency,
     )
     signal_conflicts = _derive_conflicts(adoption_report)
     claim_ceiling = _derive_claim_ceiling(adoption_report, repo_specific_present)
-    cannot_claim = _derive_cannot_claim(adoption_report, agents_report)
+    cannot_claim = _derive_cannot_claim(adoption_report, agents_report, lock_consistency)
     user_facing_status = _derive_user_facing_status(
         adoption_report,
         repo_specific_present,
@@ -599,6 +763,7 @@ def build_governance_maturity_summary(
         runtime_capable=runtime_capable,
         hook_config_framework_root=hook_config_framework_root,
         framework_pin_freshness=framework_pin_freshness,
+        lock_consistency=lock_consistency,
         repo_specific_rules_present=repo_specific_rules_present,
         domain_contract_present=domain_contract_present,
         validator_surface_present=validator_surface_present,
@@ -617,6 +782,7 @@ def build_governance_maturity_summary(
         runtime_capable=runtime_capable,
         hook_config_framework_root=hook_config_framework_root,
         framework_pin_freshness=framework_pin_freshness,
+        lock_consistency=lock_consistency,
         agents_calibration=agents_calibration,
         repo_specific_rules_present=repo_specific_rules_present,
         domain_contract_present=domain_contract_present,
@@ -645,6 +811,7 @@ def format_human(summary: GovernanceMaturitySummary) -> str:
         f"runtime_capable          = {summary.runtime_capable.value}",
         f"hook_config_framework_root = {summary.hook_config_framework_root.value}",
         f"framework_pin_freshness  = {summary.framework_pin_freshness.value}",
+        f"lock_consistency         = {summary.lock_consistency.value}",
         f"agents_calibration       = {summary.agents_calibration.value}",
         f"repo_specific_rules      = {str(summary.repo_specific_rules_present.value).lower()}",
         f"domain_contract_present = {str(summary.domain_contract_present.value).lower()}",
