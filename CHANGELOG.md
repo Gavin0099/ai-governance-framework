@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### External submodule updater console-safe output - 2026-07-02
+
+- Updated `governance_tools/external_governance_submodule_updater.py` so CLI
+  human and JSON output is encoded with replacement for the active console
+  encoding. This prevents Chinese `human_readable_adoption_summary` output from
+  crashing legacy or non-UTF stdout surfaces such as ascii, cp950, or cp1252.
+- Added focused coverage in `tests/test_external_governance_submodule_updater.py`
+  for ascii-only stdout, verifying the updater emits a replacement-safe report
+  instead of raising `UnicodeEncodeError`.
+- Release-note boundary: this entry records unreleased user-visible output
+  robustness only. It does not bump the framework version, publish a release,
+  change adoption summary semantics, add i18n/locale selection, alter update or
+  F-7 decisions, repair consuming repos, or wire hook/CI/pre-push/gate/
+  enforcement behavior.
+
 ### Framework pin freshness diagnostics - 2026-07-01
 
 - Refined `governance_tools/adoption_doctor.py` so framework pin freshness is
