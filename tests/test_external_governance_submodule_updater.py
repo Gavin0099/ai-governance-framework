@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 from governance_tools.external_governance_submodule_updater import (
     UpdateResult,
+    _build_full_update_stage_report,
     _check_existing_memory_normalization,
     _git_env,
     _run_git,
@@ -316,6 +317,23 @@ def test_dry_run_does_not_change_submodule_or_stage_files(tmp_path: Path) -> Non
     assert "| 功能 | 狀態 | 這個功能是做什麼 |" in rendered
     assert _git(consumer / "ai-governance-framework", "rev-parse", "HEAD") == old_head
     assert _git(consumer, "diff", "--cached", "--name-only") == ""
+
+
+def test_stage_report_downgrades_completed_when_lock_consistency_is_inconsistent() -> None:
+    report = _build_full_update_stage_report(
+        framework_pointer="updated",
+        repo_local_instruction="updated",
+        memory_writer_coverage="verified",
+        hook_validator_enforcement="verified",
+        existing_memory_normalization="completed",
+        governance_maturity_summary={
+            "report_only": True,
+            "lock_consistency": {"value": "inconsistent"},
+            "human_readable_adoption_summary": ["[human_readable_adoption_summary]"],
+        },
+    )
+
+    assert report["final_status"] == "partially_updated"
 
 
 def test_dry_run_uses_fresh_remote_before_stale_local_tracking(tmp_path: Path) -> None:

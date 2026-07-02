@@ -142,6 +142,26 @@ def _governance_maturity_stage(repo_root: Path, framework_root: Path | None) -> 
     return governance_maturity_summary_to_dict(summary)
 
 
+def _lock_consistency_value(stages: dict[str, Any]) -> str | None:
+    summary = stages.get("governance_maturity_summary")
+    if not isinstance(summary, dict):
+        return None
+    lock_consistency = summary.get("lock_consistency")
+    if not isinstance(lock_consistency, dict):
+        return None
+    value = lock_consistency.get("value")
+    return str(value) if value is not None else None
+
+
+def _status_with_lock_consistency(status: str, stages: dict[str, Any]) -> str:
+    if status not in {"full_update_completed", "completed", "updated", ALREADY_CURRENT}:
+        return status
+    lock_consistency = _lock_consistency_value(stages)
+    if lock_consistency not in {None, "consistent", "not_applicable"}:
+        return PARTIALLY_UPDATED
+    return status
+
+
 def classify_repo(repo_root: Path, submodule_path: str = "ai-governance-framework") -> str:
     repo_root = repo_root.resolve()
     if not repo_root.exists() or not _is_git_repo(repo_root):
@@ -600,12 +620,16 @@ def run_f7_full_update(
         )
         stages = dict(result.full_update_stage_report)
         stages["governance_maturity_summary"] = _governance_maturity_stage(repo_root, repo_root / submodule_path)
+        final_status = _status_with_lock_consistency(
+            result.full_update_stage_report.get("final_status", NOT_VERIFIED),
+            stages,
+        )
         return F7Result(
             ok=result.ok,
             mode=result.mode,
             repo_root=str(repo_root),
             repo_role=role,
-            f7_final_status=result.full_update_stage_report.get("final_status", NOT_VERIFIED),
+            f7_final_status=final_status,
             stages=stages,
             changed_files=result.staged_files,
             errors=result.errors,

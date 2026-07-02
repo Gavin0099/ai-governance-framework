@@ -314,6 +314,70 @@ def test_f7_submodule_backend_surfaces_target_freshness_downgrade(
     assert "already_current/updated must not be claimed" in rendered
 
 
+def test_f7_submodule_backend_downgrades_completed_when_lock_consistency_is_inconsistent(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _init_repo(repo)
+    _write(
+        repo / ".gitmodules",
+        '[submodule "ai-governance-framework"]\n'
+        "\tpath = ai-governance-framework\n"
+        "\turl = https://github.com/Gavin0099/ai-governance-framework.git\n",
+    )
+    _write(repo / "ai-governance-framework" / "README.md", "partial framework checkout\n")
+
+    import governance_tools.f7_full_update as f7
+
+    def fake_update(**_kwargs):
+        return UpdateResult(
+            ok=True,
+            mode="apply",
+            update_mode="fast_forward",
+            fast_forward=True,
+            repo=str(repo),
+            submodule_path="ai-governance-framework",
+            before_head="a" * 40,
+            target_head="b" * 40,
+            after_head="b" * 40,
+            staged_files=["ai-governance-framework"],
+            committed=False,
+            commit_hash=None,
+            message="submodule pointer update complete",
+            errors=[],
+            full_update_stage_report={
+                "framework_pointer": "updated",
+                "repo_local_instruction": "updated",
+                "memory_writer_coverage": "verified",
+                "hook_validator_enforcement": "verified",
+                "existing_memory_normalization": "completed",
+                "final_status": "full_update_completed",
+            },
+        )
+
+    monkeypatch.setattr(f7, "update_governance_submodule", fake_update)
+    monkeypatch.setattr(
+        f7,
+        "_governance_maturity_stage",
+        lambda *_args, **_kwargs: {
+            "report_only": True,
+            "lock_consistency": {"value": "inconsistent"},
+            "human_readable_adoption_summary": ["[human_readable_adoption_summary]"],
+        },
+    )
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+    rendered = format_human(result)
+
+    assert result.repo_role == "submodule_consumer"
+    assert result.stages["governance_maturity_summary"]["lock_consistency"]["value"] == "inconsistent"
+    assert result.f7_final_status == "partially_updated"
+    assert "Current result: partially_updated." in rendered
+
+
 def test_f7_maturity_summary_failure_is_report_only(monkeypatch, tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     framework = tmp_path / "framework"

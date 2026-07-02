@@ -663,12 +663,26 @@ def _final_full_update_status(report: dict[str, Any]) -> str:
         return "not_verified"
     if "missing" in {repo_local, memory, hook} or normalization == "needed":
         return "partially_updated"
+    lock_consistency = _lock_consistency_value(report)
+    if lock_consistency not in {None, "consistent", "not_applicable"}:
+        return "partially_updated"
     completed_values = {"updated", "already_current", "verified", "completed", "not_applicable"}
     if {framework, repo_local, memory, hook, normalization} <= completed_values:
         if framework == "already_current" and repo_local == "already_current":
             return "already_current"
         return "full_update_completed"
     return "partially_updated"
+
+
+def _lock_consistency_value(report: dict[str, Any]) -> str | None:
+    summary = report.get("governance_maturity_summary")
+    if not isinstance(summary, dict):
+        return None
+    lock_consistency = summary.get("lock_consistency")
+    if not isinstance(lock_consistency, dict):
+        return None
+    value = lock_consistency.get("value")
+    return str(value) if value is not None else None
 
 
 def _build_full_update_stage_report(
