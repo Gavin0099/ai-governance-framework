@@ -43,7 +43,7 @@ hook_validator_enforcement: verified | updated | blocked | missing | not_applica
 existing_memory_normalization: completed | needed | blocked | not_applicable | not_verified
 governance_maturity_summary: present | not_available | not_run
 human_readable_adoption_summary: reported | not_reported
-final_status: full_update_completed | already_current | partially_updated | blocked | not_submodule_consumer | not_verified
+final_status: full_update_completed | already_current | partially_updated | manual_update | destructive_manual_update | blocked | not_submodule_consumer | not_verified
 ```
 
 `full_update_completed` may be used only when every required stage is
@@ -51,6 +51,13 @@ final_status: full_update_completed | already_current | partially_updated | bloc
 
 If any required surface is `missing`, `needed`, `blocked`, or `not_verified`,
 the final status must not be `full_update_completed`.
+
+Manual pointer, gitlink, checkout, or lock-file edits that bypass F-7 may be
+reported as `manual_update`, but must not be reported as
+`full_update_completed`, `already_current`, or `updated`. If that manual path
+discarded local framework checkout state, report `destructive_manual_update`
+and include the discarded modified and untracked path inventory in the final
+operator-facing report.
 
 The final adoption status report must be operator-facing, not only a raw
 submodule or build summary. It must surface the report-only

@@ -333,6 +333,17 @@ Do not treat `AGENTS.md`, `AGENTS.base.md`, local instruction-file sync, parent
 repo `git pull`, or a clean parent working tree as proof that the AI Governance
 Framework is current.
 
+When updating AI Governance for a consuming repository, prefer the governed
+updater/F-7 path. A direct submodule/gitlink checkout, framework checkout bump,
+or lock-file edit is a `manual_update` path and must be reported as incomplete
+unless the governed updater/F-7 evidence is also produced.
+
+Before discarding local state in a nested framework checkout, first inspect the
+modified and untracked paths that would be discarded. If cleanup proceeds, the
+final report must list that discarded-path inventory and use
+`destructive_manual_update`; do not summarize it only as "cleaned the
+submodule".
+
 ### F-7 Full Update Trigger
 
 When the user asks for F-7 or full AI Governance update, read

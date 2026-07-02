@@ -56,7 +56,7 @@ A valid `already_current` conclusion for a submodule consumer must include:
 Required response shape:
 
 ```text
-AI Governance update check: <already_current | update_available | updated | not_submodule_consumer | not_verified>
+AI Governance update check: <already_current | update_available | updated | manual_update | destructive_manual_update | not_submodule_consumer | not_verified>
 governance submodule path: <path | NOT FOUND | NOT CHECKED>
 nested governance HEAD: <sha | NOT CHECKED>
 target framework HEAD: <sha | NOT CHECKED>
@@ -142,13 +142,20 @@ AI Governance update status must use one of these fixed values:
 - `already_current`: nested governance HEAD already matches target framework HEAD.
 - `update_available`: nested governance HEAD differs from target framework HEAD, but update has not yet been applied.
 - `updated`: governed update flow completed and nested governance HEAD now matches target framework HEAD.
+- `manual_update`: the agent changed a governance submodule pointer, gitlink,
+  framework checkout, or lock file without governed updater/F-7 evidence. This
+  may report what changed, but must not accompany `already_current`,
+  `updated`, `completed`, `latest`, or full-adoption claims.
+- `destructive_manual_update`: a `manual_update` path that discarded local
+  framework checkout state, such as nested worktree changes or untracked files.
+  The final report must list the discarded modified and untracked paths.
 - `blocked`: update could not proceed due to dirty worktree, staged changes, dirty nested submodule, dry-run failure, missing path, or explicit blocker.
 - `not_submodule_consumer`: repository does not consume AI Governance through a submodule.
 - `not_verified`: the agent could not safely determine current or target governance state.
 
 For update intent, `update_available` is an intermediate state, not a final
 successful outcome. Final response must be one of:
-`already_current | updated | blocked | not_submodule_consumer | not_verified`.
+`already_current | updated | manual_update | destructive_manual_update | blocked | not_submodule_consumer | not_verified`.
 
 Updating the governance submodule pointer does not automatically authorize a
 parent repository commit or push unless the user explicitly requested
@@ -160,6 +167,40 @@ If no parent repo commit is created, report:
 ```text
 parent repo commit: NOT CREATED
 ```
+
+## Manual Update Reporting
+
+Manual update paths are allowed only as an honest fallback report. They are not
+evidence that the governed update flow ran.
+
+Manual update conclusion template:
+
+```text
+AI Governance update check: manual_update
+framework_update_status: manual_update
+governance maturity summary: <RUN | NOT RUN | NOT AVAILABLE>
+adoption_status: <from maturity summary | unknown>
+human_readable_adoption_summary: <REPORTED | NOT REPORTED>
+reason: governed updater/F-7 was not used
+claim boundary: manual pointer/lock/checkout changes may be reported; do not claim completed/latest/full adoption
+```
+
+Destructive manual update conclusion template:
+
+```text
+AI Governance update check: destructive_manual_update
+framework_update_status: destructive_manual_update
+discarded_modified_paths: <list | none reported>
+discarded_untracked_paths: <list | none reported>
+governance maturity summary: <RUN | NOT RUN | NOT AVAILABLE>
+human_readable_adoption_summary: <REPORTED | NOT REPORTED>
+claim boundary: destructive local cleanup occurred; do not claim completed/latest/full adoption
+```
+
+Before discarding local state in a nested framework checkout, first inspect and
+record the modified and untracked paths that would be discarded. The final
+operator-facing report must include that discarded-path inventory. A statement
+such as "cleaned the submodule" is not a substitute for the inventory.
 
 ## Consuming Repo Reporting Corrections
 
