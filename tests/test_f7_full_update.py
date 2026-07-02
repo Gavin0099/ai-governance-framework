@@ -370,6 +370,10 @@ def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) 
     agents_text = (repo / "AGENTS.md").read_text(encoding="utf-8")
     assert "Preserve this domain rule." in agents_text
     assert "governance:key=f7_update_boundary" in agents_text
+    assert "--format human" in agents_text
+    assert "[human_readable_adoption_summary]" in agents_text
+    assert "user-facing adoption status" in agents_text
+    assert "--format json` from the framework environment" not in agents_text
     assert "governance:key=memory_workflow" in agents_text
     assert "memory/**" in agents_text
     hook_text = (repo / ".git" / "hooks" / "pre-commit").read_text(encoding="utf-8")
@@ -377,6 +381,39 @@ def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) 
     assert result.stages["framework_lock_commit"] == "verified"
     assert result.stages["memory_workflow_router"] == "verified"
     assert result.stages["memory_workflow_hook_advisory"] == "verified"
+
+
+def test_external_contract_apply_refreshes_existing_f7_update_boundary_block(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+    _write(
+        repo / "AGENTS.md",
+        "# Contract Agent Rules\n\n"
+        "- Preserve this domain rule.\n\n"
+        "<!-- governance:key=f7_update_boundary -->\n"
+        "- F-7 updates must preserve existing repo-specific AGENTS.md rules.\n"
+        "- Validate F-7 state with `python -X utf8 -m governance_tools.f7_full_update --repo . --format json` from the framework environment.\n"
+        "- Required external contract surfaces: contract.yaml, governance/framework.lock.json, .git/hooks/pre-commit, .git/hooks/pre-push, .github/copilot-instructions.md.\n"
+        "\n"
+        "## Repo-Specific Notes\n"
+        "- Keep this section.\n",
+    )
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+
+    agents_text = (repo / "AGENTS.md").read_text(encoding="utf-8")
+    assert result.ok is True
+    assert result.f7_final_status == "completed"
+    assert result.stages["agents_calibration"] == "updated_preserved_repo_rules"
+    assert "Preserve this domain rule." in agents_text
+    assert "## Repo-Specific Notes" in agents_text
+    assert "Keep this section." in agents_text
+    assert "--format human" in agents_text
+    assert "[human_readable_adoption_summary]" in agents_text
+    assert "user-facing adoption status" in agents_text
+    assert "--format json` from the framework environment" not in agents_text
 
 
 def test_external_contract_linked_worktree_uses_common_hooks_for_memory_workflow_advisory(tmp_path: Path) -> None:

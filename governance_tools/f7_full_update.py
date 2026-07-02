@@ -39,6 +39,15 @@ BLOCKED = "blocked"
 NOT_APPLICABLE = "not_applicable"
 NOT_VERIFIED = "not_verified"
 
+F7_UPDATE_BOUNDARY_MARKER = "<!-- governance:key=f7_update_boundary -->"
+F7_UPDATE_BOUNDARY_BLOCK = (
+    f"{F7_UPDATE_BOUNDARY_MARKER}\n"
+    "- F-7 updates must preserve existing repo-specific AGENTS.md rules.\n"
+    "- Validate F-7 state with `python -X utf8 -m governance_tools.f7_full_update --repo . --format human` from the framework environment.\n"
+    "- Final AI Governance update reports must relay `[human_readable_adoption_summary]` and the user-facing adoption status; reporting only machine-readable fields or `F-7 completed` is incomplete.\n"
+    "- Required external contract surfaces: contract.yaml, governance/framework.lock.json, .git/hooks/pre-commit, .git/hooks/pre-push, .github/copilot-instructions.md.\n"
+)
+
 
 @dataclass
 class F7Result:
@@ -200,14 +209,12 @@ def _ensure_agents_keyed_sections(repo_root: Path) -> tuple[str, list[str], list
 
     before = agents_path.read_text(encoding="utf-8")
     maturity = assess_agents_calibration_maturity(repo_root)
+    after = _replace_or_append_managed_bullet_block(
+        before,
+        marker=F7_UPDATE_BOUNDARY_MARKER,
+        block=F7_UPDATE_BOUNDARY_BLOCK,
+    )
     inserts: list[str] = []
-    if "governance:key=f7_update_boundary" not in before:
-        inserts.append(
-            "<!-- governance:key=f7_update_boundary -->\n"
-            "- F-7 updates must preserve existing repo-specific AGENTS.md rules.\n"
-            "- Validate F-7 state with `python -X utf8 -m governance_tools.f7_full_update --repo . --format json` from the framework environment.\n"
-            "- Required external contract surfaces: contract.yaml, governance/framework.lock.json, .git/hooks/pre-commit, .git/hooks/pre-push, .github/copilot-instructions.md.\n"
-        )
     if "governance:key=memory_workflow" not in before and "memory_workflow" not in before:
         inserts.append(
             "<!-- governance:key=memory_workflow -->\n"
@@ -216,16 +223,29 @@ def _ensure_agents_keyed_sections(repo_root: Path) -> tuple[str, list[str], list
             "- Use the canonical memory writer for session-derived memory; do not edit memory records as ordinary markdown.\n"
         )
 
-    if not inserts:
-        return "verified", [], []
+    if inserts:
+        after = after.rstrip() + "\n\n" + "\n\n".join(inserts) + "\n"
 
-    after = before.rstrip() + "\n\n" + "\n\n".join(inserts) + "\n"
     if after == before:
-        return ALREADY_CURRENT, [], []
+        return "verified", [], []
     agents_path.write_text(after, encoding="utf-8")
     if maturity.status in {"scaffold_only", "generic_filled"}:
         return "updated", [str(agents_path)], []
     return "updated_preserved_repo_rules", [str(agents_path)], []
+
+
+def _replace_or_append_managed_bullet_block(text: str, *, marker: str, block: str) -> str:
+    lines = text.splitlines()
+    block_lines = block.rstrip().splitlines()
+    for index, line in enumerate(lines):
+        if line.strip() != marker:
+            continue
+        end = index + 1
+        while end < len(lines) and lines[end].startswith("- "):
+            end += 1
+        updated = lines[:index] + block_lines + lines[end:]
+        return "\n".join(updated).rstrip() + "\n"
+    return text.rstrip() + "\n\n" + block.rstrip() + "\n"
 
 
 def _framework_head_commit(framework_root: Path) -> str:
