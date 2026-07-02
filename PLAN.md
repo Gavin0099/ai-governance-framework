@@ -122,9 +122,10 @@ Completed in latest committed scope:
 
 Current next candidate:
 
-- [ ] Decide whether to collect real harness consumer evidence for the
-  AUTHORITY_MANIFEST preflight path or to keep the cache-aware tooling in
-  Unreleased candidate state.
+- [x] Decision note keeps the AUTHORITY_MANIFEST preflight path in Unreleased
+  candidate-only state until a named real harness consumer and evidence
+  contract are separately scoped:
+  `docs/governance/authority-manifest-preflight-evidence-decision-2026-07-02.md`.
 - [ ] Do not start v1.3.0 release-prep until release-surface consistency and
   consumer-side proof are explicitly scoped.
 
@@ -478,8 +479,8 @@ P0 - cache-aware authority manifest implementation readiness:
   separate read-only tooling slice.
 - [x] Record CHANGELOG Unreleased dispositions for the generator and preflight
   consumer simulation.
-- [ ] If authorized, collect real harness consumer evidence for the preflight
-  path or document that the tooling remains Unreleased candidate-only.
+- [x] Document that the preflight path remains Unreleased candidate-only until
+  a named real harness consumer and evidence contract are separately scoped.
 
 Non-goals for this pending work:
 
