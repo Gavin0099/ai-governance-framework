@@ -60,6 +60,11 @@ from governance_tools.framework_versioning import (
 from governance_tools.governance_maturity_summary import (
     build_governance_maturity_summary,
     format_human as format_governance_maturity_summary,
+    summary_to_dict as governance_maturity_summary_to_dict,
+)
+from governance_tools.governance_update_reporting import (
+    build_final_report_requirement,
+    format_final_report_requirement,
 )
 from memory_pipeline.memory_layout import MEMORY_FILE_ALIASES
 
@@ -141,17 +146,31 @@ def _print_adoption_boundary(repo_root: Path, framework_root: Path) -> None:
         _print_copy_adoption_boundary()
 
 
-def _print_governance_maturity_summary(repo_root: Path, framework_root: Path) -> None:
+def _maturity_summary_failure_payload(exc: Exception) -> dict[str, object]:
+    return {
+        "report_only": True,
+        "status": "not_available",
+        "reason": f"{type(exc).__name__}: {exc}",
+        "claim_boundary": "summary unavailable; no maturity claim is supported",
+    }
+
+
+def _print_governance_maturity_report(repo_root: Path, framework_root: Path) -> None:
     try:
         summary = build_governance_maturity_summary(repo_root, framework_root=framework_root)
     except Exception as exc:  # report-only diagnostic must not change adoption outcome
+        payload = _maturity_summary_failure_payload(exc)
         print("[governance_maturity_summary]")
         print("report_only              = true")
         print("status                   = not_available")
         print(f"reason                   = {type(exc).__name__}: {exc}")
         print("claim_boundary           = summary unavailable; no maturity claim is supported")
-        return
-    print(format_governance_maturity_summary(summary))
+    else:
+        payload = governance_maturity_summary_to_dict(summary)
+        print(format_governance_maturity_summary(summary))
+    print()
+    for line in format_final_report_requirement(build_final_report_requirement(payload)):
+        print(line)
 
 
 # ── Plan path discovery ────────────────────────────────────────────────────────
@@ -886,7 +905,7 @@ def adopt_existing(
         print()
         _print_adoption_boundary(repo_root, framework_root)
         print()
-        _print_governance_maturity_summary(repo_root, framework_root)
+        _print_governance_maturity_report(repo_root, framework_root)
         print()
         print("Dry-run complete. No files were written.")
         return 0
@@ -938,7 +957,7 @@ def adopt_existing(
     print()
     _print_adoption_boundary(repo_root, framework_root)
     print()
-    _print_governance_maturity_summary(repo_root, framework_root)
+    _print_governance_maturity_report(repo_root, framework_root)
     print()
     print("Adoption complete. Next steps:")
     print("  1. Fix any FAIL/warning items shown above")
@@ -1050,6 +1069,8 @@ def refresh_baseline(
             print(f"  [dry-run] plan_required_sections — {len(required)} section(s) preserved")
         print(f"  [dry-run] Would rewrite: {baseline_path}")
         print()
+        _print_governance_maturity_report(repo_root, framework_root)
+        print()
         print("Dry-run complete. No files were written.")
         return 0
 
@@ -1081,6 +1102,8 @@ def refresh_baseline(
         current_inventory=inventory,
     )
 
+    print()
+    _print_governance_maturity_report(repo_root, framework_root)
     print()
     print("Refresh complete. Verify with:")
     print(f"  python governance_tools/governance_drift_checker.py --repo {repo_root}")

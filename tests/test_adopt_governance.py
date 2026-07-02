@@ -27,6 +27,15 @@ FIXTURE_ROOT = Path("tests/_tmp_adopt_governance")
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
+def _assert_adoption_table_and_final_requirement(output: str) -> None:
+    assert "[human_readable_adoption_summary]" in output
+    assert "AI Governance 功能導入狀態：" in output
+    assert "| 功能 | 狀態 | 這個功能是做什麼 |" in output
+    assert "[final_report_requirement]" in output
+    assert "table rows as a table" in output
+    assert "Reporting only machine-readable fields" in output
+
+
 def _make_git_repo(path: Path) -> Path:
     """Create a minimal git repo structure."""
     path.mkdir(parents=True, exist_ok=True)
@@ -384,6 +393,7 @@ def test_adopt_prints_copy_adoption_boundary(capsys):
     assert "framework_topology       = copy_based" in output
     assert "runtime_capable          = not_checked" in output
     assert "memory_workflow_surface  = not_checked" in output
+    _assert_adoption_table_and_final_requirement(output)
 
 
 def test_adopt_dry_run_prints_copy_adoption_boundary_without_writes(capsys):
@@ -403,6 +413,7 @@ def test_adopt_dry_run_prints_copy_adoption_boundary_without_writes(capsys):
     assert "Runtime capability: not self-contained" in output
     assert "[governance_maturity_summary]" in output
     assert "framework_topology       = copy_based" in output
+    _assert_adoption_table_and_final_requirement(output)
     assert "Dry-run complete. No files were written." in output
 
 
@@ -423,6 +434,7 @@ def test_adopt_with_repo_owned_framework_does_not_print_copy_boundary(capsys):
     assert "[governance_maturity_summary]" in output
     assert "framework_topology       = repo_owned_framework_path" in output
     assert "runtime_capable          = not_checked" in output
+    _assert_adoption_table_and_final_requirement(output)
     assert "Adoption class: copy-based audit surface" not in output
     assert "Runtime capability: not self-contained" not in output
 
@@ -441,6 +453,7 @@ def test_adopt_dry_run_with_repo_owned_framework_does_not_print_copy_boundary(ca
     assert "Framework root: additional/ai-governance-framework" in output
     assert "[governance_maturity_summary]" in output
     assert "framework_topology       = repo_owned_framework_path" in output
+    _assert_adoption_table_and_final_requirement(output)
     assert "Adoption class: copy-based audit surface" not in output
     assert "Runtime capability: not self-contained" not in output
     assert "Dry-run complete. No files were written." in output
@@ -465,6 +478,9 @@ def test_adopt_maturity_summary_failure_is_report_only(monkeypatch, capsys):
     assert rc == 0
     assert "status                   = not_available" in output
     assert "RuntimeError: boom" in output
+    assert "[final_report_requirement]" in output
+    assert "status=not_available" in output
+    assert "claim_boundary=This is a reporting requirement only" in output
     assert "Dry-run complete. No files were written." in output
 
 
@@ -710,6 +726,34 @@ def test_refresh_reports_plan_inventory_delta(capsys):
 
     assert "Refresh delta summary:" in output
     assert "plan sections added: ## New Section" in output
+
+
+def test_refresh_prints_adoption_table_and_final_report_requirement(capsys):
+    """Refresh output should relay the same table/final-report contract as adopt."""
+    repo = _adopt_repo(_reset_fixture("refresh_adoption_table"))
+    capsys.readouterr()
+
+    rc = refresh_baseline(repo, FRAMEWORK_ROOT, dry_run=False)
+    output = capsys.readouterr().out
+
+    assert rc == 0
+    assert "Refresh complete. Verify with:" in output
+    assert "[governance_maturity_summary]" in output
+    _assert_adoption_table_and_final_requirement(output)
+
+
+def test_refresh_dry_run_prints_adoption_table_and_final_report_requirement(capsys):
+    """Refresh dry-run output should still expose adoption/reporting status."""
+    repo = _adopt_repo(_reset_fixture("refresh_dry_run_adoption_table"))
+    capsys.readouterr()
+
+    rc = refresh_baseline(repo, FRAMEWORK_ROOT, dry_run=True)
+    output = capsys.readouterr().out
+
+    assert rc == 0
+    assert "Dry-run complete. No files were written." in output
+    assert "[governance_maturity_summary]" in output
+    _assert_adoption_table_and_final_requirement(output)
 
 
 def test_refresh_does_not_copy_template_files(tmp_path):
