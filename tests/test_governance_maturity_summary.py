@@ -162,7 +162,7 @@ def test_framework_pin_freshness_surfaces_stale_local_tracking_without_fetch(tmp
     assert "framework pin freshness" in summary.cannot_claim
     assert "framework_pin_freshness  = behind_local_tracking" in rendered
     assert "Framework version freshness: behind_local_tracking" in rendered
-    assert "| 版本新鮮度（Framework version freshness） | 未導入 |" in rendered
+    assert "| 版本新鮮度（Framework version freshness） | 已落後 |" in rendered
 
 
 def test_lock_consistency_reports_clean_lock_matching_checkout(tmp_path: Path) -> None:
@@ -182,7 +182,7 @@ def test_lock_consistency_reports_clean_lock_matching_checkout(tmp_path: Path) -
     assert "framework lock matches the checked-out framework commit" not in summary.cannot_claim
     assert payload["lock_consistency"]["value"] == "consistent"
     assert "lock_consistency         = consistent" in rendered
-    assert "Lock vs checkout consistency" in rendered
+    assert "版本帳實一致性（Lock vs checkout consistency）" in rendered
 
 
 def test_lock_consistency_reports_dirty_three_layer_drift(tmp_path: Path) -> None:
@@ -211,7 +211,7 @@ def test_lock_consistency_reports_dirty_three_layer_drift(tmp_path: Path) -> Non
     assert "framework_lock_consistency" in summary.missing_surfaces
     assert "framework lock matches the checked-out framework commit" in summary.cannot_claim
     assert "lock_consistency         = inconsistent" in rendered
-    assert "Lock vs checkout consistency" in rendered
+    assert "| 版本帳實一致性（Lock vs checkout consistency） | 不一致 |" in rendered
 
 
 def test_repo_owned_framework_pin_freshness_surfaces_stale_local_tracking(tmp_path: Path) -> None:

@@ -456,6 +456,14 @@ def _capability_status(value: str | bool, *, present_values: set[str] | None = N
         return "未驗證"
     if value in {"unknown", "not_applicable"}:
         return "未知" if value == "unknown" else "不適用"
+    diagnostic_statuses = {
+        "behind_local_tracking": "已落後",
+        "ahead_or_diverged_vs_local_tracking": "不一致",
+        "inconsistent": "不一致",
+        "lock_commit_not_found_locally": "本地找不到",
+    }
+    if value in diagnostic_statuses:
+        return diagnostic_statuses[value]
     if present_values is not None:
         return "已可用" if value in present_values else "未導入"
     return str(value)
@@ -495,14 +503,14 @@ def _derive_human_readable_adoption_summary(
 
     lines.append(
         _capability_row(
-            "Lock vs checkout consistency",
+            "版本帳實一致性（Lock vs checkout consistency）",
             _capability_status(
                 lock_consistency.value,
                 present_values={"consistent", "not_applicable"},
             ),
             (
-                "Compares governance/framework.lock.json adopted_commit with the local framework checkout HEAD; "
-                "no fetch or true-remote currentness is claimed."
+                "比對 governance/framework.lock.json 的 adopted_commit 與本地 framework checkout HEAD；"
+                "不做 fetch，也不宣稱真實遠端最新版。"
             ),
         )
     )
