@@ -19,6 +19,13 @@
 #                     no files copied, plan_required_sections preserved
 #   drift-check       (separate tool) governance_drift_checker.py — detects deviation
 #
+# Reporting status:
+#   For adoption/refresh reporting, this bash script is a legacy entrypoint. It
+#   preserves existing file-writing semantics, but it does not emit
+#   [human_readable_adoption_summary] or [final_report_requirement].
+#   Use python -m governance_tools.adopt_governance for reporting-complete
+#   adoption/refresh output.
+#
 # What plan_required_sections vs plan_section_inventory mean:
 #   plan_required_sections  — governance mandate: these sections MUST exist in PLAN.md
 #                             Only written by init (framework defaults) or by the user explicitly.
@@ -115,6 +122,19 @@ if [[ ! -d "$BASELINE_SOURCE" ]]; then
 fi
 
 # ── Helper Functions ──────────────────────────────────────────────────────────
+
+print_legacy_reporting_notice() {
+    local mode="$1"
+    shift
+    echo ""
+    echo "[legacy_reporting_path]"
+    echo "script=scripts/init-governance.sh"
+    echo "mode=$mode"
+    echo "final_report_requirement=not_reported"
+    echo "human_readable_adoption_summary=not_reported"
+    echo "claim_boundary=legacy scaffold/refresh behavior only; no adoption table or final-report requirement is emitted by this bash path"
+    echo "canonical_reporting_entrypoint=python -m governance_tools.adopt_governance --target \"$TARGET\" --framework-root \"$FRAMEWORK_ROOT\" $*"
+}
 
 sha256_of() {
     local file="$1"
@@ -428,6 +448,7 @@ do_adopt_existing() {
         fi
         echo "[dry-run] plan_required_sections — NOT set (no mandate imposed on existing repo)"
         echo "[dry-run] Would write: $TARGET/.governance/baseline.yaml"
+        print_legacy_reporting_notice "adopt-existing-dry-run" "--dry-run"
         return
     fi
 
@@ -482,6 +503,7 @@ do_adopt_existing() {
     echo "  3. Optionally harden mandate: add plan_required_sections to .governance/baseline.yaml"
     echo "  4. Commit: git add AGENTS.base.md AGENTS.md PLAN.md contract.yaml .governance/baseline.yaml"
     echo "  5. Verify: python governance_tools/governance_drift_checker.py --repo $TARGET"
+    print_legacy_reporting_notice "adopt-existing"
 }
 
 # ── Refresh Baseline ──────────────────────────────────────────────────────────
@@ -517,6 +539,7 @@ do_refresh_baseline() {
             done
         fi
         echo "[dry-run] No template files would be copied."
+        print_legacy_reporting_notice "refresh-baseline-dry-run" "--refresh"
         return
     fi
 
@@ -537,6 +560,7 @@ do_refresh_baseline() {
     echo ""
     echo "Refresh complete. Verify with:"
     echo "  python governance_tools/governance_drift_checker.py --repo $TARGET"
+    print_legacy_reporting_notice "refresh-baseline" "--refresh"
 }
 
 # ── Upgrade ───────────────────────────────────────────────────────────────────
