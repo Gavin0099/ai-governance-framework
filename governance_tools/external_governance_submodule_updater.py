@@ -19,6 +19,7 @@ from governance_tools.governance_maturity_summary import (
 DEFAULT_SUBMODULE_PATH = "ai-governance-framework"
 KNOWN_SUBMODULE_PATHS = (DEFAULT_SUBMODULE_PATH, ".ai-governance-framework")
 FRESH_TARGET_SOURCES = {"fresh_remote_ls_remote", "fresh_remote_fetch_head"}
+GOVERNANCE_SUBMODULE_URL_NAMES = ("ai-governance-framework",)
 
 
 def _console_safe_text(text: str, encoding: str | None = None) -> str:
@@ -198,14 +199,67 @@ def _require_registered_submodule(repo: Path, submodule_path: str) -> None:
         )
 
 
+def _governance_submodule_paths_from_gitmodules(repo: Path) -> list[str]:
+    gitmodules = repo / ".gitmodules"
+    if not gitmodules.exists():
+        return []
+
+    result = _run_git(
+        repo,
+        [
+            "config",
+            "--file",
+            ".gitmodules",
+            "--get-regexp",
+            r"^submodule\..*\.(path|url)$",
+        ],
+        check=False,
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        return []
+
+    entries: dict[str, dict[str, str]] = {}
+    for line in result.stdout.splitlines():
+        key, _, value = line.partition(" ")
+        if not key or not value:
+            continue
+        prefix, _, field = key.rpartition(".")
+        if field not in {"path", "url"}:
+            continue
+        entries.setdefault(prefix, {})[field] = value.strip()
+
+    paths: list[str] = []
+    for entry in entries.values():
+        path = entry.get("path")
+        url = entry.get("url")
+        if path and url and _looks_like_governance_framework_url(url):
+            paths.append(path)
+    return paths
+
+
+def _looks_like_governance_framework_url(url: str) -> bool:
+    normalized = url.rstrip("/").replace("\\", "/").lower()
+    name = normalized.rsplit("/", 1)[-1]
+    if name.endswith(".git"):
+        name = name[:-4]
+    return name in GOVERNANCE_SUBMODULE_URL_NAMES
+
+
 def _resolve_submodule_path(repo: Path, requested_path: str) -> str:
     if _has_registered_submodule(repo, requested_path):
         return requested_path
 
     # The CLI default is also the common legacy path. If it is absent, try the
-    # two supported governance submodule spellings before failing.
+    # known governance submodule spellings, then discover repo-specific paths
+    # from .gitmodules by framework URL. The path is consumer-controlled; the
+    # framework identity should come from the registered submodule URL.
     if requested_path == DEFAULT_SUBMODULE_PATH:
         for candidate in KNOWN_SUBMODULE_PATHS:
+            if candidate == requested_path:
+                continue
+            if _has_registered_submodule(repo, candidate):
+                return candidate
+        for candidate in _governance_submodule_paths_from_gitmodules(repo):
             if candidate == requested_path:
                 continue
             if _has_registered_submodule(repo, candidate):

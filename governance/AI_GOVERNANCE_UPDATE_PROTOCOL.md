@@ -25,9 +25,14 @@ sync as proof that the AI Governance Framework itself is current.
 
 When the user asks to "Update AI Governance to latest" or equivalent Chinese
 update wording, first determine whether the repository consumes AI Governance
-through a submodule path such as:
+through a registered submodule. Common paths include:
 - `ai-governance-framework`
 - `.ai-governance-framework`
+
+Repos may also use a repo-specific path such as
+`external/ai-governance-framework`; the updater should discover these through
+`.gitmodules` entries whose URL points at an `ai-governance-framework`
+repository.
 
 If a governance submodule exists, the request maps to the governed submodule
 update workflow. Compare the nested governance HEAD with the approved target

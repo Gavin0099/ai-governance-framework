@@ -237,7 +237,10 @@ The default submodule path is:
 ai-governance-framework
 ```
 
-For repos using a non-default path, pass `-SubmodulePath`, for example:
+The updater also checks `.ai-governance-framework`, then discovers
+repo-specific paths from `.gitmodules` when the submodule URL points at an
+`ai-governance-framework` repository. For repos using a non-default path, pass
+`-SubmodulePath` explicitly when known, for example:
 
 ```text
 .ai-governance-framework

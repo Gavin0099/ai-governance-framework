@@ -155,6 +155,7 @@ def _make_fixture(
     tmp_path: Path,
     *,
     submodule_path: str = "ai-governance-framework",
+    gitmodules_url: str | None = None,
 ) -> tuple[Path, Path, str, str]:
     framework = tmp_path / "framework"
     consumer = tmp_path / "consumer"
@@ -177,6 +178,15 @@ def _make_fixture(
         str(framework),
         submodule_path,
     )
+    if gitmodules_url is not None:
+        _git(
+            consumer,
+            "config",
+            "--file",
+            ".gitmodules",
+            f"submodule.{submodule_path}.url",
+            gitmodules_url,
+        )
     _git(consumer / submodule_path, "checkout", old_head)
     _commit_all(consumer, "pin old framework")
 
@@ -434,6 +444,31 @@ def test_default_path_autodetects_dot_prefixed_governance_submodule(tmp_path: Pa
     assert result.before_head == old_head
     assert result.target_head == new_head
     assert _git(consumer / ".ai-governance-framework", "rev-parse", "HEAD") == old_head
+
+
+def test_default_path_autodetects_gitmodules_governance_url_with_custom_path(
+    tmp_path: Path,
+) -> None:
+    consumer, _framework, old_head, new_head = _make_fixture(
+        tmp_path,
+        submodule_path="external/ai-governance-framework",
+        gitmodules_url="https://github.com/Gavin0099/ai-governance-framework.git",
+    )
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=True,
+    )
+
+    assert result.ok is True
+    assert result.submodule_path == "external/ai-governance-framework"
+    assert result.before_head == old_head
+    assert result.target_head == new_head
+    assert (
+        _git(consumer / "external/ai-governance-framework", "rev-parse", "HEAD")
+        == old_head
+    )
 
 
 def test_dry_run_refuses_uninitialized_submodule_checkout(tmp_path: Path) -> None:
