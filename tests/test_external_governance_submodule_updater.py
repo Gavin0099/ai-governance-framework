@@ -5,10 +5,12 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from governance_tools.external_governance_submodule_updater import (
+    UpdateResult,
     _check_existing_memory_normalization,
     _git_env,
     _run_git,
     format_human,
+    main,
     update_governance_submodule,
 )
 
@@ -94,9 +96,59 @@ def test_run_git_uses_utf8_replacement_decode_and_handles_none_streams(
     assert kwargs["text"] is True
     assert kwargs["encoding"] == "utf-8"
     assert kwargs["errors"] == "replace"
+    assert result.returncode == 0
     assert result.stdout == ""
     assert result.stderr == ""
-    assert result.returncode == 0
+
+
+def test_main_human_output_is_safe_for_ascii_console(tmp_path: Path, monkeypatch) -> None:
+    class AsciiOnlyStdout:
+        encoding = "ascii"
+
+        def __init__(self) -> None:
+            self.parts: list[str] = []
+
+        def write(self, text: str) -> int:
+            text.encode(self.encoding, errors="strict")
+            self.parts.append(text)
+            return len(text)
+
+    result = UpdateResult(
+        ok=True,
+        mode="dry_run",
+        update_mode="dry_run",
+        fast_forward=True,
+        repo=str(tmp_path),
+        submodule_path="ai-governance-framework",
+        before_head="old",
+        target_head="new",
+        after_head="old",
+        staged_files=[],
+        committed=False,
+        commit_hash=None,
+        message="\u66f4\u65b0\u5b8c\u6210\uff1a\u4e2d\u6587\u8868\u683c",
+        errors=[],
+        full_update_stage_report={
+            "governance_maturity_summary": {
+                "human_readable_adoption_summary": [
+                    "[human_readable_adoption_summary]",
+                    "| \u529f\u80fd | \u72c0\u614b | \u9019\u500b\u529f\u80fd\u662f\u505a\u4ec0\u9ebc |",
+                ],
+            }
+        },
+        target_source="fresh_remote_ls_remote",
+    )
+    stdout = AsciiOnlyStdout()
+    monkeypatch.setattr(
+        "governance_tools.external_governance_submodule_updater.update_governance_submodule",
+        lambda **_kwargs: result,
+    )
+    monkeypatch.setattr("sys.stdout", stdout)
+
+    assert main(["--repo", str(tmp_path)]) == 0
+    rendered = "".join(stdout.parts)
+    assert "[human_readable_adoption_summary]" in rendered
+    assert "??" in rendered
 
 
 def _make_fixture(

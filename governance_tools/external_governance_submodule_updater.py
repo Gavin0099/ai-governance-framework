@@ -21,6 +21,16 @@ KNOWN_SUBMODULE_PATHS = (DEFAULT_SUBMODULE_PATH, ".ai-governance-framework")
 FRESH_TARGET_SOURCES = {"fresh_remote_ls_remote", "fresh_remote_fetch_head"}
 
 
+def _console_safe_text(text: str, encoding: str | None = None) -> str:
+    target = encoding or getattr(sys.stdout, "encoding", None) or "utf-8"
+    return text.encode(target, errors="replace").decode(target, errors="replace")
+
+
+def _print_console_safe(text: str) -> None:
+    sys.stdout.write(_console_safe_text(text))
+    sys.stdout.write("\n")
+
+
 def _fresh_upstream_verified(target_source: str) -> bool:
     return target_source in FRESH_TARGET_SOURCES
 
@@ -1056,9 +1066,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
 
     if args.format == "json":
-        print(json.dumps(asdict(result), indent=2))
+        _print_console_safe(json.dumps(asdict(result), indent=2))
     else:
-        print(format_human(result))
+        _print_console_safe(format_human(result))
 
     return 0 if result.ok else 1
 
