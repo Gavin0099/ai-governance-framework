@@ -103,6 +103,10 @@ foreach ($repo in $targets) {
         detector_errors = $null
         classification_after = ""
         report_path = $report
+        final_report_requirement_status = "not_available"
+        final_report_required_marker = "[human_readable_adoption_summary]"
+        human_readable_adoption_summary = "not_relayed_in_aggregate"
+        aggregate_final_report_boundary = "aggregate_only; inspect report_path for final-report table rows"
     }
 
     if (-not [string]::IsNullOrWhiteSpace($report) -and (Test-Path $report)) {
@@ -118,11 +122,17 @@ foreach ($repo in $targets) {
             $row.repo_native_verified = $a.repo_native_verified
             $row.detector_errors = $a.detector_errors
             $row.classification_after = [string]$j.classification_after
+            if ($null -ne $j.final_report_requirement) {
+                $row.final_report_requirement_status = [string]$j.final_report_requirement.status
+                $row.final_report_required_marker = [string]$j.final_report_requirement.required_marker
+            }
         } catch {
             $row.classification_after = "report_parse_error"
+            $row.aggregate_final_report_boundary = "aggregate_only; report_path could not be parsed for final-report fields"
         }
     } else {
         $row.classification_after = "report_missing"
+        $row.aggregate_final_report_boundary = "aggregate_only; report_path missing so final-report fields are not available"
     }
     $rows += [pscustomobject]$row
 }
