@@ -6,7 +6,7 @@ import os
 import shutil
 import subprocess
 import sys
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -89,7 +89,14 @@ class UpdateResult:
     message: str
     errors: list[str]
     full_update_stage_report: dict[str, Any]
+    final_report_requirement: dict[str, Any] = field(default_factory=dict)
     target_source: str = "not_reported"
+
+    def __post_init__(self) -> None:
+        if not self.final_report_requirement:
+            self.final_report_requirement = _build_final_report_requirement(
+                self.full_update_stage_report.get("governance_maturity_summary")
+            )
 
 
 class SubmoduleUpdateError(RuntimeError):
@@ -757,6 +764,67 @@ def _format_governance_maturity_stage(payload: object) -> list[str]:
     return lines
 
 
+def _build_final_report_requirement(payload: object) -> dict[str, Any]:
+    instruction = (
+        "Final AI Governance update reports must relay "
+        "[human_readable_adoption_summary] table rows as a table, not a prose "
+        "summary. Reporting only machine-readable fields, build/test results, "
+        "adoption_doctor findings, or a framework pointer update is incomplete."
+    )
+    requirement: dict[str, Any] = {
+        "status": "not_available",
+        "instruction": instruction,
+        "required_marker": "[human_readable_adoption_summary]",
+        "human_readable_adoption_summary": [],
+        "not_substitutes": [
+            "adoption_doctor: findings 0",
+            "governance_version_check: compatible",
+            "clean build/test results",
+            "framework pointer or lock update",
+            "machine-readable governance_maturity_summary fields only",
+        ],
+        "claim_boundary": (
+            "This is a reporting requirement only; it does not prove full "
+            "governance adoption, runtime enforcement, CI/fleet enforcement, "
+            "memory completeness, domain correctness, or release readiness."
+        ),
+    }
+    if not isinstance(payload, dict):
+        requirement["reason"] = "governance_maturity_summary is not a structured object"
+        return requirement
+    human_summary = [str(item) for item in payload.get("human_readable_adoption_summary") or []]
+    if human_summary:
+        requirement["status"] = "required"
+        requirement["human_readable_adoption_summary"] = human_summary
+        requirement["required_header"] = (
+            human_summary[1] if len(human_summary) > 1 else "table header not reported"
+        )
+        return requirement
+    requirement["reason"] = (
+        payload.get("reason")
+        or f"governance_maturity_summary status={payload.get('status', 'unknown')}"
+    )
+    return requirement
+
+
+def _format_final_report_requirement(payload: object) -> list[str]:
+    if not isinstance(payload, dict):
+        return [f"final_report_requirement={payload}"]
+    lines = [
+        "[final_report_requirement]",
+        f"status={payload.get('status')}",
+        f"instruction={payload.get('instruction')}",
+        f"claim_boundary={payload.get('claim_boundary')}",
+    ]
+    reason = payload.get("reason")
+    if reason:
+        lines.append(f"reason={reason}")
+    human_summary = payload.get("human_readable_adoption_summary") or []
+    if human_summary:
+        lines.extend(str(item) for item in human_summary)
+    return lines
+
+
 def update_governance_submodule(
     *,
     repo: Path,
@@ -1073,6 +1141,7 @@ def format_human(result: UpdateResult) -> str:
             result.full_update_stage_report.get("governance_maturity_summary")
         )
     )
+    lines.extend(_format_final_report_requirement(result.final_report_requirement))
     if result.errors:
         lines.append("errors:")
         lines.extend(f"- {error}" for error in result.errors)

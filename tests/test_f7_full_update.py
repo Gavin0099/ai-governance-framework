@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+from dataclasses import asdict
 from datetime import date as _date
 from pathlib import Path
 
@@ -237,9 +238,17 @@ def test_f7_submodule_backend_surfaces_governance_maturity_summary(monkeypatch, 
     assert "governance_maturity_summary" in result.stages
     assert result.stages["governance_maturity_summary"]["report_only"] is True
     assert result.stages["governance_maturity_summary"]["runtime_capable"]["value"] == "not_checked"
+    assert result.final_report_requirement["status"] == "required"
+    assert "table rows as a table" in result.final_report_requirement["instruction"]
+    assert "[human_readable_adoption_summary]" in (
+        result.final_report_requirement["human_readable_adoption_summary"]
+    )
+    assert "final_report_requirement" in asdict(result)
     rendered = format_human(result)
     assert "[governance_maturity_summary]" in rendered
     assert "[human_readable_adoption_summary]" in rendered
+    assert "[final_report_requirement]" in rendered
+    assert "table rows as a table" in rendered
     assert "整體導入狀態：" in rendered
     assert "AI Governance 功能導入狀態：" in rendered
 
@@ -377,6 +386,12 @@ def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) 
     assert "--format json` from the framework environment" not in agents_text
     assert "governance:key=memory_workflow" in agents_text
     assert "memory/**" in agents_text
+    assert result.final_report_requirement["status"] == "required"
+    assert "table rows as a table" in result.final_report_requirement["instruction"]
+    assert "[human_readable_adoption_summary]" in (
+        result.final_report_requirement["human_readable_adoption_summary"]
+    )
+    assert "final_report_requirement" in asdict(result)
     hook_text = (repo / ".git" / "hooks" / "pre-commit").read_text(encoding="utf-8")
     assert "MEMORY_WORKFLOW_TOOL" in hook_text
     assert result.stages["framework_lock_commit"] == "verified"

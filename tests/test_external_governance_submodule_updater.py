@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+from dataclasses import asdict
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -300,9 +301,17 @@ def test_dry_run_does_not_change_submodule_or_stage_files(tmp_path: Path) -> Non
     assert result.after_head == old_head
     assert result.full_update_stage_report["final_status"] == "not_verified"
     assert result.full_update_stage_report["governance_maturity_summary"]["report_only"] is True
+    assert result.final_report_requirement["status"] == "required"
+    assert "table rows as a table" in result.final_report_requirement["instruction"]
+    assert "[human_readable_adoption_summary]" in (
+        result.final_report_requirement["human_readable_adoption_summary"]
+    )
+    assert "final_report_requirement" in asdict(result)
     rendered = format_human(result)
     assert "full_update_stage_report:" in rendered
     assert "[human_readable_adoption_summary]" in rendered
+    assert "[final_report_requirement]" in rendered
+    assert "table rows as a table" in rendered
     assert "AI Governance 功能導入狀態：" in rendered
     assert "| 功能 | 狀態 | 這個功能是做什麼 |" in rendered
     assert _git(consumer / "ai-governance-framework", "rev-parse", "HEAD") == old_head
