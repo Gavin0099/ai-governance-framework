@@ -372,6 +372,7 @@ def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) 
     assert "governance:key=f7_update_boundary" in agents_text
     assert "--format human" in agents_text
     assert "[human_readable_adoption_summary]" in agents_text
+    assert "table rows as a table, not a prose summary" in agents_text
     assert "user-facing adoption status" in agents_text
     assert "--format json` from the framework environment" not in agents_text
     assert "governance:key=memory_workflow" in agents_text
@@ -414,6 +415,7 @@ def test_external_contract_apply_refreshes_existing_f7_update_boundary_block(tmp
     assert "Keep this section." in agents_text
     assert "--format human" in agents_text
     assert "[human_readable_adoption_summary]" in agents_text
+    assert "table rows as a table, not a prose summary" in agents_text
     assert "user-facing adoption status" in agents_text
     assert "f7_full_update.py --repo E:\\BackUp\\Git_EE\\Enumd-private-vault --format json" in agents_text
     assert "--format json` from the framework environment" not in agents_text
@@ -444,6 +446,7 @@ def test_external_contract_apply_preserves_repo_specific_f7_json_guidance_outsid
     assert result.f7_final_status == "completed"
     assert "--format human" in agents_text
     assert "[human_readable_adoption_summary]" in agents_text
+    assert "table rows as a table, not a prose summary" in agents_text
     assert "f7_full_update --repo . --format json` before reporting update status" in agents_text
     assert "--format json` from the framework environment" not in agents_text
     assert "memory_workflow --check --repo . --format json" in agents_text
