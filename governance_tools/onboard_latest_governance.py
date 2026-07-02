@@ -18,6 +18,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from governance_tools.codeburn_token_summary import compute_codeburn_token_summary
+from governance_tools.governance_maturity_summary import (
+    build_governance_maturity_summary,
+    summary_to_dict as governance_maturity_summary_to_dict,
+)
+from governance_tools.governance_update_reporting import (
+    build_final_report_requirement,
+    format_final_report_requirement,
+    format_governance_maturity_stage,
+    print_console_safe,
+)
 
 
 def _utc_now_compact() -> str:
@@ -26,6 +36,10 @@ def _utc_now_compact() -> str:
 
 def _today_local_date_str() -> str:
     return datetime.now().strftime("%Y-%m-%d")
+
+
+def _emit(text: str = "") -> None:
+    print_console_safe(text)
 
 
 def _normalize(path_text: str) -> str:
@@ -261,6 +275,9 @@ def _render_summary(payload: dict[str, Any]) -> str:
         if remediation:
             lines.append(f"  remediation: {remediation}")
     lines.append("")
+    lines.extend(format_governance_maturity_stage(payload.get("governance_maturity_summary")))
+    lines.extend(format_final_report_requirement(payload.get("final_report_requirement")))
+    lines.append("")
     lines.append("[actions]")
     for item in payload["actions"]:
         status = item.get("status", "planned")
@@ -326,6 +343,24 @@ def _append_repo_memory_summary(repo_path: Path, line: str, dedupe_key: str) -> 
     return memory_file
 
 
+def _governance_maturity_stage(repo_path: Path, framework_root: Path) -> dict[str, Any]:
+    try:
+        summary = build_governance_maturity_summary(repo_path, framework_root=framework_root)
+    except Exception as exc:  # pragma: no cover - defensive report-only boundary
+        return {
+            "status": "not_available",
+            "reason": f"{type(exc).__name__}: {exc}",
+            "report_only": True,
+        }
+    return governance_maturity_summary_to_dict(summary)
+
+
+def _attach_reporting_surfaces(payload: dict[str, Any], repo_path: Path, framework_root: Path) -> None:
+    maturity = _governance_maturity_stage(repo_path, framework_root)
+    payload["governance_maturity_summary"] = maturity
+    payload["final_report_requirement"] = build_final_report_requirement(maturity)
+
+
 
 def run(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Apply latest matrix remediation suggestions for one repo.")
@@ -363,18 +398,18 @@ def run(argv: list[str]) -> int:
             ],
         }
         if args.format == "json":
-            print(json.dumps(err, ensure_ascii=False, indent=2))
+            _emit(json.dumps(err, ensure_ascii=False, indent=2))
         else:
             if args.brief:
-                print(f"run={args.mode} | repo={repo_path.name} | error=repo_not_in_snapshot")
+                _emit(f"run={args.mode} | repo={repo_path.name} | error=repo_not_in_snapshot")
             else:
-                print("[onboard_latest_governance]")
-                print("ok=False")
-                print("error=repo_not_in_snapshot")
-                print(f"repo={repo_path}")
-                print(f"snapshot={snapshot_path}")
-                print("message=Target repo not found in remediation_suggestions.")
-                print("next_steps=add_repo_to_matrix_inventory -> regenerate_snapshot -> rerun_onboarding")
+                _emit("[onboard_latest_governance]")
+                _emit("ok=False")
+                _emit("error=repo_not_in_snapshot")
+                _emit(f"repo={repo_path}")
+                _emit(f"snapshot={snapshot_path}")
+                _emit("message=Target repo not found in remediation_suggestions.")
+                _emit("next_steps=add_repo_to_matrix_inventory -> regenerate_snapshot -> rerun_onboarding")
         return 2
     row = _select_repo_row(snapshot, repo_path)
     window_days = int(snapshot.get("evidence_window_days", 7))
@@ -442,6 +477,7 @@ def run(argv: list[str]) -> int:
         "acceptance_after": acceptance_after,
         "token_summary": compute_codeburn_token_summary(repo_path),
     }
+    _attach_reporting_surfaces(payload, repo_path, project_root)
 
     if args.write_report:
         out_dir = project_root / "artifacts" / "session"
@@ -466,17 +502,17 @@ def run(argv: list[str]) -> int:
         payload["memory_summary_path"] = memory_path
 
     if args.format == "json":
-        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        _emit(json.dumps(payload, ensure_ascii=False, indent=2))
     else:
         if args.brief:
-            print(one_line_summary)
+            _emit(one_line_summary)
         else:
-            print(_render_summary(payload))
-            print(f"\nrun_summary={one_line_summary}")
+            _emit(_render_summary(payload))
+            _emit(f"\nrun_summary={one_line_summary}")
             if memory_path:
-                print(f"memory_summary_path={memory_path}")
+                _emit(f"memory_summary_path={memory_path}")
             if payload.get("report_path"):
-                print(f"\nreport_path={payload['report_path']}")
+                _emit(f"\nreport_path={payload['report_path']}")
     return 0
 
 
