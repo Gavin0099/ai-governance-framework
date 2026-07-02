@@ -154,3 +154,37 @@ def test_write_report_json_contains_reporting_surfaces(monkeypatch, tmp_path: Pa
         assert payload["governance_maturity_summary"]["report_only"] is True
         assert payload["final_report_requirement"]["status"] == "required"
         assert "[human_readable_adoption_summary]" in payload["final_report_requirement"]["human_readable_adoption_summary"]
+
+
+def test_brief_output_relays_final_report_requirement_boundary(monkeypatch, tmp_path: Path, capsys) -> None:
+    repo = tmp_path / "consumer"
+    repo.mkdir()
+    project_root = tmp_path / "framework"
+    snapshot = _write_snapshot(project_root, repo)
+
+    monkeypatch.setattr(onboard, "_compute_acceptance", lambda repo_path, window_days: _sample_payload()["acceptance_after"])
+    monkeypatch.setattr(onboard, "compute_codeburn_token_summary", lambda repo_path: "not_checked")
+    monkeypatch.setattr(onboard, "build_governance_maturity_summary", lambda repo_path, framework_root: object())
+    monkeypatch.setattr(onboard, "governance_maturity_summary_to_dict", lambda summary: _sample_maturity_summary())
+
+    rc = onboard.run(
+        [
+            "--repo",
+            str(repo),
+            "--project-root",
+            str(project_root),
+            "--snapshot",
+            str(snapshot),
+            "--mode",
+            "plan",
+            "--brief",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert rc == 0
+    assert "run=plan" in output
+    assert "final_report_requirement=required" in output
+    assert "required_marker=[human_readable_adoption_summary]" in output
+    assert "brief_claim_boundary=marker_only_not_final_report_use_full_human_or_json_report_for_table_rows" in output
+    assert "| 版本帳實一致性（Lock vs checkout consistency） | 不一致 |" not in output

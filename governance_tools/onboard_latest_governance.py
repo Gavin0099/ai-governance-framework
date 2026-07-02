@@ -308,6 +308,21 @@ def _build_one_line_summary(payload: dict[str, Any]) -> str:
     )
 
 
+def _build_brief_reporting_notice(payload: dict[str, Any]) -> str:
+    requirement = payload.get("final_report_requirement")
+    if not isinstance(requirement, dict):
+        return (
+            "final_report_requirement=not_available | "
+            "brief_claim_boundary=not_final_report_use_full_human_or_json_report"
+        )
+    status = requirement.get("status", "unknown")
+    marker = requirement.get("required_marker", "[human_readable_adoption_summary]")
+    return (
+        f"final_report_requirement={status} | required_marker={marker} | "
+        "brief_claim_boundary=marker_only_not_final_report_use_full_human_or_json_report_for_table_rows"
+    )
+
+
 def _build_summary_dedupe_key(payload: dict[str, Any]) -> str:
     acc = payload.get("acceptance_after", {})
     actions = payload.get("actions", [])
@@ -506,7 +521,7 @@ def run(argv: list[str]) -> int:
         _emit(json.dumps(payload, ensure_ascii=False, indent=2))
     else:
         if args.brief:
-            _emit(one_line_summary)
+            _emit(f"{one_line_summary} | {_build_brief_reporting_notice(payload)}")
         else:
             _emit(_render_summary(payload))
             _emit(f"\nrun_summary={one_line_summary}")
