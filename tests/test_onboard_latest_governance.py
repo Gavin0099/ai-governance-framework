@@ -94,6 +94,30 @@ def test_render_summary_includes_adoption_summary_and_final_requirement() -> Non
     assert "Final AI Governance update reports must relay" in rendered
 
 
+def test_maturity_summary_failure_has_explicit_claim_boundary(monkeypatch, tmp_path: Path) -> None:
+    def boom(repo_path: Path, framework_root: Path) -> object:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(onboard, "build_governance_maturity_summary", boom)
+
+    payload: dict[str, object] = {}
+    onboard._attach_reporting_surfaces(payload, tmp_path / "repo", tmp_path / "framework")
+    rendered = onboard._render_summary(
+        {
+            **_sample_payload(),
+            "governance_maturity_summary": payload["governance_maturity_summary"],
+            "final_report_requirement": payload["final_report_requirement"],
+        }
+    )
+
+    assert payload["governance_maturity_summary"]["status"] == "not_available"
+    assert payload["governance_maturity_summary"]["claim_boundary"] == (
+        "summary unavailable; no maturity claim is supported"
+    )
+    assert "claim_boundary=summary unavailable; no maturity claim is supported" in rendered
+    assert "claim_boundary=None" not in rendered
+
+
 def test_write_report_json_contains_reporting_surfaces(monkeypatch, tmp_path: Path, capsys) -> None:
     repo = tmp_path / "consumer"
     repo.mkdir()

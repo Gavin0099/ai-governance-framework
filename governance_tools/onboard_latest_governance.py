@@ -351,6 +351,7 @@ def _governance_maturity_stage(repo_path: Path, framework_root: Path) -> dict[st
             "status": "not_available",
             "reason": f"{type(exc).__name__}: {exc}",
             "report_only": True,
+            "claim_boundary": "summary unavailable; no maturity claim is supported",
         }
     return governance_maturity_summary_to_dict(summary)
 
