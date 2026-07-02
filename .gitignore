@@ -57,6 +57,7 @@ dist/
 pytest-cache-files-*/
 tests/pytest-cache-files-*/
 .pytest_tmp*/
+.tmp_codex*/
 .tmp_pytest_*/
 .tmp-pytest/
 tests/_tmp_*/
