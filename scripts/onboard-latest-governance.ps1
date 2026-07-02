@@ -11,6 +11,8 @@ param(
 )
 
 $resolvedProjectRoot = (Resolve-Path -LiteralPath $ProjectRoot).Path
+$repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")).Path
+$pythonRunner = Join-Path $repoRoot "scripts\codex-python.ps1"
 $previousPythonPath = $env:PYTHONPATH
 if ([string]::IsNullOrWhiteSpace($previousPythonPath)) {
     $env:PYTHONPATH = $resolvedProjectRoot
@@ -41,7 +43,7 @@ if ($Brief) {
     $args += "--brief"
 }
 
-python @args
+& $pythonRunner @args
 $exitCode = $LASTEXITCODE
 $env:PYTHONPATH = $previousPythonPath
 exit $exitCode
