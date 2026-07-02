@@ -26,6 +26,11 @@ SEMANTIC_FIELDS = (
     "default_load",
 )
 
+STRUCTURAL_EXCLUDED_GOVERNANCE_DOCS = frozenset({
+    "AUTHORITY.md",
+    "copilot-instructions-template.md",
+})
+
 
 def normalize_document_reference(document: str) -> str:
     """Normalize a table document cell into a slash-separated repo reference."""
@@ -139,6 +144,36 @@ def load_frontmatter_rows(governance_dir: Path) -> dict[str, dict[str, Any]]:
     return rows
 
 
+def load_unregistered_documents(
+    *,
+    governance_dir: Path,
+    table_rows: dict[str, dict[str, Any]],
+    frontmatter_rows: dict[str, dict[str, Any]],
+) -> list[dict[str, str]]:
+    """Report governance docs invisible to both AUTHORITY.md and frontmatter.
+
+    This is a warning surface only. Some markdown files under governance/ are
+    structural artifacts rather than authority documents; those are excluded by
+    filename rather than by a second hand-maintained authority registry.
+    """
+    if not governance_dir.is_dir():
+        return []
+
+    registered = set(table_rows) | set(frontmatter_rows)
+    unregistered: list[dict[str, str]] = []
+    for md_file in sorted(governance_dir.glob("*.md")):
+        if md_file.name in STRUCTURAL_EXCLUDED_GOVERNANCE_DOCS:
+            continue
+        document = f"governance/{md_file.name}"
+        if document in registered:
+            continue
+        unregistered.append({
+            "document": document,
+            "reason": "governance_doc_without_frontmatter_or_authority_row",
+        })
+    return unregistered
+
+
 def compare_authority_metadata(
     *,
     authority_path: Path,
@@ -146,6 +181,11 @@ def compare_authority_metadata(
 ) -> dict[str, Any]:
     table_rows, skipped_rows = parse_authority_table(authority_path)
     frontmatter_rows = load_frontmatter_rows(governance_dir)
+    unregistered_documents = load_unregistered_documents(
+        governance_dir=governance_dir,
+        table_rows=table_rows,
+        frontmatter_rows=frontmatter_rows,
+    )
 
     missing_table_rows = [
         {"document": document, "reason": "frontmatter_present_but_table_row_missing"}
@@ -185,11 +225,18 @@ def compare_authority_metadata(
             "missing_table_rows": len(missing_table_rows),
             "missing_frontmatter": len(missing_frontmatter),
             "field_mismatches": len(field_mismatches),
+            "unregistered_documents": len(unregistered_documents),
             "skipped_rows": len(skipped_rows),
         },
         "missing_table_rows": missing_table_rows,
         "missing_frontmatter": missing_frontmatter,
         "field_mismatches": field_mismatches,
+        "unregistered_documents": unregistered_documents,
+        "warning_codes": (
+            ["unregistered_governance_documents"]
+            if unregistered_documents
+            else []
+        ),
         "skipped_rows": skipped_rows,
         "claim_ceiling_not_supported": [
             "does_not_change_authority_metadata",
@@ -197,6 +244,7 @@ def compare_authority_metadata(
             "does_not_install_hook_or_ci_enforcement",
             "does_not_prove_prompt_text_injection",
             "does_not_repair_governance_document_freshness",
+            "does_not_make_unregistered_document_warnings_blocking",
         ],
     }
 

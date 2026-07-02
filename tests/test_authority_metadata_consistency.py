@@ -140,3 +140,43 @@ def test_compare_ok_when_table_matches_frontmatter(tmp_path: Path) -> None:
     assert result["summary"]["field_mismatches"] == 0
     assert result["summary"]["missing_table_rows"] == 0
     assert result["summary"]["missing_frontmatter"] == 0
+
+
+def test_compare_warns_for_dual_absent_governance_documents_without_failing_ok(tmp_path: Path) -> None:
+    governance_dir = tmp_path / "governance"
+    authority = _authority(governance_dir / "AUTHORITY.md", """\
+        | `governance/PLAN.md` | agent-on-demand | reference | false | ../PLAN.md | on-demand |
+    """)
+    _governance_doc(governance_dir, "PLAN.md", """\
+        audience: agent-on-demand
+        authority: reference
+        can_override: false
+        overridden_by: ../PLAN.md
+        default_load: on-demand
+    """)
+    _write(governance_dir / "UNREGISTERED.md", "# no frontmatter and no table row\n")
+
+    result = compare_authority_metadata(authority_path=authority, governance_dir=governance_dir)
+
+    assert result["ok"] is True
+    assert result["summary"]["unregistered_documents"] == 1
+    assert result["unregistered_documents"] == [
+        {
+            "document": "governance/UNREGISTERED.md",
+            "reason": "governance_doc_without_frontmatter_or_authority_row",
+        }
+    ]
+    assert result["warning_codes"] == ["unregistered_governance_documents"]
+
+
+def test_compare_excludes_structural_authority_and_copilot_template_docs(tmp_path: Path) -> None:
+    governance_dir = tmp_path / "governance"
+    authority = _authority(governance_dir / "AUTHORITY.md", "")
+    _write(governance_dir / "copilot-instructions-template.md", "# copied downstream without frontmatter\n")
+
+    result = compare_authority_metadata(authority_path=authority, governance_dir=governance_dir)
+
+    assert result["ok"] is True
+    assert result["summary"]["unregistered_documents"] == 0
+    assert result["unregistered_documents"] == []
+    assert result["warning_codes"] == []
