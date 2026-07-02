@@ -1,3 +1,11 @@
+---
+audience: agent-on-demand
+authority: reference
+can_override: false
+overridden_by: AGENT.md
+default_load: on-demand
+---
+
 # AI Governance Update Protocol
 
 Status: extracted from AGENTS.md

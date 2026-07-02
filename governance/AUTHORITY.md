@@ -2,7 +2,7 @@
 
 > machine-readable: true
 > version: 1.0.0
-> updated: 2026-06-25
+> updated: 2026-07-02
 
 
 > Authority-loader note: `runtime_hooks/core/session_start.py` derives the live
@@ -41,6 +41,8 @@
 | `governance/RULE_REGISTRY.md` | agent-runtime | canonical | false | ~ | always |
 | `governance/PLAN.md` | agent-on-demand | reference | false | ../PLAN.md | on-demand |
 | `governance/MEMORY_PROTOCOL.md` | agent-runtime | canonical | false | AGENT.md | on-demand |
+| `governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md` | agent-on-demand | reference | false | AGENT.md | on-demand |
+| `governance/F7_FULL_UPDATE.md` | agent-on-demand | reference | false | AGENT.md | on-demand |
 | `governance/ARCHITECTURE.md` | agent-on-demand | reference | false | SYSTEM_PROMPT.md | on-demand |
 | `governance/TESTING.md` | agent-on-demand | reference | false | AGENT.md | on-demand |
 | `governance/NATIVE-INTEROP.md` | agent-on-demand | reference | false | AGENT.md | on-demand |
