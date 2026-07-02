@@ -214,6 +214,7 @@ def _ensure_agents_keyed_sections(repo_root: Path) -> tuple[str, list[str], list
         marker=F7_UPDATE_BOUNDARY_MARKER,
         block=F7_UPDATE_BOUNDARY_BLOCK,
     )
+    after = _remove_legacy_f7_json_validation_guidance(after)
     inserts: list[str] = []
     if "governance:key=memory_workflow" not in before and "memory_workflow" not in before:
         inserts.append(
@@ -246,6 +247,25 @@ def _replace_or_append_managed_bullet_block(text: str, *, marker: str, block: st
         updated = lines[:index] + block_lines + lines[end:]
         return "\n".join(updated).rstrip() + "\n"
     return text.rstrip() + "\n\n" + block.rstrip() + "\n"
+
+
+def _remove_legacy_f7_json_validation_guidance(text: str) -> str:
+    lines = text.splitlines()
+    kept = [
+        line
+        for line in lines
+        if not _is_legacy_f7_json_validation_line(line)
+    ]
+    return "\n".join(kept).rstrip() + "\n"
+
+
+def _is_legacy_f7_json_validation_line(line: str) -> bool:
+    stripped = line.strip()
+    return (
+        stripped.startswith("- ")
+        and "f7_full_update" in stripped
+        and "--format json" in stripped
+    )
 
 
 def _framework_head_commit(framework_root: Path) -> str:

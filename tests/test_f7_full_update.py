@@ -397,6 +397,8 @@ def test_external_contract_apply_refreshes_existing_f7_update_boundary_block(tmp
         "- Validate F-7 state with `python -X utf8 -m governance_tools.f7_full_update --repo . --format json` from the framework environment.\n"
         "- Required external contract surfaces: contract.yaml, governance/framework.lock.json, .git/hooks/pre-commit, .git/hooks/pre-push, .github/copilot-instructions.md.\n"
         "\n"
+        "- Validate F-7 state with `python -X utf8 E:\\BackUp\\Git_EE\\ai-governance-framework\\governance_tools\\f7_full_update.py --repo E:\\BackUp\\Git_EE\\Enumd-private-vault --format json`.\n"
+        "\n"
         "## Repo-Specific Notes\n"
         "- Keep this section.\n",
     )
@@ -413,7 +415,39 @@ def test_external_contract_apply_refreshes_existing_f7_update_boundary_block(tmp
     assert "--format human" in agents_text
     assert "[human_readable_adoption_summary]" in agents_text
     assert "user-facing adoption status" in agents_text
+    assert "f7_full_update.py --repo E:\\BackUp\\Git_EE\\Enumd-private-vault --format json" not in agents_text
     assert "--format json` from the framework environment" not in agents_text
+
+
+def test_external_contract_apply_removes_legacy_f7_json_guidance_outside_boundary(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _make_external_contract_repo(repo)
+    _write(
+        repo / "AGENTS.md",
+        "# Contract Agent Rules\n\n"
+        "- Preserve this domain rule.\n\n"
+        "## Memory Workflow Router\n"
+        "- Validate F-7 state with `python -X utf8 -m governance_tools.f7_full_update --repo . --format json` before reporting update status.\n"
+        "- Keep memory workflow json checks for `memory/**` with `python -m governance_tools.memory_workflow --check --repo . --format json`.\n"
+        "\n"
+        "## Repo-Specific Notes\n"
+        "- Keep this section.\n",
+    )
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=True)
+
+    agents_text = (repo / "AGENTS.md").read_text(encoding="utf-8")
+    assert result.ok is True
+    assert result.f7_final_status == "completed"
+    assert "--format human" in agents_text
+    assert "[human_readable_adoption_summary]" in agents_text
+    assert "f7_full_update --repo . --format json" not in agents_text
+    assert "memory_workflow --check --repo . --format json" in agents_text
+    assert "## Memory Workflow Router" in agents_text
+    assert "## Repo-Specific Notes" in agents_text
+    assert "Keep this section." in agents_text
 
 
 def test_external_contract_linked_worktree_uses_common_hooks_for_memory_workflow_advisory(tmp_path: Path) -> None:
