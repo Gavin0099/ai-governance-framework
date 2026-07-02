@@ -539,7 +539,7 @@ do_refresh_baseline() {
             done
         fi
         echo "[dry-run] No template files would be copied."
-        print_legacy_reporting_notice "refresh-baseline-dry-run" "--refresh"
+        print_legacy_reporting_notice "refresh-baseline-dry-run" "--refresh" "--dry-run"
         return
     fi
 

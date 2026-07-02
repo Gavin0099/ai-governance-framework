@@ -20,7 +20,7 @@ def test_init_governance_reports_legacy_boundary_from_adopt_and_refresh_paths() 
     for expected in (
         'print_legacy_reporting_notice "adopt-existing-dry-run" "--dry-run"',
         'print_legacy_reporting_notice "adopt-existing"',
-        'print_legacy_reporting_notice "refresh-baseline-dry-run" "--refresh"',
+        'print_legacy_reporting_notice "refresh-baseline-dry-run" "--refresh" "--dry-run"',
         'print_legacy_reporting_notice "refresh-baseline" "--refresh"',
     ):
         assert expected in text
