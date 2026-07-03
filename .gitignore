@@ -54,6 +54,7 @@ dist/
 .pytest_cache/
 .pytest_cache_runtime/
 .tmp_pytest/
+.tmp_status_check/
 pytest-cache-files-*/
 tests/pytest-cache-files-*/
 .pytest_tmp*/

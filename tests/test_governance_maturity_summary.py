@@ -214,6 +214,30 @@ def test_lock_consistency_reports_dirty_three_layer_drift(tmp_path: Path) -> Non
     assert "| 版本帳實一致性（Lock vs checkout consistency） | 不一致 |" in rendered
 
 
+def test_lock_consistency_reports_legacy_lock_schema_without_adopted_commit(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "legacy_lock")
+    framework = _make_git_framework(repo / "ai-governance-framework")
+    _write(
+        repo / "governance" / "framework.lock.json",
+        json.dumps({"framework_baseline_version": "v1.2.0"}, indent=2) + "\n",
+    )
+    _commit_path(repo, "governance/framework.lock.json", "record legacy framework lock")
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+    rendered = format_human(summary)
+    payload = summary_to_dict(summary)
+
+    assert summary.lock_consistency.value == "legacy_lock_schema"
+    assert "framework_lock_consistency" in summary.missing_surfaces
+    assert "framework lock matches the checked-out framework commit" in summary.cannot_claim
+    assert payload["lock_consistency"]["value"] == "legacy_lock_schema"
+    assert "legacy_lock_schema: framework lock has framework_baseline_version but no adopted_commit" in (
+        " ".join(summary.lock_consistency.reasons)
+    )
+    assert "lock_consistency         = legacy_lock_schema" in rendered
+    assert "| 版本帳實一致性（Lock vs checkout consistency） | 舊版格式 |" in rendered
+
+
 def test_self_hosting_framework_lock_is_not_consumer_lock_consistency(tmp_path: Path) -> None:
     repo = _make_repo(tmp_path / "framework_self")
     _make_framework_root(repo)

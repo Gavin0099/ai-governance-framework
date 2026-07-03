@@ -181,6 +181,12 @@ def _load_lock_adopted_commit(lock_path: Path) -> tuple[str | None, str | None]:
         return None, f"framework lock unreadable: {type(exc).__name__}: {exc}"
     adopted = str(payload.get("adopted_commit", "")).strip()
     if not adopted:
+        baseline = str(payload.get("framework_baseline_version", "")).strip()
+        if baseline:
+            return None, (
+                "legacy_lock_schema: framework lock has framework_baseline_version "
+                f"but no adopted_commit; framework_baseline_version={baseline}"
+            )
         return None, "framework lock adopted_commit missing"
     return adopted, None
 
@@ -240,8 +246,9 @@ def _derive_lock_consistency(repo_root: Path, framework_root: Path | None) -> Su
     dirty = _lock_file_dirty(repo_root, lock_path)
     dirty_reason = "lock_file_dirty=unknown" if dirty is None else f"lock_file_dirty={str(dirty).lower()}"
     if adopted_commit is None:
+        value = "legacy_lock_schema" if (lock_error or "").startswith("legacy_lock_schema:") else "unknown"
         return _summary_value(
-            "unknown",
+            value,
             "governance_maturity_summary.lock_consistency",
             [dirty_reason, lock_error or "framework lock adopted_commit unavailable"],
         )
@@ -482,6 +489,7 @@ def _capability_status(value: str | bool, *, present_values: set[str] | None = N
         "ahead_or_diverged_vs_local_tracking": "不一致",
         "inconsistent": "不一致",
         "lock_commit_not_found_locally": "本地找不到",
+        "legacy_lock_schema": "舊版格式",
     }
     if value in diagnostic_statuses:
         return diagnostic_statuses[value]
