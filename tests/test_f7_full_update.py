@@ -243,7 +243,13 @@ def test_f7_submodule_backend_surfaces_governance_maturity_summary(monkeypatch, 
     assert "[human_readable_adoption_summary]" in (
         result.final_report_requirement["human_readable_adoption_summary"]
     )
-    assert "final_report_requirement" in asdict(result)
+    payload = asdict(result)
+    assert "final_report_requirement" in payload
+    assert payload["final_report_table_required"]["status"] == "required"
+    assert payload["final_report_table_required"]["must_relay_as"] == "table_rows_verbatim"
+    assert "[human_readable_adoption_summary]" in (
+        payload["final_report_table_required"]["table_rows"]
+    )
     rendered = format_human(result)
     assert "[governance_maturity_summary]" in rendered
     assert "[human_readable_adoption_summary]" in rendered
@@ -455,7 +461,13 @@ def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) 
     assert "[human_readable_adoption_summary]" in (
         result.final_report_requirement["human_readable_adoption_summary"]
     )
-    assert "final_report_requirement" in asdict(result)
+    payload = asdict(result)
+    assert "final_report_requirement" in payload
+    assert payload["final_report_table_required"]["status"] == "required"
+    assert payload["final_report_table_required"]["must_relay_as"] == "table_rows_verbatim"
+    assert "[human_readable_adoption_summary]" in (
+        payload["final_report_table_required"]["table_rows"]
+    )
     hook_text = (repo / ".git" / "hooks" / "pre-commit").read_text(encoding="utf-8")
     assert "MEMORY_WORKFLOW_TOOL" in hook_text
     assert result.stages["framework_lock_commit"] == "verified"

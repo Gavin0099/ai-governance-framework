@@ -24,6 +24,7 @@ from governance_tools.governance_maturity_summary import (
 )
 from governance_tools.governance_update_reporting import (
     build_final_report_requirement,
+    build_final_report_table_required,
     format_final_report_requirement,
     format_governance_maturity_stage,
     print_console_safe,
@@ -375,6 +376,9 @@ def _attach_reporting_surfaces(payload: dict[str, Any], repo_path: Path, framewo
     maturity = _governance_maturity_stage(repo_path, framework_root)
     payload["governance_maturity_summary"] = maturity
     payload["final_report_requirement"] = build_final_report_requirement(maturity)
+    payload["final_report_table_required"] = build_final_report_table_required(
+        payload["final_report_requirement"]
+    )
 
 
 

@@ -97,6 +97,36 @@ def build_final_report_requirement(payload: object) -> dict[str, Any]:
     return requirement
 
 
+def build_final_report_table_required(requirement: object) -> dict[str, Any]:
+    instruction = (
+        "Copy these [human_readable_adoption_summary] rows into the final report "
+        "as a table. Do not replace them with prose or only machine-readable fields."
+    )
+    table: dict[str, Any] = {
+        "status": "not_available",
+        "required_marker": "[human_readable_adoption_summary]",
+        "instruction": instruction,
+        "table_rows": [],
+        "must_relay_as": "table_rows_verbatim",
+        "claim_boundary": (
+            "Reporting aid only; table relay does not prove full governance adoption, "
+            "runtime enforcement, CI/fleet enforcement, memory completeness, domain "
+            "correctness, or release readiness."
+        ),
+    }
+    if not isinstance(requirement, dict):
+        table["reason"] = "final_report_requirement is not a structured object"
+        return table
+    rows = [str(item) for item in requirement.get("human_readable_adoption_summary") or []]
+    if rows:
+        table["status"] = "required"
+        table["table_rows"] = rows
+        table["row_count"] = len(rows)
+        return table
+    table["reason"] = requirement.get("reason") or "human_readable_adoption_summary unavailable"
+    return table
+
+
 def format_final_report_requirement(payload: object) -> list[str]:
     if not isinstance(payload, dict):
         return [f"final_report_requirement={payload}"]

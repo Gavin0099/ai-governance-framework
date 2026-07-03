@@ -31,6 +31,7 @@ from governance_tools.governance_maturity_summary import (
 )
 from governance_tools.governance_update_reporting import (
     build_final_report_requirement as _build_final_report_requirement,
+    build_final_report_table_required as _build_final_report_table_required,
     format_final_report_requirement as _format_final_report_requirement,
     format_governance_maturity_stage as _format_governance_maturity_stage,
 )
@@ -67,11 +68,16 @@ class F7Result:
     warnings: list[str] = field(default_factory=list)
     details: dict[str, Any] = field(default_factory=dict)
     final_report_requirement: dict[str, Any] = field(default_factory=dict)
+    final_report_table_required: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not self.final_report_requirement:
             self.final_report_requirement = _build_final_report_requirement(
                 self.stages.get("governance_maturity_summary")
+            )
+        if not self.final_report_table_required:
+            self.final_report_table_required = _build_final_report_table_required(
+                self.final_report_requirement
             )
 
 

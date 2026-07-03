@@ -307,7 +307,13 @@ def test_dry_run_does_not_change_submodule_or_stage_files(tmp_path: Path) -> Non
     assert "[human_readable_adoption_summary]" in (
         result.final_report_requirement["human_readable_adoption_summary"]
     )
+    payload = asdict(result)
     assert "final_report_requirement" in asdict(result)
+    assert payload["final_report_table_required"]["status"] == "required"
+    assert payload["final_report_table_required"]["must_relay_as"] == "table_rows_verbatim"
+    assert "[human_readable_adoption_summary]" in (
+        payload["final_report_table_required"]["table_rows"]
+    )
     rendered = format_human(result)
     assert "full_update_stage_report:" in rendered
     assert "[human_readable_adoption_summary]" in rendered
@@ -586,6 +592,12 @@ def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
     assert result.full_update_stage_report["hook_validator_enforcement"] == "updated"
     assert result.full_update_stage_report["final_status"] == "full_update_completed"
     assert result.full_update_stage_report["governance_maturity_summary"]["report_only"] is True
+    payload = asdict(result)
+    assert payload["final_report_table_required"]["status"] == "required"
+    assert payload["final_report_table_required"]["must_relay_as"] == "table_rows_verbatim"
+    assert "[human_readable_adoption_summary]" in (
+        payload["final_report_table_required"]["table_rows"]
+    )
     rendered = format_human(result)
     assert "full_update_stage_report:" in rendered
     assert "[human_readable_adoption_summary]" in rendered

@@ -4,7 +4,10 @@ import json
 from pathlib import Path
 
 from governance_tools import onboard_latest_governance as onboard
-from governance_tools.governance_update_reporting import build_final_report_requirement
+from governance_tools.governance_update_reporting import (
+    build_final_report_requirement,
+    build_final_report_table_required,
+)
 
 
 def _sample_maturity_summary() -> dict[str, object]:
@@ -42,6 +45,9 @@ def _sample_payload() -> dict[str, object]:
         "actions": [],
         "governance_maturity_summary": maturity,
         "final_report_requirement": build_final_report_requirement(maturity),
+        "final_report_table_required": build_final_report_table_required(
+            build_final_report_requirement(maturity)
+        ),
     }
 
 
@@ -82,6 +88,11 @@ def test_attach_reporting_surfaces_builds_summary_and_requirement(monkeypatch, t
     assert requirement["status"] == "required"
     assert "table rows as a table" in requirement["instruction"]
     assert "[human_readable_adoption_summary]" in requirement["human_readable_adoption_summary"]
+    table = payload["final_report_table_required"]
+    assert isinstance(table, dict)
+    assert table["status"] == "required"
+    assert table["must_relay_as"] == "table_rows_verbatim"
+    assert "[human_readable_adoption_summary]" in table["table_rows"]
 
 
 def test_render_summary_includes_adoption_summary_and_final_requirement() -> None:
@@ -107,6 +118,7 @@ def test_maturity_summary_failure_has_explicit_claim_boundary(monkeypatch, tmp_p
             **_sample_payload(),
             "governance_maturity_summary": payload["governance_maturity_summary"],
             "final_report_requirement": payload["final_report_requirement"],
+            "final_report_table_required": payload["final_report_table_required"],
         }
     )
 
@@ -154,6 +166,9 @@ def test_write_report_json_contains_reporting_surfaces(monkeypatch, tmp_path: Pa
         assert payload["governance_maturity_summary"]["report_only"] is True
         assert payload["final_report_requirement"]["status"] == "required"
         assert "[human_readable_adoption_summary]" in payload["final_report_requirement"]["human_readable_adoption_summary"]
+        assert payload["final_report_table_required"]["status"] == "required"
+        assert payload["final_report_table_required"]["must_relay_as"] == "table_rows_verbatim"
+        assert "[human_readable_adoption_summary]" in payload["final_report_table_required"]["table_rows"]
 
 
 def test_brief_output_relays_final_report_requirement_boundary(monkeypatch, tmp_path: Path, capsys) -> None:
