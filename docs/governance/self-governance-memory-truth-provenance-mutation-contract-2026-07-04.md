@@ -1,21 +1,25 @@
 # AI Governance 變異契約：記憶 truth/provenance 盲點
 
-狀態：`PENDING`
+狀態：`PARTIALLY REMEDIATED`
 日期：2026-07-04
-範圍：report-only `VULNERABLE` baseline；不改 enforcement
+範圍：report-only baseline + commit-anchor remediation；不改 enforcement
 
 ## 目的
 
-本文件把記憶治理表面上的兩個 truth/provenance 盲點固定成可回歸的
-`VULNERABLE` baseline：
+本文件把記憶治理表面上的 truth/provenance 盲點固定成可回歸的 baseline，
+並記錄第一個修復切片：
 
-- `Fabricated Anchor`：記憶 entry 只要包含看似合法的 `commit` hash 或
-  `session_id`，`memory_authority_guard` 目前會視為已綁定。
+- `Fabricated Commit Anchor`：已修復。當 `project_root` 是 git worktree 時，
+  記憶 entry 的 `commit` / `commit_hash` 必須 resolve 成 git commit object
+  才能作為 bound anchor。
+- `Fabricated Session Anchor`：仍是 `VULNERABLE`。任意非空白 `session_id`
+  目前仍可作為 fallback binding。
 - `Unverified Test Evidence`：`test_evidence` 是自由文字，guard 目前不驗證
   測試是否真的執行或是否有可追溯執行紀錄。
 
-這不是修復切片。它只把紅隊審計指出的盲點寫成可檢查的契約，避免後續把
-presence/format check 說成 truth/provenance enforcement。
+這不是 enforcement 升級。它把紅隊審計指出的盲點寫成可檢查的契約，並只修復
+commit anchor provenance 這一個最窄表面，避免後續把 remaining
+presence/format check 說成完整 truth/provenance enforcement。
 
 ## 對應識別字
 
@@ -24,24 +28,42 @@ presence/format check 說成 truth/provenance enforcement。
 - 測試檔：`tests/test_self_governance_memory_truth_provenance_mutation_contract.py`
 - 目錄登記：`docs/e1-mutation-catalog.md`
 - 變異類型：`Negative Fixture`
-- 目前狀態：`VULNERABLE`
+- 目前狀態：`PARTIALLY REMEDIATED`
 
-## Scenario S1：`Fabricated Anchor`
+## Scenario S1a：`Fabricated Commit Anchor`
 
 對抗性輸入：
 
 - 記憶 entry 包含 `commit: deadbee` 或其他 5–40 位十六進位字串。
+
+目前觀察：
+
+- 當呼叫方提供的 `project_root` 是 git worktree 時，`_entry_is_bound`
+  會用 `git cat-file -e <hash>^{commit}` 驗證 commit object。
+- fabricated commit hash 會回傳
+  `(False, "commit_hash_not_found_no_session_id")`。
+- 真實可 resolve 的 commit hash 仍回傳 `(True, "ok")`。
+
+期望 baseline：
+
+- focused test 應固定 fabricated commit hash 不再算 bound。
+- 這個修復仍是 report-only guard 行為，不是 blocking enforcement。
+
+## Scenario S1b：`Fabricated Session Anchor`
+
+對抗性輸入：
+
 - 記憶 entry 包含任意非空白 `session_id`。
 
 目前觀察：
 
 - `_entry_is_bound` 回傳 `(True, "ok")`。
-- 不執行 `git cat-file` 或 session existence 檢查。
+- 不驗證 session 是否存在或是否由 canonical runtime 產生。
 
 期望 baseline：
 
 - focused test 應固定目前行為為 `VULNERABLE`。
-- 若未來新增 provenance 檢查，此測試應失敗，要求更新本契約與 catalog 狀態。
+- 若未來新增 session provenance 檢查，此測試應失敗，要求更新本契約與 catalog 狀態。
 
 ## Scenario S2：`Unverified Test Evidence`
 
@@ -65,19 +87,20 @@ presence/format check 說成 truth/provenance enforcement。
 本切片只允許：
 
 - 記錄 `memory_authority_guard` 的 truth/provenance 盲點。
-- 在 `docs/e1-mutation-catalog.md` 登記 report-only `VULNERABLE` baseline。
-- 新增 focused tests，證明目前行為仍是已知 vulnerable baseline。
+- 在 `docs/e1-mutation-catalog.md` 登記 commit-anchor 修復狀態與 remaining
+  report-only `VULNERABLE` baselines。
+- 新增 focused tests，證明 commit-anchor 修復與 remaining vulnerable 行為。
+- 修復 git worktree 內 `commit` / `commit_hash` anchor 的 git object
+  provenance 檢查。
 
 ## 非目標
 
 本切片不做：
 
-- 不修改 `governance_tools/**` 行為。
 - 不修改 hook、pre-push、CI、schema 或 gate policy。
 - 不新增 blocking enforcement。
 - 不驗證 `test_evidence` 的真偽。
 - 不驗證 `session_id` 是否存在。
-- 不驗證 `commit` hash 是否存在於 git object database。
 - 不處理 `claim_enforcement_checker` 的 self-labeled claim 盲點；那是另一個表面。
 
 ## 證據計畫
@@ -89,12 +112,13 @@ presence/format check 說成 truth/provenance enforcement。
 
 測試通過的含義：
 
-- 目前盲點已被 report-only test 固定。
-- 目前行為仍是 `VULNERABLE`。
+- fabricated commit hash 在 git worktree 中不再算 bound anchor。
+- fabricated session_id 與 free-text `test_evidence` 仍被 report-only test
+  固定為 `VULNERABLE`。
 
 測試通過不代表：
 
-- provenance 已驗證。
+- session provenance 已驗證。
 - evidence truth 已驗證。
 - 記憶治理表面已取得 `PROTECTED`。
 - 任何 enforcement、hook、CI 或 gate 行為已改變。
@@ -104,13 +128,16 @@ presence/format check 說成 truth/provenance enforcement。
 本文件只能宣稱：
 
 - 記憶 anchor/evidence truth 盲點已被文件化。
-- 兩個 memory-focused scenario 已登記為 report-only `VULNERABLE` baseline。
-- focused tests 可回歸目前 vulnerable 行為。
+- commit-anchor fabricated hash 盲點已在 git worktree 內修復為 report-only
+  provenance 檢查。
+- session-anchor 與 evidence-truth scenario 仍登記為 report-only
+  `VULNERABLE` baseline。
+- focused tests 可回歸目前行為。
 
 本文件不得宣稱：
 
-- 盲點已修復。
-- `memory_authority_guard` 已能驗證 anchor provenance。
+- 所有盲點已修復。
+- `memory_authority_guard` 已能驗證所有 anchor provenance。
 - `memory_authority_guard` 已能驗證 `test_evidence` 真偽。
 - Phase E enforcement 完成。
 - self-governance truth/provenance surface 已受 `PROTECTED` 保護。

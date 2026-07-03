@@ -6,7 +6,8 @@ Checks that memory entries are properly bound to traceable sources.
 
 Two memory types:
   - session-derived (daily files: memory/YYYY-MM-DD.md)
-      Binding requirement: commit_hash (resolved, not "pending"/"UNCOMMITTED") OR session_id
+      Binding requirement: commit_hash (resolves to a git commit when a git
+      worktree is available) OR session_id
   - structural long-term (memory/00_long_term.md)
       Binding requirement: promoted_by marker in each ## section
 
@@ -37,7 +38,8 @@ if __package__ in (None, ""):
 # ── regex patterns ────────────────────────────────────────────────────────────
 
 # Match both human-written ("commit hash:") and auto-generated ("commit:") entry formats.
-# A real hash is 5-40 hex chars.
+# A commit anchor is 5-40 hex chars; when a git worktree is available, it must
+# resolve to a commit object before it counts as bound.
 _ENTRY_SPLIT = re.compile(r'(?m)^(?=- (?:memory_type|what[_ ]changed):)')
 _COMMIT_RESOLVED = re.compile(
     r'commit(?:\s+hash)?:\s*`?([a-f0-9]{5,40})`?', re.IGNORECASE
@@ -79,28 +81,54 @@ def _is_daily_file(path: Path) -> bool:
     return _DATE_FILENAME.match(path.name) is not None
 
 
-def _entry_is_bound(block: str) -> tuple[bool, str]:
+def _project_has_git_worktree(project_root: Path) -> bool:
+    completed = subprocess.run(
+        ["git", "-C", str(project_root), "rev-parse", "--is-inside-work-tree"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    return completed.returncode == 0
+
+
+def _git_commit_exists(project_root: Path, commit_hash: str) -> bool:
+    completed = subprocess.run(
+        ["git", "-C", str(project_root), "cat-file", "-e", f"{commit_hash}^{{commit}}"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    return completed.returncode == 0
+
+
+def _entry_is_bound(block: str, project_root: Path | None = None) -> tuple[bool, str]:
     """
     Returns (is_bound, reason).
 
     Binding rules (Memory Authority Contract v1.0.0):
-      - Real commit hash (not "pending"/"UNCOMMITTED")  → bound
+      - Real commit hash (git commit object, when git is available) → bound
       - session_id field present                        → bound (valid fallback)
       - commit hash: pending, no session_id             → unbound (VIOLATION)
       - commit: UNCOMMITTED, no session_id              → unbound (VIOLATION)
       - no hash field, no session_id                    → unbound (VIOLATION)
     """
-    has_real_hash = bool(_COMMIT_RESOLVED.search(block))
+    commit_matches = _COMMIT_RESOLVED.findall(block)
     has_session_id = bool(_SESSION_ID.search(block))
     has_pending = bool(_COMMIT_PENDING.search(block))
     has_uncommitted = bool(_COMMIT_UNCOMMITTED.search(block))
 
     # Real hash takes precedence
-    if has_real_hash:
+    if commit_matches and (
+        project_root is None
+        or not _project_has_git_worktree(project_root)
+        or any(_git_commit_exists(project_root, commit_hash) for commit_hash in commit_matches)
+    ):
         return True, "ok"
     # session_id is a valid fallback binding regardless of commit state
     if has_session_id:
         return True, "ok"
+    if commit_matches:
+        return False, "commit_hash_not_found_no_session_id"
     # Distinguish why there's no binding
     if has_pending:
         return False, "commit_hash_pending_no_session_id"
@@ -118,6 +146,7 @@ def _snippet(block: str, length: int = 80) -> str:
 
 def check_daily_memory(
     memory_root: Path,
+    project_root: Path | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, int]]:
     """
     Check 1: unbound_memory
@@ -156,7 +185,7 @@ def check_daily_memory(
             ):
                 continue
             total_entries += 1
-            bound, reason = _entry_is_bound(block)
+            bound, reason = _entry_is_bound(block, project_root)
             if bound:
                 bound_entries += 1
             else:
@@ -420,7 +449,7 @@ def run_guard(
     """
     violations: list[dict[str, Any]] = []
 
-    daily_violations, daily_coverage = check_daily_memory(memory_root)
+    daily_violations, daily_coverage = check_daily_memory(memory_root, project_root)
     violations.extend(daily_violations)
 
     structural_violations, structural_coverage = check_structural_memory(memory_root)

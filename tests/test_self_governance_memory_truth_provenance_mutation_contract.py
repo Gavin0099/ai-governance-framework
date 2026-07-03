@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 from governance_tools.memory_authority_guard import _entry_is_bound, run_guard
 
 
-def test_fabricated_commit_hash_is_currently_treated_as_bound_vulnerable_baseline() -> None:
+def test_fabricated_commit_hash_no_longer_counts_as_bound_when_git_checked() -> None:
     block = """\
 - memory_type: session-derived
   record_format_version: 1.0
@@ -16,7 +17,34 @@ def test_fabricated_commit_hash_is_currently_treated_as_bound_vulnerable_baselin
   next_step: none
 """
 
-    assert _entry_is_bound(block) == (True, "ok")
+    project_root = Path(__file__).resolve().parent.parent
+
+    assert _entry_is_bound(block, project_root) == (
+        False,
+        "commit_hash_not_found_no_session_id",
+    )
+
+
+def test_existing_commit_hash_still_counts_as_bound_when_git_checked() -> None:
+    project_root = Path(__file__).resolve().parent.parent
+    completed = subprocess.run(
+        ["git", "-C", str(project_root), "rev-parse", "--short", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    head = completed.stdout.strip()
+    block = f"""\
+- memory_type: session-derived
+  record_format_version: 1.0
+  writer: governance_tools.memory_record
+  what_changed: real commit anchor fixture
+  commit: {head}
+  test_evidence: not relevant
+  next_step: none
+"""
+
+    assert _entry_is_bound(block, project_root) == (True, "ok")
 
 
 def test_fabricated_session_id_is_currently_treated_as_bound_vulnerable_baseline() -> None:

@@ -12,6 +12,7 @@ See: governance/MEMORY_AUTHORITY_CONTRACT.md
 import json
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -164,11 +165,23 @@ def _write_daily_file(memory_root: Path, date: str, content: str) -> None:
     )
 
 
+def _current_head_short() -> str:
+    project_root = Path(__file__).resolve().parent.parent
+    completed = subprocess.run(
+        ["git", "-C", str(project_root), "rev-parse", "--short", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return completed.stdout.strip()
+
+
 def test_authority_coverage_rate_all_bound(tmp_memory_root, tmp_path):
+    head = _current_head_short()
     _write_daily_file(
         tmp_memory_root, "2026-04-30",
-        "- what changed: change A\n  commit hash: `abc1234`\n  test_evidence: ok\n\n"
-        "- what changed: change B\n  commit hash: `def5678`\n  test_evidence: ok\n",
+        f"- what changed: change A\n  commit hash: `{head}`\n  test_evidence: ok\n\n"
+        f"- what changed: change B\n  commit hash: `{head}`\n  test_evidence: ok\n",
     )
     result = run_guard(tmp_memory_root, tmp_path, skip_git=True)
     acr = result["authority_coverage_rate"]["session_derived"]
@@ -194,9 +207,10 @@ def test_authority_coverage_rate_none_bound(tmp_memory_root, tmp_path):
 
 
 def test_authority_coverage_rate_mixed(tmp_memory_root, tmp_path):
+    head = _current_head_short()
     _write_daily_file(
         tmp_memory_root, "2026-04-30",
-        "- what changed: change A\n  commit hash: `abc1234`\n  test_evidence: ok\n\n"
+        f"- what changed: change A\n  commit hash: `{head}`\n  test_evidence: ok\n\n"
         "- what changed: change B\n  commit hash: pending\n  test_evidence: ok\n\n"
         "- what changed: change C\n  session_id: session-20260430T120000-xyz\n  test_evidence: ok\n",
     )
