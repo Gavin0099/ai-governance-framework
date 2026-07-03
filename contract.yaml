@@ -11,3 +11,4 @@ ai_behavior_override:
 rule_roots:
   - governance/rules
 validators:
+  - governance_tools/architecture_drift_checker.py
