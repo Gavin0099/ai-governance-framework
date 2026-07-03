@@ -65,7 +65,7 @@ SCOPE = feature | refactor | bugfix | I/O | tooling | review | governance | kern
 |---|---|
 | `PLAN.md` | 當前 sprint focus、phase status、anti-goals |
 | `memory/01_active_task.md` | 當前 active state |
-| `memory/02_tech_stack.md` | 技術架構與 toolchain 事實 |
+| `memory/02_workflow.md` | workflow 與 toolchain 事實 |
 | `memory/02_project_facts.md` | external-domain factual baseline 的 accepted alias |
 | `memory/03_knowledge_base.md` | troubleshooting 與 anti-pattern |
 | `memory/03_decisions.md` | external-domain decision record 的 accepted alias |
@@ -182,9 +182,11 @@ SESSION  = <YYYY-MM-DD-NN>  # optional; required when AGENT_ID is present
 | 2 | `HUMAN-OVERSIGHT.md` | Human-only escalation authority |
 | 3 | `REVIEW_CRITERIA.md` | Audit protocol |
 | 4 | `AGENT.md` | Behavioral contract |
-| 5 | `ARCHITECTURE.md` | Structural red lines |
-| 6 | `TESTING.md` | Quality gatekeeper |
-| 7 | `NATIVE-INTEROP.md` | Physical safety |
+| 5 | `MEMORY_PROTOCOL.md` | Canonical memory write protocol |
+| 6 | `RESPONSE_ENVELOPE_CONTRACT.md` | Final report envelope |
+| 7 | `ARCHITECTURE.md` | Structural red lines |
+| 8 | `TESTING.md` | Quality gatekeeper |
+| 9 | `NATIVE-INTEROP.md` | Physical safety |
 | P | `PLAN.md` | Project scope and anti-goals |
 
 低順位若與高順位衝突 -> **STOP** 並 escalate。
@@ -220,6 +222,8 @@ repo-local governance 真相應維持單一邊界，不應讓 workspace 層、ad
 | 1 | `ARCHITECTURE.md` | New features, refactors, boundary changes |
 | 1 | `TESTING.md` | Behavior, build, regression, or baseline risk |
 | 1 | `REVIEW_CRITERIA.md` | `SCOPE = review` |
+| 1 | `MEMORY_PROTOCOL.md` | Memory write, memory correction, post-push memory, or memory completion claims |
+| 1 | `RESPONSE_ENVELOPE_CONTRACT.md` | Final report, closeout, or result envelope |
 | 2 | `NATIVE-INTEROP.md` | P/Invoke, ABI, native libraries, memory ownership |
 
 `HUMAN-OVERSIGHT.md` remains the human-facing escalation authority. Agents may
@@ -300,7 +304,7 @@ agent 對 project continuity 有正式責任，但更新必須保持 signal-rich
 | Milestone completed | 更新 `memory/01_active_task.md` |
 | Known-good build pass recorded | 若改變 task state，更新 `memory/01_active_task.md` |
 | Commit preparation / task close | 更新 `memory/01_active_task.md` |
-| Architectural decision | 記到 `memory/02_tech_stack.md`，或 repo 已採 alias schema 時寫 `memory/02_project_facts.md` |
+| Architectural decision | 記到 `memory/02_workflow.md`，或 repo 已採 alias schema 時寫 `memory/02_project_facts.md` |
 | New gotcha / solution discovered | 記到 `memory/03_knowledge_base.md`，或 repo 已採 alias schema 時寫 `memory/03_decisions.md` |
 | Phase milestone completed | 當 planned scope、phase status、或 anti-goal 改變時，更新 `PLAN.md` |
 | Review completed | 將完整紀錄 append 到 `memory/04_review_log.md`，或 alias `memory/04_validation_log.md`；並在 `memory/01_active_task.md` 留一行摘要 |
@@ -360,11 +364,12 @@ SCOPE = ...
 
 根據 `memory/01_active_task.md` line count：
 
-| Level | Line Count | Action |
+| Level | Condition | Action |
 |---|---:|---|
-| SAFE | 0-179 | 正常繼續 |
-| WARNING | 180-199 | 警告，並避免低訊號更新 |
-| EMERGENCY | 200+ | 先 stop，清 memory 後再繼續 |
+| SAFE | 0-179 lines | 正常繼續 |
+| WARNING | 180-199 lines | 警告，並避免低訊號更新 |
+| CRITICAL | 200-249 lines | 暫停擴張，安排或執行 memory cleanup；不要誤報為 EMERGENCY |
+| EMERGENCY | 250+ lines or 12000+ chars | 先 stop，清 memory 後再繼續 |
 
 ---
 

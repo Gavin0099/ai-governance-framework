@@ -218,8 +218,10 @@ milestone transition happened.
 
 ## Cross-Agent Closeout Rule
 
-- Framework repo (`ai-governance-framework`): strict mode. Details live in
-  `governance/AGENT.md`.
+- Framework repo (`ai-governance-framework`): strict mode. Session/workspace
+  constraints live in root `AGENTS.md`; final report envelope details live in
+  `governance/RESPONSE_ENVELOPE_CONTRACT.md`; executable closeout entrypoints
+  are listed below.
 - Consuming repos: minimal mode by default (`done-condition met -> commit/push
   -> one memory entry`).
 - Strict closeout is opt-in for consuming repos.
@@ -238,5 +240,5 @@ This file does not change:
 - runtime hooks
 - validators
 - enforcement level
-- #17 threshold
+- #17 Copilot memory-authority advisory threshold or any blocking threshold
 - historical violation disposition
