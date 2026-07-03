@@ -251,8 +251,19 @@ def test_f7_submodule_backend_surfaces_governance_maturity_summary(monkeypatch, 
     assert "[human_readable_adoption_summary]" in (
         payload["final_report_table_required"]["table_rows"]
     )
+    envelope = payload["ai_governance_update_result"]
+    assert envelope["report_only"] is True
+    assert envelope["framework_update_status"] == {
+        "value": "already_current",
+        "source": "f7_full_update",
+    }
+    assert envelope["governance_maturity_summary"]["value"] == "present"
+    assert envelope["human_readable_adoption_summary"]["value"] == "reported"
+    assert envelope["final_report_requirement"]["value"] == "present"
     rendered = format_human(result)
     assert "[governance_maturity_summary]" in rendered
+    assert "[ai_governance_update_result]" in rendered
+    assert "framework_update_status=already_current" in rendered
     assert "[human_readable_adoption_summary]" in rendered
     assert "[final_report_requirement]" in rendered
     assert "table rows as a table" in rendered
@@ -412,7 +423,13 @@ def test_f7_maturity_summary_failure_is_report_only(monkeypatch, tmp_path: Path)
     assert result.f7_final_status == "partially_updated"
     assert result.stages["governance_maturity_summary"]["status"] == "not_available"
     assert "RuntimeError: boom" in result.stages["governance_maturity_summary"]["reason"]
+    envelope = result.ai_governance_update_result
+    assert envelope["governance_maturity_summary"]["value"] == "not_available"
+    assert "RuntimeError: boom" in envelope["governance_maturity_summary"]["reason"]
+    assert envelope["human_readable_adoption_summary"]["value"] == "not_reported"
     assert "status=not_available" in rendered
+    assert "[ai_governance_update_result]" in rendered
+    assert "governance_maturity_summary=not_available" in rendered
     assert "RuntimeError: boom" in rendered
 
 
@@ -490,6 +507,14 @@ def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) 
     assert "[human_readable_adoption_summary]" in (
         payload["final_report_table_required"]["table_rows"]
     )
+    assert payload["ai_governance_update_result"]["framework_update_status"] == {
+        "value": "updated",
+        "source": "f7_full_update",
+    }
+    assert (
+        payload["ai_governance_update_result"]["lock_consistency"]["value"]
+        == payload["stages"]["governance_maturity_summary"]["lock_consistency"]["value"]
+    )
     hook_text = (repo / ".git" / "hooks" / "pre-commit").read_text(encoding="utf-8")
     assert "MEMORY_WORKFLOW_TOOL" in hook_text
     assert result.stages["framework_lock_commit"] == "verified"
@@ -498,6 +523,8 @@ def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) 
     rendered = format_human(result)
     assert "Update receipt status: written." in rendered
     assert "Update receipt path: governance/.update-receipt.json." in rendered
+    assert "[ai_governance_update_result]" in rendered
+    assert "framework_update_status=updated" in rendered
 
 
 def test_external_contract_apply_refreshes_existing_f7_update_boundary_block(tmp_path: Path) -> None:

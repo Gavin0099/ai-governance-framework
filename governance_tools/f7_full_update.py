@@ -30,8 +30,10 @@ from governance_tools.governance_maturity_summary import (
     summary_to_dict as governance_maturity_summary_to_dict,
 )
 from governance_tools.governance_update_reporting import (
+    build_ai_governance_update_result as _build_ai_governance_update_result,
     build_final_report_requirement as _build_final_report_requirement,
     build_final_report_table_required as _build_final_report_table_required,
+    format_ai_governance_update_result as _format_ai_governance_update_result,
     format_final_report_requirement as _format_final_report_requirement,
     format_governance_maturity_stage as _format_governance_maturity_stage,
 )
@@ -74,6 +76,7 @@ class F7Result:
     details: dict[str, Any] = field(default_factory=dict)
     final_report_requirement: dict[str, Any] = field(default_factory=dict)
     final_report_table_required: dict[str, Any] = field(default_factory=dict)
+    ai_governance_update_result: dict[str, Any] = field(default_factory=dict)
     update_receipt: dict[str, Any] = field(
         default_factory=lambda: skipped_update_receipt("not an apply path")
     )
@@ -87,6 +90,35 @@ class F7Result:
             self.final_report_table_required = _build_final_report_table_required(
                 self.final_report_requirement
             )
+        if not self.ai_governance_update_result:
+            self.ai_governance_update_result = _build_ai_governance_update_result(
+                framework_update_status=_f7_framework_update_status_for_envelope(self),
+                framework_update_source="f7_full_update",
+                governance_maturity_summary=self.stages.get("governance_maturity_summary"),
+                final_report_requirement=self.final_report_requirement,
+                evidence_refs=[
+                    {"field": "mode", "value": self.mode},
+                    {"field": "repo_role", "value": self.repo_role},
+                    {"field": "f7_final_status", "value": self.f7_final_status},
+                ],
+            )
+
+
+def _f7_framework_update_status_for_envelope(result: F7Result) -> str:
+    if result.f7_final_status == BLOCKED or not result.ok:
+        return "blocked"
+    if result.repo_role == "not_governed":
+        return "not_submodule_consumer"
+    framework_pointer = result.stages.get("framework_pointer")
+    if framework_pointer in {"already_current", "updated", "not_verified"}:
+        return str(framework_pointer)
+    if result.mode == "apply" and result.f7_final_status in {
+        COMPLETED,
+        PARTIALLY_UPDATED,
+        ALREADY_CURRENT,
+    }:
+        return "updated" if result.f7_final_status != ALREADY_CURRENT else "already_current"
+    return "not_verified"
 
 
 def _git(repo: Path, args: Sequence[str]) -> tuple[int, str, str]:
@@ -733,6 +765,7 @@ def format_human(result: F7Result) -> str:
                 lines.extend(_format_governance_maturity_stage(result.stages[key]))
             else:
                 lines.append(f"{key}={result.stages[key]}")
+    lines.extend(_format_ai_governance_update_result(result.ai_governance_update_result))
     lines.extend(_format_final_report_requirement(result.final_report_requirement))
     if result.changed_files:
         lines.append("[changed_files]")

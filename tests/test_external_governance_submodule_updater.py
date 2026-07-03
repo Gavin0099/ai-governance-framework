@@ -318,8 +318,19 @@ def test_dry_run_does_not_change_submodule_or_stage_files(tmp_path: Path) -> Non
     assert "[human_readable_adoption_summary]" in (
         payload["final_report_table_required"]["table_rows"]
     )
+    envelope = payload["ai_governance_update_result"]
+    assert envelope["report_only"] is True
+    assert envelope["framework_update_status"] == {
+        "value": "update_available",
+        "source": "updater",
+    }
+    assert envelope["governance_maturity_summary"]["value"] == "present"
+    assert envelope["human_readable_adoption_summary"]["value"] == "reported"
+    assert envelope["final_report_requirement"]["value"] == "present"
     rendered = format_human(result)
     assert "full_update_stage_report:" in rendered
+    assert "[ai_governance_update_result]" in rendered
+    assert "framework_update_status=update_available" in rendered
     assert "[human_readable_adoption_summary]" in rendered
     assert "[final_report_requirement]" in rendered
     assert "table rows as a table" in rendered
@@ -602,8 +613,20 @@ def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
     assert "[human_readable_adoption_summary]" in (
         payload["final_report_table_required"]["table_rows"]
     )
+    assert payload["ai_governance_update_result"]["framework_update_status"] == {
+        "value": "updated",
+        "source": "updater",
+    }
+    assert (
+        payload["ai_governance_update_result"]["lock_consistency"]["value"]
+        == payload["full_update_stage_report"]["governance_maturity_summary"][
+            "lock_consistency"
+        ]["value"]
+    )
     rendered = format_human(result)
     assert "full_update_stage_report:" in rendered
+    assert "[ai_governance_update_result]" in rendered
+    assert "framework_update_status=updated" in rendered
     assert "[human_readable_adoption_summary]" in rendered
     assert "AI Governance 功能導入狀態：" in rendered
     assert "| 功能 | 狀態 | 這個功能是做什麼 |" in rendered

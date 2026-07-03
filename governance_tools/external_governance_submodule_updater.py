@@ -15,8 +15,10 @@ from governance_tools.governance_maturity_summary import (
     summary_to_dict as governance_maturity_summary_to_dict,
 )
 from governance_tools.governance_update_reporting import (
+    build_ai_governance_update_result as _build_ai_governance_update_result,
     build_final_report_requirement as _build_final_report_requirement,
     build_final_report_table_required as _build_final_report_table_required,
+    format_ai_governance_update_result as _format_ai_governance_update_result,
     format_final_report_requirement as _format_final_report_requirement,
     format_governance_maturity_stage as _format_governance_maturity_stage,
     print_console_safe as _print_console_safe,
@@ -93,6 +95,7 @@ class UpdateResult:
     full_update_stage_report: dict[str, Any]
     final_report_requirement: dict[str, Any] = field(default_factory=dict)
     final_report_table_required: dict[str, Any] = field(default_factory=dict)
+    ai_governance_update_result: dict[str, Any] = field(default_factory=dict)
     target_source: str = "not_reported"
     update_receipt: dict[str, Any] = field(
         default_factory=lambda: skipped_update_receipt("not an apply path")
@@ -107,6 +110,46 @@ class UpdateResult:
             self.final_report_table_required = _build_final_report_table_required(
                 self.final_report_requirement
             )
+        if not self.ai_governance_update_result:
+            self.ai_governance_update_result = _build_ai_governance_update_result(
+                framework_update_status=_framework_update_status_for_envelope(self),
+                framework_update_source="updater",
+                governance_maturity_summary=self.full_update_stage_report.get(
+                    "governance_maturity_summary"
+                ),
+                final_report_requirement=self.final_report_requirement,
+                evidence_refs=[
+                    {"field": "mode", "value": self.mode},
+                    {"field": "update_mode", "value": self.update_mode},
+                    {"field": "target_source", "value": self.target_source},
+                    {
+                        "field": "full_update_stage_report.final_status",
+                        "value": self.full_update_stage_report.get("final_status"),
+                    },
+                ],
+            )
+
+
+def _framework_update_status_for_envelope(result: UpdateResult) -> str:
+    if not result.ok:
+        return "blocked"
+    if result.mode == "dry_run":
+        if (
+            result.before_head
+            and result.target_head
+            and result.before_head != result.target_head
+            and _fresh_upstream_verified(result.target_source)
+        ):
+            return "update_available"
+        pointer = result.full_update_stage_report.get("framework_pointer")
+        return str(pointer or "not_verified")
+    if result.update_mode == "already_current":
+        return "already_current"
+    if result.update_mode in {"fast_forward", "detached_target_checkout"}:
+        return "updated"
+    if result.update_mode == "failed":
+        return "blocked"
+    return "not_verified"
 
 
 class SubmoduleUpdateError(RuntimeError):
@@ -1106,6 +1149,7 @@ def format_human(result: UpdateResult) -> str:
             result.full_update_stage_report.get("governance_maturity_summary")
         )
     )
+    lines.extend(_format_ai_governance_update_result(result.ai_governance_update_result))
     lines.extend(_format_final_report_requirement(result.final_report_requirement))
     if result.errors:
         lines.append("errors:")
