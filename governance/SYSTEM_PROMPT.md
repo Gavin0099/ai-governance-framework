@@ -163,7 +163,7 @@ SESSION  = <YYYY-MM-DD-NN>  # optional; required when AGENT_ID is present
 - `LEVEL`: `L0 | L1 | L2`
 - `SCOPE`: `feature | refactor | bugfix | I/O | tooling | review | governance | kernel-driver`
 - `PLAN`: 取自 `PLAN.md`；若人類明確授權 governance analysis，可標 `Out-of-scope`
-- `LOADED`: 至少要包含 `SYSTEM_PROMPT, HUMAN-OVERSIGHT`
+- `LOADED`: must name governance docs actually loaded into the agent context. It must include `SYSTEM_PROMPT`; `HUMAN-OVERSIGHT.md` is human-only authority and must not be listed as loaded unless a human explicitly provides it.
 - `CONTEXT`: 必須同時包含 `->` 與 `NOT:`
 - `PRESSURE`: 必須含 label 與 line count
 - `SESSION`: 當 `AGENT_ID` 存在時必填
@@ -179,7 +179,7 @@ SESSION  = <YYYY-MM-DD-NN>  # optional; required when AGENT_ID is present
 | Rank | Document | Role |
 |---|---|---|
 | 1 | `SYSTEM_PROMPT.md` | Core consciousness |
-| 2 | `HUMAN-OVERSIGHT.md` | Escalation authority |
+| 2 | `HUMAN-OVERSIGHT.md` | Human-only escalation authority |
 | 3 | `REVIEW_CRITERIA.md` | Audit protocol |
 | 4 | `AGENT.md` | Behavioral contract |
 | 5 | `ARCHITECTURE.md` | Structural red lines |
@@ -214,13 +214,18 @@ repo-local governance 真相應維持單一邊界，不應讓 workspace 層、ad
 
 | Tier | Document | Condition |
 |---|---|---|
-| 0 | `SYSTEM_PROMPT.md`, `HUMAN-OVERSIGHT.md` | Every conversation |
+| 0 | `SYSTEM_PROMPT.md` | Every conversation |
 | 0 | `PLAN.md` | Every conversation when present |
 | 1 | `AGENT.md` | All non-trivial tasks |
 | 1 | `ARCHITECTURE.md` | New features, refactors, boundary changes |
 | 1 | `TESTING.md` | Behavior, build, regression, or baseline risk |
 | 1 | `REVIEW_CRITERIA.md` | `SCOPE = review` |
 | 2 | `NATIVE-INTEROP.md` | P/Invoke, ABI, native libraries, memory ownership |
+
+`HUMAN-OVERSIGHT.md` remains the human-facing escalation authority. Agents may
+reference the escalation concept summarized by runtime governance docs, but the
+file itself is not part of the normal agent loading set while its authority
+metadata remains `human-only` / `never`.
 
 不要預設載入無關文件。如果「是否相關」本身會改變風險，則 **ESCALATE**。
 
