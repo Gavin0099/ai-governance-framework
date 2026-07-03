@@ -58,6 +58,17 @@ truth/provenance gaps; they are not `PROTECTED` mutation proof evidence.
 
 Contract: `docs/governance/self-governance-memory-truth-provenance-mutation-contract-2026-07-04.md`.
 
+### Self-Governance Claim-Label Baselines (2026-07-04)
+
+These entries are report-only `VULNERABLE` baselines. They document current
+semantic-vs-label gaps; they are not `PROTECTED` mutation proof evidence.
+
+| Scenario | Type | Expected Surface | Current Observation | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Self-Labeled Bounded Claim** | Negative Fixture | `claim_enforcement_checker.evaluate` | strong semantic wording can avoid lexical triggers and self-label `claim_level: bounded`, producing `enforcement_action: allow` | VULNERABLE baseline |
+
+Contract: `docs/governance/self-governance-claim-label-mutation-contract-2026-07-04.md`.
+
 ---
 
 ## 3. Exact Failure Contract (E1-C)
