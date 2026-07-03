@@ -19,7 +19,7 @@ if __package__ in (None, ""):
 from governance_tools.rule_pack_loader import available_rule_packs, parse_rule_list
 
 
-VALID_LANG = {"C", "C++", "C#", "ObjC", "Swift", "JS", "Python"}
+VALID_LANG = {"C", "C++", "C#", "ObjC", "Swift", "JS", "Python", "Verilog", "SystemVerilog"}
 VALID_LEVEL = {"L0", "L1", "L2"}
 VALID_SCOPE = {"feature", "refactor", "bugfix", "I/O", "tooling", "review", "governance", "kernel-driver"}
 VALID_PRESSURE_LEVELS = {"SAFE", "WARNING", "CRITICAL", "EMERGENCY"}

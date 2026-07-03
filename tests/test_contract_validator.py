@@ -107,7 +107,7 @@ class TestValidateContractInvalid:
 
 
 class TestValidateContractCompliant:
-    @pytest.mark.parametrize("lang", ["C", "C++", "C#", "ObjC", "Swift", "JS", "Python"])
+    @pytest.mark.parametrize("lang", ["C", "C++", "C#", "ObjC", "Swift", "JS", "Python", "Verilog", "SystemVerilog"])
     def test_all_valid_langs(self, lang):
         assert validate_contract(_make_contract(LANG=lang)).compliant
 
