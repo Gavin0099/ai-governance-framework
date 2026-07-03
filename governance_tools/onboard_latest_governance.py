@@ -23,8 +23,10 @@ from governance_tools.governance_maturity_summary import (
     summary_to_dict as governance_maturity_summary_to_dict,
 )
 from governance_tools.governance_update_reporting import (
+    build_ai_governance_update_result,
     build_final_report_requirement,
     build_final_report_table_required,
+    format_ai_governance_update_result,
     format_final_report_requirement,
     format_governance_maturity_stage,
     print_console_safe,
@@ -277,6 +279,7 @@ def _render_summary(payload: dict[str, Any]) -> str:
             lines.append(f"  remediation: {remediation}")
     lines.append("")
     lines.extend(format_governance_maturity_stage(payload.get("governance_maturity_summary")))
+    lines.extend(format_ai_governance_update_result(payload.get("ai_governance_update_result")))
     lines.extend(format_final_report_requirement(payload.get("final_report_requirement")))
     lines.append("")
     lines.append("[actions]")
@@ -311,16 +314,31 @@ def _build_one_line_summary(payload: dict[str, Any]) -> str:
 
 def _build_brief_reporting_notice(payload: dict[str, Any]) -> str:
     requirement = payload.get("final_report_requirement")
+    update_result = payload.get("ai_governance_update_result")
+    if isinstance(update_result, dict):
+        framework = update_result.get("framework_update_status") or {}
+        adoption = update_result.get("adoption_status") or {}
+        lock = update_result.get("lock_consistency") or {}
+        update_notice = (
+            "ai_governance_update_result=report_only | "
+            f"framework_update_status={framework.get('value')} | "
+            f"adoption_status={adoption.get('value')} | "
+            f"lock_consistency={lock.get('value')} | "
+        )
+    else:
+        update_notice = "ai_governance_update_result=not_available | "
     if not isinstance(requirement, dict):
         return (
-            "final_report_requirement=not_available | "
-            "brief_claim_boundary=not_final_report_use_full_human_or_json_report"
+            update_notice
+            + "final_report_requirement=not_available | "
+            + "brief_claim_boundary=not_final_report_use_full_human_or_json_report"
         )
     status = requirement.get("status", "unknown")
     marker = requirement.get("required_marker", "[human_readable_adoption_summary]")
     return (
-        f"final_report_requirement={status} | required_marker={marker} | "
-        "brief_claim_boundary=marker_only_not_final_report_use_full_human_or_json_report_for_table_rows"
+        update_notice
+        + f"final_report_requirement={status} | required_marker={marker} | "
+        + "brief_claim_boundary=marker_only_not_final_report_use_full_human_or_json_report_for_table_rows"
     )
 
 
@@ -372,6 +390,42 @@ def _governance_maturity_stage(repo_path: Path, framework_root: Path) -> dict[st
     return governance_maturity_summary_to_dict(summary)
 
 
+def _onboard_framework_update_status_for_envelope(payload: dict[str, Any]) -> str:
+    actions = payload.get("actions") or []
+    if payload.get("stopped_for_human_required") or any(
+        isinstance(item, dict) and item.get("status") in {"failed", "stopped_human_required"}
+        for item in actions
+    ):
+        return "blocked"
+    return "not_verified"
+
+
+def _build_onboard_update_result(payload: dict[str, Any]) -> dict[str, Any]:
+    return build_ai_governance_update_result(
+        framework_update_status=_onboard_framework_update_status_for_envelope(payload),
+        framework_update_source="onboard_latest_governance",
+        governance_maturity_summary=payload.get("governance_maturity_summary"),
+        final_report_requirement=payload.get("final_report_requirement"),
+        cannot_claim=[
+            "repo_native_verified as full governance adoption",
+            "framework update freshness",
+        ],
+        evidence_refs=[
+            {"field": "mode", "value": payload.get("mode")},
+            {"field": "classification_before", "value": payload.get("classification_before")},
+            {"field": "classification_after", "value": payload.get("classification_after")},
+            {
+                "field": "acceptance_after.repo_native_verified",
+                "value": (payload.get("acceptance_after") or {}).get("repo_native_verified"),
+            },
+            {
+                "field": "acceptance_after.detector_errors",
+                "value": (payload.get("acceptance_after") or {}).get("detector_errors"),
+            },
+        ],
+    )
+
+
 def _attach_reporting_surfaces(payload: dict[str, Any], repo_path: Path, framework_root: Path) -> None:
     maturity = _governance_maturity_stage(repo_path, framework_root)
     payload["governance_maturity_summary"] = maturity
@@ -379,6 +433,7 @@ def _attach_reporting_surfaces(payload: dict[str, Any], repo_path: Path, framewo
     payload["final_report_table_required"] = build_final_report_table_required(
         payload["final_report_requirement"]
     )
+    payload["ai_governance_update_result"] = _build_onboard_update_result(payload)
 
 
 

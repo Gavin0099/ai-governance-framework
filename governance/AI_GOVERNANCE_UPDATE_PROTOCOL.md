@@ -60,6 +60,7 @@ Required response shape:
 
 ```text
 AI Governance update check: <already_current | update_available | updated | manual_update | destructive_manual_update | not_submodule_consumer | not_verified>
+ai_governance_update_result: REPORTED | NOT REPORTED
 governance submodule path: <path | NOT FOUND | NOT CHECKED>
 nested governance HEAD: <sha | NOT CHECKED>
 target framework HEAD: <sha | NOT CHECKED>
@@ -180,6 +181,7 @@ Manual update conclusion template:
 
 ```text
 AI Governance update check: manual_update
+ai_governance_update_result: REPORTED
 framework_update_status: manual_update
 governance maturity summary: <RUN | NOT RUN | NOT AVAILABLE>
 adoption_status: <from maturity summary | unknown>
@@ -192,6 +194,7 @@ Destructive manual update conclusion template:
 
 ```text
 AI Governance update check: destructive_manual_update
+ai_governance_update_result: REPORTED
 framework_update_status: destructive_manual_update
 discarded_modified_paths: <list | none reported>
 discarded_untracked_paths: <list | none reported>
@@ -199,6 +202,19 @@ governance maturity summary: <RUN | NOT RUN | NOT AVAILABLE>
 human_readable_adoption_summary: <REPORTED | NOT REPORTED>
 claim boundary: destructive local cleanup occurred; do not claim completed/latest/full adoption
 ```
+
+When a manual or destructive manual path is reported, the
+`ai_governance_update_result` envelope must remain a disclosure surface:
+
+- `report_only=true`
+- `framework_update_status=manual_update` or
+  `framework_update_status=destructive_manual_update`
+- `adoption_status=not_reported` unless `governance_maturity_summary` was
+  explicitly run and relayed
+- `human_readable_adoption_summary=not_reported` unless the operator-facing
+  table was explicitly produced and relayed
+- `cannot_claim` includes that the operation is not a completed governed
+  updater/F-7 update and does not prove full adoption or enforcement
 
 Before discarding local state in a nested framework checkout, first inspect and
 record the modified and untracked paths that would be discarded. The final

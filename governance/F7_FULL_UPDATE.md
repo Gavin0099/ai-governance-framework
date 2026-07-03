@@ -43,6 +43,7 @@ hook_validator_enforcement: verified | updated | blocked | missing | not_applica
 existing_memory_normalization: completed | needed | blocked | not_applicable | not_verified
 governance_maturity_summary: present | not_available | not_run
 human_readable_adoption_summary: reported | not_reported
+ai_governance_update_result: reported | not_reported
 final_status: full_update_completed | already_current | partially_updated | manual_update | destructive_manual_update | blocked | not_submodule_consumer | not_verified
 ```
 
@@ -92,6 +93,19 @@ If the machine-readable summary is available but the Chinese table cannot be
 relayed, F-7 must report `human_readable_adoption_summary: not_reported` with
 the reason and must not claim that the operator was shown the complete
 human-readable feature adoption table.
+
+F-7 human and JSON outputs must also carry `ai_governance_update_result` as a
+report-only presentation and claim-boundary envelope. This envelope must not
+replace `final_status`, must not change F-7 completion criteria, and must not
+be used as proof of runtime enforcement, full adoption, semantic correctness,
+memory completeness, fleet/CI enforcement, domain correctness, or release
+readiness.
+
+When F-7 reports `manual_update` or `destructive_manual_update`, the envelope
+must preserve that same status as a disclosure state. Manual and destructive
+manual states are not successful governed F-7 completions, and destructive
+manual reporting must include the discarded modified and untracked path
+inventory.
 
 ## Implemented Automation
 

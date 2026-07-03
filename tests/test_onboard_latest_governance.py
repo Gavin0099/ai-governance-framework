@@ -5,6 +5,7 @@ from pathlib import Path
 
 from governance_tools import onboard_latest_governance as onboard
 from governance_tools.governance_update_reporting import (
+    build_ai_governance_update_result,
     build_final_report_requirement,
     build_final_report_table_required,
 )
@@ -47,6 +48,16 @@ def _sample_payload() -> dict[str, object]:
         "final_report_requirement": build_final_report_requirement(maturity),
         "final_report_table_required": build_final_report_table_required(
             build_final_report_requirement(maturity)
+        ),
+        "ai_governance_update_result": build_ai_governance_update_result(
+            framework_update_status="not_verified",
+            framework_update_source="onboard_latest_governance",
+            governance_maturity_summary=maturity,
+            final_report_requirement=build_final_report_requirement(maturity),
+            cannot_claim=[
+                "repo_native_verified as full governance adoption",
+                "framework update freshness",
+            ],
         ),
     }
 
@@ -93,16 +104,46 @@ def test_attach_reporting_surfaces_builds_summary_and_requirement(monkeypatch, t
     assert table["status"] == "required"
     assert table["must_relay_as"] == "table_rows_verbatim"
     assert "[human_readable_adoption_summary]" in table["table_rows"]
+    envelope = payload["ai_governance_update_result"]
+    assert envelope["report_only"] is True
+    assert envelope["framework_update_status"] == {
+        "value": "not_verified",
+        "source": "onboard_latest_governance",
+    }
+    assert envelope["adoption_status"]["value"] == "partial"
+    assert envelope["final_report_requirement"] == {
+        "value": "present",
+        "source": "onboard_latest_governance",
+    }
+    assert "repo_native_verified as full governance adoption" in envelope["cannot_claim"]
 
 
 def test_render_summary_includes_adoption_summary_and_final_requirement() -> None:
     rendered = onboard._render_summary(_sample_payload())
 
     assert "[governance_maturity_summary]" in rendered
+    assert "[ai_governance_update_result]" in rendered
+    assert "framework_update_status=not_verified" in rendered
+    assert "adoption_status=partial" in rendered
     assert "[human_readable_adoption_summary]" in rendered
     assert "| 版本帳實一致性（Lock vs checkout consistency） | 不一致 |" in rendered
     assert "[final_report_requirement]" in rendered
     assert "Final AI Governance update reports must relay" in rendered
+
+
+def test_onboard_update_result_reports_blocked_when_actions_stop() -> None:
+    payload = {
+        **_sample_payload(),
+        "stopped_for_human_required": True,
+        "actions": [{"status": "stopped_human_required"}],
+    }
+
+    envelope = onboard._build_onboard_update_result(payload)
+
+    assert envelope["framework_update_status"] == {
+        "value": "blocked",
+        "source": "onboard_latest_governance",
+    }
 
 
 def test_maturity_summary_failure_has_explicit_claim_boundary(monkeypatch, tmp_path: Path) -> None:
@@ -119,14 +160,22 @@ def test_maturity_summary_failure_has_explicit_claim_boundary(monkeypatch, tmp_p
             "governance_maturity_summary": payload["governance_maturity_summary"],
             "final_report_requirement": payload["final_report_requirement"],
             "final_report_table_required": payload["final_report_table_required"],
+            "ai_governance_update_result": payload["ai_governance_update_result"],
         }
     )
 
     assert payload["governance_maturity_summary"]["status"] == "not_available"
+    assert payload["ai_governance_update_result"]["governance_maturity_summary"][
+        "value"
+    ] == "not_available"
+    assert payload["ai_governance_update_result"]["human_readable_adoption_summary"][
+        "value"
+    ] == "not_reported"
     assert payload["governance_maturity_summary"]["claim_boundary"] == (
         "summary unavailable; no maturity claim is supported"
     )
     assert "claim_boundary=summary unavailable; no maturity claim is supported" in rendered
+    assert "governance_maturity_summary=not_available" in rendered
     assert "claim_boundary=None" not in rendered
 
 
@@ -164,6 +213,12 @@ def test_write_report_json_contains_reporting_surfaces(monkeypatch, tmp_path: Pa
 
     for payload in (output, report_payload):
         assert payload["governance_maturity_summary"]["report_only"] is True
+        assert payload["ai_governance_update_result"]["report_only"] is True
+        assert payload["ai_governance_update_result"]["framework_update_status"] == {
+            "value": "not_verified",
+            "source": "onboard_latest_governance",
+        }
+        assert payload["ai_governance_update_result"]["adoption_status"]["value"] == "partial"
         assert payload["final_report_requirement"]["status"] == "required"
         assert "[human_readable_adoption_summary]" in payload["final_report_requirement"]["human_readable_adoption_summary"]
         assert payload["final_report_table_required"]["status"] == "required"
@@ -199,6 +254,9 @@ def test_brief_output_relays_final_report_requirement_boundary(monkeypatch, tmp_
     output = capsys.readouterr().out
     assert rc == 0
     assert "run=plan" in output
+    assert "ai_governance_update_result=report_only" in output
+    assert "framework_update_status=not_verified" in output
+    assert "adoption_status=partial" in output
     assert "final_report_requirement=required" in output
     assert "required_marker=[human_readable_adoption_summary]" in output
     assert "brief_claim_boundary=marker_only_not_final_report_use_full_human_or_json_report_for_table_rows" in output
