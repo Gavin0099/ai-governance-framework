@@ -33,6 +33,7 @@ fi
 PLAN_FILE="$TARGET_REPO_ROOT/PLAN.md"
 TOOL="$FRAMEWORK_ROOT/governance_tools/plan_freshness.py"
 MEMORY_WORKFLOW_TOOL="$FRAMEWORK_ROOT/governance_tools/memory_workflow.py"
+MANUAL_UPDATE_ADVISORY_TOOL="$FRAMEWORK_ROOT/governance_tools/manual_update_advisory.py"
 
 # Advisory-only memory workflow dispatch.
 # This makes governed memory edits visible before commit without changing the
@@ -69,6 +70,20 @@ fi
 # If a protected file recorded in .governance/baseline.yaml is staged without
 # the refreshed baseline, the protected-file hash check will later drift. This
 # reminder is advisory only; it does not block the commit.
+
+# Advisory-only manual governance update detection.
+# Signal 1 only reports lock-vs-checkout mismatch when governance framework
+# update-related paths are staged. It never blocks, repairs, fetches, stages, or
+# proves the updater was bypassed.
+if [ -f "$MANUAL_UPDATE_ADVISORY_TOOL" ]; then
+    if set_python_cmd; then
+        "${PYTHON_CMD[@]}" "$MANUAL_UPDATE_ADVISORY_TOOL" \
+            --repo "$TARGET_REPO_ROOT" \
+            --framework-root "$FRAMEWORK_ROOT" \
+            --format human || true
+    fi
+fi
+
 BASELINE_FILE="$TARGET_REPO_ROOT/.governance/baseline.yaml"
 if [ -f "$BASELINE_FILE" ]; then
     STAGED_FILES="$(git -C "$TARGET_REPO_ROOT" diff --cached --name-only 2>/dev/null || true)"
