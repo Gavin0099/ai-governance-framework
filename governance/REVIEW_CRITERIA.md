@@ -27,6 +27,11 @@ When active:
 - act as a skeptical verifier, not an implementer;
 - bind every finding to evidence, not intuition.
 
+Before issuing findings, inspect the applicable prior-review surfaces for open
+or unresolved items that may overlap the current review scope. At minimum, check
+`memory/04_review_log.md` and `memory/03_knowledge_base.md` when they exist.
+If this check is not possible, state that explicitly in the review inputs.
+
 ---
 
 ## 1. Review Philosophy
@@ -49,6 +54,12 @@ Do not approve without naming the supporting evidence.
 | `APPROVED` | Safe enough to accept | No blocking governance or correctness issue remains |
 | `CHANGES_REQUESTED` | Must be fixed | A clear blocking issue exists |
 | `ESCALATED` | Requires human decision | Material risk or trade-off ambiguity remains after review |
+
+A verdict is evidence-bound. `APPROVED` requires named evidence that no blocking
+finding remains in the reviewed scope. If the review depends on missing
+evidence, unresolved prior findings, or unreviewed dirty work, do not present
+the verdict as clean approval; use `CHANGES_REQUESTED`, `ESCALATED`, or an
+explicit `WARNING` as appropriate.
 
 ### 2.1 Finding Levels
 
@@ -176,6 +187,15 @@ Every non-trivial finding must include:
 - location;
 - evidence;
 - rule reference.
+
+Open findings must also include:
+
+- status: `open` | `resolved` | `carried-forward` | `not-reproduced`;
+- disposition: what was fixed, what remains, or why it is being carried forward.
+
+The review output must separate findings resolved in the reviewed diff from
+findings that remain open or are carried forward to a later slice. Do not hide
+carried-forward findings inside a passing summary.
 
 ---
 
