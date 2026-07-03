@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Manual governance update advisory - 2026-07-03
+
+- Added `governance_tools/manual_update_advisory.py` and wired it into the
+  copied `pre-commit` hook as an advisory-only Signal 1 warning for likely
+  manual AI Governance update drift. The checker reports when governance
+  framework update paths are touched and `framework.lock.json` does not match
+  the checked-out framework HEAD.
+- Added focused coverage in `tests/test_manual_update_advisory.py` for
+  lock-vs-checkout mismatch warnings, unrelated staged changes staying quiet,
+  nonstandard `.gitmodules` framework paths, and hook non-blocking wiring.
+- Release-note boundary: this entry records unreleased advisory visibility
+  only. It does not bump the framework version, publish a release, implement
+  receipt-based no-evidence detection, prove updater/F-7 use or bypass,
+  refresh consumer hooks, repair consuming repos, guarantee agent compliance,
+  or wire blocking hook/CI/pre-push/gate/enforcement behavior.
+
 ### AI Governance update reporting status accuracy - 2026-07-03
 
 - Added explicit `manual_update` and `destructive_manual_update` reporting
