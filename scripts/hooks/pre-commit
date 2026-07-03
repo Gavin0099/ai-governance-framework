@@ -73,8 +73,9 @@ fi
 
 # Advisory-only manual governance update detection.
 # Signal 1 only reports lock-vs-checkout mismatch when governance framework
-# update-related paths are staged. It never blocks, repairs, fetches, stages, or
-# proves the updater was bypassed.
+# update-related paths are staged. Signal 2 reports staged framework lock
+# changes without a staged updater/F-7 receipt. It never blocks, repairs,
+# fetches, stages, or proves the updater was bypassed.
 if [ -f "$MANUAL_UPDATE_ADVISORY_TOOL" ]; then
     if set_python_cmd; then
         "${PYTHON_CMD[@]}" "$MANUAL_UPDATE_ADVISORY_TOOL" \

@@ -18,9 +18,11 @@ from pathlib import Path
 from typing import Any
 
 from governance_tools.governance_maturity_summary import build_governance_maturity_summary
+from governance_tools.update_receipt import RECEIPT_RELATIVE_PATH
 
 
 REPORT_VERSION = "0.1"
+FRAMEWORK_LOCK_PATH = "governance/framework.lock.json"
 
 
 @dataclass
@@ -32,6 +34,7 @@ class ManualUpdateAdvisory:
     repo_root: str
     touched_update_paths: list[str] = field(default_factory=list)
     lock_consistency: str | None = None
+    update_receipt_status: str | None = None
     reasons: list[str] = field(default_factory=list)
     cannot_claim: list[str] = field(default_factory=list)
     recommended_action: str = (
@@ -61,14 +64,54 @@ def _git_stdout(repo_root: Path, args: list[str]) -> str | None:
 
 def _changed_paths(repo_root: Path, *, include_worktree: bool) -> list[str]:
     paths: set[str] = set()
-    staged = _git_stdout(repo_root, ["diff", "--cached", "--name-only"])
-    if staged:
-        paths.update(line.strip().replace("\\", "/") for line in staged.splitlines() if line.strip())
+    paths.update(_staged_paths(repo_root))
     if include_worktree:
         worktree = _git_stdout(repo_root, ["diff", "--name-only"])
         if worktree:
             paths.update(line.strip().replace("\\", "/") for line in worktree.splitlines() if line.strip())
     return sorted(paths)
+
+
+def _staged_paths(repo_root: Path) -> list[str]:
+    staged = _git_stdout(repo_root, ["diff", "--cached", "--name-only"])
+    if not staged:
+        return []
+    return sorted(line.strip().replace("\\", "/") for line in staged.splitlines() if line.strip())
+
+
+def _staged_name_status(repo_root: Path) -> dict[str, str]:
+    output = _git_stdout(repo_root, ["diff", "--cached", "--name-status"])
+    if not output:
+        return {}
+    statuses: dict[str, str] = {}
+    for line in output.splitlines():
+        parts = [part.strip().replace("\\", "/") for part in line.split("\t") if part.strip()]
+        if len(parts) < 2:
+            continue
+        status = parts[0]
+        path = parts[-1]
+        statuses[path] = status
+    return statuses
+
+
+def _update_receipt_status_for_staged_lock(repo_root: Path) -> str | None:
+    statuses = _staged_name_status(repo_root)
+    if FRAMEWORK_LOCK_PATH not in statuses:
+        return None
+    receipt_status = statuses.get(RECEIPT_RELATIVE_PATH)
+    if receipt_status is None:
+        return "missing"
+    if receipt_status.startswith("D"):
+        return "deleted"
+    return "present"
+
+
+def _signal_name(*, lock_mismatch_active: bool, receipt_missing_active: bool) -> str:
+    if lock_mismatch_active and receipt_missing_active:
+        return "lock_vs_checkout_mismatch+missing_update_receipt"
+    if receipt_missing_active:
+        return "missing_update_receipt"
+    return "lock_vs_checkout_mismatch"
 
 
 def _gitmodule_framework_paths(repo_root: Path) -> list[str]:
@@ -106,7 +149,8 @@ def _is_framework_submodule(path: str | None, url: str | None) -> bool:
 
 def _candidate_framework_paths(repo_root: Path) -> list[str]:
     candidates = {
-        "governance/framework.lock.json",
+        FRAMEWORK_LOCK_PATH,
+        RECEIPT_RELATIVE_PATH,
         "ai-governance-framework",
         ".ai-governance-framework",
         "additional/ai-governance-framework",
@@ -138,6 +182,7 @@ def assess_manual_update_advisory(
 ) -> ManualUpdateAdvisory:
     repo = repo_root.resolve()
     touched = _touched_update_paths(repo, include_worktree=include_worktree)
+    update_receipt_status = _update_receipt_status_for_staged_lock(repo)
     if not touched:
         return ManualUpdateAdvisory(
             report_version=REPORT_VERSION,
@@ -145,6 +190,7 @@ def assess_manual_update_advisory(
             advisory_active=False,
             signal="lock_vs_checkout_mismatch",
             repo_root=str(repo),
+            update_receipt_status=update_receipt_status,
             reasons=["no staged governance framework checkout or framework lock paths were touched"],
             cannot_claim=[
                 "no manual update risk was evaluated for unrelated changes",
@@ -163,6 +209,7 @@ def assess_manual_update_advisory(
             repo_root=str(repo),
             touched_update_paths=touched,
             lock_consistency="unknown",
+            update_receipt_status=update_receipt_status,
             reasons=[f"governance_maturity_summary failed: {type(exc).__name__}: {exc}"],
             cannot_claim=[
                 "framework lock matches checked-out framework commit",
@@ -172,9 +219,26 @@ def assess_manual_update_advisory(
         )
 
     lock_value = str(summary.lock_consistency.value)
-    active = lock_value not in {"consistent", "not_applicable"}
+    lock_mismatch_active = lock_value not in {"consistent", "not_applicable"}
+    receipt_missing_active = update_receipt_status in {"missing", "deleted"}
+    active = lock_mismatch_active or receipt_missing_active
+    signal = _signal_name(
+        lock_mismatch_active=lock_mismatch_active,
+        receipt_missing_active=receipt_missing_active,
+    )
     reasons = list(summary.lock_consistency.reasons)
-    if active:
+    if receipt_missing_active:
+        reasons.insert(
+            0,
+            (
+                f"{FRAMEWORK_LOCK_PATH} is staged without a staged "
+                f"{RECEIPT_RELATIVE_PATH} update receipt"
+            ),
+        )
+    elif update_receipt_status == "present":
+        reasons.insert(0, "framework lock change includes a staged update receipt")
+    if lock_mismatch_active:
+        reasons.insert(0, "framework lock and checkout are not consistent")
         reasons.insert(0, "update-related paths changed while lock_consistency is not consistent")
     else:
         reasons.insert(0, "update-related paths changed but lock_consistency is consistent or not_applicable")
@@ -184,17 +248,20 @@ def assess_manual_update_advisory(
         "full governance adoption",
         "hook/CI enforcement",
     ]
-    if active:
+    if lock_mismatch_active:
         cannot_claim.insert(0, "framework lock matches checked-out framework commit")
+    if receipt_missing_active:
+        cannot_claim.insert(0, "staged framework lock change came from updater/F-7 apply path")
 
     return ManualUpdateAdvisory(
         report_version=REPORT_VERSION,
         report_only=True,
         advisory_active=active,
-        signal="lock_vs_checkout_mismatch",
+        signal=signal,
         repo_root=str(repo),
         touched_update_paths=touched,
         lock_consistency=lock_value,
+        update_receipt_status=update_receipt_status,
         reasons=reasons,
         cannot_claim=cannot_claim,
     )
@@ -204,9 +271,10 @@ def format_human(report: ManualUpdateAdvisory) -> str:
     if not report.advisory_active:
         return ""
     lines = [
-        "[governance] manual update advisory: framework lock and checkout are not consistent",
+        "[governance] manual update advisory: governed update evidence is incomplete",
         f"  signal: {report.signal}",
         f"  lock_consistency: {report.lock_consistency}",
+        f"  update_receipt_status: {report.update_receipt_status or 'not_applicable'}",
         "  touched_update_paths:",
         *[f"    - {path}" for path in report.touched_update_paths],
         "  reasons:",

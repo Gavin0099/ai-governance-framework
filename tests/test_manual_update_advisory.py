@@ -8,6 +8,7 @@ from governance_tools.manual_update_advisory import (
     assess_manual_update_advisory,
     format_human,
 )
+from governance_tools.update_receipt import RECEIPT_RELATIVE_PATH
 
 
 def _write(path: Path, text: str) -> None:
@@ -59,6 +60,15 @@ def _write_lock(repo: Path, commit: str, *, note: str = "") -> None:
     if note:
         payload["note"] = note
     _write(repo / "governance" / "framework.lock.json", json.dumps(payload, indent=2) + "\n")
+
+
+class _LockConsistency:
+    value = "consistent"
+    reasons = ["test maturity summary says lock is consistent"]
+
+
+class _ConsistentSummary:
+    lock_consistency = _LockConsistency()
 
 
 def test_staged_lock_change_with_mismatched_checkout_reports_advisory(tmp_path: Path) -> None:
@@ -128,6 +138,71 @@ def test_staged_dirty_lock_matching_checkout_still_reports_advisory(tmp_path: Pa
     assert "framework lock and checkout are not consistent" in format_human(report)
 
 
+def test_staged_lock_change_without_receipt_reports_advisory_even_when_consistent(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "consumer"
+    _init_repo(repo)
+    framework = _make_framework(repo)
+    framework_head = _git(framework, "rev-parse", "HEAD")
+    _write_lock(repo, framework_head)
+    _git(repo, "add", "governance/framework.lock.json")
+    _git(repo, "commit", "-m", "record lock")
+
+    _write_lock(repo, framework_head, note="manual lock sync")
+    _git(repo, "add", "governance/framework.lock.json")
+    monkeypatch.setattr(
+        "governance_tools.manual_update_advisory.build_governance_maturity_summary",
+        lambda *_args, **_kwargs: _ConsistentSummary(),
+    )
+
+    report = assess_manual_update_advisory(repo, framework_root=framework)
+    rendered = format_human(report)
+
+    assert report.advisory_active is True
+    assert report.signal == "missing_update_receipt"
+    assert report.lock_consistency == "consistent"
+    assert report.update_receipt_status == "missing"
+    assert report.touched_update_paths == ["governance/framework.lock.json"]
+    assert any("staged without a staged governance/.update-receipt.json" in reason for reason in report.reasons)
+    assert "update_receipt_status: missing" in rendered
+    assert "staged framework lock change came from updater/F-7 apply path" in report.cannot_claim
+
+
+def test_staged_lock_change_with_receipt_does_not_report_when_consistent(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "consumer"
+    _init_repo(repo)
+    framework = _make_framework(repo)
+    framework_head = _git(framework, "rev-parse", "HEAD")
+    _write_lock(repo, framework_head)
+    _write(repo / RECEIPT_RELATIVE_PATH, "{}\n")
+    _git(repo, "add", "governance/framework.lock.json", RECEIPT_RELATIVE_PATH)
+    _git(repo, "commit", "-m", "record lock and receipt")
+
+    _write_lock(repo, framework_head, note="governed lock sync")
+    _write(repo / RECEIPT_RELATIVE_PATH, '{"receipt_type":"ai_governance_update"}\n')
+    _git(repo, "add", "governance/framework.lock.json", RECEIPT_RELATIVE_PATH)
+    monkeypatch.setattr(
+        "governance_tools.manual_update_advisory.build_governance_maturity_summary",
+        lambda *_args, **_kwargs: _ConsistentSummary(),
+    )
+
+    report = assess_manual_update_advisory(repo, framework_root=framework)
+
+    assert report.advisory_active is False
+    assert report.lock_consistency == "consistent"
+    assert report.update_receipt_status == "present"
+    assert report.touched_update_paths == [
+        "governance/.update-receipt.json",
+        "governance/framework.lock.json",
+    ]
+    assert format_human(report) == ""
+
+
 def test_nonstandard_gitmodules_framework_path_is_treated_as_update_path(tmp_path: Path) -> None:
     repo = tmp_path / "consumer"
     _init_repo(repo)
@@ -150,4 +225,5 @@ def test_pre_commit_hook_invokes_manual_update_advisory_as_non_blocking() -> Non
 
     assert 'MANUAL_UPDATE_ADVISORY_TOOL="$FRAMEWORK_ROOT/governance_tools/manual_update_advisory.py"' in hook
     assert '"$MANUAL_UPDATE_ADVISORY_TOOL"' in hook
+    assert "Signal 2 reports staged framework lock" in hook
     assert "--format human || true" in hook
