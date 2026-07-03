@@ -21,6 +21,9 @@ instruction-file synchronization.
 Do not treat `AGENTS.md`, `AGENTS.base.md`, or local governance instruction-file
 sync as proof that the AI Governance Framework itself is current.
 
+For the map of where update and review instructions reach different agent
+surfaces, see `docs/governance/agent-instruction-surface-map.md`.
+
 ## Update Intent Rule
 
 When the user asks to "Update AI Governance to latest" or equivalent Chinese
