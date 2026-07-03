@@ -27,6 +27,7 @@
 - User requires a strict loop: after each completed change, update the corresponding `memory/YYYY-MM-DD.md` entry and push.
 - User requires every completed change to be pushed to both `gitlab` and `origin` (GitHub), with author identity intentionally separated per remote.
 - User requires every completed slice report to include an explicit next-step prompt or recommendation after the done/validation/push summary.
+- User prefers explanations and status reports in Chinese by default; preserve fixed governance field names, command names, and machine tokens in their original language, with Chinese explanation when helpful.
 - Enforced operating rule (2026-05-12): every completed change must include:
   1) memory update in `memory/YYYY-MM-DD.md`
   2) commit
