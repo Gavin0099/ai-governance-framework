@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Framework contract validator declaration - 2026-07-03
+
+- Declared `governance_tools/architecture_drift_checker.py` in the framework
+  `contract.yaml` validator surface so framework self-check diagnostics no
+  longer report an empty validator surface.
+- Kept `governance_tools/public_api_diff_checker.py` out of `contract.yaml`
+  because focused preflight showed it does not yet expose a `DomainValidator`
+  implementation and would make domain validator preflight fail if declared.
+- Release-note boundary: this entry records unreleased framework self-check
+  validator-surface declaration only. It does not bump the framework version,
+  publish a release, prove domain correctness, declare full governance
+  adoption, add a `public_api_diff_checker` validator adapter, or wire
+  tooling/runtime/hook/CI/pre-push/gate/enforcement behavior.
+
 ### Manual governance update advisory - 2026-07-03
 
 - Added `governance_tools/manual_update_advisory.py` and wired it into the
