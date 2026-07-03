@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### AI Governance update reporting status accuracy - 2026-07-03
+
+- Added explicit `manual_update` and `destructive_manual_update` reporting
+  statuses to the AI Governance update protocol, F-7 protocol, repo-min
+  baseline AGENTS guidance, and framework AGENTS guidance so manual or
+  destructive update paths cannot be described with completed/latest-style
+  update claims.
+- Updated F-7 and external governance submodule update status handling so
+  completed-style results are downgraded when `governance_maturity_summary`
+  reports that `framework.lock.json` and the checked-out framework HEAD are not
+  consistent.
+- Release-note boundary: this entry records unreleased user-visible
+  update-reporting and status-accuracy changes only. It does not bump the
+  framework version, publish a release, start v1.3.0 release prep, repair
+  consuming repos, guarantee agent compliance, or wire hook/CI/pre-push/gate/
+  enforcement behavior.
+
 ### External submodule updater console-safe output - 2026-07-02
 
 - Updated `governance_tools/external_governance_submodule_updater.py` so CLI
