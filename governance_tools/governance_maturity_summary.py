@@ -185,6 +185,17 @@ def _load_lock_adopted_commit(lock_path: Path) -> tuple[str | None, str | None]:
     return adopted, None
 
 
+def _is_self_hosting_framework_lock(repo_root: Path, framework_root: Path, lock_path: Path) -> bool:
+    if repo_root.resolve() != framework_root.resolve():
+        return False
+    try:
+        payload = json.loads(lock_path.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    note = str(payload.get("_self_reference_note", "")).strip()
+    return bool(note)
+
+
 def _resolve_lock_framework_root(repo_root: Path, framework_root: Path | None) -> Path | None:
     if framework_root is not None:
         return framework_root
@@ -213,6 +224,16 @@ def _derive_lock_consistency(repo_root: Path, framework_root: Path | None) -> Su
             "unknown",
             "governance_maturity_summary.lock_consistency",
             ["framework checkout root could not be resolved"],
+        )
+    if _is_self_hosting_framework_lock(repo_root, resolved_framework, lock_path):
+        return _summary_value(
+            "not_applicable",
+            "governance_maturity_summary.lock_consistency",
+            [
+                "framework root resolves to the target repo itself",
+                "governance/framework.lock.json carries _self_reference_note and is a self-assessment baseline",
+                "consumer lock-vs-checkout consistency does not apply to the framework repo itself",
+            ],
         )
 
     adopted_commit, lock_error = _load_lock_adopted_commit(lock_path)

@@ -214,6 +214,43 @@ def test_lock_consistency_reports_dirty_three_layer_drift(tmp_path: Path) -> Non
     assert "| 版本帳實一致性（Lock vs checkout consistency） | 不一致 |" in rendered
 
 
+def test_self_hosting_framework_lock_is_not_consumer_lock_consistency(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "framework_self")
+    _make_framework_root(repo)
+    _run_git(["checkout", "-b", "main"], repo)
+    _run_git(["add", "."], repo)
+    _run_git(["commit", "-m", "framework baseline"], repo)
+    baseline_head = _run_git(["rev-parse", "HEAD"], repo)
+    _write(
+        repo / "governance" / "framework.lock.json",
+        json.dumps(
+            {
+                "adopted_commit": baseline_head,
+                "_self_reference_note": (
+                    "This lock records the framework version used by this repo to evaluate itself. "
+                    "It does not prove framework correctness."
+                ),
+            },
+            indent=2,
+        )
+        + "\n",
+    )
+    _commit_path(repo, "governance/framework.lock.json", "record self framework lock")
+    _write(repo / "NEXT.txt", "next\n")
+    _run_git(["add", "NEXT.txt"], repo)
+    _run_git(["commit", "-m", "advance framework"], repo)
+
+    summary = build_governance_maturity_summary(repo, framework_root=repo)
+    rendered = format_human(summary)
+
+    assert summary.framework_topology.value == "repo_owned_framework_path"
+    assert summary.lock_consistency.value == "not_applicable"
+    assert "framework_lock_consistency" not in summary.missing_surfaces
+    assert "framework lock matches the checked-out framework commit" not in summary.cannot_claim
+    assert "self-assessment baseline" in " ".join(summary.lock_consistency.reasons)
+    assert "lock_consistency         = not_applicable" in rendered
+
+
 def test_repo_owned_framework_pin_freshness_surfaces_stale_local_tracking(tmp_path: Path) -> None:
     repo = _make_repo(tmp_path / "repo_owned_stale")
     framework = _make_git_framework_with_remote(
