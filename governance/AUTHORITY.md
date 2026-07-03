@@ -2,7 +2,7 @@
 
 > machine-readable: true
 > version: 1.0.0
-> updated: 2026-07-02
+> updated: 2026-07-03
 
 
 > Authority-loader note: `runtime_hooks/core/session_start.py` derives the live
@@ -48,7 +48,7 @@
 | `governance/NATIVE-INTEROP.md` | agent-on-demand | reference | false | AGENT.md | on-demand |
 | `governance/RESPONSE_ENVELOPE_CONTRACT.md` | agent-runtime | reference | false | AGENT.md | on-demand |
 | `governance/HUMAN-OVERSIGHT.md` | human-only | reference | false | ~ | never |
-| `governance/REVIEW_CRITERIA.md` | human-only | reference | false | ~ | never |
+| `governance/REVIEW_CRITERIA.md` | agent-on-demand | reference | false | AGENT.md | on-demand |
 | `governance/PHASE_D_CLOSE_AUTHORITY.md` | human-only | canonical | false | ~ | never |
 | `AGENTS.md` (workspace) | agent-runtime | derived | false | AGENT.md | always |
 | `.github/copilot-instructions.md` | agent-runtime | derived | false | AGENT.md | always |

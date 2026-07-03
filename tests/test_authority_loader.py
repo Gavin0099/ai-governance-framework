@@ -141,12 +141,21 @@ class TestLoadAuthorityTable:
             assert key in entry, f"Missing key: {key}"
 
     def test_real_human_only_files_present(self):
-        """HUMAN-OVERSIGHT.md and REVIEW_CRITERIA.md must be human-only."""
+        """HUMAN-OVERSIGHT.md must remain human-only."""
         gov_dir = Path(__file__).resolve().parents[1] / "governance"
         table = load_authority_table(gov_dir)
         human_only_names = {e["filename"] for e in table if e["audience"] == "human-only"}
         assert "HUMAN-OVERSIGHT.md" in human_only_names
-        assert "REVIEW_CRITERIA.md" in human_only_names
+
+    def test_real_review_criteria_is_agent_on_demand(self):
+        """REVIEW_CRITERIA.md is available for review tasks, but not loaded by default."""
+        gov_dir = Path(__file__).resolve().parents[1] / "governance"
+        table = load_authority_table(gov_dir)
+        review_entry = next(e for e in table if e["filename"] == "REVIEW_CRITERIA.md")
+        assert review_entry["audience"] == "agent-on-demand"
+        assert review_entry["authority"] == "reference"
+        assert review_entry["overridden_by"] == "AGENT.md"
+        assert review_entry["default_load"] == "on-demand"
 
     def test_real_canonical_files_present(self):
         """SYSTEM_PROMPT.md and AGENT.md must remain canonical runtime core."""
@@ -277,7 +286,7 @@ class TestGetHumanOnlyFiles:
         human_only = get_human_only_files(table)
         names = [Path(f).name for f in human_only]
         assert "HUMAN-OVERSIGHT.md" in names
-        assert "REVIEW_CRITERIA.md" in names
+        assert "REVIEW_CRITERIA.md" not in names
         # canonical files must NOT be in human-only list
         assert "SYSTEM_PROMPT.md" not in names
         assert "AGENT.md" not in names

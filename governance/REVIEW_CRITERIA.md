@@ -1,9 +1,9 @@
 ---
-audience: human-only
+audience: agent-on-demand
 authority: reference
 can_override: false
-overridden_by: ~
-default_load: never
+overridden_by: AGENT.md
+default_load: on-demand
 ---
 
 # REVIEW_CRITERIA.md
