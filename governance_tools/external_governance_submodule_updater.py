@@ -21,6 +21,11 @@ from governance_tools.governance_update_reporting import (
     format_governance_maturity_stage as _format_governance_maturity_stage,
     print_console_safe as _print_console_safe,
 )
+from governance_tools.update_receipt import (
+    RECEIPT_RELATIVE_PATH,
+    skipped_update_receipt,
+    write_update_receipt,
+)
 
 
 DEFAULT_SUBMODULE_PATH = "ai-governance-framework"
@@ -89,6 +94,9 @@ class UpdateResult:
     final_report_requirement: dict[str, Any] = field(default_factory=dict)
     final_report_table_required: dict[str, Any] = field(default_factory=dict)
     target_source: str = "not_reported"
+    update_receipt: dict[str, Any] = field(
+        default_factory=lambda: skipped_update_receipt("not an apply path")
+    )
 
     def __post_init__(self) -> None:
         if not self.final_report_requirement:
@@ -810,9 +818,23 @@ def update_governance_submodule(
                     "target_resolution": target_resolution,
                 },
             )
+            update_receipt = write_update_receipt(
+                tool="external_governance_submodule_updater",
+                repo_root=repo,
+                framework_root=submodule_repo,
+                framework_before=before_head,
+                framework_after=before_head,
+                update_status="already_current",
+                remote_evidence=target_resolution,
+            )
             if stage or commit:
-                allowed = {submodule_path, "AGENTS.base.md", "AGENTS.md"}
-                add_args = ["AGENTS.base.md", "AGENTS.md"]
+                allowed = {
+                    submodule_path,
+                    "AGENTS.base.md",
+                    "AGENTS.md",
+                    RECEIPT_RELATIVE_PATH,
+                }
+                add_args = ["AGENTS.base.md", "AGENTS.md", RECEIPT_RELATIVE_PATH]
                 if gitignore_report["changed_files"]:
                     allowed.add(".gitignore")
                     add_args.append(".gitignore")
@@ -822,6 +844,7 @@ def update_governance_submodule(
                     raise SubmoduleUpdateError(
                         f"staged files are outside F-7 full update scope: {staged}"
                     )
+                update_receipt["staged"] = RECEIPT_RELATIVE_PATH in staged
             else:
                 staged = []
             committed = False
@@ -843,10 +866,11 @@ def update_governance_submodule(
                 staged_files=staged,
                 committed=committed,
                 commit_hash=commit_hash,
-                message="submodule already at target; no files modified",
+                message="submodule already at target; update receipt written",
                 errors=[],
                 full_update_stage_report=full_update_stage_report,
                 target_source=target_source,
+                update_receipt=update_receipt,
             )
 
         if dry_run:
@@ -887,6 +911,7 @@ def update_governance_submodule(
                     details={"dry_run": True, "target_resolution": target_resolution},
                 ),
                 target_source=target_source,
+                update_receipt=skipped_update_receipt("dry_run"),
             )
 
         merge_result = _run_git(
@@ -939,10 +964,24 @@ def update_governance_submodule(
                 "target_resolution": target_resolution,
             },
         )
+        update_receipt = write_update_receipt(
+            tool="external_governance_submodule_updater",
+            repo_root=repo,
+            framework_root=submodule_repo,
+            framework_before=before_head,
+            framework_after=after_head,
+            update_status="updated",
+            remote_evidence=target_resolution,
+        )
 
         if stage or commit:
-            allowed = {submodule_path, "AGENTS.base.md", "AGENTS.md"}
-            add_args = [submodule_path, "AGENTS.base.md", "AGENTS.md"]
+            allowed = {
+                submodule_path,
+                "AGENTS.base.md",
+                "AGENTS.md",
+                RECEIPT_RELATIVE_PATH,
+            }
+            add_args = [submodule_path, "AGENTS.base.md", "AGENTS.md", RECEIPT_RELATIVE_PATH]
             if gitignore_report["changed_files"]:
                 allowed.add(".gitignore")
                 add_args.append(".gitignore")
@@ -952,6 +991,7 @@ def update_governance_submodule(
                 raise SubmoduleUpdateError(
                     f"staged files are outside F-7 full update scope: {staged}"
                 )
+            update_receipt["staged"] = RECEIPT_RELATIVE_PATH in staged
         else:
             staged = []
 
@@ -979,6 +1019,7 @@ def update_governance_submodule(
             errors=[],
             full_update_stage_report=full_update_stage_report,
             target_source=target_source,
+            update_receipt=update_receipt,
         )
     except SubmoduleUpdateError as exc:
         errors.append(str(exc))
@@ -1016,6 +1057,11 @@ def update_governance_submodule(
                 details={"errors": errors, "target_resolution": target_resolution},
             ),
             target_source=target_source,
+            update_receipt=skipped_update_receipt(
+                "dry_run failed before receipt boundary"
+                if dry_run
+                else "apply failed before receipt boundary"
+            ),
         )
 
 
@@ -1035,6 +1081,9 @@ def format_human(result: UpdateResult) -> str:
         f"committed={result.committed}",
         f"commit_hash={result.commit_hash or '-'}",
         f"message={result.message}",
+        f"update_receipt_status={result.update_receipt.get('status', '-')}",
+        f"update_receipt_path={result.update_receipt.get('path', '-')}",
+        f"update_receipt_staged={result.update_receipt.get('staged', False)}",
         "full_update_stage_report:",
         f"- framework_pointer={result.full_update_stage_report.get('framework_pointer')}",
         f"- repo_local_instruction={result.full_update_stage_report.get('repo_local_instruction')}",

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import subprocess
 from dataclasses import asdict
 from pathlib import Path
@@ -15,6 +16,7 @@ from governance_tools.external_governance_submodule_updater import (
     main,
     update_governance_submodule,
 )
+from governance_tools.update_receipt import RECEIPT_RELATIVE_PATH
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -300,6 +302,8 @@ def test_dry_run_does_not_change_submodule_or_stage_files(tmp_path: Path) -> Non
     assert result.before_head == old_head
     assert result.target_head == new_head
     assert result.after_head == old_head
+    assert result.update_receipt["status"] == "not_written"
+    assert not (consumer / RECEIPT_RELATIVE_PATH).exists()
     assert result.full_update_stage_report["final_status"] == "not_verified"
     assert result.full_update_stage_report["governance_maturity_summary"]["report_only"] is True
     assert result.final_report_requirement["status"] == "required"
@@ -603,18 +607,33 @@ def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
     assert "[human_readable_adoption_summary]" in rendered
     assert "AI Governance 功能導入狀態：" in rendered
     assert "| 功能 | 狀態 | 這個功能是做什麼 |" in rendered
+    assert "update_receipt_status=written" in rendered
+    assert "update_receipt_path=governance/.update-receipt.json" in rendered
     assert result.staged_files == [
         ".gitignore",
         "AGENTS.base.md",
         "AGENTS.md",
         "ai-governance-framework",
+        "governance/.update-receipt.json",
     ]
     assert _git(consumer, "diff", "--cached", "--name-only").splitlines() == [
         ".gitignore",
         "AGENTS.base.md",
         "AGENTS.md",
         "ai-governance-framework",
+        "governance/.update-receipt.json",
     ]
+    receipt = json.loads((consumer / RECEIPT_RELATIVE_PATH).read_text(encoding="utf-8"))
+    assert result.update_receipt["status"] == "written"
+    assert result.update_receipt["staged"] is True
+    assert receipt["receipt_type"] == "ai_governance_update"
+    assert receipt["tool"] == "external_governance_submodule_updater"
+    assert receipt["framework_before"] == old_head
+    assert receipt["framework_after"] == new_head
+    assert receipt["update_status"] == "updated"
+    assert receipt["lock_adopted_commit"] is None
+    assert receipt["lock_matches_checkout"] is False
+    assert "full governance adoption" in receipt["not_claimed"]
     assert "F-7 Full Update Semantics" in (consumer / "AGENTS.md").read_text(
         encoding="utf-8"
     )
@@ -684,7 +703,18 @@ def test_apply_commit_noops_when_submodule_already_points_at_target(
     assert "[human_readable_adoption_summary]" in rendered
     assert "AI Governance 功能導入狀態：" in rendered
     assert "| 功能 | 狀態 | 這個功能是做什麼 |" in rendered
-    assert result.staged_files == [".gitignore", "AGENTS.base.md", "AGENTS.md"]
+    assert result.staged_files == [
+        ".gitignore",
+        "AGENTS.base.md",
+        "AGENTS.md",
+        "governance/.update-receipt.json",
+    ]
+    receipt = json.loads((consumer / RECEIPT_RELATIVE_PATH).read_text(encoding="utf-8"))
+    assert result.update_receipt["status"] == "written"
+    assert result.update_receipt["staged"] is True
+    assert receipt["framework_before"] == target_head
+    assert receipt["framework_after"] == target_head
+    assert receipt["update_status"] == "already_current"
     assert result.committed is True
     assert result.commit_hash is not None
     assert _git(consumer, "rev-parse", "HEAD") != before_consumer_head
@@ -785,11 +815,17 @@ def test_non_fast_forward_update_checkout_runs_only_when_explicitly_allowed(
         "AGENTS.base.md",
         "AGENTS.md",
         "ai-governance-framework",
+        "governance/.update-receipt.json",
     ]
+    receipt = json.loads((consumer / RECEIPT_RELATIVE_PATH).read_text(encoding="utf-8"))
+    assert receipt["framework_before"] == side_head
+    assert receipt["framework_after"] == target_head
+    assert result.update_receipt["staged"] is True
     assert _git(consumer / "ai-governance-framework", "rev-parse", "HEAD") == target_head
     assert _git(consumer, "diff", "--cached", "--name-only").splitlines() == [
         ".gitignore",
         "AGENTS.base.md",
         "AGENTS.md",
         "ai-governance-framework",
+        "governance/.update-receipt.json",
     ]

@@ -8,6 +8,7 @@ from pathlib import Path
 
 from governance_tools.external_governance_submodule_updater import UpdateResult
 from governance_tools.f7_full_update import classify_repo, format_human, run_f7_full_update
+from governance_tools.update_receipt import RECEIPT_RELATIVE_PATH
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -354,6 +355,11 @@ def test_f7_submodule_backend_downgrades_completed_when_lock_consistency_is_inco
             commit_hash=None,
             message="submodule pointer update complete",
             errors=[],
+            update_receipt={
+                "status": "written",
+                "path": RECEIPT_RELATIVE_PATH,
+                "staged": False,
+            },
             full_update_stage_report={
                 "framework_pointer": "updated",
                 "repo_local_instruction": "updated",
@@ -381,6 +387,8 @@ def test_f7_submodule_backend_downgrades_completed_when_lock_consistency_is_inco
     assert result.repo_role == "submodule_consumer"
     assert result.stages["governance_maturity_summary"]["lock_consistency"]["value"] == "inconsistent"
     assert result.f7_final_status == "partially_updated"
+    assert result.update_receipt["status"] == "written"
+    assert RECEIPT_RELATIVE_PATH in result.changed_files
     assert "Current result: partially_updated." in rendered
 
 
@@ -439,6 +447,7 @@ def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) 
     assert result.ok is True
     assert result.f7_final_status == "completed"
     assert (repo / "governance" / "framework.lock.json").exists()
+    assert (repo / RECEIPT_RELATIVE_PATH).exists()
     lock = json.loads((repo / "governance" / "framework.lock.json").read_text(encoding="utf-8"))
     assert lock["adopted_commit"] == _git(framework, "rev-parse", "HEAD")
     assert lock["adopted_commit"] != "stale-template-commit"
@@ -462,7 +471,20 @@ def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) 
         result.final_report_requirement["human_readable_adoption_summary"]
     )
     payload = asdict(result)
+    receipt = json.loads((repo / RECEIPT_RELATIVE_PATH).read_text(encoding="utf-8"))
+    assert result.update_receipt["status"] == "written"
+    assert result.update_receipt["staged"] is False
+    assert RECEIPT_RELATIVE_PATH in result.changed_files
+    assert receipt["receipt_type"] == "ai_governance_update"
+    assert receipt["tool"] == "f7_full_update"
+    assert receipt["framework_before"] is None
+    assert receipt["framework_after"] == _git(framework, "rev-parse", "HEAD")
+    assert receipt["lock_adopted_commit"] == _git(framework, "rev-parse", "HEAD")
+    assert receipt["lock_matches_checkout"] is True
+    assert receipt["update_status"] == "updated"
+    assert "hook/CI enforcement" in receipt["not_claimed"]
     assert "final_report_requirement" in payload
+    assert payload["update_receipt"]["status"] == "written"
     assert payload["final_report_table_required"]["status"] == "required"
     assert payload["final_report_table_required"]["must_relay_as"] == "table_rows_verbatim"
     assert "[human_readable_adoption_summary]" in (
@@ -473,6 +495,9 @@ def test_external_contract_apply_generates_required_f7_surfaces(tmp_path: Path) 
     assert result.stages["framework_lock_commit"] == "verified"
     assert result.stages["memory_workflow_router"] == "verified"
     assert result.stages["memory_workflow_hook_advisory"] == "verified"
+    rendered = format_human(result)
+    assert "Update receipt status: written." in rendered
+    assert "Update receipt path: governance/.update-receipt.json." in rendered
 
 
 def test_external_contract_apply_refreshes_existing_f7_update_boundary_block(tmp_path: Path) -> None:

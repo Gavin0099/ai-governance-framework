@@ -36,6 +36,11 @@ from governance_tools.governance_update_reporting import (
     format_governance_maturity_stage as _format_governance_maturity_stage,
 )
 from governance_tools.hook_installer import install_governance_hooks
+from governance_tools.update_receipt import (
+    RECEIPT_RELATIVE_PATH,
+    skipped_update_receipt,
+    write_update_receipt,
+)
 
 
 COMPLETED = "completed"
@@ -69,6 +74,9 @@ class F7Result:
     details: dict[str, Any] = field(default_factory=dict)
     final_report_requirement: dict[str, Any] = field(default_factory=dict)
     final_report_table_required: dict[str, Any] = field(default_factory=dict)
+    update_receipt: dict[str, Any] = field(
+        default_factory=lambda: skipped_update_receipt("not an apply path")
+    )
 
     def __post_init__(self) -> None:
         if not self.final_report_requirement:
@@ -166,6 +174,18 @@ def _status_with_lock_consistency(status: str, stages: dict[str, Any]) -> str:
     if lock_consistency not in {None, "consistent", "not_applicable"}:
         return PARTIALLY_UPDATED
     return status
+
+
+def _update_receipt_status(status: str) -> str:
+    if status in {COMPLETED, "full_update_completed", "updated"}:
+        return "updated"
+    if status == ALREADY_CURRENT:
+        return ALREADY_CURRENT
+    if status == PARTIALLY_UPDATED:
+        return PARTIALLY_UPDATED
+    if status == BLOCKED:
+        return BLOCKED
+    return "not_verified"
 
 
 def classify_repo(repo_root: Path, submodule_path: str = "ai-governance-framework") -> str:
@@ -277,7 +297,10 @@ def _framework_head_commit(framework_root: Path) -> str:
 
 def _adopted_commit(readiness: Any) -> str:
     version = readiness.framework_version or {}
-    return str(version.get("adopted_commit", "")).strip()
+    raw_adopted = version.get("adopted_commit", "")
+    if raw_adopted is None:
+        return ""
+    return str(raw_adopted).strip()
 
 
 def _framework_lock_commit_current(readiness: Any, framework_root: Path) -> bool:
@@ -558,6 +581,18 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
         warnings.append(
             "f7-diagnostic: non-governance dirty scopes are present; use a clean worktree before F-7 apply/remediation"
         )
+    update_receipt = skipped_update_receipt("dry_run")
+    if apply:
+        update_receipt = write_update_receipt(
+            tool="f7_full_update",
+            repo_root=repo_root,
+            framework_root=framework_root,
+            framework_before=_adopted_commit(before) or None,
+            framework_after=_framework_head_commit(framework_root) or None,
+            update_status=_update_receipt_status(final_status),
+            warnings=warnings,
+        )
+        changed.append(RECEIPT_RELATIVE_PATH)
 
     return F7Result(
         ok=final_status in {COMPLETED, ALREADY_CURRENT, PARTIALLY_UPDATED},
@@ -583,7 +618,9 @@ def _run_external_contract_backend(repo_root: Path, framework_root: Path, apply:
             "framework_head_commit": _framework_head_commit(framework_root),
             "memory_workflow_router_present": _agents_memory_workflow_router_present(repo_root),
             "memory_workflow_hook_advisory_present": _pre_commit_memory_workflow_advisory_present(repo_root),
+            "update_receipt": update_receipt,
         },
+        update_receipt=update_receipt,
     )
 
 
@@ -630,6 +667,9 @@ def run_f7_full_update(
             result.full_update_stage_report.get("final_status", NOT_VERIFIED),
             stages,
         )
+        changed_files = list(result.staged_files)
+        if result.update_receipt.get("status") == "written":
+            changed_files.append(str(result.update_receipt.get("path", RECEIPT_RELATIVE_PATH)))
         return F7Result(
             ok=result.ok,
             mode=result.mode,
@@ -637,9 +677,10 @@ def run_f7_full_update(
             repo_role=role,
             f7_final_status=final_status,
             stages=stages,
-            changed_files=result.staged_files,
+            changed_files=sorted(set(changed_files)),
             errors=result.errors,
             details={"submodule_backend": asdict(result)},
+            update_receipt=result.update_receipt,
         )
     if role == "external_contract_repo":
         return _run_external_contract_backend(repo_root, framework_root, apply=apply)
@@ -677,6 +718,9 @@ def format_human(result: F7Result) -> str:
             "Changed files reported by this run: "
             + (", ".join(result.changed_files) if result.changed_files else "none")
         ),
+        f"Update receipt status: {result.update_receipt.get('status', '-')}.",
+        f"Update receipt path: {result.update_receipt.get('path', '-')}.",
+        f"Update receipt staged: {result.update_receipt.get('staged', False)}.",
         (
             "Important boundary: this report explains visible update/adoption surfaces; "
             "it does not prove runtime enforcement or full governance correctness."
