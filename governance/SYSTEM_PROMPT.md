@@ -50,7 +50,7 @@ default_load: always
 先輸出並確認：
 
 ```text
-LANG  = C | C++ | C# | ObjC | Swift | JS | Python
+LANG  = C | C++ | C# | ObjC | Swift | JS | Python | Verilog | SystemVerilog
 LEVEL = L0 | L1 | L2
 SCOPE = feature | refactor | bugfix | I/O | tooling | review | governance | kernel-driver
 ```
@@ -159,7 +159,7 @@ SESSION  = <YYYY-MM-DD-NN>  # optional; required when AGENT_ID is present
 ```
 
 欄位規則：
-- `LANG`: `C | C++ | C# | ObjC | Swift | JS | Python`
+- `LANG`: `C | C++ | C# | ObjC | Swift | JS | Python | Verilog | SystemVerilog`
 - `LEVEL`: `L0 | L1 | L2`
 - `SCOPE`: `feature | refactor | bugfix | I/O | tooling | review | governance | kernel-driver`
 - `PLAN`: 取自 `PLAN.md`；若人類明確授權 governance analysis，可標 `Out-of-scope`
