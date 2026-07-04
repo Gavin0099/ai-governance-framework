@@ -2,21 +2,25 @@
 
 Contract: docs/governance/self-governance-memory-blocking-policy-rfc-2026-07-04.md
 
-These fixtures pin the current Phase 1 (report-only) behavior of the B0
-candidate blocking class `session_like_non_session_memory_type` against the
-six bypass scenarios enumerated in the RFC. The guard stays report-only:
-nothing here asserts blocking. Scenarios that the future switch must close
-but the current detector misses are pinned as misses on purpose, so closing
-them later forces a conscious test update instead of a silent behavior change.
+These fixtures pin both sides of the B0 claim boundary:
+
+* raw `memory_authority_guard` default behavior stays report-only;
+* policy-backed `memory_workflow` / CI consumers selectively block
+  `session_like_non_session_memory_type` when `governance/memory_blocking_policy.json`
+  enables it.
+
+Scenarios that remain intentionally report-only are pinned as such so future
+enforcement changes require a conscious test update instead of a silent claim
+upgrade.
 
 Scenario map (RFC "Mutation Contract Required Before The Switch"):
   1. prose rewording           -> still detected (field-based, not prose-based)
   2. novel memory_type value   -> still detected
   3. pre-window file append    -> detected WITH diff context (changed_files);
                                   still missed without diff context (residual)
-  4. hook bypass / CI parity   -> guard and workflow surfaces agree, report-only
-  5. authority_override field  -> currently no effect (semantics not implemented)
-  6. kill switch               -> current default IS Phase 1 semantics (pinned)
+  4. hook bypass / CI parity   -> policy-backed workflow and CI block B0
+  5. authority_override field  -> default guard inert; policy mode downgrades
+  6. kill switch               -> raw guard default remains Phase 1 semantics
 """
 
 from __future__ import annotations
@@ -334,10 +338,9 @@ def test_b0_scenario5_authority_override_field_has_no_effect_in_phase1(tmp_path:
     assert "authority_override_used" not in counts
 
 
-# ── RFC rollout step 3: opt-in selective blocking policy plumbing ────────────
-# The policy input exists but no hook or CI caller passes it; these tests are
-# the only place the opt-in path runs, per the RFC ("behavior unchanged;
-# opt-in flag exercised only in tests").
+# ── RFC rollout step 3: selective blocking policy plumbing ───────────────────
+# These tests exercise the direct policy input contract. Step 4 below verifies
+# that workflow and CI consumers load the versioned policy file.
 
 
 _IN_WINDOW_B0_ENTRY = (

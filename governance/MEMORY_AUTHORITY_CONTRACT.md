@@ -241,7 +241,7 @@ sessions or unusual workflows.
 | `non_canonical_writer` | warning | no | Session-derived entry was not written in canonical writer format |
 | `old_format_entry_after_canonical_writer_cutoff` | warning | no | Old-format daily memory entry appears after the canonical-writer cutoff and should be rewritten through the canonical writer |
 | `test_evidence_provenance_not_found` | warning | no | Success-style `test_evidence` lacks an existing `artifacts/...` provenance path |
-| `session_like_non_session_memory_type` | warning | no | Active-window typed entry uses non-session `memory_type` while carrying session memory fields |
+| `session_like_non_session_memory_type` | warning in raw guard; blocker in policy-backed gates | raw guard: no; `memory_workflow` / CI with policy file: yes | Active-window typed entry uses non-session `memory_type` while carrying session memory fields |
 | `active_non_canonical_writer` | blocker candidate | opt-in / workflow-dependent | Current-window non-canonical writer violation detected by the active-window filter |
 
 Current semantics:
@@ -253,6 +253,11 @@ Current semantics:
 - `active_non_canonical_writer` is a current completion blocker candidate for
   memory completion claims when surfaced by `memory_workflow` or explicitly
   checked with active-window options.
+- `session_like_non_session_memory_type` remains report-only when
+  `memory_authority_guard` is run with its default arguments. In gate consumers
+  that load `governance/memory_blocking_policy.json`, the same code is the first
+  selective blocker for active-window entries. Pre-window reasons and entries
+  carrying `authority_override` stay report-only.
 - `memory_workflow --check --repo . --run-guard` reports whether the guard ran,
   summarizes warnings/blockers, and exposes `completion_claim_allowed`.
 - `memory_authority_guard` `ok=True` means the report-only guard executed. It
@@ -317,10 +322,12 @@ python -m governance_tools.memory_authority_guard --memory-root memory --project
 
 Current behavior summary:
 
-- normal guard/reporting paths are warning/report-only unless an opt-in blocker
-  mode is explicitly used;
-- managed pre-commit may surface memory workflow advisory text, but that advisory
-  alone does not prove completion denial;
+- `memory_authority_guard` default CLI output is warning/report-only;
+- `memory_workflow` and `ci_memory_workflow_check` load
+  `governance/memory_blocking_policy.json` and may selectively block enabled
+  codes such as `session_like_non_session_memory_type`;
+- managed pre-commit may surface the same memory workflow verdict as advisory
+  text; CI remains the authoritative gate surface;
 - receipt presence proves workflow status was observed, not that memory
   completion was semantically correct.
 
