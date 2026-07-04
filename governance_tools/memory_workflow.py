@@ -328,7 +328,7 @@ def assess_memory_workflow(
             task_classification=TASK_POSSIBLE,
             guard_ran=guard_ran,
             guard_summary=guard_summary,
-            completion_claim_allowed=True,
+            completion_claim_allowed=not blockers,
             warnings=warnings,
             blockers=blockers,
         )
@@ -347,7 +347,7 @@ def assess_memory_workflow(
         task_classification=TASK_NOT_MEMORY,
         guard_ran=guard_ran,
         guard_summary=guard_summary,
-        completion_claim_allowed=True,
+        completion_claim_allowed=not blockers,
         warnings=warnings,
         blockers=blockers,
     )

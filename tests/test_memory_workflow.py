@@ -66,6 +66,22 @@ def test_non_memory_diff_does_not_require_workflow(tmp_path: Path) -> None:
     assert result.completion_claim_allowed is True
 
 
+def test_policy_only_blocker_disallows_completion_claim(tmp_path: Path) -> None:
+    _make_framework_surface(tmp_path)
+    (tmp_path / "memory").mkdir()
+    _write(tmp_path / "governance" / "memory_blocking_policy.json", "{not json")
+
+    result = assess_memory_workflow(
+        tmp_path,
+        changed_files=["governance/memory_blocking_policy.json"],
+        run_guard_check=True,
+    )
+
+    assert result.status == "no_memory_workflow_required"
+    assert "blocking_policy_error" in result.blockers
+    assert result.completion_claim_allowed is False
+
+
 def test_writer_and_guard_paths_reported(tmp_path: Path) -> None:
     _make_framework_surface(tmp_path)
 
