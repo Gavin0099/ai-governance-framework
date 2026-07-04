@@ -735,6 +735,41 @@ def test_step4_ci_no_policy_announcement_without_policy_in_diff(tmp_path: Path) 
     assert "blocking_policy_changed_in_current_diff" not in result.warnings
 
 
+def test_round2_f6_non_daily_memory_file_remains_outside_b0_scan(tmp_path: Path) -> None:
+    # F6 residual: memory_workflow classifies any memory/** diff as governed,
+    # but memory_authority_guard scans daily YYYY-MM-DD.md files only. A
+    # session-shaped non-session entry in memory/notes.md therefore remains
+    # outside B0, even when the policy-backed workflow/CI gates are enabled.
+    _make_framework_surface(tmp_path)
+    _write_policy(tmp_path)
+    _write_memory(tmp_path, "notes.md", _IN_WINDOW_B0_ENTRY)
+
+    guard = run_guard(
+        tmp_path / "memory",
+        tmp_path,
+        skip_git=True,
+        changed_files=["memory/notes.md"],
+        blocking_codes=[B0_CODE],
+    )
+    workflow = assess_memory_workflow(
+        tmp_path,
+        changed_files=["memory/notes.md"],
+        run_guard_check=True,
+    )
+    ci_result = ci_check(tmp_path, changed_files=["memory/notes.md"])
+
+    assert guard["violation_counts_by_code"].get(B0_CODE, 0) == 0
+    assert guard["blocking_violation_codes"] == []
+    assert workflow.status == "memory_workflow_required"
+    assert workflow.memory_files_in_diff == ["memory/notes.md"]
+    assert workflow.guard_summary.get(B0_CODE, 0) == 0
+    assert workflow.blockers == []
+    assert workflow.completion_claim_allowed is True
+    assert ci_result.clean is True
+    assert ci_result.changed_memory_files == ["memory/notes.md"]
+    assert not any(B0_CODE in warning for warning in ci_result.warnings)
+
+
 def test_b0_scenario6_phase1_semantics_pinned_even_when_b0_fires(tmp_path: Path) -> None:
     # Kill-switch precondition: the current default must equal Phase 1
     # report-only semantics with no policy input. When the policy switch

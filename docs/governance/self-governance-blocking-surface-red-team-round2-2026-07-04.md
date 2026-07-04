@@ -104,6 +104,13 @@ scan (`YYYY-MM-DD.md` only) and outside B0 entirely. The workflow still flags
 content. This is a scope boundary of the daily-file contract, not a
 regression; it needs its own slice if it is to be closed.
 
+Report-only probe baseline: `test_round2_f6_non_daily_memory_file_remains_outside_b0_scan`
+pins the current behavior. With `governance/memory_blocking_policy.json`
+enabled, `memory/notes.md` is still treated as a governed memory diff by
+`memory_workflow` / CI, but the daily-file guard reports no B0 violation and
+the policy-backed gates stay clean. This is evidence of the residual
+scan-scope bypass, not a remediation.
+
 ## Cannot Claim
 
 - the blocking surface is now bypass-proof (F2 prevention, F4, F5 narrowing,
@@ -118,5 +125,6 @@ regression; it needs its own slice if it is to be closed.
 
 - probes executed 2026-07-04 against `2eb9a42` before fixes
 - fixtures: `tests/test_self_governance_memory_blocking_policy_b0_fixtures.py`
-  (36 passing, including 6 new round-2 fixtures)
+  (includes round-2 tamper fixtures and the F6 non-daily scan-scope residual
+  baseline)
 - scoped regression: guard / workflow / CI consumer suites green
