@@ -1,0 +1,10 @@
+{
+  "policy_schema": "memory_blocking_policy.v0.1",
+  "enabled": true,
+  "blocking_codes": [
+    "session_like_non_session_memory_type"
+  ],
+  "activated_on": "2026-07-04",
+  "authority": "docs/governance/self-governance-memory-blocking-policy-rfc-2026-07-04.md",
+  "scope_note": "B0 first blocker only. Pre-window reasons and authority_override entries stay report-only by guard policy. Kill switch: set enabled to false or delete this file."
+}
