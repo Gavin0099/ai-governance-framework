@@ -111,6 +111,10 @@ enabled, `memory/notes.md` is still treated as a governed memory diff by
 the policy-backed gates stay clean. This is evidence of the residual
 scan-scope bypass, not a remediation.
 
+Remediation direction is defined in
+`docs/governance/self-governance-f6-non-daily-memory-remediation-design-2026-07-05.md`:
+report-only warning first; no direct blocking promotion without a separate RFC.
+
 ## Cannot Claim
 
 - the blocking surface is now bypass-proof (F2 prevention, F4, F5 narrowing,
