@@ -22,7 +22,10 @@ Checks:
      context marks them as modified, to catch backdated appends without
      reclassifying untouched historical entries)
 
-Phase 1: warnings only. Exit code always 0. JSON to stdout.
+Phase 1 default: warnings only. Exit code always 0. JSON to stdout.
+Selective blocking (RFC rollout step 3): run_guard accepts an opt-in
+blocking_codes policy input; the default (empty) keeps exact Phase 1 semantics
+and is the kill switch. No hook or CI caller passes it yet.
 
 See: governance/MEMORY_AUTHORITY_CONTRACT.md
 """
@@ -68,6 +71,7 @@ _TEST_EVIDENCE_ARTIFACT_PATH = re.compile(
     r'(?P<path>(?:\.?[\\/])?artifacts[\\/][^\s,;]+)', re.IGNORECASE
 )
 _MEMORY_BINDING = re.compile(r'(?m)^\s*memory_binding:\s*\S+', re.IGNORECASE)
+_AUTHORITY_OVERRIDE = re.compile(r'(?m)^\s*authority_override:\s*(.+)$', re.IGNORECASE)
 _NEXT_STEP = re.compile(r'(?m)^\s*next_step:\s*.+$', re.IGNORECASE)
 _PLAN_RECONCILIATION = re.compile(r'(?m)^\s*plan_reconciliation:\s*\S+', re.IGNORECASE)
 _PROMOTED_BY = re.compile(r'promoted_by:', re.IGNORECASE)
@@ -84,6 +88,9 @@ _CANONICAL_MEMORY_WRITER = "governance_tools.memory_record"
 _CANONICAL_WRITER_REQUIRED_FROM = "2026-05-01"
 _ACTIVE_NON_CANONICAL_WRITER_DEFAULT_FROM = "2026-06-02"
 _SESSION_DERIVED_MEMORY_TYPES = {"session-derived", "session_derived"}
+_PRE_WINDOW_REASON_PREFIX = (
+    "non_session_memory_type_with_session_fields_in_modified_pre_window_file:"
+)
 _SESSION_LIKE_FIELD_PATTERNS = (
     ("record_format_version", _RECORD_FORMAT_VERSION),
     ("writer", _WRITER),
@@ -262,6 +269,11 @@ def _test_evidence_provenance_violation(
     return "test_evidence_artifact_not_found"
 
 
+def _authority_override_value(block: str) -> str | None:
+    match = _AUTHORITY_OVERRIDE.search(block)
+    return match.group(1).strip() if match else None
+
+
 def _session_like_field_names(block: str) -> list[str]:
     return [
         name
@@ -357,9 +369,10 @@ def check_modified_pre_window_daily_files(
                 'file': name,
                 'entry': _snippet(block),
                 'reason': (
-                    'non_session_memory_type_with_session_fields_in_modified_pre_window_file:'
+                    f'{_PRE_WINDOW_REASON_PREFIX}'
                     f'{memory_type}:{",".join(matched_fields)}'
                 ),
+                'authority_override': _authority_override_value(block),
             })
     return violations
 
@@ -468,6 +481,7 @@ def check_daily_memory(
                     'file': str(fpath.name),
                     'entry': _snippet(block),
                     'reason': bypass_reason,
+                    'authority_override': _authority_override_value(block),
                 })
 
     coverage = {'total_entries': total_entries, 'bound_entries': bound_entries}
@@ -672,6 +686,58 @@ def _report_only_not_claimed(authority_status: str) -> list[str]:
     return not_claimed
 
 
+def _selective_blocking_not_claimed(authority_status: str) -> list[str]:
+    # Selective blocking never claims full enforcement: only the enabled
+    # codes block, everything else stays report-only.
+    not_claimed = ["full_blocking_enforcement", "semantic_truth_verification"]
+    if authority_status != "clean":
+        not_claimed.insert(0, "memory_authority_clean")
+    return not_claimed
+
+
+def _apply_blocking_policy(
+    violations: list[dict[str, Any]],
+    enabled_codes: list[str],
+) -> list[dict[str, Any]]:
+    """
+    Select the violations the policy actually blocks and append audit records
+    for per-entry overrides. Mutates `violations` only by appending
+    `authority_override_used` report-only records.
+
+    Exclusions (see the blocking policy RFC):
+      - pre-window reasons: content classified before the activation window
+        never blocks (backcompat); the diff-aware pre-window scan is
+        whole-file, so it can surface legacy entries that must not block.
+      - authority_override: an explicit per-entry override downgrades the
+        block to a warning and emits `authority_override_used` so the
+        override is auditable, never silent.
+    """
+    blocking: list[dict[str, Any]] = []
+    downgraded: list[dict[str, Any]] = []
+    for violation in violations:
+        if violation.get('code') not in enabled_codes:
+            continue
+        reason = str(violation.get('reason') or '')
+        if reason.startswith(_PRE_WINDOW_REASON_PREFIX):
+            continue
+        if violation.get('authority_override'):
+            downgraded.append(violation)
+            continue
+        blocking.append(violation)
+    for violation in downgraded:
+        violations.append({
+            'code': 'authority_override_used',
+            'severity': 'warning',
+            'file': violation.get('file'),
+            'entry': violation.get('entry'),
+            'reason': (
+                f"downgraded_from:{violation.get('code')}:"
+                f"{violation.get('authority_override')}"
+            ),
+        })
+    return blocking
+
+
 def filter_active_non_canonical_writer_violations(
     violations: list[dict[str, Any]],
     *,
@@ -702,15 +768,25 @@ def run_guard(
     *,
     skip_git: bool = False,
     changed_files: Sequence[str] | None = None,
+    blocking_codes: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     """
     Run all four checks and return structured JSON result.
-    Phase 1: always warning mode; all violations are non-blocking.
+    Default: Phase 1 warning mode; all violations are non-blocking.
 
     changed_files: optional diff context (repo-relative paths). When provided,
     modified pre-window daily files are additionally scanned for session-shaped
     non-session entries (backdated append detection). Without diff context the
     behavior is unchanged.
+
+    blocking_codes: optional selective blocking policy input (RFC: memory
+    blocking policy, rollout step 3). Default None/empty keeps exact Phase 1
+    report-only semantics — this default IS the kill switch, and its state is
+    always visible in the result under `blocking_policy`. When non-empty,
+    violations with an enabled code block (ok=False, enforcement_action=block)
+    except pre-window-reason and authority_override entries, which stay
+    report-only. No caller in hooks or CI passes this yet; activation is a
+    separate policy decision (RFC rollout step 4).
     """
     violations: list[dict[str, Any]] = []
 
@@ -727,6 +803,13 @@ def run_guard(
     violations.extend(check_private_memory_cited(project_root))
     if not skip_git:
         violations.extend(check_missing_canonical_memory(memory_root, project_root))
+
+    enabled_codes = sorted({
+        str(code).strip() for code in (blocking_codes or []) if str(code).strip()
+    })
+    blocking_violations = (
+        _apply_blocking_policy(violations, enabled_codes) if enabled_codes else []
+    )
 
     counts: dict[str, int] = {}
     for v in violations:
@@ -752,20 +835,49 @@ def run_guard(
     }
     authority_status = _authority_integrity_status(violations)
 
+    if enabled_codes:
+        blocking_codes_fired = sorted({v['code'] for v in blocking_violations})
+        ok = not blocking_violations
+        ok_meaning = (
+            'guard_executed_selective_blocking_not_authority_clean'
+            if ok
+            else 'guard_executed_selective_blocking_violation_present'
+        )
+        enforcement_action = 'allow' if ok else 'block'
+        claim_ceiling = 'selective_blocking_phase2'
+        not_claimed = _selective_blocking_not_claimed(authority_status)
+        policy_mode = 'selective_blocking'
+    else:
+        blocking_codes_fired = []
+        ok = True  # Phase 1: guard executed; findings are report-only.
+        ok_meaning = 'guard_executed_report_only_not_authority_clean'
+        enforcement_action = 'allow'
+        claim_ceiling = 'report_only_phase1'
+        not_claimed = _report_only_not_claimed(authority_status)
+        policy_mode = 'report_only_default'
+
+    report_only_codes = sorted(
+        code for code in counts if code not in set(blocking_codes_fired)
+    )
+
     return {
         'guard': 'memory_authority_guard',
         'version': '1.2.0',
         'contract': 'governance/MEMORY_AUTHORITY_CONTRACT.md',
         'phase': 'phase1',
-        'mode': 'warning',
-        'ok': True,  # Phase 1: guard executed; findings are report-only.
-        'ok_meaning': 'guard_executed_report_only_not_authority_clean',
+        'mode': 'warning' if not enabled_codes else 'selective_blocking',
+        'ok': ok,
+        'ok_meaning': ok_meaning,
         'authority_integrity_status': authority_status,
-        'enforcement_action': 'allow',
-        'blocking_violation_codes': [],
-        'report_only_violation_codes': sorted(counts),
-        'claim_ceiling': 'report_only_phase1',
-        'not_claimed': _report_only_not_claimed(authority_status),
+        'enforcement_action': enforcement_action,
+        'blocking_violation_codes': blocking_codes_fired,
+        'report_only_violation_codes': report_only_codes,
+        'claim_ceiling': claim_ceiling,
+        'not_claimed': not_claimed,
+        'blocking_policy': {
+            'enabled_codes': enabled_codes,
+            'mode': policy_mode,
+        },
         'violation_count': len(violations),
         'violation_counts_by_code': counts,
         'authority_coverage_rate': authority_coverage_rate,

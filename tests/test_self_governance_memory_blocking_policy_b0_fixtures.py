@@ -332,6 +332,146 @@ def test_b0_scenario5_authority_override_field_has_no_effect_in_phase1(tmp_path:
     assert "authority_override_used" not in counts
 
 
+# ── RFC rollout step 3: opt-in selective blocking policy plumbing ────────────
+# The policy input exists but no hook or CI caller passes it; these tests are
+# the only place the opt-in path runs, per the RFC ("behavior unchanged;
+# opt-in flag exercised only in tests").
+
+
+_IN_WINDOW_B0_ENTRY = (
+    "- memory_type: note\n"
+    "  record_format_version: 1.0\n"
+    "  writer: manual.editor\n"
+    "  what_changed: in-window session-shaped entry\n"
+    "  commit: deadbee\n"
+    "  memory_binding: bound\n"
+    "  test_evidence: not relevant\n"
+    "  next_step: none\n"
+)
+
+
+def test_policy_optin_b0_violation_blocks(tmp_path: Path) -> None:
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_ENTRY)
+
+    result = run_guard(
+        tmp_path / "memory", tmp_path, skip_git=True, blocking_codes=[B0_CODE]
+    )
+
+    assert result["ok"] is False
+    assert result["ok_meaning"] == "guard_executed_selective_blocking_violation_present"
+    assert result["enforcement_action"] == "block"
+    assert result["blocking_violation_codes"] == [B0_CODE]
+    assert result["claim_ceiling"] == "selective_blocking_phase2"
+    assert "full_blocking_enforcement" in result["not_claimed"]
+    assert result["blocking_policy"] == {
+        "enabled_codes": [B0_CODE],
+        "mode": "selective_blocking",
+    }
+
+
+def test_policy_optin_without_violation_allows(tmp_path: Path) -> None:
+    (tmp_path / "memory").mkdir()
+
+    result = run_guard(
+        tmp_path / "memory", tmp_path, skip_git=True, blocking_codes=[B0_CODE]
+    )
+
+    assert result["ok"] is True
+    assert result["enforcement_action"] == "allow"
+    assert result["blocking_violation_codes"] == []
+    assert result["claim_ceiling"] == "selective_blocking_phase2"
+
+
+def test_policy_optin_pre_window_reason_never_blocks(tmp_path: Path) -> None:
+    # RFC backcompat: pre-activation-window content stays report-only even
+    # under an enabled policy. This also guards the whole-file-scan noise
+    # class: legacy entries surfaced by an innocent edit must not block.
+    _write_memory(tmp_path, _PRE_WINDOW_FILENAME, _PRE_WINDOW_B0_ENTRY)
+
+    result = run_guard(
+        tmp_path / "memory",
+        tmp_path,
+        skip_git=True,
+        changed_files=[f"memory/{_PRE_WINDOW_FILENAME}"],
+        blocking_codes=[B0_CODE],
+    )
+
+    assert result["violation_counts_by_code"][B0_CODE] == 1
+    assert result["ok"] is True
+    assert result["enforcement_action"] == "allow"
+    assert result["blocking_violation_codes"] == []
+
+
+def test_policy_optin_authority_override_downgrades_and_is_audited(tmp_path: Path) -> None:
+    _write_memory(
+        tmp_path,
+        _IN_WINDOW_FILENAME,
+        "- memory_type: note\n"
+        "  record_format_version: 1.0\n"
+        "  writer: manual.editor\n"
+        "  what_changed: overridden in-window entry\n"
+        "  authority_override: reviewer-x accepted-scope-exception\n"
+        "  commit: deadbee\n"
+        "  memory_binding: bound\n"
+        "  test_evidence: not relevant\n"
+        "  next_step: none\n",
+    )
+
+    result = run_guard(
+        tmp_path / "memory", tmp_path, skip_git=True, blocking_codes=[B0_CODE]
+    )
+
+    assert result["ok"] is True
+    assert result["enforcement_action"] == "allow"
+    assert result["blocking_violation_codes"] == []
+    # The override is never silent: the original violation stays visible and
+    # an audit record is added.
+    assert result["violation_counts_by_code"][B0_CODE] == 1
+    assert result["violation_counts_by_code"]["authority_override_used"] == 1
+    audit = [
+        v for v in result["violations"] if v["code"] == "authority_override_used"
+    ][0]
+    assert audit["reason"].startswith(f"downgraded_from:{B0_CODE}:")
+
+
+def test_policy_optin_does_not_block_codes_outside_the_policy(tmp_path: Path) -> None:
+    # An unbound entry fires unbound_memory, which is not in the enabled set;
+    # selective blocking must not borrow enforcement for other codes.
+    _write_memory(
+        tmp_path,
+        _IN_WINDOW_FILENAME,
+        "- memory_type: session-derived\n"
+        "  record_format_version: 1.0\n"
+        "  writer: governance_tools.memory_record\n"
+        "  what_changed: unbound session entry\n"
+        "  commit: pending\n"
+        "  next_step: none\n",
+    )
+
+    result = run_guard(
+        tmp_path / "memory", tmp_path, skip_git=True, blocking_codes=[B0_CODE]
+    )
+
+    assert result["violation_counts_by_code"]["unbound_memory"] == 1
+    assert result["ok"] is True
+    assert result["enforcement_action"] == "allow"
+    assert result["blocking_violation_codes"] == []
+
+
+def test_policy_default_off_state_is_visible_in_output(tmp_path: Path) -> None:
+    # Kill-switch visibility: a disabled policy must be readable from the
+    # result so a disabled gate can never masquerade as a passing gate.
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_ENTRY)
+
+    result = run_guard(tmp_path / "memory", tmp_path, skip_git=True)
+
+    assert result["blocking_policy"] == {
+        "enabled_codes": [],
+        "mode": "report_only_default",
+    }
+    assert result["claim_ceiling"] == "report_only_phase1"
+
+
 def test_b0_scenario6_phase1_semantics_pinned_even_when_b0_fires(tmp_path: Path) -> None:
     # Kill-switch precondition: the current default must equal Phase 1
     # report-only semantics with no policy input. When the policy switch
