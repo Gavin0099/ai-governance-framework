@@ -31,6 +31,24 @@ Hard rule:
 
 - Lower-precedence signals must never override higher-precedence authority.
 
+Enforcement scope (claim ceiling):
+
+- This precedence is a reviewer- and agent-facing constitutional rule, not a
+  machine-enforced runtime guarantee. At runtime, `session_start` only filters
+  which governance documents load (by `audience` / `default_load`) and asserts
+  that `human-only` documents are not loaded. It does not resolve conflicts
+  between loaded documents by precedence: the authority ranker
+  (`resolve_conflict`) and the `can_override` / `overridden_by` frontmatter
+  fields have no runtime decision consumer and are advisory only.
+- The separate decision-model `policy_precedence` (consumed in
+  `runtime_hooks/core/post_task_check.py`) is a different axis — policy-type
+  verdict precedence — and does not enforce this document hierarchy.
+- Do not infer that a lower-precedence signal is mechanically blocked from
+  overriding a higher one; today that rule is upheld by reviewer and agent
+  discipline, not by a runtime gate. Registered as a report-only VULNERABLE
+  baseline in `docs/e1-mutation-catalog.md`
+  (`self_governance_authority_precedence`).
+
 Before any governance claim, identify all five items:
 
 1. Canonical authority source
