@@ -60,6 +60,19 @@ baselines; they are not `PROTECTED` mutation proof evidence.
 
 Contract: `docs/governance/self-governance-memory-truth-provenance-mutation-contract-2026-07-04.md`.
 
+### Self-Governance Normalizer Alias-Miss Baselines (2026-07-04)
+
+These entries document the runtime adapter normalizer alias-miss gap and its
+advisory-visibility remediation. The remaining `VULNERABLE` row is a report-only
+baseline; it is not `PROTECTED` mutation proof evidence.
+
+| Scenario | Type | Expected Surface | Current Observation | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Unmapped Gate-Relevant Key** | Negative Fixture | `shared_normalizer.normalize_payload` | gate-relevant keys under unrecognized names are still dropped from mapped fields but are now surfaced in `metadata.unmapped_gate_relevant_keys` | REMEDIATED baseline (advisory) |
+| **Token-Scoped Detection Limit** | Negative Fixture | `shared_normalizer.detect_unmapped_gate_keys` | a gate-relevant value under a key containing none of the gate-relevant tokens is neither mapped nor surfaced | VULNERABLE baseline |
+
+Contract: `docs/governance/self-governance-normalizer-alias-miss-mutation-contract-2026-07-04.md`.
+
 ### Self-Governance Claim-Label Baselines (2026-07-04)
 
 These entries are report-only `VULNERABLE` baselines. They document current
