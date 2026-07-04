@@ -71,6 +71,18 @@ semantic-vs-label gaps; they are not `PROTECTED` mutation proof evidence.
 
 Contract: `docs/governance/self-governance-claim-label-mutation-contract-2026-07-04.md`.
 
+### Self-Governance Authority-Precedence Baselines (2026-07-04)
+
+This entry is a report-only `VULNERABLE` baseline. It documents that the
+declared authority-document precedence is not runtime-enforced; the fix in this
+slice is a claim-ceiling clarification only, not enforcement.
+
+| Scenario | Type | Expected Surface | Current Observation | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Unenforced Authority Precedence** | Negative Fixture | `authority_loader.resolve_conflict` / `session_start` | the canonical>reference>derived ranker has no runtime caller and `can_override`/`overridden_by` have no runtime decision consumer; runtime does load-filtering + human-only exclusion only, never precedence conflict resolution | VULNERABLE baseline |
+
+Contract: `docs/governance/self-governance-authority-precedence-mutation-contract-2026-07-04.md`.
+
 ---
 
 ## 3. Exact Failure Contract (E1-C)
