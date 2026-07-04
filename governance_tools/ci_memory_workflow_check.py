@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Sequence
 
 from governance_tools.memory_authority_guard import (
+    _BLOCKING_POLICY_RELPATH,
     filter_active_non_canonical_writer_violations,
     load_blocking_policy,
     run_guard,
@@ -115,8 +116,11 @@ def check(
             warnings.append(f"{code}={count}")
 
     if policy["error"]:
-        # A broken policy file disables blocking but must stay visible.
         warnings.append(policy["error"])
+    if _BLOCKING_POLICY_RELPATH in set(normalized_changed):
+        # Turning the gate off is a legitimate governance action, but it must
+        # be loud in the diff that does it, never ambient.
+        warnings.append("blocking_policy_changed_in_current_diff")
 
     blockers = [
         {
@@ -135,6 +139,14 @@ def check(
         for violation in guard_result["violations"]
         if violation.get("enforcement") == "block"
     )
+    if policy["error"]:
+        # A broken policy file must fail the gate, not degrade to a warning:
+        # otherwise corrupting the policy is a silent kill switch.
+        blockers.append({
+            "code": "blocking_policy_error",
+            "file": _BLOCKING_POLICY_RELPATH,
+            "reason": policy["error"],
+        })
 
     return CiMemoryWorkflowCheckResult(
         repo_root=str(repo_root),

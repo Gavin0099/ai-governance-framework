@@ -581,6 +581,19 @@ def test_policy_loader_invalid_codes_disable_but_surface_error(tmp_path: Path) -
     assert policy["error"] == "blocking_policy_codes_invalid"
 
 
+def test_policy_loader_unknown_code_disables_but_surfaces_error(tmp_path: Path) -> None:
+    # Red-team round 2: a typo'd code silently enabled selective-blocking
+    # claims while blocking nothing. Unknown codes must fail visibly.
+    _write_policy(tmp_path, codes=["session_like_non_session_memorytype"])
+
+    policy = load_blocking_policy(tmp_path)
+
+    assert policy["enabled_codes"] == []
+    assert policy["error"] == (
+        "blocking_policy_unknown_code:session_like_non_session_memorytype"
+    )
+
+
 def test_step4_workflow_blocks_b0_when_policy_file_enables_it(tmp_path: Path) -> None:
     _make_framework_surface(tmp_path)
     _write_policy(tmp_path)
@@ -612,7 +625,9 @@ def test_step4_workflow_kill_switch_restores_report_only(tmp_path: Path) -> None
     assert workflow.completion_claim_allowed is True
 
 
-def test_step4_workflow_broken_policy_disables_blocking_but_warns(tmp_path: Path) -> None:
+def test_step4_workflow_broken_policy_is_itself_a_blocker(tmp_path: Path) -> None:
+    # Red-team round 2 hardening: a corrupted policy file must fail the gate.
+    # If it only warned, corrupting the file would be a silent kill switch.
     _make_framework_surface(tmp_path)
     _write_policy(tmp_path, raw="{not json")
     _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_ENTRY)
@@ -623,7 +638,8 @@ def test_step4_workflow_broken_policy_disables_blocking_but_warns(tmp_path: Path
         run_guard_check=True,
     )
 
-    assert workflow.blockers == []
+    assert "blocking_policy_error" in workflow.blockers
+    assert workflow.completion_claim_allowed is False
     assert any(w.startswith("blocking_policy_unreadable") for w in workflow.warnings)
 
 
@@ -648,6 +664,72 @@ def test_step4_ci_check_stays_clean_without_policy_file(tmp_path: Path) -> None:
     )
 
     assert result.clean is True
+
+
+def test_step4_ci_corrupted_policy_in_diff_fails_the_gate(tmp_path: Path) -> None:
+    # Red-team round 2 probe 3: corrupting the policy in the same PR that
+    # adds a B0 entry passed CI clean. A broken policy is now a blocker.
+    _write_policy(tmp_path, raw="{corrupted")
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_ENTRY)
+
+    result = ci_check(
+        tmp_path,
+        changed_files=[
+            "governance/memory_blocking_policy.json",
+            f"memory/{_IN_WINDOW_FILENAME}",
+        ],
+    )
+
+    assert result.clean is False
+    blocker_codes = [b["code"] for b in result.blockers]
+    assert "blocking_policy_error" in blocker_codes
+
+
+def test_step4_ci_policy_change_in_diff_is_loud(tmp_path: Path) -> None:
+    # Red-team round 2 probe 4: disabling the policy in the same PR left no
+    # trace in CI output. A valid policy change stays allowed (governance
+    # action, owned by diff review) but must be announced.
+    _write_policy(tmp_path, enabled=False)
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_ENTRY)
+
+    result = ci_check(
+        tmp_path,
+        changed_files=[
+            "governance/memory_blocking_policy.json",
+            f"memory/{_IN_WINDOW_FILENAME}",
+        ],
+    )
+
+    assert result.clean is True
+    assert "blocking_policy_changed_in_current_diff" in result.warnings
+
+
+def test_step4_ci_policy_deletion_in_diff_is_loud(tmp_path: Path) -> None:
+    # Deleting the policy file is default-off (no error) but the diff that
+    # removes the gate must still be announced.
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_ENTRY)
+
+    result = ci_check(
+        tmp_path,
+        changed_files=[
+            "governance/memory_blocking_policy.json",
+            f"memory/{_IN_WINDOW_FILENAME}",
+        ],
+    )
+
+    assert result.clean is True
+    assert "blocking_policy_changed_in_current_diff" in result.warnings
+
+
+def test_step4_ci_no_policy_announcement_without_policy_in_diff(tmp_path: Path) -> None:
+    _write_policy(tmp_path)
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_ENTRY)
+
+    result = ci_check(
+        tmp_path, changed_files=[f"memory/{_IN_WINDOW_FILENAME}"]
+    )
+
+    assert "blocking_policy_changed_in_current_diff" not in result.warnings
 
 
 def test_b0_scenario6_phase1_semantics_pinned_even_when_b0_fires(tmp_path: Path) -> None:

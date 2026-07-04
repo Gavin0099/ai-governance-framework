@@ -243,8 +243,10 @@ def _run_authority_guard(
     if summary.get("active_non_canonical_writer", 0) > 0:
         blockers.append("active_non_canonical_writer")
     if policy["error"]:
-        # A broken policy file disables blocking but must stay visible.
+        # A broken policy file must fail the gate, not degrade to a warning:
+        # otherwise corrupting the policy is a silent kill switch.
         warnings.append(policy["error"])
+        blockers.append("blocking_policy_error")
     for code in result.get("blocking_violation_codes", []):
         blockers.append(f"memory_authority_blocking:{code}")
     return True, summary, warnings, blockers

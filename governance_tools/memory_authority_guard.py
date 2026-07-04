@@ -271,6 +271,17 @@ def _test_evidence_provenance_violation(
 
 _BLOCKING_POLICY_RELPATH = "governance/memory_blocking_policy.json"
 _BLOCKING_POLICY_SCHEMA = "memory_blocking_policy.v0.1"
+# Codes a policy may enable. authority_override_used is deliberately absent:
+# it is an audit record, never blockable.
+_BLOCKABLE_VIOLATION_CODES = frozenset({
+    "unbound_memory",
+    "non_canonical_writer",
+    "structural_memory_auto_write",
+    "private_memory_cited",
+    "missing_canonical_memory",
+    "test_evidence_provenance_not_found",
+    "session_like_non_session_memory_type",
+})
 
 
 def load_blocking_policy(project_root: Path) -> dict[str, Any]:
@@ -300,8 +311,14 @@ def load_blocking_policy(project_root: Path) -> dict[str, Any]:
     codes = payload.get('blocking_codes')
     if not isinstance(codes, list) or not all(isinstance(c, str) for c in codes):
         return {**off, 'error': 'blocking_policy_codes_invalid'}
+    cleaned = sorted({c.strip() for c in codes if c.strip()})
+    unknown = [c for c in cleaned if c not in _BLOCKABLE_VIOLATION_CODES]
+    if unknown:
+        # A typo'd code would otherwise enable selective-blocking claims while
+        # blocking nothing (claim inflation) — fail visibly instead.
+        return {**off, 'error': f"blocking_policy_unknown_code:{','.join(unknown)}"}
     return {
-        'enabled_codes': sorted({c.strip() for c in codes if c.strip()}),
+        'enabled_codes': cleaned,
         'source': _BLOCKING_POLICY_RELPATH,
         'error': None,
     }
