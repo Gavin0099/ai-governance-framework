@@ -579,6 +579,21 @@ def _safe_rate(numerator: int, denominator: int) -> float | None:
     return round(numerator / denominator, 4)
 
 
+def _authority_integrity_status(violations: list[dict[str, Any]]) -> str:
+    if any(v.get("severity", "warning") == "warning" for v in violations):
+        return "warnings_present"
+    if violations:
+        return "info_present"
+    return "clean"
+
+
+def _report_only_not_claimed(authority_status: str) -> list[str]:
+    not_claimed = ["blocking_enforcement", "semantic_truth_verification"]
+    if authority_status != "clean":
+        not_claimed.insert(0, "memory_authority_clean")
+    return not_claimed
+
+
 def filter_active_non_canonical_writer_violations(
     violations: list[dict[str, Any]],
     *,
@@ -647,6 +662,7 @@ def run_guard(
             'rate': _safe_rate(struct_promoted, struct_total),
         },
     }
+    authority_status = _authority_integrity_status(violations)
 
     return {
         'guard': 'memory_authority_guard',
@@ -654,7 +670,14 @@ def run_guard(
         'contract': 'governance/MEMORY_AUTHORITY_CONTRACT.md',
         'phase': 'phase1',
         'mode': 'warning',
-        'ok': True,  # Phase 1: always ok (non-blocking)
+        'ok': True,  # Phase 1: guard executed; findings are report-only.
+        'ok_meaning': 'guard_executed_report_only_not_authority_clean',
+        'authority_integrity_status': authority_status,
+        'enforcement_action': 'allow',
+        'blocking_violation_codes': [],
+        'report_only_violation_codes': sorted(counts),
+        'claim_ceiling': 'report_only_phase1',
+        'not_claimed': _report_only_not_claimed(authority_status),
         'violation_count': len(violations),
         'violation_counts_by_code': counts,
         'authority_coverage_rate': authority_coverage_rate,
@@ -676,12 +699,16 @@ def _human_summary(result: dict[str, Any]) -> str:
         f"session_authority_rate={sd_rate if sd_rate is not None else 'n/a'} "
         f"structural_authority_rate={st_rate if st_rate is not None else 'n/a'}"
     )
+    interpretation = (
+        f"authority_integrity_status={result.get('authority_integrity_status', 'unknown')} "
+        f"ok_meaning={result.get('ok_meaning', 'unknown')}"
+    )
     if n == 0:
-        return f'memory authority: ok (no violations) | {coverage_str}'
+        return f'memory authority: clean (phase1=non-blocking) | {coverage_str} | {interpretation}'
     parts = [f"{k}={v}" for k, v in sorted(counts.items())]
     return (
-        f'memory authority: {n} warning(s) [{", ".join(parts)}] (phase1=non-blocking) '
-        f'| {coverage_str}'
+        f'memory authority: {n} finding(s) [{", ".join(parts)}] (phase1=non-blocking; ok!=clean) '
+        f'| {coverage_str} | {interpretation}'
     )
 
 

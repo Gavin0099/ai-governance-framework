@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from governance_tools.memory_authority_guard import (
     check_daily_memory,
     filter_active_non_canonical_writer_violations,
+    run_guard,
 )
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -93,6 +94,22 @@ class TestCanonicalWriterPasses:
         ncw = [v for v in violations if v["code"] == "non_canonical_writer"]
         assert ncw == [], f"unexpected non_canonical_writer violations: {ncw}"
 
+    def test_clean_guard_output_disambiguates_ok_meaning(self, tmp_path):
+        mem = tmp_path / "memory"
+        mem.mkdir()
+
+        result = run_guard(mem, tmp_path, skip_git=True)
+
+        assert result["ok"] is True
+        assert result["ok_meaning"] == "guard_executed_report_only_not_authority_clean"
+        assert result["authority_integrity_status"] == "clean"
+        assert result["enforcement_action"] == "allow"
+        assert result["blocking_violation_codes"] == []
+        assert result["report_only_violation_codes"] == []
+        assert "blocking_enforcement" in result["not_claimed"]
+        assert "semantic_truth_verification" in result["not_claimed"]
+        assert "memory_authority_clean" not in result["not_claimed"]
+
 
 # ── B. Manual session-derived fails ───────────────────────────────────────────
 
@@ -113,6 +130,21 @@ class TestManualSessionDerivedFails:
         violations, _ = check_daily_memory(mem)
         ncw = [v for v in violations if v["code"] == "non_canonical_writer"]
         assert any("session_derived" in v["reason"] for v in ncw)
+
+    def test_warning_guard_output_does_not_let_ok_mean_clean(self, tmp_path):
+        mem = tmp_path / "memory"
+        mem.mkdir()
+        _write_daily(mem, POST_CUTOFF, MANUAL_SESSION_DERIVED_ENTRY)
+
+        result = run_guard(mem, tmp_path, skip_git=True)
+
+        assert result["ok"] is True
+        assert result["ok_meaning"] == "guard_executed_report_only_not_authority_clean"
+        assert result["authority_integrity_status"] == "warnings_present"
+        assert result["enforcement_action"] == "allow"
+        assert result["blocking_violation_codes"] == []
+        assert "non_canonical_writer" in result["report_only_violation_codes"]
+        assert "memory_authority_clean" in result["not_claimed"]
 
 
 # ── C. Manual non-session-derived is ignored ──────────────────────────────────

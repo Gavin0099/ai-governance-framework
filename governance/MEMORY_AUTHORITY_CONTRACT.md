@@ -2,7 +2,7 @@
 
 > Version: 1.1.0
 > Written: 2026-04-30
-> Amended: 2026-06-25
+> Amended: 2026-07-04
 > Status: ACTIVE - warning mode with active-window completion blocker candidate
 > Authority: Memory Authority Enforcement Plan v0.3 (session 2026-04-30), amended by v1.1.0 canonical-writer alignment
 
@@ -70,6 +70,32 @@ old-format memory entries as acceptable new records.
 - no historical memory debt cleanup;
 - no backfill of old memory records;
 - no semantic correctness guarantee for memory content.
+
+### 0.2 Report-Only `ok` Semantics
+
+**Name of change**: report-only guard output interpretation hardening.
+
+**Rationale**: Phase 1 `ok=True` is an execution/reporting status, not proof
+that memory authority is clean. When warnings such as `unbound_memory` are
+present, the guard must expose that distinction in machine-readable fields so
+callers do not collapse report-only success into authority-clean semantics.
+
+**Runtime interpretation fields**:
+
+- `ok_meaning: guard_executed_report_only_not_authority_clean`
+- `authority_integrity_status: clean | info_present | warnings_present`
+- `enforcement_action: allow`
+- `blocking_violation_codes: []`
+- `report_only_violation_codes: [...]`
+- `claim_ceiling: report_only_phase1`
+- `not_claimed: [...]`
+
+**Non-claims for this amendment**:
+
+- no blocking enforcement upgrade;
+- no hook, CI, pre-push, closeout, or gate-policy behavior change;
+- no historical memory debt cleanup;
+- no semantic truth verification.
 
 ---
 
@@ -214,6 +240,8 @@ sessions or unusual workflows.
 | `missing_canonical_memory` | warning | no | Commits exist but no daily memory file exists for the date |
 | `non_canonical_writer` | warning | no | Session-derived entry was not written in canonical writer format |
 | `old_format_entry_after_canonical_writer_cutoff` | warning | no | Old-format daily memory entry appears after the canonical-writer cutoff and should be rewritten through the canonical writer |
+| `test_evidence_provenance_not_found` | warning | no | Success-style `test_evidence` lacks an existing `artifacts/...` provenance path |
+| `session_like_non_session_memory_type` | warning | no | Active-window typed entry uses non-session `memory_type` while carrying session memory fields |
 | `active_non_canonical_writer` | blocker candidate | opt-in / workflow-dependent | Current-window non-canonical writer violation detected by the active-window filter |
 
 Current semantics:
@@ -227,6 +255,9 @@ Current semantics:
   checked with active-window options.
 - `memory_workflow --check --repo . --run-guard` reports whether the guard ran,
   summarizes warnings/blockers, and exposes `completion_claim_allowed`.
+- `memory_authority_guard` `ok=True` means the report-only guard executed. It
+  does not mean memory authority is clean; callers must inspect
+  `authority_integrity_status`, `violation_counts_by_code`, and `not_claimed`.
 - `completion_claim_allowed=True` means the scoped memory workflow check found no
   current blocker candidate for the completion claim. It is not proof that the
   memory content is semantically correct.

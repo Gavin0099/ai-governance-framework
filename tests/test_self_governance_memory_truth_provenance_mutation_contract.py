@@ -194,3 +194,36 @@ def test_session_shaped_note_reports_memory_type_bypass_warning(tmp_path: Path) 
     assert result["phase"] == "phase1"
     assert result["mode"] == "warning"
     assert result["violation_counts_by_code"]["session_like_non_session_memory_type"] == 1
+
+
+def test_report_only_ok_semantics_do_not_claim_authority_clean(
+    tmp_path: Path,
+) -> None:
+    memory_root = tmp_path / "memory"
+    memory_root.mkdir()
+    (memory_root / "2026-07-04.md").write_text(
+        """\
+# 2026-07-04
+
+- memory_type: session-derived
+  record_format_version: 1.0
+  writer: governance_tools.memory_record
+  what_changed: unbound entry fixture
+  commit: pending
+  memory_binding: unbound
+  test_evidence: not relevant
+  next_step: none
+  plan_reconciliation: not_applicable
+""",
+        encoding="utf-8",
+    )
+
+    result = run_guard(memory_root, tmp_path, skip_git=True)
+
+    assert result["ok"] is True
+    assert result["ok_meaning"] == "guard_executed_report_only_not_authority_clean"
+    assert result["authority_integrity_status"] == "warnings_present"
+    assert result["enforcement_action"] == "allow"
+    assert result["blocking_violation_codes"] == []
+    assert result["violation_counts_by_code"]["unbound_memory"] == 1
+    assert "memory_authority_clean" in result["not_claimed"]
