@@ -16,6 +16,7 @@ Checks:
   2. structural_memory_auto_write — 00_long_term.md section lacks promoted_by
   3. private_memory_cited        — closeout artifact cites .claude private memory path
   4. missing_canonical_memory   — commits in git log but no daily memory file
+  5. test_evidence_provenance_not_found — success evidence lacks artifact provenance
 
 Phase 1: warnings only. Exit code always 0. JSON to stdout.
 
@@ -54,6 +55,13 @@ _SESSION_ID = re.compile(r'session[_\s]id:\s*(\S+)', re.IGNORECASE)
 _MEMORY_TYPE = re.compile(r'memory_type:\s*(\S+)', re.IGNORECASE)
 _WRITER = re.compile(r'writer:\s*(\S+)', re.IGNORECASE)
 _RECORD_FORMAT_VERSION = re.compile(r'record_format_version:\s*(\S+)', re.IGNORECASE)
+_TEST_EVIDENCE = re.compile(r'(?m)^\s*test_evidence:\s*(.+)$', re.IGNORECASE)
+_TEST_EVIDENCE_SUCCESS = re.compile(
+    r'\b(?:PASS|passed|success(?:ful|fully)?)\b', re.IGNORECASE
+)
+_TEST_EVIDENCE_ARTIFACT_PATH = re.compile(
+    r'(?P<path>(?:\.?[\\/])?artifacts[\\/][^\s,;]+)', re.IGNORECASE
+)
 _PROMOTED_BY = re.compile(r'promoted_by:', re.IGNORECASE)
 _PROMOTION_STATUS = re.compile(r'<!--\s*promotion_status:\s*(\w+)', re.IGNORECASE)
 _SECTION_H2 = re.compile(r'^## ', re.MULTILINE)
@@ -178,6 +186,61 @@ def _snippet(block: str, length: int = 80) -> str:
     return first_line[:length]
 
 
+def _normalize_artifact_token(token: str) -> str:
+    return token.strip().strip('`"\'()[]{}<>').rstrip(".:")
+
+
+def _artifact_path_exists(project_root: Path, token: str) -> bool:
+    normalized = _normalize_artifact_token(token)
+    if not normalized:
+        return False
+
+    candidate = Path(normalized)
+    if not candidate.is_absolute():
+        candidate = project_root / candidate
+
+    try:
+        resolved_project_root = project_root.resolve()
+        resolved_candidate = candidate.resolve()
+    except OSError:
+        return False
+
+    try:
+        resolved_candidate.relative_to(resolved_project_root)
+    except ValueError:
+        return False
+
+    return resolved_candidate.is_file()
+
+
+def _test_evidence_provenance_violation(
+    block: str,
+    project_root: Path | None,
+) -> str | None:
+    if project_root is None:
+        return None
+
+    match = _TEST_EVIDENCE.search(block)
+    if not match:
+        return None
+
+    evidence = match.group(1).strip()
+    if not _TEST_EVIDENCE_SUCCESS.search(evidence):
+        return None
+
+    artifact_tokens = [
+        artifact_match.group("path")
+        for artifact_match in _TEST_EVIDENCE_ARTIFACT_PATH.finditer(evidence)
+    ]
+    if not artifact_tokens:
+        return "test_evidence_success_claim_without_artifact"
+
+    if any(_artifact_path_exists(project_root, token) for token in artifact_tokens):
+        return None
+
+    return "test_evidence_artifact_not_found"
+
+
 # ── check functions ───────────────────────────────────────────────────────────
 
 def check_daily_memory(
@@ -231,6 +294,16 @@ def check_daily_memory(
                     'file': str(fpath.name),
                     'entry': _snippet(block),
                     'reason': reason,
+                })
+
+            evidence_reason = _test_evidence_provenance_violation(block, project_root)
+            if evidence_reason:
+                violations.append({
+                    'code': 'test_evidence_provenance_not_found',
+                    'severity': 'warning',
+                    'file': str(fpath.name),
+                    'entry': _snippet(block),
+                    'reason': evidence_reason,
                 })
 
             memory_type_match = _MEMORY_TYPE.search(block)

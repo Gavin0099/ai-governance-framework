@@ -56,7 +56,7 @@ baselines; they are not `PROTECTED` mutation proof evidence.
 | :--- | :--- | :--- | :--- | :--- |
 | **Fabricated Commit Anchor** | Negative Fixture | `memory_authority_guard._entry_is_bound` | fabricated 5–40 hex `commit` no longer binds when checked against a git worktree; real commit hashes still bind | REMEDIATED baseline |
 | **Fabricated Session Anchor** | Negative Fixture | `memory_authority_guard._entry_is_bound` | arbitrary `session_id` no longer binds without runtime artifact provenance; `session_id` with canonical closeout/verdict/claim artifact still binds | REMEDIATED baseline |
-| **Unverified Test Evidence** | Negative Fixture | `memory_authority_guard.run_guard` | free-text `test_evidence` produces no evidence-truth violation code | VULNERABLE baseline |
+| **Unverified Test Evidence** | Negative Fixture | `memory_authority_guard.run_guard` | success-style `test_evidence` without an existing `artifacts/...` path now reports `test_evidence_provenance_not_found`; artifact-backed evidence passes without that warning | REMEDIATED baseline (artifact provenance only, advisory) |
 
 Contract: `docs/governance/self-governance-memory-truth-provenance-mutation-contract-2026-07-04.md`.
 

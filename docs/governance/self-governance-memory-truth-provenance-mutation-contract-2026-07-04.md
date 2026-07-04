@@ -2,7 +2,7 @@
 
 狀態：`PARTIALLY REMEDIATED`
 日期：2026-07-04
-範圍：report-only baseline + anchor provenance remediation；不改 enforcement
+範圍：report-only baseline + anchor/evidence provenance remediation；不改 enforcement
 
 ## 目的
 
@@ -14,12 +14,12 @@
   才能作為 bound anchor。
 - `Fabricated Session Anchor`：已修復。任意非空白 `session_id` 不再能單獨作為
   fallback binding；必須對到既有 runtime artifact provenance。
-- `Unverified Test Evidence`：`test_evidence` 是自由文字，guard 目前不驗證
-  測試是否真的執行或是否有可追溯執行紀錄。
+- `Unverified Test Evidence`：已部分修復。成功型 `test_evidence` 需要指向
+  存在的 artifact path；guard 仍不重新執行測試，也不驗證 artifact 內容真偽。
 
 這不是 enforcement 升級。它把紅隊審計指出的盲點寫成可檢查的契約，並修復
-memory anchor provenance 表面，避免後續把 remaining presence/format check
-說成完整 truth/provenance enforcement。
+memory anchor provenance 與 evidence artifact provenance 表面，避免後續把
+remaining presence/format check 說成完整 truth/provenance enforcement。
 
 ## 對應識別字
 
@@ -72,17 +72,19 @@ memory anchor provenance 表面，避免後續把 remaining presence/format chec
 對抗性輸入：
 
 - canonical-looking memory entry 宣稱 `test_evidence: PASS: 38 passed`。
-- 測試執行紀錄不存在，且沒有任何外部 evidence artifact 被引用。
+- 測試執行紀錄不存在，且沒有任何既有 evidence artifact 被引用。
 
 目前觀察：
 
-- `run_guard` 不產生 evidence-truth 類違規碼。
-- `violation_counts_by_code` 可維持空集合，`ok` 仍為 `True`。
+- `run_guard` 會產生 `test_evidence_provenance_not_found` warning。
+- 引用存在的 `artifacts/...` 路徑時，不產生該 warning。
+- `ok` 仍為 `True`；此檢查維持 Phase 1 report-only。
 
 期望 baseline：
 
-- focused test 應固定目前行為為 `VULNERABLE`。
-- 若未來新增 evidence-truth 檢查，此測試應失敗，要求更新本契約與 catalog 狀態。
+- focused test 應固定無 artifact 的成功宣稱會 report warning。
+- focused test 應固定 artifact-backed 成功宣稱不會被誤報。
+- 若未來新增 evidence semantic truth 檢查，此契約與 catalog 狀態必須更新。
 
 ## 範圍
 
@@ -95,6 +97,9 @@ memory anchor provenance 表面，避免後續把 remaining presence/format chec
 - 修復 git worktree 內 `commit` / `commit_hash` anchor 的 git object
   provenance 檢查。
 - 修復 `session_id` fallback，使其必須對到既有 runtime artifact provenance。
+- 修復成功型 `test_evidence` 的 artifact provenance warning。
+- 讓 `memory_workflow --run-guard` 摘要該 report-only warning，但不把它升級為
+  blocker。
 
 ## 非目標
 
@@ -102,7 +107,7 @@ memory anchor provenance 表面，避免後續把 remaining presence/format chec
 
 - 不修改 hook、pre-push、CI、schema 或 gate policy。
 - 不新增 blocking enforcement。
-- 不驗證 `test_evidence` 的真偽。
+- 不重新執行測試，且不驗證 `test_evidence` 或 artifact 內容的語義真偽。
 - 不處理 `claim_enforcement_checker` 的 self-labeled claim 盲點；那是另一個表面。
 
 ## 證據計畫
@@ -110,14 +115,17 @@ memory anchor provenance 表面，避免後續把 remaining presence/format chec
 本契約的最小驗證：
 
 - `python -B -m pytest tests/test_self_governance_memory_truth_provenance_mutation_contract.py -q`
-- `git diff --check -- docs/e1-mutation-catalog.md docs/governance/self-governance-memory-truth-provenance-mutation-contract-2026-07-04.md tests/test_self_governance_memory_truth_provenance_mutation_contract.py`
+- `python -B -m pytest tests/test_memory_workflow.py -q`
+- `git diff --check -- docs/e1-mutation-catalog.md docs/governance/self-governance-memory-truth-provenance-mutation-contract-2026-07-04.md governance_tools/memory_authority_guard.py governance_tools/memory_workflow.py tests/test_memory_workflow.py tests/test_self_governance_memory_truth_provenance_mutation_contract.py`
 
 測試通過的含義：
 
 - fabricated commit hash 在 git worktree 中不再算 bound anchor。
 - fabricated session_id 不再算 bound anchor；provenance-backed session_id 仍可
   作為 fallback binding。
-- free-text `test_evidence` 仍被 report-only test 固定為 `VULNERABLE`。
+- 成功型 `test_evidence` 若沒有既有 artifact provenance，會產生
+  `test_evidence_provenance_not_found` report-only warning。
+- artifact-backed 成功型 `test_evidence` 不會產生該 warning。
 
 測試通過不代表：
 
@@ -134,7 +142,7 @@ memory anchor provenance 表面，避免後續把 remaining presence/format chec
   provenance 檢查。
 - session-anchor fabricated token 盲點已修復為 report-only artifact provenance
   檢查。
-- evidence-truth scenario 仍登記為 report-only `VULNERABLE` baseline。
+- evidence artifact provenance 盲點已修復為 report-only warning baseline。
 - focused tests 可回歸目前行為。
 
 本文件不得宣稱：

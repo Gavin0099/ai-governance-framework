@@ -87,7 +87,7 @@ def test_session_id_with_canonical_closeout_artifact_still_counts_as_bound(tmp_p
     assert _entry_is_bound(block, tmp_path) == (True, "ok")
 
 
-def test_unverified_test_evidence_currently_has_no_truth_violation_code(tmp_path: Path) -> None:
+def test_unverified_test_evidence_reports_provenance_warning(tmp_path: Path) -> None:
     memory_root = tmp_path / "memory"
     memory_root.mkdir()
     (memory_root / "2026-07-04.md").write_text(
@@ -114,9 +114,54 @@ def test_unverified_test_evidence_currently_has_no_truth_violation_code(tmp_path
     assert result["ok"] is True
     assert result["phase"] == "phase1"
     assert result["mode"] == "warning"
-    assert "evidence_truth_unverified" not in result["violation_counts_by_code"]
+    assert result["violation_counts_by_code"]["test_evidence_provenance_not_found"] == 1
     assert result["authority_coverage_rate"]["session_derived"] == {
         "total_entries": 1,
         "bound_entries": 0,
         "rate": 0.0,
+    }
+
+
+def test_artifact_backed_test_evidence_does_not_report_provenance_warning(
+    tmp_path: Path,
+) -> None:
+    session_id = "session-20260704T130000-def456"
+    closeouts = tmp_path / "artifacts" / "runtime" / "closeouts"
+    closeouts.mkdir(parents=True)
+    (closeouts / f"{session_id}.json").write_text(
+        f'{{"session_id": "{session_id}"}}\n',
+        encoding="utf-8",
+    )
+
+    test_results = tmp_path / "artifacts" / "runtime" / "test-results"
+    test_results.mkdir(parents=True)
+    (test_results / "pytest.txt").write_text("39 passed\n", encoding="utf-8")
+
+    memory_root = tmp_path / "memory"
+    memory_root.mkdir()
+    (memory_root / "2026-07-04.md").write_text(
+        f"""\
+# 2026-07-04
+
+- memory_type: session-derived
+  record_format_version: 1.0
+  writer: governance_tools.memory_record
+  what_changed: claimed tests with an artifact-backed execution record
+  session_id: {session_id}
+  memory_binding: bound
+  test_evidence: PASS: artifacts/runtime/test-results/pytest.txt -> 39 passed
+  next_step: none
+  plan_reconciliation: not_applicable
+""",
+        encoding="utf-8",
+    )
+
+    result = run_guard(memory_root, tmp_path, skip_git=True)
+
+    assert result["ok"] is True
+    assert "test_evidence_provenance_not_found" not in result["violation_counts_by_code"]
+    assert result["authority_coverage_rate"]["session_derived"] == {
+        "total_entries": 1,
+        "bound_entries": 1,
+        "rate": 1.0,
     }

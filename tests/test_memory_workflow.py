@@ -21,15 +21,18 @@ def _make_framework_surface(repo: Path, prefix: str = "") -> None:
 
 
 def _write_canonical_memory(repo: Path) -> None:
+    session_id = "test-session"
+    _write(
+        repo / "artifacts" / "runtime" / "closeouts" / f"{session_id}.json",
+        f'{{"session_id": "{session_id}"}}\n',
+    )
     _write(
         repo / "memory" / "2026-06-09.md",
         "- memory_type: session-derived\n"
         "  record_format_version: 1.0\n"
         "  writer: governance_tools.memory_record\n"
         "  what_changed: test\n"
-        "  commit: abc1234\n"
-        "  commit_hash: abc1234\n"
-        "  session_id: test-session\n"
+        f"  session_id: {session_id}\n"
         "  memory_binding: bound\n"
         "  test_evidence: test\n"
         "  next_step: none\n",
@@ -176,6 +179,40 @@ def test_run_guard_reports_summary_and_allows_clean_memory_completion(tmp_path: 
     assert result.guard_summary["non_canonical_writer"] == 0
     assert result.guard_summary["active_non_canonical_writer"] == 0
     assert result.guard_summary["unbound_memory"] == 0
+    assert result.guard_summary["test_evidence_provenance_not_found"] == 0
+    assert result.blockers == []
+    assert result.completion_claim_allowed is True
+
+
+def test_run_guard_reports_test_evidence_provenance_warning_without_blocking(
+    tmp_path: Path,
+) -> None:
+    _make_framework_surface(tmp_path)
+    session_id = "test-session"
+    _write(
+        tmp_path / "artifacts" / "runtime" / "closeouts" / f"{session_id}.json",
+        f'{{"session_id": "{session_id}"}}\n',
+    )
+    _write(
+        tmp_path / "memory" / "2026-06-09.md",
+        "- memory_type: session-derived\n"
+        "  record_format_version: 1.0\n"
+        "  writer: governance_tools.memory_record\n"
+        "  what_changed: test\n"
+        f"  session_id: {session_id}\n"
+        "  memory_binding: bound\n"
+        "  test_evidence: PASS: 67 passed\n"
+        "  next_step: none\n",
+    )
+
+    result = assess_memory_workflow(
+        tmp_path,
+        changed_files=["memory/2026-06-09.md"],
+        run_guard_check=True,
+    )
+
+    assert result.guard_summary["test_evidence_provenance_not_found"] == 1
+    assert "test_evidence_provenance_not_found" in result.warnings
     assert result.blockers == []
     assert result.completion_claim_allowed is True
 

@@ -196,6 +196,9 @@ def _summarize_guard(result: dict) -> dict[str, int]:
         "active_non_canonical_writer": int(active.get("count") or 0),
         "missing_canonical_memory": int(counts.get("missing_canonical_memory") or 0),
         "unbound_memory": int(counts.get("unbound_memory") or 0),
+        "test_evidence_provenance_not_found": int(
+            counts.get("test_evidence_provenance_not_found") or 0
+        ),
     }
 
 
@@ -214,7 +217,11 @@ def _run_authority_guard(repo_root: Path) -> tuple[bool, dict[str, int], list[st
     summary = _summarize_guard(result)
     warnings = [
         code
-        for code in ("missing_canonical_memory", "unbound_memory")
+        for code in (
+            "missing_canonical_memory",
+            "unbound_memory",
+            "test_evidence_provenance_not_found",
+        )
         if summary.get(code, 0) > 0
     ]
     blockers = []
