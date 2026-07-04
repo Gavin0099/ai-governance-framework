@@ -269,6 +269,44 @@ def _test_evidence_provenance_violation(
     return "test_evidence_artifact_not_found"
 
 
+_BLOCKING_POLICY_RELPATH = "governance/memory_blocking_policy.json"
+_BLOCKING_POLICY_SCHEMA = "memory_blocking_policy.v0.1"
+
+
+def load_blocking_policy(project_root: Path) -> dict[str, Any]:
+    """
+    Load the versioned selective-blocking policy file (RFC rollout step 4).
+
+    Returns {'enabled_codes': [...], 'source': str, 'error': str | None}.
+    Missing file or `enabled: false` is the kill switch: blocking stays off
+    with no error. A present-but-invalid policy also disables blocking but
+    surfaces an error string so a broken policy can never silently pass as an
+    intentionally disabled one. No environment variable can influence this.
+    """
+    path = project_root / _BLOCKING_POLICY_RELPATH
+    off = {'enabled_codes': [], 'source': _BLOCKING_POLICY_RELPATH, 'error': None}
+    if not path.is_file():
+        return {**off, 'source': 'default_off_no_policy_file'}
+    try:
+        payload = json.loads(path.read_text(encoding='utf-8'))
+    except Exception as exc:
+        return {**off, 'error': f'blocking_policy_unreadable: {exc}'}
+    if not isinstance(payload, dict):
+        return {**off, 'error': 'blocking_policy_not_an_object'}
+    if payload.get('policy_schema') != _BLOCKING_POLICY_SCHEMA:
+        return {**off, 'error': 'blocking_policy_schema_mismatch'}
+    if payload.get('enabled') is not True:
+        return off
+    codes = payload.get('blocking_codes')
+    if not isinstance(codes, list) or not all(isinstance(c, str) for c in codes):
+        return {**off, 'error': 'blocking_policy_codes_invalid'}
+    return {
+        'enabled_codes': sorted({c.strip() for c in codes if c.strip()}),
+        'source': _BLOCKING_POLICY_RELPATH,
+        'error': None,
+    }
+
+
 def _authority_override_value(block: str) -> str | None:
     match = _AUTHORITY_OVERRIDE.search(block)
     return match.group(1).strip() if match else None

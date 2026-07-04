@@ -22,6 +22,7 @@ if __package__ in (None, ""):
 
 from governance_tools.memory_authority_guard import (
     filter_active_non_canonical_writer_violations,
+    load_blocking_policy,
     run_guard,
 )
 
@@ -213,8 +214,13 @@ def _run_authority_guard(
     if not memory_root.is_dir():
         return False, {}, ["memory root not found; guard not run"], []
 
+    policy = load_blocking_policy(repo_root)
     result = run_guard(
-        memory_root, repo_root, skip_git=False, changed_files=changed_files
+        memory_root,
+        repo_root,
+        skip_git=False,
+        changed_files=changed_files,
+        blocking_codes=policy["enabled_codes"],
     )
     active = filter_active_non_canonical_writer_violations(result["violations"])
     result["active_non_canonical_writer"] = {
@@ -236,6 +242,11 @@ def _run_authority_guard(
     blockers = []
     if summary.get("active_non_canonical_writer", 0) > 0:
         blockers.append("active_non_canonical_writer")
+    if policy["error"]:
+        # A broken policy file disables blocking but must stay visible.
+        warnings.append(policy["error"])
+    for code in result.get("blocking_violation_codes", []):
+        blockers.append(f"memory_authority_blocking:{code}")
     return True, summary, warnings, blockers
 
 

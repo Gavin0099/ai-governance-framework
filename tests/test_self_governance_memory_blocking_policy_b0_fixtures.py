@@ -26,8 +26,10 @@ from pathlib import Path
 
 import pytest
 
+from governance_tools.ci_memory_workflow_check import check as ci_check
 from governance_tools.memory_authority_guard import (
     _ACTIVE_NON_CANONICAL_WRITER_DEFAULT_FROM,
+    load_blocking_policy,
     main,
     run_guard,
 )
@@ -494,6 +496,158 @@ def test_policy_default_off_state_is_visible_in_output(tmp_path: Path) -> None:
         "mode": "report_only_default",
     }
     assert result["claim_ceiling"] == "report_only_phase1"
+
+
+# ── RFC rollout step 4: versioned policy file wired into gate consumers ──────
+
+
+def _write_policy(
+    repo: Path,
+    *,
+    enabled: bool = True,
+    codes: list[str] | None = None,
+    schema: str = "memory_blocking_policy.v0.1",
+    raw: str | None = None,
+) -> None:
+    path = repo / "governance" / "memory_blocking_policy.json"
+    if raw is not None:
+        _write(path, raw)
+        return
+    payload = {
+        "policy_schema": schema,
+        "enabled": enabled,
+        "blocking_codes": codes if codes is not None else [B0_CODE],
+    }
+    _write(path, json.dumps(payload, indent=2) + "\n")
+
+
+def test_policy_loader_missing_file_is_default_off(tmp_path: Path) -> None:
+    policy = load_blocking_policy(tmp_path)
+
+    assert policy == {
+        "enabled_codes": [],
+        "source": "default_off_no_policy_file",
+        "error": None,
+    }
+
+
+def test_policy_loader_valid_file_enables_codes(tmp_path: Path) -> None:
+    _write_policy(tmp_path, codes=[B0_CODE, B0_CODE, " "])
+
+    policy = load_blocking_policy(tmp_path)
+
+    assert policy["enabled_codes"] == [B0_CODE]
+    assert policy["error"] is None
+
+
+def test_policy_loader_enabled_false_is_kill_switch_without_error(tmp_path: Path) -> None:
+    _write_policy(tmp_path, enabled=False)
+
+    policy = load_blocking_policy(tmp_path)
+
+    assert policy["enabled_codes"] == []
+    assert policy["error"] is None
+
+
+def test_policy_loader_invalid_file_disables_but_surfaces_error(tmp_path: Path) -> None:
+    _write_policy(tmp_path, raw="{not json")
+
+    policy = load_blocking_policy(tmp_path)
+
+    assert policy["enabled_codes"] == []
+    assert policy["error"] is not None
+    assert policy["error"].startswith("blocking_policy_unreadable")
+
+
+def test_policy_loader_schema_mismatch_disables_but_surfaces_error(tmp_path: Path) -> None:
+    _write_policy(tmp_path, schema="memory_blocking_policy.v9.9")
+
+    policy = load_blocking_policy(tmp_path)
+
+    assert policy["enabled_codes"] == []
+    assert policy["error"] == "blocking_policy_schema_mismatch"
+
+
+def test_policy_loader_invalid_codes_disable_but_surface_error(tmp_path: Path) -> None:
+    _write_policy(tmp_path, raw=json.dumps({
+        "policy_schema": "memory_blocking_policy.v0.1",
+        "enabled": True,
+        "blocking_codes": "session_like_non_session_memory_type",
+    }))
+
+    policy = load_blocking_policy(tmp_path)
+
+    assert policy["enabled_codes"] == []
+    assert policy["error"] == "blocking_policy_codes_invalid"
+
+
+def test_step4_workflow_blocks_b0_when_policy_file_enables_it(tmp_path: Path) -> None:
+    _make_framework_surface(tmp_path)
+    _write_policy(tmp_path)
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_ENTRY)
+
+    workflow = assess_memory_workflow(
+        tmp_path,
+        changed_files=[f"memory/{_IN_WINDOW_FILENAME}"],
+        run_guard_check=True,
+    )
+
+    assert f"memory_authority_blocking:{B0_CODE}" in workflow.blockers
+    assert workflow.completion_claim_allowed is False
+
+
+def test_step4_workflow_kill_switch_restores_report_only(tmp_path: Path) -> None:
+    _make_framework_surface(tmp_path)
+    _write_policy(tmp_path, enabled=False)
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_ENTRY)
+
+    workflow = assess_memory_workflow(
+        tmp_path,
+        changed_files=[f"memory/{_IN_WINDOW_FILENAME}"],
+        run_guard_check=True,
+    )
+
+    assert workflow.blockers == []
+    assert B0_CODE in workflow.warnings
+    assert workflow.completion_claim_allowed is True
+
+
+def test_step4_workflow_broken_policy_disables_blocking_but_warns(tmp_path: Path) -> None:
+    _make_framework_surface(tmp_path)
+    _write_policy(tmp_path, raw="{not json")
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_ENTRY)
+
+    workflow = assess_memory_workflow(
+        tmp_path,
+        changed_files=[f"memory/{_IN_WINDOW_FILENAME}"],
+        run_guard_check=True,
+    )
+
+    assert workflow.blockers == []
+    assert any(w.startswith("blocking_policy_unreadable") for w in workflow.warnings)
+
+
+def test_step4_ci_check_blocks_b0_when_policy_file_enables_it(tmp_path: Path) -> None:
+    _write_policy(tmp_path)
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_ENTRY)
+
+    result = ci_check(
+        tmp_path, changed_files=[f"memory/{_IN_WINDOW_FILENAME}"]
+    )
+
+    assert result.clean is False
+    blocker_codes = [b["code"] for b in result.blockers]
+    assert f"memory_authority_blocking:{B0_CODE}" in blocker_codes
+
+
+def test_step4_ci_check_stays_clean_without_policy_file(tmp_path: Path) -> None:
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_ENTRY)
+
+    result = ci_check(
+        tmp_path, changed_files=[f"memory/{_IN_WINDOW_FILENAME}"]
+    )
+
+    assert result.clean is True
 
 
 def test_b0_scenario6_phase1_semantics_pinned_even_when_b0_fires(tmp_path: Path) -> None:

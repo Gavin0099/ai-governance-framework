@@ -17,6 +17,7 @@ from typing import Sequence
 
 from governance_tools.memory_authority_guard import (
     filter_active_non_canonical_writer_violations,
+    load_blocking_policy,
     run_guard,
 )
 
@@ -82,11 +83,13 @@ def check(
     normalized_changed = sorted({_normalize(item) for item in changed_files if _normalize(item)})
     changed_memory_files = [item for item in normalized_changed if _is_memory_file(item)]
 
+    policy = load_blocking_policy(repo_root)
     guard_result = run_guard(
         repo_root / "memory",
         repo_root,
         skip_git=True,
         changed_files=changed_memory_files,
+        blocking_codes=policy["enabled_codes"],
     )
     active = filter_active_non_canonical_writer_violations(
         guard_result["violations"],
@@ -111,6 +114,10 @@ def check(
         if count:
             warnings.append(f"{code}={count}")
 
+    if policy["error"]:
+        # A broken policy file disables blocking but must stay visible.
+        warnings.append(policy["error"])
+
     blockers = [
         {
             "code": "active_non_canonical_writer",
@@ -119,6 +126,15 @@ def check(
         }
         for violation in current_diff_active
     ]
+    blockers.extend(
+        {
+            "code": f"memory_authority_blocking:{violation['code']}",
+            "file": _violation_memory_path(violation),
+            "reason": violation.get("reason", ""),
+        }
+        for violation in guard_result["violations"]
+        if violation.get("enforcement") == "block"
+    )
 
     return CiMemoryWorkflowCheckResult(
         repo_root=str(repo_root),
