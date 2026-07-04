@@ -165,3 +165,32 @@ def test_artifact_backed_test_evidence_does_not_report_provenance_warning(
         "bound_entries": 1,
         "rate": 1.0,
     }
+
+
+def test_session_shaped_note_reports_memory_type_bypass_warning(tmp_path: Path) -> None:
+    memory_root = tmp_path / "memory"
+    memory_root.mkdir()
+    (memory_root / "2026-07-04.md").write_text(
+        """\
+# 2026-07-04
+
+- memory_type: note
+  record_format_version: 1.0
+  writer: manual.editor
+  what_changed: session entry mislabeled as note
+  commit: deadbee
+  commit_hash: deadbee
+  memory_binding: bound
+  test_evidence: not relevant
+  next_step: none
+  plan_reconciliation: not_applicable
+""",
+        encoding="utf-8",
+    )
+
+    result = run_guard(memory_root, tmp_path, skip_git=True)
+
+    assert result["ok"] is True
+    assert result["phase"] == "phase1"
+    assert result["mode"] == "warning"
+    assert result["violation_counts_by_code"]["session_like_non_session_memory_type"] == 1

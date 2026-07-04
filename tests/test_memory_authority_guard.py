@@ -6,7 +6,7 @@ Coverage target: non_canonical_writer check (check_daily_memory)
 Test cases:
   A. canonical writer entry          → no non_canonical_writer violation
   B. manual session-derived entry    → non_canonical_writer violation
-  C. manual non-session-derived      → no non_canonical_writer violation
+  C. manual non-session-derived      → no non_canonical_writer violation unless session-shaped
   D. pre-cutoff old-format entry     → grandfathered (no non_canonical_writer)
 """
 
@@ -47,6 +47,17 @@ MANUAL_SESSION_DERIVED_ENTRY = """\
 MANUAL_HUMAN_NOTE_ENTRY = """\
 - memory_type: human-note
   what_changed: human curated note about the project
+"""
+
+SESSION_LIKE_NOTE_ENTRY = """\
+- memory_type: note
+  record_format_version: 1.0
+  writer: manual.editor
+  what_changed: mislabeled session entry
+  commit: abc1234def5
+  memory_binding: bound
+  test_evidence: not relevant
+  next_step: none
 """
 
 OLD_FORMAT_ENTRY = """\
@@ -114,6 +125,36 @@ class TestManualNonSessionDerivedIgnored:
         violations, _ = check_daily_memory(mem)
         ncw = [v for v in violations if v["code"] == "non_canonical_writer"]
         assert ncw == [], f"human-note entry must not trigger non_canonical_writer: {ncw}"
+
+    def test_session_shaped_note_reports_bypass_warning(self, tmp_path):
+        mem = tmp_path / "memory"
+        mem.mkdir()
+        _write_daily(mem, "2026-06-09.md", SESSION_LIKE_NOTE_ENTRY)
+        violations, _ = check_daily_memory(mem)
+
+        bypass = [
+            v
+            for v in violations
+            if v["code"] == "session_like_non_session_memory_type"
+        ]
+
+        assert len(bypass) == 1
+        assert bypass[0]["severity"] == "warning"
+        assert "non_session_memory_type_with_session_fields:note" in bypass[0]["reason"]
+
+    def test_session_shaped_note_before_active_window_is_grandfathered(self, tmp_path):
+        mem = tmp_path / "memory"
+        mem.mkdir()
+        _write_daily(mem, "2026-06-01.md", SESSION_LIKE_NOTE_ENTRY)
+        violations, _ = check_daily_memory(mem)
+
+        bypass = [
+            v
+            for v in violations
+            if v["code"] == "session_like_non_session_memory_type"
+        ]
+
+        assert bypass == []
 
 
 # ── D. Pre-cutoff old-format is grandfathered ─────────────────────────────────

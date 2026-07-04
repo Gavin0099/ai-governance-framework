@@ -199,6 +199,9 @@ def _summarize_guard(result: dict) -> dict[str, int]:
         "test_evidence_provenance_not_found": int(
             counts.get("test_evidence_provenance_not_found") or 0
         ),
+        "session_like_non_session_memory_type": int(
+            counts.get("session_like_non_session_memory_type") or 0
+        ),
     }
 
 
@@ -221,6 +224,7 @@ def _run_authority_guard(repo_root: Path) -> tuple[bool, dict[str, int], list[st
             "missing_canonical_memory",
             "unbound_memory",
             "test_evidence_provenance_not_found",
+            "session_like_non_session_memory_type",
         )
         if summary.get(code, 0) > 0
     ]

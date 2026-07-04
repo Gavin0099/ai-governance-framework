@@ -17,6 +17,7 @@ Checks:
   3. private_memory_cited        — closeout artifact cites .claude private memory path
   4. missing_canonical_memory   — commits in git log but no daily memory file
   5. test_evidence_provenance_not_found — success evidence lacks artifact provenance
+  6. session_like_non_session_memory_type — session-shaped entry uses a non-session memory_type
 
 Phase 1: warnings only. Exit code always 0. JSON to stdout.
 
@@ -62,6 +63,9 @@ _TEST_EVIDENCE_SUCCESS = re.compile(
 _TEST_EVIDENCE_ARTIFACT_PATH = re.compile(
     r'(?P<path>(?:\.?[\\/])?artifacts[\\/][^\s,;]+)', re.IGNORECASE
 )
+_MEMORY_BINDING = re.compile(r'(?m)^\s*memory_binding:\s*\S+', re.IGNORECASE)
+_NEXT_STEP = re.compile(r'(?m)^\s*next_step:\s*.+$', re.IGNORECASE)
+_PLAN_RECONCILIATION = re.compile(r'(?m)^\s*plan_reconciliation:\s*\S+', re.IGNORECASE)
 _PROMOTED_BY = re.compile(r'promoted_by:', re.IGNORECASE)
 _PROMOTION_STATUS = re.compile(r'<!--\s*promotion_status:\s*(\w+)', re.IGNORECASE)
 _SECTION_H2 = re.compile(r'^## ', re.MULTILINE)
@@ -75,6 +79,19 @@ _CANONICAL_MEMORY_WRITER = "governance_tools.memory_record"
 # Set to the day after canonical writer was committed (2026-04-30 commit 6d77f2d).
 _CANONICAL_WRITER_REQUIRED_FROM = "2026-05-01"
 _ACTIVE_NON_CANONICAL_WRITER_DEFAULT_FROM = "2026-06-02"
+_SESSION_DERIVED_MEMORY_TYPES = {"session-derived", "session_derived"}
+_SESSION_LIKE_FIELD_PATTERNS = (
+    ("record_format_version", _RECORD_FORMAT_VERSION),
+    ("writer", _WRITER),
+    ("commit", _COMMIT_RESOLVED),
+    ("commit_pending", _COMMIT_PENDING),
+    ("commit_uncommitted", _COMMIT_UNCOMMITTED),
+    ("session_id", _SESSION_ID),
+    ("memory_binding", _MEMORY_BINDING),
+    ("test_evidence", _TEST_EVIDENCE),
+    ("next_step", _NEXT_STEP),
+    ("plan_reconciliation", _PLAN_RECONCILIATION),
+)
 # Violation category policy (as classified 2026-06-01):
 #   Cat1 (pre-2026-05-13, 32 entries): early Codex writer path — grandfathered, no action
 #   Cat2+3 (2026-05-18 to 05-30, 46 entries): old-format established pattern — historical debt, no backfill
@@ -241,6 +258,32 @@ def _test_evidence_provenance_violation(
     return "test_evidence_artifact_not_found"
 
 
+def _session_like_non_session_memory_reason(
+    block: str,
+    *,
+    memory_type: str,
+    filename: str,
+    active_from: str = _ACTIVE_NON_CANONICAL_WRITER_DEFAULT_FROM,
+) -> str | None:
+    if (
+        not memory_type
+        or memory_type in _SESSION_DERIVED_MEMORY_TYPES
+        or filename < f"{active_from}.md"
+    ):
+        return None
+
+    matched_fields = [
+        name
+        for name, pattern in _SESSION_LIKE_FIELD_PATTERNS
+        if pattern.search(block)
+    ]
+    if not matched_fields:
+        return None
+
+    field_list = ",".join(matched_fields)
+    return f"non_session_memory_type_with_session_fields:{memory_type}:{field_list}"
+
+
 # ── check functions ───────────────────────────────────────────────────────────
 
 def check_daily_memory(
@@ -312,7 +355,7 @@ def check_daily_memory(
             writer = (writer_match.group(1).strip() if writer_match else "")
             has_format_version = bool(_RECORD_FORMAT_VERSION.search(block))
 
-            if memory_type in {"session-derived", "session_derived"}:
+            if memory_type in _SESSION_DERIVED_MEMORY_TYPES:
                 # Explicit canonical format: verify writer and version.
                 if writer != _CANONICAL_MEMORY_WRITER or not has_format_version:
                     violations.append({
@@ -333,6 +376,20 @@ def check_daily_memory(
                     'file': str(fpath.name),
                     'entry': _snippet(block),
                     'reason': 'old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()',
+                })
+
+            bypass_reason = _session_like_non_session_memory_reason(
+                block,
+                memory_type=memory_type,
+                filename=fpath.name,
+            )
+            if bypass_reason:
+                violations.append({
+                    'code': 'session_like_non_session_memory_type',
+                    'severity': 'warning',
+                    'file': str(fpath.name),
+                    'entry': _snippet(block),
+                    'reason': bypass_reason,
                 })
 
     coverage = {'total_entries': total_entries, 'bound_entries': bound_entries}

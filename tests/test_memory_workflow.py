@@ -217,6 +217,34 @@ def test_run_guard_reports_test_evidence_provenance_warning_without_blocking(
     assert result.completion_claim_allowed is True
 
 
+def test_run_guard_reports_session_like_non_session_warning_without_blocking(
+    tmp_path: Path,
+) -> None:
+    _make_framework_surface(tmp_path)
+    _write(
+        tmp_path / "memory" / "2026-06-09.md",
+        "- memory_type: note\n"
+        "  record_format_version: 1.0\n"
+        "  writer: manual.editor\n"
+        "  what_changed: mislabeled session memory\n"
+        "  commit: abc1234\n"
+        "  memory_binding: bound\n"
+        "  test_evidence: not relevant\n"
+        "  next_step: none\n",
+    )
+
+    result = assess_memory_workflow(
+        tmp_path,
+        changed_files=["memory/2026-06-09.md"],
+        run_guard_check=True,
+    )
+
+    assert result.guard_summary["session_like_non_session_memory_type"] == 1
+    assert "session_like_non_session_memory_type" in result.warnings
+    assert result.blockers == []
+    assert result.completion_claim_allowed is True
+
+
 def test_run_guard_reports_active_non_canonical_writer_as_blocker_candidate(tmp_path: Path) -> None:
     _make_framework_surface(tmp_path)
     _write(
