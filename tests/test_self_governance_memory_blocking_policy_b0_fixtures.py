@@ -12,7 +12,8 @@ them later forces a conscious test update instead of a silent behavior change.
 Scenario map (RFC "Mutation Contract Required Before The Switch"):
   1. prose rewording           -> still detected (field-based, not prose-based)
   2. novel memory_type value   -> still detected
-  3. pre-window file append    -> currently NOT detected (known file-date bypass)
+  3. pre-window file append    -> detected WITH diff context (changed_files);
+                                  still missed without diff context (residual)
   4. hook bypass / CI parity   -> guard and workflow surfaces agree, report-only
   5. authority_override field  -> currently no effect (semantics not implemented)
   6. kill switch               -> current default IS Phase 1 semantics (pinned)
@@ -105,26 +106,107 @@ def test_b0_scenario2_novel_memory_type_value_does_not_evade_detection(tmp_path:
     assert _b0_counts(tmp_path)[B0_CODE] == 1
 
 
-def test_b0_scenario3_pre_window_file_append_currently_evades_detection(tmp_path: Path) -> None:
-    # KNOWN BYPASS (VULNERABLE): the active window is classified by daily
-    # filename date, so a new session-shaped entry appended to a pre-window
-    # file is not reported. The RFC requires closing this (window from entry,
-    # not file date alone) before the B0 switch may ship. When that lands,
-    # this fixture must flip to asserting detection.
+_PRE_WINDOW_B0_ENTRY = (
+    "- memory_type: note\n"
+    "  record_format_version: 1.0\n"
+    "  writer: manual.editor\n"
+    "  what_changed: session entry backdated into a pre-window file\n"
+    "  commit: deadbee\n"
+    "  memory_binding: bound\n"
+    "  test_evidence: not relevant\n"
+    "  next_step: none\n"
+)
+
+
+def test_b0_scenario3_pre_window_file_append_still_evades_full_scan(tmp_path: Path) -> None:
+    # DOCUMENTED RESIDUAL: without diff context the active window is still
+    # classified by daily filename date, so a backdated session-shaped entry
+    # in a pre-window file is not reported by a bare full scan. This is also
+    # the backcompat guarantee: untouched historical pre-window entries stay
+    # silent. The bypass is closed only at the diff-aware surfaces below.
+    _write_memory(tmp_path, _PRE_WINDOW_FILENAME, _PRE_WINDOW_B0_ENTRY)
+
+    assert B0_CODE not in _b0_counts(tmp_path)
+
+
+def test_b0_scenario3_modified_pre_window_file_detected_with_diff_context(tmp_path: Path) -> None:
+    _write_memory(tmp_path, _PRE_WINDOW_FILENAME, _PRE_WINDOW_B0_ENTRY)
+
+    result = run_guard(
+        tmp_path / "memory",
+        tmp_path,
+        skip_git=True,
+        changed_files=[f"memory/{_PRE_WINDOW_FILENAME}"],
+    )
+
+    assert result["violation_counts_by_code"][B0_CODE] == 1
+    violation = [v for v in result["violations"] if v["code"] == B0_CODE][0]
+    assert violation["reason"].startswith(
+        "non_session_memory_type_with_session_fields_in_modified_pre_window_file:"
+    )
+    # Report-only semantics survive the new detection path.
+    assert result["enforcement_action"] == "allow"
+    assert result["blocking_violation_codes"] == []
+    assert result["claim_ceiling"] == "report_only_phase1"
+
+
+def test_b0_scenario3_unrelated_diff_leaves_pre_window_history_silent(tmp_path: Path) -> None:
+    # Backcompat: pre-window debt on disk is not reclassified just because
+    # some other file changed.
+    _write_memory(tmp_path, _PRE_WINDOW_FILENAME, _PRE_WINDOW_B0_ENTRY)
+
+    result = run_guard(
+        tmp_path / "memory",
+        tmp_path,
+        skip_git=True,
+        changed_files=["docs/unrelated.md", "memory/00_long_term.md"],
+    )
+
+    assert B0_CODE not in result["violation_counts_by_code"]
+
+
+def test_b0_scenario3_in_window_file_in_diff_is_not_double_counted(tmp_path: Path) -> None:
+    # The regular daily scan already covers in-window files; the diff-aware
+    # pass must skip them so one entry never yields two violations.
     _write_memory(
         tmp_path,
-        _PRE_WINDOW_FILENAME,
+        _IN_WINDOW_FILENAME,
         "- memory_type: note\n"
         "  record_format_version: 1.0\n"
         "  writer: manual.editor\n"
-        "  what_changed: session entry backdated into a pre-window file\n"
+        "  what_changed: in-window entry present in the diff\n"
         "  commit: deadbee\n"
         "  memory_binding: bound\n"
         "  test_evidence: not relevant\n"
         "  next_step: none\n",
     )
 
-    assert B0_CODE not in _b0_counts(tmp_path)
+    result = run_guard(
+        tmp_path / "memory",
+        tmp_path,
+        skip_git=True,
+        changed_files=[f"memory/{_IN_WINDOW_FILENAME}"],
+    )
+
+    assert result["violation_counts_by_code"][B0_CODE] == 1
+
+
+def test_b0_scenario3_workflow_surface_reports_modified_pre_window_append(tmp_path: Path) -> None:
+    # The pre-commit / CI entrypoint passes its diff context to the guard, so
+    # the backdated append surfaces at the gate boundary, still report-only.
+    _make_framework_surface(tmp_path)
+    _write_memory(tmp_path, _PRE_WINDOW_FILENAME, _PRE_WINDOW_B0_ENTRY)
+
+    workflow = assess_memory_workflow(
+        tmp_path,
+        changed_files=[f"memory/{_PRE_WINDOW_FILENAME}"],
+        run_guard_check=True,
+    )
+
+    assert workflow.guard_summary[B0_CODE] == 1
+    assert B0_CODE in workflow.warnings
+    assert workflow.blockers == []
+    assert workflow.completion_claim_allowed is True
 
 
 def test_b0_scenario4_guard_and_workflow_surfaces_report_same_verdict(tmp_path: Path) -> None:

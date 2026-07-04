@@ -82,7 +82,12 @@ def check(
     normalized_changed = sorted({_normalize(item) for item in changed_files if _normalize(item)})
     changed_memory_files = [item for item in normalized_changed if _is_memory_file(item)]
 
-    guard_result = run_guard(repo_root / "memory", repo_root, skip_git=True)
+    guard_result = run_guard(
+        repo_root / "memory",
+        repo_root,
+        skip_git=True,
+        changed_files=changed_memory_files,
+    )
     active = filter_active_non_canonical_writer_violations(
         guard_result["violations"],
         active_from=active_from,
@@ -96,7 +101,12 @@ def check(
 
     warnings = []
     counts = guard_result.get("violation_counts_by_code") or {}
-    for code in ("missing_canonical_memory", "unbound_memory", "non_canonical_writer"):
+    for code in (
+        "missing_canonical_memory",
+        "unbound_memory",
+        "non_canonical_writer",
+        "session_like_non_session_memory_type",
+    ):
         count = int(counts.get(code) or 0)
         if count:
             warnings.append(f"{code}={count}")

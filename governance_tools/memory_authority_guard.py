@@ -18,6 +18,9 @@ Checks:
   4. missing_canonical_memory   — commits in git log but no daily memory file
   5. test_evidence_provenance_not_found — success evidence lacks artifact provenance
   6. session_like_non_session_memory_type — session-shaped entry uses a non-session memory_type
+     (active-window daily files always; pre-window daily files only when diff
+     context marks them as modified, to catch backdated appends without
+     reclassifying untouched historical entries)
 
 Phase 1: warnings only. Exit code always 0. JSON to stdout.
 
@@ -31,6 +34,7 @@ import json
 import re
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -258,6 +262,14 @@ def _test_evidence_provenance_violation(
     return "test_evidence_artifact_not_found"
 
 
+def _session_like_field_names(block: str) -> list[str]:
+    return [
+        name
+        for name, pattern in _SESSION_LIKE_FIELD_PATTERNS
+        if pattern.search(block)
+    ]
+
+
 def _session_like_non_session_memory_reason(
     block: str,
     *,
@@ -272,11 +284,7 @@ def _session_like_non_session_memory_reason(
     ):
         return None
 
-    matched_fields = [
-        name
-        for name, pattern in _SESSION_LIKE_FIELD_PATTERNS
-        if pattern.search(block)
-    ]
+    matched_fields = _session_like_field_names(block)
     if not matched_fields:
         return None
 
@@ -285,6 +293,76 @@ def _session_like_non_session_memory_reason(
 
 
 # ── check functions ───────────────────────────────────────────────────────────
+
+def check_modified_pre_window_daily_files(
+    memory_root: Path,
+    changed_files: Sequence[str],
+    *,
+    active_from: str = _ACTIVE_NON_CANONICAL_WRITER_DEFAULT_FROM,
+) -> list[dict[str, Any]]:
+    """
+    Check 6 extension: session-shaped non-session entries in *modified*
+    pre-window daily files.
+
+    The regular daily scan classifies the active window by filename date, so a
+    session-shaped entry backdated into a pre-window file evades it. When the
+    caller provides diff context (pre-commit / CI changed files), a pre-window
+    daily file being modified now is itself the recency signal: scan it with
+    the same field-shape logic and report matches under the same violation
+    code with a pre-window reason.
+
+    Untouched historical files are never scanned here, so existing pre-window
+    debt stays silent. In-window files are skipped to avoid double-reporting
+    entries the regular scan already covers.
+    """
+    cutoff = f"{active_from}.md"
+    violations: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for raw in changed_files:
+        normalized = str(raw).strip().replace("\\", "/").lstrip("./")
+        name = normalized.rsplit("/", 1)[-1]
+        if normalized != f"memory/{name}":
+            continue
+        if not _DATE_FILENAME.match(name) or name >= cutoff or name in seen:
+            continue
+        seen.add(name)
+        fpath = memory_root / name
+        if not fpath.is_file():
+            continue
+        try:
+            text = fpath.read_text(encoding='utf-8')
+        except Exception:
+            # Unreadable files are already reported by the regular daily scan.
+            continue
+        for block in _ENTRY_SPLIT.split(text):
+            stripped = block.strip()
+            if not (
+                stripped.startswith('- what changed:')
+                or stripped.startswith('- what_changed:')
+                or stripped.startswith('- memory_type:')
+            ):
+                continue
+            memory_type_match = _MEMORY_TYPE.search(block)
+            memory_type = (
+                memory_type_match.group(1).strip().lower() if memory_type_match else ""
+            )
+            if not memory_type or memory_type in _SESSION_DERIVED_MEMORY_TYPES:
+                continue
+            matched_fields = _session_like_field_names(block)
+            if not matched_fields:
+                continue
+            violations.append({
+                'code': 'session_like_non_session_memory_type',
+                'severity': 'warning',
+                'file': name,
+                'entry': _snippet(block),
+                'reason': (
+                    'non_session_memory_type_with_session_fields_in_modified_pre_window_file:'
+                    f'{memory_type}:{",".join(matched_fields)}'
+                ),
+            })
+    return violations
+
 
 def check_daily_memory(
     memory_root: Path,
@@ -623,15 +701,25 @@ def run_guard(
     project_root: Path,
     *,
     skip_git: bool = False,
+    changed_files: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     """
     Run all four checks and return structured JSON result.
     Phase 1: always warning mode; all violations are non-blocking.
+
+    changed_files: optional diff context (repo-relative paths). When provided,
+    modified pre-window daily files are additionally scanned for session-shaped
+    non-session entries (backdated append detection). Without diff context the
+    behavior is unchanged.
     """
     violations: list[dict[str, Any]] = []
 
     daily_violations, daily_coverage = check_daily_memory(memory_root, project_root)
     violations.extend(daily_violations)
+    if changed_files:
+        violations.extend(
+            check_modified_pre_window_daily_files(memory_root, changed_files)
+        )
 
     structural_violations, structural_coverage = check_structural_memory(memory_root)
     violations.extend(structural_violations)

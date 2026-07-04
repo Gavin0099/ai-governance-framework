@@ -205,12 +205,17 @@ def _summarize_guard(result: dict) -> dict[str, int]:
     }
 
 
-def _run_authority_guard(repo_root: Path) -> tuple[bool, dict[str, int], list[str], list[str]]:
+def _run_authority_guard(
+    repo_root: Path,
+    changed_files: Sequence[str] | None = None,
+) -> tuple[bool, dict[str, int], list[str], list[str]]:
     memory_root = repo_root / "memory"
     if not memory_root.is_dir():
         return False, {}, ["memory root not found; guard not run"], []
 
-    result = run_guard(memory_root, repo_root, skip_git=False)
+    result = run_guard(
+        memory_root, repo_root, skip_git=False, changed_files=changed_files
+    )
     active = filter_active_non_canonical_writer_violations(result["violations"])
     result["active_non_canonical_writer"] = {
         "count": len(active),
@@ -260,7 +265,9 @@ def assess_memory_workflow(
     if memory_files and guard_path is None:
         warnings.append("memory authority guard not found")
     if run_guard_check:
-        guard_ran, guard_summary, guard_warnings, guard_blockers = _run_authority_guard(repo_root)
+        guard_ran, guard_summary, guard_warnings, guard_blockers = _run_authority_guard(
+            repo_root, changed_files=memory_files
+        )
         warnings.extend(guard_warnings)
         blockers.extend(guard_blockers)
     if memory_files and strict_completion_check and not guard_ran:
