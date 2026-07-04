@@ -21,10 +21,14 @@ Scenario map (RFC "Mutation Contract Required Before The Switch"):
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
+
+import pytest
 
 from governance_tools.memory_authority_guard import (
     _ACTIVE_NON_CANONICAL_WRITER_DEFAULT_FROM,
+    main,
     run_guard,
 )
 from governance_tools.memory_workflow import assess_memory_workflow
@@ -188,6 +192,67 @@ def test_b0_scenario3_in_window_file_in_diff_is_not_double_counted(tmp_path: Pat
         changed_files=[f"memory/{_IN_WINDOW_FILENAME}"],
     )
 
+    assert result["violation_counts_by_code"][B0_CODE] == 1
+
+
+def test_b0_scenario3_innocent_edit_of_legacy_file_surfaces_existing_debt(tmp_path: Path) -> None:
+    # KNOWN NOISE CLASS (review finding, carried forward): the diff-aware pass
+    # is a whole-file scan, not hunk-level append detection. Any modification
+    # to a pre-window file — including an innocent typo fix — surfaces every
+    # legacy B0-shaped entry already in that file. "Historical debt stays
+    # silent" therefore means UNTOUCHED files only. Acceptable while
+    # report-only; before B0 blocking may cover pre-window reasons, this must
+    # be resolved (hunk-level detection or an explicit policy exclusion).
+    legacy_entries = (
+        "- memory_type: post-push\n"
+        "  record_format_version: 1.0\n"
+        "  writer: governance_tools.memory_record\n"
+        "  what_changed: legacy entry one\n"
+        "  test_evidence: not relevant\n"
+        "  next_step: none\n"
+        "- memory_type: implementation\n"
+        "  record_format_version: 1.0\n"
+        "  writer: governance_tools.memory_record\n"
+        "  what_changed: legacy entry two\n"
+        "  next_step: none\n"
+        "- memory_type: session-derived\n"
+        "  record_format_version: 1.0\n"
+        "  writer: governance_tools.memory_record\n"
+        "  what_changed: legit session entry, not part of the noise class\n"
+        "  commit: deadbee\n"
+        "  next_step: none\n"
+    )
+    _write_memory(tmp_path, _PRE_WINDOW_FILENAME, legacy_entries)
+
+    result = run_guard(
+        tmp_path / "memory",
+        tmp_path,
+        skip_git=True,
+        changed_files=[f"memory/{_PRE_WINDOW_FILENAME}"],
+    )
+
+    # Both legacy non-session entries surface, not just an appended one.
+    assert result["violation_counts_by_code"][B0_CODE] == 2
+    assert result["enforcement_action"] == "allow"
+
+
+def test_b0_scenario3_guard_cli_accepts_changed_file(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    # Reviewer-facing surface parity: the guard CLI can replay the backdated
+    # append detection with --changed-file, so verification does not require
+    # going through the workflow or CI entrypoints.
+    _write_memory(tmp_path, _PRE_WINDOW_FILENAME, _PRE_WINDOW_B0_ENTRY)
+
+    with pytest.raises(SystemExit) as excinfo:
+        main([
+            "--memory-root", str(tmp_path / "memory"),
+            "--project-root", str(tmp_path),
+            "--skip-git",
+            "--format", "json",
+            "--changed-file", f"memory/{_PRE_WINDOW_FILENAME}",
+        ])
+
+    assert excinfo.value.code == 0
+    result = json.loads(capsys.readouterr().out)
     assert result["violation_counts_by_code"][B0_CODE] == 1
 
 

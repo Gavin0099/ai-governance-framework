@@ -835,6 +835,17 @@ def main(argv: list[str] | None = None) -> None:
         default=_ACTIVE_NON_CANONICAL_WRITER_DEFAULT_FROM,
         help='Active non-canonical writer cutoff date, YYYY-MM-DD (default: 2026-06-02).',
     )
+    parser.add_argument(
+        '--changed-file',
+        action='append',
+        default=None,
+        metavar='PATH',
+        help=(
+            'Repo-relative changed file (repeatable). Provides diff context so '
+            'modified pre-window daily memory files are scanned for backdated '
+            'session-shaped entries.'
+        ),
+    )
     args = parser.parse_args(argv)
 
     memory_root = Path(args.memory_root)
@@ -844,7 +855,12 @@ def main(argv: list[str] | None = None) -> None:
         print(f'error: memory root not found: {memory_root}', file=sys.stderr)
         sys.exit(1)
 
-    result = run_guard(memory_root, project_root, skip_git=args.skip_git)
+    result = run_guard(
+        memory_root,
+        project_root,
+        skip_git=args.skip_git,
+        changed_files=args.changed_file,
+    )
     active_non_canonical_writer = filter_active_non_canonical_writer_violations(
         result["violations"],
         active_from=args.active_from,
