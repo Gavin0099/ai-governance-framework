@@ -96,29 +96,29 @@ forces landed debt to be dealt with instead of accumulating. If observation
 shows this punishes unrelated contributors too often, a diff-scoped variant
 needs its own policy decision; do not silently narrow the gate.
 
-### F6 (CARRIED FORWARD): non-daily memory filenames evade the daily scans
+### F6 (REPORT-ONLY REMEDIATED): non-daily memory filenames evade the daily scans
 
 Session-shaped content parked in e.g. `memory/notes.md` is outside the daily
 scan (`YYYY-MM-DD.md` only) and outside B0 entirely. The workflow still flags
-`memory/**` diffs as governed memory tasks, but no guard check classifies the
-content. This is a scope boundary of the daily-file contract, not a
-regression; it needs its own slice if it is to be closed.
+`memory/**` diffs as governed memory tasks. The report-only F6 detector now
+classifies this placement as `non_daily_session_shaped_memory_entry` without
+expanding B0 or blocking the gate.
 
-Report-only probe baseline: `test_round2_f6_non_daily_memory_file_remains_outside_b0_scan`
-pins the current behavior. With `governance/memory_blocking_policy.json`
-enabled, `memory/notes.md` is still treated as a governed memory diff by
-`memory_workflow` / CI, but the daily-file guard reports no B0 violation and
-the policy-backed gates stay clean. This is evidence of the residual
-scan-scope bypass, not a remediation.
+Report-only fixture:
+`test_round2_f6_non_daily_memory_file_reports_warning_without_blocking` pins the
+current behavior. With `governance/memory_blocking_policy.json` enabled,
+`memory/notes.md` is treated as a governed memory diff by `memory_workflow` /
+CI, the daily-file guard reports no B0 violation, the F6 warning is surfaced,
+and the policy-backed gates stay clean.
 
-Remediation direction is defined in
+Remediation direction and claim ceiling are defined in
 `docs/governance/self-governance-f6-non-daily-memory-remediation-design-2026-07-05.md`:
-report-only warning first; no direct blocking promotion without a separate RFC.
+report-only warning first; no blocking promotion without a separate RFC.
 
 ## Cannot Claim
 
-- the blocking surface is now bypass-proof (F2 prevention, F4, F5 narrowing,
-  F6 all remain open boundaries);
+- the blocking surface is now bypass-proof (F2 prevention, F4, and F5 narrowing
+  remain open boundaries; F6 is report-only only);
 - override misuse is prevented (it is only audited);
 - policy tampering is prevented (corruption blocks; valid disable is loud but
   allowed);

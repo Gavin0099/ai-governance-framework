@@ -40,6 +40,7 @@ from governance_tools.memory_authority_guard import (
 from governance_tools.memory_workflow import assess_memory_workflow
 
 B0_CODE = "session_like_non_session_memory_type"
+F6_CODE = "non_daily_session_shaped_memory_entry"
 
 _IN_WINDOW_FILENAME = f"{_ACTIVE_NON_CANONICAL_WRITER_DEFAULT_FROM}.md"
 _PRE_WINDOW_FILENAME = "2026-01-01.md"
@@ -735,11 +736,11 @@ def test_step4_ci_no_policy_announcement_without_policy_in_diff(tmp_path: Path) 
     assert "blocking_policy_changed_in_current_diff" not in result.warnings
 
 
-def test_round2_f6_non_daily_memory_file_remains_outside_b0_scan(tmp_path: Path) -> None:
+def test_round2_f6_non_daily_memory_file_reports_warning_without_blocking(tmp_path: Path) -> None:
     # F6 residual: memory_workflow classifies any memory/** diff as governed,
-    # but memory_authority_guard scans daily YYYY-MM-DD.md files only. A
-    # session-shaped non-session entry in memory/notes.md therefore remains
-    # outside B0, even when the policy-backed workflow/CI gates are enabled.
+    # but memory_authority_guard's B0 scan is daily-file scoped. A session-shaped
+    # non-session entry in memory/notes.md now emits a separate report-only
+    # placement warning without borrowing B0 blocking semantics.
     _make_framework_surface(tmp_path)
     _write_policy(tmp_path)
     _write_memory(tmp_path, "notes.md", _IN_WINDOW_B0_ENTRY)
@@ -759,15 +760,42 @@ def test_round2_f6_non_daily_memory_file_remains_outside_b0_scan(tmp_path: Path)
     ci_result = ci_check(tmp_path, changed_files=["memory/notes.md"])
 
     assert guard["violation_counts_by_code"].get(B0_CODE, 0) == 0
+    assert guard["violation_counts_by_code"][F6_CODE] == 1
     assert guard["blocking_violation_codes"] == []
+    assert F6_CODE in guard["report_only_violation_codes"]
     assert workflow.status == "memory_workflow_required"
     assert workflow.memory_files_in_diff == ["memory/notes.md"]
     assert workflow.guard_summary.get(B0_CODE, 0) == 0
+    assert workflow.guard_summary[F6_CODE] == 1
+    assert F6_CODE in workflow.warnings
     assert workflow.blockers == []
     assert workflow.completion_claim_allowed is True
     assert ci_result.clean is True
     assert ci_result.changed_memory_files == ["memory/notes.md"]
+    assert f"{F6_CODE}=1" in ci_result.warnings
     assert not any(B0_CODE in warning for warning in ci_result.warnings)
+
+
+def test_round2_f6_non_daily_warning_is_diff_scoped_for_gate_consumers(tmp_path: Path) -> None:
+    # Raw guard can full-scan non-daily files, but workflow/CI with diff context
+    # should only surface F6 for changed non-daily memory files.
+    _make_framework_surface(tmp_path)
+    _write_policy(tmp_path)
+    _write_memory(tmp_path, "notes.md", _IN_WINDOW_B0_ENTRY)
+
+    raw_guard = run_guard(tmp_path / "memory", tmp_path, skip_git=True)
+    workflow = assess_memory_workflow(
+        tmp_path,
+        changed_files=[f"memory/{_IN_WINDOW_FILENAME}"],
+        run_guard_check=True,
+    )
+    ci_result = ci_check(tmp_path, changed_files=[f"memory/{_IN_WINDOW_FILENAME}"])
+
+    assert raw_guard["violation_counts_by_code"][F6_CODE] == 1
+    assert workflow.guard_summary.get(F6_CODE, 0) == 0
+    assert F6_CODE not in workflow.warnings
+    assert ci_result.clean is True
+    assert not any(F6_CODE in warning for warning in ci_result.warnings)
 
 
 def test_b0_scenario6_phase1_semantics_pinned_even_when_b0_fires(tmp_path: Path) -> None:

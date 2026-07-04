@@ -203,6 +203,9 @@ def _summarize_guard(result: dict) -> dict[str, int]:
         "session_like_non_session_memory_type": int(
             counts.get("session_like_non_session_memory_type") or 0
         ),
+        "non_daily_session_shaped_memory_entry": int(
+            counts.get("non_daily_session_shaped_memory_entry") or 0
+        ),
     }
 
 
@@ -236,6 +239,7 @@ def _run_authority_guard(
             "unbound_memory",
             "test_evidence_provenance_not_found",
             "session_like_non_session_memory_type",
+            "non_daily_session_shaped_memory_entry",
         )
         if summary.get(code, 0) > 0
     ]

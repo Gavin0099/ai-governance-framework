@@ -21,11 +21,14 @@ Checks:
      (active-window daily files always; pre-window daily files only when diff
      context marks them as modified, to catch backdated appends without
      reclassifying untouched historical entries)
+  7. non_daily_session_shaped_memory_entry — non-daily memory/*.md contains a
+     session-shaped entry block (report-only placement warning)
 
 Phase 1 default: warnings only. Exit code always 0. JSON to stdout.
-Selective blocking (RFC rollout step 3): run_guard accepts an opt-in
-blocking_codes policy input; the default (empty) keeps exact Phase 1 semantics
-and is the kill switch. No hook or CI caller passes it yet.
+Selective blocking: run_guard accepts an opt-in blocking_codes policy input; the
+default (empty) keeps exact Phase 1 semantics and is the kill switch. Gate
+consumers load the versioned policy file; non-blockable warning codes stay
+report-only.
 
 See: governance/MEMORY_AUTHORITY_CONTRACT.md
 """
@@ -88,6 +91,7 @@ _CANONICAL_MEMORY_WRITER = "governance_tools.memory_record"
 _CANONICAL_WRITER_REQUIRED_FROM = "2026-05-01"
 _ACTIVE_NON_CANONICAL_WRITER_DEFAULT_FROM = "2026-06-02"
 _SESSION_DERIVED_MEMORY_TYPES = {"session-derived", "session_derived"}
+_NON_DAILY_SESSION_SHAPED_CODE = "non_daily_session_shaped_memory_entry"
 _PRE_WINDOW_REASON_PREFIX = (
     "non_session_memory_type_with_session_fields_in_modified_pre_window_file:"
 )
@@ -428,6 +432,73 @@ def check_modified_pre_window_daily_files(
                     f'{memory_type}:{",".join(matched_fields)}'
                 ),
                 'authority_override': _authority_override_value(block),
+            })
+    return violations
+
+
+def check_non_daily_session_shaped_memory_files(
+    memory_root: Path,
+    changed_files: Sequence[str] | None = None,
+) -> list[dict[str, Any]]:
+    """
+    F6 report-only detector: session-shaped entry blocks in non-daily memory
+    files.
+
+    Non-daily memory files are valid structural surfaces, so this intentionally
+    ignores prose and comment metadata. A warning requires a Markdown list block
+    that looks like an entry and carries at least two session-shaped fields.
+    """
+    violations: list[dict[str, Any]] = []
+    if changed_files is None:
+        candidates = sorted(memory_root.glob("*.md"))
+    else:
+        candidates = []
+        seen: set[str] = set()
+        for raw in changed_files:
+            normalized = str(raw).strip().replace("\\", "/").lstrip("./")
+            name = normalized.rsplit("/", 1)[-1]
+            if normalized != f"memory/{name}" or name in seen:
+                continue
+            seen.add(name)
+            candidates.append(memory_root / name)
+        candidates.sort()
+
+    for fpath in candidates:
+        if _is_daily_file(fpath):
+            continue
+        if not fpath.is_file():
+            continue
+        try:
+            text = fpath.read_text(encoding="utf-8")
+        except Exception as exc:
+            violations.append({
+                "code": _NON_DAILY_SESSION_SHAPED_CODE,
+                "severity": "warning",
+                "file": str(fpath.name),
+                "entry": None,
+                "reason": f"read_error: {exc}",
+            })
+            continue
+        for block in _ENTRY_SPLIT.split(text):
+            stripped = block.strip()
+            if not (
+                stripped.startswith("- what changed:")
+                or stripped.startswith("- what_changed:")
+                or stripped.startswith("- memory_type:")
+            ):
+                continue
+            matched_fields = _session_like_field_names(block)
+            if len(matched_fields) < 2:
+                continue
+            violations.append({
+                "code": _NON_DAILY_SESSION_SHAPED_CODE,
+                "severity": "warning",
+                "file": str(fpath.name),
+                "entry": _snippet(block),
+                "reason": (
+                    "non_daily_memory_file_contains_session_shaped_entry:"
+                    f"{','.join(matched_fields)}"
+                ),
             })
     return violations
 
@@ -855,6 +926,9 @@ def run_guard(
         violations.extend(
             check_modified_pre_window_daily_files(memory_root, changed_files)
         )
+    violations.extend(
+        check_non_daily_session_shaped_memory_files(memory_root, changed_files)
+    )
 
     structural_violations, structural_coverage = check_structural_memory(memory_root)
     violations.extend(structural_violations)

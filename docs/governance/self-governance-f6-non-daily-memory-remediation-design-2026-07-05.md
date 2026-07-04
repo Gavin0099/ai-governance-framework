@@ -1,22 +1,22 @@
 # Self-Governance F6 Non-Daily Memory Remediation Design
 
-Status: DESIGN ONLY / REPORT-ONLY FIRST
+Status: REPORT-ONLY IMPLEMENTED / NON-BLOCKING
 Date: 2026-07-05
 Scope: F6 residual from the B0 blocking surface red-team round 2
 
 ## DONE
 
 DONE = the intended remediation semantics for non-daily `memory/*.md` files are
-chosen and bounded without changing enforcement, guard scan behavior, policy
-files, CI, hooks, or runtime behavior.
+chosen and the first report-only detector is implemented without changing
+blocking policy, hooks, or enforcement behavior.
 
 ## Problem
 
 F6 showed a scan-scope bypass: a session-shaped entry can be placed in a
 non-daily memory file such as `memory/notes.md`. `memory_workflow` and CI still
 classify the diff as governed memory work because it touches `memory/**`, but
-`memory_authority_guard` currently scans daily `YYYY-MM-DD.md` files for B0.
-The result is a governed memory diff that receives no B0 classification.
+`memory_authority_guard` scans daily `YYYY-MM-DD.md` files for B0. The report-only
+F6 detector now classifies this placement separately without expanding B0.
 
 This is not the same as ordinary historical debt. It is a placement bypass:
 session-derived operational records can leave the canonical daily-file lane.
@@ -41,7 +41,7 @@ inside those files.
 
 ## Decision
 
-Choose option 2: add a report-only warning first.
+Chosen option: add a report-only warning first.
 
 Rejected for this slice:
 
@@ -88,7 +88,7 @@ This deliberately avoids warning on prose that merely mentions `commit` or
 
 ## Gate Semantics
 
-Initial implementation should be report-only:
+Initial implementation is report-only:
 
 - raw `memory_authority_guard`: include the warning in
   `report_only_violation_codes`;
@@ -98,7 +98,7 @@ Initial implementation should be report-only:
   `clean=True`;
 - `governance/memory_blocking_policy.json`: unchanged.
 
-No `blocking_codes` entry should be added for this code in the first slice.
+No `blocking_codes` entry is added for this code in the first slice.
 
 ## Promotion Conditions
 
@@ -117,30 +117,25 @@ Minimum preconditions:
 
 ## Non-Goals
 
-This design does not:
+This slice does not:
 
-- change `memory_authority_guard.py`;
-- change `memory_workflow.py`;
-- change `ci_memory_workflow_check.py`;
-- modify hooks, workflows, or policy files;
-- add a new violation code implementation;
+- modify hooks, `.github` workflow files, or policy files;
 - block `memory/notes.md`;
 - ban non-daily memory files;
-- repair F6;
+- promote F6 to blocking;
 - claim the blocking surface is bypass-proof.
 
 ## Claim Ceiling
 
 This document can claim:
 
-- the F6 remediation direction is selected: report-only warning first;
+- the F6 remediation direction is selected and implemented as report-only first;
 - the warning semantics and false-positive boundaries are defined;
 - blocking promotion is deferred behind a separate RFC.
 
 This document cannot claim:
 
-- F6 is fixed;
-- non-daily memory bypass is detected by runtime today;
+- F6 is fully fixed;
 - any new enforcement exists;
 - B0 has expanded beyond daily-file semantics;
 - Phase E enforcement is complete.

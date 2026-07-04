@@ -110,6 +110,7 @@ def check(
         "unbound_memory",
         "non_canonical_writer",
         "session_like_non_session_memory_type",
+        "non_daily_session_shaped_memory_entry",
     ):
         count = int(counts.get(code) or 0)
         if count:
