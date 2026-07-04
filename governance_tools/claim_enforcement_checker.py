@@ -9,6 +9,37 @@ DISALLOWED_PHRASES = (
     "production-ready",
 )
 
+# Lexical strength markers used ONLY to detect a mismatch between a
+# self-declared restrained claim_level (bounded/parity) and claim text that
+# asserts absolute/universal strength. This is a STRUCTURAL PROXY, not semantic
+# verification: it cannot detect a strong claim phrased without these markers
+# (false negative), and it may flag restrained text that quotes strong language
+# (false positive). See:
+# docs/governance/self-governance-claim-label-drift-mutation-contract-2026-07-04.md
+CLAIM_STRENGTH_MARKERS = (
+    "guarantee",
+    "completely safe",
+    "completely correct",
+    "completely secure",
+    "fully safe",
+    "fully correct",
+    "fully secure",
+    "all inputs",
+    "all cases",
+    "every input",
+    "every case",
+    "any input",
+    "always correct",
+    "always safe",
+    "never fails",
+    "cannot fail",
+    "100%",
+)
+
+# claim_level values that assert restraint; strength markers in the text
+# contradict these labels.
+_RESTRAINED_CLAIM_LEVELS = ("bounded", "parity")
+
 POSTURE_ORDER = {
     "none": 0,
     "bounded_support": 1,
@@ -91,6 +122,15 @@ def evaluate(payload: dict) -> dict:
     if publication_scope == "local_only" and claim_level != "bounded":
         semantic_drift_risk = True
         reasons.append("local_only_claim_level_exceeds_bounded")
+
+    # Claim-label drift: a self-declared restrained level (bounded/parity) whose
+    # text asserts absolute/universal strength. Advisory-only structural proxy —
+    # routes through the existing downgrade path, never a new blocking action.
+    if claim_level in _RESTRAINED_CLAIM_LEVELS and any(
+        marker in lowered for marker in CLAIM_STRENGTH_MARKERS
+    ):
+        semantic_drift_risk = True
+        reasons.append("claim_label_understates_claim_text")
 
     if semantic_drift_risk:
         if claim_level in ("strong", "unbounded"):
