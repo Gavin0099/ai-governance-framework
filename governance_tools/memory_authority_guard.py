@@ -701,7 +701,8 @@ def _apply_blocking_policy(
 ) -> list[dict[str, Any]]:
     """
     Select the violations the policy actually blocks and append audit records
-    for per-entry overrides. Mutates `violations` only by appending
+    for per-entry overrides. Mutates `violations` by tagging each blocking
+    violation with `enforcement: block` and by appending
     `authority_override_used` report-only records.
 
     Exclusions (see the blocking policy RFC):
@@ -710,7 +711,9 @@ def _apply_blocking_policy(
         whole-file, so it can surface legacy entries that must not block.
       - authority_override: an explicit per-entry override downgrades the
         block to a warning and emits `authority_override_used` so the
-        override is auditable, never silent.
+        override is auditable, never silent. The override marker is currently
+        captured only for session_like_non_session_memory_type entries;
+        enabling other codes gives them no override path yet.
     """
     blocking: list[dict[str, Any]] = []
     downgraded: list[dict[str, Any]] = []
@@ -723,6 +726,7 @@ def _apply_blocking_policy(
         if violation.get('authority_override'):
             downgraded.append(violation)
             continue
+        violation['enforcement'] = 'block'
         blocking.append(violation)
     for violation in downgraded:
         violations.append({
@@ -856,9 +860,12 @@ def run_guard(
         not_claimed = _report_only_not_claimed(authority_status)
         policy_mode = 'report_only_default'
 
-    report_only_codes = sorted(
-        code for code in counts if code not in set(blocking_codes_fired)
-    )
+    # Per-violation truth: a code with both blocking and report-only
+    # instances (e.g. one in-window blocked, one pre-window warned) must
+    # appear in both lists.
+    report_only_codes = sorted({
+        v['code'] for v in violations if v.get('enforcement') != 'block'
+    })
 
     return {
         'guard': 'memory_authority_guard',

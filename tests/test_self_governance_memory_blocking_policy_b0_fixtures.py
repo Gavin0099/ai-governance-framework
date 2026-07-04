@@ -458,6 +458,30 @@ def test_policy_optin_does_not_block_codes_outside_the_policy(tmp_path: Path) ->
     assert result["blocking_violation_codes"] == []
 
 
+def test_policy_optin_mixed_instances_keep_code_in_both_lists(tmp_path: Path) -> None:
+    # One in-window B0 entry blocks; one pre-window B0 entry (surfaced via
+    # diff context) stays report-only. The same code must appear in both
+    # blocking_violation_codes and report_only_violation_codes, and only the
+    # blocked instance carries the enforcement tag.
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_ENTRY)
+    _write_memory(tmp_path, _PRE_WINDOW_FILENAME, _PRE_WINDOW_B0_ENTRY)
+
+    result = run_guard(
+        tmp_path / "memory",
+        tmp_path,
+        skip_git=True,
+        changed_files=[f"memory/{_PRE_WINDOW_FILENAME}"],
+        blocking_codes=[B0_CODE],
+    )
+
+    assert result["violation_counts_by_code"][B0_CODE] == 2
+    assert result["blocking_violation_codes"] == [B0_CODE]
+    assert B0_CODE in result["report_only_violation_codes"]
+    b0_violations = [v for v in result["violations"] if v["code"] == B0_CODE]
+    tags = sorted(str(v.get("enforcement")) for v in b0_violations)
+    assert tags == ["None", "block"]
+
+
 def test_policy_default_off_state_is_visible_in_output(tmp_path: Path) -> None:
     # Kill-switch visibility: a disabled policy must be readable from the
     # result so a disabled gate can never masquerade as a passing gate.
