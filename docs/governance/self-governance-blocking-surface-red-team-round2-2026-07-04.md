@@ -70,7 +70,7 @@ and the only supported path for gate consumers.
 
 Fixture: `test_policy_loader_unknown_code_disables_but_surfaces_error`.
 
-### F4 (ACCEPTED, documented): authority_override is self-service
+### F4 (REPORT-ONLY VISIBILITY): authority_override is self-service
 
 Probe: adding `authority_override: myself lol` to a blocked entry downgrades
 the block to a warning. No reviewer identity verification exists.
@@ -79,9 +79,13 @@ Disposition: accepted by RFC design. The override is an honor-system escape
 hatch whose deterrent is the audit trail: the original violation stays
 visible, `authority_override_used` is emitted, and the override text is
 grep-able in the memory file. This matches the framework trust model (audit
-boundary, not security boundary). Candidate future hardening: an
-`override_allowed` policy field, or CI surfacing `authority_override_used`
-occurring in the current diff.
+boundary, not security boundary). `memory_workflow` and CI now surface
+`authority_override_used` when the override occurs in the current memory diff,
+without changing override semantics or blocking behavior. Candidate future
+hardening: an `override_allowed` policy field.
+
+Fixture: `test_step4_workflow_surfaces_authority_override_in_current_diff` and
+`test_step4_ci_surfaces_authority_override_in_current_diff`.
 
 ### F5 (DOCUMENTED semantics): B0 blocking at CI is a repo-state gate
 
@@ -117,8 +121,8 @@ report-only warning first; no blocking promotion without a separate RFC.
 
 ## Cannot Claim
 
-- the blocking surface is now bypass-proof (F2 prevention, F4, and F5 narrowing
-  remain open boundaries; F6 is report-only only);
+- the blocking surface is now bypass-proof (F2 prevention and F5 narrowing
+  remain open boundaries; F4 and F6 are report-only only);
 - override misuse is prevented (it is only audited);
 - policy tampering is prevented (corruption blocks; valid disable is loud but
   allowed);

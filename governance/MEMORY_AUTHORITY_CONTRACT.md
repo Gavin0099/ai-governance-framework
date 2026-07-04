@@ -242,6 +242,7 @@ sessions or unusual workflows.
 | `old_format_entry_after_canonical_writer_cutoff` | warning | no | Old-format daily memory entry appears after the canonical-writer cutoff and should be rewritten through the canonical writer |
 | `test_evidence_provenance_not_found` | warning | no | Success-style `test_evidence` lacks an existing `artifacts/...` provenance path |
 | `session_like_non_session_memory_type` | warning in raw guard; blocker in policy-backed gates | raw guard: no; `memory_workflow` / CI with policy file: yes | Active-window typed entry uses non-session `memory_type` while carrying session memory fields |
+| `authority_override_used` | warning | no | A policy-backed blocker was downgraded by an `authority_override` entry field |
 | `non_daily_session_shaped_memory_entry` | warning | no | Non-daily `memory/*.md` file contains a block that looks like a daily session-derived memory entry |
 | `active_non_canonical_writer` | blocker candidate | opt-in / workflow-dependent | Current-window non-canonical writer violation detected by the active-window filter |
 
@@ -259,6 +260,10 @@ Current semantics:
   that load `governance/memory_blocking_policy.json`, the same code is the first
   selective blocker for active-window entries. Pre-window reasons and entries
   carrying `authority_override` stay report-only.
+- `authority_override_used` is report-only in all current paths. It makes
+  blocker downgrades visible in guard output; `memory_workflow` and CI surface
+  it when the override occurs in the current memory diff. It is audit
+  visibility, not reviewer identity verification.
 - `non_daily_session_shaped_memory_entry` is report-only in all current paths.
   It makes F6 placement bypasses visible without banning structural memory
   files or expanding B0 blocking semantics.

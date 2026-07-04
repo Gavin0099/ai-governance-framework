@@ -157,6 +157,37 @@ def _is_memory_file(path_text: str) -> bool:
     return normalized == "memory" or normalized.startswith("memory/")
 
 
+def _violation_memory_path(violation: dict) -> str | None:
+    filename = str(violation.get("file") or "").strip().replace("\\", "/")
+    if not filename:
+        return None
+    if filename.startswith("memory/"):
+        return filename
+    return f"memory/{filename}"
+
+
+def _count_current_diff_violations(
+    result: dict,
+    changed_files: Sequence[str] | None,
+    code: str,
+) -> int:
+    if changed_files is None:
+        return 0
+    changed_memory_set = {
+        _normalize_changed_file(item)
+        for item in changed_files
+        if _is_memory_file(item)
+    }
+    if not changed_memory_set:
+        return 0
+    return sum(
+        1
+        for violation in result.get("violations", [])
+        if violation.get("code") == code
+        and _violation_memory_path(violation) in changed_memory_set
+    )
+
+
 def _has_memory_keyword(task_text: str | None) -> bool:
     if not task_text:
         return False
@@ -232,6 +263,11 @@ def _run_authority_guard(
         "mode": "report_only",
     }
     summary = _summarize_guard(result)
+    summary["authority_override_used_current_diff"] = _count_current_diff_violations(
+        result,
+        changed_files,
+        "authority_override_used",
+    )
     warnings = [
         code
         for code in (
@@ -240,8 +276,15 @@ def _run_authority_guard(
             "test_evidence_provenance_not_found",
             "session_like_non_session_memory_type",
             "non_daily_session_shaped_memory_entry",
+            "authority_override_used",
         )
-        if summary.get(code, 0) > 0
+        if (
+            summary.get(code, 0) > 0
+            or (
+                code == "authority_override_used"
+                and summary.get("authority_override_used_current_diff", 0) > 0
+            )
+        )
     ]
     blockers = []
     if summary.get("active_non_canonical_writer", 0) > 0:

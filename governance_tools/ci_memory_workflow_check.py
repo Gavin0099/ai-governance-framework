@@ -102,6 +102,12 @@ def check(
         for violation in active
         if _violation_memory_path(violation) in changed_memory_set
     ]
+    current_diff_authority_overrides = [
+        violation
+        for violation in guard_result["violations"]
+        if violation.get("code") == "authority_override_used"
+        and _violation_memory_path(violation) in changed_memory_set
+    ]
 
     warnings = []
     counts = guard_result.get("violation_counts_by_code") or {}
@@ -115,6 +121,10 @@ def check(
         count = int(counts.get(code) or 0)
         if count:
             warnings.append(f"{code}={count}")
+    if current_diff_authority_overrides:
+        warnings.append(
+            f"authority_override_used={len(current_diff_authority_overrides)}"
+        )
 
     if policy["error"]:
         warnings.append(policy["error"])

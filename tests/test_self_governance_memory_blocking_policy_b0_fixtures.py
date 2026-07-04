@@ -41,6 +41,7 @@ from governance_tools.memory_workflow import assess_memory_workflow
 
 B0_CODE = "session_like_non_session_memory_type"
 F6_CODE = "non_daily_session_shaped_memory_entry"
+AUTHORITY_OVERRIDE_CODE = "authority_override_used"
 
 _IN_WINDOW_FILENAME = f"{_ACTIVE_NON_CANONICAL_WRITER_DEFAULT_FROM}.md"
 _PRE_WINDOW_FILENAME = "2026-01-01.md"
@@ -355,6 +356,18 @@ _IN_WINDOW_B0_ENTRY = (
     "  next_step: none\n"
 )
 
+_IN_WINDOW_B0_OVERRIDE_ENTRY = (
+    "- memory_type: note\n"
+    "  record_format_version: 1.0\n"
+    "  writer: manual.editor\n"
+    "  what_changed: overridden in-window entry\n"
+    "  authority_override: reviewer-x accepted-scope-exception\n"
+    "  commit: deadbee\n"
+    "  memory_binding: bound\n"
+    "  test_evidence: not relevant\n"
+    "  next_step: none\n"
+)
+
 
 def test_policy_optin_b0_violation_blocks(tmp_path: Path) -> None:
     _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_ENTRY)
@@ -409,19 +422,7 @@ def test_policy_optin_pre_window_reason_never_blocks(tmp_path: Path) -> None:
 
 
 def test_policy_optin_authority_override_downgrades_and_is_audited(tmp_path: Path) -> None:
-    _write_memory(
-        tmp_path,
-        _IN_WINDOW_FILENAME,
-        "- memory_type: note\n"
-        "  record_format_version: 1.0\n"
-        "  writer: manual.editor\n"
-        "  what_changed: overridden in-window entry\n"
-        "  authority_override: reviewer-x accepted-scope-exception\n"
-        "  commit: deadbee\n"
-        "  memory_binding: bound\n"
-        "  test_evidence: not relevant\n"
-        "  next_step: none\n",
-    )
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_OVERRIDE_ENTRY)
 
     result = run_guard(
         tmp_path / "memory", tmp_path, skip_git=True, blocking_codes=[B0_CODE]
@@ -433,9 +434,9 @@ def test_policy_optin_authority_override_downgrades_and_is_audited(tmp_path: Pat
     # The override is never silent: the original violation stays visible and
     # an audit record is added.
     assert result["violation_counts_by_code"][B0_CODE] == 1
-    assert result["violation_counts_by_code"]["authority_override_used"] == 1
+    assert result["violation_counts_by_code"][AUTHORITY_OVERRIDE_CODE] == 1
     audit = [
-        v for v in result["violations"] if v["code"] == "authority_override_used"
+        v for v in result["violations"] if v["code"] == AUTHORITY_OVERRIDE_CODE
     ][0]
     assert audit["reason"].startswith(f"downgraded_from:{B0_CODE}:")
 
@@ -613,6 +614,43 @@ def test_step4_workflow_blocks_b0_when_policy_file_enables_it(tmp_path: Path) ->
     assert workflow.completion_claim_allowed is False
 
 
+def test_step4_workflow_surfaces_authority_override_in_current_diff(tmp_path: Path) -> None:
+    _make_framework_surface(tmp_path)
+    _write_policy(tmp_path)
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_OVERRIDE_ENTRY)
+
+    workflow = assess_memory_workflow(
+        tmp_path,
+        changed_files=[f"memory/{_IN_WINDOW_FILENAME}"],
+        run_guard_check=True,
+    )
+
+    assert workflow.guard_summary[B0_CODE] == 1
+    assert workflow.guard_summary["authority_override_used_current_diff"] == 1
+    assert AUTHORITY_OVERRIDE_CODE in workflow.warnings
+    assert workflow.blockers == []
+    assert workflow.completion_claim_allowed is True
+
+
+def test_step4_workflow_keeps_authority_override_visibility_diff_scoped(
+    tmp_path: Path,
+) -> None:
+    _make_framework_surface(tmp_path)
+    _write_policy(tmp_path)
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_OVERRIDE_ENTRY)
+
+    workflow = assess_memory_workflow(
+        tmp_path,
+        changed_files=["memory/2026-06-03.md"],
+        run_guard_check=True,
+    )
+
+    assert workflow.guard_summary[B0_CODE] == 1
+    assert workflow.guard_summary["authority_override_used_current_diff"] == 0
+    assert AUTHORITY_OVERRIDE_CODE not in workflow.warnings
+    assert workflow.blockers == []
+
+
 def test_step4_workflow_kill_switch_restores_report_only(tmp_path: Path) -> None:
     _make_framework_surface(tmp_path)
     _write_policy(tmp_path, enabled=False)
@@ -658,6 +696,32 @@ def test_step4_ci_check_blocks_b0_when_policy_file_enables_it(tmp_path: Path) ->
     assert result.clean is False
     blocker_codes = [b["code"] for b in result.blockers]
     assert f"memory_authority_blocking:{B0_CODE}" in blocker_codes
+
+
+def test_step4_ci_surfaces_authority_override_in_current_diff(tmp_path: Path) -> None:
+    _write_policy(tmp_path)
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_OVERRIDE_ENTRY)
+
+    result = ci_check(
+        tmp_path, changed_files=[f"memory/{_IN_WINDOW_FILENAME}"]
+    )
+
+    assert result.clean is True
+    assert f"{B0_CODE}=1" in result.warnings
+    assert f"{AUTHORITY_OVERRIDE_CODE}=1" in result.warnings
+    assert result.blockers == []
+
+
+def test_step4_ci_keeps_authority_override_visibility_diff_scoped(tmp_path: Path) -> None:
+    _write_policy(tmp_path)
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_OVERRIDE_ENTRY)
+
+    result = ci_check(tmp_path, changed_files=["memory/2026-06-03.md"])
+
+    assert result.clean is True
+    assert f"{B0_CODE}=1" in result.warnings
+    assert not any(AUTHORITY_OVERRIDE_CODE in warning for warning in result.warnings)
+    assert result.blockers == []
 
 
 def test_step4_ci_check_stays_clean_without_policy_file(tmp_path: Path) -> None:
