@@ -7,7 +7,7 @@ Checks that memory entries are properly bound to traceable sources.
 Two memory types:
   - session-derived (daily files: memory/YYYY-MM-DD.md)
       Binding requirement: commit_hash (resolves to a git commit when a git
-      worktree is available) OR session_id
+      worktree is available) OR session_id with runtime artifact provenance
   - structural long-term (memory/00_long_term.md)
       Binding requirement: promoted_by marker in each ## section
 
@@ -101,19 +101,47 @@ def _git_commit_exists(project_root: Path, commit_hash: str) -> bool:
     return completed.returncode == 0
 
 
+def _json_session_id_matches(path: Path, session_id: str) -> bool:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    return str(payload.get("session_id") or "").strip() == session_id
+
+
+def _session_id_has_artifact_provenance(project_root: Path, session_id: str) -> bool:
+    if not session_id or "/" in session_id or "\\" in session_id or session_id in {".", ".."}:
+        return False
+
+    runtime_root = project_root / "artifacts" / "runtime"
+    closeout_path = runtime_root / "closeouts" / f"{session_id}.json"
+    if closeout_path.is_file() and _json_session_id_matches(closeout_path, session_id):
+        return True
+
+    verdict_path = runtime_root / "verdicts" / f"{session_id}.json"
+    if verdict_path.is_file() and _json_session_id_matches(verdict_path, session_id):
+        return True
+
+    claim_paths = (
+        project_root / "artifacts" / "session" / "claim-enforcement" / session_id / "claim-enforcement-check.json",
+        project_root / "artifacts" / "claim-enforcement" / session_id / "claim-enforcement-check.json",
+    )
+    return any(path.is_file() for path in claim_paths)
+
+
 def _entry_is_bound(block: str, project_root: Path | None = None) -> tuple[bool, str]:
     """
     Returns (is_bound, reason).
 
     Binding rules (Memory Authority Contract v1.0.0):
       - Real commit hash (git commit object, when git is available) → bound
-      - session_id field present                        → bound (valid fallback)
+      - session_id with runtime artifact provenance      → bound (valid fallback)
       - commit hash: pending, no session_id             → unbound (VIOLATION)
       - commit: UNCOMMITTED, no session_id              → unbound (VIOLATION)
       - no hash field, no session_id                    → unbound (VIOLATION)
     """
     commit_matches = _COMMIT_RESOLVED.findall(block)
-    has_session_id = bool(_SESSION_ID.search(block))
+    session_ids = [match.strip().strip("`") for match in _SESSION_ID.findall(block)]
     has_pending = bool(_COMMIT_PENDING.search(block))
     has_uncommitted = bool(_COMMIT_UNCOMMITTED.search(block))
 
@@ -124,9 +152,17 @@ def _entry_is_bound(block: str, project_root: Path | None = None) -> tuple[bool,
         or any(_git_commit_exists(project_root, commit_hash) for commit_hash in commit_matches)
     ):
         return True, "ok"
-    # session_id is a valid fallback binding regardless of commit state
-    if has_session_id:
+    # session_id is a valid fallback only when an existing runtime artifact
+    # anchors that session_id; an arbitrary non-empty token is not provenance.
+    if project_root is not None and any(
+        _session_id_has_artifact_provenance(project_root, session_id)
+        for session_id in session_ids
+    ):
         return True, "ok"
+    if session_ids:
+        if commit_matches:
+            return False, "commit_hash_not_found_session_id_provenance_not_found"
+        return False, "session_id_provenance_not_found"
     if commit_matches:
         return False, "commit_hash_not_found_no_session_id"
     # Distinguish why there's no binding

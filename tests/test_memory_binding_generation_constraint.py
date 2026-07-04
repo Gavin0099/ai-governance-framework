@@ -44,6 +44,15 @@ def _make_entry(commit_hash: str = "", session_id: str = "") -> str:
     return "\n".join(lines)
 
 
+def _write_closeout_artifact(project_root: Path, session_id: str) -> None:
+    closeouts = project_root / "artifacts" / "runtime" / "closeouts"
+    closeouts.mkdir(parents=True, exist_ok=True)
+    (closeouts / f"{session_id}.json").write_text(
+        f'{{"session_id": "{session_id}"}}\n',
+        encoding="utf-8",
+    )
+
+
 def test_entry_is_bound_real_commit_hash():
     """Real commit hash → bound regardless of session_id."""
     block = _make_entry(commit_hash="abc1234")
@@ -61,9 +70,19 @@ def test_entry_is_bound_pending_no_session_id():
 
 
 def test_entry_is_bound_no_commit_with_session_id():
-    """No commit hash but session_id present → bound (valid fallback)."""
+    """No commit hash and unproven session_id -> unbound."""
     block = _make_entry(session_id="session-20260430T120000-abc123")
     bound, reason = _entry_is_bound(block)
+    assert bound is False
+    assert reason == "session_id_provenance_not_found"
+
+
+def test_entry_is_bound_session_id_with_closeout_artifact(tmp_path):
+    """session_id with canonical closeout artifact -> bound fallback."""
+    session_id = "session-20260430T120000-abc123"
+    _write_closeout_artifact(tmp_path, session_id)
+    block = _make_entry(session_id=session_id)
+    bound, reason = _entry_is_bound(block, tmp_path)
     assert bound is True
     assert reason == "ok"
 
@@ -86,8 +105,8 @@ def test_entry_is_bound_uncommitted_no_session_id():
     assert reason == "commit_uncommitted_no_session_id"
 
 
-def test_entry_is_bound_uncommitted_with_session_id():
-    """commit: UNCOMMITTED + session_id → bound (session_id is valid fallback)."""
+def test_entry_is_bound_uncommitted_with_unproven_session_id():
+    """commit: UNCOMMITTED + unproven session_id -> unbound."""
     block = (
         "- what changed: test\n"
         "  commit: UNCOMMITTED\n"
@@ -95,16 +114,16 @@ def test_entry_is_bound_uncommitted_with_session_id():
         "  test_evidence: ok"
     )
     bound, reason = _entry_is_bound(block)
-    assert bound is True
-    assert reason == "ok"
+    assert bound is False
+    assert reason == "session_id_provenance_not_found"
 
 
-def test_entry_is_bound_pending_with_session_id():
-    """commit hash: pending + session_id → bound (session_id overrides pending)."""
+def test_entry_is_bound_pending_with_unproven_session_id():
+    """commit hash: pending + unproven session_id -> unbound."""
     block = _make_entry(commit_hash="pending", session_id="session-20260430T120000-ghi789")
     bound, reason = _entry_is_bound(block)
-    assert bound is True
-    assert reason == "ok"
+    assert bound is False
+    assert reason == "session_id_provenance_not_found"
 
 
 def test_entry_is_bound_auto_generated_format():
@@ -208,11 +227,13 @@ def test_authority_coverage_rate_none_bound(tmp_memory_root, tmp_path):
 
 def test_authority_coverage_rate_mixed(tmp_memory_root, tmp_path):
     head = _current_head_short()
+    session_id = "session-20260430T120000-xyz"
+    _write_closeout_artifact(tmp_path, session_id)
     _write_daily_file(
         tmp_memory_root, "2026-04-30",
         f"- what changed: change A\n  commit hash: `{head}`\n  test_evidence: ok\n\n"
         "- what changed: change B\n  commit hash: pending\n  test_evidence: ok\n\n"
-        "- what changed: change C\n  session_id: session-20260430T120000-xyz\n  test_evidence: ok\n",
+        f"- what changed: change C\n  session_id: {session_id}\n  test_evidence: ok\n",
     )
     result = run_guard(tmp_memory_root, tmp_path, skip_git=True)
     acr = result["authority_coverage_rate"]["session_derived"]

@@ -2,7 +2,7 @@
 Phase 1.5 — session_id handoff end-to-end verification
 
 Proves the complete chain:
-  closeout receipt (session_id)
+  closeout artifact (session_id)
        ↓
   governance_tools.memory_record (build + render)
        ↓
@@ -11,12 +11,13 @@ Proves the complete chain:
   memory_authority_guard (no non_canonical_writer violation)
 
 Test cases:
-  A. session_id from receipt is preserved in rendered entry
+  A. session_id from closeout artifact is preserved in rendered entry
   B. canonical entry with receipt session_id passes guard (no non_canonical_writer)
-  C. session_id alone binds an entry when commit is UNCOMMITTED
-     (unbound fallback — guard does not flag unbound_memory)
+  C. session_id with closeout artifact provenance binds an entry when commit is
+     UNCOMMITTED (provenance fallback — guard does not flag unbound_memory)
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -40,6 +41,15 @@ POST_CUTOFF_FILENAME = "2026-06-02.md"
 
 REAL_COMMIT = "94a120260fb0"    # real hash format → bound
 UNCOMMITTED = "UNCOMMITTED"     # no real hash → relies on session_id for binding
+
+
+def _write_closeout_artifact(project_root: Path, session_id: str = RECEIPT_SESSION_ID) -> None:
+    closeouts = project_root / "artifacts" / "runtime" / "closeouts"
+    closeouts.mkdir(parents=True, exist_ok=True)
+    (closeouts / f"{session_id}.json").write_text(
+        json.dumps({"session_id": session_id}) + "\n",
+        encoding="utf-8",
+    )
 
 
 # ── A. session_id preserved in rendered entry ─────────────────────────────────
@@ -121,18 +131,19 @@ class TestCanonicalEntryPassesGuard:
         )
 
 
-# ── C. session_id as unbound fallback binding ─────────────────────────────────
+# ── C. session_id as provenance-backed fallback binding ───────────────────────
 
 class TestSessionIdAsUnboundFallback:
-    """session_id alone is sufficient to bind an entry (no real commit required).
+    """session_id with artifact provenance can bind an entry (no real commit required).
 
-    When commit is UNCOMMITTED but session_id is present, guard must not
-    report unbound_memory for this entry.
+    When commit is UNCOMMITTED but session_id has a closeout artifact, guard
+    must not report unbound_memory for this entry.
     """
 
     def test_uncommitted_commit_with_session_id_not_flagged_as_unbound(self, tmp_path):
         mem = tmp_path / "memory"
         mem.mkdir()
+        _write_closeout_artifact(tmp_path)
         record = build_session_derived_record(
             what_changed="fallback binding test",
             commit=UNCOMMITTED,
@@ -144,7 +155,7 @@ class TestSessionIdAsUnboundFallback:
         daily = mem / POST_CUTOFF_FILENAME
         daily.write_text(render_session_derived_entry(record), encoding="utf-8")
 
-        violations, _ = check_daily_memory(mem)
+        violations, _ = check_daily_memory(mem, tmp_path)
         unbound = [v for v in violations if v["code"] == "unbound_memory"]
         assert unbound == [], (
             f"Entry with session_id must not be flagged as unbound_memory even "

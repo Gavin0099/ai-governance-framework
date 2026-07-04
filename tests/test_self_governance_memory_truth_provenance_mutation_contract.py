@@ -47,7 +47,7 @@ def test_existing_commit_hash_still_counts_as_bound_when_git_checked() -> None:
     assert _entry_is_bound(block, project_root) == (True, "ok")
 
 
-def test_fabricated_session_id_is_currently_treated_as_bound_vulnerable_baseline() -> None:
+def test_fabricated_session_id_no_longer_counts_as_bound_without_artifact_provenance() -> None:
     block = """\
 - memory_type: session-derived
   record_format_version: 1.0
@@ -58,7 +58,33 @@ def test_fabricated_session_id_is_currently_treated_as_bound_vulnerable_baseline
   next_step: none
 """
 
-    assert _entry_is_bound(block) == (True, "ok")
+    project_root = Path(__file__).resolve().parent.parent
+
+    assert _entry_is_bound(block, project_root) == (
+        False,
+        "session_id_provenance_not_found",
+    )
+
+
+def test_session_id_with_canonical_closeout_artifact_still_counts_as_bound(tmp_path: Path) -> None:
+    session_id = "session-20260704T120000-abc123"
+    closeouts = tmp_path / "artifacts" / "runtime" / "closeouts"
+    closeouts.mkdir(parents=True)
+    (closeouts / f"{session_id}.json").write_text(
+        f'{{"session_id": "{session_id}"}}\n',
+        encoding="utf-8",
+    )
+    block = f"""\
+- memory_type: session-derived
+  record_format_version: 1.0
+  writer: governance_tools.memory_record
+  what_changed: real session anchor fixture
+  session_id: {session_id}
+  test_evidence: not relevant
+  next_step: none
+"""
+
+    assert _entry_is_bound(block, tmp_path) == (True, "ok")
 
 
 def test_unverified_test_evidence_currently_has_no_truth_violation_code(tmp_path: Path) -> None:
@@ -88,9 +114,9 @@ def test_unverified_test_evidence_currently_has_no_truth_violation_code(tmp_path
     assert result["ok"] is True
     assert result["phase"] == "phase1"
     assert result["mode"] == "warning"
-    assert result["violation_counts_by_code"] == {}
+    assert "evidence_truth_unverified" not in result["violation_counts_by_code"]
     assert result["authority_coverage_rate"]["session_derived"] == {
         "total_entries": 1,
-        "bound_entries": 1,
-        "rate": 1.0,
+        "bound_entries": 0,
+        "rate": 0.0,
     }

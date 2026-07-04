@@ -48,14 +48,14 @@
 
 ### Self-Governance Truth/Provenance Baselines (2026-07-04)
 
-These entries document self-governance truth/provenance gaps and the first
-commit-anchor remediation. Remaining `VULNERABLE` rows are report-only
+These entries document self-governance truth/provenance gaps and anchor
+provenance remediation. Remaining `VULNERABLE` rows are report-only
 baselines; they are not `PROTECTED` mutation proof evidence.
 
 | Scenario | Type | Expected Surface | Current Observation | Status |
 | :--- | :--- | :--- | :--- | :--- |
 | **Fabricated Commit Anchor** | Negative Fixture | `memory_authority_guard._entry_is_bound` | fabricated 5–40 hex `commit` no longer binds when checked against a git worktree; real commit hashes still bind | REMEDIATED baseline |
-| **Fabricated Session Anchor** | Negative Fixture | `memory_authority_guard._entry_is_bound` | arbitrary `session_id` returns bound `(True, "ok")` | VULNERABLE baseline |
+| **Fabricated Session Anchor** | Negative Fixture | `memory_authority_guard._entry_is_bound` | arbitrary `session_id` no longer binds without runtime artifact provenance; `session_id` with canonical closeout/verdict/claim artifact still binds | REMEDIATED baseline |
 | **Unverified Test Evidence** | Negative Fixture | `memory_authority_guard.run_guard` | free-text `test_evidence` produces no evidence-truth violation code | VULNERABLE baseline |
 
 Contract: `docs/governance/self-governance-memory-truth-provenance-mutation-contract-2026-07-04.md`.
