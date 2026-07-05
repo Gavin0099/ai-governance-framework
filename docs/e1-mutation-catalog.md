@@ -12,7 +12,7 @@
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Closeout Bypass** | Rule Mutation | `state_reconciliation_validator` | `phase_d_completed_without_reviewer_closeout_artifact` | `assess_phase_d_closeout` + secondary invariant | PROTECTED (2026-06-27) ³ |
 | **Precedence Bypass** | Rule Mutation | `escalation_authority_writer` | `authority_precedence_active_blocks_release` | `lifecycle_effective_by_escalation` loop | VULNERABLE (2026-06-27) — partial redundancy noted ² |
-| **Confirmation Bypass** | Rule Mutation | `lifecycle_transition_writer` ¹ | `resolved_confirmed_requires_reviewer_confirmation` | line 80–81 check + secondary invariant | PROTECTED (2026-06-27) |
+| **Confirmation Bypass** | Rule Mutation | `lifecycle_transition_writer` ¹ | `resolved_confirmed_requires_reviewer_confirmation` | reviewer-confirmation check (emitted at lines 40/87 as of 2026-07-05) + secondary invariant | PROTECTED (2026-06-27) |
 | **Snapshot Multi-Root** | Rule Mutation | `feature_surface_snapshot` | `warning: multiple app route roots detected` | `candidate_app_roots` scan | VULNERABLE (2026-06-27) |
 
 > ¹ Catalog originally listed `escalation_authority_writer`; corrected to `lifecycle_transition_writer`
@@ -58,10 +58,25 @@ baselines; they are not `PROTECTED` mutation proof evidence.
 | **Fabricated Session Anchor** | Negative Fixture | `memory_authority_guard._entry_is_bound` | arbitrary `session_id` no longer binds without runtime artifact provenance; `session_id` with canonical closeout/verdict/claim artifact still binds | REMEDIATED baseline |
 | **Unverified Test Evidence** | Negative Fixture | `memory_authority_guard.run_guard` | success-style `test_evidence` without an existing `artifacts/...` path now reports `test_evidence_provenance_not_found`; artifact-backed evidence passes without that warning | REMEDIATED baseline (artifact provenance only, advisory) |
 | **Fabricated Evidence Artifact Content** | Negative Fixture | `memory_authority_guard.run_guard` (daily files >= 2026-07-05) | existing artifacts behind success prose are checked for a `test_evidence_receipt.v0.1` shape: non-receipt artifacts report `test_evidence_artifact_metadata_missing`, malformed receipts report `test_evidence_artifact_metadata_invalid`, a receipt recording `exit_code != 0` reports `test_evidence_exit_code_contradicts_claim`, a valid receipt whose `linked_commit` disagrees with the entry's commit anchor reports `test_evidence_linked_commit_mismatch` (prefix match; `no_git_worktree` receipts and anchorless entries skip), and evidence whose existing artifacts are all gitignored reports `test_evidence_artifact_not_durable` (requires a worktree; receipts default to tracked `artifacts/evidence/`); pre-window files stay silent; every receipt field remains fabricatable by a hostile writer | PARTIALLY REMEDIATED baseline (structured artifact metadata + commit consistency + durability, advisory) |
-| **Canonical Writer Bypass Via Non-Session Memory Type** | Negative Fixture | `memory_authority_guard.run_guard`; policy-backed `memory_workflow` / CI gates | raw guard default reports `session_like_non_session_memory_type`; gate consumers that load `governance/memory_blocking_policy.json` selectively block active-window B0 entries; clean `human-note`, pre-active history, and override-downgraded entries remain report-only | REMEDIATED baseline (raw guard report-only; policy-backed gates selectively block) |
-| **Report-Only Ok Semantics With Unbound Warnings** | Negative Fixture | `memory_authority_guard.run_guard` | `ok=True` remains non-blocking, but warning results now expose `ok_meaning`, `authority_integrity_status=warnings_present`, and `not_claimed: memory_authority_clean` | REMEDIATED baseline (interpretation only, advisory) |
+| **Canonical Writer Bypass Via Non-Session Memory Type** | Negative Fixture | `memory_authority_guard.run_guard`; policy-backed `memory_workflow` / CI gates | raw guard default reports `session_like_non_session_memory_type`; gate consumers that load `governance/memory_blocking_policy.json` selectively block active-window B0 entries; modified pre-window files are additionally scanned when diff context is provided (report-only); clean `human-note` and pre-active history remain report-only; override handling is `override_mode`-dependent — `allowed` (default) downgrades with `authority_override_used`, `receipt_required`/`disallowed` reject with `authority_override_rejected` and the block stands | REMEDIATED baseline (raw guard report-only; policy-backed gates selectively block) |
+| **Report-Only Ok Semantics With Unbound Warnings** | Negative Fixture | `memory_authority_guard.run_guard` | in the default report-only mode `ok=True` remains non-blocking, and warning results expose `ok_meaning`, `authority_integrity_status=warnings_present`, and `not_claimed: memory_authority_clean`; with a blocking policy enabled the guard may instead return `ok=False`, `enforcement_action: block`, and `claim_ceiling: selective_blocking_phase2`, so `ok` semantics are policy-dependent | REMEDIATED baseline (interpretation only, advisory; ok semantics policy-dependent since 2026-07-04) |
 
 Contract: `docs/governance/self-governance-memory-truth-provenance-mutation-contract-2026-07-04.md`.
+
+### Blocking-Policy Tamper Baselines (2026-07-05)
+
+These entries register the enforced tamper handling of
+`governance/memory_blocking_policy.json` at the gate consumers
+(`memory_workflow`, `ci_memory_workflow_check`). They are enforcement claims
+and therefore require this registration per section 4 (E1-D).
+
+| Scenario | Type | Expected Surface | Current Observation | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Corrupted Blocking Policy** | Negative Fixture | `load_blocking_policy` + gate consumers | a policy file that exists but cannot be loaded (bad JSON, schema mismatch, invalid/unknown codes, unknown `override_mode`) disables blocking AND fails the gate via `blocking_policy_error`; a broken policy can never masquerade as intentionally disabled | ENFORCED (blocker at workflow + CI; fixtures in `test_self_governance_memory_blocking_policy_b0_fixtures.py`) |
+| **Valid Policy Disable / Deletion** | Negative Fixture | gate consumers + `memory_policy_attestation` | `enabled: false` or file deletion keeps the kill switch usable; the change is loud (`blocking_policy_changed_in_current_diff`) and attestation gaps warn (`blocking_policy_disabled_without_attestation`, `blocking_policy_deleted_without_attestation`, `blocking_policy_disable_receipt_invalid`/`_stale`) without blocking | REMEDIATED baseline (visibility + attestation, report-only by design — blocking the disable path would deadlock gate recovery) |
+
+Contracts: `docs/governance/self-governance-blocking-surface-red-team-round2-2026-07-04.md`,
+`docs/governance/self-governance-f2-valid-disable-attestation-design-2026-07-05.md`.
 
 ### Self-Governance Normalizer Alias-Miss Baselines (2026-07-04)
 
