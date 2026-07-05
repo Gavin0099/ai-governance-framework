@@ -21,6 +21,7 @@ POLICY_DELETED_WITHOUT_ATTESTATION = (
     "blocking_policy_deleted_without_attestation"
 )
 DISABLE_RECEIPT_INVALID = "blocking_policy_disable_receipt_invalid"
+DISABLE_RECEIPT_STALE = "blocking_policy_disable_receipt_stale"
 
 
 def normalize_repo_path(path_text: str) -> str:
@@ -68,6 +69,11 @@ def _policy_file_is_disabled(repo_root: Path) -> bool:
     return ok and payload is not None and payload.get("enabled") is False
 
 
+def _policy_file_is_enabled(repo_root: Path) -> bool:
+    payload, ok = _load_json_file(repo_root / _BLOCKING_POLICY_RELPATH)
+    return ok and payload is not None and payload.get("enabled") is True
+
+
 def _disable_receipt_is_valid(repo_root: Path) -> tuple[bool, bool]:
     path = repo_root / DISABLE_RECEIPT_RELPATH
     if not path.is_file():
@@ -109,7 +115,10 @@ def policy_disable_attestation_warnings(
             warnings.append(POLICY_DELETED_WITHOUT_ATTESTATION)
             return warnings
 
+    receipt_path = repo_root / DISABLE_RECEIPT_RELPATH
     if not _policy_file_is_disabled(repo_root):
+        if _policy_file_is_enabled(repo_root) and receipt_path.is_file():
+            warnings.append(DISABLE_RECEIPT_STALE)
         return warnings
 
     receipt_valid, receipt_invalid = _disable_receipt_is_valid(repo_root)

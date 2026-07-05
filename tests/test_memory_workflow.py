@@ -7,6 +7,7 @@ from pathlib import Path
 
 from governance_tools.memory_policy_attestation import (
     DISABLE_RECEIPT_INVALID,
+    DISABLE_RECEIPT_STALE,
     POLICY_DELETED_WITHOUT_ATTESTATION,
     POLICY_DISABLED_WITHOUT_ATTESTATION,
 )
@@ -151,6 +152,38 @@ def test_invalid_disable_receipt_surfaces_without_blocking(tmp_path: Path) -> No
 
     assert DISABLE_RECEIPT_INVALID in result.warnings
     assert POLICY_DISABLED_WITHOUT_ATTESTATION in result.warnings
+    assert result.blockers == []
+    assert result.completion_claim_allowed is True
+
+
+def test_stale_disable_receipt_surfaces_without_blocking(tmp_path: Path) -> None:
+    _make_framework_surface(tmp_path)
+    _write_policy(tmp_path, enabled=True)
+    _write(
+        tmp_path / "governance" / "memory_blocking_policy_disable_receipt.json",
+        json.dumps(
+            {
+                "receipt_schema": "memory_blocking_policy_disable_receipt.v1",
+                "reason": "temporary recovery from a broken gate",
+                "attested_by": "reviewer@example",
+                "linked_commit": "abc123",
+                "cannot_claim": [
+                    "receipt does not prove approval authority",
+                    "receipt does not prove the reason is true",
+                ],
+            },
+            indent=2,
+        )
+        + "\n",
+    )
+
+    result = assess_memory_workflow(
+        tmp_path,
+        changed_files=["README.md"],
+    )
+
+    assert result.status == "no_memory_workflow_required"
+    assert DISABLE_RECEIPT_STALE in result.warnings
     assert result.blockers == []
     assert result.completion_claim_allowed is True
 

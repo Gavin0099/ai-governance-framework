@@ -46,6 +46,7 @@ AUTHORITY_OVERRIDE_CODE = "authority_override_used"
 F2_DISABLED_WITHOUT_ATTESTATION_CODE = "blocking_policy_disabled_without_attestation"
 F2_DELETED_WITHOUT_ATTESTATION_CODE = "blocking_policy_deleted_without_attestation"
 F2_INVALID_RECEIPT_CODE = "blocking_policy_disable_receipt_invalid"
+F2_STALE_RECEIPT_CODE = "blocking_policy_disable_receipt_stale"
 
 _IN_WINDOW_FILENAME = f"{_ACTIVE_NON_CANONICAL_WRITER_DEFAULT_FROM}.md"
 _PRE_WINDOW_FILENAME = "2026-01-01.md"
@@ -951,6 +952,40 @@ def test_f2_valid_disable_receipt_attests_disable_without_blocking(
 
     assert result.clean is True
     assert result.blockers == []
+    assert F2_INVALID_RECEIPT_CODE not in result.warnings
+    assert F2_DISABLED_WITHOUT_ATTESTATION_CODE not in result.warnings
+
+
+def test_f2_stale_disable_receipt_reports_warning_without_blocking(
+    tmp_path: Path,
+) -> None:
+    # Once the policy is enabled again, a disable receipt is no longer the
+    # active attestation path. It must stay visible as stale residue, not become
+    # a blocker or silently imply current authorization.
+    _write_policy(tmp_path, enabled=True)
+    _write(
+        tmp_path / "governance" / "memory_blocking_policy_disable_receipt.json",
+        json.dumps(
+            {
+                "receipt_schema": "memory_blocking_policy_disable_receipt.v1",
+                "reason": "temporary recovery from a broken gate",
+                "attested_by": "reviewer@example",
+                "linked_commit": _current_repo_head(),
+                "cannot_claim": [
+                    "receipt does not prove approval authority",
+                    "receipt does not prove the reason is true",
+                ],
+            },
+            indent=2,
+        )
+        + "\n",
+    )
+
+    result = ci_check(tmp_path, changed_files=["README.md"])
+
+    assert result.clean is True
+    assert result.blockers == []
+    assert F2_STALE_RECEIPT_CODE in result.warnings
     assert F2_INVALID_RECEIPT_CODE not in result.warnings
     assert F2_DISABLED_WITHOUT_ATTESTATION_CODE not in result.warnings
 
