@@ -42,6 +42,9 @@ from governance_tools.memory_workflow import assess_memory_workflow
 B0_CODE = "session_like_non_session_memory_type"
 F6_CODE = "non_daily_session_shaped_memory_entry"
 AUTHORITY_OVERRIDE_CODE = "authority_override_used"
+F2_DISABLED_WITHOUT_ATTESTATION_CODE = "blocking_policy_disabled_without_attestation"
+F2_DELETED_WITHOUT_ATTESTATION_CODE = "blocking_policy_deleted_without_attestation"
+F2_INVALID_RECEIPT_CODE = "blocking_policy_disable_receipt_invalid"
 
 _IN_WINDOW_FILENAME = f"{_ACTIVE_NON_CANONICAL_WRITER_DEFAULT_FROM}.md"
 _PRE_WINDOW_FILENAME = "2026-01-01.md"
@@ -834,6 +837,84 @@ def test_step4_ci_no_policy_announcement_without_policy_in_diff(tmp_path: Path) 
     )
 
     assert "blocking_policy_changed_in_current_diff" not in result.warnings
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="F2 report-only disable-attestation detector is not implemented yet",
+)
+def test_f2_policy_disable_without_attestation_reports_warning_without_blocking(
+    tmp_path: Path,
+) -> None:
+    # Design fixture: valid disable stays an emergency kill switch, but a
+    # disabled policy without a valid attestation receipt must become visible.
+    _write_policy(tmp_path, enabled=False)
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_ENTRY)
+
+    result = ci_check(
+        tmp_path,
+        changed_files=[
+            "governance/memory_blocking_policy.json",
+            f"memory/{_IN_WINDOW_FILENAME}",
+        ],
+    )
+
+    assert result.clean is True
+    assert result.blockers == []
+    assert F2_DISABLED_WITHOUT_ATTESTATION_CODE in result.warnings
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="F2 report-only policy-deletion detector is not implemented yet",
+)
+def test_f2_policy_deletion_reports_unsanctioned_warning_without_blocking(
+    tmp_path: Path,
+) -> None:
+    # Design fixture: deletion is diff-scoped and never receipt-backed. The
+    # normal disable path keeps the policy file with enabled=false.
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_ENTRY)
+
+    result = ci_check(
+        tmp_path,
+        changed_files=[
+            "governance/memory_blocking_policy.json",
+            f"memory/{_IN_WINDOW_FILENAME}",
+        ],
+    )
+
+    assert result.clean is True
+    assert result.blockers == []
+    assert F2_DELETED_WITHOUT_ATTESTATION_CODE in result.warnings
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="F2 report-only disable-receipt validation is not implemented yet",
+)
+def test_f2_invalid_disable_receipt_reports_invalid_and_does_not_attest(
+    tmp_path: Path,
+) -> None:
+    # Design fixture: a malformed receipt must be visible and must not count
+    # as an attestation for an enabled=false policy.
+    _write_policy(tmp_path, enabled=False)
+    _write(
+        tmp_path / "governance" / "memory_blocking_policy_disable_receipt.json",
+        "{not json",
+    )
+
+    result = ci_check(
+        tmp_path,
+        changed_files=[
+            "governance/memory_blocking_policy.json",
+            "governance/memory_blocking_policy_disable_receipt.json",
+        ],
+    )
+
+    assert result.clean is True
+    assert result.blockers == []
+    assert F2_INVALID_RECEIPT_CODE in result.warnings
+    assert F2_DISABLED_WITHOUT_ATTESTATION_CODE in result.warnings
 
 
 def test_round2_f6_non_daily_memory_file_reports_warning_without_blocking(tmp_path: Path) -> None:
