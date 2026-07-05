@@ -21,6 +21,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from governance_tools.ci_memory_workflow_check import check as ci_check
 from governance_tools.memory_authority_guard import (
     _EVIDENCE_RECEIPT_ADVISORY_FROM,
@@ -386,9 +388,21 @@ def test_option_c_tracked_evidence_artifact_is_silent(tmp_path: Path) -> None:
     assert NOT_DURABLE_CODE not in codes
 
 
-def test_option_c_without_worktree_durability_is_unknowable(tmp_path: Path) -> None:
+def test_option_c_without_worktree_durability_is_unknowable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     # No git worktree: durability cannot be determined, so the check skips
     # instead of guessing (honest boundary, mirrors anchor semantics).
+    # The no-worktree condition is pinned via monkeypatch because a bare
+    # tmp_path is environment-dependent: with a repo-local pytest basetemp,
+    # git walks up to the enclosing repository and the outer gitignore
+    # matches, which is exactly the class of flakiness this repo has hit
+    # before (see the memory-truth provenance test task).
+    import governance_tools.memory_authority_guard as guard_module
+
+    monkeypatch.setattr(
+        guard_module, "_project_has_git_worktree", lambda _root: False
+    )
     _write_evidence_repo(tmp_path, receipt=_receipt_payload())
 
     codes = _codes(tmp_path)
