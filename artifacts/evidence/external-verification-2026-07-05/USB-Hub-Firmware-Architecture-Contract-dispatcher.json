@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "C:\\Users\\daish\\AppData\\Local\\Programs\\Python\\Python312\\python.exe runtime_hooks/dispatcher.py --file runtime_hooks/examples/shared/session_start.shared.json --contract D:/USB-Hub-Firmware-Architecture-Contract/contract.yaml --format json",
+  "exit_code": 1,
+  "started_at": "2026-07-05T15:01:15Z",
+  "finished_at": "2026-07-05T15:01:15Z",
+  "runner": "external-repo-live-verification",
+  "linked_commit": "cd08b59213045b5756e41ea752e80033e73b9cb5",
+  "output_artifacts": [
+    "artifacts/evidence/external-verification-2026-07-05/USB-Hub-Firmware-Architecture-Contract-dispatcher.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

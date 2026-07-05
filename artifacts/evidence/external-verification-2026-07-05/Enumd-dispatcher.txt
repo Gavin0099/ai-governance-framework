@@ -1,0 +1,2081 @@
+{
+  "event_type": "session_start",
+  "result": {
+    "ok": false,
+    "project_root": "D:\\Enumd",
+    "task_level": "L1",
+    "level_decision": {
+      "requested": null,
+      "detected": "L1",
+      "final": "L1",
+      "upgraded": false,
+      "additional_loads": []
+    },
+    "repo_type": "product",
+    "context_aware_rules": [
+      "common",
+      "typescript",
+      "electron",
+      "avalonia",
+      "cpp",
+      "csharp",
+      "swift",
+      "nextjs",
+      "supabase"
+    ],
+    "authority_filter": {
+      "allowed_count": 6,
+      "include_on_demand": true,
+      "validation_ok": true,
+      "violations": []
+    },
+    "task_text": "Refactor Avalonia boundary",
+    "runtime_contract": {
+      "rules": [
+        "common"
+      ],
+      "risk": "medium",
+      "oversight": "review-required",
+      "memory_mode": "candidate",
+      "enforcement_profile": "advisory_mainline",
+      "experimental_enforcement_enabled": false
+    },
+    "suggested_rules_preview": [
+      "common",
+      "enumd",
+      "csharp",
+      "swift",
+      "objective-c",
+      "cpp",
+      "python",
+      "electron",
+      "refactor"
+    ],
+    "suggested_skills": [
+      "code-style",
+      "governance-runtime",
+      "python"
+    ],
+    "suggested_agent": "python-agent",
+    "rule_pack_suggestions": {
+      "project_root": "D:\\Enumd",
+      "language_packs": [
+        {
+          "name": "csharp",
+          "category": "language",
+          "confidence": "high",
+          "reasons": [
+            "ai-governance-framework/.latest-main/runtime_hooks/examples/shared/after.cs",
+            "ai-governance-framework/.latest-main/runtime_hooks/examples/shared/before.cs",
+            "ai-governance-framework/runtime_hooks/examples/shared/after.cs",
+            "ai-governance-framework/runtime_hooks/examples/shared/before.cs",
+            "ai-governance-framework/tests/_tmp_debug_public_api/after.cs"
+          ]
+        },
+        {
+          "name": "swift",
+          "category": "language",
+          "confidence": "high",
+          "reasons": [
+            "ai-governance-framework/tests/_tmp_public_api_diff/added_signature/after.swift",
+            "ai-governance-framework/tests/_tmp_public_api_diff/added_signature/before.swift",
+            "ai-governance-framework/tests/_tmp_rule_pack_suggester/swift/Package.swift",
+            "ai-governance-framework/tests/_tmp_rule_pack_suggester/swift/Sources/Feature.swift"
+          ]
+        },
+        {
+          "name": "objective-c",
+          "category": "language",
+          "confidence": "high",
+          "reasons": [
+            "notion-rag/node_modules/sharp/src/common.h",
+            "notion-rag/node_modules/sharp/src/metadata.h",
+            "notion-rag/node_modules/sharp/src/operations.h",
+            "notion-rag/node_modules/sharp/src/pipeline.h",
+            "notion-rag/node_modules/sharp/src/stats.h"
+          ]
+        },
+        {
+          "name": "cpp",
+          "category": "language",
+          "confidence": "high",
+          "reasons": [
+            "notion-rag/node_modules/sharp/src/common.cc",
+            "notion-rag/node_modules/sharp/src/common.h",
+            "notion-rag/node_modules/sharp/src/metadata.cc",
+            "notion-rag/node_modules/sharp/src/metadata.h",
+            "notion-rag/node_modules/sharp/src/operations.cc"
+          ]
+        },
+        {
+          "name": "python",
+          "category": "language",
+          "confidence": "high",
+          "reasons": [
+            "ai-governance-framework/governance_harness.py",
+            "ai-governance-framework/requirements.txt",
+            "ai-governance-framework/_classification_governance_smoke.py",
+            "ai-governance-framework-stale/requirements.txt",
+            "ai-governance-framework-stale/_classification_governance_smoke.py"
+          ]
+        }
+      ],
+      "framework_packs": [
+        {
+          "name": "electron",
+          "category": "framework",
+          "confidence": "medium",
+          "reasons": [
+            "electron"
+          ]
+        }
+      ],
+      "scope_packs": [
+        {
+          "name": "refactor",
+          "category": "scope",
+          "confidence": "low",
+          "reasons": [
+            "\\brefactor\\b"
+          ],
+          "advisory_only": true
+        }
+      ],
+      "domain_packs": [
+        {
+          "name": "enumd",
+          "category": "domain",
+          "confidence": "high",
+          "reasons": [
+            "contract.yaml: domain=enumd",
+            "contract.yaml rule_root: governance/rules"
+          ]
+        }
+      ],
+      "suggested_skills": [
+        "code-style",
+        "governance-runtime",
+        "python"
+      ],
+      "suggested_agent": "python-agent",
+      "suggested_rules": [
+        "common",
+        "enumd",
+        "csharp",
+        "swift",
+        "objective-c",
+        "cpp",
+        "python",
+        "electron"
+      ],
+      "suggested_rules_preview": [
+        "common",
+        "enumd",
+        "csharp",
+        "swift",
+        "objective-c",
+        "cpp",
+        "python",
+        "electron",
+        "refactor"
+      ],
+      "notes": [
+        "domain_packs are sourced from contract.yaml rule_roots and take highest priority",
+        "language/framework packs are auto-suggested from repository signals",
+        "scope packs are advisory only and should be confirmed by the contract or human reviewer",
+        "suggested_rules_preview includes advisory scope packs for convenience, but does not mutate the contract",
+        "suggested_skills and suggested_agent are advisory only and do not auto-activate agent behavior"
+      ]
+    },
+    "architecture_impact_preview": {
+      "ok": true,
+      "scope": "refactor",
+      "active_rules": [
+        "common"
+      ],
+      "touched_layers": [],
+      "expected_validators": [
+        "architecture_drift_checker",
+        "public_api_diff_checker"
+      ],
+      "drift_result": {
+        "ok": true,
+        "errors": [],
+        "warnings": [],
+        "findings": [],
+        "files": [],
+        "dependency_diff": {
+          "ok": true,
+          "added": [],
+          "removed": [],
+          "warnings": [],
+          "errors": [],
+          "findings": []
+        }
+      },
+      "public_api_diff": {
+        "ok": true,
+        "before_manifest": {
+          "entries": [
+            {
+              "path": "runtime_hooks/examples/shared/before.cs",
+              "signatures": [
+                "public class Service\n{",
+                "public int Run() => 1;"
+              ],
+              "semantic_entries": [
+                {
+                  "kind": "type",
+                  "identity": "type:Service",
+                  "display": "public class Service",
+                  "signature": "public class Service",
+                  "container": "Service",
+                  "qualified_name": "Service",
+                  "namespace": null
+                },
+                {
+                  "kind": "method",
+                  "identity": "method:Service.Run",
+                  "display": "public int Run()",
+                  "signature": "int Run()",
+                  "container": "Service",
+                  "return_type": "int",
+                  "params": [],
+                  "method_type_params": ""
+                }
+              ]
+            }
+          ]
+        },
+        "after_manifest": {
+          "entries": [
+            {
+              "path": "runtime_hooks/examples/shared/after.cs",
+              "signatures": [
+                "public class Service\n{",
+                "public int Run() => 1;",
+                "public int Ping() => 0;"
+              ],
+              "semantic_entries": [
+                {
+                  "kind": "type",
+                  "identity": "type:Service",
+                  "display": "public class Service",
+                  "signature": "public class Service",
+                  "container": "Service",
+                  "qualified_name": "Service",
+                  "namespace": null
+                },
+                {
+                  "kind": "method",
+                  "identity": "method:Service.Run",
+                  "display": "public int Run()",
+                  "signature": "int Run()",
+                  "container": "Service",
+                  "return_type": "int",
+                  "params": [],
+                  "method_type_params": ""
+                },
+                {
+                  "kind": "method",
+                  "identity": "method:Service.Ping",
+                  "display": "public int Ping()",
+                  "signature": "int Ping()",
+                  "container": "Service",
+                  "return_type": "int",
+                  "params": [],
+                  "method_type_params": ""
+                }
+              ]
+            }
+          ]
+        },
+        "removed": [],
+        "added": [
+          "public int Ping() => 0;"
+        ],
+        "compatibility_risk": "low",
+        "breaking_changes": [],
+        "non_breaking_changes": [
+          "New public API introduced: method:Service.Ping"
+        ],
+        "warnings": [
+          "New public API introduced: method:Service.Ping"
+        ],
+        "errors": []
+      },
+      "required_evidence": [
+        "architecture-review",
+        "public-api-review"
+      ],
+      "concerns": [
+        "public-api-expansion-risk"
+      ],
+      "impact_report": {
+        "scope": "refactor",
+        "active_rules": [
+          "common"
+        ],
+        "touched_layers": [],
+        "boundary_risk": "low",
+        "concerns": [
+          "public-api-expansion-risk"
+        ],
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required",
+        "public_api_diff_present": true
+      },
+      "recommended_risk": "medium",
+      "recommended_oversight": "review-required"
+    },
+    "proposal_guidance": {
+      "recommended_risk": "medium",
+      "recommended_oversight": "review-required",
+      "expected_validators": [
+        "architecture_drift_checker",
+        "public_api_diff_checker"
+      ],
+      "required_evidence": [
+        "architecture-review",
+        "public-api-review"
+      ],
+      "concerns": [
+        "public-api-expansion-risk"
+      ]
+    },
+    "change_proposal": {
+      "task": "Refactor Avalonia boundary",
+      "project_root": "D:\\Enumd",
+      "requested_rules": [
+        "common"
+      ],
+      "suggested_rules_preview": [
+        "common",
+        "enumd",
+        "csharp",
+        "swift",
+        "objective-c",
+        "cpp",
+        "python",
+        "electron",
+        "refactor"
+      ],
+      "rule_pack_suggestions": {
+        "project_root": "D:\\Enumd",
+        "language_packs": [
+          {
+            "name": "csharp",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "ai-governance-framework/.latest-main/runtime_hooks/examples/shared/after.cs",
+              "ai-governance-framework/.latest-main/runtime_hooks/examples/shared/before.cs",
+              "ai-governance-framework/runtime_hooks/examples/shared/after.cs",
+              "ai-governance-framework/runtime_hooks/examples/shared/before.cs",
+              "ai-governance-framework/tests/_tmp_debug_public_api/after.cs"
+            ]
+          },
+          {
+            "name": "swift",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "ai-governance-framework/tests/_tmp_public_api_diff/added_signature/after.swift",
+              "ai-governance-framework/tests/_tmp_public_api_diff/added_signature/before.swift",
+              "ai-governance-framework/tests/_tmp_rule_pack_suggester/swift/Package.swift",
+              "ai-governance-framework/tests/_tmp_rule_pack_suggester/swift/Sources/Feature.swift"
+            ]
+          },
+          {
+            "name": "objective-c",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "notion-rag/node_modules/sharp/src/common.h",
+              "notion-rag/node_modules/sharp/src/metadata.h",
+              "notion-rag/node_modules/sharp/src/operations.h",
+              "notion-rag/node_modules/sharp/src/pipeline.h",
+              "notion-rag/node_modules/sharp/src/stats.h"
+            ]
+          },
+          {
+            "name": "cpp",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "notion-rag/node_modules/sharp/src/common.cc",
+              "notion-rag/node_modules/sharp/src/common.h",
+              "notion-rag/node_modules/sharp/src/metadata.cc",
+              "notion-rag/node_modules/sharp/src/metadata.h",
+              "notion-rag/node_modules/sharp/src/operations.cc"
+            ]
+          },
+          {
+            "name": "python",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "ai-governance-framework/governance_harness.py",
+              "ai-governance-framework/requirements.txt",
+              "ai-governance-framework/_classification_governance_smoke.py",
+              "ai-governance-framework-stale/requirements.txt",
+              "ai-governance-framework-stale/_classification_governance_smoke.py"
+            ]
+          }
+        ],
+        "framework_packs": [
+          {
+            "name": "electron",
+            "category": "framework",
+            "confidence": "medium",
+            "reasons": [
+              "electron"
+            ]
+          }
+        ],
+        "scope_packs": [
+          {
+            "name": "refactor",
+            "category": "scope",
+            "confidence": "low",
+            "reasons": [
+              "\\brefactor\\b"
+            ],
+            "advisory_only": true
+          }
+        ],
+        "domain_packs": [
+          {
+            "name": "enumd",
+            "category": "domain",
+            "confidence": "high",
+            "reasons": [
+              "contract.yaml: domain=enumd",
+              "contract.yaml rule_root: governance/rules"
+            ]
+          }
+        ],
+        "suggested_skills": [
+          "code-style",
+          "governance-runtime",
+          "python"
+        ],
+        "suggested_agent": "python-agent",
+        "suggested_rules": [
+          "common",
+          "enumd",
+          "csharp",
+          "swift",
+          "objective-c",
+          "cpp",
+          "python",
+          "electron"
+        ],
+        "suggested_rules_preview": [
+          "common",
+          "enumd",
+          "csharp",
+          "swift",
+          "objective-c",
+          "cpp",
+          "python",
+          "electron",
+          "refactor"
+        ],
+        "notes": [
+          "domain_packs are sourced from contract.yaml rule_roots and take highest priority",
+          "language/framework packs are auto-suggested from repository signals",
+          "scope packs are advisory only and should be confirmed by the contract or human reviewer",
+          "suggested_rules_preview includes advisory scope packs for convenience, but does not mutate the contract",
+          "suggested_skills and suggested_agent are advisory only and do not auto-activate agent behavior"
+        ]
+      },
+      "architecture_impact_preview": {
+        "ok": true,
+        "scope": "refactor",
+        "active_rules": [
+          "common"
+        ],
+        "touched_layers": [],
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "drift_result": {
+          "ok": true,
+          "errors": [],
+          "warnings": [],
+          "findings": [],
+          "files": [],
+          "dependency_diff": {
+            "ok": true,
+            "added": [],
+            "removed": [],
+            "warnings": [],
+            "errors": [],
+            "findings": []
+          }
+        },
+        "public_api_diff": {
+          "ok": true,
+          "before_manifest": {
+            "entries": [
+              {
+                "path": "runtime_hooks/examples/shared/before.cs",
+                "signatures": [
+                  "public class Service\n{",
+                  "public int Run() => 1;"
+                ],
+                "semantic_entries": [
+                  {
+                    "kind": "type",
+                    "identity": "type:Service",
+                    "display": "public class Service",
+                    "signature": "public class Service",
+                    "container": "Service",
+                    "qualified_name": "Service",
+                    "namespace": null
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Run",
+                    "display": "public int Run()",
+                    "signature": "int Run()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  }
+                ]
+              }
+            ]
+          },
+          "after_manifest": {
+            "entries": [
+              {
+                "path": "runtime_hooks/examples/shared/after.cs",
+                "signatures": [
+                  "public class Service\n{",
+                  "public int Run() => 1;",
+                  "public int Ping() => 0;"
+                ],
+                "semantic_entries": [
+                  {
+                    "kind": "type",
+                    "identity": "type:Service",
+                    "display": "public class Service",
+                    "signature": "public class Service",
+                    "container": "Service",
+                    "qualified_name": "Service",
+                    "namespace": null
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Run",
+                    "display": "public int Run()",
+                    "signature": "int Run()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Ping",
+                    "display": "public int Ping()",
+                    "signature": "int Ping()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  }
+                ]
+              }
+            ]
+          },
+          "removed": [],
+          "added": [
+            "public int Ping() => 0;"
+          ],
+          "compatibility_risk": "low",
+          "breaking_changes": [],
+          "non_breaking_changes": [
+            "New public API introduced: method:Service.Ping"
+          ],
+          "warnings": [
+            "New public API introduced: method:Service.Ping"
+          ],
+          "errors": []
+        },
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "concerns": [
+          "public-api-expansion-risk"
+        ],
+        "impact_report": {
+          "scope": "refactor",
+          "active_rules": [
+            "common"
+          ],
+          "touched_layers": [],
+          "boundary_risk": "low",
+          "concerns": [
+            "public-api-expansion-risk"
+          ],
+          "required_evidence": [
+            "architecture-review",
+            "public-api-review"
+          ],
+          "expected_validators": [
+            "architecture_drift_checker",
+            "public_api_diff_checker"
+          ],
+          "recommended_risk": "medium",
+          "recommended_oversight": "review-required",
+          "public_api_diff_present": true
+        },
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required"
+      },
+      "proposal_guidance": {
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required",
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "concerns": [
+          "public-api-expansion-risk"
+        ]
+      },
+      "proposal_summary": {
+        "task": "Refactor Avalonia boundary",
+        "requested_rules": [
+          "common"
+        ],
+        "suggested_rules_preview": [
+          "common",
+          "enumd",
+          "csharp",
+          "swift",
+          "objective-c",
+          "cpp",
+          "python",
+          "electron",
+          "refactor"
+        ],
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required",
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "concerns": [
+          "public-api-expansion-risk"
+        ]
+      }
+    },
+    "proposal_summary": {
+      "task": "Refactor Avalonia boundary",
+      "requested_rules": [
+        "common"
+      ],
+      "suggested_rules_preview": [
+        "common",
+        "enumd",
+        "csharp",
+        "swift",
+        "objective-c",
+        "cpp",
+        "python",
+        "electron",
+        "refactor"
+      ],
+      "recommended_risk": "medium",
+      "recommended_oversight": "review-required",
+      "expected_validators": [
+        "architecture_drift_checker",
+        "public_api_diff_checker"
+      ],
+      "required_evidence": [
+        "architecture-review",
+        "public-api-review"
+      ],
+      "concerns": [
+        "public-api-expansion-risk"
+      ]
+    },
+    "resolved_contract_file": "D:\\Enumd\\contract.yaml",
+    "contract_resolution": {
+      "source": "explicit",
+      "path": "D:\\Enumd\\contract.yaml",
+      "warnings": [],
+      "error": null
+    },
+    "domain_contract": {
+      "name": "enumd-contract",
+      "contract_path": "D:\\Enumd\\contract.yaml",
+      "contract_root": "D:\\Enumd",
+      "documents": [
+        {
+          "path": "D:\\Enumd\\AGENTS.base.md",
+          "exists": true,
+          "content": "# AGENTS.base.md\n<!-- governance-baseline: protected -->\n<!-- baseline_version: 1.0.0 -->\n<!-- DO NOT EDIT — managed by ai-governance-framework -->\n<!-- To add repo-specific rules, create AGENTS.md and extend this file's sections. -->\n<!-- Hash is recorded in .governance/baseline.yaml and verified on every drift check. -->\n\n## Level Alignment\n\n- Declared L0 but involves domain logic, boundary crossing, or behavior change → upgrade to L1\n- Declared L1 but involves core domain, security, data integrity, or irreversible state → upgrade to L2\n- Uncertain classification → upgrade, do not downgrade\n\n## Execution Pipeline\n\nFor L1+, the default workflow is:\n\n1. **Analyze** — understand behavior and constraints before touching code\n2. **Define** — contracts, boundaries, failure paths\n3. **Verify Plan** — what evidence will prove the change is safe\n4. **Implement** — minimum compliant change\n5. **Refactor** — only under evidence protection\n\nDo not skip a step when the omission would hide risk.\n\n## Forbidden Behaviors\n\n- Expand scope beyond what was explicitly instructed\n- Refactor unrelated areas for cleanliness or taste\n- Add speculative abstractions for hypothetical future requirements\n- Fake, inflate, or omit evidence\n- Assume intent when the instruction is ambiguous — ask instead\n\n## Secret Handling\n\n- Never commit tokens, API keys, credentials, or secrets to the repo\n- Never write tokens or credentials into memory/ files or logs\n- If a secret appears in conversation context, do not persist it anywhere\n- `.env` files and credentials must be in `.gitignore` and never staged\n\n## Memory Update Triggers\n\nThe following events require updating PLAN.md and/or the relevant memory/ file:\n\n| Event | Required update |\n|-------|----------------|\n| Milestone reached | PLAN.md phase/sprint + memory/active_task |\n| Architecture decision made | PLAN.md decision log + memory/knowledge_base |\n| Bug fixed with root cause identified | memory/knowledge_base |\n| Risk or incident encountered | PLAN.md risk section + memory/active_task |\n| Session end | memory/active_task (current status) + session_end hook |\n\n## Session Closeout Obligation\n\nWriting `artifacts/session-closeout.txt` before session end is a **governance\nobligation**, not a suggestion.\n\nThe stop hook always calls `session_end` at session end. If the closeout artifact\nis missing or insufficient, the runtime records `closeout_missing` or\n`closeout_insufficient` in the verdict. Memory will not update. The gap is\nauditable and visible to reviewers.\n\n### Required fields\n\nAll fields must be present. Vague values are flagged as insufficient.\n\n```\nTASK_INTENT: <one sentence — declared goal of this session>\nWORK_COMPLETED: <what was actually done — verifiable claims only>\nFILES_TOUCHED: <comma-separated file list, or NONE>\nCHECKS_RUN: <specific commands or checks run, or NONE>\nOPEN_RISKS: <what might be wrong or incomplete, or NONE>\nNOT_DONE: <what was not completed this session, or NONE>\nRECOMMENDED_MEMORY_UPDATE: <what memory/ file should change and why, or NO_UPDATE>\n```\n\n### Rules\n\n- `WORK_COMPLETED` must contain verifiable claims. Do not write \"made improvements\"\n  or \"worked on things\" — these are vague and will be rejected as insufficient.\n- `CHECKS_RUN` must name specific commands if non-`NONE`.\n- If there was no material progress, write `WORK_COMPLETED: NONE` — do not\n  fabricate completions.\n- `NOT_DONE` and `OPEN_RISKS` are the most important fields. AI agents tend to\n  omit failures. Do not.\n\n### If you cannot write the closeout\n\nWrite it anyway with `WORK_COMPLETED: NONE` and explain in `OPEN_RISKS` why\nthe session produced no verifiable output. This is a valid closeout.\n\nSee `docs/session-closeout-schema.md` for examples and field constraints.\n\n## Definition of Done\n\nA task is done when:\n\n- Behavior is explicit and observable\n- Failure paths are guarded\n- Architecture boundaries remain intact\n- Evidence matches the declared risk level\n- PLAN.md and memory/ reflect the new state"
+        },
+        {
+          "path": "D:\\Enumd\\PLAN.md",
+          "exists": true,
+          "content": "# PLAN.md\n<!-- governance-baseline: overridable -->\n<!-- baseline_version: 1.0.0 -->\n\n> **最後更新**: 2026-06-19\n> **Owner**: GavinWu\n> **Freshness**: Sprint (7d)\n\n---\n\n## Current Phase\n\n- [x] Phase A : Repo Boundary & Integration Seam Foundation\n  - Repo boundary policy established (docs/repo-boundary.md)\n  - Commit type taxonomy defined (7 types, mixed PR policy)\n  - Source.xml external bundle + manifest created\n  - Integration seam P1: event-map.yaml created (governance/event-map.yaml)\n\n- [x] Phase B : ChatGPT Lane Pilot (run-01 ~ run-15) — **COMPLETE 2026-05-11**\n  - 15 runs, `closeout_valid_ratio: 1.00`, `mapped_high_ratio: 1.00`\n  - All completion contracts satisfied; no scope violations; no claim overreach\n  - Ledger: `docs/status/chatgpt-lane-run-ledger.md`\n  - Summary: `docs/status/chatgpt-lane-pilot-summary.md`\n\n- [x] Phase C : Governance Onboarding + Route B Abstraction — **COMPLETE 2026-05-22**\n  - [x] Governance onboarding complete (2026-05-22): hooks installed, contract.yaml updated, project facts artifact synced\n  - [x] Route B: migrate `scripts/export.ts` to use NotionAdapter end-to-end (2026-05-22)\n    - NotionAdapter.getPageContentWithSignal() added; direct lib/notion import removed from export.ts\n    - TypeScript 0 errors; signal collection preserved through adapter layer\n\n- [x] Phase D : Gate-C Close + Phase D Reviewer Closeout — **COMPLETE 2026-05-23**\n  - [x] Gate-C final outcome summary (2026-05-23): `docs/status/gate-c-final-outcome-summary.md`; claim gate `cross-agent validated (execution governance scope)` satisfied (r4+r5)\n  - [x] Phase D Reviewer Closeout (2026-05-23): `artifacts/governance/phase-d-reviewer-closeout.json`; reviewer_id=Gavin0099; assess_ok=True\n\n## Active Sprint\n\n- [x] 2026-06-17: Refresh ai-governance framework snapshot and add Obsidian export + AI Digest Layer v0 pipeline for Notion-derived knowledge reuse.\n- [x] 2026-06-19: Close private Obsidian v0 follow-up by validating safe digest remains blocked, adding redaction policy review surface, fixing VitePress render blockers, and restoring ChatGPT lane ledger validation for run-01..run-25.\n- [x] P1-1: Create `governance/event-map.yaml` ??event dictionary, decision map, evidence packs, intervention hooks\n- [x] P1-2: Create evidence output directory `artifacts/runtime/evidence/` and commit path convention\n- [x] P1-3: Run schema_evolution vertical slice ??domain_advisory evidence pack + decision summary, gate_result=pass\n\n## Backlog\n\n- [x] P2-0: Create `knowledge/production_v1/mapping-spec.md` ??evidence-to-governance contract, source of truth, 11 sections\n- [x] P2-1: Mapping-spec compliance checker ??`scripts/check-mapping-spec-compliance.py`, enforces INV-1..INV-4, schema-evolution triggers, advisory misuse; full-scan + `--staged` pre-commit mode; exit codes 0/1/2\n  - Failure fixtures: `test/fixtures/compliance/inv{1,2,4}_*.ts` ??all 3 violations confirmed caught; baseline clean\n  - Stop hook wired: `.claude/settings.json` Stop hook (runs at session end, advisory/soft gate, exits 0)\n  - Observation period: run for several sessions; promote to pre-commit or CI only after noise/FP rate confirmed acceptable\n  - Promotion approved (2026-05-04); pre-commit hard-gate wired to `.git/hooks/pre-commit` (2026-05-16)\n- [x] P2-1.5: Promotion criteria for pre-commit ??`governance/pre-commit-promotion-criteria.md`\n  - Criteria: ?? qualifying sessions (non-empty staged), 0 FPs on INV-1/INV-2/INV-4, actionable messages, no recurring noise\n  - 5 demotion/delay triggers (DT-1..DT-5) with reset conditions\n  - Observation log (禮6) and promotion decision record (禮7) ??closeable stage gate\n  - **Current**: 3 / 3 qualifying sessions\n- [x] P2-2: Pre-release promotion check ??`scripts/check-release-promotion-gate.py` implemented; blocks on pending gates or missing release_promotion_evidence\n- [x] P3-1: Automated evidence pack generation for schema_evolution (`scripts/generate-schema-evolution-evidence.py`; git-diff ??pre-filled JSON template)\n- [x] P3-2: `post_pipeline_evidence_summary` hook implementation for pipeline commits (`scripts/post-pipeline-evidence-summary.py`)\n\n## Open Questions (from P1-3 vertical slice)\n\n- ~~OQ-1: nodeSignals downstream consumers~~ **CLOSED 2026-04-21**\n  - Finding: zero active consumers. `ai-governance-framework` has no code reading `governance_report.json`.\n  - Code explicitly guards against misuse: `decision_distance: \"advisory_only\"` per entry; section comment \"do not represent framework enforcement decisions.\"\n  - Classification stands: `schema_addition / reviewer_routing_surface_only` (routing surface exists but has no live consumer).\n  - Reclassification trigger: if framework adds code that reads `governance_report.json.advisory.node_signals` for promotion/filtering/escalation ??reassess.\n\n- ~~OQ-2: instrumentation_version contract status~~ **CLOSED 2026-04-21 ??Decision: B (versioned contract marker)**\n  - Two separate versioned markers: `audit.json?omain_advisory.instrumentation_version: \"1.0\"` (field-level) and `governance_report.json.instrumentation_version: \"slice1-v1\"` (report-level).\n  - Both are versioned contract markers. A computation logic change (threshold, signal set, scoring rule) that changes meaning without changing field names MUST bump version AND trigger schema_evolution event.\n  - Action taken: added both to schema_evolution trigger criteria in `governance/event-map.yaml`.\n\n- ~~OQ-3: mapping-spec.md missing~~ **CLOSED 2026-04-21 ??P2-0 complete**\n  - Created `knowledge/production_v1/mapping-spec.md` as **source of truth** (not README).\n  - Authority declaration: spec wins over code. Code must conform.\n  - Defines: advisory_only vs decision_consumable vocabulary (禮2), governance_report schema (禮3), advisory contract with invariants (禮4, 禮9), enforcement vocabulary boundary (禮5), domain_advisory field contract (禮6), versioned contract markers (禮8), schema_evolution triggers (禮10).\n  - INV-1 through INV-4 codify the invariants CI hook (P2-1) will validate against.\n\n## Decision Log\n\n- 2026-04-21: Repo boundary 整治完成。確立三層分離：可重建計算輸出移出 repo、原始來源快照移至外部 archive（external bundle + manifest + sha256）、知識產出與治理痕跡留在 repo。commit type 已定義 governance / authority-upgrade / pipeline / knowledge / schema-evolution 五種，禁止混送。詳見 [docs/repo-boundary.md](docs/repo-boundary.md)。\n\n- 2026-04-21: `ai-governance-framework` submodule pointer drift — **暫不吸收（pending authority-upgrade candidate）**。\n  - 現況：pointer 有 drift，Enumd 當時功能正常，無已知 consuming-side incompatibility。\n  - 不吸收原因：無明確 trigger；若僅因 completion pressure 跟進 pointer，缺乏 architecture reason，會弱化既有 policy。\n  - 重開條件（任一成立）：\n    1. Enumd consuming behavior 與 upstream authority 語義出現不一致\n    2. Upstream 修到 Enumd 當下明確需要的治理語義或 fix\n    3. Reviewer 要求對齊某個 upstream authority baseline\n    4. Submodule drift 大到無法合理聲稱本 repo 目前消費的是哪個 authority baseline\n  - 下次評估時：走 `authority-upgrade:` review gate（見 `docs/repo-boundary.md`）。\n\n- 2026-05-16: `ai-governance-framework` submodule 升版吸收（`598267d`）— **已執行**。\n  - Trigger：R49x consolidation + R50 opening（upstream 有 Enumd 明確需要的 governance baseline 更新）。\n  - 條件 2 成立：upstream 修到 Enumd 當下需要的治理語義（reviewer substitution scaffold、Layer 0/1 schema）。\n  - commit: `dfcb7b3`\n\n- 2026-05-22: governance onboarding 完成（contract.yaml risk_tier + framework_repo + adopted_release 宣告；pre-commit + pre-push hooks 安裝；project facts artifact 生成；runtime-smoke all-pass）。submodule bumped to `d082a7e`。reviewer-handoff: `reviewer_handoff_governance_onboarding_2026-05-22.md`。\n\n- 2026-05-23: `ai-governance-framework` submodule 升版吸收（`b540c65`）— **已執行**。\n  - Trigger：enumd-ci.yml `governance-check` job 引用 `ci_governance_check.py`，該檔案在 `d082a7e` 不存在。\n  - 條件 2 成立：upstream `6a7f1a0` 新增 Runtime Enforcement Attachment v0.1（`ci_governance_check.py`），Enumd CI 明確需要。\n  - commit: `4315432`；`framework.lock.json` 更新至 `b540c65`。\n\n## Known Risks\n\n- `governance_drift_clean=False` (accepted advisory): `runtime_hooks/core/post_task_check.py` in the framework submodule has unrecognized return keys (`by_consumer`, `by_field`, `by_type`, `contract_version`, `high_frequency_misuse_triggers_enforcement`, `notice`, `total_violations`, `visibility_only`) that have not passed the Expansion Admission Gate. This is a framework-internal issue — Enumd cannot pass the gate on behalf of the framework. Accepted as advisory because Enumd does not consume these keys as decision inputs. Revisit if the framework upgrades and resolves this upstream.\n- ~~`framework_version_known=False`~~ **RESOLVED 2026-05-22**: `governance/framework.lock.json` created, `framework_source_canonical=True`."
+        },
+        {
+          "path": "D:\\Enumd\\governance\\TESTING.md",
+          "exists": true,
+          "content": "---\naudience: agent-on-demand\nauthority: reference\ncan_override: false\noverridden_by: AGENT.md\ndefault_load: on-demand\n---\n\n# TESTING.md\n**測試策略與品質門檻 - v4.4**\n\n> **Version**: 4.4 | **Priority**: 6（品質守門）\n>\n> 定義在什麼條件下，我們可以合理相信一段程式碼。\n> 測試是 guardrail，不是 KPI。\n\n---\n\n## 1. 核心哲學\n\n- 保護行為\n- 防止 regression\n- 支持安全 refactoring\n- 偏好有意義的 evidence，而不是儀式化 checklist\n\nCoverage 本身不是品質指標。\n\n---\n\n## 2. 測試層級\n\n### L0 - 最低信心\n\n只在 scope 確實很小、rollback 成本也很低時使用。\n\n可接受的 evidence：\n- smoke test\n- manual checklist\n- characterization check\n- presentation-only work 的視覺確認\n- 有需要時的 before / after screenshot 或同等輕量 UI evidence\n\n`L0` 不得被用來逃避本來就需要的 verification。\n\n對 `L0 fast-track` 工作：\n- 只要 task 維持 presentation-only，一個輕量 verification step 就夠\n- 除非 task 升出 `L0`，否則不必要求完整 regression matrix\n- 一旦變更開始影響 behavior、schema、async flow、或 shared logic，就必須升到 `L1`\n\n### L1 - 可維護\n\n一般工作的預設門檻。\n\n預期 evidence 應包含適用的子集合：\n- unit test\n- characterization test\n- contract test\n- build verification\n- failure-path evidence\n\n不是每個 task 都需要每一種 test，但每個 task 都要有足夠 evidence 來為其安全性辯護。\n\n### L2 - 關鍵層\n\n必須在以下面向都有強 evidence：\n- behavior\n- boundary\n- integration\n- regression\n- human-reviewable acceptance criteria\n\n---\n\n## 3. Mandatory Failure-Path Thinking\n\n對 `L1+`，至少要在適用時提供以下 evidence：\n- 一個 invalid input 或 invalid state\n- 一個 boundary value\n- 一條 failure path\n\n若某類別不適用，必須明說。\n\n### 3.1 Critical Function Test Quality\n\ncoverage 可以很高，但測試品質仍然很弱。AI 特別擅長把 coverage 灌高，卻避開最難測、也最決策相關的路徑。\n\n當任一條件成立時，該 function 應視為 **critical**：\n- 會改變 state（write、delete、command dispatch、irreversible transition）\n- 會和 external system 互動（USB、file I/O、network、device API）\n- 是其他模組依賴的接縫（public interface、adapter layer、shared entrypoint）\n- 曾經是 bug surface，或過去發生過 regression\n\n對 critical function：\n- `L1` work 必須涵蓋適用子集合：\n  - normal path\n  - failure path\n  - boundary input\n  - invalid input 或 invalid state\n- `L2` work 應把這四類視為預設期待，除非某類別明確不適用\n\n若缺任何一類，除非有明講且合理說明，否則不能稱作「fully tested」。\n\n建議命名格式：\n- `test_[function]_[scenario]_[expected_outcome]`\n\n較好的例子：\n- `test_parse_version_empty_string_returns_none`\n- `test_send_command_device_disconnected_raises_error`\n- `test_update_firmware_checksum_mismatch_aborts`\n\n避免隱藏意圖的命名：\n- `test_case_1`\n- `test_parse_version_2`\n- `testSendCommand`\n\n### 3.2 Independent Expected-Value Rule\n\nexpected result 必須來自 spec、固定範例、invariant、或 independent fixture，**不能**在 test 裡重寫一遍 production algorithm 來算 expected value。\n\n若 test 用與 production 相同的邏輯計算 expected value，兩邊就可能一起錯，測試不再具備獨立驗證價值。這是 AI 最常用來膨脹 coverage、卻沒有增加防禦力的方式之一。\n\n若無法導出 independent expected value，必須明確把這個 test 標成 characterization test 或 weak coverage，而不能把它當 behavior proof。\n\n在 test 內重寫 production logic 是禁止的。\n\n### 3.3 Test Sensitivity and Mutation Thinking\n\n如果一個 test 在合理的邏輯錯誤下仍然會 pass，它就沒有保護力。高 coverage 但低 sensitivity，比低 coverage 但高 sensitivity 更糟，因為它會製造假信心。\n\n對 critical function 與 regression-sensitive path，test 至少要能在合理的邏輯 mutation 下失敗，例如：\n- boundary flip（`>` 被改成 `>=`）\n- reversed condition\n- removed guard clause\n- loop bound 的 off-by-one\n\n對 bug fix：新增的 test 必須能在原 bug 被重新引入時失敗。若這次修改裡沒有任何 test 能抓到原 defect 的回歸，就不能說 fix 已有 regression protection。\n\n若無法證明 test sensitivity，coverage claim 必須降級。\n\n### 3.4 Stateful and Sequence Behavior\n\n對 stateful 或 workflow-driven code，只做單點 function test 是不夠的。這類系統最常見的失敗，不是出在單一 function call，而是出在一連串操作之間。\n\n對 stateful 或 multi-step code，應加入 sequence test，驗證：\n- 完整 sequence 後的 final state 是否正確\n- sequence 中途失敗時行為如何\n- retry、rollback、recovery path 後的一致性\n\n依 side-effect 類型還要補：\n- external write（DB、file、device）：要 assert persisted state，不只驗證 write function 被呼叫\n- shared / global state modification：要有明確 cleanup 或 restoration verification\n- async dispatch：要有 completion behavior 與 failure-path evidence；不能把 fire-and-forget 當 fully tested\n\n### 3.5 Pure Function and Never-Raises Contracts\n\n宣告了「never raises」或「always returns well-formed output」保證的函式，需要專屬測試策略。保證本身必須由測試來持守，不能只靠文件說明。\n\n**Never-raises 保證**的測試要求：\n- 每種異常輸入類型（`None`、空值、格式錯誤、schema 違反）都必須有獨立測試案例\n- 測試必須 assert 回傳值的結構與 status，不能只驗證「未拋例外」\n- 最壞情況（完全無效輸入）仍必須回傳有用的 degraded output；測試必須明確斷言這個 degraded output 的形狀\n\n**Graceful degradation**（失敗時回傳 `inject=False` 或等效降級結果）的測試要求：\n- 必須覆蓋：目錄不存在、檔案不可讀、JSON 解析失敗、必要欄位缺失\n- 每個失敗路徑的測試都必須 assert 降級回傳值的完整結構，不只確認 flag 值\n- 降級後的回傳值必須符合與正常路徑相同的 key contract\n\n若一個 function 宣稱 never-raises，但測試套件中沒有針對異常輸入的測試，這個保證不能算已驗證。\n\n---\n\n## 4. Repo-Aware Build Policy\n\n### 4.1 Authoritative Build Config\n\n每個 repo 至少應宣告一個 **authoritative** 或 **known-good** build configuration。\n\n每個 task 的最低期待：\n- 驗至少一個 known-good config\n\n### 4.2 Phase-Based Matrix\n\nbuild breadth 應隨 task risk 調整：\n\n| Task Type | Minimum Build Expectation |\n|---|---|\n| 低風險 UI / wording / presentation | Known-good config |\n| 一般 feature / bugfix / refactor | Known-good config，再加 touched path 需要的驗證 |\n| 關鍵邊界 / release / L2 | 擴大到與 boundary risk 相稱的 matrix |\n\n當 repo 現實 baseline 本來就不支持 full Debug / Release 或跨平台 matrix 時，不要硬性要求完整矩陣。\n\n### 4.3 Warning Policy\n\n採用 **baseline-aware** warning policy：\n- touched file 不得引入新 warning\n- 不得在沒有明確說明的情況下惡化既有 warning baseline\n- 若 legacy warning 沒變，不必自動阻擋完成\n\n### 4.4 stdlib-Only Testing Constraints\n\n本專案僅使用 Python stdlib（不允許 `pip install`）。測試必須遵守相同限制：\n\n**允許**：\n- `unittest.mock`（stdlib）\n- `tempfile`、`pathlib`、`os`、`io` 等 stdlib 模組做 fixture isolation\n- `pytest` 作為測試執行器（工具，非 production dependency）\n\n**不允許**：\n- 任何第三方測試輔助函式庫（`faker`、`factory_boy`、`responses`、`freezegun` 等）\n- 任何需要外部服務或 API key 的測試（除非有明確 mock harness）\n\n若某個 test 看起來需要第三方函式庫，這通常是測試設計問題的信號：應以 injection、fixture、或 in-process stub 取代。\n\n注意：test runner（`pytest`）本身不受此限制；限制對象是 production dependency 和 test-helper libraries。\n\n---\n\n## 5. Legacy Refactor Baseline Validation\n\n對 legacy repo 的 refactor，必備 baseline evidence：\n- baseline commit 或 rollback point 的 build 結果\n- modified state 的 build 結果\n- canonical toolchain 與 canonical build command 的確認\n\n若 baseline 本身無法 build，必須明示這次工作是在 unstable baseline 上進行，不能把它表述成 clean、regression-proof 的 refactor。\n\n---\n\n## 6. Evidence Templates\n\n### 6.1 Minimum Refactor Evidence\n\n可接受的 evidence 例如：\n- before / after build result\n- touched-file diff review\n- key call-chain comparison\n- characterization 或 smoke verification，證明核心 behavior 未變\n\n### 6.2 High-Risk Rule Evidence\n\n對高風險工作，evidence 應具體且能讓人 review。例子：\n\n| Rule Type | Acceptable Evidence Examples |\n|---|---|\n| Flash / sequencing safety | before/after diff、ordered call-path list、build pass、explicit unchanged sequence note |\n| Layer boundary | touched entrypoint list、dependency-path inspection、確認無 direct forbidden access |\n| Thread safety | UI update path list、dispatcher usage 確認、failure-path note |\n| Legacy baseline | canonical toolchain、canonical build command、baseline build、modified build |\n\n不要在沒有指出 evidence 的情況下宣稱 `verified`。\n\n### 6.3 Cross-Tool Integration Evidence\n\n當一個 task 修改的 governance tool 與其他工具有跨邊界互動（例如 `session_start` → `session_end` → audit），evidence 必須涵蓋**邊界**，不只是單個工具。\n\n兩個各自通過的 unit test 不等於 integration evidence。\n\n可接受的 integration evidence：\n- 涵蓋完整呼叫鏈的 end-to-end test，使用現實輸入\n- 跨邊界的 return dict shape 驗證（不只驗單一函式內部）\n- producer 輸出降級時，consumer 能正確處理的測試\n\n**不**算 integration evidence：\n- 兩個獨立 unit test 各自通過\n- 只測試 happy path 的 integration sequence\n- mock-only 驗證 downstream function 被呼叫\n\n典型需要 integration evidence 的邊界：\n- `session_end` 寫入 canonical → `session_start` 讀取並注入 context\n- `write_candidate()` 寫入 → `build_canonical_closeout()` 處理 → `closeout_audit` 聚合\n- `pre_task_check` 完成 → `post_task_check` 接收 contract\n\n---\n\n## 7. Hard-to-Test Areas\n\n對 I/O、native、time、environment、或 legacy code：\n- 能 isolate 的先 isolate\n- 單元級 coverage 不現實時，用 characterization\n- 偏好 observed behavior，而不是 mocked fantasy\n\n會遮蔽真實風險的 mocking 是禁止的。\n\n### 7.1 Assertion and Mocking Discipline\n\n每個 test 至少應有一個清楚 assertion，針對：\n- output value\n- state change\n- emitted error 或 failure signal\n\n除非行為本身就是「不拋例外」，且 test name 已明說，否則不能把「沒有 exception」當成唯一通過條件。\n\n較好的 assertion 風格：\n- `assert result == expected_value`\n- `assert device.state == DeviceState.DISCONNECTED`\n- `assert \"checksum mismatch\" in error_log`\n\n只斷言 collaborator 被呼叫的 mock-only test 不夠。例如：\n- 弱：`mock_device.send.assert_called_once()`\n- 較強：assert resulting status、emitted output、或 persisted state\n\n測試也必須保持獨立：\n- 每個 test 都應可單獨執行\n- setup / teardown 必須恢復環境\n- mutable state 不得跨 test 洩漏\n- device、file、port、或 external resource setup 必須在每個 test 中明確處理\n\n### 7.2 Determinism and Flakiness Control\n\n測試必須 deterministic。若一個 test 多跑幾次結果不一致，它就不是 test，而是雜訊。\n\n除非 nondeterminism 本身就是被測行為，否則避免依賴：\n- wall-clock time 或 `datetime.now()`\n- 未 seed 的 random\n- test 執行順序\n- 跨 test 共享的 process state 或 global singleton\n- `sleep()` 或 timing-based synchronization\n\n若 system under test 真的牽涉 time、random、或 async scheduling，應透過 injection 控制：fake clock、seeded random、explicit harness control、或 deterministic event replay。\n\n若測試依賴未受控的 time、random、或 execution order，卻仍宣稱 stable，屬於禁止行為。\n\n### 7.3 Trust Boundary Tests\n\n宣告了信任邊界的元件（例如「只讀 canonical，不讀 candidates」）必須有測試驗證該邊界確實被遵守。信任邊界違反是**靜默失敗**：結果看起來有效，但資料來自不受信任的來源。\n\n**Trust boundary test 的要求**：\n- 若元件宣稱不讀取路徑 X，測試必須在路徑 X 存在且有資料的情況下，驗證結果不受其影響\n- 不能只測試「有讀取路徑 Y」；必須同時測試「沒有讀取路徑 X」\n- 每條已宣告的 trust rule 至少對應一個 boundary test\n\n本專案中典型的 trust boundary pattern：\n\n| 元件 | 宣告的信任規則 | Boundary test 驗證方式 |\n|---|---|---|\n| `closeout_audit` | 只讀 `artifacts/runtime/closeouts/` | 在 candidates dir 放資料，確認 audit 結果不受影響 |\n| `_canonical_closeout_context` | 只讀最新 canonical（依 `closed_at`）；不讀 session-index | 在 session-index 放舊資料，確認 context 回傳的是正確 canonical |\n| `run_session_end` 整合 | canonical 只由 system 寫入；AI candidate 為 untrusted input | candidate 為 schema invalid 時，canonical status 正確反映，不 propagate candidate 的 fields |\n\n若一個元件宣稱有 trust boundary，但 test suite 中沒有任何 boundary test，這個宣告不能算已驗證。\n\n### 7.4 Behavior Source and Test Plan Requirement\n\n沒有可信 expected behavior source 的 test，不是 test，而是猜測偽裝成 verification。\n\n生成 test 前，先識別 expected behavior 的來源：\n- specification 或 design doc\n- public contract 或 interface definition\n- 具有可重現步驟的 bug report\n- reviewer 或 product owner 提供的 acceptance criteria\n- known-good output 的 existing characterization baseline\n- 明確 reviewer instruction\n\n若沒有可信來源，必須明說，並下調所有產出測試的 confidence label。不能只靠閱讀現有 implementation 並假設它是對的，就當作 expected behavior source。\n\n對 non-trivial work，寫 test code 前先給一個簡短 test plan。至少指出：\n- behavior source（誰授權這個 expected behavior）\n- risk level 與 task classification\n- candidate critical path 與 failure path\n- 哪些 category 明確不適用，以及理由\n\n這個順序是為了防止 AI 最常見的失敗模式：在 behavior contract 都還沒立起來前，就先生成大量結構正確但價值很低的測試。\n\n---\n\n## 8. Test Gap Records\n\n當一個有意義的 test 目前做不到時，必須記錄：\n- 原因\n- 風險\n- remediation condition\n\n若沒有 remediation condition，就是隱藏技術債。\n\n### 8.1 Gap Record Format\n\n每筆 gap record 必須自我完備，包含：\n\n```text\nGAP: [工具名稱或函式名稱]\nREASON: [為何目前無法寫出此測試]\nRISK: [哪些失敗模式目前無法被偵測]\nREMEDIATION: [什麼條件成立後，這個 gap 應該被關閉]\n```\n\n範例：\n\n```text\nGAP: linear_integrator API response validation\nREASON: 無 test mode 或 mock API key；CI 環境無法連線外部服務\nRISK: 格式錯誤的 API response 在 runtime 才會被發現\nREMEDIATION: 加入 recorded fixture 或 in-process mock server 後\n```\n\n若無法填寫 REMEDIATION，表示此 gap 為**永久技術債**，必須明確標記，不能靜默略過。\n\nGap records 的位置：直接寫在本節，或寫在對應工具的 `tests/` 目錄下的 `GAPS.md`，兩者選一，保持一致。\n\n---\n\n## 9. Definition of Done\n\n工作完成的條件是：\n- 選用的 evidence 與 task risk 相稱\n- build verification 符合 repo reality\n- relevant failure-path thinking 已套用\n- critical function 有真正的 behavior assertion，而不是儀式化 coverage 或 mock-only check\n- bug fix 在可重現時，與修復同一 change 中附上 regression test\n- 後續 reviewer 能理解為什麼這次變更被視為安全\n\n以下做法明確禁止，無論 test count 或 coverage 百分比多高，都不算 evidence：\n- 在 test 中重寫 production logic\n- 在沒有 independent expected-value reasoning 下宣稱 fully tested\n- 對可重現 bug 沒有 regression test 卻宣稱 regression-safe\n- 依賴未受控的 time、random、或 execution order，卻宣稱 stable test"
+        },
+        {
+          "path": "D:\\Enumd\\governance\\ARCHITECTURE.md",
+          "exists": true,
+          "content": "---\naudience: agent-on-demand\nauthority: reference\ncan_override: false\noverridden_by: SYSTEM_PROMPT.md\ndefault_load: on-demand\n---\n\n# ARCHITECTURE.md\n**架構治理與邊界規則 - v4.2**\n\n> **Version**: 4.2 | **Priority**: 5（結構紅線）\n>\n> 定義系統如何切分、哪些地方可以改、哪些邊界屬於硬紅線。\n\n---\n\n## 0. 載入條件\n\n- 遇到新功能、refactor、邊界調整、或其他非 trivial 的 L1/L2 工作時載入\n- 只要可能有 architecture impact，就應載入；不要等到已經證明出事才載入\n\n---\n\n## 1. 核心原則\n\n### 1.1 Architecture Before Implementation\n\n在實作擴張前，必須先能說清楚：\n- 邊界在哪裡\n- 責任怎麼分\n- 資料怎麼流動\n\n如果連 architecture 都無法清楚表述，實作就還不具備可辯護性。\n\n### 1.2 Explicit Boundaries\n\n每個被碰到的 component 都應能被歸類為以下其中之一：\n- Domain\n- Application\n- Adapter\n- Infrastructure\n\n每個 component 都應回答：\n- 自己負責什麼\n- 自己**明確不負責**什麼\n\n### 1.3 Governance Goal\n\narchitecture governance 的目的，是防止災難性耦合與隱性邊界侵蝕。\n\n它應該降低風險，而不是懲罰 trivial、低風險工作。\n\n---\n\n## 2. Bounded Context\n\n### 2.1 L1+ 必答問題\n\n在任何 boundary-sensitive work 前，先回答：\n- 這件事屬於哪個 bounded context\n- 是否涉及 native API、platform variance、或 external system\n- 是否需要 Anti-Corruption Layer（ACL）\n\n### 2.2 Continue / Escalate / Stop\n\n- **Continue**：context 與 ownership 清楚\n- **Escalate**：大致清楚，但 boundary choice 或 abstraction choice 存在多個可辯護方案\n- **Stop**：提議變更已跨越硬邊界，或根本無法一致分類\n\n不要因為需要設計判斷就直接 stop；除非已經踩線，否則先 escalate。\n\n### 2.3 L0 例外\n\nL0 仍只限於 presentation-only 或 trivial edit，條件是：\n- 不跨 Domain / Infrastructure\n- 不涉及 native / I/O / state interaction\n- 不帶隱性行為變更\n\n典型 L0 例子：\n- copy 與 wording cleanup\n- spacing / layout polish\n- 不改 semantic state 的 color / token 對齊\n- prototype-only UI composition 調整，且不需要動 domain 或 API\n\nL0 不再只限於 typo-level edit，但只要碰到真實行為或邊界影響，就必須升到 L1。\n\n不確定時，升級到 L1。\n\n---\n\n## 3. Domain vs Infrastructure\n\n### 3.1 Domain 硬紅線\n\nDomain **不得**：\n- 直接呼叫 native API\n- 依賴 `.dll`、`.so`、`.dylib`、`.framework` 或同類 runtime binding\n- 依賴 UI、OS、filesystem、network、time、或 environment state\n\nDomain 應只透過明確、穩定的 interface 消費 capability。\n\n### 3.2 Infrastructure Anti-False-Positive Rule\n\n以下情況**不應自動**被判成 infrastructure leakage：\n- pure data transformation\n- OS-agnostic utility\n- compile-time constant\n- presentation-only state mapping\n\n不要用教條式過度擴張，去否定實際上有效的低風險設計。\n\n---\n\n## 4. Anti-Corruption Layer（ACL）\n\n### 4.1 何時必須有 ACL\n\n當以下任一條件成立時，ACL 屬於必需：\n- native 或 external model 與 domain language 不一致\n- 邊界攜帶 state、side effect、async behavior 或 unstable semantic\n- 需要 translation、validation、caching 或 error conversion\n\n### 4.2 何時通常不需要 ACL\n\n- 行為穩定、pure、stateless\n- 程式只做運算\n- 邊界風險本身不具實質意義\n\n`replaceable` 不等於 `立刻抽象一切`。\n\n---\n\n## 5. Interface Rules\n\n以下情況應引入 explicit interface：\n- platform behavior 存在差異\n- resource lifetime 不 trivial\n- ABI 或 binary stability 很重要\n- 邊界預期會獨立於 caller 變動\n\n如果 abstraction cost 大於 boundary risk，就不要引入 speculative interface。\n\n---\n\n## 6. ADR Rules\n\n### 6.1 ADR Trigger\n\n當決策影響以下任何一項時，應建立或更新 ADR：\n- memory ownership strategy\n- cross-platform loading strategy\n- ABI 或 calling convention\n- boundary partitioning\n- long-lived interface placement\n\n### 6.2 Conflict Check\n\n新增 ADR 前先做：\n1. 列出 `docs/adr/` 中相關標題\n2. 找出是否有衝突\n3. 若有歧義，明確標記 supersession 或 escalate\n4. 在新紀錄中連結相關 ADR\n\n沒有做 conflict review 就產出 ADR，屬於 governance failure。\n\n---\n\n## 7. Build Boundary Addendum\n\nbuild-system wiring 是 architecture 的一部分，不只是 tooling 細節。\n\n硬規則：\n- project 只能 include 自己樹內的 header，以及明確核准的 shared layer\n- project **不得**把 peer project 的 private directory 加進 include-search settings\n- build 成功 **不代表** boundary violation 被合理化\n- 如果多個 project 需要同一個 header，應把它移到有明確 ownership 的 shared boundary layer\n\ncross-project private include access 屬於 architecture violation，因為它隱藏耦合並繞過 ownership boundary。\n\n---\n\n## 8. Legacy 與 Refactor 解讀\n\n對 legacy repo 與大型 refactor：\n- 隱藏的歷史耦合是風險，不是藉口\n- baseline instability 要被顯性指出\n- boundary judgment 應以 canonical build environment 為準，不是被隨機 toolchain noise 牽著走\n\n如果 repo 現況讓邊界本身不清楚，就應帶證據 escalate，而不是假裝 architecture 很明顯。\n\n---\n\n## 9. Evidence Expectations\n\n可接受的 architecture evidence 包括：\n- touched-layer list\n- dependency path 或 include path inspection\n- entrypoint / call-path summary\n- before / after boundary diff\n- 明說哪些東西刻意保持不變\n\n不要在沒有明講 evidence 的情況下宣稱 `architecture-safe`。\n\n---\n\n## 10. Final Principle\n\n> **Architecture 的工作，是防止災難性錯誤，不是阻止正常進度。**\n> **硬違規才用 hard stop；真正的設計歧義才用 escalation。**"
+        }
+      ],
+      "ai_behavior_override": [
+        {
+          "path": "D:\\Enumd\\AGENTS.base.md",
+          "exists": true,
+          "content": "# AGENTS.base.md\n<!-- governance-baseline: protected -->\n<!-- baseline_version: 1.0.0 -->\n<!-- DO NOT EDIT — managed by ai-governance-framework -->\n<!-- To add repo-specific rules, create AGENTS.md and extend this file's sections. -->\n<!-- Hash is recorded in .governance/baseline.yaml and verified on every drift check. -->\n\n## Level Alignment\n\n- Declared L0 but involves domain logic, boundary crossing, or behavior change → upgrade to L1\n- Declared L1 but involves core domain, security, data integrity, or irreversible state → upgrade to L2\n- Uncertain classification → upgrade, do not downgrade\n\n## Execution Pipeline\n\nFor L1+, the default workflow is:\n\n1. **Analyze** — understand behavior and constraints before touching code\n2. **Define** — contracts, boundaries, failure paths\n3. **Verify Plan** — what evidence will prove the change is safe\n4. **Implement** — minimum compliant change\n5. **Refactor** — only under evidence protection\n\nDo not skip a step when the omission would hide risk.\n\n## Forbidden Behaviors\n\n- Expand scope beyond what was explicitly instructed\n- Refactor unrelated areas for cleanliness or taste\n- Add speculative abstractions for hypothetical future requirements\n- Fake, inflate, or omit evidence\n- Assume intent when the instruction is ambiguous — ask instead\n\n## Secret Handling\n\n- Never commit tokens, API keys, credentials, or secrets to the repo\n- Never write tokens or credentials into memory/ files or logs\n- If a secret appears in conversation context, do not persist it anywhere\n- `.env` files and credentials must be in `.gitignore` and never staged\n\n## Memory Update Triggers\n\nThe following events require updating PLAN.md and/or the relevant memory/ file:\n\n| Event | Required update |\n|-------|----------------|\n| Milestone reached | PLAN.md phase/sprint + memory/active_task |\n| Architecture decision made | PLAN.md decision log + memory/knowledge_base |\n| Bug fixed with root cause identified | memory/knowledge_base |\n| Risk or incident encountered | PLAN.md risk section + memory/active_task |\n| Session end | memory/active_task (current status) + session_end hook |\n\n## Session Closeout Obligation\n\nWriting `artifacts/session-closeout.txt` before session end is a **governance\nobligation**, not a suggestion.\n\nThe stop hook always calls `session_end` at session end. If the closeout artifact\nis missing or insufficient, the runtime records `closeout_missing` or\n`closeout_insufficient` in the verdict. Memory will not update. The gap is\nauditable and visible to reviewers.\n\n### Required fields\n\nAll fields must be present. Vague values are flagged as insufficient.\n\n```\nTASK_INTENT: <one sentence — declared goal of this session>\nWORK_COMPLETED: <what was actually done — verifiable claims only>\nFILES_TOUCHED: <comma-separated file list, or NONE>\nCHECKS_RUN: <specific commands or checks run, or NONE>\nOPEN_RISKS: <what might be wrong or incomplete, or NONE>\nNOT_DONE: <what was not completed this session, or NONE>\nRECOMMENDED_MEMORY_UPDATE: <what memory/ file should change and why, or NO_UPDATE>\n```\n\n### Rules\n\n- `WORK_COMPLETED` must contain verifiable claims. Do not write \"made improvements\"\n  or \"worked on things\" — these are vague and will be rejected as insufficient.\n- `CHECKS_RUN` must name specific commands if non-`NONE`.\n- If there was no material progress, write `WORK_COMPLETED: NONE` — do not\n  fabricate completions.\n- `NOT_DONE` and `OPEN_RISKS` are the most important fields. AI agents tend to\n  omit failures. Do not.\n\n### If you cannot write the closeout\n\nWrite it anyway with `WORK_COMPLETED: NONE` and explain in `OPEN_RISKS` why\nthe session produced no verifiable output. This is a valid closeout.\n\nSee `docs/session-closeout-schema.md` for examples and field constraints.\n\n## Definition of Done\n\nA task is done when:\n\n- Behavior is explicit and observable\n- Failure paths are guarded\n- Architecture boundaries remain intact\n- Evidence matches the declared risk level\n- PLAN.md and memory/ reflect the new state"
+        }
+      ],
+      "rule_roots": [
+        "D:\\Enumd\\governance\\rules"
+      ],
+      "validators": [],
+      "raw": {
+        "name": "enumd-contract",
+        "plugin_version": "1.0.0",
+        "framework_interface_version": "1",
+        "framework_compatible": ">=1.0.0,<2.0.0",
+        "domain": "enumd",
+        "risk_tier": "high",
+        "framework_repo": "https://github.com/Gavin0099/ai-governance-framework.git",
+        "framework_adopted_release": "1.2.0",
+        "documents": [
+          "AGENTS.base.md",
+          "PLAN.md",
+          "governance/TESTING.md",
+          "governance/ARCHITECTURE.md"
+        ],
+        "ai_behavior_override": [
+          "AGENTS.base.md"
+        ],
+        "rule_roots": [
+          "governance/rules"
+        ],
+        "validators": []
+      }
+    },
+    "domain_skip_reason": null,
+    "validator_preflight": {
+      "ok": true,
+      "count": 0,
+      "validators": []
+    },
+    "risk_signal": {
+      "active": false,
+      "overrides": {}
+    },
+    "state": {
+      "generated_at": "2026-07-05T15:02:31.231221+00:00",
+      "state_surface_contract": {
+        "surface_role": "derived_context_snapshot",
+        "authority_scope": "session_context_only",
+        "source_of_truth": {
+          "plan": "D:\\Enumd\\PLAN.md",
+          "runtime_artifacts": "artifacts/runtime/*"
+        },
+        "non_authoritative_for": [
+          "gate_verdict",
+          "classification_validation",
+          "escalation_closure"
+        ],
+        "operator_note": "This file is a convenience snapshot for session bootstrap. It must not be used as sole authority for closure or promotion decisions."
+      },
+      "plan_path": "D:\\Enumd\\PLAN.md",
+      "project_root": "D:\\Enumd",
+      "project": {
+        "owner": "GavinWu",
+        "freshness_policy": "Sprint (7d)"
+      },
+      "current_phase": {
+        "id": null,
+        "name": null
+      },
+      "gate_status": {
+        "PhaseA": "passed",
+        "PhaseB": "passed",
+        "PhaseC": "passed",
+        "PhaseD": "passed"
+      },
+      "active_sprint": [],
+      "backlog_counts": {
+        "P0": 0,
+        "P1": 0,
+        "P2": 0
+      },
+      "freshness": {
+        "status": "CRITICAL",
+        "last_updated": "2026-06-19",
+        "days_since_update": 16,
+        "threshold_days": 7
+      },
+      "runtime_contract": {
+        "task": "unspecified",
+        "rules": [
+          "common"
+        ],
+        "risk": "medium",
+        "oversight": "review-required",
+        "memory_mode": "candidate"
+      },
+      "suggested_rules_preview": [
+        "common",
+        "enumd",
+        "csharp",
+        "swift",
+        "objective-c",
+        "cpp",
+        "python",
+        "electron",
+        "refactor"
+      ],
+      "suggested_skills": [
+        "code-style",
+        "governance-runtime",
+        "python"
+      ],
+      "suggested_agent": "python-agent",
+      "rule_pack_suggestions": {
+        "project_root": "D:\\Enumd",
+        "language_packs": [
+          {
+            "name": "csharp",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "ai-governance-framework/.latest-main/runtime_hooks/examples/shared/after.cs",
+              "ai-governance-framework/.latest-main/runtime_hooks/examples/shared/before.cs",
+              "ai-governance-framework/runtime_hooks/examples/shared/after.cs",
+              "ai-governance-framework/runtime_hooks/examples/shared/before.cs",
+              "ai-governance-framework/tests/_tmp_debug_public_api/after.cs"
+            ]
+          },
+          {
+            "name": "swift",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "ai-governance-framework/tests/_tmp_public_api_diff/added_signature/after.swift",
+              "ai-governance-framework/tests/_tmp_public_api_diff/added_signature/before.swift",
+              "ai-governance-framework/tests/_tmp_rule_pack_suggester/swift/Package.swift",
+              "ai-governance-framework/tests/_tmp_rule_pack_suggester/swift/Sources/Feature.swift"
+            ]
+          },
+          {
+            "name": "objective-c",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "notion-rag/node_modules/sharp/src/common.h",
+              "notion-rag/node_modules/sharp/src/metadata.h",
+              "notion-rag/node_modules/sharp/src/operations.h",
+              "notion-rag/node_modules/sharp/src/pipeline.h",
+              "notion-rag/node_modules/sharp/src/stats.h"
+            ]
+          },
+          {
+            "name": "cpp",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "notion-rag/node_modules/sharp/src/common.cc",
+              "notion-rag/node_modules/sharp/src/common.h",
+              "notion-rag/node_modules/sharp/src/metadata.cc",
+              "notion-rag/node_modules/sharp/src/metadata.h",
+              "notion-rag/node_modules/sharp/src/operations.cc"
+            ]
+          },
+          {
+            "name": "python",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "ai-governance-framework/governance_harness.py",
+              "ai-governance-framework/requirements.txt",
+              "ai-governance-framework/_classification_governance_smoke.py",
+              "ai-governance-framework-stale/requirements.txt",
+              "ai-governance-framework-stale/_classification_governance_smoke.py"
+            ]
+          }
+        ],
+        "framework_packs": [
+          {
+            "name": "electron",
+            "category": "framework",
+            "confidence": "medium",
+            "reasons": [
+              "electron"
+            ]
+          }
+        ],
+        "scope_packs": [
+          {
+            "name": "refactor",
+            "category": "scope",
+            "confidence": "low",
+            "reasons": [
+              "\\brefactor\\b"
+            ],
+            "advisory_only": true
+          }
+        ],
+        "domain_packs": [
+          {
+            "name": "enumd",
+            "category": "domain",
+            "confidence": "high",
+            "reasons": [
+              "contract.yaml: domain=enumd",
+              "contract.yaml rule_root: governance/rules"
+            ]
+          }
+        ],
+        "suggested_skills": [
+          "code-style",
+          "governance-runtime",
+          "python"
+        ],
+        "suggested_agent": "python-agent",
+        "suggested_rules": [
+          "common",
+          "enumd",
+          "csharp",
+          "swift",
+          "objective-c",
+          "cpp",
+          "python",
+          "electron"
+        ],
+        "suggested_rules_preview": [
+          "common",
+          "enumd",
+          "csharp",
+          "swift",
+          "objective-c",
+          "cpp",
+          "python",
+          "electron",
+          "refactor"
+        ],
+        "notes": [
+          "domain_packs are sourced from contract.yaml rule_roots and take highest priority",
+          "language/framework packs are auto-suggested from repository signals",
+          "scope packs are advisory only and should be confirmed by the contract or human reviewer",
+          "suggested_rules_preview includes advisory scope packs for convenience, but does not mutate the contract",
+          "suggested_skills and suggested_agent are advisory only and do not auto-activate agent behavior"
+        ]
+      },
+      "architecture_impact_preview": {
+        "ok": true,
+        "scope": "feature",
+        "active_rules": [
+          "common"
+        ],
+        "touched_layers": [],
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "drift_result": {
+          "ok": true,
+          "errors": [],
+          "warnings": [],
+          "findings": [],
+          "files": [],
+          "dependency_diff": {
+            "ok": true,
+            "added": [],
+            "removed": [],
+            "warnings": [],
+            "errors": [],
+            "findings": []
+          }
+        },
+        "public_api_diff": {
+          "ok": true,
+          "before_manifest": {
+            "entries": [
+              {
+                "path": "runtime_hooks/examples/shared/before.cs",
+                "signatures": [
+                  "public class Service\n{",
+                  "public int Run() => 1;"
+                ],
+                "semantic_entries": [
+                  {
+                    "kind": "type",
+                    "identity": "type:Service",
+                    "display": "public class Service",
+                    "signature": "public class Service",
+                    "container": "Service",
+                    "qualified_name": "Service",
+                    "namespace": null
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Run",
+                    "display": "public int Run()",
+                    "signature": "int Run()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  }
+                ]
+              }
+            ]
+          },
+          "after_manifest": {
+            "entries": [
+              {
+                "path": "runtime_hooks/examples/shared/after.cs",
+                "signatures": [
+                  "public class Service\n{",
+                  "public int Run() => 1;",
+                  "public int Ping() => 0;"
+                ],
+                "semantic_entries": [
+                  {
+                    "kind": "type",
+                    "identity": "type:Service",
+                    "display": "public class Service",
+                    "signature": "public class Service",
+                    "container": "Service",
+                    "qualified_name": "Service",
+                    "namespace": null
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Run",
+                    "display": "public int Run()",
+                    "signature": "int Run()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Ping",
+                    "display": "public int Ping()",
+                    "signature": "int Ping()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  }
+                ]
+              }
+            ]
+          },
+          "removed": [],
+          "added": [
+            "public int Ping() => 0;"
+          ],
+          "compatibility_risk": "low",
+          "breaking_changes": [],
+          "non_breaking_changes": [
+            "New public API introduced: method:Service.Ping"
+          ],
+          "warnings": [
+            "New public API introduced: method:Service.Ping"
+          ],
+          "errors": []
+        },
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "concerns": [
+          "public-api-expansion-risk"
+        ],
+        "impact_report": {
+          "scope": "feature",
+          "active_rules": [
+            "common"
+          ],
+          "touched_layers": [],
+          "boundary_risk": "low",
+          "concerns": [
+            "public-api-expansion-risk"
+          ],
+          "required_evidence": [
+            "architecture-review",
+            "public-api-review"
+          ],
+          "expected_validators": [
+            "architecture_drift_checker",
+            "public_api_diff_checker"
+          ],
+          "recommended_risk": "medium",
+          "recommended_oversight": "review-required",
+          "public_api_diff_present": true
+        },
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required"
+      },
+      "proposal_guidance": {
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required",
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "concerns": [
+          "public-api-expansion-risk"
+        ]
+      },
+      "rule_packs": {
+        "requested": [
+          "common"
+        ],
+        "resolved": [
+          {
+            "name": "common",
+            "category": "scope",
+            "files": [
+              "governance\\rules\\common\\core.md"
+            ]
+          }
+        ],
+        "missing": [],
+        "valid": true
+      },
+      "active_rules": {
+        "requested": [
+          "common"
+        ],
+        "active_rules": [
+          {
+            "name": "common",
+            "category": "scope",
+            "files": [
+              {
+                "path": "governance\\rules\\common\\core.md",
+                "title": "Common Rule Pack",
+                "content": "# Common Rule Pack\n\n- 在實作前先遵守當前 `PLAN` scope。\n- 只要 architecture 或 safety red line 不清楚，就立刻 escalate。\n- 優先做最小、可回滾、且足以滿足任務的變更。"
+              }
+            ]
+          }
+        ],
+        "missing": [],
+        "valid": true
+      }
+    },
+    "pre_task_check": {
+      "ok": false,
+      "project_root": "D:\\Enumd",
+      "plan_path": "D:\\Enumd\\PLAN.md",
+      "freshness": {
+        "status": "CRITICAL",
+        "days_since_update": 16,
+        "threshold_days": 7
+      },
+      "runtime_contract": {
+        "rules": [
+          "common"
+        ],
+        "risk": "medium",
+        "oversight": "review-required",
+        "memory_mode": "candidate",
+        "enforcement_profile": "advisory_mainline",
+        "experimental_enforcement_enabled": false
+      },
+      "suggested_rules_preview": [
+        "common",
+        "enumd",
+        "csharp",
+        "swift",
+        "objective-c",
+        "cpp",
+        "python",
+        "electron",
+        "refactor"
+      ],
+      "suggested_skills": [
+        "code-style",
+        "governance-runtime",
+        "python"
+      ],
+      "suggested_agent": "python-agent",
+      "rule_pack_suggestions": {
+        "project_root": "D:\\Enumd",
+        "language_packs": [
+          {
+            "name": "csharp",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "ai-governance-framework/.latest-main/runtime_hooks/examples/shared/after.cs",
+              "ai-governance-framework/.latest-main/runtime_hooks/examples/shared/before.cs",
+              "ai-governance-framework/runtime_hooks/examples/shared/after.cs",
+              "ai-governance-framework/runtime_hooks/examples/shared/before.cs",
+              "ai-governance-framework/tests/_tmp_debug_public_api/after.cs"
+            ]
+          },
+          {
+            "name": "swift",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "ai-governance-framework/tests/_tmp_public_api_diff/added_signature/after.swift",
+              "ai-governance-framework/tests/_tmp_public_api_diff/added_signature/before.swift",
+              "ai-governance-framework/tests/_tmp_rule_pack_suggester/swift/Package.swift",
+              "ai-governance-framework/tests/_tmp_rule_pack_suggester/swift/Sources/Feature.swift"
+            ]
+          },
+          {
+            "name": "objective-c",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "notion-rag/node_modules/sharp/src/common.h",
+              "notion-rag/node_modules/sharp/src/metadata.h",
+              "notion-rag/node_modules/sharp/src/operations.h",
+              "notion-rag/node_modules/sharp/src/pipeline.h",
+              "notion-rag/node_modules/sharp/src/stats.h"
+            ]
+          },
+          {
+            "name": "cpp",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "notion-rag/node_modules/sharp/src/common.cc",
+              "notion-rag/node_modules/sharp/src/common.h",
+              "notion-rag/node_modules/sharp/src/metadata.cc",
+              "notion-rag/node_modules/sharp/src/metadata.h",
+              "notion-rag/node_modules/sharp/src/operations.cc"
+            ]
+          },
+          {
+            "name": "python",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "ai-governance-framework/governance_harness.py",
+              "ai-governance-framework/requirements.txt",
+              "ai-governance-framework/_classification_governance_smoke.py",
+              "ai-governance-framework-stale/requirements.txt",
+              "ai-governance-framework-stale/_classification_governance_smoke.py"
+            ]
+          }
+        ],
+        "framework_packs": [
+          {
+            "name": "electron",
+            "category": "framework",
+            "confidence": "medium",
+            "reasons": [
+              "electron"
+            ]
+          }
+        ],
+        "scope_packs": [
+          {
+            "name": "refactor",
+            "category": "scope",
+            "confidence": "low",
+            "reasons": [
+              "\\brefactor\\b"
+            ],
+            "advisory_only": true
+          }
+        ],
+        "domain_packs": [
+          {
+            "name": "enumd",
+            "category": "domain",
+            "confidence": "high",
+            "reasons": [
+              "contract.yaml: domain=enumd",
+              "contract.yaml rule_root: governance/rules"
+            ]
+          }
+        ],
+        "suggested_skills": [
+          "code-style",
+          "governance-runtime",
+          "python"
+        ],
+        "suggested_agent": "python-agent",
+        "suggested_rules": [
+          "common",
+          "enumd",
+          "csharp",
+          "swift",
+          "objective-c",
+          "cpp",
+          "python",
+          "electron"
+        ],
+        "suggested_rules_preview": [
+          "common",
+          "enumd",
+          "csharp",
+          "swift",
+          "objective-c",
+          "cpp",
+          "python",
+          "electron",
+          "refactor"
+        ],
+        "notes": [
+          "domain_packs are sourced from contract.yaml rule_roots and take highest priority",
+          "language/framework packs are auto-suggested from repository signals",
+          "scope packs are advisory only and should be confirmed by the contract or human reviewer",
+          "suggested_rules_preview includes advisory scope packs for convenience, but does not mutate the contract",
+          "suggested_skills and suggested_agent are advisory only and do not auto-activate agent behavior"
+        ]
+      },
+      "architecture_impact_preview": {
+        "ok": true,
+        "scope": "refactor",
+        "active_rules": [
+          "common"
+        ],
+        "touched_layers": [],
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "drift_result": {
+          "ok": true,
+          "errors": [],
+          "warnings": [],
+          "findings": [],
+          "files": [],
+          "dependency_diff": {
+            "ok": true,
+            "added": [],
+            "removed": [],
+            "warnings": [],
+            "errors": [],
+            "findings": []
+          }
+        },
+        "public_api_diff": {
+          "ok": true,
+          "before_manifest": {
+            "entries": [
+              {
+                "path": "runtime_hooks/examples/shared/before.cs",
+                "signatures": [
+                  "public class Service\n{",
+                  "public int Run() => 1;"
+                ],
+                "semantic_entries": [
+                  {
+                    "kind": "type",
+                    "identity": "type:Service",
+                    "display": "public class Service",
+                    "signature": "public class Service",
+                    "container": "Service",
+                    "qualified_name": "Service",
+                    "namespace": null
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Run",
+                    "display": "public int Run()",
+                    "signature": "int Run()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  }
+                ]
+              }
+            ]
+          },
+          "after_manifest": {
+            "entries": [
+              {
+                "path": "runtime_hooks/examples/shared/after.cs",
+                "signatures": [
+                  "public class Service\n{",
+                  "public int Run() => 1;",
+                  "public int Ping() => 0;"
+                ],
+                "semantic_entries": [
+                  {
+                    "kind": "type",
+                    "identity": "type:Service",
+                    "display": "public class Service",
+                    "signature": "public class Service",
+                    "container": "Service",
+                    "qualified_name": "Service",
+                    "namespace": null
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Run",
+                    "display": "public int Run()",
+                    "signature": "int Run()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Ping",
+                    "display": "public int Ping()",
+                    "signature": "int Ping()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  }
+                ]
+              }
+            ]
+          },
+          "removed": [],
+          "added": [
+            "public int Ping() => 0;"
+          ],
+          "compatibility_risk": "low",
+          "breaking_changes": [],
+          "non_breaking_changes": [
+            "New public API introduced: method:Service.Ping"
+          ],
+          "warnings": [
+            "New public API introduced: method:Service.Ping"
+          ],
+          "errors": []
+        },
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "concerns": [
+          "public-api-expansion-risk"
+        ],
+        "impact_report": {
+          "scope": "refactor",
+          "active_rules": [
+            "common"
+          ],
+          "touched_layers": [],
+          "boundary_risk": "low",
+          "concerns": [
+            "public-api-expansion-risk"
+          ],
+          "required_evidence": [
+            "architecture-review",
+            "public-api-review"
+          ],
+          "expected_validators": [
+            "architecture_drift_checker",
+            "public_api_diff_checker"
+          ],
+          "recommended_risk": "medium",
+          "recommended_oversight": "review-required",
+          "public_api_diff_present": true
+        },
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required"
+      },
+      "rule_packs": {
+        "requested": [
+          "common"
+        ],
+        "resolved": [
+          {
+            "name": "common",
+            "category": "scope",
+            "files": [
+              "rules\\common\\core.md"
+            ]
+          }
+        ],
+        "missing": [],
+        "valid": true
+      },
+      "active_rules": {
+        "requested": [
+          "common"
+        ],
+        "active_rules": [
+          {
+            "name": "common",
+            "category": "scope",
+            "files": [
+              {
+                "path": "rules\\common\\core.md",
+                "title": "Common Rule Pack"
+              }
+            ]
+          }
+        ],
+        "missing": [],
+        "valid": true,
+        "content_stripped": true,
+        "content_tier": 2
+      },
+      "topic_filter": {
+        "task_topic": "ui_presentation",
+        "filtered_out": [],
+        "rules_loaded": [
+          "common"
+        ]
+      },
+      "contract_resolution": {
+        "source": "explicit",
+        "path": "D:\\Enumd\\contract.yaml",
+        "warnings": [],
+        "error": null
+      },
+      "domain_contract": {
+        "name": "enumd-contract",
+        "contract_path": "D:\\Enumd\\contract.yaml",
+        "contract_root": "D:\\Enumd",
+        "documents": [
+          {
+            "path": "D:\\Enumd\\AGENTS.base.md",
+            "exists": true,
+            "content": "# AGENTS.base.md\n<!-- governance-baseline: protected -->\n<!-- baseline_version: 1.0.0 -->\n<!-- DO NOT EDIT — managed by ai-governance-framework -->\n<!-- To add repo-specific rules, create AGENTS.md and extend this file's sections. -->\n<!-- Hash is recorded in .governance/baseline.yaml and verified on every drift check. -->\n\n## Level Alignment\n\n- Declared L0 but involves domain logic, boundary crossing, or behavior change → upgrade to L1\n- Declared L1 but involves core domain, security, data integrity, or irreversible state → upgrade to L2\n- Uncertain classification → upgrade, do not downgrade\n\n## Execution Pipeline\n\nFor L1+, the default workflow is:\n\n1. **Analyze** — understand behavior and constraints before touching code\n2. **Define** — contracts, boundaries, failure paths\n3. **Verify Plan** — what evidence will prove the change is safe\n4. **Implement** — minimum compliant change\n5. **Refactor** — only under evidence protection\n\nDo not skip a step when the omission would hide risk.\n\n## Forbidden Behaviors\n\n- Expand scope beyond what was explicitly instructed\n- Refactor unrelated areas for cleanliness or taste\n- Add speculative abstractions for hypothetical future requirements\n- Fake, inflate, or omit evidence\n- Assume intent when the instruction is ambiguous — ask instead\n\n## Secret Handling\n\n- Never commit tokens, API keys, credentials, or secrets to the repo\n- Never write tokens or credentials into memory/ files or logs\n- If a secret appears in conversation context, do not persist it anywhere\n- `.env` files and credentials must be in `.gitignore` and never staged\n\n## Memory Update Triggers\n\nThe following events require updating PLAN.md and/or the relevant memory/ file:\n\n| Event | Required update |\n|-------|----------------|\n| Milestone reached | PLAN.md phase/sprint + memory/active_task |\n| Architecture decision made | PLAN.md decision log + memory/knowledge_base |\n| Bug fixed with root cause identified | memory/knowledge_base |\n| Risk or incident encountered | PLAN.md risk section + memory/active_task |\n| Session end | memory/active_task (current status) + session_end hook |\n\n## Session Closeout Obligation\n\nWriting `artifacts/session-closeout.txt` before session end is a **governance\nobligation**, not a suggestion.\n\nThe stop hook always calls `session_end` at session end. If the closeout artifact\nis missing or insufficient, the runtime records `closeout_missing` or\n`closeout_insufficient` in the verdict. Memory will not update. The gap is\nauditable and visible to reviewers.\n\n### Required fields\n\nAll fields must be present. Vague values are flagged as insufficient.\n\n```\nTASK_INTENT: <one sentence — declared goal of this session>\nWORK_COMPLETED: <what was actually done — verifiable claims only>\nFILES_TOUCHED: <comma-separated file list, or NONE>\nCHECKS_RUN: <specific commands or checks run, or NONE>\nOPEN_RISKS: <what might be wrong or incomplete, or NONE>\nNOT_DONE: <what was not completed this session, or NONE>\nRECOMMENDED_MEMORY_UPDATE: <what memory/ file should change and why, or NO_UPDATE>\n```\n\n### Rules\n\n- `WORK_COMPLETED` must contain verifiable claims. Do not write \"made improvements\"\n  or \"worked on things\" — these are vague and will be rejected as insufficient.\n- `CHECKS_RUN` must name specific commands if non-`NONE`.\n- If there was no material progress, write `WORK_COMPLETED: NONE` — do not\n  fabricate completions.\n- `NOT_DONE` and `OPEN_RISKS` are the most important fields. AI agents tend to\n  omit failures. Do not.\n\n### If you cannot write the closeout\n\nWrite it anyway with `WORK_COMPLETED: NONE` and explain in `OPEN_RISKS` why\nthe session produced no verifiable output. This is a valid closeout.\n\nSee `docs/session-closeout-schema.md` for examples and field constraints.\n\n## Definition of Done\n\nA task is done when:\n\n- Behavior is explicit and observable\n- Failure paths are guarded\n- Architecture boundaries remain intact\n- Evidence matches the declared risk level\n- PLAN.md and memory/ reflect the new state"
+          },
+          {
+            "path": "D:\\Enumd\\PLAN.md",
+            "exists": true,
+            "content": "# PLAN.md\n<!-- governance-baseline: overridable -->\n<!-- baseline_version: 1.0.0 -->\n\n> **最後更新**: 2026-06-19\n> **Owner**: GavinWu\n> **Freshness**: Sprint (7d)\n\n---\n\n## Current Phase\n\n- [x] Phase A : Repo Boundary & Integration Seam Foundation\n  - Repo boundary policy established (docs/repo-boundary.md)\n  - Commit type taxonomy defined (7 types, mixed PR policy)\n  - Source.xml external bundle + manifest created\n  - Integration seam P1: event-map.yaml created (governance/event-map.yaml)\n\n- [x] Phase B : ChatGPT Lane Pilot (run-01 ~ run-15) — **COMPLETE 2026-05-11**\n  - 15 runs, `closeout_valid_ratio: 1.00`, `mapped_high_ratio: 1.00`\n  - All completion contracts satisfied; no scope violations; no claim overreach\n  - Ledger: `docs/status/chatgpt-lane-run-ledger.md`\n  - Summary: `docs/status/chatgpt-lane-pilot-summary.md`\n\n- [x] Phase C : Governance Onboarding + Route B Abstraction — **COMPLETE 2026-05-22**\n  - [x] Governance onboarding complete (2026-05-22): hooks installed, contract.yaml updated, project facts artifact synced\n  - [x] Route B: migrate `scripts/export.ts` to use NotionAdapter end-to-end (2026-05-22)\n    - NotionAdapter.getPageContentWithSignal() added; direct lib/notion import removed from export.ts\n    - TypeScript 0 errors; signal collection preserved through adapter layer\n\n- [x] Phase D : Gate-C Close + Phase D Reviewer Closeout — **COMPLETE 2026-05-23**\n  - [x] Gate-C final outcome summary (2026-05-23): `docs/status/gate-c-final-outcome-summary.md`; claim gate `cross-agent validated (execution governance scope)` satisfied (r4+r5)\n  - [x] Phase D Reviewer Closeout (2026-05-23): `artifacts/governance/phase-d-reviewer-closeout.json`; reviewer_id=Gavin0099; assess_ok=True\n\n## Active Sprint\n\n- [x] 2026-06-17: Refresh ai-governance framework snapshot and add Obsidian export + AI Digest Layer v0 pipeline for Notion-derived knowledge reuse.\n- [x] 2026-06-19: Close private Obsidian v0 follow-up by validating safe digest remains blocked, adding redaction policy review surface, fixing VitePress render blockers, and restoring ChatGPT lane ledger validation for run-01..run-25.\n- [x] P1-1: Create `governance/event-map.yaml` ??event dictionary, decision map, evidence packs, intervention hooks\n- [x] P1-2: Create evidence output directory `artifacts/runtime/evidence/` and commit path convention\n- [x] P1-3: Run schema_evolution vertical slice ??domain_advisory evidence pack + decision summary, gate_result=pass\n\n## Backlog\n\n- [x] P2-0: Create `knowledge/production_v1/mapping-spec.md` ??evidence-to-governance contract, source of truth, 11 sections\n- [x] P2-1: Mapping-spec compliance checker ??`scripts/check-mapping-spec-compliance.py`, enforces INV-1..INV-4, schema-evolution triggers, advisory misuse; full-scan + `--staged` pre-commit mode; exit codes 0/1/2\n  - Failure fixtures: `test/fixtures/compliance/inv{1,2,4}_*.ts` ??all 3 violations confirmed caught; baseline clean\n  - Stop hook wired: `.claude/settings.json` Stop hook (runs at session end, advisory/soft gate, exits 0)\n  - Observation period: run for several sessions; promote to pre-commit or CI only after noise/FP rate confirmed acceptable\n  - Promotion approved (2026-05-04); pre-commit hard-gate wired to `.git/hooks/pre-commit` (2026-05-16)\n- [x] P2-1.5: Promotion criteria for pre-commit ??`governance/pre-commit-promotion-criteria.md`\n  - Criteria: ?? qualifying sessions (non-empty staged), 0 FPs on INV-1/INV-2/INV-4, actionable messages, no recurring noise\n  - 5 demotion/delay triggers (DT-1..DT-5) with reset conditions\n  - Observation log (禮6) and promotion decision record (禮7) ??closeable stage gate\n  - **Current**: 3 / 3 qualifying sessions\n- [x] P2-2: Pre-release promotion check ??`scripts/check-release-promotion-gate.py` implemented; blocks on pending gates or missing release_promotion_evidence\n- [x] P3-1: Automated evidence pack generation for schema_evolution (`scripts/generate-schema-evolution-evidence.py`; git-diff ??pre-filled JSON template)\n- [x] P3-2: `post_pipeline_evidence_summary` hook implementation for pipeline commits (`scripts/post-pipeline-evidence-summary.py`)\n\n## Open Questions (from P1-3 vertical slice)\n\n- ~~OQ-1: nodeSignals downstream consumers~~ **CLOSED 2026-04-21**\n  - Finding: zero active consumers. `ai-governance-framework` has no code reading `governance_report.json`.\n  - Code explicitly guards against misuse: `decision_distance: \"advisory_only\"` per entry; section comment \"do not represent framework enforcement decisions.\"\n  - Classification stands: `schema_addition / reviewer_routing_surface_only` (routing surface exists but has no live consumer).\n  - Reclassification trigger: if framework adds code that reads `governance_report.json.advisory.node_signals` for promotion/filtering/escalation ??reassess.\n\n- ~~OQ-2: instrumentation_version contract status~~ **CLOSED 2026-04-21 ??Decision: B (versioned contract marker)**\n  - Two separate versioned markers: `audit.json?omain_advisory.instrumentation_version: \"1.0\"` (field-level) and `governance_report.json.instrumentation_version: \"slice1-v1\"` (report-level).\n  - Both are versioned contract markers. A computation logic change (threshold, signal set, scoring rule) that changes meaning without changing field names MUST bump version AND trigger schema_evolution event.\n  - Action taken: added both to schema_evolution trigger criteria in `governance/event-map.yaml`.\n\n- ~~OQ-3: mapping-spec.md missing~~ **CLOSED 2026-04-21 ??P2-0 complete**\n  - Created `knowledge/production_v1/mapping-spec.md` as **source of truth** (not README).\n  - Authority declaration: spec wins over code. Code must conform.\n  - Defines: advisory_only vs decision_consumable vocabulary (禮2), governance_report schema (禮3), advisory contract with invariants (禮4, 禮9), enforcement vocabulary boundary (禮5), domain_advisory field contract (禮6), versioned contract markers (禮8), schema_evolution triggers (禮10).\n  - INV-1 through INV-4 codify the invariants CI hook (P2-1) will validate against.\n\n## Decision Log\n\n- 2026-04-21: Repo boundary 整治完成。確立三層分離：可重建計算輸出移出 repo、原始來源快照移至外部 archive（external bundle + manifest + sha256）、知識產出與治理痕跡留在 repo。commit type 已定義 governance / authority-upgrade / pipeline / knowledge / schema-evolution 五種，禁止混送。詳見 [docs/repo-boundary.md](docs/repo-boundary.md)。\n\n- 2026-04-21: `ai-governance-framework` submodule pointer drift — **暫不吸收（pending authority-upgrade candidate）**。\n  - 現況：pointer 有 drift，Enumd 當時功能正常，無已知 consuming-side incompatibility。\n  - 不吸收原因：無明確 trigger；若僅因 completion pressure 跟進 pointer，缺乏 architecture reason，會弱化既有 policy。\n  - 重開條件（任一成立）：\n    1. Enumd consuming behavior 與 upstream authority 語義出現不一致\n    2. Upstream 修到 Enumd 當下明確需要的治理語義或 fix\n    3. Reviewer 要求對齊某個 upstream authority baseline\n    4. Submodule drift 大到無法合理聲稱本 repo 目前消費的是哪個 authority baseline\n  - 下次評估時：走 `authority-upgrade:` review gate（見 `docs/repo-boundary.md`）。\n\n- 2026-05-16: `ai-governance-framework` submodule 升版吸收（`598267d`）— **已執行**。\n  - Trigger：R49x consolidation + R50 opening（upstream 有 Enumd 明確需要的 governance baseline 更新）。\n  - 條件 2 成立：upstream 修到 Enumd 當下需要的治理語義（reviewer substitution scaffold、Layer 0/1 schema）。\n  - commit: `dfcb7b3`\n\n- 2026-05-22: governance onboarding 完成（contract.yaml risk_tier + framework_repo + adopted_release 宣告；pre-commit + pre-push hooks 安裝；project facts artifact 生成；runtime-smoke all-pass）。submodule bumped to `d082a7e`。reviewer-handoff: `reviewer_handoff_governance_onboarding_2026-05-22.md`。\n\n- 2026-05-23: `ai-governance-framework` submodule 升版吸收（`b540c65`）— **已執行**。\n  - Trigger：enumd-ci.yml `governance-check` job 引用 `ci_governance_check.py`，該檔案在 `d082a7e` 不存在。\n  - 條件 2 成立：upstream `6a7f1a0` 新增 Runtime Enforcement Attachment v0.1（`ci_governance_check.py`），Enumd CI 明確需要。\n  - commit: `4315432`；`framework.lock.json` 更新至 `b540c65`。\n\n## Known Risks\n\n- `governance_drift_clean=False` (accepted advisory): `runtime_hooks/core/post_task_check.py` in the framework submodule has unrecognized return keys (`by_consumer`, `by_field`, `by_type`, `contract_version`, `high_frequency_misuse_triggers_enforcement`, `notice`, `total_violations`, `visibility_only`) that have not passed the Expansion Admission Gate. This is a framework-internal issue — Enumd cannot pass the gate on behalf of the framework. Accepted as advisory because Enumd does not consume these keys as decision inputs. Revisit if the framework upgrades and resolves this upstream.\n- ~~`framework_version_known=False`~~ **RESOLVED 2026-05-22**: `governance/framework.lock.json` created, `framework_source_canonical=True`."
+          },
+          {
+            "path": "D:\\Enumd\\governance\\TESTING.md",
+            "exists": true,
+            "content": "---\naudience: agent-on-demand\nauthority: reference\ncan_override: false\noverridden_by: AGENT.md\ndefault_load: on-demand\n---\n\n# TESTING.md\n**測試策略與品質門檻 - v4.4**\n\n> **Version**: 4.4 | **Priority**: 6（品質守門）\n>\n> 定義在什麼條件下，我們可以合理相信一段程式碼。\n> 測試是 guardrail，不是 KPI。\n\n---\n\n## 1. 核心哲學\n\n- 保護行為\n- 防止 regression\n- 支持安全 refactoring\n- 偏好有意義的 evidence，而不是儀式化 checklist\n\nCoverage 本身不是品質指標。\n\n---\n\n## 2. 測試層級\n\n### L0 - 最低信心\n\n只在 scope 確實很小、rollback 成本也很低時使用。\n\n可接受的 evidence：\n- smoke test\n- manual checklist\n- characterization check\n- presentation-only work 的視覺確認\n- 有需要時的 before / after screenshot 或同等輕量 UI evidence\n\n`L0` 不得被用來逃避本來就需要的 verification。\n\n對 `L0 fast-track` 工作：\n- 只要 task 維持 presentation-only，一個輕量 verification step 就夠\n- 除非 task 升出 `L0`，否則不必要求完整 regression matrix\n- 一旦變更開始影響 behavior、schema、async flow、或 shared logic，就必須升到 `L1`\n\n### L1 - 可維護\n\n一般工作的預設門檻。\n\n預期 evidence 應包含適用的子集合：\n- unit test\n- characterization test\n- contract test\n- build verification\n- failure-path evidence\n\n不是每個 task 都需要每一種 test，但每個 task 都要有足夠 evidence 來為其安全性辯護。\n\n### L2 - 關鍵層\n\n必須在以下面向都有強 evidence：\n- behavior\n- boundary\n- integration\n- regression\n- human-reviewable acceptance criteria\n\n---\n\n## 3. Mandatory Failure-Path Thinking\n\n對 `L1+`，至少要在適用時提供以下 evidence：\n- 一個 invalid input 或 invalid state\n- 一個 boundary value\n- 一條 failure path\n\n若某類別不適用，必須明說。\n\n### 3.1 Critical Function Test Quality\n\ncoverage 可以很高，但測試品質仍然很弱。AI 特別擅長把 coverage 灌高，卻避開最難測、也最決策相關的路徑。\n\n當任一條件成立時，該 function 應視為 **critical**：\n- 會改變 state（write、delete、command dispatch、irreversible transition）\n- 會和 external system 互動（USB、file I/O、network、device API）\n- 是其他模組依賴的接縫（public interface、adapter layer、shared entrypoint）\n- 曾經是 bug surface，或過去發生過 regression\n\n對 critical function：\n- `L1` work 必須涵蓋適用子集合：\n  - normal path\n  - failure path\n  - boundary input\n  - invalid input 或 invalid state\n- `L2` work 應把這四類視為預設期待，除非某類別明確不適用\n\n若缺任何一類，除非有明講且合理說明，否則不能稱作「fully tested」。\n\n建議命名格式：\n- `test_[function]_[scenario]_[expected_outcome]`\n\n較好的例子：\n- `test_parse_version_empty_string_returns_none`\n- `test_send_command_device_disconnected_raises_error`\n- `test_update_firmware_checksum_mismatch_aborts`\n\n避免隱藏意圖的命名：\n- `test_case_1`\n- `test_parse_version_2`\n- `testSendCommand`\n\n### 3.2 Independent Expected-Value Rule\n\nexpected result 必須來自 spec、固定範例、invariant、或 independent fixture，**不能**在 test 裡重寫一遍 production algorithm 來算 expected value。\n\n若 test 用與 production 相同的邏輯計算 expected value，兩邊就可能一起錯，測試不再具備獨立驗證價值。這是 AI 最常用來膨脹 coverage、卻沒有增加防禦力的方式之一。\n\n若無法導出 independent expected value，必須明確把這個 test 標成 characterization test 或 weak coverage，而不能把它當 behavior proof。\n\n在 test 內重寫 production logic 是禁止的。\n\n### 3.3 Test Sensitivity and Mutation Thinking\n\n如果一個 test 在合理的邏輯錯誤下仍然會 pass，它就沒有保護力。高 coverage 但低 sensitivity，比低 coverage 但高 sensitivity 更糟，因為它會製造假信心。\n\n對 critical function 與 regression-sensitive path，test 至少要能在合理的邏輯 mutation 下失敗，例如：\n- boundary flip（`>` 被改成 `>=`）\n- reversed condition\n- removed guard clause\n- loop bound 的 off-by-one\n\n對 bug fix：新增的 test 必須能在原 bug 被重新引入時失敗。若這次修改裡沒有任何 test 能抓到原 defect 的回歸，就不能說 fix 已有 regression protection。\n\n若無法證明 test sensitivity，coverage claim 必須降級。\n\n### 3.4 Stateful and Sequence Behavior\n\n對 stateful 或 workflow-driven code，只做單點 function test 是不夠的。這類系統最常見的失敗，不是出在單一 function call，而是出在一連串操作之間。\n\n對 stateful 或 multi-step code，應加入 sequence test，驗證：\n- 完整 sequence 後的 final state 是否正確\n- sequence 中途失敗時行為如何\n- retry、rollback、recovery path 後的一致性\n\n依 side-effect 類型還要補：\n- external write（DB、file、device）：要 assert persisted state，不只驗證 write function 被呼叫\n- shared / global state modification：要有明確 cleanup 或 restoration verification\n- async dispatch：要有 completion behavior 與 failure-path evidence；不能把 fire-and-forget 當 fully tested\n\n### 3.5 Pure Function and Never-Raises Contracts\n\n宣告了「never raises」或「always returns well-formed output」保證的函式，需要專屬測試策略。保證本身必須由測試來持守，不能只靠文件說明。\n\n**Never-raises 保證**的測試要求：\n- 每種異常輸入類型（`None`、空值、格式錯誤、schema 違反）都必須有獨立測試案例\n- 測試必須 assert 回傳值的結構與 status，不能只驗證「未拋例外」\n- 最壞情況（完全無效輸入）仍必須回傳有用的 degraded output；測試必須明確斷言這個 degraded output 的形狀\n\n**Graceful degradation**（失敗時回傳 `inject=False` 或等效降級結果）的測試要求：\n- 必須覆蓋：目錄不存在、檔案不可讀、JSON 解析失敗、必要欄位缺失\n- 每個失敗路徑的測試都必須 assert 降級回傳值的完整結構，不只確認 flag 值\n- 降級後的回傳值必須符合與正常路徑相同的 key contract\n\n若一個 function 宣稱 never-raises，但測試套件中沒有針對異常輸入的測試，這個保證不能算已驗證。\n\n---\n\n## 4. Repo-Aware Build Policy\n\n### 4.1 Authoritative Build Config\n\n每個 repo 至少應宣告一個 **authoritative** 或 **known-good** build configuration。\n\n每個 task 的最低期待：\n- 驗至少一個 known-good config\n\n### 4.2 Phase-Based Matrix\n\nbuild breadth 應隨 task risk 調整：\n\n| Task Type | Minimum Build Expectation |\n|---|---|\n| 低風險 UI / wording / presentation | Known-good config |\n| 一般 feature / bugfix / refactor | Known-good config，再加 touched path 需要的驗證 |\n| 關鍵邊界 / release / L2 | 擴大到與 boundary risk 相稱的 matrix |\n\n當 repo 現實 baseline 本來就不支持 full Debug / Release 或跨平台 matrix 時，不要硬性要求完整矩陣。\n\n### 4.3 Warning Policy\n\n採用 **baseline-aware** warning policy：\n- touched file 不得引入新 warning\n- 不得在沒有明確說明的情況下惡化既有 warning baseline\n- 若 legacy warning 沒變，不必自動阻擋完成\n\n### 4.4 stdlib-Only Testing Constraints\n\n本專案僅使用 Python stdlib（不允許 `pip install`）。測試必須遵守相同限制：\n\n**允許**：\n- `unittest.mock`（stdlib）\n- `tempfile`、`pathlib`、`os`、`io` 等 stdlib 模組做 fixture isolation\n- `pytest` 作為測試執行器（工具，非 production dependency）\n\n**不允許**：\n- 任何第三方測試輔助函式庫（`faker`、`factory_boy`、`responses`、`freezegun` 等）\n- 任何需要外部服務或 API key 的測試（除非有明確 mock harness）\n\n若某個 test 看起來需要第三方函式庫，這通常是測試設計問題的信號：應以 injection、fixture、或 in-process stub 取代。\n\n注意：test runner（`pytest`）本身不受此限制；限制對象是 production dependency 和 test-helper libraries。\n\n---\n\n## 5. Legacy Refactor Baseline Validation\n\n對 legacy repo 的 refactor，必備 baseline evidence：\n- baseline commit 或 rollback point 的 build 結果\n- modified state 的 build 結果\n- canonical toolchain 與 canonical build command 的確認\n\n若 baseline 本身無法 build，必須明示這次工作是在 unstable baseline 上進行，不能把它表述成 clean、regression-proof 的 refactor。\n\n---\n\n## 6. Evidence Templates\n\n### 6.1 Minimum Refactor Evidence\n\n可接受的 evidence 例如：\n- before / after build result\n- touched-file diff review\n- key call-chain comparison\n- characterization 或 smoke verification，證明核心 behavior 未變\n\n### 6.2 High-Risk Rule Evidence\n\n對高風險工作，evidence 應具體且能讓人 review。例子：\n\n| Rule Type | Acceptable Evidence Examples |\n|---|---|\n| Flash / sequencing safety | before/after diff、ordered call-path list、build pass、explicit unchanged sequence note |\n| Layer boundary | touched entrypoint list、dependency-path inspection、確認無 direct forbidden access |\n| Thread safety | UI update path list、dispatcher usage 確認、failure-path note |\n| Legacy baseline | canonical toolchain、canonical build command、baseline build、modified build |\n\n不要在沒有指出 evidence 的情況下宣稱 `verified`。\n\n### 6.3 Cross-Tool Integration Evidence\n\n當一個 task 修改的 governance tool 與其他工具有跨邊界互動（例如 `session_start` → `session_end` → audit），evidence 必須涵蓋**邊界**，不只是單個工具。\n\n兩個各自通過的 unit test 不等於 integration evidence。\n\n可接受的 integration evidence：\n- 涵蓋完整呼叫鏈的 end-to-end test，使用現實輸入\n- 跨邊界的 return dict shape 驗證（不只驗單一函式內部）\n- producer 輸出降級時，consumer 能正確處理的測試\n\n**不**算 integration evidence：\n- 兩個獨立 unit test 各自通過\n- 只測試 happy path 的 integration sequence\n- mock-only 驗證 downstream function 被呼叫\n\n典型需要 integration evidence 的邊界：\n- `session_end` 寫入 canonical → `session_start` 讀取並注入 context\n- `write_candidate()` 寫入 → `build_canonical_closeout()` 處理 → `closeout_audit` 聚合\n- `pre_task_check` 完成 → `post_task_check` 接收 contract\n\n---\n\n## 7. Hard-to-Test Areas\n\n對 I/O、native、time、environment、或 legacy code：\n- 能 isolate 的先 isolate\n- 單元級 coverage 不現實時，用 characterization\n- 偏好 observed behavior，而不是 mocked fantasy\n\n會遮蔽真實風險的 mocking 是禁止的。\n\n### 7.1 Assertion and Mocking Discipline\n\n每個 test 至少應有一個清楚 assertion，針對：\n- output value\n- state change\n- emitted error 或 failure signal\n\n除非行為本身就是「不拋例外」，且 test name 已明說，否則不能把「沒有 exception」當成唯一通過條件。\n\n較好的 assertion 風格：\n- `assert result == expected_value`\n- `assert device.state == DeviceState.DISCONNECTED`\n- `assert \"checksum mismatch\" in error_log`\n\n只斷言 collaborator 被呼叫的 mock-only test 不夠。例如：\n- 弱：`mock_device.send.assert_called_once()`\n- 較強：assert resulting status、emitted output、或 persisted state\n\n測試也必須保持獨立：\n- 每個 test 都應可單獨執行\n- setup / teardown 必須恢復環境\n- mutable state 不得跨 test 洩漏\n- device、file、port、或 external resource setup 必須在每個 test 中明確處理\n\n### 7.2 Determinism and Flakiness Control\n\n測試必須 deterministic。若一個 test 多跑幾次結果不一致，它就不是 test，而是雜訊。\n\n除非 nondeterminism 本身就是被測行為，否則避免依賴：\n- wall-clock time 或 `datetime.now()`\n- 未 seed 的 random\n- test 執行順序\n- 跨 test 共享的 process state 或 global singleton\n- `sleep()` 或 timing-based synchronization\n\n若 system under test 真的牽涉 time、random、或 async scheduling，應透過 injection 控制：fake clock、seeded random、explicit harness control、或 deterministic event replay。\n\n若測試依賴未受控的 time、random、或 execution order，卻仍宣稱 stable，屬於禁止行為。\n\n### 7.3 Trust Boundary Tests\n\n宣告了信任邊界的元件（例如「只讀 canonical，不讀 candidates」）必須有測試驗證該邊界確實被遵守。信任邊界違反是**靜默失敗**：結果看起來有效，但資料來自不受信任的來源。\n\n**Trust boundary test 的要求**：\n- 若元件宣稱不讀取路徑 X，測試必須在路徑 X 存在且有資料的情況下，驗證結果不受其影響\n- 不能只測試「有讀取路徑 Y」；必須同時測試「沒有讀取路徑 X」\n- 每條已宣告的 trust rule 至少對應一個 boundary test\n\n本專案中典型的 trust boundary pattern：\n\n| 元件 | 宣告的信任規則 | Boundary test 驗證方式 |\n|---|---|---|\n| `closeout_audit` | 只讀 `artifacts/runtime/closeouts/` | 在 candidates dir 放資料，確認 audit 結果不受影響 |\n| `_canonical_closeout_context` | 只讀最新 canonical（依 `closed_at`）；不讀 session-index | 在 session-index 放舊資料，確認 context 回傳的是正確 canonical |\n| `run_session_end` 整合 | canonical 只由 system 寫入；AI candidate 為 untrusted input | candidate 為 schema invalid 時，canonical status 正確反映，不 propagate candidate 的 fields |\n\n若一個元件宣稱有 trust boundary，但 test suite 中沒有任何 boundary test，這個宣告不能算已驗證。\n\n### 7.4 Behavior Source and Test Plan Requirement\n\n沒有可信 expected behavior source 的 test，不是 test，而是猜測偽裝成 verification。\n\n生成 test 前，先識別 expected behavior 的來源：\n- specification 或 design doc\n- public contract 或 interface definition\n- 具有可重現步驟的 bug report\n- reviewer 或 product owner 提供的 acceptance criteria\n- known-good output 的 existing characterization baseline\n- 明確 reviewer instruction\n\n若沒有可信來源，必須明說，並下調所有產出測試的 confidence label。不能只靠閱讀現有 implementation 並假設它是對的，就當作 expected behavior source。\n\n對 non-trivial work，寫 test code 前先給一個簡短 test plan。至少指出：\n- behavior source（誰授權這個 expected behavior）\n- risk level 與 task classification\n- candidate critical path 與 failure path\n- 哪些 category 明確不適用，以及理由\n\n這個順序是為了防止 AI 最常見的失敗模式：在 behavior contract 都還沒立起來前，就先生成大量結構正確但價值很低的測試。\n\n---\n\n## 8. Test Gap Records\n\n當一個有意義的 test 目前做不到時，必須記錄：\n- 原因\n- 風險\n- remediation condition\n\n若沒有 remediation condition，就是隱藏技術債。\n\n### 8.1 Gap Record Format\n\n每筆 gap record 必須自我完備，包含：\n\n```text\nGAP: [工具名稱或函式名稱]\nREASON: [為何目前無法寫出此測試]\nRISK: [哪些失敗模式目前無法被偵測]\nREMEDIATION: [什麼條件成立後，這個 gap 應該被關閉]\n```\n\n範例：\n\n```text\nGAP: linear_integrator API response validation\nREASON: 無 test mode 或 mock API key；CI 環境無法連線外部服務\nRISK: 格式錯誤的 API response 在 runtime 才會被發現\nREMEDIATION: 加入 recorded fixture 或 in-process mock server 後\n```\n\n若無法填寫 REMEDIATION，表示此 gap 為**永久技術債**，必須明確標記，不能靜默略過。\n\nGap records 的位置：直接寫在本節，或寫在對應工具的 `tests/` 目錄下的 `GAPS.md`，兩者選一，保持一致。\n\n---\n\n## 9. Definition of Done\n\n工作完成的條件是：\n- 選用的 evidence 與 task risk 相稱\n- build verification 符合 repo reality\n- relevant failure-path thinking 已套用\n- critical function 有真正的 behavior assertion，而不是儀式化 coverage 或 mock-only check\n- bug fix 在可重現時，與修復同一 change 中附上 regression test\n- 後續 reviewer 能理解為什麼這次變更被視為安全\n\n以下做法明確禁止，無論 test count 或 coverage 百分比多高，都不算 evidence：\n- 在 test 中重寫 production logic\n- 在沒有 independent expected-value reasoning 下宣稱 fully tested\n- 對可重現 bug 沒有 regression test 卻宣稱 regression-safe\n- 依賴未受控的 time、random、或 execution order，卻宣稱 stable test"
+          },
+          {
+            "path": "D:\\Enumd\\governance\\ARCHITECTURE.md",
+            "exists": true,
+            "content": "---\naudience: agent-on-demand\nauthority: reference\ncan_override: false\noverridden_by: SYSTEM_PROMPT.md\ndefault_load: on-demand\n---\n\n# ARCHITECTURE.md\n**架構治理與邊界規則 - v4.2**\n\n> **Version**: 4.2 | **Priority**: 5（結構紅線）\n>\n> 定義系統如何切分、哪些地方可以改、哪些邊界屬於硬紅線。\n\n---\n\n## 0. 載入條件\n\n- 遇到新功能、refactor、邊界調整、或其他非 trivial 的 L1/L2 工作時載入\n- 只要可能有 architecture impact，就應載入；不要等到已經證明出事才載入\n\n---\n\n## 1. 核心原則\n\n### 1.1 Architecture Before Implementation\n\n在實作擴張前，必須先能說清楚：\n- 邊界在哪裡\n- 責任怎麼分\n- 資料怎麼流動\n\n如果連 architecture 都無法清楚表述，實作就還不具備可辯護性。\n\n### 1.2 Explicit Boundaries\n\n每個被碰到的 component 都應能被歸類為以下其中之一：\n- Domain\n- Application\n- Adapter\n- Infrastructure\n\n每個 component 都應回答：\n- 自己負責什麼\n- 自己**明確不負責**什麼\n\n### 1.3 Governance Goal\n\narchitecture governance 的目的，是防止災難性耦合與隱性邊界侵蝕。\n\n它應該降低風險，而不是懲罰 trivial、低風險工作。\n\n---\n\n## 2. Bounded Context\n\n### 2.1 L1+ 必答問題\n\n在任何 boundary-sensitive work 前，先回答：\n- 這件事屬於哪個 bounded context\n- 是否涉及 native API、platform variance、或 external system\n- 是否需要 Anti-Corruption Layer（ACL）\n\n### 2.2 Continue / Escalate / Stop\n\n- **Continue**：context 與 ownership 清楚\n- **Escalate**：大致清楚，但 boundary choice 或 abstraction choice 存在多個可辯護方案\n- **Stop**：提議變更已跨越硬邊界，或根本無法一致分類\n\n不要因為需要設計判斷就直接 stop；除非已經踩線，否則先 escalate。\n\n### 2.3 L0 例外\n\nL0 仍只限於 presentation-only 或 trivial edit，條件是：\n- 不跨 Domain / Infrastructure\n- 不涉及 native / I/O / state interaction\n- 不帶隱性行為變更\n\n典型 L0 例子：\n- copy 與 wording cleanup\n- spacing / layout polish\n- 不改 semantic state 的 color / token 對齊\n- prototype-only UI composition 調整，且不需要動 domain 或 API\n\nL0 不再只限於 typo-level edit，但只要碰到真實行為或邊界影響，就必須升到 L1。\n\n不確定時，升級到 L1。\n\n---\n\n## 3. Domain vs Infrastructure\n\n### 3.1 Domain 硬紅線\n\nDomain **不得**：\n- 直接呼叫 native API\n- 依賴 `.dll`、`.so`、`.dylib`、`.framework` 或同類 runtime binding\n- 依賴 UI、OS、filesystem、network、time、或 environment state\n\nDomain 應只透過明確、穩定的 interface 消費 capability。\n\n### 3.2 Infrastructure Anti-False-Positive Rule\n\n以下情況**不應自動**被判成 infrastructure leakage：\n- pure data transformation\n- OS-agnostic utility\n- compile-time constant\n- presentation-only state mapping\n\n不要用教條式過度擴張，去否定實際上有效的低風險設計。\n\n---\n\n## 4. Anti-Corruption Layer（ACL）\n\n### 4.1 何時必須有 ACL\n\n當以下任一條件成立時，ACL 屬於必需：\n- native 或 external model 與 domain language 不一致\n- 邊界攜帶 state、side effect、async behavior 或 unstable semantic\n- 需要 translation、validation、caching 或 error conversion\n\n### 4.2 何時通常不需要 ACL\n\n- 行為穩定、pure、stateless\n- 程式只做運算\n- 邊界風險本身不具實質意義\n\n`replaceable` 不等於 `立刻抽象一切`。\n\n---\n\n## 5. Interface Rules\n\n以下情況應引入 explicit interface：\n- platform behavior 存在差異\n- resource lifetime 不 trivial\n- ABI 或 binary stability 很重要\n- 邊界預期會獨立於 caller 變動\n\n如果 abstraction cost 大於 boundary risk，就不要引入 speculative interface。\n\n---\n\n## 6. ADR Rules\n\n### 6.1 ADR Trigger\n\n當決策影響以下任何一項時，應建立或更新 ADR：\n- memory ownership strategy\n- cross-platform loading strategy\n- ABI 或 calling convention\n- boundary partitioning\n- long-lived interface placement\n\n### 6.2 Conflict Check\n\n新增 ADR 前先做：\n1. 列出 `docs/adr/` 中相關標題\n2. 找出是否有衝突\n3. 若有歧義，明確標記 supersession 或 escalate\n4. 在新紀錄中連結相關 ADR\n\n沒有做 conflict review 就產出 ADR，屬於 governance failure。\n\n---\n\n## 7. Build Boundary Addendum\n\nbuild-system wiring 是 architecture 的一部分，不只是 tooling 細節。\n\n硬規則：\n- project 只能 include 自己樹內的 header，以及明確核准的 shared layer\n- project **不得**把 peer project 的 private directory 加進 include-search settings\n- build 成功 **不代表** boundary violation 被合理化\n- 如果多個 project 需要同一個 header，應把它移到有明確 ownership 的 shared boundary layer\n\ncross-project private include access 屬於 architecture violation，因為它隱藏耦合並繞過 ownership boundary。\n\n---\n\n## 8. Legacy 與 Refactor 解讀\n\n對 legacy repo 與大型 refactor：\n- 隱藏的歷史耦合是風險，不是藉口\n- baseline instability 要被顯性指出\n- boundary judgment 應以 canonical build environment 為準，不是被隨機 toolchain noise 牽著走\n\n如果 repo 現況讓邊界本身不清楚，就應帶證據 escalate，而不是假裝 architecture 很明顯。\n\n---\n\n## 9. Evidence Expectations\n\n可接受的 architecture evidence 包括：\n- touched-layer list\n- dependency path 或 include path inspection\n- entrypoint / call-path summary\n- before / after boundary diff\n- 明說哪些東西刻意保持不變\n\n不要在沒有明講 evidence 的情況下宣稱 `architecture-safe`。\n\n---\n\n## 10. Final Principle\n\n> **Architecture 的工作，是防止災難性錯誤，不是阻止正常進度。**\n> **硬違規才用 hard stop；真正的設計歧義才用 escalation。**"
+          }
+        ],
+        "ai_behavior_override": [
+          {
+            "path": "D:\\Enumd\\AGENTS.base.md",
+            "exists": true,
+            "content": "# AGENTS.base.md\n<!-- governance-baseline: protected -->\n<!-- baseline_version: 1.0.0 -->\n<!-- DO NOT EDIT — managed by ai-governance-framework -->\n<!-- To add repo-specific rules, create AGENTS.md and extend this file's sections. -->\n<!-- Hash is recorded in .governance/baseline.yaml and verified on every drift check. -->\n\n## Level Alignment\n\n- Declared L0 but involves domain logic, boundary crossing, or behavior change → upgrade to L1\n- Declared L1 but involves core domain, security, data integrity, or irreversible state → upgrade to L2\n- Uncertain classification → upgrade, do not downgrade\n\n## Execution Pipeline\n\nFor L1+, the default workflow is:\n\n1. **Analyze** — understand behavior and constraints before touching code\n2. **Define** — contracts, boundaries, failure paths\n3. **Verify Plan** — what evidence will prove the change is safe\n4. **Implement** — minimum compliant change\n5. **Refactor** — only under evidence protection\n\nDo not skip a step when the omission would hide risk.\n\n## Forbidden Behaviors\n\n- Expand scope beyond what was explicitly instructed\n- Refactor unrelated areas for cleanliness or taste\n- Add speculative abstractions for hypothetical future requirements\n- Fake, inflate, or omit evidence\n- Assume intent when the instruction is ambiguous — ask instead\n\n## Secret Handling\n\n- Never commit tokens, API keys, credentials, or secrets to the repo\n- Never write tokens or credentials into memory/ files or logs\n- If a secret appears in conversation context, do not persist it anywhere\n- `.env` files and credentials must be in `.gitignore` and never staged\n\n## Memory Update Triggers\n\nThe following events require updating PLAN.md and/or the relevant memory/ file:\n\n| Event | Required update |\n|-------|----------------|\n| Milestone reached | PLAN.md phase/sprint + memory/active_task |\n| Architecture decision made | PLAN.md decision log + memory/knowledge_base |\n| Bug fixed with root cause identified | memory/knowledge_base |\n| Risk or incident encountered | PLAN.md risk section + memory/active_task |\n| Session end | memory/active_task (current status) + session_end hook |\n\n## Session Closeout Obligation\n\nWriting `artifacts/session-closeout.txt` before session end is a **governance\nobligation**, not a suggestion.\n\nThe stop hook always calls `session_end` at session end. If the closeout artifact\nis missing or insufficient, the runtime records `closeout_missing` or\n`closeout_insufficient` in the verdict. Memory will not update. The gap is\nauditable and visible to reviewers.\n\n### Required fields\n\nAll fields must be present. Vague values are flagged as insufficient.\n\n```\nTASK_INTENT: <one sentence — declared goal of this session>\nWORK_COMPLETED: <what was actually done — verifiable claims only>\nFILES_TOUCHED: <comma-separated file list, or NONE>\nCHECKS_RUN: <specific commands or checks run, or NONE>\nOPEN_RISKS: <what might be wrong or incomplete, or NONE>\nNOT_DONE: <what was not completed this session, or NONE>\nRECOMMENDED_MEMORY_UPDATE: <what memory/ file should change and why, or NO_UPDATE>\n```\n\n### Rules\n\n- `WORK_COMPLETED` must contain verifiable claims. Do not write \"made improvements\"\n  or \"worked on things\" — these are vague and will be rejected as insufficient.\n- `CHECKS_RUN` must name specific commands if non-`NONE`.\n- If there was no material progress, write `WORK_COMPLETED: NONE` — do not\n  fabricate completions.\n- `NOT_DONE` and `OPEN_RISKS` are the most important fields. AI agents tend to\n  omit failures. Do not.\n\n### If you cannot write the closeout\n\nWrite it anyway with `WORK_COMPLETED: NONE` and explain in `OPEN_RISKS` why\nthe session produced no verifiable output. This is a valid closeout.\n\nSee `docs/session-closeout-schema.md` for examples and field constraints.\n\n## Definition of Done\n\nA task is done when:\n\n- Behavior is explicit and observable\n- Failure paths are guarded\n- Architecture boundaries remain intact\n- Evidence matches the declared risk level\n- PLAN.md and memory/ reflect the new state"
+          }
+        ],
+        "rule_roots": [
+          "D:\\Enumd\\governance\\rules"
+        ],
+        "validators": [],
+        "raw": {
+          "name": "enumd-contract",
+          "plugin_version": "1.0.0",
+          "framework_interface_version": "1",
+          "framework_compatible": ">=1.0.0,<2.0.0",
+          "domain": "enumd",
+          "risk_tier": "high",
+          "framework_repo": "https://github.com/Gavin0099/ai-governance-framework.git",
+          "framework_adopted_release": "1.2.0",
+          "documents": [
+            "AGENTS.base.md",
+            "PLAN.md",
+            "governance/TESTING.md",
+            "governance/ARCHITECTURE.md"
+          ],
+          "ai_behavior_override": [
+            "AGENTS.base.md"
+          ],
+          "rule_roots": [
+            "governance/rules"
+          ],
+          "validators": []
+        }
+      },
+      "resolved_contract_file": "D:\\Enumd\\contract.yaml",
+      "summary_first": {
+        "active": false,
+        "task_level": "L1",
+        "note": "full domain contract loaded"
+      },
+      "decision_boundary": {
+        "preconditions_checked": [],
+        "boundary_effect": "pass"
+      },
+      "precondition_gate_validator": {
+        "ok": true,
+        "missing_preconditions": [],
+        "recommended_mode": "allow_analysis_only",
+        "forbidden_claims": [],
+        "rule_refs": [],
+        "signals": {
+          "wants_synthesizable_rtl": false,
+          "wants_control_interface_logic": false,
+          "has_reset_definition": false,
+          "has_handshake_definition": false,
+          "reset_negative_detected": false,
+          "handshake_negative_detected": false
+        }
+      },
+      "assumption_check": {
+        "present": false,
+        "assumptions_present": false,
+        "alternatives_present": false,
+        "alternatives_count": 0,
+        "evidence_present": false,
+        "reframe_present": false,
+        "action_decision": null,
+        "complete": false,
+        "missing": [
+          "assumptions",
+          "alternative_root_causes",
+          "evidence",
+          "reframe_or_validation_step"
+        ]
+      },
+      "evidence_integrity": {
+        "direct_evidence_frozen": false,
+        "source": "no_direct_evidence",
+        "has_strong_marker": false,
+        "has_no_evidence_marker": false
+      },
+      "evidence_integrity_gate": {
+        "ok": true,
+        "gate": "evidence_integrity_gate",
+        "violations": [],
+        "summary": {
+          "case_id": "runtime_task",
+          "kind": "unknown",
+          "phase": "final",
+          "violation_count": 0,
+          "hard_fail": false
+        }
+      },
+      "decision_policy": {
+        "risk_tier": "low",
+        "risk_score": 4.1,
+        "premise_status": "unknown",
+        "evidence_alignment": "absent",
+        "execution_scope": "local_reversible",
+        "reversibility": "easy",
+        "correctness_mode": "bounded_trial",
+        "selected_action": "proceed_with_assumption",
+        "ranked_actions": [
+          {
+            "action": "proceed_with_assumption",
+            "score": 1.4,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          },
+          {
+            "action": "need_more_info",
+            "score": 0.8,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible",
+              "direct_evidence_missing"
+            ]
+          },
+          {
+            "action": "reframe",
+            "score": 0.3,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          },
+          {
+            "action": "proceed",
+            "score": 0.2,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          },
+          {
+            "action": "reject",
+            "score": 0.1,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          }
+        ],
+        "confidence": 1.0,
+        "reasons": [
+          "risk_tier:low",
+          "premise_status:unknown",
+          "evidence_alignment:absent",
+          "execution_scope:local_reversible",
+          "correctness_mode:bounded_trial",
+          "assumption_evidence_missing"
+        ],
+        "required_followup": [
+          "mark_assumption_explicitly",
+          "prepare_rollback_or_fallback"
+        ],
+        "fallback_plan": "Proceed with bounded local change and explicit rollback plan.",
+        "reframed_task": "",
+        "advisory_signals": [
+          "proceeding_under_assumption",
+          "assumption_evidence_missing"
+        ],
+        "decision_action": "proceed_with_assumption",
+        "decision_candidates": [
+          {
+            "action": "proceed_with_assumption",
+            "score": 1.4,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          },
+          {
+            "action": "need_more_info",
+            "score": 0.8,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible",
+              "direct_evidence_missing"
+            ]
+          },
+          {
+            "action": "reframe",
+            "score": 0.3,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          },
+          {
+            "action": "proceed",
+            "score": 0.2,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          },
+          {
+            "action": "reject",
+            "score": 0.1,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          }
+        ]
+      },
+      "runtime_injection": {
+        "snapshot": {
+          "name": "runtime-injection-snapshot-v0",
+          "policy_version": "0",
+          "path": "D:\\ai-governance-framework\\governance\\runtime_injection_snapshot.v0.yaml",
+          "source_refs": [
+            "docs/runtime-injection-layer-plan.md",
+            "docs/decision-context-bridge.md"
+          ],
+          "task_level_scope": [
+            "L0",
+            "L1",
+            "L2"
+          ],
+          "target_agent_classes": [
+            "instruction_capable",
+            "instruction_limited"
+          ],
+          "consumption_requirements": [
+            "inject_before_turn",
+            "reread_before_edit",
+            "require_full_read_for_large_files"
+          ],
+          "validation_requirements": [
+            "require_validation_after_edit",
+            "forbid_claim_without_evidence"
+          ],
+          "escalation_triggers": [
+            "escalate_if_context_degraded",
+            "escalate_if_required_evidence_missing"
+          ]
+        },
+        "signals_checked": [
+          {
+            "signal": "context_degraded",
+            "triggered": false,
+            "action": "pass",
+            "reason": null
+          },
+          {
+            "signal": "required_evidence_missing",
+            "triggered": false,
+            "action": "pass",
+            "reason": null
+          }
+        ],
+        "effect": "pass"
+      },
+      "consumption_observations": {
+        "snapshot": "runtime-injection-snapshot-v0",
+        "observations": [
+          {
+            "requirement": "require_full_read_for_large_files",
+            "applicable": true,
+            "observation_status": "compatible",
+            "observation_confidence": "low",
+            "decision_role": "advisory_only",
+            "observable_proxy": "large_file_detected_without_summary_first_degradation",
+            "matched_paths": [
+              "D:\\Enumd\\governance\\TESTING.md",
+              "D:\\Enumd\\governance\\ARCHITECTURE.md"
+            ],
+            "line_threshold": 200,
+            "caveat": "compatible observation is not proof that the file was semantically understood"
+          }
+        ]
+      },
+      "phase_classification": {
+        "schema_version": "0.1",
+        "hook": "pre_task_check",
+        "actions": [
+          {
+            "action": "precondition_gate",
+            "phase": "sync_gate",
+            "owner": "pre_task_check",
+            "description": "Execution preconditions and missing-input gate."
+          },
+          {
+            "action": "assumption_check_missing",
+            "phase": "sync_advisory",
+            "owner": "pre_task_check",
+            "description": "Assumption validation structure is incomplete."
+          }
+        ],
+        "phase_summary": {
+          "sync_gate": [
+            "precondition_gate"
+          ],
+          "sync_advisory": [
+            "assumption_check_missing"
+          ]
+        },
+        "rules": {
+          "sync_gate_blocks_execution": true,
+          "sync_advisory_hidden_gate_allowed": false,
+          "async_audit_can_retroactively_change_verdict": false
+        },
+        "unknown_actions": []
+      },
+      "errors": [
+        "PLAN.md freshness is CRITICAL"
+      ],
+      "warnings": [
+        "Suggested language pack 'csharp' is not active; repo signals: ai-governance-framework/.latest-main/runtime_hooks/examples/shared/after.cs, ai-governance-framework/.latest-main/runtime_hooks/examples/shared/before.cs",
+        "Suggested language pack 'swift' is not active; repo signals: ai-governance-framework/tests/_tmp_public_api_diff/added_signature/after.swift, ai-governance-framework/tests/_tmp_public_api_diff/added_signature/before.swift",
+        "Suggested language pack 'objective-c' is not active; repo signals: notion-rag/node_modules/sharp/src/common.h, notion-rag/node_modules/sharp/src/metadata.h",
+        "Suggested language pack 'cpp' is not active; repo signals: notion-rag/node_modules/sharp/src/common.cc, notion-rag/node_modules/sharp/src/common.h",
+        "Suggested language pack 'python' is not active; repo signals: ai-governance-framework/governance_harness.py, ai-governance-framework/requirements.txt",
+        "Suggested framework pack 'electron' is not active; repo signals: electron",
+        "Advisory scope pack 'refactor' is suggested by task text but not active; signals: \\brefactor\\b",
+        "Assumption check missing before modification planning: missing=assumptions, alternative_root_causes, evidence, reframe_or_validation_step",
+        "Decision policy advisory: assumption evidence missing",
+        "Decision policy advisory: proceeding under assumption"
+      ],
+      "trace_id": "472d64ce69fff5fa",
+      "output_tier": 2,
+      "reasoning_fragments": [
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "staleness_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "PLAN.md freshness is CRITICAL"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Suggested language pack 'csharp' is not active; repo signals: ai-governance-framework/.latest-main/runtime_hooks/examples/shared/after.cs, ai-governance-framework/.latest-main/runtime_hooks/examples/s..."
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Suggested language pack 'swift' is not active; repo signals: ai-governance-framework/tests/_tmp_public_api_diff/added_signature/after.swift, ai-governance-framework/tests/_tmp_public_api_diff/added_si..."
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Suggested language pack 'objective-c' is not active; repo signals: notion-rag/node_modules/sharp/src/common.h, notion-rag/node_modules/sharp/src/metadata.h"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Suggested language pack 'cpp' is not active; repo signals: notion-rag/node_modules/sharp/src/common.cc, notion-rag/node_modules/sharp/src/common.h"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Suggested language pack 'python' is not active; repo signals: ai-governance-framework/governance_harness.py, ai-governance-framework/requirements.txt"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Suggested framework pack 'electron' is not active; repo signals: electron"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Advisory scope pack 'refactor' is suggested by task text but not active; signals: \\brefactor\\b"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Assumption check missing before modification planning: missing=assumptions, alternative_root_causes, evidence, reframe_or_validation_step"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Decision policy advisory: assumption evidence missing"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Decision policy advisory: proceeding under assumption"
+        }
+      ]
+    },
+    "governance_classification": {
+      "classification_evidence": {
+        "has_file_access": {
+          "value": true,
+          "source": "observed"
+        },
+        "instruction_loaded": {
+          "value": "true",
+          "source": "observed"
+        },
+        "context_integrity": {
+          "value": "unknown",
+          "source": "assumed"
+        },
+        "tool_gate": {
+          "value": "active",
+          "source": "observed"
+        }
+      },
+      "initial_agent_class": null,
+      "effective_agent_class": "instruction_capable",
+      "classification_changed": null,
+      "reclassification_reason": null,
+      "governance_strategy": "injection+enforcement",
+      "injection_reliance": "none"
+    },
+    "closeout_context": {
+      "inject": true,
+      "closeout_status": "missing",
+      "session_id": "session-20260523T064924-f9031e",
+      "closed_at": "2026-05-23T06:49:24.829025+00:00",
+      "injection_level": "none",
+      "task_intent": null,
+      "work_summary": null,
+      "open_risks": [],
+      "diagnostic": "Previous session closeout status: missing."
+    },
+    "plan_context_provenance": {
+      "fidelity": "full",
+      "origin": "PLAN.md",
+      "summary_kind": null
+    },
+    "version_compatibility": {
+      "verdict": "compatible",
+      "enabled_runtime_features": [
+        "agents_rule_candidates",
+        "canonical_closeout",
+        "decision_context_bridge",
+        "post_task_check",
+        "pre_task_check",
+        "session_index"
+      ],
+      "disabled_runtime_features": [],
+      "missing_migrations": [],
+      "repo_manifest_found": true,
+      "error": null,
+      "advisory_only": true
+    }
+  }
+}

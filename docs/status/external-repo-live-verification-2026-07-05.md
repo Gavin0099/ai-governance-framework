@@ -1,7 +1,7 @@
 # External Repo Live Verification — 2026-07-05
 
-Status: VERIFICATION REPORT / READ-ONLY
-Framework HEAD: 750540d
+Status: VERIFICATION REPORT / READ-ONLY (revised same day — see Correction)
+Framework HEAD: 750540d (initial pass); evidence rerun at cd08b59
 Surfaces used: `runtime_hooks/smoke_test.py --event-type session_start`
 (direct smoke) and `runtime_hooks/dispatcher.py` shared session_start replay,
 per the runtime-smoke skill. No external repo was modified.
@@ -20,12 +20,26 @@ them.
 
 | Repo | version_manifest | Direct smoke (session_start) | Dispatcher replay | Failure class |
 | :--- | :--- | :--- | :--- | :--- |
-| Kernel-Driver-Contract | missing | `blocked` / `controlled_refusal`, `version_compatibility_unsupported` | ok=False | onboarding drift |
-| USB-Hub-Firmware-Architecture-Contract | missing | same | ok=False | onboarding drift |
-| IC-Verification-Contract | missing | same | ok=False | onboarding drift |
-| Enumd | present | PASS (skills/validators/evidence resolved) | `PLAN.md freshness is CRITICAL` | repo-local stale PLAN |
-| Hearth | present | PASS | `PLAN.md freshness is CRITICAL` | repo-local stale PLAN + hygiene finding |
-| ZoneTruth | present | PASS | `PLAN.md freshness is CRITICAL` | repo-local stale PLAN |
+| Kernel-Driver-Contract | missing | ok=False, `controlled_refusal`, `version_compatibility_unsupported` | ok=False, same | onboarding drift |
+| USB-Hub-Firmware-Architecture-Contract | missing | same | same | onboarding drift |
+| IC-Verification-Contract | missing | same | same | onboarding drift |
+| Enumd | present | ok=False, `PLAN.md freshness is CRITICAL` (contract/validators resolve) | same | repo-local stale PLAN |
+| Hearth | present | same | same | repo-local stale PLAN + embedded framework checkout noise |
+| ZoneTruth | present | same | same | repo-local stale PLAN |
+
+All 12 runs (6 repos x 2 surfaces) exited 1. Full commands, exit codes, and
+raw stdout are preserved as durable receipts — see Evidence Artifacts below.
+
+## Correction (same-day revision)
+
+The initial pass of this report claimed Enumd / Hearth / ZoneTruth "PASS" on
+the direct smoke surface, based on reading only the tail of the human-format
+output (resolved skills/validators). The auditable rerun shows their direct
+smoke results are also `ok=False` with `PLAN.md freshness is CRITICAL`: both
+surfaces agree, and the earlier "Surface Semantics Note" claiming the direct
+smoke path does not enforce PLAN freshness was a reading error, now retracted.
+This correction is itself evidence for the review requirement that raw
+outputs be preserved: the summary-only first pass misread a surface.
 
 ## Failure Classes
 
@@ -54,21 +68,35 @@ and all three PLans date from the June pause window (Enumd PLAN last touched
 repos, not a tooling failure. It clears naturally when work resumes and PLAN
 is updated.
 
-### 3. Hygiene finding: nested framework copy inside Hearth
+### 3. Embedded framework checkout noise (Enumd and Hearth)
 
-Dispatcher language-pack signals for Hearth reference
-`ai-governance-framework/.latest-main/runtime_hooks/...` paths inside the
-Hearth worktree — a nested copy of this framework (including its
-`.latest-main` snapshot) is present there and is polluting repo signals. Same
-family as the nested-copy findings in the framework repo's own hygiene review.
-Cleanup belongs to the Hearth repo.
+Language-pack signals for both Enumd and Hearth reference
+`ai-governance-framework/.latest-main/...` and `ai-governance-framework/tests/...`
+paths inside their worktrees. A framework checkout embedded in a consumer repo
+is the expected submodule-style consumer layout, and `.latest-main` is a
+tracked directory of the framework itself, so it travels with any checkout.
+The finding is therefore signal pollution, not necessarily a stray copy: the
+language-pack scanner suggests packs based on the embedded framework's own
+fixture files. Whether these checkouts are the intended consumer layout needs
+owner confirmation; if they are, the scanner should learn to exclude embedded
+framework paths.
 
-## Surface Semantics Note
+## Evidence Artifacts (command matrix)
 
-Direct smoke and dispatcher replay legitimately disagree: the direct smoke
-path for these contracts does not enforce PLAN freshness, the dispatcher
-replay does. Treat them as different surfaces (per the runtime-smoke skill);
-neither result invalidates the other.
+Each of the 12 runs was executed through
+`governance_tools.test_evidence_receipt_writer`, producing a durable
+`test_evidence_receipt.v0.1` (full command, exit code, timestamps) plus raw
+stdout, committed under:
+
+`artifacts/evidence/external-verification-2026-07-05/<Repo>-<surface>.json` (receipt)
+`artifacts/evidence/external-verification-2026-07-05/<Repo>-<surface>.txt` (raw output)
+
+Surfaces: `smoke` = `runtime_hooks/smoke_test.py --event-type session_start
+--contract D:/<Repo>/contract.yaml --format json`; `dispatcher` =
+`runtime_hooks/dispatcher.py --file
+runtime_hooks/examples/shared/session_start.shared.json --contract
+D:/<Repo>/contract.yaml --format json`. All 12 exit codes were 1. Replaying
+any row is one command taken verbatim from its receipt's `command` field.
 
 ## Cannot Claim
 

@@ -1,0 +1,1871 @@
+{
+  "event_type": "session_start",
+  "result": {
+    "ok": false,
+    "project_root": "D:\\ZoneTruth",
+    "task_level": "L1",
+    "level_decision": {
+      "requested": null,
+      "detected": "L1",
+      "final": "L1",
+      "upgraded": false,
+      "additional_loads": []
+    },
+    "repo_type": "product",
+    "context_aware_rules": [
+      "common",
+      "typescript",
+      "electron",
+      "avalonia",
+      "cpp",
+      "csharp",
+      "swift",
+      "nextjs",
+      "supabase"
+    ],
+    "authority_filter": {
+      "allowed_count": 7,
+      "include_on_demand": true,
+      "validation_ok": true,
+      "violations": []
+    },
+    "task_text": "Refactor Avalonia boundary",
+    "runtime_contract": {
+      "rules": [
+        "common"
+      ],
+      "risk": "medium",
+      "oversight": "review-required",
+      "memory_mode": "candidate",
+      "enforcement_profile": "advisory_mainline",
+      "experimental_enforcement_enabled": false
+    },
+    "suggested_rules_preview": [
+      "common",
+      "zonetruth",
+      "csharp",
+      "swift",
+      "python",
+      "refactor"
+    ],
+    "suggested_skills": [
+      "code-style",
+      "governance-runtime",
+      "python"
+    ],
+    "suggested_agent": "python-agent",
+    "rule_pack_suggestions": {
+      "project_root": "D:\\ZoneTruth",
+      "language_packs": [
+        {
+          "name": "csharp",
+          "category": "language",
+          "confidence": "high",
+          "reasons": [
+            "runtime_hooks/examples/shared/after.cs",
+            "runtime_hooks/examples/shared/before.cs"
+          ]
+        },
+        {
+          "name": "swift",
+          "category": "language",
+          "confidence": "high",
+          "reasons": [
+            "Package.swift",
+            "Sources/ZoneTruthApp/BodyCompositionRepository.swift",
+            "Sources/ZoneTruthApp/BodyCompositionView.swift",
+            "Sources/ZoneTruthApp/DataImport.swift",
+            "Sources/ZoneTruthApp/FeedbackStores.swift"
+          ]
+        },
+        {
+          "name": "python",
+          "category": "language",
+          "confidence": "high",
+          "reasons": [
+            "governance_tools/ab_baseline_validator.py",
+            "governance_tools/ab_cost_backfill_apply.py",
+            "governance_tools/ab_cost_hygiene.py",
+            "governance_tools/ab_cost_parity_audit.py",
+            "governance_tools/ab_smoke_artifact_validator.py"
+          ]
+        }
+      ],
+      "framework_packs": [],
+      "scope_packs": [
+        {
+          "name": "refactor",
+          "category": "scope",
+          "confidence": "low",
+          "reasons": [
+            "\\brefactor\\b"
+          ],
+          "advisory_only": true
+        }
+      ],
+      "domain_packs": [
+        {
+          "name": "zonetruth",
+          "category": "domain",
+          "confidence": "high",
+          "reasons": [
+            "contract.yaml: domain=zonetruth",
+            "contract.yaml rule_root: governance/rules"
+          ]
+        }
+      ],
+      "suggested_skills": [
+        "code-style",
+        "governance-runtime",
+        "python"
+      ],
+      "suggested_agent": "python-agent",
+      "suggested_rules": [
+        "common",
+        "zonetruth",
+        "csharp",
+        "swift",
+        "python"
+      ],
+      "suggested_rules_preview": [
+        "common",
+        "zonetruth",
+        "csharp",
+        "swift",
+        "python",
+        "refactor"
+      ],
+      "notes": [
+        "domain_packs are sourced from contract.yaml rule_roots and take highest priority",
+        "language/framework packs are auto-suggested from repository signals",
+        "scope packs are advisory only and should be confirmed by the contract or human reviewer",
+        "suggested_rules_preview includes advisory scope packs for convenience, but does not mutate the contract",
+        "suggested_skills and suggested_agent are advisory only and do not auto-activate agent behavior"
+      ]
+    },
+    "architecture_impact_preview": {
+      "ok": true,
+      "scope": "refactor",
+      "active_rules": [
+        "common"
+      ],
+      "touched_layers": [],
+      "expected_validators": [
+        "architecture_drift_checker",
+        "public_api_diff_checker"
+      ],
+      "drift_result": {
+        "ok": true,
+        "errors": [],
+        "warnings": [],
+        "findings": [],
+        "files": [],
+        "dependency_diff": {
+          "ok": true,
+          "added": [],
+          "removed": [],
+          "warnings": [],
+          "errors": [],
+          "findings": []
+        }
+      },
+      "public_api_diff": {
+        "ok": true,
+        "before_manifest": {
+          "entries": [
+            {
+              "path": "runtime_hooks/examples/shared/before.cs",
+              "signatures": [
+                "public class Service\n{",
+                "public int Run() => 1;"
+              ],
+              "semantic_entries": [
+                {
+                  "kind": "type",
+                  "identity": "type:Service",
+                  "display": "public class Service",
+                  "signature": "public class Service",
+                  "container": "Service",
+                  "qualified_name": "Service",
+                  "namespace": null
+                },
+                {
+                  "kind": "method",
+                  "identity": "method:Service.Run",
+                  "display": "public int Run()",
+                  "signature": "int Run()",
+                  "container": "Service",
+                  "return_type": "int",
+                  "params": [],
+                  "method_type_params": ""
+                }
+              ]
+            }
+          ]
+        },
+        "after_manifest": {
+          "entries": [
+            {
+              "path": "runtime_hooks/examples/shared/after.cs",
+              "signatures": [
+                "public class Service\n{",
+                "public int Run() => 1;",
+                "public int Ping() => 0;"
+              ],
+              "semantic_entries": [
+                {
+                  "kind": "type",
+                  "identity": "type:Service",
+                  "display": "public class Service",
+                  "signature": "public class Service",
+                  "container": "Service",
+                  "qualified_name": "Service",
+                  "namespace": null
+                },
+                {
+                  "kind": "method",
+                  "identity": "method:Service.Run",
+                  "display": "public int Run()",
+                  "signature": "int Run()",
+                  "container": "Service",
+                  "return_type": "int",
+                  "params": [],
+                  "method_type_params": ""
+                },
+                {
+                  "kind": "method",
+                  "identity": "method:Service.Ping",
+                  "display": "public int Ping()",
+                  "signature": "int Ping()",
+                  "container": "Service",
+                  "return_type": "int",
+                  "params": [],
+                  "method_type_params": ""
+                }
+              ]
+            }
+          ]
+        },
+        "removed": [],
+        "added": [
+          "public int Ping() => 0;"
+        ],
+        "compatibility_risk": "low",
+        "breaking_changes": [],
+        "non_breaking_changes": [
+          "New public API introduced: method:Service.Ping"
+        ],
+        "warnings": [
+          "New public API introduced: method:Service.Ping"
+        ],
+        "errors": []
+      },
+      "required_evidence": [
+        "architecture-review",
+        "public-api-review"
+      ],
+      "concerns": [
+        "public-api-expansion-risk"
+      ],
+      "impact_report": {
+        "scope": "refactor",
+        "active_rules": [
+          "common"
+        ],
+        "touched_layers": [],
+        "boundary_risk": "low",
+        "concerns": [
+          "public-api-expansion-risk"
+        ],
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required",
+        "public_api_diff_present": true
+      },
+      "recommended_risk": "medium",
+      "recommended_oversight": "review-required"
+    },
+    "proposal_guidance": {
+      "recommended_risk": "medium",
+      "recommended_oversight": "review-required",
+      "expected_validators": [
+        "architecture_drift_checker",
+        "public_api_diff_checker"
+      ],
+      "required_evidence": [
+        "architecture-review",
+        "public-api-review"
+      ],
+      "concerns": [
+        "public-api-expansion-risk"
+      ]
+    },
+    "change_proposal": {
+      "task": "Refactor Avalonia boundary",
+      "project_root": "D:\\ZoneTruth",
+      "requested_rules": [
+        "common"
+      ],
+      "suggested_rules_preview": [
+        "common",
+        "zonetruth",
+        "csharp",
+        "swift",
+        "python",
+        "refactor"
+      ],
+      "rule_pack_suggestions": {
+        "project_root": "D:\\ZoneTruth",
+        "language_packs": [
+          {
+            "name": "csharp",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "runtime_hooks/examples/shared/after.cs",
+              "runtime_hooks/examples/shared/before.cs"
+            ]
+          },
+          {
+            "name": "swift",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "Package.swift",
+              "Sources/ZoneTruthApp/BodyCompositionRepository.swift",
+              "Sources/ZoneTruthApp/BodyCompositionView.swift",
+              "Sources/ZoneTruthApp/DataImport.swift",
+              "Sources/ZoneTruthApp/FeedbackStores.swift"
+            ]
+          },
+          {
+            "name": "python",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "governance_tools/ab_baseline_validator.py",
+              "governance_tools/ab_cost_backfill_apply.py",
+              "governance_tools/ab_cost_hygiene.py",
+              "governance_tools/ab_cost_parity_audit.py",
+              "governance_tools/ab_smoke_artifact_validator.py"
+            ]
+          }
+        ],
+        "framework_packs": [],
+        "scope_packs": [
+          {
+            "name": "refactor",
+            "category": "scope",
+            "confidence": "low",
+            "reasons": [
+              "\\brefactor\\b"
+            ],
+            "advisory_only": true
+          }
+        ],
+        "domain_packs": [
+          {
+            "name": "zonetruth",
+            "category": "domain",
+            "confidence": "high",
+            "reasons": [
+              "contract.yaml: domain=zonetruth",
+              "contract.yaml rule_root: governance/rules"
+            ]
+          }
+        ],
+        "suggested_skills": [
+          "code-style",
+          "governance-runtime",
+          "python"
+        ],
+        "suggested_agent": "python-agent",
+        "suggested_rules": [
+          "common",
+          "zonetruth",
+          "csharp",
+          "swift",
+          "python"
+        ],
+        "suggested_rules_preview": [
+          "common",
+          "zonetruth",
+          "csharp",
+          "swift",
+          "python",
+          "refactor"
+        ],
+        "notes": [
+          "domain_packs are sourced from contract.yaml rule_roots and take highest priority",
+          "language/framework packs are auto-suggested from repository signals",
+          "scope packs are advisory only and should be confirmed by the contract or human reviewer",
+          "suggested_rules_preview includes advisory scope packs for convenience, but does not mutate the contract",
+          "suggested_skills and suggested_agent are advisory only and do not auto-activate agent behavior"
+        ]
+      },
+      "architecture_impact_preview": {
+        "ok": true,
+        "scope": "refactor",
+        "active_rules": [
+          "common"
+        ],
+        "touched_layers": [],
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "drift_result": {
+          "ok": true,
+          "errors": [],
+          "warnings": [],
+          "findings": [],
+          "files": [],
+          "dependency_diff": {
+            "ok": true,
+            "added": [],
+            "removed": [],
+            "warnings": [],
+            "errors": [],
+            "findings": []
+          }
+        },
+        "public_api_diff": {
+          "ok": true,
+          "before_manifest": {
+            "entries": [
+              {
+                "path": "runtime_hooks/examples/shared/before.cs",
+                "signatures": [
+                  "public class Service\n{",
+                  "public int Run() => 1;"
+                ],
+                "semantic_entries": [
+                  {
+                    "kind": "type",
+                    "identity": "type:Service",
+                    "display": "public class Service",
+                    "signature": "public class Service",
+                    "container": "Service",
+                    "qualified_name": "Service",
+                    "namespace": null
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Run",
+                    "display": "public int Run()",
+                    "signature": "int Run()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  }
+                ]
+              }
+            ]
+          },
+          "after_manifest": {
+            "entries": [
+              {
+                "path": "runtime_hooks/examples/shared/after.cs",
+                "signatures": [
+                  "public class Service\n{",
+                  "public int Run() => 1;",
+                  "public int Ping() => 0;"
+                ],
+                "semantic_entries": [
+                  {
+                    "kind": "type",
+                    "identity": "type:Service",
+                    "display": "public class Service",
+                    "signature": "public class Service",
+                    "container": "Service",
+                    "qualified_name": "Service",
+                    "namespace": null
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Run",
+                    "display": "public int Run()",
+                    "signature": "int Run()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Ping",
+                    "display": "public int Ping()",
+                    "signature": "int Ping()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  }
+                ]
+              }
+            ]
+          },
+          "removed": [],
+          "added": [
+            "public int Ping() => 0;"
+          ],
+          "compatibility_risk": "low",
+          "breaking_changes": [],
+          "non_breaking_changes": [
+            "New public API introduced: method:Service.Ping"
+          ],
+          "warnings": [
+            "New public API introduced: method:Service.Ping"
+          ],
+          "errors": []
+        },
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "concerns": [
+          "public-api-expansion-risk"
+        ],
+        "impact_report": {
+          "scope": "refactor",
+          "active_rules": [
+            "common"
+          ],
+          "touched_layers": [],
+          "boundary_risk": "low",
+          "concerns": [
+            "public-api-expansion-risk"
+          ],
+          "required_evidence": [
+            "architecture-review",
+            "public-api-review"
+          ],
+          "expected_validators": [
+            "architecture_drift_checker",
+            "public_api_diff_checker"
+          ],
+          "recommended_risk": "medium",
+          "recommended_oversight": "review-required",
+          "public_api_diff_present": true
+        },
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required"
+      },
+      "proposal_guidance": {
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required",
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "concerns": [
+          "public-api-expansion-risk"
+        ]
+      },
+      "proposal_summary": {
+        "task": "Refactor Avalonia boundary",
+        "requested_rules": [
+          "common"
+        ],
+        "suggested_rules_preview": [
+          "common",
+          "zonetruth",
+          "csharp",
+          "swift",
+          "python",
+          "refactor"
+        ],
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required",
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "concerns": [
+          "public-api-expansion-risk"
+        ]
+      }
+    },
+    "proposal_summary": {
+      "task": "Refactor Avalonia boundary",
+      "requested_rules": [
+        "common"
+      ],
+      "suggested_rules_preview": [
+        "common",
+        "zonetruth",
+        "csharp",
+        "swift",
+        "python",
+        "refactor"
+      ],
+      "recommended_risk": "medium",
+      "recommended_oversight": "review-required",
+      "expected_validators": [
+        "architecture_drift_checker",
+        "public_api_diff_checker"
+      ],
+      "required_evidence": [
+        "architecture-review",
+        "public-api-review"
+      ],
+      "concerns": [
+        "public-api-expansion-risk"
+      ]
+    },
+    "resolved_contract_file": "D:\\ZoneTruth\\contract.yaml",
+    "contract_resolution": {
+      "source": "explicit",
+      "path": "D:\\ZoneTruth\\contract.yaml",
+      "warnings": [],
+      "error": null
+    },
+    "domain_contract": {
+      "name": "zonetruth-governance-contract",
+      "contract_path": "D:\\ZoneTruth\\contract.yaml",
+      "contract_root": "D:\\ZoneTruth",
+      "documents": [
+        {
+          "path": "D:\\ZoneTruth\\AGENTS.base.md",
+          "exists": true,
+          "content": "# AGENTS.base.md\n<!-- governance-baseline: protected -->\n<!-- baseline_version: 1.0.0 -->\n<!-- DO NOT EDIT — managed by ai-governance-framework -->\n<!-- To add repo-specific rules, create AGENTS.md and extend this file's sections. -->\n<!-- Hash is recorded in .governance/baseline.yaml and verified on every drift check. -->\n\n## Level Alignment\n\n- Declared L0 but involves domain logic, boundary crossing, or behavior change → upgrade to L1\n- Declared L1 but involves core domain, security, data integrity, or irreversible state → upgrade to L2\n- Uncertain classification → upgrade, do not downgrade\n\n## Execution Pipeline\n\nFor L1+, the default workflow is:\n\n1. **Analyze** — understand behavior and constraints before touching code\n2. **Define** — contracts, boundaries, failure paths\n3. **Verify Plan** — what evidence will prove the change is safe\n4. **Implement** — minimum compliant change\n5. **Refactor** — only under evidence protection\n\nDo not skip a step when the omission would hide risk.\n\n## Forbidden Behaviors\n\n- Expand scope beyond what was explicitly instructed\n- Refactor unrelated areas for cleanliness or taste\n- Add speculative abstractions for hypothetical future requirements\n- Fake, inflate, or omit evidence\n- Assume intent when the instruction is ambiguous — ask instead\n\n## Secret Handling\n\n- Never commit tokens, API keys, credentials, or secrets to the repo\n- Never write tokens or credentials into memory/ files or logs\n- If a secret appears in conversation context, do not persist it anywhere\n- `.env` files and credentials must be in `.gitignore` and never staged\n\n## Memory Update Triggers\n\nThe following events require updating PLAN.md and/or the relevant memory/ file:\n\n| Event | Required update |\n|-------|----------------|\n| Milestone reached | PLAN.md phase/sprint + memory/active_task |\n| Architecture decision made | PLAN.md decision log + memory/knowledge_base |\n| Bug fixed with root cause identified | memory/knowledge_base |\n| Risk or incident encountered | PLAN.md risk section + memory/active_task |\n| Session end | memory/active_task (current status) + session_end hook |\n\n## Session Closeout Obligation\n\nWriting `artifacts/session-closeout.txt` before session end is a **governance\nobligation**, not a suggestion.\n\nThe stop hook always calls `session_end` at session end. If the closeout artifact\nis missing or insufficient, the runtime records `closeout_missing` or\n`closeout_insufficient` in the verdict. Memory will not update. The gap is\nauditable and visible to reviewers.\n\n### Required fields\n\nAll fields must be present. Vague values are flagged as insufficient.\n\n```\nTASK_INTENT: <one sentence — declared goal of this session>\nWORK_COMPLETED: <what was actually done — verifiable claims only>\nFILES_TOUCHED: <comma-separated file list, or NONE>\nCHECKS_RUN: <specific commands or checks run, or NONE>\nOPEN_RISKS: <what might be wrong or incomplete, or NONE>\nNOT_DONE: <what was not completed this session, or NONE>\nRECOMMENDED_MEMORY_UPDATE: <what memory/ file should change and why, or NO_UPDATE>\n```\n\n### Rules\n\n- `WORK_COMPLETED` must contain verifiable claims. Do not write \"made improvements\"\n  or \"worked on things\" — these are vague and will be rejected as insufficient.\n- `CHECKS_RUN` must name specific commands if non-`NONE`.\n- If there was no material progress, write `WORK_COMPLETED: NONE` — do not\n  fabricate completions.\n- `NOT_DONE` and `OPEN_RISKS` are the most important fields. AI agents tend to\n  omit failures. Do not.\n\n### If you cannot write the closeout\n\nWrite it anyway with `WORK_COMPLETED: NONE` and explain in `OPEN_RISKS` why\nthe session produced no verifiable output. This is a valid closeout.\n\nSee `docs/session-closeout-schema.md` for examples and field constraints.\n\n## Definition of Done\n\nA task is done when:\n\n- Behavior is explicit and observable\n- Failure paths are guarded\n- Architecture boundaries remain intact\n- Evidence matches the declared risk level\n- PLAN.md and memory/ reflect the new state"
+        },
+        {
+          "path": "D:\\ZoneTruth\\plan.md",
+          "exists": true,
+          "content": "---\naudience: agent-runtime\nauthority: canonical\ncan_override: false\noverridden_by: ~\ndefault_load: always\n---\n\n# PLAN.md — ZoneTruth\n\n> **Project Type**: iOS fitness app + governance toolchain\n> **Primary Language**: Swift (app core) / Python (governance tooling)\n> **Task Level**: L2\n> **Planning Window**: 2026-04-01 ~ 2026-06-30\n> **最後更新**: 2026-06-11\n> **Owner**: Gavin Wu\n> **Freshness**: Sprint (7d)\n\n---\n\n## 專案目標\n\nZoneTruth 是一款 iOS/macOS 訓練分析應用，專注於 Zone 2 訓練品質判斷、多週適應趨勢、以及跨資料源整合。\n\n**Bounded Context:**\n- Zone 2 / VO2 / 肌力訓練品質分析（觀測層 + 政策層分離）\n- Apple HealthKit、Strava、JSON 手動匯入整合\n- 每週適應訊號與訓練狀態推論（non-interventional authority ceiling）\n- AI 代理 token 可觀測性工具（CodeBurn，Class C 觀測，不跨 provider 比較）\n\n**Not Responsible For:**\n- 即時運動監控或即時 coaching\n- Garmin 整合（明確延後至 MVP 後）\n- 計費計算或 cross-provider token 成本估算（CodeBurn P6 constraint C-1）\n- 訓練計劃生成（不在當前語義權限內）\n\n---\n\n## 當前階段與 phase 狀態\n\n- [x] Phase A: 核心分析引擎建立（Zone 2 / VO2 / 強度分析器，觀測 + 政策層分離）\n- [x] Phase B: App 資料源整合（HealthKit adapter、Strava OAuth + 自動 refresh、JSON import）\n- [x] Phase C: 語義治理層（WorkoutEvaluation、InferenceProvenance、weekly signal 遷入 Core）\n- [x] Phase D: 治理邊界強化（boundary guard 規則化、遙測、clean-pilot admissibility）\n- [x] Phase E: 裝置驗證 + 發版準備（on-device HealthKit、Strava 真實憑證測試）\n\n**Current Phase**: Phase E 完成 — 進入 P1 品質提升 / 發版準備\n\n---\n\n## 當前 Sprint / 當前工作\n\n本次產品規格同步（2026-06-09）：\n- [x] 將訓練分析 v3 修訂為 v3.1 執行版：正式採用 C 路線（Apple Watch 活動類型 + 心率特徵反推本次訓練型態）\n- [x] 新增 `docs/TRAINING_CLASSIFICATION_PLAN_V3_1.md`，明確列出 Sprint 0、不要動清單、Swift Core classification object、資料品質下界、重訓例外優先與本週頁純描述規則\n- [x] 確認 v3.1 是規格/計畫同步，不改產品行為、analyzer verdict、weekly rendering contract\n- [x] Sprint 1 信任止血 UI：移除 user-facing `本次意圖`、`目的符合度`、`舊版判定`，並避免重訓第一屏出現 VO2 max 主卡\n- [x] Sprint 2 Core classification object：在 `ZoneTruthCore` 建立 Swift `TrainingClassification` output contract（mode / confidence / data quality / claim level / evidence / warnings / not-applicable reasons / debug）\n- [x] Sprint 3 rule-based classifier aggregator：在 `ZoneTruthCore` 新增 Core-only `TrainingModeClassifier`，輸出 `TrainingClassification`；先驗證資料不足、重訓 high-HR conditioning-like 例外、典型重訓 strengthPattern\n- [x] Sprint 4 Core weekly training-mode distribution：新增 `WeeklyTrainingModeDistributionBuilder`，以 `TrainingModeClassifier` 聚合本週 counts / ratios / descriptive lines；測試鎖住不出現「偏少 / 不足 / 達標」等週目標評價語\n- [x] Sprint 5 游泳特殊分類：補 Core guard tests，鎖住 swimming 即使呈現 Zone 2 / VO2-like 心率，也只能輸出 low data quality / low confidence / secondary reference；sparse swimming 仍為 insufficientData\n- [x] Sprint 6 Core feedback/calibration data shape：新增 `TrainingClassificationFeedback`，可記錄準確 / 有點像 / 不準與 suggested `TrainingMode`；測試鎖住 feedback 不等於原始 intent、且不會改變 classifier output\n- [x] App-facing feedback entry：在 workout detail 加入本地 state 的分類回饋控制（準確 / 有點像 / 不準 + suggested `TrainingMode`），不持久化、不改 classifier、不回填 workout intent\n- [x] Core-only feedback persistence contract：新增 Codable `TrainingClassificationFeedbackRecord`、store protocol、in-memory store 與 save/read tests；不接 SwiftUI、不寫檔案、不改 classifier、不回填 workout intent\n- [x] App feedback UI-to-store adapter：WorkoutDetail feedback control 可透過注入的 `WorkoutClassificationFeedbackRecorder` 將 feedback record 存入 in-memory store；不寫檔案、不接資料庫、不改 classifier、不回填 workout intent\n- [x] Feedback JSON file store adapter：新增 App-layer `FileTrainingClassificationFeedbackStore`，可將 `TrainingClassificationFeedbackRecord` 讀寫到指定 JSON 檔；不接 WorkoutDetailView、不改 UI、不改 classifier、不回填 workout intent\n- [x] Feedback store dependency wiring：`AppEnvironment.live()` 建立 `FileTrainingClassificationFeedbackStore`，`WorkoutListViewModel` 可接收 feedback store；不改 feedback UI 行為、不自動保存、不改 classifier、不回填 workout intent\n- [x] Live feedback recorder + classification snapshot flow：新增 Core `TrainingClassificationSnapshotProvider`，`WorkoutListViewModel` 產生 snapshot 與 recorder，`WorkoutDetailView` 使用 recorder 將完成的 feedback 寫入已注入 store；SwiftUI view 不呼叫 `TrainingModeClassifier`，不回填 workout intent\n- [x] Feedback saved state / duplicate handling：完成 feedback 後 UI 顯示已保存 / 已有相同紀錄 / 待補 suggested mode；同一 workout 的同一 rating + suggested mode 不新增重複 record；不回填 workout intent\n- [x] Zone 2 feature-complete gate closeout：新增 `docs/ZONE2_FEATURE_GATE_CHECKLIST.md`，盤點 manual bounds / Resting HR / reset / single detail / weekly policy 既有測試覆蓋，鎖住非 exact threshold claim；不改 classifier、不擴 UI、不碰 weekly rendering contract\n- [x] Long-term memory hygiene：建立 `memory/00_long_term.md`，補齊 AGENTS.md 要求的 main-session 長期記憶檔；只記 durable context / workflow preferences / active boundaries，不改產品碼或治理規則\n- [x] Apple Health Resting HR import gate fix：修正 read-only HealthKit authorization status 擋住 Resting HR query 的問題；request authorization 後嘗試查詢 baseline，只有 query unauthorized / no data / unavailable 時顯示對應訊息；補測 `.sharingDenied` 但 baseline 可讀仍能匯入\n- [x] Resting HR Zone 2 claim ceiling / state consistency：將 Resting HR-based 建議卡改為「初步 Zone 2 參考範圍」，標示「初步估算，尚未驗證」，等值範圍顯示「目前已套用」且不再顯示待套用；補測 forbidden overclaim 與 button 狀態\n- [x] Training estimator spec split：新增 `docs/TRAINING_ESTIMATOR_EVIDENCE_MAP.md` 與 `docs/APPLE_HEALTH_TRAINING_DATA_ROLE_MATRIX.md`，正式分離「文獻/推論層級」與「Apple Health 資料來源角色」；`docs/APPLE_HEALTH_HIGH_VALUE_EXPANSION.md` 改為 acquisition/prioritization spec，避免 future source-role semantics 混在同一份文件\n- [x] Implementation-facing spec resolution hook：更新 `docs/TRAINING_ANALYSIS_META_SPEC.md` 與 `docs/APPLE_HEALTH_TRAINING_DATA_ROLE_MATRIX.md`，明確規定 analyzer metadata 讀 Evidence Map、source-specific ingestion/display 讀 Apple Health Role Matrix；不改 Swift code、不改 UI、不改 tests\n- [x] Training analysis metadata contract draft：新增 `docs/TRAINING_ANALYSIS_METADATA_CONTRACT.md`，定義 analyzer / importer / display metadata 何時必須帶 `spec_resolution.evidence_layer` 與 `spec_resolution.source_role_layer`；不改 Swift code、不改 UI、不改 tests\n- [x] Core-only spec resolution metadata types：新增 `TrainingSpecResolution` / `EvidenceLayer` / `SourceRoleLayer` / `SourceRoleReason`，以 Codable Core 型別承載 evidence layer 與 source-role layer；不接 analyzer、不改 SwiftUI、不改 HealthKit importer、不碰 weekly rendering\n- [x] TrainingMetricMetadata spec resolution field：新增 backward-compatible `specResolution` 欄位，預設 evidence layer 為 `TRAINING_ESTIMATOR_EVIDENCE_MAP`、source role layer 為 `none`；補測舊 JSON decode 與 Apple Health source-role encode/decode；不改 analyzer、不改 SwiftUI、不改 HealthKit importer、不碰 weekly rendering\n- [x] Apple Health-backed metric source-role metadata：VO2 max、heart-rate recovery、running power、cycling power、workout route 的 Apple Health-backed `TrainingMetricMetadata` 會帶 `APPLE_HEALTH_TRAINING_DATA_ROLE_MATRIX` 與對應 `SourceRoleReason`；不改 SwiftUI、不改 weekly rendering；此項當時未異動 HealthKit read set，後續 sleep context 切片已另行新增 `sleepAnalysis` 讀取\n- [x] Owner acceptance / manual test checklist 2026-06-10：新增 `docs/OWNER_ACCEPTANCE_2026-06-10.md`，整合 VO2 max、Zone 2、肌力分類、Apple Health-backed metadata disclosure、feedback persistence 路徑、不可宣稱邊界與本機 smoke command；後續已補 sleep context 驗收與 `sleepAnalysis` 權限描述\n- [x] Owner acceptance observed wording fix：依實機截圖修正 workout detail 與 weekly dashboard 文案，將訓練目標/覆寫語意改為判讀校準/回饋語意，移除主 UI debug token 與英文來源字串，降低 weekly coaching CTA 語氣，補 weekly rendering / workout detail wording guards；不改 classifier、不改 HealthKit\n- [x] Apple Health sleep context spec sync：更新 `docs/APPLE_HEALTH_TRAINING_DATA_ROLE_MATRIX.md`、`docs/OWNER_ACCEPTANCE_2026-06-10.md` 與 plan，明確 `sleepAnalysis` 是 `AH-R3 supportive_context_signal` / supportive recovery context；修正舊版 HealthKit 權限描述；不改 Swift code、不改 UI、不改 tests\n- [x] Apple Health sleepAnalysis 授權診斷：type authorization log 補 `sleepAnalysis`，sleep query 不再用 `try?` 靜默失敗，log raw/asleep sample counts 與 error reason；不改 classifier、不改 weekly claim、不把睡眠變成恢復診斷\n- [x] 全域設定頁入口：新增 App 層級「設定」分頁，將完整 SettingsView 移出單筆詳情；設定頁顯示 Apple Health 授權狀態卡與「重新要求 Apple Health 授權」按鈕，單筆詳情只保留本次設定摘要；不改 classifier、不改 weekly claim\n- [ ] 下一步：重新在實機跑 owner acceptance；若還有 concern/fail，只針對畫面觀察到的問題定義下一個窄 DONE\n\n本次治理同步（2026-06-09）：\n- [x] 2026-06-11 對齊 `ai-governance-framework` upstream 到 `b841a9c660820`（沿用 external contract / adopt + lock 模式，非 submodule pointer）\n- [x] 套用 F-7 full update：刷新 `.governance/baseline.yaml`、`governance/framework.lock.json`、AGENTS/Copilot advisory、managed hooks 與 memory workflow 入口\n- [x] 補入本次 framework 新增 / 更新的 governance surfaces：`f7_full_update.py`、`memory_workflow.py`、`hook_installer.py`、`dirty_runtime_ledger_detector.py`、hook scripts、F-7 / memory protocol 文件\n- [x] 保持產品 Swift code、UI、tests 不變\n- [x] 對齊 `ai-governance-framework` upstream 到 `9eb793dbf6c6`（沿用 adopt + lock 模式，非 submodule pointer）\n- [x] 補入新拆分的治理 routing / protocol 文件：`AI_GOVERNANCE_UPDATE_PROTOCOL.md`、`F7_FULL_UPDATE.md`、`GOVERNANCE_SURFACE_RULES.md`、`MEMORY_PROTOCOL.md`\n- [x] 刷新 `.governance/baseline.yaml` 與 `governance/framework.lock.json`\n- [x] 保持產品行為、analyzer verdict、weekly rendering contract 不變\n\n前次治理同步（2026-06-05）：\n- [x] 對齊 `ai-governance-framework` upstream 到 `cae11be`（沿用 adopt + lock 模式，非 submodule pointer）\n- [x] 補入適用於非-submodule consuming repo 的新增治理 surface：`claim_enforcement_receipt_validator.py`、`external_governance_submodule_updater.py`、`update-governance-submodule.ps1`、`governance_scope.local.example.yaml`、F-7 updater docs\n- [x] 刷新 `AGENTS.base.md`、`.governance/baseline.yaml`、`governance/framework.lock.json`\n- [x] 修正 `expansion_boundary_checker.py` 與新版 governance surface 的相容性，確認 drift clean\n\n前次治理同步（2026-06-04）：\n- [x] pull `ai-governance-framework` 最新 upstream 到 `0ae039e`\n- [x] 正式 adopt 最新 baseline，新增 `governance/RESPONSE_ENVELOPE_CONTRACT.md`，刷新 `.governance/baseline.yaml`\n- [x] 更新 `governance/framework.lock.json` adopted commit 到 `0ae039e`\n- [x] readiness / drift / version audit 全部通過；response envelope validator valid fixtures 通過\n\n前次治理同步（2026-06-03）：\n- [x] 確認 `ai-governance-framework` upstream 最新快照為 `70a54b3`\n- [x] dry-run adopt / readiness 分析，確認安全導入不會覆寫既有 repo-local 治理檔\n- [x] 補齊缺漏 governance 文件並修正 `contract.yaml` repo identity\n- [x] 更新 framework lock 與 baseline freshness\n\n本次產品切片（2026-06-03）：\n- [x] 完成 P1「個人化 zone 界線設定」垂直 slice：使用者輸入 Resting HR / Zone 2 上下界 → 分析器採用自訂界線 → 週報與單筆詳情顯示已套用個人化設定\n- [x] 支援 Resting HR 產生初步 Zone 2 參考範圍、來源 / 初步估算標示、套用參考範圍、重設回預設界線\n- [x] 支援 Resting HR 建議公式上下偏移量調整，並在設定頁顯示目前 Zone 2 設定狀態摘要\n\n本次研究切片（2026-06-04）：\n- [x] 完成 Training Analysis Literature Review：VO2 max / Zone 2 / Strength 分層整理 gold standard anchor、field estimator、product reference、claim ceiling 與 confidence basis\n- [x] 將 literature review 轉成 `TRAINING_ANALYSIS_META_SPEC.md`：定義 shared metric metadata、confidence ladder、claim ceiling、UI wording rules 與 implementation sequence\n- [x] Slice 1「Core Metadata Types」：新增 method tier / source / reference-standard distance / confidence / claim ceiling metadata 型別，不改 analyzer verdict\n- [x] Slice 2「Analyzer Adapter Metadata」：讓 Zone 2 / VO2 / Strength analyzer result 產出 metadata，但不改既有 verdict threshold；現有 VO2 analyzer 標示為 `vo2_interval_quality`，不宣稱 VO2 max\n- [x] Slice 3「UI Disclosure」最小切片：在單筆分析結果揭露 estimate / measured 狀態與 confidence reason；不改 weekly rendering contract\n- [x] Slice 4「Metric-specific Claim Profiles + Guard Tests」：新增 VO2 / Zone 2 / Strength claim profiles，並驗證 UI disclosure 不混淆 metric-specific claim ceiling\n- [x] Weekly disclosure preflight guard：新增 weekly rendering contract guard，禁止 weekly UI / presenter 出現 metric measurement overclaim\n- [x] Test Candidate 2026-06-04：整理可測範圍、不可宣稱範圍、local smoke commands 與 manual test checklist\n- [x] 測試策略調整：正式產品測試延後到 VO2 max / Zone 2 / Strength 三類功能完整；目前 checkpoint 僅作 developer verification\n- [x] VO2 max scalar estimate/import vertical slice：JSON / domain model 可攜帶 VO2 max estimate，單筆 UI 顯示估算值與 source / claim-bounded disclosure；現有 VO2 interval quality 不被誤當 VO2 max\n- [x] Strength metric vertical slice：JSON / domain model 可攜帶 structured strength metrics，單筆 UI 顯示 exercise-specific direct 1RM / e1RM 類值與 claim-bounded disclosure；heart-rate-only Strength 仍保留 session-pattern claim ceiling\n- [x] 下一步：跑完整 local smoke / meta-closeout，準備第一個 owner acceptance 測試候選\n\n已完成（Phase D）：\n- [x] App-test / App-source boundary guard 規則化（`app_test_boundary_rules` / `app_source_boundary_rules`）\n- [x] 邊界 guard 設定遷至 JSON 單一來源（`scripts/closeout_boundary_patterns.json`）\n- [x] JSON schema 驗證（`schemas/closeout_boundary_patterns.schema.json`）\n- [x] 境界 guard 遙測排放（`artifacts/runtime/boundary-telemetry/`）\n- [x] 邊界趨勢閘道整合 closeout（threshold 控制 + fail-close）\n- [x] Clean-pilot admissibility 整合 closeout（disclosed guard + optional enforce mode）\n- [x] Enforce-mode smoke test（`scripts/closeout_clean_pilot_enforce_smoke.sh`）\n- [x] 10 個 GovernanceBoundaryGuardTests 全部通過\n\n已完成（Phase E P0）：\n- [x] 裝置端 HealthKit 授權 → 載入訓練 → 週報儀表板驗證（2026-05-26）\n- [x] ZoneTruthHost HealthKit capability 簽署確認（裝置可正常啟動）\n- [x] 使用者可見字串全面繁體中文化（e4510c3，185/185 tests pass）\n\n已完成（Phase E P0 全部）：\n- [x] Strava OAuth 端對端測試（Client ID: 248735，redirect URI: zonetruth://localhost）\n\n---\n\n## Backlog\n\n### P0（Phase E 就緒必要條件）\n- [x] 裝置端 HealthKit 查詢路徑驗證（真實裝置，sparse HR 邊界）\n- [x] Strava 真實憑證端對端測試（Client ID: 248735，redirect URI: zonetruth://localhost）\n- [x] `ZoneTruthHost` Xcode project 在裝置上確認 HealthKit 能力簽署正確\n\n### P1（Phase E 品質提升）\n- [x] 個人化 zone 界線設定（Resting HR、Zone 2 上下界輸入、建議 / 套用 / 重設 / 狀態摘要）\n- [x] 擴充邊緣案例標籤集（drift / leakage 閾值附近）\n- [x] VO2/強度分析路徑擴充（接入 interval pattern / recovery hint 觀測訊號到 user-facing reasons）\n- [x] Training Classification v3.1 Sprint 1：信任止血 UI，先修正 user-facing 語義，再進 Core classification object\n- [x] Training Classification v3.1 Sprint 2：Core classification object\n- [x] Training Classification v3.1 Sprint 3：rule-based classifier aggregator\n- [x] Training Classification v3.1 Sprint 4：本週分類分布（descriptive only）\n- [x] Training Classification v3.1 Sprint 5：游泳特殊分類與資料品質下界\n- [x] Training Classification v3.1 Sprint 6：回饋與校準資料形狀\n- [x] Training Classification v3.1 App-facing feedback entry：Workout detail local-state control\n- [x] Training Classification v3.1 Core-only feedback persistence contract\n- [x] Training Classification v3.1 App feedback UI-to-store adapter\n- [x] Training Classification v3.1 feedback JSON file store adapter\n- [x] Training Classification v3.1 feedback store dependency wiring\n- [x] Training Classification v3.1 live recorder / classification snapshot flow\n- [x] Training Classification v3.1 feedback saved state / duplicate handling\n- [ ] Training Classification v3.1 下一步：owner acceptance / manual test checklist 前先定義窄切片\n\n### P2（非阻擋，有空再做）\n- [x] Meta-closeout wrapper（一個指令跑常用 governance / syntax / targeted smoke checks）\n- [x] CodeBurn P6：acquisition surface statistics display（觀測層，遵守 A-1/T-1/C-1/R-1/O-1/V-1 約束）\n- [x] 文字/UI 語氣精修（Zone 2 / VO2 / Strength reasons 與 recommendations 降低高宣稱 / 命令式語氣）\n\n---\n\n## Anti-Goals（當前 sprint / Phase D～E）\n\n- 不實作 Garmin 整合（明確延後至 MVP 後語義/model 穩定）\n- 不實作成本估算、跨 provider token 比較（CodeBurn P6 constraint C-1 / O-1）\n- 不把 advisory threshold 升格為 verified boundary（CodeBurn P7 AT-4）\n- 不在 App layer 重新加入 inference 語義分類呼叫（已由 Core 負責，boundary guard 防線保護）\n- 不在沒有 observed failure 驅動下擴展治理表面（AGENTS.md 原則）\n- 不在 Phase E 開始前做 feature expansion\n\n---\n\n## AI 執行規則\n\n1. **當前 phase 外的 feature** → escalate，不默默開始\n2. **adjacent engineering**（build / test / debug / docs sync / governance analysis）→ 可直接做\n3. **遇到 PLAN.md 不完整或過期** → 先更新 PLAN.md，再繼續\n4. **boundary guard 相關測試** → 任何改動都要跑 `swift test --filter GovernanceBoundaryGuardTests`\n5. **closeout 相關腳本改動** → 要跑 `bash -n scripts/closeout_workout_evaluation.sh`\n6. **App layer 不得** 呼叫 inference 語義分類 / 產生 provenance（boundary guard 負責檢查）\n7. **CodeBurn 工作** → 嚴格遵守 P6 六大約束（A-1、T-1、C-1、R-1、O-1、V-1）\n\n---\n\n## Gate / 完成條件\n\n### Phase D 完成條件（已達成）\n- [x] GovernanceBoundaryGuardTests 10 tests, 0 failures\n- [x] `bash -n scripts/closeout_workout_evaluation.sh` SYNTAX OK\n- [x] boundary telemetry artifact 存在於 `artifacts/runtime/boundary-telemetry/`\n- [x] clean-pilot admissibility smoke 可執行（enforce 模式）\n\n### Phase E 開始條件\n- [x] `version_compatibility.json` 時間戳變更已提交（928f835）\n- [x] Phase D 記憶文件已更新（7fd8a09）\n\n### Phase E 完成條件（已達成）\n- [x] on-device HealthKit 路徑驗證 pass\n- [x] Strava 真實憑證端對端 pass\n- [x] `ZoneTruthHost` 裝置簽署確認\n\n---\n\n## 已知問題與技術債\n\n| 項目 | 狀態 | 優先 |\n|---|---|---|\n| `artifacts/governance/version_compatibility.json` 時間戳未提交 | 待提交 | Low |\n| `PLAN.md` 過去為樣板文件，實質規劃缺失 | 已修正（本次） | Done |\n| P1 個人化 zone 界線設定 | 已完成（Resting HR 建議 / 套用 / 重設 / 狀態摘要） | Done |\n| P1 drift / leakage 邊緣案例標籤 | 已完成（10%/20% leakage、5%/8% drift 邊界提示） | Done |\n| P1 VO2/強度分析路徑擴充 | 已完成（VO2 interval pattern、Strength recovery hint reason） | Done |\n| P2 meta-closeout wrapper | 已完成（`bash scripts/meta_closeout.sh`） | Done |\n| P2 文字/UI 語氣精修 | 已完成（Zone 2 / VO2 / Strength user-facing reasons 與 recommendations 降低高宣稱 / 命令式語氣） | Done |\n| P2 CodeBurn P6 acquisition surface statistics display | 已完成（structural observation only；不做成本 / 跨 provider 比較 / efficiency / optimization） | Done |\n| Training Analysis Literature Review | 已完成（VO2 max / Zone 2 / Strength evidence hierarchy、claim ceiling、confidence basis） | Done |\n| Training Analysis Meta-Spec | 已完成（shared metadata schema、confidence ladder、claim ceiling、UI wording rules、implementation sequence） | Done |\n| Training Analysis Core Metadata Types | 已完成（method tier / source / reference-standard distance / confidence / claim ceiling 型別與 targeted tests） | Done |\n| Training Analysis Analyzer Adapter Metadata | 已完成（Zone 2 / VO2 interval quality / Strength result metadata；不改 verdict threshold） | Done |\n| Training Analysis UI Disclosure | 已完成最小切片（單筆分析揭露 estimate / measured 與 confidence reason；不改 weekly rendering） | Done |\n| Training Analysis Claim Profiles / Guards | 已完成（metric-specific claim profiles；guard tests 防止 UI disclosure 混淆 VO2 / Zone 2 / Strength） | Done |\n| Training Estimator Evidence Map | 已完成（literature/evidence tiers、claim ceiling、UI copy tiers；不含 source-role semantics） | Done |\n| Apple Health Training Data Role Matrix | 已完成（Apple Health `product_reference` / `field_estimator_input` / `supportive_context_signal` 邊界與 overclaim 防線；`sleepAnalysis` 明確為 supportive recovery context） | Done |\n| Implementation-facing spec resolution hook | 已完成（meta-spec 明確區分 evidence-layer 與 source-role-layer 入口；Apple Health matrix 補 implementation hook） | Done |\n| Training Analysis Metadata Contract | 已完成草案（analyzer / importer / display metadata 的 `spec_resolution` 必填時機與 source-role upgrade ban） | Done |\n| Core Spec Resolution Metadata Types | 已完成（Codable `TrainingSpecResolution` 與 evidence/source-role enum；測試證明 analyzer/importer/display envelope 可攜帶） | Done |\n| TrainingMetricMetadata Spec Resolution Field | 已完成（backward-compatible optional decode；新 metadata 可攜帶 Apple Health source-role） | Done |\n| Apple Health-backed Metric Source Roles | 已完成（VO2 max / HRR / running power / cycling power / route metadata 標上 Apple Health role matrix 與 reason） | Done |\n| Owner Acceptance 2026-06-10 | 已完成（目前測試入口，涵蓋 VO2 max / Zone 2 / Strength / Apple Health metadata / sleep context / feedback persistence 與 claim boundaries） | Done |\n| Owner Acceptance Observed Wording Fix | 已完成（實機截圖暴露的目標覆寫、debug token、英文來源字串、爆發力與強 coaching 語氣已修） | Done |\n| Weekly disclosure preflight guard | 已完成（weekly rendering contract 禁止 metric measurement overclaim；未改 weekly UI） | Done |\n| Test Candidate 2026-06-04 | 已升級為 local product acceptance candidate（VO2 max / Zone 2 / Strength 最小 feature gate 完成；尚未產生 TestFlight build） | Done |\n| VO2 max feature-complete slice | 已完成最小切片（scalar estimate/import + source labeling + claim-bounded disclosure；不做 lab-equivalent claim） | Done |\n| Strength feature-complete slice | 已完成最小切片（direct 1RM / e1RM structured metric import/display + claim-bounded disclosure；不做全身/臨床肌力診斷） | Done |\n| Zone 2 feature-complete gate | 已完成（manual bounds / Resting HR / reset / single detail / weekly policy 已盤點；新增 acceptance checklist 鎖住非 exact threshold claim） | Done |\n| Apple Health Resting HR import gate | 已完成（read-only authorization status 不再提前擋掉可讀 baseline query） | Done |\n| Resting HR Zone 2 claim ceiling / state consistency | 已完成（initial heuristic boundary，不宣稱 personalized calibrated threshold；等值狀態不再顯示待套用） | Done |\n| Apple Health sleep context spec sync | 已完成（`sleepAnalysis` 在 Role Matrix / Owner Acceptance / plan 中定位為 supportive recovery context；不做恢復診斷、不做處方、不改 classifier） | Done |\n| Daily memory closeout format | 已標準化（commit/push 狀態、claim ceiling、not-claimed、workspace/remote state 分欄） | Done |\n| `memory/00_long_term.md` 不存在（AGENTS.md 要求） | 已建立最小長期記憶檔 | Done |\n| clean-pilot admissibility 顯示 `false`（unclassified paths 4 個） | 已解決（git 現況只剩 1 個修改） | Resolved |\n| Garmin 整合尚未啟動 | 明確延後 | Deferred |\n\n---\n\n## 里程碑\n\n| 里程碑 | 目標日期 | 狀態 |\n|---|---|---|\n| Phase A: 分析引擎完成 | 2026-04-30 | ✅ Done |\n| Phase B: 資料源整合完成 | 2026-05-10 | ✅ Done |\n| Phase C: 語義治理層完成 | 2026-05-20 | ✅ Done |\n| Phase D: 治理邊界強化完成 | 2026-05-26 | ✅ Done |\n| Phase E: 裝置驗證 + 發版準備 | 2026-05-26 | ✅ Done |\n\n---\n\n## 更新紀錄\n\n| 日期 | 更新內容 |\n|---|---|\n| 2026-06-11 | 增加 Apple Health sleepAnalysis 授權診斷：HealthKit debug log 顯示 sleepAnalysis 權限、sleep query raw/asleep sample counts 與 error reason；產品 claim 與 classifier 不變 |\n| 2026-06-11 | 新增全域設定頁：集中 Apple Health 授權狀態、重新授權入口、Zone 2 / Resting HR / 目標方向設定；單筆詳情改為只顯示本次設定摘要 |\n| 2026-06-11 | 同步 ai-governance-framework 最新 upstream（`b841a9c660820`）：刷新 baseline/framework lock，導入 F-7 full update、memory workflow、managed hook installer、dirty runtime ledger detector 與 Copilot advisory；產品 Swift code/UI/tests 不變 |\n| 2026-06-10 | 完成實機 owner acceptance 第一輪文案修正：workout detail 改為判讀校準語意，weekly dashboard 移除目標覆寫/debug token/英文來源字串並降低 coaching 語氣 |\n| 2026-06-10 | 建立 `docs/OWNER_ACCEPTANCE_2026-06-10.md` 作為最新 owner acceptance 測試入口，整合 VO2 max / Zone 2 / Strength / Apple Health-backed metadata / feedback persistence |\n| 2026-06-11 | 同步 Apple Health sleep context 規格：`sleepAnalysis` 定位為 supportive recovery context，Owner Acceptance 補睡眠驗收與目前 app-requested read set 權限描述 |\n| 2026-06-09 | 完成 Training Classification v3.1 Sprint 2：新增 Core `TrainingClassification` / `TrainingMode` / confidence / data quality / claim level / evidence / warnings / not-applicable / debug 型別與 Codable guard tests；尚未接入 analyzer |\n| 2026-06-09 | 完成 Training Classification v3.1 Sprint 1 信任止血 UI：單次詳情移除本次意圖 / 目的符合度 / 舊版判定，重訓主要 metric surface 不顯示 VO2 max；新增 targeted UI guard tests |\n| 2026-06-09 | 新增 Training Classification Plan v3.1：正式採用 C 路線（資料反推訓練型態），補 Sprint 0、不要動清單、Core classification object、資料品質下界與純描述週分布規則；不改產品行為 |\n| 2026-06-09 | 正式拆分 estimator 規格層：新增 `TRAINING_ESTIMATOR_EVIDENCE_MAP.md` 管 literature/evidence/claim ceiling，新增 `APPLE_HEALTH_TRAINING_DATA_ROLE_MATRIX.md` 管 Apple Health source-role semantics，並將 `APPLE_HEALTH_HIGH_VALUE_EXPANSION.md` 明確定位為 acquisition/prioritization spec |\n| 2026-06-09 | 補上 implementation-facing spec resolution：`TRAINING_ANALYSIS_META_SPEC.md` 明確規定 analyzer metadata 讀 Evidence Map、source-specific ingestion/display 讀 Apple Health Role Matrix，避免 evidence authority 與 source-role semantics 混淆 |\n| 2026-06-10 | 新增 Training Analysis Metadata Contract 草案：定義 analyzer/importer/display metadata 何時必須帶 `spec_resolution.evidence_layer` / `source_role_layer`，並鎖住 source-role 不能升級 evidence authority |\n| 2026-06-10 | 新增 Core-only spec resolution metadata 型別：`TrainingSpecResolution`、`EvidenceLayer`、`SourceRoleLayer`、`SourceRoleReason`，並補 Codable/envelope tests；尚未接入現有 analyzer 或 UI |\n| 2026-06-10 | 將 `TrainingSpecResolution` 接入 `TrainingMetricMetadata`：新欄位預設 Evidence Map + no source-role，舊 JSON 不帶欄位仍可 decode，新 metadata 可帶 Apple Health source-role |\n| 2026-06-10 | 將 Apple Health-backed metric metadata 標上 source-role：VO2 max、HRR、跑步/自行車功率、路線脈絡會攜帶 Apple Health role matrix 與對應 reason |\n| 2026-06-09 | 同步 ai-governance-framework 最新 upstream（`9eb793dbf6c6`）：導入拆分後的 AI Governance update / F-7 / governance surface / memory protocol 文件，刷新 baseline / framework lock；產品行為不變 |\n| 2026-06-05 | 同步 ai-governance-framework 最新 upstream（`cae11be`）導入分析；補入非-submodule consuming repo 適用的治理工具與 F-7 文件，刷新 baseline / framework lock，drift clean / readiness 通過 |\n| 2026-06-04 | 完成 Strength structured metric 最小切片：JSON / domain model / metadata / 單筆 UI disclosure 支援 direct 1RM / e1RM 類肌力指標，並保留 exercise-specific claim ceiling |\n| 2026-06-04 | 完成 VO2 max scalar estimate/import 最小切片：JSON / domain model / metadata / 單筆 UI disclosure 支援 VO2 max estimate，並保留 estimate-only claim ceiling |\n| 2026-06-04 | 調整測試策略：正式產品測試延後到 VO2 max / Zone 2 / Strength 三類 feature-complete；目前 Test Candidate 僅作 developer checkpoint |\n| 2026-06-04 | 建立 Test Candidate 2026-06-04：整理目前可本機測試範圍、claim ceiling、local smoke command 與 manual checklist |\n| 2026-06-04 | 完成 weekly disclosure preflight guard：新增 WeeklyRenderingContractTests，禁止 weekly rendering 出現 VO2 max 實測、精準 Zone 2、1RM/肌力測量等過度宣稱 |\n| 2026-06-04 | 完成 Training Analysis Slice 4 Claim Profiles / Guard Tests：新增 metric-specific claim profiles，修正 Zone 2 驗證提示誤判 CPET 的 UI 文案風險 |\n| 2026-06-04 | 完成 Training Analysis Slice 3 UI Disclosure 最小切片：單筆分析結果顯示 estimate / measured 與 confidence reason，targeted tests 驗證不含過度宣稱 |\n| 2026-06-04 | 標準化 daily memory closeout format：拆分 commit/push status，補 claim ceiling、not-claimed、workspace_state 與 remote_state |\n| 2026-06-04 | 完成 Training Analysis Slice 2 Analyzer Adapter Metadata：Zone 2 / VO2 interval quality / Strength 分析結果附帶 metadata，不改 verdict threshold 或 UI rendering |\n| 2026-06-04 | 完成 Training Analysis Slice 1 Core Metadata Types：新增 method tier / source / reference-standard distance / confidence / claim ceiling 型別與 targeted tests，不改 analyzer verdict |\n| 2026-06-04 | 完成 Training Analysis Meta-Spec：將 literature review 轉成 shared metric metadata、confidence ladder、claim ceiling、UI wording rules 與四段 implementation sequence |\n| 2026-06-04 | 同步 ai-governance-framework 最新 upstream（0ae039e）：導入 response envelope contract、刷新 baseline / framework lock，readiness、drift、version audit 通過 |\n| 2026-06-04 | 完成 Training Analysis Literature Review：整理 VO2 max / Zone 2 / Strength 的學術/臨床標準、field estimator、產品對照與 ZoneTruth claim ceiling |\n| 2026-06-03 | 完成 P2 CodeBurn P6 acquisition surface statistics display：新增 fixture/demo CLI 與 targeted tests，輸出 surface record/source/quarantine 摘要並保留 A-1/T-1/C-1/R-1/O-1/V-1 約束 |\n| 2026-06-03 | 完成 P2 文字/UI 語氣精修：Zone 2 / VO2 / Strength 分析 reasons、recommendations 與 evaluation nextAction 改為觀測 / 建議語氣，新增 targeted tone tests |\n| 2026-06-03 | 完成 P2 meta-closeout wrapper：新增 `bash scripts/meta_closeout.sh` 一鍵跑 syntax、runtime governance smoke、boundary guard 與 weekly UI smoke |\n| 2026-06-03 | 完成 P1 VO2/強度分析路徑擴充：VO2 analysis 顯示 interval pattern hint，Strength analysis 顯示 recovery pattern hint |\n| 2026-06-03 | 完成 P1 drift / leakage 邊緣案例標籤：Zone 3 leakage 10%/20% 與 heart-rate drift 5%/8% 附近會產生低宣稱提示 |\n| 2026-06-03 | 完成 P1 個人化 Zone 2 設定產品線：Resting HR 輸入、建議公式、偏移量調整、套用 / 重設、週報與單筆詳情顯示、設定狀態摘要 |\n| 2026-06-03 | 同步 ai-governance-framework 最新 baseline（70a54b3）導入分析；補齊缺漏治理文件、修正 contract identity、刷新 PLAN freshness |\n| 2026-05-26 | Phase E 全部完成：HealthKit、Strava OAuth、ZoneTruthHost 裝置驗證均通過 |\n| 2026-05-26 | 全面重寫：從樣板文件改為實質專案計劃；導入當前 phase 狀態、backlog、anti-goals、gate 條件 |\n| 2026-05-25 | 對齊 header 欄位（最後更新 / Owner / Freshness）；加入 gitignore runtime artifacts |"
+        },
+        {
+          "path": "D:\\ZoneTruth\\governance\\TESTING.md",
+          "exists": true,
+          "content": "---\naudience: agent-on-demand\nauthority: reference\ncan_override: false\noverridden_by: AGENT.md\ndefault_load: on-demand\n---\n\n# TESTING.md\n**測試策略與品質門檻 - v4.4**\n\n> **Version**: 4.4 | **Priority**: 6（品質守門）\n>\n> 定義在什麼條件下，我們可以合理相信一段程式碼。\n> 測試是 guardrail，不是 KPI。\n\n---\n\n## 1. 核心哲學\n\n- 保護行為\n- 防止 regression\n- 支持安全 refactoring\n- 偏好有意義的 evidence，而不是儀式化 checklist\n\nCoverage 本身不是品質指標。\n\n---\n\n## 2. 測試層級\n\n### L0 - 最低信心\n\n只在 scope 確實很小、rollback 成本也很低時使用。\n\n可接受的 evidence：\n- smoke test\n- manual checklist\n- characterization check\n- presentation-only work 的視覺確認\n- 有需要時的 before / after screenshot 或同等輕量 UI evidence\n\n`L0` 不得被用來逃避本來就需要的 verification。\n\n對 `L0 fast-track` 工作：\n- 只要 task 維持 presentation-only，一個輕量 verification step 就夠\n- 除非 task 升出 `L0`，否則不必要求完整 regression matrix\n- 一旦變更開始影響 behavior、schema、async flow、或 shared logic，就必須升到 `L1`\n\n### L1 - 可維護\n\n一般工作的預設門檻。\n\n預期 evidence 應包含適用的子集合：\n- unit test\n- characterization test\n- contract test\n- build verification\n- failure-path evidence\n\n不是每個 task 都需要每一種 test，但每個 task 都要有足夠 evidence 來為其安全性辯護。\n\n### L2 - 關鍵層\n\n必須在以下面向都有強 evidence：\n- behavior\n- boundary\n- integration\n- regression\n- human-reviewable acceptance criteria\n\n---\n\n## 3. Mandatory Failure-Path Thinking\n\n對 `L1+`，至少要在適用時提供以下 evidence：\n- 一個 invalid input 或 invalid state\n- 一個 boundary value\n- 一條 failure path\n\n若某類別不適用，必須明說。\n\n### 3.1 Critical Function Test Quality\n\ncoverage 可以很高，但測試品質仍然很弱。AI 特別擅長把 coverage 灌高，卻避開最難測、也最決策相關的路徑。\n\n當任一條件成立時，該 function 應視為 **critical**：\n- 會改變 state（write、delete、command dispatch、irreversible transition）\n- 會和 external system 互動（USB、file I/O、network、device API）\n- 是其他模組依賴的接縫（public interface、adapter layer、shared entrypoint）\n- 曾經是 bug surface，或過去發生過 regression\n\n對 critical function：\n- `L1` work 必須涵蓋適用子集合：\n  - normal path\n  - failure path\n  - boundary input\n  - invalid input 或 invalid state\n- `L2` work 應把這四類視為預設期待，除非某類別明確不適用\n\n若缺任何一類，除非有明講且合理說明，否則不能稱作「fully tested」。\n\n建議命名格式：\n- `test_[function]_[scenario]_[expected_outcome]`\n\n較好的例子：\n- `test_parse_version_empty_string_returns_none`\n- `test_send_command_device_disconnected_raises_error`\n- `test_update_firmware_checksum_mismatch_aborts`\n\n避免隱藏意圖的命名：\n- `test_case_1`\n- `test_parse_version_2`\n- `testSendCommand`\n\n### 3.2 Independent Expected-Value Rule\n\nexpected result 必須來自 spec、固定範例、invariant、或 independent fixture，**不能**在 test 裡重寫一遍 production algorithm 來算 expected value。\n\n若 test 用與 production 相同的邏輯計算 expected value，兩邊就可能一起錯，測試不再具備獨立驗證價值。這是 AI 最常用來膨脹 coverage、卻沒有增加防禦力的方式之一。\n\n若無法導出 independent expected value，必須明確把這個 test 標成 characterization test 或 weak coverage，而不能把它當 behavior proof。\n\n在 test 內重寫 production logic 是禁止的。\n\n### 3.3 Test Sensitivity and Mutation Thinking\n\n如果一個 test 在合理的邏輯錯誤下仍然會 pass，它就沒有保護力。高 coverage 但低 sensitivity，比低 coverage 但高 sensitivity 更糟，因為它會製造假信心。\n\n對 critical function 與 regression-sensitive path，test 至少要能在合理的邏輯 mutation 下失敗，例如：\n- boundary flip（`>` 被改成 `>=`）\n- reversed condition\n- removed guard clause\n- loop bound 的 off-by-one\n\n對 bug fix：新增的 test 必須能在原 bug 被重新引入時失敗。若這次修改裡沒有任何 test 能抓到原 defect 的回歸，就不能說 fix 已有 regression protection。\n\n若無法證明 test sensitivity，coverage claim 必須降級。\n\n### 3.4 Stateful and Sequence Behavior\n\n對 stateful 或 workflow-driven code，只做單點 function test 是不夠的。這類系統最常見的失敗，不是出在單一 function call，而是出在一連串操作之間。\n\n對 stateful 或 multi-step code，應加入 sequence test，驗證：\n- 完整 sequence 後的 final state 是否正確\n- sequence 中途失敗時行為如何\n- retry、rollback、recovery path 後的一致性\n\n依 side-effect 類型還要補：\n- external write（DB、file、device）：要 assert persisted state，不只驗證 write function 被呼叫\n- shared / global state modification：要有明確 cleanup 或 restoration verification\n- async dispatch：要有 completion behavior 與 failure-path evidence；不能把 fire-and-forget 當 fully tested\n\n### 3.5 Pure Function and Never-Raises Contracts\n\n宣告了「never raises」或「always returns well-formed output」保證的函式，需要專屬測試策略。保證本身必須由測試來持守，不能只靠文件說明。\n\n**Never-raises 保證**的測試要求：\n- 每種異常輸入類型（`None`、空值、格式錯誤、schema 違反）都必須有獨立測試案例\n- 測試必須 assert 回傳值的結構與 status，不能只驗證「未拋例外」\n- 最壞情況（完全無效輸入）仍必須回傳有用的 degraded output；測試必須明確斷言這個 degraded output 的形狀\n\n**Graceful degradation**（失敗時回傳 `inject=False` 或等效降級結果）的測試要求：\n- 必須覆蓋：目錄不存在、檔案不可讀、JSON 解析失敗、必要欄位缺失\n- 每個失敗路徑的測試都必須 assert 降級回傳值的完整結構，不只確認 flag 值\n- 降級後的回傳值必須符合與正常路徑相同的 key contract\n\n若一個 function 宣稱 never-raises，但測試套件中沒有針對異常輸入的測試，這個保證不能算已驗證。\n\n---\n\n## 4. Repo-Aware Build Policy\n\n### 4.1 Authoritative Build Config\n\n每個 repo 至少應宣告一個 **authoritative** 或 **known-good** build configuration。\n\n每個 task 的最低期待：\n- 驗至少一個 known-good config\n\n### 4.2 Phase-Based Matrix\n\nbuild breadth 應隨 task risk 調整：\n\n| Task Type | Minimum Build Expectation |\n|---|---|\n| 低風險 UI / wording / presentation | Known-good config |\n| 一般 feature / bugfix / refactor | Known-good config，再加 touched path 需要的驗證 |\n| 關鍵邊界 / release / L2 | 擴大到與 boundary risk 相稱的 matrix |\n\n當 repo 現實 baseline 本來就不支持 full Debug / Release 或跨平台 matrix 時，不要硬性要求完整矩陣。\n\n### 4.3 Warning Policy\n\n採用 **baseline-aware** warning policy：\n- touched file 不得引入新 warning\n- 不得在沒有明確說明的情況下惡化既有 warning baseline\n- 若 legacy warning 沒變，不必自動阻擋完成\n\n### 4.4 stdlib-Only Testing Constraints\n\n本專案僅使用 Python stdlib（不允許 `pip install`）。測試必須遵守相同限制：\n\n**允許**：\n- `unittest.mock`（stdlib）\n- `tempfile`、`pathlib`、`os`、`io` 等 stdlib 模組做 fixture isolation\n- `pytest` 作為測試執行器（工具，非 production dependency）\n\n**不允許**：\n- 任何第三方測試輔助函式庫（`faker`、`factory_boy`、`responses`、`freezegun` 等）\n- 任何需要外部服務或 API key 的測試（除非有明確 mock harness）\n\n若某個 test 看起來需要第三方函式庫，這通常是測試設計問題的信號：應以 injection、fixture、或 in-process stub 取代。\n\n注意：test runner（`pytest`）本身不受此限制；限制對象是 production dependency 和 test-helper libraries。\n\n---\n\n## 5. Legacy Refactor Baseline Validation\n\n對 legacy repo 的 refactor，必備 baseline evidence：\n- baseline commit 或 rollback point 的 build 結果\n- modified state 的 build 結果\n- canonical toolchain 與 canonical build command 的確認\n\n若 baseline 本身無法 build，必須明示這次工作是在 unstable baseline 上進行，不能把它表述成 clean、regression-proof 的 refactor。\n\n---\n\n## 6. Evidence Templates\n\n### 6.1 Minimum Refactor Evidence\n\n可接受的 evidence 例如：\n- before / after build result\n- touched-file diff review\n- key call-chain comparison\n- characterization 或 smoke verification，證明核心 behavior 未變\n\n### 6.2 High-Risk Rule Evidence\n\n對高風險工作，evidence 應具體且能讓人 review。例子：\n\n| Rule Type | Acceptable Evidence Examples |\n|---|---|\n| Flash / sequencing safety | before/after diff、ordered call-path list、build pass、explicit unchanged sequence note |\n| Layer boundary | touched entrypoint list、dependency-path inspection、確認無 direct forbidden access |\n| Thread safety | UI update path list、dispatcher usage 確認、failure-path note |\n| Legacy baseline | canonical toolchain、canonical build command、baseline build、modified build |\n\n不要在沒有指出 evidence 的情況下宣稱 `verified`。\n\n### 6.3 Cross-Tool Integration Evidence\n\n當一個 task 修改的 governance tool 與其他工具有跨邊界互動（例如 `session_start` → `session_end` → audit），evidence 必須涵蓋**邊界**，不只是單個工具。\n\n兩個各自通過的 unit test 不等於 integration evidence。\n\n可接受的 integration evidence：\n- 涵蓋完整呼叫鏈的 end-to-end test，使用現實輸入\n- 跨邊界的 return dict shape 驗證（不只驗單一函式內部）\n- producer 輸出降級時，consumer 能正確處理的測試\n\n**不**算 integration evidence：\n- 兩個獨立 unit test 各自通過\n- 只測試 happy path 的 integration sequence\n- mock-only 驗證 downstream function 被呼叫\n\n典型需要 integration evidence 的邊界：\n- `session_end` 寫入 canonical → `session_start` 讀取並注入 context\n- `write_candidate()` 寫入 → `build_canonical_closeout()` 處理 → `closeout_audit` 聚合\n- `pre_task_check` 完成 → `post_task_check` 接收 contract\n\n---\n\n## 7. Hard-to-Test Areas\n\n對 I/O、native、time、environment、或 legacy code：\n- 能 isolate 的先 isolate\n- 單元級 coverage 不現實時，用 characterization\n- 偏好 observed behavior，而不是 mocked fantasy\n\n會遮蔽真實風險的 mocking 是禁止的。\n\n### 7.1 Assertion and Mocking Discipline\n\n每個 test 至少應有一個清楚 assertion，針對：\n- output value\n- state change\n- emitted error 或 failure signal\n\n除非行為本身就是「不拋例外」，且 test name 已明說，否則不能把「沒有 exception」當成唯一通過條件。\n\n較好的 assertion 風格：\n- `assert result == expected_value`\n- `assert device.state == DeviceState.DISCONNECTED`\n- `assert \"checksum mismatch\" in error_log`\n\n只斷言 collaborator 被呼叫的 mock-only test 不夠。例如：\n- 弱：`mock_device.send.assert_called_once()`\n- 較強：assert resulting status、emitted output、或 persisted state\n\n測試也必須保持獨立：\n- 每個 test 都應可單獨執行\n- setup / teardown 必須恢復環境\n- mutable state 不得跨 test 洩漏\n- device、file、port、或 external resource setup 必須在每個 test 中明確處理\n\n### 7.2 Determinism and Flakiness Control\n\n測試必須 deterministic。若一個 test 多跑幾次結果不一致，它就不是 test，而是雜訊。\n\n除非 nondeterminism 本身就是被測行為，否則避免依賴：\n- wall-clock time 或 `datetime.now()`\n- 未 seed 的 random\n- test 執行順序\n- 跨 test 共享的 process state 或 global singleton\n- `sleep()` 或 timing-based synchronization\n\n若 system under test 真的牽涉 time、random、或 async scheduling，應透過 injection 控制：fake clock、seeded random、explicit harness control、或 deterministic event replay。\n\n若測試依賴未受控的 time、random、或 execution order，卻仍宣稱 stable，屬於禁止行為。\n\n### 7.3 Trust Boundary Tests\n\n宣告了信任邊界的元件（例如「只讀 canonical，不讀 candidates」）必須有測試驗證該邊界確實被遵守。信任邊界違反是**靜默失敗**：結果看起來有效，但資料來自不受信任的來源。\n\n**Trust boundary test 的要求**：\n- 若元件宣稱不讀取路徑 X，測試必須在路徑 X 存在且有資料的情況下，驗證結果不受其影響\n- 不能只測試「有讀取路徑 Y」；必須同時測試「沒有讀取路徑 X」\n- 每條已宣告的 trust rule 至少對應一個 boundary test\n\n本專案中典型的 trust boundary pattern：\n\n| 元件 | 宣告的信任規則 | Boundary test 驗證方式 |\n|---|---|---|\n| `closeout_audit` | 只讀 `artifacts/runtime/closeouts/` | 在 candidates dir 放資料，確認 audit 結果不受影響 |\n| `_canonical_closeout_context` | 只讀最新 canonical（依 `closed_at`）；不讀 session-index | 在 session-index 放舊資料，確認 context 回傳的是正確 canonical |\n| `run_session_end` 整合 | canonical 只由 system 寫入；AI candidate 為 untrusted input | candidate 為 schema invalid 時，canonical status 正確反映，不 propagate candidate 的 fields |\n\n若一個元件宣稱有 trust boundary，但 test suite 中沒有任何 boundary test，這個宣告不能算已驗證。\n\n### 7.4 Behavior Source and Test Plan Requirement\n\n沒有可信 expected behavior source 的 test，不是 test，而是猜測偽裝成 verification。\n\n生成 test 前，先識別 expected behavior 的來源：\n- specification 或 design doc\n- public contract 或 interface definition\n- 具有可重現步驟的 bug report\n- reviewer 或 product owner 提供的 acceptance criteria\n- known-good output 的 existing characterization baseline\n- 明確 reviewer instruction\n\n若沒有可信來源，必須明說，並下調所有產出測試的 confidence label。不能只靠閱讀現有 implementation 並假設它是對的，就當作 expected behavior source。\n\n對 non-trivial work，寫 test code 前先給一個簡短 test plan。至少指出：\n- behavior source（誰授權這個 expected behavior）\n- risk level 與 task classification\n- candidate critical path 與 failure path\n- 哪些 category 明確不適用，以及理由\n\n這個順序是為了防止 AI 最常見的失敗模式：在 behavior contract 都還沒立起來前，就先生成大量結構正確但價值很低的測試。\n\n---\n\n## 8. Test Gap Records\n\n當一個有意義的 test 目前做不到時，必須記錄：\n- 原因\n- 風險\n- remediation condition\n\n若沒有 remediation condition，就是隱藏技術債。\n\n### 8.1 Gap Record Format\n\n每筆 gap record 必須自我完備，包含：\n\n```text\nGAP: [工具名稱或函式名稱]\nREASON: [為何目前無法寫出此測試]\nRISK: [哪些失敗模式目前無法被偵測]\nREMEDIATION: [什麼條件成立後，這個 gap 應該被關閉]\n```\n\n範例：\n\n```text\nGAP: linear_integrator API response validation\nREASON: 無 test mode 或 mock API key；CI 環境無法連線外部服務\nRISK: 格式錯誤的 API response 在 runtime 才會被發現\nREMEDIATION: 加入 recorded fixture 或 in-process mock server 後\n```\n\n若無法填寫 REMEDIATION，表示此 gap 為**永久技術債**，必須明確標記，不能靜默略過。\n\nGap records 的位置：直接寫在本節，或寫在對應工具的 `tests/` 目錄下的 `GAPS.md`，兩者選一，保持一致。\n\n---\n\n## 9. Definition of Done\n\n工作完成的條件是：\n- 選用的 evidence 與 task risk 相稱\n- build verification 符合 repo reality\n- relevant failure-path thinking 已套用\n- critical function 有真正的 behavior assertion，而不是儀式化 coverage 或 mock-only check\n- bug fix 在可重現時，與修復同一 change 中附上 regression test\n- 後續 reviewer 能理解為什麼這次變更被視為安全\n\n以下做法明確禁止，無論 test count 或 coverage 百分比多高，都不算 evidence：\n- 在 test 中重寫 production logic\n- 在沒有 independent expected-value reasoning 下宣稱 fully tested\n- 對可重現 bug 沒有 regression test 卻宣稱 regression-safe\n- 依賴未受控的 time、random、或 execution order，卻宣稱 stable test"
+        },
+        {
+          "path": "D:\\ZoneTruth\\governance\\ARCHITECTURE.md",
+          "exists": true,
+          "content": "---\naudience: agent-on-demand\nauthority: reference\ncan_override: false\noverridden_by: SYSTEM_PROMPT.md\ndefault_load: on-demand\n---\n\n# ARCHITECTURE.md\n**架構治理與邊界規則 - v4.2**\n\n> **Version**: 4.2 | **Priority**: 5（結構紅線）\n>\n> 定義系統如何切分、哪些地方可以改、哪些邊界屬於硬紅線。\n\n---\n\n## 0. 載入條件\n\n- 遇到新功能、refactor、邊界調整、或其他非 trivial 的 L1/L2 工作時載入\n- 只要可能有 architecture impact，就應載入；不要等到已經證明出事才載入\n\n---\n\n## 1. 核心原則\n\n### 1.1 Architecture Before Implementation\n\n在實作擴張前，必須先能說清楚：\n- 邊界在哪裡\n- 責任怎麼分\n- 資料怎麼流動\n\n如果連 architecture 都無法清楚表述，實作就還不具備可辯護性。\n\n### 1.2 Explicit Boundaries\n\n每個被碰到的 component 都應能被歸類為以下其中之一：\n- Domain\n- Application\n- Adapter\n- Infrastructure\n\n每個 component 都應回答：\n- 自己負責什麼\n- 自己**明確不負責**什麼\n\n### 1.3 Governance Goal\n\narchitecture governance 的目的，是防止災難性耦合與隱性邊界侵蝕。\n\n它應該降低風險，而不是懲罰 trivial、低風險工作。\n\n---\n\n## 2. Bounded Context\n\n### 2.1 L1+ 必答問題\n\n在任何 boundary-sensitive work 前，先回答：\n- 這件事屬於哪個 bounded context\n- 是否涉及 native API、platform variance、或 external system\n- 是否需要 Anti-Corruption Layer（ACL）\n\n### 2.2 Continue / Escalate / Stop\n\n- **Continue**：context 與 ownership 清楚\n- **Escalate**：大致清楚，但 boundary choice 或 abstraction choice 存在多個可辯護方案\n- **Stop**：提議變更已跨越硬邊界，或根本無法一致分類\n\n不要因為需要設計判斷就直接 stop；除非已經踩線，否則先 escalate。\n\n### 2.3 L0 例外\n\nL0 仍只限於 presentation-only 或 trivial edit，條件是：\n- 不跨 Domain / Infrastructure\n- 不涉及 native / I/O / state interaction\n- 不帶隱性行為變更\n\n典型 L0 例子：\n- copy 與 wording cleanup\n- spacing / layout polish\n- 不改 semantic state 的 color / token 對齊\n- prototype-only UI composition 調整，且不需要動 domain 或 API\n\nL0 不再只限於 typo-level edit，但只要碰到真實行為或邊界影響，就必須升到 L1。\n\n不確定時，升級到 L1。\n\n---\n\n## 3. Domain vs Infrastructure\n\n### 3.1 Domain 硬紅線\n\nDomain **不得**：\n- 直接呼叫 native API\n- 依賴 `.dll`、`.so`、`.dylib`、`.framework` 或同類 runtime binding\n- 依賴 UI、OS、filesystem、network、time、或 environment state\n\nDomain 應只透過明確、穩定的 interface 消費 capability。\n\n### 3.2 Infrastructure Anti-False-Positive Rule\n\n以下情況**不應自動**被判成 infrastructure leakage：\n- pure data transformation\n- OS-agnostic utility\n- compile-time constant\n- presentation-only state mapping\n\n不要用教條式過度擴張，去否定實際上有效的低風險設計。\n\n---\n\n## 4. Anti-Corruption Layer（ACL）\n\n### 4.1 何時必須有 ACL\n\n當以下任一條件成立時，ACL 屬於必需：\n- native 或 external model 與 domain language 不一致\n- 邊界攜帶 state、side effect、async behavior 或 unstable semantic\n- 需要 translation、validation、caching 或 error conversion\n\n### 4.2 何時通常不需要 ACL\n\n- 行為穩定、pure、stateless\n- 程式只做運算\n- 邊界風險本身不具實質意義\n\n`replaceable` 不等於 `立刻抽象一切`。\n\n---\n\n## 5. Interface Rules\n\n以下情況應引入 explicit interface：\n- platform behavior 存在差異\n- resource lifetime 不 trivial\n- ABI 或 binary stability 很重要\n- 邊界預期會獨立於 caller 變動\n\n如果 abstraction cost 大於 boundary risk，就不要引入 speculative interface。\n\n---\n\n## 6. ADR Rules\n\n### 6.1 ADR Trigger\n\n當決策影響以下任何一項時，應建立或更新 ADR：\n- memory ownership strategy\n- cross-platform loading strategy\n- ABI 或 calling convention\n- boundary partitioning\n- long-lived interface placement\n\n### 6.2 Conflict Check\n\n新增 ADR 前先做：\n1. 列出 `docs/adr/` 中相關標題\n2. 找出是否有衝突\n3. 若有歧義，明確標記 supersession 或 escalate\n4. 在新紀錄中連結相關 ADR\n\n沒有做 conflict review 就產出 ADR，屬於 governance failure。\n\n---\n\n## 7. Build Boundary Addendum\n\nbuild-system wiring 是 architecture 的一部分，不只是 tooling 細節。\n\n硬規則：\n- project 只能 include 自己樹內的 header，以及明確核准的 shared layer\n- project **不得**把 peer project 的 private directory 加進 include-search settings\n- build 成功 **不代表** boundary violation 被合理化\n- 如果多個 project 需要同一個 header，應把它移到有明確 ownership 的 shared boundary layer\n\ncross-project private include access 屬於 architecture violation，因為它隱藏耦合並繞過 ownership boundary。\n\n---\n\n## 8. Legacy 與 Refactor 解讀\n\n對 legacy repo 與大型 refactor：\n- 隱藏的歷史耦合是風險，不是藉口\n- baseline instability 要被顯性指出\n- boundary judgment 應以 canonical build environment 為準，不是被隨機 toolchain noise 牽著走\n\n如果 repo 現況讓邊界本身不清楚，就應帶證據 escalate，而不是假裝 architecture 很明顯。\n\n---\n\n## 9. Evidence Expectations\n\n可接受的 architecture evidence 包括：\n- touched-layer list\n- dependency path 或 include path inspection\n- entrypoint / call-path summary\n- before / after boundary diff\n- 明說哪些東西刻意保持不變\n\n不要在沒有明講 evidence 的情況下宣稱 `architecture-safe`。\n\n---\n\n## 10. Final Principle\n\n> **Architecture 的工作，是防止災難性錯誤，不是阻止正常進度。**\n> **硬違規才用 hard stop；真正的設計歧義才用 escalation。**"
+        }
+      ],
+      "ai_behavior_override": [
+        {
+          "path": "D:\\ZoneTruth\\AGENTS.base.md",
+          "exists": true,
+          "content": "# AGENTS.base.md\n<!-- governance-baseline: protected -->\n<!-- baseline_version: 1.0.0 -->\n<!-- DO NOT EDIT — managed by ai-governance-framework -->\n<!-- To add repo-specific rules, create AGENTS.md and extend this file's sections. -->\n<!-- Hash is recorded in .governance/baseline.yaml and verified on every drift check. -->\n\n## Level Alignment\n\n- Declared L0 but involves domain logic, boundary crossing, or behavior change → upgrade to L1\n- Declared L1 but involves core domain, security, data integrity, or irreversible state → upgrade to L2\n- Uncertain classification → upgrade, do not downgrade\n\n## Execution Pipeline\n\nFor L1+, the default workflow is:\n\n1. **Analyze** — understand behavior and constraints before touching code\n2. **Define** — contracts, boundaries, failure paths\n3. **Verify Plan** — what evidence will prove the change is safe\n4. **Implement** — minimum compliant change\n5. **Refactor** — only under evidence protection\n\nDo not skip a step when the omission would hide risk.\n\n## Forbidden Behaviors\n\n- Expand scope beyond what was explicitly instructed\n- Refactor unrelated areas for cleanliness or taste\n- Add speculative abstractions for hypothetical future requirements\n- Fake, inflate, or omit evidence\n- Assume intent when the instruction is ambiguous — ask instead\n\n## Secret Handling\n\n- Never commit tokens, API keys, credentials, or secrets to the repo\n- Never write tokens or credentials into memory/ files or logs\n- If a secret appears in conversation context, do not persist it anywhere\n- `.env` files and credentials must be in `.gitignore` and never staged\n\n## Memory Update Triggers\n\nThe following events require updating PLAN.md and/or the relevant memory/ file:\n\n| Event | Required update |\n|-------|----------------|\n| Milestone reached | PLAN.md phase/sprint + memory/active_task |\n| Architecture decision made | PLAN.md decision log + memory/knowledge_base |\n| Bug fixed with root cause identified | memory/knowledge_base |\n| Risk or incident encountered | PLAN.md risk section + memory/active_task |\n| Session end | memory/active_task (current status) + session_end hook |\n\n## Session Closeout Obligation\n\nWriting `artifacts/session-closeout.txt` before session end is a **governance\nobligation**, not a suggestion.\n\nThe stop hook always calls `session_end` at session end. If the closeout artifact\nis missing or insufficient, the runtime records `closeout_missing` or\n`closeout_insufficient` in the verdict. Memory will not update. The gap is\nauditable and visible to reviewers.\n\n### Required fields\n\nAll fields must be present. Vague values are flagged as insufficient.\n\n```\nTASK_INTENT: <one sentence — declared goal of this session>\nWORK_COMPLETED: <what was actually done — verifiable claims only>\nFILES_TOUCHED: <comma-separated file list, or NONE>\nCHECKS_RUN: <specific commands or checks run, or NONE>\nOPEN_RISKS: <what might be wrong or incomplete, or NONE>\nNOT_DONE: <what was not completed this session, or NONE>\nRECOMMENDED_MEMORY_UPDATE: <what memory/ file should change and why, or NO_UPDATE>\n```\n\n### Rules\n\n- `WORK_COMPLETED` must contain verifiable claims. Do not write \"made improvements\"\n  or \"worked on things\" — these are vague and will be rejected as insufficient.\n- `CHECKS_RUN` must name specific commands if non-`NONE`.\n- If there was no material progress, write `WORK_COMPLETED: NONE` — do not\n  fabricate completions.\n- `NOT_DONE` and `OPEN_RISKS` are the most important fields. AI agents tend to\n  omit failures. Do not.\n\n### If you cannot write the closeout\n\nWrite it anyway with `WORK_COMPLETED: NONE` and explain in `OPEN_RISKS` why\nthe session produced no verifiable output. This is a valid closeout.\n\nSee `docs/session-closeout-schema.md` for examples and field constraints.\n\n## Definition of Done\n\nA task is done when:\n\n- Behavior is explicit and observable\n- Failure paths are guarded\n- Architecture boundaries remain intact\n- Evidence matches the declared risk level\n- PLAN.md and memory/ reflect the new state"
+        }
+      ],
+      "rule_roots": [
+        "D:\\ZoneTruth\\governance\\rules"
+      ],
+      "validators": [],
+      "raw": {
+        "name": "zonetruth-governance-contract",
+        "plugin_version": "1.0.0",
+        "framework_interface_version": "1",
+        "framework_compatible": ">=1.0.0,<2.0.0",
+        "domain": "zonetruth",
+        "documents": [
+          "AGENTS.base.md",
+          "PLAN.md",
+          "governance/TESTING.md",
+          "governance/ARCHITECTURE.md"
+        ],
+        "ai_behavior_override": [
+          "AGENTS.base.md"
+        ],
+        "rule_roots": [
+          "governance/rules"
+        ],
+        "validators": []
+      }
+    },
+    "domain_skip_reason": null,
+    "validator_preflight": {
+      "ok": true,
+      "count": 0,
+      "validators": []
+    },
+    "risk_signal": {
+      "active": false,
+      "overrides": {}
+    },
+    "state": {
+      "generated_at": "2026-07-05T15:03:25.350957+00:00",
+      "state_surface_contract": {
+        "surface_role": "derived_context_snapshot",
+        "authority_scope": "session_context_only",
+        "source_of_truth": {
+          "plan": "D:\\ZoneTruth\\PLAN.md",
+          "runtime_artifacts": "artifacts/runtime/*"
+        },
+        "non_authoritative_for": [
+          "gate_verdict",
+          "classification_validation",
+          "escalation_closure"
+        ],
+        "operator_note": "This file is a convenience snapshot for session bootstrap. It must not be used as sole authority for closure or promotion decisions."
+      },
+      "plan_path": "D:\\ZoneTruth\\PLAN.md",
+      "project_root": "D:\\ZoneTruth",
+      "project": {
+        "owner": "Gavin Wu",
+        "freshness_policy": "Sprint (7d)"
+      },
+      "current_phase": {
+        "id": null,
+        "name": null
+      },
+      "gate_status": {
+        "PhaseA": "passed",
+        "PhaseB": "passed",
+        "PhaseC": "passed",
+        "PhaseD": "passed",
+        "PhaseE": "passed"
+      },
+      "active_sprint": [],
+      "backlog_counts": {
+        "P0": 0,
+        "P1": 0,
+        "P2": 0
+      },
+      "freshness": {
+        "status": "CRITICAL",
+        "last_updated": "2026-06-11",
+        "days_since_update": 24,
+        "threshold_days": 7
+      },
+      "runtime_contract": {
+        "task": "unspecified",
+        "rules": [
+          "common"
+        ],
+        "risk": "medium",
+        "oversight": "review-required",
+        "memory_mode": "candidate"
+      },
+      "suggested_rules_preview": [
+        "common",
+        "zonetruth",
+        "csharp",
+        "swift",
+        "python",
+        "refactor"
+      ],
+      "suggested_skills": [
+        "code-style",
+        "governance-runtime",
+        "python"
+      ],
+      "suggested_agent": "python-agent",
+      "rule_pack_suggestions": {
+        "project_root": "D:\\ZoneTruth",
+        "language_packs": [
+          {
+            "name": "csharp",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "runtime_hooks/examples/shared/after.cs",
+              "runtime_hooks/examples/shared/before.cs"
+            ]
+          },
+          {
+            "name": "swift",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "Package.swift",
+              "Sources/ZoneTruthApp/BodyCompositionRepository.swift",
+              "Sources/ZoneTruthApp/BodyCompositionView.swift",
+              "Sources/ZoneTruthApp/DataImport.swift",
+              "Sources/ZoneTruthApp/FeedbackStores.swift"
+            ]
+          },
+          {
+            "name": "python",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "governance_tools/ab_baseline_validator.py",
+              "governance_tools/ab_cost_backfill_apply.py",
+              "governance_tools/ab_cost_hygiene.py",
+              "governance_tools/ab_cost_parity_audit.py",
+              "governance_tools/ab_smoke_artifact_validator.py"
+            ]
+          }
+        ],
+        "framework_packs": [],
+        "scope_packs": [
+          {
+            "name": "refactor",
+            "category": "scope",
+            "confidence": "low",
+            "reasons": [
+              "\\brefactor\\b"
+            ],
+            "advisory_only": true
+          }
+        ],
+        "domain_packs": [
+          {
+            "name": "zonetruth",
+            "category": "domain",
+            "confidence": "high",
+            "reasons": [
+              "contract.yaml: domain=zonetruth",
+              "contract.yaml rule_root: governance/rules"
+            ]
+          }
+        ],
+        "suggested_skills": [
+          "code-style",
+          "governance-runtime",
+          "python"
+        ],
+        "suggested_agent": "python-agent",
+        "suggested_rules": [
+          "common",
+          "zonetruth",
+          "csharp",
+          "swift",
+          "python"
+        ],
+        "suggested_rules_preview": [
+          "common",
+          "zonetruth",
+          "csharp",
+          "swift",
+          "python",
+          "refactor"
+        ],
+        "notes": [
+          "domain_packs are sourced from contract.yaml rule_roots and take highest priority",
+          "language/framework packs are auto-suggested from repository signals",
+          "scope packs are advisory only and should be confirmed by the contract or human reviewer",
+          "suggested_rules_preview includes advisory scope packs for convenience, but does not mutate the contract",
+          "suggested_skills and suggested_agent are advisory only and do not auto-activate agent behavior"
+        ]
+      },
+      "architecture_impact_preview": {
+        "ok": true,
+        "scope": "feature",
+        "active_rules": [
+          "common"
+        ],
+        "touched_layers": [],
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "drift_result": {
+          "ok": true,
+          "errors": [],
+          "warnings": [],
+          "findings": [],
+          "files": [],
+          "dependency_diff": {
+            "ok": true,
+            "added": [],
+            "removed": [],
+            "warnings": [],
+            "errors": [],
+            "findings": []
+          }
+        },
+        "public_api_diff": {
+          "ok": true,
+          "before_manifest": {
+            "entries": [
+              {
+                "path": "runtime_hooks/examples/shared/before.cs",
+                "signatures": [
+                  "public class Service\n{",
+                  "public int Run() => 1;"
+                ],
+                "semantic_entries": [
+                  {
+                    "kind": "type",
+                    "identity": "type:Service",
+                    "display": "public class Service",
+                    "signature": "public class Service",
+                    "container": "Service",
+                    "qualified_name": "Service",
+                    "namespace": null
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Run",
+                    "display": "public int Run()",
+                    "signature": "int Run()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  }
+                ]
+              }
+            ]
+          },
+          "after_manifest": {
+            "entries": [
+              {
+                "path": "runtime_hooks/examples/shared/after.cs",
+                "signatures": [
+                  "public class Service\n{",
+                  "public int Run() => 1;",
+                  "public int Ping() => 0;"
+                ],
+                "semantic_entries": [
+                  {
+                    "kind": "type",
+                    "identity": "type:Service",
+                    "display": "public class Service",
+                    "signature": "public class Service",
+                    "container": "Service",
+                    "qualified_name": "Service",
+                    "namespace": null
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Run",
+                    "display": "public int Run()",
+                    "signature": "int Run()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Ping",
+                    "display": "public int Ping()",
+                    "signature": "int Ping()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  }
+                ]
+              }
+            ]
+          },
+          "removed": [],
+          "added": [
+            "public int Ping() => 0;"
+          ],
+          "compatibility_risk": "low",
+          "breaking_changes": [],
+          "non_breaking_changes": [
+            "New public API introduced: method:Service.Ping"
+          ],
+          "warnings": [
+            "New public API introduced: method:Service.Ping"
+          ],
+          "errors": []
+        },
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "concerns": [
+          "public-api-expansion-risk"
+        ],
+        "impact_report": {
+          "scope": "feature",
+          "active_rules": [
+            "common"
+          ],
+          "touched_layers": [],
+          "boundary_risk": "low",
+          "concerns": [
+            "public-api-expansion-risk"
+          ],
+          "required_evidence": [
+            "architecture-review",
+            "public-api-review"
+          ],
+          "expected_validators": [
+            "architecture_drift_checker",
+            "public_api_diff_checker"
+          ],
+          "recommended_risk": "medium",
+          "recommended_oversight": "review-required",
+          "public_api_diff_present": true
+        },
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required"
+      },
+      "proposal_guidance": {
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required",
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "concerns": [
+          "public-api-expansion-risk"
+        ]
+      },
+      "rule_packs": {
+        "requested": [
+          "common"
+        ],
+        "resolved": [
+          {
+            "name": "common",
+            "category": "scope",
+            "files": [
+              "governance\\rules\\common\\core.md"
+            ]
+          }
+        ],
+        "missing": [],
+        "valid": true
+      },
+      "active_rules": {
+        "requested": [
+          "common"
+        ],
+        "active_rules": [
+          {
+            "name": "common",
+            "category": "scope",
+            "files": [
+              {
+                "path": "governance\\rules\\common\\core.md",
+                "title": "Common Rule Pack",
+                "content": "# Common Rule Pack\n\n- 在實作前先遵守當前 `PLAN` scope。\n- 只要 architecture 或 safety red line 不清楚，就立刻 escalate。\n- 優先做最小、可回滾、且足以滿足任務的變更。"
+              }
+            ]
+          }
+        ],
+        "missing": [],
+        "valid": true
+      }
+    },
+    "pre_task_check": {
+      "ok": false,
+      "project_root": "D:\\ZoneTruth",
+      "plan_path": "D:\\ZoneTruth\\PLAN.md",
+      "freshness": {
+        "status": "CRITICAL",
+        "days_since_update": 24,
+        "threshold_days": 7
+      },
+      "runtime_contract": {
+        "rules": [
+          "common"
+        ],
+        "risk": "medium",
+        "oversight": "review-required",
+        "memory_mode": "candidate",
+        "enforcement_profile": "advisory_mainline",
+        "experimental_enforcement_enabled": false
+      },
+      "suggested_rules_preview": [
+        "common",
+        "zonetruth",
+        "csharp",
+        "swift",
+        "python",
+        "refactor"
+      ],
+      "suggested_skills": [
+        "code-style",
+        "governance-runtime",
+        "python"
+      ],
+      "suggested_agent": "python-agent",
+      "rule_pack_suggestions": {
+        "project_root": "D:\\ZoneTruth",
+        "language_packs": [
+          {
+            "name": "csharp",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "runtime_hooks/examples/shared/after.cs",
+              "runtime_hooks/examples/shared/before.cs"
+            ]
+          },
+          {
+            "name": "swift",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "Package.swift",
+              "Sources/ZoneTruthApp/BodyCompositionRepository.swift",
+              "Sources/ZoneTruthApp/BodyCompositionView.swift",
+              "Sources/ZoneTruthApp/DataImport.swift",
+              "Sources/ZoneTruthApp/FeedbackStores.swift"
+            ]
+          },
+          {
+            "name": "python",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "governance_tools/ab_baseline_validator.py",
+              "governance_tools/ab_cost_backfill_apply.py",
+              "governance_tools/ab_cost_hygiene.py",
+              "governance_tools/ab_cost_parity_audit.py",
+              "governance_tools/ab_smoke_artifact_validator.py"
+            ]
+          }
+        ],
+        "framework_packs": [],
+        "scope_packs": [
+          {
+            "name": "refactor",
+            "category": "scope",
+            "confidence": "low",
+            "reasons": [
+              "\\brefactor\\b"
+            ],
+            "advisory_only": true
+          }
+        ],
+        "domain_packs": [
+          {
+            "name": "zonetruth",
+            "category": "domain",
+            "confidence": "high",
+            "reasons": [
+              "contract.yaml: domain=zonetruth",
+              "contract.yaml rule_root: governance/rules"
+            ]
+          }
+        ],
+        "suggested_skills": [
+          "code-style",
+          "governance-runtime",
+          "python"
+        ],
+        "suggested_agent": "python-agent",
+        "suggested_rules": [
+          "common",
+          "zonetruth",
+          "csharp",
+          "swift",
+          "python"
+        ],
+        "suggested_rules_preview": [
+          "common",
+          "zonetruth",
+          "csharp",
+          "swift",
+          "python",
+          "refactor"
+        ],
+        "notes": [
+          "domain_packs are sourced from contract.yaml rule_roots and take highest priority",
+          "language/framework packs are auto-suggested from repository signals",
+          "scope packs are advisory only and should be confirmed by the contract or human reviewer",
+          "suggested_rules_preview includes advisory scope packs for convenience, but does not mutate the contract",
+          "suggested_skills and suggested_agent are advisory only and do not auto-activate agent behavior"
+        ]
+      },
+      "architecture_impact_preview": {
+        "ok": true,
+        "scope": "refactor",
+        "active_rules": [
+          "common"
+        ],
+        "touched_layers": [],
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "drift_result": {
+          "ok": true,
+          "errors": [],
+          "warnings": [],
+          "findings": [],
+          "files": [],
+          "dependency_diff": {
+            "ok": true,
+            "added": [],
+            "removed": [],
+            "warnings": [],
+            "errors": [],
+            "findings": []
+          }
+        },
+        "public_api_diff": {
+          "ok": true,
+          "before_manifest": {
+            "entries": [
+              {
+                "path": "runtime_hooks/examples/shared/before.cs",
+                "signatures": [
+                  "public class Service\n{",
+                  "public int Run() => 1;"
+                ],
+                "semantic_entries": [
+                  {
+                    "kind": "type",
+                    "identity": "type:Service",
+                    "display": "public class Service",
+                    "signature": "public class Service",
+                    "container": "Service",
+                    "qualified_name": "Service",
+                    "namespace": null
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Run",
+                    "display": "public int Run()",
+                    "signature": "int Run()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  }
+                ]
+              }
+            ]
+          },
+          "after_manifest": {
+            "entries": [
+              {
+                "path": "runtime_hooks/examples/shared/after.cs",
+                "signatures": [
+                  "public class Service\n{",
+                  "public int Run() => 1;",
+                  "public int Ping() => 0;"
+                ],
+                "semantic_entries": [
+                  {
+                    "kind": "type",
+                    "identity": "type:Service",
+                    "display": "public class Service",
+                    "signature": "public class Service",
+                    "container": "Service",
+                    "qualified_name": "Service",
+                    "namespace": null
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Run",
+                    "display": "public int Run()",
+                    "signature": "int Run()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Ping",
+                    "display": "public int Ping()",
+                    "signature": "int Ping()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  }
+                ]
+              }
+            ]
+          },
+          "removed": [],
+          "added": [
+            "public int Ping() => 0;"
+          ],
+          "compatibility_risk": "low",
+          "breaking_changes": [],
+          "non_breaking_changes": [
+            "New public API introduced: method:Service.Ping"
+          ],
+          "warnings": [
+            "New public API introduced: method:Service.Ping"
+          ],
+          "errors": []
+        },
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "concerns": [
+          "public-api-expansion-risk"
+        ],
+        "impact_report": {
+          "scope": "refactor",
+          "active_rules": [
+            "common"
+          ],
+          "touched_layers": [],
+          "boundary_risk": "low",
+          "concerns": [
+            "public-api-expansion-risk"
+          ],
+          "required_evidence": [
+            "architecture-review",
+            "public-api-review"
+          ],
+          "expected_validators": [
+            "architecture_drift_checker",
+            "public_api_diff_checker"
+          ],
+          "recommended_risk": "medium",
+          "recommended_oversight": "review-required",
+          "public_api_diff_present": true
+        },
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required"
+      },
+      "rule_packs": {
+        "requested": [
+          "common"
+        ],
+        "resolved": [
+          {
+            "name": "common",
+            "category": "scope",
+            "files": [
+              "rules\\common\\core.md"
+            ]
+          }
+        ],
+        "missing": [],
+        "valid": true
+      },
+      "active_rules": {
+        "requested": [
+          "common"
+        ],
+        "active_rules": [
+          {
+            "name": "common",
+            "category": "scope",
+            "files": [
+              {
+                "path": "rules\\common\\core.md",
+                "title": "Common Rule Pack"
+              }
+            ]
+          }
+        ],
+        "missing": [],
+        "valid": true,
+        "content_stripped": true,
+        "content_tier": 2
+      },
+      "topic_filter": {
+        "task_topic": "ui_presentation",
+        "filtered_out": [],
+        "rules_loaded": [
+          "common"
+        ]
+      },
+      "contract_resolution": {
+        "source": "explicit",
+        "path": "D:\\ZoneTruth\\contract.yaml",
+        "warnings": [],
+        "error": null
+      },
+      "domain_contract": {
+        "name": "zonetruth-governance-contract",
+        "contract_path": "D:\\ZoneTruth\\contract.yaml",
+        "contract_root": "D:\\ZoneTruth",
+        "documents": [
+          {
+            "path": "D:\\ZoneTruth\\AGENTS.base.md",
+            "exists": true,
+            "content": "# AGENTS.base.md\n<!-- governance-baseline: protected -->\n<!-- baseline_version: 1.0.0 -->\n<!-- DO NOT EDIT — managed by ai-governance-framework -->\n<!-- To add repo-specific rules, create AGENTS.md and extend this file's sections. -->\n<!-- Hash is recorded in .governance/baseline.yaml and verified on every drift check. -->\n\n## Level Alignment\n\n- Declared L0 but involves domain logic, boundary crossing, or behavior change → upgrade to L1\n- Declared L1 but involves core domain, security, data integrity, or irreversible state → upgrade to L2\n- Uncertain classification → upgrade, do not downgrade\n\n## Execution Pipeline\n\nFor L1+, the default workflow is:\n\n1. **Analyze** — understand behavior and constraints before touching code\n2. **Define** — contracts, boundaries, failure paths\n3. **Verify Plan** — what evidence will prove the change is safe\n4. **Implement** — minimum compliant change\n5. **Refactor** — only under evidence protection\n\nDo not skip a step when the omission would hide risk.\n\n## Forbidden Behaviors\n\n- Expand scope beyond what was explicitly instructed\n- Refactor unrelated areas for cleanliness or taste\n- Add speculative abstractions for hypothetical future requirements\n- Fake, inflate, or omit evidence\n- Assume intent when the instruction is ambiguous — ask instead\n\n## Secret Handling\n\n- Never commit tokens, API keys, credentials, or secrets to the repo\n- Never write tokens or credentials into memory/ files or logs\n- If a secret appears in conversation context, do not persist it anywhere\n- `.env` files and credentials must be in `.gitignore` and never staged\n\n## Memory Update Triggers\n\nThe following events require updating PLAN.md and/or the relevant memory/ file:\n\n| Event | Required update |\n|-------|----------------|\n| Milestone reached | PLAN.md phase/sprint + memory/active_task |\n| Architecture decision made | PLAN.md decision log + memory/knowledge_base |\n| Bug fixed with root cause identified | memory/knowledge_base |\n| Risk or incident encountered | PLAN.md risk section + memory/active_task |\n| Session end | memory/active_task (current status) + session_end hook |\n\n## Session Closeout Obligation\n\nWriting `artifacts/session-closeout.txt` before session end is a **governance\nobligation**, not a suggestion.\n\nThe stop hook always calls `session_end` at session end. If the closeout artifact\nis missing or insufficient, the runtime records `closeout_missing` or\n`closeout_insufficient` in the verdict. Memory will not update. The gap is\nauditable and visible to reviewers.\n\n### Required fields\n\nAll fields must be present. Vague values are flagged as insufficient.\n\n```\nTASK_INTENT: <one sentence — declared goal of this session>\nWORK_COMPLETED: <what was actually done — verifiable claims only>\nFILES_TOUCHED: <comma-separated file list, or NONE>\nCHECKS_RUN: <specific commands or checks run, or NONE>\nOPEN_RISKS: <what might be wrong or incomplete, or NONE>\nNOT_DONE: <what was not completed this session, or NONE>\nRECOMMENDED_MEMORY_UPDATE: <what memory/ file should change and why, or NO_UPDATE>\n```\n\n### Rules\n\n- `WORK_COMPLETED` must contain verifiable claims. Do not write \"made improvements\"\n  or \"worked on things\" — these are vague and will be rejected as insufficient.\n- `CHECKS_RUN` must name specific commands if non-`NONE`.\n- If there was no material progress, write `WORK_COMPLETED: NONE` — do not\n  fabricate completions.\n- `NOT_DONE` and `OPEN_RISKS` are the most important fields. AI agents tend to\n  omit failures. Do not.\n\n### If you cannot write the closeout\n\nWrite it anyway with `WORK_COMPLETED: NONE` and explain in `OPEN_RISKS` why\nthe session produced no verifiable output. This is a valid closeout.\n\nSee `docs/session-closeout-schema.md` for examples and field constraints.\n\n## Definition of Done\n\nA task is done when:\n\n- Behavior is explicit and observable\n- Failure paths are guarded\n- Architecture boundaries remain intact\n- Evidence matches the declared risk level\n- PLAN.md and memory/ reflect the new state"
+          },
+          {
+            "path": "D:\\ZoneTruth\\plan.md",
+            "exists": true,
+            "content": "---\naudience: agent-runtime\nauthority: canonical\ncan_override: false\noverridden_by: ~\ndefault_load: always\n---\n\n# PLAN.md — ZoneTruth\n\n> **Project Type**: iOS fitness app + governance toolchain\n> **Primary Language**: Swift (app core) / Python (governance tooling)\n> **Task Level**: L2\n> **Planning Window**: 2026-04-01 ~ 2026-06-30\n> **最後更新**: 2026-06-11\n> **Owner**: Gavin Wu\n> **Freshness**: Sprint (7d)\n\n---\n\n## 專案目標\n\nZoneTruth 是一款 iOS/macOS 訓練分析應用，專注於 Zone 2 訓練品質判斷、多週適應趨勢、以及跨資料源整合。\n\n**Bounded Context:**\n- Zone 2 / VO2 / 肌力訓練品質分析（觀測層 + 政策層分離）\n- Apple HealthKit、Strava、JSON 手動匯入整合\n- 每週適應訊號與訓練狀態推論（non-interventional authority ceiling）\n- AI 代理 token 可觀測性工具（CodeBurn，Class C 觀測，不跨 provider 比較）\n\n**Not Responsible For:**\n- 即時運動監控或即時 coaching\n- Garmin 整合（明確延後至 MVP 後）\n- 計費計算或 cross-provider token 成本估算（CodeBurn P6 constraint C-1）\n- 訓練計劃生成（不在當前語義權限內）\n\n---\n\n## 當前階段與 phase 狀態\n\n- [x] Phase A: 核心分析引擎建立（Zone 2 / VO2 / 強度分析器，觀測 + 政策層分離）\n- [x] Phase B: App 資料源整合（HealthKit adapter、Strava OAuth + 自動 refresh、JSON import）\n- [x] Phase C: 語義治理層（WorkoutEvaluation、InferenceProvenance、weekly signal 遷入 Core）\n- [x] Phase D: 治理邊界強化（boundary guard 規則化、遙測、clean-pilot admissibility）\n- [x] Phase E: 裝置驗證 + 發版準備（on-device HealthKit、Strava 真實憑證測試）\n\n**Current Phase**: Phase E 完成 — 進入 P1 品質提升 / 發版準備\n\n---\n\n## 當前 Sprint / 當前工作\n\n本次產品規格同步（2026-06-09）：\n- [x] 將訓練分析 v3 修訂為 v3.1 執行版：正式採用 C 路線（Apple Watch 活動類型 + 心率特徵反推本次訓練型態）\n- [x] 新增 `docs/TRAINING_CLASSIFICATION_PLAN_V3_1.md`，明確列出 Sprint 0、不要動清單、Swift Core classification object、資料品質下界、重訓例外優先與本週頁純描述規則\n- [x] 確認 v3.1 是規格/計畫同步，不改產品行為、analyzer verdict、weekly rendering contract\n- [x] Sprint 1 信任止血 UI：移除 user-facing `本次意圖`、`目的符合度`、`舊版判定`，並避免重訓第一屏出現 VO2 max 主卡\n- [x] Sprint 2 Core classification object：在 `ZoneTruthCore` 建立 Swift `TrainingClassification` output contract（mode / confidence / data quality / claim level / evidence / warnings / not-applicable reasons / debug）\n- [x] Sprint 3 rule-based classifier aggregator：在 `ZoneTruthCore` 新增 Core-only `TrainingModeClassifier`，輸出 `TrainingClassification`；先驗證資料不足、重訓 high-HR conditioning-like 例外、典型重訓 strengthPattern\n- [x] Sprint 4 Core weekly training-mode distribution：新增 `WeeklyTrainingModeDistributionBuilder`，以 `TrainingModeClassifier` 聚合本週 counts / ratios / descriptive lines；測試鎖住不出現「偏少 / 不足 / 達標」等週目標評價語\n- [x] Sprint 5 游泳特殊分類：補 Core guard tests，鎖住 swimming 即使呈現 Zone 2 / VO2-like 心率，也只能輸出 low data quality / low confidence / secondary reference；sparse swimming 仍為 insufficientData\n- [x] Sprint 6 Core feedback/calibration data shape：新增 `TrainingClassificationFeedback`，可記錄準確 / 有點像 / 不準與 suggested `TrainingMode`；測試鎖住 feedback 不等於原始 intent、且不會改變 classifier output\n- [x] App-facing feedback entry：在 workout detail 加入本地 state 的分類回饋控制（準確 / 有點像 / 不準 + suggested `TrainingMode`），不持久化、不改 classifier、不回填 workout intent\n- [x] Core-only feedback persistence contract：新增 Codable `TrainingClassificationFeedbackRecord`、store protocol、in-memory store 與 save/read tests；不接 SwiftUI、不寫檔案、不改 classifier、不回填 workout intent\n- [x] App feedback UI-to-store adapter：WorkoutDetail feedback control 可透過注入的 `WorkoutClassificationFeedbackRecorder` 將 feedback record 存入 in-memory store；不寫檔案、不接資料庫、不改 classifier、不回填 workout intent\n- [x] Feedback JSON file store adapter：新增 App-layer `FileTrainingClassificationFeedbackStore`，可將 `TrainingClassificationFeedbackRecord` 讀寫到指定 JSON 檔；不接 WorkoutDetailView、不改 UI、不改 classifier、不回填 workout intent\n- [x] Feedback store dependency wiring：`AppEnvironment.live()` 建立 `FileTrainingClassificationFeedbackStore`，`WorkoutListViewModel` 可接收 feedback store；不改 feedback UI 行為、不自動保存、不改 classifier、不回填 workout intent\n- [x] Live feedback recorder + classification snapshot flow：新增 Core `TrainingClassificationSnapshotProvider`，`WorkoutListViewModel` 產生 snapshot 與 recorder，`WorkoutDetailView` 使用 recorder 將完成的 feedback 寫入已注入 store；SwiftUI view 不呼叫 `TrainingModeClassifier`，不回填 workout intent\n- [x] Feedback saved state / duplicate handling：完成 feedback 後 UI 顯示已保存 / 已有相同紀錄 / 待補 suggested mode；同一 workout 的同一 rating + suggested mode 不新增重複 record；不回填 workout intent\n- [x] Zone 2 feature-complete gate closeout：新增 `docs/ZONE2_FEATURE_GATE_CHECKLIST.md`，盤點 manual bounds / Resting HR / reset / single detail / weekly policy 既有測試覆蓋，鎖住非 exact threshold claim；不改 classifier、不擴 UI、不碰 weekly rendering contract\n- [x] Long-term memory hygiene：建立 `memory/00_long_term.md`，補齊 AGENTS.md 要求的 main-session 長期記憶檔；只記 durable context / workflow preferences / active boundaries，不改產品碼或治理規則\n- [x] Apple Health Resting HR import gate fix：修正 read-only HealthKit authorization status 擋住 Resting HR query 的問題；request authorization 後嘗試查詢 baseline，只有 query unauthorized / no data / unavailable 時顯示對應訊息；補測 `.sharingDenied` 但 baseline 可讀仍能匯入\n- [x] Resting HR Zone 2 claim ceiling / state consistency：將 Resting HR-based 建議卡改為「初步 Zone 2 參考範圍」，標示「初步估算，尚未驗證」，等值範圍顯示「目前已套用」且不再顯示待套用；補測 forbidden overclaim 與 button 狀態\n- [x] Training estimator spec split：新增 `docs/TRAINING_ESTIMATOR_EVIDENCE_MAP.md` 與 `docs/APPLE_HEALTH_TRAINING_DATA_ROLE_MATRIX.md`，正式分離「文獻/推論層級」與「Apple Health 資料來源角色」；`docs/APPLE_HEALTH_HIGH_VALUE_EXPANSION.md` 改為 acquisition/prioritization spec，避免 future source-role semantics 混在同一份文件\n- [x] Implementation-facing spec resolution hook：更新 `docs/TRAINING_ANALYSIS_META_SPEC.md` 與 `docs/APPLE_HEALTH_TRAINING_DATA_ROLE_MATRIX.md`，明確規定 analyzer metadata 讀 Evidence Map、source-specific ingestion/display 讀 Apple Health Role Matrix；不改 Swift code、不改 UI、不改 tests\n- [x] Training analysis metadata contract draft：新增 `docs/TRAINING_ANALYSIS_METADATA_CONTRACT.md`，定義 analyzer / importer / display metadata 何時必須帶 `spec_resolution.evidence_layer` 與 `spec_resolution.source_role_layer`；不改 Swift code、不改 UI、不改 tests\n- [x] Core-only spec resolution metadata types：新增 `TrainingSpecResolution` / `EvidenceLayer` / `SourceRoleLayer` / `SourceRoleReason`，以 Codable Core 型別承載 evidence layer 與 source-role layer；不接 analyzer、不改 SwiftUI、不改 HealthKit importer、不碰 weekly rendering\n- [x] TrainingMetricMetadata spec resolution field：新增 backward-compatible `specResolution` 欄位，預設 evidence layer 為 `TRAINING_ESTIMATOR_EVIDENCE_MAP`、source role layer 為 `none`；補測舊 JSON decode 與 Apple Health source-role encode/decode；不改 analyzer、不改 SwiftUI、不改 HealthKit importer、不碰 weekly rendering\n- [x] Apple Health-backed metric source-role metadata：VO2 max、heart-rate recovery、running power、cycling power、workout route 的 Apple Health-backed `TrainingMetricMetadata` 會帶 `APPLE_HEALTH_TRAINING_DATA_ROLE_MATRIX` 與對應 `SourceRoleReason`；不改 SwiftUI、不改 weekly rendering；此項當時未異動 HealthKit read set，後續 sleep context 切片已另行新增 `sleepAnalysis` 讀取\n- [x] Owner acceptance / manual test checklist 2026-06-10：新增 `docs/OWNER_ACCEPTANCE_2026-06-10.md`，整合 VO2 max、Zone 2、肌力分類、Apple Health-backed metadata disclosure、feedback persistence 路徑、不可宣稱邊界與本機 smoke command；後續已補 sleep context 驗收與 `sleepAnalysis` 權限描述\n- [x] Owner acceptance observed wording fix：依實機截圖修正 workout detail 與 weekly dashboard 文案，將訓練目標/覆寫語意改為判讀校準/回饋語意，移除主 UI debug token 與英文來源字串，降低 weekly coaching CTA 語氣，補 weekly rendering / workout detail wording guards；不改 classifier、不改 HealthKit\n- [x] Apple Health sleep context spec sync：更新 `docs/APPLE_HEALTH_TRAINING_DATA_ROLE_MATRIX.md`、`docs/OWNER_ACCEPTANCE_2026-06-10.md` 與 plan，明確 `sleepAnalysis` 是 `AH-R3 supportive_context_signal` / supportive recovery context；修正舊版 HealthKit 權限描述；不改 Swift code、不改 UI、不改 tests\n- [x] Apple Health sleepAnalysis 授權診斷：type authorization log 補 `sleepAnalysis`，sleep query 不再用 `try?` 靜默失敗，log raw/asleep sample counts 與 error reason；不改 classifier、不改 weekly claim、不把睡眠變成恢復診斷\n- [x] 全域設定頁入口：新增 App 層級「設定」分頁，將完整 SettingsView 移出單筆詳情；設定頁顯示 Apple Health 授權狀態卡與「重新要求 Apple Health 授權」按鈕，單筆詳情只保留本次設定摘要；不改 classifier、不改 weekly claim\n- [ ] 下一步：重新在實機跑 owner acceptance；若還有 concern/fail，只針對畫面觀察到的問題定義下一個窄 DONE\n\n本次治理同步（2026-06-09）：\n- [x] 2026-06-11 對齊 `ai-governance-framework` upstream 到 `b841a9c660820`（沿用 external contract / adopt + lock 模式，非 submodule pointer）\n- [x] 套用 F-7 full update：刷新 `.governance/baseline.yaml`、`governance/framework.lock.json`、AGENTS/Copilot advisory、managed hooks 與 memory workflow 入口\n- [x] 補入本次 framework 新增 / 更新的 governance surfaces：`f7_full_update.py`、`memory_workflow.py`、`hook_installer.py`、`dirty_runtime_ledger_detector.py`、hook scripts、F-7 / memory protocol 文件\n- [x] 保持產品 Swift code、UI、tests 不變\n- [x] 對齊 `ai-governance-framework` upstream 到 `9eb793dbf6c6`（沿用 adopt + lock 模式，非 submodule pointer）\n- [x] 補入新拆分的治理 routing / protocol 文件：`AI_GOVERNANCE_UPDATE_PROTOCOL.md`、`F7_FULL_UPDATE.md`、`GOVERNANCE_SURFACE_RULES.md`、`MEMORY_PROTOCOL.md`\n- [x] 刷新 `.governance/baseline.yaml` 與 `governance/framework.lock.json`\n- [x] 保持產品行為、analyzer verdict、weekly rendering contract 不變\n\n前次治理同步（2026-06-05）：\n- [x] 對齊 `ai-governance-framework` upstream 到 `cae11be`（沿用 adopt + lock 模式，非 submodule pointer）\n- [x] 補入適用於非-submodule consuming repo 的新增治理 surface：`claim_enforcement_receipt_validator.py`、`external_governance_submodule_updater.py`、`update-governance-submodule.ps1`、`governance_scope.local.example.yaml`、F-7 updater docs\n- [x] 刷新 `AGENTS.base.md`、`.governance/baseline.yaml`、`governance/framework.lock.json`\n- [x] 修正 `expansion_boundary_checker.py` 與新版 governance surface 的相容性，確認 drift clean\n\n前次治理同步（2026-06-04）：\n- [x] pull `ai-governance-framework` 最新 upstream 到 `0ae039e`\n- [x] 正式 adopt 最新 baseline，新增 `governance/RESPONSE_ENVELOPE_CONTRACT.md`，刷新 `.governance/baseline.yaml`\n- [x] 更新 `governance/framework.lock.json` adopted commit 到 `0ae039e`\n- [x] readiness / drift / version audit 全部通過；response envelope validator valid fixtures 通過\n\n前次治理同步（2026-06-03）：\n- [x] 確認 `ai-governance-framework` upstream 最新快照為 `70a54b3`\n- [x] dry-run adopt / readiness 分析，確認安全導入不會覆寫既有 repo-local 治理檔\n- [x] 補齊缺漏 governance 文件並修正 `contract.yaml` repo identity\n- [x] 更新 framework lock 與 baseline freshness\n\n本次產品切片（2026-06-03）：\n- [x] 完成 P1「個人化 zone 界線設定」垂直 slice：使用者輸入 Resting HR / Zone 2 上下界 → 分析器採用自訂界線 → 週報與單筆詳情顯示已套用個人化設定\n- [x] 支援 Resting HR 產生初步 Zone 2 參考範圍、來源 / 初步估算標示、套用參考範圍、重設回預設界線\n- [x] 支援 Resting HR 建議公式上下偏移量調整，並在設定頁顯示目前 Zone 2 設定狀態摘要\n\n本次研究切片（2026-06-04）：\n- [x] 完成 Training Analysis Literature Review：VO2 max / Zone 2 / Strength 分層整理 gold standard anchor、field estimator、product reference、claim ceiling 與 confidence basis\n- [x] 將 literature review 轉成 `TRAINING_ANALYSIS_META_SPEC.md`：定義 shared metric metadata、confidence ladder、claim ceiling、UI wording rules 與 implementation sequence\n- [x] Slice 1「Core Metadata Types」：新增 method tier / source / reference-standard distance / confidence / claim ceiling metadata 型別，不改 analyzer verdict\n- [x] Slice 2「Analyzer Adapter Metadata」：讓 Zone 2 / VO2 / Strength analyzer result 產出 metadata，但不改既有 verdict threshold；現有 VO2 analyzer 標示為 `vo2_interval_quality`，不宣稱 VO2 max\n- [x] Slice 3「UI Disclosure」最小切片：在單筆分析結果揭露 estimate / measured 狀態與 confidence reason；不改 weekly rendering contract\n- [x] Slice 4「Metric-specific Claim Profiles + Guard Tests」：新增 VO2 / Zone 2 / Strength claim profiles，並驗證 UI disclosure 不混淆 metric-specific claim ceiling\n- [x] Weekly disclosure preflight guard：新增 weekly rendering contract guard，禁止 weekly UI / presenter 出現 metric measurement overclaim\n- [x] Test Candidate 2026-06-04：整理可測範圍、不可宣稱範圍、local smoke commands 與 manual test checklist\n- [x] 測試策略調整：正式產品測試延後到 VO2 max / Zone 2 / Strength 三類功能完整；目前 checkpoint 僅作 developer verification\n- [x] VO2 max scalar estimate/import vertical slice：JSON / domain model 可攜帶 VO2 max estimate，單筆 UI 顯示估算值與 source / claim-bounded disclosure；現有 VO2 interval quality 不被誤當 VO2 max\n- [x] Strength metric vertical slice：JSON / domain model 可攜帶 structured strength metrics，單筆 UI 顯示 exercise-specific direct 1RM / e1RM 類值與 claim-bounded disclosure；heart-rate-only Strength 仍保留 session-pattern claim ceiling\n- [x] 下一步：跑完整 local smoke / meta-closeout，準備第一個 owner acceptance 測試候選\n\n已完成（Phase D）：\n- [x] App-test / App-source boundary guard 規則化（`app_test_boundary_rules` / `app_source_boundary_rules`）\n- [x] 邊界 guard 設定遷至 JSON 單一來源（`scripts/closeout_boundary_patterns.json`）\n- [x] JSON schema 驗證（`schemas/closeout_boundary_patterns.schema.json`）\n- [x] 境界 guard 遙測排放（`artifacts/runtime/boundary-telemetry/`）\n- [x] 邊界趨勢閘道整合 closeout（threshold 控制 + fail-close）\n- [x] Clean-pilot admissibility 整合 closeout（disclosed guard + optional enforce mode）\n- [x] Enforce-mode smoke test（`scripts/closeout_clean_pilot_enforce_smoke.sh`）\n- [x] 10 個 GovernanceBoundaryGuardTests 全部通過\n\n已完成（Phase E P0）：\n- [x] 裝置端 HealthKit 授權 → 載入訓練 → 週報儀表板驗證（2026-05-26）\n- [x] ZoneTruthHost HealthKit capability 簽署確認（裝置可正常啟動）\n- [x] 使用者可見字串全面繁體中文化（e4510c3，185/185 tests pass）\n\n已完成（Phase E P0 全部）：\n- [x] Strava OAuth 端對端測試（Client ID: 248735，redirect URI: zonetruth://localhost）\n\n---\n\n## Backlog\n\n### P0（Phase E 就緒必要條件）\n- [x] 裝置端 HealthKit 查詢路徑驗證（真實裝置，sparse HR 邊界）\n- [x] Strava 真實憑證端對端測試（Client ID: 248735，redirect URI: zonetruth://localhost）\n- [x] `ZoneTruthHost` Xcode project 在裝置上確認 HealthKit 能力簽署正確\n\n### P1（Phase E 品質提升）\n- [x] 個人化 zone 界線設定（Resting HR、Zone 2 上下界輸入、建議 / 套用 / 重設 / 狀態摘要）\n- [x] 擴充邊緣案例標籤集（drift / leakage 閾值附近）\n- [x] VO2/強度分析路徑擴充（接入 interval pattern / recovery hint 觀測訊號到 user-facing reasons）\n- [x] Training Classification v3.1 Sprint 1：信任止血 UI，先修正 user-facing 語義，再進 Core classification object\n- [x] Training Classification v3.1 Sprint 2：Core classification object\n- [x] Training Classification v3.1 Sprint 3：rule-based classifier aggregator\n- [x] Training Classification v3.1 Sprint 4：本週分類分布（descriptive only）\n- [x] Training Classification v3.1 Sprint 5：游泳特殊分類與資料品質下界\n- [x] Training Classification v3.1 Sprint 6：回饋與校準資料形狀\n- [x] Training Classification v3.1 App-facing feedback entry：Workout detail local-state control\n- [x] Training Classification v3.1 Core-only feedback persistence contract\n- [x] Training Classification v3.1 App feedback UI-to-store adapter\n- [x] Training Classification v3.1 feedback JSON file store adapter\n- [x] Training Classification v3.1 feedback store dependency wiring\n- [x] Training Classification v3.1 live recorder / classification snapshot flow\n- [x] Training Classification v3.1 feedback saved state / duplicate handling\n- [ ] Training Classification v3.1 下一步：owner acceptance / manual test checklist 前先定義窄切片\n\n### P2（非阻擋，有空再做）\n- [x] Meta-closeout wrapper（一個指令跑常用 governance / syntax / targeted smoke checks）\n- [x] CodeBurn P6：acquisition surface statistics display（觀測層，遵守 A-1/T-1/C-1/R-1/O-1/V-1 約束）\n- [x] 文字/UI 語氣精修（Zone 2 / VO2 / Strength reasons 與 recommendations 降低高宣稱 / 命令式語氣）\n\n---\n\n## Anti-Goals（當前 sprint / Phase D～E）\n\n- 不實作 Garmin 整合（明確延後至 MVP 後語義/model 穩定）\n- 不實作成本估算、跨 provider token 比較（CodeBurn P6 constraint C-1 / O-1）\n- 不把 advisory threshold 升格為 verified boundary（CodeBurn P7 AT-4）\n- 不在 App layer 重新加入 inference 語義分類呼叫（已由 Core 負責，boundary guard 防線保護）\n- 不在沒有 observed failure 驅動下擴展治理表面（AGENTS.md 原則）\n- 不在 Phase E 開始前做 feature expansion\n\n---\n\n## AI 執行規則\n\n1. **當前 phase 外的 feature** → escalate，不默默開始\n2. **adjacent engineering**（build / test / debug / docs sync / governance analysis）→ 可直接做\n3. **遇到 PLAN.md 不完整或過期** → 先更新 PLAN.md，再繼續\n4. **boundary guard 相關測試** → 任何改動都要跑 `swift test --filter GovernanceBoundaryGuardTests`\n5. **closeout 相關腳本改動** → 要跑 `bash -n scripts/closeout_workout_evaluation.sh`\n6. **App layer 不得** 呼叫 inference 語義分類 / 產生 provenance（boundary guard 負責檢查）\n7. **CodeBurn 工作** → 嚴格遵守 P6 六大約束（A-1、T-1、C-1、R-1、O-1、V-1）\n\n---\n\n## Gate / 完成條件\n\n### Phase D 完成條件（已達成）\n- [x] GovernanceBoundaryGuardTests 10 tests, 0 failures\n- [x] `bash -n scripts/closeout_workout_evaluation.sh` SYNTAX OK\n- [x] boundary telemetry artifact 存在於 `artifacts/runtime/boundary-telemetry/`\n- [x] clean-pilot admissibility smoke 可執行（enforce 模式）\n\n### Phase E 開始條件\n- [x] `version_compatibility.json` 時間戳變更已提交（928f835）\n- [x] Phase D 記憶文件已更新（7fd8a09）\n\n### Phase E 完成條件（已達成）\n- [x] on-device HealthKit 路徑驗證 pass\n- [x] Strava 真實憑證端對端 pass\n- [x] `ZoneTruthHost` 裝置簽署確認\n\n---\n\n## 已知問題與技術債\n\n| 項目 | 狀態 | 優先 |\n|---|---|---|\n| `artifacts/governance/version_compatibility.json` 時間戳未提交 | 待提交 | Low |\n| `PLAN.md` 過去為樣板文件，實質規劃缺失 | 已修正（本次） | Done |\n| P1 個人化 zone 界線設定 | 已完成（Resting HR 建議 / 套用 / 重設 / 狀態摘要） | Done |\n| P1 drift / leakage 邊緣案例標籤 | 已完成（10%/20% leakage、5%/8% drift 邊界提示） | Done |\n| P1 VO2/強度分析路徑擴充 | 已完成（VO2 interval pattern、Strength recovery hint reason） | Done |\n| P2 meta-closeout wrapper | 已完成（`bash scripts/meta_closeout.sh`） | Done |\n| P2 文字/UI 語氣精修 | 已完成（Zone 2 / VO2 / Strength user-facing reasons 與 recommendations 降低高宣稱 / 命令式語氣） | Done |\n| P2 CodeBurn P6 acquisition surface statistics display | 已完成（structural observation only；不做成本 / 跨 provider 比較 / efficiency / optimization） | Done |\n| Training Analysis Literature Review | 已完成（VO2 max / Zone 2 / Strength evidence hierarchy、claim ceiling、confidence basis） | Done |\n| Training Analysis Meta-Spec | 已完成（shared metadata schema、confidence ladder、claim ceiling、UI wording rules、implementation sequence） | Done |\n| Training Analysis Core Metadata Types | 已完成（method tier / source / reference-standard distance / confidence / claim ceiling 型別與 targeted tests） | Done |\n| Training Analysis Analyzer Adapter Metadata | 已完成（Zone 2 / VO2 interval quality / Strength result metadata；不改 verdict threshold） | Done |\n| Training Analysis UI Disclosure | 已完成最小切片（單筆分析揭露 estimate / measured 與 confidence reason；不改 weekly rendering） | Done |\n| Training Analysis Claim Profiles / Guards | 已完成（metric-specific claim profiles；guard tests 防止 UI disclosure 混淆 VO2 / Zone 2 / Strength） | Done |\n| Training Estimator Evidence Map | 已完成（literature/evidence tiers、claim ceiling、UI copy tiers；不含 source-role semantics） | Done |\n| Apple Health Training Data Role Matrix | 已完成（Apple Health `product_reference` / `field_estimator_input` / `supportive_context_signal` 邊界與 overclaim 防線；`sleepAnalysis` 明確為 supportive recovery context） | Done |\n| Implementation-facing spec resolution hook | 已完成（meta-spec 明確區分 evidence-layer 與 source-role-layer 入口；Apple Health matrix 補 implementation hook） | Done |\n| Training Analysis Metadata Contract | 已完成草案（analyzer / importer / display metadata 的 `spec_resolution` 必填時機與 source-role upgrade ban） | Done |\n| Core Spec Resolution Metadata Types | 已完成（Codable `TrainingSpecResolution` 與 evidence/source-role enum；測試證明 analyzer/importer/display envelope 可攜帶） | Done |\n| TrainingMetricMetadata Spec Resolution Field | 已完成（backward-compatible optional decode；新 metadata 可攜帶 Apple Health source-role） | Done |\n| Apple Health-backed Metric Source Roles | 已完成（VO2 max / HRR / running power / cycling power / route metadata 標上 Apple Health role matrix 與 reason） | Done |\n| Owner Acceptance 2026-06-10 | 已完成（目前測試入口，涵蓋 VO2 max / Zone 2 / Strength / Apple Health metadata / sleep context / feedback persistence 與 claim boundaries） | Done |\n| Owner Acceptance Observed Wording Fix | 已完成（實機截圖暴露的目標覆寫、debug token、英文來源字串、爆發力與強 coaching 語氣已修） | Done |\n| Weekly disclosure preflight guard | 已完成（weekly rendering contract 禁止 metric measurement overclaim；未改 weekly UI） | Done |\n| Test Candidate 2026-06-04 | 已升級為 local product acceptance candidate（VO2 max / Zone 2 / Strength 最小 feature gate 完成；尚未產生 TestFlight build） | Done |\n| VO2 max feature-complete slice | 已完成最小切片（scalar estimate/import + source labeling + claim-bounded disclosure；不做 lab-equivalent claim） | Done |\n| Strength feature-complete slice | 已完成最小切片（direct 1RM / e1RM structured metric import/display + claim-bounded disclosure；不做全身/臨床肌力診斷） | Done |\n| Zone 2 feature-complete gate | 已完成（manual bounds / Resting HR / reset / single detail / weekly policy 已盤點；新增 acceptance checklist 鎖住非 exact threshold claim） | Done |\n| Apple Health Resting HR import gate | 已完成（read-only authorization status 不再提前擋掉可讀 baseline query） | Done |\n| Resting HR Zone 2 claim ceiling / state consistency | 已完成（initial heuristic boundary，不宣稱 personalized calibrated threshold；等值狀態不再顯示待套用） | Done |\n| Apple Health sleep context spec sync | 已完成（`sleepAnalysis` 在 Role Matrix / Owner Acceptance / plan 中定位為 supportive recovery context；不做恢復診斷、不做處方、不改 classifier） | Done |\n| Daily memory closeout format | 已標準化（commit/push 狀態、claim ceiling、not-claimed、workspace/remote state 分欄） | Done |\n| `memory/00_long_term.md` 不存在（AGENTS.md 要求） | 已建立最小長期記憶檔 | Done |\n| clean-pilot admissibility 顯示 `false`（unclassified paths 4 個） | 已解決（git 現況只剩 1 個修改） | Resolved |\n| Garmin 整合尚未啟動 | 明確延後 | Deferred |\n\n---\n\n## 里程碑\n\n| 里程碑 | 目標日期 | 狀態 |\n|---|---|---|\n| Phase A: 分析引擎完成 | 2026-04-30 | ✅ Done |\n| Phase B: 資料源整合完成 | 2026-05-10 | ✅ Done |\n| Phase C: 語義治理層完成 | 2026-05-20 | ✅ Done |\n| Phase D: 治理邊界強化完成 | 2026-05-26 | ✅ Done |\n| Phase E: 裝置驗證 + 發版準備 | 2026-05-26 | ✅ Done |\n\n---\n\n## 更新紀錄\n\n| 日期 | 更新內容 |\n|---|---|\n| 2026-06-11 | 增加 Apple Health sleepAnalysis 授權診斷：HealthKit debug log 顯示 sleepAnalysis 權限、sleep query raw/asleep sample counts 與 error reason；產品 claim 與 classifier 不變 |\n| 2026-06-11 | 新增全域設定頁：集中 Apple Health 授權狀態、重新授權入口、Zone 2 / Resting HR / 目標方向設定；單筆詳情改為只顯示本次設定摘要 |\n| 2026-06-11 | 同步 ai-governance-framework 最新 upstream（`b841a9c660820`）：刷新 baseline/framework lock，導入 F-7 full update、memory workflow、managed hook installer、dirty runtime ledger detector 與 Copilot advisory；產品 Swift code/UI/tests 不變 |\n| 2026-06-10 | 完成實機 owner acceptance 第一輪文案修正：workout detail 改為判讀校準語意，weekly dashboard 移除目標覆寫/debug token/英文來源字串並降低 coaching 語氣 |\n| 2026-06-10 | 建立 `docs/OWNER_ACCEPTANCE_2026-06-10.md` 作為最新 owner acceptance 測試入口，整合 VO2 max / Zone 2 / Strength / Apple Health-backed metadata / feedback persistence |\n| 2026-06-11 | 同步 Apple Health sleep context 規格：`sleepAnalysis` 定位為 supportive recovery context，Owner Acceptance 補睡眠驗收與目前 app-requested read set 權限描述 |\n| 2026-06-09 | 完成 Training Classification v3.1 Sprint 2：新增 Core `TrainingClassification` / `TrainingMode` / confidence / data quality / claim level / evidence / warnings / not-applicable / debug 型別與 Codable guard tests；尚未接入 analyzer |\n| 2026-06-09 | 完成 Training Classification v3.1 Sprint 1 信任止血 UI：單次詳情移除本次意圖 / 目的符合度 / 舊版判定，重訓主要 metric surface 不顯示 VO2 max；新增 targeted UI guard tests |\n| 2026-06-09 | 新增 Training Classification Plan v3.1：正式採用 C 路線（資料反推訓練型態），補 Sprint 0、不要動清單、Core classification object、資料品質下界與純描述週分布規則；不改產品行為 |\n| 2026-06-09 | 正式拆分 estimator 規格層：新增 `TRAINING_ESTIMATOR_EVIDENCE_MAP.md` 管 literature/evidence/claim ceiling，新增 `APPLE_HEALTH_TRAINING_DATA_ROLE_MATRIX.md` 管 Apple Health source-role semantics，並將 `APPLE_HEALTH_HIGH_VALUE_EXPANSION.md` 明確定位為 acquisition/prioritization spec |\n| 2026-06-09 | 補上 implementation-facing spec resolution：`TRAINING_ANALYSIS_META_SPEC.md` 明確規定 analyzer metadata 讀 Evidence Map、source-specific ingestion/display 讀 Apple Health Role Matrix，避免 evidence authority 與 source-role semantics 混淆 |\n| 2026-06-10 | 新增 Training Analysis Metadata Contract 草案：定義 analyzer/importer/display metadata 何時必須帶 `spec_resolution.evidence_layer` / `source_role_layer`，並鎖住 source-role 不能升級 evidence authority |\n| 2026-06-10 | 新增 Core-only spec resolution metadata 型別：`TrainingSpecResolution`、`EvidenceLayer`、`SourceRoleLayer`、`SourceRoleReason`，並補 Codable/envelope tests；尚未接入現有 analyzer 或 UI |\n| 2026-06-10 | 將 `TrainingSpecResolution` 接入 `TrainingMetricMetadata`：新欄位預設 Evidence Map + no source-role，舊 JSON 不帶欄位仍可 decode，新 metadata 可帶 Apple Health source-role |\n| 2026-06-10 | 將 Apple Health-backed metric metadata 標上 source-role：VO2 max、HRR、跑步/自行車功率、路線脈絡會攜帶 Apple Health role matrix 與對應 reason |\n| 2026-06-09 | 同步 ai-governance-framework 最新 upstream（`9eb793dbf6c6`）：導入拆分後的 AI Governance update / F-7 / governance surface / memory protocol 文件，刷新 baseline / framework lock；產品行為不變 |\n| 2026-06-05 | 同步 ai-governance-framework 最新 upstream（`cae11be`）導入分析；補入非-submodule consuming repo 適用的治理工具與 F-7 文件，刷新 baseline / framework lock，drift clean / readiness 通過 |\n| 2026-06-04 | 完成 Strength structured metric 最小切片：JSON / domain model / metadata / 單筆 UI disclosure 支援 direct 1RM / e1RM 類肌力指標，並保留 exercise-specific claim ceiling |\n| 2026-06-04 | 完成 VO2 max scalar estimate/import 最小切片：JSON / domain model / metadata / 單筆 UI disclosure 支援 VO2 max estimate，並保留 estimate-only claim ceiling |\n| 2026-06-04 | 調整測試策略：正式產品測試延後到 VO2 max / Zone 2 / Strength 三類 feature-complete；目前 Test Candidate 僅作 developer checkpoint |\n| 2026-06-04 | 建立 Test Candidate 2026-06-04：整理目前可本機測試範圍、claim ceiling、local smoke command 與 manual checklist |\n| 2026-06-04 | 完成 weekly disclosure preflight guard：新增 WeeklyRenderingContractTests，禁止 weekly rendering 出現 VO2 max 實測、精準 Zone 2、1RM/肌力測量等過度宣稱 |\n| 2026-06-04 | 完成 Training Analysis Slice 4 Claim Profiles / Guard Tests：新增 metric-specific claim profiles，修正 Zone 2 驗證提示誤判 CPET 的 UI 文案風險 |\n| 2026-06-04 | 完成 Training Analysis Slice 3 UI Disclosure 最小切片：單筆分析結果顯示 estimate / measured 與 confidence reason，targeted tests 驗證不含過度宣稱 |\n| 2026-06-04 | 標準化 daily memory closeout format：拆分 commit/push status，補 claim ceiling、not-claimed、workspace_state 與 remote_state |\n| 2026-06-04 | 完成 Training Analysis Slice 2 Analyzer Adapter Metadata：Zone 2 / VO2 interval quality / Strength 分析結果附帶 metadata，不改 verdict threshold 或 UI rendering |\n| 2026-06-04 | 完成 Training Analysis Slice 1 Core Metadata Types：新增 method tier / source / reference-standard distance / confidence / claim ceiling 型別與 targeted tests，不改 analyzer verdict |\n| 2026-06-04 | 完成 Training Analysis Meta-Spec：將 literature review 轉成 shared metric metadata、confidence ladder、claim ceiling、UI wording rules 與四段 implementation sequence |\n| 2026-06-04 | 同步 ai-governance-framework 最新 upstream（0ae039e）：導入 response envelope contract、刷新 baseline / framework lock，readiness、drift、version audit 通過 |\n| 2026-06-04 | 完成 Training Analysis Literature Review：整理 VO2 max / Zone 2 / Strength 的學術/臨床標準、field estimator、產品對照與 ZoneTruth claim ceiling |\n| 2026-06-03 | 完成 P2 CodeBurn P6 acquisition surface statistics display：新增 fixture/demo CLI 與 targeted tests，輸出 surface record/source/quarantine 摘要並保留 A-1/T-1/C-1/R-1/O-1/V-1 約束 |\n| 2026-06-03 | 完成 P2 文字/UI 語氣精修：Zone 2 / VO2 / Strength 分析 reasons、recommendations 與 evaluation nextAction 改為觀測 / 建議語氣，新增 targeted tone tests |\n| 2026-06-03 | 完成 P2 meta-closeout wrapper：新增 `bash scripts/meta_closeout.sh` 一鍵跑 syntax、runtime governance smoke、boundary guard 與 weekly UI smoke |\n| 2026-06-03 | 完成 P1 VO2/強度分析路徑擴充：VO2 analysis 顯示 interval pattern hint，Strength analysis 顯示 recovery pattern hint |\n| 2026-06-03 | 完成 P1 drift / leakage 邊緣案例標籤：Zone 3 leakage 10%/20% 與 heart-rate drift 5%/8% 附近會產生低宣稱提示 |\n| 2026-06-03 | 完成 P1 個人化 Zone 2 設定產品線：Resting HR 輸入、建議公式、偏移量調整、套用 / 重設、週報與單筆詳情顯示、設定狀態摘要 |\n| 2026-06-03 | 同步 ai-governance-framework 最新 baseline（70a54b3）導入分析；補齊缺漏治理文件、修正 contract identity、刷新 PLAN freshness |\n| 2026-05-26 | Phase E 全部完成：HealthKit、Strava OAuth、ZoneTruthHost 裝置驗證均通過 |\n| 2026-05-26 | 全面重寫：從樣板文件改為實質專案計劃；導入當前 phase 狀態、backlog、anti-goals、gate 條件 |\n| 2026-05-25 | 對齊 header 欄位（最後更新 / Owner / Freshness）；加入 gitignore runtime artifacts |"
+          },
+          {
+            "path": "D:\\ZoneTruth\\governance\\TESTING.md",
+            "exists": true,
+            "content": "---\naudience: agent-on-demand\nauthority: reference\ncan_override: false\noverridden_by: AGENT.md\ndefault_load: on-demand\n---\n\n# TESTING.md\n**測試策略與品質門檻 - v4.4**\n\n> **Version**: 4.4 | **Priority**: 6（品質守門）\n>\n> 定義在什麼條件下，我們可以合理相信一段程式碼。\n> 測試是 guardrail，不是 KPI。\n\n---\n\n## 1. 核心哲學\n\n- 保護行為\n- 防止 regression\n- 支持安全 refactoring\n- 偏好有意義的 evidence，而不是儀式化 checklist\n\nCoverage 本身不是品質指標。\n\n---\n\n## 2. 測試層級\n\n### L0 - 最低信心\n\n只在 scope 確實很小、rollback 成本也很低時使用。\n\n可接受的 evidence：\n- smoke test\n- manual checklist\n- characterization check\n- presentation-only work 的視覺確認\n- 有需要時的 before / after screenshot 或同等輕量 UI evidence\n\n`L0` 不得被用來逃避本來就需要的 verification。\n\n對 `L0 fast-track` 工作：\n- 只要 task 維持 presentation-only，一個輕量 verification step 就夠\n- 除非 task 升出 `L0`，否則不必要求完整 regression matrix\n- 一旦變更開始影響 behavior、schema、async flow、或 shared logic，就必須升到 `L1`\n\n### L1 - 可維護\n\n一般工作的預設門檻。\n\n預期 evidence 應包含適用的子集合：\n- unit test\n- characterization test\n- contract test\n- build verification\n- failure-path evidence\n\n不是每個 task 都需要每一種 test，但每個 task 都要有足夠 evidence 來為其安全性辯護。\n\n### L2 - 關鍵層\n\n必須在以下面向都有強 evidence：\n- behavior\n- boundary\n- integration\n- regression\n- human-reviewable acceptance criteria\n\n---\n\n## 3. Mandatory Failure-Path Thinking\n\n對 `L1+`，至少要在適用時提供以下 evidence：\n- 一個 invalid input 或 invalid state\n- 一個 boundary value\n- 一條 failure path\n\n若某類別不適用，必須明說。\n\n### 3.1 Critical Function Test Quality\n\ncoverage 可以很高，但測試品質仍然很弱。AI 特別擅長把 coverage 灌高，卻避開最難測、也最決策相關的路徑。\n\n當任一條件成立時，該 function 應視為 **critical**：\n- 會改變 state（write、delete、command dispatch、irreversible transition）\n- 會和 external system 互動（USB、file I/O、network、device API）\n- 是其他模組依賴的接縫（public interface、adapter layer、shared entrypoint）\n- 曾經是 bug surface，或過去發生過 regression\n\n對 critical function：\n- `L1` work 必須涵蓋適用子集合：\n  - normal path\n  - failure path\n  - boundary input\n  - invalid input 或 invalid state\n- `L2` work 應把這四類視為預設期待，除非某類別明確不適用\n\n若缺任何一類，除非有明講且合理說明，否則不能稱作「fully tested」。\n\n建議命名格式：\n- `test_[function]_[scenario]_[expected_outcome]`\n\n較好的例子：\n- `test_parse_version_empty_string_returns_none`\n- `test_send_command_device_disconnected_raises_error`\n- `test_update_firmware_checksum_mismatch_aborts`\n\n避免隱藏意圖的命名：\n- `test_case_1`\n- `test_parse_version_2`\n- `testSendCommand`\n\n### 3.2 Independent Expected-Value Rule\n\nexpected result 必須來自 spec、固定範例、invariant、或 independent fixture，**不能**在 test 裡重寫一遍 production algorithm 來算 expected value。\n\n若 test 用與 production 相同的邏輯計算 expected value，兩邊就可能一起錯，測試不再具備獨立驗證價值。這是 AI 最常用來膨脹 coverage、卻沒有增加防禦力的方式之一。\n\n若無法導出 independent expected value，必須明確把這個 test 標成 characterization test 或 weak coverage，而不能把它當 behavior proof。\n\n在 test 內重寫 production logic 是禁止的。\n\n### 3.3 Test Sensitivity and Mutation Thinking\n\n如果一個 test 在合理的邏輯錯誤下仍然會 pass，它就沒有保護力。高 coverage 但低 sensitivity，比低 coverage 但高 sensitivity 更糟，因為它會製造假信心。\n\n對 critical function 與 regression-sensitive path，test 至少要能在合理的邏輯 mutation 下失敗，例如：\n- boundary flip（`>` 被改成 `>=`）\n- reversed condition\n- removed guard clause\n- loop bound 的 off-by-one\n\n對 bug fix：新增的 test 必須能在原 bug 被重新引入時失敗。若這次修改裡沒有任何 test 能抓到原 defect 的回歸，就不能說 fix 已有 regression protection。\n\n若無法證明 test sensitivity，coverage claim 必須降級。\n\n### 3.4 Stateful and Sequence Behavior\n\n對 stateful 或 workflow-driven code，只做單點 function test 是不夠的。這類系統最常見的失敗，不是出在單一 function call，而是出在一連串操作之間。\n\n對 stateful 或 multi-step code，應加入 sequence test，驗證：\n- 完整 sequence 後的 final state 是否正確\n- sequence 中途失敗時行為如何\n- retry、rollback、recovery path 後的一致性\n\n依 side-effect 類型還要補：\n- external write（DB、file、device）：要 assert persisted state，不只驗證 write function 被呼叫\n- shared / global state modification：要有明確 cleanup 或 restoration verification\n- async dispatch：要有 completion behavior 與 failure-path evidence；不能把 fire-and-forget 當 fully tested\n\n### 3.5 Pure Function and Never-Raises Contracts\n\n宣告了「never raises」或「always returns well-formed output」保證的函式，需要專屬測試策略。保證本身必須由測試來持守，不能只靠文件說明。\n\n**Never-raises 保證**的測試要求：\n- 每種異常輸入類型（`None`、空值、格式錯誤、schema 違反）都必須有獨立測試案例\n- 測試必須 assert 回傳值的結構與 status，不能只驗證「未拋例外」\n- 最壞情況（完全無效輸入）仍必須回傳有用的 degraded output；測試必須明確斷言這個 degraded output 的形狀\n\n**Graceful degradation**（失敗時回傳 `inject=False` 或等效降級結果）的測試要求：\n- 必須覆蓋：目錄不存在、檔案不可讀、JSON 解析失敗、必要欄位缺失\n- 每個失敗路徑的測試都必須 assert 降級回傳值的完整結構，不只確認 flag 值\n- 降級後的回傳值必須符合與正常路徑相同的 key contract\n\n若一個 function 宣稱 never-raises，但測試套件中沒有針對異常輸入的測試，這個保證不能算已驗證。\n\n---\n\n## 4. Repo-Aware Build Policy\n\n### 4.1 Authoritative Build Config\n\n每個 repo 至少應宣告一個 **authoritative** 或 **known-good** build configuration。\n\n每個 task 的最低期待：\n- 驗至少一個 known-good config\n\n### 4.2 Phase-Based Matrix\n\nbuild breadth 應隨 task risk 調整：\n\n| Task Type | Minimum Build Expectation |\n|---|---|\n| 低風險 UI / wording / presentation | Known-good config |\n| 一般 feature / bugfix / refactor | Known-good config，再加 touched path 需要的驗證 |\n| 關鍵邊界 / release / L2 | 擴大到與 boundary risk 相稱的 matrix |\n\n當 repo 現實 baseline 本來就不支持 full Debug / Release 或跨平台 matrix 時，不要硬性要求完整矩陣。\n\n### 4.3 Warning Policy\n\n採用 **baseline-aware** warning policy：\n- touched file 不得引入新 warning\n- 不得在沒有明確說明的情況下惡化既有 warning baseline\n- 若 legacy warning 沒變，不必自動阻擋完成\n\n### 4.4 stdlib-Only Testing Constraints\n\n本專案僅使用 Python stdlib（不允許 `pip install`）。測試必須遵守相同限制：\n\n**允許**：\n- `unittest.mock`（stdlib）\n- `tempfile`、`pathlib`、`os`、`io` 等 stdlib 模組做 fixture isolation\n- `pytest` 作為測試執行器（工具，非 production dependency）\n\n**不允許**：\n- 任何第三方測試輔助函式庫（`faker`、`factory_boy`、`responses`、`freezegun` 等）\n- 任何需要外部服務或 API key 的測試（除非有明確 mock harness）\n\n若某個 test 看起來需要第三方函式庫，這通常是測試設計問題的信號：應以 injection、fixture、或 in-process stub 取代。\n\n注意：test runner（`pytest`）本身不受此限制；限制對象是 production dependency 和 test-helper libraries。\n\n---\n\n## 5. Legacy Refactor Baseline Validation\n\n對 legacy repo 的 refactor，必備 baseline evidence：\n- baseline commit 或 rollback point 的 build 結果\n- modified state 的 build 結果\n- canonical toolchain 與 canonical build command 的確認\n\n若 baseline 本身無法 build，必須明示這次工作是在 unstable baseline 上進行，不能把它表述成 clean、regression-proof 的 refactor。\n\n---\n\n## 6. Evidence Templates\n\n### 6.1 Minimum Refactor Evidence\n\n可接受的 evidence 例如：\n- before / after build result\n- touched-file diff review\n- key call-chain comparison\n- characterization 或 smoke verification，證明核心 behavior 未變\n\n### 6.2 High-Risk Rule Evidence\n\n對高風險工作，evidence 應具體且能讓人 review。例子：\n\n| Rule Type | Acceptable Evidence Examples |\n|---|---|\n| Flash / sequencing safety | before/after diff、ordered call-path list、build pass、explicit unchanged sequence note |\n| Layer boundary | touched entrypoint list、dependency-path inspection、確認無 direct forbidden access |\n| Thread safety | UI update path list、dispatcher usage 確認、failure-path note |\n| Legacy baseline | canonical toolchain、canonical build command、baseline build、modified build |\n\n不要在沒有指出 evidence 的情況下宣稱 `verified`。\n\n### 6.3 Cross-Tool Integration Evidence\n\n當一個 task 修改的 governance tool 與其他工具有跨邊界互動（例如 `session_start` → `session_end` → audit），evidence 必須涵蓋**邊界**，不只是單個工具。\n\n兩個各自通過的 unit test 不等於 integration evidence。\n\n可接受的 integration evidence：\n- 涵蓋完整呼叫鏈的 end-to-end test，使用現實輸入\n- 跨邊界的 return dict shape 驗證（不只驗單一函式內部）\n- producer 輸出降級時，consumer 能正確處理的測試\n\n**不**算 integration evidence：\n- 兩個獨立 unit test 各自通過\n- 只測試 happy path 的 integration sequence\n- mock-only 驗證 downstream function 被呼叫\n\n典型需要 integration evidence 的邊界：\n- `session_end` 寫入 canonical → `session_start` 讀取並注入 context\n- `write_candidate()` 寫入 → `build_canonical_closeout()` 處理 → `closeout_audit` 聚合\n- `pre_task_check` 完成 → `post_task_check` 接收 contract\n\n---\n\n## 7. Hard-to-Test Areas\n\n對 I/O、native、time、environment、或 legacy code：\n- 能 isolate 的先 isolate\n- 單元級 coverage 不現實時，用 characterization\n- 偏好 observed behavior，而不是 mocked fantasy\n\n會遮蔽真實風險的 mocking 是禁止的。\n\n### 7.1 Assertion and Mocking Discipline\n\n每個 test 至少應有一個清楚 assertion，針對：\n- output value\n- state change\n- emitted error 或 failure signal\n\n除非行為本身就是「不拋例外」，且 test name 已明說，否則不能把「沒有 exception」當成唯一通過條件。\n\n較好的 assertion 風格：\n- `assert result == expected_value`\n- `assert device.state == DeviceState.DISCONNECTED`\n- `assert \"checksum mismatch\" in error_log`\n\n只斷言 collaborator 被呼叫的 mock-only test 不夠。例如：\n- 弱：`mock_device.send.assert_called_once()`\n- 較強：assert resulting status、emitted output、或 persisted state\n\n測試也必須保持獨立：\n- 每個 test 都應可單獨執行\n- setup / teardown 必須恢復環境\n- mutable state 不得跨 test 洩漏\n- device、file、port、或 external resource setup 必須在每個 test 中明確處理\n\n### 7.2 Determinism and Flakiness Control\n\n測試必須 deterministic。若一個 test 多跑幾次結果不一致，它就不是 test，而是雜訊。\n\n除非 nondeterminism 本身就是被測行為，否則避免依賴：\n- wall-clock time 或 `datetime.now()`\n- 未 seed 的 random\n- test 執行順序\n- 跨 test 共享的 process state 或 global singleton\n- `sleep()` 或 timing-based synchronization\n\n若 system under test 真的牽涉 time、random、或 async scheduling，應透過 injection 控制：fake clock、seeded random、explicit harness control、或 deterministic event replay。\n\n若測試依賴未受控的 time、random、或 execution order，卻仍宣稱 stable，屬於禁止行為。\n\n### 7.3 Trust Boundary Tests\n\n宣告了信任邊界的元件（例如「只讀 canonical，不讀 candidates」）必須有測試驗證該邊界確實被遵守。信任邊界違反是**靜默失敗**：結果看起來有效，但資料來自不受信任的來源。\n\n**Trust boundary test 的要求**：\n- 若元件宣稱不讀取路徑 X，測試必須在路徑 X 存在且有資料的情況下，驗證結果不受其影響\n- 不能只測試「有讀取路徑 Y」；必須同時測試「沒有讀取路徑 X」\n- 每條已宣告的 trust rule 至少對應一個 boundary test\n\n本專案中典型的 trust boundary pattern：\n\n| 元件 | 宣告的信任規則 | Boundary test 驗證方式 |\n|---|---|---|\n| `closeout_audit` | 只讀 `artifacts/runtime/closeouts/` | 在 candidates dir 放資料，確認 audit 結果不受影響 |\n| `_canonical_closeout_context` | 只讀最新 canonical（依 `closed_at`）；不讀 session-index | 在 session-index 放舊資料，確認 context 回傳的是正確 canonical |\n| `run_session_end` 整合 | canonical 只由 system 寫入；AI candidate 為 untrusted input | candidate 為 schema invalid 時，canonical status 正確反映，不 propagate candidate 的 fields |\n\n若一個元件宣稱有 trust boundary，但 test suite 中沒有任何 boundary test，這個宣告不能算已驗證。\n\n### 7.4 Behavior Source and Test Plan Requirement\n\n沒有可信 expected behavior source 的 test，不是 test，而是猜測偽裝成 verification。\n\n生成 test 前，先識別 expected behavior 的來源：\n- specification 或 design doc\n- public contract 或 interface definition\n- 具有可重現步驟的 bug report\n- reviewer 或 product owner 提供的 acceptance criteria\n- known-good output 的 existing characterization baseline\n- 明確 reviewer instruction\n\n若沒有可信來源，必須明說，並下調所有產出測試的 confidence label。不能只靠閱讀現有 implementation 並假設它是對的，就當作 expected behavior source。\n\n對 non-trivial work，寫 test code 前先給一個簡短 test plan。至少指出：\n- behavior source（誰授權這個 expected behavior）\n- risk level 與 task classification\n- candidate critical path 與 failure path\n- 哪些 category 明確不適用，以及理由\n\n這個順序是為了防止 AI 最常見的失敗模式：在 behavior contract 都還沒立起來前，就先生成大量結構正確但價值很低的測試。\n\n---\n\n## 8. Test Gap Records\n\n當一個有意義的 test 目前做不到時，必須記錄：\n- 原因\n- 風險\n- remediation condition\n\n若沒有 remediation condition，就是隱藏技術債。\n\n### 8.1 Gap Record Format\n\n每筆 gap record 必須自我完備，包含：\n\n```text\nGAP: [工具名稱或函式名稱]\nREASON: [為何目前無法寫出此測試]\nRISK: [哪些失敗模式目前無法被偵測]\nREMEDIATION: [什麼條件成立後，這個 gap 應該被關閉]\n```\n\n範例：\n\n```text\nGAP: linear_integrator API response validation\nREASON: 無 test mode 或 mock API key；CI 環境無法連線外部服務\nRISK: 格式錯誤的 API response 在 runtime 才會被發現\nREMEDIATION: 加入 recorded fixture 或 in-process mock server 後\n```\n\n若無法填寫 REMEDIATION，表示此 gap 為**永久技術債**，必須明確標記，不能靜默略過。\n\nGap records 的位置：直接寫在本節，或寫在對應工具的 `tests/` 目錄下的 `GAPS.md`，兩者選一，保持一致。\n\n---\n\n## 9. Definition of Done\n\n工作完成的條件是：\n- 選用的 evidence 與 task risk 相稱\n- build verification 符合 repo reality\n- relevant failure-path thinking 已套用\n- critical function 有真正的 behavior assertion，而不是儀式化 coverage 或 mock-only check\n- bug fix 在可重現時，與修復同一 change 中附上 regression test\n- 後續 reviewer 能理解為什麼這次變更被視為安全\n\n以下做法明確禁止，無論 test count 或 coverage 百分比多高，都不算 evidence：\n- 在 test 中重寫 production logic\n- 在沒有 independent expected-value reasoning 下宣稱 fully tested\n- 對可重現 bug 沒有 regression test 卻宣稱 regression-safe\n- 依賴未受控的 time、random、或 execution order，卻宣稱 stable test"
+          },
+          {
+            "path": "D:\\ZoneTruth\\governance\\ARCHITECTURE.md",
+            "exists": true,
+            "content": "---\naudience: agent-on-demand\nauthority: reference\ncan_override: false\noverridden_by: SYSTEM_PROMPT.md\ndefault_load: on-demand\n---\n\n# ARCHITECTURE.md\n**架構治理與邊界規則 - v4.2**\n\n> **Version**: 4.2 | **Priority**: 5（結構紅線）\n>\n> 定義系統如何切分、哪些地方可以改、哪些邊界屬於硬紅線。\n\n---\n\n## 0. 載入條件\n\n- 遇到新功能、refactor、邊界調整、或其他非 trivial 的 L1/L2 工作時載入\n- 只要可能有 architecture impact，就應載入；不要等到已經證明出事才載入\n\n---\n\n## 1. 核心原則\n\n### 1.1 Architecture Before Implementation\n\n在實作擴張前，必須先能說清楚：\n- 邊界在哪裡\n- 責任怎麼分\n- 資料怎麼流動\n\n如果連 architecture 都無法清楚表述，實作就還不具備可辯護性。\n\n### 1.2 Explicit Boundaries\n\n每個被碰到的 component 都應能被歸類為以下其中之一：\n- Domain\n- Application\n- Adapter\n- Infrastructure\n\n每個 component 都應回答：\n- 自己負責什麼\n- 自己**明確不負責**什麼\n\n### 1.3 Governance Goal\n\narchitecture governance 的目的，是防止災難性耦合與隱性邊界侵蝕。\n\n它應該降低風險，而不是懲罰 trivial、低風險工作。\n\n---\n\n## 2. Bounded Context\n\n### 2.1 L1+ 必答問題\n\n在任何 boundary-sensitive work 前，先回答：\n- 這件事屬於哪個 bounded context\n- 是否涉及 native API、platform variance、或 external system\n- 是否需要 Anti-Corruption Layer（ACL）\n\n### 2.2 Continue / Escalate / Stop\n\n- **Continue**：context 與 ownership 清楚\n- **Escalate**：大致清楚，但 boundary choice 或 abstraction choice 存在多個可辯護方案\n- **Stop**：提議變更已跨越硬邊界，或根本無法一致分類\n\n不要因為需要設計判斷就直接 stop；除非已經踩線，否則先 escalate。\n\n### 2.3 L0 例外\n\nL0 仍只限於 presentation-only 或 trivial edit，條件是：\n- 不跨 Domain / Infrastructure\n- 不涉及 native / I/O / state interaction\n- 不帶隱性行為變更\n\n典型 L0 例子：\n- copy 與 wording cleanup\n- spacing / layout polish\n- 不改 semantic state 的 color / token 對齊\n- prototype-only UI composition 調整，且不需要動 domain 或 API\n\nL0 不再只限於 typo-level edit，但只要碰到真實行為或邊界影響，就必須升到 L1。\n\n不確定時，升級到 L1。\n\n---\n\n## 3. Domain vs Infrastructure\n\n### 3.1 Domain 硬紅線\n\nDomain **不得**：\n- 直接呼叫 native API\n- 依賴 `.dll`、`.so`、`.dylib`、`.framework` 或同類 runtime binding\n- 依賴 UI、OS、filesystem、network、time、或 environment state\n\nDomain 應只透過明確、穩定的 interface 消費 capability。\n\n### 3.2 Infrastructure Anti-False-Positive Rule\n\n以下情況**不應自動**被判成 infrastructure leakage：\n- pure data transformation\n- OS-agnostic utility\n- compile-time constant\n- presentation-only state mapping\n\n不要用教條式過度擴張，去否定實際上有效的低風險設計。\n\n---\n\n## 4. Anti-Corruption Layer（ACL）\n\n### 4.1 何時必須有 ACL\n\n當以下任一條件成立時，ACL 屬於必需：\n- native 或 external model 與 domain language 不一致\n- 邊界攜帶 state、side effect、async behavior 或 unstable semantic\n- 需要 translation、validation、caching 或 error conversion\n\n### 4.2 何時通常不需要 ACL\n\n- 行為穩定、pure、stateless\n- 程式只做運算\n- 邊界風險本身不具實質意義\n\n`replaceable` 不等於 `立刻抽象一切`。\n\n---\n\n## 5. Interface Rules\n\n以下情況應引入 explicit interface：\n- platform behavior 存在差異\n- resource lifetime 不 trivial\n- ABI 或 binary stability 很重要\n- 邊界預期會獨立於 caller 變動\n\n如果 abstraction cost 大於 boundary risk，就不要引入 speculative interface。\n\n---\n\n## 6. ADR Rules\n\n### 6.1 ADR Trigger\n\n當決策影響以下任何一項時，應建立或更新 ADR：\n- memory ownership strategy\n- cross-platform loading strategy\n- ABI 或 calling convention\n- boundary partitioning\n- long-lived interface placement\n\n### 6.2 Conflict Check\n\n新增 ADR 前先做：\n1. 列出 `docs/adr/` 中相關標題\n2. 找出是否有衝突\n3. 若有歧義，明確標記 supersession 或 escalate\n4. 在新紀錄中連結相關 ADR\n\n沒有做 conflict review 就產出 ADR，屬於 governance failure。\n\n---\n\n## 7. Build Boundary Addendum\n\nbuild-system wiring 是 architecture 的一部分，不只是 tooling 細節。\n\n硬規則：\n- project 只能 include 自己樹內的 header，以及明確核准的 shared layer\n- project **不得**把 peer project 的 private directory 加進 include-search settings\n- build 成功 **不代表** boundary violation 被合理化\n- 如果多個 project 需要同一個 header，應把它移到有明確 ownership 的 shared boundary layer\n\ncross-project private include access 屬於 architecture violation，因為它隱藏耦合並繞過 ownership boundary。\n\n---\n\n## 8. Legacy 與 Refactor 解讀\n\n對 legacy repo 與大型 refactor：\n- 隱藏的歷史耦合是風險，不是藉口\n- baseline instability 要被顯性指出\n- boundary judgment 應以 canonical build environment 為準，不是被隨機 toolchain noise 牽著走\n\n如果 repo 現況讓邊界本身不清楚，就應帶證據 escalate，而不是假裝 architecture 很明顯。\n\n---\n\n## 9. Evidence Expectations\n\n可接受的 architecture evidence 包括：\n- touched-layer list\n- dependency path 或 include path inspection\n- entrypoint / call-path summary\n- before / after boundary diff\n- 明說哪些東西刻意保持不變\n\n不要在沒有明講 evidence 的情況下宣稱 `architecture-safe`。\n\n---\n\n## 10. Final Principle\n\n> **Architecture 的工作，是防止災難性錯誤，不是阻止正常進度。**\n> **硬違規才用 hard stop；真正的設計歧義才用 escalation。**"
+          }
+        ],
+        "ai_behavior_override": [
+          {
+            "path": "D:\\ZoneTruth\\AGENTS.base.md",
+            "exists": true,
+            "content": "# AGENTS.base.md\n<!-- governance-baseline: protected -->\n<!-- baseline_version: 1.0.0 -->\n<!-- DO NOT EDIT — managed by ai-governance-framework -->\n<!-- To add repo-specific rules, create AGENTS.md and extend this file's sections. -->\n<!-- Hash is recorded in .governance/baseline.yaml and verified on every drift check. -->\n\n## Level Alignment\n\n- Declared L0 but involves domain logic, boundary crossing, or behavior change → upgrade to L1\n- Declared L1 but involves core domain, security, data integrity, or irreversible state → upgrade to L2\n- Uncertain classification → upgrade, do not downgrade\n\n## Execution Pipeline\n\nFor L1+, the default workflow is:\n\n1. **Analyze** — understand behavior and constraints before touching code\n2. **Define** — contracts, boundaries, failure paths\n3. **Verify Plan** — what evidence will prove the change is safe\n4. **Implement** — minimum compliant change\n5. **Refactor** — only under evidence protection\n\nDo not skip a step when the omission would hide risk.\n\n## Forbidden Behaviors\n\n- Expand scope beyond what was explicitly instructed\n- Refactor unrelated areas for cleanliness or taste\n- Add speculative abstractions for hypothetical future requirements\n- Fake, inflate, or omit evidence\n- Assume intent when the instruction is ambiguous — ask instead\n\n## Secret Handling\n\n- Never commit tokens, API keys, credentials, or secrets to the repo\n- Never write tokens or credentials into memory/ files or logs\n- If a secret appears in conversation context, do not persist it anywhere\n- `.env` files and credentials must be in `.gitignore` and never staged\n\n## Memory Update Triggers\n\nThe following events require updating PLAN.md and/or the relevant memory/ file:\n\n| Event | Required update |\n|-------|----------------|\n| Milestone reached | PLAN.md phase/sprint + memory/active_task |\n| Architecture decision made | PLAN.md decision log + memory/knowledge_base |\n| Bug fixed with root cause identified | memory/knowledge_base |\n| Risk or incident encountered | PLAN.md risk section + memory/active_task |\n| Session end | memory/active_task (current status) + session_end hook |\n\n## Session Closeout Obligation\n\nWriting `artifacts/session-closeout.txt` before session end is a **governance\nobligation**, not a suggestion.\n\nThe stop hook always calls `session_end` at session end. If the closeout artifact\nis missing or insufficient, the runtime records `closeout_missing` or\n`closeout_insufficient` in the verdict. Memory will not update. The gap is\nauditable and visible to reviewers.\n\n### Required fields\n\nAll fields must be present. Vague values are flagged as insufficient.\n\n```\nTASK_INTENT: <one sentence — declared goal of this session>\nWORK_COMPLETED: <what was actually done — verifiable claims only>\nFILES_TOUCHED: <comma-separated file list, or NONE>\nCHECKS_RUN: <specific commands or checks run, or NONE>\nOPEN_RISKS: <what might be wrong or incomplete, or NONE>\nNOT_DONE: <what was not completed this session, or NONE>\nRECOMMENDED_MEMORY_UPDATE: <what memory/ file should change and why, or NO_UPDATE>\n```\n\n### Rules\n\n- `WORK_COMPLETED` must contain verifiable claims. Do not write \"made improvements\"\n  or \"worked on things\" — these are vague and will be rejected as insufficient.\n- `CHECKS_RUN` must name specific commands if non-`NONE`.\n- If there was no material progress, write `WORK_COMPLETED: NONE` — do not\n  fabricate completions.\n- `NOT_DONE` and `OPEN_RISKS` are the most important fields. AI agents tend to\n  omit failures. Do not.\n\n### If you cannot write the closeout\n\nWrite it anyway with `WORK_COMPLETED: NONE` and explain in `OPEN_RISKS` why\nthe session produced no verifiable output. This is a valid closeout.\n\nSee `docs/session-closeout-schema.md` for examples and field constraints.\n\n## Definition of Done\n\nA task is done when:\n\n- Behavior is explicit and observable\n- Failure paths are guarded\n- Architecture boundaries remain intact\n- Evidence matches the declared risk level\n- PLAN.md and memory/ reflect the new state"
+          }
+        ],
+        "rule_roots": [
+          "D:\\ZoneTruth\\governance\\rules"
+        ],
+        "validators": [],
+        "raw": {
+          "name": "zonetruth-governance-contract",
+          "plugin_version": "1.0.0",
+          "framework_interface_version": "1",
+          "framework_compatible": ">=1.0.0,<2.0.0",
+          "domain": "zonetruth",
+          "documents": [
+            "AGENTS.base.md",
+            "PLAN.md",
+            "governance/TESTING.md",
+            "governance/ARCHITECTURE.md"
+          ],
+          "ai_behavior_override": [
+            "AGENTS.base.md"
+          ],
+          "rule_roots": [
+            "governance/rules"
+          ],
+          "validators": []
+        }
+      },
+      "resolved_contract_file": "D:\\ZoneTruth\\contract.yaml",
+      "summary_first": {
+        "active": false,
+        "task_level": "L1",
+        "note": "full domain contract loaded"
+      },
+      "decision_boundary": {
+        "preconditions_checked": [],
+        "boundary_effect": "pass"
+      },
+      "precondition_gate_validator": {
+        "ok": true,
+        "missing_preconditions": [],
+        "recommended_mode": "allow_analysis_only",
+        "forbidden_claims": [],
+        "rule_refs": [],
+        "signals": {
+          "wants_synthesizable_rtl": false,
+          "wants_control_interface_logic": false,
+          "has_reset_definition": false,
+          "has_handshake_definition": false,
+          "reset_negative_detected": false,
+          "handshake_negative_detected": false
+        }
+      },
+      "assumption_check": {
+        "present": false,
+        "assumptions_present": false,
+        "alternatives_present": false,
+        "alternatives_count": 0,
+        "evidence_present": false,
+        "reframe_present": false,
+        "action_decision": null,
+        "complete": false,
+        "missing": [
+          "assumptions",
+          "alternative_root_causes",
+          "evidence",
+          "reframe_or_validation_step"
+        ]
+      },
+      "evidence_integrity": {
+        "direct_evidence_frozen": false,
+        "source": "no_direct_evidence",
+        "has_strong_marker": false,
+        "has_no_evidence_marker": false
+      },
+      "evidence_integrity_gate": {
+        "ok": true,
+        "gate": "evidence_integrity_gate",
+        "violations": [],
+        "summary": {
+          "case_id": "runtime_task",
+          "kind": "unknown",
+          "phase": "final",
+          "violation_count": 0,
+          "hard_fail": false
+        }
+      },
+      "decision_policy": {
+        "risk_tier": "low",
+        "risk_score": 4.1,
+        "premise_status": "unknown",
+        "evidence_alignment": "absent",
+        "execution_scope": "local_reversible",
+        "reversibility": "easy",
+        "correctness_mode": "bounded_trial",
+        "selected_action": "proceed_with_assumption",
+        "ranked_actions": [
+          {
+            "action": "proceed_with_assumption",
+            "score": 1.4,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          },
+          {
+            "action": "need_more_info",
+            "score": 0.8,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible",
+              "direct_evidence_missing"
+            ]
+          },
+          {
+            "action": "reframe",
+            "score": 0.3,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          },
+          {
+            "action": "proceed",
+            "score": 0.2,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          },
+          {
+            "action": "reject",
+            "score": 0.1,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          }
+        ],
+        "confidence": 1.0,
+        "reasons": [
+          "risk_tier:low",
+          "premise_status:unknown",
+          "evidence_alignment:absent",
+          "execution_scope:local_reversible",
+          "correctness_mode:bounded_trial",
+          "assumption_evidence_missing"
+        ],
+        "required_followup": [
+          "mark_assumption_explicitly",
+          "prepare_rollback_or_fallback"
+        ],
+        "fallback_plan": "Proceed with bounded local change and explicit rollback plan.",
+        "reframed_task": "",
+        "advisory_signals": [
+          "proceeding_under_assumption",
+          "assumption_evidence_missing"
+        ],
+        "decision_action": "proceed_with_assumption",
+        "decision_candidates": [
+          {
+            "action": "proceed_with_assumption",
+            "score": 1.4,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          },
+          {
+            "action": "need_more_info",
+            "score": 0.8,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible",
+              "direct_evidence_missing"
+            ]
+          },
+          {
+            "action": "reframe",
+            "score": 0.3,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          },
+          {
+            "action": "proceed",
+            "score": 0.2,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          },
+          {
+            "action": "reject",
+            "score": 0.1,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          }
+        ]
+      },
+      "runtime_injection": {
+        "snapshot": {
+          "name": "runtime-injection-snapshot-v0",
+          "policy_version": "0",
+          "path": "D:\\ai-governance-framework\\governance\\runtime_injection_snapshot.v0.yaml",
+          "source_refs": [
+            "docs/runtime-injection-layer-plan.md",
+            "docs/decision-context-bridge.md"
+          ],
+          "task_level_scope": [
+            "L0",
+            "L1",
+            "L2"
+          ],
+          "target_agent_classes": [
+            "instruction_capable",
+            "instruction_limited"
+          ],
+          "consumption_requirements": [
+            "inject_before_turn",
+            "reread_before_edit",
+            "require_full_read_for_large_files"
+          ],
+          "validation_requirements": [
+            "require_validation_after_edit",
+            "forbid_claim_without_evidence"
+          ],
+          "escalation_triggers": [
+            "escalate_if_context_degraded",
+            "escalate_if_required_evidence_missing"
+          ]
+        },
+        "signals_checked": [
+          {
+            "signal": "context_degraded",
+            "triggered": false,
+            "action": "pass",
+            "reason": null
+          },
+          {
+            "signal": "required_evidence_missing",
+            "triggered": false,
+            "action": "pass",
+            "reason": null
+          }
+        ],
+        "effect": "pass"
+      },
+      "consumption_observations": {
+        "snapshot": "runtime-injection-snapshot-v0",
+        "observations": [
+          {
+            "requirement": "require_full_read_for_large_files",
+            "applicable": true,
+            "observation_status": "compatible",
+            "observation_confidence": "low",
+            "decision_role": "advisory_only",
+            "observable_proxy": "large_file_detected_without_summary_first_degradation",
+            "matched_paths": [
+              "D:\\ZoneTruth\\plan.md",
+              "D:\\ZoneTruth\\governance\\TESTING.md",
+              "D:\\ZoneTruth\\governance\\ARCHITECTURE.md"
+            ],
+            "line_threshold": 200,
+            "caveat": "compatible observation is not proof that the file was semantically understood"
+          }
+        ]
+      },
+      "phase_classification": {
+        "schema_version": "0.1",
+        "hook": "pre_task_check",
+        "actions": [
+          {
+            "action": "precondition_gate",
+            "phase": "sync_gate",
+            "owner": "pre_task_check",
+            "description": "Execution preconditions and missing-input gate."
+          },
+          {
+            "action": "assumption_check_missing",
+            "phase": "sync_advisory",
+            "owner": "pre_task_check",
+            "description": "Assumption validation structure is incomplete."
+          }
+        ],
+        "phase_summary": {
+          "sync_gate": [
+            "precondition_gate"
+          ],
+          "sync_advisory": [
+            "assumption_check_missing"
+          ]
+        },
+        "rules": {
+          "sync_gate_blocks_execution": true,
+          "sync_advisory_hidden_gate_allowed": false,
+          "async_audit_can_retroactively_change_verdict": false
+        },
+        "unknown_actions": []
+      },
+      "errors": [
+        "PLAN.md freshness is CRITICAL"
+      ],
+      "warnings": [
+        "Suggested language pack 'csharp' is not active; repo signals: runtime_hooks/examples/shared/after.cs, runtime_hooks/examples/shared/before.cs",
+        "Suggested language pack 'swift' is not active; repo signals: Package.swift, Sources/ZoneTruthApp/BodyCompositionRepository.swift",
+        "Suggested language pack 'python' is not active; repo signals: governance_tools/ab_baseline_validator.py, governance_tools/ab_cost_backfill_apply.py",
+        "Advisory scope pack 'refactor' is suggested by task text but not active; signals: \\brefactor\\b",
+        "Assumption check missing before modification planning: missing=assumptions, alternative_root_causes, evidence, reframe_or_validation_step",
+        "Decision policy advisory: assumption evidence missing",
+        "Decision policy advisory: proceeding under assumption"
+      ],
+      "trace_id": "959a57b626c81a02",
+      "output_tier": 2,
+      "reasoning_fragments": [
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "staleness_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "PLAN.md freshness is CRITICAL"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Suggested language pack 'csharp' is not active; repo signals: runtime_hooks/examples/shared/after.cs, runtime_hooks/examples/shared/before.cs"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Suggested language pack 'swift' is not active; repo signals: Package.swift, Sources/ZoneTruthApp/BodyCompositionRepository.swift"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Suggested language pack 'python' is not active; repo signals: governance_tools/ab_baseline_validator.py, governance_tools/ab_cost_backfill_apply.py"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Advisory scope pack 'refactor' is suggested by task text but not active; signals: \\brefactor\\b"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Assumption check missing before modification planning: missing=assumptions, alternative_root_causes, evidence, reframe_or_validation_step"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Decision policy advisory: assumption evidence missing"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Decision policy advisory: proceeding under assumption"
+        }
+      ]
+    },
+    "governance_classification": {
+      "classification_evidence": {
+        "has_file_access": {
+          "value": true,
+          "source": "observed"
+        },
+        "instruction_loaded": {
+          "value": "true",
+          "source": "observed"
+        },
+        "context_integrity": {
+          "value": "unknown",
+          "source": "assumed"
+        },
+        "tool_gate": {
+          "value": "active",
+          "source": "observed"
+        }
+      },
+      "initial_agent_class": null,
+      "effective_agent_class": "instruction_capable",
+      "classification_changed": null,
+      "reclassification_reason": null,
+      "governance_strategy": "injection+enforcement",
+      "injection_reliance": "none"
+    },
+    "closeout_context": {
+      "inject": true,
+      "closeout_status": "missing",
+      "session_id": "session-20260429T030835-9227ce",
+      "closed_at": "2026-04-29T03:08:35.930519+00:00",
+      "injection_level": "none",
+      "task_intent": null,
+      "work_summary": null,
+      "open_risks": [],
+      "diagnostic": "Previous session closeout status: missing."
+    },
+    "plan_context_provenance": {
+      "fidelity": "full",
+      "origin": "PLAN.md",
+      "summary_kind": null
+    },
+    "version_compatibility": {
+      "verdict": "compatible",
+      "enabled_runtime_features": [
+        "agents_rule_candidates",
+        "canonical_closeout",
+        "decision_context_bridge",
+        "post_task_check",
+        "pre_task_check",
+        "session_index"
+      ],
+      "disabled_runtime_features": [],
+      "missing_migrations": [],
+      "repo_manifest_found": true,
+      "error": null,
+      "advisory_only": true
+    }
+  }
+}

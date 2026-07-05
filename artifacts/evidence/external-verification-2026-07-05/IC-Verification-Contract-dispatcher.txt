@@ -1,0 +1,38 @@
+{
+  "event_type": "session_start",
+  "result": {
+    "ok": false,
+    "project_root": "D:\\IC-Verification-Contract",
+    "task_level": "L1",
+    "task_text": "Refactor Avalonia boundary",
+    "status": "blocked",
+    "mode": "controlled_refusal",
+    "reason": "version_compatibility_unsupported",
+    "advisory_only": false,
+    "runtime_contract": {
+      "rules": [],
+      "risk": null,
+      "oversight": null,
+      "memory_mode": null
+    },
+    "pre_task_check": {
+      "ok": false,
+      "warnings": [],
+      "errors": [
+        "version_compatibility_unsupported"
+      ]
+    },
+    "state": {
+      "error": "version_compatibility_unsupported"
+    },
+    "version_compatibility": {
+      "verdict": "unsupported",
+      "enabled_runtime_features": [],
+      "disabled_runtime_features": [],
+      "missing_migrations": [],
+      "repo_manifest_found": false,
+      "error": "version_manifest_load_error:not_found:D:\\IC-Verification-Contract\\.governance\\version_manifest.yaml",
+      "advisory_only": false
+    }
+  }
+}

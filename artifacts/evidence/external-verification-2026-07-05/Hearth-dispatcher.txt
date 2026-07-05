@@ -1,0 +1,2105 @@
+{
+  "event_type": "session_start",
+  "result": {
+    "ok": false,
+    "project_root": "D:\\Hearth",
+    "task_level": "L1",
+    "level_decision": {
+      "requested": null,
+      "detected": "L1",
+      "final": "L1",
+      "upgraded": false,
+      "additional_loads": []
+    },
+    "repo_type": "product",
+    "context_aware_rules": [
+      "common",
+      "typescript",
+      "electron",
+      "avalonia",
+      "cpp",
+      "csharp",
+      "swift",
+      "nextjs",
+      "supabase"
+    ],
+    "authority_filter": {
+      "allowed_count": 3,
+      "include_on_demand": true,
+      "validation_ok": true,
+      "violations": []
+    },
+    "task_text": "Refactor Avalonia boundary",
+    "runtime_contract": {
+      "rules": [
+        "common"
+      ],
+      "risk": "medium",
+      "oversight": "review-required",
+      "memory_mode": "candidate",
+      "enforcement_profile": "advisory_mainline",
+      "experimental_enforcement_enabled": false
+    },
+    "suggested_rules_preview": [
+      "common",
+      "household-finance",
+      "csharp",
+      "objective-c",
+      "cpp",
+      "python",
+      "avalonia",
+      "electron",
+      "refactor"
+    ],
+    "suggested_skills": [
+      "code-style",
+      "governance-runtime",
+      "python"
+    ],
+    "suggested_agent": "python-agent",
+    "rule_pack_suggestions": {
+      "project_root": "D:\\Hearth",
+      "language_packs": [
+        {
+          "name": "csharp",
+          "category": "language",
+          "confidence": "high",
+          "reasons": [
+            "ai-governance-framework/.latest-main/runtime_hooks/examples/shared/after.cs",
+            "ai-governance-framework/.latest-main/runtime_hooks/examples/shared/before.cs",
+            "ai-governance-framework/runtime_hooks/examples/shared/after.cs",
+            "ai-governance-framework/runtime_hooks/examples/shared/before.cs",
+            "ai-governance-framework/tests/_tmp_debug_public_api/after.cs"
+          ]
+        },
+        {
+          "name": "objective-c",
+          "category": "language",
+          "confidence": "high",
+          "reasons": [
+            "node_modules/sharp/src/common.h",
+            "node_modules/sharp/src/metadata.h",
+            "node_modules/sharp/src/operations.h",
+            "node_modules/sharp/src/pipeline.h",
+            "node_modules/sharp/src/stats.h"
+          ]
+        },
+        {
+          "name": "cpp",
+          "category": "language",
+          "confidence": "high",
+          "reasons": [
+            "node_modules/sharp/src/common.cc",
+            "node_modules/sharp/src/common.h",
+            "node_modules/sharp/src/metadata.cc",
+            "node_modules/sharp/src/metadata.h",
+            "node_modules/sharp/src/operations.cc"
+          ]
+        },
+        {
+          "name": "python",
+          "category": "language",
+          "confidence": "high",
+          "reasons": [
+            "ai-governance-framework/governance_harness.py",
+            "ai-governance-framework/requirements.txt",
+            "ai-governance-framework/_classification_governance_smoke.py",
+            "scripts/mob_verifier.py",
+            "tests/test_mob_verifier.py"
+          ]
+        }
+      ],
+      "framework_packs": [
+        {
+          "name": "avalonia",
+          "category": "framework",
+          "confidence": "medium",
+          "reasons": [
+            "Avalonia"
+          ]
+        },
+        {
+          "name": "electron",
+          "category": "framework",
+          "confidence": "medium",
+          "reasons": [
+            "electron"
+          ]
+        }
+      ],
+      "scope_packs": [
+        {
+          "name": "refactor",
+          "category": "scope",
+          "confidence": "low",
+          "reasons": [
+            "\\brefactor\\b"
+          ],
+          "advisory_only": true
+        }
+      ],
+      "domain_packs": [
+        {
+          "name": "household-finance",
+          "category": "domain",
+          "confidence": "high",
+          "reasons": [
+            "contract.yaml: domain=household-finance",
+            "contract.yaml rule_root: governance/rules"
+          ]
+        }
+      ],
+      "suggested_skills": [
+        "code-style",
+        "governance-runtime",
+        "python"
+      ],
+      "suggested_agent": "python-agent",
+      "suggested_rules": [
+        "common",
+        "household-finance",
+        "csharp",
+        "objective-c",
+        "cpp",
+        "python",
+        "avalonia",
+        "electron"
+      ],
+      "suggested_rules_preview": [
+        "common",
+        "household-finance",
+        "csharp",
+        "objective-c",
+        "cpp",
+        "python",
+        "avalonia",
+        "electron",
+        "refactor"
+      ],
+      "notes": [
+        "domain_packs are sourced from contract.yaml rule_roots and take highest priority",
+        "language/framework packs are auto-suggested from repository signals",
+        "scope packs are advisory only and should be confirmed by the contract or human reviewer",
+        "suggested_rules_preview includes advisory scope packs for convenience, but does not mutate the contract",
+        "suggested_skills and suggested_agent are advisory only and do not auto-activate agent behavior"
+      ]
+    },
+    "architecture_impact_preview": {
+      "ok": true,
+      "scope": "refactor",
+      "active_rules": [
+        "common"
+      ],
+      "touched_layers": [],
+      "expected_validators": [
+        "architecture_drift_checker",
+        "public_api_diff_checker"
+      ],
+      "drift_result": {
+        "ok": true,
+        "errors": [],
+        "warnings": [],
+        "findings": [],
+        "files": [],
+        "dependency_diff": {
+          "ok": true,
+          "added": [],
+          "removed": [],
+          "warnings": [],
+          "errors": [],
+          "findings": []
+        }
+      },
+      "public_api_diff": {
+        "ok": true,
+        "before_manifest": {
+          "entries": [
+            {
+              "path": "runtime_hooks/examples/shared/before.cs",
+              "signatures": [
+                "public class Service\n{",
+                "public int Run() => 1;"
+              ],
+              "semantic_entries": [
+                {
+                  "kind": "type",
+                  "identity": "type:Service",
+                  "display": "public class Service",
+                  "signature": "public class Service",
+                  "container": "Service",
+                  "qualified_name": "Service",
+                  "namespace": null
+                },
+                {
+                  "kind": "method",
+                  "identity": "method:Service.Run",
+                  "display": "public int Run()",
+                  "signature": "int Run()",
+                  "container": "Service",
+                  "return_type": "int",
+                  "params": [],
+                  "method_type_params": ""
+                }
+              ]
+            }
+          ]
+        },
+        "after_manifest": {
+          "entries": [
+            {
+              "path": "runtime_hooks/examples/shared/after.cs",
+              "signatures": [
+                "public class Service\n{",
+                "public int Run() => 1;",
+                "public int Ping() => 0;"
+              ],
+              "semantic_entries": [
+                {
+                  "kind": "type",
+                  "identity": "type:Service",
+                  "display": "public class Service",
+                  "signature": "public class Service",
+                  "container": "Service",
+                  "qualified_name": "Service",
+                  "namespace": null
+                },
+                {
+                  "kind": "method",
+                  "identity": "method:Service.Run",
+                  "display": "public int Run()",
+                  "signature": "int Run()",
+                  "container": "Service",
+                  "return_type": "int",
+                  "params": [],
+                  "method_type_params": ""
+                },
+                {
+                  "kind": "method",
+                  "identity": "method:Service.Ping",
+                  "display": "public int Ping()",
+                  "signature": "int Ping()",
+                  "container": "Service",
+                  "return_type": "int",
+                  "params": [],
+                  "method_type_params": ""
+                }
+              ]
+            }
+          ]
+        },
+        "removed": [],
+        "added": [
+          "public int Ping() => 0;"
+        ],
+        "compatibility_risk": "low",
+        "breaking_changes": [],
+        "non_breaking_changes": [
+          "New public API introduced: method:Service.Ping"
+        ],
+        "warnings": [
+          "New public API introduced: method:Service.Ping"
+        ],
+        "errors": []
+      },
+      "required_evidence": [
+        "architecture-review",
+        "public-api-review"
+      ],
+      "concerns": [
+        "public-api-expansion-risk"
+      ],
+      "impact_report": {
+        "scope": "refactor",
+        "active_rules": [
+          "common"
+        ],
+        "touched_layers": [],
+        "boundary_risk": "low",
+        "concerns": [
+          "public-api-expansion-risk"
+        ],
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required",
+        "public_api_diff_present": true
+      },
+      "recommended_risk": "medium",
+      "recommended_oversight": "review-required"
+    },
+    "proposal_guidance": {
+      "recommended_risk": "medium",
+      "recommended_oversight": "review-required",
+      "expected_validators": [
+        "architecture_drift_checker",
+        "public_api_diff_checker"
+      ],
+      "required_evidence": [
+        "architecture-review",
+        "public-api-review"
+      ],
+      "concerns": [
+        "public-api-expansion-risk"
+      ]
+    },
+    "change_proposal": {
+      "task": "Refactor Avalonia boundary",
+      "project_root": "D:\\Hearth",
+      "requested_rules": [
+        "common"
+      ],
+      "suggested_rules_preview": [
+        "common",
+        "household-finance",
+        "csharp",
+        "objective-c",
+        "cpp",
+        "python",
+        "avalonia",
+        "electron",
+        "refactor"
+      ],
+      "rule_pack_suggestions": {
+        "project_root": "D:\\Hearth",
+        "language_packs": [
+          {
+            "name": "csharp",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "ai-governance-framework/.latest-main/runtime_hooks/examples/shared/after.cs",
+              "ai-governance-framework/.latest-main/runtime_hooks/examples/shared/before.cs",
+              "ai-governance-framework/runtime_hooks/examples/shared/after.cs",
+              "ai-governance-framework/runtime_hooks/examples/shared/before.cs",
+              "ai-governance-framework/tests/_tmp_debug_public_api/after.cs"
+            ]
+          },
+          {
+            "name": "objective-c",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "node_modules/sharp/src/common.h",
+              "node_modules/sharp/src/metadata.h",
+              "node_modules/sharp/src/operations.h",
+              "node_modules/sharp/src/pipeline.h",
+              "node_modules/sharp/src/stats.h"
+            ]
+          },
+          {
+            "name": "cpp",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "node_modules/sharp/src/common.cc",
+              "node_modules/sharp/src/common.h",
+              "node_modules/sharp/src/metadata.cc",
+              "node_modules/sharp/src/metadata.h",
+              "node_modules/sharp/src/operations.cc"
+            ]
+          },
+          {
+            "name": "python",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "ai-governance-framework/governance_harness.py",
+              "ai-governance-framework/requirements.txt",
+              "ai-governance-framework/_classification_governance_smoke.py",
+              "scripts/mob_verifier.py",
+              "tests/test_mob_verifier.py"
+            ]
+          }
+        ],
+        "framework_packs": [
+          {
+            "name": "avalonia",
+            "category": "framework",
+            "confidence": "medium",
+            "reasons": [
+              "Avalonia"
+            ]
+          },
+          {
+            "name": "electron",
+            "category": "framework",
+            "confidence": "medium",
+            "reasons": [
+              "electron"
+            ]
+          }
+        ],
+        "scope_packs": [
+          {
+            "name": "refactor",
+            "category": "scope",
+            "confidence": "low",
+            "reasons": [
+              "\\brefactor\\b"
+            ],
+            "advisory_only": true
+          }
+        ],
+        "domain_packs": [
+          {
+            "name": "household-finance",
+            "category": "domain",
+            "confidence": "high",
+            "reasons": [
+              "contract.yaml: domain=household-finance",
+              "contract.yaml rule_root: governance/rules"
+            ]
+          }
+        ],
+        "suggested_skills": [
+          "code-style",
+          "governance-runtime",
+          "python"
+        ],
+        "suggested_agent": "python-agent",
+        "suggested_rules": [
+          "common",
+          "household-finance",
+          "csharp",
+          "objective-c",
+          "cpp",
+          "python",
+          "avalonia",
+          "electron"
+        ],
+        "suggested_rules_preview": [
+          "common",
+          "household-finance",
+          "csharp",
+          "objective-c",
+          "cpp",
+          "python",
+          "avalonia",
+          "electron",
+          "refactor"
+        ],
+        "notes": [
+          "domain_packs are sourced from contract.yaml rule_roots and take highest priority",
+          "language/framework packs are auto-suggested from repository signals",
+          "scope packs are advisory only and should be confirmed by the contract or human reviewer",
+          "suggested_rules_preview includes advisory scope packs for convenience, but does not mutate the contract",
+          "suggested_skills and suggested_agent are advisory only and do not auto-activate agent behavior"
+        ]
+      },
+      "architecture_impact_preview": {
+        "ok": true,
+        "scope": "refactor",
+        "active_rules": [
+          "common"
+        ],
+        "touched_layers": [],
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "drift_result": {
+          "ok": true,
+          "errors": [],
+          "warnings": [],
+          "findings": [],
+          "files": [],
+          "dependency_diff": {
+            "ok": true,
+            "added": [],
+            "removed": [],
+            "warnings": [],
+            "errors": [],
+            "findings": []
+          }
+        },
+        "public_api_diff": {
+          "ok": true,
+          "before_manifest": {
+            "entries": [
+              {
+                "path": "runtime_hooks/examples/shared/before.cs",
+                "signatures": [
+                  "public class Service\n{",
+                  "public int Run() => 1;"
+                ],
+                "semantic_entries": [
+                  {
+                    "kind": "type",
+                    "identity": "type:Service",
+                    "display": "public class Service",
+                    "signature": "public class Service",
+                    "container": "Service",
+                    "qualified_name": "Service",
+                    "namespace": null
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Run",
+                    "display": "public int Run()",
+                    "signature": "int Run()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  }
+                ]
+              }
+            ]
+          },
+          "after_manifest": {
+            "entries": [
+              {
+                "path": "runtime_hooks/examples/shared/after.cs",
+                "signatures": [
+                  "public class Service\n{",
+                  "public int Run() => 1;",
+                  "public int Ping() => 0;"
+                ],
+                "semantic_entries": [
+                  {
+                    "kind": "type",
+                    "identity": "type:Service",
+                    "display": "public class Service",
+                    "signature": "public class Service",
+                    "container": "Service",
+                    "qualified_name": "Service",
+                    "namespace": null
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Run",
+                    "display": "public int Run()",
+                    "signature": "int Run()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Ping",
+                    "display": "public int Ping()",
+                    "signature": "int Ping()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  }
+                ]
+              }
+            ]
+          },
+          "removed": [],
+          "added": [
+            "public int Ping() => 0;"
+          ],
+          "compatibility_risk": "low",
+          "breaking_changes": [],
+          "non_breaking_changes": [
+            "New public API introduced: method:Service.Ping"
+          ],
+          "warnings": [
+            "New public API introduced: method:Service.Ping"
+          ],
+          "errors": []
+        },
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "concerns": [
+          "public-api-expansion-risk"
+        ],
+        "impact_report": {
+          "scope": "refactor",
+          "active_rules": [
+            "common"
+          ],
+          "touched_layers": [],
+          "boundary_risk": "low",
+          "concerns": [
+            "public-api-expansion-risk"
+          ],
+          "required_evidence": [
+            "architecture-review",
+            "public-api-review"
+          ],
+          "expected_validators": [
+            "architecture_drift_checker",
+            "public_api_diff_checker"
+          ],
+          "recommended_risk": "medium",
+          "recommended_oversight": "review-required",
+          "public_api_diff_present": true
+        },
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required"
+      },
+      "proposal_guidance": {
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required",
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "concerns": [
+          "public-api-expansion-risk"
+        ]
+      },
+      "proposal_summary": {
+        "task": "Refactor Avalonia boundary",
+        "requested_rules": [
+          "common"
+        ],
+        "suggested_rules_preview": [
+          "common",
+          "household-finance",
+          "csharp",
+          "objective-c",
+          "cpp",
+          "python",
+          "avalonia",
+          "electron",
+          "refactor"
+        ],
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required",
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "concerns": [
+          "public-api-expansion-risk"
+        ]
+      }
+    },
+    "proposal_summary": {
+      "task": "Refactor Avalonia boundary",
+      "requested_rules": [
+        "common"
+      ],
+      "suggested_rules_preview": [
+        "common",
+        "household-finance",
+        "csharp",
+        "objective-c",
+        "cpp",
+        "python",
+        "avalonia",
+        "electron",
+        "refactor"
+      ],
+      "recommended_risk": "medium",
+      "recommended_oversight": "review-required",
+      "expected_validators": [
+        "architecture_drift_checker",
+        "public_api_diff_checker"
+      ],
+      "required_evidence": [
+        "architecture-review",
+        "public-api-review"
+      ],
+      "concerns": [
+        "public-api-expansion-risk"
+      ]
+    },
+    "resolved_contract_file": "D:\\Hearth\\contract.yaml",
+    "contract_resolution": {
+      "source": "explicit",
+      "path": "D:\\Hearth\\contract.yaml",
+      "warnings": [],
+      "error": null
+    },
+    "domain_contract": {
+      "name": "hearth-contract",
+      "contract_path": "D:\\Hearth\\contract.yaml",
+      "contract_root": "D:\\Hearth",
+      "documents": [
+        {
+          "path": "D:\\Hearth\\AGENTS.base.md",
+          "exists": true,
+          "content": "# AGENTS.base.md\n<!-- governance-baseline: protected -->\n<!-- baseline_version: 1.0.0 -->\n<!-- DO NOT EDIT — managed by ai-governance-framework -->\n<!-- To add repo-specific rules, create AGENTS.md and extend this file's sections. -->\n<!-- Hash is recorded in .governance/baseline.yaml and verified on every drift check. -->\n\n## Level Alignment\n\n- Declared L0 but involves domain logic, boundary crossing, or behavior change → upgrade to L1\n- Declared L1 but involves core domain, security, data integrity, or irreversible state → upgrade to L2\n- Uncertain classification → upgrade, do not downgrade\n\n## Execution Pipeline\n\nFor L1+, the default workflow is:\n\n1. **Analyze** — understand behavior and constraints before touching code\n2. **Define** — contracts, boundaries, failure paths\n3. **Verify Plan** — what evidence will prove the change is safe\n4. **Implement** — minimum compliant change\n5. **Refactor** — only under evidence protection\n\nDo not skip a step when the omission would hide risk.\n\n## Forbidden Behaviors\n\n- Expand scope beyond what was explicitly instructed\n- Refactor unrelated areas for cleanliness or taste\n- Add speculative abstractions for hypothetical future requirements\n- Fake, inflate, or omit evidence\n- Assume intent when the instruction is ambiguous — ask instead\n\n## Secret Handling\n\n- Never commit tokens, API keys, credentials, or secrets to the repo\n- Never write tokens or credentials into memory/ files or logs\n- If a secret appears in conversation context, do not persist it anywhere\n- `.env` files and credentials must be in `.gitignore` and never staged\n\n## Memory Update Triggers\n\nThe following events require updating PLAN.md and/or the relevant memory/ file:\n\n| Event | Required update |\n|-------|----------------|\n| Milestone reached | PLAN.md phase/sprint + memory/active_task |\n| Architecture decision made | PLAN.md decision log + memory/knowledge_base |\n| Bug fixed with root cause identified | memory/knowledge_base |\n| Risk or incident encountered | PLAN.md risk section + memory/active_task |\n| Session end | memory/active_task (current status) + session_end hook |\n\n## Session Closeout Obligation\n\nWriting `artifacts/session-closeout.txt` before session end is a **governance\nobligation**, not a suggestion.\n\nThe stop hook always calls `session_end` at session end. If the closeout artifact\nis missing or insufficient, the runtime records `closeout_missing` or\n`closeout_insufficient` in the verdict. Memory will not update. The gap is\nauditable and visible to reviewers.\n\n### Required fields\n\nAll fields must be present. Vague values are flagged as insufficient.\n\n```\nTASK_INTENT: <one sentence — declared goal of this session>\nWORK_COMPLETED: <what was actually done — verifiable claims only>\nFILES_TOUCHED: <comma-separated file list, or NONE>\nCHECKS_RUN: <specific commands or checks run, or NONE>\nOPEN_RISKS: <what might be wrong or incomplete, or NONE>\nNOT_DONE: <what was not completed this session, or NONE>\nRECOMMENDED_MEMORY_UPDATE: <what memory/ file should change and why, or NO_UPDATE>\n```\n\n### Rules\n\n- `WORK_COMPLETED` must contain verifiable claims. Do not write \"made improvements\"\n  or \"worked on things\" — these are vague and will be rejected as insufficient.\n- `CHECKS_RUN` must name specific commands if non-`NONE`.\n- If there was no material progress, write `WORK_COMPLETED: NONE` — do not\n  fabricate completions.\n- `NOT_DONE` and `OPEN_RISKS` are the most important fields. AI agents tend to\n  omit failures. Do not.\n\n### If you cannot write the closeout\n\nWrite it anyway with `WORK_COMPLETED: NONE` and explain in `OPEN_RISKS` why\nthe session produced no verifiable output. This is a valid closeout.\n\nSee `docs/session-closeout-schema.md` for examples and field constraints.\n\n## Definition of Done\n\nA task is done when:\n\n- Behavior is explicit and observable\n- Failure paths are guarded\n- Architecture boundaries remain intact\n- Evidence matches the declared risk level\n- PLAN.md and memory/ reflect the new state"
+        },
+        {
+          "path": "D:\\Hearth\\PLAN.md",
+          "exists": true,
+          "content": "﻿# PLAN.md — Hearth\n\n> **專案名稱**: Hearth 家庭財務管理\n> **技術棧**: React / TypeScript / Hono / Supabase / Cloudflare\n> **風險等級**: L1-L2（以 correctness / security 為優先）\n> **最後更新**: 2026-06-11\n> **Owner**: GavinWu\n> **Freshness**: Sprint (7d)\n\n---\n\n## 📋 專案目標\n\n- 建立可長期維護的家庭財務管理產品\n- 提供穩定的現金流匯入、分類、月報與投資追蹤\n- 以資料正確性、安全性、可回歸驗證為核心\n\n**Bounded Context**:\n- 個人／家庭帳務管理，不做 ERP\n- 匯入資料以台灣常見格式為主（銀行、信用卡、券商）\n- 平台聚焦單一租戶（每位使用者資料隔離）\n\n**現階段不做**:\n- 企業流程管理\n- 通用 SaaS 白牌化\n- 高度客製報表編輯器\n\n---\n\n## 🏗️ 當前階段\n\n```text\n進度摘要:\n✅ Phase A: 基礎架構與治理落地\n✅ Phase B: 身分驗證與帳戶基礎流程\n✅ Phase C: 現金流匯入與月報\n✅ Phase D: 投資匯入與淨值計算\n✅ Phase E: 排程、PWA、產品完善\n```\n\n**Current Phase**: 穩定化與治理維運（Post-Phase E）\n\n---\n\n## 🔥 本輪聚焦（Sprint 2026-05-23）\n\n### 已完成（前輪收尾）\n- [x] 信用卡匯入日期統一改用「入帳起息日 / posted date」\n- [x] 全信用卡 PDF/CSV parser 套用相同日期語意\n- [x] `excel-monthly` 強化（formula-heavy / recurring sidebar）\n- [x] recurring candidate -> template 攜帶 amount\n- [x] 匯入面板新增一鍵「建立模板並套用本月」\n- [x] 初步資料安全邊界文件化（`docs/security-boundary.md`）\n- [x] `ai-governance-framework` 升級至 v1.2.1 → v1.2.0+post（c5152c1），drift check 17/17 PASS\n- [x] Gmail OAuth `access_type=offline`：解決每小時強制重登問題\n- [x] Gmail 帳單查詢改用 90 天日期視窗（移除 `has:attachment`，maxResults 提升至 12）\n- [x] Items 1-4：PortfolioPanel cron status UI、trigger API、server-side Gmail cron、queue UI\n\n### 已完成（05-17 UI 基礎）\n- [x] CSS design token 全面落地：所有 panel 使用 token，無 hardcoded 色彩\n- [x] Shadcn-style primitive layer（Button/Card/Badge/Tabs/Dialog/Skeleton）\n- [x] Home 資訊架構重整：主流程（Gmail/Import）vs 次要分析 panel 分層\n- [x] 視覺打磨：字體階層、panel 深度、首頁進場動畫（含 reduced-motion）\n- [x] Mobile/無障礙 pass：觸控目標、nav flow、小螢幕間距\n\n### 已完成（05-22 治理 re-onboarding）\n- [x] `ai-governance-framework` submodule URL 對齊 GitLab remote\n- [x] `.governance/version_manifest.yaml` 新增，通過 version_compatibility gate\n- [x] `contract.yaml` 手動決策：`domain=household-finance`、`risk_tier=L2`\n- [x] `governance/framework.lock.json` 採用版本正規化至 `1.2.0`\n- [x] `pre-push` hook bug 修正（`xargs -rI{}`＋stdin-independent fallback）\n- [x] governance drift `severity=ok`，runtime smoke `session_start_ok=True`\n- [x] push 成功，所有 gate 通過\n\n### 已完成（06-11 治理維運）\n- [x] parent `main` 已同步至 `origin/main`\n- [x] `ai-governance-framework` submodule 已更新至 `9f7fa1e3a6b6ac7f90010f7048a23e44ae3ebb52`\n- [x] `governance/framework.lock.json`、`version_compatibility.json`、AGENTS / local hook paths 已對齊\n- [x] Claude / GitHub Copilot / Gemini closeout hooks 已 verify + smoke test compliant\n- [x] runtime append-only ledgers 已依 manual-promotion-only policy 清理，工作樹回到乾淨狀態\n- [x] 2026-06-12 F-7 apply：framework pointer already_current、repo-local instruction already_current、memory writer verified、hook validator updated；existing memory normalization 仍為 not_verified，因此不宣稱 full_update_completed\n\n### 本輪重點（進行中）\n\n#### 手動部署（需人工操作）\n- [x] backend migration 已就緒：`supabase/migrations/20260507000000_add_gmail_server_sync.sql` 存在\n- [x] 執行 Supabase migration `20260507000000_add_gmail_server_sync.sql`（2026-06-13 完成）\n- [x] Cloudflare Dashboard / Wrangler Secret 設定 `GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET`（2026-06-13 完成）\n- [x] 重新登入 app，確認 `provider_refresh_token` 被捕獲並儲存於 `user_settings.gmail_refresh_token`（2026-06-13 完成）\n- [x] Gmail 真實驗證：找到 42 封帳單，永豐信用卡／綜合對帳單可見，匯入正常（2026-06-13 完成）\n- [x] 依 `docs/gmail-server-sync-deploy-runbook.md` 完成驗證並補上 validation log（2026-06-13 完成）\n\n#### UI 元件重設計 pass（本輪開工）\n- [x] GmailSyncPanel 內部元件對齊 design token（狀態指示、佇列列表、無 PDF badge）\n- [x] ImportPanel 內部元件對齊 design token（preview table、結果訊息、recurring candidate 狀態）\n- [x] 統一 form / table / badge 視覺語言，與 home 層級保持一致\n\n#### 安全邊界強化 Phase F-1（本輪開工）\n- [x] RLS hardening map：逐表列出 RLS 狀態與對應路由（`docs/security-rls-map.md`）\n- [x] Route-by-route auth 矩陣：auth + ownership + validation + failure code（`docs/security-route-auth-matrix.md`）\n- [x] Secret lifecycle policy：PDF 密碼 rotation cadence 與 plaintext 消滅目標（`docs/security-secret-lifecycle.md`）\n- [ ] Security F-1 verification pass：對照目前 routes/migrations，修正 stale doc 與缺漏測試項\n\n#### 銀行 PDF 樣本回歸（等樣本）\n- [ ] 玉山/永豐銀行帳戶 PDF 樣本回歸（見 `docs/bank-statement-sample-checklist-esun-sinopac.md`）\n\n---\n\n## 📦 Phase 詳細規劃\n\n### Phase A: 基礎架構與治理\n- [x] Monorepo 建置（web/api/shared）\n- [x] 導入 `ai-governance-framework` submodule\n- [x] 建立 repo-local governance 與 memory 架構\n\n### Phase B: Auth 與帳戶\n- [x] Supabase Auth 前後端串接\n- [x] `GET /api/auth/me` 與 session 驗證\n- [x] 帳戶 CRUD 與 ownership 驗證\n\n### Phase C: 現金流與月報\n- [x] 手動交易 / CSV 匯入 / Sinopac 匯入\n- [x] 信用卡（CSV/PDF）posted-date 語意統一\n- [x] `excel-monthly` 與 recurring candidate 流程\n- [x] recurring template 建立與套用\n- [x] 月報 API / Dashboard / 篩選 / 編修 / 刪除\n\n### Phase D: 投資與淨值\n- [x] 券商 CSV 匯入與 holdings 重建\n- [x] 淨值、成本、股利、FX 追蹤\n- [x] 相關 API / UI 與回歸測試\n\n### Phase E: 排程與產品完善\n- [x] daily update cron 與 ops 檢查\n- [x] PWA（manifest / service worker / icons）\n- [x] smoke/readiness 流程與治理 gate\n\n---\n\n## 🎯 當前決策\n\n- `transactions` 仍為現金流報表單一事實來源\n- `supabase/migrations/` 為 schema 變更唯一真源\n- parser 與匯入流程優先 correctness，其次再追求新功能\n- posted date 作為信用卡入帳月份判定基準\n\n---\n\n## 🚫 現階段不要做\n\n- 重寫既有架構成多服務分散式系統\n- 未定義資料契約下的大型 UI 重構\n- 跳過測試與治理檢查直接發布\n\n---\n\n## 📝 變更歷史\n\n| 日期 | 變更 | 說明 |\n|---|---|---|\n| 2026-05-04 | 信用卡日期語意統一 | 全 parser 改為以 posted date 入帳，避免跨月拆分誤解 |\n| 2026-05-04 | Excel recurring/formula 擴充 | 支援 formula-heavy workbook 與 recurring sidebar 候選擷取 |\n| 2026-05-04 | 一鍵 recurring 套用流程 | 匯入面板新增 create-and-apply 一鍵流程 |\n| 2026-05-04 | 治理同步修正 | 修復 PLAN freshness/section inventory，更新 memory 與 validation log |\n| 2026-05-07 | 治理框架升級 | ai-governance-framework v1.2.1 full adopt，AGENTS.md governance key sections，git hooks，token run checklist |\n| 2026-05-07 | Gmail OAuth 修正 | access_type=offline 解決重登問題；移除 has:attachment，改用 90 天日期視窗 |\n| 2026-05-07 | 股價/匯率/Gmail 排程功能 | Items 1-4：PortfolioPanel cron status UI、trigger API、server-side Gmail cron、queue UI |\n| 2026-05-07 | 治理框架升級至 c5152c1 | v1.2.0+post，drift check 17/17 PASS（expansion_boundary 也通過） |\n| 2026-05-16 | readiness gate 強化 | first-release-readiness 改為 fail-fast；修正 3 個 API 測試期望並恢復 173/173；codeonly readiness PASS |\n| 2026-05-16 | 銀行樣本範圍收斂 | Item 3 續作先聚焦玉山/永豐，新增專用樣本回歸 checklist |\n| 2026-05-17 | UI 設計系統落地 | CSS design token 全面落地；shadcn primitive layer；home 資訊架構重整；視覺打磨；mobile/a11y pass |\n| 2026-05-22 | 治理 re-onboarding | submodule URL 對齊；version_manifest.yaml；risk_tier=L2；pre-push hook bug 修正；push gate 全通過 |\n| 2026-05-23 | PLAN 刷新 | Sprint 視窗更新至 05-23；新增 UI restyling pass 與 Security Phase F-1 工作項 |\n| 2026-06-07 | 治理更新 | F-7 update-governance-submodule 已將 ai-governance-framework 指向 `57db6c164182b560fe6acc017b2ed93899dd422c` |\n| 2026-06-07 | Gmail server sync 落地規劃 | 新增 `docs/gmail-server-sync-deploy-runbook.md`，並將手動部署清單同步為 migration/Cloudflare secrets/provider token/真實驗證待完成項目。 |\n| 2026-06-11 | 治理更新 | parent repo 與 AI Governance submodule 已更新到最新；version/drift/hook smoke 通過，runtime ledger dirty state 已清理。 |\n| 2026-06-11 | Gmail server-sync readiness | 新增 `scripts/gmail-server-sync-readiness.ps1`，本機確認 migration/runbook/config/code prerequisites；外部 Supabase/Cloudflare/Gmail 驗證仍未完成。 |\n| 2026-06-12 | Gmail deployed health readiness | `scripts/gmail-server-sync-readiness.ps1 -ApiBaseUrl https://hearth-api.meiraybooks.workers.dev` PASS；僅確認 Worker health flags，不代表 migration/OAuth/Gmail 真實驗證完成。 |\n| 2026-06-12 | Gmail Supabase migration verifier | 新增 `scripts/gmail-server-sync-supabase-readiness.ps1`，可用 caller-provided DB URL read-only 驗證 migration 是否已套用；未提交任何 secret。 |\n| 2026-06-12 | 治理更新 | `ai-governance-framework` fast-forward 至 `9f7fa1e3a6b6ac7f90010f7048a23e44ae3ebb52`；dry-run PASS，F-7 final_status 保守為 `not_verified`（existing memory normalization 未驗證）。 |\n| 2026-06-12 | UI token pass | GmailSyncPanel / ImportPanel 狀態、badge、preview chip/table、mobile row behavior 對齊現有 design tokens；版本 bump 至 `0.3.1`；web check/build PASS，Browser smoke 0 app console errors。 |\n| 2026-06-12 | Gmail Supabase live verification | User-applied Gmail server-sync migration in Supabase SQL Editor and caller-run `scripts/gmail-server-sync-supabase-readiness.ps1` returned all five PASS checks; OAuth refresh-token capture and real Gmail ingestion still pending. |\n| 2026-06-12 | Gmail deployment boundary | Post-migration API/web smoke PASS；Cloudflare secret list blocked by missing `CLOUDFLARE_API_TOKEN`，因此 Google secrets / OAuth refresh token / real Gmail ingestion 仍未 claim 完成。 |"
+        },
+        {
+          "path": "D:\\Hearth\\governance\\SYSTEM_PROMPT.md",
+          "exists": true,
+          "content": "---\naudience: agent-runtime\nauthority: canonical\ncan_override: false\noverridden_by: ~\ndefault_load: always\n---\n\n# SYSTEM_PROMPT.md\n**Hearth Governance Runtime Entry - v1.0**\n\n> Local canonical runtime prompt for Hearth.\n> Framework concepts come from `ai-governance-framework/`, but repo-local governance files in `governance/` are authoritative for Hearth work.\n\n## 1. Identity\n\nYou are a **governance-first coding agent** operating inside Hearth.\n\nCore values:\n- **Correctness > speed**\n- **Clarity > volume**\n- **Explicit trade-offs > hidden debt**\n\nValid outcomes include continue, escalate, refuse, slow down, and stop.\n\n## 2. Mandatory Initialization\n\nBefore meaningful work:\n\n1. Read `PLAN.md`\n2. Read memory state from:\n   - `memory/01_active_task.md`\n   - `memory/02_tech_stack.md`\n   - `memory/02_project_facts.md`\n   - `memory/03_knowledge_base.md`\n   - `memory/03_decisions.md`\n   - `memory/04_validation_log.md`\n3. Load repo-local governance documents as needed:\n   - `governance/AGENT.md`\n   - `governance/ARCHITECTURE.md`\n   - `governance/TESTING.md`\n   - `governance/HUMAN-OVERSIGHT.md`\n   - `governance/REVIEW_CRITERIA.md` when reviewing\n\n`PLAN.md` remains the source of truth for planned work.\n`memory/01_active_task.md` is the concise current-state handoff.\n`memory/YYYY-MM-DD.md` remains the append-only execution log.\n\n## 3. Memory Sync Contract\n\nTreat the following as active memory surfaces:\n\n| File | Purpose |\n|---|---|\n| `memory/01_active_task.md` | Current task state and next safe step |\n| `memory/02_tech_stack.md` | Runtime/toolchain architecture facts |\n| `memory/02_project_facts.md` | Alias-compatible factual baseline for framework tooling |\n| `memory/03_knowledge_base.md` | Reusable gotchas, anti-patterns, troubleshooting notes |\n| `memory/03_decisions.md` | Durable project decisions and accepted trade-offs |\n| `memory/04_validation_log.md` | Review/build/test/deploy validation history |\n\nDo not let these drift from `PLAN.md`, `MEMORY.md`, or daily notes.\n\n## 4. Priority Rules\n\n- Repo-local `governance/` docs win over framework examples when they conflict for Hearth work.\n- `AGENTS.md` defines workspace/session behavior.\n- `governance/AGENT.md` defines Hearth task classification and rigor.\n- If governance files materially conflict, stop and resolve the mismatch explicitly.\n\n## 5. Scope Policy\n\nAdjacent engineering work is in scope by default when bounded:\n- build\n- test\n- debugging\n- documentation sync\n- memory sync\n- commit preparation\n- governance maintenance\n\nEscalate when:\n- product behavior is materially ambiguous\n- architecture impact is unclear\n- data correctness or ownership constraints may change\n\n## 6. Memory Stewardship\n\nUpdate memory on meaningful state changes:\n- milestone completed -> `memory/01_active_task.md`\n- architectural or product decision -> `memory/03_decisions.md`\n- reusable gotcha discovered -> `memory/03_knowledge_base.md`\n- verification run completed -> `memory/04_validation_log.md`\n- implementation narrative / detailed log -> `memory/YYYY-MM-DD.md`\n\nKeep `memory/01_active_task.md` concise.\n\n## 7. Final Principle\n\n> If the work cannot be explained, verified, and resumed safely from repo-local memory, adoption is incomplete."
+        },
+        {
+          "path": "D:\\Hearth\\governance\\HUMAN-OVERSIGHT.md",
+          "exists": true,
+          "content": "---\naudience: human-only\nauthority: reference\ncan_override: false\noverridden_by: ~\ndefault_load: never\n---\n\n# HUMAN-OVERSIGHT.md\n**Hearth Escalation and Oversight Protocol - v1.0**\n\n## Continue\n\nContinue when:\n- the task is bounded\n- repo-local rules are clear\n- evidence can be gathered locally\n- no meaningful product trade-off is being hidden\n\n## Escalate\n\nEscalate when:\n- multiple product behaviors are reasonable\n- correctness depends on a choice the repo does not already encode\n- scope overlaps unrelated dirty work\n- the next step would silently expand beyond current plan or risk boundary\n\n## Stop\n\nStop when:\n- governance rules materially conflict\n- correctness cannot be defended\n- a high-risk action requires explicit human approval\n\n## Recovery\n\nAfter interruption:\n1. re-read `PLAN.md`\n2. re-read `memory/01_active_task.md`\n3. re-check repo-local governance docs\n\n## Principle\n\n> Escalate for material uncertainty. Stop for defended red lines."
+        },
+        {
+          "path": "D:\\Hearth\\governance\\AGENT.md",
+          "exists": true,
+          "content": "# AGENT.md — Hearth Repo Engineering Governance\n\nVersion: 1.0\nScope: Repo-local engineering governance for Hearth.\n\nThis file defines how engineering changes in Hearth are classified and executed.\nWorkspace behavior remains governed by `AGENTS.md` in repo root.\n\n## Level classification\n\n- `L0`:\n  - docs-only wording fixes\n  - comment/formatting-only changes with no behavior impact\n- `L1`:\n  - UI behavior updates that do not alter financial calculation logic\n  - non-critical API ergonomics or validation messages\n  - import UX improvements without changing parser semantics\n- `L2`:\n  - transaction amount/sign/category/date handling\n  - source-hash dedupe behavior\n  - auth boundary, account ownership scoping, or RLS-sensitive paths\n  - schema changes under `supabase/schema.sql` or `supabase/migrations/`\n  - recurring apply logic and monthly report aggregation\n  - deploy/runtime config that can affect production correctness or data safety\n\nWhen uncertain between levels, upgrade to the higher level.\n\n## Required execution rigor\n\n- `L0`:\n  - bounded change + one lightweight verification\n- `L1`:\n  - explicit behavior statement before implementation\n  - run impacted checks/tests\n  - update docs when surface behavior changes\n- `L2`:\n  - explicit contract and failure-path reasoning\n  - run full affected test suite plus build/check gates\n  - ensure user ownership and data-integrity constraints are preserved\n  - record decision/risk notes in `memory/YYYY-MM-DD.md`\n\n## Escalation triggers\n\nEscalate before proceeding when:\n\n- there are multiple viable product behaviors with different trade-offs\n- scope expansion touches both parser semantics and persistence logic\n- touched files overlap with unrelated pending work in the same areas\n- test evidence cannot convincingly cover changed risk surface\n\n## Hearth-specific guardrails\n\n- Treat `transactions` as source-of-truth for cashflow reporting.\n- Treat ownership checks (`user_id` via auth + account join scoping) as non-optional.\n- Keep import parsers deterministic and repeatable.\n- Do not weaken dedupe rules without explicit migration/backfill plan.\n- Treat `supabase/migrations/` as canonical schema history; `supabase/schema.sql` is the latest bootstrap snapshot."
+        },
+        {
+          "path": "D:\\Hearth\\governance\\ARCHITECTURE.md",
+          "exists": true,
+          "content": "# ARCHITECTURE.md — Hearth Engineering Boundaries\n\nVersion: 1.0\n\n## Core boundaries\n\n- Web app (`apps/web`):\n  - presentation + user interaction\n  - no trust in client-side ownership decisions\n- API worker (`apps/api`):\n  - auth resolution\n  - ownership enforcement\n  - domain orchestration for import/report/recurring flows\n- Supabase:\n  - persistent state\n  - auth identity source\n  - schema constraints and data integrity\n\n## Non-negotiable invariants\n\n- A user can only read/write rows associated with owned accounts.\n- Cashflow report math must be based on persisted `transactions`.\n- Import dedupe must remain deterministic by stable hash inputs.\n- Recurring apply must be idempotent for same template + period.\n\n## Change impact guidance\n\n- Schema updates require matching shared type and API alignment.\n- Parser updates require regression coverage for prior accepted formats.\n- Auth boundary updates require negative-path tests (invalid/missing token).\n- Deploy/runtime config updates require post-deploy smoke verification."
+        },
+        {
+          "path": "D:\\Hearth\\governance\\REVIEW_CRITERIA.md",
+          "exists": true,
+          "content": "---\naudience: human-only\nauthority: reference\ncan_override: false\noverridden_by: ~\ndefault_load: never\n---\n\n# REVIEW_CRITERIA.md\n**Hearth Review Protocol - v1.0**\n\nLoad this document when `SCOPE = review`.\n\n## Review Goals\n\n- verify the change is predictable\n- verify the change is safe\n- verify the evidence matches the risk\n\n## Mandatory Checks\n\n1. Ownership / auth boundary\n2. Import/report correctness\n3. Schema or migration discipline when relevant\n4. Dirty-worktree scope hygiene\n5. Validation evidence quality\n\n## Output Expectations\n\nEvery review should name:\n- finding severity\n- file/location\n- concrete evidence\n- required fix or reason it is non-blocking\n\n## Memory Follow-up\n\nAfter review:\n- append summary to `memory/04_validation_log.md`\n- add next-state note to `memory/01_active_task.md`\n- record any reusable gotcha in `memory/03_knowledge_base.md`"
+        },
+        {
+          "path": "D:\\Hearth\\governance\\TESTING.md",
+          "exists": true,
+          "content": "# TESTING.md — Hearth Verification Baseline\n\nVersion: 1.0\n\n## Default verification commands\n\n- API tests:\n  - `npm --workspace @hearth/api run test`\n- API build:\n  - `npm --workspace @hearth/api run build`\n- Web type-check:\n  - `npm --workspace @hearth/web run check`\n- Readiness:\n  - `npm run readiness:first:codeonly`\n  - `npm run readiness:first`\n  - `npm run readiness:first:strict`\n- Post-deploy smoke:\n  - `npm run smoke:postdeploy`\n\n## By change type\n\n- UI-only L1:\n  - web check + targeted API tests if API contract consumed changed\n- API/domain L1:\n  - API tests + API build + web check when client contract changed\n- L2 domain/security/schema/deploy:\n  - readiness strict before release\n  - post-deploy smoke after deployment\n  - update `supabase/migrations/` and `supabase/schema.sql` together when schema shape changes\n\n## Minimum evidence bar\n\n- No merge/push for functional changes without at least one passing automated verification command.\n- For L2, include explicit mention of the executed commands in commit-adjacent notes (`memory/YYYY-MM-DD.md`)."
+        }
+      ],
+      "ai_behavior_override": [
+        {
+          "path": "D:\\Hearth\\AGENTS.base.md",
+          "exists": true,
+          "content": "# AGENTS.base.md\n<!-- governance-baseline: protected -->\n<!-- baseline_version: 1.0.0 -->\n<!-- DO NOT EDIT — managed by ai-governance-framework -->\n<!-- To add repo-specific rules, create AGENTS.md and extend this file's sections. -->\n<!-- Hash is recorded in .governance/baseline.yaml and verified on every drift check. -->\n\n## Level Alignment\n\n- Declared L0 but involves domain logic, boundary crossing, or behavior change → upgrade to L1\n- Declared L1 but involves core domain, security, data integrity, or irreversible state → upgrade to L2\n- Uncertain classification → upgrade, do not downgrade\n\n## Execution Pipeline\n\nFor L1+, the default workflow is:\n\n1. **Analyze** — understand behavior and constraints before touching code\n2. **Define** — contracts, boundaries, failure paths\n3. **Verify Plan** — what evidence will prove the change is safe\n4. **Implement** — minimum compliant change\n5. **Refactor** — only under evidence protection\n\nDo not skip a step when the omission would hide risk.\n\n## Forbidden Behaviors\n\n- Expand scope beyond what was explicitly instructed\n- Refactor unrelated areas for cleanliness or taste\n- Add speculative abstractions for hypothetical future requirements\n- Fake, inflate, or omit evidence\n- Assume intent when the instruction is ambiguous — ask instead\n\n## Secret Handling\n\n- Never commit tokens, API keys, credentials, or secrets to the repo\n- Never write tokens or credentials into memory/ files or logs\n- If a secret appears in conversation context, do not persist it anywhere\n- `.env` files and credentials must be in `.gitignore` and never staged\n\n## Memory Update Triggers\n\nThe following events require updating PLAN.md and/or the relevant memory/ file:\n\n| Event | Required update |\n|-------|----------------|\n| Milestone reached | PLAN.md phase/sprint + memory/active_task |\n| Architecture decision made | PLAN.md decision log + memory/knowledge_base |\n| Bug fixed with root cause identified | memory/knowledge_base |\n| Risk or incident encountered | PLAN.md risk section + memory/active_task |\n| Session end | memory/active_task (current status) + session_end hook |\n\n## Session Closeout Obligation\n\nWriting `artifacts/session-closeout.txt` before session end is a **governance\nobligation**, not a suggestion.\n\nThe stop hook always calls `session_end` at session end. If the closeout artifact\nis missing or insufficient, the runtime records `closeout_missing` or\n`closeout_insufficient` in the verdict. Memory will not update. The gap is\nauditable and visible to reviewers.\n\n### Required fields\n\nAll fields must be present. Vague values are flagged as insufficient.\n\n```\nTASK_INTENT: <one sentence — declared goal of this session>\nWORK_COMPLETED: <what was actually done — verifiable claims only>\nFILES_TOUCHED: <comma-separated file list, or NONE>\nCHECKS_RUN: <specific commands or checks run, or NONE>\nOPEN_RISKS: <what might be wrong or incomplete, or NONE>\nNOT_DONE: <what was not completed this session, or NONE>\nRECOMMENDED_MEMORY_UPDATE: <what memory/ file should change and why, or NO_UPDATE>\n```\n\n### Rules\n\n- `WORK_COMPLETED` must contain verifiable claims. Do not write \"made improvements\"\n  or \"worked on things\" — these are vague and will be rejected as insufficient.\n- `CHECKS_RUN` must name specific commands if non-`NONE`.\n- If there was no material progress, write `WORK_COMPLETED: NONE` — do not\n  fabricate completions.\n- `NOT_DONE` and `OPEN_RISKS` are the most important fields. AI agents tend to\n  omit failures. Do not.\n\n### If you cannot write the closeout\n\nWrite it anyway with `WORK_COMPLETED: NONE` and explain in `OPEN_RISKS` why\nthe session produced no verifiable output. This is a valid closeout.\n\nSee `docs/session-closeout-schema.md` for examples and field constraints.\n\n## Definition of Done\n\nA task is done when:\n\n- Behavior is explicit and observable\n- Failure paths are guarded\n- Architecture boundaries remain intact\n- Evidence matches the declared risk level\n- PLAN.md and memory/ reflect the new state"
+        }
+      ],
+      "rule_roots": [
+        "D:\\Hearth\\governance\\rules"
+      ],
+      "validators": [],
+      "raw": {
+        "name": "hearth-contract",
+        "plugin_version": "1.0.0",
+        "framework_interface_version": "1",
+        "framework_compatible": ">=1.0.0,<2.0.0",
+        "domain": "household-finance",
+        "risk_tier": "L2",
+        "documents": [
+          "AGENTS.base.md",
+          "PLAN.md",
+          "governance/SYSTEM_PROMPT.md",
+          "governance/HUMAN-OVERSIGHT.md",
+          "governance/AGENT.md",
+          "governance/ARCHITECTURE.md",
+          "governance/REVIEW_CRITERIA.md",
+          "governance/TESTING.md"
+        ],
+        "ai_behavior_override": [
+          "AGENTS.base.md"
+        ],
+        "rule_roots": [
+          "governance/rules"
+        ],
+        "validators": []
+      }
+    },
+    "domain_skip_reason": null,
+    "validator_preflight": {
+      "ok": true,
+      "count": 0,
+      "validators": []
+    },
+    "risk_signal": {
+      "active": false,
+      "overrides": {}
+    },
+    "state": {
+      "generated_at": "2026-07-05T15:03:16.534444+00:00",
+      "state_surface_contract": {
+        "surface_role": "derived_context_snapshot",
+        "authority_scope": "session_context_only",
+        "source_of_truth": {
+          "plan": "D:\\Hearth\\PLAN.md",
+          "runtime_artifacts": "artifacts/runtime/*"
+        },
+        "non_authoritative_for": [
+          "gate_verdict",
+          "classification_validation",
+          "escalation_closure"
+        ],
+        "operator_note": "This file is a convenience snapshot for session bootstrap. It must not be used as sole authority for closure or promotion decisions."
+      },
+      "plan_path": "D:\\Hearth\\PLAN.md",
+      "project_root": "D:\\Hearth",
+      "project": {
+        "owner": "GavinWu",
+        "freshness_policy": "Sprint (7d)"
+      },
+      "current_phase": {
+        "id": null,
+        "name": null
+      },
+      "gate_status": {},
+      "active_sprint": [],
+      "backlog_counts": {
+        "P0": 0,
+        "P1": 0,
+        "P2": 0
+      },
+      "freshness": {
+        "status": "CRITICAL",
+        "last_updated": "2026-06-11",
+        "days_since_update": 24,
+        "threshold_days": 7
+      },
+      "runtime_contract": {
+        "task": "unspecified",
+        "rules": [
+          "common"
+        ],
+        "risk": "medium",
+        "oversight": "review-required",
+        "memory_mode": "candidate"
+      },
+      "suggested_rules_preview": [
+        "common",
+        "household-finance",
+        "csharp",
+        "objective-c",
+        "cpp",
+        "python",
+        "avalonia",
+        "electron",
+        "refactor"
+      ],
+      "suggested_skills": [
+        "code-style",
+        "governance-runtime",
+        "python"
+      ],
+      "suggested_agent": "python-agent",
+      "rule_pack_suggestions": {
+        "project_root": "D:\\Hearth",
+        "language_packs": [
+          {
+            "name": "csharp",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "ai-governance-framework/.latest-main/runtime_hooks/examples/shared/after.cs",
+              "ai-governance-framework/.latest-main/runtime_hooks/examples/shared/before.cs",
+              "ai-governance-framework/runtime_hooks/examples/shared/after.cs",
+              "ai-governance-framework/runtime_hooks/examples/shared/before.cs",
+              "ai-governance-framework/tests/_tmp_debug_public_api/after.cs"
+            ]
+          },
+          {
+            "name": "objective-c",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "node_modules/sharp/src/common.h",
+              "node_modules/sharp/src/metadata.h",
+              "node_modules/sharp/src/operations.h",
+              "node_modules/sharp/src/pipeline.h",
+              "node_modules/sharp/src/stats.h"
+            ]
+          },
+          {
+            "name": "cpp",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "node_modules/sharp/src/common.cc",
+              "node_modules/sharp/src/common.h",
+              "node_modules/sharp/src/metadata.cc",
+              "node_modules/sharp/src/metadata.h",
+              "node_modules/sharp/src/operations.cc"
+            ]
+          },
+          {
+            "name": "python",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "ai-governance-framework/governance_harness.py",
+              "ai-governance-framework/requirements.txt",
+              "ai-governance-framework/_classification_governance_smoke.py",
+              "scripts/mob_verifier.py",
+              "tests/test_mob_verifier.py"
+            ]
+          }
+        ],
+        "framework_packs": [
+          {
+            "name": "avalonia",
+            "category": "framework",
+            "confidence": "medium",
+            "reasons": [
+              "Avalonia"
+            ]
+          },
+          {
+            "name": "electron",
+            "category": "framework",
+            "confidence": "medium",
+            "reasons": [
+              "electron"
+            ]
+          }
+        ],
+        "scope_packs": [
+          {
+            "name": "refactor",
+            "category": "scope",
+            "confidence": "low",
+            "reasons": [
+              "\\brefactor\\b"
+            ],
+            "advisory_only": true
+          }
+        ],
+        "domain_packs": [
+          {
+            "name": "household-finance",
+            "category": "domain",
+            "confidence": "high",
+            "reasons": [
+              "contract.yaml: domain=household-finance",
+              "contract.yaml rule_root: governance/rules"
+            ]
+          }
+        ],
+        "suggested_skills": [
+          "code-style",
+          "governance-runtime",
+          "python"
+        ],
+        "suggested_agent": "python-agent",
+        "suggested_rules": [
+          "common",
+          "household-finance",
+          "csharp",
+          "objective-c",
+          "cpp",
+          "python",
+          "avalonia",
+          "electron"
+        ],
+        "suggested_rules_preview": [
+          "common",
+          "household-finance",
+          "csharp",
+          "objective-c",
+          "cpp",
+          "python",
+          "avalonia",
+          "electron",
+          "refactor"
+        ],
+        "notes": [
+          "domain_packs are sourced from contract.yaml rule_roots and take highest priority",
+          "language/framework packs are auto-suggested from repository signals",
+          "scope packs are advisory only and should be confirmed by the contract or human reviewer",
+          "suggested_rules_preview includes advisory scope packs for convenience, but does not mutate the contract",
+          "suggested_skills and suggested_agent are advisory only and do not auto-activate agent behavior"
+        ]
+      },
+      "architecture_impact_preview": {
+        "ok": true,
+        "scope": "feature",
+        "active_rules": [
+          "common"
+        ],
+        "touched_layers": [],
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "drift_result": {
+          "ok": true,
+          "errors": [],
+          "warnings": [],
+          "findings": [],
+          "files": [],
+          "dependency_diff": {
+            "ok": true,
+            "added": [],
+            "removed": [],
+            "warnings": [],
+            "errors": [],
+            "findings": []
+          }
+        },
+        "public_api_diff": {
+          "ok": true,
+          "before_manifest": {
+            "entries": [
+              {
+                "path": "runtime_hooks/examples/shared/before.cs",
+                "signatures": [
+                  "public class Service\n{",
+                  "public int Run() => 1;"
+                ],
+                "semantic_entries": [
+                  {
+                    "kind": "type",
+                    "identity": "type:Service",
+                    "display": "public class Service",
+                    "signature": "public class Service",
+                    "container": "Service",
+                    "qualified_name": "Service",
+                    "namespace": null
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Run",
+                    "display": "public int Run()",
+                    "signature": "int Run()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  }
+                ]
+              }
+            ]
+          },
+          "after_manifest": {
+            "entries": [
+              {
+                "path": "runtime_hooks/examples/shared/after.cs",
+                "signatures": [
+                  "public class Service\n{",
+                  "public int Run() => 1;",
+                  "public int Ping() => 0;"
+                ],
+                "semantic_entries": [
+                  {
+                    "kind": "type",
+                    "identity": "type:Service",
+                    "display": "public class Service",
+                    "signature": "public class Service",
+                    "container": "Service",
+                    "qualified_name": "Service",
+                    "namespace": null
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Run",
+                    "display": "public int Run()",
+                    "signature": "int Run()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Ping",
+                    "display": "public int Ping()",
+                    "signature": "int Ping()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  }
+                ]
+              }
+            ]
+          },
+          "removed": [],
+          "added": [
+            "public int Ping() => 0;"
+          ],
+          "compatibility_risk": "low",
+          "breaking_changes": [],
+          "non_breaking_changes": [
+            "New public API introduced: method:Service.Ping"
+          ],
+          "warnings": [
+            "New public API introduced: method:Service.Ping"
+          ],
+          "errors": []
+        },
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "concerns": [
+          "public-api-expansion-risk"
+        ],
+        "impact_report": {
+          "scope": "feature",
+          "active_rules": [
+            "common"
+          ],
+          "touched_layers": [],
+          "boundary_risk": "low",
+          "concerns": [
+            "public-api-expansion-risk"
+          ],
+          "required_evidence": [
+            "architecture-review",
+            "public-api-review"
+          ],
+          "expected_validators": [
+            "architecture_drift_checker",
+            "public_api_diff_checker"
+          ],
+          "recommended_risk": "medium",
+          "recommended_oversight": "review-required",
+          "public_api_diff_present": true
+        },
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required"
+      },
+      "proposal_guidance": {
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required",
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "concerns": [
+          "public-api-expansion-risk"
+        ]
+      },
+      "rule_packs": {
+        "requested": [
+          "common"
+        ],
+        "resolved": [
+          {
+            "name": "common",
+            "category": "scope",
+            "files": [
+              "governance\\rules\\common\\core.md"
+            ]
+          }
+        ],
+        "missing": [],
+        "valid": true
+      },
+      "active_rules": {
+        "requested": [
+          "common"
+        ],
+        "active_rules": [
+          {
+            "name": "common",
+            "category": "scope",
+            "files": [
+              {
+                "path": "governance\\rules\\common\\core.md",
+                "title": "Common Rule Pack",
+                "content": "# Common Rule Pack\n\n- 在實作前先遵守當前 `PLAN` scope。\n- 只要 architecture 或 safety red line 不清楚，就立刻 escalate。\n- 優先做最小、可回滾、且足以滿足任務的變更。"
+              }
+            ]
+          }
+        ],
+        "missing": [],
+        "valid": true
+      }
+    },
+    "pre_task_check": {
+      "ok": false,
+      "project_root": "D:\\Hearth",
+      "plan_path": "D:\\Hearth\\PLAN.md",
+      "freshness": {
+        "status": "CRITICAL",
+        "days_since_update": 24,
+        "threshold_days": 7
+      },
+      "runtime_contract": {
+        "rules": [
+          "common"
+        ],
+        "risk": "medium",
+        "oversight": "review-required",
+        "memory_mode": "candidate",
+        "enforcement_profile": "advisory_mainline",
+        "experimental_enforcement_enabled": false
+      },
+      "suggested_rules_preview": [
+        "common",
+        "household-finance",
+        "csharp",
+        "objective-c",
+        "cpp",
+        "python",
+        "avalonia",
+        "electron",
+        "refactor"
+      ],
+      "suggested_skills": [
+        "code-style",
+        "governance-runtime",
+        "python"
+      ],
+      "suggested_agent": "python-agent",
+      "rule_pack_suggestions": {
+        "project_root": "D:\\Hearth",
+        "language_packs": [
+          {
+            "name": "csharp",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "ai-governance-framework/.latest-main/runtime_hooks/examples/shared/after.cs",
+              "ai-governance-framework/.latest-main/runtime_hooks/examples/shared/before.cs",
+              "ai-governance-framework/runtime_hooks/examples/shared/after.cs",
+              "ai-governance-framework/runtime_hooks/examples/shared/before.cs",
+              "ai-governance-framework/tests/_tmp_debug_public_api/after.cs"
+            ]
+          },
+          {
+            "name": "objective-c",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "node_modules/sharp/src/common.h",
+              "node_modules/sharp/src/metadata.h",
+              "node_modules/sharp/src/operations.h",
+              "node_modules/sharp/src/pipeline.h",
+              "node_modules/sharp/src/stats.h"
+            ]
+          },
+          {
+            "name": "cpp",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "node_modules/sharp/src/common.cc",
+              "node_modules/sharp/src/common.h",
+              "node_modules/sharp/src/metadata.cc",
+              "node_modules/sharp/src/metadata.h",
+              "node_modules/sharp/src/operations.cc"
+            ]
+          },
+          {
+            "name": "python",
+            "category": "language",
+            "confidence": "high",
+            "reasons": [
+              "ai-governance-framework/governance_harness.py",
+              "ai-governance-framework/requirements.txt",
+              "ai-governance-framework/_classification_governance_smoke.py",
+              "scripts/mob_verifier.py",
+              "tests/test_mob_verifier.py"
+            ]
+          }
+        ],
+        "framework_packs": [
+          {
+            "name": "avalonia",
+            "category": "framework",
+            "confidence": "medium",
+            "reasons": [
+              "Avalonia"
+            ]
+          },
+          {
+            "name": "electron",
+            "category": "framework",
+            "confidence": "medium",
+            "reasons": [
+              "electron"
+            ]
+          }
+        ],
+        "scope_packs": [
+          {
+            "name": "refactor",
+            "category": "scope",
+            "confidence": "low",
+            "reasons": [
+              "\\brefactor\\b"
+            ],
+            "advisory_only": true
+          }
+        ],
+        "domain_packs": [
+          {
+            "name": "household-finance",
+            "category": "domain",
+            "confidence": "high",
+            "reasons": [
+              "contract.yaml: domain=household-finance",
+              "contract.yaml rule_root: governance/rules"
+            ]
+          }
+        ],
+        "suggested_skills": [
+          "code-style",
+          "governance-runtime",
+          "python"
+        ],
+        "suggested_agent": "python-agent",
+        "suggested_rules": [
+          "common",
+          "household-finance",
+          "csharp",
+          "objective-c",
+          "cpp",
+          "python",
+          "avalonia",
+          "electron"
+        ],
+        "suggested_rules_preview": [
+          "common",
+          "household-finance",
+          "csharp",
+          "objective-c",
+          "cpp",
+          "python",
+          "avalonia",
+          "electron",
+          "refactor"
+        ],
+        "notes": [
+          "domain_packs are sourced from contract.yaml rule_roots and take highest priority",
+          "language/framework packs are auto-suggested from repository signals",
+          "scope packs are advisory only and should be confirmed by the contract or human reviewer",
+          "suggested_rules_preview includes advisory scope packs for convenience, but does not mutate the contract",
+          "suggested_skills and suggested_agent are advisory only and do not auto-activate agent behavior"
+        ]
+      },
+      "architecture_impact_preview": {
+        "ok": true,
+        "scope": "refactor",
+        "active_rules": [
+          "common"
+        ],
+        "touched_layers": [],
+        "expected_validators": [
+          "architecture_drift_checker",
+          "public_api_diff_checker"
+        ],
+        "drift_result": {
+          "ok": true,
+          "errors": [],
+          "warnings": [],
+          "findings": [],
+          "files": [],
+          "dependency_diff": {
+            "ok": true,
+            "added": [],
+            "removed": [],
+            "warnings": [],
+            "errors": [],
+            "findings": []
+          }
+        },
+        "public_api_diff": {
+          "ok": true,
+          "before_manifest": {
+            "entries": [
+              {
+                "path": "runtime_hooks/examples/shared/before.cs",
+                "signatures": [
+                  "public class Service\n{",
+                  "public int Run() => 1;"
+                ],
+                "semantic_entries": [
+                  {
+                    "kind": "type",
+                    "identity": "type:Service",
+                    "display": "public class Service",
+                    "signature": "public class Service",
+                    "container": "Service",
+                    "qualified_name": "Service",
+                    "namespace": null
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Run",
+                    "display": "public int Run()",
+                    "signature": "int Run()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  }
+                ]
+              }
+            ]
+          },
+          "after_manifest": {
+            "entries": [
+              {
+                "path": "runtime_hooks/examples/shared/after.cs",
+                "signatures": [
+                  "public class Service\n{",
+                  "public int Run() => 1;",
+                  "public int Ping() => 0;"
+                ],
+                "semantic_entries": [
+                  {
+                    "kind": "type",
+                    "identity": "type:Service",
+                    "display": "public class Service",
+                    "signature": "public class Service",
+                    "container": "Service",
+                    "qualified_name": "Service",
+                    "namespace": null
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Run",
+                    "display": "public int Run()",
+                    "signature": "int Run()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  },
+                  {
+                    "kind": "method",
+                    "identity": "method:Service.Ping",
+                    "display": "public int Ping()",
+                    "signature": "int Ping()",
+                    "container": "Service",
+                    "return_type": "int",
+                    "params": [],
+                    "method_type_params": ""
+                  }
+                ]
+              }
+            ]
+          },
+          "removed": [],
+          "added": [
+            "public int Ping() => 0;"
+          ],
+          "compatibility_risk": "low",
+          "breaking_changes": [],
+          "non_breaking_changes": [
+            "New public API introduced: method:Service.Ping"
+          ],
+          "warnings": [
+            "New public API introduced: method:Service.Ping"
+          ],
+          "errors": []
+        },
+        "required_evidence": [
+          "architecture-review",
+          "public-api-review"
+        ],
+        "concerns": [
+          "public-api-expansion-risk"
+        ],
+        "impact_report": {
+          "scope": "refactor",
+          "active_rules": [
+            "common"
+          ],
+          "touched_layers": [],
+          "boundary_risk": "low",
+          "concerns": [
+            "public-api-expansion-risk"
+          ],
+          "required_evidence": [
+            "architecture-review",
+            "public-api-review"
+          ],
+          "expected_validators": [
+            "architecture_drift_checker",
+            "public_api_diff_checker"
+          ],
+          "recommended_risk": "medium",
+          "recommended_oversight": "review-required",
+          "public_api_diff_present": true
+        },
+        "recommended_risk": "medium",
+        "recommended_oversight": "review-required"
+      },
+      "rule_packs": {
+        "requested": [
+          "common"
+        ],
+        "resolved": [
+          {
+            "name": "common",
+            "category": "scope",
+            "files": [
+              "rules\\common\\core.md"
+            ]
+          }
+        ],
+        "missing": [],
+        "valid": true
+      },
+      "active_rules": {
+        "requested": [
+          "common"
+        ],
+        "active_rules": [
+          {
+            "name": "common",
+            "category": "scope",
+            "files": [
+              {
+                "path": "rules\\common\\core.md",
+                "title": "Hearth Core Rules"
+              }
+            ]
+          }
+        ],
+        "missing": [],
+        "valid": true,
+        "content_stripped": true,
+        "content_tier": 2
+      },
+      "topic_filter": {
+        "task_topic": "ui_presentation",
+        "filtered_out": [],
+        "rules_loaded": [
+          "common"
+        ]
+      },
+      "contract_resolution": {
+        "source": "explicit",
+        "path": "D:\\Hearth\\contract.yaml",
+        "warnings": [],
+        "error": null
+      },
+      "domain_contract": {
+        "name": "hearth-contract",
+        "contract_path": "D:\\Hearth\\contract.yaml",
+        "contract_root": "D:\\Hearth",
+        "documents": [
+          {
+            "path": "D:\\Hearth\\AGENTS.base.md",
+            "exists": true,
+            "content": "# AGENTS.base.md\n<!-- governance-baseline: protected -->\n<!-- baseline_version: 1.0.0 -->\n<!-- DO NOT EDIT — managed by ai-governance-framework -->\n<!-- To add repo-specific rules, create AGENTS.md and extend this file's sections. -->\n<!-- Hash is recorded in .governance/baseline.yaml and verified on every drift check. -->\n\n## Level Alignment\n\n- Declared L0 but involves domain logic, boundary crossing, or behavior change → upgrade to L1\n- Declared L1 but involves core domain, security, data integrity, or irreversible state → upgrade to L2\n- Uncertain classification → upgrade, do not downgrade\n\n## Execution Pipeline\n\nFor L1+, the default workflow is:\n\n1. **Analyze** — understand behavior and constraints before touching code\n2. **Define** — contracts, boundaries, failure paths\n3. **Verify Plan** — what evidence will prove the change is safe\n4. **Implement** — minimum compliant change\n5. **Refactor** — only under evidence protection\n\nDo not skip a step when the omission would hide risk.\n\n## Forbidden Behaviors\n\n- Expand scope beyond what was explicitly instructed\n- Refactor unrelated areas for cleanliness or taste\n- Add speculative abstractions for hypothetical future requirements\n- Fake, inflate, or omit evidence\n- Assume intent when the instruction is ambiguous — ask instead\n\n## Secret Handling\n\n- Never commit tokens, API keys, credentials, or secrets to the repo\n- Never write tokens or credentials into memory/ files or logs\n- If a secret appears in conversation context, do not persist it anywhere\n- `.env` files and credentials must be in `.gitignore` and never staged\n\n## Memory Update Triggers\n\nThe following events require updating PLAN.md and/or the relevant memory/ file:\n\n| Event | Required update |\n|-------|----------------|\n| Milestone reached | PLAN.md phase/sprint + memory/active_task |\n| Architecture decision made | PLAN.md decision log + memory/knowledge_base |\n| Bug fixed with root cause identified | memory/knowledge_base |\n| Risk or incident encountered | PLAN.md risk section + memory/active_task |\n| Session end | memory/active_task (current status) + session_end hook |\n\n## Session Closeout Obligation\n\nWriting `artifacts/session-closeout.txt` before session end is a **governance\nobligation**, not a suggestion.\n\nThe stop hook always calls `session_end` at session end. If the closeout artifact\nis missing or insufficient, the runtime records `closeout_missing` or\n`closeout_insufficient` in the verdict. Memory will not update. The gap is\nauditable and visible to reviewers.\n\n### Required fields\n\nAll fields must be present. Vague values are flagged as insufficient.\n\n```\nTASK_INTENT: <one sentence — declared goal of this session>\nWORK_COMPLETED: <what was actually done — verifiable claims only>\nFILES_TOUCHED: <comma-separated file list, or NONE>\nCHECKS_RUN: <specific commands or checks run, or NONE>\nOPEN_RISKS: <what might be wrong or incomplete, or NONE>\nNOT_DONE: <what was not completed this session, or NONE>\nRECOMMENDED_MEMORY_UPDATE: <what memory/ file should change and why, or NO_UPDATE>\n```\n\n### Rules\n\n- `WORK_COMPLETED` must contain verifiable claims. Do not write \"made improvements\"\n  or \"worked on things\" — these are vague and will be rejected as insufficient.\n- `CHECKS_RUN` must name specific commands if non-`NONE`.\n- If there was no material progress, write `WORK_COMPLETED: NONE` — do not\n  fabricate completions.\n- `NOT_DONE` and `OPEN_RISKS` are the most important fields. AI agents tend to\n  omit failures. Do not.\n\n### If you cannot write the closeout\n\nWrite it anyway with `WORK_COMPLETED: NONE` and explain in `OPEN_RISKS` why\nthe session produced no verifiable output. This is a valid closeout.\n\nSee `docs/session-closeout-schema.md` for examples and field constraints.\n\n## Definition of Done\n\nA task is done when:\n\n- Behavior is explicit and observable\n- Failure paths are guarded\n- Architecture boundaries remain intact\n- Evidence matches the declared risk level\n- PLAN.md and memory/ reflect the new state"
+          },
+          {
+            "path": "D:\\Hearth\\PLAN.md",
+            "exists": true,
+            "content": "﻿# PLAN.md — Hearth\n\n> **專案名稱**: Hearth 家庭財務管理\n> **技術棧**: React / TypeScript / Hono / Supabase / Cloudflare\n> **風險等級**: L1-L2（以 correctness / security 為優先）\n> **最後更新**: 2026-06-11\n> **Owner**: GavinWu\n> **Freshness**: Sprint (7d)\n\n---\n\n## 📋 專案目標\n\n- 建立可長期維護的家庭財務管理產品\n- 提供穩定的現金流匯入、分類、月報與投資追蹤\n- 以資料正確性、安全性、可回歸驗證為核心\n\n**Bounded Context**:\n- 個人／家庭帳務管理，不做 ERP\n- 匯入資料以台灣常見格式為主（銀行、信用卡、券商）\n- 平台聚焦單一租戶（每位使用者資料隔離）\n\n**現階段不做**:\n- 企業流程管理\n- 通用 SaaS 白牌化\n- 高度客製報表編輯器\n\n---\n\n## 🏗️ 當前階段\n\n```text\n進度摘要:\n✅ Phase A: 基礎架構與治理落地\n✅ Phase B: 身分驗證與帳戶基礎流程\n✅ Phase C: 現金流匯入與月報\n✅ Phase D: 投資匯入與淨值計算\n✅ Phase E: 排程、PWA、產品完善\n```\n\n**Current Phase**: 穩定化與治理維運（Post-Phase E）\n\n---\n\n## 🔥 本輪聚焦（Sprint 2026-05-23）\n\n### 已完成（前輪收尾）\n- [x] 信用卡匯入日期統一改用「入帳起息日 / posted date」\n- [x] 全信用卡 PDF/CSV parser 套用相同日期語意\n- [x] `excel-monthly` 強化（formula-heavy / recurring sidebar）\n- [x] recurring candidate -> template 攜帶 amount\n- [x] 匯入面板新增一鍵「建立模板並套用本月」\n- [x] 初步資料安全邊界文件化（`docs/security-boundary.md`）\n- [x] `ai-governance-framework` 升級至 v1.2.1 → v1.2.0+post（c5152c1），drift check 17/17 PASS\n- [x] Gmail OAuth `access_type=offline`：解決每小時強制重登問題\n- [x] Gmail 帳單查詢改用 90 天日期視窗（移除 `has:attachment`，maxResults 提升至 12）\n- [x] Items 1-4：PortfolioPanel cron status UI、trigger API、server-side Gmail cron、queue UI\n\n### 已完成（05-17 UI 基礎）\n- [x] CSS design token 全面落地：所有 panel 使用 token，無 hardcoded 色彩\n- [x] Shadcn-style primitive layer（Button/Card/Badge/Tabs/Dialog/Skeleton）\n- [x] Home 資訊架構重整：主流程（Gmail/Import）vs 次要分析 panel 分層\n- [x] 視覺打磨：字體階層、panel 深度、首頁進場動畫（含 reduced-motion）\n- [x] Mobile/無障礙 pass：觸控目標、nav flow、小螢幕間距\n\n### 已完成（05-22 治理 re-onboarding）\n- [x] `ai-governance-framework` submodule URL 對齊 GitLab remote\n- [x] `.governance/version_manifest.yaml` 新增，通過 version_compatibility gate\n- [x] `contract.yaml` 手動決策：`domain=household-finance`、`risk_tier=L2`\n- [x] `governance/framework.lock.json` 採用版本正規化至 `1.2.0`\n- [x] `pre-push` hook bug 修正（`xargs -rI{}`＋stdin-independent fallback）\n- [x] governance drift `severity=ok`，runtime smoke `session_start_ok=True`\n- [x] push 成功，所有 gate 通過\n\n### 已完成（06-11 治理維運）\n- [x] parent `main` 已同步至 `origin/main`\n- [x] `ai-governance-framework` submodule 已更新至 `9f7fa1e3a6b6ac7f90010f7048a23e44ae3ebb52`\n- [x] `governance/framework.lock.json`、`version_compatibility.json`、AGENTS / local hook paths 已對齊\n- [x] Claude / GitHub Copilot / Gemini closeout hooks 已 verify + smoke test compliant\n- [x] runtime append-only ledgers 已依 manual-promotion-only policy 清理，工作樹回到乾淨狀態\n- [x] 2026-06-12 F-7 apply：framework pointer already_current、repo-local instruction already_current、memory writer verified、hook validator updated；existing memory normalization 仍為 not_verified，因此不宣稱 full_update_completed\n\n### 本輪重點（進行中）\n\n#### 手動部署（需人工操作）\n- [x] backend migration 已就緒：`supabase/migrations/20260507000000_add_gmail_server_sync.sql` 存在\n- [x] 執行 Supabase migration `20260507000000_add_gmail_server_sync.sql`（2026-06-13 完成）\n- [x] Cloudflare Dashboard / Wrangler Secret 設定 `GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET`（2026-06-13 完成）\n- [x] 重新登入 app，確認 `provider_refresh_token` 被捕獲並儲存於 `user_settings.gmail_refresh_token`（2026-06-13 完成）\n- [x] Gmail 真實驗證：找到 42 封帳單，永豐信用卡／綜合對帳單可見，匯入正常（2026-06-13 完成）\n- [x] 依 `docs/gmail-server-sync-deploy-runbook.md` 完成驗證並補上 validation log（2026-06-13 完成）\n\n#### UI 元件重設計 pass（本輪開工）\n- [x] GmailSyncPanel 內部元件對齊 design token（狀態指示、佇列列表、無 PDF badge）\n- [x] ImportPanel 內部元件對齊 design token（preview table、結果訊息、recurring candidate 狀態）\n- [x] 統一 form / table / badge 視覺語言，與 home 層級保持一致\n\n#### 安全邊界強化 Phase F-1（本輪開工）\n- [x] RLS hardening map：逐表列出 RLS 狀態與對應路由（`docs/security-rls-map.md`）\n- [x] Route-by-route auth 矩陣：auth + ownership + validation + failure code（`docs/security-route-auth-matrix.md`）\n- [x] Secret lifecycle policy：PDF 密碼 rotation cadence 與 plaintext 消滅目標（`docs/security-secret-lifecycle.md`）\n- [ ] Security F-1 verification pass：對照目前 routes/migrations，修正 stale doc 與缺漏測試項\n\n#### 銀行 PDF 樣本回歸（等樣本）\n- [ ] 玉山/永豐銀行帳戶 PDF 樣本回歸（見 `docs/bank-statement-sample-checklist-esun-sinopac.md`）\n\n---\n\n## 📦 Phase 詳細規劃\n\n### Phase A: 基礎架構與治理\n- [x] Monorepo 建置（web/api/shared）\n- [x] 導入 `ai-governance-framework` submodule\n- [x] 建立 repo-local governance 與 memory 架構\n\n### Phase B: Auth 與帳戶\n- [x] Supabase Auth 前後端串接\n- [x] `GET /api/auth/me` 與 session 驗證\n- [x] 帳戶 CRUD 與 ownership 驗證\n\n### Phase C: 現金流與月報\n- [x] 手動交易 / CSV 匯入 / Sinopac 匯入\n- [x] 信用卡（CSV/PDF）posted-date 語意統一\n- [x] `excel-monthly` 與 recurring candidate 流程\n- [x] recurring template 建立與套用\n- [x] 月報 API / Dashboard / 篩選 / 編修 / 刪除\n\n### Phase D: 投資與淨值\n- [x] 券商 CSV 匯入與 holdings 重建\n- [x] 淨值、成本、股利、FX 追蹤\n- [x] 相關 API / UI 與回歸測試\n\n### Phase E: 排程與產品完善\n- [x] daily update cron 與 ops 檢查\n- [x] PWA（manifest / service worker / icons）\n- [x] smoke/readiness 流程與治理 gate\n\n---\n\n## 🎯 當前決策\n\n- `transactions` 仍為現金流報表單一事實來源\n- `supabase/migrations/` 為 schema 變更唯一真源\n- parser 與匯入流程優先 correctness，其次再追求新功能\n- posted date 作為信用卡入帳月份判定基準\n\n---\n\n## 🚫 現階段不要做\n\n- 重寫既有架構成多服務分散式系統\n- 未定義資料契約下的大型 UI 重構\n- 跳過測試與治理檢查直接發布\n\n---\n\n## 📝 變更歷史\n\n| 日期 | 變更 | 說明 |\n|---|---|---|\n| 2026-05-04 | 信用卡日期語意統一 | 全 parser 改為以 posted date 入帳，避免跨月拆分誤解 |\n| 2026-05-04 | Excel recurring/formula 擴充 | 支援 formula-heavy workbook 與 recurring sidebar 候選擷取 |\n| 2026-05-04 | 一鍵 recurring 套用流程 | 匯入面板新增 create-and-apply 一鍵流程 |\n| 2026-05-04 | 治理同步修正 | 修復 PLAN freshness/section inventory，更新 memory 與 validation log |\n| 2026-05-07 | 治理框架升級 | ai-governance-framework v1.2.1 full adopt，AGENTS.md governance key sections，git hooks，token run checklist |\n| 2026-05-07 | Gmail OAuth 修正 | access_type=offline 解決重登問題；移除 has:attachment，改用 90 天日期視窗 |\n| 2026-05-07 | 股價/匯率/Gmail 排程功能 | Items 1-4：PortfolioPanel cron status UI、trigger API、server-side Gmail cron、queue UI |\n| 2026-05-07 | 治理框架升級至 c5152c1 | v1.2.0+post，drift check 17/17 PASS（expansion_boundary 也通過） |\n| 2026-05-16 | readiness gate 強化 | first-release-readiness 改為 fail-fast；修正 3 個 API 測試期望並恢復 173/173；codeonly readiness PASS |\n| 2026-05-16 | 銀行樣本範圍收斂 | Item 3 續作先聚焦玉山/永豐，新增專用樣本回歸 checklist |\n| 2026-05-17 | UI 設計系統落地 | CSS design token 全面落地；shadcn primitive layer；home 資訊架構重整；視覺打磨；mobile/a11y pass |\n| 2026-05-22 | 治理 re-onboarding | submodule URL 對齊；version_manifest.yaml；risk_tier=L2；pre-push hook bug 修正；push gate 全通過 |\n| 2026-05-23 | PLAN 刷新 | Sprint 視窗更新至 05-23；新增 UI restyling pass 與 Security Phase F-1 工作項 |\n| 2026-06-07 | 治理更新 | F-7 update-governance-submodule 已將 ai-governance-framework 指向 `57db6c164182b560fe6acc017b2ed93899dd422c` |\n| 2026-06-07 | Gmail server sync 落地規劃 | 新增 `docs/gmail-server-sync-deploy-runbook.md`，並將手動部署清單同步為 migration/Cloudflare secrets/provider token/真實驗證待完成項目。 |\n| 2026-06-11 | 治理更新 | parent repo 與 AI Governance submodule 已更新到最新；version/drift/hook smoke 通過，runtime ledger dirty state 已清理。 |\n| 2026-06-11 | Gmail server-sync readiness | 新增 `scripts/gmail-server-sync-readiness.ps1`，本機確認 migration/runbook/config/code prerequisites；外部 Supabase/Cloudflare/Gmail 驗證仍未完成。 |\n| 2026-06-12 | Gmail deployed health readiness | `scripts/gmail-server-sync-readiness.ps1 -ApiBaseUrl https://hearth-api.meiraybooks.workers.dev` PASS；僅確認 Worker health flags，不代表 migration/OAuth/Gmail 真實驗證完成。 |\n| 2026-06-12 | Gmail Supabase migration verifier | 新增 `scripts/gmail-server-sync-supabase-readiness.ps1`，可用 caller-provided DB URL read-only 驗證 migration 是否已套用；未提交任何 secret。 |\n| 2026-06-12 | 治理更新 | `ai-governance-framework` fast-forward 至 `9f7fa1e3a6b6ac7f90010f7048a23e44ae3ebb52`；dry-run PASS，F-7 final_status 保守為 `not_verified`（existing memory normalization 未驗證）。 |\n| 2026-06-12 | UI token pass | GmailSyncPanel / ImportPanel 狀態、badge、preview chip/table、mobile row behavior 對齊現有 design tokens；版本 bump 至 `0.3.1`；web check/build PASS，Browser smoke 0 app console errors。 |\n| 2026-06-12 | Gmail Supabase live verification | User-applied Gmail server-sync migration in Supabase SQL Editor and caller-run `scripts/gmail-server-sync-supabase-readiness.ps1` returned all five PASS checks; OAuth refresh-token capture and real Gmail ingestion still pending. |\n| 2026-06-12 | Gmail deployment boundary | Post-migration API/web smoke PASS；Cloudflare secret list blocked by missing `CLOUDFLARE_API_TOKEN`，因此 Google secrets / OAuth refresh token / real Gmail ingestion 仍未 claim 完成。 |"
+          },
+          {
+            "path": "D:\\Hearth\\governance\\SYSTEM_PROMPT.md",
+            "exists": true,
+            "content": "---\naudience: agent-runtime\nauthority: canonical\ncan_override: false\noverridden_by: ~\ndefault_load: always\n---\n\n# SYSTEM_PROMPT.md\n**Hearth Governance Runtime Entry - v1.0**\n\n> Local canonical runtime prompt for Hearth.\n> Framework concepts come from `ai-governance-framework/`, but repo-local governance files in `governance/` are authoritative for Hearth work.\n\n## 1. Identity\n\nYou are a **governance-first coding agent** operating inside Hearth.\n\nCore values:\n- **Correctness > speed**\n- **Clarity > volume**\n- **Explicit trade-offs > hidden debt**\n\nValid outcomes include continue, escalate, refuse, slow down, and stop.\n\n## 2. Mandatory Initialization\n\nBefore meaningful work:\n\n1. Read `PLAN.md`\n2. Read memory state from:\n   - `memory/01_active_task.md`\n   - `memory/02_tech_stack.md`\n   - `memory/02_project_facts.md`\n   - `memory/03_knowledge_base.md`\n   - `memory/03_decisions.md`\n   - `memory/04_validation_log.md`\n3. Load repo-local governance documents as needed:\n   - `governance/AGENT.md`\n   - `governance/ARCHITECTURE.md`\n   - `governance/TESTING.md`\n   - `governance/HUMAN-OVERSIGHT.md`\n   - `governance/REVIEW_CRITERIA.md` when reviewing\n\n`PLAN.md` remains the source of truth for planned work.\n`memory/01_active_task.md` is the concise current-state handoff.\n`memory/YYYY-MM-DD.md` remains the append-only execution log.\n\n## 3. Memory Sync Contract\n\nTreat the following as active memory surfaces:\n\n| File | Purpose |\n|---|---|\n| `memory/01_active_task.md` | Current task state and next safe step |\n| `memory/02_tech_stack.md` | Runtime/toolchain architecture facts |\n| `memory/02_project_facts.md` | Alias-compatible factual baseline for framework tooling |\n| `memory/03_knowledge_base.md` | Reusable gotchas, anti-patterns, troubleshooting notes |\n| `memory/03_decisions.md` | Durable project decisions and accepted trade-offs |\n| `memory/04_validation_log.md` | Review/build/test/deploy validation history |\n\nDo not let these drift from `PLAN.md`, `MEMORY.md`, or daily notes.\n\n## 4. Priority Rules\n\n- Repo-local `governance/` docs win over framework examples when they conflict for Hearth work.\n- `AGENTS.md` defines workspace/session behavior.\n- `governance/AGENT.md` defines Hearth task classification and rigor.\n- If governance files materially conflict, stop and resolve the mismatch explicitly.\n\n## 5. Scope Policy\n\nAdjacent engineering work is in scope by default when bounded:\n- build\n- test\n- debugging\n- documentation sync\n- memory sync\n- commit preparation\n- governance maintenance\n\nEscalate when:\n- product behavior is materially ambiguous\n- architecture impact is unclear\n- data correctness or ownership constraints may change\n\n## 6. Memory Stewardship\n\nUpdate memory on meaningful state changes:\n- milestone completed -> `memory/01_active_task.md`\n- architectural or product decision -> `memory/03_decisions.md`\n- reusable gotcha discovered -> `memory/03_knowledge_base.md`\n- verification run completed -> `memory/04_validation_log.md`\n- implementation narrative / detailed log -> `memory/YYYY-MM-DD.md`\n\nKeep `memory/01_active_task.md` concise.\n\n## 7. Final Principle\n\n> If the work cannot be explained, verified, and resumed safely from repo-local memory, adoption is incomplete."
+          },
+          {
+            "path": "D:\\Hearth\\governance\\HUMAN-OVERSIGHT.md",
+            "exists": true,
+            "content": "---\naudience: human-only\nauthority: reference\ncan_override: false\noverridden_by: ~\ndefault_load: never\n---\n\n# HUMAN-OVERSIGHT.md\n**Hearth Escalation and Oversight Protocol - v1.0**\n\n## Continue\n\nContinue when:\n- the task is bounded\n- repo-local rules are clear\n- evidence can be gathered locally\n- no meaningful product trade-off is being hidden\n\n## Escalate\n\nEscalate when:\n- multiple product behaviors are reasonable\n- correctness depends on a choice the repo does not already encode\n- scope overlaps unrelated dirty work\n- the next step would silently expand beyond current plan or risk boundary\n\n## Stop\n\nStop when:\n- governance rules materially conflict\n- correctness cannot be defended\n- a high-risk action requires explicit human approval\n\n## Recovery\n\nAfter interruption:\n1. re-read `PLAN.md`\n2. re-read `memory/01_active_task.md`\n3. re-check repo-local governance docs\n\n## Principle\n\n> Escalate for material uncertainty. Stop for defended red lines."
+          },
+          {
+            "path": "D:\\Hearth\\governance\\AGENT.md",
+            "exists": true,
+            "content": "# AGENT.md — Hearth Repo Engineering Governance\n\nVersion: 1.0\nScope: Repo-local engineering governance for Hearth.\n\nThis file defines how engineering changes in Hearth are classified and executed.\nWorkspace behavior remains governed by `AGENTS.md` in repo root.\n\n## Level classification\n\n- `L0`:\n  - docs-only wording fixes\n  - comment/formatting-only changes with no behavior impact\n- `L1`:\n  - UI behavior updates that do not alter financial calculation logic\n  - non-critical API ergonomics or validation messages\n  - import UX improvements without changing parser semantics\n- `L2`:\n  - transaction amount/sign/category/date handling\n  - source-hash dedupe behavior\n  - auth boundary, account ownership scoping, or RLS-sensitive paths\n  - schema changes under `supabase/schema.sql` or `supabase/migrations/`\n  - recurring apply logic and monthly report aggregation\n  - deploy/runtime config that can affect production correctness or data safety\n\nWhen uncertain between levels, upgrade to the higher level.\n\n## Required execution rigor\n\n- `L0`:\n  - bounded change + one lightweight verification\n- `L1`:\n  - explicit behavior statement before implementation\n  - run impacted checks/tests\n  - update docs when surface behavior changes\n- `L2`:\n  - explicit contract and failure-path reasoning\n  - run full affected test suite plus build/check gates\n  - ensure user ownership and data-integrity constraints are preserved\n  - record decision/risk notes in `memory/YYYY-MM-DD.md`\n\n## Escalation triggers\n\nEscalate before proceeding when:\n\n- there are multiple viable product behaviors with different trade-offs\n- scope expansion touches both parser semantics and persistence logic\n- touched files overlap with unrelated pending work in the same areas\n- test evidence cannot convincingly cover changed risk surface\n\n## Hearth-specific guardrails\n\n- Treat `transactions` as source-of-truth for cashflow reporting.\n- Treat ownership checks (`user_id` via auth + account join scoping) as non-optional.\n- Keep import parsers deterministic and repeatable.\n- Do not weaken dedupe rules without explicit migration/backfill plan.\n- Treat `supabase/migrations/` as canonical schema history; `supabase/schema.sql` is the latest bootstrap snapshot."
+          },
+          {
+            "path": "D:\\Hearth\\governance\\ARCHITECTURE.md",
+            "exists": true,
+            "content": "# ARCHITECTURE.md — Hearth Engineering Boundaries\n\nVersion: 1.0\n\n## Core boundaries\n\n- Web app (`apps/web`):\n  - presentation + user interaction\n  - no trust in client-side ownership decisions\n- API worker (`apps/api`):\n  - auth resolution\n  - ownership enforcement\n  - domain orchestration for import/report/recurring flows\n- Supabase:\n  - persistent state\n  - auth identity source\n  - schema constraints and data integrity\n\n## Non-negotiable invariants\n\n- A user can only read/write rows associated with owned accounts.\n- Cashflow report math must be based on persisted `transactions`.\n- Import dedupe must remain deterministic by stable hash inputs.\n- Recurring apply must be idempotent for same template + period.\n\n## Change impact guidance\n\n- Schema updates require matching shared type and API alignment.\n- Parser updates require regression coverage for prior accepted formats.\n- Auth boundary updates require negative-path tests (invalid/missing token).\n- Deploy/runtime config updates require post-deploy smoke verification."
+          },
+          {
+            "path": "D:\\Hearth\\governance\\REVIEW_CRITERIA.md",
+            "exists": true,
+            "content": "---\naudience: human-only\nauthority: reference\ncan_override: false\noverridden_by: ~\ndefault_load: never\n---\n\n# REVIEW_CRITERIA.md\n**Hearth Review Protocol - v1.0**\n\nLoad this document when `SCOPE = review`.\n\n## Review Goals\n\n- verify the change is predictable\n- verify the change is safe\n- verify the evidence matches the risk\n\n## Mandatory Checks\n\n1. Ownership / auth boundary\n2. Import/report correctness\n3. Schema or migration discipline when relevant\n4. Dirty-worktree scope hygiene\n5. Validation evidence quality\n\n## Output Expectations\n\nEvery review should name:\n- finding severity\n- file/location\n- concrete evidence\n- required fix or reason it is non-blocking\n\n## Memory Follow-up\n\nAfter review:\n- append summary to `memory/04_validation_log.md`\n- add next-state note to `memory/01_active_task.md`\n- record any reusable gotcha in `memory/03_knowledge_base.md`"
+          },
+          {
+            "path": "D:\\Hearth\\governance\\TESTING.md",
+            "exists": true,
+            "content": "# TESTING.md — Hearth Verification Baseline\n\nVersion: 1.0\n\n## Default verification commands\n\n- API tests:\n  - `npm --workspace @hearth/api run test`\n- API build:\n  - `npm --workspace @hearth/api run build`\n- Web type-check:\n  - `npm --workspace @hearth/web run check`\n- Readiness:\n  - `npm run readiness:first:codeonly`\n  - `npm run readiness:first`\n  - `npm run readiness:first:strict`\n- Post-deploy smoke:\n  - `npm run smoke:postdeploy`\n\n## By change type\n\n- UI-only L1:\n  - web check + targeted API tests if API contract consumed changed\n- API/domain L1:\n  - API tests + API build + web check when client contract changed\n- L2 domain/security/schema/deploy:\n  - readiness strict before release\n  - post-deploy smoke after deployment\n  - update `supabase/migrations/` and `supabase/schema.sql` together when schema shape changes\n\n## Minimum evidence bar\n\n- No merge/push for functional changes without at least one passing automated verification command.\n- For L2, include explicit mention of the executed commands in commit-adjacent notes (`memory/YYYY-MM-DD.md`)."
+          }
+        ],
+        "ai_behavior_override": [
+          {
+            "path": "D:\\Hearth\\AGENTS.base.md",
+            "exists": true,
+            "content": "# AGENTS.base.md\n<!-- governance-baseline: protected -->\n<!-- baseline_version: 1.0.0 -->\n<!-- DO NOT EDIT — managed by ai-governance-framework -->\n<!-- To add repo-specific rules, create AGENTS.md and extend this file's sections. -->\n<!-- Hash is recorded in .governance/baseline.yaml and verified on every drift check. -->\n\n## Level Alignment\n\n- Declared L0 but involves domain logic, boundary crossing, or behavior change → upgrade to L1\n- Declared L1 but involves core domain, security, data integrity, or irreversible state → upgrade to L2\n- Uncertain classification → upgrade, do not downgrade\n\n## Execution Pipeline\n\nFor L1+, the default workflow is:\n\n1. **Analyze** — understand behavior and constraints before touching code\n2. **Define** — contracts, boundaries, failure paths\n3. **Verify Plan** — what evidence will prove the change is safe\n4. **Implement** — minimum compliant change\n5. **Refactor** — only under evidence protection\n\nDo not skip a step when the omission would hide risk.\n\n## Forbidden Behaviors\n\n- Expand scope beyond what was explicitly instructed\n- Refactor unrelated areas for cleanliness or taste\n- Add speculative abstractions for hypothetical future requirements\n- Fake, inflate, or omit evidence\n- Assume intent when the instruction is ambiguous — ask instead\n\n## Secret Handling\n\n- Never commit tokens, API keys, credentials, or secrets to the repo\n- Never write tokens or credentials into memory/ files or logs\n- If a secret appears in conversation context, do not persist it anywhere\n- `.env` files and credentials must be in `.gitignore` and never staged\n\n## Memory Update Triggers\n\nThe following events require updating PLAN.md and/or the relevant memory/ file:\n\n| Event | Required update |\n|-------|----------------|\n| Milestone reached | PLAN.md phase/sprint + memory/active_task |\n| Architecture decision made | PLAN.md decision log + memory/knowledge_base |\n| Bug fixed with root cause identified | memory/knowledge_base |\n| Risk or incident encountered | PLAN.md risk section + memory/active_task |\n| Session end | memory/active_task (current status) + session_end hook |\n\n## Session Closeout Obligation\n\nWriting `artifacts/session-closeout.txt` before session end is a **governance\nobligation**, not a suggestion.\n\nThe stop hook always calls `session_end` at session end. If the closeout artifact\nis missing or insufficient, the runtime records `closeout_missing` or\n`closeout_insufficient` in the verdict. Memory will not update. The gap is\nauditable and visible to reviewers.\n\n### Required fields\n\nAll fields must be present. Vague values are flagged as insufficient.\n\n```\nTASK_INTENT: <one sentence — declared goal of this session>\nWORK_COMPLETED: <what was actually done — verifiable claims only>\nFILES_TOUCHED: <comma-separated file list, or NONE>\nCHECKS_RUN: <specific commands or checks run, or NONE>\nOPEN_RISKS: <what might be wrong or incomplete, or NONE>\nNOT_DONE: <what was not completed this session, or NONE>\nRECOMMENDED_MEMORY_UPDATE: <what memory/ file should change and why, or NO_UPDATE>\n```\n\n### Rules\n\n- `WORK_COMPLETED` must contain verifiable claims. Do not write \"made improvements\"\n  or \"worked on things\" — these are vague and will be rejected as insufficient.\n- `CHECKS_RUN` must name specific commands if non-`NONE`.\n- If there was no material progress, write `WORK_COMPLETED: NONE` — do not\n  fabricate completions.\n- `NOT_DONE` and `OPEN_RISKS` are the most important fields. AI agents tend to\n  omit failures. Do not.\n\n### If you cannot write the closeout\n\nWrite it anyway with `WORK_COMPLETED: NONE` and explain in `OPEN_RISKS` why\nthe session produced no verifiable output. This is a valid closeout.\n\nSee `docs/session-closeout-schema.md` for examples and field constraints.\n\n## Definition of Done\n\nA task is done when:\n\n- Behavior is explicit and observable\n- Failure paths are guarded\n- Architecture boundaries remain intact\n- Evidence matches the declared risk level\n- PLAN.md and memory/ reflect the new state"
+          }
+        ],
+        "rule_roots": [
+          "D:\\Hearth\\governance\\rules"
+        ],
+        "validators": [],
+        "raw": {
+          "name": "hearth-contract",
+          "plugin_version": "1.0.0",
+          "framework_interface_version": "1",
+          "framework_compatible": ">=1.0.0,<2.0.0",
+          "domain": "household-finance",
+          "risk_tier": "L2",
+          "documents": [
+            "AGENTS.base.md",
+            "PLAN.md",
+            "governance/SYSTEM_PROMPT.md",
+            "governance/HUMAN-OVERSIGHT.md",
+            "governance/AGENT.md",
+            "governance/ARCHITECTURE.md",
+            "governance/REVIEW_CRITERIA.md",
+            "governance/TESTING.md"
+          ],
+          "ai_behavior_override": [
+            "AGENTS.base.md"
+          ],
+          "rule_roots": [
+            "governance/rules"
+          ],
+          "validators": []
+        }
+      },
+      "resolved_contract_file": "D:\\Hearth\\contract.yaml",
+      "summary_first": {
+        "active": false,
+        "task_level": "L1",
+        "note": "full domain contract loaded"
+      },
+      "decision_boundary": {
+        "preconditions_checked": [],
+        "boundary_effect": "pass"
+      },
+      "precondition_gate_validator": {
+        "ok": true,
+        "missing_preconditions": [],
+        "recommended_mode": "allow_analysis_only",
+        "forbidden_claims": [],
+        "rule_refs": [],
+        "signals": {
+          "wants_synthesizable_rtl": false,
+          "wants_control_interface_logic": false,
+          "has_reset_definition": false,
+          "has_handshake_definition": false,
+          "reset_negative_detected": false,
+          "handshake_negative_detected": false
+        }
+      },
+      "assumption_check": {
+        "present": false,
+        "assumptions_present": false,
+        "alternatives_present": false,
+        "alternatives_count": 0,
+        "evidence_present": false,
+        "reframe_present": false,
+        "action_decision": null,
+        "complete": false,
+        "missing": [
+          "assumptions",
+          "alternative_root_causes",
+          "evidence",
+          "reframe_or_validation_step"
+        ]
+      },
+      "evidence_integrity": {
+        "direct_evidence_frozen": false,
+        "source": "no_direct_evidence",
+        "has_strong_marker": false,
+        "has_no_evidence_marker": false
+      },
+      "evidence_integrity_gate": {
+        "ok": true,
+        "gate": "evidence_integrity_gate",
+        "violations": [],
+        "summary": {
+          "case_id": "runtime_task",
+          "kind": "unknown",
+          "phase": "final",
+          "violation_count": 0,
+          "hard_fail": false
+        }
+      },
+      "decision_policy": {
+        "risk_tier": "low",
+        "risk_score": 4.1,
+        "premise_status": "unknown",
+        "evidence_alignment": "absent",
+        "execution_scope": "local_reversible",
+        "reversibility": "easy",
+        "correctness_mode": "bounded_trial",
+        "selected_action": "proceed_with_assumption",
+        "ranked_actions": [
+          {
+            "action": "proceed_with_assumption",
+            "score": 1.4,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          },
+          {
+            "action": "need_more_info",
+            "score": 0.8,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible",
+              "direct_evidence_missing"
+            ]
+          },
+          {
+            "action": "reframe",
+            "score": 0.3,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          },
+          {
+            "action": "proceed",
+            "score": 0.2,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          },
+          {
+            "action": "reject",
+            "score": 0.1,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          }
+        ],
+        "confidence": 1.0,
+        "reasons": [
+          "risk_tier:low",
+          "premise_status:unknown",
+          "evidence_alignment:absent",
+          "execution_scope:local_reversible",
+          "correctness_mode:bounded_trial",
+          "assumption_evidence_missing"
+        ],
+        "required_followup": [
+          "mark_assumption_explicitly",
+          "prepare_rollback_or_fallback"
+        ],
+        "fallback_plan": "Proceed with bounded local change and explicit rollback plan.",
+        "reframed_task": "",
+        "advisory_signals": [
+          "proceeding_under_assumption",
+          "assumption_evidence_missing"
+        ],
+        "decision_action": "proceed_with_assumption",
+        "decision_candidates": [
+          {
+            "action": "proceed_with_assumption",
+            "score": 1.4,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          },
+          {
+            "action": "need_more_info",
+            "score": 0.8,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible",
+              "direct_evidence_missing"
+            ]
+          },
+          {
+            "action": "reframe",
+            "score": 0.3,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          },
+          {
+            "action": "proceed",
+            "score": 0.2,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          },
+          {
+            "action": "reject",
+            "score": 0.1,
+            "reasons": [
+              "mode:bounded_trial",
+              "premise:unknown",
+              "evidence:absent",
+              "scope:local_reversible"
+            ]
+          }
+        ]
+      },
+      "runtime_injection": {
+        "snapshot": {
+          "name": "runtime-injection-snapshot-v0",
+          "policy_version": "0",
+          "path": "D:\\ai-governance-framework\\governance\\runtime_injection_snapshot.v0.yaml",
+          "source_refs": [
+            "docs/runtime-injection-layer-plan.md",
+            "docs/decision-context-bridge.md"
+          ],
+          "task_level_scope": [
+            "L0",
+            "L1",
+            "L2"
+          ],
+          "target_agent_classes": [
+            "instruction_capable",
+            "instruction_limited"
+          ],
+          "consumption_requirements": [
+            "inject_before_turn",
+            "reread_before_edit",
+            "require_full_read_for_large_files"
+          ],
+          "validation_requirements": [
+            "require_validation_after_edit",
+            "forbid_claim_without_evidence"
+          ],
+          "escalation_triggers": [
+            "escalate_if_context_degraded",
+            "escalate_if_required_evidence_missing"
+          ]
+        },
+        "signals_checked": [
+          {
+            "signal": "context_degraded",
+            "triggered": false,
+            "action": "pass",
+            "reason": null
+          },
+          {
+            "signal": "required_evidence_missing",
+            "triggered": false,
+            "action": "pass",
+            "reason": null
+          }
+        ],
+        "effect": "pass"
+      },
+      "consumption_observations": {
+        "snapshot": "runtime-injection-snapshot-v0",
+        "observations": [
+          {
+            "requirement": "require_full_read_for_large_files",
+            "applicable": false,
+            "observation_status": "not_applicable",
+            "observation_confidence": "low",
+            "decision_role": "advisory_only",
+            "observable_proxy": "no_large_contract_documents_detected",
+            "matched_paths": [],
+            "line_threshold": 200,
+            "caveat": "absence of a large document means the requirement was not triggered"
+          }
+        ]
+      },
+      "phase_classification": {
+        "schema_version": "0.1",
+        "hook": "pre_task_check",
+        "actions": [
+          {
+            "action": "precondition_gate",
+            "phase": "sync_gate",
+            "owner": "pre_task_check",
+            "description": "Execution preconditions and missing-input gate."
+          },
+          {
+            "action": "assumption_check_missing",
+            "phase": "sync_advisory",
+            "owner": "pre_task_check",
+            "description": "Assumption validation structure is incomplete."
+          }
+        ],
+        "phase_summary": {
+          "sync_gate": [
+            "precondition_gate"
+          ],
+          "sync_advisory": [
+            "assumption_check_missing"
+          ]
+        },
+        "rules": {
+          "sync_gate_blocks_execution": true,
+          "sync_advisory_hidden_gate_allowed": false,
+          "async_audit_can_retroactively_change_verdict": false
+        },
+        "unknown_actions": []
+      },
+      "errors": [
+        "PLAN.md freshness is CRITICAL"
+      ],
+      "warnings": [
+        "Suggested language pack 'csharp' is not active; repo signals: ai-governance-framework/.latest-main/runtime_hooks/examples/shared/after.cs, ai-governance-framework/.latest-main/runtime_hooks/examples/shared/before.cs",
+        "Suggested language pack 'objective-c' is not active; repo signals: node_modules/sharp/src/common.h, node_modules/sharp/src/metadata.h",
+        "Suggested language pack 'cpp' is not active; repo signals: node_modules/sharp/src/common.cc, node_modules/sharp/src/common.h",
+        "Suggested language pack 'python' is not active; repo signals: ai-governance-framework/governance_harness.py, ai-governance-framework/requirements.txt",
+        "Suggested framework pack 'avalonia' is not active; repo signals: Avalonia",
+        "Suggested framework pack 'electron' is not active; repo signals: electron",
+        "Advisory scope pack 'refactor' is suggested by task text but not active; signals: \\brefactor\\b",
+        "Assumption check missing before modification planning: missing=assumptions, alternative_root_causes, evidence, reframe_or_validation_step",
+        "Decision policy advisory: assumption evidence missing",
+        "Decision policy advisory: proceeding under assumption"
+      ],
+      "trace_id": "0b1f57cf88fa5018",
+      "output_tier": 2,
+      "reasoning_fragments": [
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "staleness_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "PLAN.md freshness is CRITICAL"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Suggested language pack 'csharp' is not active; repo signals: ai-governance-framework/.latest-main/runtime_hooks/examples/shared/after.cs, ai-governance-framework/.latest-main/runtime_hooks/examples/s..."
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Suggested language pack 'objective-c' is not active; repo signals: node_modules/sharp/src/common.h, node_modules/sharp/src/metadata.h"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Suggested language pack 'cpp' is not active; repo signals: node_modules/sharp/src/common.cc, node_modules/sharp/src/common.h"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Suggested language pack 'python' is not active; repo signals: ai-governance-framework/governance_harness.py, ai-governance-framework/requirements.txt"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Suggested framework pack 'avalonia' is not active; repo signals: Avalonia"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Suggested framework pack 'electron' is not active; repo signals: electron"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Advisory scope pack 'refactor' is suggested by task text but not active; signals: \\brefactor\\b"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Assumption check missing before modification planning: missing=assumptions, alternative_root_causes, evidence, reframe_or_validation_step"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Decision policy advisory: assumption evidence missing"
+        },
+        {
+          "rule_id": "UNKNOWN",
+          "violation_type": "generic_violation",
+          "policy_refs": [],
+          "severity": "medium",
+          "prose": "Decision policy advisory: proceeding under assumption"
+        }
+      ]
+    },
+    "governance_classification": {
+      "classification_evidence": {
+        "has_file_access": {
+          "value": true,
+          "source": "observed"
+        },
+        "instruction_loaded": {
+          "value": "true",
+          "source": "observed"
+        },
+        "context_integrity": {
+          "value": "unknown",
+          "source": "assumed"
+        },
+        "tool_gate": {
+          "value": "active",
+          "source": "observed"
+        }
+      },
+      "initial_agent_class": null,
+      "effective_agent_class": "instruction_capable",
+      "classification_changed": null,
+      "reclassification_reason": null,
+      "governance_strategy": "injection+enforcement",
+      "injection_reliance": "none"
+    },
+    "closeout_context": {
+      "inject": true,
+      "closeout_status": "missing",
+      "session_id": "session-20260520T024907-d72c93",
+      "closed_at": "2026-05-20T02:49:07.639700+00:00",
+      "injection_level": "none",
+      "task_intent": null,
+      "work_summary": null,
+      "open_risks": [],
+      "diagnostic": "Previous session closeout status: missing."
+    },
+    "plan_context_provenance": {
+      "fidelity": "full",
+      "origin": "PLAN.md",
+      "summary_kind": null
+    },
+    "version_compatibility": {
+      "verdict": "compatible",
+      "enabled_runtime_features": [
+        "agents_rule_candidates",
+        "canonical_closeout",
+        "decision_context_bridge",
+        "post_task_check",
+        "pre_task_check",
+        "session_index"
+      ],
+      "disabled_runtime_features": [],
+      "missing_migrations": [],
+      "repo_manifest_found": true,
+      "error": null,
+      "advisory_only": true
+    }
+  }
+}
