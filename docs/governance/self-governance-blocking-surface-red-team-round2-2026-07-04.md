@@ -48,6 +48,16 @@ Residual: this is visibility, not prevention. A reviewer who ignores the
 warning still approves the disable. Prevention would require protected-path
 enforcement, which is out of scope for this slice.
 
+Follow-up design: see
+`docs/governance/self-governance-f2-valid-disable-attestation-design-2026-07-05.md`.
+That design keeps the emergency kill switch available and proposes a
+report-only attestation path first. It deliberately uses
+`attested_disabled`, not `authorized_disabled`, because a receipt can prove
+only that a versioned statement exists with valid shape; it cannot prove real
+approval, authority, or reason truth. Policy deletion remains diff-scoped and
+is treated as unsanctioned in the deletion diff rather than as a receipt-backed
+disable path.
+
 Fixtures: `test_step4_ci_policy_change_in_diff_is_loud`,
 `test_step4_ci_policy_deletion_in_diff_is_loud`,
 `test_step4_ci_no_policy_announcement_without_policy_in_diff`.
