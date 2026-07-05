@@ -273,6 +273,9 @@ def _summarize_guard(result: dict) -> dict[str, int]:
         "non_daily_session_shaped_memory_entry": int(
             counts.get("non_daily_session_shaped_memory_entry") or 0
         ),
+        "authority_override_rejected": int(
+            counts.get("authority_override_rejected") or 0
+        ),
     }
 
 
@@ -294,6 +297,7 @@ def _run_authority_guard(
         skip_git=False,
         changed_files=changed_memory_files,
         blocking_codes=policy["enabled_codes"],
+        override_mode=policy["override_mode"],
     )
     active = filter_active_non_canonical_writer_violations(result["violations"])
     result["active_non_canonical_writer"] = {
@@ -325,6 +329,7 @@ def _run_authority_guard(
             "session_like_non_session_memory_type",
             "non_daily_session_shaped_memory_entry",
             "authority_override_used",
+            "authority_override_rejected",
         )
         if (
             summary.get(code, 0) > 0

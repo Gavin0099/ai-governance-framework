@@ -100,6 +100,7 @@ def check(
         skip_git=True,
         changed_files=changed_memory_files,
         blocking_codes=policy["enabled_codes"],
+        override_mode=policy["override_mode"],
     )
     active = filter_active_non_canonical_writer_violations(
         guard_result["violations"],
@@ -137,6 +138,7 @@ def check(
         "non_canonical_writer",
         "session_like_non_session_memory_type",
         "non_daily_session_shaped_memory_entry",
+        "authority_override_rejected",
     ):
         count = int(counts.get(code) or 0)
         if count:

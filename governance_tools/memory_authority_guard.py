@@ -275,6 +275,10 @@ def _test_evidence_provenance_violation(
 
 _BLOCKING_POLICY_RELPATH = "governance/memory_blocking_policy.json"
 _BLOCKING_POLICY_SCHEMA = "memory_blocking_policy.v0.1"
+# Override handling modes (F4 design). Default preserves the original
+# escape-hatch behavior; stricter modes are policy opt-in.
+_OVERRIDE_MODES = frozenset({"allowed", "receipt_required", "disallowed"})
+_DEFAULT_OVERRIDE_MODE = "allowed"
 # Codes a policy may enable. authority_override_used is deliberately absent:
 # it is an audit record, never blockable.
 _BLOCKABLE_VIOLATION_CODES = frozenset({
@@ -299,7 +303,12 @@ def load_blocking_policy(project_root: Path) -> dict[str, Any]:
     intentionally disabled one. No environment variable can influence this.
     """
     path = project_root / _BLOCKING_POLICY_RELPATH
-    off = {'enabled_codes': [], 'source': _BLOCKING_POLICY_RELPATH, 'error': None}
+    off = {
+        'enabled_codes': [],
+        'source': _BLOCKING_POLICY_RELPATH,
+        'error': None,
+        'override_mode': _DEFAULT_OVERRIDE_MODE,
+    }
     if not path.is_file():
         return {**off, 'source': 'default_off_no_policy_file'}
     try:
@@ -321,10 +330,18 @@ def load_blocking_policy(project_root: Path) -> dict[str, Any]:
         # A typo'd code would otherwise enable selective-blocking claims while
         # blocking nothing (claim inflation) — fail visibly instead.
         return {**off, 'error': f"blocking_policy_unknown_code:{','.join(unknown)}"}
+    override_mode = payload.get('override_mode', _DEFAULT_OVERRIDE_MODE)
+    if not isinstance(override_mode, str) or override_mode not in _OVERRIDE_MODES:
+        # F3 rule: a typo must not silently select a weaker or stronger mode.
+        return {
+            **off,
+            'error': f"blocking_policy_unknown_override_mode:{override_mode}",
+        }
     return {
         'enabled_codes': cleaned,
         'source': _BLOCKING_POLICY_RELPATH,
         'error': None,
+        'override_mode': override_mode,
     }
 
 
@@ -824,6 +841,7 @@ def _selective_blocking_not_claimed(authority_status: str) -> list[str]:
 def _apply_blocking_policy(
     violations: list[dict[str, Any]],
     enabled_codes: list[str],
+    override_mode: str = _DEFAULT_OVERRIDE_MODE,
 ) -> list[dict[str, Any]]:
     """
     Select the violations the policy actually blocks and append audit records
@@ -843,6 +861,7 @@ def _apply_blocking_policy(
     """
     blocking: list[dict[str, Any]] = []
     downgraded: list[dict[str, Any]] = []
+    rejected: list[dict[str, Any]] = []
     for violation in violations:
         if violation.get('code') not in enabled_codes:
             continue
@@ -850,8 +869,14 @@ def _apply_blocking_policy(
         if reason.startswith(_PRE_WINDOW_REASON_PREFIX):
             continue
         if violation.get('authority_override'):
-            downgraded.append(violation)
-            continue
+            if override_mode == _DEFAULT_OVERRIDE_MODE:
+                downgraded.append(violation)
+                continue
+            # Strict modes (F4): the override is not honored and the block
+            # stands. receipt_required currently rejects every override
+            # because no receipt system exists yet; when receipt validation
+            # lands (F4 rollout step 5) an attested path is added here.
+            rejected.append(violation)
         violation['enforcement'] = 'block'
         blocking.append(violation)
     for violation in downgraded:
@@ -863,6 +888,17 @@ def _apply_blocking_policy(
             'reason': (
                 f"downgraded_from:{violation.get('code')}:"
                 f"{violation.get('authority_override')}"
+            ),
+        })
+    for violation in rejected:
+        violations.append({
+            'code': 'authority_override_rejected',
+            'severity': 'warning',
+            'file': violation.get('file'),
+            'entry': violation.get('entry'),
+            'reason': (
+                f"override_not_honored:{override_mode}:"
+                f"{violation.get('code')}:{violation.get('authority_override')}"
             ),
         })
     return blocking
@@ -899,6 +935,7 @@ def run_guard(
     skip_git: bool = False,
     changed_files: Sequence[str] | None = None,
     blocking_codes: Sequence[str] | None = None,
+    override_mode: str = _DEFAULT_OVERRIDE_MODE,
 ) -> dict[str, Any]:
     """
     Run all four checks and return structured JSON result.
@@ -941,7 +978,9 @@ def run_guard(
         str(code).strip() for code in (blocking_codes or []) if str(code).strip()
     })
     blocking_violations = (
-        _apply_blocking_policy(violations, enabled_codes) if enabled_codes else []
+        _apply_blocking_policy(violations, enabled_codes, override_mode)
+        if enabled_codes
+        else []
     )
 
     counts: dict[str, int] = {}
@@ -1013,6 +1052,7 @@ def run_guard(
         'blocking_policy': {
             'enabled_codes': enabled_codes,
             'mode': policy_mode,
+            'override_mode': override_mode,
         },
         'violation_count': len(violations),
         'violation_counts_by_code': counts,

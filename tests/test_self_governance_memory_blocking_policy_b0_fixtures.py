@@ -403,6 +403,7 @@ def test_policy_optin_b0_violation_blocks(tmp_path: Path) -> None:
     assert result["blocking_policy"] == {
         "enabled_codes": [B0_CODE],
         "mode": "selective_blocking",
+        "override_mode": "allowed",
     }
 
 
@@ -517,6 +518,7 @@ def test_policy_default_off_state_is_visible_in_output(tmp_path: Path) -> None:
     assert result["blocking_policy"] == {
         "enabled_codes": [],
         "mode": "report_only_default",
+        "override_mode": "allowed",
     }
     assert result["claim_ceiling"] == "report_only_phase1"
 
@@ -554,6 +556,7 @@ def test_policy_loader_missing_file_is_default_off(tmp_path: Path) -> None:
         "enabled_codes": [],
         "source": "default_off_no_policy_file",
         "error": None,
+        "override_mode": "allowed",
     }
 
 
@@ -1086,11 +1089,12 @@ def test_b0_scenario6_phase1_semantics_pinned_even_when_b0_fires(tmp_path: Path)
     assert B0_CODE in result["report_only_violation_codes"]
 
 
-# ── F4 rollout step 2: override_mode baseline fixtures ───────────────────────
+# ── F4 rollout steps 2-3: override_mode fixtures ─────────────────────────────
 # Contract: docs/governance/self-governance-f4-override-attestation-design-2026-07-05.md
-# These pin TODAY's behavior: override_mode is not implemented, so the field
-# is inert and every mode behaves as `allowed`. Rollout step 3 must flip the
-# inert pins consciously; the expected step-3 verdicts are documented inline.
+# Step 2 pinned the pre-implementation inert behavior; step 3 (loader + guard
+# override_mode support) consciously flipped those pins to the real verdicts.
+# Receipt validation (step 5) does not exist: receipt_required currently
+# rejects every override because no receipt can be valid yet.
 
 F4_REJECTED_CODE = "authority_override_rejected"
 F4_RECEIPT_INVALID_CODE = "authority_override_receipt_invalid"
@@ -1107,60 +1111,94 @@ def _f4_workflow(tmp_path: Path):
     )
 
 
-def test_f4_step2_allowed_is_the_current_default_without_the_field(tmp_path: Path) -> None:
+def test_f4_allowed_is_the_explicit_default_without_the_field(tmp_path: Path) -> None:
     # Explicit default pin: a policy without override_mode downgrades the
-    # blocked override and emits only the audit code.
+    # blocked override and emits only the audit code. This is the zero-change
+    # guarantee of F4 rollout step 3.
     _write_policy(tmp_path)
 
     workflow = _f4_workflow(tmp_path)
 
     assert workflow.blockers == []
     assert workflow.guard_summary.get(B0_CODE, 0) == 1
+    assert F4_REJECTED_CODE not in workflow.warnings
 
 
-def test_f4_step2_disallowed_mode_is_inert_today(tmp_path: Path) -> None:
-    # INERT TODAY: override_mode is not implemented, so `disallowed` still
-    # downgrades. Step 3 expected verdict: block stands and
-    # authority_override_rejected is emitted.
+def test_f4_disallowed_mode_rejects_override_and_blocks(tmp_path: Path) -> None:
+    # Step-3 flip of the step-2 inert pin: under `disallowed` the override is
+    # not honored, the block stands, and the rejection is audited.
     _write_policy(tmp_path, override_mode="disallowed")
 
     workflow = _f4_workflow(tmp_path)
 
-    assert workflow.blockers == []
-    assert F4_REJECTED_CODE not in workflow.warnings
+    assert f"memory_authority_blocking:{B0_CODE}" in workflow.blockers
+    assert workflow.completion_claim_allowed is False
+    assert F4_REJECTED_CODE in workflow.warnings
+    assert workflow.guard_summary.get(F4_REJECTED_CODE, 0) == 1
 
 
-def test_f4_step2_receipt_required_mode_is_inert_today(tmp_path: Path) -> None:
-    # INERT TODAY: `receipt_required` still downgrades even though no receipt
-    # exists. Step 3 expected verdict: with no valid receipt the block stands
-    # and authority_override_rejected is emitted.
+def test_f4_receipt_required_mode_rejects_every_override_today(tmp_path: Path) -> None:
+    # Step-3 flip: receipt validation (step 5) does not exist, so no receipt
+    # can be valid and every override is rejected. When step 5 lands, an
+    # attested path must consciously update this fixture.
     _write_policy(tmp_path, override_mode="receipt_required")
 
     workflow = _f4_workflow(tmp_path)
 
-    assert workflow.blockers == []
-    assert F4_REJECTED_CODE not in workflow.warnings
+    assert f"memory_authority_blocking:{B0_CODE}" in workflow.blockers
+    assert F4_REJECTED_CODE in workflow.warnings
 
 
-def test_f4_step2_unknown_override_mode_is_inert_today(tmp_path: Path) -> None:
-    # INERT TODAY: the loader ignores unknown override_mode values. Step 3
-    # expected verdict: unknown values are a policy error
-    # (blocking_policy_unknown_override_mode), following the F3 typo rule.
+def test_f4_unknown_override_mode_is_a_policy_error(tmp_path: Path) -> None:
+    # Step-3 flip: unknown values follow the F3 typo rule — fail visibly,
+    # never silently select a weaker or stronger mode.
     _write_policy(tmp_path, override_mode="totally-not-a-mode")
 
     policy = load_blocking_policy(tmp_path)
 
-    assert policy["error"] is None
-    assert policy["enabled_codes"] == [B0_CODE]
+    assert policy["enabled_codes"] == []
+    assert policy["error"] == (
+        "blocking_policy_unknown_override_mode:totally-not-a-mode"
+    )
+    assert policy["override_mode"] == "allowed"
 
 
-def test_f4_step2_future_codes_do_not_exist_yet(tmp_path: Path) -> None:
-    # The F4 receipt codes must not appear anywhere before step 3/5 implement
-    # them; their first appearance requires a conscious update here.
+def test_f4_unknown_override_mode_fails_the_gate(tmp_path: Path) -> None:
+    # Via F1: a policy error is a blocker at the gate consumers.
+    _write_policy(tmp_path, override_mode="totally-not-a-mode")
+
+    workflow = _f4_workflow(tmp_path)
+
+    assert "blocking_policy_error" in workflow.blockers
+
+
+def test_f4_rejection_audit_record_carries_mode_and_original_code(tmp_path: Path) -> None:
+    _write_policy(tmp_path, override_mode="disallowed")
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_OVERRIDE_ENTRY)
+
+    result = run_guard(
+        tmp_path / "memory",
+        tmp_path,
+        skip_git=True,
+        blocking_codes=[B0_CODE],
+        override_mode="disallowed",
+    )
+
+    assert result["ok"] is False
+    assert result["enforcement_action"] == "block"
+    assert result["violation_counts_by_code"][F4_REJECTED_CODE] == 1
+    audit = [v for v in result["violations"] if v["code"] == F4_REJECTED_CODE][0]
+    assert audit["reason"].startswith(f"override_not_honored:disallowed:{B0_CODE}:")
+    assert result["blocking_policy"]["override_mode"] == "disallowed"
+
+
+def test_f4_receipt_codes_do_not_exist_yet(tmp_path: Path) -> None:
+    # Receipt validation is rollout step 5; its codes must not appear before
+    # then. Their first appearance requires a conscious update here.
     _write_policy(tmp_path, override_mode="disallowed")
 
     workflow = _f4_workflow(tmp_path)
 
-    for code in (F4_REJECTED_CODE, F4_RECEIPT_INVALID_CODE, F4_RECEIPT_STALE_CODE):
+    for code in (F4_RECEIPT_INVALID_CODE, F4_RECEIPT_STALE_CODE):
         assert code not in workflow.warnings
         assert workflow.guard_summary.get(code, 0) == 0
