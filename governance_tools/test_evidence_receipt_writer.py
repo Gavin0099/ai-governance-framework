@@ -51,6 +51,29 @@ def _utc_now_iso() -> str:
 
 
 def _git_head(project_root: Path) -> str:
+    """HEAD of the worktree whose top-level IS project_root, else no_git_worktree.
+
+    `git -C` walks up parent directories, so a scratch project_root nested
+    inside some other repository would silently link that outer repo's HEAD.
+    The receipt links a commit only when project_root is itself the worktree
+    root, keeping the linked_commit semantics deterministic.
+    """
+    toplevel = subprocess.run(
+        ["git", "-C", str(project_root), "rev-parse", "--show-toplevel"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    if toplevel.returncode != 0:
+        return "no_git_worktree"
+    try:
+        if Path(toplevel.stdout.strip()).resolve() != project_root.resolve():
+            return "no_git_worktree"
+    except OSError:
+        return "no_git_worktree"
     completed = subprocess.run(
         ["git", "-C", str(project_root), "rev-parse", "HEAD"],
         stdout=subprocess.PIPE,
@@ -68,6 +91,15 @@ def _relpath(path: Path, project_root: Path) -> str:
     return path.resolve().relative_to(project_root.resolve()).as_posix()
 
 
+def _ensure_inside_project_root(path: Path, project_root: Path, label: str) -> None:
+    try:
+        path.resolve().relative_to(project_root.resolve())
+    except (ValueError, OSError):
+        raise SystemExit(
+            f"error: {label} must be inside the project root, got: {path}"
+        )
+
+
 def write_receipt(
     project_root: Path,
     command: list[str],
@@ -81,8 +113,12 @@ def write_receipt(
         output = project_root / _DEFAULT_OUTPUT_DIR / f"receipt-{stamp}.json"
     elif not output.is_absolute():
         output = project_root / output
-    output.parent.mkdir(parents=True, exist_ok=True)
     raw_output_path = output.with_suffix(".txt")
+    # Governance artifact boundary: refuse out-of-root paths BEFORE running
+    # the command, so a rejected invocation has zero side effects.
+    _ensure_inside_project_root(output, project_root, "receipt output")
+    _ensure_inside_project_root(raw_output_path, project_root, "raw output")
+    output.parent.mkdir(parents=True, exist_ok=True)
 
     started_at = _utc_now_iso()
     completed = subprocess.run(

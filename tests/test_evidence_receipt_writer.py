@@ -10,8 +10,11 @@ recording, never truth: fabricating the JSON directly remains possible.
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 from governance_tools.memory_authority_guard import (
     _validate_evidence_receipt,
@@ -35,8 +38,69 @@ def test_passing_command_produces_valid_receipt(tmp_path: Path) -> None:
     raw = tmp_path / payload["output_artifacts"][0]
     assert raw.is_file()
     assert "42 passed" in raw.read_text(encoding="utf-8")
-    # No git worktree in tmp_path: linked_commit records that honestly.
+    # tmp_path is not itself a worktree top-level: linked_commit records that
+    # honestly — even when the temp dir happens to live inside some outer
+    # repository (review finding: `git -C` walks up parent directories).
     assert payload["linked_commit"] == "no_git_worktree"
+
+
+def test_linked_commit_binds_only_when_project_root_is_the_worktree_root(
+    tmp_path: Path,
+) -> None:
+    subprocess.run(["git", "-C", str(tmp_path), "init", "-q"], check=True)
+    (tmp_path / "seed.txt").write_text("seed", encoding="utf-8")
+    subprocess.run(["git", "-C", str(tmp_path), "add", "."], check=True)
+    subprocess.run(
+        ["git", "-C", str(tmp_path), "-c", "user.email=t@t", "-c", "user.name=t",
+         "commit", "-qm", "seed"],
+        check=True,
+    )
+    head = subprocess.run(
+        ["git", "-C", str(tmp_path), "rev-parse", "HEAD"],
+        capture_output=True, text=True, check=True,
+    ).stdout.strip()
+
+    receipt_path, _ = write_receipt(
+        tmp_path,
+        [sys.executable, "-c", "print('ok')"],
+        output=Path("artifacts/runtime/test-results/root.json"),
+    )
+    payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert payload["linked_commit"] == head
+
+    # A subdirectory of the same repo is NOT the worktree root: the receipt
+    # must not silently link the containing repo's HEAD.
+    subdir = tmp_path / "nested" / "scratch"
+    subdir.mkdir(parents=True)
+    receipt_path, _ = write_receipt(
+        subdir,
+        [sys.executable, "-c", "print('ok')"],
+        output=Path("artifacts/runtime/test-results/nested.json"),
+    )
+    payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert payload["linked_commit"] == "no_git_worktree"
+
+
+def test_out_of_root_output_is_rejected_before_running_the_command(
+    tmp_path: Path,
+) -> None:
+    project_root = tmp_path / "repo"
+    project_root.mkdir()
+    outside = tmp_path / "outside" / "receipt.json"
+    marker = tmp_path / "command-ran.marker"
+
+    with pytest.raises(SystemExit):
+        write_receipt(
+            project_root,
+            [sys.executable, "-c", f"open(r'{marker}', 'w').close()"],
+            output=outside,
+        )
+
+    # Zero side effects on rejection: the command never ran and no half-baked
+    # artifacts were written outside the boundary.
+    assert not marker.exists()
+    assert not outside.exists()
+    assert not outside.with_suffix(".txt").exists()
 
 
 def test_failing_command_records_and_passes_through_exit_code(tmp_path: Path) -> None:
