@@ -87,7 +87,7 @@ hardening: an `override_allowed` policy field.
 Fixture: `test_step4_workflow_surfaces_authority_override_in_current_diff` and
 `test_step4_ci_surfaces_authority_override_in_current_diff`.
 
-### F5 (DOCUMENTED semantics): B0 blocking at CI is a repo-state gate
+### F5 (OBSERVATION SPLIT): B0 blocking at CI is a repo-state gate
 
 The B0 blocker comes from a full scan of active-window daily memory, not from
 the current diff (unlike `active_non_canonical_writer`, which is
@@ -99,6 +99,14 @@ Disposition: intended for the observation period. A repo-state gate is what
 forces landed debt to be dealt with instead of accumulating. If observation
 shows this punishes unrelated contributors too often, a diff-scoped variant
 needs its own policy decision; do not silently narrow the gate.
+
+Observation split: `memory_workflow` and CI now report both
+`repo_state_b0_blocker_count` and `current_diff_b0_blocker_count`. Blocking
+behavior is unchanged: repo-state B0 blockers still fail the gate even when
+`current_diff_b0_blocker_count=0`.
+
+Fixture: `test_step4_ci_observes_repo_state_b0_outside_current_diff` and
+`test_step4_workflow_observes_repo_state_b0_outside_current_diff`.
 
 ### F6 (REPORT-ONLY REMEDIATED): non-daily memory filenames evade the daily scans
 

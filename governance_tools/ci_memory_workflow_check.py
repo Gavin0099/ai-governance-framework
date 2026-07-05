@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """CI-only selective memory workflow blocker.
 
-This check intentionally blocks only current-diff memory writer violations.
-Historical memory debt remains warning-only and local hooks remain advisory.
+This check blocks current-diff memory writer violations and policy-backed memory
+authority blockers. Historical warning-only debt remains warning-only and local
+hooks remain advisory.
 """
 
 from __future__ import annotations
@@ -23,6 +24,9 @@ from governance_tools.memory_authority_guard import (
 )
 
 
+_B0_CODE = "session_like_non_session_memory_type"
+
+
 @dataclass
 class CiMemoryWorkflowCheckResult:
     repo_root: str
@@ -31,6 +35,8 @@ class CiMemoryWorkflowCheckResult:
     changed_memory_files: list[str]
     active_non_canonical_writer_count: int
     current_diff_active_non_canonical_writer_count: int
+    repo_state_b0_blocker_count: int = 0
+    current_diff_b0_blocker_count: int = 0
     blockers: list[dict] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     clean: bool = True
@@ -108,6 +114,17 @@ def check(
         if violation.get("code") == "authority_override_used"
         and _violation_memory_path(violation) in changed_memory_set
     ]
+    repo_state_b0_blockers = [
+        violation
+        for violation in guard_result["violations"]
+        if violation.get("code") == _B0_CODE
+        and violation.get("enforcement") == "block"
+    ]
+    current_diff_b0_blockers = [
+        violation
+        for violation in repo_state_b0_blockers
+        if _violation_memory_path(violation) in changed_memory_set
+    ]
 
     warnings = []
     counts = guard_result.get("violation_counts_by_code") or {}
@@ -166,6 +183,8 @@ def check(
         changed_memory_files=changed_memory_files,
         active_non_canonical_writer_count=len(active),
         current_diff_active_non_canonical_writer_count=len(current_diff_active),
+        repo_state_b0_blocker_count=len(repo_state_b0_blockers),
+        current_diff_b0_blocker_count=len(current_diff_b0_blockers),
         blockers=blockers,
         warnings=warnings,
         clean=not blockers,
@@ -182,6 +201,8 @@ def format_human(result: CiMemoryWorkflowCheckResult) -> str:
         f"active_non_canonical_writer_count={result.active_non_canonical_writer_count}",
         "current_diff_active_non_canonical_writer_count="
         f"{result.current_diff_active_non_canonical_writer_count}",
+        f"repo_state_b0_blocker_count={result.repo_state_b0_blocker_count}",
+        f"current_diff_b0_blocker_count={result.current_diff_b0_blocker_count}",
         f"clean={result.clean}",
     ]
     if result.changed_memory_files:

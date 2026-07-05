@@ -267,6 +267,10 @@ Current semantics:
 - `non_daily_session_shaped_memory_entry` is report-only in all current paths.
   It makes F6 placement bypasses visible without banning structural memory
   files or expanding B0 blocking semantics.
+- `repo_state_b0_blocker_count` and `current_diff_b0_blocker_count` are
+  observation fields in `memory_workflow` / CI output. They split B0 blocker
+  visibility by repository state vs. current diff without narrowing enforcement:
+  repo-state B0 blockers still block while this observation period is active.
 - `memory_workflow --check --repo . --run-guard` reports whether the guard ran,
   summarizes warnings/blockers, and exposes `completion_claim_allowed`.
 - `memory_authority_guard` `ok=True` means the report-only guard executed. It

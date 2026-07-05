@@ -611,6 +611,27 @@ def test_step4_workflow_blocks_b0_when_policy_file_enables_it(tmp_path: Path) ->
     )
 
     assert f"memory_authority_blocking:{B0_CODE}" in workflow.blockers
+    assert workflow.guard_summary["repo_state_b0_blocker_count"] == 1
+    assert workflow.guard_summary["current_diff_b0_blocker_count"] == 1
+    assert workflow.completion_claim_allowed is False
+
+
+def test_step4_workflow_observes_repo_state_b0_outside_current_diff(
+    tmp_path: Path,
+) -> None:
+    _make_framework_surface(tmp_path)
+    _write_policy(tmp_path)
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_ENTRY)
+
+    workflow = assess_memory_workflow(
+        tmp_path,
+        changed_files=["memory/2026-06-03.md"],
+        run_guard_check=True,
+    )
+
+    assert f"memory_authority_blocking:{B0_CODE}" in workflow.blockers
+    assert workflow.guard_summary["repo_state_b0_blocker_count"] == 1
+    assert workflow.guard_summary["current_diff_b0_blocker_count"] == 0
     assert workflow.completion_claim_allowed is False
 
 
@@ -694,6 +715,21 @@ def test_step4_ci_check_blocks_b0_when_policy_file_enables_it(tmp_path: Path) ->
     )
 
     assert result.clean is False
+    assert result.repo_state_b0_blocker_count == 1
+    assert result.current_diff_b0_blocker_count == 1
+    blocker_codes = [b["code"] for b in result.blockers]
+    assert f"memory_authority_blocking:{B0_CODE}" in blocker_codes
+
+
+def test_step4_ci_observes_repo_state_b0_outside_current_diff(tmp_path: Path) -> None:
+    _write_policy(tmp_path)
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_ENTRY)
+
+    result = ci_check(tmp_path, changed_files=["memory/2026-06-03.md"])
+
+    assert result.clean is False
+    assert result.repo_state_b0_blocker_count == 1
+    assert result.current_diff_b0_blocker_count == 0
     blocker_codes = [b["code"] for b in result.blockers]
     assert f"memory_authority_blocking:{B0_CODE}" in blocker_codes
 

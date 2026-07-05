@@ -33,6 +33,7 @@ POSSIBLE_MEMORY_TASK = "possible_memory_task"
 TASK_GOVERNED = "governed_memory_task"
 TASK_POSSIBLE = "possible_memory_task"
 TASK_NOT_MEMORY = "not_memory_task"
+_B0_CODE = "session_like_non_session_memory_type"
 
 _MEMORY_KEYWORDS = (
     "memory",
@@ -188,6 +189,38 @@ def _count_current_diff_violations(
     )
 
 
+def _count_blocking_violations(result: dict, code: str) -> int:
+    return sum(
+        1
+        for violation in result.get("violations", [])
+        if violation.get("code") == code
+        and violation.get("enforcement") == "block"
+    )
+
+
+def _count_current_diff_blocking_violations(
+    result: dict,
+    changed_files: Sequence[str] | None,
+    code: str,
+) -> int:
+    if changed_files is None:
+        return 0
+    changed_memory_set = {
+        _normalize_changed_file(item)
+        for item in changed_files
+        if _is_memory_file(item)
+    }
+    if not changed_memory_set:
+        return 0
+    return sum(
+        1
+        for violation in result.get("violations", [])
+        if violation.get("code") == code
+        and violation.get("enforcement") == "block"
+        and _violation_memory_path(violation) in changed_memory_set
+    )
+
+
 def _has_memory_keyword(task_text: str | None) -> bool:
     if not task_text:
         return False
@@ -267,6 +300,15 @@ def _run_authority_guard(
         result,
         changed_files,
         "authority_override_used",
+    )
+    summary["repo_state_b0_blocker_count"] = _count_blocking_violations(
+        result,
+        _B0_CODE,
+    )
+    summary["current_diff_b0_blocker_count"] = _count_current_diff_blocking_violations(
+        result,
+        changed_files,
+        _B0_CODE,
     )
     warnings = [
         code
