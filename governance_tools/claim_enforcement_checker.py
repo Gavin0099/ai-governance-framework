@@ -40,6 +40,8 @@ CLAIM_STRENGTH_MARKERS = (
 # contradict these labels.
 _RESTRAINED_CLAIM_LEVELS = ("bounded", "parity")
 
+_PUBLIC_SUPPORT_SCOPES = ("public", "external")
+
 POSTURE_ORDER = {
     "none": 0,
     "bounded_support": 1,
@@ -74,6 +76,56 @@ def _normalize_claim_level(value: str) -> str:
     return mapped if mapped in CLAIM_LEVEL_ORDER else "bounded"
 
 
+def _has_strength_marker(final_claim: str) -> bool:
+    lowered = final_claim.lower()
+    return any(marker in lowered for marker in CLAIM_STRENGTH_MARKERS)
+
+
+def _claim_support_report_only_reasons(
+    *,
+    payload: dict,
+    final_claim: str,
+    claim_level: str,
+    publication_scope: str,
+) -> list[str]:
+    claim_support = payload.get("claim_support")
+    public_scope = publication_scope in _PUBLIC_SUPPORT_SCOPES
+    strong_declared_or_marked = claim_level in ("strong", "unbounded") or _has_strength_marker(
+        final_claim
+    )
+
+    if claim_support is None:
+        if public_scope and strong_declared_or_marked:
+            return ["claim_support_missing_for_public_strong_claim"]
+        return []
+
+    if not isinstance(claim_support, dict):
+        return ["claim_support_invalid_shape"]
+
+    reasons: list[str] = []
+    supported_claim_level_raw = claim_support.get("supported_claim_level")
+    if supported_claim_level_raw is None:
+        supported_claim_level = "bounded"
+        reasons.append("claim_support_missing_supported_claim_level")
+    else:
+        raw_supported_level = str(supported_claim_level_raw).strip()
+        mapped_supported_level = LEGACY_CLAIM_LEVEL_MAP.get(raw_supported_level, raw_supported_level)
+        if mapped_supported_level not in CLAIM_LEVEL_ORDER:
+            reasons.append("claim_support_invalid_supported_claim_level")
+            supported_claim_level = "bounded"
+        else:
+            supported_claim_level = mapped_supported_level
+
+    if CLAIM_LEVEL_ORDER[claim_level] > CLAIM_LEVEL_ORDER[supported_claim_level]:
+        reasons.append("claim_level_exceeds_structured_support")
+
+    evidence_refs = claim_support.get("evidence_refs")
+    if not isinstance(evidence_refs, list) or not evidence_refs:
+        reasons.append("claim_support_missing_evidence_refs")
+
+    return reasons
+
+
 def evaluate(payload: dict) -> dict:
     reasons = []
     preconditions = payload.get("preconditions", True)
@@ -94,6 +146,7 @@ def evaluate(payload: dict) -> dict:
             "reasons": [] if hard_rule_ok else [
                 "precondition_failed_contract_violation: expected not_executed + observed=null"
             ],
+            "report_only_reasons": [],
         }
 
     final_claim = str(payload.get("final_claim", ""))
@@ -104,6 +157,12 @@ def evaluate(payload: dict) -> dict:
     publication_scope = str(payload.get("publication_scope", "public"))
 
     semantic_drift_risk = False
+    report_only_reasons = _claim_support_report_only_reasons(
+        payload=payload,
+        final_claim=final_claim,
+        claim_level=claim_level,
+        publication_scope=publication_scope,
+    )
 
     lowered = final_claim.lower()
     if any(p in lowered for p in DISALLOWED_PHRASES):
@@ -150,6 +209,7 @@ def evaluate(payload: dict) -> dict:
         "reviewer_override_required": enforcement_action in ("downgrade", "block"),
         "publication_scope": publication_scope,
         "reasons": reasons,
+        "report_only_reasons": report_only_reasons,
     }
 
 

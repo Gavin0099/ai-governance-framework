@@ -14,6 +14,7 @@ def test_drift_true_bounded_maps_to_downgrade():
     assert out["semantic_drift_risk"] is True
     assert out["enforcement_action"] == "downgrade"
     assert out["result"] == "pass"
+    assert out["report_only_reasons"] == []
 
 
 def test_drift_true_strong_maps_to_block():
@@ -44,3 +45,15 @@ def test_local_only_claim_level_must_not_exceed_bounded():
     assert out["semantic_drift_risk"] is True
     assert out["enforcement_action"] == "downgrade"
     assert "local_only_claim_level_exceeds_bounded" in out["reasons"]
+
+
+def test_report_only_reasons_field_is_present_for_clean_claim():
+    payload = {
+        "final_claim": "Adds a bounded report for the current diff.",
+        "claim_level": "bounded",
+        "publication_scope": "public",
+    }
+    out = evaluate(payload)
+    assert out["semantic_drift_risk"] is False
+    assert out["enforcement_action"] == "allow"
+    assert out["report_only_reasons"] == []

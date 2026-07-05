@@ -94,13 +94,13 @@ Contract: `docs/governance/self-governance-normalizer-alias-miss-mutation-contra
 ### Self-Governance Claim-Label Baselines (2026-07-04)
 
 These entries document a self-governance claim-label gap and its advisory
-remediation. The remaining `VULNERABLE` row is a report-only baseline; it is
-not `PROTECTED` mutation proof evidence.
+remediation. The remaining `VULNERABLE` row has a report-only structured-support
+surface, but it is not `PROTECTED` mutation proof evidence.
 
 | Scenario | Type | Expected Surface | Current Observation | Status |
 | :--- | :--- | :--- | :--- | :--- |
 | **Self-Labeled Bounded Claim** | Negative Fixture | `claim_enforcement_checker.evaluate` | strength markers under a restrained `claim_level` (bounded/parity) now flag `claim_label_understates_claim_text` and route to advisory `downgrade` + reviewer override; markerless strong wording still `allow` | REMEDIATED baseline (advisory) |
-| **Markerless Strong Claim** | Negative Fixture | `claim_enforcement_checker.evaluate` | a strong claim phrased without any lexical strength marker self-labels `bounded` and still produces `enforcement_action: allow` | VULNERABLE baseline |
+| **Markerless Strong Claim** | Negative Fixture | `claim_enforcement_checker.evaluate` | a strong claim phrased without any lexical strength marker can still self-label `bounded` and produce `enforcement_action: allow`; when optional `claim_support` is supplied, support-level mismatch now emits report-only `claim_level_exceeds_structured_support` without changing blocking behavior | PARTIALLY REMEDIATED baseline (structured support advisory; markerless semantic truth still VULNERABLE) |
 
 Contract: `docs/governance/self-governance-claim-label-mutation-contract-2026-07-04.md`.
 

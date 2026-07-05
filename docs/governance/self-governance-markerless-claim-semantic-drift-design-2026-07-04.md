@@ -1,15 +1,15 @@
 # Self-Governance Markerless Claim Semantic Drift Design
 
-Status: DESIGN ONLY / REPORT ONLY
+Status: PARTIALLY IMPLEMENTED / REPORT ONLY
 Date: 2026-07-04
 Scope: R2 markerless claim semantic drift
 
 ## DONE
 
 DONE = markerless claim semantic drift is documented as a remaining
-`VULNERABLE baseline`, with future report-only design options and claim
-ceilings, without changing `claim_enforcement_checker`, tests, hook, CI, schema,
-runtime, or gate policy behavior.
+`VULNERABLE baseline`, and Option A structured claim support is implemented as
+report-only checker output without changing hook, CI, schema, runtime, gate
+policy, or blocking behavior.
 
 ## Problem
 
@@ -38,9 +38,10 @@ Existing status is already registered:
 - status: `VULNERABLE baseline`
 - surface: `governance_tools/claim_enforcement_checker.py`
 
-This design does not update the catalog because the current catalog status is
-still accurate. It refines the next-slice choices before any enforcement or
-runtime change.
+The catalog now distinguishes the old markerless baseline from the implemented
+structured-support advisory surface: unsupported markerless prose can still pass,
+while a supplied `claim_support` envelope can make support-level mismatches
+visible.
 
 ## Threat Model
 
@@ -78,7 +79,7 @@ enforcement only after a separate policy RFC and mutation contract.
 
 ### Option A: Structured Claim Support Envelope
 
-Add an optional report-only input / artifact that separates the final claim from
+Implemented 2026-07-05. Add an optional report-only input that separates the final claim from
 its evidence support:
 
 ```yaml
@@ -98,14 +99,24 @@ Report-only comparison:
 - if `claim_level` is stronger than `supported_claim_level`, emit
   `claim_level_exceeds_structured_support`;
 - if `claim_support` is missing for a public strong-looking claim, emit only a
-  documentation warning, not a block;
-- if evidence refs are missing, reuse evidence-provenance concepts rather than
-  inventing a semantic truth claim.
+  report-only warning, not a block;
+- if evidence refs are missing, emit `claim_support_missing_evidence_refs`;
+- if `claim_support` is malformed, emit `claim_support_invalid_shape`;
+- if `supported_claim_level` is missing or unknown, emit
+  `claim_support_missing_supported_claim_level` or
+  `claim_support_invalid_supported_claim_level`.
 
 Claim ceiling:
 
 - can show mismatch between self-label and structured support;
 - cannot prove the final claim is semantically correct.
+
+Implementation ceiling:
+
+- warnings are emitted through `report_only_reasons`;
+- warnings do not set `semantic_drift_risk`;
+- warnings do not change `enforcement_action`;
+- warnings do not require reviewer override by themselves.
 
 ### Option B: Reviewer Semantic Attestation Receipt
 
@@ -158,7 +169,7 @@ Claim ceiling:
 
 ## Recommended Next Implementation Path
 
-Prefer Option A first.
+Option A is complete as a report-only checker slice.
 
 Reasoning:
 
@@ -167,9 +178,8 @@ Reasoning:
 - it gives future reviewers a concrete evidence boundary;
 - it can remain advisory while creating useful mutation fixtures.
 
-Only after Option A exists should Option B be considered for human / agent
-review attestation. Option C can be used for small known misses, but it should
-not be framed as the R2 fix.
+Option B can now be considered for human / agent review attestation. Option C
+can be used for small known misses, but it should not be framed as the R2 fix.
 
 ## Mutation Contract Shape For Future Work
 
@@ -189,12 +199,13 @@ Current expected observation:
 - `semantic_drift_risk: false`;
 - this remains `VULNERABLE baseline`.
 
-Future report-only target:
+Report-only target:
 
 - with structured support present, a checker can emit
   `claim_level_exceeds_structured_support` when labels disagree;
-- without structured support, first implementation should emit at most a
-  report-only missing-support warning for declared public claims;
+- without structured support, implementation emits at most a report-only
+  `claim_support_missing_for_public_strong_claim` warning for declared public
+  strong-looking claims;
 - no `PROTECTED` claim is allowed until focused tests prove the intended
   mutation is detected through a stable, reviewable surface.
 
@@ -202,9 +213,7 @@ Future report-only target:
 
 This design does not:
 
-- modify `claim_enforcement_checker.py`;
 - add markers to `CLAIM_STRENGTH_MARKERS`;
-- add tests;
 - change hook, pre-push, CI, schema, runtime, or gate policy behavior;
 - introduce an LLM semantic classifier;
 - validate the truth of `final_claim`;
@@ -218,7 +227,7 @@ This design does not:
 This design can claim:
 
 - R2 remains a `VULNERABLE baseline`;
-- structured claim support is the preferred future report-only path;
+- structured claim support exists as a report-only checker path;
 - lexical marker expansion is insufficient as a semantic fix;
 - no enforcement behavior changed.
 
