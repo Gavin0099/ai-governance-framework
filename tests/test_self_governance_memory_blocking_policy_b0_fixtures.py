@@ -530,6 +530,7 @@ def _write_policy(
     enabled: bool = True,
     codes: list[str] | None = None,
     schema: str = "memory_blocking_policy.v0.1",
+    override_mode: str | None = None,
     raw: str | None = None,
 ) -> None:
     path = repo / "governance" / "memory_blocking_policy.json"
@@ -541,6 +542,8 @@ def _write_policy(
         "enabled": enabled,
         "blocking_codes": codes if codes is not None else [B0_CODE],
     }
+    if override_mode is not None:
+        payload["override_mode"] = override_mode
     _write(path, json.dumps(payload, indent=2) + "\n")
 
 
@@ -1081,3 +1084,83 @@ def test_b0_scenario6_phase1_semantics_pinned_even_when_b0_fires(tmp_path: Path)
     assert "blocking_enforcement" in result["not_claimed"]
     assert result["violation_counts_by_code"][B0_CODE] == 1
     assert B0_CODE in result["report_only_violation_codes"]
+
+
+# ── F4 rollout step 2: override_mode baseline fixtures ───────────────────────
+# Contract: docs/governance/self-governance-f4-override-attestation-design-2026-07-05.md
+# These pin TODAY's behavior: override_mode is not implemented, so the field
+# is inert and every mode behaves as `allowed`. Rollout step 3 must flip the
+# inert pins consciously; the expected step-3 verdicts are documented inline.
+
+F4_REJECTED_CODE = "authority_override_rejected"
+F4_RECEIPT_INVALID_CODE = "authority_override_receipt_invalid"
+F4_RECEIPT_STALE_CODE = "authority_override_receipt_stale"
+
+
+def _f4_workflow(tmp_path: Path):
+    _make_framework_surface(tmp_path)
+    _write_memory(tmp_path, _IN_WINDOW_FILENAME, _IN_WINDOW_B0_OVERRIDE_ENTRY)
+    return assess_memory_workflow(
+        tmp_path,
+        changed_files=[f"memory/{_IN_WINDOW_FILENAME}"],
+        run_guard_check=True,
+    )
+
+
+def test_f4_step2_allowed_is_the_current_default_without_the_field(tmp_path: Path) -> None:
+    # Explicit default pin: a policy without override_mode downgrades the
+    # blocked override and emits only the audit code.
+    _write_policy(tmp_path)
+
+    workflow = _f4_workflow(tmp_path)
+
+    assert workflow.blockers == []
+    assert workflow.guard_summary.get(B0_CODE, 0) == 1
+
+
+def test_f4_step2_disallowed_mode_is_inert_today(tmp_path: Path) -> None:
+    # INERT TODAY: override_mode is not implemented, so `disallowed` still
+    # downgrades. Step 3 expected verdict: block stands and
+    # authority_override_rejected is emitted.
+    _write_policy(tmp_path, override_mode="disallowed")
+
+    workflow = _f4_workflow(tmp_path)
+
+    assert workflow.blockers == []
+    assert F4_REJECTED_CODE not in workflow.warnings
+
+
+def test_f4_step2_receipt_required_mode_is_inert_today(tmp_path: Path) -> None:
+    # INERT TODAY: `receipt_required` still downgrades even though no receipt
+    # exists. Step 3 expected verdict: with no valid receipt the block stands
+    # and authority_override_rejected is emitted.
+    _write_policy(tmp_path, override_mode="receipt_required")
+
+    workflow = _f4_workflow(tmp_path)
+
+    assert workflow.blockers == []
+    assert F4_REJECTED_CODE not in workflow.warnings
+
+
+def test_f4_step2_unknown_override_mode_is_inert_today(tmp_path: Path) -> None:
+    # INERT TODAY: the loader ignores unknown override_mode values. Step 3
+    # expected verdict: unknown values are a policy error
+    # (blocking_policy_unknown_override_mode), following the F3 typo rule.
+    _write_policy(tmp_path, override_mode="totally-not-a-mode")
+
+    policy = load_blocking_policy(tmp_path)
+
+    assert policy["error"] is None
+    assert policy["enabled_codes"] == [B0_CODE]
+
+
+def test_f4_step2_future_codes_do_not_exist_yet(tmp_path: Path) -> None:
+    # The F4 receipt codes must not appear anywhere before step 3/5 implement
+    # them; their first appearance requires a conscious update here.
+    _write_policy(tmp_path, override_mode="disallowed")
+
+    workflow = _f4_workflow(tmp_path)
+
+    for code in (F4_REJECTED_CODE, F4_RECEIPT_INVALID_CODE, F4_RECEIPT_STALE_CODE):
+        assert code not in workflow.warnings
+        assert workflow.guard_summary.get(code, 0) == 0
