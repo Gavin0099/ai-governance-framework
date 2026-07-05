@@ -222,10 +222,10 @@ def _normalize_artifact_token(token: str) -> str:
     return token.strip().strip('`"\'()[]{}<>').rstrip(".:")
 
 
-def _artifact_path_exists(project_root: Path, token: str) -> bool:
+def _resolve_artifact_path(project_root: Path, token: str) -> Path | None:
     normalized = _normalize_artifact_token(token)
     if not normalized:
-        return False
+        return None
 
     candidate = Path(normalized)
     if not candidate.is_absolute():
@@ -235,14 +235,18 @@ def _artifact_path_exists(project_root: Path, token: str) -> bool:
         resolved_project_root = project_root.resolve()
         resolved_candidate = candidate.resolve()
     except OSError:
-        return False
+        return None
 
     try:
         resolved_candidate.relative_to(resolved_project_root)
     except ValueError:
-        return False
+        return None
 
-    return resolved_candidate.is_file()
+    return resolved_candidate if resolved_candidate.is_file() else None
+
+
+def _artifact_path_exists(project_root: Path, token: str) -> bool:
+    return _resolve_artifact_path(project_root, token) is not None
 
 
 def _test_evidence_provenance_violation(
@@ -356,6 +360,117 @@ def _session_like_field_names(block: str) -> list[str]:
         for name, pattern in _SESSION_LIKE_FIELD_PATTERNS
         if pattern.search(block)
     ]
+
+
+# ── evidence receipt (R3 Option A) ────────────────────────────────────────────
+# Contract: docs/governance/self-governance-evidence-artifact-metadata-design-2026-07-04.md
+# Structured metadata raises the cost of fabricating passing evidence from
+# "create a file" to "author internally consistent structured metadata".
+# It can never prove the command ran; every field remains fabricatable.
+
+_TEST_EVIDENCE_RECEIPT_SCHEMA = "test_evidence_receipt.v0.1"
+# Daily files dated before this warn nothing: historical artifacts predate the
+# receipt shape and must not flood the signal (R4 RFC backcompat principle).
+_EVIDENCE_RECEIPT_ADVISORY_FROM = "2026-07-05"
+_EVIDENCE_RECEIPT_REQUIRED_STR_FIELDS = (
+    "command",
+    "started_at",
+    "finished_at",
+    "runner",
+    "linked_commit",
+)
+
+
+def _validate_evidence_receipt(payload: dict[str, Any]) -> str | None:
+    """Return an error reason, or None when the receipt shape is valid.
+
+    Validity proves shape and internal consistency only — never that the
+    recorded command actually ran or that its output is genuine.
+    """
+    if payload.get("receipt_schema") != _TEST_EVIDENCE_RECEIPT_SCHEMA:
+        return "receipt_schema_mismatch"
+    for field_name in _EVIDENCE_RECEIPT_REQUIRED_STR_FIELDS:
+        value = payload.get(field_name)
+        if not isinstance(value, str) or not value.strip():
+            return f"receipt_field_invalid:{field_name}"
+    exit_code = payload.get("exit_code")
+    if isinstance(exit_code, bool) or not isinstance(exit_code, int):
+        return "receipt_field_invalid:exit_code"
+    output_artifacts = payload.get("output_artifacts")
+    if not isinstance(output_artifacts, list) or not all(
+        isinstance(item, str) and item.strip() for item in output_artifacts
+    ):
+        return "receipt_field_invalid:output_artifacts"
+    cannot_claim = payload.get("cannot_claim")
+    if (
+        not isinstance(cannot_claim, list)
+        or not cannot_claim
+        or not all(isinstance(item, str) and item.strip() for item in cannot_claim)
+    ):
+        return "receipt_field_invalid:cannot_claim"
+    return None
+
+
+def _test_evidence_metadata_violation(
+    block: str,
+    project_root: Path | None,
+    filename: str,
+) -> tuple[str, str] | None:
+    """Advisory metadata check for success evidence whose artifact exists.
+
+    Returns (code, reason) or None. Runs only for daily files at or after the
+    advisory cutoff; the existence-only check keeps covering everything else.
+    """
+    if project_root is None or filename < f"{_EVIDENCE_RECEIPT_ADVISORY_FROM}.md":
+        return None
+
+    match = _TEST_EVIDENCE.search(block)
+    if not match:
+        return None
+    evidence = match.group(1).strip()
+    if not _TEST_EVIDENCE_SUCCESS.search(evidence):
+        return None
+
+    existing = [
+        resolved
+        for artifact_match in _TEST_EVIDENCE_ARTIFACT_PATH.finditer(evidence)
+        if (
+            resolved := _resolve_artifact_path(
+                project_root, artifact_match.group("path")
+            )
+        )
+        is not None
+    ]
+    if not existing:
+        return None  # covered by test_evidence_provenance_not_found
+
+    receipt_errors: list[str] = []
+    saw_receipt_candidate = False
+    for path in existing:
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(payload, dict) or "receipt_schema" not in payload:
+            continue
+        saw_receipt_candidate = True
+        error = _validate_evidence_receipt(payload)
+        if error is not None:
+            receipt_errors.append(error)
+            continue
+        if payload["exit_code"] != 0:
+            return (
+                "test_evidence_exit_code_contradicts_claim",
+                f"receipt_exit_code={payload['exit_code']}_with_success_prose",
+            )
+        return None  # valid receipt with exit 0
+
+    if saw_receipt_candidate:
+        return ("test_evidence_artifact_metadata_invalid", receipt_errors[0])
+    return (
+        "test_evidence_artifact_metadata_missing",
+        "no_structured_receipt_among_existing_artifacts",
+    )
 
 
 def _session_like_non_session_memory_reason(
@@ -581,6 +696,19 @@ def check_daily_memory(
                     'file': str(fpath.name),
                     'entry': _snippet(block),
                     'reason': evidence_reason,
+                })
+
+            metadata_violation = _test_evidence_metadata_violation(
+                block, project_root, fpath.name
+            )
+            if metadata_violation:
+                metadata_code, metadata_reason = metadata_violation
+                violations.append({
+                    'code': metadata_code,
+                    'severity': 'warning',
+                    'file': str(fpath.name),
+                    'entry': _snippet(block),
+                    'reason': metadata_reason,
                 })
 
             memory_type_match = _MEMORY_TYPE.search(block)

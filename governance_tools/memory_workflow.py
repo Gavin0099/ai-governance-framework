@@ -276,6 +276,15 @@ def _summarize_guard(result: dict) -> dict[str, int]:
         "authority_override_rejected": int(
             counts.get("authority_override_rejected") or 0
         ),
+        "test_evidence_artifact_metadata_missing": int(
+            counts.get("test_evidence_artifact_metadata_missing") or 0
+        ),
+        "test_evidence_artifact_metadata_invalid": int(
+            counts.get("test_evidence_artifact_metadata_invalid") or 0
+        ),
+        "test_evidence_exit_code_contradicts_claim": int(
+            counts.get("test_evidence_exit_code_contradicts_claim") or 0
+        ),
     }
 
 
@@ -330,6 +339,9 @@ def _run_authority_guard(
             "non_daily_session_shaped_memory_entry",
             "authority_override_used",
             "authority_override_rejected",
+            "test_evidence_artifact_metadata_missing",
+            "test_evidence_artifact_metadata_invalid",
+            "test_evidence_exit_code_contradicts_claim",
         )
         if (
             summary.get(code, 0) > 0
