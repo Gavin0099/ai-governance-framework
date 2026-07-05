@@ -411,6 +411,63 @@ def _validate_evidence_receipt(payload: dict[str, Any]) -> str | None:
     return None
 
 
+def _git_path_is_ignored(project_root: Path, path: Path) -> bool:
+    try:
+        relative = path.resolve().relative_to(project_root.resolve()).as_posix()
+    except (ValueError, OSError):
+        return False
+    completed = subprocess.run(
+        ["git", "-C", str(project_root), "check-ignore", "-q", relative],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    return completed.returncode == 0
+
+
+def _test_evidence_durability_violation(
+    block: str,
+    project_root: Path | None,
+    filename: str,
+) -> tuple[str, str] | None:
+    """R3 Option C: evidence artifacts must survive a fresh checkout.
+
+    An existing artifact that git ignores verifies locally but vanishes on
+    clone, so the receipt chain cannot be claimed as durable repo evidence.
+    Requires a git worktree; without one, durability is unknowable and the
+    check honestly skips.
+    """
+    if project_root is None or filename < f"{_EVIDENCE_RECEIPT_ADVISORY_FROM}.md":
+        return None
+
+    match = _TEST_EVIDENCE.search(block)
+    if not match:
+        return None
+    evidence = match.group(1).strip()
+    if not _TEST_EVIDENCE_SUCCESS.search(evidence):
+        return None
+
+    existing = [
+        resolved
+        for artifact_match in _TEST_EVIDENCE_ARTIFACT_PATH.finditer(evidence)
+        if (
+            resolved := _resolve_artifact_path(
+                project_root, artifact_match.group("path")
+            )
+        )
+        is not None
+    ]
+    if not existing or not _project_has_git_worktree(project_root):
+        return None
+
+    if all(_git_path_is_ignored(project_root, path) for path in existing):
+        return (
+            "test_evidence_artifact_not_durable",
+            "all_existing_evidence_artifacts_are_gitignored",
+        )
+    return None
+
+
 def _test_evidence_metadata_violation(
     block: str,
     project_root: Path | None,
@@ -729,6 +786,19 @@ def check_daily_memory(
                     'file': str(fpath.name),
                     'entry': _snippet(block),
                     'reason': metadata_reason,
+                })
+
+            durability_violation = _test_evidence_durability_violation(
+                block, project_root, fpath.name
+            )
+            if durability_violation:
+                durability_code, durability_reason = durability_violation
+                violations.append({
+                    'code': durability_code,
+                    'severity': 'warning',
+                    'file': str(fpath.name),
+                    'entry': _snippet(block),
+                    'reason': durability_reason,
                 })
 
             memory_type_match = _MEMORY_TYPE.search(block)

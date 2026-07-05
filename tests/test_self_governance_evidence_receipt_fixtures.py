@@ -33,6 +33,7 @@ MISSING_CODE = "test_evidence_artifact_metadata_missing"
 INVALID_CODE = "test_evidence_artifact_metadata_invalid"
 CONTRADICTS_CODE = "test_evidence_exit_code_contradicts_claim"
 MISMATCH_CODE = "test_evidence_linked_commit_mismatch"
+NOT_DURABLE_CODE = "test_evidence_artifact_not_durable"
 PROVENANCE_CODE = "test_evidence_provenance_not_found"
 
 _ADVISORY_FILENAME = f"{_EVIDENCE_RECEIPT_ADVISORY_FROM}.md"
@@ -343,6 +344,89 @@ def test_option_b_ci_surfaces_mismatch_without_blocking(tmp_path: Path) -> None:
 
     assert result.clean is True
     assert any(w.startswith(f"{MISMATCH_CODE}=") for w in result.warnings)
+
+
+# ── R3 Option C: durable evidence path policy ─────────────────────────────────
+
+
+def _init_git_repo_with_runtime_ignore(repo: Path) -> None:
+    import subprocess
+
+    subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
+    _write(repo / ".gitignore", "artifacts/runtime/\n")
+
+
+def test_option_c_gitignored_evidence_artifact_warns_not_durable(tmp_path: Path) -> None:
+    # A receipt under artifacts/runtime/ verifies locally but vanishes on a
+    # fresh checkout: local-verifiable is not durable repo evidence.
+    _init_git_repo_with_runtime_ignore(tmp_path)
+    _write_evidence_repo(tmp_path, receipt=_receipt_payload())
+
+    codes = _codes(tmp_path)
+
+    assert codes[NOT_DURABLE_CODE] == 1
+
+
+def test_option_c_tracked_evidence_artifact_is_silent(tmp_path: Path) -> None:
+    _init_git_repo_with_runtime_ignore(tmp_path)
+    durable = "artifacts/evidence/test-results/run.json"
+    _write(tmp_path / durable, json.dumps(_receipt_payload()))
+    _write(
+        tmp_path / "memory" / _ADVISORY_FILENAME,
+        "- memory_type: session-derived\n"
+        "  record_format_version: 1.0\n"
+        "  writer: governance_tools.memory_record\n"
+        "  what_changed: durable evidence fixture entry\n"
+        f"  test_evidence: PASS: {durable} -> 12 passed\n"
+        "  next_step: none\n",
+    )
+
+    codes = _codes(tmp_path)
+
+    assert NOT_DURABLE_CODE not in codes
+
+
+def test_option_c_without_worktree_durability_is_unknowable(tmp_path: Path) -> None:
+    # No git worktree: durability cannot be determined, so the check skips
+    # instead of guessing (honest boundary, mirrors anchor semantics).
+    _write_evidence_repo(tmp_path, receipt=_receipt_payload())
+
+    codes = _codes(tmp_path)
+
+    assert NOT_DURABLE_CODE not in codes
+
+
+def test_option_c_not_durable_is_report_only_and_not_blockable(tmp_path: Path) -> None:
+    _init_git_repo_with_runtime_ignore(tmp_path)
+    _write_evidence_repo(tmp_path, receipt=_receipt_payload())
+
+    result = run_guard(tmp_path / "memory", tmp_path, skip_git=True)
+    assert result["enforcement_action"] == "allow"
+    assert result["blocking_violation_codes"] == []
+
+    _write(
+        tmp_path / "governance" / "memory_blocking_policy.json",
+        json.dumps({
+            "policy_schema": "memory_blocking_policy.v0.1",
+            "enabled": True,
+            "blocking_codes": [NOT_DURABLE_CODE],
+        }),
+    )
+    policy = load_blocking_policy(tmp_path)
+    assert policy["enabled_codes"] == []
+    assert policy["error"] == f"blocking_policy_unknown_code:{NOT_DURABLE_CODE}"
+
+
+def test_option_c_ci_surfaces_not_durable_without_blocking(tmp_path: Path) -> None:
+    _init_git_repo_with_runtime_ignore(tmp_path)
+    _write_evidence_repo(tmp_path, receipt=_receipt_payload())
+
+    result = ci_check(
+        tmp_path, changed_files=[f"memory/{_ADVISORY_FILENAME}"]
+    )
+
+    assert result.clean is True
+    assert any(w.startswith(f"{NOT_DURABLE_CODE}=") for w in result.warnings)
 
 
 def test_ci_surfaces_metadata_warnings_without_blocking(tmp_path: Path) -> None:

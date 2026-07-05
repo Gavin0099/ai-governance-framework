@@ -38,7 +38,10 @@ from governance_tools.memory_authority_guard import (
     _validate_evidence_receipt,
 )
 
-_DEFAULT_OUTPUT_DIR = "artifacts/runtime/test-results"
+# Durable by design (R3 Option C): artifacts/runtime/ is gitignored, so
+# receipts written there vanish in a fresh checkout. Receipts default to a
+# tracked location; commit them alongside the memory record that cites them.
+_DEFAULT_OUTPUT_DIR = "artifacts/evidence/test-results"
 _DEFAULT_RUNNER = "governance_tools.test_evidence_receipt_writer"
 _CANNOT_CLAIM = [
     "semantic correctness of the tested behavior",

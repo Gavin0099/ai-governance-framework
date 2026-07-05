@@ -288,6 +288,9 @@ def _summarize_guard(result: dict) -> dict[str, int]:
         "test_evidence_linked_commit_mismatch": int(
             counts.get("test_evidence_linked_commit_mismatch") or 0
         ),
+        "test_evidence_artifact_not_durable": int(
+            counts.get("test_evidence_artifact_not_durable") or 0
+        ),
     }
 
 
@@ -346,6 +349,7 @@ def _run_authority_guard(
             "test_evidence_artifact_metadata_invalid",
             "test_evidence_exit_code_contradicts_claim",
             "test_evidence_linked_commit_mismatch",
+            "test_evidence_artifact_not_durable",
         )
         if (
             summary.get(code, 0) > 0
