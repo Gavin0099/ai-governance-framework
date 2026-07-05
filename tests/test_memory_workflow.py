@@ -5,6 +5,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+from governance_tools.memory_policy_attestation import (
+    DISABLE_RECEIPT_INVALID,
+    POLICY_DELETED_WITHOUT_ATTESTATION,
+    POLICY_DISABLED_WITHOUT_ATTESTATION,
+)
 from governance_tools.memory_workflow import assess_memory_workflow
 
 
@@ -36,6 +41,21 @@ def _write_canonical_memory(repo: Path) -> None:
         "  memory_binding: bound\n"
         "  test_evidence: test\n"
         "  next_step: none\n",
+    )
+
+
+def _write_policy(repo: Path, enabled: bool = True) -> None:
+    _write(
+        repo / "governance" / "memory_blocking_policy.json",
+        json.dumps(
+            {
+                "policy_schema": "memory_blocking_policy.v0.1",
+                "enabled": enabled,
+                "blocking_codes": ["session_like_non_session_memory_type"],
+            },
+            indent=2,
+        )
+        + "\n",
     )
 
 
@@ -80,6 +100,59 @@ def test_policy_only_blocker_disallows_completion_claim(tmp_path: Path) -> None:
     assert result.status == "no_memory_workflow_required"
     assert "blocking_policy_error" in result.blockers
     assert result.completion_claim_allowed is False
+
+
+def test_policy_disable_without_attestation_surfaces_without_guard(
+    tmp_path: Path,
+) -> None:
+    _make_framework_surface(tmp_path)
+    _write_policy(tmp_path, enabled=False)
+
+    result = assess_memory_workflow(
+        tmp_path,
+        changed_files=["governance/memory_blocking_policy.json"],
+    )
+
+    assert result.status == "no_memory_workflow_required"
+    assert POLICY_DISABLED_WITHOUT_ATTESTATION in result.warnings
+    assert result.blockers == []
+    assert result.completion_claim_allowed is True
+
+
+def test_policy_deletion_warning_surfaces_without_guard(tmp_path: Path) -> None:
+    _make_framework_surface(tmp_path)
+
+    result = assess_memory_workflow(
+        tmp_path,
+        changed_files=["governance/memory_blocking_policy.json"],
+    )
+
+    assert result.status == "no_memory_workflow_required"
+    assert POLICY_DELETED_WITHOUT_ATTESTATION in result.warnings
+    assert result.blockers == []
+    assert result.completion_claim_allowed is True
+
+
+def test_invalid_disable_receipt_surfaces_without_blocking(tmp_path: Path) -> None:
+    _make_framework_surface(tmp_path)
+    _write_policy(tmp_path, enabled=False)
+    _write(
+        tmp_path / "governance" / "memory_blocking_policy_disable_receipt.json",
+        "{not json",
+    )
+
+    result = assess_memory_workflow(
+        tmp_path,
+        changed_files=[
+            "governance/memory_blocking_policy.json",
+            "governance/memory_blocking_policy_disable_receipt.json",
+        ],
+    )
+
+    assert DISABLE_RECEIPT_INVALID in result.warnings
+    assert POLICY_DISABLED_WITHOUT_ATTESTATION in result.warnings
+    assert result.blockers == []
+    assert result.completion_claim_allowed is True
 
 
 def test_writer_and_guard_paths_reported(tmp_path: Path) -> None:

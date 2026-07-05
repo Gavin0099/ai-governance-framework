@@ -46,10 +46,18 @@ if [ -f "$MEMORY_WORKFLOW_TOOL" ]; then
             MEMORY_WORKFLOW_STATUS=$(echo "$MEMORY_WORKFLOW_RESULT" | "${PYTHON_CMD[@]}" -c "import sys,json; d=json.load(sys.stdin); print(d.get('status',''))" 2>/dev/null || true)
             MEMORY_WORKFLOW_ALLOWED=$(echo "$MEMORY_WORKFLOW_RESULT" | "${PYTHON_CMD[@]}" -c "import sys,json; d=json.load(sys.stdin); print(d.get('completion_claim_allowed', True))" 2>/dev/null || true)
             MEMORY_WORKFLOW_GUARD_RAN=$(echo "$MEMORY_WORKFLOW_RESULT" | "${PYTHON_CMD[@]}" -c "import sys,json; d=json.load(sys.stdin); print(d.get('guard_ran', False))" 2>/dev/null || true)
-            if [ "$MEMORY_WORKFLOW_STATUS" = "memory_workflow_required" ]; then
+            MEMORY_WORKFLOW_WARNINGS=$(echo "$MEMORY_WORKFLOW_RESULT" | "${PYTHON_CMD[@]}" -c "import sys,json; d=json.load(sys.stdin); print(','.join(d.get('warnings') or []))" 2>/dev/null || true)
+            if [ "$MEMORY_WORKFLOW_STATUS" = "memory_workflow_required" ] || [ -n "$MEMORY_WORKFLOW_WARNINGS" ]; then
                 echo ""
-                echo "[governance] memory workflow advisory: memory/** changes detected"
+                if [ "$MEMORY_WORKFLOW_STATUS" = "memory_workflow_required" ]; then
+                    echo "[governance] memory workflow advisory: memory/** changes detected"
+                else
+                    echo "[governance] memory workflow advisory: report-only warnings detected"
+                fi
                 echo "  run: python -m governance_tools.memory_workflow --check --repo . --run-guard"
+                if [ -n "$MEMORY_WORKFLOW_WARNINGS" ]; then
+                    echo "  warning_codes=$MEMORY_WORKFLOW_WARNINGS"
+                fi
                 if [ "$MEMORY_WORKFLOW_GUARD_RAN" = "True" ] || [ "$MEMORY_WORKFLOW_GUARD_RAN" = "true" ]; then
                     echo "  completion_claim_allowed=$MEMORY_WORKFLOW_ALLOWED"
                 else

@@ -25,6 +25,9 @@ from governance_tools.memory_authority_guard import (
     load_blocking_policy,
     run_guard,
 )
+from governance_tools.memory_policy_attestation import (
+    policy_disable_attestation_warnings,
+)
 
 
 MEMORY_REQUIRED = "memory_workflow_required"
@@ -282,11 +285,14 @@ def _run_authority_guard(
         return False, {}, ["memory root not found; guard not run"], []
 
     policy = load_blocking_policy(repo_root)
+    changed_memory_files = [
+        item for item in (changed_files or []) if _is_memory_file(item)
+    ]
     result = run_guard(
         memory_root,
         repo_root,
         skip_git=False,
-        changed_files=changed_files,
+        changed_files=changed_memory_files,
         blocking_codes=policy["enabled_codes"],
     )
     active = filter_active_non_canonical_writer_violations(result["violations"])
@@ -366,9 +372,10 @@ def assess_memory_workflow(
         warnings.append("canonical writer not found")
     if memory_files and guard_path is None:
         warnings.append("memory authority guard not found")
+    warnings.extend(policy_disable_attestation_warnings(repo_root, changed))
     if run_guard_check:
         guard_ran, guard_summary, guard_warnings, guard_blockers = _run_authority_guard(
-            repo_root, changed_files=memory_files
+            repo_root, changed_files=changed
         )
         warnings.extend(guard_warnings)
         blockers.extend(guard_blockers)

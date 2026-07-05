@@ -17,23 +17,17 @@ from pathlib import Path
 from typing import Sequence
 
 from governance_tools.memory_authority_guard import (
-    _BLOCKING_POLICY_RELPATH,
     filter_active_non_canonical_writer_violations,
     load_blocking_policy,
     run_guard,
 )
+from governance_tools.memory_policy_attestation import (
+    policy_disable_attestation_warnings,
+)
 
 
 _B0_CODE = "session_like_non_session_memory_type"
-_DISABLE_RECEIPT_RELPATH = "governance/memory_blocking_policy_disable_receipt.json"
-_DISABLE_RECEIPT_SCHEMA = "memory_blocking_policy_disable_receipt.v1"
-_POLICY_DISABLED_WITHOUT_ATTESTATION = (
-    "blocking_policy_disabled_without_attestation"
-)
-_POLICY_DELETED_WITHOUT_ATTESTATION = (
-    "blocking_policy_deleted_without_attestation"
-)
-_DISABLE_RECEIPT_INVALID = "blocking_policy_disable_receipt_invalid"
+_BLOCKING_POLICY_RELPATH = "governance/memory_blocking_policy.json"
 
 
 @dataclass
@@ -87,84 +81,6 @@ def _violation_memory_path(violation: dict) -> str | None:
     if filename.startswith("memory/"):
         return filename
     return f"memory/{filename}"
-
-
-def _is_git_worktree(repo: Path) -> bool:
-    code, stdout, _stderr = _run_git(repo, ["rev-parse", "--is-inside-work-tree"])
-    return code == 0 and stdout.strip().lower() == "true"
-
-
-def _git_commit_exists(repo: Path, commit_hash: str) -> bool:
-    if not _is_git_worktree(repo):
-        return True
-    code, _stdout, _stderr = _run_git(
-        repo,
-        ["cat-file", "-e", f"{commit_hash}^{{commit}}"],
-    )
-    return code == 0
-
-
-def _load_json_file(path: Path) -> tuple[dict | None, bool]:
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return None, False
-    return (payload, True) if isinstance(payload, dict) else (None, False)
-
-
-def _policy_file_is_disabled(repo_root: Path) -> bool:
-    payload, ok = _load_json_file(repo_root / _BLOCKING_POLICY_RELPATH)
-    return ok and payload is not None and payload.get("enabled") is False
-
-
-def _disable_receipt_is_valid(repo_root: Path) -> tuple[bool, bool]:
-    path = repo_root / _DISABLE_RECEIPT_RELPATH
-    if not path.is_file():
-        return False, False
-    payload, ok = _load_json_file(path)
-    if not ok or payload is None:
-        return False, True
-    if payload.get("receipt_schema") != _DISABLE_RECEIPT_SCHEMA:
-        return False, True
-    for field_name in ("reason", "attested_by", "linked_commit"):
-        if (
-            not isinstance(payload.get(field_name), str)
-            or not payload[field_name].strip()
-        ):
-            return False, True
-    cannot_claim = payload.get("cannot_claim")
-    if (
-        not isinstance(cannot_claim, list)
-        or not cannot_claim
-        or not all(isinstance(item, str) and item.strip() for item in cannot_claim)
-    ):
-        return False, True
-    if not _git_commit_exists(repo_root, payload["linked_commit"].strip()):
-        return False, True
-    return True, False
-
-
-def _policy_disable_attestation_warnings(
-    repo_root: Path,
-    normalized_changed: Sequence[str],
-) -> list[str]:
-    changed = set(normalized_changed)
-    warnings: list[str] = []
-
-    policy_path = repo_root / _BLOCKING_POLICY_RELPATH
-    if _BLOCKING_POLICY_RELPATH in changed and not policy_path.is_file():
-        warnings.append(_POLICY_DELETED_WITHOUT_ATTESTATION)
-        return warnings
-
-    if not _policy_file_is_disabled(repo_root):
-        return warnings
-
-    receipt_valid, receipt_invalid = _disable_receipt_is_valid(repo_root)
-    if receipt_invalid:
-        warnings.append(_DISABLE_RECEIPT_INVALID)
-    if not receipt_valid:
-        warnings.append(_POLICY_DISABLED_WITHOUT_ATTESTATION)
-    return warnings
 
 
 def check(
@@ -232,13 +148,7 @@ def check(
 
     if policy["error"]:
         warnings.append(policy["error"])
-    if _BLOCKING_POLICY_RELPATH in set(normalized_changed):
-        # Turning the gate off is a legitimate governance action, but it must
-        # be loud in the diff that does it, never ambient.
-        warnings.append("blocking_policy_changed_in_current_diff")
-    warnings.extend(
-        _policy_disable_attestation_warnings(repo_root, normalized_changed)
-    )
+    warnings.extend(policy_disable_attestation_warnings(repo_root, normalized_changed))
 
     blockers = [
         {
