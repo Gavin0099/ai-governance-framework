@@ -8,6 +8,7 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")).Path
 $pythonRunner = Join-Path $repoRoot "scripts\codex-python.ps1"
+$venvPython = Join-Path $repoRoot ".venv\Scripts\python.exe"
 $baseTemp = Join-Path $repoRoot ".pytest_tmp\codex-basetemp"
 
 if (-not (Test-Path -LiteralPath $baseTemp)) {
@@ -25,5 +26,17 @@ if (-not ($PytestArgs | Where-Object { $_ -eq "-p" })) {
     $finalArgs += @("-p", "no:cacheprovider")
 }
 
-& $pythonRunner @finalArgs
+$receiptArgs = @(
+    "-B",
+    "-m",
+    "governance_tools.test_evidence_receipt_writer",
+    "--project-root",
+    $repoRoot,
+    "--runner",
+    "scripts/codex-pytest.ps1",
+    "--",
+    $venvPython
+) + $finalArgs
+
+& $pythonRunner @receiptArgs
 exit $LASTEXITCODE

@@ -121,26 +121,30 @@ def write_receipt(
     output.parent.mkdir(parents=True, exist_ok=True)
 
     started_at = _utc_now_iso()
-    completed = subprocess.run(
+    process = subprocess.Popen(
         command,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
         encoding="utf-8",
         errors="replace",
-        check=False,
     )
+    output_chunks: list[str] = []
+    if process.stdout is not None:
+        for chunk in process.stdout:
+            output_chunks.append(chunk)
+            sys.stdout.write(chunk)
+            sys.stdout.flush()
+    exit_code = process.wait()
     finished_at = _utc_now_iso()
 
-    raw_output_path.write_text(completed.stdout or "", encoding="utf-8")
-    if completed.stdout:
-        sys.stdout.write(completed.stdout)
+    raw_output_path.write_text("".join(output_chunks), encoding="utf-8")
 
     payload = {
         "receipt_schema": _TEST_EVIDENCE_RECEIPT_SCHEMA,
         "status": "report_only",
         "command": subprocess.list2cmdline(command),
-        "exit_code": completed.returncode,
+        "exit_code": exit_code,
         "started_at": started_at,
         "finished_at": finished_at,
         "runner": runner,
@@ -154,7 +158,7 @@ def write_receipt(
         raise SystemExit(f"error: produced receipt failed self-validation: {error}")
 
     output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-    return output, completed.returncode
+    return output, exit_code
 
 
 def main(argv: list[str] | None = None) -> None:
