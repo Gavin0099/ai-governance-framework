@@ -1,0 +1,242 @@
+# Self-Governance Claim Semantic Attestation Design
+
+Status: DESIGN ONLY / REPORT ONLY
+Date: 2026-07-05
+Scope: R2 Option B reviewer / agent semantic-boundary attestation
+
+## DONE
+
+DONE = the R2 Option B claim semantic attestation receipt is designed and
+report-only fixture expectations are pinned, without changing
+`claim_enforcement_checker`, hooks, CI, schemas, runtime, gate policy, or
+blocking behavior.
+
+## Problem
+
+R2 Option A made structured `claim_support` visible to
+`claim_enforcement_checker.evaluate`: if a caller declares support weaker than
+the published `claim_level`, the checker can emit report-only support warnings.
+
+That still does not show that a reviewer or agent actually inspected the final
+claim wording against the evidence boundary. A final report can say "reviewed"
+or imply semantic alignment without leaving a durable artifact that records:
+
+- the claim text reviewed;
+- the evidence refs considered;
+- the support level the reviewer believed was justified;
+- residual risks and cannot-claim boundaries;
+- whether the claim was aligned, overstated, or unclear.
+
+The problem is reviewable semantic-boundary occurrence, not semantic truth.
+
+## Current Repository Truth
+
+Observed surfaces for this design:
+
+- `governance_tools/claim_enforcement_checker.py` currently emits
+  report-only `claim_support` reasons, but has no attestation receipt input.
+- `docs/governance/self-governance-markerless-claim-semantic-drift-design-2026-07-04.md`
+  names Option B as the reviewer semantic-attestation follow-up.
+- `docs/governance/self-governance-f2-valid-disable-attestation-design-2026-07-05.md`
+  and `docs/governance/self-governance-f4-override-attestation-design-2026-07-05.md`
+  establish the local receipt-family convention:
+  `receipt_schema`, `reason`, `linked_commit`, and `cannot_claim`, with
+  validity meaning shape/provenance only.
+- `docs/governance/self-governance-review-occurrence-provenance-design-2026-07-04.md`
+  establishes the same boundary for review receipts: occurrence evidence is
+  not proof of review quality or independence.
+- `PLAN.md` states that this repository is not a machine-authoritative semantic
+  advisory system and that mutation/enforcement claims require explicit
+  contracts.
+
+No current tool verifies a `claim_semantic_attestation.v0.1` receipt.
+
+## Target Outcome
+
+Define one report-only receipt shape that can support future checker warnings:
+
+- `claim_semantic_attestation_missing`
+- `claim_semantic_attestation_invalid`
+- `claim_semantic_attestation_overstated`
+- `claim_semantic_attestation_unclear`
+
+The first implementation tranche, when opened later, should make these visible
+through `report_only_reasons` without changing `semantic_drift_risk`,
+`enforcement_action`, reviewer override, hooks, CI, or blocking behavior.
+
+## Receipt Shape
+
+Suggested artifact root:
+
+```text
+artifacts/claim-enforcement/semantic-attestations/
+```
+
+Suggested receipt:
+
+```json
+{
+  "receipt_schema": "claim_semantic_attestation.v0.1",
+  "status": "report_only",
+  "reviewed_claim": "final claim text or stable digest",
+  "reviewed_claim_level": "bounded",
+  "evidence_refs": [
+    "pytest tests/test_self_governance_claim_label_mutation_contract.py"
+  ],
+  "attested_support_level": "bounded",
+  "attestation_result": "aligned",
+  "attested_by": "reviewer or agent identity string",
+  "linked_commit": "commit hash of the reviewed change",
+  "scope_boundaries": [
+    "current repository diff only"
+  ],
+  "residual_risks": [
+    "external repos not verified"
+  ],
+  "cannot_claim": [
+    "receipt does not prove the reviewer was correct",
+    "receipt does not prove evidence truth",
+    "receipt does not prove semantic correctness of the claim"
+  ]
+}
+```
+
+Required fields in the first detector:
+
+- `receipt_schema == claim_semantic_attestation.v0.1`
+- `status == report_only`
+- `reviewed_claim` non-empty string
+- `reviewed_claim_level` in `bounded | parity | strong | unbounded`
+- `attested_support_level` in `bounded | parity | strong | unbounded`
+- `attestation_result` in `aligned | overstated | unclear`
+- `evidence_refs` non-empty list of strings
+- `attested_by` non-empty string
+- `linked_commit` resolves to a git commit object when checked in a git
+  worktree
+- `cannot_claim` non-empty list of strings
+
+Optional but recommended fields:
+
+- `scope_boundaries`
+- `residual_risks`
+- `reviewed_claim_digest`
+
+## Detector Semantics For Future Implementation
+
+The detector should be structured-input only. It should not parse arbitrary
+prose such as "review passed".
+
+Suggested payload fields for `claim_enforcement_checker.evaluate`:
+
+```yaml
+semantic_review_claimed: true | false
+claim_semantic_attestation:
+  <inline receipt object or parsed receipt artifact>
+```
+
+Report-only behavior:
+
+- if `semantic_review_claimed: true` and no attestation receipt is supplied,
+  emit `claim_semantic_attestation_missing`;
+- if a supplied receipt is malformed, schema-mismatched, or has invalid enum /
+  evidence fields, emit `claim_semantic_attestation_invalid`;
+- if `attestation_result: overstated`, emit
+  `claim_semantic_attestation_overstated`;
+- if `attestation_result: unclear`, emit
+  `claim_semantic_attestation_unclear`;
+- if `attestation_result: aligned`, emit no attestation warning.
+
+All of these stay in `report_only_reasons`. They must not set
+`semantic_drift_risk`, must not change `enforcement_action`, and must not
+create a blocker.
+
+## Boundary And API Considerations
+
+This is an honor-system attestation surface:
+
+- the same agent can still write the claim and the receipt;
+- `attested_by` is a string, not identity proof;
+- `linked_commit` proves at most that the receipt points to a real commit;
+- `aligned` means "someone recorded alignment", not "the claim is true";
+- an attestation can be stale if the final claim is edited after the receipt.
+
+The future implementation should avoid a global schema migration. The receipt
+family is intentionally local and versioned per surface.
+
+## Failure Paths And Risk Points
+
+1. Claim inflation through the word "attestation":
+   The receipt must be described as review evidence, not proof of semantic
+   correctness.
+2. Broad prose parsing:
+   Parsing ordinary final-report prose would create unstable false positives
+   and false negatives. First slice should require structured fields.
+3. Stale receipt:
+   If `reviewed_claim` no longer matches the final claim or digest, the detector
+   should warn in a later tranche. This design does not require stale detection
+   in the first implementation.
+4. Evidence laundering:
+   The receipt can cite evidence refs that do not truly support the claim. This
+   remains outside machine verification.
+5. Duplicate authority:
+   This receipt must not become a parallel approval authority for push, memory,
+   closeout, or release.
+
+## Fixture Expectations
+
+Report-only fixture expectations are pinned in
+`tests/test_self_governance_claim_semantic_attestation_fixtures.py` as strict
+`xfail` tests because no detector exists yet.
+
+Expected warning codes:
+
+- `claim_semantic_attestation_missing`
+- `claim_semantic_attestation_invalid`
+- `claim_semantic_attestation_overstated`
+- `claim_semantic_attestation_unclear`
+
+The fixtures also assert the future non-blocking invariant:
+
+- `enforcement_action` remains `allow`;
+- `semantic_drift_risk` remains `false`;
+- warnings are emitted only through `report_only_reasons`.
+
+## Non-Goals
+
+- No implementation in `claim_enforcement_checker.py` in this slice.
+- No hook, CI, schema, runtime, or gate policy change.
+- No LLM semantic classifier.
+- No parsing of arbitrary final-report prose.
+- No proof that the reviewer was independent or correct.
+- No proof that cited evidence supports the final claim.
+- No blocker promotion.
+- No `PROTECTED` mutation-proof claim.
+
+## Claim Ceiling
+
+This design can claim:
+
+- the R2 Option B receipt shape and warning targets are defined;
+- report-only fixture expectations are pinned for a future detector;
+- current behavior remains unchanged.
+
+This design cannot claim:
+
+- claim semantic attestation is implemented;
+- markerless strong claims are fixed;
+- evidence truth or semantic correctness is verified;
+- reviewer authority or independence is proven;
+- enforcement behavior changed;
+- red-team audit is fully fixed;
+- Phase E enforcement is complete.
+
+## Recommended Implementation Tranche
+
+Next implementation tranche:
+
+1. add a small validator helper inside `claim_enforcement_checker.py`;
+2. accept inline `claim_semantic_attestation` payloads first;
+3. convert the strict `xfail` fixtures to passing tests;
+4. keep every new warning in `report_only_reasons`;
+5. do not read artifact paths, wire hooks, or add blocking until a separate
+   policy slice explicitly asks for those behaviors.

@@ -120,6 +120,8 @@ Implementation ceiling:
 
 ### Option B: Reviewer Semantic Attestation Receipt
 
+Designed 2026-07-05 in
+`docs/governance/self-governance-claim-semantic-attestation-design-2026-07-05.md`.
 Add a candidate review artifact where a reviewer explicitly records that the
 claim wording matches the evidence boundary.
 
@@ -150,6 +152,13 @@ Claim ceiling:
 
 - can prove a reviewer recorded a semantic-boundary judgment;
 - cannot prove the reviewer was right.
+
+Implementation status:
+
+- receipt shape and report-only warning targets are designed;
+- strict `xfail` fixture expectations are pinned;
+- detector behavior is not implemented yet;
+- no hook, CI, gate, runtime, or blocking behavior changed.
 
 ### Option C: Expand Lexical Markers Only
 
@@ -219,7 +228,6 @@ This design does not:
 - validate the truth of `final_claim`;
 - verify evidence-vs-claim correctness;
 - turn any `allow` into `block`;
-- update `docs/e1-mutation-catalog.md`;
 - claim `Markerless Strong Claim` is fixed.
 
 ## Claim Ceiling
@@ -228,6 +236,8 @@ This design can claim:
 
 - R2 remains a `VULNERABLE baseline`;
 - structured claim support exists as a report-only checker path;
+- reviewer semantic attestation has a report-only design and xfail fixture
+  expectations, not an implementation;
 - lexical marker expansion is insufficient as a semantic fix;
 - no enforcement behavior changed.
 
@@ -235,6 +245,7 @@ This design cannot claim:
 
 - markerless strong claims are detected;
 - semantic-vs-label verification exists;
+- claim semantic attestation detection exists;
 - evidence supports the final claim;
 - claim-label surface is `PROTECTED`;
 - red-team audit is fully fixed;
