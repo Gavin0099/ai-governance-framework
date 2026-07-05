@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_evidence_receipt_writer.py tests/test_self_governance_evidence_receipt_fixtures.py -q",
+  "exit_code": 0,
+  "started_at": "2026-07-05T12:58:22Z",
+  "finished_at": "2026-07-05T12:58:24Z",
+  "runner": "governance_tools.test_evidence_receipt_writer via claude-fable",
+  "linked_commit": "97b3b0ff493c6054e35348cbe6dba2efd777b9ed",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-r3-producer-adoption.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
