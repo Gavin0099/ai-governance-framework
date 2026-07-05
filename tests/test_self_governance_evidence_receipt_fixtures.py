@@ -32,6 +32,7 @@ from governance_tools.memory_workflow import assess_memory_workflow
 MISSING_CODE = "test_evidence_artifact_metadata_missing"
 INVALID_CODE = "test_evidence_artifact_metadata_invalid"
 CONTRADICTS_CODE = "test_evidence_exit_code_contradicts_claim"
+MISMATCH_CODE = "test_evidence_linked_commit_mismatch"
 PROVENANCE_CODE = "test_evidence_provenance_not_found"
 
 _ADVISORY_FILENAME = f"{_EVIDENCE_RECEIPT_ADVISORY_FROM}.md"
@@ -218,6 +219,130 @@ def test_workflow_surfaces_metadata_warnings(tmp_path: Path) -> None:
     assert CONTRADICTS_CODE in workflow.warnings
     assert workflow.guard_summary.get(CONTRADICTS_CODE, 0) == 1
     assert workflow.blockers == []
+
+
+# ── R3 Option B: linked_commit consistency ────────────────────────────────────
+
+
+def _write_anchored_evidence_repo(
+    repo: Path,
+    *,
+    receipt: dict,
+    entry_commit: str | None = "deadbee",
+) -> None:
+    _write(repo / _RECEIPT_RELPATH, json.dumps(receipt, indent=2))
+    commit_line = f"  commit: {entry_commit}\n" if entry_commit else ""
+    _write(
+        repo / "memory" / _ADVISORY_FILENAME,
+        "- memory_type: session-derived\n"
+        "  record_format_version: 1.0\n"
+        "  writer: governance_tools.memory_record\n"
+        "  what_changed: linked commit fixture entry\n"
+        f"{commit_line}"
+        f"  test_evidence: PASS: {_RECEIPT_RELPATH} -> 12 passed\n"
+        "  next_step: none\n",
+    )
+
+
+def test_option_b_prefix_matching_anchor_is_silent(tmp_path: Path) -> None:
+    # Entry carries the short hash, receipt carries the full hash: consistent.
+    full = "deadbee" + "0" * 33
+    _write_anchored_evidence_repo(
+        tmp_path,
+        receipt=_receipt_payload(linked_commit=full),
+        entry_commit="deadbee",
+    )
+
+    assert MISMATCH_CODE not in _codes(tmp_path)
+
+
+def test_option_b_mismatched_anchor_is_reported(tmp_path: Path) -> None:
+    # The receipt records a run at some other commit than the one the entry
+    # claims: the borrowed-evidence case Option B exists for.
+    _write_anchored_evidence_repo(
+        tmp_path,
+        receipt=_receipt_payload(linked_commit="cafef00d" + "1" * 32),
+        entry_commit="deadbee",
+    )
+
+    codes = _codes(tmp_path)
+    assert codes[MISMATCH_CODE] == 1
+
+
+def test_option_b_no_git_worktree_receipt_skips_comparison(tmp_path: Path) -> None:
+    # A receipt honestly marked no_git_worktree has nothing to compare.
+    _write_anchored_evidence_repo(
+        tmp_path,
+        receipt=_receipt_payload(linked_commit="no_git_worktree"),
+        entry_commit="deadbee",
+    )
+
+    assert MISMATCH_CODE not in _codes(tmp_path)
+
+
+def test_option_b_entry_without_commit_anchor_skips_comparison(tmp_path: Path) -> None:
+    _write_anchored_evidence_repo(
+        tmp_path,
+        receipt=_receipt_payload(linked_commit="cafef00d" + "1" * 32),
+        entry_commit=None,
+    )
+
+    assert MISMATCH_CODE not in _codes(tmp_path)
+
+
+def test_option_b_exit_code_contradiction_takes_precedence(tmp_path: Path) -> None:
+    # A failing run quoted as success is the stronger finding; the commit
+    # comparison only runs on receipts that survive the earlier checks.
+    _write_anchored_evidence_repo(
+        tmp_path,
+        receipt=_receipt_payload(
+            exit_code=1, linked_commit="cafef00d" + "1" * 32
+        ),
+        entry_commit="deadbee",
+    )
+
+    codes = _codes(tmp_path)
+    assert codes[CONTRADICTS_CODE] == 1
+    assert MISMATCH_CODE not in codes
+
+
+def test_option_b_mismatch_is_report_only_and_not_blockable(tmp_path: Path) -> None:
+    _write_anchored_evidence_repo(
+        tmp_path,
+        receipt=_receipt_payload(linked_commit="cafef00d" + "1" * 32),
+        entry_commit="deadbee",
+    )
+
+    result = run_guard(tmp_path / "memory", tmp_path, skip_git=True)
+    assert result["enforcement_action"] == "allow"
+    assert result["blocking_violation_codes"] == []
+
+    _write(
+        tmp_path / "governance" / "memory_blocking_policy.json",
+        json.dumps({
+            "policy_schema": "memory_blocking_policy.v0.1",
+            "enabled": True,
+            "blocking_codes": [MISMATCH_CODE],
+        }),
+    )
+    policy = load_blocking_policy(tmp_path)
+    assert policy["enabled_codes"] == []
+    assert policy["error"] == f"blocking_policy_unknown_code:{MISMATCH_CODE}"
+
+
+def test_option_b_ci_surfaces_mismatch_without_blocking(tmp_path: Path) -> None:
+    _write_anchored_evidence_repo(
+        tmp_path,
+        receipt=_receipt_payload(linked_commit="cafef00d" + "1" * 32),
+        entry_commit="deadbee",
+    )
+
+    result = ci_check(
+        tmp_path, changed_files=[f"memory/{_ADVISORY_FILENAME}"]
+    )
+
+    assert result.clean is True
+    assert any(w.startswith(f"{MISMATCH_CODE}=") for w in result.warnings)
 
 
 def test_ci_surfaces_metadata_warnings_without_blocking(tmp_path: Path) -> None:

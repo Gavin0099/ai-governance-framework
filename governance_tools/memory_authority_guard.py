@@ -463,7 +463,27 @@ def _test_evidence_metadata_violation(
                 "test_evidence_exit_code_contradicts_claim",
                 f"receipt_exit_code={payload['exit_code']}_with_success_prose",
             )
-        return None  # valid receipt with exit 0
+        # Option B: the receipt must point at the same commit the entry
+        # anchors. Prefix matching covers short-vs-full hashes; a receipt
+        # honestly marked no_git_worktree and an entry without a commit
+        # anchor both skip the comparison (nothing to compare).
+        linked_commit = payload["linked_commit"].strip().lower()
+        entry_anchors = [
+            anchor.lower() for anchor in _COMMIT_RESOLVED.findall(block)
+        ]
+        if linked_commit != "no_git_worktree" and entry_anchors:
+            consistent = any(
+                linked_commit.startswith(anchor)
+                or anchor.startswith(linked_commit)
+                for anchor in entry_anchors
+            )
+            if not consistent:
+                return (
+                    "test_evidence_linked_commit_mismatch",
+                    f"receipt_linked_commit={linked_commit}"
+                    f"_entry_anchor={','.join(entry_anchors)}",
+                )
+        return None  # valid receipt, exit 0, commit-consistent (or unlinked)
 
     if saw_receipt_candidate:
         return ("test_evidence_artifact_metadata_invalid", receipt_errors[0])

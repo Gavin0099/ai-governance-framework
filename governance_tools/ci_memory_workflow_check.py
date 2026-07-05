@@ -142,6 +142,7 @@ def check(
         "test_evidence_artifact_metadata_missing",
         "test_evidence_artifact_metadata_invalid",
         "test_evidence_exit_code_contradicts_claim",
+        "test_evidence_linked_commit_mismatch",
     ):
         count = int(counts.get(code) or 0)
         if count:
