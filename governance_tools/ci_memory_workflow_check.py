@@ -139,6 +139,9 @@ def check(
         "session_like_non_session_memory_type",
         "non_daily_session_shaped_memory_entry",
         "authority_override_rejected",
+        "test_evidence_artifact_metadata_missing",
+        "test_evidence_artifact_metadata_invalid",
+        "test_evidence_exit_code_contradicts_claim",
     ):
         count = int(counts.get(code) or 0)
         if count:

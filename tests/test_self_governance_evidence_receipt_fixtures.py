@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from governance_tools.ci_memory_workflow_check import check as ci_check
 from governance_tools.memory_authority_guard import (
     _EVIDENCE_RECEIPT_ADVISORY_FROM,
     load_blocking_policy,
@@ -217,3 +218,32 @@ def test_workflow_surfaces_metadata_warnings(tmp_path: Path) -> None:
     assert CONTRADICTS_CODE in workflow.warnings
     assert workflow.guard_summary.get(CONTRADICTS_CODE, 0) == 1
     assert workflow.blockers == []
+
+
+def test_ci_surfaces_metadata_warnings_without_blocking(tmp_path: Path) -> None:
+    # CI surface parity (round-3 review finding): the CI gate consumer must
+    # show the same R3 advisory codes as the workflow surface, still clean.
+    _write_evidence_repo(tmp_path, receipt=_receipt_payload(exit_code=2))
+
+    result = ci_check(
+        tmp_path, changed_files=[f"memory/{_ADVISORY_FILENAME}"]
+    )
+
+    assert result.clean is True
+    assert result.blockers == []
+    assert any(w.startswith(f"{CONTRADICTS_CODE}=") for w in result.warnings)
+
+
+def test_ci_surfaces_metadata_missing_without_blocking(tmp_path: Path) -> None:
+    _write_evidence_repo(
+        tmp_path,
+        artifact_text="38 passed\n",
+        evidence_path="artifacts/runtime/test-results/pytest.txt",
+    )
+
+    result = ci_check(
+        tmp_path, changed_files=[f"memory/{_ADVISORY_FILENAME}"]
+    )
+
+    assert result.clean is True
+    assert any(w.startswith(f"{MISSING_CODE}=") for w in result.warnings)
