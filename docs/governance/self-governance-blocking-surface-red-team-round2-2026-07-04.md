@@ -91,8 +91,15 @@ visible, `authority_override_used` is emitted, and the override text is
 grep-able in the memory file. This matches the framework trust model (audit
 boundary, not security boundary). `memory_workflow` and CI now surface
 `authority_override_used` when the override occurs in the current memory diff,
-without changing override semantics or blocking behavior. Candidate future
-hardening: an `override_allowed` policy field.
+without changing override semantics or blocking behavior.
+
+Follow-up design: see
+`docs/governance/self-governance-f4-override-attestation-design-2026-07-05.md`.
+It defines an `override_mode` policy field (`allowed` / `receipt_required` /
+`disallowed`, default `allowed` = current behavior) and a token-bound override
+receipt following the F2 receipt family. It deliberately claims reviewability
+only: no mode prevents a determined self-approver, because the same actor can
+write the entry, the override, and the receipt.
 
 Fixture: `test_step4_workflow_surfaces_authority_override_in_current_diff` and
 `test_step4_ci_surfaces_authority_override_in_current_diff`.
