@@ -26,6 +26,7 @@ Scenario map (RFC "Mutation Contract Required Before The Switch"):
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -63,6 +64,19 @@ def _make_framework_surface(repo: Path) -> None:
 
 def _write_memory(repo: Path, filename: str, entry: str) -> None:
     _write(repo / "memory" / filename, entry)
+
+
+def _current_repo_head() -> str:
+    completed = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+    return completed.stdout.strip()
 
 
 def _b0_counts(repo: Path) -> dict[str, int]:
@@ -839,10 +853,6 @@ def test_step4_ci_no_policy_announcement_without_policy_in_diff(tmp_path: Path) 
     assert "blocking_policy_changed_in_current_diff" not in result.warnings
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="F2 report-only disable-attestation detector is not implemented yet",
-)
 def test_f2_policy_disable_without_attestation_reports_warning_without_blocking(
     tmp_path: Path,
 ) -> None:
@@ -864,10 +874,6 @@ def test_f2_policy_disable_without_attestation_reports_warning_without_blocking(
     assert F2_DISABLED_WITHOUT_ATTESTATION_CODE in result.warnings
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="F2 report-only policy-deletion detector is not implemented yet",
-)
 def test_f2_policy_deletion_reports_unsanctioned_warning_without_blocking(
     tmp_path: Path,
 ) -> None:
@@ -888,10 +894,6 @@ def test_f2_policy_deletion_reports_unsanctioned_warning_without_blocking(
     assert F2_DELETED_WITHOUT_ATTESTATION_CODE in result.warnings
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="F2 report-only disable-receipt validation is not implemented yet",
-)
 def test_f2_invalid_disable_receipt_reports_invalid_and_does_not_attest(
     tmp_path: Path,
 ) -> None:
@@ -915,6 +917,42 @@ def test_f2_invalid_disable_receipt_reports_invalid_and_does_not_attest(
     assert result.blockers == []
     assert F2_INVALID_RECEIPT_CODE in result.warnings
     assert F2_DISABLED_WITHOUT_ATTESTATION_CODE in result.warnings
+
+
+def test_f2_valid_disable_receipt_attests_disable_without_blocking(
+    tmp_path: Path,
+) -> None:
+    _write_policy(tmp_path, enabled=False)
+    _write(
+        tmp_path / "governance" / "memory_blocking_policy_disable_receipt.json",
+        json.dumps(
+            {
+                "receipt_schema": "memory_blocking_policy_disable_receipt.v1",
+                "reason": "temporary recovery from a broken gate",
+                "attested_by": "reviewer@example",
+                "linked_commit": _current_repo_head(),
+                "cannot_claim": [
+                    "receipt does not prove approval authority",
+                    "receipt does not prove the reason is true",
+                ],
+            },
+            indent=2,
+        )
+        + "\n",
+    )
+
+    result = ci_check(
+        tmp_path,
+        changed_files=[
+            "governance/memory_blocking_policy.json",
+            "governance/memory_blocking_policy_disable_receipt.json",
+        ],
+    )
+
+    assert result.clean is True
+    assert result.blockers == []
+    assert F2_INVALID_RECEIPT_CODE not in result.warnings
+    assert F2_DISABLED_WITHOUT_ATTESTATION_CODE not in result.warnings
 
 
 def test_round2_f6_non_daily_memory_file_reports_warning_without_blocking(tmp_path: Path) -> None:
