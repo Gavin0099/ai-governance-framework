@@ -163,6 +163,42 @@ def _git_commit_exists(project_root: object, commit_hash: str) -> bool:
     return result.returncode == 0
 
 
+def validate_claim_semantic_attestation_receipt(
+    attestation: object,
+    *,
+    project_root: object | None = None,
+) -> str | None:
+    if not isinstance(attestation, dict):
+        return "receipt_not_object"
+
+    if attestation.get("receipt_schema") != CLAIM_SEMANTIC_ATTESTATION_SCHEMA:
+        return "receipt_schema_mismatch"
+    if attestation.get("status") != "report_only":
+        return "status_invalid"
+    if not _is_non_empty_string(attestation.get("reviewed_claim")):
+        return "reviewed_claim_invalid"
+    if attestation.get("reviewed_claim_level") not in CLAIM_LEVEL_ORDER:
+        return "reviewed_claim_level_invalid"
+    if attestation.get("attested_support_level") not in CLAIM_LEVEL_ORDER:
+        return "attested_support_level_invalid"
+    attestation_result = attestation.get("attestation_result")
+    if attestation_result not in _ATTESTATION_RESULTS:
+        return "attestation_result_invalid"
+    if not _is_non_empty_string_list(attestation.get("evidence_refs")):
+        return "evidence_refs_invalid"
+    if not _is_non_empty_string(attestation.get("attested_by")):
+        return "attested_by_invalid"
+    linked_commit = attestation.get("linked_commit")
+    if not _is_non_empty_string(linked_commit) or not _HEX_COMMIT_RE.match(str(linked_commit)):
+        return "linked_commit_not_hex"
+    if not _git_commit_exists(project_root, str(linked_commit)):
+        return "linked_commit_not_found"
+    if not _is_non_empty_string_list(attestation.get("cannot_claim")):
+        return "cannot_claim_invalid"
+
+    return None
+
+
 def _claim_semantic_attestation_report_only_reasons(payload: dict) -> list[str]:
     semantic_review_claimed = payload.get("semantic_review_claimed") is True
     attestation = payload.get("claim_semantic_attestation")
@@ -172,37 +208,15 @@ def _claim_semantic_attestation_report_only_reasons(payload: dict) -> list[str]:
             return [CLAIM_SEMANTIC_ATTESTATION_MISSING]
         return []
 
-    if not isinstance(attestation, dict):
+    validation_error = validate_claim_semantic_attestation_receipt(
+        attestation,
+        project_root=payload.get("project_root"),
+    )
+    if validation_error is not None:
         return [CLAIM_SEMANTIC_ATTESTATION_INVALID]
 
-    invalid = False
-    if attestation.get("receipt_schema") != CLAIM_SEMANTIC_ATTESTATION_SCHEMA:
-        invalid = True
-    if attestation.get("status") != "report_only":
-        invalid = True
-    if not _is_non_empty_string(attestation.get("reviewed_claim")):
-        invalid = True
-    if attestation.get("reviewed_claim_level") not in CLAIM_LEVEL_ORDER:
-        invalid = True
-    if attestation.get("attested_support_level") not in CLAIM_LEVEL_ORDER:
-        invalid = True
+    assert isinstance(attestation, dict)
     attestation_result = attestation.get("attestation_result")
-    if attestation_result not in _ATTESTATION_RESULTS:
-        invalid = True
-    if not _is_non_empty_string_list(attestation.get("evidence_refs")):
-        invalid = True
-    if not _is_non_empty_string(attestation.get("attested_by")):
-        invalid = True
-    linked_commit = attestation.get("linked_commit")
-    if not _is_non_empty_string(linked_commit) or not _HEX_COMMIT_RE.match(str(linked_commit)):
-        invalid = True
-    elif not _git_commit_exists(payload.get("project_root"), str(linked_commit)):
-        invalid = True
-    if not _is_non_empty_string_list(attestation.get("cannot_claim")):
-        invalid = True
-
-    if invalid:
-        return [CLAIM_SEMANTIC_ATTESTATION_INVALID]
     if attestation_result == "overstated":
         return [CLAIM_SEMANTIC_ATTESTATION_OVERSTATED]
     if attestation_result == "unclear":
