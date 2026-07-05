@@ -100,7 +100,7 @@ surface, but it is not `PROTECTED` mutation proof evidence.
 | Scenario | Type | Expected Surface | Current Observation | Status |
 | :--- | :--- | :--- | :--- | :--- |
 | **Self-Labeled Bounded Claim** | Negative Fixture | `claim_enforcement_checker.evaluate` | strength markers under a restrained `claim_level` (bounded/parity) now flag `claim_label_understates_claim_text` and route to advisory `downgrade` + reviewer override; markerless strong wording still `allow` | REMEDIATED baseline (advisory) |
-| **Markerless Strong Claim** | Negative Fixture | `claim_enforcement_checker.evaluate` | a strong claim phrased without any lexical strength marker can still self-label `bounded` and produce `enforcement_action: allow`; optional `claim_support` mismatch now emits report-only `claim_level_exceeds_structured_support`; Option B `claim_semantic_attestation.v0.1` is design + strict xfail fixture only, not detector behavior | PARTIALLY REMEDIATED baseline (structured support advisory; semantic attestation design only; markerless semantic truth still VULNERABLE) |
+| **Markerless Strong Claim** | Negative Fixture | `claim_enforcement_checker.evaluate` | a strong claim phrased without any lexical strength marker can still self-label `bounded` and produce `enforcement_action: allow`; optional `claim_support` mismatch now emits report-only `claim_level_exceeds_structured_support`; inline `claim_semantic_attestation.v0.1` now emits report-only missing/invalid/overstated/unclear warnings without changing blocking behavior | PARTIALLY REMEDIATED baseline (structured support + inline semantic-attestation advisory; markerless semantic truth still VULNERABLE) |
 
 Contracts:
 

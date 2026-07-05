@@ -155,9 +155,10 @@ Claim ceiling:
 
 Implementation status:
 
-- receipt shape and report-only warning targets are designed;
-- strict `xfail` fixture expectations are pinned;
-- detector behavior is not implemented yet;
+- receipt shape and inline report-only detector are implemented;
+- missing, invalid, overstated, and unclear attestation states emit
+  `report_only_reasons`;
+- artifact reading / receipt production is not implemented yet;
 - no hook, CI, gate, runtime, or blocking behavior changed.
 
 ### Option C: Expand Lexical Markers Only
@@ -236,8 +237,7 @@ This design can claim:
 
 - R2 remains a `VULNERABLE baseline`;
 - structured claim support exists as a report-only checker path;
-- reviewer semantic attestation has a report-only design and xfail fixture
-  expectations, not an implementation;
+- reviewer semantic attestation has an inline report-only checker path;
 - lexical marker expansion is insufficient as a semantic fix;
 - no enforcement behavior changed.
 
@@ -245,7 +245,7 @@ This design cannot claim:
 
 - markerless strong claims are detected;
 - semantic-vs-label verification exists;
-- claim semantic attestation detection exists;
+- claim semantic attestation artifact reading or production exists;
 - evidence supports the final claim;
 - claim-label surface is `PROTECTED`;
 - red-team audit is fully fixed;

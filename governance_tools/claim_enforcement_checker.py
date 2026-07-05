@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import re
+import subprocess
 from pathlib import Path
 
 
@@ -41,6 +43,15 @@ CLAIM_STRENGTH_MARKERS = (
 _RESTRAINED_CLAIM_LEVELS = ("bounded", "parity")
 
 _PUBLIC_SUPPORT_SCOPES = ("public", "external")
+
+CLAIM_SEMANTIC_ATTESTATION_SCHEMA = "claim_semantic_attestation.v0.1"
+CLAIM_SEMANTIC_ATTESTATION_MISSING = "claim_semantic_attestation_missing"
+CLAIM_SEMANTIC_ATTESTATION_INVALID = "claim_semantic_attestation_invalid"
+CLAIM_SEMANTIC_ATTESTATION_OVERSTATED = "claim_semantic_attestation_overstated"
+CLAIM_SEMANTIC_ATTESTATION_UNCLEAR = "claim_semantic_attestation_unclear"
+
+_ATTESTATION_RESULTS = ("aligned", "overstated", "unclear")
+_HEX_COMMIT_RE = re.compile(r"^[0-9a-fA-F]{7,40}$")
 
 POSTURE_ORDER = {
     "none": 0,
@@ -126,6 +137,79 @@ def _claim_support_report_only_reasons(
     return reasons
 
 
+def _is_non_empty_string(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _is_non_empty_string_list(value: object) -> bool:
+    return isinstance(value, list) and bool(value) and all(
+        _is_non_empty_string(item) for item in value
+    )
+
+
+def _git_commit_exists(project_root: object, commit_hash: str) -> bool:
+    if not _is_non_empty_string(project_root):
+        return True
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(project_root), "cat-file", "-e", f"{commit_hash}^{{commit}}"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+            timeout=10,
+        )
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return True
+    return result.returncode == 0
+
+
+def _claim_semantic_attestation_report_only_reasons(payload: dict) -> list[str]:
+    semantic_review_claimed = payload.get("semantic_review_claimed") is True
+    attestation = payload.get("claim_semantic_attestation")
+
+    if attestation is None:
+        if semantic_review_claimed:
+            return [CLAIM_SEMANTIC_ATTESTATION_MISSING]
+        return []
+
+    if not isinstance(attestation, dict):
+        return [CLAIM_SEMANTIC_ATTESTATION_INVALID]
+
+    invalid = False
+    if attestation.get("receipt_schema") != CLAIM_SEMANTIC_ATTESTATION_SCHEMA:
+        invalid = True
+    if attestation.get("status") != "report_only":
+        invalid = True
+    if not _is_non_empty_string(attestation.get("reviewed_claim")):
+        invalid = True
+    if attestation.get("reviewed_claim_level") not in CLAIM_LEVEL_ORDER:
+        invalid = True
+    if attestation.get("attested_support_level") not in CLAIM_LEVEL_ORDER:
+        invalid = True
+    attestation_result = attestation.get("attestation_result")
+    if attestation_result not in _ATTESTATION_RESULTS:
+        invalid = True
+    if not _is_non_empty_string_list(attestation.get("evidence_refs")):
+        invalid = True
+    if not _is_non_empty_string(attestation.get("attested_by")):
+        invalid = True
+    linked_commit = attestation.get("linked_commit")
+    if not _is_non_empty_string(linked_commit) or not _HEX_COMMIT_RE.match(str(linked_commit)):
+        invalid = True
+    elif not _git_commit_exists(payload.get("project_root"), str(linked_commit)):
+        invalid = True
+    if not _is_non_empty_string_list(attestation.get("cannot_claim")):
+        invalid = True
+
+    if invalid:
+        return [CLAIM_SEMANTIC_ATTESTATION_INVALID]
+    if attestation_result == "overstated":
+        return [CLAIM_SEMANTIC_ATTESTATION_OVERSTATED]
+    if attestation_result == "unclear":
+        return [CLAIM_SEMANTIC_ATTESTATION_UNCLEAR]
+    return []
+
+
 def evaluate(payload: dict) -> dict:
     reasons = []
     preconditions = payload.get("preconditions", True)
@@ -163,6 +247,7 @@ def evaluate(payload: dict) -> dict:
         claim_level=claim_level,
         publication_scope=publication_scope,
     )
+    report_only_reasons.extend(_claim_semantic_attestation_report_only_reasons(payload))
 
     lowered = final_claim.lower()
     if any(p in lowered for p in DISALLOWED_PHRASES):
