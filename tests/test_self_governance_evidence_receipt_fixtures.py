@@ -369,6 +369,29 @@ def test_option_c_gitignored_evidence_artifact_warns_not_durable(tmp_path: Path)
     assert codes[NOT_DURABLE_CODE] == 1
 
 
+def test_option_c_tracked_lure_does_not_make_ignored_receipt_durable(tmp_path: Path) -> None:
+    # Red-team regression: durability must be anchored to a durable receipt,
+    # not to any unrelated trackable artifact mentioned in the same prose.
+    _init_git_repo_with_runtime_ignore(tmp_path)
+    lure = "artifacts/evidence/test-results/lure.txt"
+    _write(tmp_path / _RECEIPT_RELPATH, json.dumps(_receipt_payload()))
+    _write(tmp_path / lure, "not a receipt\n")
+    _write(
+        tmp_path / "memory" / _ADVISORY_FILENAME,
+        "- memory_type: session-derived\n"
+        "  record_format_version: 1.0\n"
+        "  writer: governance_tools.memory_record\n"
+        "  what_changed: durable lure fixture entry\n"
+        f"  test_evidence: PASS: {_RECEIPT_RELPATH} and {lure} -> 12 passed\n"
+        "  next_step: none\n",
+    )
+
+    codes = _codes(tmp_path)
+
+    assert codes[NOT_DURABLE_CODE] == 1
+    assert MISSING_CODE not in codes
+
+
 def test_option_c_tracked_evidence_artifact_is_silent(tmp_path: Path) -> None:
     _init_git_repo_with_runtime_ignore(tmp_path)
     durable = "artifacts/evidence/test-results/run.json"

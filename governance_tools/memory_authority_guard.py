@@ -425,6 +425,16 @@ def _git_path_is_ignored(project_root: Path, path: Path) -> bool:
     return completed.returncode == 0
 
 
+def _artifact_is_valid_evidence_receipt(path: Path) -> bool:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    if not isinstance(payload, dict) or "receipt_schema" not in payload:
+        return False
+    return _validate_evidence_receipt(payload) is None
+
+
 def _test_evidence_durability_violation(
     block: str,
     project_root: Path | None,
@@ -460,10 +470,16 @@ def _test_evidence_durability_violation(
     if not existing or not _project_has_git_worktree(project_root):
         return None
 
-    if all(_git_path_is_ignored(project_root, path) for path in existing):
+    valid_receipts = [
+        path for path in existing if _artifact_is_valid_evidence_receipt(path)
+    ]
+    if not valid_receipts:
+        return None
+
+    if all(_git_path_is_ignored(project_root, path) for path in valid_receipts):
         return (
             "test_evidence_artifact_not_durable",
-            "all_existing_evidence_artifacts_are_gitignored",
+            "all_existing_evidence_receipts_are_gitignored",
         )
     return None
 

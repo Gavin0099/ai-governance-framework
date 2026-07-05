@@ -84,3 +84,23 @@ def test_historical_warning_window_does_not_block_current_diff(tmp_path: Path) -
     assert result.clean is True
     assert result.blockers == []
     assert result.current_diff_active_non_canonical_writer_count == 0
+
+
+def test_ci_surfaces_test_evidence_provenance_warning_without_blocking(
+    tmp_path: Path,
+) -> None:
+    _write(
+        tmp_path / "memory" / "2026-07-05.md",
+        "- memory_type: session-derived\n"
+        "  record_format_version: 1.0\n"
+        "  writer: governance_tools.memory_record\n"
+        "  what_changed: provenance warning fixture\n"
+        "  test_evidence: PASS: 67 passed\n"
+        "  next_step: none\n",
+    )
+
+    result = check(tmp_path, changed_files=["memory/2026-07-05.md"])
+
+    assert result.clean is True
+    assert result.blockers == []
+    assert "test_evidence_provenance_not_found=1" in result.warnings
