@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Test-signal quality audit fixture association accuracy - 2026-07-06
+
+- Improved `governance_tools/test_signal_quality_audit.py` fixture association
+  so `fixture_manifest.json` entries with `expected_ok` and
+  `expected_rule_ids` can connect existing pass/fail fixtures to their
+  declared validators without relying only on full validator-name substrings.
+- Added safe validator alias inference for common fixture naming patterns and
+  report-only `ambiguous_validator_fixture_match` handling when a fixture name
+  matches multiple validators instead of counting ambiguous evidence as a
+  pass/fail fixture pair.
+- Added focused coverage in `tests/test_test_signal_quality_audit.py` for
+  manifest-based association, short fixture-prefix association, and ambiguous
+  fixture-to-validator matches that must not become false-green fixture pairs.
+- Release-note boundary: this entry records unreleased report-only diagnostic
+  accuracy improvement only. It does not bump the framework version, publish a
+  release, prove any test suite is industry-grade, prove domain correctness,
+  execute validators, modify consumer repos, or wire tooling/runtime/hook/CI/
+  pre-push/gate/enforcement behavior.
+
 ### Test-signal quality audit fixture classification accuracy - 2026-07-06
 
 - Tightened `governance_tools/test_signal_quality_audit.py` fixture-name
