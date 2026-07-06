@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".venv\\Scripts\\python.exe -m pytest tests\\test_memory_record.py tests\\test_memory_authority_guard.py tests\\test_memory_record_session_id_handoff.py --basetemp tests\\_tmp_receipt_run -p no:cacheprovider -q",
+  "exit_code": 0,
+  "started_at": "2026-07-06T16:21:06Z",
+  "finished_at": "2026-07-06T16:21:08Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "398f1a733fb82219702741891411f10aaccd96ec",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-provenance-advisory-20260707.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
