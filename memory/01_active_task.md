@@ -2,13 +2,14 @@
 
 > Refreshed 2026-07-06 per `docs/structured-memory-freshness-policy.md`.
 > Dedicated bookkeeping slice; source surfaces: `memory/2026-07-06.md` and
-> `memory/04_review_log.md` at HEAD `e4ede650`.
+> `memory/04_review_log.md` at HEAD `f899af7f`.
 > Claim: point-in-time consistency with `PLAN.md` and current repo state only.
 
 ## Current Focus
 
-- **No active autonomous implementation slice.** Current workspace was synced
-  to `origin/main` at `e4ede650` before this bookkeeping refresh.
+- **No active autonomous implementation slice.** Retire-candidate cleanup is
+  fully resolved as of `f899af7f`; the decision-change observation workline
+  continues.
 - Standing principle: **Validity before Expansion**. Do not add gates,
   enforcement, schema changes, or consumer-repo writes unless an observed
   failure or explicit user scope justifies them.
@@ -30,11 +31,9 @@
   `e30b1576` as `docs/governance/decision-change-ledger.inventory.v0.1.json`.
   All 193 governance_tools modules were compared against wiring and output
   evidence; 40 candidates were escalated, 4 marked retire_candidate.
-- **Retire-candidate focused review completed (2026-07-06)**: four inventory
-  retire candidates were reviewed. Two are now resolved (see below); the two
-  still open are `clean_pilot_admissibility.py` (needs a human clean-pilot
-  policy decision) and `host_agent_memory_sync_signal.py` (needs a
-  deprecate-first host-memory sync disposition).
+- **Retire-candidate line fully resolved (2026-07-06)**: all four inventory
+  retire candidates are dispositioned and implemented. The owner explicitly
+  authorized the final two retirements in session on 2026-07-06.
 - **Promotion gate duplicate smoke removed (2026-07-06)**:
   `governance_tools/promotion_gate_receipt_smoke.py` was deleted after focused
   digest regression tests confirmed replacement coverage (`af51e631`).
@@ -46,6 +45,16 @@
   `governance_tools/r49x4_metric_ranking.py` was deleted at `b596198f` per the
   deprecate-first disposition. Lineage references to the frozen artifact are
   preserved; R49.x conclusions were not re-validated.
+- **Clean-pilot line retired (2026-07-06)**: owner decided the clean-pilot
+  policy is no longer needed; `governance_tools/clean_pilot_admissibility.py`
+  and `governance/fleet/cleaning_admissibility_policy.yaml` were removed
+  together at `642df1bb`. The policy's governance_self_hosting_gap note lives
+  on only in git history.
+- **Host-agent memory sync line retired (2026-07-06)**: deprecate-first record
+  committed at `fa70afba`
+  (`docs/status/host-agent-memory-sync-signal-deprecation-2026-07-06.md`),
+  then evaluator and dedicated tests removed at `662ed7a5`. Repo-memory
+  governance surfaces are unchanged.
 - **Planning alignment repaired in this slice**: prior active-task state still
   pointed at 2026-06-18 / `f21350e`; `PLAN.md` now records 2026-07-06 current
   focus, milestone commits, claim ceilings, and non-claims.
@@ -84,12 +93,8 @@
 
 ## Next Steps
 
-1. Remaining retire-candidate work is decision-blocked: obtain the human
-   clean-pilot policy decision for `clean_pilot_admissibility.py` (retire tool
-   plus `governance/fleet/cleaning_admissibility_policy.yaml` together, or add
-   wiring/tests) and the host-memory sync disposition for
-   `host_agent_memory_sync_signal.py` (deprecate-first, or wire/document its
-   operator entrypoint). Do not delete either without those decisions.
+1. Retire-candidate work is complete; no deletion work is pending. Next
+   candidates require a fresh inventory or cluster review first.
 2. Optional read-only follow-ups from the inventory artifact: cluster reviews
    for `ab_cost_evidence` (5 modules) and `external_integrations`
    (`linear_integrator`, `notion_integrator`), and identifying the consumer of
@@ -114,7 +119,8 @@
 - Cannot claim all historical evidence is represented here.
 - Cannot claim external repos are updated.
 - Cannot claim test quality is enforced or industry-grade.
-- Cannot claim any governance defense beyond the two completed removals
-  (`promotion_gate_receipt_smoke.py`, `r49x4_metric_ranking.py`) has been
-  retired, downgraded, or proven useless.
+- Cannot claim any governance defense beyond the four completed removals
+  (`promotion_gate_receipt_smoke.py`, `r49x4_metric_ranking.py`,
+  `clean_pilot_admissibility.py`, `host_agent_memory_sync_signal.py`) has
+  been retired, downgraded, or proven useless.
 - Cannot claim context savings were measured.
