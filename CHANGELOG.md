@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Test-signal quality audit fixture classification accuracy - 2026-07-06
+
+- Tightened `governance_tools/test_signal_quality_audit.py` fixture-name
+  classification so negative fixture names such as `invalid` and
+  `noncompliant` are not also counted as positive fixture evidence through
+  substring overlap.
+- Narrowed placeholder validator detection to explicit comment labels so normal
+  implementation code such as `pass` statements does not hide real fixture
+  status behind `placeholder_validator_declared`.
+- Added focused regression coverage in `tests/test_test_signal_quality_audit.py`
+  for negative-only fixture names, noncompliant fixture names, real validators
+  containing `pass`, missing validators, and multi-validator weakest-status
+  aggregation.
+- Release-note boundary: this entry records unreleased report-only diagnostic
+  accuracy fixes only. It does not bump the framework version, publish a
+  release, prove any test suite is industry-grade, prove domain correctness,
+  execute validators, modify consumer repos, or wire tooling/runtime/hook/CI/
+  pre-push/gate/enforcement behavior.
+
 ### Test-signal quality audit report - 2026-07-06
 
 - Added `governance_tools/test_signal_quality_audit.py` as a report-only
