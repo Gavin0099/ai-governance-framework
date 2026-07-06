@@ -1,0 +1,658 @@
+{
+  "schema": "governance_decision_change_ledger.window.v0.2",
+  "generated_date": "2026-07-07",
+  "source_commit": "8a9f66cb",
+  "seed_reference": "docs/governance/decision-change-ledger.seed.json",
+  "inventory_reference": "docs/governance/decision-change-ledger.inventory.v0.1.json",
+  "window": {
+    "from": "2026-06-22",
+    "to": "2026-07-06",
+    "days": 15,
+    "canonical_entries_scanned": 221
+  },
+  "method": {
+    "granularity": "defense-level (not per-entry): each row aggregates one defense surface across all canonical memory entries in the window",
+    "extraction": "word-boundary regex over what_changed text for governance_tools module names and named protocol surfaces; decision-effect verb co-occurrence counted per entry",
+    "classification_sources": [
+      "seed ledger confirmed entries carried forward where in-window evidence is consistent",
+      "session-verified anchors from 2026-07-05..07-07 records",
+      "extraction-only rows marked confidence=lexical_candidate and never classified decision_changing"
+    ],
+    "self_reference_note": "the window includes sessions that built this ledger line itself; ledger/inventory rows are therefore partially self-referential and marked accordingly"
+  },
+  "claim_ceiling": [
+    "defense-level aggregation; per-entry decision effects were not individually re-verified except where marked confirmed",
+    "lexical_candidate rows are extraction hypotheses, not findings; no retire, merge, or downgrade may cite them",
+    "absence from this window does not prove a defense is a zombie (that is the inventory line's job)",
+    "this pass widens the seed window per its third followup; it does not by itself authorize any new retirement"
+  ],
+  "seed_reconciliation": {
+    "confirmed_over_wider_window": [
+      "test_signal_quality_audit decision_changing",
+      "memory_workflow completion-claim consistency decision_changing",
+      "memory_authority_guard R3 line decision_changing",
+      "design-note classification decision_changing",
+      "governance_maturity_summary lock_consistency decision_changing"
+    ],
+    "acted_on_in_window": [
+      "noisy closeout warning codes: downgrade implemented via baseline aggregation (14f5c825, schema 1.3)",
+      "inventory_line_missing_for_zombie_detection: inventory-line pass completed (e30b1576) and all four retire candidates dispositioned"
+    ],
+    "unchanged": [
+      "lexical test-signal scans remain noisy reviewer aids (re-confirmed by framework self-audit self-contamination)"
+    ]
+  },
+  "summary": {
+    "defense_rows": 41,
+    "classification_counts": {
+      "decision_changing": 18,
+      "decision_relevant_unacted": 7,
+      "noisy_downgraded_in_window": 1,
+      "unknown": 15
+    },
+    "confidence_counts": {
+      "confirmed": 20,
+      "lexical_candidate": 21
+    },
+    "top_decision_changing_by_mentions": [
+      "F-7",
+      "governance_maturity_summary",
+      "memory_workflow",
+      "pre-push",
+      "test_signal_quality_audit",
+      "f7_full_update",
+      "memory_authority_guard",
+      "memory_record",
+      "MEMORY_PROTOCOL",
+      "decision-change ledger"
+    ]
+  },
+  "entries": [
+    {
+      "defense": "F-7",
+      "window_mentions": 24,
+      "decision_verb_cooccurrence": 10,
+      "classification": "decision_changing",
+      "confidence": "confirmed",
+      "recommended_action": "keep",
+      "rationale": "Consumer update instruction surface drove external repo refreshes and the semantic test-quality guidance relocation (a5ae276e); highest mention density in the window.",
+      "evidence_refs": [
+        "2026-06-24:cli-20260624-165238",
+        "2026-06-24:cli-20260624-174625",
+        "2026-06-25:cli-20260625-095040",
+        "2026-06-25:cli-20260625-100518",
+        "2026-07-01:cli-20260701-170956",
+        "2026-07-01:codex-20260701-update-reporting-adoption-status"
+      ]
+    },
+    {
+      "defense": "governance_maturity_summary",
+      "window_mentions": 14,
+      "decision_verb_cooccurrence": 5,
+      "classification": "decision_changing",
+      "confidence": "confirmed",
+      "recommended_action": "keep",
+      "rationale": "Seed lock_consistency entry confirmed; window shows continued use in consumer maturity assessments.",
+      "evidence_refs": [
+        "2026-07-01:cli-20260701-153114",
+        "2026-07-01:cli-20260701-162928",
+        "2026-07-01:cli-20260701-170956",
+        "2026-07-01:cli-20260701-172802",
+        "2026-07-01:cli-20260701-175210",
+        "2026-07-01:cli-20260701-181904"
+      ]
+    },
+    {
+      "defense": "memory_workflow",
+      "window_mentions": 13,
+      "decision_verb_cooccurrence": 7,
+      "classification": "decision_changing",
+      "confidence": "confirmed",
+      "recommended_action": "keep",
+      "rationale": "Blocker/claim-consistency behavior changed decisions repeatedly (seed) and gated every commit slice in the window.",
+      "evidence_refs": [
+        "2026-06-24:cli-20260624-165238",
+        "2026-06-25:cli-20260625-memory-authority-contract-v11-proposal",
+        "2026-07-02:cli-20260702-120015",
+        "2026-07-02:cli-20260702-134422",
+        "2026-07-05:codex-20260705-memory-workflow-blocker-claim",
+        "2026-07-05:codex-20260705-b0-claim-ceiling-alignment"
+      ]
+    },
+    {
+      "defense": "adopt_governance",
+      "window_mentions": 10,
+      "decision_verb_cooccurrence": 5,
+      "classification": "decision_relevant_unacted",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "High mention density in consumer refresh sessions; specific decision-change anchors not yet review-verified.",
+      "evidence_refs": [
+        "2026-06-25:cli-20260625-095040",
+        "2026-06-25:cli-20260625-100518",
+        "2026-06-26:cli-20260626-112313",
+        "2026-06-26:cli-20260626-153619",
+        "2026-06-26:cli-20260626-adoption-doctor-unreleased-changelog",
+        "2026-07-01:cli-20260701-153114"
+      ]
+    },
+    {
+      "defense": "pre-push",
+      "window_mentions": 9,
+      "decision_verb_cooccurrence": 6,
+      "classification": "decision_changing",
+      "confidence": "confirmed",
+      "recommended_action": "keep",
+      "rationale": "Pre-push gates blocked or delayed pushes in-window (push-authorization discipline appears across records).",
+      "evidence_refs": [
+        "2026-06-22:codex-local-2026-06-22-gitlab-push-gate",
+        "2026-06-22:codex-local-2026-06-22-hermes-output-push-gate",
+        "2026-06-25:cli-20260625-memory-authority-disposition",
+        "2026-06-26:cli-20260626-135408",
+        "2026-06-26:cli-20260626-153619",
+        "2026-06-29:cli-20260629-prompt-cache-harness-consumer-contract"
+      ]
+    },
+    {
+      "defense": "adoption_doctor",
+      "window_mentions": 7,
+      "decision_verb_cooccurrence": 4,
+      "classification": "decision_relevant_unacted",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "Used in onboarding/refresh triage during the window; decision anchors not yet review-verified.",
+      "evidence_refs": [
+        "2026-06-26:cli-20260626-135408",
+        "2026-06-26:cli-20260626-153619",
+        "2026-06-26:cli-20260626-adoption-doctor-hook-root-mismatch",
+        "2026-06-26:cli-20260626-adoption-doctor-unreleased-changelog",
+        "2026-07-01:cli-20260701-162928",
+        "2026-07-01:cli-20260701-181904"
+      ]
+    },
+    {
+      "defense": "test_signal_quality_audit",
+      "window_mentions": 7,
+      "decision_verb_cooccurrence": 1,
+      "classification": "decision_changing",
+      "confidence": "confirmed",
+      "recommended_action": "keep",
+      "rationale": "Three seed entries confirmed; in-window dogfood on framework surfaces produced the template-hardening recommendation (980a81f1).",
+      "evidence_refs": [
+        "2026-07-06:codex-20260706-test-signal-audit-bugfix",
+        "2026-07-06:codex-20260706-test-signal-accuracy-changelog",
+        "2026-07-06:codex-20260706-test-signal-fixture-association",
+        "2026-07-06:codex-20260706-test-signal-association-changelog",
+        "2026-07-06:claude-20260706-test-signal-manifest-hardening",
+        "2026-07-06:codex-20260706-planning-active-task-refresh"
+      ]
+    },
+    {
+      "defense": "external_governance_submodule_updater",
+      "window_mentions": 6,
+      "decision_verb_cooccurrence": 1,
+      "classification": "decision_relevant_unacted",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "Consumer-side refresh path; anchors not review-verified.",
+      "evidence_refs": [
+        "2026-06-25:cli-20260625-100518",
+        "2026-07-02:cli-20260702-101220",
+        "2026-07-02:cli-20260702-submodule-url-discovery",
+        "2026-07-02:cli-20260702-final-report-requirement-output",
+        "2026-07-03:codex-20260703-final-report-table-json",
+        "2026-07-04:codex-20260704-update-result-envelope"
+      ]
+    },
+    {
+      "defense": "f7_full_update",
+      "window_mentions": 6,
+      "decision_verb_cooccurrence": 1,
+      "classification": "decision_changing",
+      "confidence": "confirmed",
+      "recommended_action": "keep",
+      "rationale": "Managed-block updater executed the F-7 instruction changes; 13 focused tests cited on 2026-07-06.",
+      "evidence_refs": [
+        "2026-07-01:cli-20260701-153114",
+        "2026-07-01:codex-20260701-update-reporting-adoption-status",
+        "2026-07-02:codex-20260702-park-human-readable-update-report",
+        "2026-07-02:cli-20260702-105232",
+        "2026-07-03:codex-20260703-final-report-table-json",
+        "2026-07-04:codex-20260704-update-result-envelope"
+      ]
+    },
+    {
+      "defense": "memory_authority_guard",
+      "window_mentions": 6,
+      "decision_verb_cooccurrence": 1,
+      "classification": "decision_changing",
+      "confidence": "confirmed",
+      "recommended_action": "keep",
+      "rationale": "R3 durability bypass fix and provenance warnings originated from guard output (seed); baseline downgrade slice consumed its counts.",
+      "evidence_refs": [
+        "2026-07-04:codex-20260704-memory-commit-anchor-provenance",
+        "2026-07-04:codex-20260704-memory-session-anchor-provenance",
+        "2026-07-04:cli-20260704-141442",
+        "2026-07-05:codex-20260705-b0-claim-ceiling-alignment",
+        "2026-07-05:codex-20260705-f6-report-only-detector",
+        "2026-07-06:claude-20260706-host-agent-memory-sync-retirement"
+      ]
+    },
+    {
+      "defense": "memory_record",
+      "window_mentions": 5,
+      "decision_verb_cooccurrence": 3,
+      "classification": "decision_changing",
+      "confidence": "confirmed",
+      "recommended_action": "keep",
+      "rationale": "Canonical writer is the required path for every completed slice; anchor-mismatch review on 2026-07-06 changed the recording workflow.",
+      "evidence_refs": [
+        "2026-06-23:cli-20260623-161215",
+        "2026-06-24:cli-20260624-165238",
+        "2026-06-25:cli-20260625-memory-authority-contract-v11-proposal",
+        "2026-07-06:claude-20260706-active-task-anchor-correction",
+        "2026-07-06:claude-20260706-host-agent-memory-sync-retirement"
+      ]
+    },
+    {
+      "defense": "MEMORY_PROTOCOL",
+      "window_mentions": 5,
+      "decision_verb_cooccurrence": 3,
+      "classification": "decision_changing",
+      "confidence": "confirmed",
+      "recommended_action": "keep",
+      "rationale": "Protocol dispositions dictated canonical-writer workflow decisions across the window.",
+      "evidence_refs": [
+        "2026-06-24:cli-20260624-165238",
+        "2026-06-25:cli-20260625-144129",
+        "2026-06-26:cli-20260626-ambiguous-memory-routing",
+        "2026-07-03:cli-20260703-112118",
+        "2026-07-03:codex-20260703-law-doc-runtime-alignment"
+      ]
+    },
+    {
+      "defense": "authority_loader",
+      "window_mentions": 5,
+      "decision_verb_cooccurrence": 3,
+      "classification": "decision_relevant_unacted",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "Authority resolution mentioned with decision verbs; anchors not review-verified.",
+      "evidence_refs": [
+        "2026-06-25:cli-20260625-governance-doc-freshness-classification",
+        "2026-06-25:cli-20260625-authority-repair-proposal",
+        "2026-06-25:cli-20260625-authority-plan-tier-repair",
+        "2026-06-25:cli-20260625-authority-metadata-consistency-proposal",
+        "2026-06-25:cli-20260625-authority-metadata-consistency-checker"
+      ]
+    },
+    {
+      "defense": "onboard_latest_governance",
+      "window_mentions": 5,
+      "decision_verb_cooccurrence": 0,
+      "classification": "decision_relevant_unacted",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "Mentioned in refresh flows without verb co-occurrence; verify before promoting or downgrading.",
+      "evidence_refs": [
+        "2026-07-02:cli-20260702-180009",
+        "2026-07-02:codex-20260702-onboard-fallback-claim-boundary",
+        "2026-07-02:cli-20260702-222823",
+        "2026-07-03:codex-20260703-final-report-table-json",
+        "2026-07-04:codex-20260704-onboard-envelope-protocol"
+      ]
+    },
+    {
+      "defense": "claim_enforcement_checker",
+      "window_mentions": 5,
+      "decision_verb_cooccurrence": 1,
+      "classification": "decision_relevant_unacted",
+      "confidence": "confirmed",
+      "recommended_action": "keep_observe",
+      "rationale": "R2 attestation line exists but integration decision (final-report caller) is still pending per 2026-07-06 records.",
+      "evidence_refs": [
+        "2026-07-04:codex-20260704-memory-session-anchor-provenance",
+        "2026-07-04:codex-20260704-merge-s3-claim-label",
+        "2026-07-05:codex-20260705-r2-structured-claim-support",
+        "2026-07-05:codex-20260705-r2-claim-semantic-attestation-design",
+        "2026-07-05:codex-20260705-r2-claim-semantic-attestation-detector"
+      ]
+    },
+    {
+      "defense": "decision-change ledger",
+      "window_mentions": 5,
+      "decision_verb_cooccurrence": 2,
+      "classification": "decision_changing",
+      "confidence": "confirmed",
+      "recommended_action": "keep",
+      "rationale": "Seed + inventory-line pass directly authorized the four-candidate retire line completed in-window.",
+      "evidence_refs": [
+        "2026-07-06:codex-20260706-governance-overhead-review-note",
+        "2026-07-06:cli-20260706-185531",
+        "2026-07-06:codex-20260706-planning-active-task-refresh",
+        "2026-07-06:claude-20260706-decision-change-inventory-line",
+        "2026-07-06:claude-20260706-noisy-closeout-warning-downgrade"
+      ]
+    },
+    {
+      "defense": "REVIEW_CRITERIA",
+      "window_mentions": 4,
+      "decision_verb_cooccurrence": 2,
+      "classification": "decision_changing",
+      "confidence": "confirmed",
+      "recommended_action": "keep",
+      "rationale": "Review verdicts citing REVIEW_CRITERIA produced CHANGES_REQUESTED fixes in-window (active-task staleness, commit-anchor mismatch).",
+      "evidence_refs": [
+        "2026-06-26:cli-20260626-review-criteria-readability",
+        "2026-07-03:cli-20260703-112118",
+        "2026-07-03:cli-20260703-180008",
+        "2026-07-03:cli-20260703-183038"
+      ]
+    },
+    {
+      "defense": "governance_drift_checker",
+      "window_mentions": 4,
+      "decision_verb_cooccurrence": 1,
+      "classification": "decision_changing",
+      "confidence": "confirmed",
+      "recommended_action": "keep",
+      "rationale": "Planning-refresh slice (31fa4d09) used drift output as before/after evidence; PLAN freshness discipline enforced.",
+      "evidence_refs": [
+        "2026-06-29:codex-20260629-authority-manifest-baseline-readonly",
+        "2026-06-29:codex-20260629-authority-manifest-tech-spec-post-push",
+        "2026-06-29:cli-20260629-144407",
+        "2026-06-29:cli-20260629-150534"
+      ]
+    },
+    {
+      "defense": "session_closeout_entry",
+      "window_mentions": 3,
+      "decision_verb_cooccurrence": 2,
+      "classification": "noisy_downgraded_in_window",
+      "confidence": "confirmed",
+      "recommended_action": "keep_observe",
+      "rationale": "Seed classified per-session closeout warning repetition as noisy; the baseline-aggregation downgrade was implemented in-window (14f5c825). Observe the aggregated view before further change.",
+      "evidence_refs": [
+        "2026-06-23:session-20260623-artifact-write-boundary",
+        "2026-06-23:session-20260623-artifact-boundary-containment",
+        "2026-06-24:cli-20260624-artifact-boundary-containment-e2e"
+      ]
+    },
+    {
+      "defense": "manual_update_advisory",
+      "window_mentions": 3,
+      "decision_verb_cooccurrence": 1,
+      "classification": "decision_changing",
+      "confidence": "confirmed",
+      "recommended_action": "keep",
+      "rationale": "Hook import failure surfaced by its smoke changed implementation (seed).",
+      "evidence_refs": [
+        "2026-07-03:cli-20260703-103427",
+        "2026-07-04:codex-20260704-update-receipts",
+        "2026-07-06:codex-20260706-hook-advisory-pythonpath"
+      ]
+    },
+    {
+      "defense": "architecture_drift_checker",
+      "window_mentions": 3,
+      "decision_verb_cooccurrence": 0,
+      "classification": "decision_relevant_unacted",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "Mentioned without decision verbs; also flagged in the self test-signal audit as the root contract validator lacking a fixture pair.",
+      "evidence_refs": [
+        "2026-07-03:cli-20260703-114650",
+        "2026-07-03:cli-20260703-120300",
+        "2026-07-06:claude-20260706-framework-self-test-signal-audit"
+      ]
+    },
+    {
+      "defense": "ci_memory_workflow_check",
+      "window_mentions": 2,
+      "decision_verb_cooccurrence": 2,
+      "classification": "decision_changing",
+      "confidence": "confirmed",
+      "recommended_action": "keep",
+      "rationale": "Warning-parity gaps found and fixed in-window (55a0a72); CI blocker semantics preserved.",
+      "evidence_refs": [
+        "2026-06-24:cli-20260624-165238",
+        "2026-07-06:codex-20260706-r3-durability-ci-parity"
+      ]
+    },
+    {
+      "defense": "public_api_diff_checker",
+      "window_mentions": 2,
+      "decision_verb_cooccurrence": 0,
+      "classification": "unknown",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review.",
+      "evidence_refs": [
+        "2026-07-03:cli-20260703-114650",
+        "2026-07-03:cli-20260703-120300"
+      ]
+    },
+    {
+      "defense": "design-note classification",
+      "window_mentions": 2,
+      "decision_verb_cooccurrence": 1,
+      "classification": "decision_changing",
+      "confidence": "confirmed",
+      "recommended_action": "keep",
+      "rationale": "Seed confirmed: drove retrieval-authority and cache-aware consolidation slices.",
+      "evidence_refs": [
+        "2026-07-06:cli-20260706-155821",
+        "2026-07-06:cli-20260706-165839"
+      ]
+    },
+    {
+      "defense": "session_end_hook",
+      "window_mentions": 1,
+      "decision_verb_cooccurrence": 1,
+      "classification": "unknown",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review.",
+      "evidence_refs": [
+        "2026-06-23:session-20260623-artifact-write-boundary"
+      ]
+    },
+    {
+      "defense": "manage_agent_closeout",
+      "window_mentions": 1,
+      "decision_verb_cooccurrence": 1,
+      "classification": "unknown",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review.",
+      "evidence_refs": [
+        "2026-06-23:session-20260623-artifact-write-boundary"
+      ]
+    },
+    {
+      "defense": "governance_auditor",
+      "window_mentions": 1,
+      "decision_verb_cooccurrence": 0,
+      "classification": "unknown",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review.",
+      "evidence_refs": [
+        "2026-06-26:cli-20260626-review-criteria-readability"
+      ]
+    },
+    {
+      "defense": "deferred_debt_report",
+      "window_mentions": 1,
+      "decision_verb_cooccurrence": 1,
+      "classification": "unknown",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review.",
+      "evidence_refs": [
+        "2026-06-27:codex-20260627-p1e-two-week-evidence"
+      ]
+    },
+    {
+      "defense": "authority_metadata_consistency",
+      "window_mentions": 1,
+      "decision_verb_cooccurrence": 0,
+      "classification": "unknown",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review.",
+      "evidence_refs": [
+        "2026-07-02:cli-20260702-112052"
+      ]
+    },
+    {
+      "defense": "pre-commit hook",
+      "window_mentions": 1,
+      "decision_verb_cooccurrence": 1,
+      "classification": "decision_changing",
+      "confidence": "confirmed",
+      "recommended_action": "keep",
+      "rationale": "Hook smoke failure changed implementation (PYTHONPATH preservation, 5eb0f5a1).",
+      "evidence_refs": [
+        "2026-07-03:cli-20260703-103427"
+      ]
+    },
+    {
+      "defense": "memory_janitor",
+      "window_mentions": 1,
+      "decision_verb_cooccurrence": 0,
+      "classification": "unknown",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review.",
+      "evidence_refs": [
+        "2026-07-03:codex-20260703-law-doc-runtime-alignment"
+      ]
+    },
+    {
+      "defense": "red-team",
+      "window_mentions": 1,
+      "decision_verb_cooccurrence": 1,
+      "classification": "decision_changing",
+      "confidence": "confirmed",
+      "recommended_action": "keep",
+      "rationale": "R3 durability residual (red-team output) changed implementation in-window.",
+      "evidence_refs": [
+        "2026-07-05:codex-20260705-f6-non-daily-memory-baseline"
+      ]
+    },
+    {
+      "defense": "claim_semantic_attestation_writer",
+      "window_mentions": 1,
+      "decision_verb_cooccurrence": 1,
+      "classification": "unknown",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review.",
+      "evidence_refs": [
+        "2026-07-06:codex-20260705-r2-claim-attestation-writer"
+      ]
+    },
+    {
+      "defense": "TESTING.md",
+      "window_mentions": 1,
+      "decision_verb_cooccurrence": 0,
+      "classification": "unknown",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review.",
+      "evidence_refs": [
+        "2026-07-06:codex-20260706-test-signal-quality-design"
+      ]
+    },
+    {
+      "defense": "runtime_surface_manifest",
+      "window_mentions": 1,
+      "decision_verb_cooccurrence": 1,
+      "classification": "decision_changing",
+      "confidence": "confirmed",
+      "recommended_action": "keep",
+      "rationale": "Inventory drift reproduction led to the Hermes adapter registration fix (c398bf72).",
+      "evidence_refs": [
+        "2026-07-06:codex-20260706-hermes-runtime-surface-manifest"
+      ]
+    },
+    {
+      "defense": "escalation_authority_path_guard",
+      "window_mentions": 1,
+      "decision_verb_cooccurrence": 1,
+      "classification": "unknown",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review.",
+      "evidence_refs": [
+        "2026-07-06:claude-20260706-decision-change-inventory-line"
+      ]
+    },
+    {
+      "defense": "state_reconciliation_validator",
+      "window_mentions": 1,
+      "decision_verb_cooccurrence": 1,
+      "classification": "unknown",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review.",
+      "evidence_refs": [
+        "2026-07-06:claude-20260706-decision-change-inventory-line"
+      ]
+    },
+    {
+      "defense": "canonical_closeout_fail_closed_regression",
+      "window_mentions": 1,
+      "decision_verb_cooccurrence": 1,
+      "classification": "unknown",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review.",
+      "evidence_refs": [
+        "2026-07-06:claude-20260706-decision-change-inventory-line"
+      ]
+    },
+    {
+      "defense": "mutation_proof_runner",
+      "window_mentions": 1,
+      "decision_verb_cooccurrence": 1,
+      "classification": "unknown",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review.",
+      "evidence_refs": [
+        "2026-07-06:claude-20260706-decision-change-inventory-line"
+      ]
+    },
+    {
+      "defense": "required_freshness_probe",
+      "window_mentions": 1,
+      "decision_verb_cooccurrence": 1,
+      "classification": "unknown",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review.",
+      "evidence_refs": [
+        "2026-07-06:claude-20260706-latest-main-consumer-investigation"
+      ]
+    },
+    {
+      "defense": "closeout receipt",
+      "window_mentions": 1,
+      "decision_verb_cooccurrence": 1,
+      "classification": "unknown",
+      "confidence": "lexical_candidate",
+      "recommended_action": "keep_observe",
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review.",
+      "evidence_refs": [
+        "2026-07-06:claude-20260706-noisy-closeout-warning-downgrade"
+      ]
+    }
+  ],
+  "followups": {
+    "first": "Review-verify the four lexical_candidate adoption-line rows (adopt_governance, adoption_doctor, onboard_latest_governance, external_governance_submodule_updater) before any promotion or downgrade decision.",
+    "second": "Observe the baseline-aggregated closeout view for at least one week; if new_warning_codes stays empty while debt is stable, consider re-freezing a smaller baseline per the shrink hint.",
+    "third": "Next ledger widening should sample a pre-pause month (e.g. 2026-05) to test whether decision-changing density holds outside the current self-referential window."
+  }
+}
