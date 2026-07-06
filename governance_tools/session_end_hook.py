@@ -58,6 +58,10 @@ from governance_tools.taxonomy_expansion_log import append_pending_entry
 from governance_tools.memory_significance import write_candidate_and_advisory
 from governance_tools.codeburn_token_summary import compute_codeburn_token_summary
 from governance_tools.memory_authority_guard import run_guard as _run_memory_guard
+from governance_tools.memory_authority_baseline import (
+    BASELINEABLE_CODES as _BASELINEABLE_CODES,
+    compare as _baseline_compare,
+)
 from governance_tools.memory_workflow import assess_memory_workflow
 
 
@@ -1545,6 +1549,56 @@ def _build_canonical_usage_audit(
 
 # ── Main hook logic ───────────────────────────────────────────────────────────
 
+def _load_latest_memory_authority_baseline(project_root: Path) -> "dict[str, Any] | None":
+    """Load the newest frozen memory-authority baseline, if any.
+
+    Baselines live at artifacts/governance/memory-authority-baseline-*.json and
+    embed their date in the filename, so lexicographic max selects the newest.
+    Returns None when no parseable baseline exists (fail-open: no suppression).
+    """
+    baseline_dir = project_root / "artifacts" / "governance"
+    candidates = sorted(baseline_dir.glob("memory-authority-baseline-*.json"))
+    for path in reversed(candidates):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            continue
+        if isinstance(payload, dict) and payload.get("model") == "count_bucket":
+            return payload
+    return None
+
+
+def _baseline_delta_fields(project_root: Path, guard: dict[str, Any]) -> dict[str, Any]:
+    """Baseline-aggregated warning view for the closeout surface (advisory only).
+
+    High-salience signal = codes with debt above the frozen baseline, plus
+    active_non_canonical_writer (SI-1: never baselined) and any code the
+    baseline model cannot bank (fail-open: non-baselineable codes always
+    surface). Without a baseline the full code list passes through unchanged.
+    """
+    counts: dict[str, int] = guard.get("violation_counts_by_code") or {}
+    all_codes = sorted(counts.keys())
+    baseline = _load_latest_memory_authority_baseline(project_root)
+    if baseline is None:
+        return {
+            "memory_authority_baseline_id": "",
+            "memory_authority_new_since_baseline": sum(counts.values()),
+            "memory_authority_suppressed_by_baseline": 0,
+            "memory_authority_new_warning_codes": all_codes,
+        }
+    delta = _baseline_compare(guard, baseline)
+    new_codes = {b.get("code") for b in delta.get("new_buckets", []) if b.get("code")}
+    new_codes.update(c for c in counts if c not in _BASELINEABLE_CODES)
+    if delta.get("active_fresh_findings"):
+        new_codes.add("active_non_canonical_writer")
+    return {
+        "memory_authority_baseline_id": str(delta.get("baseline_id") or ""),
+        "memory_authority_new_since_baseline": int(delta.get("new_since_baseline", 0)),
+        "memory_authority_suppressed_by_baseline": int(delta.get("suppressed_by_baseline", 0)),
+        "memory_authority_new_warning_codes": sorted(new_codes),
+    }
+
+
 def _collect_memory_authority_surface(project_root: Path) -> dict[str, Any]:
     """
     Run memory authority guard and return a compact observation surface.
@@ -1562,11 +1616,26 @@ def _collect_memory_authority_surface(project_root: Path) -> dict[str, Any]:
                 "memory_authority_warning_codes": [],
                 "memory_unbound_count": 0,
                 "memory_authority_coverage": None,
+                "memory_authority_baseline_id": "",
+                "memory_authority_new_since_baseline": 0,
+                "memory_authority_suppressed_by_baseline": 0,
+                "memory_authority_new_warning_codes": [],
                 "memory_authority_error": "memory_root_missing",
             }
         guard = _run_memory_guard(memory_root, project_root, skip_git=True)
         counts: dict[str, int] = guard.get("violation_counts_by_code") or {}
         sd = (guard.get("authority_coverage_rate") or {}).get("session_derived") or {}
+        try:
+            baseline_fields = _baseline_delta_fields(project_root, guard)
+        except Exception as exc:  # noqa: BLE001
+            # Fail-open: a broken baseline must never suppress warnings.
+            baseline_fields = {
+                "memory_authority_baseline_id": "",
+                "memory_authority_new_since_baseline": sum(counts.values()),
+                "memory_authority_suppressed_by_baseline": 0,
+                "memory_authority_new_warning_codes": sorted(counts.keys()),
+                "memory_authority_baseline_error": str(exc),
+            }
         return {
             "memory_authority_guard_ran": True,
             "memory_authority_scope": "repo",
@@ -1577,6 +1646,7 @@ def _collect_memory_authority_surface(project_root: Path) -> dict[str, Any]:
                 "session_entries_bound": sd.get("bound_entries", 0),
                 "session_authority_rate": sd.get("rate"),
             },
+            **baseline_fields,
         }
     except Exception as exc:  # noqa: BLE001
         return {
@@ -1585,6 +1655,10 @@ def _collect_memory_authority_surface(project_root: Path) -> dict[str, Any]:
             "memory_authority_warning_codes": ["MEMORY_AUTHORITY_GUARD_ERROR"],
             "memory_unbound_count": 0,
             "memory_authority_coverage": None,
+            "memory_authority_baseline_id": "",
+            "memory_authority_new_since_baseline": 0,
+            "memory_authority_suppressed_by_baseline": 0,
+            "memory_authority_new_warning_codes": ["MEMORY_AUTHORITY_GUARD_ERROR"],
             "memory_authority_error": str(exc),
         }
 

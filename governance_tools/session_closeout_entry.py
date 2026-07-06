@@ -40,7 +40,7 @@ from governance_tools.session_end_hook import run_session_end_hook, format_human
 from runtime_hooks.core.session_end import resolve_ledger_write_allowed_from_no_write_flag
 
 ALLOWED_TRIGGER_MODES = {"native_hook", "manual_fallback", "wrapper", "synthetic_smoke", "unknown"}
-CLOSEOUT_RECEIPT_SCHEMA_VERSION = "1.2"
+CLOSEOUT_RECEIPT_SCHEMA_VERSION = "1.3"
 
 
 def _utc_now_iso() -> str:
@@ -174,6 +174,11 @@ def _write_closeout_receipt(
     memory_authority_scope: str = "",
     memory_authority_warning_codes: "list[str] | None" = None,
     memory_unbound_count: int = 0,
+    # E2b: baseline-aggregated warning view (advisory; schema 1.3)
+    memory_authority_baseline_id: str = "",
+    memory_authority_new_since_baseline: int = 0,
+    memory_authority_suppressed_by_baseline: int = 0,
+    memory_authority_new_warning_codes: "list[str] | None" = None,
     # E3: memory workflow dispatch surface
     memory_workflow_dispatch_ran: bool = False,
     memory_workflow_status: str = "",
@@ -210,6 +215,10 @@ def _write_closeout_receipt(
         "memory_authority_scope": memory_authority_scope,
         "memory_authority_warning_codes": memory_authority_warning_codes if memory_authority_warning_codes is not None else [],
         "memory_unbound_count": memory_unbound_count,
+        "memory_authority_baseline_id": memory_authority_baseline_id,
+        "memory_authority_new_since_baseline": memory_authority_new_since_baseline,
+        "memory_authority_suppressed_by_baseline": memory_authority_suppressed_by_baseline,
+        "memory_authority_new_warning_codes": memory_authority_new_warning_codes if memory_authority_new_warning_codes is not None else [],
         "memory_workflow_dispatch_ran": memory_workflow_dispatch_ran,
         "memory_workflow_status": memory_workflow_status,
         "memory_task_classification": memory_task_classification,
@@ -451,6 +460,10 @@ def main() -> int:
             memory_authority_scope=str(_ma.get("memory_authority_scope", "")),
             memory_authority_warning_codes=_ma.get("memory_authority_warning_codes") or [],
             memory_unbound_count=int(_ma.get("memory_unbound_count", 0)),
+            memory_authority_baseline_id=str(_ma.get("memory_authority_baseline_id", "")),
+            memory_authority_new_since_baseline=int(_ma.get("memory_authority_new_since_baseline", 0)),
+            memory_authority_suppressed_by_baseline=int(_ma.get("memory_authority_suppressed_by_baseline", 0)),
+            memory_authority_new_warning_codes=_ma.get("memory_authority_new_warning_codes") or [],
             memory_workflow_dispatch_ran=bool(_mw.get("memory_workflow_dispatch_ran", False)),
             memory_workflow_status=str(_mw.get("memory_workflow_status", "")),
             memory_task_classification=str(_mw.get("memory_task_classification", "")),

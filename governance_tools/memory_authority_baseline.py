@@ -46,6 +46,7 @@ BASELINEABLE_CODES = (
     "non_canonical_writer",
     "structural_memory_auto_write",
     "missing_canonical_memory",
+    "test_evidence_provenance_not_found",
 )
 
 # Per-class identity fields pinned against real guard JSON (spec §2).
@@ -54,6 +55,7 @@ IDENTITY_FIELDS: dict[str, tuple[str, ...]] = {
     "non_canonical_writer": ("file", "entry", "reason"),
     "structural_memory_auto_write": ("file", "section", "reason"),
     "missing_canonical_memory": ("date", "reason"),
+    "test_evidence_provenance_not_found": ("file", "entry", "reason"),
 }
 _DEFAULT_FIELDS = ("file", "entry", "section", "date", "reason")
 

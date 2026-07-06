@@ -22,6 +22,7 @@ Non-goals:
 
 from __future__ import annotations
 
+import json
 import shutil
 import sys
 from pathlib import Path
@@ -230,6 +231,77 @@ class TestSnapshotStability:
 
 
 # ── Clean vs guard-error distinguishability ───────────────────────────────────
+
+class TestBaselineAggregatedWarningView:
+    """Schema-1.3 baseline aggregation: historical debt banked in a frozen
+    baseline is reported as an aggregate count, not re-listed per session.
+    Above-baseline debt and non-baselineable codes always surface (fail-open).
+    """
+
+    @staticmethod
+    def _unbound_entry(repo: Path, name: str) -> None:
+        (repo / "memory" / name).write_text(
+            f"# {name.removesuffix('.md')}\n\n"
+            "- what changed: unbound fixture entry\n"
+            "- commit hash: pending\n",
+            encoding="utf-8",
+        )
+
+    @staticmethod
+    def _freeze_baseline(repo: Path) -> Path:
+        from governance_tools.memory_authority_baseline import build_baseline
+        from governance_tools.memory_authority_guard import run_guard
+
+        guard = run_guard(repo / "memory", repo, skip_git=True)
+        baseline = build_baseline(guard, source_head="fixture")
+        out_dir = repo / "artifacts" / "governance"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        path = out_dir / "memory-authority-baseline-2026-07-06.json"
+        path.write_text(json.dumps(baseline, ensure_ascii=False, indent=2), encoding="utf-8")
+        return path
+
+    def test_no_baseline_passes_full_codes_through(self):
+        repo = _reset("baseline_absent")
+        self._unbound_entry(repo, "2026-05-01.md")
+        ma = _run(repo)["memory_authority"]
+        assert ma["memory_authority_baseline_id"] == ""
+        assert ma["memory_authority_new_warning_codes"] == ma["memory_authority_warning_codes"]
+        assert ma["memory_authority_suppressed_by_baseline"] == 0
+
+    def test_banked_debt_is_aggregated_not_relisted(self):
+        repo = _reset("baseline_banked")
+        self._unbound_entry(repo, "2026-05-01.md")
+        self._freeze_baseline(repo)
+        ma = _run(repo)["memory_authority"]
+        assert ma["memory_authority_baseline_id"] != ""
+        assert ma["memory_authority_new_since_baseline"] == 0
+        assert ma["memory_authority_suppressed_by_baseline"] >= 1
+        assert ma["memory_authority_new_warning_codes"] == []
+        # full historical view remains available (no information loss)
+        assert "unbound_memory" in ma["memory_authority_warning_codes"]
+
+    def test_above_baseline_debt_surfaces(self):
+        repo = _reset("baseline_excess")
+        self._unbound_entry(repo, "2026-05-01.md")
+        self._freeze_baseline(repo)
+        self._unbound_entry(repo, "2026-05-02.md")
+        ma = _run(repo)["memory_authority"]
+        assert ma["memory_authority_new_since_baseline"] >= 1
+        assert "unbound_memory" in ma["memory_authority_new_warning_codes"]
+
+    def test_corrupt_baseline_fails_open(self):
+        repo = _reset("baseline_corrupt")
+        self._unbound_entry(repo, "2026-05-01.md")
+        out_dir = repo / "artifacts" / "governance"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / "memory-authority-baseline-2026-07-06.json").write_text(
+            "{not json", encoding="utf-8"
+        )
+        ma = _run(repo)["memory_authority"]
+        # unparseable baseline is skipped -> behaves like no baseline
+        assert ma["memory_authority_baseline_id"] == ""
+        assert ma["memory_authority_new_warning_codes"] == ma["memory_authority_warning_codes"]
+
 
 class TestCleanVsGuardErrorDistinguishable:
     """warning_codes must distinguish clean (no violations) from guard-error

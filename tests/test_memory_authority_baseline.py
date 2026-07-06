@@ -122,6 +122,25 @@ def test_format_human_oneliner() -> None:
         assert token in out
 
 
+def _tep(file: str = "2026-04-19.md") -> dict:
+    return {
+        "code": "test_evidence_provenance_not_found", "severity": "warning", "file": file,
+        "entry": "- what_changed: hardened reviewer taxonomy",
+        "reason": "test_evidence_success_claim_without_artifact",
+    }
+
+
+def test_test_evidence_provenance_is_baselineable() -> None:
+    # The 2026-07-06 noisy-warning downgrade banks provenance debt like other codes.
+    assert "test_evidence_provenance_not_found" in BASELINEABLE_CODES
+    baseline = build_baseline(_gr([_tep(), _tep()]), active_from=FUTURE)
+    assert baseline["summary"]["by_code"]["test_evidence_provenance_not_found"] == 2
+    payload = compare(_gr([_tep(), _tep(), _tep()]), baseline, active_from=FUTURE)
+    assert payload["suppressed_by_baseline"] == 2
+    assert payload["new_since_baseline"] == 1
+    assert payload["new_buckets"][0]["code"] == "test_evidence_provenance_not_found"
+
+
 def test_integration_self_baseline_is_zero_new() -> None:
     # Freeze real guard output, compare against itself -> nothing new, all suppressed.
     result = run_guard(REPO_ROOT / "memory", REPO_ROOT, skip_git=True)

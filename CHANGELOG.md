@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### Baseline-aggregated closeout memory warnings - 2026-07-06
+
+- Downgraded noisy per-session closeout warning repetition per the
+  decision-change ledger seed recommendation: closeout receipts (schema 1.3)
+  now report historical memory-authority debt as a baseline aggregate
+  (`memory_authority_suppressed_by_baseline`, `memory_authority_baseline_id`)
+  and keep high salience only for `memory_authority_new_warning_codes`
+  (above-baseline debt, active findings, and codes the baseline cannot bank).
+- Extended `governance_tools/memory_authority_baseline.py` baselineable codes
+  with `test_evidence_provenance_not_found` and froze a refreshed baseline at
+  `artifacts/governance/memory-authority-baseline-2026-07-06.json` (794
+  historical warnings banked; SI-1/SI-2 invariants unchanged).
+- Fail-open rules: without a parseable baseline the full warning-code list
+  passes through unchanged; `active_non_canonical_writer` is never suppressed;
+  the complete `memory_authority_warning_codes` list stays in every receipt.
+- Release-note boundary: this entry records an unreleased advisory reporting
+  change only. It does not change blocking, gate, CI, or enforcement
+  behavior, does not resolve any banked warning, and does not prove memory
+  content quality.
+
 ### Test-signal quality audit fixture association accuracy - 2026-07-06
 
 - Improved `governance_tools/test_signal_quality_audit.py` fixture association

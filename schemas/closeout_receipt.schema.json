@@ -21,7 +21,7 @@
   "properties": {
     "schema_version": {
       "type": "string",
-      "enum": ["1.0", "1.1", "1.2"]
+      "enum": ["1.0", "1.1", "1.2", "1.3"]
     },
     "timestamp": {
       "type": "string",
@@ -140,6 +140,25 @@
       "type": "integer",
       "minimum": 0,
       "description": "Count of unbound memory entries reported by the memory authority guard."
+    },
+    "memory_authority_baseline_id": {
+      "type": "string",
+      "description": "Baseline id used for warning aggregation; empty when no frozen baseline exists."
+    },
+    "memory_authority_new_since_baseline": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Warning debt above the frozen baseline (advisory; full count when no baseline)."
+    },
+    "memory_authority_suppressed_by_baseline": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Historical warning debt aggregated by the frozen baseline instead of being listed per session."
+    },
+    "memory_authority_new_warning_codes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "High-salience warning codes: above-baseline debt, active findings, and codes the baseline cannot bank."
     },
     "memory_workflow_dispatch_ran": {
       "type": "boolean",
