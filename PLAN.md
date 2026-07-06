@@ -2,12 +2,12 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-06-30
+> **最後更新**: 2026-07-06
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
 > **Risk tier**: L2
-> **Planning window**: 2026-03 through 2026-06
+> **Planning window**: 2026-03 through 2026-07
 > **Encoding status**: UTF-8 reviewer-readable canonical replacement
 
 Purpose:
@@ -70,18 +70,18 @@ Phase E posture:
 
 ## Current Sprint - 2026-06-10
 
-Current refresh - 2026-06-30:
+Current refresh - 2026-07-06:
 
 Theme:
 
-- Convert cache-aware governance design into a small repo-feasible
-  implementation tranche without claiming prompt-cache runtime control.
-- Keep candidate receipts, sub-agent review receipts, and cache-aware artifacts
-  evidence-only until an adopted contract or implemented tool gives them
-  stronger authority.
-- Reuse existing authority surfaces before adding new ones: `.governance`
-  `baseline.yaml` and `governance_tools/governance_drift_checker.py` are the
-  current baseline/drift path for authority-file inventory and hashes.
+- Keep Phase E in validity-before-expansion posture while reducing governance
+  noise and surfacing which defenses actually change decisions.
+- Treat the 2026-07-06 test-signal quality line as report-only visibility for
+  consumer/domain-contract test evidence, not as a readiness gate.
+- Use decision-change and context-cost artifacts to decide what to keep,
+  merge, downgrade, or investigate before adding more governance surface.
+- Preserve the 2026-06 cache-aware / AUTHORITY_MANIFEST line as candidate-only
+  unless a named harness consumer and evidence contract are separately scoped.
 
 Completed in latest committed scope:
 
@@ -119,6 +119,25 @@ Completed in latest committed scope:
   scheduled artifacts from 2026-06-25 through 2026-06-30 while preserving
   non-claims for reliability, SLA, provider-free runtime, governance authority,
   enforcement, and future scheduled success.
+- [x] Report-only `test_signal_quality_audit` tooling reached v0.2: domain
+  contract repos can be scanned for validator fixture pairing, fixture-manifest
+  expected-result mapping, placeholder validator labeling, fixture-runner
+  presence, lexical weak-test signals, and explicit cannot-claim boundaries.
+- [x] Consumer-facing update instructions now surface semantic test-quality
+  expectations: no happy-path-only tests for non-trivial changes, independent
+  expected values, regression tests for reproducible bugs when feasible,
+  mock-only weakness, and validator pass/fail fixture expectations.
+- [x] Retrieval Authority Round A and Cache-Aware Round B design clusters were
+  consolidated into summary/index docs with source-note pointer banners and
+  classification metadata. Source notes remain preserved; they were not
+  archived, invalidated, or reclassified by the pointer update.
+- [x] `docs/governance/decision-change-ledger.seed.json` was added as a seed
+  artifact for classifying recent governance outputs by decision effect,
+  including the distinction between output-line evidence and future
+  inventory-line zombie-defense visibility.
+- [x] `docs/governance/context-cost-budget-design-2026-07-06.md` separated
+  per-slice context-read budgeting from the decision-change ledger so
+  agent-read telemetry does not pollute defense-output classification.
 
 Current next candidate:
 
@@ -133,6 +152,12 @@ Current next candidate:
 - [ ] Do not start v1.3.0 release-prep until the scoped release-surface
   consistency packet and named consumer-side proof packet are collected and
   reviewed.
+- [ ] Run a read-only decision-change ledger inventory-line pass to identify
+  zombie, duplicate, noisy, rare-critical, and unknown governance defenses
+  before merging, downgrading, or retiring any surface.
+- [ ] Keep any context-cost companion record as a future candidate only until
+  there is evidence that per-slice summaries change review, implementation, or
+  consolidation decisions without becoming their own governance overhead.
 
 Claim ceiling for this sprint:
 
@@ -140,10 +165,16 @@ Claim ceiling for this sprint:
   tranche are documented and implemented as read-only candidate tooling:
   AUTHORITY_MANIFEST generation, authority-change invalidation, and preflight
   consumer simulation.
+- CLAIMED: report-only test-signal quality audit visibility exists for domain
+  contract repos, with v0.2 fixture-manifest and fixture-runner reporting.
+- CLAIMED: governance-overhead analysis has seed artifacts for decision-change
+  classification and context-cost design.
 - NOT CLAIMED: prompt cache implementation, cache hit/miss monitoring,
   compaction control, mode/auth/tool-denial receipt tooling, runtime hook/CI
   wiring, enforcement, canonical authority promotion, external harness
-  adoption, v1.3.0 release readiness, or cross-repo writes.
+  adoption, v1.3.0 release readiness, cross-repo writes, automatic test-quality
+  enforcement, industry-grade test proof, noisy-surface retirement, measured
+  token savings, or context-cost compliance.
 
 Latest milestone commits:
 
@@ -157,24 +188,42 @@ Latest milestone commits:
 - `58f8a30 docs(hermes): update no-agent recurrence ledger`
 - `8090517 docs(hermes): record sixth no-agent observation`
 - `6e6d059 docs(memory): record Hermes observed-six ledger update`
+- `1c9abeff fix(governance): harden test signal manifest parsing and surface fixture runners`
+- `a5ae276e feat(governance): surface semantic test quality guidance`
+- `2ac950bc docs(governance): classify design note surfaces`
+- `d4173978 docs(governance): consolidate retrieval authority round a summary`
+- `f3b2b1ee docs(governance): add cache-aware round b summary`
+- `7d952d35 docs(governance): sync cache-aware classification metadata`
+- `5ce59b81 docs(governance): add consolidation pointers to source notes`
+- `023c65c0 docs(governance): seed decision-change ledger`
+- `5add91e5 docs(governance): design context cost budget`
+- `86257f97 docs(memory): record context cost budget design`
 
 Latest scoped evidence:
 
-- `python -B -m governance_tools.governance_drift_checker --repo . --format json`
-  reports `ok=true`, `severity=ok`, `plan_inventory_current=true`, and a
-  `plan_freshness` warning only before this refresh.
+- `.venv\Scripts\python.exe -m governance_tools.governance_drift_checker
+  --repo . --format json` reports `ok=true`, `severity=ok`,
+  `plan_inventory_current=true`, and `plan_freshness=true` before this
+  bookkeeping refresh.
 - `python -B -m pytest tests/test_authority_manifest.py -p no:cacheprovider`
   passed focused generator coverage before commit.
 - `python -B -m pytest tests/test_authority_manifest_preflight.py
   --basetemp .tmp_pytest_authority_manifest_preflight_review -p no:cacheprovider`
   passed 6/6 before commit.
+- `python -m pytest tests/test_test_signal_quality_audit.py --basetemp
+  .tmp_tsqa` passed 19 tests for the v0.2 test-signal audit surface before the
+  2026-07-06 hardening memory record.
+- `git diff --check` passed for the decision-change ledger seed and
+  context-cost design notes before their source commits.
 - Hermes read-only observation inspected `jobs.json`, six output artifacts,
   and `agent.log` under `C:\tmp\hermes-noagent-checklist-deploy-20260623`,
   supporting `observed_six_scheduled_runs` but not reliability.
-- 2026-06-28/29/30 canonical memory records bind the cache-aware receipt alignment,
-  operator rules, runtime adoption packet, baseline analysis, authority
-  manifest implementation, preflight consumer simulation, changelog
-  dispositions, and Hermes observed-six ledger update.
+- 2026-06-28 through 2026-07-06 canonical memory records bind the cache-aware
+  receipt alignment, operator rules, runtime adoption packet, baseline
+  analysis, authority manifest implementation, preflight consumer simulation,
+  changelog dispositions, Hermes observed-six ledger update, test-signal audit
+  v0.2, design-note consolidation, decision-change seed, and context-cost
+  design.
 
 Historical sprint context - 2026-06-10:
 
@@ -300,6 +349,30 @@ wrapping is claimed. CI claim-ceiling work is documentation-only; it does not
 change workflow behavior, hooks, branch protection, or enforcement level.
 
 ## Active Claim Boundaries
+
+Test-signal quality audit line (2026-07-06):
+
+- CLAIMED: report-only domain-contract test-signal audit tooling exists in
+  `governance_tools/test_signal_quality_audit.py` and can surface validator
+  fixture pairing, fixture-manifest expected-result mapping, fixture-runner
+  presence, placeholder labeling, and weak lexical test-signal candidates.
+- CLAIMED: consumer-facing update instructions now state semantic test-quality
+  expectations for non-trivial work and validator fixture pairs.
+- NOT CLAIMED: the framework proves any consumer repo has industry-grade tests,
+  validates fixture truth, enforces test quality, changes readiness gates,
+  rewrites consumer tests, or semantically proves behavior protection.
+
+Decision-change / context-cost line (2026-07-06):
+
+- CLAIMED: `docs/governance/decision-change-ledger.seed.json` provides a seed
+  classification model and recent evidence-backed examples for whether
+  governance outputs changed later decisions.
+- CLAIMED: `docs/governance/context-cost-budget-design-2026-07-06.md`
+  separates per-slice context-read accounting from defense-output
+  classification.
+- NOT CLAIMED: a full inventory-line pass has been run, any defense has been
+  retired or downgraded, context savings have been measured, context-cost
+  companion records exist, or compliance with context-budget rules is enforced.
 
 Cache-aware / AUTHORITY_MANIFEST line (2026-06-28 -> 2026-06-29):
 
@@ -1133,13 +1206,16 @@ history.
 
 ## Definition Of Done For Current Planning Slice
 
-This `PLAN.md` repair is done when:
+This planning / structured-memory bookkeeping refresh is done when:
 
-- `PLAN.md` is readable UTF-8 text.
-- Current completed scope and pending work are preserved.
+- `PLAN.md` records the 2026-07-06 current focus, completed scope, pending
+  work, claim ceilings, and non-claims.
+- `memory/01_active_task.md` is refreshed from `PLAN.md` plus canonical daily
+  memory, not from unbound session narrative.
 - Claim ceilings and non-claims are explicit.
-- Scoped diff check passes for `PLAN.md`.
-- The repair is committed separately from unrelated runtime ledgers.
+- Scoped diff checks pass for `PLAN.md` and `memory/01_active_task.md`.
+- `governance_drift_checker` is checked before and after the refresh.
+- The refresh is committed separately from unrelated runtime ledgers.
 - A canonical memory record is written after the commit.
 
 ## Cannot Claim From This PLAN Alone
