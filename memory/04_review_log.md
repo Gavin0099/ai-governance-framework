@@ -1952,3 +1952,98 @@ Reason: the inventory artifact correctly identified four zombie/retire candidate
 ### Next Recommendation
 Open a narrow implementation slice for `promotion_gate_receipt_smoke.py` removal first. Keep the other three as review-open until a clean-pilot policy decision, host-memory sync disposition, and R49.x artifact-freeze decision are made.
 
+## 2026-07-07 - Review: Evidence Provenance Advisory Loop Fix
+
+### Review Inputs Checked
+- `governance/REVIEW_CRITERIA.md`
+- `governance/MEMORY_PROTOCOL.md`
+- `governance/RESPONSE_ENVELOPE_CONTRACT.md`
+- `memory/03_knowledge_base.md`
+- `memory/04_review_log.md`
+- `governance_tools/memory_authority_guard.py`
+- `governance_tools/memory_record.py`
+- `tests/test_memory_record.py`
+- `artifacts/evidence/test-results/receipt-provenance-advisory-20260707.json`
+- `artifacts/evidence/test-results/receipt-provenance-advisory-20260707.txt`
+- `artifacts/governance/memory-authority-baseline-2026-07-07.json`
+
+### Decision Summary
+**Verdict**: APPROVED
+**Risk Level**: Medium
+
+Reason: the reviewed change fixes the review-blocking self-noise loop by
+surfacing `test_evidence_provenance_not_found` at memory write time while the
+author can still cite a durable receipt. The change is report-only and does not
+alter guard, CI, gate, blocking, or enforcement semantics. One artifact-identity
+warning is carried forward, but it does not invalidate the current DONE claim.
+
+### Governance Audit
+- Architecture: producer-side advisory mirrors the existing guard signal
+  without creating a new blocking path.
+- Native Safety: N/A.
+- Test Integrity: focused tests cover helper behavior, CLI advisory behavior,
+  no-advisory receipt path behavior, and existing memory-record handoff
+  behavior.
+- Thread Safety: N/A.
+- Baseline Status: stable for the reviewed scope; full regression not run.
+
+### Technical Findings
+
+1. [WARNING] Re-frozen baseline file name and internal baseline id disagree.
+   - Location: `artifacts/governance/memory-authority-baseline-2026-07-07.json:1`
+   - Evidence: the tracked file path is dated `2026-07-07`, but the JSON
+     payload reports `baseline_id=memory-authority-baseline-2026-07-06` with
+     `source_head=398f1a73`. Live closeout collection still loads the newest
+     file and reports `memory_authority_new_since_baseline=0`, so this is an
+     identity/provenance clarity issue rather than a behavior failure.
+   - Rule Reference: `governance/REVIEW_CRITERIA.md` quality and evidence
+     reviewability requirements.
+   - Status: carried-forward.
+   - Disposition: do not block this slice. Consider a narrow baseline hygiene
+     fix if this mismatch confuses downstream reporting.
+
+2. [WARNING] Historical closeout surface suite still has one unrelated failure.
+   - Location: `tests/test_session_end_hook_memory_authority_surface.py:150`
+   - Evidence: previous review reproduced `46 passed / 1 failed`; the failing
+     test is the old-format memory fixture
+     `test_bound_entry_does_not_increment_unbound_count`. The current
+     provenance-advisory focused suite passed independently.
+   - Rule Reference: `governance/REVIEW_CRITERIA.md` test integrity and
+     baseline status disclosure.
+   - Status: carried-forward.
+   - Disposition: keep as a separate test-fixture cleanup task; do not claim
+     closeout surface full green from this slice.
+
+3. [SUGGESTION] Keep the receipt workflow as the default for future memory
+   records with success claims.
+   - Location: `governance_tools/memory_record.py:227`
+   - Evidence: live `_collect_memory_authority_surface` reports
+     `memory_authority_new_since_baseline=0` and
+     `memory_authority_new_warning_codes=[]` after the record cites
+     `artifacts/evidence/test-results/receipt-provenance-advisory-20260707.json`.
+   - Rule Reference: `governance/MEMORY_PROTOCOL.md` canonical memory writer
+     rule and memory workflow dispatch rule.
+   - Status: resolved by current workflow.
+   - Disposition: future memory entries that claim successful validation should
+     cite a durable receipt artifact or intentionally accept the advisory.
+
+### Knowledge Base Alignment
+- Anti-patterns checked: governance expansion without observed failure,
+  semantic overclaim, memory authority drift.
+- Regression notes checked: runtime governance maturity, evidence/enforcement
+  boundaries, working agreement.
+- Result: Pass. No new anti-pattern added.
+
+### Validation Evidence
+- `.venv\Scripts\python.exe -m pytest tests\test_memory_record.py tests\test_memory_authority_guard.py tests\test_memory_record_session_id_handoff.py --basetemp tests\_tmp_review_provenance_loop -p no:cacheprovider -q` -> 37 passed.
+- `.venv\Scripts\python.exe -m governance_tools.memory_workflow --check --repo . --run-guard --format json` -> `completion_claim_allowed=true`, `blockers=[]`, `active_non_canonical_writer=0`.
+- `.venv\Scripts\python.exe -m governance_tools.governance_drift_checker --repo . --format json` -> `ok=true`, `severity=ok`.
+- Live `_collect_memory_authority_surface(Path("."))` -> `memory_authority_new_since_baseline=0`, `memory_authority_new_warning_codes=[]`, `memory_authority_suppressed_by_baseline=797`.
+- `git diff --check` -> PASS.
+
+### Next Recommendation
+Stop implementation for the day. Tomorrow, open the smallest next slice from
+the existing queue: either template-hardening for validator fixture pairs, or
+review-verification of the four adoption-line `lexical_candidate` rows. Do not
+start another retirement or enforcement change from the current ledger alone.
+

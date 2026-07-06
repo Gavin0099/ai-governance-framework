@@ -27,6 +27,19 @@
 
 ## Current Status
 
+- **Evidence provenance self-noise loop fixed (2026-07-07)**: `398f1a73`
+  added a report-only write-time advisory in `memory_record` using the same
+  provenance test as `memory_authority_guard`; `9cacc9a7` recorded the fix with
+  a durable receipt and re-froze the baseline; `7888c347` tracked the raw
+  receipt output. Live closeout high-salience view is now empty
+  (`memory_authority_new_since_baseline=0`,
+  `memory_authority_new_warning_codes=[]`) when records cite durable receipts.
+  Guard, CI, gate, and blocking behavior were not changed.
+- **Review checkpoint (2026-07-07)**: provenance loop fix reviewed as
+  APPROVED with carried-forward warnings: the re-frozen baseline file is dated
+  `2026-07-07` while its internal `baseline_id` remains
+  `memory-authority-baseline-2026-07-06`, and the pre-existing closeout surface
+  fixture failure remains outside this slice.
 - **Decision-change inventory-line pass completed (2026-07-06)**: committed at
   `e30b1576` as `docs/governance/decision-change-ledger.inventory.v0.1.json`.
   All 193 governance_tools modules were compared against wiring and output
@@ -93,12 +106,14 @@
 
 ## Next Steps
 
-1. Retire-candidate work is complete; no deletion work is pending. Next
-   candidates require a fresh inventory or cluster review first.
-2. Optional read-only follow-ups from the inventory artifact: cluster reviews
-   for `ab_cost_evidence` (5 modules) and `external_integrations`
-   (`linear_integrator`, `notion_integrator`), and identifying the consumer of
-   the tracked `.latest-main/` snapshot.
+1. Stop implementation for 2026-07-07 after pushing this review/progress
+   checkpoint.
+2. Tomorrow's first recommended slice: template-hardening for validator fixture
+   pairs (`examples/multi-validator-contract` and root
+   `architecture_drift_checker`), unless the owner instead chooses the
+   adoption-line `lexical_candidate` review-verification slice.
+3. Retire-candidate work is complete; no deletion work is pending. Any further
+   retirement requires a fresh inventory or cluster review first.
 
 ## Historical Context Retained
 
