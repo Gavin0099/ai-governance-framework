@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Write-time evidence provenance advisory in memory_record - 2026-07-07
+
+- Closed the self-noise loop where every canonical memory record with success
+  prose but no artifact reference generated a new above-baseline
+  `test_evidence_provenance_not_found` warning at the next closeout:
+  `governance_tools/memory_record.py` now mirrors the guard check at write
+  time via the new `memory_authority_guard.evidence_provenance_advisory`
+  helper and tells the author to wrap validation in
+  `test_evidence_receipt_writer` and cite the receipt path.
+- Advisory is report-only and never blocks the canonical writer; a fallback
+  import keeps it working under file-path invocation, and import failure is
+  printed instead of silently disabling the advisory.
+- Release-note boundary: this entry records an unreleased advisory addition
+  only. It does not change guard, blocking, gate, CI, or enforcement
+  behavior, does not verify evidence truth, and does not resolve existing
+  provenance warnings.
+
 ### Baseline-aggregated closeout memory warnings - 2026-07-06
 
 - Downgraded noisy per-session closeout warning repetition per the

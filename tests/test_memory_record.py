@@ -208,3 +208,67 @@ def test_cli_missing_plan_reconciliation_is_advisory_not_blocking(tmp_path: Path
     assert "advisory: plan_reconciliation not declared" in result.stdout
     written = list((tmp_path / "memory").glob("*.md"))
     assert written and "plan_reconciliation: not_declared" in written[0].read_text(encoding="utf-8")
+
+
+# ── Write-time evidence provenance advisory ───────────────────────────────────
+
+def _run_record_cli(tmp_path: Path, test_evidence: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [
+            sys.executable,
+            "governance_tools/memory_record.py",
+            "--what-changed", "provenance advisory test",
+            "--next-step", "verify advisory",
+            "--commit", "abc1234",
+            "--session-id", "test-session-provenance",
+            "--test-evidence", test_evidence,
+            "--plan-reconciliation", "not_applicable",
+            "--project-root", str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_evidence_provenance_advisory_helper() -> None:
+    from governance_tools.memory_authority_guard import evidence_provenance_advisory
+
+    assert evidence_provenance_advisory("PASS: 5 tests green", None) == (
+        "test_evidence_success_claim_without_artifact"
+    )
+    assert evidence_provenance_advisory("NOT RUN: planning-only entry", None) is None
+    assert evidence_provenance_advisory("", None) is None
+
+
+def test_evidence_provenance_advisory_accepts_existing_artifact(tmp_path: Path) -> None:
+    from governance_tools.memory_authority_guard import evidence_provenance_advisory
+
+    receipt = tmp_path / "artifacts" / "evidence" / "test-results" / "receipt-x.json"
+    receipt.parent.mkdir(parents=True)
+    receipt.write_text("{}", encoding="utf-8")
+    evidence = "PASS: focused suite; receipt artifacts/evidence/test-results/receipt-x.json"
+    assert evidence_provenance_advisory(evidence, tmp_path) is None
+    # a cited path that does not exist keeps the advisory
+    missing = "PASS: focused suite; receipt artifacts/evidence/test-results/missing.json"
+    assert evidence_provenance_advisory(missing, tmp_path) == (
+        "test_evidence_success_claim_without_artifact"
+    )
+
+
+def test_cli_success_evidence_without_artifact_prints_advisory(tmp_path: Path) -> None:
+    result = _run_record_cli(tmp_path, "PASS: 5 focused tests green")
+    assert result.returncode == 0  # advisory never blocks the canonical writer
+    assert "test_evidence_provenance_not_found" in result.stdout
+    assert list((tmp_path / "memory").glob("*.md"))  # entry still written
+
+
+def test_cli_success_evidence_with_receipt_has_no_advisory(tmp_path: Path) -> None:
+    receipt = tmp_path / "artifacts" / "evidence" / "test-results" / "receipt-ok.json"
+    receipt.parent.mkdir(parents=True)
+    receipt.write_text("{}", encoding="utf-8")
+    result = _run_record_cli(
+        tmp_path,
+        "PASS: focused suite; receipt artifacts/evidence/test-results/receipt-ok.json",
+    )
+    assert result.returncode == 0
+    assert "test_evidence_provenance_not_found" not in result.stdout

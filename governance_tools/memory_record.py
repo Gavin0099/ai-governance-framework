@@ -224,6 +224,33 @@ def main() -> int:
     session_id = args.session_id or f"cli-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     memory_binding = "bound" if _REAL_HASH.match(commit) else "unbound"
 
+    # Write-time provenance advisory (report-only, never blocks): a success
+    # claim without an existing artifacts/ path becomes a new above-baseline
+    # test_evidence_provenance_not_found warning at the next closeout, so
+    # surface it while the author can still attach a receipt. Fallback import
+    # covers file-path invocation, where sys.path[0] is governance_tools/.
+    try:
+        from governance_tools.memory_authority_guard import evidence_provenance_advisory
+    except ImportError:
+        try:
+            from memory_authority_guard import evidence_provenance_advisory  # type: ignore[no-redef]
+        except ImportError as exc:
+            evidence_provenance_advisory = None
+            print(f"[memory_record] provenance advisory unavailable: {exc}")
+    provenance_advisory = (
+        evidence_provenance_advisory(args.test_evidence, project_root)
+        if evidence_provenance_advisory is not None
+        else None
+    )
+    if provenance_advisory is not None:
+        print(
+            "[memory_record] advisory: test_evidence claims success without an "
+            "existing artifacts/ path; the memory authority guard will flag this "
+            "entry as test_evidence_provenance_not_found. Wrap the validation "
+            "command in governance_tools.test_evidence_receipt_writer and cite "
+            "the receipt path inside --test-evidence."
+        )
+
     record = build_session_derived_record(
         what_changed=args.what_changed,
         commit=commit,

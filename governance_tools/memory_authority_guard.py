@@ -484,6 +484,26 @@ def _test_evidence_durability_violation(
     return None
 
 
+def evidence_provenance_advisory(
+    test_evidence: str, project_root: "Path | None"
+) -> str | None:
+    """Write-time advisory mirror of test_evidence_provenance_not_found.
+
+    Canonical writers call this before appending an entry so a success claim
+    without an existing artifacts/ path is surfaced while the author can still
+    attach a receipt, instead of becoming a new above-baseline guard warning
+    at the next closeout. Report-only; callers must never block on it.
+    """
+    evidence = (test_evidence or "").strip()
+    if not evidence or not _TEST_EVIDENCE_SUCCESS.search(evidence):
+        return None
+    if project_root is not None:
+        for match in _TEST_EVIDENCE_ARTIFACT_PATH.finditer(evidence):
+            if _resolve_artifact_path(project_root, match.group("path")) is not None:
+                return None
+    return "test_evidence_success_claim_without_artifact"
+
+
 def _test_evidence_metadata_violation(
     block: str,
     project_root: Path | None,
