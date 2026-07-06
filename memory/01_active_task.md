@@ -34,6 +34,10 @@
   needs a clean-pilot policy decision, `host_agent_memory_sync_signal.py` needs
   host-memory sync disposition, and `r49x4_metric_ranking.py` needs artifact
   provenance/freeze handling before deletion.
+- **Promotion gate duplicate smoke removed (2026-07-06)**:
+  `governance_tools/promotion_gate_receipt_smoke.py` was deleted after focused
+  digest regression tests confirmed replacement coverage. Promotion-gate
+  behavior, contract version, gates, hooks, and CI were not changed.
 - **Planning alignment repaired in this slice**: prior active-task state still
   pointed at 2026-06-18 / `f21350e`; `PLAN.md` now records 2026-07-06 current
   focus, milestone commits, claim ceilings, and non-claims.
@@ -80,10 +84,10 @@
 3. Recommend one follow-up action only: keep, keep_observe, merge, downgrade,
    retire_candidate, or investigate. Do not implement the recommendation in
    the same slice.
-4. Next implementation candidate: remove `promotion_gate_receipt_smoke.py` in
-   a narrow deletion slice, using existing promotion-gate digest regression
-   tests as replacement evidence. Do not delete the other three reviewed
-   candidates without their separate disposition decisions.
+4. Remaining retire-candidate work is decision-only first: decide the
+   clean-pilot policy disposition, host-memory sync disposition, and R49.x
+   artifact-freeze/provenance handling before deleting any of the other three
+   reviewed candidates.
 
 ## Historical Context Retained
 
