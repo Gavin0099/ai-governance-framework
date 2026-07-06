@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".venv\\Scripts\\python.exe -m governance_tools.memory_workflow --check --repo . --run-guard --format json",
+  "exit_code": 0,
+  "started_at": "2026-07-06T16:32:54Z",
+  "finished_at": "2026-07-06T16:33:58Z",
+  "runner": "codex-review-checkpoint",
+  "linked_commit": "65c8fa6f59fdd78b715a298f8130b3bcc9d9da4d",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-review-checkpoint-20260707.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
