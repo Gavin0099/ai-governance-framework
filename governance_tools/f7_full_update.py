@@ -58,6 +58,8 @@ F7_UPDATE_BOUNDARY_BLOCK = (
     "- F-7 updates must preserve existing repo-specific AGENTS.md rules.\n"
     "- Validate F-7 state with `python -X utf8 -m governance_tools.f7_full_update --repo . --format human` from the framework environment.\n"
     "- Final AI Governance update reports must relay `[human_readable_adoption_summary]` table rows as a table, not a prose summary, and include the user-facing adoption status; reporting only machine-readable fields or `F-7 completed` is incomplete.\n"
+    "- Non-trivial feature or bugfix work must not be reported with happy-path-only tests: reproducible bugs need regression tests when feasible, expected values must come from a spec/invariant/fixture rather than copied production logic, mock-only assertions are weak evidence unless observable behavior is asserted, and domain validators need pass/fail fixtures plus an execution harness before fixture evidence is treated as strong.\n"
+    "- `test_signal_quality_audit` output is report-only reviewer evidence; it helps surface weak signals but does not prove industry-grade tests, domain correctness, or enforcement.\n"
     "- Required external contract surfaces: contract.yaml, governance/framework.lock.json, .git/hooks/pre-commit, .git/hooks/pre-push, .github/copilot-instructions.md.\n"
 )
 

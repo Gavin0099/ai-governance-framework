@@ -94,6 +94,27 @@ relayed, F-7 must report `human_readable_adoption_summary: not_reported` with
 the reason and must not claim that the operator was shown the complete
 human-readable feature adoption table.
 
+## Consumer Test-Quality Expectations
+
+F-7 instruction refresh must keep semantic test-quality expectations visible to
+agents that later write feature or bugfix code in the consuming repo.
+
+For non-trivial behavior changes:
+
+- happy-path-only tests are not sufficient evidence;
+- reproducible bug fixes need regression tests when feasible;
+- expected values must come from a specification, invariant, reviewed fixture,
+  or other independent source, not copied production logic;
+- mock-only assertions are weak evidence unless the test also asserts
+  observable behavior, state, output, or persisted effect;
+- domain validators need pass/fail fixtures, and fixture evidence is strongest
+  only when a focused harness actually executes the validator against those
+  fixtures.
+
+Report-only `test_signal_quality_audit` output can help reviewers find weak
+signals. It does not prove tests are industry-grade, does not prove domain
+correctness, and does not create enforcement.
+
 F-7 human and JSON outputs must also carry `ai_governance_update_result` as a
 report-only presentation and claim-boundary envelope. This envelope must not
 replace `final_status`, must not change F-7 completion criteria, and must not

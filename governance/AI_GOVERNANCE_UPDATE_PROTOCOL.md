@@ -276,6 +276,28 @@ reason: <why the Chinese table was not relayed>
 claim boundary: machine-readable adoption fields only; operator-facing feature table was not reported
 ```
 
+## Consumer Test-Quality Expectations
+
+When an AI Governance update refreshes consumer-facing instruction surfaces,
+the resulting instructions must keep test-quality expectations visible to the
+agent that later writes feature or bugfix code.
+
+For non-trivial behavior changes:
+
+- do not report happy-path-only tests as sufficient evidence;
+- reproducible bug fixes need regression tests when feasible;
+- expected values must come from a specification, invariant, reviewed fixture,
+  or other independent source, not copied production logic;
+- mock-only assertions are weak evidence unless the test also asserts
+  observable behavior, state, output, or persisted effect;
+- domain validators need pass/fail fixtures, and fixture evidence is strongest
+  only when a focused harness actually executes the validator against those
+  fixtures.
+
+Report-only `test_signal_quality_audit` output can help reviewers find weak
+signals. It does not prove tests are industry-grade, does not prove domain
+correctness, and does not create enforcement.
+
 If the update path used a direct submodule fast-forward plus lock-file update
 instead of F-7 or `adopt_governance.py`, run or relay the available
 `governance_maturity_summary` before final reporting. If it cannot be run,
