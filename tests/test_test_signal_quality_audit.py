@@ -63,6 +63,32 @@ def test_positive_only_validator_fixture_reports_warning_status(tmp_path: Path) 
     assert "all contract validators have pass/fail fixture pairs" in report.cannot_claim
 
 
+def test_invalid_fixture_name_is_not_counted_as_positive_fixture(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write_contract(repo)
+    _write(repo / "validators" / "check_docs.py", "def validate(payload):\n    return True\n")
+    _write(repo / "fixtures" / "check_docs" / "invalid_case.json", '{"ok": false}\n')
+
+    report = build_test_signal_quality_audit(repo)
+
+    assert report.contract_validator_fixtures == "negative_only_validator_fixture"
+    assert report.validators[0].positive_fixtures == []
+    assert report.validators[0].negative_fixtures == ["fixtures/check_docs/invalid_case.json"]
+
+
+def test_noncompliant_fixture_name_is_not_counted_as_compliant_fixture(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write_contract(repo)
+    _write(repo / "validators" / "check_docs.py", "def validate(payload):\n    return True\n")
+    _write(repo / "fixtures" / "check_docs" / "noncompliant.checks.json", '{"ok": false}\n')
+
+    report = build_test_signal_quality_audit(repo)
+
+    assert report.contract_validator_fixtures == "negative_only_validator_fixture"
+    assert report.validators[0].positive_fixtures == []
+    assert report.validators[0].negative_fixtures == ["fixtures/check_docs/noncompliant.checks.json"]
+
+
 def test_placeholder_validator_is_labeled_without_fixture_claim(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     _write_contract(repo)
@@ -73,6 +99,64 @@ def test_placeholder_validator_is_labeled_without_fixture_claim(tmp_path: Path) 
     assert report.contract_validator_fixtures == "placeholder_validator_declared"
     assert report.validators[0].placeholder_labeled is True
     assert report.validators[0].status == "placeholder_validator_declared"
+
+
+def test_pass_statement_does_not_make_real_validator_placeholder(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write_contract(repo)
+    _write(
+        repo / "validators" / "check_docs.py",
+        "def validate(payload):\n"
+        "    try:\n"
+        "        payload['required']\n"
+        "    except KeyError:\n"
+        "        pass\n"
+        "    return True\n",
+    )
+    _write(repo / "fixtures" / "check_docs" / "valid_case.json", '{"ok": true}\n')
+    _write(repo / "fixtures" / "check_docs" / "invalid_case.json", '{"ok": false}\n')
+
+    report = build_test_signal_quality_audit(repo)
+
+    assert report.contract_validator_fixtures == "validator_fixture_pair_present"
+    assert report.validators[0].placeholder_labeled is False
+    assert report.validators[0].status == "validator_fixture_pair_present"
+
+
+def test_missing_validator_reports_missing_status(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write_contract(repo)
+
+    report = build_test_signal_quality_audit(repo)
+
+    assert report.contract_validator_fixtures == "validator_missing"
+    assert report.validators[0].exists is False
+    assert report.validators[0].status == "validator_missing"
+
+
+def test_multi_validator_aggregation_keeps_weakest_fixture_gap_visible(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write(
+        repo / "contract.yaml",
+        "name: signal-test\n"
+        "validators:\n"
+        "  - validators/check_docs.py\n"
+        "  - validators/check_claims.py\n",
+    )
+    _write(repo / "validators" / "check_docs.py", "def validate(payload):\n    return True\n")
+    _write(repo / "validators" / "check_claims.py", "def validate(payload):\n    return True\n")
+    _write(repo / "fixtures" / "check_docs" / "valid_case.json", '{"ok": true}\n')
+    _write(repo / "fixtures" / "check_docs" / "invalid_case.json", '{"ok": false}\n')
+    _write(repo / "fixtures" / "check_claims" / "valid_case.json", '{"ok": true}\n')
+
+    report = build_test_signal_quality_audit(repo)
+
+    assert report.contract_validator_fixtures == "positive_only_validator_fixture"
+    statuses = {item.name: item.status for item in report.validators}
+    assert statuses == {
+        "check_docs": "validator_fixture_pair_present",
+        "check_claims": "positive_only_validator_fixture",
+    }
 
 
 def test_lexical_weak_signal_candidates_are_reported(tmp_path: Path) -> None:

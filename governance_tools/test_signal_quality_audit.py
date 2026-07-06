@@ -52,11 +52,12 @@ NEGATIVE_TOKENS = (
 FIXTURE_ROOT_NAMES = {"fixture", "fixtures", "testdata", "test_data", "examples"}
 PLACEHOLDER_PATTERNS = (
     "placeholder",
-    "todo",
     "notimplemented",
     "not implemented",
-    "pass  #",
-    "pass\n",
+    "stub validator",
+    "validator stub",
+    "fixture pending",
+    "fixtures pending",
 )
 PRODUCTION_DERIVED_PATTERNS = (
     re.compile(r"\bexpected\s*=\s*(actual|result|output|observed)\b"),
@@ -216,16 +217,27 @@ def _is_fixture_file(repo_root: Path, path: Path) -> bool:
     return bool(FIXTURE_ROOT_NAMES.intersection(rel_parts)) or "fixture" in name
 
 
+def _split_signal_tokens(text: str) -> set[str]:
+    return {item for item in re.split(r"[^a-z0-9]+", text.lower()) if item}
+
+
 def _has_token(text: str, tokens: tuple[str, ...]) -> bool:
-    lowered = text.lower()
-    return any(token in lowered for token in tokens)
+    parts = _split_signal_tokens(text)
+    return any(token in parts for token in tokens)
 
 
 def _looks_placeholder(path: Path) -> bool:
     if not path.exists():
         return False
-    text = _read_text(path).lower()
-    return any(pattern in text for pattern in PLACEHOLDER_PATTERNS)
+    for line in _read_text(path).lower().splitlines():
+        stripped = line.strip()
+        if not stripped.startswith(("#", "//", "/*", "*")):
+            continue
+        if any(pattern in stripped for pattern in PLACEHOLDER_PATTERNS):
+            return True
+        if "todo" in stripped and "validator" in stripped:
+            return True
+    return False
 
 
 def _candidate_fixture_files(repo_root: Path, validator_name: str, all_files: list[Path]) -> list[Path]:
@@ -254,19 +266,27 @@ def _classify_validator(
     name = str(validator.get("name") or validator_path.stem)
     placeholder = _looks_placeholder(validator_path)
     fixtures = _candidate_fixture_files(repo_root, name, all_files)
-    positive = [_repo_rel(repo_root, path) for path in fixtures if _has_token(_repo_rel(repo_root, path), POSITIVE_TOKENS)]
-    negative = [_repo_rel(repo_root, path) for path in fixtures if _has_token(_repo_rel(repo_root, path), NEGATIVE_TOKENS)]
+    positive: list[str] = []
+    negative: list[str] = []
+    for path in fixtures:
+        rel = _repo_rel(repo_root, path)
+        has_negative = _has_token(rel, NEGATIVE_TOKENS)
+        has_positive = _has_token(rel, POSITIVE_TOKENS)
+        if has_negative:
+            negative.append(rel)
+        elif has_positive:
+            positive.append(rel)
 
     reasons: list[str] = []
     if not exists:
         status = "validator_missing"
         reasons.append("contract declares a validator path that does not exist")
-    elif placeholder:
-        status = "placeholder_validator_declared"
-        reasons.append("validator file is explicitly labeled as placeholder or TODO")
     elif positive and negative:
         status = "validator_fixture_pair_present"
-        reasons.append("positive and negative fixture filenames were found")
+        reasons.append("positive and negative fixture names were found; validator execution is not proven by this report")
+    elif placeholder:
+        status = "placeholder_validator_declared"
+        reasons.append("validator file is explicitly labeled as placeholder")
     elif positive:
         status = "positive_only_validator_fixture"
         reasons.append("positive fixture filenames were found but no negative fixture filename was found")
