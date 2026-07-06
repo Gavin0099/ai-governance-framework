@@ -225,5 +225,7 @@ def test_pre_commit_hook_invokes_manual_update_advisory_as_non_blocking() -> Non
 
     assert 'MANUAL_UPDATE_ADVISORY_TOOL="$FRAMEWORK_ROOT/governance_tools/manual_update_advisory.py"' in hook
     assert '"$MANUAL_UPDATE_ADVISORY_TOOL"' in hook
+    assert 'export PYTHONPATH="$FRAMEWORK_ROOT:$PREVIOUS_PYTHONPATH"' in hook
+    assert 'export PYTHONPATH="$FRAMEWORK_ROOT"' in hook
     assert "Signal 2 reports staged framework lock" in hook
     assert "--format human || true" in hook

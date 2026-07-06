@@ -86,10 +86,21 @@ fi
 # fetches, stages, or proves the updater was bypassed.
 if [ -f "$MANUAL_UPDATE_ADVISORY_TOOL" ]; then
     if set_python_cmd; then
+        PREVIOUS_PYTHONPATH="${PYTHONPATH:-}"
+        if [ -n "$PREVIOUS_PYTHONPATH" ]; then
+            export PYTHONPATH="$FRAMEWORK_ROOT:$PREVIOUS_PYTHONPATH"
+        else
+            export PYTHONPATH="$FRAMEWORK_ROOT"
+        fi
         "${PYTHON_CMD[@]}" "$MANUAL_UPDATE_ADVISORY_TOOL" \
             --repo "$TARGET_REPO_ROOT" \
             --framework-root "$FRAMEWORK_ROOT" \
             --format human || true
+        if [ -n "$PREVIOUS_PYTHONPATH" ]; then
+            export PYTHONPATH="$PREVIOUS_PYTHONPATH"
+        else
+            unset PYTHONPATH
+        fi
     fi
 fi
 
