@@ -1,16 +1,14 @@
 # Active Task
 
 > Refreshed 2026-07-06 per `docs/structured-memory-freshness-policy.md`.
-> Dedicated bookkeeping slice; source surfaces: `PLAN.md` at HEAD
-> `86257f97`, `memory/2026-07-06.md`, and
-> `.venv\Scripts\python.exe -m governance_tools.governance_drift_checker
-> --repo . --format json`.
+> Dedicated bookkeeping slice; source surfaces: `memory/2026-07-06.md` and
+> `memory/04_review_log.md` at HEAD `e4ede650`.
 > Claim: point-in-time consistency with `PLAN.md` and current repo state only.
 
 ## Current Focus
 
 - **No active autonomous implementation slice.** Current workspace was synced
-  to `origin/main` at `86257f97` before this bookkeeping refresh.
+  to `origin/main` at `e4ede650` before this bookkeeping refresh.
 - Standing principle: **Validity before Expansion**. Do not add gates,
   enforcement, schema changes, or consumer-repo writes unless an observed
   failure or explicit user scope justifies them.
@@ -28,16 +26,26 @@
 
 ## Current Status
 
+- **Decision-change inventory-line pass completed (2026-07-06)**: committed at
+  `e30b1576` as `docs/governance/decision-change-ledger.inventory.v0.1.json`.
+  All 193 governance_tools modules were compared against wiring and output
+  evidence; 40 candidates were escalated, 4 marked retire_candidate.
 - **Retire-candidate focused review completed (2026-07-06)**: four inventory
-  retire candidates were reviewed. `promotion_gate_receipt_smoke.py` is the
-  only retire-safe candidate for a later deletion slice; `clean_pilot_admissibility.py`
-  needs a clean-pilot policy decision, `host_agent_memory_sync_signal.py` needs
-  host-memory sync disposition, and `r49x4_metric_ranking.py` needs artifact
-  provenance/freeze handling before deletion.
+  retire candidates were reviewed. Two are now resolved (see below); the two
+  still open are `clean_pilot_admissibility.py` (needs a human clean-pilot
+  policy decision) and `host_agent_memory_sync_signal.py` (needs a
+  deprecate-first host-memory sync disposition).
 - **Promotion gate duplicate smoke removed (2026-07-06)**:
   `governance_tools/promotion_gate_receipt_smoke.py` was deleted after focused
-  digest regression tests confirmed replacement coverage. Promotion-gate
-  behavior, contract version, gates, hooks, and CI were not changed.
+  digest regression tests confirmed replacement coverage (`af51e631`).
+  Promotion-gate behavior, contract version, gates, hooks, and CI were not
+  changed.
+- **R49.x-4 freeze and producer removal completed (2026-07-06)**: the
+  generated artifact was recorded as frozen historical evidence at `371d1378`
+  (`docs/status/ab-causal-r49x4-metric-ranking-freeze-2026-07-06.md`) and
+  `governance_tools/r49x4_metric_ranking.py` was deleted at `b596198f` per the
+  deprecate-first disposition. Lineage references to the frozen artifact are
+  preserved; R49.x conclusions were not re-validated.
 - **Planning alignment repaired in this slice**: prior active-task state still
   pointed at 2026-06-18 / `f21350e`; `PLAN.md` now records 2026-07-06 current
   focus, milestone commits, claim ceilings, and non-claims.
@@ -76,18 +84,16 @@
 
 ## Next Steps
 
-1. Run a read-only decision-change ledger inventory-line pass over governance
-   tools, governance docs/protocols, managed instruction surfaces, hook/CI
-   entrypoints, and existing seed classifications.
-2. Classify candidates as `decision_changing`, `decision_relevant_unacted`,
-   `duplicate`, `noisy`, `zombie_candidate`, `rare_critical`, or `unknown`.
-3. Recommend one follow-up action only: keep, keep_observe, merge, downgrade,
-   retire_candidate, or investigate. Do not implement the recommendation in
-   the same slice.
-4. Remaining retire-candidate work is decision-only first: decide the
-   clean-pilot policy disposition, host-memory sync disposition, and R49.x
-   artifact-freeze/provenance handling before deleting any of the other three
-   reviewed candidates.
+1. Remaining retire-candidate work is decision-blocked: obtain the human
+   clean-pilot policy decision for `clean_pilot_admissibility.py` (retire tool
+   plus `governance/fleet/cleaning_admissibility_policy.yaml` together, or add
+   wiring/tests) and the host-memory sync disposition for
+   `host_agent_memory_sync_signal.py` (deprecate-first, or wire/document its
+   operator entrypoint). Do not delete either without those decisions.
+2. Optional read-only follow-ups from the inventory artifact: cluster reviews
+   for `ab_cost_evidence` (5 modules) and `external_integrations`
+   (`linear_integrator`, `notion_integrator`), and identifying the consumer of
+   the tracked `.latest-main/` snapshot.
 
 ## Historical Context Retained
 
@@ -108,6 +114,7 @@
 - Cannot claim all historical evidence is represented here.
 - Cannot claim external repos are updated.
 - Cannot claim test quality is enforced or industry-grade.
-- Cannot claim any governance defense has been retired, downgraded, or proven
-  useless.
+- Cannot claim any governance defense beyond the two completed removals
+  (`promotion_gate_receipt_smoke.py`, `r49x4_metric_ranking.py`) has been
+  retired, downgraded, or proven useless.
 - Cannot claim context savings were measured.
