@@ -18,9 +18,9 @@
   "counts": {
     "active": 29,
     "superseded": 10,
-    "historical": 31,
+    "historical": 32,
     "proposal-only": 14,
-    "total": 84
+    "total": 85
   },
   "corrections_from_initial_review": [
     {
@@ -54,6 +54,20 @@
         "no document is removed",
         "no document is invalidated",
         "no document is archived"
+      ]
+    },
+    {
+      "cluster": "cache-aware-round-b",
+      "updated_date": "2026-07-06",
+      "target": "docs/governance/cache-aware-round-b-summary.md",
+      "source_commit": "f3b2b1eee1d48ba55aac70ff77c69da0f57a94dc",
+      "status": "summary_consolidated",
+      "claim_ceiling": [
+        "classification metadata sync only",
+        "no document is removed",
+        "no document is invalidated",
+        "no document is archived",
+        "no source note is reclassified"
       ]
     }
   ],
@@ -104,43 +118,79 @@
     },
     {
       "path": "docs/governance/cache-aware-agent-harness-design-note-2026-06-27.md",
-      "classification": "proposal-only"
+      "classification": "proposal-only",
+      "role": "harness_background_source",
+      "recommended_action": "merge_candidate_already_covered_by_summary",
+      "consolidated_into": "docs/governance/cache-aware-round-b-summary.md"
     },
     {
       "path": "docs/governance/cache-aware-authority-manifest-implementation-tech-spec-2026-06-29.md",
-      "classification": "superseded"
+      "classification": "superseded",
+      "role": "authority_manifest_implementation_source",
+      "recommended_action": "merge_candidate_already_covered_by_summary",
+      "consolidated_into": "docs/governance/cache-aware-round-b-summary.md"
     },
     {
       "path": "docs/governance/cache-aware-authority-manifest-invalidation-spec-2026-06-28.md",
-      "classification": "proposal-only"
+      "classification": "proposal-only",
+      "role": "authority_manifest_shape_source",
+      "recommended_action": "merge_candidate_already_covered_by_summary",
+      "consolidated_into": "docs/governance/cache-aware-round-b-summary.md"
     },
     {
       "path": "docs/governance/cache-aware-compaction-summary-field-spec-2026-06-28.md",
-      "classification": "proposal-only"
+      "classification": "proposal-only",
+      "role": "deferred_compaction_receipt_source",
+      "recommended_action": "keep_deferred_proposal_referenced_by_summary",
+      "consolidated_into": "docs/governance/cache-aware-round-b-summary.md"
     },
     {
       "path": "docs/governance/cache-aware-governance-surface-spec-2026-06-28.md",
-      "classification": "proposal-only"
+      "classification": "proposal-only",
+      "role": "surface_layering_source",
+      "recommended_action": "merge_candidate_already_covered_by_summary",
+      "consolidated_into": "docs/governance/cache-aware-round-b-summary.md"
     },
     {
       "path": "docs/governance/cache-aware-harness-handoff-checklist-2026-06-28.md",
-      "classification": "historical"
+      "classification": "historical",
+      "role": "harness_evidence_checklist_source",
+      "recommended_action": "merge_candidate_already_covered_by_summary",
+      "consolidated_into": "docs/governance/cache-aware-round-b-summary.md"
     },
     {
       "path": "docs/governance/cache-aware-mode-authorization-anti-forgery-spec-2026-06-28.md",
-      "classification": "proposal-only"
+      "classification": "proposal-only",
+      "role": "deferred_mode_authorization_source",
+      "recommended_action": "keep_deferred_proposal_referenced_by_summary",
+      "consolidated_into": "docs/governance/cache-aware-round-b-summary.md"
     },
     {
       "path": "docs/governance/cache-aware-receipt-alignment-note-2026-06-28.md",
-      "classification": "historical"
+      "classification": "historical",
+      "role": "candidate_receipt_index_source",
+      "recommended_action": "merge_candidate_already_covered_by_summary",
+      "consolidated_into": "docs/governance/cache-aware-round-b-summary.md"
+    },
+    {
+      "path": "docs/governance/cache-aware-round-b-summary.md",
+      "classification": "historical",
+      "role": "consolidated_historical_target",
+      "recommended_action": "keep_as_cluster_summary"
     },
     {
       "path": "docs/governance/cache-aware-runtime-adoption-review-packet-2026-06-28.md",
-      "classification": "historical"
+      "classification": "historical",
+      "role": "round_b_cluster_summary_source",
+      "recommended_action": "merge_candidate_already_covered_by_summary",
+      "consolidated_into": "docs/governance/cache-aware-round-b-summary.md"
     },
     {
       "path": "docs/governance/cache-aware-tool-denial-receipt-spec-2026-06-28.md",
-      "classification": "proposal-only"
+      "classification": "proposal-only",
+      "role": "deferred_tool_denial_receipt_source",
+      "recommended_action": "keep_deferred_proposal_referenced_by_summary",
+      "consolidated_into": "docs/governance/cache-aware-round-b-summary.md"
     },
     {
       "path": "docs/governance/checkpoint-memory-audit-spec.md",
@@ -264,7 +314,10 @@
     },
     {
       "path": "docs/governance/prompt-cache-harness-consumer-contract-2026-06-29.md",
-      "classification": "proposal-only"
+      "classification": "proposal-only",
+      "role": "prompt_cache_harness_contract_source",
+      "recommended_action": "keep_candidate_contract_referenced_by_summary",
+      "consolidated_into": "docs/governance/cache-aware-round-b-summary.md"
     },
     {
       "path": "docs/governance/reason-code-registry.md",
