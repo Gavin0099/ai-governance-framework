@@ -1,0 +1,750 @@
+{
+  "schema": "governance_decision_change_ledger.inventory.v0.1",
+  "generated_date": "2026-07-06",
+  "source_commit": "39211919d8987b6cc7a73785928f65c9fb893610",
+  "seed_reference": "docs/governance/decision-change-ledger.seed.json",
+  "purpose": "Read-only inventory-line pass required by the seed ledger before any zombie or retire_candidate classification: compare the full governance_tools defense inventory against observed outputs and wiring to make zombie candidates visible.",
+  "method": {
+    "inventory": "All 193 governance_tools/*.py modules at source_commit.",
+    "evidence_corpora": [
+      "memory/2026-*.md dated canonical memory files (2026-03-16 through 2026-07-06)",
+      ".github/workflows/*.yml CI wiring",
+      "scripts/** entrypoint wiring",
+      "runtime_hooks/**, .githooks/**, and .claude/settings.json hook wiring",
+      "cross-imports between governance_tools modules",
+      "tests/** references",
+      "governance/** and docs/governance/** markdown references",
+      "repo-wide reference scan for candidate modules (py, md, yml, json, sh, ps1, txt)"
+    ],
+    "matching_rule": "word-boundary regex on the module name; a name mention proves reachability discussion, not a decision path",
+    "discounts": [
+      ".latest-main/ is a git-tracked snapshot of main; hits inside it were discounted as self-mirroring",
+      "ai-governance-framework/ nested directory is git-ignored local residue; hits inside it were discounted"
+    ],
+    "candidate_rule": "modules with no CI/script/hook wiring, no cross-import, and either zero memory mentions or a last memory mention before 2026-06-01 were escalated to per-module review (40 of 193)"
+  },
+  "zombie_status_vocabulary": {
+    "zombie_candidate": "No wiring, importer, or recent output evidence; retirement requires the seed's focused-review policy.",
+    "ruled_out_wired": "A concrete load/call path exists (import, manifest registration, or tool cross-reference).",
+    "ruled_out_documented_surface": "A maintained operator/consumer doc wires the module as an entrypoint; rare use is expected.",
+    "ruled_out_operator_surface": "Evidence of real manual operator invocations exists (permission allowlist, hook output guidance).",
+    "dormant_frozen_line": "Belongs to an explicitly frozen line (learning-loop Gate 3, Enumd pause); absence of output is expected and proves nothing.",
+    "dormant_design_line": "Belongs to an active design/consolidation cluster that is not currently executing code."
+  },
+  "claim_ceiling": [
+    "read-only inventory pass; no defense is retired, merged, downgraded, or changed by this artifact",
+    "name-mention scanning proves reference existence, not decision effect and not execution",
+    "zombie_candidate means candidate only; the seed's rare_critical policy and focused review are still required before retirement",
+    "the 153 modules not listed here have wiring, importer, or post-2026-06-01 memory evidence; that rules out zombie status but does not prove they change decisions",
+    "governance docs/protocol layer was not re-classified here; docs/governance/design-note-classification.json remains the doc-layer inventory and governance/*.md protocol docs are a declared residual for a future pass"
+  ],
+  "inventory_summary": {
+    "total_modules": 193,
+    "escalated_candidates": 40,
+    "not_escalated_modules": 153,
+    "zombie_status_counts": {
+      "zombie_candidate": 23,
+      "dormant_frozen_line": 4,
+      "ruled_out_documented_surface": 5,
+      "ruled_out_wired": 4,
+      "dormant_design_line": 2,
+      "ruled_out_operator_surface": 2
+    },
+    "recommended_action_counts": {
+      "investigate": 16,
+      "keep_observe": 13,
+      "retire_candidate": 4,
+      "keep": 7
+    }
+  },
+  "entries": [
+    {
+      "module": "governance_tools/ab_baseline_validator.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "recommended_action": "investigate",
+      "cluster": "ab_cost_evidence",
+      "scan_evidence": {
+        "memory_mentions": 2,
+        "last_memory_mention": "2026-04-29",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "A/B evidence line dormant since 2026-05-12; docs and 2026-07-05 ZoneTruth verification artifacts mention it but no wiring or importer exists."
+    },
+    {
+      "module": "governance_tools/ab_cost_backfill_apply.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "recommended_action": "investigate",
+      "cluster": "ab_cost_evidence",
+      "scan_evidence": {
+        "memory_mentions": 1,
+        "last_memory_mention": "2026-05-12",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 0
+      },
+      "rationale": "A/B cost backfill line dormant since 2026-05-12; no wiring, importer, or dedicated tests."
+    },
+    {
+      "module": "governance_tools/ab_cost_hygiene.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "recommended_action": "investigate",
+      "cluster": "ab_cost_evidence",
+      "scan_evidence": {
+        "memory_mentions": 1,
+        "last_memory_mention": "2026-05-12",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "A/B cost hygiene line dormant since 2026-05-12; referenced only by status docs and verification artifacts."
+    },
+    {
+      "module": "governance_tools/ab_cost_parity_audit.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "recommended_action": "investigate",
+      "cluster": "ab_cost_evidence",
+      "scan_evidence": {
+        "memory_mentions": 1,
+        "last_memory_mention": "2026-05-12",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "A/B cost parity line dormant since 2026-05-12; referenced only by status docs and verification artifacts."
+    },
+    {
+      "module": "governance_tools/ab_smoke_artifact_validator.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "recommended_action": "investigate",
+      "cluster": "ab_cost_evidence",
+      "scan_evidence": {
+        "memory_mentions": 1,
+        "last_memory_mention": "2026-04-29",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "A/B smoke artifact validation dormant since 2026-04-29 in memory; runbook docs exist but no wiring or importer."
+    },
+    {
+      "module": "governance_tools/agents_rule_candidates_inspector.py",
+      "zombie_status": "dormant_frozen_line",
+      "frequency_class": "routine",
+      "recommended_action": "keep_observe",
+      "cluster": "learning_loop",
+      "scan_evidence": {
+        "memory_mentions": 1,
+        "last_memory_mention": "2026-04-24",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "Learning-loop Gate 3 remains closed; absence of output from the agents-rule line is expected while the gate is frozen."
+    },
+    {
+      "module": "governance_tools/canonical_closeout_fail_closed_regression.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "rare_critical",
+      "recommended_action": "keep_observe",
+      "scan_evidence": {
+        "memory_mentions": 0,
+        "last_memory_mention": null,
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "Fail-closed closeout regression proof. Only its own test references it, but rare_critical policy forbids retiring safety regression proofs from output absence alone."
+    },
+    {
+      "module": "governance_tools/classification_session_summary.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "recommended_action": "investigate",
+      "scan_evidence": {
+        "memory_mentions": 1,
+        "last_memory_mention": "2026-04-08",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "Referenced by root-level _classification_governance_smoke.py, but that smoke script itself has no wiring; last memory mention 2026-04-08."
+    },
+    {
+      "module": "governance_tools/clean_pilot_admissibility.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "unknown",
+      "recommended_action": "retire_candidate",
+      "scan_evidence": {
+        "memory_mentions": 0,
+        "last_memory_mention": null,
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 0
+      },
+      "rationale": "Zero references outside its own file and zero dedicated tests. Focused review must first confirm governance/fleet/cleaning_admissibility_policy.yaml does not silently depend on it."
+    },
+    {
+      "module": "governance_tools/e1b_consumer_audit.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "recommended_action": "investigate",
+      "scan_evidence": {
+        "memory_mentions": 0,
+        "last_memory_mention": null,
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 2
+      },
+      "rationale": "E1-B consumer audit line dormant; docs/e1b-consumer-audit-checklist.md and 2026-05 session artifacts reference it, but no wiring, importer, or memory mention exists."
+    },
+    {
+      "module": "governance_tools/enumd_ingestion_contract.py",
+      "zombie_status": "dormant_frozen_line",
+      "frequency_class": "routine",
+      "recommended_action": "keep_observe",
+      "cluster": "enumd",
+      "scan_evidence": {
+        "memory_mentions": 0,
+        "last_memory_mention": null,
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "Enumd line is paused pending re-probe after Enumd closeout-path fixes; absence of output is expected while the phase is closed."
+    },
+    {
+      "module": "governance_tools/escalation_authority_path_guard.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "rare_critical",
+      "recommended_action": "keep_observe",
+      "scan_evidence": {
+        "memory_mentions": 1,
+        "last_memory_mention": "2026-05-03",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "Escalation authority path guard is a safety surface; rare_critical policy forbids retirement from output absence alone. Last memory mention 2026-05-03."
+    },
+    {
+      "module": "governance_tools/execution_surface_coverage_smoke.py",
+      "zombie_status": "ruled_out_documented_surface",
+      "frequency_class": "routine",
+      "recommended_action": "keep_observe",
+      "cluster": "runtime_smoke",
+      "scan_evidence": {
+        "memory_mentions": 1,
+        "last_memory_mention": "2026-04-01",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 0
+      },
+      "rationale": "Documented smoke entrypoint in README and docs/status/runtime-governance-status.md; no dedicated tests and no recent run evidence."
+    },
+    {
+      "module": "governance_tools/external_observation_adapter.py",
+      "zombie_status": "ruled_out_wired",
+      "frequency_class": "routine",
+      "recommended_action": "keep",
+      "scan_evidence": {
+        "memory_mentions": 0,
+        "last_memory_mention": null,
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 2
+      },
+      "rationale": "Imported by integrations/enumd/enumd_adapter.py and governance_tools/phase3_gate_adoption_audit.py; library surface, not a zombie."
+    },
+    {
+      "module": "governance_tools/gap_disposition_reader.py",
+      "zombie_status": "dormant_design_line",
+      "frequency_class": "routine",
+      "recommended_action": "keep_observe",
+      "scan_evidence": {
+        "memory_mentions": 1,
+        "last_memory_mention": "2026-05-18",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "Referenced by the 2026-06-21 memory-authority baseline artifact and mob-verifier gap spec; dormant but recently cited as evidence."
+    },
+    {
+      "module": "governance_tools/gate_c_dual_report.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "unknown",
+      "recommended_action": "investigate",
+      "cluster": "gate_c",
+      "scan_evidence": {
+        "memory_mentions": 1,
+        "last_memory_mention": "2026-05-11",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 2
+      },
+      "rationale": "Gate C dual report has tests only; last memory mention 2026-05-11. Review together with gate_c_report whether the Gate C reporting line is superseded."
+    },
+    {
+      "module": "governance_tools/gate_c_report.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "unknown",
+      "recommended_action": "investigate",
+      "cluster": "gate_c",
+      "scan_evidence": {
+        "memory_mentions": 0,
+        "last_memory_mention": null,
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "Gate C reporting surface with no wiring or importer; last doc reference is task-cost diagnostic 2026-06-25."
+    },
+    {
+      "module": "governance_tools/governed_prompt.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "recommended_action": "investigate",
+      "cluster": "governed_prompt",
+      "scan_evidence": {
+        "memory_mentions": 0,
+        "last_memory_mention": null,
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "Only governed_prompt_bridge imports it; the governed-prompt line has usage docs but no wiring, CI, hook, or memory evidence."
+    },
+    {
+      "module": "governance_tools/governed_prompt_bridge.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "recommended_action": "investigate",
+      "cluster": "governed_prompt",
+      "scan_evidence": {
+        "memory_mentions": 0,
+        "last_memory_mention": null,
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "Documented in docs/governed-prompt-usage.md and docs/token-run-checklist.md but has no wiring, importer, or memory evidence."
+    },
+    {
+      "module": "governance_tools/host_agent_memory_sync_signal.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "recommended_action": "retire_candidate",
+      "scan_evidence": {
+        "memory_mentions": 1,
+        "last_memory_mention": "2026-04-01",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "No references outside its own test since 2026-04-01; no wiring, importer, doc, or artifact evidence found."
+    },
+    {
+      "module": "governance_tools/linear_integrator.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "recommended_action": "investigate",
+      "cluster": "external_integrations",
+      "scan_evidence": {
+        "memory_mentions": 1,
+        "last_memory_mention": "2026-03-21",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "Linear integration dormant since 2026-03-21; docs/linear-source-of-truth.md exists but no wiring or recent output evidence."
+    },
+    {
+      "module": "governance_tools/manual_receipt_writer.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "recommended_action": "investigate",
+      "scan_evidence": {
+        "memory_mentions": 1,
+        "last_memory_mention": "2026-05-17",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "Single memory mention 2026-05-17; possibly superseded by update_receipt and test_evidence_receipt_writer flows - supersession needs confirmation before retirement."
+    },
+    {
+      "module": "governance_tools/mutation_proof_runner.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "rare_critical",
+      "recommended_action": "keep_observe",
+      "cluster": "mutation_proof",
+      "scan_evidence": {
+        "memory_mentions": 1,
+        "last_memory_mention": "2026-04-28",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 0
+      },
+      "rationale": "Mutation-proof tooling referenced by escalation_authority_path_guard and the E1 mutation catalog; proof tooling for validator integrity should not be retired from dormancy alone."
+    },
+    {
+      "module": "governance_tools/notion_integrator.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "recommended_action": "investigate",
+      "cluster": "external_integrations",
+      "scan_evidence": {
+        "memory_mentions": 1,
+        "last_memory_mention": "2026-03-21",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "Notion integration dormant since 2026-03-21; docs/notion-source-of-truth.md exists but no wiring or recent output evidence."
+    },
+    {
+      "module": "governance_tools/phase3_gate_adoption_audit.py",
+      "zombie_status": "dormant_frozen_line",
+      "frequency_class": "routine",
+      "recommended_action": "keep_observe",
+      "cluster": "learning_loop",
+      "scan_evidence": {
+        "memory_mentions": 1,
+        "last_memory_mention": "2026-05-03",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "Phase 3 promotion-gate adoption line is frozen with learning-loop Gate 3; it also imports external_observation_adapter, so it is reachable when the line resumes."
+    },
+    {
+      "module": "governance_tools/production_learning_contract.py",
+      "zombie_status": "dormant_frozen_line",
+      "frequency_class": "routine",
+      "recommended_action": "keep_observe",
+      "cluster": "learning_loop",
+      "scan_evidence": {
+        "memory_mentions": 1,
+        "last_memory_mention": "2026-04-28",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "Learning-loop production contract is frozen with Gate 3; absence of output is expected."
+    },
+    {
+      "module": "governance_tools/promotion_gate_receipt_smoke.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "unknown",
+      "recommended_action": "retire_candidate",
+      "scan_evidence": {
+        "memory_mentions": 0,
+        "last_memory_mention": null,
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 0
+      },
+      "rationale": "Zero references anywhere outside its own file and zero dedicated tests."
+    },
+    {
+      "module": "governance_tools/r49x4_metric_ranking.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "recommended_action": "retire_candidate",
+      "scan_evidence": {
+        "memory_mentions": 1,
+        "last_memory_mention": "2026-05-16",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 0
+      },
+      "rationale": "Single memory mention 2026-05-16, no dedicated tests, no wiring, no importer, no doc references outside that mention."
+    },
+    {
+      "module": "governance_tools/readiness_audit.py",
+      "zombie_status": "ruled_out_operator_surface",
+      "frequency_class": "routine",
+      "recommended_action": "keep",
+      "cluster": "closeout_operator",
+      "scan_evidence": {
+        "memory_mentions": 0,
+        "last_memory_mention": null,
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 0
+      },
+      "rationale": "Manual operator surface: .claude/settings.json permission allowlist records real invocations (including D:/Hearth) and session_end_hook output points operators to the closeout flow."
+    },
+    {
+      "module": "governance_tools/required_freshness_probe.py",
+      "zombie_status": "ruled_out_documented_surface",
+      "frequency_class": "routine",
+      "recommended_action": "keep_observe",
+      "scan_evidence": {
+        "memory_mentions": 1,
+        "last_memory_mention": "2026-05-27",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 0
+      },
+      "rationale": "Wired into HEARTBEAT.md and TOOLS.md operator docs; last memory mention 2026-05-27 and no dedicated tests."
+    },
+    {
+      "module": "governance_tools/retrieval_authority_observer.py",
+      "zombie_status": "dormant_design_line",
+      "frequency_class": "routine",
+      "recommended_action": "keep_observe",
+      "cluster": "retrieval_authority",
+      "scan_evidence": {
+        "memory_mentions": 0,
+        "last_memory_mention": null,
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "Part of the retrieval-authority Round A design cluster consolidated on 2026-07-06; observer signal contract is still an active design reference."
+    },
+    {
+      "module": "governance_tools/round_a_evaluator.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "unknown",
+      "recommended_action": "investigate",
+      "scan_evidence": {
+        "memory_mentions": 0,
+        "last_memory_mention": null,
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "Only its own test references it; whether it belongs to a frozen round line or is superseded needs a focused read-only review."
+    },
+    {
+      "module": "governance_tools/run_filtered_tests.py",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "recommended_action": "investigate",
+      "scan_evidence": {
+        "memory_mentions": 0,
+        "last_memory_mention": null,
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "Developer convenience test runner; referenced only in the tracked .latest-main snapshot PLAN and commit-log.txt."
+    },
+    {
+      "module": "governance_tools/run_first_import_validation.py",
+      "zombie_status": "ruled_out_documented_surface",
+      "frequency_class": "unknown",
+      "recommended_action": "keep_observe",
+      "scan_evidence": {
+        "memory_mentions": 0,
+        "last_memory_mention": null,
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 0
+      },
+      "rationale": "Wired into docs/ai-governance-first-import-sop.md as a first-import onboarding step; rare-use by design, no dedicated tests."
+    },
+    {
+      "module": "governance_tools/runtime_enforcement_smoke.py",
+      "zombie_status": "ruled_out_wired",
+      "frequency_class": "routine",
+      "recommended_action": "keep",
+      "cluster": "runtime_smoke",
+      "scan_evidence": {
+        "memory_mentions": 0,
+        "last_memory_mention": null,
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "Registered as a runtime surface in governance_tools/runtime_surface_manifest.py and listed in docs/governance-maintenance-checklist.md."
+    },
+    {
+      "module": "governance_tools/runtime_surface_manifest_smoke.py",
+      "zombie_status": "ruled_out_documented_surface",
+      "frequency_class": "routine",
+      "recommended_action": "keep",
+      "cluster": "runtime_smoke",
+      "scan_evidence": {
+        "memory_mentions": 0,
+        "last_memory_mention": null,
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 0
+      },
+      "rationale": "Documented smoke entrypoint in README, docs/INTEGRATION_GUIDE.md, and the consuming-repo adoption checklist."
+    },
+    {
+      "module": "governance_tools/state_reconciliation_validator.py",
+      "zombie_status": "ruled_out_wired",
+      "frequency_class": "rare_critical",
+      "recommended_action": "keep",
+      "cluster": "mutation_proof",
+      "scan_evidence": {
+        "memory_mentions": 2,
+        "last_memory_mention": "2026-04-28",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 2
+      },
+      "rationale": "Imported by mutation_proof_runner and mutation_proof_runner_phase2; library surface for the mutation-proof line."
+    },
+    {
+      "module": "governance_tools/upgrade_closeout.py",
+      "zombie_status": "ruled_out_operator_surface",
+      "frequency_class": "routine",
+      "recommended_action": "keep",
+      "cluster": "closeout_operator",
+      "scan_evidence": {
+        "memory_mentions": 0,
+        "last_memory_mention": null,
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 0
+      },
+      "rationale": "session_end_hook.py output suggests the upgrade_closeout command and the permission allowlist records real dry-run invocations (including D:/Hearth)."
+    },
+    {
+      "module": "governance_tools/upgrade_starter_pack.py",
+      "zombie_status": "ruled_out_documented_surface",
+      "frequency_class": "routine",
+      "recommended_action": "keep",
+      "scan_evidence": {
+        "memory_mentions": 1,
+        "last_memory_mention": "2026-04-10",
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 2
+      },
+      "rationale": "Documented consumer adoption surface in README and the consuming-repo/external-repo checklists; rare-use by design."
+    },
+    {
+      "module": "governance_tools/workflow_entry_observer.py",
+      "zombie_status": "ruled_out_wired",
+      "frequency_class": "routine",
+      "recommended_action": "keep_observe",
+      "scan_evidence": {
+        "memory_mentions": 0,
+        "last_memory_mention": null,
+        "ci_wired": [],
+        "script_wired": [],
+        "hook_wired": [],
+        "imported_by_other_tools": [],
+        "test_file_references": 1
+      },
+      "rationale": "Referenced by governance_tools/expansion_boundary_checker.py and justified by entry-layer boundary docs; reference nature is registry/doc-level, so decision effect is still unproven."
+    }
+  ],
+  "observations": [
+    {
+      "id": "latest_main_tracked_snapshot",
+      "observation": ".latest-main/ is a git-tracked snapshot of the repository inside itself; it inflates any repo-wide reference scan and repository size.",
+      "recommended_action": "investigate",
+      "rationale": "Its consumer (version audit, lock comparison, or none) must be identified in a read-only slice before any removal decision."
+    },
+    {
+      "id": "nested_working_copy_residue",
+      "observation": "A git-ignored nested ai-governance-framework/ directory and a root .coverage file exist as local residue.",
+      "recommended_action": "keep_observe",
+      "rationale": "Ignored local residue; no repository behavior depends on it, cleanup is a local hygiene action, not a governance decision."
+    },
+    {
+      "id": "root_smoke_script_unwired",
+      "observation": "_classification_governance_smoke.py at repo root references classification_session_summary but is itself not wired to CI, hooks, or scripts.",
+      "recommended_action": "investigate",
+      "rationale": "The smoke script and the tool it exercises should be reviewed together."
+    }
+  ],
+  "followups": {
+    "first": "Open one focused review slice for the 4 retire_candidate modules (clean_pilot_admissibility, promotion_gate_receipt_smoke, host_agent_memory_sync_signal, r49x4_metric_ranking) applying the seed rare_critical policy checklist before any retirement.",
+    "second": "Open one read-only cluster review for the ab_cost_evidence cluster (5 modules) and one for external_integrations (linear_integrator, notion_integrator) to decide keep_observe vs retire_candidate.",
+    "third": "Do not touch dormant_frozen_line modules until their gates (learning-loop Gate 3, Enumd re-probe) reopen."
+  }
+}
