@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### Test-signal quality audit report - 2026-07-06
+
+- Added `governance_tools/test_signal_quality_audit.py` as a report-only
+  summary for domain contract repositories. The tool surfaces validator
+  fixture-pair shape, placeholder validator labeling, production-derived
+  expected-value candidates, mock-only assertion candidates, uncontrolled
+  time/random candidates, negative/boundary/failure-path vocabulary, and legacy
+  characterization vocabulary.
+- Added focused coverage in `tests/test_test_signal_quality_audit.py` for
+  pass/fail validator fixture pairs, positive-only fixtures, labeled
+  placeholders, weak lexical test-signal candidates, missing contracts, and
+  human/JSON CLI output.
+- Release-note boundary: this entry records unreleased report-only test-quality
+  visibility only. It does not bump the framework version, publish a release,
+  prove any test suite is industry-grade, prove domain correctness, prove
+  validator correctness, modify consumer repos, or wire tooling/runtime/hook/
+  CI/pre-push/gate/enforcement behavior.
+
 ### Framework contract validator declaration - 2026-07-03
 
 - Declared `governance_tools/architecture_drift_checker.py` in the framework
