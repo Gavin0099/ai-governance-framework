@@ -1,0 +1,383 @@
+{
+  "schema": "docs_governance_design_note_classification.v0.1",
+  "generated_date": "2026-07-06",
+  "source_commit": "ae08629faf6b693b15fdc459f42ae18eebfd224c",
+  "scope": "docs/governance/*.md",
+  "classification_rule": {
+    "active": "implemented or currently referenced semantic source",
+    "superseded": "implemented or replaced by newer source or tool and no longer the best semantic source",
+    "historical": "evidence, checkpoint, disposition, audit record, or one-time review packet",
+    "proposal-only": "no implementation and no active operating role"
+  },
+  "claim_ceiling": [
+    "classification artifact only",
+    "no document is removed",
+    "no document is invalidated",
+    "no document status or frontmatter is changed"
+  ],
+  "counts": {
+    "active": 29,
+    "superseded": 10,
+    "historical": 31,
+    "proposal-only": 14,
+    "total": 84
+  },
+  "corrections_from_initial_review": [
+    {
+      "path": "docs/governance/unified-ai-governance-update-status-envelope-2026-07-02.md",
+      "from": "proposal-only",
+      "to": "active",
+      "reason": "implemented and wired into updater, F-7, and onboard outputs"
+    },
+    {
+      "path": "docs/governance/governed-update-receipt-format-design-2026-07-03.md",
+      "from": "proposal-only",
+      "to": "active",
+      "reason": "update_receipt.py exists and updater/F-7 apply paths write update receipts"
+    },
+    {
+      "path": "docs/governance/memory-significance-v0.2.md",
+      "from": "superseded",
+      "to": "active",
+      "reason": "memory_significance.py and session_end_hook integration make v0.2 a live semantic source"
+    }
+  ],
+  "files": [
+    {
+      "path": "docs/governance/agent-instruction-surface-map.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/agent-repo-ecology-study-protocol-v0.1.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/agent-runtime-integration-boundary.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/agent-runtime-profile.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/ai-governance-document-language-style-guide-2026-06-27.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/ai-governance-mutation-proof-authority-precedence-weakened-2026-06-27.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/artifact-write-boundary-2026-06-23.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/authority-manifest-preflight-evidence-decision-2026-07-02.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/authority-metadata-consistency-proposal-2026-06-25.md",
+      "classification": "superseded"
+    },
+    {
+      "path": "docs/governance/authority-repair-proposal-2026-06-25.md",
+      "classification": "superseded"
+    },
+    {
+      "path": "docs/governance/bookstore-scraper-diagnosis-disposition-2026-06-26.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/cache-aware-agent-harness-design-note-2026-06-27.md",
+      "classification": "proposal-only"
+    },
+    {
+      "path": "docs/governance/cache-aware-authority-manifest-implementation-tech-spec-2026-06-29.md",
+      "classification": "superseded"
+    },
+    {
+      "path": "docs/governance/cache-aware-authority-manifest-invalidation-spec-2026-06-28.md",
+      "classification": "proposal-only"
+    },
+    {
+      "path": "docs/governance/cache-aware-compaction-summary-field-spec-2026-06-28.md",
+      "classification": "proposal-only"
+    },
+    {
+      "path": "docs/governance/cache-aware-governance-surface-spec-2026-06-28.md",
+      "classification": "proposal-only"
+    },
+    {
+      "path": "docs/governance/cache-aware-harness-handoff-checklist-2026-06-28.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/cache-aware-mode-authorization-anti-forgery-spec-2026-06-28.md",
+      "classification": "proposal-only"
+    },
+    {
+      "path": "docs/governance/cache-aware-receipt-alignment-note-2026-06-28.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/cache-aware-runtime-adoption-review-packet-2026-06-28.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/cache-aware-tool-denial-receipt-spec-2026-06-28.md",
+      "classification": "proposal-only"
+    },
+    {
+      "path": "docs/governance/checkpoint-memory-audit-spec.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/checkpoint-memory-baseline-2026-06-19.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/ci-enforcement-claim-ceiling.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/commit-memory-binding-contract.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/full-submodule-adoption-ux-proposal-2026-06-26.md",
+      "classification": "superseded"
+    },
+    {
+      "path": "docs/governance/gate-c-decision-set-contract-v0.1.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/GOVERNANCE_ARTIFACT_FORMAT_RULE.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/governance-document-freshness-classification-2026-06-25.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/governance-lessons-learned-from-retrieval-authority-round-a.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/governance-maturity-summary-design-2026-07-01.md",
+      "classification": "superseded"
+    },
+    {
+      "path": "docs/governance/governance-overhead-retrospective.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/governed-update-receipt-format-design-2026-07-03.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/harness-governance-next-steps-2026-05.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/hermes-noagent-daily-artifact-design-2026-06-24.md",
+      "classification": "proposal-only"
+    },
+    {
+      "path": "docs/governance/hermes-noagent-local-observer-claim-ledger-2026-06-25.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/hermes-real-integration-contract-spec-2026-06-22.md",
+      "classification": "proposal-only"
+    },
+    {
+      "path": "docs/governance/hermes-real-model-run-evidence-plan-2026-06-30.md",
+      "classification": "proposal-only"
+    },
+    {
+      "path": "docs/governance/hermes-real-model-run-preflight-packet-template-2026-06-30.md",
+      "classification": "proposal-only"
+    },
+    {
+      "path": "docs/governance/hermes-side-no-tool-design-disposition-2026-06-30.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/manual-governance-update-advisory-design-2026-07-03.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/memory-authority-baseline-spec.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/memory-authority-contract-v1.1-amendment-proposal-2026-06-25.md",
+      "classification": "superseded"
+    },
+    {
+      "path": "docs/governance/memory-authority-contract-v11-disposition-2026-06-25.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/memory-binding-closeout-emission-design-2026-06-23.md",
+      "classification": "superseded"
+    },
+    {
+      "path": "docs/governance/memory-significance-v0.2.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/minimal-retrieval-navigability-checkpoint-2026-05-27.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/minimal-retrieval-navigability-verification-2026-05-27.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/operator-prompt-playbook-2026-06-26.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/p1e-plan-reconciliation-two-week-sample-2026-06-27.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/phase2-dominance-semantics-addendum-2026-05-11.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/prompt-cache-harness-consumer-contract-2026-06-29.md",
+      "classification": "proposal-only"
+    },
+    {
+      "path": "docs/governance/reason-code-registry.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/report-only-adoption-doctor-spec-2026-06-26.md",
+      "classification": "superseded"
+    },
+    {
+      "path": "docs/governance/retrieval-authority-observation-round-a.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/retrieval-authority-observation-v0.1.md",
+      "classification": "superseded"
+    },
+    {
+      "path": "docs/governance/retrieval-authority-round-a-checkpoint-log.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/retrieval-authority-round-a-summary.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/reviewer-closeout-gate-mutation-contract-2026-06-27.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/runtime-profile-validator-contract.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/self-governance-authority-precedence-mutation-contract-2026-07-04.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/self-governance-blocking-surface-red-team-round2-2026-07-04.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/self-governance-catalog-consistency-audit-2026-07-05.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/self-governance-claim-label-mutation-contract-2026-07-04.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/self-governance-claim-semantic-attestation-design-2026-07-05.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/self-governance-evidence-artifact-metadata-design-2026-07-04.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/self-governance-f2-valid-disable-attestation-design-2026-07-05.md",
+      "classification": "proposal-only"
+    },
+    {
+      "path": "docs/governance/self-governance-f4-override-attestation-design-2026-07-05.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/self-governance-f6-non-daily-memory-remediation-design-2026-07-05.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/self-governance-markerless-claim-semantic-drift-design-2026-07-04.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/self-governance-memory-blocking-policy-rfc-2026-07-04.md",
+      "classification": "proposal-only"
+    },
+    {
+      "path": "docs/governance/self-governance-memory-truth-provenance-mutation-contract-2026-07-04.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/self-governance-normalizer-alias-miss-mutation-contract-2026-07-04.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/self-governance-red-team-remaining-slices-2026-07-04.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/self-governance-review-occurrence-provenance-design-2026-07-04.md",
+      "classification": "proposal-only"
+    },
+    {
+      "path": "docs/governance/semantic-run-completion-protocol.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/skill-claim-class-boundary-spec.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/structured-memory-disposition-summary-tech-spec-2026-07-01.md",
+      "classification": "superseded"
+    },
+    {
+      "path": "docs/governance/task-cost-event-only-fixture-2026-06-25.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/task-cost-extract-first-diagnostic-2026-06-25.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/test-signal-quality-audit-model-2026-07-06.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/trust-boundary-taxonomy.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/unified-ai-governance-update-status-envelope-2026-07-02.md",
+      "classification": "active"
+    },
+    {
+      "path": "docs/governance/v1.3.0-release-prep-evidence-boundary-2026-07-02.md",
+      "classification": "historical"
+    }
+  ]
+}
