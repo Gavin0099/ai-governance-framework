@@ -159,6 +159,84 @@ def test_multi_validator_aggregation_keeps_weakest_fixture_gap_visible(tmp_path:
     }
 
 
+def test_fixture_manifest_expected_ok_and_rule_ids_associate_validator_fixtures(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write_contract(repo, "validators/pcie_ltssm_json_validator.py")
+    _write(repo / "validators" / "pcie_ltssm_json_validator.py", "def validate(payload):\n    return True\n")
+    _write(repo / "fixtures" / "smoke_compliant.checks.json", "{}\n")
+    _write(repo / "fixtures" / "smoke_noncompliant_illegal_transition.checks.json", "{}\n")
+    _write(
+        repo / "fixtures" / "fixture_manifest.json",
+        json.dumps(
+            {
+                "fixtures": [
+                    {
+                        "file": "smoke_compliant.checks.json",
+                        "expected_ok": True,
+                        "expected_rule_ids": ["common", "pcie-ltssm"],
+                    },
+                    {
+                        "file": "smoke_noncompliant_illegal_transition.checks.json",
+                        "expected_ok": False,
+                        "expected_rule_ids": ["common", "pcie-ltssm"],
+                    },
+                ]
+            }
+        ),
+    )
+
+    report = build_test_signal_quality_audit(repo)
+
+    assert report.contract_validator_fixtures == "validator_fixture_pair_present"
+    assert report.validators[0].positive_fixtures == ["fixtures/smoke_compliant.checks.json"]
+    assert report.validators[0].negative_fixtures == [
+        "fixtures/smoke_noncompliant_illegal_transition.checks.json"
+    ]
+    assert report.validators[0].ambiguous_fixtures == []
+
+
+def test_safe_alias_inference_associates_short_fixture_prefixes(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write_contract(repo, "validators/interrupt_safety_validator.py")
+    _write(repo / "validators" / "interrupt_safety_validator.py", "def validate(payload):\n    return True\n")
+    _write(repo / "fixtures" / "interrupt_compliant.checks.json", "{}\n")
+    _write(repo / "fixtures" / "interrupt_regression.checks.json", "{}\n")
+
+    report = build_test_signal_quality_audit(repo)
+
+    assert report.contract_validator_fixtures == "validator_fixture_pair_present"
+    assert report.validators[0].positive_fixtures == ["fixtures/interrupt_compliant.checks.json"]
+    assert report.validators[0].negative_fixtures == ["fixtures/interrupt_regression.checks.json"]
+
+
+def test_ambiguous_fixture_matches_are_not_counted_as_fixture_pairs(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write(
+        repo / "contract.yaml",
+        "name: signal-test\n"
+        "validators:\n"
+        "  - validators/foo_validator.py\n"
+        "  - validators/bar_validator.py\n",
+    )
+    _write(repo / "validators" / "foo_validator.py", "def validate(payload):\n    return True\n")
+    _write(repo / "validators" / "bar_validator.py", "def validate(payload):\n    return True\n")
+    _write(repo / "fixtures" / "foo_bar_valid.checks.json", "{}\n")
+    _write(repo / "fixtures" / "foo_bar_invalid.checks.json", "{}\n")
+
+    report = build_test_signal_quality_audit(repo)
+
+    assert report.contract_validator_fixtures == "ambiguous_validator_fixture_match"
+    assert {item.status for item in report.validators} == {"ambiguous_validator_fixture_match"}
+    for item in report.validators:
+        assert item.positive_fixtures == []
+        assert item.negative_fixtures == []
+        assert item.ambiguous_fixtures == [
+            "fixtures/foo_bar_invalid.checks.json",
+            "fixtures/foo_bar_valid.checks.json",
+        ]
+    assert "all contract validators have pass/fail fixture pairs" in report.cannot_claim
+
+
 def test_lexical_weak_signal_candidates_are_reported(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     _write_contract(repo)
