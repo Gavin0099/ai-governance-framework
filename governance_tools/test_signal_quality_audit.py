@@ -23,7 +23,7 @@ from governance_tools.contract_resolver import resolve_contract
 from governance_tools.domain_contract_loader import load_domain_contract
 
 
-REPORT_VERSION = "0.1"
+REPORT_VERSION = "0.2"
 MAX_EVIDENCE_PER_SIGNAL = 20
 
 POSITIVE_TOKENS = (
@@ -117,6 +117,8 @@ class TestSignalQualityReport:
     mock_signal: str
     legacy_baseline: str
     contract_validator_fixtures: str
+    fixture_runner: str = "not_found"
+    fixture_runner_paths: list[str] = field(default_factory=list)
     validators: list[ValidatorFixtureSignal] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     evidence_refs: list[EvidenceRef] = field(default_factory=list)
@@ -275,17 +277,27 @@ def _fixture_kind(rel_path: str, manifest_entry: dict | None = None) -> str | No
     return None
 
 
-def _manifest_entries(repo_root: Path, all_files: list[Path]) -> list[tuple[Path, dict]]:
+def _manifest_entries(repo_root: Path, all_files: list[Path]) -> tuple[list[tuple[Path, dict]], list[str]]:
     entries: list[tuple[Path, dict]] = []
+    warnings: list[str] = []
     for manifest_path in all_files:
         if manifest_path.name.lower() != "fixture_manifest.json":
             continue
+        manifest_rel = _repo_rel(repo_root, manifest_path)
         try:
             payload = json.loads(_read_text(manifest_path))
         except json.JSONDecodeError:
+            warnings.append(f"fixture manifest is not valid JSON and was ignored: {manifest_rel}")
+            continue
+        if isinstance(payload, list):
+            items = payload
+        elif isinstance(payload, dict) and isinstance(payload.get("fixtures"), list):
+            items = payload["fixtures"]
+        else:
+            warnings.append(f"fixture manifest has an unrecognized shape and was ignored: {manifest_rel}")
             continue
         manifest_dir = manifest_path.parent
-        for item in payload.get("fixtures", []):
+        for item in items:
             if not isinstance(item, dict) or not item.get("file"):
                 continue
             fixture_path = (manifest_dir / str(item["file"])).resolve()
@@ -296,7 +308,7 @@ def _manifest_entries(repo_root: Path, all_files: list[Path]) -> list[tuple[Path
             except ValueError:
                 continue
             entries.append((fixture_path, item))
-    return entries
+    return entries, warnings
 
 
 def _manifest_rule_aliases(entry: dict) -> set[str]:
@@ -331,7 +343,7 @@ def _associate_fixtures(
     repo_root: Path,
     validators: list[dict],
     all_files: list[Path],
-) -> dict[str, dict[str, list[str]]]:
+) -> tuple[dict[str, dict[str, list[str]]], list[str]]:
     associations: dict[str, dict[str, list[str]]] = {}
     validator_aliases: dict[str, set[str]] = {}
     for validator in validators:
@@ -345,18 +357,26 @@ def _associate_fixtures(
             associations[name][bucket].append(rel_path)
 
     manifest_fixture_paths: set[Path] = set()
-    for fixture_path, entry in _manifest_entries(repo_root, all_files):
+    manifest_entries, association_warnings = _manifest_entries(repo_root, all_files)
+    for fixture_path, entry in manifest_entries:
         manifest_fixture_paths.add(fixture_path.resolve())
         rel = _repo_rel(repo_root, fixture_path)
         kind = _fixture_kind(rel, entry)
         if kind is None:
             continue
         rule_aliases = _manifest_rule_aliases(entry)
-        matched = [
-            name
-            for name, aliases in validator_aliases.items()
-            if aliases.intersection(rule_aliases)
-        ]
+        if rule_aliases:
+            matched = [
+                name
+                for name, aliases in validator_aliases.items()
+                if aliases.intersection(rule_aliases)
+            ]
+        else:
+            matched = [
+                name
+                for name, aliases in validator_aliases.items()
+                if _fixture_matches_alias(rel, aliases)
+            ]
         if len(matched) == 1:
             add(matched[0], kind, rel)
         elif len(matched) > 1:
@@ -383,7 +403,23 @@ def _associate_fixtures(
             for name in matched:
                 add(name, "ambiguous", rel)
 
-    return associations
+    return associations, association_warnings
+
+
+def _find_fixture_runners(repo_root: Path, all_files: list[Path]) -> list[str]:
+    runner_keywords = ("validator", "fixture", "check", "smoke")
+    framework_dirs = {"governance_tools", "runtime_hooks", "memory_pipeline", "ai-governance-framework"}
+    runners: list[str] = []
+    for path in all_files:
+        if path.suffix.lower() != ".py":
+            continue
+        parent_parts = {part.lower() for part in path.relative_to(repo_root).parts[:-1]}
+        if framework_dirs.intersection(parent_parts):
+            continue
+        stem = path.stem.lower()
+        if (stem.startswith("run_") and any(keyword in stem for keyword in runner_keywords)) or stem.endswith("_runner"):
+            runners.append(_repo_rel(repo_root, path))
+    return sorted(runners)
 
 
 def _looks_placeholder(path: Path) -> bool:
@@ -601,9 +637,12 @@ def build_test_signal_quality_audit(repo_root: str | Path, contract_file: str | 
         evidence_refs.extend(refs)
 
     validator_items = [item for item in contract.get("validators", []) if isinstance(item, dict)]
-    fixture_associations = _associate_fixtures(repo, validator_items, all_files)
+    fixture_associations, association_warnings = _associate_fixtures(repo, validator_items, all_files)
+    warnings.extend(association_warnings)
     validators = [_classify_validator(repo, item, fixture_associations) for item in validator_items]
     contract_validator_fixtures = _contract_validator_status(validators)
+    fixture_runner_paths = _find_fixture_runners(repo, all_files)
+    fixture_runner = "runner_script_present" if fixture_runner_paths else "not_found"
 
     if lexical_evidence["production_derived_expected_value"]:
         oracle_independence = "production_derived_expected_value"
@@ -652,6 +691,8 @@ def build_test_signal_quality_audit(repo_root: str | Path, contract_file: str | 
         cannot_claim.append("expected values are independent")
     if mutation_boundary == "negative_cases_missing":
         cannot_claim.append("negative, boundary, and failure-path coverage exists")
+    if fixture_runner == "runner_script_present":
+        cannot_claim.append("fixture runner scripts were executed or pass")
 
     return TestSignalQualityReport(
         report_version=REPORT_VERSION,
@@ -665,6 +706,8 @@ def build_test_signal_quality_audit(repo_root: str | Path, contract_file: str | 
         mock_signal=mock_signal,
         legacy_baseline=legacy_baseline,
         contract_validator_fixtures=contract_validator_fixtures,
+        fixture_runner=fixture_runner,
+        fixture_runner_paths=fixture_runner_paths[:5],
         validators=validators,
         warnings=warnings,
         evidence_refs=evidence_refs,
@@ -689,7 +732,10 @@ def format_human(report: TestSignalQualityReport) -> str:
         f"mock_signal={report.mock_signal}",
         f"legacy_baseline={report.legacy_baseline}",
         f"contract_validator_fixtures={report.contract_validator_fixtures}",
+        f"fixture_runner={report.fixture_runner}",
     ]
+    for runner_path in report.fixture_runner_paths:
+        lines.append(f"  - {runner_path} (presence only; execution is not proven by this report)")
     if report.validators:
         lines.append("validators:")
         for item in report.validators:

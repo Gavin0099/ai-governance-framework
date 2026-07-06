@@ -302,3 +302,74 @@ def test_format_human_lists_validator_fixture_counts(tmp_path: Path) -> None:
     assert "validators:" in text
     assert "check_docs: status=positive_only_validator_fixture" in text
     assert "positive=1 negative=0" in text
+
+
+def test_list_shaped_fixture_manifest_is_supported(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write_contract(repo, "validators/ltssm_validator.py")
+    _write(repo / "validators" / "ltssm_validator.py", "def validate(payload):\n    return True\n")
+    _write(repo / "fixtures" / "ltssm_case_a.checks.json", "{}\n")
+    _write(repo / "fixtures" / "ltssm_case_b.checks.json", "{}\n")
+    _write(
+        repo / "fixtures" / "fixture_manifest.json",
+        json.dumps(
+            [
+                {"file": "ltssm_case_a.checks.json", "expected_ok": True},
+                {"file": "ltssm_case_b.checks.json", "expected_ok": False},
+            ]
+        ),
+    )
+
+    report = build_test_signal_quality_audit(repo)
+
+    assert report.contract_validator_fixtures == "validator_fixture_pair_present"
+    assert report.validators[0].positive_fixtures == ["fixtures/ltssm_case_a.checks.json"]
+    assert report.validators[0].negative_fixtures == ["fixtures/ltssm_case_b.checks.json"]
+
+
+def test_unparseable_fixture_manifest_reports_warning_not_crash(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write_contract(repo)
+    _write(repo / "validators" / "check_docs.py", "def validate(payload):\n    return True\n")
+    _write(repo / "fixtures" / "fixture_manifest.json", "{not valid json")
+
+    report = build_test_signal_quality_audit(repo)
+
+    assert report.contract_validator_fixtures == "validator_without_fixture_harness"
+    assert any("fixture manifest" in warning for warning in report.warnings)
+
+
+def test_manifest_entry_without_rule_ids_falls_back_to_filename_alias(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write_contract(repo, "validators/ltssm_validator.py")
+    _write(repo / "validators" / "ltssm_validator.py", "def validate(payload):\n    return True\n")
+    _write(repo / "fixtures" / "ltssm_blue.checks.json", "{}\n")
+    _write(
+        repo / "fixtures" / "fixture_manifest.json",
+        json.dumps({"fixtures": [{"file": "ltssm_blue.checks.json", "expected_ok": False}]}),
+    )
+
+    report = build_test_signal_quality_audit(repo)
+
+    assert report.validators[0].negative_fixtures == ["fixtures/ltssm_blue.checks.json"]
+    assert report.validators[0].positive_fixtures == []
+    assert report.contract_validator_fixtures == "negative_only_validator_fixture"
+
+
+def test_fixture_runner_presence_is_reported_without_execution_claim(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write_contract(repo)
+    _write(repo / "validators" / "check_docs.py", "def validate(payload):\n    return True\n")
+    _write(repo / "run_validators.py", "print('runner')\n")
+
+    report = build_test_signal_quality_audit(repo)
+
+    assert report.fixture_runner == "runner_script_present"
+    assert report.fixture_runner_paths == ["run_validators.py"]
+    assert "fixture runner scripts were executed or pass" in report.cannot_claim
+    assert report.contract_validator_fixtures == "validator_without_fixture_harness"
+
+    bare = tmp_path / "bare"
+    _write_contract(bare)
+    _write(bare / "validators" / "check_docs.py", "def validate(payload):\n    return True\n")
+    assert build_test_signal_quality_audit(bare).fixture_runner == "not_found"
