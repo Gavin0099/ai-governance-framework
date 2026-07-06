@@ -1,4 +1,9 @@
 # 快取感知代理框架設計備忘
+> Consolidation pointer: this source note is covered by
+> `docs/governance/cache-aware-round-b-summary.md`.
+> Pointer only; this note is not removed, archived, invalidated, or
+> reclassified.
+
 
 狀態（Status）：`PENDING`
 日期（Date）：2026-06-27

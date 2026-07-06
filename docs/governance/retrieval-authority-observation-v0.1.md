@@ -1,5 +1,10 @@
 # Retrieval Authority Observation v0.1
 
+> Consolidation pointer: this source note is covered by
+> `docs/governance/retrieval-authority-round-a-summary.md`.
+> Pointer only; this note is not removed, archived, invalidated, or
+> reclassified.
+
 Status: Draft-for-implementation  
 Mode: Observation only
 
@@ -50,4 +55,3 @@ v0.1 integration target:
 
 Expected output path convention:
 - `artifacts/runtime/advisory/retrieval-authority-<session_id>.json`
-

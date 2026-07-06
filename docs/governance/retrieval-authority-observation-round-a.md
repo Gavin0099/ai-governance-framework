@@ -1,4 +1,9 @@
 ﻿# Retrieval Authority Observation — Round A
+> Consolidation pointer: this source note is covered by
+> `docs/governance/retrieval-authority-round-a-summary.md`.
+> Pointer only; this note is not removed, archived, invalidated, or
+> reclassified.
+
 
 Round A scope: ai-governance-framework only  
 Mode: manual observer  
