@@ -1879,3 +1879,76 @@
 - Risk: low
 - Oversight: auto
 
+## 2026-07-06 - Retire-Candidate Focused Review: Four Governance Tool Candidates
+
+### Review Inputs Checked
+- `governance/REVIEW_CRITERIA.md`
+- `governance/MEMORY_PROTOCOL.md`
+- `memory/03_knowledge_base.md`
+- `memory/04_review_log.md`
+- `docs/governance/decision-change-ledger.inventory.v0.1.json`
+- `governance_tools/clean_pilot_admissibility.py`
+- `governance_tools/promotion_gate_receipt_smoke.py`
+- `governance_tools/host_agent_memory_sync_signal.py`
+- `governance_tools/r49x4_metric_ranking.py`
+- `tests/test_host_agent_memory_sync_signal.py`
+- `governance/fleet/cleaning_admissibility_policy.yaml`
+- tracked-file reference scans via `git grep`
+
+### Decision Summary
+**Verdict**: ESCALATED
+**Risk Level**: Medium
+
+Reason: the inventory artifact correctly identified four zombie/retire candidates, but focused review found mixed dispositions. One candidate is safe enough for a later removal slice, one is better handled as deprecate-first, and two require owner/lineage decisions before deletion. No defense is retired by this review.
+
+### Governance Audit
+- Architecture: no runtime, hook, CI, gate, schema, or authority behavior changed in this review.
+- Native Safety: N/A.
+- Test Integrity: focused checks matched scope; no full regression run.
+- Thread Safety: N/A.
+- Baseline Status: Stable for review scope; working tree was clean before review.
+
+### Technical Findings
+
+1. [WARNING] `clean_pilot_admissibility` is not wired, but policy coupling makes direct deletion premature.
+   - Location: `governance_tools/clean_pilot_admissibility.py:48`
+   - Evidence: inventory says zero references and zero dedicated tests; tracked grep found only the tool itself and the inventory artifact. The tool reads `governance/fleet/cleaning_admissibility_policy.yaml`, which is an observation-only dirty-state policy.
+   - Rule Reference: `governance/REVIEW_CRITERIA.md` quality/evidence requirement; seed rare-critical policy requires focused review before retirement.
+   - Status: open
+   - Disposition: `needs-human-decision`. Decide whether the clean-pilot policy remains useful. If yes, add tests/wiring; if no, retire the tool and policy together in a separate slice.
+
+2. [SUGGESTION] `promotion_gate_receipt_smoke` is a retire-safe candidate because its behavior is covered by stronger tests.
+   - Location: `governance_tools/promotion_gate_receipt_smoke.py:46`
+   - Evidence: the standalone smoke checks digest stability and contract version; focused pytest ran `tests/test_change_control_summary.py` digest tests plus `tests/test_promotion_gate_digest_regression.py` and passed 16 tests. The smoke script itself also returned ok=true.
+   - Rule Reference: `governance/REVIEW_CRITERIA.md` test integrity and evidence matching.
+   - Status: open
+   - Disposition: `retire-safe-candidate`. A later deletion slice may remove the smoke script after citing the existing digest regression tests as replacement evidence.
+
+3. [WARNING] `host_agent_memory_sync_signal` is tested policy logic, not safe to delete without a host-memory policy decision.
+   - Location: `governance_tools/host_agent_memory_sync_signal.py:44`
+   - Evidence: tracked grep found a dedicated test file; focused pytest passed all five host-agent memory sync tests. CLI negative probe emitted `memory_sync_missing` and exited non-zero by design.
+   - Rule Reference: `governance/REVIEW_CRITERIA.md` evidence-bound verdict; memory authority surfaces need explicit claim boundaries.
+   - Status: open
+   - Disposition: `deprecate-first`. If host-agent memory sync is no longer a current governance line, mark it deprecated before deletion. If still desired, wire it or document its operator entrypoint.
+
+4. [WARNING] `r49x4_metric_ranking` is a one-off artifact producer with live lineage references, so deletion requires artifact-provenance handling.
+   - Location: `governance_tools/r49x4_metric_ranking.py:177`
+   - Evidence: tracked grep found many references to the generated `docs/status/ab-causal-r49x4-metric-ranking-2026-05-16.json` and related R49.x/R50 docs. The script writes that tracked artifact path directly.
+   - Rule Reference: `governance/REVIEW_CRITERIA.md` legacy/refactor addendum and evidence preservation.
+   - Status: open
+   - Disposition: `deprecate-first`. Preserve the generated artifact as historical evidence; retire the script only after documenting the artifact as frozen and no longer regenerated.
+
+### Knowledge Base Alignment
+- Anti-patterns checked: current-state drift, governance expansion, semantic overclaim.
+- Regression notes checked: runtime governance maturity, evidence/enforcement boundaries, working agreement.
+- Result: Pass. No new anti-pattern added.
+
+### Validation Evidence
+- `git grep` tracked-file reference scan for all four candidates.
+- `.venv\Scripts\python.exe -m pytest tests\test_host_agent_memory_sync_signal.py tests\test_change_control_summary.py::test_change_control_summary_promotion_gate_receipt_digest_is_stable_for_same_inputs tests\test_change_control_summary.py::test_change_control_summary_promotion_gate_receipt_digest_changes_on_relevant_input_change tests\test_promotion_gate_digest_regression.py --basetemp tests\_tmp_retire_candidate_review -p no:cacheprovider` -> 16 passed.
+- `.venv\Scripts\python.exe governance_tools\promotion_gate_receipt_smoke.py` -> ok=true.
+- `.venv\Scripts\python.exe -m py_compile governance_tools\clean_pilot_admissibility.py governance_tools\promotion_gate_receipt_smoke.py governance_tools\host_agent_memory_sync_signal.py governance_tools\r49x4_metric_ranking.py` -> PASS.
+
+### Next Recommendation
+Open a narrow implementation slice for `promotion_gate_receipt_smoke.py` removal first. Keep the other three as review-open until a clean-pilot policy decision, host-memory sync disposition, and R49.x artifact-freeze decision are made.
+
