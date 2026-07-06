@@ -1,0 +1,2361 @@
+{
+  "schema_version": "0.2",
+  "model": "count_bucket",
+  "baseline_id": "memory-authority-baseline-2026-07-06",
+  "created_at": "2026-07-06T15:52:35Z",
+  "source_command": "python -m governance_tools.memory_authority_guard --format json",
+  "source_head": "fbb6b58c",
+  "claim_class": "advisory",
+  "blocking": false,
+  "not_enforcement": true,
+  "safety_invariant": "active_non_canonical_writer is never part of this baseline (SI-2).",
+  "summary": {
+    "total": 794,
+    "by_code": {
+      "unbound_memory": 325,
+      "test_evidence_provenance_not_found": 377,
+      "non_canonical_writer": 86,
+      "structural_memory_auto_write": 6
+    }
+  },
+  "buckets": [
+    {
+      "identity_key": "281203bb1469ba37",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "read_error: 'utf-8' codec can't decode bytes in position 225-226: invalid continuation byte",
+      "display": "unbound_memory · file='2026-04-10.md' · reason=\"read_error: 'utf-8' codec can't decode bytes in position 225-226: invalid continuation byte\""
+    },
+    {
+      "identity_key": "9ed4ac39a07a398d",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-19.md' · entry='- what_changed: Hardened reviewer taxonomy against surface-drift phrasing (mixed' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "d6f1e78218434fef",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-19.md' · entry='- what_changed: Added a dataset-driven reviewer taxonomy calibration baseline wi' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "70ae49782a74b0a2",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-19.md' · entry='- what_changed: Upgraded calibration baseline to stratified 2D metadata (`ambigu' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "b8fac9ede0d75cee",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-19.md' · entry='- what_changed: Aligned publication reader as a conservative projection of revie' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "9ecdedee83931e49",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-19.md' · entry='- what_changed: Upgraded calibration baseline from 2D to 3D (`ambiguity_tier × s' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "5a0fb5c0746fec14",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-19.md' · entry='- what_changed: Added advisory-only family-level calibration summary tool (`revi' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "7ce3e1d30003cd50",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-19.md' · entry='- what_changed: Implemented first-batch Enumd observe-only probe runner (`enumd_' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "e80ce74d53786533",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-04-19.md' · entry='- what_changed: Ran first observe-only probe batch against reports under `D:\\\\Enu' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "68de988825932aec",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-20.md' · entry='- what_changed: Disambiguated Phase 2 READY signal to explicit distribution-gate' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "4fa3d0ff72755aea",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-20.md' · entry='- what_changed: Disambiguated Phase 2 READY signal to explicit distribution-gate' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "b87ff2cdca7f8eb3",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-20.md' · entry='- what_changed: Completed full rerun of E1b target tests in writable fresh temp/' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "539021c670747bcb",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-20.md' · entry='- what_changed: Completed full rerun of E1b target tests in writable fresh temp/' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "57302f8e598ef674",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-20.md' · entry='- what_changed: Made `.governance-state.yaml` authority boundary explicit to pre' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "ac73018e5018236f",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-20.md' · entry='- what_changed: Added `docs/md-test-pack-template.md` as a reusable markdown tes' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "a3cba695eb5caffa",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-20.md' · entry='- what_changed: Added `docs/md-test-pack-template.md` as a reusable markdown tes' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "9d937dbf4648b535",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-20.md' · entry='- what_changed: Added cross-repo final consolidation report for MD noise testing' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "224e5abc460f6852",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-20.md' · entry='- what_changed: Added an executable target pack for cross-repo remediation (`doc' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "3746102ccb6e8e66",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-21.md' · entry='- what_changed: Locked MD rerun tooling and evidence boundary by adding a contra' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "cc5896ac53abca29",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-21.md' · entry='- what_changed: Added fail clustering map and updated v4 report to state remedia' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "aac5cfadc2ee3ab9",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-21.md' · entry='- what_changed: Remediated MD noise oracle satisfiability with guardrails (injec' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "df1e70d1c8c4dc5f",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-04-22.md' · entry='- what_changed: Completed AB runtime test pack execution for `cli` (A, no govern' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "c1ae2cc54d3be77e",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-22.md' · entry='- what_changed: Implemented advisory `Decision Policy v1` runtime integration in' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "25809625d771b4aa",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-22.md' · entry='- what_changed: Upgraded decision runtime to v2 behavior (ranking candidates + l' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "6a7c410034d7e858",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-22.md' · entry='- what_changed: Integrated runtime decision module `runtime_hooks/core/decision_' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "4506829897a32b4a",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-23.md' · entry='- what_changed: Implemented immutable Evidence Integrity Gate in `pre_task_check' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "0551804ca73e41ca",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-23.md' · entry='- what_changed: Added evidence-integrity candidate pruning in decision policy ru' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "e27787d2d4b734a5",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-23.md' · entry='- what_changed: Added `runtime_hooks/core/evidence_integrity_gate.py` and integr' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "f75b8508e1571236",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-23.md' · entry='- what_changed: Implemented correctness-aware v3 policy slice with two-phase dec' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "bf9ef5f5eed1a429",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-23.md' · entry='- what_changed: Added missing benchmark quadrants (`low-risk+wrong-premise`, `me' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "1b458b869e940810",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_artifact_not_found",
+      "display": "test_evidence_provenance_not_found · file='2026-04-23.md' · entry='- what_changed: Split runtime boundary into `advisory_mainline` (default) vs `ex' · reason='test_evidence_artifact_not_found'"
+    },
+    {
+      "identity_key": "1f1fdafa96826df8",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_artifact_not_found",
+      "display": "test_evidence_provenance_not_found · file='2026-04-23.md' · entry='- what_changed: Applied a minimal extractor patch in `decision_policy_v1_runtime' · reason='test_evidence_artifact_not_found'"
+    },
+    {
+      "identity_key": "50bc0f5c13cf488b",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-23.md' · entry='- what_changed: Implemented `validators/precondition_gate_validator.py` as an ex' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "7a71b86a9a6fce24",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-23.md' · entry='- what_changed: Patched `validators/precondition_gate_validator.py` with a minim' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "c60d243e593d08c1",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_artifact_not_found",
+      "display": "test_evidence_provenance_not_found · file='2026-04-23.md' · entry='- what_changed: Added a dedicated forbidden-claims effectiveness harness (`scrip' · reason='test_evidence_artifact_not_found'"
+    },
+    {
+      "identity_key": "8bfc1c7e21690ad4",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-04-24.md' · entry='- what_changed: Added an `AGENTS` calibration maturity classifier with `scaffold' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "6732ae013132f7ba",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-24.md' · entry='- what_changed: Added an `AGENTS` calibration maturity classifier with `scaffold' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "17be41736128b323",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-04-24.md' · entry='- what_changed: Extended `PLAN.md` with an `AGENTS.md Candidate Rule Promotion F' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "f4762626f8d34566",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-04-24.md' · entry='- what_changed: Landed the first `AGENTS` rule-promotion schema slice by adding ' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "233da6854603bbbe",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-24.md' · entry='- what_changed: Landed the first `AGENTS` rule-promotion schema slice by adding ' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "1e13e7661e997441",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-04-24.md' · entry='- what_changed: Tightened the `AGENTS` rule-promotion schema so candidate identi' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "8e61f8f2424a8150",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-24.md' · entry='- what_changed: Tightened the `AGENTS` rule-promotion schema so candidate identi' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "d830bed691dc269a",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-04-24.md' · entry='- what_changed: Added an `AGENTS` rule evidence aggregation contract covering un' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "de60c9c39fbd11c6",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-24.md' · entry='- what_changed: Added an `AGENTS` rule evidence aggregation contract covering un' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "79efe8f3b3aa87f1",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-04-24.md' · entry='- what_changed: Added the persisted `AGENTS` rule aggregation artifact contract ' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "c57652780afe1b53",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-24.md' · entry='- what_changed: Added the persisted `AGENTS` rule aggregation artifact contract ' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "9f1478f24d015993",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-24.md' · entry='- what_changed: Added `agents_rule_candidates_inspector.py` as a read-only inspe' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "432c109338b36fb5",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-24.md' · entry='- what_changed: Added governance version compatibility check (two-manifest model' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "5111e5c6a95642e9",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-24.md' · entry='- what_changed: Added P5a dry-run advisory integration in session_start.py. `_ru' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "9c455474c9443435",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-04-24.md' · entry='- what_changed: Implemented P5b-1 `unsupported -> controlled refusal` in `runtim' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "93579f1e15a3d563",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-24.md' · entry='- what_changed: Implemented P5b-1 `unsupported -> controlled refusal` in `runtim' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "b6cc178295dc130f",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-04-24.md' · entry='- what_changed: Implemented P5b-2 `migration_required -> legacy_only` in `runtim' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "b65fcd40a21faca0",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-24.md' · entry='- what_changed: Implemented P5b-2 `migration_required -> legacy_only` in `runtim' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "af905d3af844139f",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-04-24.md' · entry='- what_changed: Added `Legacy Capability Policy v0.1` as an explicit contract fo' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "ab15f48125828f4f",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-24.md' · entry='- what_changed: Added `Legacy Capability Policy v0.1` as an explicit contract fo' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "3dba7a5fc2e58ffd",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-04-24.md' · entry='- what_changed: Opened `Runtime Phase Execution Policy v0.1` as a separate slice' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "6cf8aa1139c43540",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-24.md' · entry='- what_changed: Opened `Runtime Phase Execution Policy v0.1` as a separate slice' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "a0ba853e8500b989",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-04-24.md' · entry='- what_changed: Added `Runtime Phase Policy Misuse Guard Tests` by hardening `go' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "3a67fe9119e850f7",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-04-24.md' · entry='- what_changed: Added `Runtime Phase Policy Misuse Guard Tests` by hardening `go' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "e098592e5a346c9e",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-04-28.md' · entry='- what changed: Converged E1 Phase 2 Safety Contract into PLAN.md. Hardened SC-7' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "a273d51c495e5653",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-28.md' · entry='- what changed: enforced in-repo cross-agent memory authority. Added explicit AG' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "548013f4d0ea0b4f",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-28.md' · entry='- what changed: implemented E1B trust-root hardening v0.2 transition slice: `ass' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "86dfe7b4c3c6d0c6",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-28.md' · entry='- what changed: wired strict register mode into release/promotion consumer decis' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "3b56259b381ab59e",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-28.md' · entry='- what changed: implemented E1C `Single Rollout Policy Source` via `authority_ro' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "bce336917753cced",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-28.md' · entry='- what changed: advanced Phase E by adding `validators/spec_ambiguity_validator.' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "83aa4aa0b60291c7",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-28.md' · entry='- what changed: added weak-agent governance hardening baseline. New `GOVERNANCE_' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "ba9fef03309f5b51",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-28.md' · entry='- what changed: hardened weak-agent governance entry to reduce inference freedom' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "c4e5b99e090ad118",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-28.md' · entry='- what changed: implemented Phase E E3 `production_learning_contract` advisory a' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "818d1c555be71040",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-28.md' · entry='- what changed: hardened constitutional anti-hallucination contract semantics. R' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "b82ce34a7b1c658c",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-28.md' · entry='- what changed: added legal clarity baseline by introducing root `LICENSE` under' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "bc3001aaff3ed610",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-28.md' · entry='- what changed: added `docs/ab-smoke-test-plan.md` for governance behavior valid' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "c424ae976a0e4a3c",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-28.md' · entry='- what changed: hardened A/B protocol credibility by adding `docs/ab-baseline-sa' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "021ce5bfa7e6675c",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-28.md' · entry='- what changed: strengthened A/B credibility model by adding semantic neutraliza' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "445b70d3e6edb28a",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-28.md' · entry='- what changed: implemented `governance_tools/ab_baseline_validator.py` + `tests' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "86777ac1db11c0ac",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-28.md' · entry='- what changed: added `docs/ab-smoke-test-runbook.md` to lock execution protocol' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "bfb6e643f169589e",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-28.md' · entry='- what changed: added `docs/ab-smoke-artifact-schema.md` and linked it from runb' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "9c208e992a3e7719",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: executed Round 0 pilot protocol validation on `examples/usb-hub-' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "8fa1c42a33fa4849",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: implemented `governance_tools/ab_smoke_artifact_validator.py` wi' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "d8fff2743fa776a8",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: executed Round 1 smoke comparison on `todo-app-demo` and `cpp-us' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "4f5e21a451a7a5c5",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: added `docs/ab-round1-review.md` to formalize Round 1 gate decis' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "91089963d1759fb5",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: executed Round 1.5 reviewer challenge hardening. Strengthened go' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "4455f8beede08270",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: completed Round 1 contract refinement before Round 2. Split Task' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "e21e575fd25228d4",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: regenerated Round 1 artifacts after contract refinement. Updated' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "ed4f1bb79a48556d",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: aligned reviewer state surface after external GitHub recheck. Up' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "030f24b03f22f9de",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: added docs/ab-round2-pass-criteria.md before Round 2 execution t' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "d778f332c4e938c3",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: updated Round 2 execution pairing and gate semantics after revie' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "2092e7f21c407cbc",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: added fixed prompt lock as final pre-run gate before Round 2 exe' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "9f544de43eca0474",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: executed Round 2 run artifacts for ' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "54dcd6adf5b55d59",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: tightened Round 2 replay claim boundary after reviewer check. Up' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "d82efe22071162d2",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: aligned A/B evidence semantics to separate fixture replay from l' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "9f58158bab49dc25",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: added execution parity as mandatory pre-run gate before Round 2B' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "f8bef8cb9ff4d525",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: added unified epistemic-boundary wording across baseline/flow/re' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "de934e16ee01a109",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: started Round 2B live execution with required gate order and rec' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "f5aa05be61fb4c6d",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: switched Round 2B review posture from single-verdict to multi-ax' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "d24aa33093310eba",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: strengthened Round 2B falsification reviewer contract by adding ' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "3cd52cffab0c40e4",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: executed usb-only Round 2B single-session live attempt (2026-04-' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "854e7fdc65ef35a2",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: added Round 2B live-003 dual-fresh-session operator handoff temp' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "ca5808554d223544",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: completed reviewer falsification matrix for `round2b-live-003` u' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "0d80dcf3b755fb22",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: reviewer reconciliation update for `round2b-live-003`: added exp' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "e80ef722a5ebe0ae",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: finalized Round 2B live-003 falsification closeout posture with ' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "3eb4c9b223e97703",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-29.md' · entry='- what changed: published claim-boundary constitution and parity-valid Round 2B ' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "a377f9f2bb5223ef",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-30.md' · entry='- what changed: created pilot closeout and expansion runbook artifacts for claim' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "7caf35596c9fc5d0",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-30.md' · entry='- what changed: added `docs/CLAIM_ENFORCEMENT_RELEASE_NOTE_2026-04-30.md` as sin' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "13af842b11a9c33f",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-30.md' · entry='- what changed: implemented `governance_tools/claim_enforcement_checker.py` (wit' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "38ec76750b9bde9c",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-30.md' · entry='- what changed: published deterministic claim-enforcement checker with BOM-safe ' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "3551a4a8181a94cd",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-30.md' · entry='- what changed: upgraded claim-enforcement governance from binary gate to graded' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "92dc5c31821ec7d1",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-30.md' · entry='- what changed: upgraded `claim_enforcement_checker.py` to emit decision-binding' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "4ef366519cca68f5",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-30.md' · entry='- what changed: added future hard-gate claim-binding fields to `closeout_audit` ' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "7d297498446f42af",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-30.md' · entry='- what changed: added opt-in hard gate switch `--require-claim-binding` to `clos' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "598cdc093bcb992c",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-30.md' · entry='- what changed: strengthened claim-binding audit with override quality enforceme' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "28af2c5bdd9dfbf1",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-04-30.md' · entry='- what changed: validated claim-binding adoption slice by adding closeout audit ' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "7915d82fda19e2a8",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-04-30.md' · entry='- what changed: locked Phase boundary statement (`Phase 1: CLOSED`, `Phase 2: EN' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "4d2df71312423dc3",
+      "code": "test_evidence_provenance_not_found",
+      "count": 2,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-05-03.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "a6645d227e997bc6",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "read_error: 'utf-8' codec can't decode byte 0xa1 in position 849: invalid start byte",
+      "display": "unbound_memory · file='2026-05-04.md' · reason=\"read_error: 'utf-8' codec can't decode byte 0xa1 in position 849: invalid start byte\""
+    },
+    {
+      "identity_key": "2e4d4fd5e2cb086d",
+      "code": "unbound_memory",
+      "count": 2,
+      "reason": "session_id_provenance_not_found",
+      "display": "unbound_memory · file='2026-05-05.md' · entry='- memory_type: session-derived' · reason='session_id_provenance_not_found'"
+    },
+    {
+      "identity_key": "22fd05d06bcaf109",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-05-05.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "e56834979dc8c2b6",
+      "code": "non_canonical_writer",
+      "count": 22,
+      "reason": "session_derived_entry_not_written_by_memory_record",
+      "display": "non_canonical_writer · file='2026-05-05.md' · entry='- memory_type: session-derived' · reason='session_derived_entry_not_written_by_memory_record'"
+    },
+    {
+      "identity_key": "1b56c8e04dccc849",
+      "code": "unbound_memory",
+      "count": 14,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-05.md' · entry='- memory_type: session-derived' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "b88d578ac0945848",
+      "code": "unbound_memory",
+      "count": 6,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-05.md' · entry='- memory_type: post-push' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "8c5504809183da70",
+      "code": "test_evidence_provenance_not_found",
+      "count": 2,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-05-05.md' · entry='- memory_type: post-push' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "0d3caeae53a21a2f",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_uncommitted_no_session_id",
+      "display": "unbound_memory · file='2026-05-05.md' · entry='- memory_type: session-derived' · reason='commit_uncommitted_no_session_id'"
+    },
+    {
+      "identity_key": "7221c29ccd29e5ed",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-05.md' · entry='- memory_type: closeout' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "06d1271e1ac1aedc",
+      "code": "unbound_memory",
+      "count": 4,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-05-06.md' · entry='- memory_type: session-derived' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "a629f19330157255",
+      "code": "non_canonical_writer",
+      "count": 5,
+      "reason": "session_derived_entry_not_written_by_memory_record",
+      "display": "non_canonical_writer · file='2026-05-06.md' · entry='- memory_type: session-derived' · reason='session_derived_entry_not_written_by_memory_record'"
+    },
+    {
+      "identity_key": "8e3d179d17175f53",
+      "code": "unbound_memory",
+      "count": 11,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-06.md' · entry='- memory_type: post-push' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "1f0880a2a53751f4",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-06.md' · entry='- memory_type: session-derived' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "29115abffa7b5e91",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-05-07.md' · entry='- memory_type: session-derived' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "634fd4f574191d99",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "session_derived_entry_not_written_by_memory_record",
+      "display": "non_canonical_writer · file='2026-05-07.md' · entry='- memory_type: session-derived' · reason='session_derived_entry_not_written_by_memory_record'"
+    },
+    {
+      "identity_key": "322e23123c20d8ed",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-05-08.md' · entry='- memory_type: session-derived' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "bfabd80cc3d49647",
+      "code": "non_canonical_writer",
+      "count": 2,
+      "reason": "session_derived_entry_not_written_by_memory_record",
+      "display": "non_canonical_writer · file='2026-05-08.md' · entry='- memory_type: session-derived' · reason='session_derived_entry_not_written_by_memory_record'"
+    },
+    {
+      "identity_key": "75a46fb65f738e70",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-08.md' · entry='- memory_type: session-derived' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "d15f43b5a510112d",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-08.md' · entry='- memory_type: post-push' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "80b059f18489d4a3",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-11.md' · entry='- memory_type: session-derived' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "249f0156be102805",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "session_derived_entry_not_written_by_memory_record",
+      "display": "non_canonical_writer · file='2026-05-11.md' · entry='- memory_type: session-derived' · reason='session_derived_entry_not_written_by_memory_record'"
+    },
+    {
+      "identity_key": "1f109e0b8c2ef898",
+      "code": "unbound_memory",
+      "count": 12,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-11.md' · entry='- memory_type: post-push' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "a263cc8e607d47c2",
+      "code": "test_evidence_provenance_not_found",
+      "count": 5,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-05-11.md' · entry='- memory_type: post-push' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "83c3deb70e01b9f4",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-12.md' · entry='- memory_type: session-derived' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "f5df8e7d7a3f0f66",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "session_derived_entry_not_written_by_memory_record",
+      "display": "non_canonical_writer · file='2026-05-12.md' · entry='- memory_type: session-derived' · reason='session_derived_entry_not_written_by_memory_record'"
+    },
+    {
+      "identity_key": "d3a8cb79f28a90fd",
+      "code": "unbound_memory",
+      "count": 9,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-12.md' · entry='- memory_type: post-push' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "8ffad4a91ba2871c",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-05-12.md' · entry='- memory_type: post-push' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "7487ae8355b85620",
+      "code": "unbound_memory",
+      "count": 2,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-12.md' · entry='- memory_type: decision-log' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "0a6b724c00303fd7",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-05-12.md' · entry='- memory_type: session-recovery' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "e4fd5a9c396676a3",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-12.md' · entry='- memory_type: cross-repo-sync' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "4c18fa8e465575a0",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-13.md' · entry='- memory_type: planning' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "be42001866d7747a",
+      "code": "unbound_memory",
+      "count": 10,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-13.md' · entry='- memory_type: post-push' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "ba5d30755f8fa6ce",
+      "code": "unbound_memory",
+      "count": 3,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-13.md' · entry='- memory_type: implementation' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "c8c58c46e950097f",
+      "code": "unbound_memory",
+      "count": 2,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-13.md' · entry='- memory_type: docs-hardening' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "caf5a3ffc7a6b8b8",
+      "code": "unbound_memory",
+      "count": 2,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-13.md' · entry='- memory_type: docs-boundary' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "e74ebf34f122ab26",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-13.md' · entry='- memory_type: decision-log' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "1b9b236744537f14",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-05-13.md' · entry='- memory_type: implementation' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "553f8f85ad041fd7",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-05-13.md' · entry='- memory_type: post-push' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "8d5d65d318a8fb97",
+      "code": "unbound_memory",
+      "count": 2,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-13.md' · entry='- memory_type: design-change' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "b577ce25f6a7694a",
+      "code": "unbound_memory",
+      "count": 10,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-14.md' · entry='- memory_type: implementation' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "957df04f2afa1d53",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-14.md' · entry='- memory_type: post-push' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "8fb46b526d62384a",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-05-14.md' · entry='- memory_type: post-push' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "20cebf0838c9628a",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-14.md' · entry='- memory_type: analysis' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "49cd2c9a2fe00091",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-14.md' · entry='- memory_type: planning' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "3095636976d8c1bf",
+      "code": "unbound_memory",
+      "count": 10,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-15.md' · entry='- memory_type: implementation' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "c7ddd927d4cc7b1a",
+      "code": "unbound_memory",
+      "count": 2,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-15.md' · entry='- memory_type: post-push' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "f6ea1e9f7209a36c",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-15.md' · entry='- memory_type: cross-repo-replication' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "917cb1fc989716e8",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-15.md' · entry='- memory_type: cross-repo-runtime-authority' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "577bb09ff50fb798",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-15.md' · entry='- memory_type: timeline-bridge' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "7c9d41f2e269b313",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-15.md' · entry='- memory_type: freeze_package' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "c0515cfb255c8b70",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-15.md' · entry='- memory_type: mainline_risk_progress' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "25d9045c7f8043f5",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-16.md' · entry='- memory_type: r50-opening' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "c3231a3c7b3c9320",
+      "code": "unbound_memory",
+      "count": 7,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-16.md' · entry='- memory_type: governance_decision' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "484e7e7cf63ee6ea",
+      "code": "unbound_memory",
+      "count": 2,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-16.md' · entry='- memory_type: implementation' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "a5b8c44db051feba",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-17.md' · entry='- memory_type: implementation' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "d31ab87fc559f3ed",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-18.md' · entry='- what_changed: Added `_latest_receipt_checksum()` and stale-duplicate guard in ' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "d1bbbb3adeb8d5bd",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-18.md' · entry='- what_changed: Added `_latest_receipt_checksum()` and stale-duplicate guard in ' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "65bba5d8ed23cc24",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-18.md' · entry='- what_changed: Added `_closeout_file_is_gitignored()` helper (subprocess git ch' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "bb3fc9db9c54cbb0",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-18.md' · entry='- what_changed: Added `_closeout_file_is_gitignored()` helper (subprocess git ch' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "a9b398d9a1f6a5bb",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-18.md' · entry='- what_changed: Created `governance_tools/gap_disposition_reader.py` (Layer 3 co' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "32150d6f58520b17",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-18.md' · entry='- what_changed: Created `governance_tools/gap_disposition_reader.py` (Layer 3 co' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "ae853db17a9728b0",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-18.md' · entry='- what_changed: Added `observed_gap_id` field to `ObservationRecord` in `E:\\\\Back' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "509bfbaa76692b0a",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-18.md' · entry='- what_changed: Added `observed_gap_id` field to `ObservationRecord` in `E:\\\\Back' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "ad475779706ac990",
+      "code": "test_evidence_provenance_not_found",
+      "count": 3,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-05-20.md' · entry='- memory_type: manual' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "7f81bcb94db2141e",
+      "code": "unbound_memory",
+      "count": 6,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-05-21.md' · entry='- memory_type: manual' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "ea21d983f264fe0d",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-05-21.md' · entry='- memory_type: manual' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "75b00a2d18451b4c",
+      "code": "unbound_memory",
+      "count": 7,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-05-22.md' · entry='- memory_type: manual' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "4c677ffae8a1477f",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-22.md' · entry='- memory_type: manual' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "69206b3225c81892",
+      "code": "unbound_memory",
+      "count": 6,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-25.md' · entry='- memory_type: manual' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "af1415e1b8c2b62d",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-05-25.md' · entry='- memory_type: manual' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "72681eff58707f8f",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-05-26.md' · entry='- what changed: Added mandatory governance surface expansion gate in governance/' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "9e4d10778c2c7c0d",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-26.md' · entry='- what changed: Added mandatory governance surface expansion gate in governance/' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "374bcd5a31c088a4",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-05-27.md' · entry='- what changed: Refreshed README as a clean entrypoint and added long-form frame' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "53577e738a68d9c6",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-27.md' · entry='- what changed: Refreshed README as a clean entrypoint and added long-form frame' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "5f074b672f446e9a",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-27.md' · entry='- what changed: README bilingual (ZH+EN) refresh with aligned governance semanti' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "b05610a9c03be830",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-27.md' · entry='- what changed: README bilingual (ZH+EN) refresh with aligned governance semanti' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "c52d40d23c2d8d84",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-27.md' · entry='- what changed: added governance artifact discipline index in README + minimal r' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "3555db40cfc2c5dd",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-27.md' · entry='- what changed: added governance artifact discipline index in README + minimal r' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "79429f4bafc224a8",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-27.md' · entry='- what changed: normalized README encoding to UTF-8 no BOM; wired reason_code_ve' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "7609a4550a6ca3a1",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-27.md' · entry='- what changed: normalized README encoding to UTF-8 no BOM; wired reason_code_ve' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "56f2cf01e1abb3c9",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-27.md' · entry='- what changed: added realistic gate_policy negative regression and minimal retr' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "76cb8e72f0377b06",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-27.md' · entry='- what changed: added realistic gate_policy negative regression and minimal retr' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "fa5b0062200411b2",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-27.md' · entry='- what changed: wired reason_code_verifier into verify_phase_gates.sh to align p' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "6fe74b28778aedc9",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-27.md' · entry='- what changed: wired reason_code_verifier into verify_phase_gates.sh to align p' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "6a1a1dbbb5aa3849",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-27.md' · entry='- what changed: implemented v0.1-final matrix extensions (remediation mapping, b' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "76c1a993948f5b86",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-27.md' · entry='- what changed: implemented v0.1-final matrix extensions (remediation mapping, b' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "3f6cf418584a438c",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-27.md' · entry='- what changed: deduplicated merged fleet rows by repo path in matrix output (Sp' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "899a586489c44790",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-27.md' · entry='- what changed: deduplicated merged fleet rows by repo path in matrix output (Sp' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "55e7853ff97e77f4",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-27.md' · entry='- what changed: adoption packet before/after signal table now auto-fills observe' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "e4fe1a5a5d1335b3",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-27.md' · entry='- what changed: adoption packet before/after signal table now auto-fills observe' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "d8078b370b8a6a11",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-05-27.md' · entry='- what changed: hardened matrix mutation probes to tolerate permission-denied on' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "d727a99e978bc6dd",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-27.md' · entry='- what changed: hardened matrix mutation probes to tolerate permission-denied on' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "fbc4d3297ae127cd",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-05-27.md' · entry='- what changed: completed v0.1-final lock backfill for 9 unknown-drift repos (Sp' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "d1e590e628486b1e",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-27.md' · entry='- what changed: completed v0.1-final lock backfill for 9 unknown-drift repos (Sp' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "4dba027f8626ec1a",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-05-27.md' · entry='- what changed: fixed matrix git HEAD detection with safe.directory-aware git ca' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "484b3f3eba51f241",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-27.md' · entry='- what changed: fixed matrix git HEAD detection with safe.directory-aware git ca' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "9771c54d2c51634f",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-05-27.md' · entry='- what changed: added read-only required freshness probe (7d window remaining da' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "0cfa9bc4e09931a2",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-27.md' · entry='- what changed: added read-only required freshness probe (7d window remaining da' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "30af5786dde26c05",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-05-27.md' · entry='- what changed: integrated required freshness probe into heartbeat workflow as o' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "90e9ef38048fb46d",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-27.md' · entry='- what changed: integrated required freshness probe into heartbeat workflow as o' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "8124e644e55369bf",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-05-27.md' · entry='- what changed: added one-command latest governance onboarding runner (plan/appl' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "0e2f997196e134ce",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-27.md' · entry='- what changed: added one-command latest governance onboarding runner (plan/appl' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "eed25c6234d94ae7",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-05-27.md' · entry='- what changed: fixed pre-push daily-memory detection fallback for empty stdin a' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "68327c4147b61cc3",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-27.md' · entry='- what changed: fixed pre-push daily-memory detection fallback for empty stdin a' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "74332189e148bd4b",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-05-27.md' · entry='- what changed: onboarding wrapper now auto-injects framework PYTHONPATH and res' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "99255742d4a1978e",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-27.md' · entry='- what changed: onboarding wrapper now auto-injects framework PYTHONPATH and res' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "5808c59f052a76a5",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-05-27.md' · entry='- what changed: fixed onboarding head_ok false-negative by adding safe.directory' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "a967687bc5ab0154",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-27.md' · entry='- what changed: fixed onboarding head_ok false-negative by adding safe.directory' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "8a4ab95f3104e688",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-05-28.md' · entry='- what changed: fixed onboarding hook detector to resolve framework-local manage' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "e20c92855cc5bfc9",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-28.md' · entry='- what changed: fixed onboarding hook detector to resolve framework-local manage' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "f777d7c942467ddc",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-05-28.md' · entry='- what changed: prepared dual-remote publish for detector reliability fix + fres' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "208934cf18180388",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-28.md' · entry='- what changed: prepared dual-remote publish for detector reliability fix + fres' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "703a702930d6577c",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-05-28.md' · entry='- what changed: completed apply for recommended tier (SpecAuthority/Enumd/Mirra/' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "3c12cbb6460292a5",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-28.md' · entry='- what changed: completed apply for recommended tier (SpecAuthority/Enumd/Mirra/' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "f47727faf5884b03",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-05-28.md' · entry='- what changed: completed 1-3 follow-up: regenerated matrix baseline, added scri' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "16c9a31ae97d01a6",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-28.md' · entry='- what changed: completed 1-3 follow-up: regenerated matrix baseline, added scri' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "e824fbeaf3745e68",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-05-28.md' · entry='- what changed: added structured memory_authority markers to workspace/repo gove' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "6b6dcecf43322f62",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-28.md' · entry='- what changed: added structured memory_authority markers to workspace/repo gove' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "4ad485b26f2e62e5",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-05-29.md' · entry='- what changed: fixed drift_status logic in governance_repo_matrix_20260525.ps1 ' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "a5366539be760174",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-29.md' · entry='- what changed: fixed drift_status logic in governance_repo_matrix_20260525.ps1 ' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "26cc0ae23bfb545a",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-05-29.md' · entry='- what changed: added total_tokens per-run display — _run_token_rows now selects' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "55e1df6371b2047f",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-29.md' · entry='- what changed: added total_tokens per-run display — _run_token_rows now selects' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "f7f3434f6af5dc34",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-05-29.md' · entry='- what changed: added Class C Claude Code JSONL auto-detection adapter — codebur' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "7c3145481f470354",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-29.md' · entry='- what changed: added Class C Claude Code JSONL auto-detection adapter — codebur' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "57262d9e3c191971",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_pending_no_session_id",
+      "display": "unbound_memory · file='2026-05-29.md' · entry='- what changed: refreshed gl_electron_tool closeout at current HEAD; head_mismat' · reason='commit_hash_pending_no_session_id'"
+    },
+    {
+      "identity_key": "4539a27fa7cf2304",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-29.md' · entry='- what changed: refreshed gl_electron_tool closeout at current HEAD; head_mismat' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "1afa776f9989530f",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-05-29.md' · entry='- what changed: CP-8 Copilot billing receipt contract v0.2 — codeburn/phase2/cop' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "ee0b3eeae465d2f5",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-29.md' · entry='- what changed: CP-8 Copilot billing receipt contract v0.2 — codeburn/phase2/cop' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "834751f7d1811e9f",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-05-29.md' · entry='- what changed: /wrap-up session_id lifecycle fix — root cause was session_id ge' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "689f31a15e38e76d",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-29.md' · entry='- what changed: /wrap-up session_id lifecycle fix — root cause was session_id ge' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "565e20943b89446b",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-05-29.md' · entry='- what changed: /wrap-up E2E smoke tests — tests/test_wrapup_e2e_smoke.py (6 int' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "dc859e0918cf6ae9",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-29.md' · entry='- what changed: /wrap-up E2E smoke tests — tests/test_wrapup_e2e_smoke.py (6 int' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "ac4eaf74061cb032",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-05-29.md' · entry='- what changed: CP-9 Copilot billing receipt-only closeout consumer — codeburn/p' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "8f7d5ab3629b7937",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-29.md' · entry='- what changed: CP-9 Copilot billing receipt-only closeout consumer — codeburn/p' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "ef9be27039a62d86",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-05-29.md' · entry='- what changed: CP-10 Copilot billing closeout authority artifact — codeburn/pha' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "7337866aec03d18e",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-29.md' · entry='- what changed: CP-10 Copilot billing closeout authority artifact — codeburn/pha' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "1a44f550ff7c6cee",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-05-29.md' · entry='- what changed: memory authority observation surface — added _collect_memory_aut' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "2409bd4778cd4e8a",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-29.md' · entry='- what changed: memory authority observation surface — added _collect_memory_aut' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "dddb526beb7c62f0",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-05-29.md' · entry='- what changed: governance consumption gap fix — A1: AGENTS.md added \"Review Tas' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "7eebdc030831cbbf",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-29.md' · entry='- what changed: governance consumption gap fix — A1: AGENTS.md added \"Review Tas' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "e59c121ff932bbe5",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-05-29.md' · entry='- what changed: closeout receipt E1+E2 — added _verify_memory_write_claim() (5 r' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "4a70697376c21786",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-29.md' · entry='- what changed: closeout receipt E1+E2 — added _verify_memory_write_claim() (5 r' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "15de9d784e439916",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-05-29.md' · entry='- what changed: Hearth governance CI fix — .gitmodules URL corrected from intern' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "e332c71e05daa126",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-29.md' · entry='- what changed: Hearth governance CI fix — .gitmodules URL corrected from intern' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "596332af70063ba2",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-29.md' · entry='- what changed: P0 fix — reason_code_verifier.py graceful skip when canonical-au' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "74c913918eb961e7",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-30.md' · entry='- what_changed: P1 hook missing artifact 分析完畢 — 確認 P1（pre-push hook 在 artifact 不' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "c1b0c81c02ed8384",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-30.md' · entry='- what_changed: P1 hook missing artifact 分析完畢 — 確認 P1（pre-push hook 在 artifact 不' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "1d25adf4a00a7464",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-30.md' · entry='- what_changed: 4 repos governance 狀態確認 + commit/push 完成 — meiandraybook (cdfcc5' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "9a1f8e9aa5e5ff57",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-30.md' · entry='- what_changed: 4 repos governance 狀態確認 + commit/push 完成 — meiandraybook (cdfcc5' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "b22eb8d54669f8aa",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-05-30.md' · entry='- what_changed: Canonical Memory Writer Enforcement Phase 1 complete (commit 0d7' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "d42de7fce01f611f",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-30.md' · entry='- what_changed: Canonical Memory Writer Enforcement Phase 1 complete (commit 0d7' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "34ca17e2afcddb44",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "no_anchor",
+      "display": "unbound_memory · file='2026-05-30.md' · entry='- what_changed: pre-existing failure triage complete — runtime_smoke (2) + trust' · reason='no_anchor'"
+    },
+    {
+      "identity_key": "4e13c33a840c08ce",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-05-30.md' · entry='- what_changed: pre-existing failure triage complete — runtime_smoke (2) + trust' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "fd65f0986963f577",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_no_session_id",
+      "display": "unbound_memory · file='2026-06-01.md' · entry='- what changed: git author fix + sync — rebased all commits from 5f3911bd onward' · reason='commit_hash_not_found_no_session_id'"
+    },
+    {
+      "identity_key": "d995b494d22e7d35",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-06-01.md' · entry='- what changed: git author fix + sync — rebased all commits from 5f3911bd onward' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "a4098698f0ed93f7",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-06-01.md' · entry='- what changed: Option B git author fix implemented — scripts/push-github.sh (au' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "d2f7b4080b45124a",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-06-01.md' · entry='- what changed: push-github.sh auto-stash — script now automatically stashes dir' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "4f7c84168c090927",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-06-01.md' · entry='- what changed: fix pre-existing trust_signal test failures — marked 10 live-rep' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "d0ae490c312a6259",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-06-01.md' · entry='- what changed: add token-aware DONE boundary rules to AGENTS.md — strengthen Ru' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "f3584c36f147d2c8",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-06-01.md' · entry='- what changed: fix B/A/C類 test failures — B類: add task_source_key to 3 shared e' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "a5291023a5611297",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-06-01.md' · entry='- what changed: codeburn phase2 copilot billing modules committed — copilot_bill' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "a22d94fa7a3cf502",
+      "code": "non_canonical_writer",
+      "count": 1,
+      "reason": "old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()",
+      "display": "non_canonical_writer · file='2026-06-01.md' · entry='- what changed: add phase2 copilot billing test suite (13 tests, 4 files) + giti' · reason='old_format_entry_after_canonical_writer_cutoff — use memory_record.append_session_derived_entry()'"
+    },
+    {
+      "identity_key": "72e13fce24c3a9f7",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-01.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "936f41283e3c6c8c",
+      "code": "test_evidence_provenance_not_found",
+      "count": 3,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-02.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "e4daa5fcd200e0ae",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "session_id_provenance_not_found",
+      "display": "unbound_memory · file='2026-06-03.md' · entry='- memory_type: session-derived' · reason='session_id_provenance_not_found'"
+    },
+    {
+      "identity_key": "80b276256cbba70a",
+      "code": "test_evidence_provenance_not_found",
+      "count": 7,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-03.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "3ad6286312a43f07",
+      "code": "test_evidence_provenance_not_found",
+      "count": 23,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-04.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "a5d699b7e8cecc2d",
+      "code": "test_evidence_provenance_not_found",
+      "count": 14,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-05.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "9abbea8ae7a1ddbc",
+      "code": "test_evidence_provenance_not_found",
+      "count": 4,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-06.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "7a2bd600769609d4",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_artifact_not_found",
+      "display": "test_evidence_provenance_not_found · file='2026-06-06.md' · entry='- memory_type: session-derived' · reason='test_evidence_artifact_not_found'"
+    },
+    {
+      "identity_key": "2297c318bf6c762e",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "session_id_provenance_not_found",
+      "display": "unbound_memory · file='2026-06-06.md' · entry='- memory_type: session-derived' · reason='session_id_provenance_not_found'"
+    },
+    {
+      "identity_key": "c95da58fd8e9bd86",
+      "code": "test_evidence_provenance_not_found",
+      "count": 2,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-07.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "4bc96ebd94ed4d2d",
+      "code": "test_evidence_provenance_not_found",
+      "count": 11,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-08.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "8cdba5f07f679f0e",
+      "code": "test_evidence_provenance_not_found",
+      "count": 5,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-09.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "663d9551a112c71d",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_session_id_provenance_not_found",
+      "display": "unbound_memory · file='2026-06-09.md' · entry='- memory_type: session-derived' · reason='commit_hash_not_found_session_id_provenance_not_found'"
+    },
+    {
+      "identity_key": "fcf8e7ee14dfcfba",
+      "code": "test_evidence_provenance_not_found",
+      "count": 7,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-10.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "00dd65b03187bcd0",
+      "code": "test_evidence_provenance_not_found",
+      "count": 15,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-11.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "d964c11bbfb52af0",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "session_id_provenance_not_found",
+      "display": "unbound_memory · file='2026-06-11.md' · entry='- memory_type: session-derived' · reason='session_id_provenance_not_found'"
+    },
+    {
+      "identity_key": "984371462dc2e046",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "commit_hash_not_found_session_id_provenance_not_found",
+      "display": "unbound_memory · file='2026-06-11.md' · entry='- memory_type: session-derived' · reason='commit_hash_not_found_session_id_provenance_not_found'"
+    },
+    {
+      "identity_key": "734cddd7c7b72e61",
+      "code": "unbound_memory",
+      "count": 4,
+      "reason": "session_id_provenance_not_found",
+      "display": "unbound_memory · file='2026-06-12.md' · entry='- memory_type: session-derived' · reason='session_id_provenance_not_found'"
+    },
+    {
+      "identity_key": "ba699d551cc48c72",
+      "code": "test_evidence_provenance_not_found",
+      "count": 5,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-12.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "90164d3fa2cc0de8",
+      "code": "unbound_memory",
+      "count": 14,
+      "reason": "session_id_provenance_not_found",
+      "display": "unbound_memory · file='2026-06-13.md' · entry='- memory_type: session-derived' · reason='session_id_provenance_not_found'"
+    },
+    {
+      "identity_key": "ee2e45a5b2818fc5",
+      "code": "test_evidence_provenance_not_found",
+      "count": 2,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-13.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "29c0aa1247baae1b",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-15.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "49021e6c5128fcbe",
+      "code": "test_evidence_provenance_not_found",
+      "count": 2,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-16.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "45457715937b82dd",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "session_id_provenance_not_found",
+      "display": "unbound_memory · file='2026-06-16.md' · entry='- memory_type: session-derived' · reason='session_id_provenance_not_found'"
+    },
+    {
+      "identity_key": "e86dfa95366a6cef",
+      "code": "unbound_memory",
+      "count": 7,
+      "reason": "session_id_provenance_not_found",
+      "display": "unbound_memory · file='2026-06-17.md' · entry='- memory_type: session-derived' · reason='session_id_provenance_not_found'"
+    },
+    {
+      "identity_key": "c4b4ac54c8274cf1",
+      "code": "test_evidence_provenance_not_found",
+      "count": 4,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-17.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "217287b252c52d0b",
+      "code": "unbound_memory",
+      "count": 5,
+      "reason": "session_id_provenance_not_found",
+      "display": "unbound_memory · file='2026-06-18.md' · entry='- memory_type: session-derived' · reason='session_id_provenance_not_found'"
+    },
+    {
+      "identity_key": "7b77e6f8d87bf7cc",
+      "code": "test_evidence_provenance_not_found",
+      "count": 3,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-18.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "269927e72688476d",
+      "code": "unbound_memory",
+      "count": 7,
+      "reason": "session_id_provenance_not_found",
+      "display": "unbound_memory · file='2026-06-19.md' · entry='- memory_type: session-derived' · reason='session_id_provenance_not_found'"
+    },
+    {
+      "identity_key": "914cec1452d0828f",
+      "code": "test_evidence_provenance_not_found",
+      "count": 11,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-19.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "e0287127d3585fb8",
+      "code": "test_evidence_provenance_not_found",
+      "count": 3,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-20.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "19f079ea5680aa3e",
+      "code": "test_evidence_provenance_not_found",
+      "count": 14,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-21.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "954755492398f494",
+      "code": "test_evidence_provenance_not_found",
+      "count": 7,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-22.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "f33a9ab0dba9c5b0",
+      "code": "unbound_memory",
+      "count": 2,
+      "reason": "session_id_provenance_not_found",
+      "display": "unbound_memory · file='2026-06-22.md' · entry='- memory_type: session-derived' · reason='session_id_provenance_not_found'"
+    },
+    {
+      "identity_key": "474339a268274d39",
+      "code": "test_evidence_provenance_not_found",
+      "count": 14,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-23.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "a1f238e30a12bb07",
+      "code": "unbound_memory",
+      "count": 3,
+      "reason": "session_id_provenance_not_found",
+      "display": "unbound_memory · file='2026-06-23.md' · entry='- memory_type: session-derived' · reason='session_id_provenance_not_found'"
+    },
+    {
+      "identity_key": "721e3b8f14308de9",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_artifact_not_found",
+      "display": "test_evidence_provenance_not_found · file='2026-06-24.md' · entry='- memory_type: session-derived' · reason='test_evidence_artifact_not_found'"
+    },
+    {
+      "identity_key": "44179af554329f75",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "session_id_provenance_not_found",
+      "display": "unbound_memory · file='2026-06-24.md' · entry='- memory_type: session-derived' · reason='session_id_provenance_not_found'"
+    },
+    {
+      "identity_key": "5ef2126e96910b02",
+      "code": "test_evidence_provenance_not_found",
+      "count": 3,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-24.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "5fe0e6287df3dc27",
+      "code": "test_evidence_provenance_not_found",
+      "count": 6,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-25.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "272b9e672664c23b",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "session_id_provenance_not_found",
+      "display": "unbound_memory · file='2026-06-25.md' · entry='- memory_type: session-derived' · reason='session_id_provenance_not_found'"
+    },
+    {
+      "identity_key": "195cd7bee4504eb5",
+      "code": "test_evidence_provenance_not_found",
+      "count": 15,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-26.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "57aca349cfd15c6f",
+      "code": "unbound_memory",
+      "count": 1,
+      "reason": "session_id_provenance_not_found",
+      "display": "unbound_memory · file='2026-06-27.md' · entry='- memory_type: session-derived' · reason='session_id_provenance_not_found'"
+    },
+    {
+      "identity_key": "aa43e9b6b7fa83e9",
+      "code": "test_evidence_provenance_not_found",
+      "count": 1,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-27.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "29cbf5a802e6209a",
+      "code": "test_evidence_provenance_not_found",
+      "count": 3,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-28.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "a74246f8dfe9390d",
+      "code": "test_evidence_provenance_not_found",
+      "count": 9,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-29.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "ad94f71dca50a9ed",
+      "code": "test_evidence_provenance_not_found",
+      "count": 9,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-06-30.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "624cc18a59117c56",
+      "code": "test_evidence_provenance_not_found",
+      "count": 8,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-07-01.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "2af592aaa098f4e6",
+      "code": "test_evidence_provenance_not_found",
+      "count": 28,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-07-02.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "129870dccd3aca13",
+      "code": "test_evidence_provenance_not_found",
+      "count": 16,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-07-03.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "c867d5be63e327c8",
+      "code": "test_evidence_provenance_not_found",
+      "count": 14,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-07-04.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "c8be82a0297f6cc0",
+      "code": "test_evidence_provenance_not_found",
+      "count": 15,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-07-05.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "8a771e9bbbe71fbb",
+      "code": "test_evidence_provenance_not_found",
+      "count": 33,
+      "reason": "test_evidence_success_claim_without_artifact",
+      "display": "test_evidence_provenance_not_found · file='2026-07-06.md' · entry='- memory_type: session-derived' · reason='test_evidence_success_claim_without_artifact'"
+    },
+    {
+      "identity_key": "b906bb2145a272e2",
+      "code": "structural_memory_auto_write",
+      "count": 1,
+      "reason": "not_yet_authoritative",
+      "display": "structural_memory_auto_write · file='00_long_term.md' · section='## Identity And Account Mapping' · reason='not_yet_authoritative'"
+    },
+    {
+      "identity_key": "b8e34aa53162b737",
+      "code": "structural_memory_auto_write",
+      "count": 1,
+      "reason": "not_yet_authoritative",
+      "display": "structural_memory_auto_write · file='00_long_term.md' · section='## Workflow Preferences' · reason='not_yet_authoritative'"
+    },
+    {
+      "identity_key": "4240c8a9bf69da79",
+      "code": "structural_memory_auto_write",
+      "count": 1,
+      "reason": "not_yet_authoritative",
+      "display": "structural_memory_auto_write · file='00_long_term.md' · section='## Governance State (cross-agent readable facts)' · reason='not_yet_authoritative'"
+    },
+    {
+      "identity_key": "395de4fe8ee50d95",
+      "code": "structural_memory_auto_write",
+      "count": 1,
+      "reason": "not_yet_authoritative",
+      "display": "structural_memory_auto_write · file='00_long_term.md' · section='## CodeBurn Phase 1 Status (2026-04-30)' · reason='not_yet_authoritative'"
+    },
+    {
+      "identity_key": "5719ad4eb35ed9ed",
+      "code": "structural_memory_auto_write",
+      "count": 1,
+      "reason": "not_yet_authoritative",
+      "display": "structural_memory_auto_write · file='00_long_term.md' · section='## Gate C Observation Governance Rules (2026-05-12)' · reason='not_yet_authoritative'"
+    },
+    {
+      "identity_key": "0461945104d43bbc",
+      "code": "structural_memory_auto_write",
+      "count": 1,
+      "reason": "not_yet_authoritative",
+      "display": "structural_memory_auto_write · file='00_long_term.md' · section='## Fleet Onboarding Design Patterns (observed 2026-05-25 to 2026-05-26)' · reason='not_yet_authoritative'"
+    }
+  ]
+}
