@@ -18,6 +18,7 @@ def test_runtime_surface_manifest_has_expected_first_slice_entries():
         "claude_code",
         "codex",
         "gemini",
+        "hermes",
     }
     assert {entry["entrypoint_name"] for entry in manifest["runtime_entrypoints"]} >= {
         "session_start",

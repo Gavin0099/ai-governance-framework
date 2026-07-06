@@ -56,6 +56,20 @@ KNOWN_ADAPTERS: dict[str, dict[str, Any]] = {
         ],
         "notes": "Harness-specific wrapper for Gemini payload normalization.",
     },
+    "hermes": {
+        "supported_events": ["pre_task", "post_task", "normalize_event"],
+        "normalizer_path": "runtime_hooks/adapters/hermes/normalize_event.py",
+        "runner_path": "runtime_hooks/adapters/shared_adapter_runner.py",
+        "contract_dependency": [
+            "runtime_hooks/ADAPTER_CONTRACT.md",
+            "runtime_hooks/event_contract.md",
+            "runtime_hooks/adapters/hermes/HERMES_RUNTIME_INTERFACE.md",
+        ],
+        "notes": (
+            "Accepted-input Hermes adapter surface with mock-backend smoke coverage; "
+            "does not claim verified external Hermes runtime integration."
+        ),
+    },
 }
 
 KNOWN_RUNTIME_ENTRYPOINTS: dict[str, dict[str, Any]] = {
