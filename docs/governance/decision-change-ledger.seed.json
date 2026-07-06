@@ -1,0 +1,473 @@
+{
+  "schema": "governance_decision_change_ledger.seed.v0.1",
+  "generated_date": "2026-07-06",
+  "source_commit": "06231a71fb10e0fdf8f1421c8a992fcdb9cfbd85",
+  "scope": {
+    "window": "recent memory and review records from 2026-07-05 through 2026-07-06",
+    "inputs": [
+      "memory/2026-07-05.md",
+      "memory/2026-07-06.md",
+      "governance/REVIEW_CRITERIA.md",
+      "governance_tools/change_control_summary.py",
+      "governance_tools/manual_update_advisory.py",
+      "governance_tools/update_receipt.py",
+      "consumer repos: governance/.update-receipt.json when present",
+      "artifacts/runtime/closeout-receipts/closeout_receipt_20260706T095958655133Z.json"
+    ],
+    "sampling_rule": "seed entries are hand-selected from recent high-signal records; this is not a full scan of all closeout receipts or all governance outputs"
+  },
+  "claim_ceiling": [
+    "seed artifact only",
+    "classifies recent evidence of decision effects",
+    "does not remove, retire, merge, downgrade, or enforce any defense",
+    "does not prove overall governance quality",
+    "does not prove every relevant decision-changing output was found"
+  ],
+  "decision_change_definition": {
+    "qualifies_when": [
+      "a governance output is identifiable",
+      "a later decision or action changes because of that output",
+      "the decision or action has a cited evidence reference"
+    ],
+    "qualifying_effects": [
+      "commit_blocked_or_delayed",
+      "push_blocked_or_delayed",
+      "scope_changed",
+      "implementation_changed",
+      "validation_changed",
+      "claim_ceiling_changed",
+      "followup_slice_opened",
+      "review_escalated",
+      "release_note_added",
+      "routing_or_promotion_changed"
+    ],
+    "does_not_qualify_when": [
+      "a warning was merely printed",
+      "a report was generated but no later action is evidenced",
+      "a tool exists but no load, call, or review path is evidenced",
+      "a duplicate rule exists only in a sidecar artifact that readers do not load"
+    ]
+  },
+  "ingestion_model": {
+    "output_line": {
+      "purpose": "classify defenses that produced visible outputs",
+      "inputs": [
+        "memory records",
+        "review findings",
+        "receipts",
+        "warnings",
+        "advisory reports",
+        "release-note dispositions"
+      ],
+      "can_classify": [
+        "decision_changing",
+        "decision_relevant_unacted",
+        "noisy",
+        "duplicate",
+        "unknown"
+      ],
+      "cannot_classify_by_itself": [
+        "zombie"
+      ]
+    },
+    "inventory_line": {
+      "purpose": "make zombie candidates visible by comparing a full defense inventory against observed outputs",
+      "inputs": [
+        "governance_tools inventory",
+        "governance docs and protocols",
+        "managed instruction surfaces",
+        "hook and CI entrypoints"
+      ],
+      "status_in_this_seed": "not_run",
+      "required_before_retire": true
+    }
+  },
+  "entry_field_definitions": {
+    "frequency_class": {
+      "routine": "Expected to produce frequent operational output.",
+      "rare_critical": "Expected to fire rarely but carry high consequence; do not retire solely because it has no recent output.",
+      "unknown": "Frequency expectation has not been classified."
+    }
+  },
+  "rare_critical_policy": {
+    "rule": "Human-only gates, safety boundaries, destructive-operation checks, and escalation surfaces must not be retired only because they did not fire in the sampled window.",
+    "required_evidence_for_retire": [
+      "inventory-line evidence that the defense is unreachable or superseded",
+      "a focused review of its safety role",
+      "replacement or explicit human decision"
+    ]
+  },
+  "classification_rules": {
+    "decision_changing": "Output has evidence of changing scope, implementation, validation, claim ceiling, release note, review verdict, commit, push, or next slice.",
+    "decision_relevant_unacted": "Output identifies a plausible issue, but the record shows owner decision or follow-up is still pending.",
+    "noisy": "Output fires or appears in artifacts but current evidence does not show it changed a decision.",
+    "zombie": "Defense exists in the full inventory but has no recent load, call, report, or decision path. This requires the inventory_line; output_line data alone cannot prove zombie status.",
+    "duplicate": "Same rule or guidance appears in multiple surfaces and should be merged around a canonical source before retirement.",
+    "unknown": "Evidence is insufficient to classify safely."
+  },
+  "recommended_action_rules": {
+    "keep": "Retain as-is or continue current use.",
+    "keep_observe": "Retain, but gather more evidence before promoting or retiring.",
+    "merge": "Consolidate into a canonical source or summary before changing status of source notes.",
+    "downgrade": "Keep visible but lower prominence, cadence, or claim strength.",
+    "retire_candidate": "Candidate for retirement after focused review; not retired by this seed.",
+    "investigate": "Open a read-only slice before changing behavior."
+  },
+  "entries": [
+    {
+      "id": "tsqa_false_green_review_to_bugfix",
+      "defense_id": "test_signal_quality_audit.fixture_classification",
+      "surface": "governance_tools/test_signal_quality_audit.py",
+      "output_type": "review finding",
+      "observed_output": "Review found false-green positive/negative fixture classification and placeholder misclassification risks.",
+      "decision_effect": "implementation_changed",
+      "classification": "decision_changing",
+      "recommended_action": "keep",
+      "confidence": "confirmed",
+      "rationale": "The review finding caused a focused bugfix commit and new regression coverage.",
+      "evidence_refs": [
+        "memory/2026-07-06.md:79-85"
+      ],
+      "claim_ceiling": "Proves this diagnostic changed a bugfix decision, not that test suites are industry-grade."
+    },
+    {
+      "id": "tsqa_fixture_association_dogfood_to_fix",
+      "defense_id": "test_signal_quality_audit.fixture_association",
+      "surface": "governance_tools/test_signal_quality_audit.py",
+      "output_type": "dogfood report",
+      "observed_output": "Dogfood found fixture association false negatives in representative contract repos.",
+      "decision_effect": "implementation_changed",
+      "classification": "decision_changing",
+      "recommended_action": "keep",
+      "confidence": "confirmed",
+      "rationale": "Dogfood output led to fixture_manifest mapping, safe aliases, ambiguous-match reporting, and focused tests.",
+      "evidence_refs": [
+        "memory/2026-07-06.md:103-109"
+      ],
+      "claim_ceiling": "Fixture association accuracy improved; validator execution remains unproven."
+    },
+    {
+      "id": "tsqa_manifest_hardening_review_to_v02",
+      "defense_id": "test_signal_quality_audit.manifest_parser",
+      "surface": "governance_tools/test_signal_quality_audit.py",
+      "output_type": "review and dogfood correction",
+      "observed_output": "Review found manifest shape crash risk, expected_rule_ids fallback gap, and missing runner visibility.",
+      "decision_effect": "implementation_changed",
+      "classification": "decision_changing",
+      "recommended_action": "keep",
+      "confidence": "confirmed",
+      "rationale": "The output produced report v0.2, defensive parsing, fixture_runner visibility, cannot_claim refinement, and four pin tests.",
+      "evidence_refs": [
+        "memory/2026-07-06.md:139-145"
+      ],
+      "claim_ceiling": "Report-only diagnostic hardening only; no validator execution or enforcement claim."
+    },
+    {
+      "id": "semantic_test_quality_guidance_to_managed_surfaces",
+      "defense_id": "consumer_semantic_test_quality_guidance",
+      "surface": "governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md; baselines/repo-min/AGENTS.md; governance_tools/f7_full_update.py",
+      "output_type": "reviewed doctrine gap",
+      "observed_output": "Test-quality audit line showed TESTING.md doctrine was not visible at consumer implementation time.",
+      "decision_effect": "scope_changed",
+      "classification": "decision_changing",
+      "recommended_action": "keep",
+      "confidence": "confirmed",
+      "rationale": "The governance output caused semantic test-quality expectations to be moved into consumer-facing managed instruction surfaces.",
+      "evidence_refs": [
+        "memory/2026-07-06.md:127-133"
+      ],
+      "claim_ceiling": "Instruction visibility only; does not guarantee agent compliance or industry-grade tests."
+    },
+    {
+      "id": "manual_update_advisory_hook_import_to_fix",
+      "defense_id": "manual_update_advisory.pre_commit_hook",
+      "surface": "governance_tools/manual_update_advisory.py",
+      "output_type": "hook smoke failure",
+      "observed_output": "Enumd hook smoke showed manual_update_advisory failed from hook path due to PYTHONPATH import context.",
+      "decision_effect": "implementation_changed",
+      "classification": "decision_changing",
+      "recommended_action": "keep",
+      "confidence": "confirmed",
+      "rationale": "The hook smoke changed implementation by preserving PYTHONPATH around the pre-commit advisory call.",
+      "evidence_refs": [
+        "memory/2026-07-06.md:151-157"
+      ],
+      "claim_ceiling": "Hook import reliability only; advisory remains report-only."
+    },
+    {
+      "id": "r3_evidence_durability_warning_to_ci_parity",
+      "defense_id": "memory_authority_guard.test_evidence_provenance",
+      "surface": "governance_tools/memory_authority_guard.py; governance_tools/ci_memory_workflow_check.py",
+      "output_type": "red-team residual warning",
+      "observed_output": "R3 evidence durability bypass and CI warning parity gap were identified.",
+      "decision_effect": "implementation_changed",
+      "classification": "decision_changing",
+      "recommended_action": "keep",
+      "confidence": "confirmed",
+      "rationale": "The output led to a bypass fix and CI surfacing of test_evidence_provenance_not_found warnings.",
+      "evidence_refs": [
+        "memory/2026-07-06.md:19-25"
+      ],
+      "claim_ceiling": "Warning parity and durability hardening only; evidence truth is not proven."
+    },
+    {
+      "id": "memory_workflow_blocker_claim_consistency",
+      "defense_id": "memory_workflow.completion_claim_allowed",
+      "surface": "governance_tools/memory_workflow.py",
+      "output_type": "claim consistency finding",
+      "observed_output": "Policy-only blockers could leave completion_claim_allowed inconsistent.",
+      "decision_effect": "claim_ceiling_changed",
+      "classification": "decision_changing",
+      "recommended_action": "keep",
+      "confidence": "confirmed",
+      "rationale": "The finding changed completion-claim behavior so policy-only blockers make completion_claim_allowed false.",
+      "evidence_refs": [
+        "memory/2026-07-05.md:1-7"
+      ],
+      "claim_ceiling": "Completion claim consistency only; does not prove memory content quality."
+    },
+    {
+      "id": "f6_non_daily_memory_residual_to_detector",
+      "defense_id": "memory_workflow.non_daily_memory_warning",
+      "surface": "governance_tools/memory_authority_guard.py; governance_tools/memory_workflow.py; governance_tools/ci_memory_workflow_check.py",
+      "output_type": "red-team residual",
+      "observed_output": "Non-daily session-shaped memory files were outside daily-file B0 scan.",
+      "decision_effect": "followup_slice_opened",
+      "classification": "decision_changing",
+      "recommended_action": "keep_observe",
+      "confidence": "confirmed",
+      "rationale": "The residual produced a design slice and later a report-only warning detector without changing blocking policy.",
+      "evidence_refs": [
+        "memory/2026-07-05.md:31-61"
+      ],
+      "claim_ceiling": "Report-only visibility; F6 blocking and bypass-proofing remain unclaimed."
+    },
+    {
+      "id": "f2_disable_attestation_sequence",
+      "defense_id": "memory_policy_attestation.disable_receipt_warnings",
+      "surface": "governance_tools/memory_policy_attestation.py; governance_tools/ci_memory_workflow_check.py; governance_tools/memory_workflow.py",
+      "output_type": "strict fixture expectations and warning parity",
+      "observed_output": "Disable-policy attestation gaps were pinned by xfail fixtures, converted to report-only warnings, and surfaced across CI/workflow/pre-commit.",
+      "decision_effect": "implementation_changed",
+      "classification": "decision_changing",
+      "recommended_action": "keep_observe",
+      "confidence": "confirmed",
+      "rationale": "The sequence shows report-only outputs changing implementation while preserving blocker semantics.",
+      "evidence_refs": [
+        "memory/2026-07-05.md:91-133"
+      ],
+      "claim_ceiling": "Visibility and parity only; no true authorization or prevention proof."
+    },
+    {
+      "id": "design_note_classification_to_consolidation",
+      "defense_id": "docs_governance_design_note_classification",
+      "surface": "docs/governance/design-note-classification.json",
+      "output_type": "machine-readable classification",
+      "observed_output": "Docs/governance classification exposed active, superseded, historical, and proposal-only notes.",
+      "decision_effect": "followup_slice_opened",
+      "classification": "decision_changing",
+      "recommended_action": "keep",
+      "confidence": "confirmed",
+      "rationale": "The classification artifact drove retrieval-authority and cache-aware consolidation slices.",
+      "evidence_refs": [
+        "memory/2026-07-06.md:163-169",
+        "memory/2026-07-06.md:175-187",
+        "memory/2026-07-06.md:211-217"
+      ],
+      "claim_ceiling": "Classification guides consolidation; it does not itself remove or invalidate documents."
+    },
+    {
+      "id": "retrieval_authority_source_notes_to_summary",
+      "defense_id": "retrieval_authority_design_notes",
+      "surface": "docs/governance/retrieval-authority-*.md",
+      "output_type": "duplicate design cluster",
+      "observed_output": "Retrieval-authority notes were consolidated into a Round A summary and source-note pointers.",
+      "decision_effect": "scope_changed",
+      "classification": "duplicate",
+      "recommended_action": "merge",
+      "confidence": "confirmed",
+      "rationale": "The duplicate cluster changed reader routing but source notes were intentionally preserved.",
+      "evidence_refs": [
+        "memory/2026-07-06.md:175-187",
+        "memory/2026-07-06.md:223-229"
+      ],
+      "claim_ceiling": "Human-visible consolidation only; source notes are not retired by this entry."
+    },
+    {
+      "id": "cache_aware_source_notes_to_summary",
+      "defense_id": "cache_aware_design_notes",
+      "surface": "docs/governance/cache-aware-*.md",
+      "output_type": "duplicate design cluster",
+      "observed_output": "Cache-aware design notes were consolidated into Round B summary metadata and source-note pointers.",
+      "decision_effect": "scope_changed",
+      "classification": "duplicate",
+      "recommended_action": "merge",
+      "confidence": "confirmed",
+      "rationale": "The duplicate cluster changed reader routing but intentionally avoided archive/delete/frontmatter changes.",
+      "evidence_refs": [
+        "memory/2026-07-06.md:211-229"
+      ],
+      "claim_ceiling": "Consolidation pointer only; no source note is removed, archived, invalidated, or reclassified."
+    },
+    {
+      "id": "governance_overhead_review_to_ledger_slice",
+      "defense_id": "governance_surface_effectiveness_audit",
+      "surface": "memory/2026-07-06.md",
+      "output_type": "review conclusion",
+      "observed_output": "Review concluded consolidation only partly answers which defenses can merge and that decision-change measurement is the deeper priority.",
+      "decision_effect": "followup_slice_opened",
+      "classification": "decision_changing",
+      "recommended_action": "keep",
+      "confidence": "confirmed",
+      "rationale": "The review directly produced this decision-change ledger seed slice.",
+      "evidence_refs": [
+        "memory/2026-07-06.md:235-241"
+      ],
+      "claim_ceiling": "Planning evidence only; this seed does not prove effectiveness of all defenses."
+    },
+    {
+      "id": "external_repo_live_verification_owner_decisions",
+      "defense_id": "external_repo_live_verification",
+      "surface": "artifacts/evidence/external-verification-2026-07-05/",
+      "output_type": "read-only smoke receipts",
+      "observed_output": "External repo live verification found failing smoke outcomes and corrected a prior overclaim about raw evidence.",
+      "decision_effect": "claim_ceiling_changed",
+      "classification": "decision_relevant_unacted",
+      "recommended_action": "keep_observe",
+      "confidence": "confirmed",
+      "rationale": "The output changed the claim ceiling and produced owner-decision follow-ups, but the owner decisions are still pending.",
+      "evidence_refs": [
+        "memory/2026-07-05.md:181-187"
+      ],
+      "claim_ceiling": "Read-only external verification only; does not repair consumer repos."
+    },
+    {
+      "id": "authority_metadata_consistency_unregistered_visibility",
+      "defense_id": "authority_metadata_consistency.unregistered_documents",
+      "surface": "governance_tools/authority_metadata_consistency.py",
+      "output_type": "report-only warning",
+      "observed_output": "Unregistered governance documents are surfaced as warning-only output instead of being silently skipped.",
+      "decision_effect": "followup_slice_opened",
+      "classification": "decision_changing",
+      "frequency_class": "routine",
+      "recommended_action": "keep",
+      "confidence": "probable",
+      "rationale": "The warning surface has driven authority registration work and currently reports 13 remaining unregistered documents. The exact 16-to-13 historical delta is review-derived and should be backed by a persisted ledger entry before using it as quantitative proof.",
+      "evidence_refs": [
+        "governance_tools/authority_metadata_consistency.py:147-247",
+        "tests/test_authority_metadata_consistency.py:162-181",
+        "live check 2026-07-06: python -m governance_tools.authority_metadata_consistency --format json -> summary.unregistered_documents=13"
+      ],
+      "claim_ceiling": "This seed treats the warning as decision-changing but does not claim all authority-visible docs are registered."
+    },
+    {
+      "id": "lock_consistency_consumer_drift_visibility",
+      "defense_id": "governance_maturity_summary.lock_consistency",
+      "surface": "governance_tools/governance_maturity_summary.py",
+      "output_type": "maturity summary field",
+      "observed_output": "Lock-vs-checkout consistency is visible as a first-class summary row and catches CFU-style drift.",
+      "decision_effect": "claim_ceiling_changed",
+      "classification": "decision_changing",
+      "frequency_class": "routine",
+      "recommended_action": "keep",
+      "confidence": "confirmed",
+      "rationale": "The field exists specifically to prevent claiming completed/latest governance when framework.lock.json and the checked-out framework differ.",
+      "evidence_refs": [
+        "docs/governance/unified-ai-governance-update-status-envelope-2026-07-02.md:146-164",
+        "tests/test_governance_maturity_summary.py:188-214",
+        "tests/test_governance_maturity_summary.py:217-238"
+      ],
+      "claim_ceiling": "Local comparison only; no fetch truth or full adoption proof."
+    },
+    {
+      "id": "closeout_memory_warning_codes_latest",
+      "defense_id": "session_closeout.memory_warning_codes",
+      "surface": "artifacts/runtime/closeout-receipts/closeout_receipt_20260706T095958655133Z.json",
+      "output_type": "closeout receipt warnings",
+      "observed_output": "Latest closeout receipt reports non_canonical_writer, structural_memory_auto_write, test_evidence_provenance_not_found, and unbound_memory warnings.",
+      "decision_effect": "none",
+      "classification": "noisy",
+      "recommended_action": "downgrade",
+      "confidence": "weak",
+      "rationale": "The warnings are visible in the receipt, but this slice found no direct evidence that this specific receipt changed a later decision.",
+      "evidence_refs": [
+        "artifacts/runtime/closeout-receipts/closeout_receipt_20260706T095958655133Z.json:19-36"
+      ],
+      "claim_ceiling": "Current seed marks this latest receipt warning set as noisy, not globally useless."
+    },
+    {
+      "id": "test_signal_lexical_self_scan_noise",
+      "defense_id": "test_signal_quality_audit.lexical_signals",
+      "surface": "governance_tools/test_signal_quality_audit.py",
+      "output_type": "lexical warning",
+      "observed_output": "Lexical mock-only and production-derived expected-value scans can match test fixtures that intentionally contain weak-signal strings.",
+      "decision_effect": "none",
+      "classification": "noisy",
+      "frequency_class": "routine",
+      "recommended_action": "downgrade",
+      "confidence": "confirmed",
+      "rationale": "The tool's own test file contains deliberate weak-signal strings; this proves lexical signals need reviewer context and must not become gates.",
+      "evidence_refs": [
+        "tests/test_test_signal_quality_audit.py:252-262",
+        "governance_tools/test_signal_quality_audit.py:493-539"
+      ],
+      "claim_ceiling": "This marks the lexical signal as weak reviewer aid, not useless."
+    },
+    {
+      "id": "inventory_line_missing_for_zombie_detection",
+      "defense_id": "governance_defense_inventory",
+      "surface": "not yet implemented",
+      "output_type": "missing inventory line",
+      "observed_output": "The current seed is output-fed; defenses that never produce output cannot appear as zombie candidates without a full inventory comparison.",
+      "decision_effect": "followup_slice_opened",
+      "classification": "unknown",
+      "frequency_class": "unknown",
+      "recommended_action": "investigate",
+      "confidence": "confirmed",
+      "rationale": "Zombie detection requires comparing the full defense inventory against observed outputs. This seed records that the required inventory line has not run.",
+      "evidence_refs": [
+        "docs/governance/decision-change-ledger.seed.json:ingestion_model.inventory_line"
+      ],
+      "claim_ceiling": "No zombie defense is retired or even classified by this seed."
+    },
+    {
+      "id": "change_control_summary_decision_effect_vocab",
+      "defense_id": "change_control_summary.signal_profile",
+      "surface": "governance_tools/change_control_summary.py",
+      "output_type": "existing vocabulary",
+      "observed_output": "Existing code already separates signal_class from decision_effect for change-control promotion logic.",
+      "decision_effect": "routing_or_promotion_changed",
+      "classification": "decision_relevant_unacted",
+      "recommended_action": "keep_observe",
+      "confidence": "confirmed",
+      "rationale": "The vocabulary should be reused by the ledger design, but this seed did not find recent memory evidence that the tool output itself changed a session decision.",
+      "evidence_refs": [
+        "governance_tools/change_control_summary.py:31-86",
+        "governance_tools/change_control_summary.py:121-146"
+      ],
+      "claim_ceiling": "Vocabulary reuse candidate only; not proof that change_control_summary is currently decision-changing."
+    }
+  ],
+  "summary": {
+    "entry_count": 20,
+    "classification_counts": {
+      "decision_changing": 13,
+      "decision_relevant_unacted": 2,
+      "noisy": 2,
+      "zombie": 0,
+      "duplicate": 2,
+      "unknown": 1
+    },
+    "recommended_action_counts": {
+      "keep": 11,
+      "keep_observe": 4,
+      "merge": 2,
+      "downgrade": 2,
+      "retire_candidate": 0,
+      "investigate": 1
+    },
+    "first_followup": "Add a read-only inventory-line pass before classifying any zombie or retire_candidate defense.",
+    "second_followup": "Review whether noisy closeout warning codes should be baseline-aggregated instead of surfaced as high-salience per-session warnings.",
+    "third_followup": "Run a wider ledger pass over more than one week before retiring or downgrading any defense."
+  }
+}
