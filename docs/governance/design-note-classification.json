@@ -42,6 +42,21 @@
       "reason": "memory_significance.py and session_end_hook integration make v0.2 a live semantic source"
     }
   ],
+  "consolidation_updates": [
+    {
+      "cluster": "retrieval-authority-round-a",
+      "updated_date": "2026-07-06",
+      "target": "docs/governance/retrieval-authority-round-a-summary.md",
+      "source_commit": "d4173978397a7aafcbaf1bb9c5ba4a1f1ce6f905",
+      "status": "summary_consolidated",
+      "claim_ceiling": [
+        "classification metadata sync only",
+        "no document is removed",
+        "no document is invalidated",
+        "no document is archived"
+      ]
+    }
+  ],
   "files": [
     {
       "path": "docs/governance/agent-instruction-surface-map.md",
@@ -261,19 +276,29 @@
     },
     {
       "path": "docs/governance/retrieval-authority-observation-round-a.md",
-      "classification": "historical"
+      "classification": "historical",
+      "role": "round_a_guardrails_source",
+      "recommended_action": "merge_candidate_already_covered_by_summary",
+      "consolidated_into": "docs/governance/retrieval-authority-round-a-summary.md"
     },
     {
       "path": "docs/governance/retrieval-authority-observation-v0.1.md",
-      "classification": "superseded"
+      "classification": "superseded",
+      "role": "observer_contract_source",
+      "recommended_action": "merge_candidate_already_covered_by_summary",
+      "consolidated_into": "docs/governance/retrieval-authority-round-a-summary.md"
     },
     {
       "path": "docs/governance/retrieval-authority-round-a-checkpoint-log.md",
-      "classification": "historical"
+      "classification": "historical",
+      "role": "raw_historical_evidence",
+      "recommended_action": "keep_as_raw_checkpoint_log"
     },
     {
       "path": "docs/governance/retrieval-authority-round-a-summary.md",
-      "classification": "historical"
+      "classification": "historical",
+      "role": "consolidated_historical_target",
+      "recommended_action": "keep_as_cluster_summary"
     },
     {
       "path": "docs/governance/reviewer-closeout-gate-mutation-contract-2026-06-27.md",
