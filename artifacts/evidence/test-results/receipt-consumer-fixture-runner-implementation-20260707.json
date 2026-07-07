@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -c \"import subprocess, shutil, pathlib; cmds=[['python','-m','pytest','tests/test_consumer_fixture_runner.py','--basetemp','artifacts\\\\pytest-consumer-fixture-runner','-p','no:cacheprovider'], ['python','-m','py_compile','governance_tools\\\\consumer_fixture_runner.py'], ['git','diff','--check'], ['python','-m','governance_tools.consumer_fixture_runner','--repo','examples\\\\multi-validator-contract','--format','json'], ['python','-m','governance_tools.consumer_fixture_runner','--repo','examples\\\\usb-hub-contract','--format','json'], ['python','-m','governance_tools.consumer_fixture_runner','--repo','examples\\\\nextjs-byok-contract','--format','json']]; [subprocess.run(c, check=True) for c in cmds]; shutil.rmtree('artifacts\\\\pytest-consumer-fixture-runner', ignore_errors=True)\"",
+  "exit_code": 0,
+  "started_at": "2026-07-07T09:45:01Z",
+  "finished_at": "2026-07-07T09:45:03Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "1fa8eb7880cab6edf30c4b48eb0c27befe9f3e2b",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-consumer-fixture-runner-implementation-20260707.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

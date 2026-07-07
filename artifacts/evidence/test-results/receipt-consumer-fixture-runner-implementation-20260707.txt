@@ -1,0 +1,260 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.5, pytest-9.0.2, pluggy-1.6.0
+rootdir: E:\BackUp\Git_EE\ai-governance-framework
+configfile: pytest.ini
+plugins: anyio-4.12.1, cov-7.0.0, json-report-1.5.0, metadata-3.1.1
+collected 8 items
+
+tests\test_consumer_fixture_runner.py ........                           [100%]
+
+============================== 8 passed in 0.26s ==============================
+warning: in the working copy of 'memory/2026-07-07.md', LF will be replaced by CRLF the next time Git touches it
+{
+  "schema": "consumer_fixture_runner.v0.1",
+  "status": "report_only",
+  "repo_root": "E:\\BackUp\\Git_EE\\ai-governance-framework\\examples\\multi-validator-contract",
+  "contract_path": "E:\\BackUp\\Git_EE\\ai-governance-framework\\examples\\multi-validator-contract\\contract.yaml",
+  "overall_status": "mismatch",
+  "fixtures_total": 8,
+  "observations_total": 6,
+  "matched_expectations": 3,
+  "mismatched_expectations": 3,
+  "errors": [],
+  "warnings": [
+    "fixture_unmatched: fixtures/architecture_drift_compliant.checks.json",
+    "fixture_unmatched: fixtures/architecture_drift_violation.checks.json",
+    "fixture_unmatched: fixtures/driver_evidence_compliant.checks.json",
+    "fixture_unmatched: fixtures/driver_evidence_violation.checks.json",
+    "fixture_unmatched: fixtures/failure_completeness_compliant.checks.json",
+    "fixture_unmatched: fixtures/failure_completeness_violation.checks.json"
+  ],
+  "observations": [
+    {
+      "fixture": "fixtures/refactor_evidence_compliant.checks.json",
+      "manifest": "fixtures/fixture_manifest.json",
+      "validator": "architecture_drift_validator",
+      "validator_path": "validators/architecture_drift_validator.py",
+      "route": "expected_rule_ids",
+      "expected_ok": true,
+      "observed_ok": true,
+      "matched": true,
+      "rule_ids": [
+        "feature",
+        "refactor"
+      ],
+      "violations": [],
+      "warnings": [],
+      "evidence_summary": "[]",
+      "metadata": {
+        "files_scanned": []
+      }
+    },
+    {
+      "fixture": "fixtures/refactor_evidence_compliant.checks.json",
+      "manifest": "fixtures/fixture_manifest.json",
+      "validator": "failure_completeness_validator",
+      "validator_path": "validators/failure_completeness_validator.py",
+      "route": "expected_rule_ids",
+      "expected_ok": true,
+      "observed_ok": false,
+      "matched": false,
+      "rule_ids": [
+        "feature",
+        "refactor"
+      ],
+      "violations": [
+        "Missing failure completeness evidence: failure-path signal"
+      ],
+      "warnings": [
+        "Explicit exception-path evidence was not detected.",
+        "Explicit rollback / cleanup verification was not detected.",
+        "Richer test metadata was not provided; failure completeness remains heuristic."
+      ],
+      "evidence_summary": "{'failure_path_signal': False, 'exception_evidence': False, 'rollback_evidence': False, 'metadata_depth': False}",
+      "metadata": {
+        "signals_detected": {
+          "failure_path_signal": false,
+          "exception_evidence": false,
+          "rollback_evidence": false,
+          "metadata_depth": false
+        }
+      }
+    },
+    {
+      "fixture": "fixtures/refactor_evidence_compliant.checks.json",
+      "manifest": "fixtures/fixture_manifest.json",
+      "validator": "refactor_evidence_validator",
+      "validator_path": "validators/refactor_evidence_validator.py",
+      "route": "expected_rule_ids",
+      "expected_ok": true,
+      "observed_ok": false,
+      "matched": false,
+      "rule_ids": [
+        "refactor"
+      ],
+      "violations": [
+        "Missing refactor evidence: regression-oriented test signal",
+        "Missing refactor evidence: interface stability signal",
+        "Missing refactor evidence: error_path_inventory missing - hard stop"
+      ],
+      "warnings": [
+        "Refactor cleanup / rollback evidence was not detected."
+      ],
+      "evidence_summary": "{'test_names_count': 0, 'failure_validation_present': False, 'error_path_inventory_count': 0, 'affected_error_case_count': 0, 'error_behavior_diff_count': 0}",
+      "metadata": {
+        "evidence_required": [
+          "regression_evidence",
+          "interface_stability_evidence",
+          "cleanup_evidence",
+          "error_path_inventory_evidence",
+          "error_behavior_diff_evidence"
+        ],
+        "signals_detected": {
+          "regression_evidence": false,
+          "interface_stability_evidence": false,
+          "cleanup_evidence": false,
+          "error_path_inventory_evidence": false,
+          "error_behavior_diff_evidence": true
+        }
+      }
+    },
+    {
+      "fixture": "fixtures/refactor_evidence_violation.checks.json",
+      "manifest": "fixtures/fixture_manifest.json",
+      "validator": "architecture_drift_validator",
+      "validator_path": "validators/architecture_drift_validator.py",
+      "route": "expected_rule_ids",
+      "expected_ok": false,
+      "observed_ok": true,
+      "matched": false,
+      "rule_ids": [
+        "feature",
+        "refactor"
+      ],
+      "violations": [],
+      "warnings": [],
+      "evidence_summary": "[]",
+      "metadata": {
+        "files_scanned": []
+      }
+    },
+    {
+      "fixture": "fixtures/refactor_evidence_violation.checks.json",
+      "manifest": "fixtures/fixture_manifest.json",
+      "validator": "failure_completeness_validator",
+      "validator_path": "validators/failure_completeness_validator.py",
+      "route": "expected_rule_ids",
+      "expected_ok": false,
+      "observed_ok": false,
+      "matched": true,
+      "rule_ids": [
+        "feature",
+        "refactor"
+      ],
+      "violations": [
+        "Missing failure completeness evidence: failure-path signal"
+      ],
+      "warnings": [
+        "Explicit exception-path evidence was not detected.",
+        "Explicit rollback / cleanup verification was not detected.",
+        "Richer test metadata was not provided; failure completeness remains heuristic."
+      ],
+      "evidence_summary": "{'failure_path_signal': False, 'exception_evidence': False, 'rollback_evidence': False, 'metadata_depth': False}",
+      "metadata": {
+        "signals_detected": {
+          "failure_path_signal": false,
+          "exception_evidence": false,
+          "rollback_evidence": false,
+          "metadata_depth": false
+        }
+      }
+    },
+    {
+      "fixture": "fixtures/refactor_evidence_violation.checks.json",
+      "manifest": "fixtures/fixture_manifest.json",
+      "validator": "refactor_evidence_validator",
+      "validator_path": "validators/refactor_evidence_validator.py",
+      "route": "expected_rule_ids",
+      "expected_ok": false,
+      "observed_ok": false,
+      "matched": true,
+      "rule_ids": [
+        "refactor"
+      ],
+      "violations": [
+        "Missing refactor evidence: regression-oriented test signal",
+        "Missing refactor evidence: interface stability signal",
+        "Missing refactor evidence: error_path_inventory missing - hard stop"
+      ],
+      "warnings": [
+        "Refactor cleanup / rollback evidence was not detected."
+      ],
+      "evidence_summary": "{'test_names_count': 0, 'failure_validation_present': False, 'error_path_inventory_count': 0, 'affected_error_case_count': 0, 'error_behavior_diff_count': 0}",
+      "metadata": {
+        "evidence_required": [
+          "regression_evidence",
+          "interface_stability_evidence",
+          "cleanup_evidence",
+          "error_path_inventory_evidence",
+          "error_behavior_diff_evidence"
+        ],
+        "signals_detected": {
+          "regression_evidence": false,
+          "interface_stability_evidence": false,
+          "cleanup_evidence": false,
+          "error_path_inventory_evidence": false,
+          "error_behavior_diff_evidence": true
+        }
+      }
+    }
+  ],
+  "cannot_claim": [
+    "fixture expectations are domain truth",
+    "validators are semantically complete",
+    "test suite is industry-grade",
+    "CI, hook, readiness, or release gates enforce this result",
+    "mutation resistance is proven"
+  ]
+}
+{
+  "schema": "consumer_fixture_runner.v0.1",
+  "status": "report_only",
+  "repo_root": "E:\\BackUp\\Git_EE\\ai-governance-framework\\examples\\usb-hub-contract",
+  "contract_path": "E:\\BackUp\\Git_EE\\ai-governance-framework\\examples\\usb-hub-contract\\contract.yaml",
+  "overall_status": "no_fixtures",
+  "fixtures_total": 0,
+  "observations_total": 0,
+  "matched_expectations": 0,
+  "mismatched_expectations": 0,
+  "errors": [],
+  "warnings": [],
+  "observations": [],
+  "cannot_claim": [
+    "fixture expectations are domain truth",
+    "validators are semantically complete",
+    "test suite is industry-grade",
+    "CI, hook, readiness, or release gates enforce this result",
+    "mutation resistance is proven"
+  ]
+}
+{
+  "schema": "consumer_fixture_runner.v0.1",
+  "status": "report_only",
+  "repo_root": "E:\\BackUp\\Git_EE\\ai-governance-framework\\examples\\nextjs-byok-contract",
+  "contract_path": "E:\\BackUp\\Git_EE\\ai-governance-framework\\examples\\nextjs-byok-contract\\contract.yaml",
+  "overall_status": "no_fixtures",
+  "fixtures_total": 0,
+  "observations_total": 0,
+  "matched_expectations": 0,
+  "mismatched_expectations": 0,
+  "errors": [],
+  "warnings": [],
+  "observations": [],
+  "cannot_claim": [
+    "fixture expectations are domain truth",
+    "validators are semantically complete",
+    "test suite is industry-grade",
+    "CI, hook, readiness, or release gates enforce this result",
+    "mutation resistance is proven"
+  ]
+}
