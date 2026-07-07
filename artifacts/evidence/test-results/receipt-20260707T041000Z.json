@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -c \"import json,pathlib,collections,subprocess; p=pathlib.Path('docs/governance/design-note-classification.json'); data=json.loads(p.read_text(encoding='utf-8')); files=[e['path'] for e in data['files']]; md=sorted(x.as_posix() for x in pathlib.Path('docs/governance').glob('*.md')); counts=collections.Counter(e['classification'] for e in data['files']); assert len(files)==data['counts']['total']; assert counts['active']==data['counts']['active']; assert counts['superseded']==data['counts']['superseded']; assert counts['historical']==data['counts']['historical']; assert counts['proposal-only']==data['counts']['proposal-only']; assert set(files)==set(md); assert len(files)==len(set(files)); subprocess.run(['git','diff','--check'], check=True); print('OK: classification JSON valid; 90/90 docs covered; no missing/extra/duplicates; git diff --check passed')\"",
+  "exit_code": 0,
+  "started_at": "2026-07-07T04:09:25Z",
+  "finished_at": "2026-07-07T04:09:25Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "9c72d28e6e0f770fb562e7ff5829675333d1f256",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-20260707T041000Z.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
