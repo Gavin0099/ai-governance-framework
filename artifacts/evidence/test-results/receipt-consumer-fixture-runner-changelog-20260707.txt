@@ -1,0 +1,3 @@
+warning: in the working copy of 'memory/2026-07-07.md', LF will be replaced by CRLF the next time Git touches it
+5e2049bf Document consumer fixture runner changelog entry
+M	CHANGELOG.md

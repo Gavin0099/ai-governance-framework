@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -c \"import subprocess; cmds=[['git','diff','--check'], ['git','show','--name-status','--oneline','5e2049bf']]; [subprocess.run(c, check=True) for c in cmds]\"",
+  "exit_code": 0,
+  "started_at": "2026-07-07T10:11:01Z",
+  "finished_at": "2026-07-07T10:11:01Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "5e2049bfd63a7a7c806c579ff28d499052017516",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-consumer-fixture-runner-changelog-20260707.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
