@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_memory_freshness_guard.py --basetemp tests/_tmp_memory_freshness_guard_receipt -p no:cacheprovider -q",
+  "exit_code": 0,
+  "started_at": "2026-07-07T06:02:15Z",
+  "finished_at": "2026-07-07T06:02:16Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "2b97a2c9709a83d7736314838d480d062f874a00",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-memory-freshness-guard-hardening-20260707.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
