@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Validator fixture template hardening - 2026-07-07
+
+- Added report-only pass/fail fixture templates and `fixture_manifest.json`
+  coverage for the framework root `architecture_drift_checker` and the
+  `examples/multi-validator-contract` validator set. The templates give
+  `test_signal_quality_audit` concrete positive and negative fixture examples
+  for architecture drift, driver evidence, failure completeness, and refactor
+  evidence validators.
+- Fixed the reviewed refactor pass fixture before commit so its declared
+  `expected_ok=true` matches the actual `RefactorEvidenceValidator` result,
+  including the required `error_path_inventory` structure.
+- Release-note boundary: this entry records unreleased report-only fixture
+  template hardening only. It does not bump the framework version, publish a
+  release, prove any test suite is industry-grade, prove domain correctness,
+  execute validators as a gate, modify consumer repos, or wire tooling/
+  runtime/hook/CI/pre-push/gate/enforcement behavior.
+
 ### Write-time evidence provenance advisory in memory_record - 2026-07-07
 
 - Closed the self-noise loop where every canonical memory record with success
