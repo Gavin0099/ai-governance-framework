@@ -38,23 +38,15 @@ final_status: full_update_completed | already_current | partially_updated | bloc
 If any required surface is `missing`, `needed`, `blocked`, or `not_verified`,
 the final status must not be `full_update_completed`.
 
-The final adoption status report must be operator-facing. It must surface the
-report-only `governance_maturity_summary` fields, including user-facing
-adoption status, framework topology, static self-contained status, runtime
-capable status, hook framework root, framework pin freshness, repo-specific
-rules, domain contract, validator surface, memory workflow surface, and
-cannot-claim / claim-boundary summary.
-
-When `human_readable_adoption_summary` is present, the final F-7 report must
-relay the Chinese feature/status/explanation table for the operator. The report
-must include `[human_readable_adoption_summary]` and the table header:
-
-```text
-| 功能 | 狀態 | 這個功能是做什麼 |
-```
-
-Do not report only machine-readable fields such as `user_facing_status`,
-`framework_topology`, or `runtime_capable` while omitting this table.
+The final adoption status report must be operator-facing and must follow the
+canonical adoption-summary relay contract in
+`governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md`. The concrete table and
+final-report projection are produced by
+`governance_tools/governance_update_reporting.py`; this fleet note must not
+maintain a separate copy of the table rows or header. Operationally, when
+`human_readable_adoption_summary` is present, relay its rows as a table and do
+not report only machine-readable fields such as `user_facing_status`,
+`framework_topology`, or `runtime_capable`.
 
 `adoption_doctor: findings 0`, `governance_version_check: compatible`, a clean
 build, or a framework pointer update is not a substitute for the final adoption

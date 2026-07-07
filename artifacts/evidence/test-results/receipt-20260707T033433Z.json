@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -X utf8 -m pytest tests/test_update_protocol_manual_status.py tests/test_f7_full_update.py -q --basetemp .tmp_tsqa2",
+  "exit_code": 0,
+  "started_at": "2026-07-07T03:34:33Z",
+  "finished_at": "2026-07-07T03:35:00Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "f64aa90748d1024cbcb86622523f6763688c6bac",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-20260707T033433Z.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

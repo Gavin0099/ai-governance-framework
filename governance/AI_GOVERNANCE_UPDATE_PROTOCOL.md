@@ -228,6 +228,12 @@ integrity, dirty-tree state, build evidence, and memory disposition separate.
 
 ### Required Adoption Status Summary
 
+This section is the canonical reporting contract for adoption-summary relay.
+Concrete tool-output projection lives in
+`governance_tools/governance_update_reporting.py`. Secondary surfaces should
+point here and to that projection helper instead of restating the table rows or
+header.
+
 An AI Governance update report must surface the user-facing adoption status
 summary when the framework checkout contains `governance_maturity_summary`.
 

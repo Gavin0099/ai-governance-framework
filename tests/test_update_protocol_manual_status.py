@@ -21,6 +21,7 @@ FINAL_STATUS_LINE = (
 )
 
 MANUAL_TEMPLATE = """AI Governance update check: manual_update
+ai_governance_update_result: REPORTED
 framework_update_status: manual_update
 governance maturity summary: <RUN | NOT RUN | NOT AVAILABLE>
 adoption_status: <from maturity summary | unknown>
@@ -29,6 +30,7 @@ reason: governed updater/F-7 was not used
 claim boundary: manual pointer/lock/checkout changes may be reported; do not claim completed/latest/full adoption"""
 
 DESTRUCTIVE_TEMPLATE = """AI Governance update check: destructive_manual_update
+ai_governance_update_result: REPORTED
 framework_update_status: destructive_manual_update
 discarded_modified_paths: <list | none reported>
 discarded_untracked_paths: <list | none reported>

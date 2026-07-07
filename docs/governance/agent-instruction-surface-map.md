@@ -118,6 +118,11 @@ output that appears in the same run:
 - if no governed updater/F-7 output exists, report `manual_update` and do not
   claim completed/latest/full adoption.
 
+The canonical adoption-summary relay contract lives in
+`governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md`. Tool-output projection lives in
+`governance_tools/governance_update_reporting.py`; other instruction surfaces
+should point to those carriers instead of restating the table rows or header.
+
 ## Claim Ceiling
 
 This map does not claim:
