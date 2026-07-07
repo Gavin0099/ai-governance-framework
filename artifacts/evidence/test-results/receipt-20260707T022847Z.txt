@@ -1,0 +1,1 @@
+OK: 92 entries, counts consistent, 4 retire_candidates none rare-critical, all source ledgers exist

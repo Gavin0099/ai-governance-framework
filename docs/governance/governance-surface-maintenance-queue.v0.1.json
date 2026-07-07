@@ -1578,7 +1578,7 @@
     {
       "defense": "phase_d_closeout_writer (human-only close gate)",
       "decision_effect": "unknown",
-      "frequency_class": "rare-critical",
+      "frequency_class": "rare_critical",
       "maintenance_cost_class": "low",
       "recommended_action": "keep_rare_critical",
       "evidence_refs": [
@@ -1590,7 +1590,7 @@
     {
       "defense": "escalation_authority_writer / escalation_authority_path_guard",
       "decision_effect": "unknown",
-      "frequency_class": "rare-critical",
+      "frequency_class": "rare_critical",
       "maintenance_cost_class": "low",
       "recommended_action": "keep_rare_critical",
       "evidence_refs": [
@@ -1602,7 +1602,7 @@
     {
       "defense": "push / destructive-operation authorization discipline",
       "decision_effect": "decision_changing",
-      "frequency_class": "rare-critical",
+      "frequency_class": "rare_critical",
       "maintenance_cost_class": "low",
       "recommended_action": "keep_rare_critical",
       "evidence_refs": [
@@ -1614,7 +1614,7 @@
     {
       "defense": "memory_freshness_guard (fail-closed)",
       "decision_effect": "unknown",
-      "frequency_class": "rare-critical",
+      "frequency_class": "rare_critical",
       "maintenance_cost_class": "low",
       "recommended_action": "keep_rare_critical",
       "evidence_refs": [

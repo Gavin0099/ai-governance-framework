@@ -1,0 +1,1 @@
+OK: 92 entries, counts consistent, frequency_class enum uniform (rare_critical=8), 4 retire_candidates none rare_critical, all source ledgers exist
