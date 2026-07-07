@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -c \"import subprocess, sys; expected='cf1323a2f518c3e6217d7c985c0260293ff845a6'; out=subprocess.check_output(['git','rev-parse','HEAD','origin/main','gitlab/main'], text=True).splitlines(); assert out == [expected, expected, expected], out\"",
+  "exit_code": 0,
+  "started_at": "2026-07-07T08:40:52Z",
+  "finished_at": "2026-07-07T08:40:52Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "cf1323a2f518c3e6217d7c985c0260293ff845a6",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-claude-priority-review-record-20260707.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
