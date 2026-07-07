@@ -16,11 +16,11 @@
     "no document status or frontmatter is changed"
   ],
   "counts": {
-    "active": 29,
+    "active": 32,
     "superseded": 10,
-    "historical": 32,
+    "historical": 34,
     "proposal-only": 14,
-    "total": 85
+    "total": 90
   },
   "corrections_from_initial_review": [
     {
@@ -209,8 +209,16 @@
       "classification": "active"
     },
     {
+      "path": "docs/governance/context-cost-budget-design-2026-07-06.md",
+      "classification": "active"
+    },
+    {
       "path": "docs/governance/full-submodule-adoption-ux-proposal-2026-06-26.md",
       "classification": "superseded"
+    },
+    {
+      "path": "docs/governance/framework-self-test-signal-audit-2026-07-06.md",
+      "classification": "historical"
     },
     {
       "path": "docs/governance/gate-c-decision-set-contract-v0.1.md",
@@ -235,6 +243,10 @@
     {
       "path": "docs/governance/governance-overhead-retrospective.md",
       "classification": "historical"
+    },
+    {
+      "path": "docs/governance/governance-surface-maintenance-budget-design-2026-07-07.md",
+      "classification": "active"
     },
     {
       "path": "docs/governance/governed-update-receipt-format-design-2026-07-03.md",
@@ -266,6 +278,10 @@
     },
     {
       "path": "docs/governance/hermes-side-no-tool-design-disposition-2026-06-30.md",
+      "classification": "historical"
+    },
+    {
+      "path": "docs/governance/latest-main-consumer-investigation-2026-07-06.md",
       "classification": "historical"
     },
     {
@@ -326,6 +342,10 @@
     {
       "path": "docs/governance/report-only-adoption-doctor-spec-2026-06-26.md",
       "classification": "superseded"
+    },
+    {
+      "path": "docs/governance/rare-critical-rehearsal-design-2026-07-07.md",
+      "classification": "active"
     },
     {
       "path": "docs/governance/retrieval-authority-observation-round-a.md",
