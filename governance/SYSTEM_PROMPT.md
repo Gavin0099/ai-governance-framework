@@ -362,13 +362,13 @@ SCOPE = ...
 
 ### 7.4 Memory Pressure Levels
 
-根據 `memory/01_active_task.md` line count：
+根據 `memory/01_active_task.md` line count 與 char count（同 `memory_janitor` 實作：行數或字元數任一達標即判級）：
 
 | Level | Condition | Action |
 |---|---:|---|
-| SAFE | 0-179 lines | 正常繼續 |
-| WARNING | 180-199 lines | 警告，並避免低訊號更新 |
-| CRITICAL | 200-249 lines | 暫停擴張，安排或執行 memory cleanup；不要誤報為 EMERGENCY |
+| SAFE | 0-179 lines and <8000 chars | 正常繼續 |
+| WARNING | 180-199 lines or 8000+ chars | 警告，並避免低訊號更新 |
+| CRITICAL | 200-249 lines or 10000+ chars | 暫停擴張，安排或執行 memory cleanup；不要誤報為 EMERGENCY |
 | EMERGENCY | 250+ lines or 12000+ chars | 先 stop，清 memory 後再繼續 |
 
 ---

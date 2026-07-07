@@ -1,0 +1,1 @@
+OK: SYSTEM_PROMPT 7.4 table now matches all six memory_janitor thresholds (180/200/250 lines, 8000/10000/12000 chars)
