@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -c \"from pathlib import Path; import subprocess; p=Path('docs/governance/consumer-fixture-runner-v0.1-design-2026-07-07.md'); assert p.is_file(); paths=['governance_tools/domain_validator_loader.py','governance_tools/validator_interface.py','governance_tools/test_signal_quality_audit.py','examples/multi-validator-contract/fixtures/fixture_manifest.json','examples/multi-validator-contract','examples/usb-hub-contract','examples/nextjs-byok-contract']; assert all(Path(x).exists() for x in paths); data=p.read_bytes(); assert all(b < 128 for b in data); assert not any(line.rstrip(b' \\t') != line for line in data.splitlines()); r=subprocess.run(['git','diff','--check'], check=False); assert r.returncode == 0; r2=subprocess.run(['git','diff','--no-index','--check','--','NUL',str(p)], check=False); assert r2.returncode in (0,1)\"",
+  "exit_code": 0,
+  "started_at": "2026-07-07T09:03:05Z",
+  "finished_at": "2026-07-07T09:03:05Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "fd744f6a0250147e6531e236266e5e493a0e3623",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-consumer-fixture-runner-design-20260707.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
