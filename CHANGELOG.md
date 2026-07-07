@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Report-only consumer fixture runner - 2026-07-07
+
+- Added `governance_tools/consumer_fixture_runner.py`, a report-only runner
+  that executes manifest-declared consumer/domain-contract validator fixtures
+  through the existing domain validator loader and compares `expected_ok`
+  against observed `ValidatorResult.ok`.
+- Added focused coverage for matching pass/fail fixture expectations,
+  mismatch visibility, missing validators, invalid fixture JSON, ambiguous
+  alias matches, `expected_rule_ids` routing, and JSON/human CLI output.
+- Release-note boundary: this entry records unreleased report-only fixture
+  execution visibility only. It does not bump the framework version, publish a
+  release, prove any test suite is industry-grade, prove validator semantic
+  completeness, prove fixture expectations are domain truth, modify consumer
+  repos, or wire F-7/updater/tooling/runtime/hook/CI/pre-push/gate/enforcement
+  behavior.
+
 ### Memory freshness guard fail-closed hardening - 2026-07-07
 
 - Hardened `governance_tools/memory_freshness_guard.py` so required memory
