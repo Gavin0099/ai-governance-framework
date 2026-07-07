@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -c \"from pathlib import Path; import json, subprocess, sys; old=['artifacts/evidence/test-results/receipt-20260707T072811Z.json','artifacts/evidence/test-results/receipt-20260707T072811Z.txt','artifacts/evidence/test-results/receipt-20260707T072923Z.json','artifacts/evidence/test-results/receipt-20260707T072923Z.txt']; assert not [p for p in old if Path(p).exists()]; text=Path('memory/2026-07-07.md').read_text(encoding='utf-8'); assert all(Path(p).name not in text for p in old); data=json.loads(Path('artifacts/evidence/rehearsals/memory_freshness_guard-mutation-drill-20260707.json').read_text(encoding='utf-8')); assert data['schema']=='rare_critical_rehearsal_receipt.v0.1'; assert data['verdict']=='held'; assert data['hardening_commit']=='2b97a2c9'; assert len(data['cases'])==7; result=subprocess.run([sys.executable,'-m','pytest','tests/test_memory_freshness_guard.py','--basetemp','tests/_tmp_memory_freshness_corrective_receipt','-p','no:cacheprovider','-q']); assert result.returncode==0\"",
+  "exit_code": 0,
+  "started_at": "2026-07-07T07:44:47Z",
+  "finished_at": "2026-07-07T07:44:48Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "f82a99da8b933eb0e66b3c23a7d3e45d7374c6b5",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-rehearsal-provenance-correction-20260707.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
