@@ -1,0 +1,1627 @@
+{
+  "schema": "governance_surface_maintenance_budget.v0.1",
+  "generated_at": "2026-07-07",
+  "generated_by": "claude-fable-5 review session (read-only diagnosis slice per governance-surface-maintenance-budget-design-2026-07-07.md Next Slice Candidate)",
+  "source_ledgers": [
+    "docs/governance/decision-change-ledger.window-20260622-20260706.v0.2.json",
+    "docs/governance/decision-change-ledger.inventory.v0.1.json",
+    "docs/governance/design-note-classification.json"
+  ],
+  "method": "window and inventory entries pass through their existing recommended_action; curated entries add duplicate-surface merges, noisy downgrades, and rare-critical protections from the 2026-07-06/07 surface audit review line; entries appearing in both ledgers carry also_in_window=true on the inventory copy",
+  "coverage_note": "inventory covers 40 of 193 governance_tools modules and the window covers one 15-day period; this queue is a first slice, not a full census",
+  "counts": {
+    "total_entries": 92,
+    "by_recommended_action": {
+      "downgrade": 2,
+      "investigate": 18,
+      "keep": 25,
+      "keep_observe": 36,
+      "keep_rare_critical": 4,
+      "merge": 3,
+      "retire_candidate": 4
+    },
+    "by_source": {
+      "curated_review_2026-07-07": 11,
+      "inventory_v0.1": 40,
+      "window_ledger_v0.2": 41
+    }
+  },
+  "claim_ceiling": "diagnosis queue only; no defense is removed, merged, downgraded, or retired by this artifact; retire_candidate and merge require later reviewed slices; rare-critical entries are exempt from frequency-based retirement",
+  "entries": [
+    {
+      "defense": "F-7",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_changing",
+      "confidence": "confirmed",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        "2026-06-24:cli-20260624-165238",
+        "2026-06-24:cli-20260624-174625",
+        "2026-06-25:cli-20260625-095040",
+        "2026-06-25:cli-20260625-100518",
+        "2026-07-01:cli-20260701-170956",
+        "2026-07-01:codex-20260701-update-reporting-adoption-status"
+      ],
+      "rationale": "Consumer update instruction surface drove external repo refreshes and the semantic test-quality guidance relocation (a5ae276e); highest mention density in the window."
+    },
+    {
+      "defense": "governance_maturity_summary",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_changing",
+      "confidence": "confirmed",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        "2026-07-01:cli-20260701-153114",
+        "2026-07-01:cli-20260701-162928",
+        "2026-07-01:cli-20260701-170956",
+        "2026-07-01:cli-20260701-172802",
+        "2026-07-01:cli-20260701-175210",
+        "2026-07-01:cli-20260701-181904"
+      ],
+      "rationale": "Seed lock_consistency entry confirmed; window shows continued use in consumer maturity assessments."
+    },
+    {
+      "defense": "memory_workflow",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_changing",
+      "confidence": "confirmed",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        "2026-06-24:cli-20260624-165238",
+        "2026-06-25:cli-20260625-memory-authority-contract-v11-proposal",
+        "2026-07-02:cli-20260702-120015",
+        "2026-07-02:cli-20260702-134422",
+        "2026-07-05:codex-20260705-memory-workflow-blocker-claim",
+        "2026-07-05:codex-20260705-b0-claim-ceiling-alignment"
+      ],
+      "rationale": "Blocker/claim-consistency behavior changed decisions repeatedly (seed) and gated every commit slice in the window."
+    },
+    {
+      "defense": "adopt_governance",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_relevant_unacted",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-06-25:cli-20260625-095040",
+        "2026-06-25:cli-20260625-100518",
+        "2026-06-26:cli-20260626-112313",
+        "2026-06-26:cli-20260626-153619",
+        "2026-06-26:cli-20260626-adoption-doctor-unreleased-changelog",
+        "2026-07-01:cli-20260701-153114"
+      ],
+      "rationale": "High mention density in consumer refresh sessions; specific decision-change anchors not yet review-verified."
+    },
+    {
+      "defense": "pre-push",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_changing",
+      "confidence": "confirmed",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        "2026-06-22:codex-local-2026-06-22-gitlab-push-gate",
+        "2026-06-22:codex-local-2026-06-22-hermes-output-push-gate",
+        "2026-06-25:cli-20260625-memory-authority-disposition",
+        "2026-06-26:cli-20260626-135408",
+        "2026-06-26:cli-20260626-153619",
+        "2026-06-29:cli-20260629-prompt-cache-harness-consumer-contract"
+      ],
+      "rationale": "Pre-push gates blocked or delayed pushes in-window (push-authorization discipline appears across records)."
+    },
+    {
+      "defense": "adoption_doctor",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_relevant_unacted",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-06-26:cli-20260626-135408",
+        "2026-06-26:cli-20260626-153619",
+        "2026-06-26:cli-20260626-adoption-doctor-hook-root-mismatch",
+        "2026-06-26:cli-20260626-adoption-doctor-unreleased-changelog",
+        "2026-07-01:cli-20260701-162928",
+        "2026-07-01:cli-20260701-181904"
+      ],
+      "rationale": "Used in onboarding/refresh triage during the window; decision anchors not yet review-verified."
+    },
+    {
+      "defense": "test_signal_quality_audit",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_changing",
+      "confidence": "confirmed",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        "2026-07-06:codex-20260706-test-signal-audit-bugfix",
+        "2026-07-06:codex-20260706-test-signal-accuracy-changelog",
+        "2026-07-06:codex-20260706-test-signal-fixture-association",
+        "2026-07-06:codex-20260706-test-signal-association-changelog",
+        "2026-07-06:claude-20260706-test-signal-manifest-hardening",
+        "2026-07-06:codex-20260706-planning-active-task-refresh"
+      ],
+      "rationale": "Three seed entries confirmed; in-window dogfood on framework surfaces produced the template-hardening recommendation (980a81f1)."
+    },
+    {
+      "defense": "external_governance_submodule_updater",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_relevant_unacted",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-06-25:cli-20260625-100518",
+        "2026-07-02:cli-20260702-101220",
+        "2026-07-02:cli-20260702-submodule-url-discovery",
+        "2026-07-02:cli-20260702-final-report-requirement-output",
+        "2026-07-03:codex-20260703-final-report-table-json",
+        "2026-07-04:codex-20260704-update-result-envelope"
+      ],
+      "rationale": "Consumer-side refresh path; anchors not review-verified."
+    },
+    {
+      "defense": "f7_full_update",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_changing",
+      "confidence": "confirmed",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        "2026-07-01:cli-20260701-153114",
+        "2026-07-01:codex-20260701-update-reporting-adoption-status",
+        "2026-07-02:codex-20260702-park-human-readable-update-report",
+        "2026-07-02:cli-20260702-105232",
+        "2026-07-03:codex-20260703-final-report-table-json",
+        "2026-07-04:codex-20260704-update-result-envelope"
+      ],
+      "rationale": "Managed-block updater executed the F-7 instruction changes; 13 focused tests cited on 2026-07-06."
+    },
+    {
+      "defense": "memory_authority_guard",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_changing",
+      "confidence": "confirmed",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        "2026-07-04:codex-20260704-memory-commit-anchor-provenance",
+        "2026-07-04:codex-20260704-memory-session-anchor-provenance",
+        "2026-07-04:cli-20260704-141442",
+        "2026-07-05:codex-20260705-b0-claim-ceiling-alignment",
+        "2026-07-05:codex-20260705-f6-report-only-detector",
+        "2026-07-06:claude-20260706-host-agent-memory-sync-retirement"
+      ],
+      "rationale": "R3 durability bypass fix and provenance warnings originated from guard output (seed); baseline downgrade slice consumed its counts."
+    },
+    {
+      "defense": "memory_record",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_changing",
+      "confidence": "confirmed",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        "2026-06-23:cli-20260623-161215",
+        "2026-06-24:cli-20260624-165238",
+        "2026-06-25:cli-20260625-memory-authority-contract-v11-proposal",
+        "2026-07-06:claude-20260706-active-task-anchor-correction",
+        "2026-07-06:claude-20260706-host-agent-memory-sync-retirement"
+      ],
+      "rationale": "Canonical writer is the required path for every completed slice; anchor-mismatch review on 2026-07-06 changed the recording workflow."
+    },
+    {
+      "defense": "MEMORY_PROTOCOL",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_changing",
+      "confidence": "confirmed",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        "2026-06-24:cli-20260624-165238",
+        "2026-06-25:cli-20260625-144129",
+        "2026-06-26:cli-20260626-ambiguous-memory-routing",
+        "2026-07-03:cli-20260703-112118",
+        "2026-07-03:codex-20260703-law-doc-runtime-alignment"
+      ],
+      "rationale": "Protocol dispositions dictated canonical-writer workflow decisions across the window."
+    },
+    {
+      "defense": "authority_loader",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_relevant_unacted",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-06-25:cli-20260625-governance-doc-freshness-classification",
+        "2026-06-25:cli-20260625-authority-repair-proposal",
+        "2026-06-25:cli-20260625-authority-plan-tier-repair",
+        "2026-06-25:cli-20260625-authority-metadata-consistency-proposal",
+        "2026-06-25:cli-20260625-authority-metadata-consistency-checker"
+      ],
+      "rationale": "Authority resolution mentioned with decision verbs; anchors not review-verified."
+    },
+    {
+      "defense": "onboard_latest_governance",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_relevant_unacted",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-07-02:cli-20260702-180009",
+        "2026-07-02:codex-20260702-onboard-fallback-claim-boundary",
+        "2026-07-02:cli-20260702-222823",
+        "2026-07-03:codex-20260703-final-report-table-json",
+        "2026-07-04:codex-20260704-onboard-envelope-protocol"
+      ],
+      "rationale": "Mentioned in refresh flows without verb co-occurrence; verify before promoting or downgrading."
+    },
+    {
+      "defense": "claim_enforcement_checker",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_relevant_unacted",
+      "confidence": "confirmed",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-07-04:codex-20260704-memory-session-anchor-provenance",
+        "2026-07-04:codex-20260704-merge-s3-claim-label",
+        "2026-07-05:codex-20260705-r2-structured-claim-support",
+        "2026-07-05:codex-20260705-r2-claim-semantic-attestation-design",
+        "2026-07-05:codex-20260705-r2-claim-semantic-attestation-detector"
+      ],
+      "rationale": "R2 attestation line exists but integration decision (final-report caller) is still pending per 2026-07-06 records."
+    },
+    {
+      "defense": "decision-change ledger",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_changing",
+      "confidence": "confirmed",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        "2026-07-06:codex-20260706-governance-overhead-review-note",
+        "2026-07-06:cli-20260706-185531",
+        "2026-07-06:codex-20260706-planning-active-task-refresh",
+        "2026-07-06:claude-20260706-decision-change-inventory-line",
+        "2026-07-06:claude-20260706-noisy-closeout-warning-downgrade"
+      ],
+      "rationale": "Seed + inventory-line pass directly authorized the four-candidate retire line completed in-window."
+    },
+    {
+      "defense": "REVIEW_CRITERIA",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_changing",
+      "confidence": "confirmed",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        "2026-06-26:cli-20260626-review-criteria-readability",
+        "2026-07-03:cli-20260703-112118",
+        "2026-07-03:cli-20260703-180008",
+        "2026-07-03:cli-20260703-183038"
+      ],
+      "rationale": "Review verdicts citing REVIEW_CRITERIA produced CHANGES_REQUESTED fixes in-window (active-task staleness, commit-anchor mismatch)."
+    },
+    {
+      "defense": "governance_drift_checker",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_changing",
+      "confidence": "confirmed",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        "2026-06-29:codex-20260629-authority-manifest-baseline-readonly",
+        "2026-06-29:codex-20260629-authority-manifest-tech-spec-post-push",
+        "2026-06-29:cli-20260629-144407",
+        "2026-06-29:cli-20260629-150534"
+      ],
+      "rationale": "Planning-refresh slice (31fa4d09) used drift output as before/after evidence; PLAN freshness discipline enforced."
+    },
+    {
+      "defense": "session_closeout_entry",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "noisy_downgraded_in_window",
+      "confidence": "confirmed",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-06-23:session-20260623-artifact-write-boundary",
+        "2026-06-23:session-20260623-artifact-boundary-containment",
+        "2026-06-24:cli-20260624-artifact-boundary-containment-e2e"
+      ],
+      "rationale": "Seed classified per-session closeout warning repetition as noisy; the baseline-aggregation downgrade was implemented in-window (14f5c825). Observe the aggregated view before further change."
+    },
+    {
+      "defense": "manual_update_advisory",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_changing",
+      "confidence": "confirmed",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        "2026-07-03:cli-20260703-103427",
+        "2026-07-04:codex-20260704-update-receipts",
+        "2026-07-06:codex-20260706-hook-advisory-pythonpath"
+      ],
+      "rationale": "Hook import failure surfaced by its smoke changed implementation (seed)."
+    },
+    {
+      "defense": "architecture_drift_checker",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_relevant_unacted",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-07-03:cli-20260703-114650",
+        "2026-07-03:cli-20260703-120300",
+        "2026-07-06:claude-20260706-framework-self-test-signal-audit"
+      ],
+      "rationale": "Mentioned without decision verbs; also flagged in the self test-signal audit as the root contract validator lacking a fixture pair."
+    },
+    {
+      "defense": "ci_memory_workflow_check",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_changing",
+      "confidence": "confirmed",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        "2026-06-24:cli-20260624-165238",
+        "2026-07-06:codex-20260706-r3-durability-ci-parity"
+      ],
+      "rationale": "Warning-parity gaps found and fixed in-window (55a0a72); CI blocker semantics preserved."
+    },
+    {
+      "defense": "public_api_diff_checker",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "unknown",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-07-03:cli-20260703-114650",
+        "2026-07-03:cli-20260703-120300"
+      ],
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review."
+    },
+    {
+      "defense": "design-note classification",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_changing",
+      "confidence": "confirmed",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        "2026-07-06:cli-20260706-155821",
+        "2026-07-06:cli-20260706-165839"
+      ],
+      "rationale": "Seed confirmed: drove retrieval-authority and cache-aware consolidation slices."
+    },
+    {
+      "defense": "session_end_hook",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "unknown",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-06-23:session-20260623-artifact-write-boundary"
+      ],
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review."
+    },
+    {
+      "defense": "manage_agent_closeout",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "unknown",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-06-23:session-20260623-artifact-write-boundary"
+      ],
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review."
+    },
+    {
+      "defense": "governance_auditor",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "unknown",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-06-26:cli-20260626-review-criteria-readability"
+      ],
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review."
+    },
+    {
+      "defense": "deferred_debt_report",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "unknown",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-06-27:codex-20260627-p1e-two-week-evidence"
+      ],
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review."
+    },
+    {
+      "defense": "authority_metadata_consistency",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "unknown",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-07-02:cli-20260702-112052"
+      ],
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review."
+    },
+    {
+      "defense": "pre-commit hook",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_changing",
+      "confidence": "confirmed",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        "2026-07-03:cli-20260703-103427"
+      ],
+      "rationale": "Hook smoke failure changed implementation (PYTHONPATH preservation, 5eb0f5a1)."
+    },
+    {
+      "defense": "memory_janitor",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "unknown",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-07-03:codex-20260703-law-doc-runtime-alignment"
+      ],
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review."
+    },
+    {
+      "defense": "red-team",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_changing",
+      "confidence": "confirmed",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        "2026-07-05:codex-20260705-f6-non-daily-memory-baseline"
+      ],
+      "rationale": "R3 durability residual (red-team output) changed implementation in-window."
+    },
+    {
+      "defense": "claim_semantic_attestation_writer",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "unknown",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-07-06:codex-20260705-r2-claim-attestation-writer"
+      ],
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review."
+    },
+    {
+      "defense": "TESTING.md",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "unknown",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-07-06:codex-20260706-test-signal-quality-design"
+      ],
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review."
+    },
+    {
+      "defense": "runtime_surface_manifest",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "decision_changing",
+      "confidence": "confirmed",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        "2026-07-06:codex-20260706-hermes-runtime-surface-manifest"
+      ],
+      "rationale": "Inventory drift reproduction led to the Hermes adapter registration fix (c398bf72)."
+    },
+    {
+      "defense": "escalation_authority_path_guard",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "unknown",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-07-06:claude-20260706-decision-change-inventory-line"
+      ],
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review."
+    },
+    {
+      "defense": "state_reconciliation_validator",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "unknown",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-07-06:claude-20260706-decision-change-inventory-line"
+      ],
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review."
+    },
+    {
+      "defense": "canonical_closeout_fail_closed_regression",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "unknown",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-07-06:claude-20260706-decision-change-inventory-line"
+      ],
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review."
+    },
+    {
+      "defense": "mutation_proof_runner",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "unknown",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-07-06:claude-20260706-decision-change-inventory-line"
+      ],
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review."
+    },
+    {
+      "defense": "required_freshness_probe",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "unknown",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-07-06:claude-20260706-latest-main-consumer-investigation"
+      ],
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review."
+    },
+    {
+      "defense": "closeout receipt",
+      "source": "window_ledger_v0.2",
+      "decision_effect": "unknown",
+      "confidence": "lexical_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        "2026-07-06:claude-20260706-noisy-closeout-warning-downgrade"
+      ],
+      "rationale": "Single or low mention in window; extraction-only evidence. Do not act on this row without a focused review."
+    },
+    {
+      "defense": "governance_tools/ab_baseline_validator.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "investigate",
+      "evidence_refs": [
+        {
+          "memory_mentions": 2,
+          "last_memory_mention": "2026-04-29",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "A/B evidence line dormant since 2026-05-12; docs and 2026-07-05 ZoneTruth verification artifacts mention it but no wiring or importer exists.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/ab_cost_backfill_apply.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "investigate",
+      "evidence_refs": [
+        {
+          "memory_mentions": 1,
+          "last_memory_mention": "2026-05-12",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 0
+        }
+      ],
+      "rationale": "A/B cost backfill line dormant since 2026-05-12; no wiring, importer, or dedicated tests.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/ab_cost_hygiene.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "investigate",
+      "evidence_refs": [
+        {
+          "memory_mentions": 1,
+          "last_memory_mention": "2026-05-12",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "A/B cost hygiene line dormant since 2026-05-12; referenced only by status docs and verification artifacts.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/ab_cost_parity_audit.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "investigate",
+      "evidence_refs": [
+        {
+          "memory_mentions": 1,
+          "last_memory_mention": "2026-05-12",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "A/B cost parity line dormant since 2026-05-12; referenced only by status docs and verification artifacts.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/ab_smoke_artifact_validator.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "investigate",
+      "evidence_refs": [
+        {
+          "memory_mentions": 1,
+          "last_memory_mention": "2026-04-29",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "A/B smoke artifact validation dormant since 2026-04-29 in memory; runbook docs exist but no wiring or importer.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/agents_rule_candidates_inspector.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "dormant_frozen_line",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        {
+          "memory_mentions": 1,
+          "last_memory_mention": "2026-04-24",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "Learning-loop Gate 3 remains closed; absence of output from the agents-rule line is expected while the gate is frozen.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/canonical_closeout_fail_closed_regression.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "rare_critical",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        {
+          "memory_mentions": 0,
+          "last_memory_mention": null,
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "Fail-closed closeout regression proof. Only its own test references it, but rare_critical policy forbids retiring safety regression proofs from output absence alone.",
+      "also_in_window": true
+    },
+    {
+      "defense": "governance_tools/classification_session_summary.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "investigate",
+      "evidence_refs": [
+        {
+          "memory_mentions": 1,
+          "last_memory_mention": "2026-04-08",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "Referenced by root-level _classification_governance_smoke.py, but that smoke script itself has no wiring; last memory mention 2026-04-08.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/clean_pilot_admissibility.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "unknown",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "retire_candidate",
+      "evidence_refs": [
+        {
+          "memory_mentions": 0,
+          "last_memory_mention": null,
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 0
+        }
+      ],
+      "rationale": "Zero references outside its own file and zero dedicated tests. Focused review must first confirm governance/fleet/cleaning_admissibility_policy.yaml does not silently depend on it.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/e1b_consumer_audit.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "investigate",
+      "evidence_refs": [
+        {
+          "memory_mentions": 0,
+          "last_memory_mention": null,
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 2
+        }
+      ],
+      "rationale": "E1-B consumer audit line dormant; docs/e1b-consumer-audit-checklist.md and 2026-05 session artifacts reference it, but no wiring, importer, or memory mention exists.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/enumd_ingestion_contract.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "dormant_frozen_line",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        {
+          "memory_mentions": 0,
+          "last_memory_mention": null,
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "Enumd line is paused pending re-probe after Enumd closeout-path fixes; absence of output is expected while the phase is closed.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/escalation_authority_path_guard.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "rare_critical",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        {
+          "memory_mentions": 1,
+          "last_memory_mention": "2026-05-03",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "Escalation authority path guard is a safety surface; rare_critical policy forbids retirement from output absence alone. Last memory mention 2026-05-03.",
+      "also_in_window": true
+    },
+    {
+      "defense": "governance_tools/execution_surface_coverage_smoke.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "ruled_out_documented_surface",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        {
+          "memory_mentions": 1,
+          "last_memory_mention": "2026-04-01",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 0
+        }
+      ],
+      "rationale": "Documented smoke entrypoint in README and docs/status/runtime-governance-status.md; no dedicated tests and no recent run evidence.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/external_observation_adapter.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "ruled_out_wired",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        {
+          "memory_mentions": 0,
+          "last_memory_mention": null,
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 2
+        }
+      ],
+      "rationale": "Imported by integrations/enumd/enumd_adapter.py and governance_tools/phase3_gate_adoption_audit.py; library surface, not a zombie.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/gap_disposition_reader.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "dormant_design_line",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        {
+          "memory_mentions": 1,
+          "last_memory_mention": "2026-05-18",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "Referenced by the 2026-06-21 memory-authority baseline artifact and mob-verifier gap spec; dormant but recently cited as evidence.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/gate_c_dual_report.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "unknown",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "investigate",
+      "evidence_refs": [
+        {
+          "memory_mentions": 1,
+          "last_memory_mention": "2026-05-11",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 2
+        }
+      ],
+      "rationale": "Gate C dual report has tests only; last memory mention 2026-05-11. Review together with gate_c_report whether the Gate C reporting line is superseded.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/gate_c_report.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "unknown",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "investigate",
+      "evidence_refs": [
+        {
+          "memory_mentions": 0,
+          "last_memory_mention": null,
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "Gate C reporting surface with no wiring or importer; last doc reference is task-cost diagnostic 2026-06-25.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/governed_prompt.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "investigate",
+      "evidence_refs": [
+        {
+          "memory_mentions": 0,
+          "last_memory_mention": null,
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "Only governed_prompt_bridge imports it; the governed-prompt line has usage docs but no wiring, CI, hook, or memory evidence.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/governed_prompt_bridge.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "investigate",
+      "evidence_refs": [
+        {
+          "memory_mentions": 0,
+          "last_memory_mention": null,
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "Documented in docs/governed-prompt-usage.md and docs/token-run-checklist.md but has no wiring, importer, or memory evidence.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/host_agent_memory_sync_signal.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "retire_candidate",
+      "evidence_refs": [
+        {
+          "memory_mentions": 1,
+          "last_memory_mention": "2026-04-01",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "No references outside its own test since 2026-04-01; no wiring, importer, doc, or artifact evidence found.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/linear_integrator.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "investigate",
+      "evidence_refs": [
+        {
+          "memory_mentions": 1,
+          "last_memory_mention": "2026-03-21",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "Linear integration dormant since 2026-03-21; docs/linear-source-of-truth.md exists but no wiring or recent output evidence.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/manual_receipt_writer.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "investigate",
+      "evidence_refs": [
+        {
+          "memory_mentions": 1,
+          "last_memory_mention": "2026-05-17",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "Single memory mention 2026-05-17; possibly superseded by update_receipt and test_evidence_receipt_writer flows - supersession needs confirmation before retirement.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/mutation_proof_runner.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "rare_critical",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        {
+          "memory_mentions": 1,
+          "last_memory_mention": "2026-04-28",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 0
+        }
+      ],
+      "rationale": "Mutation-proof tooling referenced by escalation_authority_path_guard and the E1 mutation catalog; proof tooling for validator integrity should not be retired from dormancy alone.",
+      "also_in_window": true
+    },
+    {
+      "defense": "governance_tools/notion_integrator.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "investigate",
+      "evidence_refs": [
+        {
+          "memory_mentions": 1,
+          "last_memory_mention": "2026-03-21",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "Notion integration dormant since 2026-03-21; docs/notion-source-of-truth.md exists but no wiring or recent output evidence.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/phase3_gate_adoption_audit.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "dormant_frozen_line",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        {
+          "memory_mentions": 1,
+          "last_memory_mention": "2026-05-03",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "Phase 3 promotion-gate adoption line is frozen with learning-loop Gate 3; it also imports external_observation_adapter, so it is reachable when the line resumes.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/production_learning_contract.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "dormant_frozen_line",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        {
+          "memory_mentions": 1,
+          "last_memory_mention": "2026-04-28",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "Learning-loop production contract is frozen with Gate 3; absence of output is expected.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/promotion_gate_receipt_smoke.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "unknown",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "retire_candidate",
+      "evidence_refs": [
+        {
+          "memory_mentions": 0,
+          "last_memory_mention": null,
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 0
+        }
+      ],
+      "rationale": "Zero references anywhere outside its own file and zero dedicated tests.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/r49x4_metric_ranking.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "retire_candidate",
+      "evidence_refs": [
+        {
+          "memory_mentions": 1,
+          "last_memory_mention": "2026-05-16",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 0
+        }
+      ],
+      "rationale": "Single memory mention 2026-05-16, no dedicated tests, no wiring, no importer, no doc references outside that mention.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/readiness_audit.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "ruled_out_operator_surface",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        {
+          "memory_mentions": 0,
+          "last_memory_mention": null,
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 0
+        }
+      ],
+      "rationale": "Manual operator surface: .claude/settings.json permission allowlist records real invocations (including D:/Hearth) and session_end_hook output points operators to the closeout flow.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/required_freshness_probe.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "ruled_out_documented_surface",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        {
+          "memory_mentions": 1,
+          "last_memory_mention": "2026-05-27",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 0
+        }
+      ],
+      "rationale": "Wired into HEARTBEAT.md and TOOLS.md operator docs; last memory mention 2026-05-27 and no dedicated tests.",
+      "also_in_window": true
+    },
+    {
+      "defense": "governance_tools/retrieval_authority_observer.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "dormant_design_line",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        {
+          "memory_mentions": 0,
+          "last_memory_mention": null,
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "Part of the retrieval-authority Round A design cluster consolidated on 2026-07-06; observer signal contract is still an active design reference.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/round_a_evaluator.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "unknown",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "investigate",
+      "evidence_refs": [
+        {
+          "memory_mentions": 0,
+          "last_memory_mention": null,
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "Only its own test references it; whether it belongs to a frozen round line or is superseded needs a focused read-only review.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/run_filtered_tests.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "zombie_candidate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "investigate",
+      "evidence_refs": [
+        {
+          "memory_mentions": 0,
+          "last_memory_mention": null,
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "Developer convenience test runner; referenced only in the tracked .latest-main snapshot PLAN and commit-log.txt.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/run_first_import_validation.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "ruled_out_documented_surface",
+      "frequency_class": "unknown",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        {
+          "memory_mentions": 0,
+          "last_memory_mention": null,
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 0
+        }
+      ],
+      "rationale": "Wired into docs/ai-governance-first-import-sop.md as a first-import onboarding step; rare-use by design, no dedicated tests.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/runtime_enforcement_smoke.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "ruled_out_wired",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        {
+          "memory_mentions": 0,
+          "last_memory_mention": null,
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "Registered as a runtime surface in governance_tools/runtime_surface_manifest.py and listed in docs/governance-maintenance-checklist.md.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/runtime_surface_manifest_smoke.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "ruled_out_documented_surface",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        {
+          "memory_mentions": 0,
+          "last_memory_mention": null,
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 0
+        }
+      ],
+      "rationale": "Documented smoke entrypoint in README, docs/INTEGRATION_GUIDE.md, and the consuming-repo adoption checklist.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/state_reconciliation_validator.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "ruled_out_wired",
+      "frequency_class": "rare_critical",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        {
+          "memory_mentions": 2,
+          "last_memory_mention": "2026-04-28",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 2
+        }
+      ],
+      "rationale": "Imported by mutation_proof_runner and mutation_proof_runner_phase2; library surface for the mutation-proof line.",
+      "also_in_window": true
+    },
+    {
+      "defense": "governance_tools/upgrade_closeout.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "ruled_out_operator_surface",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        {
+          "memory_mentions": 0,
+          "last_memory_mention": null,
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 0
+        }
+      ],
+      "rationale": "session_end_hook.py output suggests the upgrade_closeout command and the permission allowlist records real dry-run invocations (including D:/Hearth).",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/upgrade_starter_pack.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "ruled_out_documented_surface",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep",
+      "evidence_refs": [
+        {
+          "memory_mentions": 1,
+          "last_memory_mention": "2026-04-10",
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 2
+        }
+      ],
+      "rationale": "Documented consumer adoption surface in README and the consuming-repo/external-repo checklists; rare-use by design.",
+      "also_in_window": false
+    },
+    {
+      "defense": "governance_tools/workflow_entry_observer.py",
+      "source": "inventory_v0.1",
+      "zombie_status": "ruled_out_wired",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "unassessed",
+      "recommended_action": "keep_observe",
+      "evidence_refs": [
+        {
+          "memory_mentions": 0,
+          "last_memory_mention": null,
+          "ci_wired": [],
+          "script_wired": [],
+          "hook_wired": [],
+          "imported_by_other_tools": [],
+          "test_file_references": 1
+        }
+      ],
+      "rationale": "Referenced by governance_tools/expansion_boundary_checker.py and justified by entry-layer boundary docs; reference nature is registry/doc-level, so decision effect is still unproven.",
+      "also_in_window": false
+    },
+    {
+      "defense": "manual_update / destructive_manual_update vocabulary surfaces",
+      "decision_effect": "duplicate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "high",
+      "recommended_action": "merge",
+      "evidence_refs": [
+        "2026-07-06 surface audit: concept appears across ~8 md surfaces (grep -rl over governance/, docs/governance/, baselines/)"
+      ],
+      "rationale": "Same manual-update rule carried by many documents; one canonical source should be named and the rest marked as generated/propagation copies.",
+      "source": "curated_review_2026-07-07"
+    },
+    {
+      "defense": "human_readable_adoption_summary carriers",
+      "decision_effect": "duplicate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "high",
+      "recommended_action": "merge",
+      "evidence_refs": [
+        "2026-07-06 surface audit: ~8 md carriers; governance_update_reporting.py already renders the table"
+      ],
+      "rationale": "Keep the protocol requirement as canonical; make governance_update_reporting.py the single format projection; other carriers point instead of restate.",
+      "source": "curated_review_2026-07-07"
+    },
+    {
+      "defense": "memory_workflow doc surfaces",
+      "decision_effect": "duplicate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "high",
+      "recommended_action": "investigate",
+      "evidence_refs": [
+        "2026-07-06 surface audit: concept on ~18 md surfaces"
+      ],
+      "rationale": "Widest propagation surface found; needs canonical-vs-copy mapping before any merge to avoid dropping an active rule.",
+      "source": "curated_review_2026-07-07"
+    },
+    {
+      "defense": "cache-aware design-note cluster (11 docs)",
+      "decision_effect": "duplicate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "high",
+      "recommended_action": "merge",
+      "evidence_refs": [
+        "design-note-classification.json",
+        "2026-07-06 approved round-b consolidation plan (summary as single entry point + step-2 frontmatter marking of covered sources)"
+      ],
+      "rationale": "Consolidation plan already reviewed and approved; execute summary slice then mark covered sources so convergence is visible in the folder, not only in JSON.",
+      "source": "curated_review_2026-07-07"
+    },
+    {
+      "defense": "release/reviewer/trust reader+snapshot+summary tool triplets (14 tools)",
+      "decision_effect": "duplicate",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "medium",
+      "recommended_action": "investigate",
+      "evidence_refs": [
+        "2026-07-06 tool census: release_* 6, reviewer_handoff_* 5, trust_signal_* 3 share reader/snapshot/summary pattern"
+      ],
+      "rationale": "Per-family check whether separate entry points still have distinct consumers; merge entrypoints only where consumers are identical.",
+      "source": "curated_review_2026-07-07"
+    },
+    {
+      "defense": "memory historical warning counts (unbound_memory / test_evidence_provenance_not_found)",
+      "decision_effect": "noisy",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "medium",
+      "recommended_action": "downgrade",
+      "evidence_refs": [
+        "guard runs 2026-07-06/07: unbound_memory=297, test_evidence_provenance_not_found=355, repeated with no follow-up action"
+      ],
+      "rationale": "Long-lived unacted counts have become background noise; display as baseline/trend/top-N so current-diff signal stays visible.",
+      "source": "curated_review_2026-07-07"
+    },
+    {
+      "defense": "test_signal_quality_audit lexical signals (framework self-scan)",
+      "decision_effect": "noisy",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "low",
+      "recommended_action": "downgrade",
+      "evidence_refs": [
+        "2026-07-06 self-scan flagged its own test fixture strings as weak signals (tests/test_test_signal_quality_audit.py:252)"
+      ],
+      "rationale": "Keep as report-only reviewer aid at low salience; never promote to gate; lexical scanner cannot distinguish fixture strings about weak signals from actual weak signals.",
+      "source": "curated_review_2026-07-07"
+    },
+    {
+      "defense": "phase_d_closeout_writer (human-only close gate)",
+      "decision_effect": "unknown",
+      "frequency_class": "rare-critical",
+      "maintenance_cost_class": "low",
+      "recommended_action": "keep_rare_critical",
+      "evidence_refs": [
+        "PHASE_D_CLOSE_AUTHORITY.md (human-only, fully operative)"
+      ],
+      "rationale": "Low frequency by design; effectiveness must be proven by rehearsal or mutation-style checks, never by appearance counts.",
+      "source": "curated_review_2026-07-07"
+    },
+    {
+      "defense": "escalation_authority_writer / escalation_authority_path_guard",
+      "decision_effect": "unknown",
+      "frequency_class": "rare-critical",
+      "maintenance_cost_class": "low",
+      "recommended_action": "keep_rare_critical",
+      "evidence_refs": [
+        "E1b Phase-B escalation authority surfaces"
+      ],
+      "rationale": "Safety escalation boundary; exempt from frequency-based retirement per budget design rare-critical exception.",
+      "source": "curated_review_2026-07-07"
+    },
+    {
+      "defense": "push / destructive-operation authorization discipline",
+      "decision_effect": "decision_changing",
+      "frequency_class": "rare-critical",
+      "maintenance_cost_class": "low",
+      "recommended_action": "keep_rare_critical",
+      "evidence_refs": [
+        "2026-07-06/07 sessions: multiple commits held locally until explicit push authorization; fff9275d pushed only after authorization"
+      ],
+      "rationale": "Repeatedly changed behavior in observed sessions; foundation of the trust model.",
+      "source": "curated_review_2026-07-07"
+    },
+    {
+      "defense": "memory_freshness_guard (fail-closed)",
+      "decision_effect": "unknown",
+      "frequency_class": "rare-critical",
+      "maintenance_cost_class": "low",
+      "recommended_action": "keep_rare_critical",
+      "evidence_refs": [
+        "governance_tools/memory_freshness_guard.py docstring: fail-closed structured memory freshness guard"
+      ],
+      "rationale": "Fail-closed guard; retirement review requires focused safety review, not frequency evidence.",
+      "source": "curated_review_2026-07-07"
+    }
+  ]
+}
