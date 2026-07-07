@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -c \"from pathlib import Path; paths=['governance_tools/governance_maturity_summary.py','governance_tools/governance_update_reporting.py','governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md','governance/F7_FULL_UPDATE.md','governance/RESPONSE_ENVELOPE_CONTRACT.md','governance_tools/test_signal_quality_audit.py','governance_tools/update_receipt.py','governance_tools/test_evidence_receipt_writer.py']; missing=[p for p in paths if not Path(p).exists()]; assert not missing, missing; data=Path('docs/governance/operator-facing-ai-governance-report-ladder-2026-07-07.md').read_bytes(); assert all(b < 128 for b in data); lines=Path('docs/governance/operator-facing-ai-governance-report-ladder-2026-07-07.md').read_text(encoding='utf-8').splitlines(); assert not [i for i,line in enumerate(lines,1) if line.rstrip(' \\t') != line]\"",
+  "exit_code": 0,
+  "started_at": "2026-07-07T07:07:33Z",
+  "finished_at": "2026-07-07T07:07:33Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "9736f7f22587594ffcf277f9927de85575cd0514",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-operator-report-ladder-design-20260707.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
