@@ -33,21 +33,37 @@ def evaluate(project_root: Path, max_age_days: int) -> dict:
     for logical_name in ("active_task", "knowledge_base"):
         path = resolve_memory_file(memory_root, logical_name)
         exists = path.exists()
+        is_file = path.is_file() if exists else False
         age = None
+        future_mtime = False
         stale = True
-        if exists:
-            age = round(_age_days(path, now), 2)
-            stale = age > max_age_days
+        reason = "missing"
+        if exists and not is_file:
+            reason = "not_file"
+        elif exists:
+            raw_age = _age_days(path, now)
+            age = round(raw_age, 2)
+            future_mtime = raw_age < 0
+            stale = future_mtime or age > max_age_days
+            if future_mtime:
+                reason = "future_mtime"
+            elif stale:
+                reason = "stale"
+            else:
+                reason = None
         check = {
             "logical_name": logical_name,
             "path": str(path),
             "exists": exists,
+            "is_file": is_file,
             "age_days": age,
             "max_age_days": max_age_days,
+            "future_mtime": future_mtime,
             "stale": stale,
+            "reason": reason,
         }
         checks.append(check)
-        if (not exists) or stale:
+        if (not exists) or (not is_file) or stale:
             failures.append(check)
 
     return {
@@ -63,7 +79,8 @@ def _format_human(result: dict) -> str:
     lines = ["[memory_freshness_guard]", f"ok={result['ok']} max_age_days={result['max_age_days']}"]
     for item in result["checks"]:
         lines.append(
-            f"{item['logical_name']}: exists={item['exists']} stale={item['stale']} age_days={item['age_days']} path={item['path']}"
+            f"{item['logical_name']}: exists={item['exists']} is_file={item['is_file']} stale={item['stale']} "
+            f"age_days={item['age_days']} future_mtime={item['future_mtime']} reason={item['reason']} path={item['path']}"
         )
     if result["failures"]:
         lines.append("blocked_reason=structured memory file missing or stale")
