@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -X utf8 C:/Users/reiko/AppData/Local/Temp/claude/E--BackUp-Git-EE-ai-governance-framework/697729c5-c1cb-4c56-bdff-b3aa40d9ab57/scratchpad/validate_roundb.py",
+  "exit_code": 0,
+  "started_at": "2026-07-07T02:56:39Z",
+  "finished_at": "2026-07-07T02:56:39Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "d11c7bb010cf6783c2fe42f4ea5701677119fd86",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-20260707T025639Z.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

@@ -1,0 +1,1 @@
+OK: 16 refs exist; cluster set matches classification JSON (11 files); 7/11 covered notes carry consolidation pointers; without pointer: ['cache-aware-compaction-summary-field-spec-2026-06-28.md', 'cache-aware-mode-authorization-anti-forgery-spec-2026-06-28.md', 'cache-aware-tool-denial-receipt-spec-2026-06-28.md', 'prompt-cache-harness-consumer-contract-2026-06-29.md']
