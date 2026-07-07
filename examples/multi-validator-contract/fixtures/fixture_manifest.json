@@ -1,0 +1,52 @@
+{
+  "fixtures": [
+    {
+      "file": "architecture_drift_compliant.checks.json",
+      "expected_ok": true,
+      "expected_rule_ids": ["architecture"],
+      "description": "Architecture drift validator pass fixture for a local-only feature change."
+    },
+    {
+      "file": "architecture_drift_violation.checks.json",
+      "expected_ok": false,
+      "expected_rule_ids": ["architecture"],
+      "description": "Architecture drift validator fail fixture for a peer-private include."
+    },
+    {
+      "file": "driver_evidence_compliant.checks.json",
+      "expected_ok": true,
+      "expected_rule_ids": ["driver"],
+      "description": "Driver evidence validator pass fixture with IRQL, IOCTL, cleanup, and SDV evidence."
+    },
+    {
+      "file": "driver_evidence_violation.checks.json",
+      "expected_ok": false,
+      "expected_rule_ids": ["driver"],
+      "description": "Driver evidence validator fail fixture missing required kernel-driver evidence."
+    },
+    {
+      "file": "failure_completeness_compliant.checks.json",
+      "expected_ok": true,
+      "expected_rule_ids": ["failure"],
+      "description": "Failure completeness validator pass fixture with invalid-input and cleanup coverage."
+    },
+    {
+      "file": "failure_completeness_violation.checks.json",
+      "expected_ok": false,
+      "expected_rule_ids": ["failure"],
+      "description": "Failure completeness validator fail fixture with happy-path-only evidence."
+    },
+    {
+      "file": "refactor_evidence_compliant.checks.json",
+      "expected_ok": true,
+      "expected_rule_ids": ["refactor"],
+      "description": "Refactor evidence validator pass fixture with regression and interface-stability evidence."
+    },
+    {
+      "file": "refactor_evidence_violation.checks.json",
+      "expected_ok": false,
+      "expected_rule_ids": ["refactor"],
+      "description": "Refactor evidence validator fail fixture missing regression evidence."
+    }
+  ]
+}

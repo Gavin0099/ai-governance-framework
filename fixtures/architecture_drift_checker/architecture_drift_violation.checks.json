@@ -1,0 +1,7 @@
+{
+  "response_text": "#include \"../database_service/Global.h\"",
+  "contract_fields": {
+    "SCOPE": "feature"
+  },
+  "checks": {}
+}

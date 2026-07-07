@@ -1,0 +1,18 @@
+{
+  "checks": {
+    "test_names": [
+      "regression_test_existing_behavior",
+      "interface_stability_contract_test"
+    ],
+    "regression_covered": true,
+    "interface_stability_checked": true,
+    "error_path_inventory": [
+      {
+        "error_id": "REF-001",
+        "trigger": "invalid input rejected before refactor",
+        "pre_refactor_behavior": "returns validation error without side effects",
+        "affected_by_refactor": false
+      }
+    ]
+  }
+}

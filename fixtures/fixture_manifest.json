@@ -1,0 +1,16 @@
+{
+  "fixtures": [
+    {
+      "file": "architecture_drift_checker/architecture_drift_compliant.checks.json",
+      "expected_ok": true,
+      "expected_rule_ids": ["architecture"],
+      "description": "Framework root architecture_drift_checker pass fixture."
+    },
+    {
+      "file": "architecture_drift_checker/architecture_drift_violation.checks.json",
+      "expected_ok": false,
+      "expected_rule_ids": ["architecture"],
+      "description": "Framework root architecture_drift_checker fail fixture."
+    }
+  ]
+}

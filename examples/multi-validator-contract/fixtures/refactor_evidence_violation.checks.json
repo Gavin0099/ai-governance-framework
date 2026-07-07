@@ -1,0 +1,7 @@
+{
+  "checks": {
+    "test_names": [
+      "renamed helper compiles"
+    ]
+  }
+}

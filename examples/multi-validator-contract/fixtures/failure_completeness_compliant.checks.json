@@ -1,0 +1,11 @@
+{
+  "checks": {
+    "test_names": [
+      "test_throws_on_invalid_input",
+      "cleanup_after_failure",
+      "rollback_on_error"
+    ],
+    "exception_assertions": true,
+    "cleanup_verified": true
+  }
+}

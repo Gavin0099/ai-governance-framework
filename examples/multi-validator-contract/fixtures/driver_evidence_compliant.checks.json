@@ -1,0 +1,13 @@
+{
+  "checks": {
+    "test_names": [
+      "irql passive level test",
+      "ioctl buffer length validation",
+      "cleanup on remove",
+      "static driver verifier analysis"
+    ],
+    "diagnostics": [
+      "static driver verifier passed"
+    ]
+  }
+}

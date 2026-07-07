@@ -1,0 +1,7 @@
+{
+  "checks": {
+    "test_names": [
+      "test_happy_path_only"
+    ]
+  }
+}
