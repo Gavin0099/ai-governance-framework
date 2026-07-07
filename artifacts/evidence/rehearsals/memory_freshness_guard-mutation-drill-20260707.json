@@ -1,0 +1,79 @@
+{
+  "schema": "rare_critical_rehearsal_receipt.v0.1",
+  "generated_at": "2026-07-07",
+  "defense_id": "memory_freshness_guard",
+  "defense_surface": "governance_tools/memory_freshness_guard.py",
+  "wired_at": "scripts/hooks/pre-push (fail-closed gate); installed at .git/hooks/pre-push",
+  "rehearsal_type": "mutation_drill",
+  "design_ref": "docs/governance/rare-critical-rehearsal-design-2026-07-07.md",
+  "expected": "fail_closed_block",
+  "verdict": "held",
+  "cases": [
+    {
+      "case": "control_fresh",
+      "mutation_class": "none",
+      "expected_exit": 0,
+      "observed_exit": 0,
+      "verdict": "held"
+    },
+    {
+      "case": "missing_required_file",
+      "mutation_class": "missing",
+      "expected_exit": 1,
+      "observed_exit": 1,
+      "verdict": "held"
+    },
+    {
+      "case": "stale_beyond_max_age",
+      "mutation_class": "stale_timestamp",
+      "expected_exit": 1,
+      "observed_exit": 1,
+      "verdict": "held"
+    },
+    {
+      "case": "future_mtime_large",
+      "mutation_class": "future_timestamp",
+      "expected_exit": 1,
+      "observed_exit": 1,
+      "verdict": "held"
+    },
+    {
+      "case": "future_mtime_epsilon",
+      "mutation_class": "future_timestamp",
+      "expected_exit": 1,
+      "observed_exit": 1,
+      "verdict": "held"
+    },
+    {
+      "case": "directory_as_file",
+      "mutation_class": "non_file_path",
+      "expected_exit": 1,
+      "observed_exit": 1,
+      "verdict": "held"
+    },
+    {
+      "case": "zero_max_age_fresh_boundary",
+      "mutation_class": "config_boundary",
+      "expected_exit": 0,
+      "observed_exit": 0,
+      "verdict": "held"
+    }
+  ],
+  "history": "First drill on 2026-07-07 (pre-hardening) found three fail-open classes: future_timestamp and non_file_path passed when they should have blocked, and a config_boundary (max_age_days=0) rounding case. Commit 2b97a2c9 hardened the guard: future mtime is now treated as stale (reason=future_mtime), non-file paths block (reason=not_file), and max_age_days=0 on a same-day file is a documented pass boundary. This receipt re-runs the drill against the hardened guard.",
+  "hardening_commit": "2b97a2c9",
+  "regression_tests": "tests/test_memory_freshness_guard.py (6 cases; each asserts ok is False plus specific reason, not assert-not-raised)",
+  "mutation_classes_exercised": [
+    "config_boundary",
+    "future_timestamp",
+    "missing",
+    "non_file_path",
+    "stale_timestamp"
+  ],
+  "mutation_classes_not_exercised": [
+    "schema_violation_inside_file",
+    "symlink_to_stale_target",
+    "permission_denied_read",
+    "clock_skew_between_check_files"
+  ],
+  "claim_ceiling": "Proves the freshness guard blocked these mutation classes on 2026-07-07; not a general guarantee. The guard measures age only; the canonical policy (docs/structured-memory-freshness-policy.md) defines staleness as event-driven contradiction against PLAN, not age. That age-vs-event semantic gap is an owner decision and is out of scope for this rehearsal. config_boundary is a documented pass, not a proven-safe class."
+}

@@ -1,0 +1,1 @@
+OK: receipt schema matches design note, verdict=held on 7 cases, defense/design refs exist, hardening commit 2b97a2c9 in git, regression tests present, ascii clean
