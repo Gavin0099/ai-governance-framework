@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -c \"from pathlib import Path; import json, shutil, subprocess, sys; from governance_tools.phase_d_closeout_writer import write_phase_d_closeout, assess_phase_d_closeout, REQUIRED_CONDITIONS; receipt=json.loads(Path('artifacts/evidence/rehearsals/phase_d_closeout_writer-negative-rehearsal-20260707.json').read_text(encoding='utf-8')); assert receipt['schema']=='rare_critical_rehearsal_receipt.v0.1'; assert receipt['defense_id']=='phase_d_closeout_writer'; assert receipt['verdict']=='failed'; assert receipt['expected']=='fail_closed_refusal'; assert receipt['observed']=='artifact_written_and_assessed_ok'; assert receipt['high_salience_finding'] is True; assert Path(receipt['defense_surface']).exists(); assert Path(receipt['authority_ref']).exists(); assert Path(receipt['design_ref']).exists(); root=Path('tests/_tmp_phase_d_negative_rehearsal_receipt'); shutil.rmtree(root, ignore_errors=True); root.mkdir(parents=True); path=root/'phase-d-reviewer-closeout.json'; write_phase_d_closeout(path, reviewer_id='ai_agent_rehearsal_attempt', confirmed_conditions=sorted(REQUIRED_CONDITIONS), confirmed_at='2026-07-07T00:00:00+00:00', written_at='2026-07-07T00:00:00+00:00'); result=assess_phase_d_closeout(path); assert path.is_file(); assert result['ok'] is True; assert result['release_block_reasons']==[]; test_result=subprocess.run([sys.executable,'-m','pytest','tests/test_phase_d_closeout_writer.py','--basetemp','tests/_tmp_phase_d_closeout_rehearsal_receipt','-p','no:cacheprovider','-q']); assert test_result.returncode==0\"",
+  "exit_code": 0,
+  "started_at": "2026-07-07T08:01:49Z",
+  "finished_at": "2026-07-07T08:01:51Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "d905ba2f9f14ee1808037964bbd96d48257b2e3a",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-phase-d-closeout-negative-rehearsal-20260707.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
