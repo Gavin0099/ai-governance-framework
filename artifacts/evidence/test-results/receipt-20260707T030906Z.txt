@@ -1,0 +1,1 @@
+OK: 92 entries; 4 retire_candidates all carry retired_completed resolution; modules confirmed absent; all 6 resolution commits exist in git; enum uniform; counts consistent

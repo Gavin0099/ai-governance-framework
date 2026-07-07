@@ -837,7 +837,10 @@
         }
       ],
       "rationale": "Zero references outside its own file and zero dedicated tests. Focused review must first confirm governance/fleet/cleaning_admissibility_policy.yaml does not silently depend on it.",
-      "also_in_window": false
+      "also_in_window": false,
+      "resolution": "retired_completed_2026-07-06",
+      "resolution_commits": "642df1bb",
+      "resolution_note": "retired with its policy yaml per explicit owner decision; zero wiring confirmed; focused review and owner authorization recorded in memory/2026-07-06.md; independently re-verified 2026-07-07 (files/tests gone, no live references, registry clean)"
     },
     {
       "defense": "governance_tools/e1b_consumer_audit.py",
@@ -1068,7 +1071,10 @@
         }
       ],
       "rationale": "No references outside its own test since 2026-04-01; no wiring, importer, doc, or artifact evidence found.",
-      "also_in_window": false
+      "also_in_window": false,
+      "resolution": "retired_completed_2026-07-06",
+      "resolution_commits": "fa70afba+662ed7a5",
+      "resolution_note": "deprecate-first: deprecation record committed, then tool and test removed; focused review and owner authorization recorded in memory/2026-07-06.md; independently re-verified 2026-07-07 (files/tests gone, no live references, registry clean)"
     },
     {
       "defense": "governance_tools/linear_integrator.py",
@@ -1215,7 +1221,10 @@
         }
       ],
       "rationale": "Zero references anywhere outside its own file and zero dedicated tests.",
-      "also_in_window": false
+      "also_in_window": false,
+      "resolution": "retired_completed_2026-07-06",
+      "resolution_commits": "af51e631",
+      "resolution_note": "duplicate smoke removed; promotion-gate digest tests remain as replacement evidence; focused review and owner authorization recorded in memory/2026-07-06.md; independently re-verified 2026-07-07 (files/tests gone, no live references, registry clean)"
     },
     {
       "defense": "governance_tools/r49x4_metric_ranking.py",
@@ -1236,7 +1245,10 @@
         }
       ],
       "rationale": "Single memory mention 2026-05-16, no dedicated tests, no wiring, no importer, no doc references outside that mention.",
-      "also_in_window": false
+      "also_in_window": false,
+      "resolution": "retired_completed_2026-07-06",
+      "resolution_commits": "371d1378+b596198f",
+      "resolution_note": "artifact freeze/provenance recorded, then producer removed; focused review and owner authorization recorded in memory/2026-07-06.md; independently re-verified 2026-07-07 (files/tests gone, no live references, registry clean)"
     },
     {
       "defense": "governance_tools/readiness_audit.py",
@@ -1623,5 +1635,7 @@
       "rationale": "Fail-closed guard; retirement review requires focused safety review, not frequency evidence.",
       "source": "curated_review_2026-07-07"
     }
-  ]
+  ],
+  "amended_at": "2026-07-07",
+  "amendment_note": "All four retire_candidate entries were already resolved by reviewed retirements on 2026-07-06 evening (after the inventory landed at 22:12 but before this queue was generated on 2026-07-07 morning). The queue was stale at birth for these entries because generation did not check module existence; future queue generation must verify each defense surface still exists at generation time."
 }
