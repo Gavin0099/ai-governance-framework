@@ -169,6 +169,21 @@ def test_expected_rule_ids_do_not_fall_back_to_alias_when_unmatched(tmp_path: Pa
     assert "fixture_unmatched: fixtures/driver_evidence_violation.checks.json" in report.warnings
 
 
+def test_runner_reports_manifest_missing_when_check_fixtures_exist(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write_contract(repo, "validators/refactor_validator.py")
+    _write_validator(repo, "validators/refactor_validator.py", "RefactorValidator", "refactor")
+    _write(repo / "fixtures" / "refactor_good.checks.json", "{}\n")
+
+    report = build_consumer_fixture_report(repo)
+
+    assert report.overall_status == "manifest_missing"
+    assert report.fixtures_total == 0
+    assert report.observations_total == 0
+    assert any("fixture_manifest_missing" in warning for warning in report.warnings)
+    assert not report.errors
+
+
 def test_cli_human_and_json_outputs_are_report_only(tmp_path: Path, capsys) -> None:
     repo = tmp_path / "repo"
     _write_contract(repo, "validators/refactor_validator.py")

@@ -80,11 +80,19 @@ def _manifest_items(payload: Any) -> list[dict[str, Any]] | None:
     return [item for item in items if isinstance(item, dict) and item.get("file")]
 
 
+def _manifest_paths(repo_root: Path) -> list[Path]:
+    return sorted(repo_root.rglob("fixture_manifest.json"))
+
+
+def _checks_fixture_candidates(repo_root: Path) -> list[Path]:
+    return sorted(repo_root.rglob("fixtures/*.checks.json"))
+
+
 def _load_fixture_entries(repo_root: Path) -> tuple[list[FixtureEntry], list[str], list[str]]:
     entries: list[FixtureEntry] = []
     warnings: list[str] = []
     errors: list[str] = []
-    for manifest in sorted(repo_root.rglob("fixture_manifest.json")):
+    for manifest in _manifest_paths(repo_root):
         payload, error = _load_json(manifest)
         if error:
             errors.append(f"fixture_manifest_error: {_repo_rel(repo_root, manifest)}: {error}")
@@ -227,9 +235,20 @@ def build_consumer_fixture_report(
         for error in item.get("errors", []):
             errors.append(f"validator_load_error: {item.get('name')}: {error}")
 
+    manifest_paths = _manifest_paths(repo)
     fixtures, manifest_warnings, manifest_errors = _load_fixture_entries(repo)
     warnings.extend(manifest_warnings)
     errors.extend(manifest_errors)
+    manifest_missing = False
+    if not manifest_paths:
+        checks_fixtures = _checks_fixture_candidates(repo)
+        if checks_fixtures:
+            manifest_missing = True
+            warnings.append(
+                "fixture_manifest_missing: "
+                f"found {len(checks_fixtures)} fixtures/*.checks.json candidate(s) "
+                "but no fixture_manifest.json"
+            )
 
     observations: list[dict[str, Any]] = []
     matched = 0
@@ -299,6 +318,8 @@ def build_consumer_fixture_report(
         overall = "error"
     elif not validators:
         overall = "no_validators"
+    elif manifest_missing:
+        overall = "manifest_missing"
     elif not fixtures:
         overall = "no_fixtures"
     elif mismatched:
