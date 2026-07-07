@@ -1,0 +1,1 @@
+OK: ASCII clean; 2 doc refs exist; all 4 covered defense tools exist on disk and are named; queue has exactly 4 curated rare_critical entries
