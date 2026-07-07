@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Memory freshness guard fail-closed hardening - 2026-07-07
+
+- Hardened `governance_tools/memory_freshness_guard.py` so required memory
+  paths that exist but are not files now fail closed with `reason=not_file`,
+  and required memory files with future mtimes now fail closed with
+  `reason=future_mtime`.
+- Added focused regression coverage for fresh, missing, stale, future-mtime,
+  directory-masquerade, and zero-max-age boundary cases.
+- Release-note boundary: this entry records unreleased guard hardening only.
+  It does not bump the framework version, publish a release, redesign
+  structured memory freshness around event-driven PLAN contradiction checks,
+  automate full structured-memory freshness policy, modify consumer repos, or
+  wire new tooling/runtime/hook/CI/pre-push/gate/enforcement behavior.
+
 ### Validator fixture template hardening - 2026-07-07
 
 - Added report-only pass/fail fixture templates and `fixture_manifest.json`
