@@ -298,6 +298,22 @@ Before adding any new governance layer, the proposer must answer:
 2. What existing governance rule cannot already cover it?
 3. What is the minimal added surface, and how will regression prove non-expansion side effects?
 
+Defense budget rule:
+- New governance defenses, rules, tools, validators, playbooks, managed blocks,
+  receipts, or memories require an observed failure. Do not add them for
+  theoretical completeness, semantic elegance, or possible future usefulness.
+- State why the existing defenses do not cover the observed failure.
+- State what the new surface replaces, merges with, or intentionally does not
+  merge with. If it duplicates an existing surface, justify why consolidation is
+  not the smaller fix.
+- State the expected decision effect: what future decision, review verdict,
+  stop condition, or user-visible report should change because this exists.
+- State the review, expiry, or re-evaluation condition. A defense without a
+  retirement or review path becomes maintenance debt by default.
+- Rare-critical defenses may be exempt from recent-frequency metrics, but they
+  must name a rehearsal, replay, or mutation proof path before being treated as
+  effective.
+
 Decision rule:
 - `governance_required=true` only when failure would weaken fail-closed semantics, evidence admissibility, or risk accountability.
 - Otherwise classify as `operational_hygiene` and do not create a new governance gate.
