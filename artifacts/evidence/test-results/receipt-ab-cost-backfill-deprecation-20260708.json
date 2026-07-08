@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m py_compile governance_tools/ab_cost_backfill_apply.py",
+  "exit_code": 0,
+  "started_at": "2026-07-08T08:55:36Z",
+  "finished_at": "2026-07-08T08:55:36Z",
+  "runner": "codex",
+  "linked_commit": "5de051407a89ad786b79e7df6ec6976b005fed4e",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-ab-cost-backfill-deprecation-20260708.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
