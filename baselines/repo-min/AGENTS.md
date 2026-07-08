@@ -152,6 +152,12 @@ For update intent, `update_available` is an intermediate state, not a final
 successful outcome. Final response must be one of:
 `already_current | updated | manual_update | destructive_manual_update | blocked | not_submodule_consumer | not_verified`.
 
+This baseline is a propagated, managed consumer instruction copy of the
+canonical manual-update reporting vocabulary in
+`governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md`. It is intentionally explicit so
+agents can see the rule in the consumer repo, but it must not drift into an
+independent definition of `manual_update` or `destructive_manual_update`.
+
 Updating the governance submodule pointer does not automatically authorize a
 parent repository commit or push unless the user explicitly requested commit/push
 or the active workflow already defines commit/push as part of the governed

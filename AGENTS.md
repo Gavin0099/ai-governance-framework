@@ -338,6 +338,12 @@ updater/F-7 path. A direct submodule/gitlink checkout, framework checkout bump,
 or lock-file edit is a `manual_update` path and must be reported as incomplete
 unless the governed updater/F-7 evidence is also produced.
 
+This workspace section is a trigger summary, not the canonical definition of
+`manual_update` or `destructive_manual_update`. The canonical reporting
+vocabulary and templates live in `governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md`;
+F-7 and consumer AGENTS baselines only project that vocabulary into their active
+execution surfaces.
+
 Before discarding local state in a nested framework checkout, first inspect the
 modified and untracked paths that would be discarded. If cleanup proceeds, the
 final report must list that discarded-path inventory and use

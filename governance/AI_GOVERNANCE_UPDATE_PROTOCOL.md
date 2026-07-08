@@ -161,6 +161,12 @@ For update intent, `update_available` is an intermediate state, not a final
 successful outcome. Final response must be one of:
 `already_current | updated | manual_update | destructive_manual_update | blocked | not_submodule_consumer | not_verified`.
 
+This file is the canonical source for the `manual_update` and
+`destructive_manual_update` reporting vocabulary, templates, and claim
+boundaries. Consumer instruction baselines and F-7 documentation may project
+this vocabulary into their local execution surfaces, but must not become
+independent definitions of these states.
+
 Updating the governance submodule pointer does not automatically authorize a
 parent repository commit or push unless the user explicitly requested
 commit/push or the active workflow already defines commit/push as part of the

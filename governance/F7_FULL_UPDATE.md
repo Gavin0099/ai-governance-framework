@@ -60,6 +60,11 @@ discarded local framework checkout state, report `destructive_manual_update`
 and include the discarded modified and untracked path inventory in the final
 operator-facing report.
 
+This is the F-7-specific projection of the canonical manual-update reporting
+vocabulary in `governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md`. Do not treat this
+file as an independent source for `manual_update` or
+`destructive_manual_update` definitions.
+
 The final adoption status report must follow the canonical adoption-summary
 relay contract in `governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md`. The concrete
 table and final-report projection are produced by

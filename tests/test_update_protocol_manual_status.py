@@ -47,6 +47,14 @@ def test_update_protocol_and_baseline_share_manual_status_contract() -> None:
     protocol = _read(PROTOCOL)
     baseline = _read(BASELINE_AGENTS)
 
+    assert (
+        "This file is the canonical source for the `manual_update` and\n"
+        "`destructive_manual_update` reporting vocabulary"
+    ) in protocol
+    assert (
+        "This baseline is a propagated, managed consumer instruction copy of the\n"
+        "canonical manual-update reporting vocabulary"
+    ) in baseline
     assert UPDATE_STATUS_LINE in protocol
     assert UPDATE_STATUS_LINE in baseline
     assert MANUAL_TEMPLATE in protocol
@@ -58,6 +66,7 @@ def test_update_protocol_and_baseline_share_manual_status_contract() -> None:
 def test_f7_protocol_allows_manual_status_without_completed_claim() -> None:
     text = _read(F7_PROTOCOL)
 
+    assert "F-7-specific projection of the canonical manual-update reporting" in text
     assert FINAL_STATUS_LINE in text
     assert "`manual_update`" in text
     assert "`destructive_manual_update`" in text
@@ -68,6 +77,8 @@ def test_f7_protocol_allows_manual_status_without_completed_claim() -> None:
 def test_framework_agents_routes_consumer_manual_updates_to_incomplete_status() -> None:
     text = _read(ROOT_AGENTS)
 
+    assert "workspace section is a trigger summary, not the canonical definition" in text
+    assert "governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md" in text
     assert "prefer the governed" in text
     assert "`manual_update` path" in text
     assert "`destructive_manual_update`" in text
