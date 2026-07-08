@@ -13,12 +13,12 @@
     "total_entries": 92,
     "by_recommended_action": {
       "downgrade": 2,
-      "investigate": 18,
+      "investigate": 17,
       "keep": 25,
       "keep_observe": 36,
       "keep_rare_critical": 4,
       "merge": 3,
-      "retire_candidate": 4
+      "retire_candidate": 5
     },
     "by_source": {
       "curated_review_2026-07-07": 11,
@@ -676,8 +676,8 @@
       "source": "inventory_v0.1",
       "zombie_status": "zombie_candidate",
       "frequency_class": "routine",
-      "maintenance_cost_class": "unassessed",
-      "recommended_action": "investigate",
+      "maintenance_cost_class": "low_but_unowned_one_off_writer",
+      "recommended_action": "retire_candidate",
       "evidence_refs": [
         {
           "memory_mentions": 1,
@@ -686,10 +686,19 @@
           "script_wired": [],
           "hook_wired": [],
           "imported_by_other_tools": [],
-          "test_file_references": 0
+          "test_file_references": 0,
+          "focused_review": "2026-07-08 read-only A/B cluster review found no active references outside inventory/queue, no dedicated tests, existing apply report run_count=0/replacements=0/write_applied=false, and current backfill data still insufficient_data/null."
         }
       ],
-      "rationale": "A/B cost backfill line dormant since 2026-05-12; no wiring, importer, or dedicated tests.",
+      "rationale": "A/B cost backfill apply tool is a one-off writer for the 2026-05-12 scalar telemetry gap. Historical docs and apply report remain provenance, but active cost observation is covered by ab_cost_hygiene.py and ab_cost_parity_audit.py.",
+      "resolution": {
+        "status": "deprecated_retire_candidate",
+        "replacement_tools": [
+          "governance_tools/ab_cost_hygiene.py",
+          "governance_tools/ab_cost_parity_audit.py"
+        ],
+        "next_step": "Remove or archive the tool in a later reviewed slice if no new scalar telemetry source is provided."
+      },
       "also_in_window": false
     },
     {
@@ -1636,6 +1645,6 @@
       "source": "curated_review_2026-07-07"
     }
   ],
-  "amended_at": "2026-07-07",
-  "amendment_note": "All four retire_candidate entries were already resolved by reviewed retirements on 2026-07-06 evening (after the inventory landed at 22:12 but before this queue was generated on 2026-07-07 morning). The queue was stale at birth for these entries because generation did not check module existence; future queue generation must verify each defense surface still exists at generation time."
+  "amended_at": "2026-07-08",
+  "amendment_note": "The original four retire_candidate entries were already resolved by reviewed retirements on 2026-07-06 evening (after the inventory landed at 22:12 but before this queue was generated on 2026-07-07 morning). On 2026-07-08, governance_tools/ab_cost_backfill_apply.py was reclassified from investigate to retire_candidate after focused review found it is a one-off writer with no current scalar telemetry input, no active wiring, and no dedicated tests. Future queue generation must verify each defense surface still exists and still has the recorded status at generation time."
 }

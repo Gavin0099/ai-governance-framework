@@ -79,7 +79,7 @@
       "module": "governance_tools/ab_cost_backfill_apply.py",
       "zombie_status": "zombie_candidate",
       "frequency_class": "routine",
-      "recommended_action": "investigate",
+      "recommended_action": "retire_candidate",
       "cluster": "ab_cost_evidence",
       "scan_evidence": {
         "memory_mentions": 1,
@@ -88,9 +88,18 @@
         "script_wired": [],
         "hook_wired": [],
         "imported_by_other_tools": [],
-        "test_file_references": 0
+        "test_file_references": 0,
+        "focused_review": "2026-07-08 read-only review confirmed no active references outside inventory/queue, no dedicated tests, existing apply report run_count=0/replacements=0/write_applied=false, and current backfill data remains insufficient_data/null."
       },
-      "rationale": "A/B cost backfill line dormant since 2026-05-12; no wiring, importer, or dedicated tests."
+      "rationale": "A/B cost backfill apply tool is a one-off writer for the 2026-05-12 scalar telemetry gap. Historical docs and apply report remain provenance, but active cost observation is covered by ab_cost_hygiene.py and ab_cost_parity_audit.py.",
+      "resolution": {
+        "status": "deprecated_retire_candidate",
+        "replacement_tools": [
+          "governance_tools/ab_cost_hygiene.py",
+          "governance_tools/ab_cost_parity_audit.py"
+        ],
+        "next_step": "Remove or archive the tool in a later reviewed slice if no new scalar telemetry source is provided."
+      }
     },
     {
       "module": "governance_tools/ab_cost_hygiene.py",

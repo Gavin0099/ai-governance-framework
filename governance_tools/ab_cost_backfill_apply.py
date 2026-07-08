@@ -6,6 +6,19 @@ import re
 from pathlib import Path
 
 
+DEPRECATION_NOTICE = (
+    "Deprecated retire-candidate: this one-off 2026-05-12 A/B cost backfill "
+    "writer has no current scalar telemetry input, no active wiring, and no "
+    "dedicated tests. Keep ab_cost_hygiene.py and ab_cost_parity_audit.py as "
+    "the active cost-observation tools."
+)
+
+REPLACEMENT_TOOLS = (
+    "governance_tools/ab_cost_hygiene.py",
+    "governance_tools/ab_cost_parity_audit.py",
+)
+
+
 def parse_backfill_yaml(path: Path) -> dict[str, dict[str, str]]:
     text = path.read_text(encoding="utf-8")
     matches = list(re.finditer(r"(^|\n)-\s+run_id:\s*\"([^\"]+)\"(.*?)(?=\n-\s+run_id:|\Z)", text, flags=re.S))
@@ -82,7 +95,11 @@ def apply_backfill(ledger_text: str, backfill: dict[str, dict[str, str]]) -> tup
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Apply AB cost backfill data into run ledger.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Deprecated one-off tool: apply AB cost backfill data into run ledger."
+        )
+    )
     parser.add_argument("--ledger-path", default="docs/ab-v1.2-run-ledger.md")
     parser.add_argument("--backfill-path", default="docs/status/ab-cost-backfill-data-2026-05-12.yaml")
     parser.add_argument("--write", action="store_true")
@@ -100,11 +117,18 @@ def main() -> int:
         ledger_path.write_text(updated, encoding="utf-8")
 
     report = {
+        "status": "deprecated_retire_candidate",
+        "deprecation_notice": DEPRECATION_NOTICE,
+        "replacement_tools": list(REPLACEMENT_TOOLS),
         "ledger_path": ledger_path.as_posix(),
         "backfill_path": backfill_path.as_posix(),
         "run_count": len(backfill),
         "replacements": replacements,
         "write_applied": bool(args.write),
+        "claim_boundary": (
+            "Report-only deprecation metadata; this tool is not removed and "
+            "historical A/B backfill artifacts remain provenance records."
+        ),
     }
     report_path = Path(args.report_path)
     report_path.parent.mkdir(parents=True, exist_ok=True)
