@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git diff --check HEAD~1..HEAD",
+  "exit_code": 0,
+  "started_at": "2026-07-08T06:15:03Z",
+  "finished_at": "2026-07-08T06:15:03Z",
+  "runner": "codex",
+  "linked_commit": "bb7bdb59689c2a77d9e5849e746977570227a0ec",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-changelog-memory-workflow-background-warnings-20260708.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
