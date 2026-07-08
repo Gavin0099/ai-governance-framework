@@ -44,6 +44,17 @@ DIRECTIONAL_HINT_KEYWORDS = (
     "evidence",
 )
 
+WRAPPED_BASELINE_ROOT_NAMES = (
+    "group-a",
+    "group-b",
+    "group_a",
+    "group_b",
+)
+
+WRAPPED_BASELINE_PARENT_NAMES = (
+    "workspace",
+)
+
 
 def _scan_file(path: Path, keywords: tuple[str, ...]) -> list[str]:
     if not path.exists() or not path.is_file():
@@ -57,6 +68,15 @@ def _scan_file(path: Path, keywords: tuple[str, ...]) -> list[str]:
         if kw in text:
             hits.append(kw)
     return hits
+
+
+def _wrapped_baseline_parent_repo_name(project_root: Path) -> str | None:
+    """Return the source repo name for known A/B wrapper layouts only."""
+    if project_root.name.lower() not in WRAPPED_BASELINE_ROOT_NAMES:
+        return None
+    if project_root.parent.name.lower() not in WRAPPED_BASELINE_PARENT_NAMES:
+        return None
+    return project_root.parent.parent.name
 
 
 def validate_ab_baseline(project_root: Path) -> dict[str, Any]:
@@ -134,24 +154,21 @@ def validate_ab_baseline(project_root: Path) -> dict[str, Any]:
         )
 
     # Catch wrapped baselines like ".../<repo>/workspace/group-a"
-    # where the immediate root is neutral but parent names carry governance semantics.
-    parent_name_chain = [
-        p.name
-        for p in (project_root.parent, project_root.parent.parent, project_root.parent.parent.parent)
-        if p is not None
-    ]
-    for name in parent_name_chain:
-        name_l = name.lower()
+    # where the immediate root is neutral but the wrapped source repo name carries
+    # governance semantics. Do not scan arbitrary parents: pytest/temp paths can
+    # live under this framework repo and would otherwise contaminate clean cases.
+    parent_repo_name = _wrapped_baseline_parent_repo_name(project_root)
+    if parent_repo_name:
+        name_l = parent_repo_name.lower()
         if any(token in name_l for token in DIRECTIONAL_HINT_KEYWORDS):
             findings.append(
                 {
                     "code": "semantic_prior_from_parent_repo_naming",
-                    "path": name,
+                    "path": parent_repo_name,
                     "severity": "directional_only",
-                    "evidence": "parent repo naming implies governance semantics",
+                    "evidence": "wrapped source repo naming implies governance semantics",
                 }
             )
-            break
 
     examples_dir = project_root / "examples"
     if examples_dir.exists():
