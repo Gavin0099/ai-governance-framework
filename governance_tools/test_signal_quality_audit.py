@@ -121,6 +121,7 @@ class TestSignalQualityReport:
     fixture_runner_paths: list[str] = field(default_factory=list)
     validators: list[ValidatorFixtureSignal] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    lexical_advisories: list[str] = field(default_factory=list)
     evidence_refs: list[EvidenceRef] = field(default_factory=list)
     cannot_claim: list[str] = field(default_factory=list)
     claim_boundary: str = (
@@ -568,12 +569,8 @@ def _contract_validator_status(validators: list[ValidatorFixtureSignal]) -> str:
     return "unknown"
 
 
-def _overall_status(fields: dict[str, str]) -> str:
+def _overall_status(fields: dict[str, str], lexical_advisory_count: int = 0) -> str:
     weak_values = {
-        "production_derived_expected_value",
-        "time_or_random_uncontrolled",
-        "mock_only_weak_signal",
-        "negative_cases_missing",
         "validator_missing",
         "validator_without_fixture_harness",
         "ambiguous_validator_fixture_match",
@@ -592,6 +589,8 @@ def _overall_status(fields: dict[str, str]) -> str:
         return "weak"
     if fields.get("contract_validator_fixtures") == "not_applicable":
         return "unknown"
+    if lexical_advisory_count:
+        return "partial"
     if values and values.issubset(strong_values | {"not_applicable"}):
         return "strong_candidate"
     return "partial"
@@ -631,8 +630,7 @@ def build_test_signal_quality_audit(repo_root: str | Path, contract_file: str | 
     contract = load_domain_contract(resolution.path, skip_document_content=True) or {}
     all_files = _iter_repo_files(repo)
     test_files = [path for path in all_files if _is_test_file(repo, path)]
-    lexical_evidence, lexical_warnings = _scan_lexical_signals(repo, test_files)
-    warnings.extend(lexical_warnings)
+    lexical_evidence, lexical_advisories = _scan_lexical_signals(repo, test_files)
     for refs in lexical_evidence.values():
         evidence_refs.extend(refs)
 
@@ -699,7 +697,7 @@ def build_test_signal_quality_audit(repo_root: str | Path, contract_file: str | 
         repo_root=str(repo),
         contract_path=str(resolution.path),
         report_only=True,
-        overall_status=_overall_status(field_values),
+        overall_status=_overall_status(field_values, len(lexical_advisories)),
         oracle_independence=oracle_independence,
         mutation_boundary=mutation_boundary,
         determinism=determinism,
@@ -710,6 +708,7 @@ def build_test_signal_quality_audit(repo_root: str | Path, contract_file: str | 
         fixture_runner_paths=fixture_runner_paths[:5],
         validators=validators,
         warnings=warnings,
+        lexical_advisories=lexical_advisories,
         evidence_refs=evidence_refs,
         cannot_claim=cannot_claim,
     )
@@ -748,6 +747,10 @@ def format_human(report: TestSignalQualityReport) -> str:
     if report.warnings:
         lines.append("warnings:")
         lines.extend(f"  - {warning}" for warning in report.warnings)
+    if report.lexical_advisories:
+        lines.append("lexical_advisories:")
+        lines.append("  - reviewer-aid only; lexical proxies are not proof of test quality")
+        lines.extend(f"  - {warning}" for warning in report.lexical_advisories)
     if report.evidence_refs:
         lines.append("evidence_refs:")
         for ref in report.evidence_refs[:20]:

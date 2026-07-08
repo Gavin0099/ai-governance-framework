@@ -258,9 +258,40 @@ def test_lexical_weak_signal_candidates_are_reported(tmp_path: Path) -> None:
     assert report.oracle_independence == "production_derived_expected_value"
     assert report.determinism == "time_or_random_uncontrolled"
     assert report.mock_signal == "mock_only_weak_signal"
-    assert "production_derived_expected_value candidate found" in report.warnings
-    assert "mock_only_weak_signal candidate found" in report.warnings
-    assert "time_or_random_uncontrolled candidate found" in report.warnings
+    assert "production_derived_expected_value candidate found" not in report.warnings
+    assert "mock_only_weak_signal candidate found" not in report.warnings
+    assert "time_or_random_uncontrolled candidate found" not in report.warnings
+    assert "production_derived_expected_value candidate found" in report.lexical_advisories
+    assert "mock_only_weak_signal candidate found" in report.lexical_advisories
+    assert "time_or_random_uncontrolled candidate found" in report.lexical_advisories
+
+
+def test_lexical_advisories_do_not_make_structurally_paired_report_weak(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    _write_contract(repo)
+    _write(repo / "validators" / "check_docs.py", "def validate(payload):\n    return True\n")
+    _write(repo / "fixtures" / "check_docs" / "valid_case.json", '{"ok": true}\n')
+    _write(repo / "fixtures" / "check_docs" / "invalid_case.json", '{"ok": false}\n')
+    _write(
+        repo / "tests" / "test_check_docs.py",
+        "def test_weak_proxy(mock_device):\n"
+        "    result = {'status': 'invalid'}\n"
+        "    expected = result\n"
+        "    mock_device.send.assert_called_once()\n"
+        "    assert result == expected\n",
+    )
+
+    report = build_test_signal_quality_audit(repo)
+
+    assert report.contract_validator_fixtures == "validator_fixture_pair_present"
+    assert report.overall_status == "partial"
+    assert report.lexical_advisories == [
+        "production_derived_expected_value candidate found",
+        "mock_only_weak_signal candidate found",
+    ]
+    assert report.warnings == []
 
 
 def test_missing_contract_is_report_only_unknown(tmp_path: Path) -> None:
@@ -289,6 +320,7 @@ def test_human_and_json_cli_outputs_are_available(tmp_path: Path, capsys) -> Non
     data = json.loads(capsys.readouterr().out)
     assert data["report_only"] is True
     assert data["claim_boundary"].startswith("This audit is report-only.")
+    assert "lexical_advisories" in data
 
 
 def test_format_human_lists_validator_fixture_counts(tmp_path: Path) -> None:
