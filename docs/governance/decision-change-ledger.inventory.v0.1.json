@@ -51,9 +51,9 @@
       "ruled_out_operator_surface": 2
     },
     "recommended_action_counts": {
-      "investigate": 16,
-      "keep_observe": 13,
-      "retire_candidate": 4,
+      "investigate": 11,
+      "keep_observe": 17,
+      "retire_candidate": 5,
       "keep": 7
     }
   },
@@ -62,7 +62,7 @@
       "module": "governance_tools/ab_baseline_validator.py",
       "zombie_status": "zombie_candidate",
       "frequency_class": "routine",
-      "recommended_action": "investigate",
+      "recommended_action": "keep_observe",
       "cluster": "ab_cost_evidence",
       "scan_evidence": {
         "memory_mentions": 2,
@@ -71,9 +71,14 @@
         "script_wired": [],
         "hook_wired": [],
         "imported_by_other_tools": [],
-        "test_file_references": 1
+        "test_file_references": 1,
+        "focused_review": "2026-07-08 read-only A/B validation review found dedicated tests, runbook/pass-criteria references, live baseline smoke ok=true on round2 usb-hub-contract group-a, 12 focused tests passed, and py_compile passed."
       },
-      "rationale": "A/B evidence line dormant since 2026-05-12; docs and 2026-07-05 ZoneTruth verification artifacts mention it but no wiring or importer exists."
+      "rationale": "A/B baseline validator remains a keep_observe manual report tool: it validates Group A baseline sanitization and claim boundaries for A/B smoke evidence, with dedicated tests and live artifact smoke coverage.",
+      "resolution": {
+        "status": "keep_observe",
+        "next_step": "Keep as manual A/B validation surface; rerun when A/B smoke artifacts or baseline sanitization rules change."
+      }
     },
     {
       "module": "governance_tools/ab_cost_backfill_apply.py",
@@ -151,7 +156,7 @@
       "module": "governance_tools/ab_smoke_artifact_validator.py",
       "zombie_status": "zombie_candidate",
       "frequency_class": "routine",
-      "recommended_action": "investigate",
+      "recommended_action": "keep_observe",
       "cluster": "ab_cost_evidence",
       "scan_evidence": {
         "memory_mentions": 1,
@@ -160,9 +165,14 @@
         "script_wired": [],
         "hook_wired": [],
         "imported_by_other_tools": [],
-        "test_file_references": 1
+        "test_file_references": 1,
+        "focused_review": "2026-07-08 read-only A/B validation review found dedicated tests, runbook/pass-criteria references, live smoke ok=true on round2 usb-hub-contract and nextjs-byok-contract, 12 focused tests passed, and py_compile passed."
       },
-      "rationale": "A/B smoke artifact validation dormant since 2026-04-29 in memory; runbook docs exist but no wiring or importer."
+      "rationale": "A/B smoke artifact validator remains a keep_observe manual report tool: it validates structural completeness of A/B smoke run artifacts and still produces live ok=true signals for tracked round2 artifacts.",
+      "resolution": {
+        "status": "keep_observe",
+        "next_step": "Keep as manual A/B validation surface; rerun when A/B smoke artifact schema or tracked run artifacts change."
+      }
     },
     {
       "module": "governance_tools/agents_rule_candidates_inspector.py",
