@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git diff --check -- memory/2026-07-08.md artifacts/evidence/test-results/receipt-long-term-memory-promotion-diffcheck-20260708.json artifacts/evidence/test-results/receipt-long-term-memory-promotion-diffcheck-20260708.txt",
+  "exit_code": 0,
+  "started_at": "2026-07-08T07:36:00Z",
+  "finished_at": "2026-07-08T07:36:00Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "561be396344ca1e8f056b94dfc0f891f631e85e0",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-long-term-memory-promotion-diffcheck-20260708.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

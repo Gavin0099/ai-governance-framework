@@ -1,0 +1,1 @@
+warning: in the working copy of 'memory/2026-07-08.md', LF will be replaced by CRLF the next time Git touches it
