@@ -13,9 +13,9 @@
     "total_entries": 92,
     "by_recommended_action": {
       "downgrade": 2,
-      "investigate": 17,
+      "investigate": 15,
       "keep": 25,
-      "keep_observe": 36,
+      "keep_observe": 38,
       "keep_rare_critical": 4,
       "merge": 3,
       "retire_candidate": 5
@@ -706,8 +706,8 @@
       "source": "inventory_v0.1",
       "zombie_status": "zombie_candidate",
       "frequency_class": "routine",
-      "maintenance_cost_class": "unassessed",
-      "recommended_action": "investigate",
+      "maintenance_cost_class": "low_observable_manual_report_tool",
+      "recommended_action": "keep_observe",
       "evidence_refs": [
         {
           "memory_mentions": 1,
@@ -717,9 +717,17 @@
           "hook_wired": [],
           "imported_by_other_tools": [],
           "test_file_references": 1
+        },
+        {
+          "focused_review": "2026-07-08 read-only A/B cost review found dedicated tests, docs acceptance-gate references, live smoke exit_code=0 issue_count=0 write_applied=false, and py_compile passed."
         }
       ],
-      "rationale": "A/B cost hygiene line dormant since 2026-05-12; referenced only by status docs and verification artifacts.",
+      "rationale": "A/B cost hygiene remains a keep_observe manual report tool: it currently validates the ledger as hygiene-clean while preserving the distinction between explicit insufficient_data and invalid placeholders or zero values.",
+      "resolution": {
+        "status": "keep_observe",
+        "replacement_for": "governance_tools/ab_cost_backfill_apply.py",
+        "next_step": "Keep as manual A/B cost observation surface; rerun when scalar telemetry sources change."
+      },
       "also_in_window": false
     },
     {
@@ -727,8 +735,8 @@
       "source": "inventory_v0.1",
       "zombie_status": "zombie_candidate",
       "frequency_class": "routine",
-      "maintenance_cost_class": "unassessed",
-      "recommended_action": "investigate",
+      "maintenance_cost_class": "low_observable_manual_report_tool",
+      "recommended_action": "keep_observe",
       "evidence_refs": [
         {
           "memory_mentions": 1,
@@ -738,9 +746,17 @@
           "hook_wired": [],
           "imported_by_other_tools": [],
           "test_file_references": 1
+        },
+        {
+          "focused_review": "2026-07-08 read-only A/B cost review found dedicated tests, docs acceptance-gate references, live smoke exit_code=1 task_count=3 total_missing_items=8, and py_compile passed; exit_code=1 is the active gap signal, not a broken tool."
         }
       ],
-      "rationale": "A/B cost parity line dormant since 2026-05-12; referenced only by status docs and verification artifacts.",
+      "rationale": "A/B cost parity audit remains a keep_observe manual report tool: it currently emits the active A/B cost completeness signal with total_missing_items=8.",
+      "resolution": {
+        "status": "keep_observe",
+        "replacement_for": "governance_tools/ab_cost_backfill_apply.py",
+        "next_step": "Keep as manual A/B cost observation surface; rerun when scalar telemetry sources change."
+      },
       "also_in_window": false
     },
     {
@@ -1646,5 +1662,5 @@
     }
   ],
   "amended_at": "2026-07-08",
-  "amendment_note": "The original four retire_candidate entries were already resolved by reviewed retirements on 2026-07-06 evening (after the inventory landed at 22:12 but before this queue was generated on 2026-07-07 morning). On 2026-07-08, governance_tools/ab_cost_backfill_apply.py was reclassified from investigate to retire_candidate after focused review found it is a one-off writer with no current scalar telemetry input, no active wiring, and no dedicated tests. Future queue generation must verify each defense surface still exists and still has the recorded status at generation time."
+  "amendment_note": "The original four retire_candidate entries were already resolved by reviewed retirements on 2026-07-06 evening (after the inventory landed at 22:12 but before this queue was generated on 2026-07-07 morning). On 2026-07-08, governance_tools/ab_cost_backfill_apply.py was reclassified from investigate to retire_candidate after focused review found it is a one-off writer with no current scalar telemetry input, no active wiring, and no dedicated tests. On 2026-07-08, governance_tools/ab_cost_hygiene.py and governance_tools/ab_cost_parity_audit.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, docs acceptance-gate references, and live report signals. Future queue generation must verify each defense surface still exists and still has the recorded status at generation time."
 }

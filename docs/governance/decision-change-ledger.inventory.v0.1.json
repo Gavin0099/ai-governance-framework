@@ -105,7 +105,7 @@
       "module": "governance_tools/ab_cost_hygiene.py",
       "zombie_status": "zombie_candidate",
       "frequency_class": "routine",
-      "recommended_action": "investigate",
+      "recommended_action": "keep_observe",
       "cluster": "ab_cost_evidence",
       "scan_evidence": {
         "memory_mentions": 1,
@@ -114,15 +114,21 @@
         "script_wired": [],
         "hook_wired": [],
         "imported_by_other_tools": [],
-        "test_file_references": 1
+        "test_file_references": 1,
+        "focused_review": "2026-07-08 read-only A/B cost review found dedicated tests, docs acceptance-gate references, live smoke exit_code=0 issue_count=0 write_applied=false, and py_compile passed."
       },
-      "rationale": "A/B cost hygiene line dormant since 2026-05-12; referenced only by status docs and verification artifacts."
+      "rationale": "A/B cost hygiene remains a keep_observe manual report tool: it currently validates the ledger as hygiene-clean while preserving the distinction between explicit insufficient_data and invalid placeholders or zero values.",
+      "resolution": {
+        "status": "keep_observe",
+        "replacement_for": "governance_tools/ab_cost_backfill_apply.py",
+        "next_step": "Keep as manual A/B cost observation surface; rerun when scalar telemetry sources change."
+      }
     },
     {
       "module": "governance_tools/ab_cost_parity_audit.py",
       "zombie_status": "zombie_candidate",
       "frequency_class": "routine",
-      "recommended_action": "investigate",
+      "recommended_action": "keep_observe",
       "cluster": "ab_cost_evidence",
       "scan_evidence": {
         "memory_mentions": 1,
@@ -131,9 +137,15 @@
         "script_wired": [],
         "hook_wired": [],
         "imported_by_other_tools": [],
-        "test_file_references": 1
+        "test_file_references": 1,
+        "focused_review": "2026-07-08 read-only A/B cost review found dedicated tests, docs acceptance-gate references, live smoke exit_code=1 task_count=3 total_missing_items=8, and py_compile passed; exit_code=1 is the active gap signal, not a broken tool."
       },
-      "rationale": "A/B cost parity line dormant since 2026-05-12; referenced only by status docs and verification artifacts."
+      "rationale": "A/B cost parity audit remains a keep_observe manual report tool: it currently emits the active A/B cost completeness signal with total_missing_items=8.",
+      "resolution": {
+        "status": "keep_observe",
+        "replacement_for": "governance_tools/ab_cost_backfill_apply.py",
+        "next_step": "Keep as manual A/B cost observation surface; rerun when scalar telemetry sources change."
+      }
     },
     {
       "module": "governance_tools/ab_smoke_artifact_validator.py",
