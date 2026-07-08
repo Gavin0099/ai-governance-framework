@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_memory_workflow.py --basetemp .pytest_tmp_memory_workflow -p no:cacheprovider",
+  "exit_code": 0,
+  "started_at": "2026-07-08T05:51:22Z",
+  "finished_at": "2026-07-08T05:51:25Z",
+  "runner": "codex",
+  "linked_commit": "14cf0a6084588fb7258ef7769d8eaff2e56a305b",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-memory-workflow-background-warnings-20260708.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
