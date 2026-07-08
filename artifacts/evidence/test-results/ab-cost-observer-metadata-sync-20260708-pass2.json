@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -c \"import json, subprocess, sys; q=json.load(open('docs/governance/governance-surface-maintenance-queue.v0.1.json', encoding='utf-8')); actual={}; [actual.__setitem__(e['recommended_action'], actual.get(e['recommended_action'], 0)+1) for e in q['entries']]; declared=q['counts']['by_recommended_action']; assert len(q['entries']) == q['counts']['total_entries']; assert actual == declared, (actual, declared); i=json.load(open('docs/governance/decision-change-ledger.inventory.v0.1.json', encoding='utf-8')); targets=[e for e in i['entries'] if e.get('module') in ('governance_tools/ab_cost_hygiene.py','governance_tools/ab_cost_parity_audit.py')]; assert len(targets)==2; assert all(e.get('recommended_action')=='keep_observe' for e in targets); r=subprocess.run(['git','diff','--check','--','docs/governance/governance-surface-maintenance-queue.v0.1.json','docs/governance/decision-change-ledger.inventory.v0.1.json']); sys.exit(r.returncode)\"",
+  "exit_code": 0,
+  "started_at": "2026-07-08T09:32:16Z",
+  "finished_at": "2026-07-08T09:32:16Z",
+  "runner": "codex",
+  "linked_commit": "1ed2c9e507d23404cf2a9167f60253cd595416f4",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/ab-cost-observer-metadata-sync-20260708-pass2.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
