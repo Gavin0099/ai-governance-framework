@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -c \"from pathlib import Path; import subprocess, sys; paths=['governance/RESPONSE_ENVELOPE_CONTRACT.md','governance/AI_GOVERNANCE_UPDATE_PROTOCOL.md','governance/F7_FULL_UPDATE.md','docs/governance/operator-facing-ai-governance-report-ladder-2026-07-07.md','docs/governance/agent-governance-score-rubric-2026-07-07.md','docs/governance/independent-seed-scorecard-protocol-2026-07-08.md']; missing=[p for p in paths if not Path(p).exists()]; assert not missing, missing; p=Path('docs/governance/conversation-output-validation-gap-2026-07-08.md'); data=p.read_bytes(); data.decode('ascii'); assert not any(line.rstrip(bytes([32,9])) != line for line in data.splitlines()); r=subprocess.run(['git','diff','--check','HEAD~1..HEAD','--',str(p)]); sys.exit(r.returncode)\"",
+  "exit_code": 0,
+  "started_at": "2026-07-08T10:45:40Z",
+  "finished_at": "2026-07-08T10:45:41Z",
+  "runner": "codex",
+  "linked_commit": "f8e21267be5ed8fa999ee8b4b9845e9e4a028afc",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/conversation-output-validation-gap-design-20260708.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
