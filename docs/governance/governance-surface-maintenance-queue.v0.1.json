@@ -13,9 +13,9 @@
     "total_entries": 92,
     "by_recommended_action": {
       "downgrade": 2,
-      "investigate": 13,
+      "investigate": 11,
       "keep": 25,
-      "keep_observe": 40,
+      "keep_observe": 42,
       "keep_rare_critical": 4,
       "merge": 3,
       "retire_candidate": 5
@@ -1012,8 +1012,8 @@
       "source": "inventory_v0.1",
       "zombie_status": "zombie_candidate",
       "frequency_class": "unknown",
-      "maintenance_cost_class": "unassessed",
-      "recommended_action": "investigate",
+      "maintenance_cost_class": "low_observable_manual_report_tool",
+      "recommended_action": "keep_observe",
       "evidence_refs": [
         {
           "memory_mentions": 1,
@@ -1023,9 +1023,16 @@
           "hook_wired": [],
           "imported_by_other_tools": [],
           "test_file_references": 2
+        },
+        {
+          "focused_review": "2026-07-08 read-only Gate C reporting review found dedicated tests, live dual-report smoke generated canonical report, decision-set report, derivation manifest, valid review log, and FGCR summary, 8 focused tests passed, and py_compile passed."
         }
       ],
-      "rationale": "Gate C dual report has tests only; last memory mention 2026-05-11. Review together with gate_c_report whether the Gate C reporting line is superseded.",
+      "rationale": "Gate C dual report remains a keep_observe manual report tool: it generates canonical and decision-set Gate C artifacts plus FGCR summary, and its output is distinct from the lane-level Gate C report.",
+      "resolution": {
+        "status": "keep_observe",
+        "next_step": "Keep as manual Gate C observation surface; rerun when Gate C decision-set, FGCR, or tracked window artifacts change."
+      },
       "also_in_window": false
     },
     {
@@ -1033,8 +1040,8 @@
       "source": "inventory_v0.1",
       "zombie_status": "zombie_candidate",
       "frequency_class": "unknown",
-      "maintenance_cost_class": "unassessed",
-      "recommended_action": "investigate",
+      "maintenance_cost_class": "low_observable_manual_report_tool",
+      "recommended_action": "keep_observe",
       "evidence_refs": [
         {
           "memory_mentions": 0,
@@ -1044,9 +1051,16 @@
           "hook_wired": [],
           "imported_by_other_tools": [],
           "test_file_references": 1
+        },
+        {
+          "focused_review": "2026-07-08 read-only Gate C reporting review found dedicated tests, live window report smoke produced provisional-pass plus evidence-gap signals for all lanes, 8 focused tests passed, and py_compile passed."
         }
       ],
-      "rationale": "Gate C reporting surface with no wiring or importer; last doc reference is task-cost diagnostic 2026-06-25.",
+      "rationale": "Gate C report remains a keep_observe manual report tool: it produces lane-level review/rework/stability evidence-gap signals that are not the same output as the dual-report decision-set pipeline.",
+      "resolution": {
+        "status": "keep_observe",
+        "next_step": "Keep as manual Gate C observation surface; rerun when Gate C review, rework, or stability logs change."
+      },
       "also_in_window": false
     },
     {
@@ -1676,5 +1690,5 @@
     }
   ],
   "amended_at": "2026-07-08",
-  "amendment_note": "The original four retire_candidate entries were already resolved by reviewed retirements on 2026-07-06 evening (after the inventory landed at 22:12 but before this queue was generated on 2026-07-07 morning). On 2026-07-08, governance_tools/ab_cost_backfill_apply.py was reclassified from investigate to retire_candidate after focused review found it is a one-off writer with no current scalar telemetry input, no active wiring, and no dedicated tests. On 2026-07-08, governance_tools/ab_cost_hygiene.py and governance_tools/ab_cost_parity_audit.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, docs acceptance-gate references, and live report signals. On 2026-07-08, governance_tools/ab_baseline_validator.py and governance_tools/ab_smoke_artifact_validator.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, runbook/pass-criteria references, and live A/B smoke artifact signals. Future queue generation must verify each defense surface still exists and still has the recorded status at generation time."
+  "amendment_note": "The original four retire_candidate entries were already resolved by reviewed retirements on 2026-07-06 evening (after the inventory landed at 22:12 but before this queue was generated on 2026-07-07 morning). On 2026-07-08, governance_tools/ab_cost_backfill_apply.py was reclassified from investigate to retire_candidate after focused review found it is a one-off writer with no current scalar telemetry input, no active wiring, and no dedicated tests. On 2026-07-08, governance_tools/ab_cost_hygiene.py and governance_tools/ab_cost_parity_audit.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, docs acceptance-gate references, and live report signals. On 2026-07-08, governance_tools/ab_baseline_validator.py and governance_tools/ab_smoke_artifact_validator.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, runbook/pass-criteria references, and live A/B smoke artifact signals. On 2026-07-08, governance_tools/gate_c_report.py and governance_tools/gate_c_dual_report.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, distinct Gate C report roles, and live report signals. Future queue generation must verify each defense surface still exists and still has the recorded status at generation time."
 }

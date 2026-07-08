@@ -51,8 +51,8 @@
       "ruled_out_operator_surface": 2
     },
     "recommended_action_counts": {
-      "investigate": 11,
-      "keep_observe": 17,
+      "investigate": 9,
+      "keep_observe": 19,
       "retire_candidate": 5,
       "keep": 7
     }
@@ -341,7 +341,7 @@
       "module": "governance_tools/gate_c_dual_report.py",
       "zombie_status": "zombie_candidate",
       "frequency_class": "unknown",
-      "recommended_action": "investigate",
+      "recommended_action": "keep_observe",
       "cluster": "gate_c",
       "scan_evidence": {
         "memory_mentions": 1,
@@ -350,15 +350,20 @@
         "script_wired": [],
         "hook_wired": [],
         "imported_by_other_tools": [],
-        "test_file_references": 2
+        "test_file_references": 2,
+        "focused_review": "2026-07-08 read-only Gate C reporting review found dedicated tests, live dual-report smoke generated canonical report, decision-set report, derivation manifest, valid review log, and FGCR summary, 8 focused tests passed, and py_compile passed."
       },
-      "rationale": "Gate C dual report has tests only; last memory mention 2026-05-11. Review together with gate_c_report whether the Gate C reporting line is superseded."
+      "rationale": "Gate C dual report remains a keep_observe manual report tool: it generates canonical and decision-set Gate C artifacts plus FGCR summary, and its output is distinct from the lane-level Gate C report.",
+      "resolution": {
+        "status": "keep_observe",
+        "next_step": "Keep as manual Gate C observation surface; rerun when Gate C decision-set, FGCR, or tracked window artifacts change."
+      }
     },
     {
       "module": "governance_tools/gate_c_report.py",
       "zombie_status": "zombie_candidate",
       "frequency_class": "unknown",
-      "recommended_action": "investigate",
+      "recommended_action": "keep_observe",
       "cluster": "gate_c",
       "scan_evidence": {
         "memory_mentions": 0,
@@ -367,9 +372,14 @@
         "script_wired": [],
         "hook_wired": [],
         "imported_by_other_tools": [],
-        "test_file_references": 1
+        "test_file_references": 1,
+        "focused_review": "2026-07-08 read-only Gate C reporting review found dedicated tests, live window report smoke produced provisional-pass plus evidence-gap signals for all lanes, 8 focused tests passed, and py_compile passed."
       },
-      "rationale": "Gate C reporting surface with no wiring or importer; last doc reference is task-cost diagnostic 2026-06-25."
+      "rationale": "Gate C report remains a keep_observe manual report tool: it produces lane-level review/rework/stability evidence-gap signals that are not the same output as the dual-report decision-set pipeline.",
+      "resolution": {
+        "status": "keep_observe",
+        "next_step": "Keep as manual Gate C observation surface; rerun when Gate C review, rework, or stability logs change."
+      }
     },
     {
       "module": "governance_tools/governed_prompt.py",
