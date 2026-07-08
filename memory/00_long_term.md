@@ -2,9 +2,9 @@
 
 ## Identity And Account Mapping
 <!-- memory_type: structural_long_term -->
-<!-- promotion_status: candidate -->
+<!-- promotion_status: authoritative -->
 <!-- proposed_by: ai / 2026-04-30 -->
-<!-- human_review_needed: confirm account names and email are still current -->
+<!-- promoted_by: Gavin / 2026-07-08 (owner-authorized; verified this session against git config user.name=GavinWu, user.email=Gavin.Wu@genesyslogic.com.tw, origin=github/Gavin0099, gitlab=GavinWu) -->
 - GitHub upload account: `Gavin0099`
 - GitLab upload account: `GavinWu`
 - git config user.email for GitLab pushes: `Gavin.Wu@genesyslogic.com.tw`
@@ -38,8 +38,9 @@
 <!-- memory_type: structural_long_term -->
 <!-- promotion_status: candidate -->
 <!-- proposed_by: ai / 2026-04-30 -->
-<!-- source_anchor: artifact:artifacts/governance/phase-d-reviewer-closeout.json -->
-<!-- human_review_needed: verify phase table, version number, and runtime boundary are current -->
+<!-- source_anchor: artifact:artifacts/governance/phase-d-reviewer-closeout.json; PLAN.md phase checklist -->
+<!-- partial_review 2026-07-08: phase table + version re-verified against PLAN.md (E=in_progress per `[>]`, v1.2.0 current); learning-loop implementation paused pending owner unpause. Runtime capability boundary section NOT re-verified this pass. -->
+<!-- human_review_needed: verify runtime capability boundary (F4 immutability hash, F16/F17 exception authority path) is current -->
 
 > This section is the authoritative in-repo governance state for agents that cannot
 > access Claude Code's private project memory (C:\Users\reiko\.claude\projects\...\memory\MEMORY.md).
@@ -49,14 +50,14 @@
 - Current release: **v1.2.0** (Phase D governance baseline freeze + runtime structural enforcement v0.1)
 - Badge source: `README.md`; release notes: `CHANGELOG.md`
 
-### Phase Status (as of 2026-04-28)
+### Phase Status (as of 2026-04-28; phase-level re-verified 2026-07-08 vs PLAN.md)
 | Phase | Status | Notes |
 |-------|--------|-------|
 | A | completed | governance core baseline |
 | B | completed | adoption / validator / freshness / memory |
 | C | completed | runtime governance, DBL, observation surfaces |
 | D | **completed** | reviewer closeout signed 2026-04-28T11:59:44Z by Gavin0099 |
-| E | in_progress | failure decision boundary, exclusion governance, usage enforcement |
+| E | in_progress | failure decision boundary, exclusion governance, usage enforcement; validity-before-expansion posture, learning-loop implementation paused pending owner unpause (PLAN.md) |
 
 ### Phase D Closeout Artifact
 - Canonical path: `artifacts/governance/phase-d-reviewer-closeout.json`
@@ -87,10 +88,10 @@ Source: `governance_tools/phase_d_closeout_writer.py::REQUIRED_CONDITIONS`
 
 ## CodeBurn Phase 1 Status (2026-04-30)
 <!-- memory_type: structural_long_term -->
-<!-- promotion_status: candidate -->
+<!-- promotion_status: authoritative -->
 <!-- proposed_by: ai / 2026-04-30 -->
-<!-- source_anchor: commit:1398417 -->
-<!-- human_review_needed: confirm CodeBurn phase summary is accurate before citing as authority -->
+<!-- promoted_by: Gavin / 2026-07-08 (owner-authorized; corroborated by Phase 1 CLOSED forensic record + cross-agent memory) -->
+<!-- source_anchor: codeburn/README.md:3,99; memory/2026-04-30.md:81-83; commit:1398417 -->
 
 > Cross-agent readable. See `codeburn/README.md` for full navigation.
 
@@ -154,8 +155,8 @@ Source: `governance_tools/phase_d_closeout_writer.py::REQUIRED_CONDITIONS`
 ---
 
 ## Fleet Onboarding Design Patterns (observed 2026-05-25 to 2026-05-26)
-<!-- memory_type: structural_long_term -->
-<!-- promotion_status: candidate -->
+<!-- memory_type: design_lesson -->
+<!-- promotion_status: n/a (design lesson, not a promotable invariant; excluded from promotion queue) -->
 <!-- proposed_by: Gavin / 2026-05-26 -->
 <!-- source_anchor: governance/fleet/scope_normalized_trend.jsonl; docs/fleet/ -->
 <!-- human_review_needed: no — recorded by human directly -->
