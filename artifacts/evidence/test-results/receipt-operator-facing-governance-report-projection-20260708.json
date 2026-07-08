@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_governance_update_reporting.py tests/test_onboard_latest_governance.py tests/test_f7_full_update.py tests/test_external_governance_submodule_updater.py -q -p no:cacheprovider --basetemp .tmp_operator_report_receipt",
+  "exit_code": 0,
+  "started_at": "2026-07-08T03:02:16Z",
+  "finished_at": "2026-07-08T03:03:55Z",
+  "runner": "codex",
+  "linked_commit": "456f146210693c8744933d68345105ad6d315435",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-operator-facing-governance-report-projection-20260708.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
