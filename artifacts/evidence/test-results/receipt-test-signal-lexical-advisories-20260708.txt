@@ -1,0 +1,10 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.5, pytest-9.0.2, pluggy-1.6.0
+rootdir: E:\BackUp\Git_EE\ai-governance-framework
+configfile: pytest.ini
+plugins: anyio-4.12.1, cov-7.0.0, json-report-1.5.0, metadata-3.1.1
+collected 20 items
+
+tests\test_test_signal_quality_audit.py ....................             [100%]
+
+============================= 20 passed in 0.38s ==============================

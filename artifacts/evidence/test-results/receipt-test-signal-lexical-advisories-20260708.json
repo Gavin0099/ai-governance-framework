@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_test_signal_quality_audit.py --basetemp .pytest_tmp_tsqa -p no:cacheprovider",
+  "exit_code": 0,
+  "started_at": "2026-07-08T06:35:45Z",
+  "finished_at": "2026-07-08T06:35:47Z",
+  "runner": "codex",
+  "linked_commit": "472b3215bad805c480ffd1f6d73528b616d06591",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-test-signal-lexical-advisories-20260708.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
