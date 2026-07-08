@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -c \"from pathlib import Path; import subprocess, sys; text=Path('governance/AGENT.md').read_text(encoding='utf-8'); terms=['Defense budget rule','observed failure','expected decision effect','re-evaluation condition','Rare-critical defenses']; missing=[t for t in terms if t not in text]; r=subprocess.run(['git','diff','--check'], text=True, capture_output=True); print(r.stdout, end=''); print(r.stderr, end=''); print('missing_terms=' + ','.join(missing)); sys.exit(1 if missing or r.returncode else 0)\"",
+  "exit_code": 0,
+  "started_at": "2026-07-08T03:21:37Z",
+  "finished_at": "2026-07-08T03:21:37Z",
+  "runner": "codex",
+  "linked_commit": "6a66bc9bfc0370e05283534dec3c9b0d91451e62",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-20260708T032137Z.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
