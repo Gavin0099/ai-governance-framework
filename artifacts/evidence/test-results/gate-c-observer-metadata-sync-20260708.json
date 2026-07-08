@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -c \"import json, collections, subprocess, sys; q=json.load(open('docs/governance/governance-surface-maintenance-queue.v0.1.json', encoding='utf-8')); actual=collections.Counter(e['recommended_action'] for e in q['entries']); assert len(q['entries'])==q['counts']['total_entries']; assert dict(actual)==q['counts']['by_recommended_action'], (dict(actual), q['counts']['by_recommended_action']); assert q['counts']['by_recommended_action']['investigate']==11; assert q['counts']['by_recommended_action']['keep_observe']==42; i=json.load(open('docs/governance/decision-change-ledger.inventory.v0.1.json', encoding='utf-8')); iactual=collections.Counter(e['recommended_action'] for e in i['entries']); assert dict(iactual)==i['inventory_summary']['recommended_action_counts'], (dict(iactual), i['inventory_summary']['recommended_action_counts']); targets=[e for e in i['entries'] if e.get('module') in ('governance_tools/gate_c_report.py','governance_tools/gate_c_dual_report.py')]; assert len(targets)==2; assert all(e.get('recommended_action')=='keep_observe' for e in targets); r=subprocess.run(['git','diff','--check','HEAD~1..HEAD','--','docs/governance/governance-surface-maintenance-queue.v0.1.json','docs/governance/decision-change-ledger.inventory.v0.1.json']); sys.exit(r.returncode)\"",
+  "exit_code": 0,
+  "started_at": "2026-07-08T10:26:06Z",
+  "finished_at": "2026-07-08T10:26:06Z",
+  "runner": "codex",
+  "linked_commit": "5f976df14da945c379785303e0829fd9ec6bd5d5",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/gate-c-observer-metadata-sync-20260708.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
