@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### memory_workflow background warnings - 2026-07-08
+
+- Added `background_warnings` to `governance_tools.memory_workflow` output so
+  long-lived historical memory warning codes (`unbound_memory`,
+  `test_evidence_provenance_not_found`, and
+  `test_evidence_linked_commit_mismatch`) can be shown at lower salience when
+  they are not tied to the current memory diff.
+- Kept current-diff warning behavior conservative: the same warning codes still
+  remain high-salience `warnings` when they are observed on the memory files
+  currently being changed, while `guard_summary`, blockers, and
+  `completion_claim_allowed` remain unchanged.
+- Release-note boundary: this entry records an unreleased report-only warning
+  salience change only. It does not bump the framework version, publish a
+  release, repair historical memory debt, alter memory authority guard
+  findings, or wire new tooling/runtime/hook/CI/pre-push/gate/enforcement
+  behavior.
+
 ### Report-only consumer fixture runner - 2026-07-07
 
 - Added `governance_tools/consumer_fixture_runner.py`, a report-only runner
