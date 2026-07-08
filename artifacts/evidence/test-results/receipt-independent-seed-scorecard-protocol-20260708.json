@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -c \"from pathlib import Path; import subprocess; p=Path('docs/governance/independent-seed-scorecard-protocol-2026-07-08.md'); assert p.exists(); p.read_bytes().decode('ascii'); lines=p.read_text(encoding='ascii').splitlines(); assert all(l.rstrip()==l for l in lines); subprocess.run(['git','diff','--check'], check=True); print('independent seed scorecard protocol validation ok')\"",
+  "exit_code": 0,
+  "started_at": "2026-07-08T02:25:30Z",
+  "finished_at": "2026-07-08T02:25:30Z",
+  "runner": "codex",
+  "linked_commit": "89ece8e0c4b06502e5ce2316136238b5297243dd",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-independent-seed-scorecard-protocol-20260708.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
