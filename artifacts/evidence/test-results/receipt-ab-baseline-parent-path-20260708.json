@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_ab_baseline_validator.py tests/test_ab_cost_hygiene.py tests/test_ab_cost_parity_audit.py tests/test_ab_smoke_artifact_validator.py --basetemp pytest_ab_cluster -p no:cacheprovider -q",
+  "exit_code": 0,
+  "started_at": "2026-07-08T08:05:02Z",
+  "finished_at": "2026-07-08T08:05:03Z",
+  "runner": "codex",
+  "linked_commit": "bedb2eec0a4c42a21f2c2edc3399eec4d015344a",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-ab-baseline-parent-path-20260708.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
