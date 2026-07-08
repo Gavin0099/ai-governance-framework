@@ -11,7 +11,7 @@ from governance_tools.memory_policy_attestation import (
     POLICY_DELETED_WITHOUT_ATTESTATION,
     POLICY_DISABLED_WITHOUT_ATTESTATION,
 )
-from governance_tools.memory_workflow import assess_memory_workflow
+from governance_tools.memory_workflow import assess_memory_workflow, format_human
 
 
 def _write(path: Path, text: str) -> None:
@@ -339,6 +339,44 @@ def test_run_guard_reports_test_evidence_provenance_warning_without_blocking(
     assert result.completion_claim_allowed is True
 
 
+def test_run_guard_downgrades_historical_test_evidence_provenance_noise(
+    tmp_path: Path,
+) -> None:
+    _make_framework_surface(tmp_path)
+    session_id = "test-session"
+    _write(
+        tmp_path / "artifacts" / "runtime" / "closeouts" / f"{session_id}.json",
+        f'{{"session_id": "{session_id}"}}\n',
+    )
+    _write(
+        tmp_path / "memory" / "2026-06-09.md",
+        "- memory_type: session-derived\n"
+        "  record_format_version: 1.0\n"
+        "  writer: governance_tools.memory_record\n"
+        "  what_changed: historical test\n"
+        f"  session_id: {session_id}\n"
+        "  memory_binding: bound\n"
+        "  test_evidence: PASS: 67 passed\n"
+        "  next_step: none\n",
+    )
+
+    result = assess_memory_workflow(
+        tmp_path,
+        changed_files=["README.md"],
+        run_guard_check=True,
+    )
+
+    assert result.guard_summary["test_evidence_provenance_not_found"] == 1
+    assert "test_evidence_provenance_not_found" not in result.warnings
+    assert "test_evidence_provenance_not_found" in result.background_warnings
+    assert result.blockers == []
+    assert result.completion_claim_allowed is True
+    human = format_human(result)
+    assert "missing_canonical_memory" in result.warnings
+    assert "[background_warnings]" in human
+    assert "test_evidence_provenance_not_found" in human
+
+
 def test_run_guard_reports_session_like_non_session_warning_without_blocking(
     tmp_path: Path,
 ) -> None:
@@ -434,6 +472,7 @@ def test_cli_json_outputs_required_schema(tmp_path: Path) -> None:
     assert payload["guard_ran"] is True
     assert payload["guard_summary"]["active_non_canonical_writer"] == 0
     assert payload["completion_claim_allowed"] is True
+    assert payload["background_warnings"] == []
 
 
 def test_cli_fail_on_blocker_exits_2_for_active_non_canonical_writer(tmp_path: Path) -> None:

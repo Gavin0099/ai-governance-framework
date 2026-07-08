@@ -37,6 +37,13 @@ TASK_GOVERNED = "governed_memory_task"
 TASK_POSSIBLE = "possible_memory_task"
 TASK_NOT_MEMORY = "not_memory_task"
 _B0_CODE = "session_like_non_session_memory_type"
+_BACKGROUND_WARNING_CODES = frozenset(
+    {
+        "unbound_memory",
+        "test_evidence_provenance_not_found",
+        "test_evidence_linked_commit_mismatch",
+    }
+)
 
 _MEMORY_KEYWORDS = (
     "memory",
@@ -66,6 +73,7 @@ class MemoryWorkflowDispatchResult:
     guard_summary: dict[str, int] = field(default_factory=dict)
     completion_claim_allowed: bool = True
     warnings: list[str] = field(default_factory=list)
+    background_warnings: list[str] = field(default_factory=list)
     blockers: list[str] = field(default_factory=list)
 
 
@@ -224,6 +232,16 @@ def _count_current_diff_blocking_violations(
     )
 
 
+def _is_background_warning(
+    result: dict,
+    changed_files: Sequence[str] | None,
+    code: str,
+) -> bool:
+    if code not in _BACKGROUND_WARNING_CODES:
+        return False
+    return _count_current_diff_violations(result, changed_files, code) == 0
+
+
 def _has_memory_keyword(task_text: str | None) -> bool:
     if not task_text:
         return False
@@ -297,10 +315,10 @@ def _summarize_guard(result: dict) -> dict[str, int]:
 def _run_authority_guard(
     repo_root: Path,
     changed_files: Sequence[str] | None = None,
-) -> tuple[bool, dict[str, int], list[str], list[str]]:
+) -> tuple[bool, dict[str, int], list[str], list[str], list[str]]:
     memory_root = repo_root / "memory"
     if not memory_root.is_dir():
-        return False, {}, ["memory root not found; guard not run"], []
+        return False, {}, ["memory root not found; guard not run"], [], []
 
     policy = load_blocking_policy(repo_root)
     changed_memory_files = [
@@ -335,30 +353,34 @@ def _run_authority_guard(
         changed_files,
         _B0_CODE,
     )
-    warnings = [
-        code
-        for code in (
-            "missing_canonical_memory",
-            "unbound_memory",
-            "test_evidence_provenance_not_found",
-            "session_like_non_session_memory_type",
-            "non_daily_session_shaped_memory_entry",
-            "authority_override_used",
-            "authority_override_rejected",
-            "test_evidence_artifact_metadata_missing",
-            "test_evidence_artifact_metadata_invalid",
-            "test_evidence_exit_code_contradicts_claim",
-            "test_evidence_linked_commit_mismatch",
-            "test_evidence_artifact_not_durable",
-        )
-        if (
+    warnings = []
+    background_warnings = []
+    for code in (
+        "missing_canonical_memory",
+        "unbound_memory",
+        "test_evidence_provenance_not_found",
+        "session_like_non_session_memory_type",
+        "non_daily_session_shaped_memory_entry",
+        "authority_override_used",
+        "authority_override_rejected",
+        "test_evidence_artifact_metadata_missing",
+        "test_evidence_artifact_metadata_invalid",
+        "test_evidence_exit_code_contradicts_claim",
+        "test_evidence_linked_commit_mismatch",
+        "test_evidence_artifact_not_durable",
+    ):
+        if not (
             summary.get(code, 0) > 0
             or (
                 code == "authority_override_used"
                 and summary.get("authority_override_used_current_diff", 0) > 0
             )
-        )
-    ]
+        ):
+            continue
+        if _is_background_warning(result, changed_files, code):
+            background_warnings.append(code)
+        else:
+            warnings.append(code)
     blockers = []
     if summary.get("active_non_canonical_writer", 0) > 0:
         blockers.append("active_non_canonical_writer")
@@ -369,7 +391,7 @@ def _run_authority_guard(
         blockers.append("blocking_policy_error")
     for code in result.get("blocking_violation_codes", []):
         blockers.append(f"memory_authority_blocking:{code}")
-    return True, summary, warnings, blockers
+    return True, summary, warnings, background_warnings, blockers
 
 
 def assess_memory_workflow(
@@ -390,6 +412,7 @@ def assess_memory_workflow(
     protocol_path, writer_path, guard_path = _find_framework_surface(repo_root)
 
     warnings: list[str] = []
+    background_warnings: list[str] = []
     blockers: list[str] = []
     guard_ran = False
     guard_summary: dict[str, int] = {}
@@ -399,10 +422,18 @@ def assess_memory_workflow(
         warnings.append("memory authority guard not found")
     warnings.extend(policy_disable_attestation_warnings(repo_root, changed))
     if run_guard_check:
-        guard_ran, guard_summary, guard_warnings, guard_blockers = _run_authority_guard(
-            repo_root, changed_files=changed
+        (
+            guard_ran,
+            guard_summary,
+            guard_warnings,
+            guard_background_warnings,
+            guard_blockers,
+        ) = _run_authority_guard(
+            repo_root,
+            changed_files=changed,
         )
         warnings.extend(guard_warnings)
+        background_warnings.extend(guard_background_warnings)
         blockers.extend(guard_blockers)
     if memory_files and strict_completion_check and not guard_ran:
         blockers.append("memory_authority_guard_not_run")
@@ -429,6 +460,7 @@ def assess_memory_workflow(
             guard_summary=guard_summary,
             completion_claim_allowed=guard_ran and not blockers,
             warnings=warnings,
+            background_warnings=background_warnings,
             blockers=blockers,
         )
 
@@ -451,6 +483,7 @@ def assess_memory_workflow(
             guard_summary=guard_summary,
             completion_claim_allowed=not blockers,
             warnings=warnings,
+            background_warnings=background_warnings,
             blockers=blockers,
         )
 
@@ -470,6 +503,7 @@ def assess_memory_workflow(
         guard_summary=guard_summary,
         completion_claim_allowed=not blockers,
         warnings=warnings,
+        background_warnings=background_warnings,
         blockers=blockers,
     )
 
@@ -501,6 +535,9 @@ def format_human(result: MemoryWorkflowDispatchResult) -> str:
     if result.warnings:
         lines.append("[warnings]")
         lines.extend(result.warnings)
+    if result.background_warnings:
+        lines.append("[background_warnings]")
+        lines.extend(result.background_warnings)
     if result.blockers:
         lines.append("[blockers]")
         lines.extend(result.blockers)
