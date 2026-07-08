@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -c \"import subprocess, sys; cmds=[['python','-m','pytest','tests/test_update_protocol_manual_status.py','-q','-p','no:cacheprovider'], ['git','diff','--check','HEAD~1..HEAD']]; failed=0\nfor cmd in cmds:\n    print('RUN:', ' '.join(cmd)); r=subprocess.run(cmd, text=True, capture_output=True); print(r.stdout, end=''); print(r.stderr, end=''); failed = failed or r.returncode\nsys.exit(failed)\"",
+  "exit_code": 0,
+  "started_at": "2026-07-08T04:02:20Z",
+  "finished_at": "2026-07-08T04:02:21Z",
+  "runner": "codex",
+  "linked_commit": "fb7fdbe86dbe4cf4b1f2b4ce77caff3171b5c568",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-manual-update-vocabulary-ownership-20260708.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

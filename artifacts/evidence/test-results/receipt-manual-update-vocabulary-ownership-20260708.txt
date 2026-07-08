@@ -1,0 +1,4 @@
+RUN: python -m pytest tests/test_update_protocol_manual_status.py -q -p no:cacheprovider
+...                                                                      [100%]
+3 passed in 0.09s
+RUN: git diff --check HEAD~1..HEAD
