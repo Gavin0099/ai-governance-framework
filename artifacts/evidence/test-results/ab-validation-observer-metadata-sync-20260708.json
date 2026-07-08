@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -c \"import json, collections, subprocess, sys; q=json.load(open('docs/governance/governance-surface-maintenance-queue.v0.1.json', encoding='utf-8')); actual=collections.Counter(e['recommended_action'] for e in q['entries']); assert len(q['entries'])==q['counts']['total_entries']; assert dict(actual)==q['counts']['by_recommended_action'], (dict(actual), q['counts']['by_recommended_action']); assert q['counts']['by_recommended_action']['investigate']==13; assert q['counts']['by_recommended_action']['keep_observe']==40; i=json.load(open('docs/governance/decision-change-ledger.inventory.v0.1.json', encoding='utf-8')); iactual=collections.Counter(e['recommended_action'] for e in i['entries']); assert dict(iactual)==i['inventory_summary']['recommended_action_counts'], (dict(iactual), i['inventory_summary']['recommended_action_counts']); targets=[e for e in i['entries'] if e.get('module') in ('governance_tools/ab_baseline_validator.py','governance_tools/ab_smoke_artifact_validator.py')]; assert len(targets)==2; assert all(e.get('recommended_action')=='keep_observe' for e in targets); r=subprocess.run(['git','diff','--check','HEAD~1..HEAD','--','docs/governance/governance-surface-maintenance-queue.v0.1.json','docs/governance/decision-change-ledger.inventory.v0.1.json']); sys.exit(r.returncode)\"",
+  "exit_code": 0,
+  "started_at": "2026-07-08T09:58:08Z",
+  "finished_at": "2026-07-08T09:58:08Z",
+  "runner": "codex",
+  "linked_commit": "1b009766202aea32ee00842324c5e52561796780",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/ab-validation-observer-metadata-sync-20260708.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
