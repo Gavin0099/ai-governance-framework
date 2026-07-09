@@ -1,5 +1,7 @@
 # Commands
 
+`create-pr` is deprecated as a standalone skill. Use `reviewer-handoff` command paths instead.
+
 ## One-shot reviewer summary
 
 ```bash

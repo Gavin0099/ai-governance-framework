@@ -1,36 +1,30 @@
 ---
 name: create-pr
-description: Convert a completed change into a reviewer-ready PR handoff. Use when code, risk, and evidence should be packaged into a clear pull-request summary rather than left as raw diff context.
+description: Deprecated redirect. Use reviewer-handoff for reviewer-ready PR handoff packets; keep create-pr only as a historical workflow alias for pr_handoff terminology.
 ---
 
 # Create PR
 
-Use this skill when implementation is done and the next job is reviewer comprehension.
+This skill is retained only as a historical redirect for the `pr_handoff` workflow term. Use `reviewer-handoff` for active reviewer-ready packet generation.
+
+Do not maintain a separate PR-summary guidance layer here. The canonical reviewer packet behavior lives in `reviewer-handoff`.
 
 ## Workflow
 
-1. Start from the actual change intent.
-2. State what changed and what intentionally did not change.
-3. Summarize risk, assumptions, and evidence honestly.
-4. Prefer existing reviewer-facing repository surfaces over inventing a new summary layer.
-5. Keep the result reviewer-oriented:
-   - why this exists
-   - what to look at first
-   - what evidence exists
-   - what remains uncertain
+1. Route to `reviewer-handoff`.
+2. Preserve `pr_handoff` as the artifact/workflow term when that terminology is needed.
+3. Do not invent a parallel PR body, packet, checklist, or playbook.
 
 ## Commands
 
-Read `references/commands.md` for the normal command paths.
+Read `references/commands.md` for redirect targets only.
 
 ## Gotchas
 
-Read `references/gotchas.md` before turning the PR body into marketing copy or unsupported safety claims.
+Read `references/gotchas.md` before using this historical alias as if it were still an active standalone skill.
 
 ## Output Expectations
 
-- Start with the change purpose.
-- Include scope and non-scope.
-- Include risk and evidence.
-- If validation is partial, say it is partial.
-- Provide one reviewer entrypoint when possible.
+- Name `reviewer-handoff` as the active target.
+- State that `create-pr` is deprecated as standalone guidance.
+- Keep scope, evidence, risk, and non-claims in the reviewer packet.
