@@ -1,5 +1,10 @@
 # Prompt-Cache Harness Consumer Contract Proposal - 2026-06-29
 
+> Consolidation pointer: this source note is covered by
+> `docs/governance/cache-aware-round-b-summary.md`.
+> Pointer only; this note is not removed, archived, invalidated, or
+> reclassified.
+
 Status: PENDING
 Scope: docs-only harness consumer contract proposal
 Runtime behavior change: no

@@ -1,5 +1,10 @@
 # 快取感知工具拒絕回執規格 - 2026-06-28
 
+> Consolidation pointer: this source note is covered by
+> `docs/governance/cache-aware-round-b-summary.md`.
+> Pointer only; this note is not removed, archived, invalidated, or
+> reclassified.
+
 狀態（Status）：`PENDING`
 範圍（Scope）：docs-only tool denial receipt design
 執行環境行為（runtime behavior）變更：否
