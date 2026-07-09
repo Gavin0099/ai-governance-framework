@@ -43,16 +43,16 @@
     "escalated_candidates": 40,
     "not_escalated_modules": 153,
     "zombie_status_counts": {
-      "zombie_candidate": 21,
+      "zombie_candidate": 19,
       "dormant_frozen_line": 4,
       "ruled_out_documented_surface": 5,
       "ruled_out_wired": 4,
       "dormant_design_line": 2,
-      "ruled_out_operator_surface": 4
+      "ruled_out_operator_surface": 6
     },
     "recommended_action_counts": {
-      "investigate": 7,
-      "keep_observe": 21,
+      "investigate": 5,
+      "keep_observe": 23,
       "retire_candidate": 5,
       "keep": 7
     }
@@ -435,9 +435,9 @@
     },
     {
       "module": "governance_tools/linear_integrator.py",
-      "zombie_status": "zombie_candidate",
+      "zombie_status": "ruled_out_operator_surface",
       "frequency_class": "routine",
-      "recommended_action": "investigate",
+      "recommended_action": "keep_observe",
       "cluster": "external_integrations",
       "scan_evidence": {
         "memory_mentions": 1,
@@ -448,7 +448,8 @@
         "imported_by_other_tools": [],
         "test_file_references": 1
       },
-      "rationale": "Linear integration dormant since 2026-03-21; docs/linear-source-of-truth.md exists but no wiring or recent output evidence."
+      "rationale": "Linear integration is not runtime, hook, CI, or gate wired, but current-state recompute found operator-facing docs, README entry, and focused tests. Keep as a PLAN.md-to-Linear projection tool; medium maintenance cost due to external API and credential handling.",
+      "resolution": "2026-07-09 current-state recompute: docs/linear-source-of-truth.md and governance_tools/README.md document the operator-facing projection path; focused pytest tests/test_linear_integrator.py tests/test_notion_integrator.py passed with 60 passed after using an accessible basetemp; no runtime_hooks, .github, scripts, or .git/hooks wiring was found. Keep observe as an operator-facing projection tool, not enforcement."
     },
     {
       "module": "governance_tools/manual_receipt_writer.py",
@@ -485,9 +486,9 @@
     },
     {
       "module": "governance_tools/notion_integrator.py",
-      "zombie_status": "zombie_candidate",
+      "zombie_status": "ruled_out_operator_surface",
       "frequency_class": "routine",
-      "recommended_action": "investigate",
+      "recommended_action": "keep_observe",
       "cluster": "external_integrations",
       "scan_evidence": {
         "memory_mentions": 1,
@@ -498,7 +499,8 @@
         "imported_by_other_tools": [],
         "test_file_references": 1
       },
-      "rationale": "Notion integration dormant since 2026-03-21; docs/notion-source-of-truth.md exists but no wiring or recent output evidence."
+      "rationale": "Notion integration is not runtime, hook, CI, or gate wired, but current-state recompute found operator-facing docs, README entry, and focused tests. Keep as a PLAN.md-to-Notion projection tool; medium maintenance cost due to external API and credential handling.",
+      "resolution": "2026-07-09 current-state recompute: docs/notion-source-of-truth.md and governance_tools/README.md document the operator-facing projection path; focused pytest tests/test_linear_integrator.py tests/test_notion_integrator.py passed with 60 passed after using an accessible basetemp; no runtime_hooks, .github, scripts, or .git/hooks wiring was found. Keep observe as an operator-facing projection tool, not enforcement."
     },
     {
       "module": "governance_tools/phase3_gate_adoption_audit.py",

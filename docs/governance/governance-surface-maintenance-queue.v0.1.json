@@ -13,9 +13,9 @@
     "total_entries": 92,
     "by_recommended_action": {
       "downgrade": 2,
-      "investigate": 9,
+      "investigate": 7,
       "keep": 25,
-      "keep_observe": 44,
+      "keep_observe": 46,
       "keep_rare_critical": 4,
       "merge": 3,
       "retire_candidate": 5
@@ -1132,10 +1132,10 @@
     {
       "defense": "governance_tools/linear_integrator.py",
       "source": "inventory_v0.1",
-      "zombie_status": "zombie_candidate",
+      "zombie_status": "ruled_out_operator_surface",
       "frequency_class": "routine",
-      "maintenance_cost_class": "unassessed",
-      "recommended_action": "investigate",
+      "maintenance_cost_class": "medium",
+      "recommended_action": "keep_observe",
       "evidence_refs": [
         {
           "memory_mentions": 1,
@@ -1147,7 +1147,8 @@
           "test_file_references": 1
         }
       ],
-      "rationale": "Linear integration dormant since 2026-03-21; docs/linear-source-of-truth.md exists but no wiring or recent output evidence.",
+      "rationale": "Linear integration is not runtime, hook, CI, or gate wired, but current-state recompute found operator-facing docs, README entry, and focused tests. Keep as a PLAN.md-to-Linear projection tool; medium maintenance cost due to external API and credential handling.",
+      "resolution": "2026-07-09 current-state recompute: docs/linear-source-of-truth.md and governance_tools/README.md document the operator-facing projection path; focused pytest tests/test_linear_integrator.py tests/test_notion_integrator.py passed with 60 passed after using an accessible basetemp; no runtime_hooks, .github, scripts, or .git/hooks wiring was found. Keep observe as an operator-facing projection tool, not enforcement.",
       "also_in_window": false
     },
     {
@@ -1195,10 +1196,10 @@
     {
       "defense": "governance_tools/notion_integrator.py",
       "source": "inventory_v0.1",
-      "zombie_status": "zombie_candidate",
+      "zombie_status": "ruled_out_operator_surface",
       "frequency_class": "routine",
-      "maintenance_cost_class": "unassessed",
-      "recommended_action": "investigate",
+      "maintenance_cost_class": "medium",
+      "recommended_action": "keep_observe",
       "evidence_refs": [
         {
           "memory_mentions": 1,
@@ -1210,7 +1211,8 @@
           "test_file_references": 1
         }
       ],
-      "rationale": "Notion integration dormant since 2026-03-21; docs/notion-source-of-truth.md exists but no wiring or recent output evidence.",
+      "rationale": "Notion integration is not runtime, hook, CI, or gate wired, but current-state recompute found operator-facing docs, README entry, and focused tests. Keep as a PLAN.md-to-Notion projection tool; medium maintenance cost due to external API and credential handling.",
+      "resolution": "2026-07-09 current-state recompute: docs/notion-source-of-truth.md and governance_tools/README.md document the operator-facing projection path; focused pytest tests/test_linear_integrator.py tests/test_notion_integrator.py passed with 60 passed after using an accessible basetemp; no runtime_hooks, .github, scripts, or .git/hooks wiring was found. Keep observe as an operator-facing projection tool, not enforcement.",
       "also_in_window": false
     },
     {
@@ -1690,5 +1692,5 @@
     }
   ],
   "amended_at": "2026-07-09",
-  "amendment_note": "The original four retire_candidate entries were already resolved by reviewed retirements on 2026-07-06 evening (after the inventory landed at 22:12 but before this queue was generated on 2026-07-07 morning). On 2026-07-08, governance_tools/ab_cost_backfill_apply.py was reclassified from investigate to retire_candidate after focused review found it is a one-off writer with no current scalar telemetry input, no active wiring, and no dedicated tests. On 2026-07-08, governance_tools/ab_cost_hygiene.py and governance_tools/ab_cost_parity_audit.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, docs acceptance-gate references, and live report signals. On 2026-07-08, governance_tools/ab_baseline_validator.py and governance_tools/ab_smoke_artifact_validator.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, runbook/pass-criteria references, and live A/B smoke artifact signals. On 2026-07-08, governance_tools/gate_c_report.py and governance_tools/gate_c_dual_report.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, distinct Gate C report roles, and live report signals. Future queue generation must verify each defense surface still exists and still has the recorded status at generation time. On 2026-07-09, governance_tools/governed_prompt.py and governance_tools/governed_prompt_bridge.py were reclassified from investigate to keep_observe after current-state recompute confirmed operator-facing docs, focused tests (4 passed), CLI smoke paths, and distinct core-vs-bridge responsibilities; this is metadata only and does not prove runtime adoption or enforcement."
+  "amendment_note": "The original four retire_candidate entries were already resolved by reviewed retirements on 2026-07-06 evening (after the inventory landed at 22:12 but before this queue was generated on 2026-07-07 morning). On 2026-07-08, governance_tools/ab_cost_backfill_apply.py was reclassified from investigate to retire_candidate after focused review found it is a one-off writer with no current scalar telemetry input, no active wiring, and no dedicated tests. On 2026-07-08, governance_tools/ab_cost_hygiene.py and governance_tools/ab_cost_parity_audit.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, docs acceptance-gate references, and live report signals. On 2026-07-08, governance_tools/ab_baseline_validator.py and governance_tools/ab_smoke_artifact_validator.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, runbook/pass-criteria references, and live A/B smoke artifact signals. On 2026-07-08, governance_tools/gate_c_report.py and governance_tools/gate_c_dual_report.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, distinct Gate C report roles, and live report signals. Future queue generation must verify each defense surface still exists and still has the recorded status at generation time. On 2026-07-09, governance_tools/governed_prompt.py and governance_tools/governed_prompt_bridge.py were reclassified from investigate to keep_observe after current-state recompute confirmed operator-facing docs, focused tests (4 passed), CLI smoke paths, and distinct core-vs-bridge responsibilities; this is metadata only and does not prove runtime adoption or enforcement. On 2026-07-09, governance_tools/linear_integrator.py and governance_tools/notion_integrator.py were reclassified from investigate to keep_observe after current-state recompute confirmed operator-facing source-of-truth docs, governance_tools README entries, focused tests (60 passed), and no runtime/hook/CI wiring; this is metadata only and does not prove active operator use or enforcement."
 }
