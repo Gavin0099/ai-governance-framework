@@ -1,0 +1,36 @@
+{
+  "run_id": "B2",
+  "condition": "B",
+  "findings": [
+    {
+      "file": "skill_ab_target/review_target.py",
+      "line": 13,
+      "type": "bug",
+      "text": "High-risk requests at or above the policy threshold now return \"allow\" instead of being denied, inverting the risk gate and weakening authorization."
+    },
+    {
+      "file": "skill_ab_target/review_target.py",
+      "line": 16,
+      "type": "behavioral_regression",
+      "text": "Admin requests are now denied unconditionally, whereas admins previously bypassed owner approval and could be allowed."
+    },
+    {
+      "file": "skill_ab_target/review_target.py",
+      "line": 18,
+      "type": "bug",
+      "text": "The blocked_states denial check was removed, so a request in a blocked state can be allowed when owner_approved is true or owner approval is not required."
+    },
+    {
+      "file": "skill_ab_target/review_target.py",
+      "line": 25,
+      "type": "bug",
+      "text": "summarize_recent now selects limit + 1 items, causing an off-by-one result that exceeds the requested limit."
+    },
+    {
+      "file": "skill_ab_target/tests/test_review_target.py",
+      "line": 11,
+      "type": "test_gap",
+      "text": "The new test only covers the unchanged owner-approved allow path and misses the changed risk threshold, admin denial, blocked state, and recent-summary limit behavior."
+    }
+  ]
+}

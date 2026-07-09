@@ -1,0 +1,36 @@
+{
+  "run_id": "A1",
+  "condition": "A",
+  "findings": [
+    {
+      "file": "skill_ab_target/review_target.py",
+      "line": 14,
+      "type": "logic",
+      "text": "Risk scores at or above the policy maximum are now allowed, including scores that previously exceeded the maximum and were denied."
+    },
+    {
+      "file": "skill_ab_target/review_target.py",
+      "line": 16,
+      "type": "logic",
+      "text": "Admin users are now denied before ownership approval checks, reversing the previous admin override behavior."
+    },
+    {
+      "file": "skill_ab_target/review_target.py",
+      "line": 19,
+      "type": "logic",
+      "text": "Blocked states are no longer checked, so requests in policy.blocked_states can be allowed."
+    },
+    {
+      "file": "skill_ab_target/review_target.py",
+      "line": 26,
+      "type": "off-by-one",
+      "text": "summarize_recent now returns limit + 1 items when enough results exist, exceeding the requested limit."
+    },
+    {
+      "file": "skill_ab_target/review_target.py",
+      "line": 32,
+      "type": "compatibility",
+      "text": "Changing the audit label prefix from decision: to governance-decision: can break callers or stored audit references expecting the documented/previous label format."
+    }
+  ]
+}

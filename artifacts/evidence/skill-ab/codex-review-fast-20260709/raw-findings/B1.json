@@ -1,0 +1,36 @@
+{
+  "run_id": "B1",
+  "condition": "B",
+  "findings": [
+    {
+      "file": "skill_ab_target/review_target.py",
+      "line": 14,
+      "type": "bug",
+      "text": "High-risk requests at or above the policy limit are now allowed. The previous behavior denied risk_score > max_risk, but this change flips the boundary to allow risk_score >= max_risk, creating an authorization bypass for the riskiest changes."
+    },
+    {
+      "file": "skill_ab_target/review_target.py",
+      "line": 19,
+      "type": "bug",
+      "text": "Blocked states are no longer denied. Because the blocked_states check was removed, a request in a blocked state can now be allowed when owner_approved is true or owner approval is not required."
+    },
+    {
+      "file": "skill_ab_target/review_target.py",
+      "line": 17,
+      "type": "behavioral_regression",
+      "text": "Admin users are now denied unconditionally after the risk check. Previously admins could authorize otherwise valid changes; this reverses admin authorization semantics."
+    },
+    {
+      "file": "skill_ab_target/review_target.py",
+      "line": 26,
+      "type": "bug",
+      "text": "summarize_recent now returns limit + 1 items when enough results exist. The loop upper bound changed from min(limit, len(results)) to min(limit + 1, len(results)), violating the limit contract."
+    },
+    {
+      "file": "skill_ab_target/tests/test_review_target.py",
+      "line": 12,
+      "type": "missing_evidence",
+      "text": "The new test only covers owner-approved allow behavior and misses the changed denial paths: high-risk requests, admin handling, blocked states, summarize_recent limit behavior, and audit label compatibility."
+    }
+  ]
+}
