@@ -18,7 +18,8 @@ Use this skill when local work should be gated before commit instead of relying 
    - pytest dependency problem
    - governance smoke failure
    - focused test failure
-5. Report blockers concretely and give one next command when handing off.
+5. Check whether the changed scope still has missing tests, weak evidence, or over-broad validation claims after the gate result.
+6. Report blockers concretely and give one next command when handing off.
 
 ## Commands
 
@@ -33,5 +34,6 @@ Read `references/gotchas.md` before treating a precommit run as full-repository 
 - Start with whether the gate passed.
 - Name the exact entrypoint used.
 - Distinguish environment failure from governance failure.
+- Surface missing tests or missing evidence as first-class precommit risks when they affect the changed scope.
 - If the gate fails, surface the first blocking failure clearly.
 - If extra repo-specific validation is still needed, say so explicitly.

@@ -13,6 +13,8 @@ Use the highest-level reviewer surface that answers the request.
 2. Use `reviewer_handoff_snapshot.py` when the result should be preserved as latest/history/index artifacts.
 3. Use the reader tools when the user already has a manifest or publication path.
 4. Pull in trust-signal or release-surface detail only when the top-level packet is insufficient.
+5. For non-trivial diffs, sanity-check the actual changed scope before treating packet output as reviewer-ready.
+6. Preserve consequential disagreement between signals, tests, and reviewer notes instead of smoothing it into confidence language.
 
 ## Commands
 
@@ -27,4 +29,5 @@ Read `references/gotchas.md` before adding new reviewer-facing flows or interpre
 - Start summary-first.
 - Keep reviewer language concrete and operational.
 - Distinguish current status from historical limitations.
+- Treat missing tests or missing evidence as reviewer-facing risks, not footnotes.
 - Prefer one reviewer entrypoint over a file-by-file dump.

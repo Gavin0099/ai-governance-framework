@@ -5,3 +5,5 @@
 - Keep reviewer language distinct from author language. A reviewer wants status, risk, evidence, and next actions.
 - If release and trust signals disagree, surface the disagreement explicitly instead of averaging them into vague confidence wording.
 - When external contract repos are part of the story, mention whether the issue is repo-local or external adoption state.
+- Reviewer packet tools support judgment; they do not replace checking the actual changed scope when the task is a code or governance review.
+- Missing tests, weak evidence, and over-broad scope are reviewer-facing risks. Call them out directly when they affect the handoff.
