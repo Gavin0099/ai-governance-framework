@@ -1,0 +1,91 @@
+{
+  "schema_version": "skill_ab_ground_truth.v0.1",
+  "subject": "codex-review-fast",
+  "target_harness": "codex",
+  "target_diff": "docs/governance/skill-ab-codex-review-fast.target.diff",
+  "defect_count": 6,
+  "line_basis": "postimage line numbers in the seeded diff",
+  "alias_table": {
+    "boundary-flip": [
+      "comparison-boundary",
+      "boundary-error"
+    ],
+    "reversed-condition": [
+      "inverted-condition",
+      "condition-reversal"
+    ],
+    "removed-guard": [
+      "missing-guard",
+      "guard-removed"
+    ],
+    "off-by-one": [
+      "loop-bound-error",
+      "off-by-one-loop-bound"
+    ],
+    "missing-test": [
+      "test-gap",
+      "missing-coverage"
+    ],
+    "over-broad-scope": [
+      "out-of-scope-change",
+      "scope-creep"
+    ]
+  },
+  "defects": [
+    {
+      "id": "D1",
+      "file": "skill_ab_target/review_target.py",
+      "line": 13,
+      "type": "boundary-flip",
+      "function": "authorize_change",
+      "regex_anchor": "risk_score\\s*>=\\s*policy\\.max_risk",
+      "expected_finding": "The max-risk boundary is flipped and now allows risk_score equal to the maximum."
+    },
+    {
+      "id": "D2",
+      "file": "skill_ab_target/review_target.py",
+      "line": 16,
+      "type": "reversed-condition",
+      "function": "authorize_change",
+      "regex_anchor": "request\\.user_is_admin",
+      "expected_finding": "The admin condition is reversed and denies admins instead of applying the owner requirement to non-admins."
+    },
+    {
+      "id": "D3",
+      "file": "skill_ab_target/review_target.py",
+      "line": 19,
+      "type": "removed-guard",
+      "function": "authorize_change",
+      "regex_anchor": "request\\.owner_approved\\s+or\\s+not\\s+policy\\.require_owner",
+      "expected_finding": "The blocked-state guard was removed, allowing locked or blocked requests to be approved."
+    },
+    {
+      "id": "D4",
+      "file": "skill_ab_target/review_target.py",
+      "line": 26,
+      "type": "off-by-one",
+      "function": "summarize_recent",
+      "regex_anchor": "limit\\s*\\+\\s*1",
+      "expected_finding": "The loop now selects one more result than the requested limit."
+    },
+    {
+      "id": "D5",
+      "file": "skill_ab_target/tests/test_review_target.py",
+      "line": 12,
+      "type": "missing-test",
+      "function": "test_owner_approved_change_is_allowed",
+      "regex_anchor": "test_owner_approved_change_is_allowed",
+      "expected_finding": "The test only covers the happy path and misses boundary, blocked-state, admin, and limit regression cases."
+    },
+    {
+      "id": "D6",
+      "file": "skill_ab_target/review_target.py",
+      "line": 32,
+      "type": "over-broad-scope",
+      "function": "format_audit_label",
+      "regex_anchor": "governance-decision",
+      "expected_finding": "The audit label behavior changed outside the stated authorization and summarization review scope."
+    }
+  ],
+  "claim_boundary": "This ground truth is a constructed seeded review task for one A/B measurement. It is not evidence that the skill works on real PRs or other harnesses."
+}

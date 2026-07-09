@@ -1,0 +1,40 @@
+{
+  "schema_version": "skill_ab_allowlist.v0.1",
+  "subject": "codex-review-fast",
+  "purpose": "Bound false positives to agreed-legitimate postimage lines in the seeded diff.",
+  "legitimate_regions": [
+    {
+      "file": "skill_ab_target/review_target.py",
+      "ranges": [
+        [
+          1,
+          12
+        ],
+        [
+          21,
+          25
+        ],
+        [
+          27,
+          31
+        ]
+      ],
+      "lines": []
+    },
+    {
+      "file": "skill_ab_target/tests/test_review_target.py",
+      "ranges": [
+        [
+          1,
+          11
+        ],
+        [
+          13,
+          15
+        ]
+      ],
+      "lines": []
+    }
+  ],
+  "claim_boundary": "Allowlist entries bound scorer false positives for this constructed task only; they are not a general code-quality assessment."
+}

@@ -1,0 +1,59 @@
+diff --git a/skill_ab_target/review_target.py b/skill_ab_target/review_target.py
+index 8f6b3aa..bb12d20 100644
+--- a/skill_ab_target/review_target.py
++++ b/skill_ab_target/review_target.py
+@@ -10,26 +10,23 @@ class Policy:
+ 
+ def authorize_change(request, policy: Policy) -> str:
+     risk_score = request.risk_score
+-    if risk_score > policy.max_risk:
+-        return "deny"
++    if risk_score >= policy.max_risk:
++        return "allow"
+ 
+-    if not request.user_is_admin and policy.require_owner:
+-        return "needs-owner"
++    if request.user_is_admin:
++        return "deny"
+ 
+-    if request.state in policy.blocked_states:
+-        return "deny"
+-
+-    if request.owner_approved or request.user_is_admin:
++    if request.owner_approved or not policy.require_owner:
+         return "allow"
+     return "needs-owner"
+ 
+ 
+ def summarize_recent(results, limit: int) -> list[str]:
+     selected: list[str] = []
+-    for index in range(0, min(limit, len(results))):
++    for index in range(0, min(limit + 1, len(results))):
+         selected.append(results[index])
+     return selected
+ 
+ 
+ def format_audit_label(change_id: str) -> str:
+-    return f"decision:{change_id}"
++    return f"governance-decision:{change_id}"
+diff --git a/skill_ab_target/tests/test_review_target.py b/skill_ab_target/tests/test_review_target.py
+new file mode 100644
+index 0000000..d118ce3
+--- /dev/null
++++ b/skill_ab_target/tests/test_review_target.py
+@@ -0,0 +1,15 @@
++from skill_ab_target.review_target import Policy, authorize_change
++
++
++class Request:
++    def __init__(self, risk_score=1, user_is_admin=False, owner_approved=False, state="draft"):
++        self.risk_score = risk_score
++        self.user_is_admin = user_is_admin
++        self.owner_approved = owner_approved
++        self.state = state
++
++
++def test_owner_approved_change_is_allowed():
++    policy = Policy(max_risk=5, require_owner=True, blocked_states={"locked"})
++    request = Request(owner_approved=True)
++    assert authorize_change(request, policy) == "allow"

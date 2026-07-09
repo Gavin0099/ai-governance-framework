@@ -1,0 +1,25 @@
+{
+  "schema_version": "skill_ab_frozen_bundle.v0.1",
+  "subject": "codex-review-fast",
+  "frozen_at": "2026-07-09",
+  "status": "step1_frozen_materials",
+  "paths": {
+    "ground_truth": "docs/governance/skill-ab-codex-review-fast.ground-truth.json",
+    "allowlist": "docs/governance/skill-ab-codex-review-fast.allowlist.json",
+    "target_diff": "docs/governance/skill-ab-codex-review-fast.target.diff",
+    "scorer": "governance_tools/skill_ab_scorer.py"
+  },
+  "hashes": {
+    "ground_truth_sha256": "c815d37af7660a428d2d2d3cc183053d3539396bb5ef262a8fcecd0335e09f97",
+    "allowlist_sha256": "c0db0b0c0412692351d8c695c496181e52abefcb84deccc9e825802ecc3cd139",
+    "target_diff_sha256": "2959820abfb652b3d68a27944a16140995a741c5b535463865f35492f32a36fb",
+    "scorer_sha256": "09e1ffa1c09dd4c7f2091cd63647b6725dcff408e733992ba0cb8b0f129a0004"
+  },
+  "controls": {
+    "a_b_runs_completed": false,
+    "condition_labels_stripped": false,
+    "order_shuffled": false,
+    "ledger_decision_effect_updated": false
+  },
+  "claim_boundary": "This freezes the seeded diff, ground truth, allowlist, and scorer hash for execution step 1 only. It does not claim that A/B runs occurred or that codex-review-fast has positive decision_effect evidence."
+}
