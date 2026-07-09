@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -c \"import json, subprocess, sys; from pathlib import Path; p=Path('docs/governance/conversation-output-transcript-sample-seed-2026-07-09.json'); data=json.loads(p.read_text(encoding='utf-8')); assert len(data['candidates'])==3; [(__import__('builtins').exec('assert c[\\'transcript_source_status\\']==\\'specified_current_thread_not_archived\\'; ref=c[\\'transcript_source_ref\\']; assert ref[\\'source_type\\']==\\'current_thread_user_provided_log\\'; assert ref[\\'durability\\']==\\'not_durable_until_exported\\'; assert \\'durable artifact\\' in ref[\\'next_step_before_scoring\\']')) for c in data['candidates']]; raw=p.read_bytes(); raw.decode('ascii'); assert not any(line.rstrip(bytes([32,9])) != line for line in raw.splitlines()); r=subprocess.run(['git','diff','--check','HEAD~1..HEAD','--',str(p)]); sys.exit(r.returncode)\"",
+  "exit_code": 0,
+  "started_at": "2026-07-09T02:25:16Z",
+  "finished_at": "2026-07-09T02:25:17Z",
+  "runner": "codex",
+  "linked_commit": "3a890eba998ce5a23b11913e4d84b0296e73d679",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/conversation-output-transcript-source-binding-20260709.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
