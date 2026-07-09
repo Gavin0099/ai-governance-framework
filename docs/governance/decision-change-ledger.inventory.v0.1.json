@@ -51,10 +51,10 @@
       "zombie_candidate": 18
     },
     "recommended_action_counts": {
-      "investigate": 5,
+      "investigate": 4,
       "keep": 7,
       "keep_observe": 31,
-      "merge": 1,
+      "merge": 2,
       "retire_candidate": 5
     },
     "local_skill_entries": 9
@@ -774,7 +774,7 @@
       "surface_type": "local_skill",
       "zombie_status": "ruled_out_documented_surface",
       "frequency_class": "routine",
-      "recommended_action": "investigate",
+      "recommended_action": "merge",
       "decision_effect": "negative",
       "claim_class": "advisory_generated",
       "scan_evidence": {
@@ -792,8 +792,8 @@
         }
       },
       "rationale": "Fast review mindset skill is concise and relevant, but the first pre-registered single seeded Codex harness A/B produced decision_effect=negative: recall_B did not improve over recall_A and precision_B was lower under the frozen deterministic scorer.",
-      "resolution": "2026-07-09 blind-scoring review accepted result-blind.json as the corrected protocol artifact and recorded measured negative decision_effect for this one constructed harness. Keep as investigate until a separate disposition slice decides whether to retire, downgrade, merge, or rerun on another harness; this does not prove broad skill ineffectiveness.",
-      "classification_note": "measured_negative_single_seeded_harness",
+      "resolution": "2026-07-09 disposition review: standalone skill downgraded; useful review heuristics should be merged into reviewer-handoff/precommit review guidance; evidence ref = artifacts/evidence/skill-ab/codex-review-fast-20260709/result-blind.json. This merge disposition is based on measured negative decision_effect in one constructed harness and does not prove broad skill ineffectiveness.",
+      "classification_note": "standalone_downgrade_merge_candidate",
       "claim_ceiling": "single seeded Codex harness measurement only; does not prove broad review quality, real PR outcomes, other harness behavior, compliance, or enforcement"
     },
     {
