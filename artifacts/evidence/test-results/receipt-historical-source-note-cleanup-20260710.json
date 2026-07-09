@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -c \"import json, pathlib, subprocess, sys; data=json.load(open('docs/governance/design-note-classification.json', encoding='utf-8')); actual={}; [actual.__setitem__(e['classification'], actual.get(e['classification'], 0)+1) for e in data['files']]; actual['total']=len(data['files']); assert data['counts']==actual, (data['counts'], actual); deleted=['docs/governance/cache-aware-authority-manifest-implementation-tech-spec-2026-06-29.md','docs/governance/cache-aware-harness-handoff-checklist-2026-06-28.md','docs/governance/retrieval-authority-observation-round-a.md']; assert not any(pathlib.Path(p).exists() for p in deleted), deleted; pattern='cache-aware-authority-manifest-implementation-tech-spec-2026-06-29.md\\\\|cache-aware-harness-handoff-checklist-2026-06-28.md\\\\|retrieval-authority-observation-round-a.md'; grep=subprocess.run(['git','grep','-n',pattern,'--',':!artifacts/evidence/test-results/*'], text=True, capture_output=True); assert grep.returncode==1, grep.stdout + grep.stderr; diff=subprocess.run(['git','diff','--check','--'] + deleted + ['docs/governance/cache-aware-round-b-summary.md','docs/governance/cache-aware-receipt-alignment-note-2026-06-28.md','docs/governance/cache-aware-runtime-adoption-review-packet-2026-06-28.md','docs/governance/retrieval-authority-round-a-summary.md','docs/governance/governance-overhead-retrospective.md','docs/governance/design-note-classification.json'], text=True, capture_output=True); assert diff.returncode==0, diff.stdout + diff.stderr; print('historical_source_note_cleanup_checks=ok')\"",
+  "exit_code": 0,
+  "started_at": "2026-07-09T17:02:47Z",
+  "finished_at": "2026-07-09T17:02:47Z",
+  "runner": "codex",
+  "linked_commit": "a67976b47350a372f389ac9dc37224bc9a3df182",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-historical-source-note-cleanup-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
