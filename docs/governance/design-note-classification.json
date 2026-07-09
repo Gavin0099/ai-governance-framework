@@ -11,16 +11,16 @@
   },
   "claim_ceiling": [
     "classification artifact only",
-    "no document is removed",
+    "records one owner-approved removal of a superseded retrieval-authority source note",
     "no document is invalidated",
     "no document status or frontmatter is changed"
   ],
   "counts": {
     "active": 32,
-    "superseded": 10,
+    "superseded": 9,
     "historical": 34,
     "proposal-only": 14,
-    "total": 90
+    "total": 89
   },
   "corrections_from_initial_review": [
     {
@@ -351,13 +351,6 @@
       "path": "docs/governance/retrieval-authority-observation-round-a.md",
       "classification": "historical",
       "role": "round_a_guardrails_source",
-      "recommended_action": "merge_candidate_already_covered_by_summary",
-      "consolidated_into": "docs/governance/retrieval-authority-round-a-summary.md"
-    },
-    {
-      "path": "docs/governance/retrieval-authority-observation-v0.1.md",
-      "classification": "superseded",
-      "role": "observer_contract_source",
       "recommended_action": "merge_candidate_already_covered_by_summary",
       "consolidated_into": "docs/governance/retrieval-authority-round-a-summary.md"
     },

@@ -2,13 +2,12 @@
 
 ## Consolidation Status
 - Status: historical consolidation record.
-- Consolidates the Round A observer contract, Round A guardrails, checkpoint
+- Consolidates the v0.1 observer contract, Round A guardrails, checkpoint
   summary, and final disposition.
-- No source note is deleted, archived, or invalidated by this summary.
+- This summary is the surviving record for the v0.1 observer contract after
+  owner-approved source-note removal.
 
 ## Source Notes
-- `docs/governance/retrieval-authority-observation-v0.1.md` - original
-  observer signal contract and output shape.
 - `docs/governance/retrieval-authority-observation-round-a.md` - Round A
   guardrails, sample-quality labels, and checkpoint template.
 - `docs/governance/retrieval-authority-round-a-checkpoint-log.md` - raw
@@ -24,6 +23,7 @@
 
 ## Observer Signal Contract
 The v0.1 observer was scoped to advisory telemetry only. It looked for:
+- `advisory_only: true` (always)
 - `used_canonical`
 - `used_candidate`
 - `used_superseded`
@@ -31,6 +31,7 @@ The v0.1 observer was scoped to advisory telemetry only. It looked for:
 - `authority_conflict`
 - `authority_evidence_level`
 - `needs_human_review`
+- `missed_active_memory: unknown` (reserved field in v0.1)
 
 Signal semantics:
 - `used_candidate=true` is not automatically a conflict.
@@ -112,5 +113,5 @@ This observer should not be interpreted as a retrieval correctness validator.
 - This summary does not prove retrieval correctness.
 - This summary does not justify gate, block, escalation, ranking, scoring, or
   prompt-injection behavior.
-- This summary does not delete, archive, invalidate, or supersede the original
-  source notes by itself.
+- The v0.1 source-note removal is an owner-approved surface reduction, not a
+  claim that the observer is active, validated, or production-ready.
