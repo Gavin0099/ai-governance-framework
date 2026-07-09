@@ -43,16 +43,16 @@
     "escalated_candidates": 40,
     "not_escalated_modules": 153,
     "zombie_status_counts": {
-      "zombie_candidate": 23,
+      "zombie_candidate": 21,
       "dormant_frozen_line": 4,
       "ruled_out_documented_surface": 5,
       "ruled_out_wired": 4,
       "dormant_design_line": 2,
-      "ruled_out_operator_surface": 2
+      "ruled_out_operator_surface": 4
     },
     "recommended_action_counts": {
-      "investigate": 9,
-      "keep_observe": 19,
+      "investigate": 7,
+      "keep_observe": 21,
       "retire_candidate": 5,
       "keep": 7
     }
@@ -383,9 +383,9 @@
     },
     {
       "module": "governance_tools/governed_prompt.py",
-      "zombie_status": "zombie_candidate",
+      "zombie_status": "ruled_out_operator_surface",
       "frequency_class": "routine",
-      "recommended_action": "investigate",
+      "recommended_action": "keep_observe",
       "cluster": "governed_prompt",
       "scan_evidence": {
         "memory_mentions": 0,
@@ -396,13 +396,14 @@
         "imported_by_other_tools": [],
         "test_file_references": 1
       },
-      "rationale": "Only governed_prompt_bridge imports it; the governed-prompt line has usage docs but no wiring, CI, hook, or memory evidence."
+      "rationale": "Only governed_prompt_bridge imports it; the governed-prompt line has usage docs but no wiring, CI, hook, or memory evidence.",
+      "resolution": "manual operator governed-prompt core remains documented by docs/governed-prompt-usage.md and docs/token-run-checklist.md; focused tests passed (tests/test_governance_contract_injection_parity.py and tests/test_governed_prompt_bridge.py, 4 passed); keep separate from governed_prompt_bridge.py because this file is provider-independent contract injection core."
     },
     {
       "module": "governance_tools/governed_prompt_bridge.py",
-      "zombie_status": "zombie_candidate",
+      "zombie_status": "ruled_out_operator_surface",
       "frequency_class": "routine",
-      "recommended_action": "investigate",
+      "recommended_action": "keep_observe",
       "cluster": "governed_prompt",
       "scan_evidence": {
         "memory_mentions": 0,
@@ -413,7 +414,8 @@
         "imported_by_other_tools": [],
         "test_file_references": 1
       },
-      "rationale": "Documented in docs/governed-prompt-usage.md and docs/token-run-checklist.md but has no wiring, importer, or memory evidence."
+      "rationale": "Documented in docs/governed-prompt-usage.md and docs/token-run-checklist.md but has no wiring, importer, or memory evidence.",
+      "resolution": "manual operator governed-prompt bridge remains documented by docs/governed-prompt-usage.md and docs/token-run-checklist.md; focused tests passed (tests/test_governance_contract_injection_parity.py and tests/test_governed_prompt_bridge.py, 4 passed); keep separate from governed_prompt.py because this file handles provider aliases and subprocess bridge behavior."
     },
     {
       "module": "governance_tools/host_agent_memory_sync_signal.py",

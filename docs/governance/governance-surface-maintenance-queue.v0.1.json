@@ -13,9 +13,9 @@
     "total_entries": 92,
     "by_recommended_action": {
       "downgrade": 2,
-      "investigate": 11,
+      "investigate": 9,
       "keep": 25,
-      "keep_observe": 42,
+      "keep_observe": 44,
       "keep_rare_critical": 4,
       "merge": 3,
       "retire_candidate": 5
@@ -1066,10 +1066,10 @@
     {
       "defense": "governance_tools/governed_prompt.py",
       "source": "inventory_v0.1",
-      "zombie_status": "zombie_candidate",
+      "zombie_status": "ruled_out_operator_surface",
       "frequency_class": "routine",
-      "maintenance_cost_class": "unassessed",
-      "recommended_action": "investigate",
+      "maintenance_cost_class": "low",
+      "recommended_action": "keep_observe",
       "evidence_refs": [
         {
           "memory_mentions": 0,
@@ -1081,16 +1081,16 @@
           "test_file_references": 1
         }
       ],
-      "rationale": "Only governed_prompt_bridge imports it; the governed-prompt line has usage docs but no wiring, CI, hook, or memory evidence.",
+      "rationale": "manual operator governed-prompt core remains documented by docs/governed-prompt-usage.md and docs/token-run-checklist.md; focused tests passed (tests/test_governance_contract_injection_parity.py and tests/test_governed_prompt_bridge.py, 4 passed); keep separate from governed_prompt_bridge.py because this file is provider-independent contract injection core.",
       "also_in_window": false
     },
     {
       "defense": "governance_tools/governed_prompt_bridge.py",
       "source": "inventory_v0.1",
-      "zombie_status": "zombie_candidate",
+      "zombie_status": "ruled_out_operator_surface",
       "frequency_class": "routine",
-      "maintenance_cost_class": "unassessed",
-      "recommended_action": "investigate",
+      "maintenance_cost_class": "low",
+      "recommended_action": "keep_observe",
       "evidence_refs": [
         {
           "memory_mentions": 0,
@@ -1102,7 +1102,7 @@
           "test_file_references": 1
         }
       ],
-      "rationale": "Documented in docs/governed-prompt-usage.md and docs/token-run-checklist.md but has no wiring, importer, or memory evidence.",
+      "rationale": "manual operator governed-prompt bridge remains documented by docs/governed-prompt-usage.md and docs/token-run-checklist.md; focused tests passed (tests/test_governance_contract_injection_parity.py and tests/test_governed_prompt_bridge.py, 4 passed); keep separate from governed_prompt.py because this file handles provider aliases and subprocess bridge behavior.",
       "also_in_window": false
     },
     {
@@ -1689,6 +1689,6 @@
       "source": "curated_review_2026-07-07"
     }
   ],
-  "amended_at": "2026-07-08",
-  "amendment_note": "The original four retire_candidate entries were already resolved by reviewed retirements on 2026-07-06 evening (after the inventory landed at 22:12 but before this queue was generated on 2026-07-07 morning). On 2026-07-08, governance_tools/ab_cost_backfill_apply.py was reclassified from investigate to retire_candidate after focused review found it is a one-off writer with no current scalar telemetry input, no active wiring, and no dedicated tests. On 2026-07-08, governance_tools/ab_cost_hygiene.py and governance_tools/ab_cost_parity_audit.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, docs acceptance-gate references, and live report signals. On 2026-07-08, governance_tools/ab_baseline_validator.py and governance_tools/ab_smoke_artifact_validator.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, runbook/pass-criteria references, and live A/B smoke artifact signals. On 2026-07-08, governance_tools/gate_c_report.py and governance_tools/gate_c_dual_report.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, distinct Gate C report roles, and live report signals. Future queue generation must verify each defense surface still exists and still has the recorded status at generation time."
+  "amended_at": "2026-07-09",
+  "amendment_note": "The original four retire_candidate entries were already resolved by reviewed retirements on 2026-07-06 evening (after the inventory landed at 22:12 but before this queue was generated on 2026-07-07 morning). On 2026-07-08, governance_tools/ab_cost_backfill_apply.py was reclassified from investigate to retire_candidate after focused review found it is a one-off writer with no current scalar telemetry input, no active wiring, and no dedicated tests. On 2026-07-08, governance_tools/ab_cost_hygiene.py and governance_tools/ab_cost_parity_audit.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, docs acceptance-gate references, and live report signals. On 2026-07-08, governance_tools/ab_baseline_validator.py and governance_tools/ab_smoke_artifact_validator.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, runbook/pass-criteria references, and live A/B smoke artifact signals. On 2026-07-08, governance_tools/gate_c_report.py and governance_tools/gate_c_dual_report.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, distinct Gate C report roles, and live report signals. Future queue generation must verify each defense surface still exists and still has the recorded status at generation time. On 2026-07-09, governance_tools/governed_prompt.py and governance_tools/governed_prompt_bridge.py were reclassified from investigate to keep_observe after current-state recompute confirmed operator-facing docs, focused tests (4 passed), CLI smoke paths, and distinct core-vs-bridge responsibilities; this is metadata only and does not prove runtime adoption or enforcement."
 }
