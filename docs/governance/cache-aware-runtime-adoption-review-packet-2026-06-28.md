@@ -44,7 +44,8 @@
 - `docs/governance/cache-aware-mode-authorization-anti-forgery-spec-2026-06-28.md`：定義 mode / authorization receipts 的候選欄位。
 - `docs/governance/cache-aware-tool-denial-receipt-spec-2026-06-28.md`：定義候選 `TOOL_DENIAL_RECEIPT v0.1`。
 - `docs/governance/cache-aware-compaction-summary-field-spec-2026-06-28.md`：定義候選 compaction summary 欄位。
-- `docs/governance/cache-aware-harness-handoff-checklist-2026-06-28.md`：列出外部 harness 若聲稱採用時需要的 evidence。
+- `docs/governance/cache-aware-round-b-summary.md`：保留外部 harness adoption
+  evidence gap 與 deferred handoff boundary 的 surviving summary。
 - `docs/governance/cache-aware-receipt-alignment-note-2026-06-28.md`：標明 cache-aware receipts 多數仍是 `candidate/PENDING`。
 - `docs/governance/operator-prompt-playbook-2026-06-26.md`：把 cache-aware receipt alignment 收斂成日常操作規則。
 

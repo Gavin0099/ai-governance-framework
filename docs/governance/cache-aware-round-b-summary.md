@@ -7,8 +7,8 @@ authority: historical-summary
 
 # Cache-Aware Round B Summary
 
-This note consolidates the cache-aware governance design cluster without
-deleting, archiving, invalidating, or reclassifying the source notes.
+This note consolidates the cache-aware governance design cluster and is the
+surviving reviewer entrypoint for source notes removed by later cleanup slices.
 
 ## Status
 
@@ -21,14 +21,12 @@ behavior, prompt-cache integration, or harness integration.
 
 ## Source Notes
 
-The Round B cluster contains these source notes:
+The Round B cluster keeps these source notes:
 
 - `docs/governance/cache-aware-agent-harness-design-note-2026-06-27.md`
-- `docs/governance/cache-aware-authority-manifest-implementation-tech-spec-2026-06-29.md`
 - `docs/governance/cache-aware-authority-manifest-invalidation-spec-2026-06-28.md`
 - `docs/governance/cache-aware-compaction-summary-field-spec-2026-06-28.md`
 - `docs/governance/cache-aware-governance-surface-spec-2026-06-28.md`
-- `docs/governance/cache-aware-harness-handoff-checklist-2026-06-28.md`
 - `docs/governance/cache-aware-mode-authorization-anti-forgery-spec-2026-06-28.md`
 - `docs/governance/cache-aware-receipt-alignment-note-2026-06-28.md`
 - `docs/governance/cache-aware-runtime-adoption-review-packet-2026-06-28.md`
@@ -38,6 +36,12 @@ The Round B cluster contains these source notes:
 Related later decision note:
 
 - `docs/governance/authority-manifest-preflight-evidence-decision-2026-07-02.md`
+
+Cleanup note: the authority-manifest implementation tech-spec and harness
+handoff checklist source notes were removed after this summary and the later
+review packet were confirmed as the canonical surviving summaries for their
+claim boundaries. Their removal does not add implementation evidence or change
+the PENDING status of deferred harness-dependent receipts.
 
 ## Implemented Repo-Side Boundary
 

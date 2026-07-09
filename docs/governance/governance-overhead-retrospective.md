@@ -8,7 +8,7 @@ Purpose: evaluate governance cost vs governance benefit before any Round B expan
 - Focus on whether governance recursion cost is rising faster than signal value.
 
 ## Inputs
-- retrieval-authority-observation-round-a.md
+- retrieval-authority-round-a-summary.md
 - retrieval-authority-round-a-checkpoint-log.md
 - memory-significance-v0.2.md
 - sampled runtime advisory artifacts

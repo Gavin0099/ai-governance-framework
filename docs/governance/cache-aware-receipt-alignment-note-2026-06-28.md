@@ -60,7 +60,7 @@
 | `CROSS_REPO_WRITE_AUTHORIZATION_RECEIPT v0.1` | `candidate/PENDING` | `docs/governance/cache-aware-mode-authorization-anti-forgery-spec-2026-06-28.md` | 防止把 writable workspace 誤讀成 cross-repo write authorization；不授權跨 repo 寫入。 |
 | `TOOL_DENIAL_RECEIPT v0.1` | `candidate/PENDING` | `docs/governance/cache-aware-tool-denial-receipt-spec-2026-06-28.md` | 記錄工具被拒絕；不授權 retry，也不證明 tool denial 已被 machine-enforced。 |
 | `CACHE_AWARE_COMPACTION_SUMMARY v0.1` | `candidate/PENDING` | `docs/governance/cache-aware-compaction-summary-field-spec-2026-06-28.md` | 若被產生，仍是 derived summary；只能摘要 authority、evidence、dirty state 與 receipt references，不能取代原始來源。 |
-| `CACHE_AWARE_HARNESS_HANDOFF_PACKET v0.1` | `candidate/PENDING` | `docs/governance/cache-aware-harness-handoff-checklist-2026-06-28.md` | 若被產生，仍是 derived handoff；不證明外部 harness 採用或 prompt cache enforcement 存在。 |
+| `CACHE_AWARE_HARNESS_HANDOFF_PACKET v0.1` | `candidate/PENDING` | `docs/governance/cache-aware-round-b-summary.md` | 若被產生，仍是 derived handoff；不證明外部 harness 採用或 prompt cache enforcement 存在。 |
 
 ## 關係規則
 
@@ -101,7 +101,7 @@
 4. `docs/governance/cache-aware-mode-authorization-anti-forgery-spec-2026-06-28.md`
 5. `docs/governance/cache-aware-tool-denial-receipt-spec-2026-06-28.md`
 6. `docs/governance/cache-aware-compaction-summary-field-spec-2026-06-28.md`
-7. `docs/governance/cache-aware-harness-handoff-checklist-2026-06-28.md`
+7. `docs/governance/cache-aware-round-b-summary.md`
 8. 本文件：receipt alignment and index note
 
 本文件同時承擔 receipt alignment、索引與短期 roadmap 的角色。

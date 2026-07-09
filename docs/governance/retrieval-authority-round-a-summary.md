@@ -8,8 +8,8 @@
   owner-approved source-note removal.
 
 ## Source Notes
-- `docs/governance/retrieval-authority-observation-round-a.md` - Round A
-  guardrails, sample-quality labels, and checkpoint template.
+- Round A guardrails, sample-quality labels, and checkpoint template are
+  consolidated in this summary after source-note removal.
 - `docs/governance/retrieval-authority-round-a-checkpoint-log.md` - raw
   checkpoint evidence for sessions 01-15.
 

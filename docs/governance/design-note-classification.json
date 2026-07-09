@@ -11,16 +11,16 @@
   },
   "claim_ceiling": [
     "classification artifact only",
-    "records one owner-approved removal of a superseded retrieval-authority source note",
+    "records owner-approved removals of superseded source notes after canonical summaries were confirmed",
     "no document is invalidated",
     "no document status or frontmatter is changed"
   ],
   "counts": {
     "active": 32,
-    "superseded": 9,
-    "historical": 34,
+    "superseded": 8,
+    "historical": 32,
     "proposal-only": 14,
-    "total": 89
+    "total": 86
   },
   "corrections_from_initial_review": [
     {
@@ -124,13 +124,6 @@
       "consolidated_into": "docs/governance/cache-aware-round-b-summary.md"
     },
     {
-      "path": "docs/governance/cache-aware-authority-manifest-implementation-tech-spec-2026-06-29.md",
-      "classification": "superseded",
-      "role": "authority_manifest_implementation_source",
-      "recommended_action": "merge_candidate_already_covered_by_summary",
-      "consolidated_into": "docs/governance/cache-aware-round-b-summary.md"
-    },
-    {
       "path": "docs/governance/cache-aware-authority-manifest-invalidation-spec-2026-06-28.md",
       "classification": "proposal-only",
       "role": "authority_manifest_shape_source",
@@ -148,13 +141,6 @@
       "path": "docs/governance/cache-aware-governance-surface-spec-2026-06-28.md",
       "classification": "proposal-only",
       "role": "surface_layering_source",
-      "recommended_action": "merge_candidate_already_covered_by_summary",
-      "consolidated_into": "docs/governance/cache-aware-round-b-summary.md"
-    },
-    {
-      "path": "docs/governance/cache-aware-harness-handoff-checklist-2026-06-28.md",
-      "classification": "historical",
-      "role": "harness_evidence_checklist_source",
       "recommended_action": "merge_candidate_already_covered_by_summary",
       "consolidated_into": "docs/governance/cache-aware-round-b-summary.md"
     },
@@ -346,13 +332,6 @@
     {
       "path": "docs/governance/rare-critical-rehearsal-design-2026-07-07.md",
       "classification": "active"
-    },
-    {
-      "path": "docs/governance/retrieval-authority-observation-round-a.md",
-      "classification": "historical",
-      "role": "round_a_guardrails_source",
-      "recommended_action": "merge_candidate_already_covered_by_summary",
-      "consolidated_into": "docs/governance/retrieval-authority-round-a-summary.md"
     },
     {
       "path": "docs/governance/retrieval-authority-round-a-checkpoint-log.md",
