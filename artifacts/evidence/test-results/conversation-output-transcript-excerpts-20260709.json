@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -c \"import json, subprocess, sys; from pathlib import Path; artifact=Path('artifacts/evidence/conversation-output-transcripts/conversation-output-transcript-excerpts-20260709.json'); seed=Path('docs/governance/conversation-output-transcript-sample-seed-2026-07-09.json'); a=json.loads(artifact.read_text(encoding='utf-8')); s=json.loads(seed.read_text(encoding='utf-8')); assert a['schema']=='conversation_output_transcript_excerpts.v0.1'; assert a['status']=='durable_excerpt_export'; assert len(a['excerpts'])==3; artifact_ids={e['sample_id'] for e in a['excerpts']}; seed_ids={c['sample_id'] for c in s['candidates']}; assert artifact_ids==seed_ids; [(__import__('builtins').exec('ref=c[\\'transcript_source_ref\\']; assert ref[\\'source_type\\']==\\'durable_excerpt_artifact\\'; assert ref[\\'durability\\']==\\'durable_excerpt_export\\'; assert c[\\'sample_id\\'] in ref[\\'artifact_path\\']')) for c in s['candidates']]; [p.read_bytes().decode('utf-8') for p in (artifact, seed)]; assert not any(line.rstrip(bytes([32,9])) != line for p in (artifact, seed) for line in p.read_bytes().splitlines()); r=subprocess.run(['git','diff','--check','HEAD~1..HEAD','--',str(artifact),str(seed)]); sys.exit(r.returncode)\"",
+  "exit_code": 0,
+  "started_at": "2026-07-09T02:57:07Z",
+  "finished_at": "2026-07-09T02:57:07Z",
+  "runner": "codex",
+  "linked_commit": "bf4e21ec127cd79117ee95e90d85ed77f8a349ee",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/conversation-output-transcript-excerpts-20260709.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
