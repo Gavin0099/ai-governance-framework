@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -c \"import json, subprocess, sys; from pathlib import Path; p=Path('docs/governance/conversation-output-transcript-sample-seed-2026-07-09.json'); data=json.loads(p.read_text(encoding='utf-8')); assert data['schema']=='conversation_output_transcript_sample_seed.v0.1'; assert data['status']=='candidate_sample_plan'; assert len(data['candidates'])==3; classes=[c['sample_class'] for c in data['candidates']]; assert classes.count('known_bad')>=1; assert classes.count('mostly_good')>=1; assert classes.count('partial_or_ambiguous')>=1; assert data['selection_requirements']['double_scored_minimum']==1; assert data['selection_requirements']['scorer_must_be_independent_from_scored_session'] is True; assert data['selection_requirements']['hard_fail_criteria_must_be_registered_before_scoring'] is True; [Path(ref).exists() or (_ for _ in ()).throw(AssertionError(ref)) for ref in data['source_design_refs']]; [[Path(ref).exists() or (_ for _ in ()).throw(AssertionError(ref)) for ref in c['evidence_refs']] for c in data['candidates']]; raw=p.read_bytes(); raw.decode('ascii'); assert not any(line.rstrip(bytes([32,9])) != line for line in raw.splitlines()); r=subprocess.run(['git','diff','--check','HEAD~1..HEAD','--',str(p)]); sys.exit(r.returncode)\"",
+  "exit_code": 0,
+  "started_at": "2026-07-09T01:46:14Z",
+  "finished_at": "2026-07-09T01:46:14Z",
+  "runner": "codex",
+  "linked_commit": "aa1d6b7ff4240d4cbf51a01ca7ea657f8b8a5883",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/conversation-output-transcript-sample-seed-20260709.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
