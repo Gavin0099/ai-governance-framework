@@ -1,7 +1,7 @@
 {
   "schema": "conversation_output_transcript_sample_seed.v0.1",
   "generated_date": "2026-07-09",
-  "status": "candidate_sample_plan",
+  "status": "frozen_candidate_line_no_more_expansion",
   "scope": "conversation-output validation gap transcript candidate selection",
   "source_design_refs": [
     "docs/governance/conversation-output-validation-gap-2026-07-08.md",
@@ -145,12 +145,13 @@
     }
   ],
   "next_slice": {
-    "recommended_mode": "diagnosis only",
-    "recommended_action": "Review excerpt completeness, then score one known-bad and one mostly-good sample with an independent scorer.",
+    "recommended_mode": "freeze",
+    "recommended_action": "No further expansion by default; reuse existing seed, excerpt, and scorecard artifacts only as reviewer-facing historical evidence.",
     "do_not_do_yet": [
       "do not implement a checker",
       "do not add a gate",
       "do not make the rubric agent-facing",
+      "do not add more samples by default",
       "do not treat this seed as evidence of conversation-output compliance"
     ]
   }
