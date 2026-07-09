@@ -1,0 +1,46 @@
+{
+  "schema_version": "skill_ab_blind_condition_map.v0.1",
+  "subject": "codex-review-fast",
+  "purpose": "Hidden run_id-to-condition map for deterministic scoring of label-stripped, shuffled findings files.",
+  "shuffle_order": [
+    "R01",
+    "R02",
+    "R03",
+    "R04",
+    "R05",
+    "R06"
+  ],
+  "runs": [
+    {
+      "run_id": "R01",
+      "condition": "B",
+      "source_run_id": "B2"
+    },
+    {
+      "run_id": "R02",
+      "condition": "A",
+      "source_run_id": "A3"
+    },
+    {
+      "run_id": "R03",
+      "condition": "B",
+      "source_run_id": "B1"
+    },
+    {
+      "run_id": "R04",
+      "condition": "A",
+      "source_run_id": "A1"
+    },
+    {
+      "run_id": "R05",
+      "condition": "B",
+      "source_run_id": "B3"
+    },
+    {
+      "run_id": "R06",
+      "condition": "A",
+      "source_run_id": "A2"
+    }
+  ],
+  "claim_boundary": "This map restores A/B grouping for deterministic aggregation after scorer-facing findings files have had condition labels stripped and run IDs neutralized."
+}

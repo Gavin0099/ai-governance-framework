@@ -1,0 +1,35 @@
+{
+  "run_id": "R05",
+  "findings": [
+    {
+      "file": "skill_ab_target/review_target.py",
+      "line": 13,
+      "type": "bug",
+      "text": "Risk scores at or above the policy maximum now return \"allow\", so changes that should be denied by the risk threshold are authorized."
+    },
+    {
+      "file": "skill_ab_target/review_target.py",
+      "line": 18,
+      "type": "bug",
+      "text": "The blocked state check was removed, allowing owner-approved or owner-not-required requests in blocked states to pass instead of being denied."
+    },
+    {
+      "file": "skill_ab_target/review_target.py",
+      "line": 16,
+      "type": "behavioral_regression",
+      "text": "Admin users are now unconditionally denied after the risk check, reversing the prior behavior where admins could authorize non-blocked, within-risk changes."
+    },
+    {
+      "file": "skill_ab_target/review_target.py",
+      "line": 25,
+      "type": "bug",
+      "text": "summarize_recent now iterates to limit + 1, returning one more result than requested when enough results are available."
+    },
+    {
+      "file": "skill_ab_target/tests/test_review_target.py",
+      "line": 11,
+      "type": "missing_evidence",
+      "text": "The new test only covers the owner-approved happy path and misses the changed risk threshold, admin denial, blocked state, and recent-summary limit behavior."
+    }
+  ]
+}

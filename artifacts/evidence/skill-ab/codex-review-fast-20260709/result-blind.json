@@ -1,0 +1,149 @@
+{
+  "schema_version": "skill_ab_blind_result.v0.1",
+  "report_version": "skill_ab_blind_adapter.v0.1",
+  "subject": "codex-review-fast",
+  "run_date": "2026-07-09",
+  "frozen_bundle": "docs/governance/skill-ab-codex-review-fast.frozen.json",
+  "scorer": "governance_tools/skill_ab_scorer.py",
+  "scorer_sha256": "09e1ffa1c09dd4c7f2091cd63647b6725dcff408e733992ba0cb8b0f129a0004",
+  "adapter": "governance_tools/skill_ab_blind_adapter.py",
+  "blind_findings": [
+    "artifacts/evidence/skill-ab/codex-review-fast-20260709/blind-findings/R01.json",
+    "artifacts/evidence/skill-ab/codex-review-fast-20260709/blind-findings/R02.json",
+    "artifacts/evidence/skill-ab/codex-review-fast-20260709/blind-findings/R03.json",
+    "artifacts/evidence/skill-ab/codex-review-fast-20260709/blind-findings/R04.json",
+    "artifacts/evidence/skill-ab/codex-review-fast-20260709/blind-findings/R05.json",
+    "artifacts/evidence/skill-ab/codex-review-fast-20260709/blind-findings/R06.json"
+  ],
+  "hidden_condition_map": "artifacts/evidence/skill-ab/codex-review-fast-20260709/blind-condition-map.json",
+  "controls": {
+    "condition_labels_stripped_before_scoring": true,
+    "order_shuffled_before_scoring": true,
+    "hidden_condition_map_kept_out_of_scorer_input": true,
+    "frozen_scorer_input_changed": false,
+    "ledger_decision_effect_updated": false,
+    "skill_changed": false,
+    "hook_ci_gate_or_enforcement_changed": false
+  },
+  "scoring_order": [
+    "R01",
+    "R02",
+    "R03",
+    "R04",
+    "R05",
+    "R06"
+  ],
+  "condition_order_after_hidden_mapping": [
+    "B",
+    "A",
+    "B",
+    "A",
+    "B",
+    "A"
+  ],
+  "run_table": [
+    {
+      "run_id": "R01",
+      "condition": "B",
+      "source_run_id": "B2",
+      "TP": 1,
+      "FN": 5,
+      "FP": 1,
+      "recall": 0.16666666666666666,
+      "precision": 0.5,
+      "matched_defects": [
+        "D5"
+      ]
+    },
+    {
+      "run_id": "R02",
+      "condition": "A",
+      "source_run_id": "A3",
+      "TP": 0,
+      "FN": 6,
+      "FP": 0,
+      "recall": 0.0,
+      "precision": "n/a",
+      "matched_defects": []
+    },
+    {
+      "run_id": "R03",
+      "condition": "B",
+      "source_run_id": "B1",
+      "TP": 0,
+      "FN": 6,
+      "FP": 0,
+      "recall": 0.0,
+      "precision": "n/a",
+      "matched_defects": []
+    },
+    {
+      "run_id": "R04",
+      "condition": "A",
+      "source_run_id": "A1",
+      "TP": 1,
+      "FN": 5,
+      "FP": 0,
+      "recall": 0.16666666666666666,
+      "precision": 1.0,
+      "matched_defects": [
+        "D4"
+      ]
+    },
+    {
+      "run_id": "R05",
+      "condition": "B",
+      "source_run_id": "B3",
+      "TP": 0,
+      "FN": 6,
+      "FP": 2,
+      "recall": 0.0,
+      "precision": 0.0,
+      "matched_defects": []
+    },
+    {
+      "run_id": "R06",
+      "condition": "A",
+      "source_run_id": "A2",
+      "TP": 1,
+      "FN": 5,
+      "FP": 0,
+      "recall": 0.16666666666666666,
+      "precision": 1.0,
+      "matched_defects": [
+        "D4"
+      ]
+    }
+  ],
+  "aggregates": {
+    "mean_recall_A": 0.1111111111111111,
+    "mean_recall_B": 0.05555555555555555,
+    "mean_precision_A": 1.0,
+    "mean_precision_B": 0.25,
+    "delta_recall": -0.05555555555555555,
+    "delta_precision": -0.75,
+    "decision_effect": "negative"
+  },
+  "reproduction": {
+    "reference_result": "artifacts/evidence/skill-ab/codex-review-fast-20260709/result.json",
+    "decision_effect_matches_reference": true,
+    "aggregate_values_match_reference": true,
+    "matched_fields": {
+      "mean_recall_A": true,
+      "mean_recall_B": true,
+      "mean_precision_A": true,
+      "mean_precision_B": true,
+      "delta_recall": true,
+      "delta_precision": true,
+      "decision_effect": true
+    }
+  },
+  "claim_boundary": "This artifact corrects the scorer-input blinding protocol for one constructed seeded A/B run. It does not prove broad review quality, runtime adoption, or enforcement.",
+  "cannot_claim": [
+    "codex-review-fast is broadly ineffective",
+    "codex-review-fast improves real PR review quality",
+    "results transfer to other harnesses or models",
+    "ledger decision_effect has been updated",
+    "hook, CI, gate, or enforcement behavior changed"
+  ]
+}
