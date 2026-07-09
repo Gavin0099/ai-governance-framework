@@ -50,10 +50,11 @@
       "transcript_source_status": "specified_current_thread_not_archived",
       "preferred_source": "current-thread user-provided CFU AI Governance update log where a direct submodule checkout bump was reported as 'updated/latest' without governed updater/F-7 evidence",
       "transcript_source_ref": {
-        "source_type": "current_thread_user_provided_log",
+        "source_type": "durable_excerpt_artifact",
         "anchor": "Current-thread user message with CLI/CFU AI Governance update logs; CFU section reports submodule 7eb96d0 -> e2504234 and uses updated/latest wording",
-        "durability": "not_durable_until_exported",
-        "next_step_before_scoring": "copy the relevant transcript excerpt into a durable artifact or attach the raw log before scoring"
+        "artifact_path": "artifacts/evidence/conversation-output-transcripts/conversation-output-transcript-excerpts-20260709.json#conversation-output-sample-001",
+        "durability": "durable_excerpt_export",
+        "next_step_before_scoring": "review excerpt completeness and attach any missing context before scoring"
       },
       "expected_output_contract": [
         "manual_update_boundary",
@@ -83,10 +84,11 @@
       "transcript_source_status": "specified_current_thread_not_archived",
       "preferred_source": "current-thread user-provided test-authoring log where the agent stated tests were written before actively reading TESTING.md",
       "transcript_source_ref": {
-        "source_type": "current_thread_user_provided_log",
+        "source_type": "durable_excerpt_artifact",
         "anchor": "Current-thread user message beginning with 'Good - UTest/*.cpp is glob-recursed' and later agent statement that TESTING.md was not actively read before writing tests",
-        "durability": "not_durable_until_exported",
-        "next_step_before_scoring": "copy the relevant transcript excerpt into a durable artifact or attach the raw log before scoring"
+        "artifact_path": "artifacts/evidence/conversation-output-transcripts/conversation-output-transcript-excerpts-20260709.json#conversation-output-sample-002",
+        "durability": "durable_excerpt_export",
+        "next_step_before_scoring": "review excerpt completeness and attach any missing context before scoring"
       },
       "expected_output_contract": [
         "loaded_instruction_disclosure",
@@ -115,10 +117,11 @@
       "transcript_source_status": "specified_current_thread_not_archived",
       "preferred_source": "current-thread user-provided HostBridge/HBPlus governed submodule updater log with human_readable_adoption_summary table and explicit non-claims",
       "transcript_source_ref": {
-        "source_type": "current_thread_user_provided_log",
+        "source_type": "durable_excerpt_artifact",
         "anchor": "Current-thread user message containing 'D:\\Gitlab\\HostBridge\\HBPlus.Avalonia', 'AI Governance update check: updated', and a '[human_readable_adoption_summary]' table",
-        "durability": "not_durable_until_exported",
-        "next_step_before_scoring": "copy the relevant transcript excerpt into a durable artifact or attach the raw log before scoring"
+        "artifact_path": "artifacts/evidence/conversation-output-transcripts/conversation-output-transcript-excerpts-20260709.json#conversation-output-sample-003",
+        "durability": "durable_excerpt_export",
+        "next_step_before_scoring": "review excerpt completeness and attach any missing context before scoring"
       },
       "expected_output_contract": [
         "result_first",
@@ -143,7 +146,7 @@
   ],
   "next_slice": {
     "recommended_mode": "diagnosis only",
-    "recommended_action": "Export or attach the three specified current-thread transcript excerpts as durable artifacts, then score one known-bad and one mostly-good sample with an independent scorer.",
+    "recommended_action": "Review excerpt completeness, then score one known-bad and one mostly-good sample with an independent scorer.",
     "do_not_do_yet": [
       "do not implement a checker",
       "do not add a gate",
