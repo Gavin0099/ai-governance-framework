@@ -43,16 +43,16 @@
     "escalated_candidates": 40,
     "not_escalated_modules": 153,
     "zombie_status_counts": {
-      "zombie_candidate": 19,
+      "zombie_candidate": 18,
       "dormant_frozen_line": 4,
-      "ruled_out_documented_surface": 5,
+      "ruled_out_documented_surface": 6,
       "ruled_out_wired": 4,
       "dormant_design_line": 2,
       "ruled_out_operator_surface": 6
     },
     "recommended_action_counts": {
-      "investigate": 5,
-      "keep_observe": 23,
+      "investigate": 4,
+      "keep_observe": 24,
       "retire_candidate": 5,
       "keep": 7
     }
@@ -453,9 +453,9 @@
     },
     {
       "module": "governance_tools/manual_receipt_writer.py",
-      "zombie_status": "zombie_candidate",
+      "zombie_status": "ruled_out_documented_surface",
       "frequency_class": "routine",
-      "recommended_action": "investigate",
+      "recommended_action": "keep_observe",
       "scan_evidence": {
         "memory_mentions": 1,
         "last_memory_mention": "2026-05-17",
@@ -465,7 +465,8 @@
         "imported_by_other_tools": [],
         "test_file_references": 1
       },
-      "rationale": "Single memory mention 2026-05-17; possibly superseded by update_receipt and test_evidence_receipt_writer flows - supersession needs confirmation before retirement."
+      "rationale": "Current-state recompute found a distinct non-native-hook manual fallback receipt surface for output-mode enforcement parity; update_receipt covers updater/F-7 apply receipts and test_evidence_receipt_writer covers command evidence receipts, so neither supersedes this module.",
+      "resolution": "2026-07-09 current-state recompute: governance_tools/manual_receipt_writer.py delegates to output_mode_enforcer, locks enforcement_source=output_mode_enforcer and fallback_weakens_enforcement=false, appends session output-mode trace records, and has focused pytest tests/test_manual_receipt_writer.py passing with 23 passed after using an accessible basetemp. Keep observe as a documented specialized compliance surface, not runtime/hook/CI enforcement."
     },
     {
       "module": "governance_tools/mutation_proof_runner.py",
