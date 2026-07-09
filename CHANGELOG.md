@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Scoped mutation-testing guidance - 2026-07-09
+
+- Added scoped mutation-testing guidance to `governance/TESTING.md` so AI
+  generated or reviewer-suspect tests can use surviving mutants as concrete
+  test-improvement prompts rather than relying on coverage inflation.
+- Clarified that mutation testing is test-sensitivity evidence for critical,
+  regression-sensitive, or diff-touched behavior; it is not a default full-repo
+  run, an automatic blocking gate, or a mutation-score KPI.
+- Release-note boundary: this entry records an unreleased testing guidance
+  update only. It does not bump the framework version, publish a release,
+  execute mutation testing, prove test quality, or wire new tooling/runtime/
+  hook/CI/pre-push/gate/enforcement behavior.
+
 ### memory_workflow background warnings - 2026-07-08
 
 - Added `background_warnings` to `governance_tools.memory_workflow` output so
