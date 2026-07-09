@@ -137,6 +137,14 @@ expected result 必須來自 spec、固定範例、invariant、或 independent f
 
 若無法證明 test sensitivity，coverage claim 必須降級。
 
+Mutation testing 是這條規則的可執行化手段：故意把 production code 改成一個合理的小錯誤，再確認 test 是否失敗。它回答的是「如果這段 behavior 壞了，會不會有人發現」，不是「這段 code 有沒有被跑到」。
+
+使用 mutation testing 時必須保持 scope-aware：
+- 優先用在 critical path、regression-sensitive path、或本次 diff 觸及的高風險行為；不要預設全 repo 跑。
+- 存活的 mutant 是 reviewer aid 和 test-improvement prompt，代表這裡可能缺少有牙齒的 assertion；它不是自動 blocking gate。
+- mutation score 不得變成 KPI。追求漂亮分數會把團隊推向垃圾測試，並破壞這個 signal 的價值。
+- 對 AI 生成測試，surviving mutant 可以回饋給 agent，要求它補一個會在該 mutation 下失敗的 test；這比籠統要求「提高 coverage」更可驗證。
+
 ### 3.4 Stateful and Sequence Behavior
 
 對 stateful 或 workflow-driven code，只做單點 function test 是不夠的。這類系統最常見的失敗，不是出在單一 function call，而是出在一連串操作之間。
