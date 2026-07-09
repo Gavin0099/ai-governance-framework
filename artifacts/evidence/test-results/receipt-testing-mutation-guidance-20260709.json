@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git diff --check HEAD~1 HEAD -- governance/TESTING.md",
+  "exit_code": 0,
+  "started_at": "2026-07-09T06:35:11Z",
+  "finished_at": "2026-07-09T06:35:12Z",
+  "runner": "codex",
+  "linked_commit": "99d57ecbad8e049c62bc139972609b2db4032c48",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-testing-mutation-guidance-20260709.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
