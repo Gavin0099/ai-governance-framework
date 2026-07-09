@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git diff --check HEAD~1 HEAD -- docs/governance/governance-surface-maintenance-queue.v0.1.json docs/governance/decision-change-ledger.inventory.v0.1.json",
+  "exit_code": 0,
+  "started_at": "2026-07-09T07:55:38Z",
+  "finished_at": "2026-07-09T07:55:38Z",
+  "runner": "codex",
+  "linked_commit": "e6547e209798579a1857cc3d675a9b89d45df397",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-governed-prompt-metadata-sync-20260709.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
