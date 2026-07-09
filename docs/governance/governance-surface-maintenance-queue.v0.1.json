@@ -10,20 +10,21 @@
   "method": "window and inventory entries pass through their existing recommended_action; curated entries add duplicate-surface merges, noisy downgrades, and rare-critical protections from the 2026-07-06/07 surface audit review line; entries appearing in both ledgers carry also_in_window=true on the inventory copy",
   "coverage_note": "inventory covers 40 of 193 governance_tools modules and the window covers one 15-day period; this queue is a first slice, not a full census",
   "counts": {
-    "total_entries": 92,
+    "total_entries": 101,
     "by_recommended_action": {
       "downgrade": 2,
-      "investigate": 6,
+      "investigate": 7,
       "keep": 25,
-      "keep_observe": 47,
+      "keep_observe": 54,
       "keep_rare_critical": 4,
-      "merge": 3,
+      "merge": 4,
       "retire_candidate": 5
     },
     "by_source": {
       "curated_review_2026-07-07": 11,
       "inventory_v0.1": 40,
-      "window_ledger_v0.2": 41
+      "window_ledger_v0.2": 41,
+      "local_skill_inventory_2026-07-09": 9
     }
   },
   "claim_ceiling": "diagnosis queue only; no defense is removed, merged, downgraded, or retired by this artifact; retire_candidate and merge require later reviewed slices; rare-critical entries are exempt from frequency-based retirement",
@@ -1690,8 +1691,242 @@
       ],
       "rationale": "Fail-closed guard; retirement review requires focused safety review, not frequency evidence.",
       "source": "curated_review_2026-07-07"
+    },
+    {
+      "defense": ".agents/skills/codex-review-fast/SKILL.md",
+      "source": "local_skill_inventory_2026-07-09",
+      "surface_type": "local_skill",
+      "zombie_status": "ruled_out_documented_surface",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "medium",
+      "recommended_action": "investigate",
+      "decision_effect": "unknown",
+      "claim_class": "advisory_generated",
+      "evidence_refs": [
+        {
+          "skill_path": ".agents/skills/codex-review-fast/SKILL.md",
+          "file_count": 4,
+          "skill_lines": 42,
+          "total_lines": 72,
+          "command_count": 4,
+          "effectiveness_evidence": "not_found"
+        }
+      ],
+      "rationale": "Fast review mindset skill is concise and relevant, but no replay, scorecard, or decision-effect evidence was found proving it catches more issues than the baseline review path.",
+      "resolution": "2026-07-09 read-only skill classification: keep reachability visible as a local advisory skill, but require future scorecard/replay evidence before promoting beyond investigate; skill presence is not review effectiveness proof.",
+      "classification_note": "evidence_needed",
+      "claim_ceiling": "metadata classification only; skill presence does not prove decision improvement, compliance, or enforcement",
+      "also_in_window": false
+    },
+    {
+      "defense": ".agents/skills/create-pr/SKILL.md",
+      "source": "local_skill_inventory_2026-07-09",
+      "surface_type": "local_skill",
+      "zombie_status": "ruled_out_documented_surface",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "medium",
+      "recommended_action": "merge",
+      "decision_effect": "unknown",
+      "claim_class": "advisory_generated",
+      "evidence_refs": [
+        {
+          "skill_path": ".agents/skills/create-pr/SKILL.md",
+          "file_count": 4,
+          "skill_lines": 36,
+          "total_lines": 66,
+          "command_count": 4,
+          "effectiveness_evidence": "not_found"
+        }
+      ],
+      "rationale": "PR handoff skill overlaps materially with reviewer-handoff commands and reviewer-facing summary surfaces. Keep as a PR-specific wrapper only if reviewer-handoff remains the canonical reviewer packet carrier.",
+      "resolution": "2026-07-09 read-only skill classification: mark as merge candidate with reviewer-handoff as the likely canonical packet surface; no skill text changed and no PR behavior is proven.",
+      "classification_note": "merge_candidate_with_reviewer_handoff",
+      "claim_ceiling": "metadata classification only; skill presence does not prove decision improvement, compliance, or enforcement",
+      "also_in_window": false
+    },
+    {
+      "defense": ".agents/skills/domain-contract-authoring/SKILL.md",
+      "source": "local_skill_inventory_2026-07-09",
+      "surface_type": "local_skill",
+      "zombie_status": "ruled_out_documented_surface",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "medium",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "claim_class": "advisory_generated",
+      "evidence_refs": [
+        {
+          "skill_path": ".agents/skills/domain-contract-authoring/SKILL.md",
+          "file_count": 8,
+          "skill_lines": 43,
+          "total_lines": 145,
+          "command_count": 5,
+          "effectiveness_evidence": "not_found"
+        }
+      ],
+      "rationale": "Domain contract authoring is a distinct procedural surface with templates for contract.yaml, AGENTS.md, and CHECKLIST.md. Hardware/IC value is recorded only as a hypothesis until paired evaluation exists.",
+      "resolution": "2026-07-09 read-only skill classification: keep observe as a specialized domain-contract authoring surface; IC/hardware uplift remains hypothesis, not measured fact.",
+      "classification_note": "ic_hardware_value_hypothesis_not_fact",
+      "claim_ceiling": "metadata classification only; skill presence does not prove decision improvement, compliance, or enforcement",
+      "also_in_window": false
+    },
+    {
+      "defense": ".agents/skills/external-onboarding/SKILL.md",
+      "source": "local_skill_inventory_2026-07-09",
+      "surface_type": "local_skill",
+      "zombie_status": "ruled_out_documented_surface",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "medium",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "claim_class": "advisory_generated",
+      "evidence_refs": [
+        {
+          "skill_path": ".agents/skills/external-onboarding/SKILL.md",
+          "file_count": 4,
+          "skill_lines": 36,
+          "total_lines": 83,
+          "command_count": 5,
+          "effectiveness_evidence": "not_found"
+        }
+      ],
+      "rationale": "External onboarding skill maps to governed readiness, smoke, version audit, and hook-install validation flows with a distinct onboarding scope.",
+      "resolution": "2026-07-09 read-only skill classification: keep observe as an onboarding operator surface; this does not prove successful consumer adoption.",
+      "classification_note": "operator_workflow_surface",
+      "claim_ceiling": "metadata classification only; skill presence does not prove decision improvement, compliance, or enforcement",
+      "also_in_window": false
+    },
+    {
+      "defense": ".agents/skills/precommit/SKILL.md",
+      "source": "local_skill_inventory_2026-07-09",
+      "surface_type": "local_skill",
+      "zombie_status": "ruled_out_documented_surface",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "low",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "claim_class": "advisory_generated",
+      "evidence_refs": [
+        {
+          "skill_path": ".agents/skills/precommit/SKILL.md",
+          "file_count": 4,
+          "skill_lines": 37,
+          "total_lines": 72,
+          "command_count": 4,
+          "effectiveness_evidence": "not_found"
+        }
+      ],
+      "rationale": "Precommit skill has a narrow commit-boundary role and points to the smallest repository-boundary gate. It overlaps runtime-smoke in commands but not in decision timing.",
+      "resolution": "2026-07-09 read-only skill classification: keep observe as commit-boundary guidance; not a substitute for actual hook/gate execution evidence.",
+      "classification_note": "commit_boundary_surface",
+      "claim_ceiling": "metadata classification only; skill presence does not prove decision improvement, compliance, or enforcement",
+      "also_in_window": false
+    },
+    {
+      "defense": ".agents/skills/reviewer-handoff/SKILL.md",
+      "source": "local_skill_inventory_2026-07-09",
+      "surface_type": "local_skill",
+      "zombie_status": "ruled_out_documented_surface",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "medium",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "claim_class": "advisory_generated",
+      "evidence_refs": [
+        {
+          "skill_path": ".agents/skills/reviewer-handoff/SKILL.md",
+          "file_count": 4,
+          "skill_lines": 30,
+          "total_lines": 72,
+          "command_count": 6,
+          "effectiveness_evidence": "not_found"
+        }
+      ],
+      "rationale": "Reviewer-handoff is the likely canonical reviewer packet skill and carries the richest reviewer_handoff reader/snapshot command surface.",
+      "resolution": "2026-07-09 read-only skill classification: keep observe as likely canonical reviewer packet carrier; create-pr overlap should be merged or clarified later.",
+      "classification_note": "likely_canonical_reviewer_packet_skill",
+      "claim_ceiling": "metadata classification only; skill presence does not prove decision improvement, compliance, or enforcement",
+      "also_in_window": false
+    },
+    {
+      "defense": ".agents/skills/runtime-smoke/SKILL.md",
+      "source": "local_skill_inventory_2026-07-09",
+      "surface_type": "local_skill",
+      "zombie_status": "ruled_out_documented_surface",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "low",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "claim_class": "advisory_generated",
+      "evidence_refs": [
+        {
+          "skill_path": ".agents/skills/runtime-smoke/SKILL.md",
+          "file_count": 4,
+          "skill_lines": 35,
+          "total_lines": 77,
+          "command_count": 6,
+          "effectiveness_evidence": "not_found"
+        }
+      ],
+      "rationale": "Runtime-smoke skill has a narrow runtime validation and dispatcher replay scope distinct from precommit enforcement timing.",
+      "resolution": "2026-07-09 read-only skill classification: keep observe as runtime smoke guidance; not proof that runtime hooks passed in any given slice.",
+      "classification_note": "runtime_smoke_surface",
+      "claim_ceiling": "metadata classification only; skill presence does not prove decision improvement, compliance, or enforcement",
+      "also_in_window": false
+    },
+    {
+      "defense": ".agents/skills/tech-spec/SKILL.md",
+      "source": "local_skill_inventory_2026-07-09",
+      "surface_type": "local_skill",
+      "zombie_status": "ruled_out_documented_surface",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "medium",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "claim_class": "advisory_generated",
+      "evidence_refs": [
+        {
+          "skill_path": ".agents/skills/tech-spec/SKILL.md",
+          "file_count": 4,
+          "skill_lines": 96,
+          "total_lines": 131,
+          "command_count": 4,
+          "effectiveness_evidence": "not_found"
+        }
+      ],
+      "rationale": "Tech-spec has a real workflow-entry observer expectation and proposal-time tooling role, but the 96-line SKILL.md is a future slim candidate.",
+      "resolution": "2026-07-09 read-only skill classification: keep observe due workflow-entry observer alignment; mark as slim_candidate rather than evidence of better specifications.",
+      "classification_note": "slim_candidate",
+      "claim_ceiling": "metadata classification only; skill presence does not prove decision improvement, compliance, or enforcement",
+      "also_in_window": false
+    },
+    {
+      "defense": ".agents/skills/wrap-up/SKILL.md",
+      "source": "local_skill_inventory_2026-07-09",
+      "surface_type": "local_skill",
+      "zombie_status": "ruled_out_documented_surface",
+      "frequency_class": "routine",
+      "maintenance_cost_class": "medium",
+      "recommended_action": "keep_observe",
+      "decision_effect": "unknown",
+      "claim_class": "advisory_generated",
+      "evidence_refs": [
+        {
+          "skill_path": ".agents/skills/wrap-up/SKILL.md",
+          "file_count": 1,
+          "skill_lines": 129,
+          "total_lines": 129,
+          "command_count": 1,
+          "effectiveness_evidence": "not_found"
+        }
+      ],
+      "rationale": "Wrap-up is a distinct candidate closeout drafting surface, but the 129-line single SKILL.md is a future slim/reference-split candidate.",
+      "resolution": "2026-07-09 read-only skill classification: keep observe as candidate closeout input guidance; not proof of canonical closeout validity.",
+      "classification_note": "slim_candidate",
+      "claim_ceiling": "metadata classification only; skill presence does not prove decision improvement, compliance, or enforcement",
+      "also_in_window": false
     }
   ],
   "amended_at": "2026-07-09",
-  "amendment_note": "The original four retire_candidate entries were already resolved by reviewed retirements on 2026-07-06 evening (after the inventory landed at 22:12 but before this queue was generated on 2026-07-07 morning). On 2026-07-08, governance_tools/ab_cost_backfill_apply.py was reclassified from investigate to retire_candidate after focused review found it is a one-off writer with no current scalar telemetry input, no active wiring, and no dedicated tests. On 2026-07-08, governance_tools/ab_cost_hygiene.py and governance_tools/ab_cost_parity_audit.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, docs acceptance-gate references, and live report signals. On 2026-07-08, governance_tools/ab_baseline_validator.py and governance_tools/ab_smoke_artifact_validator.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, runbook/pass-criteria references, and live A/B smoke artifact signals. On 2026-07-08, governance_tools/gate_c_report.py and governance_tools/gate_c_dual_report.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, distinct Gate C report roles, and live report signals. Future queue generation must verify each defense surface still exists and still has the recorded status at generation time. On 2026-07-09, governance_tools/governed_prompt.py and governance_tools/governed_prompt_bridge.py were reclassified from investigate to keep_observe after current-state recompute confirmed operator-facing docs, focused tests (4 passed), CLI smoke paths, and distinct core-vs-bridge responsibilities; this is metadata only and does not prove runtime adoption or enforcement. On 2026-07-09, governance_tools/linear_integrator.py and governance_tools/notion_integrator.py were reclassified from investigate to keep_observe after current-state recompute confirmed operator-facing source-of-truth docs, governance_tools README entries, focused tests (60 passed), and no runtime/hook/CI wiring; this is metadata only and does not prove active operator use or enforcement. On 2026-07-09, governance_tools/manual_receipt_writer.py was reclassified from investigate to keep_observe after current-state recompute confirmed a distinct non-native-hook manual fallback receipt surface, output-mode enforcement parity semantics, and focused tests (23 passed); this is metadata only and does not prove runtime/hook/CI enforcement."
+  "amendment_note": "The original four retire_candidate entries were already resolved by reviewed retirements on 2026-07-06 evening (after the inventory landed at 22:12 but before this queue was generated on 2026-07-07 morning). On 2026-07-08, governance_tools/ab_cost_backfill_apply.py was reclassified from investigate to retire_candidate after focused review found it is a one-off writer with no current scalar telemetry input, no active wiring, and no dedicated tests. On 2026-07-08, governance_tools/ab_cost_hygiene.py and governance_tools/ab_cost_parity_audit.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, docs acceptance-gate references, and live report signals. On 2026-07-08, governance_tools/ab_baseline_validator.py and governance_tools/ab_smoke_artifact_validator.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, runbook/pass-criteria references, and live A/B smoke artifact signals. On 2026-07-08, governance_tools/gate_c_report.py and governance_tools/gate_c_dual_report.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, distinct Gate C report roles, and live report signals. Future queue generation must verify each defense surface still exists and still has the recorded status at generation time. On 2026-07-09, governance_tools/governed_prompt.py and governance_tools/governed_prompt_bridge.py were reclassified from investigate to keep_observe after current-state recompute confirmed operator-facing docs, focused tests (4 passed), CLI smoke paths, and distinct core-vs-bridge responsibilities; this is metadata only and does not prove runtime adoption or enforcement. On 2026-07-09, governance_tools/linear_integrator.py and governance_tools/notion_integrator.py were reclassified from investigate to keep_observe after current-state recompute confirmed operator-facing source-of-truth docs, governance_tools README entries, focused tests (60 passed), and no runtime/hook/CI wiring; this is metadata only and does not prove active operator use or enforcement. On 2026-07-09, governance_tools/manual_receipt_writer.py was reclassified from investigate to keep_observe after current-state recompute confirmed a distinct non-native-hook manual fallback receipt surface, output-mode enforcement parity semantics, and focused tests (23 passed); this is metadata only and does not prove runtime/hook/CI enforcement. On 2026-07-09, nine local .agents/skills entries were added as local_skill surfaces inside the existing maintenance queue, not a new skill governance table. Seven were classified keep_observe, create-pr was marked merge with reviewer-handoff overlap, and codex-review-fast was marked investigate/evidence_needed; IC/hardware skill value is recorded only as a hypothesis, not a measured fact."
 }
