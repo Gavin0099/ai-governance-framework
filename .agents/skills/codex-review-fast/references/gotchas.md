@@ -1,7 +1,7 @@
 # Gotchas
 
-- A fast review is still a real review. Do not replace findings with a friendly summary.
-- If two review passes disagree, surface the disagreement explicitly. Hidden disagreement is worse than a longer report.
-- Missing tests and missing evidence are findings, not footnotes.
-- Reviewer packet tools are supporting context, not a substitute for reviewing the actual change.
-- Do not broaden the review into unrelated cleanup advice unless it creates direct risk for the current diff.
+- This skill is deprecated as a standalone review enhancer. Route to `reviewer-handoff` or `precommit`.
+- Do not use the old two-pass workflow as evidence that review quality improves; the measured single seeded harness result was negative.
+- Do not delete or rewrite historical A/B artifacts when handling this redirect. They are evidence, not active instructions.
+- Reviewer packet tools and precommit gates support judgment; they do not replace checking the actual changed scope.
+- Missing tests, weak evidence, and over-broad scope are still first-class risks, but the active wording now lives in the target skills.

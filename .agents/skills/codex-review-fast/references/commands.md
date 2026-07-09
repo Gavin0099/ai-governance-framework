@@ -1,5 +1,7 @@
 # Commands
 
+`codex-review-fast` is deprecated as a standalone skill. Use the target skill command references instead.
+
 ## Reviewer packet support
 
 ```bash

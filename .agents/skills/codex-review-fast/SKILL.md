@@ -1,42 +1,42 @@
 ---
 name: codex-review-fast
-description: Run a fast, parallel-review mindset before code leaves local development. Use when a non-trivial diff should be reviewed from more than one angle to reduce blind spots and self-confirming optimism.
+description: Deprecated redirect. Do not use as a standalone review enhancer; use reviewer-handoff for reviewer packets and precommit for commit-boundary validation.
 ---
 
 # Codex Review Fast
 
-Use this skill when one review pass is not enough confidence for the change.
+This skill is retained only as a historical redirect after its useful review heuristics were merged into `reviewer-handoff` and `precommit`.
+
+Do not treat this skill as standalone decision-improvement evidence. A single seeded Codex harness produced negative `decision_effect`, and the merge disposition is recorded in the governance surface ledger.
+
+Use:
+
+- `reviewer-handoff` when the task is reviewer-facing status, risk, evidence, or handoff packaging.
+- `precommit` when the task is local commit-boundary validation or scoped precommit risk reporting.
 
 ## Workflow
 
-1. Treat review as a findings exercise, not a summary exercise.
-2. Run two independent review passes with different emphasis when possible:
-   - correctness and regressions
-   - architecture, risk, and missing evidence
-3. Consolidate overlap instead of duplicating the same finding.
-4. Preserve disagreements instead of averaging them away.
-5. Escalate to `seek-verdict` only when the dispute is real and consequential.
+1. Stop and route to `reviewer-handoff` or `precommit` based on the task boundary.
+2. Preserve the claim boundary: this skill is a deprecated redirect, not proof of review quality.
+3. If a user explicitly asks about the historical A/B result, cite the ledger and `result-blind.json` rather than rerunning by default.
 
 ## Review Priorities
 
-- bugs
-- behavioral regressions
-- architecture drift
-- missing or weak evidence
-- test gaps
-- over-broad scope
+These priorities now live in the target skills:
+
+- reviewer-facing risks and evidence gaps: `reviewer-handoff`
+- gate result, scoped validation, and precommit risks: `precommit`
 
 ## Commands
 
-Read `references/commands.md` for supporting reviewer surfaces.
+Read `references/commands.md` for redirect targets only.
 
 ## Gotchas
 
-Read `references/gotchas.md` before turning a review pass into vague reassurance.
+Read `references/gotchas.md` before using this historical redirect as if it were still an active standalone skill.
 
 ## Output Expectations
 
-- Findings first, ordered by severity.
-- Keep summaries brief.
-- Distinguish confirmed issues from disputed ones.
-- Call out missing tests or missing evidence as first-class findings.
+- Name the redirect target.
+- State that `codex-review-fast` is deprecated as a standalone skill.
+- Do not claim broad skill ineffectiveness or broad review improvement from the single seeded harness.
