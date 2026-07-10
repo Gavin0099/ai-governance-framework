@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"\nimport json\nc=open('docs/status/no-governance-baseline-v3-scoring-2026-07-11.md',encoding='utf-8').read()\nassert 'CORRECTION (2026-07-11' in c and 'retracted' in c and 'owner-adopted claim recalibration' in c\nl=json.load(open('docs/governance/decision-change-ledger.inventory.v0.1.json'))\no=[x for x in l['observations'] if x.get('id')=='no_governance_baseline_v3_result'][0]\nassert o['recommended_action']=='owner_claim_recalibration' and 'no pre-committed dispositional force' in o['observation']\nb=open('docs/status/governance-self-audit-backlog.md',encoding='utf-8').read()\nassert 'executed to completion' in b and 'no' in b and 'pre-committed dispositional force' in b\na=open('memory/01_active_task.md',encoding='utf-8').read()\nassert 'owner-adopted recalibration' in a\nprint('all four carriers corrected to observational framing: OK')\n\"",
+  "exit_code": 0,
+  "started_at": "2026-07-10T17:28:27Z",
+  "finished_at": "2026-07-10T17:28:28Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "ca644f13958d2795c84a2db6398dc65e72048080",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-v3-disposition-correction-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
