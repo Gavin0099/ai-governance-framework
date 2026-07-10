@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "cmd.exe /c \"git diff --check 6f7938b9^ 6f7938b9 -- PLAN.md memory/01_active_task.md docs/status/no-governance-baseline-v3-offline-dress-rehearsal-2026-07-10.md artifacts/evidence/test-results/raw-no-governance-baseline-v3-dress-rehearsal-20260710.result.json artifacts/evidence/test-results/run-no-governance-baseline-v3-dress-rehearsal-20260710.ps1 artifacts/evidence/test-results/receipt-no-governance-baseline-v3-dress-rehearsal-20260710.json artifacts/evidence/test-results/receipt-no-governance-baseline-v3-dress-rehearsal-retry-20260710.json artifacts/evidence/test-results/receipt-no-governance-baseline-v3-dress-rehearsal-retry2-20260710.json artifacts/evidence/test-results/receipt-no-governance-baseline-v3-dress-rehearsal-retry3-20260710.json artifacts/evidence/test-results/receipt-no-governance-baseline-v3-dress-rehearsal-retry3-20260710.txt\"",
+  "exit_code": 0,
+  "started_at": "2026-07-10T15:32:28Z",
+  "finished_at": "2026-07-10T15:32:28Z",
+  "runner": "codex-v3-dress-rehearsal-source-validation",
+  "linked_commit": "6f7938b993df078f2090abcf75c9b6156a5a33d4",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-no-governance-baseline-v3-dress-rehearsal-source-retry-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

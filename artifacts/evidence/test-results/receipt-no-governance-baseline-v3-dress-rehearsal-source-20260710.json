@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "cmd.exe /c \"git show --check --format= 6f7938b9\"",
+  "exit_code": 2,
+  "started_at": "2026-07-10T15:32:10Z",
+  "finished_at": "2026-07-10T15:32:10Z",
+  "runner": "codex-v3-dress-rehearsal-source-validation",
+  "linked_commit": "6f7938b993df078f2090abcf75c9b6156a5a33d4",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-no-governance-baseline-v3-dress-rehearsal-source-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

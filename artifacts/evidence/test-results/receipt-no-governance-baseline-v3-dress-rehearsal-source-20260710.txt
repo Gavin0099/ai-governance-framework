@@ -1,0 +1,9 @@
+artifacts/evidence/test-results/receipt-no-governance-baseline-v3-dress-rehearsal-20260710.txt:18: trailing whitespace.
++ 
+artifacts/evidence/test-results/receipt-no-governance-baseline-v3-dress-rehearsal-20260710.txt:18: new blank line at EOF.
+artifacts/evidence/test-results/receipt-no-governance-baseline-v3-dress-rehearsal-retry-20260710.txt:17: trailing whitespace.
++ 
+artifacts/evidence/test-results/receipt-no-governance-baseline-v3-dress-rehearsal-retry-20260710.txt:17: new blank line at EOF.
+artifacts/evidence/test-results/receipt-no-governance-baseline-v3-dress-rehearsal-retry2-20260710.txt:16: trailing whitespace.
++ 
+artifacts/evidence/test-results/receipt-no-governance-baseline-v3-dress-rehearsal-retry2-20260710.txt:16: new blank line at EOF.
