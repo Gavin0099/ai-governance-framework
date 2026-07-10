@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "powershell.exe -NoProfile -Command \"$head=(git rev-parse HEAD).Trim(); $remote=(git rev-parse origin/main).Trim(); if ($head -ne $remote -or $head -ne 'e68420f769ca5d4d70cf2967742fa8028051b7f9') { throw 'push verification failed' }; if (git status --porcelain=v1) { throw 'workspace dirty' }; Write-Output ('PASS pushed_anchor=' + $head)\"",
+  "exit_code": 0,
+  "started_at": "2026-07-10T13:54:11Z",
+  "finished_at": "2026-07-10T13:54:11Z",
+  "runner": "codex-v2-pre0-attempt3-push-verification",
+  "linked_commit": "e68420f769ca5d4d70cf2967742fa8028051b7f9",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-no-governance-baseline-v2-pre0-attempt3-pass-push-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
