@@ -1,7 +1,7 @@
 # Active Task
 
-> Refreshed 2026-07-10 after AB cost backfill writer retirement.
-> Dedicated bookkeeping slice; source surfaces: pushed commit `81124cec`,
+> Refreshed 2026-07-10 after bound memory authority fixture repair.
+> Dedicated bookkeeping slice; source surfaces: pushed commit `25243d1a`,
 > `memory/2026-07-10.md`, and live focused validation from this session.
 > Claim: point-in-time consistency with current repo state only; `PLAN.md` was
 > not changed in this refresh.
@@ -10,7 +10,8 @@
 
 - **No active autonomous implementation slice.** The current retire-candidate
   cleanup line is fully resolved as of pushed commit `81124cec`; the
-  decision-change observation workline continues.
+  closeout memory-authority fixture carry-forward is resolved as of pushed
+  commit `25243d1a`; the decision-change observation workline continues.
 - Standing principle: **Validity before Expansion**. Do not add gates,
   enforcement, schema changes, or consumer-repo writes unless an observed
   failure or explicit user scope justifies them.
@@ -33,6 +34,13 @@
 
 ## Current Status
 
+- **Bound memory authority fixture repaired (2026-07-10)**: `25243d1a`
+  updated old-format bound-memory fixtures in
+  `tests/test_session_end_hook_memory_authority_surface.py` to use a real
+  repo commit anchor instead of placeholder hashes. The focused closeout
+  memory-authority surface suite now passes (`25 passed`). Memory schema,
+  blocking/enforcement semantics, runtime hooks, and guard criteria were not
+  changed.
 - **AB cost backfill writer retired (2026-07-10)**: `81124cec` removed
   `governance_tools/ab_cost_backfill_apply.py` after focused read-only review
   confirmed it was a deprecated one-off writer with no active caller, no
@@ -63,10 +71,10 @@
   `memory_authority_new_warning_codes=[]`) when records cite durable receipts.
   Guard, CI, gate, and blocking behavior were not changed.
 - **Review checkpoint (2026-07-07)**: provenance loop fix reviewed as
-  APPROVED with carried-forward warnings: the re-frozen baseline file is dated
+  APPROVED with carried-forward warning: the re-frozen baseline file is dated
   `2026-07-07` while its internal `baseline_id` remains
-  `memory-authority-baseline-2026-07-06`, and the pre-existing closeout surface
-  fixture failure remains outside this slice.
+  `memory-authority-baseline-2026-07-06`. The previously carried-forward
+  old-format bound memory fixture failure was resolved by `25243d1a`.
 - **Decision-change inventory-line pass completed (2026-07-06)**: committed at
   `e30b1576` as `docs/governance/decision-change-ledger.inventory.v0.1.json`.
   All 193 governance_tools modules were compared against wiring and output
