@@ -1,0 +1,39 @@
+Reading additional input from stdin...
+2026-07-10T11:34:30.254775Z  WARN codex_core_plugins::manager: failed to warm featured plugin ids cache error=failed to send remote featured plugin request to https://chatgpt.com/backend-api/plugins/featured: error sending request for url (https://chatgpt.com/backend-api/plugins/featured?platform=codex)
+2026-07-10T11:34:30.354170Z  WARN codex_core::shell_snapshot: Failed to create shell snapshot for powershell: Shell snapshot not supported yet for PowerShell
+{"type":"thread.started","thread_id":"019f4bce-c669-7373-a228-ad3dddff9ce7"}
+2026-07-10T11:34:30.416139Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: IO error: 嘗試存取通訊端被拒絕，因為存取權限不足。 (os error 10013), url: wss://api.openai.com/v1/responses
+2026-07-10T11:34:30.454948Z  WARN codex_core_plugins::startup_sync: git sync failed for curated plugin sync; falling back to GitHub HTTP error=git ls-remote curated plugins repo failed with status exit code: 128: fatal: unable to access 'https://github.com/openai/plugins.git/': Failed to connect to github.com port 443 after 71 ms: Could not connect to server
+2026-07-10T11:34:30.473938Z  WARN codex_core_plugins::startup_sync: GitHub HTTP sync failed for curated plugin sync; falling back to export archive error=failed to get curated plugins repository from https://api.github.com/repos/openai/plugins: error sending request for url (https://api.github.com/repos/openai/plugins) backup_archive_api_url="https://chatgpt.com/backend-api/plugins/export/curated"
+2026-07-10T11:34:30.475980Z  WARN codex_core_plugins::manager: failed to sync curated plugins repo: git sync failed for curated plugin sync: git ls-remote curated plugins repo failed with status exit code: 128: fatal: unable to access 'https://github.com/openai/plugins.git/': Failed to connect to github.com port 443 after 71 ms: Could not connect to server; GitHub HTTP sync failed for curated plugin sync: failed to get curated plugins repository from https://api.github.com/repos/openai/plugins: error sending request for url (https://api.github.com/repos/openai/plugins); export archive sync failed for curated plugin sync: failed to get curated plugins export archive metadata from https://chatgpt.com/backend-api/plugins/export/curated: error sending request for url (https://chatgpt.com/backend-api/plugins/export/curated)
+2026-07-10T11:34:30.488010Z  WARN codex_core::session_startup_prewarm: startup websocket prewarm setup failed: stream disconnected before completion: 嘗試存取通訊端被拒絕，因為存取權限不足。 (os error 10013)
+{"type":"turn.started"}
+2026-07-10T11:34:30.513847Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: IO error: 嘗試存取通訊端被拒絕，因為存取權限不足。 (os error 10013), url: wss://api.openai.com/v1/responses
+2026-07-10T11:34:30.514126Z  WARN codex_core::responses_retry: stream disconnected - retrying sampling request (1/5 in 199ms)...
+2026-07-10T11:34:30.731340Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: IO error: 嘗試存取通訊端被拒絕，因為存取權限不足。 (os error 10013), url: wss://api.openai.com/v1/responses
+2026-07-10T11:34:30.731614Z  WARN codex_core::responses_retry: stream disconnected - retrying sampling request (2/5 in 380ms)...
+{"type":"error","message":"Reconnecting... 2/5 (stream disconnected before completion: 嘗試存取通訊端被拒絕，因為存取權限不足。 (os error 10013))"}
+2026-07-10T11:34:31.118039Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: IO error: 嘗試存取通訊端被拒絕，因為存取權限不足。 (os error 10013), url: wss://api.openai.com/v1/responses
+2026-07-10T11:34:31.118139Z  WARN codex_core::responses_retry: stream disconnected - retrying sampling request (3/5 in 779ms)...
+{"type":"error","message":"Reconnecting... 3/5 (stream disconnected before completion: 嘗試存取通訊端被拒絕，因為存取權限不足。 (os error 10013))"}
+2026-07-10T11:34:31.910175Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: IO error: 嘗試存取通訊端被拒絕，因為存取權限不足。 (os error 10013), url: wss://api.openai.com/v1/responses
+2026-07-10T11:34:31.910271Z  WARN codex_core::responses_retry: stream disconnected - retrying sampling request (4/5 in 1.616s)...
+{"type":"error","message":"Reconnecting... 4/5 (stream disconnected before completion: 嘗試存取通訊端被拒絕，因為存取權限不足。 (os error 10013))"}
+2026-07-10T11:34:33.545106Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: IO error: 嘗試存取通訊端被拒絕，因為存取權限不足。 (os error 10013), url: wss://api.openai.com/v1/responses
+2026-07-10T11:34:33.545336Z  WARN codex_core::responses_retry: stream disconnected - retrying sampling request (5/5 in 2.947s)...
+{"type":"error","message":"Reconnecting... 5/5 (stream disconnected before completion: 嘗試存取通訊端被拒絕，因為存取權限不足。 (os error 10013))"}
+2026-07-10T11:34:36.509948Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: IO error: 嘗試存取通訊端被拒絕，因為存取權限不足。 (os error 10013), url: wss://api.openai.com/v1/responses
+2026-07-10T11:34:36.510160Z  WARN codex_core::client: falling back to HTTP
+{"type":"item.completed","item":{"id":"item_0","type":"error","message":"Falling back from WebSockets to HTTPS transport. stream disconnected before completion: 嘗試存取通訊端被拒絕，因為存取權限不足。 (os error 10013)"}}
+2026-07-10T11:34:39.645411Z  WARN codex_core::responses_retry: stream disconnected - retrying sampling request (1/5 in 207ms)...
+{"type":"error","message":"Reconnecting... 1/5 (stream disconnected before completion: error sending request for url (https://api.openai.com/v1/responses))"}
+2026-07-10T11:34:42.884412Z  WARN codex_core::responses_retry: stream disconnected - retrying sampling request (2/5 in 419ms)...
+{"type":"error","message":"Reconnecting... 2/5 (stream disconnected before completion: error sending request for url (https://api.openai.com/v1/responses))"}
+2026-07-10T11:34:46.319622Z  WARN codex_core::responses_retry: stream disconnected - retrying sampling request (3/5 in 722ms)...
+{"type":"error","message":"Reconnecting... 3/5 (stream disconnected before completion: error sending request for url (https://api.openai.com/v1/responses))"}
+2026-07-10T11:34:49.990758Z  WARN codex_core::responses_retry: stream disconnected - retrying sampling request (4/5 in 1.509s)...
+{"type":"error","message":"Reconnecting... 4/5 (stream disconnected before completion: error sending request for url (https://api.openai.com/v1/responses))"}
+2026-07-10T11:34:54.611232Z  WARN codex_core::responses_retry: stream disconnected - retrying sampling request (5/5 in 3.062s)...
+{"type":"error","message":"Reconnecting... 5/5 (stream disconnected before completion: error sending request for url (https://api.openai.com/v1/responses))"}
+{"type":"error","message":"stream disconnected before completion: error sending request for url (https://api.openai.com/v1/responses)"}
+{"type":"turn.failed","error":{"message":"stream disconnected before completion: error sending request for url (https://api.openai.com/v1/responses)"}}

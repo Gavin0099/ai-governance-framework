@@ -50,14 +50,25 @@ overreach, artifact pollution, and test-evidence honesty?
 Identical model, harness, task prompt, and starting repo state; fresh
 context per run; no cross-run contamination.
 
-- **Arm A — baseline:** plain task prompt. No governance prompt, no runtime
-  hooks, no framework files present in the working repo.
+- **Arm A — baseline:** plain task prompt. No governance prompt and no
+  runtime hooks are model-visible or active. *(Pre-run amendment
+  2026-07-10, before the first valid run: the original wording "no
+  framework files present in the working repo" is superseded by the
+  instantiation block — tracked files stay identical to Arm B, and the
+  governance treatment is removed via the verified
+  `project_doc_max_bytes=0` mechanism instead of file deletion.)*
 - **Arm B — governed:** same task prompt. Working repo onboarded with the
   current framework runtime exactly as a consumer repo would be
   (session hooks + governance prompt), unmodified for the experiment.
 
 3 runs per arm (P0 #2 minimum). Run order alternates A/B to spread any
 model-side drift across arms.
+
+**Run exclusion rule (fixed before the first valid run):** a run is
+excluded and re-run only if the agent performed zero task-file reads and
+zero writes due to infrastructure failure (e.g., network denial before
+task start), evidenced by the session log and a retained receipt. No
+other exclusion is permitted, before or after scoring.
 
 ## Fixed Task (structure frozen now, details at instantiation)
 
