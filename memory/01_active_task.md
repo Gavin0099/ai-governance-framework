@@ -44,26 +44,27 @@
   Arm A scratch root lacked the task file and seed commit, which exposed that
   v2 did not bind seed construction/tree hash. No Codex session or API
   transmission started. Zero-amendment rules prohibit repairing or reusing it.
-- **v3 offline dress rehearsal completed; v3 remains unregistered.** The
+- **v3 offline dress rehearsal completed; v3 is preregistered.** The
   rehearsal created a fresh launcher-user-owned scratch root, demonstrated the
   literal JSON seed mutation, recorded tree/task hashes, and confirmed the
   frozen one-mismatch mutation probe with a clean post-probe state. It assembled
   but did not execute the package-context launcher (`api_call_performed=false`).
-  Two setup/serialization failures are retained. The next action requires a
-  separate owner-approved v3 preregistration freeze; no transmission authority
-  or run exists for v3.
+  Two setup/serialization failures are retained. The preregistration is frozen;
+  owner transmission authority covers Run 1 only, not later runs or scoring.
 - **v3 Arm B offline rehearsal completed; package-context hook behavior remains
   untested.** A fresh clone matched the demonstrated seed tree; hooks-only
   installation and validator passed, and a host-side local commit trace showed
   pre-commit invocation with a clean poststate. The first trace-capture attempt
-  is retained; a fresh retry root succeeded. No API call, sandbox session, v3
-  preregistration, or run exists.
-- **v3 preregistration frozen; no run may start.** The protocol copies both
+  is retained; a fresh retry root succeeded. No API call, sandbox session, or
+  run has occurred.
+- **v3 preregistration frozen; Run 1 owner launcher prepared but not run.** The protocol copies both
   rehearsed arm procedures and hashes, locks launcher/package/provenance, and
   pre-declares an Arm B package-context hook-environment exclusion only for
-  zero scoreable output. New explicit v3 transmission authorization is still
-  required before Run 1; no authorization, API call, session, run, score, or
-  attribution conclusion exists.
+  zero scoreable output. Explicit v3 transmission authorization now covers the
+  task prompt and scratch-repo content for Run 1 only. The fresh `daish`-owned
+  Arm A scratch precheck and frozen owner launcher are recorded at
+  `docs/status/no-governance-baseline-v3-a1-owner-launcher-ready-2026-07-11.md`;
+  no API call, session, run, score, or attribution conclusion exists.
 - No other active autonomous implementation slice. The retire-candidate
   cleanup line is fully resolved as of pushed commit `81124cec`; the
   closeout memory-authority fixture carry-forward is resolved as of pushed
@@ -206,10 +207,10 @@
 
 1. Keep v1 and v2 stopped. Do not use the prior v2 authorization for a
    successor line.
-2. Obtain a new explicit v3 authorization for OpenAI API transmission of the
-   task prompt and scratch-repo content only, then verify Run 1 preconditions.
-3. Do not start Runs 2–6, scoring, or a ledger update; first run only after
-   the new authorization.
+2. From an ordinary PowerShell window, the owner executes the committed frozen
+   A1 launcher after confirming the working tree is at its launcher commit.
+3. Do not start Runs 2–6, scoring, or a ledger update; after owner execution,
+   validate and retain Run 1 outputs only.
 
 ## Historical Context Retained
 

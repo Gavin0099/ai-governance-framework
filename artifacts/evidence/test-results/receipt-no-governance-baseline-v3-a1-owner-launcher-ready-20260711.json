@@ -1,0 +1,29 @@
+{
+  "receipt_type": "v3_a1_owner_launcher_preparation",
+  "date": "2026-07-11",
+  "api_call_performed": false,
+  "launcher_executed": false,
+  "launcher_static_validation": "PASS",
+  "package_version": "26.707.3748.0",
+  "package_pfn": "OpenAI.Codex_2p2nqsd0c76g0",
+  "app_id": "App",
+  "prevent_breakaway_required": true,
+  "scratch_root": "C:\\Users\\daish\\.codex\\visualizations\\2026\\07\\10\\019f4c83-2f1f-7b30-af00-324063641a72\\v3-arm-a-run-1-owner",
+  "scratch_owner": "DESKTOP-EJOULKM\\daish",
+  "seed_tree": "27b7d8f9e7c7b7bccce5d47ce991c92a6e3fea71",
+  "seeded_task_sha256": "16642a46a363b10ccb53f74bd0efdf027b47d08c39726259c5c86c08b5659065",
+  "scratch_clean": true,
+  "expected_run_outputs": [
+    "artifacts/evidence/test-results/raw-no-governance-baseline-v3-a1-20260711.jsonl",
+    "artifacts/evidence/test-results/raw-no-governance-baseline-v3-a1-20260711.stderr.txt",
+    "artifacts/evidence/test-results/raw-no-governance-baseline-v3-a1-20260711.result.json"
+  ],
+  "not_claimed": [
+    "OpenAI API transmission",
+    "Codex session",
+    "Run 1 task output",
+    "semantic repair",
+    "validator result",
+    "score or ledger update"
+  ]
+}
