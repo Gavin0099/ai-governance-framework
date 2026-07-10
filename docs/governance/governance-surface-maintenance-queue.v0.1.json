@@ -1409,7 +1409,7 @@
           "test_file_references": 1
         }
       ],
-      "rationale": "Developer convenience test runner; referenced only in the tracked .latest-main snapshot PLAN and commit-log.txt.",
+      "rationale": "Developer convenience test runner. Reference re-anchor 2026-07-11: its prior documentation references (.latest-main snapshot PLAN, deleted 260e8240; commit-log.txt, a generated git-log dump deleted in this slice) are replaced by the introduction commit c97de01c (E2+: run_filtered_tests.py enforcement + PLAN Phase E + replay verified) and the dedicated test tests/test_run_filtered_tests.py. The historical Phase E enforcement role recorded in c97de01c means retirement requires a separate focused review; classification unchanged.",
       "also_in_window": false
     },
     {

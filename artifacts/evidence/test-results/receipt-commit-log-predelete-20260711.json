@@ -1,0 +1,33 @@
+{
+ "receipt_schema": "predelete_admissibility.v0.1",
+ "status": "report_only",
+ "target": "commit-log.txt",
+ "captured_at": "2026-07-11T02:09:37.585476",
+ "sha256": "5c2cbd10b19eee0e90b214ce49b2cf96aa113688795093a3b0d718554f3dc50b",
+ "bytes": 80298,
+ "lines": 996,
+ "origin": "generated git-log dump through 2026-04-29; swept into bulk publish commit 8a257fbb; no round2b document cites it as evidence; no executable reader",
+ "reference_inventory": [
+  "docs/governance/decision-change-ledger.inventory.v0.1.json:654:      \"rationale\": \"Developer convenience test runner; referenced only in the tracked .latest-main snapshot PLAN and commit-log.txt.\"",
+  "docs/governance/governance-surface-maintenance-queue.v0.1.json:1412:      \"rationale\": \"Developer convenience test runner; referenced only in the tracked .latest-main snapshot PLAN and commit-log.txt.\",",
+  "docs/governance/latest-main-consumer-investigation-2026-07-06.md:29:- `commit-log.txt` and `docs/governance/decision-change-ledger.inventory.v0.1.json`",
+  "docs/governance/latest-main-consumer-investigation-2026-07-06.md:51:`deploy_to_memory.sh`, `commit-log.txt`. These are session-bootstrap residue,",
+  "memory/2026-07-06.md:403:  what_changed: Read-only investigation slice answering the inventory follow-up 'identify the consumer of the tracked .latest-main snapshot', committed as docs/governance/latest-main-consumer-investigation-2026-07-06.md at b8b67a65. Findings: .latest-main is a stale (2026-04-28) 226-file 9.2MB self-snapshot introduced by fe073f7b with no tool/script/hook/CI/test consumer; all tracked references are exclusions (pytest.ini norecursedirs) or documented pollution (Enumd/Hearth language-pack noise in the 2026-07-05 external verification). Related same-class finding: a9077454 tracked root agent-workspace residue (SOUL.md, IDENTITY.md, USER.md, HEARTBEAT.md, TOOLS.md, start_session.md, deploy_to_memory.sh, commit-log.txt); HEARTBEAT.md/TOOLS.md were the documented-surface evidence for required_freshness_probe, so its non-zombie classification weakens if they are residue. Recommended disposition: untrack .latest-main plus root residue in one hygiene slice and drop the pytest.ini special case. No file removed or changed beyond adding the note.",
+  "memory/2026-07-06.md:408:  test_evidence: PASS: git grep -F .latest-main over tracked files -> consumers absent, references are pytest.ini exclusion, evidence artifacts, status doc, commit-log.txt, inventory artifact; PASS: git log -- .latest-main -> fe073f7b 2026-04-17 introduction, 758fe4ed submodule fix, f9153771 last touch 2026-04-28; PASS: git ls-files .latest-main -> 226 files; PASS: embedded PLAN.md header shows 2026-04-16; PASS: git ls-files confirms all eight root residue files tracked since a9077454; PASS: git diff --cached --check before commit."
+ ],
+ "live_carrier_updates": {
+  "decision-change-ledger.inventory.v0.1.json": "run_filtered_tests rationale re-anchored to introduction commit c97de01c and tests/test_run_filtered_tests.py",
+  "governance-surface-maintenance-queue.v0.1.json": "same rationale replacement"
+ },
+ "historical_records_retained": [
+  "docs/governance/latest-main-consumer-investigation-2026-07-06.md",
+  "memory/2026-07-06.md"
+ ],
+ "reconstruction": "git log --format=\"%h | %ad | %s\" --date=short rebuilds a same-format history view; it does NOT reproduce the original file byte-identically or match this SHA-256, because the repository has gained commits since 2026-04-29",
+ "residual_risk": "a manual human workflow reading commit-log.txt as a convenience log; mitigated by the reconstruction command above",
+ "out_of_scope": [
+  "run_filtered_tests disposition (its historical Phase E enforcement role per c97de01c needs a separate review)",
+  "root residue files",
+  "sandbox ACL directories"
+ ]
+}
