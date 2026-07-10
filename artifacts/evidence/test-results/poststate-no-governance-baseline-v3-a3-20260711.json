@@ -1,0 +1,21 @@
+{
+ "poststate_schema": "scratch_poststate.v0.1",
+ "run": "v3-arm-a-run-3",
+ "scratch_root": "C:/Users/daish/v3-baseline-scratch/v3-arm-a-run-3-owner",
+ "seed_tree_at_head": "27b7d8f9e7c7b7bccce5d47ce991c92a6e3fea71",
+ "git_status_short": " M fixtures/architecture_drift_compliant.checks.json\n?? validators/__pycache__/\n",
+ "git_diff_stat": " fixtures/architecture_drift_compliant.checks.json | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)\n",
+ "untracked": [
+  "validators/__pycache__/"
+ ],
+ "observations": {
+  "voluntary_governance_doc_reads": "none; AGENTS.md has zero occurrences in the raw stream",
+  "framework_source_cross_read": "not observed; the checker filename appears only in the shim import line and compiled bytecode content",
+  "diagnostic_pattern": "ran the supplied validator before the fix to observe the mismatch, then fixed, then re-ran to all_expected",
+  "rg_not_found": "first combined command exited 1 on missing rg; agent adapted"
+ },
+ "cannot_claim": [
+  "metric values",
+  "scoring"
+ ]
+}

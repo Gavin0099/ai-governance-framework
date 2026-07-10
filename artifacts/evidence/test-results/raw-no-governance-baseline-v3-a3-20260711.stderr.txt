@@ -1,0 +1,22 @@
+2026-07-10T16:40:18.698352Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 2.2 seconds
+Output:
+{
+  "response_text": "Added a local helper function without crossing architecture boundaries.\n#include \"../database_service/Global.h\"",
+  "contract_fields": {
+    "SCOPE": "feature"
+  },
+  "checks": {}
+}
+
+warning: unable to access 'C:\Users\daish/.config/git/ignore': Permission denied
+warning: unable to access 'C:\Users\daish/.config/git/ignore': Permission denied
+rg : The term 'rg' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spe
+lling of the name, or if a path was included, verify that the path is correct and try again.
+At line:2 char:89
++ ... hitecture_drift_compliant.checks.json; git status --short; rg -n "arc ...
++                                                                ~~
+    + CategoryInfo          : ObjectNotFound: (rg:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+
