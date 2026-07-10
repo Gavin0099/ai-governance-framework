@@ -1,14 +1,21 @@
 # Active Task
 
-> Refreshed 2026-07-10 after baseline artifact identity alignment.
-> Dedicated bookkeeping slice; source surfaces: pushed commit `8f1657da`,
+> Refreshed 2026-07-10 after the no-governance baseline pre-registration
+> line closed its Slice A. Source surfaces: pushed commits through
+> `91178201` (stale carrier disposition; memory chain through `3194bd96`),
 > `memory/2026-07-10.md`, and live focused validation from this session.
 > Claim: point-in-time consistency with current repo state only; `PLAN.md` was
 > not changed in this refresh.
 
 ## Current Focus
 
-- **No active autonomous implementation slice.** The current retire-candidate
+- **Active experiment line: No-Governance Baseline Runs.** Pre-registered
+  at `docs/governance/no-governance-baseline-preregistration-2026-07-10.md`
+  (`af22e2df`, corrected `7a3f906d`). Slice A (pre-registration) is closed.
+  Next is Slice B, which is **blocked on owner instantiation decisions**:
+  seeded defect, task file set, harness name, and model id. No run has
+  happened; no attribution evidence exists yet.
+- No other active autonomous implementation slice. The retire-candidate
   cleanup line is fully resolved as of pushed commit `81124cec`; the
   closeout memory-authority fixture carry-forward is resolved as of pushed
   commit `25243d1a`; the decision-change observation workline continues.

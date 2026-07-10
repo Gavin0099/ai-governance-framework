@@ -3,8 +3,10 @@
 **Source**: Cross-agent analysis + source code review (2026-05-08)
 **Context**: Derived from evaluating the framework's own evidence gaps and structural blind spots.
 
-> **Disposition status (2026-07-10):** both P0 items are dispositioned; this
-> file is a historical backlog record, not a current work queue.
+> **Disposition status (2026-07-10):** P0 #1 is dispositioned (superseded);
+> P0 #2 has its ownership dispositioned into an active experiment line but
+> remains **unresolved** until that line's Slice D. This file is a
+> historical backlog record, not a current work queue.
 > - P0 #1 (`governance_inflation_audit.py`): **superseded, tool not built.**
 >   Its intent was covered manually by the decision-change inventory-line
 >   pass (`docs/governance/decision-change-ledger.inventory.v0.1.json`,
