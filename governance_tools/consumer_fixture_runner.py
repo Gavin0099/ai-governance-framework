@@ -130,19 +130,56 @@ def _manifest_items(payload: Any) -> list[dict[str, Any]] | None:
     return [item for item in items if isinstance(item, dict) and item.get("file")]
 
 
-def _manifest_paths(repo_root: Path) -> list[Path]:
-    return _git_visible_paths(repo_root, sorted(repo_root.rglob("fixture_manifest.json")))
+def _belongs_to_active_contract(
+    repo_root: Path,
+    path: Path,
+    contract_path: Path | None,
+) -> bool:
+    if contract_path is None:
+        return True
+    active_contract = contract_path.resolve()
+    current = path.resolve().parent
+    repo = repo_root.resolve()
+    while True:
+        candidate = current / "contract.yaml"
+        if candidate.exists():
+            try:
+                if candidate.resolve() == active_contract:
+                    return True
+            except OSError:
+                return False
+            return False
+        if current == repo or current == current.parent:
+            return True
+        current = current.parent
 
 
-def _checks_fixture_candidates(repo_root: Path) -> list[Path]:
-    return _git_visible_paths(repo_root, sorted(repo_root.rglob("fixtures/*.checks.json")))
+def _manifest_paths(repo_root: Path, contract_path: Path | None = None) -> list[Path]:
+    candidates = _git_visible_paths(repo_root, sorted(repo_root.rglob("fixture_manifest.json")))
+    return [
+        path
+        for path in candidates
+        if _belongs_to_active_contract(repo_root, path, contract_path)
+    ]
 
 
-def _load_fixture_entries(repo_root: Path) -> tuple[list[FixtureEntry], list[str], list[str]]:
+def _checks_fixture_candidates(repo_root: Path, contract_path: Path | None = None) -> list[Path]:
+    candidates = _git_visible_paths(repo_root, sorted(repo_root.rglob("fixtures/*.checks.json")))
+    return [
+        path
+        for path in candidates
+        if _belongs_to_active_contract(repo_root, path, contract_path)
+    ]
+
+
+def _load_fixture_entries(
+    repo_root: Path,
+    contract_path: Path | None = None,
+) -> tuple[list[FixtureEntry], list[str], list[str]]:
     entries: list[FixtureEntry] = []
     warnings: list[str] = []
     errors: list[str] = []
-    for manifest in _manifest_paths(repo_root):
+    for manifest in _manifest_paths(repo_root, contract_path):
         payload, error = _load_json(manifest)
         if error:
             errors.append(f"fixture_manifest_error: {_repo_rel(repo_root, manifest)}: {error}")
@@ -221,15 +258,17 @@ def _matching_validators(
     fixture_entry: FixtureEntry,
     validators: list[dict[str, Any]],
 ) -> tuple[str, list[dict[str, Any]]]:
+    if str(fixture_entry.entry.get("validator") or "").strip():
+        matches = _explicit_validator_matches(fixture_entry.entry, validators)
+        if matches:
+            return "explicit_validator", matches
+        return "unmatched_explicit_validator", []
+
     if _entry_rule_ids(fixture_entry.entry):
         matches = _rule_id_matches(fixture_entry.entry, validators)
         if matches:
             return "expected_rule_ids", matches
         return "unmatched_expected_rule_ids", []
-
-    matches = _explicit_validator_matches(fixture_entry.entry, validators)
-    if matches:
-        return "explicit_validator", matches
 
     matches = _alias_matches(repo_root, fixture_entry.fixture, validators)
     if len(matches) == 1:
@@ -251,10 +290,13 @@ def _run_validator(
     if validator is None:
         raise RuntimeError("validator instance unavailable")
     resolved_rules = _entry_rule_ids(fixture_entry.entry) or list(validator_entry.get("rule_ids", []))
+    checks = fixture_json.get("checks") if isinstance(fixture_json.get("checks"), dict) else fixture_json
+    fields = fixture_json.get("contract_fields") if isinstance(fixture_json.get("contract_fields"), dict) else {}
+    response_text = str(fixture_json.get("response_text") or "")
     payload = build_domain_validation_payload(
-        response_text="",
-        checks=fixture_json,
-        fields={},
+        response_text=response_text,
+        checks=checks,
+        fields=fields,
         resolved_rules=resolved_rules,
         domain_contract=contract,
         contract_file=contract_path,
@@ -285,13 +327,13 @@ def build_consumer_fixture_report(
         for error in item.get("errors", []):
             errors.append(f"validator_load_error: {item.get('name')}: {error}")
 
-    manifest_paths = _manifest_paths(repo)
-    fixtures, manifest_warnings, manifest_errors = _load_fixture_entries(repo)
+    manifest_paths = _manifest_paths(repo, contract_path)
+    fixtures, manifest_warnings, manifest_errors = _load_fixture_entries(repo, contract_path)
     warnings.extend(manifest_warnings)
     errors.extend(manifest_errors)
     manifest_missing = False
     if not manifest_paths:
-        checks_fixtures = _checks_fixture_candidates(repo)
+        checks_fixtures = _checks_fixture_candidates(repo, contract_path)
         if checks_fixtures:
             manifest_missing = True
             warnings.append(

@@ -153,6 +153,32 @@ def test_expected_rule_ids_route_to_one_validator_among_many(tmp_path: Path) -> 
     assert report.observations[0]["route"] == "expected_rule_ids"
 
 
+def test_explicit_validator_takes_precedence_over_expected_rule_ids(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _write_contract(repo, "validators/foo_validator.py", "validators/bar_validator.py")
+    _write_validator(repo, "validators/foo_validator.py", "FooValidator", "foo")
+    _write_validator(repo, "validators/bar_validator.py", "BarValidator", "bar")
+    _write(repo / "fixtures" / "neutral.checks.json", "{}\n")
+    _write_manifest(
+        repo,
+        [
+            {
+                "file": "neutral.checks.json",
+                "expected_ok": True,
+                "validator": "bar_validator",
+                "expected_rule_ids": ["foo"],
+            }
+        ],
+    )
+
+    report = build_consumer_fixture_report(repo)
+
+    assert report.overall_status == "all_expected"
+    assert report.observations_total == 1
+    assert report.observations[0]["validator"] == "bar_validator"
+    assert report.observations[0]["route"] == "explicit_validator"
+
+
 def test_expected_rule_ids_do_not_fall_back_to_alias_when_unmatched(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     _write_contract(repo, "validators/refactor_evidence_validator.py")
@@ -236,6 +262,41 @@ def test_runner_ignores_gitignored_tmp_fixture_manifests(tmp_path: Path) -> None
     assert report.matched_expectations == 1
     assert not report.errors
     assert report.observations[0]["fixture"] == "fixtures/refactor_good.checks.json"
+
+
+def test_tracked_multi_validator_contract_fixtures_match_expected() -> None:
+    repo = Path(__file__).parent.parent
+
+    report = build_consumer_fixture_report(
+        repo,
+        contract=repo / "examples" / "multi-validator-contract" / "contract.yaml",
+    )
+    payload = report_to_dict(report)
+
+    assert payload["overall_status"] == "all_expected"
+    assert payload["fixtures_total"] == 8
+    assert payload["observations_total"] == 8
+    assert payload["matched_expectations"] == 8
+    assert payload["mismatched_expectations"] == 0
+    assert payload["errors"] == []
+    assert payload["warnings"] == []
+    assert {item["route"] for item in payload["observations"]} == {"explicit_validator"}
+
+
+def test_tracked_root_architecture_fixtures_match_expected() -> None:
+    repo = Path(__file__).parent.parent
+
+    report = build_consumer_fixture_report(repo, contract=repo / "contract.yaml")
+    payload = report_to_dict(report)
+
+    assert payload["overall_status"] == "all_expected"
+    assert payload["fixtures_total"] == 2
+    assert payload["observations_total"] == 2
+    assert payload["matched_expectations"] == 2
+    assert payload["mismatched_expectations"] == 0
+    assert payload["errors"] == []
+    assert payload["warnings"] == []
+    assert {item["validator"] for item in payload["observations"]} == {"architecture_drift_checker"}
 
 
 def test_cli_human_and_json_outputs_are_report_only(tmp_path: Path, capsys) -> None:
