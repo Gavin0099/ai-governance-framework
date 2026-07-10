@@ -1,0 +1,35 @@
+At line:1 char:179
++ ... -baseline-v2-preregistration-2026-07-10.md; if($doc -notmatch zero am ...
++                                                                  ~
+You must provide a value expression following the '-notmatch' operator.
+At line:1 char:180
++ ... line-v2-preregistration-2026-07-10.md; if($doc -notmatch zero amendme ...
++                                                              ~~~~
+Unexpected token 'zero' in expression or statement.
+At line:1 char:180
++ ... line-v2-preregistration-2026-07-10.md; if($doc -notmatch zero amendme ...
++                                                              ~~~~
+Missing closing ')' after expression in 'if' statement.
+At line:1 char:323
++ ... r user `daish` -or $doc -notmatch new explicit authorization){ throw  ...
++                                                                 ~
+Unexpected token ')' in expression or statement.
+At line:1 char:460
++ ... Get-Content -Raw memory\01_active_task.md; if($plan -notmatch no-gove ...
++                                                                  ~
+You must provide a value expression following the '-notmatch' operator.
+At line:1 char:461
++ ... n -notmatch no-governance-baseline-v2-preregistration-2026-07-10.md - ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Unexpected token 'no-governance-baseline-v2-preregistration-2026-07-10.md' in expression or statement.
+At line:1 char:461
++ ... n -notmatch no-governance-baseline-v2-preregistration-2026-07-10.md - ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Missing closing ')' after expression in 'if' statement.
+At line:1 char:594
++ ... atch no-governance-baseline-v2-preregistration-2026-07-10.md){ throw  ...
++                                                                 ~
+Unexpected token ')' in expression or statement.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : ExpectedValueExpression
+ 

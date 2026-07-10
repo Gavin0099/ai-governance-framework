@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "cmd.exe /c \"git show --check --format= 39c2c877\"",
+  "exit_code": 0,
+  "started_at": "2026-07-10T14:57:03Z",
+  "finished_at": "2026-07-10T14:57:03Z",
+  "runner": "codex-baseline-v2-preregistration",
+  "linked_commit": "39c2c877f9990c1870334d65bf12fdad286eb118",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-baseline-v2-preregistration-retry-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

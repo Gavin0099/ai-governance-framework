@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "powershell.exe -NoProfile -Command \"$ErrorActionPreference=Stop; git show --check --format= 39c2c877; $doc=Get-Content -Raw docs\\governance\\no-governance-baseline-v2-preregistration-2026-07-10.md; if($doc -notmatch zero\" amendment \"capacity -or $doc -notmatch 26.707.3748.0 -or $doc -notmatch launcher\" user \"`daish` -or $doc -notmatch new\" explicit \"authorization){ throw v2\" lock clauses \"missing }; $plan=Get-Content -Raw PLAN.md; $active=Get-Content -Raw memory\\01_active_task.md; if($plan -notmatch no-governance-baseline-v2-preregistration-2026-07-10.md -or $active -notmatch no-governance-baseline-v2-preregistration-2026-07-10.md){ throw current-state\" carrier missing v2 \"pointer }; Write-Output PASS\" v2 preregistration source and carriers verified",
+  "exit_code": 1,
+  "started_at": "2026-07-10T14:56:53Z",
+  "finished_at": "2026-07-10T14:56:53Z",
+  "runner": "codex-baseline-v2-preregistration",
+  "linked_commit": "39c2c877f9990c1870334d65bf12fdad286eb118",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-baseline-v2-preregistration-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
