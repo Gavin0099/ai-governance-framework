@@ -1,0 +1,7 @@
+unexpected pushed anchor
+At line:1 char:240
++ ... a17bc988c8b0cb1f5cfd09a5') { throw 'unexpected pushed anchor' }; $dir ...
++                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (unexpected pushed anchor:String) [], RuntimeException
+    + FullyQualifiedErrorId : unexpected pushed anchor
+ 

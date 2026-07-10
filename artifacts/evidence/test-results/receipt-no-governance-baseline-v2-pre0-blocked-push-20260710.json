@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "powershell.exe -NoProfile -Command \"$ErrorActionPreference='Stop'; $head=(git rev-parse HEAD).Trim(); $remote=(git rev-parse origin/main).Trim(); if ($head -ne $remote) { throw 'HEAD not synced with origin/main' }; if ($head -ne 'f8b09fe4a33b8b43a17bc988c8b0cb1f5cfd09a5') { throw 'unexpected pushed anchor' }; $dirty=(git status --porcelain=v1); if ($dirty) { throw 'workspace not clean before post-push receipt' }; Write-Output ('PASS pushed_anchor=' + $head)\"",
+  "exit_code": 1,
+  "started_at": "2026-07-10T13:05:30Z",
+  "finished_at": "2026-07-10T13:05:30Z",
+  "runner": "codex-v2-pre0-push-verification",
+  "linked_commit": "f8b09fe4b3b3ee91c8ff561a0732c3a5dfa51440",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-no-governance-baseline-v2-pre0-blocked-push-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
