@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import subprocess; head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(); remote=subprocess.check_output(['git','rev-parse','origin/main'],text=True).strip(); assert head==remote=='2fc6a536ff354520834bc7f370e5c19edcf98292',(head,remote); print('origin/main synced at 2fc6a536: OK')
+                                                                                                                                                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('2fc6a53639558cd3d961e4c53851c0c600ec78c7', '2fc6a53639558cd3d961e4c53851c0c600ec78c7')

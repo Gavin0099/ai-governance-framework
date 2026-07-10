@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -c \"import subprocess; head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(); remote=subprocess.check_output(['git','rev-parse','origin/main'],text=True).strip(); assert head==remote=='2fc6a536ff354520834bc7f370e5c19edcf98292',(head,remote); print('origin/main synced at 2fc6a536: OK')\"",
+  "exit_code": 1,
+  "started_at": "2026-07-10T12:04:50Z",
+  "finished_at": "2026-07-10T12:04:50Z",
+  "runner": "codex-post-push-verification",
+  "linked_commit": "2fc6a53639558cd3d961e4c53851c0c600ec78c7",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-no-governance-baseline-slice-b-void-push-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
