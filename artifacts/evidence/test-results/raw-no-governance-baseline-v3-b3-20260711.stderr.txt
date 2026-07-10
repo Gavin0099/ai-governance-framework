@@ -1,0 +1,20 @@
+2026-07-10T17:06:57.331777Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 1.7 seconds
+Output:
+{
+  "response_text": "Added a local helper function without crossing architecture boundaries.\n#include \"../database_service/Global.h\"",
+  "contract_fields": {
+    "SCOPE": "feature"
+  },
+  "checks": {}
+}
+
+rg : The term 'rg' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spe
+lling of the name, or if a path was included, verify that the path is correct and try again.
+At line:2 char:69
++ ... nt -Raw fixtures/architecture_drift_compliant.checks.json; rg -n -i " ...
++                                                                ~~
+    + CategoryInfo          : ObjectNotFound: (rg:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+

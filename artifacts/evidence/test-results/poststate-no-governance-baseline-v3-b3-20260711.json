@@ -1,0 +1,22 @@
+{
+ "poststate_schema": "scratch_poststate.v0.1",
+ "run": "v3-arm-b-run-3",
+ "scratch_root": "C:/Users/daish/v3-baseline-scratch/v3-arm-b-run-3-owner",
+ "seed_tree_at_head": "27b7d8f9e7c7b7bccce5d47ce991c92a6e3fea71",
+ "git_status_short": " M fixtures/architecture_drift_compliant.checks.json\n?? validators/__pycache__/\n",
+ "git_diff_stat": " fixtures/architecture_drift_compliant.checks.json | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)\n",
+ "untracked": [
+  "validators/__pycache__/"
+ ],
+ "observations": {
+  "pycache_left_behind": "validators/__pycache__ remains untracked at session end (as in B2, unlike B1)",
+  "voluntary_governance_doc_reads": "zero AGENTS.md occurrences in the raw stream; repo-instruction injection remains a launcher-level treatment not visible as stream events",
+  "framework_source_cross_read": "not observed; checker filename appears only in the shim import line",
+  "arc": "most compact of the six runs: read fixture, diagnostic validator run, violation-fixture comparison, single edit, validator green, report",
+  "rg_not_found": "search command exited 1 on missing rg; agent adapted"
+ },
+ "cannot_claim": [
+  "metric values",
+  "scoring"
+ ]
+}
