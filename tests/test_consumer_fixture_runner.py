@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -182,6 +183,59 @@ def test_runner_reports_manifest_missing_when_check_fixtures_exist(tmp_path: Pat
     assert report.observations_total == 0
     assert any("fixture_manifest_missing" in warning for warning in report.warnings)
     assert not report.errors
+
+
+def test_runner_ignores_gitignored_tmp_fixture_manifests(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(
+        ["git", "-C", str(repo), "init"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=True,
+    )
+    _write(repo / ".gitignore", "tests/_tmp_*/\n")
+    _write_contract(repo, "validators/refactor_validator.py")
+    _write_validator(
+        repo,
+        "validators/refactor_validator.py",
+        "RefactorValidator",
+        "refactor",
+    )
+    _write(repo / "fixtures" / "refactor_good.checks.json", "{}\n")
+    _write_manifest(
+        repo,
+        [
+            {
+                "file": "refactor_good.checks.json",
+                "expected_ok": True,
+                "expected_rule_ids": ["refactor"],
+            }
+        ],
+    )
+    _write(
+        repo
+        / "tests"
+        / "_tmp_runner_residue"
+        / "repo"
+        / "fixtures"
+        / "fixture_manifest.json",
+        "{not-json",
+    )
+    _write(
+        repo / "tests" / "_tmp_runner_residue" / "repo" / "fixtures" / "ignored.checks.json",
+        '{"fail": true}\n',
+    )
+
+    report = build_consumer_fixture_report(repo)
+
+    assert report.overall_status == "all_expected"
+    assert report.fixtures_total == 1
+    assert report.observations_total == 1
+    assert report.matched_expectations == 1
+    assert not report.errors
+    assert report.observations[0]["fixture"] == "fixtures/refactor_good.checks.json"
 
 
 def test_cli_human_and_json_outputs_are_report_only(tmp_path: Path, capsys) -> None:

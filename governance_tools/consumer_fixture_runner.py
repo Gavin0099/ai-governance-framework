@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -61,6 +62,55 @@ def _repo_rel(repo_root: Path, path: Path) -> str:
         return path.as_posix()
 
 
+def _is_git_worktree_root(repo_root: Path) -> bool:
+    completed = subprocess.run(
+        ["git", "-C", str(repo_root), "rev-parse", "--show-toplevel"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    if completed.returncode != 0:
+        return False
+    try:
+        return Path(completed.stdout.strip()).resolve() == repo_root.resolve()
+    except OSError:
+        return False
+
+
+def _gitignored_paths(repo_root: Path, paths: list[Path]) -> set[str]:
+    if not paths or not _is_git_worktree_root(repo_root):
+        return set()
+    rel_paths = [_repo_rel(repo_root, path) for path in paths]
+    payload = b"".join(path.encode("utf-8") + b"\0" for path in rel_paths)
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(repo_root), "check-ignore", "-z", "--stdin"],
+            input=payload,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    except Exception:
+        return set()
+    if completed.returncode not in {0, 1}:
+        return set()
+    return {
+        item.decode("utf-8", errors="replace")
+        for item in completed.stdout.split(b"\0")
+        if item
+    }
+
+
+def _git_visible_paths(repo_root: Path, paths: list[Path]) -> list[Path]:
+    ignored = _gitignored_paths(repo_root, paths)
+    if not ignored:
+        return paths
+    return [path for path in paths if _repo_rel(repo_root, path) not in ignored]
+
+
 def _load_json(path: Path) -> tuple[Any | None, str | None]:
     try:
         return json.loads(path.read_text(encoding="utf-8")), None
@@ -81,11 +131,11 @@ def _manifest_items(payload: Any) -> list[dict[str, Any]] | None:
 
 
 def _manifest_paths(repo_root: Path) -> list[Path]:
-    return sorted(repo_root.rglob("fixture_manifest.json"))
+    return _git_visible_paths(repo_root, sorted(repo_root.rglob("fixture_manifest.json")))
 
 
 def _checks_fixture_candidates(repo_root: Path) -> list[Path]:
-    return sorted(repo_root.rglob("fixtures/*.checks.json"))
+    return _git_visible_paths(repo_root, sorted(repo_root.rglob("fixtures/*.checks.json")))
 
 
 def _load_fixture_entries(repo_root: Path) -> tuple[list[FixtureEntry], list[str], list[str]]:
