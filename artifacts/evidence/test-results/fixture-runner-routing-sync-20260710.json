@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\test_consumer_fixture_runner.py -q --basetemp D:\\ai-governance-framework\\.tmp_pytest_consumer_fixture_runner_memory_sync",
+  "exit_code": 0,
+  "started_at": "2026-07-10T07:48:00Z",
+  "finished_at": "2026-07-10T07:48:13Z",
+  "runner": "codex",
+  "linked_commit": "05a4d8a3ca0fe64314750b4b7e7b488a87bda86e",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/fixture-runner-routing-sync-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

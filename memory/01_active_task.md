@@ -1,9 +1,10 @@
 # Active Task
 
-> Refreshed 2026-07-06 per `docs/structured-memory-freshness-policy.md`.
-> Dedicated bookkeeping slice; source surfaces: `memory/2026-07-06.md` and
-> `memory/04_review_log.md` at HEAD `f899af7f`.
-> Claim: point-in-time consistency with `PLAN.md` and current repo state only.
+> Refreshed 2026-07-10 after fixture-runner routing fix.
+> Dedicated bookkeeping slice; source surfaces: pushed commit `05a4d8a3`,
+> `memory/2026-07-10.md`, and live focused validation from this session.
+> Claim: point-in-time consistency with current repo state only; `PLAN.md` was
+> not changed in this refresh.
 
 ## Current Focus
 
@@ -20,6 +21,10 @@
   exists for domain contract repos. It surfaces weak test-signal candidates and
   validator fixture-pair visibility; it is not a readiness gate or test-quality
   proof.
+- Current feature-gate candidate: decide whether `test_signal_quality_audit`
+  should consume `consumer_fixture_runner` execution results so reviewer output
+  can distinguish fixture-pair presence from fixture expectations that actually
+  execute and match.
 - Current design line: `decision-change-ledger.seed.json` and
   `context-cost-budget-design-2026-07-06.md` are observation/design artifacts.
   They do not retire defenses, measure token savings, or enforce context-budget
@@ -27,6 +32,15 @@
 
 ## Current Status
 
+- **Validator fixture hardening completed (2026-07-10)**: `05a4d8a3`
+  fixed `consumer_fixture_runner` routing so manifest `validator` entries take
+  precedence over `expected_rule_ids`, active contract fixture discovery does
+  not mix nested contract manifests, and `.checks.json` payloads are unpacked
+  into `response_text`, `contract_fields`, and `checks`. Focused tests passed
+  (`tests/test_consumer_fixture_runner.py` 13 passed); live runner checks
+  reported `all_expected` for the multi-validator contract (8/8 matched) and
+  root architecture fixtures (2/2 matched). Validator semantics, fixture
+  payloads, governance docs, hooks, CI, and enforcement were not changed.
 - **Evidence provenance self-noise loop fixed (2026-07-07)**: `398f1a73`
   added a report-only write-time advisory in `memory_record` using the same
   provenance test as `memory_authority_guard`; `9cacc9a7` recorded the fix with
@@ -106,12 +120,11 @@
 
 ## Next Steps
 
-1. Stop implementation for 2026-07-07 after pushing this review/progress
-   checkpoint.
-2. Tomorrow's first recommended slice: template-hardening for validator fixture
-   pairs (`examples/multi-validator-contract` and root
-   `architecture_drift_checker`), unless the owner instead chooses the
-   adoption-line `lexical_candidate` review-verification slice.
+1. Run a feature-worthiness gate for whether `test_signal_quality_audit` should
+   consume `consumer_fixture_runner` execution results.
+2. If the gate passes, define a narrow implementation DONE before touching
+   tooling; if it does not pass, select the next candidate without adding
+   ceremony.
 3. Retire-candidate work is complete; no deletion work is pending. Any further
    retirement requires a fresh inventory or cluster review first.
 
@@ -134,6 +147,8 @@
 - Cannot claim all historical evidence is represented here.
 - Cannot claim external repos are updated.
 - Cannot claim test quality is enforced or industry-grade.
+- Cannot claim fixture expectations are domain truth; `05a4d8a3` only proves
+  the tracked fixture expectations execute and match their declared outcomes.
 - Cannot claim any governance defense beyond the four completed removals
   (`promotion_gate_receipt_smoke.py`, `r49x4_metric_ranking.py`,
   `clean_pilot_admissibility.py`, `host_agent_memory_sync_signal.py`) has
