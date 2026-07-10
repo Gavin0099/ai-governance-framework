@@ -1,0 +1,11 @@
+At line:1 char:606
++ ... r-20260711.ps1; $required = @(Invoke-CommandInDesktopPackage, -Preven ...
++                                                                 ~
+Missing argument in parameter list.
+At line:1 char:625
++ ... quired = @(Invoke-CommandInDesktopPackage, -PreventBreakaway, 27b7d8f ...
++                                                                 ~
+Missing argument in parameter list.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : MissingArgument
+ 

@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "powershell.exe -NoProfile -NonInteractive -Command \"$ErrorActionPreference = Stop; $errors = $null; [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path artifacts\\\\evidence\\\\test-results\\\\launcher-no-governance-baseline-v3-a1-owner-20260711.ps1), [ref]$null, [ref]$errors); if ($errors.Count -gt 0) { exit 1 }; Get-Content -Raw artifacts\\\\evidence\\\\test-results\\\\receipt-no-governance-baseline-v3-a1-owner-launcher-ready-20260711.json | ConvertFrom-Json | Out-Null; $launcher = Get-Content -Raw artifacts\\\\evidence\\\\test-results\\\\launcher-no-governance-baseline-v3-a1-owner-20260711.ps1; $required = @(Invoke-CommandInDesktopPackage, -PreventBreakaway, 27b7d8f9e7c7b7bccce5d47ce991c92a6e3fea71, 16642a46a363b10ccb53f74bd0efdf027b47d08c39726259c5c86c08b5659065); if (@($required | Where-Object { -not $launcher.Contains($_) }).Count -ne 0) { exit 1 }; git diff --check HEAD~1 HEAD; exit $LASTEXITCODE\"",
+  "exit_code": 1,
+  "started_at": "2026-07-10T16:11:54Z",
+  "finished_at": "2026-07-10T16:11:54Z",
+  "runner": "codex",
+  "linked_commit": "ded1b43b3daa30f5b9d8ee2ea699a939edebeba8",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-no-governance-baseline-v3-a1-owner-launcher-ready-source-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
