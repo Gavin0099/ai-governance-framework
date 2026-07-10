@@ -70,7 +70,7 @@ Phase E posture:
 
 ## Current Sprint - 2026-06-10
 
-Current refresh - 2026-07-06:
+Current refresh - 2026-07-10:
 
 Theme:
 
@@ -84,6 +84,13 @@ Theme:
   unless a named harness consumer and evidence contract are separately scoped.
 
 Completed in latest committed scope:
+
+- [x] No-governance baseline experiment Slice A pre-registered one fixed task,
+  two matched arms, four mechanical metrics, and pre-committed dispositions;
+  correction `7a3f906d` accurately distinguishes older round2b evidence from
+  the current protocol.
+- [x] Stale self-audit carriers were dispositioned and current task authority
+  was synchronized through `ecc17c58` / `8dac8c82`.
 
 - [x] Cache-aware docs phase collected the harness/repo/enforcement boundary:
   prompt cache, compaction control, deferred tool loading, and mode-as-tool-call
@@ -140,6 +147,10 @@ Completed in latest committed scope:
   agent-read telemetry does not pollute defense-output classification.
 
 Current next candidate:
+
+- [>] Slice B: freeze the exact architecture-drift fixture mutation, one-file
+  task set, Codex CLI harness, and model id; then run three baseline-arm
+  sessions with receipts only and no conclusions.
 
 - [x] Decision note keeps the AUTHORITY_MANIFEST preflight path in Unreleased
   candidate-only state until a named real harness consumer and evidence

@@ -12,9 +12,10 @@
 - **Active experiment line: No-Governance Baseline Runs.** Pre-registered
   at `docs/governance/no-governance-baseline-preregistration-2026-07-10.md`
   (`af22e2df`, corrected `7a3f906d`). Slice A (pre-registration) is closed.
-  Next is Slice B, which is **blocked on owner instantiation decisions**:
-  seeded defect, task file set, harness name, and model id. No run has
-  happened; no attribution evidence exists yet.
+  Slice B is owner-authorized: option-A architecture-drift mutation, the
+  single compliant fixture as task file set, Codex CLI harness, and model
+  `gpt-5.6-terra`. The instantiation must be committed before three baseline
+  runs begin. No run has happened; no attribution evidence exists yet.
 - No other active autonomous implementation slice. The retire-candidate
   cleanup line is fully resolved as of pushed commit `81124cec`; the
   closeout memory-authority fixture carry-forward is resolved as of pushed
@@ -155,15 +156,10 @@
 
 ## Next Steps
 
-1. Select the next feature-worthiness gate candidate from existing observed
-   failures or owner-prioritized product needs.
-2. Run gate question 0 first: confirm the target failure still exists at HEAD
-   before opening any implementation slice.
-3. If the gate passes, define a narrow implementation DONE before touching
-   tooling; if it does not pass, select the next candidate without adding
-   ceremony.
-4. Retire-candidate work is complete; no deletion work is pending. Any further
-   retirement requires a fresh inventory or cluster review first.
+1. Commit and freeze the Slice B instantiation block.
+2. Run exactly three fresh Codex baseline-arm sessions from identical seeded
+   scratch repos; record receipts and raw logs only.
+3. Stop before governed-arm runs or scoring; those belong to Slices C and D.
 
 ## Historical Context Retained
 
