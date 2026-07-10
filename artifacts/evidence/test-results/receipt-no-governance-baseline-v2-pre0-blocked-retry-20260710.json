@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "powershell.exe -NoProfile -Command \"$ErrorActionPreference='Stop'; $head=(git rev-parse HEAD).Trim(); if (-not $head.StartsWith('57cecc8e')) { throw 'unexpected HEAD' }; $raw=Get-Content -Raw -LiteralPath 'artifacts/evidence/test-results/receipt-no-governance-baseline-v2-execution-surface-probe-20260710.txt'; if ($raw -notmatch 'Failed to write file' -or $raw -notmatch 'orchestrator_helper_launch_failed' -or $raw -notmatch 'os error 5') { throw 'probe failure evidence incomplete' }; $absent=(Get-Content -Raw -LiteralPath 'artifacts/evidence/test-results/receipt-no-governance-baseline-v2-write-probe-file-absence-20260710.txt').Trim(); if ($absent -ne 'False') { throw 'probe file unexpectedly exists' }; $plan=Get-Content -Raw -LiteralPath 'PLAN.md'; $active=Get-Content -Raw -LiteralPath 'memory/01_active_task.md'; if ($plan -notmatch 'v2 Pre-0 is blocked before preregistration' -or $active -notmatch 'v2 Pre-0 execution-surface qualification blocked') { throw 'carrier state missing' }; Write-Output 'PASS source-bound v2 Pre-0 blocked closeout verified'\"",
+  "exit_code": 0,
+  "started_at": "2026-07-10T13:03:46Z",
+  "finished_at": "2026-07-10T13:03:46Z",
+  "runner": "codex-v2-pre0-source-validation",
+  "linked_commit": "57cecc8e5a8f6f81585a72b80f0122f5dfb10e63",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-no-governance-baseline-v2-pre0-blocked-retry-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
