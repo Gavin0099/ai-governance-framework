@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"import json,sys,subprocess; d=json.load(open('artifacts/governance/memory-authority-baseline-2026-07-07.json')); assert d['baseline_id']=='memory-authority-baseline-2026-07-07', d['baseline_id']; r=subprocess.run(['git','show','--stat','8f1657da'],capture_output=True,text=True); assert '8f1657da' in r.stdout and 'memory-authority-baseline-2026-07-07.json' in r.stdout; print('baseline_id aligned at 8f1657da: OK')\"",
+  "exit_code": 0,
+  "started_at": "2026-07-10T09:37:54Z",
+  "finished_at": "2026-07-10T09:37:54Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "8f1657daa7aae41a3ed66d5e4bb2520e086e4831",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-baseline-identity-alignment-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

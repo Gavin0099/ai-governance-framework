@@ -1,7 +1,7 @@
 # Active Task
 
-> Refreshed 2026-07-10 after bound memory authority fixture repair.
-> Dedicated bookkeeping slice; source surfaces: pushed commit `25243d1a`,
+> Refreshed 2026-07-10 after baseline artifact identity alignment.
+> Dedicated bookkeeping slice; source surfaces: pushed commit `8f1657da`,
 > `memory/2026-07-10.md`, and live focused validation from this session.
 > Claim: point-in-time consistency with current repo state only; `PLAN.md` was
 > not changed in this refresh.
@@ -70,11 +70,18 @@
   (`memory_authority_new_since_baseline=0`,
   `memory_authority_new_warning_codes=[]`) when records cite durable receipts.
   Guard, CI, gate, and blocking behavior were not changed.
+- **Baseline artifact identity aligned (2026-07-10)**: `8f1657da` updated
+  `artifacts/governance/memory-authority-baseline-2026-07-07.json` so its
+  internal `baseline_id` is `memory-authority-baseline-2026-07-07`, matching
+  the file date. This resolves the carried-forward warning from the
+  2026-07-07 provenance review checkpoint. One-line metadata-only change;
+  guard criteria, thresholds, schema, hooks, and enforcement were not changed.
+  Durable evidence:
+  `artifacts/evidence/test-results/receipt-baseline-identity-alignment-20260710.json`.
 - **Review checkpoint (2026-07-07)**: provenance loop fix reviewed as
-  APPROVED with carried-forward warning: the re-frozen baseline file is dated
-  `2026-07-07` while its internal `baseline_id` remains
-  `memory-authority-baseline-2026-07-06`. The previously carried-forward
-  old-format bound memory fixture failure was resolved by `25243d1a`.
+  APPROVED. Both carried-forward items are now resolved: the baseline
+  identity mismatch by `8f1657da`, and the old-format bound memory fixture
+  failure by `25243d1a`.
 - **Decision-change inventory-line pass completed (2026-07-06)**: committed at
   `e30b1576` as `docs/governance/decision-change-ledger.inventory.v0.1.json`.
   All 193 governance_tools modules were compared against wiring and output
