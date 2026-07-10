@@ -70,6 +70,48 @@ zero writes due to infrastructure failure (e.g., network denial before
 task start), evidenced by the session log and a retained receipt. No
 other exclusion is permitted, before or after scoring.
 
+## Pre-Run Amendment 2 (2026-07-10 — FINAL amendment)
+
+No valid run has occurred at the time of this amendment; the scratch
+repos remain at seed `dd34ac3` and no metric has been scored.
+
+1. **Exclusion rule extension (protocol fidelity):** a run is also
+   excluded and re-run if the harness demonstrably failed to deliver the
+   frozen configuration (e.g., file writes blocked despite the frozen
+   `workspace-write` sandbox), evidenced by the session log and a
+   retained receipt, **and only if** the run produced no scoreable
+   output (task repo unchanged from seed). A run with any scoreable
+   output can never be excluded under this clause.
+2. **A1 disposition:** the first A1 attempt is excluded under clause 1
+   (writes and validation were blocked by effective policy; repo
+   unchanged from `dd34ac3`). Its receipts are retained. Observation
+   note, recorded without claim: before being blocked, the agent read
+   the seeded fixture and then voluntarily opened `AGENTS.md`.
+3. **Self-exposure handling (intent-to-treat):** Arm A is defined as
+   **no harness-injected governance**, not "agent never sees governance
+   text". Tracked trees stay identical across arms. For every run, the
+   scorer records an additional observed variable:
+   `voluntary_governance_doc_reads` (which governance doc, and whether
+   before or after the task edit). This variable is reported alongside
+   the four metrics and carried into the results claim; it is not a
+   metric and has no pre-committed threshold.
+4. **Arm B frozen entrypoint (verified 2026-07-10 on a throwaway copy):**
+   `python -m governance_tools.hook_installer --repo <scratch-repo>
+   --framework-root <framework-root> --hooks-only` followed by
+   `python governance_tools/hook_install_validator.py --repo
+   <scratch-repo> --framework-root <framework-root>` reporting
+   `valid=true` (pre-commit, pre-push, framework-root config installed).
+   Arm B runs with repo instructions enabled (no
+   `project_doc_max_bytes` override). No other framework surface is
+   installed or invoked for Arm B.
+5. **Write-capability precondition:** before the next valid run, the
+   harness write path must be verified by a probe write in a disposable
+   non-task repo under the same Codex configuration, with a retained
+   receipt. The probe never touches a task scratch repo.
+6. **Hard lock:** this is the final amendment. Any further protocol gap
+   discovered after this point voids Slice B; the line must then restart
+   as a v2 pre-registration instead of amending this document.
+
 ## Fixed Task (structure frozen now, details at instantiation)
 
 One small, self-contained fix task in a **scratch copy** of
