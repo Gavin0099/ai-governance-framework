@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"import subprocess; r=subprocess.run(['git','log','--oneline','origin/main','-2'],capture_output=True,text=True); assert 'e6c9e72c' in r.stdout and 'c2f72521' in r.stdout; s=subprocess.run(['git','status','-sb'],capture_output=True,text=True); assert 'ahead' not in s.stdout; print('v3 A1 archive chain pushed and synced: OK')\"",
+  "exit_code": 0,
+  "started_at": "2026-07-10T16:25:17Z",
+  "finished_at": "2026-07-10T16:25:17Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "e6c9e72cdfa8b8c515a53acfb8f667f9b8a6cbe5",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-v3-a1-archive-push-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
