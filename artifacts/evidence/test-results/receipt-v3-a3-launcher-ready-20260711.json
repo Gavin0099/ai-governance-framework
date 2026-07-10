@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"\nimport subprocess,hashlib,os\nscratch=r'C:/Users/daish/v3-baseline-scratch/v3-arm-a-run-3-owner'\ntree=subprocess.run(['git','-C',scratch,'rev-parse','HEAD^{tree}'],capture_output=True,text=True,check=True).stdout.strip()\nassert tree=='27b7d8f9e7c7b7bccce5d47ce991c92a6e3fea71', tree\nh=hashlib.sha256(open(scratch+'/fixtures/architecture_drift_compliant.checks.json','rb').read()).hexdigest()\nassert h=='16642a46a363b10ccb53f74bd0efdf027b47d08c39726259c5c86c08b5659065', h\nst=subprocess.run(['git','-C',scratch,'status','--short'],capture_output=True,text=True,check=True).stdout.strip()\nassert st=='', st\nL=open('artifacts/evidence/test-results/launcher-no-governance-baseline-v3-a3-owner-20260711.ps1',encoding='utf-8').read()\nassert 'v3-arm-a-run-3-owner' in L and 'v3-a3-20260711' in L and 'gpt-5.6-terra' in L and 'PreventBreakaway' in L and '26.707.3748.0' in L\nfor sfx in ('jsonl','stderr.txt','result.json'):\n    assert not os.path.exists(f'artifacts/evidence/test-results/raw-no-governance-baseline-v3-a3-20260711.{sfx}')\nprint('A3 anchors + launcher verified; outputs absent; api_call_performed=false')\n\"",
+  "exit_code": 0,
+  "started_at": "2026-07-10T16:38:47Z",
+  "finished_at": "2026-07-10T16:38:47Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "0e1caf438873954ae445593cc3eceaa51fb1dfd3",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-v3-a3-launcher-ready-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

@@ -1,0 +1,1 @@
+A3 anchors + launcher verified; outputs absent; api_call_performed=false
