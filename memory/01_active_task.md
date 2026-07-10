@@ -1,9 +1,9 @@
 # Active Task
 
-> Refreshed 2026-07-10 after v2 void before Run 1. Source surfaces: v1 void
-> chain through `8fb0b67d`, qualified v2 execution chain through `ddb6cf7b`,
-> retained v2 precheck receipts, and synchronized `PLAN.md`.
-> Claim: lifecycle disposition only; no experiment outcome is claimed.
+> Refreshed 2026-07-10 after the v3 offline dress rehearsal. Source surfaces:
+> v1/v2 void chains, qualified v2 execution chain through `ddb6cf7b`, v3
+> dress-rehearsal receipts, and synchronized `PLAN.md`.
+> Claim: offline setup evidence only; no experiment outcome is claimed.
 
 ## Current Focus
 
@@ -44,6 +44,14 @@
   Arm A scratch root lacked the task file and seed commit, which exposed that
   v2 did not bind seed construction/tree hash. No Codex session or API
   transmission started. Zero-amendment rules prohibit repairing or reusing it.
+- **v3 offline dress rehearsal completed; v3 remains unregistered.** The
+  rehearsal created a fresh launcher-user-owned scratch root, demonstrated the
+  literal JSON seed mutation, recorded tree/task hashes, and confirmed the
+  frozen one-mismatch mutation probe with a clean post-probe state. It assembled
+  but did not execute the package-context launcher (`api_call_performed=false`).
+  Two setup/serialization failures are retained. The next action requires a
+  separate owner-approved v3 preregistration freeze; no transmission authority
+  or run exists for v3.
 - No other active autonomous implementation slice. The retire-candidate
   cleanup line is fully resolved as of pushed commit `81124cec`; the
   closeout memory-authority fixture carry-forward is resolved as of pushed
@@ -186,10 +194,10 @@
 
 1. Keep v1 and v2 stopped. Do not use the prior v2 authorization for a
    successor line.
-2. If the owner wants to retry, separately scope and approve a v3
-   pre-registration that binds seed construction and a seed-tree hash before
-   any transmission authorization.
-3. Do not start any run, scoring, or ledger update from v1 or v2.
+2. If the owner wants to continue, separately scope and approve a v3
+   pre-registration freeze that copies the demonstrated procedure and hashes;
+   then obtain new transmission authorization in a later slice.
+3. Do not start any run, scoring, or ledger update from v1, v2, or v3.
 
 ## Historical Context Retained
 

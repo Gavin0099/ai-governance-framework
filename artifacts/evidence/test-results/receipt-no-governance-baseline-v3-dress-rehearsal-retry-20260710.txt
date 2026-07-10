@@ -1,0 +1,17 @@
+warning: in the working copy of 'AGENTS.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'CHECKLIST.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'contract.yaml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'fixtures/fixture_manifest.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'validators/architecture_drift_validator.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'validators/driver_evidence_validator.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'validators/failure_completeness_validator.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'validators/refactor_evidence_validator.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'fixtures/architecture_drift_compliant.checks.json', LF will be replaced by CRLF the next time Git touches it
+Mutation probe did not produce the frozen one-mismatch result
+At D:\ai-governance-framework\artifacts\evidence\test-results\run-no-governance-baseline-v3-dress-rehearsal-20260710.ps
+1:63 char:5
++     throw "Mutation probe did not produce the frozen one-mismatch res ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Mutation probe ...mismatch result:String) [], RuntimeException
+    + FullyQualifiedErrorId : Mutation probe did not produce the frozen one-mismatch result
+ 

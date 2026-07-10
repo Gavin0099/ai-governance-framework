@@ -1,0 +1,18 @@
+At D:\ai-governance-framework\artifacts\evidence\test-results\run-no-governance-baseline-v3-dress-rehearsal-20260710.ps
+1:11 char:38
++ $injected = "$original`n#include \"../database_service/Global.h\""
++                                      ~
+You must provide a value expression following the '..' operator.
+At D:\ai-governance-framework\artifacts\evidence\test-results\run-no-governance-baseline-v3-dress-rehearsal-20260710.ps
+1:11 char:39
++ $injected = "$original`n#include \"../database_service/Global.h\""
++                                       ~
+You must provide a value expression following the '/' operator.
+At D:\ai-governance-framework\artifacts\evidence\test-results\run-no-governance-baseline-v3-dress-rehearsal-20260710.ps
+1:11 char:39
++ $injected = "$original`n#include \"../database_service/Global.h\""
++                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Unexpected token 'database_service/Global.h\""' in expression or statement.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : ExpectedValueExpression
+ 

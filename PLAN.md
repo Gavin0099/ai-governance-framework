@@ -188,6 +188,13 @@ Current next candidate:
   retain a matching package check. Scratch roots must be created outside the
   sandbox by launcher user `daish`; no amendment is allowed after the v2 freeze.
 
+- [x] v3 offline dress rehearsal completed without an API call. It demonstrated
+  fresh scratch construction, literal JSON seed mutation, mutation-probe
+  behavior (8 fixtures / 7 matched / 1 named mismatch), clean post-probe state,
+  seed-tree hash `27b7d8f9e7c7b7bccce5d47ce991c92a6e3fea71`, and assembled
+  package-context launcher arguments. v3 is not preregistered or authorized to
+  run; see `docs/status/no-governance-baseline-v3-offline-dress-rehearsal-2026-07-10.md`.
+
 - [x] Decision note keeps the AUTHORITY_MANIFEST preflight path in Unreleased
   candidate-only state until a named real harness consumer and evidence
   contract are separately scoped:

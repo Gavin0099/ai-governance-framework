@@ -1,0 +1,9 @@
+warning: in the working copy of 'AGENTS.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'CHECKLIST.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'contract.yaml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'fixtures/fixture_manifest.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'validators/architecture_drift_validator.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'validators/driver_evidence_validator.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'validators/failure_completeness_validator.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'validators/refactor_evidence_validator.py', LF will be replaced by CRLF the next time Git touches it
+PASS v3 offline dress rehearsal completed; api_call_performed=false; seed_tree_hash=27b7d8f9e7c7b7bccce5d47ce991c92a6e3fea71

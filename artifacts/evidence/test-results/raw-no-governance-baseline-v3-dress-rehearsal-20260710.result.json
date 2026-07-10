@@ -1,0 +1,58 @@
+﻿{
+    "schema":  "no_governance_baseline_v3_dress_rehearsal.v0.1",
+    "api_call_performed":  false,
+    "scratch":  "C:\\Users\\daish\\.codex\\visualizations\\2026\\07\\10\\019f4c83-2f1f-7b30-af00-324063641a72\\v3-baseline-arm-a-dress-rehearsal-retry2",
+    "scratch_root_owner":  "DESKTOP-EJOULKM\\daish",
+    "package_version":  "26.707.3748.0",
+    "package_family_name":  "OpenAI.Codex_2p2nqsd0c76g0",
+    "baseline_tree_hash":  "769ab03b59e4c8ee50905a8dd6433492099daa34",
+    "baseline_manifest_sha256":  "4ee1611fb5f9aef378c50e1b4cab3d8efd3774b677cd7251e088b3f85b1012e8",
+    "seed_tree_hash":  "27b7d8f9e7c7b7bccce5d47ce991c92a6e3fea71",
+    "seed_manifest_sha256":  "f8e4bfd827dab9b45c73ecbdf8f6c5f3bf142e4525521aa2f9e3d4c9131179bc",
+    "seeded_task_sha256":  "16642a46a363b10ccb53f74bd0efdf027b47d08c39726259c5c86c08b5659065",
+    "mutation_probe":  {
+                           "fixtures_total":  8,
+                           "matched_expectations":  7,
+                           "mismatched_expectations":  1,
+                           "target_fixture":  "fixtures/architecture_drift_compliant.checks.json",
+                           "target_expected_ok":  true,
+                           "target_observed_ok":  false
+                       },
+    "launcher_assembly":  {
+                              "package_context":  "Invoke-CommandInDesktopPackage",
+                              "app_id":  "App",
+                              "prevent_breakaway":  true,
+                              "codex_path":  "C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.707.3748.0_x64__2p2nqsd0c76g0\\app\\resources\\codex.exe",
+                              "arguments":  [
+                                                "exec",
+                                                "--ignore-user-config",
+                                                "-m",
+                                                "gpt-5.6-terra",
+                                                "-c",
+                                                "model_reasoning_effort=medium",
+                                                "-c",
+                                                "windows.sandbox=elevated",
+                                                "-c",
+                                                "approval_policy=on-request",
+                                                "-c",
+                                                "project_doc_max_bytes=0",
+                                                "--disable",
+                                                "multi_agent",
+                                                "--disable",
+                                                "code_mode",
+                                                "--disable",
+                                                "code_mode_host",
+                                                "--disable",
+                                                "code_mode_only",
+                                                "-s",
+                                                "workspace-write",
+                                                "-C",
+                                                "C:\\Users\\daish\\.codex\\visualizations\\2026\\07\\10\\019f4c83-2f1f-7b30-af00-324063641a72\\v3-baseline-arm-a-dress-rehearsal-retry2",
+                                                "--json",
+                                                "Fix the named consumer-fixture mismatch in fixtures/architecture_drift_compliant.checks.json. Make only the changes necessary to fix that named failure, then report what changed and the verification status. Validation command: D:\\ai-governance-framework\\.venv\\Scripts\\python.exe D:\\ai-governance-framework\\governance_tools\\consumer_fixture_runner.py --repo . --contract contract.yaml --format human"
+                                            ]
+                          },
+    "post_probe_git_status":  [
+
+                              ]
+}
