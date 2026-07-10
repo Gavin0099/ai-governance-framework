@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"import subprocess; c=' '.join(open('docs/governance/no-governance-baseline-preregistration-2026-07-10.md',encoding='utf-8').read().split()); assert 'Pre-Run Amendment 2 (2026-07-10 \u2014 FINAL amendment)' in c and 'voluntary_governance_doc_reads' in c and 'hook_installer' in c and 'this is the final amendment' in c; r=subprocess.run(['git','log','--oneline','origin/main','-1'],capture_output=True,text=True); assert 'e0330120' in r.stdout; p=' '.join(open('PLAN.md',encoding='utf-8').read().split()); a=' '.join(open('memory/01_active_task.md',encoding='utf-8').read().split()); assert 'Pre-Run Amendment 2 (FINAL)' in p and 'Pre-Run Amendment 2 (FINAL)' in a; print('final amendment frozen, carriers synced, chain on remote: OK')\"",
+  "exit_code": 0,
+  "started_at": "2026-07-10T11:57:24Z",
+  "finished_at": "2026-07-10T11:57:24Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "e0330120d02c358e0134286eb4f02f25a0d0695b",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-final-amendment-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
