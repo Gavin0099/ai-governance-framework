@@ -141,6 +141,48 @@ def _git_commit_exists(project_root: Path, commit_hash: str) -> bool:
     return completed.returncode == 0
 
 
+def _git_commits_exist(
+    project_root: Path, commit_hashes: Sequence[str]
+) -> dict[str, bool]:
+    unique_hashes = sorted({
+        commit_hash.strip().lower()
+        for commit_hash in commit_hashes
+        if commit_hash.strip()
+    })
+    if not unique_hashes:
+        return {}
+
+    query = "".join(f"{commit_hash}^{{commit}}\n" for commit_hash in unique_hashes)
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(project_root), "cat-file", "--batch-check"],
+            input=query,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=10,
+        )
+    except Exception:
+        return {
+            commit_hash: _git_commit_exists(project_root, commit_hash)
+            for commit_hash in unique_hashes
+        }
+
+    if completed.returncode != 0:
+        return {
+            commit_hash: _git_commit_exists(project_root, commit_hash)
+            for commit_hash in unique_hashes
+        }
+
+    results: dict[str, bool] = {}
+    for commit_hash, line in zip(unique_hashes, completed.stdout.splitlines()):
+        parts = line.split()
+        results[commit_hash] = len(parts) >= 2 and parts[1] == "commit"
+    for commit_hash in unique_hashes:
+        results.setdefault(commit_hash, False)
+    return results
+
+
 def _json_session_id_matches(path: Path, session_id: str) -> bool:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -169,7 +211,13 @@ def _session_id_has_artifact_provenance(project_root: Path, session_id: str) -> 
     return any(path.is_file() for path in claim_paths)
 
 
-def _entry_is_bound(block: str, project_root: Path | None = None) -> tuple[bool, str]:
+def _entry_is_bound(
+    block: str,
+    project_root: Path | None = None,
+    *,
+    has_git_worktree: bool | None = None,
+    commit_exists_cache: dict[str, bool] | None = None,
+) -> tuple[bool, str]:
     """
     Returns (is_bound, reason).
 
@@ -186,12 +234,25 @@ def _entry_is_bound(block: str, project_root: Path | None = None) -> tuple[bool,
     has_uncommitted = bool(_COMMIT_UNCOMMITTED.search(block))
 
     # Real hash takes precedence
-    if commit_matches and (
-        project_root is None
-        or not _project_has_git_worktree(project_root)
-        or any(_git_commit_exists(project_root, commit_hash) for commit_hash in commit_matches)
-    ):
-        return True, "ok"
+    if commit_matches:
+        if project_root is None:
+            return True, "ok"
+        git_worktree = (
+            has_git_worktree
+            if has_git_worktree is not None
+            else _project_has_git_worktree(project_root)
+        )
+        if not git_worktree:
+            return True, "ok"
+        if any(
+            (
+                commit_exists_cache.get(commit_hash.lower())
+                if commit_exists_cache is not None
+                else _git_commit_exists(project_root, commit_hash)
+            )
+            for commit_hash in commit_matches
+        ):
+            return True, "ok"
     # session_id is a valid fallback only when an existing runtime artifact
     # anchors that session_id; an arbitrary non-empty token is not provenance.
     if project_root is not None and any(
@@ -439,6 +500,9 @@ def _test_evidence_durability_violation(
     block: str,
     project_root: Path | None,
     filename: str,
+    *,
+    has_git_worktree: bool | None = None,
+    ignored_path_cache: dict[str, bool] | None = None,
 ) -> tuple[str, str] | None:
     """R3 Option C: evidence artifacts must survive a fresh checkout.
 
@@ -467,7 +531,14 @@ def _test_evidence_durability_violation(
         )
         is not None
     ]
-    if not existing or not _project_has_git_worktree(project_root):
+    if not existing:
+        return None
+    git_worktree = (
+        has_git_worktree
+        if has_git_worktree is not None
+        else _project_has_git_worktree(project_root)
+    )
+    if not git_worktree:
         return None
 
     valid_receipts = [
@@ -476,7 +547,15 @@ def _test_evidence_durability_violation(
     if not valid_receipts:
         return None
 
-    if all(_git_path_is_ignored(project_root, path) for path in valid_receipts):
+    def path_is_ignored(path: Path) -> bool:
+        if ignored_path_cache is None:
+            return _git_path_is_ignored(project_root, path)
+        key = str(path.resolve())
+        if key not in ignored_path_cache:
+            ignored_path_cache[key] = _git_path_is_ignored(project_root, path)
+        return ignored_path_cache[key]
+
+    if all(path_is_ignored(path) for path in valid_receipts):
         return (
             "test_evidence_artifact_not_durable",
             "all_existing_evidence_receipts_are_gitignored",
@@ -766,6 +845,8 @@ def check_daily_memory(
     daily_files = sorted(
         p for p in memory_root.glob('*.md') if _is_daily_file(p)
     )
+    file_entries: list[tuple[Path, list[str]]] = []
+    commit_hashes: list[str] = []
     for fpath in daily_files:
         try:
             text = fpath.read_text(encoding='utf-8')
@@ -779,8 +860,8 @@ def check_daily_memory(
             })
             continue
 
-        entries = _ENTRY_SPLIT.split(text)
-        for block in entries:
+        blocks: list[str] = []
+        for block in _ENTRY_SPLIT.split(text):
             stripped = block.strip()
             if not (
                 stripped.startswith('- what changed:')
@@ -788,8 +869,27 @@ def check_daily_memory(
                 or stripped.startswith('- memory_type:')
             ):
                 continue
+            blocks.append(block)
+            commit_hashes.extend(_COMMIT_RESOLVED.findall(block))
+        file_entries.append((fpath, blocks))
+
+    has_git_worktree: bool | None = None
+    commit_exists_cache: dict[str, bool] | None = None
+    if project_root is not None:
+        has_git_worktree = _project_has_git_worktree(project_root)
+        if has_git_worktree:
+            commit_exists_cache = _git_commits_exist(project_root, commit_hashes)
+    ignored_path_cache: dict[str, bool] = {}
+
+    for fpath, entries in file_entries:
+        for block in entries:
             total_entries += 1
-            bound, reason = _entry_is_bound(block, project_root)
+            bound, reason = _entry_is_bound(
+                block,
+                project_root,
+                has_git_worktree=has_git_worktree,
+                commit_exists_cache=commit_exists_cache,
+            )
             if bound:
                 bound_entries += 1
             else:
@@ -825,7 +925,11 @@ def check_daily_memory(
                 })
 
             durability_violation = _test_evidence_durability_violation(
-                block, project_root, fpath.name
+                block,
+                project_root,
+                fpath.name,
+                has_git_worktree=has_git_worktree,
+                ignored_path_cache=ignored_path_cache,
             )
             if durability_violation:
                 durability_code, durability_reason = durability_violation

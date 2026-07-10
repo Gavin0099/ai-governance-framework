@@ -367,3 +367,84 @@ class TestActiveNonCanonicalWriterSentinel:
         assert active["count"] == 1
         assert active["violations"][0]["file"] == "2026-06-09.md"
         assert active["violations"][0]["code"] == "non_canonical_writer"
+
+
+class TestRepoAwareCommitBinding:
+    def test_repo_aware_scan_accepts_existing_commit_anchor(self, tmp_path):
+        subprocess.run(
+            ["git", "-C", str(tmp_path), "init"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True,
+        )
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(tmp_path),
+                "config",
+                "user.email",
+                "test@example.invalid",
+            ],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(tmp_path), "config", "user.name", "Test User"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(tmp_path), "commit", "--allow-empty", "-m", "seed"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True,
+        )
+        head = subprocess.run(
+            ["git", "-C", str(tmp_path), "rev-parse", "HEAD"],
+            stdout=subprocess.PIPE,
+            text=True,
+            check=True,
+        ).stdout.strip()
+
+        mem = tmp_path / "memory"
+        mem.mkdir()
+        _write_daily(
+            mem,
+            POST_CUTOFF,
+            CANONICAL_ENTRY.replace("abc1234def5", head).replace(
+                "test-session-001", "missing-session"
+            ),
+        )
+
+        violations, coverage = check_daily_memory(mem, tmp_path)
+
+        unbound = [v for v in violations if v["code"] == "unbound_memory"]
+        assert coverage == {"total_entries": 1, "bound_entries": 1}
+        assert unbound == []
+
+    def test_repo_aware_scan_rejects_missing_commit_anchor(self, tmp_path):
+        subprocess.run(
+            ["git", "-C", str(tmp_path), "init"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True,
+        )
+        mem = tmp_path / "memory"
+        mem.mkdir()
+        _write_daily(
+            mem,
+            POST_CUTOFF,
+            CANONICAL_ENTRY.replace(
+                "abc1234def5",
+                "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+            ).replace("test-session-001", "missing-session"),
+        )
+
+        violations, coverage = check_daily_memory(mem, tmp_path)
+
+        unbound = [v for v in violations if v["code"] == "unbound_memory"]
+        assert coverage == {"total_entries": 1, "bound_entries": 0}
+        assert len(unbound) == 1
+        assert unbound[0]["reason"] == "commit_hash_not_found_session_id_provenance_not_found"
