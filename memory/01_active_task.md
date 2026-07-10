@@ -28,6 +28,16 @@
   further protocol gap voids Slice B. A1/A2/A3 were not run after the failed
   probe; no valid run, metric, score, or attribution conclusion exists. Any
   continuation requires a separately pre-registered v2 line.
+- **v2 Pre-0 execution-surface qualification blocked (2026-07-10).** No v2
+  preregistration was created. A disposable, gitignored repo at
+  `artifacts/runtime/v2-codex-write-probe` was tested with explicit
+  `windows.sandbox=elevated` plus `workspace-write`; Codex `apply_patch` was
+  rejected, and the sandbox log records
+  `orchestrator_helper_launch_failed` / `Access denied (os error 5)` while the
+  nested `.sandbox-bin` launcher attempted to start
+  `codex-windows-sandbox-setup.exe`. `write-probe.txt` is absent and the probe
+  repo remains clean at seed `cd9a667`. The qualification failed; no fallback
+  to `unelevated` or full access was attempted.
 - No other active autonomous implementation slice. The retire-candidate
   cleanup line is fully resolved as of pushed commit `81124cec`; the
   closeout memory-authority fixture carry-forward is resolved as of pushed
@@ -168,10 +178,12 @@
 
 ## Next Steps
 
-1. Stop the v1 experiment line; retain all failed-attempt and probe receipts.
-2. Do not run A1/A2/A3 or any governed arm under this registration.
-3. If the owner wants to continue, open a separate v2 pre-registration with a
-   proven writable Codex execution surface before freezing any task protocol.
+1. Keep v1 stopped and do not create a v2 preregistration yet.
+2. Repair or re-establish a native Windows Codex sandbox surface where the
+   elevated setup helper can launch and `workspace-write` can apply one patch.
+3. Re-run Pre-0 as a separately bounded probe; only a semantic PASS authorizes
+   a later v2 preregistration. Do not silently fall back to `unelevated` or
+   full access.
 
 ## Historical Context Retained
 

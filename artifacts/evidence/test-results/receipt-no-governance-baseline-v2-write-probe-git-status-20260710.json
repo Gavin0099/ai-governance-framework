@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git -C D:\\ai-governance-framework\\artifacts\\runtime\\v2-codex-write-probe status --porcelain=v1",
+  "exit_code": 0,
+  "started_at": "2026-07-10T12:59:48Z",
+  "finished_at": "2026-07-10T12:59:48Z",
+  "runner": "codex-v2-pre0-poststate",
+  "linked_commit": "c5f7a5010c235362458aad07f8104eea096e0e4d",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-no-governance-baseline-v2-write-probe-git-status-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
