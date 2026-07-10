@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"import subprocess; r=subprocess.run(['git','show','--name-only','--pretty=format:','ecc17c58'],capture_output=True,text=True); files=sorted(l for l in r.stdout.splitlines() if l.strip()); assert files==['docs/status/governance-self-audit-backlog.md','docs/status/next-steps.md','memory/01_active_task.md'], files; a=open('memory/01_active_task.md',encoding='utf-8').read(); n=open('docs/status/next-steps.md',encoding='utf-8').read(); b=open('docs/status/governance-self-audit-backlog.md',encoding='utf-8').read(); assert 'blocked on owner instantiation decisions' in a and '91178201' in a and 'af22e2df' in a; assert 'may lag the active task state' in n; assert 'remains **unresolved** until' in b; print('authority carriers synced at ecc17c58: OK')\"",
+  "exit_code": 0,
+  "started_at": "2026-07-10T11:20:56Z",
+  "finished_at": "2026-07-10T11:20:56Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "ecc17c58168e10218a25636a4b9a1411e3e75e27",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-authority-carrier-sync-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
