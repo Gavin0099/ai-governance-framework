@@ -1,0 +1,8 @@
+...................                                                      [100%]
+============================== warnings summary ===============================
+.venv\Lib\site-packages\_pytest\cacheprovider.py:475
+  D:\ai-governance-framework\.venv\Lib\site-packages\_pytest\cacheprovider.py:475: PytestCacheWarning: could not create cache path D:\ai-governance-framework\.pytest_cache\v\cache\nodeids: [WinError 183] 當檔案已存在時，無法建立該檔案。: 'D:\\ai-governance-framework\\.pytest_cache\\v\\cache'
+    config.cache.set("cache/nodeids", sorted(self.cached_nodeids))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+19 passed, 1 warning in 1.89s

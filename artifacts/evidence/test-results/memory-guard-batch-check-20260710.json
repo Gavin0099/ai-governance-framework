@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".venv\\Scripts\\python.exe -m pytest tests\\test_memory_authority_guard.py -q --basetemp D:\\ai-governance-framework\\.tmp_pytest_memory_guard",
+  "exit_code": 0,
+  "started_at": "2026-07-10T06:30:19Z",
+  "finished_at": "2026-07-10T06:30:22Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "c260c146a03c1669542c6f2888dce307e64aa840",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/memory-guard-batch-check-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
