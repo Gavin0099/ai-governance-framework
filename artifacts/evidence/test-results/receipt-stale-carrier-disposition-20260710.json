@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"import subprocess; r=subprocess.run(['git','show','--name-only','--pretty=format:','91178201'],capture_output=True,text=True); files=sorted(l for l in r.stdout.splitlines() if l.strip()); assert files==['docs/status/governance-self-audit-backlog.md','docs/status/next-steps.md'], files; b=open('docs/status/governance-self-audit-backlog.md',encoding='utf-8').read(); n=open('docs/status/next-steps.md',encoding='utf-8').read(); assert 'Disposition status (2026-07-10)' in b and 'superseded, tool not built' in b; assert 'Stale carrier notice (2026-07-10)' in n; print('stale carrier dispositions verified at 91178201: OK')\"",
+  "exit_code": 0,
+  "started_at": "2026-07-10T11:13:30Z",
+  "finished_at": "2026-07-10T11:13:30Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "911782018b47cde832ecaff143dea4687ca52118",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-stale-carrier-disposition-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
