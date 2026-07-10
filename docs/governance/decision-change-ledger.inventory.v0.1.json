@@ -975,6 +975,16 @@
       "observation": "_classification_governance_smoke.py at repo root references classification_session_summary but is itself not wired to CI, hooks, or scripts.",
       "recommended_action": "investigate",
       "rationale": "The smoke script and the tool it exercises should be reviewed together."
+    },
+    {
+      "id": "no_governance_baseline_v3_result",
+      "observation": "The pre-registered no-governance baseline experiment (v3) completed 6/6 runs and scored no_measurable_difference on the four mechanical metrics: three metrics tied at zero in every run; artifact_pollution differed only in one governed run (B1 cleanup). Framework behavioral-effect claims are narrowed to unproven on this task class per the pre-committed disposition.",
+      "recommended_action": "raise_priority_of_retire_merge_for_runtime-behavior-justified_surfaces",
+      "rationale": "Binding consequence of the v1 pre-committed disposition table (af22e2df) applied to the v3 outcome; scoped to one task class, one model, one harness, package 26.707.3748.0; not statistical validation and not a mass-retirement mandate.",
+      "evidence": {
+        "scoring_artifact": "artifacts/evidence/test-results/scoring-no-governance-baseline-v3-20260711.json",
+        "closure_doc": "docs/status/no-governance-baseline-v3-scoring-2026-07-11.md"
+      }
     }
   ],
   "followups": {

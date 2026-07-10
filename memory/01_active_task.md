@@ -1,11 +1,28 @@
 # Active Task
 
-> Refreshed 2026-07-10 after the v3 offline dress rehearsal. Source surfaces:
-> v1/v2 void chains, qualified v2 execution chain through `ddb6cf7b`, v3
-> dress-rehearsal receipts, and synchronized `PLAN.md`.
-> Claim: offline setup evidence only; no experiment outcome is claimed.
+> Refreshed 2026-07-11 after the v3 blind-scoring closure. Source surfaces:
+> six run archives, the scoring artifact and closure doc, the ledger
+> observation, and the resolved self-audit backlog.
+> Claim: the v3 outcome claim is exactly the scored disposition, no more.
 
 ## Current Focus
+
+- **COMPLETED and FROZEN: No-Governance Baseline v3.** All six pre-registered
+  runs (A1-A3, B1-B3) completed with scoreable output under the frozen
+  launcher and package `26.707.3748.0`, each executed personally by the
+  owner. Blind scoring recorded `no_measurable_difference`: three metrics
+  tied at zero in every run; `artifact_pollution` differed only in one
+  governed run (B1 cleanup, retained as an unclaimed single-run
+  observation). Binding pre-committed consequences: framework
+  behavioral-effect claims are narrowed to unproven on this task class, and
+  retire/merge priority rises for surfaces justified only by runtime
+  behavior improvement; no mass retirement is mandated. Closure:
+  `docs/status/no-governance-baseline-v3-scoring-2026-07-11.md`; ledger
+  observation `no_governance_baseline_v3_result`; backlog P0 #2 resolved.
+  The v3 line accepts no further runs, metrics, or reinterpretations.
+- **No active implementation slice.** The next workline decision belongs to
+  the owner; the ledger observation recommends raising the priority of
+  retire/merge lines for runtime-behavior-justified surfaces.
 
 - **Voided experiment line: No-Governance Baseline Runs Slice B.** Pre-registered
   at `docs/governance/no-governance-baseline-preregistration-2026-07-10.md`
