@@ -28,18 +28,17 @@
   further protocol gap voids Slice B. A1/A2/A3 were not run after the failed
   probe; no valid run, metric, score, or attribution conclusion exists. Any
   continuation requires a separately pre-registered v2 line.
-- **v2 Pre-0 parked before preregistration (2026-07-10).** No v2
-  preregistration was created. The first attempt failed because nested
-  `.sandbox-bin` Codex lacked the package identity required to execute
-  `codex-windows-sandbox-setup.exe`. An owner-authorized B attempt then used
-  `Invoke-CommandInDesktopPackage`, PFN `OpenAI.Codex_2p2nqsd0c76g0`, AppId
-  `App`, `-PreventBreakaway`, package `26.707.3748.0`, native `elevated`, and
-  `workspace-write`. The helper launched but failed to grant the write ACE on
-  the reused scratch root (`SetNamedSecurityInfoW failed: 5`): the directory
-  owner is `CodexSandboxOffline`, while the launching user has inherited
-  Modify but not `WRITE_DAC`. `write-probe.txt` remains absent. Per the
-  owner-approved kill criterion, the line is parked; no retry and no fallback
-  to `unelevated` or full access occurred.
+- **v2 Pre-0 execution surface qualified (2026-07-10); preregistration not yet
+  created.** The final capped attempt used a fresh disposable repo whose root
+  was created by launcher user `daish`, plus the identical package-context
+  launcher: `Invoke-CommandInDesktopPackage`, PFN
+  `OpenAI.Codex_2p2nqsd0c76g0`, AppId `App`, `-PreventBreakaway`, package
+  `26.707.3748.0`, native `elevated`, and `workspace-write`. Helper setup
+  completed with `errors=[]`; `apply_patch` created the sole changed file with
+  exact bytes `workspace-write-ok\n`, and readback/status succeeded. This
+  resolves the prior package-identity and reused-scratch ownership blockers.
+  Qualification is bound to this launcher/package version. All future v2
+  scratch repos must be created by the launcher user outside sandbox context.
 - No other active autonomous implementation slice. The retire-candidate
   cleanup line is fully resolved as of pushed commit `81124cec`; the
   closeout memory-authority fixture carry-forward is resolved as of pushed
@@ -180,13 +179,12 @@
 
 ## Next Steps
 
-1. Keep v1 stopped; v2 remains unregistered and parked.
-2. Do not retry the B probe, change the scratch ACL/owner, or fall back to
-   `unelevated` / full access within this line.
-3. Any continuation requires an explicit owner decision to reopen a separately
-   bounded qualification on a fresh disposable repo owned by the launching
-   user. Qualification remains bound to the identical ICIDP launcher and
-   package version; only a semantic write PASS can authorize preregistration.
+1. Keep v1 stopped. Pre-0 is qualified, but v2 remains unregistered.
+2. The next separately bounded slice may draft and freeze v2 preregistration
+   using the qualified ICIDP launcher/package version and the launcher-user
+   scratch-ownership rule.
+3. Do not start any A/B run until that v2 preregistration is committed and
+   pushed. Re-run qualification after any launcher or package-version change.
 
 ## Historical Context Retained
 

@@ -164,19 +164,20 @@ Current next candidate:
   protocol gap named by the hard lock, so Slice B is void. No valid baseline
   run or score exists; continuation requires a separate v2 pre-registration.
 
-- [ ] v2 Pre-0 is parked before preregistration after two semantic failures.
-  The first attempt used nested `.sandbox-bin` Codex and could not launch the
-  package-protected sandbox helper. Read-only diagnosis confirmed the
-  package-identity conditional execute ACE. An owner-authorized second attempt
-  used `Invoke-CommandInDesktopPackage`, PFN
-  `OpenAI.Codex_2p2nqsd0c76g0`, AppId `App`, `-PreventBreakaway`, package
-  `26.707.3748.0`, native `elevated`, and `workspace-write`. The helper then
-  launched, but could not grant the write ACE on the reused scratch root:
-  `SetNamedSecurityInfoW failed: 5`. That root is owned by
-  `CodexSandboxOffline`; the launching user has inherited Modify but not
-  `WRITE_DAC`. `write-probe.txt` remains absent and no v2 preregistration
-  exists. Per the owner-approved kill criterion, do not retry or fall back to
-  `unelevated` / full access from this line.
+- [x] v2 Pre-0 execution-surface qualification passed on the final authorized
+  attempt; no v2 preregistration exists yet. The first attempt failed before
+  helper launch because nested `.sandbox-bin` Codex lacked package identity.
+  The second used the correct package-context launcher but reused a scratch
+  root owned by `CodexSandboxOffline`, so write-ACE setup failed. The final,
+  capped attempt used a fresh disposable repo whose root was created by
+  launcher user `daish`, plus the identical `Invoke-CommandInDesktopPackage`
+  launcher, PFN `OpenAI.Codex_2p2nqsd0c76g0`, AppId `App`,
+  `-PreventBreakaway`, package `26.707.3748.0`, native `elevated`, and
+  `workspace-write`. Helper setup completed with `errors=[]`; `apply_patch`
+  created the sole changed file, whose exact bytes are
+  `workspace-write-ok\n`, and readback/status succeeded. Future v2 scratch
+  repos must be created by the launcher user outside sandbox context;
+  qualification does not transfer across launcher or package version.
 
 - [x] Decision note keeps the AUTHORITY_MANIFEST preflight path in Unreleased
   candidate-only state until a named real harness consumer and evidence

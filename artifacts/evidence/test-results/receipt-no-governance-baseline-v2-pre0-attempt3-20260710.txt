@@ -1,0 +1,1 @@
+{"exit_code":0,"started_at":"2026-07-10T13:48:55.0181436Z","finished_at":"2026-07-10T13:49:11.1982059Z","package_context":true,"prevent_breakaway":true,"scratch_root_owner":"DESKTOP-EJOULKM\\daish"}

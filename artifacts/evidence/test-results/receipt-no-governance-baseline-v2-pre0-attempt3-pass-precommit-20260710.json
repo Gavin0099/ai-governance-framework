@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "powershell.exe -NoProfile -File artifacts/evidence/test-results/validate-no-governance-baseline-v2-pre0-attempt3-pass-20260710.ps1",
+  "exit_code": 0,
+  "started_at": "2026-07-10T13:51:20Z",
+  "finished_at": "2026-07-10T13:51:21Z",
+  "runner": "codex-v2-pre0-attempt3-semantic-pass-validator",
+  "linked_commit": "e775e2ca1675ab1aab7038704543d29a780e18ad",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-no-governance-baseline-v2-pre0-attempt3-pass-precommit-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
