@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 from unittest.mock import patch
@@ -46,6 +47,17 @@ def _reset(name: str) -> Path:
 
 def _run(repo: Path) -> dict:
     return run_session_end_hook(repo)
+
+
+def _existing_commit_line() -> str:
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=Path(__file__).parent.parent,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    return f"- commit hash: {result.stdout.strip()}\n"
 
 
 # ── Criterion 1-5: surface shape ─────────────────────────────────────────────
@@ -143,7 +155,7 @@ class TestUnboundMemoryDetection:
         (repo / "memory" / "2026-05-01.md").write_text(
             "# 2026-05-01\n\n"
             "- what changed: added feature Y to src/y.py\n"
-            "- commit hash: abc1234\n",
+            + _existing_commit_line(),
             encoding="utf-8",
         )
         result = _run(repo)
@@ -154,7 +166,7 @@ class TestUnboundMemoryDetection:
         (repo / "memory" / "2026-05-01.md").write_text(
             "# 2026-05-01\n\n"
             "- what changed: minor fix\n"
-            "- commit hash: def5678\n",
+            + _existing_commit_line(),
             encoding="utf-8",
         )
         result = _run(repo)
@@ -215,7 +227,7 @@ class TestSnapshotStability:
         (repo / "memory" / "2026-05-01.md").write_text(
             "# 2026-05-01\n\n"
             "- what changed: snap coverage test\n"
-            "- commit hash: aabbcc1\n",
+            + _existing_commit_line(),
             encoding="utf-8",
         )
         ma = _run(repo)["memory_authority"]
@@ -314,7 +326,7 @@ class TestCleanVsGuardErrorDistinguishable:
         (repo / "memory" / "2026-05-01.md").write_text(
             "# 2026-05-01\n\n"
             "- what changed: clean entry\n"
-            "- commit hash: abc1234\n",
+            + _existing_commit_line(),
             encoding="utf-8",
         )
         ma = _run(repo)["memory_authority"]

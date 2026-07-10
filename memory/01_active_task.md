@@ -1,16 +1,16 @@
 # Active Task
 
-> Refreshed 2026-07-10 after fixture-runner routing fix.
-> Dedicated bookkeeping slice; source surfaces: pushed commit `05a4d8a3`,
+> Refreshed 2026-07-10 after AB cost backfill writer retirement.
+> Dedicated bookkeeping slice; source surfaces: pushed commit `81124cec`,
 > `memory/2026-07-10.md`, and live focused validation from this session.
 > Claim: point-in-time consistency with current repo state only; `PLAN.md` was
 > not changed in this refresh.
 
 ## Current Focus
 
-- **No active autonomous implementation slice.** Retire-candidate cleanup is
-  fully resolved as of `f899af7f`; the decision-change observation workline
-  continues.
+- **No active autonomous implementation slice.** The current retire-candidate
+  cleanup line is fully resolved as of pushed commit `81124cec`; the
+  decision-change observation workline continues.
 - Standing principle: **Validity before Expansion**. Do not add gates,
   enforcement, schema changes, or consumer-repo writes unless an observed
   failure or explicit user scope justifies them.
@@ -21,10 +21,11 @@
   exists for domain contract repos. It surfaces weak test-signal candidates and
   validator fixture-pair visibility; it is not a readiness gate or test-quality
   proof.
-- Current feature-gate candidate: decide whether `test_signal_quality_audit`
-  should consume `consumer_fixture_runner` execution results so reviewer output
-  can distinguish fixture-pair presence from fixture expectations that actually
-  execute and match.
+- Deferred feature-gate candidate: `test_signal_quality_audit` consuming
+  `consumer_fixture_runner` execution results is deferred because the proposed
+  failure is not observed at HEAD. Re-trigger only on the first real consumer
+  repo case where fixture pairs are present but runner output reports mismatch
+  or error.
 - Current design line: `decision-change-ledger.seed.json` and
   `context-cost-budget-design-2026-07-06.md` are observation/design artifacts.
   They do not retire defenses, measure token savings, or enforce context-budget
@@ -32,6 +33,18 @@
 
 ## Current Status
 
+- **AB cost backfill writer retired (2026-07-10)**: `81124cec` removed
+  `governance_tools/ab_cost_backfill_apply.py` after focused read-only review
+  confirmed it was a deprecated one-off writer with no active caller, no
+  dedicated tests, no CI/hook/script wiring, and no current scalar telemetry
+  input. Historical backfill data/report/docs remain provenance. Active cost
+  observation remains with `ab_cost_hygiene.py` and
+  `ab_cost_parity_audit.py`; their semantics were not changed.
+- **Feature-worthiness gate deferred (2026-07-10)**: the candidate to make
+  `test_signal_quality_audit` consume `consumer_fixture_runner` results did
+  not pass gate question 0. Live runner output at HEAD reported expected
+  fixture matches, so the failure "fixture pair exists but actual execution
+  mismatches" is evidence-needed, not observed.
 - **Validator fixture hardening completed (2026-07-10)**: `05a4d8a3`
   fixed `consumer_fixture_runner` routing so manifest `validator` entries take
   precedence over `expected_rule_ids`, active contract fixture discovery does
@@ -120,12 +133,14 @@
 
 ## Next Steps
 
-1. Run a feature-worthiness gate for whether `test_signal_quality_audit` should
-   consume `consumer_fixture_runner` execution results.
-2. If the gate passes, define a narrow implementation DONE before touching
+1. Select the next feature-worthiness gate candidate from existing observed
+   failures or owner-prioritized product needs.
+2. Run gate question 0 first: confirm the target failure still exists at HEAD
+   before opening any implementation slice.
+3. If the gate passes, define a narrow implementation DONE before touching
    tooling; if it does not pass, select the next candidate without adding
    ceremony.
-3. Retire-candidate work is complete; no deletion work is pending. Any further
+4. Retire-candidate work is complete; no deletion work is pending. Any further
    retirement requires a fresh inventory or cluster review first.
 
 ## Historical Context Retained
@@ -149,8 +164,11 @@
 - Cannot claim test quality is enforced or industry-grade.
 - Cannot claim fixture expectations are domain truth; `05a4d8a3` only proves
   the tracked fixture expectations execute and match their declared outcomes.
-- Cannot claim any governance defense beyond the four completed removals
+- Cannot claim the deferred `test_signal_quality_audit` runner-consumption
+  feature is needed until a real mismatch/error case is observed.
+- Cannot claim any governance defense beyond the completed removals
   (`promotion_gate_receipt_smoke.py`, `r49x4_metric_ranking.py`,
-  `clean_pilot_admissibility.py`, `host_agent_memory_sync_signal.py`) has
-  been retired, downgraded, or proven useless.
+  `clean_pilot_admissibility.py`, `host_agent_memory_sync_signal.py`,
+  `ab_cost_backfill_apply.py`) has been retired, downgraded, or proven
+  useless.
 - Cannot claim context savings were measured.
