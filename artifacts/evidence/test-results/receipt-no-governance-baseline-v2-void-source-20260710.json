@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "cmd.exe /c \"git show --check --format= b82b6582\"",
+  "exit_code": 2,
+  "started_at": "2026-07-10T15:17:22Z",
+  "finished_at": "2026-07-10T15:17:22Z",
+  "runner": "codex-v2-void-source-validation",
+  "linked_commit": "b82b658272fd0340049b5ef80f6b53239bb2356d",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-no-governance-baseline-v2-void-source-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

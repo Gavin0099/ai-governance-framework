@@ -1,0 +1,3 @@
+artifacts/evidence/test-results/receipt-no-governance-baseline-v2-arm-a-run1-precheck-void-20260710.txt:9: trailing whitespace.
++ 
+artifacts/evidence/test-results/receipt-no-governance-baseline-v2-arm-a-run1-precheck-void-20260710.txt:9: new blank line at EOF.
