@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"import subprocess; c=open('docs/governance/no-governance-baseline-preregistration-2026-07-10.md',encoding='utf-8').read(); n=' '.join(c.split()); assert 'Pre-run amendment' in n and 'Run exclusion rule (fixed before the first valid run)' in n and 'no framework files present in the working repo' in n; r=subprocess.run(['git','ls-files','--error-unmatch','artifacts/evidence/test-results/receipt-no-governance-baseline-a1-network-failed-20260710.json'],capture_output=True,text=True); assert r.returncode==0; r2=subprocess.run(['git','log','--oneline','origin/main','-1'],capture_output=True,text=True); assert '4057aa70' in r2.stdout; print('pre-run amendment, exclusion rule, A1 receipt tracked, freeze chain on remote: OK')\"",
+  "exit_code": 0,
+  "started_at": "2026-07-10T11:40:09Z",
+  "finished_at": "2026-07-10T11:40:09Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "4057aa70928006e09af48db48ca41258814b355d",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-prerun-amendment-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
