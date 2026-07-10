@@ -4,19 +4,21 @@
 **Context**: Derived from evaluating the framework's own evidence gaps and structural blind spots.
 
 > **Disposition status (2026-07-10):** P0 #1 is dispositioned (superseded);
-> P0 #2 has its ownership dispositioned into an active experiment line but
-> remains **unresolved** until that line's Slice D. This file is a
-> historical backlog record, not a current work queue.
+> P0 #2 v1 line voided at hard lock (2026-07-10); P0 #2 remains
+> **unresolved**; any continuation requires a v2 pre-registration. This
+> file is a historical backlog record, not a current work queue.
 > - P0 #1 (`governance_inflation_audit.py`): **superseded, tool not built.**
 >   Its intent was covered manually by the decision-change inventory-line
 >   pass (`docs/governance/decision-change-ledger.inventory.v0.1.json`,
 >   2026-07-06: 193 modules compared against wiring/output evidence) and the
 >   2026-07-10 surface-diet line. Building the tool now requires a new
 >   feature-worthiness gate pass; do not build it from this entry.
-> - P0 #2 (No-Governance Baseline Runs): **active experiment line.**
->   Pre-registered at
->   `docs/governance/no-governance-baseline-preregistration-2026-07-10.md`;
->   final disposition lands with that line's Slice D.
+> - P0 #2 (No-Governance Baseline Runs): **v1 line voided.** Pre-registered
+>   at `docs/governance/no-governance-baseline-preregistration-2026-07-10.md`;
+>   Slice B was voided under that line's FINAL-amendment hard lock after the
+>   mandatory write-capability probe failed (2026-07-10). P0 #2 remains
+>   unresolved; any continuation requires a separately pre-registered v2
+>   line, which must prove a writable execution surface before freezing.
 > - P1/P2 items below remain undispositioned historical candidates; any
 >   revival goes through the feature-worthiness gate first.
 
