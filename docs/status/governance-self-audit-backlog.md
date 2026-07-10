@@ -4,8 +4,9 @@
 **Context**: Derived from evaluating the framework's own evidence gaps and structural blind spots.
 
 > **Disposition status (2026-07-10):** P0 #1 is dispositioned (superseded);
-> P0 #2 v1 line voided at hard lock (2026-07-10); P0 #2 remains
-> **unresolved**; any continuation requires a v2 pre-registration. This
+> P0 #2 v1/v2 lines are voided and v3 is preregistered from completed Arm A/B
+> offline rehearsals. No v3 run or behavioral-effect evidence exists; a new
+> transmission authorization is required before Run 1. This
 > file is a historical backlog record, not a current work queue.
 > - P0 #1 (`governance_inflation_audit.py`): **superseded, tool not built.**
 >   Its intent was covered manually by the decision-change inventory-line
@@ -13,12 +14,10 @@
 >   2026-07-06: 193 modules compared against wiring/output evidence) and the
 >   2026-07-10 surface-diet line. Building the tool now requires a new
 >   feature-worthiness gate pass; do not build it from this entry.
-> - P0 #2 (No-Governance Baseline Runs): **v1 line voided.** Pre-registered
->   at `docs/governance/no-governance-baseline-preregistration-2026-07-10.md`;
->   Slice B was voided under that line's FINAL-amendment hard lock after the
->   mandatory write-capability probe failed (2026-07-10). P0 #2 remains
->   unresolved; any continuation requires a separately pre-registered v2
->   line, which must prove a writable execution surface before freezing.
+> - P0 #2 (No-Governance Baseline Runs): **v3 preregistered, not run.** v1 and
+>   v2 are retained void lines. v3 binds rehearsed seed/hook procedures and
+>   hashes at `docs/governance/no-governance-baseline-v3-preregistration-2026-07-10.md`.
+>   Do not start a run without a new explicit transmission authorization.
 > - P1/P2 items below remain undispositioned historical candidates; any
 >   revival goes through the feature-worthiness gate first.
 

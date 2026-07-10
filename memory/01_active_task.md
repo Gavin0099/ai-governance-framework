@@ -58,6 +58,12 @@
   pre-commit invocation with a clean poststate. The first trace-capture attempt
   is retained; a fresh retry root succeeded. No API call, sandbox session, v3
   preregistration, or run exists.
+- **v3 preregistration frozen; no run may start.** The protocol copies both
+  rehearsed arm procedures and hashes, locks launcher/package/provenance, and
+  pre-declares an Arm B package-context hook-environment exclusion only for
+  zero scoreable output. New explicit v3 transmission authorization is still
+  required before Run 1; no authorization, API call, session, run, score, or
+  attribution conclusion exists.
 - No other active autonomous implementation slice. The retire-candidate
   cleanup line is fully resolved as of pushed commit `81124cec`; the
   closeout memory-authority fixture carry-forward is resolved as of pushed
@@ -200,11 +206,10 @@
 
 1. Keep v1 and v2 stopped. Do not use the prior v2 authorization for a
    successor line.
-2. If the owner wants to continue, separately scope and approve a v3
-   pre-registration freeze that copies both demonstrated procedures/hashes and
-   pre-declares the package-context Arm B hook-environment exclusion rule; then
-   obtain new transmission authorization in a later slice.
-3. Do not start any run, scoring, or ledger update from v1, v2, or v3.
+2. Obtain a new explicit v3 authorization for OpenAI API transmission of the
+   task prompt and scratch-repo content only, then verify Run 1 preconditions.
+3. Do not start Runs 2–6, scoring, or a ledger update; first run only after
+   the new authorization.
 
 ## Historical Context Retained
 

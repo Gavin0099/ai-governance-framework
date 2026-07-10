@@ -203,6 +203,13 @@ Current next candidate:
   authorized to run; see
   `docs/status/no-governance-baseline-v3-arm-b-offline-dress-rehearsal-2026-07-10.md`.
 
+- [x] v3 preregistration frozen from both rehearsed arms at
+  `docs/governance/no-governance-baseline-v3-preregistration-2026-07-10.md`.
+  It binds the baseline/seed/task hashes, launcher/package/provenance locks,
+  both arm procedures, and a pre-declared zero-scoreable-output exclusion rule
+  for package-context Arm B hook-environment failure. No v3 API authorization,
+  session, run, score, or attribution conclusion exists.
+
 - [x] Decision note keeps the AUTHORITY_MANIFEST preflight path in Unreleased
   candidate-only state until a named real harness consumer and evidence
   contract are separately scoped:
