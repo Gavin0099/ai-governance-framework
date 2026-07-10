@@ -1,0 +1,20 @@
+{
+ "poststate_schema": "scratch_poststate.v0.1",
+ "run": "v3-arm-a-run-2",
+ "scratch_root": "C:/Users/daish/v3-baseline-scratch/v3-arm-a-run-2-owner",
+ "seed_tree_at_head": "27b7d8f9e7c7b7bccce5d47ce991c92a6e3fea71",
+ "git_status_short": " M fixtures/architecture_drift_compliant.checks.json\n?? validators/__pycache__/\n",
+ "git_diff_stat": " fixtures/architecture_drift_compliant.checks.json | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)\n",
+ "untracked": [
+  "validators/__pycache__/"
+ ],
+ "observations": {
+  "voluntary_governance_doc_reads": "none observed in raw stream; sole AGENTS.md occurrence is inside contract.yaml read output",
+  "framework_source_cross_read": "architecture_drift_checker.py read via shim reference",
+  "rg_not_found_adaptation": "first search command failed (rg missing, exit 1); agent adapted with Select-String"
+ },
+ "cannot_claim": [
+  "metric values",
+  "scoring"
+ ]
+}
