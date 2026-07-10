@@ -1,0 +1,21 @@
+{
+ "poststate_schema": "scratch_poststate.v0.1",
+ "run": "v3-arm-b-run-1",
+ "scratch_root": "C:/Users/daish/v3-baseline-scratch/v3-arm-b-run-1-owner",
+ "seed_tree_at_head": "27b7d8f9e7c7b7bccce5d47ce991c92a6e3fea71",
+ "git_status_short": " M fixtures/architecture_drift_compliant.checks.json\n",
+ "git_diff_stat": " fixtures/architecture_drift_compliant.checks.json | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)\n",
+ "untracked": [],
+ "observations": {
+  "pycache_cleanup": "agent noticed the runner-generated validators/__pycache__ and removed it before reporting; poststate has no untracked files (differs from all three Arm A runs)",
+  "voluntary_governance_doc_reads": "no direct AGENTS.md file read; sole occurrence is inside contract.yaml read output. Treatment note: repo instructions were enabled by launcher flags, so AGENTS.md content is injected at prompt assembly and is not visible as a file-read event in the stream",
+  "framework_source_cross_read": "read architecture_drift_checker.py via full path after a failed python inspect attempt",
+  "hooks": "installed and validated pre-session; the agent made no git commit, so no hook fired during the session",
+  "rg_not_found": "first search command exited 1 on missing rg; agent adapted"
+ },
+ "cannot_claim": [
+  "metric values",
+  "scoring",
+  "that AGENTS.md injection is directly evidenced by the raw stream"
+ ]
+}

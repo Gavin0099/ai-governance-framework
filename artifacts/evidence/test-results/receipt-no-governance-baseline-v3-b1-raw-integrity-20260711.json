@@ -1,0 +1,25 @@
+{
+ "receipt_schema": "raw_integrity.v0.1",
+ "status": "report_only",
+ "run": "v3-arm-b-run-1",
+ "captured_at": "2026-07-11T00:52:00+08:00",
+ "files": {
+  "artifacts/evidence/test-results/raw-no-governance-baseline-v3-b1-20260711.jsonl": {
+   "sha256": "28be1c2f2adb9156a0a642780bd286e089c84bd54997155fa23be9a4f856d46d",
+   "bytes": 68182
+  },
+  "artifacts/evidence/test-results/raw-no-governance-baseline-v3-b1-20260711.stderr.txt": {
+   "sha256": "624caca4605f19b41e264d7c8d246ef9d9e0054dfb880376196c9c159b7dbb05",
+   "bytes": 1080
+  },
+  "artifacts/evidence/test-results/raw-no-governance-baseline-v3-b1-20260711.result.json": {
+   "sha256": "3ae626884cc3b4960efb2274a452b92fb2a446ef3277a22a2b42475218860e74",
+   "bytes": 253
+  }
+ },
+ "cannot_claim": [
+  "metric values",
+  "arm comparison",
+  "attribution result"
+ ]
+}
