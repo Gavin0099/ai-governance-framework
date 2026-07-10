@@ -1,9 +1,9 @@
 # Active Task
 
-> Refreshed 2026-07-10 after the FINAL-amendment write-capability precondition
-> failed. Source surfaces: pushed protocol through `8bbe529d`, retained Codex
-> probe receipts, `memory/2026-07-10.md`, and synchronized `PLAN.md`.
-> Claim: Slice B lifecycle disposition only; no experiment outcome is claimed.
+> Refreshed 2026-07-10 after v2 pre-registration freeze. Source surfaces:
+> v1 void chain through `8fb0b67d`, qualified v2 execution chain through
+> `ddb6cf7b`, retained Codex probe receipts, and synchronized `PLAN.md`.
+> Claim: frozen v2 protocol only; no experiment outcome is claimed.
 
 ## Current Focus
 
@@ -28,8 +28,8 @@
   further protocol gap voids Slice B. A1/A2/A3 were not run after the failed
   probe; no valid run, metric, score, or attribution conclusion exists. Any
   continuation requires a separately pre-registered v2 line.
-- **v2 Pre-0 execution surface qualified (2026-07-10); preregistration not yet
-  created.** The final capped attempt used a fresh disposable repo whose root
+- **v2 Pre-0 execution surface qualified and v2 preregistration frozen
+  (2026-07-10); no run may start yet.** The final capped attempt used a fresh disposable repo whose root
   was created by launcher user `daish`, plus the identical package-context
   launcher: `Invoke-CommandInDesktopPackage`, PFN
   `OpenAI.Codex_2p2nqsd0c76g0`, AppId `App`, `-PreventBreakaway`, package
@@ -39,6 +39,13 @@
   resolves the prior package-identity and reused-scratch ownership blockers.
   Qualification is bound to this launcher/package version. All future v2
   scratch repos must be created by the launcher user outside sandbox context.
+  The standalone zero-amendment v2 protocol is
+  `docs/governance/no-governance-baseline-v2-preregistration-2026-07-10.md`.
+  It locks the ICIDP launcher/package `26.707.3748.0`, requires retained
+  package-version checks before every run, treats a later version mismatch as a
+  voiding protocol gap after Run 1, records the global Git-ignore ACL warning
+  as a matched-environment limitation, and requires a new explicit v2 data
+  transmission authorization before any run.
 - No other active autonomous implementation slice. The retire-candidate
   cleanup line is fully resolved as of pushed commit `81124cec`; the
   closeout memory-authority fixture carry-forward is resolved as of pushed
@@ -179,12 +186,13 @@
 
 ## Next Steps
 
-1. Keep v1 stopped. Pre-0 is qualified, but v2 remains unregistered.
-2. The next separately bounded slice may draft and freeze v2 preregistration
-   using the qualified ICIDP launcher/package version and the launcher-user
-   scratch-ownership rule.
-3. Do not start any A/B run until that v2 preregistration is committed and
-   pushed. Re-run qualification after any launcher or package-version change.
+1. Keep v1 stopped. v2 is frozen, but no run or external transmission is
+   authorized yet.
+2. Obtain a new explicit v2 authorization for OpenAI API transmission of the
+   task prompt and scratch-repo content only, then verify Run 1 preconditions.
+3. Do not start Runs 2–6, scoring, or a ledger update. Re-run qualification
+   before Run 1 after any launcher or package-version change; after a valid run
+   begins, such a mismatch voids v2 and requires a new preregistration.
 
 ## Historical Context Retained
 

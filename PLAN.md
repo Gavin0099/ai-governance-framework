@@ -165,7 +165,9 @@ Current next candidate:
   run or score exists; continuation requires a separate v2 pre-registration.
 
 - [x] v2 Pre-0 execution-surface qualification passed on the final authorized
-  attempt; no v2 preregistration exists yet. The first attempt failed before
+  attempt. v2 preregistration is frozen at
+  `docs/governance/no-governance-baseline-v2-preregistration-2026-07-10.md`;
+  no v2 run or external transmission authorization exists yet. The first attempt failed before
   helper launch because nested `.sandbox-bin` Codex lacked package identity.
   The second used the correct package-context launcher but reused a scratch
   root owned by `CodexSandboxOffline`, so write-ACE setup failed. The final,
@@ -178,6 +180,10 @@ Current next candidate:
   `workspace-write-ok\n`, and readback/status succeeded. Future v2 scratch
   repos must be created by the launcher user outside sandbox context;
   qualification does not transfer across launcher or package version.
+  v2 locks the successful ICIDP launcher/PFN/AppId/`-PreventBreakaway`, native
+  `elevated`, `workspace-write`, and package `26.707.3748.0`; every run must
+  retain a matching package check. Scratch roots must be created outside the
+  sandbox by launcher user `daish`; no amendment is allowed after the v2 freeze.
 
 - [x] Decision note keeps the AUTHORITY_MANIFEST preflight path in Unreleased
   candidate-only state until a named real harness consumer and evidence
