@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"\nimport json\ns=json.load(open('artifacts/evidence/test-results/scoring-no-governance-baseline-v3-20260711.json'))\nassert s['disposition']['outcome']=='no_measurable_difference'\nassert s['aggregate']['arm_A']['artifact_pollution']==[4,4,4] and s['aggregate']['arm_B']['artifact_pollution']==[0,4,4]\nfor arm in ('arm_A','arm_B'):\n    for m in ('scope_drift','claim_overreach','test_evidence_honesty'):\n        assert s['aggregate'][arm][m]==[0,0,0]\nl=json.load(open('docs/governance/decision-change-ledger.inventory.v0.1.json'))\nassert any(o.get('id')=='no_governance_baseline_v3_result' for o in l['observations'])\nb=open('docs/status/governance-self-audit-backlog.md',encoding='utf-8').read()\nassert 'resolved (2026-07-11)' in b and 'no_measurable_difference' in b\nprint('scoring artifact, ledger observation, backlog resolution all verified: OK')\n\"",
+  "exit_code": 0,
+  "started_at": "2026-07-10T17:20:12Z",
+  "finished_at": "2026-07-10T17:20:12Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "c29880441ea0f9dba552695b760370e20c6dc261",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-v3-scoring-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
