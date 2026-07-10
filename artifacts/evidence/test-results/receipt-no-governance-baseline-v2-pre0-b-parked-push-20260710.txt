@@ -1,0 +1,3 @@
+warning: unable to access 'C:\Users\daish/.config/git/ignore': Permission denied
+warning: unable to access 'C:\Users\daish/.config/git/ignore': Permission denied
+PASS pushed_anchor=322a4431ea30d5663e42876e9150a48399844636
