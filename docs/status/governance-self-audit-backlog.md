@@ -3,6 +3,21 @@
 **Source**: Cross-agent analysis + source code review (2026-05-08)
 **Context**: Derived from evaluating the framework's own evidence gaps and structural blind spots.
 
+> **Disposition status (2026-07-10):** both P0 items are dispositioned; this
+> file is a historical backlog record, not a current work queue.
+> - P0 #1 (`governance_inflation_audit.py`): **superseded, tool not built.**
+>   Its intent was covered manually by the decision-change inventory-line
+>   pass (`docs/governance/decision-change-ledger.inventory.v0.1.json`,
+>   2026-07-06: 193 modules compared against wiring/output evidence) and the
+>   2026-07-10 surface-diet line. Building the tool now requires a new
+>   feature-worthiness gate pass; do not build it from this entry.
+> - P0 #2 (No-Governance Baseline Runs): **active experiment line.**
+>   Pre-registered at
+>   `docs/governance/no-governance-baseline-preregistration-2026-07-10.md`;
+>   final disposition lands with that line's Slice D.
+> - P1/P2 items below remain undispositioned historical candidates; any
+>   revival goes through the feature-worthiness gate first.
+
 ---
 
 ## P0 — Cannot Skip

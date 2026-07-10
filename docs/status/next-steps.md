@@ -1,6 +1,11 @@
 ﻿# Next Steps
 
 > 更新日期：2026-04-08
+>
+> **Stale carrier notice (2026-07-10):** this document reflects the
+> 2026-04-08 direction and is NOT current authority for priorities or next
+> steps. Current state lives in `memory/01_active_task.md` (refreshed per
+> session) and `PLAN.md`. Kept as a historical record only.
 
 ---
 
