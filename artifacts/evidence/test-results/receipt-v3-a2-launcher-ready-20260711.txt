@@ -1,0 +1,1 @@
+A2 scratch anchors + launcher content verified; outputs absent; api_call_performed=false
