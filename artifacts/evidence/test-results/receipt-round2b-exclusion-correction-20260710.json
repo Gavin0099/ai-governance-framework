@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"import subprocess; r=subprocess.run(['git','show','--name-only','--pretty=format:','7a3f906d'],capture_output=True,text=True); files=[l for l in r.stdout.splitlines() if l.strip()]; assert files==['docs/governance/no-governance-baseline-preregistration-2026-07-10.md'], files; c=open('docs/governance/no-governance-baseline-preregistration-2026-07-10.md',encoding='utf-8').read(); assert 'DO include' in c and 'Group A / Group B' in c and 'ab-round2b-live-003-falsification-review.md' in c; print('round2b exclusion-reason correction verified at 7a3f906d: OK')\"",
+  "exit_code": 0,
+  "started_at": "2026-07-10T11:12:23Z",
+  "finished_at": "2026-07-10T11:12:23Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "7a3f906d582f9f4d938bfa7fc8c3bf1392290af2",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-round2b-exclusion-correction-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
