@@ -52,6 +52,12 @@
   Two setup/serialization failures are retained. The next action requires a
   separate owner-approved v3 preregistration freeze; no transmission authority
   or run exists for v3.
+- **v3 Arm B offline rehearsal completed; package-context hook behavior remains
+  untested.** A fresh clone matched the demonstrated seed tree; hooks-only
+  installation and validator passed, and a host-side local commit trace showed
+  pre-commit invocation with a clean poststate. The first trace-capture attempt
+  is retained; a fresh retry root succeeded. No API call, sandbox session, v3
+  preregistration, or run exists.
 - No other active autonomous implementation slice. The retire-candidate
   cleanup line is fully resolved as of pushed commit `81124cec`; the
   closeout memory-authority fixture carry-forward is resolved as of pushed
@@ -195,8 +201,9 @@
 1. Keep v1 and v2 stopped. Do not use the prior v2 authorization for a
    successor line.
 2. If the owner wants to continue, separately scope and approve a v3
-   pre-registration freeze that copies the demonstrated procedure and hashes;
-   then obtain new transmission authorization in a later slice.
+   pre-registration freeze that copies both demonstrated procedures/hashes and
+   pre-declares the package-context Arm B hook-environment exclusion rule; then
+   obtain new transmission authorization in a later slice.
 3. Do not start any run, scoring, or ledger update from v1, v2, or v3.
 
 ## Historical Context Retained

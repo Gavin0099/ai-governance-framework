@@ -1,0 +1,11 @@
+Cloning into 'C:\Users\daish\.codex\visualizations\2026\07\10\019f4c83-2f1f-7b30-af00-324063641a72\v3-governed-arm-b-dress-rehearsal'...
+done.
+warning: in the working copy of 'ARM_B_HOOK_REHEARSAL.md', LF will be replaced by CRLF the next time Git touches it
+git.exe : 23:42:23.990975 exec-cmd.c:266          trace: resolved executable dir: C:/Program Files/Git/mingw64/bin
+At D:\ai-governance-framework\artifacts\evidence\test-results\run-no-governance-baseline-v3-arm-b-dress-rehearsal-20260
+710.ps1:39 char:17
++ ... mitOutput = & git -C $scratch -c user.name="v3-arm-b-rehearsal" -c us ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (23:42:23.990975...Git/mingw64/bin:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 

@@ -1,0 +1,4 @@
+Cloning into 'C:\Users\daish\.codex\visualizations\2026\07\10\019f4c83-2f1f-7b30-af00-324063641a72\v3-governed-arm-b-dress-rehearsal-retry'...
+done.
+warning: in the working copy of 'ARM_B_HOOK_REHEARSAL.md', LF will be replaced by CRLF the next time Git touches it
+PASS v3 Arm B offline dress rehearsal completed; api_call_performed=false; seed_tree_hash=27b7d8f9e7c7b7bccce5d47ce991c92a6e3fea71

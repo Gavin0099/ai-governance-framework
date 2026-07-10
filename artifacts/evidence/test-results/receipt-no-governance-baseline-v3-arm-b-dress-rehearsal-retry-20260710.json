@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File artifacts/evidence/test-results/run-no-governance-baseline-v3-arm-b-dress-rehearsal-20260710.ps1",
+  "exit_code": 0,
+  "started_at": "2026-07-10T15:43:05Z",
+  "finished_at": "2026-07-10T15:43:07Z",
+  "runner": "codex-v3-arm-b-offline-dress-rehearsal",
+  "linked_commit": "b7c14c3307774547e870bedd0b11ba7831ff47a6",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-no-governance-baseline-v3-arm-b-dress-rehearsal-retry-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

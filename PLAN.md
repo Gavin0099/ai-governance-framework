@@ -195,6 +195,14 @@ Current next candidate:
   package-context launcher arguments. v3 is not preregistered or authorized to
   run; see `docs/status/no-governance-baseline-v3-offline-dress-rehearsal-2026-07-10.md`.
 
+- [x] v3 Arm B offline rehearsal completed without an API call. A fresh clone
+  matched the Arm A seed tree hash; `hook_installer --hooks-only` reported
+  `ok=true`, `hook_install_validator` reported `valid=true`, and a local commit
+  trace showed `.git/hooks/pre-commit` invocation with a clean poststate. The
+  package-context hook path remains untested. v3 is not preregistered or
+  authorized to run; see
+  `docs/status/no-governance-baseline-v3-arm-b-offline-dress-rehearsal-2026-07-10.md`.
+
 - [x] Decision note keeps the AUTHORITY_MANIFEST preflight path in Unreleased
   candidate-only state until a named real harness consumer and evidence
   contract are separately scoped:

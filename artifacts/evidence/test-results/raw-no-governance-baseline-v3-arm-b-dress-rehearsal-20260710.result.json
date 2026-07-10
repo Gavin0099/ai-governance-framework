@@ -1,0 +1,33 @@
+﻿{
+    "schema":  "no_governance_baseline_v3_arm_b_dress_rehearsal.v0.1",
+    "api_call_performed":  false,
+    "scratch":  "C:\\Users\\daish\\.codex\\visualizations\\2026\\07\\10\\019f4c83-2f1f-7b30-af00-324063641a72\\v3-governed-arm-b-dress-rehearsal-retry",
+    "scratch_root_owner":  "DESKTOP-EJOULKM\\daish",
+    "source_seed_tree_hash":  "27b7d8f9e7c7b7bccce5d47ce991c92a6e3fea71",
+    "scratch_seed_tree_hash":  "27b7d8f9e7c7b7bccce5d47ce991c92a6e3fea71",
+    "hook_install":  {
+                         "exit_code":  0,
+                         "ok":  true,
+                         "changed_files":  [
+                                               "C:\\Users\\daish\\.codex\\visualizations\\2026\\07\\10\\019f4c83-2f1f-7b30-af00-324063641a72\\v3-governed-arm-b-dress-rehearsal-retry\\.git\\hooks\\pre-commit",
+                                               "C:\\Users\\daish\\.codex\\visualizations\\2026\\07\\10\\019f4c83-2f1f-7b30-af00-324063641a72\\v3-governed-arm-b-dress-rehearsal-retry\\.git\\hooks\\pre-push",
+                                               "C:\\Users\\daish\\.codex\\visualizations\\2026\\07\\10\\019f4c83-2f1f-7b30-af00-324063641a72\\v3-governed-arm-b-dress-rehearsal-retry\\.git\\hooks\\ai-governance-framework-root"
+                                           ],
+                         "errors":  [
+
+                                    ]
+                     },
+    "hook_validation":  {
+                            "exit_code":  0,
+                            "valid":  true
+                        },
+    "manual_commit":  {
+                          "exit_code":  0,
+                          "trace_showed_pre_commit":  true,
+                          "output":  "23:43:06.691578 exec-cmd.c:266          trace: resolved executable dir: C:/Program Files/Git/mingw64/bin\n23:43:06.699349 git.c:502               trace: built-in: git commit -m \u0027v3 arm b hook rehearsal\u0027\n23:43:06.711101 run-command.c:1541      run_processes_parallel: preparing to run up to 1 tasks\n23:43:06.711101 run-command.c:674       trace: run_command: GIT_EDITOR=: GIT_INDEX_FILE=.git/index .git/hooks/pre-commit\n23:43:06.711101 run-command.c:935       trace: start_command: .git/hooks/pre-commit\n23:43:07.537997 run-command.c:1569      run_processes_parallel: done\n23:43:07.551164 run-command.c:674       trace: run_command: git maintenance run --auto --no-quiet --detach\n23:43:07.551164 run-command.c:935       trace: start_command: git maintenance run --auto --no-quiet --detach\n23:43:07.555418 exec-cmd.c:266          trace: resolved executable dir: C:/Program Files/Git/mingw64/libexec/git-core\n23:43:07.569526 git.c:502               trace: built-in: git maintenance run --auto --no-quiet --detach\n[master 6f9179b] v3 arm b hook rehearsal\n 1 file changed, 1 insertion(+)\n create mode 100644 ARM_B_HOOK_REHEARSAL.md"
+                      },
+    "framework_root_hook_config":  "D:\\ai-governance-framework",
+    "post_rehearsal_git_status":  [
+
+                                  ]
+}
