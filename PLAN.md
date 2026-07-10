@@ -165,9 +165,12 @@ Current next candidate:
   run or score exists; continuation requires a separate v2 pre-registration.
 
 - [x] v2 Pre-0 execution-surface qualification passed on the final authorized
-  attempt. v2 preregistration is frozen at
-  `docs/governance/no-governance-baseline-v2-preregistration-2026-07-10.md`;
-  no v2 run or external transmission authorization exists yet. The first attempt failed before
+  attempt. The v2 experiment is void before Run 1; see
+  `docs/status/no-governance-baseline-v2-void-2026-07-10.md`. Its first fresh
+  Arm A scratch root was not eligible (no copied task file or seed commit), and
+  the freeze did not bind seed construction/tree hash. Under v2's zero-amendment
+  rule, no replacement scratch may be improvised. No Codex session, OpenAI API
+  transmission, run, score, metric, or attribution conclusion occurred. The first attempt failed before
   helper launch because nested `.sandbox-bin` Codex lacked package identity.
   The second used the correct package-context launcher but reused a scratch
   root owned by `CodexSandboxOffline`, so write-ACE setup failed. The final,

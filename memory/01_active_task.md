@@ -1,9 +1,9 @@
 # Active Task
 
-> Refreshed 2026-07-10 after v2 pre-registration freeze. Source surfaces:
-> v1 void chain through `8fb0b67d`, qualified v2 execution chain through
-> `ddb6cf7b`, retained Codex probe receipts, and synchronized `PLAN.md`.
-> Claim: frozen v2 protocol only; no experiment outcome is claimed.
+> Refreshed 2026-07-10 after v2 void before Run 1. Source surfaces: v1 void
+> chain through `8fb0b67d`, qualified v2 execution chain through `ddb6cf7b`,
+> retained v2 precheck receipts, and synchronized `PLAN.md`.
+> Claim: lifecycle disposition only; no experiment outcome is claimed.
 
 ## Current Focus
 
@@ -28,8 +28,8 @@
   further protocol gap voids Slice B. A1/A2/A3 were not run after the failed
   probe; no valid run, metric, score, or attribution conclusion exists. Any
   continuation requires a separately pre-registered v2 line.
-- **v2 Pre-0 execution surface qualified and v2 preregistration frozen
-  (2026-07-10); no run may start yet.** The final capped attempt used a fresh disposable repo whose root
+- **v2 Pre-0 execution surface qualified; v2 is void before Run 1
+  (2026-07-10).** The final capped attempt used a fresh disposable repo whose root
   was created by launcher user `daish`, plus the identical package-context
   launcher: `Invoke-CommandInDesktopPackage`, PFN
   `OpenAI.Codex_2p2nqsd0c76g0`, AppId `App`, `-PreventBreakaway`, package
@@ -39,13 +39,11 @@
   resolves the prior package-identity and reused-scratch ownership blockers.
   Qualification is bound to this launcher/package version. All future v2
   scratch repos must be created by the launcher user outside sandbox context.
-  The standalone zero-amendment v2 protocol is
-  `docs/governance/no-governance-baseline-v2-preregistration-2026-07-10.md`.
-  It locks the ICIDP launcher/package `26.707.3748.0`, requires retained
-  package-version checks before every run, treats a later version mismatch as a
-  voiding protocol gap after Run 1, records the global Git-ignore ACL warning
-  as a matched-environment limitation, and requires a new explicit v2 data
-  transmission authorization before any run.
+  The v2 line is now recorded as void at
+  `docs/status/no-governance-baseline-v2-void-2026-07-10.md`: its first fresh
+  Arm A scratch root lacked the task file and seed commit, which exposed that
+  v2 did not bind seed construction/tree hash. No Codex session or API
+  transmission started. Zero-amendment rules prohibit repairing or reusing it.
 - No other active autonomous implementation slice. The retire-candidate
   cleanup line is fully resolved as of pushed commit `81124cec`; the
   closeout memory-authority fixture carry-forward is resolved as of pushed
@@ -186,13 +184,12 @@
 
 ## Next Steps
 
-1. Keep v1 stopped. v2 is frozen, but no run or external transmission is
-   authorized yet.
-2. Obtain a new explicit v2 authorization for OpenAI API transmission of the
-   task prompt and scratch-repo content only, then verify Run 1 preconditions.
-3. Do not start Runs 2–6, scoring, or a ledger update. Re-run qualification
-   before Run 1 after any launcher or package-version change; after a valid run
-   begins, such a mismatch voids v2 and requires a new preregistration.
+1. Keep v1 and v2 stopped. Do not use the prior v2 authorization for a
+   successor line.
+2. If the owner wants to retry, separately scope and approve a v3
+   pre-registration that binds seed construction and a seed-tree hash before
+   any transmission authorization.
+3. Do not start any run, scoring, or ledger update from v1 or v2.
 
 ## Historical Context Retained
 

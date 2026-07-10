@@ -1,0 +1,9 @@
+git : fatal: detected dubious ownership in repository at 'C:/Users/daish/.codex/visualizations/2026/07/10/019f4c83-2f1f
+-7b30-af00-324063641a72/v2-baseline-arm-a-run-1'
+At D:\ai-governance-framework\artifacts\evidence\test-results\validate-no-governance-baseline-v2-arm-a-run1-precheck-vo
+id-20260710.ps1:13 char:1
++ git -C $scratch rev-parse --verify HEAD 2>$null
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (fatal: detected...ne-arm-a-run-1':String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
