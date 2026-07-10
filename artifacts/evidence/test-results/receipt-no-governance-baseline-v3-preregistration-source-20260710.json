@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "cmd.exe /c \"git show --check --format= 16f3dbee\"",
+  "exit_code": 0,
+  "started_at": "2026-07-10T15:50:33Z",
+  "finished_at": "2026-07-10T15:50:33Z",
+  "runner": "codex-v3-preregistration-source-validation",
+  "linked_commit": "16f3dbee97c137645ad0d1907a3f57abd9589c5c",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-no-governance-baseline-v3-preregistration-source-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
