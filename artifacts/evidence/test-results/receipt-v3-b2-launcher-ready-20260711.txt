@@ -1,0 +1,1 @@
+B2 anchors, hooks, treatment flags verified; outputs absent; api_call_performed=false
