@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -c \"import subprocess; from pathlib import Path; sha='6818b5b6'; files=[x for x in subprocess.check_output(['git','show','--name-only','--pretty=format:',sha],text=True).splitlines() if x.strip()]; assert 'PLAN.md' in files and 'memory/01_active_task.md' in files; assert not any(x=='docs/governance/no-governance-baseline-preregistration-2026-07-10.md' for x in files); active=Path('memory/01_active_task.md').read_text(encoding='utf-8'); plan=Path('PLAN.md').read_text(encoding='utf-8'); raw=Path('artifacts/evidence/test-results/receipt-no-governance-baseline-write-capability-probe-20260710.txt').read_text(encoding='utf-8'); absent=Path('artifacts/evidence/test-results/receipt-no-governance-baseline-write-probe-file-absence-20260710.txt').read_text(encoding='utf-8').strip(); assert 'Voided experiment line' in active and 'Slice B voided' in plan; assert 'workspace is read-only' in raw and 'blocked by policy' in raw and absent=='False'; print('slice b void disposition verified at 6818b5b6: OK')\"",
+  "exit_code": 0,
+  "started_at": "2026-07-10T12:03:43Z",
+  "finished_at": "2026-07-10T12:03:43Z",
+  "runner": "codex-slice-b-void-validation",
+  "linked_commit": "6818b5b681b3c46b89f588911e94adf071c63e49",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-no-governance-baseline-slice-b-void-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
