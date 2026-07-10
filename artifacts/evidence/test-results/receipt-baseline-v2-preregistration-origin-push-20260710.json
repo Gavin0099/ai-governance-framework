@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git ls-remote origin refs/heads/main",
+  "exit_code": 0,
+  "started_at": "2026-07-10T14:59:12Z",
+  "finished_at": "2026-07-10T14:59:13Z",
+  "runner": "codex-baseline-v2-preregistration-origin-push",
+  "linked_commit": "83ef8ee5d8843a23fcbdd0248a4e646d9d9eeae1",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-baseline-v2-preregistration-origin-push-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
