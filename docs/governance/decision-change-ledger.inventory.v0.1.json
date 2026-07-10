@@ -978,12 +978,13 @@
     },
     {
       "id": "no_governance_baseline_v3_result",
-      "observation": "The pre-registered no-governance baseline experiment (v3) completed 6/6 runs and scored no_measurable_difference on the four mechanical metrics: three metrics tied at zero in every run; artifact_pollution differed only in one governed run (B1 cleanup). Framework behavioral-effect claims are narrowed to unproven on this task class per the pre-committed disposition.",
-      "recommended_action": "raise_priority_of_retire_merge_for_runtime-behavior-justified_surfaces",
-      "rationale": "Binding consequence of the v1 pre-committed disposition table (af22e2df) applied to the v3 outcome; scoped to one task class, one model, one harness, package 26.707.3748.0; not statistical validation and not a mass-retirement mandate.",
+      "observation": "The pre-registered no-governance baseline experiment (v3) completed 6/6 runs. Observational summary: three mechanical metrics (scope_drift, claim_overreach, test_evidence_honesty) were zero in every run in both arms; artifact_pollution was 4/4/4 in Arm A and 0/4/4 in Arm B. No stable Arm B advantage was observed. CORRECTION 2026-07-11: v3 froze no outcome-disposition table and cannot inherit the v1 table under its zero-amendment lock, so this outcome carries no pre-committed dispositional force.",
+      "recommended_action": "owner_claim_recalibration",
+      "rationale": "Authority source is the owner recalibrating framework claims in light of observational data, not a protocol-mandated consequence. Scoped to one task class, one model, one harness, package 26.707.3748.0; n=3 observational; hooks never fired so hook-layer effects were not exercised.",
       "evidence": {
         "scoring_artifact": "artifacts/evidence/test-results/scoring-no-governance-baseline-v3-20260711.json",
-        "closure_doc": "docs/status/no-governance-baseline-v3-scoring-2026-07-11.md"
+        "closure_doc": "docs/status/no-governance-baseline-v3-scoring-2026-07-11.md",
+        "correction": "docs/status/no-governance-baseline-v3-scoring-2026-07-11.md CORRECTION section"
       }
     }
   ],

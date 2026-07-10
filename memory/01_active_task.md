@@ -7,22 +7,24 @@
 
 ## Current Focus
 
-- **COMPLETED and FROZEN: No-Governance Baseline v3.** All six pre-registered
-  runs (A1-A3, B1-B3) completed with scoreable output under the frozen
-  launcher and package `26.707.3748.0`, each executed personally by the
-  owner. Blind scoring recorded `no_measurable_difference`: three metrics
-  tied at zero in every run; `artifact_pollution` differed only in one
-  governed run (B1 cleanup, retained as an unclaimed single-run
-  observation). Binding pre-committed consequences: framework
-  behavioral-effect claims are narrowed to unproven on this task class, and
-  retire/merge priority rises for surfaces justified only by runtime
-  behavior improvement; no mass retirement is mandated. Closure:
+- **COMPLETED and FROZEN: No-Governance Baseline v3 (corrected framing).**
+  All six runs (A1-A3, B1-B3) completed with scoreable output under the
+  frozen launcher and package `26.707.3748.0`, each executed personally by
+  the owner. Observational summary: three metrics tied at zero in every
+  run; `artifact_pollution` differed only in one governed run (B1 cleanup,
+  an unclaimed single-run observation); no stable Arm B advantage.
+  CORRECTION (2026-07-11): v3 froze no outcome-disposition table and cannot
+  inherit the v1 table under zero-amendment, so the outcome carries **no
+  pre-committed dispositional force**. Framework behavioral-effect claims
+  remain unproven on this task class as **owner-adopted recalibration**,
+  not protocol consequence. Closure and correction:
   `docs/status/no-governance-baseline-v3-scoring-2026-07-11.md`; ledger
-  observation `no_governance_baseline_v3_result`; backlog P0 #2 resolved.
-  The v3 line accepts no further runs, metrics, or reinterpretations.
-- **No active implementation slice.** The next workline decision belongs to
-  the owner; the ledger observation recommends raising the priority of
-  retire/merge lines for runtime-behavior-justified surfaces.
+  observation `no_governance_baseline_v3_result` (corrected); backlog
+  P0 #2 executed-to-completion. The v3 line accepts no further runs,
+  metrics, or reinterpretations.
+- **No active implementation slice.** Next workline per owner: a read-only
+  justification-class census of runtime treatment surfaces, positioned as
+  claim calibration, not as v3-mandated retirement.
 
 - **Voided experiment line: No-Governance Baseline Runs Slice B.** Pre-registered
   at `docs/governance/no-governance-baseline-preregistration-2026-07-10.md`

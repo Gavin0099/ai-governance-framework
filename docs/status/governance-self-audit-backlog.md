@@ -11,13 +11,17 @@
 >   2026-07-06: 193 modules compared against wiring/output evidence) and the
 >   2026-07-10 surface-diet line. Building the tool now requires a new
 >   feature-worthiness gate pass; do not build it from this entry.
-> - P0 #2 (No-Governance Baseline Runs): **resolved (2026-07-11).** After the
->   v1 and v2 lines were voided (retained as void records), the v3
->   pre-registered comparison ran to completion (6/6 owner-executed runs)
->   and scored `no_measurable_difference` on the four mechanical metrics.
->   Framework behavioral-effect claims are narrowed to unproven on that task
->   class. See `docs/status/no-governance-baseline-v3-scoring-2026-07-11.md`;
->   the v3 line is frozen.
+> - P0 #2 (No-Governance Baseline Runs): **executed to completion
+>   (2026-07-11).** After the v1 and v2 lines were voided (retained as void
+>   records), the v3 comparison ran 6/6 owner-executed runs and recorded the
+>   required drift/overreach/pollution observations. Observational summary:
+>   no stable Arm B advantage on the four mechanical counts. CORRECTION: v3
+>   froze no outcome-disposition table, so the outcome carries no
+>   pre-committed dispositional force; framework behavioral-effect claims
+>   remain unproven on that task class as owner-adopted recalibration. See
+>   the CORRECTION section of
+>   `docs/status/no-governance-baseline-v3-scoring-2026-07-11.md`; the v3
+>   line is frozen.
 > - P1/P2 items below remain undispositioned historical candidates; any
 >   revival goes through the feature-worthiness gate first.
 

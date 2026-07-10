@@ -4,6 +4,41 @@
 > the four mechanical metrics, the pre-committed disposition, and the
 > closure of backlog P0 #2. It adds no new metric, tool, gate, or rule.**
 
+## CORRECTION (2026-07-11, after review — supersedes the disposition framing below)
+
+A review found a blocking protocol gap: **the v3 pre-registration never froze
+an outcome-to-disposition table and never referenced the v1 table**, and v3's
+zero-amendment lock prohibits importing one after freeze. The scorer's
+"applied by reference" move below was therefore invalid as protocol force —
+compounded by the fact that the scorer had already seen the archival data
+before declaring the rule source.
+
+**Corrected status of this document's claims:**
+
+- The six runs, raw evidence, and the four mechanical counts are **valid and
+  unchanged** (three metrics zero in every run; `artifact_pollution`
+  A=[4,4,4], B=[0,4,4]).
+- The correct conclusion is an **observational summary**: on this single
+  task, model, and harness, both arms completed 3/3 with verified honest
+  claims, and the counts show no stable Arm B advantage.
+- "`no_measurable_difference` as a pre-committed v3 disposition" is
+  **retracted**. No pre-committed dispositional force attaches to this
+  outcome.
+- The consequences previously stated as binding (framework behavioral-effect
+  claims narrowed to unproven on this task class; raised retire/merge
+  priority) survive only as **owner-adopted claim recalibration informed by
+  the observational data** — an owner decision, not a protocol consequence.
+- Backlog P0 #2 is **executed to completion** (its required runs and
+  recordings exist as observational data); it is not "resolved by a
+  pre-committed disposition".
+- The v1→v3 arc demonstrates that this workflow can produce auditable,
+  hash-anchored, owner-executed evidence. It does **not** demonstrate that
+  audit surfaces cause better outcomes; no such comparison was run, and the
+  zero honesty counts in both arms cannot be attributed to the audit layer.
+
+The sections below are retained verbatim as the historical record of the
+superseded framing.
+
 ## Scoring inputs and warnings honored
 
 Scoring inputs were the six committed raw JSONL streams, final agent
