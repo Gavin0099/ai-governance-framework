@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"import subprocess; r=subprocess.run(['git','show','--name-only','--pretty=format:','8d810fc0'],capture_output=True,text=True); files=[l for l in r.stdout.splitlines() if l.strip()]; assert files==['docs/status/governance-self-audit-backlog.md'], files; b=' '.join(open('docs/status/governance-self-audit-backlog.md',encoding='utf-8').read().split()); assert 'v1 line voided at hard lock (2026-07-10)' in b and 'active experiment line' not in b and 'requires a separately pre-registered v2' in b; p=' '.join(open('docs/governance/no-governance-baseline-preregistration-2026-07-10.md',encoding='utf-8').read().split()); import hashlib; print('backlog p0-2 void note verified, single file, preregistration untouched:', 'OK'); \"",
+  "exit_code": 0,
+  "started_at": "2026-07-10T12:44:14Z",
+  "finished_at": "2026-07-10T12:44:14Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "8d810fc018af43e41edbf9e3a3d57b1e1ce6afd0",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-backlog-p02-void-note-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
