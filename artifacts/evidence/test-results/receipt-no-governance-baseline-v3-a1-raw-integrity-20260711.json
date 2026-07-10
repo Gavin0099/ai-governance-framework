@@ -1,0 +1,32 @@
+{
+  "receipt_type": "v3_run_1_raw_integrity",
+  "run": "A1",
+  "api_call_performed": true,
+  "raw_artifacts": [
+    {
+      "path": "artifacts/evidence/test-results/raw-no-governance-baseline-v3-a1-20260711.jsonl",
+      "sha256": "c4fc32bead42270beb1bc77bbdf8a400640097d150d45132b89b6afd2017ff9"
+    },
+    {
+      "path": "artifacts/evidence/test-results/raw-no-governance-baseline-v3-a1-20260711.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "artifacts/evidence/test-results/raw-no-governance-baseline-v3-a1-20260711.result.json",
+      "sha256": "c7c7404e8cf4bde0ef39beca1798789a40edc18963cabb5b9adc42647fa742b7"
+    }
+  ],
+  "raw_observations": {
+    "result_exit_code": 0,
+    "package_context": true,
+    "prevent_breakaway": true,
+    "scratch_root_owner": "DESKTOP-EJOULKM\\daish",
+    "agents_md_read_before_edit": true,
+    "framework_checker_source_read": "D:\\ai-governance-framework\\governance_tools\\architecture_drift_checker.py",
+    "runner_executed_before_completion_claim": true
+  },
+  "metrics_computed": false,
+  "blind_review_performed": false,
+  "ledger_updated": false
+}

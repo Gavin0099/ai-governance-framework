@@ -57,14 +57,14 @@
   pre-commit invocation with a clean poststate. The first trace-capture attempt
   is retained; a fresh retry root succeeded. No API call, sandbox session, or
   run has occurred.
-- **v3 preregistration frozen; Run 1 owner launcher prepared but not run.** The protocol copies both
+- **v3 preregistration frozen; Arm A Run 1 archived without scoring.** The protocol copies both
   rehearsed arm procedures and hashes, locks launcher/package/provenance, and
   pre-declares an Arm B package-context hook-environment exclusion only for
   zero scoreable output. Explicit v3 transmission authorization now covers the
-  task prompt and scratch-repo content for Run 1 only. The fresh `daish`-owned
-  Arm A scratch precheck and frozen owner launcher are recorded at
-  `docs/status/no-governance-baseline-v3-a1-owner-launcher-ready-2026-07-11.md`;
-  no API call, session, run, score, or attribution conclusion exists.
+  task prompt and scratch-repo content for Run 1 only. The owner executed the
+  frozen launcher: raw output and poststate are archived at
+  `docs/status/no-governance-baseline-v3-a1-archive-2026-07-11.md`. No metric
+  values, score, ledger, or attribution conclusion exists.
 - No other active autonomous implementation slice. The retire-candidate
   cleanup line is fully resolved as of pushed commit `81124cec`; the
   closeout memory-authority fixture carry-forward is resolved as of pushed
@@ -207,10 +207,8 @@
 
 1. Keep v1 and v2 stopped. Do not use the prior v2 authorization for a
    successor line.
-2. From an ordinary PowerShell window, the owner executes the committed frozen
-   A1 launcher after confirming the working tree is at its launcher commit.
-3. Do not start Runs 2–6, scoring, or a ledger update; after owner execution,
-   validate and retain Run 1 outputs only.
+2. Do not start any later run, compute metrics, conduct blind review, or update
+   a ledger without a separately authorized slice.
 
 ## Historical Context Retained
 

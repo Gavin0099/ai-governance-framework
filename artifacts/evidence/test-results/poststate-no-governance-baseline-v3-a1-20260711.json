@@ -1,0 +1,28 @@
+{
+  "receipt_type": "v3_run_1_poststate_capture",
+  "captured_at": "2026-07-11",
+  "scratch_root": "C:\\Users\\daish\\.codex\\visualizations\\2026\\07\\10\\019f4c83-2f1f-7b30-af00-324063641a72\\v3-arm-a-run-1-owner",
+  "scratch_head": "df8c9f4b642fa2bbea10cc6ff582495a1e0d97cb",
+  "git_status_short": [
+    " M fixtures/architecture_drift_compliant.checks.json",
+    "?? validators/__pycache__/"
+  ],
+  "tracked_diff_paths": [
+    "fixtures/architecture_drift_compliant.checks.json"
+  ],
+  "tracked_diff_numstat": {
+    "fixtures/architecture_drift_compliant.checks.json": {
+      "added_lines": 1,
+      "deleted_lines": 1
+    }
+  },
+  "untracked_files": [
+    "validators/__pycache__/architecture_drift_validator.cpython-314.pyc",
+    "validators/__pycache__/driver_evidence_validator.cpython-314.pyc",
+    "validators/__pycache__/failure_completeness_validator.cpython-314.pyc",
+    "validators/__pycache__/refactor_evidence_validator.cpython-314.pyc"
+  ],
+  "git_diff_check_exit_code": 0,
+  "metrics_computed": false,
+  "scoring_performed": false
+}

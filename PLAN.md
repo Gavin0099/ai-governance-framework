@@ -208,9 +208,11 @@ Current next candidate:
   It binds the baseline/seed/task hashes, launcher/package/provenance locks,
   both arm procedures, and a pre-declared zero-scoreable-output exclusion rule
   for package-context Arm B hook-environment failure. The owner subsequently
-  authorized task-prompt and scratch-content transmission for Run 1 only; an
-  owner-executed Arm A launcher and fresh precheck are prepared but not run.
-  No v3 session, run, score, or attribution conclusion exists.
+  authorized task-prompt and scratch-content transmission for Run 1 only. Arm
+  A Run 1 completed through the owner-executed launcher and is archived at
+  `docs/status/no-governance-baseline-v3-a1-archive-2026-07-11.md`; its raw
+  evidence and poststate are retained, but no metrics, blind review, ledger,
+  or attribution conclusion has been created.
 
 - [x] Decision note keeps the AUTHORITY_MANIFEST preflight path in Unreleased
   candidate-only state until a named real harness consumer and evidence
