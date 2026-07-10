@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "powershell.exe -NoProfile -File artifacts/evidence/test-results/validate-no-governance-baseline-v2-pre0-b-failure-20260710.ps1",
+  "exit_code": 0,
+  "started_at": "2026-07-10T13:36:15Z",
+  "finished_at": "2026-07-10T13:36:15Z",
+  "runner": "codex-v2-pre0-b-semantic-failure-validator",
+  "linked_commit": "9365fa8ccf94faae29725a77e58a067964f20589",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-no-governance-baseline-v2-pre0-b-failure-precommit-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

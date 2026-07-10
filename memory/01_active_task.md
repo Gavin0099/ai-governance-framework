@@ -28,16 +28,18 @@
   further protocol gap voids Slice B. A1/A2/A3 were not run after the failed
   probe; no valid run, metric, score, or attribution conclusion exists. Any
   continuation requires a separately pre-registered v2 line.
-- **v2 Pre-0 execution-surface qualification blocked (2026-07-10).** No v2
-  preregistration was created. A disposable, gitignored repo at
-  `artifacts/runtime/v2-codex-write-probe` was tested with explicit
-  `windows.sandbox=elevated` plus `workspace-write`; Codex `apply_patch` was
-  rejected, and the sandbox log records
-  `orchestrator_helper_launch_failed` / `Access denied (os error 5)` while the
-  nested `.sandbox-bin` launcher attempted to start
-  `codex-windows-sandbox-setup.exe`. `write-probe.txt` is absent and the probe
-  repo remains clean at seed `cd9a667`. The qualification failed; no fallback
-  to `unelevated` or full access was attempted.
+- **v2 Pre-0 parked before preregistration (2026-07-10).** No v2
+  preregistration was created. The first attempt failed because nested
+  `.sandbox-bin` Codex lacked the package identity required to execute
+  `codex-windows-sandbox-setup.exe`. An owner-authorized B attempt then used
+  `Invoke-CommandInDesktopPackage`, PFN `OpenAI.Codex_2p2nqsd0c76g0`, AppId
+  `App`, `-PreventBreakaway`, package `26.707.3748.0`, native `elevated`, and
+  `workspace-write`. The helper launched but failed to grant the write ACE on
+  the reused scratch root (`SetNamedSecurityInfoW failed: 5`): the directory
+  owner is `CodexSandboxOffline`, while the launching user has inherited
+  Modify but not `WRITE_DAC`. `write-probe.txt` remains absent. Per the
+  owner-approved kill criterion, the line is parked; no retry and no fallback
+  to `unelevated` or full access occurred.
 - No other active autonomous implementation slice. The retire-candidate
   cleanup line is fully resolved as of pushed commit `81124cec`; the
   closeout memory-authority fixture carry-forward is resolved as of pushed
@@ -178,12 +180,13 @@
 
 ## Next Steps
 
-1. Keep v1 stopped and do not create a v2 preregistration yet.
-2. Repair or re-establish a native Windows Codex sandbox surface where the
-   elevated setup helper can launch and `workspace-write` can apply one patch.
-3. Re-run Pre-0 as a separately bounded probe; only a semantic PASS authorizes
-   a later v2 preregistration. Do not silently fall back to `unelevated` or
-   full access.
+1. Keep v1 stopped; v2 remains unregistered and parked.
+2. Do not retry the B probe, change the scratch ACL/owner, or fall back to
+   `unelevated` / full access within this line.
+3. Any continuation requires an explicit owner decision to reopen a separately
+   bounded qualification on a fresh disposable repo owned by the launching
+   user. Qualification remains bound to the identical ICIDP launcher and
+   package version; only a semantic write PASS can authorize preregistration.
 
 ## Historical Context Retained
 

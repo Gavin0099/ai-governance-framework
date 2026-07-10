@@ -164,15 +164,19 @@ Current next candidate:
   protocol gap named by the hard lock, so Slice B is void. No valid baseline
   run or score exists; continuation requires a separate v2 pre-registration.
 
-- [ ] v2 Pre-0 is blocked before preregistration. The first execution-surface
-  qualification used a disposable gitignored repo, explicit native Windows
-  `elevated` sandbox, and `workspace-write`; Codex `apply_patch` was rejected,
-  while the sandbox log recorded `orchestrator_helper_launch_failed` with
-  `Access denied (os error 5)` for `codex-windows-sandbox-setup.exe` under the
-  nested `.sandbox-bin` launcher. The probe file is absent and the repo is
-  clean at seed `cd9a667`. Repair the sandbox surface and obtain a semantic
-  write PASS before creating any v2 preregistration; no automatic fallback to
-  `unelevated` or full access is authorized.
+- [ ] v2 Pre-0 is parked before preregistration after two semantic failures.
+  The first attempt used nested `.sandbox-bin` Codex and could not launch the
+  package-protected sandbox helper. Read-only diagnosis confirmed the
+  package-identity conditional execute ACE. An owner-authorized second attempt
+  used `Invoke-CommandInDesktopPackage`, PFN
+  `OpenAI.Codex_2p2nqsd0c76g0`, AppId `App`, `-PreventBreakaway`, package
+  `26.707.3748.0`, native `elevated`, and `workspace-write`. The helper then
+  launched, but could not grant the write ACE on the reused scratch root:
+  `SetNamedSecurityInfoW failed: 5`. That root is owned by
+  `CodexSandboxOffline`; the launching user has inherited Modify but not
+  `WRITE_DAC`. `write-probe.txt` remains absent and no v2 preregistration
+  exists. Per the owner-approved kill criterion, do not retry or fall back to
+  `unelevated` / full access from this line.
 
 - [x] Decision note keeps the AUTHORITY_MANIFEST preflight path in Unreleased
   candidate-only state until a named real harness consumer and evidence

@@ -1,0 +1,7 @@
+2026-07-10T13:32:23.439450Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.7 seconds
+Output:
+Failed to write file D:\ai-governance-framework\artifacts\runtime\v2-codex-write-probe\write-probe.txt
+
+2026-07-10T13:32:30.647799Z ERROR codex_core::exec: exec error: windows sandbox: helper_unknown_error: setup refresh had errors
+2026-07-10T13:32:30.648845Z ERROR codex_core::tools::router: error=execution error: Io(Custom { kind: Other, error: "windows sandbox: helper_unknown_error: setup refresh had errors" })
