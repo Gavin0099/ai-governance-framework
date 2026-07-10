@@ -34,8 +34,14 @@ overreach, artifact pollution, and test-evidence honesty?
   pollution), it predates ~3 months of framework change, and it did not
   follow the P0 #2 protocol (same task, 3 runs per agent, no governance
   prompt, no runtime hooks).
-- `artifacts/ab-live/2026-04-29-round2b-*`: live-run evidence for runtime
-  authority behavior, not a no-governance control arm.
+- `artifacts/ab-live/2026-04-29-round2b-*`: these runs DO include
+  ungoverned/governed arms (Group A / Group B, see
+  `docs/ab-round2b-live-003-falsification-review.md`), but they do not
+  satisfy this P0 #2 slice: they target earlier USB/authority-falsification
+  tasks, use different axes (authority enforcement / behavior delta), do
+  not provide a fixed one-task 3+3 protocol for scope_drift /
+  claim_overreach / artifact_pollution / test_evidence_honesty, and
+  predate the current framework state.
 - Therefore: no **current** evidence matches the P0 #2 definition. That is
   the observed, recorded gap this experiment closes.
 
