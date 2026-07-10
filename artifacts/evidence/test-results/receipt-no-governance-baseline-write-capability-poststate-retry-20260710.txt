@@ -1,0 +1,19 @@
+C:\Users\daish\.codex\visualizations\2026\07\10\019f4bbe-4883-7901-941f-048aa0d60c4e\sliceb-write-probe-final : The ter
+m 'C:\Users\daish\.codex\visualizations\2026\07\10\019f4bbe-4883-7901-941f-048aa0d60c4e\sliceb-write-probe-final' is no
+t recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if
+ a path was included, verify that the path is correct and try again.
+At line:1 char:7
++ $repo=C:\Users\daish\.codex\visualizations\2026\07\10\019f4bbe-4883-7 ...
++       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (C:\Users\daish\...ite-probe-final:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+Join-Path : Cannot bind argument to parameter 'Path' because it is null.
+At line:1 char:156
++ ... rite-probe-final; if (Test-Path -LiteralPath (Join-Path $repo write-p ...
++                                                             ~~~~~
+    + CategoryInfo          : InvalidData: (:) [Join-Path], ParameterBindingValidationException
+    + FullyQualifiedErrorId : ParameterArgumentValidationErrorNullNotAllowed,Microsoft.PowerShell.Commands.JoinPathCom
+   mand
+
+fatal: cannot change to 'status': No such file or directory

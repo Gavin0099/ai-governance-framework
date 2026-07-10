@@ -148,7 +148,7 @@ Completed in latest committed scope:
 
 Current next candidate:
 
-- [>] Slice B continues under owner-approved Pre-Run Amendment 2 (FINAL).
+- [x] Slice B voided under owner-approved Pre-Run Amendment 2 (FINAL).
   The first A1 attempt is excluded as a protocol-fidelity failure: its
   writes/validation were blocked by the effective Codex sandbox/policy
   despite the frozen `workspace-write` spec, and it produced no scoreable
@@ -157,9 +157,12 @@ Current next candidate:
   is defined as no harness-injected governance, and voluntary governance-doc
   reads are recorded per run as an observed variable. The Arm B entrypoint
   is now frozen (hook_installer --hooks-only + hook_install_validator
-  valid=true). A write-capability probe in a disposable non-task repo is
-  required before the next valid run. Any further protocol gap voids
-  Slice B; the line would restart as a v2 pre-registration.
+  valid=true). The required write-capability probe in a disposable non-task
+  repo failed under the same Codex configuration: the model reported a
+  read-only workspace, policy rejected the write, `write-probe.txt` was
+  absent, and the repo remained clean at seed `a619e13`. This is the further
+  protocol gap named by the hard lock, so Slice B is void. No valid baseline
+  run or score exists; continuation requires a separate v2 pre-registration.
 
 - [x] Decision note keeps the AUTHORITY_MANIFEST preflight path in Unreleased
   candidate-only state until a named real harness consumer and evidence

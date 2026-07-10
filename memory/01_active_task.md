@@ -1,15 +1,13 @@
 # Active Task
 
-> Refreshed 2026-07-10 after the no-governance baseline pre-registration
-> line closed its Slice A. Source surfaces: pushed commits through
-> `91178201` (stale carrier disposition; memory chain through `3194bd96`),
-> `memory/2026-07-10.md`, and live focused validation from this session.
-> Claim: point-in-time consistency with current repo state only; `PLAN.md` was
-> not changed in this refresh.
+> Refreshed 2026-07-10 after the FINAL-amendment write-capability precondition
+> failed. Source surfaces: pushed protocol through `8bbe529d`, retained Codex
+> probe receipts, `memory/2026-07-10.md`, and synchronized `PLAN.md`.
+> Claim: Slice B lifecycle disposition only; no experiment outcome is claimed.
 
 ## Current Focus
 
-- **Active experiment line: No-Governance Baseline Runs.** Pre-registered
+- **Voided experiment line: No-Governance Baseline Runs Slice B.** Pre-registered
   at `docs/governance/no-governance-baseline-preregistration-2026-07-10.md`
   (`af22e2df`, corrected `7a3f906d`). Slice A (pre-registration) is closed.
   Slice B is owner-authorized: option-A architecture-drift mutation, the
@@ -23,7 +21,13 @@
   handled intent-to-treat going forward (Arm A = no harness-injected
   governance; `voluntary_governance_doc_reads` recorded per run). The Arm B
   entrypoint is frozen (hook_installer --hooks-only + validator valid=true).
-  No valid run has completed; no attribution conclusion exists.
+  The mandatory pre-run write-capability probe then failed under the same
+  Codex configuration: the harness reported a read-only workspace, policy
+  rejected the write command, `write-probe.txt` was absent, and the disposable
+  repo remained clean at seed `a619e13`. Under Amendment 2's hard lock, this
+  further protocol gap voids Slice B. A1/A2/A3 were not run after the failed
+  probe; no valid run, metric, score, or attribution conclusion exists. Any
+  continuation requires a separately pre-registered v2 line.
 - No other active autonomous implementation slice. The retire-candidate
   cleanup line is fully resolved as of pushed commit `81124cec`; the
   closeout memory-authority fixture carry-forward is resolved as of pushed
@@ -164,13 +168,10 @@
 
 ## Next Steps
 
-1. Verify harness write capability with a probe write in a disposable
-   non-task repo under the frozen Codex configuration; retain the receipt.
-2. Re-run A1 and complete the three baseline-arm runs from the seeded
-   scratch repos; record receipts, raw logs, and the
-   `voluntary_governance_doc_reads` variable only. No scoring.
-3. Hard lock is in effect: any further protocol gap voids Slice B and the
-   line restarts as a v2 pre-registration; no further amendment is allowed.
+1. Stop the v1 experiment line; retain all failed-attempt and probe receipts.
+2. Do not run A1/A2/A3 or any governed arm under this registration.
+3. If the owner wants to continue, open a separate v2 pre-registration with a
+   proven writable Codex execution surface before freezing any task protocol.
 
 ## Historical Context Retained
 

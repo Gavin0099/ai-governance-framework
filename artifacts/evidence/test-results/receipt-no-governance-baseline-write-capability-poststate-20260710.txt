@@ -1,0 +1,10 @@
+At line:1 char:298
++ ...  = git -C  status --porcelain=v1; if ( -ne 0) { exit  }; if () { Writ ...
++                                                                  ~
+Missing condition in if statement after 'if ('.
+At line:1 char:421
++ ... Output ('write_capability_probe_failed_no_write=true head=' + ); exit ...
++                                                                  ~
+You must provide a value expression following the '+' operator.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : IfStatementMissingCondition

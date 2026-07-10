@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "C:\\Users\\daish\\.codex\\.sandbox-bin\\codex.exe exec --ignore-user-config -m gpt-5.6-terra -c model_reasoning_effort=medium -c project_doc_max_bytes=0 --disable multi_agent --disable code_mode --disable code_mode_host --disable code_mode_only -s workspace-write -C C:\\Users\\daish\\.codex\\visualizations\\2026\\07\\10\\019f4bbe-4883-7901-941f-048aa0d60c4e\\sliceb-write-probe-final --json \"Create a new file named write-probe.txt containing exactly: workspace-write-ok. Then read the file back and report whether the exact content is present. Do not modify any other file.\"",
+  "exit_code": 0,
+  "started_at": "2026-07-10T12:00:17Z",
+  "finished_at": "2026-07-10T12:00:28Z",
+  "runner": "codex-cli-0.144.0-alpha.4",
+  "linked_commit": "8bbe529dbc3f9eb6b550d915c0dc48f620807e9b",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-no-governance-baseline-write-capability-probe-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

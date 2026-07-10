@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git -C C:\\Users\\daish\\.codex\\visualizations\\2026\\07\\10\\019f4bbe-4883-7901-941f-048aa0d60c4e\\sliceb-write-probe-final status --porcelain=v1",
+  "exit_code": 0,
+  "started_at": "2026-07-10T12:01:20Z",
+  "finished_at": "2026-07-10T12:01:20Z",
+  "runner": "codex-baseline-poststate",
+  "linked_commit": "8bbe529dbc3f9eb6b550d915c0dc48f620807e9b",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-no-governance-baseline-write-probe-git-status-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
