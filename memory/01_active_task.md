@@ -14,8 +14,16 @@
   (`af22e2df`, corrected `7a3f906d`). Slice A (pre-registration) is closed.
   Slice B is owner-authorized: option-A architecture-drift mutation, the
   single compliant fixture as task file set, Codex CLI harness, and model
-  `gpt-5.6-terra`. The instantiation must be committed before three baseline
-  runs begin. No run has happened; no attribution evidence exists yet.
+  `gpt-5.6-terra`. Instantiation and amendments are committed through
+  Pre-Run Amendment 2 (FINAL). The first A1 attempt is excluded under the
+  protocol-fidelity clause: writes/validation were blocked by the effective
+  Codex sandbox/policy despite the frozen `workspace-write` spec, and the
+  scratch repo stayed at seed `dd34ac3` with no scoreable output; receipts
+  retained. Its voluntary `AGENTS.md` read is recorded as an observation and
+  handled intent-to-treat going forward (Arm A = no harness-injected
+  governance; `voluntary_governance_doc_reads` recorded per run). The Arm B
+  entrypoint is frozen (hook_installer --hooks-only + validator valid=true).
+  No valid run has completed; no attribution conclusion exists.
 - No other active autonomous implementation slice. The retire-candidate
   cleanup line is fully resolved as of pushed commit `81124cec`; the
   closeout memory-authority fixture carry-forward is resolved as of pushed
@@ -156,10 +164,13 @@
 
 ## Next Steps
 
-1. Commit and freeze the Slice B instantiation block.
-2. Run exactly three fresh Codex baseline-arm sessions from identical seeded
-   scratch repos; record receipts and raw logs only.
-3. Stop before governed-arm runs or scoring; those belong to Slices C and D.
+1. Verify harness write capability with a probe write in a disposable
+   non-task repo under the frozen Codex configuration; retain the receipt.
+2. Re-run A1 and complete the three baseline-arm runs from the seeded
+   scratch repos; record receipts, raw logs, and the
+   `voluntary_governance_doc_reads` variable only. No scoring.
+3. Hard lock is in effect: any further protocol gap voids Slice B and the
+   line restarts as a v2 pre-registration; no further amendment is allowed.
 
 ## Historical Context Retained
 

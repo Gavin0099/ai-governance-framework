@@ -1,0 +1,4 @@
+warning: unable to access 'C:\Users\daish/.config/git/ignore': Permission denied
+warning: unable to access 'C:\Users\daish/.config/git/ignore': Permission denied
+warning: unable to access 'C:\Users\daish/.config/git/ignore': Permission denied
+dd34ac37c69aecb637883a824396e728bb2ca171

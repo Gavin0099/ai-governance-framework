@@ -148,9 +148,18 @@ Completed in latest committed scope:
 
 Current next candidate:
 
-- [>] Slice B: freeze the exact architecture-drift fixture mutation, one-file
-  task set, Codex CLI harness, and model id; then run three baseline-arm
-  sessions with receipts only and no conclusions.
+- [>] Slice B continues under owner-approved Pre-Run Amendment 2 (FINAL).
+  The first A1 attempt is excluded as a protocol-fidelity failure: its
+  writes/validation were blocked by the effective Codex sandbox/policy
+  despite the frozen `workspace-write` spec, and it produced no scoreable
+  output (scratch repo unchanged at seed `dd34ac3`); receipts are retained.
+  The observed voluntary `AGENTS.md` read is handled intent-to-treat: Arm A
+  is defined as no harness-injected governance, and voluntary governance-doc
+  reads are recorded per run as an observed variable. The Arm B entrypoint
+  is now frozen (hook_installer --hooks-only + hook_install_validator
+  valid=true). A write-capability probe in a disposable non-task repo is
+  required before the next valid run. Any further protocol gap voids
+  Slice B; the line would restart as a v2 pre-registration.
 
 - [x] Decision note keeps the AUTHORITY_MANIFEST preflight path in Unreleased
   candidate-only state until a named real harness consumer and evidence

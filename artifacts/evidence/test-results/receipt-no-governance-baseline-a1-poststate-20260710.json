@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "powershell.exe -NoProfile -Command \"git -C 'C:\\Users\\daish\\.codex\\visualizations\\2026\\07\\10\\019f4bbe-4883-7901-941f-048aa0d60c4e\\sliceb-baseline-run-1' status --porcelain=v1; git -C 'C:\\Users\\daish\\.codex\\visualizations\\2026\\07\\10\\019f4bbe-4883-7901-941f-048aa0d60c4e\\sliceb-baseline-run-1' diff --no-ext-diff; git -C 'C:\\Users\\daish\\.codex\\visualizations\\2026\\07\\10\\019f4bbe-4883-7901-941f-048aa0d60c4e\\sliceb-baseline-run-1' diff --cached --no-ext-diff; git -C 'C:\\Users\\daish\\.codex\\visualizations\\2026\\07\\10\\019f4bbe-4883-7901-941f-048aa0d60c4e\\sliceb-baseline-run-1' rev-parse HEAD\"",
+  "exit_code": 0,
+  "started_at": "2026-07-10T11:46:40Z",
+  "finished_at": "2026-07-10T11:46:40Z",
+  "runner": "codex-baseline-poststate",
+  "linked_commit": "e99443887b462a95af9102caf1fb730ceaa98b15",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-no-governance-baseline-a1-poststate-20260710.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
