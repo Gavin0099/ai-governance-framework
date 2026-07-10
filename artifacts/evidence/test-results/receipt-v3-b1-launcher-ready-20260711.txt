@@ -1,0 +1,1 @@
+B1: seed anchors, hooks installed+valid, treatment flags correct, outputs absent, api_call_performed=false
