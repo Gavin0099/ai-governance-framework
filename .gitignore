@@ -165,3 +165,4 @@ gl_electron_tool/
 
 # Fleet local path overlay
 governance/fleet/governance_scope.local.yaml
+.latest-main/

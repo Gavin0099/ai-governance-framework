@@ -962,7 +962,8 @@
       "id": "latest_main_tracked_snapshot",
       "observation": ".latest-main/ is a git-tracked snapshot of the repository inside itself; it inflates any repo-wide reference scan and repository size.",
       "recommended_action": "investigate",
-      "rationale": "Its consumer (version audit, lock comparison, or none) must be identified in a read-only slice before any removal decision."
+      "rationale": "Its consumer (version audit, lock comparison, or none) must be identified in a read-only slice before any removal decision.",
+      "resolution": "RESOLVED 2026-07-11: deleted at owner authorization after a deletion-admissibility review. Consumer search confirmed no tool/hook/CI/test reader in this repo (sole hit was the pytest.ini exclusion token, also removed) and zero references in Hearth/Enumd/Bookstore-Scraper/meiandraybook hook and workflow surfaces (scan outputs retained in artifacts/evidence/test-results/receipt-latest-main-predelete-20260711.json). Residual risk that a manual human workflow read the snapshot was explicitly accepted by the owner. History retains the content; tree hash 2778fcfb recorded in the receipt. A .gitignore guard prevents accidental recreation."
     },
     {
       "id": "nested_working_copy_residue",
