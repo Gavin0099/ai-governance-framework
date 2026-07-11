@@ -31,13 +31,10 @@ _KDC_CONTRACT = Path("e:/BackUp/Git_EE/Kernel-Driver-Contract/contract.yaml")
 _KDC_ROOT = _KDC_CONTRACT.parent
 
 _FW_ROOT = repo_root_from_tooling()
-_PLAN = _FW_ROOT / "PLAN.md"
-
-
-def _base_kwargs(**overrides) -> dict:
+def _base_kwargs(project_root: Path, **overrides) -> dict:
     base = dict(
-        project_root=_FW_ROOT,
-        plan_path=_PLAN,
+        project_root=project_root,
+        plan_path=project_root / "PLAN.md",
         rules="common",
         risk="low",
         oversight="auto",
@@ -47,6 +44,31 @@ def _base_kwargs(**overrides) -> dict:
     )
     base.update(overrides)
     return base
+
+
+@pytest.fixture
+def risk_signal_project(tmp_path: Path) -> Path:
+    """Minimal consumer root: exercise integration without scanning this checkout."""
+    project_root = tmp_path / "consumer"
+    project_root.mkdir()
+    (project_root / "PLAN.md").write_text(
+        "> **Owner**: Test\n> **Freshness**: Sprint (7d)\n",
+        encoding="utf-8",
+    )
+    version_manifest = project_root / ".governance" / "version_manifest.yaml"
+    version_manifest.parent.mkdir()
+    version_manifest.write_text(
+        "schema_version: '1.0'\n"
+        "governance_version: '0.4.0'\n"
+        "contract_schema_version: '1.2.0'\n"
+        "runtime_entrypoint_version: '1.1.0'\n"
+        "hook_wiring_version: '1.0.0'\n"
+        "artifact_layout_version: '1.0.0'\n"
+        "memory_layout_version: '1.0.0'\n",
+        encoding="utf-8",
+    )
+    (project_root / "tool.py").write_text("print('ok')\n", encoding="utf-8")
+    return project_root
 
 
 @pytest.fixture(autouse=True)
@@ -59,46 +81,46 @@ def _no_lingering_signal():
 
 # ── no signal → no override ───────────────────────────────────────────────────
 
-def test_no_signal_result_has_active_false() -> None:
-    result = build_session_start_context(**_base_kwargs(task_level="L0"))
+def test_no_signal_result_has_active_false(risk_signal_project: Path) -> None:
+    result = build_session_start_context(**_base_kwargs(risk_signal_project, task_level="L0"))
     assert result["risk_signal"]["active"] is False
     assert result["risk_signal"]["overrides"] == {}
 
 
-def test_no_signal_task_level_unchanged() -> None:
-    result = build_session_start_context(**_base_kwargs(task_level="L0"))
+def test_no_signal_task_level_unchanged(risk_signal_project: Path) -> None:
+    result = build_session_start_context(**_base_kwargs(risk_signal_project, task_level="L0"))
     assert result["task_level"] == "L0"
 
 
 # ── active signal → min_task_level override ───────────────────────────────────
 
-def test_active_signal_upgrades_l0_to_l1() -> None:
+def test_active_signal_upgrades_l0_to_l1(risk_signal_project: Path) -> None:
     write_risk_signal(
         _FW_ROOT,
         affected_components=["task_level_detection"],
         severity="critical",
         source="test_suite",
     )
-    result = build_session_start_context(**_base_kwargs(task_level="L0"))
+    result = build_session_start_context(**_base_kwargs(risk_signal_project, task_level="L0"))
     assert result["risk_signal"]["active"] is True
     assert result["task_level"] == "L1"
 
 
-def test_active_signal_level_decision_shows_upgrade() -> None:
+def test_active_signal_level_decision_shows_upgrade(risk_signal_project: Path) -> None:
     write_risk_signal(
         _FW_ROOT,
         affected_components=["task_level_detection"],
         severity="critical",
         source="test_suite",
     )
-    result = build_session_start_context(**_base_kwargs(task_level="L0"))
+    result = build_session_start_context(**_base_kwargs(risk_signal_project, task_level="L0"))
     decision = result["level_decision"]
     assert decision["upgraded"] is True
     assert "risk_signal" in decision.get("upgrade_reason", "")
     assert decision["final"] == "L1"
 
 
-def test_active_signal_does_not_downgrade_l2() -> None:
+def test_active_signal_does_not_downgrade_l2(risk_signal_project: Path) -> None:
     """L2 is already above the L1 minimum — must not be downgraded."""
     write_risk_signal(
         _FW_ROOT,
@@ -106,35 +128,35 @@ def test_active_signal_does_not_downgrade_l2() -> None:
         severity="critical",
         source="test_suite",
     )
-    result = build_session_start_context(**_base_kwargs(task_level="L2"))
+    result = build_session_start_context(**_base_kwargs(risk_signal_project, task_level="L2"))
     assert result["task_level"] == "L2"
 
 
-def test_active_signal_overrides_surfaced_in_result() -> None:
+def test_active_signal_overrides_surfaced_in_result(risk_signal_project: Path) -> None:
     write_risk_signal(
         _FW_ROOT,
         affected_components=["rule_selection"],
         severity="critical",
         source="test_suite",
     )
-    result = build_session_start_context(**_base_kwargs(task_level="L0"))
+    result = build_session_start_context(**_base_kwargs(risk_signal_project, task_level="L0"))
     overrides = result["risk_signal"]["overrides"]
     assert overrides.get("min_task_level") == "L1"
 
 
-def test_runtime_enforcement_quality_trend_signal_upgrades_l0_to_l1() -> None:
+def test_runtime_enforcement_quality_trend_signal_upgrades_l0_to_l1(risk_signal_project: Path) -> None:
     write_risk_signal(
         _FW_ROOT,
         affected_components=["runtime_enforcement_quality_trend"],
         severity="warning",
         source="test_suite",
     )
-    result = build_session_start_context(**_base_kwargs(task_level="L0"))
+    result = build_session_start_context(**_base_kwargs(risk_signal_project, task_level="L0"))
     assert result["risk_signal"]["active"] is True
     assert result["task_level"] == "L1"
 
 
-def test_active_signal_does_not_change_rules() -> None:
+def test_active_signal_does_not_change_rules(risk_signal_project: Path) -> None:
     """Risk signal must not alter rule packs — only task_level."""
     write_risk_signal(
         _FW_ROOT,
@@ -143,11 +165,11 @@ def test_active_signal_does_not_change_rules() -> None:
         source="test_suite",
     )
     result_with_signal = build_session_start_context(
-        **_base_kwargs(task_level="L1", rules="common")
+        **_base_kwargs(risk_signal_project, task_level="L1", rules="common")
     )
     clear_risk_signal(_FW_ROOT)
     result_without_signal = build_session_start_context(
-        **_base_kwargs(task_level="L1", rules="common")
+        **_base_kwargs(risk_signal_project, task_level="L1", rules="common")
     )
     # Rule packs must be the same regardless of signal state
     rules_with = result_with_signal["runtime_contract"].get("rules", [])
@@ -157,14 +179,14 @@ def test_active_signal_does_not_change_rules() -> None:
 
 # ── Observability: format_human_result() banner ───────────────────────────────
 
-def test_format_human_result_has_no_banner_without_signal() -> None:
+def test_format_human_result_has_no_banner_without_signal(risk_signal_project: Path) -> None:
     from runtime_hooks.core.session_start import format_human_result
-    result = build_session_start_context(**_base_kwargs(task_level="L0"))
+    result = build_session_start_context(**_base_kwargs(risk_signal_project, task_level="L0"))
     rendered = format_human_result(result)
     assert "FRAMEWORK RISK SIGNAL" not in rendered
 
 
-def test_format_human_result_banner_is_first_when_signal_active() -> None:
+def test_format_human_result_banner_is_first_when_signal_active(risk_signal_project: Path) -> None:
     from runtime_hooks.core.session_start import format_human_result
     write_risk_signal(
         _FW_ROOT,
@@ -172,13 +194,13 @@ def test_format_human_result_banner_is_first_when_signal_active() -> None:
         severity="critical",
         source="test_suite",
     )
-    result = build_session_start_context(**_base_kwargs(task_level="L0"))
+    result = build_session_start_context(**_base_kwargs(risk_signal_project, task_level="L0"))
     rendered = format_human_result(result)
     first_line = rendered.splitlines()[0]
     assert first_line == "[FRAMEWORK RISK SIGNAL ACTIVE]"
 
 
-def test_format_human_result_banner_includes_required_fields() -> None:
+def test_format_human_result_banner_includes_required_fields(risk_signal_project: Path) -> None:
     from runtime_hooks.core.session_start import format_human_result
     write_risk_signal(
         _FW_ROOT,
@@ -186,7 +208,7 @@ def test_format_human_result_banner_includes_required_fields() -> None:
         severity="critical",
         source="test_suite",
     )
-    result = build_session_start_context(**_base_kwargs(task_level="L0"))
+    result = build_session_start_context(**_base_kwargs(risk_signal_project, task_level="L0"))
     rendered = format_human_result(result)
     assert "severity=critical" in rendered
     assert "source=test_suite" in rendered
@@ -196,7 +218,7 @@ def test_format_human_result_banner_includes_required_fields() -> None:
 
 # ── Protective behavior: suppress summary_first on compromised components ─────
 
-def test_summary_first_gate_signal_disables_summary_first() -> None:
+def test_summary_first_gate_signal_disables_summary_first(risk_signal_project: Path) -> None:
     """When summary_first_gate is affected, pre_task_check must load full document content."""
     _KDC = Path("e:/BackUp/Git_EE/Kernel-Driver-Contract/contract.yaml")
     if not _KDC.exists():
@@ -208,7 +230,7 @@ def test_summary_first_gate_signal_disables_summary_first() -> None:
         source="test_suite",
     )
     result = build_session_start_context(
-        **_base_kwargs(task_level="L1", contract_file=_KDC)
+        **_base_kwargs(risk_signal_project, task_level="L1", contract_file=_KDC)
     )
     pre = result.get("pre_task_check", {})
     sf = pre.get("summary_first", {})
@@ -219,7 +241,7 @@ def test_summary_first_gate_signal_disables_summary_first() -> None:
     )
 
 
-def test_domain_contract_loading_signal_disables_summary_first() -> None:
+def test_domain_contract_loading_signal_disables_summary_first(risk_signal_project: Path) -> None:
     """domain_contract_loading component also triggers disable_summary_first."""
     _KDC = Path("e:/BackUp/Git_EE/Kernel-Driver-Contract/contract.yaml")
     if not _KDC.exists():
@@ -231,14 +253,14 @@ def test_domain_contract_loading_signal_disables_summary_first() -> None:
         source="test_suite",
     )
     result = build_session_start_context(
-        **_base_kwargs(task_level="L1", contract_file=_KDC)
+        **_base_kwargs(risk_signal_project, task_level="L1", contract_file=_KDC)
     )
     pre = result.get("pre_task_check", {})
     sf = pre.get("summary_first", {})
     assert sf.get("active") is False
 
 
-def test_unrelated_signal_component_does_not_disable_summary_first() -> None:
+def test_unrelated_signal_component_does_not_disable_summary_first(risk_signal_project: Path) -> None:
     """rule_selection signal must NOT suppress summary_first."""
     _KDC = Path("e:/BackUp/Git_EE/Kernel-Driver-Contract/contract.yaml")
     if not _KDC.exists():
@@ -250,7 +272,7 @@ def test_unrelated_signal_component_does_not_disable_summary_first() -> None:
         source="test_suite",
     )
     result = build_session_start_context(
-        **_base_kwargs(task_level="L1", contract_file=_KDC)
+        **_base_kwargs(risk_signal_project, task_level="L1", contract_file=_KDC)
     )
     pre = result.get("pre_task_check", {})
     sf = pre.get("summary_first", {})
