@@ -1,0 +1,1 @@
+glossary commit scope, supersession note, and option-label consistency verified

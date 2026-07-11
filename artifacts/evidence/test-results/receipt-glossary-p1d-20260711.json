@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"\nimport subprocess\nr=subprocess.run(['git','show','--name-only','--pretty=format:','bde6ef54'],capture_output=True,text=True)\nfiles=sorted(l for l in r.stdout.splitlines() if l.strip())\nassert files==['PLAN.md','docs/newcomer-guide.md'], files\np=open('PLAN.md',encoding='utf-8').read()\nassert 'Work Item Glossary' in p and 'superseded by P1-F' in p\nprop=open('docs/governance/p1f-plan-reconciliation-enforcement-proposal-2026-07-11.md',encoding='utf-8').read()\nassert '### A. Advisory only' in prop and '### B. Canonical writer requires an explicit declaration' in prop and '### C. Make missing declarations a current-diff completion blocker' in prop\nd=subprocess.run(['git','diff','--check'],capture_output=True,text=True)\nassert d.returncode==0\nprint('glossary commit scope, supersession note, and option-label consistency verified')\n\"",
+  "exit_code": 0,
+  "started_at": "2026-07-11T08:05:10Z",
+  "finished_at": "2026-07-11T08:05:10Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "5ec38a5ca392e2b7d30ab98a89ccd8b6a1f5cd74",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-glossary-p1d-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
