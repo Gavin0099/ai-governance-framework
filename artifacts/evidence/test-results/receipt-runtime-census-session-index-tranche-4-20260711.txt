@@ -15,7 +15,7 @@ reraise = (<class '_pytest.outcomes.Exit'>, <class 'KeyboardInterrupt'>)
         reraise: type[BaseException] | tuple[type[BaseException], ...] | None = None,
     ) -> CallInfo[TResult]:
         """Call func, wrapping the result in a CallInfo.
-    
+
         :param func:
             The function to call. Called without arguments.
         :type func: Callable[[], _pytest.runner.TResult]
@@ -31,7 +31,7 @@ reraise = (<class '_pytest.outcomes.Exit'>, <class 'KeyboardInterrupt'>)
 >           result: TResult | None = func()
                                      ^^^^^^
 
-.venv\Lib\site-packages\_pytest\runner.py:353: 
+.venv\Lib\site-packages\_pytest\runner.py:353:
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 .venv\Lib\site-packages\_pytest\runner.py:245: in <lambda>
     lambda: runtest_hook(item=item, **kwds),
@@ -137,7 +137,7 @@ reraise = (<class '_pytest.outcomes.Exit'>, <class 'KeyboardInterrupt'>)
         reraise: type[BaseException] | tuple[type[BaseException], ...] | None = None,
     ) -> CallInfo[TResult]:
         """Call func, wrapping the result in a CallInfo.
-    
+
         :param func:
             The function to call. Called without arguments.
         :type func: Callable[[], _pytest.runner.TResult]
@@ -153,7 +153,7 @@ reraise = (<class '_pytest.outcomes.Exit'>, <class 'KeyboardInterrupt'>)
 >           result: TResult | None = func()
                                      ^^^^^^
 
-.venv\Lib\site-packages\_pytest\runner.py:353: 
+.venv\Lib\site-packages\_pytest\runner.py:353:
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 .venv\Lib\site-packages\_pytest\runner.py:245: in <lambda>
     lambda: runtest_hook(item=item, **kwds),
@@ -259,7 +259,7 @@ reraise = (<class '_pytest.outcomes.Exit'>, <class 'KeyboardInterrupt'>)
         reraise: type[BaseException] | tuple[type[BaseException], ...] | None = None,
     ) -> CallInfo[TResult]:
         """Call func, wrapping the result in a CallInfo.
-    
+
         :param func:
             The function to call. Called without arguments.
         :type func: Callable[[], _pytest.runner.TResult]
@@ -275,7 +275,7 @@ reraise = (<class '_pytest.outcomes.Exit'>, <class 'KeyboardInterrupt'>)
 >           result: TResult | None = func()
                                      ^^^^^^
 
-.venv\Lib\site-packages\_pytest\runner.py:353: 
+.venv\Lib\site-packages\_pytest\runner.py:353:
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 .venv\Lib\site-packages\_pytest\runner.py:245: in <lambda>
     lambda: runtest_hook(item=item, **kwds),
@@ -381,7 +381,7 @@ reraise = (<class '_pytest.outcomes.Exit'>, <class 'KeyboardInterrupt'>)
         reraise: type[BaseException] | tuple[type[BaseException], ...] | None = None,
     ) -> CallInfo[TResult]:
         """Call func, wrapping the result in a CallInfo.
-    
+
         :param func:
             The function to call. Called without arguments.
         :type func: Callable[[], _pytest.runner.TResult]
@@ -397,7 +397,7 @@ reraise = (<class '_pytest.outcomes.Exit'>, <class 'KeyboardInterrupt'>)
 >           result: TResult | None = func()
                                      ^^^^^^
 
-.venv\Lib\site-packages\_pytest\runner.py:353: 
+.venv\Lib\site-packages\_pytest\runner.py:353:
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 .venv\Lib\site-packages\_pytest\runner.py:245: in <lambda>
     lambda: runtest_hook(item=item, **kwds),
@@ -503,7 +503,7 @@ reraise = (<class '_pytest.outcomes.Exit'>, <class 'KeyboardInterrupt'>)
         reraise: type[BaseException] | tuple[type[BaseException], ...] | None = None,
     ) -> CallInfo[TResult]:
         """Call func, wrapping the result in a CallInfo.
-    
+
         :param func:
             The function to call. Called without arguments.
         :type func: Callable[[], _pytest.runner.TResult]
@@ -519,7 +519,7 @@ reraise = (<class '_pytest.outcomes.Exit'>, <class 'KeyboardInterrupt'>)
 >           result: TResult | None = func()
                                      ^^^^^^
 
-.venv\Lib\site-packages\_pytest\runner.py:353: 
+.venv\Lib\site-packages\_pytest\runner.py:353:
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 .venv\Lib\site-packages\_pytest\runner.py:245: in <lambda>
     lambda: runtest_hook(item=item, **kwds),
