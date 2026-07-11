@@ -1,0 +1,1 @@
+spot-check (corrected assertion): no canonical memory record is anchored to the three claimed non-correspondence commits; report counts reproduced (not_declared=44, updated=55). Note: the hashes appear as prose in the retraction records themselves, which is expected and not an anchor.

@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"\nimport subprocess,glob,re\nfor c in ('e65c948b','9a3ff715','174ce74d'):\n    for f in glob.glob('memory/*.md'):\n        txt=open(f,encoding='utf-8',errors='replace').read()\n        assert not re.search(rf'(?m)^\\s*commit(_hash)?:\\s*{c}',txt), f'{c} anchored in {f}'\nr=subprocess.run(['./.venv/Scripts/python.exe','-X','utf8','-m','governance_tools.deferred_debt_report','--project-root','.','--as-of','2026-07-11','--format','human'],capture_output=True,text=True)\nassert 'not_declared: 44' in r.stdout and 'updated: 55' in r.stdout\nprint('spot-check (corrected assertion): no canonical memory record is anchored to the three claimed non-correspondence commits; report counts reproduced (not_declared=44, updated=55). Note: the hashes appear as prose in the retraction records themselves, which is expected and not an anchor.')\n\"",
+  "exit_code": 0,
+  "started_at": "2026-07-11T03:38:48Z",
+  "finished_at": "2026-07-11T03:38:49Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "289e8c43691581efe6e1afe5a3da7d26c4a5d58e",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-p1e-manifest-spotcheck-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
