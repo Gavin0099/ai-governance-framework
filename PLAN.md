@@ -56,6 +56,28 @@ Claim ceiling for this repair:
 - [x] Phase D: Session workflow, external adoption, and reviewer entrypoints.
 - [>] Phase E: Failure decision boundary, exclusion governance, and usage enforcement.
 
+## Work Item Glossary
+
+Use this short decoder when reading historical or current PLAN labels.  A code
+preserves traceability; the phrase states its purpose.  The checkbox and
+nearby status text remain the authority for whether an item is complete.
+
+| Label | Plain-language purpose |
+| --- | --- |
+| Phase A--E | Major work periods: core baseline; adoption/memory foundations; runtime observation; external adoption/reviewer workflow; and the current failure-boundary/exclusion/usage-enforcement line. |
+| P0 / P1 / P2 | Priority groups; the letter identifies a work item within that group. |
+| P1-C | First external F-7 verification for `meiandraybook`, including a natural-session closeout-receipt check that is still pending production evidence. |
+| P1-D | Structured `plan_reconciliation` declaration for canonical memory records. |
+| P1-E | Observation evidence for declaration behavior; it does not by itself authorize enforcement. |
+| P1-F | Decision about stronger declaration enforcement. Option B (canonical writer requires an explicit declaration) is implemented; the distinct current-diff blocker decision remains unapproved. |
+| P1-G / P1-H | Reproducible fleet-matrix generator / future decision about fleet-update freshness. |
+| P2-E | Rules for public-facing release surfaces such as topics, badges, and release notes. |
+| F-7 | Governed full framework update for a consumer repository, with staged evidence; a pointer update alone is not F-7 completion. |
+| E2 | Retrospective external-engineer adoption evidence. It is usability/adoption evidence, not runtime-effectiveness proof. |
+| Gate 3 | Frozen learning-loop unpause gate; it opens only under its documented criteria and explicit owner approval. |
+| E1-B, E8A, CE-1C/1D, R49.x, Round A/B | Historical experiment, claim-enforcement, or retrieval/cache study labels. Read their linked artifact before treating them as active work. |
+| v1 / v2 / v3 | Versions of the no-governance baseline experiment; their individual status and claim boundary are recorded in the current task and status artifacts. |
+
 Phase D completion note:
 
 - Reviewer closeout artifact was signed by Gavin0099 on 2026-04-28.
@@ -784,8 +806,14 @@ do not start before the P1-C fixture exists):
   agents to edit canonical PLAN to legalize their own completion claims.
 - [x] Add `--plan-reconciliation` field to `governance_tools.memory_record`
   (2026-06-12): `updated` | `not_applicable` | `deferred:<reason>`;
-  omission is recorded as `not_declared` with a writer advisory (never
-  blocks); malformed values are rejected as input errors (exit 2).
+  at that time, omission was recorded as `not_declared` with a writer
+  advisory (never blocks), while malformed values were rejected as input
+  errors (exit 2). This historical writer behavior was superseded by P1-F
+  Option B at `c06014c4`: the canonical writer now requires an explicit
+  declaration and rejects omission with exit 2 before any memory write.
+  Historical parsing can still represent older omitted declarations as
+  `not_declared`; the writer contract does not make omission a current-diff
+  blocker.
 - [x] Deferred reasons validated against the reason taxonomy
   (`requires-human-plan-review`, `awaiting-reviewer-verdict`,
   `scope-split-next-slice`, `canonical-update-not-authorized`,
@@ -914,7 +942,9 @@ Decisions:
 - [ ] P1-F: upgrading to a current-diff blocker changes what counts as a
   legal completion claim and is therefore an [OP-HC] decision requiring
   FP data, a rollback path, and its own mutation contract. Not authorized
-  by this item.
+  by this item. Separate Option B is already implemented at `c06014c4`:
+  the canonical writer requires an explicit `--plan-reconciliation`
+  declaration before it writes. This does not create a current-diff blocker.
 - [x] Add a non-blocking deferred-debt report (deferred count by reason,
   oldest deferred age, PLAN-touched records without `updated` status) to
   prevent acknowledged-drift from becoming a landfill.

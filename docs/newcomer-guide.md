@@ -4,6 +4,10 @@
 F-7、External Repo Onboarding SOP 或 consuming-repo adoption checklist；衝突
 時以那些文件為準。
 
+如果在 PLAN 或交接中遇到 P1-C、E2、F-7 等工作代號，先看
+[`PLAN.md` 的 Work Item Glossary](../PLAN.md)；代號保留歷史可追溯性，
+但不應取代白話目的與附近的完成狀態。
+
 適用範圍：你正在導入或更新一個會由團隊持續修改的 consuming repo。
 它不表示導入已完成，也不取代 owner 對 domain、risk tier 或 repository
 topology 的決定。
