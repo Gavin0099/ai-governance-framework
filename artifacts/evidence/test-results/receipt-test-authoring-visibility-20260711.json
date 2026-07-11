@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -c \"from pathlib import Path; t=Path('governance/SYSTEM_PROMPT.md').read_text(encoding='utf-8'); assert '### 2.5.1 Test-Authoring Visibility Disclosure' in t; assert '[Test-Authoring Disclosure]' in t; assert '- AGENT.md: Loaded | Not loaded' in t; assert '- TESTING.md: Loaded | Not loaded | Not applicable' in t; assert 'before test design or implementation' in t; assert 'report-only visibility requirement' in t; assert 'does not add a hook, validator, schema field, or gate' in t; print('test-authoring disclosure structure present')\"",
+  "exit_code": 1,
+  "started_at": "2026-07-11T11:33:33Z",
+  "finished_at": "2026-07-11T11:33:33Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "21c834b0fffb865bd5fbd0fe21bcca3a57f9a51d",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-test-authoring-visibility-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

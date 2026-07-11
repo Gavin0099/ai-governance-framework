@@ -122,6 +122,25 @@ SCOPE = feature | refactor | bugfix | I/O | tooling | review | governance | kern
 - REVIEW_CRITERIA.md: Skipped (not a review task)
 ```
 
+### 2.5.1 Test-Authoring Visibility Disclosure
+
+When a task will add or modify test code, make the following disclosure before
+test design or implementation:
+
+```text
+[Test-Authoring Disclosure]
+- AGENT.md: Loaded | Not loaded — <reason>
+- TESTING.md: Loaded | Not loaded | Not applicable — <reason>
+```
+
+If either applicable document was not loaded, load it before claiming that the
+test plan or test result follows repository testing expectations. If it cannot
+be loaded, say so and do not make that governance-alignment claim.
+
+This is a report-only visibility requirement. It does not prove that a document
+was read, does not add a hook, validator, schema field, or gate, and does not
+replace risk-matched test evidence.
+
 ### 2.6 ADR Conflict Check
 
 若 task 可能建立或改動 architecture decision，先掃 `docs/adr/`，確認沒有未處理衝突，再繼續。
