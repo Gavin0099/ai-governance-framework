@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"\nimport json\nd=json.load(open('docs/governance/decision-change-ledger.inventory.v0.1.json'))\ne=[x for x in d['entries'] if 'run_filtered_tests' in str(x.get('module',''))][0]\nassert e['recommended_action']=='keep_observe' and 'Phase E-scope decision' in e['resolution']\nq=json.load(open('docs/governance/governance-surface-maintenance-queue.v0.1.json'))\nassert q['entries'][73]['recommended_action']=='keep_observe'\nprint('both carriers reclassified keep_observe with cluster-scope retirement note: OK')\n\"",
+  "exit_code": 0,
+  "started_at": "2026-07-11T02:31:14Z",
+  "finished_at": "2026-07-11T02:31:14Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "69b614e50bd8dc875eb552bee68dd5b84436eb93",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-rft-keep-observe-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
