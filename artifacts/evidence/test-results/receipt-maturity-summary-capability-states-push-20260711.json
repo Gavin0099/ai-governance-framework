@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git ls-remote origin refs/heads/main",
+  "exit_code": 128,
+  "started_at": "2026-07-11T06:56:17Z",
+  "finished_at": "2026-07-11T06:56:17Z",
+  "runner": "codex-maturity-summary-push-verify",
+  "linked_commit": "c00d7ac4d7d0f95bfcc0c897e5192abced866db4",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-maturity-summary-capability-states-push-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
