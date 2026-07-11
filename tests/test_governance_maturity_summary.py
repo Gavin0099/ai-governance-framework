@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+from datetime import date
 from pathlib import Path
 
+from governance_tools.external_repo_readiness import ExternalRepoReadiness
 from governance_tools.governance_maturity_summary import (
     build_governance_maturity_summary,
     format_human,
@@ -47,6 +50,75 @@ def _make_framework_root(path: Path) -> Path:
     _write(path / "runtime_hooks" / "__init__.py", "")
     _write(path / "governance" / "runtime_injection_snapshot.v0.yaml", "version: 0\n")
     return path
+
+
+def _make_hook_valid_framework_root(path: Path) -> Path:
+    _make_framework_root(path)
+    _write(path / "scripts" / "lib" / "python.sh", "#!/usr/bin/env bash\n")
+    _write(path / "scripts" / "run-runtime-governance.sh", "#!/usr/bin/env bash\n")
+    _write(path / "governance_tools" / "plan_freshness.py", "# fixture\n")
+    _write(path / "governance_tools" / "contract_validator.py", "# fixture\n")
+    return path
+
+
+def _install_governance_hooks(repo: Path, framework: Path) -> None:
+    marker = "# AI Governance Framework\n"
+    _write(repo / ".git" / "hooks" / "pre-commit", marker)
+    _write(repo / ".git" / "hooks" / "pre-push", marker)
+    _write(repo / ".git" / "hooks" / "ai-governance-framework-root", str(framework.resolve()))
+
+
+def _write_fresh_plan(repo: Path) -> None:
+    _write(
+        repo / "PLAN.md",
+        "# PLAN.md\n\n"
+        f"> **最後更新**: {date.today().isoformat()}\n"
+        "> **Owner**: Test\n"
+        "> **Freshness**: Sprint (7d)\n\n",
+    )
+
+
+def _patch_ready_readiness(monkeypatch, repo: Path, *, drift_clean: bool = True) -> None:
+    def fake_assess_external_repo(repo_root: Path, contract_path=None, framework_root=None):
+        checks = {
+            "git_repo_present": True,
+            "plan_present": True,
+            "plan_fresh_enough": True,
+            "contract_resolved": True,
+            "contract_files_complete": True,
+            "gitlab_adapter_scope_consistent": True,
+            "framework_release_compatible": True,
+            "governance_drift_clean": drift_clean,
+        }
+        return ExternalRepoReadiness(
+            ready=True,
+            repo_root=str(repo_root),
+            checks=checks,
+            contract={"path": str(repo / "contract.yaml")},
+            governance_drift={"severity": "ok" if drift_clean else "error", "findings": []},
+        )
+
+    monkeypatch.setattr(
+        "governance_tools.external_repo_readiness.assess_external_repo",
+        fake_assess_external_repo,
+    )
+
+
+def _smoke_payload(repo: Path, *, ok: bool = True) -> dict[str, object]:
+    return {
+        "ok": ok,
+        "repo_root": str(repo.resolve()),
+        "plan_path": str((repo / "PLAN.md").resolve()),
+        "contract_path": str((repo / "contract.yaml").resolve()),
+        "rules": ["common"],
+        "pre_task_ok": ok,
+        "session_start_ok": ok,
+        "post_task_ok": None,
+        "post_task_cases": [],
+        "token_summary": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+        "warnings": [],
+        "errors": [] if ok else ["session_start failed"],
+    }
 
 
 def _make_git_framework(path: Path) -> Path:
@@ -399,3 +471,267 @@ def test_unknown_adoption_without_repo_rules_is_user_facing_not_governed(tmp_pat
     )
     assert "user_facing_status       = not_governed" in rendered
     assert "這個 repo 目前看起來尚未由 AI Governance 管理。" in rendered
+
+
+def test_capability_states_distinguish_missing_evidence_from_failed_checks(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "capabilities")
+    external_framework = _make_framework_root(tmp_path / "external-framework")
+
+    summary = build_governance_maturity_summary(repo, framework_root=external_framework)
+    payload = summary_to_dict(summary)
+
+    assert summary.capability_states["topology"].state == "Detected"
+    assert summary.capability_states["runtime_evidence"].state == "Unproven"
+    assert summary.capability_states["runtime_evidence"].source == (
+        "governance_maturity_summary.runtime_evidence_lookup"
+    )
+    assert summary.capability_states["hook_installation"].state == "Failed"
+    assert summary.capability_states["readiness.plan_present"].state == "Failed"
+    assert summary.capability_states["readiness.contract_resolved"].state == "Verified"
+    assert "readiness.governance_drift_clean" in summary.capability_states
+    assert "readiness.framework_release_compatible" in summary.capability_states
+    assert summary.capability_states["readiness.overall"].state == "Failed"
+    assert payload["capability_states"]["runtime_evidence"]["state"] == "Unproven"
+    assert payload["capability_states"]["runtime_evidence"]["source"] == (
+        "governance_maturity_summary.runtime_evidence_lookup"
+    )
+    assert summary.next_safe_command is None
+    assert summary.owner_actions
+
+
+def test_capability_states_include_verified_hook_and_runtime_evidence(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "verified_capabilities")
+    framework = _make_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write(
+        repo / "artifacts" / "evidence" / "test-results" / "external-repo-smoke-result.json",
+        json.dumps(_smoke_payload(repo, ok=True)) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+    rendered = format_human(summary)
+
+    assert summary.capability_states["hook_installation"].state == "Verified"
+    assert summary.capability_states["hook_installation"].source == (
+        "hook_install_validator.validate_hook_install"
+    )
+    assert summary.capability_states["runtime_evidence"].state == "Verified"
+    assert "external-repo-smoke-result.json" in " ".join(
+        summary.capability_states["runtime_evidence"].reasons
+    )
+    assert "hook_installation: Verified" in rendered
+    assert "runtime_evidence: Verified" in rendered
+
+
+def test_runtime_evidence_failed_receipt_is_failed_not_detected(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "failed_runtime_evidence")
+    framework = _make_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _write(
+        repo / "artifacts" / "evidence" / "test-results" / "external-repo-smoke-result.json",
+        json.dumps(_smoke_payload(repo, ok=False)) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    assert summary.capability_states["runtime_evidence"].state == "Failed"
+    assert "ok=false" in " ".join(summary.capability_states["runtime_evidence"].reasons)
+    assert summary.next_safe_command is None
+    assert any("failed runtime smoke" in action for action in summary.owner_actions)
+
+
+def test_incomplete_ok_runtime_json_is_detected_not_verified(tmp_path: Path, monkeypatch) -> None:
+    repo = _make_repo(tmp_path / "incomplete_runtime_json")
+    framework = _make_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    _write(
+        repo / "artifacts" / "evidence" / "test-results" / "external-repo-smoke-result.json",
+        json.dumps({"ok": True, "repo_root": str(repo.resolve())}) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    assert summary.capability_states["runtime_evidence"].state == "Detected"
+    assert "incomplete smoke result shape" in " ".join(
+        summary.capability_states["runtime_evidence"].reasons
+    )
+    assert summary.next_safe_command is not None
+    assert "external_repo_smoke.py" in summary.next_safe_command
+
+
+def test_runtime_evidence_mismatched_repo_is_detected_not_verified(tmp_path: Path, monkeypatch) -> None:
+    repo = _make_repo(tmp_path / "mismatched_runtime_evidence")
+    other_repo = tmp_path / "other_repo"
+    other_repo.mkdir()
+    framework = _make_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    payload = _smoke_payload(repo, ok=True)
+    payload["repo_root"] = str(other_repo.resolve())
+    _write(
+        repo / "artifacts" / "evidence" / "test-results" / "external-repo-smoke-result.json",
+        json.dumps(payload) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    assert summary.capability_states["runtime_evidence"].state == "Detected"
+    assert "repo_root mismatch" in " ".join(summary.capability_states["runtime_evidence"].reasons)
+    assert summary.next_safe_command is not None
+    assert "external_repo_smoke.py" in summary.next_safe_command
+    assert any("filename-only" in action for action in summary.owner_actions)
+
+
+def test_latest_attributable_runtime_receipt_wins(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "latest_runtime_evidence")
+    framework = _make_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    old_failed = repo / "artifacts" / "evidence" / "test-results" / "runtime-smoke-old.json"
+    new_passed = repo / "artifacts" / "evidence" / "test-results" / "runtime-smoke-new.json"
+    _write(old_failed, json.dumps(_smoke_payload(repo, ok=False)) + "\n")
+    _write(new_passed, json.dumps(_smoke_payload(repo, ok=True)) + "\n")
+    os.utime(old_failed, (1_700_000_000, 1_700_000_000))
+    os.utime(new_passed, (1_700_000_100, 1_700_000_100))
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    assert summary.capability_states["runtime_evidence"].state == "Verified"
+    assert "runtime-smoke-new.json" in " ".join(summary.capability_states["runtime_evidence"].reasons)
+    assert summary.next_safe_command is None
+
+
+def test_next_safe_command_runs_runtime_smoke_when_static_prerequisites_are_present(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "runtime_next_command")
+    framework = _make_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    assert summary.capability_states["readiness.plan_present"].state == "Verified"
+    assert summary.capability_states["readiness.contract_resolved"].state == "Verified"
+    assert summary.capability_states["hook_installation"].state == "Verified"
+    assert summary.capability_states["runtime_evidence"].state == "Unproven"
+    assert summary.next_safe_command is not None
+    assert "external_repo_smoke.py" in summary.next_safe_command
+    assert "external_repo_readiness.py" not in summary.next_safe_command
+    assert f'--repo "{repo.resolve()}"' in summary.next_safe_command
+
+
+def test_owner_action_names_readiness_failure_before_runtime_smoke(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "owner_action_readiness")
+    framework = _make_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    assert summary.capability_states["readiness.plan_present"].state == "Failed"
+    assert summary.capability_states["hook_installation"].state == "Verified"
+    assert summary.next_safe_command is None
+    assert any("PLAN.md" in action for action in summary.owner_actions)
+
+
+def test_hook_failure_requires_owner_action_not_diagnostic_next_command(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "hook_owner_action")
+    framework = _make_hook_valid_framework_root(tmp_path / "framework")
+    _write_fresh_plan(repo)
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    assert summary.capability_states["readiness.plan_present"].state == "Verified"
+    assert summary.capability_states["readiness.contract_resolved"].state == "Verified"
+    assert summary.capability_states["hook_installation"].state == "Failed"
+    assert summary.next_safe_command is None
+    assert any("hook installation" in action for action in summary.owner_actions)
+
+
+def test_critical_plan_blocks_runtime_smoke_command(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "critical_plan")
+    framework = _make_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write(
+        repo / "PLAN.md",
+        "# PLAN.md\n\n"
+        "> **最後更新**: 2020-01-01\n"
+        "> **Owner**: Test\n"
+        "> **Freshness**: Sprint (7d)\n\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    assert summary.capability_states["readiness.plan_present"].state == "Verified"
+    assert summary.capability_states["readiness.plan_fresh_enough"].state == "Failed"
+    assert summary.capability_states["readiness.overall"].state == "Failed"
+    assert summary.next_safe_command is None
+    assert any("PLAN.md" in action for action in summary.owner_actions)
+
+
+def test_incomplete_contract_blocks_runtime_smoke_command(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "incomplete_contract")
+    framework = _make_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _write(
+        repo / "contract.yaml",
+        "name: incomplete-contract\n"
+        "documents:\n"
+        "  - missing.md\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    assert summary.capability_states["readiness.contract_resolved"].state == "Verified"
+    assert summary.capability_states["readiness.contract_files_complete"].state == "Failed"
+    assert summary.capability_states["readiness.overall"].state == "Failed"
+    assert summary.next_safe_command is None
+    assert any("missing contract" in action for action in summary.owner_actions)
+
+
+def test_governance_drift_failure_blocks_runtime_smoke_even_when_readiness_ready(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "drift_failed")
+    framework = _make_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+
+    def fake_assess_external_repo(repo_root: Path, contract_path=None, framework_root=None):
+        checks = {
+            "git_repo_present": True,
+            "plan_present": True,
+            "plan_fresh_enough": True,
+            "contract_resolved": True,
+            "contract_files_complete": True,
+            "gitlab_adapter_scope_consistent": True,
+            "framework_release_compatible": True,
+            "governance_drift_clean": False,
+        }
+        return ExternalRepoReadiness(
+            ready=True,
+            repo_root=str(repo_root),
+            checks=checks,
+            contract={"path": str(repo / "contract.yaml")},
+            governance_drift={"severity": "error", "findings": [{"check": "drift", "severity": "error"}]},
+        )
+
+    monkeypatch.setattr(
+        "governance_tools.external_repo_readiness.assess_external_repo",
+        fake_assess_external_repo,
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    assert summary.capability_states["readiness.overall"].state == "Verified"
+    assert summary.capability_states["readiness.governance_drift_clean"].state == "Failed"
+    assert summary.next_safe_command is None
+    assert any("governance drift" in action for action in summary.owner_actions)

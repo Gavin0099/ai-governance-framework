@@ -40,6 +40,13 @@ class SignalConflict:
 
 
 @dataclass
+class CapabilityStatus:
+    state: str
+    source: str
+    reasons: list[str] = field(default_factory=list)
+
+
+@dataclass
 class GovernanceMaturitySummary:
     report_version: str
     repo_root: str
@@ -66,6 +73,9 @@ class GovernanceMaturitySummary:
         )
     )
     cannot_claim: list[str] = field(default_factory=list)
+    capability_states: dict[str, CapabilityStatus] = field(default_factory=dict)
+    owner_actions: list[str] = field(default_factory=list)
+    next_safe_command: str | None = None
     claim_boundary: str = (
         "This summary is report-only. It does not prove full governance adoption, "
         "runtime self-contained execution, hook enforcement, memory completeness, "
@@ -78,6 +88,10 @@ class GovernanceMaturitySummary:
 
 def _summary_value(value: object, source: str, reasons: list[str] | None = None) -> SummaryValue:
     return SummaryValue(value=value, source=source, reasons=list(reasons or []))
+
+
+def _capability(state: str, source: str, reasons: list[str] | None = None) -> CapabilityStatus:
+    return CapabilityStatus(state=state, source=source, reasons=list(reasons or []))
 
 
 def _repo_specific_rules_present(status: str) -> bool:
@@ -723,14 +737,313 @@ def _pin_reasons(adoption_report: AdoptionDoctorReport) -> list[str]:
     return reasons
 
 
+def _bool_capability(
+    value: bool | None,
+    *,
+    source: str,
+    true_reason: str,
+    false_reason: str,
+    none_reason: str | None = None,
+) -> CapabilityStatus:
+    if value is True:
+        return _capability("Verified", source, [true_reason])
+    if value is False:
+        return _capability("Failed", source, [false_reason])
+    return _capability("Unproven", source, [none_reason or "check did not return a value"])
+
+
+def _adoption_capabilities(adoption_report: AdoptionDoctorReport) -> dict[str, CapabilityStatus]:
+    topology = adoption_report.adoption_class.value
+    if topology == "unknown":
+        topology_capability = _capability(
+            "Unproven",
+            "adoption_doctor.adoption_class",
+            adoption_report.adoption_class.reasons or ["consumer topology could not be classified"],
+        )
+    else:
+        topology_capability = _capability(
+            "Detected",
+            "adoption_doctor.adoption_class",
+            [f"topology={topology}", *adoption_report.adoption_class.reasons],
+        )
+
+    self_contained = adoption_report.self_contained.value
+    if self_contained == "yes":
+        static_surface = _capability(
+            "Verified",
+            "adoption_doctor.self_contained",
+            adoption_report.self_contained.reasons or ["static framework surface is self-contained"],
+        )
+    elif self_contained == "not_checked":
+        static_surface = _capability(
+            "Unproven",
+            "adoption_doctor.self_contained",
+            adoption_report.self_contained.reasons or ["static framework surface was not checked"],
+        )
+    else:
+        static_surface = _capability(
+            "Failed",
+            "adoption_doctor.self_contained",
+            adoption_report.self_contained.reasons or [f"static framework surface is {self_contained}"],
+        )
+
+    return {
+        "topology": topology_capability,
+        "static_runtime_surface": static_surface,
+        "runtime_capable_static": _capability(
+            "Unproven"
+            if adoption_report.runtime_capable.value in {"not_checked", "unknown"}
+            else ("Verified" if adoption_report.runtime_capable.value == "yes" else "Failed"),
+            "adoption_doctor.runtime_capable",
+            adoption_report.runtime_capable.reasons
+            or [f"runtime_capable={adoption_report.runtime_capable.value}"],
+        ),
+    }
+
+
+def _readiness_capabilities(readiness_report: object) -> dict[str, CapabilityStatus]:
+    checks = getattr(readiness_report, "checks", {}) or {}
+    capabilities: dict[str, CapabilityStatus] = {}
+    for key in sorted(checks):
+        capabilities[f"readiness.{key}"] = _bool_capability(
+            checks.get(key),
+            source=f"external_repo_readiness.checks.{key}",
+            true_reason=f"{key}=true",
+            false_reason=f"{key}=false",
+        )
+
+    capabilities["readiness.overall"] = _bool_capability(
+        getattr(readiness_report, "ready", None),
+        source="external_repo_readiness.ready",
+        true_reason="external repo readiness returned ready=true",
+        false_reason="external repo readiness returned ready=false",
+    )
+    return capabilities
+
+
+def _hook_capability(hook_report: object) -> CapabilityStatus:
+    reasons: list[str] = []
+    errors = list(getattr(hook_report, "errors", []) or [])
+    warnings = list(getattr(hook_report, "warnings", []) or [])
+    checks = getattr(hook_report, "checks", {}) or {}
+    if errors:
+        reasons.extend(errors)
+    else:
+        reasons.append("hook_install_validator returned valid=true")
+    if warnings:
+        reasons.extend(f"warning: {item}" for item in warnings)
+    if checks:
+        failed_checks = [key for key, ok in checks.items() if ok is False]
+        if failed_checks:
+            reasons.append("failed_checks=" + ",".join(sorted(failed_checks)))
+    return _capability(
+        "Verified" if getattr(hook_report, "valid", False) else "Failed",
+        "hook_install_validator.validate_hook_install",
+        reasons,
+    )
+
+
+def _find_runtime_smoke_evidence(repo_root: Path) -> CapabilityStatus:
+    evidence_dirs = [
+        repo_root / "artifacts" / "evidence" / "test-results",
+        repo_root / ".governance" / "evidence",
+    ]
+    matches: list[Path] = []
+    for evidence_dir in evidence_dirs:
+        if not evidence_dir.is_dir():
+            continue
+        for pattern in ("*external*smoke*.json", "*runtime*smoke*.json", "*smoke*.json"):
+            matches.extend(path for path in evidence_dir.glob(pattern) if path.is_file())
+    unique_matches = sorted({path.resolve() for path in matches})
+    smoke_shape_fields = {
+        "plan_path",
+        "rules",
+        "pre_task_ok",
+        "session_start_ok",
+        "post_task_ok",
+        "token_summary",
+        "warnings",
+        "errors",
+    }
+    parsed_results: list[tuple[Path, bool, dict[str, object]]] = []
+    incomplete_results: list[str] = []
+    unattributed_results: list[Path] = []
+    mismatched_results: list[str] = []
+    unparsed: list[Path] = []
+    for path in unique_matches:
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8-sig"))
+        except (OSError, json.JSONDecodeError):
+            unparsed.append(path)
+            continue
+        if isinstance(payload, dict) and isinstance(payload.get("ok"), bool):
+            missing_shape = sorted(smoke_shape_fields - set(payload))
+            if missing_shape:
+                incomplete_results.append(f"{path} missing_fields={','.join(missing_shape)}")
+                continue
+            reported_repo = payload.get("repo_root")
+            if not reported_repo:
+                unattributed_results.append(path)
+                continue
+            try:
+                reported = Path(str(reported_repo)).resolve()
+            except (OSError, RuntimeError):
+                mismatched_results.append(f"{path} reported_repo_root={reported_repo}")
+                continue
+            if reported != repo_root.resolve():
+                mismatched_results.append(f"{path} reported_repo_root={reported}")
+                continue
+            parsed_results.append((path, bool(payload["ok"]), payload))
+        else:
+            unparsed.append(path)
+
+    parsed_results = sorted(
+        parsed_results,
+        key=lambda item: (item[0].stat().st_mtime_ns, str(item[0])),
+        reverse=True,
+    )
+    if parsed_results:
+        path, ok, payload = parsed_results[0]
+        if ok is True:
+            reasons = [f"latest attributable runtime smoke result by retained file mtime ok=true: {path}"]
+            repo_value = payload.get("repo_root") if isinstance(payload, dict) else None
+            if repo_value:
+                reasons.append(f"reported_repo_root={repo_value}")
+            return _capability("Verified", "governance_maturity_summary.runtime_evidence_lookup", reasons)
+        errors = payload.get("errors") if isinstance(payload, dict) else None
+        reason = f"latest attributable runtime smoke result by retained file mtime ok=false: {path}"
+        if isinstance(errors, list) and errors:
+            reason += "; errors=" + "; ".join(str(item) for item in errors[:3])
+        return _capability(
+            "Failed",
+            "governance_maturity_summary.runtime_evidence_lookup",
+            [reason],
+        )
+
+    if unique_matches:
+        shown = [str(path) for path in unique_matches[:3]]
+        if len(unique_matches) > 3:
+            shown.append(f"... {len(unique_matches) - 3} more")
+        mismatch_reasons = [f"repo_root mismatch: {item}" for item in mismatched_results[:3]]
+        unattributed_reasons = [f"missing repo_root attribution: {path}" for path in unattributed_results[:3]]
+        incomplete_reasons = [f"incomplete smoke result shape: {item}" for item in incomplete_results[:3]]
+        return _capability(
+            "Detected",
+            "governance_maturity_summary.runtime_evidence_lookup",
+            [
+                "runtime-smoke-like filename(s) found, but no attributable ok=true/false result matched this repo",
+                "Detected is filename-only and is not proof of runtime evidence",
+                *mismatch_reasons,
+                *unattributed_reasons,
+                *incomplete_reasons,
+                *shown,
+            ],
+        )
+    return _capability(
+        "Unproven",
+        "governance_maturity_summary.runtime_evidence_lookup",
+        [
+            "no retained runtime-smoke evidence found under artifacts/evidence/test-results or .governance/evidence",
+            "Unproven means missing evidence, not a failed runtime smoke",
+        ],
+    )
+
+
+def _quote_path_for_command(path: Path) -> str:
+    return '"' + str(path) + '"'
+
+
+def _runtime_smoke_command(repo: Path, readiness_report: object) -> str:
+    command = [
+        "python",
+        "governance_tools/external_repo_smoke.py",
+        "--repo",
+        _quote_path_for_command(repo),
+    ]
+    contract = getattr(readiness_report, "contract", None) or {}
+    contract_path = contract.get("path") if isinstance(contract, dict) else None
+    if contract_path:
+        command.extend(["--contract", _quote_path_for_command(Path(str(contract_path)))])
+    command.extend(["--format", "human"])
+    return " ".join(command)
+
+
+def _derive_owner_actions(
+    *,
+    repo: Path,
+    adoption_report: AdoptionDoctorReport,
+    readiness_report: object,
+    hook_report: object,
+    domain_contract_present: SummaryValue,
+    runtime_evidence: CapabilityStatus,
+) -> list[str]:
+    actions: list[str] = []
+    checks = getattr(readiness_report, "checks", {}) or {}
+    if adoption_report.adoption_class.value == "unknown":
+        actions.append("Confirm the consumer topology before applying adoption or update actions.")
+    if checks.get("plan_present") is False:
+        actions.append("Create or point AI Governance to a PLAN.md before claiming adoption readiness.")
+    elif checks.get("plan_fresh_enough") is False:
+        actions.append("Refresh PLAN.md or resolve its freshness errors before claiming readiness.")
+    if checks.get("contract_resolved") is False or domain_contract_present.value is False:
+        actions.append("Choose or create the domain contract before domain validation can be claimed.")
+    elif checks.get("contract_files_complete") is False:
+        actions.append("Add the missing contract documents, behavior overrides, or validators listed by readiness.")
+    if checks.get("governance_drift_clean") is False:
+        actions.append("Resolve governance drift findings before running runtime smoke as adoption evidence.")
+    if checks.get("framework_release_compatible") is False:
+        actions.append("Resolve framework release compatibility before claiming readiness.")
+    elif checks.get("framework_version_current") is False:
+        actions.append("Review framework version freshness before claiming current adoption.")
+    if not getattr(hook_report, "valid", False):
+        actions.append("Approve hook installation or remediation before any mutating hook action is run.")
+    if runtime_evidence.state == "Failed":
+        actions.append("Investigate the failed runtime smoke evidence before claiming runtime evidence.")
+    elif runtime_evidence.state == "Detected":
+        actions.append("Run runtime smoke again to replace filename-only or unattributed runtime evidence.")
+    elif runtime_evidence.state == "Unproven":
+        actions.append("Run the runtime smoke command before claiming runtime evidence.")
+    return list(dict.fromkeys(actions))
+
+
+def _derive_next_safe_command(
+    *,
+    repo: Path,
+    readiness_report: object,
+    hook_report: object,
+    runtime_evidence: CapabilityStatus,
+) -> str | None:
+    checks = getattr(readiness_report, "checks", {}) or {}
+    if checks.get("git_repo_present") is False:
+        return None
+    if checks.get("plan_present") is False or checks.get("contract_resolved") is False:
+        return None
+    if checks.get("contract_files_complete") is False:
+        return None
+    if checks.get("governance_drift_clean") is False:
+        return None
+    if getattr(readiness_report, "ready", None) is not True:
+        return None
+    if not getattr(hook_report, "valid", False):
+        return None
+    if runtime_evidence.state in {"Unproven", "Detected"}:
+        return _runtime_smoke_command(repo, readiness_report)
+    return None
+
+
 def build_governance_maturity_summary(
     repo_root: str | Path,
     *,
     framework_root: str | Path | None = None,
 ) -> GovernanceMaturitySummary:
+    # Lazy imports avoid the existing adopt_governance -> maturity-summary import path.
+    from governance_tools.external_repo_readiness import assess_external_repo
+    from governance_tools.hook_install_validator import validate_hook_install
     repo = Path(repo_root).resolve()
     framework = Path(framework_root).resolve() if framework_root is not None else None
     adoption_report = inspect_adoption(repo, framework_root=framework)
+    readiness_report = assess_external_repo(repo, framework_root=framework)
+    hook_report = validate_hook_install(repo, framework_root=framework)
     agents_report = assess_agents_calibration_maturity(repo)
     domain_contract_present, validator_surface_present = _load_contract_surface(repo)
     repo_specific_present = _repo_specific_rules_present(agents_report.status)
@@ -793,6 +1106,26 @@ def build_governance_maturity_summary(
         "governance_maturity_summary.memory_workflow_surface",
         ["memory consolidation completeness is not inferred by this summary"],
     )
+    runtime_evidence = _find_runtime_smoke_evidence(repo)
+    capability_states: dict[str, CapabilityStatus] = {}
+    capability_states.update(_adoption_capabilities(adoption_report))
+    capability_states.update(_readiness_capabilities(readiness_report))
+    capability_states["hook_installation"] = _hook_capability(hook_report)
+    capability_states["runtime_evidence"] = runtime_evidence
+    owner_actions = _derive_owner_actions(
+        repo=repo,
+        adoption_report=adoption_report,
+        readiness_report=readiness_report,
+        hook_report=hook_report,
+        domain_contract_present=domain_contract_present,
+        runtime_evidence=runtime_evidence,
+    )
+    next_safe_command = _derive_next_safe_command(
+        repo=repo,
+        readiness_report=readiness_report,
+        hook_report=hook_report,
+        runtime_evidence=runtime_evidence,
+    )
     human_readable_adoption_summary = _derive_human_readable_adoption_summary(
         user_facing_status=user_facing_status,
         framework_topology=framework_topology,
@@ -830,6 +1163,9 @@ def build_governance_maturity_summary(
         signal_conflicts=signal_conflicts,
         claim_ceiling=claim_ceiling,
         cannot_claim=cannot_claim,
+        capability_states=capability_states,
+        owner_actions=owner_actions,
+        next_safe_command=next_safe_command,
     )
 
 
@@ -866,6 +1202,15 @@ def format_human(summary: GovernanceMaturitySummary) -> str:
     if summary.cannot_claim:
         lines.append("[cannot_claim]")
         lines.extend(f"- {item}" for item in summary.cannot_claim)
+    lines.append("[capability_states]")
+    for name, capability in summary.capability_states.items():
+        lines.append(f"- {name}: {capability.state} (source={capability.source})")
+        lines.extend(f"  reason: {reason}" for reason in capability.reasons)
+    if summary.owner_actions:
+        lines.append("[owner_actions]")
+        lines.extend(f"- {item}" for item in summary.owner_actions)
+    if summary.next_safe_command:
+        lines.append(f"next_safe_command = {summary.next_safe_command}")
     if summary.signal_conflicts:
         lines.append("[signal_conflicts]")
         for conflict in summary.signal_conflicts:
