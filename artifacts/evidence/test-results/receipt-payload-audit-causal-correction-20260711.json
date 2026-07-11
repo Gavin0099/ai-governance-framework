@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -c \"from pathlib import Path; g=Path('governance_tools/payload_audit_logger.py').read_text(encoding='utf-8'); c=Path('runtime_hooks/core/payload_audit_logger.py').read_text(encoding='utf-8'); s=Path('runtime_hooks/core/session_start.py').read_text(encoding='utf-8'); assert 'GOVERNANCE_PAYLOAD_AUDIT' in g; assert 'return os.environ.get' in g; assert 'def log_session_payload' in c; start=s.index('log_file = log_session_payload'); window=s[max(0,start-180):start]; assert 'is_audit_enabled' not in window; print('governance-tools writer is default-off; runtime-core writer has a separate unguarded call path')\"",
+  "exit_code": 0,
+  "started_at": "2026-07-11T11:17:26Z",
+  "finished_at": "2026-07-11T11:17:26Z",
+  "runner": "codex",
+  "linked_commit": "8b6cbe7975b7af5e433d7dd71a8bcde35d5f28b4",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-payload-audit-causal-correction-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
