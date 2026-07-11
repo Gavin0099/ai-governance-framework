@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -c \"from pathlib import Path; p=Path('docs/governance/runtime-treatment-census-instruction-carriers-tranche-1-2026-07-11.md'); t=p.read_text(encoding='utf-8'); required=['Status: read-only assessment','governance/copilot-instructions-template.md','examples/multi-validator-contract/AGENTS.md','Decision effect','Maintenance cost','Duplication assessment','Plain-language purpose','keep_observe','not efficacy, merge, or retirement evidence','does not prove that agents comply']; missing=[s for s in required if s not in t]; assert not missing, missing; assert t.count('keep_observe') >= 3; print('two-unit read-only census tranche has all required evaluation axes and claim ceiling')\"",
+  "exit_code": 0,
+  "started_at": "2026-07-11T11:42:00Z",
+  "finished_at": "2026-07-11T11:42:00Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "6acb20889b2dadee42c5fe1d680f294c41de46d9",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-runtime-census-instruction-carriers-tranche-1-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
