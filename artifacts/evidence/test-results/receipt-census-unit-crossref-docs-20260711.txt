@@ -1,0 +1,1 @@
+cross-reference docs consistent with prior review corrections; referenced receipt exists with exit 0

@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"\nimport os,json\n# gemini crossref facts\nassert not os.path.exists('.gemini/settings.json')\ng=open('docs/governance/runtime-treatment-census-unit-gemini-trio-2026-07-11.md',encoding='utf-8').read()\nassert 'not' in g and '958a37c9' in g and 'flag stays open' in g\np=open('docs/governance/runtime-treatment-census-unit-payload-audit-logger-2026-07-11.md',encoding='utf-8').read()\nassert 'two different modules sharing one name' in p and 'unconditionally' in p and 'separate, not-yet-verified explanation' in p\nd=json.load(open('artifacts/evidence/test-results/receipt-payload-audit-consumer-review-20260711.json'))\nassert d['exit_code']==0\nprint('cross-reference docs consistent with prior review corrections; referenced receipt exists with exit 0')\n\"",
+  "exit_code": 0,
+  "started_at": "2026-07-11T13:24:34Z",
+  "finished_at": "2026-07-11T13:24:34Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "8e3d9775e5ca77cac81656595e02b32a3050d8dd",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-census-unit-crossref-docs-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
