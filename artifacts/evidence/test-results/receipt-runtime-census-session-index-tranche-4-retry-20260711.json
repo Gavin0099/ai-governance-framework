@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -m pytest tests/test_review_projection_integrity.py tests/test_round_a_evaluator.py tests/test_closeout_audit.py -q -p no:cacheprovider --basetemp .tmp_pytest_session_index_tranche4",
+  "exit_code": 0,
+  "started_at": "2026-07-11T11:58:39Z",
+  "finished_at": "2026-07-11T11:58:41Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "09e9a09fdd59aa583dc92152e38f74522acc8ebd",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-runtime-census-session-index-tranche-4-retry-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
