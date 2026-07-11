@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"\nimport json\nl=json.load(open('docs/governance/decision-change-ledger.inventory.v0.1.json'))\ne=[x for x in l['entries'] if 'run_filtered_tests' in str(x.get('module',''))][0]\nassert e['zombie_status']=='dormant_frozen_line', e['zombie_status']\nassert e['recommended_action']=='keep_observe'\nassert 'dormant_frozen_line' in l['zombie_status_vocabulary']\nq=json.load(open('docs/governance/governance-surface-maintenance-queue.v0.1.json'))\ne2=q['entries'][73]\nassert 'run_filtered_tests' in str(e2.get('defense',''))\nassert e2['zombie_status']=='dormant_frozen_line' and e2['recommended_action']=='keep_observe'\nassert e['zombie_status']==e2['zombie_status'] and e['recommended_action']==e2['recommended_action']\nprint('both carriers consistent: zombie_status=dormant_frozen_line (legal vocab), recommended_action=keep_observe, fields identical across carriers')\n\"",
+  "exit_code": 0,
+  "started_at": "2026-07-11T02:48:38Z",
+  "finished_at": "2026-07-11T02:48:38Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "358a4e9561a4bed64295f1f03d523b93c4cddcca",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-rft-zombie-status-fix-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

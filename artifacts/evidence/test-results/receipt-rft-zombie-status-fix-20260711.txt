@@ -1,0 +1,1 @@
+both carriers consistent: zombie_status=dormant_frozen_line (legal vocab), recommended_action=keep_observe, fields identical across carriers
