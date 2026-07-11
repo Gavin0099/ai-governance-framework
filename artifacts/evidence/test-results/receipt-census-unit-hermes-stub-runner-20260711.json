@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -m pytest tests/test_runtime_hermes_stub_runner.py tests/test_runtime_hermes_smoke.py -q -p no:cacheprovider --basetemp .tmp_pytest_hermes_stub_unit",
+  "exit_code": 0,
+  "started_at": "2026-07-11T13:11:13Z",
+  "finished_at": "2026-07-11T13:11:14Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "db0d8467690ad33be906e6e88121eb717b3a331b",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-census-unit-hermes-stub-runner-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
