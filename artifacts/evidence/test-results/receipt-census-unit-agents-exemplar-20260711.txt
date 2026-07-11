@@ -1,0 +1,1 @@
+contract.yaml ai_behavior_override points at AGENTS.md; exemplar is 9 lines with override header

@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"\nimport yaml\nc=yaml.safe_load(open('examples/multi-validator-contract/contract.yaml',encoding='utf-8'))\nab=c.get('ai_behavior_override')\nassert ab==['AGENTS.md'] or ab=='AGENTS.md' or (isinstance(ab,list) and 'AGENTS.md' in ab), ab\nt=open('examples/multi-validator-contract/AGENTS.md',encoding='utf-8').read()\nassert len(t.splitlines())==9 and 'AI Behavior Overrides' in t\nprint('contract.yaml ai_behavior_override points at AGENTS.md; exemplar is 9 lines with override header')\n\"",
+  "exit_code": 0,
+  "started_at": "2026-07-11T13:23:06Z",
+  "finished_at": "2026-07-11T13:23:06Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "dff9012b73fe460f9b71896bd2fb619e6b9a1aa9",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-census-unit-agents-exemplar-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
