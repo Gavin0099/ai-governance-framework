@@ -1,0 +1,1 @@
+no current tool reader; jsonl frozen at 2026-03-23; default-off env gate confirmed; historical baseline analyses exist; 40 focused tests pass

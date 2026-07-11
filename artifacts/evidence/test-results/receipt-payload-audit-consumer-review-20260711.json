@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"\nimport subprocess,os,glob\n# 1. current readers: no tool reads docs/payload-audit outputs\nreaders=subprocess.run(['git','grep','-ln','payload-audit','--','*.py','*.ps1','*.sh','*.yml'],capture_output=True,text=True).stdout.strip().splitlines()\nreaders=[r for r in readers if 'payload_audit_logger' not in r]\nassert readers==[], readers\n# 2. latest jsonl output is 2026-03-23\njs=sorted(glob.glob('docs/payload-audit/*.jsonl'))\nassert js and all('2026-03-23' in j for j in js), js\n# 3. default-off env gate\nsrc=open('governance_tools/payload_audit_logger.py',encoding='utf-8').read()\nassert 'GOVERNANCE_PAYLOAD_AUDIT' in src and '\\\"0\\\") == \\\"1\\\"' in src.replace(chr(39),chr(34))\n# 4. historical analysis readers exist\nassert os.path.exists('docs/payload-audit/L0-baseline.md') and os.path.exists('docs/payload-audit/L1-baseline.md')\n# 5. focused tests pass\nt=subprocess.run(['./.venv/Scripts/python.exe','-m','pytest','tests/','-q','-k','payload_audit'],capture_output=True,text=True)\nassert '40 passed' in t.stdout, t.stdout[-200:]\nprint('no current tool reader; jsonl frozen at 2026-03-23; default-off env gate confirmed; historical baseline analyses exist; 40 focused tests pass')\n\"",
+  "exit_code": 0,
+  "started_at": "2026-07-11T08:41:37Z",
+  "finished_at": "2026-07-11T08:41:41Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "566cc70de02a70231e51fd67aa78e71ba2b7fb3f",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-payload-audit-consumer-review-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
