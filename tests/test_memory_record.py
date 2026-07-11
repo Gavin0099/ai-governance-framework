@@ -4,6 +4,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from governance_tools.memory_record import (
     WRITER_ID,
     append_session_derived_entry,
@@ -54,6 +56,7 @@ def test_cli_writes_canonical_entry(tmp_path: Path) -> None:
             "--commit", "abc1234",
             "--session-id", "test-session-cli",
             "--test-evidence", "subprocess invocation ok",
+            "--plan-reconciliation", "not_applicable",
             "--project-root", str(tmp_path),
         ],
         capture_output=True,
@@ -76,6 +79,7 @@ def test_build_memory_record_suggestion_returns_cli_command() -> None:
         what_changed="test change",
         commit="abc1234",
         session_id="session-1",
+        plan_reconciliation="not_applicable",
         next_step="verify",
     )
     assert cmd.startswith("python governance_tools/memory_record.py")
@@ -190,13 +194,13 @@ def test_cli_rejects_malformed_plan_reconciliation(tmp_path: Path) -> None:
     assert not (tmp_path / "memory").exists()
 
 
-def test_cli_missing_plan_reconciliation_is_advisory_not_blocking(tmp_path: Path) -> None:
+def test_cli_missing_plan_reconciliation_rejects_before_memory_write(tmp_path: Path) -> None:
     result = subprocess.run(
         [
             sys.executable,
             "governance_tools/memory_record.py",
             "--what-changed", "cli test change",
-            "--next-step", "verify advisory",
+            "--next-step", "verify required declaration",
             "--commit", "abc1234",
             "--session-id", "test-session-advisory",
             "--project-root", str(tmp_path),
@@ -204,10 +208,41 @@ def test_cli_missing_plan_reconciliation_is_advisory_not_blocking(tmp_path: Path
         capture_output=True,
         text=True,
     )
-    assert result.returncode == 0
-    assert "advisory: plan_reconciliation not declared" in result.stdout
+    assert result.returncode == 2
+    assert "--plan-reconciliation" in result.stderr
+    assert not (tmp_path / "memory").exists()
+
+
+@pytest.mark.parametrize(
+    "plan_reconciliation",
+    (
+        "updated",
+        "not_applicable",
+        "deferred:scope-split-next-slice",
+    ),
+)
+def test_cli_writes_each_explicit_plan_reconciliation_value(
+    tmp_path: Path,
+    plan_reconciliation: str,
+) -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "governance_tools/memory_record.py",
+            "--what-changed", "explicit declaration test",
+            "--next-step", "verify explicit write",
+            "--commit", "abc1234",
+            "--session-id", f"test-session-{plan_reconciliation}",
+            "--plan-reconciliation", plan_reconciliation,
+            "--project-root", str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
     written = list((tmp_path / "memory").glob("*.md"))
-    assert written and "plan_reconciliation: not_declared" in written[0].read_text(encoding="utf-8")
+    assert len(written) == 1
+    assert f"plan_reconciliation: {plan_reconciliation}" in written[0].read_text(encoding="utf-8")
 
 
 # ── Write-time evidence provenance advisory ───────────────────────────────────

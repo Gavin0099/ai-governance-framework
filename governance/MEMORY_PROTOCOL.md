@@ -79,6 +79,7 @@ python -m governance_tools.memory_record `
   --commit <git-sha> `
   --session-id <session-id> `
   --test-evidence "..." `
+  --plan-reconciliation <updated|not_applicable|deferred:reason> `
   --next-step "..." `
   --project-root .
 ```

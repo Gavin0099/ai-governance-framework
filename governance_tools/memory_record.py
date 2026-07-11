@@ -15,8 +15,9 @@ MEMORY_TYPE_SESSION_DERIVED = "session-derived"
 # Structured PLAN Reconciliation Declaration (P1-D).
 # The gate target is silent drift, not deferred drift: a record may defer
 # PLAN reconciliation with a named reason, but may not stay silent about it.
-# Missing declarations are accepted with an advisory (never blocked here);
-# malformed declarations are rejected as input errors.
+# Historical parsing may still represent a missing declaration as
+# ``not_declared``. The canonical writer CLI, however, requires an explicit
+# declaration so new session-derived records cannot silently omit it.
 PLAN_RECONCILIATION_UPDATED = "updated"
 PLAN_RECONCILIATION_NOT_APPLICABLE = "not_applicable"
 PLAN_RECONCILIATION_NOT_DECLARED = "not_declared"
@@ -172,6 +173,7 @@ def build_memory_record_suggestion(
     what_changed: str,
     commit: str,
     session_id: str,
+    plan_reconciliation: str,
     next_step: str = "[fill in]",
     project_root: str = ".",
 ) -> str:
@@ -181,6 +183,7 @@ def build_memory_record_suggestion(
         f' --what-changed "{what_changed}"'
         f" --commit {commit}"
         f" --session-id {session_id}"
+        f' --plan-reconciliation "{plan_reconciliation}"'
         f' --next-step "{next_step}"'
         f" --project-root {project_root}"
     )
@@ -199,11 +202,11 @@ def main() -> int:
     parser.add_argument("--project-root", default=".", help="Repository root (default: .)")
     parser.add_argument(
         "--plan-reconciliation",
-        default=None,
+        required=True,
         help=(
             "PLAN reconciliation declaration: updated | not_applicable | "
-            "deferred:<taxonomy-reason>. Omitting records not_declared with "
-            "an advisory (never blocks)."
+            "deferred:<taxonomy-reason>. This is required for canonical "
+            "session-derived memory writes."
         ),
     )
     args = parser.parse_args()
@@ -212,13 +215,6 @@ def main() -> int:
     if plan_error is not None:
         print(f"[memory_record] error: {plan_error}")
         return 2
-    if plan_reconciliation == PLAN_RECONCILIATION_NOT_DECLARED:
-        print(
-            "[memory_record] advisory: plan_reconciliation not declared "
-            "(updated | not_applicable | deferred:<taxonomy-reason>); "
-            "recorded as not_declared"
-        )
-
     project_root = Path(args.project_root).resolve()
     commit = args.commit or _auto_detect_commit(project_root)
     session_id = args.session_id or f"cli-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
