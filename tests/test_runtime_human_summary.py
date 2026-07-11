@@ -3,6 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from governance_tools.human_summary import build_summary_line as governance_build_summary_line
 from runtime_hooks.core.human_summary import build_summary_line, format_contract_summary_label
 
 
@@ -15,4 +16,5 @@ def test_format_contract_summary_label_omits_unknown_risk_tier():
 
 
 def test_build_summary_line_joins_non_empty_parts():
+    assert build_summary_line is governance_build_summary_line
     assert build_summary_line("ok=True", None, "rules=common") == "summary=ok=True | rules=common"
