@@ -1397,7 +1397,7 @@
       "zombie_status": "zombie_candidate",
       "frequency_class": "routine",
       "maintenance_cost_class": "unassessed",
-      "recommended_action": "investigate",
+      "recommended_action": "keep_observe",
       "evidence_refs": [
         {
           "memory_mentions": 0,
@@ -1410,7 +1410,8 @@
         }
       ],
       "rationale": "Developer convenience test runner. Reference re-anchor 2026-07-11: its prior documentation references (.latest-main snapshot PLAN, deleted 260e8240; commit-log.txt, a generated git-log dump deleted in this slice) are replaced by the introduction commit c97de01c (E2+: run_filtered_tests.py enforcement + PLAN Phase E + replay verified) and the dedicated test tests/test_run_filtered_tests.py. The historical Phase E enforcement role recorded in c97de01c means retirement requires a separate focused review; classification unchanged.",
-      "also_in_window": false
+      "also_in_window": false,
+      "resolution": "Reclassified investigate to keep_observe 2026-07-11 after a focused read-only review: run_filtered_tests.py is the policy-bearing enforcement entrypoint of the Phase E exclusion-governance cluster (governance/test_exclusion_registry.yaml, exclusion_registry_tool.py, dedicated tests). The cluster has been dormant since its 2026-04-10 introduction while PLAN Phase E remains in validity-before-expansion posture. It is not dead code and not a convenience runner; any retirement must be an owner Phase E-scope decision covering the whole cluster together."
     },
     {
       "defense": "governance_tools/run_first_import_validation.py",
