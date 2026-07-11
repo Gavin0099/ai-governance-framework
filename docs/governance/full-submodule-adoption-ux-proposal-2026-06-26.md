@@ -1,10 +1,36 @@
 # Full / Submodule Adoption UX Proposal - 2026-06-26
 
-Status: proposal-only
+Status: partially-implemented / superseded-by-current-adoption-doctor
 Scope: docs-only planning artifact
 Runtime behavior change: no
 Tooling behavior change: no
 Enforcement change: no
+
+## 2026-07-11 Status Update
+
+This proposal is retained as a historical design note and claim-boundary source,
+not as the current implementation plan.
+
+Current disposition:
+
+- Tranche 1 help-text guidance is partially implemented: current
+  `adopt_governance.py --help` explicitly says copy-based adoption is
+  audit-only and not runtime self-contained, and points users to
+  `governance_tools.adoption_doctor`.
+- Tranche 2 report-only diagnosis is partially implemented through
+  `governance_tools/adoption_doctor.py` and the higher-level
+  `governance_tools/governance_maturity_summary.py`, which now aggregates
+  adoption, readiness, hook validation, runtime-evidence state, owner actions,
+  and next safe command.
+- Tranche 3 first-class submodule/full installer remains deferred. This
+  proposal still does not authorize adding `--mode submodule`, installing a
+  submodule, changing hooks, changing CI, or changing F-7 completion criteria.
+
+Classification note: `docs/governance/design-note-classification.json` already
+classifies this document as `superseded`. The still-useful parts are the
+historical failure analysis, the thin/copy vs self-contained/runtime-capable
+claim boundaries, and the caution that diagnosis must remain report-only until
+separate install/remediation behavior is reviewed.
 
 ## Problem
 
@@ -42,7 +68,8 @@ while running adoption, not only in documentation they may not read.
 
 ## Current Repository Truth
 
-Observed current facts in this repository:
+The following bullets are the 2026-06-26 snapshot that motivated this proposal.
+They are no longer all true as of 2026-07-11.
 
 - `governance_tools/adopt_governance.py --help` exposes only:
   - `--target`
@@ -67,6 +94,20 @@ Observed current facts in this repository:
 - Recent consumer hygiene work added `.gitignore` protection to adopt/refresh
   and the external submodule updater. A stale framework pin can miss that
   consumer-facing repair.
+
+Current 2026-07-11 deltas:
+
+- `adopt_governance.py --help` now includes adoption-class guidance for
+  copy-based adoption and links to `governance_tools.adoption_doctor`.
+- `governance_tools/adoption_doctor.py` exists as a report-only static
+  adoption diagnostic.
+- `governance_tools/governance_maturity_summary.py` exists as the higher-level
+  adoption visibility summary, including capability states, owner actions, and
+  safe next-command selection.
+- `governance/F7_FULL_UPDATE.md` now requires the final adoption status report
+  to be backed by `governance_maturity_summary`.
+- A first-class initial submodule/full installer is still not implemented by
+  this proposal.
 
 ## Target Outcome
 
@@ -94,7 +135,10 @@ This proposal covers:
 - a deferred first-class submodule/full installer concept;
 - non-goals and claim ceilings for each tranche.
 
-This proposal does not implement any of those changes.
+At the time of writing, this proposal did not implement any of those changes.
+As of 2026-07-11, parts of Tranche 1 and Tranche 2 have since been implemented
+elsewhere; the proposal itself remains docs-only and does not implement
+installer behavior.
 
 ## Non-Goals
 
@@ -376,7 +420,7 @@ For Tranche 3 design:
 
 ## Implementation Tranche Recommendation
 
-Recommended next implementation tranche after this proposal is reviewed:
+Historical 2026-06-26 recommendation:
 
 1. Update `adopt_governance.py` stdout and `--help` / `--check-env` text to
    expose adoption class and use-case routing.
@@ -384,9 +428,18 @@ Recommended next implementation tranche after this proposal is reviewed:
 3. Do not change adoption behavior.
 4. Do not add doctor or installer in the same commit.
 
-Deferred options, not commitments:
+2026-07-11 current reading:
 
-- report-only adoption doctor;
+- the help-text portion of item 1 is partially complete;
+- the report-only doctor concept is no longer merely deferred, because
+  `adoption_doctor.py` and `governance_maturity_summary.py` now exist;
+- any remaining `adopt_governance.py` stdout wording gap should be reviewed as
+  a narrow wording-only slice before implementation;
+- first-class submodule/full installer work remains deferred and still requires
+  a separate proposal/review before code.
+
+Still-deferred options, not commitments:
+
 - first-class submodule/full installer;
 - stale-pin freshness hints with remote comparison;
 - leftover-hook cleanup workflow.
@@ -411,4 +464,3 @@ This proposal must not claim:
 - drift/readiness semantics changed;
 - any consuming repo has been fixed;
 - first-time users can no longer make the wrong choice.
-
