@@ -1,0 +1,41 @@
+{
+ "receipt_schema": "predelete_admissibility.v0.1",
+ "status": "report_only",
+ "target": [
+  "SOUL.md",
+  "USER.md",
+  "IDENTITY.md",
+  "AGENTS.md bootstrap instructions"
+ ],
+ "captured_at": "2026-07-11T10:39:05.330028",
+ "files": {
+  "SOUL.md": {
+   "sha256": "4b4deccd437b1efb662e0a1591730791171a640a717060a6dc9c4528f656bef6",
+   "bytes": 1673
+  },
+  "USER.md": {
+   "sha256": "2be69fbb13f73e441bd3a0500beeabc052c536735458de7a96023c1d68525d75",
+   "bytes": 853
+  },
+  "IDENTITY.md": {
+   "sha256": "b71463fdacf81190f687bbb9766623f5d9f4c6c5a62e0337227eb7cca0a3b302",
+   "bytes": 632
+  }
+ },
+ "basis": "owner decided 2026-07-11 to remove the agent-workspace bootstrap flow: all three files are unfilled templates since 2026-03-16 (USER.md 2026-05-15 touch was wording-only); the AGENTS.md opening instructs reading SOUL.md and USER.md each session and its First Run section points at a nonexistent BOOTSTRAP.md",
+ "live_references": {
+  "AGENTS.md:17-18": "read instructions, removed in the same commit",
+  "governance_tools/memory_authority_baseline.py": "false positive: IDENTITY_FIELDS is a Python identifier unrelated to IDENTITY.md"
+ },
+ "historical_records_retained": [
+  "docs/governance/latest-main-consumer-investigation-2026-07-06.md",
+  "memory/ daily records"
+ ],
+ "residual_risk": "a manual human workflow reading these templates; owner accepted by the removal decision",
+ "out_of_scope": [
+  "HEARTBEAT.md",
+  "TOOLS.md",
+  "start_session.md",
+  "deploy_to_memory.sh (all confirmed live/keep)"
+ ]
+}
