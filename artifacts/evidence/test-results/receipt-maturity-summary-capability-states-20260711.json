@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "C:\\Users\\daish\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe -m pytest tests\\test_governance_maturity_summary.py --basetemp .tmp-maturity-summary-receipt -p no:cacheprovider -q",
+  "exit_code": 0,
+  "started_at": "2026-07-11T06:54:57Z",
+  "finished_at": "2026-07-11T06:55:13Z",
+  "runner": "codex-maturity-summary-focused-tests",
+  "linked_commit": "460f762d86b850172688c999a2d77a60ba6ac08e",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-maturity-summary-capability-states-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
