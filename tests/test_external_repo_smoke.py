@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import shutil
 import textwrap
+import json
 from datetime import date as _date
 from pathlib import Path
 
 import pytest
 import yaml
 
-from governance_tools.external_repo_smoke import format_human, infer_smoke_rules, run_external_repo_smoke
+from governance_tools.external_repo_smoke import format_human, format_json, infer_smoke_rules, run_external_repo_smoke
 
 
 FIXTURE_ROOT = Path("tests/_tmp_external_repo_smoke")
@@ -240,6 +241,32 @@ def test_format_human_uses_shared_summary_shape(smoke_root: Path) -> None:
     assert "[external_repo_smoke]" in output
     assert "summary=ok=True | rules=common,firmware | pre_task_ok=True | session_start_ok=True | post_task_ok=None" in output
     assert f"contract_path={(smoke_root / 'contract.yaml').resolve()}" in output
+
+
+def test_format_json_includes_schema_and_generated_at(smoke_root: Path) -> None:
+    _write_version_manifest(smoke_root)
+    _write(
+        smoke_root / "PLAN.md",
+        f"> **最後更新**: {_date.today().isoformat()}\n> **Owner**: tester\n> **Freshness**: Sprint (7d)\n",
+    )
+    _write(smoke_root / "AGENTS.md", "# Agents\n")
+    _write(
+        smoke_root / "contract.yaml",
+        "\n".join(
+            [
+                "name: sample-contract",
+                "domain: firmware",
+            ]
+        ),
+    )
+
+    result = run_external_repo_smoke(smoke_root)
+    payload = json.loads(format_json(result))
+
+    assert payload["result_schema"] == "external_repo_smoke_result.v0.1"
+    assert payload["generated_at"].endswith("Z")
+    assert payload["ok"] is True
+    assert payload["repo_root"] == str(smoke_root.resolve())
 
 
 def test_run_external_repo_smoke_fails_on_gitlab_adapter_scope_mismatch(smoke_root: Path) -> None:

@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import subprocess
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 
 from governance_tools.adoption_doctor import AdoptionDoctorReport, inspect_adoption
@@ -20,9 +21,25 @@ from governance_tools.agents_calibration_maturity import (
     assess_agents_calibration_maturity,
 )
 from governance_tools.domain_contract_loader import load_domain_contract, resolve_domain_contract
+from governance_tools.external_repo_smoke import EXTERNAL_REPO_SMOKE_RESULT_SCHEMA
 
 
 REPORT_VERSION = "0.1"
+
+
+def _parse_utc_timestamp(value: object) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    text = value.strip()
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return None
+    return parsed.astimezone(timezone.utc)
 
 
 @dataclass
@@ -843,6 +860,84 @@ def _hook_capability(hook_report: object) -> CapabilityStatus:
     )
 
 
+def _validate_runtime_smoke_payload(
+    payload: dict[str, object],
+    *,
+    repo_root: Path,
+) -> tuple[list[str], datetime | None]:
+    problems: list[str] = []
+    if payload.get("result_schema") != EXTERNAL_REPO_SMOKE_RESULT_SCHEMA:
+        problems.append(
+            "result_schema must equal "
+            f"{EXTERNAL_REPO_SMOKE_RESULT_SCHEMA!r}"
+        )
+    generated_at = _parse_utc_timestamp(payload.get("generated_at"))
+    if generated_at is None:
+        problems.append("generated_at must be an ISO-8601 timezone-aware timestamp")
+
+    bool_fields = ("ok", "pre_task_ok", "session_start_ok")
+    for field_name in bool_fields:
+        if not isinstance(payload.get(field_name), bool):
+            problems.append(f"{field_name} must be bool")
+
+    post_task_ok = payload.get("post_task_ok")
+    if post_task_ok is not None and not isinstance(post_task_ok, bool):
+        problems.append("post_task_ok must be bool or null")
+
+    string_fields = ("repo_root", "plan_path")
+    for field_name in string_fields:
+        if not isinstance(payload.get(field_name), str) or not str(payload.get(field_name)).strip():
+            problems.append(f"{field_name} must be non-empty string")
+    if isinstance(payload.get("plan_path"), str):
+        try:
+            reported_plan = Path(str(payload["plan_path"])).resolve()
+        except (OSError, RuntimeError):
+            problems.append("plan_path must resolve to the target repo PLAN.md")
+        else:
+            expected_plan = (repo_root / "PLAN.md").resolve()
+            if reported_plan != expected_plan:
+                problems.append(f"plan_path must resolve to target repo PLAN.md: expected={expected_plan}")
+
+    contract_path = payload.get("contract_path")
+    if contract_path is not None and not isinstance(contract_path, str):
+        problems.append("contract_path must be string or null")
+
+    rules = payload.get("rules")
+    if not isinstance(rules, list) or not all(isinstance(item, str) for item in rules):
+        problems.append("rules must be list[str]")
+
+    if not isinstance(payload.get("post_task_cases"), list):
+        problems.append("post_task_cases must be list")
+    if not isinstance(payload.get("token_summary"), dict):
+        problems.append("token_summary must be object")
+    if not isinstance(payload.get("warnings"), list) or not all(isinstance(item, str) for item in payload.get("warnings", [])):
+        problems.append("warnings must be list[str]")
+    if not isinstance(payload.get("errors"), list) or not all(isinstance(item, str) for item in payload.get("errors", [])):
+        problems.append("errors must be list[str]")
+
+    if isinstance(payload.get("ok"), bool):
+        ok = bool(payload["ok"])
+        pre_task_ok = payload.get("pre_task_ok")
+        session_start_ok = payload.get("session_start_ok")
+        post_task_ok = payload.get("post_task_ok")
+        errors = payload.get("errors")
+        if ok and (
+            pre_task_ok is not True
+            or session_start_ok is not True
+            or post_task_ok is False
+        ):
+            problems.append(
+                "ok=true requires pre_task_ok=true, session_start_ok=true, and post_task_ok not false"
+            )
+        if ok is False:
+            check_failed = pre_task_ok is False or session_start_ok is False or post_task_ok is False
+            has_errors = isinstance(errors, list) and bool(errors)
+            if not (check_failed or has_errors):
+                problems.append("ok=false requires non-empty errors or at least one failed smoke check")
+
+    return problems, generated_at
+
+
 def _find_runtime_smoke_evidence(repo_root: Path) -> CapabilityStatus:
     evidence_dirs = [
         repo_root / "artifacts" / "evidence" / "test-results",
@@ -855,17 +950,7 @@ def _find_runtime_smoke_evidence(repo_root: Path) -> CapabilityStatus:
         for pattern in ("*external*smoke*.json", "*runtime*smoke*.json", "*smoke*.json"):
             matches.extend(path for path in evidence_dir.glob(pattern) if path.is_file())
     unique_matches = sorted({path.resolve() for path in matches})
-    smoke_shape_fields = {
-        "plan_path",
-        "rules",
-        "pre_task_ok",
-        "session_start_ok",
-        "post_task_ok",
-        "token_summary",
-        "warnings",
-        "errors",
-    }
-    parsed_results: list[tuple[Path, bool, dict[str, object]]] = []
+    parsed_results: list[tuple[datetime, Path, bool, dict[str, object]]] = []
     incomplete_results: list[str] = []
     unattributed_results: list[Path] = []
     mismatched_results: list[str] = []
@@ -876,10 +961,10 @@ def _find_runtime_smoke_evidence(repo_root: Path) -> CapabilityStatus:
         except (OSError, json.JSONDecodeError):
             unparsed.append(path)
             continue
-        if isinstance(payload, dict) and isinstance(payload.get("ok"), bool):
-            missing_shape = sorted(smoke_shape_fields - set(payload))
-            if missing_shape:
-                incomplete_results.append(f"{path} missing_fields={','.join(missing_shape)}")
+        if isinstance(payload, dict):
+            shape_problems, generated_at = _validate_runtime_smoke_payload(payload, repo_root=repo_root)
+            if shape_problems:
+                incomplete_results.append(f"{path} invalid_shape={'; '.join(shape_problems)}")
                 continue
             reported_repo = payload.get("repo_root")
             if not reported_repo:
@@ -893,25 +978,32 @@ def _find_runtime_smoke_evidence(repo_root: Path) -> CapabilityStatus:
             if reported != repo_root.resolve():
                 mismatched_results.append(f"{path} reported_repo_root={reported}")
                 continue
-            parsed_results.append((path, bool(payload["ok"]), payload))
+            parsed_results.append((generated_at, path, bool(payload["ok"]), payload))
         else:
             unparsed.append(path)
 
     parsed_results = sorted(
         parsed_results,
-        key=lambda item: (item[0].stat().st_mtime_ns, str(item[0])),
+        key=lambda item: (item[0], str(item[1])),
         reverse=True,
     )
     if parsed_results:
-        path, ok, payload = parsed_results[0]
+        generated_at, path, ok, payload = parsed_results[0]
+        generated_at_text = generated_at.isoformat().replace("+00:00", "Z")
         if ok is True:
-            reasons = [f"latest attributable runtime smoke result by retained file mtime ok=true: {path}"]
+            reasons = [
+                "latest attributable runtime smoke result by reported generated_at "
+                f"ok=true generated_at={generated_at_text}: {path}"
+            ]
             repo_value = payload.get("repo_root") if isinstance(payload, dict) else None
             if repo_value:
                 reasons.append(f"reported_repo_root={repo_value}")
             return _capability("Verified", "governance_maturity_summary.runtime_evidence_lookup", reasons)
         errors = payload.get("errors") if isinstance(payload, dict) else None
-        reason = f"latest attributable runtime smoke result by retained file mtime ok=false: {path}"
+        reason = (
+            "latest attributable runtime smoke result by reported generated_at "
+            f"ok=false generated_at={generated_at_text}: {path}"
+        )
         if isinstance(errors, list) and errors:
             reason += "; errors=" + "; ".join(str(item) for item in errors[:3])
         return _capability(

@@ -6,6 +6,7 @@ Minimal runtime smoke for external governance repos.
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import json
 import sys
 from dataclasses import dataclass, field
@@ -23,6 +24,8 @@ from governance_tools.rule_pack_loader import available_rule_packs, parse_rule_l
 from runtime_hooks.core.post_task_check import run_post_task_check
 from runtime_hooks.core.pre_task_check import run_pre_task_check
 from runtime_hooks.core.session_start import build_session_start_context
+
+EXTERNAL_REPO_SMOKE_RESULT_SCHEMA = "external_repo_smoke_result.v0.1"
 
 
 @dataclass
@@ -286,6 +289,11 @@ def format_human(result: ExternalRepoSmokeResult) -> str:
 def format_json(result: ExternalRepoSmokeResult) -> str:
     return json.dumps(
         {
+            "result_schema": EXTERNAL_REPO_SMOKE_RESULT_SCHEMA,
+            "generated_at": dt.datetime.now(dt.timezone.utc)
+            .replace(microsecond=0)
+            .isoformat()
+            .replace("+00:00", "Z"),
             "ok": result.ok,
             "repo_root": result.repo_root,
             "plan_path": result.plan_path,

@@ -104,8 +104,15 @@ def _patch_ready_readiness(monkeypatch, repo: Path, *, drift_clean: bool = True)
     )
 
 
-def _smoke_payload(repo: Path, *, ok: bool = True) -> dict[str, object]:
+def _smoke_payload(
+    repo: Path,
+    *,
+    ok: bool = True,
+    generated_at: str = "2026-07-11T00:00:00Z",
+) -> dict[str, object]:
     return {
+        "result_schema": "external_repo_smoke_result.v0.1",
+        "generated_at": generated_at,
         "ok": ok,
         "repo_root": str(repo.resolve()),
         "plan_path": str((repo / "PLAN.md").resolve()),
@@ -562,6 +569,111 @@ def test_incomplete_ok_runtime_json_is_detected_not_verified(tmp_path: Path, mon
     assert "external_repo_smoke.py" in summary.next_safe_command
 
 
+def test_invalid_typed_runtime_json_is_detected_not_verified(tmp_path: Path, monkeypatch) -> None:
+    repo = _make_repo(tmp_path / "invalid_typed_runtime_json")
+    framework = _make_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    payload = _smoke_payload(repo, ok=True)
+    payload["rules"] = "common"
+    payload["pre_task_ok"] = "yes"
+    _write(
+        repo / "artifacts" / "evidence" / "test-results" / "external-repo-smoke-result.json",
+        json.dumps(payload) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    assert summary.capability_states["runtime_evidence"].state == "Detected"
+    reasons = " ".join(summary.capability_states["runtime_evidence"].reasons)
+    assert "rules must be list[str]" in reasons
+    assert "pre_task_ok must be bool" in reasons
+    assert summary.next_safe_command is not None
+    assert "external_repo_smoke.py" in summary.next_safe_command
+
+
+def test_contradictory_ok_true_runtime_json_is_detected_not_verified(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "contradictory_ok_true_runtime_json")
+    framework = _make_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    payload = _smoke_payload(repo, ok=True)
+    payload["pre_task_ok"] = False
+    _write(
+        repo / "artifacts" / "evidence" / "test-results" / "external-repo-smoke-result.json",
+        json.dumps(payload) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    assert summary.capability_states["runtime_evidence"].state == "Detected"
+    assert "ok=true requires pre_task_ok=true" in " ".join(
+        summary.capability_states["runtime_evidence"].reasons
+    )
+    assert summary.next_safe_command is not None
+    assert "external_repo_smoke.py" in summary.next_safe_command
+
+
+def test_invalid_plan_path_runtime_json_is_detected_not_verified(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "invalid_plan_path_runtime_json")
+    framework = _make_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    payload = _smoke_payload(repo, ok=True)
+    payload["plan_path"] = str((tmp_path / "other" / "PLAN.md").resolve())
+    _write(
+        repo / "artifacts" / "evidence" / "test-results" / "external-repo-smoke-result.json",
+        json.dumps(payload) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    assert summary.capability_states["runtime_evidence"].state == "Detected"
+    assert "plan_path must resolve to target repo PLAN.md" in " ".join(
+        summary.capability_states["runtime_evidence"].reasons
+    )
+    assert summary.next_safe_command is not None
+    assert "external_repo_smoke.py" in summary.next_safe_command
+
+
+def test_contradictory_ok_false_runtime_json_is_detected_not_failed(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "contradictory_ok_false_runtime_json")
+    framework = _make_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    payload = _smoke_payload(repo, ok=False)
+    payload["pre_task_ok"] = True
+    payload["session_start_ok"] = True
+    payload["post_task_ok"] = None
+    payload["errors"] = []
+    _write(
+        repo / "artifacts" / "evidence" / "test-results" / "external-repo-smoke-result.json",
+        json.dumps(payload) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    assert summary.capability_states["runtime_evidence"].state == "Detected"
+    assert "ok=false requires non-empty errors" in " ".join(
+        summary.capability_states["runtime_evidence"].reasons
+    )
+    assert summary.next_safe_command is not None
+    assert "external_repo_smoke.py" in summary.next_safe_command
+
+
 def test_runtime_evidence_mismatched_repo_is_detected_not_verified(tmp_path: Path, monkeypatch) -> None:
     repo = _make_repo(tmp_path / "mismatched_runtime_evidence")
     other_repo = tmp_path / "other_repo"
@@ -593,15 +705,22 @@ def test_latest_attributable_runtime_receipt_wins(tmp_path: Path) -> None:
     _write_fresh_plan(repo)
     old_failed = repo / "artifacts" / "evidence" / "test-results" / "runtime-smoke-old.json"
     new_passed = repo / "artifacts" / "evidence" / "test-results" / "runtime-smoke-new.json"
-    _write(old_failed, json.dumps(_smoke_payload(repo, ok=False)) + "\n")
-    _write(new_passed, json.dumps(_smoke_payload(repo, ok=True)) + "\n")
-    os.utime(old_failed, (1_700_000_000, 1_700_000_000))
-    os.utime(new_passed, (1_700_000_100, 1_700_000_100))
+    _write(
+        old_failed,
+        json.dumps(_smoke_payload(repo, ok=False, generated_at="2026-07-11T00:00:00Z")) + "\n",
+    )
+    _write(
+        new_passed,
+        json.dumps(_smoke_payload(repo, ok=True, generated_at="2026-07-11T00:10:00Z")) + "\n",
+    )
+    os.utime(old_failed, (1_700_000_100, 1_700_000_100))
+    os.utime(new_passed, (1_700_000_000, 1_700_000_000))
 
     summary = build_governance_maturity_summary(repo, framework_root=framework)
 
     assert summary.capability_states["runtime_evidence"].state == "Verified"
     assert "runtime-smoke-new.json" in " ".join(summary.capability_states["runtime_evidence"].reasons)
+    assert "generated_at=2026-07-11T00:10:00Z" in " ".join(summary.capability_states["runtime_evidence"].reasons)
     assert summary.next_safe_command is None
 
 
