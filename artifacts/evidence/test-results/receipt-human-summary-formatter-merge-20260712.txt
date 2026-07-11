@@ -1,0 +1,1 @@
+human-summary formatter merge verified: 8 passed; runtime helper imports the same canonical formatter object and output remains unchanged.

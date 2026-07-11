@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -m pytest tests/test_runtime_human_summary.py tests/test_governance_tool_human_summary.py tests/test_runtime_session_start.py -q -p no:cacheprovider; py_compile both helper modules; direct identity/output check",
+  "exit_code": 0,
+  "result": "8 passed in 0.74s; runtime build_summary_line is the canonical governance_tools function and retains the expected summary string",
+  "runner": "codex",
+  "linked_commit": "fc6baefbfce20e2c5af795f750418bbdf19b18ef",
+  "output_artifacts": [
+    "runtime_hooks/core/human_summary.py",
+    "tests/test_runtime_human_summary.py"
+  ],
+  "cannot_claim": [
+    "full post-task integration suite health; six setup failures are blocked by the existing Windows pytest temporary-directory ACL",
+    "improved human comprehension or governance decision effect"
+  ]
+}
