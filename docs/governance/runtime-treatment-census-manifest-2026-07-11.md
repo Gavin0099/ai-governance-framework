@@ -122,36 +122,36 @@ files; grouping is presentation only.)
 
 ## Appendix: Frozen Unit List (33 paths, verbatim)
 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
+- `examples/multi-validator-contract/AGENTS.md`
+- `governance/copilot-instructions-template.md`
+- `runtime_hooks/adapters/claude_code/normalize_event.py`
+- `runtime_hooks/adapters/claude_code/post_task.py`
+- `runtime_hooks/adapters/claude_code/pre_task.py`
+- `runtime_hooks/adapters/codex/normalize_event.py`
+- `runtime_hooks/adapters/codex/post_task.py`
+- `runtime_hooks/adapters/codex/pre_task.py`
+- `runtime_hooks/adapters/gemini/normalize_event.py`
+- `runtime_hooks/adapters/gemini/post_task.py`
+- `runtime_hooks/adapters/gemini/pre_task.py`
+- `runtime_hooks/adapters/hermes/normalize_event.py`
+- `runtime_hooks/adapters/hermes/post_task.py`
+- `runtime_hooks/adapters/hermes/pre_task.py`
+- `runtime_hooks/adapters/shared_adapter_runner.py`
+- `runtime_hooks/adapters/shared_normalizer.py`
+- `runtime_hooks/core/_canonical_closeout.py`
+- `runtime_hooks/core/_canonical_closeout_context.py`
+- `runtime_hooks/core/decision_policy_v1_runtime.py`
+- `runtime_hooks/core/evidence_integrity_gate.py`
+- `runtime_hooks/core/human_summary.py`
+- `runtime_hooks/core/payload_audit_logger.py`
+- `runtime_hooks/core/post_task_check.py`
+- `runtime_hooks/core/pre_task_check.py`
+- `runtime_hooks/core/session_end.py`
+- `runtime_hooks/core/session_start.py`
+- `runtime_hooks/dispatcher.py`
+- `runtime_hooks/examples/hermes/stub_runner.py`
+- `runtime_hooks/runtime_path_overrides.py`
+- `runtime_hooks/smoke_test.py`
+- `templates/gate-c-decision-set-report-template.yaml`
+- `templates/memory-candidate-template.yaml`
+- `templates/retrieval-authority-advisory-template.yaml`
