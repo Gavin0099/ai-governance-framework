@@ -11,6 +11,10 @@ All 33 pinned units are evaluated: 14 walkthrough docs existed before this
 tranche set; this set added hermes (4), core checks (3), session lifecycle
 (2), prompt carriers (2), the templates trio (1 doc, 3 units), and
 cross-reference docs for the gemini trio and payload_audit_logger.
+`_canonical_closeout.py` was already reviewed in the closeout-pair tranche-2
+doc; the supplemental unit doc added here closed a **coverage-accounting
+gap** (the receipt glob missed the pair-tranche filename), not a first-time
+review — the earlier "never reviewed" framing was wrong.
 
 ## Distribution
 
@@ -21,10 +25,25 @@ cross-reference docs for the gemini trio and payload_audit_logger.
 | mixed (session_start, pre/post_task_check, decision_policy, closeout context) | 5 | 15% |
 | behavior_change (copilot template, AGENTS exemplar) | 2 | 6% |
 
-Disposition outcome: **33 × `keep_observe`, 0 retire, 0 merge** — the census
-found no unit meeting a dead-code predicate; every retirement-adjacent
-signal is gated on a frozen line, a pending integration, or an owner lane
-decision.
+Disposition outcome (corrected 2026-07-12 after review): **0 dispositions
+executed** — no unit was retired, merged, or downgraded by the census. The
+per-unit disposition *candidates* are not uniform, and the earlier
+"33 × keep_observe, 0 merge" summary was wrong to flatten them:
+
+- **1 `merge_candidate`**: `runtime_hooks/core/human_summary.py` — its
+  `build_summary_line()` is a confirmed implementation duplicate of
+  `governance_tools/human_summary.py` (human-summary tranche-5); consolidate
+  the duplicate formatter only, after a narrow import-boundary review,
+  preserving the runtime-only contract-label formatter.
+- **1 `keep`** (stronger than keep_observe): `_canonical_closeout.py` — a
+  load-bearing trust boundary (closeout-pair tranche-2), retire/merge would
+  require replacement evidence and a safety review.
+- **31 `keep_observe`**: no dead-code predicate met; every
+  retirement-adjacent signal is gated on a frozen line, a pending
+  integration, or an owner lane decision.
+
+The census executed none of these; they are review candidates handed to the
+owner, not enacted outcomes.
 
 ## Decision-evidence landscape (the census's core question)
 
@@ -59,6 +78,7 @@ decision.
 | # | Candidate | Type | Gate |
 | --- | --- | --- | --- |
 | A | Investigate the hanging risk-signal test | defect fix | small focused slice |
+| H | Consolidate the duplicate `build_summary_line()` (runtime `human_summary.py` × `governance_tools/human_summary.py`) | merge_candidate | narrow import-boundary review; preserve runtime-only label formatter and all output strings |
 | B | Rename/merge the two payload_audit_logger modules | hygiene | future owner slice |
 | C | Behavior-carrier consolidation (copilot template × AGENTS exemplar overlap) | consolidation | only if owner opens it; burden of proof already raised by v3 recalibration |
 | D | Gemini lane decision | lane keep/dispose | needs real consumer evidence or deliberate owner disposal |
@@ -68,7 +88,8 @@ decision.
 
 ## Against the maintenance-vs-build weakness frame
 
-- "哪些防線可以合併": candidates B and C — both small, both named.
+- "哪些防線可以合併": candidates B, C, and H — H is the one *confirmed*
+  implementation duplicate; B and C are named overlaps pending review.
 - "哪些規則其實沒有效": unanswerable from structure alone; the census
   converts the question into a per-unit `decision_evidence` field where the
   dominant value is honestly `none`.
@@ -80,8 +101,15 @@ decision.
 
 ## Claim ceiling
 
-`keep_observe` everywhere means "no disposition evidence", not "all
-valuable". Decision-evidence entries marked observed prove consumption, not
-counterfactual value. v3 citations remain owner-adopted recalibration,
-task-class-scoped. Nothing in this census measures whether any advisory,
+The 33/33 coverage receipt proves only that every pinned unit is *named* in
+a census doc; it does not verify disposition correctness or cross-doc
+consistency (that is what this review caught and corrected). The census
+converts justification into a per-unit `decision_evidence` field but does
+not measure counterfactual value.
+
+`keep_observe` (or `keep`) does not mean "valuable"; it means "no disposition
+evidence to act now". Decision-evidence entries marked observed prove
+consumption, not counterfactual value. v3 citations remain owner-adopted
+recalibration, task-class-scoped. Nothing in this census measures whether
+any advisory,
 injection, or verdict changed an outcome.
