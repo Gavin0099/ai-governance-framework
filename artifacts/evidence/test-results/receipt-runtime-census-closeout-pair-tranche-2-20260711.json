@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -m pytest tests/test_runtime_session_end.py tests/test_canonical_closeout.py -q -p no:cacheprovider",
+  "exit_code": 0,
+  "started_at": "2026-07-11T11:46:37Z",
+  "finished_at": "2026-07-11T11:46:44Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "d337d26824fc61c89e04626d084c4d4c0ae0ee64",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-runtime-census-closeout-pair-tranche-2-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
