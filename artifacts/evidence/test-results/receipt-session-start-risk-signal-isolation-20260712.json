@@ -1,0 +1,16 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -m pytest tests/test_session_start_risk_signal.py tests/test_runtime_session_start.py -q -p no:cacheprovider --basetemp .tmp_risk_signal_regression; repeated single-file run with .tmp_risk_signal_repeat",
+  "exit_code": 0,
+  "result": "15 passed, 3 skipped in 1.30s; repeated: 11 passed, 3 skipped in 0.92s",
+  "runner": "codex",
+  "linked_commit": "72312355ed558c19c04c2e5f778a704b0a5c4b04",
+  "output_artifacts": [
+    "tests/test_session_start_risk_signal.py"
+  ],
+  "cannot_claim": [
+    "session_start behavior beyond the focused risk-signal and adjacent integration suites",
+    "availability of the optional external KDC contract; three contract-dependent tests were skipped"
+  ]
+}
