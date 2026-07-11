@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -m pytest tests/test_runtime_smoke_test.py -q -p no:cacheprovider --basetemp .tmp_pytest_smoke_unit",
+  "exit_code": 0,
+  "started_at": "2026-07-11T12:14:44Z",
+  "finished_at": "2026-07-11T12:16:30Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "1b1031650939938630d66f79ce42a246557e18b4",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-census-unit-smoke-test-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
