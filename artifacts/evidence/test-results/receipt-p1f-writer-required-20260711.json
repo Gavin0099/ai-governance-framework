@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\test_memory_record.py --basetemp .tmp-p1f-memory-record -p no:cacheprovider -q",
+  "exit_code": 0,
+  "started_at": "2026-07-11T04:05:14Z",
+  "finished_at": "2026-07-11T04:05:15Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "c06014c4bcf1f900dff545394f7722036e55d4c0",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-p1f-writer-required-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

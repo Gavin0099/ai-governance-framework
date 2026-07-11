@@ -1,0 +1,35 @@
+{
+  "receipt_schema": "p1f_writer_rollback_replay.v0.1",
+  "status": "rollback_replay_passed",
+  "implementation_commit": "c06014c4",
+  "scope": [
+    "governance/MEMORY_PROTOCOL.md",
+    "governance_tools/memory_record.py",
+    "tests/test_memory_record.py"
+  ],
+  "initial_reverse_apply_check": {
+    "command": "git show --format= c06014c4 -- <scope> | git apply --reverse --check",
+    "exit_code": 1,
+    "result": "not used as rollback proof; worktree/index line-ending context did not match the patch"
+  },
+  "rollback_replay": {
+    "command": "git revert --no-commit c06014c4",
+    "exit_code": 0,
+    "temporarily_modified_paths": [
+      "governance/MEMORY_PROTOCOL.md",
+      "governance_tools/memory_record.py",
+      "tests/test_memory_record.py"
+    ],
+    "diff_check_command": "git diff --check",
+    "diff_check_exit_code": 0,
+    "restore_command": "git revert --abort",
+    "restore_exit_code": 0,
+    "revert_commit_created": false
+  },
+  "test_receipt": "artifacts/evidence/test-results/receipt-p1f-writer-required-20260711.json",
+  "cannot_claim": [
+    "rollback behavior on another branch or consumer repository",
+    "semantic truth of any plan_reconciliation declaration",
+    "current-diff blocker behavior, because no hook, CI, or blocker path changed"
+  ]
+}
