@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -c \"import subprocess; patterns=['runtime_hooks/*.py','runtime_hooks/core/*.py','runtime_hooks/adapters/*.py','runtime_hooks/adapters/*/*.py','templates/*.yaml']; units=set(); [units.update(subprocess.run(['git','ls-files',p],capture_output=True,text=True,check=True).stdout.strip().splitlines()) for p in patterns]; units.update(['governance/copilot-instructions-template.md','examples/multi-validator-contract/AGENTS.md']); doc=open('docs/governance/runtime-treatment-census-manifest-2026-07-11.md',encoding='utf-8').read(); appendix=doc.split('## Appendix: Frozen Unit List (33 paths, verbatim)\\n',1)[1]; listed={line[3:-1] for line in appendix.splitlines() if line.startswith('- ') and line.endswith('')}; assert units==listed, (units-listed,listed-units); adapter_units=[u for u in units if u.startswith('runtime_hooks/adapters/')]; assert all(f'| {u} |' in doc for u in adapter_units), adapter_units; assert 'raw receipt artifacts are not retained' in doc; assert '{pre,post,normalize}' not in doc; print('33 units exact; every adapter has an individual row; evidence-retention boundary present')\"",
+  "exit_code": 0,
+  "started_at": "2026-07-11T08:23:26Z",
+  "finished_at": "2026-07-11T08:23:27Z",
+  "runner": "codex",
+  "linked_commit": "b77eff0dd02c70cb03273368a60950faab4cc8c5",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-runtime-census-blocking-fixes-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

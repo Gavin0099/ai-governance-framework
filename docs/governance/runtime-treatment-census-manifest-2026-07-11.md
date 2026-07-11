@@ -61,7 +61,7 @@ date touching the unit.
 | runtime_hooks/core/session_start.py | 762 | 5 | 2026-04-24 | mixed | none (v3 recalibration applies to injected instructions generally, owner-adopted only) | — | Injection + closeout continuity; instruction_capable modes; reviewer-visible output |
 | runtime_hooks/core/pre_task_check.py | 1063 | 1 | 2026-04-24 | mixed | none | overlaps post_task_check advisory families | Self-labeled behavioral_advisory + evidence/degradation advisory; advisory-only wording present |
 | runtime_hooks/core/post_task_check.py | 1091 | 1 | 2026-05-15 | mixed | none | overlaps pre_task_check | Evidence advisories + verdict machinery (stop/escalate); largest single unit |
-| runtime_hooks/core/decision_policy_v1_runtime.py | 595 | 0 | 2026-04-23 | mixed | none | — | Risk tiers feeding advisories and surface manifest; zero containment-matched tests — focused-review flag |
+| runtime_hooks/core/decision_policy_v1_runtime.py | 595 | 0 | 2026-04-23 | mixed | none | — | Risk tiers feeding advisories and surface manifest; zero direct filename-containment matches (integration references exist) — focused-review flag |
 | runtime_hooks/core/_canonical_closeout_context.py | 153 | 1 | 2026-04-08 | mixed | none | — | Audit-derived continuity injected into next session |
 | runtime_hooks/core/session_end.py | 1366 | 7 | 2026-06-15 | audit | observed (closeout receipts consumed by F-7 / P1-C evidence chain) | — | Best-tested unit; closeout lifecycle |
 | runtime_hooks/core/_canonical_closeout.py | 342 | 3 | 2026-05-29 | audit | observed (canonical closeout artifacts) | — | Trust-boundary validator/producer |
@@ -73,20 +73,24 @@ date touching the unit.
 | runtime_hooks/adapters/shared_normalizer.py | 159 | 1 | 2026-07-04 | carrier | n/a | — | Recently maintained |
 | runtime_hooks/runtime_path_overrides.py | 46 | 1 | 2026-03-15 | carrier | n/a | — | Path override shim |
 | runtime_hooks/smoke_test.py | 239 | 1 | 2026-06-21 | audit | none | — | Runtime smoke entry |
-| runtime_hooks/adapters/claude_code/{pre,post,normalize} ×3 | 64 | 1ea | 2026-03-12 | carrier | n/a | 4-platform pattern | Consumer known (Claude Code sessions) |
-| runtime_hooks/adapters/codex/{pre,post,normalize} ×3 | 64 | 1ea | 2026-03-12 | carrier | n/a | 4-platform pattern | Consumer known (Codex sessions) |
-| runtime_hooks/adapters/gemini/{pre,post,normalize} ×3 | 64 | 1ea | 2026-03-12 | carrier | n/a | 4-platform pattern | **No known real consumer observed 2026-07-11 — focused-review flag** |
-| runtime_hooks/adapters/hermes/{pre,post,normalize} ×3 | 71 | 1ea | 2026-06-21 | carrier | n/a | 4-platform pattern | Hermes integration is a pending design line with contract/evidence specs |
+| runtime_hooks/adapters/claude_code/normalize_event.py | 22 | 1 | 2026-03-12 | carrier | n/a | 4-platform pattern | Consumer known (Claude Code sessions) |
+| runtime_hooks/adapters/claude_code/post_task.py | 21 | 1 | 2026-03-12 | carrier | n/a | 4-platform pattern | Consumer known (Claude Code sessions) |
+| runtime_hooks/adapters/claude_code/pre_task.py | 21 | 1 | 2026-03-12 | carrier | n/a | 4-platform pattern | Consumer known (Claude Code sessions) |
+| runtime_hooks/adapters/codex/normalize_event.py | 22 | 1 | 2026-03-12 | carrier | n/a | 4-platform pattern | Consumer known (Codex sessions) |
+| runtime_hooks/adapters/codex/post_task.py | 21 | 1 | 2026-03-12 | carrier | n/a | 4-platform pattern | Consumer known (Codex sessions) |
+| runtime_hooks/adapters/codex/pre_task.py | 21 | 1 | 2026-03-12 | carrier | n/a | 4-platform pattern | Consumer known (Codex sessions) |
+| runtime_hooks/adapters/gemini/normalize_event.py | 22 | 1 | 2026-03-12 | carrier | n/a | 4-platform pattern | **No real-consumer receipt identified in this census source set — focused-review flag** |
+| runtime_hooks/adapters/gemini/post_task.py | 21 | 1 | 2026-03-12 | carrier | n/a | 4-platform pattern | **No real-consumer receipt identified in this census source set — focused-review flag** |
+| runtime_hooks/adapters/gemini/pre_task.py | 21 | 1 | 2026-03-12 | carrier | n/a | 4-platform pattern | **No real-consumer receipt identified in this census source set — focused-review flag** |
+| runtime_hooks/adapters/hermes/normalize_event.py | 29 | 1 | 2026-06-21 | carrier | n/a | 4-platform pattern | Hermes integration is a pending design line with contract/evidence specs |
+| runtime_hooks/adapters/hermes/post_task.py | 21 | 1 | 2026-06-21 | carrier | n/a | 4-platform pattern | Hermes integration is a pending design line with contract/evidence specs |
+| runtime_hooks/adapters/hermes/pre_task.py | 21 | 1 | 2026-06-21 | carrier | n/a | 4-platform pattern | Hermes integration is a pending design line with contract/evidence specs |
 | runtime_hooks/examples/hermes/stub_runner.py | 244 | 1 | 2026-06-21 | carrier | n/a | — | Hermes example/stub |
 | governance/copilot-instructions-template.md | 154 | 0 | 2026-06-03 | behavior_change | none | overlaps consumer AGENTS.md purpose | Pure instruction injection installed into consumers; burden of proof raised by v3 recalibration (owner-adopted, task-class-scoped) |
 | examples/multi-validator-contract/AGENTS.md | 9 | 0 | 2026-03-21 | behavior_change | observed (v3 Arm A voluntarily read it in 1 of 3 runs; injected in Arm B) | overlaps copilot template purpose | 9-line behavior-override exemplar |
 | templates/gate-c-decision-set-report-template.yaml | 44 | 0 | 2026-05-11 | audit | none | — | Report template; Gate C line frozen |
 | templates/memory-candidate-template.yaml | 36 | 0 | 2026-05-08 | audit | none | — | Record template |
 | templates/retrieval-authority-advisory-template.yaml | 21 | 0 | 2026-05-08 | audit | none | — | Advisory template; retrieval-authority line frozen |
-
-(Adapter rows are grouped: `loc` is the group total and `tests` is per file via
-the shared adapter test suites. The pinned unit list remains the 33 individual
-files; grouping is presentation only.)
 
 ## Census findings (judgment, not disposition)
 
@@ -100,7 +104,8 @@ files; grouping is presentation only.)
    consumption (F-7 / P1-C evidence). No unit here has a measured decision
    effect; the only measured precedent in the repo remains codex-review-fast.
 3. **Focused-review flags** (candidates for their own read-only slices, in
-   value order): gemini adapters (no known consumer), payload_audit_logger
+   value order): gemini adapters (no real-consumer receipt identified in this
+   census source set), payload_audit_logger
    (log consumer unverified), decision_policy_v1_runtime (595 loc, zero
    containment-matched tests).
 4. **Duplication is structural, not accidental**: the 4-platform adapter
@@ -119,6 +124,13 @@ files; grouping is presentation only.)
   efficacy or retirement evidence.
 - Re-running the pinned commands at this manifest's commit must reproduce
   exactly these 33 units; later commits may legitimately change the set.
+
+## Evidence-retention correction
+
+Two pre-final validation attempts are described in the associated session
+memory, but their raw receipt artifacts are not retained in this repository.
+This manifest relies only on the final retained receipt and makes no claim that
+the failed attempts are independently recheckable receipt evidence.
 
 ## Appendix: Frozen Unit List (33 paths, verbatim)
 
