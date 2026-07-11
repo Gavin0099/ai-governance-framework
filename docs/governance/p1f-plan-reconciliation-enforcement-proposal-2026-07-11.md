@@ -1,6 +1,7 @@
 # P1-F Proposal: Plan-Reconciliation Enforcement Decision
 
-Status: proposal only; owner decision required before implementation.
+Status: decision record. Option B was owner-approved and implemented at
+`c06014c4`; Option C remains deferred.
 
 ## Problem
 
@@ -12,15 +13,15 @@ positive rate, or a causal effect of advisory output.
 
 The decision is therefore narrower than “make governance stricter”:
 
-> Should future canonical memory writes require an explicit reconciliation
-> declaration at write time, or should missing declarations instead become a
-> current-diff completion blocker?
+> Which enforcement boundary, if any, should apply to future canonical memory
+> writes: advisory-only, a writer input requirement, or a current-diff
+> completion blocker?
 
 ## Current Repository Truth
 
-- `governance_tools/memory_record.py` normalizes an omitted value to
-  `not_declared` and writes it successfully; malformed supplied values already
-  exit with an input error.
+- Since `c06014c4`, `governance_tools/memory_record.py` requires an explicit
+  `--plan-reconciliation` value and rejects omission with exit 2 before a
+  memory record is appended. Malformed supplied values remain input errors.
 - `scripts/hooks/pre-push` reports missing declarations as advisory-only.
 - `governance_tools/memory_workflow.py --fail-on-blocker` has selective
   blocking machinery, but missing `plan_reconciliation` is not currently a
@@ -34,15 +35,23 @@ The decision is therefore narrower than “make governance stricter”:
 - Proposal-time tooling classified either candidate as medium risk with
   review-required oversight and architecture-review evidence.
 
-## Target Outcome
+## Decision Boundary
 
-An owner-approved, reversible P1-F implementation decision with one explicit
-enforcement boundary, a mutation contract, and a rollback path. This proposal
-does not select or implement that boundary.
+Each option names a distinct enforcement boundary. Only Option B is
+implemented; its focused mutation and rollback receipts are retained under
+`artifacts/evidence/test-results/`. Option C still requires its own decision,
+mutation contract, and rollback path.
 
 ## Options
 
-### A. Require an explicit writer argument
+### A. Advisory only
+
+Continue to permit omitted declarations and record `not_declared` with
+advisory output.
+
+This was the historical behavior. It is not the selected boundary.
+
+### B. Canonical writer requires an explicit declaration
 
 Change the canonical writer so omission of `--plan-reconciliation` is rejected
 before a memory record is appended. Valid values remain `updated`,
@@ -60,7 +69,10 @@ Limits:
 - Does not retrofit history or prevent a non-canonical direct edit.
 - Is a write-time input contract, not a current-diff completion blocker.
 
-### B. Make missing declarations a current-diff completion blocker
+This is the owner-selected and implemented boundary. It is a write-time input
+contract, not proof that a supplied declaration is truthful.
+
+### C. Make missing declarations a current-diff completion blocker
 
 Extend the guard / memory-workflow / hook path so a current memory diff with a
 missing declaration blocks the selected completion or push path.
@@ -77,17 +89,16 @@ Risks:
 
 ## Recommended First Implementation Tranche
 
-If the owner elects to implement P1-F, prefer **Option A only** as the first
-tranche: explicit canonical-writer declaration requirement. Keep Option B
-deferred until a separate current-diff mutation contract and false-positive
-test corpus exist.
+The owner selected **Option B**: explicit canonical-writer declaration
+requirement. Keep **Option C** deferred until a separate current-diff mutation
+contract and false-positive test corpus exist.
 
-This recommendation is a scope and risk judgment, not evidence that Option A
+This decision is a scope and risk judgment, not evidence that Option B
 will improve user behavior or PLAN correctness.
 
 ## Scope
 
-For a future Option-A implementation slice only:
+The implemented Option-B slice was limited to:
 
 - `governance_tools/memory_record.py`
 - `tests/test_memory_record.py`
@@ -107,10 +118,8 @@ For a future Option-A implementation slice only:
 
 - Existing valid value normalization and deferred-reason taxonomy remain the
   input contract.
-- The owner must choose whether the requirement is immediately mandatory for
-  all canonical writer calls or introduced as an explicit opt-in strict mode.
-  This is an authority and compatibility decision, not an implementation
-  detail.
+- The owner chose immediate mandatory declaration for canonical writer calls;
+  no opt-in strict mode was introduced.
 - The rejected call must append no memory entry and return a documented
   non-zero input-error exit code.
 - The proposal must not silently convert any historical warning into a blocker.
@@ -142,14 +151,11 @@ the proposal-time preview is medium risk / review-required.
 
 ## Claim Ceiling
 
-This document proposes alternatives and an evidence plan only. It does not
-claim that any blocker exists, that the writer is changed, that declarations
-are truthful, that PLAN drift is prevented, or that P1-F is authorized.
+This document records the Option-B decision and its bounded implementation. It
+does not claim that supplied declarations are truthful, that PLAN drift is
+prevented, or that a current-diff blocker exists.
 
-## Owner Decision Required
+## Future Owner Decision
 
-Choose one:
-
-1. Keep advisory mode; close P1-F without implementation.
-2. Authorize a separate Option-A mutation-contract slice.
-3. Authorize a separate Option-B current-diff blocker design slice.
+Option B is complete. A future, separate decision may authorize or reject
+Option C; it must not be inferred from the Option-B implementation.
