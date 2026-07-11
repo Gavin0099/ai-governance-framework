@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"\nimport subprocess,os\nassert not os.path.exists('.gemini/settings.json')\nr=subprocess.run(['git','show','--name-only','--pretty=format:','HEAD'],capture_output=True,text=True)\nfiles=[l for l in r.stdout.splitlines() if l.strip()]\nassert files==['.gemini/settings.json'], files\nh=subprocess.run(['git','show','da700280:.gemini/settings.json'],capture_output=True,text=True)\nassert 'session_closeout_entry' in h.stdout\nprint('single-file removal verified; historical content recoverable at da700280')\n\"",
+  "exit_code": 0,
+  "started_at": "2026-07-11T08:39:43Z",
+  "finished_at": "2026-07-11T08:39:43Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "958a37c9e7ed1c049b3fb8ab6f04f7a1d7b0f95a",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-gemini-config-removal-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
