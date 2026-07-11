@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"\nfa=' '.join(open('docs/governance/runtime-treatment-census-final-analysis-2026-07-11.md',encoding='utf-8').read().split())\nassert '0 dispositions' in fa and 'merge_candidate' in fa and 'human_summary.py' in fa, 'candidate ledger not corrected'\nassert '33 \u00d7 keep_observe, 0 retire, 0 merge' not in fa, 'flattened claim still present'\nassert 'coverage-accounting gap' in fa and 'name-coverage' not in fa and 'named' in fa\ncc=open('docs/governance/runtime-treatment-census-unit-canonical-closeout-2026-07-11.md',encoding='utf-8').read()\nassert 'Coverage-accounting note' in cc and 'keep' in cc and 'not' in cc\nts5=open('docs/governance/runtime-treatment-census-human-summary-tranche-5-2026-07-11.md',encoding='utf-8').read()\nassert 'merge_candidate' in ts5\nprint('reconciliation verified: merge_candidate surfaced, flattened claim removed, canonical-closeout aligned to keep with accounting note')\n\"",
+  "exit_code": 0,
+  "started_at": "2026-07-11T16:48:44Z",
+  "finished_at": "2026-07-11T16:48:44Z",
+  "runner": "claude-opus-4-8",
+  "linked_commit": "d2aa4bf7902ca360563d7ccd8719e7c909ba12fc",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-census-reconciliation-20260712.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

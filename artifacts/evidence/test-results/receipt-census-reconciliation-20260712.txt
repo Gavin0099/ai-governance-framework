@@ -1,0 +1,1 @@
+reconciliation verified: merge_candidate surfaced, flattened claim removed, canonical-closeout aligned to keep with accounting note
