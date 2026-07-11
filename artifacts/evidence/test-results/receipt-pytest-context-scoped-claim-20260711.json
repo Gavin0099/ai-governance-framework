@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"\nimport subprocess,os\nr=subprocess.run(['./.venv/Scripts/python.exe','-m','pytest','--collect-only','-q'],capture_output=True,text=True)\ntail=r.stdout.strip().splitlines()[-1]\nassert '3676/3709' in tail and 'error' not in tail, tail\nassert r.returncode==0\nassert os.access('.pytest_cache',os.R_OK)\nprint('launcher-user shell: collect-only', tail, '| exit 0 | .pytest_cache readable')\n\"",
+  "exit_code": 0,
+  "started_at": "2026-07-11T02:29:28Z",
+  "finished_at": "2026-07-11T02:29:33Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "ace26a056d69ca2050c65f4bbbd5132bcfbbb92a",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-pytest-context-scoped-claim-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

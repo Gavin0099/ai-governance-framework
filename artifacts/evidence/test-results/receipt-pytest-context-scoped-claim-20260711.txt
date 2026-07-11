@@ -1,0 +1,1 @@
+launcher-user shell: collect-only 3676/3709 tests collected (33 deselected) in 3.95s | exit 0 | .pytest_cache readable
