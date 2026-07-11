@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -m pytest tests/test_runtime_adapters.py -q -p no:cacheprovider --basetemp .tmp_pytest_codex_pre_task_unit",
+  "exit_code": 0,
+  "started_at": "2026-07-11T13:05:11Z",
+  "finished_at": "2026-07-11T13:05:12Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "39bb4baba9578e25ee082a4d35b9493c5f205650",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-census-unit-codex-pre-task-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
