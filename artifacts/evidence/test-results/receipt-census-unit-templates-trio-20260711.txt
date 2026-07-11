@@ -1,0 +1,1 @@
+all three templates parse as YAML; zero tool consumers confirmed by py-surface scan

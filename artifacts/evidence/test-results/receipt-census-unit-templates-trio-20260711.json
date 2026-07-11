@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"\nimport yaml,subprocess\nfor t in ('templates/gate-c-decision-set-report-template.yaml','templates/memory-candidate-template.yaml','templates/retrieval-authority-advisory-template.yaml'):\n    yaml.safe_load(open(t,encoding='utf-8'))\n# consumer scans: no tool reader\nfor name in ('gate-c-decision-set-report-template','memory-candidate-template','retrieval-authority-advisory-template'):\n    hits=subprocess.run(['git','grep','-ln',name,'--','*.py'],capture_output=True,text=True).stdout.strip().splitlines()\n    assert hits==[], (name,hits)\nprint('all three templates parse as YAML; zero tool consumers confirmed by py-surface scan')\n\"",
+  "exit_code": 0,
+  "started_at": "2026-07-11T13:23:24Z",
+  "finished_at": "2026-07-11T13:23:24Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "986731e3e0fa40c4d0a14073f8b9a90b252656f2",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-census-unit-templates-trio-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
