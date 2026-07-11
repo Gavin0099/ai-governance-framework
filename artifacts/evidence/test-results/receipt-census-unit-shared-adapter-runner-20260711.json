@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -m pytest tests/test_runtime_adapter_runner.py -q -p no:cacheprovider --basetemp .tmp_pytest_adapter_runner_unit",
+  "exit_code": 0,
+  "started_at": "2026-07-11T12:19:38Z",
+  "finished_at": "2026-07-11T12:19:39Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "eda0e909b679ce204a39f52283087279ef8c31c2",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-census-unit-shared-adapter-runner-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
