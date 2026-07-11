@@ -1,0 +1,1 @@
+pinned commands reproduce exactly 33 units; every path present verbatim; claim ceiling intact

@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"\nimport subprocess\ndef ls(p): return subprocess.run(['git','ls-files',p],capture_output=True,text=True).stdout.strip().splitlines()\nunits=sorted(set(ls('runtime_hooks/*.py')+ls('runtime_hooks/core/*.py')+ls('runtime_hooks/adapters/*.py')+ls('runtime_hooks/adapters/*/*.py')+ls('templates/*.yaml')+['governance/copilot-instructions-template.md','examples/multi-validator-contract/AGENTS.md']))\nassert len(units)==33, len(units)\ndoc=open('docs/governance/runtime-treatment-census-manifest-2026-07-11.md',encoding='utf-8').read()\nmissing=[u for u in units if u not in doc]\nassert not missing, missing\nassert doc.count('- ') >= 33 and 'Frozen Unit List (33 paths, verbatim)' in doc\nassert 'N = 33' in doc and 'authorizes no disposition' in doc and 'not generalizable' in doc\nprint('pinned commands reproduce exactly 33 units; every path present verbatim; claim ceiling intact')\n\"",
+  "exit_code": 0,
+  "started_at": "2026-07-11T08:15:39Z",
+  "finished_at": "2026-07-11T08:15:39Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "8cc9f87ba04a13b99dc81d59d2a9f7df7ab54d2c",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-runtime-census-manifest-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
