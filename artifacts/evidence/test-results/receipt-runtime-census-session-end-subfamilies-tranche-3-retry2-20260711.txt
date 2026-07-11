@@ -1,0 +1,1 @@
+session-end subfamily map has six responsibility groups, a maintenance candidate, test visibility, and a claim ceiling

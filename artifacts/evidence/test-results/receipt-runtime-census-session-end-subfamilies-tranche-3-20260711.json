@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -c \"from pathlib import Path; p=Path('docs/governance/runtime-treatment-census-session-end-subfamilies-tranche-3-2026-07-11.md'); t=p.read_text(encoding='utf-8'); required=['Status: read-only internal map','Lifecycle setup and ledger controls','Contract, policy, and decision context','Memory candidate and promotion lifecycle','Verdict, trace, and runtime evidence artifacts','Final orchestration and canonical closeout coordination','Human result formatting and CLI','investigate','not a retire candidate','does **not** justify calling all other subfamilies decision changing']; missing=[s for s in required if s not in t]; assert not missing, missing; assert t.count('| ') >= 6; print('session-end subfamily map has six responsibility groups, evidence boundaries, and one non-dispositive review candidate')\"",
+  "exit_code": 1,
+  "started_at": "2026-07-11T11:54:09Z",
+  "finished_at": "2026-07-11T11:54:09Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "5bfa62b12ce357334e08ce84732e7f8adbe52168",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-runtime-census-session-end-subfamilies-tranche-3-20260711.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
