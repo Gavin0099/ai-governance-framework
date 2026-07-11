@@ -1,0 +1,152 @@
+﻿{
+    "schema":  "acl_cleanup_result.v0.1",
+    "executed_at":  "2026-07-11T02:43:49.5383416Z",
+    "executed_by":  "DESKTOP-EJOULKM\\daish",
+    "elevated":  true,
+    "pinned_scope_count":  28,
+    "removed":  28,
+    "absent":  0,
+    "failed":  0,
+    "results":  [
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_anchor_provenance_tests",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_codex_closeout_bypass_tests",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_evidence_truth_tests",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_ok_meaning_tests",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_pytest_ab_cost_retire",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_pytest_ai_governance",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_pytest_consumer_fixture_runner",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_pytest_consumer_fixture_runner_memory_sync",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_pytest_external_updater_focus",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_pytest_external_updater_focus2",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_pytest_maturity_table_focus",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_pytest_maturity_table_integration",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_pytest_maturity_table_zh2_focus",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_pytest_maturity_table_zh2_integration",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_pytest_maturity_table_zh_commit",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_pytest_maturity_table_zh_focus",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_pytest_maturity_table_zh_focus2",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_pytest_maturity_table_zh_integration",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_pytest_maturity_table_zh_integration2",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_pytest_memory_guard",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_pytest_update_human_table_integration",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_pytest_updater_human_table",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_session_provenance_tests",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_status_check",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_writer_bypass_tests",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp_contract_review",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.tmp-pytest",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    },
+                    {
+                        "path":  "D:\\ai-governance-framework\\.pytest_cache",
+                        "existed":  true,
+                        "outcome":  "removed"
+                    }
+                ]
+}
