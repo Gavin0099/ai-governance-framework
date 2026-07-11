@@ -119,3 +119,39 @@ files; grouping is presentation only.)
   efficacy or retirement evidence.
 - Re-running the pinned commands at this manifest's commit must reproduce
   exactly these 33 units; later commits may legitimately change the set.
+
+## Appendix: Frozen Unit List (33 paths, verbatim)
+
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
