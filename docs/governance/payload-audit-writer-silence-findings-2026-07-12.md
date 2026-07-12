@@ -25,11 +25,15 @@ writer. Why is the runtime writer silent?
    `L1-2026-04-24.jsonl` — the writer DID run in a consumer through late
    April (the L1 campaign), then stopped there too.
 4. **Root cause — no invoker**: the writer only runs when `session_start`'s
-   CLI runs. No current session path invokes it: this repo's
-   `.claude/settings.json` has no hooks section at all, and meiandraybook's
-   Stop hook calls `session_closeout_entry.py` directly, bypassing
-   `session_start`. The only invokers are manual/campaign entrypoints
+   CLI runs. No current session path invokes it: both this repo's and
+   meiandraybook's `.claude/settings.json` wire only a **Stop** hook that
+   calls `session_closeout_entry.py` directly (plus, here, a Notification
+   hook for codeburn), bypassing `session_start` entirely; neither defines
+   a SessionStart hook. The only invokers are manual/campaign entrypoints
    (`scripts/run-runtime-governance.sh`, the runtime-smoke skill, tests).
+   Side observation: this repo's own Stop hook uses the same
+   failure-swallowing `2>/dev/null || true` pattern flagged in the Gemini
+   config review — recorded, not fixed here.
 
 ## Conclusion
 
