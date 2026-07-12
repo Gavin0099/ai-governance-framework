@@ -387,8 +387,12 @@ def test_codex_adapter_install_verify_and_uninstall(tmp_path: Path) -> None:
     assert "--format json" in hook["command"]
     assert "--agent-id codex" in hook["command"]
     assert "--trigger-mode native_hook" in hook["command"]
+    assert "git rev-parse --show-toplevel" in hook["command"]
     assert "--format json" in hook["commandWindows"]
-    assert "py -3" in hook["commandWindows"]
+    assert "powershell -NoProfile" in hook["commandWindows"]
+    assert "git rev-parse --show-toplevel" in hook["commandWindows"]
+    assert ".venv-ci\\Scripts\\python.exe" in hook["commandWindows"]
+    assert "py -3" not in hook["commandWindows"]
 
     verified = adapter.verify(tmp_path, framework_root)
     assert verified["installed"] is True

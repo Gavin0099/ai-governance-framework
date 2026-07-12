@@ -742,13 +742,29 @@ class CodexCLIAdapter(AgentAdapter):
     def _hook_payload(framework_root: Path) -> dict[str, Any]:
         entrypoint = framework_root / "governance_tools" / "session_closeout_entry.py"
         args = (
-            f'"{entrypoint.as_posix()}" --project-root . --format json '
+            f'"{entrypoint.as_posix()}" --format json '
             "--agent-id codex --trigger-mode native_hook"
+        )
+        posix_command = (
+            'repo_root="$(git rev-parse --show-toplevel)" && '
+            f'if [ -x "$repo_root/.venv/bin/python" ]; then "$repo_root/.venv/bin/python" {args} '
+            f'--project-root "$repo_root"; else python3 {args} --project-root "$repo_root"; fi'
+        )
+        windows_command = (
+            'powershell -NoProfile -Command "& { '
+            '$repo = git rev-parse --show-toplevel; '
+            "$candidates = @((Join-Path $repo '.venv-ci\\Scripts\\python.exe'), "
+            "(Join-Path $repo '.venv\\Scripts\\python.exe')); "
+            '$python = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1; '
+            "if (-not $python) { $python = (Get-Command python -ErrorAction SilentlyContinue).Source }; "
+            "if (-not $python) { Write-Error 'No Python interpreter found for Codex closeout'; exit 1 }; "
+            f"& $python '{entrypoint.as_posix()}' --project-root $repo --format json "
+            '--agent-id codex --trigger-mode native_hook; exit $LASTEXITCODE }"'
         )
         return {
             "type": "command",
-            "command": f"python3 {args}",
-            "commandWindows": f"py -3 {args}",
+            "command": posix_command,
+            "commandWindows": windows_command,
             "timeout": 30,
             "statusMessage": "Running governance session closeout...",
         }
