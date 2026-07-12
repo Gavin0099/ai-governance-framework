@@ -754,6 +754,10 @@ def _final_full_update_status(report: dict[str, Any]) -> str:
         return "not_verified"
     if "missing" in {repo_local, memory, hook} or normalization == "needed":
         return "partially_updated"
+    details = report.get("details")
+    framework_lock = details.get("framework_lock") if isinstance(details, dict) else None
+    if isinstance(framework_lock, dict) and framework_lock.get("status") == "invalid":
+        return "partially_updated"
     lock_consistency = _lock_consistency_value(report)
     if lock_consistency not in {None, "consistent", "not_applicable"}:
         return "partially_updated"
@@ -824,6 +828,17 @@ def _governance_maturity_stage(repo: Path, framework_root: Path | None) -> dict[
             "claim_boundary": "summary unavailable; no maturity claim is supported",
         }
     return governance_maturity_summary_to_dict(summary)
+
+
+def _refresh_stage_report_after_commit(
+    report: dict[str, Any],
+    *,
+    repo: Path,
+    framework_root: Path,
+) -> None:
+    """Report the committed state, rather than the intentionally dirty pre-commit state."""
+    report["governance_maturity_summary"] = _governance_maturity_stage(repo, framework_root)
+    report["final_status"] = _final_full_update_status(report)
 
 
 def update_governance_submodule(
@@ -937,6 +952,11 @@ def update_governance_submodule(
                 _run_git(repo, ["commit", "-m", commit_message])
                 committed = True
                 commit_hash = _resolve_head(repo, "HEAD")
+                _refresh_stage_report_after_commit(
+                    full_update_stage_report,
+                    repo=repo,
+                    framework_root=submodule_repo,
+                )
             return UpdateResult(
                 ok=True,
                 mode="apply",
@@ -1092,6 +1112,11 @@ def update_governance_submodule(
             _run_git(repo, ["commit", "-m", commit_message])
             committed = True
             commit_hash = _resolve_head(repo, "HEAD")
+            _refresh_stage_report_after_commit(
+                full_update_stage_report,
+                repo=repo,
+                framework_root=submodule_repo,
+            )
 
         return UpdateResult(
             ok=True,

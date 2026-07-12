@@ -708,6 +708,62 @@ def test_apply_does_not_complete_when_hook_advisory_source_missing(tmp_path: Pat
     )
 
 
+def test_apply_commit_recomputes_lock_consistency_after_commit(tmp_path: Path) -> None:
+    consumer, _framework, old_head, new_head = _make_fixture(tmp_path)
+    lock_path = consumer / "governance" / "framework.lock.json"
+    lock_path.parent.mkdir(parents=True)
+    lock_path.write_text(
+        json.dumps({"adopted_commit": old_head}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    _commit_all(consumer, "add consumer lock")
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=True,
+        commit=True,
+    )
+
+    assert result.ok is True
+    assert result.committed is True
+    assert result.full_update_stage_report["final_status"] == "full_update_completed"
+    assert (
+        result.full_update_stage_report["governance_maturity_summary"]["lock_consistency"][
+            "value"
+        ]
+        == "consistent"
+    )
+    assert json.loads(lock_path.read_text(encoding="utf-8"))["adopted_commit"] == new_head
+    assert _git(consumer, "status", "--short") == ""
+
+
+def test_invalid_existing_lock_remains_partial_and_receipt_does_not_claim_match(
+    tmp_path: Path,
+) -> None:
+    consumer, _framework, _old_head, _new_head = _make_fixture(tmp_path)
+    lock_path = consumer / "governance" / "framework.lock.json"
+    lock_path.parent.mkdir(parents=True)
+    lock_path.write_text("not valid json\n", encoding="utf-8")
+    _commit_all(consumer, "add invalid consumer lock")
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=True,
+    )
+
+    receipt = json.loads((consumer / RECEIPT_RELATIVE_PATH).read_text(encoding="utf-8"))
+    assert result.ok is True
+    assert result.full_update_stage_report["final_status"] == "partially_updated"
+    assert result.full_update_stage_report["details"]["framework_lock"]["status"] == "invalid"
+    assert receipt["lock_adopted_commit"] is None
+    assert receipt["lock_matches_checkout"] is False
+    assert lock_path.read_text(encoding="utf-8") == "not valid json\n"
+
+
 def test_apply_commit_noops_when_submodule_already_points_at_target(
     tmp_path: Path,
 ) -> None:
