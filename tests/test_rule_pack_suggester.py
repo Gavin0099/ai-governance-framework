@@ -83,3 +83,32 @@ def test_rule_pack_suggester_ignores_contract_scaffolding_language_noise():
     assert result["language_packs"] == []
     assert result["suggested_rules"] == ["common"]
     assert result["suggested_agent"] == "advanced-agent"
+
+
+def test_rule_pack_suggester_ignores_local_test_and_artifact_fixture_noise():
+    root = _reset_fixture("non_product_roots")
+    _write(root / "tool.py", "print('product')\n")
+    _write(root / "tests" / "fixture.cs", "Dispatcher.UIThread.Post(() => {});\n")
+    _write(root / "artifacts" / "capture.swift", "import Foundation\n")
+    _write(root / "examples" / "fixture.cpp", "int main() { return 0; }\n")
+    _write(root / "runtime_hooks" / "examples" / "fixture.cs", "Dispatcher.UIThread.Post(() => {});\n")
+    _write(root / ".tmp-pilot" / "fixture.csproj", "<Project />\n")
+    _write(root / "docs" / "transcript.json", '{"note": "Avalonia"}\n')
+
+    result = suggest_rule_packs(root)
+
+    assert [item["name"] for item in result["language_packs"]] == ["python"]
+    assert result["framework_packs"] == []
+
+
+def test_rule_pack_suggester_ignores_embedded_framework_fixture_noise():
+    root = _reset_fixture("embedded_framework")
+    _write(root / "consumer.py", "print('consumer')\n")
+    embedded = root / "ai-governance-framework"
+    _write(embedded / "tests" / "fixture.cs", "Dispatcher.UIThread.Post(() => {});\n")
+    _write(embedded / "runtime_hooks" / "examples" / "fixture.swift", "import Foundation\n")
+
+    result = suggest_rule_packs(root)
+
+    assert [item["name"] for item in result["language_packs"]] == ["python"]
+    assert result["framework_packs"] == []

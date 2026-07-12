@@ -24,6 +24,34 @@ FRAMEWORK_SIGNAL_PATTERNS = [
     ("electron", [r"electron", r"BrowserWindow", r"ipcMain", r"ipcRenderer", r"preload"]),
 ]
 
+# These roots carry documentation, fixtures, generated evidence, or copied
+# framework internals rather than the consumer project's product language.
+# Including them made a real Codex pilot and prior Enumd/Hearth checks suggest
+# unrelated language/framework packs.
+_NON_PRODUCT_SIGNAL_ROOTS = {
+    "archive",
+    "tests",
+    "artifacts",
+    "docs",
+    "examples",
+    "fixtures",
+    "ai-governance-framework",
+}
+
+
+def _is_non_product_signal_path(path: Path, project_root: Path) -> bool:
+    relative_parts = path.relative_to(project_root).parts
+    if not relative_parts:
+        return False
+    # Fixture/example trees may be nested under runtime or an embedded
+    # framework. Dot-prefixed directories are tool metadata or scratch space,
+    # not product source; `.git` is included by that same boundary.
+    return any(
+        part in _NON_PRODUCT_SIGNAL_ROOTS
+        or part.startswith(".")
+        for part in relative_parts
+    )
+
 SCOPE_SIGNAL_PATTERNS = {
     "refactor": [
         r"\brefactor\b",
@@ -120,7 +148,11 @@ def _detect_domain_contract(project_root: Path) -> list[dict]:
 
 
 def _iter_files(project_root: Path) -> list[Path]:
-    return [path for path in project_root.rglob("*") if path.is_file() and ".git" not in path.parts]
+    return [
+        path
+        for path in project_root.rglob("*")
+        if path.is_file() and not _is_non_product_signal_path(path, project_root)
+    ]
 
 
 def _filter_language_signal_files(files: list[Path], project_root: Path) -> list[Path]:
