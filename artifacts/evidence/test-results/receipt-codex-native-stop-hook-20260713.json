@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".venv\\Scripts\\python.exe -m pytest tests\\test_agent_closeout_receipt.py --basetemp .tmp-pytest\\codex-hook-receipt -p no:cacheprovider -q",
+  "exit_code": 0,
+  "started_at": "2026-07-12T17:18:55Z",
+  "finished_at": "2026-07-12T17:18:58Z",
+  "runner": "codex",
+  "linked_commit": "5bb98bdc91fb14233d16b6818ae0462e1c0d1c9b",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-codex-native-stop-hook-20260713.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
