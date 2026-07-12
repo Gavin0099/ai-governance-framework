@@ -1,0 +1,14 @@
+{
+ "receipt_schema": "predelete_admissibility.v0.1",
+ "status": "report_only",
+ "target": ".github/hooks/session-end.json",
+ "captured_at": "2026-07-12T16:53:07.412545",
+ "sha256": "5d1e119180173c1adbd5e2a16ede2aac6a513a0217fb7423a9a40c1adbff65b5",
+ "bytes": 423,
+ "defect": "tracked machine-specific absolute path (E:/BackUp/Git_EE company checkout) plus failure-swallowing dev-null-or-true wrappers; wrong on every clone except the company machine",
+ "design_intent": "manage_agent_closeout install --agent copilot generates this file per machine with that machine framework root (Tier A native hook per tool docstring), so the file is meant to be local, not tracked",
+ "f7_scope_note": "F7_GOVERNANCE_ALLOWLIST names this file for dirty-scope classification only; no F-7 code writes or copies it, so removal does not change F-7 behavior",
+ "regeneration": "python -m governance_tools.manage_agent_closeout install --agent copilot (run on the machine that needs the hook, e.g. the company machine after next pull)",
+ "residual_risk": "the company machine loses its Copilot sessionEnd hook after next pull until the one-line installer is re-run there; owner accepted by choosing removal",
+ "owner_authorization": "2026-07-12: remove + gitignore chosen via decision prompt"
+}
