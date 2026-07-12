@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".venv\\Scripts\\python.exe -m pytest tests\\test_agent_closeout_receipt.py --basetemp .tmp-pytest\\codex-hook-interpreter-receipt -p no:cacheprovider -q",
+  "exit_code": 0,
+  "started_at": "2026-07-12T17:25:12Z",
+  "finished_at": "2026-07-12T17:25:14Z",
+  "runner": "codex",
+  "linked_commit": "35c17a15cc99fcdaf6df2b9c192ce47011495712",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-codex-hook-interpreter-resolution-20260713.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
