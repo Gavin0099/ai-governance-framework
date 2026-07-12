@@ -179,11 +179,29 @@ Rules:
   the session language, consistent with the Result-First Final Report Format
   rule.
 
+Owner-facing summary structure (added 2026-07-12 after two observed
+comprehension failures: an onboarded engineer could not decode adoption
+state, and the owner could not act on a jargon-dense progress summary until
+it was rewritten in plain language):
+
+- Open with one plain sentence saying what this line of work is and where it
+  stands, before any codes or metrics.
+- Prefer a short table of "problem found → what was changed" over narrative
+  paragraphs when reporting multi-step work.
+- When the owner must decide something, list each decision as a numbered
+  question and state what reply closes it (for example: "回『可以』即完成").
+- Any work-item code (P1-C, F-7, E2, census unit names) gets its
+  plain-language purpose on first use in the report; the PLAN Work Item
+  Glossary is the source.
+- Method self-commentary (process praise, cadence narration) goes last or is
+  omitted; it must never displace the decision questions.
+
 Authority boundary: this is an advisory reviewer-facing convention. The
-structural `response_envelope_validator.py` does not check glossing, and no gate
-blocks a report that omits it. A report from an agent that does not load this
-contract will not follow it. This requirement reduces reviewer decoding burden;
-it is not mechanically enforced.
+structural `response_envelope_validator.py` does not check glossing or
+summary structure, and no gate blocks a report that omits them. A report
+from an agent that does not load this contract will not follow it. This
+requirement reduces reviewer decoding burden; it is not mechanically
+enforced.
 
 ## Next-Step Judgment (Required Closing Section)
 
