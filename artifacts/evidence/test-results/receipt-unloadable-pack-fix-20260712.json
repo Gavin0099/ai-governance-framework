@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"\nimport subprocess,json\nt=subprocess.run(['./.venv/Scripts/python.exe','-m','pytest','tests/test_rule_pack_suggester.py','-q','-p','no:cacheprovider','--basetemp','.tmp_pytest_rps_receipt'],capture_output=True,text=True)\nassert '9 passed' in t.stdout, t.stdout[-200:]\nr=subprocess.run(['./.venv/Scripts/python.exe','-m','governance_tools.rule_pack_suggester','--project-root','.','--format','json'],capture_output=True,text=True)\nd=json.loads(r.stdout)\nassert d['suggested_rules']==['common','python'] and d['unloadable_signals']==['ai-governance'], (d['suggested_rules'],d['unloadable_signals'])\nprint('9 tests pass; live run suggests only loadable packs (common,python) with ai-governance in unloadable_signals')\n\"",
+  "exit_code": 0,
+  "started_at": "2026-07-12T04:00:12Z",
+  "finished_at": "2026-07-12T04:00:17Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "2c045909dd496abc885e482e969c8a2ccb58275f",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-unloadable-pack-fix-20260712.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
