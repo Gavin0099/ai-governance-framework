@@ -1,0 +1,14 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "local .claude/.codex hook JSON parse plus candidate-I classification structural assertions",
+  "exit_code": 0,
+  "result": "Claude Stop targets session_closeout_entry; no SessionStart/pre_task/post_task local hook exists; Codex Stop targets only codeburn display; candidate-I document records 2 + 26 + 5 = 33 with claim ceiling",
+  "runner": "codex",
+  "linked_commit": "6043efd2b42ce27a45bf4fdef3846c9806bdd9ee",
+  "cannot_claim": [
+    "that no untracked setting, other machine, or external repo invokes the treatment layer",
+    "that any census unit is useless, dead, or safe to retire",
+    "that the configured local Stop hook fired during this check"
+  ]
+}

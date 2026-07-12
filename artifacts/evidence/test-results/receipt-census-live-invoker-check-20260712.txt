@@ -1,0 +1,1 @@
+candidate-I local live-invoker check verified: local configured closeout path observed; treatment/adapters lack a configured local invoker; 33-unit map is claim-bounded.
