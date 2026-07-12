@@ -717,14 +717,16 @@ P1-C, or re-running the completed apply to manufacture new evidence.
 - [x] Verify consuming repo `AGENTS.md` routes memory tasks to dispatcher before
   memory completion claims: verified read-only against origin/main
   (`governance:key=memory_workflow` keyed section, AGENTS.md:583).
-- [ ] Verify external repo closeout receipts persist schema `1.2` memory workflow
-  fields: PENDING PRODUCTION VALIDATION — code path verified 2026-06-13:
-  `schema_1_2_code_ready=true` (submodule `0eafe10`,
-  `CLOSEOUT_RECEIPT_SCHEMA_VERSION="1.2"`, all `memory_workflow_*` fields
-  present); `stop_hook_path_verified=true` (`.claude/settings.json` Stop hook
-  points to submodule `session_closeout_entry.py`);
-  `latest_existing_receipt_schema=1.1` (receipt `20260531T160517Z`);
-  `post_f7_natural_receipt_exists=false`; `production_schema_1_2_validation=pending`.
+- [ ] Verify external repo closeout receipts persist the current schema `1.3`
+  memory-workflow fields: PENDING PRODUCTION VALIDATION — the historical
+  2026-06-13 code-path check was for then-current schema `1.2`
+  (`schema_1_2_code_ready=true`, submodule `0eafe10`, all
+  `memory_workflow_*` fields present). The current framework writer emits
+  `CLOSEOUT_RECEIPT_SCHEMA_VERSION="1.3"`, and the schema accepts `1.3`;
+  `stop_hook_path_verified=true` (`.claude/settings.json` Stop hook points to
+  submodule `session_closeout_entry.py`); `latest_existing_receipt_schema=1.1`
+  (receipt `20260531T160517Z`); `post_f7_natural_receipt_exists=false`;
+  `production_schema_1_3_validation=pending`.
   Manual invocation (Option A) explicitly deferred: a hand-triggered receipt
   cannot prove Stop hook production path or natural session context, and would
   create evidence that looks like F-7 natural-session validation but cannot
@@ -733,7 +735,7 @@ P1-C, or re-running the completed apply to manufacture new evidence.
   Close condition (all six must be observed in the same natural-session receipt):
   open a real meiandraybook session after F-7, allow the normal Stop hook to
   close it, then inspect the newest `artifacts/runtime/closeout-receipts/` entry
-  and verify: (1) `schema_version == "1.2"`; (2) `memory_workflow_dispatch_ran`
+  and verify: (1) `schema_version == "1.3"`; (2) `memory_workflow_dispatch_ran`
   exists; (3) `memory_workflow_status` exists; (4) `memory_workflow_warning_codes`
   exists; (5) `memory_workflow_blocker_codes` exists; (6)
   `memory_workflow_guard_summary` exists. Check box only after all six confirmed.
