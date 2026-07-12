@@ -1,0 +1,13 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git push origin main; git status -sb",
+  "exit_code": 0,
+  "result": "origin/main advanced from e027b609 to 10392cba and local branch reported main...origin/main",
+  "runner": "codex",
+  "linked_commit": "10392cba",
+  "cannot_claim": [
+    "remote CI status",
+    "semantic correctness beyond the focused receipts already pushed"
+  ]
+}
