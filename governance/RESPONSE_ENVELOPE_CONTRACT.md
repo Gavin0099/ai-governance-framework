@@ -201,7 +201,8 @@ structural `response_envelope_validator.py` does not check glossing or
 summary structure, and no gate blocks a report that omits them. A report
 from an agent that does not load this contract will not follow it. This
 requirement reduces reviewer decoding burden; it is not mechanically
-enforced.
+enforced. Repositories that adopt and load this framework contract can use
+the same reporting rules; adoption alone does not guarantee application.
 
 ## Next-Step Judgment (Required Closing Section)
 
