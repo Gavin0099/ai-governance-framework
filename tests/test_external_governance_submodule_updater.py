@@ -585,6 +585,11 @@ def test_existing_memory_normalization_flags_active_guard_violations(tmp_path: P
 def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
     consumer, _framework, old_head, new_head = _make_fixture(tmp_path)
     (consumer / "unrelated.txt").write_text("dirty\n", encoding="utf-8")
+    (consumer / "governance" / "framework.lock.json").parent.mkdir(parents=True)
+    (consumer / "governance" / "framework.lock.json").write_text(
+        json.dumps({"adopted_commit": old_head}, indent=2) + "\n",
+        encoding="utf-8",
+    )
     _git(consumer / "ai-governance-framework", "update-ref", "refs/remotes/origin/main", old_head)
 
     result = update_governance_submodule(
@@ -605,7 +610,9 @@ def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
     assert result.full_update_stage_report["repo_local_instruction"] == "updated"
     assert result.full_update_stage_report["memory_writer_coverage"] == "verified"
     assert result.full_update_stage_report["hook_validator_enforcement"] == "updated"
-    assert result.full_update_stage_report["final_status"] == "full_update_completed"
+    # The lock is staged but intentionally not committed by this test, so the
+    # maturity summary correctly keeps the overall F-7 state partial.
+    assert result.full_update_stage_report["final_status"] == "partially_updated"
     assert result.full_update_stage_report["governance_maturity_summary"]["report_only"] is True
     payload = asdict(result)
     assert payload["final_report_table_required"]["status"] == "required"
@@ -638,6 +645,7 @@ def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
         "AGENTS.md",
         "ai-governance-framework",
         "governance/.update-receipt.json",
+        "governance/framework.lock.json",
     ]
     assert _git(consumer, "diff", "--cached", "--name-only").splitlines() == [
         ".gitignore",
@@ -645,6 +653,7 @@ def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
         "AGENTS.md",
         "ai-governance-framework",
         "governance/.update-receipt.json",
+        "governance/framework.lock.json",
     ]
     receipt = json.loads((consumer / RECEIPT_RELATIVE_PATH).read_text(encoding="utf-8"))
     assert result.update_receipt["status"] == "written"
@@ -654,8 +663,13 @@ def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
     assert receipt["framework_before"] == old_head
     assert receipt["framework_after"] == new_head
     assert receipt["update_status"] == "updated"
-    assert receipt["lock_adopted_commit"] is None
-    assert receipt["lock_matches_checkout"] is False
+    assert receipt["lock_adopted_commit"] == new_head
+    assert receipt["lock_matches_checkout"] is True
+    lock = json.loads(
+        (consumer / "governance" / "framework.lock.json").read_text(encoding="utf-8")
+    )
+    assert lock["adopted_commit"] == new_head
+    assert lock["updated_at"]
     assert "full governance adoption" in receipt["not_claimed"]
     assert "F-7 Full Update Semantics" in (consumer / "AGENTS.md").read_text(
         encoding="utf-8"

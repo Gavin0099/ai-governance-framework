@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -34,6 +35,7 @@ DEFAULT_SUBMODULE_PATH = "ai-governance-framework"
 KNOWN_SUBMODULE_PATHS = (DEFAULT_SUBMODULE_PATH, ".ai-governance-framework")
 FRESH_TARGET_SOURCES = {"fresh_remote_ls_remote", "fresh_remote_fetch_head"}
 GOVERNANCE_SUBMODULE_URL_NAMES = ("ai-governance-framework",)
+FRAMEWORK_LOCK_RELATIVE_PATH = Path("governance") / "framework.lock.json"
 
 
 def _fresh_upstream_verified(target_source: str) -> bool:
@@ -426,6 +428,38 @@ def _write_bytes_if_changed(path: Path, payload: bytes) -> bool:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(payload)
     return True
+
+
+def _sync_existing_framework_lock(repo: Path, framework_head: str) -> dict[str, Any]:
+    """Advance an existing consumer lock without creating a new lock surface."""
+    path = repo / FRAMEWORK_LOCK_RELATIVE_PATH
+    if not path.is_file():
+        return {"status": "not_present", "changed_files": [], "errors": []}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8-sig"))
+    except json.JSONDecodeError as exc:
+        return {
+            "status": "invalid",
+            "changed_files": [],
+            "errors": [f"invalid framework lock JSON: {path}: {exc}"],
+        }
+    if not isinstance(payload, dict):
+        return {
+            "status": "invalid",
+            "changed_files": [],
+            "errors": [f"framework lock must be a JSON object: {path}"],
+        }
+    if str(payload.get("adopted_commit", "")).strip() == framework_head:
+        return {"status": "verified", "changed_files": [], "errors": []}
+
+    payload["adopted_commit"] = framework_head
+    payload["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _write_text_if_changed(path, json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+    return {
+        "status": "updated",
+        "changed_files": [str(FRAMEWORK_LOCK_RELATIVE_PATH)],
+        "errors": [],
+    }
 
 
 def _extract_agents_update_section(source_agents: Path) -> str | None:
@@ -842,6 +876,9 @@ def update_governance_submodule(
             instruction_report = _refresh_repo_local_instructions(repo, submodule_repo)
             hook_report = _ensure_hook_advisory(repo, submodule_repo)
             gitignore_report = _ensure_gitignore_hygiene(repo)
+            lock_report = _sync_existing_framework_lock(repo, before_head)
+            if (stage or commit) and lock_report["changed_files"]:
+                _run_git(repo, ["add", "--", FRAMEWORK_LOCK_RELATIVE_PATH.as_posix()])
             full_update_stage_report = _build_full_update_stage_report(
                 framework_pointer=_framework_pointer_status(
                     candidate_status="already_current",
@@ -858,6 +895,7 @@ def update_governance_submodule(
                     "repo_local_instruction": instruction_report,
                     "hook_validator_enforcement": hook_report,
                     "gitignore_hygiene": gitignore_report,
+                    "framework_lock": lock_report,
                     "target_resolution": target_resolution,
                 },
             )
@@ -881,6 +919,9 @@ def update_governance_submodule(
                 if gitignore_report["changed_files"]:
                     allowed.add(".gitignore")
                     add_args.append(".gitignore")
+                if lock_report["changed_files"]:
+                    allowed.add(FRAMEWORK_LOCK_RELATIVE_PATH.as_posix())
+                    add_args.append(FRAMEWORK_LOCK_RELATIVE_PATH.as_posix())
                 _run_git(repo, ["add", "--", *add_args])
                 staged = _staged_files(repo)
                 if not set(staged) <= allowed:
@@ -988,6 +1029,9 @@ def update_governance_submodule(
         instruction_report = _refresh_repo_local_instructions(repo, submodule_repo)
         hook_report = _ensure_hook_advisory(repo, submodule_repo)
         gitignore_report = _ensure_gitignore_hygiene(repo)
+        lock_report = _sync_existing_framework_lock(repo, after_head)
+        if (stage or commit) and lock_report["changed_files"]:
+            _run_git(repo, ["add", "--", FRAMEWORK_LOCK_RELATIVE_PATH.as_posix()])
         full_update_stage_report = _build_full_update_stage_report(
             framework_pointer=_framework_pointer_status(
                 candidate_status="updated",
@@ -1004,6 +1048,7 @@ def update_governance_submodule(
                 "repo_local_instruction": instruction_report,
                 "hook_validator_enforcement": hook_report,
                 "gitignore_hygiene": gitignore_report,
+                "framework_lock": lock_report,
                 "target_resolution": target_resolution,
             },
         )
@@ -1028,6 +1073,9 @@ def update_governance_submodule(
             if gitignore_report["changed_files"]:
                 allowed.add(".gitignore")
                 add_args.append(".gitignore")
+            if lock_report["changed_files"]:
+                allowed.add(FRAMEWORK_LOCK_RELATIVE_PATH.as_posix())
+                add_args.append(FRAMEWORK_LOCK_RELATIVE_PATH.as_posix())
             _run_git(repo, ["add", "--", *add_args])
             staged = _staged_files(repo)
             if not set(staged) <= allowed:
