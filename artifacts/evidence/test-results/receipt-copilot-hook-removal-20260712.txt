@@ -1,0 +1,1 @@
+removal scoped to three files; gitignore guard active; history retains content; F-7 allowlist untouched

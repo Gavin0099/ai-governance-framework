@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"\nimport os,subprocess\nassert not os.path.exists('.github/hooks/session-end.json')\ngi=open('.gitignore',encoding='utf-8').read()\nassert '.github/hooks/session-end.json' in gi\nr=subprocess.run(['git','show','--name-only','--pretty=format:','HEAD'],capture_output=True,text=True)\nfiles=sorted(l for l in r.stdout.splitlines() if l.strip())\nassert files==['.github/hooks/session-end.json','.gitignore','artifacts/evidence/test-results/receipt-copilot-hook-predelete-20260712.json'], files\nh=subprocess.run(['git','log','--oneline','-1','--','.github/hooks/session-end.json'],capture_output=True,text=True)\nassert h.stdout.strip()\nf7=open('governance_tools/f7_full_update.py',encoding='utf-8').read()\nassert 'F7_GOVERNANCE_ALLOWLIST' in f7\nprint('removal scoped to three files; gitignore guard active; history retains content; F-7 allowlist untouched')\n\"",
+  "exit_code": 0,
+  "started_at": "2026-07-12T08:53:07Z",
+  "finished_at": "2026-07-12T08:53:08Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "9143272e5f69eb4b7e77c716a5a320fa8bea554a",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-copilot-hook-removal-20260712.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
