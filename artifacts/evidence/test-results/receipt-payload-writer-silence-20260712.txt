@@ -1,0 +1,1 @@
+gitignore rule, disk truths, and no-SessionStart-invoker (Stop-only hooks in both repos) verified

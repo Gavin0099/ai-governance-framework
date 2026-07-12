@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"\nimport os,glob,json\ngi=open('.gitignore',encoding='utf-8').read()\nassert 'docs/payload-audit/*.jsonl' in gi\njs=sorted(glob.glob('docs/payload-audit/*.jsonl'))\nassert all('2026-03-23' in j for j in js) and len(js)==2, js\nassert os.path.exists('D:/meiandraybook/docs/payload-audit/L1-2026-04-24.jsonl')\ns=json.load(open('.claude/settings.json',encoding='utf-8'))\nhooks=s.get('hooks',{})\nassert 'SessionStart' not in hooks and 'Stop' in hooks\nstop=json.dumps(hooks['Stop'])\nassert 'session_closeout_entry' in stop and 'session_start' not in stop\nm=open('D:/meiandraybook/.claude/settings.json',encoding='utf-8').read()\nassert 'session_closeout_entry' in m and 'SessionStart' not in m\nprint('gitignore rule, disk truths, and no-SessionStart-invoker (Stop-only hooks in both repos) verified')\n\"",
+  "exit_code": 0,
+  "started_at": "2026-07-12T02:06:03Z",
+  "finished_at": "2026-07-12T02:06:03Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "5abfeeace3a22b326cef47a38e9ac013cf2b5f78",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-payload-writer-silence-20260712.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
