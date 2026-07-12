@@ -215,6 +215,12 @@ def test_copy_based_summary_is_report_only_and_does_not_claim_runtime_governance
     assert "user_facing_status       = minimal" in rendered
     assert "Basic governance guidance is present" in rendered
     assert "[human_readable_adoption_summary]" in rendered
+    summary_lines = summary.human_readable_adoption_summary
+    assert summary_lines[2] == "先看結論："
+    assert summary_lines[3].startswith("這份檢查做了什麼：")
+    assert summary_lines[4] == "現在能不能用：可使用基本治理指引；完整 framework 尚未導入。"
+    assert "尚未證明 repo 內可自行執行 runtime 治理" in summary_lines[5]
+    assert summary_lines.index("AI Governance 功能導入狀態：") > 5
     assert "整體導入狀態：minimal" in rendered
     assert "AI Governance 功能導入狀態：" in rendered
     assert "| 功能 | 狀態 | 這個功能是做什麼 |" in rendered
@@ -224,6 +230,24 @@ def test_copy_based_summary_is_report_only_and_does_not_claim_runtime_governance
     assert "| runtime 治理能力（Runtime-capable governance） | 未驗證 |" in rendered
     assert "只有明確回報已可用時才算導入" in rendered
     assert "Validator surface: 未導入" in rendered
+
+
+def test_partial_summary_leads_with_plain_missing_capability(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path / "partial")
+    relpath = "additional/ai-governance-framework"
+    framework = _make_git_framework_with_remote(repo / relpath, tmp_path / "framework.git", behind=False)
+    _write_gitmodules(repo, relpath)
+    _write_repo_specific_agents(repo)
+    _write_fresh_plan(repo)
+    _write_framework_lock(repo, _run_git(["rev-parse", "HEAD"], framework))
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    assert summary.user_facing_status.value == "partial"
+    assert summary.human_readable_adoption_summary[4] == (
+        "現在能不能用：可使用已導入的治理檔案；但不能說這個 repo 已完整導入。"
+    )
+    assert "尚未宣告 repo 專屬自動檢查" in summary.human_readable_adoption_summary[5]
 
 
 def test_framework_pin_freshness_surfaces_stale_local_tracking_without_fetch(tmp_path: Path) -> None:

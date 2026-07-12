@@ -533,6 +533,33 @@ def _capability_row(name: str, status: str, explanation: str) -> str:
     return f"| {name} | {status} | {explanation} |"
 
 
+def _plain_use_now(status: object) -> str:
+    messages = {
+        "full_candidate": "可使用目前可見的治理表面；但 runtime 強制與內容正確性仍未被證明。",
+        "partial": "可使用已導入的治理檔案；但不能說這個 repo 已完整導入。",
+        "minimal": "可使用基本治理指引；完整 framework 尚未導入。",
+        "not_governed": "目前不能把這個 repo 視為已採用 AI Governance。",
+        "unknown": "目前不能判定是否可依賴 AI Governance，需要人工確認。",
+    }
+    return messages.get(str(status), "目前不能判定是否可依賴 AI Governance，需要人工確認。")
+
+
+def _plain_missing_surfaces(missing_surfaces: list[str]) -> str:
+    meanings = {
+        "runtime_self_contained_governance": "尚未證明 repo 內可自行執行 runtime 治理",
+        "static_self_contained_framework": "靜態 framework 檔案不完整",
+        "framework_pin_freshness": "本地 framework 版本可能落後",
+        "framework_lock_consistency": "版本帳本尚未和目前 framework 對齊",
+        "repo_specific_agents_rules": "缺少本 repo 的操作規則",
+        "domain_contract": "缺少領域合約",
+        "validator_surface": "尚未宣告 repo 專屬自動檢查",
+        "repo_owned_hook_execution": "本機 hooks 沒有使用 repo 內的 framework",
+    }
+    if not missing_surfaces:
+        return "這份靜態檢查沒有看到導入缺口；runtime 與實際強制效果仍未驗證。"
+    return "；".join(meanings.get(surface, surface) for surface in missing_surfaces) + "。"
+
+
 def _derive_human_readable_adoption_summary(
     *,
     user_facing_status: SummaryValue,
@@ -552,10 +579,15 @@ def _derive_human_readable_adoption_summary(
     lines = [
         "[human_readable_adoption_summary]",
         "用途：這段用人類可讀的方式說明 AI Governance 更新後，目前哪些功能已導入、哪些尚未導入或尚未驗證。",
+        "先看結論：",
+        "這份檢查做了什麼：檢查 framework、版本帳本、repo 規則、hooks、領域合約、自動檢查與記憶工作流的可見狀態。",
+        f"現在能不能用：{_plain_use_now(user_facing_status.value)}",
+        f"還差什麼：{_plain_missing_surfaces(missing_surfaces)}",
         (
             f"整體導入狀態：{user_facing_status.value} - "
             f"{_plain_status_meaning(user_facing_status.value)}."
         ),
+        "需要查技術細項再往下看：",
         "AI Governance 功能導入狀態：",
         "| 功能 | 狀態 | 這個功能是做什麼 |",
         "| --- | --- | --- |",
