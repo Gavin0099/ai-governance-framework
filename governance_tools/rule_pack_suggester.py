@@ -10,6 +10,8 @@ import json
 import re
 from pathlib import Path
 
+from governance_tools.rule_pack_loader import DEFAULT_RULES_ROOT, available_rule_packs
+
 
 LANGUAGE_SIGNALS = [
     ("csharp", [r"\.csproj$", r"\.cs$", r"\.sln$"]),
@@ -280,6 +282,23 @@ def _suggested_rules_preview(
     return preview
 
 
+def _loadable_pack_names(project_root: Path, domain_packs: list[dict]) -> set[str]:
+    """Pack names that the loader can actually resolve for this project.
+
+    Mirrors the pre_task_check selection roots: the contract's rule_roots
+    (relative to the project) plus the framework's default rules root. A name
+    outside this set would fail describe_rule_selection with
+    "Unknown rule packs", so it must never be suggested as loadable.
+    """
+    roots: list[Path] = [DEFAULT_RULES_ROOT]
+    for pack in domain_packs:
+        for reason in pack.get("reasons", []):
+            marker = "contract.yaml rule_root: "
+            if reason.startswith(marker):
+                roots.append(project_root / reason[len(marker):])
+    return available_rule_packs(roots)
+
+
 def suggest_rule_packs(project_root: Path, task_text: str = "") -> dict:
     files = _iter_files(project_root)
     language_packs = _detect_languages(files, project_root)
@@ -289,6 +308,13 @@ def suggest_rule_packs(project_root: Path, task_text: str = "") -> dict:
     suggested_skills = _suggest_skills(language_packs, framework_packs, task_text)
     suggested_agent = _suggest_agent(language_packs, suggested_skills, task_text)
 
+    loadable = _loadable_pack_names(project_root, domain_packs)
+    detected = ["common"] + [item["name"] for item in domain_packs + language_packs + framework_packs]
+    suggested_rules = [name for name in detected if name in loadable or name == "common"]
+    unloadable = sorted({name for name in detected if name not in loadable and name != "common"})
+    preview_all = _suggested_rules_preview(language_packs, framework_packs, scope_packs, domain_packs)
+    preview = [name for name in preview_all if name in loadable or name == "common" or name in {p["name"] for p in scope_packs}]
+
     return {
         "project_root": str(project_root),
         "language_packs": language_packs,
@@ -297,14 +323,16 @@ def suggest_rule_packs(project_root: Path, task_text: str = "") -> dict:
         "domain_packs": domain_packs,
         "suggested_skills": suggested_skills,
         "suggested_agent": suggested_agent,
-        "suggested_rules": ["common"] + [item["name"] for item in domain_packs + language_packs + framework_packs],
-        "suggested_rules_preview": _suggested_rules_preview(language_packs, framework_packs, scope_packs, domain_packs),
+        "suggested_rules": suggested_rules,
+        "suggested_rules_preview": preview,
+        "unloadable_signals": unloadable,
         "notes": [
             "domain_packs are sourced from contract.yaml rule_roots and take highest priority",
             "language/framework packs are auto-suggested from repository signals",
             "scope packs are advisory only and should be confirmed by the contract or human reviewer",
             "suggested_rules_preview includes advisory scope packs for convenience, but does not mutate the contract",
             "suggested_skills and suggested_agent are advisory only and do not auto-activate agent behavior",
+            "suggested_rules and suggested_rules_preview only carry pack names the loader can resolve; detected-but-unloadable names are reported in unloadable_signals instead of being suggested",
         ],
     }
 

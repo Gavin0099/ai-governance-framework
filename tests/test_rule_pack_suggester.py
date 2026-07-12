@@ -112,3 +112,37 @@ def test_rule_pack_suggester_ignores_embedded_framework_fixture_noise():
 
     assert [item["name"] for item in result["language_packs"]] == ["python"]
     assert result["framework_packs"] == []
+
+
+def test_unloadable_domain_moves_to_unloadable_signals():
+    """A contract domain with no matching pack directory must not be suggested
+    as loadable (regression for the pilot's "Unknown rule packs" error)."""
+    root = _reset_fixture("unloadable_domain")
+    _write(root / "contract.yaml", "domain: custom-governance\nrule_roots:\n  - rules\n")
+    _write(root / "app.py", "print('hi')\n")
+    (root / "rules").mkdir(parents=True, exist_ok=True)
+
+    result = suggest_rule_packs(root)
+
+    assert "custom-governance" not in result["suggested_rules"]
+    assert "custom-governance" not in result["suggested_rules_preview"]
+    assert "custom-governance" in result["unloadable_signals"]
+    # detection metadata is preserved for reviewers
+    assert any(item["name"] == "custom-governance" for item in result["domain_packs"])
+    # loadable language pack still suggested
+    assert "python" in result["suggested_rules"]
+
+
+def test_loadable_domain_pack_is_still_suggested():
+    """A contract domain whose pack directory exists under its rule_roots
+    keeps being suggested."""
+    root = _reset_fixture("loadable_domain")
+    _write(root / "contract.yaml", "domain: boardsupport\nrule_roots:\n  - rules\n")
+    _write(root / "rules" / "boardsupport" / "core.md", "# rule\n")
+    _write(root / "app.py", "print('hi')\n")
+
+    result = suggest_rule_packs(root)
+
+    assert "boardsupport" in result["suggested_rules"]
+    assert "boardsupport" in result["suggested_rules_preview"]
+    assert result["unloadable_signals"] == []
