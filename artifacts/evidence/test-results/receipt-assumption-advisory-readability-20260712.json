@@ -1,0 +1,18 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -m pytest -q tests/test_runtime_pre_task_check.py; manual Codex session_start pilot with rules=common,python",
+  "exit_code": 0,
+  "result": "31 passed; the live session_start output gives each assumption advisory a missing, why, and next field; the pilot completed ok=True.",
+  "runner": "codex",
+  "linked_commit": "7f55e8a2",
+  "cannot_claim": [
+    "a human owner found the wording sufficient without follow-up",
+    "agents always act on the stated next step",
+    "the advisory is enforced or changes decision-policy verdicts",
+    "treatment is wired into every live session"
+  ],
+  "not_run": [
+    "scripts/run-runtime-governance.sh --mode smoke (bash is unavailable in this Windows environment)"
+  ]
+}
