@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
-from governance_tools.manage_agent_closeout import _manual_closeout_cmd, op_status
+from governance_tools.manage_agent_closeout import CodexCLIAdapter, _manual_closeout_cmd, op_status
 from governance_tools.session_closeout_entry import (
     CLOSEOUT_RECEIPT_SCHEMA_VERSION,
     _apply_stale_duplicate_guard,
@@ -366,6 +366,67 @@ def test_status_json_contains_machine_readable_fields(tmp_path: Path) -> None:
     ).issubset(chatgpt.keys())
     assert chatgpt["enforcement_level"] == "MANUAL_FALLBACK"
     assert chatgpt["compliance_status"] == "PENDING_MANUAL_ACTION"
+
+    codex = next(r for r in rows if r["agent"] == "codex")
+    assert codex["enforcement_level"] == "NATIVE_HOOK"
+    assert codex["installed"] is False
+    assert codex["compliance_status"] == "PENDING_INSTALL"
+
+
+def test_codex_adapter_install_verify_and_uninstall(tmp_path: Path) -> None:
+    adapter = CodexCLIAdapter()
+    framework_root = tmp_path / "framework"
+
+    installed = adapter.install(tmp_path, framework_root)
+    assert installed["status"] == "installed"
+
+    hook_path = tmp_path / ".codex" / "hooks.json"
+    payload = json.loads(hook_path.read_text(encoding="utf-8"))
+    hook = payload["hooks"]["Stop"][0]["hooks"][0]
+    assert hook["type"] == "command"
+    assert "--format json" in hook["command"]
+    assert "--agent-id codex" in hook["command"]
+    assert "--trigger-mode native_hook" in hook["command"]
+    assert "--format json" in hook["commandWindows"]
+    assert "py -3" in hook["commandWindows"]
+
+    verified = adapter.verify(tmp_path, framework_root)
+    assert verified["installed"] is True
+    assert verified["manual_only"] is False
+    codex_status = next(row for row in op_status(tmp_path, framework_root) if row["agent"] == "codex")
+    assert codex_status["compliance_status"] == "READY"
+
+    removed = adapter.uninstall(tmp_path)
+    assert removed["status"] == "uninstalled"
+    assert adapter.verify(tmp_path, framework_root)["installed"] is False
+
+
+def test_codex_adapter_repair_replaces_obsolete_governance_hook(tmp_path: Path) -> None:
+    hook_path = tmp_path / ".codex" / "hooks.json"
+    hook_path.parent.mkdir(parents=True)
+    hook_path.write_text(
+        json.dumps({
+            "hooks": {
+                "Stop": [{
+                    "hooks": [
+                        {"type": "command", "command": "python session_closeout_entry.py"},
+                        {"type": "command", "command": "echo independent-stop-hook"},
+                    ]
+                }]
+            }
+        }),
+        encoding="utf-8",
+    )
+    adapter = CodexCLIAdapter()
+
+    repaired = adapter.repair(tmp_path, tmp_path / "framework")
+    assert repaired["status"] == "installed"
+    payload = json.loads(hook_path.read_text(encoding="utf-8"))
+    hooks = payload["hooks"]["Stop"][0]["hooks"]
+    governance_hooks = [hook for hook in hooks if "session_closeout_entry" in hook.get("command", "")]
+    assert len(governance_hooks) == 1
+    assert "--trigger-mode native_hook" in governance_hooks[0]["command"]
+    assert any(hook.get("command") == "echo independent-stop-hook" for hook in hooks)
 
 
 def test_synthetic_smoke_compliance_matrix_logic(tmp_path: Path) -> None:

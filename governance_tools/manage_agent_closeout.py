@@ -22,12 +22,12 @@ Capability tiers are assigned based on *integration surface*, not product brand:
     Tier A  Native lifecycle hooks
             Agent has a formal session/lifecycle hook surface.
             Closeout fires automatically.
-            Current: Claude Code, Copilot CLI/cloud agent, Gemini CLI
+            Current: Claude Code, Copilot CLI/cloud agent, Gemini CLI, Codex
 
     Tier B  Wrapper-based integration
             No stable native session-end hook, but can be connected via
             launcher, task wrapper, or equivalent mechanism.
-            Current: Codex CLI (sessionEnd hook not confirmed in docs)
+            Current: no adapter is currently assigned to this tier
 
     Tier C  Manual only
             No reliable automation surface. User must run closeout manually.
@@ -675,18 +675,13 @@ class ChatGPTWebAdapter(AgentAdapter):
 
 class CodexCLIAdapter(AgentAdapter):
     """
-    OpenAI Codex CLI (open-source terminal agent, npm installable).
+    OpenAI Codex CLI and desktop app.
 
-    Integration surface: under investigation.
-    Confirmed: has 'notify' webhook feature and userPromptSubmit hook.
-    Unconfirmed: explicit sessionEnd hook with stable config schema.
+    Integration surface: project-local .codex/hooks.json, hooks.Stop[].hooks[].
+    A Stop hook runs when Codex completes a turn.  The closeout entrypoint uses
+    JSON output because Codex requires JSON on stdout for successful Stop hooks.
 
-    Tier B: Wrapper-based. A sessionEnd-equivalent hook has not been confirmed
-    in official documentation. Codex CLI can be wrapped at the launcher level,
-    but no direct config-file-based sessionEnd hook is currently verified.
-
-    This adapter is a stub. The install/verify paths produce informational output
-    until the Codex CLI hook surface is confirmed and stabilized.
+    Tier A: Codex has a documented project-local lifecycle hook surface.
     """
 
     @property
@@ -699,60 +694,158 @@ class CodexCLIAdapter(AgentAdapter):
 
     @property
     def tier(self) -> str:
-        return TIER_B
+        return TIER_A
 
     @property
     def surface_description(self) -> str:
         return (
-            "Codex CLI has webhook notify and userPromptSubmit hooks confirmed. "
-            "sessionEnd hook not confirmed in official docs. "
-            "Tier B (wrapper-based) until sessionEnd surface is verified. "
-            "This adapter is a stub — install produces manual instructions only."
+            "Codex Stop hook in .codex/hooks.json. "
+            "Fires automatically when Codex completes a turn."
         )
 
     def detect(self, project_root: Path) -> dict[str, Any]:
-        # Codex CLI does not leave a standard detectable config file
-        return {"detected": False, "evidence": "No standard Codex CLI config file detected"}
-
-    def install(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
-        cmd = _fmt_cmd(_CLOSEOUT_CMD_BARE, framework_root)
+        hook_path = self._hook_path(project_root)
         return {
-            "status": "manual_only",
-            "location": None,
-            "message": (
-                "Codex CLI sessionEnd hook is not confirmed in official documentation. "
-                "Automated installation is not available yet.\n\n"
-                f"Manual closeout: {cmd}\n\n"
-                "When Codex CLI sessionEnd hook surface is confirmed, "
-                "this adapter will be updated to support automated installation."
+            "detected": hook_path.exists(),
+            "evidence": (
+                ".codex/hooks.json present" if hook_path.exists()
+                else "no .codex/hooks.json"
             ),
         }
 
-    def verify(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
+    @staticmethod
+    def _hook_path(project_root: Path) -> Path:
+        return project_root / ".codex" / "hooks.json"
+
+    @staticmethod
+    def _is_governance_hook(hook: Any) -> bool:
+        return isinstance(hook, dict) and any(
+            "session_closeout_entry" in str(hook.get(field, ""))
+            for field in ("command", "commandWindows")
+        )
+
+    @classmethod
+    def _is_current_hook(cls, hook: Any) -> bool:
+        if not cls._is_governance_hook(hook):
+            return False
+        required_tokens = (
+            "--format json",
+            "--agent-id codex",
+            "--trigger-mode native_hook",
+        )
+        return all(
+            all(token in str(hook.get(field, "")) for token in required_tokens)
+            for field in ("command", "commandWindows")
+        )
+
+    @staticmethod
+    def _hook_payload(framework_root: Path) -> dict[str, Any]:
+        entrypoint = framework_root / "governance_tools" / "session_closeout_entry.py"
+        args = (
+            f'"{entrypoint.as_posix()}" --project-root . --format json '
+            "--agent-id codex --trigger-mode native_hook"
+        )
         return {
-            "installed": False,
-            "manual_only": True,
-            "location": None,
+            "type": "command",
+            "command": f"python3 {args}",
+            "commandWindows": f"py -3 {args}",
+            "timeout": 30,
+            "statusMessage": "Running governance session closeout...",
+        }
+
+    def _find_current_hook(self, project_root: Path) -> bool:
+        data = _read_json(self._hook_path(project_root))
+        for group in data.get("hooks", {}).get("Stop", []):
+            if not isinstance(group, dict):
+                continue
+            for hook in group.get("hooks", []):
+                if self._is_current_hook(hook):
+                    return True
+        return False
+
+    def install(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
+        hook_path = self._hook_path(project_root)
+        if self._find_current_hook(project_root):
+            return {
+                "status": "already_installed",
+                "location": str(hook_path),
+                "message": "Governance Codex Stop hook already present.",
+            }
+
+        data = _read_json(hook_path)
+        hooks = data.setdefault("hooks", {})
+        stop_groups = hooks.setdefault("Stop", [{"hooks": []}])
+        if not stop_groups:
+            stop_groups.append({"hooks": []})
+        if not isinstance(stop_groups[0], dict):
+            stop_groups.insert(0, {"hooks": []})
+        target_group = stop_groups[0]
+        target_hooks = target_group.setdefault("hooks", [])
+
+        # Replace obsolete framework closeout commands rather than adding a
+        # second closeout hook for the same Codex Stop event.
+        for group in stop_groups:
+            if isinstance(group, dict) and isinstance(group.get("hooks"), list):
+                group["hooks"] = [
+                    hook for hook in group["hooks"]
+                    if not self._is_governance_hook(hook)
+                ]
+        target_hooks = target_group.setdefault("hooks", [])
+        target_hooks.append(self._hook_payload(framework_root))
+        _write_json(hook_path, data)
+        return {
+            "status": "installed",
+            "location": str(hook_path),
+            "message": f"Governance Codex Stop hook added to {hook_path}.",
+        }
+
+    def verify(self, project_root: Path, framework_root: Path) -> dict[str, Any]:
+        hook_path = self._hook_path(project_root)
+        installed = self._find_current_hook(project_root)
+        return {
+            "installed": installed,
+            "manual_only": False,
+            "location": str(hook_path) if installed else None,
             "note": (
-                "Codex CLI sessionEnd hook not yet confirmed — stub adapter only. "
-                "Tier B assigned pending verification."
+                "Codex Stop hook found in .codex/hooks.json" if installed
+                else "No current governance Codex Stop hook found in .codex/hooks.json"
             ),
         }
 
     def uninstall(self, project_root: Path) -> dict[str, Any]:
+        hook_path = self._hook_path(project_root)
+        data = _read_json(hook_path)
+        changed = False
+        for group in data.get("hooks", {}).get("Stop", []):
+            if not isinstance(group, dict) or not isinstance(group.get("hooks"), list):
+                continue
+            before = len(group["hooks"])
+            group["hooks"] = [
+                hook for hook in group["hooks"]
+                if not self._is_governance_hook(hook)
+            ]
+            changed = changed or len(group["hooks"]) < before
+        if changed:
+            _write_json(hook_path, data)
+            return {
+                "agent": self.agent_id,
+                "status": "uninstalled",
+                "location": str(hook_path),
+                "message": "Governance Codex Stop hook removed from .codex/hooks.json.",
+            }
         return {
             "agent": self.agent_id,
-            "status": "not_applicable",
-            "message": "No automated integration installed for Codex CLI (stub adapter).",
+            "status": "not_found",
+            "message": "No governance Codex Stop hook found to remove.",
         }
 
     def print_manual(self, framework_root: Path) -> str:
         cmd = _manual_closeout_cmd(framework_root, self.agent_id, "manual_fallback")
         return (
-            f"[{self.display_name}] Manual closeout — run before ending each Codex session:\n\n"
+            f"[{self.display_name}] Manual closeout (fallback if Stop hook is not installed):\n\n"
             f"    {cmd}\n\n"
-            f"Status: sessionEnd hook not confirmed in official Codex CLI docs.\n"
-            f"This adapter will be upgraded when hook surface is verified."
+            f"Or install the Stop hook:\n\n"
+            f"    python -m governance_tools.manage_agent_closeout install --agent codex"
         )
 
 
@@ -784,7 +877,7 @@ def op_status(project_root: Path, framework_root: Path) -> list[dict[str, Any]]:
         cap = adapter.capability()
         fallback_required = bool(cap.get("fallback_required")) or not bool(v["installed"])
         enforcement_level = "NATIVE_HOOK" if cap.get("auto_trigger_capable", False) else "MANUAL_FALLBACK"
-        compliance_status = "READY"
+        compliance_status = "READY" if v["installed"] else "PENDING_INSTALL"
         if enforcement_level == "MANUAL_FALLBACK":
             compliance_status = "PENDING_MANUAL_ACTION"
         results.append({
