@@ -513,6 +513,17 @@ def _render_advisory_signal_line(signal_name: str) -> str | None:
     )
 
 
+def _format_actionable_assumption_advisory(
+    title: str,
+    *,
+    missing: str,
+    why: str,
+    next_step: str,
+) -> str:
+    """Keep assumption advisories readable without changing policy semantics."""
+    return f"{title}: missing={missing}; why={why}; next={next_step}"
+
+
 def run_pre_task_check(
     project_root: Path,
     rules: str,
@@ -632,8 +643,12 @@ def run_pre_task_check(
     if task_level in {"L1", "L2"} and not assumption_check["complete"]:
         missing = ", ".join(assumption_check["missing"])
         warnings.append(
-            "Assumption check missing before modification planning: "
-            f"missing={missing}"
+            _format_actionable_assumption_advisory(
+                "Assumption check missing before modification planning",
+                missing=missing,
+                why="the premise, alternatives, evidence, or validation step is not visible yet",
+                next_step="state the missing items before choosing an implementation",
+            )
         )
     context_signals = _extract_context_signals_for_policy(task_text, assumption_check)
     precondition_gate_validator = evaluate_precondition_gate(task_text)
@@ -661,13 +676,27 @@ def run_pre_task_check(
     decision_policy["decision_action"] = decision_policy.get("selected_action")
     decision_policy["decision_candidates"] = decision_policy.get("ranked_actions", [])
     if "assumption_evidence_missing" in decision_policy.get("reasons", []):
-        warnings.append("Decision policy advisory: assumption evidence missing")
+        warnings.append(
+            _format_actionable_assumption_advisory(
+                "Decision policy advisory: assumption evidence missing",
+                missing="direct evidence that tests the stated assumption",
+                why="the decision remains uncertain even if the assumption is plausible",
+                next_step="collect a trace, spec, test, or usage evidence before a high-impact change",
+            )
+        )
     if "destructive_change_without_usage_evidence" in decision_policy.get("reasons", []):
         warnings.append("Decision policy advisory: destructive change without usage proof")
     if "user_declared_root_cause_unverified" in decision_policy.get("reasons", []):
         warnings.append("Decision policy advisory: user-declared root cause unverified")
     if decision_policy.get("decision_action") == "proceed_with_assumption":
-        warnings.append("Decision policy advisory: proceeding under assumption")
+        warnings.append(
+            _format_actionable_assumption_advisory(
+                "Decision policy advisory: proceeding under assumption",
+                missing="confirmed evidence for the premise",
+                why="this is a provisional action, not proof that the change is correct",
+                next_step="keep the change reversible and run the targeted verification",
+            )
+        )
     evidence_gate = evaluate_evidence_integrity_gate(
         {
             "case_id": case_id,

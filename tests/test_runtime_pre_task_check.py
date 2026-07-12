@@ -228,10 +228,63 @@ def test_pre_task_check_warns_when_assumption_check_structure_is_missing(local_t
 
     assert result["ok"] is True
     assert result["assumption_check"]["complete"] is False
-    assert any("Assumption check missing before modification planning" in warning for warning in result["warnings"])
+    warning = next(
+        warning
+        for warning in result["warnings"]
+        if warning.startswith("Assumption check missing before modification planning")
+    )
+    assert "missing=assumptions, alternative_root_causes, evidence, reframe_or_validation_step" in warning
+    assert "why=the premise, alternatives, evidence, or validation step is not visible yet" in warning
+    assert "next=state the missing items before choosing an implementation" in warning
     output = pre_task_check.format_human_result(result)
     assert "assumption_check:" in output
     assert "advisory_signal: assumption_check_missing -> behavioral_advisory;" in output
+
+
+def test_pre_task_check_makes_decision_policy_assumption_advisories_actionable(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    monkeypatch.setattr(
+        pre_task_check,
+        "evaluate_decision_policy",
+        lambda *_args, **_kwargs: {
+            "selected_action": "proceed_with_assumption",
+            "ranked_actions": [],
+            "reasons": ["assumption_evidence_missing"],
+        },
+    )
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text=(
+            "assumptions: payload format mismatch\n"
+            "alternative root causes: routing mismatch\n"
+            "evidence: initial report\n"
+            "reframe: validate routing before patch"
+        ),
+        task_level="L1",
+    )
+
+    evidence_warning = next(
+        warning
+        for warning in result["warnings"]
+        if warning.startswith("Decision policy advisory: assumption evidence missing")
+    )
+    assert "missing=direct evidence that tests the stated assumption" in evidence_warning
+    assert "why=the decision remains uncertain even if the assumption is plausible" in evidence_warning
+    assert "next=collect a trace, spec, test, or usage evidence before a high-impact change" in evidence_warning
+    proceed_warning = next(
+        warning
+        for warning in result["warnings"]
+        if warning.startswith("Decision policy advisory: proceeding under assumption")
+    )
+    assert "missing=confirmed evidence for the premise" in proceed_warning
+    assert "why=this is a provisional action, not proof that the change is correct" in proceed_warning
+    assert "next=keep the change reversible and run the targeted verification" in proceed_warning
 
 
 def test_pre_task_check_accepts_task_text_with_assumption_check_structure(local_tmp_dir, monkeypatch):
