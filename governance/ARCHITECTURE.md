@@ -7,9 +7,9 @@ default_load: on-demand
 ---
 
 # ARCHITECTURE.md
-**架構治理與邊界規則 - v4.2**
+**架構治理與邊界規則 - v4.3**
 
-> **Version**: 4.2 | **Priority**: 5（結構紅線）
+> **Version**: 4.3 | **Priority**: 5（結構紅線）
 >
 > 定義系統如何切分、哪些地方可以改、哪些邊界屬於硬紅線。
 
@@ -50,6 +50,30 @@ default_load: on-demand
 architecture governance 的目的，是防止災難性耦合與隱性邊界侵蝕。
 
 它應該降低風險，而不是懲罰 trivial、低風險工作。
+
+### 1.4 Framework Operational Posture
+
+本 framework 的目前架構身分是 **audit-first**：核心可辯護能力是讓
+AI-assisted engineering 的工作軌跡、證據、claim ceiling 與 closeout 可被
+reviewer 稽核與追溯；它不是 security boundary，也不以現有證據宣稱會穩定
+改善 agent 行為或交付結果。
+
+runtime treatment（session_start、pre/post-task checks、adapters 與
+instruction injection）是實驗性或手動交付能力，不是目前已部署的常態控制。
+2026-07-12 live-invoker census 只觀察到 closeout chain 有本機 configured
+invoker；treatment 層及 adapter pre/post paths 仍只由 manual、campaign、smoke、
+example 或 test 路徑觸發。v3 比較在其單一 task class 的四個 mechanical counts
+未觀察到穩定 Arm B advantage。
+
+這是目前 evidence-bound 的架構定位，不改變 runtime、hook、schema、gate 或
+enforcement semantics。未來若要主張 treatment 是常態控制或具有 outcome effect，
+必須另有已部署的 invoker 與對應的行為／結果證據。
+
+Evidence sources:
+
+- `docs/governance/runtime-treatment-census-live-invoker-check-2026-07-12.md`
+- `docs/status/no-governance-baseline-v3-scoring-2026-07-11.md`
+- `README.md` trust-model statement
 
 ---
 

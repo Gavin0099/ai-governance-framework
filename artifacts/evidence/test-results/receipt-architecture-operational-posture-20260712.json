@@ -1,0 +1,35 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "commands": [
+    "git diff --check",
+    ".\\.venv\\Scripts\\python.exe -m governance_tools.authority_metadata_consistency --format json"
+  ],
+  "results": {
+    "diff_check": "PASS",
+    "authority_metadata_consistency": {
+      "ok": true,
+      "missing_table_rows": 0,
+      "missing_frontmatter": 0,
+      "field_mismatches": 0
+    }
+  },
+  "scope": [
+    "governance/ARCHITECTURE.md"
+  ],
+  "assertions": [
+    "The framework is positioned as audit-first.",
+    "Runtime treatment is described as experimental or manual delivery, not a deployed routine control.",
+    "The positioning explicitly does not change runtime, hook, schema, gate, or enforcement semantics."
+  ],
+  "evidence_sources": [
+    "docs/governance/runtime-treatment-census-live-invoker-check-2026-07-12.md",
+    "docs/status/no-governance-baseline-v3-scoring-2026-07-11.md",
+    "README.md"
+  ],
+  "cannot_claim": [
+    "That treatment has no invoker outside the checked local configuration and documented experimental paths.",
+    "That treatment improves agent behavior or delivery outcomes.",
+    "That this documentation change alters runtime behavior or enforcement."
+  ]
+}
