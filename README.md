@@ -71,7 +71,7 @@ python governance_tools/quickstart_smoke.py \
 python governance_tools/governance_drift_checker.py --repo . --framework-root .
 ```
 
-看到 `[quickstart_smoke]` 輸出與 `severity = ok` 就代表環境正常。
+看到 `[quickstart_smoke]` 輸出 `ok=True`、且漂移檢查輸出 `severity = ok`，就代表環境正常（兩個工具的成功欄位不同：smoke 看 `ok`，漂移檢查看 `severity`）。
 
 ### 路徑 B｜導入到你的 repo
 
@@ -154,7 +154,7 @@ full governance adoption。自己寫一份 domain contract：參考 [`examples/`
 
 ```text
 governance/             # 治理法典（8 大核心文件）、AUTHORITY 註冊表、rule packs、fleet 配置
-governance_tools/       # 60+ 工具：導入、更新、漂移、成熟度、記憶、fleet
+governance_tools/       # 190+ 工具（2026-07 時點）：導入、更新、漂移、成熟度、記憶、fleet
 runtime_hooks/          # claude_code / codex / gemini adapters + dispatcher + core hooks
 memory_pipeline/        # 記憶升級邏輯（eligibility-controlled）
 baselines/              # consumer repo 的 AGENTS 基準模板
