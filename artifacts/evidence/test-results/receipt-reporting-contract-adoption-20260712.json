@@ -1,0 +1,14 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git diff --check; contract text inspection",
+  "exit_code": 0,
+  "result": "The reporting contract now states that repositories must adopt and load it to use the shared reporting rules, and that adoption alone does not guarantee application.",
+  "runner": "codex",
+  "linked_commit": "6f915773",
+  "cannot_claim": [
+    "every consuming repository loads the contract",
+    "agents mechanically follow the advisory reporting structure",
+    "private memory deletion outside this repository"
+  ]
+}
