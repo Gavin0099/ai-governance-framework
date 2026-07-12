@@ -1,0 +1,14 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "pytest tests/test_rule_pack_suggester.py -q; manual Codex session_start pilot",
+  "exit_code": 0,
+  "result": "7 passed; nested tests/artifacts/examples/docs/dot directories and embedded ai-governance-framework fixture signals do not suggest unrelated packs; final pilot suggests common,ai-governance,python only",
+  "runner": "codex",
+  "linked_commit": "ab2273b94181b4a7db32ed7bbf39068f450b8041",
+  "cannot_claim": [
+    "all repositories have correct automatic language detection",
+    "the remaining decision-policy advisory is human-actionable",
+    "treatment should be automatically wired into live sessions"
+  ]
+}

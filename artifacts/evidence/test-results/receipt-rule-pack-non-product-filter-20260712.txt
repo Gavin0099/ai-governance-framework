@@ -1,0 +1,1 @@
+rule-pack non-product signal filter verified: 7 passed; final Codex manual pilot removed C#/Swift/C++/Avalonia false suggestions and retained Python.
