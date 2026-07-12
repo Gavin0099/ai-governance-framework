@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "./.venv/Scripts/python.exe -c \"\nimport subprocess\nr=' '.join(open('README.md',encoding='utf-8').read().split())\nassert 'ok=True' in r and 'severity = ok' in r and '60+ \u5de5\u5177' not in r and '190+ \u5de5\u5177' in r\nq=subprocess.run(['./.venv/Scripts/python.exe','governance_tools/quickstart_smoke.py','--project-root','.','--plan','PLAN.md','--contract','examples/usb-hub-contract/contract.yaml','--format','human'],capture_output=True,text=True)\nassert 'ok=True' in q.stdout and 'severity' not in q.stdout\nn=len(subprocess.run(['git','ls-files','governance_tools/*.py'],capture_output=True,text=True).stdout.strip().splitlines())\nassert n>=190, n\nprint(f'README matches reality: quickstart prints ok=True without severity; {n} tracked tools support the 190+ claim')\n\"",
+  "exit_code": 0,
+  "started_at": "2026-07-12T09:10:16Z",
+  "finished_at": "2026-07-12T09:10:39Z",
+  "runner": "claude-fable-5",
+  "linked_commit": "a458cf260fa2fafe78068fd287fdf1a1bc04d8b6",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-readme-accuracy-20260712.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
