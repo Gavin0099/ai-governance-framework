@@ -12,6 +12,7 @@ import re
 import subprocess
 from pathlib import Path
 
+from governance_tools.rule_classifier import load_rule_registry
 from governance_tools.rule_pack_loader import DEFAULT_RULES_ROOT, available_rule_packs
 
 
@@ -481,6 +482,20 @@ def _suggest_agent(language_packs: list[dict], suggested_skills: list[str], task
     return "advanced-agent"
 
 
+def _operational_suggestions(items: list[dict], registry_by_name: dict[str, dict]) -> list[dict]:
+    """Remove known planned packs from every operational suggestion surface.
+
+    Names absent from the framework registry remain eligible because external
+    contracts may define custom packs through their own rule_roots.
+    """
+    return [
+        item
+        for item in items
+        if registry_by_name.get(item["name"], {}).get("artifact_state", "implemented")
+        == "implemented"
+    ]
+
+
 def _suggested_rules_preview(
     language_packs: list[dict],
     framework_packs: list[dict],
@@ -515,9 +530,14 @@ def _loadable_pack_names(project_root: Path, domain_packs: list[dict]) -> set[st
 
 def suggest_rule_packs(project_root: Path, task_text: str = "") -> dict:
     files = _iter_files(project_root)
-    language_packs = _detect_languages(files, project_root)
-    framework_packs = _detect_frameworks(files, project_root)
-    scope_packs = _suggest_scope(task_text)
+    registry_by_name = {pack["name"]: pack for pack in load_rule_registry()}
+    language_packs = _operational_suggestions(
+        _detect_languages(files, project_root), registry_by_name
+    )
+    framework_packs = _operational_suggestions(
+        _detect_frameworks(files, project_root), registry_by_name
+    )
+    scope_packs = _operational_suggestions(_suggest_scope(task_text), registry_by_name)
     domain_packs = _detect_domain_contract(project_root)
     suggested_skills = _suggest_skills(language_packs, framework_packs, task_text)
     suggested_agent = _suggest_agent(language_packs, suggested_skills, task_text)
@@ -552,6 +572,7 @@ def suggest_rule_packs(project_root: Path, task_text: str = "") -> dict:
             "low-confidence language packs remain advisory preview evidence and do not affect suggested rules, skills, or agents",
             "avalonia framework structure files are sampled first; structural and strong source signals intentionally retain the existing medium confidence ceiling",
             "weak avalonia lexical matches remain advisory preview evidence and do not affect suggested rules or pre-task warnings",
+            "planned registry entries are suppressed from active suggestion, preview, warning, skill, and agent surfaces",
             "scope packs are advisory only and should be confirmed by the contract or human reviewer",
             "suggested_rules_preview includes advisory scope packs for convenience, but does not mutate the contract",
             "suggested_skills and suggested_agent are advisory only and do not auto-activate agent behavior",

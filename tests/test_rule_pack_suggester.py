@@ -102,17 +102,29 @@ def test_avalonia_bare_source_comment_is_low_preview_only(tmp_path):
     assert "avalonia" in result["suggested_rules_preview"]
 
 
-def test_electron_detection_remains_medium_but_unloadable(tmp_path):
-    root = _reset_fixture(tmp_path, "electron_existing_behavior")
+def test_planned_electron_is_suppressed_from_all_suggestion_surfaces(tmp_path):
+    root = _reset_fixture(tmp_path, "electron_planned")
     _write(root / "main.ts", 'import { BrowserWindow } from "electron";\n')
 
     result = suggest_rule_packs(root)
 
-    electron = _framework_item(result, "electron")
-    assert electron["confidence"] == "medium"
-    assert "electron" in result["unloadable_signals"]
+    assert all(item["name"] != "electron" for item in result["framework_packs"])
     assert "electron" not in result["suggested_rules"]
     assert "electron" not in result["suggested_rules_preview"]
+    assert "electron" not in result["unloadable_signals"]
+    assert result["suggested_skills"] == ["code-style", "governance-runtime"]
+    assert result["suggested_agent"] == "advanced-agent"
+
+
+def test_planned_release_is_suppressed_from_scope_and_preview(tmp_path):
+    root = _reset_fixture(tmp_path, "release_planned")
+    _write(root / "tool.py", "print('ok')\n")
+
+    result = suggest_rule_packs(root, task_text="Prepare release package and deploy")
+
+    assert all(item["name"] != "release" for item in result["scope_packs"])
+    assert "release" not in result["suggested_rules"]
+    assert "release" not in result["suggested_rules_preview"]
 
 
 def test_language_specific_structure_files_are_high_confidence(tmp_path):

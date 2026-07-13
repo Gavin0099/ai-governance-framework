@@ -58,6 +58,11 @@ class TestParseYamlBlock:
     def test_empty_block(self):
         assert _parse_yaml_block("") == {}
 
+    def test_unknown_metadata_is_preserved(self):
+        block = "name: sample\nfuture_policy: retain-me\n"
+        result = _parse_yaml_block(block)
+        assert result["future_policy"] == "retain-me"
+
 
 # ---------------------------------------------------------------------------
 # load_rule_registry
@@ -67,7 +72,7 @@ class TestLoadRuleRegistry:
 
     def test_loads_from_default_path(self):
         registry = load_rule_registry()
-        assert len(registry) >= 14
+        assert len(registry) == 13
 
     def test_all_packs_have_name(self):
         registry = load_rule_registry()
@@ -77,7 +82,15 @@ class TestLoadRuleRegistry:
 
     def test_all_packs_have_required_keys(self):
         registry = load_rule_registry()
-        required = {"name", "load_mode", "repo_type", "task_type"}
+        required = {
+            "name",
+            "artifact_state",
+            "ownership",
+            "activation_mode",
+            "load_mode",
+            "repo_type",
+            "task_type",
+        }
         for pack in registry:
             missing = required - set(pack.keys())
             assert not missing, f"{pack['name']}: missing keys {missing}"
@@ -93,12 +106,17 @@ class TestLoadRuleRegistry:
         common = next((p for p in registry if p["name"] == "common"), None)
         assert common is not None, "common pack must exist"
         assert common["load_mode"] == "always"
+        assert common["activation_mode"] == "always"
 
     def test_firmware_isr_has_firmware_repo_type(self):
         registry = load_rule_registry()
         pack = next((p for p in registry if p["name"] == "firmware_isr"), None)
         assert pack is not None, "firmware_isr pack must exist"
         assert "firmware" in pack["repo_type"]
+        assert pack["artifact_state"] == "planned"
+        assert pack["ownership"] == "unresolved"
+        assert pack["activation_mode"] == "none"
+        assert pack["review_by"] == "2026-10-13"
 
     def test_refactor_has_refactor_task_type(self):
         registry = load_rule_registry()
@@ -120,11 +138,29 @@ class TestLoadRuleRegistry:
         assert "firmware" in pack["repo_type"]
         assert "product" in pack["repo_type"]
 
-    def test_review_gate_has_review_task_type(self):
+    def test_removed_stale_packs_are_absent(self):
         registry = load_rule_registry()
-        pack = next((p for p in registry if p["name"] == "review_gate"), None)
-        assert pack is not None, "review_gate pack must exist"
-        assert "review" in pack["task_type"]
+        names = {pack["name"] for pack in registry}
+        assert names.isdisjoint({"nextjs", "supabase", "review_gate"})
+
+    def test_implemented_registry_matches_physical_framework_folders(self):
+        registry = load_rule_registry()
+        implemented = {
+            pack["name"]
+            for pack in registry
+            if pack["artifact_state"] == "implemented"
+        }
+        rules_root = Path(__file__).parent.parent / "governance" / "rules"
+        physical = {path.name for path in rules_root.iterdir() if path.is_dir()}
+        assert implemented == physical
+
+    def test_external_pack_is_explicit_only(self):
+        registry = load_rule_registry()
+        pack = next(pack for pack in registry if pack["name"] == "gl-hub-vendor-cmd")
+        assert pack["artifact_state"] == "implemented"
+        assert pack["ownership"] == "external-contract"
+        assert pack["activation_mode"] == "explicit_only"
+        assert pack["contract_domain"] == "gl-hub-vendor-cmd"
 
     def test_nonexistent_path_returns_empty(self, tmp_path):
         result = load_rule_registry(tmp_path / "NONEXISTENT.md")
@@ -154,6 +190,28 @@ class TestLoadRuleRegistry:
         assert len(result) == 1
         assert result[0]["name"] == "custom_pack"
         assert result[0]["load_mode"] == "always"
+        assert result[0]["activation_mode"] == "always"
+        assert result[0]["artifact_state"] == "implemented"
+        assert result[0]["ownership"] == "framework"
+
+    def test_activation_mode_supersedes_legacy_load_mode_and_keeps_alias(self, tmp_path):
+        content = (
+            "### custom_pack\n\n"
+            "```yaml\n"
+            "name: custom_pack\n"
+            "activation_mode: explicit-only\n"
+            "load_mode: always\n"
+            "future_policy: retained\n"
+            "```\n"
+        )
+        registry_file = tmp_path / "RULE_REGISTRY.md"
+        registry_file.write_text(content, encoding="utf-8")
+
+        pack = load_rule_registry(registry_file)[0]
+
+        assert pack["activation_mode"] == "explicit_only"
+        assert pack["load_mode"] == "explicit_only"
+        assert pack["future_policy"] == "retained"
 
 
 # ---------------------------------------------------------------------------
@@ -279,11 +337,12 @@ class TestFilterRulePacks:
             result = filter_rule_packs(registry, repo_type=rtype)
             assert "common" in result, f"common missing for repo_type={rtype}"
 
-    def test_firmware_isr_only_for_firmware(self, registry):
-        assert "firmware_isr" in filter_rule_packs(registry, repo_type="firmware")
-        assert "firmware_isr" not in filter_rule_packs(registry, repo_type="product")
-        assert "firmware_isr" not in filter_rule_packs(registry, repo_type="service")
-        assert "firmware_isr" not in filter_rule_packs(registry, repo_type="tooling")
+    def test_planned_packs_never_activate(self, registry):
+        planned = {"release", "typescript", "electron", "firmware_isr"}
+        for repo_type in ["firmware", "product", "service", "tooling"]:
+            for task_type in ["general", "release", "review", "refactor"]:
+                active = set(filter_rule_packs(registry, repo_type, task_type))
+                assert active.isdisjoint(planned)
 
     def test_cpp_for_firmware_and_product(self, registry):
         assert "cpp" in filter_rule_packs(registry, repo_type="firmware")
@@ -301,13 +360,12 @@ class TestFilterRulePacks:
         assert "refactor" in filter_rule_packs(registry, repo_type="tooling", task_type="refactor")
         assert "refactor" not in filter_rule_packs(registry, repo_type="tooling", task_type="general")
 
-    def test_release_activated_by_task_type(self, registry):
-        assert "release" in filter_rule_packs(registry, repo_type="tooling", task_type="release")
-        assert "release" not in filter_rule_packs(registry, repo_type="tooling", task_type="general")
-
-    def test_review_gate_activated_by_review_task_type(self, registry):
-        assert "review_gate" in filter_rule_packs(registry, repo_type="tooling", task_type="review")
-        assert "review_gate" not in filter_rule_packs(registry, repo_type="tooling", task_type="general")
+    def test_external_explicit_only_pack_never_context_activates(self, registry):
+        for repo_type in ["firmware", "product", "service", "tooling"]:
+            for task_type in ["general", "release", "review", "refactor"]:
+                assert "gl-hub-vendor-cmd" not in filter_rule_packs(
+                    registry, repo_type, task_type
+                )
 
     def test_product_language_packs_not_for_service(self, registry):
         service_packs = filter_rule_packs(registry, repo_type="service")
@@ -327,7 +385,7 @@ class TestFilterRulePacks:
         packs = filter_rule_packs(registry, repo_type="firmware", task_type="refactor")
         assert "common" in packs
         assert "refactor" in packs
-        assert "firmware_isr" in packs
+        assert "firmware_isr" not in packs
         assert "cpp" in packs
 
     def test_empty_registry_returns_empty(self):
@@ -340,7 +398,7 @@ class TestFilterRulePacks:
         assert all(isinstance(item, str) for item in result)
 
     def test_default_task_type_general(self, registry):
-        # Without specifying task_type, refactor/release/review_gate should not appear
+        # Without specifying task_type, task-scoped or dormant packs should not appear.
         packs = filter_rule_packs(registry, repo_type="tooling")
         assert "refactor" not in packs
         assert "release" not in packs

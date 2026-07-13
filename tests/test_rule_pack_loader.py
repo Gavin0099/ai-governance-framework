@@ -123,6 +123,18 @@ def test_load_rule_content_can_load_kernel_driver_pack():
     assert "surprise-remove" in contents
 
 
+def test_external_authority_pack_remains_explicitly_loadable():
+    loaded = load_rule_content(["gl-hub-vendor-cmd"])
+
+    assert loaded["valid"] is True
+    assert [pack["name"] for pack in loaded["active_rules"]] == ["gl-hub-vendor-cmd"]
+    assert loaded["active_rules"][0]["category"] == "platform"
+    contents = "\n".join(
+        file["content"] for file in loaded["active_rules"][0]["files"]
+    )
+    assert "GL Hub Vendor Command Spec Truth" in contents
+
+
 def test_rule_pack_category_defaults_to_custom_for_unknown_packs():
     assert rule_pack_category("common") == "scope"
     assert rule_pack_category("avalonia") == "framework"

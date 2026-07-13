@@ -216,6 +216,33 @@ def test_pre_task_check_warns_when_high_confidence_suggestions_are_missing(local
     assert any("Advisory scope pack 'refactor' is suggested by task text but not active" in warning for warning in result["warnings"])
 
 
+def test_pre_task_check_does_not_surface_planned_pack_warnings(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    (local_tmp_dir / "main.ts").write_text(
+        'import { BrowserWindow } from "electron";\n', encoding="utf-8"
+    )
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="Prepare release package and deploy",
+    )
+
+    suggestions = result["rule_pack_suggestions"]
+    assert all(item["name"] != "electron" for item in suggestions["framework_packs"])
+    assert all(item["name"] != "release" for item in suggestions["scope_packs"])
+    assert "electron" not in result["suggested_rules_preview"]
+    assert "release" not in result["suggested_rules_preview"]
+    assert not any("electron" in warning.lower() for warning in result["warnings"])
+    assert not any("release" in warning.lower() for warning in result["warnings"])
+    assert result["suggested_skills"] == ["code-style", "governance-runtime"]
+    assert result["suggested_agent"] == "advanced-agent"
+
+
 def test_pre_task_check_does_not_warn_for_low_confidence_avalonia_comment(local_tmp_dir, monkeypatch):
     monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
     (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")

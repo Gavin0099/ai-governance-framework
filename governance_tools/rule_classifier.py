@@ -41,7 +41,9 @@ def load_rule_registry(registry_path: Path | str | None = None) -> list[dict]:
     """
     Parse RULE_REGISTRY.md and return a list of rule pack metadata dicts.
 
-    Each dict has at minimum: name, load_mode, repo_type (list), task_type (list).
+    Each dict has at minimum: name, artifact_state, ownership,
+    activation_mode, load_mode (legacy alias), repo_type (list), and task_type
+    (list). Unknown metadata fields are retained for forward compatibility.
     Returns [] if the file does not exist or contains no rule packs.
     """
     path = Path(registry_path) if registry_path is not None else RULE_REGISTRY_PATH
@@ -69,6 +71,19 @@ def load_rule_registry(registry_path: Path | str | None = None) -> list[dict]:
 
         pack_data = _parse_yaml_block(yaml_match.group(1))
         pack_data.setdefault("name", pack_name)
+
+        # activation_mode supersedes the historical load_mode field. Accept
+        # either spelling and keep load_mode as a compatibility alias for
+        # callers that have not migrated yet.
+        raw_activation_mode = pack_data.get(
+            "activation_mode",
+            pack_data.get("load_mode", "context_aware"),
+        )
+        activation_mode = str(raw_activation_mode).replace("-", "_")
+        pack_data["activation_mode"] = activation_mode
+        pack_data["load_mode"] = activation_mode
+        pack_data.setdefault("artifact_state", "implemented")
+        pack_data.setdefault("ownership", "framework")
 
         # Normalise list fields
         for field in ("repo_type", "task_type", "risk_level"):
@@ -112,22 +127,27 @@ def filter_rule_packs(
     """
     Return the list of rule pack names that should be activated for the given context.
 
-    - load_mode=always  → always included (common)
-    - load_mode=context_aware → included only when trigger conditions match
-    - Other load_modes  → skipped
+    - Only artifact_state=implemented entries are operational.
+    - activation_mode=always is always included (common).
+    - activation_mode=context_aware requires matching trigger conditions.
+    - explicit_only, none, and unknown modes are skipped.
     """
     active: list[str] = []
     for pack in registry:
-        load_mode = pack.get("load_mode", "context_aware")
+        if pack.get("artifact_state", "implemented") != "implemented":
+            continue
+        activation_mode = str(
+            pack.get("activation_mode", pack.get("load_mode", "context_aware"))
+        ).replace("-", "_")
         name = pack.get("name", "")
         if not name:
             continue
-        if load_mode == "always":
+        if activation_mode == "always":
             active.append(name)
-        elif load_mode == "context_aware":
+        elif activation_mode == "context_aware":
             if _matches_trigger(pack, repo_type, task_type, risk_level):
                 active.append(name)
-        # advisory or unknown load_modes are skipped
+        # explicit_only, none, advisory, and unknown modes are skipped.
     return active
 
 
@@ -191,7 +211,7 @@ def detect_repo_type(project_root: Path) -> str:
 
 # Rule packs that are always safe to include regardless of topic.
 _UNIVERSAL_PACKS: frozenset[str] = frozenset({
-    "common", "refactor", "release", "review_gate",
+    "common", "refactor",
 })
 
 # For each topic, packs that are conclusively NOT relevant.
@@ -201,17 +221,16 @@ _UNIVERSAL_PACKS: frozenset[str] = frozenset({
 _TOPIC_DENY_PACKS: dict[str, frozenset[str]] = {
     "general": frozenset(),
     "kernel_driver": frozenset({
-        "avalonia", "electron", "nextjs", "typescript", "supabase", "firmware_isr",
+        "avalonia",
     }),
     "firmware": frozenset({
-        "avalonia", "electron", "nextjs", "typescript", "supabase",
-        "kernel-driver", "kmdf", "wdm", "umdf",
+        "avalonia", "kernel-driver", "kmdf", "wdm", "umdf",
     }),
     "ui_presentation": frozenset({
-        "kernel-driver", "kmdf", "wdm", "umdf", "firmware_isr",
+        "kernel-driver", "kmdf", "wdm", "umdf",
     }),
     "api_schema": frozenset({
-        "kernel-driver", "kmdf", "wdm", "umdf", "firmware_isr", "avalonia",
+        "kernel-driver", "kmdf", "wdm", "umdf", "avalonia",
     }),
     "runtime_governance": frozenset(),
 }
@@ -229,7 +248,7 @@ _TASK_TOPIC_KEYWORD_RULES: list[tuple[str, list[str]]] = [
         r"\bflash\b", r"\bdma\b", r"\bbootloader\b",
     ]),
     ("ui_presentation", [
-        r"\bavalonia\b", r"\belectron\b", r"\bnextjs?\b",
+        r"\bavalonia\b",
         r"\bfrontend\b", r"\bcomponent\b", r"\brender(ing)?\b",
         r"\breact\b", r"\bvue\b",
     ]),
@@ -239,7 +258,7 @@ _TASK_TOPIC_KEYWORD_RULES: list[tuple[str, list[str]]] = [
     ]),
     ("api_schema", [
         r"\bapi\b", r"\bschema\b", r"\bendpoint\b",
-        r"\brest\b", r"\bgraphql\b", r"\bsupabase\b",
+        r"\brest\b", r"\bgraphql\b",
     ]),
 ]
 
@@ -250,11 +269,7 @@ _PACK_TOPIC_HINTS: dict[str, str] = {
     "wdm": "kernel_driver",
     "umdf": "kernel_driver",
     "firmware": "firmware",
-    "firmware_isr": "firmware",
     "avalonia": "ui_presentation",
-    "electron": "ui_presentation",
-    "nextjs": "ui_presentation",
-    "supabase": "api_schema",
 }
 
 
@@ -298,7 +313,7 @@ def filter_rules_by_topic(
 
     Design (conservative denylist):
     - topic='general' or unknown → no filtering; all rules pass through
-    - Universal packs (common, refactor, release, review_gate) always pass
+    - Universal packs (common, refactor) always pass
     - Packs in _TOPIC_DENY_PACKS[topic] are filtered out
     - All other packs pass — general language packs (python, cpp, csharp, swift)
       are never denied because they have no strong exclusive domain affinity
