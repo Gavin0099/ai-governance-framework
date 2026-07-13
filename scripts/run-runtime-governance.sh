@@ -46,7 +46,7 @@ if ! set_python_cmd; then
     exit 1
 fi
 
-run_smoke() {
+run_smoke() (
     local smoke_overrides=()
     if [[ -n "$CONTRACT_PATH" ]]; then
         smoke_overrides+=(--contract "$CONTRACT_PATH")
@@ -74,7 +74,7 @@ run_smoke() {
     "${PYTHON_CMD[@]}" governance_tools/change_control_summary.py --session-start-file artifacts/runtime/smoke/shared_session_start.json --output artifacts/runtime/smoke/shared_change_control_summary.txt
     "${PYTHON_CMD[@]}" governance_tools/change_control_index.py --artifacts-dir artifacts/runtime/smoke --output artifacts/runtime/smoke/INDEX.txt
     "${PYTHON_CMD[@]}" -m governance_tools.reason_code_verifier
-}
+)
 
 run_pytest_suite() {
     if ! "${PYTHON_CMD[@]}" -c "import pytest" >/dev/null 2>&1; then
@@ -82,6 +82,9 @@ run_pytest_suite() {
         echo "[runtime-governance] install it with: ${PYTHON_CMD[*]} -m pip install pytest"
         exit 1
     fi
+
+    local pytest_basetemp
+    pytest_basetemp="$(mktemp -d "${TMPDIR:-/tmp}/ai-governance-runtime.XXXXXX")"
 
     "${PYTHON_CMD[@]}" -m pytest \
         tests/test_runtime_smoke_test.py \
@@ -94,7 +97,7 @@ run_pytest_suite() {
         tests/test_state_generator.py \
         tests/test_test_result_ingestor.py \
         tests/test_architecture_drift_checker.py \
-        --basetemp .pytest_tmp_runtime \
+        --basetemp "$pytest_basetemp" \
         "${PYTEST_ARGS[@]}"
 }
 

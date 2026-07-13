@@ -12,4 +12,7 @@ def test_runtime_governance_smoke_sets_no_ledger_write_mode() -> None:
     run_pytest_start = text.index("run_pytest_suite()")
     run_smoke_block = text[run_smoke_start:run_pytest_start]
 
+    assert "run_smoke() (" in run_smoke_block
     assert "export AI_GOVERNANCE_NO_LEDGER_WRITE=1" in run_smoke_block
+    assert 'pytest_basetemp="$(mktemp -d "${TMPDIR:-/tmp}/ai-governance-runtime.XXXXXX")"' in text
+    assert '--basetemp "$pytest_basetemp"' in text
