@@ -44,16 +44,16 @@
     "not_escalated_modules": 153,
     "zombie_status_counts": {
       "dormant_design_line": 2,
-      "dormant_frozen_line": 4,
+      "dormant_frozen_line": 6,
       "ruled_out_documented_surface": 15,
-      "ruled_out_operator_surface": 6,
+      "ruled_out_operator_surface": 7,
       "ruled_out_wired": 4,
-      "zombie_candidate": 18
+      "zombie_candidate": 15
     },
     "recommended_action_counts": {
-      "investigate": 4,
+      "investigate": 1,
       "keep": 7,
-      "keep_observe": 31,
+      "keep_observe": 34,
       "merge": 2,
       "retire_candidate": 5
     },
@@ -211,9 +211,9 @@
     },
     {
       "module": "governance_tools/classification_session_summary.py",
-      "zombie_status": "zombie_candidate",
+      "zombie_status": "ruled_out_operator_surface",
       "frequency_class": "routine",
-      "recommended_action": "investigate",
+      "recommended_action": "keep_observe",
       "scan_evidence": {
         "memory_mentions": 1,
         "last_memory_mention": "2026-04-08",
@@ -223,7 +223,9 @@
         "imported_by_other_tools": [],
         "test_file_references": 1
       },
-      "rationale": "Referenced by root-level _classification_governance_smoke.py, but that smoke script itself has no wiring; last memory mention 2026-04-08."
+      "rationale": "Referenced by root-level _classification_governance_smoke.py, but that smoke script itself has no wiring; last memory mention 2026-04-08.",
+      "maintenance_cost_class": "low",
+      "resolution": "2026-07-09 current-state recompute: docs/classification-governance-integration-test.md, docs/classification-transition-semantics.md, and docs/classification-reaction-policy.md exist; focused tests for classification_session_summary and round_a_evaluator passed 18/18; a direct run produced policy_ok=false with anomaly_alert=true, so this remains a useful operator diagnostic; no runtime hook or CI wiring was found."
     },
     {
       "module": "governance_tools/clean_pilot_admissibility.py",
@@ -623,9 +625,9 @@
     },
     {
       "module": "governance_tools/round_a_evaluator.py",
-      "zombie_status": "zombie_candidate",
+      "zombie_status": "dormant_frozen_line",
       "frequency_class": "unknown",
-      "recommended_action": "investigate",
+      "recommended_action": "keep_observe",
       "scan_evidence": {
         "memory_mentions": 0,
         "last_memory_mention": null,
@@ -635,7 +637,9 @@
         "imported_by_other_tools": [],
         "test_file_references": 1
       },
-      "rationale": "Only its own test references it; whether it belongs to a frozen round line or is superseded needs a focused read-only review."
+      "rationale": "Only its own test references it; whether it belongs to a frozen round line or is superseded needs a focused read-only review.",
+      "maintenance_cost_class": "low",
+      "resolution": "2026-07-09 current-state recompute: focused tests for classification_session_summary and round_a_evaluator passed 18/18; a direct run of round_a_evaluator is not active-ready on current artifacts (ok=false, actual_semantic_total=0); preserve as a frozen Round A historical evaluator rather than an active rollout gate."
     },
     {
       "module": "governance_tools/run_filtered_tests.py",

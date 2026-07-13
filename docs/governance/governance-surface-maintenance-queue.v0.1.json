@@ -13,9 +13,9 @@
     "total_entries": 101,
     "by_recommended_action": {
       "downgrade": 2,
-      "investigate": 6,
+      "investigate": 3,
       "keep": 25,
-      "keep_observe": 54,
+      "keep_observe": 57,
       "keep_rare_critical": 4,
       "merge": 5,
       "retire_candidate": 5
@@ -840,10 +840,10 @@
     {
       "defense": "governance_tools/classification_session_summary.py",
       "source": "inventory_v0.1",
-      "zombie_status": "zombie_candidate",
+      "zombie_status": "ruled_out_operator_surface",
       "frequency_class": "routine",
-      "maintenance_cost_class": "unassessed",
-      "recommended_action": "investigate",
+      "maintenance_cost_class": "low",
+      "recommended_action": "keep_observe",
       "evidence_refs": [
         {
           "memory_mentions": 1,
@@ -856,7 +856,8 @@
         }
       ],
       "rationale": "Referenced by root-level _classification_governance_smoke.py, but that smoke script itself has no wiring; last memory mention 2026-04-08.",
-      "also_in_window": false
+      "also_in_window": false,
+      "resolution": "2026-07-09 current-state recompute: docs/classification-governance-integration-test.md, docs/classification-transition-semantics.md, and docs/classification-reaction-policy.md exist; focused tests for classification_session_summary and round_a_evaluator passed 18/18; a direct run produced policy_ok=false with anomaly_alert=true, so this remains a useful operator diagnostic; no runtime hook or CI wiring was found."
     },
     {
       "defense": "governance_tools/clean_pilot_admissibility.py",
@@ -1373,10 +1374,10 @@
     {
       "defense": "governance_tools/round_a_evaluator.py",
       "source": "inventory_v0.1",
-      "zombie_status": "zombie_candidate",
+      "zombie_status": "dormant_frozen_line",
       "frequency_class": "unknown",
-      "maintenance_cost_class": "unassessed",
-      "recommended_action": "investigate",
+      "maintenance_cost_class": "low",
+      "recommended_action": "keep_observe",
       "evidence_refs": [
         {
           "memory_mentions": 0,
@@ -1389,7 +1390,8 @@
         }
       ],
       "rationale": "Only its own test references it; whether it belongs to a frozen round line or is superseded needs a focused read-only review.",
-      "also_in_window": false
+      "also_in_window": false,
+      "resolution": "2026-07-09 current-state recompute: focused tests for classification_session_summary and round_a_evaluator passed 18/18; a direct run of round_a_evaluator is not active-ready on current artifacts (ok=false, actual_semantic_total=0); preserve as a frozen Round A historical evaluator rather than an active rollout gate."
     },
     {
       "defense": "governance_tools/run_filtered_tests.py",
@@ -1935,5 +1937,5 @@
     }
   ],
   "amended_at": "2026-07-09",
-  "amendment_note": "The original four retire_candidate entries were already resolved by reviewed retirements on 2026-07-06 evening (after the inventory landed at 22:12 but before this queue was generated on 2026-07-07 morning). On 2026-07-08, governance_tools/ab_cost_backfill_apply.py was reclassified from investigate to retire_candidate after focused review found it is a one-off writer with no current scalar telemetry input, no active wiring, and no dedicated tests. On 2026-07-08, governance_tools/ab_cost_hygiene.py and governance_tools/ab_cost_parity_audit.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, docs acceptance-gate references, and live report signals. On 2026-07-08, governance_tools/ab_baseline_validator.py and governance_tools/ab_smoke_artifact_validator.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, runbook/pass-criteria references, and live A/B smoke artifact signals. On 2026-07-08, governance_tools/gate_c_report.py and governance_tools/gate_c_dual_report.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, distinct Gate C report roles, and live report signals. Future queue generation must verify each defense surface still exists and still has the recorded status at generation time. On 2026-07-09, governance_tools/governed_prompt.py and governance_tools/governed_prompt_bridge.py were reclassified from investigate to keep_observe after current-state recompute confirmed operator-facing docs, focused tests (4 passed), CLI smoke paths, and distinct core-vs-bridge responsibilities; this is metadata only and does not prove runtime adoption or enforcement. On 2026-07-09, governance_tools/linear_integrator.py and governance_tools/notion_integrator.py were reclassified from investigate to keep_observe after current-state recompute confirmed operator-facing source-of-truth docs, governance_tools README entries, focused tests (60 passed), and no runtime/hook/CI wiring; this is metadata only and does not prove active operator use or enforcement. On 2026-07-09, governance_tools/manual_receipt_writer.py was reclassified from investigate to keep_observe after current-state recompute confirmed a distinct non-native-hook manual fallback receipt surface, output-mode enforcement parity semantics, and focused tests (23 passed); this is metadata only and does not prove runtime/hook/CI enforcement. On 2026-07-09, nine local .agents/skills entries were added as local_skill surfaces inside the existing maintenance queue, not a new skill governance table. Seven were classified keep_observe, create-pr was marked merge with reviewer-handoff overlap, and codex-review-fast was marked investigate/evidence_needed; IC/hardware skill value is recorded only as a hypothesis, not a measured fact. On 2026-07-09, codex-review-fast decision_effect was updated from unknown to negative after blind-scoring review accepted artifacts/evidence/skill-ab/codex-review-fast-20260709/result-blind.json for the single seeded Codex harness; this is measured harness evidence only, not broad skill ineffectiveness or enforcement. On 2026-07-09, codex-review-fast recommended_action was changed from investigate to merge after disposition review: standalone skill downgraded; useful review heuristics should be merged into reviewer-handoff/precommit review guidance; evidence ref = artifacts/evidence/skill-ab/codex-review-fast-20260709/result-blind.json."
+  "amendment_note": "The original four retire_candidate entries were already resolved by reviewed retirements on 2026-07-06 evening (after the inventory landed at 22:12 but before this queue was generated on 2026-07-07 morning). On 2026-07-08, governance_tools/ab_cost_backfill_apply.py was reclassified from investigate to retire_candidate after focused review found it is a one-off writer with no current scalar telemetry input, no active wiring, and no dedicated tests. On 2026-07-08, governance_tools/ab_cost_hygiene.py and governance_tools/ab_cost_parity_audit.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, docs acceptance-gate references, and live report signals. On 2026-07-08, governance_tools/ab_baseline_validator.py and governance_tools/ab_smoke_artifact_validator.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, runbook/pass-criteria references, and live A/B smoke artifact signals. On 2026-07-08, governance_tools/gate_c_report.py and governance_tools/gate_c_dual_report.py were reclassified from investigate to keep_observe after focused review confirmed dedicated tests, distinct Gate C report roles, and live report signals. Future queue generation must verify each defense surface still exists and still has the recorded status at generation time. On 2026-07-09, governance_tools/governed_prompt.py and governance_tools/governed_prompt_bridge.py were reclassified from investigate to keep_observe after current-state recompute confirmed operator-facing docs, focused tests (4 passed), CLI smoke paths, and distinct core-vs-bridge responsibilities; this is metadata only and does not prove runtime adoption or enforcement. On 2026-07-09, governance_tools/linear_integrator.py and governance_tools/notion_integrator.py were reclassified from investigate to keep_observe after current-state recompute confirmed operator-facing source-of-truth docs, governance_tools README entries, focused tests (60 passed), and no runtime/hook/CI wiring; this is metadata only and does not prove active operator use or enforcement. On 2026-07-09, governance_tools/manual_receipt_writer.py was reclassified from investigate to keep_observe after current-state recompute confirmed a distinct non-native-hook manual fallback receipt surface, output-mode enforcement parity semantics, and focused tests (23 passed); this is metadata only and does not prove runtime/hook/CI enforcement. On 2026-07-09, nine local .agents/skills entries were added as local_skill surfaces inside the existing maintenance queue, not a new skill governance table. Seven were classified keep_observe, create-pr was marked merge with reviewer-handoff overlap, and codex-review-fast was marked investigate/evidence_needed; IC/hardware skill value is recorded only as a hypothesis, not a measured fact. On 2026-07-09, codex-review-fast decision_effect was updated from unknown to negative after blind-scoring review accepted artifacts/evidence/skill-ab/codex-review-fast-20260709/result-blind.json for the single seeded Codex harness; this is measured harness evidence only, not broad skill ineffectiveness or enforcement. On 2026-07-09, codex-review-fast recommended_action was changed from investigate to merge after disposition review: standalone skill downgraded; useful review heuristics should be merged into reviewer-handoff/precommit review guidance; evidence ref = artifacts/evidence/skill-ab/codex-review-fast-20260709/result-blind.json. On 2026-07-09, classification_session_summary.py and round_a_evaluator.py were reclassified from investigate to keep_observe after current-state recompute; classification_session_summary remains an operator diagnostic, while round_a_evaluator is retained as a dormant frozen Round A historical evaluator."
 }
