@@ -1,6 +1,7 @@
 # C# / Avalonia Engineer Rule Classification Review
 
-Status: review-only classification packet
+Status: review-only classification packet; first small import executed in
+`93b4b28b`
 
 Date: 2026-07-13
 
@@ -28,8 +29,12 @@ Recommended treatment:
   `governance/rules/csharp/threading.md` and
   `governance/rules/avalonia/ui_thread.md` after owner confirmation.
 
-This packet does not import rules, change runtime behavior, modify rule-pack
-selection, or prove that the source rules were adopted by a consumer.
+After owner approval and independent review, the first bounded import was
+executed in commit `93b4b28b`. Within framework rule content, it changed only
+the two approved rule files; the commit also added this classification packet
+and the focused pack-boundary test. No other source rules were imported.
+Neither the classification nor that framework commit proves that the source
+rules were adopted by a consumer.
 
 ## Classification Vocabulary
 
@@ -224,16 +229,17 @@ Source and framework SHA-256 are identical:
 | Shared state must use `volatile` or `Interlocked`; Dispose must use `Interlocked.Exchange` | `reject/rewrite` | These primitives do not replace invariant-specific synchronization and are not universal mechanical fixes. |
 | Link all concurrency behavior to consumer `lifecycle.md` | `consumer-only` | The lifecycle file is not accepted as a framework dependency. |
 
-## First Small Import Candidate — Not Yet Executed
+## First Small Import — Executed in `93b4b28b`
 
-After owner approval, the first implementation slice should touch only:
+After owner approval, the first implementation checkpoint comprised:
 
+- this classification packet;
 - `governance/rules/csharp/threading.md`
 - `governance/rules/avalonia/ui_thread.md`
-- the smallest focused rule-loader/runtime tests needed to lock the changed
-  wording and pack boundary
+- the focused `tests/test_rule_pack_loader.py` assertions needed to lock the
+  changed wording and pack boundary
 
-Candidate C# additions:
+Imported C# additions:
 
 1. When an async operation genuinely requires mutual exclusion, use an
    async-compatible synchronization mechanism; do not hold a monitor/`lock`
@@ -241,7 +247,7 @@ Candidate C# additions:
 2. Shared mutable state must name the invariant and synchronization strategy;
    `volatile`, `Interlocked`, and locks are not interchangeable universal fixes.
 
-Candidate Avalonia additions:
+Imported Avalonia additions:
 
 1. Avalonia control access must remain on the UI thread.
 2. Use `Post` only when completion is not required; use `InvokeAsync` when the
@@ -252,8 +258,10 @@ Candidate Avalonia additions:
 The Avalonia candidates align with the official threading model:
 <https://docs.avaloniaui.net/docs/app-development/threading>.
 
-The implementation slice must not add lifecycle, logging, exception, memory,
+The implementation slice did not add lifecycle, logging, exception, memory,
 style, HostBridge, package, analyzer-severity, or automatic-remediation rules.
+The focused test also locks the pack boundary by requiring Avalonia dispatcher
+terms to remain outside the C# pack.
 
 ## Why Too Many Rules Are a Problem
 
@@ -348,7 +356,8 @@ Can claim:
 - portable C#, Avalonia, consumer-only, and reject/rewrite boundaries are
   explicitly proposed;
 - `native_boundary.md` is already identical to the framework copy;
-- a two-file first import candidate is ready for owner review.
+- the owner approved the two-file first import, commit `93b4b28b` executed it,
+  and focused rule-loader assertions cover the C# / Avalonia pack boundary.
 
 Cannot claim:
 
@@ -357,14 +366,12 @@ Cannot claim:
 - all source rules are technically correct;
 - all portable candidates should be imported;
 - adding more rules improves agent correctness, delivery, or governance effect;
-- the first small import has been approved or executed.
+- the unnamed consumer loaded or followed the imported framework rules.
 
-## Reviewer Decision Requested
+## Follow-Up State
 
-Approve or reject only this next bounded slice:
-
-`DONE = Expand the existing C# threading and Avalonia UI-thread rules with the
-approved candidate wording above, keep all other source rules unchanged and
-external, and pass focused rule-pack/runtime tests.`
-
-No other rule import is implied by approval of that slice.
+The first small import is closed at `93b4b28b`. No additional rule import is
+approved by this packet. Remaining E2 work belongs to the retrospective
+adoption evidence chain: consumer identity or stable anonymized identifier,
+the associated F-7 artifact, owner intervention count, consumer-local binding
+of the nine-file snapshot, and a second independent onboarding record.

@@ -1,6 +1,7 @@
 # E2 Retrospective Adoption Evidence — Second Engineer
 
-Status: retrospective / self-reported evidence; partial record
+Status: retrospective / self-reported evidence; partial record; C# / Avalonia
+artifact gap partially filled
 
 ## Source and Scope
 
@@ -23,7 +24,27 @@ claim that a consumer is fully governed.
 | Post-remediation understanding | The engineer reported that the revised F-7 table was understandable. | retrospective / self-reported |
 | Helpful workflow | Plan-based task slicing, minimum-scope edits, and next-day memory continuity were reported as useful during feature work. | retrospective / self-reported |
 | Remaining owner dependency | The engineer sought owner help to determine whether adoption was complete and requested newcomer-oriented guidance. | retrospective / self-reported |
-| C# / Avalonia gap | The engineer considered cross-platform / C# governance rules too sparse and added Markdown guidance. Exact file paths and contents are pending. | retrospective / self-reported; incomplete artifact evidence |
+| C# / Avalonia gap | The engineer considered cross-platform / C# governance rules too sparse and added nine Markdown files under the owner-provided snapshot path. The files are now inventoried and classified, and one bounded framework import was completed. Consumer-local provenance and use remain unverified. | retrospective / self-reported observation plus owner-commissioned, engineer-provided local snapshot; partial artifact evidence |
+
+## C# / Avalonia Artifact Follow-Up — 2026-07-13
+
+The previously pending Markdown paths and contents are now represented by the
+local snapshot at `C:\Users\reiko\Desktop\0709\csharp` and the tracked
+[C# / Avalonia engineer rule classification packet](csharp-avalonia-rule-classification-review-2026-07-13.md).
+The packet inventories nine files, 750 lines, and 59,717 bytes with per-file
+SHA-256 values. A 2026-07-13 recheck found all nine local files still matched
+that manifest.
+
+After owner approval and independent review, commit `93b4b28b` imported only
+the bounded threading subset into `governance/rules/csharp/threading.md` and
+`governance/rules/avalonia/ui_thread.md`, with a focused pack-boundary test.
+The remaining source material stayed external and classified as
+framework-csharp, framework-avalonia, consumer-only, or reject/rewrite.
+
+This partially fills the artifact gap. It does not bind the local snapshot to
+the unnamed consumer repository, prove that the consumer loaded the imported
+framework rules, or upgrade this retrospective report to consumer-verified
+adoption evidence.
 
 ## Observed Friction Pattern
 
@@ -44,8 +65,9 @@ quality, delivery speed, or agent truthfulness.
    remediation, if available.
 3. Owner intervention count, including whether intervention was diagnostic,
    documentation, or corrective implementation work.
-4. The C# / Avalonia Markdown file paths, a concise description of each rule
-   gap, and whether those files are consumer-owned or framework-owned.
+4. A consumer-local commit or adoption artifact binding the nine-file snapshot
+   to the unnamed consumer, including which rules remained consumer-owned and
+   whether the imported framework subset was later loaded there.
 5. A second independent onboarding record or friction log before any claim of
    sustained adoption or low onboarding friction.
 
@@ -58,12 +80,16 @@ Can claim:
 - F-7 adoption-state visibility was initially confusing and was reported as
   clearer after a table-oriented remediation.
 - Plan and memory workflow were reported as useful in day-to-day work.
-- C# / Avalonia rule coverage has a user-observed gap requiring concrete
-  follow-up evidence.
+- The engineer-provided nine-file C# / Avalonia snapshot was inventoried and
+  classified, and commit `93b4b28b` imported one bounded threading subset.
+- The C# / Avalonia artifact gap is partially filled; consumer-local adoption
+  evidence is still required.
 
 Cannot claim:
 
 - Full or correct consumer adoption.
 - Low framework friction, sustained lifecycle use, or E2 closure.
 - Complete C# / Avalonia support.
+- Consumer authorship, consumer-commit binding, or consumer activation of the
+  imported rules.
 - Causal improvement in code quality, task outcomes, or agent behavior.
