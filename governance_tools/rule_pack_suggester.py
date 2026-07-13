@@ -46,6 +46,35 @@ FRAMEWORK_SIGNAL_PATTERNS = [
     ("electron", [r"electron", r"BrowserWindow", r"ipcMain", r"ipcRenderer", r"preload"]),
 ]
 
+_FRAMEWORK_TEXT_SUFFIXES = {
+    ".cs",
+    ".fs",
+    ".vb",
+    ".swift",
+    ".m",
+    ".mm",
+    ".h",
+    ".js",
+    ".ts",
+    ".tsx",
+    ".json",
+    ".toml",
+    ".xml",
+    ".props",
+    ".targets",
+    ".csproj",
+    ".vcxproj",
+}
+_FRAMEWORK_SAMPLE_LIMIT = 50
+_AVALONIA_STRUCTURE_SUFFIXES = {".csproj", ".props", ".targets"}
+_AVALONIA_SOURCE_SUFFIXES = {".cs", ".fs", ".vb"}
+_AVALONIA_STRONG_SOURCE_PATTERNS = [
+    r"Avalonia\.Headless",
+    r"Dispatcher\.UIThread",
+    r"\busing\s+Avalonia(?:\.|;)",
+]
+_AVALONIA_WEAK_PATTERN = r"Avalonia"
+
 # These roots carry documentation, fixtures, generated evidence, or copied
 # framework internals rather than the consumer project's product language.
 # Including them made a real Codex pilot and prior Enumd/Hearth checks suggest
@@ -332,23 +361,69 @@ def _detect_languages(files: list[Path], project_root: Path) -> list[dict]:
     return suggestions
 
 
-def _detect_frameworks(files: list[Path], project_root: Path) -> list[dict]:
-    suggestions = []
-    text_files = []
-    for path in files:
-        if path.suffix.lower() in {".cs", ".fs", ".vb", ".swift", ".m", ".mm", ".h", ".js", ".ts", ".tsx", ".json", ".toml", ".xml", ".props", ".targets", ".csproj", ".vcxproj"}:
-            text_files.append(path)
-
-    joined_preview = []
-    for path in text_files[:50]:
+def _read_framework_sample(files: list[Path]) -> list[tuple[Path, str]]:
+    sample = []
+    for path in files[:_FRAMEWORK_SAMPLE_LIMIT]:
         try:
-            joined_preview.append(path.read_text(encoding="utf-8", errors="ignore"))
+            sample.append((path, path.read_text(encoding="utf-8", errors="ignore")))
         except OSError:
             continue
-    corpus = "\n".join(joined_preview)
+    return sample
+
+
+def _matched_framework_patterns(sample: list[tuple[Path, str]], patterns: list[str]) -> list[str]:
+    return [
+        pattern
+        for pattern in patterns
+        if any(re.search(pattern, text, re.IGNORECASE) for _, text in sample)
+    ]
+
+
+def _detect_avalonia(text_files: list[Path], patterns: list[str]) -> dict | None:
+    structure_files = [path for path in text_files if path.suffix.lower() in _AVALONIA_STRUCTURE_SUFFIXES]
+    other_files = [path for path in text_files if path.suffix.lower() not in _AVALONIA_STRUCTURE_SUFFIXES]
+    sample = _read_framework_sample(structure_files + other_files)
+    structure_sample = [item for item in sample if item[0].suffix.lower() in _AVALONIA_STRUCTURE_SUFFIXES]
+    source_sample = [item for item in sample if item[0].suffix.lower() in _AVALONIA_SOURCE_SUFFIXES]
+
+    structural_matches = _matched_framework_patterns(structure_sample, patterns)
+    strong_source_matches = _matched_framework_patterns(source_sample, _AVALONIA_STRONG_SOURCE_PATTERNS)
+    strong_matches = list(dict.fromkeys(structural_matches + strong_source_matches))
+    if strong_matches:
+        return {
+            "name": "avalonia",
+            "category": "framework",
+            # Keep the pre-P3 framework ceiling: medium/high both warn, so a
+            # structural signal does not need the language detector's high tier.
+            "confidence": "medium",
+            "reasons": strong_matches,
+        }
+
+    weak_matches = _matched_framework_patterns(sample, [_AVALONIA_WEAK_PATTERN])
+    if weak_matches:
+        return {
+            "name": "avalonia",
+            "category": "framework",
+            "confidence": "low",
+            "reasons": weak_matches,
+            "advisory_only": True,
+        }
+    return None
+
+
+def _detect_frameworks(files: list[Path], project_root: Path) -> list[dict]:
+    suggestions = []
+    text_files = [path for path in files if path.suffix.lower() in _FRAMEWORK_TEXT_SUFFIXES]
 
     for pack, patterns in FRAMEWORK_SIGNAL_PATTERNS:
-        matched = [pattern for pattern in patterns if re.search(pattern, corpus, re.IGNORECASE)]
+        if pack == "avalonia":
+            suggestion = _detect_avalonia(text_files, patterns)
+            if suggestion:
+                suggestions.append(suggestion)
+            continue
+
+        # Preserve the existing non-Avalonia detector sample and confidence.
+        matched = _matched_framework_patterns(_read_framework_sample(text_files), patterns)
         if matched:
             suggestions.append(
                 {
@@ -475,7 +550,8 @@ def suggest_rule_packs(project_root: Path, task_text: str = "") -> dict:
             "domain_packs are sourced from contract.yaml rule_roots and take highest priority",
             "language packs use language-specific structural signals before count/share source-file confidence",
             "low-confidence language packs remain advisory preview evidence and do not affect suggested rules, skills, or agents",
-            "framework packs are auto-suggested from repository signals",
+            "avalonia framework structure files are sampled first; structural and strong source signals intentionally retain the existing medium confidence ceiling",
+            "weak avalonia lexical matches remain advisory preview evidence and do not affect suggested rules or pre-task warnings",
             "scope packs are advisory only and should be confirmed by the contract or human reviewer",
             "suggested_rules_preview includes advisory scope packs for convenience, but does not mutate the contract",
             "suggested_skills and suggested_agent are advisory only and do not auto-activate agent behavior",

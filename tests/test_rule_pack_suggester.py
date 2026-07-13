@@ -29,6 +29,10 @@ def _language_item(result: dict, name: str) -> dict:
     return next(item for item in result["language_packs"] if item["name"] == name)
 
 
+def _framework_item(result: dict, name: str) -> dict:
+    return next(item for item in result["framework_packs"] if item["name"] == name)
+
+
 def test_rule_pack_suggester_detects_csharp_and_avalonia(tmp_path):
     root = _reset_fixture(tmp_path, "csharp_avalonia")
     _write(root / "App.sln", "")
@@ -43,6 +47,72 @@ def test_rule_pack_suggester_detects_csharp_and_avalonia(tmp_path):
     assert result["suggested_rules_preview"] == ["common", "csharp", "avalonia"]
     assert result["suggested_skills"] == ["code-style", "governance-runtime"]
     assert result["suggested_agent"] == "advanced-agent"
+
+
+def test_avalonia_structure_signal_is_prioritized_within_fifty_file_sample(tmp_path):
+    root = _reset_fixture(tmp_path, "avalonia_structure_priority")
+    for index in range(50):
+        _write(root / "src" / f"a{index:02d}.cs", "public class Placeholder {}\n")
+    _write(
+        root / "z-project" / "App.csproj",
+        '<Project><PackageReference Include="Avalonia" /></Project>\n',
+    )
+
+    result = suggest_rule_packs(root)
+
+    avalonia = _framework_item(result, "avalonia")
+    assert avalonia["confidence"] == "medium"
+    assert avalonia.get("advisory_only") is not True
+    assert "avalonia" in result["suggested_rules"]
+
+
+def test_avalonia_dispatcher_source_signal_remains_medium(tmp_path):
+    root = _reset_fixture(tmp_path, "avalonia_dispatcher_source")
+    _write(root / "MainWindow.cs", "Dispatcher.UIThread.Post(() => {});\n")
+
+    result = suggest_rule_packs(root)
+
+    avalonia = _framework_item(result, "avalonia")
+    assert avalonia["confidence"] == "medium"
+    assert avalonia.get("advisory_only") is not True
+    assert "avalonia" in result["suggested_rules"]
+
+
+def test_avalonia_headless_source_signal_remains_medium(tmp_path):
+    root = _reset_fixture(tmp_path, "avalonia_headless_source")
+    _write(root / "TestApp.cs", "using Avalonia.Headless;\n")
+
+    result = suggest_rule_packs(root)
+
+    avalonia = _framework_item(result, "avalonia")
+    assert avalonia["confidence"] == "medium"
+    assert avalonia.get("advisory_only") is not True
+
+
+def test_avalonia_bare_source_comment_is_low_preview_only(tmp_path):
+    root = _reset_fixture(tmp_path, "avalonia_weak_comment")
+    _write(root / "Migration.cs", "// Avalonia migration note\n")
+
+    result = suggest_rule_packs(root)
+
+    avalonia = _framework_item(result, "avalonia")
+    assert avalonia["confidence"] == "low"
+    assert avalonia["advisory_only"] is True
+    assert "avalonia" not in result["suggested_rules"]
+    assert "avalonia" in result["suggested_rules_preview"]
+
+
+def test_electron_detection_remains_medium_but_unloadable(tmp_path):
+    root = _reset_fixture(tmp_path, "electron_existing_behavior")
+    _write(root / "main.ts", 'import { BrowserWindow } from "electron";\n')
+
+    result = suggest_rule_packs(root)
+
+    electron = _framework_item(result, "electron")
+    assert electron["confidence"] == "medium"
+    assert "electron" in result["unloadable_signals"]
+    assert "electron" not in result["suggested_rules"]
+    assert "electron" not in result["suggested_rules_preview"]
 
 
 def test_language_specific_structure_files_are_high_confidence(tmp_path):

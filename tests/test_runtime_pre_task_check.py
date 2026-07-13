@@ -216,6 +216,29 @@ def test_pre_task_check_warns_when_high_confidence_suggestions_are_missing(local
     assert any("Advisory scope pack 'refactor' is suggested by task text but not active" in warning for warning in result["warnings"])
 
 
+def test_pre_task_check_does_not_warn_for_low_confidence_avalonia_comment(local_tmp_dir, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    (local_tmp_dir / "Migration.cs").write_text("// Avalonia migration note\n", encoding="utf-8")
+
+    result = pre_task_check.run_pre_task_check(
+        local_tmp_dir,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="Inspect migration note",
+    )
+
+    suggestions = result["rule_pack_suggestions"]
+    avalonia = next(item for item in suggestions["framework_packs"] if item["name"] == "avalonia")
+    assert avalonia["confidence"] == "low"
+    assert avalonia["advisory_only"] is True
+    assert "avalonia" not in suggestions["suggested_rules"]
+    assert "avalonia" in result["suggested_rules_preview"]
+    assert not any("Suggested framework pack 'avalonia'" in warning for warning in result["warnings"])
+
+
 def test_pre_task_check_human_output_includes_suggested_rules_preview(local_tmp_dir, monkeypatch):
     monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
     (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
