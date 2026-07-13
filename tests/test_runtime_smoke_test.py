@@ -23,15 +23,15 @@ def test_smoke_test_claude_session_start_runs():
     assert envelope["normalized_event"]["event_type"] == "session_start"
 
 
-def test_smoke_test_codex_post_runs_and_creates_snapshot():
-    envelope = run_smoke("codex", "post_task")
+def test_smoke_test_codex_post_runs_and_creates_snapshot(tmp_path):
+    envelope = run_smoke("codex", "post_task", project_root=tmp_path)
     assert envelope["result"]["ok"] is True
     assert envelope["normalized_event"]["event_type"] == "post_task"
     assert envelope["result"]["snapshot"] is not None
 
 
-def test_smoke_test_gemini_post_runs():
-    envelope = run_smoke("gemini", "post_task")
+def test_smoke_test_gemini_post_runs(tmp_path):
+    envelope = run_smoke("gemini", "post_task", project_root=tmp_path)
     assert envelope["result"]["ok"] is True
     assert envelope["normalized_event"]["metadata"]["harness"] == "gemini"
 

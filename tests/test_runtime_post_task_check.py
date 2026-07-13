@@ -73,6 +73,25 @@ def test_post_task_check_can_create_candidate_snapshot(local_memory_root):
     assert Path(result["snapshot"]["snapshot_path"]).exists()
 
 
+def test_post_task_check_no_ledger_write_skips_candidate_snapshot(monkeypatch, local_memory_root):
+    monkeypatch.setenv("AI_GOVERNANCE_NO_LEDGER_WRITE", "1")
+
+    result = run_post_task_check(
+        _contract(),
+        risk="medium",
+        oversight="review-required",
+        memory_root=local_memory_root,
+        snapshot_task="Runtime governance no-write smoke",
+        snapshot_summary="Must not create a candidate snapshot",
+        create_snapshot=True,
+    )
+
+    assert result["ok"] is True
+    assert result["snapshot"] is None
+    assert not (local_memory_root / "candidates").exists()
+    assert any("AI_GOVERNANCE_NO_LEDGER_WRITE" in warning for warning in result["warnings"])
+
+
 def test_post_task_check_blocks_durable_memory_without_oversight():
     result = run_post_task_check(
         _contract(MEMORY_MODE="durable", OVERSIGHT="auto"),

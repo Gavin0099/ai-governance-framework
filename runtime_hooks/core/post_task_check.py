@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -76,6 +77,15 @@ PROTECTED_NON_AUTHORITATIVE_FIELDS = {
     "provenance_warning",
     "decision_safety",
 }
+
+
+def _snapshot_write_disabled_from_env() -> bool:
+    return os.environ.get("AI_GOVERNANCE_NO_LEDGER_WRITE", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
 
 MACHINE_FACING_PATHS = {
     "analysis",
@@ -817,7 +827,11 @@ def run_post_task_check(
     for violation in policy_violations:
         errors.append(f"runtime-policy: {violation['message']}")
 
-    if create_snapshot and validation.contract_found and validation.compliant and not errors:
+    snapshot_write_suppressed = create_snapshot and _snapshot_write_disabled_from_env()
+    if snapshot_write_suppressed:
+        warnings.append("Snapshot creation skipped because AI_GOVERNANCE_NO_LEDGER_WRITE is enabled")
+
+    if create_snapshot and not snapshot_write_suppressed and validation.contract_found and validation.compliant and not errors:
         if memory_root is None:
             errors.append("Snapshot creation requested without memory_root")
         else:

@@ -46,6 +46,17 @@ if ! set_python_cmd; then
     exit 1
 fi
 
+run_smoke_step() {
+    local label="$1"
+    shift
+
+    "$@" || {
+        local rc=$?
+        echo "[runtime-governance] smoke step failed: step=$label rc=$rc" >&2
+        return "$rc"
+    }
+}
+
 run_smoke() (
     local smoke_overrides=()
     if [[ -n "$CONTRACT_PATH" ]]; then
@@ -60,20 +71,20 @@ run_smoke() (
 
     export AI_GOVERNANCE_NO_LEDGER_WRITE=1
 
-    "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --harness claude_code --event-type session_start "${smoke_overrides[@]}" --output artifacts/runtime/smoke/claude_session_start.txt --json-output artifacts/runtime/smoke/claude_session_start.json
-    "${PYTHON_CMD[@]}" governance_tools/change_control_summary.py --session-start-file artifacts/runtime/smoke/claude_session_start.json --output artifacts/runtime/smoke/claude_change_control_summary.txt
-    "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --harness claude_code --event-type pre_task "${smoke_overrides[@]}"
-    "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --harness claude_code --event-type post_task "${smoke_overrides[@]}"
-    "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --harness codex --event-type session_start "${smoke_overrides[@]}" --output artifacts/runtime/smoke/codex_session_start.txt --json-output artifacts/runtime/smoke/codex_session_start.json
-    "${PYTHON_CMD[@]}" governance_tools/change_control_summary.py --session-start-file artifacts/runtime/smoke/codex_session_start.json --output artifacts/runtime/smoke/codex_change_control_summary.txt
-    "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --harness codex --event-type post_task "${smoke_overrides[@]}"
-    "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --harness gemini --event-type session_start "${smoke_overrides[@]}" --output artifacts/runtime/smoke/gemini_session_start.txt --json-output artifacts/runtime/smoke/gemini_session_start.json
-    "${PYTHON_CMD[@]}" governance_tools/change_control_summary.py --session-start-file artifacts/runtime/smoke/gemini_session_start.json --output artifacts/runtime/smoke/gemini_change_control_summary.txt
-    "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --harness gemini --event-type post_task "${smoke_overrides[@]}"
-    "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --event-type session_start "${smoke_overrides[@]}" --output artifacts/runtime/smoke/shared_session_start.txt --json-output artifacts/runtime/smoke/shared_session_start.json
-    "${PYTHON_CMD[@]}" governance_tools/change_control_summary.py --session-start-file artifacts/runtime/smoke/shared_session_start.json --output artifacts/runtime/smoke/shared_change_control_summary.txt
-    "${PYTHON_CMD[@]}" governance_tools/change_control_index.py --artifacts-dir artifacts/runtime/smoke --output artifacts/runtime/smoke/INDEX.txt
-    "${PYTHON_CMD[@]}" -m governance_tools.reason_code_verifier
+    run_smoke_step "claude-session-start" "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --harness claude_code --event-type session_start "${smoke_overrides[@]}" --output artifacts/runtime/smoke/claude_session_start.txt --json-output artifacts/runtime/smoke/claude_session_start.json || return $?
+    run_smoke_step "claude-change-control-summary" "${PYTHON_CMD[@]}" governance_tools/change_control_summary.py --session-start-file artifacts/runtime/smoke/claude_session_start.json --output artifacts/runtime/smoke/claude_change_control_summary.txt || return $?
+    run_smoke_step "claude-pre-task" "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --harness claude_code --event-type pre_task "${smoke_overrides[@]}" || return $?
+    run_smoke_step "claude-post-task" "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --harness claude_code --event-type post_task "${smoke_overrides[@]}" || return $?
+    run_smoke_step "codex-session-start" "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --harness codex --event-type session_start "${smoke_overrides[@]}" --output artifacts/runtime/smoke/codex_session_start.txt --json-output artifacts/runtime/smoke/codex_session_start.json || return $?
+    run_smoke_step "codex-change-control-summary" "${PYTHON_CMD[@]}" governance_tools/change_control_summary.py --session-start-file artifacts/runtime/smoke/codex_session_start.json --output artifacts/runtime/smoke/codex_change_control_summary.txt || return $?
+    run_smoke_step "codex-post-task" "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --harness codex --event-type post_task "${smoke_overrides[@]}" || return $?
+    run_smoke_step "gemini-session-start" "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --harness gemini --event-type session_start "${smoke_overrides[@]}" --output artifacts/runtime/smoke/gemini_session_start.txt --json-output artifacts/runtime/smoke/gemini_session_start.json || return $?
+    run_smoke_step "gemini-change-control-summary" "${PYTHON_CMD[@]}" governance_tools/change_control_summary.py --session-start-file artifacts/runtime/smoke/gemini_session_start.json --output artifacts/runtime/smoke/gemini_change_control_summary.txt || return $?
+    run_smoke_step "gemini-post-task" "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --harness gemini --event-type post_task "${smoke_overrides[@]}" || return $?
+    run_smoke_step "shared-session-start" "${PYTHON_CMD[@]}" runtime_hooks/smoke_test.py --event-type session_start "${smoke_overrides[@]}" --output artifacts/runtime/smoke/shared_session_start.txt --json-output artifacts/runtime/smoke/shared_session_start.json || return $?
+    run_smoke_step "shared-change-control-summary" "${PYTHON_CMD[@]}" governance_tools/change_control_summary.py --session-start-file artifacts/runtime/smoke/shared_session_start.json --output artifacts/runtime/smoke/shared_change_control_summary.txt || return $?
+    run_smoke_step "change-control-index" "${PYTHON_CMD[@]}" governance_tools/change_control_index.py --artifacts-dir artifacts/runtime/smoke --output artifacts/runtime/smoke/INDEX.txt || return $?
+    run_smoke_step "reason-code-verifier" "${PYTHON_CMD[@]}" -m governance_tools.reason_code_verifier || return $?
 )
 
 run_pytest_suite() {
