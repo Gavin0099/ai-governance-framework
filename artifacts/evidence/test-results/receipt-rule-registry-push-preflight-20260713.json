@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git diff --check 224d16d0..49b0dc82",
+  "exit_code": 0,
+  "started_at": "2026-07-13T09:51:15Z",
+  "finished_at": "2026-07-13T09:51:15Z",
+  "runner": "codex",
+  "linked_commit": "49b0dc827a89ff892c8fb606a8419e61d7fe2992",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-rule-registry-push-preflight-20260713.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
