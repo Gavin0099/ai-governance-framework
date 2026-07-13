@@ -85,9 +85,31 @@ def test_load_rule_content_can_load_csharp_avalonia_swift_packs():
         for pack in loaded["active_rules"]
         for file in pack["files"]
     )
+    csharp_contents = "\n".join(
+        file["content"]
+        for pack in loaded["active_rules"]
+        if pack["name"] == "csharp"
+        for file in pack["files"]
+    )
+    avalonia_contents = "\n".join(
+        file["content"]
+        for pack in loaded["active_rules"]
+        if pack["name"] == "avalonia"
+        for file in pack["files"]
+    )
     assert "async void" in contents
     assert "Dispatcher.UIThread" in contents
     assert "structured concurrency" in contents
+    assert "`lock`" in csharp_contents
+    assert "`await`" in csharp_contents
+    assert "`volatile`" in csharp_contents
+    assert "`Interlocked`" in csharp_contents
+    assert "`Post`" not in csharp_contents
+    assert "`InvokeAsync`" not in csharp_contents
+    assert "Dispatcher.UIThread.Post" in avalonia_contents
+    assert "InvokeAsync" in avalonia_contents
+    assert "CheckAccess" in avalonia_contents
+    assert "VerifyAccess" in avalonia_contents
 
 
 def test_load_rule_content_can_load_kernel_driver_pack():
