@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import subprocess
 from pathlib import Path
 
 from governance_tools.rule_pack_loader import DEFAULT_RULES_ROOT, available_rule_packs
@@ -149,12 +151,74 @@ def _detect_domain_contract(project_root: Path) -> list[dict]:
     return suggestions
 
 
+def _file_sort_key(path: Path, project_root: Path) -> str:
+    return path.relative_to(project_root).as_posix().casefold()
+
+
+def _git_visible_files(project_root: Path) -> list[Path] | None:
+    """Return Git-visible files when project_root is the worktree root.
+
+    Tracked files and untracked, non-ignored files are both product candidates.
+    A directory merely nested inside another repository must use the filesystem
+    fallback so parent-repo ignore rules do not hide onboarding/test fixtures.
+    """
+    try:
+        root_probe = subprocess.run(
+            ["git", "-C", str(project_root), "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+    if root_probe.returncode != 0 or not root_probe.stdout.strip():
+        return None
+    if Path(root_probe.stdout.strip()).resolve() != project_root.resolve():
+        return None
+
+    try:
+        visible = subprocess.run(
+            ["git", "-C", str(project_root), "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+            capture_output=True,
+            check=False,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+    if visible.returncode != 0:
+        return None
+
+    resolved_root = project_root.resolve()
+    files: list[Path] = []
+    for raw_path in visible.stdout.split(b"\0"):
+        if not raw_path:
+            continue
+        path = project_root / Path(os.fsdecode(raw_path))
+        try:
+            path.resolve().relative_to(resolved_root)
+        except ValueError:
+            continue
+        if path.is_file() and not _is_non_product_signal_path(path, project_root):
+            files.append(path)
+    return sorted(files, key=lambda path: _file_sort_key(path, project_root))
+
+
 def _iter_files(project_root: Path) -> list[Path]:
-    return [
+    git_visible = _git_visible_files(project_root)
+    if git_visible is not None:
+        return git_visible
+
+    files = [
         path
         for path in project_root.rglob("*")
         if path.is_file() and not _is_non_product_signal_path(path, project_root)
     ]
+    return sorted(files, key=lambda path: _file_sort_key(path, project_root))
 
 
 def _filter_language_signal_files(files: list[Path], project_root: Path) -> list[Path]:

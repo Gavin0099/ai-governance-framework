@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 import shutil
+import subprocess
 from pathlib import Path
 
 from governance_tools.rule_pack_suggester import suggest_rule_packs
 
 
-FIXTURE_ROOT = Path("tests/_tmp_rule_pack_suggester")
-
-
-def _reset_fixture(name: str) -> Path:
-    path = FIXTURE_ROOT / name
+def _reset_fixture(fixture_root: Path, name: str) -> Path:
+    path = fixture_root / name
     if path.exists():
         shutil.rmtree(path)
     path.mkdir(parents=True, exist_ok=True)
@@ -22,8 +20,13 @@ def _write(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
-def test_rule_pack_suggester_detects_csharp_and_avalonia():
-    root = _reset_fixture("csharp_avalonia")
+def _init_git_repo(path: Path) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["git", "init", "--quiet"], cwd=path, check=True, capture_output=True)
+
+
+def test_rule_pack_suggester_detects_csharp_and_avalonia(tmp_path):
+    root = _reset_fixture(tmp_path, "csharp_avalonia")
     _write(root / "App.sln", "")
     _write(root / "App" / "App.csproj", "<Project><PackageReference Include=\"Avalonia\" /></Project>")
     _write(root / "App" / "MainWindowViewModel.cs", "Dispatcher.UIThread.Post(() => {});")
@@ -38,8 +41,8 @@ def test_rule_pack_suggester_detects_csharp_and_avalonia():
     assert result["suggested_agent"] == "advanced-agent"
 
 
-def test_rule_pack_suggester_detects_swift():
-    root = _reset_fixture("swift")
+def test_rule_pack_suggester_detects_swift(tmp_path):
+    root = _reset_fixture(tmp_path, "swift")
     _write(root / "Package.swift", "// swift package")
     _write(root / "Sources" / "Feature.swift", "import Foundation")
 
@@ -48,8 +51,8 @@ def test_rule_pack_suggester_detects_swift():
     assert any(item["name"] == "swift" for item in result["language_packs"])
 
 
-def test_rule_pack_suggester_recommends_python_agent_and_cli_skill():
-    root = _reset_fixture("python_cli")
+def test_rule_pack_suggester_recommends_python_agent_and_cli_skill(tmp_path):
+    root = _reset_fixture(tmp_path, "python_cli")
     _write(root / "tool.py", "print('ok')")
 
     result = suggest_rule_packs(root, task_text="Improve CLI human output for governance command")
@@ -60,8 +63,8 @@ def test_rule_pack_suggester_recommends_python_agent_and_cli_skill():
     assert result["suggested_agent"] == "cli-agent"
 
 
-def test_rule_pack_suggester_scope_is_advisory_only():
-    root = _reset_fixture("scope")
+def test_rule_pack_suggester_scope_is_advisory_only(tmp_path):
+    root = _reset_fixture(tmp_path, "scope")
     _write(root / "module.py", "print('ok')")
 
     result = suggest_rule_packs(root, task_text="Refactor service boundary and extract helper")
@@ -71,8 +74,8 @@ def test_rule_pack_suggester_scope_is_advisory_only():
     assert "refactor" in result["suggested_rules_preview"]
 
 
-def test_rule_pack_suggester_ignores_contract_scaffolding_language_noise():
-    root = _reset_fixture("contract_scaffolding")
+def test_rule_pack_suggester_ignores_contract_scaffolding_language_noise(tmp_path):
+    root = _reset_fixture(tmp_path, "contract_scaffolding")
     _write(root / "contract.yaml", "name: sample-contract\n")
     _write(root / "validators" / "sample_validator.py", "print('validator')\n")
     _write(root / "fixtures" / "src" / "driver.c", "void DriverEntry(void) {}\n")
@@ -85,8 +88,8 @@ def test_rule_pack_suggester_ignores_contract_scaffolding_language_noise():
     assert result["suggested_agent"] == "advanced-agent"
 
 
-def test_rule_pack_suggester_ignores_local_test_and_artifact_fixture_noise():
-    root = _reset_fixture("non_product_roots")
+def test_rule_pack_suggester_ignores_local_test_and_artifact_fixture_noise(tmp_path):
+    root = _reset_fixture(tmp_path, "non_product_roots")
     _write(root / "tool.py", "print('product')\n")
     _write(root / "tests" / "fixture.cs", "Dispatcher.UIThread.Post(() => {});\n")
     _write(root / "artifacts" / "capture.swift", "import Foundation\n")
@@ -101,8 +104,8 @@ def test_rule_pack_suggester_ignores_local_test_and_artifact_fixture_noise():
     assert result["framework_packs"] == []
 
 
-def test_rule_pack_suggester_ignores_embedded_framework_fixture_noise():
-    root = _reset_fixture("embedded_framework")
+def test_rule_pack_suggester_ignores_embedded_framework_fixture_noise(tmp_path):
+    root = _reset_fixture(tmp_path, "embedded_framework")
     _write(root / "consumer.py", "print('consumer')\n")
     embedded = root / "ai-governance-framework"
     _write(embedded / "tests" / "fixture.cs", "Dispatcher.UIThread.Post(() => {});\n")
@@ -114,10 +117,64 @@ def test_rule_pack_suggester_ignores_embedded_framework_fixture_noise():
     assert result["framework_packs"] == []
 
 
-def test_unloadable_domain_moves_to_unloadable_signals():
+def test_rule_pack_suggester_git_inventory_uses_tracked_and_untracked_nonignored_files(tmp_path):
+    root = tmp_path / "consumer"
+    _init_git_repo(root)
+    _write(root / ".gitignore", "obj/\nnode_modules/\n")
+    _write(root / "src" / "App.cs", "public class App {}\n")
+    _write(root / "src" / "NewFeature.cs", "public class NewFeature {}\n")
+    _write(root / "obj" / "Generated.py", "print('generated')\n")
+    _write(root / "node_modules" / "native.cpp", "int generated = 1;\n")
+    subprocess.run(
+        ["git", "add", "--", ".gitignore", "src/App.cs"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    )
+
+    result = suggest_rule_packs(root)
+
+    assert [item["name"] for item in result["language_packs"]] == ["csharp"]
+    assert result["language_packs"][0]["reasons"] == ["src/App.cs", "src/NewFeature.cs"]
+    assert "python" not in result["suggested_rules"]
+    assert "cpp" not in result["suggested_rules"]
+
+
+def test_rule_pack_suggester_non_git_fallback_is_deterministic(tmp_path):
+    root = _reset_fixture(tmp_path, "deterministic_non_git_fallback")
+    _write(root / "zeta.py", "print('zeta')\n")
+    _write(root / "alpha.py", "print('alpha')\n")
+
+    result = suggest_rule_packs(root)
+
+    assert [item["name"] for item in result["language_packs"]] == ["python"]
+    assert result["language_packs"][0]["reasons"] == ["alpha.py", "zeta.py"]
+
+
+def test_rule_pack_suggester_nested_parent_repo_uses_filesystem_fallback(tmp_path):
+    parent = tmp_path / "parent"
+    _init_git_repo(parent)
+    _write(parent / ".gitignore", "nested/*.py\n")
+    subprocess.run(
+        ["git", "add", "--", ".gitignore"],
+        cwd=parent,
+        check=True,
+        capture_output=True,
+    )
+    root = parent / "nested"
+    _write(root / "zeta.py", "print('zeta')\n")
+    _write(root / "alpha.py", "print('alpha')\n")
+
+    result = suggest_rule_packs(root)
+
+    assert [item["name"] for item in result["language_packs"]] == ["python"]
+    assert result["language_packs"][0]["reasons"] == ["alpha.py", "zeta.py"]
+
+
+def test_unloadable_domain_moves_to_unloadable_signals(tmp_path):
     """A contract domain with no matching pack directory must not be suggested
     as loadable (regression for the pilot's "Unknown rule packs" error)."""
-    root = _reset_fixture("unloadable_domain")
+    root = _reset_fixture(tmp_path, "unloadable_domain")
     _write(root / "contract.yaml", "domain: custom-governance\nrule_roots:\n  - rules\n")
     _write(root / "app.py", "print('hi')\n")
     (root / "rules").mkdir(parents=True, exist_ok=True)
@@ -133,10 +190,10 @@ def test_unloadable_domain_moves_to_unloadable_signals():
     assert "python" in result["suggested_rules"]
 
 
-def test_loadable_domain_pack_is_still_suggested():
+def test_loadable_domain_pack_is_still_suggested(tmp_path):
     """A contract domain whose pack directory exists under its rule_roots
     keeps being suggested."""
-    root = _reset_fixture("loadable_domain")
+    root = _reset_fixture(tmp_path, "loadable_domain")
     _write(root / "contract.yaml", "domain: boardsupport\nrule_roots:\n  - rules\n")
     _write(root / "rules" / "boardsupport" / "core.md", "# rule\n")
     _write(root / "app.py", "print('hi')\n")
