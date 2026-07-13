@@ -306,6 +306,10 @@ def test_dry_run_does_not_change_submodule_or_stage_files(tmp_path: Path) -> Non
     assert result.update_receipt["status"] == "not_written"
     assert not (consumer / RECEIPT_RELATIVE_PATH).exists()
     assert result.full_update_stage_report["final_status"] == "not_verified"
+    assert (
+        result.full_update_stage_report["final_status_scope"]
+        == "full_update_completion"
+    )
     assert result.full_update_stage_report["governance_maturity_summary"]["report_only"] is True
     assert result.final_report_requirement["status"] == "required"
     assert "table rows as a table" in result.final_report_requirement["instruction"]
@@ -325,6 +329,12 @@ def test_dry_run_does_not_change_submodule_or_stage_files(tmp_path: Path) -> Non
         "value": "update_available",
         "source": "updater",
     }
+    assert envelope["operation_execution"] == {
+        "status": "passed",
+        "mode": "dry_run",
+        "framework_update_applied": False,
+        "meaning": "dry-run checks passed; no update was applied",
+    }
     assert envelope["governance_maturity_summary"]["value"] == "present"
     assert envelope["human_readable_adoption_summary"]["value"] == "reported"
     assert envelope["final_report_requirement"]["value"] == "present"
@@ -332,6 +342,10 @@ def test_dry_run_does_not_change_submodule_or_stage_files(tmp_path: Path) -> Non
     assert "full_update_stage_report:" in rendered
     assert "[ai_governance_update_result]" in rendered
     assert "framework_update_status=update_available" in rendered
+    assert "operation_execution_status=passed" in rendered
+    assert "operation_mode=dry_run" in rendered
+    assert "framework_update_applied=false" in rendered
+    assert "- final_status_scope=full_update_completion" in rendered
     assert "[human_readable_adoption_summary]" in rendered
     assert "[final_report_requirement]" in rendered
     assert "table rows as a table" in rendered
@@ -626,6 +640,12 @@ def test_dry_run_refuses_uninitialized_submodule_checkout(tmp_path: Path) -> Non
     assert result.after_head == ""
     assert result.target_head == ""
     assert result.full_update_stage_report["final_status"] == "blocked"
+    assert result.ai_governance_update_result["operation_execution"] == {
+        "status": "failed",
+        "mode": "dry_run",
+        "framework_update_applied": False,
+        "meaning": "dry-run checks failed; no update was applied",
+    }
     assert "submodule path is not an initialized git checkout" in result.errors[0]
     assert _git(consumer, "diff", "--cached", "--name-only") == ""
 
@@ -714,6 +734,12 @@ def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
     assert payload["ai_governance_update_result"]["framework_update_status"] == {
         "value": "updated",
         "source": "updater",
+    }
+    assert payload["ai_governance_update_result"]["operation_execution"] == {
+        "status": "passed",
+        "mode": "apply",
+        "framework_update_applied": True,
+        "meaning": "apply completed and updated the framework checkout",
     }
     assert (
         payload["ai_governance_update_result"]["lock_consistency"]["value"]
@@ -873,6 +899,12 @@ def test_apply_commit_noops_when_submodule_already_points_at_target(
     assert result.ok is True
     assert result.update_mode == "already_current"
     assert result.fast_forward is True
+    assert result.ai_governance_update_result["operation_execution"] == {
+        "status": "passed",
+        "mode": "apply",
+        "framework_update_applied": False,
+        "meaning": "apply completed; the framework checkout was already current",
+    }
     assert result.before_head == target_head
     assert result.target_head == target_head
     assert result.after_head == target_head

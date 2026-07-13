@@ -131,6 +131,34 @@ class UpdateResult:
                     },
                 ],
             )
+        self.ai_governance_update_result["operation_execution"] = (
+            _operation_execution_for_envelope(self)
+        )
+
+
+def _operation_execution_for_envelope(result: UpdateResult) -> dict[str, Any]:
+    execution_status = "passed" if result.ok else "failed"
+    framework_update_applied = bool(
+        result.ok
+        and result.mode == "apply"
+        and result.update_mode in {"fast_forward", "detached_target_checkout"}
+    )
+    if result.mode == "dry_run" and result.ok:
+        meaning = "dry-run checks passed; no update was applied"
+    elif result.mode == "dry_run":
+        meaning = "dry-run checks failed; no update was applied"
+    elif framework_update_applied:
+        meaning = "apply completed and updated the framework checkout"
+    elif result.ok and result.update_mode == "already_current":
+        meaning = "apply completed; the framework checkout was already current"
+    else:
+        meaning = "apply did not complete; no update was applied"
+    return {
+        "status": execution_status,
+        "mode": result.mode,
+        "framework_update_applied": framework_update_applied,
+        "meaning": meaning,
+    }
 
 
 def _framework_update_status_for_envelope(result: UpdateResult) -> str:
@@ -833,6 +861,7 @@ def _build_full_update_stage_report(
         "details": details or {},
     }
     report["final_status"] = _final_full_update_status(report)
+    report["final_status_scope"] = "full_update_completion"
     return report
 
 
@@ -1235,6 +1264,10 @@ def format_human(result: UpdateResult) -> str:
         (
             "- target_claim_boundary="
             f"{result.full_update_stage_report.get('target_claim_boundary')}"
+        ),
+        (
+            "- final_status_scope="
+            f"{result.full_update_stage_report.get('final_status_scope')}"
         ),
         f"- final_status={result.full_update_stage_report.get('final_status')}",
     ]

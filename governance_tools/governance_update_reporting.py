@@ -466,6 +466,7 @@ def format_ai_governance_update_result(payload: object) -> list[str]:
     maturity = payload.get("governance_maturity_summary") or {}
     human = payload.get("human_readable_adoption_summary") or {}
     final_report = payload.get("final_report_requirement") or {}
+    operation = payload.get("operation_execution") or {}
 
     lines = [
         "[ai_governance_update_result]",
@@ -481,6 +482,14 @@ def format_ai_governance_update_result(payload: object) -> list[str]:
         f"final_report_requirement={final_report.get('value')}",
         f"final_report_requirement_source={final_report.get('source')}",
     ]
+    if operation:
+        lines[2:2] = [
+            f"operation_execution_status={operation.get('status')}",
+            f"operation_mode={operation.get('mode')}",
+            "framework_update_applied="
+            f"{str(operation.get('framework_update_applied')).lower()}",
+            f"operation_execution_meaning={operation.get('meaning')}",
+        ]
     for section, prefix in (
         (maturity, "governance_maturity_summary_reason"),
         (human, "human_readable_adoption_summary_reason"),
