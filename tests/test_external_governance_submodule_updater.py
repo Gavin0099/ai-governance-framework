@@ -11,6 +11,7 @@ from governance_tools.external_governance_submodule_updater import (
     _build_full_update_stage_report,
     _check_existing_memory_normalization,
     _git_env,
+    _refresh_repo_local_instructions,
     _run_git,
     format_human,
     main,
@@ -414,6 +415,96 @@ def test_dry_run_reports_local_tracking_fallback_when_remote_unavailable(tmp_pat
     )
     assert _git(submodule, "rev-parse", "HEAD") == old_head
     assert _git(consumer, "diff", "--cached", "--name-only") == ""
+
+
+def test_dry_run_fallback_uses_fetch_remote_tracking_ref_by_default(tmp_path: Path) -> None:
+    consumer, _framework, old_head, new_head = _make_fixture(tmp_path)
+    submodule = consumer / "ai-governance-framework"
+    _git(submodule, "update-ref", "refs/remotes/gitlab/main", new_head)
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_remote="gitlab",
+        fetch_ref="main",
+        dry_run=True,
+    )
+
+    assert result.ok is True
+    assert result.before_head == old_head
+    assert result.target_head == new_head
+    assert result.target_source == "local_tracking_ref_fallback"
+    assert result.full_update_stage_report["details"]["target_resolution"]["target_ref"] == (
+        "gitlab/main"
+    )
+
+
+def test_dry_run_explicit_target_ref_overrides_fetch_remote_tracking_ref(tmp_path: Path) -> None:
+    consumer, _framework, old_head, new_head = _make_fixture(tmp_path)
+    submodule = consumer / "ai-governance-framework"
+    _git(submodule, "update-ref", "refs/remotes/origin/main", old_head)
+    _git(submodule, "update-ref", "refs/remotes/gitlab/main", new_head)
+
+    result = update_governance_submodule(
+        repo=consumer,
+        target_ref="origin/main",
+        fetch_remote="gitlab",
+        fetch_ref="main",
+        dry_run=True,
+    )
+
+    assert result.ok is True
+    assert result.target_head == old_head
+    assert result.target_source == "local_tracking_ref_fallback"
+    assert result.full_update_stage_report["details"]["target_resolution"]["target_ref"] == (
+        "origin/main"
+    )
+
+
+def test_refresh_repo_local_instructions_replaces_custom_risk_heading_section(tmp_path: Path) -> None:
+    consumer, framework, _old_head, _new_head = _make_fixture(tmp_path)
+    agents = consumer / "AGENTS.md"
+    agents.write_text(
+        "# CFU\n\n"
+        "## AI Governance Update Intent Rule\n\n"
+        "stale intent\n\n"
+        "## CFU Risk Levels\n\n"
+        "firmware-specific risks\n",
+        encoding="utf-8",
+    )
+
+    first = _refresh_repo_local_instructions(consumer, framework)
+    second = _refresh_repo_local_instructions(consumer, framework)
+    refreshed = agents.read_text(encoding="utf-8")
+
+    assert first["status"] == "updated"
+    assert second["status"] == "already_current"
+    assert refreshed.count("## AI Governance Update Intent Rule") == 1
+    assert refreshed.count("## CFU Risk Levels") == 1
+    assert "intent rule" in refreshed
+    assert "firmware-specific risks" in refreshed
+
+
+def test_refresh_repo_local_instructions_blocks_without_risk_heading(tmp_path: Path) -> None:
+    consumer, framework, _old_head, _new_head = _make_fixture(tmp_path)
+    agents = consumer / "AGENTS.md"
+    original = (
+        "# CFU\n\n"
+        "## AI Governance Update Intent Rule\n\n"
+        "stale intent\n\n"
+        "## Custom Controls\n\n"
+        "consumer-specific controls\n\n"
+        "<!-- governance:key=memory_workflow -->\n"
+    )
+    agents.write_text(original, encoding="utf-8")
+
+    result = _refresh_repo_local_instructions(consumer, framework)
+
+    assert result["status"] == "blocked"
+    assert any(
+        "cannot safely refresh existing AI Governance update section" in error
+        for error in result["errors"]
+    )
+    assert agents.read_text(encoding="utf-8") == original
 
 
 def test_dry_run_local_tracking_fallback_cannot_claim_already_current(

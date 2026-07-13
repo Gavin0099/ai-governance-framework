@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -473,6 +474,19 @@ def _extract_agents_update_section(source_agents: Path) -> str | None:
     return text[start:end].strip() + "\n"
 
 
+def _find_agents_update_end(text: str, start: int) -> int | None:
+    exact_end = text.find("## Repo-Specific Risk Levels", start)
+    if exact_end != -1:
+        return exact_end
+
+    custom_risk_heading = re.search(
+        r"(?mi)^##\s+.*\bRisk Levels\b.*$", text[start:]
+    )
+    if custom_risk_heading is None:
+        return None
+    return start + custom_risk_heading.start()
+
+
 def _memory_workflow_router_section() -> str:
     return (
         "## AI Governance Memory Workflow Router\n\n"
@@ -536,12 +550,17 @@ def _refresh_repo_local_instructions(repo: Path, submodule_repo: Path) -> dict[s
         else:
             current = _read_text(target_agents)
             start_marker = "## AI Governance Update Intent Rule"
-            end_marker = "## Repo-Specific Risk Levels"
             start = current.find(start_marker)
-            end = current.find(end_marker)
-            if start != -1 and end != -1 and end > start:
+            end = _find_agents_update_end(current, start) if start != -1 else None
+            if start != -1 and end is not None and end > start:
                 updated = current[:start] + section + "\n" + current[end:]
             elif section.strip() in current:
+                updated = current
+            elif start != -1:
+                errors.append(
+                    "cannot safely refresh existing AI Governance update section: "
+                    "missing a Risk Levels heading"
+                )
                 updated = current
             else:
                 suffix = "" if current.endswith("\n") else "\n"
@@ -845,7 +864,7 @@ def update_governance_submodule(
     *,
     repo: Path,
     submodule_path: str = DEFAULT_SUBMODULE_PATH,
-    target_ref: str = "origin/main",
+    target_ref: str | None = None,
     fetch_remote: str = "origin",
     fetch_ref: str = "main",
     dry_run: bool = True,
@@ -855,6 +874,8 @@ def update_governance_submodule(
     commit_message: str = "chore(governance): update ai governance submodule",
 ) -> UpdateResult:
     repo = repo.resolve()
+    if target_ref is None:
+        target_ref = f"{fetch_remote}/{fetch_ref}" if fetch_ref else "origin/main"
     submodule_repo = (repo / submodule_path).resolve()
     errors: list[str] = []
     target_head = ""
@@ -1236,7 +1257,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--repo", required=True, type=Path)
     parser.add_argument("--submodule-path", default=DEFAULT_SUBMODULE_PATH)
-    parser.add_argument("--target-ref", default="origin/main")
+    parser.add_argument("--target-ref")
     parser.add_argument("--fetch-remote", default="origin")
     parser.add_argument("--fetch-ref", default="main")
     parser.add_argument("--apply", action="store_true")
