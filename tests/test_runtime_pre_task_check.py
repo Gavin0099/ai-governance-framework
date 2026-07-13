@@ -164,6 +164,35 @@ def test_pre_task_check_exposes_advisory_rule_pack_suggestions(local_tmp_dir, mo
     )
 
 
+def test_pre_task_check_keeps_low_confidence_language_preview_only(tmp_path, monkeypatch):
+    monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
+    (tmp_path / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")
+    for index in range(20):
+        (tmp_path / f"Feature{index}.cs").write_text(
+            f"public class Feature{index} {{}}\n",
+            encoding="utf-8",
+        )
+    (tmp_path / "generate.py").write_text("print('generate')\n", encoding="utf-8")
+
+    result = pre_task_check.run_pre_task_check(
+        tmp_path,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+        task_text="Inspect mixed repository",
+    )
+
+    suggestions = result["rule_pack_suggestions"]
+    python = next(item for item in suggestions["language_packs"] if item["name"] == "python")
+    assert python["confidence"] == "low"
+    assert "python" not in suggestions["suggested_rules"]
+    assert "python" in result["suggested_rules_preview"]
+    assert "python" not in result["suggested_skills"]
+    assert result["suggested_agent"] == "advanced-agent"
+    assert not any("Suggested language pack 'python'" in warning for warning in result["warnings"])
+
+
 def test_pre_task_check_warns_when_high_confidence_suggestions_are_missing(local_tmp_dir, monkeypatch):
     monkeypatch.setattr(pre_task_check, "check_freshness", lambda _: _FreshnessStub())
     (local_tmp_dir / "PLAN.md").write_text("> **Owner**: Tester\n", encoding="utf-8")

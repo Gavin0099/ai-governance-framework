@@ -192,6 +192,40 @@ def test_generate_state_includes_advisory_rule_pack_suggestions_without_mutating
     assert any(item["name"] == "refactor" and item["advisory_only"] is True for item in scope_suggestions)
 
 
+def test_generate_state_keeps_low_confidence_language_preview_only(tmp_path, monkeypatch):
+    monkeypatch.setattr(state_generator, "check_freshness", lambda _: _FreshnessStub())
+    for index in range(20):
+        (tmp_path / f"Feature{index}.cs").write_text(
+            f"public class Feature{index} {{}}\n",
+            encoding="utf-8",
+        )
+    (tmp_path / "generate.py").write_text("print('generate')\n", encoding="utf-8")
+    plan = tmp_path / "PLAN.md"
+    plan.write_text(
+        "> **Owner**: Tester\n\n"
+        "[>] Phase A : Inspect mixed repository\n\n"
+        "## Current Sprint\n"
+        "- [ ] Inspect language signals\n",
+        encoding="utf-8",
+    )
+
+    state = state_generator.generate_state(
+        plan,
+        rules="common",
+        risk="medium",
+        oversight="review-required",
+        memory_mode="candidate",
+    )
+
+    suggestions = state["rule_pack_suggestions"]
+    python = next(item for item in suggestions["language_packs"] if item["name"] == "python")
+    assert python["confidence"] == "low"
+    assert "python" not in suggestions["suggested_rules"]
+    assert "python" in state["suggested_rules_preview"]
+    assert "python" not in state["suggested_skills"]
+    assert state["suggested_agent"] == "advanced-agent"
+
+
 # ---------------------------------------------------------------------------
 # _yaml_str
 # ---------------------------------------------------------------------------

@@ -52,6 +52,27 @@ def test_change_proposal_builder_includes_suggestions_and_impact(local_change_pr
     assert result["proposal_summary"]["requested_rules"] == ["common", "refactor"]
 
 
+def test_change_proposal_keeps_low_confidence_language_preview_only(tmp_path):
+    for index in range(20):
+        (tmp_path / f"Feature{index}.cs").write_text(
+            f"public class Feature{index} {{}}\n",
+            encoding="utf-8",
+        )
+    (tmp_path / "generate.py").write_text("print('generate')\n", encoding="utf-8")
+
+    result = build_change_proposal(
+        project_root=tmp_path,
+        task_text="Inspect mixed repository",
+        rules="common",
+    )
+
+    suggestions = result["rule_pack_suggestions"]
+    python = next(item for item in suggestions["language_packs"] if item["name"] == "python")
+    assert python["confidence"] == "low"
+    assert "python" not in suggestions["suggested_rules"]
+    assert "python" in result["suggested_rules_preview"]
+
+
 def test_change_proposal_builder_human_output_is_actionable(local_change_proposal_root):
     result = build_change_proposal(
         project_root=local_change_proposal_root,
