@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git ls-remote origin refs/heads/main",
+  "exit_code": 0,
+  "started_at": "2026-07-13T10:12:43Z",
+  "finished_at": "2026-07-13T10:12:44Z",
+  "runner": "codex",
+  "linked_commit": "8298e34b14d3613340acdfe39bf967c6bb207842",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-github-main-push-20260713.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
