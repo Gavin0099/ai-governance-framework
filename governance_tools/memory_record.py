@@ -34,6 +34,26 @@ DEFERRED_REASON_TAXONOMY = frozenset({
 
 VACUOUS_DEFERRED_REASONS = frozenset({"later", "todo", "pending", "soon", "tbd"})
 
+_NO_VALIDATION_EVIDENCE_PREFIXES = ("NOT RUN:", "NOT CLAIMED:")
+
+
+def validate_test_evidence(value: str | None) -> tuple[str, str | None]:
+    """Normalize required test evidence without interpreting its truth."""
+    if value is None or not value.strip():
+        return "", (
+            "test_evidence must be non-empty; use 'NOT RUN: <reason>' when no "
+            "validation ran or 'NOT CLAIMED: <boundary>' when no validation "
+            "claim is being made"
+        )
+
+    candidate = value.strip()
+    for prefix in _NO_VALIDATION_EVIDENCE_PREFIXES:
+        if candidate == prefix[:-1] or (
+            candidate.startswith(prefix) and not candidate[len(prefix):].strip()
+        ):
+            return candidate, f"{prefix[:-1]} evidence must include a reason or boundary"
+    return candidate, None
+
 
 def validate_plan_reconciliation(value: str | None) -> tuple[str, str | None]:
     """
@@ -85,6 +105,9 @@ def build_session_derived_record(
     next_step: str,
     plan_reconciliation: str = PLAN_RECONCILIATION_NOT_DECLARED,
 ) -> dict[str, str]:
+    normalized_test_evidence, evidence_error = validate_test_evidence(test_evidence)
+    if evidence_error is not None:
+        raise ValueError(evidence_error)
     return {
         "memory_type": MEMORY_TYPE_SESSION_DERIVED,
         "record_format_version": RECORD_FORMAT_VERSION,
@@ -94,7 +117,7 @@ def build_session_derived_record(
         "commit_hash": commit,
         "session_id": session_id,
         "memory_binding": memory_binding,
-        "test_evidence": test_evidence,
+        "test_evidence": normalized_test_evidence,
         "next_step": next_step,
         "plan_reconciliation": plan_reconciliation,
     }
@@ -117,6 +140,12 @@ def render_session_derived_entry(record: dict[str, str]) -> str:
 
 
 def append_session_derived_entry(*, project_root: Path, record: dict[str, str]) -> Path:
+    normalized_test_evidence, evidence_error = validate_test_evidence(record.get("test_evidence"))
+    if evidence_error is not None:
+        raise ValueError(evidence_error)
+    record = dict(record)
+    record["test_evidence"] = normalized_test_evidence
+
     memory_root = project_root / "memory"
     memory_root.mkdir(parents=True, exist_ok=True)
     daily_path = memory_root / f"{_current_local_date()}.md"
@@ -174,15 +203,20 @@ def build_memory_record_suggestion(
     commit: str,
     session_id: str,
     plan_reconciliation: str,
+    test_evidence: str,
     next_step: str = "[fill in]",
     project_root: str = ".",
 ) -> str:
     """Return a ready-to-paste CLI command that writes a canonical memory entry."""
+    normalized_test_evidence, evidence_error = validate_test_evidence(test_evidence)
+    if evidence_error is not None:
+        raise ValueError(evidence_error)
     return (
         f"python governance_tools/memory_record.py"
         f' --what-changed "{what_changed}"'
         f" --commit {commit}"
         f" --session-id {session_id}"
+        f' --test-evidence "{normalized_test_evidence}"'
         f' --plan-reconciliation "{plan_reconciliation}"'
         f' --next-step "{next_step}"'
         f" --project-root {project_root}"
@@ -198,7 +232,14 @@ def main() -> int:
     parser.add_argument("--next-step", required=True, help="What to do next")
     parser.add_argument("--commit", default=None, help="Git commit hash (auto-detected if omitted)")
     parser.add_argument("--session-id", default=None, help="Session ID (timestamp-based if omitted)")
-    parser.add_argument("--test-evidence", default="", help="Test run evidence")
+    parser.add_argument(
+        "--test-evidence",
+        required=True,
+        help=(
+            "Non-empty validation evidence. When no validation ran, use "
+            "'NOT RUN: <reason>' or 'NOT CLAIMED: <boundary>'."
+        ),
+    )
     parser.add_argument("--project-root", default=".", help="Repository root (default: .)")
     parser.add_argument(
         "--plan-reconciliation",
@@ -214,6 +255,10 @@ def main() -> int:
     plan_reconciliation, plan_error = validate_plan_reconciliation(args.plan_reconciliation)
     if plan_error is not None:
         print(f"[memory_record] error: {plan_error}")
+        return 2
+    test_evidence, evidence_error = validate_test_evidence(args.test_evidence)
+    if evidence_error is not None:
+        print(f"[memory_record] error: {evidence_error}")
         return 2
     project_root = Path(args.project_root).resolve()
     commit = args.commit or _auto_detect_commit(project_root)
@@ -234,7 +279,7 @@ def main() -> int:
             evidence_provenance_advisory = None
             print(f"[memory_record] provenance advisory unavailable: {exc}")
     provenance_advisory = (
-        evidence_provenance_advisory(args.test_evidence, project_root)
+        evidence_provenance_advisory(test_evidence, project_root)
         if evidence_provenance_advisory is not None
         else None
     )
@@ -252,7 +297,7 @@ def main() -> int:
         commit=commit,
         session_id=session_id,
         memory_binding=memory_binding,
-        test_evidence=args.test_evidence,
+        test_evidence=test_evidence,
         next_step=args.next_step,
         plan_reconciliation=plan_reconciliation,
     )

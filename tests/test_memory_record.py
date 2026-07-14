@@ -11,6 +11,7 @@ from governance_tools.memory_record import (
     append_session_derived_entry,
     build_memory_record_suggestion,
     build_session_derived_record,
+    validate_test_evidence,
 )
 
 
@@ -29,6 +30,31 @@ def test_build_session_derived_record_includes_canonical_fields() -> None:
     assert record["commit_hash"] == "abc1234"
 
 
+@pytest.mark.parametrize("test_evidence", (None, "", "   ", "\t\n"))
+def test_validate_test_evidence_rejects_missing_or_blank(test_evidence: str | None) -> None:
+    normalized, error = validate_test_evidence(test_evidence)
+    assert normalized == ""
+    assert error is not None and "must be non-empty" in error
+
+
+@pytest.mark.parametrize("test_evidence", ("NOT RUN", "NOT RUN:", "NOT CLAIMED", "NOT CLAIMED:   "))
+def test_validate_test_evidence_requires_marker_detail(test_evidence: str) -> None:
+    _, error = validate_test_evidence(test_evidence)
+    assert error is not None and "must include" in error
+
+
+def test_build_session_derived_record_rejects_blank_test_evidence() -> None:
+    with pytest.raises(ValueError, match="test_evidence must be non-empty"):
+        build_session_derived_record(
+            what_changed="changed",
+            commit="abc1234",
+            session_id="session-blank",
+            memory_binding="bound",
+            test_evidence="   ",
+            next_step="next",
+        )
+
+
 def test_append_session_derived_entry_writes_expected_lines(tmp_path: Path) -> None:
     record = build_session_derived_record(
         what_changed="changed",
@@ -44,6 +70,25 @@ def test_append_session_derived_entry_writes_expected_lines(tmp_path: Path) -> N
     assert "record_format_version: 1.0" in text
     assert f"writer: {WRITER_ID}" in text
     assert "commit_hash: abc1234" in text
+
+
+def test_append_session_derived_entry_rejects_handcrafted_blank_evidence(tmp_path: Path) -> None:
+    record = {
+        "memory_type": "session-derived",
+        "record_format_version": "1.0",
+        "writer": WRITER_ID,
+        "what_changed": "changed",
+        "commit": "abc1234",
+        "commit_hash": "abc1234",
+        "session_id": "session-handcrafted",
+        "memory_binding": "bound",
+        "test_evidence": " ",
+        "next_step": "next",
+        "plan_reconciliation": "not_applicable",
+    }
+    with pytest.raises(ValueError, match="test_evidence must be non-empty"):
+        append_session_derived_entry(project_root=tmp_path, record=record)
+    assert not (tmp_path / "memory").exists()
 
 
 def test_cli_writes_canonical_entry(tmp_path: Path) -> None:
@@ -80,12 +125,14 @@ def test_build_memory_record_suggestion_returns_cli_command() -> None:
         commit="abc1234",
         session_id="session-1",
         plan_reconciliation="not_applicable",
+        test_evidence="NOT CLAIMED: suggestion-only command",
         next_step="verify",
     )
     assert cmd.startswith("python governance_tools/memory_record.py")
     assert "--what-changed" in cmd
     assert "--commit abc1234" in cmd
     assert "--session-id session-1" in cmd
+    assert '--test-evidence "NOT CLAIMED: suggestion-only command"' in cmd
 
 
 def test_append_session_derived_entry_deduplicates_equivalent_content(tmp_path: Path) -> None:
@@ -183,6 +230,7 @@ def test_cli_rejects_malformed_plan_reconciliation(tmp_path: Path) -> None:
             "--next-step", "verify rejection",
             "--commit", "abc1234",
             "--session-id", "test-session-reject",
+            "--test-evidence", "NOT RUN: malformed declaration probe",
             "--plan-reconciliation", "deferred:later",
             "--project-root", str(tmp_path),
         ],
@@ -203,6 +251,7 @@ def test_cli_missing_plan_reconciliation_rejects_before_memory_write(tmp_path: P
             "--next-step", "verify required declaration",
             "--commit", "abc1234",
             "--session-id", "test-session-advisory",
+            "--test-evidence", "NOT RUN: required declaration probe",
             "--project-root", str(tmp_path),
         ],
         capture_output=True,
@@ -233,6 +282,7 @@ def test_cli_writes_each_explicit_plan_reconciliation_value(
             "--next-step", "verify explicit write",
             "--commit", "abc1234",
             "--session-id", f"test-session-{plan_reconciliation}",
+            "--test-evidence", "NOT RUN: declaration-only test",
             "--plan-reconciliation", plan_reconciliation,
             "--project-root", str(tmp_path),
         ],
@@ -243,6 +293,51 @@ def test_cli_writes_each_explicit_plan_reconciliation_value(
     written = list((tmp_path / "memory").glob("*.md"))
     assert len(written) == 1
     assert f"plan_reconciliation: {plan_reconciliation}" in written[0].read_text(encoding="utf-8")
+
+
+def test_cli_missing_test_evidence_rejects_before_memory_write(tmp_path: Path) -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "governance_tools/memory_record.py",
+            "--what-changed", "missing evidence test",
+            "--next-step", "verify rejection",
+            "--commit", "abc1234",
+            "--session-id", "test-session-missing-evidence",
+            "--plan-reconciliation", "not_applicable",
+            "--project-root", str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 2
+    assert "--test-evidence" in result.stderr
+    assert not (tmp_path / "memory").exists()
+
+
+def test_cli_blank_test_evidence_rejects_before_memory_write(tmp_path: Path) -> None:
+    result = _run_record_cli(tmp_path, "   ")
+    assert result.returncode == 2
+    assert "test_evidence must be non-empty" in result.stdout
+    assert not (tmp_path / "memory").exists()
+
+
+@pytest.mark.parametrize(
+    "test_evidence",
+    (
+        "NOT RUN: validation was outside this docs-only scope",
+        "NOT CLAIMED: no runtime validation claim",
+    ),
+)
+def test_cli_accepts_explicit_no_validation_evidence(
+    tmp_path: Path,
+    test_evidence: str,
+) -> None:
+    result = _run_record_cli(tmp_path, test_evidence)
+    assert result.returncode == 0, result.stderr
+    written = list((tmp_path / "memory").glob("*.md"))
+    assert len(written) == 1
+    assert f"test_evidence: {test_evidence}" in written[0].read_text(encoding="utf-8")
 
 
 # ── Write-time evidence provenance advisory ───────────────────────────────────

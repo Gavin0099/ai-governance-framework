@@ -88,6 +88,15 @@ All new session-derived memory entries must use the canonical writer CLI.
 Direct markdown append in `- what changed:` or `- what_changed:` format is
 prohibited for new entries.
 
+`--test-evidence` is required and must contain non-whitespace evidence. When no
+validation ran, record that boundary explicitly as `NOT RUN: <reason>`. When
+the entry intentionally makes no validation claim, use
+`NOT CLAIMED: <boundary>`. A missing, blank, or marker-only value is rejected
+before the writer creates or appends a daily memory file. This input check does
+not prove that non-empty evidence is true, durable, or admissible; the existing
+provenance advisory and memory authority workflow remain responsible for those
+separate checks.
+
 The guard flags direct-format entries in files dated `>= 2026-05-01` as
 `old_format_entry_after_canonical_writer_cutoff`.
 
