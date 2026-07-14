@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git merge-base --is-ancestor 1b60cdd1b009ea8940dc0c093f8af52ea60db7ff gitlab/main",
+  "exit_code": 0,
+  "started_at": "2026-07-14T02:29:42Z",
+  "finished_at": "2026-07-14T02:29:42Z",
+  "runner": "codex",
+  "linked_commit": "15e1e9262b7f48584797f17b43a744bec6a76877",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-gitlab-f7-target-publish-20260714.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
