@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git ls-remote origin refs/heads/main",
+  "exit_code": 0,
+  "started_at": "2026-07-14T03:19:02Z",
+  "finished_at": "2026-07-14T03:19:03Z",
+  "runner": "codex",
+  "linked_commit": "cc934dc0faa978c658dbc9bed20189ecceb42721",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-framework-dual-remote-sync-20260714.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
