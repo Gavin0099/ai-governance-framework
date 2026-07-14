@@ -2,7 +2,7 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-07-06
+> **最後更新**: 2026-07-14
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
@@ -637,6 +637,29 @@ CodeBurn / token observation:
   or decision-safe cost analysis.
 
 ## Pending Work - Ordered
+
+P0 - composite workspace census evidence closeout (completed 2026-07-14):
+
+- [x] Independently review and approve the eToken-only composite workspace
+  authority tech spec while preserving repository sovereignty, discovery-only
+  IDE evidence, and repo-local F-7 completion semantics.
+- [x] Implement the report-only census in `6e4e5439` with an explicit
+  coordinator root and sibling allowlist; keep every valid membership
+  `unratified` and prohibit consumer writes, F-7 invocation, commit, and push.
+- [x] Run the census against isolated copies of the three eToken repositories;
+  confirm the four-line human conclusion and JSON agree with
+  `E2-CONSUMER-03`, with the original consumer repositories unchanged.
+- [x] Reconcile the tech spec and E2 packet to the implementation checkpoint
+  and isolated validation result.
+
+Claim ceiling: the report-only census exists and exposes per-repository gaps.
+It does not establish bilateral membership, workspace governance authority,
+workspace-wide F-7, G4 operator value, or general fleet demand. The live eToken
+census JSON was not retained as a durable tracked receipt.
+
+Deferred follow-up: observe normal-user census use before claiming G4 value,
+then request a separate owner decision on any bilateral membership endpoint.
+Do not expand F-7 from this completed tranche.
 
 P0 - cache-aware authority manifest implementation readiness:
 

@@ -1,9 +1,34 @@
 # Composite Workspace Sibling Governance Authority — Review-Only Tech Spec
 
-Status: proposal-only; review required; no implementation authority
+Status: independently reviewed and approved; first report-only tranche
+implemented at `6e4e5439`; no F-7 expansion authority
 
 Case boundary: `E2-CONSUMER-03`, the eToken System ART multi-root workspace,
 is the sole evidence case used by this specification.
+
+## Review and Implementation Disposition
+
+The authority model and the report-only first tranche were independently
+reviewed and approved. Commit `6e4e5439` implemented the bounded census as
+`governance_tools/composite_workspace_census.py` with focused coverage in
+`tests/test_composite_workspace_census.py`.
+
+The implementation accepts one explicit coordinator root plus an explicit
+sibling allowlist, reports each Git repository independently, and leaves every
+valid repository's membership `unratified`. It does not read a workspace file
+as authority, invoke F-7, write consumer repositories, create membership
+artifacts, commit, or push.
+
+An isolated run against the three eToken repositories produced the four-line
+human summary and parseable JSON expected by this specification. Its per-repo
+governance gaps agreed with the existing `E2-CONSUMER-03` evidence packet, and
+the original consumer repositories remained unchanged and clean. The raw live
+census JSON was not retained as a durable tracked receipt, so this disposition
+records the reviewed result without claiming future byte-for-byte replay.
+
+This checkpoint closes only the report-only census tranche. Bilateral
+membership, workspace authority, sibling mutation, aggregate F-7 execution,
+and workspace-wide completion remain unimplemented and unapproved.
 
 ## Problem
 
@@ -347,11 +372,14 @@ evidence packet to match the tool.
 
 ## Affected Surfaces
 
-This review-only slice adds only this document.
+The original review-only slice added only this document. The subsequently
+approved first implementation tranche added:
 
-If a later implementation is approved, likely affected surfaces are:
+- `governance_tools/composite_workspace_census.py`;
+- `tests/test_composite_workspace_census.py`;
 
-- a new report-only governance tool and focused tests;
+Possible later, separately reviewed surfaces remain:
+
 - adoption-role documentation;
 - optionally, a later separately reviewed declaration schema and validator;
 - optionally, a later workspace orchestrator and aggregate reporting contract.
@@ -368,25 +396,27 @@ This specification may claim:
   coverage gap;
 - IDE workspace membership is insufficient governance authority;
 - bilateral opt-in plus per-repo execution is the recommended target model;
-- the smallest next tranche should be report-only.
+- the report-only census tranche exists at `6e4e5439` and was exercised against
+  isolated eToken repositories without modifying the originals.
 
 This specification cannot claim:
 
 - composite workspace governance exists;
 - bilateral membership artifacts or schemas exist;
 - F-7 supports or updates sibling repositories;
-- the proposed aggregate vocabulary is implemented;
+- the census grants membership or governance authority;
 - eToken server/client are governed members;
 - workspace-wide adoption, hooks, runtime, validator, memory, CI, commit, or
   push enforcement;
-- the recommended architecture has been validated or approved;
+- the full bilateral authority architecture has been behaviorally validated;
+- the census reduced operator effort or improved comprehension in normal use;
 - one eToken case proves general fleet demand or effectiveness.
 
-## Implementation Tranche Recommendation
+## First Implementation Tranche - Completed
 
-Do not expand F-7 in the first implementation tranche.
+The approved first tranche was completed by `6e4e5439`. F-7 was not expanded.
 
-Recommended first tranche:
+Implemented tranche:
 
 > Add a report-only composite workspace census/audit that accepts an explicit
 > coordinator root plus an explicit candidate-root allowlist, resolves each Git
@@ -404,18 +434,19 @@ Constraints for that tranche:
 - explicit evidence and cannot-claim fields;
 - eToken isolated clones as the only real-case validation after fixtures pass.
 
-Only after this audit demonstrates stable classification and the owner approves
-a bilateral declaration model should a separate schema/validator slice be
-proposed. A workspace orchestrator should be considered after that. The
-repo-local F-7 core should remain unchanged unless independent evidence shows
-that orchestration cannot safely live above it.
+Only after G4 usage observation demonstrates that the census is useful in
+normal work, and the owner separately approves a bilateral declaration model,
+should a schema/validator slice be proposed. A workspace orchestrator should be
+considered after that. The repo-local F-7 core remains unchanged unless
+independent evidence shows that orchestration cannot safely live above it.
 
-## Review Decision Requested
+## Review Decision and Disposition
 
-1. Accept that repo sovereignty outranks workspace convenience?
-2. Accept `.code-workspace` as discovery-only evidence?
-3. Accept bilateral opt-in as the minimum authority for future sibling writes?
-4. Keep `full_update_completed` repo-local and use a distinct future aggregate
-   workspace status?
-5. Approve the report-only census/audit as the only next implementation tranche
-   and defer F-7 expansion?
+1. Repo sovereignty outranks workspace convenience: **accepted**.
+2. `.code-workspace` is discovery-only evidence: **accepted**.
+3. Bilateral opt-in is the minimum authority for future sibling writes:
+   **accepted as a design boundary; not implemented**.
+4. `full_update_completed` remains repo-local; any future aggregate workspace
+   status must remain distinct: **accepted**.
+5. The report-only census/audit was approved and completed at `6e4e5439`;
+   F-7 expansion remains deferred.

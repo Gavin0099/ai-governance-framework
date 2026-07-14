@@ -1,7 +1,8 @@
 # E2 Composite-Workspace Evidence — eToken System ART
 
-Status: review-only evidence packet; owner-relayed user report plus repository
-history and isolated F-7 test evidence; no consumer commit or push
+Status: reviewed evidence packet; owner-relayed user report, repository
+history, isolated F-7 evidence, and isolated report-only census validation; no
+consumer commit or push
 
 Stable evidence identifier: `E2-CONSUMER-03`
 
@@ -30,10 +31,10 @@ same test also exposed a composite-workspace boundary: F-7 updated only
 automatically receive AGENTS files, hooks, a domain contract, or repository
 readiness.
 
-Reviewer disposition requested: accept this as bounded E2 onboarding and F-7
-workflow evidence for one composite consumer, while retaining the sibling
-governance gap as an open finding. Do not count the three repositories as
-three independent onboardings.
+Reviewer disposition: accepted as bounded E2 onboarding and repo-local F-7
+workflow evidence for one composite consumer. The sibling governance gap
+remains open. The three repositories are not counted as three independent
+onboardings.
 
 ## Consumer Identity and Workspace Topology
 
@@ -173,6 +174,30 @@ This is an observed composite-workspace coverage gap, not evidence that F-7
 failed for its current single-repository contract. The 2026-07-14
 `full_update_completed` result applies to `etoken-system-art` only.
 
+## Report-Only Composite Census Evidence
+
+Framework commit `6e4e5439` added the approved report-only composite workspace
+census. The tool requires one explicit coordinator root and an explicit sibling
+allowlist; it does not infer authority from the `.code-workspace` file.
+
+After focused implementation review, the census was run against isolated
+copies of `etoken-system-art`, `etoken-server-art`, and `etoken-client-art`.
+The four-line human conclusion and parseable JSON reported each Git repository
+separately and reproduced the same governance/readiness gaps recorded above:
+the system repository remained the partial coordinator, while the server and
+client repositories still lacked the listed repo-local governance surfaces.
+
+All valid repository entries remained `membership_status=unratified`, meaning
+the tool observed candidate repositories but granted none of them composite
+workspace authority. The run was report-only: it did not invoke F-7, modify the
+isolated or original consumer repositories, create commits, or push. Original
+consumer HEAD and clean-state checks remained unchanged after the run.
+
+The live census output was reviewed in-session but was not retained as a
+durable tracked JSON receipt. This packet therefore records agreement between
+the report and the prior evidence, but cannot support future byte-for-byte
+replay of that run.
+
 ## Claim Ceiling
 
 Can claim:
@@ -190,6 +215,8 @@ Can claim:
   was absent.
 - The server and client sibling repositories did not automatically gain
   repo-local governance surfaces from the system-repository F-7 run.
+- The report-only census at `6e4e5439` can show the three repositories and their
+  independent readiness gaps without granting membership or modifying them.
 
 Cannot claim:
 
@@ -203,12 +230,17 @@ Cannot claim:
 - A durable consumer commit, merge, or remote publication from this test.
 - That the machine-local receipt will remain available after temporary-file
   cleanup.
+- Ratified composite membership, workspace-wide authority, or workspace-wide
+  F-7 support.
+- That the census reduces operator effort, improves comprehension, or has been
+  adopted in normal engineer workflow.
 
-## Reviewer Questions
+## Review Disposition
 
-1. Accept `E2-CONSUMER-03` as one composite-workspace onboarding record rather
-   than three consumer records?
-2. Accept the isolated F-7 run as evidence of the current single-repo workflow
-   while preserving `adoption_status=partial`?
-3. Record sibling governance coverage as an observed gap requiring a separate
-   design/reconciliation slice before any cross-repo coverage claim?
+1. `E2-CONSUMER-03` is one composite-workspace onboarding record, not three
+   consumer records.
+2. The isolated F-7 run is accepted as evidence of the current single-repo
+   workflow while preserving `adoption_status=partial`.
+3. Sibling governance coverage remains an observed gap. The report-only census
+   makes that gap visible but does not resolve it or authorize cross-repo
+   mutation.
