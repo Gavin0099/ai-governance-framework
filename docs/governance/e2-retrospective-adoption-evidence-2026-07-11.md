@@ -26,6 +26,34 @@ claim that a consumer is fully governed.
 | Remaining owner dependency | The engineer sought owner help to determine whether adoption was complete and requested newcomer-oriented guidance. | retrospective / self-reported |
 | C# / Avalonia gap | The engineer considered cross-platform / C# governance rules too sparse and added nine Markdown files under the owner-provided snapshot path. The files are now inventoried and classified, and one bounded framework import was completed. Consumer-local provenance and use remain unverified. | retrospective / self-reported observation plus owner-commissioned, engineer-provided local snapshot; partial artifact evidence |
 
+## Owner Intervention Count
+
+Evidence grade: `retrospective / owner-reported`. The count is based on the
+owner's 2026-07-14 reconstruction and is not independently derived from tickets,
+timestamps, or a complete transcript.
+
+`owner_intervention_count: 4` — four distinct owner intervention cycles were
+needed before the original user could see the F-7 update-status table and
+continue development without another observed intervention in this onboarding
+sequence. The unit is an intervention cycle, not a chat message, command, or
+individual validation run.
+
+| Intervention | Trigger | Classification | Owner action and observed result |
+| ---: | --- | --- | --- |
+| 1 | The user needed initial guidance for applying AI Governance to the repository. | onboarding guidance | The owner explained the process; the user then used an AI agent for the first application attempt. |
+| 2 | A next-day check found that `AGENTS.md` and memory had not updated correctly. | corrective workflow | The owner asked the user to repeat a complete AI-agent-led adoption and add tests. |
+| 3 | A later check found that memory still was not updating daily. | corrective implementation and validation | The owner improved F-7 and its update-status table, then validated the table in the owner's environment and with another user. Those validation runs belong to this intervention and are not counted as separate interventions for the original user. |
+| 4 | The original user still could not see the update-status table after the broader validation had passed. | diagnosis and corrective implementation | Another F-7 bug was identified and fixed. The original user then saw the table and resumed self-directed development. |
+
+Three cycles involved direct guidance or correction for the original user; one
+cycle was framework-side remediation caused by the same onboarding failure.
+E2 counts all four because it measures the owner's total intervention required
+to make this onboarding path usable.
+
+This supports a bounded claim that four owner intervention cycles occurred in
+this onboarding sequence. It does not prove sustained independence, zero future
+support, low onboarding friction, or a causal improvement in product quality.
+
 ## Consumer and F-7 Evidence Follow-Up — 2026-07-14
 
 The companion [consumer identifier and F-7 evidence index](e2-consumer-f7-evidence-2026-07-02.md)
@@ -93,12 +121,10 @@ quality, delivery speed, or agent truthfulness.
 
 ## Evidence Still Needed
 
-1. Owner intervention count, including whether intervention was diagnostic,
-   documentation, or corrective implementation work.
-2. A consumer-local commit or adoption artifact binding the nine-file snapshot
+1. A consumer-local commit or adoption artifact binding the nine-file snapshot
    to the identified consumer, including which rules remained consumer-owned and
    whether the imported framework subset was later loaded there.
-3. The first engineer's independent onboarding record or friction log before
+2. The first engineer's independent onboarding record or friction log before
    any claim based on both engineer onboardings, sustained adoption, or low
    onboarding friction.
 
@@ -119,6 +145,8 @@ Can claim:
   GitLab publication evidence.
 - The 2026-07-14 isolated run supports `full_update_completed` for the F-7
   workflow while the distinct adoption summary remains `partial`.
+- The owner retrospectively reports four intervention cycles: three direct
+  user-facing cycles and one framework-side remediation cycle.
 - Plan and memory workflow were reported as useful in day-to-day work.
 - The engineer-provided nine-file C# / Avalonia snapshot was inventoried and
   classified, and commit `93b4b28b` imported one bounded threading subset.
@@ -131,6 +159,8 @@ Cannot claim:
 - Merge of the isolated WIP evidence into the consumer's default branch, or an
   update to the original consumer checkout.
 - F-7 reliability across every consumer or repo role.
+- Independent verification of the intervention count, exact intervention
+  duration, or a complete interaction transcript.
 - Low framework friction, sustained lifecycle use, or E2 closure.
 - Complete C# / Avalonia support.
 - Consumer authorship, consumer-commit binding, or consumer activation of the
