@@ -199,3 +199,108 @@ The framework's value is its ability to force confrontation with unanticipated
 boundary conditions during execution, not the completeness of its pre-planned
 rules. v2 direction: strengthen the framework's ability to surface surprises
 rather than add more pre-emptive rules.
+
+---
+
+## G3 to G4 Consumer-Driven Outcome Goal (owner-ratified 2026-07-14)
+<!-- memory_type: structural_long_term -->
+<!-- promotion_status: authoritative -->
+<!-- promoted_by: Gavin / 2026-07-14 -->
+<!-- promoted_at: 2026-07-14 -->
+<!-- source_anchor: owner decision in main session; observed CFU, eToken, F-7, and memory-handoff cases -->
+
+### Current Claim Ceiling
+
+G3 core capabilities are mature. Some foundations for G4 measurement exist,
+but there is not yet sustained, comparable outcome evidence.
+
+Do not claim that the framework has reached G4 merely because runtime gates,
+receipts, memory writers, census reports, or many session-derived records exist.
+Those artifacts show governance activity and technical capability; they do not
+by themselves prove durable engineering outcomes.
+
+### Long-Term Operating Loop
+
+Keep consumer-driven development as the primary framework evolution path:
+
+1. A natural consumer task uses the current governance framework.
+2. Record the observed problem and its practical impact before proposing a fix.
+3. Classify the problem as consumer-specific, user-understanding, reporting,
+   environment, or a reusable framework-level gap.
+4. Modify the framework only when the classification supports a shared need.
+5. Replay the change in the originating consumer without overstating test-only
+   success as consumer success.
+6. Record the outcome, cost, recurrence, and whether another consumer benefits.
+
+Correctness, security, authority, false-success, and reproducible evidence
+integrity failures can justify framework work after one real consumer case.
+Convenience, orchestration, dashboards, new schemas, and generalized reporting
+normally require repeated natural use or evidence from a second consumer.
+
+A framework change is implementation-complete after scoped tests and review.
+The consumer problem is solved only after consumer replay. Transferability is
+supported only by repeated or independent consumer evidence.
+
+### G4 Unit of Analysis
+
+A session-derived record is an operational record, not one G4 sample. One
+independent work item may produce many sessions, sub-agent reviews, evidence
+corrections, commits, push checks, and memory records.
+
+G4 analysis must group those events under the real work item and distinguish:
+
+- independent natural consumer tasks;
+- outcome-complete cases;
+- unique users, repositories, and domains;
+- sessions or interventions per work item;
+- repeated observations of the same defect from genuinely independent cases.
+
+Do not convert session volume directly into projected outcome sample counts.
+
+### Evidence Still Required Before G4 Can Be Claimed
+
+- Measured effect on real engineering tasks.
+- Measured governance execution and maintenance cost.
+- Sustained records of naturally occurring interception events.
+- False-positive and false-negative observations.
+- Independent use by non-authors without owner assistance.
+- Before-and-after rework or review differences.
+- Evidence that memory reduces cross-session re-derivation.
+- Evidence that receipts change later agent behavior.
+- Evidence that governance benefit exceeds its maintenance cost.
+
+For early observation, use the cheapest durable artifact already available,
+such as an existing Markdown table or spreadsheet. A useful manual case record
+may contain: work-item identity, consumer and task, observed failure and impact,
+classification, framework change if any, consumer replay, owner interventions,
+outcome, recurrence, and transfer evidence. This is guidance for observation,
+not authorization to create a new ledger schema or tool.
+
+### Tool Admission And Stop Rule
+
+New framework tooling is justified when it responds to a real consumer block,
+a repeated failure, an unsafe or false result, an authority gap, a workflow the
+existing framework cannot handle safely, or a measured governance cost. It
+must have a clear caller, owner, acceptance condition, and consumer replay path.
+
+Do not add a tool solely for future utility, theoretical completeness, a G4
+score, a dashboard, maturity optics, or automation of a one-off analysis. Do not
+build a G4 ledger CLI, outcome schema, validator, dashboard, ROI calculator, or
+migration before manual observations show that the fields are stable and used.
+
+The composite-workspace census remains a bounded report-only capability. Do not
+expand it into workspace-wide F-7 or cross-repository modification authority
+until normal consumer use demonstrates value and bilateral authority is agreed.
+If a new capability receives no natural reuse, stop expansion instead of adding
+more telemetry to prove that the capability was worthwhile.
+
+### Time And Success Boundary
+
+Four to six weeks may reveal early signals only when real consumer demand exists.
+Two to three months may yield an analyzable set of natural cases. Six to twelve
+months is a more appropriate horizon for non-author persistence and transfer.
+Company-level G4 assessment begins only after formal organizational adoption.
+
+These are observation horizons, not deadlines or sample guarantees. G4 remains
+unclaimed until outcome evidence is sustained, comparable, independently used,
+and strong enough to evaluate benefit against governance cost.
