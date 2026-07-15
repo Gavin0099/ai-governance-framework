@@ -693,6 +693,24 @@ def test_existing_memory_normalization_flags_active_guard_violations(tmp_path: P
     assert _check_existing_memory_normalization(repo) == "needed"
 
 
+def test_existing_memory_normalization_is_cwd_independent(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = tmp_path / "repo"
+    _init_repo(repo)
+    memory_dir = repo / "memory"
+    memory_dir.mkdir()
+    (memory_dir / "2026-04-30.md").write_text("# Historical memory\n", encoding="utf-8")
+    _commit_all(repo, "test: add historical memory")
+
+    launch_dir = tmp_path / "launch"
+    launch_dir.mkdir()
+    monkeypatch.chdir(launch_dir)
+
+    assert _check_existing_memory_normalization(repo) == "verified"
+
+
 def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
     consumer, _framework, old_head, new_head = _make_fixture(tmp_path)
     (consumer / "unrelated.txt").write_text("dirty\n", encoding="utf-8")

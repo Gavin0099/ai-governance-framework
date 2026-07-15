@@ -715,6 +715,8 @@ def _check_existing_memory_normalization(repo: Path) -> str:
             sys.executable,
             "-m",
             "governance_tools.memory_authority_guard",
+            "--memory-root",
+            str(memory_dir.resolve()),
             "--project-root",
             str(repo),
             "--format",
@@ -725,6 +727,7 @@ def _check_existing_memory_normalization(repo: Path) -> str:
         errors="replace",
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        cwd=Path(__file__).resolve().parent.parent,
         check=False,
     )
     if completed.returncode != 0:
