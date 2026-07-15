@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_external_repo_smoke.py tests/test_governance_maturity_summary.py --basetemp .tmp_g4_receipt -p no:cacheprovider",
+  "exit_code": 0,
+  "started_at": "2026-07-15T10:59:00Z",
+  "finished_at": "2026-07-15T10:59:23Z",
+  "runner": "pytest",
+  "linked_commit": "db836058192184760d57ebdfd3f9414c5158bfe1",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-external-runtime-claim-reconciliation-db836058.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
