@@ -15,7 +15,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from governance_tools.adoption_doctor import AdoptionDoctorReport, inspect_adoption
+from governance_tools.adoption_doctor import AdoptionDoctorReport, _read_hook_framework_root, inspect_adoption
 from governance_tools.agents_calibration_maturity import (
     AgentsCalibrationMaturity,
     assess_agents_calibration_maturity,
@@ -870,6 +870,102 @@ def _readiness_capabilities(readiness_report: object) -> dict[str, CapabilitySta
     return capabilities
 
 
+def _external_runtime_execution_capability(
+    repo: Path,
+    adoption_report: object,
+    readiness_report: object,
+    hook_report: object,
+    runtime_evidence: CapabilityStatus,
+) -> CapabilityStatus:
+    """Classify observed execution for an externally hosted runtime only.
+
+    This status is intentionally separate from adoption_doctor.runtime_capable:
+    it proves one retained, attributable smoke result under verified static
+    prerequisites, not self-contained execution, hook enforcement, or release
+    readiness.
+    """
+    dependency = getattr(getattr(adoption_report, "external_framework_dependency", None), "value", None)
+    hook_root = getattr(getattr(adoption_report, "hook_config_framework_root", None), "value", None)
+    if dependency != "observed" or hook_root != "external":
+        return _capability(
+            "Not Applicable",
+            "governance_maturity_summary.external_runtime_execution",
+            ["external runtime execution applies only when the framework dependency and hook root are external"],
+        )
+    if getattr(readiness_report, "ready", None) is not True:
+        return _capability(
+            "Unproven",
+            "governance_maturity_summary.external_runtime_execution",
+            ["external runtime prerequisites are not ready", *runtime_evidence.reasons],
+        )
+    if not getattr(hook_report, "valid", False):
+        return _capability(
+            "Unproven",
+            "governance_maturity_summary.external_runtime_execution",
+            ["external hook installation is not verified", *runtime_evidence.reasons],
+        )
+    if runtime_evidence.state == "Verified":
+        evidence_path_text = next(
+            (reason.removeprefix("evidence_path=") for reason in runtime_evidence.reasons if reason.startswith("evidence_path=")),
+            None,
+        )
+        if not evidence_path_text:
+            return _capability(
+                "Unproven",
+                "governance_maturity_summary.external_runtime_execution",
+                ["retained runtime smoke does not expose an evidence path for framework identity binding"],
+            )
+        try:
+            payload = json.loads(Path(evidence_path_text).read_text(encoding="utf-8-sig"))
+        except (OSError, json.JSONDecodeError):
+            return _capability(
+                "Unproven",
+                "governance_maturity_summary.external_runtime_execution",
+                [f"runtime smoke evidence could not be re-read: {evidence_path_text}"],
+            )
+        configured_root = _read_hook_framework_root(repo)
+        receipt_root = payload.get("framework_root") if isinstance(payload, dict) else None
+        receipt_commit = payload.get("framework_commit") if isinstance(payload, dict) else None
+        if configured_root is None or not isinstance(receipt_root, str) or not receipt_root.strip():
+            return _capability(
+                "Unproven",
+                "governance_maturity_summary.external_runtime_execution",
+                ["runtime smoke evidence lacks a framework root binding"],
+            )
+        try:
+            bound_root = Path(receipt_root).resolve()
+        except (OSError, RuntimeError):
+            bound_root = None
+        if bound_root != configured_root.resolve():
+            return _capability(
+                "Unproven",
+                "governance_maturity_summary.external_runtime_execution",
+                [f"runtime smoke framework root does not match current hook root: receipt={receipt_root} configured={configured_root}"],
+            )
+        current_commit = _git_stdout(configured_root, ["rev-parse", "HEAD"])
+        if not isinstance(receipt_commit, str) or not receipt_commit or current_commit != receipt_commit:
+            return _capability(
+                "Unproven",
+                "governance_maturity_summary.external_runtime_execution",
+                [f"runtime smoke framework commit does not match current hook root: receipt={receipt_commit} configured={current_commit}"],
+            )
+        return _capability(
+            "Verified",
+            "governance_maturity_summary.external_runtime_execution",
+            [
+                "external dependency observed, hook installation verified, readiness verified, and latest attributable runtime smoke passed",
+                f"framework_identity={configured_root}@{current_commit}",
+                *runtime_evidence.reasons,
+                "does not prove self-contained runtime governance, hook enforcement, CI/fleet enforcement, or release readiness",
+            ],
+        )
+    return _capability(
+        runtime_evidence.state,
+        "governance_maturity_summary.external_runtime_execution",
+        ["external runtime prerequisites are present but retained smoke evidence is not verified", *runtime_evidence.reasons],
+    )
+
+
 def _hook_capability(hook_report: object) -> CapabilityStatus:
     reasons: list[str] = []
     errors = list(getattr(hook_report, "errors", []) or [])
@@ -1027,6 +1123,7 @@ def _find_runtime_smoke_evidence(repo_root: Path) -> CapabilityStatus:
                 "latest attributable runtime smoke result by reported generated_at "
                 f"ok=true generated_at={generated_at_text}: {path}"
             ]
+            reasons.append(f"evidence_path={path}")
             repo_value = payload.get("repo_root") if isinstance(payload, dict) else None
             if repo_value:
                 reasons.append(f"reported_repo_root={repo_value}")
@@ -1236,6 +1333,13 @@ def build_governance_maturity_summary(
     capability_states.update(_readiness_capabilities(readiness_report))
     capability_states["hook_installation"] = _hook_capability(hook_report)
     capability_states["runtime_evidence"] = runtime_evidence
+    capability_states["external_runtime_execution"] = _external_runtime_execution_capability(
+        repo,
+        adoption_report,
+        readiness_report,
+        hook_report,
+        runtime_evidence,
+    )
     owner_actions = _derive_owner_actions(
         repo=repo,
         adoption_report=adoption_report,
