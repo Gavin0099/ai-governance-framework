@@ -271,6 +271,71 @@ def test_f7_submodule_backend_surfaces_governance_maturity_summary(monkeypatch, 
     assert "AI Governance 功能導入狀態：" in rendered
 
 
+def test_f7_submodule_staged_blocker_still_relays_adoption_table(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    framework = tmp_path / "framework"
+    _make_framework(framework)
+    _init_repo(repo)
+    _write(
+        repo / ".gitmodules",
+        '[submodule "ai-governance-framework"]\n'
+        "\tpath = ai-governance-framework\n"
+        "\turl = https://github.com/Gavin0099/ai-governance-framework.git\n",
+    )
+    _write(repo / "ai-governance-framework" / "README.md", "partial framework checkout\n")
+    _git(repo, "add", ".gitmodules")
+
+    import governance_tools.f7_full_update as f7
+
+    called: dict[str, object] = {}
+
+    def fake_update(**kwargs):
+        called.update(kwargs)
+        return UpdateResult(
+            ok=False,
+            mode="dry_run",
+            update_mode="failed",
+            fast_forward=None,
+            repo=str(repo),
+            submodule_path="ai-governance-framework",
+            before_head="a" * 40,
+            target_head="",
+            after_head="a" * 40,
+            staged_files=[],
+            committed=False,
+            commit_hash=None,
+            message="submodule pointer update failed",
+            errors=["consuming repo has pre-existing staged files; refusing to mix scopes"],
+            full_update_stage_report={
+                "final_status": "blocked",
+                "framework_pointer": "blocked",
+            },
+        )
+
+    monkeypatch.setattr(f7, "update_governance_submodule", fake_update)
+
+    result = run_f7_full_update(repo_root=repo, framework_root=framework, apply=False)
+
+    assert called["dry_run"] is True
+    assert result.repo_role == "submodule_consumer"
+    assert result.f7_final_status == "blocked"
+    assert result.errors == [
+        "consuming repo has pre-existing staged files; refusing to mix scopes"
+    ]
+    assert result.stages["governance_maturity_summary"]["report_only"] is True
+    assert result.final_report_requirement["status"] == "required"
+    assert result.final_report_table_required["status"] == "required"
+    assert result.final_report_table_required["table_rows"]
+    assert result.ai_governance_update_result["human_readable_adoption_summary"][
+        "value"
+    ] == "reported"
+    rendered = format_human(result)
+    assert "[human_readable_adoption_summary]" in rendered
+
+
 def test_f7_submodule_backend_surfaces_target_freshness_downgrade(
     monkeypatch,
     tmp_path: Path,

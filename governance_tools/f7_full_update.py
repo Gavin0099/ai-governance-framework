@@ -678,7 +678,11 @@ def run_f7_full_update(
             f7_final_status=BLOCKED,
             errors=[f"not a usable git repo: {repo_root}"],
         )
-    if _has_staged_changes(repo_root):
+    # Submodule consumers have their own pre-mutation staged-scope guard. Let
+    # that backend produce its structured blocked result so dry-run reporting
+    # still includes the report-only maturity summary and adoption table.
+    # Other repo roles keep the orchestrator-level guard below.
+    if _has_staged_changes(repo_root) and role != "submodule_consumer":
         return F7Result(
             ok=False,
             mode="apply" if apply else "dry_run",

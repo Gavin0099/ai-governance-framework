@@ -958,6 +958,32 @@ def test_refuses_when_nested_submodule_has_tracked_changes(tmp_path: Path) -> No
     assert _git(consumer, "diff", "--cached", "--name-only") == ""
 
 
+def test_apply_refuses_preexisting_staged_files_before_mutation_and_reports_summary(
+    tmp_path: Path,
+) -> None:
+    consumer, _framework, old_head, _new_head = _make_fixture(tmp_path)
+    (consumer / "unrelated.txt").write_text("staged user work\n", encoding="utf-8")
+    _git(consumer, "add", "unrelated.txt")
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=True,
+    )
+
+    assert result.ok is False
+    assert result.mode == "apply"
+    assert result.update_mode == "failed"
+    assert result.full_update_stage_report["final_status"] == "blocked"
+    assert result.full_update_stage_report["governance_maturity_summary"][
+        "report_only"
+    ] is True
+    assert "pre-existing staged files" in result.errors[0]
+    assert _git(consumer / "ai-governance-framework", "rev-parse", "HEAD") == old_head
+    assert _git(consumer, "diff", "--cached", "--name-only") == "unrelated.txt"
+
+
 def test_allows_untracked_files_in_nested_submodule(tmp_path: Path) -> None:
     consumer, _framework, _old_head, new_head = _make_fixture(tmp_path)
     nested = consumer / "ai-governance-framework"
