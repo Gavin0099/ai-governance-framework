@@ -8,11 +8,16 @@ import yaml
 
 from governance_tools.governance_version_check import (
     ALLOWED_VERDICTS,
+    F7_EXECUTION_BY_THIS_COMMAND,
+    HUMAN_READABLE_ADOPTION_SUMMARY_BY_THIS_COMMAND,
+    VERSION_CHECK_CLAIM_BOUNDARY,
     VersionCompatibilityResult,
     _parse_version,
     _satisfies,
+    build_cli_json_payload,
     check_version_compatibility,
     format_summary,
+    main,
     write_compatibility_artifact,
 )
 
@@ -297,6 +302,53 @@ def test_result_to_dict_is_serializable(tmp_path: Path) -> None:
     # Must be JSON-serializable without error
     serialized = json.dumps(d)
     assert "compatible" in serialized
+    assert "f7_execution_by_this_command" not in d
+
+
+def test_cli_json_payload_adds_command_scope_without_changing_verdict(
+    tmp_path: Path,
+) -> None:
+    req_path, manifest_path = _make_paths(tmp_path)
+    result = check_version_compatibility(
+        required_versions_path=req_path,
+        version_manifest_path=manifest_path,
+        checked_at="2026-04-24T00:00:00Z",
+    )
+
+    payload = build_cli_json_payload(result)
+
+    assert payload["verdict"] == result.verdict == "compatible"
+    assert payload["checks"] == result.to_dict()["checks"]
+    assert payload["f7_execution_by_this_command"] == F7_EXECUTION_BY_THIS_COMMAND
+    assert (
+        payload["human_readable_adoption_summary_by_this_command"]
+        == HUMAN_READABLE_ADOPTION_SUMMARY_BY_THIS_COMMAND
+    )
+    assert payload["claim_boundary"] == VERSION_CHECK_CLAIM_BOUNDARY
+
+
+def test_json_cli_reports_command_scope_and_keeps_compatible_exit_code(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    req_path, manifest_path = _make_paths(tmp_path)
+
+    exit_code = main(
+        [
+            "--required-versions",
+            str(req_path),
+            "--version-manifest",
+            str(manifest_path),
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["verdict"] == "compatible"
+    assert payload["f7_execution_by_this_command"] == "not_run"
+    assert payload["human_readable_adoption_summary_by_this_command"] == "not_reported"
+    assert payload["claim_boundary"] == VERSION_CHECK_CLAIM_BOUNDARY
 
 
 def test_write_compatibility_artifact(tmp_path: Path) -> None:
@@ -352,6 +404,9 @@ def test_format_summary_compatible(tmp_path: Path) -> None:
     summary = format_summary(result)
     assert "compatible" in summary
     assert "framework_version" in summary
+    assert "F-7 execution by this command: NOT RUN" in summary
+    assert "human_readable_adoption_summary by this command: NOT REPORTED" in summary
+    assert f"claim boundary: {VERSION_CHECK_CLAIM_BOUNDARY}" in summary
 
 
 def test_format_summary_unsupported(tmp_path: Path) -> None:
@@ -365,6 +420,8 @@ def test_format_summary_unsupported(tmp_path: Path) -> None:
     summary = format_summary(result)
     assert "UNSUPPORTED" in summary
     assert "error" in summary
+    assert "F-7 execution by this command: NOT RUN" in summary
+    assert "human_readable_adoption_summary by this command: NOT REPORTED" in summary
 
 
 # ---------------------------------------------------------------------------

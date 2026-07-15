@@ -41,6 +41,13 @@ DEFAULT_REQUIRED_VERSIONS_PATH = "governance/runtime/required_versions.yaml"
 DEFAULT_VERSION_MANIFEST_PATH = ".governance/version_manifest.yaml"
 DEFAULT_ARTIFACT_PATH = "artifacts/governance/version_compatibility.json"
 
+F7_EXECUTION_BY_THIS_COMMAND = "not_run"
+HUMAN_READABLE_ADOPTION_SUMMARY_BY_THIS_COMMAND = "not_reported"
+VERSION_CHECK_CLAIM_BOUNDARY = (
+    "compatibility result only; this command does not prove "
+    "AI Governance update completion"
+)
+
 
 # ---------------------------------------------------------------------------
 # Version comparison (stdlib only, no packaging dependency)
@@ -297,6 +304,26 @@ def write_compatibility_artifact(result: VersionCompatibilityResult, artifact_pa
     )
 
 
+def build_cli_json_payload(result: VersionCompatibilityResult) -> dict[str, object]:
+    """Return CLI JSON with command-scope claim-boundary advisories.
+
+    These fields intentionally stay out of ``VersionCompatibilityResult`` and
+    the persisted compatibility artifact so this report-only clarification
+    does not silently change the artifact schema.
+    """
+    payload = result.to_dict()
+    payload.update(
+        {
+            "f7_execution_by_this_command": F7_EXECUTION_BY_THIS_COMMAND,
+            "human_readable_adoption_summary_by_this_command": (
+                HUMAN_READABLE_ADOPTION_SUMMARY_BY_THIS_COMMAND
+            ),
+            "claim_boundary": VERSION_CHECK_CLAIM_BOUNDARY,
+        }
+    )
+    return payload
+
+
 # ---------------------------------------------------------------------------
 # Reviewer-readable summary
 # ---------------------------------------------------------------------------
@@ -312,6 +339,7 @@ def format_summary(result: VersionCompatibilityResult) -> str:
 
     if result.error:
         lines.append(f"  error              : {result.error}")
+        _append_command_scope_advisory(lines)
         return "\n".join(lines)
 
     lines.append(f"  verdict            : {verdict}")
@@ -341,7 +369,18 @@ def format_summary(result: VersionCompatibilityResult) -> str:
         for m in result.missing_migrations:
             lines.append(f"    - {m}")
 
+    _append_command_scope_advisory(lines)
     return "\n".join(lines)
+
+
+def _append_command_scope_advisory(lines: list[str]) -> None:
+    lines.append("")
+    lines.append("  Command scope:")
+    lines.append("    F-7 execution by this command: NOT RUN")
+    lines.append(
+        "    human_readable_adoption_summary by this command: NOT REPORTED"
+    )
+    lines.append(f"    claim boundary: {VERSION_CHECK_CLAIM_BOUNDARY}")
 
 
 # ---------------------------------------------------------------------------
@@ -407,7 +446,7 @@ def main(argv: list[str] | None = None) -> int:
         write_compatibility_artifact(result, artifact_path)
 
     if args.json_output:
-        print(json.dumps(result.to_dict(), indent=2))
+        print(json.dumps(build_cli_json_payload(result), indent=2))
     else:
         print(format_summary(result))
 
