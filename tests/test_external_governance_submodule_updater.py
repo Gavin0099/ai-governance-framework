@@ -6,13 +6,16 @@ from dataclasses import asdict
 from pathlib import Path
 from types import SimpleNamespace
 
+import governance_tools.external_governance_submodule_updater as updater_module
 from governance_tools.external_governance_submodule_updater import (
+    SUBMODULE_APPLY_MUTATION_ALLOWLIST,
     UpdateResult,
     _build_full_update_stage_report,
     _check_existing_memory_normalization,
     _git_env,
     _refresh_repo_local_instructions,
     _run_git,
+    _submodule_apply_mutation_allowlist,
     format_human,
     main,
     update_governance_submodule,
@@ -714,11 +717,15 @@ def test_existing_memory_normalization_is_cwd_independent(
 def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
     consumer, _framework, old_head, new_head = _make_fixture(tmp_path)
     (consumer / "unrelated.txt").write_text("dirty\n", encoding="utf-8")
+    unrelated_before = (consumer / "unrelated.txt").read_bytes()
+    unrelated_status_before = _git(consumer, "status", "--short", "--", "unrelated.txt")
     (consumer / "governance" / "framework.lock.json").parent.mkdir(parents=True)
     (consumer / "governance" / "framework.lock.json").write_text(
         json.dumps({"adopted_commit": old_head}, indent=2) + "\n",
         encoding="utf-8",
     )
+    _git(consumer, "add", "governance/framework.lock.json")
+    _git(consumer, "commit", "-m", "test: add framework lock")
     _git(consumer / "ai-governance-framework", "update-ref", "refs/remotes/origin/main", old_head)
 
     result = update_governance_submodule(
@@ -815,7 +822,464 @@ def test_apply_stage_updates_only_submodule_pointer(tmp_path: Path) -> None:
     assert "MEMORY_WORKFLOW_TOOL" in (
         consumer / ".git" / "hooks" / "pre-commit"
     ).read_text(encoding="utf-8")
-    assert "?? unrelated.txt" in _git(consumer, "status", "--short")
+    assert (consumer / "unrelated.txt").read_bytes() == unrelated_before
+    assert _git(consumer, "status", "--short", "--", "unrelated.txt") == (
+        unrelated_status_before
+    )
+
+
+def test_apply_blocks_non_allowlisted_dirty_content_mutation(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    consumer, _framework, _old_head, new_head = _make_fixture(tmp_path)
+    product = consumer / "Source" / "product.cpp"
+    product.parent.mkdir()
+    product.write_text("user work\n", encoding="utf-8")
+    original_write_update_receipt = updater_module.write_update_receipt
+
+    def write_receipt_then_mutate_product(*args, **kwargs):
+        receipt = original_write_update_receipt(*args, **kwargs)
+        product.write_text("unexpected updater mutation\n", encoding="utf-8")
+        return receipt
+
+    monkeypatch.setattr(
+        updater_module,
+        "write_update_receipt",
+        write_receipt_then_mutate_product,
+    )
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is False
+    assert result.after_head == new_head
+    assert any(
+        "parent dirty snapshot changed outside the F-7 apply allowlist" in error
+        for error in result.errors
+    )
+    assert any("Source/product.cpp" in error for error in result.errors)
+    assert result.update_receipt["status"] == "written"
+    assert (consumer / RECEIPT_RELATIVE_PATH).exists()
+    assert result.ai_governance_update_result["operation_execution"] == {
+        "status": "failed",
+        "mode": "apply",
+        "framework_update_applied": True,
+        "meaning": (
+            "apply failed after framework and governance mutations were observed; "
+            "inspect and reconcile the working tree"
+        ),
+    }
+
+
+def test_post_commit_boundary_failure_reports_commit_and_applied_pointer(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    consumer, _framework, _old_head, new_head = _make_fixture(tmp_path)
+    product = consumer / "Source" / "product.cpp"
+    product.parent.mkdir()
+    product.write_text("user work\n", encoding="utf-8")
+    original_run_git = updater_module._run_git
+
+    def run_git_then_mutate_after_commit(repo, args, *positional, **kwargs):
+        result = original_run_git(repo, args, *positional, **kwargs)
+        if Path(repo).resolve() == consumer.resolve() and args[:2] == ["commit", "-m"]:
+            product.write_text("unexpected post-commit mutation\n", encoding="utf-8")
+        return result
+
+    monkeypatch.setattr(updater_module, "_run_git", run_git_then_mutate_after_commit)
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=True,
+        commit=True,
+    )
+
+    assert result.ok is False
+    assert result.after_head == new_head
+    assert result.committed is True
+    assert result.commit_hash == _git(consumer, "rev-parse", "HEAD")
+    assert result.update_receipt["status"] == "written"
+    assert any(
+        "parent dirty snapshot changed outside the F-7 apply allowlist" in error
+        for error in result.errors
+    )
+    assert result.ai_governance_update_result["operation_execution"] == {
+        "status": "failed",
+        "mode": "apply",
+        "framework_update_applied": True,
+        "meaning": (
+            "apply failed after framework and governance mutations were observed; "
+            "inspect and reconcile the working tree"
+        ),
+    }
+
+
+def test_apply_blocks_dirty_sibling_submodule_content_mutation(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    consumer, _framework, _old_head, new_head = _make_fixture(tmp_path)
+    sibling_origin = tmp_path / "sibling-product-origin"
+    _init_repo(sibling_origin)
+    (sibling_origin / "README.md").write_text("sibling product\n", encoding="utf-8")
+    _commit_all(sibling_origin, "test: add sibling product")
+    _git(
+        consumer,
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        str(sibling_origin),
+        "sibling-product",
+    )
+    _commit_all(consumer, "test: add sibling product submodule")
+    sibling_artifact = consumer / "sibling-product" / "runtime.db"
+    sibling_artifact.write_text("user sibling work\n", encoding="utf-8")
+    assert "sibling-product" in _git(consumer, "status", "--short")
+    original_write_update_receipt = updater_module.write_update_receipt
+
+    def write_receipt_then_mutate_sibling(*args, **kwargs):
+        receipt = original_write_update_receipt(*args, **kwargs)
+        sibling_artifact.write_text(
+            "unexpected sibling mutation\n",
+            encoding="utf-8",
+        )
+        return receipt
+
+    monkeypatch.setattr(
+        updater_module,
+        "write_update_receipt",
+        write_receipt_then_mutate_sibling,
+    )
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is False
+    assert result.after_head == new_head
+    assert any(
+        "parent dirty snapshot changed outside the F-7 apply allowlist" in error
+        and "sibling-product" in error
+        for error in result.errors
+    )
+    assert result.ai_governance_update_result["operation_execution"][
+        "framework_update_applied"
+    ] is True
+
+
+def test_apply_blocks_preexisting_dirty_governance_overlap_before_mutation(
+    tmp_path: Path,
+) -> None:
+    consumer, _framework, old_head, _new_head = _make_fixture(tmp_path)
+    agents = consumer / "AGENTS.md"
+    agents.write_text("# unknown local governance work\n", encoding="utf-8")
+    before = agents.read_bytes()
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is False
+    assert "pre-existing dirty files overlapping" in result.errors[0]
+    assert "AGENTS.md" in result.errors[0]
+    assert agents.read_bytes() == before
+    assert _git(consumer / "ai-governance-framework", "rev-parse", "HEAD") == old_head
+    assert not (consumer / RECEIPT_RELATIVE_PATH).exists()
+
+
+def test_apply_blocks_preexisting_unmanaged_hook_before_mutation(
+    tmp_path: Path,
+) -> None:
+    consumer, _framework, old_head, _new_head = _make_fixture(tmp_path)
+    hook = consumer / ".git" / "hooks" / "pre-commit"
+    hook.write_text("#!/usr/bin/env bash\necho user hook\n", encoding="utf-8")
+    before = hook.read_bytes()
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is False
+    assert ".git/hooks/pre-commit" in result.errors[0]
+    assert hook.read_bytes() == before
+    assert _git(consumer / "ai-governance-framework", "rev-parse", "HEAD") == old_head
+    assert not (consumer / RECEIPT_RELATIVE_PATH).exists()
+    assert result.ai_governance_update_result["operation_execution"] == {
+        "status": "failed",
+        "mode": "apply",
+        "framework_update_applied": False,
+        "meaning": (
+            "apply did not complete; inspect the working tree before retrying"
+        ),
+    }
+
+
+def test_apply_allows_pinned_managed_hooks_to_upgrade(tmp_path: Path) -> None:
+    consumer, _framework, _old_head, new_head = _make_fixture(tmp_path)
+    nested = (consumer / "ai-governance-framework").resolve()
+    hook_dir = consumer / ".git" / "hooks"
+    for hook_name in ("pre-commit", "pre-push"):
+        (hook_dir / hook_name).write_bytes(
+            (nested / "scripts" / "hooks" / hook_name).read_bytes()
+        )
+    (hook_dir / "ai-governance-framework-root").write_text(
+        f"{nested}\n",
+        encoding="utf-8",
+    )
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is True
+    assert result.after_head == new_head
+    for hook_name in ("pre-commit", "pre-push"):
+        assert (hook_dir / hook_name).read_bytes() == (
+            nested / "scripts" / "hooks" / hook_name
+        ).read_bytes()
+
+
+def test_linked_worktree_blocks_unknown_common_hook_before_mutation(
+    tmp_path: Path,
+) -> None:
+    consumer, _framework, old_head, _new_head = _make_fixture(tmp_path)
+    linked = tmp_path / "linked-consumer"
+    _git(consumer, "worktree", "add", "-b", "linked-boundary-test", str(linked))
+    _git(
+        linked,
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "update",
+        "--init",
+        "ai-governance-framework",
+    )
+    common_hook = consumer / ".git" / "hooks" / "pre-push"
+    common_hook.write_text("#!/usr/bin/env bash\necho shared user hook\n", encoding="utf-8")
+    before = common_hook.read_bytes()
+
+    result = update_governance_submodule(
+        repo=linked,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is False
+    assert ".git/hooks/pre-push" in result.errors[0]
+    assert common_hook.read_bytes() == before
+    assert _git(linked / "ai-governance-framework", "rev-parse", "HEAD") == old_head
+    assert not (linked / RECEIPT_RELATIVE_PATH).exists()
+
+
+def test_linked_worktree_apply_blocks_shared_hook_config_authority(
+    tmp_path: Path,
+) -> None:
+    consumer, _framework, old_head, _new_head = _make_fixture(tmp_path)
+    linked = tmp_path / "linked-consumer"
+    _git(consumer, "worktree", "add", "-b", "linked-authority-test", str(linked))
+    _git(
+        linked,
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "update",
+        "--init",
+        "ai-governance-framework",
+    )
+
+    result = update_governance_submodule(
+        repo=linked,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is False
+    assert "linked worktree is blocked" in result.errors[0]
+    assert "cross-worktree config drift" in result.errors[0]
+    assert _git(linked / "ai-governance-framework", "rev-parse", "HEAD") == old_head
+    assert not (linked / RECEIPT_RELATIVE_PATH).exists()
+
+
+def test_post_pointer_permission_error_returns_failure_envelope(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    consumer, _framework, old_head, new_head = _make_fixture(tmp_path)
+
+    def deny_instruction_refresh(*_args, **_kwargs):
+        raise PermissionError("simulated permission denial")
+
+    monkeypatch.setattr(
+        updater_module,
+        "_refresh_repo_local_instructions",
+        deny_instruction_refresh,
+    )
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is False
+    assert result.before_head == old_head
+    assert result.after_head == new_head
+    assert result.update_receipt["status"] == "not_written"
+    assert result.committed is False
+    assert any(
+        "PermissionError: simulated permission denial" in error
+        for error in result.errors
+    )
+    assert result.ai_governance_update_result["operation_execution"] == {
+        "status": "failed",
+        "mode": "apply",
+        "framework_update_applied": True,
+        "meaning": (
+            "apply failed after the framework checkout changed; inspect and reconcile "
+            "the working tree"
+        ),
+    }
+
+
+def test_repeated_post_pointer_boundary_permission_error_returns_result(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    consumer, _framework, old_head, new_head = _make_fixture(tmp_path)
+
+    def deny_boundary_recheck(*_args, **_kwargs):
+        raise PermissionError("simulated boundary permission denial")
+
+    monkeypatch.setattr(
+        updater_module,
+        "_verify_parent_dirty_snapshot_unchanged",
+        deny_boundary_recheck,
+    )
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is False
+    assert result.before_head == old_head
+    assert result.after_head == new_head
+    assert result.update_receipt["status"] == "written"
+    assert result.committed is False
+    assert result.errors == [
+        "PermissionError: simulated boundary permission denial"
+    ]
+    assert result.ai_governance_update_result["operation_execution"] == {
+        "status": "failed",
+        "mode": "apply",
+        "framework_update_applied": True,
+        "meaning": (
+            "apply failed after framework and governance mutations were observed; "
+            "inspect and reconcile the working tree"
+        ),
+    }
+
+
+def test_apply_blocks_broken_hook_symlink_before_mutation(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    consumer, _framework, old_head, _new_head = _make_fixture(tmp_path)
+    hook = consumer / ".git" / "hooks" / "pre-commit"
+    original_lstat = Path.lstat
+
+    def report_broken_symlink(path: Path):
+        if path == hook:
+            return SimpleNamespace(st_mode=0o120777)
+        return original_lstat(path)
+
+    monkeypatch.setattr(Path, "lstat", report_broken_symlink)
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is False
+    assert ".git/hooks/pre-commit" in result.errors[0]
+    assert _git(consumer / "ai-governance-framework", "rev-parse", "HEAD") == old_head
+    assert not (consumer / RECEIPT_RELATIVE_PATH).exists()
+
+
+def test_apply_blocks_matching_hook_symlink_before_mutation(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    consumer, _framework, old_head, _new_head = _make_fixture(tmp_path)
+    nested = (consumer / "ai-governance-framework").resolve()
+    hook = consumer / ".git" / "hooks" / "pre-push"
+    hook.write_bytes((nested / "scripts" / "hooks" / "pre-push").read_bytes())
+    before = hook.read_bytes()
+    original_lstat = Path.lstat
+
+    def report_matching_symlink(path: Path):
+        if path == hook:
+            return SimpleNamespace(st_mode=0o120777)
+        return original_lstat(path)
+
+    monkeypatch.setattr(Path, "lstat", report_matching_symlink)
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is False
+    assert ".git/hooks/pre-push" in result.errors[0]
+    assert hook.read_bytes() == before
+    assert _git(consumer / "ai-governance-framework", "rev-parse", "HEAD") == old_head
+    assert not (consumer / RECEIPT_RELATIVE_PATH).exists()
+
+
+def test_submodule_apply_allowlist_is_fixed_and_includes_managed_hooks() -> None:
+    allowlist = _submodule_apply_mutation_allowlist("vendor/governance")
+
+    assert allowlist == frozenset(
+        {
+            *SUBMODULE_APPLY_MUTATION_ALLOWLIST,
+            "vendor/governance",
+        }
+    )
+    assert {
+        ".git/hooks/ai-governance-framework-root",
+        ".git/hooks/pre-commit",
+        ".git/hooks/pre-push",
+    } <= allowlist
 
 
 def test_apply_does_not_complete_when_hook_advisory_source_missing(tmp_path: Path) -> None:

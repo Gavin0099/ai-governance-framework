@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 from dataclasses import asdict, dataclass, field
@@ -37,6 +39,16 @@ KNOWN_SUBMODULE_PATHS = (DEFAULT_SUBMODULE_PATH, ".ai-governance-framework")
 FRESH_TARGET_SOURCES = {"fresh_remote_ls_remote", "fresh_remote_fetch_head"}
 GOVERNANCE_SUBMODULE_URL_NAMES = ("ai-governance-framework",)
 FRAMEWORK_LOCK_RELATIVE_PATH = Path("governance") / "framework.lock.json"
+SUBMODULE_APPLY_MUTATION_ALLOWLIST = (
+    ".gitignore",
+    ".git/hooks/ai-governance-framework-root",
+    ".git/hooks/pre-commit",
+    ".git/hooks/pre-push",
+    "AGENTS.base.md",
+    "AGENTS.md",
+    RECEIPT_RELATIVE_PATH,
+    FRAMEWORK_LOCK_RELATIVE_PATH.as_posix(),
+)
 
 
 def _fresh_upstream_verified(target_source: str) -> bool:
@@ -139,20 +151,44 @@ class UpdateResult:
 def _operation_execution_for_envelope(result: UpdateResult) -> dict[str, Any]:
     execution_status = "passed" if result.ok else "failed"
     framework_update_applied = bool(
-        result.ok
-        and result.mode == "apply"
-        and result.update_mode in {"fast_forward", "detached_target_checkout"}
+        result.mode == "apply"
+        and result.before_head
+        and result.after_head
+        and result.before_head != result.after_head
+    )
+    governance_mutation_observed = bool(
+        result.mode == "apply"
+        and (
+            result.update_receipt.get("status") == "written"
+            or result.staged_files
+            or result.committed
+        )
     )
     if result.mode == "dry_run" and result.ok:
         meaning = "dry-run checks passed; no update was applied"
     elif result.mode == "dry_run":
         meaning = "dry-run checks failed; no update was applied"
-    elif framework_update_applied:
+    elif result.ok and framework_update_applied:
         meaning = "apply completed and updated the framework checkout"
     elif result.ok and result.update_mode == "already_current":
         meaning = "apply completed; the framework checkout was already current"
+    elif framework_update_applied and governance_mutation_observed:
+        meaning = (
+            "apply failed after framework and governance mutations were observed; "
+            "inspect and reconcile the working tree"
+        )
+    elif framework_update_applied:
+        meaning = (
+            "apply failed after the framework checkout changed; inspect and reconcile "
+            "the working tree"
+        )
+    elif governance_mutation_observed:
+        meaning = (
+            "apply failed after governance mutations were observed; inspect and "
+            "reconcile the working tree"
+        )
     else:
-        meaning = "apply did not complete; no update was applied"
+        meaning = "apply did not complete; inspect the working tree before retrying"
     return {
         "status": execution_status,
         "mode": result.mode,
@@ -439,6 +475,259 @@ def _staged_files(repo: Path) -> list[str]:
     return [line.strip() for line in output.splitlines() if line.strip()]
 
 
+@dataclass(frozen=True)
+class DirtyPathSnapshot:
+    statuses: tuple[str, ...]
+    fingerprint: str
+
+
+def _submodule_apply_mutation_allowlist(submodule_path: str) -> frozenset[str]:
+    normalized_submodule = submodule_path.replace("\\", "/").rstrip("/")
+    return frozenset((*SUBMODULE_APPLY_MUTATION_ALLOWLIST, normalized_submodule))
+
+
+def _parse_name_status(output: str, *, scope: str) -> list[tuple[str, str]]:
+    entries: list[tuple[str, str]] = []
+    for raw in output.splitlines():
+        if not raw:
+            continue
+        fields = raw.split("\t")
+        if len(fields) < 2:
+            raise SubmoduleUpdateError(
+                f"cannot parse parent dirty status entry for {scope}: {raw!r}"
+            )
+        status = fields[0]
+        # --no-renames keeps one path per status entry. Use the final field as
+        # a defensive fallback if a Git implementation still emits two paths.
+        path = fields[-1].replace("\\", "/")
+        entries.append((f"{scope}:{status}", path))
+    return entries
+
+
+def _tracked_gitlinks(repo: Path) -> list[tuple[str, str]]:
+    entries: list[tuple[str, str]] = []
+    output = _run_git(
+        repo,
+        ["-c", "core.quotepath=false", "ls-files", "--stage"],
+    ).stdout
+    for raw in output.splitlines():
+        if "\t" not in raw:
+            continue
+        metadata, path = raw.split("\t", 1)
+        fields = metadata.split()
+        if len(fields) >= 3 and fields[0] == "160000" and fields[2] == "0":
+            entries.append((path.replace("\\", "/"), fields[1]))
+    return entries
+
+
+def _parent_dirty_status(repo: Path) -> dict[str, tuple[str, ...]]:
+    statuses: dict[str, set[str]] = {}
+
+    def add(scope_status: str, path: str) -> None:
+        normalized = path.replace("\\", "/")
+        statuses.setdefault(normalized, set()).add(scope_status)
+
+    for scope, args in (
+        (
+            "index",
+            [
+                "-c",
+                "core.quotepath=false",
+                "diff",
+                "--cached",
+                "--name-status",
+                "--no-renames",
+            ],
+        ),
+        (
+            "worktree",
+            [
+                "-c",
+                "core.quotepath=false",
+                "diff",
+                "--name-status",
+                "--no-renames",
+            ],
+        ),
+    ):
+        for scope_status, path in _parse_name_status(
+            _run_git(repo, args).stdout,
+            scope=scope,
+        ):
+            add(scope_status, path)
+
+    # Parent diff does not reliably report submodules whose gitlink is unchanged
+    # but whose nested checkout contains only untracked dirt. Enumerate every
+    # tracked gitlink so non-governance sibling submodules remain inside the
+    # path/status/content boundary.
+    for path, index_head in _tracked_gitlinks(repo):
+        nested = repo / path
+        if not _is_initialized_git_checkout(nested):
+            continue
+        nested_head = _resolve_head(nested, "HEAD")
+        nested_status = _run_git(
+            nested,
+            ["status", "--porcelain=v1", "--untracked-files=all"],
+        ).stdout
+        if nested_head != index_head or nested_status:
+            add("worktree:M", path)
+
+    untracked = _run_git(
+        repo,
+        ["-c", "core.quotepath=false", "ls-files", "--others", "--exclude-standard"],
+    ).stdout
+    for path in untracked.splitlines():
+        if path:
+            add("untracked:??", path)
+
+    return {path: tuple(sorted(values)) for path, values in statuses.items()}
+
+
+def _gitlink_matches_index(repo: Path, path: str) -> bool:
+    entry = _run_git(repo, ["ls-files", "--stage", "--", path]).stdout
+    if not entry:
+        return False
+    metadata = entry.splitlines()[0].split("\t", 1)[0].split()
+    if len(metadata) < 3 or metadata[0] != "160000":
+        return False
+    nested = repo / path
+    if not _is_initialized_git_checkout(nested):
+        return False
+    return _resolve_head(nested, "HEAD") == metadata[1]
+
+
+def _is_allowlisted_nested_dirt_only(
+    repo: Path,
+    path: str,
+    statuses: tuple[str, ...],
+) -> bool:
+    return statuses == ("worktree:M",) and _gitlink_matches_index(repo, path)
+
+
+def _hash_file(path: Path, digest: Any) -> None:
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+
+
+def _fingerprint_nested_git_checkout(path: Path) -> str:
+    digest = hashlib.sha256()
+    head = _run_git(path, ["rev-parse", "HEAD"])
+    diff = _run_git(path, ["diff", "--binary", "--no-ext-diff", "HEAD"])
+    digest.update(f"head:{head.stdout}\n".encode("utf-8"))
+    digest.update(diff.stdout.encode("utf-8", errors="surrogatepass"))
+
+    untracked = _run_git(
+        path,
+        ["-c", "core.quotepath=false", "ls-files", "--others", "--exclude-standard"],
+    ).stdout
+    for relative in sorted(line for line in untracked.splitlines() if line):
+        candidate = path / relative
+        digest.update(f"untracked:{relative}\0".encode("utf-8"))
+        digest.update(_fingerprint_path(candidate).encode("ascii"))
+    return f"git:{digest.hexdigest()}"
+
+
+def _fingerprint_directory(path: Path) -> str:
+    digest = hashlib.sha256()
+    try:
+        for root, directories, files in os.walk(path, topdown=True, followlinks=False):
+            root_path = Path(root)
+            kept_directories: list[str] = []
+            for name in sorted(directories):
+                candidate = root_path / name
+                if name == ".git":
+                    continue
+                relative = candidate.relative_to(path).as_posix()
+                if candidate.is_symlink():
+                    digest.update(f"symlink-dir:{relative}\0".encode("utf-8"))
+                    digest.update(os.readlink(candidate).encode("utf-8", errors="surrogatepass"))
+                else:
+                    kept_directories.append(name)
+            directories[:] = kept_directories
+            for name in sorted(files):
+                candidate = root_path / name
+                relative = candidate.relative_to(path).as_posix()
+                digest.update(f"file:{relative}\0".encode("utf-8"))
+                digest.update(_fingerprint_path(candidate).encode("ascii"))
+    except OSError as exc:
+        raise SubmoduleUpdateError(f"cannot fingerprint dirty directory {path}: {exc}") from exc
+    return f"dir:{digest.hexdigest()}"
+
+
+def _fingerprint_path(path: Path) -> str:
+    try:
+        if path.is_symlink():
+            target = os.readlink(path)
+            mode = path.lstat().st_mode
+            payload = f"symlink:{mode}:{target}".encode("utf-8", errors="surrogatepass")
+            return hashlib.sha256(payload).hexdigest()
+        if not path.exists():
+            return "missing"
+        if path.is_dir():
+            if (path / ".git").exists():
+                return _fingerprint_nested_git_checkout(path)
+            return _fingerprint_directory(path)
+        digest = hashlib.sha256()
+        digest.update(f"file-mode:{path.stat().st_mode}\0".encode("ascii"))
+        _hash_file(path, digest)
+        return f"file:{digest.hexdigest()}"
+    except OSError as exc:
+        raise SubmoduleUpdateError(f"cannot fingerprint dirty path {path}: {exc}") from exc
+
+
+def _capture_parent_dirty_snapshot(
+    repo: Path,
+    *,
+    allowlist: frozenset[str],
+) -> tuple[list[str], dict[str, DirtyPathSnapshot]]:
+    statuses = _parent_dirty_status(repo)
+    overlapping = sorted(
+        path
+        for path, path_statuses in statuses.items()
+        if path in allowlist
+        and not _is_allowlisted_nested_dirt_only(repo, path, path_statuses)
+    )
+    outside: dict[str, DirtyPathSnapshot] = {}
+    for path, path_statuses in statuses.items():
+        if path in allowlist:
+            continue
+        outside[path] = DirtyPathSnapshot(
+            statuses=path_statuses,
+            fingerprint=_fingerprint_path(repo / path),
+        )
+    return overlapping, outside
+
+
+def _require_clean_apply_overlap(overlapping: list[str]) -> None:
+    if overlapping:
+        raise SubmoduleUpdateError(
+            "consuming repo has pre-existing dirty files overlapping the F-7 "
+            f"apply allowlist; refusing to overwrite unknown governance work: {overlapping}"
+        )
+
+
+def _verify_parent_dirty_snapshot_unchanged(
+    repo: Path,
+    *,
+    allowlist: frozenset[str],
+    before: dict[str, DirtyPathSnapshot],
+) -> None:
+    _overlapping, after = _capture_parent_dirty_snapshot(repo, allowlist=allowlist)
+    if before == after:
+        return
+
+    changed_paths = sorted(
+        path
+        for path in set(before) | set(after)
+        if before.get(path) != after.get(path)
+    )
+    raise SubmoduleUpdateError(
+        "parent dirty snapshot changed outside the F-7 apply allowlist; "
+        f"refusing successful completion: {changed_paths}"
+    )
+
+
 def _read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
@@ -648,8 +937,86 @@ def _git_common_dir(repo: Path) -> Path:
     return common.resolve()
 
 
+def _git_dir(repo: Path) -> Path:
+    result = _run_git(repo, ["rev-parse", "--git-dir"], check=False)
+    if result.returncode != 0 or not result.stdout:
+        return repo / ".git"
+    git_dir = Path(result.stdout)
+    if not git_dir.is_absolute():
+        git_dir = repo / git_dir
+    return git_dir.resolve()
+
+
 def _git_hook_dir(repo: Path) -> Path:
     return _git_common_dir(repo) / "hooks"
+
+
+def _require_safe_hook_mutation_authority(repo: Path) -> None:
+    if _git_dir(repo) != _git_common_dir(repo):
+        raise SubmoduleUpdateError(
+            "F-7 apply from a linked worktree is blocked because managed hooks and "
+            "ai-governance-framework-root are shared through the common Git directory; "
+            "run apply from the primary worktree to avoid cross-worktree config drift"
+        )
+
+
+def _preexisting_unmanaged_hook_overlaps(
+    repo: Path,
+    submodule_repo: Path,
+) -> list[str]:
+    source_hook_dir = submodule_repo / "scripts" / "hooks"
+    hook_dir = _git_hook_dir(repo)
+    overlapping: list[str] = []
+
+    for hook_name in ("pre-commit", "pre-push"):
+        target = hook_dir / hook_name
+        try:
+            target_stat = target.lstat()
+        except FileNotFoundError:
+            continue
+        except OSError as exc:
+            raise SubmoduleUpdateError(
+                f"cannot inspect pre-existing hook {target}: {exc}"
+            ) from exc
+        if not stat.S_ISREG(target_stat.st_mode):
+            overlapping.append(f".git/hooks/{hook_name}")
+            continue
+        source = source_hook_dir / hook_name
+        try:
+            source_matches = source.is_file() and target.read_bytes() == source.read_bytes()
+        except OSError as exc:
+            raise SubmoduleUpdateError(
+                f"cannot inspect pre-existing hook {target}: {exc}"
+            ) from exc
+        if not source_matches:
+            overlapping.append(f".git/hooks/{hook_name}")
+
+    config = hook_dir / "ai-governance-framework-root"
+    try:
+        config_stat = config.lstat()
+    except FileNotFoundError:
+        config_stat = None
+    except OSError as exc:
+        raise SubmoduleUpdateError(
+            f"cannot inspect pre-existing hook config {config}: {exc}"
+        ) from exc
+    if config_stat is not None:
+        if not stat.S_ISREG(config_stat.st_mode):
+            overlapping.append(".git/hooks/ai-governance-framework-root")
+            return sorted(overlapping)
+        expected = f"{submodule_repo}\n"
+        try:
+            config_matches = (
+                config.read_text(encoding="utf-8", errors="replace") == expected
+            )
+        except OSError as exc:
+            raise SubmoduleUpdateError(
+                f"cannot inspect pre-existing hook config {config}: {exc}"
+            ) from exc
+        if not config_matches:
+            overlapping.append(".git/hooks/ai-governance-framework-root")
+
+    return sorted(overlapping)
 
 
 def _ensure_hook_advisory(repo: Path, submodule_repo: Path) -> dict[str, Any]:
@@ -910,9 +1277,21 @@ def update_governance_submodule(
         target_ref = f"{fetch_remote}/{fetch_ref}" if fetch_ref else "origin/main"
     submodule_repo = (repo / submodule_path).resolve()
     errors: list[str] = []
+    before_head = ""
     target_head = ""
+    after_head = ""
     target_source = "not_resolved"
     target_resolution: dict[str, Any] = {}
+    staged: list[str] = []
+    committed = False
+    commit_hash: str | None = None
+    apply_allowlist: frozenset[str] = frozenset()
+    parent_dirty_before: dict[str, DirtyPathSnapshot] | None = None
+    update_receipt = skipped_update_receipt(
+        "dry_run failed before receipt boundary"
+        if dry_run
+        else "apply failed before receipt boundary"
+    )
 
     try:
         _run_git(repo, ["rev-parse", "--is-inside-work-tree"])
@@ -921,6 +1300,20 @@ def update_governance_submodule(
         _require_initialized_git_checkout(submodule_repo)
         _require_no_initial_staged_files(repo)
         _require_clean_nested(submodule_repo)
+        if not dry_run:
+            apply_allowlist = _submodule_apply_mutation_allowlist(submodule_path)
+            overlapping, parent_dirty_before = _capture_parent_dirty_snapshot(
+                repo,
+                allowlist=apply_allowlist,
+            )
+            hook_overlapping = _preexisting_unmanaged_hook_overlaps(
+                repo,
+                submodule_repo,
+            )
+            _require_clean_apply_overlap(
+                sorted(set(overlapping) | set(hook_overlapping))
+            )
+            _require_safe_hook_mutation_authority(repo)
 
         before_head = _resolve_head(submodule_repo, "HEAD")
         target_head, target_source = _resolve_target_head(
@@ -999,12 +1392,20 @@ def update_governance_submodule(
                 update_receipt["staged"] = RECEIPT_RELATIVE_PATH in staged
             else:
                 staged = []
-            committed = False
-            commit_hash: str | None = None
+            _verify_parent_dirty_snapshot_unchanged(
+                repo,
+                allowlist=apply_allowlist,
+                before=parent_dirty_before,
+            )
             if commit and staged:
                 _run_git(repo, ["commit", "-m", commit_message])
                 committed = True
                 commit_hash = _resolve_head(repo, "HEAD")
+                _verify_parent_dirty_snapshot_unchanged(
+                    repo,
+                    allowlist=apply_allowlist,
+                    before=parent_dirty_before,
+                )
                 _refresh_stage_report_after_commit(
                     full_update_stage_report,
                     repo=repo,
@@ -1159,12 +1560,20 @@ def update_governance_submodule(
         else:
             staged = []
 
-        committed = False
-        commit_hash: str | None = None
+        _verify_parent_dirty_snapshot_unchanged(
+            repo,
+            allowlist=apply_allowlist,
+            before=parent_dirty_before,
+        )
         if commit:
             _run_git(repo, ["commit", "-m", commit_message])
             committed = True
             commit_hash = _resolve_head(repo, "HEAD")
+            _verify_parent_dirty_snapshot_unchanged(
+                repo,
+                allowlist=apply_allowlist,
+                before=parent_dirty_before,
+            )
             _refresh_stage_report_after_commit(
                 full_update_stage_report,
                 repo=repo,
@@ -1190,14 +1599,33 @@ def update_governance_submodule(
             target_source=target_source,
             update_receipt=update_receipt,
         )
-    except SubmoduleUpdateError as exc:
-        errors.append(str(exc))
-        before = ""
-        after = ""
+    except (SubmoduleUpdateError, OSError) as exc:
+        error = str(exc)
+        if isinstance(exc, OSError):
+            error = f"{type(exc).__name__}: {error}"
+        errors.append(error)
+        if parent_dirty_before is not None:
+            try:
+                _verify_parent_dirty_snapshot_unchanged(
+                    repo,
+                    allowlist=apply_allowlist,
+                    before=parent_dirty_before,
+                )
+            except (SubmoduleUpdateError, OSError) as boundary_exc:
+                boundary_error = str(boundary_exc)
+                if isinstance(boundary_exc, OSError):
+                    boundary_error = (
+                        f"{type(boundary_exc).__name__}: {boundary_error}"
+                    )
+                if boundary_error not in errors:
+                    errors.append(boundary_error)
         try:
             if _is_initialized_git_checkout(submodule_repo):
-                before = _resolve_head(submodule_repo, "HEAD")
-                after = before
+                current_head = _resolve_head(submodule_repo, "HEAD")
+                if not before_head:
+                    before_head = current_head
+                if not after_head:
+                    after_head = current_head
         except Exception:
             pass
         return UpdateResult(
@@ -1207,12 +1635,12 @@ def update_governance_submodule(
             fast_forward=None,
                 repo=str(repo),
                 submodule_path=submodule_path,
-                before_head=before,
+                before_head=before_head,
                 target_head=target_head,
-                after_head=after,
-                staged_files=[],
-                committed=False,
-                commit_hash=None,
+                after_head=after_head,
+                staged_files=staged,
+                committed=committed,
+                commit_hash=commit_hash,
                 message="submodule pointer update failed",
             errors=errors,
             full_update_stage_report=_build_full_update_stage_report(
@@ -1226,11 +1654,7 @@ def update_governance_submodule(
                 details={"errors": errors, "target_resolution": target_resolution},
             ),
             target_source=target_source,
-            update_receipt=skipped_update_receipt(
-                "dry_run failed before receipt boundary"
-                if dry_run
-                else "apply failed before receipt boundary"
-            ),
+            update_receipt=update_receipt,
         )
 
 
