@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "npx.cmd --yes @marp-team/marp-cli docs/ai-governance-member-briefing.md --images png --output C:\\Users\\reiko\\.codex\\visualizations\\2026\\07\\15\\019f6381-37b8-7b30-bfcd-5b995e351d9a\\briefing-receipt",
+  "exit_code": 0,
+  "started_at": "2026-07-15T04:54:16Z",
+  "finished_at": "2026-07-15T04:54:22Z",
+  "runner": "codex",
+  "linked_commit": "826cd87d68cb9d2b702f44a6a4493f9d59cacf31",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/member-briefing-g3-g4-20260715.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
