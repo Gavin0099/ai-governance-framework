@@ -8,7 +8,10 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import os
+import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -34,6 +37,8 @@ class ExternalRepoSmokeResult:
     repo_root: str
     plan_path: str
     contract_path: str | None
+    framework_root: str | None = None
+    framework_commit: str | None = None
     rules: list[str] = field(default_factory=list)
     session_start_ok: bool = False
     pre_task_ok: bool = False
@@ -55,6 +60,21 @@ def _default_token_summary() -> dict[str, Any]:
         "decision_usage_allowed": False,
         "analysis_safe_for_decision": False,
     }
+
+
+def _framework_identity() -> tuple[str, str | None]:
+    framework_root = Path(__file__).resolve().parent.parent
+    completed = subprocess.run(
+        ["git", "-C", str(framework_root), "rev-parse", "HEAD"],
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    commit = completed.stdout.strip() if completed.returncode == 0 else None
+    return str(framework_root), commit or None
 
 
 def _extract_token_summary_from_checks(checks: dict | None) -> dict[str, Any]:
@@ -219,11 +239,14 @@ def run_external_repo_smoke(
     # keep ordering stable while deduplicating
     deduped_warnings = list(dict.fromkeys(warnings))
     deduped_errors = list(dict.fromkeys(errors))
+    framework_root, framework_commit = _framework_identity()
     return ExternalRepoSmokeResult(
         ok=(len(deduped_errors) == 0 and session_start_ok and pre_task_ok and post_task_ok is not False),
         repo_root=str(repo_root),
         plan_path=str(plan_path),
         contract_path=str(contract_path) if contract_path else None,
+        framework_root=framework_root,
+        framework_commit=framework_commit,
         rules=rules,
         session_start_ok=session_start_ok,
         pre_task_ok=pre_task_ok,
@@ -298,6 +321,8 @@ def format_json(result: ExternalRepoSmokeResult) -> str:
             "repo_root": result.repo_root,
             "plan_path": result.plan_path,
             "contract_path": result.contract_path,
+            "framework_root": result.framework_root,
+            "framework_commit": result.framework_commit,
             "rules": result.rules,
             "pre_task_ok": result.pre_task_ok,
             "session_start_ok": result.session_start_ok,
@@ -310,6 +335,30 @@ def format_json(result: ExternalRepoSmokeResult) -> str:
         ensure_ascii=False,
         indent=2,
     )
+
+
+def write_json_result(result: ExternalRepoSmokeResult, output_path: str | Path) -> Path:
+    """Atomically persist a reviewer-visible external smoke result.
+
+    The caller must opt in with an explicit path.  This function does not choose
+    an evidence location or treat the receipt as proof of self-contained runtime
+    governance.
+    """
+    target = Path(output_path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    payload = format_json(result) + "\n"
+    fd, temporary_name = tempfile.mkstemp(prefix=f".{target.name}.", suffix=".tmp", dir=target.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(payload)
+        os.replace(temporary_name, target)
+    except Exception:
+        try:
+            Path(temporary_name).unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
+    return target
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -326,6 +375,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Allow session_start degraded modes (legacy_only / controlled_refusal) to pass smoke.",
     )
     parser.add_argument("--format", choices=("human", "json"), default="human")
+    parser.add_argument(
+        "--output",
+        help="Optional explicit JSON evidence path. The smoke result is written atomically.",
+    )
     return parser
 
 
@@ -340,6 +393,8 @@ def main() -> int:
         task_text=args.task_text,
         allow_degraded_session_start=args.allow_degraded_session_start,
     )
+    if args.output:
+        write_json_result(result, args.output)
     if args.format == "json":
         print(format_json(result))
     else:

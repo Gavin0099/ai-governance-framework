@@ -9,7 +9,13 @@ from pathlib import Path
 import pytest
 import yaml
 
-from governance_tools.external_repo_smoke import format_human, format_json, infer_smoke_rules, run_external_repo_smoke
+from governance_tools.external_repo_smoke import (
+    format_human,
+    format_json,
+    infer_smoke_rules,
+    run_external_repo_smoke,
+    write_json_result,
+)
 
 
 FIXTURE_ROOT = Path("tests/_tmp_external_repo_smoke")
@@ -267,6 +273,40 @@ def test_format_json_includes_schema_and_generated_at(smoke_root: Path) -> None:
     assert payload["generated_at"].endswith("Z")
     assert payload["ok"] is True
     assert payload["repo_root"] == str(smoke_root.resolve())
+
+
+def test_write_json_result_persists_parseable_attributable_evidence(smoke_root: Path) -> None:
+    _write_version_manifest(smoke_root)
+    _write(
+        smoke_root / "PLAN.md",
+        f"> **最後更新**: {_date.today().isoformat()}\n> **Owner**: tester\n> **Freshness**: Sprint (7d)\n",
+    )
+    _write(smoke_root / "AGENTS.md", "# Agents\n")
+    _write(smoke_root / "CHECKLIST.md", "# Checklist\n")
+    _write(smoke_root / "rules" / "firmware" / "safety.md", "# Firmware safety\n")
+    _write(
+        smoke_root / "contract.yaml",
+        "\n".join(
+            [
+                "name: sample-contract",
+                "domain: firmware",
+                "documents:",
+                "  - CHECKLIST.md",
+                "ai_behavior_override:",
+                "  - AGENTS.md",
+                "rule_roots:",
+                "  - rules",
+            ]
+        ),
+    )
+    result = run_external_repo_smoke(smoke_root)
+
+    output = write_json_result(result, smoke_root / "artifacts" / "evidence" / "test-results" / "external-runtime-smoke.json")
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["result_schema"] == "external_repo_smoke_result.v0.1"
+    assert payload["repo_root"] == str(smoke_root.resolve())
+    assert payload["ok"] is True
 
 
 def test_run_external_repo_smoke_fails_on_gitlab_adapter_scope_mismatch(smoke_root: Path) -> None:
