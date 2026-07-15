@@ -789,6 +789,36 @@ def test_external_runtime_execution_requires_external_prerequisites_and_passing_
     assert summary.runtime_capable.value == "not_checked"
 
 
+def test_verified_external_runtime_execution_reconciles_runtime_smoke_non_claim(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "external_runtime_execution_claim_reconciliation")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    payload = _smoke_payload(repo, ok=True)
+    payload["framework_root"] = str(framework.resolve())
+    payload["framework_commit"] = _run_git(["rev-parse", "HEAD"], framework)
+    _write(
+        repo / "artifacts" / "evidence" / "test-results" / "external-runtime-smoke.json",
+        json.dumps(payload) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+    rendered = format_human(summary)
+    serialized = summary_to_dict(summary)
+
+    assert summary.capability_states["external_runtime_execution"].state == "Verified"
+    assert "runtime smoke passed" not in summary.cannot_claim
+    assert "runtime self-contained governance" in summary.cannot_claim
+    assert "hook or CI enforcement" in summary.cannot_claim
+    assert "- runtime smoke passed" not in rendered
+    assert serialized["capability_states"]["external_runtime_execution"]["state"] == "Verified"
+    assert "runtime smoke passed" not in serialized["cannot_claim"]
+
+
 def test_external_runtime_execution_is_unproven_when_readiness_fails(
     tmp_path: Path,
     monkeypatch,
