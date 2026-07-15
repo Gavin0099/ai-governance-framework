@@ -468,6 +468,7 @@ def _derive_cannot_claim(
     adoption_report: AdoptionDoctorReport,
     agents_report: AgentsCalibrationMaturity,
     lock_consistency: SummaryValue,
+    external_runtime_execution: CapabilityStatus | None = None,
 ) -> list[str]:
     cannot = {
         "full governance adoption",
@@ -478,6 +479,8 @@ def _derive_cannot_claim(
         "memory consolidation completeness",
         "release readiness",
     }
+    if external_runtime_execution and external_runtime_execution.state == "Verified":
+        cannot.discard("runtime smoke passed")
     if adoption_report.submodule_pin.value != "current_vs_local_tracking":
         cannot.add("framework pin freshness")
     else:
@@ -1278,7 +1281,6 @@ def build_governance_maturity_summary(
     )
     signal_conflicts = _derive_conflicts(adoption_report)
     claim_ceiling = _derive_claim_ceiling(adoption_report, repo_specific_present)
-    cannot_claim = _derive_cannot_claim(adoption_report, agents_report, lock_consistency)
     user_facing_status = _derive_user_facing_status(
         adoption_report,
         repo_specific_present,
@@ -1333,12 +1335,19 @@ def build_governance_maturity_summary(
     capability_states.update(_readiness_capabilities(readiness_report))
     capability_states["hook_installation"] = _hook_capability(hook_report)
     capability_states["runtime_evidence"] = runtime_evidence
-    capability_states["external_runtime_execution"] = _external_runtime_execution_capability(
+    external_runtime_execution = _external_runtime_execution_capability(
         repo,
         adoption_report,
         readiness_report,
         hook_report,
         runtime_evidence,
+    )
+    capability_states["external_runtime_execution"] = external_runtime_execution
+    cannot_claim = _derive_cannot_claim(
+        adoption_report,
+        agents_report,
+        lock_consistency,
+        external_runtime_execution,
     )
     owner_actions = _derive_owner_actions(
         repo=repo,
