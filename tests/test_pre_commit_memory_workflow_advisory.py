@@ -10,7 +10,7 @@ def test_pre_commit_exposes_memory_workflow_advisory() -> None:
     text = HOOK.read_text(encoding="utf-8")
 
     assert 'MEMORY_WORKFLOW_TOOL="$FRAMEWORK_ROOT/governance_tools/memory_workflow.py"' in text
-    assert '--repo "$TARGET_REPO_ROOT" --check --format json' in text
+    assert '--repo "$TARGET_REPO_ROOT" --check --run-guard --format json' in text
     assert "MEMORY_WORKFLOW_GUARD_RAN=" in text
     assert "MEMORY_WORKFLOW_WARNINGS=" in text
     assert "memory workflow advisory: memory/** changes detected" in text
@@ -32,6 +32,7 @@ def test_pre_commit_memory_workflow_is_not_selective_blocking() -> None:
         if "MEMORY_WORKFLOW_RESULT=" in line
     ]
     assert invocation_lines
+    assert all("--run-guard" in line for line in invocation_lines)
     assert all("--fail-on-blocker" not in line for line in invocation_lines)
     assert "completion_claim_allowed=not_evaluated_without_guard" in advisory_block
     assert "warning_codes=$MEMORY_WORKFLOW_WARNINGS" in advisory_block

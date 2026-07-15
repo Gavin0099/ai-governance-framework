@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # pre-push hook - AI Governance Framework
-# Enforces runtime governance checks and fail-closed daily memory discipline.
+# Enforces runtime governance checks. Memory policy is owned by the canonical
+# CI gate and its advisory pre-commit mirror, not by pre-push.
 
 set -euo pipefail
 
@@ -23,32 +24,9 @@ fi
 . "$PYTHON_LIB"
 
 TOOL="$FRAMEWORK_ROOT/governance_tools/contract_validator.py"
-DAILY_MEMORY_GUARD="$FRAMEWORK_ROOT/governance_tools/daily_memory_guard.py"
 VERSION_BUMP_GUARD="$FRAMEWORK_ROOT/governance_tools/version_bump_guard.py"
-MEMORY_FRESHNESS_GUARD="$FRAMEWORK_ROOT/governance_tools/memory_freshness_guard.py"
 SNAPSHOT_DIR="$TARGET_REPO_ROOT/memory/governance_snapshots"
 RUNTIME_SCRIPT="$FRAMEWORK_ROOT/scripts/run-runtime-governance.sh"
-
-TODAY_UTC="$(date -u +%F)"
-TODAY_MEMORY_PATH="memory/${TODAY_UTC}.md"
-ZERO_OID="0000000000000000000000000000000000000000"
-
-# pre-push stdin format:
-# <local ref> <local sha1> <remote ref> <remote sha1>
-PUSH_UPDATES="$(cat || true)"
-
-commits_include_today_memory() {
-    local commit_list="$1"
-    [ -n "$commit_list" ] || return 1
-    while IFS= read -r c; do
-        [ -n "$c" ] || continue
-        if git -C "$TARGET_REPO_ROOT" diff-tree --no-commit-id --name-only -r "$c" \
-            | grep -Fxq "$TODAY_MEMORY_PATH"; then
-            return 0
-        fi
-    done <<< "$commit_list"
-    return 1
-}
 
 if ! set_python_cmd; then
     echo "[governance] warning: Python not available; some advisory checks are skipped"
@@ -75,98 +53,6 @@ if [ "$FAIL_COUNT" -gt 0 ]; then
     echo ""
 fi
 
-# Fail-closed daily memory gate.
-if [ ! -f "$TARGET_REPO_ROOT/$TODAY_MEMORY_PATH" ]; then
-    echo ""
-    echo "[governance] blocked: missing required memory file $TODAY_MEMORY_PATH (UTC date)"
-    echo "  update memory first, then push again"
-    echo ""
-    exit 1
-fi
-
-MEMORY_UPDATED_IN_PUSH=0
-if [ -n "$PUSH_UPDATES" ]; then
-    while IFS=' ' read -r local_ref local_sha remote_ref remote_sha; do
-        [ -n "${local_sha:-}" ] || continue
-        [ "$local_sha" = "$ZERO_OID" ] && continue
-
-        RANGE_OK=0
-        if [ "${remote_sha:-$ZERO_OID}" = "$ZERO_OID" ]; then
-            range="$local_sha"
-            RANGE_OK=1
-        elif git -C "$TARGET_REPO_ROOT" cat-file -e "${remote_sha}^{commit}" 2>/dev/null; then
-            range="${remote_sha}..${local_sha}"
-            RANGE_OK=1
-        fi
-
-        if [ "$RANGE_OK" -eq 1 ] && git -C "$TARGET_REPO_ROOT" diff --name-only "$range" -- | grep -Fxq "$TODAY_MEMORY_PATH"; then
-            MEMORY_UPDATED_IN_PUSH=1
-            break
-        fi
-
-        # Minimal fallback: check files touched by the local tip commit itself.
-        if git -C "$TARGET_REPO_ROOT" diff-tree --no-commit-id --name-only -r "$local_sha" \
-            | grep -Fxq "$TODAY_MEMORY_PATH"; then
-            MEMORY_UPDATED_IN_PUSH=1
-            break
-        fi
-
-        # Fallback for missing remote commit object in local clone:
-        # inspect files touched by commits that are not yet in any remote.
-        LOCAL_ONLY_COMMITS="$(git -C "$TARGET_REPO_ROOT" rev-list "$local_sha" --not --remotes 2>/dev/null || true)"
-        if commits_include_today_memory "$LOCAL_ONLY_COMMITS"; then
-            MEMORY_UPDATED_IN_PUSH=1
-            break
-        fi
-    done <<< "$PUSH_UPDATES"
-fi
-
-# Some environments invoke pre-push without forwarding update lines to stdin.
-# Fail closed only after checking commits that are local-only versus all remotes.
-if [ "$MEMORY_UPDATED_IN_PUSH" -ne 1 ]; then
-    UNPUSHED_COMMITS="$(git -C "$TARGET_REPO_ROOT" rev-list HEAD --not --remotes 2>/dev/null || true)"
-    if commits_include_today_memory "$UNPUSHED_COMMITS"; then
-        MEMORY_UPDATED_IN_PUSH=1
-    fi
-fi
-
-if [ "$MEMORY_UPDATED_IN_PUSH" -ne 1 ]; then
-    echo ""
-    echo "[governance] blocked: push does not include $TODAY_MEMORY_PATH in outgoing commits"
-    echo "  add a post-push memory entry first, then commit and push"
-    echo ""
-    exit 1
-fi
-
-# Advisory: plan_reconciliation declaration coverage (P1-D, advisory only).
-# Reports session-derived records in today's memory file that lack a
-# plan_reconciliation declaration. Never blocks; collects FP/FN evidence
-# for the P1-E window before any blocking decision (P1-F, separate OP-HC).
-if [ -f "$TARGET_REPO_ROOT/$TODAY_MEMORY_PATH" ]; then
-    PR_TOTAL="$(grep -c '^- memory_type:' "$TARGET_REPO_ROOT/$TODAY_MEMORY_PATH" 2>/dev/null || true)"
-    PR_DECLARED="$(grep -c '^  plan_reconciliation:' "$TARGET_REPO_ROOT/$TODAY_MEMORY_PATH" 2>/dev/null || true)"
-    PR_TOTAL="${PR_TOTAL:-0}"
-    PR_DECLARED="${PR_DECLARED:-0}"
-    if [ "$PR_TOTAL" -gt "$PR_DECLARED" ]; then
-        PR_MISSING=$((PR_TOTAL - PR_DECLARED))
-        echo "[governance] advisory: ${PR_MISSING} of ${PR_TOTAL} session-derived record(s) in $TODAY_MEMORY_PATH lack a plan_reconciliation declaration"
-        echo "  declare with: --plan-reconciliation {updated|not_applicable|deferred:<taxonomy-reason>} (advisory only, not blocking)"
-    fi
-fi
-
-# Fail-closed structured memory freshness gate.
-if [ -f "$MEMORY_FRESHNESS_GUARD" ] && [ "${#PYTHON_CMD[@]}" -gt 0 ]; then
-    MEMORY_FRESHNESS_MAX_DAYS="${AI_GOVERNANCE_MEMORY_MAX_AGE_DAYS:-30}"
-    if ! MEMORY_FRESHNESS_OUTPUT=$("${PYTHON_CMD[@]}" "$MEMORY_FRESHNESS_GUARD" --project-root "$TARGET_REPO_ROOT" --max-age-days "$MEMORY_FRESHNESS_MAX_DAYS" --format human 2>&1); then
-        echo ""
-        echo "$MEMORY_FRESHNESS_OUTPUT"
-        echo "[governance] blocked: structured memory freshness check failed"
-        echo "  update memory/01_active_task.md and memory/03_knowledge_base.md (or aliases) and push again"
-        echo ""
-        exit 1
-    fi
-fi
-
 if [ -f "$RUNTIME_SCRIPT" ]; then
     echo "[governance] running runtime-governance enforcement before push"
     echo "[governance] runtime-governance smoke context: framework_self_smoke_advisory"
@@ -181,13 +67,6 @@ if [ -f "$RUNTIME_SCRIPT" ]; then
         echo "  bypass once: git push --no-verify"
         echo ""
         exit 1
-    fi
-fi
-
-if [ -f "$DAILY_MEMORY_GUARD" ] && [ "${#PYTHON_CMD[@]}" -gt 0 ]; then
-    DAILY_MEMORY_WARNING=$("${PYTHON_CMD[@]}" "$DAILY_MEMORY_GUARD" --project-root "$TARGET_REPO_ROOT" --format human 2>/dev/null || true)
-    if [ -n "$DAILY_MEMORY_WARNING" ]; then
-        echo "$DAILY_MEMORY_WARNING"
     fi
 fi
 
