@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "registry_id": "governance-validator-registry-v1",
+  "description": "Trust tiers for validation signals. Tiers are assigned here by human review, never by the agent producing the receipt. Missing entries resolve to 'unknown'. Tier meanings: test_backed = the validator itself has passing tests covering its critical failure mode; structural_only = the validator runs and checks structure but its own behavior is untested; self_reported = the signal is an agent or tool self-claim with no independent check; unknown = not registered.",
+  "review_note": "Re-tier an entry whenever the named validator changes behavior; since_version records the validator version the tier was assessed against.",
+  "entries": {
+    "pytest_suite": {
+      "tier": "test_backed",
+      "since_version": "framework-1.2.0",
+      "rationale": "The framework's own pytest suite (3,200+ tests) is executed and its exit code is machine-observed."
+    },
+    "runtime_governance_check": {
+      "tier": "structural_only",
+      "since_version": "framework-1.2.0",
+      "rationale": "Runtime governance entrypoint checks structure and wiring; its own critical-failure coverage is partial."
+    }
+  }
+}
