@@ -6,6 +6,8 @@ from dataclasses import asdict
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 import governance_tools.external_governance_submodule_updater as updater_module
 from governance_tools.external_governance_submodule_updater import (
     SUBMODULE_APPLY_MUTATION_ALLOWLIST,
@@ -51,6 +53,73 @@ def _init_repo(repo: Path) -> None:
     _git(repo, "init", "-b", "main")
     _git(repo, "config", "user.email", "test@example.invalid")
     _git(repo, "config", "user.name", "Test User")
+
+
+def test_gate_path_inventories_preserve_tabs_newlines_and_spaces(monkeypatch) -> None:
+    outputs = iter(
+        (
+            " staged\tfile\nname.py\0second file.py\0",
+            (
+                "100644 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 0\tregular.txt\0"
+                "160000 bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb 0\t"
+                " sibling\tmodule\nname\0"
+            ),
+        )
+    )
+    calls: list[tuple[tuple[str, ...], bool]] = []
+
+    def fake_run_git(_repo, args, *, preserve_stdout=False, **_kwargs):
+        calls.append((tuple(args), preserve_stdout))
+        return SimpleNamespace(stdout=next(outputs))
+
+    monkeypatch.setattr(updater_module, "_run_git", fake_run_git)
+
+    assert updater_module._staged_files(Path("repo")) == [
+        " staged\tfile\nname.py",
+        "second file.py",
+    ]
+    assert updater_module._parse_name_status(
+        "M\0 tracked\tfile\nname.py\0A\0second file.py\0",
+        scope="worktree",
+    ) == [
+        ("worktree:M", " tracked\tfile\nname.py"),
+        ("worktree:A", "second file.py"),
+    ]
+    assert updater_module._tracked_gitlinks(Path("repo")) == [
+        (
+            " sibling\tmodule\nname",
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        )
+    ]
+    assert all(preserve_stdout for _args, preserve_stdout in calls)
+    assert all("-z" in args for args, _preserve_stdout in calls)
+
+
+def test_parent_dirty_status_uses_nul_safe_callers(monkeypatch) -> None:
+    calls: list[tuple[tuple[str, ...], bool]] = []
+
+    def fake_run_git(_repo, args, *, preserve_stdout=False, **_kwargs):
+        call = tuple(args)
+        calls.append((call, preserve_stdout))
+        if "ls-files" in call:
+            stdout = " untracked\tfile\nname.py\0"
+        elif "--cached" in call:
+            stdout = "M\0 index\tfile\nname.py\0"
+        else:
+            stdout = "M\0 worktree\tfile\nname.py\0"
+        return SimpleNamespace(stdout=stdout)
+
+    monkeypatch.setattr(updater_module, "_run_git", fake_run_git)
+    monkeypatch.setattr(updater_module, "_tracked_gitlinks", lambda _repo: [])
+
+    assert updater_module._parent_dirty_status(Path("repo")) == {
+        " index\tfile\nname.py": ("index:M",),
+        " worktree\tfile\nname.py": ("worktree:M",),
+        " untracked\tfile\nname.py": ("untracked:??",),
+    }
+    assert len(calls) == 3
+    assert all(preserve_stdout for _args, preserve_stdout in calls)
+    assert all("-z" in args for args, _preserve_stdout in calls)
 
 
 def _write_framework_baseline(framework: Path) -> None:
@@ -876,6 +945,434 @@ def test_apply_blocks_non_allowlisted_dirty_content_mutation(
     }
 
 
+def test_apply_allows_unchanged_untracked_artifact_to_become_ignored(
+    tmp_path: Path,
+) -> None:
+    consumer, _framework, _old_head, new_head = _make_fixture(tmp_path)
+    artifact = consumer / "artifacts" / "runtime" / "existing.json"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text('{"state":"user-owned"}\n', encoding="utf-8")
+    before = artifact.read_bytes()
+    assert _git(consumer, "status", "--short", "--", artifact) == (
+        "?? artifacts/runtime/existing.json"
+    )
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is True
+    assert result.after_head == new_head
+    assert artifact.read_bytes() == before
+    assert _git(consumer, "check-ignore", "artifacts/runtime/existing.json") == (
+        "artifacts/runtime/existing.json"
+    )
+
+
+def test_apply_blocks_content_mutation_after_untracked_artifact_becomes_ignored(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    consumer, _framework, _old_head, new_head = _make_fixture(tmp_path)
+    artifact = consumer / "artifacts" / "runtime" / "existing.json"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text('{"state":"user-owned"}\n', encoding="utf-8")
+    original_write_update_receipt = updater_module.write_update_receipt
+
+    def write_receipt_then_mutate_artifact(*args, **kwargs):
+        receipt = original_write_update_receipt(*args, **kwargs)
+        artifact.write_text('{"state":"mutated"}\n', encoding="utf-8")
+        return receipt
+
+    monkeypatch.setattr(
+        updater_module,
+        "write_update_receipt",
+        write_receipt_then_mutate_artifact,
+    )
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is False
+    assert result.after_head == new_head
+    assert any(
+        "parent dirty snapshot changed outside the F-7 apply allowlist" in error
+        and "artifacts/runtime/existing.json" in error
+        for error in result.errors
+    )
+
+
+def test_apply_blocks_deletion_after_untracked_artifact_becomes_ignored(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    consumer, _framework, _old_head, new_head = _make_fixture(tmp_path)
+    artifact = consumer / "artifacts" / "runtime" / "existing.json"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text('{"state":"user-owned"}\n', encoding="utf-8")
+    original_write_update_receipt = updater_module.write_update_receipt
+
+    def write_receipt_then_delete_artifact(*args, **kwargs):
+        receipt = original_write_update_receipt(*args, **kwargs)
+        artifact.unlink()
+        return receipt
+
+    monkeypatch.setattr(
+        updater_module,
+        "write_update_receipt",
+        write_receipt_then_delete_artifact,
+    )
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is False
+    assert result.after_head == new_head
+    assert any(
+        "parent dirty snapshot changed outside the F-7 apply allowlist" in error
+        and "artifacts/runtime/existing.json" in error
+        for error in result.errors
+    )
+
+
+def test_apply_blocks_new_non_allowlisted_dirty_path(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    consumer, _framework, _old_head, new_head = _make_fixture(tmp_path)
+    product = consumer / "Source" / "new-product.cpp"
+    original_write_update_receipt = updater_module.write_update_receipt
+
+    def write_receipt_then_create_product(*args, **kwargs):
+        receipt = original_write_update_receipt(*args, **kwargs)
+        product.parent.mkdir(parents=True)
+        product.write_text("unexpected updater output\n", encoding="utf-8")
+        return receipt
+
+    monkeypatch.setattr(
+        updater_module,
+        "write_update_receipt",
+        write_receipt_then_create_product,
+    )
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is False
+    assert result.after_head == new_head
+    assert any(
+        "parent dirty snapshot changed outside the F-7 apply allowlist" in error
+        and "Source/new-product.cpp" in error
+        for error in result.errors
+    )
+
+
+def test_apply_blocks_new_path_ignored_by_managed_hygiene(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    consumer, _framework, _old_head, new_head = _make_fixture(tmp_path)
+    artifact = consumer / "artifacts" / "runtime" / "late-created.json"
+    original_ensure_gitignore_hygiene = updater_module._ensure_gitignore_hygiene
+
+    def ensure_hygiene_then_create_ignored_artifact(repo: Path):
+        report = original_ensure_gitignore_hygiene(repo)
+        artifact.parent.mkdir(parents=True, exist_ok=True)
+        artifact.write_text('{"state":"unexpected"}\n', encoding="utf-8")
+        return report
+
+    monkeypatch.setattr(
+        updater_module,
+        "_ensure_gitignore_hygiene",
+        ensure_hygiene_then_create_ignored_artifact,
+    )
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is False
+    assert result.after_head == new_head
+    assert artifact.exists()
+    assert any(
+        "parent dirty snapshot changed outside the F-7 apply allowlist" in error
+        and "artifacts/runtime/late-created.json" in error
+        for error in result.errors
+    )
+
+
+def test_apply_blocks_ignore_transition_from_git_info_exclude(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    consumer, _framework, _old_head, new_head = _make_fixture(tmp_path)
+    product = consumer / "Source" / "product.cpp"
+    product.parent.mkdir(parents=True)
+    product.write_text("user work\n", encoding="utf-8")
+    before = product.read_bytes()
+    exclude = consumer / ".git" / "info" / "exclude"
+    original_ensure_gitignore_hygiene = updater_module._ensure_gitignore_hygiene
+
+    def ensure_hygiene_then_change_exclude(repo: Path):
+        report = original_ensure_gitignore_hygiene(repo)
+        existing = exclude.read_text(encoding="utf-8")
+        exclude.write_text(existing + "\n/Source/product.cpp\n", encoding="utf-8")
+        return report
+
+    monkeypatch.setattr(
+        updater_module,
+        "_ensure_gitignore_hygiene",
+        ensure_hygiene_then_change_exclude,
+    )
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is False
+    assert result.after_head == new_head
+    assert product.read_bytes() == before
+    assert any(
+        "parent dirty snapshot changed outside the F-7 apply allowlist" in error
+        and "Source/product.cpp" in error
+        for error in result.errors
+    )
+
+
+def test_apply_blocks_untracked_path_becoming_staged(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    consumer, _framework, _old_head, new_head = _make_fixture(tmp_path)
+    product = consumer / "Source" / "product.cpp"
+    product.parent.mkdir(parents=True)
+    product.write_text("user work\n", encoding="utf-8")
+    original_write_update_receipt = updater_module.write_update_receipt
+
+    def write_receipt_then_stage_product(*args, **kwargs):
+        receipt = original_write_update_receipt(*args, **kwargs)
+        _git(consumer, "add", "Source/product.cpp")
+        return receipt
+
+    monkeypatch.setattr(
+        updater_module,
+        "write_update_receipt",
+        write_receipt_then_stage_product,
+    )
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is False
+    assert result.after_head == new_head
+    assert any(
+        "parent dirty snapshot changed outside the F-7 apply allowlist" in error
+        and "Source/product.cpp" in error
+        for error in result.errors
+    )
+
+
+def test_managed_gitignore_matches_treats_not_ignored_as_empty(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    _init_repo(repo)
+    updater_module._ensure_gitignore_hygiene(repo)
+
+    assert updater_module._managed_gitignore_matches(
+        repo,
+        ["Source/product.cpp"],
+    ) == frozenset()
+
+
+def test_managed_gitignore_matches_fails_closed_on_git_error(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = tmp_path / "repo"
+    _init_repo(repo)
+    updater_module._ensure_gitignore_hygiene(repo)
+
+    monkeypatch.setattr(
+        updater_module,
+        "_run_git",
+        lambda *_args, **_kwargs: updater_module.CommandResult(
+            command=["git", "check-ignore"],
+            returncode=2,
+            stdout="",
+            stderr="simulated check-ignore failure",
+        ),
+    )
+
+    with pytest.raises(
+        updater_module.SubmoduleUpdateError,
+        match="cannot inspect ignore authority",
+    ):
+        updater_module._managed_gitignore_matches(repo, ["artifacts/runtime/x.json"])
+
+
+@pytest.mark.parametrize(
+    "malformed_stdout",
+    [
+        ".gitignore\0not-four-fields\0",
+        ".gitignore\01\0artifacts/runtime/\0artifacts/runtime/x.json",
+    ],
+)
+def test_managed_gitignore_matches_fails_closed_on_malformed_nul_output(
+    tmp_path: Path,
+    monkeypatch,
+    malformed_stdout: str,
+) -> None:
+    repo = tmp_path / "repo"
+    _init_repo(repo)
+    updater_module._ensure_gitignore_hygiene(repo)
+
+    monkeypatch.setattr(
+        updater_module,
+        "_run_git",
+        lambda *_args, **_kwargs: updater_module.CommandResult(
+            command=["git", "check-ignore"],
+            returncode=0,
+            stdout=malformed_stdout,
+            stderr="",
+        ),
+    )
+
+    with pytest.raises(
+        updater_module.SubmoduleUpdateError,
+        match="NUL-delimited",
+    ):
+        updater_module._managed_gitignore_matches(repo, ["artifacts/runtime/x.json"])
+
+
+def test_apply_blocks_new_ignored_path_with_leading_space(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    consumer, _framework, _old_head, new_head = _make_fixture(tmp_path)
+    (consumer / ".gitignore").write_text("*.pyc\n", encoding="utf-8")
+    _git(consumer, "add", ".gitignore")
+    _git(consumer, "commit", "-m", "test: add user pyc ignore")
+    (consumer / "x.pyc").write_bytes(b"existing ignored\n")
+    late_path = consumer / " x.pyc"
+    original_ensure_gitignore_hygiene = updater_module._ensure_gitignore_hygiene
+
+    def ensure_hygiene_then_create_leading_space_path(repo: Path):
+        report = original_ensure_gitignore_hygiene(repo)
+        late_path.write_bytes(b"late ignored\n")
+        return report
+
+    monkeypatch.setattr(
+        updater_module,
+        "_ensure_gitignore_hygiene",
+        ensure_hygiene_then_create_leading_space_path,
+    )
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is False
+    assert result.after_head == new_head
+    assert late_path.exists()
+    assert any(
+        "parent dirty snapshot changed outside the F-7 apply allowlist" in error
+        and " x.pyc" in error
+        for error in result.errors
+    )
+
+
+def test_apply_allows_initial_leading_space_path_to_become_ignored(
+    tmp_path: Path,
+) -> None:
+    consumer, _framework, _old_head, new_head = _make_fixture(tmp_path)
+    artifact = consumer / " x.pyc"
+    artifact.write_bytes(b"initial user artifact\n")
+    before = artifact.read_bytes()
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is True
+    assert result.after_head == new_head
+    assert artifact.read_bytes() == before
+    assert _git(consumer, "check-ignore", "--quiet", "--", " x.pyc") == ""
+
+
+def test_apply_blocks_transition_when_managed_gitignore_block_is_corrupted(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    consumer, _framework, _old_head, new_head = _make_fixture(tmp_path)
+    artifact = consumer / "x.pyc"
+    artifact.write_bytes(b"initial user artifact\n")
+    original_ensure_gitignore_hygiene = updater_module._ensure_gitignore_hygiene
+
+    def ensure_hygiene_then_corrupt_managed_block(repo: Path):
+        report = original_ensure_gitignore_hygiene(repo)
+        gitignore = repo / ".gitignore"
+        text = gitignore.read_text(encoding="utf-8")
+        gitignore.write_text(
+            text.replace(
+                "# <<< ai-governance hygiene (managed) <<<",
+                "BROKEN-EXTRA-LINE\n# <<< ai-governance hygiene (managed) <<<",
+            ),
+            encoding="utf-8",
+        )
+        return report
+
+    monkeypatch.setattr(
+        updater_module,
+        "_ensure_gitignore_hygiene",
+        ensure_hygiene_then_corrupt_managed_block,
+    )
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is False
+    assert result.after_head == new_head
+    assert any(
+        "parent dirty snapshot changed outside the F-7 apply allowlist" in error
+        and "x.pyc" in error
+        for error in result.errors
+    )
+
+
 def test_post_commit_boundary_failure_reports_commit_and_applied_pointer(
     tmp_path: Path,
     monkeypatch,
@@ -942,6 +1439,63 @@ def test_apply_blocks_dirty_sibling_submodule_content_mutation(
     )
     _commit_all(consumer, "test: add sibling product submodule")
     sibling_artifact = consumer / "sibling-product" / "runtime.db"
+    sibling_artifact.write_text("user sibling work\n", encoding="utf-8")
+    assert "sibling-product" in _git(consumer, "status", "--short")
+    original_write_update_receipt = updater_module.write_update_receipt
+
+    def write_receipt_then_mutate_sibling(*args, **kwargs):
+        receipt = original_write_update_receipt(*args, **kwargs)
+        sibling_artifact.write_text(
+            "unexpected sibling mutation\n",
+            encoding="utf-8",
+        )
+        return receipt
+
+    monkeypatch.setattr(
+        updater_module,
+        "write_update_receipt",
+        write_receipt_then_mutate_sibling,
+    )
+
+    result = update_governance_submodule(
+        repo=consumer,
+        fetch_ref="main",
+        dry_run=False,
+        stage=False,
+    )
+
+    assert result.ok is False
+    assert result.after_head == new_head
+    assert any(
+        "parent dirty snapshot changed outside the F-7 apply allowlist" in error
+        and "sibling-product" in error
+        for error in result.errors
+    )
+    assert result.ai_governance_update_result["operation_execution"][
+        "framework_update_applied"
+    ] is True
+
+
+def test_apply_blocks_leading_space_sibling_submodule_content_mutation(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    consumer, _framework, _old_head, new_head = _make_fixture(tmp_path)
+    sibling_origin = tmp_path / "sibling-product-origin"
+    _init_repo(sibling_origin)
+    (sibling_origin / "README.md").write_text("sibling product\n", encoding="utf-8")
+    _commit_all(sibling_origin, "test: add sibling product")
+    _git(
+        consumer,
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        str(sibling_origin),
+        "sibling-product",
+    )
+    _commit_all(consumer, "test: add sibling product submodule")
+    sibling_artifact = consumer / "sibling-product" / " runtime.db"
     sibling_artifact.write_text("user sibling work\n", encoding="utf-8")
     assert "sibling-product" in _git(consumer, "status", "--short")
     original_write_update_receipt = updater_module.write_update_receipt

@@ -228,6 +228,8 @@ def _run_git(
     args: Sequence[str],
     *,
     check: bool = True,
+    input_text: str | None = None,
+    preserve_stdout: bool = False,
 ) -> CommandResult:
     command = ["git", "-C", str(repo), *args]
     env = _git_env(repo)
@@ -238,13 +240,18 @@ def _run_git(
         errors="replace",
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        input=input_text,
         env=env,
         check=False,
     )
     result = CommandResult(
         command=command,
         returncode=completed.returncode,
-        stdout=(completed.stdout or "").strip(),
+        stdout=(
+            completed.stdout or ""
+            if preserve_stdout
+            else (completed.stdout or "").strip()
+        ),
         stderr=(completed.stderr or "").strip(),
     )
     if check and result.returncode != 0:
@@ -470,9 +477,24 @@ def _dry_run_fast_forward_status(submodule_repo: Path, before_head: str, target_
     )
 
 
+def _nul_records(output: str, *, scope: str) -> list[str]:
+    if not output:
+        return []
+    if not output.endswith("\0"):
+        raise SubmoduleUpdateError(f"unterminated NUL-delimited Git output for {scope}")
+    records = output[:-1].split("\0")
+    if any(record == "" for record in records):
+        raise SubmoduleUpdateError(f"empty NUL-delimited Git record for {scope}")
+    return records
+
+
 def _staged_files(repo: Path) -> list[str]:
-    output = _run_git(repo, ["diff", "--cached", "--name-only"]).stdout
-    return [line.strip() for line in output.splitlines() if line.strip()]
+    output = _run_git(
+        repo,
+        ["diff", "--cached", "--name-only", "-z"],
+        preserve_stdout=True,
+    ).stdout
+    return _nul_records(output, scope="staged files")
 
 
 @dataclass(frozen=True)
@@ -487,19 +509,15 @@ def _submodule_apply_mutation_allowlist(submodule_path: str) -> frozenset[str]:
 
 
 def _parse_name_status(output: str, *, scope: str) -> list[tuple[str, str]]:
+    records = _nul_records(output, scope=f"parent dirty status {scope}")
+    if len(records) % 2:
+        raise SubmoduleUpdateError(
+            f"cannot parse parent dirty status entry for {scope}: odd NUL record count"
+        )
     entries: list[tuple[str, str]] = []
-    for raw in output.splitlines():
-        if not raw:
-            continue
-        fields = raw.split("\t")
-        if len(fields) < 2:
-            raise SubmoduleUpdateError(
-                f"cannot parse parent dirty status entry for {scope}: {raw!r}"
-            )
-        status = fields[0]
-        # --no-renames keeps one path per status entry. Use the final field as
-        # a defensive fallback if a Git implementation still emits two paths.
-        path = fields[-1].replace("\\", "/")
+    for index in range(0, len(records), 2):
+        status = records[index]
+        path = records[index + 1].replace("\\", "/")
         entries.append((f"{scope}:{status}", path))
     return entries
 
@@ -508,13 +526,20 @@ def _tracked_gitlinks(repo: Path) -> list[tuple[str, str]]:
     entries: list[tuple[str, str]] = []
     output = _run_git(
         repo,
-        ["-c", "core.quotepath=false", "ls-files", "--stage"],
+        ["-c", "core.quotepath=false", "ls-files", "--stage", "-z"],
+        preserve_stdout=True,
     ).stdout
-    for raw in output.splitlines():
+    for raw in _nul_records(output, scope="tracked gitlinks"):
         if "\t" not in raw:
-            continue
+            raise SubmoduleUpdateError(
+                f"cannot parse tracked gitlink entry: {raw!r}"
+            )
         metadata, path = raw.split("\t", 1)
         fields = metadata.split()
+        if len(fields) < 3:
+            raise SubmoduleUpdateError(
+                f"cannot parse tracked gitlink metadata: {metadata!r}"
+            )
         if len(fields) >= 3 and fields[0] == "160000" and fields[2] == "0":
             entries.append((path.replace("\\", "/"), fields[1]))
     return entries
@@ -537,6 +562,7 @@ def _parent_dirty_status(repo: Path) -> dict[str, tuple[str, ...]]:
                 "--cached",
                 "--name-status",
                 "--no-renames",
+                "-z",
             ],
         ),
         (
@@ -547,11 +573,12 @@ def _parent_dirty_status(repo: Path) -> dict[str, tuple[str, ...]]:
                 "diff",
                 "--name-status",
                 "--no-renames",
+                "-z",
             ],
         ),
     ):
         for scope_status, path in _parse_name_status(
-            _run_git(repo, args).stdout,
+            _run_git(repo, args, preserve_stdout=True).stdout,
             scope=scope,
         ):
             add(scope_status, path)
@@ -574,11 +601,18 @@ def _parent_dirty_status(repo: Path) -> dict[str, tuple[str, ...]]:
 
     untracked = _run_git(
         repo,
-        ["-c", "core.quotepath=false", "ls-files", "--others", "--exclude-standard"],
+        [
+            "-c",
+            "core.quotepath=false",
+            "ls-files",
+            "--others",
+            "--exclude-standard",
+            "-z",
+        ],
+        preserve_stdout=True,
     ).stdout
-    for path in untracked.splitlines():
-        if path:
-            add("untracked:??", path)
+    for path in _nul_records(untracked, scope="parent untracked files"):
+        add("untracked:??", path)
 
     return {path: tuple(sorted(values)) for path, values in statuses.items()}
 
@@ -619,9 +653,19 @@ def _fingerprint_nested_git_checkout(path: Path) -> str:
 
     untracked = _run_git(
         path,
-        ["-c", "core.quotepath=false", "ls-files", "--others", "--exclude-standard"],
+        [
+            "-c",
+            "core.quotepath=false",
+            "ls-files",
+            "--others",
+            "--exclude-standard",
+            "-z",
+        ],
+        preserve_stdout=True,
     ).stdout
-    for relative in sorted(line for line in untracked.splitlines() if line):
+    for relative in sorted(
+        _nul_records(untracked, scope=f"nested untracked files in {path}")
+    ):
         candidate = path / relative
         digest.update(f"untracked:{relative}\0".encode("utf-8"))
         digest.update(_fingerprint_path(candidate).encode("ascii"))
@@ -707,24 +751,147 @@ def _require_clean_apply_overlap(overlapping: list[str]) -> None:
         )
 
 
+def _ignored_untracked_paths(repo: Path) -> frozenset[str]:
+    result = _run_git(
+        repo,
+        [
+            "-c",
+            "core.quotepath=false",
+            "ls-files",
+            "--others",
+            "--ignored",
+            "--exclude-standard",
+            "-z",
+        ],
+        preserve_stdout=True,
+    )
+    return frozenset(
+        _nul_records(result.stdout, scope="ignored untracked files")
+    )
+
+
+def _managed_gitignore_matches(repo: Path, paths: Sequence[str]) -> frozenset[str]:
+    if not paths:
+        return frozenset()
+
+    from governance_tools.adopt_governance import (
+        _GITIGNORE_HYGIENE_BODY,
+        _GITIGNORE_HYGIENE_END,
+        _GITIGNORE_HYGIENE_START,
+        _gitignore_hygiene_block,
+    )
+
+    gitignore = repo / ".gitignore"
+    if not gitignore.exists():
+        return frozenset()
+    lines = _read_text(gitignore).splitlines()
+    if (
+        lines.count(_GITIGNORE_HYGIENE_START) != 1
+        or lines.count(_GITIGNORE_HYGIENE_END) != 1
+    ):
+        return frozenset()
+    start_index = lines.index(_GITIGNORE_HYGIENE_START)
+    end_index = lines.index(_GITIGNORE_HYGIENE_END)
+    canonical_block_lines = _gitignore_hygiene_block().splitlines()
+    if lines[start_index : end_index + 1] != canonical_block_lines:
+        return frozenset()
+    canonical_patterns = {
+        line
+        for line in _GITIGNORE_HYGIENE_BODY.splitlines()
+        if line and not line.startswith("#")
+    }
+
+    result = _run_git(
+        repo,
+        ["check-ignore", "-v", "-z", "--stdin", "--no-index"],
+        check=False,
+        input_text="".join(f"{path}\0" for path in paths),
+        preserve_stdout=True,
+    )
+    if result.returncode not in {0, 1}:
+        detail = result.stderr or result.stdout or f"exit {result.returncode}"
+        raise SubmoduleUpdateError(f"cannot inspect ignore authority: {detail}")
+
+    fields = _nul_records(result.stdout, scope="ignore authority output")
+    if len(fields) % 4 != 0:
+        raise SubmoduleUpdateError("cannot parse NUL-delimited ignore authority output")
+
+    root_gitignore = gitignore.resolve()
+    matched: set[str] = set()
+    for offset in range(0, len(fields), 4):
+        source, line_number_text, pattern, path = fields[offset : offset + 4]
+        try:
+            line_number = int(line_number_text)
+        except ValueError as exc:
+            raise SubmoduleUpdateError(
+                f"invalid ignore authority line number for {path}: {line_number_text}"
+            ) from exc
+        source_path = Path(source)
+        if not source_path.is_absolute():
+            source_path = repo / source_path
+        if source_path.resolve() != root_gitignore:
+            continue
+        line_index = line_number - 1
+        if not (start_index < line_index < end_index):
+            continue
+        if lines[line_index] != pattern or pattern not in canonical_patterns:
+            continue
+        matched.add(path)
+    return frozenset(matched)
+
+
+def _freeze_allowed_ignored_transitions(
+    repo: Path,
+    *,
+    dirty_before: dict[str, DirtyPathSnapshot],
+    ignored_before: frozenset[str],
+) -> frozenset[str]:
+    ignored_after_hygiene = _ignored_untracked_paths(repo)
+    candidates = sorted(
+        path
+        for path in ignored_after_hygiene - ignored_before
+        if path in dirty_before
+        and dirty_before[path].statuses == ("untracked:??",)
+        and _fingerprint_path(repo / path) == dirty_before[path].fingerprint
+    )
+    managed_matches = _managed_gitignore_matches(repo, candidates)
+    return frozenset(path for path in candidates if path in managed_matches)
+
+
 def _verify_parent_dirty_snapshot_unchanged(
     repo: Path,
     *,
     allowlist: frozenset[str],
     before: dict[str, DirtyPathSnapshot],
+    ignored_before: frozenset[str],
+    allowed_ignored_transitions: frozenset[str],
 ) -> None:
     _overlapping, after = _capture_parent_dirty_snapshot(repo, allowlist=allowlist)
-    if before == after:
+    ignored_after = _ignored_untracked_paths(repo)
+    new_ignored_paths = ignored_after - ignored_before - allowed_ignored_transitions
+    if before == after and not new_ignored_paths:
         return
 
-    changed_paths = sorted(
-        path
-        for path in set(before) | set(after)
-        if before.get(path) != after.get(path)
-    )
+    changed_paths = set(new_ignored_paths)
+    for path in sorted(set(before) | set(after)):
+        before_path = before.get(path)
+        after_path = after.get(path)
+        if before_path == after_path:
+            continue
+        if (
+            path in allowed_ignored_transitions
+            and before_path is not None
+            and before_path.statuses == ("untracked:??",)
+            and after_path is None
+            and _fingerprint_path(repo / path) == before_path.fingerprint
+        ):
+            continue
+        changed_paths.add(path)
+    if not changed_paths:
+        return
     raise SubmoduleUpdateError(
         "parent dirty snapshot changed outside the F-7 apply allowlist; "
-        f"refusing successful completion: {changed_paths}"
+        f"refusing successful completion: {sorted(changed_paths)}"
     )
 
 
@@ -1287,6 +1454,8 @@ def update_governance_submodule(
     commit_hash: str | None = None
     apply_allowlist: frozenset[str] = frozenset()
     parent_dirty_before: dict[str, DirtyPathSnapshot] | None = None
+    ignored_untracked_before: frozenset[str] = frozenset()
+    allowed_ignored_transitions: frozenset[str] = frozenset()
     update_receipt = skipped_update_receipt(
         "dry_run failed before receipt boundary"
         if dry_run
@@ -1306,6 +1475,7 @@ def update_governance_submodule(
                 repo,
                 allowlist=apply_allowlist,
             )
+            ignored_untracked_before = _ignored_untracked_paths(repo)
             hook_overlapping = _preexisting_unmanaged_hook_overlaps(
                 repo,
                 submodule_repo,
@@ -1337,6 +1507,11 @@ def update_governance_submodule(
             instruction_report = _refresh_repo_local_instructions(repo, submodule_repo)
             hook_report = _ensure_hook_advisory(repo, submodule_repo)
             gitignore_report = _ensure_gitignore_hygiene(repo)
+            allowed_ignored_transitions = _freeze_allowed_ignored_transitions(
+                repo,
+                dirty_before=parent_dirty_before,
+                ignored_before=ignored_untracked_before,
+            )
             lock_report = _sync_existing_framework_lock(repo, before_head)
             if (stage or commit) and lock_report["changed_files"]:
                 _run_git(repo, ["add", "--", FRAMEWORK_LOCK_RELATIVE_PATH.as_posix()])
@@ -1396,6 +1571,8 @@ def update_governance_submodule(
                 repo,
                 allowlist=apply_allowlist,
                 before=parent_dirty_before,
+                ignored_before=ignored_untracked_before,
+                allowed_ignored_transitions=allowed_ignored_transitions,
             )
             if commit and staged:
                 _run_git(repo, ["commit", "-m", commit_message])
@@ -1405,6 +1582,8 @@ def update_governance_submodule(
                     repo,
                     allowlist=apply_allowlist,
                     before=parent_dirty_before,
+                    ignored_before=ignored_untracked_before,
+                    allowed_ignored_transitions=allowed_ignored_transitions,
                 )
                 _refresh_stage_report_after_commit(
                     full_update_stage_report,
@@ -1503,6 +1682,11 @@ def update_governance_submodule(
         instruction_report = _refresh_repo_local_instructions(repo, submodule_repo)
         hook_report = _ensure_hook_advisory(repo, submodule_repo)
         gitignore_report = _ensure_gitignore_hygiene(repo)
+        allowed_ignored_transitions = _freeze_allowed_ignored_transitions(
+            repo,
+            dirty_before=parent_dirty_before,
+            ignored_before=ignored_untracked_before,
+        )
         lock_report = _sync_existing_framework_lock(repo, after_head)
         if (stage or commit) and lock_report["changed_files"]:
             _run_git(repo, ["add", "--", FRAMEWORK_LOCK_RELATIVE_PATH.as_posix()])
@@ -1564,6 +1748,8 @@ def update_governance_submodule(
             repo,
             allowlist=apply_allowlist,
             before=parent_dirty_before,
+            ignored_before=ignored_untracked_before,
+            allowed_ignored_transitions=allowed_ignored_transitions,
         )
         if commit:
             _run_git(repo, ["commit", "-m", commit_message])
@@ -1573,6 +1759,8 @@ def update_governance_submodule(
                 repo,
                 allowlist=apply_allowlist,
                 before=parent_dirty_before,
+                ignored_before=ignored_untracked_before,
+                allowed_ignored_transitions=allowed_ignored_transitions,
             )
             _refresh_stage_report_after_commit(
                 full_update_stage_report,
@@ -1610,6 +1798,8 @@ def update_governance_submodule(
                     repo,
                     allowlist=apply_allowlist,
                     before=parent_dirty_before,
+                    ignored_before=ignored_untracked_before,
+                    allowed_ignored_transitions=allowed_ignored_transitions,
                 )
             except (SubmoduleUpdateError, OSError) as boundary_exc:
                 boundary_error = str(boundary_exc)
