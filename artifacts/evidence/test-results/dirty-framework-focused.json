@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_external_repo_smoke.py tests/test_governance_maturity_summary.py --basetemp C:\\tmp\\pytest-dirty-framework-evidence -q",
+  "exit_code": 0,
+  "started_at": "2026-07-16T01:55:30Z",
+  "finished_at": "2026-07-16T01:55:55Z",
+  "runner": "codex",
+  "linked_commit": "1a02652ec30ac9c2aedf822769bde654bf591250",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/dirty-framework-focused.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
