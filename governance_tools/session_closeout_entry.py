@@ -40,7 +40,51 @@ from governance_tools.session_end_hook import run_session_end_hook, format_human
 from runtime_hooks.core.session_end import resolve_ledger_write_allowed_from_no_write_flag
 
 ALLOWED_TRIGGER_MODES = {"native_hook", "manual_fallback", "wrapper", "synthetic_smoke", "unknown"}
-CLOSEOUT_RECEIPT_SCHEMA_VERSION = "1.3"
+CLOSEOUT_RECEIPT_SCHEMA_VERSION = "1.4"
+
+# Runtime binding (schema 1.4): receipts carry the detected runtime profile
+# ids so evaluation can group evidence per runtime. Report-only; binding
+# failure degrades to "unknown" and never blocks closeout.
+RUNTIME_PROFILE_RELPATH = Path(".governance") / "runtime-profile.json"
+
+# sample_origin is derived from the trigger context, never from agent
+# self-report: synthetic smoke receipts must not count as natural tasks.
+_SAMPLE_ORIGIN_BY_TRIGGER = {
+    "native_hook": "natural_task",
+    "manual_fallback": "natural_task",
+    "wrapper": "natural_task",
+    "synthetic_smoke": "synthetic",
+}
+
+
+def _load_runtime_binding(project_root: Path, session_id: str) -> "dict[str, str]":
+    """Bind the receipt to the detected runtime profile, if one exists.
+
+    Conservative rules: a missing or unreadable profile degrades to
+    "unknown"; a profile whose session_id conflicts with the receipt's
+    session_id is treated as stale (written by another session) and is not
+    bound.
+    """
+    binding = {
+        "runtime_profile_id": "unknown",
+        "runtime_profile_coarse_id": "unknown",
+        "runtime_detection_status": "unknown",
+    }
+    try:
+        payload = json.loads(
+            (project_root / RUNTIME_PROFILE_RELPATH).read_text(encoding="utf-8"))
+        profile_sid = (payload.get("session_id") or {}).get("value") or ""
+        if session_id and profile_sid and profile_sid != session_id:
+            return binding
+        fingerprint = payload.get("fingerprint") or {}
+        binding["runtime_profile_id"] = str(fingerprint.get("full_id") or "unknown")
+        binding["runtime_profile_coarse_id"] = str(fingerprint.get("coarse_id") or "unknown")
+        status = payload.get("detection_status")
+        if status in ("full", "partial", "none"):
+            binding["runtime_detection_status"] = status
+    except (OSError, ValueError, AttributeError):
+        pass
+    return binding
 
 
 def _utc_now_iso() -> str:
@@ -194,12 +238,13 @@ def _write_closeout_receipt(
     receipt_path = artifact_dir / f"closeout_receipt_{ts}.json"
     closeout_path_obj = Path(closeout_artifact_path).resolve() if closeout_artifact_path else None
     linked_head = _resolve_head_commit(project_root)
+    normalized_trigger = trigger_mode if trigger_mode in ALLOWED_TRIGGER_MODES else "unknown"
     receipt = {
         "schema_version": CLOSEOUT_RECEIPT_SCHEMA_VERSION,
         "timestamp": _utc_now_iso(),
         "session_id": session_id,
         "agent_id": agent_id,
-        "trigger_mode": trigger_mode if trigger_mode in ALLOWED_TRIGGER_MODES else "unknown",
+        "trigger_mode": normalized_trigger,
         "entrypoint": entrypoint,
         "exit_code": exit_code,
         "linked_head_commit": linked_head,
@@ -226,6 +271,8 @@ def _write_closeout_receipt(
         "memory_workflow_warning_codes": memory_workflow_warning_codes if memory_workflow_warning_codes is not None else [],
         "memory_workflow_blocker_codes": memory_workflow_blocker_codes if memory_workflow_blocker_codes is not None else [],
         "memory_workflow_guard_summary": memory_workflow_guard_summary if memory_workflow_guard_summary is not None else {},
+        **_load_runtime_binding(project_root, session_id),
+        "sample_origin": _SAMPLE_ORIGIN_BY_TRIGGER.get(normalized_trigger, "unknown"),
     }
     receipt_path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return receipt_path

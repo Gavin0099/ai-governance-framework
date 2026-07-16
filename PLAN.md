@@ -745,7 +745,10 @@ P1-C, or re-running the completed apply to manufacture new evidence.
   2026-06-13 code-path check was for then-current schema `1.2`
   (`schema_1_2_code_ready=true`, submodule `0eafe10`, all
   `memory_workflow_*` fields present). The current framework writer emits
-  `CLOSEOUT_RECEIPT_SCHEMA_VERSION="1.3"`, and the schema accepts `1.3`;
+  `CLOSEOUT_RECEIPT_SCHEMA_VERSION="1.4"` (bumped 2026-07-16 for runtime
+  binding, Agent Runtime Evaluation tranche 1; external repos keep emitting
+  the version pinned by their submodule commit — `1.3` until their next F-7,
+  which is out of tranche-1 scope), and the schema accepts `1.1`-`1.4`;
   `stop_hook_path_verified=true` (`.claude/settings.json` Stop hook points to
   submodule `session_closeout_entry.py`); `latest_existing_receipt_schema=1.1`
   (receipt `20260531T160517Z`); `post_f7_natural_receipt_exists=false`;
@@ -758,7 +761,9 @@ P1-C, or re-running the completed apply to manufacture new evidence.
   Close condition (all six must be observed in the same natural-session receipt):
   open a real meiandraybook session after F-7, allow the normal Stop hook to
   close it, then inspect the newest `artifacts/runtime/closeout-receipts/` entry
-  and verify: (1) `schema_version == "1.3"`; (2) `memory_workflow_dispatch_ran`
+  and verify: (1) `schema_version` equals the `CLOSEOUT_RECEIPT_SCHEMA_VERSION`
+  of the submodule commit actually in production (`1.3` for the current
+  external pin; `1.4` after a future F-7 update); (2) `memory_workflow_dispatch_ran`
   exists; (3) `memory_workflow_status` exists; (4) `memory_workflow_warning_codes`
   exists; (5) `memory_workflow_blocker_codes` exists; (6)
   `memory_workflow_guard_summary` exists. Check box only after all six confirmed.
