@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-governance-framework/schemas/evaluation_summary.schema.json",
+  "title": "EvaluationSummary",
+  "description": "Repo-local, LLM-free aggregation of session receipts grouped by runtime profile. By design there is NO single total score field, and adding one requires reopening the maintenance-budget questions (docs/governance/agent-runtime-evaluation-budget-entry-2026-07-16.md). Metrics from 'detected' model bindings must never be merged with 'verified' ones as equals. Main metrics count natural_task samples only. This artifact establishes observability; it is not itself G4 evidence.",
+  "x_export_prohibited": [
+    "usernames or user home paths",
+    "absolute filesystem paths",
+    "repository secrets, tokens, or credentials",
+    "prompts, conversation content, code, or diffs",
+    "customer or organization names"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generated_at",
+    "period",
+    "groups",
+    "generator"
+  ],
+  "$defs": {
+    "rate": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 1,
+      "description": "null when the denominator is zero — never reported as 0 or 1 by convention."
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": ["1.0"]
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": { "type": "string", "format": "date-time" },
+        "end": { "type": "string", "format": "date-time" },
+        "days": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "groups": {
+      "type": "array",
+      "description": "One entry per (coarse profile id x model binding tier x sample origin) observed in the window. Groups are never merged across detection tiers.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "coarse_id",
+          "fingerprint_schema_version",
+          "model_binding",
+          "sample_origin",
+          "maturity",
+          "counts"
+        ],
+        "properties": {
+          "coarse_id": { "type": "string" },
+          "fingerprint_schema_version": { "type": "string" },
+          "agent_family": { "type": "string" },
+          "model_family": { "type": "string" },
+          "surface_class": { "type": "string" },
+          "model_binding": {
+            "type": "string",
+            "enum": ["verified", "detected", "reported", "unknown"],
+            "description": "Detection tier of the model field for samples in this group. Part of the group key."
+          },
+          "sample_origin": {
+            "type": "string",
+            "enum": ["natural_task", "benchmark", "regression_test", "synthetic", "unknown"],
+            "description": "Part of the group key. Only natural_task groups feed adoption/maturity claims; other origins are debug context."
+          },
+          "maturity": {
+            "type": "string",
+            "enum": ["uncalibrated", "observed", "provisional", "established", "drifted"],
+            "description": "uncalibrated: 0-2 samples. observed: 3-9. provisional: 10-29. established: >=30 AND task diversity criteria met — count alone is insufficient. drifted: runtime or governance environment changed; frozen until re-observed."
+          },
+          "counts": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["samples"],
+            "properties": {
+              "samples": { "type": "integer", "minimum": 0 },
+              "verified": { "type": "integer", "minimum": 0 },
+              "blocked": { "type": "integer", "minimum": 0 },
+              "unproven": { "type": "integer", "minimum": 0 },
+              "human_override": { "type": "integer", "minimum": 0 }
+            },
+            "description": "Final-status counts derived from receipt/gate state, never from agent self-assessment."
+          },
+          "rates": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "validator_execution_rate": { "$ref": "#/$defs/rate" },
+              "validator_pass_rate": { "$ref": "#/$defs/rate" },
+              "evidence_completeness_rate": { "$ref": "#/$defs/rate" },
+              "unknown_detection_ratio": { "$ref": "#/$defs/rate" }
+            }
+          },
+          "validator_signal_tiers": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "test_backed": { "type": "integer", "minimum": 0 },
+              "structural_only": { "type": "integer", "minimum": 0 },
+              "self_reported": { "type": "integer", "minimum": 0 },
+              "unknown": { "type": "integer", "minimum": 0 }
+            },
+            "description": "Counts of validation signals by registry-derived tier, so theatrical validators cannot silently inflate pass rates."
+          },
+          "drift_events": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Full-fingerprint changes observed within the window while coarse id stayed constant."
+          },
+          "task_diversity_note": {
+            "type": "string",
+            "description": "Human-readable basis for (or against) the 'established' diversity criterion, e.g. 'all 30 samples are doc-only changes'."
+          }
+        }
+      }
+    },
+    "excluded": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "non_natural_samples": { "type": "integer", "minimum": 0 },
+        "unreadable_receipts": { "type": "integer", "minimum": 0 },
+        "pre_binding_receipts": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Receipts older than schema 1.4 with no runtime binding; readable but excluded from grouping."
+        }
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool", "llm_calls"],
+      "properties": {
+        "tool": { "type": "string", "description": "e.g. 'governance_tools.evaluation_summary'." },
+        "tool_version": { "type": "string" },
+        "llm_calls": { "type": "integer", "const": 0, "description": "Locked to 0: summaries are never LLM-generated." }
+      }
+    }
+  }
+}
