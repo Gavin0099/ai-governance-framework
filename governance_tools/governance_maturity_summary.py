@@ -1146,6 +1146,21 @@ def _find_runtime_smoke_evidence(repo_root: Path) -> CapabilityStatus:
         else:
             unparsed.append(path)
 
+    if incomplete_results:
+        return _capability(
+            "Detected",
+            "governance_maturity_summary.runtime_evidence_lookup",
+            [
+                "incomplete smoke result shape prevents establishing the newest attributable "
+                "runtime smoke result because at least one repo-attributable receipt has an "
+                "unorderable generated_at; refusing to fall back to older evidence",
+                *[
+                    f"unorderable attributable receipt: {item}"
+                    for item in incomplete_results[:3]
+                ],
+            ],
+        )
+
     attributable_results = sorted(
         attributable_results,
         key=lambda item: (item[0], str(item[1])),

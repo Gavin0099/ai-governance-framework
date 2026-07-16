@@ -853,6 +853,51 @@ def test_newer_dirty_receipt_blocks_older_valid_runtime_evidence(
     assert summary.capability_states["external_runtime_execution"].state != "Verified"
 
 
+def test_unorderable_attributable_receipt_blocks_older_valid_runtime_evidence(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "unorderable_runtime_evidence")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    framework_commit = _run_git(["rev-parse", "HEAD"], framework)
+
+    older_valid = _smoke_payload(
+        repo,
+        ok=True,
+        generated_at="2026-07-11T00:00:00Z",
+    )
+    older_valid["framework_root"] = str(framework.resolve())
+    older_valid["framework_commit"] = framework_commit
+    unorderable = _smoke_payload(
+        repo,
+        ok=True,
+        generated_at="not-an-iso-8601-timestamp",
+    )
+    unorderable["framework_root"] = str(framework.resolve())
+    unorderable["framework_commit"] = framework_commit
+
+    evidence_dir = repo / "artifacts" / "evidence" / "test-results"
+    _write(evidence_dir / "runtime-smoke-old-valid.json", json.dumps(older_valid) + "\n")
+    _write(
+        evidence_dir / "runtime-smoke-new-unorderable.json",
+        json.dumps(unorderable) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    runtime_status = summary.capability_states["runtime_evidence"]
+    assert runtime_status.state == "Detected"
+    assert "runtime-smoke-new-unorderable.json" in " ".join(runtime_status.reasons)
+    assert "unorderable generated_at" in " ".join(runtime_status.reasons)
+    assert "generated_at must be an ISO-8601 timezone-aware timestamp" in " ".join(
+        runtime_status.reasons
+    )
+    assert summary.capability_states["external_runtime_execution"].state != "Verified"
+
+
 def test_external_runtime_execution_requires_external_prerequisites_and_passing_evidence(
     tmp_path: Path,
     monkeypatch,
