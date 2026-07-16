@@ -929,6 +929,7 @@ def _external_runtime_execution_capability(
         configured_root = _read_hook_framework_root(repo)
         receipt_root = payload.get("framework_root") if isinstance(payload, dict) else None
         receipt_commit = payload.get("framework_commit") if isinstance(payload, dict) else None
+        receipt_clean = payload.get("framework_worktree_clean") if isinstance(payload, dict) else None
         if configured_root is None or not isinstance(receipt_root, str) or not receipt_root.strip():
             return _capability(
                 "Unproven",
@@ -951,6 +952,20 @@ def _external_runtime_execution_capability(
                 "Unproven",
                 "governance_maturity_summary.external_runtime_execution",
                 [f"runtime smoke framework commit does not match current hook root: receipt={receipt_commit} configured={current_commit}"],
+            )
+        if receipt_clean is not True:
+            return _capability(
+                "Unproven",
+                "governance_maturity_summary.external_runtime_execution",
+                ["runtime smoke evidence was not produced from a clean framework worktree"],
+            )
+        current_status = _git_stdout(configured_root, ["status", "--porcelain=v1", "--untracked-files=all"])
+        if current_status is None or current_status:
+            detail = current_status or "Git worktree status unavailable"
+            return _capability(
+                "Unproven",
+                "governance_maturity_summary.external_runtime_execution",
+                [f"current hook framework worktree is not clean: {detail}"],
             )
         return _capability(
             "Verified",
@@ -1006,7 +1021,7 @@ def _validate_runtime_smoke_payload(
     if generated_at is None:
         problems.append("generated_at must be an ISO-8601 timezone-aware timestamp")
 
-    bool_fields = ("ok", "pre_task_ok", "session_start_ok")
+    bool_fields = ("ok", "pre_task_ok", "session_start_ok", "framework_worktree_clean")
     for field_name in bool_fields:
         if not isinstance(payload.get(field_name), bool):
             problems.append(f"{field_name} must be bool")
@@ -1039,6 +1054,17 @@ def _validate_runtime_smoke_payload(
 
     if not isinstance(payload.get("post_task_cases"), list):
         problems.append("post_task_cases must be list")
+    framework_changes = payload.get("framework_worktree_changes")
+    if not isinstance(framework_changes, list) or not all(
+        isinstance(item, str) for item in framework_changes if isinstance(framework_changes, list)
+    ):
+        problems.append("framework_worktree_changes must be list[str]")
+    else:
+        framework_clean = payload.get("framework_worktree_clean")
+        if framework_clean is True and framework_changes:
+            problems.append("framework_worktree_clean=true requires framework_worktree_changes=[]")
+        if framework_clean is False and not framework_changes:
+            problems.append("framework_worktree_clean=false requires non-empty framework_worktree_changes")
     if not isinstance(payload.get("token_summary"), dict):
         problems.append("token_summary must be object")
     if not isinstance(payload.get("warnings"), list) or not all(isinstance(item, str) for item in payload.get("warnings", [])):
@@ -1056,9 +1082,10 @@ def _validate_runtime_smoke_payload(
             pre_task_ok is not True
             or session_start_ok is not True
             or post_task_ok is False
+            or payload.get("framework_worktree_clean") is not True
         ):
             problems.append(
-                "ok=true requires pre_task_ok=true, session_start_ok=true, and post_task_ok not false"
+                "ok=true requires pre_task_ok=true, session_start_ok=true, post_task_ok not false, and framework_worktree_clean=true"
             )
         if ok is False:
             check_failed = pre_task_ok is False or session_start_ok is False or post_task_ok is False

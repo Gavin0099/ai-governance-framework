@@ -28,7 +28,15 @@ from runtime_hooks.core.post_task_check import run_post_task_check
 from runtime_hooks.core.pre_task_check import run_pre_task_check
 from runtime_hooks.core.session_start import build_session_start_context
 
-EXTERNAL_REPO_SMOKE_RESULT_SCHEMA = "external_repo_smoke_result.v0.1"
+EXTERNAL_REPO_SMOKE_RESULT_SCHEMA = "external_repo_smoke_result.v0.2"
+
+
+@dataclass(frozen=True)
+class FrameworkIdentity:
+    root: str
+    commit: str | None
+    worktree_clean: bool | None
+    worktree_changes: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -39,6 +47,8 @@ class ExternalRepoSmokeResult:
     contract_path: str | None
     framework_root: str | None = None
     framework_commit: str | None = None
+    framework_worktree_clean: bool | None = None
+    framework_worktree_changes: list[str] = field(default_factory=list)
     rules: list[str] = field(default_factory=list)
     session_start_ok: bool = False
     pre_task_ok: bool = False
@@ -62,9 +72,9 @@ def _default_token_summary() -> dict[str, Any]:
     }
 
 
-def _framework_identity() -> tuple[str, str | None]:
-    framework_root = Path(__file__).resolve().parent.parent
-    completed = subprocess.run(
+def _framework_identity(framework_root: Path | None = None) -> FrameworkIdentity:
+    framework_root = (framework_root or Path(__file__).resolve().parent.parent).resolve()
+    commit_result = subprocess.run(
         ["git", "-C", str(framework_root), "rev-parse", "HEAD"],
         text=True,
         encoding="utf-8",
@@ -73,8 +83,24 @@ def _framework_identity() -> tuple[str, str | None]:
         stderr=subprocess.PIPE,
         check=False,
     )
-    commit = completed.stdout.strip() if completed.returncode == 0 else None
-    return str(framework_root), commit or None
+    status_result = subprocess.run(
+        ["git", "-C", str(framework_root), "status", "--porcelain=v1", "--untracked-files=all"],
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    commit = commit_result.stdout.strip() if commit_result.returncode == 0 else None
+    changes = [line for line in status_result.stdout.splitlines() if line.strip()]
+    clean = not changes if status_result.returncode == 0 else None
+    return FrameworkIdentity(
+        root=str(framework_root),
+        commit=commit or None,
+        worktree_clean=clean,
+        worktree_changes=changes,
+    )
 
 
 def _extract_token_summary_from_checks(checks: dict | None) -> dict[str, Any]:
@@ -145,6 +171,14 @@ def run_external_repo_smoke(
 
     warnings = list(resolution.warnings)
     errors: list[str] = []
+    framework_identity = _framework_identity()
+    if framework_identity.commit is None:
+        errors.append("Framework Git commit could not be resolved; attributable smoke evidence is unavailable.")
+    if framework_identity.worktree_clean is not True:
+        detail = ", ".join(framework_identity.worktree_changes) or "Git worktree status unavailable"
+        errors.append(
+            "Framework worktree is not clean; refusing attributable smoke evidence: " + detail
+        )
     if resolution.error:
         errors.append(resolution.error)
     if not plan_path.exists():
@@ -239,14 +273,15 @@ def run_external_repo_smoke(
     # keep ordering stable while deduplicating
     deduped_warnings = list(dict.fromkeys(warnings))
     deduped_errors = list(dict.fromkeys(errors))
-    framework_root, framework_commit = _framework_identity()
     return ExternalRepoSmokeResult(
         ok=(len(deduped_errors) == 0 and session_start_ok and pre_task_ok and post_task_ok is not False),
         repo_root=str(repo_root),
         plan_path=str(plan_path),
         contract_path=str(contract_path) if contract_path else None,
-        framework_root=framework_root,
-        framework_commit=framework_commit,
+        framework_root=framework_identity.root,
+        framework_commit=framework_identity.commit,
+        framework_worktree_clean=framework_identity.worktree_clean,
+        framework_worktree_changes=framework_identity.worktree_changes,
         rules=rules,
         session_start_ok=session_start_ok,
         pre_task_ok=pre_task_ok,
@@ -323,6 +358,8 @@ def format_json(result: ExternalRepoSmokeResult) -> str:
             "contract_path": result.contract_path,
             "framework_root": result.framework_root,
             "framework_commit": result.framework_commit,
+            "framework_worktree_clean": result.framework_worktree_clean,
+            "framework_worktree_changes": result.framework_worktree_changes,
             "rules": result.rules,
             "pre_task_ok": result.pre_task_ok,
             "session_start_ok": result.session_start_ok,
