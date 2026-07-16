@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-governance-framework/schemas/runtime_identity.schema.json",
+  "title": "RuntimeIdentity",
+  "description": "Report-only runtime identity profile for one agent session. Claim ceiling: 'verified' means verified against an approved runtime signal (environment marker, harness-written artifact, or hook payload), NOT cryptographically proven runtime identity; runtime signals can be inherited, overwritten, or forged. Detection failure degrades to 'unknown' with value null — never guessed. Generation must involve no LLM call and no network call.",
+  "x_export_prohibited": [
+    "usernames or user home paths",
+    "absolute filesystem paths",
+    "repository secrets, tokens, or credentials",
+    "prompts, conversation content, code, or diffs",
+    "customer or organization names"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "detected_at",
+    "detection_status",
+    "agent",
+    "agent_version",
+    "model",
+    "surface",
+    "session_id",
+    "permission_mode",
+    "tools",
+    "governance_version",
+    "fingerprint",
+    "generator"
+  ],
+  "$defs": {
+    "detection_tier": {
+      "type": "string",
+      "enum": ["verified", "detected", "reported", "unknown"],
+      "description": "verified: approved runtime signal (env marker, harness artifact, hook payload). detected: reliable inference (e.g. installed CLI version, config default). reported: agent self-report — never produced by the detector itself. unknown: no signal; value must be null. A reported value must never be recorded as verified."
+    },
+    "binding_scope": {
+      "type": "string",
+      "enum": ["session", "installation", "config_default", "repo", "unknown"],
+      "description": "What the signal is actually bound to. session: this specific run (e.g. session-id-keyed transcript). installation: the installed software, not necessarily this run (e.g. CLI --version). config_default: a configured default that this session may have overridden. repo: repository-level fact. Statistics must not treat config_default or installation values as session facts."
+    },
+    "detected_field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "detection"],
+      "properties": {
+        "value": { "type": ["string", "null"] },
+        "detection": { "$ref": "#/$defs/detection_tier" },
+        "signal_source": {
+          "type": ["string", "null"],
+          "description": "The concrete signal, e.g. 'env:CLAUDECODE' or 'harness_transcript'. Signal names only — never signal values containing paths or secrets."
+        },
+        "binding_scope": { "$ref": "#/$defs/binding_scope" },
+        "evidence": {
+          "type": "string",
+          "description": "Short human-readable note. Same export prohibitions apply."
+        }
+      },
+      "if": { "properties": { "detection": { "const": "unknown" } } },
+      "then": { "properties": { "value": { "type": "null" } } }
+    },
+    "model_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["family"],
+      "properties": {
+        "provider": { "type": "string", "description": "e.g. anthropic, openai, google; 'unknown' when undetermined." },
+        "family": { "type": "string", "description": "Normalized model family used in the coarse fingerprint, e.g. 'claude-fable', 'gpt-5'. Never string-guessed from an unrecognized id; unrecognized ids map to 'unknown'." },
+        "variant": { "type": "string", "description": "e.g. 'sol', 'codex'; omit or 'unknown' when none." },
+        "version": { "type": "string", "description": "Version as published by the provider, e.g. '5.6'. Not parsed into 'major' by guessing." },
+        "revision": { "type": "string", "description": "Checkpoint/quantization/backend revision when known; 'unknown' otherwise. Aliases may hide backend updates — absence of revision change is not proof of no drift." },
+        "raw_id": { "type": "string", "description": "The raw model id string as observed, e.g. 'claude-fable-5'." }
+      }
+    },
+    "model_field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "detection"],
+      "properties": {
+        "value": {
+          "anyOf": [{ "$ref": "#/$defs/model_identity" }, { "type": "null" }]
+        },
+        "detection": { "$ref": "#/$defs/detection_tier" },
+        "signal_source": { "type": ["string", "null"] },
+        "binding_scope": { "$ref": "#/$defs/binding_scope" },
+        "evidence": { "type": "string" }
+      },
+      "if": { "properties": { "detection": { "const": "unknown" } } },
+      "then": { "properties": { "value": { "type": "null" } } }
+    },
+    "tools_field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "detection"],
+      "properties": {
+        "value": {
+          "anyOf": [
+            { "type": "array", "items": { "type": "string" } },
+            { "type": "null" }
+          ]
+        },
+        "detection": { "$ref": "#/$defs/detection_tier" },
+        "signal_source": { "type": ["string", "null"] },
+        "binding_scope": { "$ref": "#/$defs/binding_scope" },
+        "evidence": { "type": "string" }
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": ["1.0"]
+    },
+    "detected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "detection_status": {
+      "type": "string",
+      "enum": ["full", "partial", "none"],
+      "description": "full: agent, model, and surface all verified. partial: at least one identity field above unknown. none: nothing detected; profile is legal but uncalibrated."
+    },
+    "agent": { "$ref": "#/$defs/detected_field" },
+    "agent_version": { "$ref": "#/$defs/detected_field" },
+    "model": { "$ref": "#/$defs/model_field" },
+    "surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "detection", "surface_class"],
+      "properties": {
+        "value": { "type": ["string", "null"], "description": "Raw surface marker, e.g. 'claude-desktop', 'vscode'." },
+        "detection": { "$ref": "#/$defs/detection_tier" },
+        "signal_source": { "type": ["string", "null"] },
+        "binding_scope": { "$ref": "#/$defs/binding_scope" },
+        "evidence": { "type": "string" },
+        "surface_class": {
+          "type": "string",
+          "enum": ["cli", "ide", "desktop_app", "web", "ci", "sdk", "unknown"],
+          "description": "Normalized class used in the coarse fingerprint."
+        }
+      }
+    },
+    "session_id": { "$ref": "#/$defs/detected_field" },
+    "permission_mode": { "$ref": "#/$defs/detected_field" },
+    "tools": { "$ref": "#/$defs/tools_field" },
+    "governance_version": { "$ref": "#/$defs/detected_field" },
+    "fingerprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fingerprint_schema_version", "coarse_id", "full_id"],
+      "properties": {
+        "fingerprint_schema_version": {
+          "type": "string",
+          "enum": ["1.0"],
+          "description": "Version of the fingerprint algorithm itself. A change here means ids are not comparable across versions and must never be interpreted as runtime drift."
+        },
+        "coarse_id": {
+          "type": "string",
+          "description": "hash(agent_family + model_family + surface_class). Used for sample accumulation; only a coarse change resets maturity. 'unknown' when agent and model are both undetected."
+        },
+        "full_id": {
+          "type": "string",
+          "description": "hash over all known normalized identity fields. Used for drift marking only, never for resetting samples. Must not include usernames, absolute paths, or repo secrets."
+        },
+        "coarse_inputs": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "agent_family": { "type": "string" },
+            "model_family": { "type": "string" },
+            "surface_class": { "type": "string" }
+          },
+          "description": "Transparency copy of the coarse fingerprint inputs."
+        }
+      }
+    },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool", "llm_calls"],
+      "properties": {
+        "tool": { "type": "string", "description": "e.g. 'governance_tools.runtime_identity'." },
+        "tool_version": { "type": "string" },
+        "llm_calls": { "type": "integer", "const": 0, "description": "Locked to 0: profiles are never LLM-generated." }
+      }
+    }
+  }
+}
