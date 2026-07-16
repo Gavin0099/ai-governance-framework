@@ -1096,6 +1096,32 @@ def _validate_runtime_smoke_payload(
     return problems, generated_at
 
 
+def _runtime_smoke_admission_signature(
+    payload: dict[str, object],
+    shape_problems: list[str],
+) -> str:
+    """Return the normalized decision state that can change runtime admission."""
+    if shape_problems:
+        signature: dict[str, object] = {"admission": "invalid"}
+    elif payload.get("ok") is False:
+        signature = {"admission": "failed"}
+    else:
+        framework_root = payload.get("framework_root")
+        if isinstance(framework_root, str) and framework_root.strip():
+            try:
+                canonical_root = str(Path(framework_root).resolve())
+            except (OSError, RuntimeError):
+                canonical_root = f"<unresolvable:{framework_root}>"
+        else:
+            canonical_root = "<missing>"
+        signature = {
+            "admission": "passed",
+            "framework_root": canonical_root,
+            "framework_commit": payload.get("framework_commit"),
+        }
+    return json.dumps(signature, sort_keys=True, separators=(",", ":"))
+
+
 def _find_runtime_smoke_evidence(repo_root: Path) -> CapabilityStatus:
     evidence_dirs = [
         repo_root / "artifacts" / "evidence" / "test-results",
@@ -1167,6 +1193,33 @@ def _find_runtime_smoke_evidence(repo_root: Path) -> CapabilityStatus:
         reverse=True,
     )
     if attributable_results:
+        latest_generated_at = attributable_results[0][0]
+        latest_cohort = [
+            item for item in attributable_results if item[0] == latest_generated_at
+        ]
+        latest_signatures = {
+            _runtime_smoke_admission_signature(payload, shape_problems)
+            for _, _, payload, shape_problems in latest_cohort
+        }
+        if len(latest_signatures) > 1:
+            generated_at_text = latest_generated_at.isoformat().replace("+00:00", "Z")
+            conflict_reasons = []
+            for _, path, payload, shape_problems in latest_cohort[:3]:
+                status = f"ok={payload.get('ok')}"
+                if shape_problems:
+                    status += "; invalid_shape=" + "; ".join(shape_problems)
+                conflict_reasons.append(f"conflicting receipt: {path}; {status}")
+            return _capability(
+                "Detected",
+                "governance_maturity_summary.runtime_evidence_lookup",
+                [
+                    "latest attributable runtime smoke timestamp cohort has conflicting "
+                    "admission states; refusing to choose evidence by filename "
+                    f"generated_at={generated_at_text}",
+                    *conflict_reasons,
+                ],
+            )
+
         generated_at, path, payload, shape_problems = attributable_results[0]
         generated_at_text = generated_at.isoformat().replace("+00:00", "Z")
         if shape_problems:
