@@ -1,5 +1,11 @@
 # Runtime 偵測 Spike — 訊號清單與實測狀態
 
+> **[已交接 2026-07-16]** 本 spike 已由正式實作取代：偵測斷言與負面測試 →
+> `tests/test_runtime_identity.py`（34 tests，commit 0a77ff2e）；偵測工具 →
+> `governance_tools/runtime_identity.py`；三份 result JSON →
+> `artifacts/evidence/runtime-detect-spike/`（spike 執行時的腳本版本＝commit a23325c0）。
+> `detect_spike.py` 已刪除。本檔保留：方法論、各 agent 訊號表、事前 kill-switch 判準。
+
 > 目的：在寫任何 schema 之前，實測「Runtime Profile 各欄位到底拿不拿得到、可信度幾級」。
 > 本目錄為拋棄式 spike：決策做完後整個 `spikes/runtime-detect/` 可整組刪除，只留報告結論。
 > 偵測分級沿用 plan 0.2：`verified`（環境/CLI/harness 直接取得）> `detected`（可靠特徵推定）> `reported`（agent 自述）> `unknown`。

@@ -224,7 +224,34 @@ Not approved:
 - agent ranking;
 - governance profile automation.
 
-Implementation start gate: pending Copilot spike result and final owner
-confirmation. Suggested implementation branch:
-`feature/agent-runtime-evaluation-tranche-1`. Any scope growth reopens the
+Implementation start gate: cleared 2026-07-16 (Copilot spike result recorded
+in SIGNALS.md; owner gave final confirmation). Any scope growth reopens the
 five questions.
+
+## Implementation Record (2026-07-16)
+
+Delivered on branch `feature/agent-runtime-evaluation-tranche-1`:
+
+- Phase 0 (contracts): `schemas/runtime_identity.schema.json`,
+  `schemas/evaluation_summary.schema.json`, closeout receipt schema 1.4 —
+  commit d7d902a7.
+- Phase 1 (detector): `governance_tools/runtime_identity.py` +
+  `tests/test_runtime_identity.py` (34 tests superseding the spike's inline
+  assertions) — commit 0a77ff2e.
+- Phase 2 (receipt binding): emitter 1.4, stale-session guard,
+  trigger-derived sample_origin, `governance_tools/validator_signal_registry.py`
+  + `governance/runtime/validator_signal_registry.json` — commit cbbfb8b6.
+- Phase 3 (local summary): `governance_tools/evaluation_summary.py` +
+  tests; no-total-score and provisional-cap properties are test-locked —
+  commit 863367bd.
+
+Spike superseded per Q5 preservation clause: regression tests own the
+assertions, result JSONs moved to `artifacts/evidence/runtime-detect-spike/`
+(spike-time script = commit a23325c0), `detect_spike.py` deleted,
+`spikes/runtime-detect/SIGNALS.md` retained.
+
+Clock note (Q5): the 60-day evidence window starts when Phase 3 is live in
+the first repo — i.e. when this branch merges and the tools run on natural
+sessions, not at this implementation date. Phase 3 completion additionally
+requires one non-framework-author judging the local summary decision-useful;
+that confirmation is still open.
