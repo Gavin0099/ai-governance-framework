@@ -25,6 +25,7 @@ from governance_tools.governance_drift_checker import (
     check_governance_drift,
     _read_baseline_yaml,
 )
+from governance_tools.protected_file_hash import sha256_canonical_lf_bytes
 
 
 MANIFEST_SCHEMA = "AUTHORITY_MANIFEST v1"
@@ -76,7 +77,7 @@ def _sha256_bytes(data: bytes) -> str:
 def _sha256_file(path: Path) -> str | None:
     if not path.exists():
         return None
-    return _sha256_bytes(path.read_bytes())
+    return sha256_canonical_lf_bytes(path.read_bytes())
 
 
 def _git_show(repo_root: Path, ref: str, relpath: str) -> bytes | None:
@@ -91,7 +92,7 @@ def _git_blob_hash(repo_root: Path, ref: str, relpath: str) -> str | None:
     data = _git_show(repo_root, ref, relpath)
     if data is None:
         return None
-    return _sha256_bytes(data)
+    return sha256_canonical_lf_bytes(data)
 
 
 def _authority_paths_from_baseline(baseline: dict[str, Any]) -> list[str]:
@@ -174,7 +175,7 @@ def build_authority_manifest(
                 baseline_hash=baseline_hash,
                 baseline_hash_source=f"{BASELINE_YAML_RELPATH}:sha256.{relpath}",
                 current_hash=current_hash,
-                current_hash_source="working_tree_bytes",
+                current_hash_source="canonical_lf_working_tree_bytes",
                 base_hash=base_hash,
                 base_hash_source=f"git_blob:{base_ref}:{relpath}",
                 head_hash=head_hash,

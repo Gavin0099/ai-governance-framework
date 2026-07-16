@@ -1,4 +1,3 @@
-import hashlib
 import json
 import subprocess
 import sys
@@ -12,6 +11,7 @@ from governance_tools.authority_manifest import (
     format_json,
     manifest_to_dict,
 )
+from governance_tools.protected_file_hash import sha256_canonical_lf_file
 
 FRAMEWORK_ROOT = Path(__file__).parent.parent
 
@@ -27,7 +27,7 @@ def _commit(repo: Path, message: str) -> str:
 
 
 def _hash(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return sha256_canonical_lf_file(path)
 
 
 def _write_minimal_repo(repo: Path) -> dict[str, str]:
@@ -126,7 +126,7 @@ def test_manifest_derives_authority_files_and_hashes_from_baseline(tmp_path):
         assert by_path[path]["baseline_hash"] == expected_hash
         assert by_path[path]["baseline_hash_source"] == f".governance/baseline.yaml:sha256.{path}"
         assert by_path[path]["current_hash"] == expected_hash
-        assert by_path[path]["current_hash_source"] == "working_tree_bytes"
+        assert by_path[path]["current_hash_source"] == "canonical_lf_working_tree_bytes"
         assert by_path[path]["base_hash"] == expected_hash
         assert by_path[path]["base_hash_source"] == f"git_blob:{head}:{path}"
         assert by_path[path]["head_hash"] == expected_hash
@@ -142,6 +142,21 @@ def test_manifest_derives_authority_files_and_hashes_from_baseline(tmp_path):
     assert data["baseline_source"]["initialized_by"] == "governance_tools/adopt_governance.py"
     assert data["repo_enforces_prompt_cache"] is False
     assert data["invalidation"]["authority_changed_between_refs"] is False
+
+
+def test_manifest_hashes_match_across_lf_blob_and_crlf_worktree(tmp_path):
+    baseline_hashes = _write_minimal_repo(tmp_path)
+    agents = tmp_path / "AGENTS.base.md"
+    lf_bytes = agents.read_bytes().replace(b"\r\n", b"\n")
+    agents.write_bytes(lf_bytes.replace(b"\n", b"\r\n"))
+
+    manifest = build_authority_manifest(tmp_path, base_ref="HEAD", head_ref="HEAD")
+    agents_entry = next(item for item in manifest.authority_files if item.path == "AGENTS.base.md")
+
+    assert agents_entry.baseline_hash == baseline_hashes["AGENTS.base.md"]
+    assert agents_entry.current_hash == baseline_hashes["AGENTS.base.md"]
+    assert agents_entry.base_hash == baseline_hashes["AGENTS.base.md"]
+    assert agents_entry.head_hash == baseline_hashes["AGENTS.base.md"]
 
 
 def test_invalidation_signal_is_false_when_refs_match(tmp_path):

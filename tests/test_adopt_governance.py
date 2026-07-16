@@ -2,6 +2,7 @@
 """
 Tests for governance_tools/adopt_governance.py
 """
+import hashlib
 import shutil
 import sys
 from pathlib import Path
@@ -17,12 +18,20 @@ from governance_tools.adopt_governance import (
     _check_env,
     _discover_plan_path,
     _read_baseline_state,
+    _sha256,
 )
 from memory_pipeline.memory_layout import MEMORY_FILE_ALIASES
 
 FRAMEWORK_ROOT = Path(__file__).parent.parent.resolve()
 BASELINE_SOURCE = FRAMEWORK_ROOT / "baselines" / "repo-min"
 FIXTURE_ROOT = Path("tests/_tmp_adopt_governance")
+
+
+def test_sha256_records_canonical_lf_digest(tmp_path):
+    path = tmp_path / "AGENTS.base.md"
+    path.write_bytes(b"line one\r\nline two\r\n")
+
+    assert _sha256(path) == hashlib.sha256(b"line one\nline two\n").hexdigest()
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────

@@ -233,6 +233,26 @@ def test_protected_file_modified_is_critical(tmp_path):
     assert result.checks.get("protected_files_unmodified") is False
 
 
+def test_protected_file_hash_ignores_crlf_checkout_conversion(tmp_path):
+    agents = _write_agents_base(tmp_path)
+    plan = _write_plan(tmp_path)
+    contract = _write_contract(tmp_path)
+
+    lf_bytes = agents.read_bytes().replace(b"\r\n", b"\n")
+    canonical_hash = hashlib.sha256(lf_bytes).hexdigest()
+    _write_baseline_yaml(
+        tmp_path,
+        agents_hash=canonical_hash,
+        plan_hash=_compute_hash(plan),
+        contract_hash=_compute_hash(contract),
+    )
+    agents.write_bytes(lf_bytes.replace(b"\n", b"\r\n"))
+
+    result = check_governance_drift(tmp_path, framework_root=FRAMEWORK_ROOT)
+
+    assert result.checks["protected_files_unmodified"] is True
+
+
 def test_contract_missing_required_field_is_critical(tmp_path):
     agents = _write_agents_base(tmp_path)
     plan = _write_plan(tmp_path)

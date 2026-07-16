@@ -40,7 +40,6 @@ Exit codes: 0=ok, 1=warning, 2=critical
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import sys
@@ -60,6 +59,10 @@ from governance_tools.framework_versioning import (
     compare_versions,
     discover_framework_root,
     repo_root_from_tooling,
+)
+from governance_tools.protected_file_hash import (
+    compatible_worktree_hashes,
+    sha256_canonical_lf_file,
 )
 from governance_tools.plan_freshness import check_freshness
 from memory_pipeline.memory_layout import MEMORY_FILE_ALIASES
@@ -120,7 +123,7 @@ class BaselineDriftResult:
 
 
 def _sha256_file(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return sha256_canonical_lf_file(path)
 
 
 def _as_list(value: object) -> list[str]:
@@ -389,7 +392,7 @@ def check_governance_drift(
                 all_match = False
                 continue
             current_hash = _sha256_file(fpath)
-            if current_hash != recorded:
+            if recorded not in compatible_worktree_hashes(fpath):
                 _fail(
                     "protected_files_unmodified",
                     "critical",

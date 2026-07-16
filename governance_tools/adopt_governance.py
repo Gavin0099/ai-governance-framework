@@ -44,7 +44,6 @@ What --refresh does NOT do:
 from __future__ import annotations
 
 import argparse
-import hashlib
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -66,6 +65,7 @@ from governance_tools.governance_update_reporting import (
     build_final_report_requirement,
     format_final_report_requirement,
 )
+from governance_tools.protected_file_hash import sha256_canonical_lf_file
 from memory_pipeline.memory_layout import MEMORY_FILE_ALIASES
 
 
@@ -472,7 +472,7 @@ def _print_refresh_delta_summary(
 # ── File hashing ──────────────────────────────────────────────────────────────
 
 def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return sha256_canonical_lf_file(path)
 
 
 # ── PLAN.md heading inventory ─────────────────────────────────────────────────
@@ -556,7 +556,7 @@ def _write_baseline_yaml(
         f"{plan_path_block}"
         "\n"
         "# ── INTEGRITY ─────────────────────────────────────────────────────────────────\n"
-        "# sha256.<file>: hash recorded at init/refresh time; \"protected\" files are hash-verified\n"
+        "# sha256.<file>: canonical-LF hash recorded at init/refresh time; \"protected\" files are hash-verified\n"
         "# overridable.<file>: protected = must not change | overridable = repo may extend freely\n"
         f"sha256.AGENTS.base.md: {_hash_or_zero(agents_base)}\n"
         f"sha256.PLAN.md: {_hash_or_zero(plan_path)}\n"
