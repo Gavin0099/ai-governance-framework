@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_governance_drift_checker.py tests/test_adopt_governance.py tests/test_authority_manifest.py -q --basetemp C:\\tmp\\pytest-protected-hash-receipt",
+  "exit_code": 0,
+  "started_at": "2026-07-16T10:08:29Z",
+  "finished_at": "2026-07-16T10:09:09Z",
+  "runner": "codex",
+  "linked_commit": "847f56fd0505470ceb837abfdd5e3849cd1fd04c",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/protected-file-hash-20260716.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
