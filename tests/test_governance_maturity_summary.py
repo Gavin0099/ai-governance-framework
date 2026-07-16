@@ -766,6 +766,93 @@ def test_latest_attributable_runtime_receipt_wins(tmp_path: Path) -> None:
     assert summary.next_safe_command is None
 
 
+def test_newer_v0_1_receipt_blocks_older_valid_runtime_evidence(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "newer_v0_1_runtime_evidence")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    framework_commit = _run_git(["rev-parse", "HEAD"], framework)
+
+    older_valid = _smoke_payload(
+        repo,
+        ok=True,
+        generated_at="2026-07-11T00:00:00Z",
+    )
+    older_valid["framework_root"] = str(framework.resolve())
+    older_valid["framework_commit"] = framework_commit
+    newer_v0_1 = _smoke_payload(
+        repo,
+        ok=True,
+        generated_at="2026-07-11T00:10:00Z",
+    )
+    newer_v0_1["result_schema"] = "external_repo_smoke_result.v0.1"
+    newer_v0_1["framework_root"] = str(framework.resolve())
+    newer_v0_1["framework_commit"] = framework_commit
+    newer_v0_1.pop("framework_worktree_clean")
+    newer_v0_1.pop("framework_worktree_changes")
+
+    evidence_dir = repo / "artifacts" / "evidence" / "test-results"
+    _write(evidence_dir / "runtime-smoke-old-valid.json", json.dumps(older_valid) + "\n")
+    _write(evidence_dir / "runtime-smoke-new-v0-1.json", json.dumps(newer_v0_1) + "\n")
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    runtime_status = summary.capability_states["runtime_evidence"]
+    assert runtime_status.state == "Detected"
+    assert "runtime-smoke-new-v0-1.json" in " ".join(runtime_status.reasons)
+    assert "result_schema must equal 'external_repo_smoke_result.v0.2'" in " ".join(
+        runtime_status.reasons
+    )
+    assert summary.capability_states["external_runtime_execution"].state != "Verified"
+
+
+def test_newer_dirty_receipt_blocks_older_valid_runtime_evidence(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "newer_dirty_runtime_evidence")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    framework_commit = _run_git(["rev-parse", "HEAD"], framework)
+
+    older_valid = _smoke_payload(
+        repo,
+        ok=True,
+        generated_at="2026-07-11T00:00:00Z",
+    )
+    older_valid["framework_root"] = str(framework.resolve())
+    older_valid["framework_commit"] = framework_commit
+    newer_dirty = _smoke_payload(
+        repo,
+        ok=True,
+        generated_at="2026-07-11T00:10:00Z",
+    )
+    newer_dirty["framework_root"] = str(framework.resolve())
+    newer_dirty["framework_commit"] = framework_commit
+    newer_dirty["framework_worktree_clean"] = False
+    newer_dirty["framework_worktree_changes"] = [
+        " M governance_tools/external_repo_smoke.py"
+    ]
+
+    evidence_dir = repo / "artifacts" / "evidence" / "test-results"
+    _write(evidence_dir / "runtime-smoke-old-valid.json", json.dumps(older_valid) + "\n")
+    _write(evidence_dir / "runtime-smoke-new-dirty.json", json.dumps(newer_dirty) + "\n")
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    runtime_status = summary.capability_states["runtime_evidence"]
+    assert runtime_status.state == "Detected"
+    assert "runtime-smoke-new-dirty.json" in " ".join(runtime_status.reasons)
+    assert "ok=true requires" in " ".join(runtime_status.reasons)
+    assert summary.capability_states["external_runtime_execution"].state != "Verified"
+
+
 def test_external_runtime_execution_requires_external_prerequisites_and_passing_evidence(
     tmp_path: Path,
     monkeypatch,

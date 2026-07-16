@@ -1108,7 +1108,9 @@ def _find_runtime_smoke_evidence(repo_root: Path) -> CapabilityStatus:
         for pattern in ("*external*smoke*.json", "*runtime*smoke*.json", "*smoke*.json"):
             matches.extend(path for path in evidence_dir.glob(pattern) if path.is_file())
     unique_matches = sorted({path.resolve() for path in matches})
-    parsed_results: list[tuple[datetime, Path, bool, dict[str, object]]] = []
+    attributable_results: list[
+        tuple[datetime, Path, dict[str, object], list[str]]
+    ] = []
     incomplete_results: list[str] = []
     unattributed_results: list[Path] = []
     mismatched_results: list[str] = []
@@ -1121,9 +1123,6 @@ def _find_runtime_smoke_evidence(repo_root: Path) -> CapabilityStatus:
             continue
         if isinstance(payload, dict):
             shape_problems, generated_at = _validate_runtime_smoke_payload(payload, repo_root=repo_root)
-            if shape_problems:
-                incomplete_results.append(f"{path} invalid_shape={'; '.join(shape_problems)}")
-                continue
             reported_repo = payload.get("repo_root")
             if not reported_repo:
                 unattributed_results.append(path)
@@ -1136,18 +1135,36 @@ def _find_runtime_smoke_evidence(repo_root: Path) -> CapabilityStatus:
             if reported != repo_root.resolve():
                 mismatched_results.append(f"{path} reported_repo_root={reported}")
                 continue
-            parsed_results.append((generated_at, path, bool(payload["ok"]), payload))
+            if generated_at is None:
+                incomplete_results.append(
+                    f"{path} invalid_shape={'; '.join(shape_problems)}"
+                )
+                continue
+            attributable_results.append(
+                (generated_at, path, payload, shape_problems)
+            )
         else:
             unparsed.append(path)
 
-    parsed_results = sorted(
-        parsed_results,
+    attributable_results = sorted(
+        attributable_results,
         key=lambda item: (item[0], str(item[1])),
         reverse=True,
     )
-    if parsed_results:
-        generated_at, path, ok, payload = parsed_results[0]
+    if attributable_results:
+        generated_at, path, payload, shape_problems = attributable_results[0]
         generated_at_text = generated_at.isoformat().replace("+00:00", "Z")
+        if shape_problems:
+            return _capability(
+                "Detected",
+                "governance_maturity_summary.runtime_evidence_lookup",
+                [
+                    "latest attributable runtime smoke result by reported generated_at "
+                    f"has incomplete smoke result shape generated_at={generated_at_text}: {path}; "
+                    + "; ".join(shape_problems)
+                ],
+            )
+        ok = bool(payload["ok"])
         if ok is True:
             reasons = [
                 "latest attributable runtime smoke result by reported generated_at "
