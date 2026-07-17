@@ -92,7 +92,7 @@ Phase E posture:
 
 ## Current Sprint - 2026-06-10
 
-Current refresh - 2026-07-10:
+Current refresh - 2026-07-17:
 
 Theme:
 
@@ -106,6 +106,19 @@ Theme:
   unless a named harness consumer and evidence contract are separately scoped.
 
 Completed in latest committed scope:
+
+- [x] Validator-delegation census plan was published to canonical main at
+  `6a20d0a6`, then the bounded fixed-snapshot artifact was published at
+  `a89ee202` with closeout recorded at `63462432`.
+- [x] The published census artifact is intentionally frozen to base
+  `e737572e`, `population_count=197`, and normalized hash
+  `b590fb5fef8dc1a921655877091447a44f42232219c8d91c3a413f467e74da6f`.
+  This remains a historical fixed snapshot only; it does not claim coverage
+  of any later tip, and it does not authorize delegation implementation,
+  retirement, migration, or external adoption.
+- [x] No further census action is currently authorized. The fixed-snapshot
+  claim boundary remains in force until a separate owner-approved slice
+  explicitly authorizes refresh or downstream use.
 
 - [x] No-governance baseline experiment Slice A pre-registered one fixed task,
   two matched arms, four mechanical metrics, and pre-committed dispositions;
@@ -169,6 +182,22 @@ Completed in latest committed scope:
   agent-read telemetry does not pollute defense-output classification.
 
 Current next candidate:
+
+- [x] This bookkeeping alignment slice is complete once `PLAN.md` and
+  `memory/01_active_task.md` are reconciled against the published census
+  history. No new framework implementation slice is active at this commit.
+- [x] A plain-language response failure has already been observed rather than
+  remaining hypothetical: two comprehension failures required a report rewrite
+  before an engineer or the owner could act. This satisfies the
+  failure-driven eligibility condition for a separate response-quality slice;
+  it does not authorize implementation by itself.
+- [ ] If separately owner-authorized, the next bounded candidate is mechanical
+  plain-language final-report validation: require a user-facing conclusion,
+  decision, and next step before technical detail. Keep that candidate
+  separate from census refresh, delegation implementation, module retirement,
+  consumer migration, and release preparation.
+- [ ] For every other framework-expansion direction, wait for a real consumer
+  failure or a new product need before opening a slice.
 
 - [x] Slice B voided under owner-approved Pre-Run Amendment 2 (FINAL).
   The first A1 attempt is excluded as a protocol-fidelity failure: its
@@ -247,9 +276,14 @@ Current next candidate:
 - [ ] Do not start v1.3.0 release-prep until the scoped release-surface
   consistency packet and named consumer-side proof packet are collected and
   reviewed.
-- [ ] Run a read-only decision-change ledger inventory-line pass to identify
-  zombie, duplicate, noisy, rare-critical, and unknown governance defenses
-  before merging, downgrading, or retiring any surface.
+- [x] Read-only decision-change ledger inventory-line pass completed at
+  `e30b1576` (`docs/governance/decision-change-ledger.inventory.v0.1.json`).
+  All 193 `governance_tools` modules were compared against wiring and output
+  evidence; 40 candidates were escalated, 4 were marked retire_candidate, and
+  the retire-candidate line was later fully dispositioned.
+- [ ] Use the completed inventory-line results as historical input only. Do
+  not merge, downgrade, or retire any governance surface without a separate
+  authorized slice and evidence for the specific change.
 - [ ] Keep any context-cost companion record as a future candidate only until
   there is evidence that per-slice summaries change review, implementation, or
   consolidation decisions without becoming their own governance overhead.
@@ -264,14 +298,22 @@ Claim ceiling for this sprint:
   contract repos, with v0.2 fixture-manifest and fixture-runner reporting.
 - CLAIMED: governance-overhead analysis has seed artifacts for decision-change
   classification and context-cost design.
+- CLAIMED: a bounded validator-delegation census fixed snapshot was published
+  as a historical artifact pinned to `e737572e` / 197 modules, with no
+  delegation, retirement, migration, or adoption authority attached.
 - NOT CLAIMED: prompt cache implementation, cache hit/miss monitoring,
   compaction control, mode/auth/tool-denial receipt tooling, runtime hook/CI
   wiring, enforcement, canonical authority promotion, external harness
   adoption, v1.3.0 release readiness, cross-repo writes, automatic test-quality
   enforcement, industry-grade test proof, noisy-surface retirement, measured
-  token savings, or context-cost compliance.
+  token savings, context-cost compliance, current-tip census coverage, or any
+  actionability derived solely from the census artifact.
 
 Latest milestone commits:
+
+- `63462432 chore(memory): record validator census publication`
+- `a89ee202 docs(governance): add validator census e737 snapshot`
+- `a3dbf022 feat: add fail-closed offline submodule onboarding`
 
 - `470b95a docs(governance): add cache-aware runtime adoption packet`
 - `2974840 docs(governance): specify authority manifest implementation tranche`
@@ -465,9 +507,12 @@ Decision-change / context-cost line (2026-07-06):
 - CLAIMED: `docs/governance/context-cost-budget-design-2026-07-06.md`
   separates per-slice context-read accounting from defense-output
   classification.
-- NOT CLAIMED: a full inventory-line pass has been run, any defense has been
-  retired or downgraded, context savings have been measured, context-cost
-  companion records exist, or compliance with context-budget rules is enforced.
+- CLAIMED: the read-only inventory-line pass was run at `e30b1576` and
+  produced a bounded historical inventory artifact.
+- NOT CLAIMED: the inventory artifact by itself retires or downgrades any
+  defense, proves the dispositions are globally complete beyond the recorded
+  retire-candidate line, measures context savings, creates context-cost
+  companion records, or enforces context-budget rules.
 
 Cache-aware / AUTHORITY_MANIFEST line (2026-06-28 -> 2026-06-29):
 
