@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git diff --exit-code origin/main...HEAD",
+  "exit_code": 0,
+  "started_at": "2026-07-17T16:48:49Z",
+  "finished_at": "2026-07-17T16:48:49Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "42deedcaf3650e81c1878460b124449140141d1b",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-p1f-advisory-publication-20260718.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
