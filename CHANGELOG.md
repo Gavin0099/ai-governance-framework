@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### Opt-in response-quality validation - 2026-07-17
+
+- Added an opt-in `--check-response-quality` mode to
+  `governance_tools/response_envelope_validator.py` that mechanically checks
+  `conclusion`, `recommended_action`, and `next_action` are present, non-empty
+  (placeholder values rejected; `next_action: none` allowed), and positioned
+  before `evidence_refs`.
+- Default validator behavior, output shape, and exit codes are unchanged when
+  the flag is not passed; focused tests cover default compatibility, missing
+  fields, placeholder content, ordering violations, and Chinese and English
+  fixture content under `tests/fixtures/response_quality/`.
+- Documented the check in `governance/RESPONSE_ENVELOPE_CONTRACT.md` v0.4 with
+  its structural-only claim boundary.
+- Release-note boundary: this entry records an unreleased opt-in validator
+  surface only. It does not bump the framework version, publish a release,
+  validate semantic plain-language quality, enforce the check anywhere, or
+  wire new hook/CI/pre-push/gate/enforcement behavior.
+
 ### Scoped mutation-testing guidance - 2026-07-09
 
 - Added scoped mutation-testing guidance to `governance/TESTING.md` so AI

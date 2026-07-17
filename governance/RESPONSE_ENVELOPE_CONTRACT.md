@@ -6,12 +6,15 @@ overridden_by: AGENT.md
 default_load: on-demand
 ---
 
-# Response Envelope Contract v0.3
+# Response Envelope Contract v0.4
 
 > v0.2 (2026-06-24): added the Evidence Term Glossing plain-language
 > requirement (advisory; not validated by `response_envelope_validator.py`).
 > v0.3 (2026-06-24): added the Next-Step Judgment required closing section
 > (advisory; decision-readability for completion-class reports).
+> v0.4 (2026-07-17): added an opt-in mechanical response-quality check to
+> `response_envelope_validator.py` (`--check-response-quality`); default
+> validator behavior is unchanged, and no gate enables the check.
 
 ## Purpose
 
@@ -228,6 +231,42 @@ next move at a glance.
 
 Authority boundary: advisory, same as the rest of this contract. No gate
 enforces the presence or shape of a Next-Step Judgment.
+
+## Opt-In Mechanical Response-Quality Check (v0.4)
+
+`response_envelope_validator.py --check-response-quality` adds a structural
+check for the plain-language reporting posture above. It is off by default;
+without the flag the validator's behavior, output shape, and exit codes are
+unchanged.
+
+When enabled, an envelope must additionally contain these field labels:
+
+- `conclusion`: the plain-language conclusion (maps to the "open with one
+  plain sentence" rule).
+- `recommended_action`: the recommended decision (maps to the Next-Step
+  Judgment `recommended action`).
+- `next_action`: one concrete next step, or `none`.
+
+Checks performed (error codes):
+
+- `quality_missing_field`: a quality field label is absent.
+- `quality_empty_field`: a quality field has no content or placeholder content
+  (`tbd`, `n/a`, `see above`, or `none` — except `next_action`, where `none`
+  is an allowed explicit value).
+- `quality_field_after_evidence`: a quality field first appears after
+  `evidence_refs`, violating conclusion-before-technical-evidence ordering.
+
+Boundaries:
+
+- The check is label/position structural only. It cannot judge whether the
+  content is actually plain language, whether the recommended action uses the
+  advisory vocabulary (can merge / needs review / needs more validation / do
+  not touch yet), or whether the conclusion is true. Those remain advisory
+  and human-reviewed.
+- Evidence Term Glossing and the summary structure rules above remain
+  advisory and are still not validated.
+- No hook, CI job, gate, or default invocation enables this flag; enabling it
+  anywhere is a separate, owner-authorized change.
 
 ## Non-Goals
 

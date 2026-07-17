@@ -7,9 +7,13 @@ It validates:
 - required response-envelope field labels are present
 - evidence_refs contains at least one non-placeholder entry with command/artifact plus result
 - high-risk authority wording is downgraded or supported by evidence refs
+- (opt-in, --check-response-quality) plain-language quality fields
+  (`conclusion`, `recommended_action`, `next_action`) are present, non-empty,
+  and appear before `evidence_refs`
 
 It does NOT validate semantic correctness, runtime enforcement, or artifact
-truthfulness.
+truthfulness. The quality check is structural label/position checking only; it
+cannot judge whether the conclusion is actually plain language.
 """
 
 from __future__ import annotations
@@ -60,6 +64,18 @@ DOWNGRADE_MARKERS = (
 )
 
 FIELD_PATTERN = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.*)$")
+
+QUALITY_FIELDS = (
+    "conclusion",
+    "recommended_action",
+    "next_action",
+)
+
+# `none` is a legitimate explicit value for next_action per the contract; for
+# the other quality fields it is treated as placeholder content.
+QUALITY_NONE_ALLOWED_FIELDS = {"next_action"}
+
+EVIDENCE_ANCHOR_FIELD = "evidence_refs"
 
 
 def _normalize_value(text: str) -> str:
@@ -184,7 +200,62 @@ def _has_valid_evidence_ref(fields: dict[str, list[str]]) -> bool:
     )
 
 
-def validate_response_envelope_text(text: str) -> dict[str, Any]:
+def _extract_field_first_lines(text: str) -> dict[str, int]:
+    first_lines: dict[str, int] = {}
+    for index, raw_line in enumerate(text.splitlines()):
+        match = FIELD_PATTERN.match(raw_line.rstrip())
+        if match:
+            first_lines.setdefault(match.group(1), index)
+    return first_lines
+
+
+def _quality_field_value(field: str, field_lines: list[str]) -> str:
+    return _normalize_value(" ".join(field_lines))
+
+
+def _quality_check(
+    text: str, fields: dict[str, list[str]]
+) -> tuple[list[str], list[dict[str, str]], dict[str, Any]]:
+    findings: list[str] = []
+    errors: list[dict[str, str]] = []
+    first_lines = _extract_field_first_lines(text)
+    evidence_line = first_lines.get(EVIDENCE_ANCHOR_FIELD)
+
+    present: list[str] = []
+    ordered_before_evidence = True
+
+    for field in QUALITY_FIELDS:
+        if field not in fields:
+            findings.append(f"quality_missing_field:{field}")
+            errors.append({"code": "quality_missing_field", "field": field})
+            continue
+        present.append(field)
+
+        value = _quality_field_value(field, fields[field])
+        is_placeholder = value in PLACEHOLDER_EVIDENCE_VALUES and not (
+            value == "none" and field in QUALITY_NONE_ALLOWED_FIELDS
+        )
+        if not value or is_placeholder:
+            findings.append(f"quality_empty_field:{field}")
+            errors.append(
+                {"code": "quality_empty_field", "field": field, "value": value}
+            )
+
+        if evidence_line is not None and first_lines[field] > evidence_line:
+            ordered_before_evidence = False
+            findings.append(f"quality_field_after_evidence:{field}")
+            errors.append({"code": "quality_field_after_evidence", "field": field})
+
+    signals = {
+        "quality_fields_present": present,
+        "quality_ordered_before_evidence": ordered_before_evidence,
+    }
+    return findings, errors, signals
+
+
+def validate_response_envelope_text(
+    text: str, *, check_quality: bool = False
+) -> dict[str, Any]:
     fields = _extract_fields(text)
     findings: list[str] = []
     errors: list[dict[str, str]] = []
@@ -253,11 +324,18 @@ def validate_response_envelope_text(text: str) -> dict[str, Any]:
             }
         )
 
+    quality_signals: dict[str, Any] = {}
+    if check_quality:
+        quality_findings, quality_errors, quality_signals = _quality_check(text, fields)
+        findings.extend(quality_findings)
+        errors.extend(quality_errors)
+
     return {
         "ok": not errors,
         "findings": findings,
         "errors": errors,
         "signals": {
+            **quality_signals,
             "fields_present": sorted(fields.keys()),
             "required_fields_present": sorted(field for field in REQUIRED_FIELDS if field in fields),
             "evidence_entry_count": len(evidence_refs),
@@ -270,8 +348,12 @@ def validate_response_envelope_text(text: str) -> dict[str, Any]:
     }
 
 
-def validate_response_envelope_file(path: Path) -> dict[str, Any]:
-    return validate_response_envelope_text(path.read_text(encoding="utf-8"))
+def validate_response_envelope_file(
+    path: Path, *, check_quality: bool = False
+) -> dict[str, Any]:
+    return validate_response_envelope_text(
+        path.read_text(encoding="utf-8"), check_quality=check_quality
+    )
 
 
 def _iter_input_paths(paths: list[Path]) -> tuple[list[Path], list[dict[str, str]]]:
@@ -299,12 +381,14 @@ def _iter_input_paths(paths: list[Path]) -> tuple[list[Path], list[dict[str, str
     return deduped, path_errors
 
 
-def validate_response_envelope_paths(paths: list[Path]) -> dict[str, Any]:
+def validate_response_envelope_paths(
+    paths: list[Path], *, check_quality: bool = False
+) -> dict[str, Any]:
     files, path_errors = _iter_input_paths(paths)
     results: list[dict[str, Any]] = []
 
     for path in files:
-        report = validate_response_envelope_file(path)
+        report = validate_response_envelope_file(path, check_quality=check_quality)
         results.append({"path": str(path), **report})
 
     valid_count = sum(1 for item in results if item["ok"])
@@ -330,9 +414,21 @@ def main() -> None:
         help="Response envelope file(s) or directorie(s). Directories scan *.md files.",
     )
     parser.add_argument("--format", choices=["human", "json"], default="human")
+    parser.add_argument(
+        "--check-response-quality",
+        action="store_true",
+        help=(
+            "Opt-in: additionally require non-empty conclusion, "
+            "recommended_action, and next_action fields positioned before "
+            "evidence_refs. Off by default; default behavior is unchanged."
+        ),
+    )
     args = parser.parse_args()
 
-    report = validate_response_envelope_paths([Path(path) for path in args.paths])
+    report = validate_response_envelope_paths(
+        [Path(path) for path in args.paths],
+        check_quality=args.check_response_quality,
+    )
 
     if args.format == "json":
         print(json.dumps(report, indent=2, ensure_ascii=False))
