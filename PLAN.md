@@ -913,14 +913,20 @@ do not start before the P1-C fixture exists):
   advisory-era literal `not_declared` produced by the pre-Option-B
   canonical writer's omission normalization; every one is canonical-writer
   output legal at write time, and the last is dated 2026-07-10 — the day
-  before Option B (`c06014c4`) made the declaration mandatory. Zero
-  `not_declared` growth from 2026-07-11 onward; `deferred` flat at 7 (all
-  `scope-split-next-slice`, none after 2026-06-24); `malformed` 0 across
-  the window. FP/FN conclusion: treating advisory-era literals as
-  violations would be false positives; no false negatives observed; as of
-  this checkpoint there is no observed failure driver for a current-diff
-  blocker — the Option B writer contract is sufficient for the measured
-  declaration-hygiene goal. This closes P1-E collection only; the P1-F
+  before Option B (`c06014c4`) made the CLI declaration mandatory. Zero
+  `not_declared` growth in the sample from 2026-07-11 onward; `deferred`
+  flat at 7 (all `scope-split-next-slice`, none after 2026-06-24);
+  `malformed` 0 across the window. FP/FN conclusion (corrected 2026-07-18
+  after review): treating advisory-era literals as violations would be
+  false positives; no false negatives observed in the sample, but Option B
+  covers the CLI entry point only — `build_session_derived_record()` still
+  defaults to `not_declared` and the runtime `session_end` hook calls it
+  without a declaration, so that path can still emit `not_declared` and is
+  unobserved, not eliminated. As of this checkpoint there is no observed
+  failure driver for a current-diff blocker; the Option B CLI contract is
+  sufficient for the CLI path observed in this window. Whether the runtime
+  path needs the same treatment is a separate failure-driven,
+  owner-authorized question. This closes P1-E collection only; the P1-F
   blocker decision remains a separate owner-authorized [OP-HC] item.
   Checkpoint 2026-06-27: two-week observation evidence recorded in
   `docs/governance/p1e-plan-reconciliation-two-week-sample-2026-06-27.md`.

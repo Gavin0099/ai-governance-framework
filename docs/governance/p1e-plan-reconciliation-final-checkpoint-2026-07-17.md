@@ -98,10 +98,21 @@ by (date, kind, writer):
   writer-contract violation was found in this class.
 
 Key boundary event: P1-F Option B (`c06014c4`, committed 2026-07-11)
-changed the canonical writer to require an explicit `--plan-reconciliation`
-declaration and reject omission with exit 2. The last `not_declared` record
-is dated 2026-07-10 — the day before Option B landed. Zero `not_declared`
-records appear from 2026-07-11 through 2026-07-17.
+changed the canonical writer **CLI** to require an explicit
+`--plan-reconciliation` declaration and reject omission with exit 2. The
+last `not_declared` record is dated 2026-07-10 — the day before Option B
+landed. Zero `not_declared` records appear from 2026-07-11 through
+2026-07-17 in this sample.
+
+Path-coverage limit (added 2026-07-18 after review): Option B covers the
+CLI entry point only. The underlying helper
+`build_session_derived_record()` (`governance_tools/memory_record.py`)
+still defaults `plan_reconciliation` to `not_declared`, and the runtime
+`session_end` hook (`runtime_hooks/core/session_end.py`) calls that helper
+without passing a declaration. That runtime path can therefore still
+legally emit `not_declared` records. The window sample simply contains no
+post-Option-B records from that path, so its behavior is unobserved — not
+eliminated.
 
 The `deferred` class is flat: 7 records, all using the explicit
 `scope-split-next-slice` taxonomy reason, dated 2026-06-17 through
@@ -112,26 +123,32 @@ window.
 
 Window verdict (observation-class, reviewer-facing):
 
-1. **The silent class was eliminated by the writer contract, not by a
-   blocker.** All post-introduction `not_declared` growth came from the
-   advisory-era omission-normalization path. After Option B made the
-   declaration mandatory at the writer boundary (non-blocking with respect
-   to diffs; it rejects the write call, it does not gate commits), the
-   silent class stopped completely: 0 new `not_declared` in the final week
-   of the window.
+1. **The observed CLI omission path was closed by the writer contract, not
+   by a blocker.** All post-introduction `not_declared` growth in the
+   sample came from the advisory-era CLI omission-normalization path. After
+   Option B made the declaration mandatory at the CLI boundary
+   (non-blocking with respect to diffs; it rejects the write call, it does
+   not gate commits), the sample shows 0 new `not_declared` from
+   2026-07-11 through 2026-07-17. This is sample-zero-growth, not proof
+   that every canonical writer path is closed.
 2. **False-positive evidence for a future current-diff blocker:** treating
    the 30 advisory-era literal `not_declared` records as violations would be
    false positives — they were legal writer output when written. Any future
    blocker must bucket them as historical, consistent with the report's
    existing `pre_field`/advisory-era boundaries.
-3. **False-negative evidence:** none observed. No malformed values, no
-   post-Option-B omissions, no non-canonical writer paths in this class
-   during the window.
+3. **False-negative evidence: none observed, with a known unobserved
+   path.** No malformed values, no post-Option-B omissions, and no
+   non-canonical writer paths appear in this class during the window. The
+   runtime `session_end` helper path retains the `not_declared` default and
+   produced no records in the post-Option-B sample, so it is an
+   un-triggered potential false-negative path, not a cleared one.
 4. **Observed failure driver for P1-F: currently none.** Since 2026-07-11
    there is nothing a current-diff `plan_reconciliation` blocker would have
-   blocked. The evidence, as of this checkpoint, is that the Option B writer
-   contract is sufficient for the declaration-hygiene goal P1-E was
-   measuring.
+   blocked in this sample. The evidence supports a narrower statement: the
+   Option B CLI contract is sufficient for the CLI writing path observed in
+   this window. Whether the runtime `session_end` path needs the same
+   treatment is a separate failure-driven, owner-authorized question; this
+   slice changes no writer.
 
 ## Claim Ceiling
 
@@ -143,8 +160,8 @@ Claimed:
 - Every `not_declared` record in the window is classified by date, kind
   (absent vs literal), and writer, and all are canonical-writer output legal
   at write time.
-- The silent-declaration class shows zero growth after Option B
-  (`c06014c4`, 2026-07-11).
+- The silent-declaration class shows zero growth in this sample after
+  Option B (`c06014c4`, 2026-07-11).
 - Focused tests for the report tool passed at this checkpoint.
 
 Not claimed:
@@ -152,6 +169,12 @@ Not claimed:
 - This checkpoint does not decide P1-F. Upgrading to a current-diff blocker
   remains a separate owner-authorized [OP-HC] decision requiring its own
   mutation contract and rollback path.
+- Option B is NOT claimed to cover all canonical writer paths. The
+  `build_session_derived_record()` helper still defaults to `not_declared`
+  and the runtime `session_end` hook calls it without a declaration; that
+  path can still emit `not_declared` and was not exercised in the
+  post-Option-B sample. The observation window does not prove the absence
+  of un-triggered false-negative paths.
 - No semantic correctness of memory content, no PLAN synchronization proof,
   and no enforcement behavior is claimed.
 - Future writer regressions or new writer paths are not ruled out; the
