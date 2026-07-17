@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_deferred_debt_report.py -q",
+  "exit_code": 0,
+  "started_at": "2026-07-17T16:12:20Z",
+  "finished_at": "2026-07-17T16:12:21Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "7d14436166491e1f620d7985c7d6c7f7a53381c6",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-p1e-claim-narrowing-20260718.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
