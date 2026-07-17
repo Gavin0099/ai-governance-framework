@@ -1,7 +1,8 @@
 # Active Task
 
 > Refreshed 2026-07-17 after the opt-in response-quality slice (`61673ca9`,
-> review fix `96256f09`) and PLAN reconciliation commit `48c66323`.
+> review fixes `96256f09` and `f85d5560`) and PLAN reconciliation commit
+> `48c66323`.
 > Source surfaces: `PLAN.md` at `48c66323`, `memory/2026-07-17.md`
 > (validator census publication entry for `a89ee202` and the separately
 > recorded plain-language response-quality candidate), the published census
@@ -16,7 +17,8 @@
 - **The opt-in response-quality slice is implemented and review-fixed; no
   further implementation slice is active.** `61673ca9` added
   `--check-response-quality` to `response_envelope_validator.py`; `96256f09`
-  fixed the review-found per-occurrence binding false-negative. The check
+  fixed the review-found per-occurrence binding false-negative, and
+  `f85d5560` fixed the duplicate-branch ordering signal. The check
   stays opt-in: enabling it in any hook, CI, gate, or default invocation is a
   separate owner decision, and further response-quality expansion waits for a
   real consumer failure.
@@ -57,8 +59,11 @@
   `evidence_refs` satisfy an empty label before it, and list-style `- TBD`
   passed the placeholder check), fixed at `96256f09` with per-occurrence
   binding, duplicate rejection, list-marker normalization, and regression
-  tests (focused suite 26 passed; enforce gate smoke + 187 tests passed).
-  No hook, CI, gate, or default invocation enables the check.
+  tests. A follow-up review found the duplicate branch skipped the position
+  check (ordering signal misreported `true`), fixed at `f85d5560` so
+  duplicate and after-evidence findings co-report (focused suite 27 passed;
+  enforce gate smoke + 187 tests passed). No hook, CI, gate, or default
+  invocation enables the check.
 - **PLAN reconciled to published census history (2026-07-17)**:
   `6157ca0a` updates `PLAN.md` so the current sprint, claim ceiling, milestone
   list, decision-change inventory status, and observed plain-language failure
@@ -183,10 +188,13 @@
 
 ## Next Steps
 
-1. Stop here after this bookkeeping alignment commit.
-2. If the owner wants the next framework slice, separately authorize the
-   bounded plain-language final-report validation candidate.
-3. Otherwise wait for another real consumer failure or a new product need.
+1. Stop framework expansion here. The plain-language validation candidate is
+   already implemented (`61673ca9`, review fixes `96256f09` and `f85d5560`);
+   do not re-authorize or extend it.
+2. Keep `--check-response-quality` opt-in. Enabling it in any hook, CI, gate,
+   or default invocation is a separate owner decision.
+3. Wait for a real consumer failure or a new owner-authorized product need
+   before opening any further slice.
 
 ## Historical Context Retained
 

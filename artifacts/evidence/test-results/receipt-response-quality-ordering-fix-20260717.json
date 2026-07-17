@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_response_envelope_validator.py -q",
+  "exit_code": 0,
+  "started_at": "2026-07-17T15:38:52Z",
+  "finished_at": "2026-07-17T15:38:53Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "f85d5560a7322647d091bd9cdc73480376df68c8",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-response-quality-ordering-fix-20260717.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
