@@ -275,13 +275,19 @@ def _quality_check(text: str) -> tuple[list[str], list[dict[str, str]], dict[str
             continue
         present.append(field)
 
+        if evidence_line is not None and any(
+            occurrence["line"] > evidence_line for occurrence in field_occurrences
+        ):
+            ordered_before_evidence = False
+            findings.append(f"quality_field_after_evidence:{field}")
+            errors.append({"code": "quality_field_after_evidence", "field": field})
+
         if len(field_occurrences) > 1:
             findings.append(f"quality_duplicate_field:{field}")
             errors.append({"code": "quality_duplicate_field", "field": field})
             continue
 
-        occurrence = field_occurrences[0]
-        value = _quality_occurrence_value(occurrence["value_lines"])
+        value = _quality_occurrence_value(field_occurrences[0]["value_lines"])
         is_placeholder = value in PLACEHOLDER_EVIDENCE_VALUES and not (
             value == "none" and field in QUALITY_NONE_ALLOWED_FIELDS
         )
@@ -290,11 +296,6 @@ def _quality_check(text: str) -> tuple[list[str], list[dict[str, str]], dict[str
             errors.append(
                 {"code": "quality_empty_field", "field": field, "value": value}
             )
-
-        if evidence_line is not None and occurrence["line"] > evidence_line:
-            ordered_before_evidence = False
-            findings.append(f"quality_field_after_evidence:{field}")
-            errors.append({"code": "quality_field_after_evidence", "field": field})
 
     signals = {
         "quality_fields_present": present,
