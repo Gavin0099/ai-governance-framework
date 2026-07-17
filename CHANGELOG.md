@@ -6,9 +6,12 @@
 
 - Added an opt-in `--check-response-quality` mode to
   `governance_tools/response_envelope_validator.py` that mechanically checks
-  `conclusion`, `recommended_action`, and `next_action` are present, non-empty
-  (placeholder values rejected; `next_action: none` allowed), and positioned
-  before `evidence_refs`.
+  `conclusion`, `recommended_action`, and `next_action` appear exactly once
+  (duplicate labels rejected), are non-empty after list-marker normalization
+  (placeholder values rejected; `next_action: none` allowed), and are
+  positioned before `evidence_refs`. Label, value, and position are bound to
+  the same field occurrence so a later duplicate cannot satisfy an earlier
+  empty label (2026-07-17 review fix).
 - Default validator behavior, output shape, and exit codes are unchanged when
   the flag is not passed; focused tests cover default compatibility, missing
   fields, placeholder content, ordering violations, and Chinese and English

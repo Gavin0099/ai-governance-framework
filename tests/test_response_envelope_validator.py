@@ -354,6 +354,100 @@ def test_quality_check_flags_field_positioned_after_evidence() -> None:
     assert result["signals"]["quality_ordered_before_evidence"] is False
 
 
+def test_quality_check_rejects_empty_label_satisfied_by_duplicate_after_evidence() -> None:
+    text = """
+mode: VALIDATION
+mode_source: validation_command
+task_authority: user_request
+conclusion:
+recommended_action: needs review — validator change awaits human review
+next_action: run the focused pytest module before commit
+claim_ceiling:
+  - structural validation only
+not_claimed:
+  - semantic correctness
+evidence_refs:
+  - command: pytest
+    result: PASS
+conclusion: The real content only appears after the technical evidence.
+"""
+
+    result = validate_response_envelope_text(text, check_quality=True)
+
+    assert result["ok"] is False
+    assert "quality_duplicate_field:conclusion" in result["findings"]
+
+
+def test_quality_check_flags_list_style_placeholder_value() -> None:
+    text = """
+mode: VALIDATION
+mode_source: validation_command
+task_authority: user_request
+conclusion:
+  - TBD
+recommended_action: needs review — validator change awaits human review
+next_action: run the focused pytest module before commit
+claim_ceiling:
+  - structural validation only
+not_claimed:
+  - semantic correctness
+evidence_refs:
+  - command: pytest
+    result: PASS
+"""
+
+    result = validate_response_envelope_text(text, check_quality=True)
+
+    assert result["ok"] is False
+    assert "quality_empty_field:conclusion" in result["findings"]
+
+
+def test_quality_check_flags_single_empty_label_before_evidence() -> None:
+    text = """
+mode: VALIDATION
+mode_source: validation_command
+task_authority: user_request
+conclusion:
+recommended_action: needs review — validator change awaits human review
+next_action: run the focused pytest module before commit
+claim_ceiling:
+  - structural validation only
+not_claimed:
+  - semantic correctness
+evidence_refs:
+  - command: pytest
+    result: PASS
+"""
+
+    result = validate_response_envelope_text(text, check_quality=True)
+
+    assert result["ok"] is False
+    assert "quality_empty_field:conclusion" in result["findings"]
+
+
+def test_quality_check_accepts_list_style_real_content() -> None:
+    text = """
+mode: VALIDATION
+mode_source: validation_command
+task_authority: user_request
+conclusion:
+  - 本次切片已完成，預設行為未改變。
+recommended_action: needs review — 驗證器變更需人工審查
+next_action: 提交前先跑 focused pytest 模組
+claim_ceiling:
+  - structural validation only
+not_claimed:
+  - semantic correctness
+evidence_refs:
+  - command: pytest
+    result: PASS
+"""
+
+    result = validate_response_envelope_text(text, check_quality=True)
+
+    assert result["ok"] is True
+
+
 def test_cli_quality_flag_fails_quality_invalid_fixture() -> None:
     fixture = QUALITY_FIXTURE_ROOT / "invalid_quality_missing_next_action.md"
 

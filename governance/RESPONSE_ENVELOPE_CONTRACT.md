@@ -239,7 +239,10 @@ check for the plain-language reporting posture above. It is off by default;
 without the flag the validator's behavior, output shape, and exit codes are
 unchanged.
 
-When enabled, an envelope must additionally contain these field labels:
+When enabled, an envelope must additionally contain each of these field
+labels exactly once. Label, value, and position are bound to the same field
+occurrence, so a duplicate label after `evidence_refs` cannot satisfy an
+empty label before it:
 
 - `conclusion`: the plain-language conclusion (maps to the "open with one
   plain sentence" rule).
@@ -250,10 +253,13 @@ When enabled, an envelope must additionally contain these field labels:
 Checks performed (error codes):
 
 - `quality_missing_field`: a quality field label is absent.
+- `quality_duplicate_field`: a quality field label appears more than once;
+  duplicates are rejected rather than merged.
 - `quality_empty_field`: a quality field has no content or placeholder content
   (`tbd`, `n/a`, `see above`, or `none` — except `next_action`, where `none`
-  is an allowed explicit value).
-- `quality_field_after_evidence`: a quality field first appears after
+  is an allowed explicit value). Leading list markers (`- `) are stripped
+  before this check, so `- TBD` is still placeholder content.
+- `quality_field_after_evidence`: a quality field appears after
   `evidence_refs`, violating conclusion-before-technical-evidence ordering.
 
 Boundaries:

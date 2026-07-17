@@ -8,8 +8,10 @@ It validates:
 - evidence_refs contains at least one non-placeholder entry with command/artifact plus result
 - high-risk authority wording is downgraded or supported by evidence refs
 - (opt-in, --check-response-quality) plain-language quality fields
-  (`conclusion`, `recommended_action`, `next_action`) are present, non-empty,
-  and appear before `evidence_refs`
+  (`conclusion`, `recommended_action`, `next_action`) each appear exactly
+  once, are non-empty after list-marker normalization, and appear before
+  `evidence_refs`; label, value, and position are bound to the same field
+  occurrence so a later duplicate cannot satisfy an earlier empty label
 
 It does NOT validate semantic correctness, runtime enforcement, or artifact
 truthfulness. The quality check is structural label/position checking only; it
@@ -209,29 +211,77 @@ def _extract_field_first_lines(text: str) -> dict[str, int]:
     return first_lines
 
 
-def _quality_field_value(field: str, field_lines: list[str]) -> str:
-    return _normalize_value(" ".join(field_lines))
+def _extract_quality_occurrences(text: str) -> dict[str, list[dict[str, Any]]]:
+    """Collect every occurrence of each quality field with its own value lines.
+
+    Unlike ``_extract_fields`` this does NOT merge same-name occurrences: the
+    value and line position stay bound to the occurrence that declared them,
+    so a later duplicate cannot satisfy an earlier empty label.
+    """
+    occurrences: dict[str, list[dict[str, Any]]] = {
+        field: [] for field in QUALITY_FIELDS
+    }
+    current: dict[str, Any] | None = None
+
+    for index, raw_line in enumerate(text.splitlines()):
+        line = raw_line.rstrip()
+        match = FIELD_PATTERN.match(line)
+        if match:
+            field = match.group(1)
+            if field in occurrences:
+                current = {"line": index, "value_lines": []}
+                remainder = match.group(2).strip()
+                if remainder:
+                    current["value_lines"].append(remainder)
+                occurrences[field].append(current)
+            else:
+                current = None
+            continue
+
+        if current is not None:
+            stripped = line.strip()
+            if stripped:
+                current["value_lines"].append(stripped)
+
+    return occurrences
 
 
-def _quality_check(
-    text: str, fields: dict[str, list[str]]
-) -> tuple[list[str], list[dict[str, str]], dict[str, Any]]:
+def _quality_occurrence_value(value_lines: list[str]) -> str:
+    cleaned: list[str] = []
+    for line in value_lines:
+        if line.startswith("- "):
+            line = line[2:].strip()
+        elif line == "-":
+            line = ""
+        if line:
+            cleaned.append(line)
+    return _normalize_value(" ".join(cleaned))
+
+
+def _quality_check(text: str) -> tuple[list[str], list[dict[str, str]], dict[str, Any]]:
     findings: list[str] = []
     errors: list[dict[str, str]] = []
-    first_lines = _extract_field_first_lines(text)
-    evidence_line = first_lines.get(EVIDENCE_ANCHOR_FIELD)
+    occurrences = _extract_quality_occurrences(text)
+    evidence_line = _extract_field_first_lines(text).get(EVIDENCE_ANCHOR_FIELD)
 
     present: list[str] = []
     ordered_before_evidence = True
 
     for field in QUALITY_FIELDS:
-        if field not in fields:
+        field_occurrences = occurrences[field]
+        if not field_occurrences:
             findings.append(f"quality_missing_field:{field}")
             errors.append({"code": "quality_missing_field", "field": field})
             continue
         present.append(field)
 
-        value = _quality_field_value(field, fields[field])
+        if len(field_occurrences) > 1:
+            findings.append(f"quality_duplicate_field:{field}")
+            errors.append({"code": "quality_duplicate_field", "field": field})
+            continue
+
+        occurrence = field_occurrences[0]
+        value = _quality_occurrence_value(occurrence["value_lines"])
         is_placeholder = value in PLACEHOLDER_EVIDENCE_VALUES and not (
             value == "none" and field in QUALITY_NONE_ALLOWED_FIELDS
         )
@@ -241,7 +291,7 @@ def _quality_check(
                 {"code": "quality_empty_field", "field": field, "value": value}
             )
 
-        if evidence_line is not None and first_lines[field] > evidence_line:
+        if evidence_line is not None and occurrence["line"] > evidence_line:
             ordered_before_evidence = False
             findings.append(f"quality_field_after_evidence:{field}")
             errors.append({"code": "quality_field_after_evidence", "field": field})
@@ -326,7 +376,7 @@ def validate_response_envelope_text(
 
     quality_signals: dict[str, Any] = {}
     if check_quality:
-        quality_findings, quality_errors, quality_signals = _quality_check(text, fields)
+        quality_findings, quality_errors, quality_signals = _quality_check(text)
         findings.extend(quality_findings)
         errors.extend(quality_errors)
 
