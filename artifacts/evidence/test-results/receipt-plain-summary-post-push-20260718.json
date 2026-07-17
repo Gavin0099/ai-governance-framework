@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\test_response_envelope_validator.py -q -p no:cacheprovider --basetemp C:\\Users\\daish\\.codex\\visualizations\\2026\\07\\17\\019f7090-0fad-78f0-b3ea-b9a0cc480d12\\plain-summary-post-push-20260718",
+  "exit_code": 0,
+  "started_at": "2026-07-17T16:33:24Z",
+  "finished_at": "2026-07-17T16:33:26Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "97c39d1680a9b2c8b41f6002eca60769c8931817",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-plain-summary-post-push-20260718.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
