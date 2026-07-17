@@ -110,7 +110,7 @@ CLI entry point only. The underlying helper
 still defaults `plan_reconciliation` to `not_declared`, and the runtime
 `session_end` hook (`runtime_hooks/core/session_end.py`) calls that helper
 without passing a declaration. That runtime path can therefore still
-legally emit `not_declared` records. The window sample simply contains no
+emit `not_declared` records. The window sample simply contains no
 post-Option-B records from that path, so its behavior is unobserved — not
 eliminated.
 
