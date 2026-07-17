@@ -69,7 +69,7 @@ nearby status text remain the authority for whether an item is complete.
 | P1-C | First external F-7 verification for `meiandraybook`, including a natural-session closeout-receipt check that is still pending production evidence. |
 | P1-D | Structured `plan_reconciliation` declaration for canonical memory records. |
 | P1-E | Observation evidence for declaration behavior; it does not by itself authorize enforcement. |
-| P1-F | Decision about stronger declaration enforcement. Option B (canonical writer requires an explicit declaration) is implemented; the distinct current-diff blocker decision remains unapproved. |
+| P1-F | Decision about stronger declaration enforcement. Decided 2026-07-18: keep advisory and do not add a current-diff blocker; reopen only after a natural post-Option-B `not_declared` failure. |
 | P1-G / P1-H | Reproducible fleet-matrix generator / future decision about fleet-update freshness. |
 | P2-E | Rules for public-facing release surfaces such as topics, badges, and release notes. |
 | F-7 | Governed full framework update for a consumer repository, with staged evidence; a pointer update alone is not F-7 completion. |
@@ -939,8 +939,10 @@ do not start before the P1-C fixture exists):
   failure driver for a current-diff blocker; the Option B CLI contract is
   sufficient for the CLI path observed in this window. Whether the runtime
   path needs the same treatment is a separate failure-driven,
-  owner-authorized question. This closes P1-E collection only; the P1-F
-  blocker decision remains a separate owner-authorized [OP-HC] item.
+  owner-authorized question. This closes P1-E collection only. P1-F was
+  subsequently decided on 2026-07-18: maintain advisory and add no
+  current-diff blocker; reopen only after a natural post-Option-B
+  `not_declared` failure.
   Checkpoint 2026-06-27: two-week observation evidence recorded in
   `docs/governance/p1e-plan-reconciliation-two-week-sample-2026-06-27.md`.
   Report output after the 2026-06-27 canonical memory record exists:
@@ -1053,12 +1055,14 @@ Decisions:
 - [x] Repo-class freshness SLA (P1-H Option C) remains deferred until
   this taxonomy survives at least one real membership decision.
 - [x] No repo-set mutation performed; generator untouched.
-- [ ] P1-F: upgrading to a current-diff blocker changes what counts as a
-  legal completion claim and is therefore an [OP-HC] decision requiring
-  FP data, a rollback path, and its own mutation contract. Not authorized
-  by this item. Separate Option B is already implemented at `c06014c4`:
-  the canonical writer requires an explicit `--plan-reconciliation`
-  declaration before it writes. This does not create a current-diff blocker.
+- [x] P1-F decided 2026-07-18 by owner: maintain advisory and do not add a
+  current-diff blocker. Option B at `c06014c4` addressed the observed CLI
+  omission path, with zero sample growth after 2026-07-11. The runtime
+  `session_end` path can still emit `not_declared`, but no natural
+  post-Option-B failure has been observed; a current-diff blocker is not a
+  substitute for a writer-path fix. Reopen a separate failure-driven slice
+  only if a natural post-Option-B `not_declared` record appears. This
+  decision does not claim the runtime writer path is fixed.
 - [x] Add a non-blocking deferred-debt report (deferred count by reason,
   oldest deferred age, PLAN-touched records without `updated` status) to
   prevent acknowledged-drift from becoming a landfill.
