@@ -1,114 +1,57 @@
 # Active Task
 
-> Refreshed 2026-07-11 after the v3 blind-scoring closure. Source surfaces:
-> six run archives, the scoring artifact and closure doc, the ledger
-> observation, and the resolved self-audit backlog.
-> Claim: the v3 outcome claim is exactly the scored disposition, no more.
+> Refreshed 2026-07-17 after PLAN reconciliation commit `6157ca0a`.
+> Source surfaces: `PLAN.md` at `6157ca0a`, `memory/2026-07-17.md`
+> (validator census publication entry for `a89ee202` and the separately
+> recorded plain-language response-quality candidate), the published census
+> artifact / closeout chain, and `governance/RESPONSE_ENVELOPE_CONTRACT.md`.
+> Claim: this file is point-in-time aligned to those authority surfaces, no
+> more.
 
 ## Current Focus
 
-- **COMPLETED and FROZEN: No-Governance Baseline v3 (corrected framing).**
-  All six runs (A1-A3, B1-B3) completed with scoreable output under the
-  frozen launcher and package `26.707.3748.0`, each executed personally by
-  the owner. Observational summary: three metrics tied at zero in every
-  run; `artifact_pollution` differed only in one governed run (B1 cleanup,
-  an unclaimed single-run observation); no stable Arm B advantage.
-  CORRECTION (2026-07-11): v3 froze no outcome-disposition table and cannot
-  inherit the v1 table under zero-amendment, so the outcome carries **no
-  pre-committed dispositional force**. Framework behavioral-effect claims
-  remain unproven on this task class as **owner-adopted recalibration**,
-  not protocol consequence. Closure and correction:
-  `docs/status/no-governance-baseline-v3-scoring-2026-07-11.md`; ledger
-  observation `no_governance_baseline_v3_result` (corrected); backlog
-  P0 #2 executed-to-completion. The v3 line accepts no further runs,
-  metrics, or reinterpretations.
-- **No active implementation slice.** Next workline per owner: a read-only
-  justification-class census of runtime treatment surfaces, positioned as
-  claim calibration, not as v3-mandated retirement.
-
-- **Voided experiment line: No-Governance Baseline Runs Slice B.** Pre-registered
-  at `docs/governance/no-governance-baseline-preregistration-2026-07-10.md`
-  (`af22e2df`, corrected `7a3f906d`). Slice A (pre-registration) is closed.
-  Slice B is owner-authorized: option-A architecture-drift mutation, the
-  single compliant fixture as task file set, Codex CLI harness, and model
-  `gpt-5.6-terra`. Instantiation and amendments are committed through
-  Pre-Run Amendment 2 (FINAL). The first A1 attempt is excluded under the
-  protocol-fidelity clause: writes/validation were blocked by the effective
-  Codex sandbox/policy despite the frozen `workspace-write` spec, and the
-  scratch repo stayed at seed `dd34ac3` with no scoreable output; receipts
-  retained. Its voluntary `AGENTS.md` read is recorded as an observation and
-  handled intent-to-treat going forward (Arm A = no harness-injected
-  governance; `voluntary_governance_doc_reads` recorded per run). The Arm B
-  entrypoint is frozen (hook_installer --hooks-only + validator valid=true).
-  The mandatory pre-run write-capability probe then failed under the same
-  Codex configuration: the harness reported a read-only workspace, policy
-  rejected the write command, `write-probe.txt` was absent, and the disposable
-  repo remained clean at seed `a619e13`. Under Amendment 2's hard lock, this
-  further protocol gap voids Slice B. A1/A2/A3 were not run after the failed
-  probe; no valid run, metric, score, or attribution conclusion exists. Any
-  continuation requires a separately pre-registered v2 line.
-- **v2 Pre-0 execution surface qualified; v2 is void before Run 1
-  (2026-07-10).** The final capped attempt used a fresh disposable repo whose root
-  was created by launcher user `daish`, plus the identical package-context
-  launcher: `Invoke-CommandInDesktopPackage`, PFN
-  `OpenAI.Codex_2p2nqsd0c76g0`, AppId `App`, `-PreventBreakaway`, package
-  `26.707.3748.0`, native `elevated`, and `workspace-write`. Helper setup
-  completed with `errors=[]`; `apply_patch` created the sole changed file with
-  exact bytes `workspace-write-ok\n`, and readback/status succeeded. This
-  resolves the prior package-identity and reused-scratch ownership blockers.
-  Qualification is bound to this launcher/package version. All future v2
-  scratch repos must be created by the launcher user outside sandbox context.
-  The v2 line is now recorded as void at
-  `docs/status/no-governance-baseline-v2-void-2026-07-10.md`: its first fresh
-  Arm A scratch root lacked the task file and seed commit, which exposed that
-  v2 did not bind seed construction/tree hash. No Codex session or API
-  transmission started. Zero-amendment rules prohibit repairing or reusing it.
-- **v3 offline dress rehearsal completed; v3 is preregistered.** The
-  rehearsal created a fresh launcher-user-owned scratch root, demonstrated the
-  literal JSON seed mutation, recorded tree/task hashes, and confirmed the
-  frozen one-mismatch mutation probe with a clean post-probe state. It assembled
-  but did not execute the package-context launcher (`api_call_performed=false`).
-  Two setup/serialization failures are retained. The preregistration is frozen;
-  owner transmission authority covers Run 1 only, not later runs or scoring.
-- **v3 Arm B offline rehearsal completed; package-context hook behavior remains
-  untested.** A fresh clone matched the demonstrated seed tree; hooks-only
-  installation and validator passed, and a host-side local commit trace showed
-  pre-commit invocation with a clean poststate. The first trace-capture attempt
-  is retained; a fresh retry root succeeded. No API call, sandbox session, or
-  run has occurred.
-- **v3 preregistration frozen; Arm A Run 1 archived without scoring.** The protocol copies both
-  rehearsed arm procedures and hashes, locks launcher/package/provenance, and
-  pre-declares an Arm B package-context hook-environment exclusion only for
-  zero scoreable output. Explicit v3 transmission authorization now covers the
-  task prompt and scratch-repo content for Run 1 only. The owner executed the
-  frozen launcher: raw output and poststate are archived at
-  `docs/status/no-governance-baseline-v3-a1-archive-2026-07-11.md`. No metric
-  values, score, ledger, or attribution conclusion exists.
-- No other active autonomous implementation slice. The retire-candidate
-  cleanup line is fully resolved as of pushed commit `81124cec`; the
-  closeout memory-authority fixture carry-forward is resolved as of pushed
-  commit `25243d1a`; the decision-change observation workline continues.
-- Standing principle: **Validity before Expansion**. Do not add gates,
-  enforcement, schema changes, or consumer-repo writes unless an observed
-  failure or explicit user scope justifies them.
-- Current workline: reduce governance overhead by observing which governance
-  outputs change decisions before merging, downgrading, retiring, or promoting
-  more surfaces.
-- Current report-only implementation line: `test_signal_quality_audit` v0.2
-  exists for domain contract repos. It surfaces weak test-signal candidates and
-  validator fixture-pair visibility; it is not a readiness gate or test-quality
-  proof.
-- Deferred feature-gate candidate: `test_signal_quality_audit` consuming
-  `consumer_fixture_runner` execution results is deferred because the proposed
-  failure is not observed at HEAD. Re-trigger only on the first real consumer
-  repo case where fixture pairs are present but runner output reports mismatch
-  or error.
-- Current design line: `decision-change-ledger.seed.json` and
-  `context-cost-budget-design-2026-07-06.md` are observation/design artifacts.
-  They do not retire defenses, measure token savings, or enforce context-budget
-  compliance.
+- **No active implementation slice.** The bounded bookkeeping repair is the
+  only active work in this commit chain: reconcile `PLAN.md` and
+  `memory/01_active_task.md` to the already published validator census and
+  closeout history.
+- **Validator census is completed and frozen as a historical snapshot.**
+  Published scope: plan publication at `6a20d0a6`, fixed-snapshot artifact at
+  `a89ee202`, closeout checkpoint at `63462432`. The artifact is explicitly
+  pinned to base `e737572e`, `population_count=197`, and normalized hash
+  `b590fb5fef8dc1a921655877091447a44f42232219c8d91c3a413f467e74da6f`.
+- **No further census action is authorized from this surface.** Do not refresh
+  the census, implement delegation, retire modules, migrate consumers, or
+  treat the artifact as current-tip coverage without a new owner-authorized
+  slice.
+- **Decision-change inventory-line pass is historical, not pending.** The
+  read-only pass completed at `e30b1576`
+  (`docs/governance/decision-change-ledger.inventory.v0.1.json`); its results
+  may inform later review but do not by themselves authorize retirement or
+  downgrade decisions.
+- **The plain-language response problem is already an observed failure.** The
+  response contract records two comprehension failures, and the canonical
+  daily memory names mechanical plain-language final-report validation as a
+  separate failure-driven candidate. This establishes eligibility for a
+  bounded slice; it does not authorize implementation.
+- **The next bounded candidate, if separately owner-authorized, is
+  response-quality only.** Require a user-facing conclusion, decision, and
+  next step before technical detail. Do not combine it with census refresh,
+  delegation, retirement, consumer migration, or release preparation.
+- **Validity before expansion still governs every other direction.** Wait for
+  another real consumer failure or a new product need before opening any
+  unrelated framework-expansion slice.
 
 ## Current Status
+
+- **PLAN reconciled to published census history (2026-07-17)**:
+  `6157ca0a` updates `PLAN.md` so the current sprint, claim ceiling, milestone
+  list, decision-change inventory status, and observed plain-language failure
+  match the published validator census and response-quality history instead of
+  the older 2026-07-10 state.
+- **Structured active-task surface is being refreshed from the new PLAN
+  head (2026-07-17)**: this file is now derived from `PLAN.md` at
+  `6157ca0a` plus the canonical 2026-07-17 records, per
+  `docs/structured-memory-freshness-policy.md`.
 
 - **Bound memory authority fixture repaired (2026-07-10)**: `25243d1a`
   updated old-format bound-memory fixtures in
@@ -224,10 +167,10 @@
 
 ## Next Steps
 
-1. Keep v1 and v2 stopped. Do not use the prior v2 authorization for a
-   successor line.
-2. Do not start any later run, compute metrics, conduct blind review, or update
-   a ledger without a separately authorized slice.
+1. Stop here after this bookkeeping alignment commit.
+2. If the owner wants the next framework slice, separately authorize the
+   bounded plain-language final-report validation candidate.
+3. Otherwise wait for another real consumer failure or a new product need.
 
 ## Historical Context Retained
 
