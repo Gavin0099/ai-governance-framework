@@ -1,7 +1,8 @@
 # Active Task
 
-> Refreshed 2026-07-17 after PLAN reconciliation commit `6157ca0a`.
-> Source surfaces: `PLAN.md` at `6157ca0a`, `memory/2026-07-17.md`
+> Refreshed 2026-07-17 after the opt-in response-quality slice (`61673ca9`,
+> review fix `96256f09`) and PLAN reconciliation commit `48c66323`.
+> Source surfaces: `PLAN.md` at `48c66323`, `memory/2026-07-17.md`
 > (validator census publication entry for `a89ee202` and the separately
 > recorded plain-language response-quality candidate), the published census
 > artifact / closeout chain, `governance/RESPONSE_ENVELOPE_CONTRACT.md`, the
@@ -12,10 +13,13 @@
 
 ## Current Focus
 
-- **No active implementation slice.** The bounded bookkeeping repair is the
-  only active work in this commit chain: reconcile `PLAN.md` and
-  `memory/01_active_task.md` to the already published validator census and
-  closeout history.
+- **The opt-in response-quality slice is implemented and review-fixed; no
+  further implementation slice is active.** `61673ca9` added
+  `--check-response-quality` to `response_envelope_validator.py`; `96256f09`
+  fixed the review-found per-occurrence binding false-negative. The check
+  stays opt-in: enabling it in any hook, CI, gate, or default invocation is a
+  separate owner decision, and further response-quality expansion waits for a
+  real consumer failure.
 - **Validator census is completed and frozen as a historical snapshot.**
   Published scope: plan publication at `6a20d0a6`, fixed-snapshot artifact at
   `a89ee202`, closeout checkpoint at `63462432`. The artifact is explicitly
@@ -30,21 +34,31 @@
   (`docs/governance/decision-change-ledger.inventory.v0.1.json`); its results
   may inform later review but do not by themselves authorize retirement or
   downgrade decisions.
-- **The plain-language response problem is already an observed failure.** The
-  response contract records two comprehension failures, and the canonical
-  daily memory names mechanical plain-language final-report validation as a
-  separate failure-driven candidate. This establishes eligibility for a
-  bounded slice; it does not authorize implementation.
-- **The next bounded candidate, if separately owner-authorized, is
-  response-quality only.** Require a user-facing conclusion, decision, and
-  next step before technical detail. Do not combine it with census refresh,
-  delegation, retirement, consumer migration, or release preparation.
+- **The plain-language response-quality candidate was owner-authorized on
+  2026-07-17 and is now implemented.** The failure-driven eligibility (two
+  recorded comprehension failures) was consumed by the bounded slice at
+  `61673ca9` plus review fix `96256f09`: opt-in mechanical validation of
+  `conclusion`, `recommended_action`, and `next_action` (exactly once,
+  non-empty after list-marker normalization, positioned before
+  `evidence_refs`). Contract documented as v0.4. The slice stayed separate
+  from census refresh, delegation, retirement, consumer migration, and
+  release preparation, and default validator behavior is unchanged.
 - **Validity before expansion still governs every other direction.** Wait for
   another real consumer failure or a new product need before opening any
   unrelated framework-expansion slice.
 
 ## Current Status
 
+- **Opt-in response-quality validation implemented and review-fixed
+  (2026-07-17)**: `61673ca9` added `--check-response-quality` (opt-in;
+  default behavior, output shape, and exit codes unchanged) with zh/en
+  fixtures and focused tests; a same-day review found a blocking
+  false-negative (merged same-name fields let a duplicate label after
+  `evidence_refs` satisfy an empty label before it, and list-style `- TBD`
+  passed the placeholder check), fixed at `96256f09` with per-occurrence
+  binding, duplicate rejection, list-marker normalization, and regression
+  tests (focused suite 26 passed; enforce gate smoke + 187 tests passed).
+  No hook, CI, gate, or default invocation enables the check.
 - **PLAN reconciled to published census history (2026-07-17)**:
   `6157ca0a` updates `PLAN.md` so the current sprint, claim ceiling, milestone
   list, decision-change inventory status, and observed plain-language failure
