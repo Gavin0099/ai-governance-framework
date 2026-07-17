@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "\"C:\\Program Files\\Git\\bin\\bash.exe\" -lc \"./scripts/run-runtime-governance.sh --mode enforce\"",
+  "exit_code": 0,
+  "started_at": "2026-07-17T09:45:07Z",
+  "finished_at": "2026-07-17T09:45:52Z",
+  "runner": "codex",
+  "linked_commit": "a89ee202f347ab8bd67a16c4f8c25307400d532a",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-validator-census-publication-a89ee202.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

@@ -1,0 +1,272 @@
+[runtime-governance] mode=enforce
+harness=claude_code
+event_type=session_start
+payload_file=runtime_hooks\examples\shared\session_start.shared.json
+ok=True
+rules=common
+contract_source=discovery
+contract_path=C:\tmp\agf-census-20260717\contract.yaml
+domain_contract=ai-governance-framework-contract
+suggested_rules_preview=common,python,refactor
+suggested_skills=code-style,governance-runtime,python
+suggested_agent=python-agent
+expected_validators=architecture_drift_checker,public_api_diff_checker
+required_evidence=architecture-review,public-api-review
+[change_control_summary]
+summary=proposal_risk=medium | promoted=False | contract=ai-governance
+active_rules=common
+[contract_resolution]
+contract_source=discovery
+contract_risk_tier=unknown
+[proposal]
+recommended_risk=medium
+recommended_oversight=review-required
+concerns=public-api-expansion-risk
+[runtime]
+decision=None
+risk=medium
+oversight=review-required
+public_api_diff_present=False
+public_api_added_count=0
+public_api_removed_count=0
+promoted=False
+[task_provenance]
+status=unknown
+source_key=none
+[signal_profile]
+runtime.decision: class=descriptive effect=unknown promotion_allowed=False
+runtime.public_api_diff_present: class=descriptive effect=none promotion_allowed=False
+runtime.promoted: class=descriptive effect=none promotion_allowed=False
+[promotion_gate]
+contract_version=0.1
+allowed=False
+requested_promoted=False
+effective_promoted=False
+reasons=missing_enforcement_or_admissibility_signal
+gate_inputs_digest=60d70de7e362024d1be8a44eaec6e3b1d6f17110ba59818b3bb4780624a21e7b
+harness=claude_code
+event_type=pre_task
+payload_file=runtime_hooks\examples\claude_code\pre_task.native.json
+ok=True
+contract_source=discovery
+contract_path=C:\tmp\agf-census-20260717\contract.yaml
+domain_contract=ai-governance-framework-contract
+warning: Assumption check missing before modification planning: missing=assumptions, alternative_root_causes, evidence, reframe_or_validation_step; why=the premise, alternatives, evidence, or validation step is not visible yet; next=state the missing items before choosing an implementation
+warning: Decision policy advisory: assumption evidence missing: missing=direct evidence that tests the stated assumption; why=the decision remains uncertain even if the assumption is plausible; next=collect a trace, spec, test, or usage evidence before a high-impact change
+warning: Decision policy advisory: proceeding under assumption: missing=confirmed evidence for the premise; why=this is a provisional action, not proof that the change is correct; next=keep the change reversible and run the targeted verification
+harness=claude_code
+event_type=post_task
+payload_file=runtime_hooks\examples\claude_code\post_task.native.json
+ok=True
+contract_source=discovery
+contract_path=C:\tmp\agf-census-20260717\contract.yaml
+domain_contract=ai-governance-framework-contract
+warning: Snapshot creation skipped because AI_GOVERNANCE_NO_LEDGER_WRITE is enabled
+harness=codex
+event_type=session_start
+payload_file=runtime_hooks\examples\shared\session_start.shared.json
+ok=True
+rules=common
+contract_source=discovery
+contract_path=C:\tmp\agf-census-20260717\contract.yaml
+domain_contract=ai-governance-framework-contract
+suggested_rules_preview=common,python,refactor
+suggested_skills=code-style,governance-runtime,python
+suggested_agent=python-agent
+expected_validators=architecture_drift_checker,public_api_diff_checker
+required_evidence=architecture-review,public-api-review
+[change_control_summary]
+summary=proposal_risk=medium | promoted=False | contract=ai-governance
+active_rules=common
+[contract_resolution]
+contract_source=discovery
+contract_risk_tier=unknown
+[proposal]
+recommended_risk=medium
+recommended_oversight=review-required
+concerns=public-api-expansion-risk
+[runtime]
+decision=None
+risk=medium
+oversight=review-required
+public_api_diff_present=False
+public_api_added_count=0
+public_api_removed_count=0
+promoted=False
+[task_provenance]
+status=unknown
+source_key=none
+[signal_profile]
+runtime.decision: class=descriptive effect=unknown promotion_allowed=False
+runtime.public_api_diff_present: class=descriptive effect=none promotion_allowed=False
+runtime.promoted: class=descriptive effect=none promotion_allowed=False
+[promotion_gate]
+contract_version=0.1
+allowed=False
+requested_promoted=False
+effective_promoted=False
+reasons=missing_enforcement_or_admissibility_signal
+gate_inputs_digest=60d70de7e362024d1be8a44eaec6e3b1d6f17110ba59818b3bb4780624a21e7b
+harness=codex
+event_type=post_task
+payload_file=runtime_hooks\examples\codex\post_task.native.json
+ok=True
+contract_source=discovery
+contract_path=C:\tmp\agf-census-20260717\contract.yaml
+domain_contract=ai-governance-framework-contract
+warning: Snapshot creation skipped because AI_GOVERNANCE_NO_LEDGER_WRITE is enabled
+harness=gemini
+event_type=session_start
+payload_file=runtime_hooks\examples\shared\session_start.shared.json
+ok=True
+rules=common
+contract_source=discovery
+contract_path=C:\tmp\agf-census-20260717\contract.yaml
+domain_contract=ai-governance-framework-contract
+suggested_rules_preview=common,python,refactor
+suggested_skills=code-style,governance-runtime,python
+suggested_agent=python-agent
+expected_validators=architecture_drift_checker,public_api_diff_checker
+required_evidence=architecture-review,public-api-review
+[change_control_summary]
+summary=proposal_risk=medium | promoted=False | contract=ai-governance
+active_rules=common
+[contract_resolution]
+contract_source=discovery
+contract_risk_tier=unknown
+[proposal]
+recommended_risk=medium
+recommended_oversight=review-required
+concerns=public-api-expansion-risk
+[runtime]
+decision=None
+risk=medium
+oversight=review-required
+public_api_diff_present=False
+public_api_added_count=0
+public_api_removed_count=0
+promoted=False
+[task_provenance]
+status=unknown
+source_key=none
+[signal_profile]
+runtime.decision: class=descriptive effect=unknown promotion_allowed=False
+runtime.public_api_diff_present: class=descriptive effect=none promotion_allowed=False
+runtime.promoted: class=descriptive effect=none promotion_allowed=False
+[promotion_gate]
+contract_version=0.1
+allowed=False
+requested_promoted=False
+effective_promoted=False
+reasons=missing_enforcement_or_admissibility_signal
+gate_inputs_digest=60d70de7e362024d1be8a44eaec6e3b1d6f17110ba59818b3bb4780624a21e7b
+harness=gemini
+event_type=post_task
+payload_file=runtime_hooks\examples\gemini\post_task.native.json
+ok=True
+contract_source=discovery
+contract_path=C:\tmp\agf-census-20260717\contract.yaml
+domain_contract=ai-governance-framework-contract
+warning: Snapshot creation skipped because AI_GOVERNANCE_NO_LEDGER_WRITE is enabled
+event_type=session_start
+payload_file=runtime_hooks\examples\shared\session_start.shared.json
+ok=True
+rules=common
+contract_source=discovery
+contract_path=C:\tmp\agf-census-20260717\contract.yaml
+domain_contract=ai-governance-framework-contract
+suggested_rules_preview=common,python,refactor
+suggested_skills=code-style,governance-runtime,python
+suggested_agent=python-agent
+expected_validators=architecture_drift_checker,public_api_diff_checker
+required_evidence=architecture-review,public-api-review
+[change_control_summary]
+summary=proposal_risk=medium | promoted=False | contract=ai-governance
+active_rules=common
+[contract_resolution]
+contract_source=discovery
+contract_risk_tier=unknown
+[proposal]
+recommended_risk=medium
+recommended_oversight=review-required
+concerns=public-api-expansion-risk
+[runtime]
+decision=None
+risk=medium
+oversight=review-required
+public_api_diff_present=False
+public_api_added_count=0
+public_api_removed_count=0
+promoted=False
+[task_provenance]
+status=unknown
+source_key=none
+[signal_profile]
+runtime.decision: class=descriptive effect=unknown promotion_allowed=False
+runtime.public_api_diff_present: class=descriptive effect=none promotion_allowed=False
+runtime.promoted: class=descriptive effect=none promotion_allowed=False
+[promotion_gate]
+contract_version=0.1
+allowed=False
+requested_promoted=False
+effective_promoted=False
+reasons=missing_enforcement_or_admissibility_signal
+gate_inputs_digest=60d70de7e362024d1be8a44eaec6e3b1d6f17110ba59818b3bb4780624a21e7b
+[change_control_index]
+artifacts_dir=artifacts\runtime\smoke
+summary=change_control_summaries=4 | session_start_notes=4 | session_start_envelopes=4
+[review_order]
+1. read [priority_change_control_summaries] first
+2. inspect *_session_start.txt if proposal/startup context needs more detail
+3. inspect *_session_start.json for machine-readable detail
+[priority_change_control_summaries]
+claude_change_control_summary.txt | summary=proposal_risk=medium | promoted=False | contract=ai-governance | contract_source=discovery | contract_name=ai-governance-framework-contract | contract_domain=ai-governance | plugin_version=1.0.0
+codex_change_control_summary.txt | summary=proposal_risk=medium | promoted=False | contract=ai-governance | contract_source=discovery | contract_name=ai-governance-framework-contract | contract_domain=ai-governance | plugin_version=1.0.0
+gemini_change_control_summary.txt | summary=proposal_risk=medium | promoted=False | contract=ai-governance | contract_source=discovery | contract_name=ai-governance-framework-contract | contract_domain=ai-governance | plugin_version=1.0.0
+shared_change_control_summary.txt | summary=proposal_risk=medium | promoted=False | contract=ai-governance | contract_source=discovery | contract_name=ai-governance-framework-contract | contract_domain=ai-governance | plugin_version=1.0.0
+[change_control_summaries]
+claude_change_control_summary.txt | summary=proposal_risk=medium | promoted=False | contract=ai-governance | contract_source=discovery | contract_name=ai-governance-framework-contract | contract_domain=ai-governance | plugin_version=1.0.0
+codex_change_control_summary.txt | summary=proposal_risk=medium | promoted=False | contract=ai-governance | contract_source=discovery | contract_name=ai-governance-framework-contract | contract_domain=ai-governance | plugin_version=1.0.0
+gemini_change_control_summary.txt | summary=proposal_risk=medium | promoted=False | contract=ai-governance | contract_source=discovery | contract_name=ai-governance-framework-contract | contract_domain=ai-governance | plugin_version=1.0.0
+shared_change_control_summary.txt | summary=proposal_risk=medium | promoted=False | contract=ai-governance | contract_source=discovery | contract_name=ai-governance-framework-contract | contract_domain=ai-governance | plugin_version=1.0.0
+[session_start_notes]
+claude_session_start.txt
+codex_session_start.txt
+gemini_session_start.txt
+shared_session_start.txt
+[session_start_envelopes]
+claude_session_start.json
+codex_session_start.json
+gemini_session_start.json
+shared_session_start.json
+[reason_code_verifier] notice: audit log not found, skipping: artifacts\runtime\canonical-audit-log.jsonl
+PASS: gate-consumed reason fields use registered codes.
+============================= test session starts =============================
+platform win32 -- Python 3.13.5, pytest-9.0.2, pluggy-1.6.0
+rootdir: C:\tmp\agf-census-20260717
+configfile: pytest.ini
+plugins: anyio-4.12.1, cov-7.0.0, json-report-1.5.0, metadata-3.1.1
+collected 187 items
+
+tests\test_runtime_smoke_test.py ..............                          [  7%]
+tests\test_runtime_dispatcher.py .........                               [ 12%]
+tests\test_runtime_pre_task_check.py ..................................  [ 30%]
+tests\test_runtime_post_task_check.py .................................. [ 48%]
+......                                                                   [ 51%]
+tests\test_runtime_session_end.py ........................               [ 64%]
+tests\test_memory_curator.py .....                                       [ 67%]
+tests\test_rule_pack_loader.py ............                              [ 73%]
+tests\test_state_generator.py .....................................      [ 93%]
+tests\test_test_result_ingestor.py .......                               [ 97%]
+tests\test_architecture_drift_checker.py .....                           [100%]
+
+============================ 187 passed in 31.84s =============================
+[runtime_enforcement_feedback]
+average_quality_score=0.0
+latest_quality_score=0
+sample_count=2
+threshold_state=insufficient_data
+metric_boundary=quality-only; workflow-score-not-measured
+smoke_status=pass
+pytest_status=pass
+[runtime-governance] complete
