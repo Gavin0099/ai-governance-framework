@@ -17,7 +17,7 @@ from typing import Any, Sequence
 
 
 CANONICAL_ENTRYPOINT = "governance_tools.session_closeout_entry"
-SUPPORTED_RECEIPT_SCHEMAS = frozenset({"1.1", "1.2", "1.3"})
+SUPPORTED_RECEIPT_SCHEMAS = frozenset({"1.1", "1.2", "1.3", "1.4"})
 DEFAULT_CLOSEOUT_PATH = Path("artifacts/session-closeout.txt")
 DEFAULT_RECEIPT_DIR = Path("artifacts/runtime/closeout-receipts")
 

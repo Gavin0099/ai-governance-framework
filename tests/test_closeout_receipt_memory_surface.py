@@ -18,7 +18,7 @@ DONE criteria:
   5. _verify_memory_write_claim: performed=True, file exists but no anchor  → False, no_anchor
   6. Receipt contains all memory surface fields with correct defaults
   7. Receipt contains all memory surface fields with non-default values
-  8. Schema version is "1.3"
+  8. Schema version is "1.4"
   9. Field name stability snapshot
 
 Non-goals:
@@ -180,12 +180,12 @@ class TestReceiptNewFieldsWithValues:
 # ── Schema version ────────────────────────────────────────────────────────────
 
 class TestSchemaVersion:
-    """Criterion 8: schema version is 1.3 after the baseline-aggregation change."""
+    """Criterion 8: schema version is 1.4 after the runtime-binding change."""
 
-    def test_schema_version_is_1_3(self) -> None:
-        assert CLOSEOUT_RECEIPT_SCHEMA_VERSION == "1.3"
+    def test_schema_version_is_1_4(self) -> None:
+        assert CLOSEOUT_RECEIPT_SCHEMA_VERSION == "1.4"
 
-    def test_receipt_schema_version_field_is_1_3(self, tmp_path: Path) -> None:
+    def test_receipt_schema_version_field_is_1_4(self, tmp_path: Path) -> None:
         receipt_path = _write_closeout_receipt(
             tmp_path,
             agent_id="test",
@@ -199,9 +199,9 @@ class TestSchemaVersion:
             memory_eligibility_reason="no_eligibility_trigger",
         )
         payload = json.loads(receipt_path.read_text(encoding="utf-8"))
-        assert payload["schema_version"] == "1.3"
+        assert payload["schema_version"] == "1.4"
 
-    def test_closeout_receipt_schema_accepts_emitted_1_3_memory_workflow_surface(self, tmp_path: Path) -> None:
+    def test_closeout_receipt_schema_accepts_emitted_1_4_memory_workflow_surface(self, tmp_path: Path) -> None:
         schema = json.loads((_REPO_ROOT / "schemas" / "closeout_receipt.schema.json").read_text(encoding="utf-8"))
         properties = schema["properties"]
 
@@ -229,8 +229,8 @@ class TestSchemaVersion:
         )
         payload = json.loads(receipt_path.read_text(encoding="utf-8"))
 
-        assert payload["schema_version"] == "1.3"
-        assert "1.3" in properties["schema_version"]["enum"]
+        assert payload["schema_version"] == "1.4"
+        assert "1.4" in properties["schema_version"]["enum"]
         assert set(payload) <= set(properties)
         for key in schema["required"]:
             assert key in payload

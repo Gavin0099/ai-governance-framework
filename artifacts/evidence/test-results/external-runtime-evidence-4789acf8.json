@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -X utf8 -m pytest tests/test_external_repo_smoke.py tests/test_governance_maturity_summary.py --basetemp C:\\tmp\\external-runtime-evidence-pytest -q",
+  "exit_code": 0,
+  "started_at": "2026-07-15T10:21:33Z",
+  "finished_at": "2026-07-15T10:21:53Z",
+  "runner": "pytest",
+  "linked_commit": "4789acf84b9135517140ff7df8636acc9f54d61e",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/external-runtime-evidence-4789acf8.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

@@ -61,6 +61,16 @@ def _make_hook_valid_framework_root(path: Path) -> Path:
     return path
 
 
+def _make_git_hook_valid_framework_root(path: Path) -> Path:
+    _make_hook_valid_framework_root(path)
+    _run_git(["init"], path)
+    _run_git(["config", "user.email", "test@example.com"], path)
+    _run_git(["config", "user.name", "Test User"], path)
+    _run_git(["add", "."], path)
+    _run_git(["commit", "-m", "framework"], path)
+    return path
+
+
 def _install_governance_hooks(repo: Path, framework: Path) -> None:
     marker = "# AI Governance Framework\n"
     _write(repo / ".git" / "hooks" / "pre-commit", marker)
@@ -78,7 +88,13 @@ def _write_fresh_plan(repo: Path) -> None:
     )
 
 
-def _patch_ready_readiness(monkeypatch, repo: Path, *, drift_clean: bool = True) -> None:
+def _patch_ready_readiness(
+    monkeypatch,
+    repo: Path,
+    *,
+    drift_clean: bool = True,
+    ready: bool = True,
+) -> None:
     def fake_assess_external_repo(repo_root: Path, contract_path=None, framework_root=None):
         checks = {
             "git_repo_present": True,
@@ -91,7 +107,7 @@ def _patch_ready_readiness(monkeypatch, repo: Path, *, drift_clean: bool = True)
             "governance_drift_clean": drift_clean,
         }
         return ExternalRepoReadiness(
-            ready=True,
+            ready=ready,
             repo_root=str(repo_root),
             checks=checks,
             contract={"path": str(repo / "contract.yaml")},
@@ -111,12 +127,14 @@ def _smoke_payload(
     generated_at: str = "2026-07-11T00:00:00Z",
 ) -> dict[str, object]:
     return {
-        "result_schema": "external_repo_smoke_result.v0.1",
+        "result_schema": "external_repo_smoke_result.v0.2",
         "generated_at": generated_at,
         "ok": ok,
         "repo_root": str(repo.resolve()),
         "plan_path": str((repo / "PLAN.md").resolve()),
         "contract_path": str((repo / "contract.yaml").resolve()),
+        "framework_worktree_clean": True,
+        "framework_worktree_changes": [],
         "rules": ["common"],
         "pre_task_ok": ok,
         "session_start_ok": ok,
@@ -746,6 +764,674 @@ def test_latest_attributable_runtime_receipt_wins(tmp_path: Path) -> None:
     assert "runtime-smoke-new.json" in " ".join(summary.capability_states["runtime_evidence"].reasons)
     assert "generated_at=2026-07-11T00:10:00Z" in " ".join(summary.capability_states["runtime_evidence"].reasons)
     assert summary.next_safe_command is None
+
+
+def test_same_timestamp_pass_and_fail_receipts_are_detected_as_conflicting(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "same_timestamp_pass_fail")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    framework_commit = _run_git(["rev-parse", "HEAD"], framework)
+
+    failed = _smoke_payload(repo, ok=False, generated_at="2026-07-11T00:10:00Z")
+    failed["framework_root"] = str(framework.resolve())
+    failed["framework_commit"] = framework_commit
+    passed = _smoke_payload(repo, ok=True, generated_at="2026-07-11T00:10:00Z")
+    passed["framework_root"] = str(framework.resolve())
+    passed["framework_commit"] = framework_commit
+
+    evidence_dir = repo / "artifacts" / "evidence" / "test-results"
+    _write(evidence_dir / "runtime-smoke-a-failed.json", json.dumps(failed) + "\n")
+    _write(evidence_dir / "runtime-smoke-z-passed.json", json.dumps(passed) + "\n")
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    runtime_status = summary.capability_states["runtime_evidence"]
+    reasons = " ".join(runtime_status.reasons)
+    assert runtime_status.state == "Detected"
+    assert "conflicting admission states" in reasons
+    assert "runtime-smoke-a-failed.json" in reasons
+    assert "runtime-smoke-z-passed.json" in reasons
+    assert summary.capability_states["external_runtime_execution"].state != "Verified"
+
+
+def test_same_timestamp_pass_and_dirty_receipts_are_detected_as_conflicting(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "same_timestamp_pass_dirty")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    framework_commit = _run_git(["rev-parse", "HEAD"], framework)
+
+    dirty = _smoke_payload(repo, ok=True, generated_at="2026-07-11T00:10:00Z")
+    dirty["framework_root"] = str(framework.resolve())
+    dirty["framework_commit"] = framework_commit
+    dirty["framework_worktree_clean"] = False
+    dirty["framework_worktree_changes"] = [
+        " M governance_tools/external_repo_smoke.py"
+    ]
+    passed = _smoke_payload(repo, ok=True, generated_at="2026-07-11T00:10:00Z")
+    passed["framework_root"] = str(framework.resolve())
+    passed["framework_commit"] = framework_commit
+
+    evidence_dir = repo / "artifacts" / "evidence" / "test-results"
+    _write(evidence_dir / "runtime-smoke-a-dirty.json", json.dumps(dirty) + "\n")
+    _write(evidence_dir / "runtime-smoke-z-passed.json", json.dumps(passed) + "\n")
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    runtime_status = summary.capability_states["runtime_evidence"]
+    reasons = " ".join(runtime_status.reasons)
+    assert runtime_status.state == "Detected"
+    assert "conflicting admission states" in reasons
+    assert "runtime-smoke-a-dirty.json" in reasons
+    assert "ok=true requires" in reasons
+    assert summary.capability_states["external_runtime_execution"].state != "Verified"
+
+
+def test_same_timestamp_pass_and_v0_1_receipts_are_detected_as_conflicting(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "same_timestamp_pass_v0_1")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    framework_commit = _run_git(["rev-parse", "HEAD"], framework)
+
+    v0_1 = _smoke_payload(repo, ok=True, generated_at="2026-07-11T00:10:00Z")
+    v0_1["result_schema"] = "external_repo_smoke_result.v0.1"
+    v0_1["framework_root"] = str(framework.resolve())
+    v0_1["framework_commit"] = framework_commit
+    v0_1.pop("framework_worktree_clean")
+    v0_1.pop("framework_worktree_changes")
+    passed = _smoke_payload(repo, ok=True, generated_at="2026-07-11T00:10:00Z")
+    passed["framework_root"] = str(framework.resolve())
+    passed["framework_commit"] = framework_commit
+
+    evidence_dir = repo / "artifacts" / "evidence" / "test-results"
+    _write(evidence_dir / "runtime-smoke-a-v0-1.json", json.dumps(v0_1) + "\n")
+    _write(evidence_dir / "runtime-smoke-z-passed.json", json.dumps(passed) + "\n")
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    runtime_status = summary.capability_states["runtime_evidence"]
+    reasons = " ".join(runtime_status.reasons)
+    assert runtime_status.state == "Detected"
+    assert "conflicting admission states" in reasons
+    assert "runtime-smoke-a-v0-1.json" in reasons
+    assert "result_schema must equal 'external_repo_smoke_result.v0.2'" in reasons
+    assert summary.capability_states["external_runtime_execution"].state != "Verified"
+
+
+def test_same_timestamp_equivalent_failed_receipts_remain_failed(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "same_timestamp_equivalent_failed")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    framework_commit = _run_git(["rev-parse", "HEAD"], framework)
+
+    first_failed = _smoke_payload(
+        repo,
+        ok=False,
+        generated_at="2026-07-11T00:10:00Z",
+    )
+    first_failed["framework_root"] = str(framework.resolve())
+    first_failed["framework_commit"] = framework_commit
+    first_failed["errors"] = ["pre-task failed"]
+    second_failed = _smoke_payload(
+        repo,
+        ok=False,
+        generated_at="2026-07-11T00:10:00Z",
+    )
+    second_failed["framework_root"] = str(framework.resolve())
+    second_failed["framework_commit"] = framework_commit
+    second_failed["errors"] = ["session-start failed"]
+
+    evidence_dir = repo / "artifacts" / "evidence" / "test-results"
+    _write(
+        evidence_dir / "runtime-smoke-a-failed.json",
+        json.dumps(first_failed) + "\n",
+    )
+    _write(
+        evidence_dir / "runtime-smoke-z-failed.json",
+        json.dumps(second_failed) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    runtime_status = summary.capability_states["runtime_evidence"]
+    reasons = " ".join(runtime_status.reasons)
+    assert runtime_status.state == "Failed"
+    assert "conflicting admission states" not in reasons
+    assert "runtime-smoke-z-failed.json" in reasons
+    assert "session-start failed" in reasons
+    assert summary.capability_states["external_runtime_execution"].state == "Failed"
+
+
+def test_same_timestamp_failed_receipts_with_different_dirty_paths_remain_failed(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "same_timestamp_failed_dirty_paths")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    framework_commit = _run_git(["rev-parse", "HEAD"], framework)
+
+    first_failed = _smoke_payload(
+        repo,
+        ok=False,
+        generated_at="2026-07-11T00:10:00Z",
+    )
+    first_failed["framework_root"] = str(framework.resolve())
+    first_failed["framework_commit"] = framework_commit
+    first_failed["framework_worktree_clean"] = False
+    first_failed["framework_worktree_changes"] = [" M first.py"]
+    second_failed = _smoke_payload(
+        repo,
+        ok=False,
+        generated_at="2026-07-11T00:10:00Z",
+    )
+    second_failed["framework_root"] = str(framework.resolve())
+    second_failed["framework_commit"] = framework_commit
+    second_failed["framework_worktree_clean"] = False
+    second_failed["framework_worktree_changes"] = [" M second.py"]
+
+    evidence_dir = repo / "artifacts" / "evidence" / "test-results"
+    _write(
+        evidence_dir / "runtime-smoke-a-failed.json",
+        json.dumps(first_failed) + "\n",
+    )
+    _write(
+        evidence_dir / "runtime-smoke-z-failed.json",
+        json.dumps(second_failed) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    runtime_status = summary.capability_states["runtime_evidence"]
+    reasons = " ".join(runtime_status.reasons)
+    assert runtime_status.state == "Failed"
+    assert "conflicting admission states" not in reasons
+    assert "runtime-smoke-z-failed.json" in reasons
+    assert summary.capability_states["external_runtime_execution"].state == "Failed"
+
+
+def test_same_timestamp_passed_receipts_with_equivalent_framework_paths_remain_verified(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "same_timestamp_equivalent_framework_paths")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    framework_commit = _run_git(["rev-parse", "HEAD"], framework)
+
+    canonical = _smoke_payload(
+        repo,
+        ok=True,
+        generated_at="2026-07-11T00:10:00Z",
+    )
+    canonical["framework_root"] = str(framework.resolve())
+    canonical["framework_commit"] = framework_commit
+    equivalent = _smoke_payload(
+        repo,
+        ok=True,
+        generated_at="2026-07-11T00:10:00Z",
+    )
+    equivalent["framework_root"] = str(
+        framework.parent / framework.name / ".." / framework.name
+    )
+    equivalent["framework_commit"] = framework_commit
+
+    evidence_dir = repo / "artifacts" / "evidence" / "test-results"
+    _write(
+        evidence_dir / "runtime-smoke-a-canonical.json",
+        json.dumps(canonical) + "\n",
+    )
+    _write(
+        evidence_dir / "runtime-smoke-z-equivalent.json",
+        json.dumps(equivalent) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    runtime_status = summary.capability_states["runtime_evidence"]
+    reasons = " ".join(runtime_status.reasons)
+    assert runtime_status.state == "Verified"
+    assert "conflicting admission states" not in reasons
+    assert "runtime-smoke-z-equivalent.json" in reasons
+    assert summary.capability_states["external_runtime_execution"].state == "Verified"
+
+
+def test_newer_v0_1_receipt_blocks_older_valid_runtime_evidence(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "newer_v0_1_runtime_evidence")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    framework_commit = _run_git(["rev-parse", "HEAD"], framework)
+
+    older_valid = _smoke_payload(
+        repo,
+        ok=True,
+        generated_at="2026-07-11T00:00:00Z",
+    )
+    older_valid["framework_root"] = str(framework.resolve())
+    older_valid["framework_commit"] = framework_commit
+    newer_v0_1 = _smoke_payload(
+        repo,
+        ok=True,
+        generated_at="2026-07-11T00:10:00Z",
+    )
+    newer_v0_1["result_schema"] = "external_repo_smoke_result.v0.1"
+    newer_v0_1["framework_root"] = str(framework.resolve())
+    newer_v0_1["framework_commit"] = framework_commit
+    newer_v0_1.pop("framework_worktree_clean")
+    newer_v0_1.pop("framework_worktree_changes")
+
+    evidence_dir = repo / "artifacts" / "evidence" / "test-results"
+    _write(evidence_dir / "runtime-smoke-old-valid.json", json.dumps(older_valid) + "\n")
+    _write(evidence_dir / "runtime-smoke-new-v0-1.json", json.dumps(newer_v0_1) + "\n")
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    runtime_status = summary.capability_states["runtime_evidence"]
+    assert runtime_status.state == "Detected"
+    assert "runtime-smoke-new-v0-1.json" in " ".join(runtime_status.reasons)
+    assert "result_schema must equal 'external_repo_smoke_result.v0.2'" in " ".join(
+        runtime_status.reasons
+    )
+    assert summary.capability_states["external_runtime_execution"].state != "Verified"
+
+
+def test_newer_dirty_receipt_blocks_older_valid_runtime_evidence(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "newer_dirty_runtime_evidence")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    framework_commit = _run_git(["rev-parse", "HEAD"], framework)
+
+    older_valid = _smoke_payload(
+        repo,
+        ok=True,
+        generated_at="2026-07-11T00:00:00Z",
+    )
+    older_valid["framework_root"] = str(framework.resolve())
+    older_valid["framework_commit"] = framework_commit
+    newer_dirty = _smoke_payload(
+        repo,
+        ok=True,
+        generated_at="2026-07-11T00:10:00Z",
+    )
+    newer_dirty["framework_root"] = str(framework.resolve())
+    newer_dirty["framework_commit"] = framework_commit
+    newer_dirty["framework_worktree_clean"] = False
+    newer_dirty["framework_worktree_changes"] = [
+        " M governance_tools/external_repo_smoke.py"
+    ]
+
+    evidence_dir = repo / "artifacts" / "evidence" / "test-results"
+    _write(evidence_dir / "runtime-smoke-old-valid.json", json.dumps(older_valid) + "\n")
+    _write(evidence_dir / "runtime-smoke-new-dirty.json", json.dumps(newer_dirty) + "\n")
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    runtime_status = summary.capability_states["runtime_evidence"]
+    assert runtime_status.state == "Detected"
+    assert "runtime-smoke-new-dirty.json" in " ".join(runtime_status.reasons)
+    assert "ok=true requires" in " ".join(runtime_status.reasons)
+    assert summary.capability_states["external_runtime_execution"].state != "Verified"
+
+
+def test_unorderable_attributable_receipt_blocks_older_valid_runtime_evidence(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "unorderable_runtime_evidence")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    framework_commit = _run_git(["rev-parse", "HEAD"], framework)
+
+    older_valid = _smoke_payload(
+        repo,
+        ok=True,
+        generated_at="2026-07-11T00:00:00Z",
+    )
+    older_valid["framework_root"] = str(framework.resolve())
+    older_valid["framework_commit"] = framework_commit
+    unorderable = _smoke_payload(
+        repo,
+        ok=True,
+        generated_at="not-an-iso-8601-timestamp",
+    )
+    unorderable["framework_root"] = str(framework.resolve())
+    unorderable["framework_commit"] = framework_commit
+
+    evidence_dir = repo / "artifacts" / "evidence" / "test-results"
+    _write(evidence_dir / "runtime-smoke-old-valid.json", json.dumps(older_valid) + "\n")
+    _write(
+        evidence_dir / "runtime-smoke-new-unorderable.json",
+        json.dumps(unorderable) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    runtime_status = summary.capability_states["runtime_evidence"]
+    assert runtime_status.state == "Detected"
+    assert "runtime-smoke-new-unorderable.json" in " ".join(runtime_status.reasons)
+    assert "unorderable generated_at" in " ".join(runtime_status.reasons)
+    assert "generated_at must be an ISO-8601 timezone-aware timestamp" in " ".join(
+        runtime_status.reasons
+    )
+    assert summary.capability_states["external_runtime_execution"].state != "Verified"
+
+
+def test_external_runtime_execution_requires_external_prerequisites_and_passing_evidence(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "external_runtime_execution")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    payload = _smoke_payload(repo, ok=True)
+    payload["framework_root"] = str(framework.resolve())
+    payload["framework_commit"] = _run_git(["rev-parse", "HEAD"], framework)
+    _write(
+        repo / "artifacts" / "evidence" / "test-results" / "external-runtime-smoke.json",
+        json.dumps(payload) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    status = summary.capability_states["external_runtime_execution"]
+    assert status.state == "Verified"
+    assert "does not prove self-contained" in " ".join(status.reasons)
+    assert summary.runtime_capable.value == "not_checked"
+
+
+def test_verified_external_runtime_execution_reconciles_runtime_smoke_non_claim(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "external_runtime_execution_claim_reconciliation")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    payload = _smoke_payload(repo, ok=True)
+    payload["framework_root"] = str(framework.resolve())
+    payload["framework_commit"] = _run_git(["rev-parse", "HEAD"], framework)
+    _write(
+        repo / "artifacts" / "evidence" / "test-results" / "external-runtime-smoke.json",
+        json.dumps(payload) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+    rendered = format_human(summary)
+    serialized = summary_to_dict(summary)
+
+    assert summary.capability_states["external_runtime_execution"].state == "Verified"
+    assert "runtime smoke passed" not in summary.cannot_claim
+    assert "runtime self-contained governance" in summary.cannot_claim
+    assert "hook or CI enforcement" in summary.cannot_claim
+    assert "- runtime smoke passed" not in rendered
+    assert serialized["capability_states"]["external_runtime_execution"]["state"] == "Verified"
+    assert "runtime smoke passed" not in serialized["cannot_claim"]
+
+
+def test_external_runtime_execution_is_unproven_when_readiness_fails(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "external_runtime_execution_not_ready")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo, ready=False)
+    payload = _smoke_payload(repo, ok=True)
+    payload["framework_root"] = str(framework.resolve())
+    payload["framework_commit"] = _run_git(["rev-parse", "HEAD"], framework)
+    _write(
+        repo / "artifacts" / "evidence" / "test-results" / "external-runtime-smoke.json",
+        json.dumps(payload) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    assert summary.capability_states["external_runtime_execution"].state == "Unproven"
+
+
+def test_external_runtime_execution_rejects_evidence_from_a_different_framework(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "external_runtime_execution_wrong_framework")
+    framework_a = _make_git_hook_valid_framework_root(tmp_path / "framework_a")
+    framework_b = _make_git_hook_valid_framework_root(tmp_path / "framework_b")
+    _install_governance_hooks(repo, framework_b)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    payload = _smoke_payload(repo, ok=True)
+    payload["framework_root"] = str(framework_a.resolve())
+    payload["framework_commit"] = _run_git(["rev-parse", "HEAD"], framework_a)
+    _write(
+        repo / "artifacts" / "evidence" / "test-results" / "external-runtime-smoke.json",
+        json.dumps(payload) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework_b)
+
+    status = summary.capability_states["external_runtime_execution"]
+    assert status.state == "Unproven"
+    assert "does not match current hook root" in " ".join(status.reasons)
+
+
+def test_external_runtime_execution_rejects_evidence_after_framework_commit_advances(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "external_runtime_execution_stale_commit")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    payload = _smoke_payload(repo, ok=True)
+    payload["framework_root"] = str(framework.resolve())
+    payload["framework_commit"] = _run_git(["rev-parse", "HEAD"], framework)
+    _write(
+        repo / "artifacts" / "evidence" / "test-results" / "external-runtime-smoke.json",
+        json.dumps(payload) + "\n",
+    )
+    _write(framework / "ADVANCE.txt", "new framework commit\n")
+    _run_git(["add", "ADVANCE.txt"], framework)
+    _run_git(["commit", "-m", "advance framework"], framework)
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    status = summary.capability_states["external_runtime_execution"]
+    assert status.state == "Unproven"
+    assert "framework commit does not match" in " ".join(status.reasons)
+
+
+def test_external_runtime_execution_rejects_receipt_from_dirty_framework(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "external_runtime_execution_dirty_receipt")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    payload = _smoke_payload(repo, ok=True)
+    payload["framework_root"] = str(framework.resolve())
+    payload["framework_commit"] = _run_git(["rev-parse", "HEAD"], framework)
+    payload["framework_worktree_clean"] = False
+    payload["framework_worktree_changes"] = [" M governance_tools/plan_freshness.py"]
+    _write(
+        repo / "artifacts" / "evidence" / "test-results" / "external-runtime-smoke.json",
+        json.dumps(payload) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    status = summary.capability_states["external_runtime_execution"]
+    assert status.state != "Verified"
+    runtime_status = summary.capability_states["runtime_evidence"]
+    assert runtime_status.state == "Detected"
+    assert "ok=true requires" in " ".join(runtime_status.reasons)
+
+
+def test_runtime_evidence_rejects_clean_receipt_with_reported_changes(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "runtime_evidence_contradictory_cleanliness")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    payload = _smoke_payload(repo, ok=True)
+    payload["framework_root"] = str(framework.resolve())
+    payload["framework_commit"] = _run_git(["rev-parse", "HEAD"], framework)
+    payload["framework_worktree_changes"] = [" M governance_tools/plan_freshness.py"]
+    _write(
+        repo / "artifacts" / "evidence" / "test-results" / "external-runtime-smoke.json",
+        json.dumps(payload) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    runtime_status = summary.capability_states["runtime_evidence"]
+    assert runtime_status.state == "Detected"
+    assert "framework_worktree_clean=true requires" in " ".join(runtime_status.reasons)
+
+
+def test_runtime_evidence_rejects_v0_1_receipt_without_cleanliness_binding(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "runtime_evidence_v0_1")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    payload = _smoke_payload(repo, ok=True)
+    payload["result_schema"] = "external_repo_smoke_result.v0.1"
+    payload.pop("framework_worktree_clean")
+    payload.pop("framework_worktree_changes")
+    _write(
+        repo / "artifacts" / "evidence" / "test-results" / "external-runtime-smoke.json",
+        json.dumps(payload) + "\n",
+    )
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    runtime_status = summary.capability_states["runtime_evidence"]
+    assert runtime_status.state == "Detected"
+    assert "result_schema must equal 'external_repo_smoke_result.v0.2'" in " ".join(runtime_status.reasons)
+
+
+def test_external_runtime_execution_rejects_current_dirty_framework(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "external_runtime_execution_current_dirty")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    payload = _smoke_payload(repo, ok=True)
+    payload["framework_root"] = str(framework.resolve())
+    payload["framework_commit"] = _run_git(["rev-parse", "HEAD"], framework)
+    _write(
+        repo / "artifacts" / "evidence" / "test-results" / "external-runtime-smoke.json",
+        json.dumps(payload) + "\n",
+    )
+    _write(framework / "governance_tools" / "untracked_plugin.py", "ENABLED = True\n")
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    status = summary.capability_states["external_runtime_execution"]
+    assert status.state == "Unproven"
+    assert "current hook framework worktree is not clean" in " ".join(status.reasons)
+
+
+def test_external_runtime_execution_rejects_current_tracked_dirty_framework(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "external_runtime_execution_current_tracked_dirty")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    payload = _smoke_payload(repo, ok=True)
+    payload["framework_root"] = str(framework.resolve())
+    payload["framework_commit"] = _run_git(["rev-parse", "HEAD"], framework)
+    _write(
+        repo / "artifacts" / "evidence" / "test-results" / "external-runtime-smoke.json",
+        json.dumps(payload) + "\n",
+    )
+    _write(framework / "governance_tools" / "plan_freshness.py", "# tracked dirty fixture\n")
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    status = summary.capability_states["external_runtime_execution"]
+    assert status.state == "Unproven"
+    assert "current hook framework worktree is not clean" in " ".join(status.reasons)
+
+
+def test_external_runtime_execution_rejects_current_staged_dirty_framework(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo = _make_repo(tmp_path / "external_runtime_execution_current_staged_dirty")
+    framework = _make_git_hook_valid_framework_root(tmp_path / "framework")
+    _install_governance_hooks(repo, framework)
+    _write_fresh_plan(repo)
+    _patch_ready_readiness(monkeypatch, repo)
+    payload = _smoke_payload(repo, ok=True)
+    payload["framework_root"] = str(framework.resolve())
+    payload["framework_commit"] = _run_git(["rev-parse", "HEAD"], framework)
+    _write(
+        repo / "artifacts" / "evidence" / "test-results" / "external-runtime-smoke.json",
+        json.dumps(payload) + "\n",
+    )
+    _write(framework / "governance_tools" / "plan_freshness.py", "# staged dirty fixture\n")
+    _run_git(["add", "governance_tools/plan_freshness.py"], framework)
+
+    summary = build_governance_maturity_summary(repo, framework_root=framework)
+
+    status = summary.capability_states["external_runtime_execution"]
+    assert status.state == "Unproven"
+    assert "current hook framework worktree is not clean" in " ".join(status.reasons)
 
 
 def test_next_safe_command_runs_runtime_smoke_when_static_prerequisites_are_present(

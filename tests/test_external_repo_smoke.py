@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import subprocess
 import textwrap
 import json
 from datetime import date as _date
@@ -9,7 +10,16 @@ from pathlib import Path
 import pytest
 import yaml
 
-from governance_tools.external_repo_smoke import format_human, format_json, infer_smoke_rules, run_external_repo_smoke
+from governance_tools.external_repo_smoke import (
+    FrameworkIdentity,
+    _framework_identity,
+    format_human,
+    format_json,
+    infer_smoke_rules,
+    run_external_repo_smoke,
+    write_json_result,
+)
+import governance_tools.external_repo_smoke as external_repo_smoke
 
 
 FIXTURE_ROOT = Path("tests/_tmp_external_repo_smoke")
@@ -30,6 +40,90 @@ def smoke_root(request):
         yield path
     finally:
         shutil.rmtree(path, ignore_errors=True)
+
+
+@pytest.fixture(autouse=True)
+def _clean_framework_identity(monkeypatch: pytest.MonkeyPatch) -> None:
+    root = Path(external_repo_smoke.__file__).resolve().parent.parent
+    monkeypatch.setattr(
+        external_repo_smoke,
+        "_framework_identity",
+        lambda: FrameworkIdentity(
+            root=str(root),
+            commit="0" * 40,
+            worktree_clean=True,
+            worktree_changes=[],
+        ),
+    )
+
+
+def _make_git_framework(path: Path) -> Path:
+    path.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["git", "init"], cwd=path, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=path, check=True)
+    subprocess.run(["git", "config", "user.name", "Test User"], cwd=path, check=True)
+    _write(path / "governance_tools" / "base.py", "VALUE = 1\n")
+    subprocess.run(["git", "add", "."], cwd=path, check=True)
+    subprocess.run(["git", "commit", "-m", "framework fixture"], cwd=path, check=True, stdout=subprocess.PIPE)
+    return path
+
+
+def _assert_dirty_framework_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+    smoke_root: Path,
+    identity: FrameworkIdentity,
+) -> None:
+    monkeypatch.setattr(external_repo_smoke, "_framework_identity", lambda: identity)
+    result = run_external_repo_smoke(smoke_root)
+    assert result.ok is False
+    assert result.framework_worktree_clean is False
+    assert any("refusing attributable smoke evidence" in item for item in result.errors)
+
+
+def test_tracked_dirty_framework_fails_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    framework = _make_git_framework(tmp_path / "framework")
+    _write(framework / "governance_tools" / "base.py", "VALUE = 2\n")
+
+    identity = _framework_identity(framework)
+
+    assert identity.worktree_clean is False
+    assert any(item.startswith(" M ") for item in identity.worktree_changes)
+    _assert_dirty_framework_fails_closed(monkeypatch, tmp_path / "consumer", identity)
+
+
+def test_staged_dirty_framework_fails_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    framework = _make_git_framework(tmp_path / "framework")
+    _write(framework / "governance_tools" / "base.py", "VALUE = 2\n")
+    subprocess.run(["git", "add", "governance_tools/base.py"], cwd=framework, check=True)
+
+    identity = _framework_identity(framework)
+
+    assert identity.worktree_clean is False
+    assert any(item.startswith("M  ") for item in identity.worktree_changes)
+    _assert_dirty_framework_fails_closed(monkeypatch, tmp_path / "consumer", identity)
+
+
+def test_untracked_importable_framework_code_fails_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    framework = _make_git_framework(tmp_path / "framework")
+    _write(framework / "governance_tools" / "untracked_plugin.py", "ENABLED = True\n")
+
+    identity = _framework_identity(framework)
+
+    assert identity.worktree_clean is False
+    assert any(
+        item.startswith("?? ") and "governance_tools/untracked_plugin.py" in item.replace("\\", "/")
+        for item in identity.worktree_changes
+    )
+    _assert_dirty_framework_fails_closed(monkeypatch, tmp_path / "consumer", identity)
 
 
 def _write_version_manifest(root: Path, **overrides) -> None:
@@ -263,10 +357,46 @@ def test_format_json_includes_schema_and_generated_at(smoke_root: Path) -> None:
     result = run_external_repo_smoke(smoke_root)
     payload = json.loads(format_json(result))
 
-    assert payload["result_schema"] == "external_repo_smoke_result.v0.1"
+    assert payload["result_schema"] == "external_repo_smoke_result.v0.2"
     assert payload["generated_at"].endswith("Z")
     assert payload["ok"] is True
     assert payload["repo_root"] == str(smoke_root.resolve())
+
+
+def test_write_json_result_persists_parseable_attributable_evidence(smoke_root: Path) -> None:
+    _write_version_manifest(smoke_root)
+    _write(
+        smoke_root / "PLAN.md",
+        f"> **最後更新**: {_date.today().isoformat()}\n> **Owner**: tester\n> **Freshness**: Sprint (7d)\n",
+    )
+    _write(smoke_root / "AGENTS.md", "# Agents\n")
+    _write(smoke_root / "CHECKLIST.md", "# Checklist\n")
+    _write(smoke_root / "rules" / "firmware" / "safety.md", "# Firmware safety\n")
+    _write(
+        smoke_root / "contract.yaml",
+        "\n".join(
+            [
+                "name: sample-contract",
+                "domain: firmware",
+                "documents:",
+                "  - CHECKLIST.md",
+                "ai_behavior_override:",
+                "  - AGENTS.md",
+                "rule_roots:",
+                "  - rules",
+            ]
+        ),
+    )
+    result = run_external_repo_smoke(smoke_root)
+
+    output = write_json_result(result, smoke_root / "artifacts" / "evidence" / "test-results" / "external-runtime-smoke.json")
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["result_schema"] == "external_repo_smoke_result.v0.2"
+    assert payload["repo_root"] == str(smoke_root.resolve())
+    assert payload["ok"] is True
+    assert payload["framework_worktree_clean"] is True
+    assert payload["framework_worktree_changes"] == []
 
 
 def test_run_external_repo_smoke_fails_on_gitlab_adapter_scope_mismatch(smoke_root: Path) -> None:

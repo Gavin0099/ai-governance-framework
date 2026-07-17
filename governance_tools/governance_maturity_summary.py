@@ -15,7 +15,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from governance_tools.adoption_doctor import AdoptionDoctorReport, inspect_adoption
+from governance_tools.adoption_doctor import AdoptionDoctorReport, _read_hook_framework_root, inspect_adoption
 from governance_tools.agents_calibration_maturity import (
     AgentsCalibrationMaturity,
     assess_agents_calibration_maturity,
@@ -468,6 +468,7 @@ def _derive_cannot_claim(
     adoption_report: AdoptionDoctorReport,
     agents_report: AgentsCalibrationMaturity,
     lock_consistency: SummaryValue,
+    external_runtime_execution: CapabilityStatus | None = None,
 ) -> list[str]:
     cannot = {
         "full governance adoption",
@@ -478,6 +479,8 @@ def _derive_cannot_claim(
         "memory consolidation completeness",
         "release readiness",
     }
+    if external_runtime_execution and external_runtime_execution.state == "Verified":
+        cannot.discard("runtime smoke passed")
     if adoption_report.submodule_pin.value != "current_vs_local_tracking":
         cannot.add("framework pin freshness")
     else:
@@ -870,6 +873,117 @@ def _readiness_capabilities(readiness_report: object) -> dict[str, CapabilitySta
     return capabilities
 
 
+def _external_runtime_execution_capability(
+    repo: Path,
+    adoption_report: object,
+    readiness_report: object,
+    hook_report: object,
+    runtime_evidence: CapabilityStatus,
+) -> CapabilityStatus:
+    """Classify observed execution for an externally hosted runtime only.
+
+    This status is intentionally separate from adoption_doctor.runtime_capable:
+    it proves one retained, attributable smoke result under verified static
+    prerequisites, not self-contained execution, hook enforcement, or release
+    readiness.
+    """
+    dependency = getattr(getattr(adoption_report, "external_framework_dependency", None), "value", None)
+    hook_root = getattr(getattr(adoption_report, "hook_config_framework_root", None), "value", None)
+    if dependency != "observed" or hook_root != "external":
+        return _capability(
+            "Not Applicable",
+            "governance_maturity_summary.external_runtime_execution",
+            ["external runtime execution applies only when the framework dependency and hook root are external"],
+        )
+    if getattr(readiness_report, "ready", None) is not True:
+        return _capability(
+            "Unproven",
+            "governance_maturity_summary.external_runtime_execution",
+            ["external runtime prerequisites are not ready", *runtime_evidence.reasons],
+        )
+    if not getattr(hook_report, "valid", False):
+        return _capability(
+            "Unproven",
+            "governance_maturity_summary.external_runtime_execution",
+            ["external hook installation is not verified", *runtime_evidence.reasons],
+        )
+    if runtime_evidence.state == "Verified":
+        evidence_path_text = next(
+            (reason.removeprefix("evidence_path=") for reason in runtime_evidence.reasons if reason.startswith("evidence_path=")),
+            None,
+        )
+        if not evidence_path_text:
+            return _capability(
+                "Unproven",
+                "governance_maturity_summary.external_runtime_execution",
+                ["retained runtime smoke does not expose an evidence path for framework identity binding"],
+            )
+        try:
+            payload = json.loads(Path(evidence_path_text).read_text(encoding="utf-8-sig"))
+        except (OSError, json.JSONDecodeError):
+            return _capability(
+                "Unproven",
+                "governance_maturity_summary.external_runtime_execution",
+                [f"runtime smoke evidence could not be re-read: {evidence_path_text}"],
+            )
+        configured_root = _read_hook_framework_root(repo)
+        receipt_root = payload.get("framework_root") if isinstance(payload, dict) else None
+        receipt_commit = payload.get("framework_commit") if isinstance(payload, dict) else None
+        receipt_clean = payload.get("framework_worktree_clean") if isinstance(payload, dict) else None
+        if configured_root is None or not isinstance(receipt_root, str) or not receipt_root.strip():
+            return _capability(
+                "Unproven",
+                "governance_maturity_summary.external_runtime_execution",
+                ["runtime smoke evidence lacks a framework root binding"],
+            )
+        try:
+            bound_root = Path(receipt_root).resolve()
+        except (OSError, RuntimeError):
+            bound_root = None
+        if bound_root != configured_root.resolve():
+            return _capability(
+                "Unproven",
+                "governance_maturity_summary.external_runtime_execution",
+                [f"runtime smoke framework root does not match current hook root: receipt={receipt_root} configured={configured_root}"],
+            )
+        current_commit = _git_stdout(configured_root, ["rev-parse", "HEAD"])
+        if not isinstance(receipt_commit, str) or not receipt_commit or current_commit != receipt_commit:
+            return _capability(
+                "Unproven",
+                "governance_maturity_summary.external_runtime_execution",
+                [f"runtime smoke framework commit does not match current hook root: receipt={receipt_commit} configured={current_commit}"],
+            )
+        if receipt_clean is not True:
+            return _capability(
+                "Unproven",
+                "governance_maturity_summary.external_runtime_execution",
+                ["runtime smoke evidence was not produced from a clean framework worktree"],
+            )
+        current_status = _git_stdout(configured_root, ["status", "--porcelain=v1", "--untracked-files=all"])
+        if current_status is None or current_status:
+            detail = current_status or "Git worktree status unavailable"
+            return _capability(
+                "Unproven",
+                "governance_maturity_summary.external_runtime_execution",
+                [f"current hook framework worktree is not clean: {detail}"],
+            )
+        return _capability(
+            "Verified",
+            "governance_maturity_summary.external_runtime_execution",
+            [
+                "external dependency observed, hook installation verified, readiness verified, and latest attributable runtime smoke passed",
+                f"framework_identity={configured_root}@{current_commit}",
+                *runtime_evidence.reasons,
+                "does not prove self-contained runtime governance, hook enforcement, CI/fleet enforcement, or release readiness",
+            ],
+        )
+    return _capability(
+        runtime_evidence.state,
+        "governance_maturity_summary.external_runtime_execution",
+        ["external runtime prerequisites are present but retained smoke evidence is not verified", *runtime_evidence.reasons],
+    )
+
+
 def _hook_capability(hook_report: object) -> CapabilityStatus:
     reasons: list[str] = []
     errors = list(getattr(hook_report, "errors", []) or [])
@@ -907,7 +1021,7 @@ def _validate_runtime_smoke_payload(
     if generated_at is None:
         problems.append("generated_at must be an ISO-8601 timezone-aware timestamp")
 
-    bool_fields = ("ok", "pre_task_ok", "session_start_ok")
+    bool_fields = ("ok", "pre_task_ok", "session_start_ok", "framework_worktree_clean")
     for field_name in bool_fields:
         if not isinstance(payload.get(field_name), bool):
             problems.append(f"{field_name} must be bool")
@@ -940,6 +1054,17 @@ def _validate_runtime_smoke_payload(
 
     if not isinstance(payload.get("post_task_cases"), list):
         problems.append("post_task_cases must be list")
+    framework_changes = payload.get("framework_worktree_changes")
+    if not isinstance(framework_changes, list) or not all(
+        isinstance(item, str) for item in framework_changes if isinstance(framework_changes, list)
+    ):
+        problems.append("framework_worktree_changes must be list[str]")
+    else:
+        framework_clean = payload.get("framework_worktree_clean")
+        if framework_clean is True and framework_changes:
+            problems.append("framework_worktree_clean=true requires framework_worktree_changes=[]")
+        if framework_clean is False and not framework_changes:
+            problems.append("framework_worktree_clean=false requires non-empty framework_worktree_changes")
     if not isinstance(payload.get("token_summary"), dict):
         problems.append("token_summary must be object")
     if not isinstance(payload.get("warnings"), list) or not all(isinstance(item, str) for item in payload.get("warnings", [])):
@@ -957,9 +1082,10 @@ def _validate_runtime_smoke_payload(
             pre_task_ok is not True
             or session_start_ok is not True
             or post_task_ok is False
+            or payload.get("framework_worktree_clean") is not True
         ):
             problems.append(
-                "ok=true requires pre_task_ok=true, session_start_ok=true, and post_task_ok not false"
+                "ok=true requires pre_task_ok=true, session_start_ok=true, post_task_ok not false, and framework_worktree_clean=true"
             )
         if ok is False:
             check_failed = pre_task_ok is False or session_start_ok is False or post_task_ok is False
@@ -968,6 +1094,32 @@ def _validate_runtime_smoke_payload(
                 problems.append("ok=false requires non-empty errors or at least one failed smoke check")
 
     return problems, generated_at
+
+
+def _runtime_smoke_admission_signature(
+    payload: dict[str, object],
+    shape_problems: list[str],
+) -> str:
+    """Return the normalized decision state that can change runtime admission."""
+    if shape_problems:
+        signature: dict[str, object] = {"admission": "invalid"}
+    elif payload.get("ok") is False:
+        signature = {"admission": "failed"}
+    else:
+        framework_root = payload.get("framework_root")
+        if isinstance(framework_root, str) and framework_root.strip():
+            try:
+                canonical_root = str(Path(framework_root).resolve())
+            except (OSError, RuntimeError):
+                canonical_root = f"<unresolvable:{framework_root}>"
+        else:
+            canonical_root = "<missing>"
+        signature = {
+            "admission": "passed",
+            "framework_root": canonical_root,
+            "framework_commit": payload.get("framework_commit"),
+        }
+    return json.dumps(signature, sort_keys=True, separators=(",", ":"))
 
 
 def _find_runtime_smoke_evidence(repo_root: Path) -> CapabilityStatus:
@@ -982,7 +1134,9 @@ def _find_runtime_smoke_evidence(repo_root: Path) -> CapabilityStatus:
         for pattern in ("*external*smoke*.json", "*runtime*smoke*.json", "*smoke*.json"):
             matches.extend(path for path in evidence_dir.glob(pattern) if path.is_file())
     unique_matches = sorted({path.resolve() for path in matches})
-    parsed_results: list[tuple[datetime, Path, bool, dict[str, object]]] = []
+    attributable_results: list[
+        tuple[datetime, Path, dict[str, object], list[str]]
+    ] = []
     incomplete_results: list[str] = []
     unattributed_results: list[Path] = []
     mismatched_results: list[str] = []
@@ -995,9 +1149,6 @@ def _find_runtime_smoke_evidence(repo_root: Path) -> CapabilityStatus:
             continue
         if isinstance(payload, dict):
             shape_problems, generated_at = _validate_runtime_smoke_payload(payload, repo_root=repo_root)
-            if shape_problems:
-                incomplete_results.append(f"{path} invalid_shape={'; '.join(shape_problems)}")
-                continue
             reported_repo = payload.get("repo_root")
             if not reported_repo:
                 unattributed_results.append(path)
@@ -1010,23 +1161,84 @@ def _find_runtime_smoke_evidence(repo_root: Path) -> CapabilityStatus:
             if reported != repo_root.resolve():
                 mismatched_results.append(f"{path} reported_repo_root={reported}")
                 continue
-            parsed_results.append((generated_at, path, bool(payload["ok"]), payload))
+            if generated_at is None:
+                incomplete_results.append(
+                    f"{path} invalid_shape={'; '.join(shape_problems)}"
+                )
+                continue
+            attributable_results.append(
+                (generated_at, path, payload, shape_problems)
+            )
         else:
             unparsed.append(path)
 
-    parsed_results = sorted(
-        parsed_results,
+    if incomplete_results:
+        return _capability(
+            "Detected",
+            "governance_maturity_summary.runtime_evidence_lookup",
+            [
+                "incomplete smoke result shape prevents establishing the newest attributable "
+                "runtime smoke result because at least one repo-attributable receipt has an "
+                "unorderable generated_at; refusing to fall back to older evidence",
+                *[
+                    f"unorderable attributable receipt: {item}"
+                    for item in incomplete_results[:3]
+                ],
+            ],
+        )
+
+    attributable_results = sorted(
+        attributable_results,
         key=lambda item: (item[0], str(item[1])),
         reverse=True,
     )
-    if parsed_results:
-        generated_at, path, ok, payload = parsed_results[0]
+    if attributable_results:
+        latest_generated_at = attributable_results[0][0]
+        latest_cohort = [
+            item for item in attributable_results if item[0] == latest_generated_at
+        ]
+        latest_signatures = {
+            _runtime_smoke_admission_signature(payload, shape_problems)
+            for _, _, payload, shape_problems in latest_cohort
+        }
+        if len(latest_signatures) > 1:
+            generated_at_text = latest_generated_at.isoformat().replace("+00:00", "Z")
+            conflict_reasons = []
+            for _, path, payload, shape_problems in latest_cohort[:3]:
+                status = f"ok={payload.get('ok')}"
+                if shape_problems:
+                    status += "; invalid_shape=" + "; ".join(shape_problems)
+                conflict_reasons.append(f"conflicting receipt: {path}; {status}")
+            return _capability(
+                "Detected",
+                "governance_maturity_summary.runtime_evidence_lookup",
+                [
+                    "latest attributable runtime smoke timestamp cohort has conflicting "
+                    "admission states; refusing to choose evidence by filename "
+                    f"generated_at={generated_at_text}",
+                    *conflict_reasons,
+                ],
+            )
+
+        generated_at, path, payload, shape_problems = attributable_results[0]
         generated_at_text = generated_at.isoformat().replace("+00:00", "Z")
+        if shape_problems:
+            return _capability(
+                "Detected",
+                "governance_maturity_summary.runtime_evidence_lookup",
+                [
+                    "latest attributable runtime smoke result by reported generated_at "
+                    f"has incomplete smoke result shape generated_at={generated_at_text}: {path}; "
+                    + "; ".join(shape_problems)
+                ],
+            )
+        ok = bool(payload["ok"])
         if ok is True:
             reasons = [
                 "latest attributable runtime smoke result by reported generated_at "
                 f"ok=true generated_at={generated_at_text}: {path}"
             ]
+            reasons.append(f"evidence_path={path}")
             repo_value = payload.get("repo_root") if isinstance(payload, dict) else None
             if repo_value:
                 reasons.append(f"reported_repo_root={repo_value}")
@@ -1181,7 +1393,6 @@ def build_governance_maturity_summary(
     )
     signal_conflicts = _derive_conflicts(adoption_report)
     claim_ceiling = _derive_claim_ceiling(adoption_report, repo_specific_present)
-    cannot_claim = _derive_cannot_claim(adoption_report, agents_report, lock_consistency)
     user_facing_status = _derive_user_facing_status(
         adoption_report,
         repo_specific_present,
@@ -1236,6 +1447,20 @@ def build_governance_maturity_summary(
     capability_states.update(_readiness_capabilities(readiness_report))
     capability_states["hook_installation"] = _hook_capability(hook_report)
     capability_states["runtime_evidence"] = runtime_evidence
+    external_runtime_execution = _external_runtime_execution_capability(
+        repo,
+        adoption_report,
+        readiness_report,
+        hook_report,
+        runtime_evidence,
+    )
+    capability_states["external_runtime_execution"] = external_runtime_execution
+    cannot_claim = _derive_cannot_claim(
+        adoption_report,
+        agents_report,
+        lock_consistency,
+        external_runtime_execution,
+    )
     owner_actions = _derive_owner_actions(
         repo=repo,
         adoption_report=adoption_report,

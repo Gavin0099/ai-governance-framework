@@ -1,0 +1,111 @@
+{
+  "spike": "runtime-detect",
+  "schema": "spike-0",
+  "platform": "win32",
+  "profile": {
+    "agent": {
+      "value": null,
+      "detection": "unknown",
+      "source": null,
+      "evidence": "no env marker, no known parent process"
+    },
+    "agent_version": {
+      "value": null,
+      "detection": "unknown",
+      "source": null,
+      "evidence": "no version in env; matching CLI not on PATH"
+    },
+    "model": {
+      "value": null,
+      "detection": "unknown",
+      "source": null,
+      "evidence": "no env/harness-artifact model signal"
+    },
+    "surface": {
+      "value": "vscode",
+      "detection": "verified",
+      "source": "env:TERM_PROGRAM"
+    },
+    "session_id": {
+      "value": null,
+      "detection": "unknown",
+      "source": null,
+      "evidence": "no session id in env"
+    },
+    "permission_mode": {
+      "value": null,
+      "detection": "unknown",
+      "source": null,
+      "evidence": "not exposed to shell; real impl must read hook payload"
+    },
+    "tools": {
+      "value": null,
+      "detection": "unknown",
+      "source": null,
+      "evidence": "not exposed to shell; real impl must read hook payload"
+    },
+    "governance_version": {
+      "value": "1.2.0",
+      "detection": "verified",
+      "source": "readme:E:\\BackUp\\Git_EE\\ai-governance-framework\\README.md"
+    }
+  },
+  "raw": {
+    "env_markers": {
+      "CLAUDE_CODE_SSE_PORT": "25969",
+      "COPILOT_AGENT": "1",
+      "COPILOT_DEBUG_NONCE": "19954f46e319e65c579ec55f433543a3",
+      "TERM_PROGRAM": "vscode",
+      "TERM_PROGRAM_VERSION": "1.128.0",
+      "VSCODE_DEBUGPY_ADAPTER_ENDPOINTS": "c:\\Users\\reiko\\.vscode\\extensions\\ms-python.debugpy-2026.6.0-win32-x64\\.noConfigDebugAdapterEndpoints\\endpoint-aaf20a2f06f6eff2.txt",
+      "VSCODE_GIT_ASKPASS_EXTRA_ARGS": "",
+      "VSCODE_GIT_ASKPASS_MAIN": "c:\\Users\\reiko\\AppData\\Roaming\\Code\\User\\globalStorage\\vscode.git\\askpass\\70789581cae28aa7\\askpass-main.js",
+      "VSCODE_GIT_ASKPASS_NODE": "C:\\Users\\reiko\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe",
+      "VSCODE_GIT_IPC_HANDLE": "\\\\.\\pipe\\vscode-git-bd8ca0fcd0-sock",
+      "VSCODE_INJECTION": "1",
+      "VSCODE_PYTHON_AUTOACTIVATE_GUARD": "1"
+    },
+    "cli_probes": {
+      "claude": {
+        "on_path": false
+      },
+      "codex": {
+        "on_path": false
+      },
+      "gemini": {
+        "on_path": true,
+        "path": "C:\\Users\\reiko\\AppData\\Roaming\\npm\\gemini.CMD",
+        "version": "<probe failed: FileNotFoundError>"
+      },
+      "aider": {
+        "on_path": false
+      }
+    },
+    "parent_chain": [
+      {
+        "pid": 39136,
+        "name": "python.exe"
+      },
+      {
+        "pid": 30512,
+        "name": "python.exe"
+      },
+      {
+        "pid": 23972,
+        "name": "powershell.exe"
+      },
+      {
+        "pid": 21608,
+        "name": "Code.exe"
+      },
+      {
+        "pid": 20944,
+        "name": "Code.exe"
+      },
+      {
+        "pid": 11140,
+        "name": "explorer.exe"
+      }
+    ]
+  }
+}

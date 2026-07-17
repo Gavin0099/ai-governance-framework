@@ -21,7 +21,7 @@
   "properties": {
     "schema_version": {
       "type": "string",
-      "enum": ["1.0", "1.1", "1.2", "1.3"]
+      "enum": ["1.0", "1.1", "1.2", "1.3", "1.4"]
     },
     "timestamp": {
       "type": "string",
@@ -190,21 +190,71 @@
       "type": "object",
       "additionalProperties": true,
       "description": "Guard summary forwarded through the memory workflow dispatcher."
+    },
+
+    "runtime_profile_id": {
+      "type": "string",
+      "description": "Full fingerprint id from runtime_identity.schema.json (drift marking only); 'unknown' when detection was unavailable."
+    },
+    "runtime_profile_coarse_id": {
+      "type": "string",
+      "description": "Coarse fingerprint id (agent_family + model_family + surface_class) used for sample accumulation; 'unknown' when undetected."
+    },
+    "runtime_detection_status": {
+      "type": "string",
+      "enum": ["full", "partial", "none", "unknown"],
+      "description": "Detection status copied from the runtime identity profile; 'unknown' for receipts written without a profile."
+    },
+    "sample_origin": {
+      "type": "string",
+      "enum": ["natural_task", "benchmark", "regression_test", "synthetic", "unknown"],
+      "description": "Only natural_task samples feed evaluation main metrics; other origins are debug context."
+    },
+    "validator_signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tier", "tier_source"],
+      "properties": {
+        "validator_id": { "type": "string" },
+        "validator_version": { "type": "string" },
+        "tier": {
+          "type": "string",
+          "enum": ["test_backed", "structural_only", "self_reported", "unknown"],
+          "description": "Trustworthiness class of the validation signal. Derived from a versioned validator registry — never agent-filled. No registry entry means 'unknown'."
+        },
+        "tier_source": {
+          "type": "string",
+          "description": "Registry id and version the tier was derived from, e.g. 'governance-validator-registry-v1'."
+        }
+      },
+      "description": "Registry-derived trust class of the validator behind validation claims in this receipt."
     }
   },
 
-  "if": {
-    "properties": { "trigger_mode": { "const": "manual_fallback" } }
-  },
-  "then": {
-    "required": [
-      "output_mode_requested",
-      "output_mode_effective",
-      "output_mode_decision",
-      "output_mode_ceiling",
-      "enforcement_source",
-      "fallback_weakens_enforcement",
-      "manual_fallback_reason"
-    ]
-  }
+  "allOf": [
+    {
+      "if": {
+        "properties": { "trigger_mode": { "const": "manual_fallback" } }
+      },
+      "then": {
+        "required": [
+          "output_mode_requested",
+          "output_mode_effective",
+          "output_mode_decision",
+          "output_mode_ceiling",
+          "enforcement_source",
+          "fallback_weakens_enforcement",
+          "manual_fallback_reason"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": { "schema_version": { "const": "1.4" } }
+      },
+      "then": {
+        "required": ["runtime_detection_status", "sample_origin"]
+      }
+    }
+  ]
 }

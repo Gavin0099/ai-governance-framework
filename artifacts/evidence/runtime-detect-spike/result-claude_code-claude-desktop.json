@@ -1,0 +1,128 @@
+{
+  "spike": "runtime-detect",
+  "schema": "spike-0",
+  "platform": "win32",
+  "profile": {
+    "agent": {
+      "value": "claude_code",
+      "detection": "verified",
+      "source": "env:CLAUDECODE"
+    },
+    "agent_version": {
+      "value": "2.1.209",
+      "detection": "verified",
+      "source": "env:CLAUDE_CODE_EXECPATH"
+    },
+    "model": {
+      "value": "claude-fable-5",
+      "detection": "verified",
+      "source": "harness_transcript:e4333b54-c3fa-42bf-afd7-8fbe32e863cb.jsonl",
+      "evidence": "37 occurrences, session-id-bound"
+    },
+    "surface": {
+      "value": "claude-desktop",
+      "detection": "verified",
+      "source": "env:CLAUDE_CODE_ENTRYPOINT"
+    },
+    "session_id": {
+      "value": "e4333b54-c3fa-42bf-afd7-8fbe32e863cb",
+      "detection": "verified",
+      "source": "env:CLAUDE_CODE_SESSION_ID"
+    },
+    "permission_mode": {
+      "value": null,
+      "detection": "unknown",
+      "source": null,
+      "evidence": "not exposed to shell; real impl must read hook payload"
+    },
+    "tools": {
+      "value": null,
+      "detection": "unknown",
+      "source": null,
+      "evidence": "not exposed to shell; real impl must read hook payload"
+    },
+    "governance_version": {
+      "value": "1.2.0",
+      "detection": "verified",
+      "source": "readme:E:\\BackUp\\Git_EE\\ai-governance-framework\\README.md"
+    }
+  },
+  "raw": {
+    "env_markers": {
+      "ANTHROPIC_BASE_URL": "https://api.anthropic.com",
+      "CLAUDECODE": "1",
+      "CLAUDE_AGENT_SDK_VERSION": "0.3.209",
+      "CLAUDE_CODE_CHILD_SESSION": "1",
+      "CLAUDE_CODE_DISABLE_CRON": "",
+      "CLAUDE_CODE_EMIT_TOOL_USE_SUMMARIES": "false",
+      "CLAUDE_CODE_ENABLE_ASK_USER_QUESTION_TOOL": "true",
+      "CLAUDE_CODE_ENTRYPOINT": "claude-desktop",
+      "CLAUDE_CODE_EXECPATH": "C:\\Users\\reiko\\AppData\\Roaming\\Claude\\claude-code\\2.1.209\\claude.exe",
+      "CLAUDE_CODE_OAUTH_SCOPES": "user:inference user:file_upload user:profile user:sessions:claude_code",
+      "CLAUDE_CODE_SDK_HAS_HOST_AUTH_REFRESH": "1",
+      "CLAUDE_CODE_SDK_HAS_OAUTH_REFRESH": "1",
+      "CLAUDE_CODE_SESSION_ID": "e4333b54-c3fa-42bf-afd7-8fbe32e863cb",
+      "CLAUDE_EFFORT": "high",
+      "CLAUDE_PREVIEW_CLASSIFIER_FLOOR": "1",
+      "TERM": "xterm-256color"
+    },
+    "cli_probes": {
+      "claude": {
+        "on_path": false
+      },
+      "codex": {
+        "on_path": false
+      },
+      "gemini": {
+        "on_path": true,
+        "path": "C:\\Users\\reiko\\AppData\\Roaming\\npm\\gemini.CMD",
+        "version": "<probe failed: FileNotFoundError>"
+      },
+      "aider": {
+        "on_path": false
+      }
+    },
+    "parent_chain": [
+      {
+        "pid": 19268,
+        "name": "python.exe"
+      },
+      {
+        "pid": 27376,
+        "name": "bash.exe"
+      },
+      {
+        "pid": 39656,
+        "name": "bash.exe"
+      },
+      {
+        "pid": 39804,
+        "name": "bash.exe"
+      },
+      {
+        "pid": 19900,
+        "name": "claude.exe"
+      },
+      {
+        "pid": 33684,
+        "name": "claude.exe"
+      },
+      {
+        "pid": 6392,
+        "name": "sihost.exe"
+      },
+      {
+        "pid": 2532,
+        "name": "svchost.exe"
+      },
+      {
+        "pid": 1512,
+        "name": "services.exe"
+      },
+      {
+        "pid": 1376,
+        "name": "wininit.exe"
+      }
+    ]
+  }
+}

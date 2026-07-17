@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "E:\\BackUp\\Git_EE\\ai-governance-framework\\.venv\\Scripts\\python.exe -B -X utf8 -m pytest tests/test_external_repo_smoke.py tests/test_governance_maturity_summary.py -q -p no:cacheprovider --basetemp=C:\\tmp\\g4_post_rebase_focused",
+  "exit_code": 0,
+  "started_at": "2026-07-16T08:39:39Z",
+  "finished_at": "2026-07-16T08:40:09Z",
+  "runner": "codex",
+  "linked_commit": "ddeb4384464cfdda72dede297eaa766bd57201c2",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-newest-runtime-precedence-ddeb4384.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

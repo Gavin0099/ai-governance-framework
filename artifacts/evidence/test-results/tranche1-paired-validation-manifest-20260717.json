@@ -1,0 +1,95 @@
+{
+  "manifest_schema": "tranche1_paired_validation_manifest.v0.2",
+  "generated_at": "2026-07-17T03:08:39Z",
+  "report_only": true,
+  "supersedes": {
+    "path": "C:\\tmp\\tranche1-paired-feature-c7182db0-v3\\artifacts\\evidence\\test-results\\tranche1-paired-validation-manifest-20260717.json",
+    "sha256": "71D4DBF7F1C60BB12F9F03342A0999AFDD27ADCB48454B5D66896C3E386EB211",
+    "reason": "adds the current-main-integrated candidate and the focused resolution evidence for the single feature-only runtime_identity failure"
+  },
+  "historical_pair": {
+    "feature_commit": "c7182db0b6a713197042f5c4e23375a6f8f8d399",
+    "main_commit": "4f2b5b5166c9c08de4ec3df5e3ef6600a1400d30",
+    "feature_full_suite": {
+      "exit_code": 1,
+      "passed": 3882,
+      "failed": 16,
+      "skipped": 2,
+      "deselected": 33
+    },
+    "main_full_suite": {
+      "exit_code": 1,
+      "passed": 3836,
+      "failed": 15,
+      "skipped": 2,
+      "deselected": 33
+    },
+    "feature_only_failure": "tests/test_runtime_identity.py::TestCli::test_detect_in_unknown_env_still_exits_zero",
+    "common_failure_count": 15
+  },
+  "integrated_candidate": {
+    "repo_root": "C:\\tmp\\tranche1-runtime-identity-integrated-20260717-v1",
+    "branch": "codex/tranche1-runtime-identity-fix",
+    "current_main_commit": "c14d19cdf81c3fa7707b27fd01f161dd2852b6a5",
+    "rebased_tranche_head": "04de0f70fae3e639035af42ee485ae720105799f",
+    "source_feature_commit": "c7182db0b6a713197042f5c4e23375a6f8f8d399",
+    "integration_validation": {
+      "merge_base": "c14d19cdf81c3fa7707b27fd01f161dd2852b6a5",
+      "range_diff_equivalent_commit_count": 6,
+      "range_diff_changed_commit_count": 0
+    },
+    "working_tree_state": "scoped_dirty_uncommitted",
+    "changed_paths": [
+      {
+        "path": "governance_tools/runtime_identity.py",
+        "sha256": "D41B205CE9F0C6F4C0141B6848539AE18D157EBA0106CC6D1E0F27873E1E1D42"
+      },
+      {
+        "path": "tests/test_runtime_identity.py",
+        "sha256": "844E4627FAC8749336429CB22EC21D5AC3899C7CE5365239A49E967962FA093D"
+      },
+      {
+        "path": "artifacts/evidence/test-results/tranche1-paired-validation-manifest-20260717.json",
+        "sha256": null,
+        "note": "self-referential artifact; content hash intentionally omitted"
+      }
+    ],
+    "fix_contract": {
+      "codex_verified_agent_marker": "CODEX_INTERNAL_ORIGINATOR_OVERRIDE",
+      "arbitrary_codex_prefix_is_identity_marker": false,
+      "unknown_environment_test_clears_all_known_identity_marker_families": true
+    },
+    "focused_test": {
+      "command": "E:\\BackUp\\Git_EE\\ai-governance-framework\\.venv\\Scripts\\python.exe -B -X utf8 -m pytest tests/test_runtime_identity.py -q --basetemp C:\\tmp\\tranche1-runtime-identity-pytest-20260717-v2",
+      "exit_code": 0,
+      "passed": 35,
+      "failed": 0,
+      "duration_seconds": 0.38
+    }
+  },
+  "runtime_metadata": {
+    "python_version": "3.13.5",
+    "pytest_version": "9.0.2",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "machine": "AMD64"
+  },
+  "resolution": {
+    "prior_feature_only_failure_reproduced_in_historical_pair": true,
+    "focused_integrated_candidate_result": "35 passed",
+    "marker_contract_aligned_to_observed_spike_evidence": true,
+    "unknown_environment_isolated_from_host_codex_configuration_vars": true
+  },
+  "claim_ceiling": [
+    "the tranche-1 history rebases without textual conflict onto final main c14d19cd",
+    "the scoped uncommitted runtime_identity fix passes tests/test_runtime_identity.py on that integrated candidate",
+    "arbitrary CODEX_* configuration variables no longer verify Codex agent identity"
+  ],
+  "cannot_claim": [
+    "final committed runtime_identity fix",
+    "green full suite",
+    "merge or release readiness from this focused test alone",
+    "Phase 3 completion or G4 evidence",
+    "release readiness",
+    "publication to GitHub or GitLab"
+  ]
+}

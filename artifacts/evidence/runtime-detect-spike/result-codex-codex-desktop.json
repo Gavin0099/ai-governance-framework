@@ -1,0 +1,79 @@
+{
+  "spike": "runtime-detect",
+  "schema": "spike-0",
+  "platform": "win32",
+  "profile": {
+    "agent": {
+      "value": "codex",
+      "detection": "verified",
+      "source": "env:CODEX_INTERNAL_ORIGINATOR_OVERRIDE"
+    },
+    "agent_version": {
+      "value": null,
+      "detection": "unknown",
+      "source": null,
+      "evidence": "no version in env; matching CLI not on PATH"
+    },
+    "model": {
+      "value": "gpt-5.6-sol",
+      "detection": "detected",
+      "source": "config:~/.codex/config.toml (default, not session-bound)"
+    },
+    "surface": {
+      "value": null,
+      "detection": "unknown",
+      "source": null,
+      "evidence": "no surface marker"
+    },
+    "session_id": {
+      "value": null,
+      "detection": "unknown",
+      "source": null,
+      "evidence": "no session id in env"
+    },
+    "permission_mode": {
+      "value": null,
+      "detection": "unknown",
+      "source": null,
+      "evidence": "not exposed to shell; real impl must read hook payload"
+    },
+    "tools": {
+      "value": null,
+      "detection": "unknown",
+      "source": null,
+      "evidence": "not exposed to shell; real impl must read hook payload"
+    },
+    "governance_version": {
+      "value": "1.2.0",
+      "detection": "verified",
+      "source": "readme:E:\\BackUp\\Git_EE\\ai-governance-framework\\README.md"
+    }
+  },
+  "raw": {
+    "env_markers": {
+      "CODEX_INTERNAL_ORIGINATOR_OVERRIDE": "Codex Desktop",
+      "CODEX_SANDBOX_NETWORK_DISABLED": "1",
+      "CODEX_SHELL": "1",
+      "CODEX_THREAD_ID": "019f6a56-21ba-77b0-b3f2-613170f1f566"
+    },
+    "cli_probes": {
+      "claude": {
+        "on_path": false
+      },
+      "codex": {
+        "on_path": true,
+        "path": "C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.707.9981.0_x64__2p2nqsd0c76g0\\app\\resources\\codex.EXE",
+        "version": "<probe failed: PermissionError>"
+      },
+      "gemini": {
+        "on_path": true,
+        "path": "C:\\Users\\reiko\\AppData\\Roaming\\npm\\gemini.CMD",
+        "version": "<probe failed: FileNotFoundError>"
+      },
+      "aider": {
+        "on_path": false
+      }
+    },
+    "parent_chain": []
+  }
+}

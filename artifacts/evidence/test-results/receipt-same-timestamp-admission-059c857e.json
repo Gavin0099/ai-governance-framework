@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "E:\\BackUp\\Git_EE\\ai-governance-framework\\.venv\\Scripts\\python.exe -B -X utf8 -m pytest tests/test_governance_maturity_summary.py -q --basetemp C:\\tmp\\pytest-g4-receipt-059c857e",
+  "exit_code": 0,
+  "started_at": "2026-07-16T11:11:02Z",
+  "finished_at": "2026-07-16T11:11:50Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "059c857e327c77d8766ab0ef6360abead7eb0b84",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-same-timestamp-admission-059c857e.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
