@@ -1,12 +1,16 @@
-# Validator Delegation Census — Plan (v0.2)
+# Validator Delegation Census — Plan (v0.3)
 
-- Branch: `wip/gavinwu/validator-delegation-census`
+- Branch: `main` (owner directive 2026-07-17: work directly on `main`;
+  `wip/gavinwu/validator-delegation-census` was fast-forward merged and is no
+  longer the working branch)
 - Canonical source: `gitlab/main`
 - Fresh fetch performed: 2026-07-17
 - Base commit: `e2436bcb84a5b15e0a7bd3824a7c8d2d158ca633`
 - Base observation: 197 tracked Python modules under `governance_tools/`
 - Status: plan reconciled — census **尚未執行**
-- Authority: owner-approved plan-only reconciliation on 2026-07-17
+- Authority: owner-approved plan-only reconciliation on 2026-07-17; v0.3 is an
+  owner-authorized bounded plan-only revision (same date) closing two blocking
+  reproducibility findings
 
 The base observation is evidence for this plan revision, not a permanent
 hard-coded population. The census execution must fetch again and pin the then
@@ -56,7 +60,7 @@ Before producing rows, record:
 - fetched ref name and fetch timestamp;
 - population query and sorted population count;
 - maintenance queue path and its blob id at the same base;
-- method version `validator-delegation-census-plan.v0.2`.
+- method version `validator-delegation-census-plan.v0.3`.
 
 ## Canonical artifact contract
 
@@ -72,7 +76,7 @@ Top-level fields:
 | `generated_at` | UTC timestamp; excluded from normalized payload hash |
 | `base_ref` | exact value `gitlab/main` |
 | `base_commit` | full 40-character commit hash |
-| `method_version` | exact value `validator-delegation-census-plan.v0.2` |
+| `method_version` | exact value `validator-delegation-census-plan.v0.3` |
 | `population_query` | exact tree-bound command description |
 | `population_count` | computed from the pinned Git tree, never manually entered |
 | `coverage` | expected/emitted/missing/extra/duplicate path counts and lists |
@@ -80,16 +84,55 @@ Top-level fields:
 | `rows` | sorted ascending by repo-relative `path` |
 | `normalized_payload_sha256` | SHA-256 over canonical UTF-8 JSON excluding `generated_at` and this hash field |
 
-Canonical JSON normalization uses UTF-8, LF, recursively sorted object keys,
-stable array ordering, and no insignificant whitespace. Two independent runs
-against the same base must produce the same `normalized_payload_sha256`.
+### Canonical serialization (normative)
+
+The normalized payload is serialized exactly as Python stdlib
+`json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))`
+encoded as UTF-8 without BOM and without a trailing newline. Equivalently:
+
+- object keys recursively sorted bytewise ascending by their UTF-8 encoding;
+- separators are `,` and `:` with no whitespace anywhere;
+- strings escape only `"`, `\`, and control characters U+0000–U+001F (the
+  standard short forms `\"`, `\\`, `\n`, `\r`, `\t`, `\b`, `\f`, otherwise
+  `\uXXXX`); `/` is not escaped; non-ASCII characters are emitted as literal
+  UTF-8, never `\uXXXX`;
+- all numeric fields are non-negative integers with no leading zeros; floats,
+  `NaN`, and `Infinity` are forbidden anywhere in the payload;
+- `generated_at` and `normalized_payload_sha256` are removed from the payload
+  before serialization; the hash is the lowercase hex SHA-256 of the resulting
+  bytes.
+
+### Canonical array ordering (normative)
+
+Every array in the payload is a set with a defined total order; duplicates are
+forbidden in every array:
+
+| Array | Sort key |
+| --- | --- |
+| `rows` | `path`, bytewise ascending |
+| `rows[].callers` | tuple (`surface`, `relation`, first `evidence_refs` item), bytewise ascending |
+| `rows[].claims_supported` | element string, bytewise ascending |
+| `rows[].secondary_categories` | element string, bytewise ascending |
+| `rows[].evidence_refs` | element string, bytewise ascending |
+| `rows[].queue_refs` | tuple (`source`, `defense`, `match_basis`), bytewise ascending |
+| `rows[].queue_refs[].evidence_refs` | element string, bytewise ascending |
+| every `evidence_refs` array elsewhere | element string, bytewise ascending |
+| `coverage` path lists (`missing`, `extra`, `duplicate`, and any emitted path list) | element string, bytewise ascending |
+
+Any array not listed above must either be absent or have its sort key added to
+this table by a plan revision before use. "Bytewise" always means comparison of
+the UTF-8 encoding. For object arrays, any tie on the listed key tuple is broken
+by comparing the items' full canonical JSON serializations bytewise; two items
+whose canonical serializations are identical are duplicates and forbidden. Two independent runs against the same base must produce the
+same `normalized_payload_sha256`; that equality is meaningful only because the
+ordering and serialization above are total.
 
 ## Row contract
 
 | Field | Requirement |
 | --- | --- |
 | `path` | unique repo-relative path from the pinned population |
-| `callers` | array of observed static callers; each item has `surface`, `relation`, and `evidence_refs` |
+| `callers` | array of observed static callers; each item has `surface`, `relation`, and non-empty `evidence_refs` |
 | `caller_search_status` | `observed` / `no_static_match` / `insufficient_evidence` |
 | `claims_supported` | array; use explicit `unknown` when no admissible claim mapping is found |
 | `category` | primary diagnostic category |
@@ -98,7 +141,7 @@ against the same base must produce the same `normalized_payload_sha256`.
 | `external_candidate` | candidate name or `null`; never an adoption decision |
 | `adoption_blockers` | per-candidate GitLab/Windows assessment or explicit `unknown` values |
 | `evidence_refs` | resolvable base-bound references using `git:<commit>:<path>:<line>` or recorded command evidence |
-| `queue_refs` | array of zero or more `{source, defense, match_basis}` objects |
+| `queue_refs` | array of zero or more `{source, defense, match_basis, evidence_refs}` objects; `evidence_refs` is non-empty and binds evidence to this specific relation |
 
 Allowed category values:
 
@@ -138,11 +181,17 @@ The queue at the pinned base has 101 entries with fields including `defense` and
 - `source`: exact queue entry source;
 - `defense`: exact queue entry defense;
 - `match_basis`: `exact_path`, `exact_tool_name`, `curated_group`, or
-  `manual_evidence`.
+  `manual_evidence`;
+- `evidence_refs`: one or more base-bound references (same format as row-level
+  `evidence_refs`) that prove this specific module-to-entry relation. This
+  field is required and must be non-empty; row-level `evidence_refs` never
+  substitutes for it.
 
 Do not use fuzzy name matching as a unique join. A queue entry may cover several
-modules, and one module may relate to several entries. Each relation requires a
-base-bound evidence reference.
+modules, and one module may relate to several entries. Because each relation
+carries its own `evidence_refs`, acceptance check 4 is mechanically verifiable
+per relation: a `queue_refs` item with an empty or unresolvable `evidence_refs`
+fails the artifact.
 
 ## GitLab adoption-blocker dimensions
 
@@ -161,7 +210,7 @@ target execution environment.
 | evidence binding | which base-present commit/job/runtime identifiers bind the result? |
 
 Do not carry post-base capabilities into the census. Receipt schema 1.4 exists
-at this v0.2 base, but any later base must re-resolve the actual receipt and
+at this plan's pinned base, but any later base must re-resolve the actual receipt and
 runtime-profile surfaces from that Git tree. GitLab tier and runner OS remain
 `unknown` until directly verified.
 
@@ -173,8 +222,9 @@ The census is acceptable only when all checks pass:
 2. `path` values are unique, sorted, and resolve through `git show` at base;
 3. all required row fields are present; unknown facts use explicit `unknown`,
    `null`, empty arrays, or `insufficient_evidence` according to the contract;
-4. every non-unknown classification and queue relation has a resolvable
-   evidence reference;
+4. every non-unknown classification has a resolvable evidence reference, and
+   every `queue_refs` item has its own non-empty `evidence_refs` whose entries
+   resolve at base;
 5. coverage reports zero missing, extra, and duplicate paths;
 6. two independent runs produce the same normalized payload SHA-256;
 7. artifact `base_commit` equals the fetched and reviewed commit;
@@ -206,7 +256,7 @@ It cannot claim:
 - that any implementation, provider harness, adoption, migration, or release is
   authorized.
 
-## Review provenance and v0.2 dispositions
+## Review provenance and dispositions
 
 The normative contract is this checked-in plan text; inaccessible chat or
 attachment content is not required to reconstruct it. The owner approved the
@@ -223,6 +273,14 @@ recheck produced these reproducible dispositions:
 | claim ceiling was missing | explicit positive and negative claim boundaries added |
 | category enum forced certainty | `insufficient_evidence` and secondary categories added |
 | review authority was not durable | dispositions and verification method embedded here |
+
+A second isolated review of the committed v0.2 (`ba365e33`) returned
+CHANGES_REQUESTED with two blocking findings; v0.3 closes them:
+
+| v0.2 review finding | v0.3 disposition |
+| --- | --- |
+| normalized hash left array ordering and JSON escaping underspecified | normative canonical serialization (stdlib `json.dumps` profile) and a total sort key for every array, with duplicate prohibition and tie-breaking, defined in the artifact contract |
+| `queue_refs` items could not bind evidence to a specific relation | `evidence_refs` is now a required non-empty field on every `queue_refs` item; acceptance check 4 verifies it per relation |
 
 ## Out of scope
 
