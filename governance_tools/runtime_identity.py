@@ -49,7 +49,7 @@ RUNTIME_IDENTITY_CLAIM_BOUNDARY = (
 # Evidence for each marker: spikes/runtime-detect/SIGNALS.md.
 _AGENT_ENV_MARKERS = (
     ("CLAUDECODE", "claude_code"),
-    ("CODEX_", "codex"),
+    ("CODEX_INTERNAL_ORIGINATOR_OVERRIDE", "codex"),
     ("COPILOT_AGENT", "github_copilot"),
     ("GEMINI_CLI", "gemini_cli"),
     ("CURSOR_TRACE_ID", "cursor"),

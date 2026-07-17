@@ -9,6 +9,7 @@ formally supersede the spike's inline assertions per the budget entry
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -70,11 +71,20 @@ class TestAgentDetection:
         assert field["detection"] == "verified"
         assert field["signal_source"] == "env:CLAUDECODE"
 
-    def test_codex_verified_from_env_prefix(self):
+    def test_codex_verified_from_observed_originator_marker(self):
         field = detect_agent(CODEX_ENV)
         assert field["value"] == "codex"
         assert field["detection"] == "verified"
-        assert field["signal_source"].startswith("env:CODEX_")
+        assert field["signal_source"] == "env:CODEX_INTERNAL_ORIGINATOR_OVERRIDE"
+
+    def test_incidental_codex_configuration_vars_do_not_verify_agent(self):
+        field = detect_agent({
+            "CODEX_PERMISSION_PROFILE": "workspace-write",
+            "CODEX_SANDBOX_NETWORK_DISABLED": "1",
+            "CODEX_SHELL": "powershell",
+        })
+        assert field["value"] is None
+        assert field["detection"] == "unknown"
 
     def test_copilot_verified_from_env_marker(self):
         field = detect_agent(COPILOT_ENV)
@@ -312,12 +322,16 @@ class TestCli:
     def test_detect_in_unknown_env_still_exits_zero(self, tmp_path, monkeypatch):
         repo = _fake_repo(tmp_path)
         monkeypatch.setattr("pathlib.Path.home", lambda: _fake_home(tmp_path))
-        for key in ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT",
-                    "CLAUDE_CODE_SESSION_ID", "CLAUDE_CODE_EXECPATH",
-                    "COPILOT_AGENT", "CODEX_THREAD_ID",
-                    "CODEX_INTERNAL_ORIGINATOR_OVERRIDE", "TERM_PROGRAM",
-                    "ANTHROPIC_MODEL", "WT_SESSION"):
-            monkeypatch.delenv(key, raising=False)
+        identity_prefixes = ("CLAUDE_", "CODEX_", "COPILOT_", "GEMINI_",
+                             "CURSOR_")
+        identity_keys = {
+            "CLAUDECODE", "ANTHROPIC_MODEL", "OPENAI_MODEL",
+            "TERM_PROGRAM", "TERMINAL_EMULATOR", "GITHUB_ACTIONS",
+            "WT_SESSION",
+        }
+        for key in list(os.environ):
+            if key in identity_keys or key.startswith(identity_prefixes):
+                monkeypatch.delenv(key, raising=False)
         exit_code = main(["detect", "--repo", str(repo)])
         assert exit_code == 0
         written = json.loads(
