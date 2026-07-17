@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m pytest tests/test_response_envelope_validator.py -q",
+  "exit_code": 0,
+  "started_at": "2026-07-17T16:27:17Z",
+  "finished_at": "2026-07-17T16:27:19Z",
+  "runner": "governance_tools.test_evidence_receipt_writer",
+  "linked_commit": "c8c06f3e955b1b62c774058709b4862228ef97a1",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-plain-summary-optin-20260718.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
