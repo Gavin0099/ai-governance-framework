@@ -4,7 +4,9 @@
 > Source surfaces: `PLAN.md` at `6157ca0a`, `memory/2026-07-17.md`
 > (validator census publication entry for `a89ee202` and the separately
 > recorded plain-language response-quality candidate), the published census
-> artifact / closeout chain, and `governance/RESPONSE_ENVELOPE_CONTRACT.md`.
+> artifact / closeout chain, `governance/RESPONSE_ENVELOPE_CONTRACT.md`, the
+> frozen v3 closure record, and the 2026-07-13 review records retained in
+> `memory/04_review_log.md`.
 > Claim: this file is point-in-time aligned to those authority surfaces, no
 > more.
 
@@ -175,6 +177,18 @@
 ## Historical Context Retained
 
 - Phase E remains in validity-before-expansion posture.
+- No-Governance Baseline v3 is complete and frozen. Its six-run mechanical
+  counts support an observational summary of no stable Arm B advantage on the
+  bounded task, model, and harness only; the earlier pre-committed disposition
+  claim was retracted, and any surviving recalibration is owner-adopted rather
+  than a protocol consequence.
+- The 2026-07-13 Hearth review recommendation remains external and
+  unauthorized from this repo: define one source-to-result credit-card slice
+  with identity, duplicate behavior, minimum usable outcome, and acceptance
+  data before product implementation.
+- P1-C still lacks a qualifying post-F-7 natural `meiandraybook` Stop-hook
+  receipt. Do not manufacture one; inspect the next real production receipt
+  when it occurs.
 - Cache-aware / AUTHORITY_MANIFEST remains candidate-only without prompt-cache
   control, runtime hook wiring, or harness adoption.
 - Learning-loop Gate 3 remains closed; advisory prep does not authorize

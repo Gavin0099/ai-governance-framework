@@ -2047,3 +2047,115 @@ the existing queue: either template-hardening for validator fixture pairs, or
 review-verification of the four adoption-line `lexical_candidate` rows. Do not
 start another retirement or enforcement change from the current ledger alone.
 
+## 2026-07-13 - Next-Step Triage: Consumer Use Before Further Framework Expansion
+
+### Review Inputs Checked
+- `governance/REVIEW_CRITERIA.md`
+- `governance/MEMORY_PROTOCOL.md`
+- `memory/03_knowledge_base.md`
+- `memory/04_review_log.md`
+- `PLAN.md` P1-C, P1-E, and P1-F sections
+- `D:\Hearth\PLAN.md`
+- current root and Hearth git status/log
+
+### Decision Summary
+**Verdict**: ESCALATED
+**Risk Level**: Medium
+
+Reason: the owner's Hearth priority is clear, but "integrate all credit-card
+information" does not yet define one source, record identity, duplicate rule,
+or end-to-end result. Starting implementation would choose financial-data
+semantics without an approved vertical slice. The two framework follow-ups are
+not substitutes: P1-C needs a natural meiandraybook session, and P1-F remains
+an unapproved stronger-enforcement decision.
+
+### Governance Audit
+- Architecture: no runtime, hook, schema, updater, or product-code change was
+  made; this is prioritization only.
+- Native Safety: N/A.
+- Test Integrity: no implementation changed, so no test run was required.
+- Thread Safety: N/A.
+- Baseline Status: reviewed heads are stable; root worktree has pre-existing,
+  out-of-scope `memory/2026-07-12.md` changes and is not clean.
+
+### Technical Findings
+
+1. [WARNING] Credit-card goal needs a bounded product slice before code.
+   - Location: `D:\Hearth\PLAN.md:36`
+   - Evidence: the plan says to integrate all credit-card information but does
+     not name the input sources, unified account/card identity, duplicate
+     behavior, persistence boundary, or smallest usable result.
+   - Rule Reference: root `AGENTS.md` Delivery Recovery Constraints 1 and 3.
+   - Status: open.
+   - Disposition: propose a read-only product spec first. It should select one
+     source-to-result path and state its fixtures and acceptance checks; it
+     must not assume a parser, database migration, or UI design.
+
+2. [SUGGESTION] Leave P1-C waiting for real use rather than manufacture a receipt.
+   - Location: `PLAN.md:729-741`
+   - Evidence: its six-field close condition explicitly requires one natural
+     meiandraybook Stop-hook receipt; manual invocation is explicitly not
+     natural-session evidence.
+   - Rule Reference: `PLAN.md` P1-C claim ceiling.
+   - Status: open.
+   - Disposition: observe the next real meiandraybook session and inspect its
+     receipt then; do not schedule another F-7 run for this purpose.
+
+3. [WARNING] P1-F is not a small hardening task.
+   - Location: `PLAN.md:829-850, 944-949`
+   - Evidence: the required 2-4 week FP/FN observation is not closed, and a
+     current-diff blocker needs its own mutation contract, rollback path, and
+     owner decision.
+   - Rule Reference: `PLAN.md` P1-F OP-HC boundary.
+   - Status: open.
+   - Disposition: defer until its stated evidence and authorization exist.
+
+### Knowledge Base Alignment
+- Anti-patterns checked: governance expansion without observed failure,
+  semantic overclaim, and replacing product delivery with framework work.
+- Regression notes checked: audit-first posture, runtime-treatment evidence
+  limits, and small isolated slices.
+- Result: Pass. The proposed spec-first slice preserves these boundaries.
+
+### Next Recommendation
+Ask the owner to authorize this bounded next slice:
+`DONE = 一份 Hearth 信用卡資訊整合規格，明確選定第一個資料來源、統一資料識別、去重規則、最小可用結果與驗收資料；不改程式、資料庫或 UI。`
+
+## 2026-07-13 - P1-C Natural Receipt Recheck
+
+### Review Inputs Checked
+- `governance/REVIEW_CRITERIA.md`
+- `PLAN.md:729-741` (P1-C close condition)
+- `D:\meiandraybook\artifacts\runtime\closeout-receipts\`
+- latest receipt `closeout_receipt_20260614T031922108732Z.json`
+
+### Decision Summary
+**Verdict**: CHANGES_REQUESTED
+**Risk Level**: Low
+
+P1-C remains open. The local consumer has many historic receipts, but no
+receipt newer than 2026-06-14 and none with schema `1.3`. The latest receipt
+does contain the five memory-workflow fields required by P1-C, but it has
+`schema_version="1.2"` and `trigger_mode="unknown"`; it cannot prove the
+post-F-7 natural Stop-hook path required by the close condition.
+
+### Technical Finding
+
+1. [BLOCKING] No qualifying natural-session receipt is present.
+   - Location: `D:\meiandraybook\artifacts\runtime\closeout-receipts\closeout_receipt_20260614T031922108732Z.json`
+   - Evidence: the latest receipt is dated 2026-06-14, has schema `1.2`, and
+     its artifact directory has no receipt from the 2026-07-12 run activity.
+     Its `memory_workflow_dispatch_ran`, status, warning codes, blocker codes,
+     and guard summary exist, but P1-C requires all six conditions including
+     `schema_version == "1.3"` in the same natural receipt.
+   - Rule Reference: `PLAN.md:729-741`.
+   - Status: open.
+   - Disposition: do not create a manual receipt. On the next real
+     meiandraybook session using the production Stop hook, inspect the newly
+     written receipt at this path; if none appears, diagnose hook routing
+     separately rather than treating smoke or ordinary run activity as proof.
+
+### Knowledge Base Alignment
+- Anti-patterns checked: manufactured evidence and semantic overclaim.
+- Result: Pass. The recheck preserves the existing claim boundary.
+
