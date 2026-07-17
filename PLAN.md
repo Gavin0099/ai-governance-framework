@@ -191,11 +191,15 @@ Current next candidate:
   before an engineer or the owner could act. This satisfies the
   failure-driven eligibility condition for a separate response-quality slice;
   it does not authorize implementation by itself.
-- [ ] If separately owner-authorized, the next bounded candidate is mechanical
-  plain-language final-report validation: require a user-facing conclusion,
-  decision, and next step before technical detail. Keep that candidate
-  separate from census refresh, delegation implementation, module retirement,
-  consumer migration, and release preparation.
+- [x] Owner-authorized on 2026-07-17 and implemented at `61673ca9`: mechanical
+  plain-language final-report validation exists as opt-in
+  `--check-response-quality` in `response_envelope_validator.py`, requiring
+  `conclusion`, `recommended_action`, and `next_action` to be non-empty and
+  positioned before `evidence_refs`. Default validator behavior is unchanged,
+  and no hook, CI, gate, or default invocation enables the check; enabling it
+  anywhere remains a separate owner decision. The slice stayed separate from
+  census refresh, delegation implementation, module retirement, consumer
+  migration, and release preparation.
 - [ ] For every other framework-expansion direction, wait for a real consumer
   failure or a new product need before opening a slice.
 
