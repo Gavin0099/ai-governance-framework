@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -c \"import subprocess,sys; refs=['HEAD','gitlab/main','origin/main']; vals=[subprocess.check_output(['git','-c','safe.directory=C:/tmp/agf-census-20260717','rev-parse',r], text=True).strip() for r in refs]; print(dict(zip(refs,vals))); sys.exit(0 if len(set(vals))==1 and vals[0]=='3f541f311efb19c330eeac78c2a2920ef6e3fdb0' else 1)\"",
+  "exit_code": 0,
+  "started_at": "2026-07-17T10:53:19Z",
+  "finished_at": "2026-07-17T10:53:19Z",
+  "runner": "codex",
+  "linked_commit": "3f541f311efb19c330eeac78c2a2920ef6e3fdb0",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/response-quality-alignment-push-3f541f31.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
