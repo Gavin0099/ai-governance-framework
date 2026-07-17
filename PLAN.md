@@ -903,9 +903,25 @@ do not start before the P1-C fixture exists):
   reports session-derived records in today's memory file lacking a
   declaration; advisory only, never blocks. 11 focused tests added
   (validation, render, CLI rejection, CLI advisory).
-- [ ] P1-E: collect 2-4 weeks of false-positive / false-negative samples
+- [x] P1-E: collect 2-4 weeks of false-positive / false-negative samples
   before any blocking decision (window started 2026-06-12; first data
   point: 14 of 15 same-day records pre-date the field).
+  Final checkpoint 2026-07-17 (day 35; window complete):
+  `docs/governance/p1e-plan-reconciliation-final-checkpoint-2026-07-17.md`
+  with machine-readable snapshot alongside. All 44 `not_declared` records
+  are classified: 14 absent-field on the introduction day plus 30
+  advisory-era literal `not_declared` produced by the pre-Option-B
+  canonical writer's omission normalization; every one is canonical-writer
+  output legal at write time, and the last is dated 2026-07-10 — the day
+  before Option B (`c06014c4`) made the declaration mandatory. Zero
+  `not_declared` growth from 2026-07-11 onward; `deferred` flat at 7 (all
+  `scope-split-next-slice`, none after 2026-06-24); `malformed` 0 across
+  the window. FP/FN conclusion: treating advisory-era literals as
+  violations would be false positives; no false negatives observed; as of
+  this checkpoint there is no observed failure driver for a current-diff
+  blocker — the Option B writer contract is sufficient for the measured
+  declaration-hygiene goal. This closes P1-E collection only; the P1-F
+  blocker decision remains a separate owner-authorized [OP-HC] item.
   Checkpoint 2026-06-27: two-week observation evidence recorded in
   `docs/governance/p1e-plan-reconciliation-two-week-sample-2026-06-27.md`.
   Report output after the 2026-06-27 canonical memory record exists:

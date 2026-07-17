@@ -1,0 +1,35 @@
+{
+  "tool": "governance_tools.deferred_debt_report",
+  "report_format_version": "1.0",
+  "generated_at": "2026-07-17T15:58:33.666019+00:00",
+  "as_of_date": "2026-07-17",
+  "memory_root": "D:\\ai-governance-framework\\memory",
+  "field_introduced_date": "2026-06-12",
+  "files_scanned": 94,
+  "files_with_decode_errors": [
+    "2026-04-10.md",
+    "2026-05-04.md"
+  ],
+  "session_derived_records_total": 796,
+  "counts_by_plan_reconciliation": {
+    "updated": 61,
+    "not_applicable": 435,
+    "deferred": 7,
+    "not_declared": 44,
+    "pre_field": 249,
+    "malformed": 0
+  },
+  "deferred_by_reason": {
+    "scope-split-next-slice": {
+      "count": 7,
+      "oldest_age_days": 30,
+      "oldest_record_date": "2026-06-17"
+    }
+  },
+  "not_declared": {
+    "count": 44,
+    "oldest_age_days": 35,
+    "oldest_record_date": "2026-06-12"
+  },
+  "claim_ceiling": "observation-class only; no thresholds, no pass/fail, not a gate input; deferred-with-reason is a legal honest state; not_declared is advisory-era data; pre_field records are expected history, not debt; semantic PLAN-touch detection is not performed"
+}
