@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+### Opt-in plain-summary validation - 2026-07-18
+
+- Added an opt-in `--check-plain-summary` mode to
+  `governance_tools/response_envelope_validator.py`, failure-driven by direct
+  owner feedback that a report passing the v0.4 structural check was still
+  unreadable. The check requires `conclusion`, `reason`, and `next_action`
+  exactly once before `evidence_refs`, each reading as a sentence: bare
+  machine tokens (`APPROVED`, `PASS`, `needs review`, ...) fail unless
+  accompanied by a plain-language gloss in the same field, and values with
+  fewer than 6 letters/digits/CJK characters after token removal fail as
+  not-prose. `next_action: none` is rejected in this mode.
+- Regression fixtures under `tests/fixtures/plain_summary/`: the observed
+  unreadable dense review reply must fail; the owner's three-line plain
+  version and a token-with-gloss English version must pass. Default validator
+  behavior, output shape, and exit codes are unchanged without the flag.
+- Documented as contract v0.5 with an explicit honest boundary: this is a
+  structural proxy that raises the probability of a readable report; it
+  cannot prove a human understands it, and jargon-dense prose still passes.
+- Release-note boundary: this entry records an unreleased opt-in validator
+  surface only. It does not bump the framework version, publish a release,
+  score semantics or readability, enforce the check anywhere, or wire new
+  hook/CI/pre-push/gate/enforcement behavior.
+
 ### Opt-in response-quality validation - 2026-07-17
 
 - Added an opt-in `--check-response-quality` mode to

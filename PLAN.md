@@ -200,6 +200,19 @@ Current next candidate:
   anywhere remains a separate owner decision. The slice stayed separate from
   census refresh, delegation implementation, module retirement, consumer
   migration, and release preparation.
+- [x] Second failure-driven response-quality slice (owner-authorized
+  2026-07-18): direct owner feedback showed a report passing the v0.4
+  structural check was still unreadable — field presence does not equal
+  comprehension. Added opt-in `--check-plain-summary`: `conclusion`,
+  `reason`, `next_action` exactly once before `evidence_refs`, each a
+  sentence rather than a bare machine token (tokens need a plain-language
+  gloss; `next_action: none` rejected). The observed unreadable reply is a
+  must-fail regression fixture; the owner's three-line plain version is a
+  must-pass fixture. Contract v0.5 records the honest boundary: structural
+  proxy only — it raises the probability of readable reports and cannot
+  prove comprehension; the real success signal remains direct reader
+  feedback. Default behavior unchanged; no hook/CI/gate enables either
+  check.
 - [ ] For every other framework-expansion direction, wait for a real consumer
   failure or a new product need before opening a slice.
 

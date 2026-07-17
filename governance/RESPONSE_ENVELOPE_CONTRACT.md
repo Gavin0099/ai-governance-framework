@@ -6,7 +6,7 @@ overridden_by: AGENT.md
 default_load: on-demand
 ---
 
-# Response Envelope Contract v0.4
+# Response Envelope Contract v0.5
 
 > v0.2 (2026-06-24): added the Evidence Term Glossing plain-language
 > requirement (advisory; not validated by `response_envelope_validator.py`).
@@ -15,6 +15,10 @@ default_load: on-demand
 > v0.4 (2026-07-17): added an opt-in mechanical response-quality check to
 > `response_envelope_validator.py` (`--check-response-quality`); default
 > validator behavior is unchanged, and no gate enables the check.
+> v0.5 (2026-07-18): added an opt-in plain-summary check
+> (`--check-plain-summary`) after direct owner feedback that a
+> structurally valid report was still unreadable; default behavior remains
+> unchanged, and no gate enables either check.
 
 ## Purpose
 
@@ -273,6 +277,47 @@ Boundaries:
   advisory and are still not validated.
 - No hook, CI job, gate, or default invocation enables this flag; enabling it
   anywhere is a separate, owner-authorized change.
+
+## Opt-In Plain-Summary Check (v0.5)
+
+`response_envelope_validator.py --check-plain-summary` targets the reader
+acceptance test behind this contract: within the first few lines a reader
+must be able to answer three questions — can we act now, why, and what is
+the next step. It was added after an observed failure: a report passed the
+v0.4 structural check yet the owner could not act on it without a rewrite.
+
+When enabled, an envelope must contain each of `conclusion`, `reason`, and
+`next_action` exactly once, before `evidence_refs`, and each value must read
+as a sentence rather than a bare verdict word.
+
+Checks performed (error codes):
+
+- `plain_summary_missing_field` / `plain_summary_duplicate_field` /
+  `plain_summary_empty_field` / `plain_summary_field_after_evidence`: same
+  occurrence-bound structure rules as the v0.4 quality check, applied to
+  `conclusion`, `reason`, `next_action`.
+- `plain_summary_token_without_gloss`: the value contains fixed-vocabulary
+  machine tokens (`APPROVED`, `CHANGES_REQUESTED`, `PASS`, `FAIL`,
+  `needs review`, `can merge`, `none`, ...) but no accompanying prose. A
+  token is acceptable only next to a plain-language gloss in the same field
+  (for example `needs review — 驗證器變更需人工確認後才能合併`).
+- `plain_summary_not_prose`: the value has no machine token but fewer than 6
+  letters/digits/CJK characters — too short to be a sentence.
+
+Divergence from the v0.4 quality check: `next_action: none` is NOT accepted
+here. An explicit no-action must be written as a sentence.
+
+Honest boundary (do not inflate this check):
+
+- This is a structural proxy. It can verify that sentence-shaped conclusion,
+  reason, and next-step fields exist before the technical detail; it cannot
+  verify that a human actually understands them. A jargon-dense value with
+  enough characters will pass. Validation raises the probability of a
+  readable report; it does not prove readability. The real success signal
+  remains direct reader feedback.
+- No semantic scoring, no AI judgment, no readability metrics.
+- No hook, CI job, gate, or default invocation enables this flag; enabling
+  it anywhere is a separate, owner-authorized change.
 
 ## Non-Goals
 

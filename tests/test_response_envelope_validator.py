@@ -12,6 +12,7 @@ from governance_tools.response_envelope_validator import (
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "response_envelopes"
 QUALITY_FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "response_quality"
+PLAIN_SUMMARY_FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "plain_summary"
 
 
 def test_passes_minimal_valid_response_envelope() -> None:
@@ -474,6 +475,159 @@ evidence_refs:
     result = validate_response_envelope_text(text, check_quality=True)
 
     assert result["ok"] is True
+
+
+def test_plain_summary_off_by_default_for_dense_fixture() -> None:
+    text = (PLAIN_SUMMARY_FIXTURE_ROOT / "invalid_dense_review_reply.md").read_text(
+        encoding="utf-8"
+    )
+
+    result = validate_response_envelope_text(text)
+
+    assert result["ok"] is True
+    assert not any(
+        finding.startswith("plain_summary_") for finding in result["findings"]
+    )
+    assert "plain_summary_fields_present" not in result["signals"]
+
+
+def test_plain_summary_passes_three_line_chinese_fixture() -> None:
+    text = (PLAIN_SUMMARY_FIXTURE_ROOT / "valid_plain_three_line_zh.md").read_text(
+        encoding="utf-8"
+    )
+
+    result = validate_response_envelope_text(text, check_plain_summary=True)
+
+    assert result["ok"] is True
+    assert result["signals"]["plain_summary_fields_present"] == [
+        "conclusion",
+        "reason",
+        "next_action",
+    ]
+    assert result["signals"]["plain_summary_ordered_before_evidence"] is True
+
+
+def test_plain_summary_passes_token_with_gloss_fixture() -> None:
+    text = (
+        PLAIN_SUMMARY_FIXTURE_ROOT / "valid_plain_token_with_gloss_en.md"
+    ).read_text(encoding="utf-8")
+
+    result = validate_response_envelope_text(text, check_plain_summary=True)
+
+    assert result["ok"] is True
+
+
+def test_plain_summary_blocks_dense_review_reply_fixture() -> None:
+    text = (PLAIN_SUMMARY_FIXTURE_ROOT / "invalid_dense_review_reply.md").read_text(
+        encoding="utf-8"
+    )
+
+    result = validate_response_envelope_text(text, check_plain_summary=True)
+
+    assert result["ok"] is False
+    assert "plain_summary_token_without_gloss:conclusion" in result["findings"]
+    assert "plain_summary_missing_field:reason" in result["findings"]
+    assert "plain_summary_field_after_evidence:next_action" in result["findings"]
+    assert result["signals"]["plain_summary_ordered_before_evidence"] is False
+
+
+def test_plain_summary_rejects_bare_machine_tokens() -> None:
+    text = """
+mode: VALIDATION
+mode_source: validation_command
+task_authority: user_request
+conclusion: APPROVED
+reason: PASS
+next_action: none
+claim_ceiling:
+  - structural validation only
+not_claimed:
+  - semantic correctness
+evidence_refs:
+  - command: pytest
+    result: PASS
+"""
+
+    result = validate_response_envelope_text(text, check_plain_summary=True)
+
+    assert result["ok"] is False
+    assert "plain_summary_token_without_gloss:conclusion" in result["findings"]
+    assert "plain_summary_token_without_gloss:reason" in result["findings"]
+    assert "plain_summary_token_without_gloss:next_action" in result["findings"]
+
+
+def test_plain_summary_rejects_too_short_non_token_value() -> None:
+    text = """
+mode: VALIDATION
+mode_source: validation_command
+task_authority: user_request
+conclusion: 好了
+reason: The window closed and the classification held, so no blocker is needed.
+next_action: Hand the diff to the reviewer and wait for the verdict.
+claim_ceiling:
+  - structural validation only
+not_claimed:
+  - semantic correctness
+evidence_refs:
+  - command: pytest
+    result: PASS
+"""
+
+    result = validate_response_envelope_text(text, check_plain_summary=True)
+
+    assert result["ok"] is False
+    assert "plain_summary_not_prose:conclusion" in result["findings"]
+
+
+def test_plain_summary_and_quality_flags_are_independent() -> None:
+    text = (QUALITY_FIXTURE_ROOT / "valid_quality_minimal.md").read_text(
+        encoding="utf-8"
+    )
+
+    quality_only = validate_response_envelope_text(text, check_quality=True)
+    both = validate_response_envelope_text(
+        text, check_quality=True, check_plain_summary=True
+    )
+
+    assert quality_only["ok"] is True
+    assert both["ok"] is False
+    assert "plain_summary_missing_field:reason" in both["findings"]
+
+
+def test_cli_plain_summary_flag_gates_dense_fixture() -> None:
+    fixture = PLAIN_SUMMARY_FIXTURE_ROOT / "invalid_dense_review_reply.md"
+
+    without_flag = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "governance_tools.response_envelope_validator",
+            str(fixture),
+            "--format",
+            "json",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    with_flag = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "governance_tools.response_envelope_validator",
+            str(fixture),
+            "--format",
+            "json",
+            "--check-plain-summary",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert without_flag.returncode == 0
+    assert with_flag.returncode == 1
+    assert "plain_summary_" in with_flag.stdout
 
 
 def test_cli_quality_flag_fails_quality_invalid_fixture() -> None:

@@ -12,10 +12,16 @@ It validates:
   once, are non-empty after list-marker normalization, and appear before
   `evidence_refs`; label, value, and position are bound to the same field
   occurrence so a later duplicate cannot satisfy an earlier empty label
+- (opt-in, --check-plain-summary) `conclusion`, `reason`, and `next_action`
+  each appear exactly once before `evidence_refs` AND read as sentences
+  rather than bare machine tokens: a value consisting only of fixed
+  vocabulary (`APPROVED`, `PASS`, `needs review`, ...) fails; a machine
+  token accompanied by prose (a gloss) passes
 
 It does NOT validate semantic correctness, runtime enforcement, or artifact
-truthfulness. The quality check is structural label/position checking only; it
-cannot judge whether the conclusion is actually plain language.
+truthfulness. Both opt-in checks are structural proxies: they can raise the
+probability that a report answers "can we act / why / what next" up front,
+but they cannot prove a human will actually understand it.
 """
 
 from __future__ import annotations
@@ -78,6 +84,43 @@ QUALITY_FIELDS = (
 QUALITY_NONE_ALLOWED_FIELDS = {"next_action"}
 
 EVIDENCE_ANCHOR_FIELD = "evidence_refs"
+
+PLAIN_SUMMARY_FIELDS = (
+    "conclusion",
+    "reason",
+    "next_action",
+)
+
+# Fixed-vocabulary verdict/result words. A plain-summary field consisting only
+# of these (plus punctuation) is a bare machine token; with accompanying prose
+# the token is treated as glossed. Matching is case-insensitive on word
+# boundaries. In plain-summary mode `next_action: none` is NOT accepted: an
+# explicit no-action must be written as a sentence.
+MACHINE_TOKENS = (
+    "CHANGES_REQUESTED",
+    "NOT CLAIMED",
+    "NOT PRESENT",
+    "NOT RUN",
+    "APPROVED",
+    "BLOCKED",
+    "PASS",
+    "FAIL",
+    "DONE",
+    "needs more validation",
+    "do not touch yet",
+    "needs review",
+    "can merge",
+    "none",
+    "n/a",
+    "ok",
+    "tbd",
+)
+
+# Minimum letters/digits/CJK characters that must remain after machine tokens
+# are removed for a value to count as prose rather than a bare token.
+PLAIN_SUMMARY_MIN_PROSE_CHARS = 6
+
+_PROSE_CHAR_RE = re.compile(r"[0-9A-Za-z぀-ヿ一-鿿]")
 
 
 def _normalize_value(text: str) -> str:
@@ -211,16 +254,16 @@ def _extract_field_first_lines(text: str) -> dict[str, int]:
     return first_lines
 
 
-def _extract_quality_occurrences(text: str) -> dict[str, list[dict[str, Any]]]:
-    """Collect every occurrence of each quality field with its own value lines.
+def _extract_quality_occurrences(
+    text: str, fields: tuple[str, ...] = QUALITY_FIELDS
+) -> dict[str, list[dict[str, Any]]]:
+    """Collect every occurrence of each tracked field with its own value lines.
 
     Unlike ``_extract_fields`` this does NOT merge same-name occurrences: the
     value and line position stay bound to the occurrence that declared them,
     so a later duplicate cannot satisfy an earlier empty label.
     """
-    occurrences: dict[str, list[dict[str, Any]]] = {
-        field: [] for field in QUALITY_FIELDS
-    }
+    occurrences: dict[str, list[dict[str, Any]]] = {field: [] for field in fields}
     current: dict[str, Any] | None = None
 
     for index, raw_line in enumerate(text.splitlines()):
@@ -256,6 +299,77 @@ def _quality_occurrence_value(value_lines: list[str]) -> str:
         if line:
             cleaned.append(line)
     return _normalize_value(" ".join(cleaned))
+
+
+def _strip_machine_tokens(value: str) -> tuple[str, bool]:
+    """Remove machine tokens from a normalized value; report whether any hit."""
+    found = False
+    stripped = value
+    for token in sorted(MACHINE_TOKENS, key=len, reverse=True):
+        pattern = re.compile(
+            rf"(?<![0-9A-Za-z]){re.escape(token)}(?![0-9A-Za-z])", re.IGNORECASE
+        )
+        if pattern.search(stripped):
+            found = True
+            stripped = pattern.sub(" ", stripped)
+    return stripped, found
+
+
+def _plain_summary_check(
+    text: str,
+) -> tuple[list[str], list[dict[str, str]], dict[str, Any]]:
+    findings: list[str] = []
+    errors: list[dict[str, str]] = []
+    occurrences = _extract_quality_occurrences(text, fields=PLAIN_SUMMARY_FIELDS)
+    evidence_line = _extract_field_first_lines(text).get(EVIDENCE_ANCHOR_FIELD)
+
+    present: list[str] = []
+    ordered_before_evidence = True
+
+    for field in PLAIN_SUMMARY_FIELDS:
+        field_occurrences = occurrences[field]
+        if not field_occurrences:
+            findings.append(f"plain_summary_missing_field:{field}")
+            errors.append({"code": "plain_summary_missing_field", "field": field})
+            continue
+        present.append(field)
+
+        if evidence_line is not None and any(
+            occurrence["line"] > evidence_line for occurrence in field_occurrences
+        ):
+            ordered_before_evidence = False
+            findings.append(f"plain_summary_field_after_evidence:{field}")
+            errors.append(
+                {"code": "plain_summary_field_after_evidence", "field": field}
+            )
+
+        if len(field_occurrences) > 1:
+            findings.append(f"plain_summary_duplicate_field:{field}")
+            errors.append({"code": "plain_summary_duplicate_field", "field": field})
+            continue
+
+        value = _quality_occurrence_value(field_occurrences[0]["value_lines"])
+        if not value:
+            findings.append(f"plain_summary_empty_field:{field}")
+            errors.append({"code": "plain_summary_empty_field", "field": field})
+            continue
+
+        stripped, had_token = _strip_machine_tokens(value)
+        prose_chars = len(_PROSE_CHAR_RE.findall(stripped))
+        if prose_chars < PLAIN_SUMMARY_MIN_PROSE_CHARS:
+            code = (
+                "plain_summary_token_without_gloss"
+                if had_token
+                else "plain_summary_not_prose"
+            )
+            findings.append(f"{code}:{field}")
+            errors.append({"code": code, "field": field, "value": value})
+
+    signals = {
+        "plain_summary_fields_present": present,
+        "plain_summary_ordered_before_evidence": ordered_before_evidence,
+    }
+    return findings, errors, signals
 
 
 def _quality_check(text: str) -> tuple[list[str], list[dict[str, str]], dict[str, Any]]:
@@ -305,7 +419,7 @@ def _quality_check(text: str) -> tuple[list[str], list[dict[str, str]], dict[str
 
 
 def validate_response_envelope_text(
-    text: str, *, check_quality: bool = False
+    text: str, *, check_quality: bool = False, check_plain_summary: bool = False
 ) -> dict[str, Any]:
     fields = _extract_fields(text)
     findings: list[str] = []
@@ -380,6 +494,11 @@ def validate_response_envelope_text(
         quality_findings, quality_errors, quality_signals = _quality_check(text)
         findings.extend(quality_findings)
         errors.extend(quality_errors)
+    if check_plain_summary:
+        plain_findings, plain_errors, plain_signals = _plain_summary_check(text)
+        findings.extend(plain_findings)
+        errors.extend(plain_errors)
+        quality_signals = {**quality_signals, **plain_signals}
 
     return {
         "ok": not errors,
@@ -400,10 +519,12 @@ def validate_response_envelope_text(
 
 
 def validate_response_envelope_file(
-    path: Path, *, check_quality: bool = False
+    path: Path, *, check_quality: bool = False, check_plain_summary: bool = False
 ) -> dict[str, Any]:
     return validate_response_envelope_text(
-        path.read_text(encoding="utf-8"), check_quality=check_quality
+        path.read_text(encoding="utf-8"),
+        check_quality=check_quality,
+        check_plain_summary=check_plain_summary,
     )
 
 
@@ -433,13 +554,20 @@ def _iter_input_paths(paths: list[Path]) -> tuple[list[Path], list[dict[str, str
 
 
 def validate_response_envelope_paths(
-    paths: list[Path], *, check_quality: bool = False
+    paths: list[Path],
+    *,
+    check_quality: bool = False,
+    check_plain_summary: bool = False,
 ) -> dict[str, Any]:
     files, path_errors = _iter_input_paths(paths)
     results: list[dict[str, Any]] = []
 
     for path in files:
-        report = validate_response_envelope_file(path, check_quality=check_quality)
+        report = validate_response_envelope_file(
+            path,
+            check_quality=check_quality,
+            check_plain_summary=check_plain_summary,
+        )
         results.append({"path": str(path), **report})
 
     valid_count = sum(1 for item in results if item["ok"])
@@ -474,11 +602,22 @@ def main() -> None:
             "evidence_refs. Off by default; default behavior is unchanged."
         ),
     )
+    parser.add_argument(
+        "--check-plain-summary",
+        action="store_true",
+        help=(
+            "Opt-in: additionally require conclusion, reason, and next_action "
+            "to appear before evidence_refs and to read as sentences rather "
+            "than bare machine tokens (a token needs an accompanying "
+            "plain-language gloss). Off by default."
+        ),
+    )
     args = parser.parse_args()
 
     report = validate_response_envelope_paths(
         [Path(path) for path in args.paths],
         check_quality=args.check_response_quality,
+        check_plain_summary=args.check_plain_summary,
     )
 
     if args.format == "json":
