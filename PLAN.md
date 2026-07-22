@@ -66,7 +66,7 @@ nearby status text remain the authority for whether an item is complete.
 | --- | --- |
 | Phase A--E | Major work periods: core baseline; adoption/memory foundations; runtime observation; external adoption/reviewer workflow; and the current failure-boundary/exclusion/usage-enforcement line. |
 | P0 / P1 / P2 | Priority groups; the letter identifies a work item within that group. |
-| P1-C | First external F-7 verification for `meiandraybook`, including a natural-session closeout-receipt check that is still pending production evidence. |
+| P1-C | First external F-7 verification for `meiandraybook`; the natural-session closeout-receipt check completed read-only on 2026-07-22, while its separate consumer memory blocker remains outside P1-C. |
 | P1-D | Structured `plan_reconciliation` declaration for canonical memory records. |
 | P1-E | Observation evidence for declaration behavior; it does not by itself authorize enforcement. |
 | P1-F | Decision about stronger declaration enforcement. Decided 2026-07-18: keep advisory and do not add a current-diff blocker; reopen only after a natural post-Option-B `not_declared` failure. |
@@ -805,33 +805,27 @@ P1-C, or re-running the completed apply to manufacture new evidence.
 - [x] Verify consuming repo `AGENTS.md` routes memory tasks to dispatcher before
   memory completion claims: verified read-only against origin/main
   (`governance:key=memory_workflow` keyed section, AGENTS.md:583).
-- [ ] Verify external repo closeout receipts persist the current schema `1.3`
-  memory-workflow fields: PENDING PRODUCTION VALIDATION — the historical
-  2026-06-13 code-path check was for then-current schema `1.2`
-  (`schema_1_2_code_ready=true`, submodule `0eafe10`, all
-  `memory_workflow_*` fields present). The current framework writer emits
-  `CLOSEOUT_RECEIPT_SCHEMA_VERSION="1.4"` (bumped 2026-07-16 for runtime
-  binding, Agent Runtime Evaluation tranche 1; external repos keep emitting
-  the version pinned by their submodule commit — `1.3` until their next F-7,
-  which is out of tranche-1 scope), and the schema accepts `1.1`-`1.4`;
-  `stop_hook_path_verified=true` (`.claude/settings.json` Stop hook points to
-  submodule `session_closeout_entry.py`); `latest_existing_receipt_schema=1.1`
-  (receipt `20260531T160517Z`); `post_f7_natural_receipt_exists=false`;
-  `production_schema_1_3_validation=pending`.
-  Manual invocation (Option A) explicitly deferred: a hand-triggered receipt
-  cannot prove Stop hook production path or natural session context, and would
-  create evidence that looks like F-7 natural-session validation but cannot
-  support that claim — do not create it unless labeled `manual_invocation_only /
-  not_natural_session / not_production_closeout_evidence`.
-  Close condition (all six must be observed in the same natural-session receipt):
-  open a real meiandraybook session after F-7, allow the normal Stop hook to
-  close it, then inspect the newest `artifacts/runtime/closeout-receipts/` entry
-  and verify: (1) `schema_version` equals the `CLOSEOUT_RECEIPT_SCHEMA_VERSION`
-  of the submodule commit actually in production (`1.3` for the current
-  external pin; `1.4` after a future F-7 update); (2) `memory_workflow_dispatch_ran`
-  exists; (3) `memory_workflow_status` exists; (4) `memory_workflow_warning_codes`
-  exists; (5) `memory_workflow_blocker_codes` exists; (6)
-  `memory_workflow_guard_summary` exists. Check box only after all six confirmed.
+- [x] Verify external repo closeout receipts persist the pinned writer schema
+  and memory-workflow fields: completed by read-only adjudication on 2026-07-22.
+  The qualifying natural-session artifact is meiandraybook receipt
+  `closeout_receipt_20260722T062442354802Z.json`. The consumer gitlink and
+  nested framework HEAD are `8a98df2e`, whose writer emits schema `1.4`; the
+  receipt has `schema_version="1.4"` and persists all six close-condition
+  surfaces in the same artifact: `memory_workflow_dispatch_ran`,
+  `memory_workflow_status`, `memory_workflow_warning_codes`,
+  `memory_workflow_blocker_codes`, and `memory_workflow_guard_summary`, plus
+  the pinned schema match.
+  Natural Stop-hook provenance is external to the receipt's `unknown` identity
+  fields: meiandraybook `.claude/settings.json` routes `Stop` to the pinned
+  `session_closeout_entry.py`, and the matching Claude session transcript
+  records `attachment_type=hook_success`, `hookName=Stop`, `hookEvent=Stop`,
+  `cwd=D:\meiandraybook`, and the same session UUID approximately 19 ms after
+  receipt creation. No manual receipt was created or replayed for this verdict.
+  Separate consumer memory state remains explicit: the receipt reports
+  `active_non_canonical_writer=1` and `memory_completion_claim_allowed=false`.
+  That blocker prevents a clean consumer memory-completion claim but does not
+  invalidate P1-C schema/field persistence or natural Stop-hook provenance;
+  its correction requires a separately authorized consumer-memory slice.
 - [x] Keep submodule pointer update reported as stage success only, not F-7
   completion: accepted evidence shows `full_update_completed` came from full
   surface verification, not pointer-only.
@@ -848,12 +842,16 @@ P1-C claim ceiling (locked 2026-06-12 before execution):
 - CAN CLAIM: meiandraybook used as first external F-7 verification target;
   selected F-7 update surfaces verified or explicitly failed; fleet snapshot
   refreshed as evidence; memory_layout alias behavior observed; rollback
-  expectation observed; manual reconciliation fixture produced.
+  expectation observed; manual reconciliation fixture produced; the 2026-07-22
+  natural Stop-hook receipt matches pinned schema `1.4` and persists the P1-C
+  memory-workflow close-condition fields.
 - CANNOT CLAIM: F-7 works for all consumers; fleet rollout complete;
   copy-based consumers solved; rollback procedure implemented; blocking
   validator added; automatic PLAN reconciliation solved; primary
   meiandraybook worktree updated; stale dirty worktree resolved; the F-7
-  apply was originally executed in this slice.
+  apply was originally executed in this slice; the 2026-07-22 consumer
+  closeout gate passed; consumer memory completion was allowed; the separate
+  `active_non_canonical_writer` blocker was corrected.
 - Hard limit: on unexpected dirty state, destructive update behavior, or
   ambiguous repo role, stop at diagnosis and report; do not push through
   remaining checklist items. A verification slice must not silently become

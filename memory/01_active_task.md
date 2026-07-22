@@ -3,7 +3,8 @@
 > Refreshed 2026-07-22 from pre-refresh HEAD `8a98df2e` after the opt-in
 > plain-summary v0.5 slice (`c8c06f3e`) and the owner-decided P1-F advisory
 > disposition (`ba50b0f4`, publication record through `8a98df2e`).
-> Source surfaces: `PLAN.md` as present at `8a98df2e`,
+> Source surfaces: `PLAN.md` as present at `8a98df2e` plus the 2026-07-22
+> read-only P1-C natural-receipt adjudication,
 > `memory/2026-07-18.md`, `governance/RESPONSE_ENVELOPE_CONTRACT.md`, the
 > published validator-census artifact / closeout chain, the frozen v3 closure
 > record, and the 2026-07-13 review records retained in
@@ -23,9 +24,21 @@
   current-diff blocker. Reopen only after a natural post-Option-B
   `not_declared` record; the runtime `session_end` writer path remains
   unproven, not fixed.
+- **P1-C natural-receipt validation is complete.** The meiandraybook
+  `closeout_receipt_20260722T062442354802Z.json` matches its pinned schema
+  `1.4`, persists the required memory-workflow surfaces, and is bound to a
+  matching Claude transcript `Stop` hook-success event. Receipt-local
+  `trigger_mode`, `agent_id`, runtime detection, and sample origin remain
+  `unknown`; they were not used as natural-trigger provenance.
+- **The receipt exposes a separate consumer memory blocker.** It reports
+  `active_non_canonical_writer=1` and `memory_completion_claim_allowed=false`.
+  This does not reopen P1-C and does not make `memory_write_performed=false` a
+  standalone defect. Any writer correction requires its own authorized
+  consumer-memory slice.
 - **The next evidence steps are natural-use observations, not manufactured
-  work.** Use `--check-plain-summary` on a real reviewer response and wait for
-  the next qualifying `meiandraybook` natural-session receipt for P1-C.
+  work.** Use `--check-plain-summary` on a real reviewer response and group
+  natural consumer activity by real work item before making any G4 outcome
+  claim; do not manufacture receipts or samples.
 - **Validator census is completed and frozen as a historical snapshot.**
   Published scope: plan publication at `6a20d0a6`, fixed-snapshot artifact at
   `a89ee202`, closeout checkpoint at `63462432`. The artifact is explicitly
@@ -224,9 +237,10 @@
   unauthorized from this repo: define one source-to-result credit-card slice
   with identity, duplicate behavior, minimum usable outcome, and acceptance
   data before product implementation.
-- P1-C still lacks a qualifying post-F-7 natural `meiandraybook` Stop-hook
-  receipt. Do not manufacture one; inspect the next real production receipt
-  when it occurs.
+- P1-C's receipt-persistence close condition was satisfied by the natural
+  2026-07-22 `meiandraybook` Stop-hook event. This proves the scoped receipt
+  path only; it does not prove a passing closeout gate, allowed consumer memory
+  completion, fleet-wide F-7 behavior, or G4 outcome value.
 - Cache-aware / AUTHORITY_MANIFEST remains candidate-only without prompt-cache
   control, runtime hook wiring, or harness adoption.
 - Learning-loop Gate 3 remains closed; advisory prep does not authorize
