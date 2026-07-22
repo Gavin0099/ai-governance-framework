@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": ".\\.venv\\Scripts\\python.exe -m governance_tools.governance_drift_checker --repo . --format json",
+  "exit_code": 0,
+  "started_at": "2026-07-22T06:23:25Z",
+  "finished_at": "2026-07-22T06:23:26Z",
+  "runner": "codex",
+  "linked_commit": "7401de3681f695d59a6fb0080073584aa351f704",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-plan-active-baseline-alignment-20260722.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
