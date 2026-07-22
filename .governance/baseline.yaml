@@ -11,18 +11,18 @@
 # ── PROVENANCE ────────────────────────────────────────────────────────────────
 schema_version: "1"
 baseline_version: 1.0.0
-source_commit: 7942572398b9119b08e8c125c63a9c0d01016d22
-framework_root: E:\BackUp\Git_EE\ai-governance-framework
-initialized_at: 2026-06-18T07:20:54Z
+source_commit: 8a98df2e358831733af374c297122ecb74d0d8fe
+framework_root: D:\ai-governance-framework
+initialized_at: 2026-07-22T06:12:51Z
 initialized_by: governance_tools/adopt_governance.py
 
 # ── INTEGRITY ─────────────────────────────────────────────────────────────────
-# sha256.<file>: hash recorded at init/refresh time; "protected" files are hash-verified
+# sha256.<file>: canonical-LF hash recorded at init/refresh time; "protected" files are hash-verified
 # overridable.<file>: protected = must not change | overridable = repo may extend freely
-sha256.AGENTS.base.md: 838a89cece87a4b14146fad13ca9ef6b66299595067c40a883a0b9c6b18f56df
-sha256.PLAN.md: 0559a9b068d0f1a066b64e738f3f5e22a2c4e101408cbe6ab66f8d576c0d5638
-sha256.contract.yaml: 6fd79cddc8852ecb7992004808bfb7916675d8bb285ed043c0623078b341a168
-sha256.AGENTS.md: 68fdabf4a72f5105e5c13b90ed025b27fb889cfb536d58471157fcf38fdd0d00
+sha256.AGENTS.base.md: d3c025e3cffa9c00e3f38d0a104b4767a5ca15eb343dc7d03d8654c37cef8509
+sha256.PLAN.md: 0d6f4e02d245fab71b6458aef9842067b298e0a92a75e3f7a6626a1d66545f5e
+sha256.contract.yaml: dd91f44db6d02de69b15f6e5fb43ea46b33ff5d6b00cc485c8aed6bb11cb52e9
+sha256.AGENTS.md: 8e15e1cdeec7bc4926688f14e7007723338a26af648022b8c1933d483fc0d102
 overridable.AGENTS.base.md: protected
 overridable.PLAN.md: overridable
 overridable.contract.yaml: overridable
@@ -49,6 +49,7 @@ plan_section_inventory:
   - "## Canonical Planning Surface"
   - "## Encoding Repair Notice - 2026-06-10"
   - "## Phase Overview"
+  - "## Work Item Glossary"
   - "## Current Sprint - 2026-06-10"
   - "## Active Claim Boundaries"
   - "## Pending Work - Ordered"

@@ -1,27 +1,31 @@
 # Active Task
 
-> Refreshed 2026-07-17 after the opt-in response-quality slice (`61673ca9`,
-> review fixes `96256f09` and `f85d5560`) and PLAN reconciliation commit
-> `48c66323`.
-> Source surfaces: `PLAN.md` at `48c66323`, `memory/2026-07-17.md`
-> (validator census publication entry for `a89ee202` and the separately
-> recorded plain-language response-quality candidate), the published census
-> artifact / closeout chain, `governance/RESPONSE_ENVELOPE_CONTRACT.md`, the
-> frozen v3 closure record, and the 2026-07-13 review records retained in
+> Refreshed 2026-07-22 from pre-refresh HEAD `8a98df2e` after the opt-in
+> plain-summary v0.5 slice (`c8c06f3e`) and the owner-decided P1-F advisory
+> disposition (`ba50b0f4`, publication record through `8a98df2e`).
+> Source surfaces: `PLAN.md` as present at `8a98df2e`,
+> `memory/2026-07-18.md`, `governance/RESPONSE_ENVELOPE_CONTRACT.md`, the
+> published validator-census artifact / closeout chain, the frozen v3 closure
+> record, and the 2026-07-13 review records retained in
 > `memory/04_review_log.md`.
 > Claim: this file is point-in-time aligned to those authority surfaces, no
 > more.
 
 ## Current Focus
 
-- **The opt-in response-quality slice is implemented and review-fixed; no
-  further implementation slice is active.** `61673ca9` added
-  `--check-response-quality` to `response_envelope_validator.py`; `96256f09`
-  fixed the review-found per-occurrence binding false-negative, and
-  `f85d5560` fixed the duplicate-branch ordering signal. The check
-  stays opt-in: enabling it in any hook, CI, gate, or default invocation is a
-  separate owner decision, and further response-quality expansion waits for a
-  real consumer failure.
+- **No framework implementation slice is active.** The latest completed
+  implementation is opt-in plain-summary v0.5 (`c8c06f3e`), which followed
+  the opt-in response-quality slice (`61673ca9`, review fixes `96256f09` and
+  `f85d5560`). Both checks stay opt-in; no hook, CI, gate, or default
+  invocation enables them, and further expansion waits for observed natural
+  use or a new owner-authorized product need.
+- **P1-F is closed as advisory.** The owner decided at `ba50b0f4` not to add a
+  current-diff blocker. Reopen only after a natural post-Option-B
+  `not_declared` record; the runtime `session_end` writer path remains
+  unproven, not fixed.
+- **The next evidence steps are natural-use observations, not manufactured
+  work.** Use `--check-plain-summary` on a real reviewer response and wait for
+  the next qualifying `meiandraybook` natural-session receipt for P1-C.
 - **Validator census is completed and frozen as a historical snapshot.**
   Published scope: plan publication at `6a20d0a6`, fixed-snapshot artifact at
   `a89ee202`, closeout checkpoint at `63462432`. The artifact is explicitly
@@ -51,6 +55,18 @@
 
 ## Current Status
 
+- **Opt-in plain-summary validation completed and published (2026-07-18)**:
+  `c8c06f3e` added `--check-plain-summary`, requiring sentence-shaped
+  `conclusion`, `reason`, and `next_action` fields before `evidence_refs` when
+  explicitly enabled. Focused validation recorded 35 passing tests. Default
+  behavior remains unchanged; the check cannot prove reader comprehension and
+  is not enabled in hooks, CI, gates, or default invocation.
+- **P1-F advisory disposition completed and published (2026-07-18)**:
+  `ba50b0f4` records the owner decision to keep plan reconciliation advisory
+  and add no current-diff blocker; memory and publication records continue
+  through `8a98df2e`. Reopening requires a natural post-Option-B
+  `not_declared` failure. No writer, validator, hook, CI, gate, or enforcement
+  behavior changed.
 - **Opt-in response-quality validation implemented and review-fixed
   (2026-07-17)**: `61673ca9` added `--check-response-quality` (opt-in;
   default behavior, output shape, and exit codes unchanged) with zh/en
@@ -188,13 +204,13 @@
 
 ## Next Steps
 
-1. Stop framework expansion here. The plain-language validation candidate is
-   already implemented (`61673ca9`, review fixes `96256f09` and `f85d5560`);
-   do not re-authorize or extend it.
-2. Keep `--check-response-quality` opt-in. Enabling it in any hook, CI, gate,
-   or default invocation is a separate owner decision.
-3. Wait for a real consumer failure or a new owner-authorized product need
-   before opening any further slice.
+1. Use `--check-plain-summary` manually on the next real reviewer response and
+   treat direct reader feedback as the success signal.
+2. Keep both response checks opt-in. Enabling either in a hook, CI, gate, or
+   default invocation is a separate owner decision.
+3. Wait for a natural post-Option-B `not_declared` record, a qualifying
+   `meiandraybook` natural-session receipt, a real consumer failure, or a new
+   owner-authorized product need before opening another implementation slice.
 
 ## Historical Context Retained
 

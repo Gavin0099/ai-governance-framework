@@ -2,7 +2,7 @@
 
 ## Canonical Planning Surface
 
-> **最後更新**: 2026-07-14
+> **最後更新**: 2026-07-22
 > **Owner**: GavinWu
 > **Freshness**: Sprint (7d)
 > **Created**: 2026-04-10
@@ -92,7 +92,7 @@ Phase E posture:
 
 ## Current Sprint - 2026-06-10
 
-Current refresh - 2026-07-17:
+Current refresh - 2026-07-22:
 
 Theme:
 
@@ -328,6 +328,9 @@ Claim ceiling for this sprint:
 
 Latest milestone commits:
 
+- `8a98df2e chore(memory): record P1-F publication`
+- `ba50b0f4 docs(governance): close P1-F as advisory`
+- `c8c06f3e feat(governance): add opt-in plain-summary validation`
 - `63462432 chore(memory): record validator census publication`
 - `a89ee202 docs(governance): add validator census e737 snapshot`
 - `a3dbf022 feat: add fail-closed offline submodule onboarding`
@@ -1429,13 +1432,14 @@ history.
 
 This planning / structured-memory bookkeeping refresh is done when:
 
-- `PLAN.md` records the 2026-07-06 current focus, completed scope, pending
-  work, claim ceilings, and non-claims.
-- `memory/01_active_task.md` is refreshed from `PLAN.md` plus canonical daily
-  memory, not from unbound session narrative.
-- Claim ceilings and non-claims are explicit.
-- Scoped diff checks pass for `PLAN.md` and `memory/01_active_task.md`.
-- `governance_drift_checker` is checked before and after the refresh.
+- `PLAN.md`, `memory/01_active_task.md`, and `.governance/baseline.yaml`
+  are point-in-time aligned to pre-refresh HEAD `8a98df2e`.
+- `PLAN.md` and `memory/01_active_task.md` record the completed opt-in
+  plain-summary v0.5 slice and the owner-decided P1-F advisory disposition.
+- `governance_drift_checker` returns `severity=ok` after the governed
+  baseline refresh.
+- Runtime, hook, CI, gate, and enforcement behavior remain unchanged.
+- Scoped diff and memory-workflow checks pass for the changed surfaces.
 - The refresh is committed separately from unrelated runtime ledgers.
 - A canonical memory record is written after the commit.
 
