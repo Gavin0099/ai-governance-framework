@@ -14,12 +14,13 @@
 
 ## Current Focus
 
-- **No framework implementation slice is active.** The latest completed
-  implementation is opt-in plain-summary v0.5 (`c8c06f3e`), which followed
-  the opt-in response-quality slice (`61673ca9`, review fixes `96256f09` and
-  `f85d5560`). Both checks stay opt-in; no hook, CI, gate, or default
-  invocation enables them, and further expansion waits for observed natural
-  use or a new owner-authorized product need.
+- **The owner-facing completion summary has been narrowed from real use.** A
+  2026-07-22 report was still too technical even after the opt-in plain-summary
+  v0.5 work. The bounded v0.6 response-contract refinement makes the result,
+  reason, and next step the literal first three non-empty lines and moves the
+  audit detail after them. Acceptance is actual reader understanding. The
+  existing validator stays opt-in and unchanged; no hook, CI, gate, or default
+  invocation is added.
 - **P1-F is closed as advisory.** The owner decided at `ba50b0f4` not to add a
   current-diff blocker. Reopen only after a natural post-Option-B
   `not_declared` record; the runtime `session_end` writer path remains
@@ -36,7 +37,8 @@
   standalone defect. Any writer correction requires its own authorized
   consumer-memory slice.
 - **The next evidence steps are natural-use observations, not manufactured
-  work.** Use `--check-plain-summary` on a real reviewer response and group
+  work.** Apply the v0.6 three-line preface to real completion responses and
+  use the owner's reading judgment as the evidence signal. Separately, group
   natural consumer activity by real work item before making any G4 outcome
   claim; do not manufacture receipts or samples.
 - **Validator census is completed and frozen as a historical snapshot.**
@@ -68,6 +70,10 @@
 
 ## Current Status
 
+- **Owner-facing completion summary v0.6 refined locally (2026-07-22)**:
+  Contract examples and final-report templates now start with three plain
+  lines — result, reason, next step — before any technical evidence. The
+  response-quality and plain-summary validators were not changed or enabled.
 - **Opt-in plain-summary validation completed and published (2026-07-18)**:
   `c8c06f3e` added `--check-plain-summary`, requiring sentence-shaped
   `conclusion`, `reason`, and `next_action` fields before `evidence_refs` when
@@ -217,13 +223,12 @@
 
 ## Next Steps
 
-1. Use `--check-plain-summary` manually on the next real reviewer response and
-   treat direct reader feedback as the success signal.
-2. Keep both response checks opt-in. Enabling either in a hook, CI, gate, or
-   default invocation is a separate owner decision.
-3. Wait for a natural post-Option-B `not_declared` record, a qualifying
-   `meiandraybook` natural-session receipt, a real consumer failure, or a new
-   owner-authorized product need before opening another implementation slice.
+1. Use the v0.6 first-three-line preface on real completion responses and treat
+   direct owner understanding — not validator output — as the success signal.
+2. Keep both response checks opt-in and unchanged. Enabling either in a hook,
+   CI, gate, or default invocation is a separate owner decision.
+3. Group natural consumer activity by real work item before any G4 outcome
+   claim; do not manufacture evidence to fill that gap.
 
 ## Historical Context Retained
 

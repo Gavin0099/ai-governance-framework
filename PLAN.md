@@ -213,6 +213,14 @@ Current next candidate:
   prove comprehension; the real success signal remains direct reader
   feedback. Default behavior unchanged; no hook/CI/gate enables either
   check.
+- [x] Third failure-driven owner-summary refinement (owner-authorized
+  2026-07-22): a real completion report still made the owner decode technical
+  state before finding the result and next move. Contract v0.6 now makes the
+  literal first three non-empty lines `Result / Reason / Next step` (translated
+  to the session language), moves technical evidence after that preface, and
+  uses actual reader understanding as acceptance. The existing opt-in
+  validator remains unchanged; no hook, CI, gate, or default enforcement was
+  added.
 - [ ] For every other framework-expansion direction, wait for a real consumer
   failure or a new product need before opening a slice.
 

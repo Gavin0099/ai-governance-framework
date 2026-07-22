@@ -6,7 +6,7 @@ overridden_by: AGENT.md
 default_load: on-demand
 ---
 
-# Response Envelope Contract v0.5
+# Response Envelope Contract v0.6
 
 > v0.2 (2026-06-24): added the Evidence Term Glossing plain-language
 > requirement (advisory; not validated by `response_envelope_validator.py`).
@@ -19,6 +19,11 @@ default_load: on-demand
 > (`--check-plain-summary`) after direct owner feedback that a
 > structurally valid report was still unreadable; default behavior remains
 > unchanged, and no gate enables either check.
+> v0.6 (2026-07-22): after another real owner report was still too technical,
+> made the owner-facing result / reason / next-step preface the literal first
+> three non-empty lines and moved the audit ledger after it. Acceptance remains
+> actual reader judgment; no validator, hook, CI, gate, or default behavior was
+> added or changed.
 
 ## Purpose
 
@@ -186,13 +191,24 @@ Rules:
   the session language, consistent with the Result-First Final Report Format
   rule.
 
-Owner-facing summary structure (added 2026-07-12 after two observed
-comprehension failures: an onboarded engineer could not decode adoption
-state, and the owner could not act on a jargon-dense progress summary until
-it was rewritten in plain language):
+Owner-facing summary structure (refined 2026-07-22 after a third observed
+comprehension failure: the report preserved its claim boundary but still made
+the owner decode technical state before learning what to do):
 
-- Open with one plain sentence saying what this line of work is and where it
-  stands, before any codes or metrics.
+- The first three non-empty lines must be, in the session language and in this
+  order: `Result: ...`, `Reason: ...`, `Next step: ...` (or translated labels
+  such as `結果：...`, `原因：...`, `下一步：...`).
+- Put no heading, table, preamble, work-item code, commit hash, command, raw
+  governance field, or fixed-vocabulary verdict before those three lines.
+- Each line must stand alone as a plain sentence. Do not make the reader follow
+  a reference such as "as above", "see evidence", or an unexplained code to
+  understand the answer.
+- The result says whether the requested outcome is usable now. The reason says
+  the one decisive fact that makes that result credible. The next step says one
+  concrete owner or agent action; if no action is needed, say that in a full
+  sentence.
+- Begin technical evidence only after the three-line preface. Preserve raw
+  evidence, claim ceilings, risks, and non-claims there for independent review.
 - Prefer a short table of "problem found → what was changed" over narrative
   paragraphs when reporting multi-step work.
 - When the owner must decide something, list each decision as a numbered
@@ -203,20 +219,28 @@ it was rewritten in plain language):
 - Method self-commentary (process praise, cadence narration) goes last or is
   omitted; it must never displace the decision questions.
 
-Authority boundary: this is an advisory reviewer-facing convention. The
-structural `response_envelope_validator.py` does not check glossing or
-summary structure, and no gate blocks a report that omits them. A report
-from an agent that does not load this contract will not follow it. This
-requirement reduces reviewer decoding burden; it is not mechanically
-enforced. Repositories that adopt and load this framework contract can use
-the same reporting rules; adoption alone does not guarantee application.
+Acceptance is the owner's actual reading judgment: after the first three lines,
+the owner can state the result, why it is trustworthy, and what happens next
+without decoding the technical section. The opt-in
+`response_envelope_validator.py --check-plain-summary` remains only a
+sentence/ordering proxy for structured envelopes; it does not verify the
+rendered first-three-line placement or human comprehension.
 
-## Next-Step Judgment (Required Closing Section)
+Authority boundary: this is an advisory reviewer-facing convention. No hook,
+CI job, gate, or default validator invocation blocks a report that omits it. A
+report from an agent that does not load this contract will not follow it. This
+requirement reduces reviewer decoding burden; it is not mechanically enforced.
+Repositories that adopt and load this framework contract can use the same
+reporting rules; adoption alone does not guarantee application.
+
+## Next-Step Judgment (Required Decision Content)
 
 A completion report exists so a human can decide the next step, not as an
 archive. Reports for completion-class tasks (governance checks, code changes,
 validation, memory / provenance, commit / push, handoff / reviewer summary)
-must close with a Next-Step Judgment containing:
+must contain the following decision content. Its result, reason, and next action
+lead the report in the three-line preface; technical support and non-claims may
+follow in the audit ledger:
 
 - `status`: done / partially done / not done
 - `basis to trust`: which tests, commits, or artifacts support the status
@@ -315,6 +339,9 @@ Honest boundary (do not inflate this check):
   enough characters will pass. Validation raises the probability of a
   readable report; it does not prove readability. The real success signal
   remains direct reader feedback.
+- v0.6 does not expand this check to police rendered line numbers. The contract
+  requires a literal three-line owner preface, while this opt-in validator keeps
+  its existing structured-envelope scope.
 - No semantic scoring, no AI judgment, no readability metrics.
 - No hook, CI job, gate, or default invocation enables this flag; enabling
   it anywhere is a separate, owner-authorized change.
@@ -345,7 +372,9 @@ The envelope must preserve the same claim discipline as Rule 7:
 
 ## Result-First Final Report Format
 
-Final reports should be result-first, not process-first.
+Final reports should be result-first, not process-first. The first three
+non-empty lines are the owner-facing preface. A blank line and the technical
+ledger follow; the ledger must not interrupt the preface.
 
 Content language must match the session language. Sub-field labels
 (`structural`, `build`, `semantic`, `behavioral`, `ext evidence`, `scope drift`,
@@ -356,46 +385,54 @@ headers may be translated.
 English session format:
 
 ```text
-1. Result: Done / Not done
-2. Capability increased:
-3. Changed files:
-4. Validation:
+Result: <plain sentence saying whether the requested outcome is usable now>.
+Reason: <plain sentence naming the decisive fact>.
+Next step: <one concrete action, or a full sentence saying no action is needed>.
+
+Technical evidence:
+1. Capability increased:
+2. Changed files:
+3. Validation:
    - structural:    PASS — <command> | FAIL — <command> | NOT RUN
    - build:         PASS — <command> | FAIL — <command> | NOT RUN
    - semantic:      NOT CLAIMED | PASS — human review: [reviewer/date]
    - behavioral:    NOT PRESENT | verified — [how]
    - ext evidence:  NOT PRESENT | [source and scope]
-5. Risk:
+4. Risk:
    - scope drift:        none | [description]
    - claim inflation:    none | [description]
    - evidence maturity:  [one line]
-6. Incidental cleanup:   none | file=[path] reason=[why] semantic_change=no
-7. Governance surface change: none / list
-8. Remaining blocker:
-9. Cannot claim this session:
+5. Incidental cleanup:   none | file=[path] reason=[why] semantic_change=no
+6. Governance surface change: none / list
+7. Remaining blocker:
+8. Cannot claim this session:
    - [list what was NOT validated, NOT verified, NOT proven — required, never omit]
 ```
 
 Chinese session format:
 
 ```text
-1. 結果：完成 / 未完成
-2. 能力提升：
-3. 變更檔案：
-4. 驗證：
+結果：<用一句白話說明要求的成果現在是否可用>。
+原因：<用一句白話說明最關鍵的可信依據>。
+下一步：<一個具體行動；若不需行動，也要寫成完整句子>。
+
+技術證據：
+1. 能力提升：
+2. 變更檔案：
+3. 驗證：
    - structural:    PASS — <指令> | FAIL — <指令> | NOT RUN
    - build:         PASS — <指令> | FAIL — <指令> | NOT RUN
    - semantic:      NOT CLAIMED | PASS — 人工審查：[審查者/日期]
    - behavioral:    NOT PRESENT | 已驗證 — [如何]
    - ext evidence:  NOT PRESENT | [來源與範圍]
-5. 風險：
+4. 風險：
    - scope drift:        none | [說明]
    - claim inflation:    none | [說明]
    - evidence maturity:  [一行說明]
-6. 附帶清理：   none | file=[路徑] reason=[原因] semantic_change=no
-7. Governance surface 變更：none / 列舉
-8. 剩餘阻擋：
-9. 本次無法宣告：
+5. 附帶清理：   none | file=[路徑] reason=[原因] semantic_change=no
+6. Governance surface 變更：none / 列舉
+7. 剩餘阻擋：
+8. 本次無法宣告：
    - [列出未驗證、未確認、未證明的項目 — 必填，不得省略]
 ```
 
@@ -404,23 +441,27 @@ Chinese session format:
 Schema-only change:
 
 ```text
-1. Result: Done
-2. Capability increased: section_refs schema extended
-3. Changed files: wiki/port-status.md
-4. Validation:
+Result: The requested schema field is added and the scoped file is ready for review.
+Reason: The structural validator found the new field and returned successfully.
+Next step: Review the scoped diff before committing it.
+
+Technical evidence:
+1. Capability increased: section_refs schema extended
+2. Changed files: wiki/port-status.md
+3. Validation:
    - structural:    PASS — grep section_refs wiki/port-status.md
    - build:         NOT RUN — markdown-only change
    - semantic:      NOT CLAIMED
    - behavioral:    NOT PRESENT
    - ext evidence:  NOT PRESENT
-5. Risk:
+4. Risk:
    - scope drift:        none
    - claim inflation:    none
    - evidence maturity:  structural layer only; no semantic verification
-6. Incidental cleanup:   none
-7. Governance surface change: none
-8. Remaining blocker:     none
-9. Cannot claim this session:
+5. Incidental cleanup:   none
+6. Governance surface change: none
+7. Remaining blocker:     none
+8. Cannot claim this session:
    - semantic correctness of section references
    - PDF-level content verification
 ```
@@ -428,23 +469,27 @@ Schema-only change:
 Pilot attachment change:
 
 ```text
-1. Result: Done
-2. Capability increased: 4 port entries have section_refs attached
-3. Changed files: wiki/port-status.md, wiki/zh/port-status.md
-4. Validation:
+Result: Four existing port entries now include the requested references and are ready for review.
+Reason: The frontmatter validator and project build both completed successfully.
+Next step: Review the four-entry pilot before expanding coverage.
+
+Technical evidence:
+1. Capability increased: 4 port entries have section_refs attached
+2. Changed files: wiki/port-status.md, wiki/zh/port-status.md
+3. Validation:
    - structural:    PASS — validate_wiki_frontmatter (exit 0)
    - build:         PASS — npm run build (exit 0)
    - semantic:      NOT CLAIMED
    - behavioral:    NOT PRESENT
    - ext evidence:  NOT PRESENT
-5. Risk:
+4. Risk:
    - scope drift:        none — pilot limited to 4 existing entries
    - claim inflation:    none — claim_level unchanged (inferred)
    - evidence maturity:  build-verified only; high-risk coverage below original plan
-6. Incidental cleanup:   none
-7. Governance surface change: none
-8. Remaining blocker:     PORT_OVER_CURRENT not in pilot — high-risk coverage gap
-9. Cannot claim this session:
+5. Incidental cleanup:   none
+6. Governance surface change: none
+7. Remaining blocker:     PORT_OVER_CURRENT not in pilot — high-risk coverage gap
+8. Cannot claim this session:
    - bit-level semantic verification of attached spec sections
    - high-risk boundary condition coverage (PORT_OVER_CURRENT not in pilot)
    - verified status upgrade
@@ -453,23 +498,27 @@ Pilot attachment change:
 Failed or partial validation:
 
 ```text
-1. Result: Not done — build failed
-2. Capability increased: none
-3. Changed files: wiki/port-status.md (uncommitted)
-4. Validation:
+Result: The change is not ready because the project does not build.
+Reason: The structural check passed, but the build command returned an error.
+Next step: Fix the build error before committing the change.
+
+Technical evidence:
+1. Capability increased: none
+2. Changed files: wiki/port-status.md (uncommitted)
+3. Validation:
    - structural:    PASS — validate_wiki_frontmatter (exit 0)
    - build:         FAIL — npm run build (exit 1, error above)
    - semantic:      NOT CLAIMED
    - behavioral:    NOT PRESENT
    - ext evidence:  NOT PRESENT
-5. Risk:
+4. Risk:
    - scope drift:        none
    - claim inflation:    none — task not complete
    - evidence maturity:  build failure; no completion evidence
-6. Incidental cleanup:   none
-7. Governance surface change: none
-8. Remaining blocker:     build error must be resolved before commit
-9. Cannot claim this session:
+5. Incidental cleanup:   none
+6. Governance surface change: none
+7. Remaining blocker:     build error must be resolved before commit
+8. Cannot claim this session:
    - task complete
    - any validation above build layer
 ```
