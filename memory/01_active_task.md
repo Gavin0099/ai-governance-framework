@@ -21,6 +21,11 @@
   audit detail after them. Acceptance is actual reader understanding. The
   existing validator stays opt-in and unchanged; no hook, CI, gate, or default
   invocation is added.
+- **G4 manual work-item case 001 is the first outcome-complete self-hosted
+  observation.** It groups the whole owner-summary correction as one case:
+  natural readability failure, v0.6 response, owner replay acceptance,
+  intervention and delivery cost, recurrence boundary, and transfer gap. It is
+  not independent consumer evidence and does not establish G4.
 - **P1-F is closed as advisory.** The owner decided at `ba50b0f4` not to add a
   current-diff blocker. Reopen only after a natural post-Option-B
   `not_declared` record; the runtime `session_end` writer path remains
@@ -70,10 +75,15 @@
 
 ## Current Status
 
-- **Owner-facing completion summary v0.6 refined locally (2026-07-22)**:
+- **Owner-facing completion summary v0.6 published (2026-07-22)**:
   Contract examples and final-report templates now start with three plain
   lines — result, reason, next step — before any technical evidence. The
   response-quality and plain-summary validators were not changed or enabled.
+  Published as `bfefd122` with canonical memory checkpoint `54eaabdd`.
+- **G4 manual case 001 recorded (2026-07-22)**: the owner-summary line is one
+  self-hosted early outcome signal with a real failure, replay acceptance, and
+  partially observable cost. Transfer evidence is absent, so G4 remains
+  unclaimed.
 - **Opt-in plain-summary validation completed and published (2026-07-18)**:
   `c8c06f3e` added `--check-plain-summary`, requiring sentence-shaped
   `conclusion`, `reason`, and `next_action` fields before `evidence_refs` when
@@ -223,12 +233,13 @@
 
 ## Next Steps
 
-1. Use the v0.6 first-three-line preface on real completion responses and treat
-   direct owner understanding — not validator output — as the success signal.
+1. Use the v0.6 first-three-line preface on real completion responses and record
+   another G4 case only for a distinct natural work item with an observed
+   outcome or failure.
 2. Keep both response checks opt-in and unchanged. Enabling either in a hook,
    CI, gate, or default invocation is a separate owner decision.
-3. Group natural consumer activity by real work item before any G4 outcome
-   claim; do not manufacture evidence to fill that gap.
+3. Seek independent consumer and non-author evidence over time; do not
+   manufacture replay, transfer, recurrence, or benefit-over-cost evidence.
 
 ## Historical Context Retained
 

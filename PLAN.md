@@ -221,6 +221,14 @@ Current next candidate:
   uses actual reader understanding as acceptance. The existing opt-in
   validator remains unchanged; no hook, CI, gate, or default enforcement was
   added.
+- [x] G4 manual work-item case 001 records that response-readability line as one
+  self-hosted early outcome signal rather than counting its sessions, commits,
+  validation, and memory events as separate samples. It binds the natural
+  failure, v0.6 response, owner replay acceptance, four owner interventions,
+  observable delivery cost, recurrence boundary, and absent transfer evidence
+  in `docs/status/g4-work-item-case-001-owner-summary-2026-07-22.md`. G4 remains
+  unclaimed; no independent consumer, non-author, cross-repo, sustained, or
+  benefit-over-cost conclusion follows from this case.
 - [ ] For every other framework-expansion direction, wait for a real consumer
   failure or a new product need before opening a slice.
 
