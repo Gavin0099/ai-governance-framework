@@ -229,6 +229,14 @@ Current next candidate:
   in `docs/status/g4-work-item-case-001-owner-summary-2026-07-22.md`. G4 remains
   unclaimed; no independent consumer, non-author, cross-repo, sustained, or
   benefit-over-cost conclusion follows from this case.
+- [x] The first cross-consumer G4 observation checkpoint groups five natural
+  work-item candidates across `Bookstore-Scraper`, `meiandraybook`, and
+  `Enumd-private-vault` without counting sessions or commits as samples. It
+  records two qualifying cases, one Bookstore zero-effect / owner-corrected
+  case, and two insufficient-evidence Mei candidates in
+  `docs/status/g4-cross-consumer-observation-checkpoint-2026-07-22.md`.
+  This is early multi-consumer outcome evidence only: G4, sustained outcomes,
+  non-author independence, and benefit-over-cost remain unclaimed.
 - [ ] For every other framework-expansion direction, wait for a real consumer
   failure or a new product need before opening a slice.
 

@@ -26,6 +26,12 @@
   natural readability failure, v0.6 response, owner replay acceptance,
   intervention and delivery cost, recurrence boundary, and transfer gap. It is
   not independent consumer evidence and does not establish G4.
+- **The first cross-consumer G4 checkpoint is recorded.** Five natural
+  work-item candidates across Bookstore, Mei, and Enumd are grouped as two
+  qualifying cases, one zero-effect / owner-corrected case, and two
+  insufficient-evidence candidates. This supports early repo/domain transfer
+  evidence only; G4, sustained effect, non-author independence, and
+  benefit-over-cost remain unclaimed.
 - **P1-F is closed as advisory.** The owner decided at `ba50b0f4` not to add a
   current-diff blocker. Reopen only after a natural post-Option-B
   `not_declared` record; the runtime `session_end` writer path remains
@@ -236,9 +242,12 @@
 1. Use the v0.6 first-three-line preface on real completion responses and record
    another G4 case only for a distinct natural work item with an observed
    outcome or failure.
-2. Keep both response checks opt-in and unchanged. Enabling either in a hook,
+2. Wait for the active meiandraybook agent to reach a committed, reviewable
+   deployment checkpoint before adjudicating its admin-order or checkout-skew
+   candidates; do not inspect its current dirty work or manufacture a replay.
+3. Keep both response checks opt-in and unchanged. Enabling either in a hook,
    CI, gate, or default invocation is a separate owner decision.
-3. Seek independent consumer and non-author evidence over time; do not
+4. Seek independent consumer and non-author evidence over time; do not
    manufacture replay, transfer, recurrence, or benefit-over-cost evidence.
 
 ## Historical Context Retained
