@@ -1,0 +1,17 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git diff --exit-code origin/main...HEAD",
+  "exit_code": 0,
+  "started_at": "2026-07-22T06:25:16Z",
+  "finished_at": "2026-07-22T06:25:16Z",
+  "runner": "codex",
+  "linked_commit": "effc00a4631d1e7f728801af6a13c81def6c6a4e",
+  "output_artifacts": [
+    "artifacts/evidence/test-results/receipt-plan-active-baseline-alignment-post-push-20260722.txt"
+  ],
+  "cannot_claim": [
+    "semantic correctness of the tested behavior",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
