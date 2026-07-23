@@ -237,6 +237,17 @@ Current next candidate:
   `docs/status/g4-cross-consumer-observation-checkpoint-2026-07-22.md`.
   This is early multi-consumer outcome evidence only: G4, sustained outcomes,
   non-author independence, and benefit-over-cost remain unclaimed.
+- [x] The 2026-07-24 successor checkpoint preserves the 2026-07-22 snapshot
+  and adds one distinct Bookstore slow-source / Grimm work item, producing
+  three qualifying cases, one zero-effect case, and two insufficient-evidence
+  Mei candidates in
+  `docs/status/g4-cross-consumer-observation-checkpoint-2026-07-24.md`.
+  The new Bookstore case retains its `linked_commit=e478409` receipt-anchor
+  warning; canonical memory binds the product correction to `c9cd494`.
+  Enumd Phase I-R remains one continuing private-vault case, and Mei PR #9
+  does not become a new sample from PR volume alone. Qualifying breadth remains
+  two consumers; G4, sustained outcomes, independent review, comparable cost,
+  and benefit-over-cost remain unclaimed.
 - [ ] For every other framework-expansion direction, wait for a real consumer
   failure or a new product need before opening a slice.
 
