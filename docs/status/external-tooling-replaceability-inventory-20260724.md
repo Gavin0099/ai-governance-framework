@@ -59,6 +59,15 @@ linter. Keep that boundary in mind reading the table.
 
 ## C. Not replaceable — bespoke governance semantics no off-the-shelf tool models
 
+> **Correction (2026-07-25):** this section over-classified. Evidence provenance /
+> receipt↔commit binding and claim/decision policy DO have mature OSS standards
+> (in-toto + SLSA + Cosign for provenance/tamper-evidence; OPA/Rego for policy;
+> CUE/JSON Schema for receipt structure). They are eventually replaceable by
+> standards, not uniquely bespoke — replacement is a post-pilot decision. See
+> [open-source-validation-candidate-inventory-20260725.md](open-source-validation-candidate-inventory-20260725.md)
+> §4. The genuinely bespoke residue is narrower (e.g. the memory-authority and
+> the four-arm scoring semantics).
+
 These encode domain-specific concepts unique to this framework; an external tool
 would have to re-implement the concept, not the mechanism:
 
