@@ -115,12 +115,14 @@ That sync is now done under v2: PLAN.md, memory/01_active_task.md, and the daily
 canonical memory all state Gate 1 complete with the four caveats preserved. The
 authoritative status lives in v2.
 
-Note toward the external-tooling question (Section F reference): this task shows
-mature external validators (shellcheck/ruff/mypy) neither present in-environment
-nor able to catch the defect, while the in-repo Python guard also missed it. That
-is one data point that "replace in-house checks with external tools" is
-defect-type-dependent, and is exactly what `D−C` is designed to measure — it is
-not settled by this task alone.
+Note toward the external-tooling question (Section F reference): **Historical
+claim withdrawn.** An earlier version of this paragraph asserted that external
+validators and the Python guard "missed" the defect and that `D−C` measures tool
+replacement. Those inferences were over-claims. The current interpretation lives
+in the external-tooling inventory and amendment v2: the defect is the shell hook
+passing the wrong ref to the guard; the pinned validators were never run (so no
+effectiveness result exists); `D−C` measures only the marginal effect of adding
+validator feedback, and replacement is a separate experiment.
 
 ## Cannot claim
 
