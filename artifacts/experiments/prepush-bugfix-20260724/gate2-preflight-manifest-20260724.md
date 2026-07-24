@@ -8,7 +8,7 @@ items below AND a separate explicit owner "start Gate 2" command.
 
 ## Done this session (answer-safe)
 
-### Baseline isolation instance (built + verified)
+### Baseline bundle artifact (built + verified)
 - Procedure (from amendment v2 Section A):
   `git update-ref refs/tmp/prepush-baseline 33006f09` →
   `git bundle create prepush-baseline-33006f09.bundle refs/tmp/prepush-baseline` →
@@ -56,13 +56,17 @@ items below AND a separate explicit owner "start Gate 2" command.
   results, and an experimenter-only `arm` field.
 
 ### Scorer anonymization handoff (frozen; amendment v2 Section G(d))
-- The experimenter (not a producer or scorer) collects the four raw outputs +
-  receipts, assigns an anonymous ID per output, strips the `arm` field and every
-  Skill/Governance/validator/treatment trace, and gives the scorer only the
-  anonymized output + the frozen rubric.
-- The anonymous-ID → arm mapping is held solely by the experimenter and released
-  only after both scorers finish; each anonymized packet records the sha256 of
-  the raw producer output it derives from, so de-anonymization is auditable.
+- Removes **identity labels only**, never substantive evidence. Redaction scope
+  is frozen and mechanically replayable: remove ONLY the receipt `arm` field,
+  packet filenames, and explicit treatment-assignment metadata via a fixed
+  literal-token → placeholder map.
+- **Preserved intact:** the raw code diff, tests, validator output, and completion
+  claim — exactly what the scorer evaluates. Deleting any of these is prohibited.
+- If the content itself lets a scorer infer the treatment, record
+  `blinding_compromised: true` (with reason); do not hide it by deleting evidence.
+- The scorer receives only the redacted output + the frozen rubric. The anon-ID →
+  arm mapping is held solely by the experimenter, released only after both scorers
+  finish; each redacted packet records the sha256 of its raw producer output.
 
 ## Remaining — resource-gated (NOT a place; see amendment v2 Section G table)
 

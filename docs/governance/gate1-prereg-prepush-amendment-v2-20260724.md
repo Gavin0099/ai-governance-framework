@@ -175,20 +175,32 @@ built). Their states differ.
 - [ ] Every arm's receipt actually binds to its own output commit (verified at run).
 
 **(d) Scorer anonymization handoff — FROZEN procedure (must run before scoring):**
-The producer receipt records `arm` and treatment for provenance; the scorer must
-never see it. The frozen handoff between producer output and scorer:
+Anonymization removes **identity labels only**, never substantive evidence. The
+scorer must judge the real code diff, tests, validator output, and completion
+claim; deleting any of those would reshape the output and break the comparison,
+and would let an answer-knowing experimenter subjectively pick what survives. The
+frozen, mechanically-replayable handoff:
 - [ ] The **experimenter** (may know the answer; is not a producer or scorer)
   collects the four raw producer outputs + receipts.
-- [ ] The experimenter assigns an **anonymous ID** (e.g. hash-derived) to each
-  output and strips every arm/Skill/Governance/validator trace: the `arm` field,
-  packet filenames, treatment labels, validator-feedback references, and any
-  commit-message or path hint of the condition.
-- [ ] The scorer receives **only** the anonymized output + the frozen rubric —
-  no receipt `arm` field, no treatment packet, no mapping table.
-- [ ] The **anonymous-ID → arm mapping table is held solely by the experimenter**
-  and released only after both scorers finish.
-- [ ] Each anonymized packet records the **sha256 of the raw producer output** it
-  was derived from, so the de-anonymization is auditable and tamper-evident.
+- [ ] The experimenter assigns an **anonymous ID** (hash-derived) to each output.
+- [ ] **Redaction scope (frozen, pre-specified, replayable) — remove ONLY:** the
+  receipt `arm` field, packet filenames, and explicit treatment-assignment
+  metadata (e.g. "Arm C", "governance packet", "validator feedback" labels). A
+  fixed redaction map (literal token → placeholder) is frozen before the run so
+  the redaction is deterministic and re-runnable by anyone.
+- [ ] **Preserved intact (never redacted):** the raw code diff, the tests, the
+  validator output, and the completion claim. These are exactly what the scorer
+  evaluates.
+- [ ] If the substantive content itself lets a scorer infer the treatment, that is
+  recorded as **`blinding_compromised: true`** for that output (with the reason)
+  — it is **not** hidden by deleting the real evidence. A compromised-blinding
+  output is scored and flagged, not sanitized.
+- [ ] The scorer receives **only** the redacted output + the frozen rubric — no
+  `arm` field, no treatment packet, no mapping table.
+- [ ] The **anonymous-ID → arm mapping is held solely by the experimenter** and
+  released only after both scorers finish; each redacted packet records the
+  **sha256 of the raw producer output** it derives from, so de-anonymization is
+  auditable and tamper-evident.
 
 ### Resource-based blocker classification (not a place)
 
