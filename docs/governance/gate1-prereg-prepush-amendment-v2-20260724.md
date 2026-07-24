@@ -1,12 +1,21 @@
 # Gate 1 Correction Amendment v2 — pre-push replay pre-registration
 
-Status: **CORRECTION v2, pending owner re-sign.** Supersedes the isolation
-method, the validator-packet layout, and the status wording of amendment v1
+Status: **DESIGN FROZEN — owner re-signed 2026-07-24.** The owner re-signed the
+three Section E items, so the pre-registration **methodology/design** is now
+frozen. Supersedes the isolation method, the validator-packet layout, and the
+status wording of amendment v1
 ([gate1-prereg-prepush-amendment-20260724.md](gate1-prereg-prepush-amendment-20260724.md),
 committed at `61b285b2`/`ee08928603`). Prior commits are left intact (append-only
 history). This v2 exists because a second review (CHANGES_REQUESTED) found three
-blocking defects in v1, all accepted. Until the owner re-signs Section E, Gate 1
-is **not complete** and Gate 2 must not start. No hook/runtime/CI/gate/enforcement
+blocking defects in v1, all accepted.
+
+Deliberate claim ceiling (owner-stated): this freeze declares only that the
+**Gate 1 main design is complete**. It does **not** declare Gate 1 *formally*
+complete or Gate 2 ready, because two execution prerequisites do not yet exist:
+(a) an actually-built baseline-only isolation instance (the procedure is frozen
+and verified, but no instance is built), and (b) four mutually-uncontaminated
+producer environments plus a blind scorer. **Experiment execution progress = 0;
+what is done is the design, not any result.** No hook/runtime/CI/gate/enforcement
 is changed here.
 
 Authoritative status note: **wherever v1 says "Gate 1 complete", that was
@@ -100,19 +109,25 @@ The planning surfaces now agree: a Gate 1 pre-registration exists (v1 frozen
 values + v2 isolation/packet corrections), it is **pending owner re-sign of v2**,
 Gate 2 is deferred, and no arm has run.
 
-## E. Owner re-sign required to freeze (v2)
+## E. Owner re-sign — CONFIRMED 2026-07-24 (design freeze only)
 
-Gate 1 is complete only when the owner confirms:
-1. The verified bundle isolation procedure + allowlist (Section A).
-2. The producer-safe / designer-only validator split (Section B).
-3. That Gate-1 completion is owned by this v2 Section E and v1's completion
-   wording is superseded.
+The owner re-signed all three:
+1. The verified bundle isolation procedure + allowlist (Section A). ✓
+2. The producer-safe / designer-only validator split (Section B). ✓
+3. That Gate-1 status is owned by this v2 and v1's completion wording is
+   superseded. ✓
 
-Until confirmed, Gate 1 is **incomplete** and Gate 2 must not start.
+Effect: the Gate 1 pre-registration **design is frozen**. This is NOT a
+declaration that Gate 1 is formally complete or that Gate 2 may start. Formal
+completion and Gate-2 readiness additionally require building the baseline-only
+isolation instance and standing up four uncontaminated producer environments plus
+a blind scorer — none of which exists. Gate 2 stays deferred. No arm has run.
 
 ## F. Cannot claim
 
-- That Gate 1 is complete (pending owner re-sign of this v2).
+- That Gate 1 is formally complete (only the design is frozen; the built
+  isolation instance and blinded producer/scorer capacity do not exist).
+- That Gate 2 may start, or that any arm has run — experiment execution = 0.
 - That the isolation environment is proven beyond the verified bundle procedure
   in Section A.
 - That Arm D stays blind if the designer-only expectation file is ever copied

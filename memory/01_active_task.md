@@ -59,11 +59,13 @@
   file, and status contradictions; amendment v2
   (`docs/governance/gate1-prereg-prepush-amendment-v2-20260724.md`) fixes the
   isolation with a verified named-ref bundle procedure, splits the validator
-  packet into producer-safe versus designer-only, and unifies status. Gate 1 is
-  **incomplete, pending owner re-sign of v2**. Gate 2 is deferred: it needs a
-  blinded producer and blind scorer that are neither this design session nor the
-  author. No arm has run; the hook, runtime, CI, gates, and enforcement are
-  unchanged.
+  packet into producer-safe versus designer-only, and unifies status. The owner
+  re-signed v2 on 2026-07-24, so the Gate 1 pre-registration **design is frozen
+  (main design complete)** — but this is NOT a claim of formal Gate 1 completion
+  or Gate 2 readiness: the baseline-only isolation instance is not built and no
+  four uncontaminated producer environments or blind scorer exist. Experiment
+  execution progress = 0 (design done, no result). Gate 2 stays deferred. No arm
+  has run; the hook, runtime, CI, gates, and enforcement are unchanged.
 
 - **P1-F is closed as advisory.** The owner decided at `ba50b0f4` not to add a
   current-diff blocker. Reopen only after a natural post-Option-B

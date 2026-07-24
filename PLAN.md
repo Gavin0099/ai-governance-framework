@@ -1424,15 +1424,19 @@ P3 - Engineering Skill Program, pre-push bug study (Gate 1 in progress):
   (`dea492b7`); bug preserved unfixed at baseline `33006f09`.
 - [x] Gate 1 pre-registration frozen values (`2c02c074`) then narrowed and
   hash-frozen (amendment v1, `61b285b2`).
-- [ ] Gate 1 amendment v2 (verified named-ref bundle isolation; producer-safe vs
-  designer-only validator split; unified status) is **pending owner re-sign**;
-  Gate 1 is incomplete until then.
-- [ ] Gate 2 (single blinded four-arm pilot) is DEFERRED — needs a producer and
-  a blind scorer that are neither the design session nor the author.
+- [x] Gate 1 amendment v2 (verified named-ref bundle isolation; producer-safe vs
+  designer-only validator split; unified status) owner re-signed 2026-07-24 —
+  the pre-registration **design is frozen (main design complete)**.
+- [ ] Formal Gate 1 completion + Gate 2 readiness: build the baseline-only
+  isolation instance and stand up four uncontaminated producer environments plus
+  a blind scorer. None exists; Gate 2 (single blinded four-arm pilot) is DEFERRED.
 
-Claim ceiling: no arm has run; the pre-push hook, runtime, CI, gates, and
-enforcement are unchanged; no engineering method is claimed effective. This is
-not independent consumer evidence and does not establish framework-level G4.
+Claim ceiling: experiment execution progress = 0 (design done, no result); no arm
+has run; the pre-push hook, runtime, CI, gates, and enforcement are unchanged; no
+engineering method is claimed effective. This is not independent consumer evidence
+and does not establish framework-level G4. Correct ordering (owner-stated): finish
+the experiment isolation first and judge engineering-method / external-tool value
+from real results; do NOT begin bulk tool replacement now.
 
 ## Dirty Workspace Policy
 
