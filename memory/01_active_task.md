@@ -36,6 +36,16 @@
   case; Mei PR #9 is not another sample. Qualifying breadth remains Bookstore
   and Enumd only. G4, sustained effect, independent review, comparable cost,
   and benefit-over-cost remain unclaimed.
+- **The Evidence-Backed Engineering Skill Program is recorded as a review-only
+  plan (2026-07-24).** It defines how mature engineering methods would be
+  studied as Engineering Skills: the four-layer Skill / Harness / External
+  Validator / Governance boundary, a Bug Fix four-arm experiment, natural task
+  sourcing, independent oracles, blind post-hoc scoring kept separate from Arm
+  D treatment-time validator feedback, receipt anchoring, Gates 0-5, and
+  INVALID / NEGATIVE / INSUFFICIENT stop outcomes. No Engineering Skill exists,
+  no experiment is authorized, and no method is claimed effective. The
+  candidate-method appendix is deferred candidates only, not a roadmap.
+
 - **P1-F is closed as advisory.** The owner decided at `ba50b0f4` not to add a
   current-diff blocker. Reopen only after a natural post-Option-B
   `not_declared` record; the runtime `session_end` writer path remains

@@ -92,6 +92,33 @@ Phase E posture:
 
 ## Current Sprint - 2026-06-10
 
+Current refresh - 2026-07-24:
+
+Theme:
+
+- Record the Evidence-Backed Engineering Skill Program as a review-only plan
+  before any Engineering Skill exists. The program is a method for studying
+  whether mature engineering methods change agent outcomes; it does not assert
+  that any method works.
+
+Completed in this slice:
+
+- [x] `docs/governance/evidence-backed-engineering-skill-program-2026-07-24.md`
+  records the Skill / Harness / External Validator / Governance responsibility
+  boundary, the Bug Fix four-arm experiment, natural task sourcing, independent
+  oracle, blind post-hoc scoring separated from Arm D treatment-time validator
+  feedback, outcome and cost metrics, commit and receipt evidence anchoring
+  (`linked_commit` vs `linked_head_commit`), Gates 0-5, and
+  INVALID / NEGATIVE / INSUFFICIENT stop outcomes.
+- [x] The candidate-method appendix classifies further methods as priority
+  study, cross-cutting methods, or deferred study. Every appendix entry is a
+  deferred candidate, not an implementation commitment or a roadmap.
+- [x] Gate 1 freezes the experimental Skill treatment packet as an experiment
+  input only; a repo-visible provisional Skill may exist no earlier than
+  Gate 3, and Gate 3 is a screening decision, not a powered inference.
+- [x] No Engineering Skill was created or modified, no experiment was run, and
+  no validator, schema, runtime, hook, CI, gate, or enforcement changed.
+
 Current refresh - 2026-07-22:
 
 Theme:
