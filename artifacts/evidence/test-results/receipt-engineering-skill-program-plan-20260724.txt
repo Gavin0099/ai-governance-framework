@@ -1,0 +1,22 @@
+# Evidence receipt output - engineering skill program plan
+# linked_commit: e1b083b4e10c6e252d6462ee8a1452c7bcc3b164
+# started_at: 2026-07-24T02:17:51Z
+
+$ python -m governance_tools.governance_drift_checker
+severity           = ok
+  plan_freshness                         PASS
+  plan_inventory_current                 PASS
+  plan_required_sections_present         PASS
+exit_code=0
+
+$ git diff --check origin/main..HEAD
+exit_code=0
+
+$ trailing-whitespace count (3 changed files)
+PLAN.md=0
+memory/01_active_task.md=0
+docs/governance/evidence-backed-engineering-skill-program-2026-07-24.md=0
+
+$ relative link resolution
+OK memory/03_knowledge_base.md
+OK artifacts/evidence/skill-ab/codex-review-fast-20260709/result-blind.json
