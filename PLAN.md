@@ -1418,7 +1418,7 @@ P2 - historical debt / evidence disposition:
 - [ ] Do not backfill receipts or rewrite memory history without reviewer-approved
   scope.
 
-P3 - Engineering Skill Program, pre-push bug study (Gate 1 in progress):
+P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 execution = 0):
 
 - [x] Gate 0 admissibility recorded for the pre-push version-bump advisory bug
   (`dea492b7`); bug preserved unfixed at baseline `33006f09`.

@@ -43,13 +43,26 @@ items below AND a separate explicit owner "start Gate 2" command.
   design session; recorded here as a frozen requirement.
 
 ### Frozen policy (values stamped at dispatch)
-- Identical model build across all four arms; identical tool permissions;
-  60 tool calls / 30 min per arm. The uniformity is the frozen guarantee; the
-  concrete build/permission strings are stamped identically at dispatch.
+- Identical model build across all four arms; 60 tool calls / 30 min per arm.
+  **Non-treatment** tool permissions identical across arms; **Arm D's
+  treatment-time validator feedback is the pre-registered treatment exception**,
+  not a permission difference to be equalized away. The uniformity of
+  non-treatment permissions is the frozen guarantee; concrete build/permission
+  strings are stamped identically at dispatch.
 
-### Producer receipt template
-- `gate2-producer-receipt-template.json` (answer-safe; the producer fills
-  linked_commit, timestamps, command, output_artifacts, results).
+### Producer receipt template (raw, producer-side)
+- `gate2-producer-receipt-template.json` — raw producer-side, NOT scorer-facing.
+  The producer fills linked_commit, timestamps, command, output_artifacts,
+  results, and an experimenter-only `arm` field.
+
+### Scorer anonymization handoff (frozen; amendment v2 Section G(d))
+- The experimenter (not a producer or scorer) collects the four raw outputs +
+  receipts, assigns an anonymous ID per output, strips the `arm` field and every
+  Skill/Governance/validator/treatment trace, and gives the scorer only the
+  anonymized output + the frozen rubric.
+- The anonymous-ID → arm mapping is held solely by the experimenter and released
+  only after both scorers finish; each anonymized packet records the sha256 of
+  the raw producer output it derives from, so de-anonymization is auditable.
 
 ## Remaining — resource-gated (NOT a place; see amendment v2 Section G table)
 

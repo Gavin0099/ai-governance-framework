@@ -131,47 +131,64 @@ explicit owner command. No arm has run; execution progress = 0.
 Gate 1 being complete does not open Gate 2. Every item below must be true first,
 and then the owner must still issue an explicit "start Gate 2" command.
 
-Isolation instance (extends Section A; currently NOT built):
-- [ ] Baseline bundle built via the verified named-ref procedure; `git bundle
-  verify` shows a single head `33006f09` and complete history.
-- [ ] The instance cannot see current `main`, the Gate 0 doc, either
-  pre-registration, `memory/*`, or this conversation.
-- [ ] Bundle sha256 recorded for the actual instance.
+Two distinct things must not be conflated: the **baseline bundle artifact** (a
+file — BUILT) and the **isolated execution environment** (where arms run — NOT
+built). Their states differ.
 
-Producer/scorer roles (currently NOT staffed). Clarification: "four
-uncontaminated environments" means **four independent clean sessions/contexts,
-not necessarily four machines or four people**; each may see only its own arm's
-inputs and none of the known-answer context:
-- [ ] Four mutually-isolated producer contexts (one per arm).
-- [ ] One primary scorer blind to arm identity.
-- [ ] A second scorer who independently re-reads all semantic completion claims.
-- [ ] None of these roles is this design session or the author, and none can
-  reach the Gate 0 analysis.
+**(a) Baseline bundle artifact — BUILT + verified this session:**
+- [x] Built via the verified named-ref procedure; `git bundle verify` shows a
+  single head `33006f097597f5720a2d01661281d564fb2693ec` and complete history;
+  design-env sha256
+  `6ad5bcca8cf4b743e1990310837097081a90bb65805f6cce698904baeb1cbe6e`, 8.3 MiB.
+  Reproducibility caveat: bundle bytes vary by git version/packing, so a rebuild
+  yields a different sha256; only the procedure + single-head/complete-history
+  invariant are reproducible, not that specific hash.
 
-Execution constants — answer-safe setup done this session where marked:
+**(b) Isolated execution environment — NOT built:**
+- [ ] The bundle is placed in an environment that **technically cannot** read this
+  repo, current `main`, the Gate 0 analysis, `memory/*`, or this conversation
+  (container / VM / Windows Sandbox / separate OS account / remote runner mounting
+  only the bundle).
+- [ ] Four mutually-isolated producer contexts (one per arm) — "four independent
+  clean sessions/contexts, not necessarily four machines or four people"; each
+  sees only its own arm's allowlisted inputs.
+- [ ] A primary scorer blind to arm identity, and a second scorer who re-reads all
+  semantic completion claims — both blind to the answer.
+- [ ] None of these roles is this design session or the author.
+
+**(c) Execution constants — answer-safe setup done this session where marked:**
 - [x] 60 tool calls / 30 min cap per arm (frozen policy).
 - [x] dispatch / Skill / Governance / validator packet sha256 verified to match
   Section A/B values (Gate 2 preflight manifest 2026-07-24).
 - [x] Randomized arm order generated from frozen seed 20260724 and recorded:
   **[D, C, A, B]** (deterministic; `random.seed(20260724);
   random.sample(['A','B','C','D'],4)`).
-- [x] Receipt template prepared for producers (answer-safe).
-- [ ] Identical model build across all four arms — stamped identically at
-  dispatch (policy frozen; actual build recorded then).
-- [ ] Identical tool permissions across arms — set at dispatch.
+- [x] Producer receipt template prepared (answer-safe; raw producer-side, not
+  scorer-facing — see the anonymization handoff below).
+- [ ] Identical model build across all four arms — stamped identically at dispatch.
+- [ ] **Non-treatment** tool permissions identical across arms; **Arm D's
+  treatment-time validator feedback is the pre-registered treatment exception**,
+  not a permission difference to be equalized away.
 - [ ] shellcheck 0.10.0, ruff 0.6.9, mypy 1.11.2 installed **in the producer/
-  scorer environment** (ruff 0.6.9 confirmed to exist on PyPI; install belongs in
-  the isolated run env, not this design session).
+  scorer environment** (all three pinned versions confirmed to exist; install
+  belongs in the isolated run env, not this design session).
 - [ ] Every arm's receipt actually binds to its own output commit (verified at run).
 
-Isolation instance — built and verified this session as a reproducible artifact:
-- [x] Baseline bundle built via the verified named-ref procedure; `git bundle
-  verify` shows a single head `33006f097597f5720a2d01661281d564fb2693ec` and
-  complete history; design-env instance sha256
-  `6ad5bcca8cf4b743e1990310837097081a90bb65805f6cce698904baeb1cbe6e`, 8.3 MiB.
-- [ ] The instance is placed in an environment that **technically cannot** read
-  this repo, current `main`, the Gate 0 analysis, `memory/*`, or this
-  conversation — pending an isolated run environment (see resource classification).
+**(d) Scorer anonymization handoff — FROZEN procedure (must run before scoring):**
+The producer receipt records `arm` and treatment for provenance; the scorer must
+never see it. The frozen handoff between producer output and scorer:
+- [ ] The **experimenter** (may know the answer; is not a producer or scorer)
+  collects the four raw producer outputs + receipts.
+- [ ] The experimenter assigns an **anonymous ID** (e.g. hash-derived) to each
+  output and strips every arm/Skill/Governance/validator trace: the `arm` field,
+  packet filenames, treatment labels, validator-feedback references, and any
+  commit-message or path hint of the condition.
+- [ ] The scorer receives **only** the anonymized output + the frozen rubric —
+  no receipt `arm` field, no treatment packet, no mapping table.
+- [ ] The **anonymous-ID → arm mapping table is held solely by the experimenter**
+  and released only after both scorers finish.
+- [ ] Each anonymized packet records the **sha256 of the raw producer output** it
+  was derived from, so the de-anonymization is auditable and tamper-evident.
 
 ### Resource-based blocker classification (not a place)
 
@@ -184,7 +201,8 @@ specific capability, satisfiable in any secure environment:
 | Gate 2 setup (this section's [x] items) | none — done this session | no |
 | Gate 2 producers | an environment that technically cannot read the answer (container / VM / Windows Sandbox / separate OS account / remote runner mounting only the baseline bundle) | no |
 | Gate 2 scorers | an isolated, blinded scoring context (fresh agent session or another person) with no arm identity and no treatment labels | no |
-| meiandraybook review | a real non-author reviewer with repo access who actually reads the evidence — remote is fine | no |
+| meiandraybook product delivery | none — owner's own project; merge/deploy/replay need no non-author reviewer | no |
+| meiandraybook independent-review evidence | **NOT PURSUED (owner decision)** → this evidence is `NOT PRESENT`; it cannot be used to claim independent use or raise G4 strength | n/a |
 | IMPORT_API_SECRET replay | the owner safely obtaining and using the secret | only if the secret lives solely in a company vault/device |
 
 Even after a full Gate 2 run, the most that may be claimed is: the four-arm
@@ -195,8 +213,8 @@ process runs, evidence and commits bind correctly, and the scoring method works.
 
 - That Gate 2 may start, or that any arm has run — experiment execution = 0; the
   Section G preflight is unmet and no separate start command has been given.
-- That the isolation environment is proven beyond the verified bundle procedure
-  in Section A (no instance is built yet).
+- That the isolated execution environment exists (only the baseline bundle
+  artifact is built; the execution environment where arms run is NOT built).
 - That the Bug Fix Skill is effective (a Gate 2 pilot could not show it; that is
   a Gate 3 question).
 - That external tools can or cannot replace the in-house Python tools. This

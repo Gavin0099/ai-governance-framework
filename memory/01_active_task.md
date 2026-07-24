@@ -289,7 +289,10 @@
 2. Wait for meiandraybook to produce a committed deployment/product replay and
    identify the governance signal that changed an agent action before upgrading
    either existing candidate. PR #9 check or commit volume alone is not a new
-   work item and does not prove a deployed outcome.
+   work item and does not prove a deployed outcome. Note (owner decision): a
+   non-author independent review of meiandraybook is NOT pursued — it is the
+   owner's own project, so its independent-review evidence is NOT PRESENT and
+   cannot raise G4 strength; this does not block its merge/deploy/replay.
 3. Keep both response checks opt-in and unchanged. Enabling either in a hook,
    CI, gate, or default invocation is a separate owner decision.
 4. Seek independent consumer and non-author evidence over time; do not

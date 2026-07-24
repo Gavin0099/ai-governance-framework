@@ -1,8 +1,8 @@
 {
   "receipt_schema": "test_evidence_receipt.v0.1",
   "status": "report_only",
-  "_TEMPLATE_NOTE": "Producer fills every <...> field. Do not read the Gate 0 doc, either amendment, memory/*, or validator-expectation-DESIGNER-ONLY.md. Keep the worktree clean at capture; linked_commit MUST equal your output commit.",
-  "arm": "<A|B|C|D>",
+  "_TEMPLATE_NOTE": "RAW PRODUCER-SIDE receipt, NOT scorer-facing. Producer fills every <...> field. Do not read the Gate 0 doc, either amendment, memory/*, or validator-expectation-DESIGNER-ONLY.md. Keep the worktree clean at capture; linked_commit MUST equal your output commit. The 'arm' field below is for experimenter provenance only; the experimenter STRIPS it (and all treatment traces) during the frozen anonymization handoff before anything reaches a scorer. A scorer must never receive this raw receipt.",
+  "arm": "<A|B|C|D — experimenter-only provenance; removed before scoring>",
   "command": "<the exact test/validator command you ran>",
   "exit_code": 0,
   "started_at": "<UTC ISO8601>",
