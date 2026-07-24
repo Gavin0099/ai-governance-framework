@@ -81,4 +81,4 @@ raw bundle.
 - A separate explicit owner "start Gate 2" command.
 
 The isolation MECHANISM works; the template is not production-ready until
-Finding 2's denylist is frozen and applied and validators are installed.
+the sanitized producer repo (Finding 2's fix) is placed and validators are installed.

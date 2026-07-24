@@ -15,7 +15,7 @@ Usage:
         --raw raw-output.txt --out redacted-packet.json
 """
 from __future__ import annotations
-import argparse, hashlib, json, re, sys
+import argparse, hashlib, json, os, re, sys
 
 MARKERS = ["=== FIX_DIFF ===", "=== TEST_LOG ===",
            "=== VALIDATOR_OUTPUT ===", "=== COMPLETION_CLAIM ==="]
@@ -129,41 +129,54 @@ def run(contract_path: str, raw_path: str) -> dict:
     }
 
 
+def _dump(obj) -> str:
+    return json.dumps(obj, indent=2, ensure_ascii=False) + "\n"
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--contract", required=True)
     ap.add_argument("--raw", required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--receipt", help="producer receipt JSON to anonymize (optional)")
-    ap.add_argument("--receipt-out", help="anonymized receipt output path")
+    # Gate 2 scorer handoff mandates the receipt pair (fail-closed): both or neither.
+    ap.add_argument("--receipt", required=True,
+                    help="producer receipt JSON to anonymize (required in handoff mode)")
+    ap.add_argument("--receipt-out", required=True,
+                    help="anonymized receipt output path (required in handoff mode)")
     a = ap.parse_args()
     try:
         contract = json.loads(open(a.contract, "rb").read())
         validate_contract(contract)
         packet = run(a.contract, a.raw)
-        anon_receipt = None
-        if a.receipt:
-            if not a.receipt_out:
-                raise FormatError("--receipt requires --receipt-out")
-            receipt = json.loads(open(a.receipt, "rb").read())
-            drop = contract["redaction"].get("receipt_field_drop", ["arm"])
-            anon_receipt = anonymize_receipt(receipt, contract["redaction"]["literal_map"], drop)
-            for f in drop:
-                if f in anon_receipt:
-                    raise FormatError(f"drop field {f} still present after anonymization")
+        receipt = json.loads(open(a.receipt, "rb").read())
+        drop = contract["redaction"].get("receipt_field_drop", ["arm"])
+        anon_receipt = anonymize_receipt(receipt, contract["redaction"]["literal_map"], drop)
+        for f in drop:
+            if f in anon_receipt:
+                raise FormatError(f"drop field {f} still present after anonymization")
+        # bind the anonymized receipt to the packet's anon_id
+        anon_receipt["anon_id"] = packet["anon_id"]
+        # compute both payloads BEFORE any write, so a bad input never leaves a
+        # half-written packet without its receipt.
+        packet_text, receipt_text = _dump(packet), _dump(anon_receipt)
     except FormatError as e:
         print(f"REJECTED (fail-closed): {e}", file=sys.stderr)
         return 2
+    # write both; if the second write fails, remove the first (no half set)
     with open(a.out, "w", encoding="utf-8", newline="\n") as f:
-        json.dump(packet, f, indent=2, ensure_ascii=False)
-        f.write("\n")
-    if anon_receipt is not None:
+        f.write(packet_text)
+    try:
         with open(a.receipt_out, "w", encoding="utf-8", newline="\n") as f:
-            json.dump(anon_receipt, f, indent=2, ensure_ascii=False)
-            f.write("\n")
+            f.write(receipt_text)
+    except OSError as e:
+        try:
+            os.remove(a.out)
+        except OSError:
+            pass
+        print(f"REJECTED (fail-closed): receipt write failed, packet removed: {e}", file=sys.stderr)
+        return 2
     print(f"anon_id={packet['anon_id']} redactions={packet['total_redactions']} "
-          f"raw={packet['raw_output_sha256'][:12]}.. redacted={packet['redacted_output_sha256'][:12]}.."
-          + (f" receipt_anonymized(arm dropped)" if anon_receipt is not None else ""))
+          f"receipt_anonymized(arm dropped, bound to anon_id)")
     return 0
 
 

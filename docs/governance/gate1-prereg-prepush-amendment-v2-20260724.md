@@ -167,19 +167,20 @@ built). Their states differ.
   invariant are reproducible, not that specific hash.
 
 **(b) Isolated execution environment — mechanism VERIFIED in Docker, template NOT production-ready:**
-- [x] The isolation mechanism works: a **designer-side** `docker run
-  --network=none` probe (mounting the bundle only to exercise the mechanism; the
-  producer surface is the sanitized repo) proved host-repo-unreachable + network-off + answer
+- [x] The isolation mechanism works: a designer-side `docker run --network=none`
+  probe (designer-side, mounting the bundle only to exercise the mechanism — the
+  producer surface is the sanitized repo, not the bundle) proved
+  host-repo-unreachable + network-off + answer
   analysis absent + clone HEAD == 33006f09 (see Section A / isolation-template-spec).
 - [x] **Producer baseline sanitized (Finding 2, RESOLVED via allowlist export):**
   a fresh git object DB with only the 4 allowlisted code files (sanitized tree
   `36c346fa…`); `git show`/`rev-list` confirm 0 meta objects. A denylist was
   insufficient (git show reads the object DB). See sanitized-baseline-manifest.
   The producer receives this sanitized repo, never the raw bundle.
-- [ ] The bundle is placed in an environment that **technically cannot** read this
-  repo, current `main`, the Gate 0 analysis, `memory/*`, or this conversation
-  (container / VM / Windows Sandbox / separate OS account / remote runner mounting
-  only the bundle).
+- [ ] The **sanitized producer repo** (never the raw bundle) + the dispatch packet
+  are placed in an environment that **technically cannot** read this repo, current
+  `main`, the Gate 0 analysis, `memory/*`, the raw bundle, or this conversation
+  (container / VM / Windows Sandbox / separate OS account / remote runner).
 - [ ] Four **answer-blind** producer contexts (one per arm) — "four independent
   clean sessions/contexts, not necessarily four machines or four people". Each
   does **not** know the root cause or fix, but **does** know which treatment it

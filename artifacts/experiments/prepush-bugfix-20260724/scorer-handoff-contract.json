@@ -27,8 +27,12 @@
 
   "canonical_runner": {
     "script": "redaction_runner.py",
-    "invocation": "python redaction_runner.py --contract scorer-handoff-contract.json --raw raw-output.txt --out redacted-packet.json",
-    "redacts_only": "the COMPLETION_CLAIM section; FIX_DIFF/TEST_LOG/VALIDATOR_OUTPUT are copied verbatim",
+    "invocation": "python redaction_runner.py --contract scorer-handoff-contract.json --raw raw-output.txt --out redacted-packet.json --receipt producer-receipt.json --receipt-out redacted-receipt.json",
+    "mandatory_args": ["--contract", "--raw", "--out", "--receipt", "--receipt-out"],
+    "fail_closed": "the receipt pair (--receipt and --receipt-out) is REQUIRED; the runner will not produce a redacted packet without also anonymizing the receipt. Missing either exits non-zero and writes nothing.",
+    "anonymized_receipt_output": "redacted-receipt.json — has the arm field dropped, string metadata redacted via the literal map, and anon_id bound to the redacted packet's anon_id (OUT-<12hex> of raw-output.txt).",
+    "atomicity": "both payloads are computed before any write; a rejected input leaves NO output, and if the receipt write fails the already-written packet is removed (no half set).",
+    "redacts_only": "the COMPLETION_CLAIM section of raw-output.txt + producer receipt string metadata; FIX_DIFF/TEST_LOG/VALIDATOR_OUTPUT are copied verbatim",
     "answer_safe": "operates only on a producer output; never reads the Gate 0 analysis, the fix, or the answer"
   },
 
