@@ -1,8 +1,8 @@
 {
   "contract": "gate2-scorer-handoff.v2",
-  "frozen": false,
-  "pending_owner_resign": true,
-  "version_note": "v1 was owner-re-signed 2026-07-24. It was then substantively changed (mandatory receipt pair, anon-id binding, output atomicity/alias rules). Per governance those changes require a NEW freeze, so this is v2 with frozen=false until the owner re-signs. Parse validity (runner) is separate from Gate-2 authorization (frozen=true).",
+  "frozen": true,
+  "owner_resigned": "2026-07-25",
+  "version_note": "v1 was owner-re-signed 2026-07-24, then substantively changed (mandatory receipt pair, anon-id binding, output atomicity/alias rules). Those changes required a NEW freeze; the owner re-signed v2 on 2026-07-25, so frozen=true. Parse validity (runner) is separate from Gate-2 authorization; frozen=true is necessary but not sufficient — Gate 2 still needs the resource preflight and a separate owner start command.",
   "supersedes": "gate2-scorer-handoff.v1 (owner-re-signed 2026-07-24)",
   "authority": "docs/governance/gate1-prereg-prepush-amendment-v2-20260724.md Section G(d)",
   "principle": "Remove identity/assignment labels ONLY. Never delete substantive evidence (code diff, tests, validator output, completion claim). If content itself reveals treatment, flag blinding_compromised; do not sanitize.",

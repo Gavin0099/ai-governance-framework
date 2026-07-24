@@ -213,11 +213,12 @@ built). Their states differ.
 Anonymization removes **identity labels only**, never substantive evidence. The
 principle is now an executable, mechanically-replayable contract
 [`artifacts/experiments/prepush-bugfix-20260724/scorer-handoff-contract.json`](../../artifacts/experiments/prepush-bugfix-20260724/scorer-handoff-contract.json)
-(**`gate2-scorer-handoff.v2`, frozen=false — PENDING OWNER RE-SIGN**; v1 was
+(**`gate2-scorer-handoff.v2`, frozen — owner re-signed 2026-07-25**; v1 was
 re-signed 2026-07-24 then substantively changed with the mandatory receipt pair,
-anon-id binding, path-alias rejection, and staged-publish atomicity, so it is
-bumped to v2 and is not frozen until the owner re-signs). It fixes the parts the
-review flagged as still principle-only:
+anon-id binding, path-alias rejection, and staged-publish atomicity, so it was
+bumped to v2 and re-signed. Frozen is necessary but not sufficient for Gate 2,
+which still needs the resource preflight and a separate owner start command). It
+fixes the parts the review flagged as still principle-only:
 - **Producer output artifact** `raw-output.txt` with a fixed section order
   (FIX_DIFF, TEST_LOG, VALIDATOR_OUTPUT, COMPLETION_CLAIM); redaction applies only
   to COMPLETION_CLAIM free text + receipt metadata; sections 1–3 are never redacted.
