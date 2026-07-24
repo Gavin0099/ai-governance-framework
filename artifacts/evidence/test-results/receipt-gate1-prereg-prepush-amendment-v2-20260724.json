@@ -1,0 +1,45 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git bundle create+verify (named-ref procedure); python -m governance_tools.governance_drift_checker --repo . --format human; git diff --check --cached; sha256sum artifacts/experiments/prepush-bugfix-20260724/*.md",
+  "exit_code": 0,
+  "runner": "claude-code-gate1-amendment-v2-prepush-20260724",
+  "linked_commit": "10a401f8584595f70960ef56e6a01ec9c7a1f0c5",
+  "validated_state": "amendment v2 + v1 status reconciliation + split validator packets + active-task + PLAN.md + inventory corrections, i.e. the tree committed as 10a401f8",
+  "bundle_procedure_verified": {
+    "failed_command": "git bundle create bare.bundle 33006f09 -> fatal: Refusing to create empty bundle",
+    "working_command": "git update-ref refs/tmp/prepush-baseline 33006f09; git bundle create f.bundle refs/tmp/prepush-baseline; git bundle verify f.bundle; git update-ref -d refs/tmp/prepush-baseline",
+    "verify_result": "okay; complete history; single head 33006f09097597f5720a2d01661281d564fb2693ec",
+    "bundle_sha256_design_env": "58f720c0b7d17b5bb88ecc93fcdd60f750d50216be55d62ff613cf2558036f9c",
+    "authoritative_invariant": "single-head + complete-history verify, not the sha256 (bundle bytes vary by git version)"
+  },
+  "packet_hashes": {
+    "arm-dispatch-packet.md": "59ef5915bccf09eb6a5c7a344412d512415eb6e8fab0c83e7f122612a3b822a8",
+    "skill-packet-bugfix.md": "f2c6862f70d2db0d2268b20d956a90fada4687cceab6d5ef07fd6553f2e75b14",
+    "governance-packet.md": "f6dfe7268851b59717405550c39502a76774165a1b35ee9c9e056506c79bdc28",
+    "validator-pins.md (producer-safe, root-cause removed)": "6ea4b3226a3f54dce265ad27a67209b9d803b27d690cc4d899d20fff9a7f2d5f",
+    "validator-expectation-DESIGNER-ONLY.md (withheld from producers)": "dcff3d2d0d3f02f4ef57283718c61b5fe890e54b109b90be05b68d7a25fb52c6"
+  },
+  "results": {
+    "governance_drift_checker_severity": "ok",
+    "plan_freshness": "PASS",
+    "plan_inventory_current": "PASS",
+    "plan_required_sections_present": "PASS",
+    "memory_schema_complete": "PASS",
+    "expansion_boundary": "PASS",
+    "git_diff_check": "clean",
+    "producer_safe_validator_no_rootcause": "grep for ignore-stdin/head/stdin/--head-ref -> no match"
+  },
+  "not_run": [
+    "runtime/build/pytest suites: markdown pre-registration artifacts and this receipt only",
+    "the four-arm experiment: Gate 2 deferred; Gate 1 pending owner re-sign of v2",
+    "shellcheck/ruff/mypy: not installed; frozen as run-environment requirements, expected-null recorded in the designer-only file"
+  ],
+  "cannot_claim": [
+    "that Gate 1 is complete: pending owner re-sign of amendment v2 Section E",
+    "that the isolation environment is proven beyond the verified bundle procedure",
+    "that external tools can or cannot replace the in-house Python tools (needs a separate replacement experiment)",
+    "that the pre-push bug is fixed: preserved at baseline 33006f09",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
