@@ -1,0 +1,31 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m governance_tools.governance_drift_checker --repo . --format human; git diff --check --cached",
+  "exit_code": 0,
+  "runner": "claude-code-gate1-resign-prepush-20260724",
+  "linked_commit": "f9418482277ca55ca2d896d63bf1f2027ec9df28",
+  "validated_state": "owner re-sign status flip unified across amendment v2 + memory/01_active_task.md + PLAN.md, i.e. the tree committed as f9418482",
+  "results": {
+    "governance_drift_checker_severity": "ok",
+    "plan_freshness": "PASS",
+    "plan_inventory_current": "PASS",
+    "plan_required_sections_present": "PASS",
+    "memory_schema_complete": "PASS",
+    "expansion_boundary": "PASS",
+    "git_diff_check": "clean",
+    "status_unified": "amendment v2 header/Section E/Cannot-claim, active_task, and PLAN P3 all state design-frozen-not-formally-complete identically"
+  },
+  "not_run": [
+    "runtime/build/pytest suites: markdown status flip only",
+    "the four-arm experiment: execution progress = 0; Gate 2 deferred"
+  ],
+  "cannot_claim": [
+    "that Gate 1 is formally complete: only the pre-registration design is frozen; the built isolation instance and blinded producer/scorer capacity do not exist",
+    "that Gate 2 may start or that any arm has run",
+    "that the Bug Fix Skill is effective",
+    "that external tools can or cannot replace the in-house Python tools (needs a separate replacement experiment)",
+    "that the pre-push bug is fixed: preserved at baseline 33006f09",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
