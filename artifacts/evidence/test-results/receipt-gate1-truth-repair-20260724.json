@@ -1,0 +1,42 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git rev-parse 33006f09; sha256sum artifacts/experiments/prepush-bugfix-20260724/*.md; grep -ciE 'ignore-stdin|--head-ref|stdin|root cause' artifacts/experiments/prepush-bugfix-20260724/validator-pins.md; grep -rniE 'pending owner re-sign|Gate 1 is [*][*]incomplete' docs/governance/*.md; grep -rln '33006f09097597' docs/; python -m governance_tools.governance_drift_checker --repo . --format human; git diff --check origin/main..HEAD",
+  "exit_code": 0,
+  "started_at": "2026-07-24T12:19:40Z",
+  "finished_at": "2026-07-24T12:19:41Z",
+  "runner": "claude-code-gate1-truth-repair-20260724",
+  "linked_commit": "2b55bd65918aa19594c6f0bbf67110a2a4fb127c",
+  "validated_state": "Gate 1 truth-repair: corrected baseline SHA, unified governance status to Gate 1 complete (v2 authority), downgraded inventory external-tool claim, i.e. the tree committed as 2b55bd65",
+  "mechanical_checks": {
+    "git_rev_parse_33006f09": "33006f097597f5720a2d01661281d564fb2693ec (len=40, valid)",
+    "wrong_sha_in_docs_count": 0,
+    "amendment_v2_bundle_check_uses_correct_sha": true,
+    "packet_sha256": {
+      "arm-dispatch-packet.md": "59ef5915bccf09eb6a5c7a344412d512415eb6e8fab0c83e7f122612a3b822a8",
+      "skill-packet-bugfix.md": "f2c6862f70d2db0d2268b20d956a90fada4687cceab6d5ef07fd6553f2e75b14",
+      "governance-packet.md": "f6dfe7268851b59717405550c39502a76774165a1b35ee9c9e056506c79bdc28",
+      "validator-pins.md": "6ea4b3226a3f54dce265ad27a67209b9d803b27d690cc4d899d20fff9a7f2d5f",
+      "validator-expectation-DESIGNER-ONLY.md": "dcff3d2d0d3f02f4ef57283718c61b5fe890e54b109b90be05b68d7a25fb52c6"
+    },
+    "producer_safe_pins_rootcause_hits": 0,
+    "governance_docs_current_state_pending_or_incomplete_hits": 0,
+    "governance_drift_checker_severity": "ok",
+    "git_diff_check": "clean"
+  },
+  "corrects": {
+    "receipt-gate1-prereg-prepush-amendment-v2-20260724.json": "its verify_result recorded a malformed 41-char SHA (33006f09097597...); left in place per append-only and superseded by the git_rev_parse_33006f09 value here"
+  },
+  "provenance_caveat": "memory guard reports test_evidence_artifact_metadata_invalid across historical and new receipts; this receipt adds started_at/finished_at and the actual mechanical check commands, but is not claimed to be complete provenance validation of every field",
+  "not_run": [
+    "runtime/build/pytest suites: markdown truth-repair only",
+    "the four-arm experiment: Gate 2 preflight (amendment v2 Section G) unmet; no separate start command"
+  ],
+  "cannot_claim": [
+    "that Gate 2 is ready or may start",
+    "that the Bug Fix Skill is effective (a Gate 3 question)",
+    "that external tools do or do not catch this defect class (no empirical run this session)",
+    "that the pre-push bug is fixed: preserved at baseline 33006f097597f5720a2d01661281d564fb2693ec",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
