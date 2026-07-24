@@ -1,0 +1,40 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python test_redaction_runner.py (13 cases); contract v2 field checks; git diff --check origin/main..HEAD",
+  "exit_code": 0,
+  "started_at": "2026-07-24T16:44:21Z",
+  "finished_at": "2026-07-24T16:44:23Z",
+  "runner": "claude-code-gate2-output-integrity-v2-20260725",
+  "linked_commit": "6873f3d8cafdcbbc31c4650d46b46c5a8d5a7fc0",
+  "output_artifacts": [
+    "artifacts/experiments/prepush-bugfix-20260724/redaction_runner.py",
+    "artifacts/experiments/prepush-bugfix-20260724/test_redaction_runner.py",
+    "artifacts/experiments/prepush-bugfix-20260724/scorer-handoff-contract.json",
+    "docs/governance/gate1-prereg-prepush-amendment-v2-20260724.md",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-preflight-manifest-20260724.md"
+  ],
+  "corrects_prior_receipt": {
+    "file": "artifacts/evidence/test-results/receipt-gate2-handoff-blockers-close-20260725.json",
+    "false_claims_now_corrected": [
+      "it listed atomicity / 'no half set' as achieved, but --out == --receipt-out silently left only the receipt (fail-open). Now fixed by path-alias rejection + staged publish + completeness marker.",
+      "the prior 11-case suite did not cover output aliasing; now covered (out==receipt-out, out-aliases-input, marker present, partial cleanup). 13 cases.",
+      "the contract was frozen=true v1 while being substantively changed after the 2026-07-24 re-sign; it is now v2, frozen=false, pending owner re-sign — it is NOT a valid frozen contract until re-signed."
+    ],
+    "append_only": "the prior receipt is left in place and corrected forward here, not rewritten."
+  },
+  "per_item_results": {
+    "1_runner_suite_13_cases_green": "PASS",
+    "2_alias_fail_open_closed_out_equals_receipt_out": "PASS",
+    "3_completeness_marker_present_and_hashes_match": "PASS",
+    "4_contract_v2_frozen_false_pending_resign": "PASS",
+    "5_git_diff_check_clean": "PASS"
+  },
+  "cannot_claim": [
+    "that the scorer-handoff contract is frozen or Gate-2-authorized: it is v2, frozen=false, pending owner re-sign",
+    "that Gate 2 is ready or may start: no isolated execution environment, no validators installed, no producers/scorers staffed, no separate owner start command",
+    "that the handoff has run on any real producer output (synthetic tests only)",
+    "that any arm has run or that the Bug Fix Skill is effective (a Gate 3 question)",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
