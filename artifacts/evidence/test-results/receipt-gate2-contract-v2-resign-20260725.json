@@ -1,0 +1,27 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "runner run against frozen=true v2 (no not-authorized notice); python test_redaction_runner.py (13 cases); contract field checks; git diff --check",
+  "exit_code": 0,
+  "started_at": "2026-07-24T16:50:00Z",
+  "finished_at": "2026-07-24T16:50:20Z",
+  "runner": "claude-code-gate2-contract-v2-resign-20260725",
+  "linked_commit": "bfe918efe20b54ad6d623c3548242eb1b6f6185d",
+  "output_artifacts": [
+    "artifacts/experiments/prepush-bugfix-20260724/scorer-handoff-contract.json",
+    "docs/governance/gate1-prereg-prepush-amendment-v2-20260724.md",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-preflight-manifest-20260724.md"
+  ],
+  "results": {
+    "contract_v2_frozen_true": "PASS (frozen=true, owner_resigned=2026-07-25, pending removed)",
+    "runner_no_not_authorized_notice": "PASS (0 occurrences with frozen=true)",
+    "runner_suite_13_cases": "PASS",
+    "authority_pointers_updated": "PASS (amendment + manifest say v2 re-signed)",
+    "git_diff_check": "clean"
+  },
+  "cannot_claim": [
+    "that Gate 2 is ready or may start: frozen contract is necessary but not sufficient; resource preflight unmet and no separate owner start command",
+    "that any arm has run or that the Bug Fix Skill is effective",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
