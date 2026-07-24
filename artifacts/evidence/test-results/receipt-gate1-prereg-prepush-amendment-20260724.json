@@ -1,0 +1,39 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m governance_tools.governance_drift_checker --repo . --format human; git diff --check --cached; sha256sum artifacts/experiments/prepush-bugfix-20260724/*.md",
+  "exit_code": 0,
+  "runner": "claude-code-gate1-amendment-prepush-20260724",
+  "linked_commit": "61b285b25e97872526057c6ab6b01637fbfa1d2b",
+  "validated_state": "amendment + four frozen packets + active-task sync, i.e. the tree committed as 61b285b2",
+  "frozen_hashes": {
+    "baseline_commit": "33006f09",
+    "baseline_instruction_set_tree": "8c1bd5a523eb7038cc4c6a247c2b45df05d49c04",
+    "prepush_hook_blob": "5b388f1aa83bd9b2027d1144d981b99979c51120",
+    "version_bump_guard_blob": "7d2a51924a7567ce5da336653480c9964806ffa5",
+    "arm_dispatch_packet_sha256": "59ef5915bccf09eb6a5c7a344412d512415eb6e8fab0c83e7f122612a3b822a8",
+    "skill_packet_sha256": "f2c6862f70d2db0d2268b20d956a90fada4687cceab6d5ef07fd6553f2e75b14",
+    "governance_packet_sha256": "f6dfe7268851b59717405550c39502a76774165a1b35ee9c9e056506c79bdc28",
+    "validator_pins_sha256": "a54caabb174389d1b15e5fd78ce30e831f83696e357c1182944a16d66a78bfb5"
+  },
+  "results": {
+    "governance_drift_checker_severity": "ok",
+    "plan_freshness": "PASS",
+    "plan_inventory_current": "PASS",
+    "memory_schema_complete": "PASS",
+    "expansion_boundary": "PASS",
+    "git_diff_check": "clean"
+  },
+  "not_run": [
+    "runtime/build/pytest suites: markdown pre-registration artifacts and this receipt only",
+    "the four-arm experiment: Gate 2 deferred and Gate 1 pending owner re-sign",
+    "shellcheck/ruff/mypy: not installed in the design environment; frozen as run-environment requirements"
+  ],
+  "cannot_claim": [
+    "that Gate 1 is complete: it is partially frozen pending owner re-sign of the amendment",
+    "that Gate 2 may start",
+    "that the pre-push bug is fixed: preserved at baseline 33006f09",
+    "that runtime self-smoke is a proven bug: it is a non-goal, unproven",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
