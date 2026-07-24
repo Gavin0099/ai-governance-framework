@@ -1,0 +1,34 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "fail-closed shell assertions (rc starts 0, any failure sets rc=1, final rc returned): [1] random.seed(20260724);sample==['D','C','A','B']; [2] git bundle verify of the built instance -> single head + complete history; [3] four packet sha256 == frozen; [4] BLOCKED-ON-RESOURCE + resource-classification present in PLAN/active_task/amendment v2; [5] amendment v2 classification table present; [6] git diff --check origin/main..HEAD clean",
+  "exit_code": 0,
+  "started_at": "2026-07-24T12:36:47Z",
+  "finished_at": "2026-07-24T12:36:48Z",
+  "runner": "claude-code-gate2-preflight-setup-20260724",
+  "linked_commit": "f82311dafdc5ae81e6f7073757fcf7b0d0bd84e7",
+  "output_artifacts": [
+    "docs/governance/gate1-prereg-prepush-amendment-v2-20260724.md",
+    "docs/governance/gate1-prereg-prepush-outgoing-ref-20260724.md",
+    "memory/01_active_task.md",
+    "PLAN.md",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-preflight-manifest-20260724.md",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-producer-receipt-template.json"
+  ],
+  "per_item_results": {
+    "1_execution_order_from_seed": "PASS ([D, C, A, B])",
+    "2_bundle_single_head_complete_history": "PASS (head 33006f097597f5720a2d01661281d564fb2693ec)",
+    "3_four_packet_hashes_match_frozen": "PASS",
+    "4_blocked_on_resource_reframing_present": "PASS",
+    "5_resource_classification_table_present": "PASS",
+    "6_git_diff_check_clean": "PASS"
+  },
+  "answer_safe_note": "Every step here is exam-hall setup that does not touch answer production. No arm was run, no scoring performed, no validator installed into the design session, and the design-env bundle (sha256 6ad5bcca..., 8.3 MiB) is a build artifact only, intentionally not committed.",
+  "cannot_claim": [
+    "that Gate 2 is ready: resource-gated items remain (isolated producer/scorer environments, validators installed there)",
+    "that Gate 2 may start: a separate explicit owner command is still required",
+    "that the design-env bundle is an isolated run environment (it is a verified build artifact only)",
+    "that any arm has run or that the Bug Fix Skill is effective (a Gate 3 question)",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
