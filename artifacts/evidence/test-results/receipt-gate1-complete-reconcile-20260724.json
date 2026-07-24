@@ -1,0 +1,31 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m governance_tools.governance_drift_checker --repo . --format human; git diff --check --cached",
+  "exit_code": 0,
+  "runner": "claude-code-gate1-complete-reconcile-20260724",
+  "linked_commit": "5e07895c3e003720c7f439d49bff7fc516efcb8c",
+  "validated_state": "status reconciled to Gate 1 complete + Gate 2 preflight added, unified across amendment v2 + PLAN.md + active_task, i.e. the tree committed as 5e07895c",
+  "results": {
+    "governance_drift_checker_severity": "ok",
+    "plan_freshness": "PASS",
+    "plan_inventory_current": "PASS",
+    "plan_required_sections_present": "PASS",
+    "memory_schema_complete": "PASS",
+    "expansion_boundary": "PASS",
+    "git_diff_check": "clean",
+    "status_unified": "amendment v2, PLAN P3, and active_task all state Gate 1 complete with the four caveats preserved"
+  },
+  "gate2_preflight_state": "UNMET: no built isolation instance; no four independent producer contexts; no primary/second blind scorer; shellcheck/ruff/mypy not installed; separate start command not given",
+  "not_run": [
+    "runtime/build/pytest suites: markdown status reconciliation only",
+    "the four-arm experiment: execution progress = 0; Gate 2 gated by Section G preflight + separate owner command"
+  ],
+  "cannot_claim": [
+    "that Gate 2 may start or that any arm has run",
+    "that the Bug Fix Skill is effective (a Gate 2 pilot could not show it; a Gate 3 question)",
+    "that external tools can or cannot replace the in-house Python tools (needs a separate same-contract comparison)",
+    "that the pre-push bug is fixed: preserved at baseline 33006f09",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
