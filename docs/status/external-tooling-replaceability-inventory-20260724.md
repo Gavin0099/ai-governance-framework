@@ -12,14 +12,27 @@ must be confirmed by reading each tool's actual contract before any action. A
 category marked "replaceable" means a mature external equivalent exists for that
 *kind* of check, not that a given file is a drop-in swap today.
 
-## The one hard data point from this session
+## The one hard data point from this session (corrected)
 
-The pre-push bug (`D−C` will measure exactly this) is an "ignore-stdin" logic
-error. The in-house Python guard missed it **and** shellcheck/ruff/mypy would not
-catch it either — and in fact none of the three is even installed. So "replace
-in-house checks with external tools" is **defect-type-dependent**: it helps for
-commodity checks (schema, lint, diff, policy), and does nothing for
-logic-correctness bugs, which need tests/oracles regardless of who ships the
+Three over-claims from the first draft are corrected here:
+
+- **The Python guard did not "miss" the bug.** The defect is in the **shell hook**,
+  which passes the wrong ref (`HEAD` instead of the outgoing pushed ref) to
+  `version_bump_guard.py`. The Python tool operates correctly on the arguments it
+  receives; garbage in, garbage out. This is not evidence against the Python tool.
+- **shellcheck/ruff/mypy were not run** (not installed here). We can only state
+  they are **currently absent** and that Arm D's signal is **expected null**; we
+  cannot claim as fact that they would fail to catch it.
+- **`D−C` measures the marginal effect of adding treatment-time validator
+  feedback**, not whether external tools can replace the in-house Python tools.
+  The replacement question needs its own **replacement experiment** — compare an
+  in-house implementation against an external one under the same contract. This
+  inventory is a candidate list for that, not an answer to it.
+
+With those corrections: "replace in-house checks with external tools" is
+**defect-type-dependent** — plausibly useful for commodity checks (schema, lint,
+diff, policy), and of no help for logic-correctness bugs, which need tests/oracles
+regardless of who ships the
 linter. Keep that boundary in mind reading the table.
 
 ## A. Strong replace candidates (mature external equivalent exists)

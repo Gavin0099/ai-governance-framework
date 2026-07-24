@@ -53,12 +53,17 @@
   `33006f09`. A first pre-registration was frozen at `2c02c074`, then a review
   found it only partially frozen; the correction amendment
   (`docs/governance/gate1-prereg-prepush-amendment-20260724.md`) narrows scope
-  to the version-bump advisory only (runtime self-smoke is a non-goal), freezes
-  the actual values/hashes/budget/seed/subset, and replaces pinned-worktree
-  isolation with a symptom-only dispatch packet plus a baseline-only bundle. It
-  is pending owner re-sign. Gate 2 is deferred: it needs a blinded producer and
-  blind scorer that are neither this design session nor the author. No arm has
-  run; the hook, runtime, CI, gates, and enforcement are unchanged.
+  to the version-bump advisory only (runtime self-smoke is a non-goal) and froze
+  the actual values/hashes/budget/seed/subset. A second review then found v1's
+  bundle command unexecutable, a root-cause leak in the producer-facing validator
+  file, and status contradictions; amendment v2
+  (`docs/governance/gate1-prereg-prepush-amendment-v2-20260724.md`) fixes the
+  isolation with a verified named-ref bundle procedure, splits the validator
+  packet into producer-safe versus designer-only, and unifies status. Gate 1 is
+  **incomplete, pending owner re-sign of v2**. Gate 2 is deferred: it needs a
+  blinded producer and blind scorer that are neither this design session nor the
+  author. No arm has run; the hook, runtime, CI, gates, and enforcement are
+  unchanged.
 
 - **P1-F is closed as advisory.** The owner decided at `ba50b0f4` not to add a
   current-diff blocker. Reopen only after a natural post-Option-B

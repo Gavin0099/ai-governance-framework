@@ -1,10 +1,13 @@
-# Validator Pins — Arm D treatment-time + post-hoc scoring
+# Validator Pins — versions, configs, commands (PRODUCER-SAFE)
 
-None of these validators are installed in the design environment; they are frozen
+This file is producer-safe: it contains only tool versions, configs, and the
+commands to run them. It contains **no** root-cause hint, no expected result,
+and no diagnosis. The expected-signal reasoning lives in a separate
+designer/scorer-only file that producers never receive.
+
+None of these validators is installed in the design environment; they are frozen
 as **environment requirements** the run must install exactly. A run whose
-validator versions do not match is INVALID (not merely lower-scored). Expected
-signal on this defect is **null** (F3): an "ignore-stdin" logic error is not a
-shell/type/lint smell.
+validator versions do not match is INVALID (not merely lower-scored).
 
 ## Required versions (exact, pinned)
 
@@ -33,10 +36,18 @@ warn_return_any = True
 no_implicit_optional = True
 ```
 
-## Roles
+## Commands
 
-- Treatment-time (Arm D only): run the three validators on the changed files
-  before Arm D commits; Arm D may act on the output. A/B/C never receive it.
+```
+shellcheck --shell=bash --severity=style scripts/hooks/pre-push
+ruff check governance_tools/version_bump_guard.py
+mypy governance_tools/version_bump_guard.py
+```
+
+## Roles (mechanics only)
+
+- Treatment-time (Arm D only): run the three commands on the changed files before
+  Arm D commits; Arm D may act on the output. A/B/C never receive it.
 - Post-hoc scoring: after all four outputs are committed and blinded, the blind
-  scorer runs the identical pinned validators across A/B/C/D (uniform-oracle
-  rule). Results measure residual findings and are never fed back to producers.
+  scorer runs the identical commands across A/B/C/D (uniform-oracle rule).
+  Results are never fed back to producers.

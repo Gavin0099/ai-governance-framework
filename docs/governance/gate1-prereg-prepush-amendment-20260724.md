@@ -1,14 +1,16 @@
 # Gate 1 Correction Amendment — pre-push replay pre-registration
 
-Status: **FROZEN 2026-07-24, owner re-signed** (Section E confirmed: task
-narrowed to the version-bump advisory, Section B frozen values, Section C
-isolation method). Supersedes the incompletely-frozen parts of the
-pre-registration committed at `2c02c074`
-([gate1-prereg-prepush-outgoing-ref-20260724.md](gate1-prereg-prepush-outgoing-ref-20260724.md)).
-Those commits are left intact (append-only history). Gate 1 is now complete.
-Freezing still does **not** authorize Gate 2, which stays deferred to blinded
-producer/scorer capacity. No hook, runtime, CI, gate, or enforcement is changed
-here. No method is claimed effective.
+Status: **SUPERSEDED BY v2, pending owner re-sign.** A second review found this
+v1 had an unexecutable bundle command (Blocking 1), a root-cause leak in the
+producer-facing validator file (Blocking 2), and internal status contradictions
+(Blocking 3). The earlier "FROZEN / Gate 1 complete" wording here was premature
+and is withdrawn. The authoritative isolation method, validator-packet split, and
+Gate-1 completion status now live in
+[gate1-prereg-prepush-amendment-v2-20260724.md](gate1-prereg-prepush-amendment-v2-20260724.md).
+The frozen VALUES in Sections B–C below (hashes, budget, seed, subset, versions,
+scope, non-goal) carry forward unchanged and are still valid; only the isolation
+method, the validator layout, and the completion status are superseded by v2.
+No hook, runtime, CI, gate, or enforcement is changed here.
 
 Review that prompted this: CHANGES_REQUESTED, three blocking findings plus two
 corrections. All are accepted.
@@ -96,16 +98,12 @@ The prior claim that the meiandraybook independent reviewer and this Gate 2 are
 Both are "independent capacity we do not have in this session," but they are not
 interchangeable and should be tracked as two distinct blocked items.
 
-## E. Owner re-sign — CONFIRMED 2026-07-24
+## E. Owner re-sign — SUPERSEDED BY v2
 
-The owner re-signed all three:
-1. Task narrowed to the version-bump advisory; runtime smoke is a non-goal. ✓
-2. The frozen values in Section B (budget 60 calls/30 min, seed 20260724,
-   100% second-scorer subset, validator pins). ✓
-3. The isolation method in Section C. ✓
-
-Gate 1 is **complete**. Gate 2 remains deferred to blinded producer/scorer
-capacity and must not start until that exists.
+The 2026-07-24 re-sign recorded here was premature: a later review found the
+isolation and validator-leak defects above. Gate-1 completion is NOT owned by
+this section. It is owned by amendment v2 Section E, which is pending owner
+re-sign. Treat Gate 1 as **incomplete** until v2 is re-signed.
 
 ## F. Planning-truth sync (fixes the second correction)
 
@@ -125,7 +123,8 @@ not settled by this task alone.
 
 ## Cannot claim
 
-- That Gate 1 is now complete (it is partially frozen pending owner re-sign).
+- That Gate 1 is complete (this v1 is superseded by v2, which is pending owner
+  re-sign; Gate 1 is incomplete until then).
 - That Gate 2 may start.
 - That a fresh session is automatically a blind environment (Section C is the
   method that must hold).
