@@ -1,0 +1,36 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "fail-closed assertions: [1] python test_redaction_runner.py (valid accepted; missing/duplicate/out-of-order/CRLF/preamble rejected); [2] CLI on CRLF input -> exit 2; [3] sanitized repo git rev-list --objects --all -> 0 meta objects; [4] git show HEAD:memory/2026-07-24.md -> unreachable; [5] sanitized tree == 36c346fa + buggy hook present; [6] git diff --check origin/main..HEAD",
+  "exit_code": 0,
+  "started_at": "2026-07-24T16:01:42Z",
+  "finished_at": "2026-07-24T16:01:42Z",
+  "runner": "claude-code-gate2-sanitized-failclosed-20260724",
+  "linked_commit": "89b6b59eaa94e1242dbb0e7b7deb173f28bf54a8",
+  "output_artifacts": [
+    "artifacts/experiments/prepush-bugfix-20260724/redaction_runner.py",
+    "artifacts/experiments/prepush-bugfix-20260724/test_redaction_runner.py",
+    "artifacts/experiments/prepush-bugfix-20260724/sanitized-baseline-manifest-20260724.md",
+    "artifacts/experiments/prepush-bugfix-20260724/isolation-template-spec.md",
+    "docs/governance/gate1-prereg-prepush-amendment-v2-20260724.md"
+  ],
+  "per_item_results": {
+    "1_runner_fail_closed_negative_tests": "PASS (valid accepted; missing/duplicate/out-of-order/CRLF/preamble rejected)",
+    "2_cli_rejects_crlf_exit2": "PASS",
+    "3_sanitized_zero_meta_objects": "PASS (git rev-list --objects --all)",
+    "4_sanitized_git_show_meta_unreachable": "PASS",
+    "5_sanitized_tree_and_bug_intact": "PASS (tree 36c346fa, buggy hook present)",
+    "6_git_diff_check_clean": "PASS"
+  },
+  "findings_addressed": {
+    "finding_2_denylist_insufficient": "resolved via allowlist export into a fresh object DB (sanitized tree 36c346fa, 11 objects, 0 meta objects reachable by git show / rev-list); producer never receives the raw bundle",
+    "redaction_runner_not_fail_closed": "parser rewritten to reject CRLF/missing/duplicate/out-of-order/preamble and validate contract id/frozen/section_markers; negative test suite added and green"
+  },
+  "cannot_claim": [
+    "that Gate 2 is ready: validators not installed in a run image; no producers/scorers staffed; no separate owner start command",
+    "that the sanitized repo alone is the full isolated environment (still needs no-network, no-host-mount placement + dispatch packet)",
+    "that any arm has run or that the Bug Fix Skill is effective (a Gate 3 question)",
+    "that the design-env sanitized_commit sha is reproducible (author/date vary; the tree hash + allowlist blob hashes are the invariant)",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
