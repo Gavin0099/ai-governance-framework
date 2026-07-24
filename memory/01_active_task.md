@@ -61,11 +61,17 @@
   isolation with a verified named-ref bundle procedure, splits the validator
   packet into producer-safe versus designer-only, and unifies status. The owner
   re-signed v2 on 2026-07-24 and a read-only re-review confirmed it, so **Gate 1
-  is COMPLETE** (the pre-registration is done). This does NOT open Gate 2: the
-  amendment v2 Section G preflight is unmet (no built isolation instance; no four
-  independent clean producer sessions/contexts; no primary + second blind scorer;
-  validators shellcheck 0.10.0 / ruff 0.6.9 / mypy 1.11.2 not installed), and
-  Gate 2 additionally needs a separate explicit owner "start Gate 2" command.
+  is COMPLETE** (the pre-registration is done). The answer-safe part of the Gate 2
+  preflight is now done this session (Gate 2 preflight manifest 2026-07-24):
+  baseline bundle instance built and verified (single head 33006f09, complete
+  history, sha256 6ad5bcca, 8.3 MiB, not committed), execution order frozen to
+  [D, C, A, B] from seed 20260724, packet hashes re-verified, validator pins
+  confirmed real (ruff 0.6.9 on PyPI), and a producer receipt template prepared.
+  What remains is **BLOCKED-ON-RESOURCE, not blocked-on-company**: an environment
+  that technically cannot read the answer (container/VM/sandbox/separate account/
+  remote runner) for four isolated producer contexts plus a primary and second
+  blind scorer, the pinned validators installed there, and a separate explicit
+  owner "start Gate 2" command. These are satisfiable in any secure environment.
   Experiment execution progress = 0 (design done, no result); no arm has run; the
   hook, runtime, CI, gates, and enforcement are unchanged; Skill effectiveness
   cannot be judged before Gate 3.

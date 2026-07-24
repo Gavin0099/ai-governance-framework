@@ -203,9 +203,10 @@ directly targets the recurring mis-anchor family (Gate 0 root-cause note).
    an informative result, not a failure.
 4. **Who runs the arms and who scores.** DEFERRED. Producers and the blind scorer
    must not be this design session and must be blind to the Gate 0 analysis (F2).
-   That independent capacity is not available now; it is the **same held-out
-   capacity** the meiandraybook independent-reviewer line waits on, resumed back
-   at the company.
+   The blocker is a **resource** — an isolated environment that technically cannot
+   read this repo/main/analysis, plus blinded scoring capacity — **not a place**.
+   It can be satisfied in any secure environment; a company location is only
+   relevant if that is where such an environment happens to be available.
 5. **Proceed to Gate 2.** DEFERRED to that same independent capacity. When it
    exists, Gate 2 runs as a **process-only pilot** (per 13.2); a limited effect
    signal is expected and accepted for a first pilot.

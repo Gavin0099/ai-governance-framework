@@ -1,0 +1,26 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "_TEMPLATE_NOTE": "Producer fills every <...> field. Do not read the Gate 0 doc, either amendment, memory/*, or validator-expectation-DESIGNER-ONLY.md. Keep the worktree clean at capture; linked_commit MUST equal your output commit.",
+  "arm": "<A|B|C|D>",
+  "command": "<the exact test/validator command you ran>",
+  "exit_code": 0,
+  "started_at": "<UTC ISO8601>",
+  "finished_at": "<UTC ISO8601>",
+  "runner": "<isolated producer context id>",
+  "linked_commit": "<your output commit full sha; must match a clean worktree at capture>",
+  "output_artifacts": [
+    "<path(s) to the test log / diff / validator output you produced>"
+  ],
+  "results": {
+    "regression_fails_at_baseline_33006f09": "<PASS|FAIL>",
+    "regression_passes_after_fix": "<PASS|FAIL>",
+    "regression_fails_again_on_defect_reintroduction": "<PASS|FAIL>",
+    "no_new_scoped_regression": "<PASS|FAIL>"
+  },
+  "cannot_claim": [
+    "semantic correctness beyond the frozen oracle",
+    "that the Bug Fix Skill is effective (a Gate 3 question)",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

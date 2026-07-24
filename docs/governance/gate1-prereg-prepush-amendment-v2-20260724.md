@@ -148,15 +148,44 @@ inputs and none of the known-answer context:
 - [ ] None of these roles is this design session or the author, and none can
   reach the Gate 0 analysis.
 
-Execution constants (currently NOT met — validators are not installed):
-- [ ] Identical model build across all four arms.
-- [ ] 60 tool calls / 30 min cap per arm.
-- [ ] shellcheck 0.10.0, ruff 0.6.9, mypy 1.11.2 installed.
-- [ ] Identical tool permissions across arms.
-- [ ] dispatch / Skill / Governance / validator packet sha256 all match Section
-  A/B values.
-- [ ] Randomized arm order generated from the frozen seed 20260724 and recorded.
-- [ ] Every arm's receipt can bind to its own output commit.
+Execution constants — answer-safe setup done this session where marked:
+- [x] 60 tool calls / 30 min cap per arm (frozen policy).
+- [x] dispatch / Skill / Governance / validator packet sha256 verified to match
+  Section A/B values (Gate 2 preflight manifest 2026-07-24).
+- [x] Randomized arm order generated from frozen seed 20260724 and recorded:
+  **[D, C, A, B]** (deterministic; `random.seed(20260724);
+  random.sample(['A','B','C','D'],4)`).
+- [x] Receipt template prepared for producers (answer-safe).
+- [ ] Identical model build across all four arms — stamped identically at
+  dispatch (policy frozen; actual build recorded then).
+- [ ] Identical tool permissions across arms — set at dispatch.
+- [ ] shellcheck 0.10.0, ruff 0.6.9, mypy 1.11.2 installed **in the producer/
+  scorer environment** (ruff 0.6.9 confirmed to exist on PyPI; install belongs in
+  the isolated run env, not this design session).
+- [ ] Every arm's receipt actually binds to its own output commit (verified at run).
+
+Isolation instance — built and verified this session as a reproducible artifact:
+- [x] Baseline bundle built via the verified named-ref procedure; `git bundle
+  verify` shows a single head `33006f097597f5720a2d01661281d564fb2693ec` and
+  complete history; design-env instance sha256
+  `6ad5bcca8cf4b743e1990310837097081a90bb65805f6cce698904baeb1cbe6e`, 8.3 MiB.
+- [ ] The instance is placed in an environment that **technically cannot** read
+  this repo, current `main`, the Gate 0 analysis, `memory/*`, or this
+  conversation — pending an isolated run environment (see resource classification).
+
+### Resource-based blocker classification (not a place)
+
+The remaining blockers are **resources**, not a geographic location. "Back at the
+company" was over-simplified; the correct statement is that each line waits on a
+specific capability, satisfiable in any secure environment:
+
+| Work | Real blocker | Must be at a company? |
+|---|---|---|
+| Gate 2 setup (this section's [x] items) | none — done this session | no |
+| Gate 2 producers | an environment that technically cannot read the answer (container / VM / Windows Sandbox / separate OS account / remote runner mounting only the baseline bundle) | no |
+| Gate 2 scorers | an isolated, blinded scoring context (fresh agent session or another person) with no arm identity and no treatment labels | no |
+| meiandraybook review | a real non-author reviewer with repo access who actually reads the evidence — remote is fine | no |
+| IMPORT_API_SECRET replay | the owner safely obtaining and using the secret | only if the secret lives solely in a company vault/device |
 
 Even after a full Gate 2 run, the most that may be claimed is: the four-arm
 process runs, evidence and commits bind correctly, and the scoring method works.

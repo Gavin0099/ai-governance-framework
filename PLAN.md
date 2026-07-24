@@ -1427,13 +1427,18 @@ P3 - Engineering Skill Program, pre-push bug study (Gate 1 in progress):
 - [x] **Gate 1 COMPLETE** — amendment v2 (verified named-ref bundle isolation;
   producer-safe vs designer-only validator split; unified status) owner re-signed
   2026-07-24 and confirmed by a read-only re-review.
-- [ ] Gate 2 preflight (amendment v2 Section G): build the baseline-only isolation
-  instance; stand up four independent clean producer sessions/contexts plus a
-  primary blind scorer and a second semantic-claim scorer; install shellcheck
-  0.10.0 / ruff 0.6.9 / mypy 1.11.2; confirm identical model/permissions/budget
-  and packet-hash + receipt binding. None met yet; Gate 2 (single four-arm
-  process-only pilot) is DEFERRED and additionally needs a separate explicit owner
-  "start Gate 2" command.
+- [x] Gate 2 preflight answer-safe setup (Gate 2 preflight manifest 2026-07-24):
+  baseline bundle instance built + verified (single head 33006f09, complete
+  history, sha256 6ad5bcca, not committed), execution order frozen [D, C, A, B]
+  from seed 20260724, packet hashes re-verified, validator pins confirmed real,
+  producer receipt template prepared.
+- [ ] Gate 2 preflight resource-gated remainder (amendment v2 Section G table),
+  **BLOCKED-ON-RESOURCE not blocked-on-company**: an environment that technically
+  cannot read the answer (container/VM/sandbox/separate account/remote runner) for
+  four isolated producer contexts plus a primary and second blind scorer that are
+  neither this session nor the author; the pinned validators installed there; the
+  actual model/permissions stamped. Gate 2 (single four-arm process-only pilot) is
+  DEFERRED and additionally needs a separate explicit owner "start Gate 2" command.
 
 Claim ceiling: experiment execution progress = 0 (design done, no result); no arm
 has run; the pre-push hook, runtime, CI, gates, and enforcement are unchanged; no
