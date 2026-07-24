@@ -69,17 +69,17 @@ git clone -b prepush-baseline prepush-baseline-33006f09.bundle work
 unreachable, network DNS blocked, answer analysis files absent, clone HEAD ==
 33006f09. See `isolation-template-spec.md`.
 
-**Producer-checkout minimization (frozen requirement — NOT yet applied):** the
-container probe also found that the full 33006f09 tree still carries the
-experimenter's meta-artifacts (`memory/2026-07-24.md`, `PLAN.md`,
-`docs/governance/evidence-backed-engineering-skill-program-*`, `artifacts/ab-*`)
-which describe the four-arm experiment itself. These do **not** leak the pre-push
-answer (verified: 0 answer hits) but they leak the experimental **frame** (a
-producer would learn it is an A/B subject). Before Gate 2 the producer checkout
-must be reduced to the code under test (`scripts/hooks/`, `governance_tools/`,
-`tests/`, and the modules needed to run tests) plus the dispatch packet, with
-`memory/`, `PLAN.md`, the program/gate docs, and `artifacts/ab-*` / `artifacts/
-experiments/*` denylisted. This frozen denylist is pending.
+**Producer baseline = sanitized ALLOWLIST export (not a checkout denylist):** the
+container probe found the full 33006f09 tree carries the experimenter's
+meta-artifacts (`memory/2026-07-24.md`, `PLAN.md`, the program docs,
+`artifacts/ab-*`) which leak the experimental **frame** (not the answer — 0 answer
+hits). A checkout denylist is insufficient: a producer with the raw bundle/`.git`
+can `git show HEAD:memory/…` under any sparse checkout. Fixed by an **allowlist
+export into a fresh git object database** (built + verified;
+`sanitized-baseline-manifest-20260724.md`): source `33006f09`, sanitized tree
+`36c346fa951a24cbf914ef04469aac5cb5fd8b86`, 4 allowlisted files, 11 objects total,
+`git show`/`git rev-list --objects --all` confirm 0 meta objects reachable. The
+producer receives this sanitized repo, never the raw bundle.
 
 ### Producer-environment file allowlist (frozen)
 
@@ -168,10 +168,11 @@ built). Their states differ.
 - [x] The isolation mechanism works: a real `docker run --network=none` container
   mounting only the bundle proved host-repo-unreachable + network-off + answer
   analysis absent + clone HEAD == 33006f09 (see Section A / isolation-template-spec).
-- [ ] **Producer-checkout denylist frozen + applied (Finding 2, OPEN):** the full
-  33006f09 tree still carries `memory/`, `PLAN.md`, the program/gate docs, and
-  `artifacts/ab-*`, which leak the experimental frame (not the answer). Reduce the
-  producer checkout to the code under test + dispatch packet before Gate 2.
+- [x] **Producer baseline sanitized (Finding 2, RESOLVED via allowlist export):**
+  a fresh git object DB with only the 4 allowlisted code files (sanitized tree
+  `36c346fa…`); `git show`/`rev-list` confirm 0 meta objects. A denylist was
+  insufficient (git show reads the object DB). See sanitized-baseline-manifest.
+  The producer receives this sanitized repo, never the raw bundle.
 - [ ] The bundle is placed in an environment that **technically cannot** read this
   repo, current `main`, the Gate 0 analysis, `memory/*`, or this conversation
   (container / VM / Windows Sandbox / separate OS account / remote runner mounting

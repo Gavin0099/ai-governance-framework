@@ -1,21 +1,18 @@
 #!/usr/bin/env python3
-"""Canonical redaction runner for gate2-scorer-handoff.v1.
+"""Canonical redaction runner for gate2-scorer-handoff.v1 (fail-closed).
 
 Answer-safe: operates only on a producer's raw-output.txt. It never reads the
 Gate 0 analysis, the fix, or the answer. It redacts ONLY the COMPLETION_CLAIM
 section and receipt metadata per the frozen literal map; FIX_DIFF / TEST_LOG /
-VALIDATOR_OUTPUT are copied verbatim. It emits a redacted packet with full
-provenance so the handoff is auditable and mechanically replayable.
+VALIDATOR_OUTPUT are copied verbatim.
+
+FAIL-CLOSED: the parser rejects any input that is not in the frozen canonical
+format. It does NOT accept out-of-order, duplicate, missing, preamble, or
+CRLF inputs. Structural validity is enforced before any redaction runs.
 
 Usage:
     python redaction_runner.py --contract scorer-handoff-contract.json \\
         --raw raw-output.txt --out redacted-packet.json
-
-Section markers in raw-output.txt (exact lines):
-    === FIX_DIFF ===
-    === TEST_LOG ===
-    === VALIDATOR_OUTPUT ===
-    === COMPLETION_CLAIM ===
 """
 from __future__ import annotations
 import argparse, hashlib, json, re, sys
@@ -24,64 +21,83 @@ MARKERS = ["=== FIX_DIFF ===", "=== TEST_LOG ===",
            "=== VALIDATOR_OUTPUT ===", "=== COMPLETION_CLAIM ==="]
 
 
+class FormatError(Exception):
+    pass
+
+
 def sha256_hex(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
 
 
-def split_sections(raw: str) -> dict[str, str]:
-    idx = []
-    for m in MARKERS:
-        pos = raw.find(m)
-        if pos < 0:
-            raise SystemExit(f"missing required section marker: {m}")
-        idx.append((m, pos))
-    idx.sort(key=lambda x: x[1])
-    sections = {}
-    for i, (m, pos) in enumerate(idx):
-        start = pos + len(m)
-        end = idx[i + 1][1] if i + 1 < len(idx) else len(raw)
-        sections[m.strip("= ").strip()] = raw[start:end]
+def validate_contract(contract: dict) -> None:
+    if contract.get("contract") != "gate2-scorer-handoff.v1":
+        raise FormatError("contract id != gate2-scorer-handoff.v1")
+    if contract.get("frozen") is not True:
+        raise FormatError("contract is not frozen=true")
+    if contract.get("producer_output_artifact", {}).get("section_markers") != MARKERS:
+        raise FormatError("contract section_markers do not match the canonical markers")
+
+
+def parse_canonical(raw_bytes: bytes) -> dict[str, str]:
+    """Strict, fail-closed parse. Raises FormatError on any deviation."""
+    if b"\r" in raw_bytes:
+        raise FormatError("CRLF (or CR) found; canonical format requires LF only")
+    text = raw_bytes.decode("utf-8")
+    lines = text.split("\n")
+
+    # Marker lines = lines that exactly equal a marker. Must be standalone lines.
+    marker_positions = [(i, ln) for i, ln in enumerate(lines) if ln in MARKERS]
+
+    # exactly one of each, in fixed order, and no preamble before the first.
+    seen = [ln for _, ln in marker_positions]
+    if seen != MARKERS:
+        raise FormatError(
+            f"markers must appear exactly once each, standalone, in fixed order; got {seen}"
+        )
+    first_idx = marker_positions[0][0]
+    if first_idx != 0:
+        raise FormatError("undefined preamble before the first marker is not allowed")
+
+    sections: dict[str, str] = {}
+    for k, (idx, ln) in enumerate(marker_positions):
+        start = idx + 1
+        end = marker_positions[k + 1][0] if k + 1 < len(marker_positions) else len(lines)
+        name = ln.strip("= ").strip()
+        sections[name] = "\n".join(lines[start:end])
     return sections
 
 
 def redact(text: str, rules: list[dict]) -> tuple[str, dict[str, int]]:
     counts = {}
     for r in rules:
-        pat, repl = r["pattern"], r["placeholder"]
-        text, n = re.subn(pat, repl, text, flags=re.IGNORECASE)
-        counts[pat] = counts.get(pat, 0) + n
+        text, n = re.subn(r["pattern"], r["placeholder"], text, flags=re.IGNORECASE)
+        counts[r["pattern"]] = counts.get(r["pattern"], 0) + n
     return text, counts
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--contract", required=True)
-    ap.add_argument("--raw", required=True)
-    ap.add_argument("--out", required=True)
-    a = ap.parse_args()
-
-    contract_bytes = open(a.contract, "rb").read()
+def run(contract_path: str, raw_path: str) -> dict:
+    contract_bytes = open(contract_path, "rb").read()
     contract = json.loads(contract_bytes)
+    validate_contract(contract)
     rules = contract["redaction"]["literal_map"]
 
-    raw_bytes = open(a.raw, "rb").read()
-    raw_text = raw_bytes.decode("utf-8")
-    sections = split_sections(raw_text)
+    raw_bytes = open(raw_path, "rb").read()
+    sections = parse_canonical(raw_bytes)
 
-    # Redaction touches ONLY COMPLETION_CLAIM. Others are verbatim (never redacted).
     redacted_claim, match_counts = redact(sections["COMPLETION_CLAIM"], rules)
-    redacted_sections = dict(sections)
-    redacted_sections["COMPLETION_CLAIM"] = redacted_claim
+    redacted = dict(sections)
+    redacted["COMPLETION_CLAIM"] = redacted_claim
+    # rebuild with LF and the canonical marker order
+    redacted_text = ""
+    for m in MARKERS:
+        redacted_text += m + "\n" + redacted[m.strip("= ").strip()]
+        if not redacted_text.endswith("\n"):
+            redacted_text += "\n"
 
-    redacted_text = "".join(
-        f"{m}{redacted_sections[m.strip('= ').strip()]}" for m in MARKERS
-    )
     raw_sha = sha256_hex(raw_bytes)
-    anon_id = "OUT-" + raw_sha[:12]
-
-    packet = {
+    return {
         "schema": "gate2-redacted-packet.v1",
-        "anon_id": anon_id,
+        "anon_id": "OUT-" + raw_sha[:12],
         "contract_sha256": sha256_hex(contract_bytes),
         "raw_output_sha256": raw_sha,
         "redacted_output_sha256": sha256_hex(redacted_text.encode("utf-8")),
@@ -94,11 +110,24 @@ def main() -> int:
                 "when a non-label feature unavoidably signals the treatment; the "
                 "revealing evidence is flagged, never deleted.",
     }
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--contract", required=True)
+    ap.add_argument("--raw", required=True)
+    ap.add_argument("--out", required=True)
+    a = ap.parse_args()
+    try:
+        packet = run(a.contract, a.raw)
+    except FormatError as e:
+        print(f"REJECTED (fail-closed): {e}", file=sys.stderr)
+        return 2
     with open(a.out, "w", encoding="utf-8", newline="\n") as f:
         json.dump(packet, f, indent=2, ensure_ascii=False)
         f.write("\n")
-    print(f"anon_id={anon_id} redactions={packet['total_redactions']} "
-          f"raw_sha256={raw_sha[:12]}.. redacted_sha256={packet['redacted_output_sha256'][:12]}..")
+    print(f"anon_id={packet['anon_id']} redactions={packet['total_redactions']} "
+          f"raw={packet['raw_output_sha256'][:12]}.. redacted={packet['redacted_output_sha256'][:12]}..")
     return 0
 
 
