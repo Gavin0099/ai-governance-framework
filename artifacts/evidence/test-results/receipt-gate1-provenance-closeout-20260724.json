@@ -1,0 +1,42 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "fail-closed shell assertions (rc starts 0, any failed check sets rc=1; final rc returned, not last-command exit): [1] git rev-parse 33006f09 == 40-char canonical; [2] grep -rl 33006f09097597 docs/ == 0; [3] amendment v2 bundle line uses correct SHA; [4] grep -ciE root-cause terms in producer-safe validator-pins.md == 0; [5] sha256sum of four packets == frozen values; [6] grep current-state pending/incomplete in docs/governance == 0; [7] git diff --check origin/main..HEAD clean",
+  "exit_code": 0,
+  "started_at": "2026-07-24T12:26:38Z",
+  "finished_at": "2026-07-24T12:26:44Z",
+  "runner": "claude-code-gate1-provenance-closeout-20260724",
+  "linked_commit": "3676d0749113c3c1e3850254edba762132f78ba8",
+  "output_artifacts": [
+    "docs/governance/gate1-prereg-prepush-amendment-v2-20260724.md",
+    "docs/governance/gate1-prereg-prepush-amendment-20260724.md",
+    "docs/governance/gate1-prereg-prepush-outgoing-ref-20260724.md",
+    "docs/status/external-tooling-replaceability-inventory-20260724.md",
+    "artifacts/experiments/prepush-bugfix-20260724/arm-dispatch-packet.md",
+    "artifacts/experiments/prepush-bugfix-20260724/skill-packet-bugfix.md",
+    "artifacts/experiments/prepush-bugfix-20260724/governance-packet.md",
+    "artifacts/experiments/prepush-bugfix-20260724/validator-pins.md",
+    "artifacts/experiments/prepush-bugfix-20260724/validator-expectation-DESIGNER-ONLY.md"
+  ],
+  "per_item_results": {
+    "1_baseline_sha_canonical_40char": "PASS (33006f097597f5720a2d01661281d564fb2693ec)",
+    "2_no_malformed_41char_sha_in_docs": "PASS (0 hits)",
+    "3_amendment_v2_bundle_line_correct_sha": "PASS",
+    "4_producer_safe_pins_zero_rootcause": "PASS (0 hits)",
+    "5_four_packet_hashes_match_frozen": "PASS (all 4)",
+    "6_no_current_state_pending_or_incomplete_in_governance_docs": "PASS (0 hits)",
+    "7_git_diff_check_clean": "PASS"
+  },
+  "supersedes": {
+    "receipt-gate1-truth-repair-20260724.json": "the prior receipt lacked required output_artifacts (receipt_field_invalid:output_artifacts) and semicolon-chained its checks; this append-only successor adds output_artifacts and per-item fail-closed assertions. The prior receipt is left in place per append-only.",
+    "receipt-gate1-prereg-prepush-amendment-v2-20260724.json": "its verify_result recorded a malformed 41-char SHA; corrected forward here (item 1)."
+  },
+  "cannot_claim": [
+    "that the recorded assertions prove the underlying tools are genuine (shape/consistency only)",
+    "that Gate 2 is ready or may start: amendment v2 Section G preflight is unmet",
+    "that the Bug Fix Skill is effective (a Gate 3 question)",
+    "that external tools do or do not catch this defect class (no empirical run this session)",
+    "that the pre-push bug is fixed: preserved at baseline 33006f097597f5720a2d01661281d564fb2693ec",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
