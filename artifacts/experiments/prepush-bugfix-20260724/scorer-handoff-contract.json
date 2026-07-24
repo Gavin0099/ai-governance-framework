@@ -1,0 +1,75 @@
+{
+  "contract": "gate2-scorer-handoff.v1",
+  "frozen": true,
+  "authority": "docs/governance/gate1-prereg-prepush-amendment-v2-20260724.md Section G(d)",
+  "principle": "Remove identity/assignment labels ONLY. Never delete substantive evidence (code diff, tests, validator output, completion claim). If content itself reveals treatment, flag blinding_compromised; do not sanitize.",
+
+  "producer_output_artifact": {
+    "name": "raw-output.txt",
+    "encoding": "UTF-8",
+    "line_endings": "LF",
+    "fixed_section_order": [
+      "1. FIX_DIFF: git diff of the fix (verbatim)",
+      "2. TEST_LOG: the test run output (verbatim)",
+      "3. VALIDATOR_OUTPUT: validator output if the producer's arm produced any (verbatim; absent for arms with none)",
+      "4. COMPLETION_CLAIM: the producer's prose completion claim"
+    ],
+    "note": "Sections 1-3 are substantive evidence and are NEVER redacted. Redaction applies only to section 4 free text and to the receipt metadata (the arm field is dropped)."
+  },
+
+  "anonymous_id": {
+    "canonical_input_bytes": "the UTF-8 bytes of raw-output.txt exactly as submitted (LF, no trailing normalization)",
+    "hash_algorithm": "sha256",
+    "id_format": "OUT- + first 12 lowercase hex chars of sha256(canonical_input_bytes)",
+    "collision_rule": "on a 12-hex collision, extend both ids to 16 hex; record the extension",
+    "raw_output_sha256_recorded": "the full 64-hex sha256 is stored in the handoff log, binding raw -> redacted and making de-anonymization tamper-evident"
+  },
+
+  "redaction": {
+    "applies_to": ["COMPLETION_CLAIM free text", "producer receipt metadata"],
+    "never_applies_to": ["FIX_DIFF", "TEST_LOG", "VALIDATOR_OUTPUT"],
+    "matching": "case-insensitive; each pattern is a regex applied globally to the target text in listed order; internal spaces in multi-word patterns match one-or-more whitespace (\\s+); filename patterns match the basename regardless of / or \\ separator",
+    "receipt_field_drop": ["arm"],
+    "literal_map": [
+      { "pattern": "\\barm[ _-]?[abcd]\\b", "placeholder": "[ARM]" },
+      { "pattern": "arm-dispatch-packet(\\.md)?", "placeholder": "[PACKET]" },
+      { "pattern": "skill-packet-bugfix(\\.md)?", "placeholder": "[PACKET]" },
+      { "pattern": "governance-packet(\\.md)?", "placeholder": "[PACKET]" },
+      { "pattern": "validator-pins(\\.md)?", "placeholder": "[PACKET]" },
+      { "pattern": "validator-expectation-designer-only(\\.md)?", "placeholder": "[PACKET]" },
+      { "pattern": "skill\\s+packet", "placeholder": "[PACKET]" },
+      { "pattern": "governance\\s+packet", "placeholder": "[PACKET]" },
+      { "pattern": "validator\\s+packet", "placeholder": "[PACKET]" },
+      { "pattern": "treatment\\s+packet", "placeholder": "[PACKET]" },
+      { "pattern": "treatment\\s+assignment", "placeholder": "[ASSIGNMENT]" }
+    ],
+    "determinism": "the map is frozen here; running it twice on the same input yields byte-identical redacted output; anyone can replay it."
+  },
+
+  "blinding_compromised": {
+    "set_by": "experimenter, during redaction prep, per output",
+    "field": "blinding_compromised (boolean) + reason (string)",
+    "when": "a substantive, non-label feature unavoidably signals the treatment (e.g. an output contains validator-feedback text that only the validator-treatment arm receives)",
+    "rule": "record it; do NOT delete the revealing substantive evidence. A compromised-blinding output is still scored, and flagged."
+  },
+
+  "scorer_blinding_check": {
+    "when": "each scorer records this BEFORE the anon-ID -> arm mapping is released",
+    "artifact": "scorer-blinding-check-<scorer_id>.json (per scorer)",
+    "fields_per_output": {
+      "anon_id": "OUT-xxxxxxxxxxxx",
+      "suspected_treatment": "one of A | B | C | D | unsure",
+      "suspected_confidence": "low | med | high",
+      "reason": "free text — what in the redacted output drove the guess"
+    },
+    "purpose": "measures whether blinding held; a high-confidence correct guess rate near chance supports blinding, well above chance indicates leakage to reconcile with blinding_compromised flags."
+  },
+
+  "roles": {
+    "producers": "four ANSWER-BLIND contexts: they do not know the root cause or fix, but each knows which treatment it received (Arm B knows it has the Skill packet, etc.). Answer-blind, not treatment-blind.",
+    "scorers": "two ARM-IDENTITY-BLIND contexts: before scoring they do not know the A/B/C/D mapping for any anon_id.",
+    "experimenter": "may know the answer; runs redaction and holds the mapping; is neither a producer nor a scorer."
+  },
+
+  "release_gate": "the anon-ID -> arm mapping is released only after both scorers submit their scores AND their blinding-check guesses."
+}

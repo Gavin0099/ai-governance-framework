@@ -149,11 +149,14 @@ built). Their states differ.
   repo, current `main`, the Gate 0 analysis, `memory/*`, or this conversation
   (container / VM / Windows Sandbox / separate OS account / remote runner mounting
   only the bundle).
-- [ ] Four mutually-isolated producer contexts (one per arm) — "four independent
-  clean sessions/contexts, not necessarily four machines or four people"; each
-  sees only its own arm's allowlisted inputs.
-- [ ] A primary scorer blind to arm identity, and a second scorer who re-reads all
-  semantic completion claims — both blind to the answer.
+- [ ] Four **answer-blind** producer contexts (one per arm) — "four independent
+  clean sessions/contexts, not necessarily four machines or four people". Each
+  does **not** know the root cause or fix, but **does** know which treatment it
+  received (Arm B knows it has the Skill packet, etc.): answer-blind, not
+  treatment-blind. Each sees only its own arm's allowlisted inputs.
+- [ ] Two **arm-identity-blind** scorers — before scoring, neither knows the
+  A/B/C/D mapping for any output; the second scorer independently re-reads all
+  semantic completion claims.
 - [ ] None of these roles is this design session or the author.
 
 **(c) Execution constants — answer-safe setup done this session where marked:**
@@ -174,33 +177,30 @@ built). Their states differ.
   belongs in the isolated run env, not this design session).
 - [ ] Every arm's receipt actually binds to its own output commit (verified at run).
 
-**(d) Scorer anonymization handoff — FROZEN procedure (must run before scoring):**
+**(d) Scorer anonymization handoff — EXECUTABLE CONTRACT (must run before scoring):**
 Anonymization removes **identity labels only**, never substantive evidence. The
-scorer must judge the real code diff, tests, validator output, and completion
-claim; deleting any of those would reshape the output and break the comparison,
-and would let an answer-knowing experimenter subjectively pick what survives. The
-frozen, mechanically-replayable handoff:
-- [ ] The **experimenter** (may know the answer; is not a producer or scorer)
-  collects the four raw producer outputs + receipts.
-- [ ] The experimenter assigns an **anonymous ID** (hash-derived) to each output.
-- [ ] **Redaction scope (frozen, pre-specified, replayable) — remove ONLY:** the
-  receipt `arm` field, packet filenames, and explicit treatment-assignment
-  metadata (e.g. "Arm C", "governance packet", "validator feedback" labels). A
-  fixed redaction map (literal token → placeholder) is frozen before the run so
-  the redaction is deterministic and re-runnable by anyone.
-- [ ] **Preserved intact (never redacted):** the raw code diff, the tests, the
-  validator output, and the completion claim. These are exactly what the scorer
-  evaluates.
-- [ ] If the substantive content itself lets a scorer infer the treatment, that is
-  recorded as **`blinding_compromised: true`** for that output (with the reason)
-  — it is **not** hidden by deleting the real evidence. A compromised-blinding
-  output is scored and flagged, not sanitized.
-- [ ] The scorer receives **only** the redacted output + the frozen rubric — no
-  `arm` field, no treatment packet, no mapping table.
-- [ ] The **anonymous-ID → arm mapping is held solely by the experimenter** and
-  released only after both scorers finish; each redacted packet records the
-  **sha256 of the raw producer output** it derives from, so de-anonymization is
-  auditable and tamper-evident.
+principle is now an executable, mechanically-replayable contract frozen in
+[`artifacts/experiments/prepush-bugfix-20260724/scorer-handoff-contract.json`](../../artifacts/experiments/prepush-bugfix-20260724/scorer-handoff-contract.json)
+(`gate2-scorer-handoff.v1`). It fixes the parts the review flagged as still
+principle-only:
+- **Producer output artifact** `raw-output.txt` with a fixed section order
+  (FIX_DIFF, TEST_LOG, VALIDATOR_OUTPUT, COMPLETION_CLAIM); redaction applies only
+  to COMPLETION_CLAIM free text + receipt metadata; sections 1–3 are never redacted.
+- **Literal redaction map** (11 explicit regex → placeholder rules, case-insensitive,
+  `\s+` for internal spaces, basename match for filenames, applied in order) that
+  removes ONLY arm labels, packet filenames, and treatment-assignment tokens →
+  `[ARM]` / `[PACKET]` / `[ASSIGNMENT]`; the receipt `arm` field is dropped.
+- **Anonymous ID algorithm:** `OUT-` + first 12 lowercase hex of
+  `sha256(raw-output.txt UTF-8/LF bytes)`; full 64-hex sha256 recorded to bind
+  raw → redacted (tamper-evident); explicit 16-hex collision rule.
+- **`blinding_compromised`** set by the experimenter, per output, with reason, when
+  a non-label feature unavoidably signals the treatment — the revealing substantive
+  evidence is flagged, never deleted; the output is still scored.
+- **Scorer blinding-check:** before the mapping is released, each scorer records
+  per anon_id `suspected_treatment` (A/B/C/D/unsure), `suspected_confidence`, and
+  `reason`, so blinding integrity is measured, not assumed.
+- **Release gate:** the anon-ID → arm mapping is held solely by the experimenter
+  and released only after both scorers submit scores AND blinding-check guesses.
 
 ### Resource-based blocker classification (not a place)
 

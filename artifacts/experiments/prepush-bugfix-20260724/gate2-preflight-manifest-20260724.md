@@ -55,18 +55,16 @@ items below AND a separate explicit owner "start Gate 2" command.
   The producer fills linked_commit, timestamps, command, output_artifacts,
   results, and an experimenter-only `arm` field.
 
-### Scorer anonymization handoff (frozen; amendment v2 Section G(d))
-- Removes **identity labels only**, never substantive evidence. Redaction scope
-  is frozen and mechanically replayable: remove ONLY the receipt `arm` field,
-  packet filenames, and explicit treatment-assignment metadata via a fixed
-  literal-token → placeholder map.
-- **Preserved intact:** the raw code diff, tests, validator output, and completion
-  claim — exactly what the scorer evaluates. Deleting any of these is prohibited.
-- If the content itself lets a scorer infer the treatment, record
-  `blinding_compromised: true` (with reason); do not hide it by deleting evidence.
-- The scorer receives only the redacted output + the frozen rubric. The anon-ID →
-  arm mapping is held solely by the experimenter, released only after both scorers
-  finish; each redacted packet records the sha256 of its raw producer output.
+### Scorer anonymization handoff — executable contract
+- Frozen as `scorer-handoff-contract.json` (`gate2-scorer-handoff.v1`): the fixed
+  `raw-output.txt` section order; the 11-rule literal redaction map (identity /
+  packet / assignment tokens only) with case + `\s+` + basename rules; the
+  anonymous-ID algorithm (`OUT-` + sha256(raw bytes)[:12], full sha256 recorded,
+  16-hex collision rule); the `blinding_compromised` determination (experimenter,
+  per output, flagged not deleted); and the scorer blinding-check fields
+  (`suspected_treatment` / `confidence` / `reason` recorded before mapping release).
+- Preserved intact (never redacted): FIX_DIFF, TEST_LOG, VALIDATOR_OUTPUT. Only
+  COMPLETION_CLAIM free text and receipt metadata are redacted.
 
 ## Remaining — resource-gated (NOT a place; see amendment v2 Section G table)
 
@@ -74,9 +72,11 @@ items below AND a separate explicit owner "start Gate 2" command.
   this repo / current main / Gate 0 analysis / memory / this conversation
   (container, VM, Windows Sandbox, separate OS account, or a remote runner
   mounting only the bundle).
-- [ ] Four such isolated producer contexts (one per arm).
-- [ ] A primary blind scorer and a second semantic-claim scorer, both isolated
-  and blind to arm identity and treatment labels; neither this design session
+- [ ] Four such **answer-blind** producer contexts (one per arm) — blind to the
+  root cause/fix, but each knows its own treatment.
+- [ ] Two **arm-identity-blind** scorers (primary + semantic-claim second scorer),
+  isolated and not knowing the A/B/C/D mapping before scoring; neither this design
+  session
   nor the author.
 - [ ] Install the pinned validators in that environment.
 - [ ] Stamp the actual model build, permissions, and per-arm dispatch record.
