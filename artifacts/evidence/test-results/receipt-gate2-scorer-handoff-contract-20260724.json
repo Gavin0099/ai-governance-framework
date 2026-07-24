@@ -1,0 +1,36 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python fail-closed assertions that load scorer-handoff-contract.json and EXECUTE its redaction map: [contract_id]; [11_rules]; [preserve_substantive never_applies_to FIX_DIFF/TEST_LOG/VALIDATOR_OUTPUT]; [anon_id_algo sha256/OUT-]; [blinding_check_fields]; [roles_answer_blind]; [roles_arm_identity_blind]; [redaction_deterministic r1==r2]; [redaction_arm_neutral removes Arm D + validator packet]; [redaction_preserves_substance keeps regression test/baseline]; [git diff --check origin/main..HEAD]",
+  "exit_code": 0,
+  "started_at": "2026-07-24T15:25:58Z",
+  "finished_at": "2026-07-24T15:25:58Z",
+  "runner": "claude-code-gate2-scorer-handoff-contract-20260724",
+  "linked_commit": "07c7f35bced72a3d6a4a5c69ef2aa88dd0849172",
+  "output_artifacts": [
+    "artifacts/experiments/prepush-bugfix-20260724/scorer-handoff-contract.json",
+    "docs/governance/gate1-prereg-prepush-amendment-v2-20260724.md",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-preflight-manifest-20260724.md"
+  ],
+  "per_item_results": {
+    "contract_id_gate2_scorer_handoff_v1": "PASS",
+    "redaction_map_11_rules": "PASS",
+    "substantive_evidence_never_redacted": "PASS",
+    "anon_id_algorithm_defined": "PASS",
+    "scorer_blinding_check_fields_present": "PASS",
+    "roles_producers_answer_blind": "PASS",
+    "roles_scorers_arm_identity_blind": "PASS",
+    "redaction_executed_deterministic": "PASS (r1==r2)",
+    "redaction_executed_arm_neutral": "PASS (Arm D + validator packet -> placeholders)",
+    "redaction_executed_preserves_substance": "PASS (regression test / baseline kept)",
+    "git_diff_check_clean": "PASS"
+  },
+  "warning_addressed": "The anonymization was principle-only; it is now an executable contract with a concrete literal redaction map, an anonymous-ID algorithm, a raw->redacted sha256 binding, and blinding-check fields, and this receipt records the map being executed (deterministic, identity-neutral, substance-preserving).",
+  "cannot_claim": [
+    "that Gate 2 is ready: the isolated execution environment is not built and producers/scorers are not staffed",
+    "that redaction has been run on any real producer output (only a synthetic sample was used to prove replayability)",
+    "that blinding actually succeeds at run time (measured later via the scorer blinding-check)",
+    "that any arm has run or that the Bug Fix Skill is effective (a Gate 3 question)",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
