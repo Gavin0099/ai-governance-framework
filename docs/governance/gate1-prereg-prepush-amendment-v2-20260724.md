@@ -211,10 +211,13 @@ built). Their states differ.
 
 **(d) Scorer anonymization handoff — EXECUTABLE CONTRACT (must run before scoring):**
 Anonymization removes **identity labels only**, never substantive evidence. The
-principle is now an executable, mechanically-replayable contract frozen in
+principle is now an executable, mechanically-replayable contract
 [`artifacts/experiments/prepush-bugfix-20260724/scorer-handoff-contract.json`](../../artifacts/experiments/prepush-bugfix-20260724/scorer-handoff-contract.json)
-(`gate2-scorer-handoff.v1`). It fixes the parts the review flagged as still
-principle-only:
+(**`gate2-scorer-handoff.v2`, frozen=false — PENDING OWNER RE-SIGN**; v1 was
+re-signed 2026-07-24 then substantively changed with the mandatory receipt pair,
+anon-id binding, path-alias rejection, and staged-publish atomicity, so it is
+bumped to v2 and is not frozen until the owner re-signs). It fixes the parts the
+review flagged as still principle-only:
 - **Producer output artifact** `raw-output.txt` with a fixed section order
   (FIX_DIFF, TEST_LOG, VALIDATOR_OUTPUT, COMPLETION_CLAIM); redaction applies only
   to COMPLETION_CLAIM free text + receipt metadata; sections 1–3 are never redacted.

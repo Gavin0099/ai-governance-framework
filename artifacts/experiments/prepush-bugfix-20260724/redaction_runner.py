@@ -29,11 +29,17 @@ def sha256_hex(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
 
 
+CONTRACT_ID = "gate2-scorer-handoff.v2"
+
+
 def validate_contract(contract: dict) -> None:
-    if contract.get("contract") != "gate2-scorer-handoff.v1":
-        raise FormatError("contract id != gate2-scorer-handoff.v1")
-    if contract.get("frozen") is not True:
-        raise FormatError("contract is not frozen=true")
+    """Parse-level validity only. Governance authorization (owner-re-signed
+    frozen=true) is a SEPARATE gate: a contract may be parse-valid yet not yet
+    Gate-2-authorized. main() prints a notice when frozen is not true."""
+    if contract.get("contract") != CONTRACT_ID:
+        raise FormatError(f"contract id != {CONTRACT_ID}")
+    if not isinstance(contract.get("frozen"), bool):
+        raise FormatError("contract 'frozen' must be a boolean governance flag")
     if contract.get("producer_output_artifact", {}).get("section_markers") != MARKERS:
         raise FormatError("contract section_markers do not match the canonical markers")
 
@@ -144,7 +150,19 @@ def main() -> int:
     ap.add_argument("--receipt-out", required=True,
                     help="anonymized receipt output path (required in handoff mode)")
     a = ap.parse_args()
+    marker = a.receipt_out + ".handoff-complete"
     try:
+        # (1) reject any input/output path aliasing BEFORE doing anything —
+        # --out == --receipt-out silently produced a half set (only the receipt).
+        real = {name: os.path.realpath(p) for name, p in
+                [("out", a.out), ("receipt_out", a.receipt_out),
+                 ("raw", a.raw), ("contract", a.contract), ("receipt", a.receipt)]}
+        if real["out"] == real["receipt_out"]:
+            raise FormatError("--out and --receipt-out must be distinct paths")
+        for outk in ("out", "receipt_out"):
+            for ink in ("raw", "contract", "receipt"):
+                if real[outk] == real[ink]:
+                    raise FormatError(f"--{outk.replace('_','-')} must not alias --{ink}")
         contract = json.loads(open(a.contract, "rb").read())
         validate_contract(contract)
         packet = run(a.contract, a.raw)
@@ -154,29 +172,52 @@ def main() -> int:
         for f in drop:
             if f in anon_receipt:
                 raise FormatError(f"drop field {f} still present after anonymization")
-        # bind the anonymized receipt to the packet's anon_id
         anon_receipt["anon_id"] = packet["anon_id"]
-        # compute both payloads BEFORE any write, so a bad input never leaves a
-        # half-written packet without its receipt.
         packet_text, receipt_text = _dump(packet), _dump(anon_receipt)
     except FormatError as e:
         print(f"REJECTED (fail-closed): {e}", file=sys.stderr)
         return 2
-    # write both; if the second write fails, remove the first (no half set)
-    with open(a.out, "w", encoding="utf-8", newline="\n") as f:
-        f.write(packet_text)
+
+    # (2) staged publish: write both to temp files, replace into place, then write
+    # a completeness marker. A handoff is scorer-acceptable ONLY if all three exist
+    # and the marker's sha256 match. On ANY failure, remove every partial output.
+    published = []
     try:
-        with open(a.receipt_out, "w", encoding="utf-8", newline="\n") as f:
+        import tempfile
+        out_dir = os.path.dirname(os.path.abspath(a.out)) or "."
+        rcp_dir = os.path.dirname(os.path.abspath(a.receipt_out)) or "."
+        fd1, t1 = tempfile.mkstemp(dir=out_dir); os.close(fd1)
+        fd2, t2 = tempfile.mkstemp(dir=rcp_dir); os.close(fd2)
+        with open(t1, "w", encoding="utf-8", newline="\n") as f:
+            f.write(packet_text)
+        with open(t2, "w", encoding="utf-8", newline="\n") as f:
             f.write(receipt_text)
-    except OSError as e:
-        try:
-            os.remove(a.out)
-        except OSError:
-            pass
-        print(f"REJECTED (fail-closed): receipt write failed, packet removed: {e}", file=sys.stderr)
+        os.replace(t1, a.out); published.append(a.out)
+        os.replace(t2, a.receipt_out); published.append(a.receipt_out)
+        marker_obj = {
+            "handoff": "gate2-scorer-handoff-set.v1",
+            "anon_id": packet["anon_id"],
+            "packet_path": os.path.basename(a.out),
+            "receipt_path": os.path.basename(a.receipt_out),
+            "packet_sha256": sha256_hex(packet_text.encode("utf-8")),
+            "receipt_sha256": sha256_hex(receipt_text.encode("utf-8")),
+        }
+        with open(marker, "w", encoding="utf-8", newline="\n") as f:
+            f.write(_dump(marker_obj))
+        published.append(marker)
+    except Exception as e:
+        for p in published + [marker]:
+            try:
+                os.remove(p)
+            except OSError:
+                pass
+        print(f"REJECTED (fail-closed): publish failed, all outputs removed: {e}", file=sys.stderr)
         return 2
+    if contract.get("frozen") is not True:
+        print("NOTICE: contract frozen=false (pending owner re-sign) — "
+              "NOT Gate-2-authorized; this run is for testing only.", file=sys.stderr)
     print(f"anon_id={packet['anon_id']} redactions={packet['total_redactions']} "
-          f"receipt_anonymized(arm dropped, bound to anon_id)")
+          f"receipt_anonymized(arm dropped, bound to anon_id); handoff set + marker published")
     return 0
 
 

@@ -63,7 +63,8 @@ items below AND a separate explicit owner "start Gate 2" command.
   results, and an experimenter-only `arm` field.
 
 ### Scorer anonymization handoff — executable contract
-- Frozen as `scorer-handoff-contract.json` (`gate2-scorer-handoff.v1`): the fixed
+- `scorer-handoff-contract.json` (`gate2-scorer-handoff.v2`, frozen=false pending
+  owner re-sign; v1 was re-signed then substantively changed): the fixed
   `raw-output.txt` section order; the 11-rule literal redaction map (identity /
   packet / assignment tokens only) with case + `\s+` + basename rules; the
   anonymous-ID algorithm (`OUT-` + sha256(raw bytes)[:12], full sha256 recorded,

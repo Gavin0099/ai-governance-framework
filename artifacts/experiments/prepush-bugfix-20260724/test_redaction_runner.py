@@ -76,9 +76,10 @@ def main() -> int:
                "results": {"regression": "PASS"}}
     rpath = _write_tmp(json.dumps(receipt))
 
-    # valid full handoff: exit 0, packet + anonymized receipt, arm dropped, anon_id bound
+    # valid full handoff: exit 0, packet + anonymized receipt + completeness marker
     pk, rout = os.path.join(G, "pk.json"), os.path.join(G, "anon-receipt.json")
-    for p in (pk, rout):
+    mk = rout + ".handoff-complete"
+    for p in (pk, rout, mk):
         if os.path.exists(p):
             os.remove(p)
     cp = cli("--contract", CONTRACT, "--raw", _write_tmp(VALID),
@@ -86,14 +87,40 @@ def main() -> int:
     try:
         anon = json.load(open(rout))
         pkt = json.load(open(pk))
+        marker = json.load(open(mk))
+        import hashlib as _h
+        rcp_sha = _h.sha256(open(rout, "rb").read()).hexdigest()
+        pk_sha = _h.sha256(open(pk, "rb").read()).hexdigest()
         ok = (cp.returncode == 0 and "arm" not in anon
               and "governance-packet" not in json.dumps(anon)
               and "[PACKET]" in json.dumps(anon)
               and anon["results"]["regression"] == "PASS"
-              and anon["anon_id"] == pkt["anon_id"])
-        results.append(("full_handoff_receipt_anonymized_and_bound", "PASS" if ok else "FAIL"))
+              and anon["anon_id"] == pkt["anon_id"]
+              and marker["packet_sha256"] == pk_sha
+              and marker["receipt_sha256"] == rcp_sha
+              and marker["anon_id"] == pkt["anon_id"])
+        results.append(("full_handoff_with_marker", "PASS" if ok else "FAIL"))
     except Exception as e:
-        results.append(("full_handoff_receipt_anonymized_and_bound", f"FAIL: {e}"))
+        results.append(("full_handoff_with_marker", f"FAIL: {e}"))
+
+    # ALIAS: --out == --receipt-out -> exit 2, no output, no marker (the reported fail-open)
+    alias = os.path.join(G, "same-output.json")
+    for p in (alias, alias + ".handoff-complete"):
+        if os.path.exists(p):
+            os.remove(p)
+    cp = cli("--contract", CONTRACT, "--raw", _write_tmp(VALID),
+             "--out", alias, "--receipt", rpath, "--receipt-out", alias)
+    results.append(("out_equals_receipt_out_rejected",
+                    "PASS" if (cp.returncode == 2 and not os.path.exists(alias)
+                               and not os.path.exists(alias + ".handoff-complete")) else "FAIL"))
+
+    # ALIAS: --out == --raw (output clobbers an input) -> exit 2, input preserved
+    rawf = _write_tmp(VALID)
+    cp = cli("--contract", CONTRACT, "--raw", rawf,
+             "--out", rawf, "--receipt", rpath, "--receipt-out", os.path.join(G, "r6.json"))
+    input_intact = open(rawf).read().startswith("=== FIX_DIFF ===")
+    results.append(("out_aliases_input_rejected",
+                    "PASS" if (cp.returncode == 2 and input_intact) else "FAIL"))
 
     # content-malformed WITH full receipt pair -> exit 2, NO packet, NO receipt
     pk2, rout2 = os.path.join(G, "pk2.json"), os.path.join(G, "r2.json")
