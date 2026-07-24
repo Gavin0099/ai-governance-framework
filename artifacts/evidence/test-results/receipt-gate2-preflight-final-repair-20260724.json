@@ -1,0 +1,36 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "fail-closed shell assertions (rc starts 0, any failure sets rc=1, final rc returned): [1] zero bundle-instance/isolation-instance residue in PLAN/active_task/manifest/amendment v2; [2] zero over-deletion 'strip every trace' wording; [3] 'Preserved intact (never redacted)' present; [4] blinding_compromised flag present; [5] redaction 'mechanically-replayable' present; [6] 'baseline bundle artifact' unified in PLAN + active_task + manifest; [7] git diff --check origin/main..HEAD clean",
+  "exit_code": 0,
+  "started_at": "2026-07-24T15:17:22Z",
+  "finished_at": "2026-07-24T15:17:23Z",
+  "runner": "claude-code-gate2-preflight-final-repair-20260724",
+  "linked_commit": "a301dfcb4365fb67be131c8523ed0b2107c0ea7e",
+  "output_artifacts": [
+    "docs/governance/gate1-prereg-prepush-amendment-v2-20260724.md",
+    "PLAN.md",
+    "memory/01_active_task.md",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-preflight-manifest-20260724.md"
+  ],
+  "per_item_results": {
+    "1_no_bundle_instance_residue": "PASS",
+    "2_no_over_deletion_wording": "PASS",
+    "3_substantive_evidence_preserved_intact": "PASS",
+    "4_blinding_compromised_flag_present": "PASS",
+    "5_redaction_mechanically_replayable": "PASS",
+    "6_baseline_bundle_artifact_terminology_unified": "PASS",
+    "7_git_diff_check_clean": "PASS"
+  },
+  "review_findings_addressed": {
+    "F1_terminology": "fixed: PLAN/active_task/manifest 'bundle instance'/'isolation instance' -> 'baseline bundle artifact'; instance/environment reserved for the unbuilt isolated execution environment",
+    "F2_redaction_over_deletion": "fixed: redaction narrowed to identity/treatment-assignment metadata only via a frozen replayable literal map; raw diff/tests/validator output/completion claim preserved intact; content-level leakage flagged blinding_compromised rather than deleted"
+  },
+  "cannot_claim": [
+    "that Gate 2 is ready: the isolated execution environment is not built and producers/scorers are not staffed",
+    "that blinding actually succeeds: only the redaction rule is frozen; it has not been executed on any output",
+    "that any arm has run or that the Bug Fix Skill is effective (a Gate 3 question)",
+    "that the design-env bundle sha256 proves anything beyond procedure reproducibility",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
