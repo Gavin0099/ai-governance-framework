@@ -1,0 +1,35 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "fail-closed assertions: [1] python test_redaction_runner.py all green (valid accepted; missing/duplicate/out-of-order/CRLF/preamble rejected; cli_exit2; cli_no_output_on_reject; receipt_anonymized); [2] no producer-facing raw-bundle residue in authority docs; [3] anonymize_receipt drops arm + redacts packet name; [4] git diff --check origin/main..HEAD",
+  "exit_code": 0,
+  "started_at": "2026-07-24T16:17:14Z",
+  "finished_at": "2026-07-24T16:17:15Z",
+  "runner": "claude-code-gate2-producer-surface-unify-20260725",
+  "linked_commit": "677d1c8cf8700e629a51aa7041b34eb4972fef98",
+  "output_artifacts": [
+    "docs/governance/gate1-prereg-prepush-amendment-v2-20260724.md",
+    "artifacts/experiments/prepush-bugfix-20260724/redaction_runner.py",
+    "artifacts/experiments/prepush-bugfix-20260724/test_redaction_runner.py",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-preflight-manifest-20260724.md",
+    "PLAN.md",
+    "memory/01_active_task.md"
+  ],
+  "per_item_results": {
+    "1_runner_suite_green_incl_receipt_anon_cli_exit2_no_output": "PASS",
+    "2_no_producer_facing_raw_bundle_residue": "PASS",
+    "3_anonymize_receipt_drops_arm_and_redacts": "PASS",
+    "4_git_diff_check_clean": "PASS"
+  },
+  "findings_addressed": {
+    "finding_1_producer_surface": "unified: every producer-facing bundle reference -> sanitized allowlist repo across amendment (allowlist/table/cannot-claim), manifest, isolation spec, PLAN, active_task; raw bundle explicitly designer-side only",
+    "finding_3_receipt_anonymization": "redaction_runner.py extended with --receipt/--receipt-out: drops arm, redacts string metadata via the literal map, fails closed if the drop field survives; tested",
+    "finding_4_test_masking": "unexpected exceptions now FAIL (not PASS-other); added subprocess CLI exit-2 test, no-output-on-reject test, and a receipt-anonymization test"
+  },
+  "cannot_claim": [
+    "that Gate 2 is ready or may start: validators not installed in a run image; no producers/scorers staffed; no separate owner start command",
+    "that the full isolated execution environment exists (only the sanitized producer baseline + designer-side bundle artifact are built)",
+    "that any arm has run or that the Bug Fix Skill is effective (a Gate 3 question)",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
