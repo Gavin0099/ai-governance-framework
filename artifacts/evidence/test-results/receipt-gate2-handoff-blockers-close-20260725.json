@@ -1,0 +1,39 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "fail-closed assertions: [1] python test_redaction_runner.py -> 11 cases all PASS (valid; missing/duplicate/out-of-order/CRLF/preamble rejected; full_handoff bound; malformed exit2 no-output; orphan --receipt-out; orphan --receipt; partial-output cleaned up); [2] 0 producer-facing raw-bundle residue in authority docs (only the designer-side probe mentions the bundle); [3] contract canonical invocation mandates --receipt/--receipt-out; [4] runner rejects the old no-receipt invocation; git diff --check",
+  "exit_code": 0,
+  "started_at": "2026-07-24T16:25:41Z",
+  "finished_at": "2026-07-24T16:27:30Z",
+  "runner": "claude-code-gate2-handoff-blockers-close-20260725",
+  "linked_commit": "97d0255a10fb68241b36ffa7a9f7545aac716343",
+  "output_artifacts": [
+    "docs/governance/gate1-prereg-prepush-amendment-v2-20260724.md",
+    "artifacts/experiments/prepush-bugfix-20260724/isolation-template-spec.md",
+    "artifacts/experiments/prepush-bugfix-20260724/scorer-handoff-contract.json",
+    "artifacts/experiments/prepush-bugfix-20260724/redaction_runner.py",
+    "artifacts/experiments/prepush-bugfix-20260724/test_redaction_runner.py"
+  ],
+  "corrects_prior_receipt": {
+    "file": "artifacts/evidence/test-results/receipt-gate2-producer-surface-unify-20260725.json",
+    "false_claim": "2_no_producer_facing_raw_bundle_residue = PASS was NOT true: amendment v2 Section G(b) still had a checklist item placing 'the bundle' in the producer environment, and isolation-spec still said 'Finding 2 denylist frozen and applied'. Left in place per append-only; corrected forward here (both fixed at 97d0255a; residue now 0).",
+    "also_incomplete": "the prior turn's runner made --receipt/--receipt-out optional, so the contract's canonical invocation could produce a packet with no anonymized receipt. Now mandatory (fail-closed)."
+  },
+  "per_item_results": {
+    "1_runner_suite_11_cases_green": "PASS",
+    "2_zero_producer_facing_bundle_residue": "PASS (only the designer-side probe mentions the bundle)",
+    "3_contract_mandates_receipt_pair": "PASS",
+    "4_runner_rejects_old_no_receipt_invocation": "PASS",
+    "5_git_diff_check_clean": "PASS"
+  },
+  "findings_addressed": {
+    "finding_1_residual_raw_bundle": "amendment G(b) checklist + isolation-spec denylist line switched to the sanitized producer repo; residue 0",
+    "finding_2_canonical_skips_receipt": "contract canonical invocation now requires the receipt pair; runner makes both required, binds anon_id, computes both before any write, and removes the packet if the receipt write fails (no half set); orphan/partial tests added"
+  },
+  "cannot_claim": [
+    "that Gate 2 is ready or may start: no isolated execution environment, no validators installed, no producers/scorers staffed, no separate owner start command",
+    "that the scorer handoff has run on any real producer output (only synthetic tests)",
+    "that any arm has run or that the Bug Fix Skill is effective (a Gate 3 question)",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
