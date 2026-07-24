@@ -1,0 +1,26 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m governance_tools.governance_drift_checker --repo . --format human; git diff --check origin/main..dea492b7",
+  "exit_code": 0,
+  "runner": "claude-code-gate0-prepush-20260724",
+  "linked_commit": "dea492b73806c066a0fa9c699cc0e8e1bb603ba5",
+  "validated_state": "docs/status/gate0-prepush-outgoing-ref-bug-2026-07-24.md staged, i.e. the tree committed as dea492b7",
+  "results": {
+    "governance_drift_checker_severity": "ok",
+    "plan_freshness": "PASS",
+    "plan_inventory_current": "PASS",
+    "plan_required_sections_present": "PASS",
+    "memory_schema_complete": "PASS",
+    "expansion_boundary": "PASS",
+    "git_diff_check": "clean (no trailing whitespace)"
+  },
+  "not_run": [
+    "runtime/build/pytest suites: this slice adds one markdown status record and one evidence receipt only; it adds no executable behavior"
+  ],
+  "cannot_claim": [
+    "that the pre-push bug is fixed: it is intentionally preserved as the Gate 0 candidate and remains present in the shipped template",
+    "Gate 1 pre-registration or any experiment authorization",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
