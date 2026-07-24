@@ -1,22 +1,26 @@
 # Gate 1 Correction Amendment v2 — pre-push replay pre-registration
 
-Status: **DESIGN FROZEN — owner re-signed 2026-07-24.** The owner re-signed the
-three Section E items, so the pre-registration **methodology/design** is now
-frozen. Supersedes the isolation method, the validator-packet layout, and the
-status wording of amendment v1
+Status: **GATE 1 COMPLETE — owner re-signed 2026-07-24.** The owner re-signed the
+three Section E items and a read-only re-review confirmed the corrections, so the
+Gate 1 pre-registration is complete. Supersedes the isolation method, the
+validator-packet layout, and the status wording of amendment v1
 ([gate1-prereg-prepush-amendment-20260724.md](gate1-prereg-prepush-amendment-20260724.md),
 committed at `61b285b2`/`ee08928603`). Prior commits are left intact (append-only
 history). This v2 exists because a second review (CHANGES_REQUESTED) found three
-blocking defects in v1, all accepted.
+blocking defects in v1, all accepted; a third read-only review then reconciled the
+status wording to "Gate 1 complete".
 
-Deliberate claim ceiling (owner-stated): this freeze declares only that the
-**Gate 1 main design is complete**. It does **not** declare Gate 1 *formally*
-complete or Gate 2 ready, because two execution prerequisites do not yet exist:
-(a) an actually-built baseline-only isolation instance (the procedure is frozen
-and verified, but no instance is built), and (b) four mutually-uncontaminated
-producer environments plus a blind scorer. **Experiment execution progress = 0;
-what is done is the design, not any result.** No hook/runtime/CI/gate/enforcement
-is changed here.
+**Gate 1 complete means the pre-registration (the exam rules) is done. It does
+NOT mean any of the following, all still true:**
+- Gate 2 is not approved and must not start until the Section G preflight passes
+  and the owner gives a separate explicit "start Gate 2" command.
+- No arm has run; **experiment execution progress = 0** (design done, no result).
+- The pre-push bug is not fixed (preserved at baseline `33006f09`).
+- Runtime-governance smoke remains a non-goal.
+- The Bug Fix Skill is not shown effective; Skill effect cannot even begin to be
+  judged before Gate 3 accumulates multiple distinct natural bugs.
+
+No hook/runtime/CI/gate/enforcement is changed here.
 
 Authoritative status note: **wherever v1 says "Gate 1 complete", that was
 premature.** The single source of truth for Gate-1 completion is Section E of
@@ -109,27 +113,67 @@ The planning surfaces now agree: a Gate 1 pre-registration exists (v1 frozen
 values + v2 isolation/packet corrections), it is **pending owner re-sign of v2**,
 Gate 2 is deferred, and no arm has run.
 
-## E. Owner re-sign — CONFIRMED 2026-07-24 (design freeze only)
+## E. Owner re-sign — CONFIRMED 2026-07-24; Gate 1 COMPLETE
 
-The owner re-signed all three:
+The owner re-signed all three, and a read-only re-review confirmed them:
 1. The verified bundle isolation procedure + allowlist (Section A). ✓
 2. The producer-safe / designer-only validator split (Section B). ✓
-3. That Gate-1 status is owned by this v2 and v1's completion wording is
-   superseded. ✓
+3. Status reconciled: all governance surfaces now state "Gate 1 complete"
+   consistently, with the four caveats preserved. ✓
 
-Effect: the Gate 1 pre-registration **design is frozen**. This is NOT a
-declaration that Gate 1 is formally complete or that Gate 2 may start. Formal
-completion and Gate-2 readiness additionally require building the baseline-only
-isolation instance and standing up four uncontaminated producer environments plus
-a blind scorer — none of which exists. Gate 2 stays deferred. No arm has run.
+Effect: **Gate 1 is complete** — the pre-registration is done. Gate 2 does not
+start automatically; it is gated by the Section G preflight AND a separate
+explicit owner command. No arm has run; execution progress = 0.
+
+## G. Gate 2 preflight — ALL must pass before the separate "start Gate 2" command
+
+Gate 1 being complete does not open Gate 2. Every item below must be true first,
+and then the owner must still issue an explicit "start Gate 2" command.
+
+Isolation instance (extends Section A; currently NOT built):
+- [ ] Baseline bundle built via the verified named-ref procedure; `git bundle
+  verify` shows a single head `33006f09` and complete history.
+- [ ] The instance cannot see current `main`, the Gate 0 doc, either
+  pre-registration, `memory/*`, or this conversation.
+- [ ] Bundle sha256 recorded for the actual instance.
+
+Producer/scorer roles (currently NOT staffed). Clarification: "four
+uncontaminated environments" means **four independent clean sessions/contexts,
+not necessarily four machines or four people**; each may see only its own arm's
+inputs and none of the known-answer context:
+- [ ] Four mutually-isolated producer contexts (one per arm).
+- [ ] One primary scorer blind to arm identity.
+- [ ] A second scorer who independently re-reads all semantic completion claims.
+- [ ] None of these roles is this design session or the author, and none can
+  reach the Gate 0 analysis.
+
+Execution constants (currently NOT met — validators are not installed):
+- [ ] Identical model build across all four arms.
+- [ ] 60 tool calls / 30 min cap per arm.
+- [ ] shellcheck 0.10.0, ruff 0.6.9, mypy 1.11.2 installed.
+- [ ] Identical tool permissions across arms.
+- [ ] dispatch / Skill / Governance / validator packet sha256 all match Section
+  A/B values.
+- [ ] Randomized arm order generated from the frozen seed 20260724 and recorded.
+- [ ] Every arm's receipt can bind to its own output commit.
+
+Even after a full Gate 2 run, the most that may be claimed is: the four-arm
+process runs, evidence and commits bind correctly, and the scoring method works.
+**Skill effectiveness still may NOT be claimed** — that waits for Gate 3.
 
 ## F. Cannot claim
 
-- That Gate 1 is formally complete (only the design is frozen; the built
-  isolation instance and blinded producer/scorer capacity do not exist).
-- That Gate 2 may start, or that any arm has run — experiment execution = 0.
+- That Gate 2 may start, or that any arm has run — experiment execution = 0; the
+  Section G preflight is unmet and no separate start command has been given.
 - That the isolation environment is proven beyond the verified bundle procedure
-  in Section A.
+  in Section A (no instance is built yet).
+- That the Bug Fix Skill is effective (a Gate 2 pilot could not show it; that is
+  a Gate 3 question).
+- That external tools can or cannot replace the in-house Python tools. This
+  four-arm design measures only whether adding treatment-time validator feedback
+  helps (`D−C`). A replacement judgment needs a separate comparison: in-house vs
+  external under the same contract and test set, comparing accuracy, false
+  positives, false negatives, cost, and maintenance.
 - That Arm D stays blind if the designer-only expectation file is ever copied
   into a producer environment (the allowlist forbids it).
 - That the pre-push bug is fixed (preserved at `33006f09`).

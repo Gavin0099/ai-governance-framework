@@ -1424,19 +1424,24 @@ P3 - Engineering Skill Program, pre-push bug study (Gate 1 in progress):
   (`dea492b7`); bug preserved unfixed at baseline `33006f09`.
 - [x] Gate 1 pre-registration frozen values (`2c02c074`) then narrowed and
   hash-frozen (amendment v1, `61b285b2`).
-- [x] Gate 1 amendment v2 (verified named-ref bundle isolation; producer-safe vs
-  designer-only validator split; unified status) owner re-signed 2026-07-24 —
-  the pre-registration **design is frozen (main design complete)**.
-- [ ] Formal Gate 1 completion + Gate 2 readiness: build the baseline-only
-  isolation instance and stand up four uncontaminated producer environments plus
-  a blind scorer. None exists; Gate 2 (single blinded four-arm pilot) is DEFERRED.
+- [x] **Gate 1 COMPLETE** — amendment v2 (verified named-ref bundle isolation;
+  producer-safe vs designer-only validator split; unified status) owner re-signed
+  2026-07-24 and confirmed by a read-only re-review.
+- [ ] Gate 2 preflight (amendment v2 Section G): build the baseline-only isolation
+  instance; stand up four independent clean producer sessions/contexts plus a
+  primary blind scorer and a second semantic-claim scorer; install shellcheck
+  0.10.0 / ruff 0.6.9 / mypy 1.11.2; confirm identical model/permissions/budget
+  and packet-hash + receipt binding. None met yet; Gate 2 (single four-arm
+  process-only pilot) is DEFERRED and additionally needs a separate explicit owner
+  "start Gate 2" command.
 
 Claim ceiling: experiment execution progress = 0 (design done, no result); no arm
 has run; the pre-push hook, runtime, CI, gates, and enforcement are unchanged; no
-engineering method is claimed effective. This is not independent consumer evidence
-and does not establish framework-level G4. Correct ordering (owner-stated): finish
-the experiment isolation first and judge engineering-method / external-tool value
-from real results; do NOT begin bulk tool replacement now.
+engineering method is claimed effective; Skill effectiveness cannot be judged
+before Gate 3. This is not independent consumer evidence and does not establish
+framework-level G4. Correct ordering (owner-stated): finish the experiment
+isolation first and judge engineering-method / external-tool value from real
+results; do NOT begin bulk tool replacement now.
 
 ## Dirty Workspace Policy
 

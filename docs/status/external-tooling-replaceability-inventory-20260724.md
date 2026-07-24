@@ -26,8 +26,9 @@ Three over-claims from the first draft are corrected here:
 - **`D−C` measures the marginal effect of adding treatment-time validator
   feedback**, not whether external tools can replace the in-house Python tools.
   The replacement question needs its own **replacement experiment** — compare an
-  in-house implementation against an external one under the same contract. This
-  inventory is a candidate list for that, not an answer to it.
+  in-house implementation against an external one under the same contract and the
+  same test set, measuring accuracy, false positives, false negatives, cost, and
+  maintenance load. This inventory is a candidate list for that, not an answer.
 
 With those corrections: "replace in-house checks with external tools" is
 **defect-type-dependent** — plausibly useful for commodity checks (schema, lint,

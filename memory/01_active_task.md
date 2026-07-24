@@ -60,12 +60,15 @@
   (`docs/governance/gate1-prereg-prepush-amendment-v2-20260724.md`) fixes the
   isolation with a verified named-ref bundle procedure, splits the validator
   packet into producer-safe versus designer-only, and unifies status. The owner
-  re-signed v2 on 2026-07-24, so the Gate 1 pre-registration **design is frozen
-  (main design complete)** — but this is NOT a claim of formal Gate 1 completion
-  or Gate 2 readiness: the baseline-only isolation instance is not built and no
-  four uncontaminated producer environments or blind scorer exist. Experiment
-  execution progress = 0 (design done, no result). Gate 2 stays deferred. No arm
-  has run; the hook, runtime, CI, gates, and enforcement are unchanged.
+  re-signed v2 on 2026-07-24 and a read-only re-review confirmed it, so **Gate 1
+  is COMPLETE** (the pre-registration is done). This does NOT open Gate 2: the
+  amendment v2 Section G preflight is unmet (no built isolation instance; no four
+  independent clean producer sessions/contexts; no primary + second blind scorer;
+  validators shellcheck 0.10.0 / ruff 0.6.9 / mypy 1.11.2 not installed), and
+  Gate 2 additionally needs a separate explicit owner "start Gate 2" command.
+  Experiment execution progress = 0 (design done, no result); no arm has run; the
+  hook, runtime, CI, gates, and enforcement are unchanged; Skill effectiveness
+  cannot be judged before Gate 3.
 
 - **P1-F is closed as advisory.** The owner decided at `ba50b0f4` not to add a
   current-diff blocker. Reopen only after a natural post-Option-B
