@@ -25,7 +25,7 @@ No hook/runtime/CI/gate/enforcement is changed here.
 Authoritative status note: **wherever v1 says "Gate 1 complete", that was
 premature.** The single source of truth for Gate-1 completion is Section E of
 this v2. v1's Section E "CONFIRMED" and header "FROZEN" are downgraded to
-"superseded by v2, pending re-sign".
+"superseded by v2 (historical)"; under this v2, Gate 1 is complete.
 
 ## A. Isolation — verified bundle procedure (fixes Blocking Finding 1)
 
@@ -49,7 +49,7 @@ git update-ref -d refs/tmp/prepush-baseline
 
 Frozen expected `git bundle verify` result (the authoritative isolation check):
 
-- exactly one head: `33006f09097597f5720a2d01661281d564fb2693ec  refs/tmp/prepush-baseline`
+- exactly one head: `33006f097597f5720a2d01661281d564fb2693ec  refs/tmp/prepush-baseline`
 - "The bundle records a complete history." — i.e. root..33006f09 only, and
   therefore **no** commit carrying the Gate 0 analysis (all analysis commits are
   after 33006f09).
@@ -110,8 +110,9 @@ Corrected across all surfaces in this same slice:
   PLAN edit that never happened).
 
 The planning surfaces now agree: a Gate 1 pre-registration exists (v1 frozen
-values + v2 isolation/packet corrections), it is **pending owner re-sign of v2**,
-Gate 2 is deferred, and no arm has run.
+values + v2 isolation/packet corrections), **Gate 1 is complete** (owner
+re-signed 2026-07-24), Gate 2 is deferred behind the Section G preflight plus a
+separate owner command, and no arm has run.
 
 ## E. Owner re-sign — CONFIRMED 2026-07-24; Gate 1 COMPLETE
 

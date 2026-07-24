@@ -1,6 +1,9 @@
 # Gate 1 Correction Amendment — pre-push replay pre-registration
 
-Status: **SUPERSEDED BY v2, pending owner re-sign.** A second review found this
+Status: **SUPERSEDED BY v2 (HISTORICAL).** The current authority is
+[gate1-prereg-prepush-amendment-v2-20260724.md](gate1-prereg-prepush-amendment-v2-20260724.md),
+under which **Gate 1 is complete** (owner re-signed 2026-07-24). This v1 is kept
+only as history. A second review found this
 v1 had an unexecutable bundle command (Blocking 1), a root-cause leak in the
 producer-facing validator file (Blocking 2), and internal status contradictions
 (Blocking 3). The earlier "FROZEN / Gate 1 complete" wording here was premature
@@ -98,21 +101,19 @@ The prior claim that the meiandraybook independent reviewer and this Gate 2 are
 Both are "independent capacity we do not have in this session," but they are not
 interchangeable and should be tracked as two distinct blocked items.
 
-## E. Owner re-sign — SUPERSEDED BY v2
+## E. Owner re-sign — SUPERSEDED BY v2 (HISTORICAL)
 
-The 2026-07-24 re-sign recorded here was premature: a later review found the
-isolation and validator-leak defects above. Gate-1 completion is NOT owned by
-this section. It is owned by amendment v2 Section E, which is pending owner
-re-sign. Treat Gate 1 as **incomplete** until v2 is re-signed.
+The 2026-07-24 re-sign originally recorded here was premature: a later review
+found the isolation and validator-leak defects above. Gate-1 status is NOT owned
+by this section. It is owned by amendment v2 Section E, under which **Gate 1 is
+complete** (owner re-signed 2026-07-24). Read v2 for the live status.
 
-## F. Planning-truth sync (fixes the second correction)
+## F. Planning-truth sync — HISTORICAL
 
-The program document is still marked review-only DRAFT and PLAN/active task do not
-record an approved experiment. Owner sign-off authorizes this document work, but
-before Gate 2 the planning surface must state: a Gate 1 pre-registration exists
-for the pre-push bug, it is corrected and pending re-sign, Gate 2 is deferred, and
-no arm has run. This amendment records that requirement; the PLAN/active-task edit
-is made in the same slice.
+(Historical note.) This v1 recorded that the planning surface needed syncing.
+That sync is now done under v2: PLAN.md, memory/01_active_task.md, and the daily
+canonical memory all state Gate 1 complete with the four caveats preserved. The
+authoritative status lives in v2.
 
 Note toward the external-tooling question (Section F reference): this task shows
 mature external validators (shellcheck/ruff/mypy) neither present in-environment
@@ -123,8 +124,8 @@ not settled by this task alone.
 
 ## Cannot claim
 
-- That Gate 1 is complete (this v1 is superseded by v2, which is pending owner
-  re-sign; Gate 1 is incomplete until then).
+- (Historical caveat, now resolved by v2: this v1 is superseded by
+  amendment v2, under which Gate 1 is complete as of the 2026-07-24 re-sign.)
 - That Gate 2 may start.
 - That a fresh session is automatically a blind environment (Section C is the
   method that must hold).

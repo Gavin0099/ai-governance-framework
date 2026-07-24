@@ -1,7 +1,16 @@
-# Gate 1 Pre-Registration (FROZEN) — pre-push outgoing-ref bug, Bug Fix four-arm replay
+# Gate 1 Pre-Registration (HISTORICAL) — pre-push outgoing-ref bug, Bug Fix four-arm replay
 
-Status: **FROZEN 2026-07-24, owner-signed** (Section 13 parameters chosen by the
-owner). The methodology below is now locked. Freezing does **not** authorize
+> **SUPERSEDED. Current authority:**
+> [gate1-prereg-prepush-amendment-v2-20260724.md](gate1-prereg-prepush-amendment-v2-20260724.md).
+> This original pre-registration and amendment v1 are kept only as history. The
+> live isolation method, validator-packet split, frozen values, and Gate-1
+> status (complete, owner re-signed 2026-07-24) are all owned by v2. Read v2, not
+> this file, for the authoritative protocol.
+
+Status: **HISTORICAL — frozen values carried into v2.** The Section-13 parameters
+chosen by the owner remain valid and were carried forward, but this file's
+isolation wording and any standalone status here are superseded by v2. Freezing
+here did **not** authorize
 Gate 2 (the pilot run); Gate 2 is a separate owner go and is currently
 **DEFERRED** pending independent producer/scorer capacity (Section 13.4–13.5).
 No Skill, validator, schema, runtime, hook, CI, gate, or enforcement is created

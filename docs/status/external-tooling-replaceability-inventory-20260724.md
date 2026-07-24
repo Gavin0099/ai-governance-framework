@@ -106,6 +106,8 @@ show they actually do.
 
 - That any specific file is a confirmed drop-in replacement (name/category triage
   only; per-tool confirmation requires reading each contract).
-- That external tools improve correctness on logic bugs (the session's data point
-  says they do not for this defect class).
+- That external tools do or do not catch this defect class: this session produced
+  no empirical result on external-tool effectiveness. shellcheck/ruff/mypy were
+  never run (not installed); we can only say they are currently absent and that
+  Arm D's signal is expected null.
 - That replacing anything is approved; this is decision input, not a decision.
