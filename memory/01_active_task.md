@@ -63,10 +63,13 @@
   re-signed v2 on 2026-07-24 and a read-only re-review confirmed it, so **Gate 1
   is COMPLETE** (the pre-registration is done). The answer-safe part of the Gate 2
   preflight is now done this session (Gate 2 preflight manifest 2026-07-24):
-  baseline bundle artifact built and verified (single head 33006f09, complete
-  history, sha256 6ad5bcca, 8.3 MiB, not committed), execution order frozen to
-  [D, C, A, B] from seed 20260724, packet hashes re-verified, validator pins
-  confirmed real (ruff 0.6.9 on PyPI), and a producer receipt template prepared.
+  baseline bundle artifact built and verified (designer-side rebuild source only;
+  the producer receives a sanitized allowlist export in a fresh object DB — tree
+  36c346fa, 4 files, 0 meta objects reachable — NOT the raw bundle), execution
+  order frozen to [D, C, A, B] from seed 20260724, packet hashes re-verified,
+  validator pins confirmed real, an executable fail-closed redaction runner (now
+  also anonymizing the producer receipt / dropping arm), and a producer receipt
+  template prepared.
   What remains is **BLOCKED-ON-RESOURCE, not blocked-on-company**: an environment
   that technically cannot read the answer (container/VM/sandbox/separate account/
   remote runner) for four isolated producer contexts plus a primary and second

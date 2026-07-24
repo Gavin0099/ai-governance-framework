@@ -25,9 +25,11 @@ items below AND a separate explicit owner "start Gate 2" command.
   complete-history + non-empty clone. Binary not committed (rebuilt in the run).
 - Verified in a real Docker container (`--network=none`, bundle-only mount): host
   repo unreachable, network blocked, answer analysis absent.
-- **Open (Finding 2):** the full 33006f09 tree still carries `memory/`, `PLAN.md`,
-  the program/gate docs, and `artifacts/ab-*`, which leak the experimental frame
-  (not the answer). A producer-checkout denylist must be frozen before Gate 2.
+- **Finding 2 (RESOLVED):** the full 33006f09 tree leaks the experimental frame
+  (`memory/`, `PLAN.md`, program/gate docs, `artifacts/ab-*`), so the raw bundle
+  is **designer-side only**. The producer instead receives a sanitized allowlist
+  export in a fresh object DB (sanitized-baseline-manifest; 0 meta objects
+  reachable by `git show` / `git rev-list`). A checkout denylist would not suffice.
 
 ### Frozen execution order
 - `random.seed(20260724); random.sample(['A','B','C','D'], 4)` → **[D, C, A, B]**.
@@ -73,10 +75,10 @@ items below AND a separate explicit owner "start Gate 2" command.
 
 ## Remaining — resource-gated (NOT a place; see amendment v2 Section G table)
 
-- [ ] Place the baseline bundle in an environment that technically cannot read
-  this repo / current main / Gate 0 analysis / memory / this conversation
-  (container, VM, Windows Sandbox, separate OS account, or a remote runner
-  mounting only the bundle).
+- [ ] Place the **sanitized producer repo** (not the raw bundle) + the dispatch
+  packet in an environment that technically cannot read this repo / current main /
+  Gate 0 analysis / memory / this conversation (container, VM, Windows Sandbox,
+  separate OS account, or a remote runner). The bundle is designer-side only.
 - [ ] Four such **answer-blind** producer contexts (one per arm) — blind to the
   root cause/fix, but each knows its own treatment.
 - [ ] Two **arm-identity-blind** scorers (primary + semantic-claim second scorer),

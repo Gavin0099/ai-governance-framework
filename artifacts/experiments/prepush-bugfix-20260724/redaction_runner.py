@@ -75,6 +75,23 @@ def redact(text: str, rules: list[dict]) -> tuple[str, dict[str, int]]:
     return text, counts
 
 
+def anonymize_receipt(receipt: dict, rules: list[dict], drop_fields: list[str]) -> dict:
+    """Fail-closed receipt anonymization: drop identity fields, redact string
+    values through the literal map. Non-string leaves are passed through."""
+    dropped = {k: v for k, v in receipt.items() if k not in drop_fields}
+
+    def walk(x):
+        if isinstance(x, str):
+            return redact(x, rules)[0]
+        if isinstance(x, list):
+            return [walk(i) for i in x]
+        if isinstance(x, dict):
+            return {k: walk(v) for k, v in x.items()}
+        return x
+
+    return walk(dropped)
+
+
 def run(contract_path: str, raw_path: str) -> dict:
     contract_bytes = open(contract_path, "rb").read()
     contract = json.loads(contract_bytes)
@@ -117,17 +134,36 @@ def main() -> int:
     ap.add_argument("--contract", required=True)
     ap.add_argument("--raw", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--receipt", help="producer receipt JSON to anonymize (optional)")
+    ap.add_argument("--receipt-out", help="anonymized receipt output path")
     a = ap.parse_args()
     try:
+        contract = json.loads(open(a.contract, "rb").read())
+        validate_contract(contract)
         packet = run(a.contract, a.raw)
+        anon_receipt = None
+        if a.receipt:
+            if not a.receipt_out:
+                raise FormatError("--receipt requires --receipt-out")
+            receipt = json.loads(open(a.receipt, "rb").read())
+            drop = contract["redaction"].get("receipt_field_drop", ["arm"])
+            anon_receipt = anonymize_receipt(receipt, contract["redaction"]["literal_map"], drop)
+            for f in drop:
+                if f in anon_receipt:
+                    raise FormatError(f"drop field {f} still present after anonymization")
     except FormatError as e:
         print(f"REJECTED (fail-closed): {e}", file=sys.stderr)
         return 2
     with open(a.out, "w", encoding="utf-8", newline="\n") as f:
         json.dump(packet, f, indent=2, ensure_ascii=False)
         f.write("\n")
+    if anon_receipt is not None:
+        with open(a.receipt_out, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(anon_receipt, f, indent=2, ensure_ascii=False)
+            f.write("\n")
     print(f"anon_id={packet['anon_id']} redactions={packet['total_redactions']} "
-          f"raw={packet['raw_output_sha256'][:12]}.. redacted={packet['redacted_output_sha256'][:12]}..")
+          f"raw={packet['raw_output_sha256'][:12]}.. redacted={packet['redacted_output_sha256'][:12]}.."
+          + (f" receipt_anonymized(arm dropped)" if anon_receipt is not None else ""))
     return 0
 
 

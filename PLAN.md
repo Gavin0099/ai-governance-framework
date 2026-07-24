@@ -1428,8 +1428,9 @@ P3 - Engineering Skill Program, pre-push bug study (Gate 1 complete; Gate 2 exec
   producer-safe vs designer-only validator split; unified status) owner re-signed
   2026-07-24 and confirmed by a read-only re-review.
 - [x] Gate 2 preflight answer-safe setup (Gate 2 preflight manifest 2026-07-24):
-  baseline bundle artifact built + verified (single head 33006f09, complete
-  history, sha256 6ad5bcca, not committed), execution order frozen [D, C, A, B]
+  baseline bundle artifact built + verified (designer-side rebuild source only;
+  the producer receives a sanitized allowlist export in a fresh object DB — tree
+  36c346fa, 0 meta objects — NOT the raw bundle), execution order frozen [D,C,A,B]
   from seed 20260724, packet hashes re-verified, validator pins confirmed real,
   producer receipt template prepared.
 - [ ] Gate 2 preflight resource-gated remainder (amendment v2 Section G table),

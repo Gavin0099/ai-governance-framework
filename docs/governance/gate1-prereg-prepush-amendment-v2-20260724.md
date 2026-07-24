@@ -83,8 +83,10 @@ producer receives this sanitized repo, never the raw bundle.
 
 ### Producer-environment file allowlist (frozen)
 
-The producer/arm environment contains ONLY: the baseline bundle above, plus these
-files copied in as standalone inputs (per arm):
+The producer/arm environment contains ONLY: the **sanitized producer repo**
+(fresh object DB, allowlist export from 33006f09 — Section A / sanitized-baseline
+manifest; the raw bundle is designer-side only and is **never** given to a
+producer), plus these files copied in as standalone inputs (per arm):
 
 | File | Arms | sha256 |
 |---|---|---|
@@ -165,8 +167,9 @@ built). Their states differ.
   invariant are reproducible, not that specific hash.
 
 **(b) Isolated execution environment — mechanism VERIFIED in Docker, template NOT production-ready:**
-- [x] The isolation mechanism works: a real `docker run --network=none` container
-  mounting only the bundle proved host-repo-unreachable + network-off + answer
+- [x] The isolation mechanism works: a **designer-side** `docker run
+  --network=none` probe (mounting the bundle only to exercise the mechanism; the
+  producer surface is the sanitized repo) proved host-repo-unreachable + network-off + answer
   analysis absent + clone HEAD == 33006f09 (see Section A / isolation-template-spec).
 - [x] **Producer baseline sanitized (Finding 2, RESOLVED via allowlist export):**
   a fresh git object DB with only the 4 allowlisted code files (sanitized tree
@@ -250,7 +253,7 @@ specific capability, satisfiable in any secure environment:
 | Work | Real blocker | Must be at a company? |
 |---|---|---|
 | Gate 2 setup (this section's [x] items) | none — done this session | no |
-| Gate 2 producers | an environment that technically cannot read the answer (container / VM / Windows Sandbox / separate OS account / remote runner mounting only the baseline bundle) | no |
+| Gate 2 producers | an environment that technically cannot read the answer (container / VM / Windows Sandbox / separate OS account / remote runner) holding only the **sanitized producer repo** (never the raw bundle) + the dispatch packet | no |
 | Gate 2 scorers | an isolated, blinded scoring context (fresh agent session or another person) with no arm identity and no treatment labels | no |
 | meiandraybook product delivery | none — owner's own project; merge/deploy/replay need no non-author reviewer | no |
 | meiandraybook independent-review evidence | **NOT PURSUED (owner decision)** → this evidence is `NOT PRESENT`; it cannot be used to claim independent use or raise G4 strength | n/a |
@@ -264,8 +267,9 @@ process runs, evidence and commits bind correctly, and the scoring method works.
 
 - That Gate 2 may start, or that any arm has run — experiment execution = 0; the
   Section G preflight is unmet and no separate start command has been given.
-- That the isolated execution environment exists (only the baseline bundle
-  artifact is built; the execution environment where arms run is NOT built).
+- That the isolated execution environment exists (only the sanitized producer
+  baseline and the designer-side bundle artifact are built; the execution
+  environment where arms run is NOT built).
 - That the Bug Fix Skill is effective (a Gate 2 pilot could not show it; that is
   a Gate 3 question).
 - That external tools can or cannot replace the in-house Python tools. This

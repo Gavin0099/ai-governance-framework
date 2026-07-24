@@ -3,7 +3,7 @@
 
 Run: python test_redaction_runner.py  (exit 0 = all pass)
 """
-import os, sys
+import json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import redaction_runner as R
 
@@ -27,9 +27,9 @@ def expect_reject(name, raw, results):
         parse(raw)
         results.append((name, "FAIL: accepted bad input"))
     except R.FormatError:
-        results.append((name, "PASS: rejected"))
-    except Exception as e:  # any other error is also a rejection but note it
-        results.append((name, f"PASS(other): {type(e).__name__}"))
+        results.append((name, "PASS: rejected with FormatError"))
+    except Exception as e:  # a crash (IndexError/KeyError/...) is a DEFECT, not a pass
+        results.append((name, f"FAIL: unexpected {type(e).__name__}: {e}"))
 
 
 def main() -> int:
@@ -62,6 +62,42 @@ def main() -> int:
     expect_reject("crlf", VALID.replace("\n", "\r\n"), results)
     # preamble before first marker
     expect_reject("preamble", "hello\n" + VALID, results)
+
+    # CLI subprocess: malformed input -> exit 2 AND no output file written
+    import subprocess, tempfile
+    here = os.path.dirname(os.path.abspath(__file__))
+    bad = _write_tmp("=== FIX_DIFF ===\r\nx\r\n")  # CRLF + missing markers
+    outp = os.path.join(tempfile.gettempdir(), "should_not_be_created.json")
+    if os.path.exists(outp):
+        os.remove(outp)
+    cp = subprocess.run(
+        [sys.executable, os.path.join(here, "redaction_runner.py"),
+         "--contract", CONTRACT, "--raw", bad, "--out", outp],
+        capture_output=True, text=True)
+    results.append(("cli_exit2", "PASS" if cp.returncode == 2 else f"FAIL: exit {cp.returncode}"))
+    results.append(("cli_no_output_on_reject",
+                    "PASS" if not os.path.exists(outp) else "FAIL: output written on reject"))
+
+    # receipt anonymization: arm dropped, packet name redacted, substance kept
+    receipt = {"arm": "C", "command": "ran governance-packet.md steps",
+               "results": {"regression": "PASS"}}
+    rpath = _write_tmp(json.dumps(receipt))
+    rout = os.path.join(tempfile.gettempdir(), "anon-receipt.json")
+    cp2 = subprocess.run(
+        [sys.executable, os.path.join(here, "redaction_runner.py"),
+         "--contract", CONTRACT, "--raw", _write_tmp(VALID),
+         "--out", os.path.join(tempfile.gettempdir(), "pk.json"),
+         "--receipt", rpath, "--receipt-out", rout],
+        capture_output=True, text=True)
+    try:
+        anon = json.load(open(rout))
+        ok = ("arm" not in anon
+              and "governance-packet" not in json.dumps(anon)
+              and "[PACKET]" in json.dumps(anon)
+              and anon["results"]["regression"] == "PASS")
+        results.append(("receipt_anonymized", "PASS" if (cp2.returncode == 0 and ok) else "FAIL"))
+    except Exception as e:
+        results.append(("receipt_anonymized", f"FAIL: {e}"))
 
     for name, r in results:
         print(f"[{name}] {r}")

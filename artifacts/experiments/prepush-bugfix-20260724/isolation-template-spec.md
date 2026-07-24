@@ -71,7 +71,8 @@ raw bundle.
 
 ## Still resource-gated / owner-gated
 
-- Producer-checkout denylist frozen and applied (Finding 2).
+- Sanitized producer repo (Finding 2, DONE) placed in the environment instead of
+  the raw bundle; the bundle stays designer-side only.
 - Pinned validators installed in the run image (network was off for the isolation
   probe; install in a build phase with network, then run network-off).
 - Four **answer-blind** producer contexts + two **arm-identity-blind** scorers,
