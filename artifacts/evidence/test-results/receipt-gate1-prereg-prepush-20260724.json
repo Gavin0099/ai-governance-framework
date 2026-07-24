@@ -1,0 +1,26 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m governance_tools.governance_drift_checker --repo . --format human; git diff --check --cached",
+  "exit_code": 0,
+  "runner": "claude-code-gate1-prereg-prepush-20260724",
+  "linked_commit": "2c02c074e1d173e35f8b4b19ad6ed1170b649346",
+  "validated_state": "docs/governance/gate1-prereg-prepush-outgoing-ref-20260724.md staged, i.e. the tree committed as 2c02c074",
+  "results": {
+    "governance_drift_checker_severity": "ok",
+    "plan_freshness": "PASS",
+    "expansion_boundary": "PASS",
+    "memory_schema_complete": "PASS",
+    "git_diff_check": "clean (no trailing whitespace)"
+  },
+  "not_run": [
+    "runtime/build/pytest suites: this slice adds one frozen pre-registration markdown plus this receipt; no executable behavior",
+    "the four-arm experiment itself: Gate 2 is deferred to independent producer/scorer capacity"
+  ],
+  "cannot_claim": [
+    "that any arm has run or that the Bug Fix Skill is effective",
+    "that Gate 2 is authorized (separate owner go, currently deferred)",
+    "that the pre-push bug is fixed: preserved at baseline 33006f09 as the Gate 0 candidate",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
