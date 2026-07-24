@@ -1,0 +1,33 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -m governance_tools.governance_drift_checker --repo . --format human; git diff --check --cached",
+  "exit_code": 0,
+  "started_at": "2026-07-24T17:05:00Z",
+  "finished_at": "2026-07-24T17:05:20Z",
+  "runner": "claude-code-oss-validation-candidate-20260725",
+  "linked_commit": "",
+  "output_artifacts": [
+    "docs/status/open-source-validation-candidate-inventory-20260725.md",
+    "docs/status/external-tooling-replaceability-inventory-20260724.md"
+  ],
+  "results": {
+    "governance_drift_checker_severity": "ok",
+    "plan_freshness": "PASS",
+    "memory_schema_complete": "PASS",
+    "git_diff_check": "clean",
+    "candidate_status": "read-only candidate inventory; no tool installed, no program change, Gate 2 unchanged",
+    "prior_inventory_section_c_corrected": "provenance/policy/schema have OSS standards (in-toto/SLSA/Cosign, OPA/Rego, CUE/JSON Schema); pointer added"
+  },
+  "not_run": [
+    "runtime/build/pytest suites: markdown candidate/reference docs only",
+    "any of the catalogued tools: none installed or executed"
+  ],
+  "cannot_claim": [
+    "that any catalogued tool is adopted, installed, or integrated",
+    "that open-source tools can fully replace the in-house governance_tools (needs a same-contract replacement experiment)",
+    "that this inventory advances Gate 2 or that Gate 2 has any external-validator result",
+    "that a green validator means the product is correct",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
