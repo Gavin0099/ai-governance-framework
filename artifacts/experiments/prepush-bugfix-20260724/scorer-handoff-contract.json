@@ -8,13 +8,43 @@
     "name": "raw-output.txt",
     "encoding": "UTF-8",
     "line_endings": "LF",
+    "section_markers": ["=== FIX_DIFF ===", "=== TEST_LOG ===", "=== VALIDATOR_OUTPUT ===", "=== COMPLETION_CLAIM ==="],
     "fixed_section_order": [
       "1. FIX_DIFF: git diff of the fix (verbatim)",
       "2. TEST_LOG: the test run output (verbatim)",
-      "3. VALIDATOR_OUTPUT: validator output if the producer's arm produced any (verbatim; absent for arms with none)",
+      "3. VALIDATOR_OUTPUT: the POST-HOC UNIFORM validator output — the pinned validators run identically on ALL four arms by the scorer/experimenter after outputs are committed. Present for every arm, so it does NOT signal treatment (verbatim).",
       "4. COMPLETION_CLAIM: the producer's prose completion claim"
     ],
     "note": "Sections 1-3 are substantive evidence and are NEVER redacted. Redaction applies only to section 4 free text and to the receipt metadata (the arm field is dropped)."
+  },
+
+  "validator_output_split": {
+    "reason": "WARNING 2: if only Arm D's TREATMENT-TIME validator feedback appeared in the scorer packet, the scorer could infer Arm D. Split the two roles.",
+    "treatment_time_validator_feedback": "Arm D input only; kept in EXPERIMENTER PROVENANCE, never placed in raw-output.txt or the scorer packet.",
+    "post_hoc_uniform_validator_output": "run identically on all four arms after commit; this is the VALIDATOR_OUTPUT section the scorer sees; uniform, non-signalling.",
+    "residual_leak_rule": "if a COMPLETION_CLAIM's substance shows the producer acted on treatment-time validator feedback in a way only Arm D could, set blinding_compromised (do not delete)."
+  },
+
+  "canonical_runner": {
+    "script": "redaction_runner.py",
+    "invocation": "python redaction_runner.py --contract scorer-handoff-contract.json --raw raw-output.txt --out redacted-packet.json",
+    "redacts_only": "the COMPLETION_CLAIM section; FIX_DIFF/TEST_LOG/VALIDATOR_OUTPUT are copied verbatim",
+    "answer_safe": "operates only on a producer output; never reads the Gate 0 analysis, the fix, or the answer"
+  },
+
+  "redacted_packet_schema": {
+    "schema": "gate2-redacted-packet.v1",
+    "fields": {
+      "anon_id": "OUT-<12 hex>",
+      "contract_sha256": "sha256 of this contract file (pins which redaction map ran)",
+      "raw_output_sha256": "sha256 of the raw-output.txt (binds raw -> redacted)",
+      "redacted_output_sha256": "sha256 of the emitted redacted text",
+      "per_rule_match_count": "count of replacements per redaction rule (audit of what was removed)",
+      "total_redactions": "sum of match counts",
+      "redacted_output": "the scorer-facing text",
+      "blinding_compromised": "boolean | null (set by experimenter, never by the runner)",
+      "blinding_compromised_reason": "string | null"
+    }
   },
 
   "anonymous_id": {

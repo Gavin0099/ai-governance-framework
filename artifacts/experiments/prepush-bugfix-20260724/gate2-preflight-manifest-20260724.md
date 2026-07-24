@@ -8,21 +8,26 @@ items below AND a separate explicit owner "start Gate 2" command.
 
 ## Done this session (answer-safe)
 
-### Baseline bundle artifact (built + verified)
-- Procedure (from amendment v2 Section A):
-  `git update-ref refs/tmp/prepush-baseline 33006f09` →
-  `git bundle create prepush-baseline-33006f09.bundle refs/tmp/prepush-baseline` →
-  `git bundle verify` → `git update-ref -d refs/tmp/prepush-baseline`.
-- `git bundle verify`: **okay; complete history.**
-- Heads: exactly one — `33006f097597f5720a2d01661281d564fb2693ec  refs/tmp/prepush-baseline`.
+### Baseline bundle artifact (built + verified — CORRECTED procedure)
+- Corrected procedure (amendment v2 Section A; the old `refs/tmp/*` bundle cloned
+  EMPTY):
+  `git branch -f prepush-baseline 33006f09` →
+  `git bundle create prepush-baseline-33006f09.bundle prepush-baseline` →
+  `git bundle verify` → `git branch -D prepush-baseline`; clone with
+  `git clone -b prepush-baseline …`.
+- `git bundle verify`: **okay; complete history**, one head
+  `33006f097597…  refs/heads/prepush-baseline`.
+- **Real clone check (was missing before):** `git clone -b prepush-baseline` →
+  non-empty, HEAD == 33006f09, 3664 files, buggy hook present.
 - Design-env instance sha256:
-  `6ad5bcca8cf4b743e1990310837097081a90bb65805f6cce698904baeb1cbe6e` (8.3 MiB).
-- Reproducibility caveat: bundle bytes vary by git version; the authoritative
-  invariant is single-head + complete-history, not this sha256. The 8.3 MiB
-  binary is a build artifact and is intentionally **not** committed; the isolated
-  run rebuilds it via the frozen procedure and re-verifies head/history.
-- Contains the buggy hook at baseline but no Gate 0 analysis (all analysis commits
-  postdate 33006f09), so the bundle itself does not leak the answer.
+  `da1a47d735a32433dff2ed2be0aeda2e287686a750187a0ba4d6c22ed559f5e7` (8.3 MiB).
+  Bytes vary by git version; authoritative invariant is single-head +
+  complete-history + non-empty clone. Binary not committed (rebuilt in the run).
+- Verified in a real Docker container (`--network=none`, bundle-only mount): host
+  repo unreachable, network blocked, answer analysis absent.
+- **Open (Finding 2):** the full 33006f09 tree still carries `memory/`, `PLAN.md`,
+  the program/gate docs, and `artifacts/ab-*`, which leak the experimental frame
+  (not the answer). A producer-checkout denylist must be frozen before Gate 2.
 
 ### Frozen execution order
 - `random.seed(20260724); random.sample(['A','B','C','D'], 4)` → **[D, C, A, B]**.

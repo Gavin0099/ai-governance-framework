@@ -37,29 +37,49 @@ $ git bundle create bare.bundle 33006f09
 fatal: Refusing to create empty bundle.
 ```
 
-Git bundle needs a named ref, not a bare commit SHA. **Frozen verified
-procedure** (executed and confirmed in the design environment):
+Git bundle needs a named ref, not a bare commit SHA. **CORRECTED procedure**
+(the earlier `refs/tmp/prepush-baseline` version passed `git bundle verify` but a
+real `git clone` of it checked out an EMPTY tree — `refs/tmp/*` is not a branch,
+so clone has nothing to check out. This was only caught by actually cloning inside
+a Docker container; every prior paper "verify" missed it.):
 
 ```
-git update-ref refs/tmp/prepush-baseline 33006f09
-git bundle create prepush-baseline-33006f09.bundle refs/tmp/prepush-baseline
+git branch -f prepush-baseline 33006f09
+git bundle create prepush-baseline-33006f09.bundle prepush-baseline
 git bundle verify prepush-baseline-33006f09.bundle
-git update-ref -d refs/tmp/prepush-baseline
+git branch -D prepush-baseline
+# clone MUST name the branch (the bundle has no HEAD):
+git clone -b prepush-baseline prepush-baseline-33006f09.bundle work
 ```
 
-Frozen expected `git bundle verify` result (the authoritative isolation check):
+**Authoritative isolation checks (all three, not just verify):**
+- `git bundle verify` → exactly one head
+  `33006f097597f5720a2d01661281d564fb2693ec refs/heads/prepush-baseline`, complete
+  history (no Gate 0 analysis commit — all analysis is after 33006f09).
+- `git clone -b prepush-baseline` → **non-empty** checkout; `git rev-parse HEAD`
+  == `33006f09…`; `git ls-files` == 3664 files; buggy hook present.
+- Bundle sha256 (design env, this instance):
+  `da1a47d735a32433dff2ed2be0aeda2e287686a750187a0ba4d6c22ed559f5e7`. Bytes vary
+  by git version/packing, so the authoritative invariant is single-head +
+  complete-history + **non-empty clone at 33006f09**, not the sha256.
 
-- exactly one head: `33006f097597f5720a2d01661281d564fb2693ec  refs/tmp/prepush-baseline`
-- "The bundle records a complete history." — i.e. root..33006f09 only, and
-  therefore **no** commit carrying the Gate 0 analysis (all analysis commits are
-  after 33006f09).
+**Verified in a real container** (Docker IS available here — the earlier
+"Docker NOT_FOUND" claim was wrong; daemon 29.6.2 running): `docker run
+--network=none -v <bundle-dir>:/baseline:ro alpine/git` — host repo paths
+unreachable, network DNS blocked, answer analysis files absent, clone HEAD ==
+33006f09. See `isolation-template-spec.md`.
 
-Bundle sha256 recorded in the design environment:
-`58f720c0b7d17b5bb88ecc93fcdd60f750d50216be55d62ff613cf2558036f9c`.
-Reproducibility caveat: bundle bytes can vary by git version/packing, so the
-**authoritative** invariant is the single-head + complete-history verify result
-above, not the sha256. The producer environment consumes this bundle only; it has
-no other refs and no network path to the remote.
+**Producer-checkout minimization (frozen requirement — NOT yet applied):** the
+container probe also found that the full 33006f09 tree still carries the
+experimenter's meta-artifacts (`memory/2026-07-24.md`, `PLAN.md`,
+`docs/governance/evidence-backed-engineering-skill-program-*`, `artifacts/ab-*`)
+which describe the four-arm experiment itself. These do **not** leak the pre-push
+answer (verified: 0 answer hits) but they leak the experimental **frame** (a
+producer would learn it is an A/B subject). Before Gate 2 the producer checkout
+must be reduced to the code under test (`scripts/hooks/`, `governance_tools/`,
+`tests/`, and the modules needed to run tests) plus the dispatch packet, with
+`memory/`, `PLAN.md`, the program/gate docs, and `artifacts/ab-*` / `artifacts/
+experiments/*` denylisted. This frozen denylist is pending.
 
 ### Producer-environment file allowlist (frozen)
 
@@ -144,7 +164,14 @@ built). Their states differ.
   yields a different sha256; only the procedure + single-head/complete-history
   invariant are reproducible, not that specific hash.
 
-**(b) Isolated execution environment — NOT built:**
+**(b) Isolated execution environment — mechanism VERIFIED in Docker, template NOT production-ready:**
+- [x] The isolation mechanism works: a real `docker run --network=none` container
+  mounting only the bundle proved host-repo-unreachable + network-off + answer
+  analysis absent + clone HEAD == 33006f09 (see Section A / isolation-template-spec).
+- [ ] **Producer-checkout denylist frozen + applied (Finding 2, OPEN):** the full
+  33006f09 tree still carries `memory/`, `PLAN.md`, the program/gate docs, and
+  `artifacts/ab-*`, which leak the experimental frame (not the answer). Reduce the
+  producer checkout to the code under test + dispatch packet before Gate 2.
 - [ ] The bundle is placed in an environment that **technically cannot** read this
   repo, current `main`, the Gate 0 analysis, `memory/*`, or this conversation
   (container / VM / Windows Sandbox / separate OS account / remote runner mounting
@@ -201,6 +228,17 @@ principle-only:
   `reason`, so blinding integrity is measured, not assumed.
 - **Release gate:** the anon-ID → arm mapping is held solely by the experimenter
   and released only after both scorers submit scores AND blinding-check guesses.
+- **Canonical runner (executed, answer-safe):** `redaction_runner.py` applies the
+  map to a producer `raw-output.txt`, redacting only COMPLETION_CLAIM and emitting
+  a `gate2-redacted-packet.v1` with `contract_sha256`, `raw_output_sha256`,
+  `redacted_output_sha256`, `anon_id`, and per-rule match counts. Demonstrated
+  deterministic, identity-neutral, and substance-preserving on a synthetic input.
+- **Validator-output split (WARNING 2):** the scorer's VALIDATOR_OUTPUT section is
+  the **post-hoc uniform** validator run applied identically to all four arms, so
+  it does not signal treatment. Arm D's **treatment-time** validator feedback stays
+  in experimenter provenance and never reaches a scorer. If a completion claim's
+  substance still reveals Arm D acted on that feedback, it is flagged
+  `blinding_compromised`, not deleted.
 
 ### Resource-based blocker classification (not a place)
 
