@@ -1,11 +1,14 @@
 # Gate 1 Correction Amendment — pre-push replay pre-registration
 
-Status: **CORRECTION, pending owner re-sign.** Supersedes the incompletely-frozen
-parts of the pre-registration committed at `2c02c074`
+Status: **FROZEN 2026-07-24, owner re-signed** (Section E confirmed: task
+narrowed to the version-bump advisory, Section B frozen values, Section C
+isolation method). Supersedes the incompletely-frozen parts of the
+pre-registration committed at `2c02c074`
 ([gate1-prereg-prepush-outgoing-ref-20260724.md](gate1-prereg-prepush-outgoing-ref-20260724.md)).
-Those commits are left intact (append-only history). Until the owner re-signs
-Section E, this amendment is not frozen and no arm may run. No hook, runtime, CI,
-gate, or enforcement is changed here. No method is claimed effective.
+Those commits are left intact (append-only history). Gate 1 is now complete.
+Freezing still does **not** authorize Gate 2, which stays deferred to blinded
+producer/scorer capacity. No hook, runtime, CI, gate, or enforcement is changed
+here. No method is claimed effective.
 
 Review that prompted this: CHANGES_REQUESTED, three blocking findings plus two
 corrections. All are accepted.
@@ -93,16 +96,16 @@ The prior claim that the meiandraybook independent reviewer and this Gate 2 are
 Both are "independent capacity we do not have in this session," but they are not
 interchangeable and should be tracked as two distinct blocked items.
 
-## E. Owner re-sign required to freeze
+## E. Owner re-sign — CONFIRMED 2026-07-24
 
-This amendment is frozen only when the owner confirms:
-1. Task narrowed to the version-bump advisory; runtime smoke is a non-goal.
+The owner re-signed all three:
+1. Task narrowed to the version-bump advisory; runtime smoke is a non-goal. ✓
 2. The frozen values in Section B (budget 60 calls/30 min, seed 20260724,
-   100% second-scorer subset, validator pins).
-3. The isolation method in Section C.
+   100% second-scorer subset, validator pins). ✓
+3. The isolation method in Section C. ✓
 
-Until then, Gate 1 is **partially frozen**; Gate 1 is not complete and Gate 2
-must not start.
+Gate 1 is **complete**. Gate 2 remains deferred to blinded producer/scorer
+capacity and must not start until that exists.
 
 ## F. Planning-truth sync (fixes the second correction)
 
