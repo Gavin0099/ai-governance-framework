@@ -1,0 +1,40 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "docker run --rm --network=none -v <bundle-dir>:/baseline:ro alpine/git sh -c 'git clone -b prepush-baseline /baseline/prepush-baseline-33006f09.bundle /work; cd /work; probes'; plus python redaction_runner.py execution on a synthetic raw-output.txt",
+  "exit_code": 0,
+  "started_at": "2026-07-24T15:41:00Z",
+  "finished_at": "2026-07-24T15:47:00Z",
+  "runner": "claude-code-gate2-isolation-docker-20260724",
+  "linked_commit": "feba4b59a05efc4ded185325bee3b6d81fbb6550",
+  "output_artifacts": [
+    "artifacts/experiments/prepush-bugfix-20260724/redaction_runner.py",
+    "artifacts/experiments/prepush-bugfix-20260724/scorer-handoff-contract.json",
+    "artifacts/experiments/prepush-bugfix-20260724/isolation-template-spec.md",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-preflight-manifest-20260724.md",
+    "docs/governance/gate1-prereg-prepush-amendment-v2-20260724.md"
+  ],
+  "docker_isolation_probe": {
+    "environment": "docker daemon 29.6.2, alpine/git, --network=none, mount /baseline:ro only (no host repo)",
+    "correction": "the review's 'Docker NOT_FOUND' was wrong for this machine; Docker is running with live containers",
+    "NEG_host_repo_unreachable": "PASS (/d/ai-governance-framework, /host_mnt/..., /mnt/... all absent in container)",
+    "NEG_network_off": "PASS (git ls-remote github.com -> DNS blocked)",
+    "NEG_answer_analysis_absent": "PASS (gate0 doc + amendment absent in baseline clone)",
+    "POS_clone_head": "PASS (HEAD == 33006f097597f5720a2d01661281d564fb2693ec, 3664 files, buggy hook present) AFTER the Finding-1 fix",
+    "finding_1_fixed": "the frozen refs/tmp bundle cloned EMPTY (refs/tmp is not a branch); fixed to branch ref + clone -b; new bundle sha256 da1a47d735a32433dff2ed2be0aeda2e287686a750187a0ba4d6c22ed559f5e7",
+    "finding_2_open": "memory/2026-07-24.md present in baseline clone: 0 pre-push-answer hits but describes the four-arm experiment frame; PLAN.md/program docs/artifacts/ab-* similarly. Producer-checkout denylist required before Gate 2."
+  },
+  "redaction_runner_execution": {
+    "deterministic": "PASS (identical re-run)",
+    "identity_neutral": "PASS (Arm D + governance/validator packet -> [ARM]/[PACKET])",
+    "substance_preserved": "PASS (FIX_DIFF/TEST_LOG/VALIDATOR_OUTPUT verbatim; regression test/baseline kept)",
+    "provenance": "contract_sha256 + raw_output_sha256 + redacted_output_sha256 + per-rule match counts emitted"
+  },
+  "cannot_claim": [
+    "that Gate 2 is ready: Finding 2 (producer-checkout denylist) is open; validators not installed in the run image; no producers/scorers staffed",
+    "that isolation is fully solved: the mechanism works but the template is not production-ready until the denylist is frozen and applied",
+    "that any arm has run or that the Bug Fix Skill is effective (a Gate 3 question)",
+    "that redaction ran on any real producer output (synthetic sample only)",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
