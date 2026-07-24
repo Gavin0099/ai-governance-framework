@@ -1,0 +1,41 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "fail-closed shell assertions (rc starts 0, any failure sets rc=1, final rc returned): [1] no contradictory instance wording in amendment v2; [2] bundle-artifact-BUILT and execution-env-NOT-built stated distinctly; [3] PLAN heading = Gate 1 complete; Gate 2 execution = 0; [4] scorer anonymization handoff FROZEN present; [5] non-treatment-permissions-identical + Arm D treatment exception wording; [6] meiandraybook independent-review evidence NOT PRESENT; [7] producer receipt template valid JSON with experimenter-only arm; [8] git diff --check origin/main..HEAD clean",
+  "exit_code": 0,
+  "started_at": "2026-07-24T12:59:10Z",
+  "finished_at": "2026-07-24T12:59:11Z",
+  "runner": "claude-code-gate2-preflight-truth-repair-20260724",
+  "linked_commit": "3087f84fc8c295908cb8021c5f5e95539ca686bc",
+  "output_artifacts": [
+    "docs/governance/gate1-prereg-prepush-amendment-v2-20260724.md",
+    "PLAN.md",
+    "memory/01_active_task.md",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-producer-receipt-template.json",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-preflight-manifest-20260724.md"
+  ],
+  "per_item_results": {
+    "1_no_contradictory_instance_wording": "PASS",
+    "2_bundle_artifact_built_vs_exec_env_not_built_distinct": "PASS",
+    "3_plan_heading_gate1_complete": "PASS",
+    "4_scorer_anonymization_handoff_frozen": "PASS",
+    "5_non_treatment_permissions_with_armD_exception": "PASS",
+    "6_meiandraybook_independent_review_evidence_not_present": "PASS",
+    "7_producer_receipt_template_raw_experimenter_only_arm": "PASS",
+    "8_git_diff_check_clean": "PASS"
+  },
+  "review_findings_addressed": {
+    "F1_status_terminology_contradiction": "fixed: bundle artifact (BUILT) split from isolated execution environment (NOT built); PLAN heading corrected",
+    "F2_scorer_anonymization_handoff": "frozen procedure added; producer receipt marked raw/experimenter-only; tool-permissions reworded as non-treatment-identical with Arm D exception",
+    "F3_meiandraybook_reviewer": "split into product delivery (no reviewer needed) and independent-review evidence NOT PRESENT (owner decision)",
+    "F4_receipt_not_raw_execution_proof": "acknowledged: bundle sha256 proves only procedure reproducibility, not that specific hash; caveat reinforced in Section G(a)"
+  },
+  "cannot_claim": [
+    "that Gate 2 is ready: the isolated execution environment is not built and scorers/producers are not staffed",
+    "that scorers are actually blinded: only the handoff procedure is frozen; it has not been executed",
+    "that any arm has run or that the Bug Fix Skill is effective (a Gate 3 question)",
+    "that meiandraybook provides any independent-use evidence (owner did not pursue non-author review)",
+    "that the design-env bundle sha256 proves anything beyond procedure reproducibility",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
