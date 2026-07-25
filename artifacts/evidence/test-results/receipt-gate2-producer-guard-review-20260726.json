@@ -1,0 +1,43 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "review commits 1a79571a, 1ef71100, 84221571, and 352168d7; inspect producer guard, post hook, adapter, tests, README, evidence bundle and receipts; compare against official Claude Code hook semantics; rerun hostile suite; probe unwritable transcript and post-event identity; verify receipt schemas and artifact hashes; run governance drift and git diff check; compare HEAD and origin/main",
+  "exit_code": 0,
+  "started_at": "2026-07-25T16:23:16Z",
+  "finished_at": "2026-07-25T16:23:16Z",
+  "runner": "codex-gate2-producer-guard-review-20260726",
+  "linked_commit": "352168d76d55b0e94014fb0e1d568494dd9f80e4",
+  "output_artifacts": [
+    "memory/04_review_log.md",
+    "memory/01_active_task.md",
+    "memory/03_knowledge_base.md"
+  ],
+  "review": {
+    "verdict": "CHANGES_REQUESTED",
+    "risk": "medium",
+    "blocking_findings": 3,
+    "warnings": 2,
+    "scope": "Gate 2 producer guard, transcript evidence pipeline, and live dry-run readiness"
+  },
+  "per_item_results": {
+    "deny_policy_unit_suite": "PASS exit 0; current output contains 46 checks",
+    "adapter_producer_vertical_slice": "FAIL only ls/log/read exist; edit/test/diff/result operations are impossible",
+    "pre_post_unique_identity": "FAIL pre invents request_id; post has neither request_id nor harness tool_use_id",
+    "failed_tool_capture": "NOT PRESENT PostToolUseFailure is not wired",
+    "transcript_persistence": "FAIL unwritable GATE2_TRANSCRIPT still returned allow exit 0",
+    "post_output_digest_binding": "FAIL hashes whole structured tool_response rather than adapter stdout bytes",
+    "deny_hook_protocol": "WARNING structured JSON is printed with exit 2 even though official harness ignores JSON on exit 2",
+    "source_receipt_structure": "PASS producer-guard and evidence-bundle receipts validate",
+    "source_artifact_hashes": "PASS every recorded artifact sha256 matches",
+    "governance_drift": "PASS ok=true severity=ok",
+    "remote_sync": "PASS HEAD equals origin/main at 352168d7"
+  },
+  "cannot_claim": [
+    "that the current adapter can execute a Gate 2 producer task",
+    "that every allowed tool request has a uniquely correlated success or failure transcript",
+    "that transcript capture fails closed",
+    "that adapter exclusivity has been validated in a real harness producer context",
+    "that any 4+2 context exists, Gate 2 may start, or any arm ran",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

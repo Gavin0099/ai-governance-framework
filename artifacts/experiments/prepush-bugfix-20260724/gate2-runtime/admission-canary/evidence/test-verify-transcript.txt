@@ -1,0 +1,15 @@
+[a consistent evidence pair passes] PASS
+[caught: a terminal event is missing] PASS
+[caught: a terminal event is duplicated] PASS
+[caught: a result appears with no request] PASS
+[caught: a denied call produced a result] PASS
+[caught: the recorded output digest was altered] PASS
+[caught: the adapter ran something the transcript does not show] PASS
+[caught: adapter and transcript disagree on the call order] PASS
+[caught: something reached the adapter that the guard should have stopped] PASS
+[caught: the policy changed mid-run] PASS
+[caught: the adapter enforced a different policy] PASS
+[caught: a pre event lost its correlation id] PASS
+[caught: two calls were given the same correlation id] PASS
+---
+13 checks: ALL PASSED

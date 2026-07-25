@@ -363,6 +363,8 @@
 
 ## Cannot Claim From This Surface
 
+- 2026-07-26 review of `352168d7`: `CHANGES_REQUESTED` — the guard deny logic passes, but its read-only adapter cannot perform a producer fix, its transcript lacks unique success/failure correlation, and transcript writes fail open. Test a corrected writable adapter first on a disposable admission-canary repo; do not consume a frozen Gate 2 context.
+
 - 2026-07-25 review of `ad877713`: `CHANGES_REQUESTED` — the reported four-hop model-channel rehearsal lacks durable raw model/adapter artifacts and full digest linkage; do not treat the path as independently established or start 4+2 provisioning until the evidence bundle is correction-forwarded or the claim is narrowed.
 
 - 2026-07-25 review of `a785174a`: `CHANGES_REQUESTED` — the owner rehearsal proves a host-to-container `docker exec` bridge and reported isolation, not a real model → tool-adapter → sandbox → model round trip. Narrow the claim and correction-forward the receipt before the actual dummy-repo managed-channel rehearsal.

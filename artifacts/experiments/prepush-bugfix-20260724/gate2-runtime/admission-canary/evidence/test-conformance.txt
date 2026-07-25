@@ -1,0 +1,20 @@
+[every admitted verb has an execution mapping] PASS
+[every executable verb is admitted by the policy] PASS
+[arity agrees for 'ls'] PASS
+[arity agrees for 'read'] PASS
+[arity agrees for 'write'] PASS
+[arity agrees for 'test'] PASS
+[arity agrees for 'diff'] PASS
+[arity agrees for 'status'] PASS
+[arity agrees for 'report'] PASS
+[guard admits the sanctioned form of 'ls'] PASS
+[guard admits the sanctioned form of 'read'] PASS
+[guard admits the sanctioned form of 'write'] PASS
+[guard admits the sanctioned form of 'test'] PASS
+[guard admits the sanctioned form of 'diff'] PASS
+[guard admits the sanctioned form of 'status'] PASS
+[guard admits the sanctioned form of 'report'] PASS
+[the producer channel has no verb that runs an arbitrary command] PASS
+[the producer channel has no verb that takes anything out of the sandbox] PASS
+---
+18 checks: ALL PASSED

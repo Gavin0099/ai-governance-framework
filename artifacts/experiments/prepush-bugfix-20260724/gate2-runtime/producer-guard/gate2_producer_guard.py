@@ -1,69 +1,99 @@
 #!/usr/bin/env python3
 """Gate 2 producer guard — PreToolUse hook.
 
-Two jobs, both required before Gate 2 resource admission:
+Three jobs, all required before Gate 2 resource admission:
 
-1. TECHNICAL ADAPTER EXCLUSIVITY. The producer context is allowed to invoke
-   exactly one thing: the managed adapter, with an allowlisted verb and a
-   regex-checked argument. Every other tool call -- `docker exec`, reading host
-   files, git, network, editors -- is DENIED by the harness before it executes.
-   This replaces the previous prompt-plus-log corroboration, under which a
-   bypass simply would not appear in the adapter log.
+1. TECHNICAL ADAPTER EXCLUSIVITY. The producer context may invoke exactly one
+   thing: the managed adapter, with a verb and arguments admitted by the shared
+   policy file. Every other tool call -- `docker exec`, reading host files, git,
+   network, editors -- is DENIED by the harness before it executes.
 
-2. MODEL TRANSCRIPT CAPTURE. Every decision is appended to a JSONL transcript
-   with a run_id and a per-call request_id, recording the model's own tool
-   request. The companion PostToolUse hook records the result under the same
-   request_id, so `model request -> adapter -> container -> output` is a single
-   correlated chain that artifacts alone can verify.
+2. ONE CONTRACT, NOT TWO. The verb/argument contract lives in a policy JSON
+   (see gate2_policy.py) that the adapter loads too, so guard and adapter cannot
+   drift apart. The policy id and digest are stamped into every transcript event
+   so a reviewer can tell which contract was in force.
+
+3. MODEL TRANSCRIPT CAPTURE THAT CANNOT SILENTLY GO MISSING. Every decision is
+   appended to a JSONL transcript keyed by the harness-supplied `tool_use_id`,
+   the same id the PostToolUse / PostToolUseFailure hooks receive, so request and
+   result are joined by identity rather than guessed at by command digest. If the
+   transcript cannot be written, the call is BLOCKED: an unauditable call is not
+   allowed to run.
 
 Wiring (producer context settings only -- NOT the design session's settings):
 
     "hooks": {
-      "PreToolUse":  [{"hooks": [{"type": "command",
+      "PreToolUse":         [{"hooks": [{"type": "command",
          "command": "python <this file>"}]}],
-      "PostToolUse": [{"hooks": [{"type": "command",
+      "PostToolUse":        [{"hooks": [{"type": "command",
+         "command": "python <sibling>/gate2_producer_posttool.py"}]}],
+      "PostToolUseFailure": [{"hooks": [{"type": "command",
          "command": "python <sibling>/gate2_producer_posttool.py"}]}]
     }
 
 Environment:
     GATE2_ADAPTER      absolute path to the sanctioned adapter script (required)
+    GATE2_POLICY       absolute path to the shared policy JSON (required)
     GATE2_RUN_ID       run identifier (default: "unset")
     GATE2_TRANSCRIPT   transcript path (default: ./gate2-transcript.jsonl)
 
-Fail-closed: any error in this guard denies the call. A guard that cannot decide
-must never let a call through.
+Output contract (matches the documented hook semantics: JSON on stdout is only
+processed at exit 0, and exit 2 blocks with stderr as the reason -- so the two
+are never mixed):
+
+    allow                       -> allow JSON on stdout, exit 0
+    decided deny                -> deny  JSON on stdout, exit 0
+    undecidable / unauditable   -> reason on stderr,     exit 2  (blocks)
 """
 from __future__ import annotations
 
 import hashlib
 import json
 import os
-import re
 import sys
 import uuid
 from datetime import datetime, timezone
 
-# The adapter's own contract, mirrored here so the guard can validate the whole
-# invocation without executing anything.
-VERB_RE = re.compile(r"^(ls|log|read)$")
-ARG_RE = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from gate2_policy import Policy, PolicyError, load_policy  # noqa: E402
+
+# Everything that could chain, redirect, substitute, expand or continue a line.
+# Backslash is deliberately NOT here: Windows adapter paths contain it, and with
+# quotes, `$`, backticks and newlines already banned, a backslash can at most
+# escape a space -- which merges tokens and then fails the policy's strict
+# verb/argument patterns. (An earlier version banned it and thereby denied every
+# legitimate call on Windows; the hostile suite caught that.)
+_METACHARS = ";|&<>`$(){}[]!*?\n\r\"'"
 
 
 def _now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def _transcript_path() -> str:
+def _sha(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def transcript_path() -> str:
     return os.environ.get("GATE2_TRANSCRIPT", "gate2-transcript.jsonl")
 
 
-def _emit(record: dict) -> None:
-    """Append one transcript event. Never raises into the decision path."""
-    try:
-        with open(_transcript_path(), "a", encoding="utf-8", newline="\n") as fh:
-            fh.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
-    except OSError:
-        pass
+def emit(record: dict) -> None:
+    """Append one transcript event. Raises OSError -- the caller must block."""
+    with open(transcript_path(), "a", encoding="utf-8", newline="\n") as fh:
+        fh.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+        fh.flush()
+        os.fsync(fh.fileno())
+
+
+def _preflight_transcript() -> None:
+    """Prove the transcript is writable BEFORE admitting anything.
+
+    The earlier version swallowed OSError, so pointing GATE2_TRANSCRIPT at an
+    unwritable location produced allow decisions with no audit record at all.
+    """
+    with open(transcript_path(), "a", encoding="utf-8", newline="\n") as fh:
+        fh.flush()
 
 
 def _decide(allow: bool, reason: str) -> dict:
@@ -74,15 +104,6 @@ def _decide(allow: bool, reason: str) -> dict:
             "permissionDecisionReason": reason,
         }
     }
-
-
-# Everything that could chain, redirect, substitute, expand or continue a line.
-# Backslash is deliberately NOT here: Windows adapter paths contain it, and with
-# quotes, `$`, backticks and newlines already banned, a backslash can at most
-# escape a space -- which merges tokens and then fails the strict verb/arg
-# patterns below. (An earlier version banned it and thereby denied every
-# legitimate call on Windows; the hostile suite caught that.)
-_METACHARS = ";|&<>`$(){}[]!*?\n\r\"'"
 
 
 def _tokenize(command: str) -> list[str] | None:
@@ -96,9 +117,8 @@ def _tokenize(command: str) -> list[str] | None:
     return command.split()
 
 
-def evaluate(tool_name: str, tool_input: dict) -> tuple[bool, str, dict]:
+def evaluate(policy: Policy, adapter: str, tool_name: str, tool_input: dict) -> tuple[bool, str, dict]:
     """Return (allow, reason, detail). Pure: no side effects, so it is testable."""
-    adapter = os.environ.get("GATE2_ADAPTER", "")
     detail: dict = {"tool": tool_name}
 
     if not adapter:
@@ -110,9 +130,9 @@ def evaluate(tool_name: str, tool_input: dict) -> tuple[bool, str, dict]:
         return False, f"tool {tool_name!r} is outside the adapter channel", detail
 
     command = (tool_input or {}).get("command", "")
-    detail["command"] = command
     if not isinstance(command, str) or not command.strip():
         return False, "empty command", detail
+    detail["command"] = command
 
     tokens = _tokenize(command.strip())
     if tokens is None:
@@ -128,6 +148,10 @@ def evaluate(tool_name: str, tool_input: dict) -> tuple[bool, str, dict]:
     except OSError:
         return False, "could not resolve invoked path", detail
     detail["invoked_path"] = invoked
+    # realpath() happily resolves a path that does not exist, so two equally
+    # bogus paths would compare equal without this.
+    if not os.path.isfile(sanctioned):
+        return False, "the sanctioned adapter path does not exist", detail
     if invoked != sanctioned:
         return False, "only the sanctioned adapter may be invoked", detail
 
@@ -136,63 +160,96 @@ def evaluate(tool_name: str, tool_input: dict) -> tuple[bool, str, dict]:
         return False, "missing verb", detail
     verb, args = rest[0], rest[1:]
     detail["verb"] = verb
-    if not VERB_RE.match(verb):
-        return False, f"verb {verb!r} is not in the allowlist (ls, log, read)", detail
+    detail["args"] = args
+    ok, reason = policy.check(verb, args)
+    return ok, reason, detail
 
-    if verb in ("ls", "log"):
-        if args:
-            return False, f"verb {verb!r} takes no argument", detail
-        return True, "sanctioned adapter call", detail
 
-    # verb == "read"
-    if len(args) != 1:
-        return False, "verb 'read' takes exactly one argument", detail
-    detail["arg"] = args[0]
-    if not ARG_RE.match(args[0]):
-        return False, "argument failed the allowlist pattern", detail
-    if args[0] in (".", ".."):
-        return False, "argument is not a file", detail
-    return True, "sanctioned adapter call", detail
+def _block(reason: str) -> int:
+    """Undecidable or unauditable: block via exit 2 with the reason on stderr.
+
+    No JSON is printed here on purpose -- JSON output is only processed at exit
+    0, so emitting both would be a contradiction rather than belt-and-braces.
+    """
+    print(f"gate2 producer guard BLOCKED the call: {reason}", file=sys.stderr)
+    return 2
 
 
 def main() -> int:
     request_id = uuid.uuid4().hex[:12]
     run_id = os.environ.get("GATE2_RUN_ID", "unset")
+
     try:
         payload = json.load(sys.stdin)
-    except Exception:
-        payload = {}
+        if not isinstance(payload, dict):
+            raise ValueError("payload is not an object")
+    except Exception as exc:
+        return _block(f"unreadable hook payload ({exc})")
 
     tool_name = payload.get("tool_name", "<unknown>")
     tool_input = payload.get("tool_input", {}) or {}
+    tool_use_id = payload.get("tool_use_id")
+
+    # Correlation is not optional. Without the harness id, request and result
+    # cannot be joined, and an uncorrelatable call is not auditable evidence.
+    if not isinstance(tool_use_id, str) or not tool_use_id:
+        return _block("hook payload carries no tool_use_id; the call cannot be correlated")
+
+    policy_path = os.environ.get("GATE2_POLICY", "")
+    if not policy_path:
+        return _block("GATE2_POLICY is not configured")
+    try:
+        policy = load_policy(policy_path)
+    except PolicyError as exc:
+        return _block(str(exc))
 
     try:
-        allow, reason, detail = evaluate(tool_name, tool_input)
-    except Exception as exc:  # fail-closed on any guard defect
-        allow, reason, detail = False, f"guard error: {exc}", {"tool": tool_name}
+        _preflight_transcript()
+    except OSError as exc:
+        return _block(f"transcript {transcript_path()!r} is not writable ({exc})")
+
+    try:
+        allow, reason, detail = evaluate(policy, os.environ.get("GATE2_ADAPTER", ""), tool_name, tool_input)
+    except Exception as exc:  # a guard defect must never open the channel
+        return _block(f"guard error: {exc}")
 
     cmd = detail.get("command", "")
-    _emit(
-        {
-            "ts": _now(),
-            "run_id": run_id,
-            "request_id": request_id,
-            "event": "pre_tool_use",
-            "tool": tool_name,
-            "command": cmd,
-            "command_sha256": hashlib.sha256(cmd.encode("utf-8")).hexdigest() if cmd else None,
-            "verb": detail.get("verb"),
-            "arg": detail.get("arg"),
-            "decision": "allow" if allow else "deny",
-            "reason": reason,
-            "session_id": payload.get("session_id"),
-        }
-    )
+    args = detail.get("args") or []
+    record = {
+        "ts": _now(),
+        "run_id": run_id,
+        "tool_use_id": tool_use_id,
+        "request_id": request_id,
+        "event": "pre_tool_use",
+        "tool": tool_name,
+        # The command is kept for a reviewer to read, but truncated: a `write`
+        # carries a whole file as base64 and the transcript is an audit record,
+        # not a second copy of the workspace. The digest below covers the full
+        # text either way.
+        "command": cmd if len(cmd) <= 512 else cmd[:512] + f"...<truncated, {len(cmd)} chars total>",
+        "command_sha256": _sha(cmd) if cmd else None,
+        "verb": detail.get("verb"),
+        # Paths in full; a large payload argument (a base64 file body) is
+        # reduced to a digest so the transcript stays an audit record rather
+        # than a second copy of the workspace. args_sha256 covers the arguments
+        # exactly as given and is what joins this event to the adapter log.
+        "args_summary": [a if len(a) <= 96 else f"<b64 len={len(a)} sha256={_sha(a)[:16]}>" for a in args],
+        "args_sha256": _sha("\x00".join(args)),
+        "arg_count": len(args),
+        "decision": "allow" if allow else "deny",
+        "reason": reason,
+        "policy_id": policy.policy_id,
+        "policy_sha256": policy.sha256,
+        "session_id": payload.get("session_id"),
+        "prompt_id": payload.get("prompt_id"),
+    }
+    try:
+        emit(record)
+    except OSError as exc:
+        return _block(f"could not append to the transcript ({exc})")
 
     print(json.dumps(_decide(allow, reason)))
-    # Exit 0: the JSON decision carries the verdict. Exit 2 is the fallback for
-    # harnesses that key off the exit code instead.
-    return 0 if allow else 2
+    return 0
 
 
 if __name__ == "__main__":

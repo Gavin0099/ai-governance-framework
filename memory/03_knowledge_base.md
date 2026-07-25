@@ -163,6 +163,24 @@
 - Until that binding exists, the safe claim is “reported evidence is consistent
   with the proposed path,” not “the end-to-end path is established.”
 
+## Hook Audit Correlation And Evidence Fail-Closed
+
+- Do not invent a random request id in a pre-tool hook and then correlate the
+  post-tool event by command digest. Repeated identical commands make that
+  relationship ambiguous. Preserve the harness-provided `tool_use_id` across
+  pre, success, and failure events.
+- A successful-tool hook does not cover failed executions. Evidence-bearing
+  tool channels need the harness's failure event as well as its success event,
+  or the transcript silently loses allowed calls that return errors.
+- A policy hook may fail closed for execution while its evidence writer fails
+  open. Silently swallowing transcript-write errors lets an allowed call run
+  without the required audit record. Admission must reject an unwritable audit
+  sink before allowing work and mark any post-execution persistence failure as
+  an invalid run.
+- Audit hashes must identify the same observable bytes. Hashing a structured
+  tool-response object cannot be compared directly with an adapter hash of
+  stdout unless the extraction and normalization rule is explicit and tested.
+
 ## Current Highest-Value Gaps
 
 - The main cross-repo gap is now real facts intake, not validator execution.

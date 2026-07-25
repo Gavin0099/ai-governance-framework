@@ -1,0 +1,61 @@
+{
+  "policy_id": "admission-canary-1",
+  "description": "Contract for the gate2-admission-canary dry run. Unlike the read-only rehearsal contract, this one admits the operations a Gate 2 producer actually needs -- read the code, change it, run the one allowed test command, inspect the diff, emit a result artifact -- and nothing else. There is deliberately no verb that runs an arbitrary command, no verb that reaches the network, and no verb that can write outside the workspace repo.",
+  "verbs": {
+    "ls": {
+      "summary": "list tracked files",
+      "args": []
+    },
+    "read": {
+      "summary": "print one file from the workspace repo",
+      "args": [
+        {
+          "name": "path",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]{0,119}$",
+          "forbid": ["\\.\\.", "//", "(^|/)\\.git(/|$)"],
+          "max_len": 120
+        }
+      ]
+    },
+    "write": {
+      "summary": "replace one file in the workspace repo with base64-encoded content; the container reports back the resulting sha256",
+      "args": [
+        {
+          "name": "path",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]{0,119}$",
+          "forbid": ["\\.\\.", "//", "(^|/)\\.git(/|$)"],
+          "max_len": 120
+        },
+        {
+          "name": "content_b64",
+          "pattern": "^[A-Za-z0-9+/]{1,65536}={0,2}$",
+          "forbid": [],
+          "max_len": 65536
+        }
+      ]
+    },
+    "test": {
+      "summary": "run the one allowed test command (python -m unittest discover)",
+      "args": []
+    },
+    "diff": {
+      "summary": "show the uncommitted diff",
+      "args": []
+    },
+    "status": {
+      "summary": "show porcelain status",
+      "args": []
+    },
+    "report": {
+      "summary": "write the result artifact to the workspace out directory from base64-encoded content",
+      "args": [
+        {
+          "name": "content_b64",
+          "pattern": "^[A-Za-z0-9+/]{1,65536}={0,2}$",
+          "forbid": [],
+          "max_len": 65536
+        }
+      ]
+    }
+  }
+}

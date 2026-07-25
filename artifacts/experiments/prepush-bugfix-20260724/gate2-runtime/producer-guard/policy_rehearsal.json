@@ -1,0 +1,25 @@
+{
+  "policy_id": "rehearsal-read-only-1",
+  "description": "Contract for repo_tool.sh, the read-only adapter used by the 2026-07-25 model channel rehearsal. Kept so the original hostile test suite still runs against the policy-driven guard unchanged.",
+  "verbs": {
+    "ls": {
+      "summary": "list tracked files",
+      "args": []
+    },
+    "log": {
+      "summary": "show recent commits",
+      "args": []
+    },
+    "read": {
+      "summary": "print one tracked file from the repository root",
+      "args": [
+        {
+          "name": "path",
+          "pattern": "^[A-Za-z0-9._-]{1,64}$",
+          "forbid": ["^\\.{1,2}$", "\\.\\."],
+          "max_len": 64
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,5 @@
+# Captured console output and evidence logs are verbatim run records.
+# Preserve them byte-for-byte: no EOL conversion, no whitespace "fixes".
+*.txt   -text -whitespace
+*.jsonl -text -whitespace
+*.json  -text -whitespace

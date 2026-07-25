@@ -2934,3 +2934,142 @@ durable evidence bundle for the dummy-repo rehearsal, or narrow the current
 claim. Then run a resource-admission-only slice that technically restricts each
 fresh context to the adapter and verifies identity, filesystem/input allowlists,
 model/permission constants, and blinding without executing any Gate 2 arm.
+
+## 2026-07-26 — Gate 2 producer guard and transcript pipeline review
+
+### Review Inputs Checked
+- `governance/REVIEW_CRITERIA.md`
+- `governance/AGENT.md`
+- `governance/RESPONSE_ENVELOPE_CONTRACT.md`
+- official Claude Code hook reference and hook guide
+- `memory/03_knowledge_base.md`
+- prior Gate 2 reviews in `memory/04_review_log.md`
+- commits `1a79571a`, `1ef71100`, `84221571`, and `352168d7`
+- durable channel evidence bundle, producer guard/pre/post hooks, adapter,
+  hostile tests, README, receipts, tracked artifact hashes, governance drift,
+  and cached remote state
+
+### Decision Summary
+- Verdict: `CHANGES_REQUESTED`
+- Risk level: Medium
+- Scope: producer guard technical enforcement, transcript evidence pipeline,
+  and readiness for a live resource-admission dry run.
+
+### Governance Audit
+- Architecture: The PreToolUse deny boundary is a valid harness-level
+  enforcement point, but the allowed adapter is read-only and therefore cannot
+  execute the required producer vertical slice.
+- Native safety: N/A.
+- Test integrity: The hostile allow/deny logic passes, but the suite does not
+  test real harness dispatch, successful pre/post correlation, failure events,
+  transcript persistence failure, or a write/test producer workflow.
+- Thread safety: Concurrent hook appends and repeated identical commands are
+  not safely correlated; command digest is not a unique event identity.
+- Baseline status: Frozen/signed Gate 2 surfaces were untouched; no arm ran.
+- Dirty-worktree hygiene: author worktree was clean and
+  `HEAD == origin/main == 352168d7`; reviewer records make the current worktree
+  intentionally dirty.
+
+### Technical Findings
+1. [BLOCKING] The sanctioned adapter cannot perform the producer task.
+   - Status: open.
+   - Location:
+     `artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/producer-guard/repo_tool.sh:31-43`
+     and `gate2_producer_guard.py:47-49,134-155`.
+   - Evidence: only `ls`, `log`, and `read` are allowed. The frozen dispatch
+     requires diagnosing and fixing code, adding a regression test, running it,
+     and producing a diff/test log. Every edit, patch, test, or result-emission
+     operation is denied.
+   - Rule reference: root `AGENTS.md` Delivery Recovery Constraints,
+     Vertical Slice First; Gate 2 dispatch acceptance criterion.
+   - Fix required: validate a bounded writable adapter on a disposable canary
+     repo with explicit operations for scoped read, patch/write, allowlisted
+     test execution, status/diff, and result export. Keep arbitrary shell,
+     Docker, host filesystem, network, and out-of-repo paths denied.
+   - Disposition: open; do not mount this guard into a real producer context.
+
+2. [BLOCKING] The transcript does not uniquely or completely bind tool events.
+   - Status: open.
+   - Location:
+     `gate2_producer_guard.py:158-195`,
+     `gate2_producer_posttool.py:46-70`, and
+     `producer-guard/README.md:42-62`.
+   - Evidence: PreToolUse invents a random `request_id`; PostToolUse records no
+     request id and correlates only by command digest, so repeated identical
+     calls are ambiguous. Claude Code already supplies the same `tool_use_id`
+     to PreToolUse and PostToolUse. Only PostToolUse is wired, so an allowed
+     adapter call that fails is absent from the result transcript; official
+     hooks expose `PostToolUseFailure` for that case. The post hook hashes the
+     whole structured `tool_response`, not the exact stdout bytes hashed by the
+     adapter.
+   - Rule reference: `governance/REVIEW_CRITERIA.md` observable-behavior and
+     async-safety requirements; official Claude Code hook contract.
+   - Fix required: persist `tool_use_id` across pre/success/failure events, wire
+     `PostToolUseFailure`, define and test the exact stdout extraction and
+     normalization used for digest comparison, and test repeated identical
+     commands plus failed adapter calls.
+   - Disposition: open.
+
+3. [BLOCKING] Transcript persistence fails open.
+   - Status: open.
+   - Location:
+     `gate2_producer_guard.py:60-66` and
+     `gate2_producer_posttool.py:30-36`.
+   - Evidence: both `_emit` functions swallow `OSError`. A reviewer probe set
+     `GATE2_TRANSCRIPT` to an unwritable path; the PreToolUse process returned
+     exit 0 with `permissionDecision=allow`, leaving no audit record.
+   - Rule reference: guard's own “both required” and fail-closed contract;
+     `governance/REVIEW_CRITERIA.md` predictable evidence behavior.
+   - Fix required: deny before execution when the pre-event cannot be durably
+     persisted; make a post/failure persistence error invalidate the admission
+     run and surface it to the harness instead of silently continuing.
+   - Disposition: open.
+
+4. [WARNING] Deny output mixes two incompatible hook protocols.
+   - Status: open.
+   - Location: `gate2_producer_guard.py:192-195`.
+   - Evidence: denied calls print structured JSON but exit 2. Official Claude
+     Code guidance says JSON is ignored on exit 2; use exit 0 with structured
+     JSON, or exit 2 with the reason on stderr. Blocking still occurs, but the
+     current test's JSON assertion does not validate the actual harness path.
+   - Disposition: select one protocol and cover it in the live dry run.
+
+5. [WARNING] The recorded test count is stale.
+   - Status: open.
+   - Location: `producer-guard/README.md:95-96` and
+     `receipt-gate2-producer-guard-20260725.json`.
+   - Evidence: the current suite emits 46 bracketed checks, not 41.
+   - Disposition: compute the count from test output or stop hard-coding it.
+
+### Resolved / Confirmed In Reviewed Diff
+- The prior evidence-bundle hash-normalization gap is resolved with complete
+  digests and a replayable verifier.
+- The prior rehearsal is now explicit that raw model transcripts were absent;
+  the new hook code is prospective and does not retroactively prove model
+  identity.
+- Direct policy evaluation denies Docker, host paths, non-Bash tools, shell
+  metacharacters, argument/verb abuse, and look-alike adapter paths.
+- Both receipts validate structurally and their recorded artifact hashes match.
+- Targeted suite exits 0; governance drift reports `ok=true`, `severity=ok`;
+  `HEAD == origin/main == 352168d7`; Gate 2 remains 0/4.
+
+### Knowledge Base Alignment
+- Anti-patterns checked: exit-code masking, receipt-as-semantic-proof,
+  prompt-only isolation, summary-only cross-boundary evidence, audit-id
+  ambiguity, and evidence-write fail-open.
+- Regression notes checked: policy enforcement and evidence completeness are
+  separate properties; a restrictive control that cannot complete the product
+  slice is not admission-ready.
+- Result: Conflict found; hook audit correlation and evidence fail-closed rules
+  are now recorded as durable knowledge.
+
+### Next Recommendation
+Use a new disposable local `gate2-admission-canary` repo, not an unrelated
+business repo and not one of the four future producer copies. Give it one tiny
+failing test whose fix requires read → scoped patch → test → diff/result. Use a
+disposable fresh model context with the revised guard, deliberately attempt
+Docker/host/network bypasses, and verify pre/success/failure transcript binding.
+Destroy that context afterward. Only after approval should a separate admission
+context mount a fresh export of frozen tree `36c346fa…` to verify the real image,
+tree, packets, and permissions without dispatching the bug task or consuming an
+arm.

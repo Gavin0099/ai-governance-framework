@@ -1,0 +1,89 @@
+{
+  "adapter_executed": 13,
+  "adapter_log": "admission-canary/evidence/adapter-log.jsonl",
+  "adapter_rejected": 0,
+  "allowed": 13,
+  "checks": [
+    {
+      "detail": "48 events",
+      "name": "transcript is non-empty",
+      "pass": true
+    },
+    {
+      "detail": "",
+      "name": "every pre event carries a tool_use_id",
+      "pass": true
+    },
+    {
+      "detail": "",
+      "name": "every terminal event carries a tool_use_id",
+      "pass": true
+    },
+    {
+      "detail": "35 pre events",
+      "name": "pre-event tool_use_ids are unique",
+      "pass": true
+    },
+    {
+      "detail": "13 allowed; broken: []",
+      "name": "every ALLOWED call has exactly one terminal event under the same tool_use_id",
+      "pass": true
+    },
+    {
+      "detail": "22 denied; leaked: []",
+      "name": "no DENIED call has a terminal event",
+      "pass": true
+    },
+    {
+      "detail": "orphans: []",
+      "name": "no terminal event without a matching pre event",
+      "pass": true
+    },
+    {
+      "detail": "transcript 13 vs adapter 13",
+      "name": "allowed-call count equals adapter executed-line count",
+      "pass": true
+    },
+    {
+      "detail": "0 rejected line(s)",
+      "name": "the adapter rejected nothing (nothing reached it that the guard should have stopped)",
+      "pass": true
+    },
+    {
+      "detail": "",
+      "name": "ordered verb+argument-digest join between transcript and adapter log",
+      "pass": true
+    },
+    {
+      "detail": "",
+      "name": "shared observable (normalised stdout digest) agrees on both sides",
+      "pass": true
+    },
+    {
+      "detail": "2 command digest(s) repeated",
+      "name": "repeated identical commands are still individually correlated",
+      "pass": true
+    },
+    {
+      "detail": "1 failure event(s)",
+      "name": "failed calls are correlated by the same tool_use_id as their request",
+      "pass": true
+    },
+    {
+      "detail": "[\"('admission-canary-1', '270ec6fcca3ed77406dc1c53a5ce08340363ed54ed624cd383fd47fd33b16db9')\"]",
+      "name": "one policy was in force for the whole run",
+      "pass": true
+    },
+    {
+      "detail": "guard [\"('admission-canary-1', '270ec6fcca3ed77406dc1c53a5ce08340363ed54ed624cd383fd47fd33b16db9')\"] vs adapter [\"('admission-canary-1', '270ec6fcca3ed77406dc1c53a5ce08340363ed54ed624cd383fd47fd33b16db9')\"]",
+      "name": "the adapter enforced the same policy the guard did",
+      "pass": true
+    }
+  ],
+  "denied": 22,
+  "events": 48,
+  "pre": 35,
+  "terminal": 13,
+  "transcript": "admission-canary/evidence/transcript.jsonl",
+  "verdict": "PASS"
+}

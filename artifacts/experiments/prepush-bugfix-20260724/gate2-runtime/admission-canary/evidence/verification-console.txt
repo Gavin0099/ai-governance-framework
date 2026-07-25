@@ -1,0 +1,17 @@
+[PASS] transcript is non-empty -- 48 events
+[PASS] every pre event carries a tool_use_id
+[PASS] every terminal event carries a tool_use_id
+[PASS] pre-event tool_use_ids are unique -- 35 pre events
+[PASS] every ALLOWED call has exactly one terminal event under the same tool_use_id -- 13 allowed; broken: []
+[PASS] no DENIED call has a terminal event -- 22 denied; leaked: []
+[PASS] no terminal event without a matching pre event -- orphans: []
+[PASS] allowed-call count equals adapter executed-line count -- transcript 13 vs adapter 13
+[PASS] the adapter rejected nothing (nothing reached it that the guard should have stopped) -- 0 rejected line(s)
+[PASS] ordered verb+argument-digest join between transcript and adapter log
+[PASS] shared observable (normalised stdout digest) agrees on both sides
+[PASS] repeated identical commands are still individually correlated -- 2 command digest(s) repeated
+[PASS] failed calls are correlated by the same tool_use_id as their request -- 1 failure event(s)
+[PASS] one policy was in force for the whole run -- ["('admission-canary-1', '270ec6fcca3ed77406dc1c53a5ce08340363ed54ed624cd383fd47fd33b16db9')"]
+[PASS] the adapter enforced the same policy the guard did -- guard ["('admission-canary-1', '270ec6fcca3ed77406dc1c53a5ce08340363ed54ed624cd383fd47fd33b16db9')"] vs adapter ["('admission-canary-1', '270ec6fcca3ed77406dc1c53a5ce08340363ed54ed624cd383fd47fd33b16db9')"]
+---
+15 checks, ALL PASSED

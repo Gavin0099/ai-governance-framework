@@ -1,0 +1,90 @@
+[allow: ls] PASS
+[allow: log] PASS
+[allow: NONCE.txt] PASS
+[deny docker: exec] PASS
+[deny docker: exec] PASS
+[deny docker: cp] PASS
+[deny docker: run] PASS
+[deny host-fs: cat] PASS
+[deny host-fs: cat] PASS
+[deny host-fs: git] PASS
+[deny host-fs: ls] PASS
+[deny tool: Read] PASS
+[deny tool: Write] PASS
+[deny tool: Edit] PASS
+[deny tool: Glob] PASS
+[deny tool: Grep] PASS
+[deny tool: WebFetch] PASS
+[deny tool: Task] PASS
+[deny metachar: 'ls; docker exec g'] PASS
+[deny metachar: 'ls && cat /etc/pa'] PASS
+[deny metachar: 'ls | tee /tmp/x'] PASS
+[deny metachar: 'read $(echo NONCE'] PASS
+[deny metachar: 'read `echo NONCE.'] PASS
+[deny metachar: 'ls > /tmp/out'] PASS
+[deny metachar: 'read NONCE.txt\ndo'] PASS
+[deny arg: '../../etc/pass'] PASS
+[deny arg: '..'] PASS
+[deny arg: '.'] PASS
+[deny arg: 'aaaaaaaaaaaaaa'] PASS
+[deny arg: 'NONCE.txt extr'] PASS
+[deny arg: ''] PASS
+[deny verb: sh] PASS
+[deny verb: exec] PASS
+[deny verb: eval] PASS
+[deny verb: write] PASS
+[deny verb: LS] PASS
+[deny verb: read2] PASS
+[allow: backslash adapter path (Windows regression)] PASS
+[deny lookalike adapter path] PASS
+[deny when GATE2_ADAPTER unset (fail-closed)] PASS
+[deny when the sanctioned adapter does not exist] PASS
+[policy loader rejects: not JSON] PASS
+[policy loader rejects: unanchored pattern] PASS
+[policy loader rejects: unknown top-level key] PASS
+[policy loader rejects: unknown arg key] PASS
+[policy loader rejects: bad regex] PASS
+[policy loader rejects: no policy_id] PASS
+[policy loader rejects: illegal verb name] PASS
+[policy loader rejects: missing file] PASS
+[canary policy: write with base64 content is admitted] PASS
+[canary policy denies: traversal] PASS
+[canary policy denies: git directory] PASS
+[canary policy denies: missing content argument] PASS
+[canary policy denies: non-base64 content] PASS
+[canary policy denies: absolute path] PASS
+[canary policy denies: embedded traversal] PASS
+[canary policy denies: unmapped verb] PASS
+[canary policy denies: argument to a no-arg verb] PASS
+[deny: exit 0 so the decision JSON is honoured] PASS
+[deny: decision JSON says deny] PASS
+[allow: exit 0] PASS
+[allow: decision JSON says allow] PASS
+[transcript has one event per decision] PASS
+[transcript keys every event by the harness tool_use_id] PASS
+[transcript records the decision] PASS
+[transcript records run_id and request_id] PASS
+[transcript stores a command digest] PASS
+[transcript stamps the policy in force] PASS
+[no tool_use_id: blocks with exit 2] PASS
+[no tool_use_id: prints no JSON decision] PASS
+[no tool_use_id: writes no transcript event] PASS
+[unwritable transcript: blocks with exit 2] PASS
+[unwritable transcript: no allow JSON on stdout] PASS
+[unwritable transcript: says why on stderr] PASS
+[no GATE2_POLICY: blocks with exit 2] PASS
+[malformed policy: blocks with exit 2] PASS
+[payload without tool_use_id or tool_name: blocks] PASS
+[post hook: exits 0] PASS
+[post hook: carries the same tool_use_id] PASS
+[post hook: event is post_tool_use] PASS
+[post hook: stdout digest uses the shared normalisation] PASS
+[post hook: records response keys, not the response] PASS
+[failure hook: exits 0] PASS
+[failure hook: event is post_tool_use_failure] PASS
+[failure hook: same tool_use_id, error recorded as a digest] PASS
+[post hook: reports an unwritable transcript instead of exiting 0] PASS
+[adapter and post hook normalise stdout identically] PASS
+[adapter and post hook digest stdout identically] PASS
+---
+88 checks: ALL PASSED
