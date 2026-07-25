@@ -1,0 +1,45 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "docker build -t gate2-runtime:pinned .; docker run --rm --network none --read-only --tmpfs /tmp --tmpfs /work:uid=65532,gid=65532 --cap-drop ALL --security-opt no-new-privileges gate2-runtime:pinned <pin + isolation + synthetic-validator probes>; python test_redaction_runner.py",
+  "exit_code": 0,
+  "started_at": "2026-07-25T02:58:48Z",
+  "finished_at": "2026-07-25T02:58:48Z",
+  "runner": "claude-code-gate2-runtime-image-20260725",
+  "linked_commit": "78f362491aedd222e03ef4d2757cdf68e7c4b78a",
+  "output_artifacts": [
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/Dockerfile",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/requirements.lock.txt",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/RUN-RECIPE.md",
+    "artifacts/experiments/prepush-bugfix-20260724/redaction_runner.py",
+    "artifacts/experiments/prepush-bugfix-20260724/test_redaction_runner.py"
+  ],
+  "image": {
+    "tag": "gate2-runtime:pinned",
+    "digest": "sha256:e6df7283938a5c203910524083075843635d2d39ac42fcaa84c7e76cd0b5f168",
+    "base": "python:3.12-slim-bookworm",
+    "shellcheck_tarball_sha256": "6c881ab0698e4e6ea235245f22832860544f17ba386442fe7e9d629f8cbedf87",
+    "pip_require_hashes": true,
+    "arm_packets_baked_in": false
+  },
+  "per_item_results": {
+    "pins_verified_in_container": "PASS (shellcheck 0.10.0, ruff 0.6.9, mypy 1.11.2)",
+    "non_root": "PASS (uid=65532 gid=65532)",
+    "read_only_rootfs": "PASS (write to / refused)",
+    "writable_isolated_workspace": "PASS (tmpfs with uid/gid; bare tmpfs was root-owned - fixed in recipe)",
+    "framework_repo_unreachable": "PASS",
+    "docker_socket_unreachable": "PASS",
+    "network_blocked": "PASS",
+    "synthetic_validator_run": "PASS (all three exit 0 on a throwaway repo)",
+    "existing_containers_untouched": "PASS (12 before and after)",
+    "verifier_warnings_closed": "PASS (non-object JSON -> exit 2 no traceback; --contract digest binding; 21 cases green)"
+  },
+  "cannot_claim": [
+    "that the full Gate 2 environment exists: no producer or scorer contexts, no out-of-band model control plane",
+    "that the real sanitized repo was exercised in the image (a throwaway synthetic repo was used)",
+    "that a CLI agent can run inside this container as-is: --network none also cuts the model API, so an out-of-band model channel is required",
+    "that any arm has run, that scoring happened, or that the Bug Fix Skill is effective",
+    "that hostile coverage is exhaustive (only tested classes are proven closed)",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
