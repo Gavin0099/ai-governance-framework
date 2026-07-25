@@ -37,10 +37,12 @@ docker run --rm --network none --read-only \
 Two defects found by preflight, both now encoded above / below:
 - `/work` **must** carry `uid=65532,gid=65532`; a bare `--tmpfs /work` is
   root-owned and the non-root user cannot write to it.
-- With `--read-only`, **ruff must be run with `--no-cache`** (or `--cache-dir`
-  pointed at a writable tmpfs). Its default `.ruff_cache` lands in the read-only
-  mount and ruff aborts with "Failed to initialize cache", which would otherwise
-  be mistaken for a validator result.
+- **ruff must be run with `--no-cache`** (or `--cache-dir` on a writable tmpfs)
+  whenever its cache target would land on a read-only filesystem — the default
+  `.ruff_cache` sits beside the scanned tree, so a read-only source mount makes
+  ruff exit 2 with "Failed to initialize cache". That abort is not a validator
+  result and must never be recorded as one. (It is the cache location, not
+  `--read-only` per se, that triggers it.)
 
 ## Synthetic preflight results (this image, these flags)
 

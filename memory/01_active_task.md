@@ -85,6 +85,11 @@
   `core.autocrlf=false` to reproduce tree `36c346fa…`. Gate 2 remains at 0/4
   arms until a narrow correction is owner-re-signed and a managed answer-blind
   runner exists.
+  The follow-up amendment-v3 review also returned **CHANGES_REQUESTED**: v3
+  requests owner confirmation of replacement packet hashes before those exact
+  artifacts/hashes exist and proposes rewriting signed amendment v2 in place.
+  Prepare versioned candidate packets and an append-only old-to-new hash map
+  before requesting re-sign; do not start Gate 2.
 
 - **P1-F is closed as advisory.** The owner decided at `ba50b0f4` not to add a
   current-diff blocker. Reopen only after a natural post-Option-B

@@ -273,6 +273,24 @@ def main() -> int:
         results.append(("produce_mode_fail_closed_on_bad_inputs",
                         "PASS" if all(oks) else "FAIL"))
 
+    # WARNING FIX 4: LEGAL but non-object JSON (array / scalar / null) as
+    # --contract or --receipt must also exit 2 without a traceback.
+    with tempfile.TemporaryDirectory() as d:
+        good_r = os.path.join(d, "r.json"); open(good_r, "w").write(json.dumps(receipt_obj))
+        oks = []
+        for i, blob in enumerate(("[]", "42", '"s"', "null")):
+            p = os.path.join(d, f"nonobj{i}.json"); open(p, "w").write(blob)
+            c1 = cli("--contract", p, "--raw", wpath(d, VALID),
+                     "--out", os.path.join(d, f"oa{i}.json"),
+                     "--receipt", good_r, "--receipt-out", os.path.join(d, f"ra{i}.json"))
+            c2 = cli("--contract", CONTRACT, "--raw", wpath(d, VALID),
+                     "--out", os.path.join(d, f"ob{i}.json"),
+                     "--receipt", p, "--receipt-out", os.path.join(d, f"rb{i}.json"))
+            oks.append(c1.returncode == 2 and "Traceback" not in c1.stderr
+                       and c2.returncode == 2 and "Traceback" not in c2.stderr)
+        results.append(("produce_mode_rejects_non_object_json",
+                        "PASS" if all(oks) else "FAIL"))
+
     for name, r in results:
         print(f"[{name}] {r}")
     return 0 if all(r.startswith("PASS") for _, r in results) else 1

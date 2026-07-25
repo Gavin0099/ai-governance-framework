@@ -1,0 +1,41 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "review commits ad3b56f1 and edfe7509; verify frozen-file zero diff and SHA256; run 22-case redaction suite and py_compile; reproduce CRLF tree-hash coupling and ShellCheck SC1017; reproduce Ruff read-only cache behavior; probe produce mode with valid non-object JSON; validate receipts and governance drift",
+  "exit_code": 0,
+  "started_at": "2026-07-25T03:35:00Z",
+  "finished_at": "2026-07-25T03:47:35Z",
+  "runner": "codex-gate2-amendment-v3-review-20260725",
+  "linked_commit": "edfe75097b171a039a269f79876b58dbb882c83c",
+  "output_artifacts": [
+    "memory/04_review_log.md",
+    "memory/01_active_task.md"
+  ],
+  "review": {
+    "verdict": "CHANGES_REQUESTED",
+    "risk": "medium",
+    "blocking_findings": 2,
+    "warnings": 2
+  },
+  "per_item_results": {
+    "frozen_files_zero_diff": "PASS",
+    "frozen_hashes": "PASS (validator pins 6ea4b322..., expectation dcff3d2d..., contract e8945c4b...)",
+    "runner_suite": "PASS (22 cases)",
+    "python_compile": "PASS",
+    "crlf_coupling": "PASS reproduced (tree 36c346fa..., 87 CR bytes, ShellCheck 88 SC1017 occurrences)",
+    "ruff_readonly_cache": "PASS reproduced (read-only cache target exit 2; --no-cache returns I001/E501 exit 1)",
+    "produce_non_object_json": "FAIL clean-rejection expectation (AttributeError traceback, exit 1)",
+    "replacement_artifacts_before_resign": "FAIL (new packet bytes and hashes do not exist)",
+    "append_only_authority": "FAIL (v3 instructs re-recording hashes in signed v2)",
+    "receipt_validation": "PASS (both reviewed receipts structurally VALID)",
+    "governance_drift": "PASS (ok=true, severity=ok)",
+    "gate2_arm_execution": "NOT RUN"
+  },
+  "cannot_claim": [
+    "that amendment v3 is ready for owner re-sign",
+    "that replacement frozen packet bytes or hashes have been reviewed",
+    "that amendment v2 may be rewritten after signature",
+    "that produce mode cleanly rejects every non-object JSON input",
+    "that Gate 2 may start or that any arm has run"
+  ]
+}

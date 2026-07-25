@@ -37,10 +37,12 @@ def sha256_hex(b: bytes) -> str:
 CONTRACT_ID = "gate2-scorer-handoff.v2"
 
 
-def validate_contract(contract: dict) -> None:
+def validate_contract(contract) -> None:
     """Parse-level validity only. Governance authorization (owner-re-signed
     frozen=true) is a SEPARATE gate: a contract may be parse-valid yet not yet
     Gate-2-authorized. main() prints a notice when frozen is not true."""
+    if not isinstance(contract, dict):
+        raise FormatError("contract must be a JSON object")
     if contract.get("contract") != CONTRACT_ID:
         raise FormatError(f"contract id != {CONTRACT_ID}")
     if not isinstance(contract.get("frozen"), bool):
@@ -267,6 +269,8 @@ def main() -> int:
         validate_contract(contract)
         packet = run(a.contract, a.raw)
         receipt = json.loads(open(a.receipt, "rb").read())
+        if not isinstance(receipt, dict):
+            raise FormatError("producer receipt must be a JSON object")
         drop = contract["redaction"].get("receipt_field_drop", ["arm"])
         anon_receipt = anonymize_receipt(receipt, contract["redaction"]["literal_map"], drop)
         for f in drop:

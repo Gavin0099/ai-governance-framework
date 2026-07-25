@@ -47,30 +47,63 @@ then emits **80+ spurious `SC1017`** errors. Tree-hash verification alone does
 not protect Arm D. Fixed in the sanitized-baseline manifest by pinning
 `core.autocrlf=false` and adding a mandatory LF-only worktree check.
 
-**B4 [WARNING, found by this session] `--read-only` breaks ruff's default cache.**
-Ruff aborts with "Failed to initialize cache" because `.ruff_cache` targets the
-read-only mount. That abort is *not* a validator result and must not be recorded
+**B4 [WARNING, found by this session] ruff aborts when its cache target sits on a
+read-only filesystem.** Precisely: not every `--read-only` run fails, only one
+where `.ruff_cache` resolves onto the read-only mount (the default, since the
+cache is written beside the scanned tree). Ruff then exits 2 with "Failed to
+initialize cache". That abort is *not* a validator result and must not be recorded
 as one. Fixed in RUN-RECIPE by mandating `--no-cache` (or a tmpfs cache dir).
 
 **B5 [WARNING, from review] Mutable image tag.** Dispatch must use the immutable
 image ID `sha256:e6df7283938a5c203910524083075843635d2d39ac42fcaa84c7e76cd0b5f168`
 (linux/amd64), recorded identically for all four arms. Fixed in RUN-RECIPE.
 
-## C. Required corrections to FROZEN packets (require re-sign)
+## C. Candidate replacement packets — EXACT BYTES NOW EXIST FOR REVIEW
 
-1. **`validator-expectation-DESIGNER-ONLY.md`** — replace "Expected signal: NULL"
-   with the measured baseline: ShellCheck SC1090; Ruff I001 + E501 under the
-   frozen config; mypy clean. Restate the `D−C` expectation as *"validator
-   feedback exists but is unrelated to the defect"*, so a null effect is
-   interpreted as "unrelated findings did not help", not "no findings existed".
-2. **`validator-pins.md` (producer-safe)** — make the commands actually carry the
-   frozen config (explicit flags, since the packet must stay a single file), and
-   add `--no-cache`. Both packet sha256 values change and must be re-recorded in
-   amendment v2 Section A/B and the preflight manifest.
+A prior draft of this section asked the owner to confirm hashes that did not yet
+exist, and proposed rewriting the signed amendment v2 in place. Both were wrong
+and are withdrawn. Corrected procedure: the replacements exist first as
+**versioned candidate files**, their exact sha256 are recorded below, they are
+probed, and only then does the owner re-sign **those exact bytes**.
 
-Because these are frozen, experiment-defining artifacts, they are **not edited by
-this document**. They change only after owner re-sign, in one slice, with the new
-hashes recorded.
+### C1. Old → new map (append-only; amendment v2 is NEVER edited)
+
+| Role | Frozen v1 (stays byte-stable) | v1 sha256 | Candidate v2 | v2 sha256 |
+|---|---|---|---|---|
+| Producer-safe pins | `validator-pins.md` | `6ea4b3226a3f54dce265ad27a67209b9d803b27d690cc4d899d20fff9a7f2d5f` | `candidate/validator-pins-v2.md` | `877896c7672b1f47383e19ab00a38049344634c12c328a205a1651c6da4bf46d` |
+| Designer-only expectation | `validator-expectation-DESIGNER-ONLY.md` | `dcff3d2d0d3f02f4ef57283718c61b5fe890e54b109b90be05b68d7a25fb52c6` | `candidate/validator-expectation-DESIGNER-ONLY-v2.md` | `1678e66382a6fafad3ac805d6957a623478542d33c0d80eece6e690a371645c3` |
+| Scorer contract | `scorer-handoff-contract.json` | `e8945c4b7eee256c96e6c7f21beef02f885b9f6c7caf6b2b65197088bcd5226a` | **unchanged** | — |
+
+**Superseded v2 fields (recorded here, not rewritten there):** amendment v2
+Section A's producer-file allowlist row for `validator-pins.md` and Section B's
+designer-only row are superseded by the v2 rows above. Amendment v2 keeps its
+original bytes and hashes so it stays possible to know exactly what the owner
+signed on 2026-07-24. On re-sign, the canonical producer packet path becomes
+`candidate/validator-pins-v2.md` and the designer-only path becomes
+`candidate/validator-expectation-DESIGNER-ONLY-v2.md`.
+
+### C2. What the candidates change
+
+- **pins v2**: every frozen setting is now carried explicitly on the command line
+  (so the command *is* the config, closing B2), plus `--no-cache` /
+  `--no-incremental` so a cache-init failure can never be mistaken for a result.
+- **expectation v2**: replaces "Expected signal: NULL" with the measured baseline
+  and restates `D−C` ≈ 0 as *"validator feedback exists but is unrelated to the
+  defect"*, adds that Arm D may do **worse** by spending budget on the unrelated
+  findings, and records the LF-clean precondition.
+
+### C3. Scoped probe of the candidate commands (verbatim, in image `sha256:e6df7283…`)
+
+Run against the LF-clean sanitized baseline (tree `36c346fa…`, verified LF-only):
+
+| Candidate v2 command | Measured |
+|---|---|
+| `shellcheck --shell=bash --severity=style scripts/hooks/pre-push` | only `SC1090`, exit 0 |
+| `ruff check --no-cache --line-length 100 --target-version py312 --select E,F,W,I,B governance_tools/version_bump_guard.py` | `I001` (line 6), `E501` (line 125, 104>100), "Found 2 errors", exit 1 |
+| `mypy --no-incremental --python-version 3.12 --warn-unused-ignores --warn-return-any --no-implicit-optional governance_tools/version_bump_guard.py` | "Success: no issues found in 1 source file" |
+
+These match `expectation v2` exactly, so the candidate pair is internally
+consistent and reproducible before any signature.
 
 ## D. Why Gate 2 must not start first
 
@@ -80,13 +113,27 @@ errors) would differ from what was pre-registered (silence). Per program Section
 that is an INVALID run — excluded from comparison, not merely lower-scored. The
 cheapest correct action is to re-sign this amendment first.
 
-## E. Owner re-sign required
+## E. Owner re-sign required — signing EXACT existing bytes
 
-Gate 2 stays blocked until the owner confirms:
-1. The corrected Arm D expected signal (C1).
-2. The corrected validator commands + new packet hashes (C2).
-3. The hermetic export + LF check, immutable image ID, and ruff `--no-cache`
-   (already applied to the non-frozen manifest/recipe).
+The candidate files exist and are probed, so the owner can now re-sign concrete
+artifacts rather than a promise. Gate 2 stays blocked until the owner confirms:
+
+1. `candidate/validator-pins-v2.md`, sha256
+   `877896c7672b1f47383e19ab00a38049344634c12c328a205a1651c6da4bf46d`
+   — becomes the canonical producer-safe pins packet.
+2. `candidate/validator-expectation-DESIGNER-ONLY-v2.md`, sha256
+   `1678e66382a6fafad3ac805d6957a623478542d33c0d80eece6e690a371645c3`
+   — becomes the canonical designer-only expectation, replacing "NULL" with the
+   measured SC1090 / I001+E501 / clean-mypy baseline.
+3. The C1 old→new map, with amendment v2 left **byte-stable** (its rows are
+   superseded by this document, never rewritten in place).
+4. The already-applied non-frozen fixes: hermetic export pinning
+   `core.autocrlf=false` plus the LF-only worktree check, the immutable image ID,
+   and ruff `--no-cache`.
+
+On re-sign, one slice promotes the candidates to canonical (updating only the
+preflight manifest's pointers and this amendment's status), recomputes nothing
+— the hashes above are already final — and re-runs the image preflight.
 
 ## F. Cannot claim
 

@@ -2292,3 +2292,144 @@ flag, immutable image dispatch, and produce-mode JSON rejection. Re-sign the
 changed frozen hashes/expectation, rebuild and preflight the image on the real
 sanitized tree, then issue a new explicit Gate 2 start command.
 
+## 2026-07-25 - Gate 1 Amendment v3 Pre-Sign Review
+
+### Review Inputs Checked
+- `governance/REVIEW_CRITERIA.md`
+- `governance/AGENT.md`
+- `memory/03_knowledge_base.md`
+- `memory/04_review_log.md`
+- commits `ad3b56f1` and `edfe7509`
+- amendment v3, amendment v2, frozen validator packets and scorer contract,
+  sanitized-baseline manifest, runtime run recipe, redaction runner/tests,
+  both review receipts, and current memory/active-task records
+
+### Decision Summary
+**Verdict**: CHANGES_REQUESTED
+**Risk Level**: Medium
+
+The measured validator and CRLF findings are real and independently reproduced.
+The decision not to start Gate 2 is correct. Amendment v3 is not ready for owner
+re-sign, however, because it asks the owner to confirm new packet hashes before
+the proposed packet bytes or hashes exist, and it directs the implementation
+slice to edit the already-signed amendment v2 in place.
+
+### Governance Audit
+- Architecture: no hook, runtime, CI, schema, gate, or enforcement behavior
+  changed. The managed answer-blind model/tool runner remains NOT PRESENT.
+- Native Safety: N/A.
+- Test Integrity: the 22-case runner suite is green; the frozen packet zero-diff
+  claim and three current SHA256 values were independently verified. A valid
+  non-object JSON contract still exposes an uncovered produce-mode traceback.
+- Thread Safety: N/A.
+- Baseline Status: frozen tree `36c346fa...` and CRLF coupling were independently
+  reproduced; the proposed LF check is directionally correct.
+
+### Technical Findings
+
+1. [BLOCKING] Owner re-sign is requested before the exact replacement artifacts
+   and hashes exist.
+   - Location:
+     `docs/governance/gate1-prereg-prepush-amendment-v3-20260725.md:59-73`,
+     `docs/governance/gate1-prereg-prepush-amendment-v3-20260725.md:83-88`.
+   - Evidence: the amendment says both packet hashes will change only after
+     owner re-sign, while Section E asks the owner to confirm the corrected
+     commands and new hashes now. Current hashes remain `6ea4b322...` and
+     `dcff3d2d...`; no candidate replacement hashes are present.
+   - Rule Reference: Engineering Skill Program Gate 1 exact freeze requirement;
+     `governance/REVIEW_CRITERIA.md` predictability and evidence binding.
+   - Status: open.
+   - Disposition: create versioned pending candidate packets first, record their
+     exact bytes/commands and SHA256 values in v3, run scoped probes, then ask
+     the owner to re-sign those exact artifacts. Approval must follow the
+     concrete freeze, not authorize unspecified future bytes.
+
+2. [BLOCKING] Amendment v3 proposes rewriting signed amendment v2 instead of
+   superseding its affected fields append-only.
+   - Location:
+     `docs/governance/gate1-prereg-prepush-amendment-v3-20260725.md:68-69`.
+   - Evidence: v3 says the new hashes must be re-recorded in amendment v2
+     Section A/B. Amendment v2 is the owner-signed historical authority and
+     should remain byte-stable; changing it after signature would erase which
+     hashes were actually signed.
+   - Rule Reference: the repository's correction-forward/append-only evidence
+     practice and Gate 1 freeze semantics.
+   - Status: open.
+   - Disposition: leave v2 unchanged. Let v3 explicitly supersede only the two
+     affected v2 hash/command/expectation fields and contain an old-to-new hash
+     map plus the new canonical pointers.
+
+3. [WARNING] Produce mode still throws on valid JSON values that are not objects.
+   - Location:
+     `artifacts/experiments/prepush-bugfix-20260724/redaction_runner.py:266-277`,
+     `artifacts/experiments/prepush-bugfix-20260724/test_redaction_runner.py:251-272`.
+   - Evidence: using the valid JSON array
+     `tests/fixtures/external_observation_corpus.json` as `--contract` raises
+     `AttributeError: 'list' object has no attribute 'get'` with exit 1. The new
+     test covers malformed JSON and missing files, not non-object contract or
+     receipt payloads.
+   - Rule Reference: frozen handoff fail-closed principle and
+     `governance/REVIEW_CRITERIA.md` failure-path coverage.
+   - Status: open.
+   - Disposition: add explicit dict checks for produce-mode contract/receipt
+     and regression cases for array/scalar/null payloads. Keep the claim scoped
+     to the tested malformed/unreadable paths until then.
+
+4. [WARNING] Ruff cache failure wording is broader than the reproduced trigger.
+   - Location:
+     `docs/governance/gate1-prereg-prepush-amendment-v3-20260725.md:49-53`,
+     `artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/RUN-RECIPE.md:37-40`.
+   - Evidence: Ruff aborts with exit 2 when its working directory/cache target is
+     the read-only repo mount; with the documented writable `/work` tmpfs as the
+     working directory it returns the real I001/E501 lint findings even without
+     `--no-cache`. `--no-cache` still removes this environmental ambiguity and is
+     an appropriate frozen command correction.
+   - Rule Reference: `governance/REVIEW_CRITERIA.md` evidence precision rule.
+   - Status: open.
+   - Disposition: narrow the explanation to a read-only cache target rather than
+     `--read-only` generally; retain `--no-cache`.
+
+### Resolved / Confirmed In Reviewed Diff
+- Sanitized export now pins `core.autocrlf=false` and requires LF-only working
+  files. Independent original-procedure reproduction produced frozen tree
+  `36c346fa...` while the worktree retained 87 CR bytes and ShellCheck emitted
+  88 `SC1017` occurrences, confirming the coupled failure.
+- Runtime dispatch now names immutable image ID `sha256:e6df7283...`,
+  `linux/amd64`.
+- Malformed/unreadable produce inputs covered by the new test reject cleanly;
+  the runner suite is 22/22 green.
+- Frozen `validator-pins.md`, `validator-expectation-DESIGNER-ONLY.md`, and
+  `scorer-handoff-contract.json` have zero diff from `51b50a58`; current hashes
+  remain `6ea4b322...`, `dcff3d2d...`, and `e8945c4b...`.
+- Both evidence receipts validate structurally; governance drift checker reports
+  `severity=ok`.
+
+### Knowledge Base Alignment
+- Anti-patterns checked: signing abstractions before exact artifacts exist,
+  rewriting historical authority, ambient-host-state binding, paper verification
+  treated as runtime proof, and semantic overclaim.
+- Regression notes checked: collision-driven findings, append-only correction,
+  receipt evidence boundaries, and representative-condition execution.
+- Result: Conflict Found. The technical corrections are directionally sound,
+  but the proposed signature sequence would not freeze exact treatment inputs.
+
+### Validation Evidence
+- `test_redaction_runner.py` -> 22 cases passed.
+- `py_compile redaction_runner.py test_redaction_runner.py` -> PASS.
+- `git diff --exit-code 51b50a58..HEAD -- <three frozen files>` -> PASS,
+  zero diff.
+- SHA256 recomputation -> `6ea4b322...`, `dcff3d2d...`, `e8945c4b...`.
+- CRLF coupling replay -> tree `36c346fa...`, 87 CR bytes in pre-push,
+  ShellCheck exit 1 with 88 `SC1017` occurrences.
+- Ruff read-only-cache replay -> default cache exit 2; `--no-cache` returns the
+  real two lint findings with exit 1.
+- Produce-mode non-object probe -> traceback / exit 1.
+- `governance_drift_checker --format json` -> `ok=true`, `severity=ok`.
+- Gate 2 arm execution -> NOT RUN.
+
+### Next Recommendation
+Do not re-sign the current v3. Prepare versioned candidate packet files and
+their exact hashes, update v3 append-only to supersede only the affected v2
+fields, close the non-object produce-mode case, then request owner re-sign of
+that exact candidate set.
+
