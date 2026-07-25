@@ -1,0 +1,38 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "review commits e45463f3 and 6779163d; recompute candidate SHA256; verify signed-v2/frozen-artifact zero diff; run 23-case redaction suite and py_compile; run all three candidate commands verbatim in immutable image against LF-clean frozen baseline; validate candidate receipt and governance drift",
+  "exit_code": 0,
+  "started_at": "2026-07-25T06:28:00Z",
+  "finished_at": "2026-07-25T06:36:37Z",
+  "runner": "codex-gate2-candidate-signability-review-20260725",
+  "linked_commit": "6779163d8b82d1e712675e4c97bf59192538f5de",
+  "output_artifacts": [
+    "memory/04_review_log.md",
+    "memory/01_active_task.md"
+  ],
+  "review": {
+    "verdict": "CHANGES_REQUESTED",
+    "risk": "medium",
+    "blocking_findings": 1,
+    "warnings": 0
+  },
+  "per_item_results": {
+    "candidate_hashes": "PASS (pins 877896c7..., expectation 1678e663...)",
+    "signed_v2_and_frozen_artifacts_zero_diff": "PASS",
+    "runner_suite": "PASS (23 cases)",
+    "python_compile": "PASS",
+    "candidate_shellcheck": "FAIL expectation match (only SC1090 as expected, but actual exit 1 versus recorded exit 0)",
+    "candidate_ruff": "PASS expectation match (I001/E501, exit 1)",
+    "candidate_mypy": "PASS expectation match (clean, exit 0)",
+    "candidate_receipt_validation": "PASS structural validity only; receipt's ShellCheck exit value is semantically false",
+    "governance_drift": "PASS (ok=true, severity=ok)",
+    "gate2_arm_execution": "NOT RUN"
+  },
+  "cannot_claim": [
+    "that the current candidate pair is ready for owner re-sign",
+    "that expectation hash 1678e663... describes the actual ShellCheck exit status",
+    "that the candidate probe receipt proves semantic correctness",
+    "that Gate 2 may start or that any arm has run"
+  ]
+}

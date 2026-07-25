@@ -18,11 +18,15 @@ finding. That was a prediction, never measured. Running the pinned validators
 
 ## Measured baseline signal (v2 — this is the frozen expectation)
 
-| Validator | Result on the baseline |
-|---|---|
-| shellcheck 0.10.0 (v2 command) | **1 finding: `SC1090`** — "can't follow non-constant source" at the `. "$PYTHON_LIB"` line. Exit 0 at severity=style. |
-| ruff 0.6.9 (v2 command, config applied) | **2 findings: `I001` (un-sorted imports) + `E501` (line too long)**, exit 1 |
-| mypy 1.11.2 (v2 command) | **clean** — "Success: no issues found" |
+| Validator | Result on the baseline | Exit code |
+|---|---|---|
+| shellcheck 0.10.0 (v2 command) | **1 finding: `SC1090`** — "can't follow non-constant source" at the `. "$PYTHON_LIB"` line | **1** |
+| ruff 0.6.9 (v2 command, config applied) | **2 findings: `I001` (un-sorted imports, line 6) + `E501` (line too long, line 125, 104>100)** | **1** |
+| mypy 1.11.2 (v2 command) | **clean** — "Success: no issues found in 1 source file" | **0** |
+
+Exit codes are measured directly (command run to a discarded stream, `$?` read
+immediately), never through a pipe or command substitution — reading `$?` after
+a pipeline yields the last element's status, not the validator's.
 
 None of these findings concerns the actual defect. The validators are therefore
 **noisy, not silent**: Arm D receives real feedback that is entirely unrelated to

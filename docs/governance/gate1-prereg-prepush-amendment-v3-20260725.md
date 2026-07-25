@@ -71,7 +71,7 @@ probed, and only then does the owner re-sign **those exact bytes**.
 | Role | Frozen v1 (stays byte-stable) | v1 sha256 | Candidate v2 | v2 sha256 |
 |---|---|---|---|---|
 | Producer-safe pins | `validator-pins.md` | `6ea4b3226a3f54dce265ad27a67209b9d803b27d690cc4d899d20fff9a7f2d5f` | `candidate/validator-pins-v2.md` | `877896c7672b1f47383e19ab00a38049344634c12c328a205a1651c6da4bf46d` |
-| Designer-only expectation | `validator-expectation-DESIGNER-ONLY.md` | `dcff3d2d0d3f02f4ef57283718c61b5fe890e54b109b90be05b68d7a25fb52c6` | `candidate/validator-expectation-DESIGNER-ONLY-v2.md` | `1678e66382a6fafad3ac805d6957a623478542d33c0d80eece6e690a371645c3` |
+| Designer-only expectation | `validator-expectation-DESIGNER-ONLY.md` | `dcff3d2d0d3f02f4ef57283718c61b5fe890e54b109b90be05b68d7a25fb52c6` | `candidate/validator-expectation-DESIGNER-ONLY-v2.md` | `61e1e52743e78ad9d38bd50e311978f5d49f513d617a48fd9a9b5a0901d02092` |
 | Scorer contract | `scorer-handoff-contract.json` | `e8945c4b7eee256c96e6c7f21beef02f885b9f6c7caf6b2b65197088bcd5226a` | **unchanged** | — |
 
 **Superseded v2 fields (recorded here, not rewritten there):** amendment v2
@@ -98,9 +98,18 @@ Run against the LF-clean sanitized baseline (tree `36c346fa…`, verified LF-onl
 
 | Candidate v2 command | Measured |
 |---|---|
-| `shellcheck --shell=bash --severity=style scripts/hooks/pre-push` | only `SC1090`, exit 0 |
+| `shellcheck --shell=bash --severity=style scripts/hooks/pre-push` | only `SC1090`, **exit 1** |
 | `ruff check --no-cache --line-length 100 --target-version py312 --select E,F,W,I,B governance_tools/version_bump_guard.py` | `I001` (line 6), `E501` (line 125, 104>100), "Found 2 errors", exit 1 |
-| `mypy --no-incremental --python-version 3.12 --warn-unused-ignores --warn-return-any --no-implicit-optional governance_tools/version_bump_guard.py` | "Success: no issues found in 1 source file" |
+| `mypy --no-incremental --python-version 3.12 --warn-unused-ignores --warn-return-any --no-implicit-optional governance_tools/version_bump_guard.py` | "Success: no issues found in 1 source file", exit 0 |
+
+**Exit-code correction (2026-07-25).** An earlier draft of this table and of the
+first expectation candidate recorded shellcheck as **exit 0**. That was wrong: the
+probe read `$?` after a pipeline, so it captured the pipeline's last element, not
+shellcheck. Measured directly (output discarded, `$?` read immediately) the exact
+commands return shellcheck **1**, ruff **1**, mypy **0**. The expectation
+candidate was corrected and re-hashed from `1678e663…` to `61e1e527…`; the
+superseded hash must not be signed. This is the same exit-code-masking class that
+has recurred in this work, so exit codes are now measured without pipes.
 
 These match `expectation v2` exactly, so the candidate pair is internally
 consistent and reproducible before any signature.
@@ -122,7 +131,7 @@ artifacts rather than a promise. Gate 2 stays blocked until the owner confirms:
    `877896c7672b1f47383e19ab00a38049344634c12c328a205a1651c6da4bf46d`
    — becomes the canonical producer-safe pins packet.
 2. `candidate/validator-expectation-DESIGNER-ONLY-v2.md`, sha256
-   `1678e66382a6fafad3ac805d6957a623478542d33c0d80eece6e690a371645c3`
+   `61e1e52743e78ad9d38bd50e311978f5d49f513d617a48fd9a9b5a0901d02092`
    — becomes the canonical designer-only expectation, replacing "NULL" with the
    measured SC1090 / I001+E501 / clean-mypy baseline.
 3. The C1 old→new map, with amendment v2 left **byte-stable** (its rows are

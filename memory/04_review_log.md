@@ -2433,3 +2433,100 @@ their exact hashes, update v3 append-only to supersede only the affected v2
 fields, close the non-object produce-mode case, then request owner re-sign of
 that exact candidate set.
 
+## 2026-07-25 - Gate 1 Amendment v3 Exact-Candidate Signability Review
+
+### Review Inputs Checked
+- `governance/REVIEW_CRITERIA.md`
+- `governance/AGENT.md`
+- `memory/03_knowledge_base.md`
+- `memory/04_review_log.md`
+- commits `e45463f3` and `6779163d`
+- amendment v3, both versioned candidate packets, signed amendment v2, the
+  three existing frozen artifacts, candidate probe receipt, redaction
+  runner/tests, run recipe, and current memory records
+
+### Decision Summary
+**Verdict**: CHANGES_REQUESTED
+**Risk Level**: Medium
+
+The candidate bytes now exist before signature, their recorded hashes match,
+the v3 old-to-new mapping is append-only, the prior frozen authority is
+byte-stable, and the two prior warnings are closed. One blocking mismatch
+remains: the exact candidate ShellCheck command exits 1, while the candidate
+expectation, v3 probe table, and receipt all record exit 0.
+
+### Governance Audit
+- Architecture: no hook, runtime, CI, schema, gate, or enforcement behavior
+  changed. The managed answer-blind runner remains NOT PRESENT.
+- Native Safety: N/A.
+- Test Integrity: candidate hashes and 23 runner cases pass, but the claimed
+  exact-command/expectation match fails on ShellCheck exit status.
+- Thread Safety: N/A.
+- Baseline Status: LF-clean frozen tree `36c346fa...` remains the probed
+  baseline; image ID/platform remain pinned.
+
+### Technical Findings
+
+1. [BLOCKING] ShellCheck finding matches, but the frozen candidate exit status
+   does not.
+   - Location:
+     `artifacts/experiments/prepush-bugfix-20260724/candidate/validator-expectation-DESIGNER-ONLY-v2.md:23`,
+     `docs/governance/gate1-prereg-prepush-amendment-v3-20260725.md:101`,
+     `artifacts/evidence/test-results/receipt-gate2-candidate-packets-20260725.json:22-25`.
+   - Evidence: running the candidate command verbatim in image
+     `sha256:e6df7283...` on the LF-clean frozen baseline produced only SC1090
+     and `shellcheck_exact_rc=1`. Ruff reproduced I001/E501 with exit 1 and
+     mypy reproduced clean with exit 0. The candidate expectation and v3 both
+     say ShellCheck exit 0, while the receipt marks
+     `matches_expectation_v2=true`.
+   - Rule Reference: Engineering Skill Program Gate 1 exact freeze and
+     evidence-consistency requirements; `governance/REVIEW_CRITERIA.md` test
+     integrity.
+   - Status: open.
+   - Disposition: correct ShellCheck to exit 1 in the candidate expectation and
+     v3 probe table, recompute the expectation candidate hash, update v3's
+     old-to-new map and re-sign section, and add a successor correction receipt
+     instead of treating the committed false receipt as valid probe evidence.
+     Re-run the three candidate commands before requesting signature.
+
+### Resolved / Confirmed In Reviewed Diff
+- Candidate hashes recompute exactly:
+  `validator-pins-v2.md=877896c7...`,
+  `validator-expectation-DESIGNER-ONLY-v2.md=1678e663...`.
+- Signed amendment v2 and all three existing frozen artifacts show zero diff
+  from the prior authority.
+- Amendment v3 now supersedes affected v2 fields append-only and does not
+  instruct an in-place v2 rewrite.
+- Produce mode explicitly rejects non-object contract/receipt JSON; runner
+  suite is 23/23 green.
+- Ruff cache wording correctly names a read-only cache target, and
+  `--no-cache` remains in the candidate command.
+- Candidate receipt validates structurally and governance drift checker
+  reports `severity=ok`; neither proves the false ShellCheck exit value true.
+
+### Knowledge Base Alignment
+- Anti-patterns checked: signing before exact bytes, rewriting historical
+  authority, receipt-as-correctness-proof, and command/result mismatch.
+- Regression notes checked: evidence must bind to actual command behavior and
+  receipts do not prove semantic correctness.
+- Result: Conflict Found. Exact bytes exist, but one recorded observable does
+  not match those bytes at execution.
+
+### Validation Evidence
+- SHA256 recomputation -> candidate hashes match v3.
+- Signed-v2/frozen-artifact diff -> zero.
+- `test_redaction_runner.py` -> 23 cases passed.
+- `py_compile` -> PASS.
+- Candidate ShellCheck command -> only SC1090, exit 1.
+- Candidate Ruff command -> I001/E501, exit 1.
+- Candidate mypy command -> clean, exit 0.
+- Candidate receipt structural validation -> VALID.
+- `governance_drift_checker` -> `ok=true`, `severity=ok`.
+- Gate 2 arm execution -> NOT RUN.
+
+### Next Recommendation
+Do not sign hashes `877896c7...` / `1678e663...` as the final pair yet. Correct
+the expectation candidate's ShellCheck exit status, compute its replacement
+hash, correction-forward the probe receipt, rerun the exact commands, and then
+request owner signature on the updated exact pair.
+

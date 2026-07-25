@@ -90,6 +90,11 @@
   artifacts/hashes exist and proposes rewriting signed amendment v2 in place.
   Prepare versioned candidate packets and an append-only old-to-new hash map
   before requesting re-sign; do not start Gate 2.
+  Versioned candidate packets now exist and close those two findings, but the
+  exact-candidate signability review remains **CHANGES_REQUESTED**:
+  ShellCheck's candidate command produces only SC1090 with exit **1**, while
+  expectation v2, v3, and the candidate receipt record exit 0. Correct and
+  re-hash the expectation candidate before owner re-sign.
 
 - **P1-F is closed as advisory.** The owner decided at `ba50b0f4` not to add a
   current-diff blocker. Reopen only after a natural post-Option-B
