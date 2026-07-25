@@ -224,6 +224,33 @@ def main() -> int:
         results.append(("verify_rejects_path_traversal_member",
                         "PASS" if vp.returncode == 2 else "FAIL"))
 
+    # WARNING FIX 1: non-object JSON markers must reject with exit 2, not traceback
+    with tempfile.TemporaryDirectory() as d:
+        oks = []
+        for i, blob in enumerate(("[]", "42", '"str"', "null")):
+            p = os.path.join(d, f"m{i}.json")
+            open(p, "w", newline="\n").write(blob)
+            vp = cli("--verify-handoff", p)
+            oks.append(vp.returncode == 2 and "Traceback" not in vp.stderr)
+        results.append(("verify_rejects_non_object_json",
+                        "PASS" if all(oks) else "FAIL"))
+
+    # WARNING FIX 2: verify --contract must reject a packet built with another contract
+    with tempfile.TemporaryDirectory() as d:
+        rpath = os.path.join(d, "r.json"); open(rpath, "w").write(json.dumps(receipt_obj))
+        pk, rout = os.path.join(d, "pk.json"), os.path.join(d, "ro.json")
+        mk = rout + ".handoff-complete"
+        cp = cli("--contract", CONTRACT, "--raw", wpath(d, VALID),
+                 "--out", pk, "--receipt", rpath, "--receipt-out", rout)
+        good = cli("--verify-handoff", mk, "--contract", CONTRACT).returncode == 0
+        # a different (decoy) contract file must be rejected
+        decoy = os.path.join(d, "decoy-contract.json")
+        c = json.load(open(CONTRACT)); c["_decoy"] = True
+        open(decoy, "w", newline="\n").write(json.dumps(c, indent=2))
+        bad = cli("--verify-handoff", mk, "--contract", decoy).returncode == 2
+        results.append(("verify_contract_digest_binding",
+                        "PASS" if (cp.returncode == 0 and good and bad) else "FAIL"))
+
     for name, r in results:
         print(f"[{name}] {r}")
     return 0 if all(r.startswith("PASS") for _, r in results) else 1

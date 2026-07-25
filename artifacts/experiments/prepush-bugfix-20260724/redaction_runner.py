@@ -144,12 +144,15 @@ def _dump(obj) -> str:
     return json.dumps(obj, indent=2, ensure_ascii=False) + "\n"
 
 
-def verify_handoff(marker_path: str) -> int:
+def verify_handoff(marker_path: str, contract_path: str | None = None) -> int:
     """Scorer's mechanical acceptance: a handoff set is acceptable ONLY if the
-    marker + packet + receipt all exist and the marker's sha256 match the files.
-    Returns 0 (accept) or 2 (reject). Never raises to the caller."""
+    marker + packet + receipt all exist, the marker's sha256 match the files, all
+    three anon_ids agree, and (when --contract is given) the packet was produced
+    with that exact contract. Returns 0 (accept) or 2 (reject); never raises."""
     try:
         marker = json.loads(open(marker_path, "rb").read())
+        if not isinstance(marker, dict):
+            raise FormatError("marker must be a JSON object")
         if marker.get("handoff") != "gate2-scorer-handoff-set.v1":
             raise FormatError("marker is not a gate2-scorer-handoff-set.v1")
         base = os.path.dirname(os.path.abspath(marker_path))
@@ -172,8 +175,16 @@ def verify_handoff(marker_path: str) -> int:
         if sha256_hex(rcp_bytes) != marker["receipt_sha256"]:
             raise FormatError("receipt sha256 mismatch")
         packet, receipt = json.loads(pkt_bytes), json.loads(rcp_bytes)
+        if not isinstance(packet, dict) or not isinstance(receipt, dict):
+            raise FormatError("packet and receipt must be JSON objects")
         if packet.get("schema") != "gate2-redacted-packet.v1":
             raise FormatError("packet is not a gate2-redacted-packet.v1")
+        # when the expected contract is supplied, prove the packet was produced
+        # with THAT redaction map (internal consistency alone is not enough)
+        if contract_path is not None:
+            expected = sha256_hex(open(contract_path, "rb").read())
+            if packet.get("contract_sha256") != expected:
+                raise FormatError("packet contract_sha256 does not match the expected contract")
         # all three anon_ids must agree (the packet's was previously unchecked)
         anon = marker.get("anon_id")
         if not anon:
@@ -208,7 +219,9 @@ def main() -> int:
     ap.add_argument("--receipt-out", help="anonymized receipt output path")
     a = ap.parse_args()
     if a.verify_handoff:
-        return verify_handoff(a.verify_handoff)
+        # --contract is optional in verify mode; when given, the packet's
+        # contract_sha256 must match it exactly.
+        return verify_handoff(a.verify_handoff, a.contract)
     # produce mode: the receipt pair is mandatory (fail-closed): all five required.
     missing = [n for n in ("contract", "raw", "out", "receipt", "receipt_out")
                if getattr(a, n) is None]
