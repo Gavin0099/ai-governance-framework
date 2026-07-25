@@ -67,12 +67,15 @@ This rehearsal exercised only the middle link, with a human where the model and
 its adapter belong. Nothing here shows that a real agent's tool loop can drive
 this container, nor that a managed tool adapter exists for it.
 
-**Remaining bounded validation** (still a mechanism rehearsal, still on a dummy
-repo, still not a Gate 2 arm): a fresh real model session *outside* the sandbox,
-a managed tool adapter that executes *only* inside the `--network none`
-container, capturing (a) the model's tool request, (b) the container execution
-and its output, and (c) a subsequent model response that correctly uses a nonce
-returned by the tool. Must not use a Gate 2 packet and must not count as an arm.
+**Remaining bounded validation — SUBSEQUENTLY DONE 2026-07-25.** A fresh model
+session outside the sandbox plus a managed verb-allowlisted tool adapter
+executing only inside a `--network none` container was rehearsed, capturing the
+model's tool request, the container execution/output, and a model response
+correctly using a nonce that existed only in container tmpfs. Recorded in
+[gate2-runtime/MODEL-CHANNEL-REHEARSAL-20260725.md](../../artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/MODEL-CHANNEL-REHEARSAL-20260725.md),
+including its own claim limits (the "fresh session" was a subagent on the same
+host/harness, and adapter exclusivity is prompt-plus-log, not technically
+enforced). Still a mechanism rehearsal: no Gate 2 packet, not an arm.
 
 ## Operational finding worth keeping — Windows path-conversion trap
 
