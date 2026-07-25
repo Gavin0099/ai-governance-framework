@@ -1,0 +1,45 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "review commits a4080633 and 9006e2e7; recompute both candidate SHA256 values; independently run the three exact validator commands without pipelines in immutable image sha256:e6df7283 against LF-clean tree 36c346fa; run 23-case redaction suite and py_compile; validate successor correction receipt; run governance drift checker; fetch origin and compare HEAD",
+  "exit_code": 0,
+  "started_at": "2026-07-25T06:41:20Z",
+  "finished_at": "2026-07-25T06:48:13Z",
+  "runner": "codex-gate2-corrected-candidate-resignability-review-20260725",
+  "linked_commit": "9006e2e7ea8237ef9e52945ecabcacfd70904200",
+  "output_artifacts": [
+    "memory/04_review_log.md",
+    "memory/01_active_task.md",
+    "memory/03_knowledge_base.md"
+  ],
+  "review": {
+    "verdict": "APPROVED",
+    "risk": "medium",
+    "blocking_findings": 0,
+    "warnings": 0,
+    "scope": "exact candidate bytes are ready for owner re-sign only"
+  },
+  "per_item_results": {
+    "candidate_pins_sha256": "PASS 877896c7672b1f47383e19ab00a38049344634c12c328a205a1651c6da4bf46d",
+    "candidate_expectation_sha256": "PASS 61e1e52743e78ad9d38bd50e311978f5d49f513d617a48fd9a9b5a0901d02092",
+    "frozen_baseline_tree": "PASS 36c346fa951a24cbf914ef04469aac5cb5fd8b86",
+    "shellcheck": "PASS only SC1090, exit 1",
+    "ruff": "PASS I001 and E501, exit 1",
+    "mypy": "PASS clean, exit 0",
+    "signed_v2_and_frozen_artifacts_zero_diff": "PASS",
+    "append_only_correction": "PASS original false receipt unchanged; successor correction receipt added",
+    "runner_suite": "PASS 23 cases",
+    "python_compile": "PASS",
+    "successor_receipt_validation": "PASS VALID",
+    "governance_drift": "PASS ok=true severity=ok",
+    "remote_sync": "PASS HEAD equals origin/main at 9006e2e7 after fetch",
+    "gate2_arm_execution": "NOT RUN"
+  },
+  "cannot_claim": [
+    "that owner re-sign has occurred",
+    "that either candidate is canonical",
+    "that the post-sign promotion slice or image preflight has run",
+    "that Gate 2 may start or that any producer or scorer arm has run",
+    "that Skill or validator treatment effectiveness has been demonstrated"
+  ]
+}

@@ -2530,3 +2530,76 @@ the expectation candidate's ShellCheck exit status, compute its replacement
 hash, correction-forward the probe receipt, rerun the exact commands, and then
 request owner signature on the updated exact pair.
 
+## 2026-07-25 - Gate 2 Corrected Candidate Re-signability Review
+
+### Review Inputs Checked
+- `governance/REVIEW_CRITERIA.md`
+- `governance/AGENT.md`
+- `governance/RESPONSE_ENVELOPE_CONTRACT.md`
+- `memory/03_knowledge_base.md`
+- prior Gate 2 entries in `memory/04_review_log.md`
+- commits `a4080633` and `9006e2e7`
+- corrected expectation candidate, amendment v3, original probe receipt, and
+  successor correction receipt
+
+### Decision Summary
+- Verdict: APPROVED
+- Risk level: Medium
+- Scope: exact-byte readiness of the two corrected candidate packets for owner
+  re-sign; this is not approval to canonicalize or start Gate 2.
+
+### Governance Audit
+- Architecture: N/A; no product or runtime architecture changed.
+- Native safety: N/A.
+- Test integrity: PASS. The exact validator commands were rerun independently
+  without pipes or command substitution; exit codes are `1/1/0`.
+- Thread safety: N/A.
+- Baseline status: Stable for this scoped probe. The mounted LF-clean sanitized
+  repo has tree `36c346fa951a24cbf914ef04469aac5cb5fd8b86`.
+- Dirty-worktree hygiene: clean at review start; author scope is committed and
+  pushed at `9006e2e7`.
+
+### Technical Findings
+- No open blocking findings.
+- Prior blocking finding, candidate ShellCheck exit mismatch:
+  - Status: resolved.
+  - Location:
+    `artifacts/experiments/prepush-bugfix-20260724/candidate/validator-expectation-DESIGNER-ONLY-v2.md`
+    and `docs/governance/gate1-prereg-prepush-amendment-v3-20260725.md`.
+  - Evidence: independent immutable-image probe returned ShellCheck `1`, Ruff
+    `1`, mypy `0`; corrected expectation SHA256 recomputes to
+    `61e1e52743e78ad9d38bd50e311978f5d49f513d617a48fd9a9b5a0901d02092`.
+  - Rule reference: `governance/REVIEW_CRITERIA.md` evidence integrity and
+    append-only correction discipline.
+  - Disposition: the false `1678e663...` hash is explicitly superseded, the
+    original receipt is unchanged, and
+    `receipt-gate2-exitcode-correction-20260725.json` corrects it forward.
+
+### Confirmed Evidence
+- Candidate pins SHA256:
+  `877896c7672b1f47383e19ab00a38049344634c12c328a205a1651c6da4bf46d`.
+- Corrected expectation SHA256:
+  `61e1e52743e78ad9d38bd50e311978f5d49f513d617a48fd9a9b5a0901d02092`.
+- Exact image probe: ShellCheck only SC1090 / exit 1; Ruff I001+E501 / exit 1;
+  mypy clean / exit 0.
+- Amendment v2 and the three frozen packets remain byte-stable.
+- Redaction runner suite: 23/23 PASS; `py_compile` PASS.
+- Successor correction receipt: structurally VALID.
+- Governance drift: `ok=true`, `severity=ok`.
+- `HEAD == origin/main == 9006e2e7` after `git fetch origin`.
+- Gate 2 arm execution: NOT RUN.
+
+### Knowledge Base Alignment
+- Anti-patterns checked: pipeline exit-code masking, signing before exact bytes,
+  rewriting historical evidence, and receipt-as-semantic-proof.
+- Regression notes checked: command evidence must bind the directly measured
+  process status.
+- Result: Pass. The masking defect is corrected and recorded as a recurring
+  anti-pattern; no contradiction remains in the candidate pair.
+
+### Next Recommendation
+The owner may re-sign exactly the two hashes recorded above. After re-signing,
+canonical promotion and image preflight remain a separate bounded slice. Gate 2
+must remain stopped until the independent producer/scorer and out-of-band model
+resources exist and a later explicit start command is given.
+

@@ -138,6 +138,16 @@
 - For this repository, each task should be completed, reviewed, committed, and pushed before starting the next task.
 - Task sequencing should favor small, isolated changesets so integration progress remains easy to audit and rollback.
 
+## Exit-Code Masking Anti-Pattern
+
+- Never infer a validator's exit code from `$?` after a pipeline or command
+  substitution; that status may belong to `grep`, `head`, or another wrapper.
+- For evidence-bearing probes, run the validator directly, capture its status
+  immediately, and record stdout/stderr separately if filtering is needed.
+- This became a durable regression pattern after repeated false probe claims in
+  the Gate 2 preflight work. A structurally valid receipt does not repair a
+  masked or misattributed process status.
+
 ## Current Highest-Value Gaps
 
 - The main cross-repo gap is now real facts intake, not validator execution.

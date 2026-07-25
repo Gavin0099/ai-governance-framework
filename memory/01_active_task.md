@@ -343,6 +343,9 @@
   accurate Claim-class release notes.
 - Historical `missing_canonical_memory` / `unbound_memory` debt remains warning
   evidence unless a scoped cleanup is approved.
+- Gate 2 corrected candidate pair is reviewer-approved for owner re-sign at
+  pins `877896c7...` plus expectation `61e1e527...`; canonical promotion and
+  Gate 2 execution remain separate and not authorized.
 
 ## Cannot Claim From This Surface
 
