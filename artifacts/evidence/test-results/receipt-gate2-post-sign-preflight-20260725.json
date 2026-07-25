@@ -1,0 +1,51 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "docker image inspect gate2-runtime:pinned; git -c core.autocrlf=false archive+init rebuild of baseline; sha256sum candidate/*.md; docker run (image sha256:e6df7283, --network none --read-only, uid 65532) isolation probes + exact validator commands with $? read directly (no pipe); docker ps -q count before/after",
+  "exit_code": 0,
+  "started_at": "2026-07-25T07:16:34Z",
+  "finished_at": "2026-07-25T07:16:34Z",
+  "runner": "claude-code-gate2-post-sign-preflight-20260725",
+  "linked_commit": "6b303ade4aeb18b973af401b79ddf55a464f4e54",
+  "output_artifacts": [
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/POST-SIGN-PREFLIGHT-20260725.md",
+    "docs/governance/gate1-prereg-prepush-amendment-v3-20260725.md"
+  ],
+  "results": {
+    "image_digest_unchanged": "sha256:e6df7283938a5c203910524083075843635d2d39ac42fcaa84c7e76cd0b5f168",
+    "baseline_tree_reproduced": "36c346fa951a24cbf914ef04469aac5cb5fd8b86",
+    "lf_only_check": "PASS, no CRLF found",
+    "candidate_pins_hash_matches_signed": true,
+    "candidate_expectation_hash_matches_signed": true,
+    "isolation_host_repo_unreachable": true,
+    "isolation_docker_socket_unreachable": true,
+    "isolation_network_blocked": true,
+    "isolation_rootfs_read_only": true,
+    "isolation_workspace_writable": true,
+    "pre_existing_containers_untouched": "12 before and after",
+    "shellcheck_version": "0.10.0",
+    "ruff_version": "0.6.9",
+    "mypy_version": "1.11.2",
+    "shellcheck_exit_direct_measurement": 1,
+    "shellcheck_findings": "SC1090 only",
+    "ruff_exit_direct_measurement": 1,
+    "ruff_findings": "I001, E501",
+    "mypy_exit_direct_measurement": 0,
+    "mypy_result": "Success: no issues found in 1 source file",
+    "regression_vs_signed_expectation": "NONE - exact match"
+  },
+  "scope_boundary": "verification only; no producer context, no scorer context, no out-of-band model channel, no arm run, no Gate 2 start command, all deliberately not attempted in this slice",
+  "byte_stability_verified": {
+    "amendment_v2": "zero diff",
+    "frozen_v1_packets_all_three": "zero diff",
+    "signed_candidate_packets_both": "zero diff"
+  },
+  "governance_drift_checker": "severity=ok",
+  "cannot_claim": [
+    "that any producer or scorer context, or an out-of-band model control plane, exists",
+    "that Gate 2 may start or that any arm has run",
+    "that the Bug Fix Skill or the validator treatment is effective",
+    "that this preflight constitutes any part of Gate 2 execution",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
