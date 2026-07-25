@@ -1,0 +1,69 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "sh channel-rehearsal-evidence/verify-chain.sh (offline) and verify-chain.sh gate2-channel-rehearsal (live); docker exec digest re-derivation and derived-property checks without reading plaintext; sha256sum of every bundle artifact; git diff --stat on frozen/signed/prior-receipt surfaces",
+  "exit_code": 0,
+  "started_at": "2026-07-25T12:33:07Z",
+  "finished_at": "2026-07-25T12:33:07Z",
+  "runner": "claude-code-gate2-channel-evidence-bundle-20260725",
+  "linked_commit": "1a79571a320b779d0dec59d565245a01babbf508",
+  "output_artifacts": [
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/channel-rehearsal-evidence/README.md",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/channel-rehearsal-evidence/adapter-log.txt",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/channel-rehearsal-evidence/adapter-preflight-log.txt",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/channel-rehearsal-evidence/container-inspect.json",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/channel-rehearsal-evidence/nonce_file_sha256.txt",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/channel-rehearsal-evidence/repo_tool.sh",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/channel-rehearsal-evidence/reported_sha256.txt",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/channel-rehearsal-evidence/verify-chain.sh",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/MODEL-CHANNEL-REHEARSAL-20260725.md"
+  ],
+  "artifact_sha256": {
+    "README.md": "eee44849d8cf5a91f74f00b0937a650573d1504c71ec26a0d63c41600b831405",
+    "adapter-log.txt": "a2eabb83e9eb33550f1c272e8a61641ce83f3766890da7a32f215a74128c1b3d",
+    "adapter-preflight-log.txt": "95387e765f525683ece1a32200f969ecaa80642037d72e9d2ab2728e6916ff48",
+    "container-inspect.json": "c539f6ee22bae5ece8ef2ca2207afbf0e81e08ad0aa2b5ae6cee31911e4c21ad",
+    "nonce_file_sha256.txt": "a0aeaea1120cbb411c230b195433492614a44b4b80e3d707c4f9cab505df6190",
+    "repo_tool.sh": "c77f7bc70d998b1d53c9499b45b9705deb3cea105bad6efeb063a6dcbd79b4bc",
+    "reported_sha256.txt": "a0aeaea1120cbb411c230b195433492614a44b4b80e3d707c4f9cab505df6190",
+    "verify-chain.sh": "c00abc6d74c2eecde7df2554b7b54681a22a1f4f6277e8e650dd7785d5a6b949"
+  },
+  "verifier_results": {
+    "offline_mode": "ALL CHECKS PASSED (13 checks)",
+    "live_mode": "ALL CHECKS PASSED incl live file digest and live stripped-LF digest"
+  },
+  "digest_reconciliation": {
+    "file_as_stored_bytes": 49,
+    "file_sha256": "18030d3bffd6a8db80a7f2f28e98364a256a3f22ecf5f816a7cdae251611f61c",
+    "adapter_output_bytes": 48,
+    "adapter_output_sha256": "e5e44c3b1493ef6bb87feae8e5b2b539ed19ef0d297faf34a90e3015ba0e299e",
+    "normalisation_rule": "remove exactly one trailing LF",
+    "proven": "mechanically, live in-container, not asserted"
+  },
+  "model_claims_rechecked": {
+    "length_48": "verified",
+    "digits_36": "verified",
+    "letters_12": "verified",
+    "last_six_7936E1": "verified ONLY under case normalisation; stored suffix has a lowercase e, exact-case compare returns NO"
+  },
+  "corrects_prior_receipt": {
+    "file": "artifacts/evidence/test-results/receipt-gate2-model-channel-rehearsal-full-20260725.json",
+    "defect": "recorded the chain as reported but committed no raw artifacts, so the chain was not independently auditable from the repo; also stated the last-six claim without the case-normalisation caveat",
+    "correction": "durable bundle committed with a re-runnable verifier; digest relationship proven; last-six caveat recorded",
+    "append_only": "prior receipt left byte-stable"
+  },
+  "incident": {
+    "what": ".gitignore rule `*.log` silently excluded adapter.log and adapter-preflight.log, the bundle's core evidence",
+    "fix": "stored as adapter-log.txt / adapter-preflight-log.txt and force-added",
+    "impact_if_missed": "the first five verifier checks would have had no input, leaving the bundle hollow while appearing complete"
+  },
+  "byte_stability_verified": "amendment v2/v3, three frozen v1 packets, both signed candidates, and the prior rehearsal receipt all zero diff",
+  "cannot_claim": [
+    "that artifacts alone prove a model rather than a human issued the two tool calls: raw model transcripts were never captured",
+    "that adapter exclusivity is technically enforced: it is prompt plus log corroboration and must be technically blocked before resource admission",
+    "that the fresh model session was an independently provisioned operator context (it was a subagent on the same host/account/harness)",
+    "that validator pins were re-verified (alpine/git was used)",
+    "that this constitutes the 4 producer + 2 scorer contexts, that Gate 2 may start, or that any arm ran",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
