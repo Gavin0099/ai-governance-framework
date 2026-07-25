@@ -1,0 +1,37 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "docker run (image sha256:e6df7283, --network none --read-only) each candidate v2 command with output discarded and $? read immediately (no pipe); sha256sum candidate/*.md; git diff on frozen artifacts",
+  "exit_code": 0,
+  "started_at": "2026-07-25T06:41:20Z",
+  "finished_at": "2026-07-25T06:41:20Z",
+  "runner": "claude-code-gate2-exitcode-correction-20260725",
+  "linked_commit": "a4080633515cd40b66c0caae09c9fd36bfdde098",
+  "output_artifacts": [
+    "artifacts/experiments/prepush-bugfix-20260724/candidate/validator-expectation-DESIGNER-ONLY-v2.md",
+    "docs/governance/gate1-prereg-prepush-amendment-v3-20260725.md"
+  ],
+  "corrects_prior_receipt": {
+    "file": "artifacts/evidence/test-results/receipt-gate2-candidate-packets-20260725.json",
+    "defect": "recorded shellcheck as 'exit 0'. The probe read $? after a pipeline, capturing the pipeline's last element rather than shellcheck. Measured directly the exact command returns exit 1.",
+    "consequence": "candidate expectation hash 1678e66382a6fafad3ac805d6957a623478542d33c0d80eece6e690a371645c3 bound a wrong observable and MUST NOT be signed; it is superseded.",
+    "append_only": "the prior receipt is left in place and corrected forward here."
+  },
+  "measured_exit_codes_no_pipe": {
+    "shellcheck": 1,
+    "ruff": 1,
+    "mypy": 0
+  },
+  "candidate_hashes_for_signature": {
+    "validator-pins-v2.md": "877896c7672b1f47383e19ab00a38049344634c12c328a205a1651c6da4bf46d",
+    "validator-expectation-DESIGNER-ONLY-v2.md": "61e1e52743e78ad9d38bd50e311978f5d49f513d617a48fd9a9b5a0901d02092"
+  },
+  "byte_stability": "amendment v2 and the three frozen packets show zero diff",
+  "cannot_claim": [
+    "that the superseded hash 1678e663... may be signed",
+    "that the candidates are signed or canonical: they remain CANDIDATES pending owner re-sign",
+    "that Gate 2 may start; still 0/4 arms with no producer or scorer contexts",
+    "that any arm has run or that the Skill or validator treatment is effective",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
