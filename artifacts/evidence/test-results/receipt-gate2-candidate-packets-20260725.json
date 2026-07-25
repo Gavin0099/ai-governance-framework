@@ -1,0 +1,39 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "sha256sum candidate/*.md; docker run (image sha256:e6df7283, --network none --read-only) verbatim candidate v2 validator commands against LF-clean baseline 36c346fa; python test_redaction_runner.py; git diff on frozen artifacts",
+  "exit_code": 0,
+  "started_at": "2026-07-25T03:53:28Z",
+  "finished_at": "2026-07-25T03:53:28Z",
+  "runner": "claude-code-gate2-candidate-packets-20260725",
+  "linked_commit": "e45463f361e33875cc5f15b482f97abdc51f2e9e",
+  "output_artifacts": [
+    "artifacts/experiments/prepush-bugfix-20260724/candidate/validator-pins-v2.md",
+    "artifacts/experiments/prepush-bugfix-20260724/candidate/validator-expectation-DESIGNER-ONLY-v2.md",
+    "docs/governance/gate1-prereg-prepush-amendment-v3-20260725.md",
+    "artifacts/experiments/prepush-bugfix-20260724/redaction_runner.py",
+    "artifacts/experiments/prepush-bugfix-20260724/test_redaction_runner.py"
+  ],
+  "candidate_hashes": {
+    "validator-pins-v2.md": "877896c7672b1f47383e19ab00a38049344634c12c328a205a1651c6da4bf46d",
+    "validator-expectation-DESIGNER-ONLY-v2.md": "1678e66382a6fafad3ac805d6957a623478542d33c0d80eece6e690a371645c3"
+  },
+  "probe_of_candidate_commands": {
+    "shellcheck": "only SC1090, exit 0",
+    "ruff": "I001 (line 6), E501 (line 125, 104>100), Found 2 errors, exit 1",
+    "mypy": "Success: no issues found in 1 source file",
+    "matches_expectation_v2": true
+  },
+  "byte_stability": "amendment v2 and the three frozen packets (validator-pins.md, validator-expectation-DESIGNER-ONLY.md, scorer-handoff-contract.json) all show zero diff; v3 records an append-only old->new map instead of rewriting them",
+  "results": {
+    "runner_suite": "23 cases PASS incl produce_mode_rejects_non_object_json",
+    "governance_drift_checker": "severity=ok",
+    "git_diff_check": "clean"
+  },
+  "cannot_claim": [
+    "that the candidate packets are signed or canonical: they are CANDIDATES pending owner re-sign",
+    "that Gate 2 may start; it remains 0/4 arms with no producer or scorer contexts",
+    "that any arm has run or that the Skill or validator treatment is effective",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
