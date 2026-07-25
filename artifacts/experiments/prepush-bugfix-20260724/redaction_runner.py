@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
-"""Canonical redaction runner for gate2-scorer-handoff.v1 (fail-closed).
+"""Canonical redaction runner for gate2-scorer-handoff.v2 (fail-closed).
 
 Answer-safe: operates only on a producer's raw-output.txt. It never reads the
 Gate 0 analysis, the fix, or the answer. It redacts ONLY the COMPLETION_CLAIM
 section and receipt metadata per the frozen literal map; FIX_DIFF / TEST_LOG /
 VALIDATOR_OUTPUT are copied verbatim.
 
-FAIL-CLOSED: the parser rejects any input that is not in the frozen canonical
-format. It does NOT accept out-of-order, duplicate, missing, preamble, or
-CRLF inputs. Structural validity is enforced before any redaction runs.
+FAIL-CLOSED: rejects out-of-order / duplicate / missing / preamble / CRLF inputs
+and any input/output path aliasing. On any publish failure it removes every
+partial output AND staging temp. The receipt pair is mandatory.
 
-Usage:
+Usage (produce a handoff set = packet + anonymized receipt + completeness marker):
     python redaction_runner.py --contract scorer-handoff-contract.json \\
-        --raw raw-output.txt --out redacted-packet.json
+        --raw raw-output.txt --out redacted-packet.json \\
+        --receipt producer-receipt.json --receipt-out redacted-receipt.json
+
+Verify a handoff set (scorer's mechanical acceptance entry point):
+    python redaction_runner.py --verify-handoff redacted-receipt.json.handoff-complete
+    (exit 0 = packet + receipt + marker all present and sha256 match; 2 = reject)
 """
 from __future__ import annotations
 import argparse, hashlib, json, os, re, sys
@@ -139,17 +144,49 @@ def _dump(obj) -> str:
     return json.dumps(obj, indent=2, ensure_ascii=False) + "\n"
 
 
+def verify_handoff(marker_path: str) -> int:
+    """Scorer's mechanical acceptance: a handoff set is acceptable ONLY if the
+    marker + packet + receipt all exist and the marker's sha256 match the files.
+    Returns 0 (accept) or 2 (reject). Never raises to the caller."""
+    try:
+        marker = json.loads(open(marker_path, "rb").read())
+        base = os.path.dirname(os.path.abspath(marker_path))
+        pkt = os.path.join(base, marker["packet_path"])
+        rcp = os.path.join(base, marker["receipt_path"])
+        if not (os.path.isfile(pkt) and os.path.isfile(rcp)):
+            raise FormatError("packet or receipt file missing")
+        if sha256_hex(open(pkt, "rb").read()) != marker["packet_sha256"]:
+            raise FormatError("packet sha256 mismatch")
+        if sha256_hex(open(rcp, "rb").read()) != marker["receipt_sha256"]:
+            raise FormatError("receipt sha256 mismatch")
+        if json.loads(open(rcp, "rb").read()).get("anon_id") != marker.get("anon_id"):
+            raise FormatError("receipt anon_id does not match marker")
+    except (FormatError, KeyError, ValueError, OSError) as e:
+        print(f"HANDOFF REJECTED: {e}", file=sys.stderr)
+        return 2
+    print(f"HANDOFF OK: anon_id={marker['anon_id']} packet+receipt+marker consistent")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--contract", required=True)
-    ap.add_argument("--raw", required=True)
-    ap.add_argument("--out", required=True)
-    # Gate 2 scorer handoff mandates the receipt pair (fail-closed): both or neither.
-    ap.add_argument("--receipt", required=True,
-                    help="producer receipt JSON to anonymize (required in handoff mode)")
-    ap.add_argument("--receipt-out", required=True,
-                    help="anonymized receipt output path (required in handoff mode)")
+    ap.add_argument("--verify-handoff", metavar="MARKER",
+                    help="scorer mode: verify a handoff set from its completeness marker")
+    ap.add_argument("--contract")
+    ap.add_argument("--raw")
+    ap.add_argument("--out")
+    ap.add_argument("--receipt", help="producer receipt JSON to anonymize")
+    ap.add_argument("--receipt-out", help="anonymized receipt output path")
     a = ap.parse_args()
+    if a.verify_handoff:
+        return verify_handoff(a.verify_handoff)
+    # produce mode: the receipt pair is mandatory (fail-closed): all five required.
+    missing = [n for n in ("contract", "raw", "out", "receipt", "receipt_out")
+               if getattr(a, n) is None]
+    if missing:
+        print(f"REJECTED (fail-closed): produce mode requires "
+              f"{', '.join('--' + m.replace('_','-') for m in missing)}", file=sys.stderr)
+        return 2
     marker = a.receipt_out + ".handoff-complete"
     try:
         # (1) reject any input/output path aliasing BEFORE doing anything —
@@ -182,6 +219,7 @@ def main() -> int:
     # a completeness marker. A handoff is scorer-acceptable ONLY if all three exist
     # and the marker's sha256 match. On ANY failure, remove every partial output.
     published = []
+    t1 = t2 = None
     try:
         import tempfile
         out_dir = os.path.dirname(os.path.abspath(a.out)) or "."
@@ -192,8 +230,8 @@ def main() -> int:
             f.write(packet_text)
         with open(t2, "w", encoding="utf-8", newline="\n") as f:
             f.write(receipt_text)
-        os.replace(t1, a.out); published.append(a.out)
-        os.replace(t2, a.receipt_out); published.append(a.receipt_out)
+        os.replace(t1, a.out); t1 = None; published.append(a.out)
+        os.replace(t2, a.receipt_out); t2 = None; published.append(a.receipt_out)
         marker_obj = {
             "handoff": "gate2-scorer-handoff-set.v1",
             "anon_id": packet["anon_id"],
@@ -206,12 +244,15 @@ def main() -> int:
             f.write(_dump(marker_obj))
         published.append(marker)
     except Exception as e:
-        for p in published + [marker]:
-            try:
-                os.remove(p)
-            except OSError:
-                pass
-        print(f"REJECTED (fail-closed): publish failed, all outputs removed: {e}", file=sys.stderr)
+        # remove EVERY partial output: published finals, the marker, AND any
+        # staging temp that was not yet consumed by os.replace.
+        for p in published + [marker, t1, t2]:
+            if p:
+                try:
+                    os.remove(p)
+                except OSError:
+                    pass
+        print(f"REJECTED (fail-closed): publish failed, all outputs+temps removed: {e}", file=sys.stderr)
         return 2
     if contract.get("frozen") is not True:
         print("NOTICE: contract frozen=false (pending owner re-sign) — "

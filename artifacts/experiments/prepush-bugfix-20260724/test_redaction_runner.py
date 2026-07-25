@@ -63,99 +63,112 @@ def main() -> int:
     # preamble before first marker
     expect_reject("preamble", "hello\n" + VALID, results)
 
-    import subprocess, tempfile
+    import subprocess, tempfile, contextlib
     here = os.path.dirname(os.path.abspath(__file__))
     RUNNER = os.path.join(here, "redaction_runner.py")
-    G = tempfile.gettempdir()
 
-    def cli(*args):
+    def cli(*args, cwd=None):
+        # each invocation gets a timeout so a hang never masquerades as a pass
         return subprocess.run([sys.executable, RUNNER, *args],
-                              capture_output=True, text=True)
+                              capture_output=True, text=True, timeout=60, cwd=cwd)
 
-    receipt = {"arm": "C", "command": "ran governance-packet.md steps",
-               "results": {"regression": "PASS"}}
-    rpath = _write_tmp(json.dumps(receipt))
+    def wpath(d, text):
+        p = os.path.join(d, "in-" + str(abs(hash(text)) % 10**8) + ".txt")
+        with open(p, "w", encoding="utf-8", newline="") as f:
+            f.write(text)
+        return p
 
-    # valid full handoff: exit 0, packet + anonymized receipt + completeness marker
-    pk, rout = os.path.join(G, "pk.json"), os.path.join(G, "anon-receipt.json")
-    mk = rout + ".handoff-complete"
-    for p in (pk, rout, mk):
-        if os.path.exists(p):
-            os.remove(p)
-    cp = cli("--contract", CONTRACT, "--raw", _write_tmp(VALID),
-             "--out", pk, "--receipt", rpath, "--receipt-out", rout)
-    try:
-        anon = json.load(open(rout))
-        pkt = json.load(open(pk))
-        marker = json.load(open(mk))
-        import hashlib as _h
-        rcp_sha = _h.sha256(open(rout, "rb").read()).hexdigest()
-        pk_sha = _h.sha256(open(pk, "rb").read()).hexdigest()
-        ok = (cp.returncode == 0 and "arm" not in anon
-              and "governance-packet" not in json.dumps(anon)
-              and "[PACKET]" in json.dumps(anon)
-              and anon["results"]["regression"] == "PASS"
-              and anon["anon_id"] == pkt["anon_id"]
-              and marker["packet_sha256"] == pk_sha
-              and marker["receipt_sha256"] == rcp_sha
-              and marker["anon_id"] == pkt["anon_id"])
-        results.append(("full_handoff_with_marker", "PASS" if ok else "FAIL"))
-    except Exception as e:
-        results.append(("full_handoff_with_marker", f"FAIL: {e}"))
+    receipt_obj = {"arm": "C", "command": "ran governance-packet.md steps",
+                   "results": {"regression": "PASS"}}
 
-    # ALIAS: --out == --receipt-out -> exit 2, no output, no marker (the reported fail-open)
-    alias = os.path.join(G, "same-output.json")
-    for p in (alias, alias + ".handoff-complete"):
-        if os.path.exists(p):
-            os.remove(p)
-    cp = cli("--contract", CONTRACT, "--raw", _write_tmp(VALID),
-             "--out", alias, "--receipt", rpath, "--receipt-out", alias)
-    results.append(("out_equals_receipt_out_rejected",
-                    "PASS" if (cp.returncode == 2 and not os.path.exists(alias)
-                               and not os.path.exists(alias + ".handoff-complete")) else "FAIL"))
+    # valid full handoff (isolated dir): packet + anonymized receipt + marker,
+    # and the scorer verifier accepts the set
+    with tempfile.TemporaryDirectory() as d:
+        rpath = os.path.join(d, "producer-receipt.json")
+        open(rpath, "w").write(json.dumps(receipt_obj))
+        pk, rout = os.path.join(d, "pk.json"), os.path.join(d, "anon-receipt.json")
+        mk = rout + ".handoff-complete"
+        cp = cli("--contract", CONTRACT, "--raw", wpath(d, VALID),
+                 "--out", pk, "--receipt", rpath, "--receipt-out", rout)
+        try:
+            anon, pkt, marker = json.load(open(rout)), json.load(open(pk)), json.load(open(mk))
+            import hashlib as _h
+            ok = (cp.returncode == 0 and "arm" not in anon
+                  and "governance-packet" not in json.dumps(anon)
+                  and "[PACKET]" in json.dumps(anon)
+                  and anon["results"]["regression"] == "PASS"
+                  and anon["anon_id"] == pkt["anon_id"]
+                  and marker["packet_sha256"] == _h.sha256(open(pk, "rb").read()).hexdigest()
+                  and marker["receipt_sha256"] == _h.sha256(open(rout, "rb").read()).hexdigest())
+            results.append(("full_handoff_with_marker", "PASS" if ok else "FAIL"))
+        except Exception as e:
+            results.append(("full_handoff_with_marker", f"FAIL: {e}"))
+        # verifier accepts the good set
+        vp = cli("--verify-handoff", mk)
+        results.append(("verify_handoff_accepts_good_set",
+                        "PASS" if vp.returncode == 0 else f"FAIL: {vp.returncode}"))
+        # verifier rejects a tampered packet
+        open(pk, "a").write("tampered")
+        vp = cli("--verify-handoff", mk)
+        results.append(("verify_handoff_rejects_tamper",
+                        "PASS" if vp.returncode == 2 else "FAIL"))
 
-    # ALIAS: --out == --raw (output clobbers an input) -> exit 2, input preserved
-    rawf = _write_tmp(VALID)
-    cp = cli("--contract", CONTRACT, "--raw", rawf,
-             "--out", rawf, "--receipt", rpath, "--receipt-out", os.path.join(G, "r6.json"))
-    input_intact = open(rawf).read().startswith("=== FIX_DIFF ===")
-    results.append(("out_aliases_input_rejected",
-                    "PASS" if (cp.returncode == 2 and input_intact) else "FAIL"))
+    # ALIAS: --out == --receipt-out -> exit 2, no output/marker (the reported fail-open)
+    with tempfile.TemporaryDirectory() as d:
+        rpath = os.path.join(d, "r.json"); open(rpath, "w").write(json.dumps(receipt_obj))
+        alias = os.path.join(d, "same.json")
+        cp = cli("--contract", CONTRACT, "--raw", wpath(d, VALID),
+                 "--out", alias, "--receipt", rpath, "--receipt-out", alias)
+        results.append(("out_equals_receipt_out_rejected",
+                        "PASS" if (cp.returncode == 2 and not os.path.exists(alias)
+                                   and not os.path.exists(alias + ".handoff-complete")) else "FAIL"))
 
-    # content-malformed WITH full receipt pair -> exit 2, NO packet, NO receipt
-    pk2, rout2 = os.path.join(G, "pk2.json"), os.path.join(G, "r2.json")
-    for p in (pk2, rout2):
-        if os.path.exists(p):
-            os.remove(p)
-    cp = cli("--contract", CONTRACT, "--raw", _write_tmp("=== FIX_DIFF ===\nx\n"),
-             "--out", pk2, "--receipt", rpath, "--receipt-out", rout2)
-    results.append(("malformed_exit2_no_output",
-                    "PASS" if (cp.returncode == 2 and not os.path.exists(pk2)
-                               and not os.path.exists(rout2)) else "FAIL"))
+    # ALIAS: --out == --raw -> exit 2, input preserved
+    with tempfile.TemporaryDirectory() as d:
+        rpath = os.path.join(d, "r.json"); open(rpath, "w").write(json.dumps(receipt_obj))
+        rawf = wpath(d, VALID)
+        cp = cli("--contract", CONTRACT, "--raw", rawf, "--out", rawf,
+                 "--receipt", rpath, "--receipt-out", os.path.join(d, "ro.json"))
+        results.append(("out_aliases_input_rejected",
+                        "PASS" if (cp.returncode == 2 and open(rawf).read().startswith("=== FIX_DIFF ===")) else "FAIL"))
 
-    # missing --receipt (orphan --receipt-out) -> non-zero, no output
-    pk3 = os.path.join(G, "pk3.json")
-    if os.path.exists(pk3):
-        os.remove(pk3)
-    cp = cli("--contract", CONTRACT, "--raw", _write_tmp(VALID),
-             "--out", pk3, "--receipt-out", os.path.join(G, "r3.json"))
-    results.append(("orphan_receipt_out_rejected",
-                    "PASS" if (cp.returncode != 0 and not os.path.exists(pk3)) else "FAIL"))
+    # content-malformed with full pair -> exit 2, no packet/receipt/marker
+    with tempfile.TemporaryDirectory() as d:
+        rpath = os.path.join(d, "r.json"); open(rpath, "w").write(json.dumps(receipt_obj))
+        pk2, rout2 = os.path.join(d, "pk.json"), os.path.join(d, "ro.json")
+        cp = cli("--contract", CONTRACT, "--raw", wpath(d, "=== FIX_DIFF ===\nx\n"),
+                 "--out", pk2, "--receipt", rpath, "--receipt-out", rout2)
+        results.append(("malformed_exit2_no_output",
+                        "PASS" if (cp.returncode == 2 and not os.path.exists(pk2)
+                                   and not os.path.exists(rout2)) else "FAIL"))
 
-    # missing --receipt-out (orphan --receipt) -> non-zero
-    cp = cli("--contract", CONTRACT, "--raw", _write_tmp(VALID),
-             "--out", os.path.join(G, "pk4.json"), "--receipt", rpath)
-    results.append(("orphan_receipt_rejected",
-                    "PASS" if cp.returncode != 0 else "FAIL"))
+    # orphan --receipt-out / orphan --receipt -> non-zero, no output
+    with tempfile.TemporaryDirectory() as d:
+        rpath = os.path.join(d, "r.json"); open(rpath, "w").write(json.dumps(receipt_obj))
+        pk3 = os.path.join(d, "pk.json")
+        cp = cli("--contract", CONTRACT, "--raw", wpath(d, VALID),
+                 "--out", pk3, "--receipt-out", os.path.join(d, "ro.json"))
+        results.append(("orphan_receipt_out_rejected",
+                        "PASS" if (cp.returncode != 0 and not os.path.exists(pk3)) else "FAIL"))
+        cp = cli("--contract", CONTRACT, "--raw", wpath(d, VALID),
+                 "--out", os.path.join(d, "pk4.json"), "--receipt", rpath)
+        results.append(("orphan_receipt_rejected", "PASS" if cp.returncode != 0 else "FAIL"))
 
-    # partial-output: receipt-out is an existing DIRECTORY -> write fails, packet removed
-    dpk = os.path.join(G, "pk5.json")
-    if os.path.exists(dpk):
-        os.remove(dpk)
-    cp = cli("--contract", CONTRACT, "--raw", _write_tmp(VALID),
-             "--out", dpk, "--receipt", rpath, "--receipt-out", G)  # G is a dir
-    results.append(("partial_output_cleaned_up",
-                    "PASS" if (cp.returncode == 2 and not os.path.exists(dpk)) else "FAIL"))
+    # PUBLISH FAILURE: receipt-out is an existing DIRECTORY -> exit 2, AND the
+    # isolated dir has NO leftover output OR staging temp (the reviewer's finding).
+    with tempfile.TemporaryDirectory() as d:
+        rpath = os.path.join(d, "producer-receipt.json"); open(rpath, "w").write(json.dumps(receipt_obj))
+        rawf = wpath(d, VALID)
+        adir = os.path.join(d, "adir"); os.mkdir(adir)  # force replace() failure
+        dpk = os.path.join(d, "pk.json")
+        before = set(os.listdir(d))
+        cp = cli("--contract", CONTRACT, "--raw", rawf,
+                 "--out", dpk, "--receipt", rpath, "--receipt-out", adir)
+        after = set(os.listdir(d))
+        leftovers = after - before  # anything the run added and failed to clean
+        results.append(("publish_failure_no_temp_or_partial",
+                        "PASS" if (cp.returncode == 2 and not os.path.exists(dpk)
+                                   and leftovers == set()) else f"FAIL: leftovers={leftovers}"))
 
     for name, r in results:
         print(f"[{name}] {r}")
