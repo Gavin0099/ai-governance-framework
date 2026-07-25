@@ -1,0 +1,227 @@
+[
+    {
+        "Id": "66f734ee65e98c2cdafe501b7829f308128ddf11850f8a76cf22477d6c58b7f4",
+        "Created": "2026-07-25T12:12:26.09856457Z",
+        "Path": "/bin/sh",
+        "Args": [
+            "-c",
+            "sleep 7200"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 49281,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-07-25T12:12:26.230973184Z",
+            "FinishedAt": "0001-01-01T00:00:00Z"
+        },
+        "Image": "sha256:77418e6e7c7f434c4a98eaff04ef16840cf03649c881c03948e3e213923e3136",
+        "ResolvConfPath": "/var/lib/docker/containers/66f734ee65e98c2cdafe501b7829f308128ddf11850f8a76cf22477d6c58b7f4/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/66f734ee65e98c2cdafe501b7829f308128ddf11850f8a76cf22477d6c58b7f4/hostname",
+        "HostsPath": "/var/lib/docker/containers/66f734ee65e98c2cdafe501b7829f308128ddf11850f8a76cf22477d6c58b7f4/hosts",
+        "LogPath": "/var/lib/docker/containers/66f734ee65e98c2cdafe501b7829f308128ddf11850f8a76cf22477d6c58b7f4/66f734ee65e98c2cdafe501b7829f308128ddf11850f8a76cf22477d6c58b7f4-json.log",
+        "Name": "/gate2-channel-rehearsal",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": null,
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "none",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "no",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": [
+                "ALL"
+            ],
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": true,
+            "SecurityOpt": [
+                "no-new-privileges"
+            ],
+            "Tmpfs": {
+                "/tmp": "rw,uid=65532,gid=65532,mode=0700,size=8m",
+                "/work": "rw,uid=65532,gid=65532,mode=0700,size=32m"
+            },
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": [],
+            "BlkioDeviceReadBps": [],
+            "BlkioDeviceWriteBps": [],
+            "BlkioDeviceReadIOps": [],
+            "BlkioDeviceWriteIOps": [],
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [],
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": [],
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "Storage": {
+            "RootFS": {
+                "Snapshot": {
+                    "Name": "overlayfs"
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "volume",
+                "Name": "8df81eaf02fc2039371a1eaa6ecd20b1591f5ccdedab3714c8ace1c4a5a14d30",
+                "Source": "/var/lib/docker/volumes/8df81eaf02fc2039371a1eaa6ecd20b1591f5ccdedab3714c8ace1c4a5a14d30/_data",
+                "Destination": "/git",
+                "Driver": "local",
+                "Mode": "",
+                "RW": true,
+                "Propagation": ""
+            }
+        ],
+        "Config": {
+            "Hostname": "66f734ee65e9",
+            "Domainname": "",
+            "User": "65532:65532",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "HOME=/work",
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            ],
+            "Cmd": [
+                "-c",
+                "sleep 7200"
+            ],
+            "Image": "alpine/git:latest",
+            "Volumes": {
+                "/git": {}
+            },
+            "WorkingDir": "/git",
+            "Entrypoint": [
+                "/bin/sh"
+            ],
+            "Labels": {
+                "org.opencontainers.image.created": "2026-07-19T06:26:01.276Z",
+                "org.opencontainers.image.description": "A useful simple git container running in alpine linux, especially for tiny linux distro, such as RancherOS, which don't have package manager.",
+                "org.opencontainers.image.licenses": "Apache-2.0",
+                "org.opencontainers.image.revision": "",
+                "org.opencontainers.image.source": "https://github.com/alpine-docker/git",
+                "org.opencontainers.image.title": "git",
+                "org.opencontainers.image.url": "https://github.com/alpine-docker/git",
+                "org.opencontainers.image.version": "1e6b3f5"
+            }
+        },
+        "NetworkSettings": {
+            "SandboxID": "d1ea5dfe7960c801ca4b5ee2dd0706bfb581458517085b36d97b9641ee862055",
+            "SandboxKey": "/var/run/docker/netns/d1ea5dfe7960",
+            "Ports": {},
+            "Networks": {
+                "none": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "afed232629345c8232122cb206edd2da4c15eac1a94878f0b74636a4877bbbd0",
+                    "EndpointID": "8a00fccfa5fdc4d2209b666f7f7e9e6a8830fe84c0a3464fc1b2460713f0f7e2",
+                    "Gateway": "",
+                    "IPAddress": "",
+                    "MacAddress": "",
+                    "IPPrefixLen": 0,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": null
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:5e1543841d987081a1e0e37305039b2bb9908592a4cddad95b4c4c49d07653a3",
+            "size": 861,
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
+        }
+    }
+]

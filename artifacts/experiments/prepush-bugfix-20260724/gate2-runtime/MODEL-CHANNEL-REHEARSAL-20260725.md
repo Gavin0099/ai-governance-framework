@@ -87,6 +87,31 @@ work's repeated exit-code-masking problems, the precise value is worth keeping.)
 Container count: 12 pre-existing + 1 rehearsal = 13. The 12 pre-existing
 containers were untouched.
 
+## Durable evidence bundle (added after review)
+
+A review correctly found this record held only summaries. The raw artifacts are
+now committed under
+[`channel-rehearsal-evidence/`](channel-rehearsal-evidence/README.md) with a
+re-runnable checker (`verify-chain.sh`, passing in both offline and live modes):
+the adapter source, the adapter log for this run, the hostile-input preflight
+log, the full container inspect JSON, both digests, and the normalisation rule.
+
+Two precisions established while building it:
+
+- **Digest relationship, now mechanically proven:** the adapter returns the file
+  *minus exactly one trailing LF*. `sha256(file) = 18030d3b…` (49 bytes);
+  `sha256(file minus trailing LF) = e5e44c3b…` (48 bytes), identical to the
+  adapter log's `out_sha256`. Verified live in-container.
+- **The model's "last six = `7936E1`" is true only under case normalisation.**
+  The stored suffix contains a lowercase `e`; an exact-case comparison returns
+  NO. Length 48, 36 digits and 12 letters all verified exactly.
+
+**Still absent:** the raw model request/response transcripts. The adapter log
+records what the model *caused*, not the model's own message stream, so artifacts
+alone cannot distinguish a model from a human issuing those two calls. That link
+still rests on the dispatching session's report and must be captured at dispatch
+time in a future run.
+
 ## Cannot claim
 
 - **The "fresh model session" was a subagent dispatched by the harness session**
@@ -99,7 +124,11 @@ containers were untouched.
   technical guarantee.** The subagent was not technically stripped of other
   tools; had it bypassed the adapter with a direct `docker exec`, the adapter
   log would not record it. Log and self-report are consistent, which is
-  corroboration, not enforcement.
+  corroboration, not enforcement. **This must be technically blocked before
+  resource admission**, not carried forward as a prompt constraint.
+- **That artifacts alone prove a model — rather than a human — issued the two
+  tool calls.** The adapter log records the effect, not the model's message
+  stream; the transcripts were not captured.
 - `alpine/git` was used, so validator pins were **not** re-verified (that is the
   separate, already-recorded post-sign preflight).
 - No Gate 2 packet was used, no arm ran, nothing was scored.

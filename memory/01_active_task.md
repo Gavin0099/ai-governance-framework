@@ -363,6 +363,8 @@
 
 ## Cannot Claim From This Surface
 
+- 2026-07-25 review of `ad877713`: `CHANGES_REQUESTED` — the reported four-hop model-channel rehearsal lacks durable raw model/adapter artifacts and full digest linkage; do not treat the path as independently established or start 4+2 provisioning until the evidence bundle is correction-forwarded or the claim is narrowed.
+
 - 2026-07-25 review of `a785174a`: `CHANGES_REQUESTED` — the owner rehearsal proves a host-to-container `docker exec` bridge and reported isolation, not a real model → tool-adapter → sandbox → model round trip. Narrow the claim and correction-forward the receipt before the actual dummy-repo managed-channel rehearsal.
 
 - Cannot claim structured-memory freshness is automated or solved.

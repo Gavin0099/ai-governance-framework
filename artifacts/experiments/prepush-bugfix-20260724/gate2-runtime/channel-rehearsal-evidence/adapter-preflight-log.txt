@@ -1,0 +1,5 @@
+2026-07-25T12:13:15Z verb=ls arg=<none> exit=0 out_bytes=19 out_sha256=3b83f73df3af9fb26b2d7cb58344f058c08485e8d7465b5414150c974c1d1e37
+2026-07-25T12:13:16Z verb=log arg=<none> exit=0 out_bytes=32 out_sha256=5196c05b3f7856795dc4201b7f321381c4b45853cfd4d381737baf40b21a87ac
+2026-07-25T12:13:16Z verb=read arg=README.md exit=0 out_bytes=119 out_sha256=0a940340478c9c673be3629227bc597e73ce4992b3d6c5593ad58fc7f54acd63
+2026-07-25T12:13:17Z verb=read arg=../../etc/passwd exit=REJECTED out_bytes=0 out_sha256=-
+2026-07-25T12:13:17Z verb=sh -c id arg=<none> exit=REJECTED out_bytes=0 out_sha256=-

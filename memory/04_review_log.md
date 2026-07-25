@@ -2847,3 +2847,90 @@ not a prompt to add more governance files.
 - Next bounded validation: On a dummy repository, use a fresh real model session outside the sandbox and a managed tool adapter that executes only inside the `--network none` container. Capture the model tool request, container execution/output, and a subsequent model response that correctly uses a nonce returned by the tool. This remains a mechanism rehearsal and must not use a Gate 2 packet or count as an arm.
 - Evidence checked: signed/frozen surfaces zero diff; rehearsal receipt structurally valid; governance drift `ok`; `git diff --check` clean before review records; `HEAD == origin/main == a785174a`; author worktree clean.
 - Not claimed: actual out-of-band model channel exists; producer/scorer contexts exist; Gate 2 is ready; any arm ran; validator treatment effectiveness.
+
+## 2026-07-25 — Gate 2 full model-channel rehearsal evidence review
+
+### Review Inputs Checked
+- `governance/REVIEW_CRITERIA.md`
+- `governance/AGENT.md`
+- `governance/RESPONSE_ENVELOPE_CONTRACT.md`
+- `memory/03_knowledge_base.md`
+- prior Gate 2 entries in `memory/04_review_log.md`
+- commits `642c246c` and `ad877713`
+- full rehearsal document, bridge-rehearsal forward pointer, rehearsal receipt,
+  daily memory, tracked artifact inventory, receipt validation, governance drift,
+  remote refs, and worktree state
+
+### Decision Summary
+- Verdict: `CHANGES_REQUESTED`
+- Risk level: Medium
+- Scope: evidence and claim boundary for the reported
+  model → adapter → container → model rehearsal only.
+
+### Governance Audit
+- Architecture: The proposed data path is coherent, but adapter exclusivity is
+  explicitly not technically enforced and the persisted evidence does not bind
+  the four stages into one auditable run.
+- Native safety: N/A.
+- Test integrity: FAIL at evidence-chain level. Container isolation is reported
+  as independently checked, but model/adapter evidence exists only as prose
+  summaries in the document and receipt.
+- Thread safety: N/A.
+- Baseline status: Stable for frozen/signed Gate 2 surfaces; no arm ran.
+- Dirty-worktree hygiene: author worktree was clean and cached
+  `HEAD == origin/main == ad877713`; reviewer records make the current worktree
+  intentionally dirty.
+
+### Technical Findings
+1. [BLOCKING] The persisted artifacts do not prove the reported four-hop run.
+   - Status: open.
+   - Location:
+     `artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/MODEL-CHANNEL-REHEARSAL-20260725.md:47-55`
+     and
+     `artifacts/evidence/test-results/receipt-gate2-model-channel-rehearsal-full-20260725.json:36-40`.
+   - Evidence: the repository contains no tracked `repo_tool.sh`, raw adapter
+     log, model tool-request trace, container output record, or model follow-up
+     transcript. The receipt repeats summaries only. It also records only the
+     prefix `e5e44c3b…` for adapter output while independent nonce inspection
+     records full digest `18030d3b…`; no durable artifact explains or verifies
+     the likely newline-normalization relationship.
+   - Rule reference: `governance/REVIEW_CRITERIA.md` sections 1 and 3.3
+     (evidence-bound, observable behavior); repository receipt rule that receipt
+     fields are fabricatable and do not establish semantic correctness.
+   - Fix required: preserve a minimally redacted evidence bundle containing the
+     exact adapter implementation, raw adapter events, model request and
+     follow-up transcript identifiers/content, container inspect/execution
+     output, and complete digest linkage across stages. Keep nonce plaintext
+     secret; record the exact normalization used if hashes differ. Otherwise
+     narrow the conclusion to owner-reported evidence consistent with, but not
+     proof of, the full loop.
+   - Disposition: open; the earlier bridge-only overclaim is resolved, but the
+     successor end-to-end claim is not yet independently auditable.
+
+2. [WARNING] Technical adapter exclusivity remains absent.
+   - Status: carried-forward.
+   - Location:
+     `artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/MODEL-CHANNEL-REHEARSAL-20260725.md:98-102`.
+   - Evidence: the subagent retained other tools and could bypass the adapter
+     with direct `docker exec`; the adapter log would not show that bypass.
+   - Rule reference: Gate 2 answer-blind resource boundary and
+     `governance/REVIEW_CRITERIA.md` architecture/predictability requirements.
+   - Disposition: acceptable as an explicit rehearsal limitation, but must be
+     technically enforced before resource admission and cannot be described as
+     a provisioning-only detail.
+
+### Knowledge Base Alignment
+- Anti-patterns checked: exit-code masking, receipt-as-semantic-proof,
+  claim inflation, prompt-only isolation, and summary-only cross-boundary
+  evidence.
+- Regression notes checked: a structurally valid receipt does not upgrade
+  unverifiable summaries into runtime proof.
+- Result: Conflict found; summary-only cross-boundary evidence is now recorded
+  as a durable anti-pattern.
+
+### Next Recommendation
+Do not provision 4+2 contexts yet. First produce one correction-forward,
+durable evidence bundle for the dummy-repo rehearsal, or narrow the current
+claim. Then run a resource-admission-only slice that technically restricts each
+fresh context to the adapter and verifies identity, filesystem/input allowlists,
+model/permission constants, and blinding without executing any Gate 2 arm.

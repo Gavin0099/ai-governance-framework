@@ -148,6 +148,21 @@
   the Gate 2 preflight work. A structurally valid receipt does not repair a
   masked or misattributed process status.
 
+## Summary-Only Cross-Boundary Evidence Anti-Pattern
+
+- A receipt that restates a model request, adapter log, container result, and
+  model response does not independently establish that those stages formed one
+  execution chain.
+- Cross-boundary rehearsals must preserve durable raw or minimally redacted
+  artifacts for every hop, with request/run identifiers and complete hashes
+  that bind the stages together. A separately verified container configuration
+  cannot substitute for missing model and adapter evidence.
+- When secret plaintext must remain unread, bind the stages by full digests and
+  record any normalization transformation, such as newline removal, that makes
+  two legitimate digests differ.
+- Until that binding exists, the safe claim is “reported evidence is consistent
+  with the proposed path,” not “the end-to-end path is established.”
+
 ## Current Highest-Value Gaps
 
 - The main cross-repo gap is now real facts intake, not validator execution.

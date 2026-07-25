@@ -1,0 +1,44 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "review commits 642c246c and ad877713; inspect full rehearsal document, receipt, tracked artifact inventory, prior review state, and memory claims; validate receipt; run governance drift checker and git diff check; compare HEAD and cached origin/main",
+  "exit_code": 0,
+  "started_at": "2026-07-25T12:24:13Z",
+  "finished_at": "2026-07-25T12:24:13Z",
+  "runner": "codex-gate2-model-channel-rehearsal-full-review-20260725",
+  "linked_commit": "ad877713dbed4b6e21fbf90736706899ddde38e2",
+  "output_artifacts": [
+    "memory/04_review_log.md",
+    "memory/01_active_task.md",
+    "memory/03_knowledge_base.md"
+  ],
+  "review": {
+    "verdict": "CHANGES_REQUESTED",
+    "risk": "medium",
+    "blocking_findings": 1,
+    "warnings": 1,
+    "scope": "reported model-to-adapter-to-container-to-model rehearsal evidence and claim boundary"
+  },
+  "per_item_results": {
+    "bridge_scope_correction": "PASS prior overclaim is narrowed and correction-forwarded",
+    "receipt_structure": "PASS _validate_evidence_receipt returned None",
+    "container_isolation_summary": "PASS recorded as independently verified by the authoring session; not independently reexecuted by this reviewer environment",
+    "tracked_adapter_implementation": "NOT PRESENT",
+    "tracked_raw_adapter_log": "NOT PRESENT",
+    "tracked_model_tool_request_trace": "NOT PRESENT",
+    "tracked_model_followup_trace": "NOT PRESENT",
+    "complete_cross_stage_digest_binding": "NOT PRESENT",
+    "adapter_exclusivity": "NOT PRESENT; prompt constraint and log corroboration only",
+    "signed_surface_scope": "PASS reviewed commits touch only rehearsal docs, new receipt, and daily memory",
+    "governance_drift": "PASS ok=true severity=ok",
+    "remote_sync": "PASS HEAD equals cached origin/main at ad877713; fetch was unavailable because .git/FETCH_HEAD was not writable"
+  },
+  "cannot_claim": [
+    "that the persisted repository evidence independently proves the four-hop model channel run",
+    "that adapter exclusivity is technically enforced",
+    "that the remaining gap is provisioning only",
+    "that 4+2 contexts may now be provisioned or that Gate 2 may start",
+    "that any Gate 2 packet was used, any arm ran, or anything was scored",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
