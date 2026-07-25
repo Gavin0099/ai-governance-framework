@@ -1,0 +1,29 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python test_redaction_runner.py (15 cases, isolated TemporaryDirectory, 60s timeout); git diff --check",
+  "exit_code": 0,
+  "started_at": "2026-07-25T01:40:58Z",
+  "finished_at": "2026-07-25T01:41:00Z",
+  "runner": "claude-code-gate2-temp-cleanup-verifier-20260725",
+  "linked_commit": "35e3440fe424193e34e2d912a6323f1151c15576",
+  "output_artifacts": [
+    "artifacts/experiments/prepush-bugfix-20260724/redaction_runner.py",
+    "artifacts/experiments/prepush-bugfix-20260724/test_redaction_runner.py"
+  ],
+  "per_item_results": {
+    "publish_failure_removes_packet_receipt_marker_AND_temp": "PASS (zero leftovers in isolated dir)",
+    "handoff_verifier_accepts_good_set": "PASS",
+    "handoff_verifier_rejects_tamper": "PASS",
+    "tests_isolated_temporarydirectory_with_timeout": "PASS (15 cases, 0 fails)",
+    "runner_docstring_v2_with_receipt_usage": "PASS",
+    "frozen_contract_v2_unchanged": "PASS (git diff empty on contract)"
+  },
+  "cannot_claim": [
+    "that Gate 2 is ready: validators not installed in a run image, no isolated producer/scorer environments, no separate owner start command",
+    "that the handoff ran on any real producer output (synthetic tests only)",
+    "that a single new session suffices for Gate 2 (needs 4 answer-blind producers + 2 arm-identity-blind scorers, technically isolated, none this session or the author)",
+    "that any arm has run or that the Bug Fix Skill is effective",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

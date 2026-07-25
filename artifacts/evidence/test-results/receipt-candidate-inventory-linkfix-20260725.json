@@ -1,0 +1,24 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python -c 'json.load; _validate_evidence_receipt' on the prior receipt; git rev-parse 1d0d92ae",
+  "exit_code": 0,
+  "started_at": "2026-07-25T00:20:00Z",
+  "finished_at": "2026-07-25T00:20:05Z",
+  "runner": "claude-code-candidate-inventory-linkfix-20260725",
+  "linked_commit": "1d0d92aede5e7656cc991cfc8ef3b02422082c20",
+  "output_artifacts": [
+    "docs/status/open-source-validation-candidate-inventory-20260725.md"
+  ],
+  "corrects_prior_receipt": {
+    "file": "artifacts/evidence/test-results/receipt-oss-validation-candidate-inventory-20260725.json",
+    "defect": "its linked_commit was EMPTY (a shell variable did not persist across Bash calls, so $C expanded to nothing). That receipt FAILS the repo validator with receipt_field_invalid:linked_commit, and both it and its memory entry falsely stated the validator 'returns VALID'. It was never valid.",
+    "correction": "the candidate inventory document is committed at 1d0d92aede5e7656cc991cfc8ef3b02422082c20; that is the correct linked_commit. Per append-only the broken receipt is left in place and corrected forward here.",
+    "note": "the underlying candidate inventory doc itself is fine and unchanged; only the earlier receipt's linked_commit field and its VALID claim were wrong."
+  },
+  "cannot_claim": [
+    "that the earlier candidate-inventory receipt was valid (it was not)",
+    "that any catalogued tool is adopted or that Gate 2 is advanced",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
