@@ -1,0 +1,44 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "grep for withdrawn over-claim phrases in the rehearsal doc and RUN-RECIPE; git diff --stat on frozen/signed surfaces and on the prior rehearsal receipt (both must be zero); python -m governance_tools.governance_drift_checker",
+  "exit_code": 0,
+  "started_at": "2026-07-25T12:04:14Z",
+  "finished_at": "2026-07-25T12:04:14Z",
+  "runner": "claude-code-gate2-rehearsal-scope-correction-20260725",
+  "linked_commit": "0d12dba72559f2291545cb8a7afbd0a4a779cd82",
+  "output_artifacts": [
+    "docs/status/gate2-model-channel-mechanism-rehearsal-20260725.md",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/RUN-RECIPE.md"
+  ],
+  "corrects_prior_receipt": {
+    "file": "artifacts/evidence/test-results/receipt-gate2-model-channel-rehearsal-20260725.json",
+    "defect": "the prior receipt and its document described an owner-performed docker exec nonce test as a model-channel mechanism rehearsal that closed the out-of-band model-channel question. No model session and no model tool adapter were in the path; a human occupied the position an agent tool-call loop would occupy. The isolation and nonce results are accurate; the architectural claim built on them was not.",
+    "correction": "scope narrowed to a host-to-container tool-control bridge rehearsal; the model-side link is explicitly recorded as unexercised and outstanding.",
+    "append_only": "the prior receipt is left byte-stable and corrected forward here (verified zero diff)."
+  },
+  "what_was_actually_exercised": "host process outside the sandbox drives commands into a --network none, --read-only, non-root container; nonce round-trip correct; container isolation properties hold",
+  "what_remains_unexercised": "model session (network) -> managed tool adapter -> container (no network) -> result -> model; no agent tool loop and no adapter were involved",
+  "next_bounded_validation": "fresh real model session outside the sandbox plus a managed tool adapter executing only inside the network-none container, capturing the model tool request, the container execution and output, and a model response correctly using the returned nonce; dummy repo only, no Gate 2 packet, not an arm",
+  "preserved_findings": [
+    "owner-reported nonce round-trip",
+    "container isolation results",
+    "Windows/git-bash MSYS_NO_PATHCONV path-conversion trap (runbook note retained)"
+  ],
+  "byte_stability_verified": {
+    "amendment_v2_and_v3": "zero diff",
+    "frozen_v1_packets_all_three": "zero diff",
+    "signed_candidate_packets_both": "zero diff",
+    "preflight_manifest": "zero diff",
+    "prior_rehearsal_receipt": "zero diff (append-only respected)"
+  },
+  "governance_drift_checker": "severity=ok",
+  "cannot_claim": [
+    "that a real model session participated or that a managed model tool adapter was exercised",
+    "that the out-of-band model-to-tool-to-model architecture is closed",
+    "that this is an end-to-end model-channel rehearsal",
+    "that any Gate 2 producer or scorer context exists, that Gate 2 may start, or that any arm ran",
+    "that the Bug Fix Skill or validator treatment is effective",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
