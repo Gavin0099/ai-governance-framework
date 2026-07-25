@@ -1,0 +1,60 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "docker inspect gate2-channel-rehearsal (isolation properties); docker exec (network probe with direct exit-code read, nonce presence/size/sha256, plaintext deliberately not read); docker ps count; git diff --stat on frozen/signed/prior-receipt surfaces; governance_drift_checker",
+  "exit_code": 0,
+  "started_at": "2026-07-25T12:19:58Z",
+  "finished_at": "2026-07-25T12:19:58Z",
+  "runner": "claude-code-gate2-model-channel-rehearsal-full-20260725",
+  "linked_commit": "642c246cc9ef8bc9e21ff19a291e5a8ee91a68b5",
+  "output_artifacts": [
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/MODEL-CHANNEL-REHEARSAL-20260725.md",
+    "docs/status/gate2-model-channel-mechanism-rehearsal-20260725.md"
+  ],
+  "provenance": {
+    "three_stage_test_performed_by": "a separate harness session, reported to this session",
+    "independently_reexecuted_by_this_session": false,
+    "independently_verified_by_this_session": "live-container isolation properties and nonce hash only",
+    "nonce_plaintext_read_by_this_session": false,
+    "image_used": "alpine/git (NOT gate2-runtime:pinned)"
+  },
+  "independent_verification": {
+    "NetworkMode": "none",
+    "ReadonlyRootfs": true,
+    "CapDrop": "[ALL]",
+    "SecurityOpt": "[no-new-privileges]",
+    "User": "65532:65532",
+    "Binds": "[] (no host bind mounts)",
+    "Mounts": "volume:/git only (image-provided)",
+    "network_egress": "wget did not succeed",
+    "nonce_present_in_tmpfs": true,
+    "nonce_bytes": 49,
+    "nonce_sha256": "18030d3bffd6a8db80a7f2f28e98364a256a3f22ecf5f816a7cdae251611f61c",
+    "containers": "12 pre-existing + 1 rehearsal = 13; the 12 untouched"
+  },
+  "exit_code_discrepancy_recorded": "harness reported wget_rc=1; this session measured 143 (128+15 SIGTERM from , a hang) rather than wget's own failure code 1. Same conclusion (no egress), different mechanism; recorded rather than smoothed over given this work's history of exit-code masking.",
+  "reported_three_stage_evidence": {
+    "1_model_tool_request": "adapter log: verb=ls exit=0; verb=read arg=NONCE.txt exit=0 out_bytes=48",
+    "2_container_execution_output": "run inside --network none container as uid 65532; output sha256 e5e44c3b...",
+    "3_model_uses_result": "fresh session reported 48 chars and derived length 48, last six uppercase 7936E1, 36 digits / 12 letters; in-container NONCE_MATCH and SHA_MATCH against a pre-stored hash",
+    "adapter_hostile_inputs_rejected": "read ../../etc/passwd and sh -c id both exit 2"
+  },
+  "byte_stability_verified": {
+    "amendment_v2_and_v3": "zero diff",
+    "frozen_v1_packets_all_three": "zero diff",
+    "signed_candidate_packets_both": "zero diff",
+    "preflight_manifest": "zero diff",
+    "prior_rehearsal_receipts_both": "zero diff (append-only respected)"
+  },
+  "governance_drift_checker": "severity=ok",
+  "cannot_claim": [
+    "that the fresh model session was an independently provisioned operator context: it was a subagent on the same host, account and harness, answer-blind only by prompt isolation plus container-only nonce access",
+    "that adapter exclusivity is technically enforced: it is a prompt constraint corroborated by logs; a direct docker exec bypass would not appear in the adapter log",
+    "that validator pins were re-verified (alpine/git was used, not gate2-runtime:pinned)",
+    "that this constitutes the four producer plus two scorer contexts, or that Gate 2 may start",
+    "that any Gate 2 packet was used, any arm ran, or anything was scored",
+    "that this session ran the three-stage test itself",
+    "that the Bug Fix Skill or validator treatment is effective",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
