@@ -1,0 +1,38 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python test_redaction_runner.py (19 cases incl 4 hostile); independent repro of the 3 reported hostile scenarios; git diff --check",
+  "exit_code": 0,
+  "started_at": "2026-07-25T02:00:37Z",
+  "finished_at": "2026-07-25T02:00:40Z",
+  "runner": "claude-code-gate2-alias-verifier-hostile-20260725",
+  "linked_commit": "15c604eac03b4d31215f28c90d95d870ec59325b",
+  "output_artifacts": [
+    "artifacts/experiments/prepush-bugfix-20260724/redaction_runner.py",
+    "artifacts/experiments/prepush-bugfix-20260724/test_redaction_runner.py"
+  ],
+  "independent_repro": {
+    "out_equals_derived_marker": "REJECTED exit 2, no packet/receipt left (was: producer exit 0, marker overwrote packet)",
+    "windows_case_insensitive_alias": "REJECTED exit 2, Same.json not created (was: producer exit 0, same file)",
+    "verifier_packet_anon_mismatch": "HANDOFF REJECTED exit 2 'packet anon_id does not match marker' (was: exit 0 accept)"
+  },
+  "per_item_results": {
+    "marker_aliases_packet_rejected": "PASS",
+    "case_insensitive_output_alias_rejected": "PASS",
+    "verify_rejects_packet_anon_mismatch": "PASS",
+    "verify_rejects_path_traversal_member": "PASS",
+    "original_15_cases_no_regression": "PASS",
+    "frozen_contract_v2_unchanged": "PASS"
+  },
+  "corrects_prior_claim": {
+    "claim": "the previous memory/receipt said the scorer handoff's 'last execution gap' was closed and the line was 'completely closed'",
+    "correction": "that was an over-claim: two hostile paths (derived-marker alias + case-insensitive alias) still let a producer exit 0 with an unverifiable handoff, and the verifier accepted mismatched packet anon_id. Prior receipts/memory are left in place per append-only and corrected forward here.",
+    "residual": "hostile coverage is now targeted, not exhaustive; only these specific classes are proven closed."
+  },
+  "cannot_claim": [
+    "that the handoff is exhaustively hostile-proof (only the tested classes are closed)",
+    "that Gate 2 is ready: docker/ruff/mypy/shellcheck are NOT_FOUND here, no isolated producer/scorer environments exist, no owner start command",
+    "that any arm has run or that the Bug Fix Skill is effective",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
