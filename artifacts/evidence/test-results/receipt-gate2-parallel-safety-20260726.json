@@ -1,0 +1,44 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python test_adapter_concurrency.py; python test_producer_guard.py; python test_verify_transcript.py; python test_canary_conformance.py; python verify_transcript.py --transcript evidence/transcript.jsonl --adapter-log evidence/adapter-log.jsonl; pre-fix race reproduction with the lock neutered",
+  "exit_code": 0,
+  "started_at": "2026-07-25T17:10:28Z",
+  "finished_at": "2026-07-25T17:10:28Z",
+  "runner": "claude-code-gate2-parallel-safety-20260726",
+  "linked_commit": "98fb46a05babc8b208f2d38c03cc1f4a224d3a50",
+  "output_artifacts": [
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/canary_adapter.py",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/test_adapter_concurrency.py",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/producer-guard/verify_transcript.py",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/producer-guard/test_verify_transcript.py"
+  ],
+  "race_reproduced_pre_fix": {
+    "method": "12 concurrent adapter invocations with serialised() neutered to a no-op and container execution stubbed",
+    "run_1": "9 of 12 lines logged, 0 duplicate seq, contiguous 1..9 -- three calls vanished while the log looked internally consistent",
+    "run_2": "11 of 12 lines logged, 2 duplicate seq, non-contiguous",
+    "significance": "the race is non-deterministic and can present as a perfectly consistent-looking log that is simply missing calls, so log self-consistency is not evidence of completeness"
+  },
+  "fix": {
+    "adapter": "exclusive lock (msvcrt on Windows, fcntl elsewhere) held across seq allocation, execution and logging; serialisation is now enforced rather than assumed",
+    "instrumentation": "each line records pid and lock_wait_ms; a non-zero wait is direct evidence the harness issued overlapping tool calls",
+    "verifier": "verb+args-digest join is a counted multiset and the shared stdout digest is matched within each call's fingerprint pool, both order-independent; added seq uniqueness and contiguity checks; a NOTE reports lock contention"
+  },
+  "test_results": {
+    "test_adapter_concurrency.py": "8 checks ALL PASSED, including that contention was actually observed",
+    "concurrency_suite_fails_pre_fix": "confirmed -- one line per call and seq-counter checks both fail with the lock neutered",
+    "test_producer_guard.py": "88 checks ALL PASSED",
+    "test_verify_transcript.py": "14 mutations ALL CAUGHT",
+    "test_canary_conformance.py": "18 checks ALL PASSED",
+    "verify_transcript.py on committed evidence": "17 checks ALL PASSED (was 15)"
+  },
+  "mutation_suite_change": "retired 'adapter and transcript disagree on call order' because reordering is deliberately no longer a failure once joins ignore order; replaced with the two real race signatures -- a shared sequence number and a missing line leaving a gap",
+  "byte_stability_verified": "frozen baseline hook, amendment v2/v3, three frozen v1 packets and both signed candidates all zero diff",
+  "cannot_claim": [
+    "that a real model has issued parallel tool calls here: whether Claude Code does so is still unobserved, and lock_wait_ms is the instrument added to find out",
+    "that byte-identical concurrent calls can be individually attributed on the adapter side: they are indistinguishable by construction, so the guarantee is that every call is accounted for, not that a specific pair can be told apart",
+    "that authentic Claude Code hook payloads were observed",
+    "that any producer or scorer context exists, that Gate 2 may start, or that any arm ran",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
