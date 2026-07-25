@@ -1,0 +1,41 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "grep for stale 'not yet done' promotion wording in amendment v3 and manifest authority line; git diff --stat on amendment v2 + three frozen v1 packets (must be zero); python -m governance_tools.governance_drift_checker",
+  "exit_code": 0,
+  "started_at": "2026-07-25T07:07:02Z",
+  "finished_at": "2026-07-25T07:07:02Z",
+  "runner": "claude-code-gate2-v3-promotion-state-sync-20260725",
+  "linked_commit": "a575deaf7bb99bd98565b7c2a67ffee2431bdf81",
+  "output_artifacts": [
+    "docs/governance/gate1-prereg-prepush-amendment-v3-20260725.md",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-preflight-manifest-20260724.md",
+    "memory/01_active_task.md"
+  ],
+  "corrects_prior_receipt": {
+    "file": "artifacts/evidence/test-results/receipt-gate2-v3-resign-promotion-20260725.json",
+    "defect": "the promotion was actually applied (manifest pointers updated) and this receipt correctly recorded that fact, but amendment v3's own status banner and Section E were left saying 'not yet done', producing a real cross-document contradiction. The receipt's substance was not wrong; the authority surfaces it described were inconsistent with each other.",
+    "correction": "amendment v3 now reads RE-SIGNED AND PROMOTED with Section E's promotion bullet marked DONE; the preflight manifest's authority line now names v2-as-superseded-by-v3 for the validator-packet rows. Per append-only the prior receipt is left in place and corrected forward here.",
+    "note": "no signed bytes or hashes changed; this is a documentation-consistency fix only"
+  },
+  "fixed_contradictions": {
+    "v3_status_banner": "was 'not yet done' -> now 'RE-SIGNED AND PROMOTED 2026-07-25'",
+    "v3_section_e_bullet": "was 'Canonical promotion slice (not yet done)' -> now 'DONE 2026-07-25'",
+    "manifest_authority_line": "was 'Authority for the protocol is amendment v2' (stale for validator packets) -> now names v3 as superseding v2 for those rows"
+  },
+  "byte_stability_verified": {
+    "amendment_v2": "zero diff",
+    "validator-pins.md (frozen v1)": "zero diff",
+    "validator-expectation-DESIGNER-ONLY.md (frozen v1)": "zero diff",
+    "scorer-handoff-contract.json": "zero diff",
+    "signed_candidate_hashes": "unchanged (877896c7... / 61e1e527...)"
+  },
+  "governance_drift_checker": "severity=ok",
+  "cannot_claim": [
+    "that the post-sign image preflight has been run (still not done)",
+    "that any producer or scorer context, or an out-of-band model control plane, exists",
+    "that Gate 2 may start or that any arm has run",
+    "that the Bug Fix Skill or the validator treatment is effective",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
