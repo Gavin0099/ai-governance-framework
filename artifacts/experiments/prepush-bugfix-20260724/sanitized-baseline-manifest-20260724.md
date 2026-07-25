@@ -8,15 +8,33 @@ working-tree invisibility is not technical unreachability. The fix is an
 **allowlist export into a fresh git object database** that never contains the
 meta blobs at all.
 
-## Construction (reproducible)
+## Construction (reproducible — MUST pin line endings)
+
+> **CORRECTION 2026-07-25 (pending owner re-sign).** The original command was not
+> hermetic: its result depends on the host's `core.autocrlf` / gitattributes.
+> Worse, on a `core.autocrlf=true` host the export produces **CRLF working files
+> while `git add` normalizes the blobs back to LF — so the tree hash still equals
+> `36c346fa…` and the frozen invariant PASSES, yet the files a validator actually
+> reads are CRLF.** Verified: ShellCheck then emits **80+ spurious `SC1017`
+> ("literal carriage return") errors**, which would silently corrupt the Arm D
+> treatment. The tree hash alone therefore does NOT protect the run.
 
 ```
-git archive --format=tar 33006f09 \
+git -c core.autocrlf=false archive --format=tar 33006f09 \
     scripts/hooks/pre-push scripts/lib \
     governance_tools/version_bump_guard.py tests/test_version_bump_guard.py \
   | tar -x -C <sanitized-dir>
-cd <sanitized-dir> && git init && git add -A \
+cd <sanitized-dir> \
+  && git -c core.autocrlf=false init && git config core.autocrlf false \
+  && git add -A \
   && git commit -m "sanitized baseline export from 33006f097597 (allowlist only)"
+```
+
+**Mandatory post-export check (in addition to the tree hash):** every exported
+file must be LF-only in the working tree, e.g.
+
+```
+! grep -rlU $'\r' <sanitized-dir> --exclude-dir=.git    # must find nothing
 ```
 
 ## Frozen record

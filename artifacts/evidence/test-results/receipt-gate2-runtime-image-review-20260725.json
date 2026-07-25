@@ -1,0 +1,40 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "review commits d940e990..51b50a58; run test_redaction_runner.py; py_compile; reconstruct frozen sanitized baseline with and without core.autocrlf=false; inspect immutable Docker image; run ShellCheck/Ruff/mypy against the real sanitized tree under --network none --read-only non-root isolation",
+  "exit_code": 0,
+  "started_at": "2026-07-25T03:10:00Z",
+  "finished_at": "2026-07-25T03:23:26Z",
+  "runner": "codex-gate2-runtime-image-review-20260725",
+  "linked_commit": "51b50a58c923e770469a7f9e0cc09c6004cd9e24",
+  "output_artifacts": [
+    "memory/04_review_log.md",
+    "memory/01_active_task.md"
+  ],
+  "review": {
+    "verdict": "CHANGES_REQUESTED",
+    "risk": "medium",
+    "blocking_findings": 2,
+    "warnings": 2
+  },
+  "per_item_results": {
+    "verifier_suite": "PASS (21 cases)",
+    "python_compile": "PASS",
+    "image_identity": "PASS (sha256:e6df7283938a5c203910524083075843635d2d39ac42fcaa84c7e76cd0b5f168; uid/gid 65532; workdir /work)",
+    "documented_sanitized_rebuild": "FAIL (tree f1c98fed4808d8af1e1f02cb3986a94dd46e193c, expected 36c346fa951a24cbf914ef04469aac5cb5fd8b86)",
+    "line_ending_pinned_sanitized_rebuild": "PASS (git -c core.autocrlf=false archive -> frozen four blobs, tree 36c346fa951a24cbf914ef04469aac5cb5fd8b86, 11 objects)",
+    "real_baseline_shellcheck": "FAIL as observed signal (SC1090, exit 1)",
+    "real_baseline_ruff_documented_command": "PASS command exit 0, but frozen config was not applied",
+    "real_baseline_ruff_frozen_config": "FAIL as observed signal (I001 and E501, exit 1)",
+    "real_baseline_mypy_frozen_config": "PASS (exit 0)",
+    "produce_mode_malformed_json": "FAIL clean-rejection expectation (JSONDecodeError traceback, exit 1)",
+    "gate2_arm_execution": "NOT RUN (frozen Arm D expectation contradicted; managed answer-blind runner not present)"
+  },
+  "cannot_claim": [
+    "that Gate 2 may start under the current frozen expectation",
+    "that any producer or scorer context was created",
+    "that any arm ran or was scored",
+    "that the Bug Fix Skill or validator treatment is effective",
+    "that the synthetic preflight proves the frozen real-baseline treatment"
+  ]
+}

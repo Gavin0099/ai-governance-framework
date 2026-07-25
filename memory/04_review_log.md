@@ -2159,3 +2159,136 @@ post-F-7 natural Stop-hook path required by the close condition.
 - Anti-patterns checked: manufactured evidence and semantic overclaim.
 - Result: Pass. The recheck preserves the existing claim boundary.
 
+## 2026-07-25 - Gate 2 Runtime Image And Verifier Review
+
+### Review Inputs Checked
+- `governance/REVIEW_CRITERIA.md`
+- `governance/AGENT.md`
+- `memory/03_knowledge_base.md`
+- `memory/04_review_log.md`
+- commits `d940e990`, `78f36249`, and `51b50a58`
+- Gate 1 amendment v2, Gate 2 preflight/isolation/sanitized-baseline artifacts,
+  frozen scorer-handoff contract v2, validator packets, runtime Dockerfile,
+  lock file, run recipe, verifier, tests, receipt, and current memory record
+
+### Decision Summary
+**Verdict**: CHANGES_REQUESTED
+**Risk Level**: Medium
+
+The verifier fixes themselves pass their 21-case suite and the built image ID
+matches the recorded digest. Gate 2 must not start, however, because a real run
+against the frozen sanitized baseline contradicted the pre-registered validator
+expectation and showed that the documented commands do not apply the frozen Ruff
+configuration. The sanitized-baseline construction command is also
+host-configuration-dependent and reproduced the wrong tree on this Windows
+host.
+
+### Governance Audit
+- Architecture: validator-only image preserves the intended model/tool split,
+  but the out-of-band model control plane remains NOT PRESENT.
+- Native Safety: N/A.
+- Test Integrity: verifier suite is green, but the image's synthetic two-file
+  preflight did not exercise the frozen validator configs or the real sanitized
+  baseline and therefore missed the blocking treatment drift.
+- Thread Safety: N/A.
+- Baseline Status: the frozen source blobs and target tree are stable; the
+  documented reconstruction command is not stable across host line-ending
+  configuration.
+
+### Technical Findings
+
+1. [BLOCKING] Frozen Arm D validator expectation is false under the frozen config,
+   and the documented commands do not apply that config.
+   - Location:
+     `artifacts/experiments/prepush-bugfix-20260724/validator-expectation-DESIGNER-ONLY.md:13`,
+     `artifacts/experiments/prepush-bugfix-20260724/validator-pins.md:20`,
+     `artifacts/experiments/prepush-bugfix-20260724/validator-pins.md:43`.
+   - Evidence: immutable image
+     `sha256:e6df7283938a5c203910524083075843635d2d39ac42fcaa84c7e76cd0b5f168`
+     on the real frozen tree returned ShellCheck `SC1090`; default
+     `ruff check` returned 0, while the frozen selection
+     `E,F,W,I,B`, line length 100, and Python 3.12 returned `I001` and `E501`
+     with exit 1. The designer expectation says the validator output is empty
+     and `D−C ≈ 0`.
+   - Rule Reference: Gate 1 amendment v2 Section G(c); Engineering Skill Program
+     Sections 4 and 6; `governance/REVIEW_CRITERIA.md` test-integrity rule.
+   - Status: open.
+   - Disposition: bind the frozen config to the actual runtime command/image,
+     correct the expected-signal record, re-hash affected packets, and obtain
+     owner re-sign before any Arm D execution. Do not silently reinterpret the
+     already-frozen expectation after results exist.
+
+2. [BLOCKING] Sanitized-baseline construction is not reproducible under the
+   documented command on this Windows host.
+   - Location:
+     `artifacts/experiments/prepush-bugfix-20260724/sanitized-baseline-manifest-20260724.md:14`.
+   - Evidence: the documented `git archive` command under the host's
+     line-ending configuration produced tree
+     `f1c98fed4808d8af1e1f02cb3986a94dd46e193c`, not frozen tree
+     `36c346fa951a24cbf914ef04469aac5cb5fd8b86`. Re-running as
+     `git -c core.autocrlf=false archive ...` reproduced all four frozen blob
+     hashes, tree `36c346fa...`, and 11 objects.
+   - Rule Reference: Gate 1 amendment v2 Section A frozen baseline invariant;
+     `governance/REVIEW_CRITERIA.md` baseline and reproducibility checks.
+   - Status: open.
+   - Disposition: make the line-ending override explicit in the canonical
+     reconstruction command and retain the tree/blob/object-count verification
+     as a dispatch prerequisite.
+
+3. [WARNING] The run recipe executes a mutable tag even though an immutable image
+   ID is available.
+   - Location:
+     `artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/RUN-RECIPE.md:30`.
+   - Evidence: Docker reports the tag currently maps to
+     `sha256:e6df7283...`, but the command runs `gate2-runtime:pinned`; a rebuild
+     can retarget that name without changing the recipe.
+   - Rule Reference: Engineering Skill Program Section 5 cross-arm environment
+     control; `governance/REVIEW_CRITERIA.md` predictability requirement.
+   - Status: open.
+   - Disposition: dispatch by immutable image ID and stamp that ID plus platform
+     identically for every arm.
+
+4. [WARNING] Produce mode still leaks malformed-JSON tracebacks although the
+   verifier-side warning was fixed.
+   - Location:
+     `artifacts/experiments/prepush-bugfix-20260724/redaction_runner.py:266`.
+   - Evidence: passing the requirements lock as `--contract` returned
+     `JSONDecodeError` with a traceback and exit 1. The verifier's non-object
+     marker/packet/receipt paths correctly return exit 2, so the 21-case result
+     is accurate but narrower than the runner-wide fail-closed wording.
+   - Rule Reference: frozen scorer-handoff contract fail-closed principle;
+     `governance/REVIEW_CRITERIA.md` failure-path requirement.
+   - Status: open.
+   - Disposition: catch JSON/type errors in produce mode and add malformed and
+     non-object contract/receipt cases. This does not authorize changing the
+     frozen redaction map.
+
+### Knowledge Base Alignment
+- Anti-patterns checked: paper verification treated as operational proof,
+  semantic overclaim, ambient host-state binding, and manufactured evidence.
+- Regression notes checked: execution must use representative conditions and
+  an independent oracle; receipt presence does not prove framework correctness.
+- Result: Conflict Found. The synthetic preflight was not representative of the
+  frozen Arm D validator treatment and therefore supported too broad a
+  readiness statement.
+
+### Validation Evidence
+- `test_redaction_runner.py` -> 21 cases passed.
+- `py_compile redaction_runner.py test_redaction_runner.py` -> PASS.
+- Docker image inspect -> daemon 29.6.2, image ID `sha256:e6df7283...`,
+  user `65532:65532`, workdir `/work`.
+- Real sanitized baseline reconstruction -> documented command produced wrong
+  tree; explicit `core.autocrlf=false` produced frozen tree and 11 objects.
+- Immutable-image real-baseline validator probe -> ShellCheck exit 1 (`SC1090`);
+  default Ruff exit 0; frozen Ruff config exit 1 (`I001`, `E501`); mypy default
+  and frozen-command variants exit 0.
+- Gate 2 arm execution -> NOT RUN because the frozen treatment expectation is
+  contradicted and no managed answer-blind model/tool runner is present.
+
+### Next Recommendation
+Create a narrow Gate 1 correction amendment covering only validator-config
+binding, the observed non-null baseline findings, the sanitized construction
+flag, immutable image dispatch, and produce-mode JSON rejection. Re-sign the
+changed frozen hashes/expectation, rebuild and preflight the image on the real
+sanitized tree, then issue a new explicit Gate 2 start command.
+

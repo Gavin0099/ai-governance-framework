@@ -274,7 +274,9 @@ def main() -> int:
                 raise FormatError(f"drop field {f} still present after anonymization")
         anon_receipt["anon_id"] = packet["anon_id"]
         packet_text, receipt_text = _dump(packet), _dump(anon_receipt)
-    except FormatError as e:
+    except (FormatError, ValueError, TypeError, OSError, KeyError) as e:
+        # produce mode must be fail-closed for malformed/unreadable inputs too
+        # (a bad --contract previously raised JSONDecodeError and exited 1).
         print(f"REJECTED (fail-closed): {e}", file=sys.stderr)
         return 2
 

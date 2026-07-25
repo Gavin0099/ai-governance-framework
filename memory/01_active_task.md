@@ -78,6 +78,13 @@
   Experiment execution progress = 0 (design done, no result); no arm has run; the
   hook, runtime, CI, gates, and enforcement are unchanged; Skill effectiveness
   cannot be judged before Gate 3.
+  A 2026-07-25 runtime-image review is now **CHANGES_REQUESTED**: real-baseline
+  execution found non-null ShellCheck/Ruff findings contrary to the frozen
+  designer expectation, the documented Ruff command did not apply the frozen
+  config, and the sanitized-repo reconstruction needed
+  `core.autocrlf=false` to reproduce tree `36c346fa…`. Gate 2 remains at 0/4
+  arms until a narrow correction is owner-re-signed and a managed answer-blind
+  runner exists.
 
 - **P1-F is closed as advisory.** The owner decided at `ba50b0f4` not to add a
   current-diff blocker. Reopen only after a natural post-Option-B

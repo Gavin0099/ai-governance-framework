@@ -251,6 +251,28 @@ def main() -> int:
         results.append(("verify_contract_digest_binding",
                         "PASS" if (cp.returncode == 0 and good and bad) else "FAIL"))
 
+    # WARNING FIX 3: produce mode must fail closed (exit 2, no traceback) on
+    # malformed/unreadable --contract, --raw or --receipt.
+    with tempfile.TemporaryDirectory() as d:
+        bad = os.path.join(d, "bad.json"); open(bad, "w").write("{bad json")
+        good_r = os.path.join(d, "r.json"); open(good_r, "w").write(json.dumps(receipt_obj))
+        oks = []
+        # malformed contract
+        cp = cli("--contract", bad, "--raw", wpath(d, VALID), "--out", os.path.join(d, "o1.json"),
+                 "--receipt", good_r, "--receipt-out", os.path.join(d, "r1.json"))
+        oks.append(cp.returncode == 2 and "Traceback" not in cp.stderr)
+        # malformed receipt
+        cp = cli("--contract", CONTRACT, "--raw", wpath(d, VALID), "--out", os.path.join(d, "o2.json"),
+                 "--receipt", bad, "--receipt-out", os.path.join(d, "r2.json"))
+        oks.append(cp.returncode == 2 and "Traceback" not in cp.stderr)
+        # missing raw file
+        cp = cli("--contract", CONTRACT, "--raw", os.path.join(d, "nope.txt"),
+                 "--out", os.path.join(d, "o3.json"),
+                 "--receipt", good_r, "--receipt-out", os.path.join(d, "r3.json"))
+        oks.append(cp.returncode == 2 and "Traceback" not in cp.stderr)
+        results.append(("produce_mode_fail_closed_on_bad_inputs",
+                        "PASS" if all(oks) else "FAIL"))
+
     for name, r in results:
         print(f"[{name}] {r}")
     return 0 if all(r.startswith("PASS") for _, r in results) else 1

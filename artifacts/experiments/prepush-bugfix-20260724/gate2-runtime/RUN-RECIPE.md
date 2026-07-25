@@ -22,16 +22,25 @@ docker build -t gate2-runtime:pinned .
 
 ## Verified run flags (all preflight checks passed with exactly these)
 
+Dispatch **must** use the immutable image ID, never the mutable `:pinned` tag,
+and must record the ID + platform identically for all four arms:
+
 ```
+IMG=sha256:e6df7283938a5c203910524083075843635d2d39ac42fcaa84c7e76cd0b5f168   # linux/amd64
 docker run --rm --network none --read-only \
   --tmpfs /tmp:rw,noexec,nosuid,size=64m \
   --tmpfs /work:rw,nosuid,uid=65532,gid=65532,size=512m \
   --cap-drop ALL --security-opt no-new-privileges \
-  gate2-runtime:pinned <command>
+  "$IMG" <command>
 ```
 
-Note: `/work` **must** carry `uid=65532,gid=65532`; a bare `--tmpfs /work` is
-root-owned and the non-root user cannot write to it (found during preflight).
+Two defects found by preflight, both now encoded above / below:
+- `/work` **must** carry `uid=65532,gid=65532`; a bare `--tmpfs /work` is
+  root-owned and the non-root user cannot write to it.
+- With `--read-only`, **ruff must be run with `--no-cache`** (or `--cache-dir`
+  pointed at a writable tmpfs). Its default `.ruff_cache` lands in the read-only
+  mount and ruff aborts with "Failed to initialize cache", which would otherwise
+  be mistaken for a validator result.
 
 ## Synthetic preflight results (this image, these flags)
 
