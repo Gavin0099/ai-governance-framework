@@ -354,6 +354,9 @@
   promotion DONE with only the post-sign image preflight outstanding, and the
   manifest authority line names v3 as superseding v2 for the validator-packet
   rows. Only the post-sign image preflight remains before further steps.
+- Independent re-review APPROVED the promotion-state truth repair at
+  `cdf95286`; the next authorized candidate slice is post-sign image preflight
+  only, not producer/scorer setup or Gate 2 execution.
 
 ## Cannot Claim From This Surface
 

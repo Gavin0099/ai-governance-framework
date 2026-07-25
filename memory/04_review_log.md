@@ -2687,3 +2687,74 @@ Do not run the post-sign image preflight yet. First complete the narrow
 promotion-state truth repair described above, correction-forward the receipt,
 and obtain a scoped review. The signed packet hashes do not need to change.
 
+## 2026-07-25 - Gate 2 Promotion-State Truth-Repair Review
+
+### Review Inputs Checked
+- `governance/REVIEW_CRITERIA.md`
+- `governance/AGENT.md`
+- `governance/RESPONSE_ENVELOPE_CONTRACT.md`
+- `memory/03_knowledge_base.md`
+- prior Gate 2 entries in `memory/04_review_log.md`
+- commits `a575deaf` and `cdf95286`
+- amendment v3, preflight manifest, signed candidate packets, prior promotion
+  receipt, successor correction receipt, active-task state, and daily memory
+
+### Decision Summary
+- Verdict: APPROVED
+- Risk level: Low
+- Scope: promotion-state truth repair only. This approval permits the separate
+  post-sign image preflight slice; it does not authorize Gate 2 execution.
+
+### Governance Audit
+- Architecture: N/A; no runtime, hook, CI, schema, gate, or enforcement changed.
+- Native safety: N/A.
+- Test integrity: PASS. Canonical state, authority text, append-only correction,
+  signed hashes, and historical byte stability agree.
+- Thread safety: N/A.
+- Baseline status: Stable for signed packet bytes; runtime preflight remains the
+  next unexecuted evidence layer.
+- Dirty-worktree hygiene: clean at review start; reviewed commits are pushed
+  and `HEAD == origin/main == cdf95286`.
+
+### Technical Findings
+- No open blocking findings or warnings.
+- Prior promotion-state contradiction:
+  - Status: resolved.
+  - Location:
+    `docs/governance/gate1-prereg-prepush-amendment-v3-20260725.md`,
+    `artifacts/experiments/prepush-bugfix-20260724/gate2-preflight-manifest-20260724.md`,
+    `memory/01_active_task.md`, and
+    `artifacts/evidence/test-results/receipt-gate2-v3-promotion-state-sync-20260725.json`.
+  - Evidence: v3 now says `RE-SIGNED AND PROMOTED`, Section E marks promotion
+    DONE and leaves only post-sign image preflight pending, the manifest names
+    v2 as superseded by v3 only for validator packets, active-task state agrees,
+    and the successor receipt corrects forward without rewriting the prior
+    receipt.
+  - Rule reference: `governance/REVIEW_CRITERIA.md` predictability and
+    evidence-consistency requirements; amendment v3 Section E.
+  - Disposition: resolved in `a575deaf`; no signed bytes or hashes changed.
+
+### Confirmed Evidence
+- Candidate pins SHA256 remains `877896c7...`.
+- Candidate expectation SHA256 remains `61e1e527...`.
+- Amendment v2 and all three frozen v1 packets have zero diff from the prior
+  signed baseline.
+- Prior promotion receipt has zero diff; correction is append-only.
+- Review and successor receipts both validate structurally as `VALID`.
+- Governance drift reports `ok=true`, `severity=ok`.
+- `HEAD == origin/main == cdf95286` after fetch; author worktree was clean.
+- Post-sign image preflight and Gate 2 arms remain NOT RUN.
+
+### Knowledge Base Alignment
+- Anti-patterns checked: authority-state drift, receipt-as-semantic-proof,
+  historical evidence rewrite, and exit-code masking.
+- Regression notes checked: canonical state transitions must synchronize every
+  named authority surface.
+- Result: Pass. The prior contradiction is correction-forward and no new
+  conflict remains in the reviewed scope.
+
+### Next Recommendation
+Proceed with one bounded post-sign image preflight against the canonical
+candidate packets. Stop after recording the preflight result; producer/scorer
+resource setup and Gate 2 start remain separate, unauthorized work.
+
