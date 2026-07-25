@@ -343,9 +343,17 @@
   accurate Claim-class release notes.
 - Historical `missing_canonical_memory` / `unbound_memory` debt remains warning
   evidence unless a scoped cleanup is approved.
-- Gate 2 corrected candidate pair is reviewer-approved for owner re-sign at
-  pins `877896c7...` plus expectation `61e1e527...`; canonical promotion and
-  Gate 2 execution remain separate and not authorized.
+- Gate 2 corrected candidate pair is reviewer-approved and owner-signed at
+  pins `877896c7...` plus expectation `61e1e527...`; canonical promotion (the
+  preflight manifest's packet pointers) is done. Gate 2 execution remains
+  separate and not authorized.
+- A review found amendment v3's top status and Section E still said promotion
+  was pending while the manifest and a receipt already showed it done, and that
+  the manifest's authority line named only v2 for validator packets v3 now
+  supersedes. Fixed: v3 now reads "RE-SIGNED AND PROMOTED", Section E marks
+  promotion DONE with only the post-sign image preflight outstanding, and the
+  manifest authority line names v3 as superseding v2 for the validator-packet
+  rows. Only the post-sign image preflight remains before further steps.
 
 ## Cannot Claim From This Surface
 

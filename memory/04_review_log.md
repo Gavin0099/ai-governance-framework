@@ -2603,3 +2603,87 @@ canonical promotion and image preflight remain a separate bounded slice. Gate 2
 must remain stopped until the independent producer/scorer and out-of-band model
 resources exist and a later explicit start command is given.
 
+## 2026-07-25 - Gate 2 Owner Re-sign and Canonical Promotion Review
+
+### Review Inputs Checked
+- `governance/REVIEW_CRITERIA.md`
+- `governance/AGENT.md`
+- `governance/RESPONSE_ENVELOPE_CONTRACT.md`
+- `memory/03_knowledge_base.md`
+- prior Gate 2 entries in `memory/04_review_log.md`
+- commits `71219179`, `68439a81`, and `1f0078fc`
+- amendment v3, preflight manifest, signed candidate packets, promotion
+  receipt, active-task state, and daily memory
+
+### Decision Summary
+- Verdict: CHANGES_REQUESTED
+- Risk level: Medium
+- Scope: owner signature and canonical-promotion state only; post-sign image
+  preflight was intentionally not executed in this review.
+
+### Governance Audit
+- Architecture: N/A; no runtime, hook, CI, schema, gate, or enforcement changed.
+- Native safety: N/A.
+- Test integrity: candidate hashes and frozen-file byte stability pass, but the
+  canonical-state authority surfaces disagree.
+- Thread safety: N/A.
+- Baseline status: Stable for the signed bytes; post-sign runtime state remains
+  unverified by design.
+- Dirty-worktree hygiene: clean at review start; reviewed commits are pushed
+  and `HEAD == origin/main == 1f0078fc`.
+
+### Technical Findings
+1. [BLOCKING] Canonical promotion was performed but the amendment still records
+   it as pending.
+   - Location:
+     `docs/governance/gate1-prereg-prepush-amendment-v3-20260725.md:3-5`,
+     `docs/governance/gate1-prereg-prepush-amendment-v3-20260725.md:148-155`,
+     `artifacts/experiments/prepush-bugfix-20260724/gate2-preflight-manifest-20260724.md:5-6`,
+     `artifacts/evidence/test-results/receipt-gate2-v3-resign-promotion-20260725.json:23-25`,
+     and `memory/01_active_task.md:346-348`.
+   - Evidence: the manifest calls both candidate paths `CANONICAL` and the
+     receipt claims canonical promotion completed, while amendment v3's status
+     says canonical promotion is "not yet done" and Section E still lists the
+     promotion slice as pending. The manifest also says amendment v2 alone is
+     protocol authority even though v3 now supersedes its validator fields.
+     The receipt says its manifest-only scope is "per Section E", but Section E
+     explicitly required both manifest pointer changes and marking the
+     amendment status "promoted".
+   - Rule reference: `governance/REVIEW_CRITERIA.md` predictability and
+     evidence-consistency requirements; amendment v3 Section E's own promotion
+     contract.
+   - Status: open.
+   - Disposition: update amendment v3 to `RE-SIGNED AND PROMOTED`, mark only the
+     canonical-promotion step done while keeping post-sign preflight pending,
+     change the manifest authority line to amendment v2 as corrected by
+     re-signed v3, synchronize `memory/01_active_task.md`, and add an append-only
+     correction receipt because the committed promotion receipt omitted the v3
+     status part of its claimed Section E scope.
+
+### Resolved / Confirmed In Reviewed Diff
+- Reviewer APPROVED record `71219179` accurately preserves the independently
+  measured `1/1/0` validator results.
+- Signed candidate SHA256 values recompute exactly to `877896c7...` and
+  `61e1e527...`; superseded `1678e663...` is explicitly not signed.
+- Amendment v2 and all three frozen v1 packets remain byte-stable.
+- The manifest pointer rows themselves correctly identify the signed candidate
+  paths and hashes.
+- Both relevant receipts validate structurally; governance drift reports
+  `ok=true`, `severity=ok`.
+- Post-sign image preflight, all producer/scorer contexts, and every Gate 2 arm
+  remain NOT RUN / NOT PRESENT as claimed.
+
+### Knowledge Base Alignment
+- Anti-patterns checked: authority-state drift, receipt-as-semantic-proof,
+  signing before exact bytes, historical evidence rewrite, and exit-code
+  masking.
+- Regression notes checked: state transitions must synchronize canonical
+  authority surfaces and receipts cannot repair contradictory prose.
+- Result: Conflict Found. The bytes and signature are sound, but promotion
+  status is not represented consistently.
+
+### Next Recommendation
+Do not run the post-sign image preflight yet. First complete the narrow
+promotion-state truth repair described above, correction-forward the receipt,
+and obtain a scoped review. The signed packet hashes do not need to change.
+

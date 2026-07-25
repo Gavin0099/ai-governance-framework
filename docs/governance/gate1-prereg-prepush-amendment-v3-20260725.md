@@ -1,9 +1,11 @@
 # Gate 1 Correction Amendment v3 — Arm D expected signal + validator config binding
 
-Status: **CORRECTION v3, RE-SIGNED 2026-07-25 (Section E).** The two candidate
-packets (pins, expectation) are signed. Canonical promotion and the post-sign
-image preflight are **not yet done** — see Section E. Gate 2 must still NOT
-start: resource preflight (4+2 isolated contexts, out-of-band model channel) and
+Status: **CORRECTION v3, RE-SIGNED AND PROMOTED 2026-07-25 (Section E).** The two
+candidate packets (pins, expectation) are signed AND canonically promoted (the
+preflight manifest's packet pointers were updated to them). The **post-sign
+image preflight is the only remaining Section E step, and is not yet done** —
+see Section E. Gate 2 must still NOT start: resource preflight (4+2 isolated
+contexts, out-of-band model channel) and
 a separate owner start command remain outstanding regardless of this signature.
 Amendment v2 stays authoritative for everything it covers; v3 corrects only the
 Arm D validator treatment (expected signal, config binding) and the
@@ -145,13 +147,15 @@ APPROVED corrected values (shellcheck=1, ruff=1, mypy=0; superseded hash
    `core.autocrlf=false` plus the LF-only worktree check, the immutable image ID,
    and ruff `--no-cache`.
 
-**This signature covers the two candidate packets and the C1 map only.** It is
-**not** a canonical-promotion event and **not** a Gate 2 start command. Two
-further, separate steps remain before Gate 2 can be considered:
+**This signature is not itself a Gate 2 start command.** One further step
+remains before Gate 2 can be considered:
 
-- **Canonical promotion slice** (not yet done): update the preflight manifest's
-  packet pointers to the candidate paths above and mark this amendment's status
-  "promoted"; recomputes nothing, the hashes are already final.
+- **Canonical promotion slice — DONE 2026-07-25.** The preflight manifest's
+  packet pointers were updated to the candidate paths/hashes above (the
+  manifest's authority line was also corrected to name this re-signed v3, not
+  v2 alone, for the validator packets); this amendment's status is marked
+  "RE-SIGNED AND PROMOTED" above. Nothing was recomputed — the hashes were
+  already final.
 - **Post-sign image preflight** (not yet done): re-run the pinned-image
   synthetic preflight against the newly-canonical packets to confirm nothing
   regressed between the review and promotion.

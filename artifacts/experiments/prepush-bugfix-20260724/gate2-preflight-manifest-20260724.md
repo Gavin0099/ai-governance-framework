@@ -3,8 +3,12 @@
 Status: **answer-safe setup only.** This manifest records the Gate 2 preflight
 steps that the design session may perform without touching answer production. It
 does **not** start Gate 2, run any arm, or participate in scoring. Authority for
-the protocol is amendment v2. Gate 2 still requires the remaining resource-gated
-items below AND a separate explicit owner "start Gate 2" command.
+the protocol is amendment v2, **as corrected and superseded for the validator
+packets (Arm D expected signal, config binding) by re-signed and promoted
+amendment v3** — v2 remains authoritative for everything else (isolation,
+dispatch/Skill/Governance packets, scorer handoff, execution constants). Gate 2
+still requires the remaining resource-gated items below AND a separate explicit
+owner "start Gate 2" command.
 
 ## Done this session (answer-safe)
 

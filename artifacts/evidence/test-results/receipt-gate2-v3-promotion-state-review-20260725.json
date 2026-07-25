@@ -1,0 +1,43 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "review commits 71219179, 68439a81, and 1f0078fc; recompute signed candidate hashes; verify amendment v2 and three frozen v1 packets have zero diff; compare amendment v3 promotion status, manifest canonical pointers and authority line, promotion receipt scope, active-task state, and daily memory; validate receipts; run governance drift checker; fetch origin and compare HEAD",
+  "exit_code": 0,
+  "started_at": "2026-07-25T06:57:21Z",
+  "finished_at": "2026-07-25T07:03:22Z",
+  "runner": "codex-gate2-v3-promotion-state-review-20260725",
+  "linked_commit": "1f0078fc8ee371cd26681722f2d921c731e5d1a0",
+  "output_artifacts": [
+    "memory/04_review_log.md",
+    "memory/01_active_task.md"
+  ],
+  "review": {
+    "verdict": "CHANGES_REQUESTED",
+    "risk": "medium",
+    "blocking_findings": 1,
+    "warnings": 0,
+    "scope": "owner signature and canonical-promotion state only"
+  },
+  "per_item_results": {
+    "independent_approved_review_record": "PASS commit 71219179",
+    "candidate_pins_sha256": "PASS 877896c7672b1f47383e19ab00a38049344634c12c328a205a1651c6da4bf46d",
+    "candidate_expectation_sha256": "PASS 61e1e52743e78ad9d38bd50e311978f5d49f513d617a48fd9a9b5a0901d02092",
+    "superseded_hash_not_signed": "PASS 1678e663... explicitly excluded",
+    "signed_v2_and_frozen_v1_byte_stability": "PASS zero diff",
+    "manifest_candidate_pointer_rows": "PASS paths and hashes correct",
+    "canonical_promotion_state_consistency": "FAIL manifest and receipt say promoted while amendment v3 says promotion not yet done",
+    "manifest_protocol_authority": "FAIL says amendment v2 alone despite v3 superseding validator fields",
+    "promotion_receipt_validation": "PASS structural validity only; semantic scope is incomplete",
+    "governance_drift": "PASS ok=true severity=ok",
+    "remote_sync": "PASS HEAD equals origin/main at 1f0078fc after fetch",
+    "post_sign_image_preflight": "NOT RUN",
+    "gate2_arm_execution": "NOT RUN"
+  },
+  "cannot_claim": [
+    "that canonical promotion is represented consistently across authority surfaces",
+    "that the post-sign image preflight should start before promotion-state truth repair",
+    "that the post-sign image preflight has run",
+    "that Gate 2 may start or that any producer, scorer, or arm exists or has run",
+    "that Skill or validator treatment effectiveness has been demonstrated"
+  ]
+}
