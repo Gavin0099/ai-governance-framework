@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections import Counter
 
 PRE = "pre_tool_use"
 TERMINALS = ("post_tool_use", "post_tool_use_failure")
@@ -37,13 +38,20 @@ def load(path: str) -> list[dict]:
 class Checks:
     def __init__(self) -> None:
         self.rows: list[tuple[str, bool, str]] = []
+        self.notes: list[str] = []
 
     def add(self, name: str, ok: bool, detail: str = "") -> None:
         self.rows.append((name, ok, detail))
 
+    def note(self, text: str) -> None:
+        """Observation, not a pass/fail assertion. Reported, never counted."""
+        self.notes.append(text)
+
     def report(self) -> int:
         for name, ok, detail in self.rows:
             print(f"[{'PASS' if ok else 'FAIL'}] {name}" + (f" -- {detail}" if detail else ""))
+        for text in self.notes:
+            print(f"[NOTE] {text}")
         bad = [n for n, ok, _ in self.rows if not ok]
         print("---")
         print(f"{len(self.rows)} checks, {len(bad)} failed" if bad else f"{len(self.rows)} checks, ALL PASSED")
@@ -98,30 +106,76 @@ def main() -> int:
     c.add("the adapter rejected nothing (nothing reached it that the guard should have stopped)",
           not rejected, f"{len(rejected)} rejected line(s)")
 
-    # Ordered join. The channel is serial, so the k-th allowed call in the
-    # transcript must be the k-th line in the adapter log.
-    join_bad = []
-    for k, (e, a) in enumerate(zip(allowed, executed)):
-        if e.get("verb") != a.get("verb") or e.get("args_sha256") != a.get("args_sha256"):
-            join_bad.append(f"#{k}: transcript {e.get('verb')}/{str(e.get('args_sha256'))[:8]}"
-                            f" vs adapter {a.get('verb')}/{str(a.get('args_sha256'))[:8]}")
-    c.add("ordered verb+argument-digest join between transcript and adapter log",
-          not join_bad, "; ".join(join_bad))
+    # --- serialisation is enforced, so it is checked rather than assumed ------
+    # The adapter holds an exclusive lock across sequence allocation, execution
+    # and logging. Before that lock, concurrent calls raced: a call could vanish
+    # from the log while the remaining lines still looked perfectly consistent
+    # (contiguous, no duplicates), so "the log looks fine" was never evidence
+    # that the log was complete.
+    seqs = [a.get("seq") for a in executed]
+    c.add("adapter sequence numbers are unique",
+          len(set(seqs)) == len(seqs), f"{len(seqs) - len(set(seqs))} duplicate(s)")
+    c.add("adapter sequence numbers are contiguous from 1",
+          sorted(seqs) == list(range(1, len(seqs) + 1)), str(sorted(seqs)[:6]))
+
+    # --- counted join, order-independent -------------------------------------
+    # Matching by multiset rather than by position means a harness that issues
+    # tool calls in parallel cannot silently pass verification on the strength
+    # of an accidental ordering. Byte-identical concurrent calls stay
+    # individually correlated through tool_use_id on the transcript side; on the
+    # adapter side they are indistinguishable by construction, so the honest
+    # guarantee is that every call is accounted for, not that a specific pair
+    # can be told apart.
+    def fingerprints(rows):
+        return Counter((r.get("verb"), r.get("args_sha256")) for r in rows)
+
+    want, got = fingerprints(allowed), fingerprints(executed)
+    only_transcript = want - got
+    extra = got - want
+    detail = []
+    if only_transcript:
+        detail.append("in transcript but not adapter: "
+                      + ", ".join(f"{v}/{str(h)[:8]}x{n}"
+                                  for (v, h), n in only_transcript.items()))
+    if extra:
+        detail.append("in adapter but not transcript: "
+                      + ", ".join(f"{v}/{str(h)[:8]}x{n}" for (v, h), n in extra.items()))
+    c.add("verb+argument-digest multiset matches between transcript and adapter log "
+          "(order-independent)", not detail, "; ".join(detail))
+
+    # Contention is informational, but recording it is how we learn whether the
+    # real harness issues parallel tool calls at all.
+    contended = [a for a in executed if (a.get("lock_wait_ms") or 0) > 0]
+    c.note(f"adapter calls that waited on the serialisation lock: {len(contended)}"
+           f" of {len(executed)}"
+           + (" (the harness issued overlapping tool calls)" if contended else ""))
 
     # The shared observable: the adapter's normalised stdout digest must be the
     # digest the post hook recorded for the same call.
+    # Order-independent: for each allowed call, its terminal event's stdout
+    # digest must appear among the adapter lines that share its verb and
+    # argument digest. Positional pairing would have been an ordering assumption
+    # again, which is exactly what parallel tool calls break.
+    adapter_obs: dict[tuple, Counter] = {}
+    for a in executed:
+        adapter_obs.setdefault((a.get("verb"), a.get("args_sha256")),
+                               Counter())[a.get("stdout_sha256")] += 1
     obs_bad = []
-    for k, (e, a) in enumerate(zip(allowed, executed)):
+    for e in allowed:
         term = by_id.get(e.get("tool_use_id"), [None])[0]
-        if term is None:
-            continue
-        if term.get("event") == "post_tool_use_failure":
+        if term is None or term.get("event") == "post_tool_use_failure":
             continue  # failure payloads carry `error`, not stdout, by design
-        if term.get("stdout_sha256") != a.get("stdout_sha256"):
-            obs_bad.append(f"#{k} {e.get('verb')}: {str(term.get('stdout_sha256'))[:8]}"
-                           f" != {str(a.get('stdout_sha256'))[:8]}")
-    c.add("shared observable (normalised stdout digest) agrees on both sides",
-          not obs_bad, "; ".join(obs_bad))
+        key = (e.get("verb"), e.get("args_sha256"))
+        pool = adapter_obs.get(key)
+        want_digest = term.get("stdout_sha256")
+        if not pool or pool.get(want_digest, 0) <= 0:
+            obs_bad.append(f"{e.get('tool_use_id')} {e.get('verb')}: "
+                           f"{str(want_digest)[:8]} not among the adapter's "
+                           f"stdout digests for that call")
+        else:
+            pool[want_digest] -= 1
+    c.add("shared observable (normalised stdout digest) agrees on both sides "
+          "(order-independent)", not obs_bad, "; ".join(obs_bad))
 
     # Duplicate identical commands must still be individually resolvable.
     digests: dict[str, list[dict]] = {}

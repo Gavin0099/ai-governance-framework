@@ -27,11 +27,13 @@ from __future__ import annotations
 
 import base64
 import binascii
+import contextlib
 import hashlib
 import json
 import os
 import subprocess
 import sys
+import time
 from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -42,6 +44,7 @@ CONTAINER = os.environ.get("GATE2_CANARY_CONTAINER", "gate2-admission-canary")
 POLICY_PATH = os.environ.get("GATE2_POLICY", os.path.join(HERE, "policy_canary.json"))
 LOG = os.environ.get("GATE2_ADAPTER_LOG", os.path.join(HERE, "adapter-log.jsonl"))
 SEQ = LOG + ".seq"
+LOCK = LOG + ".lock"
 
 REPO = "/work/repo"
 OUT = "/work/out"
@@ -61,7 +64,59 @@ def sha(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+@contextlib.contextmanager
+def serialised():
+    """Hold an exclusive lock across sequence allocation, execution and logging.
+
+    A real model may issue tool calls concurrently. Without this, `next_seq()`
+    was a read-modify-write race (two callers read n, both write n+1, so seq
+    values collide and a line is effectively lost), and because the log line is
+    written *after* execution, log order did not have to match execution order.
+    The verifier's ordered join quietly assumed neither could happen.
+
+    Holding the lock for the whole call turns that assumption into an enforced
+    property: calls queue instead of interleaving, so seq is unique and
+    contiguous and log order *is* execution order. The wait is also evidence --
+    a non-zero `lock_wait_ms` means another call really was in flight, which is
+    how we detect that the harness issues parallel tool calls at all.
+    """
+    start = time.monotonic()
+    fh = open(LOCK, "a+b")
+    try:
+        if os.name == "nt":
+            import msvcrt
+
+            while True:
+                try:
+                    fh.seek(0)
+                    msvcrt.locking(fh.fileno(), msvcrt.LK_LOCK, 1)
+                    break
+                except OSError:
+                    time.sleep(0.05)
+        else:
+            import fcntl
+
+            fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+        waited_ms = int((time.monotonic() - start) * 1000)
+        yield waited_ms
+    finally:
+        try:
+            if os.name == "nt":
+                import msvcrt
+
+                fh.seek(0)
+                msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+        except OSError:
+            pass
+        fh.close()
+
+
 def next_seq() -> int:
+    """Allocate the next sequence number. MUST be called while `serialised()`."""
     try:
         with open(SEQ, encoding="utf-8") as fh:
             n = int(fh.read().strip() or "0")
@@ -70,6 +125,8 @@ def next_seq() -> int:
     n += 1
     with open(SEQ, "w", encoding="utf-8") as fh:
         fh.write(str(n))
+        fh.flush()
+        os.fsync(fh.fileno())
     return n
 
 
@@ -150,32 +207,40 @@ def main(argv: list[str]) -> int:
         return 2
 
     ok, reason = policy.check(verb, args) if verb else (False, "missing verb")
-    seq = next_seq()
-    base = {
-        "ts": now(),
-        "seq": seq,
-        "verb": verb or None,
-        "args_summary": summarise(args),
-        "args_sha256": sha("\x00".join(args)),
-        "arg_count": len(args),
-        "container": CONTAINER,
-        "policy_id": policy.policy_id,
-        "policy_sha256": policy.sha256,
-    }
 
-    if not ok:
-        # Defence in depth: the guard should already have refused this, so a
-        # rejected line in this log means something reached the adapter that the
-        # guard did not stop.
-        log({**base, "decision": "rejected", "reason": reason, "exit": None,
-             "stdout_bytes": None, "stdout_sha256": None})
-        print(f"adapter: rejected request ({reason})", file=sys.stderr)
-        return 2
+    # One critical section: allocate the sequence number, run the call, and
+    # write its log line. Concurrent adapter invocations queue here rather than
+    # interleaving, so seq stays unique and contiguous and log order is
+    # execution order -- properties the verifier previously had to assume.
+    with serialised() as lock_wait_ms:
+        seq = next_seq()
+        base = {
+            "ts": now(),
+            "seq": seq,
+            "pid": os.getpid(),
+            "lock_wait_ms": lock_wait_ms,
+            "verb": verb or None,
+            "args_summary": summarise(args),
+            "args_sha256": sha("\x00".join(args)),
+            "arg_count": len(args),
+            "container": CONTAINER,
+            "policy_id": policy.policy_id,
+            "policy_sha256": policy.sha256,
+        }
 
-    rc, raw = execute(verb, args)
-    out = normalise(raw)
-    log({**base, "decision": "executed", "reason": None, "exit": rc,
-         "stdout_bytes": len(out), "stdout_sha256": sha(out)})
+        if not ok:
+            # Defence in depth: the guard should already have refused this, so a
+            # rejected line in this log means something reached the adapter that
+            # the guard did not stop.
+            log({**base, "decision": "rejected", "reason": reason, "exit": None,
+                 "stdout_bytes": None, "stdout_sha256": None})
+            print(f"adapter: rejected request ({reason})", file=sys.stderr)
+            return 2
+
+        rc, raw = execute(verb, args)
+        out = normalise(raw)
+        log({**base, "decision": "executed", "reason": None, "exit": rc,
+             "stdout_bytes": len(out), "stdout_sha256": sha(out)})
     sys.stdout.write(out + "\n")
     return rc
 

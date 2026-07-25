@@ -103,8 +103,17 @@ def main() -> int:
              lambda e, a: e[1].update(stdout_sha256=sha("something else")))
     mutation("the adapter ran something the transcript does not show", "allowed-call count",
              lambda e, a: a.append({**a[-1], "seq": 99}))
-    mutation("adapter and transcript disagree on the call order", "ordered verb",
-             lambda e, a: a.insert(0, a.pop()))
+    # Reordering the adapter log is deliberately NOT a failure any more: each
+    # line carries its own seq, and the joins are order-independent so that a
+    # harness issuing parallel tool calls cannot pass or fail on accidental
+    # ordering. What must still be caught are the real symptoms of the
+    # concurrency race the serialising lock now prevents.
+    mutation("two adapter calls share a sequence number (the race signature)",
+             "sequence numbers are unique",
+             lambda e, a: a[-1].update(seq=a[0]["seq"]))
+    mutation("an adapter line went missing, leaving a sequence gap",
+             "contiguous from 1",
+             lambda e, a: a.pop(1) if len(a) > 2 else None)
     mutation("something reached the adapter that the guard should have stopped",
              "adapter rejected nothing",
              lambda e, a: a.append({"seq": 99, "decision": "rejected", "verb": "sh",
