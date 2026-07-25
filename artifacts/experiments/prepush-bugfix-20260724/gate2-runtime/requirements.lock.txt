@@ -1,0 +1,10 @@
+# Gate 2 runtime — pinned validators (hash-locked; pip --require-hashes)
+# Python 3.12 / linux x86_64 wheels only.
+ruff==0.6.9 \
+    --hash=sha256:a67267654edc23c97335586774790cde402fb6bbdb3c2314f1fc087dee320bfa
+mypy==1.11.2 \
+    --hash=sha256:6e7184632d89d677973a14d00ae4d03214c8bc301ceefcdaf5c474866814c987
+mypy_extensions==1.0.0 \
+    --hash=sha256:4392f6c0eb8a5668a69e23d168ffa70f0be9ccfd32b5cc2d26a34ae5b844552d
+typing_extensions==4.12.2 \
+    --hash=sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d
