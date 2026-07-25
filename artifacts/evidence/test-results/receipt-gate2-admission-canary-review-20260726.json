@@ -1,0 +1,42 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "review commits aba16930 and 68d618bf; inspect canary policy, adapter, hook pipeline, emulator, driver, transcript verifier, durable evidence and memory; independently rerun producer-guard, mutation, conformance and artifact-only verification suites; inspect event and adapter counts; compare HEAD and origin/main",
+  "exit_code": 0,
+  "started_at": "2026-07-25T16:58:45Z",
+  "finished_at": "2026-07-25T16:58:45Z",
+  "runner": "codex-gate2-admission-canary-review-20260726",
+  "linked_commit": "68d618bf8c0216e1ea921a2d14960d5fc2fed1f2",
+  "output_artifacts": [
+    "memory/04_review_log.md",
+    "memory/01_active_task.md",
+    "memory/03_knowledge_base.md"
+  ],
+  "review": {
+    "verdict": "APPROVED",
+    "risk": "medium",
+    "blocking_findings": 0,
+    "warnings": 1,
+    "scope": "emulator-driven Gate 2 admission canary only"
+  },
+  "per_item_results": {
+    "producer_vertical_slice": "PASS test exit 1 -> write exit 0 -> test exit 0 -> diff/status/report",
+    "guard_suite": "PASS 88 checks",
+    "transcript_mutations": "PASS 13 mutations detected",
+    "policy_adapter_conformance": "PASS 18 checks",
+    "artifact_only_verifier": "PASS 15/15",
+    "event_counts": "PASS 35 pre, 13 allowed/executed, 22 denied, 13 terminal, 0 adapter rejects",
+    "transcript_fail_closed": "PASS four controls blocked pre-execution with adapter seq unchanged",
+    "shared_policy": "PASS guard and adapter record the same policy id and sha256",
+    "real_claude_payloads": "NOT RUN emulator only; no model participated",
+    "parallel_delivery": "NOT RUN serial emulator; adapter seq and ordered join are not concurrency-safe",
+    "remote_sync": "PASS HEAD equals origin/main at 68d618bf"
+  },
+  "cannot_claim": [
+    "that authentic Claude Code hook payloads or response shapes were observed",
+    "that parallel model tool calls are safely serialized or correlated into the adapter log",
+    "that the canary policy is the final Gate 2 producer policy",
+    "that any producer or scorer context exists, Gate 2 may start, or any arm ran",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

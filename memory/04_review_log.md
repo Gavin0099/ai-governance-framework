@@ -3073,3 +3073,131 @@ Destroy that context afterward. Only after approval should a separate admission
 context mount a fresh export of frozen tree `36c346fa…` to verify the real image,
 tree, packets, and permissions without dispatching the bug task or consuming an
 arm.
+
+## 2026-07-26 — Gate 2 admission-canary re-review
+
+### Review Inputs Checked
+- `governance/REVIEW_CRITERIA.md`
+- `governance/AGENT.md`
+- `governance/RESPONSE_ENVELOPE_CONTRACT.md`
+- official Claude Code hook reference and hook guide
+- `memory/03_knowledge_base.md`
+- prior Gate 2 reviews in `memory/04_review_log.md`
+- commits `aba16930` and `68d618bf`
+- shared policy loader, PreToolUse/PostToolUse/PostToolUseFailure hooks,
+  canary adapter/policy/emulator/driver, durable evidence bundle, run report,
+  transcript verifier and mutation tests, status report, and daily memory
+
+### Decision Summary
+- Verdict: `APPROVED`
+- Risk level: Medium
+- Scope: emulator-driven admission canary only. This approval closes the three
+  prior implementation blockers and two warnings; it does not approve a real
+  Claude producer, 4+2 resource admission, or Gate 2 start.
+
+### Governance Audit
+- Architecture: PASS for the canary. One policy digest drives guard and
+  adapter; the adapter supports a bounded read → write → test → diff/status →
+  report vertical slice without arbitrary command or network verbs.
+- Native safety: N/A.
+- Test integrity: PASS. Allowed steps assert real execution, exact expected
+  exit codes and output; negative controls prove non-execution with an unchanged
+  adapter sequence counter.
+- Thread safety: WARNING carried forward. The canary driver is serial and the
+  verifier joins adapter events by order; real harness parallel tool calls are
+  not yet observed or technically serialized.
+- Baseline status: Stable. Pinned image was used, frozen tree and signed
+  surfaces were untouched, no Gate 2 packet or arm ran.
+- Dirty-worktree hygiene: author worktree clean and
+  `HEAD == origin/main == 68d618bf`; reviewer records make the current worktree
+  intentionally dirty.
+
+### Technical Findings
+1. [RESOLVED] The adapter can now execute a complete bounded producer slice.
+   - Status: resolved.
+   - Location:
+     `admission-canary/policy_canary.json`,
+     `admission-canary/canary_adapter.py`, and
+     `admission-canary/evidence/run-report.json`.
+   - Evidence: real sequence includes test exit 1, write exit 0, test exit 0,
+     followed by diff, status, and report; 13 adapter executions, contiguous
+     seq 1..13, zero adapter-side rejects.
+   - Rule reference: root `AGENTS.md` Vertical Slice First and prior review
+     finding 1.
+   - Disposition: resolved for the canary policy; the final Gate 2 producer
+     policy remains a separate resource-admission artifact.
+
+2. [RESOLVED] Transcript events are uniquely and completely correlated.
+   - Status: resolved.
+   - Location:
+     `producer-guard/gate2_producer_guard.py`,
+     `producer-guard/gate2_producer_posttool.py`, and
+     `producer-guard/verify_transcript.py`.
+   - Evidence: harness `tool_use_id` binds pre and terminal events; both success
+     and failure event shapes are recorded; repeated byte-identical calls remain
+     separable; adapter/post stdout digest uses the same normalization; thirteen
+     mutation cases are detected.
+   - Rule reference: prior review finding 2 and official Claude Code hook
+     event contract.
+   - Disposition: resolved under the documented payload shapes exercised by the
+     emulator; authentic Claude payloads remain NOT RUN.
+
+3. [RESOLVED] Transcript persistence now fails closed before execution.
+   - Status: resolved.
+   - Location:
+     `producer-guard/gate2_producer_guard.py` and
+     `admission-canary/evidence/run-report.json`.
+   - Evidence: unwritable transcript, missing tool id, missing policy, and
+     malformed policy each exit 2 before execution; adapter seq remains 13→13.
+   - Rule reference: prior review finding 3.
+   - Disposition: resolved.
+
+4. [RESOLVED] Hook deny protocol and test count warnings.
+   - Status: resolved.
+   - Evidence: decided allow/deny use exit 0 plus structured JSON;
+     undecidable/unauditable states use exit 2 plus stderr only. Test suite
+     reports its own current count, 88.
+   - Disposition: resolved.
+
+5. [WARNING] Real harness payload and concurrency behavior remain unobserved.
+   - Status: carried-forward.
+   - Location:
+     `admission-canary/harness_emulator.py`,
+     `producer-guard/verify_transcript.py`, and
+     `admission-canary/canary_adapter.py`.
+   - Evidence: no model participated; the emulator assumes Bash
+     `tool_response` shape and serial delivery. Verifier joins adapter lines by
+     order, while adapter sequence increment is not concurrency-safe.
+   - Rule reference: official Claude Code hook guide notes PostToolUse hooks can
+     run concurrently for parallel calls; `governance/REVIEW_CRITERIA.md`
+     thread/async safety.
+   - Disposition: observe in the next disposable real-harness run; before 4+2
+     admission, either bind `tool_use_id` into adapter records with
+     concurrency-safe storage or technically enforce one in-flight call.
+
+### Independent Validation
+- `test_producer_guard.py`: PASS, 88 checks.
+- `test_verify_transcript.py`: PASS, 13 mutation checks.
+- `test_canary_conformance.py`: PASS, 18 checks.
+- artifact-only `verify_transcript.py`: PASS, 15/15 checks.
+- Evidence inspection: 48 transcript events; 35 pre events; 13 allowed and
+  executed; 22 denied with no terminal events; 13 adapter executions; zero
+  adapter rejects; one correlated failure event; two repeated command digests
+  remain individually identified.
+
+### Knowledge Base Alignment
+- Anti-patterns checked: allowed-vs-executed confusion, exit-code masking,
+  policy duplication, transcript-write fail-open, command-digest correlation,
+  receipt-as-proof, and emulator-as-real-harness overclaim.
+- Regression notes checked: actual observable outcomes must be measured, not
+  inferred from permission or setup success.
+- Result: Pass for the bounded canary. Parallel hook delivery remains an
+  explicit next-boundary risk.
+
+### Next Recommendation
+Run exactly one new disposable Claude Code producer session against a fresh
+canary target to capture authentic PreToolUse/PostToolUse/PostToolUseFailure
+payloads and verify deny behavior, response shape, and serial/parallel delivery.
+Do not use this answer-aware session, the frozen baseline, or any Gate 2 packet.
+If approved, proceed to resource-admission-only setup for four producers and
+two scorers without running an arm.

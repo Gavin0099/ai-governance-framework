@@ -180,6 +180,11 @@
 - Audit hashes must identify the same observable bytes. Hashing a structured
   tool-response object cannot be compared directly with an adapter hash of
   stdout unless the extraction and normalization rule is explicit and tested.
+- Do not assume hook delivery is serial merely because a canary driver is.
+  If the real harness can issue parallel tool calls, either carry
+  `tool_use_id` into the adapter log and use concurrency-safe append/sequence
+  storage, or technically enforce one in-flight call. Ordered-position joins
+  and read-increment-write sequence files are not concurrency boundaries.
 
 ## Current Highest-Value Gaps
 

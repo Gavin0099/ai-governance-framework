@@ -363,6 +363,8 @@
 
 ## Cannot Claim From This Surface
 
+- 2026-07-26 re-review of `68d618bf`: admission canary `APPROVED` for emulator-driven mechanism scope; prior three blockings and two warnings are resolved. Authentic Claude hook payloads and parallel-delivery behavior remain unobserved, so 4+2 admission and Gate 2 start are still not approved.
+
 - 2026-07-26 review of `352168d7`: `CHANGES_REQUESTED` — the guard deny logic passes, but its read-only adapter cannot perform a producer fix, its transcript lacks unique success/failure correlation, and transcript writes fail open. Test a corrected writable adapter first on a disposable admission-canary repo; do not consume a frozen Gate 2 context.
 
 - 2026-07-25 review of `ad877713`: `CHANGES_REQUESTED` — the reported four-hop model-channel rehearsal lacks durable raw model/adapter artifacts and full digest linkage; do not treat the path as independently established or start 4+2 provisioning until the evidence bundle is correction-forwarded or the claim is narrowed.
