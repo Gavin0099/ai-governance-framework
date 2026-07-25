@@ -1,0 +1,38 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "docker run (pinned image, --network none --read-only) shellcheck/ruff/mypy against the real sanitized baseline tree 36c346fa; git archive reproducibility probe with and without core.autocrlf; python test_redaction_runner.py",
+  "exit_code": 0,
+  "started_at": "2026-07-25T03:41:04Z",
+  "finished_at": "2026-07-25T03:41:04Z",
+  "runner": "claude-code-gate2-amendment-v3-20260725",
+  "linked_commit": "ad3b56f1f68115ff1965ac0e82960e248598b9fa",
+  "output_artifacts": [
+    "docs/governance/gate1-prereg-prepush-amendment-v3-20260725.md",
+    "artifacts/experiments/prepush-bugfix-20260724/sanitized-baseline-manifest-20260724.md",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/RUN-RECIPE.md",
+    "artifacts/experiments/prepush-bugfix-20260724/redaction_runner.py",
+    "artifacts/experiments/prepush-bugfix-20260724/test_redaction_runner.py"
+  ],
+  "measured_on_real_baseline": {
+    "shellcheck_frozen_cmd": "SC1090 (NOT null) - falsifies the frozen expectation",
+    "ruff_frozen_config": "2 errors I001 + E501 (NOT null)",
+    "ruff_documented_cmd_defaults": "All checks passed (null) - config binding gap",
+    "mypy_frozen_flags": "Success, no issues (null)",
+    "crlf_coupling": "on core.autocrlf=true the worktree is CRLF while blobs normalize, so tree 36c346fa still MATCHES yet shellcheck emits 80+ spurious SC1017",
+    "ruff_readonly_cache": "ruff aborts 'Failed to initialize cache' under --read-only without --no-cache; an abort is not a validator result"
+  },
+  "applied_now_non_frozen": {
+    "sanitized_export": "pinned core.autocrlf=false + mandatory LF-only worktree check",
+    "run_recipe": "immutable image ID sha256:e6df7283... (linux/amd64) + ruff --no-cache",
+    "produce_mode_fail_closed": "malformed --contract/--receipt and missing --raw now exit 2 without traceback; 22 tests green"
+  },
+  "frozen_packets_untouched": "validator-pins.md, validator-expectation-DESIGNER-ONLY.md and scorer-handoff-contract.json have zero diff; they change only after owner re-sign",
+  "cannot_claim": [
+    "that Gate 2 may start: amendment v3 is pending owner re-sign, and starting now would produce protocol-INVALID Arm D data",
+    "that Arm D's treatment currently matches the pre-registration (it does not)",
+    "that the tree-hash invariant alone proves an uncontaminated producer checkout",
+    "that any arm has run, was scored, or that the Skill or validator treatment is effective",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
