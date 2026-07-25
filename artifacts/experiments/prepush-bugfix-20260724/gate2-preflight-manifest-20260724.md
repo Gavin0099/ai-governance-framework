@@ -34,14 +34,18 @@ items below AND a separate explicit owner "start Gate 2" command.
 ### Frozen execution order
 - `random.seed(20260724); random.sample(['A','B','C','D'], 4)` → **[D, C, A, B]**.
 
-### Packet hashes (re-verified against amendment v2)
+### Packet hashes (re-verified against amendment v2; validator packets promoted to v3 canonical 2026-07-25 — Section E)
 | File | sha256 | Arms |
 |---|---|---|
 | arm-dispatch-packet.md | 59ef5915bccf09eb6a5c7a344412d512415eb6e8fab0c83e7f122612a3b822a8 | A/B/C/D |
 | skill-packet-bugfix.md | f2c6862f70d2db0d2268b20d956a90fada4687cceab6d5ef07fd6553f2e75b14 | B/C/D |
 | governance-packet.md | f6dfe7268851b59717405550c39502a76774165a1b35ee9c9e056506c79bdc28 | C/D |
-| validator-pins.md (producer-safe) | 6ea4b3226a3f54dce265ad27a67209b9d803b27d690cc4d899d20fff9a7f2d5f | D |
-| validator-expectation-DESIGNER-ONLY.md (withheld) | dcff3d2d0d3f02f4ef57283718c61b5fe890e54b109b90be05b68d7a25fb52c6 | none (designer/scorer) |
+| candidate/validator-pins-v2.md (producer-safe, CANONICAL per amendment v3) | 877896c7672b1f47383e19ab00a38049344634c12c328a205a1651c6da4bf46d | D |
+| candidate/validator-expectation-DESIGNER-ONLY-v2.md (withheld, CANONICAL per amendment v3) | 61e1e52743e78ad9d38bd50e311978f5d49f513d617a48fd9a9b5a0901d02092 | none (designer/scorer) |
+
+Superseded (v1, kept byte-stable per amendment v3 Section C1, no longer the
+dispatch target): `validator-pins.md` (`6ea4b3226a3f54dce265ad27a67209b9d803b27d690cc4d899d20fff9a7f2d5f`),
+`validator-expectation-DESIGNER-ONLY.md` (`dcff3d2d0d3f02f4ef57283718c61b5fe890e54b109b90be05b68d7a25fb52c6`).
 
 ### Validator install spec (pins verified real)
 - `pip install ruff==0.6.9 mypy==1.11.2` (ruff 0.6.9 confirmed present on PyPI).

@@ -1,9 +1,13 @@
 # Gate 1 Correction Amendment v3 — Arm D expected signal + validator config binding
 
-Status: **CORRECTION v3, PENDING OWNER RE-SIGN.** Gate 2 must NOT start until this
-is re-signed. Amendment v2 stays authoritative for everything it covers; v3
-corrects only the Arm D validator treatment (expected signal, config binding) and
-the sanitized-baseline export procedure. No hook, runtime, CI, schema, gate, or
+Status: **CORRECTION v3, RE-SIGNED 2026-07-25 (Section E).** The two candidate
+packets (pins, expectation) are signed. Canonical promotion and the post-sign
+image preflight are **not yet done** — see Section E. Gate 2 must still NOT
+start: resource preflight (4+2 isolated contexts, out-of-band model channel) and
+a separate owner start command remain outstanding regardless of this signature.
+Amendment v2 stays authoritative for everything it covers; v3 corrects only the
+Arm D validator treatment (expected signal, config binding) and the
+sanitized-baseline export procedure. No hook, runtime, CI, schema, gate, or
 enforcement changes.
 
 Trigger: a review ran the pinned validators against the **real** frozen baseline
@@ -122,31 +126,50 @@ errors) would differ from what was pre-registered (silence). Per program Section
 that is an INVALID run — excluded from comparison, not merely lower-scored. The
 cheapest correct action is to re-sign this amendment first.
 
-## E. Owner re-sign required — signing EXACT existing bytes
+## E. Owner re-sign — SIGNED 2026-07-25
 
-The candidate files exist and are probed, so the owner can now re-sign concrete
-artifacts rather than a promise. Gate 2 stays blocked until the owner confirms:
+The owner re-signed these exact bytes, on the independently-reviewed and
+APPROVED corrected values (shellcheck=1, ruff=1, mypy=0; superseded hash
+`1678e663…` explicitly not signed):
 
 1. `candidate/validator-pins-v2.md`, sha256
    `877896c7672b1f47383e19ab00a38049344634c12c328a205a1651c6da4bf46d`
-   — becomes the canonical producer-safe pins packet.
+   — **SIGNED.** Canonical producer-safe pins packet.
 2. `candidate/validator-expectation-DESIGNER-ONLY-v2.md`, sha256
    `61e1e52743e78ad9d38bd50e311978f5d49f513d617a48fd9a9b5a0901d02092`
-   — becomes the canonical designer-only expectation, replacing "NULL" with the
-   measured SC1090 / I001+E501 / clean-mypy baseline.
-3. The C1 old→new map, with amendment v2 left **byte-stable** (its rows are
-   superseded by this document, never rewritten in place).
+   — **SIGNED.** Canonical designer-only expectation, replacing "NULL" with the
+   measured SC1090 (exit 1) / I001+E501 (exit 1) / clean-mypy (exit 0) baseline.
+3. The C1 old→new map is confirmed, with amendment v2 left **byte-stable** (its
+   rows are superseded by this document, never rewritten in place).
 4. The already-applied non-frozen fixes: hermetic export pinning
    `core.autocrlf=false` plus the LF-only worktree check, the immutable image ID,
    and ruff `--no-cache`.
 
-On re-sign, one slice promotes the candidates to canonical (updating only the
-preflight manifest's pointers and this amendment's status), recomputes nothing
-— the hashes above are already final — and re-runs the image preflight.
+**This signature covers the two candidate packets and the C1 map only.** It is
+**not** a canonical-promotion event and **not** a Gate 2 start command. Two
+further, separate steps remain before Gate 2 can be considered:
+
+- **Canonical promotion slice** (not yet done): update the preflight manifest's
+  packet pointers to the candidate paths above and mark this amendment's status
+  "promoted"; recomputes nothing, the hashes are already final.
+- **Post-sign image preflight** (not yet done): re-run the pinned-image
+  synthetic preflight against the newly-canonical packets to confirm nothing
+  regressed between the review and promotion.
+
+Only after both, plus the still-outstanding resource preflight (4 answer-blind
+producer contexts, 2 arm-identity-blind scorer contexts, an out-of-band model
+control plane, stamped model/permission constants), may the owner issue a
+**separate, explicit** "start Gate 2" command.
 
 ## F. Cannot claim
 
 - That Gate 2 may start, or that any arm has run.
-- That Arm D's treatment currently matches the pre-registration (it does not).
+- That the post-sign image preflight has been re-run against the newly-canonical
+  packets (it has not — Section E lists it as not yet done).
+- That any producer or scorer context, or an out-of-band model control plane,
+  exists.
+- That Arm D's treatment currently matches the pre-registration prior to this
+  sign — it did not before 2026-07-25; it now matches on paper, pending the
+  post-sign preflight confirming no regression.
 - That the tree-hash invariant alone proves an uncontaminated producer checkout.
 - That the Bug Fix Skill or the validator treatment is effective.
