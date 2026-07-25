@@ -170,6 +170,60 @@ def main() -> int:
                         "PASS" if (cp.returncode == 2 and not os.path.exists(dpk)
                                    and leftovers == set()) else f"FAIL: leftovers={leftovers}"))
 
+    # HOSTILE 1: --out == <receipt-out>.handoff-complete (the DERIVED marker path).
+    # Previously the marker overwrote the packet and the producer exited 0.
+    with tempfile.TemporaryDirectory() as d:
+        rpath = os.path.join(d, "r.json"); open(rpath, "w").write(json.dumps(receipt_obj))
+        rout = os.path.join(d, "anon.json")
+        cp = cli("--contract", CONTRACT, "--raw", wpath(d, VALID),
+                 "--out", rout + ".handoff-complete", "--receipt", rpath, "--receipt-out", rout)
+        results.append(("marker_aliases_packet_rejected",
+                        "PASS" if (cp.returncode == 2 and not os.path.exists(rout)
+                                   and not os.path.exists(rout + ".handoff-complete")) else "FAIL"))
+
+    # HOSTILE 2: case-insensitive alias (Windows): Same.json vs same.json
+    with tempfile.TemporaryDirectory() as d:
+        rpath = os.path.join(d, "r.json"); open(rpath, "w").write(json.dumps(receipt_obj))
+        cp = cli("--contract", CONTRACT, "--raw", wpath(d, VALID),
+                 "--out", os.path.join(d, "Same.json"),
+                 "--receipt", rpath, "--receipt-out", os.path.join(d, "same.json"))
+        if os.path.normcase("A") == os.path.normcase("a"):   # case-insensitive host
+            ok = cp.returncode == 2
+        else:                                                 # case-sensitive host: distinct files, valid
+            ok = cp.returncode == 0
+        results.append(("case_insensitive_output_alias_rejected", "PASS" if ok else "FAIL"))
+
+    # HOSTILE 3: packet anon_id != receipt/marker anon_id, all hashes consistent.
+    with tempfile.TemporaryDirectory() as d:
+        pkt = {"schema": "gate2-redacted-packet.v1", "anon_id": "OUT-aaaaaaaaaaaa",
+               "raw_output_sha256": "a" * 64, "redacted_output": "x",
+               "redacted_output_sha256": __import__("hashlib").sha256(b"x").hexdigest()}
+        rcp = {"anon_id": "OUT-bbbbbbbbbbbb"}
+        pp, rp = os.path.join(d, "p.json"), os.path.join(d, "r.json")
+        open(pp, "w", newline="\n").write(json.dumps(pkt))
+        open(rp, "w", newline="\n").write(json.dumps(rcp))
+        import hashlib as _h
+        mk = os.path.join(d, "r.json.handoff-complete")
+        open(mk, "w", newline="\n").write(json.dumps({
+            "handoff": "gate2-scorer-handoff-set.v1", "anon_id": "OUT-bbbbbbbbbbbb",
+            "packet_path": "p.json", "receipt_path": "r.json",
+            "packet_sha256": _h.sha256(open(pp, "rb").read()).hexdigest(),
+            "receipt_sha256": _h.sha256(open(rp, "rb").read()).hexdigest()}))
+        vp = cli("--verify-handoff", mk)
+        results.append(("verify_rejects_packet_anon_mismatch",
+                        "PASS" if vp.returncode == 2 else "FAIL"))
+
+    # HOSTILE 4: marker member path escapes its directory (traversal / absolute)
+    with tempfile.TemporaryDirectory() as d:
+        mk = os.path.join(d, "r.json.handoff-complete")
+        open(mk, "w", newline="\n").write(json.dumps({
+            "handoff": "gate2-scorer-handoff-set.v1", "anon_id": "OUT-cccccccccccc",
+            "packet_path": "../escape.json", "receipt_path": "r.json",
+            "packet_sha256": "0" * 64, "receipt_sha256": "0" * 64}))
+        vp = cli("--verify-handoff", mk)
+        results.append(("verify_rejects_path_traversal_member",
+                        "PASS" if vp.returncode == 2 else "FAIL"))
+
     for name, r in results:
         print(f"[{name}] {r}")
     return 0 if all(r.startswith("PASS") for _, r in results) else 1

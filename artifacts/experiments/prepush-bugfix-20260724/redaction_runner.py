@@ -150,18 +150,47 @@ def verify_handoff(marker_path: str) -> int:
     Returns 0 (accept) or 2 (reject). Never raises to the caller."""
     try:
         marker = json.loads(open(marker_path, "rb").read())
+        if marker.get("handoff") != "gate2-scorer-handoff-set.v1":
+            raise FormatError("marker is not a gate2-scorer-handoff-set.v1")
         base = os.path.dirname(os.path.abspath(marker_path))
+        # member paths must be plain basenames in the marker's own directory:
+        # no absolute paths, no traversal, no subdirectories.
+        for key in ("packet_path", "receipt_path"):
+            name = marker[key]
+            if (os.path.isabs(name) or os.path.basename(name) != name
+                    or name in (".", "..") or not name):
+                raise FormatError(f"{key} must be a plain basename in the marker directory")
         pkt = os.path.join(base, marker["packet_path"])
         rcp = os.path.join(base, marker["receipt_path"])
+        if os.path.normcase(os.path.realpath(pkt)) == os.path.normcase(os.path.realpath(rcp)):
+            raise FormatError("packet and receipt must be distinct files")
         if not (os.path.isfile(pkt) and os.path.isfile(rcp)):
             raise FormatError("packet or receipt file missing")
-        if sha256_hex(open(pkt, "rb").read()) != marker["packet_sha256"]:
+        pkt_bytes, rcp_bytes = open(pkt, "rb").read(), open(rcp, "rb").read()
+        if sha256_hex(pkt_bytes) != marker["packet_sha256"]:
             raise FormatError("packet sha256 mismatch")
-        if sha256_hex(open(rcp, "rb").read()) != marker["receipt_sha256"]:
+        if sha256_hex(rcp_bytes) != marker["receipt_sha256"]:
             raise FormatError("receipt sha256 mismatch")
-        if json.loads(open(rcp, "rb").read()).get("anon_id") != marker.get("anon_id"):
+        packet, receipt = json.loads(pkt_bytes), json.loads(rcp_bytes)
+        if packet.get("schema") != "gate2-redacted-packet.v1":
+            raise FormatError("packet is not a gate2-redacted-packet.v1")
+        # all three anon_ids must agree (the packet's was previously unchecked)
+        anon = marker.get("anon_id")
+        if not anon:
+            raise FormatError("marker has no anon_id")
+        if packet.get("anon_id") != anon:
+            raise FormatError("packet anon_id does not match marker")
+        if receipt.get("anon_id") != anon:
             raise FormatError("receipt anon_id does not match marker")
-    except (FormatError, KeyError, ValueError, OSError) as e:
+        # anon_id must actually derive from the recorded raw output hash
+        raw_sha = packet.get("raw_output_sha256", "")
+        if anon != "OUT-" + raw_sha[:12]:
+            raise FormatError("anon_id does not derive from raw_output_sha256")
+        # the redacted text must hash to the recorded digest
+        if sha256_hex(packet.get("redacted_output", "").encode("utf-8")) != \
+                packet.get("redacted_output_sha256"):
+            raise FormatError("redacted_output_sha256 does not match redacted_output")
+    except (FormatError, KeyError, ValueError, TypeError, OSError) as e:
         print(f"HANDOFF REJECTED: {e}", file=sys.stderr)
         return 2
     print(f"HANDOFF OK: anon_id={marker['anon_id']} packet+receipt+marker consistent")
@@ -189,17 +218,38 @@ def main() -> int:
         return 2
     marker = a.receipt_out + ".handoff-complete"
     try:
-        # (1) reject any input/output path aliasing BEFORE doing anything —
-        # --out == --receipt-out silently produced a half set (only the receipt).
-        real = {name: os.path.realpath(p) for name, p in
-                [("out", a.out), ("receipt_out", a.receipt_out),
-                 ("raw", a.raw), ("contract", a.contract), ("receipt", a.receipt)]}
-        if real["out"] == real["receipt_out"]:
-            raise FormatError("--out and --receipt-out must be distinct paths")
-        for outk in ("out", "receipt_out"):
-            for ink in ("raw", "contract", "receipt"):
-                if real[outk] == real[ink]:
-                    raise FormatError(f"--{outk.replace('_','-')} must not alias --{ink}")
+        # (1) reject ALL path aliasing BEFORE doing anything. This must cover the
+        # DERIVED marker path too (--out == <receipt-out>.handoff-complete let the
+        # marker overwrite the packet), and must use host path semantics
+        # (normcase, so Same.json == same.json on Windows) plus samefile() for
+        # paths that already exist (hardlinks / 8.3 names / symlinks).
+        members = {"out": a.out, "receipt_out": a.receipt_out, "marker": marker,
+                   "raw": a.raw, "contract": a.contract, "receipt": a.receipt}
+        outputs, inputs = ("out", "receipt_out", "marker"), ("raw", "contract", "receipt")
+        ident = {k: os.path.normcase(os.path.realpath(v)) for k, v in members.items()}
+
+        def _same(k1: str, k2: str) -> bool:
+            if ident[k1] == ident[k2]:
+                return True
+            p1, p2 = members[k1], members[k2]
+            if os.path.exists(p1) and os.path.exists(p2):
+                try:
+                    return os.path.samefile(p1, p2)
+                except OSError:
+                    return False
+            return False
+
+        def _label(k: str) -> str:
+            return "<receipt-out>.handoff-complete" if k == "marker" else "--" + k.replace("_", "-")
+
+        for i, k1 in enumerate(outputs):          # outputs pairwise distinct
+            for k2 in outputs[i + 1:]:
+                if _same(k1, k2):
+                    raise FormatError(f"{_label(k1)} and {_label(k2)} must be distinct paths")
+        for outk in outputs:                      # no output may clobber an input
+            for ink in inputs:
+                if _same(outk, ink):
+                    raise FormatError(f"{_label(outk)} must not alias {_label(ink)}")
         contract = json.loads(open(a.contract, "rb").read())
         validate_contract(contract)
         packet = run(a.contract, a.raw)
