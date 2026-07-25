@@ -1,10 +1,10 @@
 # Gate 1 Correction Amendment v3 — Arm D expected signal + validator config binding
 
-Status: **CORRECTION v3, RE-SIGNED AND PROMOTED 2026-07-25 (Section E).** The two
-candidate packets (pins, expectation) are signed AND canonically promoted (the
-preflight manifest's packet pointers were updated to them). The **post-sign
-image preflight is the only remaining Section E step, and is not yet done** —
-see Section E. Gate 2 must still NOT start: resource preflight (4+2 isolated
+Status: **CORRECTION v3, RE-SIGNED, PROMOTED, AND PREFLIGHTED 2026-07-25
+(Section E).** The two candidate packets (pins, expectation) are signed,
+canonically promoted, and the post-sign image preflight found **no
+regression** (`POST-SIGN-PREFLIGHT-20260725.md`). All Section E steps are
+DONE. Gate 2 must still NOT start: resource preflight (4+2 isolated
 contexts, out-of-band model channel) and
 a separate owner start command remain outstanding regardless of this signature.
 Amendment v2 stays authoritative for everything it covers; v3 corrects only the
@@ -156,11 +156,16 @@ remains before Gate 2 can be considered:
   v2 alone, for the validator packets); this amendment's status is marked
   "RE-SIGNED AND PROMOTED" above. Nothing was recomputed — the hashes were
   already final.
-- **Post-sign image preflight** (not yet done): re-run the pinned-image
-  synthetic preflight against the newly-canonical packets to confirm nothing
-  regressed between the review and promotion.
+- **Post-sign image preflight — DONE 2026-07-25.** Re-ran the pinned-image
+  synthetic preflight against the newly-canonical packets:
+  `artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/POST-SIGN-PREFLIGHT-20260725.md`.
+  Same image digest, same baseline reconstruction (tree `36c346fa…`, LF-only),
+  same isolation probes (all passed), same three exact validator commands,
+  measured directly with no pipe: shellcheck 1, ruff 1, mypy 0 — **no
+  regression** from the signed expectation.
 
-Only after both, plus the still-outstanding resource preflight (4 answer-blind
+All Section E steps are complete. What remains is entirely the
+**still-outstanding resource preflight** (4 answer-blind
 producer contexts, 2 arm-identity-blind scorer contexts, an out-of-band model
 control plane, stamped model/permission constants), may the owner issue a
 **separate, explicit** "start Gate 2" command.
@@ -168,12 +173,11 @@ control plane, stamped model/permission constants), may the owner issue a
 ## F. Cannot claim
 
 - That Gate 2 may start, or that any arm has run.
-- That the post-sign image preflight has been re-run against the newly-canonical
-  packets (it has not — Section E lists it as not yet done).
 - That any producer or scorer context, or an out-of-band model control plane,
   exists.
-- That Arm D's treatment currently matches the pre-registration prior to this
-  sign — it did not before 2026-07-25; it now matches on paper, pending the
-  post-sign preflight confirming no regression.
-- That the tree-hash invariant alone proves an uncontaminated producer checkout.
+- That the post-sign image preflight (which found no regression) constitutes a
+  producer or scorer run, or any part of Gate 2 execution — it is verification
+  only, performed by this design session.
+- That the tree-hash invariant alone proves an uncontaminated producer checkout
+  (the mandatory LF-only check is still required alongside it).
 - That the Bug Fix Skill or the validator treatment is effective.
