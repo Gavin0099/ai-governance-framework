@@ -34,7 +34,7 @@ docker run --rm --network none --read-only \
   "$IMG" <command>
 ```
 
-Two defects found by preflight, both now encoded above / below:
+Three defects found by preflight/rehearsal, all now encoded above / below:
 - `/work` **must** carry `uid=65532,gid=65532`; a bare `--tmpfs /work` is
   root-owned and the non-root user cannot write to it.
 - **ruff must be run with `--no-cache`** (or `--cache-dir` on a writable tmpfs)
@@ -43,6 +43,15 @@ Two defects found by preflight, both now encoded above / below:
   ruff exit 2 with "Failed to initialize cache". That abort is not a validator
   result and must never be recorded as one. (It is the cache location, not
   `--read-only` per se, that triggers it.)
+- **Windows / git-bash path-conversion trap:** `docker run -v`, `docker exec`,
+  and `docker cp` silently mis-translate Unix container paths (e.g. `/input`)
+  into Windows paths (e.g. `C:\Program Files\Git\input`) unless
+  `MSYS_NO_PATHCONV=1` is exported first. The symptom — "file not found" inside
+  the container — looks exactly like an isolation/mount failure but is a shell
+  artifact, not a security-boundary failure. Always set
+  `export MSYS_NO_PATHCONV=1` before any `docker run -v` / `docker exec` /
+  `docker cp` on this host. Found during the
+  [model-channel mechanism rehearsal](../../../status/gate2-model-channel-mechanism-rehearsal-20260725.md).
 
 ## Synthetic preflight results (this image, these flags)
 
