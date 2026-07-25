@@ -51,7 +51,7 @@ Three defects found by preflight/rehearsal, all now encoded above / below:
   artifact, not a security-boundary failure. Always set
   `export MSYS_NO_PATHCONV=1` before any `docker run -v` / `docker exec` /
   `docker cp` on this host. Found during the
-  [model-channel mechanism rehearsal](../../../status/gate2-model-channel-mechanism-rehearsal-20260725.md).
+  [host-to-container tool-control bridge rehearsal](../../../status/gate2-model-channel-mechanism-rehearsal-20260725.md).
 
 ## Synthetic preflight results (this image, these flags)
 

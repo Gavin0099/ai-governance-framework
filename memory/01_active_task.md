@@ -363,6 +363,8 @@
 
 ## Cannot Claim From This Surface
 
+- 2026-07-25 review of `a785174a`: `CHANGES_REQUESTED` — the owner rehearsal proves a host-to-container `docker exec` bridge and reported isolation, not a real model → tool-adapter → sandbox → model round trip. Narrow the claim and correction-forward the receipt before the actual dummy-repo managed-channel rehearsal.
+
 - Cannot claim structured-memory freshness is automated or solved.
 - Cannot claim all historical evidence is represented here.
 - Cannot claim external repos are updated.

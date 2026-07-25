@@ -1,0 +1,39 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "review commit a785174a; inspect rehearsal document, runbook, rehearsal receipt, and daily-memory claim; verify signed-surface byte stability, receipt structure, governance drift, git diff check, remote synchronization, and author worktree state",
+  "exit_code": 0,
+  "started_at": "2026-07-25T07:45:03Z",
+  "finished_at": "2026-07-25T07:45:03Z",
+  "runner": "codex-gate2-model-channel-rehearsal-review-20260725",
+  "linked_commit": "a785174a6e0764df6763419f1ec1c960be89d859",
+  "output_artifacts": [
+    "memory/04_review_log.md",
+    "memory/01_active_task.md"
+  ],
+  "review": {
+    "verdict": "CHANGES_REQUESTED",
+    "risk": "medium",
+    "blocking_findings": 1,
+    "scope": "owner-reported model-channel mechanism rehearsal record"
+  },
+  "blocking_finding": {
+    "id": "model-channel-round-trip-not-exercised",
+    "summary": "Manual host-side docker exec proves a command bridge, not an end-to-end out-of-band model channel.",
+    "required_action": "Narrow the rehearsal claim, add an append-only successor receipt, and run a separate dummy-repository rehearsal using a real external model session and managed tool adapter."
+  },
+  "confirmed_signals": [
+    "owner-reported nonce round trip through docker exec",
+    "owner-reported container isolation probes",
+    "Windows Git Bash MSYS_NO_PATHCONV operational note",
+    "signed and frozen governance surfaces remained byte-stable",
+    "original rehearsal receipt is structurally valid and honestly identifies owner provenance"
+  ],
+  "cannot_claim": [
+    "that a real model session participated",
+    "that a managed model tool adapter was exercised",
+    "that the out-of-band model-to-tool-to-model architecture is closed",
+    "that Gate 2 is ready, any producer or scorer context exists, or any Gate 2 arm ran",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

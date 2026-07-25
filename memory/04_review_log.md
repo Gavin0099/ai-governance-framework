@@ -2836,3 +2836,14 @@ allowlists, identical model/permission constants, and dispatch order without
 running an arm. If those resources do not exist, status is BLOCKED-ON-RESOURCE,
 not a prompt to add more governance files.
 
+## 2026-07-25 — Gate 2 model-channel mechanism rehearsal review
+
+- Reviewed commit: `a785174a6e0764df6763419f1ec1c960be89d859`
+- Verdict: `CHANGES_REQUESTED`
+- Risk: `MEDIUM`
+- Blocking findings: 1
+- Finding: The owner-performed `docker exec` nonce rehearsal proves a host-to-container command bridge and the reported container isolation properties, but it does not exercise a model session or a model tool adapter. Therefore it cannot close the architectural question of an out-of-band model-to-tool-to-model channel or be described as an end-to-end model-channel rehearsal.
+- Required correction: Narrow the rehearsal document and runbook label to a host-to-container tool-control bridge rehearsal; preserve the owner-reported nonce, isolation, and Windows `MSYS_NO_PATHCONV` findings; add an append-only successor receipt correcting the semantic claim; record a canonical memory correction without rewriting the historical entry.
+- Next bounded validation: On a dummy repository, use a fresh real model session outside the sandbox and a managed tool adapter that executes only inside the `--network none` container. Capture the model tool request, container execution/output, and a subsequent model response that correctly uses a nonce returned by the tool. This remains a mechanism rehearsal and must not use a Gate 2 packet or count as an arm.
+- Evidence checked: signed/frozen surfaces zero diff; rehearsal receipt structurally valid; governance drift `ok`; `git diff --check` clean before review records; `HEAD == origin/main == a785174a`; author worktree clean.
+- Not claimed: actual out-of-band model channel exists; producer/scorer contexts exist; Gate 2 is ready; any arm ran; validator treatment effectiveness.
