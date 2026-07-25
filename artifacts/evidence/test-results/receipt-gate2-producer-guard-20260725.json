@@ -1,0 +1,43 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "python test_producer_guard.py (41 hostile + regression checks); git diff --stat on frozen/signed/prior-evidence surfaces; governance_drift_checker",
+  "exit_code": 0,
+  "started_at": "2026-07-25T12:40:39Z",
+  "finished_at": "2026-07-25T12:40:39Z",
+  "runner": "claude-code-gate2-producer-guard-20260725",
+  "linked_commit": "842215711395df6aa56bcbcb8508d5feb61b32fc",
+  "output_artifacts": [
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/producer-guard/README.md",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/producer-guard/gate2_producer_guard.py",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/producer-guard/gate2_producer_posttool.py",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/producer-guard/repo_tool.sh",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/producer-guard/test_producer_guard.py"
+  ],
+  "artifact_sha256": {
+    "README.md": "81f3d55da53f8fe85eedec36ce59992c158c43619c237d061ff9f98f60305bce",
+    "gate2_producer_guard.py": "b782ca8c46b9e984f497a0ee1ce07daa10b058d37dd43d80e5e81c1638cde310",
+    "gate2_producer_posttool.py": "4edff590d35bbe2545dfa58f1ef8d7f2769e4bd6955710ab1d8402923b23d9f4",
+    "repo_tool.sh": "c77f7bc70d998b1d53c9499b45b9705deb3cea105bad6efeb063a6dcbd79b4bc",
+    "test_producer_guard.py": "a8549184c0ce73762d7a6439016ec8aabb0e939c0444f1a36d8d2167f6942161"
+  },
+  "closes_review_must_fixes": {
+    "adapter_exclusivity": "was prompt+log corroboration; now a PreToolUse deny decision before execution, verified against docker exec/cp/run, host answer surfaces, git on the framework repo, all non-Bash tools, metacharacter smuggling, arg/verb abuse, look-alike adapter path, and unconfigured fail-closed",
+    "model_transcript_capture": "pre_tool_use + post_tool_use JSONL events with run_id, request_id and command/output digests, correlated to adapter-log.txt by command digest"
+  },
+  "test_results": "41 checks ALL PASSED including the Windows backslash-path regression",
+  "defect_found_and_fixed": {
+    "what": "the first guard banned backslash as a shell metacharacter, denying every legitimate call on Windows because the adapter path contains backslashes",
+    "impact_if_shipped": "the producer channel would have been unusable while appearing maximally safe",
+    "fix": "backslash permitted; quotes, $, backticks, newline and all chaining characters remain banned so it can at most escape a space, which then fails the strict verb/arg patterns",
+    "found_by": "the hostile suite's own allow-cases, not by inspection"
+  },
+  "byte_stability_verified": "amendment v2/v3, three frozen v1 packets, both signed candidates, and the channel-rehearsal evidence bundle all zero diff",
+  "cannot_claim": [
+    "that enforcement extends beyond the harness: it holds only where PreToolUse decisions are honoured and these hooks are configured, so admission must verify the hook is active per producer context rather than assume it",
+    "that the guard by itself proves a model rather than a human issued a call",
+    "that the guard has been exercised against a real producer run: the 41 checks are unit and subprocess level",
+    "that the 4 producer + 2 scorer contexts exist, that Gate 2 may start, or that any arm ran",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
