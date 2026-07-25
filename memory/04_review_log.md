@@ -2758,3 +2758,81 @@ Proceed with one bounded post-sign image preflight against the canonical
 candidate packets. Stop after recording the preflight result; producer/scorer
 resource setup and Gate 2 start remain separate, unauthorized work.
 
+## 2026-07-25 - Gate 2 Post-Sign Image Preflight Review
+
+### Review Inputs Checked
+- `governance/REVIEW_CRITERIA.md`
+- `governance/AGENT.md`
+- `governance/RESPONSE_ENVELOPE_CONTRACT.md`
+- `memory/03_knowledge_base.md`
+- prior Gate 2 entries in `memory/04_review_log.md`
+- commits `6ea0b40c`, `6b303ade`, and `ee582671`
+- post-sign preflight report, amendment v3, runtime run recipe, signed
+  candidates, preflight receipt, active-task/daily memory, and remote state
+
+### Decision Summary
+- Verdict: APPROVED
+- Risk level: Low
+- Scope: post-sign image preflight only. No producer/scorer resource or Gate 2
+  execution is approved by this verdict.
+
+### Governance Audit
+- Architecture: N/A; no runtime, hook, CI, schema, gate, or enforcement changed.
+- Native safety: N/A.
+- Test integrity: PASS. The reviewer independently reran the complete immutable
+  image flags, isolation probes, and exact validators without pipeline masking.
+- Thread safety: N/A.
+- Baseline status: Stable. Frozen tree `36c346fa...`, four tracked LF-only files,
+  signed hashes, image identity, and validator outputs all reproduce.
+- Dirty-worktree hygiene: clean at review start; reviewed commits are pushed
+  and `HEAD == origin/main == ee582671`.
+
+### Technical Findings
+1. [WARNING] The final resource-preflight sentence is grammatically incomplete.
+   - Location:
+     `docs/governance/gate1-prereg-prepush-amendment-v3-20260725.md:167-171`.
+   - Evidence: the text joins “What remains is ... resource preflight (...)”
+     directly to “may the owner issue ...” without “Only after completing it”.
+     The top status, manifest, and Cannot-claim section still independently and
+     unambiguously prohibit Gate 2 start, so this does not invalidate preflight.
+   - Rule reference: `governance/REVIEW_CRITERIA.md` predictability and
+     reviewability requirements.
+   - Status: open, non-blocking.
+   - Disposition: correct the sentence before reviewing any future Gate 2 start
+     packet; do not create a separate governance slice solely for this wording.
+
+### Resolved / Confirmed In Reviewed Diff
+- Post-sign report and receipt agree on image
+  `sha256:e6df7283938a5c203910524083075843635d2d39ac42fcaa84c7e76cd0b5f168`.
+- Independent full-flags replay passed: non-root uid/gid 65532, network none,
+  read-only rootfs, writable `/work` tmpfs, cap-drop ALL,
+  no-new-privileges, host paths and Docker socket unreachable.
+- Candidate hashes remain `877896c7...` and `61e1e527...`.
+- Frozen baseline tree remains `36c346fa...`; all four tracked files are LF-only.
+- Exact validators independently reproduce ShellCheck 1/SC1090, Ruff
+  1/I001+E501, and mypy 0/clean.
+- Pre-existing container count remained 12 before and after.
+- Amendment v2, three frozen v1 packets, and both signed candidates have zero
+  diff from their signed checkpoints.
+- Preflight receipt is structurally `VALID`; governance drift is
+  `ok=true`, `severity=ok`.
+- Producer/scorer contexts, out-of-band model control plane, and all Gate 2 arms
+  remain NOT PRESENT / NOT RUN.
+
+### Knowledge Base Alignment
+- Anti-patterns checked: exit-code masking, authority-state drift,
+  receipt-as-semantic-proof, ambient host-state leakage, and paper verification
+  treated as runtime evidence.
+- Regression notes checked: representative end-to-end execution still requires
+  an independent oracle and exact environment controls.
+- Result: Pass. The preflight claim is independently reproducible and remains
+  below the Gate 2 readiness/execution claim ceiling.
+
+### Next Recommendation
+Stop repo-side expansion. The next real boundary is resource admission:
+identify a managed out-of-band model/tool runner and independently eligible
+4+2 contexts, then verify their identities, blinding, filesystem/input
+allowlists, identical model/permission constants, and dispatch order without
+running an arm. If those resources do not exist, status is BLOCKED-ON-RESOURCE,
+not a prompt to add more governance files.
+

@@ -1,0 +1,45 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "review commits 6ea0b40c, 6b303ade, and ee582671; recompute signed hashes and signed-surface zero diffs; validate preflight receipt; independently run immutable image sha256:e6df7283 under linux/amd64, network none, read-only rootfs, tmpfs /tmp and /work, cap-drop ALL, no-new-privileges, sanitized-repo-only mount; repeat isolation/version probes and exact validators with direct exit measurement; compare container count; run governance drift checker; fetch origin and compare HEAD",
+  "exit_code": 0,
+  "started_at": "2026-07-25T07:16:34Z",
+  "finished_at": "2026-07-25T07:20:17Z",
+  "runner": "codex-gate2-post-sign-preflight-review-20260725",
+  "linked_commit": "ee5826713a700071d203effe04d47fbb0a142177",
+  "output_artifacts": [
+    "memory/04_review_log.md",
+    "memory/01_active_task.md"
+  ],
+  "review": {
+    "verdict": "APPROVED",
+    "risk": "low",
+    "blocking_findings": 0,
+    "warnings": 1,
+    "scope": "post-sign image preflight only"
+  },
+  "per_item_results": {
+    "image_identity": "PASS sha256:e6df7283938a5c203910524083075843635d2d39ac42fcaa84c7e76cd0b5f168 linux/amd64 uid 65532",
+    "baseline_tree": "PASS 36c346fa951a24cbf914ef04469aac5cb5fd8b86",
+    "lf_only": "PASS four tracked files",
+    "candidate_hashes": "PASS pins 877896c7... expectation 61e1e527...",
+    "signed_surface_byte_stability": "PASS amendment v2, three frozen v1 packets, two signed candidates",
+    "isolation_full_flags": "PASS network blocked, rootfs read-only, /work writable, host paths and Docker socket unreachable, cap-drop ALL and no-new-privileges applied",
+    "validator_versions": "PASS shellcheck 0.10.0 ruff 0.6.9 mypy 1.11.2",
+    "shellcheck": "PASS SC1090 only exit 1",
+    "ruff": "PASS I001 and E501 exit 1",
+    "mypy": "PASS clean exit 0",
+    "container_count": "PASS 12 before and after",
+    "preflight_receipt": "PASS structurally VALID",
+    "governance_drift": "PASS ok=true severity=ok",
+    "remote_sync": "PASS HEAD equals origin/main at ee582671 after fetch",
+    "gate2_resources": "NOT PRESENT",
+    "gate2_arm_execution": "NOT RUN"
+  },
+  "cannot_claim": [
+    "that any producer or scorer context, or an out-of-band model control plane, exists",
+    "that Gate 2 is ready or may start",
+    "that any arm has run or any scoring occurred",
+    "that Skill or validator treatment effectiveness has been demonstrated"
+  ]
+}

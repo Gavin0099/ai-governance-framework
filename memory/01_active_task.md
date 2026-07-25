@@ -357,6 +357,9 @@
 - Independent re-review APPROVED the promotion-state truth repair at
   `cdf95286`; the next authorized candidate slice is post-sign image preflight
   only, not producer/scorer setup or Gate 2 execution.
+- Independent review APPROVED the post-sign image preflight at `ee582671`;
+  Section E is closed with no regression. Next state is resource admission for
+  independent 4+2 contexts and an out-of-band runner, not Gate 2 start.
 
 ## Cannot Claim From This Surface
 
