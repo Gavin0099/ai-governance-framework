@@ -1,0 +1,41 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git diff --stat on amendment v2 + three frozen v1 packets (must be zero); grep candidate hashes in gate2-preflight-manifest; python -m governance_tools.governance_drift_checker",
+  "exit_code": 0,
+  "started_at": "2026-07-25T06:57:21Z",
+  "finished_at": "2026-07-25T06:57:21Z",
+  "runner": "claude-code-gate2-v3-resign-promotion-20260725",
+  "linked_commit": "68439a81cad08ab36e0e3869a438f500c475c739",
+  "output_artifacts": [
+    "docs/governance/gate1-prereg-prepush-amendment-v3-20260725.md",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-preflight-manifest-20260724.md"
+  ],
+  "owner_resign": {
+    "date": "2026-07-25",
+    "candidates_signed": {
+      "validator-pins-v2.md": "877896c7672b1f47383e19ab00a38049344634c12c328a205a1651c6da4bf46d",
+      "validator-expectation-DESIGNER-ONLY-v2.md": "61e1e52743e78ad9d38bd50e311978f5d49f513d617a48fd9a9b5a0901d02092"
+    },
+    "superseded_hash_not_signed": "1678e66382a6fafad3ac805d6957a623478542d33c0d80eece6e690a371645c3",
+    "basis": "independent APPROVED review (receipt-gate2-corrected-candidate-resignability-review-20260725.json), which reran the exact candidate commands with no pipe and confirmed shellcheck=1 ruff=1 mypy=0"
+  },
+  "canonical_promotion": {
+    "scope": "gate2-preflight-manifest-20260724.md packet-hash table only, per amendment v3 Section E ('updating only the preflight manifest's pointers')",
+    "result": "validator packet rows now point at candidate/validator-pins-v2.md and candidate/validator-expectation-DESIGNER-ONLY-v2.md with their signed hashes; superseded v1 hashes recorded alongside for traceability"
+  },
+  "byte_stability_verified": {
+    "amendment_v2": "zero diff",
+    "validator-pins.md (frozen v1)": "zero diff",
+    "validator-expectation-DESIGNER-ONLY.md (frozen v1)": "zero diff",
+    "scorer-handoff-contract.json": "zero diff"
+  },
+  "governance_drift_checker": "severity=ok",
+  "cannot_claim": [
+    "that the post-sign image preflight has been re-run against the newly-canonical packets (explicitly not yet done)",
+    "that any producer or scorer context, or an out-of-band model control plane, exists",
+    "that Gate 2 may start or that any arm has run",
+    "that the Bug Fix Skill or the validator treatment is effective",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
