@@ -1,0 +1,46 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "report_only",
+  "command": "git diff --stat on amendment v2/v3 + three frozen v1 packets + two signed candidates + preflight manifest (must be zero); python -m governance_tools.governance_drift_checker",
+  "exit_code": 0,
+  "started_at": "2026-07-25T07:34:55Z",
+  "finished_at": "2026-07-25T07:34:55Z",
+  "runner": "claude-code-gate2-model-channel-rehearsal-20260725",
+  "linked_commit": "ca0aaf1dff4be2bf51cc19f7c275029461088106",
+  "output_artifacts": [
+    "docs/status/gate2-model-channel-mechanism-rehearsal-20260725.md",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/RUN-RECIPE.md"
+  ],
+  "provenance": {
+    "performed_by": "owner, reported in chat",
+    "independently_reexecuted_by_this_session": false,
+    "image_used": "alpine:3.20 (generic, NOT gate2-runtime:pinned)"
+  },
+  "reported_results": {
+    "nonce_roundtrip": "PASS, identical value",
+    "model_channel_outside_container": "PASS, all commands via docker exec, never entered",
+    "network": "unreachable",
+    "framework_repo_and_host_mounts": "unreachable",
+    "docker_socket": "unreachable",
+    "rootfs": "read-only",
+    "work_tmpfs": "writable, non-root uid 65532",
+    "input_mount": "read-only, exactly the two allowlisted files",
+    "pre_existing_containers": "12 before and after, untouched",
+    "cleanup": "container removed, no persistent host state change"
+  },
+  "operational_finding": "Windows/git-bash mis-translates Unix container paths in docker run -v / exec / cp unless MSYS_NO_PATHCONV=1 is set; folded into RUN-RECIPE.md as a runbook note",
+  "byte_stability_verified": {
+    "amendment_v2_and_v3": "zero diff",
+    "frozen_v1_packets_all_three": "zero diff",
+    "signed_candidate_packets_both": "zero diff",
+    "preflight_manifest": "zero diff"
+  },
+  "governance_drift_checker": "severity=ok",
+  "cannot_claim": [
+    "that this session independently re-executed or verified the nonce test (owner-performed and reported only)",
+    "that gate2-runtime:pinned or the validator pins were re-tested (generic alpine:3.20 was used; validator-pin verification is the separate already-recorded post-sign preflight)",
+    "that any Gate 2 producer or scorer context exists",
+    "that Gate 2 may start, that any arm has run, or that the Bug Fix Skill or validator treatment is effective",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}
