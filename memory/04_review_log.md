@@ -3772,3 +3772,44 @@ commit the bounded remediation; then run one final isolated canary. Require
 exact launcher exit capture, one immutable report matching the final snapshot,
 UTF-8 console artifacts, and separate batch-request versus overlap claims.
 Stop on any new blocking and do not start Gate 2.
+
+## 2026-07-26 — Scorer-handoff v3 source-reproduction review fix (`1f583b00`)
+
+### Review Input And Decision
+- Input review of `13b9abff`: `CHANGES_REQUESTED` before owner signature.
+- Blocking 1 reproduced: a coherent `FIX_DIFF`, raw digest and anon-id rewrite
+  passed the 17-check verifier because it tested only published-set
+  self-consistency.
+- Blocking 2 reproduced: with `core.autocrlf=true`, checkout changed all three
+  hashes declared canonical in amendment v4.
+- Status after correction: implemented and locally validated; independent
+  re-review and owner re-sign remain pending.
+
+### Resolution
+- `verify_handoff` now requires explicit scorer-packet, test-log,
+  validator-output and contract sources, pins `redaction_runner.py`, rebuilds
+  the canonical packet, anonymized receipt and marker, and compares their exact
+  bytes with the published set.
+- The eight-file candidate manifest verifies its complete file set, the three
+  canonical hashes and exact `-text` coverage.
+- Amendment v4 records 18/18 handoff tests and makes CR/reserved-marker
+  attrition a whole-run pre-scoring NO-GO; selective repair, exclusion or rerun
+  is forbidden.
+
+### Evidence
+- New packet/handoff tests: PASS 32/32.
+- Frozen v2 redaction regression: PASS 23/23.
+- Evidence-live: PASS 65/65.
+- Fresh synthetic Docker smoke: packet PASS 22/22; handoff source
+  reproduction PASS 24/24; disposable container removed.
+- Candidate and canonical exact bytes: PASS 11/11 in worktree, index and
+  `core.autocrlf=true` checkout.
+- Canonical focused precommit: PASS, runtime smoke plus 187/187 selected tests.
+
+### Carried Forward
+- `memory_record` implicit parent-anchor behavior remains a separate slice; this
+  record used explicit commit `1f583b00`.
+- Scorer-packet CLI use-before-validate and the one-way tracked-inventory check
+  remain separate non-blocking follow-ups.
+- No owner signature, canonical promotion, resource admission, Gate 2 arm or
+  push is claimed.

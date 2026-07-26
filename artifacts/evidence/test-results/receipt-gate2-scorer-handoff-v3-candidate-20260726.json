@@ -4,6 +4,7 @@
   "mode": "VALIDATION",
   "status": "candidate_pass",
   "source_base_commit": "13b9abff",
+  "implementation_commit": "1f583b00911cae4c4f4dfdcd0f47a788dfc24dd6",
   "done": "scorer-handoff v3 deterministically rebuilds and byte-compares the complete redacted packet, anonymized receipt and marker from the pinned scorer-packet v2, test log, validator output, candidate contract and redaction runner; candidate and canonical bytes are checkout-stable",
   "authority": {
     "task_authority": "user_request",
@@ -91,7 +92,7 @@
     "candidate_manifest": "PASS: exact eight-file set plus three canonical files, bytes, SHA-256 and -text coverage verified",
     "core_autocrlf_checkout": "PASS: git cat-file --filters with core.autocrlf=true preserves every candidate and canonical digest",
     "canonical_focused_precommit": "PASS: scripts/run-runtime-governance.sh --mode enforce completed with runtime smoke and 187/187 selected tests in 75.48s; the first sandbox attempt failed before gate start because Git Bash dirname was unavailable, then the controlled normal-PATH rerun exited 0",
-    "memory_workflow": "PENDING: rerun required after final receipt and memory record"
+    "memory_workflow": "PASS: completion_claim_allowed=true, active_non_canonical_writer=0 and current_diff_b0_blocker_count=0 after explicit commit-bound records for 1f583b00"
   },
   "claim_boundary": {
     "candidate": "exact candidate bytes are reviewable and hash-pinned but not owner-signed or canonical",
