@@ -448,3 +448,103 @@ and negative prompt/artifact-production evidence. The next fresh run must use
 atomic analyzer output, byte-preserving prompt stdin, an exact session identity
 check, and a task that offers the harness three independent reads in one
 response so Q5 has a real opportunity to become observable.
+
+---
+
+## Phase 6 — exact-prompt and atomic-artifact rerun
+
+**Run** `live-canary-20260726-172217`.
+**Session** `086582da-8d86-4003-8c7b-428e65ab0081`.
+**Outcome** `CHANGES_REQUESTED`. The managed channel mechanism passed; remaining
+findings are result semantics, treatment design and operator closeout.
+
+### F17. The two prior blockers are closed
+
+Source and session prompt were byte-identical: 1,758 bytes, 1,752 codepoints,
+SHA-256 `5ae8f64e…`. Pre-submit transport preflight and immediate session-log
+identity both passed. `answers.json` parsed successfully, carried Q1–Q5, and the
+CLI exited 0 with empty stderr. Final preflight passed 14/14 and transcript
+verification passed 17/17.
+
+### F18. Three failure types strengthen Q3 but do not create call identity
+
+The run produced `test:1`, `write:2` and `read:1`. Three
+`PostToolUseFailure` events equalled the three non-zero exits, while 12 ordinary
+events equalled 12 zero exits. Q3 is therefore ANSWERED by population matching
+with n=3.
+
+All three individual failure events remain UNATTRIBUTABLE because
+`PostToolUseFailure` has no stdout digest. This is a structural payload limit,
+not a peculiarity of this run: without a new shared failure observable, Q3 can
+only be established by complete-population counting.
+
+### F19. A batch request occurred; overlapping execution did not
+
+The first review of this run counted each physical assistant JSONL row as a
+separate message and concluded no batch occurred. Claude Code instead emitted
+three tool-use rows sharing message id `msg_011CdQRfQmroHatjsaGYz9WJ`; all
+three preceded the first tool result. That is one logical assistant response
+with three tool calls. Another message id carried two.
+
+All 15 adapter calls nevertheless recorded zero lock wait. Thus batch request
+delivery is observed, but concurrent adapter execution is not. Q5 must keep
+those two claims separate. `batch_request_check.py` now groups by message id and
+deduplicates tool-use ids so the row/message distinction is machine-checked.
+
+### F20. Write fidelity and semantic intent were conflated
+
+Sequence 5 wrote a valid 63-byte payload and returned its SHA-256; the intended
+full content was 65 bytes. This was not silent transport corruption: the
+adapter stored exactly the valid decoded bytes the producer submitted. A digest
+cannot reveal an unstated intended document.
+
+The corrected receipt compares requested decoded bytes with the container's
+stored digest and byte count, and fails if storage differs. The prompt requires
+an immediate read-back to settle semantic intent. The claim boundary is
+explicit: `content_matches_request` proves storage fidelity, not that the model
+encoded what it meant.
+
+### F21. Mutable report semantics corrupted the scorer artifact
+
+Sequence 13 successfully wrote a detailed result. Sequence 14 tried to read it
+through the repo-only `read` verb and failed. Sequence 15 then overwrote it with
+an 81-byte summary lacking the tradeoff the final producer message claimed was
+recorded. This reproduces F10's shape on the actual blind-scorer input.
+
+`report` is now create-once. Successful write/report calls return structured
+byte/digest receipts; the adapter log stores them. The after-snapshot records
+the final result artifact's bytes, digest and parsed JSON, and
+`verify_result_artifact.py` requires exactly one successful report whose
+receipt matches that final file.
+
+### F22. Base64 is a treatment effect, not merely transport syntax
+
+The producer removed the existing module docstring specifically to reduce
+manual base64 transcription risk. The channel therefore changed a simple bug
+fix into a smaller, lower-documentation solution that a blind scorer could
+penalize.
+
+Decision: retain base64 and do not add a plaintext shell verb, because doing so
+would reopen the quoting/metacharacter/injection surface. Pre-register the
+manual-encoding burden as a common-mode channel effect and require owner
+re-signing before Gate 2. This preserves the safety boundary while refusing to
+pretend the channel is treatment-neutral.
+
+### F23. Numeric exit capture and PowerShell output redirection were still unsafe
+
+`echo %errorlevel%> file` becomes `echo 0> file` for success, which `cmd.exe`
+parses as descriptor 0 redirection and leaves an empty artifact. The same form
+is wrong for every numeric value; multi-digit codes can redirect another
+descriptor. The tested form saves the code and places redirection first.
+
+Separately, PowerShell 5.1 wrote the analyzer console as UTF-16LE. Operator
+capture now forces child UTF-8 and atomically writes stdout, stderr and exit
+code without a PowerShell text redirect.
+
+### Decision
+
+The managed channel's Q1–Q4 mechanism is established. Gate 2 still may not
+start: result/write semantics and closeout require one final canary, overlapping
+execution remains unobserved, the base64 channel-effect amendment is not
+owner-signed, and 4+2 independent contexts plus an answer-blind runner remain
+unavailable.

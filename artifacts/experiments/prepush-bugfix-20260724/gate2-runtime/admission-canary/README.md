@@ -18,7 +18,8 @@ canary_adapter.sh/py  the only sanctioned path in; policy-driven, argv-only, nev
 setup_canary.sh       build + seed the isolated container
 harness_emulator.py   drives the documented hook contract (NOT Claude Code -- see limits)
 run_canary.py         the run: isolation attestation, workflow, bypasses, duplicates, failure, controls
-test_canary_conformance.py   policy and adapter describe the same channel (18 checks)
+test_canary_conformance.py   policy and adapter describe the same channel (23 checks)
+test_adapter_write_receipts.py  byte receipts and immutable report semantics
 evidence/             transcript, adapter log, verification, console output, container attestation
 ```
 
@@ -41,10 +42,15 @@ container has no path back to the framework repo even if the channel broke.
 **Phase 1 — the producer vertical slice, entirely through the channel.** Read
 the task, the code and the test; run the test (**exit 1**, `FAILED
 (failures=2)`); write the fix; run the test again (**exit 0**, `OK`); read the
-diff and status; emit a result artifact. The container attests each write's
-sha256 itself. The artifact was read back out afterwards, by the operator over
-`docker exec` — there is deliberately no verb that takes anything *out* of the
-sandbox.
+diff and status; emit a result artifact. The container returns a structured
+receipt for each write containing its stored byte count and SHA-256, and the
+adapter fails if those bytes differ from the submitted decoded payload. That
+proves transport/storage fidelity, not semantic intent, so source writes still
+require an immediate producer read-back. `report` is create-once: a later
+attempt cannot silently replace the scorer artifact. The operator snapshot
+records the final result's content, byte count and digest, and
+`verify_result_artifact.py` joins those to the one successful report receipt.
+There is deliberately no verb that takes arbitrary data *out* of the sandbox.
 
 **Phase 2 — 22 bypass attempts, all refused before execution**: direct
 `docker exec`/`cp`/`-u 0`, host answer surfaces, `git -C` the framework repo,

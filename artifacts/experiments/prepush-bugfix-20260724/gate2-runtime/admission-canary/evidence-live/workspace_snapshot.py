@@ -20,6 +20,8 @@ import os
 import subprocess
 from datetime import datetime, timezone
 
+from evidence_io import atomic_write_json
+
 CONTAINER = os.environ.get("GATE2_CANARY_CONTAINER", "gate2-admission-canary")
 
 
@@ -32,6 +34,34 @@ def run(argv: list[str]) -> tuple[int, str]:
 def dexec(argv: list[str], workdir: str = "/work/repo") -> tuple[int, str]:
     return run(["docker", "exec", "-u", "65532:65532", "-e", "HOME=/work", "-w", workdir,
                 CONTAINER] + argv)
+
+
+def collect_out_artifacts(names: list[str]) -> dict:
+    artifacts = {}
+    for name in names:
+        target = f"/work/out/{name}"
+        sha_rc, sha_line = dexec(["sha256sum", target], workdir="/work")
+        size_rc, size_line = dexec(["wc", "-c", target], workdir="/work")
+        text_rc, text = dexec(["cat", target], workdir="/work")
+        try:
+            size = int(size_line.split()[0]) if size_rc == 0 else None
+        except (IndexError, ValueError):
+            size = None
+        parsed_json = None
+        if text_rc == 0:
+            try:
+                parsed_json = json.loads(text)
+            except json.JSONDecodeError:
+                pass
+        artifacts[name] = {
+            "bytes": size,
+            "sha256": (
+                sha_line.split()[0] if sha_rc == 0 and sha_line else None
+            ),
+            "utf8_text_trimmed": text if text_rc == 0 else None,
+            "parsed_json": parsed_json,
+        }
+    return artifacts
 
 
 def main() -> int:
@@ -53,6 +83,9 @@ def main() -> int:
         rc, line = dexec(["sha256sum", path])
         digests[path] = line.split()[0] if rc == 0 and line else f"<error: {line}>"
 
+    out_names = [f for f in out_dir.splitlines() if f.strip()]
+    out_artifacts = collect_out_artifacts(out_names)
+
     record = {
         "label": args.label,
         "captured_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -65,12 +98,11 @@ def main() -> int:
             "tracked_files": sorted(digests),
             "file_sha256": digests,
         },
-        "work_out": [f for f in out_dir.splitlines() if f.strip()],
+        "work_out": out_names,
+        "work_out_artifacts": out_artifacts,
     }
 
-    with open(args.out, "w", encoding="utf-8", newline="\n") as fh:
-        json.dump(record, fh, indent=2, sort_keys=True)
-        fh.write("\n")
+    atomic_write_json(args.out, record)
 
     print(f"wrote {args.out}")
     print(f"  container : {CONTAINER} ({state})")

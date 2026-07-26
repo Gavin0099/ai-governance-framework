@@ -141,11 +141,16 @@ def log(record: dict) -> None:
         os.fsync(fh.fileno())
 
 
-def summarise(args: list[str]) -> list[str]:
+def summarise(verb: str, args: list[str]) -> list[str]:
     """Arguments for the log: paths in full, payloads as digests only."""
     out = []
-    for a in args:
-        out.append(a if len(a) <= 96 else f"<b64 len={len(a)} sha256={sha(a)[:16]}>")
+    for index, arg in enumerate(args):
+        is_payload = (verb == "write" and index == 1) or verb == "report"
+        out.append(
+            f"<b64 len={len(arg)} sha256={sha(arg)[:16]}>"
+            if is_payload or len(arg) > 96
+            else arg
+        )
     return out
 
 
@@ -164,18 +169,65 @@ def docker(argv: list[str], stdin: bytes | None = None) -> tuple[int, str]:
     return cp.returncode, cp.stdout.decode("utf-8", "replace")
 
 
-def write_file(target: str, content_b64: str) -> tuple[int, str]:
+def write_file(
+    target: str,
+    content_b64: str,
+    *,
+    receipt_target: str,
+    overwrite: bool = True,
+) -> tuple[int, str]:
     """Stream decoded content into the container, then have the container attest
-    the resulting digest. The attestation comes from inside the sandbox, not
-    from this side, so the log records what the container actually holds."""
+    the resulting digest and byte count.
+
+    `content_matches_request` proves that the sandbox stored the exact decoded
+    bytes submitted to the adapter. It cannot prove those submitted bytes match
+    the producer's unstated semantic intent; the producer must still read back
+    source writes. Result artifacts are create-once so a later mistaken report
+    cannot silently replace the scorer's evidence.
+    """
     try:
         blob = base64.b64decode(content_b64, validate=True)
     except (binascii.Error, ValueError) as exc:
         return 2, f"adapter: content is not valid base64 ({exc})"
+
+    if not overwrite:
+        exists_rc, exists_out = docker(["test", "-e", target])
+        if exists_rc == 0:
+            return 3, json.dumps({
+                "error": "target already exists; report artifacts are immutable",
+                "target": receipt_target,
+                "written": False,
+            }, sort_keys=True)
+        if exists_rc != 1:
+            return exists_rc, exists_out
+
     rc, out = docker(["cp", "/dev/stdin", target], stdin=blob)
     if rc != 0:
         return rc, out
-    return docker(["sha256sum", target])
+
+    sha_rc, sha_out = docker(["sha256sum", target])
+    if sha_rc != 0:
+        return sha_rc, sha_out
+    size_rc, size_out = docker(["wc", "-c", target])
+    if size_rc != 0:
+        return size_rc, size_out
+
+    stored_sha256 = sha_out.split()[0] if sha_out.split() else ""
+    try:
+        stored_bytes = int(size_out.split()[0])
+    except (IndexError, ValueError):
+        return 3, f"adapter: could not parse stored byte count ({size_out!r})"
+
+    expected_sha256 = sha_bytes(blob)
+    verified = stored_sha256 == expected_sha256 and stored_bytes == len(blob)
+    receipt = {
+        "bytes": stored_bytes,
+        "content_matches_request": verified,
+        "sha256": stored_sha256,
+        "target": receipt_target,
+        "written": True,
+    }
+    return (0 if verified else 3), json.dumps(receipt, sort_keys=True)
 
 
 # verb -> (arity, handler). A conformance test asserts this table and the policy
@@ -184,11 +236,16 @@ def write_file(target: str, content_b64: str) -> tuple[int, str]:
 EXEC = {
     "ls": (0, lambda a: docker(["git", "ls-files"])),
     "read": (1, lambda a: docker(["cat", f"{REPO}/{a[0]}"])),
-    "write": (2, lambda a: write_file(f"{REPO}/{a[0]}", a[1])),
+    "write": (2, lambda a: write_file(
+        f"{REPO}/{a[0]}", a[1], receipt_target=f"repo:{a[0]}",
+    )),
     "test": (0, lambda a: docker(TEST_ARGV)),
     "diff": (0, lambda a: docker(["git", "diff"])),
     "status": (0, lambda a: docker(["git", "status", "--porcelain"])),
-    "report": (1, lambda a: write_file(f"{OUT}/result.json", a[0])),
+    "report": (1, lambda a: write_file(
+        f"{OUT}/result.json", a[0], receipt_target="out:result.json",
+        overwrite=False,
+    )),
 }
 
 
@@ -224,7 +281,7 @@ def main(argv: list[str]) -> int:
             "pid": os.getpid(),
             "lock_wait_ms": lock_wait_ms,
             "verb": verb or None,
-            "args_summary": summarise(args),
+            "args_summary": summarise(verb, args),
             "args_sha256": sha("\x00".join(args)),
             "arg_count": len(args),
             "container": CONTAINER,
@@ -243,8 +300,18 @@ def main(argv: list[str]) -> int:
 
         rc, raw = execute(verb, args)
         out = normalise(raw).encode("utf-8")
+        result_receipt = None
+        if verb in ("write", "report"):
+            try:
+                parsed = json.loads(normalise(raw))
+            except (json.JSONDecodeError, TypeError):
+                pass
+            else:
+                if isinstance(parsed, dict):
+                    result_receipt = parsed
         log({**base, "decision": "executed", "reason": None, "exit": rc,
-             "stdout_bytes": len(out), "stdout_sha256": sha_bytes(out)})
+             "stdout_bytes": len(out), "stdout_sha256": sha_bytes(out),
+             "result_receipt": result_receipt})
     # Write the same bytes we just measured. Text-mode stdout translates LF to
     # CRLF when Python writes to a pipe on Windows; hashing before that
     # translation made every multi-line live result impossible to join with the

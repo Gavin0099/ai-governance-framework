@@ -3690,3 +3690,85 @@ Complete scoped validation and the focused precommit gate, commit the bounded
 correction, then run one fresh isolated canary with new identities. Require
 `exact_prompt_match: true`, valid atomic `answers.json`, and preserve Q5 as
 UNANSWERED if the harness still does not overlap calls. Do not start Gate 2.
+
+## 2026-07-26 — Gate 2 live-canary run 3 review (`live-canary-20260726-172217`)
+
+### Decision Summary
+- Verdict: `CHANGES_REQUESTED`
+- Channel mechanism: Q1–Q4 established.
+- Risk level: High for scorer-artifact integrity and treatment validity.
+- Gate decision: do not start a Gate 2 arm.
+
+### Independently Confirmed
+- Prompt identity: exact at 1,758 bytes / 1,752 codepoints / SHA-256
+  `5ae8f64e…`.
+- Preflight 14/14 and transcript verifier 17/17.
+- Transcript: 34 events = 19 pre, 15 allow, 4 deny, 12 ordinary post, 3
+  failure post.
+- Adapter: 15 executions, 0 rejected, three non-zero exits
+  (`test:1`, `write:2`, `read:1`), one policy and 0 lock waits.
+- Atomic analyzer output is valid; Q1–Q4 ANSWERED and Q5 UNANSWERED.
+- The workspace task passed and a final result artifact exists.
+
+### Blocking Findings
+1. The launcher exit-code form is wrong for every numeric code.
+   - `echo %errorlevel%> file` lets `cmd.exe` parse the digit before `>` as a
+     descriptor.
+   - Candidate fix saves the code and writes with redirection before `echo`.
+   - Windows regression covers exits 0 and 12.
+
+2. Mutable `report` replaced the scorer artifact.
+   - Sequence 13 wrote the detailed result, sequence 14 failed to read it
+     through the repo-only `read`, and sequence 15 replaced it with an 81-byte
+     summary.
+   - Candidate fix makes report create-once and joins its structured receipt to
+     the final operator snapshot.
+
+3. Storage fidelity and semantic intent were conflated.
+   - The adapter already returned a stored SHA-256, so “no digest” was too
+     broad. It stored the valid 63-byte payload the producer submitted.
+   - Candidate fix explicitly compares decoded request bytes with stored digest
+     and length, while requiring a producer read-back for semantic intent.
+
+4. Manual base64 is a treatment effect.
+   - The producer deleted a module docstring solely to reduce transcription
+     risk.
+   - Decision: do not reopen a plaintext shell surface. Retain base64, make
+     receipts/read-back mandatory, and preregister the burden as a common-mode
+     channel effect. Owner signature remains pending.
+
+### Corrected Review Claim
+- The claim that no assistant message contained more than one tool call is not
+  supported.
+- Claude Code stored the three initial tool-use blocks on separate JSONL rows
+  sharing message id `msg_011CdQRfQmroHatjsaGYz9WJ`; all occurred before the
+  first result. Another logical message contained two calls.
+- The run proves batch requests but not overlapping execution. All live lock
+  waits remained zero.
+
+### Structural Limits And Warnings
+- All three failure payloads lack stdout digests. Q3 is population-only even at
+  n=3; route-A per-call attribution is structurally unavailable.
+- PowerShell redirected the analyzer console as UTF-16LE. Candidate operator
+  capture forces child UTF-8 and atomically writes stdout/stderr/exit.
+- The 187-test signal is anchored to
+  `AI_GOVERNANCE_PYTHON=/d/ai-governance-framework/.venv/Scripts/python.exe
+  bash scripts/run-runtime-governance.sh --mode enforce`; it is not the full
+  repository suite.
+
+### Candidate Validation
+- adapter write/report receipts: PASS, 5/5.
+- adapter conformance: PASS, 23/23.
+- adapter concurrency: PASS, 8/8.
+- producer guard: PASS, 101/101.
+- verifier mutations: PASS, 14/14.
+- evidence-live tests: PASS, 50/50.
+- final isolated canary: NOT RUN.
+- Gate 2 arm: NOT STARTED.
+
+### Next Recommendation
+Finish scoped suites, memory workflow and the canonical focused precommit gate;
+commit the bounded remediation; then run one final isolated canary. Require
+exact launcher exit capture, one immutable report matching the final snapshot,
+UTF-8 console artifacts, and separate batch-request versus overlap claims.
+Stop on any new blocking and do not start Gate 2.

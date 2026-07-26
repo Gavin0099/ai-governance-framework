@@ -1,0 +1,102 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "changes_requested",
+  "command": "independent review of commit e8979673 and live-canary-20260726-172217; replay verifier/analyzer; inspect frozen prompt identity, session JSONL message grouping, adapter log, final result artifact and scoped suites",
+  "exit_code": 1,
+  "started_at": "2026-07-26T17:31:00+08:00",
+  "finished_at": "2026-07-26T17:55:51+08:00",
+  "runner": "codex-review-gate2-live-canary-run3-20260726",
+  "linked_commit": "e8979673",
+  "run_id": "live-canary-20260726-172217",
+  "producer_session_id": "086582da-8d86-4003-8c7b-428e65ab0081",
+  "verdict": "CHANGES_REQUESTED",
+  "output_artifacts": [
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/evidence-live/RUNBOOK.md",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/evidence-live/RUN-CONFIG.md",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/evidence-live/FINDINGS.md",
+    "memory/04_review_log.md",
+    "memory/01_active_task.md",
+    "memory/03_knowledge_base.md"
+  ],
+  "independently_confirmed": {
+    "prompt_identity": "PASS: source and first session message are both 1758 UTF-8 bytes, 1752 codepoints and SHA-256 5ae8f64e46189cd6951a1e764718b3aeac89276318bdff2088959b1d59cf7426",
+    "channel": "PASS: preflight 14/14 and verify_transcript 17/17",
+    "transcript": "34 events: 19 pre, 15 allow, 4 deny, 12 post_tool_use and 3 post_tool_use_failure",
+    "adapter": "15 executed, 0 rejected, one policy digest, 3 non-zero exits (test:1, write:2, read:1), 0 lock waits",
+    "analyzer": "PASS: valid atomic answers.json, CLI exit 0, Q1-Q4 ANSWERED and Q5 UNANSWERED",
+    "workspace": "source fix and 3/3 canary tests passed; /work/out/result.json exists",
+    "batch_request_correction": "PASS: three tool-use rows share assistant message id msg_011CdQRfQmroHatjsaGYz9WJ and all precede the first tool result; physical JSONL rows are not logical message boundaries"
+  },
+  "blocking_findings": [
+    {
+      "id": "B1",
+      "summary": "The cmd launcher writes numeric exit codes with `echo %errorlevel%> file`. Digits immediately before > are parsed as descriptor numbers, so the form is wrong for zero and multi-digit exits; run 172217 left a zero-byte closeout artifact."
+    },
+    {
+      "id": "B2",
+      "summary": "A successful detailed report was followed by a failed repo-only read and a second successful report that overwrote the scorer artifact with an 81-byte summary inconsistent with the producer's final prose. Report output must be immutable and joined to the final snapshot."
+    },
+    {
+      "id": "B3",
+      "summary": "Write output attested a stored SHA-256 but did not explicitly compare requested decoded bytes with stored digest/length or distinguish storage fidelity from semantic intent. A valid unintended payload was stored exactly and only semantic read-back detected it."
+    },
+    {
+      "id": "B4",
+      "summary": "Manual base64 changed the treatment: the producer removed a module docstring solely to reduce encoding risk. This common-mode channel effect must be pre-registered and owner-signed; adding a plaintext shell verb would reopen the injection boundary."
+    }
+  ],
+  "corrected_review_claim": {
+    "claim": "run 172217 never requested multiple tools in one assistant message",
+    "disposition": "NOT CONFIRMED",
+    "evidence": "Claude Code serialized content blocks onto separate JSONL rows sharing one message id. Grouping by message.id and tool_use.id finds a three-call batch and a two-call batch.",
+    "remaining_limit": "all adapter lock_wait_ms values are zero, so overlapping execution remains unobserved"
+  },
+  "warnings": [
+    {
+      "id": "W1",
+      "summary": "All three PostToolUseFailure payloads lack stdout digests. Q3 is stronger at n=3 but remains population-only; individual non-zero calls cannot be joined by route A."
+    },
+    {
+      "id": "W2",
+      "summary": "answers-console.txt was UTF-16LE because PowerShell redirected native output. Operator capture must force and preserve UTF-8 bytes."
+    },
+    {
+      "id": "W3",
+      "summary": "The canonical 187-test signal must be anchored to the exact focused wrapper command and must not be described as the full repository suite."
+    }
+  ],
+  "design_decision": {
+    "plaintext_write_verb": "REJECTED",
+    "reason": "arbitrary plaintext through a shell command would reopen quoting, metacharacter and injection surfaces",
+    "selected_path": "retain base64; return byte-attested receipts; require semantic read-back; pre-register the ergonomic burden as a common-mode channel effect",
+    "owner_signature": "PENDING"
+  },
+  "test_provenance": {
+    "focused_precommit_command": "AI_GOVERNANCE_PYTHON=/d/ai-governance-framework/.venv/Scripts/python.exe bash scripts/run-runtime-governance.sh --mode enforce",
+    "claim_boundary": "focused runtime-governance smoke and selected tests; not the full repository suite"
+  },
+  "candidate_remediation_validation": {
+    "adapter_write_receipts": "PASS: 5/5 tests",
+    "adapter_conformance": "PASS: 23/23 checks",
+    "adapter_concurrency": "PASS: 8/8 checks",
+    "producer_guard": "PASS: 101/101 checks",
+    "verifier_mutations": "PASS: 14/14 checks",
+    "evidence_live": "PASS: 50/50 tests",
+    "memory_workflow": "PASS: completion_claim_allowed=true with zero current-diff B0 blockers",
+    "canonical_focused_precommit": "PASS: wrapper exit 0 and 187/187 selected tests passed in 95.78 seconds",
+    "final_live_canary": "NOT RUN",
+    "gate2_arm": "NOT STARTED"
+  },
+  "cannot_claim": [
+    "that run 172217 captured the Claude process exit code",
+    "that the final result artifact preserved the producer's first detailed report",
+    "that a stored payload matching submitted base64 proves semantic intent",
+    "that base64 is treatment-neutral",
+    "that adapter executions overlapped in the live harness",
+    "that PostToolUseFailure supports per-call stdout-digest attribution",
+    "that the full repository suite passed",
+    "that the channel-effect amendment is owner-signed",
+    "that Gate 2 may start or that any arm ran",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

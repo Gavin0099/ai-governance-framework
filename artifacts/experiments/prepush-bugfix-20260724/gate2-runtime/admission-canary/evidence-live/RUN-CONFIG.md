@@ -1,11 +1,11 @@
 # Live producer run — procedure and configuration of record
 
-Run of record: `live-canary-20260726-161453` — **completed with
-`CHANGES_REQUESTED`.** The byte-exact adapter correction worked and all
-cross-side observables joined, but the analyzer's JSON output path crashed after
-leaving a partial artifact and the PowerShell 5.1 launch path re-encoded the
-hash-frozen prompt. The channel evidence remains valid; the prompt-identity
-failure blocks Gate 2 provisioning.
+Run of record: `live-canary-20260726-172217` — **completed with
+`CHANGES_REQUESTED`.** Prompt identity, atomic analyzer output and the managed
+channel all passed. The remaining defects moved to result semantics and
+operator closeout: the scorer artifact was overwritten, the launcher wrote an
+empty exit-code file, and manual base64 materially changed the producer's
+solution. Gate 2 remains blocked.
 
 The [admission canary](../README.md) was driven by a harness *emulator*. This run
 is the same channel driven by a real Claude Code session, to observe what the
@@ -323,6 +323,105 @@ failing test. This gives the live harness an honest opportunity to issue a batch
 and exercise the adapter's serialization lock. It does not guarantee overlap;
 if lock waits remain zero, Q5 remains UNANSWERED rather than becoming a negative
 claim.
+
+## Third remediation run of record — `live-canary-20260726-172217`
+
+The fresh container baseline was `57a13be canary baseline (planted defect in
+src/calc.py)`. Claude session `086582da-8d86-4003-8c7b-428e65ab0081` received
+the frozen prompt exactly: source and session were both 1,758 UTF-8 bytes,
+1,752 codepoints and SHA-256 `5ae8f64e…`.
+
+The channel passed:
+
+- preflight 14/14 and final verifier 17/17;
+- 34 transcript events: 19 pre, 15 allow, 4 deny, 12 ordinary terminal and
+  3 failure terminal events;
+- 15 adapter executions, 0 rejected, one policy digest and 0 lock waits;
+- Q1–Q4 ANSWERED; three non-zero exits (`test:1`, `write:2`, `read:1`) all
+  aligned with three `PostToolUseFailure` events by the population route;
+- atomic `answers.json` was valid and the analyzer exited 0;
+- the source fix passed all three canary tests and `/work/out/result.json`
+  existed.
+
+### Q5 batch evidence, corrected
+
+The initial review said every assistant message contained at most one tool-use
+block. That conclusion counted physical JSONL rows instead of logical API
+messages. Claude Code stored the three initial read blocks on separate rows, but
+all shared message id `msg_011CdQRfQmroHatjsaGYz9WJ`, and all three appeared
+before the first tool result. A second logical message contained two tool calls.
+Therefore the run **did issue batch requests**.
+
+The three reads ran in distinct adapter processes but every `lock_wait_ms` was
+zero. The evidence proves multi-tool request delivery, not overlapping
+execution. Q5's parallel-execution portion remains UNANSWERED. The canonical
+batch checker must aggregate by `message.id` and deduplicate by `tool_use_id`;
+counting one JSONL row as one assistant turn is invalid for this log format.
+
+### Write and result semantics
+
+The adapter already returned `sha256sum` after successful writes, so “write
+returned no digest” is too broad. What was missing was an explicit comparison
+between decoded requested bytes and stored bytes, a byte count, and a clear
+claim boundary. The producer submitted a valid but unintended 63-byte payload;
+the channel stored exactly what it was told. No transport can infer unstated
+semantic intent from valid bytes.
+
+Revision 6 therefore returns a structured receipt containing stored bytes,
+SHA-256 and `content_matches_request`, and fails non-zero if container bytes
+differ from the decoded payload. The prompt separately requires immediate
+read-back for semantic intent. Storage fidelity and semantic correctness remain
+distinct claims.
+
+The result artifact did suffer a real channel-semantics defect. Adapter sequence
+13 successfully reported a detailed payload, sequence 14 attempted an
+unsupported `read out/result.json`, and sequence 15 overwrote the artifact with
+an 81-byte summary. The producer's final prose claimed the tradeoff was in the
+artifact, but the final artifact did not contain it. Revision 6 makes `report`
+create-once, returns its byte/digest receipt, records that receipt in the adapter
+log, snapshots final artifact bytes/digest/content, and joins the two with
+`verify_result_artifact.py`.
+
+### Pre-registered base64 channel effect
+
+No plaintext write verb will be added. Passing arbitrary plaintext through a
+shell command would reopen quoting, metacharacter and injection boundaries that
+the admitted argv-only channel deliberately closed. The base64 burden is
+retained as a **known common-mode channel effect**: in 172217 the producer
+deleted a module docstring solely to reduce manual encoding risk, changing the
+quality of the treatment output.
+
+This choice is not evidence-neutral. Before Gate 2, the owner-signed
+pre-registration must explicitly acknowledge that all arms share this channel
+effect and that scorer interpretation may include it. Until that amendment is
+owner-signed, no arm may start.
+
+### Launcher and console capture
+
+The launcher line `echo %errorlevel%> file` was wrong for every numeric exit:
+`cmd.exe` parses a digit immediately before `>` as a descriptor number. Exit 0
+created a zero-byte file; a multi-digit value can truncate what is echoed and
+redirect another descriptor. Revision 6 emits:
+
+    > "...\claude-exit-code.txt" echo %claudeExit%
+
+after first saving `%errorlevel%`. A Windows subprocess regression covers exits
+0 and 12.
+
+PowerShell `1>` also wrote `answers-console.txt` as UTF-16LE. Revision 6 routes
+operator commands through `capture_command.py`, which forces child UTF-8 and
+atomically writes raw stdout, stderr and exit-code artifacts.
+
+### Test command anchor
+
+The canonical focused precommit command is:
+
+```bash
+AI_GOVERNANCE_PYTHON=/d/ai-governance-framework/.venv/Scripts/python.exe \
+  bash scripts/run-runtime-governance.sh --mode enforce
+```
+
+It is a focused runtime-governance gate, not the full repository suite.
 
 ## Disposal
 

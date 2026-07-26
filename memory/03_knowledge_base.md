@@ -195,6 +195,25 @@
   stdin redirect, and compare the first session user message exactly after it
   lands. Trimming BOM or line-ending differences would conceal a real transport
   mutation.
+- A stored digest proves fidelity only to the bytes actually submitted. It
+  cannot prove that a producer encoded its intended semantic document. Compare
+  requested and stored digest/length inside the adapter, then require semantic
+  read-back as a separate check and claim.
+- Scorer artifacts should be create-once. If a report path can be overwritten
+  after success, later uncertainty can silently replace a richer admissible
+  result. Bind the one successful report receipt to the final snapshot's digest
+  and byte count.
+- Claude Code JSONL rows are not necessarily logical assistant-message
+  boundaries. Multiple tool-use rows can share one `message.id`; batch analysis
+  must group by message id and deduplicate tool-use ids before deciding whether
+  one response contained multiple calls.
+- In `cmd.exe`, a digit immediately before `>` is a file-descriptor selector.
+  Never emit `echo %errorlevel%> file`; save the value and place redirection
+  before `echo`, with regressions for zero and multi-digit exit codes.
+- A safe channel can still alter treatment quality through ergonomics. When a
+  producer removes documentation or changes strategy to reduce encoding burden,
+  record that as a common-mode channel effect and require pre-registration /
+  owner acceptance rather than treating the transport as neutral.
 - Do not assume hook delivery is serial merely because a canary driver is.
   If the real harness can issue parallel tool calls, either carry
   `tool_use_id` into the adapter log and use concurrency-safe append/sequence
