@@ -31,6 +31,8 @@ import argparse
 import json
 from collections import Counter
 
+from evidence_io import atomic_write_json
+
 PRE = "pre_tool_use"
 TERMINALS = ("post_tool_use", "post_tool_use_failure")
 
@@ -237,15 +239,19 @@ def _q3(pres: list[dict], terms: list[dict], adapter: list[dict]) -> dict:
 def _q4(terms: list[dict]) -> dict:
     if not terms:
         return {"status": UNANSWERED, "answer": "no terminal event was recorded",
-                "sources": {}, "keysets": {}, "usable_observable": "0/0"}
+                "sources": {}, "keysets": [], "usable_observable": "0/0"}
     srcs = Counter(t.get("observable_source") for t in terms)
     keysets = Counter(tuple(t.get("response_keys") or []) for t in terms)
     usable = [t for t in terms if t.get("stdout_sha256")]
     top = keysets.most_common(1)[0][0]
+    serializable_keysets = [
+        {"keys": list(keys), "count": count}
+        for keys, count in sorted(keysets.items(), key=lambda item: (-item[1], item[0]))
+    ]
     return {"status": ANSWERED,
             "answer": (f"tool_response is a dict with keys {list(top)}" if top
                        else "tool_response was not a dict on any event"),
-            "sources": dict(srcs), "keysets": {k: v for k, v in keysets.items()},
+            "sources": dict(srcs), "keysets": serializable_keysets,
             "usable_observable": f"{len(usable)}/{len(terms)}"}
 
 
@@ -337,7 +343,8 @@ def render(r: dict) -> None:
         elif key == "q4":
             for src, n in a["sources"].items():
                 print(f"    observable_source: {src!r} x{n}")
-            for keys, n in a["keysets"].items():
+            for item in a["keysets"]:
+                keys, n = item["keys"], item["count"]
                 print(f"    response_keys: {list(keys) if keys else '<not a dict>'} x{n}")
             print(f"    terminal events carrying a usable shared observable: {a['usable_observable']}")
         elif key == "q5":
@@ -365,9 +372,7 @@ def main() -> int:
     result = analyse(load(args.transcript), load(args.adapter_log), args.probe_token)
     render(result)
     if args.json_out:
-        with open(args.json_out, "w", encoding="utf-8", newline="\n") as fh:
-            json.dump(result, fh, indent=2, sort_keys=True, default=str)
-            fh.write("\n")
+        atomic_write_json(args.json_out, result)
     return 0
 
 

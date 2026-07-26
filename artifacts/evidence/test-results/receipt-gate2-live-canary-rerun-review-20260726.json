@@ -1,0 +1,89 @@
+{
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "status": "changes_requested",
+  "command": "independent artifact review of live-canary-20260726-161453; rerun final verifier and scoped suites; inspect raw prompt and producer session log; reproduce answer_questions.py --json-out failure and partial output; audit prior test and commit provenance",
+  "exit_code": 1,
+  "started_at": "2026-07-26T16:31:00+08:00",
+  "finished_at": "2026-07-26T17:07:27+08:00",
+  "runner": "codex-review-gate2-live-canary-rerun-20260726",
+  "linked_commit": "eab44eeb",
+  "run_id": "live-canary-20260726-161453",
+  "producer_session_id": "34029823-35f7-4ed0-96e5-39582fec09ed",
+  "verdict": "CHANGES_REQUESTED",
+  "output_artifacts": [
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/evidence-live/RUNBOOK.md",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/evidence-live/RUN-CONFIG.md",
+    "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/admission-canary/evidence-live/FINDINGS.md",
+    "memory/04_review_log.md",
+    "memory/01_active_task.md",
+    "memory/03_knowledge_base.md"
+  ],
+  "independently_confirmed": {
+    "transcript": "32 events: 18 pre, 14 allow, 4 deny, 13 post_tool_use, 1 post_tool_use_failure",
+    "adapter": "14 executed lines, seq 1-14, one matching policy digest, 0 rejects, 0 lock waits",
+    "shared_observable": "PASS: verify_transcript.py 17/17; 9 eligible multi-line read/ls/test/diff/status calls joined",
+    "denials": "4 denied calls, none produced a terminal event or adapter execution",
+    "workspace": "src/calc.py repaired; first test exit 1, later test exit 0; /work/out/result.json exists; before/after snapshots agree",
+    "questions": "Q1-Q4 ANSWERED; Q3 uses the population route with n=1 while the individual failure is UNATTRIBUTABLE; Q5 UNANSWERED at 0/14 lock waits",
+    "prompt_identity": "FAIL: 1636-byte BOM-free UTF-8 source became a session message with leading U+FEFF, added terminal CRLF, and three U+2014 to U+003F substitutions",
+    "analyzer_json": "FAIL: --json-out exit 1 left a 3697-byte syntactically invalid partial answers.json; console answers were preserved separately"
+  },
+  "blocking_findings": [
+    {
+      "id": "B1",
+      "summary": "answer_questions.py used tuple response-key sets as JSON object keys. json.dump failed after streaming 3697 bytes to the final path, leaving a plausible-looking but invalid evidence artifact. The correction must be JSON-safe, serialize before touching the target, atomically replace it, and cover the real CLI output path."
+    },
+    {
+      "id": "B2",
+      "summary": "Get-Content -Raw piped through Windows PowerShell 5.1 re-encoded the hash-frozen prompt. The session did not receive the same task text. Gate 2 requires binary stdin transport, pre-submit source/transport validation, and an exact session-log identity check immediately after the message lands."
+    }
+  ],
+  "warnings": [
+    {
+      "id": "N1",
+      "summary": "The 187-pass signal is reproducible only as the focused canonical precommit wrapper, not as the full 3955-test repository suite. Receipts must name the exact command and claim boundary."
+    },
+    {
+      "id": "N2",
+      "summary": "Commit eab44eeb mixed the byte-exact correction with previously uncommitted guard guidance/reason_shown/guard_blocked changes. Run 152447 was produced from that working-tree state and is not a single-commit reproduction."
+    },
+    {
+      "id": "N3",
+      "summary": "Q3 is ANSWERED by the population route with one non-zero exit; the exact failing call cannot be joined because the failure payload carries no stdout digest."
+    },
+    {
+      "id": "N4",
+      "summary": "Q5 is structurally unexercised by the current sequential task. A new prompt should request independent reads together to give the harness a real opportunity to batch calls."
+    },
+    {
+      "id": "N5",
+      "summary": "Before this review record, RUN-CONFIG and FINDINGS stopped at run 152447/F13, leaving run 161453 and both defects only in external artifacts and conversation."
+    }
+  ],
+  "test_provenance": {
+    "focused_precommit_command": "AI_GOVERNANCE_PYTHON=/d/ai-governance-framework/.venv/Scripts/python.exe bash scripts/run-runtime-governance.sh --mode enforce",
+    "focused_precommit_result": "PASS: runtime smoke plus 187 collected focused tests",
+    "full_repository_suite": "NOT ESTABLISHED: no claim is made for the 3955-test full collection"
+  },
+  "remediation_validation": {
+    "answer_analyzer_cli_and_atomic_failure_regressions": "PASS: 29/29 tests",
+    "prompt_transport_and_session_identity_regressions": "PASS: 6/6 tests",
+    "all_evidence_live_regressions": "PASS: 38/38 tests",
+    "adapter_conformance": "PASS: 23/23 checks",
+    "memory_workflow": "PASS: completion_claim_allowed=true; current-diff B0 blockers=0",
+    "candidate_focused_precommit": "PASS: exact wrapper command completed with exit 0; runtime smoke passed and 187/187 focused tests passed",
+    "fresh_live_rerun": "NOT RUN",
+    "gate2_arm": "NOT STARTED"
+  },
+  "cannot_claim": [
+    "that run 161453 preserved the frozen prompt bit-for-bit",
+    "that the invalid answers.json from run 161453 is an admissible evidence artifact",
+    "that Q3 establishes a general routing rule beyond one population-matched failure",
+    "that live lock contention or parallel adapter safety was observed",
+    "that the 3955-test full repository suite passed",
+    "that run 152447 is reproducible from one named commit",
+    "that the current remediation is live-verified before a fresh isolated rerun",
+    "that Gate 2 may start or that any arm ran",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

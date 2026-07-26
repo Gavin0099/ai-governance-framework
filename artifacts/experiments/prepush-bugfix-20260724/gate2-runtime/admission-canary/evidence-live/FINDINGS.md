@@ -338,3 +338,113 @@ the artifact join. Do not start a Gate 2 arm. After the byte-emission,
 analyzer, preflight, documentation and review-record corrections pass their
 targeted gates, rerun once with a fresh container and evidence namespace and a
 task that forces the initial failing test.
+
+---
+
+## Phase 5 — byte-exact remediation rerun
+
+**Run** `live-canary-20260726-161453`.
+**Session** `34029823-35f7-4ed0-96e5-39582fec09ed`, Claude Code `2.1.220`,
+cwd `D:\gate2-live-producer-task`, permission mode `dontAsk`, project settings
+only.
+**Artifacts**
+`D:\gate2-live-run-evidence\live-canary-20260726-161453\`.
+**Outcome** `CHANGES_REQUESTED`. The channel and task succeeded; two independent
+evidence-production defects block Gate 2 provisioning.
+
+### What the artifacts independently establish
+
+- 32 transcript events = 18 pre decisions (14 allow + 4 deny), 13 ordinary
+  terminal events, and 1 failure terminal event.
+- 14 adapter executions, sequence 1–14, one matching policy digest, all denials
+  contained, no adapter rejection, and 0 lock waits.
+- `verify_transcript.py` passed 17/17 checks. Nine eligible multi-line calls
+  joined by verb, argument digest, and the exact stdout digest, closing F12.
+- The mandatory first test exited non-zero before any write and arrived as the
+  only `PostToolUseFailure`; the later test passed. Q1–Q4 were ANSWERED.
+- The container source was repaired, `/work/out/result.json` existed, and
+  before/after snapshots agreed.
+
+Q3's answer is deliberately narrow. Its exact failing call is UNATTRIBUTABLE
+because the failure payload carries no stdout digest. The answer comes from the
+population route: one failure event equals one non-zero exit, while 13 ordinary
+events equal 13 zero exits. That satisfies the analyzer's documented rule but is
+only one failing observation.
+
+Q5 remains UNANSWERED. Zero lock waits in 14 calls does not prove serialization;
+the task never induced a batch, so the live parallel-safety correction remains
+unexercised.
+
+### F14. Byte-exact emission repaired the cross-side join
+
+`canary_adapter.py` encoded the normalized result once, hashed those bytes, and
+wrote the same bytes through `sys.stdout.buffer`. Replaying the final verifier
+against the live artifacts passed every shared-observable check. The prior
+negative result was an adapter emission defect, not a container or harness
+mutation.
+
+### F15. Streaming JSON output created a false-looking evidence artifact
+
+`answer_questions.py --json-out` crashed when Q4's
+`Counter(tuple(response_keys))` became a dictionary with tuple keys and
+`json.dump` attempted to serialize it. The exit was 1, but the final path still
+contained 3,697 bytes because `json.dump` had already streamed the valid prefix.
+That partial file had the appearance and location of an answer artifact while
+being syntactically invalid — the same failure shape F10 warns against.
+
+The correction makes Q4's keyset counts explicitly JSON-safe, serializes the
+entire result before touching the destination, and replaces the final path
+atomically. CLI-level coverage invokes the real flag and reads the result back;
+failure-path coverage proves a serialization error creates no artifact and
+does not overwrite an existing valid one. Console and stderr capture remain
+separate required evidence.
+
+### F16. PowerShell text piping changed a hash-frozen prompt
+
+The source prompt was 1,636 BOM-free UTF-8 bytes and ended with `ibes.\n`. The
+session received a leading U+FEFF, an added terminal CRLF, and three U+2014 em
+dashes changed to `?`. The first content difference was:
+
+    runnable here — a managed adapter
+    runnable here ? a managed adapter
+
+The cause was the Windows PowerShell 5.1 text pipeline:
+
+```powershell
+Get-Content -Raw producer-prompt.txt | & claude.cmd -p ...
+```
+
+`$OutputEncoding` converted text sent to the native command's stdin. This is not
+wrapper-only noise: removing the BOM and terminal CR/LF still leaves different
+task content. The revised runbook forbids this path, validates the prompt's raw
+UTF-8 bytes before launch, uses an OS-level binary stdin redirect, and requires
+`exact_prompt_match: true` against the first session user message immediately
+after it lands.
+
+For this canary, replacing em dashes in explanatory prose did not invalidate the
+channel observations or the completed workspace result. It does invalidate
+frozen-packet identity and therefore blocks Gate 2: the same transport could
+silently give different task text to four arms whose packet hash was supposed
+to be identical.
+
+### Test and provenance limits
+
+The prior “187 tests passed” signal is anchored to
+`AI_GOVERNANCE_PYTHON=/d/ai-governance-framework/.venv/Scripts/python.exe bash
+scripts/run-runtime-governance.sh --mode enforce`. It is the canonical focused
+precommit gate, not the repository's full 3,955-test collection. The full suite
+was not established by this run.
+
+Commit `eab44eeb` mixed the byte-emission correction with guard guidance,
+`reason_shown`, and `guard_blocked` changes that were already present in the
+working tree for run 152447. Consequently 152447 cannot be claimed as a
+single-commit reproduction; its immutable artifacts record the working-tree
+state actually used.
+
+### Decision
+
+Do not start a Gate 2 arm. Preserve run 161453: it is positive channel evidence
+and negative prompt/artifact-production evidence. The next fresh run must use
+atomic analyzer output, byte-preserving prompt stdin, an exact session identity
+check, and a task that offers the harness three independent reads in one
+response so Q5 has a real opportunity to become observable.

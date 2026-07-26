@@ -186,6 +186,15 @@
   cross a real subprocess pipe and compare captured raw bytes with the logged
   digest. Do not hide this class of failure by folding CRLF in the verifier,
   because that would erase real CR bytes produced upstream.
+- Never stream a structured evidence artifact directly to its final path.
+  Serialize and validate the complete payload first, write a sibling temporary
+  file, and atomically replace the destination. A serialization failure must
+  leave no new artifact and must preserve any existing valid artifact.
+- A hash-frozen prompt must not cross a locale-dependent text pipeline.
+  Validate the raw BOM-free UTF-8 source before launch, use an OS-level binary
+  stdin redirect, and compare the first session user message exactly after it
+  lands. Trimming BOM or line-ending differences would conceal a real transport
+  mutation.
 - Do not assume hook delivery is serial merely because a canary driver is.
   If the real harness can issue parallel tool calls, either carry
   `tool_use_id` into the adapter log and use concurrency-safe append/sequence

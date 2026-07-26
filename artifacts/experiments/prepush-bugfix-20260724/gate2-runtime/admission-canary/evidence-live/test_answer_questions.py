@@ -12,9 +12,15 @@ below asserts the specific answer that must NOT be produced.
 from __future__ import annotations
 
 import hashlib
+import json
+import os
+import subprocess
+import sys
+import tempfile
 import unittest
 
 from answer_questions import ANSWERED, UNANSWERED, analyse, render
+from evidence_io import atomic_write_json
 
 POLICY = {"policy_id": "admission-canary-1", "policy_sha256": "p" * 64}
 
@@ -281,6 +287,69 @@ class ParallelismClaims(unittest.TestCase):
         q5 = analyse([], [line(1, "ls", [], 0, "x"), line(2, "ls", [], 0, "x", lock_wait_ms=37)])["q5"]
         self.assertEqual(q5["status"], ANSWERED)
         self.assertIn("overlapping", q5["answer"])
+
+
+class JsonArtifactIsAtomicAndCliReadable(unittest.TestCase):
+    def test_cli_json_out_round_trips(self):
+        events = [
+            pre("t1", "read", ["TASK.md"]),
+            term("t1", stdout="line one\nline two"),
+        ]
+        adapter = [line(1, "read", ["TASK.md"], 0, "line one\nline two")]
+
+        with tempfile.TemporaryDirectory() as td:
+            transcript = os.path.join(td, "transcript.jsonl")
+            adapter_log = os.path.join(td, "adapter.jsonl")
+            output = os.path.join(td, "answers.json")
+            with open(transcript, "w", encoding="utf-8", newline="\n") as handle:
+                for row in events:
+                    handle.write(json.dumps(row) + "\n")
+            with open(adapter_log, "w", encoding="utf-8", newline="\n") as handle:
+                for row in adapter:
+                    handle.write(json.dumps(row) + "\n")
+
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    os.path.join(os.path.dirname(__file__), "answer_questions.py"),
+                    "--transcript", transcript,
+                    "--adapter-log", adapter_log,
+                    "--json-out", output,
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            with open(output, encoding="utf-8") as handle:
+                result = json.load(handle)
+            self.assertEqual(
+                result["q4"]["keysets"],
+                [{
+                    "count": 1,
+                    "keys": ["interrupted", "isImage", "stderr", "stdout"],
+                }],
+            )
+
+    def test_serialization_failure_leaves_no_new_artifact(self):
+        with tempfile.TemporaryDirectory() as td:
+            output = os.path.join(td, "answers.json")
+            with self.assertRaises(TypeError):
+                atomic_write_json(output, {("tuple", "key"): 1})
+            self.assertFalse(os.path.exists(output))
+            self.assertEqual(os.listdir(td), [])
+
+    def test_serialization_failure_preserves_existing_artifact(self):
+        with tempfile.TemporaryDirectory() as td:
+            output = os.path.join(td, "answers.json")
+            with open(output, "w", encoding="utf-8", newline="\n") as handle:
+                handle.write('{"previous":"valid"}\n')
+            with self.assertRaises(TypeError):
+                atomic_write_json(output, {("tuple", "key"): 1})
+            with open(output, encoding="utf-8") as handle:
+                self.assertEqual(json.load(handle), {"previous": "valid"})
+            self.assertEqual(os.listdir(td), ["answers.json"])
 
 
 if __name__ == "__main__":

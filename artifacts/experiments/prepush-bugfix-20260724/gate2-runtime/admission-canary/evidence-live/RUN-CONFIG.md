@@ -1,11 +1,11 @@
 # Live producer run — procedure and configuration of record
 
-Run of record: `live-canary-20260726-152447` — **completed with
-`CHANGES_REQUESTED`.** The producer completed the workspace task, but the
-evidence chain failed because the adapter measured LF text and then emitted
-different CRLF bytes through its Windows stdout pipe. This is a valid negative
-result about the measurement instrument, not evidence that the managed channel
-itself lost or changed output.
+Run of record: `live-canary-20260726-161453` — **completed with
+`CHANGES_REQUESTED`.** The byte-exact adapter correction worked and all
+cross-side observables joined, but the analyzer's JSON output path crashed after
+leaving a partial artifact and the PowerShell 5.1 launch path re-encoded the
+hash-frozen prompt. The channel evidence remains valid; the prompt-identity
+failure blocks Gate 2 provisioning.
 
 The [admission canary](../README.md) was driven by a harness *emulator*. This run
 is the same channel driven by a real Claude Code session, to observe what the
@@ -229,7 +229,7 @@ Attributing one failing call does not license a general rule while other failing
 calls remain unattributed, and the answer says so with counts.
 
 The completed-run review independently observed 24 passing analyzer checks.
-After fixing the zero-candidate misreport, `test_answer_questions.py` holds 26
+After fixing the zero-candidate misreport, `test_answer_questions.py` held 26
 checks, including counter-examples that
 reproduce defects a review actually found: the zero-denial false success, the
 operator-probe-only false success, the reordered identical-call inversion, and
@@ -243,6 +243,86 @@ the gate. Run both before trusting any answer:
 python test_answer_questions.py
 python test_preflight_check.py
 ```
+
+## Remediation rerun of record — `live-canary-20260726-161453`
+
+This run used a fresh container (`1050943 canary baseline`), evidence directory,
+transcript, adapter log, and preassigned Claude session
+`34029823-35f7-4ed0-96e5-39582fec09ed`. The session was launched from
+`D:\gate2-live-producer-task` with project settings only, `dontAsk`,
+`strict-mcp-config`, stream JSON output, and the prompt supplied on stdin.
+
+The exact launch mechanism was:
+
+```powershell
+Get-Content -Raw -LiteralPath $prompt | & claude.cmd -p ...
+```
+
+That mechanism is now forbidden. Windows PowerShell 5.1 encoded native-command
+stdin through `$OutputEncoding`: the source was 1,636 BOM-free UTF-8 bytes, but
+the session text began with U+FEFF, ended with an added CRLF, and replaced all
+three U+2014 em dashes with U+003F `?`. Removing only the wrapper differences
+still did not produce the frozen prompt. The corrected procedure in
+`RUNBOOK.md` preflights the raw source before launch, redirects the file through
+`cmd.exe` without a PowerShell text pipe, and requires an exact session-log
+match immediately after the first message lands.
+
+### Independently verified run facts
+
+- 32 transcript events: 18 pre decisions (14 allow + 4 deny), 13
+  `PostToolUse`, and 1 `PostToolUseFailure`.
+- 14 executed adapter lines, sequence 1–14, one matching policy digest, no
+  adapter rejection, and 0 lock waits.
+- `verify_transcript.py`: 17/17 checks passed; 9 eligible multi-line
+  `read`/`ls`/`test`/`diff`/`status` calls joined on the shared observable.
+- The first test exited non-zero before any write; the later test passed.
+  Q1–Q4 were ANSWERED. Q3 rests on the population route with one failure event;
+  the individual failure remains UNATTRIBUTABLE because its payload has no
+  stdout digest.
+- Q5 remained UNANSWERED: 0/14 lock waits cannot distinguish serialization
+  from a run that simply did not overlap.
+- The container source was repaired, `/work/out/result.json` existed, and the
+  before/after snapshots agreed with the observed mutation.
+
+### Analyzer artifact failure
+
+The console answers were correct and preserved in `answers-console.txt`, but
+`answer_questions.py --json-out` exited 1. Q4 used a tuple as a dictionary key,
+which `json.dump` cannot encode. Because `json.dump` streamed directly to the
+final path, it left a 3,697-byte syntactically invalid `answers.json` that looked
+like a real result. The corrected writer serializes completely before creating a
+temporary file and atomically replaces the destination. CLI regression coverage
+runs the real `--json-out` path and reads it back with `json.load`; failure-path
+tests require no new artifact and preservation of an existing valid artifact.
+
+### Test and commit provenance
+
+The reported `187` tests were not the repository's 3,955-test full suite. They
+were the focused tests selected by the canonical precommit wrapper, invoked
+exactly as:
+
+```bash
+AI_GOVERNANCE_PYTHON=/d/ai-governance-framework/.venv/Scripts/python.exe \
+  bash scripts/run-runtime-governance.sh --mode enforce
+```
+
+The wrapper passed its runtime smoke and all 187 collected focused tests. No
+claim is made about the full repository suite.
+
+Commit `eab44eeb` contains both the byte-exact adapter correction and guard
+guidance / `reason_shown` / `guard_blocked` work that had already existed in the
+working tree during run 152447. Therefore 152447 is evidence from that recorded
+working-tree state, not a run reproducible from one named commit. Run 161453 was
+executed after `eab44eeb`; its evidence directory remains outside the repository.
+
+### Next-run task shape
+
+The next frozen prompt requests `TASK.md`, `src/calc.py`, and
+`tests/test_calc.py` as independent reads in one response before the mandatory
+failing test. This gives the live harness an honest opportunity to issue a batch
+and exercise the adapter's serialization lock. It does not guarantee overlap;
+if lock waits remain zero, Q5 remains UNANSWERED rather than becoming a negative
+claim.
 
 ## Disposal
 

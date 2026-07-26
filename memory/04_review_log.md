@@ -3597,3 +3597,96 @@ Commit the narrow instrumentation/reporting correction, then perform one fresh
 isolated canary with new run/container/log identities and a prompt that forces
 the failing test before any write. Preserve the original run unchanged. Stop on
 new evidence failure and do not start a Gate 2 arm.
+
+## 2026-07-26 — Gate 2 live-canary remediation rerun review (`live-canary-20260726-161453`)
+
+### Review Inputs Checked
+- `governance/REVIEW_CRITERIA.md`
+- `governance/TESTING.md`
+- `governance/ARCHITECTURE.md`
+- `governance/RESPONSE_ENVELOPE_CONTRACT.md`
+- run transcript, adapter log, before/after snapshots, analyzer outputs,
+  verifier output, frozen prompt, and producer-cwd session log
+- adapter, verifier, analyzer, preflight, and focused test evidence
+- commit `eab44eeb` and the run-152447 working-tree provenance
+
+### Decision Summary
+- Verdict: `CHANGES_REQUESTED`
+- Risk level: High for frozen task identity and evidence artifact integrity.
+- Gate decision: do not start a Gate 2 arm.
+
+### Independently Confirmed
+- Transcript: 32 events = 18 pre, 14 allow, 4 deny, 13 ordinary post, and
+  1 failure post.
+- Adapter: 14 executed lines, sequence 1–14, one matching policy digest,
+  0 rejects, and 0 lock waits.
+- Final verifier: PASS, 17/17; nine eligible multi-line calls joined on the
+  shared observable.
+- The first test failed before any write, the later test passed, the source was
+  repaired, `/work/out/result.json` existed, and snapshots agreed.
+- Q1–Q4 are ANSWERED. Q3 uses a population match with one failure; the exact
+  failing call remains UNATTRIBUTABLE because its payload has no stdout digest.
+- Q5 remains UNANSWERED at 0/14 lock waits.
+
+### Blocking Findings
+1. [BLOCKING] `--json-out` streamed an invalid partial artifact to the final
+   path.
+   - Status: resolved in candidate source and targeted tests; fresh live rerun
+     pending.
+   - Location: `evidence-live/answer_questions.py`, `evidence_io.py`, and
+     `test_answer_questions.py`.
+   - Evidence: tuple keys caused `json.dump` to exit 1 after leaving a
+     3,697-byte invalid `answers.json`.
+   - Disposition: JSON-safe Q4 shape, full serialization before file creation,
+     atomic replace, real CLI readback, and failure-path preservation tests.
+
+2. [BLOCKING] PowerShell 5.1 changed the hash-frozen prompt in transit.
+   - Status: source/transport checks and revised launch procedure implemented;
+     fresh exact live identity pending.
+   - Location: `evidence-live/RUNBOOK.md`,
+     `prompt_transport_preflight.py`, `prompt_identity_check.py`, and
+     `test_prompt_transport.py`.
+   - Evidence: source 1,636 bytes, no BOM; session gained U+FEFF and terminal
+     CRLF, while all three U+2014 em dashes became `?`.
+   - Disposition: forbid PowerShell text piping, validate raw UTF-8 before
+     launch, redirect the file through OS-level stdin, and require exact session
+     identity immediately after the first message lands.
+
+### Warnings And Claim Boundaries
+- The `187` signal is the focused canonical precommit wrapper:
+  `AI_GOVERNANCE_PYTHON=/d/ai-governance-framework/.venv/Scripts/python.exe
+  bash scripts/run-runtime-governance.sh --mode enforce`. It is not the
+  3,955-test full repository suite.
+- `eab44eeb` mixed the byte-exact change with earlier working-tree guard
+  changes. Run 152447 records that working-tree state; it is not reproducible
+  from one named commit.
+- One population-matched failure is evidence for this run, not a broad harness
+  routing theorem.
+- The next task requests three independent reads together to give Q5 an honest
+  batch opportunity. No overlap is guaranteed.
+- Run 161453's channel evidence remains valid, but its prompt-identity failure
+  blocks frozen-packet use in Gate 2.
+
+### Candidate Remediation Validation
+- analyzer CLI and atomic failure regressions: PASS, 29/29.
+- prompt transport and exact-session identity regressions: PASS, 6/6.
+- all evidence-live regressions: PASS, 38/38.
+- adapter conformance including raw-pipe emission: PASS, 23/23.
+- memory workflow: PASS, completion claim allowed with zero current-diff B0
+  blockers.
+- canonical focused precommit wrapper: PASS with exit 0; runtime smoke and
+  187/187 focused tests passed.
+- fresh isolated live rerun: NOT RUN.
+- Gate 2 arm: NOT STARTED.
+
+### Knowledge Base Alignment
+- Added the reusable rules that final evidence paths must be atomically
+  replaced only after complete serialization, and frozen prompts must not cross
+  a locale-dependent text pipe.
+- Existing fail-closed and raw-boundary evidence rules remain consistent.
+
+### Next Recommendation
+Complete scoped validation and the focused precommit gate, commit the bounded
+correction, then run one fresh isolated canary with new identities. Require
+`exact_prompt_match: true`, valid atomic `answers.json`, and preserve Q5 as
+UNANSWERED if the harness still does not overlap calls. Do not start Gate 2.
