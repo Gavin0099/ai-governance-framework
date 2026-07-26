@@ -411,14 +411,34 @@ class ScorerHandoffV3Tests(unittest.TestCase):
                 self.assertIn(name, errors)
 
     def test_flagged_blinding_reason_rebuilds_and_mismatch_fails(self):
-        reason = "Completion claim reveals treatment-only validator feedback."
+        reason = (
+            "arm C treatment assignment leaked via "
+            "governance-packet.md path in claim"
+        )
+        redacted_reason = (
+            "[ARM] [ASSIGNMENT] leaked via [PACKET] path in claim"
+        )
         with tempfile.TemporaryDirectory() as directory:
             packet_path, manifest_path, outputs, _ = self.build(
                 directory, blinding_compromised_reason=reason
             )
             packet = json.loads(outputs["redacted-packet.json"])
             self.assertIs(packet["blinding_compromised"], True)
-            self.assertEqual(reason, packet["blinding_compromised_reason"])
+            self.assertEqual(
+                redacted_reason, packet["blinding_compromised_reason"]
+            )
+            self.assertNotIn(reason, outputs["redacted-packet.json"].decode("utf-8"))
+            self.assertEqual(
+                3, packet["total_blinding_reason_redactions"]
+            )
+            self.assertEqual(
+                3,
+                sum(
+                    packet[
+                        "blinding_compromised_reason_per_rule_match_count"
+                    ].values()
+                ),
+            )
 
             matching = self.verify(
                 packet_path,
@@ -491,6 +511,52 @@ class ScorerHandoffV3Tests(unittest.TestCase):
                     os.path.join(directory, "blank"),
                     blinding_compromised_reason="  ",
                 )
+
+    def test_candidate_rejects_shipped_smoke_contract_digest_mismatch(self):
+        source_root = os.path.dirname(
+            os.path.dirname(
+                os.path.dirname(
+                    os.path.dirname(
+                        os.path.dirname(os.path.abspath(__file__))
+                    )
+                )
+            )
+        )
+        with open(CANDIDATE_MANIFEST, encoding="utf-8") as handle:
+            manifest = json.load(handle)
+        for item in manifest["files"]:
+            path = os.path.join(source_root, *item["path"].split("/"))
+            with open(path, "rb") as handle:
+                payload = handle.read()
+            item["bytes"] = len(payload)
+            item["sha256"] = P.sha256(payload)
+        manifest["shipped_smoke"] = {
+            "scope": "fresh synthetic Docker integration; not a Gate 2 arm",
+            "contract_sha256": "0" * 64,
+            "handoff_manifest_path": (
+                "artifacts/evidence/test-results/"
+                "gate2-scorer-handoff-v3-rebuild-smoke-20260726/"
+                "scorer-handoff-v3/scorer-handoff-v3.json"
+            ),
+            "verification_path": (
+                "artifacts/evidence/test-results/"
+                "gate2-scorer-handoff-v3-rebuild-smoke-20260726/"
+                "scorer-handoff-verification.json"
+            ),
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            manifest_path = os.path.join(directory, "candidate-manifest.json")
+            with open(manifest_path, "wb") as handle:
+                handle.write(P._json_bytes(manifest))
+            result = H.verify_candidate_manifest(
+                manifest_path, repo_root=source_root
+            )
+        self.assertEqual("FAIL", result["status"])
+        self.assertFalse(
+            result["checks"][
+                "shipped_smoke_contract_digest_matches_candidate"
+            ]
+        )
 
     def test_cli_verify_rebuilds_from_explicit_source_paths(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -661,7 +727,10 @@ class ScorerHandoffV3Tests(unittest.TestCase):
         )
         for mode in ("tamper", "missing"):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as root:
-                for item in manifest["files"]:
+                for item in (
+                    manifest["files"]
+                    + manifest["shipped_smoke"]["files"]
+                ):
                     source = os.path.join(source_root, *item["path"].split("/"))
                     destination = os.path.join(root, *item["path"].split("/"))
                     os.makedirs(os.path.dirname(destination), exist_ok=True)
@@ -688,7 +757,10 @@ class ScorerHandoffV3Tests(unittest.TestCase):
                 )
 
         with tempfile.TemporaryDirectory() as root:
-            for item in manifest["files"]:
+            for item in (
+                manifest["files"]
+                + manifest["shipped_smoke"]["files"]
+            ):
                 source = os.path.join(source_root, *item["path"].split("/"))
                 destination = os.path.join(root, *item["path"].split("/"))
                 os.makedirs(os.path.dirname(destination), exist_ok=True)

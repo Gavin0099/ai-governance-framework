@@ -1,0 +1,33 @@
+{
+  "status": "PASS",
+  "scope": "fresh synthetic Docker integration only; not a Gate 2 arm",
+  "run_id": "scorer-v3-redacted-reason-smoke-20260726",
+  "container_name": "gate2-scorer-v3-redacted-reason-smoke-20260726",
+  "container_id": "e72c7b770a17f882cc42dda17eaa93fc7f914ade82c826c18f2f3a4b392284d6",
+  "image_id": "sha256:e6df7283938a5c203910524083075843635d2d39ac42fcaa84c7e76cd0b5f168",
+  "isolation": {
+    "network": "none",
+    "read_only_rootfs": true,
+    "cap_drop": [
+      "ALL"
+    ],
+    "security_opt": [
+      "no-new-privileges"
+    ],
+    "user": "65532:65532",
+    "workdir": "/work"
+  },
+  "baseline_commit": "2eaeb4de59ee771b3f12f5677b96abe46441bfdd",
+  "output_commit": "75da885325cb81861f6991377c9ff3ec30b619e2",
+  "contract_sha256": "513c42f769d7c5c959415757682bc9a668a341cc824857ca33b22cec66e7e425",
+  "packet_sha256": "6a192abc75f7f17998cacd4a210ddce4771eb924f47b0994e2a17fb53b3ee475",
+  "packet_verification": "PASS: 22/22 checks",
+  "handoff_verification": "PASS: 24/24 checks",
+  "blinding_reason": {
+    "scorer_visible_value": "[ARM] [ASSIGNMENT] leaked via [PACKET] path in claim",
+    "total_redactions": 3,
+    "raw_reason_is_not_published": true
+  },
+  "container_disposition": "removed after verification; docker ps -a filter returned no matching container",
+  "claim_boundary": "PASS proves fresh synthetic packet capture, live container verification, pinned reason redaction and deterministic handoff reconstruction. It does not authorize Gate 2, authenticate the operator or prove scoring validity."
+}

@@ -1,27 +1,27 @@
 {
   "schema": "gate2-scorer-handoff-v3-candidate-set.v1",
   "authorization": "pending_owner_resign",
-  "source_base_commit": "13b9abff",
+  "source_base_commit": "10ce37cc",
   "generated_at": "2026-07-26",
   "purpose": "Exact byte manifest for independent review and a later explicit owner re-sign. PASS does not promote the candidate or authorize Gate 2.",
   "files": [
     {
       "path": ".gitattributes",
-      "bytes": 1233,
-      "sha256": "5a5b522aa46a62724dc804c2ee4a1ef9f2e04bc614cce8eb31c4b7ec5d2793c3",
-      "role": "preserve exact candidate bytes under core.autocrlf=true"
+      "bytes": 3112,
+      "sha256": "9552e5f82804188a436772526dd84c70499bb3fdd42a4adc89d08a0705b56d43",
+      "role": "preserve exact candidate and shipped-smoke bytes under core.autocrlf=true"
     },
     {
       "path": "docs/governance/gate1-prereg-prepush-amendment-v4-20260726.md",
-      "bytes": 11622,
-      "sha256": "65e0f66dfe4230e987cfd36b15c4266887093c2fee87c14b153946062ecd4abf",
+      "bytes": 12948,
+      "sha256": "ce0e219208a5e6b55163d0060c9665543db19fdd4dd3d343c575c5e28417f5dd",
       "role": "append-only owner decision candidate"
     },
     {
       "path": "artifacts/experiments/prepush-bugfix-20260724/candidate/scorer-handoff-contract-v3.json",
-      "bytes": 8631,
-      "sha256": "ced0e02c815494b5f66d6ceffa8dd7e490ac8f880adf935686579b7b69426eda",
-      "role": "candidate scorer input and base64 effect contract"
+      "bytes": 8798,
+      "sha256": "513c42f769d7c5c959415757682bc9a668a341cc824857ca33b22cec66e7e425",
+      "role": "candidate scorer input, redaction and base64 effect contract"
     },
     {
       "path": "artifacts/experiments/prepush-bugfix-20260724/redaction_runner.py",
@@ -37,9 +37,9 @@
     },
     {
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/scorer_handoff_v3.py",
-      "bytes": 41857,
-      "sha256": "8de66027f66552ff4ca750e88ac6ec77c471cd3b3c27394d6c28e830c7f5c417",
-      "role": "four-section builder, handoff verifier and candidate manifest verifier"
+      "bytes": 47064,
+      "sha256": "5c874cdb1c4a9b3026335d29ab743cfab3ee067f3c015ec72dc22b5080e5c105",
+      "role": "four-section builder, handoff verifier and candidate plus shipped-smoke verifier"
     },
     {
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/test_scorer_packet_v2.py",
@@ -49,15 +49,93 @@
     },
     {
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/test_scorer_handoff_v3.py",
-      "bytes": 32588,
-      "sha256": "2d2497cd94628c71cd612ae2d88069f5b2192e9bb44d9f0401f75ea0a07b9a5a",
-      "role": "handoff, coherent-rewrite and candidate-set regression tests"
+      "bytes": 35305,
+      "sha256": "7e0aa713e0d86e4f888dd2a93ab60f761643821bbb582d2274ab27784826cb27",
+      "role": "handoff, blinding-reason, coherent-rewrite and candidate-set regression tests"
     }
   ],
   "canonical_files_unchanged": {
     "artifacts/experiments/prepush-bugfix-20260724/scorer-handoff-contract.json": "e8945c4b7eee256c96e6c7f21beef02f885b9f6c7caf6b2b65197088bcd5226a",
     "docs/governance/gate1-prereg-prepush-amendment-v2-20260724.md": "eb1a7747e51bd01566ee04d17123cab5262452961f53631d8769fe392f8a9c64",
     "docs/governance/gate1-prereg-prepush-amendment-v3-20260725.md": "376fd1f4fc9a1915e2240b6ba4d97d1163158f711e60948c7e20a175d588bdd3"
+  },
+  "shipped_smoke": {
+    "scope": "fresh synthetic Docker integration only; not a Gate 2 arm",
+    "contract_sha256": "513c42f769d7c5c959415757682bc9a668a341cc824857ca33b22cec66e7e425",
+    "handoff_manifest_path": "artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/scorer-handoff-v3/scorer-handoff-v3.json",
+    "verification_path": "artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/scorer-handoff-verification.json",
+    "files": [
+      {
+        "path": "artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/scorer-handoff-v3/redacted-packet.json",
+        "bytes": 4422,
+        "sha256": "087ce36aa1df17f64d2f85158f176182e4474fd638fe7d57551dadeeb1353bbb"
+      },
+      {
+        "path": "artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/scorer-handoff-v3/redacted-receipt.json",
+        "bytes": 204,
+        "sha256": "8bf1c6d094038b6ca93392a55befcfd1e123034c557e893d56d21726f5fd0cd2"
+      },
+      {
+        "path": "artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/scorer-handoff-v3/scorer-handoff-v3.json",
+        "bytes": 2167,
+        "sha256": "30d0be7b0dc5e329aad64447049bfab536ad6b907b417317034e3b775cb62643"
+      },
+      {
+        "path": "artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/scorer-handoff-verification.json",
+        "bytes": 1288,
+        "sha256": "2fda9b238ab953e9943edc38ab139804c7cb393acbf8f79ea02f8fb857c3e548"
+      },
+      {
+        "path": "artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/scorer-packet-v2/final-diff.patch",
+        "bytes": 173,
+        "sha256": "1ef27e047be91a5300b5933429d42843e5c012fd3da017f54bb0bde576fed28c"
+      },
+      {
+        "path": "artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/scorer-packet-v2/final-status.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/scorer-packet-v2/final-tracked-paths.txt",
+        "bytes": 12,
+        "sha256": "544738fd9352fa6ebc9945bb307a1db3b767534ebe25c6e04bce43fde603cbb5"
+      },
+      {
+        "path": "artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/scorer-packet-v2/producer-receipt.json",
+        "bytes": 126,
+        "sha256": "fbcde2943a4acbd5d3a88a5e1af80231441eecec67f6b8fdf9c70c4035424059"
+      },
+      {
+        "path": "artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/scorer-packet-v2/result.json",
+        "bytes": 63,
+        "sha256": "2454f40a318bce0db82f074a5bfe9d8d1a7b681ede684689629eead9d808a863"
+      },
+      {
+        "path": "artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/scorer-packet-v2/scorer-packet-v2.json",
+        "bytes": 2041,
+        "sha256": "6a192abc75f7f17998cacd4a210ddce4771eb924f47b0994e2a17fb53b3ee475"
+      },
+      {
+        "path": "artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/scorer-packet-verification.json",
+        "bytes": 1562,
+        "sha256": "28709d435402318b9bf3214f1cc4472eb690ce3a3f8001b62fe06c6bd6cf73e3"
+      },
+      {
+        "path": "artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/smoke-summary.json",
+        "bytes": 1545,
+        "sha256": "cc96ea7ae497a5075a309018024d2e4e757f042b26a7c8cdd97a388b223826dc"
+      },
+      {
+        "path": "artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/test-log.txt",
+        "bytes": 98,
+        "sha256": "fb184ea57734512b1f088f9181209901b9cd46df3eb7eaa2500ea9e48dde20b5"
+      },
+      {
+        "path": "artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/validator-output.txt",
+        "bytes": 51,
+        "sha256": "cd5eccb84211f691864f88d108a3aa2df9bfb3b5dcb62b9bd11b22d5820a9565"
+      }
+    ]
   },
   "not_claimed": [
     "owner signature",

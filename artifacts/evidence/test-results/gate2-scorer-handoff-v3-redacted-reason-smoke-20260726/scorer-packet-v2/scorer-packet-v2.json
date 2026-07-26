@@ -1,0 +1,59 @@
+{
+  "artifacts": {
+    "diff": {
+      "bytes": 173,
+      "path": "final-diff.patch",
+      "role": "operator_captured_baseline_to_output_diff",
+      "sha256": "1ef27e047be91a5300b5933429d42843e5c012fd3da017f54bb0bde576fed28c"
+    },
+    "receipt": {
+      "bytes": 126,
+      "path": "producer-receipt.json",
+      "role": "producer_commit_linkage",
+      "sha256": "fbcde2943a4acbd5d3a88a5e1af80231441eecec67f6b8fdf9c70c4035424059"
+    },
+    "result": {
+      "bytes": 63,
+      "path": "result.json",
+      "role": "producer_self_report",
+      "sha256": "2454f40a318bce0db82f074a5bfe9d8d1a7b681ede684689629eead9d808a863"
+    },
+    "status": {
+      "bytes": 0,
+      "path": "final-status.txt",
+      "role": "clean_worktree_proof",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tracked_paths": {
+      "bytes": 12,
+      "path": "final-tracked-paths.txt",
+      "role": "tracked_change_inventory",
+      "sha256": "544738fd9352fa6ebc9945bb307a1db3b767534ebe25c6e04bce43fde603cbb5"
+    }
+  },
+  "baseline_commit": "2eaeb4de59ee771b3f12f5677b96abe46441bfdd",
+  "captured_at": "2026-07-26T16:04:16Z",
+  "claim_boundary": "The packet binds captured bytes to a named run, running container, baseline commit, clean output commit and producer receipt. Live verification re-reads the container. It does not authenticate the operator or prove the change, report or receipt is truthful.",
+  "container": {
+    "id": "e72c7b770a17f882cc42dda17eaa93fc7f914ade82c826c18f2f3a4b392284d6",
+    "name": "gate2-scorer-v3-redacted-reason-smoke-20260726"
+  },
+  "handoff_attachments_required": [
+    "test_log",
+    "validator_output"
+  ],
+  "output_commit": "75da885325cb81861f6991377c9ff3ec30b619e2",
+  "receipt_container_path": "/work/out/producer-receipt.json",
+  "run_id": "scorer-v3-redacted-reason-smoke-20260726",
+  "schema_version": "2.0",
+  "scorer_input_core": [
+    "result",
+    "diff"
+  ],
+  "workspace": {
+    "clean": true,
+    "tracked_changed_files": [
+      "src/calc.py"
+    ]
+  }
+}

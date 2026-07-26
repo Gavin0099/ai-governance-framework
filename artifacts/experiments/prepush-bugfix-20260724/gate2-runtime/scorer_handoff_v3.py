@@ -91,7 +91,13 @@ BLINDING_INPUT_POLICY = {
     },
     "present": {
         "blinding_compromised": True,
-        "blinding_compromised_reason": "exact non-blank argument string",
+        "blinding_compromised_reason": (
+            "exact non-blank argument string after the pinned literal-map "
+            "redaction"
+        ),
+        "redaction_metadata": (
+            "per-rule match counts and total reason redactions"
+        ),
     },
     "verification": (
         "The verifier must receive the same explicit reason used by the builder; "
@@ -217,14 +223,18 @@ def _redacted_text(sections: dict[str, str], rules: list[dict[str, str]]) -> tup
     return text, match_counts
 
 
-def _blinding_fields(reason: str | None) -> tuple[bool | None, str | None]:
+def _blinding_fields(
+    reason: str | None, rules: list[dict[str, str]]
+) -> tuple[bool | None, str | None, dict[str, int]]:
     if reason is None:
-        return None, None
+        _, match_counts = R.redact("", rules)
+        return None, None, match_counts
     if not isinstance(reason, str) or not reason.strip():
         raise HandoffError(
             "blinding-compromised reason must be a non-blank string when supplied"
         )
-    return True, reason
+    redacted_reason, match_counts = R.redact(reason, rules)
+    return True, redacted_reason, match_counts
 
 
 def _load_pinned_source_packet(
@@ -350,8 +360,13 @@ def _assemble_handoff(
     rules = contract["redaction"]["literal_map"]
     redacted_text, match_counts = _redacted_text(sections, rules)
     raw_sha = P.sha256(raw_output)
-    blinding_compromised, blinding_reason = _blinding_fields(
-        blinding_compromised_reason
+    (
+        blinding_compromised,
+        blinding_reason,
+        blinding_reason_match_counts,
+    ) = _blinding_fields(
+        blinding_compromised_reason,
+        rules,
     )
 
     source_artifacts = {
@@ -404,6 +419,11 @@ def _assemble_handoff(
         },
         "blinding_compromised": blinding_compromised,
         "blinding_compromised_reason": blinding_reason,
+        "blinding_compromised_reason_per_rule_match_count":
+            blinding_reason_match_counts,
+        "total_blinding_reason_redactions": sum(
+            blinding_reason_match_counts.values()
+        ),
         "channel_effect": contract["common_mode_channel_effect"],
     }
 
@@ -754,6 +774,14 @@ def verify_handoff(
             == rebuilt_packet.get("per_rule_match_count")
             and packet.get("total_redactions")
             == rebuilt_packet.get("total_redactions")
+            and packet.get(
+                "blinding_compromised_reason_per_rule_match_count"
+            )
+            == rebuilt_packet.get(
+                "blinding_compromised_reason_per_rule_match_count"
+            )
+            and packet.get("total_blinding_reason_redactions")
+            == rebuilt_packet.get("total_blinding_reason_redactions")
         )
         checks["blinding_and_channel_fields_match_contract"] = (
             packet.get("blinding_compromised")
@@ -832,6 +860,10 @@ def verify_candidate_manifest(
         "canonical_paths_are_confined_regular_files": False,
         "canonical_digests_match": False,
         "byte_preservation_attributes_are_complete": False,
+        "shipped_smoke_paths_are_confined_regular_files": False,
+        "shipped_smoke_file_digests_match": False,
+        "shipped_smoke_contract_digest_matches_candidate": False,
+        "shipped_smoke_verification_passes": False,
     }
     errors: list[str] = []
     try:
@@ -924,6 +956,113 @@ def verify_candidate_manifest(
     checks["canonical_paths_are_confined_regular_files"] = canonical_paths_ok
     checks["canonical_digests_match"] = canonical_digests_ok
 
+    shipped_smoke = manifest.get("shipped_smoke")
+    smoke_paths: set[str] = set()
+    smoke_paths_ok = smoke_digests_ok = isinstance(shipped_smoke, dict)
+    smoke_files = (
+        shipped_smoke.get("files") if isinstance(shipped_smoke, dict) else None
+    )
+    if not isinstance(smoke_files, list) or not smoke_files:
+        smoke_paths_ok = smoke_digests_ok = False
+        smoke_files = []
+    for item in smoke_files:
+        if not isinstance(item, dict) or not isinstance(item.get("path"), str):
+            smoke_paths_ok = smoke_digests_ok = False
+            continue
+        relative = item["path"]
+        if relative in smoke_paths:
+            smoke_paths_ok = smoke_digests_ok = False
+            continue
+        smoke_paths.add(relative)
+        candidate = os.path.abspath(
+            os.path.join(root, *relative.split("/"))
+        )
+        if (
+            os.path.commonpath([root, candidate]) != root
+            or os.path.islink(candidate)
+            or not os.path.isfile(candidate)
+        ):
+            smoke_paths_ok = smoke_digests_ok = False
+            continue
+        try:
+            with open(candidate, "rb") as handle:
+                payload = handle.read()
+        except OSError as exc:
+            smoke_paths_ok = smoke_digests_ok = False
+            errors.append(f"{relative} unreadable: {exc}")
+            continue
+        smoke_digests_ok = (
+            smoke_digests_ok
+            and item.get("bytes") == len(payload)
+            and item.get("sha256") == P.sha256(payload)
+        )
+    handoff_manifest_relative = (
+        shipped_smoke.get("handoff_manifest_path")
+        if isinstance(shipped_smoke, dict)
+        else None
+    )
+    verification_relative = (
+        shipped_smoke.get("verification_path")
+        if isinstance(shipped_smoke, dict)
+        else None
+    )
+    smoke_paths_ok = (
+        smoke_paths_ok
+        and isinstance(handoff_manifest_relative, str)
+        and isinstance(verification_relative, str)
+        and handoff_manifest_relative in smoke_paths
+        and verification_relative in smoke_paths
+    )
+    checks["shipped_smoke_paths_are_confined_regular_files"] = smoke_paths_ok
+    checks["shipped_smoke_file_digests_match"] = smoke_digests_ok
+
+    candidate_contract_digest = next(
+        (
+            item.get("sha256")
+            for item in files
+            if isinstance(item, dict)
+            and item.get("path")
+            == (
+                "artifacts/experiments/prepush-bugfix-20260724/candidate/"
+                "scorer-handoff-contract-v3.json"
+            )
+        ),
+        None,
+    )
+    try:
+        handoff_manifest_path = os.path.join(
+            root, *handoff_manifest_relative.split("/")
+        )
+        verification_path = os.path.join(
+            root, *verification_relative.split("/")
+        )
+        handoff_manifest = _load_json_object(
+            _read_regular_file(
+                handoff_manifest_path, "shipped smoke handoff manifest"
+            ),
+            "shipped smoke handoff manifest",
+        )
+        smoke_verification = _load_json_object(
+            _read_regular_file(
+                verification_path, "shipped smoke verification"
+            ),
+            "shipped smoke verification",
+        )
+        checks["shipped_smoke_contract_digest_matches_candidate"] = (
+            shipped_smoke.get("contract_sha256")
+            == candidate_contract_digest
+            == handoff_manifest.get("contract_sha256")
+        )
+        smoke_checks = smoke_verification.get("checks")
+        checks["shipped_smoke_verification_passes"] = (
+            smoke_verification.get("status") == "PASS"
+            and isinstance(smoke_checks, dict)
+            and bool(smoke_checks)
+            and all(value is True for value in smoke_checks.values())
+        )
+    except (AttributeError, HandoffError) as exc:
+        errors.append(f"shipped smoke invalid: {exc}")
+
     try:
         attributes_payload = _read_regular_file(
             os.path.join(root, ".gitattributes"), ".gitattributes"
@@ -935,7 +1074,7 @@ def verify_candidate_manifest(
             if len(fields) >= 2 and "-text" in fields[1:]:
                 preserved.add(fields[0].removeprefix("/"))
         checks["byte_preservation_attributes_are_complete"] = (
-            BYTE_PRESERVATION_PATHS <= preserved
+            (BYTE_PRESERVATION_PATHS | smoke_paths) <= preserved
         )
     except (HandoffError, UnicodeDecodeError) as exc:
         errors.append(f"byte-preservation attributes invalid: {exc}")

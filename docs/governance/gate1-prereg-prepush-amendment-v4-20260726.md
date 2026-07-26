@@ -43,6 +43,15 @@ The correction is failure-driven:
    `blinding_compromised=null` and required that value during verification.
    An experimenter who correctly flagged a residual identity leak therefore
    could not produce a deterministically verifiable handoff.
+9. Review of the explicit-reason fix found that the raw reason bypassed the
+   literal-map redaction and entered the scorer-visible packet. The field most
+   likely to describe an arm or treatment leak had become an identity-bearing
+   free-text channel.
+10. The historical Docker smoke was truthful about its older implementation
+    scope, but its pinned contract, packet and manifest no longer reproduced
+    the current candidate bytes. A reviewer following its instructions
+    received three deterministic failures rather than current end-to-end
+    evidence.
 
 These are experiment-validity failures. They do not relax any gate or claim
 that the experiment may start.
@@ -123,9 +132,12 @@ reconstruction.
 The experimenter may supply
 `--blinding-compromised-reason <non-blank reason>` to both build and verify.
 When absent, the packet deterministically contains null flag and reason. When
-present, the flag is true and the exact reason string is preserved. Omission,
-substitution or any string change at verification fails source reproduction;
-substantive evidence is never removed.
+present, the flag is true and the raw reason is passed through the contract's
+pinned literal-map before it enters the scorer-visible packet. Per-rule match
+counts and the total number of reason redactions are recorded. The raw reason
+remains an experimenter-side rebuild input and is not published. Omission,
+substitution or any raw-input byte change at verification fails source
+reproduction; substantive evidence is never removed.
 
 If any arm source contains CR or a reserved standalone marker, the complete
 four-arm run is **NO-GO before scoring**. The experimenter must not selectively
@@ -167,13 +179,13 @@ Candidate bytes offered for review and later owner re-sign:
 
 | Candidate file | Bytes | SHA-256 |
 |---|---:|---|
-| `.gitattributes` (exact candidate/evidence paths only) | 1,233 | `5a5b522aa46a62724dc804c2ee4a1ef9f2e04bc614cce8eb31c4b7ec5d2793c3` |
-| `candidate/scorer-handoff-contract-v3.json` | 8,631 | `ced0e02c815494b5f66d6ceffa8dd7e490ac8f880adf935686579b7b69426eda` |
+| `.gitattributes` (exact candidate/evidence paths only) | 3,112 | `9552e5f82804188a436772526dd84c70499bb3fdd42a4adc89d08a0705b56d43` |
+| `candidate/scorer-handoff-contract-v3.json` | 8,798 | `513c42f769d7c5c959415757682bc9a668a341cc824857ca33b22cec66e7e425` |
 | `redaction_runner.py` (pinned semantic dependency; unchanged) | 16,152 | `d612f75e0851239fe164f9918fd13e55416f7fff9b1f337ad3f54460a91955d5` |
 | `gate2-runtime/scorer_packet_v2.py` | 23,520 | `a96711338ed5b873660fde892cc32b0b28cd25deaa440c4f67b1571371bbb40e` |
-| `gate2-runtime/scorer_handoff_v3.py` | 41,857 | `8de66027f66552ff4ca750e88ac6ec77c471cd3b3c27394d6c28e830c7f5c417` |
+| `gate2-runtime/scorer_handoff_v3.py` | 47,064 | `5c874cdb1c4a9b3026335d29ab743cfab3ee067f3c015ec72dc22b5080e5c105` |
 | `gate2-runtime/test_scorer_packet_v2.py` | 12,558 | `724250f537201e3ac4aa173b41ba6a786c7846807e1f7577bbd9c10e561e5055` |
-| `gate2-runtime/test_scorer_handoff_v3.py` | 32,588 | `2d2497cd94628c71cd612ae2d88069f5b2192e9bb44d9f0401f75ea0a07b9a5a` |
+| `gate2-runtime/test_scorer_handoff_v3.py` | 35,305 | `7e0aa713e0d86e4f888dd2a93ab60f761643821bbb582d2274ab27784826cb27` |
 
 Any edit changes the hash and requires a new review/signature target. Do not
 rewrite amendment v2/v3 or the frozen v2 contract in place.
@@ -183,10 +195,19 @@ rewrite amendment v2/v3 or the frozen v2 contract in place.
 Targeted evidence already required by this candidate:
 
 - scorer-packet schema v2 counter-examples: 14/14;
-- scorer-handoff v3 counter-examples: 20/20;
+- scorer-handoff v3 counter-examples: 21/21;
 - frozen v2 redaction runner regression: 23/23;
+- fresh synthetic Docker packet verification: 22/22;
+- fresh synthetic Docker handoff reconstruction: 24/24;
+- candidate verifier checks: 15/15, including the shipped smoke's exact file
+  digests, PASS result and contract digest equality with the candidate;
 - candidate scripts compile;
 - candidate contract parses as JSON.
+
+The fresh synthetic smoke is pinned under
+`artifacts/evidence/test-results/gate2-scorer-handoff-v3-redacted-reason-smoke-20260726/`.
+It is not a Gate 2 arm. The prior rebuild smoke remains historical evidence and
+is not used to support the current pinned bytes.
 
 The canonical focused precommit and the final candidate receipt must also pass
 before the owner is asked to sign. These are evidence for review, not owner
