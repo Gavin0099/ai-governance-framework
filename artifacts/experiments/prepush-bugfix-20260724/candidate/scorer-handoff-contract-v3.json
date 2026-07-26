@@ -15,7 +15,8 @@
       "live running-container bytes match every captured artifact",
       "producer worktree status is clean",
       "producer receipt linked_commit equals output_commit",
-      "final diff is baseline_commit to output_commit and covers every tracked path"
+      "final diff is baseline_commit to output_commit and covers every tracked path",
+      "offline reproduction rechecks tracked inventory against the diff, workspace inventory against captured paths, and the exact scorer core plus required attachments"
     ],
     "section_mapping": {
       "FIX_DIFF": "scorer_packet.artifacts.diff",
@@ -73,13 +74,25 @@
   },
   "acceptable_handoff": {
     "schema": "gate2-scorer-handoff-set.v2",
-    "rule": "Before scorer delivery, the experimenter or owner verifier must deterministically rebuild the exact packet and receipt bytes from the pinned scorer packet, test log, validator output, candidate contract and pinned redaction runner. The arm-identity-blind scorer receives only the verified redacted set and the identity-free verifier result, never the identity-bearing source packet.",
+    "rule": "Before scorer delivery, the experimenter or owner verifier must recheck the pinned packet's semantic inventory and scorer-input invariants, then deterministically rebuild the exact packet and receipt bytes from the pinned scorer packet, test log, validator output, candidate contract, pinned redaction runner and explicit blinding-compromised reason when present. The arm-identity-blind scorer receives only the verified redacted set and the identity-free verifier result, never the identity-bearing source packet.",
     "candidate_limit": "Mechanical acceptance does not authorize Gate 2 while candidate_authorization is pending_owner_resign."
   },
   "validator_output_split": {
     "treatment_time_validator_feedback": "Arm D input only; experimenter provenance only; never scorer input.",
     "post_hoc_uniform_validator_output": "Run identically on all four committed outputs and supplied as VALIDATOR_OUTPUT.",
     "residual_leak_rule": "Flag blinding_compromised; never delete substantive evidence."
+  },
+  "blinding_compromised_input": {
+    "cli_argument": "--blinding-compromised-reason",
+    "absent": {
+      "blinding_compromised": null,
+      "blinding_compromised_reason": null
+    },
+    "present": {
+      "blinding_compromised": true,
+      "blinding_compromised_reason": "exact non-blank argument string"
+    },
+    "verification": "The verifier must receive the same explicit reason used by the builder; absence, omission or any byte change fails deterministic reproduction."
   },
   "common_mode_channel_effect": {
     "mechanism": "All four producers use the same argv-only adapter and provide write/report bodies as base64.",

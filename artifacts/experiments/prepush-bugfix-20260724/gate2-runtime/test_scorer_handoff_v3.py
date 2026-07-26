@@ -52,8 +52,18 @@ class ScorerHandoffV3Tests(unittest.TestCase):
             handle.write(b"shellcheck=1 ruff=1 mypy=0\n")
         return packet_path, test_log, validator
 
-    def build(self, directory: str):
+    def build(
+        self,
+        directory: str,
+        *,
+        blinding_compromised_reason: str | None = None,
+    ):
         packet_path, test_log, validator = self.prepare_sources(directory)
+        blinding_args = {}
+        if blinding_compromised_reason is not None:
+            blinding_args["blinding_compromised_reason"] = (
+                blinding_compromised_reason
+            )
         outputs, manifest = H.build_handoff(
             contract_path=CONTRACT,
             scorer_packet_path=packet_path,
@@ -64,6 +74,7 @@ class ScorerHandoffV3Tests(unittest.TestCase):
             observed_state=valid_state(),
             test_log_path=test_log,
             validator_output_path=validator,
+            **blinding_args,
         )
         out_dir = os.path.join(directory, "handoff")
         manifest_path = H.publish_handoff(out_dir, outputs, manifest)
@@ -332,6 +343,154 @@ class ScorerHandoffV3Tests(unittest.TestCase):
             self.assertFalse(
                 result["checks"]["source_artifacts_match_rebuild"]
             )
+
+    def test_offline_rebuild_rejects_semantically_contradictory_source_packet(self):
+        """Digest-consistent source bytes must still satisfy packet semantics."""
+        with tempfile.TemporaryDirectory() as directory:
+            packet_path, test_log, validator = self.prepare_sources(directory)
+            packet_dir = os.path.dirname(packet_path)
+            tracked_payload = b"never_touched.py\n"
+            tracked_path = os.path.join(
+                packet_dir, P.ARTIFACT_FILES["tracked_paths"]
+            )
+            with open(tracked_path, "wb") as handle:
+                handle.write(tracked_payload)
+            with open(packet_path, encoding="utf-8") as handle:
+                packet = json.load(handle)
+            packet["artifacts"]["tracked_paths"]["bytes"] = len(tracked_payload)
+            packet["artifacts"]["tracked_paths"]["sha256"] = P.sha256(
+                tracked_payload
+            )
+            packet["workspace"]["tracked_changed_files"] = [
+                "completely_different.py"
+            ]
+            packet["scorer_input_core"] = ["diff"]
+            with open(packet_path, "wb") as handle:
+                handle.write(P._json_bytes(packet))
+
+            with open(packet_path, "rb") as handle:
+                packet_bytes = handle.read()
+            payloads, artifact_checks, artifact_errors = P._read_packet_artifacts(
+                packet_path, packet
+            )
+            self.assertTrue(all(artifact_checks.values()), artifact_errors)
+            with open(CONTRACT, "rb") as handle:
+                contract_bytes = handle.read()
+            contract = json.loads(contract_bytes)
+            with open(test_log, "rb") as handle:
+                test_log_bytes = handle.read()
+            with open(validator, "rb") as handle:
+                validator_output_bytes = handle.read()
+            outputs, manifest = H._assemble_handoff(
+                contract_bytes=contract_bytes,
+                contract=contract,
+                packet_manifest_bytes=packet_bytes,
+                packet_payloads=payloads,
+                test_log_bytes=test_log_bytes,
+                validator_output_bytes=validator_output_bytes,
+                source_identity={
+                    "run_id": RUN_ID,
+                    "baseline_commit": BASELINE,
+                    "output_commit": OUTPUT,
+                    "container_id": CONTAINER_ID,
+                },
+            )
+            manifest_path = H.publish_handoff(
+                os.path.join(directory, "handoff"), outputs, manifest
+            )
+
+            result = self.verify(packet_path, manifest_path)
+            self.assertEqual("FAIL", result["status"])
+            self.assertFalse(result["checks"]["source_rebuild_inputs_are_valid"])
+            errors = " ".join(result["errors"])
+            for name in (
+                "tracked_inventory_matches_diff",
+                "manifest_inventory_matches_captured_files",
+                "core_scorer_inputs_are_exact",
+            ):
+                self.assertIn(name, errors)
+
+    def test_flagged_blinding_reason_rebuilds_and_mismatch_fails(self):
+        reason = "Completion claim reveals treatment-only validator feedback."
+        with tempfile.TemporaryDirectory() as directory:
+            packet_path, manifest_path, outputs, _ = self.build(
+                directory, blinding_compromised_reason=reason
+            )
+            packet = json.loads(outputs["redacted-packet.json"])
+            self.assertIs(packet["blinding_compromised"], True)
+            self.assertEqual(reason, packet["blinding_compromised_reason"])
+
+            matching = self.verify(
+                packet_path,
+                manifest_path,
+                blinding_compromised_reason=reason,
+            )
+            self.assertEqual("PASS", matching["status"])
+            self.assertTrue(all(matching["checks"].values()))
+
+            missing = self.verify(packet_path, manifest_path)
+            self.assertEqual("FAIL", missing["status"])
+            self.assertFalse(
+                missing["checks"]["published_packet_matches_source_rebuild"]
+            )
+
+            mismatched = self.verify(
+                packet_path,
+                manifest_path,
+                blinding_compromised_reason="different reason",
+            )
+            self.assertEqual("FAIL", mismatched["status"])
+            self.assertFalse(
+                mismatched["checks"]["blinding_and_channel_fields_match_contract"]
+            )
+
+            with open(packet_path, "rb") as handle:
+                packet_sha = P.sha256(handle.read())
+            json_out = os.path.join(directory, "flagged-verification.json")
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    H.__file__,
+                    "verify",
+                    "--manifest",
+                    manifest_path,
+                    "--contract",
+                    CONTRACT,
+                    "--scorer-packet",
+                    packet_path,
+                    "--test-log",
+                    os.path.join(directory, "test.log"),
+                    "--validator-output",
+                    os.path.join(directory, "validator.log"),
+                    "--expected-run-id",
+                    RUN_ID,
+                    "--expected-baseline-commit",
+                    BASELINE,
+                    "--expected-output-commit",
+                    OUTPUT,
+                    "--expected-container-id",
+                    CONTAINER_ID,
+                    "--expected-scorer-packet-sha256",
+                    packet_sha,
+                    "--blinding-compromised-reason",
+                    reason,
+                    "--json-out",
+                    json_out,
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(0, completed.returncode, completed.stderr)
+            with open(json_out, encoding="utf-8") as handle:
+                cli_result = json.load(handle)
+            self.assertEqual("PASS", cli_result["status"])
+
+            with self.assertRaisesRegex(H.HandoffError, "non-blank"):
+                self.build(
+                    os.path.join(directory, "blank"),
+                    blinding_compromised_reason="  ",
+                )
 
     def test_cli_verify_rebuilds_from_explicit_source_paths(self):
         with tempfile.TemporaryDirectory() as directory:

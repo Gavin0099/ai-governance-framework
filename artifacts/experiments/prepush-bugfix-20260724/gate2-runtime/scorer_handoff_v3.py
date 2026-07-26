@@ -83,6 +83,21 @@ SECTION_SOURCES = {
     "VALIDATOR_OUTPUT": "attachment.validator_output",
     "COMPLETION_CLAIM": "scorer_packet.artifacts.result",
 }
+BLINDING_INPUT_POLICY = {
+    "cli_argument": "--blinding-compromised-reason",
+    "absent": {
+        "blinding_compromised": None,
+        "blinding_compromised_reason": None,
+    },
+    "present": {
+        "blinding_compromised": True,
+        "blinding_compromised_reason": "exact non-blank argument string",
+    },
+    "verification": (
+        "The verifier must receive the same explicit reason used by the builder; "
+        "absence, omission or any byte change fails deterministic reproduction."
+    ),
+}
 
 
 class HandoffError(Exception):
@@ -131,6 +146,10 @@ def validate_contract(contract: dict[str, Any]) -> None:
         or len(dependency["sha256"]) != 64
     ):
         raise HandoffError("contract redaction dependency is missing or invalid")
+    if contract.get("blinding_compromised_input") != BLINDING_INPUT_POLICY:
+        raise HandoffError(
+            "contract blinding-compromised input policy differs from runtime"
+        )
 
 
 def _read_regular_file(path: str, label: str) -> bytes:
@@ -198,6 +217,16 @@ def _redacted_text(sections: dict[str, str], rules: list[dict[str, str]]) -> tup
     return text, match_counts
 
 
+def _blinding_fields(reason: str | None) -> tuple[bool | None, str | None]:
+    if reason is None:
+        return None, None
+    if not isinstance(reason, str) or not reason.strip():
+        raise HandoffError(
+            "blinding-compromised reason must be a non-blank string when supplied"
+        )
+    return True, reason
+
+
 def _load_pinned_source_packet(
     scorer_packet_path: str,
     *,
@@ -256,6 +285,39 @@ def _load_pinned_source_packet(
         raise HandoffError(
             "source producer receipt does not link the output commit"
         )
+    try:
+        tracked_paths = P._parse_paths(payloads["tracked_paths"])
+    except (KeyError, ValueError) as exc:
+        raise HandoffError(
+            "source scorer packet tracked inventory is invalid"
+        ) from exc
+    workspace = packet.get("workspace")
+    semantic_checks = {
+        "tracked_inventory_matches_diff": bool(tracked_paths)
+        and all(
+            f"diff --git a/{path} b/{path}".encode("utf-8")
+            in payloads["diff"]
+            for path in tracked_paths
+        ),
+        "manifest_inventory_matches_captured_files": (
+            isinstance(workspace, dict)
+            and workspace.get("clean") is True
+            and workspace.get("tracked_changed_files") == tracked_paths
+        ),
+        "core_scorer_inputs_are_exact": (
+            packet.get("scorer_input_core") == ["result", "diff"]
+            and packet.get("handoff_attachments_required")
+            == ["test_log", "validator_output"]
+        ),
+    }
+    failed_semantics = [
+        name for name, passed in semantic_checks.items() if not passed
+    ]
+    if failed_semantics:
+        raise HandoffError(
+            "source scorer packet semantic checks failed: "
+            + ", ".join(failed_semantics)
+        )
     return packet_bytes, packet, payloads
 
 
@@ -268,6 +330,7 @@ def _assemble_handoff(
     test_log_bytes: bytes,
     validator_output_bytes: bytes,
     source_identity: dict[str, str],
+    blinding_compromised_reason: str | None = None,
 ) -> tuple[dict[str, bytes], dict[str, Any]]:
     """Deterministically build the complete published set from pinned sources."""
     redaction_runner_bytes = _read_regular_file(
@@ -287,6 +350,9 @@ def _assemble_handoff(
     rules = contract["redaction"]["literal_map"]
     redacted_text, match_counts = _redacted_text(sections, rules)
     raw_sha = P.sha256(raw_output)
+    blinding_compromised, blinding_reason = _blinding_fields(
+        blinding_compromised_reason
+    )
 
     source_artifacts = {
         "scorer_packet": {
@@ -336,8 +402,8 @@ def _assemble_handoff(
                 "from pinned sources"
             ),
         },
-        "blinding_compromised": None,
-        "blinding_compromised_reason": None,
+        "blinding_compromised": blinding_compromised,
+        "blinding_compromised_reason": blinding_reason,
         "channel_effect": contract["common_mode_channel_effect"],
     }
 
@@ -392,6 +458,7 @@ def build_handoff(
     observed_state: dict[str, Any],
     test_log_path: str,
     validator_output_path: str,
+    blinding_compromised_reason: str | None = None,
 ) -> tuple[dict[str, bytes], dict[str, Any]]:
     contract_bytes = _read_regular_file(contract_path, "candidate contract")
     contract = _load_json_object(contract_bytes, "candidate contract")
@@ -447,6 +514,7 @@ def build_handoff(
         test_log_bytes=test_log_bytes,
         validator_output_bytes=validator_output_bytes,
         source_identity=source_identity,
+        blinding_compromised_reason=blinding_compromised_reason,
     )
 
 
@@ -497,6 +565,7 @@ def verify_handoff(
     expected_output_commit: str,
     expected_container_id: str,
     expected_scorer_packet_sha256: str,
+    blinding_compromised_reason: str | None = None,
 ) -> dict[str, Any]:
     checks = {
         "manifest_is_valid_json_object": False,
@@ -593,6 +662,7 @@ def verify_handoff(
                 test_log_bytes=test_log_bytes,
                 validator_output_bytes=validator_output_bytes,
                 source_identity=expected_identity,
+                blinding_compromised_reason=blinding_compromised_reason,
             )
             checks["source_rebuild_inputs_are_valid"] = True
         except (HandoffError, KeyError, R.FormatError) as exc:
@@ -686,8 +756,10 @@ def verify_handoff(
             == rebuilt_packet.get("total_redactions")
         )
         checks["blinding_and_channel_fields_match_contract"] = (
-            packet.get("blinding_compromised") is None
-            and packet.get("blinding_compromised_reason") is None
+            packet.get("blinding_compromised")
+            == rebuilt_packet.get("blinding_compromised")
+            and packet.get("blinding_compromised_reason")
+            == rebuilt_packet.get("blinding_compromised_reason")
             and packet.get("channel_effect")
             == contract.get("common_mode_channel_effect")
             == rebuilt_packet.get("channel_effect")
@@ -892,6 +964,7 @@ def main() -> int:
     build_parser.add_argument("--expected-container-id", required=True)
     build_parser.add_argument("--test-log", required=True)
     build_parser.add_argument("--validator-output", required=True)
+    build_parser.add_argument("--blinding-compromised-reason")
     build_parser.add_argument("--out-dir", required=True)
     verify_parser = sub.add_parser("verify")
     verify_parser.add_argument("--manifest", required=True)
@@ -904,6 +977,7 @@ def main() -> int:
     verify_parser.add_argument("--expected-output-commit", required=True)
     verify_parser.add_argument("--expected-container-id", required=True)
     verify_parser.add_argument("--expected-scorer-packet-sha256", required=True)
+    verify_parser.add_argument("--blinding-compromised-reason")
     verify_parser.add_argument("--json-out", required=True)
     candidate_parser = sub.add_parser("verify-candidate")
     candidate_parser.add_argument("--manifest", required=True)
@@ -931,6 +1005,7 @@ def main() -> int:
             observed_state=observed,
             test_log_path=args.test_log,
             validator_output_path=args.validator_output,
+            blinding_compromised_reason=args.blinding_compromised_reason,
         )
         path = publish_handoff(args.out_dir, outputs, manifest)
         print(f"wrote scorer handoff v3 candidate: {path}")
@@ -949,6 +1024,7 @@ def main() -> int:
             expected_output_commit=args.expected_output_commit,
             expected_container_id=args.expected_container_id,
             expected_scorer_packet_sha256=args.expected_scorer_packet_sha256,
+            blinding_compromised_reason=args.blinding_compromised_reason,
         )
     else:
         result = verify_candidate_manifest(

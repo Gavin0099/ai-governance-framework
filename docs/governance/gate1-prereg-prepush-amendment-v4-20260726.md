@@ -34,6 +34,15 @@ The correction is failure-driven:
 6. The same review reproduced `core.autocrlf=true` checkout rewrites for the
    three canonical files named in Section E and for the unpinned
    `redaction_runner.py` dependency.
+7. A second independent review built a digest-consistent scorer packet whose
+   tracked-path artifact, workspace inventory and fixed scorer inputs
+   contradicted one another. `scorer_packet_v2.verify_packet` rejected all
+   three contradictions, but the offline handoff verifier accepted them
+   because it rechecked bytes and identity without rechecking packet semantics.
+8. The same review found that v3 always built
+   `blinding_compromised=null` and required that value during verification.
+   An experimenter who correctly flagged a residual identity leak therefore
+   could not produce a deterministically verifiable handoff.
 
 These are experiment-validity failures. They do not relax any gate or claim
 that the experiment may start.
@@ -104,6 +113,20 @@ the published set. Identity-bearing source material is not released to the
 arm-identity-blind scorers. They receive only the verified redacted set and the
 identity-free verification result.
 
+Offline reproduction also rechecks the three packet semantics that previously
+existed only in the live packet verifier: every captured tracked path must
+appear in the diff, the manifest workspace inventory must equal the captured
+path artifact, and `scorer_input_core` plus required attachments must equal the
+fixed contract values. Digest-consistent contradictions fail before handoff
+reconstruction.
+
+The experimenter may supply
+`--blinding-compromised-reason <non-blank reason>` to both build and verify.
+When absent, the packet deterministically contains null flag and reason. When
+present, the flag is true and the exact reason string is preserved. Omission,
+substitution or any string change at verification fails source reproduction;
+substantive evidence is never removed.
+
 If any arm source contains CR or a reserved standalone marker, the complete
 four-arm run is **NO-GO before scoring**. The experimenter must not selectively
 exclude, repair or rerun one arm. Any escaping or recapture rule requires a
@@ -145,12 +168,12 @@ Candidate bytes offered for review and later owner re-sign:
 | Candidate file | Bytes | SHA-256 |
 |---|---:|---|
 | `.gitattributes` (exact candidate/evidence paths only) | 1,233 | `5a5b522aa46a62724dc804c2ee4a1ef9f2e04bc614cce8eb31c4b7ec5d2793c3` |
-| `candidate/scorer-handoff-contract-v3.json` | 7,839 | `9cfaf73cd1355ab9da18650b42f5cd1090d156182b8f0f79cad67efcd4fd31b7` |
+| `candidate/scorer-handoff-contract-v3.json` | 8,631 | `ced0e02c815494b5f66d6ceffa8dd7e490ac8f880adf935686579b7b69426eda` |
 | `redaction_runner.py` (pinned semantic dependency; unchanged) | 16,152 | `d612f75e0851239fe164f9918fd13e55416f7fff9b1f337ad3f54460a91955d5` |
 | `gate2-runtime/scorer_packet_v2.py` | 23,520 | `a96711338ed5b873660fde892cc32b0b28cd25deaa440c4f67b1571371bbb40e` |
-| `gate2-runtime/scorer_handoff_v3.py` | 38,776 | `fc822f691adf4ed18a5eb3bd01a4ade9838728c5efc561ef22a7a49830d34ddc` |
+| `gate2-runtime/scorer_handoff_v3.py` | 41,857 | `8de66027f66552ff4ca750e88ac6ec77c471cd3b3c27394d6c28e830c7f5c417` |
 | `gate2-runtime/test_scorer_packet_v2.py` | 12,558 | `724250f537201e3ac4aa173b41ba6a786c7846807e1f7577bbd9c10e561e5055` |
-| `gate2-runtime/test_scorer_handoff_v3.py` | 25,898 | `366c65f25281fd22cfcb5584fa5fbbc87375b9ad0043f26424e0126f02ca3d15` |
+| `gate2-runtime/test_scorer_handoff_v3.py` | 32,588 | `2d2497cd94628c71cd612ae2d88069f5b2192e9bb44d9f0401f75ea0a07b9a5a` |
 
 Any edit changes the hash and requires a new review/signature target. Do not
 rewrite amendment v2/v3 or the frozen v2 contract in place.
@@ -160,7 +183,7 @@ rewrite amendment v2/v3 or the frozen v2 contract in place.
 Targeted evidence already required by this candidate:
 
 - scorer-packet schema v2 counter-examples: 14/14;
-- scorer-handoff v3 counter-examples: 18/18;
+- scorer-handoff v3 counter-examples: 20/20;
 - frozen v2 redaction runner regression: 23/23;
 - candidate scripts compile;
 - candidate contract parses as JSON.
@@ -168,6 +191,12 @@ Targeted evidence already required by this candidate:
 The canonical focused precommit and the final candidate receipt must also pass
 before the owner is asked to sign. These are evidence for review, not owner
 signature and not canonical promotion.
+
+`CANDIDATE_FILE_SET`, `CANONICAL_FILES` and `BYTE_PRESERVATION_PATHS` are
+declared in `scorer_handoff_v3.py`, which is itself a candidate member. An
+independent reviewer must inspect the verifier source diff as well as run
+`verify-candidate`; the verifier cannot independently establish the
+completeness of its own hard-coded declarations.
 
 ## G. Owner decisions required after review
 
