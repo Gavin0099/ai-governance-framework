@@ -1,0 +1,51 @@
+{
+  "receipt_type": "gate2_live_canary_nogo_review",
+  "date": "2026-07-26",
+  "mode": "VALIDATION",
+  "status": "changes_requested",
+  "exit_code": 1,
+  "linked_commit": "c7c85b9b",
+  "run_id": "live-canary-20260726-180935",
+  "session_id": "83404ab2-d7b7-4b2e-b999-5ea7724564fb",
+  "verdict": "NO-GO before channel exercise",
+  "evidence": {
+    "prompt_bytes": 2518,
+    "prompt_sha256": "80de91fbc4a30d06d96de3182c6fd854e8bda3df79263498f3b72b578d3138eb",
+    "prompt_identity": "PASS: exact_prompt_match=true",
+    "batch_request": "UNOBSERVED: max_tool_calls_in_one_message=0",
+    "transcript": "ABSENT: no tool call reached PreToolUse",
+    "adapter_log": "ABSENT: no adapter call executed",
+    "after_abort": "PASS: clean planted-defect baseline, /work/out empty",
+    "external_closeout": "D:/gate2-live-run-evidence/live-canary-20260726-180935/operator-closeout.json"
+  },
+  "finding": {
+    "classification": "task_design_refusal",
+    "summary": "The exact count, ordering and shape of required tool calls looked like an untrusted scripted instruction. The model-facing tool inventory also contradicted the prompt's assertion that only the adapter was runnable before runtime enforcement could be observed.",
+    "channel_regression": "NOT ESTABLISHED",
+    "q1_q5": "NOT TESTED"
+  },
+  "remediation": {
+    "prompt": "Use outcome-level requirements; do not prescribe tool block counts, response shape or parallelism.",
+    "batch_observation": "Report OBSERVED or UNOBSERVED without aborting a valid producer task.",
+    "q5": "Scope to adapter overlap at the serialization lock; only non-zero lock_wait_ms answers it.",
+    "concurrency_correctness": "Keep focused adapter concurrency regression separate from live overlap observation."
+  },
+  "candidate_validation": {
+    "evidence_live": "PASS: 54/54 tests",
+    "adapter_concurrency": "PASS: 8/8 checks with real process contention observed",
+    "memory_workflow": "PASS: completion_claim_allowed=true with zero current-diff B0 blockers",
+    "canonical_focused_precommit": "PASS: wrapper exit 0 and 187/187 selected tests passed in 111.19 seconds",
+    "claim_boundary": "Focused repository gate only; the full repository suite was not run."
+  },
+  "not_claimed": [
+    "that run 180935 exercised the hook or adapter channel",
+    "that the revision-6 write and report semantics passed a live producer run",
+    "that the Claude launcher exit-code artifact was captured after the operator abort",
+    "that absence of a batch proves harness serialization",
+    "that adapter executions overlapped",
+    "that Q1-Q5 were revalidated",
+    "that the base64 channel effect is owner-signed",
+    "that Gate 2 may start or that any arm ran",
+    "receipt authenticity: every field is fabricatable by a direct writer"
+  ]
+}

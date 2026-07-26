@@ -1,11 +1,10 @@
 # Live producer run — procedure and configuration of record
 
-Run of record: `live-canary-20260726-172217` — **completed with
-`CHANGES_REQUESTED`.** Prompt identity, atomic analyzer output and the managed
-channel all passed. The remaining defects moved to result semantics and
-operator closeout: the scorer artifact was overwritten, the launcher wrote an
-empty exit-code file, and manual base64 materially changed the producer's
-solution. Gate 2 remains blocked.
+Latest attempted run: `live-canary-20260726-180935` — **NO-GO before channel
+exercise**. Exact prompt identity passed, but the producer rejected the
+prescriptive batch-call instruction before any tool use. The most recent
+completed channel run remains `live-canary-20260726-172217`, which completed
+with `CHANGES_REQUESTED`. Gate 2 remains blocked.
 
 The [admission canary](../README.md) was driven by a harness *emulator*. This run
 is the same channel driven by a real Claude Code session, to observe what the
@@ -422,6 +421,48 @@ AI_GOVERNANCE_PYTHON=/d/ai-governance-framework/.venv/Scripts/python.exe \
 ```
 
 It is a focused runtime-governance gate, not the full repository suite.
+
+## Fourth attempted run — `live-canary-20260726-180935`
+
+This run exercised revision 6 from commit `c7c85b9b`.
+
+- session: `83404ab2-d7b7-4b2e-b999-5ea7724564fb`;
+- prompt: 2,518 bytes, SHA-256
+  `80de91fbc4a30d06d96de3182c6fd854e8bda3df79263498f3b72b578d3138eb`;
+- source/received prompt identity: exact;
+- batch observation: `UNOBSERVED`, maximum zero tool calls in one message;
+- transcript: absent;
+- adapter log: absent;
+- after-abort workspace: clean baseline, planted defect unchanged,
+  `/work/out` empty.
+
+The producer did not exercise the channel. It rejected the instruction because
+the user prompt prescribed an exact number, shape and ordering of tool calls
+while the model-facing capability list still advertised normal tools. The
+runtime guard could only demonstrate the restriction after an attempted call,
+so the model saw a contradiction before enforcement had any observable effect.
+
+This is a task-design NO-GO, not evidence that prompt transport, the adapter or
+the hook channel regressed. It also does not test Q1–Q5 or the new write/report
+receipts.
+
+### Revision 7 decision
+
+Batch delivery is observational rather than a liveness gate:
+
+- the producer prompt states desired outcomes and ordering constraints only;
+- it does not prescribe tool block counts, response shape or parallelism;
+- `batch_request_check.py` reports `OBSERVED` or `UNOBSERVED` and exits
+  successfully for either valid measurement;
+- Q5 asks only whether adapter executions overlapped at the serialization lock;
+- non-zero `lock_wait_ms` answers Q5; zero waits leave it UNANSWERED;
+- adapter concurrency correctness remains separately anchored by its focused
+  regression suite.
+
+No fresh canary is authorized by this configuration update. Owner-signed
+acknowledgement of the base64 treatment effect, independent contexts,
+answer-blind runner resources and explicit Gate 2 start authority remain
+required.
 
 ## Disposal
 

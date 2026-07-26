@@ -303,7 +303,7 @@ QUESTIONS = {
     "q2": "did the exit-0 deny JSON actually block the call?",
     "q3": "which post event does a non-zero Bash exit arrive on?",
     "q4": "what is the real shape of tool_response?",
-    "q5": "does the harness issue parallel tool calls?",
+    "q5": "did adapter executions overlap at the serialization lock?",
 }
 
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prove whether one assistant message actually requested multiple tool calls."""
+"""Observe whether one assistant message requested multiple tool calls."""
 from __future__ import annotations
 
 import argparse
@@ -44,14 +44,15 @@ def inspect(session_log: str) -> dict:
     ]
     maximum = max((len(calls) for calls in by_message.values()), default=0)
     return {
-        "status": "GO" if batches else "NO-GO",
+        "status": "OBSERVED" if batches else "UNOBSERVED",
         "multi_tool_message_observed": bool(batches),
         "assistant_messages": len(by_message),
         "max_tool_calls_in_one_message": maximum,
         "batches": batches,
         "claim_boundary": (
             "A multi-tool assistant message proves a batch request. "
-            "Only adapter lock_wait_ms can prove overlapping execution."
+            "Its absence does not prove harness serialization. Only adapter "
+            "lock_wait_ms can prove overlapping adapter execution."
         ),
     }
 
@@ -74,7 +75,9 @@ def main() -> int:
         f"{result['status']}: max_tool_calls_in_one_message="
         f"{result['max_tool_calls_in_one_message']}"
     )
-    return 0 if result["multi_tool_message_observed"] else 2
+    # This is an observation, not a liveness gate. A valid log with no batch is
+    # still a successful measurement and must not abort the producer task.
+    return 0
 
 
 if __name__ == "__main__":

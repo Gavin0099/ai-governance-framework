@@ -19,7 +19,7 @@ import sys
 import tempfile
 import unittest
 
-from answer_questions import ANSWERED, UNANSWERED, analyse, render
+from answer_questions import ANSWERED, QUESTIONS, UNANSWERED, analyse, render
 from evidence_io import atomic_write_json
 
 POLICY = {"policy_id": "admission-canary-1", "policy_sha256": "p" * 64}
@@ -282,6 +282,12 @@ class ParallelismClaims(unittest.TestCase):
     def test_absence_of_contention_is_not_an_answer(self):
         q5 = analyse([], [line(1, "ls", [], 0, "x")])["q5"]
         self.assertEqual(q5["status"], UNANSWERED)
+
+    def test_q5_question_is_scoped_to_adapter_overlap(self):
+        self.assertEqual(
+            QUESTIONS["q5"],
+            "did adapter executions overlap at the serialization lock?",
+        )
 
     def test_contention_is_an_answer(self):
         q5 = analyse([], [line(1, "ls", [], 0, "x"), line(2, "ls", [], 0, "x", lock_wait_ms=37)])["q5"]

@@ -548,3 +548,55 @@ start: result/write semantics and closeout require one final canary, overlapping
 execution remains unobserved, the base64 channel-effect amendment is not
 owner-signed, and 4+2 independent contexts plus an answer-blind runner remain
 unavailable.
+
+---
+
+## Phase 7 — prescriptive-batch prompt refusal
+
+**Run** `live-canary-20260726-180935`.
+**Session** `83404ab2-d7b7-4b2e-b999-5ea7724564fb`.
+**Outcome** `NO-GO before channel exercise`.
+
+### F24. Exact low-level tool instructions invalidated the producer task
+
+Prompt transport and identity passed exactly: 2,518 bytes and SHA-256
+`80de91fbc4a30d06d96de3182c6fd854e8bda3df79263498f3b72b578d3138eb`.
+The producer then refused without issuing a tool call. It explicitly identified
+the required count, ordering and response shape as an untrusted scripted
+instruction and pointed out that its model-facing capability list still showed
+normal tools.
+
+The runtime restriction becomes visible only when `PreToolUse` handles an
+attempt. Before that point, the user prompt's “one runnable program” statement
+conflicted with the advertised tool inventory. Requiring exact Bash block
+mechanics amplified that conflict into a safety refusal.
+
+### F25. This run did not exercise or regress the channel
+
+No producer tool call means no hook transcript and no adapter log. The
+after-abort snapshot remained the clean planted-defect baseline and
+`/work/out` remained empty. Therefore this run cannot validate or invalidate
+Q1–Q5, write receipts, immutable report semantics or launcher closeout.
+
+It is admissible negative evidence about task design only.
+
+### F26. Batch request and adapter overlap are separate observations
+
+Revision 7 removes exact tool-call mechanics from the producer prompt. The task
+still requires understanding `TASK.md`, `src/calc.py` and
+`tests/test_calc.py` before modification, but how the producer obtains that
+understanding is its own decision.
+
+`batch_request_check.py` now records `OBSERVED` or `UNOBSERVED`; absence of a
+batch is not a liveness failure and does not abort the task. Q5 is narrowed to
+adapter execution overlap at the serialization lock. A non-zero
+`lock_wait_ms` answers it; zero waits remain UNANSWERED. The adapter's focused
+concurrency regression is a separate correctness signal and does not fabricate
+live overlap.
+
+### Decision
+
+Do not rerun automatically and do not start a Gate 2 arm. Revision 7 must pass
+its scoped tests and focused precommit first. A later fresh canary requires a
+separate authorization and must retain the base64 treatment-effect claim
+boundary.

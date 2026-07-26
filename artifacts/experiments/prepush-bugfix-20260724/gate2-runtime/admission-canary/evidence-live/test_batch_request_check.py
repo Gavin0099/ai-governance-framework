@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -38,13 +40,14 @@ class BatchObservation(unittest.TestCase):
             assistant("two", 1),
             assistant("three", 1),
         ])
-        self.assertEqual(result["status"], "NO-GO")
+        self.assertEqual(result["status"], "UNOBSERVED")
         self.assertFalse(result["multi_tool_message_observed"])
         self.assertEqual(result["max_tool_calls_in_one_message"], 1)
+        self.assertIn("does not prove harness serialization", result["claim_boundary"])
 
     def test_one_message_with_three_tools_is_a_batch(self):
         result = self._inspect([assistant("batch", 3)])
-        self.assertEqual(result["status"], "GO")
+        self.assertEqual(result["status"], "OBSERVED")
         self.assertTrue(result["multi_tool_message_observed"])
         self.assertEqual(result["max_tool_calls_in_one_message"], 3)
 
@@ -52,6 +55,33 @@ class BatchObservation(unittest.TestCase):
         row = assistant("batch", 2)
         result = self._inspect([row, row])
         self.assertEqual(result["max_tool_calls_in_one_message"], 2)
+
+    def test_cli_unobserved_is_a_successful_measurement(self):
+        with tempfile.TemporaryDirectory() as td:
+            session = os.path.join(td, "session.jsonl")
+            output = os.path.join(td, "batch.json")
+            with open(session, "w", encoding="utf-8", newline="\n") as handle:
+                handle.write(json.dumps(assistant("one", 1)) + "\n")
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    os.path.join(os.path.dirname(__file__), "batch_request_check.py"),
+                    "--session-log",
+                    session,
+                    "--out",
+                    output,
+                    "--wait-seconds",
+                    "0",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+            )
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            with open(output, encoding="utf-8") as handle:
+                result = json.load(handle)
+            self.assertEqual(result["status"], "UNOBSERVED")
 
 
 if __name__ == "__main__":
