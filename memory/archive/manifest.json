@@ -9,6 +9,15 @@
       "original_lines": 135,
       "new_lines": 46,
       "reason": "Memory pressure: EMERGENCY (135/200 lines, 20455/10000 chars)"
+    },
+    {
+      "timestamp": "20260727_003214",
+      "datetime": "2026-07-27 00:32:14",
+      "archive_file": "archive/active_task_20260727_003214.md",
+      "source_file": "memory\\01_active_task.md",
+      "original_lines": 394,
+      "new_lines": 47,
+      "reason": "Memory pressure: EMERGENCY (394/200 lines, 28623/10000 chars)"
     }
   ]
 }
