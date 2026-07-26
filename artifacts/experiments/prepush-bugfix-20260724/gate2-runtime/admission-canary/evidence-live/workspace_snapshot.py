@@ -74,6 +74,7 @@ def main() -> int:
     _, image = run(["docker", "inspect", "-f", "{{.Image}}", CONTAINER])
     _, cid = run(["docker", "inspect", "-f", "{{.Id}}", CONTAINER])
     _, head = dexec(["git", "log", "--oneline", "-1"])
+    _, head_commit = dexec(["git", "rev-parse", "HEAD"])
     rc_status, status = dexec(["git", "status", "--porcelain"])
     _, files = dexec(["git", "ls-files"])
     _, out_dir = dexec(["ls", "-A", "/work/out"], workdir="/work")
@@ -93,6 +94,7 @@ def main() -> int:
                       "reachable": rc_state == 0},
         "repo": {
             "head": head,
+            "head_commit": head_commit,
             "status_porcelain": status,
             "clean": rc_status == 0 and status == "",
             "tracked_files": sorted(digests),

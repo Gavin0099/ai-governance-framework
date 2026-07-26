@@ -1,0 +1,52 @@
+{
+  "receipt_type": "gate2_scorer_packet_slice",
+  "date": "2026-07-26",
+  "mode": "VALIDATION",
+  "status": "candidate_pass",
+  "source_base_commit": "9a96c2e744ebc9b54410b707f5e3a1d911632935",
+  "run_id": "live-canary-20260726-194819",
+  "session_id": "1bd2a44a-8a51-4193-bdf9-7948ff9e10ca",
+  "done": "operator atomically captures the final diff and creates a verifiable scorer packet; missing, tampered or digest-mismatched inputs fail",
+  "implementation": {
+    "capture": "capture_scorer_packet.py",
+    "verification": "verify_scorer_packet.py",
+    "transaction_marker": "scorer-packet.json is written last",
+    "scorer_inputs": [
+      "result.json",
+      "final-diff.patch"
+    ],
+    "supporting_artifacts": [
+      "final-status.txt",
+      "final-tracked-paths.txt"
+    ]
+  },
+  "live_validation": {
+    "packet": "D:/gate2-live-run-evidence/live-canary-20260726-194819/scorer-packet-candidate/scorer-packet.json",
+    "verification": "D:/gate2-live-run-evidence/live-canary-20260726-194819/scorer-packet-candidate/verification-v2.json",
+    "status": "PASS: 15/15 checks",
+    "baseline_head": "2cc7a72228e5e24a4794b5b960eae0b196ecc71f",
+    "tracked_changed_files": [
+      "src/calc.py"
+    ],
+    "result_sha256": "6bd904908db23dc7fb7850cbe297a13ed5290d5658b3e65bcad25cb817c0e823",
+    "diff_sha256": "afef5ad420f889ffea8bfa2a3e860b1f75c32c41178903751656c389f7a40648",
+    "visibility_observation": "final-diff.patch contains the complete module docstring deletion omitted by result.json"
+  },
+  "candidate_validation": {
+    "scorer_packet": "PASS: 11/11 counter-example tests",
+      "evidence_live": "PASS: 65/65 tests",
+      "memory_workflow": "PASS: completion_claim_allowed=true, current-diff B0=0",
+      "canonical_focused_precommit": "PASS: wrapper exit 0, 187/187 selected tests in 69.97s"
+  },
+  "not_claimed": [
+    "that the producer self-report is semantically complete",
+    "that the packet writer is independently authenticated",
+    "that a coordinated direct writer cannot fabricate the packet",
+    "that the change is correct or high quality",
+    "that the blind scorer interprets the diff correctly",
+    "that adapter executions overlapped",
+    "that the base64 channel-effect and scorer-input amendments are owner-signed",
+    "that the full repository suite passed",
+    "that Gate 2 may start or that any arm ran"
+  ]
+}

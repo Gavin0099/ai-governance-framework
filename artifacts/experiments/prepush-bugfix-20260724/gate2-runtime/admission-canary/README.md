@@ -20,6 +20,8 @@ harness_emulator.py   drives the documented hook contract (NOT Claude Code -- se
 run_canary.py         the run: isolation attestation, workflow, bypasses, duplicates, failure, controls
 test_canary_conformance.py   policy and adapter describe the same channel (23 checks)
 test_adapter_write_receipts.py  byte receipts and immutable report semantics
+evidence-live/capture_scorer_packet.py  operator-owned result + final-diff packet
+evidence-live/verify_scorer_packet.py   fail-closed packet and inventory verifier
 evidence/             transcript, adapter log, verification, console output, container attestation
 ```
 

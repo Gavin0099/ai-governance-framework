@@ -600,3 +600,60 @@ Do not rerun automatically and do not start a Gate 2 arm. Revision 7 must pass
 its scoped tests and focused precommit first. A later fresh canary requires a
 separate authorization and must retain the base64 treatment-effect claim
 boundary.
+
+---
+
+## Phase 8 — revision-7 completion and scorer-packet visibility
+
+**Run** `live-canary-20260726-194819`.
+**Session** `1bd2a44a-8a51-4193-bdf9-7948ff9e10ca`.
+**Outcome** `CHANGES_REQUESTED`; channel mechanism passed, scorer visibility
+required an operator-owned diff.
+
+### F27. Revision 7 removed the task-design refusal
+
+The outcome-level prompt completed naturally. Prompt identity was exact,
+batch delivery was observed without prescribing tool-call shape, and the
+channel passed 14/14 preflight plus 17/17 transcript verification. The
+launcher, UTF-8 analyzer capture, write receipt, single immutable report and
+final result join all passed live.
+
+Q5 remains correctly UNANSWERED: a logical three-call batch occurred, but all
+11 adapter executions recorded zero lock wait.
+
+### F28. Immutable producer output can still be semantically incomplete
+
+The actual diff fixed `add()` and deleted the module docstring. The producer's
+final prose explicitly called the deletion unnecessary, while its 80-byte
+`result.json` mentioned only the function fix and passing tests. The artifact
+was byte-perfect and immutable but did not fully satisfy TASK.md's request to
+describe what changed.
+
+This is not a reason to weaken byte verification. It demonstrates that
+self-report fidelity and workspace evidence are different claims.
+
+### F29. Operator-captured final diff closes blind-scorer visibility
+
+The scorer packet fixes the visibility failure without asking the producer to
+self-audit more accurately. `result.json` remains one scorer input; the
+byte-exact final diff is the other. Status and tracked-path artifacts let the
+verifier reject omitted tracked files.
+
+The packet captured the preserved run's 465-byte diff, including the entire
+docstring deletion, and bound it to run id, full baseline HEAD and container id.
+The live packet verifier passed 15/15.
+
+### F30. The packet is evidence-complete, not authenticated or evaluative
+
+The manifest is written last; missing artifacts, path substitution, partial
+JSON, byte-count drift, digest drift, inventory mismatch and absent diff
+headers fail. A coordinated direct writer can still fabricate all packet
+fields and bytes. The packet also does not judge whether deleting the docstring
+is acceptable.
+
+### Decision
+
+The scorer-visibility blocker is closed at the evidence-input layer. Do not
+start Gate 2 until the scorer input contract and base64 common-mode effect are
+owner-signed and the required independent contexts, answer-blind runner and
+explicit start authority exist.
