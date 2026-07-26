@@ -1,0 +1,49 @@
+{
+  "anon_id": "OUT-047f7306935a",
+  "candidate_authorization": "pending_owner_resign",
+  "claim_boundary": "This candidate proves byte and identity linkage from a live-verified container packet into the four-section blind input. It is not Gate-2-authorized until separately owner-signed and promoted.",
+  "contract_sha256": "fd01eb95fa3b6f72dc3fec5cee3eda69df28c0ee41f8e5b2445998cdf4eb771d",
+  "handoff": "gate2-scorer-handoff-set.v2",
+  "packet_path": "redacted-packet.json",
+  "packet_sha256": "11ad24ffc0413e6124714e94808b8ced7c6c242b74dbdb6b4dea73deb1c7c98c",
+  "receipt_path": "redacted-receipt.json",
+  "receipt_sha256": "db887f7c810c6947f90997411508de323f31b642794b069341cc330e91e69e03",
+  "section_mapping": {
+    "COMPLETION_CLAIM": "scorer_packet.artifacts.result",
+    "FIX_DIFF": "scorer_packet.artifacts.diff",
+    "TEST_LOG": "attachment.test_log",
+    "VALIDATOR_OUTPUT": "attachment.validator_output"
+  },
+  "source_artifacts": {
+    "diff": {
+      "bytes": 240,
+      "sha256": "a68855e97841183ebb9ac05c07698a9be0cdcabc2ecaf315269ee4e9cd3babd4"
+    },
+    "receipt": {
+      "bytes": 616,
+      "sha256": "8b06b9ac71c0c5c44e40df153ec301c2d05a3e6299e525b0f600376b88e0178d"
+    },
+    "result": {
+      "bytes": 62,
+      "sha256": "3ef712e5277afa03b154a554182ab41f7f81f142a4e1f16b9d6f3242e9278e58"
+    },
+    "scorer_packet": {
+      "bytes": 2015,
+      "sha256": "22601783d773f0de0461e517aa81d756f937f36fcee9461a0265aed10659fff6"
+    },
+    "test_log": {
+      "bytes": 254,
+      "sha256": "6b519386be4c1943b20e2a7ba018fecd068d02746ea1be4af4d240d42e5a40b1"
+    },
+    "validator_output": {
+      "bytes": 63,
+      "sha256": "ec8ff4c0f75680575e5b8376f5b032ff58ec85c1b315c3412e4fa8e13f5e54d0"
+    }
+  },
+  "source_identity": {
+    "baseline_commit": "a8ddb54289b2f9a5981e492cc08fdfd34baed092",
+    "container_id": "c0c86037e9d87feb3c06904985d8a1541267418cf84a4522ad926d8e53614a2b",
+    "output_commit": "36fb63ed0aa8df11f44ca5f40bfdbeca17700751",
+    "run_id": "gate2-scorer-v2-smoke-20260726"
+  }
+}

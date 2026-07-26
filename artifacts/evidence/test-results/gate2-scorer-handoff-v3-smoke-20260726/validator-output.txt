@@ -1,0 +1,1 @@
+SYNTHETIC CANARY SMOKE ONLY: uniform Gate 2 validators not run

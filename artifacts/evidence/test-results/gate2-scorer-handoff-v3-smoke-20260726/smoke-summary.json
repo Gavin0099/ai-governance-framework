@@ -1,0 +1,9 @@
+{
+    "status":  "PASS",
+    "scope":  "synthetic Docker integration only; not a Gate 2 arm",
+    "container_name":  "gate2-scorer-v2-smoke-20260726",
+    "container_id":  "c0c86037e9d87feb3c06904985d8a1541267418cf84a4522ad926d8e53614a2b",
+    "baseline_commit":  "a8ddb54289b2f9a5981e492cc08fdfd34baed092",
+    "output_commit":  "36fb63ed0aa8df11f44ca5f40bfdbeca17700751",
+    "packet_sha256":  "22601783d773f0de0461e517aa81d756f937f36fcee9461a0265aed10659fff6"
+}

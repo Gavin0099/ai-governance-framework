@@ -1,0 +1,24 @@
+{
+  "checks": {
+    "all_outputs_exist": true,
+    "anon_ids_match": true,
+    "candidate_is_not_misrepresented_as_authorized": true,
+    "contract_digest_matches": true,
+    "four_sections_are_complete_and_ordered": true,
+    "handoff_schema_matches": true,
+    "manifest_is_valid_json_object": true,
+    "output_digests_match": true,
+    "output_paths_are_fixed_and_confined": true,
+    "packet_contract_digest_matches": true,
+    "packet_schema_matches": true,
+    "receipt_output_commit_matches": true,
+    "redacted_output_digest_matches": true,
+    "source_artifact_set_is_exact": true,
+    "source_identity_matches": true,
+    "source_mapping_is_exact": true,
+    "source_packet_digest_matches": true
+  },
+  "claim_boundary": "PASS proves the published candidate handoff is complete and digest-consistent. It does not authorize Gate 2 or authenticate a coordinated direct writer.",
+  "errors": [],
+  "status": "PASS"
+}

@@ -1,0 +1,164 @@
+{
+  "contract": "gate2-scorer-handoff.v3",
+  "frozen": false,
+  "candidate_status": "pending_owner_resign_and_canonical_promotion",
+  "supersedes_after_promotion": "gate2-scorer-handoff.v2",
+  "authority_candidate": "docs/governance/gate1-prereg-prepush-amendment-v4-20260726.md",
+  "version_note": "Append-only candidate. The signed v2 contract remains canonical until the owner signs these exact bytes and a later promotion step updates the canonical manifest. frozen=false is deliberate and must not be presented as Gate-2 authorization.",
+  "principle": "Remove identity and assignment labels only. Never delete substantive evidence. The final diff comes from the operator-captured, live-container-verified scorer-packet v2 rather than producer prose.",
+  "source_packet": {
+    "schema_version": "2.0",
+    "manifest": "scorer-packet-v2.json",
+    "required_verification": [
+      "fixed artifact paths, byte counts and sha256 match",
+      "run_id, baseline_commit, output_commit and container_id match expected values",
+      "live running-container bytes match every captured artifact",
+      "producer worktree status is clean",
+      "producer receipt linked_commit equals output_commit",
+      "final diff is baseline_commit to output_commit and covers every tracked path"
+    ],
+    "section_mapping": {
+      "FIX_DIFF": "scorer_packet.artifacts.diff",
+      "TEST_LOG": "attachment.test_log",
+      "VALIDATOR_OUTPUT": "attachment.validator_output",
+      "COMPLETION_CLAIM": "scorer_packet.artifacts.result"
+    },
+    "claim_boundary": "The source packet and live re-read establish byte and identity linkage. They do not authenticate the operator or prove semantic correctness."
+  },
+  "producer_output_artifact": {
+    "name": "in-memory raw-output value",
+    "encoding": "UTF-8",
+    "line_endings": "LF",
+    "published_unredacted": false,
+    "section_markers": [
+      "=== FIX_DIFF ===",
+      "=== TEST_LOG ===",
+      "=== VALIDATOR_OUTPUT ===",
+      "=== COMPLETION_CLAIM ==="
+    ],
+    "fixed_section_order": [
+      "1. FIX_DIFF: live-verified baseline-to-output final diff",
+      "2. TEST_LOG: operator-captured post-fix test output",
+      "3. VALIDATOR_OUTPUT: uniform post-hoc validator output run identically on all four arms",
+      "4. COMPLETION_CLAIM: immutable producer result.json"
+    ],
+    "reserved_marker_rule": "A source containing any standalone section marker is rejected rather than ambiguously parsed."
+  },
+  "canonical_builder": {
+    "script": "gate2-runtime/scorer_handoff_v3.py",
+    "packet_script": "gate2-runtime/scorer_packet_v2.py",
+    "publish_set": [
+      "redacted-packet.json",
+      "redacted-receipt.json",
+      "scorer-handoff-v3.json"
+    ],
+    "atomicity": "All outputs are fully serialized first. Components are atomically written, the manifest is written last, and every partial final is removed on any failure.",
+    "create_once": true,
+    "authorization_notice": "Every candidate build states pending owner re-sign and is not Gate-2-authorized."
+  },
+  "redacted_packet_schema": {
+    "schema": "gate2-redacted-packet.v2",
+    "source_attestation_required": true,
+    "source_attestation_fields": [
+      "identity",
+      "artifacts",
+      "section_mapping",
+      "source_packet_verification"
+    ]
+  },
+  "acceptable_handoff": {
+    "schema": "gate2-scorer-handoff-set.v2",
+    "rule": "A scorer may accept the candidate set only when packet, anonymized receipt and manifest all exist; paths are fixed; hashes, anon_id, source identity, source packet digest and four-section mapping all verify.",
+    "candidate_limit": "Mechanical acceptance does not authorize Gate 2 while candidate_authorization is pending_owner_resign."
+  },
+  "validator_output_split": {
+    "treatment_time_validator_feedback": "Arm D input only; experimenter provenance only; never scorer input.",
+    "post_hoc_uniform_validator_output": "Run identically on all four committed outputs and supplied as VALIDATOR_OUTPUT.",
+    "residual_leak_rule": "Flag blinding_compromised; never delete substantive evidence."
+  },
+  "common_mode_channel_effect": {
+    "mechanism": "All four producers use the same argv-only adapter and provide write/report bodies as base64.",
+    "observed_effect": "In live canary 172217 and 194819 the producer reduced solution content, including deleting a module docstring, to lower manual base64 transcription risk.",
+    "preregistered_interpretation": "This burden is common-mode but not evidence-neutral. Scorers see the complete operator-captured diff and may score any resulting quality loss normally. No score normalization or post-hoc adjustment is permitted.",
+    "safety_decision": "Do not add a plaintext shell write verb; preserving the argv-only boundary takes precedence over treatment neutrality.",
+    "claim_boundary": "Common-mode exposure does not prove equal behavioral impact across arms."
+  },
+  "redaction": {
+    "applies_to": [
+      "COMPLETION_CLAIM free text",
+      "producer receipt metadata"
+    ],
+    "never_applies_to": [
+      "FIX_DIFF",
+      "TEST_LOG",
+      "VALIDATOR_OUTPUT"
+    ],
+    "matching": "case-insensitive regexes applied globally in listed order",
+    "receipt_field_drop": [
+      "arm"
+    ],
+    "literal_map": [
+      {
+        "pattern": "\\barm[ _-]?[abcd]\\b",
+        "placeholder": "[ARM]"
+      },
+      {
+        "pattern": "arm-dispatch-packet(\\.md)?",
+        "placeholder": "[PACKET]"
+      },
+      {
+        "pattern": "skill-packet-bugfix(\\.md)?",
+        "placeholder": "[PACKET]"
+      },
+      {
+        "pattern": "governance-packet(\\.md)?",
+        "placeholder": "[PACKET]"
+      },
+      {
+        "pattern": "validator-pins(\\.md)?",
+        "placeholder": "[PACKET]"
+      },
+      {
+        "pattern": "validator-expectation-designer-only(\\.md)?",
+        "placeholder": "[PACKET]"
+      },
+      {
+        "pattern": "skill\\s+packet",
+        "placeholder": "[PACKET]"
+      },
+      {
+        "pattern": "governance\\s+packet",
+        "placeholder": "[PACKET]"
+      },
+      {
+        "pattern": "validator\\s+packet",
+        "placeholder": "[PACKET]"
+      },
+      {
+        "pattern": "treatment\\s+packet",
+        "placeholder": "[PACKET]"
+      },
+      {
+        "pattern": "treatment\\s+assignment",
+        "placeholder": "[ASSIGNMENT]"
+      }
+    ]
+  },
+  "anonymous_id": {
+    "canonical_input": "in-memory four-section UTF-8/LF bytes before redaction",
+    "id_format": "OUT- plus first 12 lowercase hex characters of sha256",
+    "full_digest_recorded": true
+  },
+  "roles": {
+    "producers": "four answer-blind contexts; each knows its own treatment",
+    "scorers": "two arm-identity-blind contexts; neither knows the A/B/C/D mapping before scoring",
+    "experimenter": "may know the answer; captures and verifies packets, runs uniform post-hoc validators, performs redaction, and holds the mapping"
+  },
+  "release_gate": "Release anon-id to arm mapping only after both scorers submit scores and blinding-check guesses.",
+  "not_authorized": [
+    "canonical promotion",
+    "producer or scorer provisioning",
+    "Gate 2 start",
+    "any arm execution"
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "artifacts": {
+    "diff": {
+      "bytes": 240,
+      "path": "final-diff.patch",
+      "role": "operator_captured_baseline_to_output_diff",
+      "sha256": "a68855e97841183ebb9ac05c07698a9be0cdcabc2ecaf315269ee4e9cd3babd4"
+    },
+    "receipt": {
+      "bytes": 616,
+      "path": "producer-receipt.json",
+      "role": "producer_commit_linkage",
+      "sha256": "8b06b9ac71c0c5c44e40df153ec301c2d05a3e6299e525b0f600376b88e0178d"
+    },
+    "result": {
+      "bytes": 62,
+      "path": "result.json",
+      "role": "producer_self_report",
+      "sha256": "3ef712e5277afa03b154a554182ab41f7f81f142a4e1f16b9d6f3242e9278e58"
+    },
+    "status": {
+      "bytes": 0,
+      "path": "final-status.txt",
+      "role": "clean_worktree_proof",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tracked_paths": {
+      "bytes": 12,
+      "path": "final-tracked-paths.txt",
+      "role": "tracked_change_inventory",
+      "sha256": "544738fd9352fa6ebc9945bb307a1db3b767534ebe25c6e04bce43fde603cbb5"
+    }
+  },
+  "baseline_commit": "a8ddb54289b2f9a5981e492cc08fdfd34baed092",
+  "captured_at": "2026-07-26T14:05:54Z",
+  "claim_boundary": "The packet binds captured bytes to a named run, running container, baseline commit, clean output commit and producer receipt. Live verification re-reads the container. It does not authenticate the operator or prove the change, report or receipt is truthful.",
+  "container": {
+    "id": "c0c86037e9d87feb3c06904985d8a1541267418cf84a4522ad926d8e53614a2b",
+    "name": "gate2-scorer-v2-smoke-20260726"
+  },
+  "handoff_attachments_required": [
+    "test_log",
+    "validator_output"
+  ],
+  "output_commit": "36fb63ed0aa8df11f44ca5f40bfdbeca17700751",
+  "receipt_container_path": "/work/out/producer-receipt.json",
+  "run_id": "gate2-scorer-v2-smoke-20260726",
+  "schema_version": "2.0",
+  "scorer_input_core": [
+    "result",
+    "diff"
+  ],
+  "workspace": {
+    "clean": true,
+    "tracked_changed_files": [
+      "src/calc.py"
+    ]
+  }
+}

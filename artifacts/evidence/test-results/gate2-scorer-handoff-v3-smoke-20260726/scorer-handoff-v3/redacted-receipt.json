@@ -1,0 +1,25 @@
+{
+  "anon_id": "OUT-047f7306935a",
+  "cannot_claim": [
+    "Gate 2 arm execution",
+    "receipt authenticity"
+  ],
+  "command": "python unittest discovery",
+  "exit_code": 0,
+  "finished_at": "2026-07-26T20:00:01Z",
+  "linked_commit": "36fb63ed0aa8df11f44ca5f40bfdbeca17700751",
+  "output_artifacts": [
+    "/work/out/result.json"
+  ],
+  "receipt_schema": "test_evidence_receipt.v0.1",
+  "results": {
+    "no_new_scoped_regression": "PASS",
+    "regression_fails_again_on_defect_reintroduction": "NOT_CLAIMED",
+    "regression_fails_at_baseline_33006f09": "NOT_CLAIMED",
+    "regression_passes_after_fix": "PASS"
+  },
+  "runner": "gate2-scorer-v2-smoke-20260726",
+  "source_output_commit": "36fb63ed0aa8df11f44ca5f40bfdbeca17700751",
+  "started_at": "2026-07-26T20:00:00Z",
+  "status": "report_only"
+}
