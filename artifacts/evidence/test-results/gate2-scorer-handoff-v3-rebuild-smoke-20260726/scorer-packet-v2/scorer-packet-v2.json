@@ -1,0 +1,59 @@
+{
+  "artifacts": {
+    "diff": {
+      "bytes": 240,
+      "path": "final-diff.patch",
+      "role": "operator_captured_baseline_to_output_diff",
+      "sha256": "a68855e97841183ebb9ac05c07698a9be0cdcabc2ecaf315269ee4e9cd3babd4"
+    },
+    "receipt": {
+      "bytes": 101,
+      "path": "producer-receipt.json",
+      "role": "producer_commit_linkage",
+      "sha256": "55520becc6a63558768aaafd6a84e5cdaef2f632e73c170a6001755f7499460a"
+    },
+    "result": {
+      "bytes": 61,
+      "path": "result.json",
+      "role": "producer_self_report",
+      "sha256": "4f792c64f6c430320dc86b441143357e4cd330e6a734bc82fb3d2eec41e5ffe4"
+    },
+    "status": {
+      "bytes": 0,
+      "path": "final-status.txt",
+      "role": "clean_worktree_proof",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tracked_paths": {
+      "bytes": 12,
+      "path": "final-tracked-paths.txt",
+      "role": "tracked_change_inventory",
+      "sha256": "544738fd9352fa6ebc9945bb307a1db3b767534ebe25c6e04bce43fde603cbb5"
+    }
+  },
+  "baseline_commit": "92e524eaa44b38d73d89742998cbf01d262c63d7",
+  "captured_at": "2026-07-26T14:56:44Z",
+  "claim_boundary": "The packet binds captured bytes to a named run, running container, baseline commit, clean output commit and producer receipt. Live verification re-reads the container. It does not authenticate the operator or prove the change, report or receipt is truthful.",
+  "container": {
+    "id": "b7000f1739eddabecdc0a0521b53adae825b9cb30da156430f5af19482a65e7b",
+    "name": "gate2-scorer-v3-rebuild-smoke-20260726"
+  },
+  "handoff_attachments_required": [
+    "test_log",
+    "validator_output"
+  ],
+  "output_commit": "1dc08928b83951599fe1a8f26b01240769706dd1",
+  "receipt_container_path": "/work/out/producer-receipt.json",
+  "run_id": "synthetic-scorer-v3-rebuild-20260726",
+  "schema_version": "2.0",
+  "scorer_input_core": [
+    "result",
+    "diff"
+  ],
+  "workspace": {
+    "clean": true,
+    "tracked_changed_files": [
+      "src/calc.py"
+    ]
+  }
+}

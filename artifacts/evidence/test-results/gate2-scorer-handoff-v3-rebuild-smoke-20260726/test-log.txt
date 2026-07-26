@@ -1,0 +1,8 @@
+test_add (test_calc.TestCalc.test_add) ... ok
+test_add_negative (test_calc.TestCalc.test_add_negative) ... ok
+test_sub (test_calc.TestCalc.test_sub) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.000s
+
+OK

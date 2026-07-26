@@ -6,7 +6,8 @@ This file does not authorize Gate 2. Amendments v2 and v3 and the frozen
 exact candidate bytes listed here and a later, separate promotion step updates
 the preflight manifest.
 
-Source base commit: `ac9dab87` (`fix(gate2): bind scorer packet to final diff`).
+Source base commit: `13b9abff` (`fix(gate2): bind scorer handoff to output
+commit`).
 
 ## A. Observed failures requiring this amendment
 
@@ -26,6 +27,13 @@ The correction is failure-driven:
 4. The frozen v2 handoff contract names a four-section `raw-output.txt`, but
    does not mechanically require `FIX_DIFF` to come from the container-bound
    packet or bind the four sections to run/container/commit identities.
+5. Independent review of the first v3 candidate showed that its published-set
+   verifier checked only internal digest consistency. A coherent rewrite of
+   `FIX_DIFF`, `raw_output_sha256`, anon id, packet, receipt and marker still
+   passed while the declared source diff digest remained unchanged.
+6. The same review reproduced `core.autocrlf=true` checkout rewrites for the
+   three canonical files named in Section E and for the unpinned
+   `redaction_runner.py` dependency.
 
 These are experiment-validity failures. They do not relax any gate or claim
 that the experiment may start.
@@ -87,6 +95,20 @@ redacted packet, anonymized receipt and anon id. Missing output, output tamper,
 source omission, wrong identity, wrong digest, path substitution, output alias
 or simulated publish failure rejects the set.
 
+Mechanical verification is reproduction, not published-set self-consistency.
+Before scorer delivery, the experimenter or owner verifier must read the exact
+pinned scorer-packet v2 set, test log, validator output, candidate contract and
+pinned `redaction_runner.py`; deterministically rebuild the packet and
+anonymized receipt; and compare their canonical bytes plus the marker against
+the published set. Identity-bearing source material is not released to the
+arm-identity-blind scorers. They receive only the verified redacted set and the
+identity-free verification result.
+
+If any arm source contains CR or a reserved standalone marker, the complete
+four-arm run is **NO-GO before scoring**. The experimenter must not selectively
+exclude, repair or rerun one arm. Any escaping or recapture rule requires a
+separately reviewed owner amendment and a fresh run of every arm.
+
 The v3 contract deliberately contains `frozen=false` and every output states
 `pending_owner_resign`. A mechanically valid candidate is not authorized.
 
@@ -122,12 +144,13 @@ Candidate bytes offered for review and later owner re-sign:
 
 | Candidate file | Bytes | SHA-256 |
 |---|---:|---|
-| `.gitattributes` (exact candidate/evidence paths only) | 839 | `32af54575a339521f7419e29027d1ac4eadec0aae7a050645e288c5b902e28f9` |
-| `candidate/scorer-handoff-contract-v3.json` | 7,154 | `fd01eb95fa3b6f72dc3fec5cee3eda69df28c0ee41f8e5b2445998cdf4eb771d` |
+| `.gitattributes` (exact candidate/evidence paths only) | 1,233 | `5a5b522aa46a62724dc804c2ee4a1ef9f2e04bc614cce8eb31c4b7ec5d2793c3` |
+| `candidate/scorer-handoff-contract-v3.json` | 7,839 | `9cfaf73cd1355ab9da18650b42f5cd1090d156182b8f0f79cad67efcd4fd31b7` |
+| `redaction_runner.py` (pinned semantic dependency; unchanged) | 16,152 | `d612f75e0851239fe164f9918fd13e55416f7fff9b1f337ad3f54460a91955d5` |
 | `gate2-runtime/scorer_packet_v2.py` | 23,520 | `a96711338ed5b873660fde892cc32b0b28cd25deaa440c4f67b1571371bbb40e` |
-| `gate2-runtime/scorer_handoff_v3.py` | 27,064 | `2f29e0cec455af3cbb0bc64b08ec7f7c111038e4f571ee0091f96c265d23f2f9` |
+| `gate2-runtime/scorer_handoff_v3.py` | 38,776 | `fc822f691adf4ed18a5eb3bd01a4ade9838728c5efc561ef22a7a49830d34ddc` |
 | `gate2-runtime/test_scorer_packet_v2.py` | 12,558 | `724250f537201e3ac4aa173b41ba6a786c7846807e1f7577bbd9c10e561e5055` |
-| `gate2-runtime/test_scorer_handoff_v3.py` | 17,777 | `cf4bcfd94423a421498bd2f285e2d678cff4b804734b1868c58d188086d8dfc9` |
+| `gate2-runtime/test_scorer_handoff_v3.py` | 25,898 | `366c65f25281fd22cfcb5584fa5fbbc87375b9ad0043f26424e0126f02ca3d15` |
 
 Any edit changes the hash and requires a new review/signature target. Do not
 rewrite amendment v2/v3 or the frozen v2 contract in place.
@@ -137,7 +160,7 @@ rewrite amendment v2/v3 or the frozen v2 contract in place.
 Targeted evidence already required by this candidate:
 
 - scorer-packet schema v2 counter-examples: 14/14;
-- scorer-handoff v3 counter-examples: 13/13;
+- scorer-handoff v3 counter-examples: 18/18;
 - frozen v2 redaction runner regression: 23/23;
 - candidate scripts compile;
 - candidate contract parses as JSON.

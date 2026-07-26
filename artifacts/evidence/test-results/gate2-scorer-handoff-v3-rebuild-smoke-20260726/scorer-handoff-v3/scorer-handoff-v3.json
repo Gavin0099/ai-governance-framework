@@ -1,0 +1,53 @@
+{
+  "anon_id": "OUT-62766e78e161",
+  "candidate_authorization": "pending_owner_resign",
+  "claim_boundary": "This candidate proves byte and identity linkage from a live-verified container packet into the four-section blind input. It is not Gate-2-authorized until separately owner-signed and promoted.",
+  "contract_sha256": "9cfaf73cd1355ab9da18650b42f5cd1090d156182b8f0f79cad67efcd4fd31b7",
+  "handoff": "gate2-scorer-handoff-set.v2",
+  "packet_path": "redacted-packet.json",
+  "packet_sha256": "d19766c97e590586d6e0997f5b0be24bad1fd956a8fc0a8da6d54d9184c4210b",
+  "receipt_path": "redacted-receipt.json",
+  "receipt_sha256": "de75fad9c404b923ea8a5a3ff4e83181fbaaa685131194fce66e28d3aca905a0",
+  "section_mapping": {
+    "COMPLETION_CLAIM": "scorer_packet.artifacts.result",
+    "FIX_DIFF": "scorer_packet.artifacts.diff",
+    "TEST_LOG": "attachment.test_log",
+    "VALIDATOR_OUTPUT": "attachment.validator_output"
+  },
+  "source_artifacts": {
+    "diff": {
+      "bytes": 240,
+      "sha256": "a68855e97841183ebb9ac05c07698a9be0cdcabc2ecaf315269ee4e9cd3babd4"
+    },
+    "receipt": {
+      "bytes": 101,
+      "sha256": "55520becc6a63558768aaafd6a84e5cdaef2f632e73c170a6001755f7499460a"
+    },
+    "redaction_runner": {
+      "bytes": 16152,
+      "sha256": "d612f75e0851239fe164f9918fd13e55416f7fff9b1f337ad3f54460a91955d5"
+    },
+    "result": {
+      "bytes": 61,
+      "sha256": "4f792c64f6c430320dc86b441143357e4cd330e6a734bc82fb3d2eec41e5ffe4"
+    },
+    "scorer_packet": {
+      "bytes": 2029,
+      "sha256": "da65c38f30bedd684caeec56d3794a66d751c8cdede69e82cc2d820fb6406333"
+    },
+    "test_log": {
+      "bytes": 254,
+      "sha256": "6b519386be4c1943b20e2a7ba018fecd068d02746ea1be4af4d240d42e5a40b1"
+    },
+    "validator_output": {
+      "bytes": 67,
+      "sha256": "de4ad49fcb22a862f1691ca02fd4137261f3a9aebaf1bb8a4d0c9fded7dee2a4"
+    }
+  },
+  "source_identity": {
+    "baseline_commit": "92e524eaa44b38d73d89742998cbf01d262c63d7",
+    "container_id": "b7000f1739eddabecdc0a0521b53adae825b9cb30da156430f5af19482a65e7b",
+    "output_commit": "1dc08928b83951599fe1a8f26b01240769706dd1",
+    "run_id": "synthetic-scorer-v3-rebuild-20260726"
+  }
+}

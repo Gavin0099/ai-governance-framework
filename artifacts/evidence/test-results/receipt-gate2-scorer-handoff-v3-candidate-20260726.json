@@ -3,32 +3,37 @@
   "date": "2026-07-26",
   "mode": "VALIDATION",
   "status": "candidate_pass",
-  "source_base_commit": "ac9dab87",
-  "done": "scorer-packet schema v2 captures a clean baseline-to-output commit diff and binds producer receipt linked_commit; scorer-handoff v3 live-verifies that packet and atomically creates the complete four-section blind input",
+  "source_base_commit": "13b9abff",
+  "done": "scorer-handoff v3 deterministically rebuilds and byte-compares the complete redacted packet, anonymized receipt and marker from the pinned scorer-packet v2, test log, validator output, candidate contract and redaction runner; candidate and canonical bytes are checkout-stable",
   "authority": {
     "task_authority": "user_request",
-    "approved_done": "scorer-packet schema v2 從 clean container 擷取 baseline_commit → output_commit 的 final diff，驗證 receipt.linked_commit == output_commit；再由 scorer-handoff v3 candidate 驗證該 packet 並原子建立完整四段盲評輸入。任何 dirty state、缺漏、竄改、commit identity 或 digest 不一致皆 fail，exact candidate bytes/hash 可交由 owner 重簽。"
+    "approved_done": "scorer-handoff v3 verifier 能從 pinned scorer-packet v2、test log、validator output 與 candidate contract，確定性重建並逐 byte 比對完整四段 redacted output 與 anonymized receipt；candidate manifest pin 住 redaction_runner 並實際驗證三個 canonical hashes；core.autocrlf=true checkout 保持所有宣稱 bytes；amendment count、attrition policy 與 receipt 一致；來源或輸出被竄改皆 fail，fresh synthetic Docker smoke 與 focused precommit 通過。"
   },
   "candidate_files": {
     "amendment_v4": {
       "path": "docs/governance/gate1-prereg-prepush-amendment-v4-20260726.md",
-      "bytes": 8363,
-      "sha256": "94b759f9df77fc0921cc8e553a30464561e97287f2f5d805ff3a92423e769f75"
+      "bytes": 9867,
+      "sha256": "323d30852a859e0ee91a0c6fe7714fc18680c9096ffd2572748a778658839d7c"
     },
     "candidate_manifest": {
       "path": "artifacts/experiments/prepush-bugfix-20260724/candidate/scorer-handoff-v3-candidate-manifest.json",
-      "bytes": 2904,
-      "sha256": "ab9ab76ca979562bf0efc2023e6308a8b645aa9220fb136bffec4a6f4ed61337"
+      "bytes": 3186,
+      "sha256": "561239e991845a4441146eafdb986eb91f18818c68f99ef478e2b986b87026ff"
     },
     "exact_byte_attributes": {
       "path": ".gitattributes",
-      "bytes": 839,
-      "sha256": "32af54575a339521f7419e29027d1ac4eadec0aae7a050645e288c5b902e28f9"
+      "bytes": 1233,
+      "sha256": "5a5b522aa46a62724dc804c2ee4a1ef9f2e04bc614cce8eb31c4b7ec5d2793c3"
     },
     "contract_v3": {
       "path": "artifacts/experiments/prepush-bugfix-20260724/candidate/scorer-handoff-contract-v3.json",
-      "bytes": 7154,
-      "sha256": "fd01eb95fa3b6f72dc3fec5cee3eda69df28c0ee41f8e5b2445998cdf4eb771d"
+      "bytes": 7839,
+      "sha256": "9cfaf73cd1355ab9da18650b42f5cd1090d156182b8f0f79cad67efcd4fd31b7"
+    },
+    "redaction_runner": {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/redaction_runner.py",
+      "bytes": 16152,
+      "sha256": "d612f75e0851239fe164f9918fd13e55416f7fff9b1f337ad3f54460a91955d5"
     },
     "scorer_packet_v2": {
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/scorer_packet_v2.py",
@@ -37,8 +42,8 @@
     },
     "scorer_handoff_v3": {
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/scorer_handoff_v3.py",
-      "bytes": 27064,
-      "sha256": "2f29e0cec455af3cbb0bc64b08ec7f7c111038e4f571ee0091f96c265d23f2f9"
+      "bytes": 38776,
+      "sha256": "fc822f691adf4ed18a5eb3bd01a4ade9838728c5efc561ef22a7a49830d34ddc"
     }
   },
   "canonical_bytes_preserved": {
@@ -59,35 +64,38 @@
       "VALIDATOR_OUTPUT": "attachment.validator_output",
       "COMPLETION_CLAIM": "scorer_packet.artifacts.result"
     },
-    "handoff_transaction_marker": "scorer-handoff-v3.json written last",
+    "handoff_transaction_marker": "scorer-handoff-v3.json written last and reproduced byte-for-byte from explicit pinned source paths",
+    "redaction_dependency": "redaction_runner.py is hash-pinned in the contract and eight-file candidate manifest",
+    "attrition_policy": "CR or reserved standalone marker in any arm makes the complete four-arm run NO-GO before scoring; no selective repair, exclusion or rerun",
     "base64_effect": "common-mode but not evidence-neutral; scorers see complete diff and may score quality loss normally; no score adjustment"
   },
   "docker_integration": {
-    "evidence_dir": "artifacts/evidence/test-results/gate2-scorer-handoff-v3-smoke-20260726",
+    "evidence_dir": "artifacts/evidence/test-results/gate2-scorer-handoff-v3-rebuild-smoke-20260726",
     "scope": "synthetic Docker integration only; no model session and not a Gate 2 arm",
     "status": "PASS",
-    "container_id": "c0c86037e9d87feb3c06904985d8a1541267418cf84a4522ad926d8e53614a2b",
-    "baseline_commit": "a8ddb54289b2f9a5981e492cc08fdfd34baed092",
-    "output_commit": "36fb63ed0aa8df11f44ca5f40bfdbeca17700751",
-    "packet_sha256": "22601783d773f0de0461e517aa81d756f937f36fcee9461a0265aed10659fff6",
+    "container_id": "b7000f1739eddabecdc0a0521b53adae825b9cb30da156430f5af19482a65e7b",
+    "baseline_commit": "92e524eaa44b38d73d89742998cbf01d262c63d7",
+    "output_commit": "1dc08928b83951599fe1a8f26b01240769706dd1",
+    "packet_sha256": "da65c38f30bedd684caeec56d3794a66d751c8cdede69e82cc2d820fb6406333",
     "packet_verifier": "PASS: 22/22 including live container bytes, clean state and receipt linkage",
-    "handoff_verifier": "PASS: 17/17 including four sections, exact mapping, outputs and source identities",
-    "negative_control": "the first capture attempt was rejected because test-created __pycache__ made status dirty; after synthetic setup removed that cache and committed only the fix, the clean capture passed",
+    "handoff_verifier": "PASS: 24/24 including exact packet, receipt and manifest reproduction from pinned source bytes",
+    "transient_negative_control": "an earlier fresh setup reached scorer capture with test-created __pycache__ and was rejected as dirty; incomplete transient evidence was inventoried and removed before the successful no-bytecode rerun",
     "container_disposition": "removed after verification; docker ps -a filter returned no matching container"
   },
   "validation": {
     "scorer_packet_v2": "PASS: 14/14 counter-example and command-boundary tests",
-    "scorer_handoff_v3": "PASS: 14/14 counter-example, coherent-rewrite and candidate-set tests",
+    "scorer_handoff_v3": "PASS: 18/18 including coherent FIX_DIFF/claim rewrites, source attachment tamper, CLI source reproduction, canonical hash and candidate-set tests",
     "frozen_v2_redaction_regression": "PASS: 23/23 checks",
     "python_compile": "PASS: scorer_packet_v2.py and scorer_handoff_v3.py",
     "candidate_contract_json": "PASS: parsed by python -m json.tool",
-    "candidate_manifest": "PASS: exact seven-file set, bytes and SHA-256 verified",
-    "canonical_focused_precommit": "PASS: wrapper exit 0, runtime smoke pass, 187/187 selected tests in 101.62s; initial sandbox Bash E_ACCESSDENIED was an environment launch failure before the successful controlled rerun",
-    "memory_workflow": "PASS: completion_claim_allowed=true, active_non_canonical_writer=0, current_diff_b0_blocker_count=0"
+    "candidate_manifest": "PASS: exact eight-file set plus three canonical files, bytes, SHA-256 and -text coverage verified",
+    "core_autocrlf_checkout": "PASS: git cat-file --filters with core.autocrlf=true preserves every candidate and canonical digest",
+    "canonical_focused_precommit": "PASS: scripts/run-runtime-governance.sh --mode enforce completed with runtime smoke and 187/187 selected tests in 75.48s; the first sandbox attempt failed before gate start because Git Bash dirname was unavailable, then the controlled normal-PATH rerun exited 0",
+    "memory_workflow": "PENDING: rerun required after final receipt and memory record"
   },
   "claim_boundary": {
     "candidate": "exact candidate bytes are reviewable and hash-pinned but not owner-signed or canonical",
-    "integrity": "missing, dirty, tampered, wrong-identity and digest-mismatched inputs fail under the tested contract",
+    "integrity": "missing, dirty, tampered, wrong-identity, source-rewritten and digest-mismatched inputs fail; a self-consistent published rewrite does not pass source reproduction",
     "authentication": "coordinated direct writers remain able to fabricate a coherent set because no cryptographic trust root is claimed"
   },
   "not_claimed": [

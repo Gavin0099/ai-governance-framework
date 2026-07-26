@@ -1,27 +1,33 @@
 {
   "schema": "gate2-scorer-handoff-v3-candidate-set.v1",
   "authorization": "pending_owner_resign",
-  "source_base_commit": "ac9dab87",
+  "source_base_commit": "13b9abff",
   "generated_at": "2026-07-26",
   "purpose": "Exact byte manifest for independent review and a later explicit owner re-sign. PASS does not promote the candidate or authorize Gate 2.",
   "files": [
     {
       "path": ".gitattributes",
-      "bytes": 839,
-      "sha256": "32af54575a339521f7419e29027d1ac4eadec0aae7a050645e288c5b902e28f9",
+      "bytes": 1233,
+      "sha256": "5a5b522aa46a62724dc804c2ee4a1ef9f2e04bc614cce8eb31c4b7ec5d2793c3",
       "role": "preserve exact candidate bytes under core.autocrlf=true"
     },
     {
       "path": "docs/governance/gate1-prereg-prepush-amendment-v4-20260726.md",
-      "bytes": 8363,
-      "sha256": "94b759f9df77fc0921cc8e553a30464561e97287f2f5d805ff3a92423e769f75",
+      "bytes": 9867,
+      "sha256": "323d30852a859e0ee91a0c6fe7714fc18680c9096ffd2572748a778658839d7c",
       "role": "append-only owner decision candidate"
     },
     {
       "path": "artifacts/experiments/prepush-bugfix-20260724/candidate/scorer-handoff-contract-v3.json",
-      "bytes": 7154,
-      "sha256": "fd01eb95fa3b6f72dc3fec5cee3eda69df28c0ee41f8e5b2445998cdf4eb771d",
+      "bytes": 7839,
+      "sha256": "9cfaf73cd1355ab9da18650b42f5cd1090d156182b8f0f79cad67efcd4fd31b7",
       "role": "candidate scorer input and base64 effect contract"
+    },
+    {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/redaction_runner.py",
+      "bytes": 16152,
+      "sha256": "d612f75e0851239fe164f9918fd13e55416f7fff9b1f337ad3f54460a91955d5",
+      "role": "pinned redaction and receipt-anonymization semantic dependency"
     },
     {
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/scorer_packet_v2.py",
@@ -31,8 +37,8 @@
     },
     {
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/scorer_handoff_v3.py",
-      "bytes": 27064,
-      "sha256": "2f29e0cec455af3cbb0bc64b08ec7f7c111038e4f571ee0091f96c265d23f2f9",
+      "bytes": 38776,
+      "sha256": "fc822f691adf4ed18a5eb3bd01a4ade9838728c5efc561ef22a7a49830d34ddc",
       "role": "four-section builder, handoff verifier and candidate manifest verifier"
     },
     {
@@ -43,8 +49,8 @@
     },
     {
       "path": "artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/test_scorer_handoff_v3.py",
-      "bytes": 17777,
-      "sha256": "cf4bcfd94423a421498bd2f285e2d678cff4b804734b1868c58d188086d8dfc9",
+      "bytes": 25898,
+      "sha256": "366c65f25281fd22cfcb5584fa5fbbc87375b9ad0043f26424e0126f02ca3d15",
       "role": "handoff, coherent-rewrite and candidate-set regression tests"
     }
   ],

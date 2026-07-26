@@ -1,0 +1,2 @@
+command=git diff --check baseline_commit output_commit
+exit_code=0

@@ -1,0 +1,13 @@
+diff --git a/src/calc.py b/src/calc.py
+index 9ae3936..456d8f9 100644
+--- a/src/calc.py
++++ b/src/calc.py
+@@ -7,7 +7,7 @@ Gate 2 treatment can be learned by fixing it.
+ 
+ 
+ def add(a, b):
+-    return -1
++    return a + b
+ 
+ 
+ def sub(a, b):

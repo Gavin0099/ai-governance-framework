@@ -42,11 +42,16 @@
       "3. VALIDATOR_OUTPUT: uniform post-hoc validator output run identically on all four arms",
       "4. COMPLETION_CLAIM: immutable producer result.json"
     ],
-    "reserved_marker_rule": "A source containing any standalone section marker is rejected rather than ambiguously parsed."
+    "reserved_marker_rule": "A source containing any standalone section marker is rejected rather than ambiguously parsed.",
+    "attrition_policy": "If any arm source contains CR or a reserved standalone marker, the complete four-arm run is NO-GO before scoring. Do not selectively exclude, repair, or rerun one arm. A later escaping or recapture rule requires a separately reviewed owner amendment and a fresh run of every arm."
   },
   "canonical_builder": {
     "script": "gate2-runtime/scorer_handoff_v3.py",
     "packet_script": "gate2-runtime/scorer_packet_v2.py",
+    "redaction_dependency": {
+      "path": "artifacts/experiments/prepush-bugfix-20260724/redaction_runner.py",
+      "sha256": "d612f75e0851239fe164f9918fd13e55416f7fff9b1f337ad3f54460a91955d5"
+    },
     "publish_set": [
       "redacted-packet.json",
       "redacted-receipt.json",
@@ -68,7 +73,7 @@
   },
   "acceptable_handoff": {
     "schema": "gate2-scorer-handoff-set.v2",
-    "rule": "A scorer may accept the candidate set only when packet, anonymized receipt and manifest all exist; paths are fixed; hashes, anon_id, source identity, source packet digest and four-section mapping all verify.",
+    "rule": "Before scorer delivery, the experimenter or owner verifier must deterministically rebuild the exact packet and receipt bytes from the pinned scorer packet, test log, validator output, candidate contract and pinned redaction runner. The arm-identity-blind scorer receives only the verified redacted set and the identity-free verifier result, never the identity-bearing source packet.",
     "candidate_limit": "Mechanical acceptance does not authorize Gate 2 while candidate_authorization is pending_owner_resign."
   },
   "validator_output_split": {

@@ -1,10 +1,15 @@
 /.gitattributes -text
 /docs/governance/gate1-prereg-prepush-amendment-v4-20260726.md -text
 /artifacts/evidence/test-results/gate2-scorer-handoff-v3-smoke-20260726/** -text -whitespace
+/artifacts/evidence/test-results/gate2-scorer-handoff-v3-rebuild-smoke-20260726/** -text -whitespace
 /artifacts/evidence/test-results/receipt-gate2-scorer-handoff-v3-candidate-20260726.json -text
+/artifacts/experiments/prepush-bugfix-20260724/scorer-handoff-contract.json -text
+/artifacts/experiments/prepush-bugfix-20260724/redaction_runner.py -text
 /artifacts/experiments/prepush-bugfix-20260724/candidate/scorer-handoff-contract-v3.json -text
 /artifacts/experiments/prepush-bugfix-20260724/candidate/scorer-handoff-v3-candidate-manifest.json -text
 /artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/scorer_packet_v2.py -text
 /artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/scorer_handoff_v3.py -text
 /artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/test_scorer_packet_v2.py -text
 /artifacts/experiments/prepush-bugfix-20260724/gate2-runtime/test_scorer_handoff_v3.py -text
+/docs/governance/gate1-prereg-prepush-amendment-v2-20260724.md -text
+/docs/governance/gate1-prereg-prepush-amendment-v3-20260725.md -text

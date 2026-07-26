@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -71,8 +72,14 @@ class ScorerHandoffV3Tests(unittest.TestCase):
     def verify(self, packet_path: str, manifest_path: str, **overrides):
         with open(packet_path, "rb") as handle:
             packet_sha = P.sha256(handle.read())
+        source_root = os.path.dirname(os.path.dirname(manifest_path))
         values = {
             "contract_path": CONTRACT,
+            "scorer_packet_path": packet_path,
+            "test_log_path": os.path.join(source_root, "test.log"),
+            "validator_output_path": os.path.join(
+                source_root, "validator.log"
+            ),
             "expected_run_id": RUN_ID,
             "expected_baseline_commit": BASELINE,
             "expected_output_commit": OUTPUT,
@@ -269,6 +276,137 @@ class ScorerHandoffV3Tests(unittest.TestCase):
             self.assertFalse(result["checks"]["packet_contract_digest_matches"])
             self.assertFalse(result["checks"]["receipt_output_commit_matches"])
 
+    def test_coherent_fix_diff_rewrite_is_rejected_by_source_reproduction(self):
+        """A self-consistent published set must still bind to the pinned source."""
+        with tempfile.TemporaryDirectory() as directory:
+            packet_path, manifest_path, _, _ = self.build(directory)
+            base = os.path.dirname(manifest_path)
+            redacted_packet_path = os.path.join(base, "redacted-packet.json")
+            receipt_path = os.path.join(base, "redacted-receipt.json")
+            with open(manifest_path, encoding="utf-8") as handle:
+                manifest = json.load(handle)
+            with open(redacted_packet_path, encoding="utf-8") as handle:
+                packet = json.load(handle)
+            with open(receipt_path, encoding="utf-8") as handle:
+                receipt = json.load(handle)
+
+            packet["redacted_output"] = packet["redacted_output"].replace(
+                "return a+b", "return forged"
+            )
+            packet["redacted_output_sha256"] = P.sha256(
+                packet["redacted_output"].encode("utf-8")
+            )
+            packet["raw_output_sha256"] = "f" * 64
+            forged_anon = "OUT-" + ("f" * 12)
+            packet["anon_id"] = forged_anon
+            receipt["anon_id"] = forged_anon
+            manifest["anon_id"] = forged_anon
+
+            packet_bytes = P._json_bytes(packet)
+            receipt_bytes = P._json_bytes(receipt)
+            with open(redacted_packet_path, "wb") as handle:
+                handle.write(packet_bytes)
+            with open(receipt_path, "wb") as handle:
+                handle.write(receipt_bytes)
+            manifest["packet_sha256"] = P.sha256(packet_bytes)
+            manifest["receipt_sha256"] = P.sha256(receipt_bytes)
+            with open(manifest_path, "wb") as handle:
+                handle.write(P._json_bytes(manifest))
+
+            result = self.verify(packet_path, manifest_path)
+            self.assertEqual("FAIL", result["status"])
+            self.assertFalse(
+                result["checks"]["published_packet_matches_source_rebuild"]
+            )
+
+    def test_source_attachment_tamper_after_publish_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            packet_path, manifest_path, _, _ = self.build(directory)
+            with open(os.path.join(directory, "test.log"), "ab") as handle:
+                handle.write(b"forged later line\n")
+            result = self.verify(packet_path, manifest_path)
+            self.assertEqual("FAIL", result["status"])
+            self.assertFalse(
+                result["checks"]["published_packet_matches_source_rebuild"]
+            )
+            self.assertFalse(
+                result["checks"]["source_artifacts_match_rebuild"]
+            )
+
+    def test_cli_verify_rebuilds_from_explicit_source_paths(self):
+        with tempfile.TemporaryDirectory() as directory:
+            packet_path, manifest_path, _, _ = self.build(directory)
+            with open(packet_path, "rb") as handle:
+                packet_sha = P.sha256(handle.read())
+            json_out = os.path.join(directory, "verification.json")
+            command = [
+                sys.executable,
+                H.__file__,
+                "verify",
+                "--manifest",
+                manifest_path,
+                "--contract",
+                CONTRACT,
+                "--scorer-packet",
+                packet_path,
+                "--test-log",
+                os.path.join(directory, "test.log"),
+                "--validator-output",
+                os.path.join(directory, "validator.log"),
+                "--expected-run-id",
+                RUN_ID,
+                "--expected-baseline-commit",
+                BASELINE,
+                "--expected-output-commit",
+                OUTPUT,
+                "--expected-container-id",
+                CONTAINER_ID,
+                "--expected-scorer-packet-sha256",
+                packet_sha,
+                "--json-out",
+                json_out,
+            ]
+            completed = subprocess.run(
+                command, capture_output=True, text=True, check=False
+            )
+            self.assertEqual(0, completed.returncode, completed.stderr)
+            with open(json_out, encoding="utf-8") as handle:
+                result = json.load(handle)
+            self.assertEqual("PASS", result["status"])
+            self.assertTrue(
+                result["checks"]["published_packet_matches_source_rebuild"]
+            )
+            self.assertTrue(
+                result["checks"]["published_receipt_matches_source_rebuild"]
+            )
+
+    def test_coherent_completion_claim_rewrite_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            packet_path, manifest_path, _, _ = self.build(directory)
+            base = os.path.dirname(manifest_path)
+            packet_path_out = os.path.join(base, "redacted-packet.json")
+            with open(manifest_path, encoding="utf-8") as handle:
+                manifest = json.load(handle)
+            with open(packet_path_out, encoding="utf-8") as handle:
+                packet = json.load(handle)
+            packet["redacted_output"] = packet["redacted_output"].replace(
+                '"summary":"fixed add"', '"summary":"forged claim"'
+            )
+            packet["redacted_output_sha256"] = P.sha256(
+                packet["redacted_output"].encode("utf-8")
+            )
+            packet_bytes = P._json_bytes(packet)
+            with open(packet_path_out, "wb") as handle:
+                handle.write(packet_bytes)
+            manifest["packet_sha256"] = P.sha256(packet_bytes)
+            with open(manifest_path, "wb") as handle:
+                handle.write(P._json_bytes(manifest))
+            result = self.verify(packet_path, manifest_path)
+            self.assertEqual("FAIL", result["status"])
+            self.assertFalse(
+                result["checks"]["published_packet_matches_source_rebuild"]
+            )
+
     def test_coherent_source_artifact_omission_fails_exact_set_check(self):
         with tempfile.TemporaryDirectory() as directory:
             packet_path, manifest_path, _, _ = self.build(directory)
@@ -327,6 +465,14 @@ class ScorerHandoffV3Tests(unittest.TestCase):
                 )
 
     def test_exact_candidate_manifest_passes_and_tamper_or_omission_fails(self):
+        with open(CANDIDATE_MANIFEST, encoding="utf-8") as handle:
+            declared = json.load(handle)
+        declared_paths = {item["path"] for item in declared["files"]}
+        self.assertIn(
+            "artifacts/experiments/prepush-bugfix-20260724/redaction_runner.py",
+            declared_paths,
+        )
+
         result = H.verify_candidate_manifest(
             CANDIDATE_MANIFEST,
             repo_root=os.path.dirname(
@@ -340,9 +486,11 @@ class ScorerHandoffV3Tests(unittest.TestCase):
             ),
         )
         self.assertEqual("PASS", result["status"])
+        self.assertTrue(result["checks"]["canonical_file_set_is_exact"])
+        self.assertTrue(result["checks"]["canonical_digests_match"])
+        self.assertTrue(result["checks"]["byte_preservation_attributes_are_complete"])
 
-        with open(CANDIDATE_MANIFEST, encoding="utf-8") as handle:
-            manifest = json.load(handle)
+        manifest = declared
         source_root = os.path.dirname(
             os.path.dirname(
                 os.path.dirname(
@@ -379,6 +527,31 @@ class ScorerHandoffV3Tests(unittest.TestCase):
                     or not result["checks"]["candidate_byte_counts_match"]
                     or not result["checks"]["candidate_digests_match"]
                 )
+
+        with tempfile.TemporaryDirectory() as root:
+            for item in manifest["files"]:
+                source = os.path.join(source_root, *item["path"].split("/"))
+                destination = os.path.join(root, *item["path"].split("/"))
+                os.makedirs(os.path.dirname(destination), exist_ok=True)
+                shutil.copyfile(source, destination)
+            for relative in H.CANONICAL_FILES:
+                source = os.path.join(source_root, *relative.split("/"))
+                destination = os.path.join(root, *relative.split("/"))
+                os.makedirs(os.path.dirname(destination), exist_ok=True)
+                shutil.copyfile(source, destination)
+            manifest_path = os.path.join(root, "candidate-manifest.json")
+            with open(manifest_path, "wb") as handle:
+                handle.write(P._json_bytes(manifest))
+            canonical_target = os.path.join(
+                root, *next(iter(H.CANONICAL_FILES)).split("/")
+            )
+            with open(canonical_target, "ab") as handle:
+                handle.write(b"tamper")
+            result = H.verify_candidate_manifest(
+                manifest_path, repo_root=root
+            )
+            self.assertEqual("FAIL", result["status"])
+            self.assertFalse(result["checks"]["canonical_digests_match"])
 
 
 if __name__ == "__main__":

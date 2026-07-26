@@ -1,0 +1,10 @@
+{
+    "status":  "PASS",
+    "scope":  "fresh synthetic Docker integration only; not a Gate 2 arm",
+    "container_name":  "gate2-scorer-v3-rebuild-smoke-20260726",
+    "container_id":  "b7000f1739eddabecdc0a0521b53adae825b9cb30da156430f5af19482a65e7b",
+    "baseline_commit":  "92e524eaa44b38d73d89742998cbf01d262c63d7",
+    "output_commit":  "1dc08928b83951599fe1a8f26b01240769706dd1",
+    "packet_sha256":  "da65c38f30bedd684caeec56d3794a66d751c8cdede69e82cc2d820fb6406333",
+    "source_reproduction":  "PASS: exact packet, receipt and manifest rebuilt from pinned sources"
+}
